@@ -1,28 +1,13 @@
-import { useMemo, useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import {
-  Loader2,
-  Sparkles,
-  Code2,
-  CheckCircle2,
-  ArrowLeft,
-  ArrowRight,
-  RotateCcw,
-} from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { ArrowLeft, ArrowRight, CheckCircle2, Code2, Loader2 } from "lucide-react";
 import { summarizeTourInfo } from "@/lib/packages/ai.functions";
 import { parseMultipleTourHtml, type ParsedTour } from "@/lib/packages/tour-html";
 import { SupplierInput } from "@/components/packages/SupplierInput";
-import { DestinationInput } from "@/components/packages/DestinationInput";
 
-const inp =
+const inputClass =
   "w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-brand-orange";
-
-function brl(n: number) {
-  return n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-}
 
 export type TourImportPatch = {
   title?: string;
@@ -38,466 +23,240 @@ export type TourImportPatch = {
   price_per_person?: number;
   date_mode?: string;
   pricing_mode?: string;
+  services?: { raw_description?: string };
 };
 
-const STEPS = ["Destino e fornecedor", "HTML do serviço", "Texto complementar", "Pronto"];
+type ImportedPrice = {
+  date: string;
+  modality: string;
+  price_per_person: number;
+  taxes: number;
+};
 
 export function TourHtmlImporter({
-  packageId,
   destination,
   supplier,
   onApply,
   onPrices,
   onComplete,
 }: {
-  packageId?: string;
   destination?: string | null;
   supplier?: string | null;
   onApply: (patch: TourImportPatch) => void;
-  onPrices?: (
-    rows: { date: string; modality: string; price_per_person: number }[],
-  ) => void;
+  onPrices?: (rows: ImportedPrice[]) => void;
   onComplete?: () => void;
 }) {
-  const qc = useQueryClient();
   const summarize = useServerFn(summarizeTourInfo);
-  const [step, setStep] = useState(0);
-  const [destCity, setDestCity] = useState(destination ?? "");
+  const [step, setStep] = useState<0 | 1>(0);
   const [supplierName, setSupplierName] = useState(supplier ?? "");
   const [html, setHtml] = useState("");
-  const [extra, setExtra] = useState("");
-  const [imageUrl, setImageUrl] = useState("");
-  const [parsed, setParsed] = useState<ParsedTour | null>(null);
   const [candidates, setCandidates] = useState<ParsedTour[]>([]);
   const [loading, setLoading] = useState(false);
-  const [savingPrices, setSavingPrices] = useState(false);
 
-  const byModality = useMemo(() => {
-    const map = new Map<string, { min: number; max: number; count: number }>();
-    for (const p of parsed?.prices ?? []) {
-      const cur = map.get(p.modality) ?? { min: Infinity, max: 0, count: 0 };
-      cur.min = Math.min(cur.min, p.price_per_person);
-      cur.max = Math.max(cur.max, p.price_per_person);
-      cur.count += 1;
-      map.set(p.modality, cur);
-    }
-    return [...map.entries()];
-  }, [parsed]);
-
-  function handleParse() {
-    if (html.trim().length < 50) {
-      toast.error("Cole o HTML do serviço primeiro.");
-      return;
-    }
-    try {
-      const list = parseMultipleTourHtml(html);
-      if (!list.length) {
-        toast.error("Nenhum serviço encontrado nesse HTML.");
-        return;
-      }
-      setCandidates(list);
-      if (list.length > 1) {
-        setParsed(null);
-        toast.info(`${list.length} serviços no HTML — escolha qual importar.`);
-        return;
-      }
-      chooseTour(list[0]!);
-    } catch (e) {
-      toast.error("Não consegui ler esse HTML: " + (e as Error).message);
-    }
-  }
-
-  function chooseTour(res: ParsedTour) {
-    setParsed(res);
-    onPrices?.(
-      res.prices.map((p) => ({
-        date: p.date,
-        modality: p.modality,
-        price_per_person: p.price_per_person,
-      })),
-    );
-    setImageUrl(res.image_url || "");
-    setStep(2);
-    toast.success(
-      `${res.modalities.length} modalidade(s) e ${res.prices.length} preço(s) encontrados.`,
-    );
-  }
-
-  async function savePrices(p: ParsedTour, silent = false) {
-    if (!p.prices.length || !packageId) return false;
-    setSavingPrices(true);
-    try {
-      const rows = p.prices.map((x) => ({
-        package_id: packageId,
-        date: x.date,
-        modality: x.modality,
-        price_per_person: x.price_per_person,
-        taxes: 0,
-        seats: null,
-        is_available: true,
-      }));
-      const { error } = await supabase
-        .from("package_date_prices")
-        .upsert(rows, { onConflict: "package_id,date,modality" });
-      if (error) throw error;
-      await qc.invalidateQueries({ queryKey: ["package-date-prices", packageId] });
-      if (!silent) toast.success(`${rows.length} preço(s) gravado(s) no calendário.`);
-      return true;
-    } catch (e) {
-      toast.error((e as Error).message);
-      return false;
-    } finally {
-      setSavingPrices(false);
-    }
-  }
-
-  async function handleGenerate() {
-    if (!parsed) return;
+  async function applyTour(parsed: ParsedTour) {
     setLoading(true);
     try {
-      const raw = [parsed.description, extra.trim()].filter(Boolean).join("\n\n").slice(0, 55000);
+      const rawDescription = parsed.description.trim().slice(0, 55000);
       let ai: Awaited<ReturnType<typeof summarize>> | null = null;
-      if (raw.length >= 20) {
-        ai = await summarize({
-          data: { raw, title: parsed.title || undefined, destination: destCity.trim() || destination || undefined },
-        });
+      if (rawDescription.length >= 20) {
+        try {
+          ai = await summarize({
+            data: {
+              raw: rawDescription,
+              title: parsed.title || undefined,
+              destination: destination?.trim() || undefined,
+            },
+          });
+        } catch (error) {
+          console.warn("[tour-import] não foi possível organizar a descrição", error);
+        }
       }
+
       const minPrice = parsed.prices.reduce(
-        (m, p) => (m === 0 ? p.price_per_person : Math.min(m, p.price_per_person)),
+        (minimum, row) =>
+          minimum === 0 ? row.price_per_person : Math.min(minimum, row.price_per_person),
         0,
       );
+      const aiSummary = [
+        ai?.summary,
+        ai?.hours_note ? `*Horário*\n${ai.hours_note}` : "",
+        ai?.notes ? `*Informações importantes*\n${ai.notes}` : "",
+      ]
+        .filter(Boolean)
+        .join("\n\n");
+
       onApply({
         ...(parsed.title ? { title: parsed.title } : {}),
-        ...(destCity.trim() ? { destination: destCity.trim() } : {}),
-        ...(supplierName.trim() ? { supplier_name: supplierName.trim() } : {}),
-        ...(imageUrl ? { image_url: imageUrl } : {}),
+        supplier_name: supplierName.trim(),
+        ...(parsed.image_url ? { image_url: parsed.image_url } : {}),
         ...(ai?.short ? { summary: ai.short } : {}),
-        ...(ai?.summary
-          ? {
-              ai_summary: ai.notes
-                ? `${ai.summary}\n\n*Informações importantes*\n${ai.notes}`
-                : ai.summary,
-            }
-          : {}),
-        ...(parsed.includes.length ? { includes: parsed.includes } : {}),
-        ...(parsed.modalities.length ? { tour_modalities: parsed.modalities } : {}),
-        meeting_point:
-          ai?.meeting_point ||
-          "Embarque livre: não há ponto de encontro fixo — apresente o voucher ao embarcar na parada mais próxima.",
-        ...(parsed.times.length
-          ? { tour_times: parsed.times }
-          : ai?.times?.length
-            ? { tour_times: ai.times }
-            : { tour_times: [] }),
-        ...(!parsed.times.length && !ai?.times?.length && ai?.hours_note
-          ? {
-              ai_summary: [
-                ai?.summary
-                  ? ai.notes
-                    ? `${ai.summary}\n\n*Informações importantes*\n${ai.notes}`
-                    : ai.summary
-                  : "",
-                `*Horário*\n${ai.hours_note}`,
-              ]
-                .filter(Boolean)
-                .join("\n\n"),
-            }
-          : {}),
+        ...(aiSummary ? { ai_summary: aiSummary } : {}),
+        includes: parsed.includes.length ? parsed.includes : (ai?.includes ?? []),
+        tour_modalities: parsed.modalities.length ? parsed.modalities : (ai?.modalities ?? []),
+        meeting_point: ai?.meeting_point || "",
+        tour_times: parsed.times.length ? parsed.times : (ai?.times ?? []),
         ...(minPrice ? { price_per_person: minPrice } : {}),
+        services: rawDescription ? { raw_description: rawDescription } : {},
         date_mode: "flexible",
         pricing_mode: "per_unit",
       });
-      const saved = await savePrices(parsed, true);
-      setStep(3);
-      onComplete?.();
-      toast.success(
-        saved
-          ? "Tudo preenchido e calendário de preços gravado."
-          : "Dados aplicados no formulário — revise e salve.",
+      onPrices?.(
+        parsed.prices.map((row) => ({
+          date: row.date,
+          modality: row.modality,
+          price_per_person: row.price_per_person,
+          taxes: 0,
+        })),
       );
-    } catch (e) {
-      toast.error((e as Error).message);
+      toast.success("Passeio importado. Revise todos os campos nas abas antes de salvar.");
+      onComplete?.();
     } finally {
       setLoading(false);
     }
   }
 
-  function reset() {
-    setStep(0);
-    setHtml("");
-    setExtra("");
-    setImageUrl("");
-    setParsed(null);
-    setCandidates([]);
+  function readHtml() {
+    if (html.trim().length < 50) {
+      toast.error("Cole o HTML do serviço primeiro.");
+      return;
+    }
+    try {
+      const parsed = parseMultipleTourHtml(html);
+      if (!parsed.length) {
+        toast.error("Nenhum passeio encontrado nesse HTML.");
+        return;
+      }
+      if (parsed.length === 1) {
+        void applyTour(parsed[0]);
+        return;
+      }
+      setCandidates(parsed);
+      toast.info(`${parsed.length} serviços encontrados — escolha qual deseja importar.`);
+    } catch (error) {
+      toast.error("Não consegui ler esse HTML: " + (error as Error).message);
+    }
   }
 
   return (
-    <div className="space-y-4 rounded-xl border border-brand-orange/30 bg-brand-orange/[0.04] p-4">
+    <div className="space-y-5">
       <div className="flex items-center justify-between gap-3">
-        <h3 className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-brand-orange">
-          <Code2 className="h-4 w-4" /> Importar passeio por HTML
+        <h3 className="inline-flex items-center gap-2 text-sm font-bold text-foreground">
+          <Code2 className="h-4 w-4 text-brand-orange" /> Importar passeio por HTML
         </h3>
-        <span className="text-[11px] font-semibold text-muted-foreground">
-          Etapa {step + 1} de {STEPS.length}
+        <span className="text-xs font-semibold text-muted-foreground">Etapa {step + 1} de 2</span>
+      </div>
+
+      <div className="grid grid-cols-[auto_1fr_auto] items-center gap-3">
+        <span className="grid h-7 w-7 place-items-center rounded-full bg-brand-orange text-xs font-bold text-primary-foreground">
+          {step > 0 ? <CheckCircle2 className="h-4 w-4" /> : 1}
+        </span>
+        <div className="h-px bg-border" />
+        <span
+          className={`grid h-7 w-7 place-items-center rounded-full border text-xs font-bold ${
+            step === 1
+              ? "border-brand-orange text-brand-orange"
+              : "border-border text-muted-foreground"
+          }`}
+        >
+          2
         </span>
       </div>
 
-      {/* Stepper */}
-      <div className="flex items-center gap-2">
-        {STEPS.map((s, i) => (
-          <div key={s} className="flex flex-1 items-center gap-2">
-            <div
-              className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-bold ${
-                i < step
-                  ? "bg-brand-orange text-white"
-                  : i === step
-                    ? "border-2 border-brand-orange text-brand-orange"
-                    : "border border-border text-muted-foreground"
-              }`}
-            >
-              {i < step ? <CheckCircle2 className="h-3.5 w-3.5" /> : i + 1}
-            </div>
-            <span
-              className={`truncate text-[11px] font-semibold ${
-                i === step ? "text-foreground" : "text-muted-foreground"
-              }`}
-            >
-              {s}
+      {step === 0 ? (
+        <div className="space-y-4">
+          <label className="block space-y-1.5">
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Fornecedor
             </span>
-            {i < STEPS.length - 1 && <div className="h-px flex-1 bg-border" />}
-          </div>
-        ))}
-      </div>
-
-      {step === 0 && (
-        <div className="space-y-3">
-          <label className="block space-y-1">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-              Cidade de destino (digite e escolha)
-            </span>
-            <DestinationInput value={destCity} onChange={setDestCity} />
-          </label>
-          <label className="block space-y-1">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-              Fornecedor (obrigatório)
-            </span>
-            <SupplierInput value={supplierName} onChange={setSupplierName} />
+            <SupplierInput
+              value={supplierName}
+              onChange={setSupplierName}
+              placeholder="Ex.: GTA, Civitatis, Ingresso Fácil…"
+            />
           </label>
           <button
             type="button"
             onClick={() => {
-              if (!destCity.trim()) {
-                toast.error("Digite a cidade de destino.");
-                return;
-              }
               if (!supplierName.trim()) {
                 toast.error("Informe o fornecedor.");
                 return;
               }
-              onApply({
-                destination: destCity.trim(),
-                supplier_name: supplierName.trim(),
-              });
               setStep(1);
             }}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-brand-orange px-4 py-2 text-xs font-bold text-white"
+            className="inline-flex items-center gap-2 rounded-lg bg-brand-orange px-4 py-2 text-xs font-bold text-primary-foreground"
           >
-            Continuar <ArrowRight className="h-3.5 w-3.5" />
+            Continuar <ArrowRight className="h-4 w-4" />
           </button>
         </div>
-      )}
-
-      {step === 1 && (
-        <div className="space-y-3">
-          <label className="block space-y-1">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-              Cole o bloco HTML do serviço (portal da operadora)
+      ) : (
+        <div className="space-y-4">
+          <label className="block space-y-1.5">
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              HTML do serviço
             </span>
             <textarea
-              rows={7}
-              className={`${inp} font-mono text-[11px]`}
+              rows={9}
+              className={`${inputClass} font-mono text-xs`}
               value={html}
-              onChange={(e) => setHtml(e.target.value)}
+              onChange={(event) => {
+                setHtml(event.target.value);
+                setCandidates([]);
+              }}
               placeholder='<div id="frmResultadoProduto...'
             />
           </label>
+
           {candidates.length > 1 && (
-            <div className="space-y-2 rounded-lg border border-brand-orange/40 bg-background/70 p-3">
-              <p className="text-[11px] font-bold uppercase tracking-wider text-brand-orange">
-                {candidates.length} serviços encontrados — escolha um
-              </p>
-              <div className="max-h-64 space-y-1 overflow-y-auto pr-1">
-                {candidates.map((c, i) => (
-                  <button
-                    key={i}
-                    type="button"
-                    onClick={() => chooseTour(c)}
-                    className="flex w-full items-center gap-3 rounded-lg border border-border p-2 text-left hover:border-brand-orange"
-                  >
-                    {c.image_url ? (
-                      <img src={c.image_url} alt="" className="h-10 w-16 rounded object-cover" />
-                    ) : null}
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-xs font-bold">{c.title}</span>
-                      <span className="block text-[11px] text-muted-foreground">
-                        {c.modalities.length} modalidade(s) · {c.dates.length} data(s) ·{" "}
-                        {c.prices.length} preço(s)
-                      </span>
-                    </span>
-                    <ArrowRight className="h-3.5 w-3.5 shrink-0 text-brand-orange" />
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => setStep(0)}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-2 text-xs font-bold"
-            >
-              <ArrowLeft className="h-3.5 w-3.5" /> Voltar
-            </button>
-            <button
-              type="button"
-              onClick={handleParse}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-brand-orange px-4 py-2 text-xs font-bold text-white"
-            >
-              Continuar <ArrowRight className="h-3.5 w-3.5" />
-            </button>
-          </div>
-        </div>
-      )}
-
-      {step === 2 && parsed && (
-        <div className="space-y-3">
-          <div className="flex items-center gap-3 rounded-lg border border-border bg-background/70 p-3">
-            {(imageUrl || parsed.image_url) && (
-              <img
-                src={imageUrl || parsed.image_url}
-                alt={parsed.title}
-                className="h-14 w-20 shrink-0 rounded-lg object-cover"
-              />
-            )}
-            <div className="min-w-0 text-xs">
-              <div className="truncate font-bold">{parsed.title || "(sem título)"}</div>
-              <div className="text-muted-foreground">
-                {parsed.dates.length} data(s) · {parsed.modalities.length} modalidade(s) ·{" "}
-                {parsed.prices.length} preço(s)
-              </div>
-            </div>
-          </div>
-
-          {parsed.gallery.length > 1 && (
-            <div className="flex flex-wrap gap-2">
-              {parsed.gallery.map((g) => (
+            <div className="max-h-64 space-y-2 overflow-y-auto rounded-lg border border-border bg-background/70 p-3">
+              <p className="text-xs font-bold text-brand-orange">Escolha um serviço</p>
+              {candidates.map((candidate, index) => (
                 <button
-                  key={g}
+                  key={`${candidate.title}-${index}`}
                   type="button"
-                  onClick={() => setImageUrl(g)}
-                  className={`h-12 w-16 overflow-hidden rounded-md border-2 ${
-                    (imageUrl || parsed.image_url) === g
-                      ? "border-brand-orange"
-                      : "border-transparent"
-                  }`}
-                  title="Usar esta imagem"
+                  disabled={loading}
+                  onClick={() => void applyTour(candidate)}
+                  className="flex w-full items-center gap-3 rounded-lg border border-border p-2 text-left hover:border-brand-orange disabled:opacity-60"
                 >
-                  <img src={g} alt="" className="h-full w-full object-cover" />
+                  {candidate.image_url ? (
+                    <img
+                      src={candidate.image_url}
+                      alt=""
+                      className="h-10 w-16 rounded object-cover"
+                    />
+                  ) : null}
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-xs font-bold">{candidate.title}</span>
+                    <span className="block text-[11px] text-muted-foreground">
+                      {candidate.modalities.length} modalidade(s) · {candidate.prices.length} preço(s)
+                    </span>
+                  </span>
+                  {loading ? (
+                    <Loader2 className="h-4 w-4 animate-spin text-brand-orange" />
+                  ) : (
+                    <ArrowRight className="h-4 w-4 text-brand-orange" />
+                  )}
                 </button>
               ))}
             </div>
           )}
 
-          <label className="block space-y-1">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-              Texto complementar (descrição completa da operadora)
-            </span>
-            <textarea
-              rows={6}
-              className={inp}
-              value={extra}
-              onChange={(e) => setExtra(e.target.value)}
-              placeholder="Cole aqui o textão da operadora…"
-            />
-          </label>
-
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={() => setStep(1)}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-2 text-xs font-bold"
+              onClick={() => setStep(0)}
+              disabled={loading}
+              className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-xs font-bold"
             >
-              <ArrowLeft className="h-3.5 w-3.5" /> Voltar
+              <ArrowLeft className="h-4 w-4" /> Voltar
             </button>
             <button
               type="button"
-              onClick={handleGenerate}
-              disabled={loading || savingPrices}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-brand-orange px-4 py-2 text-xs font-bold text-white disabled:opacity-60"
+              onClick={readHtml}
+              disabled={loading}
+              className="inline-flex items-center gap-2 rounded-lg bg-brand-orange px-4 py-2 text-xs font-bold text-primary-foreground disabled:opacity-60"
             >
-              {loading || savingPrices ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <Sparkles className="h-3.5 w-3.5" />
-              )}
-              Gerar e preencher tudo
-            </button>
-          </div>
-        </div>
-      )}
-
-      {step === 3 && parsed && (
-        <div className="space-y-3">
-          <div className="space-y-2 rounded-lg border border-border bg-background/70 p-3 text-xs">
-            <div className="inline-flex items-center gap-1.5 font-bold text-brand-orange">
-              <CheckCircle2 className="h-4 w-4" /> Formulário preenchido
-            </div>
-            <ul className="space-y-1">
-              {byModality.map(([m, v]) => (
-                <li key={m} className="flex items-center justify-between gap-3">
-                  <span className="truncate">{m}</span>
-                  <span className="shrink-0 font-bold text-brand-orange">
-                    {v.min === v.max ? brl(v.min) : `${brl(v.min)} – ${brl(v.max)}`}{" "}
-                    <span className="font-normal text-muted-foreground">({v.count} datas)</span>
-                  </span>
-                </li>
-              ))}
-            </ul>
-            {parsed.includes.length > 0 && (
-              <div className="text-muted-foreground">
-                <strong>Inclusos:</strong> {parsed.includes.join(" · ")}
-              </div>
-            )}
-            {!packageId && parsed.prices.length > 0 && (
-              <div className="text-muted-foreground">
-                Salve o passeio para gravar o calendário de {parsed.prices.length} preço(s).
-              </div>
-            )}
-          </div>
-
-          <div className="flex flex-wrap gap-2">
-            {packageId && parsed.prices.length > 0 && (
-              <button
-                type="button"
-                onClick={() => savePrices(parsed)}
-                disabled={savingPrices}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-brand-orange/50 px-3 py-2 text-xs font-bold text-brand-orange disabled:opacity-60"
-              >
-                {savingPrices ? (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                ) : (
-                  <CheckCircle2 className="h-3.5 w-3.5" />
-                )}
-                Regravar calendário
-              </button>
-            )}
-            <button
-              type="button"
-              onClick={reset}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-2 text-xs font-bold"
-            >
-              <RotateCcw className="h-3.5 w-3.5" /> Importar outro
+              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Code2 className="h-4 w-4" />}
+              Importar e abrir editor
             </button>
           </div>
         </div>

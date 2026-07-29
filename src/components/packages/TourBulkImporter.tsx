@@ -1,10 +1,9 @@
 import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Loader2, Code2, CheckCircle2, Pencil } from "lucide-react";
-import { DestinationInput } from "@/components/packages/DestinationInput";
+import { ArrowLeft, ArrowRight, CheckCircle2, Code2, Loader2 } from "lucide-react";
 import { SupplierInput } from "@/components/packages/SupplierInput";
-import { parseMultipleTourHtml, type ParsedTour } from "@/lib/packages/tour-html";
+import { parseMultipleTourHtml } from "@/lib/packages/tour-html";
 import { summarizeTourInfo } from "@/lib/packages/ai.functions";
 
 export type BulkImportedTourDraft = {
@@ -57,90 +56,61 @@ export function TourBulkImporter({
   onImported?: (drafts: BulkImportedTourDraft[]) => void;
 }) {
   const summarize = useServerFn(summarizeTourInfo);
-  const [html, setHtml] = useState("");
-  const [destination, setDestination] = useState(initialDestination ?? "");
+  const [step, setStep] = useState<0 | 1>(0);
   const [supplier, setSupplier] = useState(initialSupplier ?? "");
-  const [tours, setTours] = useState<ParsedTour[]>([]);
-  const [selected, setSelected] = useState<Record<number, boolean>>({});
+  const [html, setHtml] = useState("");
   const [running, setRunning] = useState(false);
   const [progress, setProgress] = useState("");
-  const [openIdx, setOpenIdx] = useState<number | null>(null);
-  const [extras, setExtras] = useState<Record<number, string>>({});
-
-  function patchTour(i: number, next: Partial<ParsedTour>) {
-    setTours((list) => list.map((t, idx) => (idx === i ? { ...t, ...next } : t)));
-  }
-
-  function readHtml() {
-    try {
-      const list = parseMultipleTourHtml(html);
-      if (!list.length) {
-        toast.error("Nenhum serviço encontrado nesse HTML.");
-        return;
-      }
-      setTours(list);
-      setOpenIdx(list.length === 1 ? 0 : null);
-      setSelected(Object.fromEntries(list.map((_, i) => [i, true])));
-      setExtras({});
-      toast.success(`${list.length} passeio(s) encontrado(s).`);
-    } catch (e) {
-      toast.error("Não consegui ler esse HTML: " + (e as Error).message);
-    }
-  }
 
   async function importAll() {
-    const chosen = tours.filter((_, i) => selected[i]);
-    if (!chosen.length) return;
-    if (!destination.trim()) {
-      toast.error("Informe o destino (ex.: Orlando).");
+    if (html.trim().length < 50) {
+      toast.error("Cole o HTML dos serviços primeiro.");
       return;
     }
-    if (!supplier.trim()) {
-      toast.error("Informe o fornecedor.");
-      return;
-    }
-    setRunning(true);
-    const importedDrafts: BulkImportedTourDraft[] = [];
+    let tours;
     try {
-      const used = new Set<string>();
+      tours = parseMultipleTourHtml(html);
+    } catch (error) {
+      toast.error("Não consegui ler esse HTML: " + (error as Error).message);
+      return;
+    }
+    if (!tours.length) {
+      toast.error("Nenhum passeio encontrado nesse HTML.");
+      return;
+    }
 
-      const extraByTitle = new Map<string, string>();
-      tours.forEach((t, i) => {
-        const v = (extras[i] ?? "").trim();
-        if (v) extraByTitle.set(t.title, v);
-      });
-
-      for (const [idx, t] of chosen.entries()) {
-        setProgress(`${idx + 1}/${chosen.length} — ${t.title}`);
-        let slug = slugify(t.title) || `passeio-${Date.now()}`;
-        let n = 2;
-        while (used.has(slug)) slug = `${slugify(t.title)}-${n++}`;
-        used.add(slug);
-
-        const minPrice = t.prices.reduce(
-          (m, p) => (m === 0 ? p.price_per_person : Math.min(m, p.price_per_person)),
-          0,
-        );
-
-        const rawDescription = [t.description, extraByTitle.get(t.title)]
-          .filter(Boolean)
-          .join("\n\n")
-          .slice(0, 55000);
-
+    setRunning(true);
+    const drafts: BulkImportedTourDraft[] = [];
+    const usedSlugs = new Set<string>();
+    try {
+      for (const [index, tour] of tours.entries()) {
+        setProgress(`${index + 1}/${tours.length} — ${tour.title}`);
+        const rawDescription = tour.description.trim().slice(0, 55000);
         let ai: Awaited<ReturnType<typeof summarize>> | null = null;
         if (rawDescription.length >= 20) {
           try {
             ai = await summarize({
               data: {
                 raw: rawDescription,
-                title: t.title || undefined,
-                destination: destination.trim() || undefined,
+                title: tour.title || undefined,
+                destination: initialDestination?.trim() || undefined,
               },
             });
           } catch (error) {
-            console.warn("[tour-import] não foi possível organizar a descrição", error);
+            console.warn("[tour-bulk-import] descrição sem enriquecimento", error);
           }
         }
+
+        let slug = slugify(tour.title) || `passeio-${index + 1}`;
+        let suffix = 2;
+        while (usedSlugs.has(slug)) slug = `${slugify(tour.title)}-${suffix++}`;
+        usedSlugs.add(slug);
+
+        const minPrice = tour.prices.reduce(
+          (minimum, row) =>
+            minimum === 0 ? row.price_per_person : Math.min(minimum, row.price_per_person),
+          0,
+        );
         const aiSummary = [
           ai?.summary,
           ai?.hours_note ? `*Horário*\n${ai.hours_note}` : "",
@@ -148,22 +118,20 @@ export function TourBulkImporter({
         ]
           .filter(Boolean)
           .join("\n\n");
-        const modalities = t.modalities.length ? t.modalities : (ai?.modalities ?? []);
-        const includes = t.includes.length ? t.includes : (ai?.includes ?? []);
 
-        importedDrafts.push({
+        drafts.push({
           slug,
-          title: t.title,
+          title: tour.title,
           kind: "tour",
-          destination: destination.trim(),
+          destination: initialDestination?.trim() || "",
           supplier_name: supplier.trim(),
           origin: "",
-          image_url: t.image_url || "",
+          image_url: tour.image_url || "",
           price_per_person: minPrice || 0,
           taxes: 0,
-          tour_times: t.times.length ? t.times : (ai?.times ?? []),
-          tour_modalities: modalities,
-          includes,
+          tour_times: tour.times.length ? tour.times : (ai?.times ?? []),
+          tour_modalities: tour.modalities.length ? tour.modalities : (ai?.modalities ?? []),
+          includes: tour.includes.length ? tour.includes : (ai?.includes ?? []),
           meeting_point: ai?.meeting_point || null,
           services: rawDescription ? { raw_description: rawDescription } : {},
           summary: ai?.short || null,
@@ -172,22 +140,18 @@ export function TourBulkImporter({
           pricing_mode: "per_unit",
           max_units: 9,
           is_active: true,
-          __pendingPrices: t.prices.map((price) => ({
-            date: price.date,
-            modality: price.modality,
-            price_per_person: price.price_per_person,
+          __pendingPrices: tour.prices.map((row) => ({
+            date: row.date,
+            modality: row.modality,
+            price_per_person: row.price_per_person,
             taxes: 0,
           })),
         });
       }
-      toast.success(
-        `${importedDrafts.length} passeio(s) importado(s) — revise cada um nas abas antes de salvar.`,
-      );
-      if (importedDrafts.length > 0) {
-        onImported?.(importedDrafts);
-      }
-    } catch (e) {
-      toast.error((e as Error).message);
+      onImported?.(drafts);
+      toast.success(`${drafts.length} passeio(s) importado(s). Revise cada um nas abas.`);
+    } catch (error) {
+      toast.error((error as Error).message);
     } finally {
       setRunning(false);
       setProgress("");
@@ -195,223 +159,89 @@ export function TourBulkImporter({
   }
 
   return (
-    <div className="rounded-xl border border-brand-orange/30 bg-brand-orange/5 p-5 space-y-4">
-      <div className="flex items-center gap-2 text-brand-orange">
-        <Code2 className="h-4 w-4" />
-        <h3 className="text-sm font-bold uppercase tracking-wide">Importar múltiplos passeios</h3>
+    <div className="space-y-5">
+      <div className="flex items-center justify-between gap-3">
+        <h3 className="inline-flex items-center gap-2 text-sm font-bold text-foreground">
+          <Code2 className="h-4 w-4 text-brand-orange" /> Importar múltiplos passeios
+        </h3>
+        <span className="text-xs font-semibold text-muted-foreground">Etapa {step + 1} de 2</span>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2">
-        <label className="text-xs font-bold uppercase text-muted-foreground sm:col-span-2">
-          Cidade de destino (digite e escolha)
-          <DestinationInput
-            value={destination}
-            onChange={setDestination}
-            className="mt-1"
-          />
-        </label>
-        <label className="text-xs font-bold uppercase text-muted-foreground sm:col-span-2">
-          Fornecedor (obrigatório)
-          <SupplierInput value={supplier} onChange={setSupplier} className="mt-1" />
-        </label>
-        <label className="text-xs font-bold uppercase text-muted-foreground sm:col-span-2">
-          Cole o HTML da lista inteira de serviços
-          <textarea
-            value={html}
-            onChange={(e) => setHtml(e.target.value)}
-            rows={6}
-            placeholder='<div id="frmResultadoProduto...'
-            className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 font-mono text-xs normal-case"
-          />
-        </label>
-        <p className="text-[11px] text-muted-foreground sm:col-span-2">
-          A descrição de cada passeio é gravada como texto do operador — depois é só abrir o
-          passeio e clicar em <strong>Gerar descrição com IA</strong>.
-        </p>
-
+      <div className="grid grid-cols-[auto_1fr_auto] items-center gap-3">
+        <span className="grid h-7 w-7 place-items-center rounded-full bg-brand-orange text-xs font-bold text-primary-foreground">
+          {step > 0 ? <CheckCircle2 className="h-4 w-4" /> : 1}
+        </span>
+        <div className="h-px bg-border" />
+        <span
+          className={`grid h-7 w-7 place-items-center rounded-full border text-xs font-bold ${
+            step === 1
+              ? "border-brand-orange text-brand-orange"
+              : "border-border text-muted-foreground"
+          }`}
+        >
+          2
+        </span>
       </div>
 
-      <button
-        type="button"
-        onClick={readHtml}
-        disabled={!html.trim() || running}
-        className="rounded-full bg-brand-orange px-5 py-2 text-sm font-bold text-white disabled:opacity-50"
-      >
-        Ler HTML
-      </button>
-
-      {tours.length > 0 && (
-        <div className="space-y-2">
-          <p className="text-xs font-bold uppercase text-muted-foreground">
-            Revise e edite antes de confirmar
-          </p>
-          <div className="max-h-[28rem] space-y-2 overflow-y-auto pr-1">
-            {tours.map((t, i) => (
-              <div key={i} className="rounded-lg border border-border bg-background/60 p-3">
-                <div className="flex items-center gap-3">
-                  <input
-                    type="checkbox"
-                    checked={!!selected[i]}
-                    onChange={(e) => setSelected((s) => ({ ...s, [i]: e.target.checked }))}
-                  />
-                  {t.image_url ? (
-                    <img
-                      src={t.image_url}
-                      alt={t.title}
-                      className="h-10 w-16 rounded object-cover"
-                      loading="lazy"
-                    />
-                  ) : null}
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-bold">{t.title}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {t.modalities.length} modalidade(s) · {t.prices.length} preço(s) ·{" "}
-                      {t.dates.length} data(s)
-                      {t.times.length ? ` · ${t.times.length} horário(s)` : ""}
-                      {(extras[i] ?? "").trim() ? " · texto ok" : " · sem texto"}
-                      {t.tax_per_person ? ` · taxa ${t.tax_per_person.toFixed(2)}` : ""}
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setOpenIdx(openIdx === i ? null : i)}
-                    className="inline-flex items-center gap-1 rounded-full border border-border px-3 py-1 text-xs font-bold"
-                  >
-                    <Pencil className="h-3 w-3" />
-                    {openIdx === i ? "Fechar" : "Editar"}
-                  </button>
-                </div>
-
-                {openIdx === i && (
-                  <div className="mt-3 grid gap-3 border-t border-border pt-3 sm:grid-cols-2">
-                    <label className="text-[11px] font-bold uppercase text-muted-foreground sm:col-span-2">
-                      Título
-                      <input
-                        value={t.title}
-                        onChange={(e) => patchTour(i, { title: e.target.value })}
-                        className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm normal-case"
-                      />
-                    </label>
-                    <label className="text-[11px] font-bold uppercase text-muted-foreground sm:col-span-2">
-                      URL da imagem
-                      <input
-                        value={t.image_url}
-                        onChange={(e) => patchTour(i, { image_url: e.target.value })}
-                        className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 font-mono text-xs normal-case"
-                      />
-                    </label>
-                    <label className="text-[11px] font-bold uppercase text-muted-foreground">
-                      Horários (separados por vírgula)
-                      <input
-                        value={t.times.join(", ")}
-                        onChange={(e) =>
-                          patchTour(i, {
-                            times: e.target.value
-                              .split(",")
-                              .map((s) => s.trim())
-                              .filter(Boolean),
-                          })
-                        }
-                        className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm normal-case"
-                      />
-                    </label>
-                    <label className="text-[11px] font-bold uppercase text-muted-foreground">
-                      Taxa por pessoa
-                      <input
-                        type="number"
-                        step="0.01"
-                        value={t.tax_per_person}
-                        onChange={(e) =>
-                          patchTour(i, { tax_per_person: Number(e.target.value) || 0 })
-                        }
-                        className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm normal-case"
-                      />
-                    </label>
-                    <label className="text-[11px] font-bold uppercase text-muted-foreground sm:col-span-2">
-                      Descrição do operador
-                      <textarea
-                        value={t.description}
-                        onChange={(e) => patchTour(i, { description: e.target.value })}
-                        rows={5}
-                        className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-xs normal-case"
-                      />
-                    </label>
-                    <label className="text-[11px] font-bold uppercase text-muted-foreground sm:col-span-2">
-                      Texto complementar da operadora (colar o textão deste passeio)
-                      <textarea
-                        value={extras[i] ?? ""}
-                        onChange={(e) => setExtras((x) => ({ ...x, [i]: e.target.value }))}
-                        rows={5}
-                        placeholder="Cole aqui o textão da operadora deste passeio…"
-                        className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-xs normal-case"
-                      />
-                    </label>
-                    <label className="text-[11px] font-bold uppercase text-muted-foreground sm:col-span-2">
-                      Inclui (um por linha)
-                      <textarea
-                        value={t.includes.join("\n")}
-                        onChange={(e) =>
-                          patchTour(i, {
-                            includes: e.target.value
-                              .split("\n")
-                              .map((s) => s.trim())
-                              .filter(Boolean),
-                          })
-                        }
-                        rows={3}
-                        className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-xs normal-case"
-                      />
-                    </label>
-                    {t.prices.length > 0 && (
-                      <div className="sm:col-span-2">
-                        <p className="text-[11px] font-bold uppercase text-muted-foreground">
-                          Preços por data ({t.prices.length})
-                        </p>
-                        <div className="mt-1 max-h-40 space-y-1 overflow-y-auto">
-                          {t.prices.map((p, pi) => (
-                            <div key={pi} className="flex items-center gap-2 text-xs">
-                              <span className="w-24 shrink-0 text-muted-foreground">{p.date}</span>
-                              <span className="min-w-0 flex-1 truncate">{p.modality}</span>
-                              <input
-                                type="number"
-                                step="0.01"
-                                value={p.price_per_person}
-                                onChange={(e) =>
-                                  patchTour(i, {
-                                    prices: t.prices.map((x, xi) =>
-                                      xi === pi
-                                        ? { ...x, price_per_person: Number(e.target.value) || 0 }
-                                        : x,
-                                    ),
-                                  })
-                                }
-                                className="w-28 rounded border border-border bg-background px-2 py-1 text-right"
-                              />
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
+      {step === 0 ? (
+        <div className="space-y-4">
+          <label className="block space-y-1.5">
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Fornecedor
+            </span>
+            <SupplierInput
+              value={supplier}
+              onChange={setSupplier}
+              placeholder="Ex.: GTA, Civitatis, Ingresso Fácil…"
+            />
+          </label>
           <button
             type="button"
-            onClick={importAll}
-            disabled={running}
-            className="inline-flex items-center gap-2 rounded-full bg-brand-orange px-5 py-2 text-sm font-bold text-white disabled:opacity-60"
+            onClick={() => {
+              if (!supplier.trim()) {
+                toast.error("Informe o fornecedor.");
+                return;
+              }
+              setStep(1);
+            }}
+            className="inline-flex items-center gap-2 rounded-lg bg-brand-orange px-4 py-2 text-xs font-bold text-primary-foreground"
           >
-            {running ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <CheckCircle2 className="h-4 w-4" />
-            )}
-            {running
-              ? progress || "Importando..."
-              : `Concluir importação e revisar ${Object.values(selected).filter(Boolean).length} passeio(s)`}
+            Continuar <ArrowRight className="h-4 w-4" />
           </button>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          <label className="block space-y-1.5">
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              HTML dos serviços
+            </span>
+            <textarea
+              value={html}
+              onChange={(event) => setHtml(event.target.value)}
+              rows={10}
+              placeholder='<div id="frmResultadoProduto...'
+              className="w-full rounded-lg border border-border bg-background px-3 py-2 font-mono text-xs outline-none focus:border-brand-orange"
+            />
+          </label>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setStep(0)}
+              disabled={running}
+              className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-xs font-bold"
+            >
+              <ArrowLeft className="h-4 w-4" /> Voltar
+            </button>
+            <button
+              type="button"
+              onClick={() => void importAll()}
+              disabled={running}
+              className="inline-flex items-center gap-2 rounded-lg bg-brand-orange px-4 py-2 text-xs font-bold text-primary-foreground disabled:opacity-60"
+            >
+              {running ? <Loader2 className="h-4 w-4 animate-spin" /> : <Code2 className="h-4 w-4" />}
+              {running ? progress || "Importando…" : "Importar e abrir editor"}
+            </button>
+          </div>
         </div>
       )}
     </div>
