@@ -444,6 +444,50 @@ function AdminPackages() {
     return sorted;
   }, [packages, originFilter, destinationFilter, monthFilter, kindFilter, sortDir, sortMode]);
 
+  const [exporting, setExporting] = useState(false);
+  const exportCsv = async () => {
+    if (!displayPackages.length) {
+      toast.error("Nada para exportar com os filtros atuais");
+      return;
+    }
+    setExporting(true);
+    try {
+      const ids = displayPackages.map((p) => p.id);
+      const dates: ExportDatePrice[] = [];
+      for (let i = 0; i < ids.length; i += 200) {
+        const { data, error } = await supabase
+          .from("package_date_prices")
+          .select("package_id,date,modality,price_per_person,taxes,seats,is_available")
+          .in("package_id", ids.slice(i, i + 200))
+          .order("date");
+        if (error) throw error;
+        dates.push(...((data ?? []) as unknown as ExportDatePrice[]));
+      }
+      const csv = buildPackagesCsv(
+        displayPackages as unknown as Record<string, unknown>[],
+        dates,
+        typeof window !== "undefined" ? window.location.origin : "",
+      );
+      const kindSlug =
+        kindFilter === "all"
+          ? "todos"
+          : kindFilter === "service"
+            ? "ingressos"
+            : kindFilter === "tour"
+              ? "passeios"
+              : kindFilter === "cruise"
+                ? "cruzeiros"
+                : "pacotes";
+      downloadCsv(`viaair-${kindSlug}-${new Date().toISOString().slice(0, 10)}.csv`, csv);
+      toast.success(`Exportado: ${displayPackages.length} registro(s)`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha ao exportar");
+    } finally {
+      setExporting(false);
+    }
+  };
+
+
   const hasActiveFilters =
     originFilter !== "all" ||
     destinationFilter !== "all" ||
