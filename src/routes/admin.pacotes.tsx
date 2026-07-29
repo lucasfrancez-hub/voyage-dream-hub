@@ -2012,6 +2012,10 @@ function PackageEditorModal({
                           ? importedServices.tickets.parks
                           : previousServices.tickets?.parks) ?? [],
                     },
+                    ticket_rules:
+                      (importedServices.ticket_rules && importedServices.ticket_rules.length
+                        ? importedServices.ticket_rules
+                        : previousServices.ticket_rules) ?? [],
                     outros: importedServices.outros ?? previousServices.outros ?? [],
 
                   },
