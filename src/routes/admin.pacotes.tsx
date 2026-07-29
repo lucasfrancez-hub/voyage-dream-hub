@@ -2948,15 +2948,16 @@ function Detail({
   children: React.ReactNode;
 }) {
   return (
-    <div className="space-y-3">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div>
-          <h5 className="text-sm font-semibold">{title}</h5>
-          {hint && <p className="text-[11px] text-muted-foreground">{hint}</p>}
-        </div>
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        {hint ? (
+          <p className="max-w-xl text-xs leading-relaxed text-muted-foreground">{hint}</p>
+        ) : (
+          <span className="sr-only">{title}</span>
+        )}
         {action}
       </div>
-      <div className="flex flex-col gap-2">{children}</div>
+      <div className="flex flex-col gap-3">{children}</div>
     </div>
   );
 }
