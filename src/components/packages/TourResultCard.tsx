@@ -161,10 +161,23 @@ export function TourResultCard({
       ? tour.tour_times
       : [];
 
+  const fullDescription = (() => {
+    const parts = [tour.itinerary, tour.summary, tour.ai_summary, (tour as any).description]
+      .map((v: any) => (typeof v === "string" ? v.trim() : ""))
+      .filter(Boolean);
+    // remove duplicatas / trechos contidos em outro
+    const out: string[] = [];
+    for (const p of parts) {
+      if (!out.some((o) => o.includes(p))) out.push(p);
+    }
+    return out.join("\n\n");
+  })();
+
   const teaser = (() => {
     const raw: string =
       (tour as any).short_description ||
       (tour as any).ai_summary ||
+      (tour as any).summary ||
       (tour as any).description ||
       (tour as any).itinerary ||
       "";
@@ -174,10 +187,10 @@ export function TourResultCard({
       .replace(/^\s*[-•]\s*/gm, "")
       .replace(/\s+/g, " ")
       .trim();
-    if (clean.length <= 180) return clean;
-    const cut = clean.slice(0, 180);
+    if (clean.length <= 320) return clean;
+    const cut = clean.slice(0, 320);
     const stop = Math.max(cut.lastIndexOf(". "), cut.lastIndexOf(" "));
-    return cut.slice(0, stop > 90 ? stop : 180).trim() + "…";
+    return cut.slice(0, stop > 160 ? stop : 320).trim() + "…";
   })();
 
 
