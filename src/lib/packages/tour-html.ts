@@ -158,35 +158,67 @@ export function parseTourHtml(html: string): ParsedTour {
   const modalities: string[] = [];
   const prices: ParsedTourPrice[] = [];
 
-  const table = [...doc.querySelectorAll("table")].find((t) =>
-    /modalidade/i.test(t.querySelector("thead")?.textContent ?? ""),
-  );
+  const isMobileOnly = (el: Element) => {
+    const cls = el.getAttribute("class") ?? "";
+    return /(^|\s)md:hidden(\s|$)/.test(cls) || /mobile-table-row/.test(cls);
+  };
+  const visibleCells = (row: Element) => {
+    const cells = [...row.children] as HTMLElement[];
+    const desktop = cells.filter((c) => !isMobileOnly(c));
+    return desktop.length ? desktop : cells;
+  };
+
+  const allTables = [...doc.querySelectorAll<HTMLElement>("table")];
+  // A tabela de preços é a que tem mais colunas de data no cabeçalho.
+  const scored = allTables
+    .map((t) => {
+      const headerRow = [...t.querySelectorAll<HTMLElement>(":scope > thead > tr")]
+        .map((row) => ({
+          row,
+          parsed: visibleCells(row).map((cell) => parseTourDateLabel(cell.textContent ?? "")),
+        }))
+        .sort((a, b) => b.parsed.filter(Boolean).length - a.parsed.filter(Boolean).length)[0];
+      return { table: t, parsed: headerRow?.parsed ?? [] };
+    })
+    .sort((a, b) => b.parsed.filter(Boolean).length - a.parsed.filter(Boolean).length)[0];
+
+  const table = scored && scored.parsed.some(Boolean) ? scored.table : null;
 
   if (table) {
-    // Alguns portais colocam tabelas auxiliares dentro das células de preço.
-    // Ler todos os `tbody tr` inclui essas linhas internas como modalidades e
-    // desloca as colunas. Trabalhamos somente com as linhas filhas da matriz.
-    const headerRows = [...table.querySelectorAll<HTMLElement>(":scope > thead > tr")];
-    const headerRow = headerRows
-      .map((row) => ({
-        row,
-        parsed: [...row.children].map((cell) => parseTourDateLabel(cell.textContent ?? "")),
-      }))
-      .sort(
-        (a, b) => b.parsed.filter(Boolean).length - a.parsed.filter(Boolean).length,
-      )[0];
-    const datesByColumn = headerRow?.parsed ?? [];
+    const datesByColumn = scored!.parsed;
     dates.push(...datesByColumn.filter((date): date is string => Boolean(date)));
 
+    // Alguns portais colocam tabelas auxiliares dentro das células de preço.
+    // Trabalhamos somente com as linhas filhas da matriz.
     const bodyRows = [...table.querySelectorAll<HTMLElement>(":scope > tbody > tr")];
-    for (const tr of bodyRows) {
-      const cells = [...tr.children] as HTMLElement[];
-      if (cells.length < 2) continue;
-      const modality = cleanModality(cells[0].textContent ?? "", title);
-      if (!modality) continue;
+
+    // Layout novo: as modalidades ficam numa tabela lateral fixa ("Modalidade"),
+    // separada da tabela de preços.
+    const modalityTable = allTables.find(
+      (t) =>
+        t !== table &&
+        /modalidade/i.test(t.querySelector("thead")?.textContent ?? "") &&
+        [...t.querySelectorAll<HTMLElement>(":scope > tbody > tr")].length > 0,
+    );
+    const sideModalities = modalityTable
+      ? [...modalityTable.querySelectorAll<HTMLElement>(":scope > tbody > tr")].map((tr) =>
+          cleanModality(tr.textContent ?? "", title),
+        )
+      : [];
+
+    bodyRows.forEach((tr, rowIndex) => {
+      const cells = visibleCells(tr);
+      if (!cells.length) return;
+      // Se a linha tem uma coluna a mais que as datas, a primeira é a modalidade.
+      const offset = Math.max(0, Math.min(1, cells.length - datesByColumn.length));
+      const modality =
+        offset === 1
+          ? cleanModality(cells[0].textContent ?? "", title)
+          : (sideModalities[rowIndex] ?? "");
+      if (!modality) return;
       let modalityHasPrice = false;
       cells.forEach((td, columnIndex) => {
-        const date = datesByColumn[columnIndex];
+        const date = datesByColumn[columnIndex - offset];
         if (!date) return;
         const price = parseMoney(td.textContent ?? "");
         if (price == null) return;
@@ -194,8 +226,9 @@ export function parseTourHtml(html: string): ParsedTour {
         modalityHasPrice = true;
       });
       if (modalityHasPrice && !modalities.includes(modality)) modalities.push(modality);
-    }
+    });
   }
+
 
   // Horários disponíveis para o passeio (select do portal)
   const times: string[] = [];
