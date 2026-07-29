@@ -29,7 +29,9 @@ import {
   Ship,
   Package as PackageIcon,
   MapPin,
+  type LucideIcon,
 } from "lucide-react";
+
 import { TourDatesEditor } from "@/components/packages/TourDatesEditor";
 import { TourInfoEditor } from "@/components/packages/TourInfoEditor";
 import { SupplierInput } from "@/components/packages/SupplierInput";
@@ -2934,6 +2936,31 @@ function FormField({
   );
 }
 
+function Detail({
+  title,
+  hint,
+  action,
+  children,
+}: {
+  title: string;
+  hint?: string;
+  action?: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <h5 className="text-sm font-semibold">{title}</h5>
+          {hint && <p className="text-[11px] text-muted-foreground">{hint}</p>}
+        </div>
+        {action}
+      </div>
+      <div className="flex flex-col gap-2">{children}</div>
+    </div>
+  );
+}
+
 function ServicesEditor({
   value,
   onChange,
@@ -2957,435 +2984,363 @@ function ServicesEditor({
   const showCityTour = kind === "package";
   const showTickets = kind === "package" || kind === "service" || kind === "tour";
   const showOutros = kind !== "service";
-
-
+  const birthday = ((v as any).birthday ?? {}) as { enabled?: boolean; condicao?: string };
+  const [sel, setSel] = useState<string>("seguro");
 
   function patch(p: Partial<PackageServices>) {
     onChange({ ...v, ...p });
   }
 
-  return (
-    <div className="sm:col-span-2 rounded-2xl border border-border bg-muted/10 p-4">
-      <div className="mb-3 flex items-center gap-2">
-        <Sparkles className="h-4 w-4 text-brand-orange" />
-        <h4 className="text-sm font-semibold">Serviços incluídos no pacote</h4>
-        <span className="text-[11px] text-muted-foreground">
-          — aparecem no checkout e, quando houver 2+, viram “E mais serviços” no flyer.
-        </span>
-      </div>
+  type ServiceItem = {
+    id: string;
+    label: string;
+    icon: LucideIcon;
+    show: boolean;
+    enabled?: boolean;
+    count?: number;
+    toggle?: (checked: boolean) => void;
+  };
 
-      <div className="grid grid-cols-1 gap-3">
-        {/* Seguro */}
-        <div className="rounded-xl border border-border bg-background/60 p-3">
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="checkbox"
-              className="h-4 w-4 accent-brand-orange"
-              checked={!!seguro.enabled}
-              onChange={(e) => patch({ seguro: { ...seguro, enabled: e.target.checked } })}
-            />
-            <Shield className="h-4 w-4 text-brand-orange" />
-            <span className="text-sm font-medium">Seguro viagem</span>
-          </label>
-          {seguro.enabled && (
-            <div className="mt-3 space-y-2">
-              <div className="grid grid-cols-1 sm:grid-cols-[140px_110px_1fr] gap-2 items-center">
-                <span className="text-xs text-muted-foreground">Cobertura médica</span>
-                <select
-                  className={inpClass}
-                  value={(seguro.moeda ?? "USD") as SeguroMoeda}
-                  onChange={(e) =>
-                    patch({ seguro: { ...seguro, moeda: e.target.value as SeguroMoeda } })
-                  }
-                >
-                  <option value="BRL">R$ (Real)</option>
-                  <option value="USD">US$ (Dólar)</option>
-                  <option value="EUR">€ (Euro)</option>
-                </select>
-                <input
-                  className={inpClass}
-                  placeholder="Ex.: 30.000 · 40.000 · 12.000"
-                  value={seguro.cobertura ?? ""}
-                  onChange={(e) => patch({ seguro: { ...seguro, cobertura: e.target.value } })}
-                />
-              </div>
-              {seguro.cobertura && (
-                <div className="text-[11px] text-muted-foreground">
-                  Prévia: Cobertura médica {formatSeguroCobertura(seguro.cobertura, seguro.moeda)}{" "}
-                  por pessoa
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Cobertura de cancelamento involuntário */}
-        {showCancelamento && (
-        <div className="rounded-xl border border-border bg-background/60 p-3">
-
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="checkbox"
-              className="h-4 w-4 accent-brand-orange"
-              checked={!!v.cancelamento?.enabled}
-              onChange={(e) =>
-                patch({ cancelamento: { ...(v.cancelamento ?? {}), enabled: e.target.checked } })
-              }
-            />
-            <Shield className="h-4 w-4 text-brand-orange" />
-            <span className="text-sm font-medium">
-              Cobertura de cancelamento involuntário de viagem
-            </span>
-          </label>
-          {v.cancelamento?.enabled && (
-            <div className="mt-3 space-y-2">
-              <div className="grid grid-cols-1 sm:grid-cols-[140px_110px_1fr] gap-2 items-center">
-                <span className="text-xs text-muted-foreground">Cobertura</span>
-                <select
-                  className={inpClass}
-                  value={(v.cancelamento?.moeda ?? "BRL") as SeguroMoeda}
-                  onChange={(e) =>
-                    patch({
-                      cancelamento: {
-                        ...(v.cancelamento ?? {}),
-                        enabled: true,
-                        moeda: e.target.value as SeguroMoeda,
-                      },
-                    })
-                  }
-                >
-                  <option value="BRL">R$ (Real)</option>
-                  <option value="USD">US$ (Dólar)</option>
-                  <option value="EUR">€ (Euro)</option>
-                </select>
-                <input
-                  className={inpClass}
-                  placeholder="Ex.: 5.000 · 8.000 · 10.000"
-                  value={v.cancelamento?.cobertura ?? ""}
-                  onChange={(e) =>
-                    patch({
-                      cancelamento: {
-                        ...(v.cancelamento ?? {}),
-                        enabled: true,
-                        cobertura: e.target.value,
-                      },
-                    })
-                  }
-                />
-              </div>
-              {v.cancelamento?.cobertura && (
-                <div className="text-[11px] text-muted-foreground">
-                  Prévia: Cobertura de cancelamento involuntário de viagem —{" "}
-                  {formatSeguroCobertura(v.cancelamento.cobertura, v.cancelamento.moeda)} por pessoa
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-        )}
-
-        {/* Transfer */}
-
-        <div className="rounded-xl border border-border bg-background/60 p-3">
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="checkbox"
-              className="h-4 w-4 accent-brand-orange"
-              checked={!!transfer.enabled}
-              onChange={(e) =>
-                patch({
-                  transfer: {
-                    enabled: e.target.checked,
-                    sentido: transfer.sentido ?? "in_out",
-                  },
-                })
-              }
-            />
-            <Bus className="h-4 w-4 text-brand-orange" />
-            <span className="text-sm font-medium">
-              {kind === "service" ? "Transfer hotel ↔ evento" : "Transfer aeroporto ↔ hotel"}
-            </span>
-          </label>
-          {transfer.enabled && (
-            <div className="mt-2 space-y-2">
-              <div className="flex flex-wrap gap-2">
-                {(
-                  kind === "service"
-                    ? ([
-                        { id: "in", label: "Só ida (hotel → evento)" },
-                        { id: "out", label: "Só volta (evento → hotel)" },
-                        { id: "in_out", label: "Ida e volta" },
-                      ] as const)
-                    : ([
-                        { id: "in", label: "Só ida (IN)" },
-                        { id: "out", label: "Só volta (OUT)" },
-                        { id: "in_out", label: "Ida e volta (IN/OUT)" },
-                      ] as const)
-                ).map((opt) => {
-                  const active = (transfer.sentido ?? "in_out") === opt.id;
-                  return (
-                    <button
-                      key={opt.id}
-                      type="button"
-                      onClick={() =>
-                        patch({ transfer: { ...transfer, enabled: true, sentido: opt.id } })
-                      }
-                      className={`rounded-full border px-3 py-1 text-xs transition ${
-                        active
-                          ? "bg-brand-orange text-white border-brand-orange"
-                          : "bg-background border-border hover:bg-muted"
-                      }`}
-                    >
-                      {opt.label}
-                    </button>
-                  );
-                })}
-              </div>
-              <div>
-                <label className="text-[11px] uppercase tracking-wider text-muted-foreground">
-                  {kind === "service"
-                    ? "Pontos de saída (um por linha) — o cliente escolhe no checkout"
-                    : "Pontos de saída / embarque (um por linha)"}
-                </label>
-                <textarea
-                  rows={3}
-                  value={transfer.pickup_points ?? ""}
-                  onChange={(e) =>
-                    patch({ transfer: { ...transfer, enabled: true, pickup_points: e.target.value } })
-                  }
-                  placeholder={
-                    kind === "service"
-                      ? "Ex.:\nHotel Copacabana Palace\nWindsor Barra\nHotel Nacional RJ"
-                      : "Ex.:\nSão Paulo — Terminal Tietê\nCampinas — Shopping Iguatemi\nRio de Janeiro — Barra Shopping"
-                  }
-                  className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm resize-y"
-                />
-                <p className="mt-1 text-[11px] text-muted-foreground">
-                  {kind === "service"
-                    ? "O cliente vai selecionar um destes pontos no checkout do ingresso."
-                    : "Útil quando o transfer sai de vários locais (ex.: Rock in Rio, shows, eventos)."}
-                </p>
-              </div>
-            </div>
-          )}
-        </div>
+  const allItems: ServiceItem[] = [
+    {
+      id: "seguro",
+      label: "Seguro viagem",
+      icon: Shield,
+      show: true,
+      enabled: !!seguro.enabled,
+      toggle: (c) => patch({ seguro: { ...seguro, enabled: c } }),
+    },
+    {
+      id: "cancelamento",
+      label: "Cancelamento involuntário",
+      icon: Shield,
+      show: showCancelamento,
+      enabled: !!v.cancelamento?.enabled,
+      toggle: (c) => patch({ cancelamento: { ...(v.cancelamento ?? {}), enabled: c } }),
+    },
+    {
+      id: "transfer",
+      label: kind === "service" ? "Transfer hotel ↔ evento" : "Transfer aeroporto ↔ hotel",
+      icon: Bus,
+      show: true,
+      enabled: !!transfer.enabled,
+      toggle: (c) => patch({ transfer: { ...transfer, enabled: c, sentido: transfer.sentido ?? "in_out" } }),
+    },
+    {
+      id: "city_tour",
+      label: "City tour / passeios",
+      icon: MapPinIcon,
+      show: showCityTour,
+      enabled: !!cityTour.enabled,
+      toggle: (c) => patch({ city_tour: { ...cityTour, enabled: c } }),
+    },
+    {
+      id: "tickets",
+      label: "Ingressos (parques)",
+      icon: Ticket,
+      show: showTickets,
+      enabled: !!tickets.enabled,
+      toggle: (c) => patch({ tickets: { ...tickets, enabled: c, parks: parks.length ? parks : [""] } }),
+    },
+    {
+      id: "birthday",
+      label: "Cortesia aniversariante",
+      icon: Sparkles,
+      show: showTickets,
+      enabled: !!birthday.enabled,
+      toggle: (c) => patch({ birthday: { ...birthday, enabled: c } } as Partial<PackageServices>),
+    },
+    {
+      id: "ticket_rules",
+      label: "Regras dos ingressos",
+      icon: ListChecks,
+      show: showTickets,
+      count: ticketRules.length,
+    },
+    {
+      id: "outros",
+      label: "Outros serviços",
+      icon: ListChecks,
+      show: showOutros,
+      count: outros.length,
+    },
+    {
+      id: "addons",
+      label: "Opcionais (checkout)",
+      icon: Sparkles,
+      show: true,
+      count: (v.addons ?? []).length,
+    },
+  ];
+  const items = allItems.filter((i) => i.show);
 
 
-        {/* City tour */}
-        {showCityTour && (
-        <div className="rounded-xl border border-border bg-background/60 p-3">
 
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="checkbox"
-              className="h-4 w-4 accent-brand-orange"
-              checked={!!cityTour.enabled}
-              onChange={(e) => patch({ city_tour: { ...cityTour, enabled: e.target.checked } })}
-            />
-            <MapPinIcon className="h-4 w-4 text-brand-orange" />
-            <span className="text-sm font-medium">City tour / passeios inclusos</span>
-          </label>
-          {cityTour.enabled && (
-            <div className="mt-2">
+  const detail = (() => {
+    switch (sel) {
+      case "seguro":
+        return (
+          <Detail title="Seguro viagem" hint="Cobertura médica por pessoa, exibida no checkout e no flyer.">
+            <div className="grid grid-cols-1 sm:grid-cols-[140px_110px_1fr] gap-2 items-center">
+              <span className="text-xs text-muted-foreground">Cobertura médica</span>
+              <select
+                className={inpClass}
+                value={(seguro.moeda ?? "USD") as SeguroMoeda}
+                onChange={(e) => patch({ seguro: { ...seguro, enabled: true, moeda: e.target.value as SeguroMoeda } })}
+              >
+                <option value="BRL">R$ (Real)</option>
+                <option value="USD">US$ (Dólar)</option>
+                <option value="EUR">€ (Euro)</option>
+              </select>
               <input
                 className={inpClass}
-                placeholder="Ex.: City tour panorâmico de meio período"
-                value={cityTour.detalhe ?? ""}
-                onChange={(e) => patch({ city_tour: { ...cityTour, detalhe: e.target.value } })}
+                placeholder="Ex.: 30.000 · 40.000 · 12.000"
+                value={seguro.cobertura ?? ""}
+                onChange={(e) => patch({ seguro: { ...seguro, enabled: true, cobertura: e.target.value } })}
               />
             </div>
-          )}
-        </div>
-        )}
-
-        {/* Ingressos (parques/atrações) */}
-        {showTickets && (
-        <div className="rounded-xl border border-border bg-background/60 p-3">
-
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="checkbox"
-              className="h-4 w-4 accent-brand-orange"
-              checked={!!tickets.enabled}
-              onChange={(e) =>
-                patch({
-                  tickets: {
-                    ...tickets,
-                    enabled: e.target.checked,
-                    parks: parks.length ? parks : [""],
-                  },
-                })
-              }
-            />
-            <span className="text-sm font-medium">🎟️ Ingressos (parques / atrações)</span>
-            <span className="text-[11px] text-muted-foreground">— ex.: Disney, Universal, SeaWorld</span>
-          </label>
-          {tickets.enabled && (
-            <div className="mt-2 space-y-2">
-              {(parks.length ? parks : [""]).map((park, idx) => (
-                <div key={idx} className="flex gap-2">
-                  <input
-                    className={inpClass}
-                    placeholder="Nome do parque / atração"
-                    value={park ?? ""}
-                    onChange={(e) => {
-                      const next = [...(parks.length ? parks : [""])];
-                      next[idx] = e.target.value;
-                      patch({ tickets: { ...tickets, enabled: true, parks: next } });
-                    }}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const next = (parks.length ? parks : [""]).filter((_, i) => i !== idx);
-                      patch({ tickets: { ...tickets, enabled: next.length > 0, parks: next } });
-                    }}
-                    className="rounded-lg border border-border px-2 hover:bg-muted"
-                    aria-label="Remover"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                </div>
-              ))}
-              <button
-                type="button"
-                onClick={() =>
-                  patch({ tickets: { ...tickets, enabled: true, parks: [...(parks.length ? parks : [""]), ""] } })
-                }
-                className="text-xs text-brand-orange hover:underline"
-              >
-                + Adicionar parque
-              </button>
-            </div>
-          )}
-        </div>
-        )}
-
-
-        {/* Regras dos ingressos (resumo para o cliente) */}
-        {showTickets && (
-          <div className="rounded-xl border border-border bg-background/60 p-3">
-            <div className="mb-2 flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
-                <ListChecks className="h-4 w-4 text-brand-orange" />
-                <span className="text-sm font-medium">Regras dos ingressos</span>
-                <span className="text-[11px] text-muted-foreground">
-                  — resumo curto que aparece na página do cliente
-                </span>
+            {seguro.cobertura && (
+              <div className="text-[11px] text-muted-foreground">
+                Prévia: Cobertura médica {formatSeguroCobertura(seguro.cobertura, seguro.moeda)} por pessoa
               </div>
+            )}
+          </Detail>
+        );
+      case "cancelamento":
+        return (
+          <Detail title="Cancelamento involuntário" hint="Valor de cobertura por pessoa.">
+            <div className="grid grid-cols-1 sm:grid-cols-[140px_110px_1fr] gap-2 items-center">
+              <span className="text-xs text-muted-foreground">Cobertura</span>
+              <select
+                className={inpClass}
+                value={(v.cancelamento?.moeda ?? "BRL") as SeguroMoeda}
+                onChange={(e) =>
+                  patch({ cancelamento: { ...(v.cancelamento ?? {}), enabled: true, moeda: e.target.value as SeguroMoeda } })
+                }
+              >
+                <option value="BRL">R$ (Real)</option>
+                <option value="USD">US$ (Dólar)</option>
+                <option value="EUR">€ (Euro)</option>
+              </select>
+              <input
+                className={inpClass}
+                placeholder="Ex.: 5.000 · 8.000 · 10.000"
+                value={v.cancelamento?.cobertura ?? ""}
+                onChange={(e) =>
+                  patch({ cancelamento: { ...(v.cancelamento ?? {}), enabled: true, cobertura: e.target.value } })
+                }
+              />
+            </div>
+            {v.cancelamento?.cobertura && (
+              <div className="text-[11px] text-muted-foreground">
+                Prévia: Cobertura de cancelamento involuntário de viagem —{" "}
+                {formatSeguroCobertura(v.cancelamento.cobertura, v.cancelamento.moeda)} por pessoa
+              </div>
+            )}
+          </Detail>
+        );
+      case "transfer":
+        return (
+          <Detail
+            title={kind === "service" ? "Transfer hotel ↔ evento" : "Transfer aeroporto ↔ hotel"}
+            hint="Defina o sentido e os pontos de embarque."
+          >
+            <div className="flex flex-wrap gap-2">
+              {(
+                kind === "service"
+                  ? ([
+                      { id: "in", label: "Só ida (hotel → evento)" },
+                      { id: "out", label: "Só volta (evento → hotel)" },
+                      { id: "in_out", label: "Ida e volta" },
+                    ] as const)
+                  : ([
+                      { id: "in", label: "Só ida (IN)" },
+                      { id: "out", label: "Só volta (OUT)" },
+                      { id: "in_out", label: "Ida e volta (IN/OUT)" },
+                    ] as const)
+              ).map((opt) => {
+                const active = (transfer.sentido ?? "in_out") === opt.id;
+                return (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    onClick={() => patch({ transfer: { ...transfer, enabled: true, sentido: opt.id } })}
+                    className={`rounded-full border px-3 py-1 text-xs transition ${
+                      active ? "bg-brand-orange text-white border-brand-orange" : "bg-background border-border hover:bg-muted"
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                );
+              })}
+            </div>
+            <div>
+              <label className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                {kind === "service"
+                  ? "Pontos de saída (um por linha) — o cliente escolhe no checkout"
+                  : "Pontos de saída / embarque (um por linha)"}
+              </label>
+              <textarea
+                rows={3}
+                value={transfer.pickup_points ?? ""}
+                onChange={(e) => patch({ transfer: { ...transfer, enabled: true, pickup_points: e.target.value } })}
+                placeholder={
+                  kind === "service"
+                    ? "Ex.:\nHotel Copacabana Palace\nWindsor Barra"
+                    : "Ex.:\nSão Paulo — Terminal Tietê\nCampinas — Shopping Iguatemi"
+                }
+                className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm resize-y"
+              />
+            </div>
+          </Detail>
+        );
+      case "city_tour":
+        return (
+          <Detail title="City tour / passeios inclusos" hint="Descreva rapidamente o que está incluso.">
+            <input
+              className={inpClass}
+              placeholder="Ex.: City tour panorâmico de meio período"
+              value={cityTour.detalhe ?? ""}
+              onChange={(e) => patch({ city_tour: { ...cityTour, enabled: true, detalhe: e.target.value } })}
+            />
+          </Detail>
+        );
+      case "tickets":
+        return (
+          <Detail title="Ingressos (parques / atrações)" hint="Ex.: Disney, Universal, SeaWorld.">
+            {(parks.length ? parks : [""]).map((park, idx) => (
+              <div key={idx} className="flex gap-2">
+                <input
+                  className={inpClass}
+                  placeholder="Nome do parque / atração"
+                  value={park ?? ""}
+                  onChange={(e) => {
+                    const next = [...(parks.length ? parks : [""])];
+                    next[idx] = e.target.value;
+                    patch({ tickets: { ...tickets, enabled: true, parks: next } });
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    const next = (parks.length ? parks : [""]).filter((_, i) => i !== idx);
+                    patch({ tickets: { ...tickets, enabled: next.length > 0, parks: next } });
+                  }}
+                  className="rounded-lg border border-border px-2 hover:bg-muted"
+                  aria-label="Remover"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            ))}
+            <button
+              type="button"
+              onClick={() => patch({ tickets: { ...tickets, enabled: true, parks: [...(parks.length ? parks : [""]), ""] } })}
+              className="self-start text-xs text-brand-orange hover:underline"
+            >
+              + Adicionar parque
+            </button>
+          </Detail>
+        );
+      case "ticket_rules":
+        return (
+          <Detail
+            title="Regras dos ingressos"
+            hint="Resumo curto que aparece na página do cliente."
+            action={
               <button
                 type="button"
-                onClick={() =>
-                  patch({
-                    ticket_rules: [...ticketRules, { name: "", usage_date: "", validity: "", rules: [] }],
-                  })
-                }
+                onClick={() => patch({ ticket_rules: [...ticketRules, { name: "", usage_date: "", validity: "", rules: [] }] })}
                 className="text-xs text-brand-orange hover:underline"
               >
                 + Adicionar ingresso
               </button>
-            </div>
-
+            }
+          >
             {ticketRules.length === 0 ? (
               <p className="text-[11px] text-muted-foreground">
-                Nenhuma regra. Ao importar um orçamento em PDF, a IA resume as condições
-                (aniversariante, antecedência, no-show) automaticamente.
+                Nenhuma regra. Ao importar um orçamento em PDF, a IA resume as condições automaticamente.
               </p>
             ) : (
-              <div className="space-y-3">
-                {ticketRules.map((rule, idx) => (
-                  <div key={idx} className="rounded-lg border border-border p-2 space-y-2">
-                    <div className="flex gap-2">
-                      <input
-                        className={inpClass}
-                        placeholder="Nome do ingresso (ex.: Cortesia de aniversariante — 1 dia)"
-                        value={rule?.name ?? ""}
-                        onChange={(e) => {
-                          const next = [...ticketRules];
-                          next[idx] = { ...next[idx], name: e.target.value };
-                          patch({ ticket_rules: next });
-                        }}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => patch({ ticket_rules: ticketRules.filter((_, i) => i !== idx) })}
-                        className="rounded-lg border border-border px-2 hover:bg-muted"
-                        aria-label="Remover ingresso"
-                      >
-                        <X className="h-4 w-4" />
-                      </button>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2">
-                      <input
-                        className={inpClass}
-                        placeholder="Utilização (DD/MM/AAAA)"
-                        value={rule?.usage_date ?? ""}
-                        onChange={(e) => {
-                          const next = [...ticketRules];
-                          next[idx] = { ...next[idx], usage_date: e.target.value };
-                          patch({ ticket_rules: next });
-                        }}
-                      />
-                      <input
-                        className={inpClass}
-                        placeholder="Validade (DD/MM/AAAA)"
-                        value={rule?.validity ?? ""}
-                        onChange={(e) => {
-                          const next = [...ticketRules];
-                          next[idx] = { ...next[idx], validity: e.target.value };
-                          patch({ ticket_rules: next });
-                        }}
-                      />
-                    </div>
-                    <textarea
-                      rows={4}
+              ticketRules.map((rule, idx) => (
+                <div key={idx} className="space-y-2 rounded-lg border border-border p-2">
+                  <div className="flex gap-2">
+                    <input
                       className={inpClass}
-                      placeholder={"Uma regra por linha\nEx.: Aniversariante entra grátis com 3 acompanhantes pagantes"}
-                      value={(rule?.rules ?? []).join("\n")}
+                      placeholder="Nome do ingresso (ex.: Cortesia de aniversariante — 1 dia)"
+                      value={rule?.name ?? ""}
                       onChange={(e) => {
                         const next = [...ticketRules];
-                        next[idx] = {
-                          ...next[idx],
-                          rules: e.target.value.split(/\r?\n/).map((s) => s.trim()).filter(Boolean),
-                        };
+                        next[idx] = { ...next[idx], name: e.target.value };
+                        patch({ ticket_rules: next });
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => patch({ ticket_rules: ticketRules.filter((_, i) => i !== idx) })}
+                      className="rounded-lg border border-border px-2 hover:bg-muted"
+                      aria-label="Remover ingresso"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <input
+                      className={inpClass}
+                      placeholder="Utilização (DD/MM/AAAA)"
+                      value={rule?.usage_date ?? ""}
+                      onChange={(e) => {
+                        const next = [...ticketRules];
+                        next[idx] = { ...next[idx], usage_date: e.target.value };
+                        patch({ ticket_rules: next });
+                      }}
+                    />
+                    <input
+                      className={inpClass}
+                      placeholder="Validade (DD/MM/AAAA)"
+                      value={rule?.validity ?? ""}
+                      onChange={(e) => {
+                        const next = [...ticketRules];
+                        next[idx] = { ...next[idx], validity: e.target.value };
                         patch({ ticket_rules: next });
                       }}
                     />
                   </div>
-                ))}
-              </div>
+                  <textarea
+                    rows={4}
+                    className={inpClass}
+                    placeholder={"Uma regra por linha"}
+                    value={(rule?.rules ?? []).join("\n")}
+                    onChange={(e) => {
+                      const next = [...ticketRules];
+                      next[idx] = {
+                        ...next[idx],
+                        rules: e.target.value.split(/\r?\n/).map((s) => s.trim()).filter(Boolean),
+                      };
+                      patch({ ticket_rules: next });
+                    }}
+                  />
+                </div>
+              ))
             )}
-          </div>
-        )}
-
-
-
-
-
-        {/* Outros */}
-        {showOutros && (
-        <div className="rounded-xl border border-border bg-background/60 p-3">
-
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
-              <ListChecks className="h-4 w-4 text-brand-orange" />
-              <span className="text-sm font-medium">Outros serviços</span>
-              <span className="text-[11px] text-muted-foreground">
-                — ex.: assistência 24h, bagagem extra, eSIM
-              </span>
-            </div>
-            <button
-              type="button"
-              onClick={() => patch({ outros: [...outros, ""] })}
-              className="text-xs text-brand-orange hover:underline"
-            >
-              + Adicionar
-            </button>
-          </div>
-          {outros.length === 0 && (
-            <p className="text-xs text-muted-foreground">Nenhum serviço extra.</p>
-          )}
-          <div className="space-y-2">
+          </Detail>
+        );
+      case "outros":
+        return (
+          <Detail
+            title="Outros serviços"
+            hint="Ex.: assistência 24h, bagagem extra, eSIM."
+            action={
+              <button
+                type="button"
+                onClick={() => patch({ outros: [...outros, ""] })}
+                className="text-xs text-brand-orange hover:underline"
+              >
+                + Adicionar
+              </button>
+            }
+          >
+            {outros.length === 0 && <p className="text-xs text-muted-foreground">Nenhum serviço extra.</p>}
             {outros.map((item, idx) => (
               <div key={idx} className="flex gap-2">
                 <input
@@ -3408,19 +3363,92 @@ function ServicesEditor({
                 </button>
               </div>
             ))}
-          </div>
-        </div>
-        )}
+          </Detail>
+        );
+      case "birthday":
+        return (
+          <Detail
+            title="Cortesia de aniversariante"
+            hint="Opcional e sem custo — o cliente marca no checkout e informa a data de nascimento."
+          >
+            <input
+              className={inpClass}
+              placeholder="Condição resumida (ex.: grátis com 3 acompanhantes pagantes)"
+              value={birthday.condicao ?? ""}
+              onChange={(e) => patch({ birthday: { ...birthday, enabled: true, condicao: e.target.value } })}
+            />
+            <p className="text-[11px] text-muted-foreground">
+              No checkout aparece “Sou aniversariante (cortesia)” com valor R$ 0, sem somar no total.
+            </p>
+          </Detail>
+        );
+      case "addons":
+        return (
+          <AddonsEditor
+            value={(v.addons ?? []) as NonNullable<PackageServices["addons"]>}
+            onChange={(next) => patch({ addons: next })}
+            inpClass={inpClass}
+            kind={kind}
+          />
+        );
+      default:
+        return null;
+    }
+  })();
 
-        {/* Serviços adicionais (opcionais no checkout) */}
-        <AddonsEditor
-          value={(v.addons ?? []) as NonNullable<PackageServices["addons"]>}
-          onChange={(next) => patch({ addons: next })}
-          inpClass={inpClass}
-          kind={kind}
-        />
+  return (
+    <div className="sm:col-span-2 rounded-2xl border border-border bg-muted/10 p-4">
+      <div className="mb-3 flex flex-wrap items-center gap-2">
+        <Sparkles className="h-4 w-4 text-brand-orange" />
+        <h4 className="text-sm font-semibold">Serviços incluídos no pacote</h4>
+        <span className="text-[11px] text-muted-foreground">
+          — marque à esquerda, edite os detalhes à direita.
+        </span>
       </div>
 
+      <div className="grid items-start gap-4 md:grid-cols-[248px_1fr]">
+        <div className="space-y-1 rounded-xl border border-border bg-background/60 p-2">
+          {items.map((it) => {
+            const Icon = it.icon;
+            const active = sel === it.id;
+            return (
+              <div
+                key={it.id}
+                onClick={() => setSel(it.id)}
+                className={`flex cursor-pointer items-center gap-2 rounded-lg px-2 py-2 transition ${
+                  active
+                    ? "border border-brand-orange/40 bg-brand-orange/10"
+                    : "border border-transparent hover:bg-muted/60"
+                }`}
+              >
+                {it.toggle ? (
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 shrink-0 accent-brand-orange"
+                    checked={!!it.enabled}
+                    onClick={(e) => e.stopPropagation()}
+                    onChange={(e) => {
+                      it.toggle?.(e.target.checked);
+                      setSel(it.id);
+                    }}
+                  />
+                ) : (
+                  <span className="h-4 w-4 shrink-0" />
+                )}
+                <Icon className="h-4 w-4 shrink-0 text-brand-orange" />
+                <span className="truncate text-xs font-medium">{it.label}</span>
+                {it.count ? (
+                  <span className="ml-auto rounded-full bg-brand-orange/20 px-1.5 text-[10px] font-bold text-brand-orange">
+                    {it.count}
+                  </span>
+                ) : null}
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="min-h-[220px] rounded-xl border border-border bg-background/60 p-4">{detail}</div>
+      </div>
     </div>
   );
 }

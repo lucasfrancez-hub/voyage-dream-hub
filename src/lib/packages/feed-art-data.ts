@@ -114,6 +114,9 @@ export type PackageServices = {
   city_tour?: { enabled?: boolean; detalhe?: string | null };
   passeios?: string[] | null;
   tickets?: { enabled?: boolean; parks?: string[] | null };
+  /** Cortesia de aniversariante: opcional e sem custo no checkout. */
+  birthday?: { enabled?: boolean; condicao?: string | null };
+
   /**
    * Regras/condições dos ingressos resumidas em linguagem simples
    * (ex.: cortesia de aniversariante, antecedência de compra, no-show).

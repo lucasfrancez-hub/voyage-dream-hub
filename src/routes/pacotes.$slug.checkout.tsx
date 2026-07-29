@@ -126,6 +126,9 @@ function Checkout() {
   const [termsOpen, setTermsOpen] = useState(false);
   const [preferredDate, setPreferredDate] = useState("");
   const [pickupPoint, setPickupPoint] = useState("");
+  const [isBirthday, setIsBirthday] = useState(false);
+  const [birthdayName, setBirthdayName] = useState("");
+  const [birthdayDob, setBirthdayDob] = useState("");
   const [selectedAddons, setSelectedAddons] = useState<Record<string, boolean>>({});
 
   // Polling de status do Pix — verifica a cada 5s se o pagamento caiu
@@ -261,6 +264,9 @@ function Checkout() {
       });
   }, [pkg, addonWeekday]);
 
+  const birthdayEnabled = !!((pkg as any)?.services?.birthday?.enabled);
+  const birthdayCondicao = ((pkg as any)?.services?.birthday?.condicao ?? "") as string;
+
   const addonsTotal = useMemo(() => {
     const units = isPerUnit ? adults : (adults + children);
     return addonsList.reduce((sum, a) => {
@@ -389,6 +395,9 @@ function Checkout() {
                 return { name: a.name, price: a.price, per: a.per, qty, subtotal: a.price * qty, description: a.description ?? null };
               }),
             addons_total: addonsTotal,
+            birthday_courtesy: birthdayEnabled && isBirthday
+              ? { name: birthdayName || null, birth_date: birthdayDob || null, price: 0 }
+              : null,
 
             nights: pkg.nights ?? null,
             price_per_person: pkg.price_per_person,
@@ -675,6 +684,54 @@ function Checkout() {
                     );
                   })}
                 </div>
+              </Card>
+            )}
+            {birthdayEnabled && (
+              <Card title="Cortesia de aniversariante">
+                <label
+                  className={`flex cursor-pointer gap-3 rounded-xl border p-3 transition ${
+                    isBirthday
+                      ? "border-brand-orange bg-brand-orange/5"
+                      : "border-border bg-background hover:border-brand-orange/50"
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    className="mt-1 h-4 w-4 accent-brand-orange"
+                    checked={isBirthday}
+                    onChange={(e) => setIsBirthday(e.target.checked)}
+                  />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-baseline justify-between gap-2">
+                      <span className="text-sm font-semibold">Sou aniversariante (cortesia)</span>
+                      <span className="text-sm font-bold text-brand-orange">Sem custo</span>
+                    </div>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {birthdayCondicao ||
+                        "Opcional. Confirmaremos a cortesia com o parque mediante documento com foto."}
+                    </p>
+                  </div>
+                </label>
+                {isBirthday && (
+                  <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                    <Field label="Nome do aniversariante">
+                      <input
+                        className={inputCls}
+                        value={birthdayName}
+                        onChange={(e) => setBirthdayName(e.target.value)}
+                        placeholder="Como no documento"
+                      />
+                    </Field>
+                    <Field label="Data de nascimento">
+                      <input
+                        type="date"
+                        className={inputCls}
+                        value={birthdayDob}
+                        onChange={(e) => setBirthdayDob(e.target.value)}
+                      />
+                    </Field>
+                  </div>
+                )}
               </Card>
             )}
             {/* Viajantes / quantidade */}
