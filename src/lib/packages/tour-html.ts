@@ -64,6 +64,15 @@ function cleanModality(raw: string, title: string) {
   return m.trim() || cleanText(raw);
 }
 
+/** Título do serviço: layout antigo (.servico-titulo) ou novo (link grande do card). */
+function findTitleEl(root: ParentNode): Element | null {
+  return (
+    root.querySelector(".servico-titulo") ??
+    root.querySelector('a[class*="text-2xl"]') ??
+    root.querySelector('[class*="titulo-servico"]')
+  );
+}
+
 /** Divide um HTML com vários serviços do portal em blocos individuais. */
 export function splitTourHtmlBlocks(html: string): string[] {
   const doc = new DOMParser().parseFromString(html, "text/html");
@@ -72,16 +81,12 @@ export function splitTourHtmlBlocks(html: string): string[] {
   const outer = (list: HTMLElement[]) =>
     list.filter((el, _i, arr) => !arr.some((o) => o !== el && o.contains(el)));
 
-  const main = outer([...doc.querySelectorAll<HTMLElement>(".product-main-content")]).filter((el) =>
-    el.querySelector(".servico-titulo"),
-  );
-  if (main.length) return main.map((el) => el.outerHTML);
-
-  const cards = outer([...doc.querySelectorAll<HTMLElement>(".servico-opcao-card")]).filter((el) =>
-    el.querySelector(".servico-titulo"),
-  );
+  const cards = outer([
+    ...doc.querySelectorAll<HTMLElement>(".product-main-content, .servico-opcao-card"),
+  ]).filter((el) => findTitleEl(el));
   return cards.length ? cards.map((el) => el.outerHTML) : [html];
 }
+
 
 /** Interpreta um HTML com vários passeios e devolve um ParsedTour por serviço. */
 export function parseMultipleTourHtml(html: string): ParsedTour[] {
