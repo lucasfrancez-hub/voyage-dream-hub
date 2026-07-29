@@ -338,6 +338,8 @@ export async function buildFeedArtData(pkg: FeedInputPkg): Promise<FeedArtData> 
   return {
     kind: (pkg.kind ?? "package") as "package" | "service" | "cruise" | "tour",
     dateMode: (pkg.date_mode ?? "fixed") as "fixed" | "flexible",
+    flexibleDates: !!(pkg as { flexible_dates?: boolean }).flexible_dates,
+
     title: pkg.title ?? "",
     backgroundDataUrl: bg,
     estado: deriveState(pkg.destination, pkg.tripadvisor_address),
