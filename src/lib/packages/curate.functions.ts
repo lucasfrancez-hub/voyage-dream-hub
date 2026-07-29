@@ -99,9 +99,11 @@ export const generateCurationCopy = createServerFn({ method: "POST" })
     const items = data.packages.map((p) => {
       const occ = p.base_occupancy ?? 2;
       const total = Number(p.price_per_person) * occ;
-      const period = p.going_date
-        ? `${fmtDate(p.going_date)}${p.return_date ? " a " + fmtDate(p.return_date) : ""}`
-        : "";
+      const period = p.flexible_dates
+        ? "Datas flexíveis"
+        : p.going_date
+          ? `${fmtDate(p.going_date)}${p.return_date ? " a " + fmtDate(p.return_date) : ""}`
+          : "";
       const stars = p.hotel_stars ? "★".repeat(Math.min(5, Math.max(1, p.hotel_stars))) : "";
       const d = daysUntil(p.going_date);
       const boleto_ate_data_viagem = d !== null && d >= 60;
@@ -195,6 +197,7 @@ export const generateCurationCopy = createServerFn({ method: "POST" })
         destination: p.destination,
         origin: p.origin || "",
         period,
+        flexible_dates: !!p.flexible_dates,
         nights: p.nights ?? undefined,
         hotel: p.hotel_name ? `${p.hotel_name} ${stars}`.trim() : "",
         meal_plan: p.meal_plan || "",
