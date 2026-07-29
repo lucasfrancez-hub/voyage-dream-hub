@@ -486,8 +486,14 @@ function PackageDetails() {
               ) : (
                 <>
                   {pkg.origin && <Row label="Origem" value={pkg.origin} />}
-                  {pkg.going_date && <Row label="Ida" value={formatDateBR(pkg.going_date)} />}
-                  {pkg.return_date && <Row label="Volta" value={formatDateBR(pkg.return_date)} />}
+                  {flexibleDates ? (
+                    <Row label="Datas" value="Você escolhe" />
+                  ) : (
+                    <>
+                      {pkg.going_date && <Row label="Ida" value={formatDateBR(pkg.going_date)} />}
+                      {pkg.return_date && <Row label="Volta" value={formatDateBR(pkg.return_date)} />}
+                    </>
+                  )}
                   {pkg.nights != null && <Row label="Noites" value={String(pkg.nights)} />}
                 </>
               )}
