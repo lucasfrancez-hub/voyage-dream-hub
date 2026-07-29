@@ -373,7 +373,7 @@ function Checkout() {
             destination: pkg.destination,
             origin: pkg.origin ?? null,
             going_date: isFlexibleDate ? (preferredDate || null) : pkg.going_date,
-            return_date: isFlexibleDate ? null : pkg.return_date,
+            return_date: isFlexibleDate ? (checkoutDate || null) : pkg.return_date,
             date_mode: (pkg as any).date_mode ?? "fixed",
             pricing_mode: (pkg as any).pricing_mode ?? "per_occupancy",
             preferred_date: isFlexibleDate ? preferredDate : null,
