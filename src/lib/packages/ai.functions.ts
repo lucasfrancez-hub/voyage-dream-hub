@@ -1057,6 +1057,8 @@ Cada item segue EXATAMENTE esta estrutura (omita campos ausentes — NÃO invent
     "city_tour": { "enabled": false, "detalhe": "" },
     "passeios": ["City Tour Panorâmico", "Vinhedo Concha y Toro"],
     "tickets": { "enabled": true, "parks": ["Disney", "Universal"] },
+    "ticket_rules": [{ "name": "Cortesia de aniversariante — 1 dia", "usage_date": "11/09/2026", "validity": "11/09/2026", "rules": ["Aniversariante entra grátis com 3 acompanhantes pagantes", "Válido em 1 dia da semana do aniversário (domingo a sábado)", "Todos precisam entrar juntos na catraca", "Levar documento oficial com foto na entrada"] }],
+
 
     "outros": []
 
