@@ -51,6 +51,8 @@ function Checkout() {
     addons: addonsFromSearch,
     modality: modalityFromSearch,
     time: timeFromSearch,
+    nights: nightsFromSearch,
+    birthday: birthdayFromSearch,
   } = Route.useSearch();
   const navigate = useNavigate();
   const notifyPix = useServerFn(notifyPixOrder);
