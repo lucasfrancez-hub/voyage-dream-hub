@@ -114,6 +114,11 @@ export const listCofreOrders = createServerFn({ method: "GET" })
             : null,
         snapshotKind: (snap.kind as string) ?? null,
         isManual: snap.manual === true,
+        boletoCapture: (snap.boleto_capture ?? null) as BoletoCapture | null,
+        passengers: Array.isArray(snap.passengers)
+          ? (snap.passengers as SnapshotPassenger[])
+          : [],
+
       };
 
     });
