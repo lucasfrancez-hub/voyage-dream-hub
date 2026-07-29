@@ -225,6 +225,7 @@ function AdminPackages() {
   // Multi-import drafts: array of partial packages open in tabs
   const [drafts, setDrafts] = useState<Partial<PackageRow>[] | null>(null);
   const [draftIndex, setDraftIndex] = useState(0);
+  const draftIndexRef = useRef(0);
   // Global hashtag number(s) reserved for the currently-open new package(s)
   const [pendingNumbers, setPendingNumbers] = useState<number[] | null>(null);
   const [page, setPage] = useState(1);
@@ -275,8 +276,26 @@ function AdminPackages() {
     const snapshot = drafts.slice();
     if (editing) snapshot[draftIndex] = editing;
     setDrafts(snapshot);
+    draftIndexRef.current = newIdx;
     setDraftIndex(newIdx);
     setEditingState(snapshot[newIdx]);
+  }
+
+  function updateTourDraftRows(
+    targetIndex: number,
+    rows: { date: string; modality: string; price_per_person: number; taxes: number }[],
+  ) {
+    setDrafts((currentDrafts) => {
+      if (!currentDrafts?.[targetIndex]) return currentDrafts;
+      const nextDrafts = currentDrafts.slice();
+      nextDrafts[targetIndex] = { ...nextDrafts[targetIndex], __pendingPrices: rows } as Partial<PackageRow>;
+      return nextDrafts;
+    });
+    if (draftIndexRef.current === targetIndex) {
+      setEditingState((current) =>
+        current ? ({ ...current, __pendingPrices: rows } as Partial<PackageRow>) : current,
+      );
+    }
   }
 
   function closeCurrentDraft() {
@@ -293,6 +312,7 @@ function AdminPackages() {
     }
     const nextIdx = Math.min(draftIndex, remaining.length - 1);
     setDrafts(remaining);
+    draftIndexRef.current = nextIdx;
     setDraftIndex(nextIdx);
     setEditingState(remaining[nextIdx]);
   }
@@ -1348,11 +1368,13 @@ function AdminPackages() {
           draftIndex={draftIndex}
           switchDraft={switchDraft}
           closeCurrentDraft={closeCurrentDraft}
+          updateTourDraftRows={updateTourDraftRows}
           nextNumber={pendingNumbers?.[draftIndex] ?? pendingNumbers?.[0] ?? null}
           onBulkToursImported={(savedTours) => {
             const list = savedTours as Partial<PackageRow>[];
             setPendingNumbers(null);
             setDrafts(list);
+            draftIndexRef.current = 0;
             setDraftIndex(0);
             setEditingState(list[0]);
           }}
@@ -1415,6 +1437,10 @@ type PackageEditorModalProps = {
   draftIndex?: number;
   switchDraft?: (newIdx: number) => void;
   closeCurrentDraft?: () => void;
+  updateTourDraftRows?: (
+    targetIndex: number,
+    rows: { date: string; modality: string; price_per_person: number; taxes: number }[],
+  ) => void;
   nextNumber?: number | null;
   onBulkToursImported?: (drafts: BulkImportedTourDraft[]) => void;
 };
@@ -1487,6 +1513,7 @@ function PackageEditorModal({
   draftIndex = 0,
   switchDraft,
   closeCurrentDraft,
+  updateTourDraftRows,
   nextNumber,
   onBulkToursImported,
 }: PackageEditorModalProps) {
@@ -2250,9 +2277,13 @@ function PackageEditorModal({
 
                   modalities={(editing as any).tour_modalities ?? []}
                   pendingRows={(editing as any).__pendingPrices ?? []}
-                  onRowsChange={(rows) =>
-                    setEditing((prev: any) => ({ ...prev, __pendingPrices: rows }))
-                  }
+                  onRowsChange={(rows) => {
+                    if (drafts?.length && updateTourDraftRows) {
+                      updateTourDraftRows(draftIndex, rows);
+                      return;
+                    }
+                    setEditing((prev: any) => ({ ...prev, __pendingPrices: rows }));
+                  }}
                 />
 
               </div>

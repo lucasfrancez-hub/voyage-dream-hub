@@ -116,12 +116,11 @@ export function TourDatesEditor({
   const saved = packageId ? (data ?? []) : [];
   const list = rows ?? (saved.length ? saved : pending);
 
-  // Mantém o formulário do pacote sincronizado com as edições (inclui taxas),
-  // para que "Salvar pacote" grave o calendário mesmo sem "Salvar datas".
-  useEffect(() => {
-    if (!onRowsChange || !rows) return;
+  function notifyRowsChange(next: Row[]) {
+    setRows(next);
+    if (!onRowsChange) return;
     onRowsChange(
-      rows
+      next
         .filter((r) => /^\d{4}-\d{2}-\d{2}$/.test(r.date))
         .map((r) => ({
           date: r.date,
@@ -130,13 +129,17 @@ export function TourDatesEditor({
           taxes: Number(r.taxes) || 0,
         })),
     );
-  }, [rows]);
+  }
 
 
-  /** Modalidades vindas do cadastro + as que existem nos preços salvos. */
+  /**
+   * Havendo matriz de preços, ela é a única fonte das modalidades do calendário.
+   * Modalidades textuais sem linha de preço não podem aparecer com "0 datas".
+   */
   const allModalities = useMemo(() => {
-    const set = new Set<string>(modalities.filter(Boolean));
+    const set = new Set<string>();
     for (const r of list) if (r.modality) set.add(r.modality);
+    if (!set.size) for (const item of modalities) if (item) set.add(item);
     return [...set];
   }, [modalities, list]);
 
@@ -169,12 +172,12 @@ export function TourDatesEditor({
     if (idx < 0) return;
     const next = [...list];
     next[idx] = { ...next[idx], ...patch };
-    setRows(next);
+    notifyRowsChange(next);
   }
 
   function removeAt(idx: number) {
     if (idx < 0) return;
-    setRows(list.filter((_, i) => i !== idx));
+    notifyRowsChange(list.filter((_, i) => i !== idx));
     setSelectedDate(null);
   }
 
@@ -185,7 +188,7 @@ export function TourDatesEditor({
       setSelectedDate(date);
       return;
     }
-    setRows([
+    notifyRowsChange([
       ...list,
       { date, modality: modality ?? "", price_per_person: 0, taxes: 0, seats: null, is_available: true },
     ]);
@@ -201,7 +204,7 @@ export function TourDatesEditor({
     const key = (r: Row) => `${r.date}|${r.modality ?? ""}`;
     const map = new Map(list.map((r) => [key(r), r]));
     for (const p of parsed) map.set(key(p), { ...map.get(key(p)), ...p });
-    setRows(
+    notifyRowsChange(
       [...map.values()].sort(
         (a, b) => a.date.localeCompare(b.date) || (a.modality ?? "").localeCompare(b.modality ?? ""),
       ),
@@ -223,8 +226,8 @@ export function TourDatesEditor({
         price_per_person: Number(r.price_per_person) || 0,
         taxes: Number(r.taxes) || 0,
       }));
-      onRowsChange(pending);
       setRows(valid);
+      onRowsChange(pending);
       toast.success(`${pending.length} data(s) aplicadas ao passeio. Elas serão gravadas ao salvar.`);
       return;
     }
@@ -356,7 +359,7 @@ export function TourDatesEditor({
                       placeholder="0"
                       onChange={(e) => {
                         const v = Number(e.target.value) || 0;
-                        setRows(
+                        notifyRowsChange(
                           list.map((r) =>
                             (r.modality ?? "") === m ? { ...r, taxes: v } : r,
                           ),
