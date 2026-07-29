@@ -283,9 +283,10 @@ export function TourResultCard({
               <p className="mt-1 text-[11px] text-muted-foreground">
                 {formatBRL(selUnit ?? minUnit ?? 0)} por pessoa · {payingPax}{" "}
                 {payingPax === 1 ? "pessoa" : "pessoas"}
-                {childFee && childCount > 0
-                  ? ` · ${childCount} ${childCount === 1 ? "criança isenta" : "crianças isentas"}`
+                {exemptChildren > 0
+                  ? ` · ${exemptChildren} ${exemptChildren === 1 ? "criança isenta" : "crianças isentas"}`
                   : ""}
+
               </p>
             </div>
 
