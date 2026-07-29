@@ -124,11 +124,16 @@ export function TourBulkImporter({
           if (perr) toast.error(`${t.title} (preços): ${perr.message}`);
         }
         ok += 1;
+        okTitles.push(t.title);
       }
       await qc.invalidateQueries({ queryKey: ["admin-packages"] });
       await qc.invalidateQueries({ queryKey: ["packages"] });
       toast.success(`${ok} passeio(s) importado(s).`);
-      if (ok > 0) onDone?.();
+      if (ok > 0) {
+        setDone(okTitles);
+        setTours([]);
+        setSelected({});
+      }
     } catch (e) {
       toast.error((e as Error).message);
     } finally {
