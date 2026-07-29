@@ -85,7 +85,9 @@ type Bloco = {
   midia_filename?: string | null;
   midia_caption?: string | null;
   botoes?: unknown;
+  scheduled_at?: string | null;
 };
+
 
 const STATUS_LABEL: Record<Campanha["status"], string> = {
   rascunho: "Rascunho",
