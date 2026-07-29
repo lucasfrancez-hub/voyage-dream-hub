@@ -457,6 +457,38 @@ function PasseiosPage() {
         </section>
       </main>
       <ContactFooter whatsappMessage="Olá! Gostaria de reservar um passeio com a Via Air." />
+      <TourCartBar
+        items={cart}
+        onRemove={(key) => setCart((c) => c.filter((x) => x.key !== key))}
+        onCheckout={() => {
+          if (cart.length === 1) {
+            const i = cart[0];
+            navigate({
+              to: "/pacotes/$slug/checkout",
+              params: { slug: i.slug },
+              search: {
+                qty: i.qty,
+                date: i.date,
+                ...(i.modality ? { modality: i.modality } : {}),
+              },
+            });
+            return;
+          }
+          const linhas = cart
+            .map(
+              (i) =>
+                `• ${i.title}${i.modality ? ` (${i.modality})` : ""} — ${i.date
+                  .split("-")
+                  .reverse()
+                  .join("/")} — ${i.qty} pax`,
+            )
+            .join("\n");
+          window.open(
+            whatsappUrl(`Olá! Quero reservar estes passeios:\n${linhas}`),
+            "_blank",
+          );
+        }}
+      />
     </div>
   );
 }
