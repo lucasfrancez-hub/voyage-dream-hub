@@ -138,6 +138,73 @@ export function TourInfoEditor({
         </label>
       </div>
 
+      {/* Política de idades */}
+      <div className="space-y-2 rounded-xl border border-border bg-background/40 p-3">
+        <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+          <Baby className="h-3.5 w-3.5 text-brand-orange" /> Política de idades
+        </span>
+        <div className="grid gap-3 sm:grid-cols-5">
+          {[
+            { k: "free_max_age", label: "Grátis até (anos)", ph: "2" },
+            { k: "fee_min_age", label: "Taxa de", ph: "3" },
+            { k: "fee_max_age", label: "Taxa até", ph: "9" },
+            { k: "fee_amount", label: "Valor da taxa", ph: "1.00" },
+            { k: "adult_min_age", label: "Adulto a partir de", ph: "10" },
+          ].map((f) => (
+            <label key={f.k} className="block space-y-1">
+              <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                {f.label}
+              </span>
+              <input
+                type="number"
+                min={0}
+                step={f.k === "fee_amount" ? "0.01" : "1"}
+                className={inp}
+                value={value.services?.age_policy?.[f.k] ?? ""}
+                placeholder={f.ph}
+                onChange={(e) =>
+                  onChange({
+                    services: {
+                      ...(value.services ?? {}),
+                      age_policy: {
+                        fee_currency: value.services?.age_policy?.fee_currency ?? "US$",
+                        ...(value.services?.age_policy ?? {}),
+                        [f.k]: e.target.value === "" ? null : Number(e.target.value),
+                      },
+                    },
+                  })
+                }
+              />
+            </label>
+          ))}
+        </div>
+        <label className="block space-y-1 sm:max-w-[160px]">
+          <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+            Moeda da taxa
+          </span>
+          <input
+            className={inp}
+            value={value.services?.age_policy?.fee_currency ?? "US$"}
+            onChange={(e) =>
+              onChange({
+                services: {
+                  ...(value.services ?? {}),
+                  age_policy: {
+                    ...(value.services?.age_policy ?? {}),
+                    fee_currency: e.target.value,
+                  },
+                },
+              })
+            }
+          />
+        </label>
+        <p className="text-[10px] text-muted-foreground">
+          Crianças grátis ou na faixa de taxa simbólica não entram no valor do passeio — só pagam a
+          taxa no local.
+        </p>
+      </div>
+
+
       {/* Texto do operador + geração por IA */}
       <div className="space-y-2 rounded-xl border border-dashed border-brand-orange/40 bg-brand-orange/5 p-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
