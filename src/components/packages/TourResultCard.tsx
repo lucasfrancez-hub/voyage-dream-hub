@@ -257,7 +257,7 @@ export function TourResultCard({
           <button
             type="button"
             disabled={!sel || selUnit == null}
-            onClick={() => sel && onReserve(sel.date, sel.modality)}
+            onClick={() => sel && onReserve(sel.date, sel.modality, payingPax)}
             className="w-full rounded-lg bg-brand-orange px-4 py-3 text-sm font-bold uppercase tracking-widest text-primary-foreground transition hover:opacity-90 disabled:opacity-40"
           >
             Reservar
