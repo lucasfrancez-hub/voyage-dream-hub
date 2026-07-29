@@ -389,6 +389,9 @@ function PasseiosPage() {
                       tour={tour}
                       rows={rows}
                       pax={pax}
+                      adults={adults}
+                      children={children}
+
                       onAdd={(item) =>
                         setCart((c) => [
                           ...c.filter(
@@ -402,12 +405,13 @@ function PasseiosPage() {
                           },
                         ])
                       }
-                      onReserve={(date, modality) =>
+                      onReserve={(date, modality, qty) =>
                         navigate({
                           to: "/pacotes/$slug/checkout",
                           params: { slug: tour.slug },
                           search: {
-                            qty: pax,
+                            qty,
+
                             date,
                             ...(modality ? { modality } : {}),
                           },

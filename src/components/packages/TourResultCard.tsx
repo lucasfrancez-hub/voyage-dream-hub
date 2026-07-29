@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { Info, MapPin, Plus, ChevronLeft, ChevronRight } from "lucide-react";
 
 import { formatBRL } from "@/lib/format";
+import { detectChildTokenFee, formatChildTokenFee } from "@/lib/packages/child-fee";
 
 export type PriceRow = {
   package_id: string;
@@ -37,17 +38,29 @@ export function TourResultCard({
   tour,
   rows,
   pax,
+  adults,
+  children: childCount = 0,
   onAdd,
   onReserve,
 }: {
   tour: any;
   rows: PriceRow[];
   pax: number;
+  adults?: number;
+  children?: number;
   onAdd: (item: Omit<CartItem, "key">) => void;
-  onReserve: (date: string, modality: string | null) => void;
+  onReserve: (date: string, modality: string | null, qty: number) => void;
 }) {
   const [offset, setOffset] = useState(0);
   const [sel, setSel] = useState<{ date: string; modality: string | null } | null>(null);
+
+  const childFee = useMemo(
+    () => detectChildTokenFee(tour.summary, tour.description, tour.tour_info),
+    [tour],
+  );
+  // Criança com taxa simbólica não entra no valor do passeio
+  const payingPax = childFee ? Math.max(1, adults ?? pax) : pax;
+
 
   const dates = useMemo(
     () => [...new Set(rows.map((r) => r.date))].sort(),
@@ -210,15 +223,23 @@ export function TourResultCard({
             {selUnit != null ? "Preço" : "A partir de"}
           </p>
           <p className="mt-1 font-display text-3xl font-black leading-none text-brand-orange">
-            {formatBRL((selUnit ?? minUnit ?? 0) * pax)}
+            {formatBRL((selUnit ?? minUnit ?? 0) * payingPax)}
           </p>
           <p className="mt-1 text-[11px] text-muted-foreground">
-            {formatBRL(selUnit ?? minUnit ?? 0)} por pessoa · {pax}{" "}
-            {pax === 1 ? "pessoa" : "pessoas"}
+            {formatBRL(selUnit ?? minUnit ?? 0)} por pessoa · {payingPax}{" "}
+            {payingPax === 1 ? "pessoa" : "pessoas"}
+            {childFee && childCount > 0
+              ? ` · ${childCount} ${childCount === 1 ? "criança isenta" : "crianças isentas"}`
+              : ""}
           </p>
 
           <div className="my-4 border-t border-border pt-3 text-[11px] leading-relaxed text-muted-foreground">
             <p>Taxas inclusas de {formatBRL(taxes)}</p>
+            {childFee && (
+              <p className="mt-2 rounded-lg bg-brand-orange/10 px-2.5 py-2 text-brand-orange">
+                {formatChildTokenFee(childFee)}
+              </p>
+            )}
             {sel ? (
               <p className="mt-2 text-foreground">
                 {sel.modality || tour.title}
@@ -232,10 +253,11 @@ export function TourResultCard({
             )}
           </div>
 
+
           <button
             type="button"
             disabled={!sel || selUnit == null}
-            onClick={() => sel && onReserve(sel.date, sel.modality)}
+            onClick={() => sel && onReserve(sel.date, sel.modality, payingPax)}
             className="w-full rounded-lg bg-brand-orange px-4 py-3 text-sm font-bold uppercase tracking-widest text-primary-foreground transition hover:opacity-90 disabled:opacity-40"
           >
             Reservar
@@ -253,7 +275,7 @@ export function TourResultCard({
                 date: sel.date,
                 modality: sel.modality,
                 unit: selUnit,
-                qty: pax,
+                qty: payingPax,
               })
             }
             className="mt-2 flex w-full items-center justify-center gap-2 rounded-lg border border-border bg-background px-4 py-2.5 text-xs font-bold uppercase tracking-widest transition hover:border-brand-orange/60 disabled:opacity-40"
