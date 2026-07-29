@@ -6,8 +6,7 @@ import { formatBRL } from "@/lib/format";
 import { WhatsAppText } from "@/lib/wa-format";
 
 import {
-  detectChildTokenFee,
-  parseAgePolicy,
+  resolveAgePolicy,
   resolveAgePolicy,
   classifyChild,
   formatAgePolicy,
