@@ -1421,7 +1421,7 @@ type PackageEditorModalProps = {
   onBulkToursImported?: (drafts: BulkImportedTourDraft[]) => void;
 };
 
-type TabId = "dates" | "hotel" | "flights" | "extras" | "about";
+type TabId = "dates" | "tourDetails" | "hotel" | "flights" | "extras" | "about";
 
 function slugify(input: string): string {
   return (input || "")
@@ -1754,6 +1754,11 @@ function PackageEditorModal({
       icon: <CalendarRange className="h-4 w-4" strokeWidth={1.75} />,
     },
     {
+      id: "tourDetails",
+      label: "DETALHES DO PASSEIO",
+      icon: <MapPin className="h-4 w-4" strokeWidth={1.75} />,
+    },
+    {
       id: "hotel",
       label: kind === "cruise" ? "CRUZEIRO" : "HOSPEDAGEM",
       icon: kind === "cruise"
@@ -1766,12 +1771,24 @@ function PackageEditorModal({
       label: kind === "service" || kind === "tour" ? "SERVIÇOS INCLUSOS" : "EXTRAS E INCLUSOS",
       icon: <ListChecks className="h-4 w-4" strokeWidth={1.75} />,
     },
-    { id: "about", label: "SOBRE O PACOTE", icon: <Info className="h-4 w-4" strokeWidth={1.75} /> },
+    {
+      id: "about",
+      label:
+        kind === "tour"
+          ? "SOBRE O PASSEIO"
+          : kind === "service"
+            ? "SOBRE O INGRESSO"
+            : kind === "cruise"
+              ? "SOBRE O CRUZEIRO"
+              : "SOBRE O PACOTE",
+      icon: <Info className="h-4 w-4" strokeWidth={1.75} />,
+    },
   ];
   const tabs = allTabs.filter((t) => {
-    if (kind === "service" || kind === "tour") return t.id !== "hotel" && t.id !== "flights";
-    if (kind === "cruise") return t.id !== "flights"; // cruzeiros não têm aéreo
-    return true;
+    if (kind === "tour") return t.id !== "hotel" && t.id !== "flights";
+    if (kind === "service") return t.id !== "hotel" && t.id !== "flights" && t.id !== "tourDetails";
+    if (kind === "cruise") return t.id !== "flights" && t.id !== "tourDetails";
+    return t.id !== "tourDetails";
   });
   useEffect(() => {
     if (!tabs.find((t) => t.id === tab)) setTab(tabs[0].id);
@@ -1782,17 +1799,17 @@ function PackageEditorModal({
     kind === "service" ? "ingresso ou serviço" : kind === "tour" ? "passeio" : kind === "cruise" ? "cruzeiro" : "pacote";
   const dialogTitle = `${editing.id ? "Editar" : "Novo"} ${kindLabel}`;
 
-  // Passeio novo: primeiro a tela de importação por HTML, depois o formulário
+  // Passeio novo: uma janela curta de importação; depois, editor completo em abas.
   const showTourGate =
     kind === "tour" && !editing.id && !tourImportDone && !(drafts && drafts.length > 0);
   if (showTourGate) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <div className="w-full max-w-3xl max-h-[90vh] overflow-y-auto rounded-2xl bg-card/70 backdrop-blur-2xl border border-border shadow-2xl">
+        <div className="w-full max-w-xl max-h-[90vh] overflow-y-auto rounded-2xl bg-card/70 backdrop-blur-2xl border border-border shadow-2xl">
           <div className="flex items-center justify-between gap-4 border-b border-border px-6 py-5">
             <div className="flex items-center gap-3">
               <div className="w-1.5 h-8 bg-brand-orange rounded-full" />
-              <h2 className="text-xl sm:text-2xl font-display font-bold">Novo passeio</h2>
+              <h2 className="text-xl sm:text-2xl font-display font-bold">Importar passeio</h2>
             </div>
             <button
               type="button"
@@ -1842,9 +1859,9 @@ function PackageEditorModal({
             <button
               type="button"
               onClick={() => setTourImportDone(true)}
-              className="text-xs font-bold text-muted-foreground underline"
+              className="w-full rounded-lg border border-border px-4 py-2 text-xs font-bold text-muted-foreground hover:bg-muted"
             >
-              Pular importação e preencher manualmente
+              Pular e abrir editor manual
             </button>
           </div>
         </div>
@@ -2255,25 +2272,15 @@ function PackageEditorModal({
               </div>
             )}
 
+            {tab === "tourDetails" && kind === "tour" && (
+              <TourInfoEditor
+                value={editing as any}
+                onChange={(patch) => setEditing({ ...editing, ...patch } as any)}
+              />
+            )}
+
             {tab === "dates" && kind === "tour" && (
               <div className="mb-4 space-y-4">
-                {!(drafts && drafts.length > 0) && (
-                  <TourHtmlImporter
-                    packageId={editing.id}
-                    destination={editing.destination}
-                    supplier={editing.supplier_name}
-                    onApply={(patch) =>
-                      setEditing((prev) => ({ ...(prev ?? {}), ...patch }) as any)
-                    }
-                    onPrices={(rows) =>
-                      setEditing((prev) => ({ ...(prev ?? {}), __pendingPrices: rows }) as any)
-                    }
-                  />
-                )}
-                <TourInfoEditor
-                  value={editing as any}
-                  onChange={(patch) => setEditing({ ...editing, ...patch } as any)}
-                />
                 <TourDatesEditor
                   packageId={editing.id}
                   modalities={(editing as any).tour_modalities ?? []}
@@ -2766,7 +2773,7 @@ function PackageEditorModal({
                 className="inline-flex items-center gap-2 rounded-full bg-gradient-brand px-5 py-2 text-sm font-semibold text-primary-foreground shadow-[var(--shadow-glow)] disabled:opacity-60"
               >
                 {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                Salvar pacote
+                Salvar {kind === "tour" ? "passeio" : kind === "service" ? "ingresso" : kind === "cruise" ? "cruzeiro" : "pacote"}
               </button>
             )}
           </div>
