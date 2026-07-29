@@ -15,6 +15,8 @@ export type ParsedTour = {
   includes: string[];
   not_includes: string[];
   modalities: string[];
+  times: string[];
+  tax_per_person: number;
   dates: string[];
   prices: ParsedTourPrice[];
   rawText: string;
@@ -65,13 +67,20 @@ function cleanModality(raw: string, title: string) {
 /** Divide um HTML com vários serviços do portal em blocos individuais. */
 export function splitTourHtmlBlocks(html: string): string[] {
   const doc = new DOMParser().parseFromString(html, "text/html");
-  const nodes = [
-    ...doc.querySelectorAll<HTMLElement>(".product-main-content, .servico-opcao-card"),
-  ].filter((el, _i, arr) => !arr.some((other) => other !== el && other.contains(el)));
-  const blocks = nodes
-    .filter((el) => el.querySelector(".servico-titulo"))
-    .map((el) => el.outerHTML);
-  return blocks.length ? blocks : [html];
+  // Cada serviço do portal é um `.product-main-content` (contém card, matriz de
+  // preços, taxas e o seletor de horários). Pegamos só os blocos mais externos.
+  const outer = (list: HTMLElement[]) =>
+    list.filter((el, _i, arr) => !arr.some((o) => o !== el && o.contains(el)));
+
+  const main = outer([...doc.querySelectorAll<HTMLElement>(".product-main-content")]).filter((el) =>
+    el.querySelector(".servico-titulo"),
+  );
+  if (main.length) return main.map((el) => el.outerHTML);
+
+  const cards = outer([...doc.querySelectorAll<HTMLElement>(".servico-opcao-card")]).filter((el) =>
+    el.querySelector(".servico-titulo"),
+  );
+  return cards.length ? cards.map((el) => el.outerHTML) : [html];
 }
 
 /** Interpreta um HTML com vários passeios e devolve um ParsedTour por serviço. */
@@ -170,7 +179,24 @@ export function parseTourHtml(html: string): ParsedTour {
     }
   }
 
-  const rawText = cleanText(doc.body?.textContent ?? "");
+  // Horários disponíveis para o passeio (select do portal)
+  const times: string[] = [];
+  for (const opt of [
+    ...doc.querySelectorAll<HTMLOptionElement>('select[id*="selectHorario"] option'),
+  ]) {
+    const v = cleanText(opt.getAttribute("value") ?? opt.textContent ?? "");
+    const m = v.match(/^(\d{1,2}):(\d{2})/);
+    if (!m) continue;
+    const t = `${m[1].padStart(2, "0")}:${m[2]}`;
+    if (!times.includes(t)) times.push(t);
+  }
+  times.sort();
+
+  const rawText = cleanText(doc.body?.textContent || doc.documentElement?.textContent || "");
+
+  // "taxas inclusas de BRL 6,64" — a matriz mostra o preço SEM taxas.
+  const taxMatch = rawText.match(/taxas?\s+inclusas?\s+de\s+[A-Z]{0,3}\s*([\d.,]+)/i);
+  const tax_per_person = taxMatch ? (parseMoney(taxMatch[1]) ?? 0) : 0;
 
   // Ignora datas e modalidades sem nenhum valor ("-" / vazio no portal)
   const datesWithPrice = dates.filter((d) => d && prices.some((p) => p.date === d));
@@ -184,6 +210,8 @@ export function parseTourHtml(html: string): ParsedTour {
     includes,
     not_includes,
     modalities: modalitiesWithPrice,
+    times,
+    tax_per_person,
     dates: datesWithPrice,
     prices,
     rawText,
