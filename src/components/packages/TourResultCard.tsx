@@ -70,29 +70,30 @@ export function TourResultCard({
   }, [from, to]);
 
 
-  const childFee = useMemo(
-    () =>
+  const policy = useMemo(() => {
+    const manual = parseAgePolicy(tour.services);
+    if (manual) return manual;
+    return agePolicyFromText(
       detectChildTokenFee(
         tour.ai_summary,
         tour.summary,
         tour.itinerary,
         typeof tour.tour_info === "string" ? tour.tour_info : JSON.stringify(tour.tour_info ?? ""),
       ),
-    [tour],
-  );
+    );
+  }, [tour]);
 
-  // Criança dentro da faixa isenta (idade informada) não entra no valor do passeio
+  const childFee = policy;
+
+  // Crianças gratuitas ou que pagam só a taxa no local não entram no valor
   const exemptChildren = useMemo(() => {
-    if (!childFee) return 0;
+    if (!policy) return 0;
     const ages = childAges.slice(0, childCount);
-    if (ages.length === 0) return childCount;
-    return ages.filter((age) => {
-      const okMin = childFee.minAge == null || age >= childFee.minAge;
-      const okMax = childFee.maxAge == null || age <= childFee.maxAge;
-      return okMin && okMax;
-    }).length;
-  }, [childFee, childAges, childCount]);
-  const payingPax = childFee ? Math.max(1, pax - exemptChildren) : pax;
+    if (ages.length === 0) return 0;
+    return ages.filter((age) => classifyChild(age, policy) !== "adult").length;
+  }, [policy, childAges, childCount]);
+  const payingPax = policy ? Math.max(1, pax - exemptChildren) : pax;
+
 
 
 
