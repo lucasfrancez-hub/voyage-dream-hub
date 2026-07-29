@@ -66,7 +66,7 @@ export function TourBulkImporter({
             image_url: s.image_url || null,
             price_per_person: s.price_per_person,
             taxes: s.taxes,
-            times: undefined,
+            
             tour_times: s.times,
             includes: s.includes,
             meeting_point: s.meeting_point || null,
