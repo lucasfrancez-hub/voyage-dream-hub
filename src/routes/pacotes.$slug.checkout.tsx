@@ -155,6 +155,14 @@ function Checkout() {
   const isPerUnit = (pkg as any)?.pricing_mode === "per_unit" || isService;
   const isFlexibleDate =
     (pkg as any)?.date_mode === "flexible" || !!(pkg as any)?.flexible_dates;
+  const nightsCount = Number((pkg as any)?.nights) || 0;
+  const checkoutDate = (() => {
+    if (!preferredDate || !nightsCount) return "";
+    const m = preferredDate.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!m) return "";
+    const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]) + nightsCount);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  })();
   const transferSvc = (pkg as any)?.services?.transfer ?? {};
   const pickupOptions: string[] = isService && transferSvc?.enabled
     ? String(transferSvc.pickup_points ?? "")
