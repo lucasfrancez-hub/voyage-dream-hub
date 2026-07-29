@@ -649,6 +649,8 @@ function AdminPackages() {
       tour_modalities: Array.isArray(pkg.tour_modalities) ? pkg.tour_modalities : [],
       ai_summary: pkg.ai_summary || null,
       kind: (pkg.kind ?? "package") as PackageKind,
+      flexible_dates: (pkg.kind ?? "package") === "package" ? !!pkg.flexible_dates : false,
+
       // Passeio: sempre cliente escolhe a data e preço individual por unidade.
       date_mode: ((pkg.kind ?? "package") === "tour"
         ? "flexible"
