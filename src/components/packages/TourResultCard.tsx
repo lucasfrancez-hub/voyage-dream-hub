@@ -494,9 +494,10 @@ export function TourResultCard({
                 <h4 className="mb-2 border-b border-border pb-2 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
                   Sobre o passeio
                 </h4>
-                <p className="whitespace-pre-line text-sm leading-relaxed text-muted-foreground">
+                <WhatsAppText className="text-sm leading-relaxed">
                   {fullDescription}
-                </p>
+                </WhatsAppText>
+
               </section>
             )}
 
