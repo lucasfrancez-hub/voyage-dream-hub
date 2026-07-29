@@ -225,38 +225,12 @@ function PasseiosPage() {
                   <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                     Destino
                   </label>
-                  <div className="flex h-11 items-center gap-2 rounded-lg border border-border bg-background px-3">
-                    <MapPin className="h-4 w-4 shrink-0 text-brand-orange" />
-                    <input
-                      value={destQuery}
-                      onChange={(e) => {
-                        setDestQuery(e.target.value);
-                        setDestOpen(true);
-                      }}
-                      onFocus={() => setDestOpen(true)}
-                      onBlur={() => setTimeout(() => setDestOpen(false), 150)}
-                      placeholder="Ex.: Lisboa, Portugal ou Orlando"
-                      className="w-full bg-transparent text-sm outline-none"
-                    />
-                  </div>
-                  {destOpen && destSuggestions.length > 0 && (
-                    <div className="absolute left-0 right-0 top-full z-30 mt-1 overflow-hidden rounded-lg border border-border bg-popover shadow-lg">
-                      {destSuggestions.map((d) => (
-                        <button
-                          key={d}
-                          type="button"
-                          onMouseDown={(e) => e.preventDefault()}
-                          onClick={() => {
-                            setDestQuery(d);
-                            setDestOpen(false);
-                          }}
-                          className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-muted"
-                        >
-                          <MapPin className="h-3.5 w-3.5 text-brand-orange" /> {d}
-                        </button>
-                      ))}
-                    </div>
-                  )}
+                  <DestinationInput
+                    value={destQuery}
+                    onChange={setDestQuery}
+                    placeholder="Ex.: Lisboa, Portugal ou Orlando"
+                    inputClassName="h-11 py-0"
+                  />
                 </div>
                 <div className="flex flex-col gap-1">
                   <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
