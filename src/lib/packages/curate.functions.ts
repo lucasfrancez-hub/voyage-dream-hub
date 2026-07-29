@@ -188,10 +188,14 @@ export const generateCurationCopy = createServerFn({ method: "POST" })
         }
       }
 
-      for (const extra of svc.outros ?? []) {
-        const t = (extra || "").trim();
-        if (t) services_lines.push(`✨ ${t}`);
+      if (svc.birthday?.enabled) {
+        const cond = (svc.birthday.condicao ?? "").trim();
+        services_lines.push(
+          `🎂 Ingresso GRÁTIS para aniversariantes${cond ? ` (${cond})` : ""}`,
+        );
       }
+
+
 
 
 
