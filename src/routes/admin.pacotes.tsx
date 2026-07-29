@@ -87,6 +87,7 @@ import { useIgnoredHotels } from "@/lib/ignored-hotels";
 import { CurationTab } from "@/components/packages/CurationTab";
 import { confirm } from "@/lib/confirm";
 import { dedupeOrigins, originKey } from "@/lib/packages/origin";
+import { buildPackagesCsv, downloadCsv, type ExportDatePrice } from "@/lib/packages/export-csv";
 import { cleanRoomLabel } from "@/lib/packages/room";
 import type { PackageServices, SeguroMoeda } from "@/lib/packages/feed-art-data";
 import { formatSeguroCobertura } from "@/lib/packages/feed-art-data";
