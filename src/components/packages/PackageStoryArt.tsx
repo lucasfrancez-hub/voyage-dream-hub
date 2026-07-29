@@ -228,6 +228,8 @@ export const PackageStoryArt = forwardRef<HTMLDivElement, { data: FeedArtData }>
                         <p className="vstory-info-small">até {data.dataVolta}</p>
                       ) : null}
                       {nightsLabel ? <p className="vstory-info-small">{nightsLabel}</p> : null}
+                      {data.flexibleDates ? <p className="vstory-info-small">datas flexíveis</p> : null}
+
                     </>
                   )}
                 </div>
