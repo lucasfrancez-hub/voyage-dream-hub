@@ -2957,12 +2957,96 @@ function ServicesEditor({
   const showCityTour = kind === "package";
   const showTickets = kind === "package" || kind === "service" || kind === "tour";
   const showOutros = kind !== "service";
-
-
+  const birthday = ((v as any).birthday ?? {}) as { enabled?: boolean; condicao?: string };
+  const [sel, setSel] = useState<string>("seguro");
 
   function patch(p: Partial<PackageServices>) {
     onChange({ ...v, ...p });
   }
+
+  type ServiceItem = {
+    id: string;
+    label: string;
+    icon: LucideIcon;
+    show: boolean;
+    enabled?: boolean;
+    count?: number;
+    toggle?: (checked: boolean) => void;
+  };
+
+  const items: ServiceItem[] = [
+    {
+      id: "seguro",
+      label: "Seguro viagem",
+      icon: Shield,
+      show: true,
+      enabled: !!seguro.enabled,
+      toggle: (c) => patch({ seguro: { ...seguro, enabled: c } }),
+    },
+    {
+      id: "cancelamento",
+      label: "Cancelamento involuntário",
+      icon: Shield,
+      show: showCancelamento,
+      enabled: !!v.cancelamento?.enabled,
+      toggle: (c) => patch({ cancelamento: { ...(v.cancelamento ?? {}), enabled: c } }),
+    },
+    {
+      id: "transfer",
+      label: kind === "service" ? "Transfer hotel ↔ evento" : "Transfer aeroporto ↔ hotel",
+      icon: Bus,
+      show: true,
+      enabled: !!transfer.enabled,
+      toggle: (c) => patch({ transfer: { ...transfer, enabled: c, sentido: transfer.sentido ?? "in_out" } }),
+    },
+    {
+      id: "city_tour",
+      label: "City tour / passeios",
+      icon: MapPinIcon,
+      show: showCityTour,
+      enabled: !!cityTour.enabled,
+      toggle: (c) => patch({ city_tour: { ...cityTour, enabled: c } }),
+    },
+    {
+      id: "tickets",
+      label: "Ingressos (parques)",
+      icon: Ticket,
+      show: showTickets,
+      enabled: !!tickets.enabled,
+      toggle: (c) => patch({ tickets: { ...tickets, enabled: c, parks: parks.length ? parks : [""] } }),
+    },
+    {
+      id: "birthday",
+      label: "Cortesia aniversariante",
+      icon: Sparkles,
+      show: showTickets,
+      enabled: !!birthday.enabled,
+      toggle: (c) => patch({ birthday: { ...birthday, enabled: c } } as Partial<PackageServices>),
+    },
+    {
+      id: "ticket_rules",
+      label: "Regras dos ingressos",
+      icon: ListChecks,
+      show: showTickets,
+      count: ticketRules.length,
+    },
+    {
+      id: "outros",
+      label: "Outros serviços",
+      icon: ListChecks,
+      show: showOutros,
+      count: outros.length,
+    },
+    {
+      id: "addons",
+      label: "Opcionais (checkout)",
+      icon: Sparkles,
+      show: true,
+      count: (v.addons ?? []).length,
+    },
+  ].filter((i) => i.show);
+
+
 
   const detail = (() => {
     switch (sel) {
