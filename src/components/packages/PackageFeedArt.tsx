@@ -270,9 +270,11 @@ export const PackageFeedArt = forwardRef<HTMLDivElement, { data: FeedArtData }>(
                         <p className="vfeed-info-mid">até {data.dataVolta}</p>
                       ) : null}
                       {data.noites ? <p className="vfeed-info-small">{data.noites} noites</p> : null}
+                      {data.flexibleDates ? <p className="vfeed-info-small">datas flexíveis</p> : null}
                     </>
                   )}
                 </div>
+
                 <div className="vfeed-info-div" />
                 {data.kind === "service" ? (
                   <>
