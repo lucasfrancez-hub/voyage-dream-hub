@@ -128,6 +128,15 @@ export const Route = createFileRoute("/api/public/hooks/broadcast-dispatch")({
             }
           }
 
+          // Métricas acumuladas (a campanha pode rodar em várias rodadas,
+          // uma por horário de bloco) — contamos direto na tabela de envios.
+          const { data: todosEnvios } = await supabaseAdmin
+            .from("wa_broadcast_envios")
+            .select("status")
+            .eq("campanha_id", camp.id);
+          const totalEnviados = (todosEnvios ?? []).filter((e) => e.status === "enviado").length;
+          const totalFalhas = (todosEnvios ?? []).filter((e) => e.status === "falhou").length;
+
           if (pendentesFuturas.length > 0) {
             // Ainda há blocos com horário futuro: volta para 'agendada' apontando
             // para o próximo horário programado.
@@ -139,20 +148,26 @@ export const Route = createFileRoute("/api/public/hooks/broadcast-dispatch")({
               .update({
                 status: "agendada",
                 scheduled_at: new Date(proximo).toISOString(),
-                metrics: { total: ok + fail, enviados: ok, falhas: fail, restantes: pendentesFuturas.length },
+                metrics: {
+                  total: totalEnviados + totalFalhas,
+                  enviados: totalEnviados,
+                  falhas: totalFalhas,
+                  restantes: pendentesFuturas.length * (destinos?.length ?? 0),
+                },
               })
               .eq("id", camp.id);
           } else {
-            const status = fail > 0 && ok === 0 ? "falhou" : "concluida";
+            const status = totalFalhas > 0 && totalEnviados === 0 ? "falhou" : "concluida";
             await supabaseAdmin
               .from("wa_broadcast_campanhas")
               .update({
                 status,
                 sent_at: new Date().toISOString(),
-                metrics: { total: ok + fail, enviados: ok, falhas: fail },
+                metrics: { total: totalEnviados + totalFalhas, enviados: totalEnviados, falhas: totalFalhas },
               })
               .eq("id", camp.id);
           }
+
 
 
           results.push({ id: camp.id, ok, fail });
