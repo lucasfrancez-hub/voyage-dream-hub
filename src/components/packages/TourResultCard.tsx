@@ -37,17 +37,29 @@ export function TourResultCard({
   tour,
   rows,
   pax,
+  adults,
+  children: childCount = 0,
   onAdd,
   onReserve,
 }: {
   tour: any;
   rows: PriceRow[];
   pax: number;
+  adults?: number;
+  children?: number;
   onAdd: (item: Omit<CartItem, "key">) => void;
   onReserve: (date: string, modality: string | null) => void;
 }) {
   const [offset, setOffset] = useState(0);
   const [sel, setSel] = useState<{ date: string; modality: string | null } | null>(null);
+
+  const childFee = useMemo(
+    () => detectChildTokenFee(tour.summary, tour.description, tour.tour_info),
+    [tour],
+  );
+  // Criança com taxa simbólica não entra no valor do passeio
+  const payingPax = childFee ? Math.max(1, adults ?? pax) : pax;
+
 
   const dates = useMemo(
     () => [...new Set(rows.map((r) => r.date))].sort(),
