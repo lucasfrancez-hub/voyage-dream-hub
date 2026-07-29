@@ -33,6 +33,7 @@ import {
 import { TourDatesEditor } from "@/components/packages/TourDatesEditor";
 import { TourInfoEditor } from "@/components/packages/TourInfoEditor";
 import { TourHtmlImporter } from "@/components/packages/TourHtmlImporter";
+import { SupplierInput } from "@/components/packages/SupplierInput";
 import {
   TourBulkImporter,
   type BulkImportedTourDraft,
@@ -2228,10 +2229,9 @@ function PackageEditorModal({
                 </div>
 
                 <FormField label="Fornecedor (interno)" wide>
-                  <input
-                    className={inp}
+                  <SupplierInput
                     value={editing.supplier_name ?? ""}
-                    onChange={(e) => setEditing({ ...editing, supplier_name: e.target.value })}
+                    onChange={(v) => setEditing({ ...editing, supplier_name: v })}
                     placeholder="Ex: CVC, Nascimento, Flytour…"
                   />
                 </FormField>

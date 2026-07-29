@@ -287,6 +287,10 @@ export function TourHtmlImporter({
                 toast.error("Informe o fornecedor.");
                 return;
               }
+              onApply({
+                destination: destCity.trim(),
+                supplier_name: supplierName.trim(),
+              });
               setStep(1);
             }}
             className="inline-flex items-center gap-1.5 rounded-lg bg-brand-orange px-4 py-2 text-xs font-bold text-white"
