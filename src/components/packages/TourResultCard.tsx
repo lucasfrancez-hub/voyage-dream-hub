@@ -1,8 +1,11 @@
-import { useMemo, useRef, useState } from "react";
-import { MapPin, Plus, Clock, ChevronLeft, ChevronRight } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { MapPin, Plus, Clock, ChevronLeft, ChevronRight, Info } from "lucide-react";
 
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { formatBRL } from "@/lib/format";
 import { detectChildTokenFee, formatChildTokenFee } from "@/lib/packages/child-fee";
+
+const PAGE_SIZE = 5;
 
 export type PriceRow = {
   package_id: string;
