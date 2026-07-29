@@ -764,6 +764,12 @@ Regras:
   · SeaWorld, Busch Gardens, LEGOLAND, Aquatica, Discovery Cove: entradas próprias com esses nomes.
   NUNCA duplique o mesmo operador (Disney aparece uma única entrada mesmo com 4 parques diferentes). Se identificar Disney e Universal → parks: ["Disney","Universal"] (ou variantes acima). Ordem sugerida: Disney antes de Universal. Não coloque ingressos em services.outros.
 
+- services.ticket_rules: RESUMO das regras/condições de CADA ingresso do documento. Crie UMA entrada por bloco "# Ingresso" / produto de ingresso (ex.: "P. 02 DIAS ANTECIPADO - 1º Lote", "CORTESIA ANIVERSARIANTE 01 DIA"). Para cada entrada:
+  · name: nome CURTO e amigável em pt-BR, sem códigos internos, sem "*VENDA PROIBIDA*", sem "1º Lote" quando não fizer sentido para o cliente (ex.: "Passaporte 2 dias — compra antecipada", "Cortesia de aniversariante — 1 dia").
+  · usage_date: data de utilização em DD/MM/AAAA se informada; validity: validade em DD/MM/AAAA se informada.
+  · rules: de 3 a 7 bullets CURTOS (máx. ~14 palavras cada), em pt-BR claro, tom de atendimento, SEM juridiquês, SEM CAIXA ALTA, sem repetir a mesma ideia. Reescreva o texto do operador em linguagem simples — NÃO copie o parágrafo original. Priorize o que o cliente precisa fazer/saber: quem tem direito, quantos acompanhantes pagantes, prazo/janela de uso, agendamento necessário, documentos obrigatórios, gratuidade de crianças, no-show/reembolso, reajuste de valor por lote.
+  · Nunca invente regra que não está no documento. Se não houver ingressos, devolva [].
+
 - services.outros: lista de serviços adicionais explícitos (ex.: "eSIM", "bagagem extra", "assistência 24h"). Se não houver menção clara, deixe enabled=false e outros=[]. NÃO liste ingressos de parques aqui — eles vão em services.tickets.
 
 - Retorne SÓ o JSON, começando com { e terminando com }.`;
