@@ -194,9 +194,8 @@ export function parseTourHtml(html: string): ParsedTour {
 
   const rawText = cleanText(doc.body?.textContent || doc.documentElement?.textContent || "");
 
-  // "taxas inclusas de BRL 6,64" — a matriz mostra o preço SEM taxas.
-  const taxMatch = rawText.match(/taxas?\s+inclusas?\s+de\s+[A-Z]{0,3}\s*([\d.,]+)/i);
-  const tax_per_person = taxMatch ? (parseMoney(taxMatch[1]) ?? 0) : 0;
+  // Taxas não são importadas do portal — ficam em branco para preenchimento manual.
+  const tax_per_person = 0;
 
   // Ignora datas e modalidades sem nenhum valor ("-" / vazio no portal)
   const datesWithPrice = dates.filter((d) => d && prices.some((p) => p.date === d));
