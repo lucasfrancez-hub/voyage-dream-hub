@@ -563,6 +563,21 @@ function PackageDetails() {
           </div>
         </aside>
       </div>
+      {flexibleDates && (
+        <PreCheckoutDialog
+          open={preOpen}
+          onOpenChange={setPreOpen}
+          pkg={pkg}
+          qty={baseOccupancy}
+          basePrice={(Number(pkg.price_per_person) || 0) + (Number(pkg.taxes) || 0)}
+          isFlexibleDate
+          rawAddons={((pkg as any)?.services?.addons ?? []) as any[]}
+          stayNights={Number(pkg.nights) || 2}
+          birthdayEnabled={!!(pkg as any)?.services?.birthday?.enabled}
+          birthdayCondicao={((pkg as any)?.services?.birthday?.condicao ?? "") as string}
+          unitNoun="pessoa"
+        />
+      )}
       <ContactFooter whatsappMessage={`Olá! Tenho interesse no pacote e quero mais informações.`} />
       {(() => {
         const taId = (pkg as unknown as { tripadvisor_location_id?: number | null }).tripadvisor_location_id ?? null;
@@ -1747,7 +1762,7 @@ function PreCheckoutDialog({
                   Total estimado
                 </span>
                 <span className="text-[10px] bg-brand-orange/10 text-brand-orange px-2 py-0.5 rounded-full font-bold">
-                  {qty} {qty === 1 ? "ingresso" : "ingressos"}
+                  {qty} {qty === 1 ? unitNoun : `${unitNoun}s`}
                   {selectedCount > 0 && ` + ${selectedCount} ${selectedCount === 1 ? "adicional" : "adicionais"}`}
                 </span>
               </div>
