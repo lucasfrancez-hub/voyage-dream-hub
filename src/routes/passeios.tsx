@@ -389,6 +389,9 @@ function PasseiosPage() {
                       tour={tour}
                       rows={rows}
                       pax={pax}
+                      adults={adults}
+                      children={children}
+
                       onAdd={(item) =>
                         setCart((c) => [
                           ...c.filter(
