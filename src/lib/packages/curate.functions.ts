@@ -53,6 +53,7 @@ const PackageBrief = z.object({
   meal_plan: z.string().nullable().optional(),
   slug: z.string(),
   supplier_name: z.string().nullable().optional(),
+  flexible_dates: z.boolean().nullable().optional(),
   services: ServicesSchema,
 });
 
@@ -98,9 +99,11 @@ export const generateCurationCopy = createServerFn({ method: "POST" })
     const items = data.packages.map((p) => {
       const occ = p.base_occupancy ?? 2;
       const total = Number(p.price_per_person) * occ;
-      const period = p.going_date
-        ? `${fmtDate(p.going_date)}${p.return_date ? " a " + fmtDate(p.return_date) : ""}`
-        : "";
+      const period = p.flexible_dates
+        ? "Datas flexíveis"
+        : p.going_date
+          ? `${fmtDate(p.going_date)}${p.return_date ? " a " + fmtDate(p.return_date) : ""}`
+          : "";
       const stars = p.hotel_stars ? "★".repeat(Math.min(5, Math.max(1, p.hotel_stars))) : "";
       const d = daysUntil(p.going_date);
       const boleto_ate_data_viagem = d !== null && d >= 60;
@@ -194,6 +197,7 @@ export const generateCurationCopy = createServerFn({ method: "POST" })
         destination: p.destination,
         origin: p.origin || "",
         period,
+        flexible_dates: !!p.flexible_dates,
         nights: p.nights ?? undefined,
         hotel: p.hotel_name ? `${p.hotel_name} ${stars}`.trim() : "",
         meal_plan: p.meal_plan || "",
@@ -229,7 +233,7 @@ _{Gancho de UMA linha, CRIATIVO E ORIGINAL, 100% conectado ao destino específic
 Regras do gancho: 1 linha só, no máximo 14 palavras, sem clichê genérico ("preço redondo", "oportunidade imperdível", "não perca"), sem emoji dentro do gancho, sem repetir o nome do destino se ele já apareceu no título acima. SEMPRE envolva a frase inteira em underscores para itálico no WhatsApp: _frase_.}_
 
 ✈️ Saindo de {origem}
-🗓️ {DD/MM a DD/MM} ({N noites})
+🗓️ {SE "flexible_dates" for true, escreva EXATAMENTE "Datas flexíveis" seguido de " ({N noites})" quando houver noites — NUNCA escreva datas. SE for false, escreva {DD/MM a DD/MM} ({N noites})}
 🏨 {Hotel} {estrelas em ★} — {regime, ex.: Café da Manhã / All Inclusive}
 
 {SE "services_lines" tiver 1+ item, adicione uma linha em branco e depois UMA LINHA por item de "services_lines", EXATAMENTE como está (o emoji já vem no início). Sem título, sem "SERVIÇOS INCLUSOS", sem asteriscos, sem alterar o texto. Depois outra linha em branco antes das formas de pagamento.}
@@ -259,7 +263,7 @@ REGRAS FIRMES:
 - Bold do WhatsApp é *entre asteriscos* — use nos labels PIX/Cartão/Boleto e no título do destino.
 - Sem markdown de heading (#), sem hashtags.
 - Nunca invente dados; use SÓ os fornecidos.
-- Mês em CAIXA ALTA (JANEIRO, FEVEREIRO…). Data no formato "15 a 22/SETEMBRO".
+- Mês em CAIXA ALTA (JANEIRO, FEVEREIRO…). Data no formato "15 a 22/SETEMBRO". Se "flexible_dates" for true, NUNCA cite datas nem mês: use apenas "Datas flexíveis" (com o número de noites, se houver).
 - Valor do PIX = total x 0,95 (5% off). Cartão: se "is_captive" for true, mostrar DUAS linhas — Visa/Master em 15x (total/15) e demais bandeiras em 10x (total/10). Se "is_captive" for false, mostrar UMA linha só "Cartão de crédito: 10x de {total/10}".
 - A linha "Boleto parcelado até a data da viagem" só aparece quando "boleto_ate_data_viagem" do item for true (antecedência mínima de 60 dias). Nunca inclua se for false.
 - Se houver mais de 1 pacote, gere um bloco por pacote separado por uma linha em branco, e repita a assinatura "✨ Para mais informações…" só UMA vez no fim.`
