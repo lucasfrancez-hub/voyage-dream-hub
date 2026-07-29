@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Loader2, Code2, CheckCircle2 } from "lucide-react";
+import { Loader2, Code2, CheckCircle2, Pencil } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { DestinationInput } from "@/components/packages/DestinationInput";
 import { parseMultipleTourHtml, type ParsedTour } from "@/lib/packages/tour-html";
@@ -30,6 +30,12 @@ export function TourBulkImporter({
   const [selected, setSelected] = useState<Record<number, boolean>>({});
   const [running, setRunning] = useState(false);
   const [progress, setProgress] = useState("");
+  const [openIdx, setOpenIdx] = useState<number | null>(null);
+  const [done, setDone] = useState<string[] | null>(null);
+
+  function patchTour(i: number, next: Partial<ParsedTour>) {
+    setTours((list) => list.map((t, idx) => (idx === i ? { ...t, ...next } : t)));
+  }
 
   function readHtml() {
     try {
@@ -39,6 +45,8 @@ export function TourBulkImporter({
         return;
       }
       setTours(list);
+      setDone(null);
+      setOpenIdx(list.length === 1 ? 0 : null);
       setSelected(Object.fromEntries(list.map((_, i) => [i, true])));
       toast.success(`${list.length} passeio(s) encontrado(s).`);
     } catch (e) {
@@ -55,6 +63,7 @@ export function TourBulkImporter({
     }
     setRunning(true);
     let ok = 0;
+    const okTitles: string[] = [];
     try {
       const { data: existing } = await supabase.from("packages").select("slug");
       const used = new Set((existing ?? []).map((r: any) => r.slug));
@@ -116,11 +125,16 @@ export function TourBulkImporter({
           if (perr) toast.error(`${t.title} (preços): ${perr.message}`);
         }
         ok += 1;
+        okTitles.push(t.title);
       }
       await qc.invalidateQueries({ queryKey: ["admin-packages"] });
       await qc.invalidateQueries({ queryKey: ["packages"] });
       toast.success(`${ok} passeio(s) importado(s).`);
-      if (ok > 0) onDone?.();
+      if (ok > 0) {
+        setDone(okTitles);
+        setTours([]);
+        setSelected({});
+      }
     } catch (e) {
       toast.error((e as Error).message);
     } finally {
@@ -171,35 +185,145 @@ export function TourBulkImporter({
         Ler HTML
       </button>
 
+      {done && (
+        <div className="rounded-lg border border-emerald-500/40 bg-emerald-500/10 p-3 text-sm">
+          <p className="font-bold text-emerald-600">
+            {done.length} passeio(s) cadastrado(s) com sucesso
+          </p>
+          <ul className="mt-1 list-disc pl-5 text-xs text-muted-foreground">
+            {done.map((t) => (
+              <li key={t}>{t}</li>
+            ))}
+          </ul>
+          <button
+            type="button"
+            onClick={() => {
+              setDone(null);
+              setHtml("");
+              onDone?.();
+            }}
+            className="mt-3 rounded-full bg-brand-orange px-4 py-1.5 text-xs font-bold text-white"
+          >
+            Fechar e ver a lista
+          </button>
+        </div>
+      )}
+
       {tours.length > 0 && (
         <div className="space-y-2">
-          <div className="max-h-72 space-y-2 overflow-y-auto pr-1">
+          <p className="text-xs font-bold uppercase text-muted-foreground">
+            Revise e edite antes de confirmar
+          </p>
+          <div className="max-h-[28rem] space-y-2 overflow-y-auto pr-1">
             {tours.map((t, i) => (
-              <label
-                key={i}
-                className="flex items-center gap-3 rounded-lg border border-border bg-background/60 p-3"
-              >
-                <input
-                  type="checkbox"
-                  checked={!!selected[i]}
-                  onChange={(e) => setSelected((s) => ({ ...s, [i]: e.target.checked }))}
-                />
-                {t.image_url ? (
-                  <img
-                    src={t.image_url}
-                    alt={t.title}
-                    className="h-10 w-16 rounded object-cover"
-                    loading="lazy"
+              <div key={i} className="rounded-lg border border-border bg-background/60 p-3">
+                <div className="flex items-center gap-3">
+                  <input
+                    type="checkbox"
+                    checked={!!selected[i]}
+                    onChange={(e) => setSelected((s) => ({ ...s, [i]: e.target.checked }))}
                   />
-                ) : null}
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-bold">{t.title}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {t.modalities.length} modalidade(s) · {t.prices.length} preço(s) ·{" "}
-                    {t.dates.length} data(s)
-                  </p>
+                  {t.image_url ? (
+                    <img
+                      src={t.image_url}
+                      alt={t.title}
+                      className="h-10 w-16 rounded object-cover"
+                      loading="lazy"
+                    />
+                  ) : null}
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-bold">{t.title}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {t.modalities.length} modalidade(s) · {t.prices.length} preço(s) ·{" "}
+                      {t.dates.length} data(s)
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setOpenIdx(openIdx === i ? null : i)}
+                    className="inline-flex items-center gap-1 rounded-full border border-border px-3 py-1 text-xs font-bold"
+                  >
+                    <Pencil className="h-3 w-3" />
+                    {openIdx === i ? "Fechar" : "Editar"}
+                  </button>
                 </div>
-              </label>
+
+                {openIdx === i && (
+                  <div className="mt-3 grid gap-3 border-t border-border pt-3 sm:grid-cols-2">
+                    <label className="text-[11px] font-bold uppercase text-muted-foreground sm:col-span-2">
+                      Título
+                      <input
+                        value={t.title}
+                        onChange={(e) => patchTour(i, { title: e.target.value })}
+                        className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm normal-case"
+                      />
+                    </label>
+                    <label className="text-[11px] font-bold uppercase text-muted-foreground sm:col-span-2">
+                      URL da imagem
+                      <input
+                        value={t.image_url}
+                        onChange={(e) => patchTour(i, { image_url: e.target.value })}
+                        className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 font-mono text-xs normal-case"
+                      />
+                    </label>
+                    <label className="text-[11px] font-bold uppercase text-muted-foreground sm:col-span-2">
+                      Descrição do operador
+                      <textarea
+                        value={t.description}
+                        onChange={(e) => patchTour(i, { description: e.target.value })}
+                        rows={5}
+                        className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-xs normal-case"
+                      />
+                    </label>
+                    <label className="text-[11px] font-bold uppercase text-muted-foreground sm:col-span-2">
+                      Inclui (um por linha)
+                      <textarea
+                        value={t.includes.join("\n")}
+                        onChange={(e) =>
+                          patchTour(i, {
+                            includes: e.target.value
+                              .split("\n")
+                              .map((s) => s.trim())
+                              .filter(Boolean),
+                          })
+                        }
+                        rows={3}
+                        className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-xs normal-case"
+                      />
+                    </label>
+                    {t.prices.length > 0 && (
+                      <div className="sm:col-span-2">
+                        <p className="text-[11px] font-bold uppercase text-muted-foreground">
+                          Preços por data ({t.prices.length})
+                        </p>
+                        <div className="mt-1 max-h-40 space-y-1 overflow-y-auto">
+                          {t.prices.map((p, pi) => (
+                            <div key={pi} className="flex items-center gap-2 text-xs">
+                              <span className="w-24 shrink-0 text-muted-foreground">{p.date}</span>
+                              <span className="min-w-0 flex-1 truncate">{p.modality}</span>
+                              <input
+                                type="number"
+                                step="0.01"
+                                value={p.price_per_person}
+                                onChange={(e) =>
+                                  patchTour(i, {
+                                    prices: t.prices.map((x, xi) =>
+                                      xi === pi
+                                        ? { ...x, price_per_person: Number(e.target.value) || 0 }
+                                        : x,
+                                    ),
+                                  })
+                                }
+                                className="w-28 rounded border border-border bg-background px-2 py-1 text-right"
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             ))}
           </div>
           <button
@@ -215,7 +339,7 @@ export function TourBulkImporter({
             )}
             {running
               ? progress || "Importando..."
-              : `Importar ${Object.values(selected).filter(Boolean).length} passeio(s)`}
+              : `Confirmar e cadastrar ${Object.values(selected).filter(Boolean).length} passeio(s)`}
           </button>
         </div>
       )}
