@@ -149,9 +149,8 @@ export function TourDatesEditor({
   const allModalities = useMemo(() => {
     const set = new Set<string>();
     for (const r of list) if (r.modality) set.add(r.modality);
-    if (!set.size) for (const item of modalities) if (item) set.add(item);
     return [...set];
-  }, [modalities, list]);
+  }, [list]);
 
 
   useEffect(() => {
@@ -401,7 +400,7 @@ export function TourDatesEditor({
         </div>
       ) : (
         <p className="text-sm text-muted-foreground">
-          Nenhuma modalidade encontrada. Importe o HTML do serviço ou adicione datas manualmente.
+          Nenhuma modalidade com datas encontrada. Importe o HTML do serviço ou adicione uma data manualmente.
         </p>
       )}
     </div>
