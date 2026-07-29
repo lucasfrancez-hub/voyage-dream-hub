@@ -216,10 +216,10 @@ export const PackageStoryArt = forwardRef<HTMLDivElement, { data: FeedArtData }>
               <div className="vstory-info glass-panel">
                 <div className="vstory-info-col">
                   <div className="vstory-info-icon">{I.calendar}</div>
-                  {data.dateMode === "flexible" || !data.dataIda ? (
+                  {data.dateMode === "flexible" || data.flexibleDates || !data.dataIda ? (
                     <>
                       <p className="vstory-info-strong">Data flexível</p>
-                      <p className="vstory-info-small">você escolhe</p>
+                      <p className="vstory-info-small">{nightsLabel || "você escolhe"}</p>
                     </>
                   ) : (
                     <>
@@ -228,8 +228,6 @@ export const PackageStoryArt = forwardRef<HTMLDivElement, { data: FeedArtData }>
                         <p className="vstory-info-small">até {data.dataVolta}</p>
                       ) : null}
                       {nightsLabel ? <p className="vstory-info-small">{nightsLabel}</p> : null}
-                      {data.flexibleDates ? <p className="vstory-info-small">datas flexíveis</p> : null}
-
                     </>
                   )}
                 </div>
@@ -251,12 +249,16 @@ export const PackageStoryArt = forwardRef<HTMLDivElement, { data: FeedArtData }>
                   </>
                 ) : (
                   <>
-                    <div className="vstory-info-col">
-                      <div className="vstory-info-icon">{I.plane}</div>
-                      <p className="vstory-info-small">Saída de</p>
-                      <p className="vstory-info-strong">{data.origem}</p>
-                    </div>
-                    <div className="vstory-info-div" />
+                    {data.inclusos.aereo && data.origem ? (
+                      <>
+                        <div className="vstory-info-col">
+                          <div className="vstory-info-icon">{I.plane}</div>
+                          <p className="vstory-info-small">Saída de</p>
+                          <p className="vstory-info-strong">{data.origem}</p>
+                        </div>
+                        <div className="vstory-info-div" />
+                      </>
+                    ) : null}
                     <div className="vstory-info-col vstory-info-col-hotel">
                       <div className="vstory-info-icon">{I.building}</div>
                       <p className="vstory-info-hotel">{data.hotel}</p>
