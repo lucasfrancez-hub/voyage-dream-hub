@@ -32,12 +32,10 @@ import {
 } from "lucide-react";
 import { TourDatesEditor } from "@/components/packages/TourDatesEditor";
 import { TourInfoEditor } from "@/components/packages/TourInfoEditor";
-import { TourHtmlImporter } from "@/components/packages/TourHtmlImporter";
 import { SupplierInput } from "@/components/packages/SupplierInput";
-import {
-  TourBulkImporter,
-  type BulkImportedTourDraft,
-} from "@/components/packages/TourBulkImporter";
+import { TourImportWizard } from "@/components/packages/TourImportWizard";
+import { type BulkImportedTourDraft } from "@/components/packages/TourBulkImporter";
+
 import {
   Select,
   SelectContent,
