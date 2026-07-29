@@ -30,6 +30,12 @@ export function TourBulkImporter({
   const [selected, setSelected] = useState<Record<number, boolean>>({});
   const [running, setRunning] = useState(false);
   const [progress, setProgress] = useState("");
+  const [openIdx, setOpenIdx] = useState<number | null>(null);
+  const [done, setDone] = useState<string[] | null>(null);
+
+  function patchTour(i: number, next: Partial<ParsedTour>) {
+    setTours((list) => list.map((t, idx) => (idx === i ? { ...t, ...next } : t)));
+  }
 
   function readHtml() {
     try {
