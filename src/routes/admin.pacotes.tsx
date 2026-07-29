@@ -29,9 +29,6 @@ import {
   Ship,
   Package as PackageIcon,
   MapPin,
-  MapPin as MapPinIcon,
-  Shield,
-  Bus,
   type LucideIcon,
 } from "lucide-react";
 
@@ -2936,6 +2933,31 @@ function FormField({
       <span className="block text-xs text-muted-foreground mb-1">{label}</span>
       {children}
     </label>
+  );
+}
+
+function Detail({
+  title,
+  hint,
+  action,
+  children,
+}: {
+  title: string;
+  hint?: string;
+  action?: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <h5 className="text-sm font-semibold">{title}</h5>
+          {hint && <p className="text-[11px] text-muted-foreground">{hint}</p>}
+        </div>
+        {action}
+      </div>
+      <div className="flex flex-col gap-2">{children}</div>
+    </div>
   );
 }
 
