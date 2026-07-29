@@ -1701,7 +1701,9 @@ function CampanhaEditor({
 
             <X className="h-4 w-4" />
           </button>
+          </div>
         </div>
+
 
         {loadingEdit ? (
           <div className="p-12 flex justify-center">
