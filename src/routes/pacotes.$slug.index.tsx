@@ -454,6 +454,9 @@ function PackageDetails() {
               </ul>
             </section>
           )}
+
+          <TicketRules services={pkg.services} />
+
         </div>
 
         {/* Right: sticky reservation card */}
