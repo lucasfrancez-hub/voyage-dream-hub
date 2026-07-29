@@ -105,7 +105,7 @@ export function parseTourHtml(html: string): ParsedTour {
   const doc = new DOMParser().parseFromString(html, "text/html");
   doc.querySelectorAll("script,style").forEach((el) => el.remove());
 
-  const title = cleanText(doc.querySelector(".servico-titulo")?.textContent ?? "");
+  const title = cleanText(findTitleEl(doc)?.textContent ?? "");
 
   const BAD_IMG = /(logo|icon|sprite|placeholder|bandeira|flag|avatar|spacer|pixel)/i;
   const absolutize = (src: string) => {
