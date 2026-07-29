@@ -1,7 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { createClient } from "@supabase/supabase-js";
-import type { Database } from "@/integrations/supabase/types";
 
 function normalize(h: string) {
   return (h || "").trim().toLowerCase().replace(/[^0-9a-f]/g, "");
