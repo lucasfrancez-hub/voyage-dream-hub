@@ -8,7 +8,7 @@ import { WhatsAppText } from "@/lib/wa-format";
 import {
   detectChildTokenFee,
   parseAgePolicy,
-  agePolicyFromText,
+  resolveAgePolicy,
   classifyChild,
   formatAgePolicy,
 } from "@/lib/packages/child-fee";
