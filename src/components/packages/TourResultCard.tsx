@@ -163,9 +163,15 @@ export function TourResultCard({
         {/* Centro: modalidades e preços */}
         <div className="flex w-full flex-col bg-muted/10 p-5 md:w-[45%]">
           <div className="mb-4 flex items-center justify-between gap-3">
-            <h4 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-              Modalidades e preços
-            </h4>
+            <div>
+              <h4 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                Modalidades e preços
+              </h4>
+              {rangeLabel && (
+                <p className="mt-0.5 text-[11px] font-semibold text-brand-orange">{rangeLabel}</p>
+              )}
+            </div>
+
             <div className="flex gap-1">
               <button
                 type="button"
