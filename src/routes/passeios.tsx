@@ -430,6 +430,8 @@ function PasseiosPage() {
                       pax={pax}
                       adults={adults}
                       children={children}
+                      childAges={childAges}
+
 
                       onAdd={(item) =>
                         setCart((c) => [
