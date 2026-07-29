@@ -731,20 +731,39 @@ function TicketDetailsView({
           </div>
 
           {/* Sobre o ingresso */}
-          {(pkg.ai_summary || pkg.summary) && (
-            <section>
-              <SectionHeader>{isTour ? "Sobre o passeio" : "Sobre o ingresso"}</SectionHeader>
-              {pkg.ai_summary ? (
-                <WhatsAppText className="text-muted-foreground leading-relaxed">
-                  {pkg.ai_summary}
-                </WhatsAppText>
-              ) : (
-                <p className="text-muted-foreground leading-relaxed whitespace-pre-line">
-                  {pkg.summary}
-                </p>
-              )}
-            </section>
-          )}
+          {(() => {
+            const rawDesc =
+              typeof (pkg.services as any)?.raw_description === "string"
+                ? ((pkg.services as any).raw_description as string).trim()
+                : "";
+            const body = pkg.ai_summary || pkg.summary || rawDesc;
+            if (!body) return null;
+            return (
+              <section>
+                <SectionHeader>{isTour ? "Sobre o passeio" : "Sobre o ingresso"}</SectionHeader>
+                {pkg.ai_summary ? (
+                  <WhatsAppText className="text-muted-foreground leading-relaxed">
+                    {pkg.ai_summary}
+                  </WhatsAppText>
+                ) : (
+                  <p className="text-muted-foreground leading-relaxed whitespace-pre-line">
+                    {pkg.summary || rawDesc}
+                  </p>
+                )}
+                {rawDesc && (pkg.ai_summary || pkg.summary) && (
+                  <details className="mt-4 group">
+                    <summary className="cursor-pointer text-xs font-bold uppercase tracking-widest text-brand-orange">
+                      Ver descrição completa do operador
+                    </summary>
+                    <p className="mt-3 text-sm text-muted-foreground leading-relaxed whitespace-pre-line">
+                      {rawDesc}
+                    </p>
+                  </details>
+                )}
+              </section>
+            );
+          })()}
+
 
           {(pkg.meeting_point || (pkg.tour_times ?? []).length > 0) && (
             <section>
