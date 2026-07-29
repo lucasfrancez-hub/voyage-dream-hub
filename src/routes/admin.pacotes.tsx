@@ -1009,7 +1009,8 @@ function AdminPackages() {
       </div>
 
       {view === "list" && (
-        <div className="mb-4 inline-flex flex-wrap gap-1 rounded-xl border border-border bg-card p-1">
+        <div className="mb-4 flex flex-wrap items-center gap-2">
+        <div className="inline-flex flex-wrap gap-1 rounded-xl border border-border bg-card p-1">
           {([
             { k: "all", label: "Todos", Icon: ListIcon },
             { k: "package", label: "Pacotes", Icon: PackageIcon },
@@ -1034,7 +1035,21 @@ function AdminPackages() {
             );
           })}
         </div>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={exportCsv}
+          disabled={exporting}
+          className="gap-1.5 text-xs font-bold uppercase tracking-wider"
+          title="Exportar em CSV os registros da aba/filtros atuais"
+        >
+          {exporting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
+          Exportar CSV
+        </Button>
+        </div>
       )}
+
 
 
       {view === "curadoria" ? (
