@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { MapPin, Clock, Layers, Sparkles, Wand2, Loader2 } from "lucide-react";
+import { MapPin, Clock, Layers, Sparkles, Wand2, Loader2, Baby } from "lucide-react";
 import { summarizeTourInfo } from "@/lib/packages/ai.functions";
 
 const inp =
