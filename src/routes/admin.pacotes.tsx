@@ -1971,7 +1971,7 @@ function PackageEditorModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-5xl h-[90vh] rounded-2xl bg-card/70 backdrop-blur-2xl border border-border shadow-2xl flex flex-col overflow-hidden">
+      <div className="w-full max-w-[1400px] h-[92vh] rounded-2xl bg-card/70 backdrop-blur-2xl border border-border shadow-2xl flex flex-col overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between gap-4 border-b border-border px-6 sm:px-8 py-5 shrink-0">
           <div className="flex items-center gap-3">
@@ -3469,7 +3469,7 @@ function ServicesEditor({
         </aside>
 
         {/* Painel de detalhe */}
-        <main className="flex min-h-[420px] flex-col bg-card/40">
+        <main className="flex min-h-[520px] flex-col bg-card/40">
           <header className="flex h-16 items-center justify-between gap-3 border-b border-border/60 px-6">
             <div className="flex items-center gap-3">
               <h3 className="text-base font-semibold">{current?.label ?? "Serviços"}</h3>
@@ -3487,8 +3487,8 @@ function ServicesEditor({
             </div>
           </header>
 
-          <div className="flex-1 overflow-y-auto p-6">
-            <div className="max-w-3xl">{detail}</div>
+          <div className="max-h-[65vh] flex-1 overflow-y-auto p-6">
+            <div className="w-full">{detail}</div>
           </div>
         </main>
       </div>

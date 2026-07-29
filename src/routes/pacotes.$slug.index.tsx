@@ -212,6 +212,7 @@ function PackageDetails() {
 
   const [hotelDialogOpen, setHotelDialogOpen] = useState(false);
   const [dialogPhotoIndex, setDialogPhotoIndex] = useState(0);
+  const [preOpen, setPreOpen] = useState(false);
 
   if (isLoading || !pkg) {
     return (
@@ -518,13 +519,23 @@ function PackageDetails() {
               </div>
             )}
 
-            <Link
-              to="/pacotes/$slug/checkout"
-              params={{ slug: pkg.slug }}
-              className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-full bg-gradient-brand px-6 py-3 font-semibold text-primary-foreground shadow-[var(--shadow-glow)] hover:opacity-90 transition"
-            >
-              Reservar agora <ArrowRight className="h-4 w-4" />
-            </Link>
+            {flexibleDates ? (
+              <button
+                type="button"
+                onClick={() => setPreOpen(true)}
+                className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-full bg-gradient-brand px-6 py-3 font-semibold text-primary-foreground shadow-[var(--shadow-glow)] hover:opacity-90 transition"
+              >
+                Reservar agora <ArrowRight className="h-4 w-4" />
+              </button>
+            ) : (
+              <Link
+                to="/pacotes/$slug/checkout"
+                params={{ slug: pkg.slug }}
+                className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-full bg-gradient-brand px-6 py-3 font-semibold text-primary-foreground shadow-[var(--shadow-glow)] hover:opacity-90 transition"
+              >
+                Reservar agora <ArrowRight className="h-4 w-4" />
+              </Link>
+            )}
             <p className="mt-3 text-[11px] text-muted-foreground text-center">
               Você preenche seus dados e finaliza o pagamento na próxima etapa.
             </p>
@@ -552,6 +563,21 @@ function PackageDetails() {
           </div>
         </aside>
       </div>
+      {flexibleDates && (
+        <PreCheckoutDialog
+          open={preOpen}
+          onOpenChange={setPreOpen}
+          pkg={pkg}
+          qty={baseOccupancy}
+          basePrice={(Number(pkg.price_per_person) || 0) + (Number(pkg.taxes) || 0)}
+          isFlexibleDate
+          rawAddons={((pkg as any)?.services?.addons ?? []) as any[]}
+          stayNights={Number(pkg.nights) || 2}
+          birthdayEnabled={!!(pkg as any)?.services?.birthday?.enabled}
+          birthdayCondicao={((pkg as any)?.services?.birthday?.condicao ?? "") as string}
+          unitNoun="pessoa"
+        />
+      )}
       <ContactFooter whatsappMessage={`Olá! Tenho interesse no pacote e quero mais informações.`} />
       {(() => {
         const taId = (pkg as unknown as { tripadvisor_location_id?: number | null }).tripadvisor_location_id ?? null;
@@ -1146,6 +1172,10 @@ function PreCheckoutDialog({
   isFlexibleDate,
   rawAddons,
   datePrices,
+  stayNights = 0,
+  birthdayEnabled = false,
+  birthdayCondicao = "",
+  unitNoun = "ingresso",
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
@@ -1155,6 +1185,10 @@ function PreCheckoutDialog({
   isFlexibleDate: boolean;
   rawAddons: any[];
   datePrices?: any[];
+  stayNights?: number;
+  birthdayEnabled?: boolean;
+  birthdayCondicao?: string;
+  unitNoun?: string;
 }) {
   const navigate = useNavigate();
   const [date, setDate] = useState<string>(isFlexibleDate ? "" : (pkg.going_date ?? ""));
@@ -1163,6 +1197,18 @@ function PreCheckoutDialog({
   const tourTimes: string[] = Array.isArray(pkg?.tour_times) ? pkg.tour_times : [];
   const [modality, setModality] = useState<string>("");
   const [time, setTime] = useState<string>(tourTimes[0] ?? "");
+  const maxNights = Math.min(2, Math.max(1, stayNights || 2));
+  const [nights, setNights] = useState<number>(maxNights);
+  const [isBirthday, setIsBirthday] = useState(false);
+
+  const checkoutDate = useMemo(() => {
+    if (!stayNights || !date) return "";
+    const m = date.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!m) return "";
+    const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]) + nights);
+    return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+  }, [date, nights, stayNights]);
+
 
 
   const weekday = useMemo<number | null>(() => {
@@ -1267,6 +1313,8 @@ function PreCheckoutDialog({
         ...(date ? { date } : {}),
         ...(modality ? { modality } : {}),
         ...(time ? { time } : {}),
+        ...(stayNights ? { nights } : {}),
+        ...(isBirthday ? { birthday: 1 } : {}),
         ...(selectedKeys.length ? { addons: selectedKeys.join(",") } : {}),
       },
     });
@@ -1310,7 +1358,7 @@ function PreCheckoutDialog({
         <div
           className={cn(
             "flex-1 overflow-y-auto grid grid-cols-1",
-            isFlexibleDate && (hasAddons || needsModality || tourTimes.length > 0)
+            isFlexibleDate && (hasAddons || needsModality || birthdayEnabled || tourTimes.length > 0)
               ? "lg:grid-cols-2 divide-y lg:divide-y-0 lg:divide-x divide-border/60"
               : "",
           )}
@@ -1413,6 +1461,50 @@ function PreCheckoutDialog({
                 </div>
               )}
 
+              {stayNights > 0 && (
+                <div className="mt-4 rounded-xl border border-border bg-muted/30 px-4 py-3 space-y-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                      Noites
+                    </span>
+                    <div className="flex gap-1">
+                      {Array.from({ length: maxNights }, (_, i) => i + 1).map((n) => (
+                        <button
+                          key={n}
+                          type="button"
+                          onClick={() => setNights(n)}
+                          className={cn(
+                            "rounded-full px-3 py-1 text-xs font-bold transition",
+                            nights === n
+                              ? "bg-brand-orange text-primary-foreground"
+                              : "border border-border text-muted-foreground hover:text-foreground",
+                          )}
+                        >
+                          {n}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {date ? (
+                      <>
+                        Entrada{" "}
+                        <strong className="text-foreground">
+                          {new Date(`${date}T00:00:00`).toLocaleDateString("pt-BR", {
+                            day: "2-digit",
+                            month: "2-digit",
+                          })}
+                        </strong>{" "}
+                        · Saída <strong className="text-foreground">{checkoutDate}</strong>
+                      </>
+                    ) : (
+                      "Escolha a data de entrada no calendário."
+                    )}{" "}
+                    Limite de {maxNights} noite{maxNights > 1 ? "s" : ""}.
+                  </p>
+                </div>
+              )}
+
               <div className="mt-auto pt-5 text-[11px] text-muted-foreground/80">
                 * Preços podem variar de acordo com a data selecionada
               </div>
@@ -1420,8 +1512,35 @@ function PreCheckoutDialog({
           )}
 
           {/* Right: Modalidades / horários */}
-          {(needsModality || tourTimes.length > 0) && (
+          {(needsModality || tourTimes.length > 0 || birthdayEnabled) && (
             <div className="p-5 lg:p-6 bg-background/40 space-y-5">
+              {birthdayEnabled && (
+                <button
+                  type="button"
+                  onClick={() => setIsBirthday((v) => !v)}
+                  className={cn(
+                    "w-full rounded-2xl border bg-card p-4 text-left transition-all",
+                    isBirthday
+                      ? "border-brand-orange/60 ring-1 ring-brand-orange/40"
+                      : "border-border/70 hover:border-brand-orange/40",
+                  )}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 text-sm font-bold">
+                        <Sparkles className="h-4 w-4 text-brand-orange" />
+                        Cortesia de aniversariante
+                      </div>
+                      <p className="mt-1 text-[11px] leading-snug text-muted-foreground">
+                        {birthdayCondicao || "Opcional e sem custo. Confirmamos os dados na próxima etapa."}
+                      </p>
+                    </div>
+                    <span className="shrink-0 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-600">
+                      Grátis
+                    </span>
+                  </div>
+                </button>
+              )}
               {needsModality && (
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
@@ -1643,7 +1762,7 @@ function PreCheckoutDialog({
                   Total estimado
                 </span>
                 <span className="text-[10px] bg-brand-orange/10 text-brand-orange px-2 py-0.5 rounded-full font-bold">
-                  {qty} {qty === 1 ? "ingresso" : "ingressos"}
+                  {qty} {qty === 1 ? unitNoun : `${unitNoun}s`}
                   {selectedCount > 0 && ` + ${selectedCount} ${selectedCount === 1 ? "adicional" : "adicionais"}`}
                 </span>
               </div>
