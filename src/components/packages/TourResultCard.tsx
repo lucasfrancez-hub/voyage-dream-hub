@@ -161,10 +161,23 @@ export function TourResultCard({
       ? tour.tour_times
       : [];
 
+  const fullDescription = (() => {
+    const parts = [tour.itinerary, tour.summary, tour.ai_summary, (tour as any).description]
+      .map((v: any) => (typeof v === "string" ? v.trim() : ""))
+      .filter(Boolean);
+    // remove duplicatas / trechos contidos em outro
+    const out: string[] = [];
+    for (const p of parts) {
+      if (!out.some((o) => o.includes(p))) out.push(p);
+    }
+    return out.join("\n\n");
+  })();
+
   const teaser = (() => {
     const raw: string =
       (tour as any).short_description ||
       (tour as any).ai_summary ||
+      (tour as any).summary ||
       (tour as any).description ||
       (tour as any).itinerary ||
       "";
@@ -174,10 +187,10 @@ export function TourResultCard({
       .replace(/^\s*[-•]\s*/gm, "")
       .replace(/\s+/g, " ")
       .trim();
-    if (clean.length <= 180) return clean;
-    const cut = clean.slice(0, 180);
+    if (clean.length <= 320) return clean;
+    const cut = clean.slice(0, 320);
     const stop = Math.max(cut.lastIndexOf(". "), cut.lastIndexOf(" "));
-    return cut.slice(0, stop > 90 ? stop : 180).trim() + "…";
+    return cut.slice(0, stop > 160 ? stop : 320).trim() + "…";
   })();
 
 
@@ -205,7 +218,7 @@ export function TourResultCard({
           <div className="flex flex-1 flex-col gap-3">
             <h3 className="font-display text-lg font-bold leading-tight">{tour.title}</h3>
             {teaser && (
-              <p className="-mt-1.5 line-clamp-3 text-[12.5px] leading-snug text-muted-foreground">
+              <p className="-mt-1.5 text-[12.5px] leading-snug text-muted-foreground">
                 {teaser}
               </p>
             )}
@@ -214,7 +227,7 @@ export function TourResultCard({
               {meetingPoint && (
                 <p className="flex items-start gap-2">
                   <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-brand-orange" />
-                  <span className="line-clamp-2">{meetingPoint}</span>
+                  <span>{meetingPoint}</span>
                 </p>
               )}
               {times.length > 0 && (
@@ -471,16 +484,33 @@ export function TourResultCard({
               </DialogTitle>
             </DialogHeader>
 
-            {(tour.summary || tour.ai_summary) && (
+            {fullDescription && (
               <section>
                 <h4 className="mb-2 border-b border-border pb-2 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
                   Sobre o passeio
                 </h4>
                 <p className="whitespace-pre-line text-sm leading-relaxed text-muted-foreground">
-                  {tour.summary || tour.ai_summary}
+                  {fullDescription}
                 </p>
               </section>
             )}
+
+            {Array.isArray(tour.includes) && tour.includes.length > 0 && (
+              <section>
+                <h4 className="mb-2 border-b border-border pb-2 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+                  O que está incluso
+                </h4>
+                <ul className="space-y-1.5">
+                  {tour.includes.map((it: string) => (
+                    <li key={it} className="flex items-start gap-2 text-sm text-muted-foreground">
+                      <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-brand-orange" />
+                      {it}
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
+
 
             <div className="grid gap-6 sm:grid-cols-2">
               {meetingPoint && (

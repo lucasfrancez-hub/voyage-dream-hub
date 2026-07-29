@@ -91,7 +91,7 @@ function PasseiosPage() {
       const { data, error } = await supabase
         .from("packages")
         .select(
-          "id,slug,title,destination,origin,price_per_person,taxes,image_url,summary,ai_summary,itinerary,meeting_point,tour_times,tour_modalities,services,sort_order,kind,pricing_mode,date_mode,max_units",
+          "id,slug,title,destination,origin,price_per_person,taxes,image_url,summary,ai_summary,itinerary,includes,meeting_point,tour_times,tour_modalities,services,sort_order,kind,pricing_mode,date_mode,max_units",
         )
         .eq("is_active", true)
         .eq("kind", "tour")
