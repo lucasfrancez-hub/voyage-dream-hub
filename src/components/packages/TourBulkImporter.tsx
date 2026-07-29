@@ -6,6 +6,19 @@ import { supabase } from "@/integrations/supabase/client";
 import { DestinationInput } from "@/components/packages/DestinationInput";
 import { parseMultipleTourHtml, type ParsedTour } from "@/lib/packages/tour-html";
 
+type SavedTour = {
+  id: string;
+  title: string;
+  destination: string;
+  image_url: string;
+  price_per_person: number;
+  taxes: number;
+  times: string[];
+  includes: string[];
+  meeting_point: string;
+  raw_description: string;
+};
+
 function slugify(input: string): string {
   return input
     .normalize("NFD")
@@ -31,7 +44,9 @@ export function TourBulkImporter({
   const [running, setRunning] = useState(false);
   const [progress, setProgress] = useState("");
   const [openIdx, setOpenIdx] = useState<number | null>(null);
-  const [done, setDone] = useState<string[] | null>(null);
+  const [saved, setSaved] = useState<SavedTour[] | null>(null);
+  const [savedTab, setSavedTab] = useState(0);
+  const [savingAll, setSavingAll] = useState(false);
   const [extras, setExtras] = useState<Record<number, string>>({});
 
   function patchTour(i: number, next: Partial<ParsedTour>) {
@@ -46,7 +61,7 @@ export function TourBulkImporter({
         return;
       }
       setTours(list);
-      setDone(null);
+      setSaved(null);
       setOpenIdx(list.length === 1 ? 0 : null);
       setSelected(Object.fromEntries(list.map((_, i) => [i, true])));
       setExtras({});
@@ -65,7 +80,7 @@ export function TourBulkImporter({
     }
     setRunning(true);
     let ok = 0;
-    const okTitles: string[] = [];
+    const savedRows: SavedTour[] = [];
     try {
       const { data: existing } = await supabase.from("packages").select("slug");
       const used = new Set((existing ?? []).map((r: any) => r.slug));
@@ -88,6 +103,11 @@ export function TourBulkImporter({
           0,
         );
 
+        const rawDescription = [t.description, extraByTitle.get(t.title)]
+          .filter(Boolean)
+          .join("\n\n")
+          .slice(0, 55000);
+
         const { data: inserted, error } = await supabase
           .from("packages")
           .insert({
@@ -101,13 +121,7 @@ export function TourBulkImporter({
             tour_modalities: t.modalities,
             tour_times: t.times ?? [],
             meeting_point: null,
-            services: (() => {
-              const raw = [t.description, extraByTitle.get(t.title)]
-                .filter(Boolean)
-                .join("\n\n")
-                .slice(0, 55000);
-              return raw ? { raw_description: raw } : {};
-            })(),
+            services: rawDescription ? { raw_description: rawDescription } : {},
             price_per_person: minPrice || 0,
             taxes: t.tax_per_person || 0,
             kind: "tour",
@@ -139,13 +153,25 @@ export function TourBulkImporter({
           if (perr) toast.error(`${t.title} (preços): ${perr.message}`);
         }
         ok += 1;
-        okTitles.push(t.title);
+        savedRows.push({
+          id: inserted.id,
+          title: t.title,
+          destination: destination.trim(),
+          image_url: t.image_url || "",
+          price_per_person: minPrice || 0,
+          taxes: t.tax_per_person || 0,
+          times: t.times ?? [],
+          includes: t.includes ?? [],
+          meeting_point: "",
+          raw_description: rawDescription,
+        });
       }
       await qc.invalidateQueries({ queryKey: ["admin-packages"] });
       await qc.invalidateQueries({ queryKey: ["packages"] });
       toast.success(`${ok} passeio(s) importado(s).`);
       if (ok > 0) {
-        setDone(okTitles);
+        setSaved(savedRows);
+        setSavedTab(0);
         setTours([]);
         setSelected({});
       }
