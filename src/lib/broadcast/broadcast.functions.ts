@@ -234,8 +234,10 @@ export const salvarCampanha = createServerFn({ method: "POST" })
       midia_url: m.midia_url ?? null,
       midia_filename: m.midia_filename ?? null,
       midia_caption: m.midia_caption ?? null,
+      scheduled_at: m.scheduled_at ?? null,
       botoes: (m.botoes ?? null) as never,
     }));
+
     const { error: mErr } = await supabaseAdmin.from("wa_broadcast_mensagens").insert(blocos as never);
     if (mErr) throw new Error(mErr.message);
 
