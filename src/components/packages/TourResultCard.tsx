@@ -183,6 +183,12 @@ export function TourResultCard({
           </div>
           <div className="flex flex-1 flex-col gap-3">
             <h3 className="font-display text-lg font-bold leading-tight">{tour.title}</h3>
+            {teaser && (
+              <p className="-mt-1.5 line-clamp-3 text-[12.5px] leading-snug text-muted-foreground">
+                {teaser}
+              </p>
+            )}
+
             <div className="space-y-1.5 text-[13px] text-muted-foreground">
               {meetingPoint && (
                 <p className="flex items-start gap-2">
