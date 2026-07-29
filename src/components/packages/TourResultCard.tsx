@@ -57,8 +57,11 @@ export function TourResultCard({
   onAdd: (item: Omit<CartItem, "key">) => void;
   onReserve: (date: string, modality: string | null, qty: number) => void;
 }) {
-  const [offset, setOffset] = useState(0);
-  const [sel, setSel] = useState<{ date: string; modality: string | null } | null>(null);
+  const stripRef = useRef<HTMLDivElement>(null);
+  const [selDate, setSelDate] = useState<string | null>(null);
+  const [selMod, setSelMod] = useState<string | null | undefined>(undefined);
+  const sel =
+    selDate && selMod !== undefined ? { date: selDate, modality: selMod } : null;
 
   const rangeLabel = useMemo(() => {
     const fmt = (iso: string) => {
@@ -73,9 +76,16 @@ export function TourResultCard({
 
 
   const childFee = useMemo(
-    () => detectChildTokenFee(tour.summary, tour.description, tour.tour_info),
+    () =>
+      detectChildTokenFee(
+        tour.ai_summary,
+        tour.summary,
+        tour.itinerary,
+        typeof tour.tour_info === "string" ? tour.tour_info : JSON.stringify(tour.tour_info ?? ""),
+      ),
     [tour],
   );
+
   // Criança dentro da faixa isenta (idade informada) não entra no valor do passeio
   const exemptChildren = useMemo(() => {
     if (!childFee) return 0;
