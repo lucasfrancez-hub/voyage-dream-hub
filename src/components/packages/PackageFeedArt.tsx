@@ -389,7 +389,12 @@ export const PackageFeedArt = forwardRef<HTMLDivElement, { data: FeedArtData }>(
                   </div>
                   <div className="vfeed-side-card glass-panel-dark">
                     <div className="vfeed-side-icon">{I.info}</div>
-                    <p className="vfeed-side-small">Sujeito à disponibilidade de vagas e alteração tarifária sem aviso prévio.</p>
+                    <p className="vfeed-side-small">
+                      {data.flexibleDates
+                        ? "Datas flexíveis — sujeitas à disponibilidade e alteração de valor sem aviso prévio."
+                        : "Sujeito à disponibilidade de vagas e alteração tarifária sem aviso prévio."}
+                    </p>
+
                   </div>
                 </div>
               </div>
