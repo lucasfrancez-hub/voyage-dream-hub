@@ -127,6 +127,32 @@ function DisparosPage() {
   const fetchSuggestions = useServerFn(listSuggestions);
   const approveSuggestion = useServerFn(aprovarSuggestion);
   const dismissSuggestion = useServerFn(descartarSuggestion);
+  const fetchCampanhaPdf = useServerFn(getCampanha);
+
+  async function exportarPdf(id: string) {
+    try {
+      const r = await fetchCampanhaPdf({ data: { id } });
+      const c = r.campanha as Campanha | null;
+      if (!c) return toast.error("Campanha não encontrada");
+      const { exportCampanhaPdf } = await import("@/lib/broadcast/campaign-pdf");
+      const destMap = new Map(destinos.map((d) => [d.id, d]));
+      exportCampanhaPdf(
+        {
+          nome: c.nome,
+          status: STATUS_LABEL[c.status] ?? c.status,
+          scheduled_at: c.scheduled_at,
+          sent_at: c.sent_at,
+          observacoes_marketing: c.observacoes_marketing,
+          metrics: c.metrics,
+        },
+        (r.mensagens ?? []) as Bloco[],
+        c.destino_ids.map((did) => destMap.get(did)).filter(Boolean).map((d) => ({ nome: d!.nome, tipo: d!.tipo })),
+      );
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Erro ao gerar PDF");
+    }
+  }
+
 
   async function load() {
     setLoading(true);
