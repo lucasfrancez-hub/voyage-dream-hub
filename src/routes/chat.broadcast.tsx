@@ -339,6 +339,8 @@ function DisparosPage() {
           campanhas={campanhas}
           destinos={destinos}
           onEdit={(id) => setShowEditor({ id })}
+          onExportPdf={exportarPdf}
+
           onCancelar={async (id) => {
             if (!(await confirm({ title: "Cancelar campanha?", description: "Ela não será mais enviada." }))) return;
             await doCancelar({ data: { id } });
