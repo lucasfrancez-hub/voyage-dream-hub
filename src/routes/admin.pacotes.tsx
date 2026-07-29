@@ -29,7 +29,12 @@ import {
   Ship,
   Package as PackageIcon,
   MapPin,
+  MapPin as MapPinIcon,
+  Shield,
+  Bus,
+  type LucideIcon,
 } from "lucide-react";
+
 import { TourDatesEditor } from "@/components/packages/TourDatesEditor";
 import { TourInfoEditor } from "@/components/packages/TourInfoEditor";
 import { SupplierInput } from "@/components/packages/SupplierInput";
