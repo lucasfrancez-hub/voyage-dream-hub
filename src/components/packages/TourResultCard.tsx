@@ -41,6 +41,8 @@ export function TourResultCard({
   adults,
   children: childCount = 0,
   childAges = [],
+  from,
+  to,
   onAdd,
   onReserve,
 }: {
@@ -50,11 +52,25 @@ export function TourResultCard({
   adults?: number;
   children?: number;
   childAges?: number[];
+  from?: string;
+  to?: string;
   onAdd: (item: Omit<CartItem, "key">) => void;
   onReserve: (date: string, modality: string | null, qty: number) => void;
 }) {
   const [offset, setOffset] = useState(0);
   const [sel, setSel] = useState<{ date: string; modality: string | null } | null>(null);
+
+  const rangeLabel = useMemo(() => {
+    const fmt = (iso: string) => {
+      const [y, m, d] = iso.split("-").map(Number);
+      return `${String(d).padStart(2, "0")}/${String(m).padStart(2, "0")}`;
+    };
+    if (from && to) return `Período: ${fmt(from)} a ${fmt(to)}`;
+    if (from) return `A partir de ${fmt(from)}`;
+    if (to) return `Até ${fmt(to)}`;
+    return "";
+  }, [from, to]);
+
 
   const childFee = useMemo(
     () => detectChildTokenFee(tour.summary, tour.description, tour.tour_info),
