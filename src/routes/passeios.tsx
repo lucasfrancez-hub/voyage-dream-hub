@@ -73,6 +73,7 @@ function PasseiosPage() {
   const [children, setChildren] = useState(0);
   const [infants, setInfants] = useState(0);
   const [searched, setSearched] = useState(false);
+  const [cart, setCart] = useState<CartItem[]>([]);
   const pax = adults + children;
 
   const { data: tours = [], isLoading } = useQuery({
