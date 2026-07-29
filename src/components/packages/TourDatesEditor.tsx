@@ -88,10 +88,11 @@ export function TourDatesEditor({
     queryKey: ["package-date-prices", packageId],
     enabled: !!packageId,
     queryFn: async () => {
+      if (!packageId) return [];
       const { data, error } = await supabase
         .from("package_date_prices")
         .select("id,date,modality,price_per_person,taxes,seats,is_available")
-        .eq("package_id", packageId!)
+        .eq("package_id", packageId)
         .order("date");
       if (error) throw error;
       return (data ?? []) as Row[];
@@ -210,20 +211,37 @@ export function TourDatesEditor({
   }
 
   async function saveDates() {
-    if (!packageId) return;
     const valid = list.filter((r) => /^\d{4}-\d{2}-\d{2}$/.test(r.date));
+    if (!packageId) {
+      if (!onRowsChange) {
+        toast.error("Salve o passeio antes de gravar as datas.");
+        return;
+      }
+      const pending = valid.map((r) => ({
+        date: r.date,
+        modality: r.modality ?? "",
+        price_per_person: Number(r.price_per_person) || 0,
+        taxes: Number(r.taxes) || 0,
+      }));
+      onRowsChange(pending);
+      setRows(valid);
+      toast.success(`${pending.length} data(s) aplicadas ao passeio. Elas serão gravadas ao salvar.`);
+      return;
+    }
     setSaving(true);
     try {
-      const { data: current } = await supabase
+      const { data: current, error: currentError } = await supabase
         .from("package_date_prices")
         .select("id,date,modality")
         .eq("package_id", packageId);
+      if (currentError) throw currentError;
       const keep = new Set(valid.map((r) => `${r.date}|${r.modality ?? ""}`));
       const toDelete = (current ?? [])
         .filter((c) => !keep.has(`${c.date}|${c.modality ?? ""}`))
         .map((c) => c.id);
       if (toDelete.length) {
-        await supabase.from("package_date_prices").delete().in("id", toDelete);
+        const { error: deleteError } = await supabase.from("package_date_prices").delete().in("id", toDelete);
+        if (deleteError) throw deleteError;
       }
       if (valid.length) {
         const { error } = await supabase.from("package_date_prices").upsert(
@@ -242,7 +260,7 @@ export function TourDatesEditor({
       }
       toast.success("Datas e preços salvos");
       setRows(null);
-      qc.invalidateQueries({ queryKey: ["package-date-prices", packageId] });
+      await qc.invalidateQueries({ queryKey: ["package-date-prices", packageId] });
     } catch (e) {
       toast.error((e as Error).message);
     } finally {
@@ -269,11 +287,11 @@ export function TourDatesEditor({
           <button
             type="button"
             onClick={saveDates}
-            disabled={saving || unsaved}
-            title={unsaved ? "Salve o passeio para gravar o calendário" : undefined}
+            disabled={saving || (unsaved && !onRowsChange)}
+            title={unsaved ? "Aplicar as datas ao passeio antes de salvar" : undefined}
             className="inline-flex items-center gap-1.5 rounded-lg bg-brand-orange px-3 py-1.5 text-xs font-bold text-white disabled:opacity-60"
           >
-            {saving && <Loader2 className="h-3.5 w-3.5 animate-spin" />} Salvar datas
+            {saving && <Loader2 className="h-3.5 w-3.5 animate-spin" />} {unsaved ? "Aplicar datas" : "Salvar datas"}
           </button>
         </div>
       </div>

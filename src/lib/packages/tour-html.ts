@@ -158,24 +158,37 @@ export function parseTourHtml(html: string): ParsedTour {
   );
 
   if (table) {
-    const headCells = [...(table.querySelectorAll("thead th") ?? [])].slice(1);
-    for (const th of headCells) {
-      const iso = parseTourDateLabel(th.textContent ?? "");
-      dates.push(iso ?? "");
-    }
-    for (const tr of [...table.querySelectorAll("tbody tr")]) {
+    // Alguns portais colocam tabelas auxiliares dentro das células de preço.
+    // Ler todos os `tbody tr` inclui essas linhas internas como modalidades e
+    // desloca as colunas. Trabalhamos somente com as linhas filhas da matriz.
+    const headerRows = [...table.querySelectorAll<HTMLElement>(":scope > thead > tr")];
+    const headerRow = headerRows
+      .map((row) => ({
+        row,
+        parsed: [...row.children].map((cell) => parseTourDateLabel(cell.textContent ?? "")),
+      }))
+      .sort(
+        (a, b) => b.parsed.filter(Boolean).length - a.parsed.filter(Boolean).length,
+      )[0];
+    const datesByColumn = headerRow?.parsed ?? [];
+    dates.push(...datesByColumn.filter((date): date is string => Boolean(date)));
+
+    const bodyRows = [...table.querySelectorAll<HTMLElement>(":scope > tbody > tr")];
+    for (const tr of bodyRows) {
       const cells = [...tr.children] as HTMLElement[];
       if (cells.length < 2) continue;
       const modality = cleanModality(cells[0].textContent ?? "", title);
       if (!modality) continue;
-      if (!modalities.includes(modality)) modalities.push(modality);
-      cells.slice(1).forEach((td, i) => {
-        const date = dates[i];
+      let modalityHasPrice = false;
+      cells.forEach((td, columnIndex) => {
+        const date = datesByColumn[columnIndex];
         if (!date) return;
         const price = parseMoney(td.textContent ?? "");
         if (price == null) return;
         prices.push({ date, modality, price_per_person: price });
+        modalityHasPrice = true;
       });
+      if (modalityHasPrice && !modalities.includes(modality)) modalities.push(modality);
     }
   }
 
@@ -198,7 +211,7 @@ export function parseTourHtml(html: string): ParsedTour {
   const tax_per_person = 0;
 
   // Ignora datas e modalidades sem nenhum valor ("-" / vazio no portal)
-  const datesWithPrice = dates.filter((d) => d && prices.some((p) => p.date === d));
+  const datesWithPrice = [...new Set(dates.filter((d) => d && prices.some((p) => p.date === d)))];
   const modalitiesWithPrice = modalities.filter((m) => prices.some((p) => p.modality === m));
 
   return {

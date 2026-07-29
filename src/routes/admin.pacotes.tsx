@@ -603,7 +603,7 @@ function AdminPackages() {
 
         { onConflict: "package_id,date,modality" },
       );
-      if (priceErr) console.error("[packages] falha ao gravar calendário do passeio", priceErr);
+      if (priceErr) throw priceErr;
     }
     const sourcePhotos: string[] = (payload as any).tripadvisor_photos ?? [];
     if (

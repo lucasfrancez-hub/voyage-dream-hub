@@ -83,6 +83,12 @@ export function TourImportWizard({
           .join("\n\n");
 
         const notIncludes = tour.not_includes.length ? tour.not_includes : (ai?.not_includes ?? []);
+        // A lista exibida no calendário precisa nascer das mesmas linhas de
+        // preço. Isso evita modalidades detectadas apenas no texto/HTML sem
+        // nenhuma data correspondente no editor.
+        const pricedModalities = [
+          ...new Set(tour.prices.map((row) => row.modality.trim()).filter(Boolean)),
+        ];
 
         drafts.push({
           slug,
@@ -95,7 +101,11 @@ export function TourImportWizard({
           price_per_person: minPrice || 0,
           taxes: tour.tax_per_person || 0,
           tour_times: tour.times.length ? tour.times : (ai?.times ?? []),
-          tour_modalities: tour.modalities.length ? tour.modalities : (ai?.modalities ?? []),
+          tour_modalities: pricedModalities.length
+            ? pricedModalities
+            : tour.modalities.length
+              ? tour.modalities
+              : (ai?.modalities ?? []),
           includes: tour.includes.length ? tour.includes : (ai?.includes ?? []),
           meeting_point: ai?.meeting_point || null,
           services: {
