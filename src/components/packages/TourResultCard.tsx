@@ -40,6 +40,7 @@ export function TourResultCard({
   pax,
   adults,
   children: childCount = 0,
+  childAges = [],
   onAdd,
   onReserve,
 }: {
@@ -48,6 +49,7 @@ export function TourResultCard({
   pax: number;
   adults?: number;
   children?: number;
+  childAges?: number[];
   onAdd: (item: Omit<CartItem, "key">) => void;
   onReserve: (date: string, modality: string | null, qty: number) => void;
 }) {
@@ -58,8 +60,19 @@ export function TourResultCard({
     () => detectChildTokenFee(tour.summary, tour.description, tour.tour_info),
     [tour],
   );
-  // Criança com taxa simbólica não entra no valor do passeio
-  const payingPax = childFee ? Math.max(1, adults ?? pax) : pax;
+  // Criança dentro da faixa isenta (idade informada) não entra no valor do passeio
+  const exemptChildren = useMemo(() => {
+    if (!childFee) return 0;
+    const ages = childAges.slice(0, childCount);
+    if (ages.length === 0) return childCount;
+    return ages.filter((age) => {
+      const okMin = childFee.minAge == null || age >= childFee.minAge;
+      const okMax = childFee.maxAge == null || age <= childFee.maxAge;
+      return okMin && okMax;
+    }).length;
+  }, [childFee, childAges, childCount]);
+  const payingPax = childFee ? Math.max(1, pax - exemptChildren) : pax;
+
 
 
   const dates = useMemo(
@@ -270,9 +283,10 @@ export function TourResultCard({
               <p className="mt-1 text-[11px] text-muted-foreground">
                 {formatBRL(selUnit ?? minUnit ?? 0)} por pessoa · {payingPax}{" "}
                 {payingPax === 1 ? "pessoa" : "pessoas"}
-                {childFee && childCount > 0
-                  ? ` · ${childCount} ${childCount === 1 ? "criança isenta" : "crianças isentas"}`
+                {exemptChildren > 0
+                  ? ` · ${exemptChildren} ${exemptChildren === 1 ? "criança isenta" : "crianças isentas"}`
                   : ""}
+
               </p>
             </div>
 

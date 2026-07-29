@@ -70,11 +70,20 @@ function PasseiosPage() {
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [adults, setAdults] = useState(2);
-  const [children, setChildren] = useState(0);
+  const [childAges, setChildAges] = useState<number[]>([]);
   const [infants, setInfants] = useState(0);
   const [searched, setSearched] = useState(false);
   const [cart, setCart] = useState<CartItem[]>([]);
+  const children = childAges.length;
+  const setChildren = (n: number) =>
+    setChildAges((prev) => {
+      const next = Math.max(0, n);
+      if (next === prev.length) return prev;
+      if (next < prev.length) return prev.slice(0, next);
+      return [...prev, ...Array.from({ length: next - prev.length }, () => 10)];
+    });
   const pax = adults + children;
+
 
   const { data: tours = [], isLoading } = useQuery({
     queryKey: ["tours", "active"],
@@ -343,7 +352,37 @@ function PasseiosPage() {
                           </div>
                         </div>
                       ))}
+                      {childAges.length > 0 && (
+                        <div className="mt-2 space-y-2 border-t border-border pt-3">
+                          <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                            Idade de cada criança
+                          </p>
+                          {childAges.map((age, i) => (
+                            <div key={i} className="flex items-center justify-between gap-3">
+                              <span className="text-sm">Criança {i + 1}</span>
+                              <select
+                                value={age}
+                                onChange={(e) =>
+                                  setChildAges((prev) =>
+                                    prev.map((a, j) =>
+                                      j === i ? Number(e.target.value) : a,
+                                    ),
+                                  )
+                                }
+                                className="h-8 rounded-md border border-border bg-background px-2 text-sm"
+                              >
+                                {Array.from({ length: 16 }, (_, k) => k + 2).map((v) => (
+                                  <option key={v} value={v}>
+                                    {v} anos
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </PopoverContent>
+
                   </Popover>
                 </div>
                 <button
@@ -391,6 +430,8 @@ function PasseiosPage() {
                       pax={pax}
                       adults={adults}
                       children={children}
+                      childAges={childAges}
+
 
                       onAdd={(item) =>
                         setCart((c) => [
