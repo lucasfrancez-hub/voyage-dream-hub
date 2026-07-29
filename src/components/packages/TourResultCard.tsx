@@ -157,9 +157,9 @@ export function TourResultCard({
   return (
     <article className="overflow-hidden rounded-2xl border border-border bg-card shadow-xl">
       <div className="flex flex-col md:flex-row">
-        {/* Esquerda: imagem + informações */}
-        <div className="flex w-full flex-col border-border md:w-1/3 md:border-r">
-          <div className="relative h-52 w-full bg-muted md:h-60">
+        {/* Esquerda: imagem compacta + informações */}
+        <div className="flex w-full flex-col border-border p-5 md:w-[26%] md:border-r">
+          <div className="relative mb-4 aspect-[4/3] w-full overflow-hidden rounded-xl bg-muted">
             {tour.image_url && (
               <img
                 src={tour.image_url}
@@ -169,42 +169,41 @@ export function TourResultCard({
               />
             )}
             {tour.destination && (
-              <span className="absolute left-3 top-3 rounded-full bg-brand-orange px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-primary-foreground shadow-lg">
+              <span className="absolute left-2 top-2 rounded-full bg-brand-orange px-2.5 py-1 text-[9px] font-bold uppercase tracking-widest text-primary-foreground shadow-lg">
                 {tour.destination}
               </span>
             )}
           </div>
-          <div className="space-y-4 p-5">
-            <h3 className="font-display text-xl font-bold leading-tight">{tour.title}</h3>
-            <div className="space-y-2 text-sm text-muted-foreground">
+          <div className="flex flex-1 flex-col gap-3">
+            <h3 className="font-display text-lg font-bold leading-tight">{tour.title}</h3>
+            <div className="space-y-1.5 text-[13px] text-muted-foreground">
               {meetingPoint && (
                 <p className="flex items-start gap-2">
-                  <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-brand-orange" />
-                  <span>Ponto de encontro: {meetingPoint}</span>
+                  <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-brand-orange" />
+                  <span className="line-clamp-2">{meetingPoint}</span>
                 </p>
               )}
               {times.length > 0 && (
                 <p className="flex items-start gap-2">
-                  <Clock className="mt-0.5 h-4 w-4 shrink-0 text-brand-orange" />
-                  <span>Saídas: {times.join(", ")}</span>
+                  <Clock className="mt-0.5 h-3.5 w-3.5 shrink-0 text-brand-orange" />
+                  <span className="line-clamp-1">Saídas: {times.join(", ")}</span>
                 </p>
               )}
-              {tour.summary && (
-                <p className="line-clamp-3 leading-relaxed">{tour.summary}</p>
-              )}
             </div>
-            <a
-              href={`/pacotes/${tour.slug}`}
-              className="inline-block text-xs font-semibold text-brand-orange hover:underline"
+            <button
+              type="button"
+              onClick={() => setDetailsOpen(true)}
+              className="mt-auto flex items-center gap-1.5 pt-3 text-[11px] font-bold uppercase tracking-wider text-brand-orange transition hover:opacity-80"
             >
               Ver detalhes do serviço
-            </a>
+              <Info className="h-3.5 w-3.5" />
+            </button>
           </div>
         </div>
 
-        {/* Centro: modalidades e preços */}
-        <div className="flex w-full flex-col bg-muted/10 p-5 md:w-[45%]">
-          <div className="mb-3 flex items-center justify-between gap-3">
+        {/* Centro: datas paginadas de 5 em 5 + modalidades */}
+        <div className="flex w-full flex-col bg-muted/10 p-5 md:w-[48%]">
+          <div className="mb-4 flex items-center justify-between gap-3">
             <div>
               <h4 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
                 Escolha a data
@@ -214,32 +213,34 @@ export function TourResultCard({
               )}
             </div>
 
-            <div className="flex gap-1">
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-bold tabular-nums text-muted-foreground">
+                {safePage + 1}/{totalPages}
+              </span>
               <button
                 type="button"
-                onClick={() => stripRef.current?.scrollBy({ left: -240, behavior: "smooth" })}
-                className="rounded-md border border-border p-1 hover:bg-muted"
+                disabled={safePage === 0}
+                onClick={() => setPage(Math.max(0, safePage - 1))}
+                className="flex h-9 w-9 items-center justify-center rounded-full border border-border bg-background transition hover:border-brand-orange hover:bg-muted disabled:opacity-30"
                 aria-label="Datas anteriores"
               >
-                <ChevronLeft className="h-3.5 w-3.5" />
+                <ChevronLeft className="h-4 w-4" />
               </button>
               <button
                 type="button"
-                onClick={() => stripRef.current?.scrollBy({ left: 240, behavior: "smooth" })}
-                className="rounded-md border border-border p-1 hover:bg-muted"
+                disabled={safePage >= totalPages - 1}
+                onClick={() => setPage(Math.min(totalPages - 1, safePage + 1))}
+                className="flex h-9 w-9 items-center justify-center rounded-full border border-border bg-background transition hover:border-brand-orange hover:bg-muted disabled:opacity-30"
                 aria-label="Próximas datas"
               >
-                <ChevronRight className="h-3.5 w-3.5" />
+                <ChevronRight className="h-4 w-4" />
               </button>
             </div>
           </div>
 
-          {/* Quadradinhos de data com scroll lateral */}
-          <div
-            ref={stripRef}
-            className="-mx-1 flex snap-x gap-2 overflow-x-auto px-1 pb-2 [scrollbar-width:thin]"
-          >
-            {dates.map((d) => {
+          {/* Bloquinhos de data — 5 por página */}
+          <div className="grid grid-cols-5 gap-2">
+            {pageDates.map((d) => {
               const u = minUnitOnDate(d);
               const [, mm, dd] = d.split("-");
               const wd = new Date(Number(d.slice(0, 4)), Number(mm) - 1, Number(dd))
@@ -255,21 +256,21 @@ export function TourResultCard({
                     setSelDate(d);
                     setSelMod(undefined);
                   }}
-                  className={`w-[86px] shrink-0 snap-start rounded-xl border p-2 text-center transition ${
+                  className={`flex flex-col items-center justify-center rounded-xl border py-3 text-center transition ${
                     isActive
-                      ? "border-brand-orange bg-brand-orange/15 shadow-md"
+                      ? "border-brand-orange bg-brand-orange/15 shadow-[0_0_15px_rgba(242,107,31,0.2)]"
                       : "border-border bg-background hover:border-brand-orange/50"
                   }`}
                 >
-                  <span className="block text-[9px] font-bold tracking-widest text-muted-foreground">
+                  <span className="text-[9px] font-bold tracking-widest text-muted-foreground">
                     {wd}
                   </span>
                   <span
-                    className={`block text-lg font-black leading-tight ${isActive ? "text-brand-orange" : "text-foreground"}`}
+                    className={`text-base font-black leading-tight ${isActive ? "text-brand-orange" : "text-foreground"}`}
                   >
                     {dd}/{mm}
                   </span>
-                  <span className="block text-[10px] text-muted-foreground">
+                  <span className="mt-0.5 text-[10px] text-muted-foreground">
                     {u != null ? formatBRL(u) : "—"}
                   </span>
                 </button>
@@ -278,10 +279,10 @@ export function TourResultCard({
           </div>
 
           {/* Modalidades da data escolhida */}
-          <p className="mb-2 mt-4 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+          <p className="mb-2 mt-5 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
             Modalidade
           </p>
-          <div className="grid gap-2 sm:grid-cols-2">
+          <div className="grid gap-2">
             {modalities.map((m) => {
               const r = activeDate ? cell(m, activeDate) : undefined;
               const u = unitOf(r);
@@ -296,14 +297,21 @@ export function TourResultCard({
                     setSelDate(activeDate);
                     setSelMod(m || null);
                   }}
-                  className={`flex items-center justify-between gap-3 rounded-xl border px-3 py-2.5 text-left transition disabled:opacity-40 ${
+                  className={`flex items-center justify-between gap-3 rounded-xl border px-4 py-3 text-left transition disabled:opacity-40 ${
                     isSel
-                      ? "border-brand-orange bg-brand-orange/15"
+                      ? "border-brand-orange bg-brand-orange/10"
                       : "border-border bg-background hover:border-brand-orange/50"
                   }`}
                 >
-                  <span className="min-w-0 truncate text-[13px] font-medium">
-                    {m || tour.title}
+                  <span className="flex min-w-0 items-center gap-3">
+                    <span
+                      className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 ${isSel ? "border-brand-orange" : "border-border"}`}
+                    >
+                      {isSel && <span className="h-2 w-2 rounded-full bg-brand-orange" />}
+                    </span>
+                    <span className="text-[13px] font-medium leading-snug">
+                      {m || tour.title}
+                    </span>
                   </span>
                   <span
                     className={`shrink-0 text-sm font-bold ${isSel ? "text-brand-orange" : "text-foreground"}`}
@@ -314,6 +322,7 @@ export function TourResultCard({
               );
             })}
           </div>
+
 
 
           <div className="mt-auto space-y-2 pt-4">
