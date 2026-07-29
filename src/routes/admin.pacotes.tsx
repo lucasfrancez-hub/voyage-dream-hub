@@ -213,6 +213,8 @@ const emptyForm: Partial<PackageRow> = {
   supplier_name: "",
   services: {},
   date_mode: "fixed",
+  flexible_dates: false,
+
   pricing_mode: "per_occupancy",
   max_units: 9,
 };
