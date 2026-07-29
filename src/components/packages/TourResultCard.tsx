@@ -56,12 +56,18 @@ export function TourResultCard({
   from?: string;
   to?: string;
   onAdd: (item: Omit<CartItem, "key">) => void;
-  onReserve: (date: string, modality: string | null, qty: number) => void;
+  onReserve: (
+    date: string,
+    modality: string | null,
+    qty: number,
+    time?: string | null,
+  ) => void;
 }) {
   const [page, setPage] = useState(0);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [selDate, setSelDate] = useState<string | null>(null);
   const [selMod, setSelMod] = useState<string | null | undefined>(undefined);
+  const [selTime, setSelTime] = useState<string | null>(null);
   const sel =
     selDate && selMod !== undefined ? { date: selDate, modality: selMod } : null;
 
