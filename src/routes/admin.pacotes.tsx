@@ -702,7 +702,14 @@ function AdminPackages() {
     if (!drafts || drafts.length === 0) return;
     // persist current edits into the draft list before iterating
     const list = drafts.slice();
-    if (editing) list[draftIndex] = editing;
+    if (editing) {
+      const currentId = (editing as any).__draftId;
+      const idx = currentId
+        ? list.findIndex((d) => (d as any).__draftId === currentId)
+        : draftIndexRef.current;
+      if (idx >= 0) list[idx] = editing;
+    }
+
     setSaving(true);
     let ok = 0;
     const errors: string[] = [];
