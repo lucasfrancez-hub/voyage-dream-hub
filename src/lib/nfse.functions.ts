@@ -298,7 +298,8 @@ export const emitirNfse = createServerFn({ method: "POST" })
     const valorIss = Number((data.valorServicos * Number(cfg.aliquota_iss) / 100).toFixed(2));
 
     // Próximo número de RPS sequencial. O cadastro fiscal começa em 116.
-    const { data: numeroRps, error: rpsErr } = await context.supabase.rpc("nfse_next_rps");
+    const { supabaseAdmin: nfseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: numeroRps, error: rpsErr } = await nfseAdmin.rpc("nfse_next_rps");
     if (rpsErr || typeof numeroRps !== "number") {
       throw new Error(`Falha ao obter número do RPS: ${rpsErr?.message ?? "resposta inválida"}`);
     }

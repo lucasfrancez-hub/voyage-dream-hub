@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 
 // AeroDataBox via RapidAPI
@@ -52,6 +53,7 @@ function toLocalInput(v?: string): string {
 }
 
 export const lookupFlight = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => Input.parse(d))
   .handler(async ({ data }): Promise<{ results: FlightLookupResult[]; error?: string }> => {
     const apiKey = process.env.RAPIDAPI_AERODATABOX_KEY;
