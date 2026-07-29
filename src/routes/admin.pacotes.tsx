@@ -3396,62 +3396,105 @@ function ServicesEditor({
     }
   })();
 
+  const current = items.find((i) => i.id === sel);
+
   return (
-    <div className="sm:col-span-2 rounded-2xl border border-border bg-muted/10 p-4">
-      <div className="mb-3 flex flex-wrap items-center gap-2">
-        <Sparkles className="h-4 w-4 text-brand-orange" />
-        <h4 className="text-sm font-semibold">Serviços incluídos no pacote</h4>
-        <span className="text-[11px] text-muted-foreground">
-          — marque à esquerda, edite os detalhes à direita.
-        </span>
-      </div>
+    <div className="sm:col-span-2 overflow-hidden rounded-2xl border border-border bg-background/40 shadow-[0_24px_48px_-24px_rgba(0,0,0,0.5)]">
+      <div className="grid items-stretch md:grid-cols-[288px_1fr]">
+        {/* Sidebar */}
+        <aside className="flex flex-col border-b border-border bg-muted/20 md:border-b-0 md:border-r">
+          <div className="border-b border-border/60 px-5 py-4">
+            <h4 className="text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
+              Serviços incluídos
+            </h4>
+          </div>
 
-      <div className="grid items-start gap-4 md:grid-cols-[248px_1fr]">
-        <div className="space-y-1 rounded-xl border border-border bg-background/60 p-2">
-          {items.map((it) => {
-            const Icon = it.icon;
-            const active = sel === it.id;
-            return (
-              <div
-                key={it.id}
-                onClick={() => setSel(it.id)}
-                className={`flex cursor-pointer items-center gap-2 rounded-lg px-2 py-2 transition ${
-                  active
-                    ? "border border-brand-orange/40 bg-brand-orange/10"
-                    : "border border-transparent hover:bg-muted/60"
-                }`}
-              >
-                {it.toggle ? (
-                  <input
-                    type="checkbox"
-                    className="h-4 w-4 shrink-0 accent-brand-orange"
-                    checked={!!it.enabled}
-                    onClick={(e) => e.stopPropagation()}
-                    onChange={(e) => {
-                      it.toggle?.(e.target.checked);
-                      setSel(it.id);
-                    }}
-                  />
-                ) : (
-                  <span className="h-4 w-4 shrink-0" />
-                )}
-                <Icon className="h-4 w-4 shrink-0 text-brand-orange" />
-                <span className="truncate text-xs font-medium">{it.label}</span>
-                {it.count ? (
-                  <span className="ml-auto rounded-full bg-brand-orange/20 px-1.5 text-[10px] font-bold text-brand-orange">
-                    {it.count}
+          <nav className="flex-1 space-y-1 p-3">
+            {items.map((it) => {
+              const Icon = it.icon;
+              const active = sel === it.id;
+              const on = !!it.enabled;
+              return (
+                <button
+                  key={it.id}
+                  type="button"
+                  onClick={() => setSel(it.id)}
+                  className={`flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2.5 text-left transition ${
+                    active
+                      ? "border border-brand-orange/25 bg-brand-orange/10 text-foreground"
+                      : "border border-transparent text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                  }`}
+                >
+                  <span className="flex min-w-0 items-center gap-3">
+                    <span
+                      className={`h-2 w-2 shrink-0 rounded-full ${
+                        on
+                          ? "bg-brand-orange shadow-[0_0_8px_hsl(var(--brand-orange))]"
+                          : "bg-border"
+                      }`}
+                    />
+                    <Icon className="h-4 w-4 shrink-0 opacity-70" />
+                    <span className="truncate text-sm font-medium">{it.label}</span>
                   </span>
-                ) : null}
-              </div>
-            );
-          })}
-        </div>
 
-        <div className="min-h-[220px] rounded-xl border border-border bg-background/60 p-4">{detail}</div>
+                  {it.toggle ? (
+                    <span
+                      role="switch"
+                      aria-checked={on}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        it.toggle?.(!on);
+                        setSel(it.id);
+                      }}
+                      className={`relative h-4 w-8 shrink-0 cursor-pointer rounded-full transition ${
+                        on ? "bg-brand-orange" : "bg-muted"
+                      }`}
+                    >
+                      <span
+                        className={`absolute top-1 h-2 w-2 rounded-full transition-all ${
+                          on ? "right-1 bg-white" : "left-1 bg-muted-foreground/40"
+                        }`}
+                      />
+                    </span>
+                  ) : it.count ? (
+                    <span className="shrink-0 rounded-full bg-brand-orange/15 px-2 py-0.5 text-[10px] font-bold text-brand-orange">
+                      {it.count}
+                    </span>
+                  ) : null}
+                </button>
+              );
+            })}
+          </nav>
+        </aside>
+
+        {/* Painel de detalhe */}
+        <main className="flex min-h-[420px] flex-col bg-card/40">
+          <header className="flex h-16 items-center justify-between gap-3 border-b border-border/60 px-6">
+            <div className="flex items-center gap-3">
+              <h3 className="text-base font-semibold">{current?.label ?? "Serviços"}</h3>
+              {current?.toggle && (
+                <span
+                  className={`rounded px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
+                    current.enabled
+                      ? "border border-brand-orange/30 bg-brand-orange/15 text-brand-orange"
+                      : "border border-border bg-muted/40 text-muted-foreground"
+                  }`}
+                >
+                  {current.enabled ? "Ativado" : "Desativado"}
+                </span>
+              )}
+            </div>
+          </header>
+
+          <div className="flex-1 overflow-y-auto p-6">
+            <div className="max-w-3xl">{detail}</div>
+          </div>
+        </main>
       </div>
     </div>
   );
 }
+
 
 function AddonsEditor({
   value,
