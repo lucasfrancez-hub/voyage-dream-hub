@@ -474,15 +474,15 @@ export function TourResultCard({
             <div className="space-y-3 pt-1">
               <button
                 type="button"
-                disabled={!sel || selUnit == null}
-                onClick={() => sel && onReserve(sel.date, sel.modality, payingPax)}
+                disabled={!sel || selUnit == null || (times.length > 0 && !selTime)}
+                onClick={() => sel && onReserve(sel.date, sel.modality, payingPax, selTime)}
                 className="w-full rounded-lg bg-brand-orange px-4 py-3 text-sm font-bold uppercase tracking-widest text-primary-foreground shadow-lg shadow-brand-orange/20 transition hover:opacity-90 disabled:opacity-40 disabled:shadow-none"
               >
                 Reservar agora
               </button>
               <button
                 type="button"
-                disabled={!sel || selUnit == null}
+                disabled={!sel || selUnit == null || (times.length > 0 && !selTime)}
                 onClick={() =>
                   sel &&
                   selUnit != null &&
@@ -492,6 +492,7 @@ export function TourResultCard({
                     title: tour.title,
                     date: sel.date,
                     modality: sel.modality,
+                    time: selTime,
                     unit: selUnit,
                     qty: payingPax,
                   })
