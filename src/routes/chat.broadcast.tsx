@@ -35,6 +35,24 @@ export const Route = createFileRoute("/chat/broadcast")({
   }),
 });
 
+const BRT = "America/Sao_Paulo";
+/** Chave de dia (YYYY-MM-DD) sempre no fuso de Brasília, independente do fuso do navegador. */
+function brtDayKey(value: string | Date): string {
+  const d = typeof value === "string" ? new Date(value) : value;
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: BRT,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(d);
+}
+/** Rótulo do dia a partir de uma chave YYYY-MM-DD (sem reinterpretar fuso). */
+function dayKeyLabel(key: string, opts: Intl.DateTimeFormatOptions): string {
+  const [y, m, d] = key.split("-").map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString("pt-BR", opts);
+}
+
+
 type Destino = {
   id: string;
   jid: string;
