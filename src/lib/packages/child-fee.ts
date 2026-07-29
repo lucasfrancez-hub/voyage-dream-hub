@@ -59,10 +59,12 @@ export function formatChildTokenFee(fee: ChildTokenFee) {
       ? `Crianças de ${fee.minAge} a ${fee.maxAge} anos`
       : "Crianças";
   const valor = `${fee.currency} ${fee.amount.toFixed(2).replace(".", ",")}`;
+  const abaixo = fee.minAge != null ? ` Menores de ${fee.minAge} anos são gratuitos.` : "";
   const acima =
     fee.maxAge != null
       ? ` A partir de ${fee.maxAge + 1} anos paga valor de adulto.`
       : "";
-  return `${faixa}: pagam apenas a taxa de embarque de ${valor} por criança, paga no local, no destino.${acima}`;
+  return `${faixa}: pagam apenas a taxa de ${valor} por criança, em dinheiro, no local do embarque.${abaixo}${acima}`;
+
 }
 
