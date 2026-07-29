@@ -1677,7 +1677,28 @@ function CampanhaEditor({
               <p className="text-xs text-muted-foreground">{id ? "Ajuste os blocos e destinos." : "Monte a mensagem e escolha para onde disparar."}</p>
             </div>
           </div>
+          <div className="flex items-center gap-2">
+          <button
+            onClick={async () => {
+              const { exportCampanhaPdf } = await import("@/lib/broadcast/campaign-pdf");
+              exportCampanhaPdf(
+                {
+                  nome: nome.trim() || "Campanha sem nome",
+                  status: id ? "Em edição" : "Rascunho (não salvo)",
+                  scheduled_at: scheduled ? new Date(scheduled).toISOString() : null,
+                  observacoes_marketing: obs.trim() || null,
+                },
+                blocos,
+                destinos.filter((d) => selecionados.has(d.id)).map((d) => ({ nome: d.nome, tipo: d.tipo })),
+              );
+            }}
+            className="inline-flex items-center gap-1 text-xs rounded-full border border-border px-3 py-1.5 hover:border-brand-orange"
+            title="Exportar relatório em PDF"
+          >
+            <FileDown className="h-3.5 w-3.5" /> PDF
+          </button>
           <button onClick={onClose} className="p-2 rounded-full hover:bg-muted">
+
             <X className="h-4 w-4" />
           </button>
         </div>
