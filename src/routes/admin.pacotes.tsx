@@ -1477,9 +1477,10 @@ type PackageEditorModalProps = {
   switchDraft?: (newIdx: number) => void;
   closeCurrentDraft?: () => void;
   updateTourDraftRows?: (
-    targetIndex: number,
+    targetDraftId: string,
     rows: { date: string; modality: string; price_per_person: number; taxes: number }[],
   ) => void;
+
   nextNumber?: number | null;
   onBulkToursImported?: (drafts: BulkImportedTourDraft[]) => void;
 };
