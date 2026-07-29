@@ -2395,6 +2395,27 @@ function PackageEditorModal({
 
             {tab === "dates" && (
               <div className="grid sm:grid-cols-2 gap-3">
+                {kind === "package" && (
+                  <FormField label="Flexibilidade de datas" wide>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setEditing({ ...editing, flexible_dates: !(editing.flexible_dates ?? false) })
+                      }
+                      className={`w-full rounded-lg border px-3 py-2 text-xs font-medium transition ${
+                        editing.flexible_dates
+                          ? "border-brand-orange bg-brand-orange/10 text-brand-orange"
+                          : "border-border hover:border-brand-orange/50"
+                      }`}
+                    >
+                      {editing.flexible_dates ? "✓ Data flexível" : "Data flexível"}
+                    </button>
+                    <p className="mt-1 text-[11px] text-muted-foreground">
+                      Exibe o aviso: datas sujeitas à disponibilidade e alteração de valor sem aviso prévio.
+                    </p>
+                  </FormField>
+                )}
+
                 {kind !== "package" && kind !== "tour" && (
                 <FormField label="Modo de data" wide>
                   <div className="flex gap-2">
