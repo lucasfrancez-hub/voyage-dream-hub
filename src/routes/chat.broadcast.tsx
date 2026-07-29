@@ -1320,6 +1320,7 @@ function CampanhasList({
   campanhas,
   destinos,
   onEdit,
+  onExportPdf,
   onCancelar,
   onExcluir,
   onDisparar,
@@ -1327,9 +1328,11 @@ function CampanhasList({
   campanhas: Campanha[];
   destinos: Destino[];
   onEdit: (id: string) => void;
+  onExportPdf: (id: string) => void;
   onCancelar: (id: string) => void;
   onExcluir: (id: string) => void;
   onDisparar: (id: string) => void;
+
 }) {
   const destMap = useMemo(() => new Map(destinos.map((d) => [d.id, d])), [destinos]);
   if (campanhas.length === 0) {
