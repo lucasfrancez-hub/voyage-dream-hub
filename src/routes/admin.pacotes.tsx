@@ -870,10 +870,8 @@ function AdminPackages() {
               } catch {
                 setPendingNumbers(null);
               }
-              setDrafts(list);
-              draftIndexRef.current = 0;
-              setDraftIndex(0);
-              setEditingState(list[0]);
+              openDrafts(list);
+
             }}
           />
           <IgnoredHotelsBell packages={packages || []} />
