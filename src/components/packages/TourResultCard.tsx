@@ -484,16 +484,33 @@ export function TourResultCard({
               </DialogTitle>
             </DialogHeader>
 
-            {(tour.summary || tour.ai_summary) && (
+            {fullDescription && (
               <section>
                 <h4 className="mb-2 border-b border-border pb-2 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
                   Sobre o passeio
                 </h4>
                 <p className="whitespace-pre-line text-sm leading-relaxed text-muted-foreground">
-                  {tour.summary || tour.ai_summary}
+                  {fullDescription}
                 </p>
               </section>
             )}
+
+            {Array.isArray(tour.includes) && tour.includes.length > 0 && (
+              <section>
+                <h4 className="mb-2 border-b border-border pb-2 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+                  O que está incluso
+                </h4>
+                <ul className="space-y-1.5">
+                  {tour.includes.map((it: string) => (
+                    <li key={it} className="flex items-start gap-2 text-sm text-muted-foreground">
+                      <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-brand-orange" />
+                      {it}
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
+
 
             <div className="grid gap-6 sm:grid-cols-2">
               {meetingPoint && (
