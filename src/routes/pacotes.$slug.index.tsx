@@ -185,7 +185,7 @@ function PackageDetails() {
     queryKey: ["package", slug, preview ? "preview" : "public"],
     queryFn: async () => {
       const slugs = slug.includes("#") ? [slug, slug.replace(/#/g, "-")] : [slug];
-      let query = supabase.from("packages").select("id,slug,title,destination,origin,going_date,return_date,nights,price_per_person,taxes,image_url,summary,itinerary,includes,hotel_name,hotel_stars,meal_plan,room_type,room_category,bed_type,is_active,sort_order,base_occupancy,outbound_flight,return_flight,created_at,updated_at,tripadvisor_location_id,tripadvisor_url,tripadvisor_address,tripadvisor_photos,kind,pricing_mode,date_mode,services,cruise_details,meeting_point,tour_times,tour_modalities,ai_summary").in("slug", slugs);
+      let query = supabase.from("packages").select("id,slug,title,destination,origin,going_date,return_date,nights,price_per_person,taxes,image_url,summary,itinerary,includes,hotel_name,hotel_stars,meal_plan,room_type,room_category,bed_type,is_active,sort_order,base_occupancy,outbound_flight,return_flight,created_at,updated_at,tripadvisor_location_id,tripadvisor_url,tripadvisor_address,tripadvisor_photos,kind,pricing_mode,date_mode,services,cruise_details,meeting_point,tour_times,tour_modalities,ai_summary,flexible_dates").in("slug", slugs);
       if (!preview) query = query.eq("is_active", true);
       const { data, error } = await query.maybeSingle();
       if (error) throw error;
@@ -231,7 +231,8 @@ function PackageDetails() {
   }
   const isPerUnit = (pkg as any).pricing_mode === "per_unit";
 
-  const isFlexibleDate = (pkg as any).date_mode === "flexible";
+  const flexibleDates = !!(pkg as unknown as { flexible_dates?: boolean }).flexible_dates;
+  const isFlexibleDate = (pkg as any).date_mode === "flexible" || flexibleDates;
   const eventDateLabel = isFlexibleDate
     ? "Data à escolher"
     : pkg.going_date
@@ -298,11 +299,13 @@ function PackageDetails() {
             )}
             <InfoTile
               icon={Calendar}
-              label={isTicket ? "Data do evento" : "Período"}
+              label={isTicket ? "Data do evento" : flexibleDates ? "Datas" : "Período"}
               value={
                 isTicket
                   ? eventDateLabel ?? "—"
-                  : formatDateRange(pkg.going_date, pkg.return_date)
+                  : flexibleDates
+                    ? "Você escolhe a data"
+                    : formatDateRange(pkg.going_date, pkg.return_date)
               }
             />
             {!isTicket && pkg.nights != null && (
@@ -483,8 +486,14 @@ function PackageDetails() {
               ) : (
                 <>
                   {pkg.origin && <Row label="Origem" value={pkg.origin} />}
-                  {pkg.going_date && <Row label="Ida" value={formatDateBR(pkg.going_date)} />}
-                  {pkg.return_date && <Row label="Volta" value={formatDateBR(pkg.return_date)} />}
+                  {flexibleDates ? (
+                    <Row label="Datas" value="Você escolhe" />
+                  ) : (
+                    <>
+                      {pkg.going_date && <Row label="Ida" value={formatDateBR(pkg.going_date)} />}
+                      {pkg.return_date && <Row label="Volta" value={formatDateBR(pkg.return_date)} />}
+                    </>
+                  )}
                   {pkg.nights != null && <Row label="Noites" value={String(pkg.nights)} />}
                 </>
               )}

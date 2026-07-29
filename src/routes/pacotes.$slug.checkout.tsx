@@ -58,7 +58,7 @@ function Checkout() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("packages")
-        .select("id,slug,title,destination,origin,going_date,return_date,nights,price_per_person,taxes,image_url,summary,itinerary,includes,hotel_name,hotel_stars,meal_plan,room_type,room_category,bed_type,is_active,sort_order,base_occupancy,outbound_flight,return_flight,supplier_name,created_at,updated_at,kind,date_mode,pricing_mode,max_units,services,meeting_point,tour_times,tour_modalities,ai_summary")
+        .select("id,slug,title,destination,origin,going_date,return_date,nights,price_per_person,taxes,image_url,summary,itinerary,includes,hotel_name,hotel_stars,meal_plan,room_type,room_category,bed_type,is_active,sort_order,base_occupancy,outbound_flight,return_flight,supplier_name,created_at,updated_at,kind,date_mode,pricing_mode,max_units,services,meeting_point,tour_times,tour_modalities,ai_summary,flexible_dates")
         .eq("slug", slug)
         .eq("is_active", true)
         .maybeSingle();
@@ -153,7 +153,16 @@ function Checkout() {
   const isTour = (pkg as any)?.kind === "tour";
   const isService = (pkg as any)?.kind === "service" || isTour;
   const isPerUnit = (pkg as any)?.pricing_mode === "per_unit" || isService;
-  const isFlexibleDate = (pkg as any)?.date_mode === "flexible";
+  const isFlexibleDate =
+    (pkg as any)?.date_mode === "flexible" || !!(pkg as any)?.flexible_dates;
+  const nightsCount = Number((pkg as any)?.nights) || 0;
+  const checkoutDate = (() => {
+    if (!preferredDate || !nightsCount) return "";
+    const m = preferredDate.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!m) return "";
+    const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]) + nightsCount);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  })();
   const transferSvc = (pkg as any)?.services?.transfer ?? {};
   const pickupOptions: string[] = isService && transferSvc?.enabled
     ? String(transferSvc.pickup_points ?? "")
@@ -364,7 +373,7 @@ function Checkout() {
             destination: pkg.destination,
             origin: pkg.origin ?? null,
             going_date: isFlexibleDate ? (preferredDate || null) : pkg.going_date,
-            return_date: isFlexibleDate ? null : pkg.return_date,
+            return_date: isFlexibleDate ? (checkoutDate || null) : pkg.return_date,
             date_mode: (pkg as any).date_mode ?? "fixed",
             pricing_mode: (pkg as any).pricing_mode ?? "per_occupancy",
             preferred_date: isFlexibleDate ? preferredDate : null,
@@ -568,7 +577,7 @@ function Checkout() {
           <div className="space-y-6">
             {isFlexibleDate && !isService && (
               <Card title="Data desejada">
-                <Field label="Escolha a data para a sua reserva *">
+                <Field label={`Escolha a data de entrada${nightsCount ? ` (${nightsCount} noite${nightsCount > 1 ? "s" : ""})` : ""} *`}>
                   <input
                     type="date"
                     required
@@ -578,8 +587,15 @@ function Checkout() {
                     className={inputCls}
                   />
                 </Field>
+                {checkoutDate && (
+                  <p className="mt-2 text-xs text-foreground">
+                    Saída em <span className="font-medium">{formatDateBR(checkoutDate)}</span> —
+                    período fixo de {nightsCount} noite{nightsCount > 1 ? "s" : ""}.
+                  </p>
+                )}
                 <p className="mt-2 text-xs text-muted-foreground">
-                  Nosso time confirma a disponibilidade para essa data ao processar a reserva.
+                  Nosso time confirma a disponibilidade para essa data ao processar a reserva. Datas
+                  flexíveis estão sujeitas à disponibilidade e a alteração de valor sem aviso prévio.
                 </p>
               </Card>
             )}
