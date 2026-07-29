@@ -120,6 +120,19 @@ export function TourResultCard({
         return acc == null || v < acc ? v : acc;
       }, null);
 
+  const totalPages = Math.max(1, Math.ceil(dates.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages - 1);
+  const pageDates = dates.slice(safePage * PAGE_SIZE, safePage * PAGE_SIZE + PAGE_SIZE);
+
+  // Mantém a página sincronizada com a data selecionada
+  useEffect(() => {
+    if (!activeDate) return;
+    const idx = dates.indexOf(activeDate);
+    if (idx >= 0) setPage(Math.floor(idx / PAGE_SIZE));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeDate]);
+
+
 
   const selected = sel ? cell(sel.modality ?? "", sel.date) : undefined;
   const selUnit = unitOf(selected);
