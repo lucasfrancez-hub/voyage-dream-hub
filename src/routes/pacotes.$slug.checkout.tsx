@@ -58,7 +58,7 @@ function Checkout() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("packages")
-        .select("id,slug,title,destination,origin,going_date,return_date,nights,price_per_person,taxes,image_url,summary,itinerary,includes,hotel_name,hotel_stars,meal_plan,room_type,room_category,bed_type,is_active,sort_order,base_occupancy,outbound_flight,return_flight,supplier_name,created_at,updated_at,kind,date_mode,pricing_mode,max_units,services,meeting_point,tour_times,tour_modalities,ai_summary")
+        .select("id,slug,title,destination,origin,going_date,return_date,nights,price_per_person,taxes,image_url,summary,itinerary,includes,hotel_name,hotel_stars,meal_plan,room_type,room_category,bed_type,is_active,sort_order,base_occupancy,outbound_flight,return_flight,supplier_name,created_at,updated_at,kind,date_mode,pricing_mode,max_units,services,meeting_point,tour_times,tour_modalities,ai_summary,flexible_dates")
         .eq("slug", slug)
         .eq("is_active", true)
         .maybeSingle();
@@ -153,7 +153,8 @@ function Checkout() {
   const isTour = (pkg as any)?.kind === "tour";
   const isService = (pkg as any)?.kind === "service" || isTour;
   const isPerUnit = (pkg as any)?.pricing_mode === "per_unit" || isService;
-  const isFlexibleDate = (pkg as any)?.date_mode === "flexible";
+  const isFlexibleDate =
+    (pkg as any)?.date_mode === "flexible" || !!(pkg as any)?.flexible_dates;
   const transferSvc = (pkg as any)?.services?.transfer ?? {};
   const pickupOptions: string[] = isService && transferSvc?.enabled
     ? String(transferSvc.pickup_points ?? "")
