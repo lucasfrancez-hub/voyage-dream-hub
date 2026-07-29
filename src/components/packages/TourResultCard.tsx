@@ -412,6 +412,111 @@ export function TourResultCard({
           </div>
         </aside>
       </div>
+
+      {/* Janelinha de detalhes do serviço */}
+      <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
+        <DialogContent className="max-h-[88vh] max-w-3xl overflow-y-auto p-0">
+          {tour.image_url && (
+            <div className="relative h-48 w-full overflow-hidden sm:h-56">
+              <img src={tour.image_url} alt={tour.title} className="h-full w-full object-cover" />
+              <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent" />
+              {tour.destination && (
+                <span className="absolute left-5 top-5 rounded-full bg-brand-orange px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-primary-foreground shadow-lg">
+                  {tour.destination}
+                </span>
+              )}
+            </div>
+          )}
+          <div className="space-y-6 px-6 pb-6 pt-2">
+            <DialogHeader className="space-y-1 text-left">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-brand-orange">
+                Serviço & logística
+              </p>
+              <DialogTitle className="font-display text-2xl font-black leading-tight">
+                {tour.title}
+              </DialogTitle>
+            </DialogHeader>
+
+            {(tour.summary || tour.ai_summary) && (
+              <section>
+                <h4 className="mb-2 border-b border-border pb-2 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+                  Sobre o passeio
+                </h4>
+                <p className="whitespace-pre-line text-sm leading-relaxed text-muted-foreground">
+                  {tour.summary || tour.ai_summary}
+                </p>
+              </section>
+            )}
+
+            <div className="grid gap-6 sm:grid-cols-2">
+              {meetingPoint && (
+                <section>
+                  <h4 className="mb-2 border-b border-border pb-2 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+                    Ponto de encontro
+                  </h4>
+                  <p className="flex gap-2 text-sm text-muted-foreground">
+                    <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-brand-orange" />
+                    <span>{meetingPoint}</span>
+                  </p>
+                </section>
+              )}
+              {times.length > 0 && (
+                <section>
+                  <h4 className="mb-2 border-b border-border pb-2 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+                    Horários de saída
+                  </h4>
+                  <p className="flex gap-2 text-sm text-muted-foreground">
+                    <Clock className="mt-0.5 h-4 w-4 shrink-0 text-brand-orange" />
+                    <span>{times.join(" · ")}</span>
+                  </p>
+                </section>
+              )}
+            </div>
+
+            {modalities.filter(Boolean).length > 0 && (
+              <section>
+                <h4 className="mb-2 border-b border-border pb-2 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+                  Modalidades disponíveis
+                </h4>
+                <ul className="space-y-1.5">
+                  {modalities.filter(Boolean).map((m) => (
+                    <li key={m} className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <span className="h-1.5 w-1.5 rounded-full bg-brand-orange" />
+                      {m}
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
+
+            {childFee && (
+              <div className="rounded-lg border border-brand-orange/30 bg-brand-orange/10 p-3">
+                <p className="text-[12px] font-medium text-brand-orange">
+                  {formatChildTokenFee(childFee)}
+                </p>
+              </div>
+            )}
+
+            <div className="flex flex-col gap-2 pt-2 sm:flex-row">
+              <button
+                type="button"
+                onClick={() => setDetailsOpen(false)}
+                className="flex-1 rounded-lg bg-brand-orange px-4 py-3 text-xs font-bold uppercase tracking-widest text-primary-foreground transition hover:opacity-90"
+              >
+                Fechar e escolher a data
+              </button>
+              <a
+                href={`/pacotes/${tour.slug}`}
+                target="_blank"
+                rel="noreferrer"
+                className="flex-1 rounded-lg border border-border px-4 py-3 text-center text-xs font-bold uppercase tracking-widest transition hover:border-brand-orange/60"
+              >
+                Abrir página completa
+              </a>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </article>
   );
 }
