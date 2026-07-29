@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { MapPin, Plus, Clock, ChevronLeft, ChevronRight } from "lucide-react";
 
 import { formatBRL } from "@/lib/format";
