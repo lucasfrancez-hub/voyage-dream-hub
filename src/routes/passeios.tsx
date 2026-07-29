@@ -24,6 +24,7 @@ import { formatBRL } from "@/lib/format";
 import { whatsappUrl } from "@/lib/checkout-config";
 import { TopBar } from "@/components/TopBar";
 import { ContactFooter } from "@/components/ContactFooter";
+import { DestinationInput } from "@/components/packages/DestinationInput";
 import {
   TourResultCard,
   type PriceRow,
