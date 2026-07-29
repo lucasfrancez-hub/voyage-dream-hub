@@ -1,20 +1,35 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { MapPin, Sparkles } from "lucide-react";
+import { MapPin, Sparkles, Loader2 } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
-import { buildDestinationSuggestions } from "@/lib/destinations-catalog";
+import {
+  buildDestinationSuggestions,
+  type DestinationSuggestion,
+} from "@/lib/destinations-catalog";
+import { useGlobalCitySearch } from "@/lib/use-destination-search";
+
+const norm = (s: string) =>
+  s
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .toLowerCase();
 
 export function DestinationInput({
   value,
   onChange,
   placeholder = "Ex.: Lisboa, Portugal",
   className = "",
+  inputClassName = "",
+  onSelect,
 }: {
   value: string;
   onChange: (v: string) => void;
   placeholder?: string;
   className?: string;
+  inputClassName?: string;
+  onSelect?: (v: string) => void;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -33,14 +48,27 @@ export function DestinationInput({
     staleTime: 5 * 60 * 1000,
   });
 
-  const suggestions = useMemo(
-    () => buildDestinationSuggestions(value, destinations, 10),
-    [value, destinations],
-  );
+  const { data: globalCities = [], isFetching } = useGlobalCitySearch(value);
+
+  const suggestions = useMemo(() => {
+    const local = buildDestinationSuggestions(value, destinations, 10);
+    const seen = new Set(local.map((s) => norm(s.city)));
+    const registeredSet = new Set(destinations.map(norm));
+    const extra: DestinationSuggestion[] = [];
+    for (const g of globalCities) {
+      const key = norm(g.city);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      extra.push({ ...g, registered: registeredSet.has(key) });
+    }
+    return [...local, ...extra].slice(0, 12);
+  }, [value, destinations, globalCities]);
 
   return (
     <div className={`relative ${className}`}>
-      <div className="flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2">
+      <div
+        className={`flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 ${inputClassName}`}
+      >
         <MapPin className="h-4 w-4 shrink-0 text-brand-orange" />
         <input
           value={value}
@@ -53,6 +81,7 @@ export function DestinationInput({
           placeholder={placeholder}
           className="w-full bg-transparent text-sm normal-case outline-none"
         />
+        {isFetching && <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-muted-foreground" />}
       </div>
       {open && suggestions.length > 0 && (
         <div className="absolute left-0 right-0 top-full z-40 mt-1 max-h-72 overflow-auto rounded-lg border border-border bg-popover shadow-lg">
@@ -63,6 +92,7 @@ export function DestinationInput({
               onMouseDown={(e) => e.preventDefault()}
               onClick={() => {
                 onChange(s.value);
+                onSelect?.(s.value);
                 setOpen(false);
               }}
               className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm normal-case hover:bg-muted"
