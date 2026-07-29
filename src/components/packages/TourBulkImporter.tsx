@@ -1,9 +1,11 @@
 import { useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { Loader2, Code2, CheckCircle2, Pencil } from "lucide-react";
 import { DestinationInput } from "@/components/packages/DestinationInput";
 import { SupplierInput } from "@/components/packages/SupplierInput";
 import { parseMultipleTourHtml, type ParsedTour } from "@/lib/packages/tour-html";
+import { summarizeTourInfo } from "@/lib/packages/ai.functions";
 
 export type BulkImportedTourDraft = {
   id?: string;
@@ -54,6 +56,7 @@ export function TourBulkImporter({
   supplier?: string | null;
   onImported?: (drafts: BulkImportedTourDraft[]) => void;
 }) {
+  const summarize = useServerFn(summarizeTourInfo);
   const [html, setHtml] = useState("");
   const [destination, setDestination] = useState(initialDestination ?? "");
   const [supplier, setSupplier] = useState(initialSupplier ?? "");
@@ -124,6 +127,30 @@ export function TourBulkImporter({
           .join("\n\n")
           .slice(0, 55000);
 
+        let ai: Awaited<ReturnType<typeof summarize>> | null = null;
+        if (rawDescription.length >= 20) {
+          try {
+            ai = await summarize({
+              data: {
+                raw: rawDescription,
+                title: t.title || undefined,
+                destination: destination.trim() || undefined,
+              },
+            });
+          } catch (error) {
+            console.warn("[tour-import] não foi possível organizar a descrição", error);
+          }
+        }
+        const aiSummary = [
+          ai?.summary,
+          ai?.hours_note ? `*Horário*\n${ai.hours_note}` : "",
+          ai?.notes ? `*Informações importantes*\n${ai.notes}` : "",
+        ]
+          .filter(Boolean)
+          .join("\n\n");
+        const modalities = t.modalities.length ? t.modalities : (ai?.modalities ?? []);
+        const includes = t.includes.length ? t.includes : (ai?.includes ?? []);
+
         importedDrafts.push({
           slug,
           title: t.title,
@@ -134,13 +161,13 @@ export function TourBulkImporter({
           image_url: t.image_url || "",
           price_per_person: minPrice || 0,
           taxes: 0,
-          tour_times: t.times ?? [],
-          tour_modalities: t.modalities,
-          includes: t.includes ?? [],
-          meeting_point: null,
+          tour_times: t.times.length ? t.times : (ai?.times ?? []),
+          tour_modalities: modalities,
+          includes,
+          meeting_point: ai?.meeting_point || null,
           services: rawDescription ? { raw_description: rawDescription } : {},
-          summary: null,
-          ai_summary: null,
+          summary: ai?.short || null,
+          ai_summary: aiSummary || null,
           date_mode: "flexible",
           pricing_mode: "per_unit",
           max_units: 9,
