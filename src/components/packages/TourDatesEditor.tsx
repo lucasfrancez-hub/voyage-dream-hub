@@ -114,7 +114,17 @@ export function TourDatesEditor({
 
 
   const saved = packageId ? (data ?? []) : [];
-  const list = rows ?? (saved.length ? saved : pending);
+  const sourceList = rows ?? (saved.length ? saved : pending);
+  const allowedDraftModalities = new Set(modalities.filter(Boolean));
+  // Em importação múltipla, descarta imediatamente qualquer linha que tenha
+  // vazado de outro rascunho antes desta correção. Registros já salvos não são
+  // filtrados, pois podem ter modalidades legadas válidas.
+  const list =
+    !packageId && allowedDraftModalities.size
+      ? sourceList.filter(
+          (row) => !row.modality || allowedDraftModalities.has(row.modality),
+        )
+      : sourceList;
 
   function notifyRowsChange(next: Row[]) {
     setRows(next);

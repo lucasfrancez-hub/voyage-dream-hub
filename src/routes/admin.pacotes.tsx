@@ -253,6 +253,7 @@ function AdminPackages() {
     if (v === null) {
       setEditingState(null);
       setDrafts(null);
+      draftIndexRef.current = 0;
       setDraftIndex(0);
       return;
     }
@@ -306,6 +307,7 @@ function AdminPackages() {
     const remaining = drafts.filter((_, i) => i !== draftIndex);
     if (remaining.length === 0) {
       setDrafts(null);
+      draftIndexRef.current = 0;
       setDraftIndex(0);
       setEditingState(null);
       return;
@@ -691,6 +693,7 @@ function AdminPackages() {
       qc.invalidateQueries({ queryKey: ["packages"] });
       if (errors.length === 0) {
         setDrafts(null);
+        draftIndexRef.current = 0;
         setDraftIndex(0);
         setEditingState(null);
       }
@@ -833,6 +836,7 @@ function AdminPackages() {
                 setPendingNumbers(null);
               }
               setDrafts(list);
+              draftIndexRef.current = 0;
               setDraftIndex(0);
               setEditingState(list[0]);
             }}
