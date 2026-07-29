@@ -2312,18 +2312,20 @@ function PackageEditorModal({
             {tab === "dates" && kind === "tour" && (
               <div className="mb-4 space-y-4">
                 <TourDatesEditor
-                  key={editing.id ?? `draft-${draftIndex}-${editing.slug ?? ""}`}
+                  key={editing.id ?? (editing as any).__draftId ?? `draft-${draftIndex}`}
                   packageId={editing.id}
 
                   modalities={(editing as any).tour_modalities ?? []}
                   pendingRows={(editing as any).__pendingPrices ?? []}
                   onRowsChange={(rows) => {
-                    if (drafts?.length && updateTourDraftRows) {
-                      updateTourDraftRows(draftIndex, rows);
+                    const draftId = (editing as any).__draftId as string | undefined;
+                    if (drafts?.length && updateTourDraftRows && draftId) {
+                      updateTourDraftRows(draftId, rows);
                       return;
                     }
                     setEditing((prev: any) => ({ ...prev, __pendingPrices: rows }));
                   }}
+
                 />
 
               </div>
