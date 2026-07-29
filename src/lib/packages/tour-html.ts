@@ -137,8 +137,32 @@ export function parseTourHtml(html: string): ParsedTour {
 
   const descNode =
     doc.querySelector('[class*="pnlServico-"]') ??
-    doc.querySelector('[class*="pnl_Servico"]');
-  const description = cleanText(descNode?.textContent ?? "");
+    doc.querySelector('[class*="pnl_Servico"]') ??
+    doc.querySelector('[class*="descricao"]') ??
+    doc.querySelector('[id*="descricao"]') ??
+    doc.querySelector('[class*="description"]');
+  let description = cleanText(descNode?.textContent ?? "");
+
+  // Layout novo do portal: o texto do operador não fica mais num painel com
+  // classe conhecida. Nesse caso montamos a descrição a partir do bloco do
+  // serviço, removendo a matriz de preços, selects e botões.
+  if (description.length < 80) {
+    const clone = doc.body?.cloneNode(true) as HTMLElement | null;
+    if (clone) {
+      clone
+        .querySelectorAll("table, select, option, button, input, nav, script, style, svg, img")
+        .forEach((el) => el.remove());
+      const fallback = cleanText(
+        (clone.textContent ?? "")
+          .split("\n")
+          .map((line) => line.trim())
+          .filter(Boolean)
+          .join("\n"),
+      );
+      if (fallback.length > description.length) description = fallback;
+    }
+  }
+
 
   const parseList = (marker: RegExp) => {
     const m = description.match(marker);
