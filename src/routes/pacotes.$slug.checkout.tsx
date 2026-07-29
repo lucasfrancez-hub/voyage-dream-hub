@@ -569,7 +569,7 @@ function Checkout() {
           <div className="space-y-6">
             {isFlexibleDate && !isService && (
               <Card title="Data desejada">
-                <Field label="Escolha a data para a sua reserva *">
+                <Field label={`Escolha a data de entrada${nightsCount ? ` (${nightsCount} noite${nightsCount > 1 ? "s" : ""})` : ""} *`}>
                   <input
                     type="date"
                     required
@@ -579,8 +579,15 @@ function Checkout() {
                     className={inputCls}
                   />
                 </Field>
+                {checkoutDate && (
+                  <p className="mt-2 text-xs text-foreground">
+                    Saída em <span className="font-medium">{formatDateBR(checkoutDate)}</span> —
+                    período fixo de {nightsCount} noite{nightsCount > 1 ? "s" : ""}.
+                  </p>
+                )}
                 <p className="mt-2 text-xs text-muted-foreground">
-                  Nosso time confirma a disponibilidade para essa data ao processar a reserva.
+                  Nosso time confirma a disponibilidade para essa data ao processar a reserva. Datas
+                  flexíveis estão sujeitas à disponibilidade e a alteração de valor sem aviso prévio.
                 </p>
               </Card>
             )}
