@@ -48,13 +48,18 @@ export const Route = createFileRoute("/api/public/hooks/broadcast-dispatch")({
             .in("id", camp.destino_ids as string[]);
 
           let ok = 0, fail = 0;
+          const now = Date.now();
+          // Mensagens com horário próprio no futuro ficam para a próxima rodada.
+          const prontas = (msgs ?? []).filter((m) => !m.scheduled_at || new Date(m.scheduled_at).getTime() <= now);
+          const pendentesFuturas = (msgs ?? []).filter((m) => m.scheduled_at && new Date(m.scheduled_at).getTime() > now);
           for (const d of destinos ?? []) {
-            for (const m of msgs ?? []) {
+            for (const m of prontas) {
               // Em canais o WhatsApp já gera preview da URL no texto — pular
               // blocos de imagem para não duplicar a arte.
               if (d.tipo === "channel" && (m.tipo === "image" || m.tipo === "video")) continue;
               // Story do Instagram só aceita bloco de imagem ou vídeo com URL.
               if (d.tipo === "instagram_story" && m.tipo !== "image") continue;
+
 
               // Idempotência: pula se já enviado (retry seguro)
               const { data: existente } = await supabaseAdmin
