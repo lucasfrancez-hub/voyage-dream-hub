@@ -558,8 +558,7 @@ function CalendarioMes({
     for (const c of campanhas) {
       if (!c.scheduled_at) continue;
       if (c.status !== "agendada" && c.status !== "enviando" && c.status !== "concluida") continue;
-      const d = new Date(c.scheduled_at);
-      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+      const key = brtDayKey(c.scheduled_at);
       const arr = map.get(key) ?? [];
       arr.push(c);
       map.set(key, arr);
