@@ -1382,6 +1382,14 @@ function CampanhasList({
             )}
           </div>
           <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={() => onExportPdf(c.id)}
+              className="inline-flex items-center gap-1 text-xs rounded-full border border-border px-3 py-1.5 hover:border-brand-orange"
+              title="Exportar relatório em PDF"
+            >
+              <FileDown className="h-3 w-3" /> PDF
+            </button>
+
             {(c.status === "rascunho" || c.status === "agendada") && (
               <>
                 <button onClick={() => onEdit(c.id)} className="text-xs rounded-full border border-border px-3 py-1.5 hover:border-brand-orange">
