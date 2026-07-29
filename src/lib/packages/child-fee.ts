@@ -115,6 +115,35 @@ export function agePolicyFromText(fee: ChildTokenFee | null): AgePolicy | null {
   };
 }
 
+/**
+ * Política padrão quando o passeio não informa nada: bebês até 2 anos
+ * são gratuitos e a partir de 3 anos paga valor de adulto.
+ */
+export const DEFAULT_AGE_POLICY: AgePolicy = {
+  freeMaxAge: 2,
+  feeMinAge: null,
+  feeMaxAge: null,
+  feeAmount: null,
+  feeCurrency: "US$",
+  adultMinAge: 3,
+};
+
+/**
+ * Resolve a política na ordem: cadastro manual → detecção pelo texto → padrão.
+ * Se a política encontrada não define a gratuidade, completa com até 2 anos.
+ */
+export function resolveAgePolicy(
+  services: any,
+  ...texts: (string | null | undefined)[]
+): AgePolicy {
+  const found = parseAgePolicy(services) ?? agePolicyFromText(detectChildTokenFee(...texts));
+  if (!found) return DEFAULT_AGE_POLICY;
+  return {
+    ...found,
+    freeMaxAge: found.freeMaxAge ?? DEFAULT_AGE_POLICY.freeMaxAge,
+  };
+}
+
 export type ChildClassification = "free" | "token" | "adult";
 
 export function classifyChild(age: number, p: AgePolicy): ChildClassification {
