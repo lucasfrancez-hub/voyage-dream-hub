@@ -33,7 +33,10 @@ import {
 import { TourDatesEditor } from "@/components/packages/TourDatesEditor";
 import { TourInfoEditor } from "@/components/packages/TourInfoEditor";
 import { TourHtmlImporter } from "@/components/packages/TourHtmlImporter";
-import { TourBulkImporter } from "@/components/packages/TourBulkImporter";
+import {
+  TourBulkImporter,
+  type BulkImportedTourDraft,
+} from "@/components/packages/TourBulkImporter";
 import {
   Select,
   SelectContent,
@@ -1809,7 +1812,13 @@ function PackageEditorModal({
             {tourBulkMode ? (
               <TourBulkImporter
                 destination={editing.destination}
-                onDone={() => closeCurrentDraft?.()}
+                onImported={(savedTours: BulkImportedTourDraft[]) => {
+                  const list = savedTours as Partial<PackageRow>[];
+                  setPendingNumbers(null);
+                  setDrafts(list);
+                  setDraftIndex(0);
+                  setEditingState(list[0]);
+                }}
               />
             ) : (
               <TourHtmlImporter

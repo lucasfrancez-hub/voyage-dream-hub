@@ -6,17 +6,27 @@ import { supabase } from "@/integrations/supabase/client";
 import { DestinationInput } from "@/components/packages/DestinationInput";
 import { parseMultipleTourHtml, type ParsedTour } from "@/lib/packages/tour-html";
 
-type SavedTour = {
+export type BulkImportedTourDraft = {
   id: string;
+  slug: string;
   title: string;
+  kind: "tour";
   destination: string;
+  origin: string;
   image_url: string;
   price_per_person: number;
   taxes: number;
-  times: string[];
+  tour_times: string[];
+  tour_modalities: string[];
   includes: string[];
-  meeting_point: string;
-  raw_description: string;
+  meeting_point: string | null;
+  services: { raw_description?: string };
+  summary: string | null;
+  ai_summary: string | null;
+  date_mode: "flexible";
+  pricing_mode: "per_unit";
+  max_units: number;
+  is_active: boolean;
 };
 
 function slugify(input: string): string {
@@ -31,10 +41,10 @@ function slugify(input: string): string {
 
 export function TourBulkImporter({
   destination: initialDestination,
-  onDone,
+  onImported,
 }: {
   destination?: string | null;
-  onDone?: () => void;
+  onImported?: (drafts: BulkImportedTourDraft[]) => void;
 }) {
   const qc = useQueryClient();
   const [html, setHtml] = useState("");
@@ -44,46 +54,7 @@ export function TourBulkImporter({
   const [running, setRunning] = useState(false);
   const [progress, setProgress] = useState("");
   const [openIdx, setOpenIdx] = useState<number | null>(null);
-  const [saved, setSaved] = useState<SavedTour[] | null>(null);
-  const [savedTab, setSavedTab] = useState(0);
-  const [savingAll, setSavingAll] = useState(false);
   const [extras, setExtras] = useState<Record<number, string>>({});
-
-  function patchSaved(i: number, next: Partial<SavedTour>) {
-    setSaved((list) => (list ? list.map((t, idx) => (idx === i ? { ...t, ...next } : t)) : list));
-  }
-
-  async function saveAllSaved() {
-    if (!saved?.length) return;
-    setSavingAll(true);
-    try {
-      for (const s of saved) {
-        const { error } = await supabase
-          .from("packages")
-          .update({
-            title: s.title,
-            destination: s.destination,
-            image_url: s.image_url || null,
-            price_per_person: s.price_per_person,
-            taxes: s.taxes,
-            
-            tour_times: s.times,
-            includes: s.includes,
-            meeting_point: s.meeting_point || null,
-            services: s.raw_description ? { raw_description: s.raw_description } : {},
-          } as any)
-          .eq("id", s.id);
-        if (error) toast.error(`${s.title}: ${error.message}`);
-      }
-      await qc.invalidateQueries({ queryKey: ["admin-packages"] });
-      await qc.invalidateQueries({ queryKey: ["packages"] });
-      toast.success("Alterações salvas.");
-    } catch (e) {
-      toast.error((e as Error).message);
-    } finally {
-      setSavingAll(false);
-    }
-  }
 
   function patchTour(i: number, next: Partial<ParsedTour>) {
     setTours((list) => list.map((t, idx) => (idx === i ? { ...t, ...next } : t)));
@@ -97,7 +68,6 @@ export function TourBulkImporter({
         return;
       }
       setTours(list);
-      setSaved(null);
       setOpenIdx(list.length === 1 ? 0 : null);
       setSelected(Object.fromEntries(list.map((_, i) => [i, true])));
       setExtras({});
@@ -116,7 +86,7 @@ export function TourBulkImporter({
     }
     setRunning(true);
     let ok = 0;
-    const savedRows: SavedTour[] = [];
+    const savedRows: BulkImportedTourDraft[] = [];
     try {
       const { data: existing } = await supabase.from("packages").select("slug");
       const used = new Set((existing ?? []).map((r: any) => r.slug));
@@ -191,25 +161,32 @@ export function TourBulkImporter({
         ok += 1;
         savedRows.push({
           id: inserted.id,
+          slug,
           title: t.title,
+          kind: "tour",
           destination: destination.trim(),
+          origin: "",
           image_url: t.image_url || "",
           price_per_person: minPrice || 0,
-          taxes: t.tax_per_person || 0,
-          times: t.times ?? [],
+          taxes: 0,
+          tour_times: t.times ?? [],
+          tour_modalities: t.modalities,
           includes: t.includes ?? [],
-          meeting_point: "",
-          raw_description: rawDescription,
+          meeting_point: null,
+          services: rawDescription ? { raw_description: rawDescription } : {},
+          summary: null,
+          ai_summary: null,
+          date_mode: "flexible",
+          pricing_mode: "per_unit",
+          max_units: 9,
+          is_active: true,
         });
       }
       await qc.invalidateQueries({ queryKey: ["admin-packages"] });
       await qc.invalidateQueries({ queryKey: ["packages"] });
       toast.success(`${ok} passeio(s) importado(s).`);
       if (ok > 0) {
-        setSaved(savedRows);
-        setSavedTab(0);
-        setTours([]);
-        setSelected({});
+        onImported?.(savedRows);
       }
     } catch (e) {
       toast.error((e as Error).message);
@@ -260,157 +237,6 @@ export function TourBulkImporter({
       >
         Ler HTML
       </button>
-
-      {saved && saved.length > 0 && (
-        <div className="rounded-lg border border-emerald-500/40 bg-emerald-500/10 p-3 text-sm space-y-3">
-          <p className="font-bold text-emerald-600">
-            {saved.length} passeio(s) cadastrado(s) — ajuste o que precisar e salve todos
-          </p>
-
-          <div className="flex flex-wrap gap-1.5">
-            {saved.map((s, i) => (
-              <button
-                key={s.id}
-                type="button"
-                onClick={() => setSavedTab(i)}
-                className={`rounded-full px-3 py-1 text-[11px] font-bold transition-colors ${
-                  savedTab === i
-                    ? "bg-brand-orange text-white"
-                    : "border border-border bg-background text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                {i + 1}. {s.title.slice(0, 28)}
-              </button>
-            ))}
-          </div>
-
-          {saved[savedTab] && (
-            <div className="grid gap-3 rounded-lg border border-border bg-background/70 p-3 sm:grid-cols-2">
-              <label className="text-[11px] font-bold uppercase text-muted-foreground sm:col-span-2">
-                Título
-                <input
-                  value={saved[savedTab].title}
-                  onChange={(e) => patchSaved(savedTab, { title: e.target.value })}
-                  className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm normal-case"
-                />
-              </label>
-              <label className="text-[11px] font-bold uppercase text-muted-foreground">
-                Destino
-                <input
-                  value={saved[savedTab].destination}
-                  onChange={(e) => patchSaved(savedTab, { destination: e.target.value })}
-                  className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm normal-case"
-                />
-              </label>
-              <label className="text-[11px] font-bold uppercase text-muted-foreground">
-                Ponto de encontro
-                <input
-                  value={saved[savedTab].meeting_point}
-                  onChange={(e) => patchSaved(savedTab, { meeting_point: e.target.value })}
-                  className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm normal-case"
-                />
-              </label>
-              <label className="text-[11px] font-bold uppercase text-muted-foreground">
-                Preço por pessoa (a partir de)
-                <input
-                  type="number"
-                  step="0.01"
-                  value={saved[savedTab].price_per_person}
-                  onChange={(e) =>
-                    patchSaved(savedTab, { price_per_person: Number(e.target.value) || 0 })
-                  }
-                  className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm normal-case"
-                />
-              </label>
-              <label className="text-[11px] font-bold uppercase text-muted-foreground">
-                Taxa por pessoa
-                <input
-                  type="number"
-                  step="0.01"
-                  value={saved[savedTab].taxes}
-                  onChange={(e) => patchSaved(savedTab, { taxes: Number(e.target.value) || 0 })}
-                  className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm normal-case"
-                />
-              </label>
-              <label className="text-[11px] font-bold uppercase text-muted-foreground sm:col-span-2">
-                URL da imagem
-                <input
-                  value={saved[savedTab].image_url}
-                  onChange={(e) => patchSaved(savedTab, { image_url: e.target.value })}
-                  className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 font-mono text-xs normal-case"
-                />
-              </label>
-              <label className="text-[11px] font-bold uppercase text-muted-foreground sm:col-span-2">
-                Horários (separados por vírgula)
-                <input
-                  value={saved[savedTab].times.join(", ")}
-                  onChange={(e) =>
-                    patchSaved(savedTab, {
-                      times: e.target.value
-                        .split(",")
-                        .map((s) => s.trim())
-                        .filter(Boolean),
-                    })
-                  }
-                  className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm normal-case"
-                />
-              </label>
-              <label className="text-[11px] font-bold uppercase text-muted-foreground sm:col-span-2">
-                Inclui (um por linha)
-                <textarea
-                  value={saved[savedTab].includes.join("\n")}
-                  onChange={(e) =>
-                    patchSaved(savedTab, {
-                      includes: e.target.value
-                        .split("\n")
-                        .map((s) => s.trim())
-                        .filter(Boolean),
-                    })
-                  }
-                  rows={3}
-                  className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-xs normal-case"
-                />
-              </label>
-              <label className="text-[11px] font-bold uppercase text-muted-foreground sm:col-span-2">
-                Texto do operador
-                <textarea
-                  value={saved[savedTab].raw_description}
-                  onChange={(e) => patchSaved(savedTab, { raw_description: e.target.value })}
-                  rows={6}
-                  className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-xs normal-case"
-                />
-              </label>
-            </div>
-          )}
-
-          <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={saveAllSaved}
-              disabled={savingAll}
-              className="inline-flex items-center gap-2 rounded-full bg-brand-orange px-5 py-2 text-xs font-bold text-white disabled:opacity-60"
-            >
-              {savingAll ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <CheckCircle2 className="h-3.5 w-3.5" />
-              )}
-              Salvar todos
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setSaved(null);
-                setHtml("");
-                onDone?.();
-              }}
-              className="rounded-full border border-border px-4 py-2 text-xs font-bold"
-            >
-              Fechar e ver a lista
-            </button>
-          </div>
-        </div>
-      )}
 
       {tours.length > 0 && (
         <div className="space-y-2">
