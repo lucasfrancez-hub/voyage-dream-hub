@@ -31,6 +31,10 @@ const ServicesSchema = z
       .object({ enabled: z.boolean().optional(), parks: z.array(z.string()).nullable().optional() })
       .partial()
       .optional(),
+    birthday: z
+      .object({ enabled: z.boolean().optional(), condicao: z.string().nullable().optional() })
+      .partial()
+      .optional(),
     outros: z.array(z.string()).optional(),
 
 
@@ -184,10 +188,14 @@ export const generateCurationCopy = createServerFn({ method: "POST" })
         }
       }
 
-      for (const extra of svc.outros ?? []) {
-        const t = (extra || "").trim();
-        if (t) services_lines.push(`✨ ${t}`);
+      if (svc.birthday?.enabled) {
+        const cond = (svc.birthday.condicao ?? "").trim();
+        services_lines.push(
+          `🎂 Ingresso GRÁTIS para aniversariantes${cond ? ` (${cond})` : ""}`,
+        );
       }
+
+
 
 
 
