@@ -2737,7 +2737,7 @@ function PackageEditorModal({
                   onClick={save}
                   disabled={saving}
                   className="inline-flex items-center gap-2 rounded-full border border-brand-orange/60 px-4 py-2 text-sm font-semibold text-brand-orange hover:bg-brand-orange/10 disabled:opacity-60"
-                  title="Salvar apenas este pacote e ir para o próximo"
+                  title={`Salvar apenas este ${kind === "tour" ? "passeio" : "pacote"} e ir para o próximo`}
                 >
                   {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                   Salvar este
@@ -2748,7 +2748,7 @@ function PackageEditorModal({
                   className="inline-flex items-center gap-2 rounded-full bg-gradient-brand px-5 py-2 text-sm font-semibold text-primary-foreground shadow-[var(--shadow-glow)] disabled:opacity-60"
                 >
                   {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                  Salvar todos os pacotes ({drafts.length})
+                  Salvar todos os {kind === "tour" ? "passeios" : "pacotes"} ({drafts.length})
                 </button>
               </>
             ) : (
