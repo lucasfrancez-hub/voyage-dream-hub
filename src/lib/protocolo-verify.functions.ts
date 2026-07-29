@@ -53,25 +53,10 @@ export const verifyProtocolHash = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const hash = normalize(data.hash);
     if (hash.length !== 64) return { valid: false as const };
-    const key = process.env.SUPABASE_PUBLISHABLE_KEY!;
-    const supabase = createClient<Database>(
-      process.env.SUPABASE_URL!,
-      key,
-      {
-        auth: { persistSession: false },
-        global: {
-          fetch: (input, init) => {
-            const h = new Headers(init?.headers);
-            if (key.startsWith("sb_") && h.get("Authorization") === `Bearer ${key}`) {
-              h.delete("Authorization");
-            }
-            h.set("apikey", key);
-            return fetch(input, { ...init, headers: h });
-          },
-        },
-      },
-    );
-    const { data: rows, error } = await supabase.rpc("verify_protocol_hash", {
+    // A função no banco não é mais executável por anon/authenticated:
+    // só este endpoint (que exige o hash completo de 64 chars) pode chamá-la.
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: rows, error } = await supabaseAdmin.rpc("verify_protocol_hash", {
       _hash: hash,
     });
     const row = Array.isArray(rows) ? rows[0] : null;
