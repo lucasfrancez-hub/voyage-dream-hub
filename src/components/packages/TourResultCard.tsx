@@ -227,7 +227,7 @@ export function TourResultCard({
               {meetingPoint && (
                 <p className="flex items-start gap-2">
                   <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-brand-orange" />
-                  <span className="line-clamp-2">{meetingPoint}</span>
+                  <span>{meetingPoint}</span>
                 </p>
               )}
               {times.length > 0 && (
