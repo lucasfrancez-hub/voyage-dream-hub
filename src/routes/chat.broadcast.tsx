@@ -1237,17 +1237,15 @@ function AgendaProgramada({
   const grupos = useMemo(() => {
     const map = new Map<string, Campanha[]>();
     for (const c of programadas) {
-      const dia = new Date(c.scheduled_at!).toLocaleDateString("pt-BR", {
-        timeZone: "America/Sao_Paulo",
-        weekday: "short",
-        day: "2-digit",
-        month: "long",
-      });
-      const arr = map.get(dia) ?? [];
+      const key = brtDayKey(c.scheduled_at!);
+      const arr = map.get(key) ?? [];
       arr.push(c);
-      map.set(dia, arr);
+      map.set(key, arr);
     }
-    return Array.from(map.entries());
+    return Array.from(map.entries()).map(([key, lista]) => [
+      dayKeyLabel(key, { weekday: "short", day: "2-digit", month: "long", year: "numeric" }),
+      lista,
+    ] as [string, Campanha[]]);
   }, [programadas]);
 
   if (programadas.length === 0) return null;
