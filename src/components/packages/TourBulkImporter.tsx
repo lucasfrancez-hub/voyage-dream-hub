@@ -49,6 +49,42 @@ export function TourBulkImporter({
   const [savingAll, setSavingAll] = useState(false);
   const [extras, setExtras] = useState<Record<number, string>>({});
 
+  function patchSaved(i: number, next: Partial<SavedTour>) {
+    setSaved((list) => (list ? list.map((t, idx) => (idx === i ? { ...t, ...next } : t)) : list));
+  }
+
+  async function saveAllSaved() {
+    if (!saved?.length) return;
+    setSavingAll(true);
+    try {
+      for (const s of saved) {
+        const { error } = await supabase
+          .from("packages")
+          .update({
+            title: s.title,
+            destination: s.destination,
+            image_url: s.image_url || null,
+            price_per_person: s.price_per_person,
+            taxes: s.taxes,
+            times: undefined,
+            tour_times: s.times,
+            includes: s.includes,
+            meeting_point: s.meeting_point || null,
+            services: s.raw_description ? { raw_description: s.raw_description } : {},
+          } as any)
+          .eq("id", s.id);
+        if (error) toast.error(`${s.title}: ${error.message}`);
+      }
+      await qc.invalidateQueries({ queryKey: ["admin-packages"] });
+      await qc.invalidateQueries({ queryKey: ["packages"] });
+      toast.success("Alterações salvas.");
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setSavingAll(false);
+    }
+  }
+
   function patchTour(i: number, next: Partial<ParsedTour>) {
     setTours((list) => list.map((t, idx) => (idx === i ? { ...t, ...next } : t)));
   }
