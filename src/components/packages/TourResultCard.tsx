@@ -49,7 +49,7 @@ export function TourResultCard({
   adults?: number;
   children?: number;
   onAdd: (item: Omit<CartItem, "key">) => void;
-  onReserve: (date: string, modality: string | null) => void;
+  onReserve: (date: string, modality: string | null, qty: number) => void;
 }) {
   const [offset, setOffset] = useState(0);
   const [sel, setSel] = useState<{ date: string; modality: string | null } | null>(null);
