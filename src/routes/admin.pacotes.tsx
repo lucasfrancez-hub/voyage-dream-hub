@@ -2245,7 +2245,9 @@ function PackageEditorModal({
             {tab === "dates" && kind === "tour" && (
               <div className="mb-4 space-y-4">
                 <TourDatesEditor
+                  key={editing.id ?? `draft-${draftIndex}-${editing.slug ?? ""}`}
                   packageId={editing.id}
+
                   modalities={(editing as any).tour_modalities ?? []}
                   pendingRows={(editing as any).__pendingPrices ?? []}
                   onRowsChange={(rows) =>
