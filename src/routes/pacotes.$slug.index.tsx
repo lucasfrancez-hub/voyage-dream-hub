@@ -212,6 +212,7 @@ function PackageDetails() {
 
   const [hotelDialogOpen, setHotelDialogOpen] = useState(false);
   const [dialogPhotoIndex, setDialogPhotoIndex] = useState(0);
+  const [preOpen, setPreOpen] = useState(false);
 
   if (isLoading || !pkg) {
     return (
@@ -518,13 +519,23 @@ function PackageDetails() {
               </div>
             )}
 
-            <Link
-              to="/pacotes/$slug/checkout"
-              params={{ slug: pkg.slug }}
-              className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-full bg-gradient-brand px-6 py-3 font-semibold text-primary-foreground shadow-[var(--shadow-glow)] hover:opacity-90 transition"
-            >
-              Reservar agora <ArrowRight className="h-4 w-4" />
-            </Link>
+            {flexibleDates ? (
+              <button
+                type="button"
+                onClick={() => setPreOpen(true)}
+                className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-full bg-gradient-brand px-6 py-3 font-semibold text-primary-foreground shadow-[var(--shadow-glow)] hover:opacity-90 transition"
+              >
+                Reservar agora <ArrowRight className="h-4 w-4" />
+              </button>
+            ) : (
+              <Link
+                to="/pacotes/$slug/checkout"
+                params={{ slug: pkg.slug }}
+                className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-full bg-gradient-brand px-6 py-3 font-semibold text-primary-foreground shadow-[var(--shadow-glow)] hover:opacity-90 transition"
+              >
+                Reservar agora <ArrowRight className="h-4 w-4" />
+              </Link>
+            )}
             <p className="mt-3 text-[11px] text-muted-foreground text-center">
               Você preenche seus dados e finaliza o pagamento na próxima etapa.
             </p>
