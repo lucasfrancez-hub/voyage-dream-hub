@@ -340,7 +340,7 @@ export function TourResultCard({
         </div>
 
         {/* Direita: reserva */}
-        <aside className="flex w-full flex-col border-t border-border bg-muted/30 p-5 md:w-[25%] md:border-l md:border-t-0">
+        <aside className="flex w-full flex-col border-t border-border bg-muted/30 p-5 md:w-[26%] md:border-l md:border-t-0">
           <div className="space-y-5">
             <div>
               <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
