@@ -1127,13 +1127,9 @@ function AdminPackages() {
                   <div className="col-span-1 md:col-span-2 md:text-right">
                     <div className="text-[9px] text-muted-foreground uppercase mb-0.5">BRL</div>
                     <div className="text-base sm:text-lg font-black text-foreground tabular-nums tracking-tight">
-                      {formatBRLNoSymbol(
-                        (Number(p.price_per_person) || 0) * (Number(p.base_occupancy) || 1),
-                      )}
+                      {formatBRLNoSymbol(Number(p.price_per_person) || 0)}
                     </div>
-                    <div className="text-[9px] text-muted-foreground mt-0.5">
-                      Total {p.base_occupancy || 1} pax
-                    </div>
+                    <div className="text-[9px] text-muted-foreground mt-0.5">Total 1 pax</div>
                   </div>
 
                   {/* Status + Actions */}
