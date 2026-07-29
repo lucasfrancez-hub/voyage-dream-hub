@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { summarizeTourInfo } from "@/lib/packages/ai.functions";
-import { parseTourHtml, type ParsedTour } from "@/lib/packages/tour-html";
+import { parseMultipleTourHtml, type ParsedTour } from "@/lib/packages/tour-html";
 import { DestinationInput } from "@/components/packages/DestinationInput";
 
 const inp =
@@ -61,6 +61,7 @@ export function TourHtmlImporter({
   const [extra, setExtra] = useState("");
   const [imageUrl, setImageUrl] = useState("");
   const [parsed, setParsed] = useState<ParsedTour | null>(null);
+  const [candidates, setCandidates] = useState<ParsedTour[]>([]);
   const [loading, setLoading] = useState(false);
   const [savingPrices, setSavingPrices] = useState(false);
 
@@ -82,23 +83,37 @@ export function TourHtmlImporter({
       return;
     }
     try {
-      const res = parseTourHtml(html);
-      setParsed(res);
-      onPrices?.(
-        res.prices.map((p) => ({
-          date: p.date,
-          modality: p.modality,
-          price_per_person: p.price_per_person,
-        })),
-      );
-      setImageUrl(res.image_url || "");
-      setStep(2);
-      toast.success(
-        `${res.modalities.length} modalidade(s) e ${res.prices.length} preço(s) encontrados.`,
-      );
+      const list = parseMultipleTourHtml(html);
+      if (!list.length) {
+        toast.error("Nenhum serviço encontrado nesse HTML.");
+        return;
+      }
+      setCandidates(list);
+      if (list.length > 1) {
+        setParsed(null);
+        toast.info(`${list.length} serviços no HTML — escolha qual importar.`);
+        return;
+      }
+      chooseTour(list[0]!);
     } catch (e) {
       toast.error("Não consegui ler esse HTML: " + (e as Error).message);
     }
+  }
+
+  function chooseTour(res: ParsedTour) {
+    setParsed(res);
+    onPrices?.(
+      res.prices.map((p) => ({
+        date: p.date,
+        modality: p.modality,
+        price_per_person: p.price_per_person,
+      })),
+    );
+    setImageUrl(res.image_url || "");
+    setStep(2);
+    toast.success(
+      `${res.modalities.length} modalidade(s) e ${res.prices.length} preço(s) encontrados.`,
+    );
   }
 
   async function savePrices(p: ParsedTour, silent = false) {
@@ -200,6 +215,7 @@ export function TourHtmlImporter({
     setExtra("");
     setImageUrl("");
     setParsed(null);
+    setCandidates([]);
   }
 
   return (
@@ -278,6 +294,36 @@ export function TourHtmlImporter({
               placeholder='<div id="frmResultadoProduto...'
             />
           </label>
+          {candidates.length > 1 && (
+            <div className="space-y-2 rounded-lg border border-brand-orange/40 bg-background/70 p-3">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-brand-orange">
+                {candidates.length} serviços encontrados — escolha um
+              </p>
+              <div className="max-h-64 space-y-1 overflow-y-auto pr-1">
+                {candidates.map((c, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => chooseTour(c)}
+                    className="flex w-full items-center gap-3 rounded-lg border border-border p-2 text-left hover:border-brand-orange"
+                  >
+                    {c.image_url ? (
+                      <img src={c.image_url} alt="" className="h-10 w-16 rounded object-cover" />
+                    ) : null}
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-xs font-bold">{c.title}</span>
+                      <span className="block text-[11px] text-muted-foreground">
+                        {c.modalities.length} modalidade(s) · {c.dates.length} data(s) ·{" "}
+                        {c.prices.length} preço(s)
+                      </span>
+                    </span>
+                    <ArrowRight className="h-3.5 w-3.5 shrink-0 text-brand-orange" />
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="flex flex-wrap gap-2">
             <button
               type="button"
