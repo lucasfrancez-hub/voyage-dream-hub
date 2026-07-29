@@ -164,6 +164,6 @@ export function formatAgePolicy(p: AgePolicy) {
         .toFixed(2)
         .replace(".", ",")} por criança, em dinheiro, no local do embarque.`,
     );
-  if (p.adultMinAge != null) parts.push(`A partir de ${p.adultMinAge} anos: paga valor de adulto.`);
+  
   return parts.join(" ");
 }
