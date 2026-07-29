@@ -3,7 +3,13 @@ import { MapPin, Plus, Clock, ChevronLeft, ChevronRight, Info } from "lucide-rea
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { formatBRL } from "@/lib/format";
-import { detectChildTokenFee, formatChildTokenFee } from "@/lib/packages/child-fee";
+import {
+  detectChildTokenFee,
+  parseAgePolicy,
+  agePolicyFromText,
+  classifyChild,
+  formatAgePolicy,
+} from "@/lib/packages/child-fee";
 
 const PAGE_SIZE = 5;
 
@@ -70,29 +76,30 @@ export function TourResultCard({
   }, [from, to]);
 
 
-  const childFee = useMemo(
-    () =>
+  const policy = useMemo(() => {
+    const manual = parseAgePolicy(tour.services);
+    if (manual) return manual;
+    return agePolicyFromText(
       detectChildTokenFee(
         tour.ai_summary,
         tour.summary,
         tour.itinerary,
         typeof tour.tour_info === "string" ? tour.tour_info : JSON.stringify(tour.tour_info ?? ""),
       ),
-    [tour],
-  );
+    );
+  }, [tour]);
 
-  // Criança dentro da faixa isenta (idade informada) não entra no valor do passeio
+  const childFee = policy;
+
+  // Crianças gratuitas ou que pagam só a taxa no local não entram no valor
   const exemptChildren = useMemo(() => {
-    if (!childFee) return 0;
+    if (!policy) return 0;
     const ages = childAges.slice(0, childCount);
-    if (ages.length === 0) return childCount;
-    return ages.filter((age) => {
-      const okMin = childFee.minAge == null || age >= childFee.minAge;
-      const okMax = childFee.maxAge == null || age <= childFee.maxAge;
-      return okMin && okMax;
-    }).length;
-  }, [childFee, childAges, childCount]);
-  const payingPax = childFee ? Math.max(1, pax - exemptChildren) : pax;
+    if (ages.length === 0) return 0;
+    return ages.filter((age) => classifyChild(age, policy) !== "adult").length;
+  }, [policy, childAges, childCount]);
+  const payingPax = policy ? Math.max(1, pax - exemptChildren) : pax;
+
 
 
 
@@ -332,7 +339,7 @@ export function TourResultCard({
             {childFee && (
               <div className="rounded-lg border border-brand-orange/30 bg-brand-orange/10 p-3">
                 <p className="text-[11px] font-medium text-brand-orange">
-                  {formatChildTokenFee(childFee)}
+                  {formatAgePolicy(childFee)}
                 </p>
               </div>
             )}
@@ -492,7 +499,7 @@ export function TourResultCard({
             {childFee && (
               <div className="rounded-lg border border-brand-orange/30 bg-brand-orange/10 p-3">
                 <p className="text-[12px] font-medium text-brand-orange">
-                  {formatChildTokenFee(childFee)}
+                  {formatAgePolicy(childFee)}
                 </p>
               </div>
             )}
