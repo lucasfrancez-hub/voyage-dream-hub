@@ -68,3 +68,73 @@ export function formatChildTokenFee(fee: ChildTokenFee) {
 
 }
 
+
+/** Política de idades configurada manualmente no cadastro do passeio. */
+export type AgePolicy = {
+  /** Até esta idade (inclusive) a criança é gratuita. */
+  freeMaxAge: number | null;
+  /** Faixa que paga apenas a taxa simbólica no local. */
+  feeMinAge: number | null;
+  feeMaxAge: number | null;
+  feeAmount: number | null;
+  feeCurrency: string;
+  /** A partir desta idade paga valor de adulto. */
+  adultMinAge: number | null;
+};
+
+export function parseAgePolicy(services: any): AgePolicy | null {
+  const p = services?.age_policy;
+  if (!p || typeof p !== "object") return null;
+  const num = (v: any) => (v === "" || v == null || !Number.isFinite(Number(v)) ? null : Number(v));
+  const policy: AgePolicy = {
+    freeMaxAge: num(p.free_max_age),
+    feeMinAge: num(p.fee_min_age),
+    feeMaxAge: num(p.fee_max_age),
+    feeAmount: num(p.fee_amount),
+    feeCurrency: p.fee_currency || "US$",
+    adultMinAge: num(p.adult_min_age),
+  };
+  const hasAny =
+    policy.freeMaxAge != null ||
+    policy.feeMinAge != null ||
+    policy.feeMaxAge != null ||
+    policy.adultMinAge != null;
+  return hasAny ? policy : null;
+}
+
+/** Política derivada do texto (fallback) quando não há cadastro manual. */
+export function agePolicyFromText(fee: ChildTokenFee | null): AgePolicy | null {
+  if (!fee) return null;
+  return {
+    freeMaxAge: fee.minAge != null ? fee.minAge - 1 : null,
+    feeMinAge: fee.minAge,
+    feeMaxAge: fee.maxAge,
+    feeAmount: fee.amount,
+    feeCurrency: fee.currency,
+    adultMinAge: fee.maxAge != null ? fee.maxAge + 1 : null,
+  };
+}
+
+export type ChildClassification = "free" | "token" | "adult";
+
+export function classifyChild(age: number, p: AgePolicy): ChildClassification {
+  if (p.freeMaxAge != null && age <= p.freeMaxAge) return "free";
+  if (p.feeMinAge != null && p.feeMaxAge != null && age >= p.feeMinAge && age <= p.feeMaxAge)
+    return "token";
+  if (p.adultMinAge != null && age >= p.adultMinAge) return "adult";
+  if (p.feeMaxAge != null && age > p.feeMaxAge) return "adult";
+  return "adult";
+}
+
+export function formatAgePolicy(p: AgePolicy) {
+  const parts: string[] = [];
+  if (p.freeMaxAge != null) parts.push(`Crianças até ${p.freeMaxAge} anos: gratuito.`);
+  if (p.feeMinAge != null && p.feeMaxAge != null && p.feeAmount != null)
+    parts.push(
+      `Crianças de ${p.feeMinAge} a ${p.feeMaxAge} anos: pagam apenas ${p.feeCurrency} ${p.feeAmount
+        .toFixed(2)
+        .replace(".", ",")} por criança, em dinheiro, no local do embarque.`,
+    );
+  if (p.adultMinAge != null) parts.push(`A partir de ${p.adultMinAge} anos: paga valor de adulto.`);
+  return parts.join(" ");
+}
