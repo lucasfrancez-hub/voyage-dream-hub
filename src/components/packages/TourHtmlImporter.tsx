@@ -14,6 +14,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { summarizeTourInfo } from "@/lib/packages/ai.functions";
 import { parseMultipleTourHtml, type ParsedTour } from "@/lib/packages/tour-html";
+import { SupplierInput } from "@/components/packages/SupplierInput";
 import { DestinationInput } from "@/components/packages/DestinationInput";
 
 const inp =
@@ -25,6 +26,7 @@ function brl(n: number) {
 
 export type TourImportPatch = {
   title?: string;
+  supplier_name?: string;
   destination?: string;
   image_url?: string;
   summary?: string;
@@ -38,16 +40,18 @@ export type TourImportPatch = {
   pricing_mode?: string;
 };
 
-const STEPS = ["Destino", "HTML do serviço", "Texto complementar", "Pronto"];
+const STEPS = ["Destino e fornecedor", "HTML do serviço", "Texto complementar", "Pronto"];
 
 export function TourHtmlImporter({
   packageId,
   destination,
+  supplier,
   onApply,
   onPrices,
 }: {
   packageId?: string;
   destination?: string | null;
+  supplier?: string | null;
   onApply: (patch: TourImportPatch) => void;
   onPrices?: (
     rows: { date: string; modality: string; price_per_person: number }[],
@@ -57,6 +61,7 @@ export function TourHtmlImporter({
   const summarize = useServerFn(summarizeTourInfo);
   const [step, setStep] = useState(0);
   const [destCity, setDestCity] = useState(destination ?? "");
+  const [supplierName, setSupplierName] = useState(supplier ?? "");
   const [html, setHtml] = useState("");
   const [extra, setExtra] = useState("");
   const [imageUrl, setImageUrl] = useState("");
@@ -162,6 +167,7 @@ export function TourHtmlImporter({
       onApply({
         ...(parsed.title ? { title: parsed.title } : {}),
         ...(destCity.trim() ? { destination: destCity.trim() } : {}),
+        ...(supplierName.trim() ? { supplier_name: supplierName.trim() } : {}),
         ...(imageUrl ? { image_url: imageUrl } : {}),
         ...(ai?.short ? { summary: ai.short } : {}),
         ...(ai?.summary
@@ -264,11 +270,21 @@ export function TourHtmlImporter({
             </span>
             <DestinationInput value={destCity} onChange={setDestCity} />
           </label>
+          <label className="block space-y-1">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+              Fornecedor (obrigatório)
+            </span>
+            <SupplierInput value={supplierName} onChange={setSupplierName} />
+          </label>
           <button
             type="button"
             onClick={() => {
               if (!destCity.trim()) {
                 toast.error("Digite a cidade de destino.");
+                return;
+              }
+              if (!supplierName.trim()) {
+                toast.error("Informe o fornecedor.");
                 return;
               }
               setStep(1);
