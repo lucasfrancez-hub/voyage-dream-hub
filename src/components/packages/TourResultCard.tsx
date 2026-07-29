@@ -29,6 +29,7 @@ export type CartItem = {
   title: string;
   date: string;
   modality: string | null;
+  time?: string | null;
   unit: number;
   qty: number;
 };
@@ -55,12 +56,18 @@ export function TourResultCard({
   from?: string;
   to?: string;
   onAdd: (item: Omit<CartItem, "key">) => void;
-  onReserve: (date: string, modality: string | null, qty: number) => void;
+  onReserve: (
+    date: string,
+    modality: string | null,
+    qty: number,
+    time?: string | null,
+  ) => void;
 }) {
   const [page, setPage] = useState(0);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [selDate, setSelDate] = useState<string | null>(null);
   const [selMod, setSelMod] = useState<string | null | undefined>(undefined);
+  const [selTime, setSelTime] = useState<string | null>(null);
   const sel =
     selDate && selMod !== undefined ? { date: selDate, modality: selMod } : null;
 
@@ -412,6 +419,41 @@ export function TourResultCard({
               </div>
             </div>
 
+            {times.length > 0 && (
+              <div>
+                <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                  Horário de saída
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {times.map((t) => {
+                    const active = selTime === t;
+                    return (
+                      <button
+                        key={t}
+                        type="button"
+                        onClick={() => setSelTime(active ? null : t)}
+                        className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition ${
+                          active
+                            ? "border-brand-orange bg-brand-orange/10 text-brand-orange"
+                            : "border-border bg-background text-muted-foreground hover:border-brand-orange/60"
+                        }`}
+                      >
+                        <Clock className="h-3.5 w-3.5" />
+                        {t}
+                      </button>
+                    );
+                  })}
+                </div>
+                {!selTime && (
+                  <p className="mt-2 text-[11px] text-muted-foreground">
+                    Selecione o horário desejado.
+                  </p>
+                )}
+              </div>
+            )}
+
+
+
             <div className="border-t border-border pt-4">
               <p className="text-xs text-muted-foreground">
                 {selUnit != null ? "Valor total" : "A partir de"}
@@ -432,15 +474,15 @@ export function TourResultCard({
             <div className="space-y-3 pt-1">
               <button
                 type="button"
-                disabled={!sel || selUnit == null}
-                onClick={() => sel && onReserve(sel.date, sel.modality, payingPax)}
+                disabled={!sel || selUnit == null || (times.length > 0 && !selTime)}
+                onClick={() => sel && onReserve(sel.date, sel.modality, payingPax, selTime)}
                 className="w-full rounded-lg bg-brand-orange px-4 py-3 text-sm font-bold uppercase tracking-widest text-primary-foreground shadow-lg shadow-brand-orange/20 transition hover:opacity-90 disabled:opacity-40 disabled:shadow-none"
               >
                 Reservar agora
               </button>
               <button
                 type="button"
-                disabled={!sel || selUnit == null}
+                disabled={!sel || selUnit == null || (times.length > 0 && !selTime)}
                 onClick={() =>
                   sel &&
                   selUnit != null &&
@@ -450,6 +492,7 @@ export function TourResultCard({
                     title: tour.title,
                     date: sel.date,
                     modality: sel.modality,
+                    time: selTime,
                     unit: selUnit,
                     qty: payingPax,
                   })
