@@ -2951,6 +2951,7 @@ function ServicesEditor({
   const cityTour = v.city_tour ?? {};
   const tickets = v.tickets ?? {};
   const parks = (tickets.parks ?? []) as string[];
+  const ticketRules = (v.ticket_rules ?? []) as NonNullable<PackageServices["ticket_rules"]>;
   const outros = v.outros ?? [];
   const showCancelamento = kind === "package" || kind === "cruise";
   const showCityTour = kind === "package";
