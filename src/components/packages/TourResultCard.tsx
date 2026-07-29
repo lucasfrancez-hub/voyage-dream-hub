@@ -275,7 +275,7 @@ export function TourResultCard({
                 date: sel.date,
                 modality: sel.modality,
                 unit: selUnit,
-                qty: pax,
+                qty: payingPax,
               })
             }
             className="mt-2 flex w-full items-center justify-center gap-2 rounded-lg border border-border bg-background px-4 py-2.5 text-xs font-bold uppercase tracking-widest transition hover:border-brand-orange/60 disabled:opacity-40"
