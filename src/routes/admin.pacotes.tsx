@@ -87,6 +87,7 @@ import { useIgnoredHotels } from "@/lib/ignored-hotels";
 import { CurationTab } from "@/components/packages/CurationTab";
 import { confirm } from "@/lib/confirm";
 import { dedupeOrigins, originKey } from "@/lib/packages/origin";
+import { buildPackagesCsv, downloadCsv, type ExportDatePrice } from "@/lib/packages/export-csv";
 import { cleanRoomLabel } from "@/lib/packages/room";
 import type { PackageServices, SeguroMoeda } from "@/lib/packages/feed-art-data";
 import { formatSeguroCobertura } from "@/lib/packages/feed-art-data";
@@ -442,6 +443,50 @@ function AdminPackages() {
     });
     return sorted;
   }, [packages, originFilter, destinationFilter, monthFilter, kindFilter, sortDir, sortMode]);
+
+  const [exporting, setExporting] = useState(false);
+  const exportCsv = async () => {
+    if (!displayPackages.length) {
+      toast.error("Nada para exportar com os filtros atuais");
+      return;
+    }
+    setExporting(true);
+    try {
+      const ids = displayPackages.map((p) => p.id);
+      const dates: ExportDatePrice[] = [];
+      for (let i = 0; i < ids.length; i += 200) {
+        const { data, error } = await supabase
+          .from("package_date_prices")
+          .select("package_id,date,modality,price_per_person,taxes,seats,is_available")
+          .in("package_id", ids.slice(i, i + 200))
+          .order("date");
+        if (error) throw error;
+        dates.push(...((data ?? []) as unknown as ExportDatePrice[]));
+      }
+      const csv = buildPackagesCsv(
+        displayPackages as unknown as Record<string, unknown>[],
+        dates,
+        typeof window !== "undefined" ? window.location.origin : "",
+      );
+      const kindSlug =
+        kindFilter === "all"
+          ? "todos"
+          : kindFilter === "service"
+            ? "ingressos"
+            : kindFilter === "tour"
+              ? "passeios"
+              : kindFilter === "cruise"
+                ? "cruzeiros"
+                : "pacotes";
+      downloadCsv(`viaair-${kindSlug}-${new Date().toISOString().slice(0, 10)}.csv`, csv);
+      toast.success(`Exportado: ${displayPackages.length} registro(s)`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha ao exportar");
+    } finally {
+      setExporting(false);
+    }
+  };
+
 
   const hasActiveFilters =
     originFilter !== "all" ||
@@ -964,7 +1009,8 @@ function AdminPackages() {
       </div>
 
       {view === "list" && (
-        <div className="mb-4 inline-flex flex-wrap gap-1 rounded-xl border border-border bg-card p-1">
+        <div className="mb-4 flex flex-wrap items-center gap-2">
+        <div className="inline-flex flex-wrap gap-1 rounded-xl border border-border bg-card p-1">
           {([
             { k: "all", label: "Todos", Icon: ListIcon },
             { k: "package", label: "Pacotes", Icon: PackageIcon },
@@ -989,7 +1035,20 @@ function AdminPackages() {
             );
           })}
         </div>
+        <button
+          type="button"
+          onClick={exportCsv}
+          disabled={exporting}
+          className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-card px-3 py-2 text-xs font-bold uppercase tracking-wider text-muted-foreground transition hover:text-foreground disabled:opacity-60"
+          title="Exportar em CSV os registros da aba/filtros atuais"
+        >
+          {exporting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
+          Exportar CSV
+        </button>
+
+        </div>
       )}
+
 
 
       {view === "curadoria" ? (
