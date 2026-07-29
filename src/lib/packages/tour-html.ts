@@ -209,13 +209,14 @@ export function parseTourHtml(html: string): ParsedTour {
     bodyRows.forEach((tr, rowIndex) => {
       const cells = visibleCells(tr);
       if (!cells.length) return;
-      // Se a linha tem uma coluna a mais que as datas, a primeira é a modalidade.
-      const offset = Math.max(0, Math.min(1, cells.length - datesByColumn.length));
-      const modality =
-        offset === 1
-          ? cleanModality(cells[0].textContent ?? "", title)
-          : (sideModalities[rowIndex] ?? "");
+      const side = sideModalities[rowIndex];
+      // Layout novo: modalidade vem da tabela lateral e as colunas casam 1:1.
+      // Layout antigo: a primeira célula da linha é a modalidade.
+      const useSide = Boolean(side) && cells.length <= datesByColumn.length;
+      const offset = useSide ? 0 : Math.max(0, Math.min(1, cells.length - datesByColumn.length));
+      const modality = useSide ? side : cleanModality(cells[0].textContent ?? "", title);
       if (!modality) return;
+
       let modalityHasPrice = false;
       cells.forEach((td, columnIndex) => {
         const date = datesByColumn[columnIndex - offset];
