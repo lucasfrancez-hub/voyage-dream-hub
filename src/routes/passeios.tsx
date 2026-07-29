@@ -431,6 +431,9 @@ function PasseiosPage() {
                       adults={adults}
                       children={children}
                       childAges={childAges}
+                      from={from}
+                      to={to}
+
 
 
                       onAdd={(item) =>
