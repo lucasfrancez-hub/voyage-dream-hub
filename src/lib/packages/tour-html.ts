@@ -192,7 +192,7 @@ export function parseTourHtml(html: string): ParsedTour {
   }
   times.sort();
 
-  const rawText = cleanText(doc.body?.textContent ?? "");
+  const rawText = cleanText(doc.body?.textContent || doc.documentElement?.textContent || "");
 
   // "taxas inclusas de BRL 6,64" — a matriz mostra o preço SEM taxas.
   const taxMatch = rawText.match(/taxas?\s+inclusas?\s+de\s+[A-Z]{0,3}\s*([\d.,]+)/i);
