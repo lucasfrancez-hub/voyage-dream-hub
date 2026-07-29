@@ -352,7 +352,37 @@ function PasseiosPage() {
                           </div>
                         </div>
                       ))}
+                      {childAges.length > 0 && (
+                        <div className="mt-2 space-y-2 border-t border-border pt-3">
+                          <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                            Idade de cada criança
+                          </p>
+                          {childAges.map((age, i) => (
+                            <div key={i} className="flex items-center justify-between gap-3">
+                              <span className="text-sm">Criança {i + 1}</span>
+                              <select
+                                value={age}
+                                onChange={(e) =>
+                                  setChildAges((prev) =>
+                                    prev.map((a, j) =>
+                                      j === i ? Number(e.target.value) : a,
+                                    ),
+                                  )
+                                }
+                                className="h-8 rounded-md border border-border bg-background px-2 text-sm"
+                              >
+                                {Array.from({ length: 16 }, (_, k) => k + 2).map((v) => (
+                                  <option key={v} value={v}>
+                                    {v} anos
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </PopoverContent>
+
                   </Popover>
                 </div>
                 <button
