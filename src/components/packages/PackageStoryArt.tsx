@@ -341,6 +341,11 @@ export const PackageStoryArt = forwardRef<HTMLDivElement, { data: FeedArtData }>
                 </div>
               </div>
 
+              {data.birthdayFree ? (
+                <p className="vstory-note">Ingresso para aniversariante gratuito.</p>
+              ) : null}
+
+
               <p className="vstory-note">
                 {data.flexibleDates
                   ? "*Datas flexíveis — sujeitas à disponibilidade e alteração de valor sem aviso prévio."
