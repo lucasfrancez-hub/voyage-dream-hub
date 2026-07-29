@@ -1492,7 +1492,7 @@ function PackageEditorModal({
 }: PackageEditorModalProps) {
   const [tab, setTab] = useState<TabId>("dates");
   const [tourImportDone, setTourImportDone] = useState(false);
-  const [tourBulkMode, setTourBulkMode] = useState(false);
+  
   const [flightLeg, setFlightLeg] = useState<"outbound" | "return">("outbound");
   const [aiLoading, setAiLoading] = useState(false);
   const [imgOpen, setImgOpen] = useState(false);
