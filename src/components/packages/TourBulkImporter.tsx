@@ -63,6 +63,7 @@ export function TourBulkImporter({
     }
     setRunning(true);
     let ok = 0;
+    const okTitles: string[] = [];
     try {
       const { data: existing } = await supabase.from("packages").select("slug");
       const used = new Set((existing ?? []).map((r: any) => r.slug));
