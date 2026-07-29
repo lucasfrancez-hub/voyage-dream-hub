@@ -1086,6 +1086,8 @@ Regras (aplicar em CADA pacote):
 
 - services.tickets: enabled=true SEMPRE que houver INGRESSOS de parques/atrações. Sinais: seção/título "Ingresso" ou "# Ingresso" (Cativa/Infotera); frases "Ingresso do Walt Disney World", "Ingresso do Universal Orlando", "Ingresso do SeaWorld", "Ingresso do LEGOLAND"; "N Dias de Ingresso Disney/Universal", "Park to Park", "Park Hopper"; produtos "Disney N-Day Ticket", "Universal N-Day Ticket"; parques nomeados Magic Kingdom/Epcot/Hollywood Studios/Animal Kingdom/Blizzard Beach/Typhoon Lagoon (=Disney), Universal Studios/Islands of Adventure/Volcano Bay/Epic Universe/CityWalk (=Universal), Discovery Cove/Aquatica (SeaWorld). parks = nomes CURTOS SEPARADOS por operador. Disney e Universal SEMPRE em entradas distintas quando ambos existirem. Universal ganha sufixo "+ Epic" se Epic Universe estiver incluído (ex.: "Universal + Epic"); só "Universal" caso contrário. Pode acrescentar dias explícitos ("Disney 4 dias", "Universal 2 dias + Epic") quando o voucher indicar. Nunca duplique o mesmo operador. Outros: "SeaWorld", "Busch Gardens", "LEGOLAND", "Aquatica", "Discovery Cove". Não coloque ingressos em services.outros.
 
+- services.ticket_rules: uma entrada por ingresso do orçamento, com name curto e amigável (sem códigos internos nem "*VENDA PROIBIDA*"), usage_date e validity em DD/MM/AAAA quando existirem, e rules com 3 a 7 bullets CURTOS (máx. ~14 palavras) em pt-BR simples, reescritos — nunca copie o parágrafo do operador nem use CAIXA ALTA. Destaque: quem tem direito, acompanhantes pagantes, prazo/janela de uso, agendamento, documentos, gratuidade de crianças, no-show/reembolso e reajuste por lote. Sem ingressos → [].
+
 - Cidade em português.
 
 Retorne SÓ o JSON.`;
