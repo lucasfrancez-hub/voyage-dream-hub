@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Loader2, RefreshCw, Plus, Megaphone, Trash2, Send, X, Users, Radio, Package, Search, CalendarClock, ChevronLeft, ChevronRight, Instagram, Sparkles, Check, MapPin, Clock } from "lucide-react";
+import { Loader2, RefreshCw, Plus, Megaphone, Trash2, Send, X, Users, Radio, Package, Search, CalendarClock, ChevronLeft, ChevronRight, Instagram, Sparkles, Check, MapPin, Clock, FileDown } from "lucide-react";
 import {
   listCampanhas,
   listDestinos,
@@ -127,6 +127,32 @@ function DisparosPage() {
   const fetchSuggestions = useServerFn(listSuggestions);
   const approveSuggestion = useServerFn(aprovarSuggestion);
   const dismissSuggestion = useServerFn(descartarSuggestion);
+  const fetchCampanhaPdf = useServerFn(getCampanha);
+
+  async function exportarPdf(id: string) {
+    try {
+      const r = await fetchCampanhaPdf({ data: { id } });
+      const c = r.campanha as Campanha | null;
+      if (!c) return toast.error("Campanha não encontrada");
+      const { exportCampanhaPdf } = await import("@/lib/broadcast/campaign-pdf");
+      const destMap = new Map(destinos.map((d) => [d.id, d]));
+      exportCampanhaPdf(
+        {
+          nome: c.nome,
+          status: STATUS_LABEL[c.status] ?? c.status,
+          scheduled_at: c.scheduled_at,
+          sent_at: c.sent_at,
+          observacoes_marketing: c.observacoes_marketing,
+          metrics: c.metrics,
+        },
+        (r.mensagens ?? []) as Bloco[],
+        c.destino_ids.map((did) => destMap.get(did)).filter(Boolean).map((d) => ({ nome: d!.nome, tipo: d!.tipo })),
+      );
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Erro ao gerar PDF");
+    }
+  }
+
 
   async function load() {
     setLoading(true);
@@ -313,6 +339,8 @@ function DisparosPage() {
           campanhas={campanhas}
           destinos={destinos}
           onEdit={(id) => setShowEditor({ id })}
+          onExportPdf={exportarPdf}
+
           onCancelar={async (id) => {
             if (!(await confirm({ title: "Cancelar campanha?", description: "Ela não será mais enviada." }))) return;
             await doCancelar({ data: { id } });
@@ -1292,6 +1320,7 @@ function CampanhasList({
   campanhas,
   destinos,
   onEdit,
+  onExportPdf,
   onCancelar,
   onExcluir,
   onDisparar,
@@ -1299,9 +1328,11 @@ function CampanhasList({
   campanhas: Campanha[];
   destinos: Destino[];
   onEdit: (id: string) => void;
+  onExportPdf: (id: string) => void;
   onCancelar: (id: string) => void;
   onExcluir: (id: string) => void;
   onDisparar: (id: string) => void;
+
 }) {
   const destMap = useMemo(() => new Map(destinos.map((d) => [d.id, d])), [destinos]);
   if (campanhas.length === 0) {
@@ -1351,6 +1382,14 @@ function CampanhasList({
             )}
           </div>
           <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={() => onExportPdf(c.id)}
+              className="inline-flex items-center gap-1 text-xs rounded-full border border-border px-3 py-1.5 hover:border-brand-orange"
+              title="Exportar relatório em PDF"
+            >
+              <FileDown className="h-3 w-3" /> PDF
+            </button>
+
             {(c.status === "rascunho" || c.status === "agendada") && (
               <>
                 <button onClick={() => onEdit(c.id)} className="text-xs rounded-full border border-border px-3 py-1.5 hover:border-brand-orange">
@@ -1638,10 +1677,33 @@ function CampanhaEditor({
               <p className="text-xs text-muted-foreground">{id ? "Ajuste os blocos e destinos." : "Monte a mensagem e escolha para onde disparar."}</p>
             </div>
           </div>
+          <div className="flex items-center gap-2">
+          <button
+            onClick={async () => {
+              const { exportCampanhaPdf } = await import("@/lib/broadcast/campaign-pdf");
+              exportCampanhaPdf(
+                {
+                  nome: nome.trim() || "Campanha sem nome",
+                  status: id ? "Em edição" : "Rascunho (não salvo)",
+                  scheduled_at: scheduled ? new Date(scheduled).toISOString() : null,
+                  observacoes_marketing: obs.trim() || null,
+                },
+                blocos,
+                destinos.filter((d) => selecionados.has(d.id)).map((d) => ({ nome: d.nome, tipo: d.tipo })),
+              );
+            }}
+            className="inline-flex items-center gap-1 text-xs rounded-full border border-border px-3 py-1.5 hover:border-brand-orange"
+            title="Exportar relatório em PDF"
+          >
+            <FileDown className="h-3.5 w-3.5" /> PDF
+          </button>
           <button onClick={onClose} className="p-2 rounded-full hover:bg-muted">
+
             <X className="h-4 w-4" />
           </button>
+          </div>
         </div>
+
 
         {loadingEdit ? (
           <div className="p-12 flex justify-center">
