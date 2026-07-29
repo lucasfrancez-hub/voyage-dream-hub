@@ -532,8 +532,11 @@ function PackageDetails() {
               </div>
             )}
             <p className="mt-3 text-[10px] text-muted-foreground text-center">
-              Sujeito à disponibilidade de voos e hospedagem.
+              {(pkg as unknown as { flexible_dates?: boolean }).flexible_dates
+                ? "Datas flexíveis — sujeitas à disponibilidade e alteração de valor sem aviso prévio."
+                : "Sujeito à disponibilidade de voos e hospedagem."}
             </p>
+
           </div>
         </aside>
       </div>

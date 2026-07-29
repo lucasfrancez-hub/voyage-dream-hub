@@ -172,6 +172,8 @@ type PackageRow = {
   tripadvisor_photos: string[] | null;
   services: PackageServices | null;
   date_mode: "fixed" | "flexible";
+  flexible_dates: boolean;
+
   pricing_mode: "per_occupancy" | "per_unit";
   max_units: number;
   cruise_details: unknown | null;
@@ -211,6 +213,8 @@ const emptyForm: Partial<PackageRow> = {
   supplier_name: "",
   services: {},
   date_mode: "fixed",
+  flexible_dates: false,
+
   pricing_mode: "per_occupancy",
   max_units: 9,
 };
@@ -645,6 +649,8 @@ function AdminPackages() {
       tour_modalities: Array.isArray(pkg.tour_modalities) ? pkg.tour_modalities : [],
       ai_summary: pkg.ai_summary || null,
       kind: (pkg.kind ?? "package") as PackageKind,
+      flexible_dates: (pkg.kind ?? "package") === "package" ? !!pkg.flexible_dates : false,
+
       // Passeio: sempre cliente escolhe a data e preço individual por unidade.
       date_mode: ((pkg.kind ?? "package") === "tour"
         ? "flexible"
@@ -2395,6 +2401,27 @@ function PackageEditorModal({
 
             {tab === "dates" && (
               <div className="grid sm:grid-cols-2 gap-3">
+                {kind === "package" && (
+                  <FormField label="Flexibilidade de datas" wide>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setEditing({ ...editing, flexible_dates: !(editing.flexible_dates ?? false) })
+                      }
+                      className={`w-full rounded-lg border px-3 py-2 text-xs font-medium transition ${
+                        editing.flexible_dates
+                          ? "border-brand-orange bg-brand-orange/10 text-brand-orange"
+                          : "border-border hover:border-brand-orange/50"
+                      }`}
+                    >
+                      {editing.flexible_dates ? "✓ Data flexível" : "Data flexível"}
+                    </button>
+                    <p className="mt-1 text-[11px] text-muted-foreground">
+                      Exibe o aviso: datas sujeitas à disponibilidade e alteração de valor sem aviso prévio.
+                    </p>
+                  </FormField>
+                )}
+
                 {kind !== "package" && kind !== "tour" && (
                 <FormField label="Modo de data" wide>
                   <div className="flex gap-2">

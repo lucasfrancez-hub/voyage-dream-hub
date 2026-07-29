@@ -10,6 +10,8 @@ import logoAsset from "@/assets/viaair-logo-white.png.asset.json";
 export type FeedArtData = {
   kind?: "package" | "service" | "cruise" | "tour";
   dateMode?: "fixed" | "flexible";
+  flexibleDates?: boolean;
+
   title?: string;
   backgroundDataUrl: string;
   estado?: string | null;
@@ -268,9 +270,11 @@ export const PackageFeedArt = forwardRef<HTMLDivElement, { data: FeedArtData }>(
                         <p className="vfeed-info-mid">até {data.dataVolta}</p>
                       ) : null}
                       {data.noites ? <p className="vfeed-info-small">{data.noites} noites</p> : null}
+                      {data.flexibleDates ? <p className="vfeed-info-small">datas flexíveis</p> : null}
                     </>
                   )}
                 </div>
+
                 <div className="vfeed-info-div" />
                 {data.kind === "service" ? (
                   <>
@@ -385,7 +389,12 @@ export const PackageFeedArt = forwardRef<HTMLDivElement, { data: FeedArtData }>(
                   </div>
                   <div className="vfeed-side-card glass-panel-dark">
                     <div className="vfeed-side-icon">{I.info}</div>
-                    <p className="vfeed-side-small">Sujeito à disponibilidade de vagas e alteração tarifária sem aviso prévio.</p>
+                    <p className="vfeed-side-small">
+                      {data.flexibleDates
+                        ? "Datas flexíveis — sujeitas à disponibilidade e alteração de valor sem aviso prévio."
+                        : "Sujeito à disponibilidade de vagas e alteração tarifária sem aviso prévio."}
+                    </p>
+
                   </div>
                 </div>
               </div>
