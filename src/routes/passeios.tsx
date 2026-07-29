@@ -344,11 +344,11 @@ function PasseiosPage() {
           {searched && (
             <div className="mb-12">
               <h2 className="mb-4 font-display text-2xl font-bold">
-                {results.length > 0
-                  ? `${results.length} data(s) disponível(is)`
+                {grouped.length > 0
+                  ? `${grouped.length} passeio(s) encontrado(s)`
                   : "Nenhuma data encontrada"}
               </h2>
-              {results.length === 0 ? (
+              {grouped.length === 0 ? (
                 <div className="rounded-2xl border border-border bg-card p-8 text-center">
                   <p className="text-muted-foreground">
                     Tente outro período ou destino — ou fale com nosso time.
@@ -363,71 +363,44 @@ function PasseiosPage() {
                   </a>
                 </div>
               ) : (
-                <div className="grid gap-3">
-                  {results.map((r: any) => {
-                    const tour = tourById.get(r.package_id) as any;
-                    const unit = (Number(r.price_per_person) || 0) + (Number(r.taxes) || 0);
-                    return (
-                      <button
-                        key={`${r.package_id}-${r.date}-${r.modality ?? ""}`}
-                        type="button"
-                        onClick={() =>
-                          navigate({
-                            to: "/pacotes/$slug/checkout",
-                            params: { slug: tour.slug },
-                            search: {
-                              qty: pax,
-                              date: r.date,
-                              ...(r.modality ? { modality: r.modality } : {}),
-                            },
-                          })
-                        }
-                        className="group flex flex-wrap items-center gap-4 rounded-2xl border border-border bg-card p-3 text-left transition hover:border-brand-orange/60"
-                      >
-                        <div className="h-16 w-24 shrink-0 overflow-hidden rounded-xl bg-muted">
-                          {tour.image_url && (
-                            <img
-                              src={tour.image_url}
-                              alt={tour.title}
-                              loading="lazy"
-                              className="h-full w-full object-cover"
-                            />
-                          )}
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate font-semibold">{tour.title}</p>
-                          <p className="mt-0.5 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-                            <span className="inline-flex items-center gap-1">
-                              <MapPin className="h-3 w-3 text-brand-orange" /> {tour.destination}
-                            </span>
-                            <span className="inline-flex items-center gap-1">
-                              <CalendarIcon className="h-3 w-3 text-brand-orange" />{" "}
-                              {fmtDayLabel(r.date)}
-                            </span>
-                            {r.seats != null && <span>{r.seats} vagas</span>}
-                          </p>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-[11px] uppercase tracking-widest text-muted-foreground">
-                            {pax} {pax === 1 ? "pessoa" : "pessoas"}
-                          </p>
-                          <p className="font-display text-2xl font-black text-brand-orange leading-none">
-                            {formatBRL(unit * pax)}
-                          </p>
-                          <p className="text-[11px] text-muted-foreground">
-                            {formatBRL(unit)} por pessoa
-                          </p>
-                        </div>
-                        <span className="inline-flex items-center gap-1.5 rounded-full bg-brand-orange px-4 py-2 text-xs font-bold uppercase tracking-widest text-primary-foreground transition-all group-hover:gap-2.5">
-                          Reservar <ArrowRight className="h-3.5 w-3.5" />
-                        </span>
-                      </button>
-                    );
-                  })}
+                <div className="grid gap-5">
+                  {grouped.map(({ tour, rows }) => (
+                    <TourResultCard
+                      key={tour.id}
+                      tour={tour}
+                      rows={rows}
+                      pax={pax}
+                      onAdd={(item) =>
+                        setCart((c) => [
+                          ...c.filter(
+                            (x) =>
+                              x.key !==
+                              `${item.tourId}-${item.date}-${item.modality ?? ""}`,
+                          ),
+                          {
+                            ...item,
+                            key: `${item.tourId}-${item.date}-${item.modality ?? ""}`,
+                          },
+                        ])
+                      }
+                      onReserve={(date, modality) =>
+                        navigate({
+                          to: "/pacotes/$slug/checkout",
+                          params: { slug: tour.slug },
+                          search: {
+                            qty: pax,
+                            date,
+                            ...(modality ? { modality } : {}),
+                          },
+                        })
+                      }
+                    />
+                  ))}
                 </div>
               )}
             </div>
           )}
+
 
           {/* CATÁLOGO */}
           <h2 className="mb-4 font-display text-2xl font-bold">Catálogo de passeios</h2>
