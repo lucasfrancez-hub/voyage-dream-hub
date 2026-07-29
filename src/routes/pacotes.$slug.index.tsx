@@ -841,6 +841,8 @@ function TicketDetailsView({
             );
           })()}
 
+          <TicketRules services={pkg.services} />
+
 
           {(pkg.meeting_point || (pkg.tour_times ?? []).length > 0) && (
             <section>
