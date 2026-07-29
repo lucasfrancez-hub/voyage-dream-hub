@@ -172,6 +172,8 @@ type PackageRow = {
   tripadvisor_photos: string[] | null;
   services: PackageServices | null;
   date_mode: "fixed" | "flexible";
+  flexible_dates: boolean;
+
   pricing_mode: "per_occupancy" | "per_unit";
   max_units: number;
   cruise_details: unknown | null;
