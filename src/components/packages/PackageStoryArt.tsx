@@ -339,7 +339,12 @@ export const PackageStoryArt = forwardRef<HTMLDivElement, { data: FeedArtData }>
                 </div>
               </div>
 
-              <p className="vstory-note">*Sujeito à disponibilidade de vagas e alteração tarifária sem aviso prévio.</p>
+              <p className="vstory-note">
+                {data.flexibleDates
+                  ? "*Datas flexíveis — sujeitas à disponibilidade e alteração de valor sem aviso prévio."
+                  : "*Sujeito à disponibilidade de vagas e alteração tarifária sem aviso prévio."}
+              </p>
+
             </div>
           </div>
         </div>
