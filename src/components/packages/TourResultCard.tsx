@@ -161,6 +161,27 @@ export function TourResultCard({
       ? tour.tour_times
       : [];
 
+  const teaser = (() => {
+    const raw: string =
+      (tour as any).short_description ||
+      (tour as any).ai_summary ||
+      (tour as any).description ||
+      (tour as any).itinerary ||
+      "";
+    if (!raw) return "";
+    const clean = String(raw)
+      .replace(/[#*_`>]/g, "")
+      .replace(/^\s*[-•]\s*/gm, "")
+      .replace(/\s+/g, " ")
+      .trim();
+    if (clean.length <= 180) return clean;
+    const cut = clean.slice(0, 180);
+    const stop = Math.max(cut.lastIndexOf(". "), cut.lastIndexOf(" "));
+    return cut.slice(0, stop > 90 ? stop : 180).trim() + "…";
+  })();
+
+
+
   return (
     <article className="overflow-hidden rounded-2xl border border-border bg-card shadow-xl">
       <div className="flex flex-col md:flex-row">
