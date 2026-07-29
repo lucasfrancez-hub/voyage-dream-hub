@@ -654,6 +654,21 @@ Devolva APENAS um JSON válido (sem markdown) nesta forma exata (omita campos qu
     "city_tour": { "enabled": false, "detalhe": "" },
     "passeios": ["City Tour Panorâmico", "Vinhedo Concha y Toro", "Farellones", "Viña del Mar e Valparaíso"],
     "tickets": { "enabled": true, "parks": ["Disney", "Universal"] },
+    "ticket_rules": [
+      {
+        "name": "Passaporte 2 dias — compra antecipada",
+        "usage_date": "11/09/2026",
+        "validity": "11/09/2026",
+        "rules": [
+          "Compre com no mínimo 1 dia de antecedência para garantir o valor",
+          "2º dia deve ser agendado no app BCW+ em até 7 dias",
+          "Lotes limitados: o valor pode subir sem aviso",
+          "Criança até 1 ano e 11 meses não paga (levar documento)",
+          "Não comparecer no dia = ingresso não reembolsável"
+        ]
+      }
+    ],
+
 
     "outros": ["Assistência 24h"]
 
@@ -748,6 +763,12 @@ Regras:
   · Universal: por padrão "Universal". Se o voucher mencionar explicitamente Epic Universe (ou "Epic"), gere "Universal + Epic" (Epic Universe é parque novo e o cliente cobra separado). Se citar apenas Universal Studios / Islands of Adventure / Volcano Bay sem Epic → só "Universal". Se houver dias explícitos ("2 parques em 2 dias", "3-Day Park to Park"), pode acrescentar contagem: "Universal 2 dias" ou "Universal 2 dias + Epic".
   · SeaWorld, Busch Gardens, LEGOLAND, Aquatica, Discovery Cove: entradas próprias com esses nomes.
   NUNCA duplique o mesmo operador (Disney aparece uma única entrada mesmo com 4 parques diferentes). Se identificar Disney e Universal → parks: ["Disney","Universal"] (ou variantes acima). Ordem sugerida: Disney antes de Universal. Não coloque ingressos em services.outros.
+
+- services.ticket_rules: RESUMO das regras/condições de CADA ingresso do documento. Crie UMA entrada por bloco "# Ingresso" / produto de ingresso (ex.: "P. 02 DIAS ANTECIPADO - 1º Lote", "CORTESIA ANIVERSARIANTE 01 DIA"). Para cada entrada:
+  · name: nome CURTO e amigável em pt-BR, sem códigos internos, sem "*VENDA PROIBIDA*", sem "1º Lote" quando não fizer sentido para o cliente (ex.: "Passaporte 2 dias — compra antecipada", "Cortesia de aniversariante — 1 dia").
+  · usage_date: data de utilização em DD/MM/AAAA se informada; validity: validade em DD/MM/AAAA se informada.
+  · rules: de 3 a 7 bullets CURTOS (máx. ~14 palavras cada), em pt-BR claro, tom de atendimento, SEM juridiquês, SEM CAIXA ALTA, sem repetir a mesma ideia. Reescreva o texto do operador em linguagem simples — NÃO copie o parágrafo original. Priorize o que o cliente precisa fazer/saber: quem tem direito, quantos acompanhantes pagantes, prazo/janela de uso, agendamento necessário, documentos obrigatórios, gratuidade de crianças, no-show/reembolso, reajuste de valor por lote.
+  · Nunca invente regra que não está no documento. Se não houver ingressos, devolva [].
 
 - services.outros: lista de serviços adicionais explícitos (ex.: "eSIM", "bagagem extra", "assistência 24h"). Se não houver menção clara, deixe enabled=false e outros=[]. NÃO liste ingressos de parques aqui — eles vão em services.tickets.
 
@@ -1036,6 +1057,8 @@ Cada item segue EXATAMENTE esta estrutura (omita campos ausentes — NÃO invent
     "city_tour": { "enabled": false, "detalhe": "" },
     "passeios": ["City Tour Panorâmico", "Vinhedo Concha y Toro"],
     "tickets": { "enabled": true, "parks": ["Disney", "Universal"] },
+    "ticket_rules": [{ "name": "Cortesia de aniversariante — 1 dia", "usage_date": "11/09/2026", "validity": "11/09/2026", "rules": ["Aniversariante entra grátis com 3 acompanhantes pagantes", "Válido em 1 dia da semana do aniversário (domingo a sábado)", "Todos precisam entrar juntos na catraca", "Levar documento oficial com foto na entrada"] }],
+
 
     "outros": []
 
@@ -1062,6 +1085,8 @@ Regras (aplicar em CADA pacote):
 - services.passeios: ARRAY com cada passeio/tour/excursão do orçamento (blocos "# Passeio", "# City tour", "# Tour", "# Excursão" e itens da seção "Inclui"). Nome CURTO em pt-BR sem sufixos FD/HD/MD/PREMIUM/PRIVATIVO/REGULAR/SIC. Dedup case-insensitive. Ordem = ordem de aparição. City tour genérico vira primeira entrada "City Tour". NÃO inclua ingressos de parques aqui.
 
 - services.tickets: enabled=true SEMPRE que houver INGRESSOS de parques/atrações. Sinais: seção/título "Ingresso" ou "# Ingresso" (Cativa/Infotera); frases "Ingresso do Walt Disney World", "Ingresso do Universal Orlando", "Ingresso do SeaWorld", "Ingresso do LEGOLAND"; "N Dias de Ingresso Disney/Universal", "Park to Park", "Park Hopper"; produtos "Disney N-Day Ticket", "Universal N-Day Ticket"; parques nomeados Magic Kingdom/Epcot/Hollywood Studios/Animal Kingdom/Blizzard Beach/Typhoon Lagoon (=Disney), Universal Studios/Islands of Adventure/Volcano Bay/Epic Universe/CityWalk (=Universal), Discovery Cove/Aquatica (SeaWorld). parks = nomes CURTOS SEPARADOS por operador. Disney e Universal SEMPRE em entradas distintas quando ambos existirem. Universal ganha sufixo "+ Epic" se Epic Universe estiver incluído (ex.: "Universal + Epic"); só "Universal" caso contrário. Pode acrescentar dias explícitos ("Disney 4 dias", "Universal 2 dias + Epic") quando o voucher indicar. Nunca duplique o mesmo operador. Outros: "SeaWorld", "Busch Gardens", "LEGOLAND", "Aquatica", "Discovery Cove". Não coloque ingressos em services.outros.
+
+- services.ticket_rules: uma entrada por ingresso do orçamento, com name curto e amigável (sem códigos internos nem "*VENDA PROIBIDA*"), usage_date e validity em DD/MM/AAAA quando existirem, e rules com 3 a 7 bullets CURTOS (máx. ~14 palavras) em pt-BR simples, reescritos — nunca copie o parágrafo do operador nem use CAIXA ALTA. Destaque: quem tem direito, acompanhantes pagantes, prazo/janela de uso, agendamento, documentos, gratuidade de crianças, no-show/reembolso e reajuste por lote. Sem ingressos → [].
 
 - Cidade em português.
 

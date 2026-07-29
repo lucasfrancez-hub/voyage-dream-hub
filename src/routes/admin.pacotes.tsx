@@ -2012,6 +2012,10 @@ function PackageEditorModal({
                           ? importedServices.tickets.parks
                           : previousServices.tickets?.parks) ?? [],
                     },
+                    ticket_rules:
+                      (importedServices.ticket_rules && importedServices.ticket_rules.length
+                        ? importedServices.ticket_rules
+                        : previousServices.ticket_rules) ?? [],
                     outros: importedServices.outros ?? previousServices.outros ?? [],
 
                   },
@@ -2947,6 +2951,7 @@ function ServicesEditor({
   const cityTour = v.city_tour ?? {};
   const tickets = v.tickets ?? {};
   const parks = (tickets.parks ?? []) as string[];
+  const ticketRules = (v.ticket_rules ?? []) as NonNullable<PackageServices["ticket_rules"]>;
   const outros = v.outros ?? [];
   const showCancelamento = kind === "package" || kind === "cruise";
   const showCityTour = kind === "package";
@@ -3255,6 +3260,105 @@ function ServicesEditor({
           )}
         </div>
         )}
+
+
+        {/* Regras dos ingressos (resumo para o cliente) */}
+        {showTickets && (
+          <div className="rounded-xl border border-border bg-background/60 p-3">
+            <div className="mb-2 flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <ListChecks className="h-4 w-4 text-brand-orange" />
+                <span className="text-sm font-medium">Regras dos ingressos</span>
+                <span className="text-[11px] text-muted-foreground">
+                  — resumo curto que aparece na página do cliente
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() =>
+                  patch({
+                    ticket_rules: [...ticketRules, { name: "", usage_date: "", validity: "", rules: [] }],
+                  })
+                }
+                className="text-xs text-brand-orange hover:underline"
+              >
+                + Adicionar ingresso
+              </button>
+            </div>
+
+            {ticketRules.length === 0 ? (
+              <p className="text-[11px] text-muted-foreground">
+                Nenhuma regra. Ao importar um orçamento em PDF, a IA resume as condições
+                (aniversariante, antecedência, no-show) automaticamente.
+              </p>
+            ) : (
+              <div className="space-y-3">
+                {ticketRules.map((rule, idx) => (
+                  <div key={idx} className="rounded-lg border border-border p-2 space-y-2">
+                    <div className="flex gap-2">
+                      <input
+                        className={inpClass}
+                        placeholder="Nome do ingresso (ex.: Cortesia de aniversariante — 1 dia)"
+                        value={rule?.name ?? ""}
+                        onChange={(e) => {
+                          const next = [...ticketRules];
+                          next[idx] = { ...next[idx], name: e.target.value };
+                          patch({ ticket_rules: next });
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => patch({ ticket_rules: ticketRules.filter((_, i) => i !== idx) })}
+                        className="rounded-lg border border-border px-2 hover:bg-muted"
+                        aria-label="Remover ingresso"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <input
+                        className={inpClass}
+                        placeholder="Utilização (DD/MM/AAAA)"
+                        value={rule?.usage_date ?? ""}
+                        onChange={(e) => {
+                          const next = [...ticketRules];
+                          next[idx] = { ...next[idx], usage_date: e.target.value };
+                          patch({ ticket_rules: next });
+                        }}
+                      />
+                      <input
+                        className={inpClass}
+                        placeholder="Validade (DD/MM/AAAA)"
+                        value={rule?.validity ?? ""}
+                        onChange={(e) => {
+                          const next = [...ticketRules];
+                          next[idx] = { ...next[idx], validity: e.target.value };
+                          patch({ ticket_rules: next });
+                        }}
+                      />
+                    </div>
+                    <textarea
+                      rows={4}
+                      className={inpClass}
+                      placeholder={"Uma regra por linha\nEx.: Aniversariante entra grátis com 3 acompanhantes pagantes"}
+                      value={(rule?.rules ?? []).join("\n")}
+                      onChange={(e) => {
+                        const next = [...ticketRules];
+                        next[idx] = {
+                          ...next[idx],
+                          rules: e.target.value.split(/\r?\n/).map((s) => s.trim()).filter(Boolean),
+                        };
+                        patch({ ticket_rules: next });
+                      }}
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+
 
 
 

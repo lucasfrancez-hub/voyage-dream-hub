@@ -454,6 +454,9 @@ function PackageDetails() {
               </ul>
             </section>
           )}
+
+          <TicketRules services={pkg.services} />
+
         </div>
 
         {/* Right: sticky reservation card */}
@@ -588,6 +591,77 @@ function InfoTile({
     </div>
   );
 }
+
+/**
+ * Resumo amigável das regras dos ingressos (cortesia de aniversariante,
+ * antecedência, no-show…) extraídas do orçamento do operador.
+ */
+function TicketRules({ services }: { services: any }) {
+  const rules: any[] = Array.isArray(services?.ticket_rules) ? services.ticket_rules : [];
+  const items = rules
+    .map((r) => ({
+      name: String(r?.name ?? "").trim(),
+      usage_date: String(r?.usage_date ?? "").trim(),
+      validity: String(r?.validity ?? "").trim(),
+      bullets: (Array.isArray(r?.rules) ? r.rules : [])
+        .map((b: any) => String(b ?? "").trim())
+        .filter(Boolean),
+    }))
+    .filter((r) => r.name || r.bullets.length);
+
+  if (!items.length) return null;
+
+  return (
+    <section>
+      <h2 className="text-xl font-semibold">Regras dos ingressos</h2>
+      <p className="mt-1 text-sm text-muted-foreground">
+        Resumo do que vale para cada ingresso — leia antes de confirmar.
+      </p>
+      <div className="mt-4 grid gap-4 md:grid-cols-2">
+        {items.map((item, index) => (
+          <div
+            key={`${item.name}-${index}`}
+            className="rounded-2xl border border-border bg-card p-5 shadow-[var(--shadow-card)]"
+          >
+            <div className="flex items-start gap-3">
+              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-brand-orange/10 text-brand-orange">
+                <Ticket className="h-4 w-4" />
+              </span>
+              <div className="min-w-0">
+                <h3 className="text-sm font-bold leading-snug">{item.name || "Ingresso"}</h3>
+                {(item.usage_date || item.validity) && (
+                  <div className="mt-1 flex flex-wrap gap-1.5">
+                    {item.usage_date && (
+                      <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold text-muted-foreground">
+                        Uso em {item.usage_date}
+                      </span>
+                    )}
+                    {item.validity && (
+                      <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold text-muted-foreground">
+                        Válido até {item.validity}
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+            {item.bullets.length > 0 && (
+              <ul className="mt-4 space-y-2">
+                {item.bullets.map((bullet: string, i: number) => (
+                  <li key={i} className="flex items-start gap-2 text-sm leading-relaxed">
+                    <Check className="mt-0.5 h-4 w-4 shrink-0 text-brand-orange" />
+                    <span>{bullet}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 
 // ---------------------------------------------------------------------------
 // Ticket / event detail view (kind === "service")
@@ -766,6 +840,8 @@ function TicketDetailsView({
               </section>
             );
           })()}
+
+          <TicketRules services={pkg.services} />
 
 
           {(pkg.meeting_point || (pkg.tour_times ?? []).length > 0) && (

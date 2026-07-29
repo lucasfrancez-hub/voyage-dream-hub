@@ -114,6 +114,16 @@ export type PackageServices = {
   city_tour?: { enabled?: boolean; detalhe?: string | null };
   passeios?: string[] | null;
   tickets?: { enabled?: boolean; parks?: string[] | null };
+  /**
+   * Regras/condições dos ingressos resumidas em linguagem simples
+   * (ex.: cortesia de aniversariante, antecedência de compra, no-show).
+   */
+  ticket_rules?: Array<{
+    name: string;
+    usage_date?: string | null;
+    validity?: string | null;
+    rules?: string[] | null;
+  }> | null;
   cruise?: {
     company?: string | null;
     ship?: string | null;
