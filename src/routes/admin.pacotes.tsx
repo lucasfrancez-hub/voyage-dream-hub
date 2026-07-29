@@ -3001,7 +3001,7 @@ function ServicesEditor({
     toggle?: (checked: boolean) => void;
   };
 
-  const items: ServiceItem[] = [
+  const allItems: ServiceItem[] = [
     {
       id: "seguro",
       label: "Seguro viagem",
@@ -3071,7 +3071,8 @@ function ServicesEditor({
       show: true,
       count: (v.addons ?? []).length,
     },
-  ].filter((i) => i.show);
+  ];
+  const items = allItems.filter((i) => i.show);
 
 
 
