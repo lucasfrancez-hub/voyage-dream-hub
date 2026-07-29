@@ -11,6 +11,7 @@ export type FeedArtData = {
   kind?: "package" | "service" | "cruise" | "tour";
   dateMode?: "fixed" | "flexible";
   flexibleDates?: boolean;
+  birthdayFree?: boolean;
 
   title?: string;
   backgroundDataUrl: string;
@@ -258,10 +259,16 @@ export const PackageFeedArt = forwardRef<HTMLDivElement, { data: FeedArtData }>(
               <div className="vfeed-info glass-panel">
                 <div className="vfeed-info-col">
                   <div className="vfeed-info-icon">{I.calendar}</div>
-                  {data.dateMode === "flexible" || !data.dataIda ? (
+                  {data.dateMode === "flexible" || data.flexibleDates || !data.dataIda ? (
                     <>
                       <p className="vfeed-info-strong">Data flexível</p>
-                      <p className="vfeed-info-mid">você escolhe</p>
+                      {data.noites ? (
+                        <p className="vfeed-info-mid">
+                          {data.noites} {data.noites === 1 ? "noite" : "noites"}
+                        </p>
+                      ) : (
+                        <p className="vfeed-info-mid">você escolhe</p>
+                      )}
                     </>
                   ) : (
                     <>
@@ -270,7 +277,6 @@ export const PackageFeedArt = forwardRef<HTMLDivElement, { data: FeedArtData }>(
                         <p className="vfeed-info-mid">até {data.dataVolta}</p>
                       ) : null}
                       {data.noites ? <p className="vfeed-info-small">{data.noites} noites</p> : null}
-                      {data.flexibleDates ? <p className="vfeed-info-small">datas flexíveis</p> : null}
                     </>
                   )}
                 </div>
@@ -293,12 +299,16 @@ export const PackageFeedArt = forwardRef<HTMLDivElement, { data: FeedArtData }>(
                   </>
                 ) : (
                   <>
-                    <div className="vfeed-info-col vfeed-info-col-plane">
-                      <div className="vfeed-info-icon">{I.plane}</div>
-                      <p className="vfeed-info-mid">Saída de</p>
-                      <p className="vfeed-info-strong">{data.origem}</p>
-                    </div>
-                    <div className="vfeed-info-div" />
+                    {data.inclusos.aereo && data.origem ? (
+                      <>
+                        <div className="vfeed-info-col vfeed-info-col-plane">
+                          <div className="vfeed-info-icon">{I.plane}</div>
+                          <p className="vfeed-info-mid">Saída de</p>
+                          <p className="vfeed-info-strong">{data.origem}</p>
+                        </div>
+                        <div className="vfeed-info-div" />
+                      </>
+                    ) : null}
                     <div className="vfeed-info-col vfeed-info-col-hotel">
                       <div className="vfeed-info-icon">{I.building}</div>
                       <p className="vfeed-info-hotel">{data.hotel}</p>
@@ -387,6 +397,12 @@ export const PackageFeedArt = forwardRef<HTMLDivElement, { data: FeedArtData }>(
                       </p>
                     )}
                   </div>
+                  {data.birthdayFree ? (
+                    <div className="vfeed-side-card glass-panel-dark">
+                      <div className="vfeed-side-icon">{I.ticket}</div>
+                      <p>Ingresso para aniversariante gratuito</p>
+                    </div>
+                  ) : null}
                   <div className="vfeed-side-card glass-panel-dark">
                     <div className="vfeed-side-icon">{I.info}</div>
                     <p className="vfeed-side-small">

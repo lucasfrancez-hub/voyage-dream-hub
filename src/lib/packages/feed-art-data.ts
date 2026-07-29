@@ -352,6 +352,7 @@ export async function buildFeedArtData(pkg: FeedInputPkg): Promise<FeedArtData> 
     kind: (pkg.kind ?? "package") as "package" | "service" | "cruise" | "tour",
     dateMode: (pkg.date_mode ?? "fixed") as "fixed" | "flexible",
     flexibleDates: !!(pkg as { flexible_dates?: boolean }).flexible_dates,
+    birthdayFree: !!pkg.services?.birthday?.enabled,
 
     title: pkg.title ?? "",
     backgroundDataUrl: bg,
