@@ -32,6 +32,7 @@ export function TourBulkImporter({
   const [progress, setProgress] = useState("");
   const [openIdx, setOpenIdx] = useState<number | null>(null);
   const [done, setDone] = useState<string[] | null>(null);
+  const [extras, setExtras] = useState<Record<number, string>>({});
 
   function patchTour(i: number, next: Partial<ParsedTour>) {
     setTours((list) => list.map((t, idx) => (idx === i ? { ...t, ...next } : t)));
@@ -48,6 +49,7 @@ export function TourBulkImporter({
       setDone(null);
       setOpenIdx(list.length === 1 ? 0 : null);
       setSelected(Object.fromEntries(list.map((_, i) => [i, true])));
+      setExtras({});
       toast.success(`${list.length} passeio(s) encontrado(s).`);
     } catch (e) {
       toast.error("Não consegui ler esse HTML: " + (e as Error).message);
@@ -67,6 +69,12 @@ export function TourBulkImporter({
     try {
       const { data: existing } = await supabase.from("packages").select("slug");
       const used = new Set((existing ?? []).map((r: any) => r.slug));
+
+      const extraByTitle = new Map<string, string>();
+      tours.forEach((t, i) => {
+        const v = (extras[i] ?? "").trim();
+        if (v) extraByTitle.set(t.title, v);
+      });
 
       for (const [idx, t] of chosen.entries()) {
         setProgress(`${idx + 1}/${chosen.length} — ${t.title}`);
@@ -93,7 +101,13 @@ export function TourBulkImporter({
             tour_modalities: t.modalities,
             tour_times: t.times ?? [],
             meeting_point: null,
-            services: t.description ? { raw_description: t.description.slice(0, 55000) } : {},
+            services: (() => {
+              const raw = [t.description, extraByTitle.get(t.title)]
+                .filter(Boolean)
+                .join("\n\n")
+                .slice(0, 55000);
+              return raw ? { raw_description: raw } : {};
+            })(),
             price_per_person: minPrice || 0,
             taxes: t.tax_per_person || 0,
             kind: "tour",
@@ -237,6 +251,7 @@ export function TourBulkImporter({
                       {t.modalities.length} modalidade(s) · {t.prices.length} preço(s) ·{" "}
                       {t.dates.length} data(s)
                       {t.times.length ? ` · ${t.times.length} horário(s)` : ""}
+                      {(extras[i] ?? "").trim() ? " · texto ok" : " · sem texto"}
                       {t.tax_per_person ? ` · taxa ${t.tax_per_person.toFixed(2)}` : ""}
                     </p>
                   </div>
@@ -301,6 +316,16 @@ export function TourBulkImporter({
                         value={t.description}
                         onChange={(e) => patchTour(i, { description: e.target.value })}
                         rows={5}
+                        className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-xs normal-case"
+                      />
+                    </label>
+                    <label className="text-[11px] font-bold uppercase text-muted-foreground sm:col-span-2">
+                      Texto complementar da operadora (colar o textão deste passeio)
+                      <textarea
+                        value={extras[i] ?? ""}
+                        onChange={(e) => setExtras((x) => ({ ...x, [i]: e.target.value }))}
+                        rows={5}
+                        placeholder="Cole aqui o textão da operadora deste passeio…"
                         className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-xs normal-case"
                       />
                     </label>
