@@ -654,6 +654,21 @@ Devolva APENAS um JSON válido (sem markdown) nesta forma exata (omita campos qu
     "city_tour": { "enabled": false, "detalhe": "" },
     "passeios": ["City Tour Panorâmico", "Vinhedo Concha y Toro", "Farellones", "Viña del Mar e Valparaíso"],
     "tickets": { "enabled": true, "parks": ["Disney", "Universal"] },
+    "ticket_rules": [
+      {
+        "name": "Passaporte 2 dias — compra antecipada",
+        "usage_date": "11/09/2026",
+        "validity": "11/09/2026",
+        "rules": [
+          "Compre com no mínimo 1 dia de antecedência para garantir o valor",
+          "2º dia deve ser agendado no app BCW+ em até 7 dias",
+          "Lotes limitados: o valor pode subir sem aviso",
+          "Criança até 1 ano e 11 meses não paga (levar documento)",
+          "Não comparecer no dia = ingresso não reembolsável"
+        ]
+      }
+    ],
+
 
     "outros": ["Assistência 24h"]
 
