@@ -91,11 +91,11 @@ export function TourBulkImporter({
             ai_summary: null,
             includes: t.includes,
             tour_modalities: t.modalities,
-            tour_times: [],
+            tour_times: t.times ?? [],
             meeting_point: null,
             services: t.description ? { raw_description: t.description.slice(0, 55000) } : {},
             price_per_person: minPrice || 0,
-            taxes: 0,
+            taxes: t.tax_per_person || 0,
             kind: "tour",
             date_mode: "flexible",
             pricing_mode: "per_unit",
@@ -116,7 +116,7 @@ export function TourBulkImporter({
             date: x.date,
             modality: x.modality,
             price_per_person: x.price_per_person,
-            taxes: 0,
+            taxes: t.tax_per_person || 0,
             seats: null,
           }));
           const { error: perr } = await supabase
@@ -236,6 +236,8 @@ export function TourBulkImporter({
                     <p className="text-xs text-muted-foreground">
                       {t.modalities.length} modalidade(s) · {t.prices.length} preço(s) ·{" "}
                       {t.dates.length} data(s)
+                      {t.times.length ? ` · ${t.times.length} horário(s)` : ""}
+                      {t.tax_per_person ? ` · taxa ${t.tax_per_person.toFixed(2)}` : ""}
                     </p>
                   </div>
                   <button
@@ -264,6 +266,33 @@ export function TourBulkImporter({
                         value={t.image_url}
                         onChange={(e) => patchTour(i, { image_url: e.target.value })}
                         className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 font-mono text-xs normal-case"
+                      />
+                    </label>
+                    <label className="text-[11px] font-bold uppercase text-muted-foreground">
+                      Horários (separados por vírgula)
+                      <input
+                        value={t.times.join(", ")}
+                        onChange={(e) =>
+                          patchTour(i, {
+                            times: e.target.value
+                              .split(",")
+                              .map((s) => s.trim())
+                              .filter(Boolean),
+                          })
+                        }
+                        className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm normal-case"
+                      />
+                    </label>
+                    <label className="text-[11px] font-bold uppercase text-muted-foreground">
+                      Taxa por pessoa
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={t.tax_per_person}
+                        onChange={(e) =>
+                          patchTour(i, { tax_per_person: Number(e.target.value) || 0 })
+                        }
+                        className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm normal-case"
                       />
                     </label>
                     <label className="text-[11px] font-bold uppercase text-muted-foreground sm:col-span-2">
