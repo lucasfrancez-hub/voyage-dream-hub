@@ -53,6 +53,7 @@ const PackageBrief = z.object({
   meal_plan: z.string().nullable().optional(),
   slug: z.string(),
   supplier_name: z.string().nullable().optional(),
+  flexible_dates: z.boolean().nullable().optional(),
   services: ServicesSchema,
 });
 
