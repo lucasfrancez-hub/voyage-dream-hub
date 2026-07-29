@@ -3,6 +3,8 @@ import { MapPin, Plus, Clock, ChevronLeft, ChevronRight, Info } from "lucide-rea
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { formatBRL } from "@/lib/format";
+import { WhatsAppText } from "@/lib/wa-format";
+
 import {
   detectChildTokenFee,
   parseAgePolicy,
@@ -187,11 +189,16 @@ export function TourResultCard({
       .replace(/^\s*[-•]\s*/gm, "")
       .replace(/\s+/g, " ")
       .trim();
-    if (clean.length <= 320) return clean;
-    const cut = clean.slice(0, 320);
-    const stop = Math.max(cut.lastIndexOf(". "), cut.lastIndexOf(" "));
-    return cut.slice(0, stop > 160 ? stop : 320).trim() + "…";
+    const LIMIT = 150;
+    if (clean.length <= LIMIT) return clean;
+    // corta na última frase completa que couber
+    const cut = clean.slice(0, LIMIT);
+    const dot = cut.lastIndexOf(". ");
+    if (dot > 60) return cut.slice(0, dot + 1);
+    const sp = cut.lastIndexOf(" ");
+    return cut.slice(0, sp > 60 ? sp : LIMIT).trim() + "…";
   })();
+
 
 
 
@@ -489,9 +496,10 @@ export function TourResultCard({
                 <h4 className="mb-2 border-b border-border pb-2 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
                   Sobre o passeio
                 </h4>
-                <p className="whitespace-pre-line text-sm leading-relaxed text-muted-foreground">
+                <WhatsAppText className="text-sm leading-relaxed">
                   {fullDescription}
-                </p>
+                </WhatsAppText>
+
               </section>
             )}
 
