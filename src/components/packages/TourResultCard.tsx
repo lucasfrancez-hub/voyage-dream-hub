@@ -196,10 +196,10 @@ export function TourResultCard({
 
         {/* Centro: modalidades e preços */}
         <div className="flex w-full flex-col bg-muted/10 p-5 md:w-[45%]">
-          <div className="mb-4 flex items-center justify-between gap-3">
+          <div className="mb-3 flex items-center justify-between gap-3">
             <div>
               <h4 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                Modalidades e preços
+                Escolha a data
               </h4>
               {rangeLabel && (
                 <p className="mt-0.5 text-[11px] font-semibold text-brand-orange">{rangeLabel}</p>
@@ -209,18 +209,16 @@ export function TourResultCard({
             <div className="flex gap-1">
               <button
                 type="button"
-                disabled={offset === 0}
-                onClick={() => setOffset(Math.max(0, offset - PAGE))}
-                className="rounded-md border border-border p-1 disabled:opacity-30"
+                onClick={() => stripRef.current?.scrollBy({ left: -240, behavior: "smooth" })}
+                className="rounded-md border border-border p-1 hover:bg-muted"
                 aria-label="Datas anteriores"
               >
                 <ChevronLeft className="h-3.5 w-3.5" />
               </button>
               <button
                 type="button"
-                disabled={offset + PAGE >= dates.length}
-                onClick={() => setOffset(offset + PAGE)}
-                className="rounded-md border border-border p-1 disabled:opacity-30"
+                onClick={() => stripRef.current?.scrollBy({ left: 240, behavior: "smooth" })}
+                className="rounded-md border border-border p-1 hover:bg-muted"
                 aria-label="Próximas datas"
               >
                 <ChevronRight className="h-3.5 w-3.5" />
@@ -228,53 +226,87 @@ export function TourResultCard({
             </div>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-left">
-              <thead>
-                <tr className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                  <th className="min-w-[150px] pb-4">Modalidade</th>
-                  {visible.map((d) => (
-                    <th key={d} className="min-w-[92px] pb-4 text-center">
-                      {dayHeader(d)}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {modalities.map((m) => (
-                  <tr key={m || "unica"}>
-                    <td className="py-3 pr-3">
-                      <p className="text-sm font-medium leading-snug">{m || tour.title}</p>
-                    </td>
-                    {visible.map((d) => {
-                      const r = cell(m, d);
-                      const u = unitOf(r);
-                      const isSel = sel?.date === d && (sel?.modality ?? "") === m;
-                      return (
-                        <td key={d} className="p-1 text-center">
-                          {u == null ? (
-                            <span className="text-xs text-muted-foreground/50">—</span>
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={() => setSel({ date: d, modality: m || null })}
-                              className={`w-full rounded-md px-2 py-2 text-[13px] font-semibold transition ${
-                                isSel
-                                  ? "bg-brand-orange text-primary-foreground"
-                                  : "text-foreground hover:bg-brand-orange/10 hover:text-brand-orange"
-                              }`}
-                            >
-                              {formatBRL(u)}
-                            </button>
-                          )}
-                        </td>
-                      );
-                    })}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          {/* Quadradinhos de data com scroll lateral */}
+          <div
+            ref={stripRef}
+            className="-mx-1 flex snap-x gap-2 overflow-x-auto px-1 pb-2 [scrollbar-width:thin]"
+          >
+            {dates.map((d) => {
+              const u = minUnitOnDate(d);
+              const [, mm, dd] = d.split("-");
+              const wd = new Date(Number(d.slice(0, 4)), Number(mm) - 1, Number(dd))
+                .toLocaleDateString("pt-BR", { weekday: "short" })
+                .replace(".", "")
+                .toUpperCase();
+              const isActive = activeDate === d;
+              return (
+                <button
+                  key={d}
+                  type="button"
+                  onClick={() => {
+                    setSelDate(d);
+                    setSelMod(undefined);
+                  }}
+                  className={`w-[86px] shrink-0 snap-start rounded-xl border p-2 text-center transition ${
+                    isActive
+                      ? "border-brand-orange bg-brand-orange/15 shadow-md"
+                      : "border-border bg-background hover:border-brand-orange/50"
+                  }`}
+                >
+                  <span className="block text-[9px] font-bold tracking-widest text-muted-foreground">
+                    {wd}
+                  </span>
+                  <span
+                    className={`block text-lg font-black leading-tight ${isActive ? "text-brand-orange" : "text-foreground"}`}
+                  >
+                    {dd}/{mm}
+                  </span>
+                  <span className="block text-[10px] text-muted-foreground">
+                    {u != null ? formatBRL(u) : "—"}
+                  </span>
+                </button>
+              );
+            })}
           </div>
+
+          {/* Modalidades da data escolhida */}
+          <p className="mb-2 mt-4 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+            Modalidade
+          </p>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {modalities.map((m) => {
+              const r = activeDate ? cell(m, activeDate) : undefined;
+              const u = unitOf(r);
+              const isSel = sel?.date === activeDate && (sel?.modality ?? "") === m;
+              return (
+                <button
+                  key={m || "unica"}
+                  type="button"
+                  disabled={u == null}
+                  onClick={() => {
+                    if (!activeDate) return;
+                    setSelDate(activeDate);
+                    setSelMod(m || null);
+                  }}
+                  className={`flex items-center justify-between gap-3 rounded-xl border px-3 py-2.5 text-left transition disabled:opacity-40 ${
+                    isSel
+                      ? "border-brand-orange bg-brand-orange/15"
+                      : "border-border bg-background hover:border-brand-orange/50"
+                  }`}
+                >
+                  <span className="min-w-0 truncate text-[13px] font-medium">
+                    {m || tour.title}
+                  </span>
+                  <span
+                    className={`shrink-0 text-sm font-bold ${isSel ? "text-brand-orange" : "text-foreground"}`}
+                  >
+                    {u != null ? formatBRL(u) : "—"}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
 
           <div className="mt-auto space-y-2 pt-4">
             <p className="text-[11px] text-muted-foreground">
