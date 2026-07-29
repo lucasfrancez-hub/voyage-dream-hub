@@ -187,11 +187,16 @@ export function TourResultCard({
       .replace(/^\s*[-•]\s*/gm, "")
       .replace(/\s+/g, " ")
       .trim();
-    if (clean.length <= 320) return clean;
-    const cut = clean.slice(0, 320);
-    const stop = Math.max(cut.lastIndexOf(". "), cut.lastIndexOf(" "));
-    return cut.slice(0, stop > 160 ? stop : 320).trim() + "…";
+    const LIMIT = 150;
+    if (clean.length <= LIMIT) return clean;
+    // corta na última frase completa que couber
+    const cut = clean.slice(0, LIMIT);
+    const dot = cut.lastIndexOf(". ");
+    if (dot > 60) return cut.slice(0, dot + 1);
+    const sp = cut.lastIndexOf(" ");
+    return cut.slice(0, sp > 60 ? sp : LIMIT).trim() + "…";
   })();
+
 
 
 
