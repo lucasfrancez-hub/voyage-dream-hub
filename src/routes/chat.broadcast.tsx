@@ -836,23 +836,13 @@ function AgendaSidebar({
   };
 
   const hoje = new Date();
-  const amanha = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate() + 1);
+  const hojeKey = brtDayKey(hoje);
+  const amanhaKey = brtDayKey(new Date(hoje.getTime() + 24 * 60 * 60 * 1000));
   function labelDia(dt: Date): string {
-    if (
-      dt.getFullYear() === hoje.getFullYear() &&
-      dt.getMonth() === hoje.getMonth() &&
-      dt.getDate() === hoje.getDate()
-    )
-      return "HOJE";
-    if (
-      dt.getFullYear() === amanha.getFullYear() &&
-      dt.getMonth() === amanha.getMonth() &&
-      dt.getDate() === amanha.getDate()
-    )
-      return "AMANHÃ";
-    return dt
-      .toLocaleDateString("pt-BR", { weekday: "short", day: "2-digit", month: "short" })
-      .toUpperCase();
+    const key = brtDayKey(dt);
+    if (key === hojeKey) return "HOJE";
+    if (key === amanhaKey) return "AMANHÃ";
+    return dayKeyLabel(key, { weekday: "short", day: "2-digit", month: "short", year: "numeric" }).toUpperCase();
   }
 
   // Stats
