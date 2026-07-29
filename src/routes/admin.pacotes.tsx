@@ -33,7 +33,10 @@ import {
 import { TourDatesEditor } from "@/components/packages/TourDatesEditor";
 import { TourInfoEditor } from "@/components/packages/TourInfoEditor";
 import { TourHtmlImporter } from "@/components/packages/TourHtmlImporter";
-import { TourBulkImporter } from "@/components/packages/TourBulkImporter";
+import {
+  TourBulkImporter,
+  type BulkImportedTourDraft,
+} from "@/components/packages/TourBulkImporter";
 import {
   Select,
   SelectContent,
@@ -1347,6 +1350,13 @@ function AdminPackages() {
           switchDraft={switchDraft}
           closeCurrentDraft={closeCurrentDraft}
           nextNumber={pendingNumbers?.[draftIndex] ?? pendingNumbers?.[0] ?? null}
+          onBulkToursImported={(savedTours) => {
+            const list = savedTours as Partial<PackageRow>[];
+            setPendingNumbers(null);
+            setDrafts(list);
+            setDraftIndex(0);
+            setEditingState(list[0]);
+          }}
         />
       )}
 
@@ -1407,6 +1417,7 @@ type PackageEditorModalProps = {
   switchDraft?: (newIdx: number) => void;
   closeCurrentDraft?: () => void;
   nextNumber?: number | null;
+  onBulkToursImported?: (drafts: BulkImportedTourDraft[]) => void;
 };
 
 type TabId = "dates" | "hotel" | "flights" | "extras" | "about";
@@ -1478,6 +1489,7 @@ function PackageEditorModal({
   switchDraft,
   closeCurrentDraft,
   nextNumber,
+  onBulkToursImported,
 }: PackageEditorModalProps) {
   const [tab, setTab] = useState<TabId>("dates");
   const [tourImportDone, setTourImportDone] = useState(false);
@@ -1809,7 +1821,7 @@ function PackageEditorModal({
             {tourBulkMode ? (
               <TourBulkImporter
                 destination={editing.destination}
-                onDone={() => closeCurrentDraft?.()}
+                onImported={onBulkToursImported}
               />
             ) : (
               <TourHtmlImporter
@@ -2725,7 +2737,7 @@ function PackageEditorModal({
                   onClick={save}
                   disabled={saving}
                   className="inline-flex items-center gap-2 rounded-full border border-brand-orange/60 px-4 py-2 text-sm font-semibold text-brand-orange hover:bg-brand-orange/10 disabled:opacity-60"
-                  title="Salvar apenas este pacote e ir para o próximo"
+                  title={`Salvar apenas este ${kind === "tour" ? "passeio" : "pacote"} e ir para o próximo`}
                 >
                   {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                   Salvar este
@@ -2736,7 +2748,7 @@ function PackageEditorModal({
                   className="inline-flex items-center gap-2 rounded-full bg-gradient-brand px-5 py-2 text-sm font-semibold text-primary-foreground shadow-[var(--shadow-glow)] disabled:opacity-60"
                 >
                   {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                  Salvar todos os pacotes ({drafts.length})
+                  Salvar todos os {kind === "tour" ? "passeios" : "pacotes"} ({drafts.length})
                 </button>
               </>
             ) : (
