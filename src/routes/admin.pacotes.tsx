@@ -1821,11 +1821,13 @@ function PackageEditorModal({
             {tourBulkMode ? (
               <TourBulkImporter
                 destination={editing.destination}
+                supplier={editing.supplier_name}
                 onImported={onBulkToursImported}
               />
             ) : (
               <TourHtmlImporter
                 destination={editing.destination}
+                supplier={editing.supplier_name}
                 onApply={(patch) => {
                   setEditing({ ...editing, ...patch } as any);
                   setTourImportDone(true);

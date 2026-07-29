@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { Loader2, Code2, CheckCircle2, Pencil } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { DestinationInput } from "@/components/packages/DestinationInput";
+import { SupplierInput } from "@/components/packages/SupplierInput";
 import { parseMultipleTourHtml, type ParsedTour } from "@/lib/packages/tour-html";
 
 export type BulkImportedTourDraft = {
@@ -12,6 +13,7 @@ export type BulkImportedTourDraft = {
   title: string;
   kind: "tour";
   destination: string;
+  supplier_name: string;
   origin: string;
   image_url: string;
   price_per_person: number;
@@ -47,14 +49,17 @@ function slugify(input: string): string {
 
 export function TourBulkImporter({
   destination: initialDestination,
+  supplier: initialSupplier,
   onImported,
 }: {
   destination?: string | null;
+  supplier?: string | null;
   onImported?: (drafts: BulkImportedTourDraft[]) => void;
 }) {
   const qc = useQueryClient();
   const [html, setHtml] = useState("");
   const [destination, setDestination] = useState(initialDestination ?? "");
+  const [supplier, setSupplier] = useState(initialSupplier ?? "");
   const [tours, setTours] = useState<ParsedTour[]>([]);
   const [selected, setSelected] = useState<Record<number, boolean>>({});
   const [running, setRunning] = useState(false);
@@ -88,6 +93,10 @@ export function TourBulkImporter({
     if (!chosen.length) return;
     if (!destination.trim()) {
       toast.error("Informe o destino (ex.: Orlando).");
+      return;
+    }
+    if (!supplier.trim()) {
+      toast.error("Informe o fornecedor.");
       return;
     }
     setRunning(true);
@@ -126,6 +135,7 @@ export function TourBulkImporter({
             slug,
             title: t.title,
             destination: destination.trim(),
+            supplier_name: supplier.trim(),
             image_url: t.image_url || null,
             summary: null,
             ai_summary: null,
@@ -171,6 +181,7 @@ export function TourBulkImporter({
           title: t.title,
           kind: "tour",
           destination: destination.trim(),
+          supplier_name: supplier.trim(),
           origin: "",
           image_url: t.image_url || "",
           price_per_person: minPrice || 0,
@@ -223,6 +234,10 @@ export function TourBulkImporter({
             onChange={setDestination}
             className="mt-1"
           />
+        </label>
+        <label className="text-xs font-bold uppercase text-muted-foreground sm:col-span-2">
+          Fornecedor (obrigatório)
+          <SupplierInput value={supplier} onChange={setSupplier} className="mt-1" />
         </label>
         <label className="text-xs font-bold uppercase text-muted-foreground sm:col-span-2">
           Cole o HTML da lista inteira de serviços
