@@ -419,6 +419,41 @@ export function TourResultCard({
               </div>
             </div>
 
+            {times.length > 0 && (
+              <div>
+                <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                  Horário de saída
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {times.map((t) => {
+                    const active = selTime === t;
+                    return (
+                      <button
+                        key={t}
+                        type="button"
+                        onClick={() => setSelTime(active ? null : t)}
+                        className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition ${
+                          active
+                            ? "border-brand-orange bg-brand-orange/10 text-brand-orange"
+                            : "border-border bg-background text-muted-foreground hover:border-brand-orange/60"
+                        }`}
+                      >
+                        <Clock className="h-3.5 w-3.5" />
+                        {t}
+                      </button>
+                    );
+                  })}
+                </div>
+                {!selTime && (
+                  <p className="mt-2 text-[11px] text-muted-foreground">
+                    Selecione o horário desejado.
+                  </p>
+                )}
+              </div>
+            )}
+
+
+
             <div className="border-t border-border pt-4">
               <p className="text-xs text-muted-foreground">
                 {selUnit != null ? "Valor total" : "A partir de"}
