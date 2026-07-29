@@ -24,6 +24,12 @@ import { formatBRL } from "@/lib/format";
 import { whatsappUrl } from "@/lib/checkout-config";
 import { TopBar } from "@/components/TopBar";
 import { ContactFooter } from "@/components/ContactFooter";
+import {
+  TourResultCard,
+  type PriceRow,
+  type CartItem,
+} from "@/components/packages/TourResultCard";
+import { TourCartBar } from "@/components/packages/TourCartBar";
 
 export const Route = createFileRoute("/passeios")({
   head: () => {
