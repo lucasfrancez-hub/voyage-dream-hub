@@ -1623,6 +1623,14 @@ function CampanhaEditor({
     if (selecionados.size === 0) return toast.error("Selecione ao menos um destino");
     if (blocos.length === 0) return toast.error("Adicione ao menos uma mensagem");
     if (status === "agendada" && !scheduled) return toast.error("Escolha data e horário");
+    if (status === "agendada" && scheduled) {
+      const alvo = new Date(scheduled).getTime();
+      if (alvo > Date.now() + 180 * 24 * 60 * 60 * 1000) {
+        return toast.error(
+          `Data muito distante (${new Date(scheduled).toLocaleDateString("pt-BR")}). Confira o ano antes de agendar.`,
+        );
+      }
+    }
     setSaving(true);
     try {
       // Se algum bloco tem horário próprio anterior ao geral, a campanha começa nele.
