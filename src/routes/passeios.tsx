@@ -405,12 +405,13 @@ function PasseiosPage() {
                           },
                         ])
                       }
-                      onReserve={(date, modality) =>
+                      onReserve={(date, modality, qty) =>
                         navigate({
                           to: "/pacotes/$slug/checkout",
                           params: { slug: tour.slug },
                           search: {
-                            qty: pax,
+                            qty,
+
                             date,
                             ...(modality ? { modality } : {}),
                           },
