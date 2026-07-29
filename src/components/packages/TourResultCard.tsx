@@ -218,7 +218,7 @@ export function TourResultCard({
           <div className="flex flex-1 flex-col gap-3">
             <h3 className="font-display text-lg font-bold leading-tight">{tour.title}</h3>
             {teaser && (
-              <p className="-mt-1.5 line-clamp-3 text-[12.5px] leading-snug text-muted-foreground">
+              <p className="-mt-1.5 text-[12.5px] leading-snug text-muted-foreground">
                 {teaser}
               </p>
             )}
