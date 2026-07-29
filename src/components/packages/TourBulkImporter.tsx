@@ -27,6 +27,12 @@ export type BulkImportedTourDraft = {
   pricing_mode: "per_unit";
   max_units: number;
   is_active: boolean;
+  __pendingPrices: {
+    date: string;
+    modality: string;
+    price_per_person: number;
+    taxes: number;
+  }[];
 };
 
 function slugify(input: string): string {
@@ -180,6 +186,12 @@ export function TourBulkImporter({
           pricing_mode: "per_unit",
           max_units: 9,
           is_active: true,
+          __pendingPrices: t.prices.map((price) => ({
+            date: price.date,
+            modality: price.modality,
+            price_per_person: price.price_per_person,
+            taxes: 0,
+          })),
         });
       }
       await qc.invalidateQueries({ queryKey: ["admin-packages"] });
