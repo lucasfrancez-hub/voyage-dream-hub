@@ -1,0 +1,2 @@
+DROP POLICY IF EXISTS "Admins manage package dates" ON public.package_date_prices;
+CREATE POLICY "Admins manage package dates" ON public.package_date_prices FOR ALL TO authenticated USING (has_role(auth.uid(), 'admin'::app_role)) WITH CHECK (has_role(auth.uid(), 'admin'::app_role));

@@ -24,6 +24,12 @@ import { formatBRL } from "@/lib/format";
 import { whatsappUrl } from "@/lib/checkout-config";
 import { TopBar } from "@/components/TopBar";
 import { ContactFooter } from "@/components/ContactFooter";
+import {
+  TourResultCard,
+  type PriceRow,
+  type CartItem,
+} from "@/components/packages/TourResultCard";
+import { TourCartBar } from "@/components/packages/TourCartBar";
 
 export const Route = createFileRoute("/passeios")({
   head: () => {
@@ -67,6 +73,7 @@ function PasseiosPage() {
   const [children, setChildren] = useState(0);
   const [infants, setInfants] = useState(0);
   const [searched, setSearched] = useState(false);
+  const [cart, setCart] = useState<CartItem[]>([]);
   const pax = adults + children;
 
   const { data: tours = [], isLoading } = useQuery({
@@ -151,8 +158,20 @@ function PasseiosPage() {
         if (p.seats != null && p.seats < pax) return false;
         return true;
       })
-      .slice(0, 120);
+      .slice(0, 400);
   }, [searched, prices, tourById, destQuery, from, to, pax]);
+
+  const grouped = useMemo(() => {
+    const map = new Map<string, { tour: any; rows: PriceRow[] }>();
+    for (const r of results as PriceRow[]) {
+      const tour = tourById.get(r.package_id) as any;
+      if (!tour) continue;
+      if (!map.has(r.package_id)) map.set(r.package_id, { tour, rows: [] });
+      map.get(r.package_id)!.rows.push(r);
+    }
+    return [...map.values()];
+  }, [results, tourById]);
+
 
   const catalog = useMemo(
     () => (tours as any[]).filter(destMatch),
@@ -344,11 +363,11 @@ function PasseiosPage() {
           {searched && (
             <div className="mb-12">
               <h2 className="mb-4 font-display text-2xl font-bold">
-                {results.length > 0
-                  ? `${results.length} data(s) disponível(is)`
+                {grouped.length > 0
+                  ? `${grouped.length} passeio(s) encontrado(s)`
                   : "Nenhuma data encontrada"}
               </h2>
-              {results.length === 0 ? (
+              {grouped.length === 0 ? (
                 <div className="rounded-2xl border border-border bg-card p-8 text-center">
                   <p className="text-muted-foreground">
                     Tente outro período ou destino — ou fale com nosso time.
@@ -363,71 +382,44 @@ function PasseiosPage() {
                   </a>
                 </div>
               ) : (
-                <div className="grid gap-3">
-                  {results.map((r: any) => {
-                    const tour = tourById.get(r.package_id) as any;
-                    const unit = (Number(r.price_per_person) || 0) + (Number(r.taxes) || 0);
-                    return (
-                      <button
-                        key={`${r.package_id}-${r.date}-${r.modality ?? ""}`}
-                        type="button"
-                        onClick={() =>
-                          navigate({
-                            to: "/pacotes/$slug/checkout",
-                            params: { slug: tour.slug },
-                            search: {
-                              qty: pax,
-                              date: r.date,
-                              ...(r.modality ? { modality: r.modality } : {}),
-                            },
-                          })
-                        }
-                        className="group flex flex-wrap items-center gap-4 rounded-2xl border border-border bg-card p-3 text-left transition hover:border-brand-orange/60"
-                      >
-                        <div className="h-16 w-24 shrink-0 overflow-hidden rounded-xl bg-muted">
-                          {tour.image_url && (
-                            <img
-                              src={tour.image_url}
-                              alt={tour.title}
-                              loading="lazy"
-                              className="h-full w-full object-cover"
-                            />
-                          )}
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate font-semibold">{tour.title}</p>
-                          <p className="mt-0.5 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-                            <span className="inline-flex items-center gap-1">
-                              <MapPin className="h-3 w-3 text-brand-orange" /> {tour.destination}
-                            </span>
-                            <span className="inline-flex items-center gap-1">
-                              <CalendarIcon className="h-3 w-3 text-brand-orange" />{" "}
-                              {fmtDayLabel(r.date)}
-                            </span>
-                            {r.seats != null && <span>{r.seats} vagas</span>}
-                          </p>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-[11px] uppercase tracking-widest text-muted-foreground">
-                            {pax} {pax === 1 ? "pessoa" : "pessoas"}
-                          </p>
-                          <p className="font-display text-2xl font-black text-brand-orange leading-none">
-                            {formatBRL(unit * pax)}
-                          </p>
-                          <p className="text-[11px] text-muted-foreground">
-                            {formatBRL(unit)} por pessoa
-                          </p>
-                        </div>
-                        <span className="inline-flex items-center gap-1.5 rounded-full bg-brand-orange px-4 py-2 text-xs font-bold uppercase tracking-widest text-primary-foreground transition-all group-hover:gap-2.5">
-                          Reservar <ArrowRight className="h-3.5 w-3.5" />
-                        </span>
-                      </button>
-                    );
-                  })}
+                <div className="grid gap-5">
+                  {grouped.map(({ tour, rows }) => (
+                    <TourResultCard
+                      key={tour.id}
+                      tour={tour}
+                      rows={rows}
+                      pax={pax}
+                      onAdd={(item) =>
+                        setCart((c) => [
+                          ...c.filter(
+                            (x) =>
+                              x.key !==
+                              `${item.tourId}-${item.date}-${item.modality ?? ""}`,
+                          ),
+                          {
+                            ...item,
+                            key: `${item.tourId}-${item.date}-${item.modality ?? ""}`,
+                          },
+                        ])
+                      }
+                      onReserve={(date, modality) =>
+                        navigate({
+                          to: "/pacotes/$slug/checkout",
+                          params: { slug: tour.slug },
+                          search: {
+                            qty: pax,
+                            date,
+                            ...(modality ? { modality } : {}),
+                          },
+                        })
+                      }
+                    />
+                  ))}
                 </div>
               )}
             </div>
           )}
+
 
           {/* CATÁLOGO */}
           <h2 className="mb-4 font-display text-2xl font-bold">Catálogo de passeios</h2>
@@ -465,6 +457,38 @@ function PasseiosPage() {
         </section>
       </main>
       <ContactFooter whatsappMessage="Olá! Gostaria de reservar um passeio com a Via Air." />
+      <TourCartBar
+        items={cart}
+        onRemove={(key) => setCart((c) => c.filter((x) => x.key !== key))}
+        onCheckout={() => {
+          if (cart.length === 1) {
+            const i = cart[0];
+            navigate({
+              to: "/pacotes/$slug/checkout",
+              params: { slug: i.slug },
+              search: {
+                qty: i.qty,
+                date: i.date,
+                ...(i.modality ? { modality: i.modality } : {}),
+              },
+            });
+            return;
+          }
+          const linhas = cart
+            .map(
+              (i) =>
+                `• ${i.title}${i.modality ? ` (${i.modality})` : ""} — ${i.date
+                  .split("-")
+                  .reverse()
+                  .join("/")} — ${i.qty} pax`,
+            )
+            .join("\n");
+          window.open(
+            whatsappUrl(`Olá! Quero reservar estes passeios:\n${linhas}`),
+            "_blank",
+          );
+        }}
+      />
     </div>
   );
 }
