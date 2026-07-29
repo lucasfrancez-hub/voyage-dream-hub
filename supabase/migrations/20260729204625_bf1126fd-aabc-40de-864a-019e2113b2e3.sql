@@ -1,0 +1,1 @@
+ALTER TABLE public.packages ADD COLUMN IF NOT EXISTS flexible_dates boolean NOT NULL DEFAULT false;

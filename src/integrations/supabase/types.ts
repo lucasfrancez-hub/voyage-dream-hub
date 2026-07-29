@@ -2399,6 +2399,7 @@ export type Database = {
           cruise_details: Json | null
           date_mode: string
           destination: string
+          flexible_dates: boolean
           going_date: string | null
           hotel_name: string | null
           hotel_stars: number | null
@@ -2443,6 +2444,7 @@ export type Database = {
           cruise_details?: Json | null
           date_mode?: string
           destination: string
+          flexible_dates?: boolean
           going_date?: string | null
           hotel_name?: string | null
           hotel_stars?: number | null
@@ -2487,6 +2489,7 @@ export type Database = {
           cruise_details?: Json | null
           date_mode?: string
           destination?: string
+          flexible_dates?: boolean
           going_date?: string | null
           hotel_name?: string | null
           hotel_stars?: number | null
