@@ -3256,7 +3256,10 @@ function ServicesEditor({
                 + Adicionar parque
               </button>
             </div>
+          )}
+        </div>
         )}
+
 
         {/* Regras dos ingressos (resumo para o cliente) */}
         {showTickets && (
