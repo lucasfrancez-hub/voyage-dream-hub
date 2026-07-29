@@ -151,8 +151,20 @@ function PasseiosPage() {
         if (p.seats != null && p.seats < pax) return false;
         return true;
       })
-      .slice(0, 120);
+      .slice(0, 400);
   }, [searched, prices, tourById, destQuery, from, to, pax]);
+
+  const grouped = useMemo(() => {
+    const map = new Map<string, { tour: any; rows: PriceRow[] }>();
+    for (const r of results as PriceRow[]) {
+      const tour = tourById.get(r.package_id) as any;
+      if (!tour) continue;
+      if (!map.has(r.package_id)) map.set(r.package_id, { tour, rows: [] });
+      map.get(r.package_id)!.rows.push(r);
+    }
+    return [...map.values()];
+  }, [results, tourById]);
+
 
   const catalog = useMemo(
     () => (tours as any[]).filter(destMatch),
