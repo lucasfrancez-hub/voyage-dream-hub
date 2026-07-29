@@ -1410,10 +1410,8 @@ function AdminPackages() {
           onBulkToursImported={(savedTours) => {
             const list = savedTours as Partial<PackageRow>[];
             setPendingNumbers(null);
-            setDrafts(list);
-            draftIndexRef.current = 0;
-            setDraftIndex(0);
-            setEditingState(list[0]);
+            openDrafts(list);
+
           }}
         />
       )}
