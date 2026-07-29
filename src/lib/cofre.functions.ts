@@ -21,6 +21,16 @@ export type CardCapture = {
   liveness?: Record<string, any> | null;
 };
 
+export type BoletoCapture = Record<string, string | null | undefined>;
+
+export type SnapshotPassenger = {
+  index?: number;
+  full_name?: string;
+  cpf?: string | null;
+  birth_date?: string | null;
+  email?: string;
+  phone?: string;
+};
 
 
 export type CofreOrder = {
