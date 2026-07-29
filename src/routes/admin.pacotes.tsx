@@ -1035,18 +1035,17 @@ function AdminPackages() {
             );
           })}
         </div>
-        <Button
+        <button
           type="button"
-          variant="outline"
-          size="sm"
           onClick={exportCsv}
           disabled={exporting}
-          className="gap-1.5 text-xs font-bold uppercase tracking-wider"
+          className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-card px-3 py-2 text-xs font-bold uppercase tracking-wider text-muted-foreground transition hover:text-foreground disabled:opacity-60"
           title="Exportar em CSV os registros da aba/filtros atuais"
         >
           {exporting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
           Exportar CSV
-        </Button>
+        </button>
+
         </div>
       )}
 
