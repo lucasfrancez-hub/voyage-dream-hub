@@ -35,6 +35,24 @@ export const Route = createFileRoute("/chat/broadcast")({
   }),
 });
 
+const BRT = "America/Sao_Paulo";
+/** Chave de dia (YYYY-MM-DD) sempre no fuso de Brasília, independente do fuso do navegador. */
+function brtDayKey(value: string | Date): string {
+  const d = typeof value === "string" ? new Date(value) : value;
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: BRT,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(d);
+}
+/** Rótulo do dia a partir de uma chave YYYY-MM-DD (sem reinterpretar fuso). */
+function dayKeyLabel(key: string, opts: Intl.DateTimeFormatOptions): string {
+  const [y, m, d] = key.split("-").map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString("pt-BR", opts);
+}
+
+
 type Destino = {
   id: string;
   jid: string;
@@ -540,8 +558,7 @@ function CalendarioMes({
     for (const c of campanhas) {
       if (!c.scheduled_at) continue;
       if (c.status !== "agendada" && c.status !== "enviando" && c.status !== "concluida") continue;
-      const d = new Date(c.scheduled_at);
-      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+      const key = brtDayKey(c.scheduled_at);
       const arr = map.get(key) ?? [];
       arr.push(c);
       map.set(key, arr);
@@ -819,23 +836,13 @@ function AgendaSidebar({
   };
 
   const hoje = new Date();
-  const amanha = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate() + 1);
+  const hojeKey = brtDayKey(hoje);
+  const amanhaKey = brtDayKey(new Date(hoje.getTime() + 24 * 60 * 60 * 1000));
   function labelDia(dt: Date): string {
-    if (
-      dt.getFullYear() === hoje.getFullYear() &&
-      dt.getMonth() === hoje.getMonth() &&
-      dt.getDate() === hoje.getDate()
-    )
-      return "HOJE";
-    if (
-      dt.getFullYear() === amanha.getFullYear() &&
-      dt.getMonth() === amanha.getMonth() &&
-      dt.getDate() === amanha.getDate()
-    )
-      return "AMANHÃ";
-    return dt
-      .toLocaleDateString("pt-BR", { weekday: "short", day: "2-digit", month: "short" })
-      .toUpperCase();
+    const key = brtDayKey(dt);
+    if (key === hojeKey) return "HOJE";
+    if (key === amanhaKey) return "AMANHÃ";
+    return dayKeyLabel(key, { weekday: "short", day: "2-digit", month: "short", year: "numeric" }).toUpperCase();
   }
 
   // Stats
@@ -1220,17 +1227,15 @@ function AgendaProgramada({
   const grupos = useMemo(() => {
     const map = new Map<string, Campanha[]>();
     for (const c of programadas) {
-      const dia = new Date(c.scheduled_at!).toLocaleDateString("pt-BR", {
-        timeZone: "America/Sao_Paulo",
-        weekday: "short",
-        day: "2-digit",
-        month: "long",
-      });
-      const arr = map.get(dia) ?? [];
+      const key = brtDayKey(c.scheduled_at!);
+      const arr = map.get(key) ?? [];
       arr.push(c);
-      map.set(dia, arr);
+      map.set(key, arr);
     }
-    return Array.from(map.entries());
+    return Array.from(map.entries()).map(([key, lista]) => [
+      dayKeyLabel(key, { weekday: "short", day: "2-digit", month: "long", year: "numeric" }),
+      lista,
+    ] as [string, Campanha[]]);
   }, [programadas]);
 
   if (programadas.length === 0) return null;
@@ -1623,6 +1628,14 @@ function CampanhaEditor({
     if (selecionados.size === 0) return toast.error("Selecione ao menos um destino");
     if (blocos.length === 0) return toast.error("Adicione ao menos uma mensagem");
     if (status === "agendada" && !scheduled) return toast.error("Escolha data e horário");
+    if (status === "agendada" && scheduled) {
+      const alvo = new Date(scheduled).getTime();
+      if (alvo > Date.now() + 180 * 24 * 60 * 60 * 1000) {
+        return toast.error(
+          `Data muito distante (${new Date(scheduled).toLocaleDateString("pt-BR")}). Confira o ano antes de agendar.`,
+        );
+      }
+    }
     setSaving(true);
     try {
       // Se algum bloco tem horário próprio anterior ao geral, a campanha começa nele.
