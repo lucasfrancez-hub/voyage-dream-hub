@@ -1350,6 +1350,13 @@ function AdminPackages() {
           switchDraft={switchDraft}
           closeCurrentDraft={closeCurrentDraft}
           nextNumber={pendingNumbers?.[draftIndex] ?? pendingNumbers?.[0] ?? null}
+          onBulkToursImported={(savedTours) => {
+            const list = savedTours as Partial<PackageRow>[];
+            setPendingNumbers(null);
+            setDrafts(list);
+            setDraftIndex(0);
+            setEditingState(list[0]);
+          }}
         />
       )}
 
@@ -1410,6 +1417,7 @@ type PackageEditorModalProps = {
   switchDraft?: (newIdx: number) => void;
   closeCurrentDraft?: () => void;
   nextNumber?: number | null;
+  onBulkToursImported?: (drafts: BulkImportedTourDraft[]) => void;
 };
 
 type TabId = "dates" | "hotel" | "flights" | "extras" | "about";
@@ -1481,6 +1489,7 @@ function PackageEditorModal({
   switchDraft,
   closeCurrentDraft,
   nextNumber,
+  onBulkToursImported,
 }: PackageEditorModalProps) {
   const [tab, setTab] = useState<TabId>("dates");
   const [tourImportDone, setTourImportDone] = useState(false);
@@ -1812,13 +1821,7 @@ function PackageEditorModal({
             {tourBulkMode ? (
               <TourBulkImporter
                 destination={editing.destination}
-                onImported={(savedTours: BulkImportedTourDraft[]) => {
-                  const list = savedTours as Partial<PackageRow>[];
-                  setPendingNumbers(null);
-                  setDrafts(list);
-                  setDraftIndex(0);
-                  setEditingState(list[0]);
-                }}
+                onImported={onBulkToursImported}
               />
             ) : (
               <TourHtmlImporter
