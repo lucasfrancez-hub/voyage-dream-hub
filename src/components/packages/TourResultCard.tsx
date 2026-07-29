@@ -223,15 +223,23 @@ export function TourResultCard({
             {selUnit != null ? "Preço" : "A partir de"}
           </p>
           <p className="mt-1 font-display text-3xl font-black leading-none text-brand-orange">
-            {formatBRL((selUnit ?? minUnit ?? 0) * pax)}
+            {formatBRL((selUnit ?? minUnit ?? 0) * payingPax)}
           </p>
           <p className="mt-1 text-[11px] text-muted-foreground">
-            {formatBRL(selUnit ?? minUnit ?? 0)} por pessoa · {pax}{" "}
-            {pax === 1 ? "pessoa" : "pessoas"}
+            {formatBRL(selUnit ?? minUnit ?? 0)} por pessoa · {payingPax}{" "}
+            {payingPax === 1 ? "pessoa" : "pessoas"}
+            {childFee && childCount > 0
+              ? ` · ${childCount} ${childCount === 1 ? "criança isenta" : "crianças isentas"}`
+              : ""}
           </p>
 
           <div className="my-4 border-t border-border pt-3 text-[11px] leading-relaxed text-muted-foreground">
             <p>Taxas inclusas de {formatBRL(taxes)}</p>
+            {childFee && (
+              <p className="mt-2 rounded-lg bg-brand-orange/10 px-2.5 py-2 text-brand-orange">
+                {formatChildTokenFee(childFee)}
+              </p>
+            )}
             {sel ? (
               <p className="mt-2 text-foreground">
                 {sel.modality || tour.title}
@@ -244,6 +252,7 @@ export function TourResultCard({
               <p className="mt-2">Selecione uma data na grade ao lado.</p>
             )}
           </div>
+
 
           <button
             type="button"
