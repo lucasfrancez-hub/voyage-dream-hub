@@ -10,6 +10,8 @@ import logoAsset from "@/assets/viaair-logo-white.png.asset.json";
 export type FeedArtData = {
   kind?: "package" | "service" | "cruise" | "tour";
   dateMode?: "fixed" | "flexible";
+  flexibleDates?: boolean;
+
   title?: string;
   backgroundDataUrl: string;
   estado?: string | null;
