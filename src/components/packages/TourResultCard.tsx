@@ -3,6 +3,8 @@ import { MapPin, Plus, Clock, ChevronLeft, ChevronRight, Info } from "lucide-rea
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { formatBRL } from "@/lib/format";
+import { WhatsAppText } from "@/lib/wa-format";
+
 import {
   detectChildTokenFee,
   parseAgePolicy,
