@@ -29,7 +29,10 @@ export const Route = createFileRoute("/pacotes/$slug/checkout")({
     const addons = addonsRaw ? addonsRaw : undefined;
     const modality = typeof s?.modality === "string" && s.modality ? s.modality : undefined;
     const time = typeof s?.time === "string" && s.time ? s.time : undefined;
-    return { qty, date, addons, modality, time };
+    const nightsRaw = Number(s?.nights);
+    const nights = Number.isFinite(nightsRaw) && nightsRaw > 0 ? Math.min(2, Math.floor(nightsRaw)) : undefined;
+    const birthday = s?.birthday === 1 || s?.birthday === "1" ? 1 : undefined;
+    return { qty, date, addons, modality, time, nights, birthday };
   },
 });
 
