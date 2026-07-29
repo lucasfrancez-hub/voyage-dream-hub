@@ -45,6 +45,8 @@ export function TourBulkImporter({
         return;
       }
       setTours(list);
+      setDone(null);
+      setOpenIdx(list.length === 1 ? 0 : null);
       setSelected(Object.fromEntries(list.map((_, i) => [i, true])));
       toast.success(`${list.length} passeio(s) encontrado(s).`);
     } catch (e) {
