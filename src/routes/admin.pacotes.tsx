@@ -32,12 +32,10 @@ import {
 } from "lucide-react";
 import { TourDatesEditor } from "@/components/packages/TourDatesEditor";
 import { TourInfoEditor } from "@/components/packages/TourInfoEditor";
-import { TourHtmlImporter } from "@/components/packages/TourHtmlImporter";
 import { SupplierInput } from "@/components/packages/SupplierInput";
-import {
-  TourBulkImporter,
-  type BulkImportedTourDraft,
-} from "@/components/packages/TourBulkImporter";
+import { TourImportWizard } from "@/components/packages/TourImportWizard";
+import { type BulkImportedTourDraft } from "@/components/packages/TourBulkImporter";
+
 import {
   Select,
   SelectContent,
@@ -1494,7 +1492,7 @@ function PackageEditorModal({
 }: PackageEditorModalProps) {
   const [tab, setTab] = useState<TabId>("dates");
   const [tourImportDone, setTourImportDone] = useState(false);
-  const [tourBulkMode, setTourBulkMode] = useState(false);
+  
   const [flightLeg, setFlightLeg] = useState<"outbound" | "return">("outbound");
   const [aiLoading, setAiLoading] = useState(false);
   const [imgOpen, setImgOpen] = useState(false);
@@ -1821,49 +1819,14 @@ function PackageEditorModal({
             </button>
           </div>
           <div className="space-y-4 p-6">
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => setTourBulkMode(false)}
-                className={`rounded-full px-4 py-1.5 text-xs font-bold ${!tourBulkMode ? "bg-brand-orange text-white" : "bg-muted text-muted-foreground"}`}
-              >
-                Um passeio
-              </button>
-              <button
-                type="button"
-                onClick={() => setTourBulkMode(true)}
-                className={`rounded-full px-4 py-1.5 text-xs font-bold ${tourBulkMode ? "bg-brand-orange text-white" : "bg-muted text-muted-foreground"}`}
-              >
-                Importar múltiplos
-              </button>
-            </div>
-            {tourBulkMode ? (
-              <TourBulkImporter
-                destination={editing.destination}
-                supplier={editing.supplier_name}
-                onImported={onBulkToursImported}
-              />
-            ) : (
-              <TourHtmlImporter
-                destination={editing.destination}
-                supplier={editing.supplier_name}
-                onApply={(patch) => {
-                  setEditing((prev) => ({ ...(prev ?? {}), ...patch }) as any);
-                }}
-                onPrices={(rows) =>
-                  setEditing((prev) => ({ ...(prev ?? {}), __pendingPrices: rows }) as any)
-                }
-                onComplete={() => setTourImportDone(true)}
-              />
-            )}
-            <button
-              type="button"
-              onClick={() => setTourImportDone(true)}
-              className="w-full rounded-lg border border-border px-4 py-2 text-xs font-bold text-muted-foreground hover:bg-muted"
-            >
-              Pular e abrir editor manual
-            </button>
+            <TourImportWizard
+              destination={editing.destination}
+              supplier={editing.supplier_name}
+              onImported={(drafts) => onBulkToursImported?.(drafts)}
+              onSkip={() => setTourImportDone(true)}
+            />
           </div>
+
         </div>
       </div>
     );
