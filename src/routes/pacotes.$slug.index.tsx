@@ -231,7 +231,8 @@ function PackageDetails() {
   }
   const isPerUnit = (pkg as any).pricing_mode === "per_unit";
 
-  const isFlexibleDate = (pkg as any).date_mode === "flexible";
+  const flexibleDates = !!(pkg as unknown as { flexible_dates?: boolean }).flexible_dates;
+  const isFlexibleDate = (pkg as any).date_mode === "flexible" || flexibleDates;
   const eventDateLabel = isFlexibleDate
     ? "Data à escolher"
     : pkg.going_date
