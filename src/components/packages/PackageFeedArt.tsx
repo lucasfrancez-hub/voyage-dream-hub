@@ -11,6 +11,7 @@ export type FeedArtData = {
   kind?: "package" | "service" | "cruise" | "tour";
   dateMode?: "fixed" | "flexible";
   flexibleDates?: boolean;
+  birthdayFree?: boolean;
 
   title?: string;
   backgroundDataUrl: string;
@@ -396,6 +397,12 @@ export const PackageFeedArt = forwardRef<HTMLDivElement, { data: FeedArtData }>(
                       </p>
                     )}
                   </div>
+                  {data.birthdayFree ? (
+                    <div className="vfeed-side-card glass-panel-dark">
+                      <div className="vfeed-side-icon">{I.ticket}</div>
+                      <p>Ingresso para aniversariante gratuito</p>
+                    </div>
+                  ) : null}
                   <div className="vfeed-side-card glass-panel-dark">
                     <div className="vfeed-side-icon">{I.info}</div>
                     <p className="vfeed-side-small">
