@@ -24,15 +24,6 @@ export type CartItem = {
   qty: number;
 };
 
-const PAGE = 5;
-
-function dayHeader(iso: string) {
-  const [y, m, d] = iso.split("-").map(Number);
-  const dt = new Date(y, m - 1, d);
-  const wd = dt.toLocaleDateString("pt-BR", { weekday: "short" }).replace(".", "");
-  const md = dt.toLocaleDateString("pt-BR", { day: "2-digit", month: "short" }).replace(".", "");
-  return `${wd}, ${md}`.toUpperCase();
-}
 
 export function TourResultCard({
   tour,
