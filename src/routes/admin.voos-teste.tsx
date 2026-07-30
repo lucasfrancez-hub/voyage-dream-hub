@@ -812,7 +812,7 @@ function VoosPage() {
       </header>
 
       <main className="mx-auto max-w-7xl px-4 py-6">
-        {mut.isPending && (
+        {mut.isPending && !result && (
           <div className="space-y-3">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" /> Consultando fornecedores… pode levar até 30 segundos
@@ -823,14 +823,16 @@ function VoosPage() {
           </div>
         )}
 
-        {result && !mut.isPending && (
+        {result && (
           <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
             <aside className="space-y-4 lg:sticky lg:top-4 lg:self-start">
               <FiltersPanel
                 title={isRoundTrip ? "Filtros da ida" : "Filtros"}
-                flights={result.outbound.flights}
+                flights={airlinePool.length ? airlinePool : result.outbound.flights}
                 filters={outFilters}
                 onChange={setOutFilters}
+                loading={refiltering}
+                priceRange={result.outbound.priceRange}
               />
               {inbound && (
                 <FiltersPanel
@@ -838,9 +840,12 @@ function VoosPage() {
                   flights={inbound.flights}
                   filters={inFilters}
                   onChange={setInFilters}
+                  loading={inboundMut.isPending}
+                  priceRange={inbound.priceRange}
                 />
               )}
             </aside>
+
 
             <div className="space-y-6">
               <section className="space-y-3">
