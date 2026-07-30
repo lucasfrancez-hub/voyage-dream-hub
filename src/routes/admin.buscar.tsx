@@ -50,12 +50,12 @@ function ModeHeader({
   subtitle: string;
 }) {
   return (
-    <div className="flex w-full flex-col gap-6 md:flex-row md:items-end md:justify-between">
+    <div className="flex w-full flex-col gap-6 px-2 md:flex-row md:items-end md:justify-between">
       <div>
-        <h1 className="text-3xl font-light tracking-tight md:text-4xl">{title}</h1>
-        <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>
+        <h1 className="text-4xl font-bold tracking-tight">{title}</h1>
+        {subtitle ? <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p> : null}
       </div>
-      <div className="flex w-fit gap-1 rounded-2xl border border-border/60 bg-background/60 p-1.5 backdrop-blur">
+      <div className="flex w-fit gap-1 rounded-full border border-border/50 bg-card/70 p-1 backdrop-blur-xl">
         {MODES.map((m) => {
           const active = mode === m.id;
           return (
@@ -63,10 +63,10 @@ function ModeHeader({
               key={m.id}
               type="button"
               onClick={() => setMode(m.id)}
-              className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all sm:px-6 ${
+              className={`flex items-center gap-2 rounded-full px-5 py-2.5 text-sm transition-all sm:px-6 ${
                 active
-                  ? "bg-primary text-primary-foreground shadow-lg"
-                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                  ? "bg-primary font-semibold text-primary-foreground shadow-lg shadow-primary/20"
+                  : "font-medium text-muted-foreground hover:text-foreground"
               }`}
             >
               <m.icon className="h-4 w-4" /> {m.label}
@@ -75,6 +75,7 @@ function ModeHeader({
         })}
       </div>
     </div>
+
   );
 }
 
@@ -126,7 +127,7 @@ function ComboForm({
   disabled: boolean;
 }) {
   return (
-    <div className="rounded-2xl border border-border/70 bg-card/85 p-4 shadow-[var(--shadow-card)] backdrop-blur">
+    <div className="rounded-[32px] border border-border/50 bg-card/60 p-6 shadow-2xl backdrop-blur-xl">
       <div className="grid gap-3 lg:grid-cols-[1fr_1.2fr_auto]">
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1">
