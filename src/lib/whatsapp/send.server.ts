@@ -119,7 +119,9 @@ async function metaUploadMedia(
   const form = new FormData();
   form.append("messaging_product", "whatsapp");
   form.append("type", mimeType);
-  form.append("file", new Blob([bytes], { type: mimeType }), filename);
+  const ownedBuffer = new ArrayBuffer(bytes.byteLength);
+  new Uint8Array(ownedBuffer).set(bytes);
+  form.append("file", new Blob([ownedBuffer], { type: mimeType }), filename);
 
   try {
     const res = await fetch(`https://graph.facebook.com/${GRAPH_VERSION}/${phoneId}/media`, {
