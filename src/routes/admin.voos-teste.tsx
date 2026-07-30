@@ -966,6 +966,8 @@ function SummaryCard({
           inboundFareId: inb?.key ?? null,
           inboundItineraryId: inb?.journey.key ?? null,
           isRoundTrip: !!inb,
+          ...ctx,
+
         },
       }),
     onSuccess: (r) => {
