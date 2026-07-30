@@ -1561,17 +1561,8 @@ export function VoosPage({
       </header>
 
       <main className="mx-auto max-w-7xl px-4 py-6">
-        {mut.isPending && !result && (
-          <div className="space-y-3">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Loader2 className="h-4 w-4 animate-spin" /> Consultando fornecedores… pode levar até
-              30 segundos
-            </div>
-            {[0, 1, 2].map((i) => (
-              <Skeleton key={i} className="h-28 w-full rounded-2xl" />
-            ))}
-          </div>
-        )}
+        {mut.isPending && !result && <SearchSkeleton />}
+
 
         {result && (
           <div className={`grid gap-6 ${showSummary ? "" : "lg:grid-cols-[280px_1fr]"}`}>
@@ -1735,16 +1726,88 @@ export function VoosPage({
           </div>
         )}
 
-        {!result && !mut.isPending && (
-          <div className="rounded-2xl border border-dashed border-border p-12 text-center">
-            <ArrowRight className="mx-auto mb-3 h-6 w-6 text-muted-foreground" />
-            <p className="text-sm text-muted-foreground">
-              Preencha o motor de busca acima. Os filtros aparecem aqui na lateral depois da
-              pesquisa.
+      </main>
+    </div>
+  );
+}
+
+// ------------------------------------------------------- skeleton de busca
+
+function ShimmerBar({ className = "" }: { className?: string }) {
+  return (
+    <div
+      className={`relative overflow-hidden rounded-md bg-muted/60 after:absolute after:inset-0 after:-translate-x-full after:animate-[shimmer_1.6s_infinite] after:bg-gradient-to-r after:from-transparent after:via-foreground/10 after:to-transparent ${className}`}
+    />
+  );
+}
+
+/** Esqueleto animado exibido enquanto a busca de voos não retorna. */
+function SearchSkeleton() {
+  return (
+    <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
+      <aside className="hidden space-y-4 lg:block">
+        {[0, 1, 2].map((b) => (
+          <div key={b} className="space-y-3 rounded-2xl border border-border/60 bg-card/60 p-4">
+            <ShimmerBar className="h-3 w-24" />
+            {[0, 1, 2, 3].map((i) => (
+              <div key={i} className="flex items-center gap-2">
+                <ShimmerBar className="h-4 w-4 rounded" />
+                <ShimmerBar className="h-3 flex-1" />
+              </div>
+            ))}
+          </div>
+        ))}
+      </aside>
+
+      <div className="space-y-4">
+        <div className="flex items-center gap-3">
+          <div className="relative flex h-9 w-9 items-center justify-center">
+            <span className="absolute inset-0 animate-ping rounded-full bg-primary/20" />
+            <Plane className="h-4 w-4 animate-pulse text-primary" />
+          </div>
+          <div>
+            <p className="text-sm font-semibold">Consultando companhias aéreas…</p>
+            <p className="text-xs text-muted-foreground">
+              Comparando tarifas e bagagens — pode levar até 30 segundos
             </p>
           </div>
-        )}
-      </main>
+        </div>
+        <div className="h-1 w-full overflow-hidden rounded-full bg-muted/60">
+          <div className="h-full w-1/3 animate-[shimmer_1.4s_ease-in-out_infinite] rounded-full bg-primary/70" />
+        </div>
+
+        {[0, 1, 2, 3].map((i) => (
+          <div
+            key={i}
+            className="rounded-2xl border border-border/60 bg-card/60 p-5"
+            style={{ animation: `fade-in .4s ease-out ${i * 0.09}s both` }}
+          >
+            <div className="mb-4 flex items-center justify-between">
+              <ShimmerBar className="h-4 w-32" />
+              <ShimmerBar className="h-5 w-20" />
+            </div>
+            <div className="flex items-center gap-6">
+              <div className="space-y-2">
+                <ShimmerBar className="h-6 w-16" />
+                <ShimmerBar className="h-3 w-12" />
+              </div>
+              <div className="flex flex-1 items-center gap-2">
+                <span className="h-1.5 w-1.5 rounded-full bg-muted" />
+                <ShimmerBar className="h-px flex-1 rounded-none" />
+                <span className="h-1.5 w-1.5 rounded-full bg-muted" />
+              </div>
+              <div className="space-y-2 text-right">
+                <ShimmerBar className="ml-auto h-6 w-16" />
+                <ShimmerBar className="ml-auto h-3 w-12" />
+              </div>
+              <div className="hidden w-36 space-y-2 sm:block">
+                <ShimmerBar className="ml-auto h-6 w-28" />
+                <ShimmerBar className="ml-auto h-8 w-36 rounded-lg" />
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
