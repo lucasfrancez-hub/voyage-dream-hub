@@ -39,6 +39,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -301,45 +302,60 @@ function FiltersPanel({
   const hi = priceRange?.maxPrice ?? (prices.length ? Math.max(...prices) : 0);
   const n = activeCount(filters);
 
+  const chip = (active: boolean) =>
+    `rounded-full border px-3 py-1.5 text-[10px] font-bold uppercase tracking-tight transition-all active:scale-95 ${
+      active
+        ? "border-primary bg-primary/10 text-primary"
+        : "border-border/60 bg-muted/30 text-muted-foreground hover:border-primary/40 hover:text-foreground"
+    }`;
+
+  const SectionLabel = ({ children }: { children: React.ReactNode }) => (
+    <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/70">
+      {children}
+    </Label>
+  );
+
   return (
-    <section className="overflow-hidden rounded-3xl border border-border/50 bg-card/60 shadow-2xl backdrop-blur-xl">
-      <header className="flex items-center justify-between gap-2 border-b border-border/40 bg-muted/20 px-4 py-3">
-        <div className="flex min-w-0 items-center gap-2 text-sm font-semibold">
-          <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-primary/15">
-            <SlidersHorizontal className="h-3.5 w-3.5 text-primary" />
-          </span>
-          <span className="truncate">{title}</span>
-          {n > 0 && <Badge variant="secondary">{n}</Badge>}
+    <section className="overflow-hidden rounded-[2rem] border border-border/50 bg-card/70 shadow-2xl backdrop-blur-2xl">
+      <header className="flex items-center justify-between gap-2 border-b border-border/40 px-6 py-4">
+        <div className="flex min-w-0 items-center gap-2">
+          <span className="truncate text-base font-bold">{title}</span>
+          {n > 0 && (
+            <span className="rounded-full bg-primary px-2 py-0.5 text-[10px] font-bold text-primary-foreground">
+              {n}
+            </span>
+          )}
           {loading && <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />}
         </div>
         {n > 0 && (
-          <Button variant="ghost" size="sm" className="h-7 shrink-0 px-2 text-xs" onClick={() => onChange(EMPTY_FILTERS)}>
-            <RotateCcw className="mr-1 h-3 w-3" /> Limpar
-          </Button>
+          <button
+            type="button"
+            onClick={() => onChange(EMPTY_FILTERS)}
+            className="shrink-0 text-xs font-semibold text-primary transition-opacity hover:opacity-80"
+          >
+            Limpar tudo
+          </button>
         )}
       </header>
 
-      <div className={`divide-y divide-border/40 ${loading ? "pointer-events-none opacity-60" : ""}`}>
-        <div className="space-y-2 p-4">
-          <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Bagagem</Label>
-          <label
-            className={`flex cursor-pointer items-center gap-2.5 rounded-xl border px-3 py-2.5 text-sm transition ${
-              filters.onlyBaggage
-                ? "border-primary/60 bg-primary/10 text-foreground"
-                : "border-border/50 bg-muted/30 hover:border-primary/40"
-            }`}
-          >
-            <Checkbox
-              checked={filters.onlyBaggage}
-              onCheckedChange={(v) => onChange({ ...filters, onlyBaggage: v === true })}
-            />
+      <div
+        className={`space-y-7 p-6 ${loading ? "pointer-events-none opacity-60" : ""}`}
+      >
+        {/* Bagagem — toggle simples, sem card */}
+        <label className="flex cursor-pointer items-center justify-between gap-3">
+          <span className="flex items-center gap-2 text-sm font-medium text-foreground/80">
             <Luggage className={`h-4 w-4 ${filters.onlyBaggage ? "text-primary" : "text-muted-foreground"}`} />
             Bagagem para despachar
-          </label>
-        </div>
-        <div className="space-y-2 p-4">
-          <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Paradas</Label>
-          <div className="grid grid-cols-3 gap-1.5 rounded-xl bg-muted/30 p-1">
+          </span>
+          <Switch
+            checked={filters.onlyBaggage}
+            onCheckedChange={(v) => onChange({ ...filters, onlyBaggage: v })}
+          />
+        </label>
+
+        <div className="space-y-3">
+          <SectionLabel>Paradas</SectionLabel>
+          <div className="grid grid-cols-3 gap-1 rounded-2xl border border-border/40 bg-muted/30 p-1">
             {[
               { v: 0, l: "Direto" },
               { v: 1, l: "Até 1" },
@@ -349,9 +365,9 @@ function FiltersPanel({
                 key={o.v}
                 type="button"
                 onClick={() => onChange({ ...filters, maxStops: o.v })}
-                className={`rounded-lg px-2 py-1.5 text-xs font-semibold transition ${
+                className={`rounded-xl px-1 py-2 text-[11px] font-bold transition-all ${
                   filters.maxStops === o.v
-                    ? "bg-primary text-primary-foreground shadow-sm"
+                    ? "bg-primary text-primary-foreground shadow-[var(--shadow-glow)]"
                     : "text-muted-foreground hover:text-foreground"
                 }`}
               >
@@ -361,39 +377,23 @@ function FiltersPanel({
           </div>
         </div>
 
-        <div className="space-y-5 p-4">
-          <TimeRange
-            label="Horário de partida"
-            value={filters.dep}
-            onChange={(dep) => onChange({ ...filters, dep })}
-          />
-
-          <TimeRange
-            label="Horário de chegada"
-            value={filters.arr}
-            onChange={(arr) => onChange({ ...filters, arr })}
-          />
-        </div>
-
-        <div className="space-y-2 p-4">
-          <div className="flex items-center justify-between">
-            <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-              Preço total
-            </Label>
-            <span className="text-[11px] font-medium text-foreground">
+        <div className="space-y-3">
+          <div className="flex items-end justify-between">
+            <SectionLabel>Faixa de preço</SectionLabel>
+            <span className="text-xs font-semibold">
               {fmtMoney(lo)} — {fmtMoney(hi)}
             </span>
           </div>
           <div className="flex gap-2">
             <Input
-              className="h-9 rounded-lg border-border/50 bg-muted/30"
+              className="h-9 rounded-xl border-border/50 bg-muted/30"
               placeholder="De"
               inputMode="decimal"
               value={filters.minPrice}
               onChange={(e) => onChange({ ...filters, minPrice: e.target.value })}
             />
             <Input
-              className="h-9 rounded-lg border-border/50 bg-muted/30"
+              className="h-9 rounded-xl border-border/50 bg-muted/30"
               placeholder="Até"
               inputMode="decimal"
               value={filters.maxPrice}
@@ -402,58 +402,75 @@ function FiltersPanel({
           </div>
         </div>
 
+        <div className="space-y-6">
+          <TimeRange
+            label="Horário de partida"
+            value={filters.dep}
+            onChange={(dep) => onChange({ ...filters, dep })}
+          />
+          <TimeRange
+            label="Horário de chegada"
+            value={filters.arr}
+            onChange={(arr) => onChange({ ...filters, arr })}
+          />
+        </div>
+
         {airlines.length > 0 && (
-          <div className="space-y-2 p-4">
-            <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-              Companhia aérea
-            </Label>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <SectionLabel>Companhia aérea</SectionLabel>
+              {filters.airlines.length > 0 && (
+                <span className="text-[10px] text-muted-foreground/60">
+                  {filters.airlines.length} selecionada{filters.airlines.length > 1 ? "s" : ""}
+                </span>
+              )}
+            </div>
             <div className="flex flex-wrap gap-2">
               {airlines.map(([iata, name]) => (
-                <Chip
+                <button
                   key={iata}
-                  active={filters.airlines.includes(iata)}
+                  type="button"
+                  className={chip(filters.airlines.includes(iata))}
                   onClick={() => onChange({ ...filters, airlines: toggle(filters.airlines, iata) })}
                 >
                   {name}
-                </Chip>
+                </button>
               ))}
             </div>
           </div>
         )}
 
         {depAirports.length > 1 && (
-          <div className="space-y-2 p-4">
-            <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-              Aeroporto de partida
-            </Label>
+          <div className="space-y-3">
+            <SectionLabel>Aeroporto de partida</SectionLabel>
             <div className="flex flex-wrap gap-2">
               {depAirports.map(([iata, name]) => (
-                <Chip
+                <button
                   key={iata}
-                  active={filters.depAirports.includes(iata)}
+                  type="button"
+                  className={chip(filters.depAirports.includes(iata))}
                   onClick={() => onChange({ ...filters, depAirports: toggle(filters.depAirports, iata) })}
                 >
                   {iata} — {name}
-                </Chip>
+                </button>
               ))}
             </div>
           </div>
         )}
 
         {arrAirports.length > 1 && (
-          <div className="space-y-2 p-4">
-            <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-              Aeroporto de chegada
-            </Label>
+          <div className="space-y-3">
+            <SectionLabel>Aeroporto de chegada</SectionLabel>
             <div className="flex flex-wrap gap-2">
               {arrAirports.map(([iata, name]) => (
-                <Chip
+                <button
                   key={iata}
-                  active={filters.arrAirports.includes(iata)}
+                  type="button"
+                  className={chip(filters.arrAirports.includes(iata))}
                   onClick={() => onChange({ ...filters, arrAirports: toggle(filters.arrAirports, iata) })}
                 >
                   {iata} — {name}
-                </Chip>
+                </button>
               ))}
             </div>
           </div>
