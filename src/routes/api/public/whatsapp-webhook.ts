@@ -64,6 +64,10 @@ type WhatsAppPayload = {
           type: string;
           text?: { body: string };
           audio?: { id: string; mime_type?: string; voice?: boolean };
+          image?: { id: string; mime_type?: string; caption?: string; sha256?: string };
+          video?: { id: string; mime_type?: string; caption?: string };
+          sticker?: { id: string; mime_type?: string };
+          document?: { id: string; mime_type?: string; caption?: string; filename?: string };
           interactive?: {
             type: string;
             button_reply?: { id: string; title: string };
