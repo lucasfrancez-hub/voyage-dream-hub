@@ -289,13 +289,16 @@ async function poll(
       } catch {
         break;
       }
-    } while (haveMore && page <= 5);
+    } while (haveMore && page <= 12);
 
     if (acc.size > before) stableRounds = 0;
     else if (acc.size > 0) stableRounds++;
 
+    // já temos tudo que o fornecedor diz existir
+    if (reportedTotal > 0 && acc.size >= reportedTotal && i + 1 >= MIN_ROUNDS) break;
     if (i + 1 >= MIN_ROUNDS && stableRounds >= STABLE_TO_STOP) break;
-    await sleep(1500);
+    await sleep(1200);
+
   }
 
   const flights = [...acc.values()].sort((a, b) => a.price.total - b.price.total);
