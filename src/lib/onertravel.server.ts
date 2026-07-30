@@ -305,10 +305,49 @@ export const cartInput = z.object({
   inboundFareId: z.string().nullish(),
   inboundItineraryId: z.string().nullish(),
   isRoundTrip: z.boolean().default(false),
+  // Contexto da busca: sem isso o carrinho da operadora abre sem origem,
+  // destino, datas e pax na barra de busca e dispara "erro interno".
+  departureIata: z.string().length(3).nullish(),
+  arrivalIata: z.string().length(3).nullish(),
+  departureDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .nullish(),
+  returnDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .nullish(),
+  adults: z.number().int().min(1).max(9).default(1),
+  children: z.number().int().min(0).max(9).default(0),
+  infants: z.number().int().min(0).max(9).default(0),
+  departureIsCity: z.boolean().default(false),
+  arrivalIsCity: z.boolean().default(false),
 });
 
-export async function createFlightCart(data: z.infer<typeof cartInput>) {
-  const loc = "https://www.comprarviagem.com.br/viaair/flight-list";
+type CartData = z.infer<typeof cartInput>;
+
+/** Query com o contexto da busca, no mesmo formato usado pelo flight-list. */
+function cartContextParams(data: CartData): URLSearchParams {
+  const q = new URLSearchParams();
+  if (data.departureDate) q.set("departureDate", `${data.departureDate}T00:00:00.000Z`);
+  if (data.returnDate) q.set("returnDate", `${data.returnDate}T00:00:00.000Z`);
+  if (data.departureIata) q.set("departureIata", data.departureIata.toUpperCase());
+  if (data.arrivalIata) q.set("arrivalIata", data.arrivalIata.toUpperCase());
+  q.set("isDepartureIataCity", String(!!data.departureIsCity));
+  q.set("isArrivalIataCity", String(!!data.arrivalIsCity));
+  q.set("adultsCount", String(data.adults));
+  q.set("teenagerCount", "0");
+  q.set("childCount", String(data.children));
+  q.set("infantCount", String(data.infants));
+  return q;
+}
+
+export async function createFlightCart(data: CartData) {
+  const ctx = cartContextParams(data);
+  const listQuery = new URLSearchParams(ctx);
+  listQuery.set("isRoundTrip", String(data.isRoundTrip));
+  listQuery.set("source", "f");
+  const loc = `https://www.comprarviagem.com.br/viaair/flight-list?${listQuery.toString()}`;
   const res = await fetch(`${API}/api/booking`, {
     method: "POST",
     headers: headers(loc),
@@ -338,6 +377,10 @@ export async function createFlightCart(data: z.infer<typeof cartInput>) {
       "A operadora não gerou o carrinho (tarifa pode ter expirado). Refaça a busca e tente de novo.",
     );
   }
-  const url = `https://www.comprarviagem.com.br/viaair/flight-cart?newCartId=${cartId}&source=f&isRoundTrip=${data.isRoundTrip}`;
+  const cartQuery = new URLSearchParams({ newCartId: cartId, source: "f" });
+  cartQuery.set("isRoundTrip", String(data.isRoundTrip));
+  ctx.forEach((v, k) => cartQuery.set(k, v));
+  const url = `https://www.comprarviagem.com.br/viaair/flight-cart?${cartQuery.toString()}`;
   return { cartId, url };
 }
+
