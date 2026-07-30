@@ -802,17 +802,10 @@ function VoosPage() {
                   />
                 </div>
               ))}
-              <div className="w-32 space-y-1">
-                <Label className="text-[11px] text-muted-foreground">Paradas (máx.)</Label>
-                <Input
-                  className="h-9"
-                  type="number"
-                  min={0}
-                  max={2}
-                  value={form.maxStops}
-                  onChange={(e) => setForm({ ...form, maxStops: Number(e.target.value) })}
-                />
-              </div>
+              <span className="text-[11px] text-muted-foreground">
+                Paradas, bagagem e horários ficam nos filtros ao lado depois da busca.
+              </span>
+
             </div>
           </div>
         </div>
