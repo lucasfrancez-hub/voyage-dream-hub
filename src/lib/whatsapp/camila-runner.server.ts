@@ -168,17 +168,25 @@ export async function runCamila(input: { wa_phone: string; profile_name?: string
 
   const { splitToBubbles } = await import("./send.server");
   const bubbles = splitToBubbles(text);
+  const savedRowIds: Array<string | null> = [];
   for (let i = 0; i < bubbles.length; i++) {
-    await saveMessage({
+    const row = await saveMessage({
       conversation_id: conv.id,
       direction: "outbound",
       sender: "camila",
       content: bubbles[i],
       tool_calls: i === 0 && toolCallsSummary && toolCallsSummary.length > 0 ? toolCallsSummary : null,
     });
+    savedRowIds.push(row?.id ?? null);
   }
 
   const sent = await sendWhatsAppBubbles(conv.wa_phone, text);
+  // Guarda o wa_message_id de cada balão — sem isso o preview do reply do cliente vem vazio
+  const { setWaMessageId } = await import("./conversation.server");
+  for (let i = 0; i < sent.length; i++) {
+    const rowId = savedRowIds[i];
+    if (rowId && sent[i]?.id) await setWaMessageId(rowId, sent[i].id);
+  }
   const failed = sent.filter((s) => s.error);
   if (failed.length > 0) {
     console.error("[camila] falha ao enviar balões:", failed);
