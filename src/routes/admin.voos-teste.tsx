@@ -98,6 +98,8 @@ function VoosTestePage() {
     maxStops: 0,
   });
   const [result, setResult] = useState<OnerSearchResult | null>(null);
+  const [selectedOut, setSelectedOut] = useState<string | null>(null);
+  const [inbound, setInbound] = useState<{ totalFlightsCount: number; flights: OnerFlight[] } | null>(null);
 
   const mut = useMutation({
     mutationFn: () =>
@@ -116,11 +118,43 @@ function VoosTestePage() {
       }),
     onSuccess: (r) => {
       setResult(r);
+      setSelectedOut(null);
+      setInbound(null);
       if (!r.outbound.flights.length) toast.warning("Nenhum voo retornado para esses parâmetros");
       else toast.success(`${r.outbound.totalFlightsCount} voos encontrados`);
     },
     onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Erro na busca"),
   });
+
+  const inboundMut = useMutation({
+    mutationFn: (flightKey: string) =>
+      searchInbound({
+        data: {
+          searchKey: result!.searchKey,
+          flightKey,
+          departureIata: form.departureIata.trim().toUpperCase(),
+          arrivalIata: form.arrivalIata.trim().toUpperCase(),
+          departureDate: form.departureDate,
+          returnDate: form.returnDate,
+          adults: Number(form.adults),
+          children: Number(form.children),
+          infants: Number(form.infants),
+          maxStops: Number(form.maxStops),
+          pageSize: 10,
+        },
+      }),
+    onSuccess: (r) => {
+      setInbound(r);
+      if (!r.flights.length) toast.warning("Nenhuma volta disponível para essa ida");
+    },
+    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Erro ao buscar volta"),
+  });
+
+  function pickOutbound(key: string) {
+    setSelectedOut(key);
+    setInbound(null);
+    if (form.returnDate) inboundMut.mutate(key);
+  }
 
   const canSearch =
     form.departureIata.length === 3 && form.arrivalIata.length === 3 && !!form.departureDate;
