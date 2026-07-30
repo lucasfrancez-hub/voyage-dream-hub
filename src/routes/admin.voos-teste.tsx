@@ -996,6 +996,50 @@ export function VoosPage({
     onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Erro na busca"),
   });
 
+  // "Ver mais voos": a operadora libera os fornecedores em ondas, então uma nova
+  // consulta com a MESMA busca costuma trazer opções (e tarifas menores) que
+  // ainda não tinham chegado. Os voos novos são somados aos já exibidos.
+  const moreMut = useMutation({
+    mutationFn: () =>
+      search({
+        data: {
+          ...paxData(),
+          returnDate: form.returnDate || null,
+          searchKey: result?.searchKey ?? null,
+          filters: toOperatorFilters(outFilters),
+        },
+      }),
+    onSuccess: (r) => {
+      setResult((prev) => {
+        if (!prev) return r;
+        const map = new Map(prev.outbound.flights.map((f) => [f.key, f]));
+        let novos = 0;
+        for (const f of r.outbound.flights) {
+          const atual = map.get(f.key);
+          if (!atual) novos++;
+          if (!atual || f.price.total < atual.price.total) map.set(f.key, f);
+        }
+        const flights = [...map.values()].sort((a, b) => a.price.total - b.price.total);
+        toast[novos ? "success" : "info"](
+          novos ? `+${novos} voos encontrados` : "Nenhuma opção nova por enquanto",
+        );
+        setAirlinePool(flights);
+        return {
+          ...prev,
+          outbound: {
+            ...prev.outbound,
+            flights,
+            totalFlightsCount: Math.max(prev.outbound.totalFlightsCount, flights.length),
+            priceRange: r.outbound.priceRange ?? prev.outbound.priceRange,
+          },
+        };
+      });
+    },
+    onError: (e: unknown) =>
+      toast.error(e instanceof Error ? e.message : "Erro ao carregar mais voos"),
+  });
+
+
   const inboundMut = useMutation({
     mutationFn: (opts: { flightKey: string; filters: Filters }) =>
       searchInbound({
@@ -1299,8 +1343,24 @@ export function VoosPage({
                       Nenhum voo com esses filtros.
                     </p>
                   )}
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    disabled={moreMut.isPending || mut.isPending}
+                    onClick={() => moreMut.mutate()}
+                  >
+                    {moreMut.isPending ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Buscando mais companhias…
+                      </>
+                    ) : (
+                      `Ver mais voos (${outFlights.length} exibidos)`
+                    )}
+                  </Button>
                 </section>
               )}
+
 
               {/* passo 2 — volta */}
               {inboundPhase && inboundMut.isPending && (
