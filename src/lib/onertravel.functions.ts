@@ -207,10 +207,14 @@ const SearchInput = z.object({
   adults: z.number().int().min(1).max(9).default(1),
   children: z.number().int().min(0).max(9).default(0),
   infants: z.number().int().min(0).max(9).default(0),
-  pageSize: z.number().int().min(1).max(30).default(30),
+  pageSize: z.number().int().min(1).max(50).default(50),
+  /** Códigos de cidade (SAO, RIO...) buscam todos os aeroportos da cidade. */
+  departureIsCity: z.boolean().default(false),
+  arrivalIsCity: z.boolean().default(false),
   /** Reaproveita uma busca já iniciada (usado ao trocar filtros). */
   searchKey: z.string().nullish(),
   filters: OperatorFilters.default(DEFAULT_FILTERS),
+
 });
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
