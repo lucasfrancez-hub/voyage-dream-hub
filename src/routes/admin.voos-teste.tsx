@@ -371,44 +371,6 @@ function FiltersPanel({
   );
 }
 
-// ---------------------------------------------------------------- stepper
-
-function Stepper({ step, roundTrip }: { step: number; roundTrip: boolean }) {
-  const steps = roundTrip
-    ? ["Buscar", "Escolher ida", "Escolher volta", "Resumo"]
-    : ["Buscar", "Escolher voo", "Resumo"];
-  return (
-    <ol className="flex flex-wrap items-center gap-2 text-xs">
-      {steps.map((s, i) => {
-        const done = i < step;
-        const current = i === step;
-        return (
-          <li key={s} className="flex items-center gap-2">
-            <span
-              className={`flex items-center gap-2 rounded-full border px-3 py-1.5 font-medium transition ${
-                current
-                  ? "border-primary bg-primary/15 text-foreground"
-                  : done
-                    ? "border-primary/40 text-primary"
-                    : "border-border/60 text-muted-foreground"
-              }`}
-            >
-              <span
-                className={`flex h-5 w-5 items-center justify-center rounded-full text-[10px] ${
-                  done ? "bg-primary text-primary-foreground" : current ? "bg-primary/30" : "bg-muted"
-                }`}
-              >
-                {done ? <Check className="h-3 w-3" /> : i + 1}
-              </span>
-              {s}
-            </span>
-            {i < steps.length - 1 && <span className="h-px w-4 bg-border" />}
-          </li>
-        );
-      })}
-    </ol>
-  );
-}
 
 // ---------------------------------------------------------------- card
 
@@ -1149,12 +1111,9 @@ export function VoosPage({
                 <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight">
                   <Plane className="h-6 w-6 text-primary" /> Motor de Voos
                 </h1>
-                <p className="text-sm text-muted-foreground">
-                  Busca em tempo real na operadora — tarifas, taxas e parcelamento por companhia.
-                </p>
               </div>
             )}
-            <Stepper step={step} roundTrip={isRoundTrip} />
+
           </div>
 
           {!hideForm && (
