@@ -651,11 +651,20 @@ function SummaryCard({ out, inb }: { out: OnerFlight; inb: OnerFlight | null }) 
   );
 
   return (
-    <div className="sticky bottom-4 z-10 rounded-2xl border border-primary/40 bg-card/95 p-5 shadow-[var(--shadow-card)] backdrop-blur">
+    <div className="rounded-2xl border border-primary/40 bg-card/95 p-5 shadow-[var(--shadow-card)] backdrop-blur">
+      <div className="mb-4 flex items-center gap-2 text-sm font-semibold">
+        <Plane className="h-4 w-4 text-primary" /> Voos selecionados
+      </div>
+      <div className="mb-5 space-y-3">
+        <FlightCard f={out} label={inb ? "Ida" : "Voo"} readOnly />
+        {inb && <FlightCard f={inb} label="Volta" readOnly />}
+      </div>
+
       <div className="mb-4 flex items-center gap-2 text-sm font-semibold">
         <CreditCard className="h-4 w-4 text-primary" /> Resumo do preço
       </div>
       <div className="grid gap-5 md:grid-cols-[1fr_auto_1fr]">
+
         <div className="space-y-4">
           <Leg label="Ida" f={out} />
           {inb && (
