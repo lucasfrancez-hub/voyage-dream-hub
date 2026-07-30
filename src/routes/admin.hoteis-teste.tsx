@@ -408,6 +408,7 @@ export function HoteisPage({
   runToken?: number;
 } = {}) {
   const searchDest = useServerFn(onerHotelDestinations);
+  const searchAirports = useServerFn(onerAirportSearch);
   const searchHotels = useServerFn(onerHotelSearch);
 
   const [destQuery, setDestQuery] = useState("");
