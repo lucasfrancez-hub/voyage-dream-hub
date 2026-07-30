@@ -1,8 +1,17 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
+import { createOrder } from "@/lib/orders.functions";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+
 import {
   Loader2,
   Plane,
@@ -20,6 +29,8 @@ import {
   RotateCcw,
   Clock,
   ChevronDown,
+  ShoppingCart,
+
 
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -490,6 +501,34 @@ function SelectedLegBar({ label, f, onEdit }: { label: string; f: OnerFlight; on
   );
 }
 
+function BagChip({
+  icon: Icon,
+  kicker,
+  value,
+  active,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  kicker: string;
+  value: string;
+  active: boolean;
+}) {
+  return (
+    <div className={`flex items-center gap-2.5 ${active ? "" : "opacity-40"}`}>
+      <div
+        className={`flex h-9 w-9 items-center justify-center rounded-lg border ${
+          active ? "border-primary/40 bg-primary/10" : "border-border/60 bg-background/40"
+        }`}
+      >
+        <Icon className={`h-4 w-4 ${active ? "text-primary" : "text-muted-foreground"}`} />
+      </div>
+      <div className="flex flex-col leading-tight">
+        <span className="text-[9px] font-bold uppercase tracking-wide text-muted-foreground">{kicker}</span>
+        <span className="text-xs font-semibold">{value}</span>
+      </div>
+    </div>
+  );
+}
+
 function FlightCard({
   f,
   selected,
@@ -509,117 +548,149 @@ function FlightCard({
   const withBag = flightHasBaggage(f);
   const [open, setOpen] = useState(false);
   const interactive = !readOnly && !!onSelect;
+  const n = maxInstallments(airlineOf(f));
   return (
     <div
-      role={interactive ? "button" : undefined}
-      tabIndex={interactive ? 0 : undefined}
-      onClick={interactive ? onSelect : undefined}
-      onKeyDown={(e) => {
-        if (interactive && (e.key === "Enter" || e.key === " ")) {
-          e.preventDefault();
-          onSelect?.();
-        }
-      }}
-      className={`group relative overflow-hidden rounded-2xl border bg-card/80 p-4 backdrop-blur transition ${
-        interactive ? "cursor-pointer hover:-translate-y-0.5 hover:border-primary/60 hover:shadow-[var(--shadow-card)]" : ""
+      className={`group relative overflow-hidden rounded-2xl border bg-card/80 backdrop-blur transition ${
+        interactive ? "hover:border-primary/60 hover:shadow-[var(--shadow-card)]" : ""
       } ${selected ? "border-primary ring-2 ring-primary/30" : "border-border/70"}`}
     >
-      {label && (
-        <div className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{label}</div>
-      )}
-
       {cheapest && (
-        <span className="absolute right-0 top-0 rounded-bl-xl bg-primary px-2 py-1 text-[10px] font-semibold text-primary-foreground">
+        <span className="absolute left-0 top-0 z-10 rounded-br-xl bg-primary px-2 py-1 text-[10px] font-semibold text-primary-foreground">
           Menor preço
         </span>
       )}
-      <div className="flex flex-wrap items-center gap-4">
-        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-border/60 bg-background/60">
-          {j.marketingAirline?.pathLogo ? (
-            <img
-              src={j.marketingAirline.pathLogo}
-              alt={j.marketingAirline?.name ?? "Companhia aérea"}
-              className="h-7 w-7 rounded bg-white object-contain"
-              loading="lazy"
-            />
-          ) : (
-            <Plane className="h-5 w-5 text-muted-foreground" />
+
+      <div className="flex flex-col md:flex-row">
+        {/* ---- lado esquerdo: cartão de embarque ---- */}
+        <div className="flex flex-1 flex-col gap-5 p-5">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2 rounded-full border border-border/60 bg-background/50 px-3 py-1">
+              <span className="h-2 w-2 rounded-full bg-primary" />
+              <span className="text-[10px] font-bold uppercase tracking-widest">
+                {label ?? "Voo"} • {fmtDate(j.departure.date)}
+              </span>
+            </div>
+            <div className="flex items-center gap-2.5 rounded-lg border border-border/50 bg-background/50 px-3 py-1.5">
+              {j.marketingAirline?.pathLogo ? (
+                <img
+                  src={j.marketingAirline.pathLogo}
+                  alt={j.marketingAirline?.name ?? "Companhia aérea"}
+                  className="h-6 w-6 rounded bg-white object-contain"
+                  loading="lazy"
+                />
+              ) : (
+                <Plane className="h-4 w-4 text-muted-foreground" />
+              )}
+              <div className="flex flex-col leading-tight">
+                <span className="text-xs font-bold">{j.marketingAirline?.name?.trim() ?? "Companhia"}</span>
+                <span className="text-[9px] uppercase tracking-tight text-muted-foreground">
+                  {j.segments.map((s) => `${s.marketingAirline?.iata ?? ""}${s.flightNumber}`).join(" + ")}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-3 items-center gap-4">
+            <div className="text-left">
+              <div className="text-3xl font-bold leading-none tracking-tight">{fmtTime(j.departure.time)}</div>
+              <div className="mt-1 text-lg font-black uppercase leading-none text-primary">{j.departure.iata}</div>
+              <div className="truncate text-[10px] font-medium text-muted-foreground">{j.departure.name}</div>
+            </div>
+
+            <div className="flex flex-col items-center gap-2">
+              <div className="text-[9px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
+                {j.flyingTime.hour}h{String(j.flyingTime.minute).padStart(2, "0")}
+              </div>
+              <div className="relative flex w-full items-center px-2">
+                <div className="h-px w-full bg-border" />
+                <span className="absolute left-0 h-1.5 w-1.5 rounded-full bg-primary" />
+                <span className="absolute right-0 h-1.5 w-1.5 rounded-full border border-border bg-background" />
+                <span className="absolute left-1/2 -translate-x-1/2 whitespace-nowrap rounded border border-border/60 bg-background px-2 py-0.5 text-[9px] font-bold uppercase tracking-tight">
+                  {j.numberOfStops === 0 ? "Direto" : `${j.numberOfStops} conexão(ões)`}
+                </span>
+              </div>
+              {j.fareClass?.airlineFareFamily && (
+                <span className="text-[9px] font-semibold uppercase tracking-wide text-muted-foreground">
+                  {j.fareClass.airlineFareFamily}
+                </span>
+              )}
+            </div>
+
+            <div className="text-right">
+              <div className="text-3xl font-bold leading-none tracking-tight">{fmtTime(j.destination.time)}</div>
+              <div className="mt-1 text-lg font-black uppercase leading-none text-primary">{j.destination.iata}</div>
+              <div className="truncate text-[10px] font-medium text-muted-foreground">{j.destination.name}</div>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border/50 pt-4">
+            <div className="flex items-center gap-6">
+              <BagChip icon={BriefcaseBusiness} kicker="Mão" value="10kg incluída" active />
+              <BagChip
+                icon={Luggage}
+                kicker="Despachada"
+                value={withBag ? "23kg incluída" : "Não inclusa"}
+                active={withBag}
+              />
+            </div>
+            <button
+              type="button"
+              onClick={() => setOpen((v) => !v)}
+              aria-expanded={open}
+              className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-muted-foreground transition hover:text-primary"
+            >
+              {open ? "Ocultar" : "Detalhes"}
+              <ChevronDown className={`h-3 w-3 transition-transform ${open ? "rotate-180" : ""}`} />
+            </button>
+          </div>
+
+          {open && <SegmentsDetail f={f} />}
+        </div>
+
+        {/* ---- coluna de preço ---- */}
+        <div className="flex w-full flex-col border-t border-border/60 bg-background/40 p-5 md:w-72 md:border-l md:border-t-0">
+          <div className="flex-1 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-bold uppercase text-muted-foreground">Tarifa</span>
+              <span className="text-sm font-medium">{fmtMoney(f.price.price)}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-bold uppercase text-muted-foreground">Taxas</span>
+              <span className="text-sm font-medium">{fmtMoney(taxesOf(f))}</span>
+            </div>
+
+            <div className="mt-2 border-t border-border/60 pt-4">
+              <div className="mb-1 text-[9px] font-bold uppercase tracking-widest text-muted-foreground">
+                Valor final • {f.price.passengerCount} pax
+              </div>
+              <div className="text-3xl font-black leading-none tracking-tight">{fmtMoney(f.price.total)}</div>
+              <div className="mt-1 text-[9px] font-bold uppercase text-primary">
+                Em até {n}x de {fmtMoney(f.price.total / n)}
+              </div>
+            </div>
+          </div>
+
+          {!readOnly && onSelect && (
+            <Button
+              onClick={onSelect}
+              className="mt-6 w-full py-6 text-xs font-black uppercase tracking-[0.15em]"
+            >
+              {selected ? (
+                <>
+                  <Check className="h-4 w-4" /> Selecionado
+                </>
+              ) : (
+                "Selecionar"
+              )}
+            </Button>
           )}
         </div>
-
-        <div className="min-w-[240px] flex-1">
-          <div className="flex items-center gap-3">
-            <div className="text-center">
-              <div className="text-lg font-bold leading-none">{fmtTime(j.departure.time)}</div>
-              <div className="text-[11px] text-muted-foreground">{j.departure.iata}</div>
-            </div>
-            <div className="flex flex-1 items-center gap-1">
-              <span className="h-1.5 w-1.5 rounded-full bg-primary" />
-              <span className="h-px flex-1 bg-border" />
-              <span className="whitespace-nowrap rounded-full bg-muted px-2 py-0.5 text-[10px] text-muted-foreground">
-                {j.numberOfStops === 0 ? "direto" : `${j.numberOfStops} conexão(ões)`}
-              </span>
-              <span className="h-px flex-1 bg-border" />
-              <span className="h-1.5 w-1.5 rounded-full bg-primary" />
-            </div>
-            <div className="text-center">
-              <div className="text-lg font-bold leading-none">{fmtTime(j.destination.time)}</div>
-              <div className="text-[11px] text-muted-foreground">{j.destination.iata}</div>
-            </div>
-          </div>
-
-          <div className="mt-2 text-xs text-muted-foreground">
-            {fmtDate(j.departure.date)} • {j.flyingTime.hour}h{String(j.flyingTime.minute).padStart(2, "0")} •{" "}
-            {j.marketingAirline?.name?.trim()} •{" "}
-            {j.segments.map((s) => `${s.marketingAirline?.iata ?? ""}${s.flightNumber}`).join(" + ")}
-          </div>
-
-          <div className="mt-2 flex flex-wrap items-center gap-2">
-            <Badge variant={withBag ? "default" : "secondary"} className="gap-1">
-              {withBag ? <Luggage className="h-3 w-3" /> : <BriefcaseBusiness className="h-3 w-3" />}
-              {withBag ? "Bagagem despachada" : "Só bagagem de mão"}
-            </Badge>
-            {j.fareClass?.airlineFareFamily && <Badge variant="outline">{j.fareClass.airlineFareFamily}</Badge>}
-            {selected && (
-              <Badge className="gap-1">
-                <Check className="h-3 w-3" /> Selecionado
-              </Badge>
-            )}
-          </div>
-        </div>
-
-        <div className="ml-auto text-right">
-          <div className="text-xl font-bold text-primary">{fmtMoney(f.price.total)}</div>
-          <div className="text-xs text-muted-foreground">
-            tarifa {fmtMoney(f.price.price)} + taxas {fmtMoney(taxesOf(f))}
-          </div>
-          <div className="text-[11px] text-muted-foreground">
-            {f.price.passengerCount} pax • {installmentLabel(f.price.total, airlineOf(f))}
-          </div>
-        </div>
       </div>
-
-      <button
-        type="button"
-        onClick={(e) => {
-          e.stopPropagation();
-          setOpen((v) => !v);
-        }}
-        aria-expanded={open}
-        className="mt-3 flex items-center gap-1 text-xs font-medium text-primary hover:underline"
-      >
-        <ChevronDown className={`h-3.5 w-3.5 transition-transform ${open ? "rotate-180" : ""}`} />
-        {open
-          ? "Ocultar detalhes"
-          : j.numberOfStops === 0
-            ? "Ver detalhes do voo"
-            : `Ver ${j.numberOfStops} conexão(ões)`}
-      </button>
-      {open && <SegmentsDetail f={f} />}
     </div>
-
   );
 }
+
 
 // ---------------------------------------------------------------- resumo
 
@@ -629,6 +700,21 @@ function SummaryCard({ out, inb }: { out: OnerFlight; inb: OnerFlight | null }) 
   const total = out.price.total + (inb?.price.total ?? 0);
   const pax = out.price.passengerCount || 1;
   const n = Math.min(maxInstallments(airlineOf(out)), inb ? maxInstallments(airlineOf(inb)) : 99);
+  const [orderOpen, setOrderOpen] = useState(false);
+
+  const legText = (label: string, f: OnerFlight) => {
+    const j = f.journey;
+    return `${label}: ${j.departure.iata} ${fmtTime(j.departure.time)} → ${j.destination.iata} ${fmtTime(
+      j.destination.time,
+    )} • ${fmtDate(j.departure.date)} • ${airlineOf(f)?.name?.trim() ?? "—"} • ${
+      j.numberOfStops === 0 ? "direto" : `${j.numberOfStops} conexão(ões)`
+    } • ${flightHasBaggage(f) ? "com bagagem despachada" : "só bagagem de mão"} • ${fmtMoney(f.price.total)}`;
+  };
+  const summaryText = [legText(inb ? "Ida" : "Voo", out), inb ? legText("Volta", inb) : null]
+    .filter(Boolean)
+    .join("\n");
+
+
 
   const Leg = ({ label, f }: { label: string; f: OnerFlight }) => (
     <div className="space-y-1">
@@ -695,15 +781,150 @@ function SummaryCard({ out, inb }: { out: OnerFlight; inb: OnerFlight | null }) 
             {n}x de {fmtMoney(total / n)} sem juros
           </div>
           <div className="text-xs text-muted-foreground">Por passageiro: {fmtMoney(total / pax)}</div>
+
+          <Button
+            onClick={() => setOrderOpen(true)}
+            className="mt-4 w-full py-6 text-xs font-black uppercase tracking-[0.15em]"
+          >
+            <ShoppingCart className="h-4 w-4" /> Fazer pedido
+          </Button>
         </div>
       </div>
+
+      <NewOrderFromFlightsDialog
+        open={orderOpen}
+        onOpenChange={setOrderOpen}
+        total={total}
+        pax={pax}
+        summary={summaryText}
+      />
     </div>
   );
 }
 
+/** Cria o pedido já com o valor e o resumo dos voos escolhidos. */
+function NewOrderFromFlightsDialog({
+  open,
+  onOpenChange,
+  total,
+  pax,
+  summary,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  total: number;
+  pax: number;
+  summary: string;
+}) {
+  const navigate = useNavigate();
+  const create = useServerFn(createOrder);
+  const [form, setForm] = useState({ full_name: "", cpf: "", email: "", phone: "" });
+
+  const mut = useMutation({
+    mutationFn: async () =>
+      create({
+        data: {
+          full_name: form.full_name,
+          cpf: form.cpf,
+          email: form.email,
+          phone: form.phone,
+          payment_method: "other",
+          expected_total: total,
+          total_price: total,
+          adults: pax,
+          notes: summary,
+          supplier_name: "Comprar Viagem",
+        },
+      }),
+    onSuccess: (r: { id: string; order_number: string | number }) => {
+      toast.success(`Pedido ${r.order_number} criado`);
+      onOpenChange(false);
+      navigate({ to: "/admin/pedidos/$id", params: { id: r.id } });
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Erro ao criar pedido"),
+  });
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Fazer pedido</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div className="rounded-xl border border-border/60 bg-muted/40 p-3 text-xs whitespace-pre-line">
+            {summary}
+          </div>
+          <div className="flex items-center justify-between rounded-xl border border-primary/40 bg-primary/5 px-3 py-2">
+            <span className="text-sm text-muted-foreground">Total do pedido</span>
+            <span className="text-lg font-bold text-primary">{fmtMoney(total)}</span>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-1">
+              <Label>Nome completo</Label>
+              <Input
+                value={form.full_name}
+                onChange={(e) => setForm((f) => ({ ...f, full_name: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label>CPF</Label>
+              <Input value={form.cpf} onChange={(e) => setForm((f) => ({ ...f, cpf: e.target.value }))} />
+            </div>
+            <div className="space-y-1">
+              <Label>E-mail</Label>
+              <Input value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} />
+            </div>
+            <div className="space-y-1">
+              <Label>Telefone</Label>
+              <Input value={form.phone} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} />
+            </div>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Cancelar
+          </Button>
+          <Button
+            disabled={mut.isPending}
+            onClick={() => {
+              if (!form.full_name.trim()) return toast.error("Preencha o nome completo");
+              if (!form.cpf.trim()) return toast.error("Informe o CPF");
+              mut.mutate();
+            }}
+          >
+            {mut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShoppingCart className="h-4 w-4" />}
+            Criar pedido
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+
 // ---------------------------------------------------------------- página
 
-export function VoosPage({ header }: { header?: React.ReactNode } = {}) {
+export type FlightPreset = {
+  departureIata: string;
+  arrivalIata: string;
+  departureDate: string;
+  returnDate: string;
+  adults: number;
+  children: number;
+  infants: number;
+};
+
+export function VoosPage({
+  header,
+  hideForm,
+  preset,
+  runToken,
+}: {
+  header?: React.ReactNode;
+  hideForm?: boolean;
+  preset?: FlightPreset;
+  runToken?: number;
+} = {}) {
   const search = useServerFn(onerFlightSearch);
   const searchInbound = useServerFn(onerInboundSearch);
   const [form, setForm] = useState({
@@ -715,6 +936,8 @@ export function VoosPage({ header }: { header?: React.ReactNode } = {}) {
     children: 0,
     infants: 0,
   });
+  const [pendingRun, setPendingRun] = useState(0);
+
   const [result, setResult] = useState<OnerSearchResult | null>(null);
   const [selectedOut, setSelectedOut] = useState<string | null>(null);
   const [selectedIn, setSelectedIn] = useState<string | null>(null);
@@ -838,6 +1061,24 @@ export function VoosPage({ header }: { header?: React.ReactNode } = {}) {
   const canSearch = form.departureIata.length === 3 && form.arrivalIata.length === 3 && !!form.departureDate;
   const paxTotal = Number(form.adults) + Number(form.children) + Number(form.infants);
 
+  // Motor único: aplica os parâmetros vindos do formulário compartilhado e busca.
+  useEffect(() => {
+    if (!preset || !runToken) return;
+    setForm((f) => ({ ...f, ...preset }));
+    setPendingRun(runToken);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [runToken]);
+
+  useEffect(() => {
+    if (!pendingRun) return;
+    if (canSearch) {
+      setPendingRun(0);
+      mut.mutate({ searchKey: null, filters: EMPTY_FILTERS });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingRun, canSearch]);
+
+
 
   return (
     <div className={header ? "" : "min-h-screen bg-background"}>
@@ -863,6 +1104,7 @@ export function VoosPage({ header }: { header?: React.ReactNode } = {}) {
             <Stepper step={step} roundTrip={isRoundTrip} />
           </div>
 
+          {!hideForm && (
           <div className="rounded-2xl border border-border/70 bg-card/85 p-4 shadow-[var(--shadow-card)] backdrop-blur">
             <div className="grid gap-3 lg:grid-cols-[1fr_1fr_auto]">
               <div className="grid grid-cols-2 gap-3">
@@ -961,6 +1203,8 @@ export function VoosPage({ header }: { header?: React.ReactNode } = {}) {
 
             </div>
           </div>
+          )}
+
         </div>
       </header>
 
