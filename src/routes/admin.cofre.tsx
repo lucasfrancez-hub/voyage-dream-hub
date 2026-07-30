@@ -743,6 +743,26 @@ function DetailsModal({
         if (card.billing.state) lines.push(`Estado: ${card.billing.state}`);
       }
     }
+    if (o.passengers.length > 0) {
+      lines.push("");
+      lines.push("— Passageiros —");
+      o.passengers.forEach((p, i) => {
+        lines.push(
+          `${p.index ?? i + 1}. ${p.full_name || "—"}${p.cpf ? ` · CPF ${p.cpf}` : ""}${p.birth_date ? ` · Nasc. ${p.birth_date}` : ""}`,
+        );
+      });
+    }
+    if (o.boletoCapture) {
+      const b = o.boletoCapture;
+      BOLETO_GROUPS.forEach((g) => {
+        const rows = g.fields.filter(([k]) => (b[k] ?? "").toString().trim());
+        if (rows.length === 0) return;
+        lines.push("");
+        lines.push(`— ${g.title} —`);
+        rows.forEach(([k, label]) => lines.push(`${label}: ${b[k]}`));
+      });
+    }
+
     if (o.notes) {
       lines.push("");
       lines.push("— Observações —");
