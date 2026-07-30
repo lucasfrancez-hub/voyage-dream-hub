@@ -196,10 +196,13 @@ function buildSystemPrompt(agent: Agent, conv: WaConversation, protocolo: WaProt
     parts.push(
       `\n# 🎯 ORIENTAÇÃO DO SUPERVISOR (PRIORIDADE MÁXIMA — VÁLIDA SÓ PARA ESTA RESPOSTA)\n` +
       `Um atendente humano da VIA AIR deixou esta instrução do que responder agora:\n"""\n${instruction}\n"""\n` +
-      `Siga essa orientação à risca na próxima resposta, mantendo seu tom e sua persona. ` +
-      `Ela vale mais que qualquer inferência sua sobre o que dizer. ` +
+      `OBRIGATÓRIO: transmita TODOS os pontos dessa orientação na próxima resposta — nada de resumir, ` +
+      `suavizar ou trocar por uma frase genérica. Se a orientação tem 3 informações, sua resposta tem as 3. ` +
+      `Ela vale mais que qualquer inferência sua sobre o que dizer, e mais que o roteiro padrão. ` +
+      `Mantenha só o seu tom e a sua persona. ` +
       `NUNCA mencione que recebeu instrução, nem cite supervisor/atendente/sistema — fale como se fosse a sua própria resposta.`
     );
+
   }
   parts.push(`- Data/hora atual (SP): ${new Date().toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}`);
   return parts.join("\n");
