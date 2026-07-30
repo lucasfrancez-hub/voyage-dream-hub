@@ -52,6 +52,13 @@ export const Route = createFileRoute("/admin/carros")({
 const fmtMoney = (v: number) =>
   v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2 });
 
+const chipCls = (active: boolean) =>
+  `rounded-full px-4 py-2 text-xs font-medium transition ${
+    active
+      ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20"
+      : "border border-border/60 text-muted-foreground hover:border-primary/50 hover:text-foreground"
+  }`;
+
 // ---------------------------------------------------------------- autocomplete
 
 function LocationInput({
@@ -142,91 +149,195 @@ function LocationInput({
 
 // ---------------------------------------------------------------- detalhes
 
+/** Normaliza textos que a operadora envia em CAIXA ALTA para leitura confortável. */
+function prettyText(raw?: string | null) {
+  if (!raw) return "";
+  const t = raw.replace(/\s+/g, " ").trim();
+  const letters = t.replace(/[^A-Za-zÀ-ÿ]/g, "");
+  const upperRatio = letters ? letters.replace(/[^A-ZÀ-Þ]/g, "").length / letters.length : 0;
+  if (upperRatio < 0.7) return t;
+  const lower = t.toLowerCase();
+  return lower.charAt(0).toUpperCase() + lower.slice(1);
+}
+
+/** Quebra um parágrafo longo em tópicos legíveis. */
+function toBullets(raw?: string | null) {
+  const t = prettyText(raw);
+  if (!t) return [];
+  const parts = t
+    .split(/(?<=[.;])\s+|\s+(?=(?:proteção|cobertura|o cliente|na hipótese|nessa modalidade)\b)/i)
+    .map((s) => s.trim())
+    .filter((s) => s.length > 12);
+  return parts.length > 1 ? parts : [t];
+}
+
+function SpecItem({ icon: Icon, label }: { icon: typeof Users; label: string }) {
+  return (
+    <div className="flex items-center gap-2.5 rounded-xl border border-border/50 bg-muted/30 px-3 py-2.5">
+      <Icon className="h-4 w-4 shrink-0 text-primary" />
+      <span className="text-xs font-medium text-foreground">{label}</span>
+    </div>
+  );
+}
+
 function CarDetailsDialog({ car, onClose }: { car: OnerCar | null; onClose: () => void }) {
   return (
     <Dialog open={!!car} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-h-[85vh] max-w-2xl overflow-auto">
-        <DialogHeader>
-          <DialogTitle>Todos os detalhes</DialogTitle>
+      <DialogContent className="max-h-[88vh] max-w-2xl overflow-hidden p-0">
+        <DialogHeader className="border-b border-border/60 px-6 py-4">
+          <DialogTitle className="text-base">Todos os detalhes</DialogTitle>
         </DialogHeader>
         {car && (
-          <div className="space-y-4 text-sm">
-            <div className="flex items-center gap-3">
+          <div className="max-h-[62vh] space-y-7 overflow-auto px-6 py-6">
+            <div className="flex items-start gap-4">
               {car.vendor.logoUrl && (
-                <img src={car.vendor.logoUrl} alt={car.vendor.name} className="h-10 w-auto" />
+                <img
+                  src={car.vendor.logoUrl}
+                  alt={car.vendor.name}
+                  className="h-12 w-20 shrink-0 rounded-lg object-contain"
+                />
               )}
-              <div>
-                <div className="font-semibold">{car.name}</div>
-                <div className="text-xs text-muted-foreground">
+              <div className="min-w-0">
+                <h3 className="text-lg font-bold leading-tight">{prettyText(car.name)}</h3>
+                <p className="mt-1 text-[11px] font-semibold uppercase tracking-wider text-primary">
                   {car.categoryDescription}
-                  {car.providerCarCode ? ` (${car.providerCarCode})` : ""}
-                </div>
+                  {car.providerCarCode ? ` · ${car.providerCarCode}` : ""}
+                </p>
               </div>
             </div>
 
             <div>
-              <div className="mb-2 font-semibold">Esse carro possui:</div>
-              <div className="grid grid-cols-2 gap-2 text-muted-foreground">
-                <span className="flex items-center gap-2">
-                  <Users className="h-4 w-4" /> {car.passengerCount} lugares
-                </span>
-                <span className="flex items-center gap-2">
-                  <Briefcase className="h-4 w-4" /> {car.bagCount} malas
-                </span>
-                <span className="flex items-center gap-2">
-                  <Snowflake className="h-4 w-4" />
-                  {car.airConditioning ? "Ar condicionado" : "Sem ar condicionado"}
-                </span>
-                <span className="flex items-center gap-2">
-                  <Cog className="h-4 w-4" /> {car.transmissionDescription || "Câmbio não informado"}
-                </span>
-                <span className="flex items-center gap-2">
-                  <Gauge className="h-4 w-4" />
-                  {car.unlimitedMileage ? "KM ilimitada" : "KM limitada"}
-                </span>
+              <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
+                Características do veículo
+              </p>
+              <div className="grid gap-2 sm:grid-cols-3">
+                <SpecItem icon={Users} label={`${car.passengerCount} lugares`} />
+                <SpecItem icon={Briefcase} label={`${car.bagCount} malas`} />
+                <SpecItem
+                  icon={Snowflake}
+                  label={car.airConditioning ? "Ar condicionado" : "Sem ar"}
+                />
+                <SpecItem icon={Cog} label={car.transmissionDescription || "Câmbio n/d"} />
+                <SpecItem
+                  icon={Gauge}
+                  label={car.unlimitedMileage ? "KM ilimitada" : "KM limitada"}
+                />
               </div>
             </div>
 
-            <div className="rounded-xl border border-border/70 p-3">
-              <div className="mb-1 font-semibold">Local de retirada e devolução</div>
-              <p className="flex items-center gap-2 text-primary">
-                <MapPin className="h-4 w-4" /> {car.pickup.name}
-              </p>
-              {car.pickup.address && (
-                <p className="text-xs text-muted-foreground">{car.pickup.address}</p>
-              )}
-              {!car.sameLocation && (
-                <p className="mt-2 flex items-center gap-2 text-primary">
-                  <MapPin className="h-4 w-4" /> Devolução: {car.dropoff.name}
-                </p>
-              )}
-              <p className="mt-2 text-xs text-muted-foreground">
-                {car.pickup.date} às {car.pickup.time?.slice(0, 5)} — {car.dropoff.date} às{" "}
-                {car.dropoff.time?.slice(0, 5)}
-              </p>
+            <div className="overflow-hidden rounded-2xl border border-border/60">
+              <div className="flex items-center gap-2 border-b border-border/60 bg-muted/30 px-4 py-3">
+                <MapPin className="h-4 w-4 text-primary" />
+                <span className="text-[11px] font-bold uppercase tracking-wider">
+                  Retirada e devolução
+                </span>
+              </div>
+              <div className="space-y-4 px-4 py-4">
+                <div>
+                  <p className="text-sm font-semibold">{prettyText(car.pickup.name)}</p>
+                  {car.pickup.address && (
+                    <p className="mt-0.5 text-xs text-muted-foreground">
+                      {prettyText(car.pickup.address)}
+                    </p>
+                  )}
+                  {!car.sameLocation && (
+                    <p className="mt-2 text-sm font-semibold">
+                      Devolução: {prettyText(car.dropoff.name)}
+                    </p>
+                  )}
+                </div>
+                <div className="flex items-center gap-4">
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                      Retirada
+                    </p>
+                    <p className="text-sm font-semibold">
+                      {car.pickup.date} às {car.pickup.time?.slice(0, 5)}
+                    </p>
+                  </div>
+                  <div className="h-8 w-px bg-border" />
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                      Devolução
+                    </p>
+                    <p className="text-sm font-semibold">
+                      {car.dropoff.date} às {car.dropoff.time?.slice(0, 5)}
+                    </p>
+                  </div>
+                </div>
+              </div>
             </div>
 
             {car.coverages.map((c) => (
-              <div key={c.name}>
-                <div className="mb-1 flex items-center gap-2 font-semibold">
-                  <ShieldCheck className="h-4 w-4 text-primary" /> {c.name}
+              <div key={c.name} className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <ShieldCheck className="h-5 w-5 text-primary" />
+                  <h4 className="text-sm font-bold">{prettyText(c.name)}</h4>
                 </div>
-                <p className="text-xs leading-relaxed text-muted-foreground">{c.description}</p>
+                <ul className="space-y-2">
+                  {toBullets(c.description)
+                    .slice(0, 4)
+                    .map((b, i) => (
+                      <li
+                        key={i}
+                        className="flex items-start gap-2 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2"
+                      >
+                        <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
+                        <span className="text-xs leading-relaxed text-muted-foreground">{b}</span>
+                      </li>
+                    ))}
+                </ul>
+                {toBullets(c.description).length > 4 && (
+                  <details className="group">
+                    <summary className="flex cursor-pointer list-none items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-primary hover:underline">
+                      Ver texto completo da proteção
+                      <ChevronDown className="h-3 w-3 transition-transform group-open:rotate-180" />
+                    </summary>
+                    <p className="mt-2 rounded-lg border border-border/60 bg-muted/20 p-3 text-[11px] leading-relaxed text-muted-foreground">
+                      {prettyText(c.description)}
+                    </p>
+                  </details>
+                )}
               </div>
             ))}
 
-            {car.guarantees.map((g) => (
-              <div key={g.name}>
-                <div className="mb-1 font-semibold">{g.name}</div>
-                <p className="text-xs leading-relaxed text-muted-foreground">{g.description}</p>
+            {car.guarantees.length > 0 && (
+              <div className="space-y-2 border-t border-border/60 pt-4">
+                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
+                  Termos e condições da reserva
+                </p>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {car.guarantees.map((g) => (
+                    <div key={g.name} className="rounded-lg border border-border/50 bg-muted/20 p-3">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                        {prettyText(g.name)}
+                      </p>
+                      <p className="mt-1 text-xs leading-relaxed">{prettyText(g.description)}</p>
+                    </div>
+                  ))}
+                </div>
               </div>
-            ))}
+            )}
+          </div>
+        )}
+        {car && (
+          <div className="flex items-center justify-between border-t border-border/60 bg-muted/20 px-6 py-4">
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                Preço total
+              </p>
+              <p className="text-2xl font-bold text-primary">{fmtMoney(car.finalPrice)}</p>
+            </div>
+            <Button variant="outline" onClick={onClose}>
+              Fechar
+            </Button>
           </div>
         )}
       </DialogContent>
     </Dialog>
   );
 }
+
 
 // ---------------------------------------------------------------- card
 
@@ -349,6 +460,7 @@ export function CarrosPage({ header }: { header?: React.ReactNode } = {}) {
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState<string | null>(null);
   const [details, setDetails] = useState<OnerCar | null>(null);
+  const [catFilter, setCatFilter] = useState<string[]>([]);
   const [filters, setFilters] = useState({
     startPrice: null as number | null,
     endPrice: null as number | null,
@@ -439,13 +551,33 @@ export function CarrosPage({ header }: { header?: React.ReactNode } = {}) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filtersSig]);
 
-  const cars = result?.cars ?? [];
-  const cheapest = cars.length ? Math.min(...cars.map((c) => c.finalPrice)) : null;
+  const allCars = result?.cars ?? [];
   const categories = useMemo(
-    () => [...new Set(cars.map((c) => c.categoryDescription).filter(Boolean))],
-    [cars],
+    () => [...new Set(allCars.map((c) => c.categoryDescription).filter(Boolean))],
+    [allCars],
   );
-  const vendors = useMemo(() => [...new Set(cars.map((c) => c.vendor.name).filter(Boolean))], [cars]);
+  const vendors = useMemo(
+    () => [...new Set(allCars.map((c) => c.vendor.name).filter(Boolean))],
+    [allCars],
+  );
+  const cars = useMemo(
+    () =>
+      catFilter.length
+        ? allCars.filter((c) => catFilter.includes(c.categoryDescription))
+        : allCars,
+    [allCars, catFilter],
+  );
+  const cheapest = cars.length ? Math.min(...cars.map((c) => c.finalPrice)) : null;
+
+  const activeFilterCount =
+    (filters.startPrice != null ? 1 : 0) +
+    (filters.endPrice != null ? 1 : 0) +
+    (filters.unlimitedMilage != null ? 1 : 0) +
+    (filters.airConditioning != null ? 1 : 0) +
+    filters.availableBagsCount.length +
+    filters.transmissionTypes.length +
+    filters.vendors.length +
+    catFilter.length;
 
   const toggleTransmission = (v: number) =>
     setFilters((f) => ({
@@ -454,6 +586,16 @@ export function CarrosPage({ header }: { header?: React.ReactNode } = {}) {
         ? f.transmissionTypes.filter((x) => x !== v)
         : [...f.transmissionTypes, v],
     }));
+
+  const toggleCategory = (c: string) =>
+    setCatFilter((p) => (p.includes(c) ? p.filter((x) => x !== c) : [...p, c]));
+
+  const toggleVendor = (v: string) =>
+    setFilters((f) => ({
+      ...f,
+      vendors: f.vendors.includes(v) ? f.vendors.filter((x) => x !== v) : [...f.vendors, v],
+    }));
+
 
   return (
     <div className={header ? "" : "min-h-screen bg-background"}>
@@ -560,14 +702,21 @@ export function CarrosPage({ header }: { header?: React.ReactNode } = {}) {
       <main className="mx-auto max-w-7xl px-4 py-8">
         {result && (
           <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
-            <aside className="space-y-5 self-start rounded-[28px] border border-border/50 bg-card/60 p-5 backdrop-blur-xl">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-semibold">Filtros</span>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 px-2 text-xs"
-                  onClick={() =>
+            <aside className="self-start overflow-hidden rounded-[24px] border border-border/50 bg-card/60 backdrop-blur-xl">
+              <div className="flex items-center justify-between border-b border-border/50 px-5 py-4">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-semibold">Filtros</span>
+                  {activeFilterCount > 0 && (
+                    <span className="rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-bold text-primary">
+                      {activeFilterCount}
+                    </span>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  className="text-[11px] font-semibold text-primary hover:underline"
+                  onClick={() => {
+                    setCatFilter([]);
                     setFilters({
                       startPrice: null,
                       endPrice: null,
@@ -578,194 +727,198 @@ export function CarrosPage({ header }: { header?: React.ReactNode } = {}) {
                       fuelTypes: [],
                       transmissionTypes: [],
                       vendors: [],
-                    })
-                  }
+                    });
+                  }}
                 >
-                  Limpar
-                </Button>
+                  Limpar tudo
+                </button>
               </div>
 
-              <div className="space-y-2">
-                <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">
-                  Preço total
-                </Label>
-                {result.priceRange && (
-                  <p className="text-[11px] text-muted-foreground">
-                    {fmtMoney(result.priceRange.lowest)} — {fmtMoney(result.priceRange.highest)}
-                  </p>
+              <div className="space-y-7 px-5 py-5">
+                <section>
+                  <div className="mb-3 flex items-baseline justify-between">
+                    <Label className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
+                      Preço total
+                    </Label>
+                    {result.priceRange && (
+                      <span className="text-[10px] text-muted-foreground">
+                        {fmtMoney(result.priceRange.lowest)} — {fmtMoney(result.priceRange.highest)}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex gap-2">
+                    <Input
+                      className="h-10 rounded-xl bg-muted/30 text-xs"
+                      type="number"
+                      placeholder="De R$"
+                      value={filters.startPrice ?? ""}
+                      onChange={(e) =>
+                        setFilters((f) => ({
+                          ...f,
+                          startPrice: e.target.value ? Number(e.target.value) : null,
+                        }))
+                      }
+                    />
+                    <Input
+                      className="h-10 rounded-xl bg-muted/30 text-xs"
+                      type="number"
+                      placeholder="Até R$"
+                      value={filters.endPrice ?? ""}
+                      onChange={(e) =>
+                        setFilters((f) => ({
+                          ...f,
+                          endPrice: e.target.value ? Number(e.target.value) : null,
+                        }))
+                      }
+                    />
+                  </div>
+                </section>
+
+                <section>
+                  <Label className="mb-3 block text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
+                    Transmissão
+                  </Label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {[
+                      { v: 1, l: "Automático" },
+                      { v: 2, l: "Manual" },
+                    ].map((t) => (
+                      <button
+                        key={t.v}
+                        type="button"
+                        onClick={() => toggleTransmission(t.v)}
+                        className={chipCls(filters.transmissionTypes.includes(t.v))}
+                      >
+                        {t.l}
+                      </button>
+                    ))}
+                  </div>
+                </section>
+
+                <section>
+                  <Label className="mb-3 block text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
+                    Quantidade de malas
+                  </Label>
+                  <div className="flex flex-wrap gap-2">
+                    {[2, 3, 4, 5].map((b) => (
+                      <button
+                        key={b}
+                        type="button"
+                        onClick={() =>
+                          setFilters((f) => ({
+                            ...f,
+                            availableBagsCount: f.availableBagsCount.includes(b)
+                              ? f.availableBagsCount.filter((x) => x !== b)
+                              : [...f.availableBagsCount, b],
+                          }))
+                        }
+                        className={`h-9 w-9 rounded-full text-xs font-semibold transition ${
+                          filters.availableBagsCount.includes(b)
+                            ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20"
+                            : "border border-border/60 text-muted-foreground hover:border-primary/50"
+                        }`}
+                      >
+                        {b}
+                      </button>
+                    ))}
+                    <span className="self-center text-[10px] text-muted-foreground">malas</span>
+                  </div>
+                </section>
+
+                <section>
+                  <Label className="mb-3 block text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
+                    Quilometragem
+                  </Label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {[
+                      { v: true, l: "Ilimitada" },
+                      { v: false, l: "Limitada" },
+                    ].map((k) => (
+                      <button
+                        key={String(k.v)}
+                        type="button"
+                        onClick={() =>
+                          setFilters((f) => ({
+                            ...f,
+                            unlimitedMilage: f.unlimitedMilage === k.v ? null : k.v,
+                          }))
+                        }
+                        className={chipCls(filters.unlimitedMilage === k.v)}
+                      >
+                        {k.l}
+                      </button>
+                    ))}
+                  </div>
+                </section>
+
+                <section>
+                  <Label className="mb-3 block text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
+                    Ar-condicionado
+                  </Label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {[
+                      { v: true, l: "Com ar" },
+                      { v: false, l: "Sem ar" },
+                    ].map((k) => (
+                      <button
+                        key={String(k.v)}
+                        type="button"
+                        onClick={() =>
+                          setFilters((f) => ({
+                            ...f,
+                            airConditioning: f.airConditioning === k.v ? null : k.v,
+                          }))
+                        }
+                        className={chipCls(filters.airConditioning === k.v)}
+                      >
+                        {k.l}
+                      </button>
+                    ))}
+                  </div>
+                </section>
+
+                {categories.length > 0 && (
+                  <section>
+                    <Label className="mb-3 block text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
+                      Categorias
+                    </Label>
+                    <div className="flex flex-wrap gap-2">
+                      {categories.map((c) => (
+                        <button
+                          key={c}
+                          type="button"
+                          onClick={() => toggleCategory(c)}
+                          className={chipCls(catFilter.includes(c))}
+                        >
+                          {c}
+                        </button>
+                      ))}
+                    </div>
+                  </section>
                 )}
-                <div className="flex gap-2">
-                  <Input
-                    className="h-9"
-                    type="number"
-                    placeholder="De"
-                    value={filters.startPrice ?? ""}
-                    onChange={(e) =>
-                      setFilters((f) => ({
-                        ...f,
-                        startPrice: e.target.value ? Number(e.target.value) : null,
-                      }))
-                    }
-                  />
-                  <Input
-                    className="h-9"
-                    type="number"
-                    placeholder="Até"
-                    value={filters.endPrice ?? ""}
-                    onChange={(e) =>
-                      setFilters((f) => ({
-                        ...f,
-                        endPrice: e.target.value ? Number(e.target.value) : null,
-                      }))
-                    }
-                  />
-                </div>
+
+                {vendors.length > 0 && (
+                  <section>
+                    <Label className="mb-3 block text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
+                      Locadoras
+                    </Label>
+                    <div className="flex flex-wrap gap-2">
+                      {vendors.map((v) => (
+                        <button
+                          key={v}
+                          type="button"
+                          onClick={() => toggleVendor(v)}
+                          className={chipCls(filters.vendors.includes(v))}
+                        >
+                          {v}
+                        </button>
+                      ))}
+                    </div>
+                  </section>
+                )}
               </div>
-
-              <div className="space-y-2">
-                <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">
-                  Transmissão
-                </Label>
-                <div className="flex gap-2">
-                  {[
-                    { v: 1, l: "Automático" },
-                    { v: 2, l: "Manual" },
-                  ].map((t) => (
-                    <button
-                      key={t.v}
-                      type="button"
-                      onClick={() => toggleTransmission(t.v)}
-                      className={`flex-1 rounded-lg border px-2 py-1.5 text-xs transition ${
-                        filters.transmissionTypes.includes(t.v)
-                          ? "border-primary bg-primary/10 text-primary"
-                          : "border-border/70 text-muted-foreground hover:border-primary/50"
-                      }`}
-                    >
-                      {t.l}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">
-                  Quantidade de malas
-                </Label>
-                <div className="flex flex-wrap gap-2">
-                  {[2, 3, 4, 5].map((b) => (
-                    <button
-                      key={b}
-                      type="button"
-                      onClick={() =>
-                        setFilters((f) => ({
-                          ...f,
-                          availableBagsCount: f.availableBagsCount.includes(b)
-                            ? f.availableBagsCount.filter((x) => x !== b)
-                            : [...f.availableBagsCount, b],
-                        }))
-                      }
-                      className={`rounded-full border px-3 py-1 text-xs transition ${
-                        filters.availableBagsCount.includes(b)
-                          ? "border-primary bg-primary/10 text-primary"
-                          : "border-border/70 text-muted-foreground hover:border-primary/50"
-                      }`}
-                    >
-                      {b} malas
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">
-                  Quilometragem
-                </Label>
-                <div className="flex gap-2">
-                  {[
-                    { v: true, l: "Ilimitada" },
-                    { v: false, l: "Limitada" },
-                  ].map((k) => (
-                    <button
-                      key={String(k.v)}
-                      type="button"
-                      onClick={() =>
-                        setFilters((f) => ({
-                          ...f,
-                          unlimitedMilage: f.unlimitedMilage === k.v ? null : k.v,
-                        }))
-                      }
-                      className={`flex-1 rounded-lg border px-2 py-1.5 text-xs transition ${
-                        filters.unlimitedMilage === k.v
-                          ? "border-primary bg-primary/10 text-primary"
-                          : "border-border/70 text-muted-foreground hover:border-primary/50"
-                      }`}
-                    >
-                      {k.l}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">
-                  Ar condicionado
-                </Label>
-                <div className="flex gap-2">
-                  {[
-                    { v: true, l: "Com ar" },
-                    { v: false, l: "Sem ar" },
-                  ].map((k) => (
-                    <button
-                      key={String(k.v)}
-                      type="button"
-                      onClick={() =>
-                        setFilters((f) => ({
-                          ...f,
-                          airConditioning: f.airConditioning === k.v ? null : k.v,
-                        }))
-                      }
-                      className={`flex-1 rounded-lg border px-2 py-1.5 text-xs transition ${
-                        filters.airConditioning === k.v
-                          ? "border-primary bg-primary/10 text-primary"
-                          : "border-border/70 text-muted-foreground hover:border-primary/50"
-                      }`}
-                    >
-                      {k.l}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {categories.length > 0 && (
-                <div className="space-y-2">
-                  <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">
-                    Categorias nesta busca
-                  </Label>
-                  <div className="flex flex-wrap gap-1">
-                    {categories.map((c) => (
-                      <Badge key={c} variant="secondary" className="text-[10px]">
-                        {c}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {vendors.length > 0 && (
-                <div className="space-y-2">
-                  <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">
-                    Locadoras
-                  </Label>
-                  <div className="flex flex-wrap gap-1">
-                    {vendors.map((v) => (
-                      <Badge key={v} variant="outline" className="text-[10px]">
-                        {v}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-              )}
             </aside>
+
 
             <section className="space-y-3">
               <div className="flex items-center justify-between">
