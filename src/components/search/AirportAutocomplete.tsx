@@ -35,10 +35,15 @@ export function AirportAutocomplete({
   const [open, setOpen] = useState(false);
   const [highlight, setHighlight] = useState(0);
   const boxRef = useRef<HTMLDivElement>(null);
+  const typingRef = useRef(false);
 
+  // Só espelha o valor externo quando o usuário não está digitando,
+  // senão cada tecla limparia o texto do campo.
   useEffect(() => {
+    if (typingRef.current) return;
     setText(value);
   }, [value]);
+
 
   useEffect(() => {
     const t = setTimeout(() => setDebounced(text.trim()), 250);
@@ -63,6 +68,7 @@ export function AirportAutocomplete({
   const options = useMemo(() => data ?? [], [data]);
 
   function choose(a: Airport) {
+    typingRef.current = false;
     onSelect(a.iata.toUpperCase());
     setText(a.iata.toUpperCase());
     setOpen(false);
@@ -77,13 +83,18 @@ export function AirportAutocomplete({
         autoComplete="off"
         onChange={(e) => {
           const v = e.target.value;
+          typingRef.current = true;
           setText(v);
           setOpen(true);
           setHighlight(0);
           const up = v.trim().toUpperCase();
           onSelect(up.length === 3 && /^[A-Z]{3}$/.test(up) ? up : "");
         }}
+        onBlur={() => {
+          typingRef.current = false;
+        }}
         onFocus={() => setOpen(true)}
+
         onKeyDown={(e) => {
           if (!open || !options.length) return;
           if (e.key === "ArrowDown") {
