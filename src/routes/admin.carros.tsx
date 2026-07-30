@@ -77,7 +77,8 @@ function LocationInput({
   const [options, setOptions] = useState<OnerCarLocation[]>([]);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const typing = useRef(false);
+  const [highlight, setHighlight] = useState(0);
+
 
   useEffect(() => {
     const q = text.trim();
