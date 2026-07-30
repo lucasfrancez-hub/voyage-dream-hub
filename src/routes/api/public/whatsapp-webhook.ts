@@ -229,10 +229,30 @@ async function processPayload(payload: WhatsAppPayload) {
             replySnippet = previewFromContent(String(quoted.content ?? ""));
             replySender = quoted.direction === "outbound" ? "me" : (quoted.sender ?? "customer");
           } else {
-            // Não achamos a original no banco (ex.: enviada direto pelo celular).
-            // Ainda assim guardamos o vínculo — a UI resolve pelo id quando possível.
-            replySender = msg.context?.from && msg.context.from !== msg.from ? "me" : "customer";
+            // Não achamos a original pelo id (ex.: envio antigo sem wa_message_id gravado,
+            // ou mensagem enviada direto do celular). Fallback: pega a última mensagem
+            // da conversa (últimas 24h) que ainda está sem id — quase sempre é essa
+            // que o cliente citou — pra o preview não ficar só "mensagem".
+            const isFromUs = !!msg.context?.from && msg.context.from !== msg.from;
+            replySender = isFromUs ? "me" : "customer";
+            const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+            const { data: guess } = await supabaseAdmin
+              .from("wa_messages")
+              .select("content, direction, sender")
+              .eq("conversation_id", conv.id)
+              .eq("direction", isFromUs ? "outbound" : "inbound")
+              .is("wa_message_id", null)
+              .is("deleted_at", null)
+              .gte("created_at", since)
+              .order("created_at", { ascending: false })
+              .limit(1)
+              .maybeSingle();
+            if (guess) {
+              replySnippet = previewFromContent(String(guess.content ?? ""));
+              replySender = guess.direction === "outbound" ? "me" : (guess.sender ?? "customer");
+            }
           }
+
         }
 
 
