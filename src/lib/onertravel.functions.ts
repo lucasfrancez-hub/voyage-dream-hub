@@ -165,7 +165,6 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 async function poll(
   path: "outbound" | "inbound",
-  searchKey: string,
   loc: string,
   body: Record<string, unknown>,
 ) {
