@@ -183,6 +183,8 @@ export async function searchAirports(data: z.infer<typeof airportSearchInput>) {
     country?: string;
     isCity?: boolean;
     isIataCity?: boolean;
+    iataCityCode?: string | null;
+    airports?: Airport[] | null;
   };
   const json = (await res.json()) as unknown;
 
@@ -201,71 +203,40 @@ export async function searchAirports(data: z.infer<typeof airportSearchInput>) {
     return [];
   };
 
-  return pickList(json)
-    .flatMap((airport) => {
-      if (!airport?.iata) return [];
-      return [
-        {
-          iata: airport.iata,
-          name: airport.name ?? "",
-          city: airport.city ?? "",
-          country: airport.country ?? "",
-          isCity: !!(airport.isCity ?? airport.isIataCity),
-        },
-      ];
-    })
-    .slice(0, 12);
+  // A operadora agrupa a cidade (ex.: RIO) e pendura os aeroportos filhos
+  // (GIG, SDU...). Achatamos tudo para o usuário poder escolher o aeroporto.
+  const out: Array<{
+    iata: string;
+    name: string;
+    city: string;
+    country: string;
+    isCity: boolean;
+    cityCode: string | null;
+  }> = [];
 
-
-}
-
-export async function searchFlights(data: SearchData): Promise<OnerSearchResult> {
-  const loc = buildLocationHref(data);
-  let searchKey = data.searchKey ?? "";
-
-  if (!searchKey) {
-    const startRes = await fetch(`${SERVERLESS}/api/flight/v1/search`, {
-      method: "POST",
-      headers: headers(loc),
-      body: JSON.stringify({
-        departureDate: `${data.departureDate}T00:00:00.000Z`,
-        ...(data.returnDate ? { returnDate: `${data.returnDate}T00:00:00.000Z` } : {}),
-        departureStation: data.departureIata.toUpperCase(),
-        arrivalStation: data.arrivalIata.toUpperCase(),
-        isDepartureStationCity: data.departureIsCity,
-        isArrivalStationCity: data.arrivalIsCity,
-        paxAdtCount: data.adults,
-        paxChdCount: data.children,
-        paxInfCount: data.infants,
-      }),
+  for (const airport of pickList(json)) {
+    if (!airport?.iata) continue;
+    const isCity = !!(airport.isCity ?? airport.isIataCity);
+    out.push({
+      iata: airport.iata,
+      name: airport.name ?? "",
+      city: airport.city ?? "",
+      country: airport.country ?? "",
+      isCity,
+      cityCode: airport.iataCityCode ?? (isCity ? airport.iata : null),
     });
-    const startText = await startRes.text();
-    try {
-      searchKey = (JSON.parse(startText) as { searchKey?: string }).searchKey ?? "";
-    } catch {
-      searchKey = "";
-    }
-    if (!searchKey) {
-      throw new Error(`A operadora não retornou chave de busca (HTTP ${startRes.status}). Tente novamente em instantes.`);
+    for (const child of airport.airports ?? []) {
+      if (!child?.iata) continue;
+      out.push({
+        iata: child.iata,
+        name: child.name ?? "",
+        city: child.city ?? airport.city ?? "",
+        country: child.country ?? airport.country ?? "",
+        isCity: false,
+        cityCode: child.iataCityCode ?? airport.iata,
+      });
     }
   }
 
-  const outbound = await poll("outbound", loc, {
-    searchKey,
-    pageSize: data.pageSize,
-    filter: buildFilter(data.filters),
-    ordinationEnum: 0,
-  });
-  return { searchKey, outbound, inbound: null };
-}
-
-export async function searchInboundFlights(data: InboundData): Promise<OnerLegResult> {
-  const loc = buildLocationHref(data);
-  return poll("inbound", loc, {
-    searchKey: data.searchKey,
-    flightKey: data.flightKey,
-    pageSize: data.pageSize,
-    filter: buildFilter(data.filters),
-    ordinationEnum: 0,
-  });
+  return out.slice(0, 20);
 }
