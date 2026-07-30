@@ -916,19 +916,34 @@ function SummaryLeg({ label, f }: { label: string; f: OnerFlight }) {
   );
 }
 
+type CartContext = {
+  departureIata: string;
+  arrivalIata: string;
+  departureDate: string;
+  returnDate: string | null;
+  adults: number;
+  children: number;
+  infants: number;
+  departureIsCity: boolean;
+  arrivalIsCity: boolean;
+};
+
 function SummaryCard({
   out,
   inb,
   searchKey,
+  ctx,
   open,
   onOpenChange,
 }: {
   out: OnerFlight;
   inb: OnerFlight | null;
   searchKey: string | null;
+  ctx: CartContext;
   open: boolean;
   onOpenChange: (v: boolean) => void;
 }) {
+
 
   const fare = out.price.price + (inb?.price.price ?? 0);
   const taxes = taxesOf(out) + (inb ? taxesOf(inb) : 0);
@@ -951,6 +966,8 @@ function SummaryCard({
           inboundFareId: inb?.key ?? null,
           inboundItineraryId: inb?.journey.key ?? null,
           isRoundTrip: !!inb,
+          ...ctx,
+
         },
       }),
     onSuccess: (r) => {
@@ -1716,6 +1733,8 @@ export function VoosPage({
                     out={outFlight!}
                     inb={inFlight}
                     searchKey={result?.searchKey ?? null}
+                    ctx={{ ...paxData(), returnDate: form.returnDate || null }}
+
                     open={summaryOpen}
                     onOpenChange={setSummaryOpen}
                   />
