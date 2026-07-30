@@ -142,6 +142,29 @@ function buildSystemPrompt(agent: Agent, conv: WaConversation, protocolo: WaProt
     `Assuma que o pedido está identificado por esse localizador e siga o atendimento.`
   );
 
+  if (previousContext?.trim()) {
+    parts.push(
+      `\n# 🧠 HISTÓRICO ANTERIOR DESTE MESMO CLIENTE (protocolos passados — contexto, NÃO responda a essas mensagens)\n` +
+      `"""\n${previousContext.slice(-8000)}\n"""\n` +
+      `Use esse histórico pra ENTENDER do que o cliente está falando agora. ` +
+      `Se ele citar "a cotação", "o pacote que pedi", "o comercial não me retornou", "aquela viagem", ` +
+      `procure a solicitação aqui e retome o assunto pelo nome (destino, datas, nº de pax, hotel, valores já enviados). ` +
+      `Se ele pedir o resumo da solicitação, REESCREVA o resumo a partir deste histórico — não peça pra ele repetir.`
+    );
+  }
+
+  parts.push(
+    `\n# ❌ NUNCA PEÇA DADO QUE NÃO EXISTE\n` +
+    `- Se o assunto é COTAÇÃO / ORÇAMENTO / PROPOSTA / "o comercial não entrou em contato", NÃO existe pedido, nem localizador, nem reserva. ` +
+    `É PROIBIDO pedir número do pedido, localizador, reserva ou CPF nesses casos. ` +
+    `Reconheça o ocorrido, retome a solicitação a partir do histórico e diga que vai priorizar o retorno.\n` +
+    `- Só peça pedido/localizador/CPF quando o cliente falar de uma COMPRA JÁ EMITIDA (voucher, bilhete, check-in, reembolso, remarcação) ` +
+    `E não houver nenhum dado no histórico que identifique essa compra.\n` +
+    `- Antes de perguntar qualquer coisa, releia o histórico: se a informação já foi dita alguma vez, use-a.`
+  );
+
+
+
   if (conv.identity_verified_at) {
     parts.push(`- Identidade JÁ VERIFICADA. Pode falar de dados financeiros/pedidos.`);
   } else {
