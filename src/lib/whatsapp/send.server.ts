@@ -107,6 +107,44 @@ async function metaSendMedia(
   }
 }
 
+async function metaUploadMedia(
+  bytes: Uint8Array,
+  filename: string,
+  mimeType: string,
+): Promise<{ id: string | null; error?: string }> {
+  const token = process.env.WHATSAPP_ACCESS_TOKEN;
+  const phoneId = process.env.WHATSAPP_PHONE_NUMBER_ID;
+  if (!token || !phoneId) return { id: null, error: "WhatsApp credentials missing" };
+
+  const form = new FormData();
+  form.append("messaging_product", "whatsapp");
+  form.append("type", mimeType);
+  form.append("file", new Blob([bytes], { type: mimeType }), filename);
+
+  try {
+    const res = await fetch(`https://graph.facebook.com/${GRAPH_VERSION}/${phoneId}/media`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      body: form,
+    });
+    const rawText = await res.text();
+    let data: { id?: string; error?: { message?: string; error_data?: { details?: string } } } = {};
+    try {
+      data = JSON.parse(rawText);
+    } catch {
+      /* keep empty */
+    }
+    if (!res.ok || !data.id) {
+      const details = data.error?.error_data?.details;
+      const message = data.error?.message ?? `HTTP ${res.status}: ${rawText.slice(0, 300)}`;
+      return { id: null, error: details ? `${message} — ${details}` : message };
+    }
+    return { id: data.id };
+  } catch (err) {
+    return { id: null, error: err instanceof Error ? err.message : String(err) };
+  }
+}
+
 // ================== API pública (mantém assinaturas) ==================
 
 export async function sendWhatsAppText(
@@ -297,4 +335,20 @@ export async function sendWhatsAppAudio(
   link: string,
 ): Promise<{ id: string | null; error?: string }> {
   return metaSendMedia(to, { type: "audio", audio: { link } });
+}
+
+/**
+ * Faz upload do áudio diretamente para a Meta e envia pelo media ID retornado.
+ * Evita a aceitação enganosa que ocorre quando a API aceita uma URL assinada,
+ * mas falha de forma assíncrona ao baixar ou processar o arquivo.
+ */
+export async function sendWhatsAppAudioBytes(
+  to: string,
+  bytes: Uint8Array,
+  filename: string,
+  mimeType: string,
+): Promise<{ id: string | null; error?: string }> {
+  const uploaded = await metaUploadMedia(bytes, filename, mimeType);
+  if (!uploaded.id) return uploaded;
+  return metaSendMedia(to, { type: "audio", audio: { id: uploaded.id } });
 }

@@ -538,7 +538,7 @@ export const sendHumanMedia = createServerFn({ method: "POST" })
     if (cErr || !conv) throw new Error("Conversa não encontrada");
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { sendWhatsAppImage, sendWhatsAppDocument, sendWhatsAppAudio } = await import("@/lib/whatsapp/send.server");
+    const { sendWhatsAppImage, sendWhatsAppDocument, sendWhatsAppAudioBytes } = await import("@/lib/whatsapp/send.server");
     const { saveMessage } = await import("@/lib/whatsapp/conversation.server");
 
     // Upload no bucket privado
@@ -574,7 +574,7 @@ export const sendHumanMedia = createServerFn({ method: "POST" })
     let sendRes = data.kind === "image"
       ? await sendWhatsAppImage(conv.wa_phone, signed.signedUrl, captionWithPrefix ?? null)
       : data.kind === "audio" && audioOk
-        ? await sendWhatsAppAudio(conv.wa_phone, signed.signedUrl)
+        ? await sendWhatsAppAudioBytes(conv.wa_phone, bytes, data.filename, data.mime_type)
         : await sendWhatsAppDocument(conv.wa_phone, signed.signedUrl, data.filename, captionWithPrefix ?? null);
     if (data.kind === "audio" && (!audioOk || sendRes.error || !sendRes.id)) {
       if (audioOk) console.warn("[chat/audio] Meta recusou a nota de voz:", sendRes.error);
