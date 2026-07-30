@@ -21,7 +21,7 @@ export type CardCapture = {
   liveness?: Record<string, any> | null;
 };
 
-export type BoletoCapture = Record<string, string | null | undefined>;
+export type BoletoCapture = Record<string, unknown>;
 
 export type SnapshotPassenger = {
   index?: number;
@@ -30,6 +30,13 @@ export type SnapshotPassenger = {
   birth_date?: string | null;
   email?: string;
   phone?: string;
+  whatsapp?: string | null;
+  passenger_type?: string | null;
+  kind?: string | null;
+  document?: string | null;
+  doc_type?: string | null;
+  passport_number?: string | null;
+  ticket_number?: string | null;
 };
 
 
@@ -84,9 +91,72 @@ export const listCofreOrders = createServerFn({ method: "GET" })
       .limit(200);
     if (error) throw new Error(error.message);
 
+    const orderIds = (data ?? []).map((o) => o.id);
+    const passengerRowsByOrder: Record<string, SnapshotPassenger[]> = {};
+    if (orderIds.length > 0) {
+      const { data: passengerRows, error: passengerErr } = await supabase
+        .from("order_passengers")
+        .select("order_id, full_name, cpf, birth_date, whatsapp, passenger_type, document, doc_type, passport_number, ticket_number, sort_order")
+        .in("order_id", orderIds)
+        .order("sort_order", { ascending: true });
+      if (passengerErr) throw new Error(passengerErr.message);
+
+      (passengerRows ?? []).forEach((p) => {
+        const orderId = p.order_id;
+        if (!passengerRowsByOrder[orderId]) passengerRowsByOrder[orderId] = [];
+        passengerRowsByOrder[orderId].push({
+          index: typeof p.sort_order === "number" ? p.sort_order + 1 : passengerRowsByOrder[orderId].length + 1,
+          full_name: p.full_name,
+          cpf: p.cpf,
+          birth_date: p.birth_date,
+          phone: p.whatsapp ?? undefined,
+          whatsapp: p.whatsapp,
+          passenger_type: p.passenger_type,
+          document: p.document,
+          doc_type: p.doc_type,
+          passport_number: p.passport_number,
+          ticket_number: p.ticket_number,
+        });
+      });
+    }
+
     return (data ?? []).map((o) => {
       const snap = (o.package_snapshot ?? {}) as Record<string, unknown>;
       const card = (snap.card_capture ?? null) as CardCapture | null;
+      const snapshotPassengerSource = Array.isArray(snap.passengers)
+        ? snap.passengers
+        : Array.isArray(snap.travelers)
+          ? snap.travelers
+          : [];
+      const snapshotPassengers: SnapshotPassenger[] = snapshotPassengerSource.map((raw, i) => {
+        const p = (raw ?? {}) as Record<string, unknown>;
+        const text = (key: string) => (typeof p[key] === "string" ? (p[key] as string) : null);
+        return {
+          index: typeof p.index === "number" ? p.index : i + 1,
+          full_name: text("full_name") ?? text("name") ?? `Passageiro ${i + 1}`,
+          cpf: text("cpf"),
+          birth_date: text("birth_date"),
+          email: text("email") ?? undefined,
+          phone: text("phone") ?? text("whatsapp") ?? undefined,
+          whatsapp: text("whatsapp"),
+          passenger_type: text("passenger_type"),
+          kind: text("kind"),
+          document: text("document"),
+          doc_type: text("doc_type"),
+          passport_number: text("passport_number"),
+          ticket_number: text("ticket_number"),
+        };
+      });
+      const materializedPassengers = passengerRowsByOrder[o.id] ?? [];
+      const passengers = materializedPassengers.length > 0
+        ? materializedPassengers.map((p, i) => ({
+            ...p,
+            email: p.email ?? snapshotPassengers[i]?.email,
+            phone: p.phone ?? snapshotPassengers[i]?.phone,
+            cpf: p.cpf ?? snapshotPassengers[i]?.cpf ?? null,
+            birth_date: p.birth_date ?? snapshotPassengers[i]?.birth_date ?? null,
+          }))
+        : snapshotPassengers;
       return {
         id: o.id,
         createdAt: o.created_at,
@@ -115,9 +185,7 @@ export const listCofreOrders = createServerFn({ method: "GET" })
         snapshotKind: (snap.kind as string) ?? null,
         isManual: snap.manual === true,
         boletoCapture: (snap.boleto_capture ?? null) as BoletoCapture | null,
-        passengers: Array.isArray(snap.passengers)
-          ? (snap.passengers as SnapshotPassenger[])
-          : [],
+        passengers,
 
       };
 
