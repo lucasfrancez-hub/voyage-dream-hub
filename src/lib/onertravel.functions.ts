@@ -156,6 +156,46 @@ export const onerAirportSearch = createServerFn({ method: "GET" })
 
 // ---------------------------------------------------------------- busca
 
+/**
+ * Filtros aplicados PELA OPERADORA (server-side). A lista padrão só traz a
+ * família mais barata (LIGHT, sem bagagem despachada); por isso filtrar no
+ * navegador não funciona — é preciso repetir a consulta com os filtros.
+ */
+const OperatorFilters = z.object({
+  containsDispatchBaggage: z.boolean().default(false),
+  maxStops: z.number().int().min(0).max(2).default(2),
+  startPrice: z.number().nullable().default(null),
+  endPrice: z.number().nullable().default(null),
+  /** Janela de horário de partida em minutos desde 00:00 (0–1440). */
+  departureFrom: z.number().int().min(0).max(1440).nullable().default(null),
+  departureTo: z.number().int().min(0).max(1440).nullable().default(null),
+  airlineIatas: z.array(z.string()).default([]),
+  cabinClass: z.string().nullable().default(null),
+});
+
+export type OnerOperatorFilters = z.infer<typeof OperatorFilters>;
+
+const hm = (mins: number | null | undefined) =>
+  mins === null || mins === undefined ? null : { hour: Math.floor(mins / 60) % 24, minute: mins % 60 };
+
+function buildFilter(f: OnerOperatorFilters) {
+  const isFullDay = f.departureFrom === 0 && (f.departureTo === 1440 || f.departureTo === null);
+  return {
+    containsDispatchBaggage: f.containsDispatchBaggage,
+    cabinClass: f.cabinClass,
+    startPrice: f.startPrice,
+    endPrice: f.endPrice,
+    startDepartureTime: isFullDay ? null : hm(f.departureFrom),
+    endDepartureTime: isFullDay ? null : hm(f.departureTo === 1440 ? 1439 : f.departureTo),
+    departureAirportIatas: [] as string[],
+    arrivalAirportIatas: [] as string[],
+    marketingAirlineIatas: f.airlineIatas,
+    maxStopsEnum: f.maxStops,
+  };
+}
+
+const DEFAULT_FILTERS: OnerOperatorFilters = OperatorFilters.parse({});
+
 const SearchInput = z.object({
   departureIata: z.string().min(3).max(3),
   arrivalIata: z.string().min(3).max(3),
@@ -164,9 +204,10 @@ const SearchInput = z.object({
   adults: z.number().int().min(1).max(9).default(1),
   children: z.number().int().min(0).max(9).default(0),
   infants: z.number().int().min(0).max(9).default(0),
-  maxStops: z.number().int().min(0).max(2).default(0),
-  pageSize: z.number().int().min(1).max(30).default(10),
-  onlyWithBaggage: z.boolean().default(false),
+  pageSize: z.number().int().min(1).max(30).default(30),
+  /** Reaproveita uma busca já iniciada (usado ao trocar filtros). */
+  searchKey: z.string().nullish(),
+  filters: OperatorFilters.default(DEFAULT_FILTERS),
 });
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -177,7 +218,7 @@ export function flightHasBaggage(f: OnerFlight): boolean {
   const list = f.journey.baggagesAllowance ?? [];
   return list.some((b) => {
     const desc = `${b.typeDescription ?? ""}`.toLowerCase();
-    const isChecked = desc.includes("despach") || desc.includes("checked") || desc.includes("porão");
+    const isChecked = desc.includes("dispatch") || desc.includes("despach") || desc.includes("checked");
     return isChecked && (b.quantity ?? 0) > 0;
   });
 }
@@ -186,18 +227,14 @@ async function poll(
   path: "outbound" | "inbound",
   loc: string,
   body: Record<string, unknown>,
-  onlyWithBaggage = false,
-) {
+  /** quando os filtros já estão aplicados, poucas rodadas bastam */
+  maxRounds = 20,
+): Promise<OnerLegResult> {
   // A operadora agrega resultados de vários fornecedores; o total cresce a cada
   // consulta. Continuamos consultando até estabilizar (ou esgotar o tempo).
-  let best = { totalFlightsCount: 0, flights: [] as OnerFlight[] };
+  let best: OnerLegResult = { totalFlightsCount: 0, flights: [], priceRange: null };
   let stableRounds = 0;
-  const finish = (r: { totalFlightsCount: number; flights: OnerFlight[] }) => {
-    if (!onlyWithBaggage) return r;
-    const flights = r.flights.filter(flightHasBaggage);
-    return { totalFlightsCount: flights.length, flights };
-  };
-  for (let i = 0; i < 20; i++) {
+  for (let i = 0; i < maxRounds; i++) {
     const res = await fetch(`${SERVERLESS}/api/flight/v1/search/${path}`, {
       // header `searchkey` NÃO deve ser enviado — o site não envia e a API
       // devolve lista vazia quando ele está presente.
@@ -208,23 +245,30 @@ async function poll(
     const text = await res.text();
     if (res.ok) {
       try {
-        const json = JSON.parse(text) as { totalFlightsCount: number; flights: OnerFlight[] };
+        const json = JSON.parse(text) as {
+          totalFlightsCount: number;
+          flights: OnerFlight[];
+          filterPriceRange?: { minPrice: number; maxPrice: number };
+        };
         if ((json.totalFlightsCount ?? 0) > best.totalFlightsCount) {
-          best = json;
+          best = {
+            totalFlightsCount: json.totalFlightsCount,
+            flights: json.flights ?? [],
+            priceRange: json.filterPriceRange ?? null,
+          };
           stableRounds = 0;
         } else if (best.totalFlightsCount > 0) {
           stableRounds++;
-          if (stableRounds >= 3) return finish(best);
+          if (stableRounds >= 2) return best;
         }
       } catch {
         /* continua */
       }
     }
-    await sleep(2000);
+    await sleep(1500);
   }
-  return finish(best);
+  return best;
 }
-
 
 export const onerFlightSearch = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -240,46 +284,49 @@ export const onerFlightSearch = createServerFn({ method: "POST" })
       infants: data.infants,
     });
 
-    const startRes = await fetch(`${SERVERLESS}/api/flight/v1/search`, {
-      method: "POST",
-      headers: headers(loc),
-      body: JSON.stringify({
-        departureDate: `${data.departureDate}T00:00:00.000Z`,
-        // só inclui returnDate em ida-e-volta; enviar null quebra a busca
-        ...(data.returnDate ? { returnDate: `${data.returnDate}T00:00:00.000Z` } : {}),
-        departureStation: data.departureIata.toUpperCase(),
-        arrivalStation: data.arrivalIata.toUpperCase(),
-        paxAdtCount: data.adults,
-        paxChdCount: data.children,
-        paxInfCount: data.infants,
-      }),
-    });
+    let searchKey = data.searchKey ?? "";
 
-    const startText = await startRes.text();
-    let searchKey = "";
-    try {
-      searchKey = (JSON.parse(startText) as { searchKey?: string }).searchKey ?? "";
-    } catch {
-      /* ignore */
-    }
     if (!searchKey) {
-      throw new Error(
-        `A operadora não retornou chave de busca (HTTP ${startRes.status}). Tente novamente em instantes.`,
-      );
+      const startRes = await fetch(`${SERVERLESS}/api/flight/v1/search`, {
+        method: "POST",
+        headers: headers(loc),
+        body: JSON.stringify({
+          departureDate: `${data.departureDate}T00:00:00.000Z`,
+          // só inclui returnDate em ida-e-volta; enviar null quebra a busca
+          ...(data.returnDate ? { returnDate: `${data.returnDate}T00:00:00.000Z` } : {}),
+          departureStation: data.departureIata.toUpperCase(),
+          arrivalStation: data.arrivalIata.toUpperCase(),
+          paxAdtCount: data.adults,
+          paxChdCount: data.children,
+          paxInfCount: data.infants,
+        }),
+      });
+
+      const startText = await startRes.text();
+      try {
+        searchKey = (JSON.parse(startText) as { searchKey?: string }).searchKey ?? "";
+      } catch {
+        /* ignore */
+      }
+      if (!searchKey) {
+        throw new Error(
+          `A operadora não retornou chave de busca (HTTP ${startRes.status}). Tente novamente em instantes.`,
+        );
+      }
     }
 
     const filterBody = {
       searchKey,
       page: 1,
       pageSize: data.pageSize,
-      filter: { maxStopsEnum: data.maxStops, startPrice: null, endPrice: null },
+      filter: buildFilter(data.filters),
       ordinationEnum: 0,
     };
 
     // A volta só existe depois que uma opção de ida é escolhida (a operadora
     // combina as tarifas). Aqui devolvemos apenas a ida; o cliente chama
     // `onerInboundSearch` com a chave do voo de ida selecionado.
-    const outbound = await poll("outbound", loc, filterBody, data.onlyWithBaggage);
+    const outbound = await poll("outbound", loc, filterBody, data.searchKey ? 8 : 20);
 
     return { searchKey, outbound, inbound: null };
   });
@@ -300,13 +347,12 @@ export const onerInboundSearch = createServerFn({ method: "POST" })
         adults: z.number().int().min(1).default(1),
         children: z.number().int().min(0).default(0),
         infants: z.number().int().min(0).default(0),
-        maxStops: z.number().int().min(0).max(2).default(0),
-        pageSize: z.number().int().min(1).max(30).default(10),
-        onlyWithBaggage: z.boolean().default(false),
+        pageSize: z.number().int().min(1).max(30).default(30),
+        filters: OperatorFilters.default(DEFAULT_FILTERS),
       })
       .parse(d),
   )
-  .handler(async ({ data }) => {
+  .handler(async ({ data }): Promise<OnerLegResult> => {
     const loc = buildLocationHref({
       departureDate: data.departureDate,
       returnDate: data.returnDate,
@@ -317,18 +363,12 @@ export const onerInboundSearch = createServerFn({ method: "POST" })
       infants: data.infants,
     });
 
-    return poll(
-      "inbound",
-      loc,
-      {
-        searchKey: data.searchKey,
-        flightKey: data.flightKey,
-        page: 1,
-        pageSize: data.pageSize,
-        filter: { maxStopsEnum: data.maxStops, startPrice: null, endPrice: null },
-        ordinationEnum: 0,
-      },
-      data.onlyWithBaggage,
-    );
+    return poll("inbound", loc, {
+      searchKey: data.searchKey,
+      flightKey: data.flightKey,
+      page: 1,
+      pageSize: data.pageSize,
+      filter: buildFilter(data.filters),
+      ordinationEnum: 0,
+    });
   });
-
