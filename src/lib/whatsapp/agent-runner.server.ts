@@ -225,6 +225,40 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
 
   const history = await loadHistory(conv.id, 30, sinceIso);
 
+  // CONTEXTO ANTERIOR: mensagens de ANTES do protocolo atual (últimos 45 dias).
+  // O cliente frequentemente retoma um assunto antigo ("o comercial não entrou
+  // em contato", "e a cotação?"). Sem esse histórico a IA não entende do que
+  // ele fala e acaba pedindo pedido/localizador/CPF sem necessidade.
+  let previousContext = "";
+  if (sinceIso) {
+    const prevSince = new Date(Date.now() - 45 * 24 * 60 * 60 * 1000).toISOString();
+    const { data: prevRows } = await supabaseAdmin
+      .from("wa_messages")
+      .select("sender, direction, content, created_at")
+      .eq("conversation_id", conv.id)
+      .lt("created_at", sinceIso)
+      .gte("created_at", prevSince)
+      .order("created_at", { ascending: false })
+      .limit(40);
+    const prev = ((prevRows ?? []) as Array<{ sender: string; content: string; created_at: string }>).reverse();
+    if (prev.length) {
+      previousContext = prev
+        .map((m) => {
+          const when = new Date(m.created_at).toLocaleString("pt-BR", {
+            timeZone: "America/Sao_Paulo",
+            day: "2-digit",
+            month: "2-digit",
+            hour: "2-digit",
+            minute: "2-digit",
+          });
+          const who = m.sender === "customer" ? "CLIENTE" : "VIA AIR";
+          return `[${when}] ${who}: ${String(m.content ?? "").slice(0, 700)}`;
+        })
+        .join("\n");
+    }
+  }
+
+
   // CONTEXTO OPERACIONAL: pega TAMBÉM as mensagens automáticas (check-in,
   // alerta de voo, voucher, cobrança) dos últimos 7 dias que estão FORA do
   // protocolo atual — quando o cliente abre um novo protocolo respondendo
