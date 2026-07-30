@@ -80,7 +80,11 @@ export const generateCurationCopy = createServerFn({ method: "POST" })
     const apiKey = process.env.LOVABLE_API_KEY;
     if (!apiKey) throw new Error("LOVABLE_API_KEY ausente");
 
-    const baseUrl = data.baseUrl?.replace(/\/$/, "") || "https://pedidos.viaair.tur.br";
+    // Sempre o domínio público — nunca o host de preview/lovableproject,
+    // senão o link vai errado pro cliente no broadcast.
+    void data.baseUrl;
+    const baseUrl = "https://pedidos.viaair.tur.br";
+
     const fmtBRL = (n: number) =>
       n.toLocaleString("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 0, maximumFractionDigits: 0 });
     const fmtDate = (s?: string | null) => {

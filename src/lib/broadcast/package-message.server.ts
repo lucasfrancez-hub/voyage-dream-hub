@@ -54,6 +54,46 @@ function sentidoLabel(s?: string | null) {
   return s === "in" ? "somente chegada" : s === "out" ? "somente saída" : "ida e volta (chegada e saída)";
 }
 
+
+export const CONTACT_LINE = "✨ Para mais informações me chame aqui 📲 44 99826-1137";
+
+/**
+ * Deixa o final da legenda sempre igual: assinatura com telefone e, por último,
+ * o link público. Remove links de preview (lovableproject/lovable.app) e
+ * duplicidades que vinham da copy curada.
+ */
+export function normalizeCaptionEnding(raw: string, slug: string): string {
+  const link = `https://pedidos.viaair.tur.br/w/${slug}`;
+  const lines = String(raw)
+    .replace(/\r/g, "")
+    .split("\n")
+    .filter((l) => {
+      const t = l.trim();
+      if (!t) return true;
+      // qualquer URL de preview ou link do pacote sai daqui — recolocamos no fim
+      if (/https?:\/\/\S*(lovableproject\.com|lovable\.app)/i.test(t)) return false;
+      if (/https?:\/\/\S*\/w\/\S+/i.test(t)) return false;
+      if (/Para mais informações me chame aqui/i.test(t)) return false;
+      if (/^\D{0,4}44\s?9?9826[-\s]?1137\D{0,4}$/.test(t)) return false;
+      return true;
+    });
+  const body = lines.join("\n").replace(/\n{3,}/g, "\n\n").trim();
+  return `${body}\n\n${CONTACT_LINE}\n${link}`;
+}
+
+/** Gancho curto em itálico quando não há copy curada. */
+function fallbackHook(pkg: PkgRow): string {
+  const dest = String(pkg.destination || pkg.title || "").trim();
+  const pool = [
+    "Existe um jeito de conhecer este destino gastando menos do que você imagina.",
+    dest ? `Tá na hora de tirar ${dest} da sua lista de desejos.` : "Tá na hora de tirar esse destino da sua lista de desejos.",
+    "Um roteiro pronto, com tudo organizado — é só arrumar a mala.",
+    "Que tal garantir agora e viajar com tranquilidade depois?",
+  ];
+  const key = (pkg.slug || dest).split("").reduce((a, c) => a + c.charCodeAt(0), 0);
+  return `_${pool[key % pool.length]}_`;
+}
+
 export function buildPackageCaption(pkg: PkgRow, storedCopy: string | null, quantidade_adultos?: number): string {
   const qtd = quantidade_adultos && quantidade_adultos > 0 ? quantidade_adultos : (pkg.base_occupancy ?? 2);
   const priceP = Number(pkg.price_per_person) || 0;
@@ -67,14 +107,7 @@ export function buildPackageCaption(pkg: PkgRow, storedCopy: string | null, quan
 
   // Reusa copy curada se houver
   if (storedCopy) {
-    let caption = String(storedCopy)
-      .split("\n")
-      .filter((l) => !/Para mais informações me chame aqui/i.test(l) && !/^\s*4499826-1137\s*$/.test(l))
-      .join("\n")
-      .replace(/\n{3,}/g, "\n\n")
-      .trim();
-    if (!caption.includes(link)) caption = `${caption}\n${link}`;
-    return caption;
+    return normalizeCaptionEnding(String(storedCopy), pkg.slug);
   }
 
   const dateRange = (() => {
@@ -151,6 +184,8 @@ export function buildPackageCaption(pkg: PkgRow, storedCopy: string | null, quan
   const lines: string[] = [];
   lines.push(`*${title}*`);
   lines.push("");
+  lines.push(fallbackHook(pkg));
+  lines.push("");
   if (pkg.origin) lines.push(`✈️ Saindo de ${pkg.origin}`);
   if (dateRange) lines.push(`🗓️ ${dateRange}${nights ? ` (${nights} noites)` : ""}`);
   if (pkg.hotel_name) {
@@ -173,6 +208,7 @@ export function buildPackageCaption(pkg: PkgRow, storedCopy: string | null, quan
   if (boletoAteViagem) lines.push(`📄 *Boleto parcelado:* até a data da viagem (sem análise de crédito)`);
   lines.push(`*sem juros em qualquer forma de pagamento*`);
   lines.push("");
+  lines.push(CONTACT_LINE);
   lines.push(link);
   return lines.join("\n");
 }
