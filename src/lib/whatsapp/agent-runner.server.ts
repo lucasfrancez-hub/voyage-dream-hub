@@ -334,8 +334,9 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
 
     const { splitToBubbles } = await import("./send.server");
     const bubbles = splitToBubbles(text);
+    const savedRowIds: Array<string | null> = [];
     for (let i = 0; i < bubbles.length; i++) {
-      await saveMessage({
+      const row = await saveMessage({
         conversation_id: conv.id,
         direction: "outbound",
         sender: "camila",
@@ -344,6 +345,7 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
         // tool_calls e reply só no primeiro balão
         tool_calls: i === 0 && toolCallsSummary && toolCallsSummary.length > 0 ? toolCallsSummary : null,
       });
+      savedRowIds.push(row?.id ?? null);
     }
 
 
