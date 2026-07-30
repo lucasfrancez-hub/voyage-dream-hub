@@ -693,9 +693,9 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
   );
   const previewOf = (raw: unknown): string => {
     let text = messageText(raw);
-    const media = raw.match(/^\[\[media:([a-z]+)\|[^\]]*\]\]\n?/);
+    const media = text.match(/^\[\[media:([a-z]+)\|[^\]]*\]\]\n?/);
     if (media) {
-      text = raw.replace(media[0], "").trim();
+      text = text.replace(media[0], "").trim();
       if (!text) {
         const kind = media[1];
         return kind === "image" ? "🖼️ Foto" : kind === "video" ? "🎬 Vídeo" : kind === "audio" ? "🎤 Áudio" : "📎 Documento";
