@@ -80,6 +80,11 @@ function fmtTime(t: { hour: number; minute: number }) {
 function fmtDate(d: { year: number; month: number; day: number }) {
   return `${String(d.day).padStart(2, "0")}/${String(d.month).padStart(2, "0")}`;
 }
+/** Códigos multi-aeroporto: buscam todos os aeroportos da cidade na operadora. */
+const CITY_CODES = new Set([
+  "SAO", "RIO", "BHZ", "BUE", "NYC", "LON", "PAR", "MIL", "WAS", "TYO",
+  "MOW", "CHI", "ROM", "STO", "SEL", "OSA", "YTO", "YMQ", "BER",
+]);
 function taxesOf(f: OnerFlight) {
   return (f.price.tax ?? 0) + (f.price.serviceTax ?? 0);
 }
