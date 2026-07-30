@@ -117,9 +117,27 @@ function PayBoletoPage() {
       return;
     }
 
+    // Normaliza para respeitar as regras de gravação (nome 2-120, e-mail 5-160, telefone 8-30)
+    const fullName = primary.full_name.trim().slice(0, 120);
+    const email = primary.email.trim().toLowerCase().slice(0, 160);
+    const phoneRaw = primary.phone.trim().slice(0, 30);
+    const phoneDigits = phoneRaw.replace(/\D/g, "");
+    if (fullName.length < 2) {
+      toast.error("Informe o nome completo do passageiro 1.");
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      toast.error("Informe um e-mail válido para o passageiro 1.");
+      return;
+    }
+    if (phoneDigits.length < 10 || phoneDigits.length > 15) {
+      toast.error("Informe um telefone válido com DDD (ex.: 41 99999-9999).");
+      return;
+    }
+
     setSubmitting(true);
     try {
-      const { error } = await supabase.from("orders").insert({
+      const payload = {
         package_id: null,
         package_snapshot: {
           kind: "payment_link_boleto",
@@ -133,33 +151,61 @@ function PayBoletoPage() {
           image_url: img ?? null,
           passengers: passengers.map((p, i) => ({
             index: i + 1,
-            full_name: p.full_name,
+            full_name: p.full_name.trim(),
             cpf: p.cpf || null,
             birth_date: p.birth_date || null,
-            ...(i === 0 ? { email: p.email, phone: p.phone } : {}),
+            ...(i === 0 ? { email, phone: phoneRaw } : {}),
           })),
           boleto_capture: boleto,
         },
-        full_name: primary.full_name,
-        email: primary.email,
-        phone: primary.phone,
+        full_name: fullName,
+        email,
+        phone: phoneRaw,
         cpf: primary.cpf || null,
         birth_date: primary.birth_date || null,
-        adults: passengers.length,
+        adults: Math.min(Math.max(passengers.length, 1), 20),
         children: 0,
         payment_method: installments > 1 ? `boleto_${installments}x` : "boleto",
         total_price: totalNumber,
         notes: notes || null,
-      });
-      if (error) throw error;
+      };
+
+      let lastErr: unknown = null;
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+          const { error } = await supabase.from("orders").insert(payload);
+          if (!error) {
+            lastErr = null;
+            break;
+          }
+          lastErr = error;
+          // erros de validação/permissão não adiantam repetir
+          if (error.code && !["503", "504", "PGRST002"].includes(error.code)) break;
+        } catch (netErr) {
+          lastErr = netErr;
+        }
+        if (attempt < 2) await new Promise((r) => setTimeout(r, 800 * (attempt + 1)));
+      }
+      if (lastErr) throw lastErr;
+
       setSuccess(true);
       toast.success("Solicitação enviada! Nosso time entra em contato pelo WhatsApp.");
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Erro ao enviar solicitação.");
+      const detail =
+        typeof err === "object" && err !== null && "message" in err
+          ? String((err as { message?: unknown }).message ?? "")
+          : "";
+      console.error("[pagar-boleto] falha ao enviar solicitação", err);
+      toast.error(
+        detail
+          ? `Não foi possível enviar: ${detail}`
+          : "Erro ao enviar solicitação. Verifique sua conexão e tente novamente.",
+      );
     } finally {
       setSubmitting(false);
     }
   }
+
 
   return (
     <div className="min-h-screen bg-background text-foreground">
