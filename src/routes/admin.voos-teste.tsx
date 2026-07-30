@@ -125,6 +125,8 @@ type Filters = {
   maxPrice: string;
   dep: [number, number];
   arr: [number, number];
+  depAirports: string[];
+  arrAirports: string[];
 };
 
 const FULL_DAY: [number, number] = [0, 1440];
@@ -137,6 +139,8 @@ const EMPTY_FILTERS: Filters = {
   maxPrice: "",
   dep: [...FULL_DAY] as [number, number],
   arr: [...FULL_DAY] as [number, number],
+  depAirports: [],
+  arrAirports: [],
 };
 
 function fmtMinutes(m: number) {
@@ -163,10 +167,14 @@ function toOperatorFilters(f: Filters) {
 function applyFilters(list: OnerFlight[], f: Filters) {
   return list.filter((fl) => {
     if (f.maxStops < 2 && fl.journey.numberOfStops > f.maxStops) return false;
-    if (f.arr[0] === FULL_DAY[0] && f.arr[1] === FULL_DAY[1]) return true;
-    const t = fl.journey.destination.time;
-    const m = t.hour * 60 + t.minute;
-    return m >= f.arr[0] && m <= f.arr[1];
+    if (f.depAirports.length && !f.depAirports.includes(fl.journey.departure.iata)) return false;
+    if (f.arrAirports.length && !f.arrAirports.includes(fl.journey.destination.iata)) return false;
+    if (f.arr[0] !== FULL_DAY[0] || f.arr[1] !== FULL_DAY[1]) {
+      const t = fl.journey.destination.time;
+      const m = t.hour * 60 + t.minute;
+      if (m < f.arr[0] || m > f.arr[1]) return false;
+    }
+    return true;
   });
 }
 
@@ -178,7 +186,9 @@ function activeCount(f: Filters) {
     (f.minPrice ? 1 : 0) +
     (f.maxPrice ? 1 : 0) +
     (f.dep[0] !== 0 || f.dep[1] !== 1440 ? 1 : 0) +
-    (f.arr[0] !== 0 || f.arr[1] !== 1440 ? 1 : 0)
+    (f.arr[0] !== 0 || f.arr[1] !== 1440 ? 1 : 0) +
+    f.depAirports.length +
+    f.arrAirports.length
   );
 }
 
@@ -268,6 +278,24 @@ function FiltersPanel({
     return [...map.entries()].sort((a, b) => a[1].localeCompare(b[1]));
   }, [flights]);
 
+  const depAirports = useMemo(() => {
+    const map = new Map<string, string>();
+    flights.forEach((f) => {
+      const p = f.journey.departure;
+      if (p?.iata) map.set(p.iata, p.name?.trim() || p.iata);
+    });
+    return [...map.entries()].sort((a, b) => a[1].localeCompare(b[1]));
+  }, [flights]);
+
+  const arrAirports = useMemo(() => {
+    const map = new Map<string, string>();
+    flights.forEach((f) => {
+      const p = f.journey.destination;
+      if (p?.iata) map.set(p.iata, p.name?.trim() || p.iata);
+    });
+    return [...map.entries()].sort((a, b) => a[1].localeCompare(b[1]));
+  }, [flights]);
+
   const prices = flights.map((f) => f.price.total);
   const lo = priceRange?.minPrice ?? (prices.length ? Math.min(...prices) : 0);
   const hi = priceRange?.maxPrice ?? (prices.length ? Math.max(...prices) : 0);
@@ -308,9 +336,6 @@ function FiltersPanel({
             <Luggage className={`h-4 w-4 ${filters.onlyBaggage ? "text-primary" : "text-muted-foreground"}`} />
             Bagagem para despachar
           </label>
-          <p className="text-[11px] leading-snug text-muted-foreground">
-            Ao marcar, a operadora refaz a busca com as tarifas que já incluem bagagem despachada.
-          </p>
         </div>
         <div className="space-y-2 p-4">
           <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Paradas</Label>
@@ -396,6 +421,43 @@ function FiltersPanel({
           </div>
         )}
 
+        {depAirports.length > 1 && (
+          <div className="space-y-2 p-4">
+            <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+              Aeroporto de partida
+            </Label>
+            <div className="flex flex-wrap gap-2">
+              {depAirports.map(([iata, name]) => (
+                <Chip
+                  key={iata}
+                  active={filters.depAirports.includes(iata)}
+                  onClick={() => onChange({ ...filters, depAirports: toggle(filters.depAirports, iata) })}
+                >
+                  {iata} — {name}
+                </Chip>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {arrAirports.length > 1 && (
+          <div className="space-y-2 p-4">
+            <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+              Aeroporto de chegada
+            </Label>
+            <div className="flex flex-wrap gap-2">
+              {arrAirports.map(([iata, name]) => (
+                <Chip
+                  key={iata}
+                  active={filters.arrAirports.includes(iata)}
+                  onClick={() => onChange({ ...filters, arrAirports: toggle(filters.arrAirports, iata) })}
+                >
+                  {iata} — {name}
+                </Chip>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </section>
   );
