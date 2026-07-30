@@ -566,18 +566,30 @@ export const sendHumanMedia = createServerFn({ method: "POST" })
       ? `*${senderName.split(/\s+/)[0]}:*${data.caption ? `\n${data.caption}` : ""}`
       : (data.caption ?? undefined);
 
-    const sendRes = data.kind === "image"
+    // A Meta só aceita nota de voz em ogg/opus, aac, amr, mp3 ou mp4.
+    // webm (padrão do Chrome) é recusado — nesses casos entregamos como arquivo.
+    const audioOk = /(ogg|aac|amr|mpeg|mp3|mp4|m4a)/i.test(`${data.mime_type} ${data.filename}`);
+    let deliveredAs: "image" | "document" | "audio" = data.kind;
+
+    let sendRes = data.kind === "image"
       ? await sendWhatsAppImage(conv.wa_phone, signed.signedUrl, captionWithPrefix ?? null)
-      : data.kind === "audio"
+      : data.kind === "audio" && audioOk
         ? await sendWhatsAppAudio(conv.wa_phone, signed.signedUrl)
         : await sendWhatsAppDocument(conv.wa_phone, signed.signedUrl, data.filename, captionWithPrefix ?? null);
+    if (data.kind === "audio" && (!audioOk || sendRes.error || !sendRes.id)) {
+      if (audioOk) console.warn("[chat/audio] Meta recusou a nota de voz:", sendRes.error);
+      sendRes = await sendWhatsAppDocument(conv.wa_phone, signed.signedUrl, data.filename, captionWithPrefix ?? null);
+      deliveredAs = "document";
+    }
 
-    if (sendRes.error) throw new Error(sendRes.error);
+    if (sendRes.error || !sendRes.id) {
+      throw new Error(sendRes.error ?? "O WhatsApp não confirmou a entrega do arquivo");
+    }
 
     // Marcador embutido pra UI renderizar o preview
     const marker = `[[media:${data.kind}|${signed.signedUrl}|${data.filename}]]`;
     const content = data.kind === "audio"
-      ? `${marker}\n🎤 [áudio enviado]`
+      ? `${marker}${deliveredAs === "document" ? "\n🎤 [áudio enviado como arquivo]" : "\n🎤 [áudio enviado]"}`
       : data.caption ? `${marker}\n${data.caption}` : marker;
 
     await saveMessage({
@@ -588,6 +600,7 @@ export const sendHumanMedia = createServerFn({ method: "POST" })
       sender_user_id: context.userId,
       wa_message_id: sendRes.id,
     });
+
 
     await clearAwaitingHumanTag(conv.id);
     return { ok: true };
