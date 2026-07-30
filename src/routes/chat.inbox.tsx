@@ -766,31 +766,23 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
 
         </div>
         {conv.mode === "ai" && (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button
-                onClick={() => pauseAiMut.mutate(!aiPaused)}
-                disabled={pauseAiMut.isPending}
-                aria-label={aiPaused ? "Retomar IA" : "Pausar IA"}
-                className={cn(
-                  "inline-flex shrink-0 items-center gap-1.5 rounded-md border px-2 py-1.5 text-[11px] font-medium transition-colors disabled:opacity-50 sm:text-xs",
-                  aiPaused
-                    ? "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
-                    : "border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100",
-                )}
-              >
-                {pauseAiMut.isPending
-                  ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  : aiPaused ? <Play className="h-3.5 w-3.5" /> : <Pause className="h-3.5 w-3.5" />}
-                <span className="hidden sm:inline">{aiPaused ? "Retomar IA" : "Pausar IA"}</span>
-              </button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom">
-              {aiPaused
-                ? "A IA volta a responder as próximas mensagens"
-                : "Segura a IA sem assumir a conversa — dá tempo de deixar a orientação"}
-            </TooltipContent>
-          </Tooltip>
+          <button
+            onClick={() => pauseAiMut.mutate(!aiPaused)}
+            disabled={pauseAiMut.isPending}
+            aria-label={aiPaused ? "Retomar IA" : "Pausar IA"}
+            title={aiPaused ? "A IA volta a responder as próximas mensagens" : "Segura a IA sem assumir a conversa"}
+            className={cn(
+              "inline-flex shrink-0 items-center gap-1.5 rounded-md border px-2 py-1.5 text-[11px] font-medium transition-colors disabled:opacity-50 sm:text-xs",
+              aiPaused
+                ? "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+                : "border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100",
+            )}
+          >
+            {pauseAiMut.isPending
+              ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              : aiPaused ? <Play className="h-3.5 w-3.5" /> : <Pause className="h-3.5 w-3.5" />}
+            <span className="hidden sm:inline">{aiPaused ? "Retomar IA" : "Pausar IA"}</span>
+          </button>
         )}
         <button
           onClick={() => toggleMut.mutate(conv.mode === "ai" ? "human" : "ai")}
