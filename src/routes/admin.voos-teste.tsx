@@ -840,7 +840,7 @@ export function VoosPage({ header }: { header?: React.ReactNode } = {}) {
 
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className={header ? "" : "min-h-screen bg-background"}>
       {/* motor de busca */}
       <header className="relative overflow-hidden border-b border-border/60">
         <div
@@ -850,14 +850,16 @@ export function VoosPage({ header }: { header?: React.ReactNode } = {}) {
         />
         <div className="relative mx-auto max-w-7xl px-4 py-8">
           <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
-            <div>
-              <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight">
-                <Plane className="h-6 w-6 text-primary" /> Motor de Voos
-              </h1>
-              <p className="text-sm text-muted-foreground">
-                Busca em tempo real na operadora — tarifas, taxas e parcelamento por companhia.
-              </p>
-            </div>
+            {header ?? (
+              <div>
+                <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight">
+                  <Plane className="h-6 w-6 text-primary" /> Motor de Voos
+                </h1>
+                <p className="text-sm text-muted-foreground">
+                  Busca em tempo real na operadora — tarifas, taxas e parcelamento por companhia.
+                </p>
+              </div>
+            )}
             <Stepper step={step} roundTrip={isRoundTrip} />
           </div>
 
