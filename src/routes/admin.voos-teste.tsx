@@ -115,9 +115,11 @@ function VoosTestePage() {
     children: 0,
     infants: 0,
     maxStops: 0,
+    onlyWithBaggage: false,
   });
   const [result, setResult] = useState<OnerSearchResult | null>(null);
   const [selectedOut, setSelectedOut] = useState<string | null>(null);
+  const [selectedIn, setSelectedIn] = useState<string | null>(null);
   const [inbound, setInbound] = useState<{ totalFlightsCount: number; flights: OnerFlight[] } | null>(null);
 
   const mut = useMutation({
@@ -133,13 +135,20 @@ function VoosTestePage() {
           infants: Number(form.infants),
           maxStops: Number(form.maxStops),
           pageSize: 10,
+          onlyWithBaggage: form.onlyWithBaggage,
         },
       }),
     onSuccess: (r) => {
       setResult(r);
       setSelectedOut(null);
+      setSelectedIn(null);
       setInbound(null);
-      if (!r.outbound.flights.length) toast.warning("Nenhum voo retornado para esses parâmetros");
+      if (!r.outbound.flights.length)
+        toast.warning(
+          form.onlyWithBaggage
+            ? "Nenhum voo com bagagem despachada para esses parâmetros"
+            : "Nenhum voo retornado para esses parâmetros",
+        );
       else toast.success(`${r.outbound.totalFlightsCount} voos encontrados`);
     },
     onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Erro na busca"),
@@ -160,6 +169,7 @@ function VoosTestePage() {
           infants: Number(form.infants),
           maxStops: Number(form.maxStops),
           pageSize: 10,
+          onlyWithBaggage: form.onlyWithBaggage,
         },
       }),
     onSuccess: (r) => {
@@ -171,9 +181,16 @@ function VoosTestePage() {
 
   function pickOutbound(key: string) {
     setSelectedOut(key);
+    setSelectedIn(null);
     setInbound(null);
     if (form.returnDate) inboundMut.mutate(key);
   }
+
+  const outFlight = result?.outbound.flights.find((f) => f.key === selectedOut) ?? null;
+  const inFlight = inbound?.flights.find((f) => f.key === selectedIn) ?? null;
+  const combinedTotal =
+    outFlight && inFlight ? outFlight.price.total + inFlight.price.total : null;
+
 
   const canSearch =
     form.departureIata.length === 3 && form.arrivalIata.length === 3 && !!form.departureDate;
