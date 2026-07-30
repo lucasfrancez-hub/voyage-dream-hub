@@ -282,6 +282,14 @@ function VoosTestePage() {
           </div>
         </div>
 
+        <label className="mt-4 flex items-center gap-2 text-sm">
+          <Checkbox
+            checked={form.onlyWithBaggage}
+            onCheckedChange={(v) => setForm({ ...form, onlyWithBaggage: v === true })}
+          />
+          Somente tarifas com bagagem despachada (padrão da operadora é Lite, sem bagagem)
+        </label>
+
         <Button className="mt-4" disabled={!canSearch || mut.isPending} onClick={() => mut.mutate()}>
           {mut.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Search className="mr-2 h-4 w-4" />}
           Buscar voos
@@ -330,14 +338,41 @@ function VoosTestePage() {
               <h2 className="text-lg font-semibold">
                 Volta — {inbound.totalFlightsCount} opções
               </h2>
+              <p className="text-sm text-muted-foreground">
+                Selecione a volta para ver o valor final combinado.
+              </p>
               {inbound.flights.map((f) => (
-                <FlightCard key={f.key} f={f} />
+                <FlightCard
+                  key={f.key}
+                  f={f}
+                  selectable
+                  selected={selectedIn === f.key}
+                  onSelect={() => setSelectedIn(f.key)}
+                />
               ))}
               {!inbound.flights.length && (
                 <p className="text-sm text-muted-foreground">Nada retornado na volta.</p>
               )}
             </section>
           )}
+
+          {combinedTotal !== null && (
+            <div className="sticky bottom-4 rounded-xl border border-primary/40 bg-card p-4 shadow-lg">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="text-sm text-muted-foreground">
+                  Ida {fmtMoney(outFlight!.price.total)} + Volta {fmtMoney(inFlight!.price.total)} •{" "}
+                  {outFlight!.price.passengerCount} pax
+                </div>
+                <div className="text-right">
+                  <div className="text-xs text-muted-foreground">Valor final (ida + volta)</div>
+                  <div className="text-2xl font-bold text-primary">{fmtMoney(combinedTotal)}</div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
         </div>
       )}
     </div>
