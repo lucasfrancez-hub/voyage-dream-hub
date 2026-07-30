@@ -46,11 +46,61 @@ function fmt(iso?: string | null) {
   });
 }
 
+/** Remove emojis e símbolos que as fontes padrão do PDF não conseguem desenhar. */
+function stripUnsupported(s: string) {
+  return s
+    .replace(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE00}-\u{FE0F}\u{1F1E6}-\u{1F1FF}\u{2190}-\u{21FF}\u{2B00}-\u{2BFF}\u{200D}]/gu, "")
+    .replace(/[ \t]{2,}/g, " ");
+}
+
+type Seg = { text: string; bold: boolean; italic: boolean };
+
+/** Converte markdown do WhatsApp (*negrito*, _itálico_) em segmentos formatados. */
+function parseInline(line: string): Seg[] {
+  const segs: Seg[] = [];
+  const re = /(\*[^*\n]+\*|_[^_\n]+_)/g;
+  let last = 0;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(line))) {
+    if (m.index > last) segs.push({ text: line.slice(last, m.index), bold: false, italic: false });
+    const raw = m[0];
+    segs.push({ text: raw.slice(1, -1), bold: raw[0] === "*", italic: raw[0] === "_" });
+    last = m.index + raw.length;
+  }
+  if (last < line.length) segs.push({ text: line.slice(last), bold: false, italic: false });
+  return segs.filter((s) => s.text.length > 0);
+}
+
+async function loadImage(url: string): Promise<{ dataUrl: string; w: number; h: number; format: string } | null> {
+  try {
+    const res = await fetch(url, { mode: "cors" });
+    if (!res.ok) return null;
+    const blob = await res.blob();
+    if (!blob.type.startsWith("image/")) return null;
+    const dataUrl: string = await new Promise((resolve, reject) => {
+      const fr = new FileReader();
+      fr.onload = () => resolve(String(fr.result));
+      fr.onerror = reject;
+      fr.readAsDataURL(blob);
+    });
+    const dims = await new Promise<{ w: number; h: number }>((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve({ w: img.naturalWidth, h: img.naturalHeight });
+      img.onerror = reject;
+      img.src = dataUrl;
+    });
+    const format = blob.type.includes("png") ? "PNG" : blob.type.includes("webp") ? "WEBP" : "JPEG";
+    return { dataUrl, w: dims.w, h: dims.h, format };
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Gera um relatório PDF da campanha de broadcast: destinos, horários
- * programados de cada bloco e o conteúdo que será enviado.
+ * programados e uma prévia legível de cada bloco (com a imagem embutida).
  */
-export function exportCampanhaPdf(
+export async function exportCampanhaPdf(
   campanha: PdfCampanha,
   blocos: PdfBloco[],
   destinos: PdfDestino[],
@@ -59,7 +109,13 @@ export function exportCampanhaPdf(
   const W = 210;
   const M = 16;
   const maxW = W - M * 2;
+  const BOTTOM = 278;
   let y = 0;
+
+  // Pré-carrega as imagens dos blocos
+  const imagens = await Promise.all(
+    blocos.map((b) => (b.tipo === "image" && b.midia_url ? loadImage(b.midia_url) : Promise.resolve(null))),
+  );
 
   // Cabeçalho
   doc.setFillColor(242, 107, 31);
@@ -76,14 +132,14 @@ export function exportCampanhaPdf(
   doc.setTextColor(20, 20, 20);
 
   function ensure(h: number) {
-    if (y + h > 282) {
+    if (y + h > BOTTOM) {
       doc.addPage();
       y = 20;
     }
   }
 
   function sectionTitle(t: string) {
-    ensure(12);
+    ensure(14);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(11);
     doc.setTextColor(242, 107, 31);
@@ -95,20 +151,53 @@ export function exportCampanhaPdf(
   }
 
   function line(label: string, value: string) {
-    ensure(7);
+    ensure(8);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(9.5);
     doc.text(`${label}:`, M, y);
     doc.setFont("helvetica", "normal");
-    const wrapped = doc.splitTextToSize(value, maxW - 38) as string[];
-    doc.text(wrapped, M + 38, y);
-    y += Math.max(6, wrapped.length * 4.6);
+    const wrapped = doc.splitTextToSize(value, maxW - 40) as string[];
+    doc.text(wrapped, M + 40, y);
+    y += Math.max(6, wrapped.length * 5);
+  }
+
+  /** Desenha um parágrafo com markdown do WhatsApp, quebrando página quando precisa. */
+  function drawRichText(text: string, x: number, width: number, size = 9.5, leading = 5) {
+    doc.setFontSize(size);
+    const paragrafos = stripUnsupported(text).split(/\r?\n/);
+    for (const p of paragrafos) {
+      if (!p.trim()) {
+        y += leading * 0.6;
+        continue;
+      }
+      const segs = parseInline(p);
+      let cursorX = x;
+      ensure(leading + 2);
+      for (const seg of segs) {
+        doc.setFont("helvetica", seg.bold ? "bold" : seg.italic ? "italic" : "normal");
+        const words = seg.text.split(/(\s+)/);
+        for (const w of words) {
+          if (!w) continue;
+          const wWidth = doc.getTextWidth(w);
+          if (cursorX + wWidth > x + width && w.trim()) {
+            y += leading;
+            ensure(leading + 2);
+            cursorX = x;
+          }
+          if (cursorX === x && !w.trim()) continue;
+          doc.text(w, cursorX, y);
+          cursorX += wWidth;
+        }
+      }
+      y += leading;
+    }
+    doc.setFont("helvetica", "normal");
   }
 
   // Identificação
   doc.setFont("helvetica", "bold");
   doc.setFontSize(16);
-  const nomeLinhas = doc.splitTextToSize(campanha.nome, maxW) as string[];
+  const nomeLinhas = doc.splitTextToSize(stripUnsupported(campanha.nome), maxW) as string[];
   doc.text(nomeLinhas, M, y);
   y += nomeLinhas.length * 7 + 2;
 
@@ -121,7 +210,7 @@ export function exportCampanhaPdf(
       `Enviados: ${campanha.metrics.enviados ?? 0} | Falhas: ${campanha.metrics.falhas ?? 0} | Total: ${campanha.metrics.total ?? 0}`,
     );
   }
-  if (campanha.observacoes_marketing) line("Observacoes", campanha.observacoes_marketing);
+  if (campanha.observacoes_marketing) line("Observacoes", stripUnsupported(campanha.observacoes_marketing));
   y += 4;
 
   // Destinos
@@ -133,57 +222,84 @@ export function exportCampanhaPdf(
       ensure(6);
       doc.setFont("helvetica", "normal");
       doc.setFontSize(9.5);
-      doc.text(`• ${d.nome}  (${DEST_LABEL[d.tipo]})`, M + 2, y);
+      doc.text(`• ${stripUnsupported(d.nome)}  (${DEST_LABEL[d.tipo]})`, M + 2, y);
       y += 5.2;
     }
   }
-  y += 5;
+  y += 6;
 
   // Cronograma
   sectionTitle(`Cronograma de envio (${blocos.length} blocos)`);
+
   blocos.forEach((b, i) => {
-    ensure(20);
     const horario = b.scheduled_at ? fmt(b.scheduled_at) : `${fmt(campanha.scheduled_at)} (horario da campanha)`;
-
-    doc.setFillColor(248, 248, 248);
+    const img = imagens[i];
     const conteudo = (b.texto || b.midia_caption || "").trim();
-    const corpo = conteudo ? (doc.splitTextToSize(conteudo, maxW - 8) as string[]) : [];
-    const extra = b.midia_url ? 5 : 0;
-    const boxH = 13 + corpo.length * 4.4 + extra;
-    ensure(boxH + 4);
-    doc.roundedRect(M, y - 4, maxW, boxH, 2, 2, "F");
 
+    // dimensões da imagem no papel
+    const imgW = img ? 46 : 0;
+    const imgH = img ? Math.min(70, (imgW * img.h) / img.w) : 0;
+
+    ensure(imgH + 24);
+
+    const topo = y;
+    // cabeçalho do bloco
+    doc.setFillColor(245, 245, 245);
+    doc.roundedRect(M, topo - 5, maxW, 9, 1.5, 1.5, "F");
     doc.setFont("helvetica", "bold");
     doc.setFontSize(9.5);
-    doc.text(`#${i + 1} · ${TIPO_LABEL[b.tipo]}`, M + 4, y + 1);
+    doc.setTextColor(30, 30, 30);
+    doc.text(`#${i + 1} · ${TIPO_LABEL[b.tipo]}`, M + 4, topo + 1);
     doc.setFont("helvetica", "normal");
-    doc.setTextColor(90, 90, 90);
-    doc.text(horario, W - M - 4, y + 1, { align: "right" });
+    doc.setTextColor(110, 110, 110);
+    doc.setFontSize(8.5);
+    doc.text(horario, W - M - 4, topo + 1, { align: "right" });
     doc.setTextColor(20, 20, 20);
-    let inner = y + 6.5;
+    y = topo + 10;
 
-    if (b.midia_url) {
+    const textoX = img ? M + imgW + 8 : M + 2;
+    const textoW = img ? maxW - imgW - 10 : maxW - 4;
+    const textoTop = y;
+
+    if (img) {
+      try {
+        doc.addImage(img.dataUrl, img.format, M + 2, y, imgW, imgH, undefined, "FAST");
+        doc.setDrawColor(225, 225, 225);
+        doc.roundedRect(M + 2, y, imgW, imgH, 1.5, 1.5, "S");
+      } catch {
+        /* imagem incompatível — segue só com o texto */
+      }
+    } else if (b.midia_url) {
+      // mídia não visual (PDF/vídeo): mostra só o nome do arquivo
       doc.setFontSize(8);
       doc.setTextColor(120, 120, 120);
-      const arquivo = b.midia_filename || b.midia_url.split("/").pop() || b.midia_url;
-      doc.text(`Arquivo: ${arquivo}`, M + 4, inner);
+      const arquivo = b.midia_filename || decodeURIComponent(b.midia_url.split("/").pop() || "");
+      doc.text(`Arquivo: ${arquivo}`.slice(0, 110), M + 2, y);
       doc.setTextColor(20, 20, 20);
-      inner += 4.5;
+      y += 5;
     }
-    if (corpo.length > 0) {
-      doc.setFontSize(9);
-      doc.text(corpo, M + 4, inner);
-      inner += corpo.length * 4.4;
+
+    if (conteudo) {
+      drawRichText(conteudo, textoX, textoW, 9, 4.8);
+    } else {
+      doc.setFontSize(8.5);
+      doc.setTextColor(150, 150, 150);
+      doc.text("(sem legenda)", textoX, y);
+      doc.setTextColor(20, 20, 20);
+      y += 5;
     }
-    y = y - 4 + boxH + 5;
+
+    if (img) y = Math.max(y, textoTop + imgH);
+    y += 9;
   });
 
   const total = doc.getNumberOfPages();
   for (let p = 1; p <= total; p++) {
     doc.setPage(p);
+    doc.setFont("helvetica", "normal");
     doc.setFontSize(8);
     doc.setTextColor(150, 150, 150);
-    doc.text(`VIA AIR · Broadcast · pagina ${p} de ${total}`, W / 2, 291, { align: "center" });
+    doc.text(`VIA AIR · Broadcast · pagina ${p} de ${total}`, W / 2, 289, { align: "center" });
   }
 
   const slug = campanha.nome.replace(/[^A-Za-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 50) || "campanha";
