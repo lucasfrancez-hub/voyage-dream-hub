@@ -423,6 +423,12 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
     const sent = await sendWhatsAppBubbles(conv.wa_phone, text, prefix);
     const failed = sent.filter((s) => s.error);
     if (failed.length > 0) console.error(`[agent:${agent.slug}] falha ao enviar:`, failed);
+    // Guarda o wa_message_id de cada balão pra permitir citar/casar replies depois
+    const { setWaMessageId } = await import("./conversation.server");
+    for (let i = 0; i < sent.length; i++) {
+      const rowId = savedRowIds[i];
+      if (rowId && sent[i]?.id) await setWaMessageId(rowId, sent[i].id);
+    }
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error(`[agent:${agent.slug}] erro:`, msg);
