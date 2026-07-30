@@ -456,7 +456,7 @@ export function HoteisPage({ header }: { header?: React.ReactNode } = {}) {
   const canSearch = !!point && !!form.checkIn && !!form.checkOut && nights > 0;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className={header ? "" : "min-h-screen bg-background"}>
       <header className="relative overflow-hidden border-b border-border/60">
         <div
           className="absolute inset-0 opacity-60"
@@ -465,12 +465,16 @@ export function HoteisPage({ header }: { header?: React.ReactNode } = {}) {
         />
         <div className="relative mx-auto max-w-7xl px-4 py-8">
           <div className="mb-6">
-            <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight">
-              <BedDouble className="h-6 w-6 text-primary" /> Motor de Hotéis
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              Hospedagens em tempo real na operadora — tarifas por noite, refeições e política de cancelamento.
-            </p>
+            {header ?? (
+              <>
+                <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight">
+                  <BedDouble className="h-6 w-6 text-primary" /> Motor de Hotéis
+                </h1>
+                <p className="text-sm text-muted-foreground">
+                  Hospedagens em tempo real na operadora — tarifas por noite, refeições e política de cancelamento.
+                </p>
+              </>
+            )}
           </div>
 
           <div className="rounded-2xl border border-border/70 bg-card/85 p-4 shadow-[var(--shadow-card)] backdrop-blur">
