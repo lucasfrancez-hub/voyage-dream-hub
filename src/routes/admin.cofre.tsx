@@ -222,7 +222,7 @@ function CofrePage() {
             ? `Pacote ${o.packageTitle}`
             : "Pedido de pacote";
         const pm = (o.paymentMethod ?? "").toLowerCase();
-        const linkKind: LinkKind = pm === "boleto" ? "boleto" : "card";
+        const linkKind: LinkKind = pm.startsWith("boleto") ? "boleto" : "card";
         const instMatch = pm.match(/(\d+)x/);
         const installments = instMatch ? Number(instMatch[1]) : 1;
         const firstAmount = o.firstAmount && o.firstAmount > 0 ? o.firstAmount : undefined;
