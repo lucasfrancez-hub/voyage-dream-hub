@@ -568,7 +568,7 @@ export function HoteisPage({
             )}
           </div>
 
-          <div className="rounded-2xl border border-border/70 bg-card/85 p-4 shadow-[var(--shadow-card)] backdrop-blur">
+          <div className="rounded-[32px] border border-border/50 bg-card/60 p-6 shadow-2xl backdrop-blur-xl">
             <div className="grid gap-3 lg:grid-cols-[1.4fr_1fr_auto]">
               <div className="space-y-1">
                 <Label className="flex items-center gap-1 text-[11px] uppercase tracking-wide text-muted-foreground">

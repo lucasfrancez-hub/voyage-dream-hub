@@ -127,7 +127,7 @@ function ComboForm({
   disabled: boolean;
 }) {
   return (
-    <div className="rounded-2xl border border-border/70 bg-card/85 p-4 shadow-[var(--shadow-card)] backdrop-blur">
+    <div className="rounded-[32px] border border-border/50 bg-card/60 p-6 shadow-2xl backdrop-blur-xl">
       <div className="grid gap-3 lg:grid-cols-[1fr_1.2fr_auto]">
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1">
