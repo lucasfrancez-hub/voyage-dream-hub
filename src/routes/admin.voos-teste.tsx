@@ -393,7 +393,66 @@ function Stepper({ step, roundTrip }: { step: number; roundTrip: boolean }) {
 
 // ---------------------------------------------------------------- card
 
+/** Detalhamento de trechos e tempo de conexão. */
+function SegmentsDetail({ f }: { f: OnerFlight }) {
+  const segs = f.journey.segments;
+  return (
+    <div className="mt-3 space-y-3 rounded-xl border border-border/60 bg-background/50 p-3">
+      {segs.map((s, i) => {
+        const prev = segs[i - 1];
+        const layover = prev ? absMinutes(s.departure) - absMinutes(prev.destination) : 0;
+        return (
+          <div key={`${s.segmentNumber}-${s.flightNumber}`} className="space-y-3">
+            {prev && (
+              <div className="flex items-center gap-2 text-[11px] font-medium text-muted-foreground">
+                <span className="h-px flex-1 bg-border" />
+                <Clock className="h-3 w-3" />
+                Conexão em {prev.destination.iata} • {fmtDur(layover)}
+                <span className="h-px flex-1 bg-border" />
+              </div>
+            )}
+            <div className="flex flex-wrap items-center gap-3 text-xs">
+              {s.marketingAirline?.pathLogo ? (
+                <img
+                  src={s.marketingAirline.pathLogo}
+                  alt={s.marketingAirline?.name ?? "Companhia aérea"}
+                  className="h-5 w-5 rounded bg-white object-contain"
+                  loading="lazy"
+                />
+              ) : (
+                <Plane className="h-4 w-4 text-muted-foreground" />
+              )}
+              <span className="font-semibold">
+                {s.marketingAirline?.iata ?? ""}
+                {s.flightNumber}
+              </span>
+              <span>
+                <strong>{fmtTime(s.departure.time)}</strong> {s.departure.iata}
+                <span className="text-muted-foreground"> ({fmtDate(s.departure.date)})</span>
+              </span>
+              <ArrowRight className="h-3 w-3 text-muted-foreground" />
+              <span>
+                <strong>{fmtTime(s.destination.time)}</strong> {s.destination.iata}
+                <span className="text-muted-foreground"> ({fmtDate(s.destination.date)})</span>
+              </span>
+              <span className="text-muted-foreground">
+                {fmtDur(absMinutes(s.destination) - absMinutes(s.departure))}
+                {s.cabinClass ? ` • ${s.cabinClass}` : ""}
+                {s.airlineFareFamily ? ` • ${s.airlineFareFamily}` : ""}
+              </span>
+            </div>
+            <div className="text-[11px] text-muted-foreground">
+              {s.departure.name} → {s.destination.name}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 /** Barra compacta do trecho já escolhido, com botão de editar (volta ao passo). */
+
 function SelectedLegBar({ label, f, onEdit }: { label: string; f: OnerFlight; onEdit: () => void }) {
   const j = f.journey;
   return (
