@@ -1697,12 +1697,34 @@ export function VoosPage({
               )}
 
               {showSummary && (
-                <SummaryCard
-                  out={outFlight!}
-                  inb={inFlight}
-                  searchKey={result?.searchKey ?? null}
-                />
+                <>
+                  <div className="sticky bottom-4 z-20 flex items-center justify-between gap-3 rounded-2xl border border-primary/40 bg-card/95 p-4 shadow-[var(--shadow-card)] backdrop-blur">
+                    <div className="min-w-0">
+                      <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                        Seleção pronta
+                      </div>
+                      <div className="truncate text-sm font-semibold">
+                        {outFlight!.journey.departure.iata} → {outFlight!.journey.destination.iata}
+                        {inFlight ? " • ida e volta" : ""}
+                      </div>
+                    </div>
+                    <Button
+                      onClick={() => setSummaryOpen(true)}
+                      className="shrink-0 text-xs font-black uppercase tracking-[0.15em]"
+                    >
+                      Ver seleção
+                    </Button>
+                  </div>
+                  <SummaryCard
+                    out={outFlight!}
+                    inb={inFlight}
+                    searchKey={result?.searchKey ?? null}
+                    open={summaryOpen}
+                    onOpenChange={setSummaryOpen}
+                  />
+                </>
               )}
+
             </div>
           </div>
         )}
