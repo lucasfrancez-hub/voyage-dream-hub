@@ -560,10 +560,13 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
   };
   // --- Gravação de áudio (nota de voz) ---
   const [recording, setRecording] = useState(false);
+  const [paused, setPaused] = useState(false);
   const [recSecs, setRecSecs] = useState(0);
+  const [audioDraft, setAudioDraft] = useState<{ file: File; url: string; secs: number } | null>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<BlobPart[]>([]);
   const cancelRef = useRef(false);
+  const secsRef = useRef(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const pickAudioMime = () => {
@@ -574,7 +577,23 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
     return "";
   };
 
+  const stopTimer = () => {
+    if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
+  };
+  const startTimer = () => {
+    stopTimer();
+    timerRef.current = setInterval(() => {
+      secsRef.current += 1;
+      setRecSecs(secsRef.current);
+    }, 1000);
+  };
+
+  const discardDraft = () => {
+    setAudioDraft((d) => { if (d) URL.revokeObjectURL(d.url); return null; });
+  };
+
   const startRecording = async () => {
+    discardDraft();
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const mimeType = pickAudioMime();
@@ -584,8 +603,11 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
       rec.ondataavailable = (e) => { if (e.data.size > 0) chunksRef.current.push(e.data); };
       rec.onstop = () => {
         stream.getTracks().forEach((t) => t.stop());
-        if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
+        stopTimer();
         setRecording(false);
+        setPaused(false);
+        const secs = secsRef.current;
+        secsRef.current = 0;
         setRecSecs(0);
         if (cancelRef.current) return;
         const type = (mimeType || "audio/ogg").split(";")[0];
@@ -593,30 +615,54 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
         if (blob.size < 1500) { toast.error("Áudio muito curto"); return; }
         const ext = type.includes("ogg") ? "ogg" : type.includes("mp4") ? "m4a" : type.includes("mpeg") ? "mp3" : "webm";
         const file = new File([blob], `audio-${Date.now()}.${ext}`, { type });
-        mediaMut.mutate({ file, caption: "", kind: "audio" });
+        // Fica em prévia: o atendente escuta (se quiser) e clica em enviar.
+        setAudioDraft({ file, url: URL.createObjectURL(blob), secs });
       };
       rec.start();
       recorderRef.current = rec;
       setRecording(true);
+      setPaused(false);
+      secsRef.current = 0;
       setRecSecs(0);
-      timerRef.current = setInterval(() => setRecSecs((s) => s + 1), 1000);
+      startTimer();
     } catch {
       toast.error("Não foi possível acessar o microfone");
     }
   };
+  const togglePause = () => {
+    const rec = recorderRef.current;
+    if (!rec) return;
+    if (rec.state === "recording") {
+      rec.pause();
+      stopTimer();
+      setPaused(true);
+    } else if (rec.state === "paused") {
+      rec.resume();
+      startTimer();
+      setPaused(false);
+    }
+  };
   const stopRecording = (cancel: boolean) => {
     cancelRef.current = cancel;
-    recorderRef.current?.stop();
+    const rec = recorderRef.current;
     recorderRef.current = null;
+    if (!rec) return;
+    if (rec.state === "paused") rec.resume();
+    rec.stop();
   };
 
   const submit = () => {
-    if (pendingFile) {
+    if (audioDraft) {
+      const file = audioDraft.file;
+      discardDraft();
+      mediaMut.mutate({ file, caption: "", kind: "audio" });
+    } else if (pendingFile) {
       mediaMut.mutate({ file: pendingFile.file, caption: input.trim(), kind: pendingFile.kind });
     } else if (input.trim() && !sendMut.isPending) {
       sendMut.mutate(input.trim());
     }
   };
+
 
 
   const { data: messages = [], isLoading } = useQuery({
