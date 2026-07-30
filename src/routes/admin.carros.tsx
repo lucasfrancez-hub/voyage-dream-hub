@@ -110,13 +110,33 @@ function LocationInput({
           onChange={(e) => {
             typing.current = true;
             setText(e.target.value);
+            setHighlight(0);
             onSelect(null);
           }}
           onBlur={() => {
             typing.current = false;
             setTimeout(() => setOpen(false), 160);
           }}
+          onKeyDown={(e) => {
+            if (!open || !options.length) return;
+            if (e.key === "ArrowDown") {
+              e.preventDefault();
+              setHighlight((h) => (h + 1) % options.length);
+            } else if (e.key === "ArrowUp") {
+              e.preventDefault();
+              setHighlight((h) => (h - 1 + options.length) % options.length);
+            } else if (e.key === "Enter") {
+              e.preventDefault();
+              const o = options[highlight];
+              onSelect(o);
+              setText(o.locationName);
+              setOpen(false);
+            } else if (e.key === "Escape") {
+              setOpen(false);
+            }
+          }}
           onFocus={() => options.length && setOpen(true)}
+
           className="w-full bg-transparent text-sm outline-none"
         />
         {loading && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />}
