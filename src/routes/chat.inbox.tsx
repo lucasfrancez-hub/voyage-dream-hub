@@ -48,6 +48,19 @@ function agentLabel(slug?: string | null) {
   return AGENT_LABEL[slug] ?? (slug.charAt(0).toUpperCase() + slug.slice(1));
 }
 
+function messageText(value: unknown): string {
+  if (typeof value === "string") return value;
+  if (value == null) return "";
+  if (typeof value === "object") {
+    const maybe = value as { text?: unknown; body?: unknown; caption?: unknown; filename?: unknown; type?: unknown };
+    const text = maybe.text ?? maybe.body ?? maybe.caption;
+    if (typeof text === "string") return text;
+    if (typeof maybe.filename === "string") return maybe.filename;
+    if (typeof maybe.type === "string") return maybe.type;
+  }
+  return String(value);
+}
+
 function InboxPage() {
   const listFn = useServerFn(listConversations);
   const { data: conversations = [], refetch } = useQuery({
@@ -441,7 +454,7 @@ function ConvItem({ conv, active, onClick, attendantName }: { conv: Conv; active
           </div>
         )}
         <div className="flex items-center justify-between gap-2">
-          <span className="truncate text-xs text-slate-500">{conv.last_message_preview ?? "—"}</span>
+          <span className="truncate text-xs text-slate-500">{messageText(conv.last_message_preview) || "—"}</span>
           <div className="flex shrink-0 items-center gap-1">
             {(conv.unread_count ?? 0) > 0 && (
               <span className="rounded-full bg-[#F26B1F] px-1.5 text-[10px] font-medium text-white">{conv.unread_count}</span>
@@ -678,11 +691,11 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
   const byWaId = new Map(
     messages.filter((m) => !!m.wa_message_id).map((m) => [m.wa_message_id as string, m]),
   );
-  const previewOf = (raw: string): string => {
-    let text = raw;
-    const media = raw.match(/^\[\[media:([a-z]+)\|[^\]]*\]\]\n?/);
+  const previewOf = (raw: unknown): string => {
+    let text = messageText(raw);
+    const media = text.match(/^\[\[media:([a-z]+)\|[^\]]*\]\]\n?/);
     if (media) {
-      text = raw.replace(media[0], "").trim();
+      text = text.replace(media[0], "").trim();
       if (!text) {
         const kind = media[1];
         return kind === "image" ? "🖼️ Foto" : kind === "video" ? "🎬 Vídeo" : kind === "audio" ? "🎤 Áudio" : "📎 Documento";
