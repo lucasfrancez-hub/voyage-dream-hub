@@ -495,7 +495,7 @@ export const sendHumanMedia = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) =>
     z.object({
       conversation_id: z.string().uuid(),
-      kind: z.enum(["image", "document"]),
+      kind: z.enum(["image", "document", "audio"]),
       filename: z.string().min(1).max(240),
       mime_type: z.string().min(1).max(120),
       /** conteúdo em base64 (sem prefixo data:) */
@@ -512,7 +512,7 @@ export const sendHumanMedia = createServerFn({ method: "POST" })
     if (cErr || !conv) throw new Error("Conversa não encontrada");
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { sendWhatsAppImage, sendWhatsAppDocument } = await import("@/lib/whatsapp/send.server");
+    const { sendWhatsAppImage, sendWhatsAppDocument, sendWhatsAppAudio } = await import("@/lib/whatsapp/send.server");
     const { saveMessage } = await import("@/lib/whatsapp/conversation.server");
 
     // Upload no bucket privado
@@ -542,13 +542,17 @@ export const sendHumanMedia = createServerFn({ method: "POST" })
 
     const sendRes = data.kind === "image"
       ? await sendWhatsAppImage(conv.wa_phone, signed.signedUrl, captionWithPrefix ?? null)
-      : await sendWhatsAppDocument(conv.wa_phone, signed.signedUrl, data.filename, captionWithPrefix ?? null);
+      : data.kind === "audio"
+        ? await sendWhatsAppAudio(conv.wa_phone, signed.signedUrl)
+        : await sendWhatsAppDocument(conv.wa_phone, signed.signedUrl, data.filename, captionWithPrefix ?? null);
 
     if (sendRes.error) throw new Error(sendRes.error);
 
     // Marcador embutido pra UI renderizar o preview
     const marker = `[[media:${data.kind}|${signed.signedUrl}|${data.filename}]]`;
-    const content = data.caption ? `${marker}\n${data.caption}` : marker;
+    const content = data.kind === "audio"
+      ? `${marker}\n🎤 [áudio enviado]`
+      : data.caption ? `${marker}\n${data.caption}` : marker;
 
     await saveMessage({
       conversation_id: conv.id,

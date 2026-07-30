@@ -84,3 +84,52 @@ export async function transcribeAudio(blob: Blob, mimeType: string): Promise<str
     return null;
   }
 }
+
+/**
+ * Salva uma mídia recebida do cliente no bucket privado `chat-media`
+ * e devolve uma URL assinada de longa duração pra renderizar no painel.
+ */
+export async function storeInboundMedia(params: {
+  conversationId: string;
+  blob: Blob;
+  mimeType: string;
+  filename: string;
+}): Promise<{ url: string; filename: string } | null> {
+  try {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const safeName = params.filename.replace(/[^a-zA-Z0-9._-]+/g, "_").slice(-120) || "arquivo";
+    const path = `${params.conversationId}/in-${Date.now()}-${safeName}`;
+    const bytes = new Uint8Array(await params.blob.arrayBuffer());
+    const { error: upErr } = await supabaseAdmin.storage
+      .from("chat-media")
+      .upload(path, bytes, { contentType: params.mimeType, upsert: false });
+    if (upErr) {
+      console.error("[wa/media] upload inbound falhou:", upErr.message);
+      return null;
+    }
+    const { data: signed, error: sErr } = await supabaseAdmin.storage
+      .from("chat-media")
+      .createSignedUrl(path, 60 * 60 * 24 * 365);
+    if (sErr || !signed?.signedUrl) {
+      console.error("[wa/media] signed url inbound falhou:", sErr?.message);
+      return null;
+    }
+    return { url: signed.signedUrl, filename: safeName };
+  } catch (err) {
+    console.error("[wa/media] exception storeInboundMedia:", err instanceof Error ? err.message : err);
+    return null;
+  }
+}
+
+/** Extensão de arquivo a partir do mime-type. */
+export function extFromMime(mime: string): string {
+  const base = mime.split(";")[0].trim().toLowerCase();
+  const map: Record<string, string> = {
+    "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "image/gif": "gif",
+    "video/mp4": "mp4", "video/3gpp": "3gp", "video/quicktime": "mov",
+    "audio/ogg": "ogg", "audio/opus": "ogg", "audio/mpeg": "mp3", "audio/mp4": "m4a",
+    "audio/amr": "amr", "audio/wav": "wav", "audio/webm": "webm",
+    "application/pdf": "pdf",
+  };
+  return map[base] ?? (base.split("/")[1] ?? "bin").replace(/[^a-z0-9]/g, "");
+}
