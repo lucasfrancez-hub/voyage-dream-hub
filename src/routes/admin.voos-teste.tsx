@@ -1343,8 +1343,24 @@ export function VoosPage({
                       Nenhum voo com esses filtros.
                     </p>
                   )}
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    disabled={moreMut.isPending || mut.isPending}
+                    onClick={() => moreMut.mutate()}
+                  >
+                    {moreMut.isPending ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Buscando mais companhias…
+                      </>
+                    ) : (
+                      `Ver mais voos (${outFlights.length} exibidos)`
+                    )}
+                  </Button>
                 </section>
               )}
+
 
               {/* passo 2 — volta */}
               {inboundPhase && inboundMut.isPending && (
