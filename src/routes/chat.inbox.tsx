@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Search, Send, Bot, User, MoreVertical, Loader2, Inbox as InboxIcon, Users, Archive, Plus, ChevronDown, Image as ImageIcon, XCircle, History, Paperclip, PanelLeftClose, PanelLeftOpen, FileText, X, Save, ExternalLink, ArrowLeft, Info, Instagram, MessageCircle, MessageSquare, Heart } from "lucide-react";
+import { Search, Send, Bot, User, MoreVertical, Loader2, Inbox as InboxIcon, Users, Archive, Plus, ChevronDown, Image as ImageIcon, XCircle, History, Paperclip, PanelLeftClose, PanelLeftOpen, FileText, X, Save, ExternalLink, ArrowLeft, Info, Instagram, MessageCircle, MessageSquare, Heart, Mic, Square } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
@@ -505,7 +505,7 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
   const fileRef = useRef<HTMLInputElement>(null);
   const [pendingFile, setPendingFile] = useState<{ file: File; previewUrl: string | null; kind: "image" | "document" } | null>(null);
   const mediaMut = useMutation({
-    mutationFn: async ({ file, caption, kind }: { file: File; caption: string; kind: "image" | "document" }) => {
+    mutationFn: async ({ file, caption, kind }: { file: File; caption: string; kind: "image" | "document" | "audio" }) => {
       const buf = new Uint8Array(await file.arrayBuffer());
       let binary = "";
       for (let i = 0; i < buf.length; i++) binary += String.fromCharCode(buf[i]);
@@ -514,7 +514,7 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
         conversation_id: conv.id,
         kind,
         filename: file.name,
-        mime_type: file.type || (kind === "image" ? "image/jpeg" : "application/octet-stream"),
+        mime_type: file.type || (kind === "image" ? "image/jpeg" : kind === "audio" ? "audio/ogg" : "application/octet-stream"),
         data_base64: b64,
         caption: caption || null,
       }});
@@ -543,6 +543,58 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
   const clearPending = () => {
     setPendingFile((p) => { if (p?.previewUrl) URL.revokeObjectURL(p.previewUrl); return null; });
   };
+  // --- Gravação de áudio (nota de voz) ---
+  const [recording, setRecording] = useState(false);
+  const [recSecs, setRecSecs] = useState(0);
+  const recorderRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<BlobPart[]>([]);
+  const cancelRef = useRef(false);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const pickAudioMime = () => {
+    const candidates = ["audio/ogg;codecs=opus", "audio/ogg", "audio/mp4", "audio/mpeg", "audio/webm;codecs=opus", "audio/webm"];
+    for (const c of candidates) {
+      if (typeof MediaRecorder !== "undefined" && MediaRecorder.isTypeSupported(c)) return c;
+    }
+    return "";
+  };
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mimeType = pickAudioMime();
+      const rec = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
+      chunksRef.current = [];
+      cancelRef.current = false;
+      rec.ondataavailable = (e) => { if (e.data.size > 0) chunksRef.current.push(e.data); };
+      rec.onstop = () => {
+        stream.getTracks().forEach((t) => t.stop());
+        if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
+        setRecording(false);
+        setRecSecs(0);
+        if (cancelRef.current) return;
+        const type = (mimeType || "audio/ogg").split(";")[0];
+        const blob = new Blob(chunksRef.current, { type });
+        if (blob.size < 1500) { toast.error("Áudio muito curto"); return; }
+        const ext = type.includes("ogg") ? "ogg" : type.includes("mp4") ? "m4a" : type.includes("mpeg") ? "mp3" : "webm";
+        const file = new File([blob], `audio-${Date.now()}.${ext}`, { type });
+        mediaMut.mutate({ file, caption: "", kind: "audio" });
+      };
+      rec.start();
+      recorderRef.current = rec;
+      setRecording(true);
+      setRecSecs(0);
+      timerRef.current = setInterval(() => setRecSecs((s) => s + 1), 1000);
+    } catch {
+      toast.error("Não foi possível acessar o microfone");
+    }
+  };
+  const stopRecording = (cancel: boolean) => {
+    cancelRef.current = cancel;
+    recorderRef.current?.stop();
+    recorderRef.current = null;
+  };
+
   const submit = () => {
     if (pendingFile) {
       mediaMut.mutate({ file: pendingFile.file, caption: input.trim(), kind: pendingFile.kind });
@@ -811,6 +863,15 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
           >
             <Paperclip className="h-4 w-4" />
           </button>
+          {recording ? (
+            <div className="flex flex-1 items-center gap-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+              <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-red-500" />
+              Gravando… {String(Math.floor(recSecs / 60)).padStart(2, "0")}:{String(recSecs % 60).padStart(2, "0")}
+              <button onClick={() => stopRecording(true)} className="ml-auto rounded-md px-2 py-1 text-xs font-medium hover:bg-red-100">
+                Cancelar
+              </button>
+            </div>
+          ) : (
           <textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
@@ -824,6 +885,22 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
             rows={2}
             className="flex-1 resize-none rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-base focus:border-[#F26B1F]/50 focus:bg-white focus:outline-none sm:text-sm"
           />
+          )}
+          {!input.trim() && !pendingFile && (
+            <button
+              onClick={() => (recording ? stopRecording(false) : startRecording())}
+              title={recording ? "Enviar áudio" : "Gravar áudio"}
+              disabled={mediaMut.isPending}
+              className={cn(
+                "flex h-10 w-10 shrink-0 items-center justify-center rounded-md border transition-colors disabled:opacity-40",
+                recording
+                  ? "border-red-300 bg-red-500 text-white hover:bg-red-600"
+                  : "border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-900",
+              )}
+            >
+              {mediaMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : recording ? <Square className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+            </button>
+          )}
           <button
             onClick={submit}
             disabled={(!input.trim() && !pendingFile) || sendMut.isPending || mediaMut.isPending}
