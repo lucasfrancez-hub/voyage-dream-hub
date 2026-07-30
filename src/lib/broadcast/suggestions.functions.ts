@@ -107,15 +107,33 @@ export const aprovarSuggestion = createServerFn({ method: "POST" })
 
     const canal = data.channel || (sug.suggested_channels as string[])[0] || "whatsapp";
 
+    // Destinos: já deixa marcados os canais/grupos de WhatsApp ativos
+    const { data: destinosDisponiveis } = await supabaseAdmin
+      .from("wa_broadcast_destinos")
+      .select("id, tipo, ativo");
+    const destinos = (destinosDisponiveis ?? []).filter(
+      (d: { tipo: string; ativo?: boolean | null }) =>
+        (d.tipo === "channel" || d.tipo === "group") && d.ativo !== false,
+    ) as { id: string; tipo: string }[];
+    const destinoIds = destinos.map((d) => d.id);
+    const somenteCanais = destinos.length > 0 && destinos.every((d) => d.tipo === "channel");
+
+    // Mensagem no mesmo formato do botão "Pacote pronto" (legenda completa + imagem)
+    const { buildBroadcastPackageMessage } = await import("./package-message.server");
+    const msg = await buildBroadcastPackageMessage(pkg.id);
+    const linkPacote = `https://pedidos.viaair.tur.br/w/${pkg.slug}`;
+    const caption = msg?.caption || `✈️ *${pkg.title}*\n\n${sug.reasoning}\n\nConfira: ${linkPacote}`;
+    const usaImagem = Boolean(msg?.image_url) && !somenteCanais;
+
     const nome = `[Sugestão IA] ${sug.origin} → ${sug.destination}`;
 
     const { data: camp, error: campErr } = await supabaseAdmin
       .from("wa_broadcast_campanhas")
       .insert({
         nome,
-        status: "rascunho",
+        status: destinoIds.length > 0 ? "agendada" : "rascunho",
         scheduled_at: scheduled.toISOString(),
-        destino_ids: [],
+        destino_ids: destinoIds,
         observacoes_marketing: `Canal sugerido: ${canal}. Pacote: ${pkg.title} (/${pkg.slug}). Motivo: ${sug.reasoning}`,
         criado_por: context.userId,
         aprovada_por: context.userId,
@@ -124,19 +142,27 @@ export const aprovarSuggestion = createServerFn({ method: "POST" })
       .single();
     if (campErr) throw new Error(campErr.message);
 
-    // Mensagem inicial referenciando o pacote — o usuário revisa/edita em /chat/broadcast
-    const linkPacote = `https://pedidos.viaair.tur.br/pacotes/${pkg.slug}`;
-    await supabaseAdmin.from("wa_broadcast_mensagens").insert({
-      campanha_id: camp.id,
-      ordem: 0,
-      tipo: "text",
-      texto: `✈️ *${pkg.title}*\n\n${sug.reasoning}\n\nConfira: ${linkPacote}`,
-    });
+    await supabaseAdmin.from("wa_broadcast_mensagens").insert(
+      usaImagem
+        ? {
+            campanha_id: camp.id,
+            ordem: 0,
+            tipo: "image",
+            midia_url: msg!.image_url,
+            midia_caption: caption,
+          }
+        : {
+            campanha_id: camp.id,
+            ordem: 0,
+            tipo: "text",
+            texto: caption,
+          },
+    );
 
     await supabaseAdmin
       .from("broadcast_suggestions")
       .update({ status: "approved", campaign_id: camp.id, approved_by: context.userId })
       .eq("id", data.id);
 
-    return { ok: true, campaign_id: camp.id };
+    return { ok: true, campaign_id: camp.id, agendada: destinoIds.length > 0 };
   });

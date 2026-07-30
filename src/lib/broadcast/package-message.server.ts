@@ -265,3 +265,34 @@ export async function listBroadcastPackages(filter: { origin?: string; destinati
     };
   });
 }
+
+/**
+ * Monta a mensagem de broadcast de um pacote específico (mesma legenda e
+ * imagem que o botão "Pacote pronto" insere no editor).
+ */
+export async function buildBroadcastPackageMessage(
+  packageId: string,
+): Promise<{ caption: string; image_url: string | null; slug: string; title: string } | null> {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data, error } = await supabaseAdmin
+    .from("packages")
+    .select("id, slug, title, destination, origin, going_date, return_date, price_per_person, image_url, meal_plan, includes, base_occupancy, hotel_name, hotel_stars, is_active, services, supplier_name")
+    .eq("id", packageId)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!data) return null;
+  const row = data as PkgRow;
+  const { data: copy } = await supabaseAdmin
+    .from("package_ai_copy")
+    .select("text")
+    .eq("channel", "whatsapp")
+    .eq("package_id", row.id)
+    .maybeSingle();
+  const storedCopy = (copy as { text?: string } | null)?.text ?? null;
+  return {
+    caption: buildPackageCaption(row, storedCopy),
+    image_url: row.image_url,
+    slug: row.slug,
+    title: row.title ?? row.destination ?? row.slug,
+  };
+}
