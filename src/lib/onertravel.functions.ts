@@ -184,7 +184,6 @@ async function poll(
 ): Promise<OnerLegResult> {
 
   const acc = new Map<string, OnerFlight>();
-  let reportedTotal = 0;
   let priceRange: { minPrice: number; maxPrice: number } | null = null;
   let stableRounds = 0;
   /** só encerra cedo depois de algumas rodadas — o 1º snapshot é sempre parcial */
@@ -224,7 +223,6 @@ async function poll(
             changed = true;
           }
         }
-        reportedTotal = Math.max(reportedTotal, json.totalFlightsCount ?? 0);
         if (json.filterPriceRange) priceRange = json.filterPriceRange;
         haveMore = !!json.haveMore && (json.flights?.length ?? 0) > 0;
         page++;
