@@ -1,12 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { Plane, BedDouble, Layers, MapPin, ArrowLeftRight, CalendarDays, Users, Search } from "lucide-react";
+import { Plane, BedDouble, Layers, MapPin, ArrowLeftRight, CalendarDays, Users, Search, Car, ClipboardCheck, ChevronRight, ChevronLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { VoosPage } from "./admin.voos-teste";
 import { HoteisPage } from "./admin.hoteis-teste";
+import { CarrosPage } from "./admin.carros";
 
 
 export const Route = createFileRoute("/admin/buscar")({
@@ -30,11 +31,12 @@ export const Route = createFileRoute("/admin/buscar")({
   component: BuscarPage,
 });
 
-type Mode = "aereo" | "hotel" | "combo";
+type Mode = "aereo" | "hotel" | "carro" | "combo";
 
 const MODES: { id: Mode; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
   { id: "aereo", label: "Aéreo", icon: Plane },
   { id: "hotel", label: "Hotel", icon: BedDouble },
+  { id: "carro", label: "Carro", icon: Car },
   { id: "combo", label: "Aéreo + Hotel", icon: Layers },
 ];
 
@@ -234,7 +236,11 @@ function BuscarPage() {
   const [runToken, setRunToken] = useState(0);
 
   const heroTitle =
-    mode === "hotel" ? (
+    mode === "carro" ? (
+      <>
+        Qual <span className="font-bold text-primary">carro</span> vamos alugar?
+      </>
+    ) : mode === "hotel" ? (
       <>
         Onde vamos <span className="font-bold text-primary">hospedar</span>?
       </>
@@ -295,6 +301,7 @@ function BuscarPage() {
     <div className="min-h-screen bg-background">
       {mode === "aereo" && <VoosPage header={hero} />}
       {mode === "hotel" && <HoteisPage header={hero} />}
+      {mode === "carro" && <CarrosPage header={hero} />}
       {mode === "combo" && (
         <>
           <header className="relative overflow-hidden border-b border-border/60">
