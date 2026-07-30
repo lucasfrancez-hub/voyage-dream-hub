@@ -72,6 +72,15 @@ function taxesOf(f: OnerFlight) {
 function airlineOf(f: OnerFlight) {
   return f.journey.marketingAirline ?? f.journey.segments[0]?.marketingAirline ?? null;
 }
+/** minutos absolutos de um ponto (data + hora), para calcular conexões */
+function absMinutes(p: { date: { year: number; month: number; day: number }; time: { hour: number; minute: number } }) {
+  return Date.UTC(p.date.year, p.date.month - 1, p.date.day, p.time.hour, p.time.minute) / 60000;
+}
+function fmtDur(min: number) {
+  const m = Math.max(0, Math.round(min));
+  return `${Math.floor(m / 60)}h${String(m % 60).padStart(2, "0")}`;
+}
+
 
 // ---------------------------------------------------------------- filtros
 
