@@ -165,7 +165,6 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 async function poll(
   path: "outbound" | "inbound",
-  searchKey: string,
   loc: string,
   body: Record<string, unknown>,
 ) {
@@ -251,11 +250,52 @@ export const onerFlightSearch = createServerFn({ method: "POST" })
       ordinationEnum: 0,
     };
 
-    const outbound = await poll("outbound", searchKey, loc, filterBody);
-    let inbound: { totalFlightsCount: number; flights: OnerFlight[] } | null = null;
-    if (data.returnDate) {
-      inbound = await poll("inbound", searchKey, loc, filterBody);
-    }
+    // A volta só existe depois que uma opção de ida é escolhida (a operadora
+    // combina as tarifas). Aqui devolvemos apenas a ida; o cliente chama
+    // `onerInboundSearch` com a chave do voo de ida selecionado.
+    const outbound = await poll("outbound", loc, filterBody);
 
-    return { searchKey, outbound, inbound };
+    return { searchKey, outbound, inbound: null };
+  });
+
+// -------------------------------------------------- volta (após escolher ida)
+
+export const onerInboundSearch = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z
+      .object({
+        searchKey: z.string().min(5),
+        flightKey: z.string().min(5),
+        departureIata: z.string().length(3),
+        arrivalIata: z.string().length(3),
+        departureDate: z.string(),
+        returnDate: z.string(),
+        adults: z.number().int().min(1).default(1),
+        children: z.number().int().min(0).default(0),
+        infants: z.number().int().min(0).default(0),
+        maxStops: z.number().int().min(0).max(2).default(0),
+        pageSize: z.number().int().min(1).max(30).default(10),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data }) => {
+    const loc = buildLocationHref({
+      departureDate: data.departureDate,
+      returnDate: data.returnDate,
+      departureIata: data.departureIata.toUpperCase(),
+      arrivalIata: data.arrivalIata.toUpperCase(),
+      adults: data.adults,
+      children: data.children,
+      infants: data.infants,
+    });
+
+    return poll("inbound", loc, {
+      searchKey: data.searchKey,
+      flightKey: data.flightKey,
+      page: 1,
+      pageSize: data.pageSize,
+      filter: { maxStopsEnum: data.maxStops, startPrice: null, endPrice: null },
+      ordinationEnum: 0,
+    });
   });

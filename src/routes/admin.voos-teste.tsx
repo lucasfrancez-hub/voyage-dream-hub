@@ -7,7 +7,12 @@ import { Loader2, Plane, Search, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { onerFlightSearch, type OnerFlight, type OnerSearchResult } from "@/lib/onertravel.functions";
+import {
+  onerFlightSearch,
+  onerInboundSearch,
+  type OnerFlight,
+  type OnerSearchResult,
+} from "@/lib/onertravel.functions";
 
 export const Route = createFileRoute("/admin/voos-teste")({
   head: () => ({ meta: [{ title: "Busca de Voos (teste) — VIA AIR" }] }),
@@ -24,11 +29,28 @@ function fmtDate(d: { year: number; month: number; day: number }) {
   return `${String(d.day).padStart(2, "0")}/${String(d.month).padStart(2, "0")}`;
 }
 
-function FlightCard({ f }: { f: OnerFlight }) {
+function FlightCard({
+  f,
+  selectable,
+  selected,
+  onSelect,
+}: {
+  f: OnerFlight;
+  selectable?: boolean;
+  selected?: boolean;
+  onSelect?: () => void;
+}) {
   const j = f.journey;
   const bag = j.baggagesAllowance?.map((b) => `${b.quantity ?? 1}x ${b.weight ?? ""}${b.unitDescription ?? ""} ${b.typeDescription ?? ""}`.trim());
   return (
-    <div className="rounded-xl border border-border bg-card p-4">
+    <div
+      role={selectable ? "button" : undefined}
+      tabIndex={selectable ? 0 : undefined}
+      onClick={selectable ? onSelect : undefined}
+      className={`rounded-xl border bg-card p-4 transition ${
+        selectable ? "cursor-pointer hover:border-primary/60" : ""
+      } ${selected ? "border-primary ring-2 ring-primary/30" : "border-border"}`}
+    >
       <div className="flex flex-wrap items-center gap-4">
         {j.marketingAirline?.pathLogo ? (
           <img src={j.marketingAirline.pathLogo} alt={j.marketingAirline?.name ?? "Cia aérea"} className="h-8 w-8 rounded object-contain bg-white" />
@@ -70,6 +92,7 @@ function FlightCard({ f }: { f: OnerFlight }) {
 
 function VoosTestePage() {
   const search = useServerFn(onerFlightSearch);
+  const searchInbound = useServerFn(onerInboundSearch);
   const [form, setForm] = useState({
     departureIata: "CWB",
     arrivalIata: "GRU",
@@ -81,6 +104,8 @@ function VoosTestePage() {
     maxStops: 0,
   });
   const [result, setResult] = useState<OnerSearchResult | null>(null);
+  const [selectedOut, setSelectedOut] = useState<string | null>(null);
+  const [inbound, setInbound] = useState<{ totalFlightsCount: number; flights: OnerFlight[] } | null>(null);
 
   const mut = useMutation({
     mutationFn: () =>
@@ -99,11 +124,43 @@ function VoosTestePage() {
       }),
     onSuccess: (r) => {
       setResult(r);
+      setSelectedOut(null);
+      setInbound(null);
       if (!r.outbound.flights.length) toast.warning("Nenhum voo retornado para esses parâmetros");
       else toast.success(`${r.outbound.totalFlightsCount} voos encontrados`);
     },
     onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Erro na busca"),
   });
+
+  const inboundMut = useMutation({
+    mutationFn: (flightKey: string) =>
+      searchInbound({
+        data: {
+          searchKey: result!.searchKey,
+          flightKey,
+          departureIata: form.departureIata.trim().toUpperCase(),
+          arrivalIata: form.arrivalIata.trim().toUpperCase(),
+          departureDate: form.departureDate,
+          returnDate: form.returnDate,
+          adults: Number(form.adults),
+          children: Number(form.children),
+          infants: Number(form.infants),
+          maxStops: Number(form.maxStops),
+          pageSize: 10,
+        },
+      }),
+    onSuccess: (r) => {
+      setInbound(r);
+      if (!r.flights.length) toast.warning("Nenhuma volta disponível para essa ida");
+    },
+    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Erro ao buscar volta"),
+  });
+
+  function pickOutbound(key: string) {
+    setSelectedOut(key);
+    setInbound(null);
+    if (form.returnDate) inboundMut.mutate(key);
+  }
 
   const canSearch =
     form.departureIata.length === 3 && form.arrivalIata.length === 3 && !!form.departureDate;
@@ -213,23 +270,40 @@ function VoosTestePage() {
             <h2 className="text-lg font-semibold">
               Ida — {result.outbound.totalFlightsCount} opções
             </h2>
+            {form.returnDate && (
+              <p className="text-sm text-muted-foreground">
+                Selecione um voo de ida para carregar as opções de volta combinadas.
+              </p>
+            )}
             {result.outbound.flights.map((f) => (
-              <FlightCard key={f.key} f={f} />
+              <FlightCard
+                key={f.key}
+                f={f}
+                selectable={!!form.returnDate}
+                selected={selectedOut === f.key}
+                onSelect={() => pickOutbound(f.key)}
+              />
             ))}
             {!result.outbound.flights.length && (
               <p className="text-sm text-muted-foreground">Nada retornado.</p>
             )}
           </section>
 
-          {result.inbound && (
+          {form.returnDate && inboundMut.isPending && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" /> Buscando voos de volta…
+            </div>
+          )}
+
+          {inbound && (
             <section className="space-y-3">
               <h2 className="text-lg font-semibold">
-                Volta — {result.inbound.totalFlightsCount} opções
+                Volta — {inbound.totalFlightsCount} opções
               </h2>
-              {result.inbound.flights.map((f) => (
+              {inbound.flights.map((f) => (
                 <FlightCard key={f.key} f={f} />
               ))}
-              {!result.inbound.flights.length && (
+              {!inbound.flights.length && (
                 <p className="text-sm text-muted-foreground">Nada retornado na volta.</p>
               )}
             </section>
