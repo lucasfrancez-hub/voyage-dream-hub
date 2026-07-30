@@ -686,8 +686,13 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
       (m.reply_to_snippet && m.reply_to_snippet.trim()) ||
       (original ? previewOf(original.content) : "") ||
       "mensagem";
+    const rawSender = m.reply_to_sender;
+    const normalized =
+      rawSender === "me" ? "Você"
+      : rawSender === "customer" ? (conv.display_name ?? conv.wa_phone)
+      : rawSender;
     const sender =
-      m.reply_to_sender ??
+      normalized ??
       (original
         ? original.direction === "inbound"
           ? (conv.display_name ?? conv.wa_phone)
