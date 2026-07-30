@@ -326,6 +326,26 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
     };
   });
 
+  // A orientação do atendente entra TAMBÉM como última mensagem do contexto:
+  // é a posição que o modelo mais respeita, evitando respostas genéricas que
+  // ignoram o conteúdo pedido.
+  {
+    const instr = (conv as unknown as { ai_instruction?: string | null }).ai_instruction?.trim();
+    if (instr) {
+      messages.push({
+        role: "user",
+        content:
+          `[MENSAGEM INTERNA DO SISTEMA — NÃO É O CLIENTE FALANDO. NÃO RESPONDA A ELA, EXECUTE-A]\n` +
+          `Responda AGORA ao cliente dizendo exatamente o conteúdo abaixo, com suas palavras e seu tom, ` +
+          `sem omitir NENHUMA das informações pedidas:\n"""\n${instr}\n"""\n` +
+          `Regras: cubra 100% dos pontos citados acima; não substitua por frases genéricas de encerramento ` +
+          `("qualquer coisa me chame", "tenha uma ótima noite") a menos que a orientação peça isso; ` +
+          `não mencione atendente/supervisor/instrução; escreva como se fosse você mesma.`,
+      });
+    }
+  }
+
+
   const { count: outboundNoProto } = await supabaseAdmin
     .from("wa_messages")
     .select("id", { count: "exact", head: true })
