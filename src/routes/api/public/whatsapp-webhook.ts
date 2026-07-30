@@ -93,7 +93,7 @@ type WhatsAppPayload = {
 async function processPayload(payload: WhatsAppPayload) {
   const { getOrCreateConversation, saveMessage } = await import("@/lib/whatsapp/conversation.server");
   const { runAgent } = await import("@/lib/whatsapp/agent-runner.server");
-  const { downloadWhatsAppMedia, transcribeAudio } = await import("@/lib/whatsapp/media.server");
+  const { downloadWhatsAppMedia, transcribeAudio, storeInboundMedia, extFromMime } = await import("@/lib/whatsapp/media.server");
 
   for (const entry of payload.entry ?? []) {
     for (const change of entry.changes ?? []) {
