@@ -291,3 +291,49 @@ export async function searchInboundFlights(data: InboundData): Promise<OnerLegRe
     ordinationEnum: 0,
   });
 }
+/* ── Carrinho na operadora (Comprar Viagem) ─────────────────────────────
+   Cria o carrinho oficial com os voos escolhidos e devolve a URL pública
+   /viaair/flight-cart?newCartId=... para enviar ao cliente.            */
+export const cartInput = z.object({
+  searchKey: z.string().min(5),
+  outboundFareId: z.string().min(5),
+  outboundItineraryId: z.string().min(5),
+  inboundFareId: z.string().nullish(),
+  inboundItineraryId: z.string().nullish(),
+  isRoundTrip: z.boolean().default(false),
+});
+
+export async function createFlightCart(data: z.infer<typeof cartInput>) {
+  const loc = "https://www.comprarviagem.com.br/viaair/flight-list";
+  const res = await fetch(`${API}/api/booking`, {
+    method: "POST",
+    headers: headers(loc),
+    body: JSON.stringify({
+      flight: {
+        searchKey: data.searchKey,
+        fareId: data.outboundFareId,
+        fareId2: data.inboundFareId ?? null,
+        outboundItineraryId: data.outboundItineraryId,
+        inboundItineraryId: data.inboundItineraryId ?? null,
+        teenagerCount: 0,
+      },
+      searchBookingKey: null,
+      affiliateTag: null,
+      eventId: null,
+    }),
+  });
+  const text = await res.text();
+  let cartId = "";
+  try {
+    cartId = (JSON.parse(text) as { data?: string }).data ?? "";
+  } catch {
+    cartId = "";
+  }
+  if (!res.ok || !cartId) {
+    throw new Error(
+      "A operadora não gerou o carrinho (tarifa pode ter expirado). Refaça a busca e tente de novo.",
+    );
+  }
+  const url = `https://www.comprarviagem.com.br/viaair/flight-cart?newCartId=${cartId}&source=f&isRoundTrip=${data.isRoundTrip}`;
+  return { cartId, url };
+}
