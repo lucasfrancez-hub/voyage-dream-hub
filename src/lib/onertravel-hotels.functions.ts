@@ -169,29 +169,33 @@ export const onerHotelSearch = createServerFn({ method: "POST" })
       arrNumberChildren: r.childrenAges,
     }));
 
-    const startRes = await fetch(`${SERVERLESS}/api/hotel/v1/search`, {
-      method: "POST",
-      headers: h,
-      body: JSON.stringify({
-        numberOfAdults: data.rooms.reduce((a, r) => a + r.adults, 0),
-        numberOfChild: data.rooms.reduce((a, r) => a + r.children, 0),
-        numberOfInfant: 0,
-        numberOfRooms: data.rooms.length,
-        rooms,
-        cityName: data.cityName,
-        id: data.pointId,
-        type: data.pointType,
-        startDate: `${data.checkIn}T00:00:00.000Z`,
-        endDate: `${data.checkOut}T00:00:00.000Z`,
-        source: "h",
-        refresh: Date.now(),
-      }),
-    });
+    let searchKey = data.searchKey ?? "";
 
-    const startJson = (await startRes.json().catch(() => null)) as { data?: string } | null;
-    const searchKey = startJson?.data ?? "";
     if (!searchKey) {
-      throw new Error(`A operadora não retornou chave de busca (HTTP ${startRes.status}).`);
+      const startRes = await fetch(`${SERVERLESS}/api/hotel/v1/search`, {
+        method: "POST",
+        headers: h,
+        body: JSON.stringify({
+          numberOfAdults: data.rooms.reduce((a, r) => a + r.adults, 0),
+          numberOfChild: data.rooms.reduce((a, r) => a + r.children, 0),
+          numberOfInfant: 0,
+          numberOfRooms: data.rooms.length,
+          rooms,
+          cityName: data.cityName,
+          id: data.pointId,
+          type: data.pointType,
+          startDate: `${data.checkIn}T00:00:00.000Z`,
+          endDate: `${data.checkOut}T00:00:00.000Z`,
+          source: "h",
+          refresh: Date.now(),
+        }),
+      });
+
+      const startJson = (await startRes.json().catch(() => null)) as { data?: string } | null;
+      searchKey = startJson?.data ?? "";
+      if (!searchKey) {
+        throw new Error(`A operadora não retornou chave de busca (HTTP ${startRes.status}).`);
+      }
     }
 
     const listBody = {
@@ -209,14 +213,15 @@ export const onerHotelSearch = createServerFn({ method: "POST" })
       },
     };
 
-    // Os fornecedores respondem em ondas — consultamos até estabilizar.
-    let best: { hotels: unknown[]; count: number; haveMore: boolean } = {
-      hotels: [],
-      count: 0,
-      haveMore: false,
-    };
+    // Os fornecedores respondem em ondas e cada resposta é um recorte parcial:
+    // acumulamos a união por hotelId até o conjunto estabilizar.
+    const acc = new Map<number, RawHotelLike>();
+    let count = 0;
+    let haveMore = false;
     let stable = 0;
-    for (let i = 0; i < 12; i++) {
+    // paginação já carregada não precisa de tantas rodadas
+    const rounds = data.page > 1 ? 6 : 12;
+    for (let i = 0; i < rounds; i++) {
       const res = await fetch(`${SERVERLESS}/api/hotel/v1/search/${searchKey}`, {
         method: "POST",
         headers: h,
@@ -224,23 +229,24 @@ export const onerHotelSearch = createServerFn({ method: "POST" })
       });
       if (res.ok) {
         const json = (await res.json().catch(() => null)) as {
-          data?: { hotels?: unknown[]; count?: number; haveMore?: boolean };
+          data?: { hotels?: RawHotelLike[]; count?: number; haveMore?: boolean };
         } | null;
         const d = json?.data;
-        if (d?.hotels?.length) {
-          if ((d.count ?? 0) > best.count) {
-            best = { hotels: d.hotels, count: d.count ?? d.hotels.length, haveMore: !!d.haveMore };
-            stable = 0;
-          } else {
-            stable++;
-            if (stable >= 2) break;
-          }
+        const before = acc.size;
+        for (const raw of d?.hotels ?? []) {
+          if (typeof raw?.hotelId === "number") acc.set(raw.hotelId, raw);
+        }
+        count = Math.max(count, d?.count ?? 0);
+        if (d?.haveMore !== undefined) haveMore = !!d.haveMore;
+        if (acc.size > before) stable = 0;
+        else if (acc.size > 0) {
+          stable++;
+          if (i >= 3 && stable >= 3) break;
         }
       }
       await sleep(2000);
     }
 
-    type RawRate = {
       key?: string;
       name?: string;
       isPackage?: boolean;
