@@ -196,10 +196,13 @@ function buildSystemPrompt(agent: Agent, conv: WaConversation, protocolo: WaProt
     parts.push(
       `\n# 🎯 ORIENTAÇÃO DO SUPERVISOR (PRIORIDADE MÁXIMA — VÁLIDA SÓ PARA ESTA RESPOSTA)\n` +
       `Um atendente humano da VIA AIR deixou esta instrução do que responder agora:\n"""\n${instruction}\n"""\n` +
-      `Siga essa orientação à risca na próxima resposta, mantendo seu tom e sua persona. ` +
-      `Ela vale mais que qualquer inferência sua sobre o que dizer. ` +
+      `OBRIGATÓRIO: transmita TODOS os pontos dessa orientação na próxima resposta — nada de resumir, ` +
+      `suavizar ou trocar por uma frase genérica. Se a orientação tem 3 informações, sua resposta tem as 3. ` +
+      `Ela vale mais que qualquer inferência sua sobre o que dizer, e mais que o roteiro padrão. ` +
+      `Mantenha só o seu tom e a sua persona. ` +
       `NUNCA mencione que recebeu instrução, nem cite supervisor/atendente/sistema — fale como se fosse a sua própria resposta.`
     );
+
   }
   parts.push(`- Data/hora atual (SP): ${new Date().toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}`);
   return parts.join("\n");
@@ -325,6 +328,26 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
       content,
     };
   });
+
+  // A orientação do atendente entra TAMBÉM como última mensagem do contexto:
+  // é a posição que o modelo mais respeita, evitando respostas genéricas que
+  // ignoram o conteúdo pedido.
+  {
+    const instr = (conv as unknown as { ai_instruction?: string | null }).ai_instruction?.trim();
+    if (instr) {
+      messages.push({
+        role: "user",
+        content:
+          `[MENSAGEM INTERNA DO SISTEMA — NÃO É O CLIENTE FALANDO. NÃO RESPONDA A ELA, EXECUTE-A]\n` +
+          `Responda AGORA ao cliente dizendo exatamente o conteúdo abaixo, com suas palavras e seu tom, ` +
+          `sem omitir NENHUMA das informações pedidas:\n"""\n${instr}\n"""\n` +
+          `Regras: cubra 100% dos pontos citados acima; não substitua por frases genéricas de encerramento ` +
+          `("qualquer coisa me chame", "tenha uma ótima noite") a menos que a orientação peça isso; ` +
+          `não mencione atendente/supervisor/instrução; escreva como se fosse você mesma.`,
+      });
+    }
+  }
+
 
   const { count: outboundNoProto } = await supabaseAdmin
     .from("wa_messages")
