@@ -363,7 +363,7 @@ function ProdutosNav({ pathname }: { pathname: string }) {
       <DropdownMenuContent align="start" className="w-64">
         <DropdownMenuItem asChild>
           <Link to="/admin/pacotes" className="flex flex-col items-start gap-0.5">
-            <span className="text-sm font-medium">Cadastrar produtos</span>
+            <span className="text-sm font-medium">Command Center</span>
             <span className="text-xs text-muted-foreground">Pacotes, ingressos, passeios e cruzeiros</span>
           </Link>
         </DropdownMenuItem>
@@ -373,18 +373,7 @@ function ProdutosNav({ pathname }: { pathname: string }) {
             <span className="text-xs text-muted-foreground">Aéreo, hotel ou aéreo + hotel</span>
           </Link>
         </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <Link to="/admin/voos-teste" className="flex flex-col items-start gap-0.5">
-            <span className="text-sm font-medium">Buscar aéreo</span>
-            <span className="text-xs text-muted-foreground">Motor Comprar Viagem</span>
-          </Link>
-        </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <Link to="/admin/hoteis-teste" className="flex flex-col items-start gap-0.5">
-            <span className="text-sm font-medium">Buscar hotel</span>
-            <span className="text-xs text-muted-foreground">Motor Comprar Viagem</span>
-          </Link>
-        </DropdownMenuItem>
+
       </DropdownMenuContent>
     </DropdownMenu>
   );
