@@ -313,3 +313,17 @@ export async function recordHandoff(input: {
     actor: input.actor ?? null,
   });
 }
+
+/**
+ * Grava o ID retornado pela Meta na linha já salva (envios outbound).
+ * Sem isso, o balão não pode ser citado (reply) nem casado quando o
+ * cliente responde àquela mensagem — o preview vinha vazio.
+ */
+export async function setWaMessageId(rowId: string, waId: string | null): Promise<void> {
+  if (!rowId || !waId) return;
+  const { error } = await supabaseAdmin
+    .from("wa_messages")
+    .update({ wa_message_id: waId })
+    .eq("id", rowId);
+  if (error) console.error("[wa/setWaMessageId]", error.message);
+}

@@ -470,8 +470,9 @@ export const sendHumanReply = createServerFn({ method: "POST" })
 
     const { splitToBubbles } = await import("@/lib/whatsapp/send.server");
     const bubbles = splitToBubbles(content);
+    const savedRowIds: Array<string | null> = [];
     for (let i = 0; i < bubbles.length; i++) {
-      await saveMessage({
+      const row = await saveMessage({
         conversation_id: conv.id,
         direction: "outbound",
         sender: "human",
@@ -481,11 +482,18 @@ export const sendHumanReply = createServerFn({ method: "POST" })
         reply_to_snippet: i === 0 ? (data.reply_to_snippet ?? null) : null,
         reply_to_sender: i === 0 ? (data.reply_to_sender ?? null) : null,
       });
+      savedRowIds.push(row?.id ?? null);
     }
 
-    await sendWhatsAppBubbles(conv.wa_phone, content, prefix, {
+    const sent = await sendWhatsAppBubbles(conv.wa_phone, content, prefix, {
       replyId: data.reply_to_wa_id ?? null,
     });
+    // Grava os IDs da Meta pra que esses balões possam ser citados depois
+    const { setWaMessageId } = await import("@/lib/whatsapp/conversation.server");
+    for (let i = 0; i < sent.length; i++) {
+      const rowId = savedRowIds[i];
+      if (rowId && sent[i]?.id) await setWaMessageId(rowId, sent[i].id);
+    }
     await clearAwaitingHumanTag(conv.id);
     return { ok: true };
   });
