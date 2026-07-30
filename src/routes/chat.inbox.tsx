@@ -696,7 +696,7 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
       (original
         ? original.direction === "inbound"
           ? (conv.display_name ?? conv.wa_phone)
-          : "me"
+          : "Você"
         : null);
     return { snippet, sender };
   };
