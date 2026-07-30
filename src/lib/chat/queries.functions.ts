@@ -12,7 +12,7 @@ export const listConversations = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { data, error } = await context.supabase
       .from("wa_conversations")
-      .select("id, wa_phone, display_name, mode, agent_slug, assigned_to, last_message_at, last_message_preview, unread_count, tags, person_id, funnel_stage, protocolo_ativo_id, ai_instruction, ai_instruction_at, ai_debounce_until")
+      .select("id, wa_phone, display_name, mode, agent_slug, assigned_to, last_message_at, last_message_preview, unread_count, tags, person_id, funnel_stage, protocolo_ativo_id, ai_instruction, ai_instruction_at, ai_debounce_until, ai_paused")
       .order("last_message_at", { ascending: false })
       .limit(200);
     if (error) throw new Error(error.message);
