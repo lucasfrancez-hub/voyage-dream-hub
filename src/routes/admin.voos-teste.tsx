@@ -30,6 +30,8 @@ import {
   Clock,
   ChevronDown,
   ShoppingCart,
+  ExternalLink,
+  Copy,
 
 
 } from "lucide-react";
@@ -45,6 +47,7 @@ import { AirportAutocomplete } from "@/components/search/AirportAutocomplete";
 import { DateRangeField } from "@/components/search/DateRangeField";
 import { installmentLabel, maxInstallments } from "@/lib/flight-installments";
 import {
+  onerCreateFlightCart,
   onerFlightSearch,
   onerInboundSearch,
 } from "@/lib/onertravel.functions";
@@ -688,13 +691,45 @@ function FlightCard({
 
 // ---------------------------------------------------------------- resumo
 
-function SummaryCard({ out, inb }: { out: OnerFlight; inb: OnerFlight | null }) {
+function SummaryCard({
+  out,
+  inb,
+  searchKey,
+}: {
+  out: OnerFlight;
+  inb: OnerFlight | null;
+  searchKey: string | null;
+}) {
   const fare = out.price.price + (inb?.price.price ?? 0);
   const taxes = taxesOf(out) + (inb ? taxesOf(inb) : 0);
   const total = out.price.total + (inb?.price.total ?? 0);
   const pax = out.price.passengerCount || 1;
   const n = Math.min(maxInstallments(airlineOf(out)), inb ? maxInstallments(airlineOf(inb)) : 99);
   const [orderOpen, setOrderOpen] = useState(false);
+  const [cartUrl, setCartUrl] = useState<string | null>(null);
+  const createCart = useServerFn(onerCreateFlightCart);
+
+  // Gera o carrinho oficial do Comprar Viagem (agência VIA AIR na URL),
+  // para o cliente concluir o pagamento no ambiente da operadora.
+  const cartMut = useMutation({
+    mutationFn: () =>
+      createCart({
+        data: {
+          searchKey: searchKey ?? "",
+          outboundFareId: out.key,
+          outboundItineraryId: out.journey.key,
+          inboundFareId: inb?.key ?? null,
+          inboundItineraryId: inb?.journey.key ?? null,
+          isRoundTrip: !!inb,
+        },
+      }),
+    onSuccess: (r) => {
+      setCartUrl(r.url);
+      window.open(r.url, "_blank", "noopener");
+    },
+    onError: (e) =>
+      toast.error(e instanceof Error ? e.message : "Erro ao gerar carrinho"),
+  });
 
   const legText = (label: string, f: OnerFlight) => {
     const j = f.journey;
@@ -782,6 +817,56 @@ function SummaryCard({ out, inb }: { out: OnerFlight; inb: OnerFlight | null }) 
           >
             <ShoppingCart className="h-4 w-4" /> Fazer pedido
           </Button>
+
+          <Button
+            variant="outline"
+            disabled={!searchKey || cartMut.isPending}
+            onClick={() => cartMut.mutate()}
+            className="mt-2 w-full py-6 text-xs font-black uppercase tracking-[0.15em]"
+          >
+            {cartMut.isPending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <ExternalLink className="h-4 w-4" />
+            )}
+            Comprar Viagem
+          </Button>
+
+          {cartUrl && (
+            <div className="mt-3 space-y-2 rounded-lg border border-primary/30 bg-primary/5 p-3">
+              <div className="text-xs font-semibold">Link do carrinho</div>
+              <div className="break-all text-[11px] text-muted-foreground">{cartUrl}</div>
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  className="flex-1"
+                  onClick={() => {
+                    navigator.clipboard.writeText(cartUrl);
+                    toast.success("Link copiado");
+                  }}
+                >
+                  <Copy className="h-3.5 w-3.5" /> Copiar
+                </Button>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  className="flex-1"
+                  onClick={() =>
+                    window.open(
+                      `https://wa.me/?text=${encodeURIComponent(
+                        `Segue o link para concluir a reserva:\n${cartUrl}`,
+                      )}`,
+                      "_blank",
+                      "noopener",
+                    )
+                  }
+                >
+                  WhatsApp
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -1373,7 +1458,7 @@ export function VoosPage({
                 </section>
               )}
 
-              {showSummary && <SummaryCard out={outFlight!} inb={inFlight} />}
+              {showSummary && <SummaryCard out={outFlight!} inb={inFlight} searchKey={result?.searchKey ?? null} />}
             </div>
           </div>
         )}
