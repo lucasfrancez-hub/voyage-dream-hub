@@ -368,6 +368,12 @@ function ProdutosNav({ pathname }: { pathname: string }) {
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
+          <Link to="/admin/buscar" className="flex flex-col items-start gap-0.5">
+            <span className="text-sm font-medium">Motor de busca</span>
+            <span className="text-xs text-muted-foreground">Aéreo, hotel ou aéreo + hotel</span>
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
           <Link to="/admin/voos-teste" className="flex flex-col items-start gap-0.5">
             <span className="text-sm font-medium">Buscar aéreo</span>
             <span className="text-xs text-muted-foreground">Motor Comprar Viagem</span>
