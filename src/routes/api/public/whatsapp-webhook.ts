@@ -84,7 +84,17 @@ type WhatsAppPayload = {
           timestamp?: string;
         }>;
         contacts?: Array<{ wa_id: string; profile?: { name?: string } }>;
-        statuses?: Array<{ id: string; status: string; recipient_id: string }>;
+        statuses?: Array<{
+          id: string;
+          status: string;
+          recipient_id: string;
+          errors?: Array<{
+            code?: number;
+            title?: string;
+            message?: string;
+            error_data?: { details?: string };
+          }>;
+        }>;
       };
     }>;
   }>;
@@ -103,6 +113,18 @@ async function processPayload(payload: WhatsAppPayload) {
       if (value.statuses) {
         for (const st of value.statuses) {
           console.log(`[wa-webhook] status ${st.status} para ${st.id}`);
+          if (st.status === "failed") {
+            const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+            const failure = st.errors?.[0];
+            const details = failure?.error_data?.details;
+            const message = details ?? failure?.message ?? failure?.title ?? "O WhatsApp não entregou a mensagem";
+            const code = failure?.code ? `Meta ${failure.code}: ` : "";
+            const { error } = await supabaseAdmin
+              .from("wa_messages")
+              .update({ error: `${code}${message}` })
+              .eq("wa_message_id", st.id);
+            if (error) console.error("[wa-webhook] falha ao registrar status:", error.message);
+          }
         }
       }
 
