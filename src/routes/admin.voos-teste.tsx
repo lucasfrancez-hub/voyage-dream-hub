@@ -822,15 +822,114 @@ function FlightCard({
 
 // ---------------------------------------------------------------- resumo
 
+/** Card compacto de um trecho dentro do modal de seleção. */
+function SummaryLeg({ label, f }: { label: string; f: OnerFlight }) {
+  const j = f.journey;
+  const withBag = flightHasBaggage(f);
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="rounded-2xl border border-border/60 bg-background/40 p-4">
+      <div className="mb-4 flex items-start justify-between gap-3">
+        <span className="rounded-md bg-primary/15 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-primary">
+          {label} • {fmtDate(j.departure.date)}
+        </span>
+        <div className="flex items-center gap-2">
+          {j.marketingAirline?.pathLogo ? (
+            <img
+              src={j.marketingAirline.pathLogo}
+              alt={j.marketingAirline?.name ?? "Companhia aérea"}
+              className="h-5 w-5 rounded bg-white object-contain"
+              loading="lazy"
+            />
+          ) : (
+            <Plane className="h-3.5 w-3.5 text-muted-foreground" />
+          )}
+          <span className="text-[10px] font-medium uppercase tracking-tight text-muted-foreground">
+            {j.segments.map((s) => `${s.marketingAirline?.iata ?? ""}${s.flightNumber}`).join(" + ")}
+          </span>
+        </div>
+      </div>
+
+      <div className="mb-5 flex items-center justify-between gap-3">
+        <div className="flex flex-col">
+          <span className="text-2xl font-bold leading-none tracking-tight">
+            {fmtTime(j.departure.time)}
+          </span>
+          <span className="mt-1 text-sm font-black uppercase leading-none text-primary">
+            {j.departure.iata}
+          </span>
+          <span className="max-w-[110px] truncate text-[10px] leading-tight text-muted-foreground">
+            {j.departure.name}
+          </span>
+        </div>
+
+        <div className="flex flex-1 flex-col items-center px-2">
+          <span className="mb-1.5 text-[9px] font-bold uppercase tracking-tight text-muted-foreground">
+            {j.flyingTime.hour}h{String(j.flyingTime.minute).padStart(2, "0")}
+          </span>
+          <div className="relative flex w-full items-center">
+            <div className="h-px w-full bg-border" />
+            <span className="absolute left-0 h-1.5 w-1.5 rounded-full bg-primary shadow-[0_0_8px_hsl(var(--primary)/0.5)]" />
+            <span className="absolute right-0 h-1.5 w-1.5 rounded-full bg-primary shadow-[0_0_8px_hsl(var(--primary)/0.5)]" />
+          </div>
+          <span className="mt-1.5 text-[9px] font-bold uppercase tracking-widest text-muted-foreground">
+            {j.numberOfStops === 0 ? "Direto" : `${j.numberOfStops} conexão(ões)`}
+          </span>
+        </div>
+
+        <div className="flex flex-col text-right">
+          <span className="text-2xl font-bold leading-none tracking-tight">
+            {fmtTime(j.destination.time)}
+          </span>
+          <span className="mt-1 text-sm font-black uppercase leading-none text-primary">
+            {j.destination.iata}
+          </span>
+          <span className="ml-auto max-w-[110px] truncate text-[10px] leading-tight text-muted-foreground">
+            {j.destination.name}
+          </span>
+        </div>
+      </div>
+
+      <div className="flex items-center justify-between border-t border-border/50 pt-4">
+        <div className="flex gap-5">
+          <BagChip icon={BriefcaseBusiness} kicker="Mão" value="10kg inclusa" active />
+          <BagChip
+            icon={Luggage}
+            kicker="Despachada"
+            value={withBag ? "23kg inclusa" : "Não inclusa"}
+            active={withBag}
+          />
+        </div>
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          aria-expanded={open}
+          className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-primary transition hover:brightness-125"
+        >
+          {open ? "Ocultar" : "Detalhes"}
+          <ChevronDown className={`h-3 w-3 transition-transform ${open ? "rotate-180" : ""}`} />
+        </button>
+      </div>
+
+      {open && <SegmentsDetail f={f} />}
+    </div>
+  );
+}
+
 function SummaryCard({
   out,
   inb,
   searchKey,
+  open,
+  onOpenChange,
 }: {
   out: OnerFlight;
   inb: OnerFlight | null;
   searchKey: string | null;
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
 }) {
+
   const fare = out.price.price + (inb?.price.price ?? 0);
   const taxes = taxesOf(out) + (inb ? taxesOf(inb) : 0);
   const total = out.price.total + (inb?.price.total ?? 0);
