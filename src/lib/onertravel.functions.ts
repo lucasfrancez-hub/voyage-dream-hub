@@ -48,6 +48,8 @@ function buildLocationHref(p: {
   adults: number;
   children: number;
   infants: number;
+  departureIsCity?: boolean;
+  arrivalIsCity?: boolean;
 }) {
   const q = new URLSearchParams({
     departureDate: `${p.departureDate}T00:00:00.000Z`,
@@ -58,13 +60,14 @@ function buildLocationHref(p: {
     childCount: String(p.children),
     departureIata: p.departureIata,
     arrivalIata: p.arrivalIata,
-    isDepartureIataCity: "false",
-    isArrivalIataCity: "false",
+    isDepartureIataCity: String(!!p.departureIsCity),
+    isArrivalIataCity: String(!!p.arrivalIsCity),
     source: "f",
   });
   if (p.returnDate) q.set("returnDate", `${p.returnDate}T00:00:00.000Z`);
   return `https://www.comprarviagem.com.br/viaair/flight-list?${q.toString()}`;
 }
+
 
 // ---------------------------------------------------------------- tipos
 
