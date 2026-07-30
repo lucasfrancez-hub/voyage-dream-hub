@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { listConversations, listMessages, sendHumanReply, sendHumanMedia, toggleConversationMode, startOutboundConversation, setFunnelStage, assignConversation, setAiPaused, listAttendants, getActiveProtocolo, closeProtocoloManually, listConversationProtocolos, getConversationOrders, updateProtocoloDetails, listProtocoloMessages, ensureProtocoloResumo } from "@/lib/chat/queries.functions";
 import { listInstagramConversations, listInstagramMessages, sendInstagramReply, listInstagramComments, triggerAutoReplyComment } from "@/lib/instagram/queries.functions";
 import { firstName } from "@/lib/whatsapp/text-utils.shared";
+import { audioBlobToMp3 } from "@/lib/audio-to-mp3";
 
 import { FUNNEL_STAGES } from "@/lib/chat/funnel-stages";
 import { WhatsAppBubble, DateDivider } from "@/components/chat/WhatsAppBubble";
@@ -601,7 +602,7 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
       chunksRef.current = [];
       cancelRef.current = false;
       rec.ondataavailable = (e) => { if (e.data.size > 0) chunksRef.current.push(e.data); };
-      rec.onstop = () => {
+      rec.onstop = async () => {
         stream.getTracks().forEach((t) => t.stop());
         stopTimer();
         setRecording(false);
@@ -610,13 +611,19 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
         secsRef.current = 0;
         setRecSecs(0);
         if (cancelRef.current) return;
-        const type = (mimeType || "audio/ogg").split(";")[0];
-        const blob = new Blob(chunksRef.current, { type });
-        if (blob.size < 1500) { toast.error("Áudio muito curto"); return; }
-        const ext = type.includes("ogg") ? "ogg" : type.includes("mp4") ? "m4a" : type.includes("mpeg") ? "mp3" : "webm";
-        const file = new File([blob], `audio-${Date.now()}.${ext}`, { type });
-        // Fica em prévia: o atendente escuta (se quiser) e clica em enviar.
-        setAudioDraft({ file, url: URL.createObjectURL(blob), secs });
+        const recordedType = (mimeType || rec.mimeType || "audio/webm").split(";")[0];
+        const recordedBlob = new Blob(chunksRef.current, { type: recordedType });
+        if (recordedBlob.size < 1500) { toast.error("Áudio muito curto"); return; }
+        try {
+          // A extensão sozinha não basta: a Meta valida o conteúdo binário.
+          // Normalizamos qualquer gravação do navegador para MP3 real.
+          const mp3 = await audioBlobToMp3(recordedBlob);
+          const file = new File([mp3], `audio-${Date.now()}.mp3`, { type: "audio/mpeg" });
+          setAudioDraft({ file, url: URL.createObjectURL(mp3), secs });
+        } catch (error) {
+          console.error("[chat/audio] falha ao converter gravação:", error);
+          toast.error("Não foi possível preparar o áudio. Grave novamente");
+        }
       };
       rec.start();
       recorderRef.current = rec;
