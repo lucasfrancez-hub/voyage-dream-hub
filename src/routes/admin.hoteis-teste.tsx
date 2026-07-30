@@ -443,14 +443,6 @@ export function HoteisPage({
     sortingCode: "",
   });
 
-  const destMut = useMutation({
-    mutationFn: () => searchDest({ data: { query: destQuery.trim() } }),
-    onSuccess: (r) => {
-      setOptions(r);
-      if (!r.length) toast.warning("Nenhum destino encontrado");
-    },
-    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Erro ao buscar destino"),
-  });
 
   const mut = useMutation({
     mutationFn: () => searchHotels({ data: buildPayload(1) }),
