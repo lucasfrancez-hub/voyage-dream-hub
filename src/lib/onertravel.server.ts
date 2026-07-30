@@ -55,7 +55,10 @@ export const flightSearchInput = z.object({
   departureIata: z.string().min(3).max(3),
   arrivalIata: z.string().min(3).max(3),
   departureDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  returnDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullish(),
+  returnDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .nullish(),
   adults: z.number().int().min(1).max(9).default(1),
   children: z.number().int().min(0).max(9).default(0),
   infants: z.number().int().min(0).max(9).default(0),
@@ -101,8 +104,7 @@ const hm = (mins: number | null | undefined) =>
     : { hour: Math.floor(mins / 60) % 24, minute: mins % 60 };
 
 function buildFilter(f: OnerOperatorFilters) {
-  const isFullDay = f.departureFrom === 0 &&
-    (f.departureTo === 1440 || f.departureTo === null);
+  const isFullDay = f.departureFrom === 0 && (f.departureTo === 1440 || f.departureTo === null);
   return {
     containsDispatchBaggage: f.containsDispatchBaggage,
     cabinClass: f.cabinClass,
@@ -268,7 +270,9 @@ export async function searchFlights(data: SearchData): Promise<OnerSearchResult>
       searchKey = "";
     }
     if (!searchKey) {
-      throw new Error(`A operadora não retornou chave de busca (HTTP ${startRes.status}). Tente novamente em instantes.`);
+      throw new Error(
+        `A operadora não retornou chave de busca (HTTP ${startRes.status}). Tente novamente em instantes.`,
+      );
     }
   }
 
