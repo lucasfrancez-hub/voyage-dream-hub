@@ -159,19 +159,37 @@ const SearchInput = z.object({
   infants: z.number().int().min(0).max(9).default(0),
   maxStops: z.number().int().min(0).max(2).default(0),
   pageSize: z.number().int().min(1).max(30).default(10),
+  onlyWithBaggage: z.boolean().default(false),
 });
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+/** A tarifa padrão da operadora vem sempre sem bagagem despachada (Lite). */
+export function flightHasBaggage(f: OnerFlight): boolean {
+  if (f.journey.allowedBaggage) return true;
+  const list = f.journey.baggagesAllowance ?? [];
+  return list.some((b) => {
+    const desc = `${b.typeDescription ?? ""}`.toLowerCase();
+    const isChecked = desc.includes("despach") || desc.includes("checked") || desc.includes("porão");
+    return isChecked && (b.quantity ?? 0) > 0;
+  });
+}
 
 async function poll(
   path: "outbound" | "inbound",
   loc: string,
   body: Record<string, unknown>,
+  onlyWithBaggage = false,
 ) {
   // A operadora agrega resultados de vários fornecedores; o total cresce a cada
   // consulta. Continuamos consultando até estabilizar (ou esgotar o tempo).
   let best = { totalFlightsCount: 0, flights: [] as OnerFlight[] };
   let stableRounds = 0;
+  const finish = (r: { totalFlightsCount: number; flights: OnerFlight[] }) => {
+    if (!onlyWithBaggage) return r;
+    const flights = r.flights.filter(flightHasBaggage);
+    return { totalFlightsCount: flights.length, flights };
+  };
   for (let i = 0; i < 20; i++) {
     const res = await fetch(`${SERVERLESS}/api/flight/v1/search/${path}`, {
       // header `searchkey` NÃO deve ser enviado — o site não envia e a API
@@ -189,7 +207,7 @@ async function poll(
           stableRounds = 0;
         } else if (best.totalFlightsCount > 0) {
           stableRounds++;
-          if (stableRounds >= 3) return best;
+          if (stableRounds >= 3) return finish(best);
         }
       } catch {
         /* continua */
@@ -197,8 +215,9 @@ async function poll(
     }
     await sleep(2000);
   }
-  return best;
+  return finish(best);
 }
+
 
 export const onerFlightSearch = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
