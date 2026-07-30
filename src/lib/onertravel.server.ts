@@ -176,19 +176,47 @@ export async function searchAirports(data: z.infer<typeof airportSearchInput>) {
   const url = `${API}/api/airport/search?name=${encodeURIComponent(data.query)}&isDeparture=${data.isDeparture}`;
   const res = await fetch(url, { headers: headers("https://www.comprarviagem.com.br/viaair/") });
   if (!res.ok) throw new Error(`Falha ao buscar aeroportos (${res.status})`);
-  const json = (await res.json()) as {
-    data?: Array<{ iata?: string; name?: string; city?: string; country?: string; isCity?: boolean }>;
+  type Airport = {
+    iata?: string;
+    name?: string;
+    city?: string;
+    country?: string;
+    isCity?: boolean;
+    isIataCity?: boolean;
   };
-  return (json.data ?? []).flatMap((airport) => {
-    if (!airport.iata) return [];
-    return [{
-      iata: airport.iata,
-      name: airport.name ?? "",
-      city: airport.city ?? "",
-      country: airport.country ?? "",
-      isCity: !!airport.isCity,
-    }];
-  }).slice(0, 12);
+  const json = (await res.json()) as unknown;
+
+  // A operadora ora devolve um array direto, ora { data: [...] } ou { data: { airports: [...] } }
+  const pickList = (value: unknown, depth = 0): Airport[] => {
+    if (Array.isArray(value)) return value as Airport[];
+    if (value && typeof value === "object" && depth < 4) {
+      const obj = value as Record<string, unknown>;
+      for (const key of ["data", "airports", "items", "results", "stations", "list"]) {
+        if (key in obj) {
+          const found = pickList(obj[key], depth + 1);
+          if (found.length) return found;
+        }
+      }
+    }
+    return [];
+  };
+
+  return pickList(json)
+    .flatMap((airport) => {
+      if (!airport?.iata) return [];
+      return [
+        {
+          iata: airport.iata,
+          name: airport.name ?? "",
+          city: airport.city ?? "",
+          country: airport.country ?? "",
+          isCity: !!(airport.isCity ?? airport.isIataCity),
+        },
+      ];
+    })
+    .slice(0, 12);
+
+
 }
 
 export async function searchFlights(data: SearchData): Promise<OnerSearchResult> {
