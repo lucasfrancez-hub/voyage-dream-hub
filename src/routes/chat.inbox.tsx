@@ -2,11 +2,11 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Search, Send, Bot, User, MoreVertical, Loader2, Inbox as InboxIcon, Users, Archive, Plus, ChevronDown, Image as ImageIcon, XCircle, History, Paperclip, PanelLeftClose, PanelLeftOpen, FileText, X, Save, ExternalLink, ArrowLeft, Info, Instagram, MessageCircle, MessageSquare, Heart, Mic, Square } from "lucide-react";
+import { Pause, Play, Search, Send, Bot, User, MoreVertical, Loader2, Inbox as InboxIcon, Users, Archive, Plus, ChevronDown, Image as ImageIcon, XCircle, History, Paperclip, PanelLeftClose, PanelLeftOpen, FileText, X, Save, ExternalLink, ArrowLeft, Info, Instagram, MessageCircle, MessageSquare, Heart, Mic, Square } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
-import { listConversations, listMessages, sendHumanReply, sendHumanMedia, toggleConversationMode, startOutboundConversation, setFunnelStage, assignConversation, listAttendants, getActiveProtocolo, closeProtocoloManually, listConversationProtocolos, getConversationOrders, updateProtocoloDetails, listProtocoloMessages, ensureProtocoloResumo } from "@/lib/chat/queries.functions";
+import { listConversations, listMessages, sendHumanReply, sendHumanMedia, toggleConversationMode, startOutboundConversation, setFunnelStage, assignConversation, setAiPaused, listAttendants, getActiveProtocolo, closeProtocoloManually, listConversationProtocolos, getConversationOrders, updateProtocoloDetails, listProtocoloMessages, ensureProtocoloResumo } from "@/lib/chat/queries.functions";
 import { listInstagramConversations, listInstagramMessages, sendInstagramReply, listInstagramComments, triggerAutoReplyComment } from "@/lib/instagram/queries.functions";
 import { firstName } from "@/lib/whatsapp/text-utils.shared";
 
@@ -497,6 +497,7 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
   const listMsgs = useServerFn(listMessages);
   const sendFn = useServerFn(sendHumanReply);
   const toggleFn = useServerFn(toggleConversationMode);
+  const pauseAiFn = useServerFn(setAiPaused);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [input, setInput] = useState("");
   const [detailsOpen, setDetailsOpen] = useState(false);
@@ -657,6 +658,16 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
     onSuccess: () => { onRefetch(); toast.success("Modo alterado"); },
   });
 
+  const aiPaused = !!(conv as { ai_paused?: boolean | null }).ai_paused;
+  const pauseAiMut = useMutation({
+    mutationFn: async (paused: boolean) => pauseAiFn({ data: { conversation_id: conv.id, paused } }),
+    onSuccess: (_d, paused) => {
+      onRefetch();
+      toast.success(paused ? "IA pausada — ela não responde até você retomar" : "IA retomada");
+    },
+    onError: (e) => toast.error(`Falha: ${(e as Error).message}`),
+  });
+
 
   const grouped = groupByDay(messages);
   const repliedIds = new Set(
@@ -732,12 +743,42 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
           </div>
           <div className="truncate text-[11px] text-slate-500">
             {conv.wa_phone} · {conv.mode === "ai" ? `IA (${conv.agent_slug ?? "auto"})` : conv.mode === "human" ? "Humano" : "Arquivada"}
+            {conv.mode === "ai" && aiPaused && (
+              <> · <span className="font-semibold text-amber-600">IA pausada</span></>
+            )}
             {assignedName && (
               <> · <span className="font-medium text-slate-700">{assignedName}</span></>
             )}
           </div>
 
         </div>
+        {conv.mode === "ai" && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={() => pauseAiMut.mutate(!aiPaused)}
+                disabled={pauseAiMut.isPending}
+                aria-label={aiPaused ? "Retomar IA" : "Pausar IA"}
+                className={cn(
+                  "inline-flex shrink-0 items-center gap-1.5 rounded-md border px-2 py-1.5 text-[11px] font-medium transition-colors disabled:opacity-50 sm:text-xs",
+                  aiPaused
+                    ? "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+                    : "border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100",
+                )}
+              >
+                {pauseAiMut.isPending
+                  ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  : aiPaused ? <Play className="h-3.5 w-3.5" /> : <Pause className="h-3.5 w-3.5" />}
+                <span className="hidden sm:inline">{aiPaused ? "Retomar IA" : "Pausar IA"}</span>
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">
+              {aiPaused
+                ? "A IA volta a responder as próximas mensagens"
+                : "Segura a IA sem assumir a conversa — dá tempo de deixar a orientação"}
+            </TooltipContent>
+          </Tooltip>
+        )}
         <button
           onClick={() => toggleMut.mutate(conv.mode === "ai" ? "human" : "ai")}
           className="shrink-0 rounded-md border border-slate-200 px-2 py-1.5 text-[11px] font-medium text-slate-700 hover:bg-slate-50 sm:px-3 sm:text-xs"
@@ -852,6 +893,19 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
             pending={(conv as { ai_instruction?: string | null }).ai_instruction ?? null}
             onChange={onRefetch}
           />
+        )}
+        {conv.mode === "ai" && aiPaused && (
+          <div className="mb-2 flex items-center gap-2 rounded-md border border-amber-200 bg-amber-50 px-2 py-1.5 text-[11px] text-amber-800">
+            <Pause className="h-3.5 w-3.5 shrink-0" />
+            <span className="flex-1">IA pausada — ela não responde até você retomar. Deixe a orientação e clique em “Retomar IA”.</span>
+            <button
+              onClick={() => pauseAiMut.mutate(false)}
+              disabled={pauseAiMut.isPending}
+              className="rounded-md bg-amber-600 px-2 py-1 text-[11px] font-medium text-white hover:bg-amber-700 disabled:opacity-50"
+            >
+              Retomar
+            </button>
+          </div>
         )}
         {replyTo && (
           <div className="mb-2 flex items-start gap-2 rounded-md border-l-4 border-[#F26B1F] bg-orange-50 px-3 py-2">

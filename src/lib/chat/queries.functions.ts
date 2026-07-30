@@ -12,7 +12,7 @@ export const listConversations = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { data, error } = await context.supabase
       .from("wa_conversations")
-      .select("id, wa_phone, display_name, mode, agent_slug, assigned_to, last_message_at, last_message_preview, unread_count, tags, person_id, funnel_stage, protocolo_ativo_id, ai_instruction, ai_instruction_at, ai_debounce_until")
+      .select("id, wa_phone, display_name, mode, agent_slug, assigned_to, last_message_at, last_message_preview, unread_count, tags, person_id, funnel_stage, protocolo_ativo_id, ai_instruction, ai_instruction_at, ai_debounce_until, ai_paused")
       .order("last_message_at", { ascending: false })
       .limit(200);
     if (error) throw new Error(error.message);
@@ -699,6 +699,31 @@ export const setAiInstruction = createServerFn({ method: "POST" })
     const { error } = await context.supabase
       .from("wa_conversations")
       .update(patch)
+      .eq("id", data.conversation_id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+/**
+ * Pausa/retoma a IA na conversa SEM tirar do modo IA. Enquanto pausada, a IA
+ * não responde nada — o atendente pode deixar orientações e depois retomar.
+ */
+export const setAiPaused = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) =>
+    z.object({
+      conversation_id: z.string().uuid(),
+      paused: z.boolean(),
+    }).parse(data),
+  )
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase
+      .from("wa_conversations")
+      .update({
+        ai_paused: data.paused,
+        // ao retomar, libera o debounce pra IA responder no próximo ciclo
+        ...(data.paused ? {} : { ai_debounce_until: new Date().toISOString() }),
+      })
       .eq("id", data.conversation_id);
     if (error) throw new Error(error.message);
     return { ok: true };

@@ -1,0 +1,1 @@
+ALTER TABLE public.wa_conversations ADD COLUMN IF NOT EXISTS ai_paused boolean NOT NULL DEFAULT false;
