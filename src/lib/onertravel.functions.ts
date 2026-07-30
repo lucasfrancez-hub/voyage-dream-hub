@@ -251,8 +251,9 @@ async function poll(
   let priceRange: { minPrice: number; maxPrice: number } | null = null;
   let stableRounds = 0;
   /** só encerra cedo depois de algumas rodadas — o 1º snapshot é sempre parcial */
-  const MIN_ROUNDS = 5;
-  const STABLE_TO_STOP = 4;
+  const MIN_ROUNDS = 8;
+  const STABLE_TO_STOP = 6;
+
 
   for (let i = 0; i < maxRounds; i++) {
     let haveMore = false;
