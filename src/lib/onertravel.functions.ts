@@ -295,6 +295,7 @@ export const onerInboundSearch = createServerFn({ method: "POST" })
         infants: z.number().int().min(0).default(0),
         maxStops: z.number().int().min(0).max(2).default(0),
         pageSize: z.number().int().min(1).max(30).default(10),
+        onlyWithBaggage: z.boolean().default(false),
       })
       .parse(d),
   )
@@ -309,12 +310,16 @@ export const onerInboundSearch = createServerFn({ method: "POST" })
       infants: data.infants,
     });
 
-    return poll("inbound", loc, {
-      searchKey: data.searchKey,
-      flightKey: data.flightKey,
-      page: 1,
-      pageSize: data.pageSize,
-      filter: { maxStopsEnum: data.maxStops, startPrice: null, endPrice: null },
-      ordinationEnum: 0,
+    return poll(
+      "inbound",
+      loc,
+      {
+        searchKey: data.searchKey,
+        flightKey: data.flightKey,
+        page: 1,
+        pageSize: data.pageSize,
+        filter: { maxStopsEnum: data.maxStops, startPrice: null, endPrice: null },
+        ordinationEnum: 0,
+
     });
   });
