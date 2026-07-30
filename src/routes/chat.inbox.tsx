@@ -729,7 +729,8 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
   const window24 = hoursSince > 24;
 
   return (
-    <div className="flex h-full min-h-0 flex-col">
+    <TooltipProvider delayDuration={200}>
+      <div className="flex h-full min-h-0 flex-col">
       {/* Header conversa */}
       <div className="flex h-14 shrink-0 items-center gap-2 border-b border-slate-200 bg-white px-3 sm:gap-3 sm:px-4">
         {onBack && (
@@ -1019,7 +1020,8 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
           </button>
         </div>
       </div>
-    </div>
+      </div>
+    </TooltipProvider>
   );
 }
 
