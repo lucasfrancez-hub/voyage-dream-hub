@@ -21,7 +21,7 @@ export type CardCapture = {
   liveness?: Record<string, any> | null;
 };
 
-export type BoletoCapture = Record<string, string | null | undefined>;
+export type BoletoCapture = Record<string, string | null>;
 
 export type SnapshotPassenger = {
   index?: number;
@@ -158,7 +158,10 @@ export const listCofreOrders = createServerFn({ method: "GET" })
             birth_date: p.birth_date ?? snapshotPassengers[i]?.birth_date ?? null,
           }))
         : snapshotPassengers;
-      const rawBoleto = (snap.boleto_capture ?? null) as Record<string, unknown> | null;
+      const rawBoletoSource = snap.boleto_capture ?? snap.boletoCapture ?? snap.financier ?? null;
+      const rawBoleto = rawBoletoSource && typeof rawBoletoSource === "object" && !Array.isArray(rawBoletoSource)
+        ? (rawBoletoSource as Record<string, unknown>)
+        : null;
       const boletoCapture = rawBoleto
         ? Object.fromEntries(
             Object.entries(rawBoleto).map(([key, value]) => [
