@@ -202,7 +202,7 @@ function CofrePage() {
       passengers: e.passengers,
     }));
 
-    const pedidos: UnifiedItem[] = (ordersQuery.data ?? [])
+    const pedidos: UnifiedItem[] = ((ordersQuery.data as CofreOrder[] | undefined) ?? [])
       .filter((o: CofreOrder) => {
         const pm = (o.paymentMethod ?? "").toLowerCase();
         if (pm === "pix" || pm === "whatsapp") return false;
