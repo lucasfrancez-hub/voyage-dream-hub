@@ -1733,6 +1733,8 @@ export function VoosPage({
                     out={outFlight!}
                     inb={inFlight}
                     searchKey={result?.searchKey ?? null}
+                    ctx={{ ...paxData(), returnDate: form.returnDate || null }}
+
                     open={summaryOpen}
                     onOpenChange={setSummaryOpen}
                   />
