@@ -29,6 +29,7 @@ import { Route as TermosDeUsoRouteImport } from './routes/termos-de-uso'
 import { Route as UnsubscribeRouteImport } from './routes/unsubscribe'
 import { Route as ValidacaoRouteImport } from './routes/validacao'
 import { Route as AdminBuscarRouteImport } from './routes/admin.buscar'
+import { Route as AdminCarrosRouteImport } from './routes/admin.carros'
 import { Route as AdminCheckinTreinoRouteImport } from './routes/admin.checkin-treino'
 import { Route as AdminCheckinsRouteImport } from './routes/admin.checkins'
 import { Route as AdminCofreRouteImport } from './routes/admin.cofre'
@@ -198,6 +199,11 @@ const ValidacaoRoute = ValidacaoRouteImport.update({
 const AdminBuscarRoute = AdminBuscarRouteImport.update({
   id: '/buscar',
   path: '/buscar',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminCarrosRoute = AdminCarrosRouteImport.update({
+  id: '/carros',
+  path: '/carros',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminCheckinTreinoRoute = AdminCheckinTreinoRouteImport.update({
@@ -588,6 +594,7 @@ export interface FileRoutesByFullPath {
   '/unsubscribe': typeof UnsubscribeRoute
   '/validacao': typeof ValidacaoRoute
   '/admin/buscar': typeof AdminBuscarRoute
+  '/admin/carros': typeof AdminCarrosRoute
   '/admin/checkin-treino': typeof AdminCheckinTreinoRoute
   '/admin/checkins': typeof AdminCheckinsRoute
   '/admin/cofre': typeof AdminCofreRoute
@@ -679,6 +686,7 @@ export interface FileRoutesByTo {
   '/unsubscribe': typeof UnsubscribeRoute
   '/validacao': typeof ValidacaoRoute
   '/admin/buscar': typeof AdminBuscarRoute
+  '/admin/carros': typeof AdminCarrosRoute
   '/admin/checkin-treino': typeof AdminCheckinTreinoRoute
   '/admin/checkins': typeof AdminCheckinsRoute
   '/admin/cofre': typeof AdminCofreRoute
@@ -772,6 +780,7 @@ export interface FileRoutesById {
   '/unsubscribe': typeof UnsubscribeRoute
   '/validacao': typeof ValidacaoRoute
   '/admin/buscar': typeof AdminBuscarRoute
+  '/admin/carros': typeof AdminCarrosRoute
   '/admin/checkin-treino': typeof AdminCheckinTreinoRoute
   '/admin/checkins': typeof AdminCheckinsRoute
   '/admin/cofre': typeof AdminCofreRoute
@@ -866,6 +875,7 @@ export interface FileRouteTypes {
     | '/unsubscribe'
     | '/validacao'
     | '/admin/buscar'
+    | '/admin/carros'
     | '/admin/checkin-treino'
     | '/admin/checkins'
     | '/admin/cofre'
@@ -957,6 +967,7 @@ export interface FileRouteTypes {
     | '/unsubscribe'
     | '/validacao'
     | '/admin/buscar'
+    | '/admin/carros'
     | '/admin/checkin-treino'
     | '/admin/checkins'
     | '/admin/cofre'
@@ -1049,6 +1060,7 @@ export interface FileRouteTypes {
     | '/unsubscribe'
     | '/validacao'
     | '/admin/buscar'
+    | '/admin/carros'
     | '/admin/checkin-treino'
     | '/admin/checkins'
     | '/admin/cofre'
@@ -1314,6 +1326,13 @@ declare module '@tanstack/react-router' {
       path: '/buscar'
       fullPath: '/admin/buscar'
       preLoaderRoute: typeof AdminBuscarRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/carros': {
+      id: '/admin/carros'
+      path: '/carros'
+      fullPath: '/admin/carros'
+      preLoaderRoute: typeof AdminCarrosRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/checkin-treino': {
@@ -1823,6 +1842,7 @@ const AdminPessoasRouteWithChildren = AdminPessoasRoute._addFileChildren(
 
 interface AdminRouteChildren {
   AdminBuscarRoute: typeof AdminBuscarRoute
+  AdminCarrosRoute: typeof AdminCarrosRoute
   AdminCheckinTreinoRoute: typeof AdminCheckinTreinoRoute
   AdminCheckinsRoute: typeof AdminCheckinsRoute
   AdminCofreRoute: typeof AdminCofreRoute
@@ -1849,6 +1869,7 @@ interface AdminRouteChildren {
 
 const AdminRouteChildren: AdminRouteChildren = {
   AdminBuscarRoute: AdminBuscarRoute,
+  AdminCarrosRoute: AdminCarrosRoute,
   AdminCheckinTreinoRoute: AdminCheckinTreinoRoute,
   AdminCheckinsRoute: AdminCheckinsRoute,
   AdminCofreRoute: AdminCofreRoute,
@@ -1981,13 +2002,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

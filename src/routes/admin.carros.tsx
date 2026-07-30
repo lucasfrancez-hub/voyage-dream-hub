@@ -1,0 +1,837 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useMutation } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import {
+  Car,
+  CalendarDays,
+  MapPin,
+  Search,
+  Users,
+  Briefcase,
+  Snowflake,
+  Cog,
+  Gauge,
+  ShieldCheck,
+  Loader2,
+  ChevronDown,
+} from "lucide-react";
+import { toast } from "sonner";
+
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { onerCarLocations, onerCarSearch } from "@/lib/onertravel-cars.functions";
+import type {
+  OnerCar,
+  OnerCarLocation,
+  OnerCarSearchResult,
+} from "@/lib/onertravel-cars.server";
+
+export const Route = createFileRoute("/admin/carros")({
+  head: () => ({
+    meta: [
+      { title: "Motor de Carros — Locação | VIA AIR" },
+      {
+        name: "description",
+        content:
+          "Busque carros de locação em tempo real na operadora: categorias, locadoras, proteção inclusa e preço total.",
+      },
+      { property: "og:title", content: "Motor de Carros — Locação | VIA AIR" },
+      { property: "og:description", content: "Locação de carros em tempo real na operadora VIA AIR." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
+  component: () => <CarrosPage />,
+});
+
+const fmtMoney = (v: number) =>
+  v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2 });
+
+// ---------------------------------------------------------------- autocomplete
+
+function LocationInput({
+  value,
+  onSelect,
+  placeholder,
+}: {
+  value: OnerCarLocation | null;
+  onSelect: (l: OnerCarLocation | null) => void;
+  placeholder: string;
+}) {
+  const searchLoc = useServerFn(onerCarLocations);
+  const [text, setText] = useState(value?.locationName ?? "");
+  const [options, setOptions] = useState<OnerCarLocation[]>([]);
+  const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const typing = useRef(false);
+
+  useEffect(() => {
+    const q = text.trim();
+    if (!typing.current || q.length < 3) return;
+    const t = setTimeout(async () => {
+      setLoading(true);
+      try {
+        setOptions(await searchLoc({ data: { query: q } }));
+        setOpen(true);
+      } catch {
+        setOptions([]);
+      } finally {
+        setLoading(false);
+      }
+    }, 300);
+    return () => clearTimeout(t);
+  }, [text, searchLoc]);
+
+  return (
+    <div className="relative">
+      <div className="flex h-11 items-center gap-2 rounded-lg border border-border/70 bg-background/60 px-3">
+        <MapPin className="h-4 w-4 shrink-0 text-primary" />
+        <input
+          value={text}
+          placeholder={placeholder}
+          autoComplete="off"
+          onChange={(e) => {
+            typing.current = true;
+            setText(e.target.value);
+            onSelect(null);
+          }}
+          onBlur={() => {
+            typing.current = false;
+            setTimeout(() => setOpen(false), 160);
+          }}
+          onFocus={() => options.length && setOpen(true)}
+          className="w-full bg-transparent text-sm outline-none"
+        />
+        {loading && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />}
+      </div>
+      {open && options.length > 0 && (
+        <div className="absolute left-0 right-0 top-full z-40 mt-1 max-h-72 overflow-auto rounded-xl border border-border bg-popover shadow-lg">
+          {options.map((o) => (
+            <button
+              key={`${o.type}-${o.value}-${o.locationName}`}
+              type="button"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => {
+                onSelect(o);
+                setText(o.locationName);
+                setOpen(false);
+              }}
+              className="flex w-full items-start gap-2 px-3 py-2 text-left text-sm hover:bg-muted"
+            >
+              <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
+              <span className="min-w-0">
+                <span className="block truncate">{o.locationName}</span>
+                {o.locationDescription && (
+                  <span className="block truncate text-xs text-muted-foreground">
+                    {o.locationDescription}
+                  </span>
+                )}
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------- detalhes
+
+function CarDetailsDialog({ car, onClose }: { car: OnerCar | null; onClose: () => void }) {
+  return (
+    <Dialog open={!!car} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-h-[85vh] max-w-2xl overflow-auto">
+        <DialogHeader>
+          <DialogTitle>Todos os detalhes</DialogTitle>
+        </DialogHeader>
+        {car && (
+          <div className="space-y-4 text-sm">
+            <div className="flex items-center gap-3">
+              {car.vendor.logoUrl && (
+                <img src={car.vendor.logoUrl} alt={car.vendor.name} className="h-10 w-auto" />
+              )}
+              <div>
+                <div className="font-semibold">{car.name}</div>
+                <div className="text-xs text-muted-foreground">
+                  {car.categoryDescription}
+                  {car.providerCarCode ? ` (${car.providerCarCode})` : ""}
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <div className="mb-2 font-semibold">Esse carro possui:</div>
+              <div className="grid grid-cols-2 gap-2 text-muted-foreground">
+                <span className="flex items-center gap-2">
+                  <Users className="h-4 w-4" /> {car.passengerCount} lugares
+                </span>
+                <span className="flex items-center gap-2">
+                  <Briefcase className="h-4 w-4" /> {car.bagCount} malas
+                </span>
+                <span className="flex items-center gap-2">
+                  <Snowflake className="h-4 w-4" />
+                  {car.airConditioning ? "Ar condicionado" : "Sem ar condicionado"}
+                </span>
+                <span className="flex items-center gap-2">
+                  <Cog className="h-4 w-4" /> {car.transmissionDescription || "Câmbio não informado"}
+                </span>
+                <span className="flex items-center gap-2">
+                  <Gauge className="h-4 w-4" />
+                  {car.unlimitedMileage ? "KM ilimitada" : "KM limitada"}
+                </span>
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-border/70 p-3">
+              <div className="mb-1 font-semibold">Local de retirada e devolução</div>
+              <p className="flex items-center gap-2 text-primary">
+                <MapPin className="h-4 w-4" /> {car.pickup.name}
+              </p>
+              {car.pickup.address && (
+                <p className="text-xs text-muted-foreground">{car.pickup.address}</p>
+              )}
+              {!car.sameLocation && (
+                <p className="mt-2 flex items-center gap-2 text-primary">
+                  <MapPin className="h-4 w-4" /> Devolução: {car.dropoff.name}
+                </p>
+              )}
+              <p className="mt-2 text-xs text-muted-foreground">
+                {car.pickup.date} às {car.pickup.time?.slice(0, 5)} — {car.dropoff.date} às{" "}
+                {car.dropoff.time?.slice(0, 5)}
+              </p>
+            </div>
+
+            {car.coverages.map((c) => (
+              <div key={c.name}>
+                <div className="mb-1 flex items-center gap-2 font-semibold">
+                  <ShieldCheck className="h-4 w-4 text-primary" /> {c.name}
+                </div>
+                <p className="text-xs leading-relaxed text-muted-foreground">{c.description}</p>
+              </div>
+            ))}
+
+            {car.guarantees.map((g) => (
+              <div key={g.name}>
+                <div className="mb-1 font-semibold">{g.name}</div>
+                <p className="text-xs leading-relaxed text-muted-foreground">{g.description}</p>
+              </div>
+            ))}
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ---------------------------------------------------------------- card
+
+function CarCard({
+  car,
+  cheapest,
+  selected,
+  onSelect,
+  onDetails,
+}: {
+  car: OnerCar;
+  cheapest: boolean;
+  selected: boolean;
+  onSelect: () => void;
+  onDetails: () => void;
+}) {
+  return (
+    <article
+      className={`relative overflow-hidden rounded-2xl border bg-card/80 backdrop-blur transition hover:-translate-y-0.5 hover:border-primary/60 ${
+        selected ? "border-primary ring-2 ring-primary/30" : "border-border/70"
+      }`}
+    >
+      {cheapest && (
+        <span className="absolute right-0 top-0 z-10 rounded-bl-xl bg-primary px-2 py-1 text-[10px] font-semibold text-primary-foreground">
+          Menor preço
+        </span>
+      )}
+      <div className="flex flex-col gap-4 p-4 sm:flex-row">
+        <div className="flex w-full shrink-0 flex-col items-center gap-2 sm:w-40">
+          {car.imageUrl ? (
+            <img src={car.imageUrl} alt={car.name} loading="lazy" className="h-24 w-full object-contain" />
+          ) : (
+            <Car className="h-12 w-12 text-muted-foreground" />
+          )}
+          {car.vendor.logoUrl && (
+            <img src={car.vendor.logoUrl} alt={car.vendor.name} className="h-8 w-auto" />
+          )}
+        </div>
+
+        <div className="min-w-0 flex-1">
+          <h3 className="text-base font-semibold uppercase">{car.name}</h3>
+          <p className="text-xs text-muted-foreground">
+            {car.categoryDescription}
+            {car.providerCarCode ? ` (${car.providerCarCode})` : ""}
+          </p>
+          <p className="mt-1 flex items-center gap-1 text-xs text-primary">
+            <MapPin className="h-3 w-3" />
+            {car.sameLocation ? "Retirada e devolução" : "Retirada"}: {car.pickup.name}
+          </p>
+          {!car.sameLocation && (
+            <p className="flex items-center gap-1 text-xs text-primary">
+              <MapPin className="h-3 w-3" /> Devolução: {car.dropoff.name}
+            </p>
+          )}
+          <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+            <span className="flex items-center gap-1">
+              <Users className="h-3 w-3" /> {car.passengerCount} lugares
+            </span>
+            <span className="flex items-center gap-1">
+              <Briefcase className="h-3 w-3" /> {car.bagCount} malas
+            </span>
+            {car.airConditioning && (
+              <span className="flex items-center gap-1">
+                <Snowflake className="h-3 w-3" /> Ar condicionado
+              </span>
+            )}
+            <span className="flex items-center gap-1">
+              <Cog className="h-3 w-3" /> {car.transmissionDescription}
+            </span>
+            <span className="flex items-center gap-1">
+              <Gauge className="h-3 w-3" /> {car.unlimitedMileage ? "KM ilimitada" : "KM limitada"}
+            </span>
+          </div>
+          {car.coverages[0] && (
+            <p className="mt-2 flex items-center gap-1 text-xs font-medium text-primary">
+              <ShieldCheck className="h-3.5 w-3.5" /> {car.coverages[0].name}
+            </p>
+          )}
+          <Button variant="ghost" size="sm" className="mt-1 h-7 px-2 text-xs" onClick={onDetails}>
+            <ChevronDown className="mr-1 h-3.5 w-3.5" /> Ver todos os detalhes
+          </Button>
+        </div>
+
+        <div className="flex shrink-0 flex-col items-end justify-between gap-3 text-right">
+          <div>
+            <div className="text-[11px] text-muted-foreground">Preço total</div>
+            <div className="text-xl font-bold text-primary">{fmtMoney(car.finalPrice)}</div>
+            <div className="text-xs text-muted-foreground">{fmtMoney(car.pricePerDay)} /dia</div>
+          </div>
+          <Button size="sm" variant={selected ? "default" : "outline"} onClick={onSelect}>
+            {selected ? "Selecionado" : "Selecionar"}
+          </Button>
+        </div>
+      </div>
+    </article>
+  );
+}
+
+// ---------------------------------------------------------------- página
+
+export type CarPreset = {
+  pickupDate: string;
+  returnDate: string;
+};
+
+export function CarrosPage({ header }: { header?: React.ReactNode } = {}) {
+  const searchCars = useServerFn(onerCarSearch);
+
+  const [pickup, setPickup] = useState<OnerCarLocation | null>(null);
+  const [dropoff, setDropoff] = useState<OnerCarLocation | null>(null);
+  const [diffReturn, setDiffReturn] = useState(false);
+  const [form, setForm] = useState({
+    pickupDate: "",
+    pickupTime: "10:00",
+    returnDate: "",
+    returnTime: "10:00",
+  });
+
+  const [result, setResult] = useState<OnerCarSearchResult | null>(null);
+  const [page, setPage] = useState(1);
+  const [selected, setSelected] = useState<string | null>(null);
+  const [details, setDetails] = useState<OnerCar | null>(null);
+  const [filters, setFilters] = useState({
+    startPrice: null as number | null,
+    endPrice: null as number | null,
+    unlimitedMilage: null as boolean | null,
+    airConditioning: null as boolean | null,
+    availableBagsCount: [] as number[],
+    categories: [] as number[],
+    fuelTypes: [] as number[],
+    transmissionTypes: [] as number[],
+    vendors: [] as string[],
+  });
+
+  const canSearch = !!pickup && !!form.pickupDate && !!form.returnDate;
+
+  const payload = (targetPage: number, searchKey: string | null) => ({
+    pickup: {
+      type: pickup!.type,
+      iata: pickup!.type === 1 ? pickup!.value : null,
+      locationName: pickup!.locationName,
+      point: pickup!.point,
+    },
+    dropoff:
+      diffReturn && dropoff
+        ? {
+            type: dropoff.type,
+            iata: dropoff.type === 1 ? dropoff.value : null,
+            locationName: dropoff.locationName,
+            point: dropoff.point,
+          }
+        : null,
+    pickupDate: form.pickupDate,
+    pickupTime: form.pickupTime,
+    returnDate: form.returnDate,
+    returnTime: form.returnTime,
+    page: targetPage,
+    pageSize: 10,
+    ordination: 1,
+    searchKey,
+    filters,
+  });
+
+  const mut = useMutation({
+    mutationFn: () => searchCars({ data: payload(1, null) }),
+    onSuccess: (r) => {
+      setResult(r);
+      setPage(1);
+      setSelected(null);
+      if (!r.cars.length) toast.warning("Nenhum carro retornado para esses parâmetros");
+      else toast.success(`${r.count} opções de carros encontradas`);
+    },
+    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Erro na busca de carros"),
+  });
+
+  const filterMut = useMutation({
+    mutationFn: () => searchCars({ data: payload(1, result?.searchKey ?? null) }),
+    onSuccess: (r) => {
+      setResult((prev) => (prev ? { ...r, searchKey: prev.searchKey } : r));
+      setPage(1);
+    },
+    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Erro ao filtrar"),
+  });
+
+  const moreMut = useMutation({
+    mutationFn: () => searchCars({ data: payload(page + 1, result?.searchKey ?? null) }),
+    onSuccess: (r) => {
+      setPage((p) => p + 1);
+      setResult((prev) => {
+        if (!prev) return r;
+        const seen = new Set(prev.cars.map((c) => c.carKey));
+        const novos = r.cars.filter((c) => !seen.has(c.carKey));
+        if (!novos.length) toast.info("Não há mais carros para carregar");
+        return { ...prev, haveMore: r.haveMore && novos.length > 0, cars: [...prev.cars, ...novos] };
+      });
+    },
+  });
+
+  // refaz a busca (mesma searchKey) quando um filtro muda
+  const filtersSig = JSON.stringify(filters);
+  const firstFilter = useRef(true);
+  useEffect(() => {
+    if (firstFilter.current) {
+      firstFilter.current = false;
+      return;
+    }
+    if (!result?.searchKey) return;
+    const t = setTimeout(() => filterMut.mutate(), 400);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filtersSig]);
+
+  const cars = result?.cars ?? [];
+  const cheapest = cars.length ? Math.min(...cars.map((c) => c.finalPrice)) : null;
+  const categories = useMemo(
+    () => [...new Set(cars.map((c) => c.categoryDescription).filter(Boolean))],
+    [cars],
+  );
+  const vendors = useMemo(() => [...new Set(cars.map((c) => c.vendor.name).filter(Boolean))], [cars]);
+
+  const toggleTransmission = (v: number) =>
+    setFilters((f) => ({
+      ...f,
+      transmissionTypes: f.transmissionTypes.includes(v)
+        ? f.transmissionTypes.filter((x) => x !== v)
+        : [...f.transmissionTypes, v],
+    }));
+
+  return (
+    <div className={header ? "" : "min-h-screen bg-background"}>
+      <header className="relative overflow-hidden border-b border-border/60">
+        <div
+          className="absolute inset-0 opacity-60"
+          style={{ background: "radial-gradient(1200px 400px at 20% -10%, var(--brand-blue), transparent 70%)" }}
+          aria-hidden
+        />
+        <div className="relative mx-auto max-w-7xl px-4 py-8">
+          <div className="mb-6">
+            {header ?? (
+              <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight">
+                <Car className="h-6 w-6 text-primary" /> Motor de Carros
+              </h1>
+            )}
+          </div>
+
+          <div className="rounded-[32px] border border-border/50 bg-card/60 p-6 shadow-2xl backdrop-blur-xl">
+            <div className="grid gap-3 lg:grid-cols-[1.4fr_1fr_auto]">
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="space-y-1">
+                  <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                    Local de retirada
+                  </Label>
+                  <LocationInput
+                    value={pickup}
+                    onSelect={setPickup}
+                    placeholder="Cidade, aeroporto ou endereço"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="flex items-center justify-between text-[11px] uppercase tracking-wide text-muted-foreground">
+                    Devolução
+                    <button
+                      type="button"
+                      className="normal-case text-primary"
+                      onClick={() => setDiffReturn((v) => !v)}
+                    >
+                      {diffReturn ? "usar o mesmo local" : "devolver em outro local"}
+                    </button>
+                  </Label>
+                  {diffReturn ? (
+                    <LocationInput
+                      value={dropoff}
+                      onSelect={setDropoff}
+                      placeholder="Local de devolução"
+                    />
+                  ) : (
+                    <div className="flex h-11 items-center rounded-lg border border-dashed border-border/70 px-3 text-sm text-muted-foreground">
+                      Mesmo local da retirada
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label className="flex items-center gap-1 text-[11px] uppercase tracking-wide text-muted-foreground">
+                    <CalendarDays className="h-3 w-3" /> Retirada
+                  </Label>
+                  <div className="flex gap-2">
+                    <Input
+                      className="h-11"
+                      type="date"
+                      value={form.pickupDate}
+                      onChange={(e) => setForm({ ...form, pickupDate: e.target.value })}
+                    />
+                    <Input
+                      className="h-11 w-24"
+                      type="time"
+                      value={form.pickupTime}
+                      onChange={(e) => setForm({ ...form, pickupTime: e.target.value })}
+                    />
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <Label className="flex items-center gap-1 text-[11px] uppercase tracking-wide text-muted-foreground">
+                    <CalendarDays className="h-3 w-3" /> Devolução
+                  </Label>
+                  <div className="flex gap-2">
+                    <Input
+                      className="h-11"
+                      type="date"
+                      value={form.returnDate}
+                      onChange={(e) => setForm({ ...form, returnDate: e.target.value })}
+                    />
+                    <Input
+                      className="h-11 w-24"
+                      type="time"
+                      value={form.returnTime}
+                      onChange={(e) => setForm({ ...form, returnTime: e.target.value })}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-end">
+                <Button
+                  size="lg"
+                  className="h-11 w-full lg:w-auto"
+                  disabled={!canSearch || mut.isPending}
+                  onClick={() => mut.mutate()}
+                >
+                  {mut.isPending ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Search className="mr-2 h-4 w-4" />
+                  )}
+                  Buscar carros
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <main className="mx-auto max-w-7xl px-4 py-8">
+        {result && (
+          <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
+            <aside className="space-y-5 self-start rounded-[28px] border border-border/50 bg-card/60 p-5 backdrop-blur-xl">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-semibold">Filtros</span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 px-2 text-xs"
+                  onClick={() =>
+                    setFilters({
+                      startPrice: null,
+                      endPrice: null,
+                      unlimitedMilage: null,
+                      airConditioning: null,
+                      availableBagsCount: [],
+                      categories: [],
+                      fuelTypes: [],
+                      transmissionTypes: [],
+                      vendors: [],
+                    })
+                  }
+                >
+                  Limpar
+                </Button>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                  Preço total
+                </Label>
+                {result.priceRange && (
+                  <p className="text-[11px] text-muted-foreground">
+                    {fmtMoney(result.priceRange.lowest)} — {fmtMoney(result.priceRange.highest)}
+                  </p>
+                )}
+                <div className="flex gap-2">
+                  <Input
+                    className="h-9"
+                    type="number"
+                    placeholder="De"
+                    value={filters.startPrice ?? ""}
+                    onChange={(e) =>
+                      setFilters((f) => ({
+                        ...f,
+                        startPrice: e.target.value ? Number(e.target.value) : null,
+                      }))
+                    }
+                  />
+                  <Input
+                    className="h-9"
+                    type="number"
+                    placeholder="Até"
+                    value={filters.endPrice ?? ""}
+                    onChange={(e) =>
+                      setFilters((f) => ({
+                        ...f,
+                        endPrice: e.target.value ? Number(e.target.value) : null,
+                      }))
+                    }
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                  Transmissão
+                </Label>
+                <div className="flex gap-2">
+                  {[
+                    { v: 1, l: "Automático" },
+                    { v: 2, l: "Manual" },
+                  ].map((t) => (
+                    <button
+                      key={t.v}
+                      type="button"
+                      onClick={() => toggleTransmission(t.v)}
+                      className={`flex-1 rounded-lg border px-2 py-1.5 text-xs transition ${
+                        filters.transmissionTypes.includes(t.v)
+                          ? "border-primary bg-primary/10 text-primary"
+                          : "border-border/70 text-muted-foreground hover:border-primary/50"
+                      }`}
+                    >
+                      {t.l}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                  Quantidade de malas
+                </Label>
+                <div className="flex flex-wrap gap-2">
+                  {[2, 3, 4, 5].map((b) => (
+                    <button
+                      key={b}
+                      type="button"
+                      onClick={() =>
+                        setFilters((f) => ({
+                          ...f,
+                          availableBagsCount: f.availableBagsCount.includes(b)
+                            ? f.availableBagsCount.filter((x) => x !== b)
+                            : [...f.availableBagsCount, b],
+                        }))
+                      }
+                      className={`rounded-full border px-3 py-1 text-xs transition ${
+                        filters.availableBagsCount.includes(b)
+                          ? "border-primary bg-primary/10 text-primary"
+                          : "border-border/70 text-muted-foreground hover:border-primary/50"
+                      }`}
+                    >
+                      {b} malas
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                  Quilometragem
+                </Label>
+                <div className="flex gap-2">
+                  {[
+                    { v: true, l: "Ilimitada" },
+                    { v: false, l: "Limitada" },
+                  ].map((k) => (
+                    <button
+                      key={String(k.v)}
+                      type="button"
+                      onClick={() =>
+                        setFilters((f) => ({
+                          ...f,
+                          unlimitedMilage: f.unlimitedMilage === k.v ? null : k.v,
+                        }))
+                      }
+                      className={`flex-1 rounded-lg border px-2 py-1.5 text-xs transition ${
+                        filters.unlimitedMilage === k.v
+                          ? "border-primary bg-primary/10 text-primary"
+                          : "border-border/70 text-muted-foreground hover:border-primary/50"
+                      }`}
+                    >
+                      {k.l}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                  Ar condicionado
+                </Label>
+                <div className="flex gap-2">
+                  {[
+                    { v: true, l: "Com ar" },
+                    { v: false, l: "Sem ar" },
+                  ].map((k) => (
+                    <button
+                      key={String(k.v)}
+                      type="button"
+                      onClick={() =>
+                        setFilters((f) => ({
+                          ...f,
+                          airConditioning: f.airConditioning === k.v ? null : k.v,
+                        }))
+                      }
+                      className={`flex-1 rounded-lg border px-2 py-1.5 text-xs transition ${
+                        filters.airConditioning === k.v
+                          ? "border-primary bg-primary/10 text-primary"
+                          : "border-border/70 text-muted-foreground hover:border-primary/50"
+                      }`}
+                    >
+                      {k.l}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {categories.length > 0 && (
+                <div className="space-y-2">
+                  <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                    Categorias nesta busca
+                  </Label>
+                  <div className="flex flex-wrap gap-1">
+                    {categories.map((c) => (
+                      <Badge key={c} variant="secondary" className="text-[10px]">
+                        {c}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {vendors.length > 0 && (
+                <div className="space-y-2">
+                  <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                    Locadoras
+                  </Label>
+                  <div className="flex flex-wrap gap-1">
+                    {vendors.map((v) => (
+                      <Badge key={v} variant="outline" className="text-[10px]">
+                        {v}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </aside>
+
+            <section className="space-y-3">
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-muted-foreground">
+                  Exibindo {cars.length} de {result.count} opções de carros encontradas
+                </p>
+                {filterMut.isPending && (
+                  <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                    <Loader2 className="h-3 w-3 animate-spin" /> atualizando
+                  </span>
+                )}
+              </div>
+
+              {cars.map((c) => (
+                <CarCard
+                  key={c.carKey}
+                  car={c}
+                  cheapest={c.finalPrice === cheapest}
+                  selected={selected === c.carKey}
+                  onSelect={() => setSelected(c.carKey)}
+                  onDetails={() => setDetails(c)}
+                />
+              ))}
+
+              {!cars.length && !mut.isPending && (
+                <p className="rounded-2xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
+                  Nenhum carro com esses filtros.
+                </p>
+              )}
+
+              {result.haveMore && (
+                <div className="pt-2 text-center">
+                  <Button variant="outline" disabled={moreMut.isPending} onClick={() => moreMut.mutate()}>
+                    {moreMut.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Ver mais carros
+                  </Button>
+                </div>
+              )}
+            </section>
+          </div>
+        )}
+
+        {!result && !mut.isPending && (
+          <div className="rounded-2xl border border-dashed border-border p-12 text-center">
+            <Car className="mx-auto mb-3 h-6 w-6 text-muted-foreground" />
+            <p className="text-sm text-muted-foreground">
+              Informe o local e as datas de retirada e devolução para ver os carros disponíveis.
+            </p>
+          </div>
+        )}
+      </main>
+
+      <CarDetailsDialog car={details} onClose={() => setDetails(null)} />
+    </div>
+  );
+}

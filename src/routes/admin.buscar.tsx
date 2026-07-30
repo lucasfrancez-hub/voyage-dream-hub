@@ -1,12 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { Plane, BedDouble, Layers, MapPin, ArrowLeftRight, CalendarDays, Users, Search } from "lucide-react";
+import { Plane, BedDouble, Layers, MapPin, ArrowLeftRight, CalendarDays, Users, Search, Car, ClipboardCheck, ChevronRight, ChevronLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { VoosPage } from "./admin.voos-teste";
 import { HoteisPage } from "./admin.hoteis-teste";
+import { CarrosPage } from "./admin.carros";
 
 
 export const Route = createFileRoute("/admin/buscar")({
@@ -30,11 +31,12 @@ export const Route = createFileRoute("/admin/buscar")({
   component: BuscarPage,
 });
 
-type Mode = "aereo" | "hotel" | "combo";
+type Mode = "aereo" | "hotel" | "carro" | "combo";
 
 const MODES: { id: Mode; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
   { id: "aereo", label: "Aéreo", icon: Plane },
   { id: "hotel", label: "Hotel", icon: BedDouble },
+  { id: "carro", label: "Carro", icon: Car },
   { id: "combo", label: "Aéreo + Hotel", icon: Layers },
 ];
 
@@ -89,6 +91,14 @@ function SectionHeader({ icon: Icon, title, subtitle }: { icon: React.ComponentT
     </div>
   );
 }
+
+type ComboStep = 1 | 2 | 3;
+
+const COMBO_STEPS: { label: string; icon: React.ComponentType<{ className?: string }> }[] = [
+  { label: "Aéreo", icon: Plane },
+  { label: "Hospedagem", icon: BedDouble },
+  { label: "Revisar pedido", icon: ClipboardCheck },
+];
 
 type ComboForm = {
   departureIata: string;
@@ -232,9 +242,14 @@ function BuscarPage() {
   const [mode, setMode] = useState<Mode>("aereo");
   const [combo, setCombo] = useState<ComboForm>(COMBO_INITIAL);
   const [runToken, setRunToken] = useState(0);
+  const [step, setStep] = useState<ComboStep>(1);
 
   const heroTitle =
-    mode === "hotel" ? (
+    mode === "carro" ? (
+      <>
+        Qual <span className="font-bold text-primary">carro</span> vamos alugar?
+      </>
+    ) : mode === "hotel" ? (
       <>
         Onde vamos <span className="font-bold text-primary">hospedar</span>?
       </>
@@ -295,6 +310,7 @@ function BuscarPage() {
     <div className="min-h-screen bg-background">
       {mode === "aereo" && <VoosPage header={hero} />}
       {mode === "hotel" && <HoteisPage header={hero} />}
+      {mode === "carro" && <CarrosPage header={hero} />}
       {mode === "combo" && (
         <>
           <header className="relative overflow-hidden border-b border-border/60">
@@ -305,32 +321,126 @@ function BuscarPage() {
             />
             <div className="relative mx-auto max-w-7xl px-4 py-8">
               <div className="mb-6">{hero}</div>
-              <ComboForm form={combo} setForm={setCombo} onSearch={runCombo} disabled={!comboReady} />
+              <ComboForm
+                form={combo}
+                setForm={setCombo}
+                onSearch={() => {
+                  runCombo();
+                  setStep(1);
+                }}
+                disabled={!comboReady}
+              />
+
+              {runToken > 0 && (
+                <div className="mt-5 flex flex-wrap items-center gap-2">
+                  {COMBO_STEPS.map((s, i) => {
+                    const n = (i + 1) as ComboStep;
+                    const active = step === n;
+                    return (
+                      <button
+                        key={s.label}
+                        type="button"
+                        onClick={() => setStep(n)}
+                        className={`flex items-center gap-2 rounded-full border px-4 py-2 text-sm transition ${
+                          active
+                            ? "border-primary bg-primary text-primary-foreground shadow-lg shadow-primary/20"
+                            : "border-border/60 bg-card/60 text-muted-foreground hover:text-foreground"
+                        }`}
+                      >
+                        <s.icon className="h-4 w-4" />
+                        <span className="font-medium">
+                          {n}. {s.label}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </header>
 
-          <VoosPage
-            hideForm
-            preset={flightPreset}
-            runToken={runToken}
-            header={
-              <SectionHeader icon={Plane} title="Aéreo" subtitle="Escolha a ida e a volta do pacote." />
-            }
-          />
-          <HoteisPage
-            hideForm
-            preset={hotelPreset}
-            runToken={runToken}
-            header={
-              <SectionHeader
-                icon={BedDouble}
-                title="Hospedagem"
-                subtitle="Hotéis disponíveis no destino e nas mesmas datas."
-              />
-            }
-          />
+          {runToken > 0 && (
+            <>
+              <div className={step === 1 ? "" : "hidden"}>
+                <VoosPage
+                  hideForm
+                  preset={flightPreset}
+                  runToken={runToken}
+                  header={
+                    <SectionHeader icon={Plane} title="Aéreo" subtitle="Escolha a ida e a volta do pacote." />
+                  }
+                />
+              </div>
+
+              <div className={step === 2 ? "" : "hidden"}>
+                <HoteisPage
+                  hideForm
+                  preset={hotelPreset}
+                  runToken={runToken}
+                  header={
+                    <SectionHeader
+                      icon={BedDouble}
+                      title="Hospedagem"
+                      subtitle="Escolha o hotel e o quarto no destino, nas mesmas datas."
+                    />
+                  }
+                />
+              </div>
+
+              {step === 3 && (
+                <section className="mx-auto max-w-3xl px-4 py-10">
+                  <div className="rounded-[28px] border border-border/50 bg-card/60 p-6 backdrop-blur-xl">
+                    <SectionHeader
+                      icon={ClipboardCheck}
+                      title="Revise seu pedido"
+                      subtitle="Confira o roteiro antes de gerar o pedido."
+                    />
+                    <div className="mt-5 space-y-3 text-sm">
+                      <div className="flex items-center gap-2">
+                        <Plane className="h-4 w-4 text-primary" />
+                        {combo.departureIata} → {combo.arrivalIata} • {combo.departureDate} a {combo.returnDate}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <BedDouble className="h-4 w-4 text-primary" />
+                        {hotelPreset.destination} • {combo.rooms} quarto(s)
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Users className="h-4 w-4 text-primary" />
+                        {combo.adults} adulto(s), {combo.children} criança(s), {combo.infants} bebê(s)
+                      </div>
+                    </div>
+                    <Button
+                      size="lg"
+                      className="mt-6 w-full"
+                      onClick={() => toast.success("Pedido enviado para o Command Center")}
+                    >
+                      <ClipboardCheck className="mr-2 h-4 w-4" /> Fazer pedido
+                    </Button>
+                  </div>
+                </section>
+              )}
+
+              <div className="mx-auto flex max-w-7xl items-center justify-between px-4 pb-12">
+                <Button
+                  variant="outline"
+                  disabled={step === 1}
+                  onClick={() => setStep((s) => (s > 1 ? ((s - 1) as ComboStep) : s))}
+                >
+                  <ChevronLeft className="mr-1 h-4 w-4" /> Voltar
+                </Button>
+                <Button
+                  disabled={step === 3}
+                  onClick={() => setStep((s) => (s < 3 ? ((s + 1) as ComboStep) : s))}
+                >
+                  {step === 1 ? "Continuar para hospedagem" : "Revisar pedido"}
+                  <ChevronRight className="ml-1 h-4 w-4" />
+                </Button>
+              </div>
+            </>
+          )}
         </>
       )}
+
     </div>
   );
 }
