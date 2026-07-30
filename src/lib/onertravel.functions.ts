@@ -242,9 +242,10 @@ async function poll(
   path: "outbound" | "inbound",
   loc: string,
   body: Record<string, unknown>,
-  /** quando os filtros já estão aplicados, poucas rodadas bastam */
-  maxRounds = 14,
+  /** teto de rodadas — a coleta só para quando o conjunto para de crescer */
+  maxRounds = 26,
 ): Promise<OnerLegResult> {
+
   const acc = new Map<string, OnerFlight>();
   let reportedTotal = 0;
   let priceRange: { minPrice: number; maxPrice: number } | null = null;
