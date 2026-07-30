@@ -657,6 +657,16 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
     onSuccess: () => { onRefetch(); toast.success("Modo alterado"); },
   });
 
+  const aiPaused = !!(conv as { ai_paused?: boolean | null }).ai_paused;
+  const pauseAiMut = useMutation({
+    mutationFn: async (paused: boolean) => pauseAiFn({ data: { conversation_id: conv.id, paused } }),
+    onSuccess: (_d, paused) => {
+      onRefetch();
+      toast.success(paused ? "IA pausada — ela não responde até você retomar" : "IA retomada");
+    },
+    onError: (e) => toast.error(`Falha: ${(e as Error).message}`),
+  });
+
 
   const grouped = groupByDay(messages);
   const repliedIds = new Set(
