@@ -277,3 +277,11 @@ export async function sendWhatsAppImageBytes(
     image: { link: fallbackLink, ...(caption ? { caption: caption.slice(0, 1024) } : {}) },
   });
 }
+
+/** Envia um áudio (nota de voz) por link público/assinado. */
+export async function sendWhatsAppAudio(
+  to: string,
+  link: string,
+): Promise<{ id: string | null; error?: string }> {
+  return metaSendMedia(to, { type: "audio", audio: { link } });
+}
