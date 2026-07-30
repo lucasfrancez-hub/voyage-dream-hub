@@ -238,6 +238,33 @@ export function flightHasBaggage(f: OnerFlight): boolean {
  * e a volta voltar vazia): acumulamos a UNIÃO dos resultados por `key` até o
  * conjunto estabilizar.
  */
+function placeSig(p?: OnerPlace): string {
+  if (!p) return "";
+  return `${p.iata}${p.date?.year}-${p.date?.month}-${p.date?.day}T${p.time?.hour}:${p.time?.minute}`;
+}
+
+/**
+ * A mesma combinação de voos volta com `key` diferente a cada snapshot (a chave
+ * carrega o fornecedor/tarifa interna), o que fazia o mesmo voo aparecer
+ * duplicado e com preço mais caro. Deduplicamos pelo itinerário real.
+ */
+function flightSignature(f: OnerFlight): string {
+  const segs = (f.journey?.segments ?? [])
+    .map((s) => `${s.flightNumber}|${placeSig(s.departure)}|${placeSig(s.destination)}`)
+    .join("~");
+  const bags = (f.journey?.baggagesAllowance ?? [])
+    .map((b) => `${b.typeDescription ?? ""}${b.quantity ?? ""}${b.weight ?? ""}`)
+    .sort()
+    .join(",");
+  return [
+    f.journey?.marketingAirline?.iata ?? "",
+    segs || `${placeSig(f.journey?.departure)}>${placeSig(f.journey?.destination)}`,
+    f.journey?.allowedBaggage ? "BAG" : "NOBAG",
+    bags,
+    f.price?.passengerCount ?? "",
+  ].join("#");
+}
+
 async function poll(
   path: "outbound" | "inbound",
   loc: string,
@@ -247,6 +274,7 @@ async function poll(
 ): Promise<OnerLegResult> {
 
   const acc = new Map<string, OnerFlight>();
+
   let reportedTotal = 0;
   let priceRange: { minPrice: number; maxPrice: number } | null = null;
   let stableRounds = 0;
