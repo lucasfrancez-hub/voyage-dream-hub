@@ -2,9 +2,9 @@ import { Check, CheckCheck, FileText, Download, CornerUpLeft } from "lucide-reac
 import { cn } from "@/lib/utils";
 import { firstName } from "@/lib/whatsapp/text-utils.shared";
 
-type Media = { kind: "image" | "document"; url: string; filename: string };
+type Media = { kind: "image" | "document" | "audio" | "video"; url: string; filename: string };
 function parseMedia(content: string): { media: Media | null; text: string } {
-  const m = content.match(/^\[\[media:(image|document)\|([^|]+)\|([^\]]+)\]\](?:\n([\s\S]*))?$/);
+  const m = content.match(/^\[\[media:(image|document|audio|video)\|([^|]+)\|([^\]]+)\]\](?:\n([\s\S]*))?$/);
   if (!m) return { media: null, text: content };
   return { media: { kind: m[1] as Media["kind"], url: m[2], filename: m[3] }, text: (m[4] ?? "").trim() };
 }
@@ -76,6 +76,12 @@ export function WhatsAppBubble({ side, content, timestamp, senderLabel, status, 
                 <a href={media.url} target="_blank" rel="noopener noreferrer" className="mb-1 block">
                   <img src={media.url} alt={media.filename} className="max-h-72 w-full rounded-md object-cover" />
                 </a>
+              )}
+              {media?.kind === "audio" && (
+                <audio src={media.url} controls preload="none" className="mb-1 w-56 max-w-full" />
+              )}
+              {media?.kind === "video" && (
+                <video src={media.url} controls preload="metadata" className="mb-1 max-h-72 w-full rounded-md" />
               )}
               {media?.kind === "document" && (
                 <a
