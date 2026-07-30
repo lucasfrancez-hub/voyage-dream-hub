@@ -113,11 +113,18 @@ export type OnerFlight = {
   };
 };
 
+export type OnerLegResult = {
+  totalFlightsCount: number;
+  flights: OnerFlight[];
+  priceRange?: { minPrice: number; maxPrice: number } | null;
+};
+
 export type OnerSearchResult = {
   searchKey: string;
-  outbound: { totalFlightsCount: number; flights: OnerFlight[] };
-  inbound?: { totalFlightsCount: number; flights: OnerFlight[] } | null;
+  outbound: OnerLegResult;
+  inbound?: OnerLegResult | null;
 };
+
 
 // ---------------------------------------------------------------- aeroportos
 
