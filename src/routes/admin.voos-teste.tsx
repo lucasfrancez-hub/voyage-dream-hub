@@ -769,7 +769,7 @@ function VoosPage() {
                   size="lg"
                   className="h-11 w-full lg:w-auto"
                   disabled={!canSearch || mut.isPending}
-                  onClick={() => mut.mutate()}
+                  onClick={() => mut.mutate({ searchKey: null, filters: EMPTY_FILTERS })}
                 >
                   {mut.isPending ? (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
