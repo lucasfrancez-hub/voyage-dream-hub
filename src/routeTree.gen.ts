@@ -45,6 +45,7 @@ import { Route as AdminPacotesRouteImport } from './routes/admin.pacotes'
 import { Route as AdminPessoasRouteImport } from './routes/admin.pessoas'
 import { Route as AdminSegurancaRouteImport } from './routes/admin.seguranca'
 import { Route as AdminUsuariosRouteImport } from './routes/admin.usuarios'
+import { Route as AdminVoosTesteRouteImport } from './routes/admin.voos-teste'
 import { Route as ChatAgendaRouteImport } from './routes/chat.agenda'
 import { Route as ChatAgentesRouteImport } from './routes/chat.agentes'
 import { Route as ChatBroadcastRouteImport } from './routes/chat.broadcast'
@@ -275,6 +276,11 @@ const AdminSegurancaRoute = AdminSegurancaRouteImport.update({
 const AdminUsuariosRoute = AdminUsuariosRouteImport.update({
   id: '/usuarios',
   path: '/usuarios',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminVoosTesteRoute = AdminVoosTesteRouteImport.update({
+  id: '/voos-teste',
+  path: '/voos-teste',
   getParentRoute: () => AdminRoute,
 } as any)
 const ChatAgendaRoute = ChatAgendaRouteImport.update({
@@ -586,6 +592,7 @@ export interface FileRoutesByFullPath {
   '/admin/pessoas': typeof AdminPessoasRouteWithChildren
   '/admin/seguranca': typeof AdminSegurancaRoute
   '/admin/usuarios': typeof AdminUsuariosRoute
+  '/admin/voos-teste': typeof AdminVoosTesteRoute
   '/chat/agenda': typeof ChatAgendaRoute
   '/chat/agentes': typeof ChatAgentesRoute
   '/chat/broadcast': typeof ChatBroadcastRoute
@@ -674,6 +681,7 @@ export interface FileRoutesByTo {
   '/admin/pessoas': typeof AdminPessoasRouteWithChildren
   '/admin/seguranca': typeof AdminSegurancaRoute
   '/admin/usuarios': typeof AdminUsuariosRoute
+  '/admin/voos-teste': typeof AdminVoosTesteRoute
   '/chat/agenda': typeof ChatAgendaRoute
   '/chat/agentes': typeof ChatAgentesRoute
   '/chat/broadcast': typeof ChatBroadcastRoute
@@ -764,6 +772,7 @@ export interface FileRoutesById {
   '/admin/pessoas': typeof AdminPessoasRouteWithChildren
   '/admin/seguranca': typeof AdminSegurancaRoute
   '/admin/usuarios': typeof AdminUsuariosRoute
+  '/admin/voos-teste': typeof AdminVoosTesteRoute
   '/chat/agenda': typeof ChatAgendaRoute
   '/chat/agentes': typeof ChatAgentesRoute
   '/chat/broadcast': typeof ChatBroadcastRoute
@@ -855,6 +864,7 @@ export interface FileRouteTypes {
     | '/admin/pessoas'
     | '/admin/seguranca'
     | '/admin/usuarios'
+    | '/admin/voos-teste'
     | '/chat/agenda'
     | '/chat/agentes'
     | '/chat/broadcast'
@@ -943,6 +953,7 @@ export interface FileRouteTypes {
     | '/admin/pessoas'
     | '/admin/seguranca'
     | '/admin/usuarios'
+    | '/admin/voos-teste'
     | '/chat/agenda'
     | '/chat/agentes'
     | '/chat/broadcast'
@@ -1032,6 +1043,7 @@ export interface FileRouteTypes {
     | '/admin/pessoas'
     | '/admin/seguranca'
     | '/admin/usuarios'
+    | '/admin/voos-teste'
     | '/chat/agenda'
     | '/chat/agentes'
     | '/chat/broadcast'
@@ -1390,6 +1402,13 @@ declare module '@tanstack/react-router' {
       path: '/usuarios'
       fullPath: '/admin/usuarios'
       preLoaderRoute: typeof AdminUsuariosRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/voos-teste': {
+      id: '/admin/voos-teste'
+      path: '/voos-teste'
+      fullPath: '/admin/voos-teste'
+      preLoaderRoute: typeof AdminVoosTesteRouteImport
       parentRoute: typeof AdminRoute
     }
     '/chat/agenda': {
@@ -1782,6 +1801,7 @@ interface AdminRouteChildren {
   AdminPessoasRoute: typeof AdminPessoasRouteWithChildren
   AdminSegurancaRoute: typeof AdminSegurancaRoute
   AdminUsuariosRoute: typeof AdminUsuariosRoute
+  AdminVoosTesteRoute: typeof AdminVoosTesteRoute
   AdminPedidosIdRoute: typeof AdminPedidosIdRoute
   AdminPedidosTerceirosRoute: typeof AdminPedidosTerceirosRoute
   AdminPedidosIndexRoute: typeof AdminPedidosIndexRoute
@@ -1805,6 +1825,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminPessoasRoute: AdminPessoasRouteWithChildren,
   AdminSegurancaRoute: AdminSegurancaRoute,
   AdminUsuariosRoute: AdminUsuariosRoute,
+  AdminVoosTesteRoute: AdminVoosTesteRoute,
   AdminPedidosIdRoute: AdminPedidosIdRoute,
   AdminPedidosTerceirosRoute: AdminPedidosTerceirosRoute,
   AdminPedidosIndexRoute: AdminPedidosIndexRoute,
@@ -1918,13 +1939,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
