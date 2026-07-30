@@ -338,6 +338,141 @@ function CarDetailsDialog({ car, onClose }: { car: OnerCar | null; onClose: () =
   );
 }
 
+// ------------------------------------------------- resumo da seleção (modal)
+
+function CarSummaryDialog({
+  car,
+  open,
+  onOpenChange,
+}: {
+  car: OnerCar | null;
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+}) {
+  const createCart = useServerFn(onerCreateCarCart);
+  const [cartUrl, setCartUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    setCartUrl(null);
+  }, [car?.carKey]);
+
+  const cartMut = useMutation({
+    mutationFn: () =>
+      createCart({
+        data: {
+          searchKey: car!.searchKey,
+          carKey: car!.carKey,
+          pickupName: car!.pickup.name,
+          pickupDate: car!.pickup.date,
+          pickupTime: car!.pickup.time,
+          returnDate: car!.dropoff.date,
+          returnTime: car!.dropoff.time,
+        },
+      }),
+    onSuccess: (r) => {
+      setCartUrl(r.url);
+      window.open(r.url, "_blank", "noopener");
+      toast.success("Link do Comprar Viagem gerado");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  if (!car) return null;
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-lg border-border/60 bg-card/95 p-0 backdrop-blur">
+        <DialogHeader className="border-b border-border/60 px-5 py-4">
+          <DialogTitle className="text-base">Carro selecionado</DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-4 px-5 py-4">
+          <div className="flex items-center gap-3">
+            {car.imageUrl ? (
+              <img src={car.imageUrl} alt={car.name} className="h-16 w-24 object-contain" />
+            ) : (
+              <Car className="h-10 w-10 text-muted-foreground" />
+            )}
+            <div className="min-w-0">
+              <p className="truncate text-sm font-semibold uppercase">{car.name}</p>
+              <p className="text-xs text-muted-foreground">
+                {car.categoryDescription} · {car.vendor.name}
+              </p>
+              <p className="mt-1 flex flex-wrap gap-x-3 text-[11px] text-muted-foreground">
+                <span>{car.passengerCount} lugares</span>
+                <span>{car.bagCount} malas</span>
+                <span>{car.transmissionDescription}</span>
+                <span>{car.unlimitedMileage ? "KM ilimitada" : "KM limitada"}</span>
+              </p>
+            </div>
+          </div>
+
+          <div className="grid gap-2 rounded-xl border border-border/60 bg-background/40 p-3 text-xs sm:grid-cols-2">
+            <div>
+              <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Retirada</div>
+              <div className="font-medium">
+                {car.pickup.date} às {car.pickup.time?.slice(0, 5)}
+              </div>
+              <div className="text-muted-foreground">{car.pickup.name}</div>
+            </div>
+            <div>
+              <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Devolução</div>
+              <div className="font-medium">
+                {car.dropoff.date} às {car.dropoff.time?.slice(0, 5)}
+              </div>
+              <div className="text-muted-foreground">{car.dropoff.name}</div>
+            </div>
+          </div>
+
+          {car.coverages[0] && (
+            <p className="flex items-start gap-1 text-xs text-primary">
+              <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0" /> {car.coverages[0].name}
+            </p>
+          )}
+
+          <div className="flex items-end justify-between rounded-xl border border-primary/30 bg-primary/5 p-3">
+            <div className="text-[11px] text-muted-foreground">
+              Preço total
+              <div className="text-[11px]">{fmtMoney(car.pricePerDay)} /dia</div>
+            </div>
+            <div className="text-2xl font-bold text-primary">{fmtMoney(car.finalPrice)}</div>
+          </div>
+
+          {cartUrl && (
+            <div className="rounded-xl border border-border/60 bg-background/40 p-3">
+              <p className="mb-1 text-[10px] uppercase tracking-wide text-muted-foreground">
+                Link do Comprar Viagem
+              </p>
+              <p className="break-all text-xs">{cartUrl}</p>
+              <Button
+                variant="outline"
+                size="sm"
+                className="mt-2 h-7 text-xs"
+                onClick={() => {
+                  navigator.clipboard.writeText(cartUrl);
+                  toast.success("Link copiado");
+                }}
+              >
+                Copiar link
+              </Button>
+            </div>
+          )}
+        </div>
+
+        <div className="flex gap-2 border-t border-border/60 px-5 py-4">
+          <Button variant="outline" className="flex-1" onClick={() => onOpenChange(false)}>
+            Fechar
+          </Button>
+          <Button className="flex-1" disabled={cartMut.isPending} onClick={() => cartMut.mutate()}>
+            {cartMut.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Comprar viagem
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 
 // ---------------------------------------------------------------- card
 
