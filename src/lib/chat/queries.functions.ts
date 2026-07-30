@@ -12,7 +12,7 @@ export const listConversations = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { data, error } = await context.supabase
       .from("wa_conversations")
-      .select("id, wa_phone, display_name, mode, agent_slug, assigned_to, last_message_at, last_message_preview, unread_count, tags, person_id, funnel_stage, protocolo_ativo_id")
+      .select("id, wa_phone, display_name, mode, agent_slug, assigned_to, last_message_at, last_message_preview, unread_count, tags, person_id, funnel_stage, protocolo_ativo_id, ai_instruction, ai_instruction_at, ai_debounce_until")
       .order("last_message_at", { ascending: false })
       .limit(200);
     if (error) throw new Error(error.message);
@@ -661,6 +661,36 @@ export const toggleConversationMode = createServerFn({ method: "POST" })
         mode: data.mode,
         assigned_to: data.mode === "human" ? context.userId : null,
       })
+      .eq("id", data.conversation_id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+/**
+ * Orientação do atendente para a IA: o que ela deve responder na próxima
+ * mensagem. Vale só para a próxima resposta (a IA limpa depois de enviar).
+ * `respond_now` antecipa o debounce para a IA responder no próximo ciclo.
+ */
+export const setAiInstruction = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) =>
+    z.object({
+      conversation_id: z.string().uuid(),
+      instruction: z.string().max(2000).nullable(),
+      respond_now: z.boolean().optional(),
+    }).parse(data),
+  )
+  .handler(async ({ data, context }) => {
+    const text = data.instruction?.trim() || null;
+    const patch = {
+      ai_instruction: text,
+      ai_instruction_at: text ? new Date().toISOString() : null,
+      ai_instruction_by: text ? context.userId : null,
+      ...(text && data.respond_now ? { ai_debounce_until: new Date().toISOString() } : {}),
+    };
+    const { error } = await context.supabase
+      .from("wa_conversations")
+      .update(patch)
       .eq("id", data.conversation_id);
     if (error) throw new Error(error.message);
     return { ok: true };

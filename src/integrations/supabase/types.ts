@@ -3601,6 +3601,9 @@ export type Database = {
         Row: {
           agent_slug: string | null
           ai_debounce_until: string | null
+          ai_instruction: string | null
+          ai_instruction_at: string | null
+          ai_instruction_by: string | null
           assigned_to: string | null
           created_at: string
           display_name: string | null
@@ -3624,6 +3627,9 @@ export type Database = {
         Insert: {
           agent_slug?: string | null
           ai_debounce_until?: string | null
+          ai_instruction?: string | null
+          ai_instruction_at?: string | null
+          ai_instruction_by?: string | null
           assigned_to?: string | null
           created_at?: string
           display_name?: string | null
@@ -3647,6 +3653,9 @@ export type Database = {
         Update: {
           agent_slug?: string | null
           ai_debounce_until?: string | null
+          ai_instruction?: string | null
+          ai_instruction_at?: string | null
+          ai_instruction_by?: string | null
           assigned_to?: string | null
           created_at?: string
           display_name?: string | null

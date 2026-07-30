@@ -12,6 +12,7 @@ import { firstName } from "@/lib/whatsapp/text-utils.shared";
 
 import { FUNNEL_STAGES } from "@/lib/chat/funnel-stages";
 import { WhatsAppBubble, DateDivider } from "@/components/chat/WhatsAppBubble";
+import { AiInstructionBar } from "@/components/chat/AiInstructionBar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -811,6 +812,13 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
 
       {/* Composer */}
       <div className="shrink-0 border-t border-slate-200 bg-white p-3">
+        {conv.mode === "ai" && (
+          <AiInstructionBar
+            conversationId={conv.id}
+            pending={(conv as { ai_instruction?: string | null }).ai_instruction ?? null}
+            onChange={onRefetch}
+          />
+        )}
         {replyTo && (
           <div className="mb-2 flex items-start gap-2 rounded-md border-l-4 border-[#F26B1F] bg-orange-50 px-3 py-2">
             <div className="min-w-0 flex-1">

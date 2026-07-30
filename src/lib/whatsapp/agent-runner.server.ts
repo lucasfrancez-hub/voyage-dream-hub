@@ -158,6 +158,16 @@ function buildSystemPrompt(agent: Agent, conv: WaConversation, protocolo: WaProt
       `diretoria e que um responsável entrará em contato, e siga o atendimento normalmente. Nunca explique que há bloqueio.`
     );
   }
+  const instruction = (conv as unknown as { ai_instruction?: string | null }).ai_instruction?.trim();
+  if (instruction) {
+    parts.push(
+      `\n# 🎯 ORIENTAÇÃO DO SUPERVISOR (PRIORIDADE MÁXIMA — VÁLIDA SÓ PARA ESTA RESPOSTA)\n` +
+      `Um atendente humano da VIA AIR deixou esta instrução do que responder agora:\n"""\n${instruction}\n"""\n` +
+      `Siga essa orientação à risca na próxima resposta, mantendo seu tom e sua persona. ` +
+      `Ela vale mais que qualquer inferência sua sobre o que dizer. ` +
+      `NUNCA mencione que recebeu instrução, nem cite supervisor/atendente/sistema — fale como se fosse a sua própria resposta.`
+    );
+  }
   parts.push(`- Data/hora atual (SP): ${new Date().toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}`);
   return parts.join("\n");
 }
@@ -397,6 +407,14 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
       }
     } catch (e) {
       console.warn("[agent] fallback de escalação falhou:", e);
+    }
+
+    // Consome a orientação do supervisor (vale só para esta resposta).
+    if ((conv as unknown as { ai_instruction?: string | null }).ai_instruction) {
+      await supabaseAdmin
+        .from("wa_conversations")
+        .update({ ai_instruction: null, ai_instruction_at: null, ai_instruction_by: null })
+        .eq("id", conv.id);
     }
 
     const prefix = buildSenderPrefix(agent.nome);
