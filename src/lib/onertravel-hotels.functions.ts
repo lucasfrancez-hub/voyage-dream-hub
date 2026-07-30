@@ -220,32 +220,52 @@ export const onerHotelSearch = createServerFn({ method: "POST" })
     let haveMore = false;
     let stable = 0;
     // paginação já carregada não precisa de tantas rodadas
-    const rounds = data.page > 1 ? 6 : 12;
-    for (let i = 0; i < rounds; i++) {
+    const rounds = data.page > 1 ? 6 : 14;
+
+    const fetchPage = async (page: number) => {
       const res = await fetch(`${SERVERLESS}/api/hotel/v1/search/${searchKey}`, {
         method: "POST",
         headers: h,
-        body: JSON.stringify(listBody),
+        body: JSON.stringify({ ...listBody, page }),
       });
-      if (res.ok) {
-        const json = (await res.json().catch(() => null)) as {
-          data?: { hotels?: { hotelId?: number }[]; count?: number; haveMore?: boolean };
-        } | null;
-        const d = json?.data;
-        const before = acc.size;
-        for (const raw of d?.hotels ?? []) {
-          if (typeof raw?.hotelId === "number") acc.set(raw.hotelId, raw);
-        }
-        count = Math.max(count, d?.count ?? 0);
-        if (d?.haveMore !== undefined) haveMore = !!d.haveMore;
-        if (acc.size > before) stable = 0;
-        else if (acc.size > 0) {
-          stable++;
-          if (i >= 3 && stable >= 3) break;
-        }
+      if (!res.ok) return 0;
+      const json = (await res.json().catch(() => null)) as {
+        data?: { hotels?: { hotelId?: number }[]; count?: number; haveMore?: boolean };
+      } | null;
+      const d = json?.data;
+      const before = acc.size;
+      for (const raw of d?.hotels ?? []) {
+        if (typeof raw?.hotelId === "number") acc.set(raw.hotelId, raw);
       }
-      await sleep(2000);
+      count = Math.max(count, d?.count ?? 0);
+      if (d?.haveMore !== undefined) haveMore = !!d.haveMore;
+      return acc.size - before;
+    };
+
+    for (let i = 0; i < rounds; i++) {
+      const added = await fetchPage(data.page);
+      if (added > 0) stable = 0;
+      else if (acc.size > 0) {
+        stable++;
+        if (i >= 3 && stable >= 4) break;
+      }
+      await sleep(1800);
     }
+
+    // Puxa automaticamente as páginas seguintes até cobrir tudo que a operadora
+    // diz existir (é o equivalente a clicar "ver mais" várias vezes).
+    let nextPage = data.page + 1;
+    const maxPage = data.page + 9;
+    while (acc.size < count && nextPage <= maxPage) {
+      const added = await fetchPage(nextPage);
+      if (added === 0) {
+        await sleep(1200);
+        if ((await fetchPage(nextPage)) === 0) break;
+      }
+      nextPage++;
+    }
+    haveMore = acc.size < count;
+
 
     type RawRate = {
       key?: string;
