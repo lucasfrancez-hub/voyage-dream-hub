@@ -34,6 +34,7 @@ import {
   type OnerHotelSearchResult,
   type OnerRoomRate,
 } from "@/lib/onertravel-hotels.functions";
+import { onerAirportSearch } from "@/lib/onertravel.functions";
 
 export const Route = createFileRoute("/admin/hoteis-teste")({
   head: () => ({
@@ -407,6 +408,7 @@ export function HoteisPage({
   runToken?: number;
 } = {}) {
   const searchDest = useServerFn(onerHotelDestinations);
+  const searchAirports = useServerFn(onerAirportSearch);
   const searchHotels = useServerFn(onerHotelSearch);
 
   const [destQuery, setDestQuery] = useState("");
@@ -510,13 +512,40 @@ export function HoteisPage({
     }));
     (async () => {
       try {
-        const r = await searchDest({ data: { query: preset.destination.trim() } });
+        const raw = preset.destination.trim();
+        // Um IATA ("MCO") não é destino de hotel na operadora — resolve a cidade do aeroporto antes.
+        const queries: string[] = [];
+        if (/^[A-Za-z]{3}$/.test(raw)) {
+          try {
+            const airports = await searchAirports({ data: { query: raw, isDeparture: false } });
+            const hit = airports.find((a) => a.iata?.toUpperCase() === raw.toUpperCase()) ?? airports[0];
+            if (hit?.city) queries.push(hit.city);
+            if (hit?.name && hit.name !== hit.city) queries.push(hit.name);
+          } catch {
+            /* segue com o texto original */
+          }
+        }
+        queries.push(raw);
+
+        let chosen: OnerHotelPoint | null = null;
+        for (const q of queries) {
+          if (!alive) return;
+          if (q.trim().length < 3) continue;
+          const r = await searchDest({ data: { query: q.trim() } });
+          if (!r.length) continue;
+          // type 1 = cidade (traz o inventário completo); 3 = hotel específico (traz 1-2 resultados)
+          const cities = r.filter((p) => p.type === 1);
+          const norm = (s: string) => s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+          const exact = cities.find((p) => norm(p.name) === norm(q));
+          chosen = exact ?? cities[0] ?? r.find((p) => p.type === 2) ?? null;
+          if (chosen) break;
+        }
         if (!alive) return;
-        if (!r.length) {
-          toast.warning("Nenhum destino de hospedagem encontrado");
+        if (!chosen) {
+          toast.warning("Nenhuma cidade de hospedagem encontrada para o destino");
           return;
         }
-        setPoint(r[0]);
+        setPoint(chosen);
         setOptions([]);
         setPendingRun(runToken);
       } catch (e) {
