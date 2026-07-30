@@ -320,6 +320,8 @@ export const onerInboundSearch = createServerFn({ method: "POST" })
         pageSize: data.pageSize,
         filter: { maxStopsEnum: data.maxStops, startPrice: null, endPrice: null },
         ordinationEnum: 0,
-
-    });
+      },
+      data.onlyWithBaggage,
+    );
   });
+
