@@ -18,6 +18,9 @@ import {
   MapPin,
   SlidersHorizontal,
   RotateCcw,
+  Clock,
+  ChevronDown,
+
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -72,6 +75,15 @@ function taxesOf(f: OnerFlight) {
 function airlineOf(f: OnerFlight) {
   return f.journey.marketingAirline ?? f.journey.segments[0]?.marketingAirline ?? null;
 }
+/** minutos absolutos de um ponto (data + hora), para calcular conexões */
+function absMinutes(p: { date: { year: number; month: number; day: number }; time: { hour: number; minute: number } }) {
+  return Date.UTC(p.date.year, p.date.month - 1, p.date.day, p.time.hour, p.time.minute) / 60000;
+}
+function fmtDur(min: number) {
+  const m = Math.max(0, Math.round(min));
+  return `${Math.floor(m / 60)}h${String(m % 60).padStart(2, "0")}`;
+}
+
 
 // ---------------------------------------------------------------- filtros
 
@@ -384,7 +396,66 @@ function Stepper({ step, roundTrip }: { step: number; roundTrip: boolean }) {
 
 // ---------------------------------------------------------------- card
 
+/** Detalhamento de trechos e tempo de conexão. */
+function SegmentsDetail({ f }: { f: OnerFlight }) {
+  const segs = f.journey.segments;
+  return (
+    <div className="mt-3 space-y-3 rounded-xl border border-border/60 bg-background/50 p-3">
+      {segs.map((s, i) => {
+        const prev = segs[i - 1];
+        const layover = prev ? absMinutes(s.departure) - absMinutes(prev.destination) : 0;
+        return (
+          <div key={`${s.segmentNumber}-${s.flightNumber}`} className="space-y-3">
+            {prev && (
+              <div className="flex items-center gap-2 text-[11px] font-medium text-muted-foreground">
+                <span className="h-px flex-1 bg-border" />
+                <Clock className="h-3 w-3" />
+                Conexão em {prev.destination.iata} • {fmtDur(layover)}
+                <span className="h-px flex-1 bg-border" />
+              </div>
+            )}
+            <div className="flex flex-wrap items-center gap-3 text-xs">
+              {s.marketingAirline?.pathLogo ? (
+                <img
+                  src={s.marketingAirline.pathLogo}
+                  alt={s.marketingAirline?.name ?? "Companhia aérea"}
+                  className="h-5 w-5 rounded bg-white object-contain"
+                  loading="lazy"
+                />
+              ) : (
+                <Plane className="h-4 w-4 text-muted-foreground" />
+              )}
+              <span className="font-semibold">
+                {s.marketingAirline?.iata ?? ""}
+                {s.flightNumber}
+              </span>
+              <span>
+                <strong>{fmtTime(s.departure.time)}</strong> {s.departure.iata}
+                <span className="text-muted-foreground"> ({fmtDate(s.departure.date)})</span>
+              </span>
+              <ArrowRight className="h-3 w-3 text-muted-foreground" />
+              <span>
+                <strong>{fmtTime(s.destination.time)}</strong> {s.destination.iata}
+                <span className="text-muted-foreground"> ({fmtDate(s.destination.date)})</span>
+              </span>
+              <span className="text-muted-foreground">
+                {fmtDur(absMinutes(s.destination) - absMinutes(s.departure))}
+                {s.cabinClass ? ` • ${s.cabinClass}` : ""}
+                {s.airlineFareFamily ? ` • ${s.airlineFareFamily}` : ""}
+              </span>
+            </div>
+            <div className="text-[11px] text-muted-foreground">
+              {s.departure.name} → {s.destination.name}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 /** Barra compacta do trecho já escolhido, com botão de editar (volta ao passo). */
+
 function SelectedLegBar({ label, f, onEdit }: { label: string; f: OnerFlight; onEdit: () => void }) {
   const j = f.journey;
   return (
@@ -420,34 +491,43 @@ function SelectedLegBar({ label, f, onEdit }: { label: string; f: OnerFlight; on
 }
 
 function FlightCard({
-
   f,
   selected,
   onSelect,
   cheapest,
+  readOnly,
+  label,
 }: {
   f: OnerFlight;
   selected?: boolean;
   onSelect?: () => void;
   cheapest?: boolean;
+  readOnly?: boolean;
+  label?: string;
 }) {
   const j = f.journey;
   const withBag = flightHasBaggage(f);
+  const [open, setOpen] = useState(false);
+  const interactive = !readOnly && !!onSelect;
   return (
     <div
-      role="button"
-      tabIndex={0}
-      onClick={onSelect}
+      role={interactive ? "button" : undefined}
+      tabIndex={interactive ? 0 : undefined}
+      onClick={interactive ? onSelect : undefined}
       onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
+        if (interactive && (e.key === "Enter" || e.key === " ")) {
           e.preventDefault();
           onSelect?.();
         }
       }}
-      className={`group relative cursor-pointer overflow-hidden rounded-2xl border bg-card/80 p-4 backdrop-blur transition hover:-translate-y-0.5 hover:border-primary/60 hover:shadow-[var(--shadow-card)] ${
-        selected ? "border-primary ring-2 ring-primary/30" : "border-border/70"
-      }`}
+      className={`group relative overflow-hidden rounded-2xl border bg-card/80 p-4 backdrop-blur transition ${
+        interactive ? "cursor-pointer hover:-translate-y-0.5 hover:border-primary/60 hover:shadow-[var(--shadow-card)]" : ""
+      } ${selected ? "border-primary ring-2 ring-primary/30" : "border-border/70"}`}
     >
+      {label && (
+        <div className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{label}</div>
+      )}
+
       {cheapest && (
         <span className="absolute right-0 top-0 rounded-bl-xl bg-primary px-2 py-1 text-[10px] font-semibold text-primary-foreground">
           Menor preço
@@ -518,7 +598,26 @@ function FlightCard({
           </div>
         </div>
       </div>
+
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          setOpen((v) => !v);
+        }}
+        aria-expanded={open}
+        className="mt-3 flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+      >
+        <ChevronDown className={`h-3.5 w-3.5 transition-transform ${open ? "rotate-180" : ""}`} />
+        {open
+          ? "Ocultar detalhes"
+          : j.numberOfStops === 0
+            ? "Ver detalhes do voo"
+            : `Ver ${j.numberOfStops} conexão(ões)`}
+      </button>
+      {open && <SegmentsDetail f={f} />}
     </div>
+
   );
 }
 
@@ -552,11 +651,20 @@ function SummaryCard({ out, inb }: { out: OnerFlight; inb: OnerFlight | null }) 
   );
 
   return (
-    <div className="sticky bottom-4 z-10 rounded-2xl border border-primary/40 bg-card/95 p-5 shadow-[var(--shadow-card)] backdrop-blur">
+    <div className="rounded-2xl border border-primary/40 bg-card/95 p-5 shadow-[var(--shadow-card)] backdrop-blur">
+      <div className="mb-4 flex items-center gap-2 text-sm font-semibold">
+        <Plane className="h-4 w-4 text-primary" /> Voos selecionados
+      </div>
+      <div className="mb-5 space-y-3">
+        <FlightCard f={out} label={inb ? "Ida" : "Voo"} readOnly />
+        {inb && <FlightCard f={inb} label="Volta" readOnly />}
+      </div>
+
       <div className="mb-4 flex items-center gap-2 text-sm font-semibold">
         <CreditCard className="h-4 w-4 text-primary" /> Resumo do preço
       </div>
       <div className="grid gap-5 md:grid-cols-[1fr_auto_1fr]">
+
         <div className="space-y-4">
           <Leg label="Ida" f={out} />
           {inb && (
