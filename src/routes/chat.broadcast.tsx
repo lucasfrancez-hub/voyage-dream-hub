@@ -154,7 +154,7 @@ function DisparosPage() {
       if (!c) return toast.error("Campanha não encontrada");
       const { exportCampanhaPdf } = await import("@/lib/broadcast/campaign-pdf");
       const destMap = new Map(destinos.map((d) => [d.id, d]));
-      exportCampanhaPdf(
+      await exportCampanhaPdf(
         {
           nome: c.nome,
           status: STATUS_LABEL[c.status] ?? c.status,
@@ -1703,7 +1703,9 @@ function CampanhaEditor({
           <button
             onClick={async () => {
               const { exportCampanhaPdf } = await import("@/lib/broadcast/campaign-pdf");
-              exportCampanhaPdf(
+              const t = toast.loading("Gerando PDF…");
+              try {
+              await exportCampanhaPdf(
                 {
                   nome: nome.trim() || "Campanha sem nome",
                   status: id ? "Em edição" : "Rascunho (não salvo)",
@@ -1713,6 +1715,11 @@ function CampanhaEditor({
                 blocos,
                 destinos.filter((d) => selecionados.has(d.id)).map((d) => ({ nome: d.nome, tipo: d.tipo })),
               );
+                toast.dismiss(t);
+              } catch (e) {
+                toast.dismiss(t);
+                toast.error(e instanceof Error ? e.message : "Erro ao gerar PDF");
+              }
             }}
             className="inline-flex items-center gap-1 text-xs rounded-full border border-border px-3 py-1.5 hover:border-brand-orange"
             title="Exportar relatório em PDF"
