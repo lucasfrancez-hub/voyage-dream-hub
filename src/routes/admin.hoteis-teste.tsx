@@ -416,7 +416,31 @@ export function HoteisPage({
   const [filters, setFilters] = useState<Filters>(EMPTY);
   const [selected, setSelected] = useState<{ hotelId: number; rateKey: string } | null>(null);
   const [pendingRun, setPendingRun] = useState(0);
+  const [page, setPage] = useState(1);
 
+  const PER_PAGE = 20;
+
+  const buildPayload = (targetPage: number, searchKey?: string | null) => ({
+    pointId: point!.id,
+    pointType: point!.type,
+    cityName: point!.name,
+    checkIn: form.checkIn,
+    checkOut: form.checkOut,
+    rooms: Array.from({ length: Number(form.rooms) }).map(() => ({
+      adults: Number(form.adults),
+      children: Number(form.children),
+      childrenAges: [] as number[],
+    })),
+    page: targetPage,
+    perPage: PER_PAGE,
+    searchKey: searchKey ?? null,
+    hotelName: "",
+    stars: [] as number[],
+    priceBegin: null,
+    priceEnd: null,
+    mealPlans: [] as number[],
+    sortingCode: "",
+  });
 
   const destMut = useMutation({
     mutationFn: () => searchDest({ data: { query: destQuery.trim() } }),
@@ -428,31 +452,10 @@ export function HoteisPage({
   });
 
   const mut = useMutation({
-    mutationFn: () =>
-      searchHotels({
-        data: {
-          pointId: point!.id,
-          pointType: point!.type,
-          cityName: point!.name,
-          checkIn: form.checkIn,
-          checkOut: form.checkOut,
-          rooms: Array.from({ length: Number(form.rooms) }).map(() => ({
-            adults: Number(form.adults),
-            children: Number(form.children),
-            childrenAges: [],
-          })),
-          page: 1,
-          perPage: 20,
-          hotelName: "",
-          stars: [],
-          priceBegin: null,
-          priceEnd: null,
-          mealPlans: [],
-          sortingCode: "",
-        },
-      }),
+    mutationFn: () => searchHotels({ data: buildPayload(1) }),
     onSuccess: (r) => {
       setResult(r);
+      setPage(1);
       setFilters(EMPTY);
       setSelected(null);
       if (!r.hotels.length) toast.warning("Nenhuma hospedagem retornada");
@@ -460,6 +463,30 @@ export function HoteisPage({
     },
     onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Erro na busca"),
   });
+
+  // "Ver mais": pede a próxima página reaproveitando a mesma busca e anexa
+  // os hotéis novos à lista atual (sem repetir os já exibidos).
+  const moreMut = useMutation({
+    mutationFn: () => searchHotels({ data: buildPayload(page + 1, result?.searchKey) }),
+    onSuccess: (r) => {
+      setPage((p) => p + 1);
+      setResult((prev) => {
+        if (!prev) return r;
+        const seen = new Set(prev.hotels.map((h) => h.hotelId));
+        const novos = r.hotels.filter((h) => !seen.has(h.hotelId));
+        if (!novos.length) toast.info("Não há mais hospedagens para carregar");
+        return {
+          ...prev,
+          count: Math.max(prev.count, r.count),
+          haveMore: r.haveMore && novos.length > 0,
+          hotels: [...prev.hotels, ...novos],
+        };
+      });
+    },
+    onError: (e: unknown) =>
+      toast.error(e instanceof Error ? e.message : "Erro ao carregar mais hospedagens"),
+  });
+
 
   const nights = useMemo(() => {
     if (!form.checkIn || !form.checkOut) return 0;
