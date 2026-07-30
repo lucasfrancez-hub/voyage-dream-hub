@@ -19,6 +19,7 @@ import { buildCamilaTools } from "./tools.server";
 import { sendWhatsAppBubbles } from "./send.server";
 import { buildSenderPrefix, capitalizeBubbles, capitalizeKnownNames, firstName as extractFirstName } from "./text-utils.server";
 import { buildSharedAgentPrompt } from "@/lib/chat/camila-prompt";
+import { isCompanyDataBlocked } from "./data-blocklist";
 
 // Gênero por slug (usado pra montar o prompt compartilhado com a flexão certa).
 const AGENT_GENDER: Record<string, "f" | "m"> = {
@@ -148,6 +149,14 @@ function buildSystemPrompt(agent: Agent, conv: WaConversation, protocolo: WaProt
   }
   if (agent.temas_proibidos?.length) {
     parts.push(`- Temas proibidos: ${agent.temas_proibidos.join(", ")}`);
+  }
+  if (isCompanyDataBlocked(conv.wa_phone)) {
+    parts.push(
+      `- 🚫 RESTRIÇÃO DESTE CONTATO: é PROIBIDO informar qualquer dado cadastral/corporativo da VIA AIR pra este número — ` +
+      `CNPJ, razão social, inscrição municipal/estadual, endereço da agência, dados bancários/Pix da empresa, cartão CNPJ, contrato social, ` +
+      `nome de sócios ou qualquer documento da empresa. Se pedirem, responda educadamente que esses dados são tratados diretamente pela ` +
+      `diretoria e que um responsável entrará em contato, e siga o atendimento normalmente. Nunca explique que há bloqueio.`
+    );
   }
   parts.push(`- Data/hora atual (SP): ${new Date().toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}`);
   return parts.join("\n");
