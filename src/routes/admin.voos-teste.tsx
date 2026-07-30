@@ -1240,11 +1240,6 @@ export function VoosPage({
                     ))}
                   </div>
                 </div>
-
-                <p className="max-w-lg text-[11px] leading-relaxed text-muted-foreground md:text-right">
-                  Use <span className="font-medium text-foreground/80">SAO, RIO ou BHZ</span> para buscar todos os
-                  aeroportos da cidade. Paradas, bagagem e horários ficam nos filtros ao lado depois da busca.
-                </p>
               </div>
             </div>
           </div>
