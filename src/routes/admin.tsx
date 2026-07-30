@@ -345,6 +345,45 @@ function NavItem({
   );
 }
 
+function ProdutosNav({ pathname }: { pathname: string }) {
+  const active =
+    pathname.startsWith("/admin/pacotes") ||
+    pathname.startsWith("/admin/buscar") ||
+    pathname.startsWith("/admin/voos-teste") ||
+    pathname.startsWith("/admin/hoteis-teste");
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm transition outline-none ${
+          active ? "bg-brand-orange/10 text-brand-orange" : "text-muted-foreground hover:text-foreground"
+        }`}
+      >
+        <Package className="h-4 w-4" /> Produtos <ChevronDown className="h-3.5 w-3.5" />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" className="w-64">
+        <DropdownMenuItem asChild>
+          <Link to="/admin/pacotes" className="flex flex-col items-start gap-0.5">
+            <span className="text-sm font-medium">Cadastrar produtos</span>
+            <span className="text-xs text-muted-foreground">Pacotes, ingressos, passeios e cruzeiros</span>
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link to="/admin/voos-teste" className="flex flex-col items-start gap-0.5">
+            <span className="text-sm font-medium">Buscar aéreo</span>
+            <span className="text-xs text-muted-foreground">Motor Comprar Viagem</span>
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link to="/admin/hoteis-teste" className="flex flex-col items-start gap-0.5">
+            <span className="text-sm font-medium">Buscar hotel</span>
+            <span className="text-xs text-muted-foreground">Motor Comprar Viagem</span>
+          </Link>
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
 function CartaoNav({ pathname }: { pathname: string }) {
   const active =
     pathname === "/admin/link-pagamento" ||
