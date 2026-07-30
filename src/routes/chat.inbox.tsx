@@ -894,6 +894,19 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
             onChange={onRefetch}
           />
         )}
+        {conv.mode === "ai" && aiPaused && (
+          <div className="mb-2 flex items-center gap-2 rounded-md border border-amber-200 bg-amber-50 px-2 py-1.5 text-[11px] text-amber-800">
+            <Pause className="h-3.5 w-3.5 shrink-0" />
+            <span className="flex-1">IA pausada — ela não responde até você retomar. Deixe a orientação e clique em “Retomar IA”.</span>
+            <button
+              onClick={() => pauseAiMut.mutate(false)}
+              disabled={pauseAiMut.isPending}
+              className="rounded-md bg-amber-600 px-2 py-1 text-[11px] font-medium text-white hover:bg-amber-700 disabled:opacity-50"
+            >
+              Retomar
+            </button>
+          </div>
+        )}
         {replyTo && (
           <div className="mb-2 flex items-start gap-2 rounded-md border-l-4 border-[#F26B1F] bg-orange-50 px-3 py-2">
             <div className="min-w-0 flex-1">
