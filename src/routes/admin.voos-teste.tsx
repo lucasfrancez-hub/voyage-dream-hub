@@ -716,6 +716,13 @@ function VoosPage() {
   const outFlight = result?.outbound.flights.find((f) => f.key === selectedOut) ?? null;
   const inFlight = inbound?.flights.find((f) => f.key === selectedIn) ?? null;
   const showSummary = !!outFlight && (!isRoundTrip || !!inFlight);
+  const inboundPhase = isRoundTrip && !!selectedOut;
+  function editOutbound() {
+    setSelectedOut(null);
+    setSelectedIn(null);
+    setInbound(null);
+  }
+
   const cheapestOut = outFlights.length ? Math.min(...outFlights.map((f) => f.price.total)) : null;
   const cheapestIn = inFlights.length ? Math.min(...inFlights.map((f) => f.price.total)) : null;
 
