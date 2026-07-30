@@ -270,36 +270,45 @@ function FiltersPanel({
   const n = activeCount(filters);
 
   return (
-    <section className="rounded-2xl border border-border/70 bg-card/80 p-4 backdrop-blur">
-      <header className="mb-4 flex items-center justify-between">
-        <div className="flex items-center gap-2 text-sm font-semibold">
-          <SlidersHorizontal className="h-4 w-4 text-primary" />
-          {title}
+    <section className="overflow-hidden rounded-3xl border border-border/50 bg-card/60 shadow-2xl backdrop-blur-xl">
+      <header className="flex items-center justify-between gap-2 border-b border-border/40 bg-muted/20 px-4 py-3">
+        <div className="flex min-w-0 items-center gap-2 text-sm font-semibold">
+          <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-primary/15">
+            <SlidersHorizontal className="h-3.5 w-3.5 text-primary" />
+          </span>
+          <span className="truncate">{title}</span>
           {n > 0 && <Badge variant="secondary">{n}</Badge>}
           {loading && <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />}
         </div>
         {n > 0 && (
-          <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={() => onChange(EMPTY_FILTERS)}>
+          <Button variant="ghost" size="sm" className="h-7 shrink-0 px-2 text-xs" onClick={() => onChange(EMPTY_FILTERS)}>
             <RotateCcw className="mr-1 h-3 w-3" /> Limpar
           </Button>
         )}
       </header>
 
-      <div className={`space-y-5 ${loading ? "pointer-events-none opacity-60" : ""}`}>
-        <div className="space-y-2">
-          <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Bagagem</Label>
-          <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-border/60 bg-background/40 px-3 py-2 text-sm">
+      <div className={`divide-y divide-border/40 ${loading ? "pointer-events-none opacity-60" : ""}`}>
+        <div className="space-y-2 p-4">
+          <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Bagagem</Label>
+          <label
+            className={`flex cursor-pointer items-center gap-2.5 rounded-xl border px-3 py-2.5 text-sm transition ${
+              filters.onlyBaggage
+                ? "border-primary/60 bg-primary/10 text-foreground"
+                : "border-border/50 bg-muted/30 hover:border-primary/40"
+            }`}
+          >
             <Checkbox
               checked={filters.onlyBaggage}
               onCheckedChange={(v) => onChange({ ...filters, onlyBaggage: v === true })}
             />
-            <Luggage className="h-4 w-4 text-muted-foreground" />
+            <Luggage className={`h-4 w-4 ${filters.onlyBaggage ? "text-primary" : "text-muted-foreground"}`} />
             Bagagem para despachar
           </label>
           <p className="text-[11px] leading-snug text-muted-foreground">
             Ao marcar, a operadora refaz a busca com as tarifas que já incluem bagagem despachada.
           </p>
         </div>
+
 
         <div className="space-y-2">
           <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Paradas</Label>
