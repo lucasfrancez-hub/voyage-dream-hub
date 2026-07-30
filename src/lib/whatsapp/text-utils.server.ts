@@ -43,7 +43,7 @@ export function fixGluedSentences(text: string): string {
     (_m, word: string, after: string) => `${word}.\n\n${after}`,
   );
   // garante espaço depois de vírgula/ponto-e-vírgula colados em letra
-  out = out.replace(/([,;:])(?=[^\s\d])/gu, "$1 ");
+  out = out.replace(/([,;])(?=[^\s\d])/gu, "$1 ");
   return out;
 }
 
