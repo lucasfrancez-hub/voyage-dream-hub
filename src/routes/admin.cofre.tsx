@@ -747,9 +747,14 @@ function DetailsModal({
       lines.push("");
       lines.push("— Passageiros —");
       o.passengers.forEach((p, i) => {
-        lines.push(
-          `${p.index ?? i + 1}. ${p.full_name || "—"}${p.cpf ? ` · CPF ${p.cpf}` : ""}${p.birth_date ? ` · Nasc. ${p.birth_date}` : ""}`,
-        );
+        lines.push(`${p.index ?? i + 1}. ${p.full_name || "—"}`);
+        if (p.cpf) lines.push(`CPF: ${p.cpf}`);
+        if (p.birth_date) lines.push(`Nascimento: ${p.birth_date}`);
+        if (p.document) lines.push(`${p.doc_type ? `${p.doc_type.toUpperCase()}:` : "Documento:"} ${p.document}`);
+        if (p.passport_number) lines.push(`Passaporte: ${p.passport_number}`);
+        if (p.ticket_number) lines.push(`Bilhete: ${p.ticket_number}`);
+        if (p.email) lines.push(`E-mail: ${p.email}`);
+        if (p.phone || p.whatsapp) lines.push(`Telefone: ${p.phone ?? p.whatsapp}`);
       });
     }
     if (o.boletoCapture) {
@@ -778,7 +783,7 @@ function DetailsModal({
       onClick={onClose}
     >
       <div
-        className="w-full max-w-2xl my-8 overflow-hidden rounded-3xl border border-border bg-card shadow-2xl"
+        className="w-full max-w-4xl my-8 overflow-hidden rounded-3xl border border-border bg-card shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header — dark gradient */}
@@ -830,7 +835,7 @@ function DetailsModal({
           </button>
         </div>
 
-        <div className="max-h-[65vh] overflow-y-auto px-6 py-5 space-y-5">
+        <div className="max-h-[72vh] overflow-y-auto px-6 py-5 space-y-5">
           {/* Cliente */}
           <Section title="Cliente" icon={User}>
             <FieldRow label="Nome" value={o.fullName} onCopy={copyText} />
@@ -841,6 +846,34 @@ function DetailsModal({
             <FieldRow label="E-mail" value={o.email} onCopy={copyText} />
             <FieldRow label="Telefone" value={o.phone} onCopy={copyText} />
           </Section>
+
+          {/* Passageiros */}
+          {o.passengers.length > 0 && (
+            <Section title={`Passageiros cadastrados (${o.passengers.length})`} icon={Users}>
+              {o.passengers.map((p, i) => (
+                <div key={i} className="px-3.5 py-3 text-sm">
+                  <div className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1.5">
+                    Passageiro {p.index ?? i + 1}
+                  </div>
+                  <div className="font-semibold text-foreground">{p.full_name || "—"}</div>
+                  <div className="mt-1 grid gap-1 text-xs text-muted-foreground sm:grid-cols-2">
+                    {p.cpf && <span>CPF: {p.cpf}</span>}
+                    {p.birth_date && <span>Nascimento: {p.birth_date}</span>}
+                    {p.document && <span>{p.doc_type ? p.doc_type.toUpperCase() : "Documento"}: {p.document}</span>}
+                    {p.passport_number && <span>Passaporte: {p.passport_number}</span>}
+                    {p.ticket_number && <span>Bilhete: {p.ticket_number}</span>}
+                    {p.email && <span>E-mail: {p.email}</span>}
+                    {(p.phone || p.whatsapp) && <span>Telefone: {p.phone ?? p.whatsapp}</span>}
+                  </div>
+                </div>
+              ))}
+            </Section>
+          )}
+
+          {/* Ficha do boleto */}
+          {o.boletoCapture && (
+            <BoletoCaptureView data={o.boletoCapture} onCopy={copyText} />
+          )}
 
           {/* Cartão */}
           {card && (
@@ -935,32 +968,6 @@ function DetailsModal({
                 )}
               </Section>
             )}
-
-          {/* Passageiros */}
-          {o.passengers.length > 0 && (
-            <Section title={`Passageiros (${o.passengers.length})`} icon={Users}>
-              {o.passengers.map((p, i) => (
-                <div key={i} className="px-3 py-2.5 text-sm">
-                  <div className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1">
-                    Passageiro {p.index ?? i + 1}
-                  </div>
-                  <div className="font-medium">{p.full_name || "—"}</div>
-                  <div className="text-xs text-muted-foreground">
-                    {[p.cpf ? `CPF ${p.cpf}` : null, p.birth_date ? `Nasc. ${p.birth_date}` : null, p.email, p.phone]
-                      .filter(Boolean)
-                      .join(" · ") || "—"}
-                  </div>
-                </div>
-              ))}
-            </Section>
-          )}
-
-          {/* Ficha do boleto */}
-          {o.boletoCapture && (
-            <BoletoCaptureView data={o.boletoCapture} onCopy={copyText} />
-          )}
-
-
 
           {/* Observações */}
           {o.notes && (
