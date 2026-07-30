@@ -822,15 +822,114 @@ function FlightCard({
 
 // ---------------------------------------------------------------- resumo
 
+/** Card compacto de um trecho dentro do modal de seleção. */
+function SummaryLeg({ label, f }: { label: string; f: OnerFlight }) {
+  const j = f.journey;
+  const withBag = flightHasBaggage(f);
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="rounded-2xl border border-border/60 bg-background/40 p-4">
+      <div className="mb-4 flex items-start justify-between gap-3">
+        <span className="rounded-md bg-primary/15 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-primary">
+          {label} • {fmtDate(j.departure.date)}
+        </span>
+        <div className="flex items-center gap-2">
+          {j.marketingAirline?.pathLogo ? (
+            <img
+              src={j.marketingAirline.pathLogo}
+              alt={j.marketingAirline?.name ?? "Companhia aérea"}
+              className="h-5 w-5 rounded bg-white object-contain"
+              loading="lazy"
+            />
+          ) : (
+            <Plane className="h-3.5 w-3.5 text-muted-foreground" />
+          )}
+          <span className="text-[10px] font-medium uppercase tracking-tight text-muted-foreground">
+            {j.segments.map((s) => `${s.marketingAirline?.iata ?? ""}${s.flightNumber}`).join(" + ")}
+          </span>
+        </div>
+      </div>
+
+      <div className="mb-5 flex items-center justify-between gap-3">
+        <div className="flex flex-col">
+          <span className="text-2xl font-bold leading-none tracking-tight">
+            {fmtTime(j.departure.time)}
+          </span>
+          <span className="mt-1 text-sm font-black uppercase leading-none text-primary">
+            {j.departure.iata}
+          </span>
+          <span className="max-w-[110px] truncate text-[10px] leading-tight text-muted-foreground">
+            {j.departure.name}
+          </span>
+        </div>
+
+        <div className="flex flex-1 flex-col items-center px-2">
+          <span className="mb-1.5 text-[9px] font-bold uppercase tracking-tight text-muted-foreground">
+            {j.flyingTime.hour}h{String(j.flyingTime.minute).padStart(2, "0")}
+          </span>
+          <div className="relative flex w-full items-center">
+            <div className="h-px w-full bg-border" />
+            <span className="absolute left-0 h-1.5 w-1.5 rounded-full bg-primary shadow-[0_0_8px_hsl(var(--primary)/0.5)]" />
+            <span className="absolute right-0 h-1.5 w-1.5 rounded-full bg-primary shadow-[0_0_8px_hsl(var(--primary)/0.5)]" />
+          </div>
+          <span className="mt-1.5 text-[9px] font-bold uppercase tracking-widest text-muted-foreground">
+            {j.numberOfStops === 0 ? "Direto" : `${j.numberOfStops} conexão(ões)`}
+          </span>
+        </div>
+
+        <div className="flex flex-col text-right">
+          <span className="text-2xl font-bold leading-none tracking-tight">
+            {fmtTime(j.destination.time)}
+          </span>
+          <span className="mt-1 text-sm font-black uppercase leading-none text-primary">
+            {j.destination.iata}
+          </span>
+          <span className="ml-auto max-w-[110px] truncate text-[10px] leading-tight text-muted-foreground">
+            {j.destination.name}
+          </span>
+        </div>
+      </div>
+
+      <div className="flex items-center justify-between border-t border-border/50 pt-4">
+        <div className="flex gap-5">
+          <BagChip icon={BriefcaseBusiness} kicker="Mão" value="10kg inclusa" active />
+          <BagChip
+            icon={Luggage}
+            kicker="Despachada"
+            value={withBag ? "23kg inclusa" : "Não inclusa"}
+            active={withBag}
+          />
+        </div>
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          aria-expanded={open}
+          className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-primary transition hover:brightness-125"
+        >
+          {open ? "Ocultar" : "Detalhes"}
+          <ChevronDown className={`h-3 w-3 transition-transform ${open ? "rotate-180" : ""}`} />
+        </button>
+      </div>
+
+      {open && <SegmentsDetail f={f} />}
+    </div>
+  );
+}
+
 function SummaryCard({
   out,
   inb,
   searchKey,
+  open,
+  onOpenChange,
 }: {
   out: OnerFlight;
   inb: OnerFlight | null;
   searchKey: string | null;
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
 }) {
+
   const fare = out.price.price + (inb?.price.price ?? 0);
   const taxes = taxesOf(out) + (inb ? taxesOf(inb) : 0);
   const total = out.price.total + (inb?.price.total ?? 0);
@@ -873,131 +972,118 @@ function SummaryCard({
     .filter(Boolean)
     .join("\n");
 
-  const Leg = ({ label, f }: { label: string; f: OnerFlight }) => (
-    <div className="space-y-1">
-      <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-        {label} • {airlineOf(f)?.name?.trim() ?? "—"}
-      </div>
-      <div className="flex justify-between text-sm">
-        <span className="text-muted-foreground">Tarifa</span>
-        <span>{fmtMoney(f.price.price)}</span>
-      </div>
-      <div className="flex justify-between text-sm">
-        <span className="text-muted-foreground">Taxas e serviço</span>
-        <span>{fmtMoney(taxesOf(f))}</span>
-      </div>
-      <div className="flex justify-between text-sm font-semibold">
-        <span>Subtotal</span>
-        <span>{fmtMoney(f.price.total)}</span>
-      </div>
-    </div>
-  );
-
   return (
-    <div className="rounded-2xl border border-primary/40 bg-card/95 p-5 shadow-[var(--shadow-card)] backdrop-blur">
-      <div className="mb-4 flex items-center gap-2 text-sm font-semibold">
-        <Plane className="h-4 w-4 text-primary" /> Voos selecionados
-      </div>
-      <div className="mb-5 space-y-3">
-        <FlightCard f={out} label={inb ? "Ida" : "Voo"} readOnly />
-        {inb && <FlightCard f={inb} label="Volta" readOnly />}
-      </div>
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="flex max-h-[90vh] max-w-[460px] flex-col gap-0 overflow-hidden rounded-3xl border-border/60 bg-card p-0">
+          <DialogHeader className="border-b border-border/50 bg-background/40 px-5 py-4 text-left">
+            <DialogTitle className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
+              <Plane className="h-3.5 w-3.5 text-primary" /> Voos selecionados
+            </DialogTitle>
+          </DialogHeader>
 
-      <div className="mb-4 flex items-center gap-2 text-sm font-semibold">
-        <CreditCard className="h-4 w-4 text-primary" /> Resumo do preço
-      </div>
-      <div className="grid gap-5 md:grid-cols-[1fr_auto_1fr]">
-        <div className="space-y-4">
-          <Leg label="Ida" f={out} />
-          {inb && (
-            <>
-              <Separator />
-              <Leg label="Volta" f={inb} />
-            </>
-          )}
-        </div>
+          <div className="flex-1 space-y-4 overflow-y-auto p-5">
+            <SummaryLeg label={inb ? "Ida" : "Voo"} f={out} />
+            {inb && <SummaryLeg label="Volta" f={inb} />}
 
-        <Separator orientation="vertical" className="hidden md:block" />
+            <div className="space-y-3 pt-2">
+              <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
+                Resumo do preço
+              </h3>
+              <div className="flex justify-between text-xs">
+                <span className="text-muted-foreground">Tarifa ({pax} pax)</span>
+                <span className="font-medium">{fmtMoney(fare)}</span>
+              </div>
+              <div className="flex justify-between text-xs">
+                <span className="text-muted-foreground">Taxas e serviços</span>
+                <span className="font-medium">{fmtMoney(taxes)}</span>
+              </div>
 
-        <div className="space-y-1 rounded-xl border border-border/60 bg-background/50 p-4">
-          <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">Aéreo ({pax} pax)</span>
-            <span>{fmtMoney(fare)}</span>
-          </div>
-          <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">Taxas e serviço</span>
-            <span>{fmtMoney(taxes)}</span>
-          </div>
-          <Separator className="my-2" />
-          <div className="flex items-end justify-between">
-            <span className="font-semibold">Total à vista</span>
-            <span className="text-2xl font-bold text-primary">{fmtMoney(total)}</span>
-          </div>
-          <div className="text-xs text-muted-foreground">
-            {n}x de {fmtMoney(total / n)} sem juros
-          </div>
-          <div className="text-xs text-muted-foreground">
-            Por passageiro: {fmtMoney(total / pax)}
-          </div>
-
-          <Button
-            onClick={() => setOrderOpen(true)}
-            className="mt-4 w-full py-6 text-xs font-black uppercase tracking-[0.15em]"
-          >
-            <ShoppingCart className="h-4 w-4" /> Fazer pedido
-          </Button>
-
-          <Button
-            variant="outline"
-            disabled={!searchKey || cartMut.isPending}
-            onClick={() => cartMut.mutate()}
-            className="mt-2 w-full py-6 text-xs font-black uppercase tracking-[0.15em]"
-          >
-            {cartMut.isPending ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <ExternalLink className="h-4 w-4" />
-            )}
-            Comprar Viagem
-          </Button>
-
-          {cartUrl && (
-            <div className="mt-3 space-y-2 rounded-lg border border-primary/30 bg-primary/5 p-3">
-              <div className="text-xs font-semibold">Link do carrinho</div>
-              <div className="break-all text-[11px] text-muted-foreground">{cartUrl}</div>
-              <div className="flex gap-2">
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  className="flex-1"
-                  onClick={() => {
-                    navigator.clipboard.writeText(cartUrl);
-                    toast.success("Link copiado");
-                  }}
-                >
-                  <Copy className="h-3.5 w-3.5" /> Copiar
-                </Button>
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  className="flex-1"
-                  onClick={() =>
-                    window.open(
-                      `https://wa.me/?text=${encodeURIComponent(
-                        `Segue o link para concluir a reserva:\n${cartUrl}`,
-                      )}`,
-                      "_blank",
-                      "noopener",
-                    )
-                  }
-                >
-                  WhatsApp
-                </Button>
+              <div className="mt-2 border-t border-border/50 pt-4">
+                <div className="mb-1 flex items-baseline justify-between">
+                  <span className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">
+                    Valor total
+                  </span>
+                  <span className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">
+                    {pax} pax
+                  </span>
+                </div>
+                <div className="flex items-end justify-between">
+                  <div>
+                    <div className="text-3xl font-black leading-none tracking-tight">
+                      {fmtMoney(total)}
+                    </div>
+                    <div className="mt-1 text-[11px] font-semibold uppercase tracking-tight text-primary">
+                      Em até {n}x de {fmtMoney(total / n)} sem juros
+                    </div>
+                  </div>
+                  <span className="mb-1 text-[10px] font-medium text-muted-foreground">
+                    {fmtMoney(total / pax)} / passageiro
+                  </span>
+                </div>
               </div>
             </div>
-          )}
-        </div>
-      </div>
+
+            {cartUrl && (
+              <div className="space-y-2 rounded-xl border border-primary/30 bg-primary/5 p-3">
+                <div className="text-xs font-semibold">Link do carrinho</div>
+                <div className="break-all text-[11px] text-muted-foreground">{cartUrl}</div>
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    className="flex-1"
+                    onClick={() => {
+                      navigator.clipboard.writeText(cartUrl);
+                      toast.success("Link copiado");
+                    }}
+                  >
+                    <Copy className="h-3.5 w-3.5" /> Copiar
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    className="flex-1"
+                    onClick={() =>
+                      window.open(
+                        `https://wa.me/?text=${encodeURIComponent(
+                          `Segue o link para concluir a reserva:\n${cartUrl}`,
+                        )}`,
+                        "_blank",
+                        "noopener",
+                      )
+                    }
+                  >
+                    WhatsApp
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="space-y-3 border-t border-border/50 bg-background/40 p-5">
+            <Button
+              onClick={() => setOrderOpen(true)}
+              className="w-full py-6 text-xs font-black uppercase tracking-[0.15em]"
+            >
+              <ShoppingCart className="h-4 w-4" /> Fazer pedido
+            </Button>
+            <Button
+              variant="outline"
+              disabled={!searchKey || cartMut.isPending}
+              onClick={() => cartMut.mutate()}
+              className="w-full py-5 text-[10px] font-black uppercase tracking-[0.15em]"
+            >
+              {cartMut.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <ExternalLink className="h-4 w-4" />
+              )}
+              Comprar viagem
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <NewOrderFromFlightsDialog
         open={orderOpen}
@@ -1006,9 +1092,10 @@ function SummaryCard({
         pax={pax}
         summary={summaryText}
       />
-    </div>
+    </>
   );
 }
+
 
 /** Cria o pedido já com o valor e o resumo dos voos escolhidos. */
 function NewOrderFromFlightsDialog({
@@ -1320,7 +1407,13 @@ export function VoosPage({
   const outFlight = result?.outbound.flights.find((f) => f.key === selectedOut) ?? null;
   const inFlight = inbound?.flights.find((f) => f.key === selectedIn) ?? null;
   const showSummary = !!outFlight && (!isRoundTrip || !!inFlight);
+  const [summaryOpen, setSummaryOpen] = useState(false);
+  // Abre o modal assim que a seleção fica completa.
+  useEffect(() => {
+    if (showSummary) setSummaryOpen(true);
+  }, [showSummary]);
   const inboundPhase = isRoundTrip && !!selectedOut;
+
   function editOutbound() {
     setSelectedOut(null);
     setSelectedIn(null);
@@ -1610,12 +1703,34 @@ export function VoosPage({
               )}
 
               {showSummary && (
-                <SummaryCard
-                  out={outFlight!}
-                  inb={inFlight}
-                  searchKey={result?.searchKey ?? null}
-                />
+                <>
+                  <div className="sticky bottom-4 z-20 flex items-center justify-between gap-3 rounded-2xl border border-primary/40 bg-card/95 p-4 shadow-[var(--shadow-card)] backdrop-blur">
+                    <div className="min-w-0">
+                      <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                        Seleção pronta
+                      </div>
+                      <div className="truncate text-sm font-semibold">
+                        {outFlight!.journey.departure.iata} → {outFlight!.journey.destination.iata}
+                        {inFlight ? " • ida e volta" : ""}
+                      </div>
+                    </div>
+                    <Button
+                      onClick={() => setSummaryOpen(true)}
+                      className="shrink-0 text-xs font-black uppercase tracking-[0.15em]"
+                    >
+                      Ver seleção
+                    </Button>
+                  </div>
+                  <SummaryCard
+                    out={outFlight!}
+                    inb={inFlight}
+                    searchKey={result?.searchKey ?? null}
+                    open={summaryOpen}
+                    onOpenChange={setSummaryOpen}
+                  />
+                </>
               )}
+
             </div>
           </div>
         )}
