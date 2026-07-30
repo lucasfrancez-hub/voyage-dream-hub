@@ -26,6 +26,7 @@ export type OnerFlight = {
     passengerCount: number;
   };
   journey: {
+    key?: string;
     flyingTime: { hour: number; minute: number };
     numberOfStops: number;
     fareClass?: { cabinClass?: string; airlineFareFamily?: string };
