@@ -543,13 +543,33 @@ export function CarrosPage({ header }: { header?: React.ReactNode } = {}) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filtersSig]);
 
-  const cars = result?.cars ?? [];
-  const cheapest = cars.length ? Math.min(...cars.map((c) => c.finalPrice)) : null;
+  const allCars = result?.cars ?? [];
   const categories = useMemo(
-    () => [...new Set(cars.map((c) => c.categoryDescription).filter(Boolean))],
-    [cars],
+    () => [...new Set(allCars.map((c) => c.categoryDescription).filter(Boolean))],
+    [allCars],
   );
-  const vendors = useMemo(() => [...new Set(cars.map((c) => c.vendor.name).filter(Boolean))], [cars]);
+  const vendors = useMemo(
+    () => [...new Set(allCars.map((c) => c.vendor.name).filter(Boolean))],
+    [allCars],
+  );
+  const cars = useMemo(
+    () =>
+      catFilter.length
+        ? allCars.filter((c) => catFilter.includes(c.categoryDescription))
+        : allCars,
+    [allCars, catFilter],
+  );
+  const cheapest = cars.length ? Math.min(...cars.map((c) => c.finalPrice)) : null;
+
+  const activeFilterCount =
+    (filters.startPrice != null ? 1 : 0) +
+    (filters.endPrice != null ? 1 : 0) +
+    (filters.unlimitedMilage != null ? 1 : 0) +
+    (filters.airConditioning != null ? 1 : 0) +
+    filters.availableBagsCount.length +
+    filters.transmissionTypes.length +
+    filters.vendors.length +
+    catFilter.length;
 
   const toggleTransmission = (v: number) =>
     setFilters((f) => ({
@@ -558,6 +578,16 @@ export function CarrosPage({ header }: { header?: React.ReactNode } = {}) {
         ? f.transmissionTypes.filter((x) => x !== v)
         : [...f.transmissionTypes, v],
     }));
+
+  const toggleCategory = (c: string) =>
+    setCatFilter((p) => (p.includes(c) ? p.filter((x) => x !== c) : [...p, c]));
+
+  const toggleVendor = (v: string) =>
+    setFilters((f) => ({
+      ...f,
+      vendors: f.vendors.includes(v) ? f.vendors.filter((x) => x !== v) : [...f.vendors, v],
+    }));
+
 
   return (
     <div className={header ? "" : "min-h-screen bg-background"}>
