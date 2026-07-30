@@ -598,7 +598,26 @@ function FlightCard({
           </div>
         </div>
       </div>
+
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          setOpen((v) => !v);
+        }}
+        aria-expanded={open}
+        className="mt-3 flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+      >
+        <ChevronDown className={`h-3.5 w-3.5 transition-transform ${open ? "rotate-180" : ""}`} />
+        {open
+          ? "Ocultar detalhes"
+          : j.numberOfStops === 0
+            ? "Ver detalhes do voo"
+            : `Ver ${j.numberOfStops} conexão(ões)`}
+      </button>
+      {open && <SegmentsDetail f={f} />}
     </div>
+
   );
 }
 
