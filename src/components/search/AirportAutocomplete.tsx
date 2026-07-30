@@ -35,10 +35,15 @@ export function AirportAutocomplete({
   const [open, setOpen] = useState(false);
   const [highlight, setHighlight] = useState(0);
   const boxRef = useRef<HTMLDivElement>(null);
+  const typingRef = useRef(false);
 
+  // Só espelha o valor externo quando o usuário não está digitando,
+  // senão cada tecla limparia o texto do campo.
   useEffect(() => {
+    if (typingRef.current) return;
     setText(value);
   }, [value]);
+
 
   useEffect(() => {
     const t = setTimeout(() => setDebounced(text.trim()), 250);
