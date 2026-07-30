@@ -562,9 +562,8 @@ export function HoteisPage({
                 <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight">
                   <BedDouble className="h-6 w-6 text-primary" /> Motor de Hotéis
                 </h1>
-                <p className="text-sm text-muted-foreground">
-                  Hospedagens em tempo real na operadora — tarifas por noite, refeições e política de cancelamento.
-                </p>
+                <p className="text-sm text-muted-foreground">Hospedagens em tempo real na operadora.</p>
+
               </>
             )}
           </div>
