@@ -247,6 +247,7 @@ export const onerHotelSearch = createServerFn({ method: "POST" })
       await sleep(2000);
     }
 
+    type RawRate = {
       key?: string;
       name?: string;
       isPackage?: boolean;
@@ -264,7 +265,7 @@ export const onerHotelSearch = createServerFn({ method: "POST" })
       rooms?: Array<{ roomRates?: RawRate[] }>;
     };
 
-    const hotels: OnerHotel[] = (best.hotels as RawHotel[]).map((raw) => {
+    const hotels: OnerHotel[] = ([...acc.values()] as RawHotel[]).map((raw) => {
       const rates: OnerRoomRate[] = (raw.rooms ?? [])
         .flatMap((r) => r.roomRates ?? [])
         .map((rt) => ({
