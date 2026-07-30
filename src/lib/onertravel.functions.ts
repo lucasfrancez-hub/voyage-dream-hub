@@ -386,7 +386,9 @@ export const onerInboundSearch = createServerFn({ method: "POST" })
         adults: z.number().int().min(1).default(1),
         children: z.number().int().min(0).default(0),
         infants: z.number().int().min(0).default(0),
-        pageSize: z.number().int().min(1).max(30).default(30),
+        pageSize: z.number().int().min(1).max(50).default(50),
+        departureIsCity: z.boolean().default(false),
+        arrivalIsCity: z.boolean().default(false),
         filters: OperatorFilters.default(DEFAULT_FILTERS),
       })
       .parse(d),
@@ -400,14 +402,16 @@ export const onerInboundSearch = createServerFn({ method: "POST" })
       adults: data.adults,
       children: data.children,
       infants: data.infants,
+      departureIsCity: data.departureIsCity,
+      arrivalIsCity: data.arrivalIsCity,
     });
 
     return poll("inbound", loc, {
       searchKey: data.searchKey,
       flightKey: data.flightKey,
-      page: 1,
       pageSize: data.pageSize,
       filter: buildFilter(data.filters),
       ordinationEnum: 0,
     });
+
   });
