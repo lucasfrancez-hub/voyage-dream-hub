@@ -36,10 +36,11 @@ export function fixGluedSentences(text: string): string {
     /([a-zà-ÿ0-9)\]"'])([.!?…])([A-ZÀ-Þ])/gu,
     (_m, before: string, punct: string, after: string) => `${before}${punct}\n\n${after}`,
   );
-  // palavra minúscula colada direto numa maiúscula (sem pontuação): "PerfeitoO Fabrício"
+  // interjeição colada na frase seguinte: "PerfeitoO Fabrício" → "Perfeito. O Fabrício".
+  // Só para um conjunto fechado de palavras, pra não quebrar "WhatsApp", "ViaAir" etc.
   out = out.replace(
-    /([a-zà-ÿ]{3,})([A-ZÀ-Þ][a-zà-ÿ]{2,})/gu,
-    (_m, before: string, after: string) => `${before}.\n\n${after}`,
+    /\b(perfeito|certo|combinado|show|beleza|entendi|obrigad[oa]|ótimo|otimo|claro|isso)([A-ZÀ-Þ])/gu,
+    (_m, word: string, after: string) => `${word}.\n\n${after}`,
   );
   // garante espaço depois de vírgula/ponto-e-vírgula colados em letra
   out = out.replace(/([,;:])(?=[^\s\d])/gu, "$1 ");
