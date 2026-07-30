@@ -270,23 +270,40 @@ function VoosTestePage() {
             <h2 className="text-lg font-semibold">
               Ida — {result.outbound.totalFlightsCount} opções
             </h2>
+            {form.returnDate && (
+              <p className="text-sm text-muted-foreground">
+                Selecione um voo de ida para carregar as opções de volta combinadas.
+              </p>
+            )}
             {result.outbound.flights.map((f) => (
-              <FlightCard key={f.key} f={f} />
+              <FlightCard
+                key={f.key}
+                f={f}
+                selectable={!!form.returnDate}
+                selected={selectedOut === f.key}
+                onSelect={() => pickOutbound(f.key)}
+              />
             ))}
             {!result.outbound.flights.length && (
               <p className="text-sm text-muted-foreground">Nada retornado.</p>
             )}
           </section>
 
-          {result.inbound && (
+          {form.returnDate && inboundMut.isPending && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" /> Buscando voos de volta…
+            </div>
+          )}
+
+          {inbound && (
             <section className="space-y-3">
               <h2 className="text-lg font-semibold">
-                Volta — {result.inbound.totalFlightsCount} opções
+                Volta — {inbound.totalFlightsCount} opções
               </h2>
-              {result.inbound.flights.map((f) => (
+              {inbound.flights.map((f) => (
                 <FlightCard key={f.key} f={f} />
               ))}
-              {!result.inbound.flights.length && (
+              {!inbound.flights.length && (
                 <p className="text-sm text-muted-foreground">Nada retornado na volta.</p>
               )}
             </section>
