@@ -3,13 +3,16 @@ import { useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { toast } from "sonner";
-import { Loader2, Plane, Search, ArrowRight } from "lucide-react";
+import { Loader2, Plane, Search, ArrowRight, Luggage, BriefcaseBusiness } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
 import {
   onerFlightSearch,
   onerInboundSearch,
+  flightHasBaggage,
   type OnerFlight,
   type OnerSearchResult,
 } from "@/lib/onertravel.functions";
@@ -41,6 +44,7 @@ function FlightCard({
   onSelect?: () => void;
 }) {
   const j = f.journey;
+  const withBag = flightHasBaggage(f);
   const bag = j.baggagesAllowance?.map((b) => `${b.quantity ?? 1}x ${b.weight ?? ""}${b.unitDescription ?? ""} ${b.typeDescription ?? ""}`.trim());
   return (
     <div
@@ -71,9 +75,17 @@ function FlightCard({
             {j.numberOfStops === 0 ? "Direto" : `${j.numberOfStops} parada(s)`} •{" "}
             {j.marketingAirline?.name?.trim()}
           </div>
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <Badge variant={withBag ? "default" : "secondary"} className="gap-1">
+              {withBag ? <Luggage className="h-3 w-3" /> : <BriefcaseBusiness className="h-3 w-3" />}
+              {withBag ? "Com bagagem despachada" : "Só bagagem de mão"}
+            </Badge>
+            {j.fareClass?.airlineFareFamily && (
+              <Badge variant="outline">{j.fareClass.airlineFareFamily}</Badge>
+            )}
+          </div>
           <div className="mt-1 text-xs text-muted-foreground">
             {j.segments.map((s) => `${s.marketingAirline?.iata ?? ""}${s.flightNumber}`).join(" + ")}
-            {j.fareClass?.airlineFareFamily ? ` • ${j.fareClass.airlineFareFamily}` : ""}
             {bag?.length ? ` • ${bag.join(", ")}` : ""}
           </div>
         </div>
@@ -90,6 +102,7 @@ function FlightCard({
   );
 }
 
+
 function VoosTestePage() {
   const search = useServerFn(onerFlightSearch);
   const searchInbound = useServerFn(onerInboundSearch);
@@ -102,9 +115,11 @@ function VoosTestePage() {
     children: 0,
     infants: 0,
     maxStops: 0,
+    onlyWithBaggage: false,
   });
   const [result, setResult] = useState<OnerSearchResult | null>(null);
   const [selectedOut, setSelectedOut] = useState<string | null>(null);
+  const [selectedIn, setSelectedIn] = useState<string | null>(null);
   const [inbound, setInbound] = useState<{ totalFlightsCount: number; flights: OnerFlight[] } | null>(null);
 
   const mut = useMutation({
@@ -120,13 +135,20 @@ function VoosTestePage() {
           infants: Number(form.infants),
           maxStops: Number(form.maxStops),
           pageSize: 10,
+          onlyWithBaggage: form.onlyWithBaggage,
         },
       }),
     onSuccess: (r) => {
       setResult(r);
       setSelectedOut(null);
+      setSelectedIn(null);
       setInbound(null);
-      if (!r.outbound.flights.length) toast.warning("Nenhum voo retornado para esses parâmetros");
+      if (!r.outbound.flights.length)
+        toast.warning(
+          form.onlyWithBaggage
+            ? "Nenhum voo com bagagem despachada para esses parâmetros"
+            : "Nenhum voo retornado para esses parâmetros",
+        );
       else toast.success(`${r.outbound.totalFlightsCount} voos encontrados`);
     },
     onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Erro na busca"),
@@ -147,6 +169,7 @@ function VoosTestePage() {
           infants: Number(form.infants),
           maxStops: Number(form.maxStops),
           pageSize: 10,
+          onlyWithBaggage: form.onlyWithBaggage,
         },
       }),
     onSuccess: (r) => {
@@ -158,9 +181,16 @@ function VoosTestePage() {
 
   function pickOutbound(key: string) {
     setSelectedOut(key);
+    setSelectedIn(null);
     setInbound(null);
     if (form.returnDate) inboundMut.mutate(key);
   }
+
+  const outFlight = result?.outbound.flights.find((f) => f.key === selectedOut) ?? null;
+  const inFlight = inbound?.flights.find((f) => f.key === selectedIn) ?? null;
+  const combinedTotal =
+    outFlight && inFlight ? outFlight.price.total + inFlight.price.total : null;
+
 
   const canSearch =
     form.departureIata.length === 3 && form.arrivalIata.length === 3 && !!form.departureDate;
@@ -252,6 +282,14 @@ function VoosTestePage() {
           </div>
         </div>
 
+        <label className="mt-4 flex items-center gap-2 text-sm">
+          <Checkbox
+            checked={form.onlyWithBaggage}
+            onCheckedChange={(v) => setForm({ ...form, onlyWithBaggage: v === true })}
+          />
+          Somente tarifas com bagagem despachada (padrão da operadora é Lite, sem bagagem)
+        </label>
+
         <Button className="mt-4" disabled={!canSearch || mut.isPending} onClick={() => mut.mutate()}>
           {mut.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Search className="mr-2 h-4 w-4" />}
           Buscar voos
@@ -300,13 +338,37 @@ function VoosTestePage() {
               <h2 className="text-lg font-semibold">
                 Volta — {inbound.totalFlightsCount} opções
               </h2>
+              <p className="text-sm text-muted-foreground">
+                Selecione a volta para ver o valor final combinado.
+              </p>
               {inbound.flights.map((f) => (
-                <FlightCard key={f.key} f={f} />
+                <FlightCard
+                  key={f.key}
+                  f={f}
+                  selectable
+                  selected={selectedIn === f.key}
+                  onSelect={() => setSelectedIn(f.key)}
+                />
               ))}
               {!inbound.flights.length && (
                 <p className="text-sm text-muted-foreground">Nada retornado na volta.</p>
               )}
             </section>
+          )}
+
+          {combinedTotal !== null && (
+            <div className="sticky bottom-4 rounded-xl border border-primary/40 bg-card p-4 shadow-lg">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="text-sm text-muted-foreground">
+                  Ida {fmtMoney(outFlight!.price.total)} + Volta {fmtMoney(inFlight!.price.total)} •{" "}
+                  {outFlight!.price.passengerCount} pax
+                </div>
+                <div className="text-right">
+                  <div className="text-xs text-muted-foreground">Valor final (ida + volta)</div>
+                  <div className="text-2xl font-bold text-primary">{fmtMoney(combinedTotal)}</div>
+                </div>
+              </div>
+            </div>
           )}
         </div>
       )}
