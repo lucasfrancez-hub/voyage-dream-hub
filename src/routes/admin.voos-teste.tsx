@@ -1735,15 +1735,6 @@ export function VoosPage({
           </div>
         )}
 
-        {!result && !mut.isPending && (
-          <div className="rounded-2xl border border-dashed border-border p-12 text-center">
-            <ArrowRight className="mx-auto mb-3 h-6 w-6 text-muted-foreground" />
-            <p className="text-sm text-muted-foreground">
-              Preencha o motor de busca acima. Os filtros aparecem aqui na lateral depois da
-              pesquisa.
-            </p>
-          </div>
-        )}
       </main>
     </div>
   );
