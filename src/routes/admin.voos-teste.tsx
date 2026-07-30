@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
   Loader2,
@@ -26,6 +26,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Slider } from "@/components/ui/slider";
 import { installmentLabel, maxInstallments } from "@/lib/flight-installments";
 import {
   onerFlightSearch,
@@ -33,6 +34,7 @@ import {
   flightHasBaggage,
   type OnerFlight,
   type OnerSearchResult,
+  type OnerLegResult,
 } from "@/lib/onertravel.functions";
 
 export const Route = createFileRoute("/admin/voos-teste")({
@@ -73,63 +75,73 @@ function airlineOf(f: OnerFlight) {
 
 // ---------------------------------------------------------------- filtros
 
+/**
+ * A operadora só devolve a família tarifária mais barata de cada voo (LIGHT,
+ * sem bagagem). Por isso bagagem, paradas, preço, companhia e horário de
+ * partida são reaplicados NA OPERADORA (nova consulta com a mesma searchKey).
+ * O horário de chegada não existe na API — esse filtramos aqui.
+ */
 type Filters = {
   onlyBaggage: boolean;
-  stops: number[];
-  periods: string[];
+  maxStops: number;
   airlines: string[];
   minPrice: string;
   maxPrice: string;
+  dep: [number, number];
+  arr: [number, number];
 };
+
+const FULL_DAY: [number, number] = [0, 1440];
 
 const EMPTY_FILTERS: Filters = {
   onlyBaggage: false,
-  stops: [],
-  periods: [],
+  maxStops: 2,
   airlines: [],
   minPrice: "",
   maxPrice: "",
+  dep: [...FULL_DAY] as [number, number],
+  arr: [...FULL_DAY] as [number, number],
 };
 
-const PERIODS = [
-  { id: "madrugada", label: "Madrugada", from: 0, to: 5 },
-  { id: "manha", label: "Manhã", from: 6, to: 11 },
-  { id: "tarde", label: "Tarde", from: 12, to: 17 },
-  { id: "noite", label: "Noite", from: 18, to: 23 },
-];
+function fmtMinutes(m: number) {
+  const v = Math.min(m, 1439);
+  return `${String(Math.floor(v / 60)).padStart(2, "0")}:${String(v % 60).padStart(2, "0")}`;
+}
 
+function toOperatorFilters(f: Filters) {
+  const min = Number(f.minPrice.replace(",", "."));
+  const max = Number(f.maxPrice.replace(",", "."));
+  return {
+    containsDispatchBaggage: f.onlyBaggage,
+    maxStops: f.maxStops,
+    startPrice: f.minPrice && !Number.isNaN(min) ? min : null,
+    endPrice: f.maxPrice && !Number.isNaN(max) ? max : null,
+    departureFrom: f.dep[0],
+    departureTo: f.dep[1],
+    airlineIatas: f.airlines,
+    cabinClass: null,
+  };
+}
+
+/** Só o que a operadora não sabe filtrar: janela de chegada. */
 function applyFilters(list: OnerFlight[], f: Filters) {
+  if (f.arr[0] === FULL_DAY[0] && f.arr[1] === FULL_DAY[1]) return list;
   return list.filter((fl) => {
-    if (f.onlyBaggage && !flightHasBaggage(fl)) return false;
-    if (f.stops.length) {
-      const s = fl.journey.numberOfStops;
-      if (!f.stops.includes(s >= 2 ? 2 : s)) return false;
-    }
-    if (f.periods.length) {
-      const h = fl.journey.departure.time.hour;
-      const ok = f.periods.some((id) => {
-        const p = PERIODS.find((x) => x.id === id)!;
-        return h >= p.from && h <= p.to;
-      });
-      if (!ok) return false;
-    }
-    if (f.airlines.length && !f.airlines.includes(airlineOf(fl)?.name?.trim() ?? "")) return false;
-    const min = Number(f.minPrice.replace(",", "."));
-    const max = Number(f.maxPrice.replace(",", "."));
-    if (f.minPrice && !Number.isNaN(min) && fl.price.total < min) return false;
-    if (f.maxPrice && !Number.isNaN(max) && fl.price.total > max) return false;
-    return true;
+    const t = fl.journey.destination.time;
+    const m = t.hour * 60 + t.minute;
+    return m >= f.arr[0] && m <= f.arr[1];
   });
 }
 
 function activeCount(f: Filters) {
   return (
     (f.onlyBaggage ? 1 : 0) +
-    f.stops.length +
-    f.periods.length +
+    (f.maxStops !== 2 ? 1 : 0) +
     f.airlines.length +
     (f.minPrice ? 1 : 0) +
-    (f.maxPrice ? 1 : 0)
+    (f.maxPrice ? 1 : 0) +
+    (f.dep[0] !== 0 || f.dep[1] !== 1440 ? 1 : 0) +
+    (f.arr[0] !== 0 || f.arr[1] !== 1440 ? 1 : 0)
   );
 }
 
@@ -161,29 +173,67 @@ function Chip({
   );
 }
 
+function TimeRange({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: [number, number];
+  onChange: (v: [number, number]) => void;
+}) {
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">{label}</Label>
+        <span className="text-[11px] font-medium text-foreground">
+          {fmtMinutes(value[0])} — {fmtMinutes(value[1])}
+        </span>
+      </div>
+      <Slider
+        min={0}
+        max={1440}
+        step={30}
+        value={value}
+        onValueChange={(v) => onChange([v[0], v[1]] as [number, number])}
+        aria-label={label}
+      />
+      <div className="flex justify-between text-[10px] text-muted-foreground">
+        <span>00:00</span>
+        <span>12:00</span>
+        <span>23:59</span>
+      </div>
+    </div>
+  );
+}
+
 function FiltersPanel({
   title,
   flights,
   filters,
   onChange,
+  loading,
+  priceRange,
 }: {
   title: string;
   flights: OnerFlight[];
   filters: Filters;
   onChange: (f: Filters) => void;
+  loading?: boolean;
+  priceRange?: { minPrice: number; maxPrice: number } | null;
 }) {
   const airlines = useMemo(() => {
-    const set = new Set<string>();
+    const map = new Map<string, string>();
     flights.forEach((f) => {
-      const n = airlineOf(f)?.name?.trim();
-      if (n) set.add(n);
+      const a = airlineOf(f);
+      if (a?.iata) map.set(a.iata, a.name?.trim() || a.iata);
     });
-    return [...set].sort();
+    return [...map.entries()].sort((a, b) => a[1].localeCompare(b[1]));
   }, [flights]);
 
   const prices = flights.map((f) => f.price.total);
-  const lo = prices.length ? Math.min(...prices) : 0;
-  const hi = prices.length ? Math.max(...prices) : 0;
+  const lo = priceRange?.minPrice ?? (prices.length ? Math.min(...prices) : 0);
+  const hi = priceRange?.maxPrice ?? (prices.length ? Math.max(...prices) : 0);
   const n = activeCount(filters);
 
   return (
@@ -193,6 +243,7 @@ function FiltersPanel({
           <SlidersHorizontal className="h-4 w-4 text-primary" />
           {title}
           {n > 0 && <Badge variant="secondary">{n}</Badge>}
+          {loading && <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />}
         </div>
         {n > 0 && (
           <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={() => onChange(EMPTY_FILTERS)}>
@@ -201,7 +252,7 @@ function FiltersPanel({
         )}
       </header>
 
-      <div className="space-y-5">
+      <div className={`space-y-5 ${loading ? "pointer-events-none opacity-60" : ""}`}>
         <div className="space-y-2">
           <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Bagagem</Label>
           <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-border/60 bg-background/40 px-3 py-2 text-sm">
@@ -212,6 +263,9 @@ function FiltersPanel({
             <Luggage className="h-4 w-4 text-muted-foreground" />
             Bagagem para despachar
           </label>
+          <p className="text-[11px] leading-snug text-muted-foreground">
+            Ao marcar, a operadora refaz a busca com as tarifas que já incluem bagagem despachada.
+          </p>
         </div>
 
         <div className="space-y-2">
@@ -219,13 +273,13 @@ function FiltersPanel({
           <div className="flex flex-wrap gap-2">
             {[
               { v: 0, l: "Direto" },
-              { v: 1, l: "1 parada" },
-              { v: 2, l: "2 ou mais" },
+              { v: 1, l: "Até 1 parada" },
+              { v: 2, l: "Todos" },
             ].map((o) => (
               <Chip
                 key={o.v}
-                active={filters.stops.includes(o.v)}
-                onClick={() => onChange({ ...filters, stops: toggle(filters.stops, o.v) })}
+                active={filters.maxStops === o.v}
+                onClick={() => onChange({ ...filters, maxStops: o.v })}
               >
                 {o.l}
               </Chip>
@@ -233,20 +287,17 @@ function FiltersPanel({
           </div>
         </div>
 
-        <div className="space-y-2">
-          <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Horário de partida</Label>
-          <div className="flex flex-wrap gap-2">
-            {PERIODS.map((p) => (
-              <Chip
-                key={p.id}
-                active={filters.periods.includes(p.id)}
-                onClick={() => onChange({ ...filters, periods: toggle(filters.periods, p.id) })}
-              >
-                {p.label}
-              </Chip>
-            ))}
-          </div>
-        </div>
+        <TimeRange
+          label="Horário de partida"
+          value={filters.dep}
+          onChange={(dep) => onChange({ ...filters, dep })}
+        />
+
+        <TimeRange
+          label="Horário de chegada"
+          value={filters.arr}
+          onChange={(arr) => onChange({ ...filters, arr })}
+        />
 
         <div className="space-y-2">
           <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Preço total</Label>
@@ -275,13 +326,13 @@ function FiltersPanel({
           <div className="space-y-2">
             <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Companhia aérea</Label>
             <div className="flex flex-wrap gap-2">
-              {airlines.map((a) => (
+              {airlines.map(([iata, name]) => (
                 <Chip
-                  key={a}
-                  active={filters.airlines.includes(a)}
-                  onClick={() => onChange({ ...filters, airlines: toggle(filters.airlines, a) })}
+                  key={iata}
+                  active={filters.airlines.includes(iata)}
+                  onClick={() => onChange({ ...filters, airlines: toggle(filters.airlines, iata) })}
                 >
-                  {a}
+                  {name}
                 </Chip>
               ))}
             </div>
