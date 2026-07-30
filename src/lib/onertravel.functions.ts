@@ -272,7 +272,7 @@ export const onerFlightSearch = createServerFn({ method: "POST" })
     // A volta só existe depois que uma opção de ida é escolhida (a operadora
     // combina as tarifas). Aqui devolvemos apenas a ida; o cliente chama
     // `onerInboundSearch` com a chave do voo de ida selecionado.
-    const outbound = await poll("outbound", loc, filterBody);
+    const outbound = await poll("outbound", loc, filterBody, data.onlyWithBaggage);
 
     return { searchKey, outbound, inbound: null };
   });
