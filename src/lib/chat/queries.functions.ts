@@ -682,14 +682,12 @@ export const setAiInstruction = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const text = data.instruction?.trim() || null;
-    const patch: Record<string, unknown> = {
+    const patch = {
       ai_instruction: text,
       ai_instruction_at: text ? new Date().toISOString() : null,
       ai_instruction_by: text ? context.userId : null,
+      ...(text && data.respond_now ? { ai_debounce_until: new Date().toISOString() } : {}),
     };
-    if (text && data.respond_now) {
-      patch.ai_debounce_until = new Date().toISOString();
-    }
     const { error } = await context.supabase
       .from("wa_conversations")
       .update(patch)
