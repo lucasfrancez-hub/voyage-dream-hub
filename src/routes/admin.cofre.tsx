@@ -1105,3 +1105,125 @@ function StatusBadge({ status }: { status: string }) {
     </span>
   );
 }
+
+const BOLETO_GROUPS: Array<{
+  title: string;
+  icon: React.ComponentType<{ className?: string }>;
+  fields: Array<[string, string]>;
+}> = [
+  {
+    title: "Financiador — dados pessoais",
+    icon: User,
+    fields: [
+      ["relationship", "Vínculo com o viajante"],
+      ["full_name", "Nome completo"],
+      ["cpf", "CPF"],
+      ["birth_date", "Data de nascimento"],
+      ["rg", "RG"],
+      ["rg_issuer", "Órgão emissor"],
+      ["rg_issue_date", "Emissão do RG"],
+      ["birth_city", "Cidade de nascimento"],
+      ["marital_status", "Estado civil"],
+      ["mother_name", "Nome da mãe"],
+    ],
+  },
+  {
+    title: "Endereço residencial",
+    icon: MapPin,
+    fields: [
+      ["zip", "CEP"],
+      ["address", "Endereço"],
+      ["address_number", "Número"],
+      ["city", "Cidade"],
+      ["state", "Estado"],
+    ],
+  },
+  {
+    title: "Profissão e renda",
+    icon: Briefcase,
+    fields: [
+      ["profession", "Profissão"],
+      ["income", "Renda mensal"],
+      ["employer_name", "Empresa"],
+      ["employed_since", "Empregado desde"],
+    ],
+  },
+  {
+    title: "Referência bancária",
+    icon: Landmark,
+    fields: [
+      ["bank_name", "Banco"],
+      ["bank_agency", "Agência"],
+      ["bank_account", "Conta"],
+      ["bank_client_since", "Cliente desde"],
+    ],
+  },
+];
+
+function BoletoCaptureView({
+  data,
+  onCopy,
+}: {
+  data: Record<string, string | null | undefined>;
+  onCopy: (label: string, value: string) => void;
+}) {
+  const docs: Array<[string, string]> = [];
+  if (data.passenger_doc_path)
+    docs.push([data.passenger_doc_path, data.passenger_doc_name || "Documento do viajante"]);
+  if (data.financier_doc_path)
+    docs.push([data.financier_doc_path, data.financier_doc_name || "Documento do financiador"]);
+
+  return (
+    <>
+      {BOLETO_GROUPS.map((g) => {
+        const rows = g.fields.filter(([k]) => (data[k] ?? "").toString().trim());
+        if (rows.length === 0) return null;
+        return (
+          <Section key={g.title} title={g.title} icon={g.icon}>
+            {rows.map(([k, label]) => (
+              <FieldRow key={k} label={label} value={String(data[k])} onCopy={onCopy} />
+            ))}
+          </Section>
+        );
+      })}
+      {docs.length > 0 && (
+        <Section title="Documentos enviados" icon={Paperclip}>
+          {docs.map(([path, name]) => (
+            <BoletoDocRow key={path} path={path} name={name} />
+          ))}
+        </Section>
+      )}
+    </>
+  );
+}
+
+function BoletoDocRow({ path, name }: { path: string; name: string }) {
+  const [loading, setLoading] = useState(false);
+  const getUrl = useServerFn(getBoletoDocumentUrl);
+
+  async function open() {
+    setLoading(true);
+    try {
+      const { url } = await getUrl({ data: { path } });
+      window.open(url, "_blank", "noopener,noreferrer");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erro ao abrir documento.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="flex items-center justify-between gap-3 px-3 py-2.5">
+      <span className="truncate text-sm">{name}</span>
+      <button
+        type="button"
+        onClick={open}
+        disabled={loading}
+        className="shrink-0 inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1 text-xs hover:border-brand-orange transition disabled:opacity-50"
+      >
+        <ExternalLink className="h-3.5 w-3.5" /> {loading ? "Abrindo…" : "Abrir"}
+      </button>
+    </div>
+  );
+}
