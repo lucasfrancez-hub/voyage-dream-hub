@@ -23,6 +23,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { DateRangeField } from "@/components/search/DateRangeField";
 import { onerCarLocations, onerCarSearch } from "@/lib/onertravel-cars.functions";
 import type {
   OnerCar,
@@ -509,44 +510,30 @@ export function CarrosPage({ header }: { header?: React.ReactNode } = {}) {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <Label className="flex items-center gap-1 text-[11px] uppercase tracking-wide text-muted-foreground">
-                    <CalendarDays className="h-3 w-3" /> Retirada
-                  </Label>
-                  <div className="flex gap-2">
-                    <Input
-                      className="h-11"
-                      type="date"
-                      value={form.pickupDate}
-                      onChange={(e) => setForm({ ...form, pickupDate: e.target.value })}
-                    />
-                    <Input
-                      className="h-11 w-24"
-                      type="time"
-                      value={form.pickupTime}
-                      onChange={(e) => setForm({ ...form, pickupTime: e.target.value })}
-                    />
-                  </div>
-                </div>
-                <div className="space-y-1">
-                  <Label className="flex items-center gap-1 text-[11px] uppercase tracking-wide text-muted-foreground">
-                    <CalendarDays className="h-3 w-3" /> Devolução
-                  </Label>
-                  <div className="flex gap-2">
-                    <Input
-                      className="h-11"
-                      type="date"
-                      value={form.returnDate}
-                      onChange={(e) => setForm({ ...form, returnDate: e.target.value })}
-                    />
-                    <Input
-                      className="h-11 w-24"
-                      type="time"
-                      value={form.returnTime}
-                      onChange={(e) => setForm({ ...form, returnTime: e.target.value })}
-                    />
-                  </div>
+              <div className="space-y-1">
+                <Label className="flex items-center gap-1 text-[11px] uppercase tracking-wide text-muted-foreground">
+                  <CalendarDays className="h-3 w-3" /> Retirada e devolução
+                </Label>
+                <DateRangeField
+                  departureDate={form.pickupDate}
+                  returnDate={form.returnDate}
+                  allowOneWay={false}
+                  labels={{ start: "Retirada", end: "Devolução" }}
+                  onChange={(pickupDate, returnDate) => setForm({ ...form, pickupDate, returnDate })}
+                />
+                <div className="flex gap-2 pt-1">
+                  <Input
+                    className="h-9"
+                    type="time"
+                    value={form.pickupTime}
+                    onChange={(e) => setForm({ ...form, pickupTime: e.target.value })}
+                  />
+                  <Input
+                    className="h-9"
+                    type="time"
+                    value={form.returnTime}
+                    onChange={(e) => setForm({ ...form, returnTime: e.target.value })}
+                  />
                 </div>
               </div>
 
