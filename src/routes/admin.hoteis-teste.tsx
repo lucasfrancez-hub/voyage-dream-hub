@@ -25,6 +25,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
+import { DestinationAutocomplete } from "@/components/search/DestinationAutocomplete";
 import {
   onerHotelDestinations,
   onerHotelSearch,
@@ -442,14 +443,6 @@ export function HoteisPage({
     sortingCode: "",
   });
 
-  const destMut = useMutation({
-    mutationFn: () => searchDest({ data: { query: destQuery.trim() } }),
-    onSuccess: (r) => {
-      setOptions(r);
-      if (!r.length) toast.warning("Nenhum destino encontrado");
-    },
-    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Erro ao buscar destino"),
-  });
 
   const mut = useMutation({
     mutationFn: () => searchHotels({ data: buildPayload(1) }),
@@ -570,52 +563,22 @@ export function HoteisPage({
 
           <div className="rounded-[32px] border border-border/50 bg-card/60 p-6 shadow-2xl backdrop-blur-xl">
             <div className="grid gap-3 lg:grid-cols-[1.4fr_1fr_auto]">
-              <div className="space-y-1">
-                <Label className="flex items-center gap-1 text-[11px] uppercase tracking-wide text-muted-foreground">
-                  <MapPin className="h-3 w-3" /> Destino
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2 px-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                  <MapPin className="h-3 w-3 text-primary" /> Destino
                 </Label>
-                <div className="flex gap-2">
-                  <Input
-                    className="h-11"
-                    placeholder="Cidade ou ponto de interesse"
-                    value={point ? `${point.name}${point.description ? ` — ${point.description}` : ""}` : destQuery}
-                    onChange={(e) => {
-                      setPoint(null);
-                      setDestQuery(e.target.value);
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" && destQuery.trim().length >= 3) destMut.mutate();
-                    }}
-                  />
-                  <Button
-                    variant="outline"
-                    className="h-11"
-                    disabled={destQuery.trim().length < 3 || destMut.isPending}
-                    onClick={() => destMut.mutate()}
-                  >
-                    {destMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-                  </Button>
-                </div>
-                {!point && options.length > 0 && (
-                  <div className="mt-1 max-h-44 overflow-auto rounded-xl border border-border/70 bg-popover p-1">
-                    {options.map((o) => (
-                      <button
-                        key={`${o.type}-${o.id}`}
-                        type="button"
-                        onClick={() => {
-                          setPoint(o);
-                          setOptions([]);
-                        }}
-                        className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm hover:bg-muted"
-                      >
-                        <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
-                        <span className="font-medium">{o.name}</span>
-                        <span className="text-xs text-muted-foreground">{o.description}</span>
-                      </button>
-                    ))}
-                  </div>
-                )}
+                <DestinationAutocomplete
+                  point={point}
+                  onSelect={(p) => {
+                    setPoint(p);
+                    setOptions([]);
+                    setDestQuery(p?.name ?? "");
+                  }}
+                  placeholder="Cidade, região ou nome do hotel"
+                  className="h-12 rounded-xl border-border/40 bg-muted/40 px-4 text-base font-semibold transition-all focus-visible:ring-2 focus-visible:ring-primary/50"
+                />
               </div>
+
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">

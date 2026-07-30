@@ -41,6 +41,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Slider } from "@/components/ui/slider";
+import { AirportAutocomplete } from "@/components/search/AirportAutocomplete";
 import { installmentLabel, maxInstallments } from "@/lib/flight-installments";
 import {
   onerFlightSearch,
@@ -269,83 +270,101 @@ function FiltersPanel({
   const n = activeCount(filters);
 
   return (
-    <section className="rounded-2xl border border-border/70 bg-card/80 p-4 backdrop-blur">
-      <header className="mb-4 flex items-center justify-between">
-        <div className="flex items-center gap-2 text-sm font-semibold">
-          <SlidersHorizontal className="h-4 w-4 text-primary" />
-          {title}
+    <section className="overflow-hidden rounded-3xl border border-border/50 bg-card/60 shadow-2xl backdrop-blur-xl">
+      <header className="flex items-center justify-between gap-2 border-b border-border/40 bg-muted/20 px-4 py-3">
+        <div className="flex min-w-0 items-center gap-2 text-sm font-semibold">
+          <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-primary/15">
+            <SlidersHorizontal className="h-3.5 w-3.5 text-primary" />
+          </span>
+          <span className="truncate">{title}</span>
           {n > 0 && <Badge variant="secondary">{n}</Badge>}
           {loading && <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />}
         </div>
         {n > 0 && (
-          <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={() => onChange(EMPTY_FILTERS)}>
+          <Button variant="ghost" size="sm" className="h-7 shrink-0 px-2 text-xs" onClick={() => onChange(EMPTY_FILTERS)}>
             <RotateCcw className="mr-1 h-3 w-3" /> Limpar
           </Button>
         )}
       </header>
 
-      <div className={`space-y-5 ${loading ? "pointer-events-none opacity-60" : ""}`}>
-        <div className="space-y-2">
-          <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Bagagem</Label>
-          <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-border/60 bg-background/40 px-3 py-2 text-sm">
+      <div className={`divide-y divide-border/40 ${loading ? "pointer-events-none opacity-60" : ""}`}>
+        <div className="space-y-2 p-4">
+          <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Bagagem</Label>
+          <label
+            className={`flex cursor-pointer items-center gap-2.5 rounded-xl border px-3 py-2.5 text-sm transition ${
+              filters.onlyBaggage
+                ? "border-primary/60 bg-primary/10 text-foreground"
+                : "border-border/50 bg-muted/30 hover:border-primary/40"
+            }`}
+          >
             <Checkbox
               checked={filters.onlyBaggage}
               onCheckedChange={(v) => onChange({ ...filters, onlyBaggage: v === true })}
             />
-            <Luggage className="h-4 w-4 text-muted-foreground" />
+            <Luggage className={`h-4 w-4 ${filters.onlyBaggage ? "text-primary" : "text-muted-foreground"}`} />
             Bagagem para despachar
           </label>
           <p className="text-[11px] leading-snug text-muted-foreground">
             Ao marcar, a operadora refaz a busca com as tarifas que já incluem bagagem despachada.
           </p>
         </div>
-
-        <div className="space-y-2">
-          <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Paradas</Label>
-          <div className="flex flex-wrap gap-2">
+        <div className="space-y-2 p-4">
+          <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Paradas</Label>
+          <div className="grid grid-cols-3 gap-1.5 rounded-xl bg-muted/30 p-1">
             {[
               { v: 0, l: "Direto" },
-              { v: 1, l: "Até 1 parada" },
+              { v: 1, l: "Até 1" },
               { v: 2, l: "Todos" },
             ].map((o) => (
-              <Chip
+              <button
                 key={o.v}
-                active={filters.maxStops === o.v}
+                type="button"
                 onClick={() => onChange({ ...filters, maxStops: o.v })}
+                className={`rounded-lg px-2 py-1.5 text-xs font-semibold transition ${
+                  filters.maxStops === o.v
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
               >
                 {o.l}
-              </Chip>
+              </button>
             ))}
           </div>
         </div>
 
-        <TimeRange
-          label="Horário de partida"
-          value={filters.dep}
-          onChange={(dep) => onChange({ ...filters, dep })}
-        />
+        <div className="space-y-5 p-4">
+          <TimeRange
+            label="Horário de partida"
+            value={filters.dep}
+            onChange={(dep) => onChange({ ...filters, dep })}
+          />
 
-        <TimeRange
-          label="Horário de chegada"
-          value={filters.arr}
-          onChange={(arr) => onChange({ ...filters, arr })}
-        />
+          <TimeRange
+            label="Horário de chegada"
+            value={filters.arr}
+            onChange={(arr) => onChange({ ...filters, arr })}
+          />
+        </div>
 
-        <div className="space-y-2">
-          <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Preço total</Label>
-          <div className="text-xs text-muted-foreground">
-            {fmtMoney(lo)} — {fmtMoney(hi)}
+        <div className="space-y-2 p-4">
+          <div className="flex items-center justify-between">
+            <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+              Preço total
+            </Label>
+            <span className="text-[11px] font-medium text-foreground">
+              {fmtMoney(lo)} — {fmtMoney(hi)}
+            </span>
           </div>
           <div className="flex gap-2">
             <Input
-              className="h-9"
+              className="h-9 rounded-lg border-border/50 bg-muted/30"
               placeholder="De"
               inputMode="decimal"
               value={filters.minPrice}
               onChange={(e) => onChange({ ...filters, minPrice: e.target.value })}
             />
             <Input
-              className="h-9"
+              className="h-9 rounded-lg border-border/50 bg-muted/30"
               placeholder="Até"
               inputMode="decimal"
               value={filters.maxPrice}
@@ -355,8 +374,10 @@ function FiltersPanel({
         </div>
 
         {airlines.length > 0 && (
-          <div className="space-y-2">
-            <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Companhia aérea</Label>
+          <div className="space-y-2 p-4">
+            <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+              Companhia aérea
+            </Label>
             <div className="flex flex-wrap gap-2">
               {airlines.map(([iata, name]) => (
                 <Chip
@@ -370,6 +391,7 @@ function FiltersPanel({
             </div>
           </div>
         )}
+
       </div>
     </section>
   );
@@ -1128,12 +1150,12 @@ export function VoosPage({
                 <Label className="flex items-center gap-2 px-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
                   <MapPin className="h-3 w-3 text-primary" /> Origem
                 </Label>
-                <Input
-                  className="h-12 rounded-xl border-border/40 bg-muted/40 px-4 text-base font-semibold uppercase transition-all focus-visible:ring-2 focus-visible:ring-primary/50"
+                <AirportAutocomplete
                   value={form.departureIata}
-                  maxLength={3}
-                  onChange={(e) => setForm({ ...form, departureIata: e.target.value.toUpperCase() })}
-                  placeholder="CWB"
+                  isDeparture
+                  placeholder="Cidade ou IATA (ex.: Curitiba / CWB)"
+                  className="h-12 rounded-xl border-border/40 bg-muted/40 px-4 text-base font-semibold uppercase transition-all focus-visible:ring-2 focus-visible:ring-primary/50"
+                  onSelect={(iata) => setForm({ ...form, departureIata: iata })}
                 />
               </div>
 
@@ -1141,14 +1163,15 @@ export function VoosPage({
                 <Label className="flex items-center gap-2 px-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
                   <ArrowLeftRight className="h-3 w-3 text-primary" /> Destino
                 </Label>
-                <Input
-                  className="h-12 rounded-xl border-border/40 bg-muted/40 px-4 text-base font-semibold uppercase transition-all focus-visible:ring-2 focus-visible:ring-primary/50"
+                <AirportAutocomplete
                   value={form.arrivalIata}
-                  maxLength={3}
-                  onChange={(e) => setForm({ ...form, arrivalIata: e.target.value.toUpperCase() })}
-                  placeholder="GRU"
+                  isDeparture={false}
+                  placeholder="Cidade ou IATA (ex.: São Paulo / GRU)"
+                  className="h-12 rounded-xl border-border/40 bg-muted/40 px-4 text-base font-semibold uppercase transition-all focus-visible:ring-2 focus-visible:ring-primary/50"
+                  onSelect={(iata) => setForm({ ...form, arrivalIata: iata })}
                 />
               </div>
+
 
               <div className="col-span-12 space-y-2 md:col-span-2">
                 <Label className="flex items-center gap-2 px-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
