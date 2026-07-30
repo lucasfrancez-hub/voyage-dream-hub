@@ -3,13 +3,16 @@ import { useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { toast } from "sonner";
-import { Loader2, Plane, Search, ArrowRight } from "lucide-react";
+import { Loader2, Plane, Search, ArrowRight, Luggage, BriefcaseBusiness } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
 import {
   onerFlightSearch,
   onerInboundSearch,
+  flightHasBaggage,
   type OnerFlight,
   type OnerSearchResult,
 } from "@/lib/onertravel.functions";
@@ -41,6 +44,7 @@ function FlightCard({
   onSelect?: () => void;
 }) {
   const j = f.journey;
+  const withBag = flightHasBaggage(f);
   const bag = j.baggagesAllowance?.map((b) => `${b.quantity ?? 1}x ${b.weight ?? ""}${b.unitDescription ?? ""} ${b.typeDescription ?? ""}`.trim());
   return (
     <div
@@ -71,9 +75,17 @@ function FlightCard({
             {j.numberOfStops === 0 ? "Direto" : `${j.numberOfStops} parada(s)`} •{" "}
             {j.marketingAirline?.name?.trim()}
           </div>
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <Badge variant={withBag ? "default" : "secondary"} className="gap-1">
+              {withBag ? <Luggage className="h-3 w-3" /> : <BriefcaseBusiness className="h-3 w-3" />}
+              {withBag ? "Com bagagem despachada" : "Só bagagem de mão"}
+            </Badge>
+            {j.fareClass?.airlineFareFamily && (
+              <Badge variant="outline">{j.fareClass.airlineFareFamily}</Badge>
+            )}
+          </div>
           <div className="mt-1 text-xs text-muted-foreground">
             {j.segments.map((s) => `${s.marketingAirline?.iata ?? ""}${s.flightNumber}`).join(" + ")}
-            {j.fareClass?.airlineFareFamily ? ` • ${j.fareClass.airlineFareFamily}` : ""}
             {bag?.length ? ` • ${bag.join(", ")}` : ""}
           </div>
         </div>
@@ -89,6 +101,7 @@ function FlightCard({
     </div>
   );
 }
+
 
 function VoosTestePage() {
   const search = useServerFn(onerFlightSearch);
