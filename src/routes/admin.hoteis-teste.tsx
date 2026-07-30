@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
   Loader2,
@@ -385,7 +385,26 @@ function HotelCard({
 
 // ---------------------------------------------------------------- página
 
-export function HoteisPage({ header }: { header?: React.ReactNode } = {}) {
+export type HotelPreset = {
+  destination: string;
+  checkIn: string;
+  checkOut: string;
+  adults: number;
+  children: number;
+  rooms: number;
+};
+
+export function HoteisPage({
+  header,
+  hideForm,
+  preset,
+  runToken,
+}: {
+  header?: React.ReactNode;
+  hideForm?: boolean;
+  preset?: HotelPreset;
+  runToken?: number;
+} = {}) {
   const searchDest = useServerFn(onerHotelDestinations);
   const searchHotels = useServerFn(onerHotelSearch);
 
@@ -396,6 +415,8 @@ export function HoteisPage({ header }: { header?: React.ReactNode } = {}) {
   const [result, setResult] = useState<OnerHotelSearchResult | null>(null);
   const [filters, setFilters] = useState<Filters>(EMPTY);
   const [selected, setSelected] = useState<{ hotelId: number; rateKey: string } | null>(null);
+  const [pendingRun, setPendingRun] = useState(0);
+
 
   const destMut = useMutation({
     mutationFn: () => searchDest({ data: { query: destQuery.trim() } }),
@@ -455,8 +476,52 @@ export function HoteisPage({ header }: { header?: React.ReactNode } = {}) {
 
   const canSearch = !!point && !!form.checkIn && !!form.checkOut && nights > 0;
 
+  // Motor único: recebe os parâmetros do formulário compartilhado e dispara a busca.
+  useEffect(() => {
+    if (!preset || !runToken) return;
+    let alive = true;
+    setForm((f) => ({
+      ...f,
+      checkIn: preset.checkIn,
+      checkOut: preset.checkOut,
+      adults: preset.adults,
+      children: preset.children,
+      rooms: preset.rooms,
+    }));
+    (async () => {
+      try {
+        const r = await searchDest({ data: { query: preset.destination.trim() } });
+        if (!alive) return;
+        if (!r.length) {
+          toast.warning("Nenhum destino de hospedagem encontrado");
+          return;
+        }
+        setPoint(r[0]);
+        setOptions([]);
+        setPendingRun(runToken);
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : "Erro ao buscar destino");
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [runToken]);
+
+  useEffect(() => {
+    if (!pendingRun) return;
+    if (canSearch) {
+      setPendingRun(0);
+      mut.mutate();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingRun, canSearch]);
+
+
   return (
     <div className={header ? "" : "min-h-screen bg-background"}>
+      {!hideForm && (
       <header className="relative overflow-hidden border-b border-border/60">
         <div
           className="absolute inset-0 opacity-60"
@@ -594,6 +659,8 @@ export function HoteisPage({ header }: { header?: React.ReactNode } = {}) {
           </div>
         </div>
       </header>
+      )}
+
 
       <main className="mx-auto max-w-7xl px-4 py-6">
         {mut.isPending && (
