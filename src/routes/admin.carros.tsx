@@ -1075,7 +1075,11 @@ export function CarrosPage({ header }: { header?: React.ReactNode } = {}) {
                   car={c}
                   cheapest={c.finalPrice === cheapest}
                   selected={selected === c.carKey}
-                  onSelect={() => setSelected(c.carKey)}
+                  onSelect={() => {
+                    setSelected(c.carKey);
+                    setSummaryOpen(true);
+                  }}
+
                   onDetails={() => setDetails(c)}
                 />
               ))}
