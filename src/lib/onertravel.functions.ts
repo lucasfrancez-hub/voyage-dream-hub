@@ -169,23 +169,36 @@ async function poll(
   loc: string,
   body: Record<string, unknown>,
 ) {
-  for (let i = 0; i < 12; i++) {
+  // A operadora agrega resultados de vários fornecedores; o total cresce a cada
+  // consulta. Continuamos consultando até estabilizar (ou esgotar o tempo).
+  let best = { totalFlightsCount: 0, flights: [] as OnerFlight[] };
+  let stableRounds = 0;
+  for (let i = 0; i < 20; i++) {
     const res = await fetch(`${SERVERLESS}/api/flight/v1/search/${path}`, {
+      // header `searchkey` NÃO deve ser enviado — o site não envia e a API
+      // devolve lista vazia quando ele está presente.
       method: "POST",
-      headers: { ...headers(loc), searchkey: searchKey },
+      headers: headers(loc),
       body: JSON.stringify(body),
     });
     const text = await res.text();
-    if (res.ok && text.trim().length > 40) {
+    if (res.ok) {
       try {
-        return JSON.parse(text) as { totalFlightsCount: number; flights: OnerFlight[] };
+        const json = JSON.parse(text) as { totalFlightsCount: number; flights: OnerFlight[] };
+        if ((json.totalFlightsCount ?? 0) > best.totalFlightsCount) {
+          best = json;
+          stableRounds = 0;
+        } else if (best.totalFlightsCount > 0) {
+          stableRounds++;
+          if (stableRounds >= 3) return best;
+        }
       } catch {
         /* continua */
       }
     }
-    await sleep(2500);
+    await sleep(2000);
   }
-  return { totalFlightsCount: 0, flights: [] as OnerFlight[] };
+  return best;
 }
 
 export const onerFlightSearch = createServerFn({ method: "POST" })
@@ -207,7 +220,8 @@ export const onerFlightSearch = createServerFn({ method: "POST" })
       headers: headers(loc),
       body: JSON.stringify({
         departureDate: `${data.departureDate}T00:00:00.000Z`,
-        returnDate: data.returnDate ? `${data.returnDate}T00:00:00.000Z` : null,
+        // só inclui returnDate em ida-e-volta; enviar null quebra a busca
+        ...(data.returnDate ? { returnDate: `${data.returnDate}T00:00:00.000Z` } : {}),
         departureStation: data.departureIata.toUpperCase(),
         arrivalStation: data.arrivalIata.toUpperCase(),
         paxAdtCount: data.adults,
