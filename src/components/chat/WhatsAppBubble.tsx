@@ -31,7 +31,7 @@ interface Props {
   content: unknown;
   timestamp: string; // ISO
   senderLabel?: string; // qualquer nome (completo ou não) — o balão extrai o primeiro
-  status?: "sent" | "delivered" | "read";
+  status?: "sent" | "delivered" | "read" | "failed";
   deleted?: boolean;
   /** Marca visual "respondida" — aparece uma setinha ↩ ao lado do horário */
   replied?: boolean;
