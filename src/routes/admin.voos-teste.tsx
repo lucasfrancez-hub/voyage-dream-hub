@@ -7,7 +7,12 @@ import { Loader2, Plane, Search, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { onerFlightSearch, type OnerFlight, type OnerSearchResult } from "@/lib/onertravel.functions";
+import {
+  onerFlightSearch,
+  onerInboundSearch,
+  type OnerFlight,
+  type OnerSearchResult,
+} from "@/lib/onertravel.functions";
 
 export const Route = createFileRoute("/admin/voos-teste")({
   head: () => ({ meta: [{ title: "Busca de Voos (teste) — VIA AIR" }] }),
