@@ -491,34 +491,43 @@ function SelectedLegBar({ label, f, onEdit }: { label: string; f: OnerFlight; on
 }
 
 function FlightCard({
-
   f,
   selected,
   onSelect,
   cheapest,
+  readOnly,
+  label,
 }: {
   f: OnerFlight;
   selected?: boolean;
   onSelect?: () => void;
   cheapest?: boolean;
+  readOnly?: boolean;
+  label?: string;
 }) {
   const j = f.journey;
   const withBag = flightHasBaggage(f);
+  const [open, setOpen] = useState(false);
+  const interactive = !readOnly && !!onSelect;
   return (
     <div
-      role="button"
-      tabIndex={0}
-      onClick={onSelect}
+      role={interactive ? "button" : undefined}
+      tabIndex={interactive ? 0 : undefined}
+      onClick={interactive ? onSelect : undefined}
       onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
+        if (interactive && (e.key === "Enter" || e.key === " ")) {
           e.preventDefault();
           onSelect?.();
         }
       }}
-      className={`group relative cursor-pointer overflow-hidden rounded-2xl border bg-card/80 p-4 backdrop-blur transition hover:-translate-y-0.5 hover:border-primary/60 hover:shadow-[var(--shadow-card)] ${
-        selected ? "border-primary ring-2 ring-primary/30" : "border-border/70"
-      }`}
+      className={`group relative overflow-hidden rounded-2xl border bg-card/80 p-4 backdrop-blur transition ${
+        interactive ? "cursor-pointer hover:-translate-y-0.5 hover:border-primary/60 hover:shadow-[var(--shadow-card)]" : ""
+      } ${selected ? "border-primary ring-2 ring-primary/30" : "border-border/70"}`}
     >
+      {label && (
+        <div className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{label}</div>
+      )}
+
       {cheapest && (
         <span className="absolute right-0 top-0 rounded-bl-xl bg-primary px-2 py-1 text-[10px] font-semibold text-primary-foreground">
           Menor preço
