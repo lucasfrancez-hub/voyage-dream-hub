@@ -1128,12 +1128,12 @@ export function VoosPage({
                 <Label className="flex items-center gap-2 px-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
                   <MapPin className="h-3 w-3 text-primary" /> Origem
                 </Label>
-                <Input
-                  className="h-12 rounded-xl border-border/40 bg-muted/40 px-4 text-base font-semibold uppercase transition-all focus-visible:ring-2 focus-visible:ring-primary/50"
+                <AirportAutocomplete
                   value={form.departureIata}
-                  maxLength={3}
-                  onChange={(e) => setForm({ ...form, departureIata: e.target.value.toUpperCase() })}
-                  placeholder="CWB"
+                  isDeparture
+                  placeholder="Cidade ou IATA (ex.: Curitiba / CWB)"
+                  className="h-12 rounded-xl border-border/40 bg-muted/40 px-4 text-base font-semibold uppercase transition-all focus-visible:ring-2 focus-visible:ring-primary/50"
+                  onSelect={(iata) => setForm({ ...form, departureIata: iata })}
                 />
               </div>
 
@@ -1141,14 +1141,15 @@ export function VoosPage({
                 <Label className="flex items-center gap-2 px-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
                   <ArrowLeftRight className="h-3 w-3 text-primary" /> Destino
                 </Label>
-                <Input
-                  className="h-12 rounded-xl border-border/40 bg-muted/40 px-4 text-base font-semibold uppercase transition-all focus-visible:ring-2 focus-visible:ring-primary/50"
+                <AirportAutocomplete
                   value={form.arrivalIata}
-                  maxLength={3}
-                  onChange={(e) => setForm({ ...form, arrivalIata: e.target.value.toUpperCase() })}
-                  placeholder="GRU"
+                  isDeparture={false}
+                  placeholder="Cidade ou IATA (ex.: São Paulo / GRU)"
+                  className="h-12 rounded-xl border-border/40 bg-muted/40 px-4 text-base font-semibold uppercase transition-all focus-visible:ring-2 focus-visible:ring-primary/50"
+                  onSelect={(iata) => setForm({ ...form, arrivalIata: iata })}
                 />
               </div>
+
 
               <div className="col-span-12 space-y-2 md:col-span-2">
                 <Label className="flex items-center gap-2 px-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
