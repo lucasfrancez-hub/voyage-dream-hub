@@ -184,10 +184,13 @@ export async function runCamila(input: { wa_phone: string; profile_name?: string
 
   const sent = await sendWhatsAppBubbles(conv.wa_phone, text);
   // Guarda o wa_message_id de cada balão — sem isso o preview do reply do cliente vem vazio
-  const { setWaMessageId } = await import("./conversation.server");
-  for (let i = 0; i < sent.length; i++) {
+  const { setWaMessageId, setSendError } = await import("./conversation.server");
+  for (let i = 0; i < savedRowIds.length; i++) {
     const rowId = savedRowIds[i];
-    if (rowId && sent[i]?.id) await setWaMessageId(rowId, sent[i].id);
+    if (!rowId) continue;
+    const res = sent[i];
+    if (res?.id) await setWaMessageId(rowId, res.id);
+    else await setSendError(rowId, res?.error ?? "Não entregue pelo WhatsApp");
   }
   const failed = sent.filter((s) => s.error);
   if (failed.length > 0) {
