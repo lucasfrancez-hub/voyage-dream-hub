@@ -489,14 +489,32 @@ export const sendHumanReply = createServerFn({ method: "POST" })
       replyId: data.reply_to_wa_id ?? null,
     });
     // Grava os IDs da Meta pra que esses balões possam ser citados depois
-    const { setWaMessageId } = await import("@/lib/whatsapp/conversation.server");
-    for (let i = 0; i < sent.length; i++) {
+    const { setWaMessageId, setSendError } = await import("@/lib/whatsapp/conversation.server");
+    const failures: string[] = [];
+    for (let i = 0; i < savedRowIds.length; i++) {
       const rowId = savedRowIds[i];
-      if (rowId && sent[i]?.id) await setWaMessageId(rowId, sent[i].id);
+      const res = sent[i];
+      if (!rowId) continue;
+      if (res?.id) {
+        await setWaMessageId(rowId, res.id);
+        await setSendError(rowId, null);
+      } else {
+        const msg = res?.error ?? "Não entregue pelo WhatsApp";
+        failures.push(msg);
+        await setSendError(rowId, msg);
+      }
     }
     await clearAwaitingHumanTag(conv.id);
+    if (failures.length > 0) {
+      throw new Error(
+        failures.length === savedRowIds.length
+          ? `Não entregue: ${failures[0]}`
+          : `${failures.length} de ${savedRowIds.length} balões não foram entregues: ${failures[0]}`,
+      );
+    }
     return { ok: true };
   });
+
 
 export const sendHumanMedia = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
