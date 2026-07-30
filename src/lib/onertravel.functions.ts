@@ -242,16 +242,18 @@ async function poll(
   path: "outbound" | "inbound",
   loc: string,
   body: Record<string, unknown>,
-  /** quando os filtros já estão aplicados, poucas rodadas bastam */
-  maxRounds = 14,
+  /** teto de rodadas — a coleta só para quando o conjunto para de crescer */
+  maxRounds = 26,
 ): Promise<OnerLegResult> {
+
   const acc = new Map<string, OnerFlight>();
   let reportedTotal = 0;
   let priceRange: { minPrice: number; maxPrice: number } | null = null;
   let stableRounds = 0;
   /** só encerra cedo depois de algumas rodadas — o 1º snapshot é sempre parcial */
-  const MIN_ROUNDS = 5;
-  const STABLE_TO_STOP = 4;
+  const MIN_ROUNDS = 8;
+  const STABLE_TO_STOP = 6;
+
 
   for (let i = 0; i < maxRounds; i++) {
     let haveMore = false;
@@ -287,13 +289,16 @@ async function poll(
       } catch {
         break;
       }
-    } while (haveMore && page <= 5);
+    } while (haveMore && page <= 12);
 
     if (acc.size > before) stableRounds = 0;
     else if (acc.size > 0) stableRounds++;
 
+    // já temos tudo que o fornecedor diz existir
+    if (reportedTotal > 0 && acc.size >= reportedTotal && i + 1 >= MIN_ROUNDS) break;
     if (i + 1 >= MIN_ROUNDS && stableRounds >= STABLE_TO_STOP) break;
-    await sleep(1500);
+    await sleep(1200);
+
   }
 
   const flights = [...acc.values()].sort((a, b) => a.price.total - b.price.total);
@@ -364,7 +369,7 @@ export const onerFlightSearch = createServerFn({ method: "POST" })
     // A volta só existe depois que uma opção de ida é escolhida (a operadora
     // combina as tarifas). Aqui devolvemos apenas a ida; o cliente chama
     // `onerInboundSearch` com a chave do voo de ida selecionado.
-    const outbound = await poll("outbound", loc, filterBody, data.searchKey ? 10 : 16);
+    const outbound = await poll("outbound", loc, filterBody, 26);
 
 
     return { searchKey, outbound, inbound: null };
