@@ -372,9 +372,6 @@ function VoosTestePage() {
           )}
         </div>
       )}
-
-        </div>
-      )}
     </div>
   );
 }
