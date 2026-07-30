@@ -274,6 +274,7 @@ async function poll(
 ): Promise<OnerLegResult> {
 
   const acc = new Map<string, OnerFlight>();
+  const rawKeys = new Set<string>();
 
   let reportedTotal = 0;
   let priceRange: { minPrice: number; maxPrice: number } | null = null;
@@ -287,6 +288,7 @@ async function poll(
     let haveMore = false;
     let page = 1;
     const before = acc.size;
+    let changed = false;
 
     do {
       const res = await fetch(`${SERVERLESS}/api/flight/v1/search/${path}`, {
@@ -306,9 +308,14 @@ async function poll(
           filterPriceRange?: { minPrice: number; maxPrice: number };
         };
         for (const f of json.flights ?? []) {
-          const prev = acc.get(f.key);
-          // mantém sempre a menor tarifa retornada para o mesmo voo
-          if (!prev || f.price.total < prev.price.total) acc.set(f.key, f);
+          if (f.key) rawKeys.add(f.key);
+          const sig = flightSignature(f);
+          const prev = acc.get(sig);
+          // mantém sempre a menor tarifa retornada para o mesmo itinerário
+          if (!prev || f.price.total < prev.price.total) {
+            acc.set(sig, f);
+            changed = true;
+          }
         }
         reportedTotal = Math.max(reportedTotal, json.totalFlightsCount ?? 0);
         if (json.filterPriceRange) priceRange = json.filterPriceRange;
@@ -319,11 +326,11 @@ async function poll(
       }
     } while (haveMore && page <= 12);
 
-    if (acc.size > before) stableRounds = 0;
+    if (acc.size > before || changed) stableRounds = 0;
     else if (acc.size > 0) stableRounds++;
 
-    // já temos tudo que o fornecedor diz existir
-    if (reportedTotal > 0 && acc.size >= reportedTotal && i + 1 >= MIN_ROUNDS) break;
+    // já temos tudo que o fornecedor diz existir (comparando pelas chaves cruas)
+    if (reportedTotal > 0 && rawKeys.size >= reportedTotal && i + 1 >= MIN_ROUNDS && stableRounds >= 2) break;
     if (i + 1 >= MIN_ROUNDS && stableRounds >= STABLE_TO_STOP) break;
     await sleep(1200);
 
@@ -331,9 +338,10 @@ async function poll(
 
   const flights = [...acc.values()].sort((a, b) => a.price.total - b.price.total);
   return {
-    totalFlightsCount: Math.max(reportedTotal, flights.length),
+    totalFlightsCount: flights.length,
     flights,
     priceRange,
+
   };
 }
 
