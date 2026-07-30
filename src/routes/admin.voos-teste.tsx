@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
   Loader2,
@@ -26,6 +26,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Slider } from "@/components/ui/slider";
 import { installmentLabel, maxInstallments } from "@/lib/flight-installments";
 import {
   onerFlightSearch,
@@ -33,6 +34,7 @@ import {
   flightHasBaggage,
   type OnerFlight,
   type OnerSearchResult,
+  type OnerLegResult,
 } from "@/lib/onertravel.functions";
 
 export const Route = createFileRoute("/admin/voos-teste")({
@@ -73,63 +75,73 @@ function airlineOf(f: OnerFlight) {
 
 // ---------------------------------------------------------------- filtros
 
+/**
+ * A operadora só devolve a família tarifária mais barata de cada voo (LIGHT,
+ * sem bagagem). Por isso bagagem, paradas, preço, companhia e horário de
+ * partida são reaplicados NA OPERADORA (nova consulta com a mesma searchKey).
+ * O horário de chegada não existe na API — esse filtramos aqui.
+ */
 type Filters = {
   onlyBaggage: boolean;
-  stops: number[];
-  periods: string[];
+  maxStops: number;
   airlines: string[];
   minPrice: string;
   maxPrice: string;
+  dep: [number, number];
+  arr: [number, number];
 };
+
+const FULL_DAY: [number, number] = [0, 1440];
 
 const EMPTY_FILTERS: Filters = {
   onlyBaggage: false,
-  stops: [],
-  periods: [],
+  maxStops: 2,
   airlines: [],
   minPrice: "",
   maxPrice: "",
+  dep: [...FULL_DAY] as [number, number],
+  arr: [...FULL_DAY] as [number, number],
 };
 
-const PERIODS = [
-  { id: "madrugada", label: "Madrugada", from: 0, to: 5 },
-  { id: "manha", label: "Manhã", from: 6, to: 11 },
-  { id: "tarde", label: "Tarde", from: 12, to: 17 },
-  { id: "noite", label: "Noite", from: 18, to: 23 },
-];
+function fmtMinutes(m: number) {
+  const v = Math.min(m, 1439);
+  return `${String(Math.floor(v / 60)).padStart(2, "0")}:${String(v % 60).padStart(2, "0")}`;
+}
 
+function toOperatorFilters(f: Filters) {
+  const min = Number(f.minPrice.replace(",", "."));
+  const max = Number(f.maxPrice.replace(",", "."));
+  return {
+    containsDispatchBaggage: f.onlyBaggage,
+    maxStops: f.maxStops,
+    startPrice: f.minPrice && !Number.isNaN(min) ? min : null,
+    endPrice: f.maxPrice && !Number.isNaN(max) ? max : null,
+    departureFrom: f.dep[0],
+    departureTo: f.dep[1],
+    airlineIatas: f.airlines,
+    cabinClass: null,
+  };
+}
+
+/** Só o que a operadora não sabe filtrar: janela de chegada. */
 function applyFilters(list: OnerFlight[], f: Filters) {
+  if (f.arr[0] === FULL_DAY[0] && f.arr[1] === FULL_DAY[1]) return list;
   return list.filter((fl) => {
-    if (f.onlyBaggage && !flightHasBaggage(fl)) return false;
-    if (f.stops.length) {
-      const s = fl.journey.numberOfStops;
-      if (!f.stops.includes(s >= 2 ? 2 : s)) return false;
-    }
-    if (f.periods.length) {
-      const h = fl.journey.departure.time.hour;
-      const ok = f.periods.some((id) => {
-        const p = PERIODS.find((x) => x.id === id)!;
-        return h >= p.from && h <= p.to;
-      });
-      if (!ok) return false;
-    }
-    if (f.airlines.length && !f.airlines.includes(airlineOf(fl)?.name?.trim() ?? "")) return false;
-    const min = Number(f.minPrice.replace(",", "."));
-    const max = Number(f.maxPrice.replace(",", "."));
-    if (f.minPrice && !Number.isNaN(min) && fl.price.total < min) return false;
-    if (f.maxPrice && !Number.isNaN(max) && fl.price.total > max) return false;
-    return true;
+    const t = fl.journey.destination.time;
+    const m = t.hour * 60 + t.minute;
+    return m >= f.arr[0] && m <= f.arr[1];
   });
 }
 
 function activeCount(f: Filters) {
   return (
     (f.onlyBaggage ? 1 : 0) +
-    f.stops.length +
-    f.periods.length +
+    (f.maxStops !== 2 ? 1 : 0) +
     f.airlines.length +
     (f.minPrice ? 1 : 0) +
-    (f.maxPrice ? 1 : 0)
+    (f.maxPrice ? 1 : 0) +
+    (f.dep[0] !== 0 || f.dep[1] !== 1440 ? 1 : 0) +
+    (f.arr[0] !== 0 || f.arr[1] !== 1440 ? 1 : 0)
   );
 }
 
@@ -161,29 +173,67 @@ function Chip({
   );
 }
 
+function TimeRange({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: [number, number];
+  onChange: (v: [number, number]) => void;
+}) {
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">{label}</Label>
+        <span className="text-[11px] font-medium text-foreground">
+          {fmtMinutes(value[0])} — {fmtMinutes(value[1])}
+        </span>
+      </div>
+      <Slider
+        min={0}
+        max={1440}
+        step={30}
+        value={value}
+        onValueChange={(v) => onChange([v[0], v[1]] as [number, number])}
+        aria-label={label}
+      />
+      <div className="flex justify-between text-[10px] text-muted-foreground">
+        <span>00:00</span>
+        <span>12:00</span>
+        <span>23:59</span>
+      </div>
+    </div>
+  );
+}
+
 function FiltersPanel({
   title,
   flights,
   filters,
   onChange,
+  loading,
+  priceRange,
 }: {
   title: string;
   flights: OnerFlight[];
   filters: Filters;
   onChange: (f: Filters) => void;
+  loading?: boolean;
+  priceRange?: { minPrice: number; maxPrice: number } | null;
 }) {
   const airlines = useMemo(() => {
-    const set = new Set<string>();
+    const map = new Map<string, string>();
     flights.forEach((f) => {
-      const n = airlineOf(f)?.name?.trim();
-      if (n) set.add(n);
+      const a = airlineOf(f);
+      if (a?.iata) map.set(a.iata, a.name?.trim() || a.iata);
     });
-    return [...set].sort();
+    return [...map.entries()].sort((a, b) => a[1].localeCompare(b[1]));
   }, [flights]);
 
   const prices = flights.map((f) => f.price.total);
-  const lo = prices.length ? Math.min(...prices) : 0;
-  const hi = prices.length ? Math.max(...prices) : 0;
+  const lo = priceRange?.minPrice ?? (prices.length ? Math.min(...prices) : 0);
+  const hi = priceRange?.maxPrice ?? (prices.length ? Math.max(...prices) : 0);
   const n = activeCount(filters);
 
   return (
@@ -193,6 +243,7 @@ function FiltersPanel({
           <SlidersHorizontal className="h-4 w-4 text-primary" />
           {title}
           {n > 0 && <Badge variant="secondary">{n}</Badge>}
+          {loading && <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />}
         </div>
         {n > 0 && (
           <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={() => onChange(EMPTY_FILTERS)}>
@@ -201,7 +252,7 @@ function FiltersPanel({
         )}
       </header>
 
-      <div className="space-y-5">
+      <div className={`space-y-5 ${loading ? "pointer-events-none opacity-60" : ""}`}>
         <div className="space-y-2">
           <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Bagagem</Label>
           <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-border/60 bg-background/40 px-3 py-2 text-sm">
@@ -212,6 +263,9 @@ function FiltersPanel({
             <Luggage className="h-4 w-4 text-muted-foreground" />
             Bagagem para despachar
           </label>
+          <p className="text-[11px] leading-snug text-muted-foreground">
+            Ao marcar, a operadora refaz a busca com as tarifas que já incluem bagagem despachada.
+          </p>
         </div>
 
         <div className="space-y-2">
@@ -219,13 +273,13 @@ function FiltersPanel({
           <div className="flex flex-wrap gap-2">
             {[
               { v: 0, l: "Direto" },
-              { v: 1, l: "1 parada" },
-              { v: 2, l: "2 ou mais" },
+              { v: 1, l: "Até 1 parada" },
+              { v: 2, l: "Todos" },
             ].map((o) => (
               <Chip
                 key={o.v}
-                active={filters.stops.includes(o.v)}
-                onClick={() => onChange({ ...filters, stops: toggle(filters.stops, o.v) })}
+                active={filters.maxStops === o.v}
+                onClick={() => onChange({ ...filters, maxStops: o.v })}
               >
                 {o.l}
               </Chip>
@@ -233,20 +287,17 @@ function FiltersPanel({
           </div>
         </div>
 
-        <div className="space-y-2">
-          <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Horário de partida</Label>
-          <div className="flex flex-wrap gap-2">
-            {PERIODS.map((p) => (
-              <Chip
-                key={p.id}
-                active={filters.periods.includes(p.id)}
-                onClick={() => onChange({ ...filters, periods: toggle(filters.periods, p.id) })}
-              >
-                {p.label}
-              </Chip>
-            ))}
-          </div>
-        </div>
+        <TimeRange
+          label="Horário de partida"
+          value={filters.dep}
+          onChange={(dep) => onChange({ ...filters, dep })}
+        />
+
+        <TimeRange
+          label="Horário de chegada"
+          value={filters.arr}
+          onChange={(arr) => onChange({ ...filters, arr })}
+        />
 
         <div className="space-y-2">
           <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Preço total</Label>
@@ -275,13 +326,13 @@ function FiltersPanel({
           <div className="space-y-2">
             <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Companhia aérea</Label>
             <div className="flex flex-wrap gap-2">
-              {airlines.map((a) => (
+              {airlines.map(([iata, name]) => (
                 <Chip
-                  key={a}
-                  active={filters.airlines.includes(a)}
-                  onClick={() => onChange({ ...filters, airlines: toggle(filters.airlines, a) })}
+                  key={iata}
+                  active={filters.airlines.includes(iata)}
+                  onClick={() => onChange({ ...filters, airlines: toggle(filters.airlines, iata) })}
                 >
-                  {a}
+                  {name}
                 </Chip>
               ))}
             </div>
@@ -519,68 +570,71 @@ function VoosPage() {
     adults: 1,
     children: 0,
     infants: 0,
-    maxStops: 0,
   });
   const [result, setResult] = useState<OnerSearchResult | null>(null);
   const [selectedOut, setSelectedOut] = useState<string | null>(null);
   const [selectedIn, setSelectedIn] = useState<string | null>(null);
-  const [inbound, setInbound] = useState<{ totalFlightsCount: number; flights: OnerFlight[] } | null>(null);
+  const [inbound, setInbound] = useState<OnerLegResult | null>(null);
   const [outFilters, setOutFilters] = useState<Filters>(EMPTY_FILTERS);
   const [inFilters, setInFilters] = useState<Filters>(EMPTY_FILTERS);
   const [isRoundTrip, setIsRoundTrip] = useState(false);
+  /** companhias da primeira busca (sem filtro), para os chips não sumirem */
+  const [airlinePool, setAirlinePool] = useState<OnerFlight[]>([]);
+
+  const paxData = () => ({
+    departureIata: form.departureIata.trim().toUpperCase(),
+    arrivalIata: form.arrivalIata.trim().toUpperCase(),
+    departureDate: form.departureDate,
+    adults: Number(form.adults),
+    children: Number(form.children),
+    infants: Number(form.infants),
+    pageSize: 30,
+  });
 
   const mut = useMutation({
-    mutationFn: () =>
+    mutationFn: (opts: { searchKey?: string | null; filters: Filters }) =>
       search({
         data: {
-          departureIata: form.departureIata.trim().toUpperCase(),
-          arrivalIata: form.arrivalIata.trim().toUpperCase(),
-          departureDate: form.departureDate,
+          ...paxData(),
           returnDate: form.returnDate || null,
-          adults: Number(form.adults),
-          children: Number(form.children),
-          infants: Number(form.infants),
-          maxStops: Number(form.maxStops),
-          pageSize: 30,
-          onlyWithBaggage: false,
+          searchKey: opts.searchKey ?? null,
+          filters: toOperatorFilters(opts.filters),
         },
       }),
-    onSuccess: (r) => {
+    onSuccess: (r, vars) => {
       setResult(r);
-      setSelectedOut(null);
-      setSelectedIn(null);
-      setInbound(null);
-      setOutFilters(EMPTY_FILTERS);
-      setInFilters(EMPTY_FILTERS);
-      setIsRoundTrip(!!form.returnDate);
-      if (!r.outbound.flights.length) toast.warning("Nenhum voo retornado para esses parâmetros");
-      else toast.success(`${r.outbound.flights.length} voos encontrados`);
+      if (!vars.searchKey) {
+        setSelectedOut(null);
+        setSelectedIn(null);
+        setInbound(null);
+        setOutFilters(EMPTY_FILTERS);
+        setInFilters(EMPTY_FILTERS);
+        setIsRoundTrip(!!form.returnDate);
+        setAirlinePool(r.outbound.flights);
+        if (!r.outbound.flights.length) toast.warning("Nenhum voo retornado para esses parâmetros");
+        else toast.success(`${r.outbound.flights.length} voos encontrados`);
+      } else if (!r.outbound.flights.length) {
+        toast.warning("Nenhum voo com esses filtros");
+      }
     },
     onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Erro na busca"),
   });
 
   const inboundMut = useMutation({
-    mutationFn: (flightKey: string) =>
+    mutationFn: (opts: { flightKey: string; filters: Filters }) =>
       searchInbound({
         data: {
-          searchKey: result!.searchKey,
-          flightKey,
-          departureIata: form.departureIata.trim().toUpperCase(),
-          arrivalIata: form.arrivalIata.trim().toUpperCase(),
-          departureDate: form.departureDate,
+          ...paxData(),
           returnDate: form.returnDate,
-          adults: Number(form.adults),
-          children: Number(form.children),
-          infants: Number(form.infants),
-          maxStops: Number(form.maxStops),
-          pageSize: 30,
-          onlyWithBaggage: false,
+          searchKey: result!.searchKey,
+          flightKey: opts.flightKey,
+          filters: toOperatorFilters(opts.filters),
         },
       }),
-    onSuccess: (r) => {
+    onSuccess: (r, vars) => {
       setInbound(r);
-      setInFilters(EMPTY_FILTERS);
-      if (!r.flights.length) toast.warning("Nenhuma volta disponível para essa ida");
+      if (!r.flights.length) toast.warning("Nenhuma volta disponível com esses filtros");
+      void vars;
     },
     onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Erro ao buscar volta"),
   });
@@ -589,9 +643,38 @@ function VoosPage() {
     setSelectedOut(key);
     setSelectedIn(null);
     setInbound(null);
-    if (isRoundTrip) inboundMut.mutate(key);
+    if (isRoundTrip) inboundMut.mutate({ flightKey: key, filters: inFilters });
   }
 
+  // Filtros de operadora (bagagem, paradas, preço, companhia, partida) exigem
+  // nova consulta — reaplicamos com debounce sempre que o usuário mexe.
+  const firstOut = useRef(true);
+  const outSig = JSON.stringify(toOperatorFilters(outFilters));
+  useEffect(() => {
+    if (firstOut.current) {
+      firstOut.current = false;
+      return;
+    }
+    if (!result?.searchKey) return;
+    const t = setTimeout(() => mut.mutate({ searchKey: result.searchKey, filters: outFilters }), 500);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [outSig]);
+
+  const firstIn = useRef(true);
+  const inSig = JSON.stringify(toOperatorFilters(inFilters));
+  useEffect(() => {
+    if (firstIn.current) {
+      firstIn.current = false;
+      return;
+    }
+    if (!result?.searchKey || !selectedOut) return;
+    const t = setTimeout(() => inboundMut.mutate({ flightKey: selectedOut, filters: inFilters }), 500);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [inSig]);
+
+  const refiltering = mut.isPending && !!result;
   const outFlights = result ? applyFilters(result.outbound.flights, outFilters) : [];
   const inFlights = inbound ? applyFilters(inbound.flights, inFilters) : [];
   const outFlight = result?.outbound.flights.find((f) => f.key === selectedOut) ?? null;
@@ -603,6 +686,7 @@ function VoosPage() {
   const step = !result ? 0 : showSummary ? (isRoundTrip ? 3 : 2) : outFlight && isRoundTrip ? 2 : 1;
   const canSearch = form.departureIata.length === 3 && form.arrivalIata.length === 3 && !!form.departureDate;
   const paxTotal = Number(form.adults) + Number(form.children) + Number(form.infants);
+
 
   return (
     <div className="min-h-screen bg-background">
@@ -685,7 +769,7 @@ function VoosPage() {
                   size="lg"
                   className="h-11 w-full lg:w-auto"
                   disabled={!canSearch || mut.isPending}
-                  onClick={() => mut.mutate()}
+                  onClick={() => mut.mutate({ searchKey: null, filters: EMPTY_FILTERS })}
                 >
                   {mut.isPending ? (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -718,24 +802,17 @@ function VoosPage() {
                   />
                 </div>
               ))}
-              <div className="w-32 space-y-1">
-                <Label className="text-[11px] text-muted-foreground">Paradas (máx.)</Label>
-                <Input
-                  className="h-9"
-                  type="number"
-                  min={0}
-                  max={2}
-                  value={form.maxStops}
-                  onChange={(e) => setForm({ ...form, maxStops: Number(e.target.value) })}
-                />
-              </div>
+              <span className="text-[11px] text-muted-foreground">
+                Paradas, bagagem e horários ficam nos filtros ao lado depois da busca.
+              </span>
+
             </div>
           </div>
         </div>
       </header>
 
       <main className="mx-auto max-w-7xl px-4 py-6">
-        {mut.isPending && (
+        {mut.isPending && !result && (
           <div className="space-y-3">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" /> Consultando fornecedores… pode levar até 30 segundos
@@ -746,14 +823,16 @@ function VoosPage() {
           </div>
         )}
 
-        {result && !mut.isPending && (
+        {result && (
           <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
             <aside className="space-y-4 lg:sticky lg:top-4 lg:self-start">
               <FiltersPanel
                 title={isRoundTrip ? "Filtros da ida" : "Filtros"}
-                flights={result.outbound.flights}
+                flights={airlinePool.length ? airlinePool : result.outbound.flights}
                 filters={outFilters}
                 onChange={setOutFilters}
+                loading={refiltering}
+                priceRange={result.outbound.priceRange}
               />
               {inbound && (
                 <FiltersPanel
@@ -761,20 +840,27 @@ function VoosPage() {
                   flights={inbound.flights}
                   filters={inFilters}
                   onChange={setInFilters}
+                  loading={inboundMut.isPending}
+                  priceRange={inbound.priceRange}
                 />
               )}
             </aside>
 
+
             <div className="space-y-6">
-              <section className="space-y-3">
+              <section className={`space-y-3 ${refiltering ? "opacity-60" : ""}`}>
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
                   <h2 className="text-lg font-semibold">
                     {isRoundTrip ? "1. Escolha a ida" : "Voos disponíveis"}
                   </h2>
-                  <span className="text-xs text-muted-foreground">
-                    {outFlights.length} de {result.outbound.flights.length} opções
+                  <span className="flex items-center gap-2 text-xs text-muted-foreground">
+                    {refiltering && <Loader2 className="h-3 w-3 animate-spin text-primary" />}
+                    {refiltering
+                      ? "Reaplicando filtros na operadora…"
+                      : `${outFlights.length} de ${result.outbound.flights.length} opções`}
                   </span>
                 </div>
+
                 {isRoundTrip && !selectedOut && (
                   <p className="text-sm text-muted-foreground">
                     Ao escolher a ida, a operadora carrega as voltas combinadas com essa tarifa.
