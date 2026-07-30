@@ -154,10 +154,11 @@ function toOperatorFilters(f: Filters) {
   };
 }
 
-/** Só o que a operadora não sabe filtrar: janela de chegada. */
+/** Refinamentos locais que a API não representa corretamente. */
 function applyFilters(list: OnerFlight[], f: Filters) {
-  if (f.arr[0] === FULL_DAY[0] && f.arr[1] === FULL_DAY[1]) return list;
   return list.filter((fl) => {
+    if (f.maxStops < 2 && fl.journey.numberOfStops > f.maxStops) return false;
+    if (f.arr[0] === FULL_DAY[0] && f.arr[1] === FULL_DAY[1]) return true;
     const t = fl.journey.destination.time;
     const m = t.hour * 60 + t.minute;
     return m >= f.arr[0] && m <= f.arr[1];
