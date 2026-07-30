@@ -134,7 +134,9 @@ async function processPayload(payload: WhatsAppPayload) {
           continue;
         }
 
-        // Monta o conteúdo textual (texto direto OU transcrição de áudio OU resposta de botão)
+        const conv = await getOrCreateConversation(msg.from, profileName);
+
+        // Monta o conteúdo (texto, botão, mídia com marcador [[media:...]] ou transcrição de áudio)
         let content: string | null = null;
         let buttonReplyId: string | null = null;
         if (msg.type === "text" && msg.text?.body) {
@@ -150,17 +152,56 @@ async function processPayload(payload: WhatsAppPayload) {
             continue;
           }
           const transcript = await transcribeAudio(media.blob, media.mimeType);
-          if (!transcript) {
-            console.warn(`[wa-webhook] transcrição vazia pra ${msg.audio.id}`);
+          const stored = await storeInboundMedia({
+            conversationId: conv.id,
+            blob: media.blob,
+            mimeType: media.mimeType,
+            filename: `audio-${msg.audio.id}.${extFromMime(media.mimeType)}`,
+          });
+          const texto = transcript ? `🎤 [áudio transcrito] ${transcript}` : "🎤 [áudio recebido]";
+          content = stored
+            ? `[[media:audio|${stored.url}|${stored.filename}]]\n${texto}`
+            : texto;
+        } else if (
+          (msg.type === "image" && msg.image?.id) ||
+          (msg.type === "sticker" && msg.sticker?.id) ||
+          (msg.type === "video" && msg.video?.id) ||
+          (msg.type === "document" && msg.document?.id)
+        ) {
+          const part =
+            msg.type === "image" ? msg.image! :
+            msg.type === "sticker" ? msg.sticker! :
+            msg.type === "video" ? msg.video! : msg.document!;
+          const kind = msg.type === "document" ? "document" : msg.type === "video" ? "video" : "image";
+          console.log(`[wa-webhook] baixando ${msg.type} ${part.id} de ${msg.from}`);
+          const media = await downloadWhatsAppMedia(part.id);
+          if (!media) {
+            console.warn(`[wa-webhook] falha ao baixar ${msg.type} ${part.id}`);
             continue;
           }
-          content = `🎤 [áudio transcrito] ${transcript}`;
+          const fallbackName =
+            (msg.type === "document" ? msg.document?.filename : null) ??
+            `${msg.type}-${part.id}.${extFromMime(media.mimeType)}`;
+          const stored = await storeInboundMedia({
+            conversationId: conv.id,
+            blob: media.blob,
+            mimeType: media.mimeType,
+            filename: fallbackName,
+          });
+          const caption =
+            (msg.type === "image" ? msg.image?.caption : msg.type === "video" ? msg.video?.caption : msg.document?.caption) ?? "";
+          if (!stored) {
+            content = caption || `📎 [${msg.type} recebido — falha ao salvar]`;
+          } else {
+            const label = kind === "image" ? "🖼️ [imagem recebida]" : kind === "video" ? "🎬 [vídeo recebido]" : "📎 [documento recebido]";
+            content = `[[media:${kind}|${stored.url}|${stored.filename}]]\n${caption || label}`;
+          }
         } else {
           console.log(`[wa-webhook] tipo não suportado: ${msg.type}`);
           continue;
         }
 
-        const conv = await getOrCreateConversation(msg.from, profileName);
+
 
         // Se a conversa foi encerrada manualmente, uma nova mensagem = novo lead:
         // volta o modo para IA e reseta a etapa do funil para "novo".
