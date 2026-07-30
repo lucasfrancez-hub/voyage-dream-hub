@@ -662,6 +662,39 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
   const repliedIds = new Set(
     messages.map((m) => m.reply_to_wa_id).filter((x): x is string => !!x),
   );
+  // Mapa id-do-WhatsApp → mensagem, pra resolver o preview da citação mesmo
+  // quando o snippet não foi gravado no momento em que a mensagem chegou.
+  const byWaId = new Map(
+    messages.filter((m) => !!m.wa_message_id).map((m) => [m.wa_message_id as string, m]),
+  );
+  const previewOf = (raw: string): string => {
+    let text = raw;
+    const media = raw.match(/^\[\[media:([a-z]+)\|[^\]]*\]\]\n?/);
+    if (media) {
+      text = raw.replace(media[0], "").trim();
+      if (!text) {
+        const kind = media[1];
+        return kind === "image" ? "🖼️ Foto" : kind === "video" ? "🎬 Vídeo" : kind === "audio" ? "🎤 Áudio" : "📎 Documento";
+      }
+    }
+    return text.replace(/^\*[^*\n]{1,40}:\*\n?/, "").trim().slice(0, 240);
+  };
+  const resolveReply = (m: (typeof messages)[number]) => {
+    if (!m.reply_to_wa_id) return null;
+    const original = byWaId.get(m.reply_to_wa_id);
+    const snippet =
+      (m.reply_to_snippet && m.reply_to_snippet.trim()) ||
+      (original ? previewOf(original.content) : "") ||
+      "mensagem";
+    const sender =
+      m.reply_to_sender ??
+      (original
+        ? original.direction === "inbound"
+          ? (conv.display_name ?? conv.wa_phone)
+          : "me"
+        : null);
+    return { snippet, sender };
+  };
   const lastInbound = [...messages].reverse().find((m) => m.direction === "inbound");
   const hoursSince = lastInbound ? (Date.now() - new Date(lastInbound.created_at).getTime()) / 3600000 : 0;
   const window24 = hoursSince > 24;
@@ -784,16 +817,12 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
                       status={m.direction === "outbound" ? "delivered" : undefined}
                       deleted={!!m.deleted_at}
                       replied={!!m.wa_message_id && repliedIds.has(m.wa_message_id)}
-                      reply={
-                        m.reply_to_wa_id
-                          ? { snippet: m.reply_to_snippet ?? "mensagem", sender: m.reply_to_sender ?? null }
-                          : null
-                      }
+                      reply={resolveReply(m)}
                       onReply={
                         m.deleted_at || !m.wa_message_id
                           ? undefined
                           : () => {
-                              const preview = m.content.replace(/^\[\[media:[^\]]+\]\]\n?/, "").slice(0, 240) || "mensagem";
+                              const preview = previewOf(m.content) || "mensagem";
                               setReplyTo({
                                 wa_id: m.wa_message_id!,
                                 snippet: preview,
