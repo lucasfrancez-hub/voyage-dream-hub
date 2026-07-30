@@ -1,6 +1,12 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
+import {
+  flightSignature,
+  type OnerFlight,
+  type OnerLegResult,
+  type OnerSearchResult,
+} from "@/lib/onertravel.types";
 
 /**
  * Integração com a plataforma Öner Travel (Comprar Viagem / VIA AIR).
@@ -70,64 +76,6 @@ function buildLocationHref(p: {
 
 
 // ---------------------------------------------------------------- tipos
-
-export type OnerPlace = {
-  iata: string;
-  name: string;
-  city: string;
-  date: { year: number; month: number; day: number };
-  time: { hour: number; minute: number };
-};
-
-export type OnerSegment = {
-  segmentNumber: number;
-  flightNumber: string;
-  cabinClass?: string;
-  airlineFareFamily?: string;
-  departure: OnerPlace;
-  destination: OnerPlace;
-  marketingAirline?: { iata?: string; name?: string; pathLogo?: string };
-};
-
-export type OnerFlight = {
-  key: string;
-  price: {
-    price: number;
-    tax: number;
-    serviceTax?: number;
-    total: number;
-    passengerCount: number;
-  };
-  journey: {
-    flyingTime: { hour: number; minute: number };
-    numberOfStops: number;
-    fareClass?: { cabinClass?: string; airlineFareFamily?: string };
-    allowedBaggage?: boolean;
-    baggagesAllowance?: Array<{
-      typeDescription?: string;
-      quantity?: number;
-      weight?: number;
-      unitDescription?: string;
-    }>;
-    departure: OnerPlace;
-    destination: OnerPlace;
-    marketingAirline?: { iata?: string; name?: string; pathLogo?: string };
-    segments: OnerSegment[];
-  };
-};
-
-export type OnerLegResult = {
-  totalFlightsCount: number;
-  flights: OnerFlight[];
-  priceRange?: { minPrice: number; maxPrice: number } | null;
-};
-
-export type OnerSearchResult = {
-  searchKey: string;
-  outbound: OnerLegResult;
-  inbound?: OnerLegResult | null;
-};
-
 
 // ---------------------------------------------------------------- aeroportos
 
@@ -219,17 +167,6 @@ const SearchInput = z.object({
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-/** A tarifa padrão da operadora vem sempre sem bagagem despachada (Lite). */
-export function flightHasBaggage(f: OnerFlight): boolean {
-  if (f.journey.allowedBaggage) return true;
-  const list = f.journey.baggagesAllowance ?? [];
-  return list.some((b) => {
-    const desc = `${b.typeDescription ?? ""}`.toLowerCase();
-    const isChecked = desc.includes("dispatch") || desc.includes("despach") || desc.includes("checked");
-    return isChecked && (b.quantity ?? 0) > 0;
-  });
-}
-
 /**
  * A operadora agrega os fornecedores de forma assíncrona: cada consulta devolve
  * um "snapshot" parcial — às vezes vazio, às vezes menor que o anterior, e o voo
@@ -238,33 +175,6 @@ export function flightHasBaggage(f: OnerFlight): boolean {
  * e a volta voltar vazia): acumulamos a UNIÃO dos resultados por `key` até o
  * conjunto estabilizar.
  */
-function placeSig(p?: OnerPlace): string {
-  if (!p) return "";
-  return `${p.iata}${p.date?.year}-${p.date?.month}-${p.date?.day}T${p.time?.hour}:${p.time?.minute}`;
-}
-
-/**
- * A mesma combinação de voos volta com `key` diferente a cada snapshot (a chave
- * carrega o fornecedor/tarifa interna), o que fazia o mesmo voo aparecer
- * duplicado e com preço mais caro. Deduplicamos pelo itinerário real.
- */
-function flightSignature(f: OnerFlight): string {
-  const segs = (f.journey?.segments ?? [])
-    .map((s) => `${s.flightNumber}|${placeSig(s.departure)}|${placeSig(s.destination)}`)
-    .join("~");
-  const bags = (f.journey?.baggagesAllowance ?? [])
-    .map((b) => `${b.typeDescription ?? ""}${b.quantity ?? ""}${b.weight ?? ""}`)
-    .sort()
-    .join(",");
-  return [
-    f.journey?.marketingAirline?.iata ?? "",
-    segs || `${placeSig(f.journey?.departure)}>${placeSig(f.journey?.destination)}`,
-    f.journey?.allowedBaggage ? "BAG" : "NOBAG",
-    bags,
-    f.price?.passengerCount ?? "",
-  ].join("#");
-}
-
 async function poll(
   path: "outbound" | "inbound",
   loc: string,
@@ -274,8 +184,6 @@ async function poll(
 ): Promise<OnerLegResult> {
 
   const acc = new Map<string, OnerFlight>();
-  const rawKeys = new Set<string>();
-
   let reportedTotal = 0;
   let priceRange: { minPrice: number; maxPrice: number } | null = null;
   let stableRounds = 0;
@@ -308,7 +216,6 @@ async function poll(
           filterPriceRange?: { minPrice: number; maxPrice: number };
         };
         for (const f of json.flights ?? []) {
-          if (f.key) rawKeys.add(f.key);
           const sig = flightSignature(f);
           const prev = acc.get(sig);
           // mantém sempre a menor tarifa retornada para o mesmo itinerário
@@ -329,8 +236,9 @@ async function poll(
     if (acc.size > before || changed) stableRounds = 0;
     else if (acc.size > 0) stableRounds++;
 
-    // já temos tudo que o fornecedor diz existir (comparando pelas chaves cruas)
-    if (reportedTotal > 0 && rawKeys.size >= reportedTotal && i + 1 >= MIN_ROUNDS && stableRounds >= 2) break;
+    // `totalFlightsCount` também chega em ondas e pode representar apenas o
+    // primeiro fornecedor. Não encerramos por esse total parcial: LATAM e outras
+    // companhias frequentemente publicam opções mais baratas alguns segundos depois.
     if (i + 1 >= MIN_ROUNDS && stableRounds >= STABLE_TO_STOP) break;
     await sleep(1200);
 

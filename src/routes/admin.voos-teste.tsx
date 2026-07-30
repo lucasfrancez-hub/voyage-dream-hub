@@ -45,11 +45,14 @@ import { installmentLabel, maxInstallments } from "@/lib/flight-installments";
 import {
   onerFlightSearch,
   onerInboundSearch,
+} from "@/lib/onertravel.functions";
+import {
   flightHasBaggage,
+  flightSignature,
   type OnerFlight,
   type OnerSearchResult,
   type OnerLegResult,
-} from "@/lib/onertravel.functions";
+} from "@/lib/onertravel.types";
 
 export const Route = createFileRoute("/admin/voos-teste")({
   head: () => ({
@@ -974,12 +977,13 @@ export function VoosPage({
     onSuccess: (r) => {
       setResult((prev) => {
         if (!prev) return r;
-        const map = new Map(prev.outbound.flights.map((f) => [f.key, f]));
+        const map = new Map(prev.outbound.flights.map((f) => [flightSignature(f), f]));
         let novos = 0;
         for (const f of r.outbound.flights) {
-          const atual = map.get(f.key);
+          const signature = flightSignature(f);
+          const atual = map.get(signature);
           if (!atual) novos++;
-          if (!atual || f.price.total < atual.price.total) map.set(f.key, f);
+          if (!atual || f.price.total < atual.price.total) map.set(signature, f);
         }
         const flights = [...map.values()].sort((a, b) => a.price.total - b.price.total);
         toast[novos ? "success" : "info"](

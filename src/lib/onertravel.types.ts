@@ -64,3 +64,27 @@ export function flightHasBaggage(f: OnerFlight): boolean {
     return isChecked && (b.quantity ?? 0) > 0;
   });
 }
+
+function placeSignature(place?: OnerPlace): string {
+  if (!place) return "";
+  return `${place.iata}${place.date?.year}-${place.date?.month}-${place.date?.day}T${place.time?.hour}:${place.time?.minute}`;
+}
+
+export function flightSignature(f: OnerFlight): string {
+  const segments = (f.journey?.segments ?? [])
+    .map((segment) =>
+      `${segment.flightNumber}|${placeSignature(segment.departure)}|${placeSignature(segment.destination)}`,
+    )
+    .join("~");
+  const bags = (f.journey?.baggagesAllowance ?? [])
+    .map((bag) => `${bag.typeDescription ?? ""}${bag.quantity ?? ""}${bag.weight ?? ""}`)
+    .sort()
+    .join(",");
+  return [
+    f.journey?.marketingAirline?.iata ?? "",
+    segments || `${placeSignature(f.journey?.departure)}>${placeSignature(f.journey?.destination)}`,
+    f.journey?.allowedBaggage ? "BAG" : "NOBAG",
+    bags,
+    f.price?.passengerCount ?? "",
+  ].join("#");
+}
