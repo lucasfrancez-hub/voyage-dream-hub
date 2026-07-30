@@ -1113,6 +1113,12 @@ export function CarrosPage({ header }: { header?: React.ReactNode } = {}) {
       </main>
 
       <CarDetailsDialog car={details} onClose={() => setDetails(null)} />
+      <CarSummaryDialog
+        car={cars.find((c) => c.carKey === selected) ?? null}
+        open={summaryOpen && !!selected}
+        onOpenChange={setSummaryOpen}
+      />
+
     </div>
   );
 }
