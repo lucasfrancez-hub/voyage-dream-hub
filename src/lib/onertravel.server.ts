@@ -183,6 +183,8 @@ export async function searchAirports(data: z.infer<typeof airportSearchInput>) {
     country?: string;
     isCity?: boolean;
     isIataCity?: boolean;
+    iataCityCode?: string | null;
+    airports?: Airport[] | null;
   };
   const json = (await res.json()) as unknown;
 
@@ -201,22 +203,42 @@ export async function searchAirports(data: z.infer<typeof airportSearchInput>) {
     return [];
   };
 
-  return pickList(json)
-    .flatMap((airport) => {
-      if (!airport?.iata) return [];
-      return [
-        {
-          iata: airport.iata,
-          name: airport.name ?? "",
-          city: airport.city ?? "",
-          country: airport.country ?? "",
-          isCity: !!(airport.isCity ?? airport.isIataCity),
-        },
-      ];
-    })
-    .slice(0, 12);
+  // A operadora agrupa a cidade (ex.: RIO) e pendura os aeroportos filhos
+  // (GIG, SDU...). Achatamos tudo para o usuário poder escolher o aeroporto.
+  const out: Array<{
+    iata: string;
+    name: string;
+    city: string;
+    country: string;
+    isCity: boolean;
+    cityCode: string | null;
+  }> = [];
 
+  for (const airport of pickList(json)) {
+    if (!airport?.iata) continue;
+    const isCity = !!(airport.isCity ?? airport.isIataCity);
+    out.push({
+      iata: airport.iata,
+      name: airport.name ?? "",
+      city: airport.city ?? "",
+      country: airport.country ?? "",
+      isCity,
+      cityCode: airport.iataCityCode ?? (isCity ? airport.iata : null),
+    });
+    for (const child of airport.airports ?? []) {
+      if (!child?.iata) continue;
+      out.push({
+        iata: child.iata,
+        name: child.name ?? "",
+        city: child.city ?? airport.city ?? "",
+        country: child.country ?? airport.country ?? "",
+        isCity: false,
+        cityCode: child.iataCityCode ?? airport.iata,
+      });
+    }
+  }
 
+  return out.slice(0, 20);
 }
 
 export async function searchFlights(data: SearchData): Promise<OnerSearchResult> {

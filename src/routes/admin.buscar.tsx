@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { VoosPage } from "./admin.voos-teste";
 import { HoteisPage } from "./admin.hoteis-teste";
 import { CarrosPage } from "./admin.carros";
+import { DateRangeField } from "@/components/search/DateRangeField";
 
 
 export const Route = createFileRoute("/admin/buscar")({
@@ -166,29 +167,17 @@ function ComboForm({
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
-          <div className="space-y-1">
-            <Label className="flex items-center gap-1 text-[11px] uppercase tracking-wide text-muted-foreground">
-              <CalendarDays className="h-3 w-3" /> Ida / check-in
-            </Label>
-            <Input
-              className="h-11"
-              type="date"
-              value={form.departureDate}
-              onChange={(e) => setForm({ ...form, departureDate: e.target.value })}
-            />
-          </div>
-          <div className="space-y-1">
-            <Label className="flex items-center gap-1 text-[11px] uppercase tracking-wide text-muted-foreground">
-              <CalendarDays className="h-3 w-3" /> Volta / check-out
-            </Label>
-            <Input
-              className="h-11"
-              type="date"
-              value={form.returnDate}
-              onChange={(e) => setForm({ ...form, returnDate: e.target.value })}
-            />
-          </div>
+        <div className="space-y-1">
+          <Label className="flex items-center gap-1 text-[11px] uppercase tracking-wide text-muted-foreground">
+            <CalendarDays className="h-3 w-3" /> Ida / check-in — Volta / check-out
+          </Label>
+          <DateRangeField
+            departureDate={form.departureDate}
+            returnDate={form.returnDate}
+            allowOneWay={false}
+            labels={{ start: "Ida / check-in", end: "Volta / check-out" }}
+            onChange={(departureDate, returnDate) => setForm({ ...form, departureDate, returnDate })}
+          />
         </div>
 
         <div className="flex items-end">
