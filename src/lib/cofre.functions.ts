@@ -21,6 +21,16 @@ export type CardCapture = {
   liveness?: Record<string, any> | null;
 };
 
+export type BoletoCapture = Record<string, string | null | undefined>;
+
+export type SnapshotPassenger = {
+  index?: number;
+  full_name?: string;
+  cpf?: string | null;
+  birth_date?: string | null;
+  email?: string;
+  phone?: string;
+};
 
 
 export type CofreOrder = {
@@ -47,6 +57,9 @@ export type CofreOrder = {
   firstAmount: number | null;
   snapshotKind: string | null;
   isManual: boolean;
+  boletoCapture: BoletoCapture | null;
+  passengers: SnapshotPassenger[];
+
 };
 
 
@@ -101,6 +114,11 @@ export const listCofreOrders = createServerFn({ method: "GET" })
             : null,
         snapshotKind: (snap.kind as string) ?? null,
         isManual: snap.manual === true,
+        boletoCapture: (snap.boleto_capture ?? null) as BoletoCapture | null,
+        passengers: Array.isArray(snap.passengers)
+          ? (snap.passengers as SnapshotPassenger[])
+          : [],
+
       };
 
     });
@@ -161,4 +179,24 @@ export const deleteCofreOrder = createServerFn({ method: "POST" })
     const { error } = await supabase.from("orders").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
+  });
+
+export const getBoletoDocumentUrl = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { path: string }) => input)
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const { data: isAdmin, error: roleErr } = await supabase.rpc("has_role", {
+      _user_id: userId,
+      _role: "admin",
+    });
+    if (roleErr) throw new Error(roleErr.message);
+    if (!isAdmin) throw new Error("Forbidden");
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: signed, error } = await supabaseAdmin.storage
+      .from("boleto-documents")
+      .createSignedUrl(data.path, 300);
+    if (error) throw new Error(error.message);
+    return { url: signed.signedUrl };
   });
