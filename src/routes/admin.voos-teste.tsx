@@ -308,54 +308,63 @@ function FiltersPanel({
             Ao marcar, a operadora refaz a busca com as tarifas que já incluem bagagem despachada.
           </p>
         </div>
-
-
-        <div className="space-y-2">
-          <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Paradas</Label>
-          <div className="flex flex-wrap gap-2">
+        <div className="space-y-2 p-4">
+          <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Paradas</Label>
+          <div className="grid grid-cols-3 gap-1.5 rounded-xl bg-muted/30 p-1">
             {[
               { v: 0, l: "Direto" },
-              { v: 1, l: "Até 1 parada" },
+              { v: 1, l: "Até 1" },
               { v: 2, l: "Todos" },
             ].map((o) => (
-              <Chip
+              <button
                 key={o.v}
-                active={filters.maxStops === o.v}
+                type="button"
                 onClick={() => onChange({ ...filters, maxStops: o.v })}
+                className={`rounded-lg px-2 py-1.5 text-xs font-semibold transition ${
+                  filters.maxStops === o.v
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
               >
                 {o.l}
-              </Chip>
+              </button>
             ))}
           </div>
         </div>
 
-        <TimeRange
-          label="Horário de partida"
-          value={filters.dep}
-          onChange={(dep) => onChange({ ...filters, dep })}
-        />
+        <div className="space-y-5 p-4">
+          <TimeRange
+            label="Horário de partida"
+            value={filters.dep}
+            onChange={(dep) => onChange({ ...filters, dep })}
+          />
 
-        <TimeRange
-          label="Horário de chegada"
-          value={filters.arr}
-          onChange={(arr) => onChange({ ...filters, arr })}
-        />
+          <TimeRange
+            label="Horário de chegada"
+            value={filters.arr}
+            onChange={(arr) => onChange({ ...filters, arr })}
+          />
+        </div>
 
-        <div className="space-y-2">
-          <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Preço total</Label>
-          <div className="text-xs text-muted-foreground">
-            {fmtMoney(lo)} — {fmtMoney(hi)}
+        <div className="space-y-2 p-4">
+          <div className="flex items-center justify-between">
+            <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+              Preço total
+            </Label>
+            <span className="text-[11px] font-medium text-foreground">
+              {fmtMoney(lo)} — {fmtMoney(hi)}
+            </span>
           </div>
           <div className="flex gap-2">
             <Input
-              className="h-9"
+              className="h-9 rounded-lg border-border/50 bg-muted/30"
               placeholder="De"
               inputMode="decimal"
               value={filters.minPrice}
               onChange={(e) => onChange({ ...filters, minPrice: e.target.value })}
             />
             <Input
-              className="h-9"
+              className="h-9 rounded-lg border-border/50 bg-muted/30"
               placeholder="Até"
               inputMode="decimal"
               value={filters.maxPrice}
@@ -365,8 +374,10 @@ function FiltersPanel({
         </div>
 
         {airlines.length > 0 && (
-          <div className="space-y-2">
-            <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Companhia aérea</Label>
+          <div className="space-y-2 p-4">
+            <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+              Companhia aérea
+            </Label>
             <div className="flex flex-wrap gap-2">
               {airlines.map(([iata, name]) => (
                 <Chip
@@ -380,6 +391,7 @@ function FiltersPanel({
             </div>
           </div>
         )}
+
       </div>
     </section>
   );
