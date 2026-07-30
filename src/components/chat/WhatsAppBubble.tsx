@@ -3,15 +3,32 @@ import { cn } from "@/lib/utils";
 import { firstName } from "@/lib/whatsapp/text-utils.shared";
 
 type Media = { kind: "image" | "document" | "audio" | "video"; url: string; filename: string };
-function parseMedia(content: string): { media: Media | null; text: string } {
-  const m = content.match(/^\[\[media:(image|document|audio|video)\|([^|]+)\|([^\]]+)\]\](?:\n([\s\S]*))?$/);
-  if (!m) return { media: null, text: content };
+function safeText(value: unknown): string {
+  if (typeof value === "string") return value;
+  if (value == null) return "";
+  if (typeof value === "object") {
+    const maybe = value as { text?: unknown; body?: unknown; caption?: unknown; url?: unknown; filename?: unknown; type?: unknown };
+    const text = maybe.text ?? maybe.body ?? maybe.caption;
+    if (typeof text === "string") return text;
+    if (typeof maybe.url === "string") {
+      const filename = typeof maybe.filename === "string" ? maybe.filename : "arquivo";
+      const type = typeof maybe.type === "string" ? maybe.type : "document";
+      return `[[media:${type}|${maybe.url}|${filename}]]`;
+    }
+  }
+  return String(value);
+}
+
+function parseMedia(content: unknown): { media: Media | null; text: string } {
+  const normalized = safeText(content);
+  const m = normalized.match(/^\[\[media:(image|document|audio|video)\|([^|]+)\|([^\]]+)\]\](?:\n([\s\S]*))?$/);
+  if (!m) return { media: null, text: normalized };
   return { media: { kind: m[1] as Media["kind"], url: m[2], filename: m[3] }, text: (m[4] ?? "").trim() };
 }
 
 interface Props {
   side: "in" | "out";
-  content: string;
+  content: unknown;
   timestamp: string; // ISO
   senderLabel?: string; // qualquer nome (completo ou não) — o balão extrai o primeiro
   status?: "sent" | "delivered" | "read";
@@ -19,13 +36,14 @@ interface Props {
   /** Marca visual "respondida" — aparece uma setinha ↩ ao lado do horário */
   replied?: boolean;
   /** Prévia da mensagem citada (reply/quote) */
-  reply?: { sender?: string | null; snippet: string } | null;
+  reply?: { sender?: string | null; snippet: unknown } | null;
   /** Handler pra "Responder" — clica na setinha que aparece no hover */
   onReply?: () => void;
 }
 
 function formatTime(iso: string) {
   const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
   return d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
 }
 
@@ -33,6 +51,7 @@ export function WhatsAppBubble({ side, content, timestamp, senderLabel, status, 
   const isOut = side === "out";
   const label = firstName(senderLabel);
   const replySender = firstName(reply?.sender ?? null);
+  const replySnippet = safeText(reply?.snippet).trim();
   return (
     <div className={cn("group flex w-full items-center gap-1", isOut ? "justify-end" : "justify-start")}>
       {isOut && onReply && !deleted && (
@@ -65,7 +84,7 @@ export function WhatsAppBubble({ side, content, timestamp, senderLabel, status, 
             style={{ borderColor: "var(--brand-orange)", color: "color-mix(in oklab, var(--chat-bubble-fg) 80%, transparent)" }}
           >
             {replySender && <div className="font-semibold" style={{ color: "var(--brand-orange)" }}>{replySender}</div>}
-            <div className="line-clamp-2 opacity-80">{reply.snippet || "mensagem"}</div>
+            <div className="line-clamp-2 opacity-80">{replySnippet || "mensagem"}</div>
           </div>
         )}
         {(() => {
