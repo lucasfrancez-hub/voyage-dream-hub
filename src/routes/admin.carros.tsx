@@ -78,6 +78,8 @@ function LocationInput({
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [highlight, setHighlight] = useState(0);
+  const typing = useRef(false);
+
 
 
   useEffect(() => {
