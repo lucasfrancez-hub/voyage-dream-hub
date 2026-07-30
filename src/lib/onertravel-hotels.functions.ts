@@ -215,7 +215,7 @@ export const onerHotelSearch = createServerFn({ method: "POST" })
 
     // Os fornecedores respondem em ondas e cada resposta é um recorte parcial:
     // acumulamos a união por hotelId até o conjunto estabilizar.
-    const acc = new Map<number, RawHotelLike>();
+    const acc = new Map<number, { hotelId?: number }>();
     let count = 0;
     let haveMore = false;
     let stable = 0;
@@ -229,7 +229,7 @@ export const onerHotelSearch = createServerFn({ method: "POST" })
       });
       if (res.ok) {
         const json = (await res.json().catch(() => null)) as {
-          data?: { hotels?: RawHotelLike[]; count?: number; haveMore?: boolean };
+          data?: { hotels?: { hotelId?: number }[]; count?: number; haveMore?: boolean };
         } | null;
         const d = json?.data;
         const before = acc.size;
@@ -324,5 +324,5 @@ export const onerHotelSearch = createServerFn({ method: "POST" })
       }),
     );
 
-    return { searchKey, count: best.count, haveMore: best.haveMore, hotels };
+    return { searchKey, count, haveMore, hotels };
   });
