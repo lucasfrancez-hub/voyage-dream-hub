@@ -32,8 +32,6 @@ import {
   ShoppingCart,
   ExternalLink,
   Copy,
-
-
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -70,7 +68,10 @@ export const Route = createFileRoute("/admin/voos-teste")({
           "Motor de busca de passagens aéreas VIA AIR: filtros por bagagem, paradas, horário e companhia, com combinação de tarifas e taxas.",
       },
       { property: "og:title", content: "Motor de Voos — VIA AIR" },
-      { property: "og:description", content: "Busca de passagens com filtros e combinação de tarifas ida + volta." },
+      {
+        property: "og:description",
+        content: "Busca de passagens com filtros e combinação de tarifas ida + volta.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -91,8 +92,25 @@ function fmtDate(d: { year: number; month: number; day: number }) {
 }
 /** Códigos multi-aeroporto: buscam todos os aeroportos da cidade na operadora. */
 const CITY_CODES = new Set([
-  "SAO", "RIO", "BHZ", "BUE", "NYC", "LON", "PAR", "MIL", "WAS", "TYO",
-  "MOW", "CHI", "ROM", "STO", "SEL", "OSA", "YTO", "YMQ", "BER",
+  "SAO",
+  "RIO",
+  "BHZ",
+  "BUE",
+  "NYC",
+  "LON",
+  "PAR",
+  "MIL",
+  "WAS",
+  "TYO",
+  "MOW",
+  "CHI",
+  "ROM",
+  "STO",
+  "SEL",
+  "OSA",
+  "YTO",
+  "YMQ",
+  "BER",
 ]);
 function taxesOf(f: OnerFlight) {
   return (f.price.tax ?? 0) + (f.price.serviceTax ?? 0);
@@ -101,14 +119,16 @@ function airlineOf(f: OnerFlight) {
   return f.journey.marketingAirline ?? f.journey.segments[0]?.marketingAirline ?? null;
 }
 /** minutos absolutos de um ponto (data + hora), para calcular conexões */
-function absMinutes(p: { date: { year: number; month: number; day: number }; time: { hour: number; minute: number } }) {
+function absMinutes(p: {
+  date: { year: number; month: number; day: number };
+  time: { hour: number; minute: number };
+}) {
   return Date.UTC(p.date.year, p.date.month - 1, p.date.day, p.time.hour, p.time.minute) / 60000;
 }
 function fmtDur(min: number) {
   const m = Math.max(0, Math.round(min));
   return `${Math.floor(m / 60)}h${String(m % 60).padStart(2, "0")}`;
 }
-
 
 // ---------------------------------------------------------------- filtros
 
@@ -338,13 +358,13 @@ function FiltersPanel({
         )}
       </header>
 
-      <div
-        className={`space-y-7 p-6 ${loading ? "pointer-events-none opacity-60" : ""}`}
-      >
+      <div className={`space-y-7 p-6 ${loading ? "pointer-events-none opacity-60" : ""}`}>
         {/* Bagagem — toggle simples, sem card */}
         <label className="flex cursor-pointer items-center justify-between gap-3">
           <span className="flex items-center gap-2 text-sm font-medium text-foreground/80">
-            <Luggage className={`h-4 w-4 ${filters.onlyBaggage ? "text-primary" : "text-muted-foreground"}`} />
+            <Luggage
+              className={`h-4 w-4 ${filters.onlyBaggage ? "text-primary" : "text-muted-foreground"}`}
+            />
             Bagagem para despachar
           </span>
           <Switch
@@ -449,7 +469,9 @@ function FiltersPanel({
                   key={iata}
                   type="button"
                   className={chip(filters.depAirports.includes(iata))}
-                  onClick={() => onChange({ ...filters, depAirports: toggle(filters.depAirports, iata) })}
+                  onClick={() =>
+                    onChange({ ...filters, depAirports: toggle(filters.depAirports, iata) })
+                  }
                 >
                   {iata} — {name}
                 </button>
@@ -467,7 +489,9 @@ function FiltersPanel({
                   key={iata}
                   type="button"
                   className={chip(filters.arrAirports.includes(iata))}
-                  onClick={() => onChange({ ...filters, arrAirports: toggle(filters.arrAirports, iata) })}
+                  onClick={() =>
+                    onChange({ ...filters, arrAirports: toggle(filters.arrAirports, iata) })
+                  }
                 >
                   {iata} — {name}
                 </button>
@@ -479,7 +503,6 @@ function FiltersPanel({
     </section>
   );
 }
-
 
 // ---------------------------------------------------------------- card
 
@@ -543,7 +566,15 @@ function SegmentsDetail({ f }: { f: OnerFlight }) {
 
 /** Barra compacta do trecho já escolhido, com botão de editar (volta ao passo). */
 
-function SelectedLegBar({ label, f, onEdit }: { label: string; f: OnerFlight; onEdit: () => void }) {
+function SelectedLegBar({
+  label,
+  f,
+  onEdit,
+}: {
+  label: string;
+  f: OnerFlight;
+  onEdit: () => void;
+}) {
   const j = f.journey;
   return (
     <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-primary/40 bg-primary/5 p-3">
@@ -561,10 +592,12 @@ function SelectedLegBar({ label, f, onEdit }: { label: string; f: OnerFlight; on
         <Plane className="h-4 w-4 text-muted-foreground" />
       )}
       <div className="text-sm font-semibold">
-        {j.departure.iata} {fmtTime(j.departure.time)} → {j.destination.iata} {fmtTime(j.destination.time)}
+        {j.departure.iata} {fmtTime(j.departure.time)} → {j.destination.iata}{" "}
+        {fmtTime(j.destination.time)}
       </div>
       <span className="text-xs text-muted-foreground">
-        {fmtDate(j.departure.date)} • {j.numberOfStops === 0 ? "direto" : `${j.numberOfStops} conexão(ões)`} •{" "}
+        {fmtDate(j.departure.date)} •{" "}
+        {j.numberOfStops === 0 ? "direto" : `${j.numberOfStops} conexão(ões)`} •{" "}
         {flightHasBaggage(f) ? "com bagagem" : "só mão"}
       </span>
       <div className="ml-auto flex items-center gap-3">
@@ -598,7 +631,9 @@ function BagChip({
         <Icon className={`h-4 w-4 ${active ? "text-primary" : "text-muted-foreground"}`} />
       </div>
       <div className="flex flex-col leading-tight">
-        <span className="text-[9px] font-bold uppercase tracking-wide text-muted-foreground">{kicker}</span>
+        <span className="text-[9px] font-bold uppercase tracking-wide text-muted-foreground">
+          {kicker}
+        </span>
         <span className="text-xs font-semibold">{value}</span>
       </div>
     </div>
@@ -659,9 +694,13 @@ function FlightCard({
                 <Plane className="h-4 w-4 text-muted-foreground" />
               )}
               <div className="flex flex-col leading-tight">
-                <span className="text-xs font-bold">{j.marketingAirline?.name?.trim() ?? "Companhia"}</span>
+                <span className="text-xs font-bold">
+                  {j.marketingAirline?.name?.trim() ?? "Companhia"}
+                </span>
                 <span className="text-[9px] uppercase tracking-tight text-muted-foreground">
-                  {j.segments.map((s) => `${s.marketingAirline?.iata ?? ""}${s.flightNumber}`).join(" + ")}
+                  {j.segments
+                    .map((s) => `${s.marketingAirline?.iata ?? ""}${s.flightNumber}`)
+                    .join(" + ")}
                 </span>
               </div>
             </div>
@@ -669,9 +708,15 @@ function FlightCard({
 
           <div className="grid grid-cols-3 items-center gap-4">
             <div className="text-left">
-              <div className="text-3xl font-bold leading-none tracking-tight">{fmtTime(j.departure.time)}</div>
-              <div className="mt-1 text-lg font-black uppercase leading-none text-primary">{j.departure.iata}</div>
-              <div className="truncate text-[10px] font-medium text-muted-foreground">{j.departure.name}</div>
+              <div className="text-3xl font-bold leading-none tracking-tight">
+                {fmtTime(j.departure.time)}
+              </div>
+              <div className="mt-1 text-lg font-black uppercase leading-none text-primary">
+                {j.departure.iata}
+              </div>
+              <div className="truncate text-[10px] font-medium text-muted-foreground">
+                {j.departure.name}
+              </div>
             </div>
 
             <div className="flex flex-col items-center gap-2">
@@ -694,9 +739,15 @@ function FlightCard({
             </div>
 
             <div className="text-right">
-              <div className="text-3xl font-bold leading-none tracking-tight">{fmtTime(j.destination.time)}</div>
-              <div className="mt-1 text-lg font-black uppercase leading-none text-primary">{j.destination.iata}</div>
-              <div className="truncate text-[10px] font-medium text-muted-foreground">{j.destination.name}</div>
+              <div className="text-3xl font-bold leading-none tracking-tight">
+                {fmtTime(j.destination.time)}
+              </div>
+              <div className="mt-1 text-lg font-black uppercase leading-none text-primary">
+                {j.destination.iata}
+              </div>
+              <div className="truncate text-[10px] font-medium text-muted-foreground">
+                {j.destination.name}
+              </div>
             </div>
           </div>
 
@@ -740,7 +791,9 @@ function FlightCard({
               <div className="mb-1 text-[9px] font-bold uppercase tracking-widest text-muted-foreground">
                 Valor final • {f.price.passengerCount} pax
               </div>
-              <div className="text-3xl font-black leading-none tracking-tight">{fmtMoney(f.price.total)}</div>
+              <div className="text-3xl font-black leading-none tracking-tight">
+                {fmtMoney(f.price.total)}
+              </div>
               <div className="mt-1 text-[9px] font-bold uppercase text-primary">
                 Em até {n}x de {fmtMoney(f.price.total / n)}
               </div>
@@ -766,7 +819,6 @@ function FlightCard({
     </div>
   );
 }
-
 
 // ---------------------------------------------------------------- resumo
 
@@ -806,8 +858,7 @@ function SummaryCard({
       setCartUrl(r.url);
       window.open(r.url, "_blank", "noopener");
     },
-    onError: (e) =>
-      toast.error(e instanceof Error ? e.message : "Erro ao gerar carrinho"),
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Erro ao gerar carrinho"),
   });
 
   const legText = (label: string, f: OnerFlight) => {
@@ -821,8 +872,6 @@ function SummaryCard({
   const summaryText = [legText(inb ? "Ida" : "Voo", out), inb ? legText("Volta", inb) : null]
     .filter(Boolean)
     .join("\n");
-
-
 
   const Leg = ({ label, f }: { label: string; f: OnerFlight }) => (
     <div className="space-y-1">
@@ -858,7 +907,6 @@ function SummaryCard({
         <CreditCard className="h-4 w-4 text-primary" /> Resumo do preço
       </div>
       <div className="grid gap-5 md:grid-cols-[1fr_auto_1fr]">
-
         <div className="space-y-4">
           <Leg label="Ida" f={out} />
           {inb && (
@@ -888,7 +936,9 @@ function SummaryCard({
           <div className="text-xs text-muted-foreground">
             {n}x de {fmtMoney(total / n)} sem juros
           </div>
-          <div className="text-xs text-muted-foreground">Por passageiro: {fmtMoney(total / pax)}</div>
+          <div className="text-xs text-muted-foreground">
+            Por passageiro: {fmtMoney(total / pax)}
+          </div>
 
           <Button
             onClick={() => setOrderOpen(true)}
@@ -1026,15 +1076,24 @@ function NewOrderFromFlightsDialog({
             </div>
             <div className="space-y-1">
               <Label>CPF</Label>
-              <Input value={form.cpf} onChange={(e) => setForm((f) => ({ ...f, cpf: e.target.value }))} />
+              <Input
+                value={form.cpf}
+                onChange={(e) => setForm((f) => ({ ...f, cpf: e.target.value }))}
+              />
             </div>
             <div className="space-y-1">
               <Label>E-mail</Label>
-              <Input value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} />
+              <Input
+                value={form.email}
+                onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+              />
             </div>
             <div className="space-y-1">
               <Label>Telefone</Label>
-              <Input value={form.phone} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} />
+              <Input
+                value={form.phone}
+                onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
+              />
             </div>
           </div>
         </div>
@@ -1050,7 +1109,11 @@ function NewOrderFromFlightsDialog({
               mut.mutate();
             }}
           >
-            {mut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShoppingCart className="h-4 w-4" />}
+            {mut.isPending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <ShoppingCart className="h-4 w-4" />
+            )}
             Criar pedido
           </Button>
         </DialogFooter>
@@ -1058,7 +1121,6 @@ function NewOrderFromFlightsDialog({
     </Dialog>
   );
 }
-
 
 // ---------------------------------------------------------------- página
 
@@ -1117,7 +1179,6 @@ export function VoosPage({
     // Códigos de cidade (SAO, RIO...) buscam todos os aeroportos da cidade.
     departureIsCity: CITY_CODES.has(form.departureIata.trim().toUpperCase()),
     arrivalIsCity: CITY_CODES.has(form.arrivalIata.trim().toUpperCase()),
-
   });
 
   const mut = useMutation({
@@ -1193,7 +1254,6 @@ export function VoosPage({
       toast.error(e instanceof Error ? e.message : "Erro ao carregar mais voos"),
   });
 
-
   const inboundMut = useMutation({
     mutationFn: (opts: { flightKey: string; filters: Filters }) =>
       searchInbound({
@@ -1230,7 +1290,10 @@ export function VoosPage({
       return;
     }
     if (!result?.searchKey) return;
-    const t = setTimeout(() => mut.mutate({ searchKey: result.searchKey, filters: outFilters }), 500);
+    const t = setTimeout(
+      () => mut.mutate({ searchKey: result.searchKey, filters: outFilters }),
+      500,
+    );
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [outSig]);
@@ -1243,7 +1306,10 @@ export function VoosPage({
       return;
     }
     if (!result?.searchKey || !selectedOut) return;
-    const t = setTimeout(() => inboundMut.mutate({ flightKey: selectedOut, filters: inFilters }), 500);
+    const t = setTimeout(
+      () => inboundMut.mutate({ flightKey: selectedOut, filters: inFilters }),
+      500,
+    );
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [inSig]);
@@ -1265,7 +1331,8 @@ export function VoosPage({
   const cheapestIn = inFlights.length ? Math.min(...inFlights.map((f) => f.price.total)) : null;
 
   const step = !result ? 0 : showSummary ? (isRoundTrip ? 3 : 2) : outFlight && isRoundTrip ? 2 : 1;
-  const canSearch = form.departureIata.length === 3 && form.arrivalIata.length === 3 && !!form.departureDate;
+  const canSearch =
+    form.departureIata.length === 3 && form.arrivalIata.length === 3 && !!form.departureDate;
   const paxTotal = Number(form.adults) + Number(form.children) + Number(form.infants);
 
   // Motor único: aplica os parâmetros vindos do formulário compartilhado e busca.
@@ -1285,15 +1352,16 @@ export function VoosPage({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pendingRun, canSearch]);
 
-
-
   return (
     <div className={header ? "" : "min-h-screen bg-background"}>
       {/* motor de busca */}
       <header className="relative overflow-hidden border-b border-border/60">
         <div
           className="absolute inset-0 opacity-60"
-          style={{ background: "radial-gradient(1200px 400px at 20% -10%, var(--brand-blue), transparent 70%)" }}
+          style={{
+            background:
+              "radial-gradient(1200px 400px at 20% -10%, var(--brand-blue), transparent 70%)",
+          }}
           aria-hidden
         />
         <div className="relative mx-auto max-w-7xl px-4 py-8">
@@ -1305,100 +1373,97 @@ export function VoosPage({
                 </h1>
               </div>
             )}
-
           </div>
 
           {!hideForm && (
-          <div className="rounded-[32px] border border-border/50 bg-card/60 p-6 shadow-2xl backdrop-blur-xl md:p-8">
-            <div className="grid grid-cols-12 items-end gap-4">
-              <div className="col-span-12 space-y-2 md:col-span-3">
-                <Label className="flex items-center gap-2 px-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                  <MapPin className="h-3 w-3 text-primary" /> Origem
-                </Label>
-                <AirportAutocomplete
-                  value={form.departureIata}
-                  isDeparture
-                  placeholder="Cidade ou IATA (ex.: Curitiba / CWB)"
-                  className="h-12 rounded-xl border-border/40 bg-muted/40 px-4 text-base font-semibold uppercase transition-all focus-visible:ring-2 focus-visible:ring-primary/50"
-                  onSelect={(iata) => setForm({ ...form, departureIata: iata })}
-                />
-              </div>
+            <div className="rounded-[32px] border border-border/50 bg-card/60 p-6 shadow-2xl backdrop-blur-xl md:p-8">
+              <div className="grid grid-cols-12 items-end gap-4">
+                <div className="col-span-12 space-y-2 md:col-span-3">
+                  <Label className="flex items-center gap-2 px-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                    <MapPin className="h-3 w-3 text-primary" /> Origem
+                  </Label>
+                  <AirportAutocomplete
+                    value={form.departureIata}
+                    isDeparture
+                    placeholder="Cidade ou IATA (ex.: Curitiba / CWB)"
+                    className="h-12 rounded-xl border-border/40 bg-muted/40 px-4 text-base font-semibold uppercase transition-all focus-visible:ring-2 focus-visible:ring-primary/50"
+                    onSelect={(iata) => setForm({ ...form, departureIata: iata })}
+                  />
+                </div>
 
-              <div className="col-span-12 space-y-2 md:col-span-3">
-                <Label className="flex items-center gap-2 px-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                  <ArrowLeftRight className="h-3 w-3 text-primary" /> Destino
-                </Label>
-                <AirportAutocomplete
-                  value={form.arrivalIata}
-                  isDeparture={false}
-                  placeholder="Cidade ou IATA (ex.: São Paulo / GRU)"
-                  className="h-12 rounded-xl border-border/40 bg-muted/40 px-4 text-base font-semibold uppercase transition-all focus-visible:ring-2 focus-visible:ring-primary/50"
-                  onSelect={(iata) => setForm({ ...form, arrivalIata: iata })}
-                />
-              </div>
+                <div className="col-span-12 space-y-2 md:col-span-3">
+                  <Label className="flex items-center gap-2 px-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                    <ArrowLeftRight className="h-3 w-3 text-primary" /> Destino
+                  </Label>
+                  <AirportAutocomplete
+                    value={form.arrivalIata}
+                    isDeparture={false}
+                    placeholder="Cidade ou IATA (ex.: São Paulo / GRU)"
+                    className="h-12 rounded-xl border-border/40 bg-muted/40 px-4 text-base font-semibold uppercase transition-all focus-visible:ring-2 focus-visible:ring-primary/50"
+                    onSelect={(iata) => setForm({ ...form, arrivalIata: iata })}
+                  />
+                </div>
 
+                <div className="col-span-12 space-y-2 md:col-span-4">
+                  <Label className="flex items-center gap-2 px-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                    <CalendarDays className="h-3 w-3 text-primary" /> Ida e volta
+                  </Label>
+                  <DateRangeField
+                    departureDate={form.departureDate}
+                    returnDate={form.returnDate}
+                    onChange={(departureDate, returnDate) =>
+                      setForm({ ...form, departureDate, returnDate })
+                    }
+                  />
+                </div>
 
-              <div className="col-span-12 space-y-2 md:col-span-4">
-                <Label className="flex items-center gap-2 px-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                  <CalendarDays className="h-3 w-3 text-primary" /> Ida e volta
-                </Label>
-                <DateRangeField
-                  departureDate={form.departureDate}
-                  returnDate={form.returnDate}
-                  onChange={(departureDate, returnDate) =>
-                    setForm({ ...form, departureDate, returnDate })
-                  }
-                />
-              </div>
+                <div className="col-span-12 md:col-span-2">
+                  <Button
+                    size="lg"
+                    className="h-12 w-full rounded-xl font-bold shadow-xl shadow-primary/25 transition-all hover:scale-[1.02] active:scale-95"
+                    disabled={!canSearch || mut.isPending}
+                    onClick={() => mut.mutate({ searchKey: null, filters: EMPTY_FILTERS })}
+                  >
+                    {mut.isPending ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Search className="mr-2 h-4 w-4" />
+                    )}
+                    Buscar
+                  </Button>
+                </div>
 
-              <div className="col-span-12 md:col-span-2">
-                <Button
-                  size="lg"
-                  className="h-12 w-full rounded-xl font-bold shadow-xl shadow-primary/25 transition-all hover:scale-[1.02] active:scale-95"
-                  disabled={!canSearch || mut.isPending}
-                  onClick={() => mut.mutate({ searchKey: null, filters: EMPTY_FILTERS })}
-                >
-                  {mut.isPending ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : (
-                    <Search className="mr-2 h-4 w-4" />
-                  )}
-                  Buscar
-                </Button>
-              </div>
-
-              <div className="col-span-12 mt-2 flex flex-col items-start gap-6 border-t border-border/40 pt-6 md:flex-row md:items-center md:justify-between">
-                <div className="flex flex-wrap items-center gap-6">
-                  <span className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                    <Users className="h-5 w-5" /> {paxTotal} passageiro(s)
-                  </span>
-                  <div className="flex items-center gap-4">
-                    {[
-                      { k: "adults" as const, l: "Adultos", min: 1 },
-                      { k: "children" as const, l: "Crianças", min: 0 },
-                      { k: "infants" as const, l: "Bebês", min: 0 },
-                    ].map((p) => (
-                      <div key={p.k} className="flex flex-col">
-                        <span className="mb-1 text-[9px] font-bold uppercase tracking-wider text-muted-foreground">
-                          {p.l}
-                        </span>
-                        <Input
-                          className="h-8 w-16 rounded-lg border-border/50 bg-muted/40 px-2 text-center"
-                          type="number"
-                          min={p.min}
-                          max={9}
-                          value={form[p.k]}
-                          onChange={(e) => setForm({ ...form, [p.k]: Number(e.target.value) })}
-                        />
-                      </div>
-                    ))}
+                <div className="col-span-12 mt-2 flex flex-col items-start gap-6 border-t border-border/40 pt-6 md:flex-row md:items-center md:justify-between">
+                  <div className="flex flex-wrap items-center gap-6">
+                    <span className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                      <Users className="h-5 w-5" /> {paxTotal} passageiro(s)
+                    </span>
+                    <div className="flex items-center gap-4">
+                      {[
+                        { k: "adults" as const, l: "Adultos", min: 1 },
+                        { k: "children" as const, l: "Crianças", min: 0 },
+                        { k: "infants" as const, l: "Bebês", min: 0 },
+                      ].map((p) => (
+                        <div key={p.k} className="flex flex-col">
+                          <span className="mb-1 text-[9px] font-bold uppercase tracking-wider text-muted-foreground">
+                            {p.l}
+                          </span>
+                          <Input
+                            className="h-8 w-16 rounded-lg border-border/50 bg-muted/40 px-2 text-center"
+                            type="number"
+                            min={p.min}
+                            max={9}
+                            value={form[p.k]}
+                            onChange={(e) => setForm({ ...form, [p.k]: Number(e.target.value) })}
+                          />
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
           )}
-
         </div>
       </header>
 
@@ -1406,7 +1471,8 @@ export function VoosPage({
         {mut.isPending && !result && (
           <div className="space-y-3">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Loader2 className="h-4 w-4 animate-spin" /> Consultando fornecedores… pode levar até 30 segundos
+              <Loader2 className="h-4 w-4 animate-spin" /> Consultando fornecedores… pode levar até
+              30 segundos
             </div>
             {[0, 1, 2].map((i) => (
               <Skeleton key={i} className="h-28 w-full rounded-2xl" />
@@ -1447,7 +1513,13 @@ export function VoosPage({
               {outFlight && (isRoundTrip || showSummary) && (
                 <SelectedLegBar label="Ida escolhida" f={outFlight} onEdit={editOutbound} />
               )}
-              {inFlight && <SelectedLegBar label="Volta escolhida" f={inFlight} onEdit={() => setSelectedIn(null)} />}
+              {inFlight && (
+                <SelectedLegBar
+                  label="Volta escolhida"
+                  f={inFlight}
+                  onEdit={() => setSelectedIn(null)}
+                />
+              )}
 
               {/* passo 1 — ida */}
               {!inboundPhase && (
@@ -1501,12 +1573,12 @@ export function VoosPage({
                 </section>
               )}
 
-
               {/* passo 2 — volta */}
               {inboundPhase && inboundMut.isPending && (
                 <div className="space-y-3">
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Loader2 className="h-4 w-4 animate-spin" /> Combinando voltas para a ida selecionada…
+                    <Loader2 className="h-4 w-4 animate-spin" /> Combinando voltas para a ida
+                    selecionada…
                   </div>
                   <Skeleton className="h-28 w-full rounded-2xl" />
                 </div>
@@ -1537,17 +1609,23 @@ export function VoosPage({
                 </section>
               )}
 
-              {showSummary && <SummaryCard out={outFlight!} inb={inFlight} searchKey={result?.searchKey ?? null} />}
+              {showSummary && (
+                <SummaryCard
+                  out={outFlight!}
+                  inb={inFlight}
+                  searchKey={result?.searchKey ?? null}
+                />
+              )}
             </div>
           </div>
         )}
-
 
         {!result && !mut.isPending && (
           <div className="rounded-2xl border border-dashed border-border p-12 text-center">
             <ArrowRight className="mx-auto mb-3 h-6 w-6 text-muted-foreground" />
             <p className="text-sm text-muted-foreground">
-              Preencha o motor de busca acima. Os filtros aparecem aqui na lateral depois da pesquisa.
+              Preencha o motor de busca acima. Os filtros aparecem aqui na lateral depois da
+              pesquisa.
             </p>
           </div>
         )}
