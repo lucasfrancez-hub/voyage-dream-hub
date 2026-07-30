@@ -249,10 +249,11 @@ function BuscarPage() {
 
   const subtitle =
     mode === "hotel"
-      ? "Hospedagens em tempo real na operadora — tarifas por noite e cancelamento."
+      ? ""
       : mode === "combo"
         ? "Um único motor: a mesma busca traz o voo e a hospedagem do destino."
-        : "Busca em tempo real na operadora — tarifas, taxas e parcelamento por companhia.";
+        : "";
+
 
   const hero = <ModeHeader mode={mode} setMode={setMode} title={heroTitle} subtitle={subtitle} />;
 
