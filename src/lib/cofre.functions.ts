@@ -21,7 +21,7 @@ export type CardCapture = {
   liveness?: Record<string, any> | null;
 };
 
-export type BoletoCapture = Record<string, unknown>;
+export type BoletoCapture = Record<string, string | null | undefined>;
 
 export type SnapshotPassenger = {
   index?: number;
@@ -104,8 +104,9 @@ export const listCofreOrders = createServerFn({ method: "GET" })
       (passengerRows ?? []).forEach((p) => {
         const orderId = p.order_id;
         if (!passengerRowsByOrder[orderId]) passengerRowsByOrder[orderId] = [];
-        passengerRowsByOrder[orderId].push({
-          index: typeof p.sort_order === "number" ? p.sort_order + 1 : passengerRowsByOrder[orderId].length + 1,
+        const passengerGroup = passengerRowsByOrder[orderId];
+        passengerGroup.push({
+          index: typeof p.sort_order === "number" ? p.sort_order + 1 : passengerGroup.length + 1,
           full_name: p.full_name,
           cpf: p.cpf,
           birth_date: p.birth_date,
@@ -157,6 +158,15 @@ export const listCofreOrders = createServerFn({ method: "GET" })
             birth_date: p.birth_date ?? snapshotPassengers[i]?.birth_date ?? null,
           }))
         : snapshotPassengers;
+      const rawBoleto = (snap.boleto_capture ?? null) as Record<string, unknown> | null;
+      const boletoCapture = rawBoleto
+        ? Object.fromEntries(
+            Object.entries(rawBoleto).map(([key, value]) => [
+              key,
+              value == null ? null : String(value),
+            ]),
+          ) as BoletoCapture
+        : null;
       return {
         id: o.id,
         createdAt: o.created_at,
@@ -184,7 +194,7 @@ export const listCofreOrders = createServerFn({ method: "GET" })
             : null,
         snapshotKind: (snap.kind as string) ?? null,
         isManual: snap.manual === true,
-        boletoCapture: (snap.boleto_capture ?? null) as BoletoCapture | null,
+        boletoCapture,
         passengers,
 
       };
