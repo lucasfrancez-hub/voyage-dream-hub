@@ -52,6 +52,13 @@ export const Route = createFileRoute("/admin/carros")({
 const fmtMoney = (v: number) =>
   v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2 });
 
+const chipCls = (active: boolean) =>
+  `rounded-full px-4 py-2 text-xs font-medium transition ${
+    active
+      ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20"
+      : "border border-border/60 text-muted-foreground hover:border-primary/50 hover:text-foreground"
+  }`;
+
 // ---------------------------------------------------------------- autocomplete
 
 function LocationInput({
@@ -453,6 +460,7 @@ export function CarrosPage({ header }: { header?: React.ReactNode } = {}) {
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState<string | null>(null);
   const [details, setDetails] = useState<OnerCar | null>(null);
+  const [catFilter, setCatFilter] = useState<string[]>([]);
   const [filters, setFilters] = useState({
     startPrice: null as number | null,
     endPrice: null as number | null,
@@ -707,7 +715,8 @@ export function CarrosPage({ header }: { header?: React.ReactNode } = {}) {
                 <button
                   type="button"
                   className="text-[11px] font-semibold text-primary hover:underline"
-                  onClick={() =>
+                  onClick={() => {
+                    setCatFilter([]);
                     setFilters({
                       startPrice: null,
                       endPrice: null,
@@ -718,8 +727,8 @@ export function CarrosPage({ header }: { header?: React.ReactNode } = {}) {
                       fuelTypes: [],
                       transmissionTypes: [],
                       vendors: [],
-                    })
-                  }
+                    });
+                  }}
                 >
                   Limpar tudo
                 </button>
@@ -879,7 +888,7 @@ export function CarrosPage({ header }: { header?: React.ReactNode } = {}) {
                           key={c}
                           type="button"
                           onClick={() => toggleCategory(c)}
-                          className={chipCls(filters.categories.includes(c))}
+                          className={chipCls(catFilter.includes(c))}
                         >
                           {c}
                         </button>
