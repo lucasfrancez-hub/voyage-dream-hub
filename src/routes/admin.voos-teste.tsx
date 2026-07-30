@@ -92,6 +92,7 @@ function FlightCard({
 
 function VoosTestePage() {
   const search = useServerFn(onerFlightSearch);
+  const searchInbound = useServerFn(onerInboundSearch);
   const [form, setForm] = useState({
     departureIata: "CWB",
     arrivalIata: "GRU",
