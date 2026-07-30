@@ -865,7 +865,12 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
                       content={m.content}
                       timestamp={m.created_at}
                       senderLabel={senderLabel}
-                      status={m.direction === "outbound" ? "delivered" : undefined}
+                      status={
+                        m.direction === "outbound"
+                          ? ((m as { error?: string | null }).error ? "failed" : m.wa_message_id ? "delivered" : "sent")
+                          : undefined
+                      }
+
                       deleted={!!m.deleted_at}
                       replied={!!m.wa_message_id && repliedIds.has(m.wa_message_id)}
                       reply={resolveReply(m)}

@@ -327,3 +327,16 @@ export async function setWaMessageId(rowId: string, waId: string | null): Promis
     .eq("id", rowId);
   if (error) console.error("[wa/setWaMessageId]", error.message);
 }
+
+/**
+ * Marca uma mensagem outbound como NÃO entregue (a Meta recusou o envio).
+ * A UI mostra o aviso vermelho no balão — antes ela aparecia como entregue.
+ */
+export async function setSendError(rowId: string, message: string | null): Promise<void> {
+  if (!rowId) return;
+  const { error } = await supabaseAdmin
+    .from("wa_messages")
+    .update({ error: message })
+    .eq("id", rowId);
+  if (error) console.error("[wa/setSendError]", error.message);
+}

@@ -1,4 +1,4 @@
-import { Check, CheckCheck, FileText, Download, CornerUpLeft } from "lucide-react";
+import { Check, CheckCheck, FileText, Download, CornerUpLeft, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { firstName } from "@/lib/whatsapp/text-utils.shared";
 
@@ -31,7 +31,7 @@ interface Props {
   content: unknown;
   timestamp: string; // ISO
   senderLabel?: string; // qualquer nome (completo ou não) — o balão extrai o primeiro
-  status?: "sent" | "delivered" | "read";
+  status?: "sent" | "delivered" | "read" | "failed";
   deleted?: boolean;
   /** Marca visual "respondida" — aparece uma setinha ↩ ao lado do horário */
   replied?: boolean;
@@ -137,7 +137,11 @@ export function WhatsAppBubble({ side, content, timestamp, senderLabel, status, 
             </span>
           )}
           {isOut && status && (
-            status === "read" ? (
+            status === "failed" ? (
+              <span className="flex items-center gap-0.5 font-medium text-red-500" title="Não entregue">
+                <AlertCircle className="h-3 w-3" /> não entregue
+              </span>
+            ) : status === "read" ? (
               <CheckCheck className="h-3 w-3 text-blue-500" />
             ) : status === "delivered" ? (
               <CheckCheck className="h-3 w-3" />
@@ -145,6 +149,7 @@ export function WhatsAppBubble({ side, content, timestamp, senderLabel, status, 
               <Check className="h-3 w-3" />
             )
           )}
+
         </div>
       </div>
       {!isOut && onReply && !deleted && (

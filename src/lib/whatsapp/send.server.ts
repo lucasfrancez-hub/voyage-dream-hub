@@ -173,8 +173,21 @@ export function splitToBubbles(fullText: string, prefix?: string | null): string
     }
     if (remaining) bubbles.push(remaining);
   }
-  return bubbles;
+  return bubbles.map((b) => stripTrailingPeriod(b)).filter(Boolean);
 }
+
+/**
+ * Tira o ponto final de cada balão — fica mais natural no WhatsApp.
+ * Mantém "?", "!", reticências, ":" e listas (linhas com "-").
+ */
+export function stripTrailingPeriod(bubble: string): string {
+  const trimmed = bubble.replace(/\s+$/u, "");
+  if (/\.\.\.$/u.test(trimmed)) return trimmed;
+  // não mexe em abreviações/siglas: "S.A.", "etc." precedido de ponto
+  if (/(?:^|\s)[\p{Lu}]\.$/u.test(trimmed)) return trimmed;
+  return trimmed.replace(/\.$/u, "");
+}
+
 
 export async function sendWhatsAppBubbles(
   to: string,

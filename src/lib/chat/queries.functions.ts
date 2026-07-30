@@ -364,7 +364,7 @@ export const listMessages = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { data: rows, error } = await context.supabase
       .from("wa_messages")
-      .select("id, direction, sender, content, created_at, tool_calls, sender_user_id, agent_slug, deleted_at, wa_message_id, reply_to_wa_id, reply_to_snippet, reply_to_sender")
+      .select("id, direction, sender, content, created_at, tool_calls, sender_user_id, agent_slug, deleted_at, wa_message_id, reply_to_wa_id, reply_to_snippet, reply_to_sender, error")
       .eq("conversation_id", data.conversation_id)
       .order("created_at", { ascending: true })
       .limit(500);
@@ -489,14 +489,32 @@ export const sendHumanReply = createServerFn({ method: "POST" })
       replyId: data.reply_to_wa_id ?? null,
     });
     // Grava os IDs da Meta pra que esses balões possam ser citados depois
-    const { setWaMessageId } = await import("@/lib/whatsapp/conversation.server");
-    for (let i = 0; i < sent.length; i++) {
+    const { setWaMessageId, setSendError } = await import("@/lib/whatsapp/conversation.server");
+    const failures: string[] = [];
+    for (let i = 0; i < savedRowIds.length; i++) {
       const rowId = savedRowIds[i];
-      if (rowId && sent[i]?.id) await setWaMessageId(rowId, sent[i].id);
+      const res = sent[i];
+      if (!rowId) continue;
+      if (res?.id) {
+        await setWaMessageId(rowId, res.id);
+        await setSendError(rowId, null);
+      } else {
+        const msg = res?.error ?? "Não entregue pelo WhatsApp";
+        failures.push(msg);
+        await setSendError(rowId, msg);
+      }
     }
     await clearAwaitingHumanTag(conv.id);
+    if (failures.length > 0) {
+      throw new Error(
+        failures.length === savedRowIds.length
+          ? `Não entregue: ${failures[0]}`
+          : `${failures.length} de ${savedRowIds.length} balões não foram entregues: ${failures[0]}`,
+      );
+    }
     return { ok: true };
   });
+
 
 export const sendHumanMedia = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -548,18 +566,30 @@ export const sendHumanMedia = createServerFn({ method: "POST" })
       ? `*${senderName.split(/\s+/)[0]}:*${data.caption ? `\n${data.caption}` : ""}`
       : (data.caption ?? undefined);
 
-    const sendRes = data.kind === "image"
+    // A Meta só aceita nota de voz em ogg/opus, aac, amr, mp3 ou mp4.
+    // webm (padrão do Chrome) é recusado — nesses casos entregamos como arquivo.
+    const audioOk = /(ogg|aac|amr|mpeg|mp3|mp4|m4a)/i.test(`${data.mime_type} ${data.filename}`);
+    let deliveredAs: "image" | "document" | "audio" = data.kind;
+
+    let sendRes = data.kind === "image"
       ? await sendWhatsAppImage(conv.wa_phone, signed.signedUrl, captionWithPrefix ?? null)
-      : data.kind === "audio"
+      : data.kind === "audio" && audioOk
         ? await sendWhatsAppAudio(conv.wa_phone, signed.signedUrl)
         : await sendWhatsAppDocument(conv.wa_phone, signed.signedUrl, data.filename, captionWithPrefix ?? null);
+    if (data.kind === "audio" && (!audioOk || sendRes.error || !sendRes.id)) {
+      if (audioOk) console.warn("[chat/audio] Meta recusou a nota de voz:", sendRes.error);
+      sendRes = await sendWhatsAppDocument(conv.wa_phone, signed.signedUrl, data.filename, captionWithPrefix ?? null);
+      deliveredAs = "document";
+    }
 
-    if (sendRes.error) throw new Error(sendRes.error);
+    if (sendRes.error || !sendRes.id) {
+      throw new Error(sendRes.error ?? "O WhatsApp não confirmou a entrega do arquivo");
+    }
 
     // Marcador embutido pra UI renderizar o preview
     const marker = `[[media:${data.kind}|${signed.signedUrl}|${data.filename}]]`;
     const content = data.kind === "audio"
-      ? `${marker}\n🎤 [áudio enviado]`
+      ? `${marker}${deliveredAs === "document" ? "\n🎤 [áudio enviado como arquivo]" : "\n🎤 [áudio enviado]"}`
       : data.caption ? `${marker}\n${data.caption}` : marker;
 
     await saveMessage({
@@ -570,6 +600,7 @@ export const sendHumanMedia = createServerFn({ method: "POST" })
       sender_user_id: context.userId,
       wa_message_id: sendRes.id,
     });
+
 
     await clearAwaitingHumanTag(conv.id);
     return { ok: true };
