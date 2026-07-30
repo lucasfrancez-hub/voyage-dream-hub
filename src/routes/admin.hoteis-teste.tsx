@@ -34,6 +34,7 @@ import {
   type OnerHotelSearchResult,
   type OnerRoomRate,
 } from "@/lib/onertravel-hotels.functions";
+import { onerAirportSearch } from "@/lib/onertravel.functions";
 
 export const Route = createFileRoute("/admin/hoteis-teste")({
   head: () => ({
