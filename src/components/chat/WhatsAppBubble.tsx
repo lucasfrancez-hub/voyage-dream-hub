@@ -1,4 +1,4 @@
-import { Check, CheckCheck, FileText, Download, CornerUpLeft } from "lucide-react";
+import { Check, CheckCheck, FileText, Download, CornerUpLeft, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { firstName } from "@/lib/whatsapp/text-utils.shared";
 
