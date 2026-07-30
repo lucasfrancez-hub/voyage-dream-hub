@@ -42,6 +42,7 @@ import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Slider } from "@/components/ui/slider";
 import { AirportAutocomplete } from "@/components/search/AirportAutocomplete";
+import { DateRangeField } from "@/components/search/DateRangeField";
 import { installmentLabel, maxInstallments } from "@/lib/flight-installments";
 import {
   onerFlightSearch,
@@ -1173,27 +1174,16 @@ export function VoosPage({
               </div>
 
 
-              <div className="col-span-12 space-y-2 md:col-span-2">
+              <div className="col-span-12 space-y-2 md:col-span-4">
                 <Label className="flex items-center gap-2 px-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                  <CalendarDays className="h-3 w-3 text-primary" /> Ida
+                  <CalendarDays className="h-3 w-3 text-primary" /> Ida e volta
                 </Label>
-                <Input
-                  className="h-12 rounded-xl border-border/40 bg-muted/40 px-4 font-semibold transition-all focus-visible:ring-2 focus-visible:ring-primary/50"
-                  type="date"
-                  value={form.departureDate}
-                  onChange={(e) => setForm({ ...form, departureDate: e.target.value })}
-                />
-              </div>
-
-              <div className="col-span-12 space-y-2 md:col-span-2">
-                <Label className="flex items-center gap-2 px-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                  Volta (opcional)
-                </Label>
-                <Input
-                  className="h-12 rounded-xl border-border/40 bg-muted/40 px-4 font-semibold transition-all focus-visible:ring-2 focus-visible:ring-primary/50"
-                  type="date"
-                  value={form.returnDate}
-                  onChange={(e) => setForm({ ...form, returnDate: e.target.value })}
+                <DateRangeField
+                  departureDate={form.departureDate}
+                  returnDate={form.returnDate}
+                  onChange={(departureDate, returnDate) =>
+                    setForm({ ...form, departureDate, returnDate })
+                  }
                 />
               </div>
 

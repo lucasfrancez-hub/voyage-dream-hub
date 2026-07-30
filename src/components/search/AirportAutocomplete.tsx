@@ -11,6 +11,7 @@ type Airport = {
   city: string;
   country: string;
   isCity: boolean;
+  cityCode: string | null;
 };
 
 /**
@@ -124,18 +125,17 @@ export function AirportAutocomplete({
               onClick={() => choose(a)}
               className={`flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left transition ${
                 i === highlight ? "bg-primary/15" : "hover:bg-muted/60"
-              }`}
+              } ${!a.isCity && a.cityCode ? "pl-7" : ""}`}
             >
               <span className="grid h-8 w-11 shrink-0 place-items-center rounded-lg bg-primary/15 text-xs font-bold text-primary">
                 {a.iata}
               </span>
               <span className="min-w-0">
                 <span className="block truncate text-sm font-medium">
-                  {a.city || a.name}
-                  {a.isCity ? " (todos os aeroportos)" : ""}
+                  {a.isCity ? `${a.city || a.name} (todos os aeroportos)` : a.name || a.city}
                 </span>
                 <span className="block truncate text-[11px] text-muted-foreground">
-                  {a.name}
+                  {a.isCity ? "Cidade" : a.city}
                   {a.country ? ` • ${a.country}` : ""}
                 </span>
               </span>
