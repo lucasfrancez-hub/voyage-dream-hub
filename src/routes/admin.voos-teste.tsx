@@ -1149,12 +1149,9 @@ export function VoosPage({
                 <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight">
                   <Plane className="h-6 w-6 text-primary" /> Motor de Voos
                 </h1>
-                <p className="text-sm text-muted-foreground">
-                  Busca em tempo real na operadora — tarifas, taxas e parcelamento por companhia.
-                </p>
               </div>
             )}
-            <Stepper step={step} roundTrip={isRoundTrip} />
+
           </div>
 
           {!hideForm && (
