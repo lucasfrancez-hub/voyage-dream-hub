@@ -1017,11 +1017,33 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
           </button>
           {recording ? (
             <div className="flex flex-1 items-center gap-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-              <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-red-500" />
-              Gravando… {String(Math.floor(recSecs / 60)).padStart(2, "0")}:{String(recSecs % 60).padStart(2, "0")}
-              <button onClick={() => stopRecording(true)} className="ml-auto rounded-md px-2 py-1 text-xs font-medium hover:bg-red-100">
-                Cancelar
+              <span className={cn("h-2.5 w-2.5 rounded-full bg-red-500", !paused && "animate-pulse")} />
+              {paused ? "Pausado" : "Gravando…"} {String(Math.floor(recSecs / 60)).padStart(2, "0")}:{String(recSecs % 60).padStart(2, "0")}
+              <button
+                onClick={togglePause}
+                title={paused ? "Retomar gravação" : "Pausar gravação"}
+                className="ml-auto flex h-8 w-8 items-center justify-center rounded-full border border-red-200 bg-white text-red-600 hover:bg-red-100"
+              >
+                {paused ? <Play className="h-4 w-4" /> : <Pause className="h-4 w-4" />}
               </button>
+              <button
+                onClick={() => stopRecording(true)}
+                title="Cancelar"
+                className="flex h-8 w-8 items-center justify-center rounded-full border border-red-200 bg-white text-red-600 hover:bg-red-100"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
+            </div>
+          ) : audioDraft ? (
+            <div className="flex flex-1 items-center gap-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
+              <button
+                onClick={discardDraft}
+                title="Descartar áudio"
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-slate-500 hover:bg-red-50 hover:text-red-600"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
+              <audio src={audioDraft.url} controls className="h-9 flex-1" />
             </div>
           ) : (
           <textarea
@@ -1038,10 +1060,10 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
             className="flex-1 resize-none rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-base focus:border-[#F26B1F]/50 focus:bg-white focus:outline-none sm:text-sm"
           />
           )}
-          {!input.trim() && !pendingFile && (
+          {!input.trim() && !pendingFile && !audioDraft && (
             <button
               onClick={() => (recording ? stopRecording(false) : startRecording())}
-              title={recording ? "Enviar áudio" : "Gravar áudio"}
+              title={recording ? "Concluir gravação" : "Gravar áudio"}
               disabled={mediaMut.isPending}
               className={cn(
                 "flex h-10 w-10 shrink-0 items-center justify-center rounded-md border transition-colors disabled:opacity-40",
@@ -1053,6 +1075,7 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
               {mediaMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : recording ? <Square className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
             </button>
           )}
+
           <button
             onClick={submit}
             disabled={(!input.trim() && !pendingFile) || sendMut.isPending || mediaMut.isPending}
