@@ -733,6 +733,25 @@ export function HoteisPage({
                 </p>
               )}
 
+              {result.hotels.length < result.count && (
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  disabled={moreMut.isPending}
+                  onClick={() => moreMut.mutate()}
+                >
+                  {moreMut.isPending ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Carregando mais hospedagens…
+                    </>
+                  ) : (
+                    `Ver mais hospedagens (${result.hotels.length} de ${result.count})`
+                  )}
+                </Button>
+              )}
+
+
               {selectedEntry && selectedRate && (
                 <div className="sticky bottom-4 z-10 rounded-2xl border border-primary/40 bg-card/95 p-5 shadow-[var(--shadow-card)] backdrop-blur">
                   <div className="mb-3 text-sm font-semibold">Resumo da hospedagem</div>
