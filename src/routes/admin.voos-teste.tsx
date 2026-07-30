@@ -703,7 +703,7 @@ function SummaryCard({ out, inb }: { out: OnerFlight; inb: OnerFlight | null }) 
 
 // ---------------------------------------------------------------- página
 
-function VoosPage() {
+export function VoosPage({ header }: { header?: React.ReactNode } = {}) {
   const search = useServerFn(onerFlightSearch);
   const searchInbound = useServerFn(onerInboundSearch);
   const [form, setForm] = useState({
