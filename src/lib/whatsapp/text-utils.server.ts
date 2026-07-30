@@ -47,10 +47,16 @@ export function fixGluedSentences(text: string): string {
     (_m, word: string, after: string) => `${word}.\n\n${after}`,
   );
   // palavra minúscula colada em nova frase: "HotelVou pedir" → "Hotel\n\nVou pedir"
+  // também cobre inicial isolada: "anterioresA cotação" → "anteriores\n\nA cotação"
   const KEEP = /^(WhatsApp|ViaAir|VIA AIR|TripAdvisor|LATAM|GOL|iPhone|McDonald|MacBook|PayPal|YouTube|InstaGram|Instagram|AirBnb|Airbnb|eSIM)$/;
   out = out.replace(
     /([a-zà-ÿ]{3,})([A-ZÀ-Þ][a-zà-ÿ]{2,})/gu,
     (m, a: string, b: string) => (KEEP.test(m) ? m : `${a}\n\n${b}`),
+  );
+  // letra maiúscula isolada iniciando frase nova: "anterioresA cotação", "pedidoO resumo"
+  out = out.replace(
+    /([a-zà-ÿ]{3,})([A-ZÀ-Þ])(?=\s[\p{L}])/gu,
+    (_m, a: string, b: string) => `${a}\n\n${b}`,
   );
   // garante espaço depois de vírgula/ponto-e-vírgula colados em letra
   out = out.replace(/([,;])(?=[^\s\d])/gu, "$1 ");
