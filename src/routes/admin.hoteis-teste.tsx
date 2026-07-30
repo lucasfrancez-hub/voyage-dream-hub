@@ -385,7 +385,7 @@ function HotelCard({
 
 // ---------------------------------------------------------------- página
 
-function HoteisPage() {
+export function HoteisPage({ header }: { header?: React.ReactNode } = {}) {
   const searchDest = useServerFn(onerHotelDestinations);
   const searchHotels = useServerFn(onerHotelSearch);
 
