@@ -17,7 +17,7 @@ import {
 } from "./conversation.server";
 import { buildCamilaTools } from "./tools.server";
 import { sendWhatsAppBubbles } from "./send.server";
-import { buildSenderPrefix, capitalizeBubbles, capitalizeKnownNames, firstName as extractFirstName } from "./text-utils.server";
+import { buildSenderPrefix, capitalizeBubbles, capitalizeKnownNames, fixGluedSentences, firstName as extractFirstName } from "./text-utils.server";
 import { buildSharedAgentPrompt } from "@/lib/chat/camila-prompt";
 import { isCompanyDataBlocked } from "./data-blocklist";
 
@@ -116,7 +116,7 @@ function looksLikeRealName(v: string | null | undefined): boolean {
   return true;
 }
 
-function buildSystemPrompt(agent: Agent, conv: WaConversation, protocolo: WaProtocolo, _isNewProtocolo: boolean): string {
+function buildSystemPrompt(agent: Agent, conv: WaConversation, protocolo: WaProtocolo, _isNewProtocolo: boolean, previousContext?: string): string {
   // Sempre gera o prompt compartilhado com o nome/gênero deste agente,
   // ignorando o system_prompt armazenado (mantém a base única pra todo o time).
   const base = buildSharedAgentPrompt(agent.nome, genderOf(agent.slug));
@@ -141,6 +141,29 @@ function buildSystemPrompt(agent: Agent, conv: WaConversation, protocolo: WaProt
     `USE ESSES DADOS DIRETO — jamais peça localizador/CPF/número do pedido pra localizar algo que já está no [sistema · ...]. ` +
     `Assuma que o pedido está identificado por esse localizador e siga o atendimento.`
   );
+
+  if (previousContext?.trim()) {
+    parts.push(
+      `\n# 🧠 HISTÓRICO ANTERIOR DESTE MESMO CLIENTE (protocolos passados — contexto, NÃO responda a essas mensagens)\n` +
+      `"""\n${previousContext.slice(-8000)}\n"""\n` +
+      `Use esse histórico pra ENTENDER do que o cliente está falando agora. ` +
+      `Se ele citar "a cotação", "o pacote que pedi", "o comercial não me retornou", "aquela viagem", ` +
+      `procure a solicitação aqui e retome o assunto pelo nome (destino, datas, nº de pax, hotel, valores já enviados). ` +
+      `Se ele pedir o resumo da solicitação, REESCREVA o resumo a partir deste histórico — não peça pra ele repetir.`
+    );
+  }
+
+  parts.push(
+    `\n# ❌ NUNCA PEÇA DADO QUE NÃO EXISTE\n` +
+    `- Se o assunto é COTAÇÃO / ORÇAMENTO / PROPOSTA / "o comercial não entrou em contato", NÃO existe pedido, nem localizador, nem reserva. ` +
+    `É PROIBIDO pedir número do pedido, localizador, reserva ou CPF nesses casos. ` +
+    `Reconheça o ocorrido, retome a solicitação a partir do histórico e diga que vai priorizar o retorno.\n` +
+    `- Só peça pedido/localizador/CPF quando o cliente falar de uma COMPRA JÁ EMITIDA (voucher, bilhete, check-in, reembolso, remarcação) ` +
+    `E não houver nenhum dado no histórico que identifique essa compra.\n` +
+    `- Antes de perguntar qualquer coisa, releia o histórico: se a informação já foi dita alguma vez, use-a.`
+  );
+
+
 
   if (conv.identity_verified_at) {
     parts.push(`- Identidade JÁ VERIFICADA. Pode falar de dados financeiros/pedidos.`);
@@ -225,6 +248,40 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
 
   const history = await loadHistory(conv.id, 30, sinceIso);
 
+  // CONTEXTO ANTERIOR: mensagens de ANTES do protocolo atual (últimos 45 dias).
+  // O cliente frequentemente retoma um assunto antigo ("o comercial não entrou
+  // em contato", "e a cotação?"). Sem esse histórico a IA não entende do que
+  // ele fala e acaba pedindo pedido/localizador/CPF sem necessidade.
+  let previousContext = "";
+  if (sinceIso) {
+    const prevSince = new Date(Date.now() - 45 * 24 * 60 * 60 * 1000).toISOString();
+    const { data: prevRows } = await supabaseAdmin
+      .from("wa_messages")
+      .select("sender, direction, content, created_at")
+      .eq("conversation_id", conv.id)
+      .lt("created_at", sinceIso)
+      .gte("created_at", prevSince)
+      .order("created_at", { ascending: false })
+      .limit(40);
+    const prev = ((prevRows ?? []) as Array<{ sender: string; content: string; created_at: string }>).reverse();
+    if (prev.length) {
+      previousContext = prev
+        .map((m) => {
+          const when = new Date(m.created_at).toLocaleString("pt-BR", {
+            timeZone: "America/Sao_Paulo",
+            day: "2-digit",
+            month: "2-digit",
+            hour: "2-digit",
+            minute: "2-digit",
+          });
+          const who = m.sender === "customer" ? "CLIENTE" : "VIA AIR";
+          return `[${when}] ${who}: ${String(m.content ?? "").slice(0, 700)}`;
+        })
+        .join("\n");
+    }
+  }
+
+
   // CONTEXTO OPERACIONAL: pega TAMBÉM as mensagens automáticas (check-in,
   // alerta de voo, voucher, cobrança) dos últimos 7 dias que estão FORA do
   // protocolo atual — quando o cliente abre um novo protocolo respondendo
@@ -282,7 +339,7 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
   const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
   try {
-    const system = buildSystemPrompt(agent, conv, protocolo, isNewProtocolo);
+    const system = buildSystemPrompt(agent, conv, protocolo, isNewProtocolo, previousContext);
     let result: { text?: string; steps?: Array<{ toolCalls?: Array<{ toolName: string; input: unknown }> }> } | null = null;
     let lastErr: unknown = null;
     for (let i = 0; i < MODEL_CHAIN.length; i++) {
@@ -331,7 +388,7 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
     // Garante primeira letra maiúscula em cada balão (o modelo escreve tudo minúsculo)
     // e capitaliza o primeiro nome do cliente sempre que aparecer no meio do texto.
     const clientFirst = extractFirstName(conv.display_name);
-    const text = capitalizeKnownNames(capitalizeBubbles(rawText), [clientFirst]);
+    const text = capitalizeKnownNames(capitalizeBubbles(fixGluedSentences(rawText)), [clientFirst]);
 
     const toolCallsSummary = result.steps
       ?.flatMap((s) => s.toolCalls ?? [])

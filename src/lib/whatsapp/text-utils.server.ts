@@ -23,11 +23,37 @@ export function capitalizeSentenceStart(text: string): string {
 }
 
 /**
+ * Conserta texto "grudado" que o modelo às vezes devolve:
+ * "pedido.Vou reforçar" → "pedido.\n\nVou reforçar"
+ * "tá bom?Pode ficar"   → "tá bom?\n\nPode ficar"
+ * "PerfeitoO Fabrício"  → "Perfeito. O Fabrício"
+ * Ignora números (1.200), siglas (S.A.) e URLs.
+ */
+export function fixGluedSentences(text: string): string {
+  let out = text;
+  // pontuação final colada em letra maiúscula (sem espaço)
+  out = out.replace(
+    /([a-zà-ÿ0-9)\]"'])([.!?…])([A-ZÀ-Þ])/gu,
+    (_m, before: string, punct: string, after: string) => `${before}${punct}\n\n${after}`,
+  );
+  // interjeição colada na frase seguinte: "PerfeitoO Fabrício" → "Perfeito. O Fabrício".
+  // Só para um conjunto fechado de palavras, pra não quebrar "WhatsApp", "ViaAir" etc.
+  out = out.replace(
+    /\b(perfeito|certo|combinado|show|beleza|entendi|obrigad[oa]|ótimo|otimo|claro|isso)([A-ZÀ-Þ])/gu,
+    (_m, word: string, after: string) => `${word}.\n\n${after}`,
+  );
+  // garante espaço depois de vírgula/ponto-e-vírgula colados em letra
+  out = out.replace(/([,;])(?=[^\s\d])/gu, "$1 ");
+  return out;
+}
+
+/**
  * Aplica capitalização inicial em cada balão (separados por \n+).
  * Não mexe no meio do balão pra manter o tom informal.
  */
 export function capitalizeBubbles(fullText: string): string {
   return fullText
+
     .split(/\n+/)
     .map((line) => capitalizeSentenceStart(line))
     .join("\n\n");
