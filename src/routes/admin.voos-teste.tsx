@@ -384,7 +384,43 @@ function Stepper({ step, roundTrip }: { step: number; roundTrip: boolean }) {
 
 // ---------------------------------------------------------------- card
 
+/** Barra compacta do trecho já escolhido, com botão de editar (volta ao passo). */
+function SelectedLegBar({ label, f, onEdit }: { label: string; f: OnerFlight; onEdit: () => void }) {
+  const j = f.journey;
+  return (
+    <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-primary/40 bg-primary/5 p-3">
+      <Badge className="gap-1">
+        <Check className="h-3 w-3" /> {label}
+      </Badge>
+      {j.marketingAirline?.pathLogo ? (
+        <img
+          src={j.marketingAirline.pathLogo}
+          alt={j.marketingAirline?.name ?? "Companhia aérea"}
+          className="h-6 w-6 rounded bg-white object-contain"
+          loading="lazy"
+        />
+      ) : (
+        <Plane className="h-4 w-4 text-muted-foreground" />
+      )}
+      <div className="text-sm font-semibold">
+        {j.departure.iata} {fmtTime(j.departure.time)} → {j.destination.iata} {fmtTime(j.destination.time)}
+      </div>
+      <span className="text-xs text-muted-foreground">
+        {fmtDate(j.departure.date)} • {j.numberOfStops === 0 ? "direto" : `${j.numberOfStops} conexão(ões)`} •{" "}
+        {flightHasBaggage(f) ? "com bagagem" : "só mão"}
+      </span>
+      <div className="ml-auto flex items-center gap-3">
+        <span className="text-sm font-bold text-primary">{fmtMoney(f.price.total)}</span>
+        <Button size="sm" variant="outline" onClick={onEdit} className="gap-1">
+          <RotateCcw className="h-3.5 w-3.5" /> Editar
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 function FlightCard({
+
   f,
   selected,
   onSelect,
