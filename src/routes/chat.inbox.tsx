@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Pause, Play, Search, Send, Bot, User, MoreVertical, Loader2, Inbox as InboxIcon, Users, Archive, Plus, ChevronDown, Image as ImageIcon, XCircle, History, Paperclip, PanelLeftClose, PanelLeftOpen, FileText, X, Save, ExternalLink, ArrowLeft, Info, Instagram, MessageCircle, MessageSquare, Heart, Mic, Square } from "lucide-react";
+import { Pause, Play, Search, Send, Bot, User, MoreVertical, Loader2, Inbox as InboxIcon, Users, Archive, Plus, ChevronDown, Image as ImageIcon, XCircle, History, Paperclip, PanelLeftClose, PanelLeftOpen, FileText, X, Save, ExternalLink, ArrowLeft, Info, Instagram, MessageCircle, MessageSquare, Heart, Mic, Square, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
@@ -560,10 +560,13 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
   };
   // --- Gravação de áudio (nota de voz) ---
   const [recording, setRecording] = useState(false);
+  const [paused, setPaused] = useState(false);
   const [recSecs, setRecSecs] = useState(0);
+  const [audioDraft, setAudioDraft] = useState<{ file: File; url: string; secs: number } | null>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<BlobPart[]>([]);
   const cancelRef = useRef(false);
+  const secsRef = useRef(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const pickAudioMime = () => {
@@ -574,7 +577,23 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
     return "";
   };
 
+  const stopTimer = () => {
+    if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
+  };
+  const startTimer = () => {
+    stopTimer();
+    timerRef.current = setInterval(() => {
+      secsRef.current += 1;
+      setRecSecs(secsRef.current);
+    }, 1000);
+  };
+
+  const discardDraft = () => {
+    setAudioDraft((d) => { if (d) URL.revokeObjectURL(d.url); return null; });
+  };
+
   const startRecording = async () => {
+    discardDraft();
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const mimeType = pickAudioMime();
@@ -584,8 +603,11 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
       rec.ondataavailable = (e) => { if (e.data.size > 0) chunksRef.current.push(e.data); };
       rec.onstop = () => {
         stream.getTracks().forEach((t) => t.stop());
-        if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
+        stopTimer();
         setRecording(false);
+        setPaused(false);
+        const secs = secsRef.current;
+        secsRef.current = 0;
         setRecSecs(0);
         if (cancelRef.current) return;
         const type = (mimeType || "audio/ogg").split(";")[0];
@@ -593,30 +615,54 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
         if (blob.size < 1500) { toast.error("Áudio muito curto"); return; }
         const ext = type.includes("ogg") ? "ogg" : type.includes("mp4") ? "m4a" : type.includes("mpeg") ? "mp3" : "webm";
         const file = new File([blob], `audio-${Date.now()}.${ext}`, { type });
-        mediaMut.mutate({ file, caption: "", kind: "audio" });
+        // Fica em prévia: o atendente escuta (se quiser) e clica em enviar.
+        setAudioDraft({ file, url: URL.createObjectURL(blob), secs });
       };
       rec.start();
       recorderRef.current = rec;
       setRecording(true);
+      setPaused(false);
+      secsRef.current = 0;
       setRecSecs(0);
-      timerRef.current = setInterval(() => setRecSecs((s) => s + 1), 1000);
+      startTimer();
     } catch {
       toast.error("Não foi possível acessar o microfone");
     }
   };
+  const togglePause = () => {
+    const rec = recorderRef.current;
+    if (!rec) return;
+    if (rec.state === "recording") {
+      rec.pause();
+      stopTimer();
+      setPaused(true);
+    } else if (rec.state === "paused") {
+      rec.resume();
+      startTimer();
+      setPaused(false);
+    }
+  };
   const stopRecording = (cancel: boolean) => {
     cancelRef.current = cancel;
-    recorderRef.current?.stop();
+    const rec = recorderRef.current;
     recorderRef.current = null;
+    if (!rec) return;
+    if (rec.state === "paused") rec.resume();
+    rec.stop();
   };
 
   const submit = () => {
-    if (pendingFile) {
+    if (audioDraft) {
+      const file = audioDraft.file;
+      discardDraft();
+      mediaMut.mutate({ file, caption: "", kind: "audio" });
+    } else if (pendingFile) {
       mediaMut.mutate({ file: pendingFile.file, caption: input.trim(), kind: pendingFile.kind });
     } else if (input.trim() && !sendMut.isPending) {
       sendMut.mutate(input.trim());
     }
   };
+
 
 
   const { data: messages = [], isLoading } = useQuery({
@@ -971,11 +1017,33 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
           </button>
           {recording ? (
             <div className="flex flex-1 items-center gap-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-              <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-red-500" />
-              Gravando… {String(Math.floor(recSecs / 60)).padStart(2, "0")}:{String(recSecs % 60).padStart(2, "0")}
-              <button onClick={() => stopRecording(true)} className="ml-auto rounded-md px-2 py-1 text-xs font-medium hover:bg-red-100">
-                Cancelar
+              <span className={cn("h-2.5 w-2.5 rounded-full bg-red-500", !paused && "animate-pulse")} />
+              {paused ? "Pausado" : "Gravando…"} {String(Math.floor(recSecs / 60)).padStart(2, "0")}:{String(recSecs % 60).padStart(2, "0")}
+              <button
+                onClick={togglePause}
+                title={paused ? "Retomar gravação" : "Pausar gravação"}
+                className="ml-auto flex h-8 w-8 items-center justify-center rounded-full border border-red-200 bg-white text-red-600 hover:bg-red-100"
+              >
+                {paused ? <Play className="h-4 w-4" /> : <Pause className="h-4 w-4" />}
               </button>
+              <button
+                onClick={() => stopRecording(true)}
+                title="Cancelar"
+                className="flex h-8 w-8 items-center justify-center rounded-full border border-red-200 bg-white text-red-600 hover:bg-red-100"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
+            </div>
+          ) : audioDraft ? (
+            <div className="flex flex-1 items-center gap-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
+              <button
+                onClick={discardDraft}
+                title="Descartar áudio"
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-slate-500 hover:bg-red-50 hover:text-red-600"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
+              <audio src={audioDraft.url} controls className="h-9 flex-1" />
             </div>
           ) : (
           <textarea
@@ -992,10 +1060,10 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
             className="flex-1 resize-none rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-base focus:border-[#F26B1F]/50 focus:bg-white focus:outline-none sm:text-sm"
           />
           )}
-          {!input.trim() && !pendingFile && (
+          {!input.trim() && !pendingFile && !audioDraft && (
             <button
               onClick={() => (recording ? stopRecording(false) : startRecording())}
-              title={recording ? "Enviar áudio" : "Gravar áudio"}
+              title={recording ? "Concluir gravação" : "Gravar áudio"}
               disabled={mediaMut.isPending}
               className={cn(
                 "flex h-10 w-10 shrink-0 items-center justify-center rounded-md border transition-colors disabled:opacity-40",
@@ -1007,9 +1075,10 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
               {mediaMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : recording ? <Square className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
             </button>
           )}
+
           <button
             onClick={submit}
-            disabled={(!input.trim() && !pendingFile) || sendMut.isPending || mediaMut.isPending}
+            disabled={(!input.trim() && !pendingFile && !audioDraft) || sendMut.isPending || mediaMut.isPending}
             className="flex h-10 w-10 items-center justify-center rounded-md bg-[#F26B1F] text-white transition-opacity hover:opacity-90 disabled:opacity-40"
           >
             {(sendMut.isPending || mediaMut.isPending) ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
