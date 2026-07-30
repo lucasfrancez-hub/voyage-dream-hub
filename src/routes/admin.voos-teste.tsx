@@ -1207,7 +1207,8 @@ export function VoosPage({
                 </div>
               ))}
               <span className="text-[11px] text-muted-foreground">
-                Paradas, bagagem e horários ficam nos filtros ao lado depois da busca.
+                Use SAO, RIO ou BHZ para buscar todos os aeroportos da cidade. Paradas, bagagem e horários
+                ficam nos filtros ao lado depois da busca.
               </span>
 
             </div>
