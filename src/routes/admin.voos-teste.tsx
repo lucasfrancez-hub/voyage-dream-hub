@@ -955,7 +955,11 @@ export function VoosPage({
     adults: Number(form.adults),
     children: Number(form.children),
     infants: Number(form.infants),
-    pageSize: 30,
+    pageSize: 50,
+    // Códigos de cidade (SAO, RIO...) buscam todos os aeroportos da cidade.
+    departureIsCity: CITY_CODES.has(form.departureIata.trim().toUpperCase()),
+    arrivalIsCity: CITY_CODES.has(form.arrivalIata.trim().toUpperCase()),
+
   });
 
   const mut = useMutation({
