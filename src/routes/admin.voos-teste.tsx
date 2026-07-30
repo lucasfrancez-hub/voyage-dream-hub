@@ -38,7 +38,14 @@ function FlightCard({
   const j = f.journey;
   const bag = j.baggagesAllowance?.map((b) => `${b.quantity ?? 1}x ${b.weight ?? ""}${b.unitDescription ?? ""} ${b.typeDescription ?? ""}`.trim());
   return (
-    <div className="rounded-xl border border-border bg-card p-4">
+    <div
+      role={selectable ? "button" : undefined}
+      tabIndex={selectable ? 0 : undefined}
+      onClick={selectable ? onSelect : undefined}
+      className={`rounded-xl border bg-card p-4 transition ${
+        selectable ? "cursor-pointer hover:border-primary/60" : ""
+      } ${selected ? "border-primary ring-2 ring-primary/30" : "border-border"}`}
+    >
       <div className="flex flex-wrap items-center gap-4">
         {j.marketingAirline?.pathLogo ? (
           <img src={j.marketingAirline.pathLogo} alt={j.marketingAirline?.name ?? "Cia aérea"} className="h-8 w-8 rounded object-contain bg-white" />
