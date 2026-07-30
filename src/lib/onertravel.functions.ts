@@ -317,6 +317,8 @@ export const onerFlightSearch = createServerFn({ method: "POST" })
       adults: data.adults,
       children: data.children,
       infants: data.infants,
+      departureIsCity: data.departureIsCity,
+      arrivalIsCity: data.arrivalIsCity,
     });
 
     let searchKey = data.searchKey ?? "";
@@ -331,6 +333,8 @@ export const onerFlightSearch = createServerFn({ method: "POST" })
           ...(data.returnDate ? { returnDate: `${data.returnDate}T00:00:00.000Z` } : {}),
           departureStation: data.departureIata.toUpperCase(),
           arrivalStation: data.arrivalIata.toUpperCase(),
+          isDepartureStationCity: data.departureIsCity,
+          isArrivalStationCity: data.arrivalIsCity,
           paxAdtCount: data.adults,
           paxChdCount: data.children,
           paxInfCount: data.infants,
@@ -352,7 +356,6 @@ export const onerFlightSearch = createServerFn({ method: "POST" })
 
     const filterBody = {
       searchKey,
-      page: 1,
       pageSize: data.pageSize,
       filter: buildFilter(data.filters),
       ordinationEnum: 0,
@@ -361,7 +364,8 @@ export const onerFlightSearch = createServerFn({ method: "POST" })
     // A volta só existe depois que uma opção de ida é escolhida (a operadora
     // combina as tarifas). Aqui devolvemos apenas a ida; o cliente chama
     // `onerInboundSearch` com a chave do voo de ida selecionado.
-    const outbound = await poll("outbound", loc, filterBody, data.searchKey ? 8 : 20);
+    const outbound = await poll("outbound", loc, filterBody, data.searchKey ? 10 : 16);
+
 
     return { searchKey, outbound, inbound: null };
   });
