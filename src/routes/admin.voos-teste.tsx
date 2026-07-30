@@ -1407,7 +1407,13 @@ export function VoosPage({
   const outFlight = result?.outbound.flights.find((f) => f.key === selectedOut) ?? null;
   const inFlight = inbound?.flights.find((f) => f.key === selectedIn) ?? null;
   const showSummary = !!outFlight && (!isRoundTrip || !!inFlight);
+  const [summaryOpen, setSummaryOpen] = useState(false);
+  // Abre o modal assim que a seleção fica completa.
+  useEffect(() => {
+    if (showSummary) setSummaryOpen(true);
+  }, [showSummary]);
   const inboundPhase = isRoundTrip && !!selectedOut;
+
   function editOutbound() {
     setSelectedOut(null);
     setSelectedIn(null);
