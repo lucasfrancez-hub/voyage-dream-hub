@@ -225,11 +225,16 @@ async function processPayload(payload: WhatsAppPayload) {
             .select("content, direction, sender")
             .eq("wa_message_id", replyToId)
             .maybeSingle();
-          if (quoted?.content) {
-            replySnippet = String(quoted.content).slice(0, 160);
+          if (quoted) {
+            replySnippet = previewFromContent(String(quoted.content ?? ""));
             replySender = quoted.direction === "outbound" ? "me" : (quoted.sender ?? "customer");
+          } else {
+            // Não achamos a original no banco (ex.: enviada direto pelo celular).
+            // Ainda assim guardamos o vínculo — a UI resolve pelo id quando possível.
+            replySender = msg.context?.from && msg.context.from !== msg.from ? "me" : "customer";
           }
         }
+
 
         const saved = await saveMessage({
           conversation_id: conv.id,
