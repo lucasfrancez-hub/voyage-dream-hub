@@ -570,68 +570,71 @@ function VoosPage() {
     adults: 1,
     children: 0,
     infants: 0,
-    maxStops: 0,
   });
   const [result, setResult] = useState<OnerSearchResult | null>(null);
   const [selectedOut, setSelectedOut] = useState<string | null>(null);
   const [selectedIn, setSelectedIn] = useState<string | null>(null);
-  const [inbound, setInbound] = useState<{ totalFlightsCount: number; flights: OnerFlight[] } | null>(null);
+  const [inbound, setInbound] = useState<OnerLegResult | null>(null);
   const [outFilters, setOutFilters] = useState<Filters>(EMPTY_FILTERS);
   const [inFilters, setInFilters] = useState<Filters>(EMPTY_FILTERS);
   const [isRoundTrip, setIsRoundTrip] = useState(false);
+  /** companhias da primeira busca (sem filtro), para os chips não sumirem */
+  const [airlinePool, setAirlinePool] = useState<OnerFlight[]>([]);
+
+  const paxData = () => ({
+    departureIata: form.departureIata.trim().toUpperCase(),
+    arrivalIata: form.arrivalIata.trim().toUpperCase(),
+    departureDate: form.departureDate,
+    adults: Number(form.adults),
+    children: Number(form.children),
+    infants: Number(form.infants),
+    pageSize: 30,
+  });
 
   const mut = useMutation({
-    mutationFn: () =>
+    mutationFn: (opts: { searchKey?: string | null; filters: Filters }) =>
       search({
         data: {
-          departureIata: form.departureIata.trim().toUpperCase(),
-          arrivalIata: form.arrivalIata.trim().toUpperCase(),
-          departureDate: form.departureDate,
+          ...paxData(),
           returnDate: form.returnDate || null,
-          adults: Number(form.adults),
-          children: Number(form.children),
-          infants: Number(form.infants),
-          maxStops: Number(form.maxStops),
-          pageSize: 30,
-          onlyWithBaggage: false,
+          searchKey: opts.searchKey ?? null,
+          filters: toOperatorFilters(opts.filters),
         },
       }),
-    onSuccess: (r) => {
+    onSuccess: (r, vars) => {
       setResult(r);
-      setSelectedOut(null);
-      setSelectedIn(null);
-      setInbound(null);
-      setOutFilters(EMPTY_FILTERS);
-      setInFilters(EMPTY_FILTERS);
-      setIsRoundTrip(!!form.returnDate);
-      if (!r.outbound.flights.length) toast.warning("Nenhum voo retornado para esses parâmetros");
-      else toast.success(`${r.outbound.flights.length} voos encontrados`);
+      if (!vars.searchKey) {
+        setSelectedOut(null);
+        setSelectedIn(null);
+        setInbound(null);
+        setOutFilters(EMPTY_FILTERS);
+        setInFilters(EMPTY_FILTERS);
+        setIsRoundTrip(!!form.returnDate);
+        setAirlinePool(r.outbound.flights);
+        if (!r.outbound.flights.length) toast.warning("Nenhum voo retornado para esses parâmetros");
+        else toast.success(`${r.outbound.flights.length} voos encontrados`);
+      } else if (!r.outbound.flights.length) {
+        toast.warning("Nenhum voo com esses filtros");
+      }
     },
     onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Erro na busca"),
   });
 
   const inboundMut = useMutation({
-    mutationFn: (flightKey: string) =>
+    mutationFn: (opts: { flightKey: string; filters: Filters }) =>
       searchInbound({
         data: {
-          searchKey: result!.searchKey,
-          flightKey,
-          departureIata: form.departureIata.trim().toUpperCase(),
-          arrivalIata: form.arrivalIata.trim().toUpperCase(),
-          departureDate: form.departureDate,
+          ...paxData(),
           returnDate: form.returnDate,
-          adults: Number(form.adults),
-          children: Number(form.children),
-          infants: Number(form.infants),
-          maxStops: Number(form.maxStops),
-          pageSize: 30,
-          onlyWithBaggage: false,
+          searchKey: result!.searchKey,
+          flightKey: opts.flightKey,
+          filters: toOperatorFilters(opts.filters),
         },
       }),
-    onSuccess: (r) => {
+    onSuccess: (r, vars) => {
       setInbound(r);
-      setInFilters(EMPTY_FILTERS);
-      if (!r.flights.length) toast.warning("Nenhuma volta disponível para essa ida");
+      if (!r.flights.length) toast.warning("Nenhuma volta disponível com esses filtros");
+      void vars;
     },
     onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Erro ao buscar volta"),
   });
@@ -640,9 +643,38 @@ function VoosPage() {
     setSelectedOut(key);
     setSelectedIn(null);
     setInbound(null);
-    if (isRoundTrip) inboundMut.mutate(key);
+    if (isRoundTrip) inboundMut.mutate({ flightKey: key, filters: inFilters });
   }
 
+  // Filtros de operadora (bagagem, paradas, preço, companhia, partida) exigem
+  // nova consulta — reaplicamos com debounce sempre que o usuário mexe.
+  const firstOut = useRef(true);
+  const outSig = JSON.stringify(toOperatorFilters(outFilters));
+  useEffect(() => {
+    if (firstOut.current) {
+      firstOut.current = false;
+      return;
+    }
+    if (!result?.searchKey) return;
+    const t = setTimeout(() => mut.mutate({ searchKey: result.searchKey, filters: outFilters }), 500);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [outSig]);
+
+  const firstIn = useRef(true);
+  const inSig = JSON.stringify(toOperatorFilters(inFilters));
+  useEffect(() => {
+    if (firstIn.current) {
+      firstIn.current = false;
+      return;
+    }
+    if (!result?.searchKey || !selectedOut) return;
+    const t = setTimeout(() => inboundMut.mutate({ flightKey: selectedOut, filters: inFilters }), 500);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [inSig]);
+
+  const refiltering = mut.isPending && !!result;
   const outFlights = result ? applyFilters(result.outbound.flights, outFilters) : [];
   const inFlights = inbound ? applyFilters(inbound.flights, inFilters) : [];
   const outFlight = result?.outbound.flights.find((f) => f.key === selectedOut) ?? null;
@@ -654,6 +686,7 @@ function VoosPage() {
   const step = !result ? 0 : showSummary ? (isRoundTrip ? 3 : 2) : outFlight && isRoundTrip ? 2 : 1;
   const canSearch = form.departureIata.length === 3 && form.arrivalIata.length === 3 && !!form.departureDate;
   const paxTotal = Number(form.adults) + Number(form.children) + Number(form.infants);
+
 
   return (
     <div className="min-h-screen bg-background">
