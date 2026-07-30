@@ -848,15 +848,19 @@ function VoosPage() {
 
 
             <div className="space-y-6">
-              <section className="space-y-3">
+              <section className={`space-y-3 ${refiltering ? "opacity-60" : ""}`}>
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
                   <h2 className="text-lg font-semibold">
                     {isRoundTrip ? "1. Escolha a ida" : "Voos disponíveis"}
                   </h2>
-                  <span className="text-xs text-muted-foreground">
-                    {outFlights.length} de {result.outbound.flights.length} opções
+                  <span className="flex items-center gap-2 text-xs text-muted-foreground">
+                    {refiltering && <Loader2 className="h-3 w-3 animate-spin text-primary" />}
+                    {refiltering
+                      ? "Reaplicando filtros na operadora…"
+                      : `${outFlights.length} de ${result.outbound.flights.length} opções`}
                   </span>
                 </div>
+
                 {isRoundTrip && !selectedOut && (
                   <p className="text-sm text-muted-foreground">
                     Ao escolher a ida, a operadora carrega as voltas combinadas com essa tarifa.
