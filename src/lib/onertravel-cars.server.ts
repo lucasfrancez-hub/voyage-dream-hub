@@ -296,3 +296,61 @@ export async function searchCars(data: CarSearchInput): Promise<OnerCarSearchRes
   }
   return last;
 }
+
+// ---------------------------------------------------------------- carrinho
+
+/* Cria o carrinho oficial do carro escolhido e devolve a URL pública
+   /viaair/car-cart?newCartId=... para enviar ao cliente. */
+export const carCartInput = z.object({
+  searchKey: z.string().min(5),
+  carKey: z.string().min(5),
+  pickupName: z.string().nullish(),
+  pickupDate: z.string().nullish(),
+  pickupTime: z.string().nullish(),
+  returnDate: z.string().nullish(),
+  returnTime: z.string().nullish(),
+});
+
+export type CarCartData = z.infer<typeof carCartInput>;
+
+export async function createCarCart(data: CarCartData) {
+  const ctx = new URLSearchParams();
+  if (data.pickupDate) ctx.set("pickupDate", data.pickupDate);
+  if (data.pickupTime) ctx.set("pickupTime", data.pickupTime.slice(0, 5));
+  if (data.returnDate) ctx.set("returnDate", data.returnDate);
+  if (data.returnTime) ctx.set("returnTime", data.returnTime.slice(0, 5));
+  if (data.pickupName) ctx.set("pickupLocationName", data.pickupName);
+
+  const listQuery = new URLSearchParams(ctx);
+  listQuery.set("source", "c");
+  const loc = `https://www.comprarviagem.com.br/viaair/car-list?${listQuery.toString()}`;
+
+  const res = await fetch("https://api.onertravel.com/api/booking", {
+    method: "POST",
+    headers: { ...headers(), "x-location-href": loc },
+    body: JSON.stringify({
+      car: { searchKey: data.searchKey, carKey: data.carKey },
+      searchBookingKey: null,
+      affiliateTag: null,
+      eventId: null,
+    }),
+  });
+  const text = await res.text();
+  let cartId = "";
+  try {
+    cartId = (JSON.parse(text) as { data?: string }).data ?? "";
+  } catch {
+    cartId = "";
+  }
+  if (!res.ok || !cartId) {
+    throw new Error(
+      "A operadora não gerou o carrinho do carro (tarifa pode ter expirado). Refaça a busca e tente de novo.",
+    );
+  }
+  const cartQuery = new URLSearchParams({ newCartId: cartId, source: "c" });
+  ctx.forEach((v, k) => cartQuery.set(k, v));
+  return {
+    cartId,
+    url: `https://www.comprarviagem.com.br/viaair/car-cart?${cartQuery.toString()}`,
+  };
+}

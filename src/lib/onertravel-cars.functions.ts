@@ -16,3 +16,8 @@ export const onerCarSearch = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) => carSearchInput.parse(d))
   .handler(async ({ data }) => searchCars(data));
+
+export const onerCreateCarCart = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => carCartInput.parse(d))
+  .handler(async ({ data }) => createCarCart(data));
