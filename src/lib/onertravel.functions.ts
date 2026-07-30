@@ -226,52 +226,80 @@ export function flightHasBaggage(f: OnerFlight): boolean {
   });
 }
 
+/**
+ * A operadora agrega os fornecedores de forma assíncrona: cada consulta devolve
+ * um "snapshot" parcial — às vezes vazio, às vezes menor que o anterior, e o voo
+ * mais barato costuma aparecer só depois de alguns segundos. Por isso NÃO dá pra
+ * usar uma resposta isolada (era isso que fazia faltar voo, vir preço mais caro
+ * e a volta voltar vazia): acumulamos a UNIÃO dos resultados por `key` até o
+ * conjunto estabilizar.
+ */
 async function poll(
   path: "outbound" | "inbound",
   loc: string,
   body: Record<string, unknown>,
   /** quando os filtros já estão aplicados, poucas rodadas bastam */
-  maxRounds = 20,
+  maxRounds = 14,
 ): Promise<OnerLegResult> {
-  // A operadora agrega resultados de vários fornecedores; o total cresce a cada
-  // consulta. Continuamos consultando até estabilizar (ou esgotar o tempo).
-  let best: OnerLegResult = { totalFlightsCount: 0, flights: [], priceRange: null };
+  const acc = new Map<string, OnerFlight>();
+  let reportedTotal = 0;
+  let priceRange: { minPrice: number; maxPrice: number } | null = null;
   let stableRounds = 0;
+  /** só encerra cedo depois de algumas rodadas — o 1º snapshot é sempre parcial */
+  const MIN_ROUNDS = 5;
+  const STABLE_TO_STOP = 4;
+
   for (let i = 0; i < maxRounds; i++) {
-    const res = await fetch(`${SERVERLESS}/api/flight/v1/search/${path}`, {
-      // header `searchkey` NÃO deve ser enviado — o site não envia e a API
-      // devolve lista vazia quando ele está presente.
-      method: "POST",
-      headers: headers(loc),
-      body: JSON.stringify(body),
-    });
-    const text = await res.text();
-    if (res.ok) {
+    let haveMore = false;
+    let page = 1;
+    const before = acc.size;
+
+    do {
+      const res = await fetch(`${SERVERLESS}/api/flight/v1/search/${path}`, {
+        // header `searchkey` NÃO deve ser enviado — o site não envia e a API
+        // devolve lista vazia quando ele está presente.
+        method: "POST",
+        headers: headers(loc),
+        body: JSON.stringify({ ...body, page }),
+      });
+      if (!res.ok) break;
+      const text = await res.text();
       try {
         const json = JSON.parse(text) as {
-          totalFlightsCount: number;
-          flights: OnerFlight[];
+          totalFlightsCount?: number;
+          haveMore?: boolean;
+          flights?: OnerFlight[];
           filterPriceRange?: { minPrice: number; maxPrice: number };
         };
-        if ((json.totalFlightsCount ?? 0) > best.totalFlightsCount) {
-          best = {
-            totalFlightsCount: json.totalFlightsCount,
-            flights: json.flights ?? [],
-            priceRange: json.filterPriceRange ?? null,
-          };
-          stableRounds = 0;
-        } else if (best.totalFlightsCount > 0) {
-          stableRounds++;
-          if (stableRounds >= 2) return best;
+        for (const f of json.flights ?? []) {
+          const prev = acc.get(f.key);
+          // mantém sempre a menor tarifa retornada para o mesmo voo
+          if (!prev || f.price.total < prev.price.total) acc.set(f.key, f);
         }
+        reportedTotal = Math.max(reportedTotal, json.totalFlightsCount ?? 0);
+        if (json.filterPriceRange) priceRange = json.filterPriceRange;
+        haveMore = !!json.haveMore && (json.flights?.length ?? 0) > 0;
+        page++;
       } catch {
-        /* continua */
+        break;
       }
-    }
+    } while (haveMore && page <= 5);
+
+    if (acc.size > before) stableRounds = 0;
+    else if (acc.size > 0) stableRounds++;
+
+    if (i + 1 >= MIN_ROUNDS && stableRounds >= STABLE_TO_STOP) break;
     await sleep(1500);
   }
-  return best;
+
+  const flights = [...acc.values()].sort((a, b) => a.price.total - b.price.total);
+  return {
+    totalFlightsCount: Math.max(reportedTotal, flights.length),
+    flights,
+    priceRange,
+  };
 }
+
 
 export const onerFlightSearch = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
