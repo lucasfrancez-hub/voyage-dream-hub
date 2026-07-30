@@ -180,6 +180,11 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
     return;
   }
 
+  if ((conv as unknown as { ai_paused?: boolean | null }).ai_paused) {
+    console.log(`[agent] conversa ${conv.id} com IA pausada pelo atendente — não responde`);
+    return;
+  }
+
   const agents = await loadAgents();
   const stickySlug = (conv as unknown as { agent_slug?: string | null }).agent_slug ?? null;
   const agent = pickAgent(agents, stickySlug);
