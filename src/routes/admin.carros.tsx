@@ -594,6 +594,8 @@ export function CarrosPage({ header }: { header?: React.ReactNode } = {}) {
   const [result, setResult] = useState<OnerCarSearchResult | null>(null);
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState<string | null>(null);
+  const [summaryOpen, setSummaryOpen] = useState(false);
+
   const [details, setDetails] = useState<OnerCar | null>(null);
   const [catFilter, setCatFilter] = useState<string[]>([]);
   const [filters, setFilters] = useState({
