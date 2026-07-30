@@ -49,6 +49,8 @@ import {
   listCofreOrders,
   updateCofreOrder,
   deleteCofreOrder,
+  getBoletoDocumentUrl,
+
   type CofreOrder,
 } from "@/lib/cofre.functions";
 import { paymentMethodLabel, statusLabel } from "@/lib/order-labels";
