@@ -24,7 +24,17 @@ function fmtDate(d: { year: number; month: number; day: number }) {
   return `${String(d.day).padStart(2, "0")}/${String(d.month).padStart(2, "0")}`;
 }
 
-function FlightCard({ f }: { f: OnerFlight }) {
+function FlightCard({
+  f,
+  selectable,
+  selected,
+  onSelect,
+}: {
+  f: OnerFlight;
+  selectable?: boolean;
+  selected?: boolean;
+  onSelect?: () => void;
+}) {
   const j = f.journey;
   const bag = j.baggagesAllowance?.map((b) => `${b.quantity ?? 1}x ${b.weight ?? ""}${b.unitDescription ?? ""} ${b.typeDescription ?? ""}`.trim());
   return (
