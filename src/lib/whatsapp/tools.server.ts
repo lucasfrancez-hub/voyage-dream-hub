@@ -448,14 +448,18 @@ export function buildCamilaTools(conversation: WaConversation) {
         const { saveMessage } = await import("./conversation.server");
 
         let sendErr: string | undefined;
+        let sentWaId: string | null = null;
         if (pkg.image_url) {
           const r = await sendWhatsAppImage(conversation.wa_phone, pkg.image_url, caption);
+          sentWaId = r.id ?? null;
           if (r.error) {
             sendErr = r.error;
-            await sendWhatsAppText(conversation.wa_phone, caption);
+            const fb = await sendWhatsAppText(conversation.wa_phone, caption);
+            sentWaId = fb.id ?? null;
           }
         } else {
-          await sendWhatsAppText(conversation.wa_phone, caption);
+          const r = await sendWhatsAppText(conversation.wa_phone, caption);
+          sentWaId = r.id ?? null;
         }
 
         await saveMessage({
@@ -463,6 +467,7 @@ export function buildCamilaTools(conversation: WaConversation) {
           direction: "outbound",
           sender: "camila",
           content: caption,
+          wa_message_id: sentWaId,
         });
 
         // Detecta se já foi enviado pacote antes nessa conversa (folder tem o link /w/)

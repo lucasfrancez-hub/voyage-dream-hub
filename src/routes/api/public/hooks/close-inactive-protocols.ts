@@ -113,7 +113,7 @@ export const Route = createFileRoute("/api/public/hooks/close-inactive-protocols
               `Notei que ficou um tempinho sem responder por aqui. Vou encerrar o atendimento por aqui, mas fique tranquila(o), qualquer coisa é só mandar mensagem que a gente volta a tratar do assunto de onde parou, ok? 😊`;
 
 
-            await sendWhatsAppBubbles(conv.wa_phone, avisoMsg);
+            const sentAviso = await sendWhatsAppBubbles(conv.wa_phone, avisoMsg);
 
             // Registra sem tocar em last_activity_at (skip_protocolo=true)
             await saveMessage({
@@ -121,6 +121,7 @@ export const Route = createFileRoute("/api/public/hooks/close-inactive-protocols
               direction: "outbound",
               sender: "system",
               content: avisoMsg,
+              wa_message_id: sentAviso[0]?.id ?? null,
               skip_protocolo: true,
             });
 
@@ -198,13 +199,14 @@ export const Route = createFileRoute("/api/public/hooks/close-inactive-protocols
 
             const encerramentoMsg = `Atendimento encerrado, protocolo ${proto.numero}.`;
 
-            await sendWhatsAppBubbles(conv.wa_phone, encerramentoMsg);
+            const sentEncerramento = await sendWhatsAppBubbles(conv.wa_phone, encerramentoMsg);
 
             await saveMessage({
               conversation_id: proto.conversation_id,
               direction: "outbound",
               sender: "system",
               content: encerramentoMsg,
+              wa_message_id: sentEncerramento[0]?.id ?? null,
               skip_protocolo: true,
             });
 

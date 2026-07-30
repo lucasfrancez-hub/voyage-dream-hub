@@ -639,17 +639,24 @@ export const startOutboundConversation = createServerFn({ method: "POST" })
 
     const { splitToBubbles } = await import("@/lib/whatsapp/send.server");
     const bubbles = splitToBubbles(content);
+    const outboundRowIds: Array<string | null> = [];
     for (const b of bubbles) {
-      await saveMessage({
+      const row = await saveMessage({
         conversation_id: conv.id,
         direction: "outbound",
         sender: "human",
         content: b,
         sender_user_id: context.userId,
       });
+      outboundRowIds.push(row?.id ?? null);
     }
 
-    await sendWhatsAppBubbles(phone, content, prefix);
+    const sentOutbound = await sendWhatsAppBubbles(phone, content, prefix);
+    const { setWaMessageId: setOutboundWaId } = await import("@/lib/whatsapp/conversation.server");
+    for (let i = 0; i < sentOutbound.length; i++) {
+      const rowId = outboundRowIds[i];
+      if (rowId && sentOutbound[i]?.id) await setOutboundWaId(rowId, sentOutbound[i].id);
+    }
     return { ok: true, conversation_id: conv.id };
   });
 
@@ -758,15 +765,17 @@ export const closeProtocoloManually = createServerFn({ method: "POST" })
       `Seu protocolo ${proto.numero} foi encerrado. ✅\n\n` +
       `Obrigado pelo contato com a VIA AIR! Se precisar de qualquer outra coisa, é só chamar por aqui que a gente abre um novo atendimento.`;
 
-    await sendWhatsAppBubbles(conv.wa_phone, encerramentoMsg);
+    const sentClose = await sendWhatsAppBubbles(conv.wa_phone, encerramentoMsg);
 
     const { splitToBubbles: splitClose } = await import("@/lib/whatsapp/send.server");
-    for (const b of splitClose(encerramentoMsg)) {
+    const closeBubbles = splitClose(encerramentoMsg);
+    for (let i = 0; i < closeBubbles.length; i++) {
       await saveMessage({
         conversation_id: conv.id,
         direction: "outbound",
         sender: "system",
-        content: b,
+        content: closeBubbles[i],
+        wa_message_id: sentClose[i]?.id ?? null,
         skip_protocolo: true,
       });
     }
