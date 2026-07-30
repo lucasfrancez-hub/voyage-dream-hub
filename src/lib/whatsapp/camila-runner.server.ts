@@ -147,7 +147,9 @@ export async function runCamila(input: { wa_phone: string; profile_name?: string
     return;
   }
 
-  const text = result.text?.trim();
+  const { fixGluedSentences } = await import("./text-utils.server");
+  const text = result.text ? fixGluedSentences(result.text).trim() : undefined;
+
   if (!text) {
     console.warn("[camila] resposta vazia — enviando fallback");
     const fallback =

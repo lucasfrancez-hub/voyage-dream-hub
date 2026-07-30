@@ -154,6 +154,16 @@ function buildSystemPrompt(agent: Agent, conv: WaConversation, protocolo: WaProt
   }
 
   parts.push(
+    `\n# ✍️ FORMATAÇÃO OBRIGATÓRIA (WhatsApp)\n` +
+    `- Cada ideia/frase vai em um PARÁGRAFO próprio, separado por UMA LINHA EM BRANCO (\\n\\n). Nunca junte tudo num único bloco.\n` +
+    `- Resumos e listas SEMPRE em tópicos, um por linha, começando com "- " (ex.: "- Origem: Maringá").\n` +
+    `- Antes de uma lista, quebre a linha depois dos dois-pontos.\n` +
+    `- Nunca cole palavras/frases (proibido "PerfeitoO Fabrício", "pedido.Vou", "HotelVou"): sempre espaço ou quebra de linha.\n` +
+    `- Máximo ~3 linhas por parágrafo. Sem markdown de título; negrito só com *asterisco simples*.`
+  );
+
+
+  parts.push(
     `\n# ❌ NUNCA PEÇA DADO QUE NÃO EXISTE\n` +
     `- Se o assunto é COTAÇÃO / ORÇAMENTO / PROPOSTA / "o comercial não entrou em contato", NÃO existe pedido, nem localizador, nem reserva. ` +
     `É PROIBIDO pedir número do pedido, localizador, reserva ou CPF nesses casos. ` +

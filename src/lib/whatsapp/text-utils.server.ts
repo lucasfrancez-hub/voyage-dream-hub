@@ -31,6 +31,10 @@ export function capitalizeSentenceStart(text: string): string {
  */
 export function fixGluedSentences(text: string): string {
   let out = text;
+  // "aqui:- Origem" → "aqui:\n- Origem"
+  out = out.replace(/([:：])\s*-\s+/gu, "$1\n- ");
+  // itens de lista grudados: "Maringá- Destino:" → quebra antes do "-"
+  out = out.replace(/([^\s\n-])\s*-\s+(?=[A-ZÀ-Þa-zà-ÿ][^\n:]{1,40}:)/gu, "$1\n- ");
   // pontuação final colada em letra maiúscula (sem espaço)
   out = out.replace(
     /([a-zà-ÿ0-9)\]"'])([.!?…])([A-ZÀ-Þ])/gu,
@@ -39,13 +43,20 @@ export function fixGluedSentences(text: string): string {
   // interjeição colada na frase seguinte: "PerfeitoO Fabrício" → "Perfeito. O Fabrício".
   // Só para um conjunto fechado de palavras, pra não quebrar "WhatsApp", "ViaAir" etc.
   out = out.replace(
-    /\b(perfeito|certo|combinado|show|beleza|entendi|obrigad[oa]|ótimo|otimo|claro|isso)([A-ZÀ-Þ])/gu,
+    /\b(perfeito|certo|combinado|show|beleza|entendi|obrigad[oa]|ótimo|otimo|claro|isso|consigo sim|sim)([A-ZÀ-Þ])/gu,
     (_m, word: string, after: string) => `${word}.\n\n${after}`,
+  );
+  // palavra minúscula colada em nova frase: "HotelVou pedir" → "Hotel\n\nVou pedir"
+  const KEEP = /^(WhatsApp|ViaAir|VIA AIR|TripAdvisor|LATAM|GOL|iPhone|McDonald|MacBook|PayPal|YouTube|InstaGram|Instagram|AirBnb|Airbnb|eSIM)$/;
+  out = out.replace(
+    /([a-zà-ÿ]{3,})([A-ZÀ-Þ][a-zà-ÿ]{2,})/gu,
+    (m, a: string, b: string) => (KEEP.test(m) ? m : `${a}\n\n${b}`),
   );
   // garante espaço depois de vírgula/ponto-e-vírgula colados em letra
   out = out.replace(/([,;])(?=[^\s\d])/gu, "$1 ");
   return out;
 }
+
 
 /**
  * Aplica capitalização inicial em cada balão (separados por \n+).
