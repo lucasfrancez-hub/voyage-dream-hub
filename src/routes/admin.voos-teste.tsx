@@ -1122,64 +1122,62 @@ export function VoosPage({
           </div>
 
           {!hideForm && (
-          <div className="rounded-2xl border border-border/70 bg-card/85 p-4 shadow-[var(--shadow-card)] backdrop-blur">
-            <div className="grid gap-3 lg:grid-cols-[1fr_1fr_auto]">
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <Label className="flex items-center gap-1 text-[11px] uppercase tracking-wide text-muted-foreground">
-                    <MapPin className="h-3 w-3" /> Origem
-                  </Label>
-                  <Input
-                    className="h-11 text-base font-semibold uppercase"
-                    value={form.departureIata}
-                    maxLength={3}
-                    onChange={(e) => setForm({ ...form, departureIata: e.target.value.toUpperCase() })}
-                    placeholder="CWB"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label className="flex items-center gap-1 text-[11px] uppercase tracking-wide text-muted-foreground">
-                    <ArrowLeftRight className="h-3 w-3" /> Destino
-                  </Label>
-                  <Input
-                    className="h-11 text-base font-semibold uppercase"
-                    value={form.arrivalIata}
-                    maxLength={3}
-                    onChange={(e) => setForm({ ...form, arrivalIata: e.target.value.toUpperCase() })}
-                    placeholder="GRU"
-                  />
-                </div>
+          <div className="rounded-[32px] border border-border/50 bg-card/60 p-6 shadow-2xl backdrop-blur-xl md:p-8">
+            <div className="grid grid-cols-12 items-end gap-4">
+              <div className="col-span-12 space-y-2 md:col-span-3">
+                <Label className="flex items-center gap-2 px-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                  <MapPin className="h-3 w-3 text-primary" /> Origem
+                </Label>
+                <Input
+                  className="h-12 rounded-xl border-border/40 bg-muted/40 px-4 text-base font-semibold uppercase transition-all focus-visible:ring-2 focus-visible:ring-primary/50"
+                  value={form.departureIata}
+                  maxLength={3}
+                  onChange={(e) => setForm({ ...form, departureIata: e.target.value.toUpperCase() })}
+                  placeholder="CWB"
+                />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <Label className="flex items-center gap-1 text-[11px] uppercase tracking-wide text-muted-foreground">
-                    <CalendarDays className="h-3 w-3" /> Ida
-                  </Label>
-                  <Input
-                    className="h-11"
-                    type="date"
-                    value={form.departureDate}
-                    onChange={(e) => setForm({ ...form, departureDate: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label className="flex items-center gap-1 text-[11px] uppercase tracking-wide text-muted-foreground">
-                    <CalendarDays className="h-3 w-3" /> Volta (opcional)
-                  </Label>
-                  <Input
-                    className="h-11"
-                    type="date"
-                    value={form.returnDate}
-                    onChange={(e) => setForm({ ...form, returnDate: e.target.value })}
-                  />
-                </div>
+              <div className="col-span-12 space-y-2 md:col-span-3">
+                <Label className="flex items-center gap-2 px-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                  <ArrowLeftRight className="h-3 w-3 text-primary" /> Destino
+                </Label>
+                <Input
+                  className="h-12 rounded-xl border-border/40 bg-muted/40 px-4 text-base font-semibold uppercase transition-all focus-visible:ring-2 focus-visible:ring-primary/50"
+                  value={form.arrivalIata}
+                  maxLength={3}
+                  onChange={(e) => setForm({ ...form, arrivalIata: e.target.value.toUpperCase() })}
+                  placeholder="GRU"
+                />
               </div>
 
-              <div className="flex items-end">
+              <div className="col-span-12 space-y-2 md:col-span-2">
+                <Label className="flex items-center gap-2 px-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                  <CalendarDays className="h-3 w-3 text-primary" /> Ida
+                </Label>
+                <Input
+                  className="h-12 rounded-xl border-border/40 bg-muted/40 px-4 font-semibold transition-all focus-visible:ring-2 focus-visible:ring-primary/50"
+                  type="date"
+                  value={form.departureDate}
+                  onChange={(e) => setForm({ ...form, departureDate: e.target.value })}
+                />
+              </div>
+
+              <div className="col-span-12 space-y-2 md:col-span-2">
+                <Label className="flex items-center gap-2 px-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                  Volta (opcional)
+                </Label>
+                <Input
+                  className="h-12 rounded-xl border-border/40 bg-muted/40 px-4 font-semibold transition-all focus-visible:ring-2 focus-visible:ring-primary/50"
+                  type="date"
+                  value={form.returnDate}
+                  onChange={(e) => setForm({ ...form, returnDate: e.target.value })}
+                />
+              </div>
+
+              <div className="col-span-12 md:col-span-2">
                 <Button
                   size="lg"
-                  className="h-11 w-full lg:w-auto"
+                  className="h-12 w-full rounded-xl font-bold shadow-xl shadow-primary/25 transition-all hover:scale-[1.02] active:scale-95"
                   disabled={!canSearch || mut.isPending}
                   onClick={() => mut.mutate({ searchKey: null, filters: EMPTY_FILTERS })}
                 >
@@ -1191,34 +1189,40 @@ export function VoosPage({
                   Buscar
                 </Button>
               </div>
-            </div>
 
-            <div className="mt-3 flex flex-wrap items-end gap-3 border-t border-border/60 pt-3">
-              <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                <Users className="h-3 w-3" /> {paxTotal} passageiro(s)
-              </span>
-              {[
-                { k: "adults" as const, l: "Adultos", min: 1 },
-                { k: "children" as const, l: "Crianças", min: 0 },
-                { k: "infants" as const, l: "Bebês", min: 0 },
-              ].map((p) => (
-                <div key={p.k} className="w-24 space-y-1">
-                  <Label className="text-[11px] text-muted-foreground">{p.l}</Label>
-                  <Input
-                    className="h-9"
-                    type="number"
-                    min={p.min}
-                    max={9}
-                    value={form[p.k]}
-                    onChange={(e) => setForm({ ...form, [p.k]: Number(e.target.value) })}
-                  />
+              <div className="col-span-12 mt-2 flex flex-col items-start gap-6 border-t border-border/40 pt-6 md:flex-row md:items-center md:justify-between">
+                <div className="flex flex-wrap items-center gap-6">
+                  <span className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                    <Users className="h-5 w-5" /> {paxTotal} passageiro(s)
+                  </span>
+                  <div className="flex items-center gap-4">
+                    {[
+                      { k: "adults" as const, l: "Adultos", min: 1 },
+                      { k: "children" as const, l: "Crianças", min: 0 },
+                      { k: "infants" as const, l: "Bebês", min: 0 },
+                    ].map((p) => (
+                      <div key={p.k} className="flex flex-col">
+                        <span className="mb-1 text-[9px] font-bold uppercase tracking-wider text-muted-foreground">
+                          {p.l}
+                        </span>
+                        <Input
+                          className="h-8 w-16 rounded-lg border-border/50 bg-muted/40 px-2 text-center"
+                          type="number"
+                          min={p.min}
+                          max={9}
+                          value={form[p.k]}
+                          onChange={(e) => setForm({ ...form, [p.k]: Number(e.target.value) })}
+                        />
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              ))}
-              <span className="text-[11px] text-muted-foreground">
-                Use SAO, RIO ou BHZ para buscar todos os aeroportos da cidade. Paradas, bagagem e horários
-                ficam nos filtros ao lado depois da busca.
-              </span>
 
+                <p className="max-w-lg text-[11px] leading-relaxed text-muted-foreground md:text-right">
+                  Use <span className="font-medium text-foreground/80">SAO, RIO ou BHZ</span> para buscar todos os
+                  aeroportos da cidade. Paradas, bagagem e horários ficam nos filtros ao lado depois da busca.
+                </p>
+              </div>
             </div>
           </div>
           )}
