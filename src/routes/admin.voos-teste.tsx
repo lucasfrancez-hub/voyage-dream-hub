@@ -384,7 +384,43 @@ function Stepper({ step, roundTrip }: { step: number; roundTrip: boolean }) {
 
 // ---------------------------------------------------------------- card
 
+/** Barra compacta do trecho já escolhido, com botão de editar (volta ao passo). */
+function SelectedLegBar({ label, f, onEdit }: { label: string; f: OnerFlight; onEdit: () => void }) {
+  const j = f.journey;
+  return (
+    <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-primary/40 bg-primary/5 p-3">
+      <Badge className="gap-1">
+        <Check className="h-3 w-3" /> {label}
+      </Badge>
+      {j.marketingAirline?.pathLogo ? (
+        <img
+          src={j.marketingAirline.pathLogo}
+          alt={j.marketingAirline?.name ?? "Companhia aérea"}
+          className="h-6 w-6 rounded bg-white object-contain"
+          loading="lazy"
+        />
+      ) : (
+        <Plane className="h-4 w-4 text-muted-foreground" />
+      )}
+      <div className="text-sm font-semibold">
+        {j.departure.iata} {fmtTime(j.departure.time)} → {j.destination.iata} {fmtTime(j.destination.time)}
+      </div>
+      <span className="text-xs text-muted-foreground">
+        {fmtDate(j.departure.date)} • {j.numberOfStops === 0 ? "direto" : `${j.numberOfStops} conexão(ões)`} •{" "}
+        {flightHasBaggage(f) ? "com bagagem" : "só mão"}
+      </span>
+      <div className="ml-auto flex items-center gap-3">
+        <span className="text-sm font-bold text-primary">{fmtMoney(f.price.total)}</span>
+        <Button size="sm" variant="outline" onClick={onEdit} className="gap-1">
+          <RotateCcw className="h-3.5 w-3.5" /> Editar
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 function FlightCard({
+
   f,
   selected,
   onSelect,
@@ -680,6 +716,13 @@ function VoosPage() {
   const outFlight = result?.outbound.flights.find((f) => f.key === selectedOut) ?? null;
   const inFlight = inbound?.flights.find((f) => f.key === selectedIn) ?? null;
   const showSummary = !!outFlight && (!isRoundTrip || !!inFlight);
+  const inboundPhase = isRoundTrip && !!selectedOut;
+  function editOutbound() {
+    setSelectedOut(null);
+    setSelectedIn(null);
+    setInbound(null);
+  }
+
   const cheapestOut = outFlights.length ? Math.min(...outFlights.map((f) => f.price.total)) : null;
   const cheapestIn = inFlights.length ? Math.min(...inFlights.map((f) => f.price.total)) : null;
 
@@ -824,65 +867,79 @@ function VoosPage() {
         )}
 
         {result && (
-          <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
-            <aside className="space-y-4 lg:sticky lg:top-4 lg:self-start">
-              <FiltersPanel
-                title={isRoundTrip ? "Filtros da ida" : "Filtros"}
-                flights={airlinePool.length ? airlinePool : result.outbound.flights}
-                filters={outFilters}
-                onChange={setOutFilters}
-                loading={refiltering}
-                priceRange={result.outbound.priceRange}
-              />
-              {inbound && (
-                <FiltersPanel
-                  title="Filtros da volta"
-                  flights={inbound.flights}
-                  filters={inFilters}
-                  onChange={setInFilters}
-                  loading={inboundMut.isPending}
-                  priceRange={inbound.priceRange}
-                />
-              )}
-            </aside>
-
+          <div className={`grid gap-6 ${showSummary ? "" : "lg:grid-cols-[280px_1fr]"}`}>
+            {!showSummary && (
+              <aside className="space-y-4 lg:sticky lg:top-4 lg:self-start">
+                {!inboundPhase ? (
+                  <FiltersPanel
+                    title={isRoundTrip ? "Filtros da ida" : "Filtros"}
+                    flights={airlinePool.length ? airlinePool : result.outbound.flights}
+                    filters={outFilters}
+                    onChange={setOutFilters}
+                    loading={refiltering}
+                    priceRange={result.outbound.priceRange}
+                  />
+                ) : (
+                  inbound && (
+                    <FiltersPanel
+                      title="Filtros da volta"
+                      flights={inbound.flights}
+                      filters={inFilters}
+                      onChange={setInFilters}
+                      loading={inboundMut.isPending}
+                      priceRange={inbound.priceRange}
+                    />
+                  )
+                )}
+              </aside>
+            )}
 
             <div className="space-y-6">
-              <section className={`space-y-3 ${refiltering ? "opacity-60" : ""}`}>
-                <div className="flex flex-wrap items-baseline justify-between gap-2">
-                  <h2 className="text-lg font-semibold">
-                    {isRoundTrip ? "1. Escolha a ida" : "Voos disponíveis"}
-                  </h2>
-                  <span className="flex items-center gap-2 text-xs text-muted-foreground">
-                    {refiltering && <Loader2 className="h-3 w-3 animate-spin text-primary" />}
-                    {refiltering
-                      ? "Reaplicando filtros na operadora…"
-                      : `${outFlights.length} de ${result.outbound.flights.length} opções`}
-                  </span>
-                </div>
+              {/* trechos já escolhidos, com botão de editar */}
+              {outFlight && (isRoundTrip || showSummary) && (
+                <SelectedLegBar label="Ida escolhida" f={outFlight} onEdit={editOutbound} />
+              )}
+              {inFlight && <SelectedLegBar label="Volta escolhida" f={inFlight} onEdit={() => setSelectedIn(null)} />}
 
-                {isRoundTrip && !selectedOut && (
-                  <p className="text-sm text-muted-foreground">
-                    Ao escolher a ida, a operadora carrega as voltas combinadas com essa tarifa.
-                  </p>
-                )}
-                {outFlights.map((f) => (
-                  <FlightCard
-                    key={f.key}
-                    f={f}
-                    selected={selectedOut === f.key}
-                    cheapest={f.price.total === cheapestOut}
-                    onSelect={() => pickOutbound(f.key)}
-                  />
-                ))}
-                {!outFlights.length && (
-                  <p className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
-                    Nenhum voo com esses filtros.
-                  </p>
-                )}
-              </section>
+              {/* passo 1 — ida */}
+              {!inboundPhase && (
+                <section className={`space-y-3 ${refiltering ? "opacity-60" : ""}`}>
+                  <div className="flex flex-wrap items-baseline justify-between gap-2">
+                    <h2 className="text-lg font-semibold">
+                      {isRoundTrip ? "1. Escolha a ida" : "Voos disponíveis"}
+                    </h2>
+                    <span className="flex items-center gap-2 text-xs text-muted-foreground">
+                      {refiltering && <Loader2 className="h-3 w-3 animate-spin text-primary" />}
+                      {refiltering
+                        ? "Reaplicando filtros na operadora…"
+                        : `${outFlights.length} de ${result.outbound.flights.length} opções`}
+                    </span>
+                  </div>
 
-              {isRoundTrip && inboundMut.isPending && (
+                  {isRoundTrip && (
+                    <p className="text-sm text-muted-foreground">
+                      Ao escolher a ida, a operadora carrega as voltas combinadas com essa tarifa.
+                    </p>
+                  )}
+                  {outFlights.map((f) => (
+                    <FlightCard
+                      key={f.key}
+                      f={f}
+                      selected={selectedOut === f.key}
+                      cheapest={f.price.total === cheapestOut}
+                      onSelect={() => pickOutbound(f.key)}
+                    />
+                  ))}
+                  {!outFlights.length && (
+                    <p className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
+                      Nenhum voo com esses filtros.
+                    </p>
+                  )}
+                </section>
+              )}
+
+              {/* passo 2 — volta */}
+              {inboundPhase && inboundMut.isPending && (
                 <div className="space-y-3">
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Loader2 className="h-4 w-4 animate-spin" /> Combinando voltas para a ida selecionada…
@@ -891,8 +948,8 @@ function VoosPage() {
                 </div>
               )}
 
-              {inbound && (
-                <section className="space-y-3">
+              {inboundPhase && inbound && !inFlight && (
+                <section className={`space-y-3 ${inboundMut.isPending ? "opacity-60" : ""}`}>
                   <div className="flex flex-wrap items-baseline justify-between gap-2">
                     <h2 className="text-lg font-semibold">2. Escolha a volta</h2>
                     <span className="text-xs text-muted-foreground">
@@ -920,6 +977,7 @@ function VoosPage() {
             </div>
           </div>
         )}
+
 
         {!result && !mut.isPending && (
           <div className="rounded-2xl border border-dashed border-border p-12 text-center">
