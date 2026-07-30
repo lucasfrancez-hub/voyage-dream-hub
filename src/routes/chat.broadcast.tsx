@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Loader2, RefreshCw, Plus, Megaphone, Trash2, Send, X, Users, Radio, Package, Search, CalendarClock, ChevronLeft, ChevronRight, Instagram, Sparkles, Check, MapPin, Clock, FileDown } from "lucide-react";
+import { Loader2, RefreshCw, Plus, Megaphone, Trash2, Send, X, Users, Radio, Package, Search, CalendarClock, ChevronLeft, ChevronRight, Instagram, Sparkles, Check, MapPin, Clock, FileDown, ChevronUp, ChevronDown, Maximize2, Minimize2 } from "lucide-react";
 import {
   listCampanhas,
   listDestinos,
@@ -1622,6 +1622,15 @@ function CampanhaEditor({
   function updateBloco(i: number, patch: Partial<Bloco>) {
     setBlocos((b) => b.map((x, idx) => (idx === i ? { ...x, ...patch } : x)));
   }
+  function moveBloco(i: number, dir: -1 | 1) {
+    setBlocos((b) => {
+      const j = i + dir;
+      if (j < 0 || j >= b.length) return b;
+      const copy = [...b];
+      [copy[i], copy[j]] = [copy[j], copy[i]];
+      return copy;
+    });
+  }
 
   async function salvar(status: "rascunho" | "agendada") {
     if (!nome.trim()) return toast.error("Dê um nome à campanha");
@@ -1810,7 +1819,15 @@ function CampanhaEditor({
               ) : (
                 <div className="space-y-2">
                   {blocos.map((b, i) => (
-                    <BlocoEditor key={i} idx={i} bloco={b} onChange={(p) => updateBloco(i, p)} onRemove={() => removeBloco(i)} />
+                    <BlocoEditor
+                      key={i}
+                      idx={i}
+                      total={blocos.length}
+                      bloco={b}
+                      onChange={(p) => updateBloco(i, p)}
+                      onRemove={() => removeBloco(i)}
+                      onMove={(dir) => moveBloco(i, dir)}
+                    />
                   ))}
                 </div>
               )}
@@ -2022,17 +2039,22 @@ function toLocalInput(iso?: string | null) {
 
 function BlocoEditor({
   idx,
+  total,
   bloco,
   onChange,
   onRemove,
+  onMove,
 }: {
   idx: number;
+  total: number;
   bloco: Bloco;
   onChange: (p: Partial<Bloco>) => void;
   onRemove: () => void;
+  onMove: (dir: -1 | 1) => void;
 }) {
   const isMedia = bloco.tipo !== "text" && bloco.tipo !== "buttons";
   const [uploading, setUploading] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   const doUpload = useServerFn(uploadBroadcastMedia);
 
   const accept =
@@ -2058,14 +2080,39 @@ function BlocoEditor({
     }
   }
 
+  const caption = bloco.tipo === "text" ? (bloco.texto ?? "") : (bloco.midia_caption ?? bloco.texto ?? "");
+  const setCaption = (v: string) =>
+    bloco.tipo === "text" ? onChange({ texto: v }) : onChange({ midia_caption: v });
+
   return (
-    <div className="rounded-lg border border-border bg-card p-3">
-      <div className="flex items-center justify-between mb-2 gap-2">
-        <span className="text-xs uppercase text-muted-foreground">
-          #{idx + 1} · {bloco.tipo}
-        </span>
+    <div className="group rounded-xl border border-border bg-card transition-colors hover:border-brand-orange/40">
+      {/* barra do bloco */}
+      <div className="flex items-center justify-between gap-2 rounded-t-xl border-b border-border bg-muted/40 px-3 py-2">
+        <div className="flex items-center gap-3">
+          <div className="flex flex-col">
+            <button
+              onClick={() => onMove(-1)}
+              disabled={idx === 0}
+              title="Mover para cima"
+              className="p-0.5 text-muted-foreground hover:text-brand-orange disabled:opacity-25"
+            >
+              <ChevronUp className="h-3.5 w-3.5" />
+            </button>
+            <button
+              onClick={() => onMove(1)}
+              disabled={idx === total - 1}
+              title="Mover para baixo"
+              className="p-0.5 text-muted-foreground hover:text-brand-orange disabled:opacity-25"
+            >
+              <ChevronDown className="h-3.5 w-3.5" />
+            </button>
+          </div>
+          <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+            #{idx + 1} · {bloco.tipo}
+          </span>
+        </div>
         <div className="flex items-center gap-2">
-          <label className="flex items-center gap-1 text-[11px] text-muted-foreground">
+          <label className="flex items-center gap-1 rounded-md border border-border bg-background px-2 py-1 text-[11px] text-muted-foreground">
             <Clock className="h-3 w-3" />
             <input
               type="datetime-local"
@@ -2074,18 +2121,31 @@ function BlocoEditor({
                 onChange({ scheduled_at: e.target.value ? new Date(e.target.value).toISOString() : null })
               }
               title="Horário específico deste bloco (opcional)"
-              className="rounded-md border border-border bg-background px-2 py-1 text-[11px]"
+              className="bg-transparent text-[11px] outline-none"
             />
           </label>
-          <button onClick={onRemove} className="p-1 rounded-full hover:bg-muted text-muted-foreground hover:text-red-500">
+          <button onClick={onRemove} title="Excluir bloco" className="rounded-full p-1.5 text-muted-foreground hover:bg-red-50 hover:text-red-500">
             <Trash2 className="h-3.5 w-3.5" />
           </button>
         </div>
       </div>
-      {isMedia && (
-        <div className="mb-2 space-y-2">
-          <div className="flex items-center gap-2">
-            <label className={`inline-flex items-center gap-1.5 text-xs rounded-full border border-border px-3 py-1.5 cursor-pointer hover:border-brand-orange ${uploading ? "opacity-60 pointer-events-none" : ""}`}>
+
+      {/* corpo */}
+      <div className="flex flex-col gap-4 p-4 sm:flex-row">
+        {isMedia && (
+          <div className="flex w-full shrink-0 flex-col gap-2 sm:w-32">
+            {bloco.tipo === "image" && bloco.midia_url ? (
+              <img
+                src={bloco.midia_url}
+                alt="Prévia da mídia da campanha"
+                className="aspect-[3/4] w-full rounded-lg border border-border object-cover"
+              />
+            ) : (
+              <div className="flex aspect-[3/4] w-full items-center justify-center rounded-lg border border-dashed border-border text-[10px] text-muted-foreground">
+                sem mídia
+              </div>
+            )}
+            <label className={`inline-flex cursor-pointer items-center justify-center gap-1.5 rounded-md border border-brand-orange px-2 py-1.5 text-[10px] font-bold uppercase tracking-tight text-brand-orange hover:bg-brand-orange/5 ${uploading ? "pointer-events-none opacity-60" : ""}`}>
               {uploading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Plus className="h-3 w-3" />}
               {uploading ? "Enviando…" : "Enviar arquivo"}
               <input
@@ -2100,43 +2160,65 @@ function BlocoEditor({
               />
             </label>
             {bloco.midia_url && (
-              <a href={bloco.midia_url} target="_blank" rel="noreferrer" className="text-[11px] text-brand-orange truncate max-w-[220px] hover:underline">
+              <a href={bloco.midia_url} target="_blank" rel="noreferrer" className="text-center text-[9px] font-medium text-muted-foreground hover:text-brand-orange">
                 arquivo anexado
               </a>
             )}
           </div>
-          {bloco.tipo === "image" && bloco.midia_url && (
-            <img src={bloco.midia_url} alt="Prévia da mídia da campanha" className="h-24 rounded-md border border-border object-cover" />
+        )}
+
+        <div className="flex min-w-0 flex-1 flex-col gap-3">
+          {isMedia && (
+            <div>
+              <label className="mb-1 block text-[10px] font-bold uppercase tracking-tight text-muted-foreground">URL da mídia</label>
+              <input
+                type="url"
+                value={bloco.midia_url ?? ""}
+                onChange={(e) => onChange({ midia_url: e.target.value })}
+                placeholder="ou cole a URL do arquivo (https://…)"
+                className="w-full truncate rounded-md border border-border bg-muted/40 px-3 py-1.5 text-[11px]"
+              />
+            </div>
           )}
-          <input
-            type="url"
-            value={bloco.midia_url ?? ""}
-            onChange={(e) => onChange({ midia_url: e.target.value })}
-            placeholder="ou cole a URL do arquivo (https://…)"
-            className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm"
-          />
+          {bloco.tipo === "document" && (
+            <input
+              value={bloco.midia_filename ?? ""}
+              onChange={(e) => onChange({ midia_filename: e.target.value })}
+              placeholder="Nome do arquivo (ex: promocao.pdf)"
+              className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm"
+            />
+          )}
+
+          <div className="flex flex-1 flex-col">
+            <div className="mb-1 flex items-center justify-between">
+              <label className="text-[10px] font-bold uppercase tracking-tight text-muted-foreground">
+                {bloco.tipo === "text" ? "Mensagem" : "Legenda da mensagem"}
+              </label>
+              <button
+                onClick={() => setExpanded((v) => !v)}
+                className="inline-flex items-center gap-1 text-[10px] font-semibold text-brand-orange hover:underline"
+              >
+                {expanded ? <Minimize2 className="h-3 w-3" /> : <Maximize2 className="h-3 w-3" />}
+                {expanded ? "Reduzir" : "Expandir"}
+              </button>
+            </div>
+            <div className="rounded-xl border border-border bg-[#DCF8C6]/15 p-3 shadow-sm focus-within:border-brand-orange/50">
+              <textarea
+                value={caption}
+                onChange={(e) => setCaption(e.target.value)}
+                placeholder={bloco.tipo === "text" ? "Escreva a mensagem…" : "Legenda (opcional)"}
+                className={`w-full resize-y bg-transparent text-sm leading-relaxed outline-none placeholder:text-muted-foreground/60 ${expanded ? "min-h-[420px]" : "min-h-[140px]"}`}
+              />
+              <div className="mt-2 flex items-center justify-between border-t border-black/5 pt-2">
+                <span className="text-[10px] text-muted-foreground">*negrito* · _itálico_</span>
+                <span className="rounded-full bg-background/70 px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
+                  {caption.length} / 1024
+                </span>
+              </div>
+            </div>
+          </div>
         </div>
-      )}
-      {bloco.tipo === "document" && (
-        <input
-          value={bloco.midia_filename ?? ""}
-          onChange={(e) => onChange({ midia_filename: e.target.value })}
-          placeholder="Nome do arquivo (ex: promocao.pdf)"
-          className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm mb-2"
-        />
-      )}
-      <textarea
-        value={bloco.tipo === "text" ? (bloco.texto ?? "") : (bloco.midia_caption ?? bloco.texto ?? "")}
-        onChange={(e) =>
-          bloco.tipo === "text"
-            ? onChange({ texto: e.target.value })
-            : onChange({ midia_caption: e.target.value })
-        }
-        rows={bloco.tipo === "text" ? 4 : 2}
-        placeholder={bloco.tipo === "text" ? "Escreva a mensagem…" : "Legenda (opcional)"}
-        className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm"
-      />
+      </div>
     </div>
   );
-
 }
