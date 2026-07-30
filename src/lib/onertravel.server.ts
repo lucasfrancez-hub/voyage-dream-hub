@@ -240,3 +240,54 @@ export async function searchAirports(data: z.infer<typeof airportSearchInput>) {
 
   return out.slice(0, 20);
 }
+
+export async function searchFlights(data: SearchData): Promise<OnerSearchResult> {
+  const loc = buildLocationHref(data);
+  let searchKey = data.searchKey ?? "";
+
+  if (!searchKey) {
+    const startRes = await fetch(`${SERVERLESS}/api/flight/v1/search`, {
+      method: "POST",
+      headers: headers(loc),
+      body: JSON.stringify({
+        departureDate: `${data.departureDate}T00:00:00.000Z`,
+        ...(data.returnDate ? { returnDate: `${data.returnDate}T00:00:00.000Z` } : {}),
+        departureStation: data.departureIata.toUpperCase(),
+        arrivalStation: data.arrivalIata.toUpperCase(),
+        isDepartureStationCity: data.departureIsCity,
+        isArrivalStationCity: data.arrivalIsCity,
+        paxAdtCount: data.adults,
+        paxChdCount: data.children,
+        paxInfCount: data.infants,
+      }),
+    });
+    const startText = await startRes.text();
+    try {
+      searchKey = (JSON.parse(startText) as { searchKey?: string }).searchKey ?? "";
+    } catch {
+      searchKey = "";
+    }
+    if (!searchKey) {
+      throw new Error(`A operadora não retornou chave de busca (HTTP ${startRes.status}). Tente novamente em instantes.`);
+    }
+  }
+
+  const outbound = await poll("outbound", loc, {
+    searchKey,
+    pageSize: data.pageSize,
+    filter: buildFilter(data.filters),
+    ordinationEnum: 0,
+  });
+  return { searchKey, outbound, inbound: null };
+}
+
+export async function searchInboundFlights(data: InboundData): Promise<OnerLegResult> {
+  const loc = buildLocationHref(data);
+  return poll("inbound", loc, {
+    searchKey: data.searchKey,
+    flightKey: data.flightKey,
+    pageSize: data.pageSize,
+    filter: buildFilter(data.filters),
+    ordinationEnum: 0,
+  });
+}
