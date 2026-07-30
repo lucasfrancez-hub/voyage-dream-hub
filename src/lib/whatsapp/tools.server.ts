@@ -176,6 +176,46 @@ export function buildCamilaTools(conversation: WaConversation) {
       },
     }),
 
+    cotar_aereo: tool({
+      description:
+        "Cota passagens aéreas AO VIVO na operadora e devolve 3-4 opções já rankeadas (mais em conta, voo direto, melhor custo-benefício). Use SOMENTE quando o cliente pedir cotação de AÉREO e você já tiver: origem, destino, data de ida, data de volta (se for ida e volta) e quantidade de passageiros. Nunca chame sem esses dados. Não envia nada ao cliente — você escreve a resposta com o resultado.",
+      inputSchema: z.object({
+        origem: z.string().describe("Cidade ou IATA de origem, ex: 'Curitiba' ou 'CWB'"),
+        destino: z.string().describe("Cidade ou IATA de destino"),
+        data_ida: z.string().describe("Data de ida no formato AAAA-MM-DD"),
+        data_volta: z.string().nullable().describe("Data de volta AAAA-MM-DD, ou null se só ida"),
+        adultos: z.number().nullable().describe("Adultos (12+), padrão 1"),
+        criancas: z.number().nullable().describe("Crianças de 2 a 11 anos"),
+        bebes: z.number().nullable().describe("Bebês de colo, até 2 anos"),
+        periodo_ida: z
+          .enum(["manha", "tarde", "noite", "livre"])
+          .nullable()
+          .describe("Preferência de horário da ida; 'livre' se o cliente não tem preferência"),
+        periodo_volta: z.enum(["manha", "tarde", "noite", "livre"]).nullable(),
+        bagagem_despachada: z
+          .boolean()
+          .nullable()
+          .describe("true se o cliente precisa de bagagem despachada inclusa"),
+      }),
+      execute: async (args) => {
+        const { quoteFlights } = await import("./flight-quote.server");
+        return await quoteFlights({
+          origem: args.origem,
+          destino: args.destino,
+          data_ida: args.data_ida,
+          data_volta: args.data_volta,
+          adultos: args.adultos,
+          criancas: args.criancas,
+          bebes: args.bebes,
+          periodo_ida: args.periodo_ida,
+          periodo_volta: args.periodo_volta,
+          bagagem_despachada: args.bagagem_despachada,
+        });
+      },
+    }),
+
+
+
     buscar_pacotes: tool({
       description:
         "Lista pacotes disponíveis no admin, opcionalmente filtrados por destino e origem. Retorna a lista SÓ pra você escolher — não envia nada ao cliente. SEMPRE informe 'origem' quando souber a cidade do cliente: a busca prioriza pacotes saindo dessa cidade e, se não houver, retorna também as opções de outras origens marcadas como fallback. Depois use enviar_pacote (folder completo com imagem + preços) ou enviar_link_pacote.",
