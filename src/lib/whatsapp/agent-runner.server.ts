@@ -430,7 +430,7 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
         .select("id", { count: "exact", head: true })
         .eq("conversation_id", conv.id)
         .eq("direction", "outbound")
-        .in("sender", ["camila", "agent", "human"]);
+        .neq("sender", "system");
       jaFalouAntes = (count ?? 0) > 0;
     } catch { /* noop */ }
 
