@@ -30,12 +30,7 @@ function fmtDate(d: string | null | undefined): string {
  * `conversation` é passada por closure para que as tools tenham contexto
  * (identidade verificada, telefone, etc).
  */
-type ToolProtocolScope = {
-  protocolId?: string | null;
-  openedAt?: string | null;
-};
-
-export function buildCamilaTools(conversation: WaConversation, scope: ToolProtocolScope = {}) {
+export function buildCamilaTools(conversation: WaConversation) {
   const isIdentityVerified = !!conversation.identity_verified_at;
 
   return {
@@ -43,9 +38,9 @@ export function buildCamilaTools(conversation: WaConversation, scope: ToolProtoc
       description:
         "Busca um pedido por UMA de três opções equivalentes: número do pedido, localizador/número da reserva ou CPF. Se o cliente já forneceu uma delas, consulte imediatamente e nunca peça outra. Retorna status, viajantes, voos, hotel e pagamentos.",
       inputSchema: z.object({
-        numero: z.string().nullish().describe("Número do pedido, 8 dígitos"),
-        localizador: z.string().nullish().describe("Localizador ou número da reserva, como ABC123"),
-        cpf: z.string().nullish().describe("CPF do cliente (só dígitos ou formatado)"),
+        numero: z.string().nullable().describe("Número do pedido, 8 dígitos"),
+        localizador: z.string().nullable().describe("Localizador ou número da reserva, como ABC123"),
+        cpf: z.string().nullable().describe("CPF do cliente (só dígitos ou formatado)"),
       }),
       execute: async ({ numero, localizador, cpf }) => {
         if (!numero && !localizador && !cpf) {
@@ -181,447 +176,44 @@ export function buildCamilaTools(conversation: WaConversation, scope: ToolProtoc
       },
     }),
 
-    cotar_aereo: tool({
-      description:
-        "Cota passagens aéreas AO VIVO e devolve 3-4 opções. Use SOMENTE depois que o cliente confirmar explicitamente que quer SÓ AÉREO e você já tiver origem, destino, data de ida, volta (se houver) e passageiros. Se ainda não estiver claro se é só voo ou pacote com hospedagem, NÃO chame esta tool.",
-      inputSchema: z.object({
-        origem: z.string().describe("Cidade ou IATA de origem, ex: 'Curitiba' ou 'CWB'"),
-        destino: z.string().describe("Cidade ou IATA de destino"),
-        data_ida: z.string().describe("Data de ida no formato AAAA-MM-DD"),
-        data_volta: z.string().nullish().describe("Data de volta AAAA-MM-DD, ou null se só ida"),
-        adultos: z.number().nullish().describe("Adultos (12+), padrão 1"),
-        criancas: z.number().nullish().describe("Crianças de 2 a 11 anos"),
-        bebes: z.number().nullish().describe("Bebês de colo, até 2 anos"),
-        periodo_ida: z
-          .enum(["manha", "tarde", "noite", "livre"])
-          .nullish()
-          .describe("Preferência de horário da ida; 'livre' se o cliente não tem preferência"),
-        periodo_volta: z.enum(["manha", "tarde", "noite", "livre"]).nullish(),
-        bagagem_despachada: z
-          .boolean()
-          .nullish()
-          .describe("true se o cliente precisa de bagagem despachada inclusa"),
-      }),
-      execute: async (args) => {
-        // Um protocolo encerrado encerra também o assunto. A confirmação de
-        // "só aéreo" precisa existir no protocolo ATUAL; nunca vale aproveitar
-        // intenção, briefing ou cotação de um atendimento anterior.
-        if (scope.protocolId) {
-          const { data: currentInbound } = await supabaseAdmin
-            .from("wa_messages")
-            .select("content, created_at")
-            .eq("protocolo_id", scope.protocolId)
-            .eq("direction", "inbound")
-            .eq("sender", "customer")
-            .order("created_at", { ascending: false })
-            .limit(50);
-          const said = (currentInbound ?? [])
-            .map((m) => String(m.content ?? ""))
-            .join(" ")
-            .toLocaleLowerCase("pt-BR");
-          let confirmedFlightOnly = [
-            /\bs[oó] (?:o )?(?:a[eé]reo|voo|passagem|passagens)\b/,
-            /\b(?:somente|apenas) (?:o )?(?:a[eé]reo|voo|passagem|passagens)\b/,
-            /\b(?:n[aã]o|sem) (?:preciso de |quero )?(?:hotel|hospedagem|pacote)\b/,
-            /\b(?:a[eé]reo|voo|passagem|passagens) (?:somente|apenas)\b/,
-          ].some((pattern) => pattern.test(said));
-          // Aceita uma resposta curta afirmativa somente quando ela responde
-          // diretamente à pergunta de triagem feita no balão anterior.
-          if (!confirmedFlightOnly) {
-            const latestInbound = String(currentInbound?.[0]?.content ?? "").trim();
-            const inboundAt = currentInbound?.[0]?.created_at;
-            if (inboundAt && /^(sim|isso|isso mesmo|exato|correto|s[oó] isso|pode ser)(?:[.!?]+)?$/iu.test(latestInbound)) {
-              const { data: previousOutbound } = await supabaseAdmin
-                .from("wa_messages")
-                .select("content")
-                .eq("protocolo_id", scope.protocolId)
-                .eq("direction", "outbound")
-                .neq("sender", "system")
-                .lt("created_at", inboundAt)
-                .order("created_at", { ascending: false })
-                .limit(3);
-              confirmedFlightOnly = (previousOutbound ?? []).some((message) =>
-                /s[oó] (?:o )?a[eé]reo|viagem com hospedagem|pacote completo/iu.test(String(message.content ?? "")),
-              );
-            }
-          }
-          if (!confirmedFlightOnly) {
-            return {
-              triagem_pendente: true,
-              instrucao:
-                "NÃO faça a busca e NÃO envie cards ainda. Pergunte agora, em uma frase: ‘É só o aéreo ou você quer a viagem com hospedagem também?’ Espere a resposta. Se escolher pacote, use pacotes prontos; sem opção pronta, encaminhe ao comercial.",
-            };
-          }
-        }
-
-        // Se já cotamos essa MESMA rota/data/pax há pouco e as artes já foram
-        // entregues, reaproveita a cotação em vez de buscar de novo (era isso
-        // que fazia o robô repetir as mesmas opções).
-        const chaveRota = [
-          args.origem.trim().toUpperCase(),
-          args.destino.trim().toUpperCase(),
-          args.data_ida,
-          args.data_volta ?? "-",
-          args.adultos ?? 1,
-          args.criancas ?? 0,
-          args.bebes ?? 0,
-        ].join("|");
-        const desdeRecente = new Date(Date.now() - 45 * 60 * 1000).toISOString();
-        const { data: recentes } = await supabaseAdmin
-          .from("wa_flight_quotes")
-          .select("id, payload, cards_sent_at, sent_fingerprints, created_at")
-          .eq("conversation_id", conversation.id)
-          .gte("created_at", desdeRecente)
-          .order("created_at", { ascending: false })
-          .limit(5);
-        const protocolOpenedAt = scope.openedAt ?? null;
-        const recentesDoProtocolo = protocolOpenedAt
-          ? (recentes ?? []).filter((r) => String(r.created_at ?? "") >= protocolOpenedAt)
-          : recentes ?? [];
-        for (const r of recentesDoProtocolo) {
-          const p = (r.payload ?? {}) as Record<string, unknown>;
-          const k = [
-            String(p.origem_iata ?? "").toUpperCase(),
-            String(p.destino_iata ?? "").toUpperCase(),
-            String(p.data_ida ?? ""),
-            String(p.data_volta ?? "-") || "-",
-            (p.passageiros as { adultos?: number } | undefined)?.adultos ?? 1,
-            (p.passageiros as { criancas?: number } | undefined)?.criancas ?? 0,
-            (p.passageiros as { bebes?: number } | undefined)?.bebes ?? 0,
-          ].join("|");
-          const mesmaRota =
-            k === chaveRota ||
-            (String(p.data_ida ?? "") === args.data_ida &&
-              String(p.destino_iata ?? "").toUpperCase() === args.destino.trim().toUpperCase());
-          const entregues = Array.isArray(r.sent_fingerprints)
-            ? r.sent_fingerprints.length
-            : 0;
-          if (mesmaRota && entregues >= 2) {
-            return {
-              ...(r.payload as object),
-              quote_id: r.id,
-              ja_enviado: true,
-              instrucao:
-                "Essa cotação já foi feita e as artes JÁ foram enviadas ao cliente. NÃO chame enviar_cartao_voo de novo. Só converse: pergunte qual opção agradou, ou ofereça outros horários/datas se ele pedir.",
-            };
-          }
-
-          // `cards_sent_at` também funciona como trava/claim enquanto a arte é
-          // renderizada. Portanto ele sozinho NUNCA prova entrega. Se a mesma
-          // busca já existe, reutiliza a cotação incompleta em vez de consultar
-          // novamente e criar uma fila de cotações idênticas.
-          if (mesmaRota && entregues < 2) {
-            const { sendPendingFlightCards } = await import("./flight-cards-pending.server");
-            const envio = await sendPendingFlightCards(
-              conversation.id,
-              conversation.wa_phone,
-              60 * 60 * 1000,
-              scope.openedAt,
-              scope.protocolId,
-            ).catch(() => ({ sent: 0 }));
-            return {
-              ...(r.payload as object),
-              quote_id: r.id,
-              cards_enviados: envio.sent ?? 0,
-              envio_em_andamento: true,
-              instrucao:
-                "A busca já existe e a entrega das artes está em andamento. NÃO faça outra busca, NÃO chame enviar_cartao_voo, NÃO liste voos em texto e NÃO mande aviso de demora. Aguarde a entrega automática.",
-            };
-          }
-        }
-
-        const { quoteFlights } = await import("./flight-quote.server");
-        const result = await quoteFlights({
-          origem: args.origem,
-          destino: args.destino,
-          data_ida: args.data_ida,
-          data_volta: args.data_volta,
-          adultos: args.adultos,
-          criancas: args.criancas,
-          bebes: args.bebes,
-          periodo_ida: args.periodo_ida,
-          periodo_volta: args.periodo_volta,
-          bagagem_despachada: args.bagagem_despachada,
-        });
-        if ("error" in result) return result;
-
-
-        // Guarda a cotação pra poder gerar a arte de cada opção depois.
-        let quote_id: string | null = null;
-        const { data: saved } = await supabaseAdmin
-          .from("wa_flight_quotes")
-          .insert({
-            conversation_id: conversation.id,
-            protocolo_id: scope.protocolId ?? null,
-            payload: result,
-          })
-          .select("id")
-          .single();
-        quote_id = (saved?.id as string) ?? null;
-
-        // ENTREGA AUTOMÁTICA: não dependemos do modelo chamar enviar_cartao_voo.
-        // Manda as artes agora mesmo (uma por vez) e devolve o resultado pronto.
-        let cards_enviados = 0;
-        if (quote_id) {
-          const { sendPendingFlightCards } = await import("./flight-cards-pending.server");
-          const r = await sendPendingFlightCards(
-            conversation.id,
-            conversation.wa_phone,
-            60 * 60 * 1000,
-            scope.openedAt,
-            scope.protocolId,
-          ).catch(() => ({ sent: 0 }));
-          cards_enviados = r.sent ?? 0;
-        }
-
-        return {
-          ...result,
-          quote_id,
-          cards_enviados,
-          instrucao:
-            cards_enviados > 0
-              ? `A arte da 1ª opção JÁ FOI ENVIADA ao cliente e a 2ª sai automaticamente em cerca de 1 minuto. NÃO chame enviar_cartao_voo, NÃO liste voos, horários ou valores em texto e NÃO mande mensagem de espera. Responda apenas com UM balão curto avisando que está mandando as opções (ex.: "Te mando as melhores opções agora, dá uma olhada").`
-              : `Não foi possível gerar as artes agora. Chame enviar_cartao_voo com o quote_id para tentar novamente. Nunca diga ao cliente que houve problema técnico.`,
-        };
-      },
-    }),
-
-    enviar_cartao_voo: tool({
-      description:
-        "Envia ao cliente a ARTE (imagem) das opções de voo já cotadas por cotar_aereo. Use logo depois de cotar, mandando as opções que quer apresentar (normalmente todas). Cada opção vira uma imagem no WhatsApp com horários, conexões, bagagem, valor total e parcelamento. Depois de enviar as artes, escreva só um balão curto perguntando qual o cliente prefere — não repita os dados dos voos em texto.",
-      inputSchema: z.object({
-        quote_id: z.string().describe("ID devolvido por cotar_aereo"),
-        opcoes: z
-          .array(z.number())
-          .describe("Números das opções a enviar, ex: [1,2,3]"),
-        legenda: z
-          .string()
-          .nullish()
-          .describe("Deixe null. A legenda descritiva de cada opção é montada automaticamente com cidades, horários, companhia e conexões."),
-        reenviar: z
-          .boolean()
-          .nullish()
-          .describe(
-            "true SOMENTE quando o cliente disser que não recebeu as imagens. Nos demais casos deixe null — opções já enviadas nesta cotação não são reenviadas.",
-          ),
-      }),
-
-      // Caminho ÚNICO de envio: delega pro mesmo motor usado pela entrega
-      // automática e pelo watchdog. Ter dois renderizadores independentes era
-      // o que fazia a mesma opção chegar duplicada ao cliente.
-      execute: async ({ reenviar }) => {
-        const { sendPendingFlightCards } = await import("./flight-cards-pending.server");
-        const r = await sendPendingFlightCards(
-          conversation.id,
-          conversation.wa_phone,
-          60 * 60 * 1000,
-          scope.openedAt,
-          scope.protocolId,
-          reenviar === true,
-        ).catch(() => ({ sent: 0 }));
-
-        if (!r.sent) {
-          return {
-            enviados: [],
-            instrucao:
-              "Nenhuma arte nova foi enviada — ou as opções já tinham sido entregues, ou o envio já está em andamento. NÃO reenvie, NÃO repita os voos em texto e NÃO peça desculpas: só pergunte qual opção o cliente prefere ou ofereça pesquisar outro horário.",
-          };
-        }
-        return {
-          enviados: r.sent,
-          instrucao:
-            "Artes enviadas (as imagens saem uma por minuto). Agora só pergunte qual opção o cliente prefere e avise que tarifa/disponibilidade podem mudar até a emissão. NÃO liste voos em texto.",
-        };
-      },
-
-    }),
-
-    enviar_link_carrinho_voo: tool({
-      description:
-        "Gera e envia o LINK DE COMPRA (carrinho oficial Comprar Viagem / VIA AIR) da opção de voo que o cliente escolheu. Use quando o cliente disser que quer fechar/comprar/reservar uma das opções cotadas. Depois de enviar, avise que assentos e bagagem adicional são tratados pelo pós-vendas APÓS a compra.",
-      inputSchema: z.object({
-        quote_id: z.string().describe("ID devolvido por cotar_aereo"),
-        opcao: z.number().describe("Número da opção escolhida pelo cliente"),
-      }),
-      execute: async ({ quote_id, opcao }) => {
-        let cartQuoteQuery = supabaseAdmin
-          .from("wa_flight_quotes")
-          .select("payload")
-          .eq("id", quote_id)
-          .eq("conversation_id", conversation.id);
-        if (scope.openedAt) cartQuoteQuery = cartQuoteQuery.gte("created_at", scope.openedAt);
-        const { data: row } = await cartQuoteQuery.maybeSingle();
-        if (!row?.payload) return { error: "Cotação não encontrada — refaça a busca com cotar_aereo" };
-
-        const quote = row.payload as {
-          origem_iata: string;
-          destino_iata: string;
-          data_ida: string;
-          data_volta: string | null;
-          search_key: string | null;
-          passageiros: { adultos: number; criancas: number; bebes: number };
-          opcoes: Array<{
-            opcao: number;
-            total_formatado: string;
-            cart?: {
-              outboundFareId: string;
-              outboundItineraryId: string;
-              inboundFareId: string | null;
-              inboundItineraryId: string | null;
-            };
-          }>;
-        };
-        const op = quote.opcoes.find((o) => o.opcao === opcao);
-        if (!op?.cart || !quote.search_key)
-          return {
-            error:
-              "Essa cotação é antiga e não tem carrinho — refaça com cotar_aereo e depois gere o link",
-          };
-
-        try {
-          const { createFlightCart } = await import("@/lib/onertravel.server");
-          const { url } = await createFlightCart({
-            searchKey: quote.search_key,
-            outboundFareId: op.cart.outboundFareId,
-            outboundItineraryId: op.cart.outboundItineraryId,
-            inboundFareId: op.cart.inboundFareId,
-            inboundItineraryId: op.cart.inboundItineraryId,
-            isRoundTrip: !!op.cart.inboundFareId,
-            departureIata: quote.origem_iata,
-            arrivalIata: quote.destino_iata,
-            departureDate: quote.data_ida,
-            returnDate: quote.data_volta,
-            adults: quote.passageiros.adultos,
-            children: quote.passageiros.criancas,
-            infants: quote.passageiros.bebes,
-            departureIsCity: false,
-            arrivalIsCity: false,
-          });
-
-          const { sendWhatsAppText } = await import("./send.server");
-          const { saveMessage } = await import("./conversation.server");
-          const texto = `Segue o link pra concluir a compra com segurança, ó:\n${url}`;
-          const r = await sendWhatsAppText(conversation.wa_phone, texto);
-          await saveMessage({
-            conversation_id: conversation.id,
-            direction: "outbound",
-            sender: "camila",
-            content: texto,
-            wa_message_id: r.id ?? null,
-          });
-          return {
-            ok: !r.error,
-            url,
-            instrucao:
-              "Link enviado. Agora escreva um balão curto avisando que assentos e bagagem adicional são feitos pelo pós-vendas depois da compra confirmada.",
-          };
-        } catch (e) {
-          return { error: e instanceof Error ? e.message : "Falha ao gerar o carrinho" };
-        }
-      },
-    }),
-
-
-
-
     buscar_pacotes: tool({
       description:
         "Lista pacotes disponíveis no admin, opcionalmente filtrados por destino e origem. Retorna a lista SÓ pra você escolher — não envia nada ao cliente. SEMPRE informe 'origem' quando souber a cidade do cliente: a busca prioriza pacotes saindo dessa cidade e, se não houver, retorna também as opções de outras origens marcadas como fallback. Depois use enviar_pacote (folder completo com imagem + preços) ou enviar_link_pacote.",
       inputSchema: z.object({
-        destino: z.string().nullish().describe("Cidade/país (ex: 'Buenos Aires', 'Nordeste')"),
-        origem: z.string().nullish().describe("Cidade/origem preferida do cliente (ex: 'Curitiba'). Pacotes dessa origem vêm primeiro; se não houver, entram os de outras origens."),
-        limit: z.number().nullish().describe("Máximo de resultados, padrão 5"),
+        destino: z.string().nullable().describe("Cidade/país (ex: 'Buenos Aires', 'Nordeste')"),
+        origem: z.string().nullable().describe("Cidade/origem preferida do cliente (ex: 'Curitiba'). Pacotes dessa origem vêm primeiro; se não houver, entram os de outras origens."),
+        limit: z.number().nullable().describe("Máximo de resultados, padrão 5"),
       }),
       execute: async ({ destino, origem, limit }) => {
-        // Regiões precisam de variedade para o modelo escolher e enviar opções.
-        // Um `limit: 1` gerado pela IA já causou falso negativo para "Nordeste".
-        const requestedCap = limit ?? 5;
-        const COLS =
-          "slug, title, destination, origin, going_date, return_date, nights, price_per_person, hotel_name, hotel_stars, base_occupancy, image_url, meal_plan, includes, services, outbound_flight, return_flight";
-        const hoje = new Date().toISOString().slice(0, 10);
+        const cap = limit ?? 5;
+        let base = supabaseAdmin
+          .from("packages")
+          .select("slug, title, destination, origin, going_date, return_date, nights, price_per_person, hotel_name, hotel_stars, base_occupancy, image_url, meal_plan, includes, services, outbound_flight, return_flight")
 
-        /**
-         * O cliente fala por REGIÃO ("nordeste", "caribe", "praia", "Disney"),
-         * mas a coluna destination guarda a CIDADE. Sem esse mapa, buscas como
-         * "Nordeste" não retornavam nada e o robô dizia que não tinha pacote.
-         */
-        const REGIOES: Record<string, string[]> = {
-          nordeste: ["Recife", "Salvador", "Natal", "Maceió", "Fortaleza", "João Pessoa", "Aracaju", "Porto Seguro", "Ilhéus"],
-          praia: ["Recife", "Salvador", "Natal", "Maceió", "Fortaleza", "João Pessoa", "Aracaju", "Porto Seguro", "Ilhéus", "Punta Cana", "Aruba"],
-          caribe: ["Punta Cana", "Aruba"],
-          "estados unidos": ["Orlando", "Nova Iorque", "Miami", "Disney", "Universal", "Epic"],
-          eua: ["Orlando", "Nova Iorque", "Miami", "Disney", "Universal", "Epic"],
-          "america do sul": ["Buenos Aires", "Santiago", "Montevidéu", "Mendoza"],
-          "américa do sul": ["Buenos Aires", "Santiago", "Montevidéu", "Mendoza"],
-          argentina: ["Buenos Aires", "Mendoza"],
-          chile: ["Santiago"],
-          disney: ["Disney", "Orlando", "Magic Kingdom", "Hollywood Studios", "Animal Kingdon"],
-          universal: ["Universal", "Epic", "Orlando"],
-          parques: ["Disney", "Universal", "Epic", "Beto Carrero", "Orlando"],
-          "nova york": ["Nova Iorque"],
-        };
-        const chave = (destino ?? "")
-          .toLocaleLowerCase("pt-BR")
-          .normalize("NFD")
-          .replace(/[\u0300-\u036f]/g, "")
-          .trim();
-        const termos =
-          Object.entries(REGIOES).find(([k]) =>
-            chave.includes(k.normalize("NFD").replace(/[\u0300-\u036f]/g, "")),
-          )?.[1] ?? null;
-        const cap = termos ? Math.max(requestedCap, 5) : requestedCap;
-
-        /** Filtro de destino: casa cidade OU título, e expande região → cidades. */
-        const aplicaDestino = <T extends { or: (f: string) => T; ilike: (c: string, v: string) => T }>(q: T): T => {
-          if (!destino) return q;
-          const alvos = termos ?? [destino];
-          const ors = alvos
-            .flatMap((t) => [`destination.ilike.%${t}%`, `title.ilike.%${t}%`])
-            .join(",");
-          return q.or(ors);
-        };
-
-        const novaBase = () => {
-          const q = supabaseAdmin
-            .from("packages")
-            .select(COLS)
-            .eq("is_active", true)
-            .or(`going_date.gte.${hoje},going_date.is.null`)
-            .order("going_date", { ascending: true });
-          return aplicaDestino(q as never) as unknown as typeof q;
-        };
+          .eq("is_active", true)
+          .order("going_date", { ascending: true });
+        if (destino) base = base.ilike("destination", `%${destino}%`);
 
         let data: any[] = [];
         if (origem) {
-          const { data: match, error: e1 } = await novaBase().ilike("origin", `%${origem}%`).limit(cap);
+          const { data: match, error: e1 } = await base.ilike("origin", `%${origem}%`).limit(cap);
           if (e1) return { error: e1.message };
           data = match ?? [];
           if (data.length < cap) {
-            const { data: rest } = await novaBase()
-              .not("origin", "ilike", `%${origem}%`)
-              .limit(cap - data.length);
+            let base2 = supabaseAdmin
+              .from("packages")
+              .select("slug, title, destination, origin, going_date, return_date, nights, price_per_person, hotel_name, hotel_stars, base_occupancy, image_url, meal_plan, includes, services, outbound_flight, return_flight")
+              .eq("is_active", true)
+              .order("going_date", { ascending: true });
+            if (destino) base2 = base2.ilike("destination", `%${destino}%`);
+            const { data: rest } = await base2.not("origin", "ilike", `%${origem}%`).limit(cap - data.length);
             data = [...data, ...(rest ?? [])];
           }
         } else {
-          const { data: all, error } = await novaBase().limit(cap);
+          const { data: all, error } = await base.limit(cap);
           if (error) return { error: error.message };
           data = all ?? [];
         }
-        // Última rede: destino muito específico e sem match → mostra o que existe
-        // pra aquela origem, em vez de dizer "não temos nada".
-        if (data.length === 0 && destino) {
-          const q = supabaseAdmin
-            .from("packages")
-            .select(COLS)
-            .eq("is_active", true)
-            .or(`going_date.gte.${hoje},going_date.is.null`)
-            .order("going_date", { ascending: true });
-          const { data: fallback } = origem
-            ? await q.ilike("origin", `%${origem}%`).limit(cap)
-            : await q.limit(cap);
-          data = fallback ?? [];
-        }
-
         if (!data || data.length === 0) {
           return { encontrados: 0, mensagem: "Nenhum pacote pronto para esse filtro. Posso montar uma proposta personalizada com o time comercial." };
         }
@@ -697,7 +289,7 @@ export function buildCamilaTools(conversation: WaConversation, scope: ToolProtoc
         "Envia o FOLDER completo do pacote pelo WhatsApp: imagem do header + descritivo formatado (origem, datas, hotel, refeição, serviços inclusos) + formas de pagamento (Pix com 5% off, cartão 10x sem juros — e quando for pacote Cativa Operadora, Visa e Master saem em 15x sem juros e demais bandeiras em 10x sem juros —, boleto 10x mediante aprovação, boleto sem análise de crédito até a data da viagem) + link. NUNCA use o termo 'assessoria completa' nem 'assessoria' em nenhum lugar. Use SEMPRE que o cliente demonstrar interesse num pacote específico. NÃO exige CPF nem confirmação — pacote é conteúdo público. Depois de chamar, responda com UM balão curto só perguntando 'O que você achou?' (ou variação natural).",
       inputSchema: z.object({
         slug: z.string().describe("slug do pacote (vem de buscar_pacotes)"),
-        quantidade_adultos: z.number().int().nullish().describe("adultos para calcular Pix total; padrão = base_occupancy (geralmente 2)"),
+        quantidade_adultos: z.number().int().nullable().describe("adultos para calcular Pix total; padrão = base_occupancy (geralmente 2)"),
       }),
       execute: async ({ slug, quantidade_adultos }) => {
         const { data: pkg } = await supabaseAdmin
@@ -855,63 +447,28 @@ export function buildCamilaTools(conversation: WaConversation, scope: ToolProtoc
         const { sendWhatsAppImage, sendWhatsAppText } = await import("./send.server");
         const { saveMessage } = await import("./conversation.server");
 
-        // O WhatsApp corta legenda de imagem acima de ~1024 caracteres (e a Meta
-        // chega a recusar a mensagem). Quando o resumo do pacote passa disso,
-        // manda a FOTO com uma legenda curta e o RESUMO COMPLETO logo em seguida,
-        // como texto — assim o cliente sempre recebe foto + resumo + link.
-        const LIMITE_LEGENDA = 950;
-        const tituloCurto = String(pkg.title || pkg.destination || "Pacote").toUpperCase();
-        const precisaSeparar = caption.length > LIMITE_LEGENDA;
-
         let sendErr: string | undefined;
         let sentWaId: string | null = null;
-
         if (pkg.image_url) {
-          const legenda = precisaSeparar ? `*${tituloCurto}*` : caption;
-          const r = await sendWhatsAppImage(conversation.wa_phone, pkg.image_url, legenda);
+          const r = await sendWhatsAppImage(conversation.wa_phone, pkg.image_url, caption);
           sentWaId = r.id ?? null;
           if (r.error) {
             sendErr = r.error;
             const fb = await sendWhatsAppText(conversation.wa_phone, caption);
             sentWaId = fb.id ?? null;
-            await saveMessage({
-              conversation_id: conversation.id,
-              direction: "outbound",
-              sender: "camila",
-              content: caption,
-              wa_message_id: sentWaId,
-            });
-          } else {
-            await saveMessage({
-              conversation_id: conversation.id,
-              direction: "outbound",
-              sender: "camila",
-              content: `[[media:image|${pkg.image_url}|${pkg.slug}.jpg]]\n${legenda}`,
-              wa_message_id: sentWaId,
-            });
-            if (precisaSeparar) {
-              const t = await sendWhatsAppText(conversation.wa_phone, caption);
-              await saveMessage({
-                conversation_id: conversation.id,
-                direction: "outbound",
-                sender: "camila",
-                content: caption,
-                wa_message_id: t.id ?? null,
-              });
-            }
           }
         } else {
           const r = await sendWhatsAppText(conversation.wa_phone, caption);
           sentWaId = r.id ?? null;
-          await saveMessage({
-            conversation_id: conversation.id,
-            direction: "outbound",
-            sender: "camila",
-            content: caption,
-            wa_message_id: sentWaId,
-          });
         }
 
+        await saveMessage({
+          conversation_id: conversation.id,
+          direction: "outbound",
+          sender: "camila",
+          content: caption,
+          wa_message_id: sentWaId,
+        });
 
         // Detecta se já foi enviado pacote antes nessa conversa (folder tem o link /w/)
         // e se o cliente falou em personalização nas últimas mensagens.
@@ -1064,16 +621,16 @@ export function buildCamilaTools(conversation: WaConversation, scope: ToolProtoc
         motivo: z
           .enum(["nova_cotacao", "alteracao_voo", "reclamacao", "outro"])
           .describe("Categoria do motivo"),
-        destino: z.string().nullish().describe("Cidade/país de destino, ex: 'Cancún' ou 'Orlando + Miami'"),
-        data_ida: z.string().nullish().describe("Data de ida no formato DD/MM/AAAA ou período aproximado, ex: '15/03/2026' ou 'segunda quinzena de março'"),
-        data_volta: z.string().nullish().describe("Data de volta no formato DD/MM/AAAA ou duração, ex: '22/03/2026' ou '7 noites'"),
-        quantidade_adultos: z.number().int().nullish().describe("Número de adultos"),
-        quantidade_criancas: z.number().int().nullish().describe("Número de crianças (com idades no campo observacoes se houver)"),
-        voo_info: z.string().nullish().describe("Info de voo relevante: cia preferida, localizador, número do voo, ou 'a definir'"),
-        orcamento: z.string().nullish().describe("Orçamento informado pelo cliente, ex: 'até R$ 8.000 por pessoa'"),
-        hotel_preferencia: z.string().nullish().describe("Preferência de hotel/categoria, ex: '4 estrelas all inclusive'"),
-        observacoes: z.string().nullish().describe("Qualquer info extra relevante: idades de crianças, restrições, urgência, contexto emocional"),
-        prioridade: z.enum(["normal", "high", "urgent"]).nullish(),
+        destino: z.string().nullable().describe("Cidade/país de destino, ex: 'Cancún' ou 'Orlando + Miami'"),
+        data_ida: z.string().nullable().describe("Data de ida no formato DD/MM/AAAA ou período aproximado, ex: '15/03/2026' ou 'segunda quinzena de março'"),
+        data_volta: z.string().nullable().describe("Data de volta no formato DD/MM/AAAA ou duração, ex: '22/03/2026' ou '7 noites'"),
+        quantidade_adultos: z.number().int().nullable().describe("Número de adultos"),
+        quantidade_criancas: z.number().int().nullable().describe("Número de crianças (com idades no campo observacoes se houver)"),
+        voo_info: z.string().nullable().describe("Info de voo relevante: cia preferida, localizador, número do voo, ou 'a definir'"),
+        orcamento: z.string().nullable().describe("Orçamento informado pelo cliente, ex: 'até R$ 8.000 por pessoa'"),
+        hotel_preferencia: z.string().nullable().describe("Preferência de hotel/categoria, ex: '4 estrelas all inclusive'"),
+        observacoes: z.string().nullable().describe("Qualquer info extra relevante: idades de crianças, restrições, urgência, contexto emocional"),
+        prioridade: z.enum(["normal", "high", "urgent"]).nullable(),
       }),
       execute: async ({
         motivo,

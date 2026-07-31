@@ -17,16 +17,9 @@ import {
 } from "./conversation.server";
 import { buildCamilaTools } from "./tools.server";
 import { sendWhatsAppBubbles } from "./send.server";
-import { buildSenderPrefix, capitalizeBubbles, capitalizeKnownNames, fixGluedSentences, mergeQuestionBubbles, stripAgentSignature, stripFakeImageFailure, stripTextFlightList, stripReintroBubbles, firstName as extractFirstName } from "./text-utils.server";
+import { buildSenderPrefix, capitalizeBubbles, capitalizeKnownNames, fixGluedSentences, firstName as extractFirstName } from "./text-utils.server";
 import { buildSharedAgentPrompt } from "@/lib/chat/camila-prompt";
-import {
-  buildFlightAgentPrompt,
-  findFlightAgent,
-  isFlightAgentSlug,
-  pickFlightAgent,
-} from "@/lib/chat/aereo-prompt";
 import { isCompanyDataBlocked } from "./data-blocklist";
-
 
 // Gênero por slug (usado pra montar o prompt compartilhado com a flexão certa).
 const AGENT_GENDER: Record<string, "f" | "m"> = {
@@ -36,11 +29,7 @@ const AGENT_GENDER: Record<string, "f" | "m"> = {
   roberto: "m",
   fabricio: "m",
   giovani: "m",
-  // setor de aéreo
-  bruno: "m",
-  leticia: "f",
 };
-
 function genderOf(slug: string): "f" | "m" {
   return AGENT_GENDER[slug.toLowerCase()] ?? "f";
 }
@@ -111,26 +100,7 @@ function pickAgent(agents: Agent[], stickySlug?: string | null): Agent | null {
 
 
 
-/**
- * Detecta pedido de COTAÇÃO DE AÉREO nas últimas falas do cliente.
- * Serve pra passar o atendimento pro setor de aéreo (Bruno / Letícia),
- * que tem prompt próprio e não mistura com o time de atendimento.
- */
-function wantsFlightQuote(texts: string[]): boolean {
-  const t = texts.join(" \n ").toLowerCase();
-  if (!t.trim()) return false;
-  const temAereo =
-    /(passage(m|ns)\s+a[ée]rea|passagem|só\s+o?\s*a[ée]reo|somente\s+a[ée]reo|apenas\s+a[ée]reo|cota[çc][ãa]o\s+de\s+(voo|a[ée]reo)|cotar\s+(voo|a[ée]reo)|pre[çc]o\s+d[eo]\s+(voo|passagem)|valor\s+d[eo]\s+(voo|passagem)|bilhete\s+a[ée]reo)/i.test(
-      t,
-    );
-  if (!temAereo) return false;
-  // pedido de pacote/hospedagem no mesmo texto → segue com o time normal
-  const ehPacote = /(pacote|hotel|hospedagem|resort|all\s*inclusive|cruzeiro|passeio|ingresso)/i.test(t);
-  return !ehPacote;
-}
-
 function firstAvailableAusencia(agents: Agent[]): string | null {
-
   for (const a of agents) if (a.mensagem_ausencia) return a.mensagem_ausencia;
   return null;
 }
@@ -146,14 +116,11 @@ function looksLikeRealName(v: string | null | undefined): boolean {
   return true;
 }
 
-function buildSystemPrompt(agent: Agent, conv: WaConversation, protocolo: WaProtocolo, isNewProtocolo: boolean): string {
-  // Setor de aéreo tem prompt PRÓPRIO (aereo-prompt.ts) — não usa a base do
-  // time de atendimento, justamente pra uma mexida não quebrar a outra.
-  const base = isFlightAgentSlug(agent.slug)
-    ? buildFlightAgentPrompt(agent.nome, genderOf(agent.slug))
-    : buildSharedAgentPrompt(agent.nome, genderOf(agent.slug));
+function buildSystemPrompt(agent: Agent, conv: WaConversation, protocolo: WaProtocolo, _isNewProtocolo: boolean, previousContext?: string): string {
+  // Sempre gera o prompt compartilhado com o nome/gênero deste agente,
+  // ignorando o system_prompt armazenado (mantém a base única pra todo o time).
+  const base = buildSharedAgentPrompt(agent.nome, genderOf(agent.slug));
   const parts = [base];
-
 
   parts.push(`\n\n# CONTEXTO DESTA CONVERSA`);
   parts.push(`- Você é: ${agent.nome}`);
@@ -168,11 +135,6 @@ function buildSystemPrompt(agent: Agent, conv: WaConversation, protocolo: WaProt
   }
   parts.push(`- Protocolo ATIVO: ${protocolo.numero} (uso interno — NÃO mencione o número ao cliente na abertura nem no meio da conversa; ele só aparece na mensagem automática de encerramento).`);
   parts.push(
-    isNewProtocolo
-      ? `- PRIMEIRA RESPOSTA DESTE PROTOCOLO: SIM. Cumprimente, diga seu nome e reaja ao pedido do cliente.`
-      : `- PRIMEIRA RESPOSTA DESTE PROTOCOLO: NÃO. Não repita apresentação; continue naturalmente do ponto atual.`,
-  );
-  parts.push(
     `- Mensagens marcadas com "[sistema · <tipo>]" no histórico são AÇÕES AUTOMÁTICAS que a VIA AIR já enviou pra esse cliente (check-in, alerta/cancelamento de voo, voucher, recibo, contrato). ` +
     `Elas trazem localizador, número do voo, pedido, data, passageiro e outros dados. ` +
     `Se o cliente responder algo ligado a esse assunto (ex.: "remarcar voo", "quero reembolso", "não recebi o cartão", "quando é o voo?"), ` +
@@ -180,7 +142,36 @@ function buildSystemPrompt(agent: Agent, conv: WaConversation, protocolo: WaProt
     `Assuma que o pedido está identificado por esse localizador e siga o atendimento.`
   );
 
+  if (previousContext?.trim()) {
+    parts.push(
+      `\n# 🧠 HISTÓRICO ANTERIOR DESTE MESMO CLIENTE (protocolos passados — contexto, NÃO responda a essas mensagens)\n` +
+      `"""\n${previousContext.slice(-8000)}\n"""\n` +
+      `Use esse histórico pra ENTENDER do que o cliente está falando agora. ` +
+      `Se ele citar "a cotação", "o pacote que pedi", "o comercial não me retornou", "aquela viagem", ` +
+      `procure a solicitação aqui e retome o assunto pelo nome (destino, datas, nº de pax, hotel, valores já enviados). ` +
+      `Se ele pedir o resumo da solicitação, REESCREVA o resumo a partir deste histórico — não peça pra ele repetir.`
+    );
+  }
 
+  parts.push(
+    `\n# ✍️ FORMATAÇÃO OBRIGATÓRIA (WhatsApp)\n` +
+    `- Cada ideia/frase vai em um PARÁGRAFO próprio, separado por UMA LINHA EM BRANCO (\\n\\n). Nunca junte tudo num único bloco.\n` +
+    `- Resumos e listas SEMPRE em tópicos, um por linha, começando com "- " (ex.: "- Origem: Maringá").\n` +
+    `- Antes de uma lista, quebre a linha depois dos dois-pontos.\n` +
+    `- Nunca cole palavras/frases (proibido "PerfeitoO Fabrício", "pedido.Vou", "HotelVou"): sempre espaço ou quebra de linha.\n` +
+    `- Máximo ~3 linhas por parágrafo. Sem markdown de título; negrito só com *asterisco simples*.`
+  );
+
+
+  parts.push(
+    `\n# ❌ NUNCA PEÇA DADO QUE NÃO EXISTE\n` +
+    `- Se o assunto é COTAÇÃO / ORÇAMENTO / PROPOSTA / "o comercial não entrou em contato", NÃO existe pedido, nem localizador, nem reserva. ` +
+    `É PROIBIDO pedir número do pedido, localizador, reserva ou CPF nesses casos. ` +
+    `Reconheça o ocorrido, retome a solicitação a partir do histórico e diga que vai priorizar o retorno.\n` +
+    `- Só peça pedido/localizador/CPF quando o cliente falar de uma COMPRA JÁ EMITIDA (voucher, bilhete, check-in, reembolso, remarcação) ` +
+    `E não houver nenhum dado no histórico que identifique essa compra.\n` +
+    `- Antes de perguntar qualquer coisa, releia o histórico: se a informação já foi dita alguma vez, use-a.`
+  );
 
 
 
@@ -213,14 +204,6 @@ function buildSystemPrompt(agent: Agent, conv: WaConversation, protocolo: WaProt
     );
 
   }
-  parts.push(
-    `\n# 🚨 REGRAS CRÍTICAS DESTA RESPOSTA\n` +
-    `1. Responda PRIMEIRO o que o cliente acabou de perguntar — inclusive perguntas fora do assunto ("você é um robô?", "você é humano?"). ` +
-    `Nessas, responda leve, no seu nome ("Sou ${agent.nome}, do time da VIA AIR, quem te atende aqui sou eu"), sem falar de sistema/IA/automação, e só depois retome a etapa.\n` +
-    `2. NUNCA diga que houve problema, instabilidade, erro ou dificuldade se nenhuma tool devolveu erro nesta resposta.\n` +
-    `3. Nunca repita uma pergunta já respondida no histórico.`
-  );
-
   parts.push(`- Data/hora atual (SP): ${new Date().toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}`);
   return parts.join("\n");
 }
@@ -240,24 +223,7 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
 
   const agents = await loadAgents();
   const stickySlug = (conv as unknown as { agent_slug?: string | null }).agent_slug ?? null;
-  // Se a conversa já foi pro setor de aéreo, ela FICA lá (agente virtual).
-  const stickyFlight = findFlightAgent(stickySlug);
-  let agent = stickyFlight
-    ? ({
-        id: `flight:${stickyFlight.slug}`,
-        slug: stickyFlight.slug,
-        nome: stickyFlight.nome,
-        system_prompt: "",
-        horario_inicio: "00:00:00",
-        horario_fim: "00:00:00",
-        timezone: "America/Sao_Paulo",
-        ativo: true,
-        tools_habilitadas: [],
-        temas_proibidos: [],
-        mensagem_ausencia: null,
-      } as Agent)
-    : pickAgent(agents, stickySlug);
-
+  const agent = pickAgent(agents, stickySlug);
 
 
 
@@ -295,45 +261,39 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
 
   const history = await loadHistory(conv.id, 30, sinceIso);
 
-  // TRANSFERÊNCIA PRO SETOR DE AÉREO: cliente pediu cotação de voo e a conversa
-  // ainda está com o time de atendimento → assume Bruno ou Letícia (prompt próprio).
-  if (!isFlightAgentSlug(agent.slug)) {
-    const falasCliente = history
-      .filter((m) => m.sender === "customer")
-      .slice(-4)
-      .map((m) => m.content);
-    if (wantsFlightQuote(falasCliente)) {
-      const fa = pickFlightAgent(conv.id);
-      agent = {
-        ...agent,
-        id: `flight:${fa.slug}`,
-        slug: fa.slug,
-        nome: fa.nome,
-        temas_proibidos: [],
-      };
-      await supabaseAdmin
-        .from("wa_conversations")
-        .update({ agent_slug: fa.slug })
-        .eq("id", conv.id);
-      console.log(`[agent] conversa ${conv.id} transferida pro setor de aéreo (${fa.slug})`);
+  // CONTEXTO ANTERIOR: mensagens de ANTES do protocolo atual (últimos 45 dias).
+  // O cliente frequentemente retoma um assunto antigo ("o comercial não entrou
+  // em contato", "e a cotação?"). Sem esse histórico a IA não entende do que
+  // ele fala e acaba pedindo pedido/localizador/CPF sem necessidade.
+  let previousContext = "";
+  if (sinceIso) {
+    const prevSince = new Date(Date.now() - 45 * 24 * 60 * 60 * 1000).toISOString();
+    const { data: prevRows } = await supabaseAdmin
+      .from("wa_messages")
+      .select("sender, direction, content, created_at")
+      .eq("conversation_id", conv.id)
+      .lt("created_at", sinceIso)
+      .gte("created_at", prevSince)
+      .order("created_at", { ascending: false })
+      .limit(40);
+    const prev = ((prevRows ?? []) as Array<{ sender: string; content: string; created_at: string }>).reverse();
+    if (prev.length) {
+      previousContext = prev
+        .map((m) => {
+          const when = new Date(m.created_at).toLocaleString("pt-BR", {
+            timeZone: "America/Sao_Paulo",
+            day: "2-digit",
+            month: "2-digit",
+            hour: "2-digit",
+            minute: "2-digit",
+          });
+          const who = m.sender === "customer" ? "CLIENTE" : "VIA AIR";
+          return `[${when}] ${who}: ${String(m.content ?? "").slice(0, 700)}`;
+        })
+        .join("\n");
     }
   }
 
-
-
-  // Uma execução atrasada do cron não pode inventar uma nova resposta quando
-  // o último turno já foi respondido. Isso elimina continuações soltas como
-  // "Quer que eu faça isso?" sem uma nova mensagem do cliente.
-  const latestConversational = [...history]
-    .reverse()
-    .find((m) => m.sender === "customer" || m.sender === "camila" || m.sender === "human");
-  const hasSupervisorInstruction = Boolean(
-    (conv as unknown as { ai_instruction?: string | null }).ai_instruction?.trim(),
-  );
-  if (latestConversational && latestConversational.sender !== "customer" && !hasSupervisorInstruction) {
-    console.log(`[agent] conversa ${conv.id} já respondida — execução atrasada ignorada`);
-    return;
-  }
 
   // CONTEXTO OPERACIONAL: pega TAMBÉM as mensagens automáticas (check-in,
   // alerta de voo, voucher, cobrança) dos últimos 7 dias que estão FORA do
@@ -389,21 +349,16 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
   }
 
 
-  // Captura o estado ANTES de chamar o modelo. As tools podem enviar e salvar
-  // imagens durante generateText; contar depois faria a própria arte "gastar"
-  // a apresentação da primeira resposta do protocolo.
-  const { count: deliveredBeforeRun } = await supabaseAdmin
+  const { count: outboundNoProto } = await supabaseAdmin
     .from("wa_messages")
     .select("id", { count: "exact", head: true })
     .eq("protocolo_id", protocolo.id)
-    .eq("direction", "outbound")
-    .neq("sender", "system")
-    .not("wa_message_id", "is", null);
-  const isNewProtocolo = (deliveredBeforeRun ?? 0) === 0;
+    .eq("direction", "outbound");
+  const isNewProtocolo = (outboundNoProto ?? 0) === 0;
 
 
   const gateway = createLovableAiGatewayProvider(key);
-  const tools = buildCamilaTools(conv, { protocolId: protocolo.id, openedAt: sinceIso });
+  const tools = buildCamilaTools(conv);
   const cleanTools: Record<string, unknown> = { ...tools };
   delete cleanTools._meta;
 
@@ -417,7 +372,7 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
   const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
   try {
-    const system = buildSystemPrompt(agent, conv, protocolo, isNewProtocolo);
+    const system = buildSystemPrompt(agent, conv, protocolo, isNewProtocolo, previousContext);
     let result: { text?: string; steps?: Array<{ toolCalls?: Array<{ toolName: string; input: unknown }> }> } | null = null;
     let lastErr: unknown = null;
     for (let i = 0; i < MODEL_CHAIN.length; i++) {
@@ -441,83 +396,6 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
     }
     if (!result) throw lastErr ?? new Error("Falha ao gerar resposta");
 
-    // PROMESSA SEM AÇÃO: o modelo diz "já estou pesquisando" e não chama a
-    // tool. Nesse caso, uma segunda passada obriga a chamada antes de responder.
-    const prometeuBuscar =
-      /(j[áa]\s+(estou|vou)\s+(pesquisando|buscando|procurando|cotando)|vou\s+(pesquisar|buscar|cotar)|s[óo]\s+um\s+minutinho\s+que\s+j[áa])/i.test(
-        result.text ?? "",
-      );
-    const usouTool0 = (result.steps ?? []).some((st) => (st.toolCalls ?? []).length > 0);
-    if (prometeuBuscar && !usouTool0) {
-      try {
-        const retry = await generateText({
-          model: gateway(MODEL_CHAIN[0]),
-          system:
-            system +
-            "\n\n# ⚠️ AGORA\nVocê acabou de dizer ao cliente que ia pesquisar. CHAME A TOOL de busca AGORA com os dados do histórico (não pergunte mais nada). Depois responda em UMA frase curta.",
-          messages,
-          tools: cleanTools as never,
-          toolsContext: undefined as never,
-          stopWhen: stepCountIs(10),
-          temperature: 0.4,
-        });
-        if ((retry.steps ?? []).some((st) => (st.toolCalls ?? []).length > 0)) result = retry;
-      } catch (e) {
-        console.warn(`[agent:${agent.slug}] retry de tool falhou:`, e);
-      }
-    }
-
-    // Rede de segurança imediata: alguns modelos chamam cotar_aereo, recebem a
-    // cotação, mas encerram o loop sem chamar enviar_cartao_voo. Nesse caso a
-    // arte já existe e deve sair agora — não só minutos depois pelo watchdog.
-    const executedToolNames = new Set(
-      (result.steps ?? []).flatMap((step) => (step.toolCalls ?? []).map((call) => call.toolName)),
-    );
-    // Faz a checagem mesmo quando enviar_cartao_voo foi chamado: a tool pode
-    // ter sido executada, mas todas as imagens terem falhado no transporte.
-    // Se deu certo, cards_sent_at já está preenchido e esta chamada é no-op.
-    let cardsEntregues = executedToolNames.has("enviar_cartao_voo");
-    if (executedToolNames.has("cotar_aereo")) {
-      const { sendPendingFlightCards } = await import("./flight-cards-pending.server");
-      const recovered = await sendPendingFlightCards(
-        conv.id,
-        conv.wa_phone,
-        60 * 60 * 1000,
-        sinceIso,
-        protocolo.id,
-      ).catch((error) => {
-        console.warn(`[agent:${agent.slug}] fallback imediato dos cards falhou:`, error);
-        return { sent: 0 };
-      });
-      if (recovered.sent > 0) {
-        cardsEntregues = true;
-        console.log(`[agent:${agent.slug}] fallback imediato enviou ${recovered.sent} card(s)`);
-      }
-    }
-
-
-    // REENVIO A PEDIDO: se o cliente disse que não recebeu as imagens, as artes
-    // saem de novo por código — não dependemos do modelo chamar a tool.
-    const ultimoInbound = [...merged].reverse().find((m) => m.sender === "customer")?.content ?? "";
-    const pediuReenvio =
-      /(n[aã]o (recebi|chegou|veio|carregou|apareceu)|cad[êe] (as )?(fotos|imagens|artes|op[çc][õo]es)|manda(r)? de novo|reenvia)/i.test(
-        ultimoInbound,
-      );
-    if (pediuReenvio && !executedToolNames.has("enviar_cartao_voo")) {
-      const { sendPendingFlightCards } = await import("./flight-cards-pending.server");
-      const again = await sendPendingFlightCards(
-        conv.id,
-        conv.wa_phone,
-        60 * 60 * 1000,
-        sinceIso,
-        protocolo.id,
-        true,
-      ).catch(() => ({ sent: 0 }));
-      if (again.sent > 0) {
-        cardsEntregues = true;
-        console.log(`[agent:${agent.slug}] reenvio a pedido: ${again.sent} card(s)`);
-      }
-    }
 
     const rawText = result.text?.trim();
     if (!rawText) {
@@ -543,86 +421,14 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
     // Garante primeira letra maiúscula em cada balão (o modelo escreve tudo minúsculo)
     // e capitaliza o primeiro nome do cliente sempre que aparecer no meio do texto.
     const clientFirst = extractFirstName(conv.display_name);
-    // Já falamos NESTE protocolo? Só aí cortamos saudação/apresentação e o
-    // prefixo "*Roberto:*". Protocolo novo = atendimento novo: o agente se
-    // apresenta de novo, com nome, igual na primeira vez.
-    // IMPORTANTE: só conta mensagem que o cliente REALMENTE recebeu
-    // (wa_message_id preenchido). Balão salvo mas não entregue não pode
-    // "gastar" a apresentação — foi o que fez o nome sumir no WhatsApp.
-    const jaFalouAntes = !isNewProtocolo;
-
-    // O nome do atendente ("*Roberto:*") assina SEMPRE o primeiro balão de cada
-    // resposta — é a assinatura da conversa no WhatsApp, não a apresentação.
-    const reassinar = true;
-
-
-
-    let text = capitalizeKnownNames(capitalizeBubbles(fixGluedSentences(rawText)), [clientFirst]);
-    // O modelo às vezes assina sozinho ("*Maria:*") — a assinatura é do código.
-    text = stripAgentSignature(text, agent.nome);
-    if (jaFalouAntes) text = stripReintroBubbles(text);
-
-    // Avanço determinístico: com briefing já coletado, encaminhamento comercial
-    // não depende de o cliente autorizar uma ação que ele acabou de solicitar.
-    // O fallback de escalação abaixo marca a conversa para atendimento humano.
-    const pedePermissaoParaEncaminhar =
-      /(o que (voc[êe] )?acha\??|quer que eu (fa[çc]a|prepare|passe|encaminhe)|posso (passar|encaminhar|preparar)|quer que eu fa[çc]a isso)/i.test(text);
-    const falaDePropostaComercial =
-      /(time comercial|setor comercial|proposta personalizada|cota[çc][aã]o personalizada)/i.test(text);
-    if (pedePermissaoParaEncaminhar && falaDePropostaComercial) {
-      const nomeCliente = clientFirst ? `${clientFirst}, ` : "";
-      text = `${nomeCliente}como não encontrei uma opção pronta compatível, já encaminhei os dados que você passou para o time comercial montar uma proposta personalizada. Assim que estiver pronta, aviso por aqui.`;
-    }
-
-
-    // Se as artes REALMENTE saíram, corta qualquer balão em que o modelo
-    // inventou falha de envio ("probleminha pra mandar as imagens").
-    // Se já existe qualquer arte entregue neste protocolo, o modelo NUNCA pode
-    // listar voos em texto (ele inventa horários e valores).
-    let jaTemCards = cardsEntregues;
-    if (!jaTemCards) {
-      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-      const { data: comCards } = await supabaseAdmin
-        .from("wa_flight_quotes")
-        .select("id")
-        .eq("conversation_id", conv.id)
-        .eq("protocolo_id", protocolo.id)
-        .not("cards_sent_at", "is", null)
-        .limit(1);
-      jaTemCards = Boolean(comCards?.length);
-    }
-    if (jaTemCards) text = stripTextFlightList(stripFakeImageFailure(text));
-    // Nenhuma tool rodou nesta resposta => não existe erro real pra relatar:
-    // qualquer "não consegui buscar / deu um probleminha" é alucinação.
-    if (executedToolNames.size === 0) text = stripFakeImageFailure(text);
-
-    // "Você é um robô?" — resposta determinística: alguns modelos ignoram a
-    // pergunta e repetem a etapa anterior, o que denuncia automação.
-    const perguntouRobo =
-      /(voc[êe]\s+[ée]\s+(um\s+|uma\s+)?(rob[ôo]|bot|i\.?a\.?|intelig[êe]ncia artificial|m[áa]quina|atendente virtual)|atendimento autom[áa]tico|voc[êe]\s+[ée]\s+(humano|humana|uma pessoa|pessoa de verdade)|[ée] rob[ôo]\?)/i.test(
-        ultimoInbound,
-      );
-    if (perguntouRobo && !new RegExp(`sou\\s+${agent.nome}`, "i").test(text)) {
-      text = `Sou ${agent.nome}, do time da VIA AIR — quem tá te atendendo aqui sou eu 😊\n\n${text}`;
-    }
-
-    text = mergeQuestionBubbles(text);
-    if (!text.trim()) {
-      console.warn(`[agent:${agent.slug}] resposta virou vazia depois da limpeza — nada a enviar`);
-      return;
-    }
+    const text = capitalizeKnownNames(capitalizeBubbles(fixGluedSentences(rawText)), [clientFirst]);
 
     const toolCallsSummary = result.steps
       ?.flatMap((s) => s.toolCalls ?? [])
       .map((tc) => ({ name: tc.toolName, input: tc.input }));
 
-    // Prefixo "*Roberto:*" na primeira mensagem do atendimento (ou depois de
-    // 30 min parado). O MESMO texto é salvo e enviado, pra o histórico interno
-    // bater 100% com o que o cliente vê no WhatsApp.
-    const prefix = reassinar ? buildSenderPrefix(agent.nome) : null;
     const { splitToBubbles } = await import("./send.server");
-    const bubbles = splitToBubbles(text, prefix);
-
+    const bubbles = splitToBubbles(text);
     const savedRowIds: Array<string | null> = [];
     for (let i = 0; i < bubbles.length; i++) {
       const row = await saveMessage({
@@ -708,35 +514,10 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
         .eq("id", conv.id);
     }
 
-    // Último inbound: usado pra reacender o "digitando…" entre os balões.
-    const { data: lastInbound } = await supabaseAdmin
-      .from("wa_messages")
-      .select("wa_message_id")
-      .eq("conversation_id", conv.id)
-      .eq("direction", "inbound")
-      .not("wa_message_id", "is", null)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    // Envia exatamente os mesmos balões que foram salvos (já com o prefixo).
-    // Grava o ID de CADA balão na hora: se o worker for cortado no meio da
-    // sequência, o varredor de reenvio sabe exatamente o que faltou entregar.
-    const { setWaMessageId: setWaIdNow, setSendError: setErrNow } = await import("./conversation.server");
-    const sent = await sendWhatsAppBubbles(conv.wa_phone, text, prefix, {
-      typingId: (lastInbound?.wa_message_id as string | null) ?? null,
-      onSent: async (i, res) => {
-        const rowId = savedRowIds[i];
-        if (!rowId) return;
-        if (res.id) await setWaIdNow(rowId, res.id);
-        else await setErrNow(rowId, res.error ?? "Não entregue pelo WhatsApp");
-      },
-    });
-
-
+    const prefix = buildSenderPrefix(agent.nome);
+    const sent = await sendWhatsAppBubbles(conv.wa_phone, text, prefix);
     const failed = sent.filter((s) => s.error);
     if (failed.length > 0) console.error(`[agent:${agent.slug}] falha ao enviar:`, failed);
-
     // Guarda o wa_message_id de cada balão pra permitir citar/casar replies depois
     const { setWaMessageId, setSendError } = await import("./conversation.server");
     for (let i = 0; i < savedRowIds.length; i++) {

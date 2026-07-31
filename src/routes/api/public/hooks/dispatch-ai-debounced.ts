@@ -80,17 +80,7 @@ export const Route = createFileRoute("/api/public/hooks/dispatch-ai-debounced")(
 
         }
 
-        // Reenvia balões que ficaram salvos sem entrega (worker cortado no
-        // meio da sequência). Roda depois do dispatch pra não competir.
-        let reenviados = 0;
-        try {
-          const { retryUndeliveredOutbound } = await import("@/lib/whatsapp/retry-undelivered.server");
-          reenviados = await retryUndeliveredOutbound();
-        } catch (e) {
-          console.error("[dispatch-ai-debounced] retry undelivered:", e);
-        }
-
-        return new Response(JSON.stringify({ ok: true, dispatched: dispatched.length, reenviados }), {
+        return new Response(JSON.stringify({ ok: true, dispatched: dispatched.length }), {
           status: 200,
           headers: { "Content-Type": "application/json" },
         });

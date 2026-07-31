@@ -19,18 +19,12 @@ function safeText(value: unknown): string {
   return String(value);
 }
 
-const MEDIA_RE = /\[\[media:(image|document|audio|video)\|([^|\]]+)\|([^\]]+)\]\]/;
 function parseMedia(content: unknown): { media: Media | null; text: string } {
   const normalized = safeText(content);
-  // O marcador pode vir no começo OU depois da legenda/assinatura do agente
-  // ("Maria:\n...texto...[[media:image|...]]"). Antes só casávamos no início,
-  // então o card de voo aparecia como texto cru no painel.
-  const m = normalized.match(MEDIA_RE);
+  const m = normalized.match(/^\[\[media:(image|document|audio|video)\|([^|]+)\|([^\]]+)\]\](?:\n([\s\S]*))?$/);
   if (!m) return { media: null, text: normalized };
-  const text = normalized.replace(m[0], "").trim();
-  return { media: { kind: m[1] as Media["kind"], url: m[2], filename: m[3] }, text };
+  return { media: { kind: m[1] as Media["kind"], url: m[2], filename: m[3] }, text: (m[4] ?? "").trim() };
 }
-
 
 interface Props {
   side: "in" | "out";
@@ -56,19 +50,6 @@ function formatTime(iso: string) {
 export function WhatsAppBubble({ side, content, timestamp, senderLabel, status, deleted, replied, reply, onReply }: Props) {
   const isOut = side === "out";
   const label = firstName(senderLabel);
-  const displayContent = (() => {
-    const normalized = safeText(content);
-    if (!label) return content;
-
-    const escaped = label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    // O WhatsApp recebe "Maria:\n..." no próprio texto, enquanto o painel já
-    // mostra Maria como cabeçalho laranja. Remove todas as cópias visuais
-    // (o modelo às vezes repete "Maria:" em linhas seguidas).
-    const re = new RegExp(`^[*_~]*\\s*${escaped}\\s*:\\s*[*_~]*\\s*`, "i");
-    let out = normalized;
-    while (re.test(out)) out = out.replace(re, "");
-    return out.trim();
-  })();
   const replySender = firstName(reply?.sender ?? null);
   const replySnippet = safeText(reply?.snippet).trim();
   return (
@@ -107,7 +88,7 @@ export function WhatsAppBubble({ side, content, timestamp, senderLabel, status, 
           </div>
         )}
         {(() => {
-          const { media, text } = parseMedia(displayContent);
+          const { media, text } = parseMedia(content);
           return (
             <>
               {media?.kind === "image" && (

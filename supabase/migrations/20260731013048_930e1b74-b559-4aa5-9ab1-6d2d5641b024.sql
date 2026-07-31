@@ -1,1 +1,0 @@
-ALTER TABLE public.wa_flight_quotes ADD COLUMN IF NOT EXISTS cards_sent_at timestamptz;

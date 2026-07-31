@@ -746,7 +746,7 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
   );
   const previewOf = (raw: unknown): string => {
     let text = messageText(raw);
-    const media = text.match(/\[\[media:([a-z]+)\|[^\]]*\]\]\n?/);
+    const media = text.match(/^\[\[media:([a-z]+)\|[^\]]*\]\]\n?/);
     if (media) {
       text = text.replace(media[0], "").trim();
       if (!text) {
@@ -756,7 +756,6 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
     }
     return text.replace(/^\*[^*\n]{1,40}:\*\n?/, "").trim().slice(0, 240);
   };
-
   const resolveReply = (m: (typeof messages)[number]) => {
     if (!m.reply_to_wa_id) return null;
     const original = byWaId.get(m.reply_to_wa_id);

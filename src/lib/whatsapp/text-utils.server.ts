@@ -76,118 +76,11 @@ export function capitalizeBubbles(fullText: string): string {
     .join("\n\n");
 }
 
-/** Prefixo estilo "Roberto:\n" pra colocar no início do primeiro balão. */
+/** Prefixo estilo "*Roberto:*\n" pra colocar no início do primeiro balão. */
 export function buildSenderPrefix(name: string | null | undefined): string | null {
   const fn = firstName(name);
   if (!fn) return null;
-  // Negrito do WhatsApp: destaca quem está atendendo, como era antes.
   return `*${fn}:*`;
-}
-
-
-/**
- * Remove assinaturas que o próprio modelo escreveu ("*Maria:*", "Maria:")
- * no começo de qualquer balão — a assinatura é adicionada pelo código.
- */
-export function stripAgentSignature(fullText: string, agentName: string | null | undefined): string {
-  const fn = firstName(agentName);
-  if (!fn) return fullText;
-  const esc = fn.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  // Linha que é SÓ a assinatura ("Maria:", "*Maria:*", "_Maria_:") — pode
-  // aparecer em qualquer ponto do texto, não só no começo.
-  const signatureLine = new RegExp(`^[*_~\\s]*${esc}\\s*:?\\s*[*_~\\s]*$`, "i");
-  // Assinatura grudada no início de um parágrafo ("Maria: oi, Lucas").
-  const inlineSignature = new RegExp(`^[*_~]*\\s*${esc}\\s*:\\s*[*_~]*\\s*`, "i");
-
-  const lines = fullText
-    .split("\n")
-    .filter((l) => !signatureLine.test(l) || l.trim() === "");
-
-  const cleaned = lines
-    .join("\n")
-    .split(/\n{2,}/)
-    .map((b) => {
-      let out = b.trim();
-      // Repete enquanto houver assinatura no início ("Maria: Maria: oi").
-      while (inlineSignature.test(out)) out = out.replace(inlineSignature, "").trim();
-      return out;
-    })
-    .filter(Boolean);
-
-  return cleaned.join("\n\n").trim();
-}
-
-
-/**
- * Remove balões de saudação/apresentação quando o atendimento JÁ começou.
- * Evita o "Olá, sou Roberto, consultor da Via Air / tudo bem?" repetido a cada turno.
- */
-export function stripReintroBubbles(fullText: string): string {
-  const SAUDACAO = /^(oi|ol[áa]|bom dia|boa tarde|boa noite|e a[íi])\b[\s,!.…-]*[\p{L}\s]{0,30}[!.…]*$/iu;
-  const APRESENTACAO = /\b(sou|aqui [ée]|meu nome [ée])\b[^.\n]{0,40}\b(consultor[a]?|da via ?air|de via ?air)\b/iu;
-  const COMO_AJUDAR = /^(tudo bem\??\s*)?(como (posso|eu posso) (te )?ajudar( hoje)?\??|em que posso (te )?ajudar\??|tudo bem( com voc[êe])?\??)$/iu;
-
-  const kept = fullText
-    .split(/\n{2,}/)
-    .map((b) => b.trim())
-    .filter(Boolean)
-    .filter((b) => !(SAUDACAO.test(b) || APRESENTACAO.test(b) || COMO_AJUDAR.test(b)));
-
-  // Se sobrou nada (resposta era só saudação), devolve o texto original.
-  return kept.length ? kept.join("\n\n") : fullText;
-}
-
-/**
- * Junta balões consecutivos que são perguntas num único balão (uma por linha)
- * e garante "?" no final de cada pergunta. Evita a metralhadora de 5 balões.
- */
-export function mergeQuestionBubbles(fullText: string): string {
-  // Saudação/apresentação NUNCA se junta com pergunta — são balões próprios.
-  const SAUDACAO_OU_APRESENTACAO =
-    /^(oi+|ol[áa]|bom dia|boa tarde|boa noite|e a[íi])\b/iu;
-  const APRESENTACAO = /\b(sou|aqui [ée]|meu nome [ée])\b[^.\n]{0,60}\b(consultor[a]?|via ?air)\b/iu;
-
-  const withoutMarker = (b: string) =>
-    b.replace(/^\s*(?:[-•▪◦‣⁃]|\d+[.)])\s*/u, "").trim();
-  const isPergunta = (b: string) => {
-    const clean = withoutMarker(b);
-    return !clean.includes("\n") &&
-    clean.length <= 120 &&
-    !SAUDACAO_OU_APRESENTACAO.test(clean) &&
-    !APRESENTACAO.test(clean) &&
-    (/\?\s*$/.test(clean) ||
-      /^(seria|quantos|quantas|voc[êe] tem|tem alguma|qual|quais|prefere|precisa|de onde|para quando|pra quando|em que|me diz|poderia)\b/iu.test(
-        clean,
-      ));
-  };
-
-  const bubbles = fullText
-    .split(/\n{2,}/)
-    .map((b) => b.trim())
-    .filter(Boolean);
-
-  const out: string[] = [];
-  let buffer: string[] = [];
-  const flush = () => {
-    if (!buffer.length) return;
-    const questions = buffer.map((q) => {
-      const clean = q.replace(/^\s*(?:[-•▪◦‣⁃]|\d+[.)])\s*/u, "").trim();
-      return /[?!.…]$/.test(clean) ? clean : `${clean}?`;
-    });
-    // Quando há um briefing com várias perguntas, todas recebem o mesmo
-    // marcador — inclusive a primeira. Isso evita o primeiro tópico "solto".
-    out.push(questions.length > 1 ? questions.map((q) => `- ${q}`).join("\n") : questions[0]);
-    buffer = [];
-  };
-  for (const b of bubbles) {
-    if (isPergunta(b)) buffer.push(b);
-    else {
-      flush();
-      out.push(b);
-    }
-  }
-  flush();
-  return out.join("\n\n");
 }
 
 /**
@@ -216,39 +109,4 @@ export function capitalizeKnownNames(text: string, names: (string | null | undef
     out = out.replace(re, proper);
   }
   return out;
-}
-
-/**
- * Remove balões em que o modelo INVENTA falha de envio das artes
- * ("tive um probleminha pra mandar as imagens", "posso te passar por texto?")
- * quando os cartões de voo na verdade foram entregues neste mesmo turno.
- */
-export function stripFakeImageFailure(fullText: string): string {
-  const FALHA =
-    /(probleminha|problema|instabilidade|falha|dificuldade|erro|n[aã]o consegui|n[aã]o foi poss[íi]vel)[^\n]{0,80}(imagem|imagens|arte|artes|foto|fotos|enviar|mandar|buscar|busca|pesquisa|cota[çc][aã]o|sistema)/iu;
-  const OFERTA_TEXTO =
-    /(passar|mandar|enviar|te passo|posso te passar)[^\n]{0,60}(por (aqui )?texto|em texto|por escrito)/iu;
-  const kept = fullText
-    .split(/\n{2,}/)
-    .map((b) => b.trim())
-    .filter(Boolean)
-    .filter((b) => !FALHA.test(b) && !OFERTA_TEXTO.test(b));
-  return kept.join("\n\n");
-}
-
-/**
- * Remove listagem de voos em TEXTO quando as artes já foram entregues.
- * O modelo às vezes "reescreve" as opções (e inventa horários/valores),
- * o que é o erro mais grave possível. As imagens já mostram tudo.
- */
-export function stripTextFlightList(fullText: string): string {
-  const OPCAO = /^\**\s*op[çc][aã]o\s*\d+\s*\**\s*[:.-]?\s*$/iu;
-  const VOO_LINHA = /(^|\n)\s*(✈️|🛫|🛬)?\s*(ida|volta)\s*:/iu;
-  const VALOR = /^\s*(total|valor|parcelamento)\s*:/iu;
-  const kept = fullText
-    .split(/\n{2,}/)
-    .map((b) => b.trim())
-    .filter(Boolean)
-    .filter((b) => !OPCAO.test(b) && !VOO_LINHA.test(b) && !VALOR.test(b));
-  return kept.join("\n\n");
 }

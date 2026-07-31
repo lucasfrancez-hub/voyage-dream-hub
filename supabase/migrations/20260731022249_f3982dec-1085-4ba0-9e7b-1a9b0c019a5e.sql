@@ -1,1 +1,0 @@
-ALTER TABLE public.wa_flight_quotes ADD COLUMN IF NOT EXISTS sent_fingerprints jsonb NOT NULL DEFAULT '[]'::jsonb;

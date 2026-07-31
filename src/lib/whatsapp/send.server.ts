@@ -100,9 +100,7 @@ async function metaSendMedia(
       console.error("[whatsapp/meta media] falha:", msg);
       return { id: null, error: msg };
     }
-    const id = data.messages?.[0]?.id ?? null;
-    if (!id) return { id: null, error: "Meta aceitou a mídia sem retornar o ID da mensagem" };
-    return { id };
+    return { id: data.messages?.[0]?.id ?? null };
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     return { id: null, error: msg };
@@ -156,14 +154,9 @@ export async function sendWhatsAppText(
   body: string,
   replyId?: string | null,
 ): Promise<{ id: string | null; error?: string }> {
-  // Blindagem: marcador interno de mídia NUNCA pode vazar como texto
-  // (aparecia no WhatsApp como um link quebrado).
-  const limpo = body.replace(/\[\[media:[^\]]*\]\]/gi, "").replace(/\n{3,}/g, "\n\n").trim();
-  if (!limpo) return { id: null, error: "mensagem vazia após limpeza de mídia" };
   // Chat oficial: sempre Meta. Reply nativo usa context.message_id.
-  return metaSendText(to, limpo, replyId);
+  return metaSendText(to, body, replyId);
 }
-
 
 /** Indicador "digitando…" oficial da Meta. */
 export async function sendWhatsAppTypingIndicator(
@@ -205,6 +198,9 @@ export function splitToBubbles(fullText: string, prefix?: string | null): string
     .filter(Boolean)
     .map((s) => s.charAt(0).toLocaleUpperCase("pt-BR") + s.slice(1));
   const rawBubbles = paragraphs.length ? paragraphs : [fullText.trim()].filter(Boolean);
+  if (prefix?.trim() && rawBubbles.length) {
+    rawBubbles[0] = `${prefix.trim()}\n${rawBubbles[0]}`;
+  }
   // Quebra parágrafos gigantes no limite oficial da Meta (~4096)
   const bubbles: string[] = [];
   for (const p of rawBubbles) {
@@ -217,25 +213,7 @@ export function splitToBubbles(fullText: string, prefix?: string | null): string
     }
     if (remaining) bubbles.push(remaining);
   }
-  // Sanitiza: junta fragmentos que começam com pontuação (ex.: ", tá bom?" quando
-  // o nome do cliente ficou vazio) e descarta balões sem nenhuma letra/número.
-  const cleaned: string[] = [];
-  for (const raw of bubbles.map((b) => stripTrailingPeriod(b)).filter(Boolean)) {
-    // Limpa pontuação solta sem apagar "- " de listas legítimas.
-    let b = raw.replace(/^[\s,;:.!?]+/u, "").trim();
-    // Restos de frase cortada por sanitização anterior: o balão começava com
-    // um confirmador solto ("Tá?", "Certo?", "Ok!") que ficou sem a oração.
-    b = b.replace(/^(t[aá]|certo|ok|beleza|blz|combinado|viu)\s*[?!.,]+\s*/iu, "").trim();
-    if (!b || !/[\p{L}\p{N}]/u.test(b)) continue;
-    cleaned.push(b.charAt(0).toLocaleUpperCase("pt-BR") + b.slice(1));
-  }
-
-  // O prefixo (ex.: "*Maria:*") só entra depois da limpeza, pra nunca gerar um
-  // balão só com o nome do atendente seguido de pontuação solta.
-  if (prefix?.trim() && cleaned.length) {
-    cleaned[0] = `${prefix.trim()}\n${cleaned[0]}`;
-  }
-  return cleaned;
+  return bubbles.map((b) => stripTrailingPeriod(b)).filter(Boolean);
 }
 
 /**
@@ -251,28 +229,11 @@ export function stripTrailingPeriod(bubble: string): string {
 }
 
 
-/**
- * Pausa "humana" entre balões: proporcional ao tamanho do próximo texto,
- * como se o atendente estivesse digitando. Mínimo 1,2s, máximo 4,5s por
- * balão e teto de ~14s no total da sequência.
- */
-function typingPause(nextBubble: string, restante: number): number {
-  const base = 900 + nextBubble.length * 28; // ~28ms por caractere
-  const gap = Math.max(1200, Math.min(4500, base));
-  return Math.min(gap, Math.max(1000, Math.floor(14000 / Math.max(1, restante))));
-}
-
 export async function sendWhatsAppBubbles(
   to: string,
   fullText: string,
   prefix?: string | null,
-  opts?: {
-    replyId?: string | null;
-    typingId?: string | null;
-    /** Chamado logo após CADA balão — permite gravar o ID na hora, sem esperar
-     * a sequência inteira (o worker pode ser cortado no meio). */
-    onSent?: (index: number, res: { id: string | null; error?: string }) => Promise<void> | void;
-  },
+  opts?: { replyId?: string | null },
 ): Promise<Array<{ text: string; id: string | null; error?: string }>> {
   const bubbles = splitToBubbles(fullText, prefix);
   const out: Array<{ text: string; id: string | null; error?: string }> = [];
@@ -284,27 +245,21 @@ export async function sendWhatsAppBubbles(
       out.push({ text: body, ...r });
       if (r.error) console.warn(`[bubbles] falha #${i + 1}:`, r.error);
       else console.log(`[bubbles/meta] balão #${i + 1}/${bubbles.length} aceito:`, r.id);
-      if (opts?.onSent) await Promise.resolve(opts.onSent(i, r)).catch(() => {});
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       console.error(`[bubbles] exception #${i + 1}:`, msg);
       out.push({ text: body, id: null, error: msg });
-      if (opts?.onSent) await Promise.resolve(opts.onSent(i, { id: null, error: msg })).catch(() => {});
       // continua para os próximos balões — não aborta a sequência
     }
-    // Entre um balão e outro: reacende o "digitando…" e espera alguns
-    // segundos, pra conversa parecer humana em vez de tudo de uma vez.
+    // pequena pausa entre balões pra chegarem em ordem no WhatsApp,
+    // sem estourar o tempo do worker (máx ~1s total mesmo com muitos balões)
     if (i < bubbles.length - 1) {
-      const proximo = bubbles[i + 1];
-      if (opts?.typingId) {
-        await sendWhatsAppTypingIndicator(opts.typingId, to).catch(() => {});
-      }
-      await new Promise((r) => setTimeout(r, typingPause(proximo, bubbles.length - 1 - i)));
+      const gap = Math.min(400, Math.floor(1000 / Math.max(1, bubbles.length - 1)));
+      await new Promise((r) => setTimeout(r, gap));
     }
   }
   return out;
 }
-
 
 
 export async function sendWhatsAppImage(
@@ -368,24 +323,8 @@ export async function sendWhatsAppImageBytes(
   caption?: string | null,
   fallbackLink?: string,
 ): Promise<{ id: string | null; error?: string }> {
-  const uploaded = await metaUploadMedia(bytes, filename, "image/png");
-  if (uploaded.id) {
-    const byId = await metaSendMedia(to, {
-      type: "image",
-      image: { id: uploaded.id, ...(caption ? { caption: caption.slice(0, 1024) } : {}) },
-    });
-    if (byId.id || !fallbackLink) return byId;
-    // Há casos em que o upload é aceito, mas a Meta recusa o envio pelo media
-    // ID logo depois. A URL pública já está pronta: tenta por ela antes de
-    // considerar o card perdido e deixar o watchdog gerar a mesma arte sempre.
-    console.warn("[whatsapp/meta image] envio por media ID falhou; tentando URL:", byId.error);
-    return metaSendMedia(to, {
-      type: "image",
-      image: { link: fallbackLink, ...(caption ? { caption: caption.slice(0, 1024) } : {}) },
-    });
-  }
-  if (!fallbackLink) return uploaded;
-  console.warn("[whatsapp/meta image] upload direto falhou; tentando URL:", uploaded.error);
+  void bytes;
+  if (!fallbackLink) return { id: null, error: "URL da imagem ausente" };
   return metaSendMedia(to, {
     type: "image",
     image: { link: fallbackLink, ...(caption ? { caption: caption.slice(0, 1024) } : {}) },
