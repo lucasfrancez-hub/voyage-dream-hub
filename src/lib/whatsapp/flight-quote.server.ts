@@ -184,15 +184,20 @@ export async function quoteFlights(params: QuoteFlightsParams): Promise<FlightQu
 
   let search;
   try {
-    search = await searchFlights({
-      ...base,
-      returnDate: params.data_volta ?? null,
-      searchKey: null,
-      filters: { ...baseFilters, departureFrom: jIda.from, departureTo: jIda.to },
-    });
+    // modo "fast": WhatsApp precisa de resposta em segundos, não em meio minuto
+    search = await searchFlights(
+      {
+        ...base,
+        returnDate: params.data_volta ?? null,
+        searchKey: null,
+        filters: { ...baseFilters, departureFrom: jIda.from, departureTo: jIda.to },
+      },
+      "fast",
+    );
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Falha na busca de voos" };
   }
+
 
   const idas = [...(search.outbound?.flights ?? [])];
   if (!idas.length) return { error: "A operadora não retornou voos para essa data/rota" };
