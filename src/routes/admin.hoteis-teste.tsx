@@ -395,16 +395,21 @@ function HotelCard({
             )}
           </div>
 
-          {h.rates.length > 1 && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="mt-2 h-7 px-2 text-xs"
-              onClick={() => setOpenRooms((v) => !v)}
-            >
-              {openRooms ? "Ocultar quartos" : `Ver outros ${h.rates.length - 1} quarto(s)`}
-            </Button>
-          )}
+          {/* a busca em lista só traz a tarifa mais barata; a lista completa
+              é carregada no resumo do hotel */}
+          <Button
+            variant="ghost"
+            size="sm"
+            className="mt-2 h-7 px-2 text-xs"
+            onClick={() => (h.rates.length > 1 ? setOpenRooms((v) => !v) : onSelect(rate.key))}
+          >
+            {h.rates.length > 1
+              ? openRooms
+                ? "Ocultar quartos"
+                : `Ver outros ${h.rates.length - 1} quarto(s)`
+              : "Ver todos os quartos"}
+          </Button>
+
           {openRooms && (
             <div className="mt-2 space-y-2">
               {h.rates.map((r) => (
