@@ -231,7 +231,7 @@ function AdminLayout() {
               <img src={viaAirLogo.url} alt="Via Air" className="h-7 sm:h-8 w-auto" />
             </Link>
             <nav className="hidden md:flex items-center gap-1">
-              {isAdmin && <NavItem to="/admin/pacotes" icon={Package} label="Pacotes" active={pathname.startsWith("/admin/pacotes")} />}
+              {isAdmin && <ProdutosNav pathname={pathname} />}
               {isAdmin && <DashboardNav pathname={pathname} />}
               {isAdmin
                 ? <PedidosNav pathname={pathname} />
