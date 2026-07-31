@@ -240,12 +240,30 @@ export function buildCamilaTools(conversation: WaConversation) {
           .describe("Legenda curta da primeira imagem, ex: 'Opção 1 — voo direto'"),
       }),
       execute: async ({ quote_id, opcoes, legenda }) => {
-        const { data: row } = await supabaseAdmin
-          .from("wa_flight_quotes")
-          .select("payload")
-          .eq("id", quote_id)
-          .single();
+        // Busca pelo id informado; se o modelo perdeu/errou o quote_id (comum
+        // quando o cliente pede as fotos de novo em outro turno), cai pra
+        // última cotação desta conversa em vez de falhar.
+        let row: { payload: unknown } | null = null;
+        if (quote_id) {
+          const { data } = await supabaseAdmin
+            .from("wa_flight_quotes")
+            .select("payload")
+            .eq("id", quote_id)
+            .maybeSingle();
+          row = data ?? null;
+        }
+        if (!row?.payload) {
+          const { data } = await supabaseAdmin
+            .from("wa_flight_quotes")
+            .select("payload")
+            .eq("conversation_id", conversation.id)
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          row = data ?? null;
+        }
         if (!row?.payload) return { error: "Cotação não encontrada — refaça a busca com cotar_aereo" };
+
 
         const quote = row.payload as {
           origem_iata: string;
