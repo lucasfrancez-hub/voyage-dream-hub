@@ -136,7 +136,7 @@ function buildSystemPrompt(agent: Agent, conv: WaConversation, protocolo: WaProt
   parts.push(`- Protocolo ATIVO: ${protocolo.numero} (uso interno — NÃO mencione o número ao cliente na abertura nem no meio da conversa; ele só aparece na mensagem automática de encerramento).`);
   parts.push(
     isNewProtocolo
-      ? `- PRIMEIRA RESPOSTA DESTE PROTOCOLO: SIM. Antes de qualquer tool, cumprimente, diga seu nome e reaja ao pedido. Se for viagem/cotação e o cliente ainda não confirmou se quer só aéreo ou pacote com hospedagem, faça a triagem e NÃO cote ainda.`
+      ? `- PRIMEIRA RESPOSTA DESTE PROTOCOLO: SIM. Antes de qualquer tool, cumprimente, diga seu nome e reaja ao pedido. Se for viagem/cotação, faça a triagem (só aéreo ou pacote com hospedagem) e NÃO cote ainda — mesmo que o "HISTÓRICO ANTERIOR" abaixo mostre confirmação de um protocolo passado JÁ ENCERRADO: aquela resposta NÃO vale pra esta nova solicitação. A triagem tem que ser refeita nesta conversa antes de chamar cotar_aereo/enviar_cartao_voo.`
       : `- PRIMEIRA RESPOSTA DESTE PROTOCOLO: NÃO. Não repita apresentação; continue naturalmente do ponto atual.`,
   );
   parts.push(
