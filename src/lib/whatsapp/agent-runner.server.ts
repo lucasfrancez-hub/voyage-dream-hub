@@ -378,13 +378,15 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
   // e alternamos entre modelos, com backoff crescente, antes de desistir.
   // Geração 2.5 do Gemini vinha dando 502 em rajada — usamos a geração atual
   // (3.6 flash) como principal e só caímos pra 2.5 no último recurso.
+  // O Gemini está instável (rajadas de 502 em todas as gerações), então o
+  // ChatGPT entra logo na sequência como reserva real, não só no fim.
   const ATTEMPTS = [
     { model: "google/gemini-3.6-flash", wait: 1500 },
-    { model: "google/gemini-3.6-flash", wait: 3000 },
-    { model: "google/gemini-3.1-flash-lite", wait: 4000 },
-    { model: "google/gemini-3.1-pro-preview", wait: 5000 },
-    { model: "google/gemini-2.5-flash", wait: 8000 },
-    { model: "google/gemini-2.5-flash-lite", wait: 0 },
+    { model: "openai/gpt-5.4-mini", wait: 2000 },
+    { model: "google/gemini-3.1-flash-lite", wait: 3000 },
+    { model: "openai/gpt-5.4", wait: 4000 },
+    { model: "google/gemini-2.5-flash", wait: 6000 },
+    { model: "openai/gpt-5.4-nano", wait: 0 },
   ];
   const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -394,6 +396,8 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
     let lastErr: unknown = null;
     for (let i = 0; i < ATTEMPTS.length; i++) {
       try {
+        // Modelos GPT-5 rejeitam temperature diferente do padrão (400).
+        const isOpenAI = ATTEMPTS[i].model.startsWith("openai/");
         result = await generateText({
           model: gateway(ATTEMPTS[i].model),
           system,
@@ -401,9 +405,10 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
           tools: cleanTools as never,
           toolsContext: undefined as never,
           stopWhen: stepCountIs(10),
-          temperature: 0.6,
+          ...(isOpenAI ? {} : { temperature: 0.6 }),
         });
         break;
+
       } catch (e) {
         lastErr = e;
         const m = e instanceof Error ? e.message : String(e);
