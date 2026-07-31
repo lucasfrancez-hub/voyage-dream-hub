@@ -120,7 +120,9 @@ async function screenshotCard(url: string): Promise<Uint8Array> {
       url,
       gotoOptions: { waitUntil: "load", timeout: 15000 },
       viewport: { width: 900, height: 600, deviceScaleFactor: 2 },
-      selector: ".card",
+      // Captura também uma pequena área transparente ao redor do cartão.
+      // Isso impede que o processamento da mídia encoste o recorte nos cantos.
+      selector: ".capture",
       options: { type: "png", omitBackground: true },
     }),
   });

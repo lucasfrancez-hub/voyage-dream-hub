@@ -299,7 +299,7 @@ export function buildCamilaTools(conversation: WaConversation) {
                 conversation_id: conversation.id,
                 direction: "outbound",
                 sender: "camila",
-                content: `${caption}\n${arte.asset.url}`,
+                content: `[[media:image|${arte.asset.url}|${arte.asset.filename}]]\n${caption}`,
                 wa_message_id: r.id,
               });
             }

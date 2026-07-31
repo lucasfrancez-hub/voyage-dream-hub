@@ -144,9 +144,10 @@ export function renderFlightCardHtml(d: FlightCardData, baseUrl: string): string
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-html,body{width:900px;max-width:900px;overflow-x:hidden;background:transparent}
-body{padding:20px}
+html,body{width:900px;max-width:900px;overflow-x:hidden;background:transparent!important}
+body{padding:0}
 body{font-family:Poppins,system-ui,sans-serif;color:${NAVY};-webkit-font-smoothing:antialiased}
+.capture{display:inline-block;padding:20px;background:transparent!important}
 .card{width:820px;background:#fff;overflow:hidden;border-radius:44px}
 .head{padding:36px 52px 0}
 .head-top{display:flex;align-items:center;justify-content:space-between}
@@ -194,7 +195,7 @@ body{font-family:Poppins,system-ui,sans-serif;color:${NAVY};-webkit-font-smoothi
 .pay b{font-weight:700}
 .safe{margin-top:20px;font-size:17px;color:#8fa2bd}
 </style></head>
-<body><div class="card">
+<body><div class="capture"><div class="card">
   <div class="head">
     <div class="head-top">
       <img class="brand" src="${esc(abs(baseUrl, LOGO_URL) || "")}" alt="VIA AIR"/>
@@ -212,5 +213,5 @@ body{font-family:Poppins,system-ui,sans-serif;color:${NAVY};-webkit-font-smoothi
     ${parcela}
     <div class="safe">Compra 100% segura &bull; VIA AIR</div>
   </div>
-</div></body></html>`;
+</div></div></body></html>`;
 }
