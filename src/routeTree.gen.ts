@@ -18,6 +18,7 @@ import { Route as EmbedTesteRouteImport } from './routes/embed-teste'
 import { Route as ExclusaoDeDadosRouteImport } from './routes/exclusao-de-dados'
 import { Route as IngressosRouteImport } from './routes/ingressos'
 import { Route as MinhasReservasRouteImport } from './routes/minhas-reservas'
+import { Route as NotifPreviewRouteImport } from './routes/notif-preview'
 import { Route as PacotesRouteImport } from './routes/pacotes'
 import { Route as PagarRouteImport } from './routes/pagar'
 import { Route as PagarBoletoRouteImport } from './routes/pagar-boleto'
@@ -144,6 +145,11 @@ const IngressosRoute = IngressosRouteImport.update({
 const MinhasReservasRoute = MinhasReservasRouteImport.update({
   id: '/minhas-reservas',
   path: '/minhas-reservas',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NotifPreviewRoute = NotifPreviewRouteImport.update({
+  id: '/notif-preview',
+  path: '/notif-preview',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PacotesRoute = PacotesRouteImport.update({
@@ -583,6 +589,7 @@ export interface FileRoutesByFullPath {
   '/exclusao-de-dados': typeof ExclusaoDeDadosRoute
   '/ingressos': typeof IngressosRoute
   '/minhas-reservas': typeof MinhasReservasRoute
+  '/notif-preview': typeof NotifPreviewRoute
   '/pacotes': typeof PacotesRouteWithChildren
   '/pagar': typeof PagarRoute
   '/pagar-boleto': typeof PagarBoletoRoute
@@ -676,6 +683,7 @@ export interface FileRoutesByTo {
   '/exclusao-de-dados': typeof ExclusaoDeDadosRoute
   '/ingressos': typeof IngressosRoute
   '/minhas-reservas': typeof MinhasReservasRoute
+  '/notif-preview': typeof NotifPreviewRoute
   '/pagar': typeof PagarRoute
   '/pagar-boleto': typeof PagarBoletoRoute
   '/passeios': typeof PasseiosRoute
@@ -769,6 +777,7 @@ export interface FileRoutesById {
   '/exclusao-de-dados': typeof ExclusaoDeDadosRoute
   '/ingressos': typeof IngressosRoute
   '/minhas-reservas': typeof MinhasReservasRoute
+  '/notif-preview': typeof NotifPreviewRoute
   '/pacotes': typeof PacotesRouteWithChildren
   '/pagar': typeof PagarRoute
   '/pagar-boleto': typeof PagarBoletoRoute
@@ -864,6 +873,7 @@ export interface FileRouteTypes {
     | '/exclusao-de-dados'
     | '/ingressos'
     | '/minhas-reservas'
+    | '/notif-preview'
     | '/pacotes'
     | '/pagar'
     | '/pagar-boleto'
@@ -957,6 +967,7 @@ export interface FileRouteTypes {
     | '/exclusao-de-dados'
     | '/ingressos'
     | '/minhas-reservas'
+    | '/notif-preview'
     | '/pagar'
     | '/pagar-boleto'
     | '/passeios'
@@ -1049,6 +1060,7 @@ export interface FileRouteTypes {
     | '/exclusao-de-dados'
     | '/ingressos'
     | '/minhas-reservas'
+    | '/notif-preview'
     | '/pacotes'
     | '/pagar'
     | '/pagar-boleto'
@@ -1143,6 +1155,7 @@ export interface RootRouteChildren {
   ExclusaoDeDadosRoute: typeof ExclusaoDeDadosRoute
   IngressosRoute: typeof IngressosRoute
   MinhasReservasRoute: typeof MinhasReservasRoute
+  NotifPreviewRoute: typeof NotifPreviewRoute
   PacotesRoute: typeof PacotesRouteWithChildren
   PagarRoute: typeof PagarRoute
   PagarBoletoRoute: typeof PagarBoletoRoute
@@ -1249,6 +1262,13 @@ declare module '@tanstack/react-router' {
       path: '/minhas-reservas'
       fullPath: '/minhas-reservas'
       preLoaderRoute: typeof MinhasReservasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/notif-preview': {
+      id: '/notif-preview'
+      path: '/notif-preview'
+      fullPath: '/notif-preview'
+      preLoaderRoute: typeof NotifPreviewRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/pacotes': {
@@ -1955,6 +1975,7 @@ const rootRouteChildren: RootRouteChildren = {
   ExclusaoDeDadosRoute: ExclusaoDeDadosRoute,
   IngressosRoute: IngressosRoute,
   MinhasReservasRoute: MinhasReservasRoute,
+  NotifPreviewRoute: NotifPreviewRoute,
   PacotesRoute: PacotesRouteWithChildren,
   PagarRoute: PagarRoute,
   PagarBoletoRoute: PagarBoletoRoute,
@@ -2002,3 +2023,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
