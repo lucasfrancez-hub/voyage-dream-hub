@@ -529,7 +529,9 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
         .eq("id", conv.id);
     }
 
-    const prefix = buildSenderPrefix(agent.nome);
+    // Prefixo "*Roberto:*" só na PRIMEIRA mensagem do atendimento (assinar toda
+    // mensagem deixa robótico).
+    const prefix = jaFalouAntes ? null : buildSenderPrefix(agent.nome);
     const sent = await sendWhatsAppBubbles(conv.wa_phone, text, prefix);
     const failed = sent.filter((s) => s.error);
     if (failed.length > 0) console.error(`[agent:${agent.slug}] falha ao enviar:`, failed);
