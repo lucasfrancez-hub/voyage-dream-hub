@@ -30,7 +30,12 @@ function fmtDate(d: string | null | undefined): string {
  * `conversation` é passada por closure para que as tools tenham contexto
  * (identidade verificada, telefone, etc).
  */
-export function buildCamilaTools(conversation: WaConversation) {
+type ToolProtocolScope = {
+  protocolId?: string | null;
+  openedAt?: string | null;
+};
+
+export function buildCamilaTools(conversation: WaConversation, scope: ToolProtocolScope = {}) {
   const isIdentityVerified = !!conversation.identity_verified_at;
 
   return {
@@ -198,7 +203,36 @@ export function buildCamilaTools(conversation: WaConversation) {
           .describe("true se o cliente precisa de bagagem despachada inclusa"),
       }),
       execute: async (args) => {
-
+        // Um protocolo encerrado encerra também o assunto. A confirmação de
+        // "só aéreo" precisa existir no protocolo ATUAL; nunca vale aproveitar
+        // intenção, briefing ou cotação de um atendimento anterior.
+        if (scope.protocolId) {
+          const { data: currentInbound } = await supabaseAdmin
+            .from("wa_messages")
+            .select("content")
+            .eq("protocolo_id", scope.protocolId)
+            .eq("direction", "inbound")
+            .eq("sender", "customer")
+            .order("created_at", { ascending: true })
+            .limit(20);
+          const said = (currentInbound ?? [])
+            .map((m) => String(m.content ?? ""))
+            .join(" ")
+            .toLocaleLowerCase("pt-BR");
+          const confirmedFlightOnly = [
+            /\bs[oó] (?:o )?(?:a[eé]reo|voo|passagem|passagens)\b/,
+            /\b(?:somente|apenas) (?:o )?(?:a[eé]reo|voo|passagem|passagens)\b/,
+            /\b(?:n[aã]o|sem) (?:preciso de |quero )?(?:hotel|hospedagem|pacote)\b/,
+            /\b(?:a[eé]reo|voo|passagem|passagens) (?:somente|apenas)\b/,
+          ].some((pattern) => pattern.test(said));
+          if (!confirmedFlightOnly) {
+            return {
+              triagem_pendente: true,
+              instrucao:
+                "NÃO faça a busca e NÃO envie cards ainda. Pergunte agora, em uma frase: ‘É só o aéreo ou você quer a viagem com hospedagem também?’ Espere a resposta. Se escolher pacote, use pacotes prontos; sem opção pronta, encaminhe ao comercial.",
+            };
+          }
+        }
 
         // Se já cotamos essa MESMA rota/data/pax há pouco e as artes já foram
         // entregues, reaproveita a cotação em vez de buscar de novo (era isso
@@ -220,7 +254,14 @@ export function buildCamilaTools(conversation: WaConversation) {
           .gte("created_at", desdeRecente)
           .order("created_at", { ascending: false })
           .limit(5);
-        for (const r of recentes ?? []) {
+        const recentesDoProtocolo = scope.openedAt
+          ? (recentes ?? []).filter((r) => {
+              const payload = (r.payload ?? {}) as Record<string, unknown>;
+              const quoteCreatedAt = String(payload.created_at ?? "");
+              return !quoteCreatedAt || quoteCreatedAt >= scope.openedAt!;
+            })
+          : recentes ?? [];
+        for (const r of recentesDoProtocolo) {
           const p = (r.payload ?? {}) as Record<string, unknown>;
           const k = [
             String(p.origem_iata ?? "").toUpperCase(),
@@ -311,13 +352,14 @@ export function buildCamilaTools(conversation: WaConversation) {
           rowId = data?.id ?? null;
         }
         if (!row?.payload) {
-          const { data } = await supabaseAdmin
+          let fallbackQuery = supabaseAdmin
             .from("wa_flight_quotes")
             .select("id, payload, created_at")
             .eq("conversation_id", conversation.id)
             .order("created_at", { ascending: false })
-            .limit(1)
-            .maybeSingle();
+            .limit(1);
+          if (scope.openedAt) fallbackQuery = fallbackQuery.gte("created_at", scope.openedAt);
+          const { data } = await fallbackQuery.maybeSingle();
           row = data ?? null;
           rowId = data?.id ?? null;
         }
@@ -376,11 +418,12 @@ export function buildCamilaTools(conversation: WaConversation) {
         // Fingerprints já entregues em QUALQUER cotação desta conversa nas
         // últimas 24h.
         const desde = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+        const fingerprintSince = scope.openedAt && scope.openedAt > desde ? scope.openedAt : desde;
         const { data: quotesRecentes } = await supabaseAdmin
           .from("wa_flight_quotes")
           .select("sent_fingerprints")
           .eq("conversation_id", conversation.id)
-          .gte("created_at", desde)
+          .gte("created_at", fingerprintSince)
           .limit(20);
         const jaFps = new Set<string>(
           (quotesRecentes ?? []).flatMap((q) =>

@@ -81,7 +81,10 @@ export async function runCamila(input: { wa_phone: string; profile_name?: string
 
   const gateway = createLovableAiGatewayProvider(key);
   const model = gateway("google/gemini-2.5-flash");
-  const tools = buildCamilaTools(conv);
+  const tools = buildCamilaTools(conv, {
+    protocolId: conv.protocolo_ativo_id,
+    openedAt: sinceIso,
+  });
   // Remove marker interno antes de passar pro AI SDK
   const cleanTools: Record<string, unknown> = { ...tools };
   delete cleanTools._meta;
