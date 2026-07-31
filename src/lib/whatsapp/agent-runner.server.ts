@@ -421,18 +421,21 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
     // Garante primeira letra maiúscula em cada balão (o modelo escreve tudo minúsculo)
     // e capitaliza o primeiro nome do cliente sempre que aparecer no meio do texto.
     const clientFirst = extractFirstName(conv.display_name);
-    // Já existe mensagem nossa neste atendimento? Então nada de saudação/
-    // apresentação de novo, nem prefixo "*Roberto:*" em toda mensagem.
+    // Já falamos NESTE protocolo? Só aí cortamos saudação/apresentação e o
+    // prefixo "*Roberto:*". Protocolo novo = atendimento novo: o agente se
+    // apresenta de novo, com nome, igual na primeira vez.
     let jaFalouAntes = false;
     try {
       const { count } = await supabaseAdmin
         .from("wa_messages")
         .select("id", { count: "exact", head: true })
         .eq("conversation_id", conv.id)
+        .eq("protocolo_id", protocolo.id)
         .eq("direction", "outbound")
         .neq("sender", "system");
       jaFalouAntes = (count ?? 0) > 0;
     } catch { /* noop */ }
+
 
     let text = capitalizeKnownNames(capitalizeBubbles(fixGluedSentences(rawText)), [clientFirst]);
     if (jaFalouAntes) text = stripReintroBubbles(text);
