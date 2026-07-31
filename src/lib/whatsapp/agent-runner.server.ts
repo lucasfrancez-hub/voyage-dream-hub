@@ -136,7 +136,7 @@ function buildSystemPrompt(agent: Agent, conv: WaConversation, protocolo: WaProt
   parts.push(`- Protocolo ATIVO: ${protocolo.numero} (uso interno — NÃO mencione o número ao cliente na abertura nem no meio da conversa; ele só aparece na mensagem automática de encerramento).`);
   parts.push(
     isNewProtocolo
-      ? `- PRIMEIRA RESPOSTA DESTE PROTOCOLO: SIM. Antes de qualquer tool, cumprimente, diga seu nome e reaja ao pedido. Se for viagem/cotação, faça a triagem (só aéreo ou pacote com hospedagem) e NÃO cote ainda — mesmo que o "HISTÓRICO ANTERIOR" abaixo mostre confirmação de um protocolo passado JÁ ENCERRADO: aquela resposta NÃO vale pra esta nova solicitação. A triagem tem que ser refeita nesta conversa antes de chamar cotar_aereo/enviar_cartao_voo.`
+      ? `- PRIMEIRA RESPOSTA DESTE PROTOCOLO: SIM. Cumprimente, diga seu nome e reaja ao pedido do cliente.`
       : `- PRIMEIRA RESPOSTA DESTE PROTOCOLO: NÃO. Não repita apresentação; continue naturalmente do ponto atual.`,
   );
   parts.push(
@@ -147,25 +147,7 @@ function buildSystemPrompt(agent: Agent, conv: WaConversation, protocolo: WaProt
     `Assuma que o pedido está identificado por esse localizador e siga o atendimento.`
   );
 
-  parts.push(
-    `\n# ✍️ FORMATAÇÃO OBRIGATÓRIA (WhatsApp)\n` +
-    `- Cada ideia/frase vai em um PARÁGRAFO próprio, separado por UMA LINHA EM BRANCO (\\n\\n). Nunca junte tudo num único bloco.\n` +
-    `- Resumos e listas SEMPRE em tópicos, um por linha, começando com "- " (ex.: "- Origem: Maringá").\n` +
-    `- Antes de uma lista, quebre a linha depois dos dois-pontos.\n` +
-    `- Nunca cole palavras/frases (proibido "PerfeitoO Fabrício", "pedido.Vou", "HotelVou"): sempre espaço ou quebra de linha.\n` +
-    `- Máximo ~3 linhas por parágrafo. Sem markdown de título; negrito só com *asterisco simples*.`
-  );
 
-
-  parts.push(
-    `\n# ❌ NUNCA PEÇA DADO QUE NÃO EXISTE\n` +
-    `- Se o assunto é COTAÇÃO / ORÇAMENTO / PROPOSTA / "o comercial não entrou em contato", NÃO existe pedido, nem localizador, nem reserva. ` +
-    `É PROIBIDO pedir número do pedido, localizador, reserva ou CPF nesses casos. ` +
-    `Reconheça o ocorrido, retome a solicitação a partir do histórico e diga que vai priorizar o retorno.\n` +
-    `- Só peça pedido/localizador/CPF quando o cliente falar de uma COMPRA JÁ EMITIDA (voucher, bilhete, check-in, reembolso, remarcação) ` +
-    `E não houver nenhum dado no histórico que identifique essa compra.\n` +
-    `- Antes de perguntar qualquer coisa, releia o histórico: se a informação já foi dita alguma vez, use-a.`
-  );
 
 
 
