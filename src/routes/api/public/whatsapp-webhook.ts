@@ -357,14 +357,24 @@ async function processPayload(payload: WhatsAppPayload) {
           .eq("direction", "inbound")
           .gte("created_at", thirtySecAgo);
 
+        // Assunto AÉREO tem prioridade de velocidade: cotação de passagem é
+        // perecível (tarifa muda) e o cliente fica esperando. Nesse caso a
+        // janela cai pra 20s / 45s em rajada.
+        const AEREO =
+          /(passage|voo|voos|aére|aere|bilhete|trecho|ida e volta|só ida|so ida|cotaç|cotac|bagagem|com combo|algum retorno|e a[ií] a cota)/i;
+        const cotacaoAereo = AEREO.test(content ?? "");
+
         let waitMs: number;
-        if ((recentBurst ?? 0) >= 2) {
+        if (cotacaoAereo) {
+          waitMs = (recentBurst ?? 0) >= 2 ? 45 * 1000 : 20 * 1000;
+        } else if ((recentBurst ?? 0) >= 2) {
           waitMs = 3 * 60 * 1000; // rajada → cap de 3min (máx. inicial)
         } else if (convState?.ai_debounce_until) {
           waitMs = 2 * 60 * 1000; // janela já aberta → follow-up mais curto
         } else {
           waitMs = 90 * 1000; // mensagem isolada após silêncio → responde rápido
         }
+
 
         // CAP ABSOLUTO: nunca deixar a IA demorar mais que 3min a contar da
         // PRIMEIRA mensagem não respondida do cliente. Se novas mensagens

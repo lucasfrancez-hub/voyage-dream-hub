@@ -123,23 +123,31 @@ function buildFilter(f: OnerOperatorFilters) {
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
+export type PollSpeed = "normal" | "fast";
+
 async function poll(
   path: "outbound" | "inbound",
   loc: string,
   body: Record<string, unknown>,
   maxRounds = 30,
+  speed: PollSpeed = "normal",
 ): Promise<OnerLegResult> {
   const acc = new Map<string, OnerFlight>();
   const startedAt = Date.now();
   // Fornecedores publicam em ondas. Em vez de esperar sempre todas as rodadas,
   // paramos quando o conteúdo estabiliza (nada novo nem mais barato) — mesma
   // qualidade de resultado, bem menos espera.
-  const MIN_ROUNDS = 6;
-  const STABLE_ROUNDS = 4;
-  const TIME_BUDGET_MS = 26_000;
+  // No modo "fast" (WhatsApp/IA) a prioridade é entregar rápido: cortamos as
+  // rodadas mínimas, o tempo entre rodadas e o orçamento total.
+  const quick = speed === "fast";
+  const MIN_ROUNDS = quick ? 2 : 6;
+  const STABLE_ROUNDS = quick ? 1 : 4;
+  const TIME_BUDGET_MS = quick ? 9_000 : 26_000;
+  const GAP_MS = quick ? 450 : 900;
   let stable = 0;
 
   for (let i = 0; i < maxRounds; i++) {
+
     let changed = false;
     let haveMore = false;
     let page = 1;
@@ -175,7 +183,7 @@ async function poll(
     const enough = i + 1 >= MIN_ROUNDS && acc.size > 0 && stable >= STABLE_ROUNDS;
     if (enough || Date.now() - startedAt > TIME_BUDGET_MS) break;
 
-    if (i + 1 < maxRounds) await sleep(900);
+    if (i + 1 < maxRounds) await sleep(GAP_MS);
   }
 
   const flights = [...acc.values()].sort((a, b) => a.price.total - b.price.total);
@@ -259,7 +267,7 @@ export async function searchAirports(data: z.infer<typeof airportSearchInput>) {
   return out.slice(0, 20);
 }
 
-export async function searchFlights(data: SearchData): Promise<OnerSearchResult> {
+export async function searchFlights(data: SearchData, speed: PollSpeed = "normal"): Promise<OnerSearchResult> {
   const loc = buildLocationHref(data);
   let searchKey = data.searchKey ?? "";
 
@@ -292,25 +300,41 @@ export async function searchFlights(data: SearchData): Promise<OnerSearchResult>
     }
   }
 
-  const outbound = await poll("outbound", loc, {
-    searchKey,
-    pageSize: data.pageSize,
-    filter: buildFilter(data.filters),
-    ordinationEnum: 0,
-  });
+  const outbound = await poll(
+    "outbound",
+    loc,
+    {
+      searchKey,
+      pageSize: data.pageSize,
+      filter: buildFilter(data.filters),
+      ordinationEnum: 0,
+    },
+    30,
+    speed,
+  );
   return { searchKey, outbound, inbound: null };
 }
 
-export async function searchInboundFlights(data: InboundData): Promise<OnerLegResult> {
+export async function searchInboundFlights(
+  data: InboundData,
+  speed: PollSpeed = "normal",
+): Promise<OnerLegResult> {
   const loc = buildLocationHref(data);
-  return poll("inbound", loc, {
-    searchKey: data.searchKey,
-    flightKey: data.flightKey,
-    pageSize: data.pageSize,
-    filter: buildFilter(data.filters),
-    ordinationEnum: 0,
-  });
+  return poll(
+    "inbound",
+    loc,
+    {
+      searchKey: data.searchKey,
+      flightKey: data.flightKey,
+      pageSize: data.pageSize,
+      filter: buildFilter(data.filters),
+      ordinationEnum: 0,
+    },
+    30,
+    speed,
+  );
 }
+
 /* ── Carrinho na operadora (Comprar Viagem) ─────────────────────────────
    Cria o carrinho oficial com os voos escolhidos e devolve a URL pública
    /viaair/flight-cart?newCartId=... para enviar ao cliente.            */
