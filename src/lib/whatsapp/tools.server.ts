@@ -324,7 +324,11 @@ export function buildCamilaTools(conversation: WaConversation, scope: ToolProtoc
         let quote_id: string | null = null;
         const { data: saved } = await supabaseAdmin
           .from("wa_flight_quotes")
-          .insert({ conversation_id: conversation.id, payload: result })
+          .insert({
+            conversation_id: conversation.id,
+            protocolo_id: scope.protocolId ?? null,
+            payload: result,
+          })
           .select("id")
           .single();
         quote_id = (saved?.id as string) ?? null;

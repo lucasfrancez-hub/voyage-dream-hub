@@ -128,6 +128,7 @@ export const Route = createFileRoute("/api/public/hooks/flight-quote-watchdog")(
             conv.wa_phone as string,
             60 * 60 * 1000,
             inicio,
+            proto.id as string,
           ).catch(() => ({ sent: 0 }));
           if (pend.sent > 0) {
             const fecho = `${voc}essas são as melhores opções que encontrei\n\nQual delas faz mais sentido pra você?`;
