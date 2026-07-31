@@ -115,12 +115,12 @@ export function renderFlightCardHtml(d: FlightCardData, baseUrl: string): string
 body{width:1200px;background:#fff;font-family:Poppins,system-ui,sans-serif;color:${NAVY};-webkit-font-smoothing:antialiased}
 .card{width:1200px;border-radius:34px;overflow:hidden;box-shadow:0 24px 60px rgba(11,37,69,.16);border:1px solid #eef1f5}
 .head{display:flex;align-items:stretch;background:#fff;height:150px}
-.brand{position:relative;width:370px;background:${NAVY};display:flex;flex-direction:column;justify-content:center;padding:0 34px;color:#fff}
+.brand{position:relative;width:300px;flex:none;background:${NAVY};display:flex;flex-direction:column;justify-content:center;padding:0 34px;color:#fff}
 .brand:after{content:"";position:absolute;right:-58px;top:0;bottom:0;width:120px;background:${NAVY};transform:skewX(-14deg)}
-.brand img{height:52px;object-fit:contain;object-position:left}
+.brand img{height:46px;object-fit:contain;object-position:left}
 .brand .tagline{margin-top:8px;font-size:17px;opacity:.9}
-.route{flex:1;display:flex;align-items:center;justify-content:center;gap:30px;padding-left:170px;position:relative;z-index:1}
-.route .r-city{font-size:40px;font-weight:800;line-height:1.05;text-align:center;max-width:260px}
+.route{flex:1;display:flex;align-items:center;justify-content:center;gap:22px;padding-left:90px;min-width:0;position:relative;z-index:1}
+.route .r-city{font-size:34px;font-weight:800;line-height:1.05;text-align:center;max-width:200px}
 .route .r-iata{font-size:19px;font-weight:600;letter-spacing:2px;text-align:center;color:#8b98ac;margin-top:4px}
 .route .circle{width:62px;height:62px;border-radius:50%;background:${NAVY};display:flex;align-items:center;justify-content:center}
 .dates{display:flex;align-items:center;gap:16px;padding:0 40px 0 20px}
