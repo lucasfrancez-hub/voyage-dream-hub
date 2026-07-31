@@ -199,13 +199,8 @@ export const Route = createFileRoute("/api/public/hooks/flight-quote-watchdog")(
             const texto =
               `${voc}tivemos uma ${MARCA_FALHA} agora e a busca não retornou\n\n` +
               `Pra não te deixar esperando, já passei sua solicitação pro nosso time comercial — um consultor te manda a cotação por aqui mesmo`;
-            await saveMessage({
-              conversation_id: convId,
-              direction: "outbound",
-              sender: "camila",
-              content: texto,
-            });
-            await sendWhatsAppBubbles(conv.wa_phone as string, texto);
+            await saveAndSend(convId, conv.wa_phone as string, texto);
+
 
             const tags = Array.from(
               new Set([...((conv.tags as string[] | null) ?? []), "nova_cotacao", "aguardando_humano"]),
