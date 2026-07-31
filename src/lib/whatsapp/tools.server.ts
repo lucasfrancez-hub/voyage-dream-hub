@@ -545,13 +545,17 @@ export function buildCamilaTools(conversation: WaConversation, scope: ToolProtoc
           .map((e) => quote.opcoes.find((o) => o.opcao === e.opcao))
           .filter(Boolean)
           .map((o) => fp(o as OptLite));
+        const faltaram = enviados.some((e) => !e.ok);
         if (rowId) {
           if (novosFps.length) {
             await supabaseAdmin
               .from("wa_flight_quotes")
               .update({
                 sent_fingerprints: Array.from(new Set([...jaFps, ...novosFps])),
-                cards_sent_at: new Date().toISOString(),
+                // Entrega parcial: libera a reserva pra recuperação mandar as
+                // opções que faltaram (as já entregues ficam protegidas pelas
+                // impressões digitais).
+                cards_sent_at: faltaram ? null : new Date().toISOString(),
               })
               .eq("id", rowId);
           } else {
