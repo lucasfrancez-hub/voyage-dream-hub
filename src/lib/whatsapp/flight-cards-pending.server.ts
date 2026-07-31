@@ -15,7 +15,7 @@
  * Entrega em ETAPAS (uma arte por rodada): cada chamada renderiza e envia UMA
  * opção e devolve o controle. O cron (watchdog, 1x/min) chama de novo pra
  * mandar a próxima. Assim o worker nunca fica dormindo 60s e a numeração das
- * opções continua de onde parou (Opção 1, Opção 2...).
+ * opções mantém a ordem encontrada, sem rótulo numérico na legenda.
  */
 type LegLite = { cia?: string; voo?: string; partida?: string };
 type OptLite = {
@@ -36,14 +36,13 @@ const fingerprint = (o: OptLite): string =>
     .join("|");
 
 /**
- * Última numeração de opção já mostrada ao cliente nesta conversa e o momento
- * do último card. A numeração vem do que o cliente REALMENTE viu (legenda
- * "*Opção N*"), então nunca repete "Opção 1" numa segunda busca.
+ * Momento do último card realmente registrado na conversa. É usado somente
+ * para manter o intervalo entre as duas artes, sem depender da legenda.
  */
 async function ultimoEnvio(
   conversationId: string,
   desde: string,
-): Promise<{ maiorNumero: number; ultimoEm: number | null }> {
+): Promise<{ ultimoEm: number | null }> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const { data } = await supabaseAdmin
     .from("wa_messages")
@@ -53,16 +52,13 @@ async function ultimoEnvio(
     .gte("created_at", desde)
     .order("created_at", { ascending: false })
     .limit(40);
-  let maiorNumero = 0;
   let ultimoEm: number | null = null;
   for (const m of (data ?? []) as { content: string | null; created_at: string }[]) {
-    const match = /\*?Op[çc][ãa]o\s*(\d+)\*?/i.exec(m.content ?? "");
-    if (!match) continue;
-    maiorNumero = Math.max(maiorNumero, Number(match[1]) || 0);
+    if (!/\[\[media:image/i.test(m.content ?? "")) continue;
     const t = new Date(m.created_at).getTime();
     if (ultimoEm === null || t > ultimoEm) ultimoEm = t;
   }
-  return { maiorNumero, ultimoEm };
+  return { ultimoEm };
 }
 
 /** Chave de horário: usada pra não mandar duas opções que saem no mesmo horário. */
@@ -104,13 +100,17 @@ export async function sendPendingFlightCards(
     return idade > CLAIM_TRAVADO_MS && contaFps(r) < MAX_OPCOES;
   };
 
-  const row = ((rows ?? []) as Array<{
+  const quotesRecentes = (rows ?? []) as Array<{
     id: string;
     payload: unknown;
     protocolo_id: string | null;
     sent_fingerprints?: unknown;
     cards_sent_at?: string | null;
-  }>).find(disponivel);
+  }>;
+  // Só a cotação mais recente do protocolo pode avançar. Antes, ao concluir a
+  // mais nova, o .find() descia para cotações antigas e voltava a enviar voos.
+  const maisRecente = quotesRecentes[0];
+  const row = maisRecente && disponivel(maisRecente) ? maisRecente : undefined;
 
   const quote = row?.payload as
     | {
@@ -125,9 +125,9 @@ export async function sendPendingFlightCards(
   const todas = quote?.opcoes ?? [];
   if (!row?.id || !quote || !todas.length) return { sent: 0 };
 
-  // ---- espaçamento e numeração contínua (Opção 1, 2, 3...) ----
+  // ---- espaçamento entre as duas artes ----
   const desdeNum = protocolOpenedAt ?? new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-  const { maiorNumero, ultimoEm } = await ultimoEnvio(conversationId, desdeNum);
+  const { ultimoEm } = await ultimoEnvio(conversationId, desdeNum);
   if (!force && ultimoEm && Date.now() - ultimoEm < INTERVALO_MS) {
     return { sent: 0, quote_id: row.id as string };
   }
@@ -256,7 +256,9 @@ export async function sendPendingFlightCards(
   const novosFps: string[] = [];
 
   const persistirFp = async (fp: string) => {
-    const atuais = await carregarFps();
+    // Grave na cotação apenas as impressões digitais DELA. Copiar todas as
+    // impressões da conversa inflava a contagem e confundia o estado da etapa.
+    const atuais = new Set<string>([...fpsDaCotacao, ...novosFps]);
     await supabaseAdmin
       .from("wa_flight_quotes")
       .update({ sent_fingerprints: Array.from(new Set([...atuais, ...novosFps, fp])) })
@@ -271,7 +273,7 @@ export async function sendPendingFlightCards(
       const data = buildFlightCardData(quote as any, op as any);
       const asset = await renderFlightCardAssetRetry(data);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const caption = buildFlightOptionCaption(quote as any, op as any, maiorNumero + i + 1);
+      const caption = buildFlightOptionCaption(quote as any, op as any);
       const r = await sendWhatsAppImageBytes(
         waPhone,
         asset.bytes,

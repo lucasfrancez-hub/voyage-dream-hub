@@ -32,8 +32,8 @@ function timeFrom(value?: string): string {
 export function buildFlightOptionCaption(
   quote: FlightQuoteCaption,
   option: FlightOptionCaption,
-  /** Numeração exibida ao cliente (continua entre entregas). */
-  numeroExibicao?: number,
+  /** Mantido por compatibilidade com chamadas antigas; a legenda não é numerada. */
+  _numeroExibicao?: number,
 ): string {
   const cityFrom = (iata?: string) => {
     if (iata === quote.origem_iata) return quote.origem_nome;
@@ -54,7 +54,7 @@ export function buildFlightOptionCaption(
 
   const outbound = describeLeg(option.ida);
   const inbound = describeLeg(option.volta);
-  const lines = [`*Opção ${numeroExibicao ?? option.opcao}*`];
+  const lines: string[] = [];
   if (outbound) lines.push(inbound ? `Ida: ${outbound}` : outbound);
   if (inbound) lines.push(`Volta: ${inbound}`);
   return lines.join("\n");
