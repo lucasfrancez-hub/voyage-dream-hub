@@ -681,16 +681,7 @@ export function HoteisPage({
 
 
       <main className="mx-auto max-w-7xl px-4 py-6">
-        {mut.isPending && (
-          <div className="space-y-3">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Loader2 className="h-4 w-4 animate-spin" /> Consultando fornecedores… pode levar até 30 segundos
-            </div>
-            {[0, 1, 2].map((i) => (
-              <Skeleton key={i} className="h-40 w-full rounded-2xl" />
-            ))}
-          </div>
-        )}
+        {mut.isPending && <SearchSkeleton kind="hotel" rows={3} />}
 
         {result && !mut.isPending && (
           <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
