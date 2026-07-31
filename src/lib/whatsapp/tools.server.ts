@@ -254,8 +254,9 @@ export function buildCamilaTools(conversation: WaConversation, scope: ToolProtoc
           .gte("created_at", desdeRecente)
           .order("created_at", { ascending: false })
           .limit(5);
-        const recentesDoProtocolo = scope.openedAt
-          ? (recentes ?? []).filter((r) => String(r.created_at ?? "") >= scope.openedAt)
+        const protocolOpenedAt = scope.openedAt ?? null;
+        const recentesDoProtocolo = protocolOpenedAt
+          ? (recentes ?? []).filter((r) => String(r.created_at ?? "") >= protocolOpenedAt)
           : recentes ?? [];
         for (const r of recentesDoProtocolo) {
           const p = (r.payload ?? {}) as Record<string, unknown>;
