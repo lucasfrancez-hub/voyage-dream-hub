@@ -535,6 +535,36 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
     const sent = await sendWhatsAppBubbles(conv.wa_phone, text, prefix);
     const failed = sent.filter((s) => s.error);
     if (failed.length > 0) console.error(`[agent:${agent.slug}] falha ao enviar:`, failed);
+
+    // FALLBACK: o motor cotou (cotar_aereo) mas a IA esqueceu de chamar
+    // enviar_cartao_voo — manda as artes mesmo assim, senão o cliente fica
+    // esperando pra sempre depois do "estou buscando".
+    try {
+      const usadas = new Set((toolCallsSummary ?? []).map((t) => t.name));
+      if (usadas.has("cotar_aereo") && !usadas.has("enviar_cartao_voo")) {
+        const { data: q } = await supabaseAdmin
+          .from("wa_flight_quotes")
+          .select("id, payload")
+          .eq("conversation_id", conv.id)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        const opcoes = ((q?.payload as { opcoes?: Array<{ opcao: number }> } | null)?.opcoes ?? [])
+          .map((o) => o.opcao)
+          .slice(0, 4);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const cardTool = (cleanTools as any)?.enviar_cartao_voo;
+        if (q?.id && opcoes.length && cardTool?.execute) {
+          await cardTool.execute(
+            { quote_id: q.id as string, opcoes, legenda: null },
+            {} as never,
+          );
+          console.log(`[agent:${agent.slug}] artes de voo enviadas por fallback`);
+        }
+      }
+    } catch (e) {
+      console.warn("[agent] fallback de artes de voo falhou:", e);
+    }
     // Guarda o wa_message_id de cada balão pra permitir citar/casar replies depois
     const { setWaMessageId, setSendError } = await import("./conversation.server");
     for (let i = 0; i < savedRowIds.length; i++) {
