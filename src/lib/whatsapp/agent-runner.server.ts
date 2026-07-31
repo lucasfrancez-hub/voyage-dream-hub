@@ -348,6 +348,17 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
     }
   }
 
+  // Gemini 3.x recusa (400) requisições cujo último turno é do assistente
+  // ("Requests ending with a model turn are not supported"). Quando o histórico
+  // termina numa mensagem nossa, fechamos com um turno de usuário neutro.
+  if (messages.length === 0 || messages[messages.length - 1].role !== "user") {
+    messages.push({
+      role: "user",
+      content:
+        "[CONTINUAÇÃO AUTOMÁTICA — o cliente não enviou nova mensagem. Prossiga o atendimento a partir do contexto acima.]",
+    });
+  }
+
 
   const { count: outboundNoProto } = await supabaseAdmin
     .from("wa_messages")
