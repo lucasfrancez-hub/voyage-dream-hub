@@ -1153,7 +1153,11 @@ export function HoteisPage({
                   nights={nights}
                   cheapest={rate!.price.total === cheapest}
                   selected={selected?.hotelId === h.hotelId}
-                  onSelect={(rateKey) => setSelected({ hotelId: h.hotelId, rateKey })}
+                  onSelect={(rateKey) => {
+                    setSelected({ hotelId: h.hotelId, rateKey });
+                    setSummaryOpen(true);
+                  }}
+
                 />
               ))}
 
