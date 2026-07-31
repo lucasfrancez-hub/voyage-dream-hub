@@ -380,252 +380,34 @@ export function buildCamilaTools(conversation: WaConversation, scope: ToolProtoc
           ),
       }),
 
-      execute: async ({ quote_id, opcoes, legenda, reenviar }) => {
-        // Busca pelo id informado; se o modelo perdeu/errou o quote_id (comum
-        // quando o cliente pede as fotos de novo em outro turno), cai pra
-        // última cotação desta conversa em vez de falhar.
-        let rowId: string | null = null;
-        let row: { payload: unknown; created_at?: string } | null = null;
-        if (quote_id) {
-          let quoteQuery = supabaseAdmin
-            .from("wa_flight_quotes")
-            .select("id, payload, created_at")
-            .eq("id", quote_id)
-            .eq("conversation_id", conversation.id);
-          if (scope.openedAt) quoteQuery = quoteQuery.gte("created_at", scope.openedAt);
-          const { data } = await quoteQuery.maybeSingle();
-          row = data ?? null;
-          rowId = data?.id ?? null;
+      // Caminho ÚNICO de envio: delega pro mesmo motor usado pela entrega
+      // automática e pelo watchdog. Ter dois renderizadores independentes era
+      // o que fazia a mesma opção chegar duplicada ao cliente.
+      execute: async ({ reenviar }) => {
+        const { sendPendingFlightCards } = await import("./flight-cards-pending.server");
+        const r = await sendPendingFlightCards(
+          conversation.id,
+          conversation.wa_phone,
+          60 * 60 * 1000,
+          scope.openedAt,
+          scope.protocolId,
+          reenviar === true,
+        ).catch(() => ({ sent: 0 }));
+
+        if (!r.sent) {
+          return {
+            enviados: [],
+            instrucao:
+              "Nenhuma arte nova foi enviada — ou as opções já tinham sido entregues, ou o envio já está em andamento. NÃO reenvie, NÃO repita os voos em texto e NÃO peça desculpas: só pergunte qual opção o cliente prefere ou ofereça pesquisar outro horário.",
+          };
         }
-        if (!row?.payload) {
-          let fallbackQuery = supabaseAdmin
-            .from("wa_flight_quotes")
-            .select("id, payload, created_at")
-            .eq("conversation_id", conversation.id)
-            .order("created_at", { ascending: false })
-            .limit(1);
-          if (scope.openedAt) fallbackQuery = fallbackQuery.gte("created_at", scope.openedAt);
-          const { data } = await fallbackQuery.maybeSingle();
-          row = data ?? null;
-          rowId = data?.id ?? null;
-        }
-        if (!row?.payload) return { error: "Cotação não encontrada — refaça a busca com cotar_aereo" };
-
-
-        type LegLite = {
-          cia?: string;
-          voo?: string;
-          origem?: string;
-          destino?: string;
-          partida?: string;
-          chegada?: string;
-          paradas?: number;
-          escalas?: string[];
-        };
-        type OptLite = {
-          opcao: number;
-          destaque: string;
-          total?: number;
-          ida?: LegLite | null;
-          volta?: LegLite | null;
-        };
-        const quote = row.payload as {
-          origem_iata: string;
-          destino_iata: string;
-          origem_nome: string;
-          destino_nome: string;
-          opcoes: OptLite[];
-        };
-        const { buildFlightOptionCaption } = await import("./flight-caption.server");
-
-        const { buildFlightCardData, renderFlightCardAssetRetry } = await import("./flight-card.server");
-        const { sendWhatsAppImageBytes } = await import("./send.server");
-        const { saveMessage } = await import("./conversation.server");
-
-        // Impressão digital pelo CONTEÚDO do voo (cia + nº + horários + valor).
-        // Assim a mesma opção não é reenviada nem quando a IA refaz a cotação
-        // e gera um quote_id novo.
-        const fp = (o: OptLite): string =>
-          [
-            o.ida?.cia,
-            o.ida?.voo,
-            o.ida?.partida,
-            o.volta?.cia,
-            o.volta?.voo,
-            o.volta?.partida,
-            Math.round(Number(o.total ?? 0)),
-          ]
-            .map((v) => String(v ?? "-"))
-            .join("|");
-
-        const enviados: Array<{ opcao: number; ok: boolean; erro?: string }> = [];
-        let alvo = (opcoes.length ? opcoes : quote.opcoes.map((o) => o.opcao)).slice(0, 3);
-
-        // Fingerprints já entregues em QUALQUER cotação desta conversa nas
-        // últimas 24h.
-        const desde = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-        const fingerprintSince = scope.openedAt && scope.openedAt > desde ? scope.openedAt : desde;
-        const { data: quotesRecentes } = await supabaseAdmin
-          .from("wa_flight_quotes")
-          .select("sent_fingerprints")
-          .eq("conversation_id", conversation.id)
-          .gte("created_at", fingerprintSince)
-          .limit(20);
-        const jaFps = new Set<string>(
-          (quotesRecentes ?? []).flatMap((q) =>
-            Array.isArray((q as { sent_fingerprints?: unknown }).sent_fingerprints)
-              ? ((q as { sent_fingerprints: unknown[] }).sent_fingerprints.map(String))
-              : [],
-          ),
-        );
-
-        if (!reenviar && jaFps.size) {
-          const restantes = alvo.filter((n) => {
-            const op = quote.opcoes.find((o) => o.opcao === n);
-            return !op || !jaFps.has(fp(op));
-          });
-          if (!restantes.length) {
-            return {
-              enviados: [],
-              instrucao:
-                "Essas opções JÁ foram enviadas ao cliente — não reenvie nem repita os voos em texto. Só faça um comentário curto perguntando qual delas agradou mais ou se quer que eu veja outros horários/datas.",
-            };
-          }
-          alvo = restantes;
-        }
-
-        // Reserva a cotação ANTES de renderizar: enquanto as artes estão sendo
-        // geradas, o watchdog não pode disparar as mesmas imagens.
-        if (rowId) {
-          const { data: claimed } = await supabaseAdmin
-            .from("wa_flight_quotes")
-            .update({ cards_sent_at: new Date().toISOString() })
-            .eq("id", rowId)
-            .is("cards_sent_at", null)
-            .select("id");
-          if (!claimed?.length) {
-            return {
-              enviados: [],
-              instrucao:
-                "Essas opções já estão sendo enviadas ou já foram entregues. NÃO reenvie, NÃO repita os voos em texto e NÃO peça desculpas; aguarde ou pergunte qual opção o cliente prefere.",
-            };
-          }
-        }
-
-        // Nunca mandar arte "do avulso": se a IA não avisou nada nos últimos
-        // minutos, o próprio sistema manda a transição antes das imagens.
-        try {
-          const desdeAviso = new Date(Date.now() - 10 * 60 * 1000).toISOString();
-          const { data: ultimas } = await supabaseAdmin
-            .from("wa_messages")
-            .select("content")
-            .eq("conversation_id", conversation.id)
-            .eq("direction", "outbound")
-            .gte("created_at", desdeAviso)
-            .order("created_at", { ascending: false })
-            .limit(8);
-          const jaAvisou = (ultimas ?? []).some((m) =>
-            /(pesquis|verific|consult|buscando|já te (mando|trago)|opç)/i.test((m as { content: string | null }).content ?? ""),
-          );
-          if (!jaAvisou) {
-            const { sendWhatsAppBubbles } = await import("./send.server");
-            const aviso =
-              "Já verifiquei aqui com as companhias e vou te mandar as melhores opções agora";
-            await saveMessage({
-              conversation_id: conversation.id,
-              direction: "outbound",
-              sender: "camila",
-              content: aviso,
-            });
-            await sendWhatsAppBubbles(conversation.wa_phone, aviso);
-          }
-        } catch {
-          /* aviso é auxiliar: nunca bloqueia o envio das artes */
-        }
-
-
-        // Uma opção por vez: renderiza, entrega, dá um intervalo curto e vai
-        // pra próxima. Assim o Browserless nunca recebe capturas simultâneas
-        // (era o que fazia só a Opção 1 chegar).
-        const INTERVALO_MS = 4_000; // curto: as 4 artes saem em poucos segundos
-        for (let i = 0; i < alvo.length; i++) {
-          const numero = alvo[i];
-          const op = quote.opcoes.find((o) => o.opcao === numero);
-          if (!op) {
-            enviados.push({ opcao: numero, ok: false, erro: "opção inexistente" });
-            continue;
-          }
-          if (i > 0) await new Promise((r) => setTimeout(r, INTERVALO_MS));
-          try {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const data = buildFlightCardData(quote as any, op as any);
-            const asset = await renderFlightCardAssetRetry(data);
-            const caption = buildFlightOptionCaption(quote, op, jaFps.size + i + 1);
-
-            const r = await sendWhatsAppImageBytes(
-              conversation.wa_phone,
-              asset.bytes,
-              asset.filename,
-              caption,
-              asset.url,
-            );
-            if (!r.error && r.id) {
-              await saveMessage({
-                conversation_id: conversation.id,
-                direction: "outbound",
-                sender: "camila",
-                content: `[[media:image|${asset.url}|${asset.filename}]]\n${caption}`,
-                wa_message_id: r.id,
-              });
-            }
-            enviados.push({
-              opcao: numero,
-              ok: !r.error && Boolean(r.id),
-              erro: r.error ?? (r.id ? undefined : "WhatsApp não confirmou a entrega"),
-            });
-          } catch (e) {
-            enviados.push({ opcao: numero, ok: false, erro: e instanceof Error ? e.message : "falha" });
-          }
-        }
-
-        // Marca as opções realmente entregues, pra nunca repetir depois.
-        const novosFps = enviados
-          .filter((e) => e.ok)
-          .map((e) => quote.opcoes.find((o) => o.opcao === e.opcao))
-          .filter(Boolean)
-          .map((o) => fp(o as OptLite));
-        const faltaram = enviados.some((e) => !e.ok);
-        if (rowId) {
-          if (novosFps.length) {
-            await supabaseAdmin
-              .from("wa_flight_quotes")
-              .update({
-                sent_fingerprints: Array.from(new Set([...jaFps, ...novosFps])),
-                // Entrega parcial: libera a reserva pra recuperação mandar as
-                // opções que faltaram (as já entregues ficam protegidas pelas
-                // impressões digitais).
-                cards_sent_at: faltaram ? null : new Date().toISOString(),
-              })
-              .eq("id", rowId);
-          } else {
-            // Nada saiu: libera a reserva pro watchdog tentar de novo.
-            await supabaseAdmin
-              .from("wa_flight_quotes")
-              .update({ cards_sent_at: null })
-              .eq("id", rowId);
-          }
-        }
-
-
-
-        const todasEnviadas = enviados.length > 0 && enviados.every((e) => e.ok);
         return {
-          enviados,
-          instrucao: todasEnviadas
-            ? "Artes enviadas. Agora só pergunte qual opção o cliente prefere."
-            : "Uma ou mais artes não foram entregues. Não diga que enviou as opções; o sistema tentará novamente.",
+          enviados: r.sent,
+          instrucao:
+            "Artes enviadas (as imagens saem uma por minuto). Agora só pergunte qual opção o cliente prefere e avise que tarifa/disponibilidade podem mudar até a emissão. NÃO liste voos em texto.",
         };
       },
+
     }),
 
     enviar_link_carrinho_voo: tool({
