@@ -35,12 +35,17 @@ export const Route = createFileRoute("/admin/buscar")({
 
 type Mode = "aereo" | "hotel" | "carro" | "combo";
 
+/** Por enquanto o motor de busca só opera AÉREO. Hotel, carro e aéreo+hotel
+ * ficam visíveis porém bloqueados. */
+const ENABLED_MODES: Mode[] = ["aereo"];
+
 const MODES: { id: Mode; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
   { id: "aereo", label: "Aéreo", icon: Plane },
   { id: "hotel", label: "Hotel", icon: BedDouble },
   { id: "carro", label: "Carro", icon: Car },
   { id: "combo", label: "Aéreo + Hotel", icon: Layers },
 ];
+
 
 function ModeHeader({
   mode,
