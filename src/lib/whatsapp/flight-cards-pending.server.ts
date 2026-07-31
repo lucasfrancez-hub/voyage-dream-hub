@@ -27,8 +27,8 @@ export async function sendPendingFlightCards(
   const opcoes = (quote?.opcoes ?? []).slice(0, 4);
   if (!row?.id || !opcoes.length) return { sent: 0 };
 
-  const { buildFlightCardData, renderFlightCardImage } = await import("./flight-card.server");
-  const { sendWhatsAppImage } = await import("./send.server");
+  const { buildFlightCardData, renderFlightCardAsset } = await import("./flight-card.server");
+  const { sendWhatsAppImageBytes } = await import("./send.server");
   const { saveMessage } = await import("./conversation.server");
 
   const artes = await Promise.all(
@@ -36,37 +36,46 @@ export async function sendPendingFlightCards(
       try {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const data = buildFlightCardData(quote as any, op as any);
-        return { op, url: await renderFlightCardImage(data) };
+        return { op, asset: await renderFlightCardAsset(data) };
       } catch {
-        return { op, url: null as string | null };
+        return { op, asset: null };
       }
     }),
   );
 
   let sent = 0;
   for (const arte of artes) {
-    if (!arte.url) continue;
+    if (!arte.asset) continue;
     const caption = `Opção ${arte.op.opcao} — ${arte.op.destaque}`;
     try {
-      const r = await sendWhatsAppImage(waPhone, arte.url, caption);
-      await saveMessage({
-        conversation_id: conversationId,
-        direction: "outbound",
-        sender: "camila",
-        content: `${caption}\n${arte.url}`,
-        wa_message_id: r.id ?? null,
-      });
-      if (!r.error) sent++;
+      const r = await sendWhatsAppImageBytes(
+        waPhone,
+        arte.asset.bytes,
+        arte.asset.filename,
+        caption,
+        arte.asset.url,
+      );
+      if (!r.error && r.id) {
+        await saveMessage({
+          conversation_id: conversationId,
+          direction: "outbound",
+          sender: "camila",
+          content: `${caption}\n${arte.asset.url}`,
+          wa_message_id: r.id,
+        });
+        sent++;
+      }
     } catch {
       /* segue pras próximas */
     }
   }
 
-  if (sent > 0) {
+  if (sent === artes.length && artes.length > 0) {
     await supabaseAdmin
       .from("wa_flight_quotes")
       .update({ cards_sent_at: new Date().toISOString() })
-      .eq("id", row.id);
+      .eq("conversation_id", conversationId)
+      .is("cards_sent_at", null);
   }
   return { sent, quote_id: row.id as string };
 }

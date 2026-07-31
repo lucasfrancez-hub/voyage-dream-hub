@@ -94,12 +94,13 @@ export const Route = createFileRoute("/api/public/hooks/flight-quote-watchdog")(
 
           const depois = msgs.filter((m) => m.created_at > promessa!.created_at);
 
-          // entregou alguma coisa? (arte de voo, opções em texto, valores)
+          // Só considera entregue quando existe uma arte registrada. Texto como
+          // "achei opções" não pode impedir o reenvio dos cards pendentes.
           const entregou = depois.some(
             (m) =>
               m.direction === "outbound" &&
               m.sender !== "system" &&
-              /(opção|opcao|R\$|https?:\/\/\S+\.(png|jpg|jpeg)|\bida:|\bvolta:)/i.test(m.content ?? ""),
+              /https?:\/\/\S*(?:flight-cards|broadcast-media)\/\S+\.png/i.test(m.content ?? ""),
           );
           if (entregou) continue;
 

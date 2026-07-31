@@ -100,7 +100,9 @@ async function metaSendMedia(
       console.error("[whatsapp/meta media] falha:", msg);
       return { id: null, error: msg };
     }
-    return { id: data.messages?.[0]?.id ?? null };
+    const id = data.messages?.[0]?.id ?? null;
+    if (!id) return { id: null, error: "Meta aceitou a mídia sem retornar o ID da mensagem" };
+    return { id };
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     return { id: null, error: msg };
@@ -331,8 +333,15 @@ export async function sendWhatsAppImageBytes(
   caption?: string | null,
   fallbackLink?: string,
 ): Promise<{ id: string | null; error?: string }> {
-  void bytes;
-  if (!fallbackLink) return { id: null, error: "URL da imagem ausente" };
+  const uploaded = await metaUploadMedia(bytes, filename, "image/png");
+  if (uploaded.id) {
+    return metaSendMedia(to, {
+      type: "image",
+      image: { id: uploaded.id, ...(caption ? { caption: caption.slice(0, 1024) } : {}) },
+    });
+  }
+  if (!fallbackLink) return uploaded;
+  console.warn("[whatsapp/meta image] upload direto falhou; tentando URL:", uploaded.error);
   return metaSendMedia(to, {
     type: "image",
     image: { link: fallbackLink, ...(caption ? { caption: caption.slice(0, 1024) } : {}) },

@@ -442,6 +442,33 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
       ?.flatMap((s) => s.toolCalls ?? [])
       .map((tc) => ({ name: tc.toolName, input: tc.input }));
 
+    // A imagem precisa chegar ANTES de qualquer texto dizendo que as opções
+    // foram encontradas/enviadas. Mesmo quando a tool falha silenciosamente,
+    // tenta de novo por upload direto e confirma no banco antes de prosseguir.
+    try {
+      const { sendPendingFlightCards } = await import("./flight-cards-pending.server");
+      await sendPendingFlightCards(conv.id, conv.wa_phone);
+
+      const desde = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+      const { data: pendente } = await supabaseAdmin
+        .from("wa_flight_quotes")
+        .select("id")
+        .eq("conversation_id", conv.id)
+        .is("cards_sent_at", null)
+        .gte("created_at", desde)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      const anunciaOpcoes = /(achei|encontrei|enviei|essas são|essas sao).{0,50}(opções|opcoes|voos)|qual dessas opções/i.test(
+        text,
+      );
+      if (pendente?.id && anunciaOpcoes) {
+        text = `${clientFirst ? `${clientFirst}, ` : ""}estou finalizando as opções e já te envio por aqui`;
+      }
+    } catch (e) {
+      console.warn("[agent] confirmação das artes de voo falhou:", e);
+    }
+
     const { splitToBubbles } = await import("./send.server");
     const bubbles = splitToBubbles(text);
     const savedRowIds: Array<string | null> = [];
