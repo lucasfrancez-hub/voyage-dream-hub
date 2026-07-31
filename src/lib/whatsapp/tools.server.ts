@@ -490,20 +490,19 @@ export function buildCamilaTools(conversation: WaConversation, scope: ToolProtoc
         }
 
 
-        // Renderiza TODAS as artes em paralelo (antes era uma de cada vez).
-        const artes = await Promise.all(
-          alvo.map(async (numero) => {
-            const op = quote.opcoes.find((o) => o.opcao === numero);
-            if (!op) return { numero, op: null, url: null as string | null, erro: "opção inexistente" };
-            try {
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              const data = buildFlightCardData(quote as any, op as any);
-              return { numero, op, asset: await renderFlightCardAsset(data), erro: undefined };
-            } catch (e) {
-              return { numero, op, asset: null, erro: e instanceof Error ? e.message : "falha" };
-            }
-          }),
-        );
+        // Renderiza em lotes de 2 (limite de sessões do Browserless) e com
+        // nova tentativa: disparar 4 juntas fazia só a Opção 1 chegar.
+        const artes = await mapWithLimit(alvo, 2, async (numero) => {
+          const op = quote.opcoes.find((o) => o.opcao === numero);
+          if (!op) return { numero, op: null, asset: null, erro: "opção inexistente" };
+          try {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const data = buildFlightCardData(quote as any, op as any);
+            return { numero, op, asset: await renderFlightCardAssetRetry(data), erro: undefined };
+          } catch (e) {
+            return { numero, op, asset: null, erro: e instanceof Error ? e.message : "falha" };
+          }
+        });
 
         // Envia na ordem, pra o cliente receber as opções em sequência.
         for (const arte of artes) {
