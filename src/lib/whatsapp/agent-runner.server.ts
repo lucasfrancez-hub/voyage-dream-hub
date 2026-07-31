@@ -263,6 +263,20 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
 
   const history = await loadHistory(conv.id, 30, sinceIso);
 
+  // Uma execução atrasada do cron não pode inventar uma nova resposta quando
+  // o último turno já foi respondido. Isso elimina continuações soltas como
+  // "Quer que eu faça isso?" sem uma nova mensagem do cliente.
+  const latestConversational = [...history]
+    .reverse()
+    .find((m) => m.sender === "customer" || m.sender === "camila" || m.sender === "human");
+  const hasSupervisorInstruction = Boolean(
+    (conv as unknown as { ai_instruction?: string | null }).ai_instruction?.trim(),
+  );
+  if (latestConversational && latestConversational.sender !== "customer" && !hasSupervisorInstruction) {
+    console.log(`[agent] conversa ${conv.id} já respondida — execução atrasada ignorada`);
+    return;
+  }
+
   // CONTEXTO OPERACIONAL: pega TAMBÉM as mensagens automáticas (check-in,
   // alerta de voo, voucher, cobrança) dos últimos 7 dias que estão FORA do
   // protocolo atual — quando o cliente abre um novo protocolo respondendo
@@ -489,6 +503,18 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
     // O modelo às vezes assina sozinho ("*Maria:*") — a assinatura é do código.
     text = stripAgentSignature(text, agent.nome);
     if (jaFalouAntes) text = stripReintroBubbles(text);
+
+    // Avanço determinístico: com briefing já coletado, encaminhamento comercial
+    // não depende de o cliente autorizar uma ação que ele acabou de solicitar.
+    // O fallback de escalação abaixo marca a conversa para atendimento humano.
+    const pedePermissaoParaEncaminhar =
+      /(o que (voc[êe] )?acha\??|quer que eu (fa[çc]a|prepare|passe|encaminhe)|posso (passar|encaminhar|preparar)|quer que eu fa[çc]a isso)/i.test(text);
+    const falaDePropostaComercial =
+      /(time comercial|setor comercial|proposta personalizada|cota[çc][aã]o personalizada)/i.test(text);
+    if (pedePermissaoParaEncaminhar && falaDePropostaComercial) {
+      const nomeCliente = clientFirst ? `${clientFirst}, ` : "";
+      text = `${nomeCliente}como não encontrei uma opção pronta compatível, já encaminhei os dados que você passou para o time comercial montar uma proposta personalizada. Assim que estiver pronta, aviso por aqui.`;
+    }
 
 
     // Se as artes REALMENTE saíram, corta qualquer balão em que o modelo
