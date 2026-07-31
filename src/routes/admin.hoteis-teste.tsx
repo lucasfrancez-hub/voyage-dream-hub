@@ -120,18 +120,39 @@ function activeCount(f: Filters) {
   );
 }
 
-function Chip({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+function StarChip({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`rounded-full border px-3 py-1.5 text-xs font-medium transition ${
+      className={`flex-1 rounded-lg border py-1.5 text-xs font-semibold transition ${
         active
-          ? "border-primary bg-primary text-primary-foreground shadow-[var(--shadow-glow)]"
-          : "border-border bg-background/40 text-muted-foreground hover:border-primary/50 hover:text-foreground"
+          ? "border-primary/40 bg-primary/10 text-primary"
+          : "border-border/60 text-muted-foreground hover:bg-muted/40 hover:text-foreground"
       }`}
     >
       {children}
+    </button>
+  );
+}
+
+function CheckRow({ active, onClick, label }: { active: boolean; onClick: () => void; label: string }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="group flex w-full items-center gap-3 text-left"
+    >
+      <span
+        className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border transition ${
+          active ? "border-primary bg-primary/15" : "border-border/70 bg-background/60 group-hover:border-primary/50"
+        }`}
+      >
+        {active && <span className="h-2.5 w-2.5 rounded-[2px] bg-primary" />}
+      </span>
+      <span className={`text-sm leading-snug ${active ? "text-foreground" : "text-muted-foreground group-hover:text-foreground"}`}>
+        {label}
+      </span>
     </button>
   );
 }
@@ -145,11 +166,15 @@ function FiltersPanel({
   filters: Filters;
   onChange: (f: Filters) => void;
 }) {
+  const [allMeals, setAllMeals] = useState(false);
+
   const meals = useMemo(() => {
-    const set = new Set<string>();
-    hotels.forEach((h) => h.rates.forEach((r) => set.add(r.mealPlanLabel)));
-    return [...set].sort();
+    const map = new Map<string, number>();
+    hotels.forEach((h) => h.rates.forEach((r) => map.set(r.mealPlanLabel, (map.get(r.mealPlanLabel) ?? 0) + 1)));
+    return [...map.entries()].sort((a, b) => b[1] - a[1]).map(([label]) => label);
   }, [hotels]);
+
+  const shownMeals = allMeals ? meals : meals.slice(0, 5);
 
   const prices = hotels.map((h) => h.lowestTotal).filter(Boolean);
   const lo = prices.length ? Math.min(...prices) : 0;
@@ -157,9 +182,9 @@ function FiltersPanel({
   const n = activeCount(filters);
 
   return (
-    <section className="rounded-2xl border border-border/70 bg-card/80 p-4 backdrop-blur">
-      <header className="mb-4 flex items-center justify-between">
-        <div className="flex items-center gap-2 text-sm font-semibold">
+    <section className="rounded-2xl border border-border/60 bg-card/60 p-5 backdrop-blur">
+      <header className="mb-6 flex items-center justify-between">
+        <div className="flex items-center gap-2 text-base font-semibold">
           <SlidersHorizontal className="h-4 w-4 text-primary" /> Filtros
           {n > 0 && <Badge variant="secondary">{n}</Badge>}
         </div>
@@ -170,11 +195,13 @@ function FiltersPanel({
         )}
       </header>
 
-      <div className="space-y-5">
+      <div className="space-y-6">
         <div className="space-y-2">
-          <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Nome da hospedagem</Label>
+          <Label className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+            Nome da hospedagem
+          </Label>
           <Input
-            className="h-9"
+            className="h-9 rounded-lg bg-background/60"
             placeholder="Ex.: Deville"
             value={filters.name}
             onChange={(e) => onChange({ ...filters, name: e.target.value })}
@@ -182,35 +209,39 @@ function FiltersPanel({
         </div>
 
         <div className="space-y-2">
-          <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Estrelas</Label>
-          <div className="flex flex-wrap gap-2">
+          <Label className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+            Estrelas
+          </Label>
+          <div className="flex gap-2">
             {[1, 2, 3, 4, 5].map((s) => (
-              <Chip
+              <StarChip
                 key={s}
                 active={filters.stars.includes(s)}
                 onClick={() => onChange({ ...filters, stars: toggle(filters.stars, s) })}
               >
                 {s}★
-              </Chip>
+              </StarChip>
             ))}
           </div>
         </div>
 
         <div className="space-y-2">
-          <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Preço total</Label>
+          <Label className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+            Preço total
+          </Label>
           <div className="text-xs text-muted-foreground">
             {fmtMoney(lo)} — {fmtMoney(hi)}
           </div>
           <div className="flex gap-2">
             <Input
-              className="h-9"
+              className="h-9 rounded-lg bg-background/60"
               placeholder="De"
               inputMode="decimal"
               value={filters.minPrice}
               onChange={(e) => onChange({ ...filters, minPrice: e.target.value })}
             />
             <Input
-              className="h-9"
+              className="h-9 rounded-lg bg-background/60"
               placeholder="Até"
               inputMode="decimal"
               value={filters.maxPrice}
@@ -220,35 +251,58 @@ function FiltersPanel({
         </div>
 
         {meals.length > 0 && (
-          <div className="space-y-2">
-            <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Refeições</Label>
-            <div className="flex flex-wrap gap-2">
-              {meals.map((m) => (
-                <Chip
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <Label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                Refeições
+              </Label>
+              {filters.meals.length > 0 && (
+                <button
+                  type="button"
+                  className="text-[10px] font-semibold uppercase text-primary hover:underline"
+                  onClick={() => onChange({ ...filters, meals: [] })}
+                >
+                  Limpar
+                </button>
+              )}
+            </div>
+            <div className="space-y-2.5">
+              {shownMeals.map((m) => (
+                <CheckRow
                   key={m}
+                  label={m}
                   active={filters.meals.includes(m)}
                   onClick={() => onChange({ ...filters, meals: toggle(filters.meals, m) })}
-                >
-                  {m}
-                </Chip>
+                />
               ))}
             </div>
+            {meals.length > 5 && (
+              <button
+                type="button"
+                onClick={() => setAllMeals((v) => !v)}
+                className="text-[11px] font-semibold uppercase tracking-tight text-primary hover:underline"
+              >
+                {allMeals ? "− Ver menos" : `+ Ver todas as opções (${meals.length})`}
+              </button>
+            )}
           </div>
         )}
 
-        <div className="space-y-2">
-          <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Cancelamento</Label>
-          <Chip
+        <div className="space-y-2.5">
+          <Label className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+            Cancelamento
+          </Label>
+          <CheckRow
+            label="Somente reembolsável"
             active={filters.onlyRefundable}
             onClick={() => onChange({ ...filters, onlyRefundable: !filters.onlyRefundable })}
-          >
-            Somente reembolsável
-          </Chip>
+          />
         </div>
       </div>
     </section>
   );
 }
+
 
 // ---------------------------------------------------------------- card
 
