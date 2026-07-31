@@ -536,16 +536,19 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
     const failed = sent.filter((s) => s.error);
     if (failed.length > 0) console.error(`[agent:${agent.slug}] falha ao enviar:`, failed);
 
-    // FALLBACK: o motor cotou (cotar_aereo) mas a IA esqueceu de chamar
-    // enviar_cartao_voo — manda as artes mesmo assim, senão o cliente fica
-    // esperando pra sempre depois do "estou buscando".
+    // FALLBACK: existe cotação recente cujas artes NUNCA foram enviadas
+    // (a IA esqueceu de chamar enviar_cartao_voo, ou parou no "aguarde").
+    // Vale para qualquer turno, não só o da cotação.
     try {
       const usadas = new Set((toolCallsSummary ?? []).map((t) => t.name));
-      if (usadas.has("cotar_aereo") && !usadas.has("enviar_cartao_voo")) {
+      if (!usadas.has("enviar_cartao_voo")) {
+        const desde = new Date(Date.now() - 60 * 60 * 1000).toISOString();
         const { data: q } = await supabaseAdmin
           .from("wa_flight_quotes")
-          .select("id, payload")
+          .select("id, payload, cards_sent_at")
           .eq("conversation_id", conv.id)
+          .is("cards_sent_at", null)
+          .gte("created_at", desde)
           .order("created_at", { ascending: false })
           .limit(1)
           .maybeSingle();

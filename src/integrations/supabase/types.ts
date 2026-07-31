@@ -3849,18 +3849,21 @@ export type Database = {
       }
       wa_flight_quotes: {
         Row: {
+          cards_sent_at: string | null
           conversation_id: string | null
           created_at: string
           id: string
           payload: Json
         }
         Insert: {
+          cards_sent_at?: string | null
           conversation_id?: string | null
           created_at?: string
           id?: string
           payload: Json
         }
         Update: {
+          cards_sent_at?: string | null
           conversation_id?: string | null
           created_at?: string
           id?: string
