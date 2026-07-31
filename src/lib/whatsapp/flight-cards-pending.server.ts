@@ -6,19 +6,21 @@ export async function sendPendingFlightCards(
   conversationId: string,
   waPhone: string,
   maxAgeMs = 60 * 60 * 1000,
+  protocolOpenedAt?: string | null,
 ): Promise<{ sent: number; quote_id?: string }> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
   const desde = new Date(Date.now() - maxAgeMs).toISOString();
-  const { data: row } = await supabaseAdmin
+  let pendingQuery = supabaseAdmin
     .from("wa_flight_quotes")
     .select("id, payload")
     .eq("conversation_id", conversationId)
     .is("cards_sent_at", null)
     .gte("created_at", desde)
     .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .limit(1);
+  if (protocolOpenedAt) pendingQuery = pendingQuery.gte("created_at", protocolOpenedAt);
+  const { data: row } = await pendingQuery.maybeSingle();
 
   const quote = row?.payload as
     | {
