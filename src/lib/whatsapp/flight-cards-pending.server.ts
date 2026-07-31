@@ -35,7 +35,7 @@ export async function sendPendingFlightCards(
     | null
     | undefined;
   const opcoes = (quote?.opcoes ?? []).slice(0, 4);
-  if (!row?.id || !opcoes.length) return { sent: 0 };
+  if (!row?.id || !quote || !opcoes.length) return { sent: 0 };
 
   const { buildFlightCardData, renderFlightCardAsset } = await import("./flight-card.server");
   const { buildFlightOptionCaption } = await import("./flight-caption.server");
