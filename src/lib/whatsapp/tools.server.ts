@@ -490,52 +490,47 @@ export function buildCamilaTools(conversation: WaConversation, scope: ToolProtoc
         }
 
 
-        // Renderiza em lotes de 2 (limite de sessões do Browserless) e com
-        // nova tentativa: disparar 4 juntas fazia só a Opção 1 chegar.
-        const artes = await mapWithLimit(alvo, 2, async (numero) => {
+        // Uma opção por vez: renderiza, entrega, dá um intervalo curto e vai
+        // pra próxima. Assim o Browserless nunca recebe capturas simultâneas
+        // (era o que fazia só a Opção 1 chegar).
+        const INTERVALO_MS = 12_000; // bem abaixo do teto de 1 minuto
+        for (let i = 0; i < alvo.length; i++) {
+          const numero = alvo[i];
           const op = quote.opcoes.find((o) => o.opcao === numero);
-          if (!op) return { numero, op: null, asset: null, erro: "opção inexistente" };
+          if (!op) {
+            enviados.push({ opcao: numero, ok: false, erro: "opção inexistente" });
+            continue;
+          }
+          if (i > 0) await new Promise((r) => setTimeout(r, INTERVALO_MS));
           try {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const data = buildFlightCardData(quote as any, op as any);
-            return { numero, op, asset: await renderFlightCardAssetRetry(data), erro: undefined };
-          } catch (e) {
-            return { numero, op, asset: null, erro: e instanceof Error ? e.message : "falha" };
-          }
-        });
-
-        // Envia na ordem, pra o cliente receber as opções em sequência.
-        for (const arte of artes) {
-          if (!arte.asset || !arte.op) {
-            enviados.push({ opcao: arte.numero, ok: false, erro: arte.erro ?? "falha" });
-            continue;
-          }
-          try {
-            const caption = buildFlightOptionCaption(quote, arte.op);
+            const asset = await renderFlightCardAssetRetry(data);
+            const caption = buildFlightOptionCaption(quote, op);
 
             const r = await sendWhatsAppImageBytes(
               conversation.wa_phone,
-              arte.asset.bytes,
-              arte.asset.filename,
+              asset.bytes,
+              asset.filename,
               caption,
-              arte.asset.url,
+              asset.url,
             );
             if (!r.error && r.id) {
               await saveMessage({
                 conversation_id: conversation.id,
                 direction: "outbound",
                 sender: "camila",
-                content: `[[media:image|${arte.asset.url}|${arte.asset.filename}]]\n${caption}`,
+                content: `[[media:image|${asset.url}|${asset.filename}]]\n${caption}`,
                 wa_message_id: r.id,
               });
             }
             enviados.push({
-              opcao: arte.numero,
+              opcao: numero,
               ok: !r.error && Boolean(r.id),
               erro: r.error ?? (r.id ? undefined : "WhatsApp não confirmou a entrega"),
             });
           } catch (e) {
-            enviados.push({ opcao: arte.numero, ok: false, erro: e instanceof Error ? e.message : "falha" });
+            enviados.push({ opcao: numero, ok: false, erro: e instanceof Error ? e.message : "falha" });
           }
         }
 
