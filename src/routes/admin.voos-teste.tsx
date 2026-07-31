@@ -495,7 +495,7 @@ function FiltersPanel({
           </div>
         )}
 
-        {depAirports.length > 1 && (
+        {depAirports.length > 0 && (
           <div className="space-y-3">
             <SectionLabel>Aeroporto de partida</SectionLabel>
             <div className="flex flex-wrap gap-2">
@@ -515,7 +515,7 @@ function FiltersPanel({
           </div>
         )}
 
-        {arrAirports.length > 1 && (
+        {arrAirports.length > 0 && (
           <div className="space-y-3">
             <SectionLabel>Aeroporto de chegada</SectionLabel>
             <div className="flex flex-wrap gap-2">
