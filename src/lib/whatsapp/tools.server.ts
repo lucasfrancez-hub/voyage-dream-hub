@@ -322,7 +322,16 @@ export function buildCamilaTools(conversation: WaConversation) {
         if (!row?.payload) return { error: "Cotação não encontrada — refaça a busca com cotar_aereo" };
 
 
-        type LegLite = { cia?: string; voo?: string; origem?: string; destino?: string; partida?: string };
+        type LegLite = {
+          cia?: string;
+          voo?: string;
+          origem?: string;
+          destino?: string;
+          partida?: string;
+          chegada?: string;
+          paradas?: number;
+          escalas?: string[];
+        };
         type OptLite = {
           opcao: number;
           destaque: string;
@@ -337,6 +346,33 @@ export function buildCamilaTools(conversation: WaConversation) {
           destino_nome: string;
           opcoes: OptLite[];
         };
+        const { findAirline } = await import("@/lib/airlines");
+        const horaDe = (s?: string) => (s ?? "").split(" ")[1]?.slice(0, 5) ?? "";
+        const cidadeDe = (iata?: string) =>
+          iata === quote.origem_iata
+            ? quote.origem_nome
+            : iata === quote.destino_iata
+              ? quote.destino_nome
+              : (iata ?? "");
+        const linhaTrecho = (leg?: LegLite | null): string | null => {
+          if (!leg) return null;
+          const cia = findAirline(leg.cia)?.name ?? leg.cia ?? "";
+          const paradas = leg.paradas ?? 0;
+          const escala =
+            paradas === 0
+              ? "direto"
+              : `${paradas} parada${paradas > 1 ? "s" : ""}${leg.escalas?.length ? ` (${leg.escalas.join(", ")})` : ""}`;
+          return `${cidadeDe(leg.origem)} ${horaDe(leg.partida)} → ${cidadeDe(leg.destino)} ${horaDe(leg.chegada)} · ${cia} · ${escala}`;
+        };
+        const legendaOpcao = (op: OptLite): string => {
+          const ida = linhaTrecho(op.ida);
+          const volta = linhaTrecho(op.volta);
+          const linhas = [`*Opção ${op.opcao}*`];
+          if (ida) linhas.push(volta ? `Ida: ${ida}` : ida);
+          if (volta) linhas.push(`Volta: ${volta}`);
+          return linhas.join("\n");
+        };
+
         const { buildFlightCardData, renderFlightCardAsset } = await import("./flight-card.server");
         const { sendWhatsAppImageBytes } = await import("./send.server");
         const { saveMessage } = await import("./conversation.server");
