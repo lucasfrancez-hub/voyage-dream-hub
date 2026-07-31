@@ -17,7 +17,7 @@ import {
 } from "./conversation.server";
 import { buildCamilaTools } from "./tools.server";
 import { sendWhatsAppBubbles } from "./send.server";
-import { buildSenderPrefix, capitalizeBubbles, capitalizeKnownNames, fixGluedSentences, mergeQuestionBubbles, stripReintroBubbles, firstName as extractFirstName } from "./text-utils.server";
+import { buildSenderPrefix, capitalizeBubbles, capitalizeKnownNames, fixGluedSentences, mergeQuestionBubbles, stripAgentSignature, stripReintroBubbles, firstName as extractFirstName } from "./text-utils.server";
 import { buildSharedAgentPrompt } from "@/lib/chat/camila-prompt";
 import { isCompanyDataBlocked } from "./data-blocklist";
 
@@ -401,7 +401,10 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
 
 
     let text = capitalizeKnownNames(capitalizeBubbles(fixGluedSentences(rawText)), [clientFirst]);
+    // O modelo às vezes assina sozinho ("*Maria:*") — a assinatura é do código.
+    text = stripAgentSignature(text, agent.nome);
     if (jaFalouAntes) text = stripReintroBubbles(text);
+
 
     text = mergeQuestionBubbles(text);
 

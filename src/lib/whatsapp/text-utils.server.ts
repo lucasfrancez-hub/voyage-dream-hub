@@ -76,12 +76,29 @@ export function capitalizeBubbles(fullText: string): string {
     .join("\n\n");
 }
 
-/** Prefixo estilo "*Roberto:*\n" pra colocar no início do primeiro balão. */
+/** Prefixo estilo "Roberto:\n" pra colocar no início do primeiro balão. */
 export function buildSenderPrefix(name: string | null | undefined): string | null {
   const fn = firstName(name);
   if (!fn) return null;
   return `${fn}:`;
 }
+
+/**
+ * Remove assinaturas que o próprio modelo escreveu ("*Maria:*", "Maria:")
+ * no começo de qualquer balão — a assinatura é adicionada pelo código.
+ */
+export function stripAgentSignature(fullText: string, agentName: string | null | undefined): string {
+  const fn = firstName(agentName);
+  if (!fn) return fullText;
+  const esc = fn.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const re = new RegExp(`^[*_~]*\\s*${esc}\\s*:\\s*[*_~]*\\s*`, "i");
+  return fullText
+    .split(/\n{2,}/)
+    .map((b) => b.replace(re, "").trim())
+    .filter((b) => b.length > 0)
+    .join("\n\n");
+}
+
 
 /**
  * Remove balões de saudação/apresentação quando o atendimento JÁ começou.
