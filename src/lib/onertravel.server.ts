@@ -267,7 +267,7 @@ export async function searchAirports(data: z.infer<typeof airportSearchInput>) {
   return out.slice(0, 20);
 }
 
-export async function searchFlights(data: SearchData): Promise<OnerSearchResult> {
+export async function searchFlights(data: SearchData, speed: PollSpeed = "normal"): Promise<OnerSearchResult> {
   const loc = buildLocationHref(data);
   let searchKey = data.searchKey ?? "";
 
