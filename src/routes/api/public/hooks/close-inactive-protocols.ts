@@ -159,7 +159,7 @@ export const Route = createFileRoute("/api/public/hooks/close-inactive-protocols
 
             const { data: conv } = await supabaseAdmin
               .from("wa_conversations")
-              .select("wa_phone, funnel_stage")
+              .select("wa_phone, funnel_stage, tags")
               .eq("id", proto.conversation_id)
               .maybeSingle();
             if (!conv) continue;
