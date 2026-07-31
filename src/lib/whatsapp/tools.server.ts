@@ -467,6 +467,15 @@ export function buildCamilaTools(conversation: WaConversation, scope: ToolProtoc
           alvo = restantes;
         }
 
+        // Reserva a cotação ANTES de renderizar: enquanto as artes estão sendo
+        // geradas, o watchdog não pode disparar as mesmas imagens.
+        if (rowId) {
+          await supabaseAdmin
+            .from("wa_flight_quotes")
+            .update({ cards_sent_at: new Date().toISOString() })
+            .eq("id", rowId)
+            .is("cards_sent_at", null);
+        }
 
 
         // Renderiza TODAS as artes em paralelo (antes era uma de cada vez).
