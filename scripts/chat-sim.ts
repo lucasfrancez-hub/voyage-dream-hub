@@ -184,10 +184,21 @@ async function main() {
       stopWhen: stepCountIs(10),
       temperature: 0.6,
     });
+    let res2 = res;
+    if (/(j[áa]\s+(estou|vou)\s+(pesquisando|buscando|cotando)|vou\s+(pesquisar|buscar|cotar))/i.test(res.text ?? "") && toolCalls.length === before) {
+      res2 = await generateText({
+        model: gateway("google/gemini-2.5-flash"),
+        system: buildSystem(entregues === 0) + "\n\n# ⚠️ AGORA\nVocê acabou de dizer que ia pesquisar. CHAME A TOOL de busca AGORA com os dados do histórico. Depois responda em UMA frase curta.",
+        messages,
+        tools: tools as never,
+        stopWhen: stepCountIs(10),
+        temperature: 0.4,
+      });
+    }
     const usadas = toolCalls.slice(before);
     if (usadas.length) console.log(`🛠  tools: ${usadas.map((t) => t.name + "(" + JSON.stringify(t.input) + ")").join(", ")}`);
 
-    const raw = (res.text ?? "").trim();
+    const raw = (res2.text ?? "").trim();
     if (!raw) {
       flag(`turno ${turn + 1}: resposta vazia do modelo`);
       messages.push({ role: "assistant", content: "(vazio)" });

@@ -369,6 +369,32 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
     }
     if (!result) throw lastErr ?? new Error("Falha ao gerar resposta");
 
+    // PROMESSA SEM AÇÃO: o modelo diz "já estou pesquisando" e não chama a
+    // tool. Nesse caso, uma segunda passada obriga a chamada antes de responder.
+    const prometeuBuscar =
+      /(j[áa]\s+(estou|vou)\s+(pesquisando|buscando|procurando|cotando)|vou\s+(pesquisar|buscar|cotar)|s[óo]\s+um\s+minutinho\s+que\s+j[áa])/i.test(
+        result.text ?? "",
+      );
+    const usouTool0 = (result.steps ?? []).some((st) => (st.toolCalls ?? []).length > 0);
+    if (prometeuBuscar && !usouTool0) {
+      try {
+        const retry = await generateText({
+          model: gateway(MODEL_CHAIN[0]),
+          system:
+            system +
+            "\n\n# ⚠️ AGORA\nVocê acabou de dizer ao cliente que ia pesquisar. CHAME A TOOL de busca AGORA com os dados do histórico (não pergunte mais nada). Depois responda em UMA frase curta.",
+          messages,
+          tools: cleanTools as never,
+          toolsContext: undefined as never,
+          stopWhen: stepCountIs(10),
+          temperature: 0.4,
+        });
+        if ((retry.steps ?? []).some((st) => (st.toolCalls ?? []).length > 0)) result = retry;
+      } catch (e) {
+        console.warn(`[agent:${agent.slug}] retry de tool falhou:`, e);
+      }
+    }
+
     // Rede de segurança imediata: alguns modelos chamam cotar_aereo, recebem a
     // cotação, mas encerram o loop sem chamar enviar_cartao_voo. Nesse caso a
     // arte já existe e deve sair agora — não só minutos depois pelo watchdog.
