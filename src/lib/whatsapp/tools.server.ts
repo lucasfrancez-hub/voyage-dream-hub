@@ -198,6 +198,30 @@ export function buildCamilaTools(conversation: WaConversation) {
           .describe("true se o cliente precisa de bagagem despachada inclusa"),
       }),
       execute: async (args) => {
+        // Trava de negócio no servidor: não basta o modelo "achar" que é aéreo.
+        // O cliente precisa ter respondido explicitamente que não quer pacote/
+        // hospedagem antes de a busca ao vivo poder começar.
+        const { data: recentInbound } = await supabaseAdmin
+          .from("wa_messages")
+          .select("content")
+          .eq("conversation_id", conversation.id)
+          .eq("direction", "inbound")
+          .order("created_at", { ascending: false })
+          .limit(12);
+        const customerText = (recentInbound ?? [])
+          .map((message) => message.content ?? "")
+          .join("\n")
+          .toLocaleLowerCase("pt-BR");
+        const explicitlyFlightOnly =
+          /\b(s[oó]\s+(?:o\s+)?(?:a[eé]reo|voo|passagem)|somente\s+(?:o\s+)?(?:a[eé]reo|voo|passagem)|apenas\s+(?:o\s+)?(?:a[eé]reo|voo|passagem)|n[aã]o\s+(?:vou\s+)?(?:precis[oa]|quero)(?:\s+de)?\s+(?:hotel|hospedagem|pacote)|sem\s+(?:hotel|hospedagem))\b/i.test(customerText);
+        if (!explicitlyFlightOnly) {
+          return {
+            triagem_pendente: true,
+            instrucao:
+              "NÃO faça a cotação ainda. Pergunte se o cliente quer só o aéreo ou a viagem com hospedagem também e espere a resposta. Não envie cards nem diga que já pesquisou.",
+          };
+        }
+
         // Se já cotamos essa MESMA rota/data/pax há pouco e as artes já foram
         // entregues, reaproveita a cotação em vez de buscar de novo (era isso
         // que fazia o robô repetir as mesmas opções).
