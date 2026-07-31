@@ -534,11 +534,13 @@ export function buildCamilaTools(conversation: WaConversation, scope: ToolProtoc
         opcao: z.number().describe("Número da opção escolhida pelo cliente"),
       }),
       execute: async ({ quote_id, opcao }) => {
-        const { data: row } = await supabaseAdmin
+        let cartQuoteQuery = supabaseAdmin
           .from("wa_flight_quotes")
           .select("payload")
           .eq("id", quote_id)
-          .single();
+          .eq("conversation_id", conversation.id);
+        if (scope.openedAt) cartQuoteQuery = cartQuoteQuery.gte("created_at", scope.openedAt);
+        const { data: row } = await cartQuoteQuery.maybeSingle();
         if (!row?.payload) return { error: "Cotação não encontrada — refaça a busca com cotar_aereo" };
 
         const quote = row.payload as {
