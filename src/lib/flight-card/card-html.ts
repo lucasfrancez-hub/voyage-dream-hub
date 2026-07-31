@@ -126,7 +126,8 @@ body{width:900px;background:#f1f5f9;padding:40px;font-family:Inter,system-ui,san
 .card{width:820px;background:#fff;border-radius:56px;overflow:hidden;border:1px solid #eef2f7;box-shadow:0 40px 90px rgba(15,23,42,.18)}
 .head{display:flex;align-items:center;justify-content:space-between;padding:44px 52px 24px}
 .head img{height:60px;object-fit:contain}
-.head .name{font-size:36px;font-weight:900;letter-spacing:-1px}
+.head .name{font-size:40px;font-weight:900;letter-spacing:-1.5px;font-style:italic;color:#0f172a}
+.head .name span{color:${ORANGE}}
 .badge{display:flex;align-items:center;gap:10px;background:#eff6ff;border:1px solid #dbeafe;border-radius:999px;padding:12px 22px}
 .badge i{width:10px;height:10px;border-radius:50%;background:${BLUE}}
 .badge span{font-size:16px;font-weight:800;color:#1d4ed8;letter-spacing:2px}
@@ -169,7 +170,7 @@ body{width:900px;background:#f1f5f9;padding:40px;font-family:Inter,system-ui,san
 </style></head>
 <body><div class="card">
   <div class="head">
-    ${logo ? `<img src="${esc(logo)}" alt="VIA AIR"/>` : `<div class="name">VIA AIR</div>`}
+    <div class="name">VIA<span>AIR</span></div>
     <div class="badge"><i></i><span>VERIFICADO</span></div>
   </div>
   <div class="trip"><div class="r">${rota}</div><div class="dt">${datas}</div></div>
