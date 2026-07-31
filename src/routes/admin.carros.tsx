@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -16,7 +16,9 @@ import {
   Loader2,
   ChevronDown,
   Plane,
-
+  Copy,
+  ShoppingCart,
+  ExternalLink,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -24,7 +26,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { createOrder } from "@/lib/orders.functions";
 import { DateRangeField } from "@/components/search/DateRangeField";
 import { SearchSkeleton } from "@/components/search/SearchSkeleton";
 import { onerCarLocations, onerCarSearch, onerCreateCarCart } from "@/lib/onertravel-cars.functions";
