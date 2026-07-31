@@ -80,15 +80,35 @@ export async function sendPendingFlightCards(
   const desde = new Date(Date.now() - maxAgeMs).toISOString();
   let pendingQuery = supabaseAdmin
     .from("wa_flight_quotes")
-    .select("id, payload, protocolo_id, sent_fingerprints")
+    .select("id, payload, protocolo_id, sent_fingerprints, cards_sent_at")
     .eq("conversation_id", conversationId)
     .gte("created_at", desde)
     .order("created_at", { ascending: false })
-    .limit(1);
-  if (!force) pendingQuery = pendingQuery.is("cards_sent_at", null);
+    .limit(6);
   if (protocolOpenedAt) pendingQuery = pendingQuery.gte("created_at", protocolOpenedAt);
   if (protocolId) pendingQuery = pendingQuery.eq("protocolo_id", protocolId);
-  const { data: row } = await pendingQuery.maybeSingle();
+  const { data: rows } = await pendingQuery;
+
+  const contaFps = (r: { sent_fingerprints?: unknown }) =>
+    Array.isArray(r.sent_fingerprints) ? r.sent_fingerprints.length : 0;
+
+  // Uma cotação está disponível quando ainda não foi reivindicada OU quando o
+  // claim ficou preso (worker caiu no meio do render): claim antigo + artes
+  // incompletas = destrava e tenta de novo, senão o cliente nunca recebe nada.
+  const disponivel = (r: { cards_sent_at?: string | null; sent_fingerprints?: unknown }) => {
+    if (force) return true;
+    if (!r.cards_sent_at) return true;
+    const idade = Date.now() - new Date(r.cards_sent_at).getTime();
+    return idade > CLAIM_TRAVADO_MS && contaFps(r) < MAX_OPCOES;
+  };
+
+  const row = ((rows ?? []) as Array<{
+    id: string;
+    payload: unknown;
+    protocolo_id: string | null;
+    sent_fingerprints?: unknown;
+    cards_sent_at?: string | null;
+  }>).find(disponivel);
 
   const quote = row?.payload as
     | {
@@ -111,16 +131,20 @@ export async function sendPendingFlightCards(
   }
 
   // ---- claim atômico: quem conseguir marcar cards_sent_at é quem envia ----
+  const claimAnterior = row.cards_sent_at ?? null;
   let claimQuery = supabaseAdmin
     .from("wa_flight_quotes")
     .update({ cards_sent_at: new Date().toISOString() })
-    .eq("id", row.id)
-    .is("cards_sent_at", null);
+    .eq("id", row.id);
+  claimQuery = claimAnterior
+    ? claimQuery.eq("cards_sent_at", claimAnterior)
+    : claimQuery.is("cards_sent_at", null);
   if (protocolId) claimQuery = claimQuery.eq("protocolo_id", protocolId);
   if (!force) {
     const { data: claimed } = await claimQuery.select("id");
     if (!claimed?.length) return { sent: 0, quote_id: row.id as string };
   }
+
 
   const liberarClaim = async () => {
     let releaseQuery = supabaseAdmin.from("wa_flight_quotes").update({ cards_sent_at: null }).eq("id", row.id);
