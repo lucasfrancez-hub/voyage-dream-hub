@@ -318,7 +318,8 @@ export function buildCamilaTools(conversation: WaConversation) {
           await supabaseAdmin
             .from("wa_flight_quotes")
             .update({ cards_sent_at: new Date().toISOString() })
-            .eq("id", quote_id);
+            .eq("conversation_id", conversation.id)
+            .is("cards_sent_at", null);
         }
 
         const todasEnviadas = enviados.length > 0 && enviados.every((e) => e.ok);

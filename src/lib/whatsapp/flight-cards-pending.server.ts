@@ -74,7 +74,8 @@ export async function sendPendingFlightCards(
     await supabaseAdmin
       .from("wa_flight_quotes")
       .update({ cards_sent_at: new Date().toISOString() })
-      .eq("id", row.id);
+      .eq("conversation_id", conversationId)
+      .is("cards_sent_at", null);
   }
   return { sent, quote_id: row.id as string };
 }
