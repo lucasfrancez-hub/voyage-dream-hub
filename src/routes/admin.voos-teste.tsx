@@ -206,12 +206,25 @@ function toOperatorFilters(f: Filters) {
   };
 }
 
+/** Aeroporto real de partida/chegada (com fallback nos segmentos). */
+export function depPlaceOf(fl: OnerFlight) {
+  return fl.journey?.departure?.iata ? fl.journey.departure : fl.journey?.segments?.[0]?.departure;
+}
+export function arrPlaceOf(fl: OnerFlight) {
+  const segs = fl.journey?.segments ?? [];
+  return fl.journey?.destination?.iata
+    ? fl.journey.destination
+    : segs[segs.length - 1]?.destination;
+}
+
 /** Refinamentos locais que a API não representa corretamente. */
 function applyFilters(list: OnerFlight[], f: Filters) {
   return list.filter((fl) => {
     if (f.maxStops < 2 && fl.journey.numberOfStops > f.maxStops) return false;
-    if (f.depAirports.length && !f.depAirports.includes(fl.journey.departure.iata)) return false;
-    if (f.arrAirports.length && !f.arrAirports.includes(fl.journey.destination.iata)) return false;
+    const depIata = depPlaceOf(fl)?.iata;
+    const arrIata = arrPlaceOf(fl)?.iata;
+    if (f.depAirports.length && (!depIata || !f.depAirports.includes(depIata))) return false;
+    if (f.arrAirports.length && (!arrIata || !f.arrAirports.includes(arrIata))) return false;
     if (f.arr[0] !== FULL_DAY[0] || f.arr[1] !== FULL_DAY[1]) {
       const t = fl.journey.destination.time;
       const m = t.hour * 60 + t.minute;
@@ -324,8 +337,8 @@ function FiltersPanel({
   const depAirports = useMemo(() => {
     const map = new Map<string, string>();
     flights.forEach((f) => {
-      const p = f.journey.departure;
-      if (p?.iata) map.set(p.iata, p.name?.trim() || p.iata);
+      const p = depPlaceOf(f);
+      if (p?.iata) map.set(p.iata, p.city?.trim() || p.name?.trim() || p.iata);
     });
     return [...map.entries()].sort((a, b) => a[1].localeCompare(b[1]));
   }, [flights]);
@@ -333,8 +346,8 @@ function FiltersPanel({
   const arrAirports = useMemo(() => {
     const map = new Map<string, string>();
     flights.forEach((f) => {
-      const p = f.journey.destination;
-      if (p?.iata) map.set(p.iata, p.name?.trim() || p.iata);
+      const p = arrPlaceOf(f);
+      if (p?.iata) map.set(p.iata, p.city?.trim() || p.name?.trim() || p.iata);
     });
     return [...map.entries()].sort((a, b) => a[1].localeCompare(b[1]));
   }, [flights]);
@@ -482,7 +495,7 @@ function FiltersPanel({
           </div>
         )}
 
-        {depAirports.length > 1 && (
+        {depAirports.length > 0 && (
           <div className="space-y-3">
             <SectionLabel>Aeroporto de partida</SectionLabel>
             <div className="flex flex-wrap gap-2">
@@ -502,7 +515,7 @@ function FiltersPanel({
           </div>
         )}
 
-        {arrAirports.length > 1 && (
+        {arrAirports.length > 0 && (
           <div className="space-y-3">
             <SectionLabel>Aeroporto de chegada</SectionLabel>
             <div className="flex flex-wrap gap-2">
