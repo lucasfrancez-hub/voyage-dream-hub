@@ -144,7 +144,8 @@ export function renderFlightCardHtml(d: FlightCardData, baseUrl: string): string
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-html,body{width:820px;max-width:820px;overflow-x:hidden;background:transparent}
+html,body{width:860px;max-width:860px;overflow-x:hidden;background:transparent}
+body{padding:20px}
 body{font-family:Poppins,system-ui,sans-serif;color:${NAVY};-webkit-font-smoothing:antialiased}
 .card{width:820px;background:#fff;overflow:hidden;border-radius:44px}
 .head{padding:36px 52px 0}
