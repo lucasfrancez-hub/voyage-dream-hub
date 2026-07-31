@@ -1073,7 +1073,7 @@ export const clearConversationHistory = createServerFn({ method: "POST" })
         ai_instruction_at: null,
         ai_instruction_by: null,
         ai_debounce_until: null,
-        last_message_at: null,
+        last_message_preview: null,
         unread_count: 0,
       })
       .eq("id", data.conversation_id);
