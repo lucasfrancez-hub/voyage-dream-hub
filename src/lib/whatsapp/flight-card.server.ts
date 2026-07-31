@@ -119,7 +119,7 @@ async function screenshotCard(url: string): Promise<Uint8Array> {
     body: JSON.stringify({
       url,
       gotoOptions: { waitUntil: "load", timeout: 15000 },
-      viewport: { width: 860, height: 1200, deviceScaleFactor: 2 },
+      viewport: { width: 900, height: 600, deviceScaleFactor: 2 },
       options: { type: "png", fullPage: true, omitBackground: true },
     }),
   });
