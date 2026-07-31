@@ -467,6 +467,15 @@ export function buildCamilaTools(conversation: WaConversation, scope: ToolProtoc
           alvo = restantes;
         }
 
+        // Reserva a cotação ANTES de renderizar: enquanto as artes estão sendo
+        // geradas, o watchdog não pode disparar as mesmas imagens.
+        if (rowId) {
+          await supabaseAdmin
+            .from("wa_flight_quotes")
+            .update({ cards_sent_at: new Date().toISOString() })
+            .eq("id", rowId)
+            .is("cards_sent_at", null);
+        }
 
 
         // Renderiza TODAS as artes em paralelo (antes era uma de cada vez).
@@ -525,15 +534,24 @@ export function buildCamilaTools(conversation: WaConversation, scope: ToolProtoc
           .map((e) => quote.opcoes.find((o) => o.opcao === e.opcao))
           .filter(Boolean)
           .map((o) => fp(o as OptLite));
-        if (novosFps.length && rowId) {
-          await supabaseAdmin
-            .from("wa_flight_quotes")
-            .update({
-              sent_fingerprints: Array.from(new Set([...jaFps, ...novosFps])),
-              cards_sent_at: new Date().toISOString(),
-            })
-            .eq("id", rowId);
+        if (rowId) {
+          if (novosFps.length) {
+            await supabaseAdmin
+              .from("wa_flight_quotes")
+              .update({
+                sent_fingerprints: Array.from(new Set([...jaFps, ...novosFps])),
+                cards_sent_at: new Date().toISOString(),
+              })
+              .eq("id", rowId);
+          } else {
+            // Nada saiu: libera a reserva pro watchdog tentar de novo.
+            await supabaseAdmin
+              .from("wa_flight_quotes")
+              .update({ cards_sent_at: null })
+              .eq("id", rowId);
+          }
         }
+
 
 
         const todasEnviadas = enviados.length > 0 && enviados.every((e) => e.ok);

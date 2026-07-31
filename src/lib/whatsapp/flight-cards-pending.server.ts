@@ -1,7 +1,27 @@
 /**
  * Envia as artes de uma cotação de voo que ficou pendente (cotou mas nunca
  * entregou). Usado como rede de segurança pelo watchdog e pelo agente.
+ *
+ * Regras anti-duplicidade:
+ * - faz um "claim" atômico da cotação (marca cards_sent_at ANTES de enviar),
+ *   então watchdog e agente nunca disparam as mesmas artes em paralelo;
+ * - respeita as impressões digitais (sent_fingerprints) já entregues nesta
+ *   conversa, então uma opção já enviada nunca é reenviada;
+ * - se nada for enviado, libera o claim pra próxima tentativa.
  */
+type LegLite = { cia?: string; voo?: string; partida?: string };
+type OptLite = {
+  opcao: number;
+  total?: number;
+  ida?: LegLite | null;
+  volta?: LegLite | null;
+};
+
+const fingerprint = (o: OptLite): string =>
+  [o.ida?.cia, o.ida?.voo, o.ida?.partida, o.volta?.cia, o.volta?.voo, o.volta?.partida, Math.round(Number(o.total ?? 0))]
+    .map((v) => String(v ?? "-"))
+    .join("|");
+
 export async function sendPendingFlightCards(
   conversationId: string,
   waPhone: string,
@@ -28,16 +48,44 @@ export async function sendPendingFlightCards(
         destino_iata: string;
         origem_nome: string;
         destino_nome: string;
-        opcoes?: Array<{
-          opcao: number;
-          ida?: { cia?: string; origem?: string; destino?: string; partida?: string; chegada?: string; paradas?: number; escalas?: string[] } | null;
-          volta?: { cia?: string; origem?: string; destino?: string; partida?: string; chegada?: string; paradas?: number; escalas?: string[] } | null;
-        }>;
+        opcoes?: OptLite[];
       }
     | null
     | undefined;
-  const opcoes = (quote?.opcoes ?? []).slice(0, 4);
-  if (!row?.id || !quote || !opcoes.length) return { sent: 0 };
+  const todas = (quote?.opcoes ?? []).slice(0, 4);
+  if (!row?.id || !quote || !todas.length) return { sent: 0 };
+
+  // ---- claim atômico: quem conseguir marcar cards_sent_at é quem envia ----
+  const { data: claimed } = await supabaseAdmin
+    .from("wa_flight_quotes")
+    .update({ cards_sent_at: new Date().toISOString() })
+    .eq("id", row.id)
+    .is("cards_sent_at", null)
+    .select("id");
+  if (!claimed?.length) return { sent: 0, quote_id: row.id as string };
+
+  const liberarClaim = async () => {
+    await supabaseAdmin.from("wa_flight_quotes").update({ cards_sent_at: null }).eq("id", row.id);
+  };
+
+  // ---- fingerprints já entregues nesta conversa (últimas 24h / protocolo) --
+  const desdeFp = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const cortaFp = protocolOpenedAt && protocolOpenedAt > desdeFp ? protocolOpenedAt : desdeFp;
+  const { data: quotesRecentes } = await supabaseAdmin
+    .from("wa_flight_quotes")
+    .select("sent_fingerprints")
+    .eq("conversation_id", conversationId)
+    .gte("created_at", cortaFp)
+    .limit(20);
+  const jaFps = new Set<string>(
+    (quotesRecentes ?? []).flatMap((q) =>
+      Array.isArray((q as { sent_fingerprints?: unknown }).sent_fingerprints)
+        ? (q as { sent_fingerprints: unknown[] }).sent_fingerprints.map(String)
+        : [],
+    ),
+  );
+  const opcoes = todas.filter((o) => !jaFps.has(fingerprint(o)));
+  if (!opcoes.length) return { sent: 0, quote_id: row.id as string };
 
   const { buildFlightCardData, renderFlightCardAsset } = await import("./flight-card.server");
   const { buildFlightOptionCaption } = await import("./flight-caption.server");
@@ -57,9 +105,11 @@ export async function sendPendingFlightCards(
   );
 
   let sent = 0;
+  const novosFps: string[] = [];
   for (const arte of artes) {
     if (!arte.asset) continue;
-    const caption = buildFlightOptionCaption(quote, arte.op);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const caption = buildFlightOptionCaption(quote as any, arte.op as any);
     try {
       const r = await sendWhatsAppImageBytes(
         waPhone,
@@ -77,18 +127,22 @@ export async function sendPendingFlightCards(
           wa_message_id: r.id,
         });
         sent++;
+        novosFps.push(fingerprint(arte.op));
       }
     } catch {
       /* segue pras próximas */
     }
   }
 
-  if (sent === artes.length && artes.length > 0) {
-    await supabaseAdmin
-      .from("wa_flight_quotes")
-      .update({ cards_sent_at: new Date().toISOString() })
-      .eq("id", row.id)
-      .is("cards_sent_at", null);
+  if (sent === 0) {
+    await liberarClaim();
+    return { sent: 0, quote_id: row.id as string };
   }
+
+  await supabaseAdmin
+    .from("wa_flight_quotes")
+    .update({ sent_fingerprints: Array.from(new Set([...jaFps, ...novosFps])) })
+    .eq("id", row.id);
+
   return { sent, quote_id: row.id as string };
 }
