@@ -107,15 +107,21 @@ export function flightCardPreviewUrl(data: FlightCardData, base = PUBLIC_BASE): 
 }
 
 /** Fotografa o cartão e devolve os bytes do PNG. */
-async function shot(url: string, selector: string, omitBackground: boolean): Promise<Uint8Array> {
+async function shot(
+  url: string,
+  selector: string,
+  omitBackground: boolean,
+  timeoutMs = 20000,
+): Promise<Uint8Array> {
   const token = process.env.BROWSERLESS_TOKEN;
   if (!token) throw new Error("BROWSERLESS_TOKEN não configurado");
   const res = await fetch(`${BROWSERLESS_BASE}/screenshot?token=${encodeURIComponent(token)}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
+    signal: AbortSignal.timeout(timeoutMs),
     body: JSON.stringify({
       url,
-      gotoOptions: { waitUntil: "load", timeout: 15000 },
+      gotoOptions: { waitUntil: "load", timeout: 12000 },
       viewport: { width: 900, height: 600, deviceScaleFactor: 2 },
       selector,
       options: { type: "png", omitBackground },
@@ -138,9 +144,10 @@ async function screenshotCard(url: string): Promise<Uint8Array> {
     throw new Error("captura vazia");
   } catch (e) {
     console.warn("[flight-card] captura transparente falhou, usando fallback:", e);
-    return shot(url, ".card", false);
+    return shot(url, ".card", false, 15000);
   }
 }
+
 
 
 /** Gera a arte da opção e devolve os bytes e a URL pública do PNG. */
