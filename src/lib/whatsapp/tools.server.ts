@@ -201,13 +201,17 @@ export function buildCamilaTools(conversation: WaConversation) {
         // Trava de negócio no servidor: não basta o modelo "achar" que é aéreo.
         // O cliente precisa ter respondido explicitamente que não quer pacote/
         // hospedagem antes de a busca ao vivo poder começar.
-        const { data: recentInbound } = await supabaseAdmin
+        let inboundQuery = supabaseAdmin
           .from("wa_messages")
           .select("content")
           .eq("conversation_id", conversation.id)
           .eq("direction", "inbound")
           .order("created_at", { ascending: false })
           .limit(12);
+        if (conversation.protocolo_ativo_id) {
+          inboundQuery = inboundQuery.eq("protocolo_id", conversation.protocolo_ativo_id);
+        }
+        const { data: recentInbound } = await inboundQuery;
         const customerText = (recentInbound ?? [])
           .map((message) => message.content ?? "")
           .join("\n")
