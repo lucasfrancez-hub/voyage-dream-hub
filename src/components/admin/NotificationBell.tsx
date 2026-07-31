@@ -23,7 +23,17 @@ function severityColor(sev: string) {
   }
 }
 
+function severityChip(sev: string) {
+  switch (sev) {
+    case "cancelled": return "bg-red-500/10 text-red-400 border-red-500/25";
+    case "major": return "bg-brand-orange/10 text-brand-orange border-brand-orange/25";
+    case "minor": return "bg-yellow-500/10 text-yellow-400 border-yellow-500/25";
+    default: return "bg-blue-500/10 text-blue-400 border-blue-500/25";
+  }
+}
+
 function severityLabel(sev: string) {
+
   switch (sev) {
     case "cancelled": return "Cancelado";
     case "major": return "Alteração maior";
