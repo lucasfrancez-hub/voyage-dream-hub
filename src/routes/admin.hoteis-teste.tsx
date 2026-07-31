@@ -1,3 +1,4 @@
+import type { ComboPick } from "@/lib/combo-selection";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -472,6 +473,7 @@ function HotelSummaryDialog({
   point,
   searchKey,
   onChangeRate,
+  onComboSelect,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
@@ -486,6 +488,7 @@ function HotelSummaryDialog({
   point: OnerHotelPoint | null;
   searchKey: string;
   onChangeRate: (rateKey: string) => void;
+  onComboSelect?: (pick: ComboPick) => void;
 }) {
   const createCart = useServerFn(onerCreateHotelCart);
   const loadRooms = useServerFn(onerHotelRooms);
@@ -767,6 +770,26 @@ function HotelSummaryDialog({
               </div>
 
               <div className="flex flex-col gap-3">
+                {onComboSelect ? (
+                  <Button
+                    className="w-full py-6 text-xs font-black uppercase tracking-[0.15em]"
+                    onClick={() => {
+                      onComboSelect({
+                        title: `${hotel.name} \u2022 ${rate.name}`,
+                        summary: summaryText,
+                        total: rate.price.total,
+                        buy: async () => {
+                          const r = await cartMut.mutateAsync();
+                          return r.url;
+                        },
+                      });
+                      onOpenChange(false);
+                    }}
+                  >
+                    Revisar pedido
+                  </Button>
+                ) : (
+                <>
                 <Button
                   className="w-full py-6 text-xs font-black uppercase tracking-[0.15em]"
                   disabled={cartMut.isPending}
@@ -786,6 +809,8 @@ function HotelSummaryDialog({
                 >
                   <ShoppingCart className="h-4 w-4" /> Fazer pedido
                 </Button>
+                </>
+                )}
               </div>
             </div>
           </div>
@@ -919,11 +944,13 @@ export function HoteisPage({
   hideForm,
   preset,
   runToken,
+  onComboSelect,
 }: {
   header?: React.ReactNode;
   hideForm?: boolean;
   preset?: HotelPreset;
   runToken?: number;
+  onComboSelect?: (pick: ComboPick) => void;
 } = {}) {
   const searchDest = useServerFn(onerHotelDestinations);
   const searchAirports = useServerFn(onerAirportSearch);
