@@ -365,11 +365,13 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
   // Cadeia de tentativas: o gateway às vezes devolve 502/503 em rajada (o
   // provedor cai por alguns segundos). Tentamos o mesmo modelo mais de uma vez
   // e alternamos entre modelos, com backoff crescente, antes de desistir.
+  // Geração 2.5 do Gemini vinha dando 502 em rajada — usamos a geração atual
+  // (3.6 flash) como principal e só caímos pra 2.5 no último recurso.
   const ATTEMPTS = [
-    { model: "google/gemini-2.5-flash", wait: 1500 },
-    { model: "google/gemini-2.5-flash", wait: 3000 },
-    { model: "google/gemini-2.5-pro", wait: 4000 },
-    { model: "google/gemini-2.5-flash-lite", wait: 5000 },
+    { model: "google/gemini-3.6-flash", wait: 1500 },
+    { model: "google/gemini-3.6-flash", wait: 3000 },
+    { model: "google/gemini-3.1-flash-lite", wait: 4000 },
+    { model: "google/gemini-3.1-pro-preview", wait: 5000 },
     { model: "google/gemini-2.5-flash", wait: 8000 },
     { model: "google/gemini-2.5-flash-lite", wait: 0 },
   ];
