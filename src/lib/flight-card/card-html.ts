@@ -166,9 +166,9 @@ body{width:1200px;background:#fff;font-family:Poppins,system-ui,sans-serif;color
   <div class="head">
     <div class="brand">${logo ? `<img src="${esc(logo)}" alt="VIA AIR"/>` : `<div style="font-size:38px;font-weight:800">VIA AIR</div>`}<div class="tagline">Sua viagem, do seu jeito.</div></div>
     <div class="route">
-      <div><div class="r-iata">${esc(d.origem_iata)}</div><div class="r-city">${esc(d.origem_cidade)}</div></div>
+      <div><div class="r-city">${esc(d.origem_cidade || d.origem_iata)}</div><div class="r-iata">${esc(d.origem_iata)}</div></div>
       <div class="circle">${planeIcon(0)}</div>
-      <div><div class="r-iata">${esc(d.destino_iata)}</div><div class="r-city">${esc(d.destino_cidade)}</div></div>
+      <div><div class="r-city">${esc(d.destino_cidade || d.destino_iata)}</div><div class="r-iata">${esc(d.destino_iata)}</div></div>
     </div>
     <div class="dates">
       <div class="cal"></div>
