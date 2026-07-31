@@ -10,14 +10,8 @@ const PUBLIC_BASE = "https://pedidos.viaair.tur.br";
 const BROWSERLESS_BASE = "https://production-sfo.browserless.io";
 const BUCKET = "broadcast-media";
 
-/** Parcelamento por cia em voos nacionais: Latam 4x, Gol/Azul 5x. */
-function parcelasDaCia(cia: string): number {
-  const c = cia.toLowerCase();
-  if (c.includes("latam")) return 4;
-  if (c.includes("gol")) return 5;
-  if (c.includes("azul")) return 5;
-  return 4;
-}
+// Parcelamento agora vem da tabela oficial por cia (teto + parcela mínima).
+
 
 function money(n: number): string {
   return n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
