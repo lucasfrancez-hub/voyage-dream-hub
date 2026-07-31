@@ -280,10 +280,8 @@ export function buildCamilaTools(conversation: WaConversation) {
               conversation_id: conversation.id,
               direction: "outbound",
               sender: "camila",
-              content: caption,
+              content: `${caption}\n${url}`,
               wa_message_id: r.id ?? null,
-              media_url: url,
-              media_type: "image",
             });
             enviados.push({ opcao: numero, ok: !r.error, erro: r.error });
           } catch (e) {
