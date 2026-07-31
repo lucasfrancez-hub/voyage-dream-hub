@@ -27,6 +27,14 @@ export type FlightQuoteLeg = {
   bagagem_despachada: boolean;
 };
 
+/** Chaves da operadora necessárias pra gerar o carrinho do Comprar Viagem. */
+export type FlightQuoteCart = {
+  outboundFareId: string;
+  outboundItineraryId: string;
+  inboundFareId: string | null;
+  inboundItineraryId: string | null;
+};
+
 export type FlightQuoteOption = {
   opcao: number;
   destaque: string; // "mais barata" | "voo direto" | "melhor custo-benefício" | "mais rápida"
@@ -38,6 +46,7 @@ export type FlightQuoteOption = {
   bagagem_despachada: boolean;
   ida: FlightQuoteLeg;
   volta: FlightQuoteLeg | null;
+  cart: FlightQuoteCart;
 };
 
 export type FlightQuoteResult = {
@@ -47,6 +56,7 @@ export type FlightQuoteResult = {
   destino_nome: string;
   data_ida: string;
   data_volta: string | null;
+  search_key: string | null;
   passageiros: { adultos: number; criancas: number; bebes: number };
   opcoes: FlightQuoteOption[];
   observacao: string;
@@ -285,6 +295,12 @@ export async function quoteFlights(params: QuoteFlightsParams): Promise<FlightQu
       bagagem_despachada: flightHasBaggage(volta ?? ida),
       ida: toLeg(ida),
       volta: volta ? toLeg(volta) : null,
+      cart: {
+        outboundFareId: ida.key,
+        outboundItineraryId: ida.journey.key ?? "",
+        inboundFareId: volta?.key ?? null,
+        inboundItineraryId: volta?.journey?.key ?? null,
+      },
     });
   }
 
@@ -301,6 +317,7 @@ export async function quoteFlights(params: QuoteFlightsParams): Promise<FlightQu
     destino_nome: dst.nome,
     data_ida: params.data_ida,
     data_volta: params.data_volta ?? null,
+    search_key: search.searchKey ?? null,
     passageiros: { adultos, criancas, bebes },
     opcoes,
     observacao:

@@ -306,6 +306,89 @@ export function buildCamilaTools(conversation: WaConversation) {
       },
     }),
 
+    enviar_link_carrinho_voo: tool({
+      description:
+        "Gera e envia o LINK DE COMPRA (carrinho oficial Comprar Viagem / VIA AIR) da opção de voo que o cliente escolheu. Use quando o cliente disser que quer fechar/comprar/reservar uma das opções cotadas. Depois de enviar, avise que assentos e bagagem adicional são tratados pelo pós-vendas APÓS a compra.",
+      inputSchema: z.object({
+        quote_id: z.string().describe("ID devolvido por cotar_aereo"),
+        opcao: z.number().describe("Número da opção escolhida pelo cliente"),
+      }),
+      execute: async ({ quote_id, opcao }) => {
+        const { data: row } = await supabaseAdmin
+          .from("wa_flight_quotes")
+          .select("payload")
+          .eq("id", quote_id)
+          .single();
+        if (!row?.payload) return { error: "Cotação não encontrada — refaça a busca com cotar_aereo" };
+
+        const quote = row.payload as {
+          origem_iata: string;
+          destino_iata: string;
+          data_ida: string;
+          data_volta: string | null;
+          search_key: string | null;
+          passageiros: { adultos: number; criancas: number; bebes: number };
+          opcoes: Array<{
+            opcao: number;
+            total_formatado: string;
+            cart?: {
+              outboundFareId: string;
+              outboundItineraryId: string;
+              inboundFareId: string | null;
+              inboundItineraryId: string | null;
+            };
+          }>;
+        };
+        const op = quote.opcoes.find((o) => o.opcao === opcao);
+        if (!op?.cart || !quote.search_key)
+          return {
+            error:
+              "Essa cotação é antiga e não tem carrinho — refaça com cotar_aereo e depois gere o link",
+          };
+
+        try {
+          const { createFlightCart } = await import("@/lib/onertravel.server");
+          const { url } = await createFlightCart({
+            searchKey: quote.search_key,
+            outboundFareId: op.cart.outboundFareId,
+            outboundItineraryId: op.cart.outboundItineraryId,
+            inboundFareId: op.cart.inboundFareId,
+            inboundItineraryId: op.cart.inboundItineraryId,
+            isRoundTrip: !!op.cart.inboundFareId,
+            departureIata: quote.origem_iata,
+            arrivalIata: quote.destino_iata,
+            departureDate: quote.data_ida,
+            returnDate: quote.data_volta,
+            adults: quote.passageiros.adultos,
+            children: quote.passageiros.criancas,
+            infants: quote.passageiros.bebes,
+            departureIsCity: false,
+            arrivalIsCity: false,
+          });
+
+          const { sendWhatsAppText } = await import("./send.server");
+          const { saveMessage } = await import("./conversation.server");
+          const texto = `Segue o link pra concluir a compra com segurança, ó:\n${url}`;
+          const r = await sendWhatsAppText(conversation.wa_phone, texto);
+          await saveMessage({
+            conversation_id: conversation.id,
+            direction: "outbound",
+            sender: "camila",
+            content: texto,
+            wa_message_id: r.id ?? null,
+          });
+          return {
+            ok: !r.error,
+            url,
+            instrucao:
+              "Link enviado. Agora escreva um balão curto avisando que assentos e bagagem adicional são feitos pelo pós-vendas depois da compra confirmada.",
+          };
+        } catch (e) {
+          return { error: e instanceof Error ? e.message : "Falha ao gerar o carrinho" };
+        }
+      },
+    }),
+
 
 
 
