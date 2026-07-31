@@ -533,7 +533,9 @@ export function buildCamilaTools(conversation: WaConversation, scope: ToolProtoc
         limit: z.number().nullable().describe("Máximo de resultados, padrão 5"),
       }),
       execute: async ({ destino, origem, limit }) => {
-        const cap = limit ?? 5;
+        // Regiões precisam de variedade para o modelo escolher e enviar opções.
+        // Um `limit: 1` gerado pela IA já causou falso negativo para "Nordeste".
+        const requestedCap = limit ?? 5;
         const COLS =
           "slug, title, destination, origin, going_date, return_date, nights, price_per_person, hotel_name, hotel_stars, base_occupancy, image_url, meal_plan, includes, services, outbound_flight, return_flight";
         const hoje = new Date().toISOString().slice(0, 10);
@@ -567,6 +569,7 @@ export function buildCamilaTools(conversation: WaConversation, scope: ToolProtoc
           Object.entries(REGIOES).find(([k]) =>
             chave.includes(k.normalize("NFD").replace(/[\u0300-\u036f]/g, "")),
           )?.[1] ?? null;
+        const cap = termos ? Math.max(requestedCap, 5) : requestedCap;
 
         /** Filtro de destino: casa cidade OU título, e expande região → cidades. */
         const aplicaDestino = <T extends { or: (f: string) => T; ilike: (c: string, v: string) => T }>(q: T): T => {

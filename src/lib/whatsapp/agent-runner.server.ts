@@ -263,6 +263,20 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
 
   const history = await loadHistory(conv.id, 30, sinceIso);
 
+  // Uma execução atrasada do cron não pode inventar uma nova resposta quando
+  // o último turno já foi respondido. Isso elimina continuações soltas como
+  // "Quer que eu faça isso?" sem uma nova mensagem do cliente.
+  const latestConversational = [...history]
+    .reverse()
+    .find((m) => m.sender === "customer" || m.sender === "camila" || m.sender === "human");
+  const hasSupervisorInstruction = Boolean(
+    (conv as unknown as { ai_instruction?: string | null }).ai_instruction?.trim(),
+  );
+  if (latestConversational && latestConversational.sender !== "customer" && !hasSupervisorInstruction) {
+    console.log(`[agent] conversa ${conv.id} já respondida — execução atrasada ignorada`);
+    return;
+  }
+
   // CONTEXTO OPERACIONAL: pega TAMBÉM as mensagens automáticas (check-in,
   // alerta de voo, voucher, cobrança) dos últimos 7 dias que estão FORA do
   // protocolo atual — quando o cliente abre um novo protocolo respondendo
