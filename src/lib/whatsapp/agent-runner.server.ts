@@ -376,18 +376,17 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
   // Cadeia de tentativas: o gateway às vezes devolve 502/503 em rajada (o
   // provedor cai por alguns segundos). Tentamos o mesmo modelo mais de uma vez
   // e alternamos entre modelos, com backoff crescente, antes de desistir.
-  // Geração 2.5 do Gemini vinha dando 502 em rajada — usamos a geração atual
-  // (3.6 flash) como principal e só caímos pra 2.5 no último recurso.
-  // O Gemini está instável (rajadas de 502 em todas as gerações), então o
-  // ChatGPT entra logo na sequência como reserva real, não só no fim.
+  // O Gemini está instável (502 em rajada em todas as gerações), então o
+  // ChatGPT virou o principal e o Gemini ficou só como último recurso.
   const ATTEMPTS = [
-    { model: "google/gemini-3.6-flash", wait: 1500 },
-    { model: "openai/gpt-5.4-mini", wait: 2000 },
-    { model: "google/gemini-3.1-flash-lite", wait: 3000 },
-    { model: "openai/gpt-5.4", wait: 4000 },
-    { model: "google/gemini-2.5-flash", wait: 6000 },
-    { model: "openai/gpt-5.4-nano", wait: 0 },
+    { model: "openai/gpt-5.4-mini", wait: 1500 },
+    { model: "openai/gpt-5.4-mini", wait: 2500 },
+    { model: "openai/gpt-5.4", wait: 3500 },
+    { model: "openai/gpt-5.4-nano", wait: 5000 },
+    { model: "google/gemini-3.6-flash", wait: 6000 },
+    { model: "google/gemini-3.1-flash-lite", wait: 0 },
   ];
+
   const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
   try {
