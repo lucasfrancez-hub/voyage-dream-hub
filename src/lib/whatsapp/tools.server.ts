@@ -238,7 +238,14 @@ export function buildCamilaTools(conversation: WaConversation) {
           .string()
           .nullable()
           .describe("Legenda curta da primeira imagem, ex: 'Opção 1 — voo direto'"),
+        reenviar: z
+          .boolean()
+          .nullable()
+          .describe(
+            "true SOMENTE quando o cliente disser que não recebeu as imagens. Nos demais casos deixe null — opções já enviadas nesta cotação não são reenviadas.",
+          ),
       }),
+
       execute: async ({ quote_id, opcoes, legenda, reenviar }) => {
         // Busca pelo id informado; se o modelo perdeu/errou o quote_id (comum
         // quando o cliente pede as fotos de novo em outro turno), cai pra
