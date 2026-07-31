@@ -198,6 +198,52 @@ export function buildCamilaTools(conversation: WaConversation) {
           .describe("true se o cliente precisa de bagagem despachada inclusa"),
       }),
       execute: async (args) => {
+        // Se já cotamos essa MESMA rota/data/pax há pouco e as artes já foram
+        // entregues, reaproveita a cotação em vez de buscar de novo (era isso
+        // que fazia o robô repetir as mesmas opções).
+        const chaveRota = [
+          args.origem.trim().toUpperCase(),
+          args.destino.trim().toUpperCase(),
+          args.data_ida,
+          args.data_volta ?? "-",
+          args.adultos ?? 1,
+          args.criancas ?? 0,
+          args.bebes ?? 0,
+        ].join("|");
+        const desdeRecente = new Date(Date.now() - 45 * 60 * 1000).toISOString();
+        const { data: recentes } = await supabaseAdmin
+          .from("wa_flight_quotes")
+          .select("id, payload, cards_sent_at")
+          .eq("conversation_id", conversation.id)
+          .gte("created_at", desdeRecente)
+          .order("created_at", { ascending: false })
+          .limit(5);
+        for (const r of recentes ?? []) {
+          const p = (r.payload ?? {}) as Record<string, unknown>;
+          const k = [
+            String(p.origem_iata ?? "").toUpperCase(),
+            String(p.destino_iata ?? "").toUpperCase(),
+            String(p.data_ida ?? ""),
+            String(p.data_volta ?? "-") || "-",
+            (p.passageiros as { adultos?: number } | undefined)?.adultos ?? 1,
+            (p.passageiros as { criancas?: number } | undefined)?.criancas ?? 0,
+            (p.passageiros as { bebes?: number } | undefined)?.bebes ?? 0,
+          ].join("|");
+          const mesmaRota =
+            k === chaveRota ||
+            (String(p.data_ida ?? "") === args.data_ida &&
+              String(p.destino_iata ?? "").toUpperCase() === args.destino.trim().toUpperCase());
+          if (mesmaRota && r.cards_sent_at) {
+            return {
+              ...(r.payload as object),
+              quote_id: r.id,
+              ja_enviado: true,
+              instrucao:
+                "Essa cotação já foi feita e as artes JÁ foram enviadas ao cliente. NÃO chame enviar_cartao_voo de novo. Só converse: pergunte qual opção agradou, ou ofereça outros horários/datas se ele pedir.",
+            };
+          }
+        }
+
         const { quoteFlights } = await import("./flight-quote.server");
         const result = await quoteFlights({
           origem: args.origem,
@@ -212,6 +258,7 @@ export function buildCamilaTools(conversation: WaConversation) {
           bagagem_despachada: args.bagagem_despachada,
         });
         if ("error" in result) return result;
+
 
         // Guarda a cotação pra poder gerar a arte de cada opção depois.
         let quote_id: string | null = null;
@@ -250,78 +297,101 @@ export function buildCamilaTools(conversation: WaConversation) {
         // Busca pelo id informado; se o modelo perdeu/errou o quote_id (comum
         // quando o cliente pede as fotos de novo em outro turno), cai pra
         // última cotação desta conversa em vez de falhar.
+        let rowId: string | null = null;
         let row: { payload: unknown; created_at?: string } | null = null;
         if (quote_id) {
           const { data } = await supabaseAdmin
             .from("wa_flight_quotes")
-            .select("payload, created_at")
+            .select("id, payload, created_at")
             .eq("id", quote_id)
             .maybeSingle();
           row = data ?? null;
+          rowId = data?.id ?? null;
         }
         if (!row?.payload) {
           const { data } = await supabaseAdmin
             .from("wa_flight_quotes")
-            .select("payload, created_at")
+            .select("id, payload, created_at")
             .eq("conversation_id", conversation.id)
             .order("created_at", { ascending: false })
             .limit(1)
             .maybeSingle();
           row = data ?? null;
+          rowId = data?.id ?? null;
         }
         if (!row?.payload) return { error: "Cotação não encontrada — refaça a busca com cotar_aereo" };
 
 
+        type LegLite = { cia?: string; voo?: string; origem?: string; destino?: string; partida?: string };
+        type OptLite = {
+          opcao: number;
+          destaque: string;
+          total?: number;
+          ida?: LegLite | null;
+          volta?: LegLite | null;
+        };
         const quote = row.payload as {
           origem_iata: string;
           destino_iata: string;
           origem_nome: string;
           destino_nome: string;
-          opcoes: Array<{ opcao: number; destaque: string }>;
+          opcoes: OptLite[];
         };
         const { buildFlightCardData, renderFlightCardAsset } = await import("./flight-card.server");
         const { sendWhatsAppImageBytes } = await import("./send.server");
         const { saveMessage } = await import("./conversation.server");
 
+        // Impressão digital pelo CONTEÚDO do voo (cia + nº + horários + valor).
+        // Assim a mesma opção não é reenviada nem quando a IA refaz a cotação
+        // e gera um quote_id novo.
+        const fp = (o: OptLite): string =>
+          [
+            o.ida?.cia,
+            o.ida?.voo,
+            o.ida?.partida,
+            o.volta?.cia,
+            o.volta?.voo,
+            o.volta?.partida,
+            Math.round(Number(o.total ?? 0)),
+          ]
+            .map((v) => String(v ?? "-"))
+            .join("|");
+
         const enviados: Array<{ opcao: number; ok: boolean; erro?: string }> = [];
         let alvo = (opcoes.length ? opcoes : quote.opcoes.map((o) => o.opcao)).slice(0, 4);
 
-        // Anti-repetição: não reenvia arte de opção que já foi entregue para
-        // esta MESMA cotação (a IA às vezes chama a tool de novo no turno
-        // seguinte e o cliente recebia tudo duplicado).
-        let jaEnviadas: number[] = [];
-        if (row.created_at) {
-          const { data: msgs } = await supabaseAdmin
-            .from("wa_messages")
-            .select("content")
-            .eq("conversation_id", conversation.id)
-            .eq("direction", "outbound")
-            .gte("created_at", row.created_at)
-            .not("wa_message_id", "is", null)
-            .limit(60);
-          jaEnviadas = Array.from(
-            new Set(
-              (msgs ?? [])
-                .map((m) => String((m as { content?: string }).content ?? ""))
-                .filter((c) => c.includes("[[media:image"))
-                .map((c) => c.match(/Op[çc][ãa]o\s+(\d+)/i)?.[1])
-                .filter(Boolean)
-                .map((n) => Number(n)),
-            ),
-          );
-        }
-        if (!reenviar && jaEnviadas.length) {
-          const restantes = alvo.filter((n) => !jaEnviadas.includes(n));
+        // Fingerprints já entregues em QUALQUER cotação desta conversa nas
+        // últimas 24h.
+        const desde = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+        const { data: quotesRecentes } = await supabaseAdmin
+          .from("wa_flight_quotes")
+          .select("sent_fingerprints")
+          .eq("conversation_id", conversation.id)
+          .gte("created_at", desde)
+          .limit(20);
+        const jaFps = new Set<string>(
+          (quotesRecentes ?? []).flatMap((q) =>
+            Array.isArray((q as { sent_fingerprints?: unknown }).sent_fingerprints)
+              ? ((q as { sent_fingerprints: unknown[] }).sent_fingerprints.map(String))
+              : [],
+          ),
+        );
+
+        if (!reenviar && jaFps.size) {
+          const restantes = alvo.filter((n) => {
+            const op = quote.opcoes.find((o) => o.opcao === n);
+            return !op || !jaFps.has(fp(op));
+          });
           if (!restantes.length) {
             return {
               enviados: [],
-              ja_enviadas: jaEnviadas,
               instrucao:
-                "Essas opções JÁ foram enviadas nesta cotação — não reenvie nem repita os voos em texto. Só faça um comentário curto perguntando qual delas agradou mais ou se quer que eu veja outros horários.",
+                "Essas opções JÁ foram enviadas ao cliente — não reenvie nem repita os voos em texto. Só faça um comentário curto perguntando qual delas agradou mais ou se quer que eu veja outros horários/datas.",
             };
           }
           alvo = restantes;
         }
+
 
 
         // Renderiza TODAS as artes em paralelo (antes era uma de cada vez).
@@ -376,14 +446,22 @@ export function buildCamilaTools(conversation: WaConversation) {
           }
         }
 
-
-        if (enviados.length > 0 && enviados.every((e) => e.ok)) {
+        // Marca as opções realmente entregues, pra nunca repetir depois.
+        const novosFps = enviados
+          .filter((e) => e.ok)
+          .map((e) => quote.opcoes.find((o) => o.opcao === e.opcao))
+          .filter(Boolean)
+          .map((o) => fp(o as OptLite));
+        if (novosFps.length && rowId) {
           await supabaseAdmin
             .from("wa_flight_quotes")
-            .update({ cards_sent_at: new Date().toISOString() })
-            .eq("conversation_id", conversation.id)
-            .is("cards_sent_at", null);
+            .update({
+              sent_fingerprints: Array.from(new Set([...jaFps, ...novosFps])),
+              cards_sent_at: new Date().toISOString(),
+            })
+            .eq("id", rowId);
         }
+
 
         const todasEnviadas = enviados.length > 0 && enviados.every((e) => e.ok);
         return {
