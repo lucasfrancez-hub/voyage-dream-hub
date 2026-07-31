@@ -1130,6 +1130,21 @@ function SummaryCard({
                       const r = await cartMut.mutateAsync();
                       return r.url;
                     },
+                    flightBooking: {
+                      searchKey: searchKey ?? "",
+                      outboundFareId: out.key,
+                      outboundItineraryId: out.journey.key,
+                      inboundFareId: inb?.key ?? null,
+                      inboundItineraryId: inb?.journey.key ?? null,
+                      isRoundTrip: !!inb,
+                      departureIata: ctx.departureIata,
+                      arrivalIata: ctx.arrivalIata,
+                      departureDate: ctx.departureDate,
+                      returnDate: ctx.returnDate,
+                      adults: ctx.adults,
+                      children: ctx.children,
+                      infants: ctx.infants,
+                    },
                   });
                   onOpenChange(false);
                 }}
