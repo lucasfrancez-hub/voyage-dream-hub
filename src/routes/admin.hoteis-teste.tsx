@@ -616,8 +616,15 @@ function HotelSummaryDialog({
               </div>
 
               <div className="space-y-2">
-                <Label className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                  Alterar quarto ou tarifa
+                <Label className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                  Acomodações disponíveis
+                  {roomsQuery.isFetching ? (
+                    <span className="flex items-center gap-1 normal-case tracking-normal text-primary">
+                      <Loader2 className="h-3 w-3 animate-spin" /> buscando todos os quartos…
+                    </span>
+                  ) : (
+                    <span className="normal-case tracking-normal">({allRates.length})</span>
+                  )}
                 </Label>
                 <button
                   type="button"
@@ -635,9 +642,22 @@ function HotelSummaryDialog({
                   />
                 </button>
 
+                {roomsQuery.isError && (
+                  <p className="rounded-lg border border-destructive/40 bg-destructive/5 p-2 text-[11px] text-destructive">
+                    Não consegui abrir a lista completa de quartos deste hotel. Mostrando só a tarifa da busca.
+                  </p>
+                )}
+
                 {roomsOpen && (
-                  <div className="max-h-64 space-y-2 overflow-y-auto rounded-xl border border-border/60 bg-background/40 p-2">
-                    {hotel.rates.map((r) => {
+                  <div className="max-h-72 space-y-2 overflow-y-auto rounded-xl border border-border/60 bg-background/40 p-2">
+                    {roomsQuery.isFetching && !roomsQuery.data && (
+                      <div className="space-y-2 p-1">
+                        <Skeleton className="h-11 w-full rounded-lg" />
+                        <Skeleton className="h-11 w-full rounded-lg" />
+                        <Skeleton className="h-11 w-full rounded-lg" />
+                      </div>
+                    )}
+                    {allRates.map((r) => {
                       const active = r.key === rate.key;
                       const diff = r.price.total - rate.price.total;
                       return (
@@ -645,8 +665,11 @@ function HotelSummaryDialog({
                           key={r.key}
                           type="button"
                           onClick={() => {
-                            onChangeRate(r.key);
-                            setRoomsOpen(false);
+                            if (roomsQuery.data?.rates.some((x) => x.key === r.key)) setPickedRate(r);
+                            else {
+                              setPickedRate(null);
+                              onChangeRate(r.key);
+                            }
                           }}
                           className={`flex w-full items-center justify-between gap-3 rounded-lg border px-3 py-2.5 text-left transition ${
                             active
@@ -677,6 +700,7 @@ function HotelSummaryDialog({
                   </div>
                 )}
               </div>
+
 
               {rate.cancelPolicy && (
                 <p className="rounded-xl border border-border/50 bg-muted/20 p-3 text-[11px] leading-snug text-muted-foreground">
