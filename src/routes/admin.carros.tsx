@@ -937,6 +937,8 @@ export function CarrosPage({ header }: { header?: React.ReactNode } = {}) {
       </header>
 
       <main className="mx-auto max-w-7xl px-4 py-8">
+        {mut.isPending && !result && <SearchSkeleton kind="car" rows={4} />}
+
         {result && (
           <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
             <aside className="self-start overflow-hidden rounded-[24px] border border-border/50 bg-card/60 backdrop-blur-xl">
