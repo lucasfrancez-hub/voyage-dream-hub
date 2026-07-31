@@ -529,8 +529,22 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
         .eq("id", conv.id);
     }
 
+    // Último inbound: usado pra reacender o "digitando…" entre os balões.
+    const { data: lastInbound } = await supabaseAdmin
+      .from("wa_messages")
+      .select("wa_message_id")
+      .eq("conversation_id", conv.id)
+      .eq("direction", "inbound")
+      .not("wa_message_id", "is", null)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
     // Envia exatamente os mesmos balões que foram salvos (já com o prefixo).
-    const sent = await sendWhatsAppBubbles(conv.wa_phone, text, prefix);
+    const sent = await sendWhatsAppBubbles(conv.wa_phone, text, prefix, {
+      typingId: (lastInbound?.wa_message_id as string | null) ?? null,
+    });
+
 
     const failed = sent.filter((s) => s.error);
     if (failed.length > 0) console.error(`[agent:${agent.slug}] falha ao enviar:`, failed);

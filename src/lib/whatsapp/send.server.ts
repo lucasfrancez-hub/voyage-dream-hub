@@ -240,11 +240,22 @@ export function stripTrailingPeriod(bubble: string): string {
 }
 
 
+/**
+ * Pausa "humana" entre balões: proporcional ao tamanho do próximo texto,
+ * como se o atendente estivesse digitando. Mínimo 1,2s, máximo 4,5s por
+ * balão e teto de ~14s no total da sequência.
+ */
+function typingPause(nextBubble: string, restante: number): number {
+  const base = 900 + nextBubble.length * 28; // ~28ms por caractere
+  const gap = Math.max(1200, Math.min(4500, base));
+  return Math.min(gap, Math.max(1000, Math.floor(14000 / Math.max(1, restante))));
+}
+
 export async function sendWhatsAppBubbles(
   to: string,
   fullText: string,
   prefix?: string | null,
-  opts?: { replyId?: string | null },
+  opts?: { replyId?: string | null; typingId?: string | null },
 ): Promise<Array<{ text: string; id: string | null; error?: string }>> {
   const bubbles = splitToBubbles(fullText, prefix);
   const out: Array<{ text: string; id: string | null; error?: string }> = [];
@@ -262,15 +273,19 @@ export async function sendWhatsAppBubbles(
       out.push({ text: body, id: null, error: msg });
       // continua para os próximos balões — não aborta a sequência
     }
-    // pequena pausa entre balões pra chegarem em ordem no WhatsApp,
-    // sem estourar o tempo do worker (máx ~1s total mesmo com muitos balões)
+    // Entre um balão e outro: reacende o "digitando…" e espera alguns
+    // segundos, pra conversa parecer humana em vez de tudo de uma vez.
     if (i < bubbles.length - 1) {
-      const gap = Math.min(400, Math.floor(1000 / Math.max(1, bubbles.length - 1)));
-      await new Promise((r) => setTimeout(r, gap));
+      const proximo = bubbles[i + 1];
+      if (opts?.typingId) {
+        await sendWhatsAppTypingIndicator(opts.typingId, to).catch(() => {});
+      }
+      await new Promise((r) => setTimeout(r, typingPause(proximo, bubbles.length - 1 - i)));
     }
   }
   return out;
 }
+
 
 
 export async function sendWhatsAppImage(
