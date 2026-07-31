@@ -427,6 +427,40 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
       ?.flatMap((s) => s.toolCalls ?? [])
       .map((tc) => ({ name: tc.toolName, input: tc.input }));
 
+    // FALLBACK DE ENVIO DE PACOTE: a IA às vezes anuncia "vou te mandar o pacote"
+    // e encerra o turno sem chamar enviar_pacote — o cliente fica sem receber nada.
+    // Se ela buscou pacotes, prometeu enviar e não chamou a tool, enviamos o
+    // primeiro resultado da busca automaticamente.
+    try {
+      const calledEnviar = (toolCallsSummary ?? []).some(
+        (tc) => tc.name === "enviar_pacote" || tc.name === "enviar_link_pacote",
+      );
+      const promisePattern =
+        /(vou|já|ja|estou|to|tô)\s+(te\s+)?(mandar|enviar|mandando|enviando|preparando|separando)|te mando|te envio|mando (agora|já|ja)|envio (agora|já|ja)|segue (o|abaixo)? ?(pacote|folder|opç)/i;
+      const mentionsPackage = /pacote|folder|opç|option|roteiro/i.test(text);
+      if (!calledEnviar && promisePattern.test(text) && mentionsPackage) {
+        const steps = result.steps as unknown as Array<{
+          toolResults?: Array<{ toolName: string; output?: unknown }>;
+        }>;
+        const buscas = (steps ?? []).flatMap((s) => s.toolResults ?? [])
+          .filter((tr) => tr.toolName === "buscar_pacotes");
+        const first = buscas
+          .map((tr) => (tr.output as { pacotes?: Array<{ slug?: string }> } | undefined)?.pacotes?.[0]?.slug)
+          .find((s): s is string => !!s);
+        if (first) {
+          console.log(`[agent:${agent.slug}] fallback: enviando pacote ${first} (IA prometeu e não chamou a tool)`);
+          const enviar = (tools as unknown as Record<string, { execute?: (...a: unknown[]) => Promise<unknown> }>)
+            .enviar_pacote;
+          await enviar?.execute?.({ slug: first, quantidade_adultos: null }, {});
+
+          toolCallsSummary?.push({ name: "enviar_pacote", input: { slug: first, fallback: true } });
+        }
+      }
+    } catch (e) {
+      console.warn("[agent] fallback enviar_pacote falhou:", e);
+    }
+
+
     const { splitToBubbles } = await import("./send.server");
     const bubbles = splitToBubbles(text);
     const savedRowIds: Array<string | null> = [];

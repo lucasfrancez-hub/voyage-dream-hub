@@ -362,14 +362,17 @@ export const listMessages = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) => z.object({ conversation_id: z.string().uuid() }).parse(data))
   .handler(async ({ data, context }) => {
+    // Pega as ÚLTIMAS 500 mensagens (desc) e reordena — antes vinham as 500
+    // PRIMEIRAS, o que fazia as mensagens novas sumirem em conversas longas.
     const { data: rows, error } = await context.supabase
       .from("wa_messages")
       .select("id, direction, sender, content, created_at, tool_calls, sender_user_id, agent_slug, deleted_at, wa_message_id, reply_to_wa_id, reply_to_snippet, reply_to_sender, error")
       .eq("conversation_id", data.conversation_id)
-      .order("created_at", { ascending: true })
+      .order("created_at", { ascending: false })
       .limit(500);
     if (error) throw new Error(error.message);
-    const list = rows ?? [];
+    const list = (rows ?? []).slice().reverse();
+
 
     // Puxa nomes dos humanos que enviaram alguma mensagem (batch).
     // Fallback: se profile.full_name estiver vazio, usa local-part do e-mail
