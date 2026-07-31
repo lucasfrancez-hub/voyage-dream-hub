@@ -219,7 +219,8 @@ export function splitToBubbles(fullText: string, prefix?: string | null): string
   // o nome do cliente ficou vazio) e descarta balões sem nenhuma letra/número.
   const cleaned: string[] = [];
   for (const raw of bubbles.map((b) => stripTrailingPeriod(b)).filter(Boolean)) {
-    const b = raw.replace(/^[\s,;:–—-]+/u, "").trim();
+    // Limpa pontuação solta sem apagar "- " de listas legítimas.
+    const b = raw.replace(/^[\s,;:]+/u, "").trim();
     if (!b || !/[\p{L}\p{N}]/u.test(b)) continue;
     cleaned.push(b.charAt(0).toLocaleUpperCase("pt-BR") + b.slice(1));
   }
@@ -335,9 +336,18 @@ export async function sendWhatsAppImageBytes(
 ): Promise<{ id: string | null; error?: string }> {
   const uploaded = await metaUploadMedia(bytes, filename, "image/png");
   if (uploaded.id) {
-    return metaSendMedia(to, {
+    const byId = await metaSendMedia(to, {
       type: "image",
       image: { id: uploaded.id, ...(caption ? { caption: caption.slice(0, 1024) } : {}) },
+    });
+    if (byId.id || !fallbackLink) return byId;
+    // Há casos em que o upload é aceito, mas a Meta recusa o envio pelo media
+    // ID logo depois. A URL pública já está pronta: tenta por ela antes de
+    // considerar o card perdido e deixar o watchdog gerar a mesma arte sempre.
+    console.warn("[whatsapp/meta image] envio por media ID falhou; tentando URL:", byId.error);
+    return metaSendMedia(to, {
+      type: "image",
+      image: { link: fallbackLink, ...(caption ? { caption: caption.slice(0, 1024) } : {}) },
     });
   }
   if (!fallbackLink) return uploaded;

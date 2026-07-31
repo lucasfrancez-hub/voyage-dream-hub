@@ -91,7 +91,9 @@ export function stripAgentSignature(fullText: string, agentName: string | null |
   const fn = firstName(agentName);
   if (!fn) return fullText;
   const esc = fn.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const re = new RegExp(`^[*_~]*\\s*${esc}\\s*:\\s*[*_~]*\\s*`, "i");
+  // Remove uma ou várias linhas de assinatura consecutivas. O modelo chegou a
+  // devolver "*Maria:*\n*Maria:*"; tirar só a primeira criava "Maria: Maria:".
+  const re = new RegExp(`^(?:[*_~]*\\s*${esc}\\s*:\\s*[*_~]*\\s*(?:\\n|$))+`, "i");
   return fullText
     .split(/\n{2,}/)
     .map((b) => b.replace(re, "").trim())
@@ -129,15 +131,19 @@ export function mergeQuestionBubbles(fullText: string): string {
     /^(oi+|ol[áa]|bom dia|boa tarde|boa noite|e a[íi])\b/iu;
   const APRESENTACAO = /\b(sou|aqui [ée]|meu nome [ée])\b[^.\n]{0,60}\b(consultor[a]?|via ?air)\b/iu;
 
-  const isPergunta = (b: string) =>
-    !b.includes("\n") &&
-    b.length <= 120 &&
-    !SAUDACAO_OU_APRESENTACAO.test(b) &&
-    !APRESENTACAO.test(b) &&
-    (/\?\s*$/.test(b) ||
+  const withoutMarker = (b: string) =>
+    b.replace(/^\s*(?:[-•▪◦‣⁃]|\d+[.)])\s*/u, "").trim();
+  const isPergunta = (b: string) => {
+    const clean = withoutMarker(b);
+    return !clean.includes("\n") &&
+    clean.length <= 120 &&
+    !SAUDACAO_OU_APRESENTACAO.test(clean) &&
+    !APRESENTACAO.test(clean) &&
+    (/\?\s*$/.test(clean) ||
       /^(seria|quantos|quantas|voc[êe] tem|tem alguma|qual|quais|prefere|precisa|de onde|para quando|pra quando|em que|me diz|poderia)\b/iu.test(
-        b,
+        clean,
       ));
+  };
 
   const bubbles = fullText
     .split(/\n{2,}/)
@@ -148,7 +154,13 @@ export function mergeQuestionBubbles(fullText: string): string {
   let buffer: string[] = [];
   const flush = () => {
     if (!buffer.length) return;
-    out.push(buffer.map((q) => (/[?!.…]$/.test(q) ? q : `${q}?`)).join("\n"));
+    const questions = buffer.map((q) => {
+      const clean = q.replace(/^\s*(?:[-•▪◦‣⁃]|\d+[.)])\s*/u, "").trim();
+      return /[?!.…]$/.test(clean) ? clean : `${clean}?`;
+    });
+    // Quando há um briefing com várias perguntas, todas recebem o mesmo
+    // marcador — inclusive a primeira. Isso evita o primeiro tópico "solto".
+    out.push(questions.length > 1 ? questions.map((q) => `- ${q}`).join("\n") : questions[0]);
     buffer = [];
   };
   for (const b of bubbles) {
