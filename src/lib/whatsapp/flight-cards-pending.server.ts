@@ -107,14 +107,11 @@ export async function sendPendingFlightCards(
     sent_fingerprints?: unknown;
     cards_sent_at?: string | null;
   }>;
-  // Só uma cotação pode avançar. Havendo várias duplicadas da mesma busca
-  // (legado de uma corrida antiga), preservamos a MAIS ANTIGA ainda incompleta:
-  // ela é a origem da fila. Escolher sempre a mais recente fazia cada nova
-  // tentativa abandonar a anterior e nenhuma arte chegava ao cliente.
-  const incompletas = quotesRecentes.filter((r) => contaFps(r) < MAX_OPCOES);
-  const maisRecente = incompletas.length
-    ? incompletas[incompletas.length - 1]
-    : quotesRecentes[0];
+  // Só a cotação mais recente do protocolo pode avançar. As duplicadas antigas
+  // ficam definitivamente fora da fila; do contrário, após concluir a atual o
+  // cron voltaria nelas e repetiria os mesmos voos. A criação de novas cópias
+  // da busca é bloqueada em `cotar_aereo`, que reaproveita a atual incompleta.
+  const maisRecente = quotesRecentes[0];
   const row = maisRecente && disponivel(maisRecente) ? maisRecente : undefined;
 
   const quote = row?.payload as
