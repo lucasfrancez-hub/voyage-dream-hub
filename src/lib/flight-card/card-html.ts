@@ -119,8 +119,8 @@ body{font-family:Poppins,system-ui,sans-serif;color:${NAVY};-webkit-font-smoothi
 .card{width:820px;background:#fff;overflow:hidden}
 .head{padding:36px 52px 0}
 .head-top{display:flex;align-items:center;justify-content:space-between}
-.wordmark{font-size:38px;font-weight:900;font-style:italic;letter-spacing:-1px}
-.wordmark span{color:${ORANGE}}
+.brand{height:52px;width:auto;object-fit:contain;display:block}
+.leg-date{font-weight:800;color:#42526b}
 .verified{display:flex;align-items:center;gap:10px;background:#eaf1fe;color:${BLUE};border-radius:999px;padding:12px 24px;font-size:16px;font-weight:700;letter-spacing:1.2px}
 .verified i{width:10px;height:10px;border-radius:50%;background:${BLUE}}
 .route{display:flex;align-items:flex-end;justify-content:space-between;margin-top:34px}
