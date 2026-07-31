@@ -107,9 +107,14 @@ export async function sendPendingFlightCards(
     sent_fingerprints?: unknown;
     cards_sent_at?: string | null;
   }>;
-  // Só a cotação mais recente do protocolo pode avançar. Antes, ao concluir a
-  // mais nova, o .find() descia para cotações antigas e voltava a enviar voos.
-  const maisRecente = quotesRecentes[0];
+  // Só uma cotação pode avançar. Havendo várias duplicadas da mesma busca
+  // (legado de uma corrida antiga), preservamos a MAIS ANTIGA ainda incompleta:
+  // ela é a origem da fila. Escolher sempre a mais recente fazia cada nova
+  // tentativa abandonar a anterior e nenhuma arte chegava ao cliente.
+  const incompletas = quotesRecentes.filter((r) => contaFps(r) < MAX_OPCOES);
+  const maisRecente = incompletas.length
+    ? incompletas[incompletas.length - 1]
+    : quotesRecentes[0];
   const row = maisRecente && disponivel(maisRecente) ? maisRecente : undefined;
 
   const quote = row?.payload as
