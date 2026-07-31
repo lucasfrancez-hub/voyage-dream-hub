@@ -428,28 +428,23 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
     // (wa_message_id preenchido). Balão salvo mas não entregue não pode
     // "gastar" a apresentação — foi o que fez o nome sumir no WhatsApp.
     let jaFalouAntes = false;
-    let ultimaEntregaMs: number | null = null;
     try {
       const { data: entregues } = await supabaseAdmin
         .from("wa_messages")
-        .select("created_at")
+        .select("id")
         .eq("conversation_id", conv.id)
         .eq("protocolo_id", protocolo.id)
         .eq("direction", "outbound")
         .neq("sender", "system")
         .not("wa_message_id", "is", null)
-        .order("created_at", { ascending: false })
         .limit(1);
-      const ultima = entregues?.[0]?.created_at as string | undefined;
-      if (ultima) {
-        jaFalouAntes = true;
-        ultimaEntregaMs = new Date(ultima).getTime();
-      }
+      jaFalouAntes = (entregues?.length ?? 0) > 0;
     } catch { /* noop */ }
 
     // O nome do atendente ("*Roberto:*") assina SEMPRE o primeiro balão de cada
     // resposta — é a assinatura da conversa no WhatsApp, não a apresentação.
     const reassinar = true;
+
 
 
     let text = capitalizeKnownNames(capitalizeBubbles(fixGluedSentences(rawText)), [clientFirst]);
