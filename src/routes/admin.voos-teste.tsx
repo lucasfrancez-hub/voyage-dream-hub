@@ -1126,6 +1126,12 @@ function SummaryCard({
                     title: `${out.journey.departure.iata} \u2192 ${out.journey.destination.iata}${inb ? " \u2022 ida e volta" : ""}`,
                     summary: summaryText,
                     total,
+                    card: (
+                      <div className="space-y-3">
+                        <FlightCard f={out} readOnly label={inb ? "Ida" : "Voo"} />
+                        {inb ? <FlightCard f={inb} readOnly label="Volta" /> : null}
+                      </div>
+                    ),
                     buy: async () => {
                       const r = await cartMut.mutateAsync();
                       return r.url;

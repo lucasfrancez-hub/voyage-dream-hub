@@ -326,6 +326,7 @@ function HotelCard({
   selected,
   onSelect,
   cheapest,
+  readOnly,
 }: {
   h: OnerHotel;
   rate: OnerRoomRate;
@@ -333,13 +334,14 @@ function HotelCard({
   selected: boolean;
   onSelect: (rateKey: string) => void;
   cheapest: boolean;
+  readOnly?: boolean;
 }) {
   const [openRooms, setOpenRooms] = useState(false);
   return (
     <article
-      className={`relative overflow-hidden rounded-2xl border bg-card/80 backdrop-blur transition hover:-translate-y-0.5 hover:border-primary/60 hover:shadow-[var(--shadow-card)] ${
-        selected ? "border-primary ring-2 ring-primary/30" : "border-border/70"
-      }`}
+      className={`relative overflow-hidden rounded-2xl border bg-card/80 backdrop-blur transition ${
+        readOnly ? "" : "hover:-translate-y-0.5 hover:border-primary/60 hover:shadow-[var(--shadow-card)]"
+      } ${selected ? "border-primary ring-2 ring-primary/30" : "border-border/70"}`}
     >
       {cheapest && (
         <span className="absolute right-0 top-0 z-10 rounded-bl-xl bg-primary px-2 py-1 text-[10px] font-semibold text-primary-foreground">
