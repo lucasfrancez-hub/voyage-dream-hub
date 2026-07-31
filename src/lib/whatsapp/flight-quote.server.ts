@@ -297,9 +297,9 @@ export async function quoteFlights(params: QuoteFlightsParams): Promise<FlightQu
       volta: volta ? toLeg(volta) : null,
       cart: {
         outboundFareId: ida.key,
-        outboundItineraryId: ida.journey.key,
+        outboundItineraryId: ida.journey.key ?? "",
         inboundFareId: volta?.key ?? null,
-        inboundItineraryId: volta?.journey.key ?? null,
+        inboundItineraryId: volta?.journey?.key ?? null,
       },
     });
   }
@@ -317,6 +317,7 @@ export async function quoteFlights(params: QuoteFlightsParams): Promise<FlightQu
     destino_nome: dst.nome,
     data_ida: params.data_ida,
     data_volta: params.data_volta ?? null,
+    search_key: search.searchKey ?? null,
     passageiros: { adultos, criancas, bebes },
     opcoes,
     observacao:
