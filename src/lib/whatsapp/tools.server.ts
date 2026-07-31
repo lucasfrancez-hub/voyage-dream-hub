@@ -415,7 +415,7 @@ export function buildCamilaTools(conversation: WaConversation, scope: ToolProtoc
         };
         const { buildFlightOptionCaption } = await import("./flight-caption.server");
 
-        const { buildFlightCardData, renderFlightCardAssetRetry, mapWithLimit } = await import("./flight-card.server");
+        const { buildFlightCardData, renderFlightCardAssetRetry } = await import("./flight-card.server");
         const { sendWhatsAppImageBytes } = await import("./send.server");
         const { saveMessage } = await import("./conversation.server");
 
