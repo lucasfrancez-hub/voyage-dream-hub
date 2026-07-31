@@ -28,6 +28,8 @@ export async function sendPendingFlightCards(
   maxAgeMs = 60 * 60 * 1000,
   protocolOpenedAt?: string | null,
   protocolId?: string | null,
+  /** true = reenvio pedido pelo cliente ("não recebi"): ignora claim e fingerprints. */
+  force = false,
 ): Promise<{ sent: number; quote_id?: string }> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
@@ -36,10 +38,10 @@ export async function sendPendingFlightCards(
     .from("wa_flight_quotes")
     .select("id, payload, protocolo_id")
     .eq("conversation_id", conversationId)
-    .is("cards_sent_at", null)
     .gte("created_at", desde)
     .order("created_at", { ascending: false })
     .limit(1);
+  if (!force) pendingQuery = pendingQuery.is("cards_sent_at", null);
   if (protocolOpenedAt) pendingQuery = pendingQuery.gte("created_at", protocolOpenedAt);
   if (protocolId) pendingQuery = pendingQuery.eq("protocolo_id", protocolId);
   const { data: row } = await pendingQuery.maybeSingle();
@@ -64,8 +66,10 @@ export async function sendPendingFlightCards(
     .eq("id", row.id)
     .is("cards_sent_at", null);
   if (protocolId) claimQuery = claimQuery.eq("protocolo_id", protocolId);
-  const { data: claimed } = await claimQuery.select("id");
-  if (!claimed?.length) return { sent: 0, quote_id: row.id as string };
+  if (!force) {
+    const { data: claimed } = await claimQuery.select("id");
+    if (!claimed?.length) return { sent: 0, quote_id: row.id as string };
+  }
 
   const liberarClaim = async () => {
     let releaseQuery = supabaseAdmin.from("wa_flight_quotes").update({ cards_sent_at: null }).eq("id", row.id);
@@ -89,7 +93,7 @@ export async function sendPendingFlightCards(
         : [],
     ),
   );
-  const opcoes = todas.filter((o) => !jaFps.has(fingerprint(o)));
+  const opcoes = force ? todas : todas.filter((o) => !jaFps.has(fingerprint(o)));
   if (!opcoes.length) return { sent: 0, quote_id: row.id as string };
 
   const { buildFlightCardData, renderFlightCardAssetRetry } = await import("./flight-card.server");
