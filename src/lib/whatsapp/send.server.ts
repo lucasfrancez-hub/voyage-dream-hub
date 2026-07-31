@@ -255,7 +255,13 @@ export async function sendWhatsAppBubbles(
   to: string,
   fullText: string,
   prefix?: string | null,
-  opts?: { replyId?: string | null; typingId?: string | null },
+  opts?: {
+    replyId?: string | null;
+    typingId?: string | null;
+    /** Chamado logo após CADA balão — permite gravar o ID na hora, sem esperar
+     * a sequência inteira (o worker pode ser cortado no meio). */
+    onSent?: (index: number, res: { id: string | null; error?: string }) => Promise<void> | void;
+  },
 ): Promise<Array<{ text: string; id: string | null; error?: string }>> {
   const bubbles = splitToBubbles(fullText, prefix);
   const out: Array<{ text: string; id: string | null; error?: string }> = [];
@@ -267,10 +273,12 @@ export async function sendWhatsAppBubbles(
       out.push({ text: body, ...r });
       if (r.error) console.warn(`[bubbles] falha #${i + 1}:`, r.error);
       else console.log(`[bubbles/meta] balão #${i + 1}/${bubbles.length} aceito:`, r.id);
+      if (opts?.onSent) await Promise.resolve(opts.onSent(i, r)).catch(() => {});
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       console.error(`[bubbles] exception #${i + 1}:`, msg);
       out.push({ text: body, id: null, error: msg });
+      if (opts?.onSent) await Promise.resolve(opts.onSent(i, { id: null, error: msg })).catch(() => {});
       // continua para os próximos balões — não aborta a sequência
     }
     // Entre um balão e outro: reacende o "digitando…" e espera alguns
