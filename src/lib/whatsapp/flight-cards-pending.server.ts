@@ -231,13 +231,21 @@ export async function sendPendingFlightCards(
     );
     if (!jaAvisou) {
       const aviso = "Já verifiquei aqui com as companhias e vou te mandar as melhores opções agora";
-      await saveMessage({
+      const row = await saveMessage({
         conversation_id: conversationId,
         direction: "outbound",
         sender: "camila",
         content: aviso,
       });
-      await sendWhatsAppBubbles(waPhone, aviso);
+      const enviados = await sendWhatsAppBubbles(waPhone, aviso);
+      // Sem gravar o wa_message_id o varredor de "não entregues" reenviava o
+      // mesmo aviso 25s depois — era a origem das mensagens duplicadas.
+      const primeiro = enviados.find((e) => e.id)?.id ?? null;
+      if (row?.id) {
+        const { setWaMessageId, setSendError } = await import("./conversation.server");
+        if (primeiro) await setWaMessageId(row.id, primeiro);
+        else await setSendError(row.id, enviados[0]?.error ?? "Não entregue pelo WhatsApp");
+      }
     }
   } catch {
     /* aviso é auxiliar: nunca bloqueia o envio das artes */
