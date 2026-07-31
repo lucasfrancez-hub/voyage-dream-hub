@@ -58,7 +58,7 @@ export function WhatsAppBubble({ side, content, timestamp, senderLabel, status, 
   const label = firstName(senderLabel);
   const displayContent = (() => {
     const normalized = safeText(content);
-    if (!label || MEDIA_RE.test(normalized)) return content;
+    if (!label) return content;
 
     const escaped = label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     // O WhatsApp recebe "Maria:\n..." no próprio texto, enquanto o painel já
