@@ -325,15 +325,30 @@ export const onerHotelSearch = createServerFn({ method: "POST" })
           if (!res.ok) return;
           const json = (await res.json().catch(() => null)) as {
             data?: {
-              address?: string | null;
-              city?: string | null;
+              address?: unknown;
+              city?: unknown;
               images?: Array<string | { url?: string; path?: string }>;
             };
           } | null;
           const d = json?.data;
           if (!d) return;
-          hotel.address = d.address ?? null;
-          hotel.city = d.city ?? null;
+          // a operadora às vezes devolve address/city como objeto — achatamos em texto
+          const flat = (v: unknown): string | null => {
+            if (!v) return null;
+            if (typeof v === "string") return v.trim() || null;
+            if (typeof v === "number") return String(v);
+            if (typeof v === "object") {
+              const o = v as Record<string, unknown>;
+              const parts = [o.street, o.address, o.name, o.number, o.district, o.neighborhood, o.city, o.state]
+                .map((x) => (typeof x === "string" || typeof x === "number" ? String(x).trim() : ""))
+                .filter(Boolean);
+              return parts.length ? [...new Set(parts)].join(", ") : null;
+            }
+            return null;
+          };
+          hotel.address = flat(d.address);
+          hotel.city = flat(d.city);
+
           hotel.images = (d.images ?? [])
             .map((img) => (typeof img === "string" ? img : (img.url ?? img.path ?? "")))
             .filter(Boolean)
@@ -345,4 +360,93 @@ export const onerHotelSearch = createServerFn({ method: "POST" })
     );
 
     return { searchKey, count, haveMore, hotels };
+  });
+
+// ---------------------------------------------------------------- carrinho
+
+const HotelCartInput = z.object({
+  searchKey: z.string().min(5),
+  hotelId: z.number().int(),
+  rateKeys: z.array(z.string().min(3)).min(1),
+  cityName: z.string().default(""),
+  pointId: z.string().default(""),
+  pointType: z.number().int().default(1),
+  checkIn: z.string(),
+  checkOut: z.string(),
+  adults: z.number().int().default(2),
+  children: z.number().int().default(0),
+  rooms: z.number().int().default(1),
+});
+
+/* Cria o carrinho oficial da hospedagem escolhida e devolve a URL pública
+   /viaair/hotel-cart?newCartId=... para enviar ao cliente. */
+export const onerCreateHotelCart = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => HotelCartInput.parse(d))
+  .handler(async ({ data }): Promise<{ cartId: string; url: string }> => {
+    const ctx = new URLSearchParams({
+      numberOfAdults: String(data.adults),
+      numberOfChild: String(data.children),
+      numberOfInfant: "0",
+      numberOfRooms: String(data.rooms),
+      cityName: data.cityName,
+      id: data.pointId,
+      type: String(data.pointType),
+      startDate: `${data.checkIn}T00:00:00.000Z`,
+      endDate: `${data.checkOut}T00:00:00.000Z`,
+      source: "h",
+    });
+    const loc = `https://www.comprarviagem.com.br/viaair/hotel-list?${ctx.toString()}`;
+
+    // A operadora já mudou o formato do corpo algumas vezes; tentamos as
+    // variações conhecidas e ficamos com a primeira que devolver o carrinho.
+    const bodies: Record<string, unknown>[] = [
+      {
+        hotel: { searchKey: data.searchKey, hotelId: data.hotelId, roomRateKeys: data.rateKeys },
+        searchBookingKey: null,
+        affiliateTag: null,
+        eventId: null,
+      },
+      {
+        hotel: { searchKey: data.searchKey, hotelId: data.hotelId, keys: data.rateKeys },
+        searchBookingKey: null,
+        affiliateTag: null,
+        eventId: null,
+      },
+      {
+        hotel: { searchKey: data.searchKey, hotelId: data.hotelId, key: data.rateKeys[0] },
+        searchBookingKey: null,
+        affiliateTag: null,
+        eventId: null,
+      },
+    ];
+
+    let cartId = "";
+    let lastStatus = 0;
+    for (const body of bodies) {
+      const res = await fetch(`${API}/api/booking`, {
+        method: "POST",
+        headers: headers(loc),
+        body: JSON.stringify(body),
+      });
+      lastStatus = res.status;
+      const text = await res.text();
+      try {
+        cartId = (JSON.parse(text) as { data?: string }).data ?? "";
+      } catch {
+        cartId = "";
+      }
+      if (res.ok && cartId) break;
+      cartId = "";
+    }
+
+    if (!cartId) {
+      throw new Error(
+        `A operadora não gerou o carrinho da hospedagem (tarifa pode ter expirado, HTTP ${lastStatus}). Refaça a busca e tente de novo.`,
+      );
+    }
+
+    const cartQuery = new URLSearchParams({ newCartId: cartId });
+    ctx.forEach((v, k) => cartQuery.set(k, v));
+    return { cartId, url: `https://www.comprarviagem.com.br/viaair/hotel-cart?${cartQuery.toString()}` };
   });

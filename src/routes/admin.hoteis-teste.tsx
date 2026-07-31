@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useState } from "react";
@@ -18,6 +18,10 @@ import {
   SlidersHorizontal,
   RotateCcw,
   Hotel,
+  ShoppingCart,
+  ExternalLink,
+  Copy,
+  ChevronDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,17 +29,21 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { createOrder } from "@/lib/orders.functions";
 import { SearchSkeleton } from "@/components/search/SearchSkeleton";
 import { DestinationAutocomplete } from "@/components/search/DestinationAutocomplete";
 import {
   onerHotelDestinations,
   onerHotelSearch,
+  onerCreateHotelCart,
   type OnerHotel,
   type OnerHotelPoint,
   type OnerHotelSearchResult,
   type OnerRoomRate,
 } from "@/lib/onertravel-hotels.functions";
 import { onerAirportSearch } from "@/lib/onertravel.functions";
+
 
 export const Route = createFileRoute("/admin/hoteis-teste")({
   head: () => ({
@@ -112,18 +120,39 @@ function activeCount(f: Filters) {
   );
 }
 
-function Chip({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+function StarChip({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`rounded-full border px-3 py-1.5 text-xs font-medium transition ${
+      className={`flex-1 rounded-lg border py-1.5 text-xs font-semibold transition ${
         active
-          ? "border-primary bg-primary text-primary-foreground shadow-[var(--shadow-glow)]"
-          : "border-border bg-background/40 text-muted-foreground hover:border-primary/50 hover:text-foreground"
+          ? "border-primary/40 bg-primary/10 text-primary"
+          : "border-border/60 text-muted-foreground hover:bg-muted/40 hover:text-foreground"
       }`}
     >
       {children}
+    </button>
+  );
+}
+
+function CheckRow({ active, onClick, label }: { active: boolean; onClick: () => void; label: string }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="group flex w-full items-center gap-3 text-left"
+    >
+      <span
+        className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border transition ${
+          active ? "border-primary bg-primary/15" : "border-border/70 bg-background/60 group-hover:border-primary/50"
+        }`}
+      >
+        {active && <span className="h-2.5 w-2.5 rounded-[2px] bg-primary" />}
+      </span>
+      <span className={`text-sm leading-snug ${active ? "text-foreground" : "text-muted-foreground group-hover:text-foreground"}`}>
+        {label}
+      </span>
     </button>
   );
 }
@@ -137,11 +166,15 @@ function FiltersPanel({
   filters: Filters;
   onChange: (f: Filters) => void;
 }) {
+  const [allMeals, setAllMeals] = useState(false);
+
   const meals = useMemo(() => {
-    const set = new Set<string>();
-    hotels.forEach((h) => h.rates.forEach((r) => set.add(r.mealPlanLabel)));
-    return [...set].sort();
+    const map = new Map<string, number>();
+    hotels.forEach((h) => h.rates.forEach((r) => map.set(r.mealPlanLabel, (map.get(r.mealPlanLabel) ?? 0) + 1)));
+    return [...map.entries()].sort((a, b) => b[1] - a[1]).map(([label]) => label);
   }, [hotels]);
+
+  const shownMeals = allMeals ? meals : meals.slice(0, 5);
 
   const prices = hotels.map((h) => h.lowestTotal).filter(Boolean);
   const lo = prices.length ? Math.min(...prices) : 0;
@@ -149,9 +182,9 @@ function FiltersPanel({
   const n = activeCount(filters);
 
   return (
-    <section className="rounded-2xl border border-border/70 bg-card/80 p-4 backdrop-blur">
-      <header className="mb-4 flex items-center justify-between">
-        <div className="flex items-center gap-2 text-sm font-semibold">
+    <section className="rounded-2xl border border-border/60 bg-card/60 p-5 backdrop-blur">
+      <header className="mb-6 flex items-center justify-between">
+        <div className="flex items-center gap-2 text-base font-semibold">
           <SlidersHorizontal className="h-4 w-4 text-primary" /> Filtros
           {n > 0 && <Badge variant="secondary">{n}</Badge>}
         </div>
@@ -162,11 +195,13 @@ function FiltersPanel({
         )}
       </header>
 
-      <div className="space-y-5">
+      <div className="space-y-6">
         <div className="space-y-2">
-          <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Nome da hospedagem</Label>
+          <Label className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+            Nome da hospedagem
+          </Label>
           <Input
-            className="h-9"
+            className="h-9 rounded-lg bg-background/60"
             placeholder="Ex.: Deville"
             value={filters.name}
             onChange={(e) => onChange({ ...filters, name: e.target.value })}
@@ -174,35 +209,39 @@ function FiltersPanel({
         </div>
 
         <div className="space-y-2">
-          <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Estrelas</Label>
-          <div className="flex flex-wrap gap-2">
+          <Label className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+            Estrelas
+          </Label>
+          <div className="flex gap-2">
             {[1, 2, 3, 4, 5].map((s) => (
-              <Chip
+              <StarChip
                 key={s}
                 active={filters.stars.includes(s)}
                 onClick={() => onChange({ ...filters, stars: toggle(filters.stars, s) })}
               >
                 {s}★
-              </Chip>
+              </StarChip>
             ))}
           </div>
         </div>
 
         <div className="space-y-2">
-          <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Preço total</Label>
+          <Label className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+            Preço total
+          </Label>
           <div className="text-xs text-muted-foreground">
             {fmtMoney(lo)} — {fmtMoney(hi)}
           </div>
           <div className="flex gap-2">
             <Input
-              className="h-9"
+              className="h-9 rounded-lg bg-background/60"
               placeholder="De"
               inputMode="decimal"
               value={filters.minPrice}
               onChange={(e) => onChange({ ...filters, minPrice: e.target.value })}
             />
             <Input
-              className="h-9"
+              className="h-9 rounded-lg bg-background/60"
               placeholder="Até"
               inputMode="decimal"
               value={filters.maxPrice}
@@ -212,35 +251,58 @@ function FiltersPanel({
         </div>
 
         {meals.length > 0 && (
-          <div className="space-y-2">
-            <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Refeições</Label>
-            <div className="flex flex-wrap gap-2">
-              {meals.map((m) => (
-                <Chip
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <Label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                Refeições
+              </Label>
+              {filters.meals.length > 0 && (
+                <button
+                  type="button"
+                  className="text-[10px] font-semibold uppercase text-primary hover:underline"
+                  onClick={() => onChange({ ...filters, meals: [] })}
+                >
+                  Limpar
+                </button>
+              )}
+            </div>
+            <div className="space-y-2.5">
+              {shownMeals.map((m) => (
+                <CheckRow
                   key={m}
+                  label={m}
                   active={filters.meals.includes(m)}
                   onClick={() => onChange({ ...filters, meals: toggle(filters.meals, m) })}
-                >
-                  {m}
-                </Chip>
+                />
               ))}
             </div>
+            {meals.length > 5 && (
+              <button
+                type="button"
+                onClick={() => setAllMeals((v) => !v)}
+                className="text-[11px] font-semibold uppercase tracking-tight text-primary hover:underline"
+              >
+                {allMeals ? "− Ver menos" : `+ Ver todas as opções (${meals.length})`}
+              </button>
+            )}
           </div>
         )}
 
-        <div className="space-y-2">
-          <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Cancelamento</Label>
-          <Chip
+        <div className="space-y-2.5">
+          <Label className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+            Cancelamento
+          </Label>
+          <CheckRow
+            label="Somente reembolsável"
             active={filters.onlyRefundable}
             onClick={() => onChange({ ...filters, onlyRefundable: !filters.onlyRefundable })}
-          >
-            Somente reembolsável
-          </Chip>
+          />
         </div>
       </div>
     </section>
   );
 }
+
 
 // ---------------------------------------------------------------- card
 
@@ -386,6 +448,389 @@ function HotelCard({
   );
 }
 
+// -------------------------------------------- resumo da hospedagem (modal)
+
+function HotelSummaryDialog({
+  open,
+  onOpenChange,
+  hotel,
+  rate,
+  nights,
+  rooms,
+  checkIn,
+  checkOut,
+  adults,
+  children,
+  point,
+  searchKey,
+  onChangeRate,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  hotel: OnerHotel | null;
+  rate: OnerRoomRate | null;
+  nights: number;
+  rooms: number;
+  checkIn: string;
+  checkOut: string;
+  adults: number;
+  children: number;
+  point: OnerHotelPoint | null;
+  searchKey: string;
+  onChangeRate: (rateKey: string) => void;
+}) {
+  const createCart = useServerFn(onerCreateHotelCart);
+  const [cartUrl, setCartUrl] = useState<string | null>(null);
+  const [roomsOpen, setRoomsOpen] = useState(false);
+  const [orderOpen, setOrderOpen] = useState(false);
+
+  useEffect(() => {
+    setCartUrl(null);
+  }, [rate?.key]);
+
+  const cartMut = useMutation({
+    mutationFn: () =>
+      createCart({
+        data: {
+          searchKey,
+          hotelId: hotel!.hotelId,
+          rateKeys: [rate!.key],
+          cityName: point?.name ?? hotel!.city ?? "",
+          pointId: point?.id ?? "",
+          pointType: point?.type ?? 1,
+          checkIn,
+          checkOut,
+          adults,
+          children,
+          rooms,
+        },
+      }),
+    onSuccess: (r) => {
+      setCartUrl(r.url);
+      window.open(r.url, "_blank", "noopener");
+      toast.success("Link do Comprar Viagem gerado");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  if (!hotel || !rate) return null;
+
+  const period = `${checkIn.split("-").reverse().join("/")} a ${checkOut.split("-").reverse().join("/")}`;
+  const summaryText = [
+    `Hospedagem: ${hotel.name} (${hotel.stars}★)`,
+    hotel.city ? `Local: ${[hotel.city, hotel.address].filter(Boolean).join(" — ")}` : null,
+    `Quarto: ${rate.name}`,
+    `${rate.mealPlanLabel} • ${rate.refundable ? "Reembolsável" : "Não reembolsável"}`,
+    `${period} • ${nights} noite(s) • ${rooms} quarto(s)`,
+    `Diária média: ${fmtMoney(rate.price.totalPerNight)}`,
+    `Total: ${fmtMoney(rate.price.total)} (taxas inclusas)`,
+  ]
+    .filter(Boolean)
+    .join("\n");
+
+  return (
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="flex max-h-[90vh] max-w-3xl flex-col gap-0 overflow-hidden rounded-3xl border-border/60 bg-card p-0">
+          <DialogHeader className="border-b border-border/50 bg-background/40 px-6 py-5 text-left">
+            <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-primary">
+              Resumo da hospedagem
+            </span>
+            <DialogTitle className="mt-1 flex items-center gap-2 text-xl font-bold">
+              {hotel.name}
+              <Stars n={hotel.stars} />
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="grid flex-1 gap-6 overflow-y-auto p-6 md:grid-cols-12">
+            <div className="space-y-6 md:col-span-7">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="rounded-xl border border-border/60 bg-background/50 p-4">
+                  <span className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                    Período
+                  </span>
+                  <p className="mt-1 text-sm font-medium">{period}</p>
+                  <p className="text-[11px] text-muted-foreground">
+                    {nights} noite(s) • {rooms} quarto(s) • {adults} adulto(s)
+                  </p>
+                </div>
+                <div className="rounded-xl border border-border/60 bg-background/50 p-4">
+                  <span className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                    Status da tarifa
+                  </span>
+                  <p className="mt-1 flex items-center gap-1 text-sm font-medium">
+                    <Utensils className="h-3 w-3 text-muted-foreground" /> {rate.mealPlanLabel}
+                  </p>
+                  <p
+                    className={`flex items-center gap-1 text-[11px] ${
+                      rate.refundable ? "text-primary" : "text-destructive"
+                    }`}
+                  >
+                    {rate.refundable ? <ShieldCheck className="h-3 w-3" /> : <ShieldOff className="h-3 w-3" />}
+                    {rate.refundable ? "Reembolsável" : "Não reembolsável"}
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                  Alterar quarto ou tarifa
+                </Label>
+                <button
+                  type="button"
+                  onClick={() => setRoomsOpen((v) => !v)}
+                  className="flex w-full items-center justify-between gap-3 rounded-xl border border-border/70 bg-background/60 p-4 text-left transition hover:border-primary/60"
+                >
+                  <span className="min-w-0">
+                    <span className="block truncate text-sm font-medium">{rate.name}</span>
+                    <span className="block text-xs text-muted-foreground">
+                      {rate.mealPlanLabel} • {fmtMoney(rate.price.total)}
+                    </span>
+                  </span>
+                  <ChevronDown
+                    className={`h-5 w-5 shrink-0 text-muted-foreground transition ${roomsOpen ? "rotate-180" : ""}`}
+                  />
+                </button>
+
+                {roomsOpen && (
+                  <div className="max-h-64 space-y-2 overflow-y-auto rounded-xl border border-border/60 bg-background/40 p-2">
+                    {hotel.rates.map((r) => {
+                      const active = r.key === rate.key;
+                      const diff = r.price.total - rate.price.total;
+                      return (
+                        <button
+                          key={r.key}
+                          type="button"
+                          onClick={() => {
+                            onChangeRate(r.key);
+                            setRoomsOpen(false);
+                          }}
+                          className={`flex w-full items-center justify-between gap-3 rounded-lg border px-3 py-2.5 text-left transition ${
+                            active
+                              ? "border-primary bg-primary/10"
+                              : "border-border/60 hover:border-primary/50 hover:bg-muted/30"
+                          }`}
+                        >
+                          <span className="min-w-0">
+                            <span className="block truncate text-xs font-medium">{r.name}</span>
+                            <span className="block text-[11px] text-muted-foreground">
+                              {r.mealPlanLabel} • {r.refundable ? "Reembolsável" : "Não reembolsável"}
+                            </span>
+                          </span>
+                          <span className="shrink-0 text-right">
+                            <span className="block text-xs font-bold text-primary">
+                              {fmtMoney(r.price.total)}
+                            </span>
+                            {!active && diff !== 0 && (
+                              <span className="block text-[10px] text-muted-foreground">
+                                {diff > 0 ? "+" : "−"} {fmtMoney(Math.abs(diff))}
+                              </span>
+                            )}
+                            {active && <span className="block text-[10px] text-primary">Atual</span>}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {rate.cancelPolicy && (
+                <p className="rounded-xl border border-border/50 bg-muted/20 p-3 text-[11px] leading-snug text-muted-foreground">
+                  {rate.cancelPolicy}
+                </p>
+              )}
+
+              {cartUrl && (
+                <div className="space-y-2 rounded-xl border border-primary/30 bg-primary/5 p-3">
+                  <div className="text-xs font-semibold">Link do carrinho</div>
+                  <div className="break-all text-[11px] text-muted-foreground">{cartUrl}</div>
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      className="flex-1"
+                      onClick={() => {
+                        navigator.clipboard.writeText(cartUrl);
+                        toast.success("Link copiado");
+                      }}
+                    >
+                      <Copy className="h-3.5 w-3.5" /> Copiar
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      className="flex-1"
+                      onClick={() =>
+                        window.open(
+                          `https://wa.me/?text=${encodeURIComponent(
+                            `Segue o link para concluir a reserva da hospedagem:\n${cartUrl}`,
+                          )}`,
+                          "_blank",
+                          "noopener",
+                        )
+                      }
+                    >
+                      WhatsApp
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="flex flex-col justify-between gap-6 md:col-span-5">
+              <div className="rounded-2xl border border-border/60 bg-background/60 p-5">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Diária média</span>
+                  <span className="font-medium">{fmtMoney(rate.price.totalPerNight)}</span>
+                </div>
+                <Separator className="my-4" />
+                <span className="text-xs text-muted-foreground">Total da hospedagem</span>
+                <div className="text-3xl font-black tracking-tight text-primary">
+                  {fmtMoney(rate.price.total)}
+                </div>
+                <p className="mt-2 text-[11px] text-muted-foreground">
+                  Taxas e impostos inclusos no valor total
+                </p>
+              </div>
+
+              <div className="flex flex-col gap-3">
+                <Button
+                  className="w-full py-6 text-xs font-black uppercase tracking-[0.15em]"
+                  disabled={cartMut.isPending}
+                  onClick={() => cartMut.mutate()}
+                >
+                  {cartMut.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <ExternalLink className="h-4 w-4" />
+                  )}
+                  Comprar viagem
+                </Button>
+                <Button
+                  variant="outline"
+                  className="w-full py-5 text-[10px] font-black uppercase tracking-[0.15em]"
+                  onClick={() => setOrderOpen(true)}
+                >
+                  <ShoppingCart className="h-4 w-4" /> Fazer pedido
+                </Button>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <NewOrderFromHotelDialog
+        open={orderOpen}
+        onOpenChange={setOrderOpen}
+        total={rate.price.total}
+        pax={Math.max(1, adults)}
+        summary={summaryText}
+      />
+    </>
+  );
+}
+
+/** Cria o pedido interno já com o valor e o resumo da hospedagem escolhida. */
+function NewOrderFromHotelDialog({
+  open,
+  onOpenChange,
+  total,
+  pax,
+  summary,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  total: number;
+  pax: number;
+  summary: string;
+}) {
+  const navigate = useNavigate();
+  const create = useServerFn(createOrder);
+  const [form, setForm] = useState({ full_name: "", cpf: "", email: "", phone: "" });
+
+  const mut = useMutation({
+    mutationFn: async () =>
+      create({
+        data: {
+          full_name: form.full_name,
+          cpf: form.cpf,
+          email: form.email,
+          phone: form.phone,
+          payment_method: "other",
+          expected_total: total,
+          total_price: total,
+          adults: pax,
+          notes: summary,
+          supplier_name: "Comprar Viagem",
+        },
+      }),
+    onSuccess: (r: { id: string; order_number: string | number }) => {
+      toast.success(`Pedido ${r.order_number} criado`);
+      onOpenChange(false);
+      navigate({ to: "/admin/pedidos/$id", params: { id: r.id } });
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Erro ao criar pedido"),
+  });
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Fazer pedido</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div className="whitespace-pre-line rounded-xl border border-border/60 bg-muted/40 p-3 text-xs">
+            {summary}
+          </div>
+          <div className="flex items-center justify-between rounded-xl border border-primary/40 bg-primary/5 px-3 py-2">
+            <span className="text-sm text-muted-foreground">Total do pedido</span>
+            <span className="text-lg font-bold text-primary">{fmtMoney(total)}</span>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-1">
+              <Label>Nome completo</Label>
+              <Input
+                value={form.full_name}
+                onChange={(e) => setForm((f) => ({ ...f, full_name: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label>CPF</Label>
+              <Input value={form.cpf} onChange={(e) => setForm((f) => ({ ...f, cpf: e.target.value }))} />
+            </div>
+            <div className="space-y-1">
+              <Label>E-mail</Label>
+              <Input value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} />
+            </div>
+            <div className="space-y-1">
+              <Label>Telefone</Label>
+              <Input value={form.phone} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} />
+            </div>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Cancelar
+          </Button>
+          <Button
+            disabled={mut.isPending}
+            onClick={() => {
+              if (!form.full_name.trim()) return toast.error("Preencha o nome completo");
+              if (!form.cpf.trim()) return toast.error("Informe o CPF");
+              mut.mutate();
+            }}
+          >
+            {mut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShoppingCart className="h-4 w-4" />}
+            Criar pedido
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+
 // ---------------------------------------------------------------- página
 
 export type HotelPreset = {
@@ -419,6 +864,8 @@ export function HoteisPage({
   const [result, setResult] = useState<OnerHotelSearchResult | null>(null);
   const [filters, setFilters] = useState<Filters>(EMPTY);
   const [selected, setSelected] = useState<{ hotelId: number; rateKey: string } | null>(null);
+  const [summaryOpen, setSummaryOpen] = useState(false);
+
   const [pendingRun, setPendingRun] = useState(0);
   const [page, setPage] = useState(1);
 
@@ -706,7 +1153,11 @@ export function HoteisPage({
                   nights={nights}
                   cheapest={rate!.price.total === cheapest}
                   selected={selected?.hotelId === h.hotelId}
-                  onSelect={(rateKey) => setSelected({ hotelId: h.hotelId, rateKey })}
+                  onSelect={(rateKey) => {
+                    setSelected({ hotelId: h.hotelId, rateKey });
+                    setSummaryOpen(true);
+                  }}
+
                 />
               ))}
 
@@ -735,39 +1186,24 @@ export function HoteisPage({
               )}
 
 
-              {selectedEntry && selectedRate && (
-                <div className="sticky bottom-4 z-10 rounded-2xl border border-primary/40 bg-card/95 p-5 shadow-[var(--shadow-card)] backdrop-blur">
-                  <div className="mb-3 text-sm font-semibold">Resumo da hospedagem</div>
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <div className="space-y-1 text-sm">
-                      <div className="font-medium">{selectedEntry.h.name}</div>
-                      <div className="text-muted-foreground">{selectedRate.name}</div>
-                      <div className="text-muted-foreground">
-                        {selectedRate.mealPlanLabel} •{" "}
-                        {selectedRate.refundable ? "Reembolsável" : "Não reembolsável"}
-                      </div>
-                      <div className="text-muted-foreground">
-                        {form.checkIn.split("-").reverse().join("/")} a{" "}
-                        {form.checkOut.split("-").reverse().join("/")} • {nights} noite(s) • {form.rooms} quarto(s)
-                      </div>
-                    </div>
-                    <div className="space-y-1 rounded-xl border border-border/60 bg-background/50 p-4 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Diária média</span>
-                        <span>{fmtMoney(selectedRate.price.totalPerNight)}</span>
-                      </div>
-                      <Separator className="my-2" />
-                      <div className="flex items-end justify-between">
-                        <span className="font-semibold">Total da hospedagem</span>
-                        <span className="text-2xl font-bold text-primary">
-                          {fmtMoney(selectedRate.price.total)}
-                        </span>
-                      </div>
-                      <div className="text-xs text-muted-foreground">Taxas e impostos inclusos</div>
-                    </div>
-                  </div>
-                </div>
-              )}
+              <HotelSummaryDialog
+                open={summaryOpen && !!selectedEntry && !!selectedRate}
+                onOpenChange={setSummaryOpen}
+                hotel={selectedEntry?.h ?? null}
+                rate={selectedRate}
+                nights={nights}
+                rooms={form.rooms}
+                checkIn={form.checkIn}
+                checkOut={form.checkOut}
+                adults={form.adults * form.rooms}
+                children={form.children * form.rooms}
+                point={point}
+                searchKey={result.searchKey}
+                onChangeRate={(key) =>
+                  selectedEntry && setSelected({ hotelId: selectedEntry.h.hotelId, rateKey: key })
+                }
+              />
+
             </div>
           </div>
         )}
