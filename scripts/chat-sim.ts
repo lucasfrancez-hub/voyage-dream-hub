@@ -72,6 +72,14 @@ const tools = {
     }),
     execute: async (args) => {
       toolCalls.push({ name: "cotar_aereo", input: args });
+      if (cardsSent.length) {
+        return {
+          quote_id: lastQuoteId,
+          ja_enviado: true,
+          instrucao:
+            "Essa cotação já foi feita e as artes JÁ foram enviadas ao cliente. NÃO chame enviar_cartao_voo de novo. Só converse: pergunte qual opção agradou.",
+        };
+      }
       lastQuoteId = `quote-${++quoteCounter}`;
       cardsSent.push(1, 2, 3, 4);
       return {
@@ -99,7 +107,7 @@ const tools = {
     }),
     execute: async (args) => {
       toolCalls.push({ name: "enviar_cartao_voo", input: args });
-      const novas = args.opcoes.filter((o) => !cardsSent.includes(o));
+      const novas = args.reenviar ? args.opcoes : args.opcoes.filter((o) => !cardsSent.includes(o));
       cardsSent.push(...novas);
       return { enviados: novas.map((o) => ({ opcao: o, ok: true })), ja_enviado: args.opcoes.filter((o) => !novas.includes(o)) };
     },
