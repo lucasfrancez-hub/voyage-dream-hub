@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { Check, CheckCheck, FileText, Download, CornerUpLeft, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { firstName } from "@/lib/whatsapp/text-utils.shared";
+import { ImageLightbox } from "@/components/chat/ImageLightbox";
 
 type Media = { kind: "image" | "document" | "audio" | "video"; url: string; filename: string };
 function safeText(value: unknown): string {
@@ -52,6 +54,7 @@ export function WhatsAppBubble({ side, content, timestamp, senderLabel, status, 
   const label = firstName(senderLabel);
   const replySender = firstName(reply?.sender ?? null);
   const replySnippet = safeText(reply?.snippet).trim();
+  const [lightbox, setLightbox] = useState<{ url: string; filename: string } | null>(null);
   return (
     <div className={cn("group flex w-full items-center gap-1", isOut ? "justify-end" : "justify-start")}>
       {isOut && onReply && !deleted && (
@@ -92,10 +95,16 @@ export function WhatsAppBubble({ side, content, timestamp, senderLabel, status, 
           return (
             <>
               {media?.kind === "image" && (
-                <a href={media.url} target="_blank" rel="noopener noreferrer" className="mb-1 block">
+                <button
+                  type="button"
+                  onClick={() => setLightbox({ url: media.url, filename: media.filename })}
+                  className="mb-1 block w-full cursor-zoom-in"
+                  title="Ver imagem"
+                >
                   <img src={media.url} alt={media.filename} className="max-h-72 w-full rounded-md object-cover" />
-                </a>
+                </button>
               )}
+
               {media?.kind === "audio" && (
                 <audio src={media.url} controls preload="none" className="mb-1 w-56 max-w-full" />
               )}
@@ -161,7 +170,11 @@ export function WhatsAppBubble({ side, content, timestamp, senderLabel, status, 
           <CornerUpLeft className="h-3.5 w-3.5" />
         </button>
       )}
+      {lightbox && (
+        <ImageLightbox url={lightbox.url} filename={lightbox.filename} onClose={() => setLightbox(null)} />
+      )}
     </div>
+
   );
 }
 
