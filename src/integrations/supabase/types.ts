@@ -68,6 +68,24 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_model_chain: {
+        Row: {
+          id: string
+          models: Json
+          updated_at: string
+        }
+        Insert: {
+          id: string
+          models?: Json
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          models?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
       broadcast_suggestions: {
         Row: {
           approved_by: string | null

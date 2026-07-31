@@ -2,6 +2,7 @@ import { Search, Bell, Sun, Moon, Menu } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { listOnlineAgents } from "@/lib/chat/online-agents.functions";
+import { AiStatusButton } from "@/components/chat/AiStatusButton";
 
 
 
@@ -81,6 +82,8 @@ export function ChatHeader({ title, subtitle, userEmail, userFullName, theme = "
         </span>
       </div>
 
+
+      <AiStatusButton />
 
       <button
         className="hidden sm:inline-flex rounded-md p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-900"
