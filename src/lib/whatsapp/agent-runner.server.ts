@@ -19,7 +19,14 @@ import { buildCamilaTools } from "./tools.server";
 import { sendWhatsAppBubbles } from "./send.server";
 import { buildSenderPrefix, capitalizeBubbles, capitalizeKnownNames, fixGluedSentences, mergeQuestionBubbles, stripAgentSignature, stripFakeImageFailure, stripTextFlightList, stripReintroBubbles, firstName as extractFirstName } from "./text-utils.server";
 import { buildSharedAgentPrompt } from "@/lib/chat/camila-prompt";
+import {
+  buildFlightAgentPrompt,
+  findFlightAgent,
+  isFlightAgentSlug,
+  pickFlightAgent,
+} from "@/lib/chat/aereo-prompt";
 import { isCompanyDataBlocked } from "./data-blocklist";
+
 
 // Gênero por slug (usado pra montar o prompt compartilhado com a flexão certa).
 const AGENT_GENDER: Record<string, "f" | "m"> = {
