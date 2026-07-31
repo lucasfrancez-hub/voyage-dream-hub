@@ -164,6 +164,28 @@ const EMPTY_FILTERS: Filters = {
   arrAirports: [],
 };
 
+/** A operadora às vezes devolve resposta vazia/parcial — normaliza para nunca quebrar a tela. */
+function normalizeLeg(leg: unknown): OnerLegResult {
+  const l = (leg ?? {}) as Partial<OnerLegResult>;
+  const flights = Array.isArray(l.flights) ? l.flights : [];
+  return {
+    flights,
+    totalFlightsCount: Number(l.totalFlightsCount ?? flights.length) || flights.length,
+    priceRange: l.priceRange ?? null,
+  };
+}
+
+function normalizeSearchResult(raw: unknown): OnerSearchResult | null {
+  if (!raw || typeof raw !== "object") return null;
+  const r = raw as Partial<OnerSearchResult>;
+  return {
+    searchKey: r.searchKey ?? "",
+    outbound: normalizeLeg(r.outbound),
+    inbound: r.inbound ? normalizeLeg(r.inbound) : null,
+  };
+}
+
+
 function fmtMinutes(m: number) {
   const v = Math.min(m, 1439);
   return `${String(Math.floor(v / 60)).padStart(2, "0")}:${String(v % 60).padStart(2, "0")}`;
