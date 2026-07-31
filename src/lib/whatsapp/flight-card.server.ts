@@ -5,6 +5,8 @@
  */
 import type { FlightQuoteOption, FlightQuoteResult, FlightQuoteLeg } from "./flight-quote.server";
 import type { FlightCardData, FlightCardLeg } from "@/lib/flight-card/card-html";
+import { bestInstallments } from "@/lib/airline-installments";
+
 
 const PUBLIC_BASE = "https://pedidos.viaair.tur.br";
 const BROWSERLESS_BASE = "https://production-sfo.browserless.io";
@@ -77,7 +79,7 @@ export function buildFlightCardData(
   const legs: FlightCardLeg[] = [toCardLeg(op.ida, "IDA", cidades)];
   if (op.volta) legs.push(toCardLeg(op.volta, "VOLTA", cidades));
 
-  const parcelas = parcelasDaCia(op.ida.cia);
+  const { parcelas, valor } = bestInstallments(op.total, op.ida.cia);
   return {
     origem_iata: quote.origem_iata,
     origem_cidade: quote.origem_nome,
@@ -87,8 +89,9 @@ export function buildFlightCardData(
     data_volta: op.volta ? parseStamp(op.volta.partida).dia : null,
     total_formatado: op.total_formatado,
     pax_label: `${op.passageiros} PAX`,
-    parcelas,
-    parcela_formatada: money(op.total / parcelas),
+    parcelas: parcelas > 1 ? parcelas : null,
+    parcela_formatada: parcelas > 1 ? money(valor) : null,
+
     legs,
   };
 }
