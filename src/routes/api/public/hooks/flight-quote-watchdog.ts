@@ -113,11 +113,31 @@ export const Route = createFileRoute("/api/public/hooks/flight-quote-watchdog")(
           if (jaFalhou) continue;
 
           const elapsedMin = (now - new Date(promessa.created_at).getTime()) / 60000;
-          if (elapsedMin < 5) continue;
-
+          if (elapsedMin < 2) continue;
 
           const nome = firstName(conv.display_name as string | null);
           const voc = nome ? `${nome}, ` : "";
+
+          // ANTES de avisar/escalar: se a cotação já existe e as artes nunca
+          // foram enviadas, manda as artes agora — o cliente não precisa
+          // esperar nada.
+          const { sendPendingFlightCards } = await import("@/lib/whatsapp/flight-cards-pending.server");
+          const pend = await sendPendingFlightCards(convId, conv.wa_phone as string).catch(() => ({ sent: 0 }));
+          if (pend.sent > 0) {
+            const fecho = `${voc}essas são as melhores opções que encontrei\n\nQual delas faz mais sentido pra você?`;
+            await saveMessage({
+              conversation_id: convId,
+              direction: "outbound",
+              sender: "camila",
+              content: fecho,
+            });
+            await sendWhatsAppBubbles(conv.wa_phone as string, fecho);
+            avisados.push(convId);
+            continue;
+          }
+
+          if (elapsedMin < 5) continue;
+
 
           if (!jaAvisou) {
             const texto =
