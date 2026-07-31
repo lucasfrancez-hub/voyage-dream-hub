@@ -215,3 +215,21 @@ export function capitalizeKnownNames(text: string, names: (string | null | undef
   }
   return out;
 }
+
+/**
+ * Remove balões em que o modelo INVENTA falha de envio das artes
+ * ("tive um probleminha pra mandar as imagens", "posso te passar por texto?")
+ * quando os cartões de voo na verdade foram entregues neste mesmo turno.
+ */
+export function stripFakeImageFailure(fullText: string): string {
+  const FALHA =
+    /(probleminha|problema|instabilidade|falha|dificuldade|erro|n[aã]o consegui|n[aã]o foi poss[íi]vel)[^\n]{0,80}(imagem|imagens|arte|artes|foto|fotos|enviar|mandar)/iu;
+  const OFERTA_TEXTO =
+    /(passar|mandar|enviar|te passo|posso te passar)[^\n]{0,60}(por (aqui )?texto|em texto|por escrito)/iu;
+  const kept = fullText
+    .split(/\n{2,}/)
+    .map((b) => b.trim())
+    .filter(Boolean)
+    .filter((b) => !FALHA.test(b) && !OFERTA_TEXTO.test(b));
+  return kept.join("\n\n");
+}
