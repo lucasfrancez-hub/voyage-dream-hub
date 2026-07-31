@@ -1081,7 +1081,7 @@ export const clearConversationHistory = createServerFn({ method: "POST" })
         last_message_preview: null,
         unread_count: 0,
         tags: [],
-
+      })
       .eq("id", data.conversation_id);
     if (upErr) throw new Error(upErr.message);
 
