@@ -27,6 +27,14 @@ export type FlightQuoteLeg = {
   bagagem_despachada: boolean;
 };
 
+/** Chaves da operadora necessárias pra gerar o carrinho do Comprar Viagem. */
+export type FlightQuoteCart = {
+  outboundFareId: string;
+  outboundItineraryId: string;
+  inboundFareId: string | null;
+  inboundItineraryId: string | null;
+};
+
 export type FlightQuoteOption = {
   opcao: number;
   destaque: string; // "mais barata" | "voo direto" | "melhor custo-benefício" | "mais rápida"
