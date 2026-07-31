@@ -120,8 +120,8 @@ body{width:1200px;background:#fff;font-family:Poppins,system-ui,sans-serif;color
 .brand img{height:52px;object-fit:contain;object-position:left}
 .brand .tagline{margin-top:8px;font-size:17px;opacity:.9}
 .route{flex:1;display:flex;align-items:center;justify-content:center;gap:34px;padding-left:60px}
-.route .r-iata{font-size:48px;font-weight:800;line-height:1}
-.route .r-city{font-size:19px;text-align:center;color:#42526b;margin-top:2px}
+.route .r-city{font-size:40px;font-weight:800;line-height:1.05;text-align:center;max-width:300px}
+.route .r-iata{font-size:19px;font-weight:600;letter-spacing:2px;text-align:center;color:#8b98ac;margin-top:4px}
 .route .circle{width:62px;height:62px;border-radius:50%;background:${NAVY};display:flex;align-items:center;justify-content:center}
 .dates{display:flex;align-items:center;gap:16px;padding:0 40px 0 20px}
 .dates .cal{width:46px;height:46px;border:3px solid ${ORANGE};border-radius:10px;position:relative}
