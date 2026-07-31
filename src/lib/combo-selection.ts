@@ -1,3 +1,5 @@
+import type { ComboFlightBookingData, ComboHotelBookingData } from "@/lib/onertravel-combo.functions";
+
 /** Seleção de uma etapa do modo Aéreo + Hotel (aéreo ou hospedagem). */
 export type ComboPick = {
   /** Título curto (ex.: "CWB → GRU • ida e volta") */
@@ -8,4 +10,7 @@ export type ComboPick = {
   total: number;
   /** Gera o carrinho "Comprar viagem" da operadora e devolve a URL */
   buy: () => Promise<string>;
+  /** Dados crus da reserva — usados para gerar UM único carrinho combinado */
+  flightBooking?: ComboFlightBookingData;
+  hotelBooking?: ComboHotelBookingData;
 };
