@@ -390,6 +390,29 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
     }
 
 
+    // REENVIO A PEDIDO: se o cliente disse que não recebeu as imagens, as artes
+    // saem de novo por código — não dependemos do modelo chamar a tool.
+    const ultimoInbound = [...merged].reverse().find((m) => m.sender === "customer")?.content ?? "";
+    const pediuReenvio =
+      /(n[aã]o (recebi|chegou|veio|carregou|apareceu)|cad[êe] (as )?(fotos|imagens|artes|op[çc][õo]es)|manda(r)? de novo|reenvia)/i.test(
+        ultimoInbound,
+      );
+    if (pediuReenvio && !executedToolNames.has("enviar_cartao_voo")) {
+      const { sendPendingFlightCards } = await import("./flight-cards-pending.server");
+      const again = await sendPendingFlightCards(
+        conv.id,
+        conv.wa_phone,
+        60 * 60 * 1000,
+        sinceIso,
+        protocolo.id,
+        true,
+      ).catch(() => ({ sent: 0 }));
+      if (again.sent > 0) {
+        cardsEntregues = true;
+        console.log(`[agent:${agent.slug}] reenvio a pedido: ${again.sent} card(s)`);
+      }
+    }
+
     const rawText = result.text?.trim();
     if (!rawText) {
       console.warn(`[agent:${agent.slug}] resposta vazia`);
