@@ -148,7 +148,13 @@ export function mergeQuestionBubbles(fullText: string): string {
   let buffer: string[] = [];
   const flush = () => {
     if (!buffer.length) return;
-    out.push(buffer.map((q) => (/[?!.…]$/.test(q) ? q : `${q}?`)).join("\n"));
+    const questions = buffer.map((q) => {
+      const clean = q.replace(/^\s*(?:[-•▪◦‣⁃]|\d+[.)])\s*/u, "").trim();
+      return /[?!.…]$/.test(clean) ? clean : `${clean}?`;
+    });
+    // Quando há um briefing com várias perguntas, todas recebem o mesmo
+    // marcador — inclusive a primeira. Isso evita o primeiro tópico "solto".
+    out.push(questions.length > 1 ? questions.map((q) => `- ${q}`).join("\n") : questions[0]);
     buffer = [];
   };
   for (const b of bubbles) {

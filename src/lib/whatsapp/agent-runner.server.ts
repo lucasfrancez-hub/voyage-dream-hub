@@ -361,6 +361,28 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
     }
     if (!result) throw lastErr ?? new Error("Falha ao gerar resposta");
 
+    // Rede de segurança imediata: alguns modelos chamam cotar_aereo, recebem a
+    // cotação, mas encerram o loop sem chamar enviar_cartao_voo. Nesse caso a
+    // arte já existe e deve sair agora — não só minutos depois pelo watchdog.
+    const executedToolNames = new Set(
+      (result.steps ?? []).flatMap((step) => (step.toolCalls ?? []).map((call) => call.toolName)),
+    );
+    if (executedToolNames.has("cotar_aereo") && !executedToolNames.has("enviar_cartao_voo")) {
+      const { sendPendingFlightCards } = await import("./flight-cards-pending.server");
+      const recovered = await sendPendingFlightCards(
+        conv.id,
+        conv.wa_phone,
+        60 * 60 * 1000,
+        sinceIso,
+      ).catch((error) => {
+        console.warn(`[agent:${agent.slug}] fallback imediato dos cards falhou:`, error);
+        return { sent: 0 };
+      });
+      if (recovered.sent > 0) {
+        console.log(`[agent:${agent.slug}] fallback imediato enviou ${recovered.sent} card(s)`);
+      }
+    }
+
 
     const rawText = result.text?.trim();
     if (!rawText) {
