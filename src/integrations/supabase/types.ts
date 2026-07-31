@@ -3847,6 +3847,44 @@ export type Database = {
         }
         Relationships: []
       }
+      wa_flight_quotes: {
+        Row: {
+          cards_sent_at: string | null
+          conversation_id: string | null
+          created_at: string
+          id: string
+          payload: Json
+          protocolo_id: string | null
+          sent_fingerprints: Json
+        }
+        Insert: {
+          cards_sent_at?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          id?: string
+          payload: Json
+          protocolo_id?: string | null
+          sent_fingerprints?: Json
+        }
+        Update: {
+          cards_sent_at?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          id?: string
+          payload?: Json
+          protocolo_id?: string | null
+          sent_fingerprints?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wa_flight_quotes_protocolo_id_fkey"
+            columns: ["protocolo_id"]
+            isOneToOne: false
+            referencedRelation: "wa_protocolos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       wa_handoff_events: {
         Row: {
           actor: string | null
