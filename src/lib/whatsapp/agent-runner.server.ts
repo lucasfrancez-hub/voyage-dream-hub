@@ -424,21 +424,38 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
     // Já falamos NESTE protocolo? Só aí cortamos saudação/apresentação e o
     // prefixo "*Roberto:*". Protocolo novo = atendimento novo: o agente se
     // apresenta de novo, com nome, igual na primeira vez.
+    // IMPORTANTE: só conta mensagem que o cliente REALMENTE recebeu
+    // (wa_message_id preenchido). Balão salvo mas não entregue não pode
+    // "gastar" a apresentação — foi o que fez o nome sumir no WhatsApp.
     let jaFalouAntes = false;
+    let ultimaEntregaMs: number | null = null;
     try {
-      const { count } = await supabaseAdmin
+      const { data: entregues } = await supabaseAdmin
         .from("wa_messages")
-        .select("id", { count: "exact", head: true })
+        .select("created_at")
         .eq("conversation_id", conv.id)
         .eq("protocolo_id", protocolo.id)
         .eq("direction", "outbound")
-        .neq("sender", "system");
-      jaFalouAntes = (count ?? 0) > 0;
+        .neq("sender", "system")
+        .not("wa_message_id", "is", null)
+        .order("created_at", { ascending: false })
+        .limit(1);
+      const ultima = entregues?.[0]?.created_at as string | undefined;
+      if (ultima) {
+        jaFalouAntes = true;
+        ultimaEntregaMs = new Date(ultima).getTime();
+      }
     } catch { /* noop */ }
 
+    // Reassina quando faz mais de 30 min desde a última resposta entregue
+    // (o cliente já perdeu o contexto de quem está falando).
+    const reassinar =
+      !jaFalouAntes ||
+      (ultimaEntregaMs !== null && Date.now() - ultimaEntregaMs > 30 * 60 * 1000);
 
     let text = capitalizeKnownNames(capitalizeBubbles(fixGluedSentences(rawText)), [clientFirst]);
     if (jaFalouAntes) text = stripReintroBubbles(text);
+
     text = mergeQuestionBubbles(text);
 
     const toolCallsSummary = result.steps
@@ -472,8 +489,13 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
       console.warn("[agent] confirmação das artes de voo falhou:", e);
     }
 
+    // Prefixo "*Roberto:*" na primeira mensagem do atendimento (ou depois de
+    // 30 min parado). O MESMO texto é salvo e enviado, pra o histórico interno
+    // bater 100% com o que o cliente vê no WhatsApp.
+    const prefix = reassinar ? buildSenderPrefix(agent.nome) : null;
     const { splitToBubbles } = await import("./send.server");
-    const bubbles = splitToBubbles(text);
+    const bubbles = splitToBubbles(text, prefix);
+
     const savedRowIds: Array<string | null> = [];
     for (let i = 0; i < bubbles.length; i++) {
       const row = await saveMessage({
@@ -559,10 +581,9 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
         .eq("id", conv.id);
     }
 
-    // Prefixo "*Roberto:*" só na PRIMEIRA mensagem do atendimento (assinar toda
-    // mensagem deixa robótico).
-    const prefix = jaFalouAntes ? null : buildSenderPrefix(agent.nome);
+    // Envia exatamente os mesmos balões que foram salvos (já com o prefixo).
     const sent = await sendWhatsAppBubbles(conv.wa_phone, text, prefix);
+
     const failed = sent.filter((s) => s.error);
     if (failed.length > 0) console.error(`[agent:${agent.slug}] falha ao enviar:`, failed);
 
