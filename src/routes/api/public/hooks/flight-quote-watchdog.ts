@@ -123,7 +123,7 @@ export const Route = createFileRoute("/api/public/hooks/flight-quote-watchdog")(
           // foram enviadas, manda as artes agora — o cliente não precisa
           // esperar nada.
           const { sendPendingFlightCards } = await import("@/lib/whatsapp/flight-cards-pending.server");
-          const pend = await sendPendingFlightCards(convId, conv.wa_phone as string).catch(() => ({ sent: 0 }));
+          const pend = await sendPendingFlightCards(convId, conv.wa_phone as string, inicio).catch(() => ({ sent: 0 }));
           if (pend.sent > 0) {
             const fecho = `${voc}essas são as melhores opções que encontrei\n\nQual delas faz mais sentido pra você?`;
             await saveMessage({
