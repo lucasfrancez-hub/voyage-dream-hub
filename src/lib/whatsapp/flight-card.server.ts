@@ -119,8 +119,9 @@ async function screenshotCard(url: string): Promise<Uint8Array> {
     body: JSON.stringify({
       url,
       gotoOptions: { waitUntil: "load", timeout: 15000 },
-      viewport: { width: 820, height: 1200, deviceScaleFactor: 2 },
-      options: { type: "png", fullPage: true, omitBackground: false },
+      viewport: { width: 900, height: 600, deviceScaleFactor: 2 },
+      selector: ".card",
+      options: { type: "png", omitBackground: true },
     }),
   });
   if (!res.ok) throw new Error(`Browserless ${res.status}: ${(await res.text()).slice(0, 200)}`);
