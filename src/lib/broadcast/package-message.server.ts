@@ -180,6 +180,11 @@ export function buildPackageCaption(pkg: PkgRow, storedCopy: string | null, quan
     if (t) services_lines.push(`✨ ${t}`);
   }
 
+  // termo proibido: nunca sai "assessoria" no folder
+  for (let i = services_lines.length - 1; i >= 0; i--) {
+    if (/assessoria/i.test(services_lines[i])) services_lines.splice(i, 1);
+  }
+
   const title = String(pkg.title || pkg.destination || "PACOTE").toUpperCase();
   const lines: string[] = [];
   lines.push(`*${title}*`);

@@ -234,7 +234,7 @@ export function buildCamilaTools(conversation: WaConversation) {
             }
             for (const extra of svc.outros ?? []) {
               const t = (extra || "").trim();
-              if (t) servicos.push(t.toLowerCase());
+              if (t && !/assessoria/i.test(t)) servicos.push(t.toLowerCase());
             }
             const mealText = String(p.meal_plan ?? "");
             const regime = /all\s*inclusive|tudo\s*incluso/i.test(mealText)
@@ -408,6 +408,10 @@ export function buildCamilaTools(conversation: WaConversation) {
           for (const extra of svc.outros ?? []) {
             const t = (extra || "").trim();
             if (t) services_lines.push(`✨ ${t}`);
+          }
+          // termo proibido: nunca sai "assessoria" no folder
+          for (let i = services_lines.length - 1; i >= 0; i--) {
+            if (/assessoria/i.test(services_lines[i])) services_lines.splice(i, 1);
           }
 
           const title = String(pkg.title || pkg.destination || "PACOTE").toUpperCase();
