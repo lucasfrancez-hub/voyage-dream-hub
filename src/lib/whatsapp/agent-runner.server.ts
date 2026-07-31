@@ -111,7 +111,26 @@ function pickAgent(agents: Agent[], stickySlug?: string | null): Agent | null {
 
 
 
+/**
+ * Detecta pedido de COTAÇÃO DE AÉREO nas últimas falas do cliente.
+ * Serve pra passar o atendimento pro setor de aéreo (Bruno / Letícia),
+ * que tem prompt próprio e não mistura com o time de atendimento.
+ */
+function wantsFlightQuote(texts: string[]): boolean {
+  const t = texts.join(" \n ").toLowerCase();
+  if (!t.trim()) return false;
+  const temAereo =
+    /(passage(m|ns)\s+a[ée]rea|passagem|só\s+o?\s*a[ée]reo|somente\s+a[ée]reo|apenas\s+a[ée]reo|cota[çc][ãa]o\s+de\s+(voo|a[ée]reo)|cotar\s+(voo|a[ée]reo)|pre[çc]o\s+d[eo]\s+(voo|passagem)|valor\s+d[eo]\s+(voo|passagem)|bilhete\s+a[ée]reo)/i.test(
+      t,
+    );
+  if (!temAereo) return false;
+  // pedido de pacote/hospedagem no mesmo texto → segue com o time normal
+  const ehPacote = /(pacote|hotel|hospedagem|resort|all\s*inclusive|cruzeiro|passeio|ingresso)/i.test(t);
+  return !ehPacote;
+}
+
 function firstAvailableAusencia(agents: Agent[]): string | null {
+
   for (const a of agents) if (a.mensagem_ausencia) return a.mensagem_ausencia;
   return null;
 }
