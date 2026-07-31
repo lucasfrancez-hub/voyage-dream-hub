@@ -782,7 +782,7 @@ export const closeProtocoloManually = createServerFn({ method: "POST" })
 
     const { data: conv, error: cErr } = await context.supabase
       .from("wa_conversations")
-      .select("id, wa_phone, funnel_stage, protocolo_ativo_id")
+      .select("id, wa_phone, funnel_stage, protocolo_ativo_id, tags")
       .eq("id", data.conversation_id)
       .single();
     if (cErr || !conv) throw new Error("Conversa não encontrada");
