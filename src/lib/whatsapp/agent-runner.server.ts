@@ -447,11 +447,10 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
       }
     } catch { /* noop */ }
 
-    // Reassina quando faz mais de 30 min desde a última resposta entregue
-    // (o cliente já perdeu o contexto de quem está falando).
-    const reassinar =
-      !jaFalouAntes ||
-      (ultimaEntregaMs !== null && Date.now() - ultimaEntregaMs > 30 * 60 * 1000);
+    // O nome do atendente ("*Roberto:*") assina SEMPRE o primeiro balão de cada
+    // resposta — é a assinatura da conversa no WhatsApp, não a apresentação.
+    const reassinar = true;
+
 
     let text = capitalizeKnownNames(capitalizeBubbles(fixGluedSentences(rawText)), [clientFirst]);
     if (jaFalouAntes) text = stripReintroBubbles(text);
