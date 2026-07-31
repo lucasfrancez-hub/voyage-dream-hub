@@ -69,12 +69,12 @@ function stopsLabel(n: number): string {
   return n === 1 ? "1 PARADA" : `${n} PARADAS`;
 }
 
-const OK = `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#16a34a" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>`;
-const NO = `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#cbd3de" stroke-width="2.6" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>`;
+const OK = `<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="#16a34a" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>`;
+const NO = `<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="#cbd3de" stroke-width="2.6" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>`;
 
-const ICON_MOCHILA = `<svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M8 8V6a4 4 0 0 1 8 0v2"/><rect x="4" y="8" width="16" height="13" rx="4"/><path d="M9 13h6"/></svg>`;
-const ICON_MAO = `<svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M10 6V4h4v2"/><rect x="6" y="6" width="12" height="15" rx="2.5"/><path d="M10 10v7M14 10v7"/></svg>`;
-const ICON_DESPACHADA = `<svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M9 5V3.6A1.6 1.6 0 0 1 10.6 2h2.8A1.6 1.6 0 0 1 15 3.6V5"/><rect x="3.5" y="5" width="17" height="14" rx="3"/><path d="M7 19v2M17 19v2"/></svg>`;
+const ICON_MOCHILA = `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M8 8V6a4 4 0 0 1 8 0v2"/><rect x="4" y="8" width="16" height="13" rx="4"/><path d="M9 13h6"/></svg>`;
+const ICON_MAO = `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M10 6V4h4v2"/><rect x="6" y="6" width="12" height="15" rx="2.5"/><path d="M10 10v7M14 10v7"/></svg>`;
+const ICON_DESPACHADA = `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M9 5V3.6A1.6 1.6 0 0 1 10.6 2h2.8A1.6 1.6 0 0 1 15 3.6V5"/><rect x="3.5" y="5" width="17" height="14" rx="3"/><path d="M7 19v2M17 19v2"/></svg>`;
 
 /** Três selos de bagagem (mochila / mão / despachada) com incluído ou não. */
 function bagagemItens(leg: FlightCardLeg): string {
@@ -144,7 +144,7 @@ export function renderFlightCardHtml(d: FlightCardData, baseUrl: string): string
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-html,body{width:820px;max-width:820px;overflow-x:hidden;background:#fff}
+html,body{width:820px;max-width:820px;overflow-x:hidden;background:transparent}
 body{font-family:Poppins,system-ui,sans-serif;color:${NAVY};-webkit-font-smoothing:antialiased}
 .card{width:820px;background:#fff;overflow:hidden;border-radius:44px}
 .head{padding:36px 52px 0}
@@ -162,7 +162,7 @@ body{font-family:Poppins,system-ui,sans-serif;color:${NAVY};-webkit-font-smoothi
 .leg-top{display:flex;align-items:center;justify-content:space-between}
 .leg-tag{display:flex;align-items:center;gap:12px;font-size:18px;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;color:#5c6b82}
 .leg-tag i{width:12px;height:12px;border-radius:50%;flex:none}
-.cia-logo{height:26px;max-width:90px;object-fit:contain}
+.cia-logo{height:34px;max-width:120px;object-fit:contain}
 .chips{display:flex;gap:12px}
 .chip{background:#f3f6fa;border-radius:14px;padding:9px 18px;font-size:17px;font-weight:600;color:#42526b}
 .leg-mid{display:flex;align-items:center;justify-content:space-between;gap:24px;margin-top:20px}
@@ -177,11 +177,11 @@ body{font-family:Poppins,system-ui,sans-serif;color:${NAVY};-webkit-font-smoothi
 .track{position:relative;height:2px;background:#e3e8ef;margin:16px 0 14px}
 .bullet{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:16px;height:16px;border-radius:50%;background:#fff;border:4px solid ${ORANGE}}
 .scale{font-size:17px;color:#94a1b2;letter-spacing:1px}
-.bag{display:flex;gap:14px;background:#f6f8fb;border-radius:26px;padding:22px 20px;margin-top:26px}
+.bag{display:flex;gap:12px;background:#f6f8fb;border-radius:22px;padding:14px 16px;margin-top:20px}
 .bag-item{flex:1;text-align:center;color:#42526b}
 .bag-item.off{color:#aab4c2}
-.bag-lb{font-size:17px;font-weight:600;margin-top:6px}
-.bag-st{display:flex;align-items:center;justify-content:center;gap:7px;margin-top:8px;font-size:15px;font-weight:700}
+.bag-lb{font-size:14px;font-weight:600;margin-top:3px}
+.bag-st{display:flex;align-items:center;justify-content:center;gap:5px;margin-top:4px;font-size:13px;font-weight:700}
 .bag-item.off .bag-st{color:#aab4c2}
 .bag-item .bag-st{color:#16a34a}
 .foot{background:${NAVY};color:#fff;margin-top:34px;padding:40px 52px 34px;text-align:center;border-radius:0 0 44px 44px}
