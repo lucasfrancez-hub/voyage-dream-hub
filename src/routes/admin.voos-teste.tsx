@@ -971,6 +971,7 @@ function SummaryCard({
   ctx,
   open,
   onOpenChange,
+  onComboSelect,
 }: {
   out: OnerFlight;
   inb: OnerFlight | null;
@@ -978,6 +979,7 @@ function SummaryCard({
   ctx: CartContext;
   open: boolean;
   onOpenChange: (v: boolean) => void;
+  onComboSelect?: (pick: ComboPick) => void;
 }) {
 
 
