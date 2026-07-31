@@ -362,12 +362,16 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
   const cleanTools: Record<string, unknown> = { ...tools };
   delete cleanTools._meta;
 
-  // Cadeia de modelos: se o gateway devolver 502/503 (Bad Gateway) num modelo,
-  // espera um pouco e tenta o próximo antes de desistir.
-  const MODEL_CHAIN = [
-    "google/gemini-2.5-flash",
-    "google/gemini-2.5-pro",
-    "google/gemini-2.5-flash-lite",
+  // Cadeia de tentativas: o gateway às vezes devolve 502/503 em rajada (o
+  // provedor cai por alguns segundos). Tentamos o mesmo modelo mais de uma vez
+  // e alternamos entre modelos, com backoff crescente, antes de desistir.
+  const ATTEMPTS = [
+    { model: "google/gemini-2.5-flash", wait: 1500 },
+    { model: "google/gemini-2.5-flash", wait: 3000 },
+    { model: "google/gemini-2.5-pro", wait: 4000 },
+    { model: "google/gemini-2.5-flash-lite", wait: 5000 },
+    { model: "google/gemini-2.5-flash", wait: 8000 },
+    { model: "google/gemini-2.5-flash-lite", wait: 0 },
   ];
   const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -375,10 +379,10 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
     const system = buildSystemPrompt(agent, conv, protocolo, isNewProtocolo, previousContext);
     let result: { text?: string; steps?: Array<{ toolCalls?: Array<{ toolName: string; input: unknown }> }> } | null = null;
     let lastErr: unknown = null;
-    for (let i = 0; i < MODEL_CHAIN.length; i++) {
+    for (let i = 0; i < ATTEMPTS.length; i++) {
       try {
         result = await generateText({
-          model: gateway(MODEL_CHAIN[i]),
+          model: gateway(ATTEMPTS[i].model),
           system,
           messages,
           tools: cleanTools as never,
@@ -390,8 +394,8 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
       } catch (e) {
         lastErr = e;
         const m = e instanceof Error ? e.message : String(e);
-        console.warn(`[agent:${agent.slug}] modelo ${MODEL_CHAIN[i]} falhou: ${m}`);
-        if (i < MODEL_CHAIN.length - 1) await sleep(1500 * (i + 1));
+        console.warn(`[agent:${agent.slug}] tentativa ${i + 1} (${ATTEMPTS[i].model}) falhou: ${m}`);
+        if (i < ATTEMPTS.length - 1 && ATTEMPTS[i].wait > 0) await sleep(ATTEMPTS[i].wait);
       }
     }
     if (!result) throw lastErr ?? new Error("Falha ao gerar resposta");
