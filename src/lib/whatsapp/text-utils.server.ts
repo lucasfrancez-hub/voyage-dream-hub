@@ -80,7 +80,7 @@ export function capitalizeBubbles(fullText: string): string {
 export function buildSenderPrefix(name: string | null | undefined): string | null {
   const fn = firstName(name);
   if (!fn) return null;
-  return `*${fn}:*`;
+  return `${fn}:`;
 }
 
 /**
