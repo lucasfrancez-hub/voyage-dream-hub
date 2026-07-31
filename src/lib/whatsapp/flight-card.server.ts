@@ -56,6 +56,8 @@ function toCardLeg(
     paradas: leg.paradas,
     familia: leg.escalas.length ? leg.escalas.join(" • ") : null,
     bagagem: leg.bagagem_despachada ? "Bagagem despachada inclusa" : "Somente bagagem de mão",
+    bagagem_mao: true,
+    bagagem_despachada: leg.bagagem_despachada,
     partida: { hora: dep.hora, iata: leg.origem, cidade: cidades[leg.origem] ?? "", aeroporto: "" },
     chegada: {
       hora: arr.hora,
