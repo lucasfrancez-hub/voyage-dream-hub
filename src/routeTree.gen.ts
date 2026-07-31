@@ -49,6 +49,7 @@ import { Route as AdminPessoasRouteImport } from './routes/admin.pessoas'
 import { Route as AdminSegurancaRouteImport } from './routes/admin.seguranca'
 import { Route as AdminUsuariosRouteImport } from './routes/admin.usuarios'
 import { Route as AdminVoosTesteRouteImport } from './routes/admin.voos-teste'
+import { Route as ApiDebugQuoteRouteImport } from './routes/api/debug-quote'
 import { Route as ChatAgendaRouteImport } from './routes/chat.agenda'
 import { Route as ChatAgentesRouteImport } from './routes/chat.agentes'
 import { Route as ChatBroadcastRouteImport } from './routes/chat.broadcast'
@@ -302,6 +303,11 @@ const AdminVoosTesteRoute = AdminVoosTesteRouteImport.update({
   id: '/voos-teste',
   path: '/voos-teste',
   getParentRoute: () => AdminRoute,
+} as any)
+const ApiDebugQuoteRoute = ApiDebugQuoteRouteImport.update({
+  id: '/api/debug-quote',
+  path: '/api/debug-quote',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const ChatAgendaRoute = ChatAgendaRouteImport.update({
   id: '/agenda',
@@ -627,6 +633,7 @@ export interface FileRoutesByFullPath {
   '/admin/seguranca': typeof AdminSegurancaRoute
   '/admin/usuarios': typeof AdminUsuariosRoute
   '/admin/voos-teste': typeof AdminVoosTesteRoute
+  '/api/debug-quote': typeof ApiDebugQuoteRoute
   '/chat/agenda': typeof ChatAgendaRoute
   '/chat/agentes': typeof ChatAgentesRoute
   '/chat/broadcast': typeof ChatBroadcastRoute
@@ -721,6 +728,7 @@ export interface FileRoutesByTo {
   '/admin/seguranca': typeof AdminSegurancaRoute
   '/admin/usuarios': typeof AdminUsuariosRoute
   '/admin/voos-teste': typeof AdminVoosTesteRoute
+  '/api/debug-quote': typeof ApiDebugQuoteRoute
   '/chat/agenda': typeof ChatAgendaRoute
   '/chat/agentes': typeof ChatAgentesRoute
   '/chat/broadcast': typeof ChatBroadcastRoute
@@ -817,6 +825,7 @@ export interface FileRoutesById {
   '/admin/seguranca': typeof AdminSegurancaRoute
   '/admin/usuarios': typeof AdminUsuariosRoute
   '/admin/voos-teste': typeof AdminVoosTesteRoute
+  '/api/debug-quote': typeof ApiDebugQuoteRoute
   '/chat/agenda': typeof ChatAgendaRoute
   '/chat/agentes': typeof ChatAgentesRoute
   '/chat/broadcast': typeof ChatBroadcastRoute
@@ -914,6 +923,7 @@ export interface FileRouteTypes {
     | '/admin/seguranca'
     | '/admin/usuarios'
     | '/admin/voos-teste'
+    | '/api/debug-quote'
     | '/chat/agenda'
     | '/chat/agentes'
     | '/chat/broadcast'
@@ -1008,6 +1018,7 @@ export interface FileRouteTypes {
     | '/admin/seguranca'
     | '/admin/usuarios'
     | '/admin/voos-teste'
+    | '/api/debug-quote'
     | '/chat/agenda'
     | '/chat/agentes'
     | '/chat/broadcast'
@@ -1103,6 +1114,7 @@ export interface FileRouteTypes {
     | '/admin/seguranca'
     | '/admin/usuarios'
     | '/admin/voos-teste'
+    | '/api/debug-quote'
     | '/chat/agenda'
     | '/chat/agentes'
     | '/chat/broadcast'
@@ -1178,6 +1190,7 @@ export interface RootRouteChildren {
   TermosDeUsoRoute: typeof TermosDeUsoRoute
   UnsubscribeRoute: typeof UnsubscribeRoute
   ValidacaoRoute: typeof ValidacaoRoute
+  ApiDebugQuoteRoute: typeof ApiDebugQuoteRoute
   EmailUnsubscribeRoute: typeof EmailUnsubscribeRoute
   EmbedIngressosDestaqueRoute: typeof EmbedIngressosDestaqueRoute
   EmbedPacotesDestaqueRoute: typeof EmbedPacotesDestaqueRoute
@@ -1494,6 +1507,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/voos-teste'
       preLoaderRoute: typeof AdminVoosTesteRouteImport
       parentRoute: typeof AdminRoute
+    }
+    '/api/debug-quote': {
+      id: '/api/debug-quote'
+      path: '/api/debug-quote'
+      fullPath: '/api/debug-quote'
+      preLoaderRoute: typeof ApiDebugQuoteRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/chat/agenda': {
       id: '/chat/agenda'
@@ -2006,6 +2026,7 @@ const rootRouteChildren: RootRouteChildren = {
   TermosDeUsoRoute: TermosDeUsoRoute,
   UnsubscribeRoute: UnsubscribeRoute,
   ValidacaoRoute: ValidacaoRoute,
+  ApiDebugQuoteRoute: ApiDebugQuoteRoute,
   EmailUnsubscribeRoute: EmailUnsubscribeRoute,
   EmbedIngressosDestaqueRoute: EmbedIngressosDestaqueRoute,
   EmbedPacotesDestaqueRoute: EmbedPacotesDestaqueRoute,
@@ -2046,3 +2067,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
