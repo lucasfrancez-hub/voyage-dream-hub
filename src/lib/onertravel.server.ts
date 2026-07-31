@@ -300,25 +300,41 @@ export async function searchFlights(data: SearchData, speed: PollSpeed = "normal
     }
   }
 
-  const outbound = await poll("outbound", loc, {
-    searchKey,
-    pageSize: data.pageSize,
-    filter: buildFilter(data.filters),
-    ordinationEnum: 0,
-  });
+  const outbound = await poll(
+    "outbound",
+    loc,
+    {
+      searchKey,
+      pageSize: data.pageSize,
+      filter: buildFilter(data.filters),
+      ordinationEnum: 0,
+    },
+    30,
+    speed,
+  );
   return { searchKey, outbound, inbound: null };
 }
 
-export async function searchInboundFlights(data: InboundData): Promise<OnerLegResult> {
+export async function searchInboundFlights(
+  data: InboundData,
+  speed: PollSpeed = "normal",
+): Promise<OnerLegResult> {
   const loc = buildLocationHref(data);
-  return poll("inbound", loc, {
-    searchKey: data.searchKey,
-    flightKey: data.flightKey,
-    pageSize: data.pageSize,
-    filter: buildFilter(data.filters),
-    ordinationEnum: 0,
-  });
+  return poll(
+    "inbound",
+    loc,
+    {
+      searchKey: data.searchKey,
+      flightKey: data.flightKey,
+      pageSize: data.pageSize,
+      filter: buildFilter(data.filters),
+      ordinationEnum: 0,
+    },
+    30,
+    speed,
+  );
 }
+
 /* ── Carrinho na operadora (Comprar Viagem) ─────────────────────────────
    Cria o carrinho oficial com os voos escolhidos e devolve a URL pública
    /viaair/flight-cart?newCartId=... para enviar ao cliente.            */
