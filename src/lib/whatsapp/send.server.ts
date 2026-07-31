@@ -156,9 +156,14 @@ export async function sendWhatsAppText(
   body: string,
   replyId?: string | null,
 ): Promise<{ id: string | null; error?: string }> {
+  // Blindagem: marcador interno de mídia NUNCA pode vazar como texto
+  // (aparecia no WhatsApp como um link quebrado).
+  const limpo = body.replace(/\[\[media:[^\]]*\]\]/gi, "").replace(/\n{3,}/g, "\n\n").trim();
+  if (!limpo) return { id: null, error: "mensagem vazia após limpeza de mídia" };
   // Chat oficial: sempre Meta. Reply nativo usa context.message_id.
-  return metaSendText(to, body, replyId);
+  return metaSendText(to, limpo, replyId);
 }
+
 
 /** Indicador "digitando…" oficial da Meta. */
 export async function sendWhatsAppTypingIndicator(
