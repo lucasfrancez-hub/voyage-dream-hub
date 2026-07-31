@@ -508,6 +508,9 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
       jaTemCards = Boolean(comCards?.length);
     }
     if (jaTemCards) text = stripTextFlightList(stripFakeImageFailure(text));
+    // Nenhuma tool rodou nesta resposta => não existe erro real pra relatar:
+    // qualquer "não consegui buscar / deu um probleminha" é alucinação.
+    if (executedToolNames.size === 0) text = stripFakeImageFailure(text);
 
     // "Você é um robô?" — resposta determinística: alguns modelos ignoram a
     // pergunta e repetem a etapa anterior, o que denuncia automação.
