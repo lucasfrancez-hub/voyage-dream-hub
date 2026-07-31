@@ -303,7 +303,11 @@ export function buildCamilaTools(conversation: WaConversation) {
                 wa_message_id: r.id,
               });
             }
-            enviados.push({ opcao: arte.numero, ok: !r.error, erro: r.error });
+            enviados.push({
+              opcao: arte.numero,
+              ok: !r.error && Boolean(r.id),
+              erro: r.error ?? (r.id ? undefined : "WhatsApp não confirmou a entrega"),
+            });
           } catch (e) {
             enviados.push({ opcao: arte.numero, ok: false, erro: e instanceof Error ? e.message : "falha" });
           }

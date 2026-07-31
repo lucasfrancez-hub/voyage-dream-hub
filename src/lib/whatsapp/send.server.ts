@@ -100,7 +100,9 @@ async function metaSendMedia(
       console.error("[whatsapp/meta media] falha:", msg);
       return { id: null, error: msg };
     }
-    return { id: data.messages?.[0]?.id ?? null };
+    const id = data.messages?.[0]?.id ?? null;
+    if (!id) return { id: null, error: "Meta aceitou a mídia sem retornar o ID da mensagem" };
+    return { id };
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     return { id: null, error: msg };
