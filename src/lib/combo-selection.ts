@@ -14,4 +14,6 @@ export type ComboPick = {
   /** Dados crus da reserva — usados para gerar UM único carrinho combinado */
   flightBooking?: ComboFlightBookingData;
   hotelBooking?: ComboHotelBookingData;
+  /** Card visual completo (mesmo card das buscas de aéreo/hotel) */
+  card?: ReactNode;
 };
