@@ -36,7 +36,9 @@ import { DestinationAutocomplete } from "@/components/search/DestinationAutocomp
 import {
   onerHotelDestinations,
   onerHotelSearch,
+  onerHotelRooms,
   onerCreateHotelCart,
+
   type OnerHotel,
   type OnerHotelPoint,
   type OnerHotelSearchResult,
