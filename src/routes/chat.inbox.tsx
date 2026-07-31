@@ -6,9 +6,10 @@ import { Pause, Play, Search, Send, Bot, User, MoreVertical, Loader2, Inbox as I
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
-import { listConversations, listMessages, sendHumanReply, sendHumanMedia, toggleConversationMode, startOutboundConversation, setFunnelStage, assignConversation, setAiPaused, listAttendants, getActiveProtocolo, closeProtocoloManually, listConversationProtocolos, getConversationOrders, updateProtocoloDetails, listProtocoloMessages, ensureProtocoloResumo } from "@/lib/chat/queries.functions";
+import { listConversations, listMessages, sendHumanReply, sendHumanMedia, toggleConversationMode, startOutboundConversation, setFunnelStage, assignConversation, setAiPaused, listAttendants, getActiveProtocolo, closeProtocoloManually, listConversationProtocolos, getConversationOrders, updateProtocoloDetails, listProtocoloMessages, ensureProtocoloResumo, clearConversationHistory } from "@/lib/chat/queries.functions";
 import { listInstagramConversations, listInstagramMessages, sendInstagramReply, listInstagramComments, triggerAutoReplyComment } from "@/lib/instagram/queries.functions";
 import { firstName } from "@/lib/whatsapp/text-utils.shared";
+import { confirmThen } from "@/lib/confirm";
 import { audioBlobToMp3 } from "@/lib/audio-to-mp3";
 
 import { FUNNEL_STAGES } from "@/lib/chat/funnel-stages";
@@ -1102,12 +1103,34 @@ function ConversationMenu({ conv, onChange }: { conv: Conv; onChange: () => void
   const stageFn = useServerFn(setFunnelStage);
   const assignFn = useServerFn(assignConversation);
   const listUsers = useServerFn(listAttendants);
+  const clearFn = useServerFn(clearConversationHistory);
+  const qc = useQueryClient();
 
   const { data: attendants = [] } = useQuery({
     queryKey: ["chat", "attendants"],
     queryFn: () => listUsers(),
     staleTime: 60_000,
   });
+
+  const doClear = () =>
+    confirmThen(
+      {
+        title: "Apagar toda a conversa?",
+        description:
+          "Todas as mensagens desta conversa serão apagadas definitivamente e a IA vai recomeçar do zero, sem histórico. Essa ação não pode ser desfeita.",
+        confirmText: "Apagar tudo",
+        destructive: true,
+      },
+      () => {
+        void clearFn({ data: { conversation_id: conv.id } })
+          .then((r) => {
+            qc.invalidateQueries({ queryKey: ["chat"] });
+            onChange();
+            toast.success(`Conversa apagada (${r.deleted} mensagens)`);
+          })
+          .catch((e: any) => toast.error(e?.message ?? "Erro ao apagar conversa"));
+      },
+    );
 
   const doArchive = () => toggleFn({ data: { conversation_id: conv.id, mode: "resolved" } }).then(() => { onChange(); toast.success("Conversa arquivada"); });
   const doReopen = () => toggleFn({ data: { conversation_id: conv.id, mode: "human" } }).then(() => { onChange(); toast.success("Conversa reaberta"); });
@@ -1161,6 +1184,11 @@ function ConversationMenu({ conv, onChange }: { conv: Conv; onChange: () => void
             <Archive className="mr-2 h-4 w-4" /> Arquivar
           </DropdownMenuItem>
         )}
+
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={doClear} className="text-destructive focus:text-destructive">
+          <Trash2 className="mr-2 h-4 w-4" /> Apagar toda a conversa
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );
