@@ -424,21 +424,38 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
     // Já falamos NESTE protocolo? Só aí cortamos saudação/apresentação e o
     // prefixo "*Roberto:*". Protocolo novo = atendimento novo: o agente se
     // apresenta de novo, com nome, igual na primeira vez.
+    // IMPORTANTE: só conta mensagem que o cliente REALMENTE recebeu
+    // (wa_message_id preenchido). Balão salvo mas não entregue não pode
+    // "gastar" a apresentação — foi o que fez o nome sumir no WhatsApp.
     let jaFalouAntes = false;
+    let ultimaEntregaMs: number | null = null;
     try {
-      const { count } = await supabaseAdmin
+      const { data: entregues } = await supabaseAdmin
         .from("wa_messages")
-        .select("id", { count: "exact", head: true })
+        .select("created_at")
         .eq("conversation_id", conv.id)
         .eq("protocolo_id", protocolo.id)
         .eq("direction", "outbound")
-        .neq("sender", "system");
-      jaFalouAntes = (count ?? 0) > 0;
+        .neq("sender", "system")
+        .not("wa_message_id", "is", null)
+        .order("created_at", { ascending: false })
+        .limit(1);
+      const ultima = entregues?.[0]?.created_at as string | undefined;
+      if (ultima) {
+        jaFalouAntes = true;
+        ultimaEntregaMs = new Date(ultima).getTime();
+      }
     } catch { /* noop */ }
 
+    // Reassina quando faz mais de 30 min desde a última resposta entregue
+    // (o cliente já perdeu o contexto de quem está falando).
+    const reassinar =
+      !jaFalouAntes ||
+      (ultimaEntregaMs !== null && Date.now() - ultimaEntregaMs > 30 * 60 * 1000);
 
     let text = capitalizeKnownNames(capitalizeBubbles(fixGluedSentences(rawText)), [clientFirst]);
     if (jaFalouAntes) text = stripReintroBubbles(text);
+
     text = mergeQuestionBubbles(text);
 
     const toolCallsSummary = result.steps
