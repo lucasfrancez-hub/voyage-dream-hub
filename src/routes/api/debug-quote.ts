@@ -33,7 +33,13 @@ export const Route = createFileRoute("/api/debug-quote")({
               card = { erro: e instanceof Error ? e.message : String(e) };
             }
           }
-          return Response.json({ ok: true, ms: Date.now() - t0, card, res });
+          let envio: unknown = null;
+          const to = q.get("to");
+          if (to && typeof card === "string") {
+            const { sendWhatsAppImage } = await import("@/lib/whatsapp/send.server");
+            envio = await sendWhatsAppImage(to, card, q.get("caption") ?? undefined);
+          }
+          return Response.json({ ok: true, ms: Date.now() - t0, card, envio, res });
         } catch (err) {
           return Response.json({
             ok: false,
