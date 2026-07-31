@@ -84,6 +84,61 @@ export function buildSenderPrefix(name: string | null | undefined): string | nul
 }
 
 /**
+ * Remove balões de saudação/apresentação quando o atendimento JÁ começou.
+ * Evita o "Olá, sou Roberto, consultor da Via Air / tudo bem?" repetido a cada turno.
+ */
+export function stripReintroBubbles(fullText: string): string {
+  const SAUDACAO = /^(oi|ol[áa]|bom dia|boa tarde|boa noite|e a[íi])\b[\s,!.…-]*[\p{L}\s]{0,30}[!.…]*$/iu;
+  const APRESENTACAO = /\b(sou|aqui [ée]|meu nome [ée])\b[^.\n]{0,40}\b(consultor[a]?|da via ?air|de via ?air)\b/iu;
+  const COMO_AJUDAR = /^(tudo bem\??\s*)?(como (posso|eu posso) (te )?ajudar( hoje)?\??|em que posso (te )?ajudar\??|tudo bem( com voc[êe])?\??)$/iu;
+
+  const kept = fullText
+    .split(/\n{2,}/)
+    .map((b) => b.trim())
+    .filter(Boolean)
+    .filter((b) => !(SAUDACAO.test(b) || APRESENTACAO.test(b) || COMO_AJUDAR.test(b)));
+
+  // Se sobrou nada (resposta era só saudação), devolve o texto original.
+  return kept.length ? kept.join("\n\n") : fullText;
+}
+
+/**
+ * Junta balões consecutivos que são perguntas num único balão (uma por linha)
+ * e garante "?" no final de cada pergunta. Evita a metralhadora de 5 balões.
+ */
+export function mergeQuestionBubbles(fullText: string): string {
+  const isPergunta = (b: string) =>
+    !b.includes("\n") &&
+    b.length <= 200 &&
+    (/\?\s*$/.test(b) ||
+      /^(seria|quantos|quantas|voc[êe] tem|tem alguma|qual|quais|prefere|precisa|de onde|para quando|pra quando|em que|me diz|poderia)\b/iu.test(
+        b,
+      ));
+
+  const bubbles = fullText
+    .split(/\n{2,}/)
+    .map((b) => b.trim())
+    .filter(Boolean);
+
+  const out: string[] = [];
+  let buffer: string[] = [];
+  const flush = () => {
+    if (!buffer.length) return;
+    out.push(buffer.map((q) => (/[?!.…]$/.test(q) ? q : `${q}?`)).join("\n"));
+    buffer = [];
+  };
+  for (const b of bubbles) {
+    if (isPergunta(b)) buffer.push(b);
+    else {
+      flush();
+      out.push(b);
+    }
+  }
+  flush();
+  return out.join("\n\n");
+}
+
+/**
  * Capitaliza ocorrências de nomes conhecidos no meio do texto (word-boundary, case-insensitive).
  * Ex.: capitalizeKnownNames("oi lucas, tem hotel em faria lima?", ["Lucas", "Faria Lima"])
  *   → "oi Lucas, tem hotel em Faria Lima?"
