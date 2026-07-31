@@ -504,6 +504,18 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
     text = stripAgentSignature(text, agent.nome);
     if (jaFalouAntes) text = stripReintroBubbles(text);
 
+    // Avanço determinístico: com briefing já coletado, encaminhamento comercial
+    // não depende de o cliente autorizar uma ação que ele acabou de solicitar.
+    // O fallback de escalação abaixo marca a conversa para atendimento humano.
+    const pedePermissaoParaEncaminhar =
+      /(o que (voc[êe] )?acha\??|quer que eu (fa[çc]a|prepare|passe|encaminhe)|posso (passar|encaminhar|preparar)|quer que eu fa[çc]a isso)/i.test(text);
+    const falaDePropostaComercial =
+      /(time comercial|setor comercial|proposta personalizada|cota[çc][aã]o personalizada)/i.test(text);
+    if (pedePermissaoParaEncaminhar && falaDePropostaComercial) {
+      const nomeCliente = clientFirst ? `${clientFirst}, ` : "";
+      text = `${nomeCliente}como não encontrei uma opção pronta compatível, já encaminhei os dados que você passou para o time comercial montar uma proposta personalizada. Assim que estiver pronta, aviso por aqui.`;
+    }
+
 
     // Se as artes REALMENTE saíram, corta qualquer balão em que o modelo
     // inventou falha de envio ("probleminha pra mandar as imagens").
