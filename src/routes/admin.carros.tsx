@@ -520,82 +520,150 @@ function CarCard({
   onSelect: () => void;
   onDetails: () => void;
 }) {
+  const specs = [
+    { icon: Users, label: `${car.passengerCount} passageiros` },
+    { icon: Briefcase, label: `${car.bagCount} malas` },
+    {
+      icon: Cog,
+      label: `${car.transmissionDescription || "Câmbio n/d"}${car.airConditioning ? " / AC" : ""}`,
+    },
+    { icon: Gauge, label: car.unlimitedMileage ? "KM ilimitada" : "KM limitada" },
+  ];
+
   return (
     <article
-      className={`relative overflow-hidden rounded-2xl border bg-card/80 backdrop-blur transition hover:-translate-y-0.5 hover:border-primary/60 ${
-        selected ? "border-primary ring-2 ring-primary/30" : "border-border/70"
+      className={`relative overflow-hidden rounded-[2rem] border bg-card/40 shadow-2xl backdrop-blur-2xl transition ${
+        selected ? "border-primary ring-2 ring-primary/30" : "border-border/50 hover:border-primary/40"
       }`}
     >
-      {cheapest && (
-        <span className="absolute right-0 top-0 z-10 rounded-bl-xl bg-primary px-2 py-1 text-[10px] font-semibold text-primary-foreground">
-          Menor preço
-        </span>
-      )}
-      <div className="flex flex-col gap-4 p-4 sm:flex-row">
-        <div className="flex w-full shrink-0 flex-col items-center gap-2 sm:w-40">
+      <div className="flex flex-col md:flex-row">
+        {/* imagem + locadora */}
+        <div className="flex flex-col items-center justify-center gap-4 border-border/40 bg-foreground/[0.02] p-6 md:w-56 md:border-r">
           {car.imageUrl ? (
-            <img src={car.imageUrl} alt={car.name} loading="lazy" className="h-24 w-full object-contain" />
+            <img
+              src={car.imageUrl}
+              alt={car.name}
+              loading="lazy"
+              className="h-24 w-full rounded-xl object-contain"
+            />
           ) : (
             <Car className="h-12 w-12 text-muted-foreground" />
           )}
-          {car.vendor.logoUrl && (
-            <img src={car.vendor.logoUrl} alt={car.vendor.name} className="h-8 w-auto" />
+          {car.vendor.logoUrl ? (
+            <div className="flex items-center rounded-full border border-border/40 bg-foreground/5 px-3 py-1.5">
+              <img src={car.vendor.logoUrl} alt={car.vendor.name} className="h-4 w-auto opacity-80" />
+            </div>
+          ) : (
+            <span className="rounded-full border border-border/40 bg-foreground/5 px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+              {car.vendor.name}
+            </span>
           )}
         </div>
 
-        <div className="min-w-0 flex-1">
-          <h3 className="text-base font-semibold uppercase">{car.name}</h3>
-          <p className="text-xs text-muted-foreground">
-            {car.categoryDescription}
-            {car.providerCarCode ? ` (${car.providerCarCode})` : ""}
-          </p>
-          <p className="mt-1 flex items-center gap-1 text-xs text-primary">
-            <MapPin className="h-3 w-3" />
-            {car.sameLocation ? "Retirada e devolução" : "Retirada"}: {car.pickup.name}
-          </p>
-          {!car.sameLocation && (
-            <p className="flex items-center gap-1 text-xs text-primary">
-              <MapPin className="h-3 w-3" /> Devolução: {car.dropoff.name}
-            </p>
-          )}
-          <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
-            <span className="flex items-center gap-1">
-              <Users className="h-3 w-3" /> {car.passengerCount} lugares
-            </span>
-            <span className="flex items-center gap-1">
-              <Briefcase className="h-3 w-3" /> {car.bagCount} malas
-            </span>
-            {car.airConditioning && (
-              <span className="flex items-center gap-1">
-                <Snowflake className="h-3 w-3" /> Ar condicionado
+        {/* informações */}
+        <div className="flex-1 p-6">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <h3 className="text-lg font-bold tracking-tight text-foreground">{prettyText(car.name)}</h3>
+              <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                {car.categoryDescription}
+                {car.providerCarCode ? ` • ${car.providerCarCode}` : ""}
+              </p>
+            </div>
+            {cheapest && (
+              <span className="shrink-0 rounded border border-primary/20 bg-primary/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest text-primary">
+                Menor preço
               </span>
             )}
-            <span className="flex items-center gap-1">
-              <Cog className="h-3 w-3" /> {car.transmissionDescription}
-            </span>
-            <span className="flex items-center gap-1">
-              <Gauge className="h-3 w-3" /> {car.unlimitedMileage ? "KM ilimitada" : "KM limitada"}
-            </span>
           </div>
-          {car.coverages[0] && (
-            <p className="mt-2 flex items-center gap-1 text-xs font-medium text-primary">
-              <ShieldCheck className="h-3.5 w-3.5" /> {car.coverages[0].name}
-            </p>
-          )}
-          <Button variant="ghost" size="sm" className="mt-1 h-7 px-2 text-xs" onClick={onDetails}>
-            <ChevronDown className="mr-1 h-3.5 w-3.5" /> Ver todos os detalhes
-          </Button>
+
+          <div className="mt-6 grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
+            {specs.map((s) => (
+              <div key={s.label} className="flex items-center gap-2">
+                <s.icon className="h-4 w-4 shrink-0 text-muted-foreground" />
+                <span className="text-[11px] font-medium text-foreground">{s.label}</span>
+              </div>
+            ))}
+            <div className="flex items-center gap-2 sm:col-span-2">
+              <MapPin className="h-4 w-4 shrink-0 text-muted-foreground" />
+              <span className="truncate text-[11px] font-medium text-muted-foreground">
+                {car.sameLocation ? "Retirada e devolução" : "Retirada"}: {prettyText(car.pickup.name)}
+              </span>
+            </div>
+            {!car.sameLocation && (
+              <div className="flex items-center gap-2 sm:col-span-2">
+                <MapPin className="h-4 w-4 shrink-0 text-muted-foreground" />
+                <span className="truncate text-[11px] font-medium text-muted-foreground">
+                  Devolução: {prettyText(car.dropoff.name)}
+                </span>
+              </div>
+            )}
+          </div>
         </div>
 
-        <div className="flex shrink-0 flex-col items-end justify-between gap-3 text-right">
-          <div>
-            <div className="text-[11px] text-muted-foreground">Preço total</div>
-            <div className="text-xl font-bold text-primary">{fmtMoney(car.finalPrice)}</div>
-            <div className="text-xs text-muted-foreground">{fmtMoney(car.pricePerDay)} /dia</div>
+        {/* preço */}
+        <div className="flex flex-col justify-between border-border/40 bg-primary/[0.03] p-6 md:w-56 md:border-l">
+          <div className="text-right">
+            <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
+              Preço total
+            </p>
+            <p className="mt-0.5 text-xl font-bold text-foreground">{fmtMoney(car.finalPrice)}</p>
+            <p className="mt-0.5 text-[11px] font-semibold text-primary">
+              {fmtMoney(car.pricePerDay)} / dia
+            </p>
           </div>
-          <Button size="sm" variant={selected ? "default" : "outline"} onClick={onSelect}>
+          <Button
+            onClick={onSelect}
+            variant={selected ? "secondary" : "default"}
+            className="mt-6 w-full rounded-2xl py-6 text-[11px] font-bold uppercase tracking-widest shadow-lg shadow-primary/20"
+          >
             {selected ? "Selecionado" : "Selecionar"}
           </Button>
+        </div>
+      </div>
+
+      {/* proteções e termos */}
+      <div className="border-t border-border/40 bg-background/40 p-6">
+        <div className="grid gap-8 md:grid-cols-2">
+          <div>
+            <h4 className="mb-4 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.15em] text-foreground">
+              <span className="h-3 w-1 rounded-full bg-primary" />
+              Proteções incluídas
+            </h4>
+            <ul className="space-y-3">
+              {car.coverages.slice(0, 3).map((c) => (
+                <li key={c.name} className="flex items-center gap-2.5">
+                  <ShieldCheck className="h-3.5 w-3.5 shrink-0 text-primary" />
+                  <span className="text-[11px] text-foreground">{prettyText(c.name)}</span>
+                </li>
+              ))}
+              {car.coverages.length === 0 && (
+                <li className="text-[11px] text-muted-foreground">Sem proteções informadas</li>
+              )}
+            </ul>
+          </div>
+
+          <div className="flex flex-col justify-between">
+            <div>
+              <h4 className="mb-4 text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground">
+                Termos importantes
+              </h4>
+              <p className="line-clamp-3 text-[10px] leading-relaxed text-muted-foreground">
+                {car.guarantees.length > 0
+                  ? car.guarantees.map((g) => prettyText(g.name)).join(" • ")
+                  : car.unlimitedMileage
+                    ? "Quilometragem livre. Caução no cartão do condutor. Condutor com CNH definitiva."
+                    : "Caução no cartão do condutor. Condutor com CNH definitiva."}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={onDetails}
+              className="mt-4 self-start text-[10px] text-muted-foreground underline decoration-border underline-offset-4 transition-colors hover:text-foreground"
+            >
+              Ver todos os detalhes da locadora
+            </button>
+          </div>
         </div>
       </div>
     </article>
