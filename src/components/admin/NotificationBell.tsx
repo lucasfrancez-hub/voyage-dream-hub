@@ -2,13 +2,9 @@ import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { Bell, Check, Copy, Plane, ArrowRight, Send, CheckCheck } from "lucide-react";
+import { Bell, Check, Copy, Plane, ArrowRight, Send, CheckCheck, User, Eye } from "lucide-react";
 import { toast } from "sonner";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   listFlightAlerts,
@@ -27,7 +23,17 @@ function severityColor(sev: string) {
   }
 }
 
+function severityChip(sev: string) {
+  switch (sev) {
+    case "cancelled": return "bg-red-500/10 text-red-400 border-red-500/25";
+    case "major": return "bg-brand-orange/10 text-brand-orange border-brand-orange/25";
+    case "minor": return "bg-yellow-500/10 text-yellow-400 border-yellow-500/25";
+    default: return "bg-blue-500/10 text-blue-400 border-blue-500/25";
+  }
+}
+
 function severityLabel(sev: string) {
+
   switch (sev) {
     case "cancelled": return "Cancelado";
     case "major": return "Alteração maior";
@@ -160,6 +166,8 @@ export function AdminNotificationBell() {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState<AlertRow | null>(null);
+  const [tab, setTab] = useState<"pendentes" | "finalizados">("pendentes");
+
   const [sending, setSending] = useState(false);
 
 
@@ -219,88 +227,195 @@ export function AdminNotificationBell() {
   const info = selected ? diffInfo(selected.oldDepartAt, selected.newDepartAt) : null;
   const arriveInfo = selected ? diffInfo(selected.oldArriveAt, selected.newArriveAt) : null;
 
+  const pendentes = rows.filter((r) => !r.seenAt);
+  const finalizados = rows.filter((r) => !!r.seenAt);
+  const listRows = tab === "pendentes" ? pendentes : finalizados;
+
   return (
     <>
-      <DropdownMenu open={open} onOpenChange={setOpen}>
-        <DropdownMenuTrigger
-          className="relative inline-flex items-center justify-center h-8 w-8 rounded-full border border-border text-muted-foreground hover:text-foreground hover:border-brand-orange transition outline-none"
-          title="Notificações"
-          aria-label="Notificações"
-        >
-          <Bell className="h-4 w-4" />
-          {unseen > 0 && (
-            <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-brand-orange text-[10px] font-bold text-white flex items-center justify-center">
-              {unseen > 99 ? "99+" : unseen}
-            </span>
-          )}
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-[420px] max-w-[92vw] p-0">
-          <div className="flex items-center justify-between border-b border-border px-3 py-2">
-            <span className="text-sm font-semibold">Alertas de voo</span>
-            {unseen > 0 && (
-              <button
-                onClick={handleMarkAll}
-                className="text-[11px] text-brand-orange hover:underline inline-flex items-center gap-1"
-              >
-                <Check className="h-3 w-3" /> Marcar todos
-              </button>
-            )}
+      <button
+        onClick={() => setOpen(true)}
+        className="relative inline-flex items-center justify-center h-8 w-8 rounded-full border border-border text-muted-foreground hover:text-foreground hover:border-brand-orange transition outline-none"
+        title="Notificações"
+        aria-label="Notificações"
+      >
+        <Bell className="h-4 w-4" />
+        {unseen > 0 && (
+          <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-brand-orange text-[10px] font-bold text-white flex items-center justify-center">
+            {unseen > 99 ? "99+" : unseen}
+          </span>
+        )}
+      </button>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-3xl p-0 gap-0 overflow-hidden rounded-2xl border border-white/10 bg-[#0d0d0f] shadow-[0_32px_64px_-16px_rgba(0,0,0,0.7)]">
+          {/* Header */}
+          <DialogHeader className="p-6 border-b border-white/10 space-y-0 text-left">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-brand-orange/10 border border-brand-orange/20 flex items-center justify-center shrink-0">
+                  <Bell className="w-5 h-5 text-brand-orange" />
+                </div>
+                <div>
+                  <DialogTitle className="text-xl font-bold text-zinc-100">
+                    Central de Notificações
+                  </DialogTitle>
+                  <p className="text-[11px] text-zinc-500 uppercase tracking-wider font-semibold">
+                    VIA AIR • Painel Admin
+                  </p>
+                </div>
+              </div>
+              {unseen > 0 && (
+                <button
+                  onClick={handleMarkAll}
+                  className="text-xs font-medium text-zinc-400 hover:text-brand-orange transition-colors flex items-center gap-2 px-3 py-1.5 rounded-full hover:bg-white/5 mr-8"
+                >
+                  <span className="hidden sm:inline">Marcar todas como lidas</span>
+                  <CheckCheck className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+          </DialogHeader>
+
+          {/* Tabs */}
+          <div className="flex border-b border-white/10 px-6">
+            <button
+              onClick={() => setTab("pendentes")}
+              className={`relative px-4 py-3.5 text-sm font-medium transition-colors ${
+                tab === "pendentes" ? "text-brand-orange" : "text-zinc-500 hover:text-zinc-300"
+              }`}
+            >
+              Pendentes
+              {pendentes.length > 0 && (
+                <span className="ml-2 px-2 py-0.5 bg-brand-orange text-white text-[10px] rounded-full font-bold">
+                  {pendentes.length}
+                </span>
+              )}
+              {tab === "pendentes" && (
+                <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-brand-orange" />
+              )}
+            </button>
+            <button
+              onClick={() => setTab("finalizados")}
+              className={`relative px-6 py-3.5 text-sm font-medium transition-colors ${
+                tab === "finalizados" ? "text-brand-orange" : "text-zinc-500 hover:text-zinc-300"
+              }`}
+            >
+              Finalizados
+              {tab === "finalizados" && (
+                <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-brand-orange" />
+              )}
+            </button>
           </div>
-          <div className="max-h-[70vh] overflow-y-auto">
+
+          {/* Lista */}
+          <div className="overflow-y-auto max-h-[55vh] bg-black/30">
             {q.isLoading ? (
-              <div className="p-6 text-center text-xs text-muted-foreground">Carregando…</div>
-            ) : rows.length === 0 ? (
-              <div className="p-6 text-center text-xs text-muted-foreground">
-                Nenhuma alteração de voo nos últimos 30 dias.
+              <div className="p-10 text-center text-xs text-zinc-500">Carregando…</div>
+            ) : listRows.length === 0 ? (
+              <div className="p-12 text-center">
+                <Plane className="w-7 h-7 text-zinc-700 mx-auto mb-3" />
+                <p className="text-sm text-zinc-500">
+                  {tab === "pendentes"
+                    ? "Nenhuma notificação pendente."
+                    : "Nenhuma notificação finalizada nos últimos 30 dias."}
+                </p>
               </div>
             ) : (
-              <ul className="divide-y divide-border">
-                {rows.map((r) => (
-                  <li
-                    key={r.id}
-                    className={`px-3 py-2.5 text-xs transition cursor-pointer hover:bg-muted/50 ${
-                      r.seenAt ? "opacity-80" : "bg-brand-orange/[0.04]"
-                    }`}
-                    onClick={() => openAlert(r)}
-                  >
-                    <div className="flex items-start gap-2">
-                      <span className={`mt-1 h-2 w-2 rounded-full shrink-0 ${severityColor(r.severity)}`} />
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-1.5 text-foreground font-medium">
-                          <Plane className="h-3 w-3 shrink-0" />
-                          <span className="truncate">{r.flightNumber}</span>
-                          <span className="text-muted-foreground font-normal">•</span>
-                          <span className="text-brand-orange truncate">
-                            #{r.orderNumber || r.orderId.slice(0, 8)}
+              listRows.map((r) => (
+                <div
+                  key={r.id}
+                  onClick={() => openAlert(r)}
+                  className="group p-5 border-b border-white/5 last:border-b-0 hover:bg-white/[0.03] transition-all cursor-pointer"
+                >
+                  <div className="flex gap-4">
+                    <span
+                      className={`mt-2 h-3 w-3 rounded-full shrink-0 ${severityColor(r.severity)} ${
+                        r.seenAt ? "opacity-50" : "animate-pulse"
+                      }`}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex justify-between items-start gap-3 mb-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded border uppercase ${severityChip(r.severity)}`}>
+                            {severityLabel(r.severity)}
+                          </span>
+                          <span className="text-sm font-bold text-zinc-200 inline-flex items-center gap-1.5">
+                            <Plane className="w-3.5 h-3.5 text-zinc-500" />
+                            Voo {r.flightNumber}
+                          </span>
+                          <span className="text-xs text-zinc-500">
+                            • Pedido #{r.orderNumber || r.orderId.slice(0, 8)}
                           </span>
                         </div>
-                        <p className="mt-0.5 text-muted-foreground line-clamp-2">{r.summary}</p>
-                        <div className="mt-1 text-[10px] text-muted-foreground">
-                          {r.customerName} · {fmtRelative(r.createdAt)}
+                        <span className="text-xs text-zinc-500 shrink-0">{fmtRelative(r.createdAt)}</span>
+                      </div>
+
+                      <p className="text-sm text-zinc-300 leading-relaxed">{r.summary}</p>
+
+                      {r.response && (
+                        <div className="mt-3 p-3 bg-white/[0.03] rounded-lg border-l-2 border-brand-orange">
+                          <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-wide">
+                            Resposta do cliente
+                          </p>
+                          <p className="text-xs text-zinc-300 italic mt-0.5">"{r.response}"</p>
                         </div>
-                        {r.response && (
-                          <div className="mt-1 text-[10px] font-medium text-brand-orange">
-                            Cliente respondeu: {r.response}
-                          </div>
+                      )}
+
+                      <div className="mt-2 text-xs text-zinc-400 flex items-center gap-1.5">
+                        <User className="w-3 h-3" />
+                        {r.customerName}
+                        {r.autoSent && (
+                          <span className="ml-2 text-[10px] text-emerald-400/80 inline-flex items-center gap-1">
+                            <Send className="w-3 h-3" /> enviado ao cliente
+                          </span>
                         )}
                       </div>
+                    </div>
+
+                    <div className="flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                       {!r.seenAt && (
                         <button
                           onClick={(e) => { e.stopPropagation(); handleMarkOne(r.id); }}
-                          title="Marcar como lido"
-                          className="text-muted-foreground hover:text-foreground shrink-0"
+                          title="Marcar como lida"
+                          className="p-2 bg-white/5 text-zinc-400 hover:text-brand-orange rounded-lg border border-white/10 hover:border-brand-orange/30 transition-all"
                         >
-                          <Check className="h-3.5 w-3.5" />
+                          <Check className="w-4 h-4" />
                         </button>
                       )}
+                      <button
+                        onClick={(e) => { e.stopPropagation(); openAlert(r); }}
+                        title="Ver detalhes"
+                        className="p-2 bg-white/5 text-zinc-400 hover:text-white rounded-lg border border-white/10 hover:border-white/25 transition-all"
+                      >
+                        <Eye className="w-4 h-4" />
+                      </button>
                     </div>
-                  </li>
-                ))}
-              </ul>
+                  </div>
+                </div>
+              ))
             )}
           </div>
-        </DropdownMenuContent>
-      </DropdownMenu>
+
+          {/* Footer */}
+          <div className="p-4 border-t border-white/10 flex justify-end gap-3 bg-white/[0.02]">
+            <button
+              onClick={() => setOpen(false)}
+              className="px-6 py-2 text-sm font-semibold text-zinc-400 hover:text-white transition-colors"
+            >
+              Fechar
+            </button>
+            <Link
+              to="/admin/pedidos"
+              onClick={() => setOpen(false)}
+              className="px-6 py-2 bg-brand-orange hover:brightness-110 text-white text-sm font-bold rounded-lg transition-all shadow-lg shadow-brand-orange/20"
+            >
+              Ver pedidos
+            </Link>
+          </div>
+        </DialogContent>
+      </Dialog>
+
 
       <Dialog open={!!selected} onOpenChange={(o) => !o && setSelected(null)}>
         <DialogContent className="max-w-[560px] p-0 overflow-hidden bg-[#0A0A0A] border border-white/10 rounded-3xl shadow-[0_32px_64px_-16px_rgba(0,0,0,0.6)]">
