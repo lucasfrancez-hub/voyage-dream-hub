@@ -203,7 +203,10 @@ export const onerHotelSearch = createServerFn({ method: "POST" })
       page: data.page,
       totalPerPage: data.perPage,
       filters: {
-        hotelName: data.hotelName,
+        // Quando o usuário escolhe um hotel específico no autocomplete (type 3),
+        // a operadora ainda devolve a cidade inteira: filtramos pelo nome dele.
+        hotelName: data.hotelName || (data.pointType === 3 ? data.cityName : ""),
+
         stars: data.stars,
         priceBegin: data.priceBegin,
         priceEnd: data.priceEnd,
