@@ -456,7 +456,8 @@ function HotelSummaryDialog({
   open,
   onOpenChange,
   hotel,
-  rate,
+  rate: baseRate,
+
   nights,
   rooms,
   checkIn,
