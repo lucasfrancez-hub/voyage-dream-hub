@@ -209,22 +209,42 @@ export function buildCamilaTools(conversation: WaConversation, scope: ToolProtoc
         if (scope.protocolId) {
           const { data: currentInbound } = await supabaseAdmin
             .from("wa_messages")
-            .select("content")
+            .select("content, created_at")
             .eq("protocolo_id", scope.protocolId)
             .eq("direction", "inbound")
             .eq("sender", "customer")
-            .order("created_at", { ascending: true })
-            .limit(20);
+            .order("created_at", { ascending: false })
+            .limit(50);
           const said = (currentInbound ?? [])
             .map((m) => String(m.content ?? ""))
             .join(" ")
             .toLocaleLowerCase("pt-BR");
-          const confirmedFlightOnly = [
+          let confirmedFlightOnly = [
             /\bs[oó] (?:o )?(?:a[eé]reo|voo|passagem|passagens)\b/,
             /\b(?:somente|apenas) (?:o )?(?:a[eé]reo|voo|passagem|passagens)\b/,
             /\b(?:n[aã]o|sem) (?:preciso de |quero )?(?:hotel|hospedagem|pacote)\b/,
             /\b(?:a[eé]reo|voo|passagem|passagens) (?:somente|apenas)\b/,
           ].some((pattern) => pattern.test(said));
+          // Aceita uma resposta curta afirmativa somente quando ela responde
+          // diretamente à pergunta de triagem feita no balão anterior.
+          if (!confirmedFlightOnly) {
+            const latestInbound = String(currentInbound?.[0]?.content ?? "").trim();
+            const inboundAt = currentInbound?.[0]?.created_at;
+            if (inboundAt && /^(sim|isso|isso mesmo|exato|correto|s[oó] isso|pode ser)(?:[.!?]+)?$/iu.test(latestInbound)) {
+              const { data: previousOutbound } = await supabaseAdmin
+                .from("wa_messages")
+                .select("content")
+                .eq("protocolo_id", scope.protocolId)
+                .eq("direction", "outbound")
+                .neq("sender", "system")
+                .lt("created_at", inboundAt)
+                .order("created_at", { ascending: false })
+                .limit(3);
+              confirmedFlightOnly = (previousOutbound ?? []).some((message) =>
+                /s[oó] (?:o )?a[eé]reo|viagem com hospedagem|pacote completo/iu.test(String(message.content ?? "")),
+              );
+            }
+          }
           if (!confirmedFlightOnly) {
             return {
               triagem_pendente: true,
