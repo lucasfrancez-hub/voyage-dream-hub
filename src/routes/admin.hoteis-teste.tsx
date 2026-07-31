@@ -782,6 +782,18 @@ function HotelSummaryDialog({
                           const r = await cartMut.mutateAsync();
                           return r.url;
                         },
+                        hotelBooking: {
+                          searchKey: activeSearchKey,
+                          hotelId: hotel.hotelId,
+                          rateKeys: [rate.key],
+                          pointId: point?.id ?? "",
+                          pointType: point?.type ?? 1,
+                          checkIn,
+                          checkOut,
+                          adults,
+                          children,
+                          rooms,
+                        },
                       });
                       onOpenChange(false);
                     }}

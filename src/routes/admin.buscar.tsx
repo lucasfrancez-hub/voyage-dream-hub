@@ -7,6 +7,8 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { VoosPage, NewOrderFromFlightsDialog } from "./admin.voos-teste";
 import type { ComboPick } from "@/lib/combo-selection";
+import { useServerFn } from "@tanstack/react-start";
+import { onerCreateComboCart } from "@/lib/onertravel-combo.functions";
 import { HoteisPage } from "./admin.hoteis-teste";
 import { CarrosPage } from "./admin.carros";
 import { DateRangeField } from "@/components/search/DateRangeField";
@@ -257,11 +259,22 @@ function BuscarPage() {
   const comboTotal = (flightPick?.total ?? 0) + (hotelPick?.total ?? 0);
   const comboSummary = [flightPick?.summary, hotelPick?.summary].filter(Boolean).join("\n\n");
 
+  const createComboCart = useServerFn(onerCreateComboCart);
+
   async function buyCombo() {
     setBuying(true);
     setCartLinks([]);
     const links: { label: string; url: string }[] = [];
     try {
+      // Aéreo + hotel juntos: UM único carrinho /viaair/combined/cart
+      if (flightPick?.flightBooking && hotelPick?.hotelBooking) {
+        const r = await createComboCart({
+          data: { flight: flightPick.flightBooking, hotel: hotelPick.hotelBooking },
+        });
+        setCartLinks([{ label: "Aéreo + Hotel", url: r.url }]);
+        toast.success("Carrinho do Comprar Viagem gerado");
+        return;
+      }
       if (flightPick) links.push({ label: "A\u00e9reo", url: await flightPick.buy() });
       if (hotelPick) links.push({ label: "Hospedagem", url: await hotelPick.buy() });
       setCartLinks(links);
