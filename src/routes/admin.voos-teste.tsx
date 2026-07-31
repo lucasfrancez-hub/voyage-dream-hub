@@ -44,6 +44,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Slider } from "@/components/ui/slider";
 import { AirportAutocomplete } from "@/components/search/AirportAutocomplete";
 import { DateRangeField } from "@/components/search/DateRangeField";
+import { SearchSkeleton } from "@/components/search/SearchSkeleton";
 import { installmentLabel, maxInstallments } from "@/lib/flight-installments";
 import {
   onerCreateFlightCart,

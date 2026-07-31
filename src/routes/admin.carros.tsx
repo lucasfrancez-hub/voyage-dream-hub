@@ -26,6 +26,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { DateRangeField } from "@/components/search/DateRangeField";
+import { SearchSkeleton } from "@/components/search/SearchSkeleton";
 import { onerCarLocations, onerCarSearch, onerCreateCarCart } from "@/lib/onertravel-cars.functions";
 import type {
   OnerCar,
