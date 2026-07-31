@@ -249,17 +249,13 @@ export function buildCamilaTools(conversation: WaConversation, scope: ToolProtoc
         const desdeRecente = new Date(Date.now() - 45 * 60 * 1000).toISOString();
         const { data: recentes } = await supabaseAdmin
           .from("wa_flight_quotes")
-          .select("id, payload, cards_sent_at")
+          .select("id, payload, cards_sent_at, created_at")
           .eq("conversation_id", conversation.id)
           .gte("created_at", desdeRecente)
           .order("created_at", { ascending: false })
           .limit(5);
         const recentesDoProtocolo = scope.openedAt
-          ? (recentes ?? []).filter((r) => {
-              const payload = (r.payload ?? {}) as Record<string, unknown>;
-              const quoteCreatedAt = String(payload.created_at ?? "");
-              return !quoteCreatedAt || quoteCreatedAt >= scope.openedAt!;
-            })
+          ? (recentes ?? []).filter((r) => String(r.created_at ?? "") >= scope.openedAt)
           : recentes ?? [];
         for (const r of recentesDoProtocolo) {
           const p = (r.payload ?? {}) as Record<string, unknown>;
@@ -343,11 +339,13 @@ export function buildCamilaTools(conversation: WaConversation, scope: ToolProtoc
         let rowId: string | null = null;
         let row: { payload: unknown; created_at?: string } | null = null;
         if (quote_id) {
-          const { data } = await supabaseAdmin
+          let quoteQuery = supabaseAdmin
             .from("wa_flight_quotes")
             .select("id, payload, created_at")
             .eq("id", quote_id)
-            .maybeSingle();
+            .eq("conversation_id", conversation.id);
+          if (scope.openedAt) quoteQuery = quoteQuery.gte("created_at", scope.openedAt);
+          const { data } = await quoteQuery.maybeSingle();
           row = data ?? null;
           rowId = data?.id ?? null;
         }
