@@ -238,16 +238,23 @@ export function buildCamilaTools(conversation: WaConversation) {
           .string()
           .nullable()
           .describe("Legenda curta da primeira imagem, ex: 'Opção 1 — voo direto'"),
+        reenviar: z
+          .boolean()
+          .nullable()
+          .describe(
+            "true SOMENTE quando o cliente disser que não recebeu as imagens. Nos demais casos deixe null — opções já enviadas nesta cotação não são reenviadas.",
+          ),
       }),
-      execute: async ({ quote_id, opcoes, legenda }) => {
+
+      execute: async ({ quote_id, opcoes, legenda, reenviar }) => {
         // Busca pelo id informado; se o modelo perdeu/errou o quote_id (comum
         // quando o cliente pede as fotos de novo em outro turno), cai pra
         // última cotação desta conversa em vez de falhar.
-        let row: { payload: unknown } | null = null;
+        let row: { payload: unknown; created_at?: string } | null = null;
         if (quote_id) {
           const { data } = await supabaseAdmin
             .from("wa_flight_quotes")
-            .select("payload")
+            .select("payload, created_at")
             .eq("id", quote_id)
             .maybeSingle();
           row = data ?? null;
@@ -255,7 +262,7 @@ export function buildCamilaTools(conversation: WaConversation) {
         if (!row?.payload) {
           const { data } = await supabaseAdmin
             .from("wa_flight_quotes")
-            .select("payload")
+            .select("payload, created_at")
             .eq("conversation_id", conversation.id)
             .order("created_at", { ascending: false })
             .limit(1)
@@ -277,7 +284,45 @@ export function buildCamilaTools(conversation: WaConversation) {
         const { saveMessage } = await import("./conversation.server");
 
         const enviados: Array<{ opcao: number; ok: boolean; erro?: string }> = [];
-        const alvo = (opcoes.length ? opcoes : quote.opcoes.map((o) => o.opcao)).slice(0, 4);
+        let alvo = (opcoes.length ? opcoes : quote.opcoes.map((o) => o.opcao)).slice(0, 4);
+
+        // Anti-repetição: não reenvia arte de opção que já foi entregue para
+        // esta MESMA cotação (a IA às vezes chama a tool de novo no turno
+        // seguinte e o cliente recebia tudo duplicado).
+        let jaEnviadas: number[] = [];
+        if (row.created_at) {
+          const { data: msgs } = await supabaseAdmin
+            .from("wa_messages")
+            .select("content")
+            .eq("conversation_id", conversation.id)
+            .eq("direction", "outbound")
+            .gte("created_at", row.created_at)
+            .not("wa_message_id", "is", null)
+            .limit(60);
+          jaEnviadas = Array.from(
+            new Set(
+              (msgs ?? [])
+                .map((m) => String((m as { content?: string }).content ?? ""))
+                .filter((c) => c.includes("[[media:image"))
+                .map((c) => c.match(/Op[çc][ãa]o\s+(\d+)/i)?.[1])
+                .filter(Boolean)
+                .map((n) => Number(n)),
+            ),
+          );
+        }
+        if (!reenviar && jaEnviadas.length) {
+          const restantes = alvo.filter((n) => !jaEnviadas.includes(n));
+          if (!restantes.length) {
+            return {
+              enviados: [],
+              ja_enviadas: jaEnviadas,
+              instrucao:
+                "Essas opções JÁ foram enviadas nesta cotação — não reenvie nem repita os voos em texto. Só faça um comentário curto perguntando qual delas agradou mais ou se quer que eu veja outros horários.",
+            };
+          }
+          alvo = restantes;
+        }
+
 
         // Renderiza TODAS as artes em paralelo (antes era uma de cada vez).
         const artes = await Promise.all(

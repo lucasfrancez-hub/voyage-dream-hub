@@ -1,25 +1,17 @@
 /**
- * Parcelamento máximo no cartão por companhia aérea (regra da operadora).
- * O portal mostra "até 12x" genérico, mas o parcelamento real obedece a cia.
+ * Parcelamento por companhia aérea — delega para a tabela oficial em
+ * `airline-installments.ts` (teto sem juros + parcela mínima de cada cia).
  */
-const RULES: Array<{ match: RegExp; max: number }> = [
-  { match: /latam|tam\b/i, max: 4 },
-  { match: /\bgol\b/i, max: 5 },
-  { match: /azul/i, max: 5 },
-];
-
-const IATA: Record<string, number> = { LA: 4, JJ: 4, G3: 5, AD: 5 };
+import { airlineRule, bestInstallments } from "./airline-installments";
 
 export function maxInstallments(airline?: { iata?: string; name?: string } | null): number {
-  const iata = (airline?.iata ?? "").toUpperCase();
-  if (IATA[iata]) return IATA[iata];
-  const name = airline?.name ?? "";
-  for (const r of RULES) if (r.match.test(name)) return r.max;
-  return 4; // fallback conservador para cias sem regra específica
+  const key = airline?.name || airline?.iata || "";
+  return airlineRule(key).max;
 }
 
 export function installmentLabel(total: number, airline?: { iata?: string; name?: string } | null) {
-  const n = maxInstallments(airline);
-  const value = total / n;
-  return `${n}x de ${value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} sem juros`;
+  const key = airline?.name || airline?.iata || "";
+  const { parcelas, valor } = bestInstallments(total, key);
+  const brl = valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  return parcelas <= 1 ? `à vista ${total.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}` : `${parcelas}x de ${brl} sem juros`;
 }
