@@ -636,8 +636,17 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
       .maybeSingle();
 
     // Envia exatamente os mesmos balões que foram salvos (já com o prefixo).
+    // Grava o ID de CADA balão na hora: se o worker for cortado no meio da
+    // sequência, o varredor de reenvio sabe exatamente o que faltou entregar.
+    const { setWaMessageId: setWaIdNow, setSendError: setErrNow } = await import("./conversation.server");
     const sent = await sendWhatsAppBubbles(conv.wa_phone, text, prefix, {
       typingId: (lastInbound?.wa_message_id as string | null) ?? null,
+      onSent: async (i, res) => {
+        const rowId = savedRowIds[i];
+        if (!rowId) return;
+        if (res.id) await setWaIdNow(rowId, res.id);
+        else await setErrNow(rowId, res.error ?? "Não entregue pelo WhatsApp");
+      },
     });
 
 
