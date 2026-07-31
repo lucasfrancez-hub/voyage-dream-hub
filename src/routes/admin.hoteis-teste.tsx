@@ -797,39 +797,24 @@ export function HoteisPage({
               )}
 
 
-              {selectedEntry && selectedRate && (
-                <div className="sticky bottom-4 z-10 rounded-2xl border border-primary/40 bg-card/95 p-5 shadow-[var(--shadow-card)] backdrop-blur">
-                  <div className="mb-3 text-sm font-semibold">Resumo da hospedagem</div>
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <div className="space-y-1 text-sm">
-                      <div className="font-medium">{selectedEntry.h.name}</div>
-                      <div className="text-muted-foreground">{selectedRate.name}</div>
-                      <div className="text-muted-foreground">
-                        {selectedRate.mealPlanLabel} •{" "}
-                        {selectedRate.refundable ? "Reembolsável" : "Não reembolsável"}
-                      </div>
-                      <div className="text-muted-foreground">
-                        {form.checkIn.split("-").reverse().join("/")} a{" "}
-                        {form.checkOut.split("-").reverse().join("/")} • {nights} noite(s) • {form.rooms} quarto(s)
-                      </div>
-                    </div>
-                    <div className="space-y-1 rounded-xl border border-border/60 bg-background/50 p-4 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Diária média</span>
-                        <span>{fmtMoney(selectedRate.price.totalPerNight)}</span>
-                      </div>
-                      <Separator className="my-2" />
-                      <div className="flex items-end justify-between">
-                        <span className="font-semibold">Total da hospedagem</span>
-                        <span className="text-2xl font-bold text-primary">
-                          {fmtMoney(selectedRate.price.total)}
-                        </span>
-                      </div>
-                      <div className="text-xs text-muted-foreground">Taxas e impostos inclusos</div>
-                    </div>
-                  </div>
-                </div>
-              )}
+              <HotelSummaryDialog
+                open={summaryOpen && !!selectedEntry && !!selectedRate}
+                onOpenChange={setSummaryOpen}
+                hotel={selectedEntry?.h ?? null}
+                rate={selectedRate}
+                nights={nights}
+                rooms={form.rooms}
+                checkIn={form.checkIn}
+                checkOut={form.checkOut}
+                adults={form.adults * form.rooms}
+                children={form.children * form.rooms}
+                point={point}
+                searchKey={result.searchKey}
+                onChangeRate={(key) =>
+                  selectedEntry && setSelected({ hotelId: selectedEntry.h.hotelId, rateKey: key })
+                }
+              />
+
             </div>
           </div>
         )}
