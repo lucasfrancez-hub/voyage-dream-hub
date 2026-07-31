@@ -1301,6 +1301,7 @@ export function HoteisPage({
                 onChangeRate={(key) =>
                   selectedEntry && setSelected({ hotelId: selectedEntry.h.hotelId, rateKey: key })
                 }
+                onComboSelect={onComboSelect}
               />
 
             </div>
