@@ -403,7 +403,7 @@ function HotelCard({
           <Button
             variant="ghost"
             size="sm"
-            className="mt-2 h-7 px-2 text-xs"
+            className={`mt-2 h-7 px-2 text-xs ${readOnly ? "hidden" : ""}`}
             onClick={() => (h.rates.length > 1 ? setOpenRooms((v) => !v) : onSelect(rate.key))}
           >
             {h.rates.length > 1
@@ -443,15 +443,17 @@ function HotelCard({
             </div>
             <div className="text-[11px] text-muted-foreground">Taxas e impostos inclusos</div>
           </div>
-          <Button size="sm" variant={selected ? "default" : "outline"} onClick={() => onSelect(rate.key)}>
-            {selected ? (
-              <>
-                <Check className="mr-1 h-3.5 w-3.5" /> Selecionado
-              </>
-            ) : (
-              "Selecionar"
-            )}
-          </Button>
+          {!readOnly && (
+            <Button size="sm" variant={selected ? "default" : "outline"} onClick={() => onSelect(rate.key)}>
+              {selected ? (
+                <>
+                  <Check className="mr-1 h-3.5 w-3.5" /> Selecionado
+                </>
+              ) : (
+                "Selecionar"
+              )}
+            </Button>
+          )}
         </div>
       </div>
     </article>
@@ -780,6 +782,17 @@ function HotelSummaryDialog({
                         title: `${hotel.name} \u2022 ${rate.name}`,
                         summary: summaryText,
                         total: rate.price.total,
+                        card: (
+                          <HotelCard
+                            h={hotel}
+                            rate={rate}
+                            nights={nights}
+                            selected={false}
+                            cheapest={false}
+                            readOnly
+                            onSelect={() => {}}
+                          />
+                        ),
                         buy: async () => {
                           const r = await cartMut.mutateAsync();
                           return r.url;
