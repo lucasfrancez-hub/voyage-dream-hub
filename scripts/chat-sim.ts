@@ -140,11 +140,12 @@ const tools = {
 };
 
 // ---------------- pipeline igual ao agent-runner --------------------------
-function pipeline(rawText: string, jaFalouAntes: boolean, cardsEntregues = false) {
+function pipeline(rawText: string, jaFalouAntes: boolean, cardsEntregues = false, roboPrefix = "") {
   const clientFirst = firstName(CLIENTE);
   let text = capitalizeKnownNames(capitalizeBubbles(fixGluedSentences(rawText)), [clientFirst]);
   text = stripAgentSignature(text, AGENT.nome);
   if (cardsEntregues) text = stripTextFlightList(stripFakeImageFailure(text));
+  if (roboPrefix) text = `${roboPrefix}\n\n${text}`;
   if (jaFalouAntes) text = stripReintroBubbles(text);
   text = mergeQuestionBubbles(text);
   const prefix = buildSenderPrefix(AGENT.nome);
@@ -196,10 +197,10 @@ async function main() {
     const pediuReenvio = /(n[aã]o (recebi|chegou|veio)|manda(r)? de novo|reenvia)/i.test(userMsg);
     const cardsTurno = usadas.some((t) => t.name === "enviar_cartao_voo") ||
       usadas.some((t) => t.name === "cotar_aereo") ||
-      (pediuReenvio && cardsSent.length > 0);
+      cardsSent.length > 0;
       let { bubbles } = pipeline(raw, entregues > 0, cardsTurno);
     if (/voc[êe] [ée] um rob[ôo]/i.test(userMsg) && !new RegExp("sou " + AGENT.nome, "i").test(bubbles.join(" "))) {
-      bubbles = pipeline(`Sou ${AGENT.nome}, do time da VIA AIR — quem tá te atendendo aqui sou eu 😊\n\n${raw}`, entregues > 0, cardsTurno).bubbles;
+      bubbles = pipeline(raw, entregues > 0, cardsTurno, `Sou ${AGENT.nome}, do time da VIA AIR — quem tá te atendendo aqui sou eu 😊`).bubbles;
     }
     bubbles.forEach((b, i) => console.log(`💬 [${i + 1}] ${b.replace(/\n/g, "\n      ")}`));
     entregues += bubbles.length;

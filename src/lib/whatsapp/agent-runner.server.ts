@@ -467,7 +467,21 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
 
     // Se as artes REALMENTE saíram, corta qualquer balão em que o modelo
     // inventou falha de envio ("probleminha pra mandar as imagens").
-    if (cardsEntregues) text = stripTextFlightList(stripFakeImageFailure(text));
+    // Se já existe qualquer arte entregue neste protocolo, o modelo NUNCA pode
+    // listar voos em texto (ele inventa horários e valores).
+    let jaTemCards = cardsEntregues;
+    if (!jaTemCards) {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const { data: comCards } = await supabaseAdmin
+        .from("wa_flight_quotes")
+        .select("id")
+        .eq("conversation_id", conv.id)
+        .eq("protocolo_id", protocolo.id)
+        .not("cards_sent_at", "is", null)
+        .limit(1);
+      jaTemCards = Boolean(comCards?.length);
+    }
+    if (jaTemCards) text = stripTextFlightList(stripFakeImageFailure(text));
 
     // "Você é um robô?" — resposta determinística: alguns modelos ignoram a
     // pergunta e repetem a etapa anterior, o que denuncia automação.
