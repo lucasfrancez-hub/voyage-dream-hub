@@ -17,7 +17,7 @@ import {
 } from "./conversation.server";
 import { buildCamilaTools } from "./tools.server";
 import { sendWhatsAppBubbles } from "./send.server";
-import { buildSenderPrefix, capitalizeBubbles, capitalizeKnownNames, fixGluedSentences, firstName as extractFirstName } from "./text-utils.server";
+import { buildSenderPrefix, capitalizeBubbles, capitalizeKnownNames, fixGluedSentences, mergeQuestionBubbles, stripReintroBubbles, firstName as extractFirstName } from "./text-utils.server";
 import { buildSharedAgentPrompt } from "@/lib/chat/camila-prompt";
 import { isCompanyDataBlocked } from "./data-blocklist";
 
@@ -421,7 +421,22 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
     // Garante primeira letra maiúscula em cada balão (o modelo escreve tudo minúsculo)
     // e capitaliza o primeiro nome do cliente sempre que aparecer no meio do texto.
     const clientFirst = extractFirstName(conv.display_name);
-    const text = capitalizeKnownNames(capitalizeBubbles(fixGluedSentences(rawText)), [clientFirst]);
+    // Já existe mensagem nossa neste atendimento? Então nada de saudação/
+    // apresentação de novo, nem prefixo "*Roberto:*" em toda mensagem.
+    let jaFalouAntes = false;
+    try {
+      const { count } = await supabaseAdmin
+        .from("wa_messages")
+        .select("id", { count: "exact", head: true })
+        .eq("conversation_id", conv.id)
+        .eq("direction", "outbound")
+        .in("sender", ["camila", "agent", "human"]);
+      jaFalouAntes = (count ?? 0) > 0;
+    } catch { /* noop */ }
+
+    let text = capitalizeKnownNames(capitalizeBubbles(fixGluedSentences(rawText)), [clientFirst]);
+    if (jaFalouAntes) text = stripReintroBubbles(text);
+    text = mergeQuestionBubbles(text);
 
     const toolCallsSummary = result.steps
       ?.flatMap((s) => s.toolCalls ?? [])
@@ -514,7 +529,9 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
         .eq("id", conv.id);
     }
 
-    const prefix = buildSenderPrefix(agent.nome);
+    // Prefixo "*Roberto:*" só na PRIMEIRA mensagem do atendimento (assinar toda
+    // mensagem deixa robótico).
+    const prefix = jaFalouAntes ? null : buildSenderPrefix(agent.nome);
     const sent = await sendWhatsAppBubbles(conv.wa_phone, text, prefix);
     const failed = sent.filter((s) => s.error);
     if (failed.length > 0) console.error(`[agent:${agent.slug}] falha ao enviar:`, failed);
