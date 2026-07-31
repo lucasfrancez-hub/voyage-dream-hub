@@ -188,27 +188,27 @@ export async function ensureActiveProtocolo(conversationId: string): Promise<WaP
     .select("*")
     .single();
   if (error || !created) {
-    // Outra execução pode ter criado o protocolo entre a leitura e o INSERT.
-    // Nesse caso usamos o vencedor, em vez de abrir dois atendimentos.
-    if (error?.code === "23505") {
-      const { data: winner, error: winnerError } = await supabaseAdmin
-        .from("wa_protocolos")
-        .select("*")
-        .eq("conversation_id", conversationId)
-        .eq("status", "aberto")
-        .order("opened_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      if (winner && !winnerError) {
-        await supabaseAdmin
-          .from("wa_conversations")
-          .update({ protocolo_ativo_id: winner.id })
-          .eq("id", conversationId);
-        return winner as WaProtocolo;
-      }
+    // Qualquer falha na criação (corrida com outra execução, índice único,
+    // etc.): adota o protocolo aberto que existir, em vez de derrubar o
+    // atendimento inteiro. Só desiste se realmente não houver nenhum.
+    const { data: winner } = await supabaseAdmin
+      .from("wa_protocolos")
+      .select("*")
+      .eq("conversation_id", conversationId)
+      .eq("status", "aberto")
+      .order("opened_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (winner) {
+      await supabaseAdmin
+        .from("wa_conversations")
+        .update({ protocolo_ativo_id: winner.id })
+        .eq("id", conversationId);
+      return winner as WaProtocolo;
     }
     throw new Error(`create protocolo: ${error?.message}`);
   }
+
   await supabaseAdmin
     .from("wa_conversations")
     // Protocolo NOVO: nunca herda o agente do protocolo anterior.
