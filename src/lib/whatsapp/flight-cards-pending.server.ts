@@ -92,50 +92,42 @@ export async function sendPendingFlightCards(
   const opcoes = todas.filter((o) => !jaFps.has(fingerprint(o)));
   if (!opcoes.length) return { sent: 0, quote_id: row.id as string };
 
-  const { buildFlightCardData, renderFlightCardAssetRetry, mapWithLimit } = await import("./flight-card.server");
+  const { buildFlightCardData, renderFlightCardAssetRetry } = await import("./flight-card.server");
   const { buildFlightOptionCaption } = await import("./flight-caption.server");
   const { sendWhatsAppImageBytes } = await import("./send.server");
   const { saveMessage } = await import("./conversation.server");
 
-  // Lotes de 2 + nova tentativa: o Browserless recusa muitas sessões juntas.
-  const artes = await mapWithLimit(opcoes, 2, async (op) => {
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const data = buildFlightCardData(quote as any, op as any);
-      return { op, asset: await renderFlightCardAssetRetry(data) };
-    } catch {
-      return { op, asset: null };
-    }
-  });
-
   let sent = 0;
   let falhou = false;
   const novosFps: string[] = [];
-  for (const arte of artes) {
-    if (!arte.asset) {
-      falhou = true;
-      continue;
-    }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const caption = buildFlightOptionCaption(quote as any, arte.op as any);
+  const INTERVALO_MS = 12_000; // uma opção por vez, intervalo curto (< 1 min)
+
+  for (let i = 0; i < opcoes.length; i++) {
+    const op = opcoes[i];
+    if (i > 0) await new Promise((r) => setTimeout(r, INTERVALO_MS));
     try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const data = buildFlightCardData(quote as any, op as any);
+      const asset = await renderFlightCardAssetRetry(data);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const caption = buildFlightOptionCaption(quote as any, op as any);
       const r = await sendWhatsAppImageBytes(
         waPhone,
-        arte.asset.bytes,
-        arte.asset.filename,
+        asset.bytes,
+        asset.filename,
         caption,
-        arte.asset.url,
+        asset.url,
       );
       if (!r.error && r.id) {
         await saveMessage({
           conversation_id: conversationId,
           direction: "outbound",
           sender: "camila",
-          content: `[[media:image|${arte.asset.url}|${arte.asset.filename}]]\n${caption}`,
+          content: `[[media:image|${asset.url}|${asset.filename}]]\n${caption}`,
           wa_message_id: r.id,
         });
         sent++;
-        novosFps.push(fingerprint(arte.op));
+        novosFps.push(fingerprint(op));
       } else {
         falhou = true;
       }
