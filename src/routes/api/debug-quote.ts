@@ -21,7 +21,19 @@ export const Route = createFileRoute("/api/debug-quote")({
             adultos: Number(q.get("adultos") ?? 1),
             bagagem_despachada: q.get("bagagem") === "1",
           });
-          return Response.json({ ok: true, ms: Date.now() - t0, res });
+          let card: unknown = null;
+          if (q.get("card") === "1" && "opcoes" in (res as any) && (res as any).opcoes?.length) {
+            try {
+              const { buildFlightCardData, renderFlightCardImage } = await import(
+                "@/lib/whatsapp/flight-card.server"
+              );
+              const data = buildFlightCardData(res as any, (res as any).opcoes[0]);
+              card = await renderFlightCardImage(data);
+            } catch (e) {
+              card = { erro: e instanceof Error ? e.message : String(e) };
+            }
+          }
+          return Response.json({ ok: true, ms: Date.now() - t0, card, res });
         } catch (err) {
           return Response.json({
             ok: false,
