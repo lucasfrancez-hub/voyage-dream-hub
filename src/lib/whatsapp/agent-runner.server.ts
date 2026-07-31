@@ -433,6 +433,10 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
 
 
     text = mergeQuestionBubbles(text);
+    if (!text.trim()) {
+      console.warn(`[agent:${agent.slug}] resposta virou vazia depois da limpeza — nada a enviar`);
+      return;
+    }
 
     const toolCallsSummary = result.steps
       ?.flatMap((s) => s.toolCalls ?? [])
