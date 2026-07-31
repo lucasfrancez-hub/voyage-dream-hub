@@ -16,6 +16,7 @@ export type FlightCardPlace = {
 
 export type FlightCardLeg = {
   rotulo: string; // "IDA" | "VOLTA"
+  data?: string | null; // "10/09" – data desse trecho
   cia: string; // nome
   cia_iata?: string | null;
   voo: string; // "G3 1787"
