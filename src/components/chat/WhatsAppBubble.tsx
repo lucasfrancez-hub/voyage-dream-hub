@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { Check, CheckCheck, FileText, Download, CornerUpLeft, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { firstName } from "@/lib/whatsapp/text-utils.shared";
+import { ImageLightbox } from "@/components/chat/ImageLightbox";
 
 type Media = { kind: "image" | "document" | "audio" | "video"; url: string; filename: string };
 function safeText(value: unknown): string {
