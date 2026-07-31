@@ -12,8 +12,10 @@
  *   um timeout no meio do caminho nunca gera arte repetida na próxima rodada;
  * - se nada for enviado, libera o claim pra próxima tentativa.
  *
- * Entrega: no máximo 2 opções, com horários de partida DIFERENTES, uma por
- * minuto — cadência humana e sem pressão no renderizador.
+ * Entrega em ETAPAS (uma arte por rodada): cada chamada renderiza e envia UMA
+ * opção e devolve o controle. O cron (watchdog, 1x/min) chama de novo pra
+ * mandar a próxima. Assim o worker nunca fica dormindo 60s e a numeração das
+ * opções continua de onde parou (Opção 1, Opção 2...).
  */
 type LegLite = { cia?: string; voo?: string; partida?: string };
 type OptLite = {
@@ -23,13 +25,43 @@ type OptLite = {
   volta?: LegLite | null;
 };
 
-const MAX_OPCOES = 2;
-const INTERVALO_MS = 60_000; // 1 minuto entre as artes
+const MAX_OPCOES = 2; // por cotação, salvo pedido explícito de mais horários
+const INTERVALO_MS = 45_000; // espaçamento mínimo entre duas artes
 
 const fingerprint = (o: OptLite): string =>
   [o.ida?.cia, o.ida?.voo, o.ida?.partida, o.volta?.cia, o.volta?.voo, o.volta?.partida, Math.round(Number(o.total ?? 0))]
     .map((v) => String(v ?? "-"))
     .join("|");
+
+/**
+ * Última numeração de opção já mostrada ao cliente nesta conversa e o momento
+ * do último card. A numeração vem do que o cliente REALMENTE viu (legenda
+ * "*Opção N*"), então nunca repete "Opção 1" numa segunda busca.
+ */
+async function ultimoEnvio(
+  conversationId: string,
+  desde: string,
+): Promise<{ maiorNumero: number; ultimoEm: number | null }> {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data } = await supabaseAdmin
+    .from("wa_messages")
+    .select("content, created_at")
+    .eq("conversation_id", conversationId)
+    .eq("direction", "outbound")
+    .gte("created_at", desde)
+    .order("created_at", { ascending: false })
+    .limit(40);
+  let maiorNumero = 0;
+  let ultimoEm: number | null = null;
+  for (const m of (data ?? []) as { content: string | null; created_at: string }[]) {
+    const match = /\*?Op[çc][ãa]o\s*(\d+)\*?/i.exec(m.content ?? "");
+    if (!match) continue;
+    maiorNumero = Math.max(maiorNumero, Number(match[1]) || 0);
+    const t = new Date(m.created_at).getTime();
+    if (ultimoEm === null || t > ultimoEm) ultimoEm = t;
+  }
+  return { maiorNumero, ultimoEm };
+}
 
 /** Chave de horário: usada pra não mandar duas opções que saem no mesmo horário. */
 const horarioIda = (o: OptLite): string => String(o.ida?.partida ?? "").slice(0, 16);
