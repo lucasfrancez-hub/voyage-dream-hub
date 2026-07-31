@@ -17,7 +17,7 @@ import {
 } from "./conversation.server";
 import { buildCamilaTools } from "./tools.server";
 import { sendWhatsAppBubbles } from "./send.server";
-import { buildSenderPrefix, capitalizeBubbles, capitalizeKnownNames, fixGluedSentences, mergeQuestionBubbles, stripAgentSignature, stripReintroBubbles, firstName as extractFirstName } from "./text-utils.server";
+import { buildSenderPrefix, capitalizeBubbles, capitalizeKnownNames, fixGluedSentences, mergeQuestionBubbles, stripAgentSignature, stripFakeImageFailure, stripReintroBubbles, firstName as extractFirstName } from "./text-utils.server";
 import { buildSharedAgentPrompt } from "@/lib/chat/camila-prompt";
 import { isCompanyDataBlocked } from "./data-blocklist";
 
@@ -370,6 +370,7 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
     // Faz a checagem mesmo quando enviar_cartao_voo foi chamado: a tool pode
     // ter sido executada, mas todas as imagens terem falhado no transporte.
     // Se deu certo, cards_sent_at já está preenchido e esta chamada é no-op.
+    let cardsEntregues = executedToolNames.has("enviar_cartao_voo");
     if (executedToolNames.has("cotar_aereo")) {
       const { sendPendingFlightCards } = await import("./flight-cards-pending.server");
       const recovered = await sendPendingFlightCards(
@@ -383,6 +384,7 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
         return { sent: 0 };
       });
       if (recovered.sent > 0) {
+        cardsEntregues = true;
         console.log(`[agent:${agent.slug}] fallback imediato enviou ${recovered.sent} card(s)`);
       }
     }
@@ -431,6 +433,10 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
     text = stripAgentSignature(text, agent.nome);
     if (jaFalouAntes) text = stripReintroBubbles(text);
 
+
+    // Se as artes REALMENTE saíram, corta qualquer balão em que o modelo
+    // inventou falha de envio ("probleminha pra mandar as imagens").
+    if (cardsEntregues) text = stripFakeImageFailure(text);
 
     text = mergeQuestionBubbles(text);
     if (!text.trim()) {
