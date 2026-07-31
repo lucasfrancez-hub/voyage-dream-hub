@@ -421,7 +421,22 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
     // Garante primeira letra maiúscula em cada balão (o modelo escreve tudo minúsculo)
     // e capitaliza o primeiro nome do cliente sempre que aparecer no meio do texto.
     const clientFirst = extractFirstName(conv.display_name);
-    const text = capitalizeKnownNames(capitalizeBubbles(fixGluedSentences(rawText)), [clientFirst]);
+    // Já existe mensagem nossa neste atendimento? Então nada de saudação/
+    // apresentação de novo, nem prefixo "*Roberto:*" em toda mensagem.
+    let jaFalouAntes = false;
+    try {
+      const { count } = await supabaseAdmin
+        .from("wa_messages")
+        .select("id", { count: "exact", head: true })
+        .eq("conversation_id", conv.id)
+        .eq("direction", "outbound")
+        .in("sender", ["camila", "agent", "human"]);
+      jaFalouAntes = (count ?? 0) > 0;
+    } catch { /* noop */ }
+
+    let text = capitalizeKnownNames(capitalizeBubbles(fixGluedSentences(rawText)), [clientFirst]);
+    if (jaFalouAntes) text = stripReintroBubbles(text);
+    text = mergeQuestionBubbles(text);
 
     const toolCallsSummary = result.steps
       ?.flatMap((s) => s.toolCalls ?? [])
