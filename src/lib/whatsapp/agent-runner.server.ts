@@ -489,8 +489,13 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
       console.warn("[agent] confirmação das artes de voo falhou:", e);
     }
 
+    // Prefixo "*Roberto:*" na primeira mensagem do atendimento (ou depois de
+    // 30 min parado). O MESMO texto é salvo e enviado, pra o histórico interno
+    // bater 100% com o que o cliente vê no WhatsApp.
+    const prefix = reassinar ? buildSenderPrefix(agent.nome) : null;
     const { splitToBubbles } = await import("./send.server");
-    const bubbles = splitToBubbles(text);
+    const bubbles = splitToBubbles(text, prefix);
+
     const savedRowIds: Array<string | null> = [];
     for (let i = 0; i < bubbles.length; i++) {
       const row = await saveMessage({
