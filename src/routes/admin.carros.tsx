@@ -383,6 +383,7 @@ function CarSummaryDialog({
 }) {
   const createCart = useServerFn(onerCreateCarCart);
   const [cartUrl, setCartUrl] = useState<string | null>(null);
+  const [orderOpen, setOrderOpen] = useState(false);
 
   useEffect(() => {
     setCartUrl(null);
@@ -411,95 +412,274 @@ function CarSummaryDialog({
 
   if (!car) return null;
 
+  const summaryText = [
+    `Carro: ${car.name} (${car.categoryDescription}) • ${car.vendor.name}`,
+    `Retirada: ${car.pickup.date} ${car.pickup.time?.slice(0, 5)} — ${car.pickup.name}`,
+    `Devolução: ${car.dropoff.date} ${car.dropoff.time?.slice(0, 5)} — ${car.dropoff.name}`,
+    `${car.passengerCount} lugares • ${car.bagCount} malas • ${car.transmissionDescription} • ${
+      car.unlimitedMileage ? "KM ilimitada" : "KM limitada"
+    }`,
+    car.coverages[0] ? `Proteção: ${car.coverages[0].name}` : null,
+    `Total: ${fmtMoney(car.finalPrice)} (${fmtMoney(car.pricePerDay)} /dia)`,
+  ]
+    .filter(Boolean)
+    .join("\n");
+
+  return (
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="flex max-h-[90vh] max-w-[460px] flex-col gap-0 overflow-hidden rounded-3xl border-border/60 bg-card p-0">
+          <DialogHeader className="border-b border-border/50 bg-background/40 px-5 py-4 text-left">
+            <DialogTitle className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
+              <Car className="h-3.5 w-3.5 text-primary" /> Carro selecionado
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="flex-1 space-y-4 overflow-y-auto p-5">
+            <div className="flex items-center gap-4 rounded-2xl border border-border/50 bg-background/40 p-4">
+              {car.imageUrl ? (
+                <img src={car.imageUrl} alt={car.name} className="h-16 w-24 shrink-0 object-contain" />
+              ) : (
+                <Car className="h-10 w-10 shrink-0 text-muted-foreground" />
+              )}
+              <div className="min-w-0">
+                <p className="truncate text-sm font-black uppercase tracking-tight">{car.name}</p>
+                <p className="text-[11px] text-muted-foreground">
+                  {car.categoryDescription} · {car.vendor.name}
+                </p>
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {[
+                    `${car.passengerCount} lugares`,
+                    `${car.bagCount} malas`,
+                    car.transmissionDescription,
+                    car.unlimitedMileage ? "KM ilimitada" : "KM limitada",
+                  ]
+                    .filter(Boolean)
+                    .map((t) => (
+                      <span
+                        key={t}
+                        className="rounded-full border border-border/50 bg-muted/30 px-2 py-0.5 text-[10px] font-semibold text-muted-foreground"
+                      >
+                        {t}
+                      </span>
+                    ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              {[
+                { l: "Retirada", d: car.pickup.date, t: car.pickup.time, p: car.pickup.name },
+                { l: "Devolução", d: car.dropoff.date, t: car.dropoff.time, p: car.dropoff.name },
+              ].map((b) => (
+                <div key={b.l} className="rounded-2xl border border-border/50 bg-background/40 p-3">
+                  <div className="text-[9px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
+                    {b.l}
+                  </div>
+                  <div className="mt-1 text-sm font-bold">
+                    {b.d} · {b.t?.slice(0, 5)}
+                  </div>
+                  <div className="mt-0.5 text-[11px] leading-snug text-muted-foreground">{b.p}</div>
+                </div>
+              ))}
+            </div>
+
+            {car.coverages[0] && (
+              <p className="flex items-start gap-2 rounded-xl border border-primary/25 bg-primary/5 p-3 text-xs text-primary">
+                <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0" /> {car.coverages[0].name}
+              </p>
+            )}
+
+            <div className="border-t border-border/50 pt-4">
+              <div className="mb-1 flex items-baseline justify-between">
+                <span className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">
+                  Valor total
+                </span>
+                <span className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">
+                  {fmtMoney(car.pricePerDay)} / dia
+                </span>
+              </div>
+              <div className="text-3xl font-black leading-none tracking-tight">
+                {fmtMoney(car.finalPrice)}
+              </div>
+            </div>
+
+            {cartUrl && (
+              <div className="space-y-2 rounded-xl border border-primary/30 bg-primary/5 p-3">
+                <div className="text-xs font-semibold">Link do carrinho</div>
+                <div className="break-all text-[11px] text-muted-foreground">{cartUrl}</div>
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    className="flex-1"
+                    onClick={() => {
+                      navigator.clipboard.writeText(cartUrl);
+                      toast.success("Link copiado");
+                    }}
+                  >
+                    <Copy className="h-3.5 w-3.5" /> Copiar
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    className="flex-1"
+                    onClick={() =>
+                      window.open(
+                        `https://wa.me/?text=${encodeURIComponent(
+                          `Segue o link para concluir a reserva do carro:\n${cartUrl}`,
+                        )}`,
+                        "_blank",
+                        "noopener",
+                      )
+                    }
+                  >
+                    WhatsApp
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="space-y-3 border-t border-border/50 bg-background/40 p-5">
+            <Button
+              onClick={() => setOrderOpen(true)}
+              className="w-full py-6 text-xs font-black uppercase tracking-[0.15em]"
+            >
+              <ShoppingCart className="h-4 w-4" /> Fazer pedido
+            </Button>
+            <Button
+              variant="outline"
+              disabled={cartMut.isPending}
+              onClick={() => cartMut.mutate()}
+              className="w-full py-5 text-[10px] font-black uppercase tracking-[0.15em]"
+            >
+              {cartMut.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <ExternalLink className="h-4 w-4" />
+              )}
+              Comprar viagem
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <NewOrderFromCarDialog
+        open={orderOpen}
+        onOpenChange={setOrderOpen}
+        total={car.finalPrice}
+        pax={car.passengerCount || 1}
+        summary={summaryText}
+      />
+    </>
+  );
+}
+
+/** Cria o pedido interno já com o valor e o resumo do carro escolhido. */
+function NewOrderFromCarDialog({
+  open,
+  onOpenChange,
+  total,
+  pax,
+  summary,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  total: number;
+  pax: number;
+  summary: string;
+}) {
+  const navigate = useNavigate();
+  const create = useServerFn(createOrder);
+  const [form, setForm] = useState({ full_name: "", cpf: "", email: "", phone: "" });
+
+  const mut = useMutation({
+    mutationFn: async () =>
+      create({
+        data: {
+          full_name: form.full_name,
+          cpf: form.cpf,
+          email: form.email,
+          phone: form.phone,
+          payment_method: "other",
+          expected_total: total,
+          total_price: total,
+          adults: pax,
+          notes: summary,
+          supplier_name: "Comprar Viagem",
+        },
+      }),
+    onSuccess: (r: { id: string; order_number: string | number }) => {
+      toast.success(`Pedido ${r.order_number} criado`);
+      onOpenChange(false);
+      navigate({ to: "/admin/pedidos/$id", params: { id: r.id } });
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Erro ao criar pedido"),
+  });
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg border-border/60 bg-card/95 p-0 backdrop-blur">
-        <DialogHeader className="border-b border-border/60 px-5 py-4">
-          <DialogTitle className="text-base">Carro selecionado</DialogTitle>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Fazer pedido</DialogTitle>
         </DialogHeader>
-
-        <div className="space-y-4 px-5 py-4">
-          <div className="flex items-center gap-3">
-            {car.imageUrl ? (
-              <img src={car.imageUrl} alt={car.name} className="h-16 w-24 object-contain" />
+        <div className="space-y-3">
+          <div className="whitespace-pre-line rounded-xl border border-border/60 bg-muted/40 p-3 text-xs">
+            {summary}
+          </div>
+          <div className="flex items-center justify-between rounded-xl border border-primary/40 bg-primary/5 px-3 py-2">
+            <span className="text-sm text-muted-foreground">Total do pedido</span>
+            <span className="text-lg font-bold text-primary">{fmtMoney(total)}</span>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-1">
+              <Label>Nome completo</Label>
+              <Input
+                value={form.full_name}
+                onChange={(e) => setForm((f) => ({ ...f, full_name: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label>CPF</Label>
+              <Input value={form.cpf} onChange={(e) => setForm((f) => ({ ...f, cpf: e.target.value }))} />
+            </div>
+            <div className="space-y-1">
+              <Label>E-mail</Label>
+              <Input
+                value={form.email}
+                onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label>Telefone</Label>
+              <Input
+                value={form.phone}
+                onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
+              />
+            </div>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Cancelar
+          </Button>
+          <Button
+            disabled={mut.isPending}
+            onClick={() => {
+              if (!form.full_name.trim()) return toast.error("Preencha o nome completo");
+              if (!form.cpf.trim()) return toast.error("Informe o CPF");
+              mut.mutate();
+            }}
+          >
+            {mut.isPending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
-              <Car className="h-10 w-10 text-muted-foreground" />
+              <ShoppingCart className="h-4 w-4" />
             )}
-            <div className="min-w-0">
-              <p className="truncate text-sm font-semibold uppercase">{car.name}</p>
-              <p className="text-xs text-muted-foreground">
-                {car.categoryDescription} · {car.vendor.name}
-              </p>
-              <p className="mt-1 flex flex-wrap gap-x-3 text-[11px] text-muted-foreground">
-                <span>{car.passengerCount} lugares</span>
-                <span>{car.bagCount} malas</span>
-                <span>{car.transmissionDescription}</span>
-                <span>{car.unlimitedMileage ? "KM ilimitada" : "KM limitada"}</span>
-              </p>
-            </div>
-          </div>
-
-          <div className="grid gap-2 rounded-xl border border-border/60 bg-background/40 p-3 text-xs sm:grid-cols-2">
-            <div>
-              <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Retirada</div>
-              <div className="font-medium">
-                {car.pickup.date} às {car.pickup.time?.slice(0, 5)}
-              </div>
-              <div className="text-muted-foreground">{car.pickup.name}</div>
-            </div>
-            <div>
-              <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Devolução</div>
-              <div className="font-medium">
-                {car.dropoff.date} às {car.dropoff.time?.slice(0, 5)}
-              </div>
-              <div className="text-muted-foreground">{car.dropoff.name}</div>
-            </div>
-          </div>
-
-          {car.coverages[0] && (
-            <p className="flex items-start gap-1 text-xs text-primary">
-              <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0" /> {car.coverages[0].name}
-            </p>
-          )}
-
-          <div className="flex items-end justify-between rounded-xl border border-primary/30 bg-primary/5 p-3">
-            <div className="text-[11px] text-muted-foreground">
-              Preço total
-              <div className="text-[11px]">{fmtMoney(car.pricePerDay)} /dia</div>
-            </div>
-            <div className="text-2xl font-bold text-primary">{fmtMoney(car.finalPrice)}</div>
-          </div>
-
-          {cartUrl && (
-            <div className="rounded-xl border border-border/60 bg-background/40 p-3">
-              <p className="mb-1 text-[10px] uppercase tracking-wide text-muted-foreground">
-                Link do Comprar Viagem
-              </p>
-              <p className="break-all text-xs">{cartUrl}</p>
-              <Button
-                variant="outline"
-                size="sm"
-                className="mt-2 h-7 text-xs"
-                onClick={() => {
-                  navigator.clipboard.writeText(cartUrl);
-                  toast.success("Link copiado");
-                }}
-              >
-                Copiar link
-              </Button>
-            </div>
-          )}
-        </div>
-
-        <div className="flex gap-2 border-t border-border/60 px-5 py-4">
-          <Button variant="outline" className="flex-1" onClick={() => onOpenChange(false)}>
-            Fechar
+            Criar pedido
           </Button>
-          <Button className="flex-1" disabled={cartMut.isPending} onClick={() => cartMut.mutate()}>
-            {cartMut.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Comprar viagem
-          </Button>
-        </div>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
