@@ -122,11 +122,11 @@ body{width:1200px;background:#fff;font-family:Poppins,system-ui,sans-serif;color
 .route{flex:1;display:flex;align-items:center;justify-content:center;gap:22px;padding-left:90px;min-width:0;position:relative;z-index:1}
 .route .r-city{font-size:34px;font-weight:800;line-height:1.05;text-align:center;max-width:200px}
 .route .r-iata{font-size:19px;font-weight:600;letter-spacing:2px;text-align:center;color:#8b98ac;margin-top:4px}
-.route .circle{width:62px;height:62px;border-radius:50%;background:${NAVY};display:flex;align-items:center;justify-content:center}
-.dates{display:flex;align-items:center;gap:16px;padding:0 40px 0 20px}
+.route .circle{width:62px;height:62px;flex:none;border-radius:50%;background:${NAVY};display:flex;align-items:center;justify-content:center}
+.dates{display:flex;align-items:center;gap:14px;flex:none;padding:0 32px 0 18px}
 .dates .cal{width:46px;height:46px;border:3px solid ${ORANGE};border-radius:10px;position:relative}
 .dates .cal:before{content:"";position:absolute;left:0;right:0;top:8px;height:3px;background:${ORANGE}}
-.dates .d-row{font-size:21px;font-weight:700;letter-spacing:.5px}
+.dates .d-row{font-size:20px;font-weight:700;letter-spacing:.5px;white-space:nowrap}
 .dates .d-row span{color:${ORANGE};display:inline-block;min-width:82px}
 .leg{display:grid;grid-template-columns:120px 1fr 1fr 1fr 1fr 170px;align-items:center;border-top:1px solid #edf0f4;min-height:200px}
 .leg-b{border-top:1px solid #edf0f4}
