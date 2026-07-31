@@ -123,23 +123,31 @@ function buildFilter(f: OnerOperatorFilters) {
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
+export type PollSpeed = "normal" | "fast";
+
 async function poll(
   path: "outbound" | "inbound",
   loc: string,
   body: Record<string, unknown>,
   maxRounds = 30,
+  speed: PollSpeed = "normal",
 ): Promise<OnerLegResult> {
   const acc = new Map<string, OnerFlight>();
   const startedAt = Date.now();
   // Fornecedores publicam em ondas. Em vez de esperar sempre todas as rodadas,
   // paramos quando o conteúdo estabiliza (nada novo nem mais barato) — mesma
   // qualidade de resultado, bem menos espera.
-  const MIN_ROUNDS = 6;
-  const STABLE_ROUNDS = 4;
-  const TIME_BUDGET_MS = 26_000;
+  // No modo "fast" (WhatsApp/IA) a prioridade é entregar rápido: cortamos as
+  // rodadas mínimas, o tempo entre rodadas e o orçamento total.
+  const quick = speed === "fast";
+  const MIN_ROUNDS = quick ? 2 : 6;
+  const STABLE_ROUNDS = quick ? 1 : 4;
+  const TIME_BUDGET_MS = quick ? 9_000 : 26_000;
+  const GAP_MS = quick ? 450 : 900;
   let stable = 0;
 
   for (let i = 0; i < maxRounds; i++) {
+
     let changed = false;
     let haveMore = false;
     let page = 1;
