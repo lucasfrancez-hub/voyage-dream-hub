@@ -117,10 +117,13 @@ function looksLikeRealName(v: string | null | undefined): boolean {
 }
 
 function buildSystemPrompt(agent: Agent, conv: WaConversation, protocolo: WaProtocolo, isNewProtocolo: boolean): string {
-  // Sempre gera o prompt compartilhado com o nome/gênero deste agente,
-  // ignorando o system_prompt armazenado (mantém a base única pra todo o time).
-  const base = buildSharedAgentPrompt(agent.nome, genderOf(agent.slug));
+  // Setor de aéreo tem prompt PRÓPRIO (aereo-prompt.ts) — não usa a base do
+  // time de atendimento, justamente pra uma mexida não quebrar a outra.
+  const base = isFlightAgentSlug(agent.slug)
+    ? buildFlightAgentPrompt(agent.nome, genderOf(agent.slug))
+    : buildSharedAgentPrompt(agent.nome, genderOf(agent.slug));
   const parts = [base];
+
 
   parts.push(`\n\n# CONTEXTO DESTA CONVERSA`);
   parts.push(`- Você é: ${agent.nome}`);
