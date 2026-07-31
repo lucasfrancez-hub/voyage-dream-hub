@@ -1031,3 +1031,53 @@ export const upsertAgent = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+/**
+ * Apaga TODO o histórico de mensagens de uma conversa e zera o estado da IA
+ * (protocolo ativo, instrução do supervisor, debounce). Serve para recomeçar
+ * do zero sem que a IA puxe contexto errado de conversas antigas.
+ */
+export const clearConversationHistory = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) =>
+    z.object({ conversation_id: z.string().uuid() }).parse(data),
+  )
+  .handler(async ({ data, context }) => {
+    const { data: conv, error: cErr } = await context.supabase
+      .from("wa_conversations")
+      .select("id")
+      .eq("id", data.conversation_id)
+      .single();
+    if (cErr || !conv) throw new Error("Conversa não encontrada");
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    // Encerra protocolos abertos dessa conversa (sem avisar o cliente)
+    await supabaseAdmin
+      .from("wa_protocolos")
+      .update({ status: "encerrado", closed_at: new Date().toISOString() })
+      .eq("conversation_id", data.conversation_id)
+      .neq("status", "encerrado");
+
+    const { error: delErr, count } = await supabaseAdmin
+      .from("wa_messages")
+      .delete({ count: "exact" })
+      .eq("conversation_id", data.conversation_id);
+    if (delErr) throw new Error(delErr.message);
+
+    const { error: upErr } = await supabaseAdmin
+      .from("wa_conversations")
+      .update({
+        protocolo_ativo_id: null,
+        ai_instruction: null,
+        ai_instruction_at: null,
+        ai_instruction_by: null,
+        ai_debounce_until: null,
+        last_message_at: null,
+        unread_count: 0,
+      })
+      .eq("id", data.conversation_id);
+    if (upErr) throw new Error(upErr.message);
+
+    return { ok: true, deleted: count ?? 0 };
+  });
