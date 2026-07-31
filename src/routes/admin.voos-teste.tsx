@@ -1295,7 +1295,12 @@ export function VoosPage({
           filters: toOperatorFilters(opts.filters),
         },
       }),
-    onSuccess: (r, vars) => {
+    onSuccess: (raw, vars) => {
+      const r = normalizeSearchResult(raw);
+      if (!r) {
+        toast.error("A operadora não respondeu a busca. Tente novamente.");
+        return;
+      }
       setResult(r);
       if (!vars.searchKey) {
         setSelectedOut(null);
@@ -1313,6 +1318,7 @@ export function VoosPage({
     },
     onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Erro na busca"),
   });
+
 
   // "Ver mais voos": a operadora libera os fornecedores em ondas, então uma nova
   // consulta com a MESMA busca costuma trazer opções (e tarifas menores) que
