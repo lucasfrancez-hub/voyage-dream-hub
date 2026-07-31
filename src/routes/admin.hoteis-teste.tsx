@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -36,7 +36,9 @@ import { DestinationAutocomplete } from "@/components/search/DestinationAutocomp
 import {
   onerHotelDestinations,
   onerHotelSearch,
+  onerHotelRooms,
   onerCreateHotelCart,
+
   type OnerHotel,
   type OnerHotelPoint,
   type OnerHotelSearchResult,
@@ -393,16 +395,21 @@ function HotelCard({
             )}
           </div>
 
-          {h.rates.length > 1 && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="mt-2 h-7 px-2 text-xs"
-              onClick={() => setOpenRooms((v) => !v)}
-            >
-              {openRooms ? "Ocultar quartos" : `Ver outros ${h.rates.length - 1} quarto(s)`}
-            </Button>
-          )}
+          {/* a busca em lista só traz a tarifa mais barata; a lista completa
+              é carregada no resumo do hotel */}
+          <Button
+            variant="ghost"
+            size="sm"
+            className="mt-2 h-7 px-2 text-xs"
+            onClick={() => (h.rates.length > 1 ? setOpenRooms((v) => !v) : onSelect(rate.key))}
+          >
+            {h.rates.length > 1
+              ? openRooms
+                ? "Ocultar quartos"
+                : `Ver outros ${h.rates.length - 1} quarto(s)`
+              : "Ver todos os quartos"}
+          </Button>
+
           {openRooms && (
             <div className="mt-2 space-y-2">
               {h.rates.map((r) => (
@@ -454,7 +461,8 @@ function HotelSummaryDialog({
   open,
   onOpenChange,
   hotel,
-  rate,
+  rate: baseRate,
+
   nights,
   rooms,
   checkIn,
@@ -480,21 +488,59 @@ function HotelSummaryDialog({
   onChangeRate: (rateKey: string) => void;
 }) {
   const createCart = useServerFn(onerCreateHotelCart);
+  const loadRooms = useServerFn(onerHotelRooms);
   const [cartUrl, setCartUrl] = useState<string | null>(null);
-  const [roomsOpen, setRoomsOpen] = useState(false);
+  const [roomsOpen, setRoomsOpen] = useState(true);
   const [orderOpen, setOrderOpen] = useState(false);
+  /* tarifa escolhida na lista completa de acomodações (busca dedicada) */
+  const [pickedRate, setPickedRate] = useState<OnerRoomRate | null>(null);
+
+  const adultsPerRoom = Math.max(1, Math.ceil(adults / Math.max(1, rooms)));
+  const childrenPerRoom = Math.max(0, Math.floor(children / Math.max(1, rooms)));
+
+  // A listagem só traz a tarifa mais barata: aqui buscamos TODOS os quartos
+  // do hotel, igual à página de detalhe da operadora.
+  const roomsQuery = useQuery({
+    queryKey: ["oner-hotel-rooms", hotel?.hotelId, checkIn, checkOut, rooms, adultsPerRoom, childrenPerRoom],
+    enabled: open && !!hotel && !!checkIn && !!checkOut,
+    staleTime: 5 * 60 * 1000,
+    retry: false,
+    queryFn: () =>
+      loadRooms({
+        data: {
+          hotelId: hotel!.hotelId,
+          checkIn,
+          checkOut,
+          rooms: Array.from({ length: Math.max(1, rooms) }).map(() => ({
+            adults: adultsPerRoom,
+            children: childrenPerRoom,
+            childrenAges: [] as number[],
+          })),
+        },
+      }),
+  });
+
+  const allRates = roomsQuery.data?.rates ?? hotel?.rates ?? [];
+  const activeRate = pickedRate ?? baseRate;
+  // a chave de tarifa precisa vir da mesma busca que gerou a tarifa
+  const activeSearchKey = pickedRate ? (roomsQuery.data?.searchKey ?? searchKey) : searchKey;
 
   useEffect(() => {
     setCartUrl(null);
-  }, [rate?.key]);
+  }, [baseRate?.key, pickedRate?.key]);
+
+
+  useEffect(() => {
+    setPickedRate(null);
+  }, [hotel?.hotelId, checkIn, checkOut]);
 
   const cartMut = useMutation({
     mutationFn: () =>
       createCart({
         data: {
-          searchKey,
+          searchKey: activeSearchKey,
           hotelId: hotel!.hotelId,
-          rateKeys: [rate!.key],
+          rateKeys: [activeRate!.key],
           cityName: point?.name ?? hotel!.city ?? "",
           pointId: point?.id ?? "",
           pointType: point?.type ?? 1,
@@ -513,7 +559,9 @@ function HotelSummaryDialog({
     onError: (e: Error) => toast.error(e.message),
   });
 
-  if (!hotel || !rate) return null;
+  if (!hotel || !activeRate) return null;
+  const rate = activeRate;
+
 
   const period = `${checkIn.split("-").reverse().join("/")} a ${checkOut.split("-").reverse().join("/")}`;
   const summaryText = [
@@ -573,8 +621,15 @@ function HotelSummaryDialog({
               </div>
 
               <div className="space-y-2">
-                <Label className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                  Alterar quarto ou tarifa
+                <Label className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                  Acomodações disponíveis
+                  {roomsQuery.isFetching ? (
+                    <span className="flex items-center gap-1 normal-case tracking-normal text-primary">
+                      <Loader2 className="h-3 w-3 animate-spin" /> buscando todos os quartos…
+                    </span>
+                  ) : (
+                    <span className="normal-case tracking-normal">({allRates.length})</span>
+                  )}
                 </Label>
                 <button
                   type="button"
@@ -592,9 +647,22 @@ function HotelSummaryDialog({
                   />
                 </button>
 
+                {roomsQuery.isError && (
+                  <p className="rounded-lg border border-destructive/40 bg-destructive/5 p-2 text-[11px] text-destructive">
+                    Não consegui abrir a lista completa de quartos deste hotel. Mostrando só a tarifa da busca.
+                  </p>
+                )}
+
                 {roomsOpen && (
-                  <div className="max-h-64 space-y-2 overflow-y-auto rounded-xl border border-border/60 bg-background/40 p-2">
-                    {hotel.rates.map((r) => {
+                  <div className="max-h-72 space-y-2 overflow-y-auto rounded-xl border border-border/60 bg-background/40 p-2">
+                    {roomsQuery.isFetching && !roomsQuery.data && (
+                      <div className="space-y-2 p-1">
+                        <Skeleton className="h-11 w-full rounded-lg" />
+                        <Skeleton className="h-11 w-full rounded-lg" />
+                        <Skeleton className="h-11 w-full rounded-lg" />
+                      </div>
+                    )}
+                    {allRates.map((r) => {
                       const active = r.key === rate.key;
                       const diff = r.price.total - rate.price.total;
                       return (
@@ -602,8 +670,11 @@ function HotelSummaryDialog({
                           key={r.key}
                           type="button"
                           onClick={() => {
-                            onChangeRate(r.key);
-                            setRoomsOpen(false);
+                            if (roomsQuery.data?.rates.some((x) => x.key === r.key)) setPickedRate(r);
+                            else {
+                              setPickedRate(null);
+                              onChangeRate(r.key);
+                            }
                           }}
                           className={`flex w-full items-center justify-between gap-3 rounded-lg border px-3 py-2.5 text-left transition ${
                             active
@@ -634,6 +705,7 @@ function HotelSummaryDialog({
                   </div>
                 )}
               </div>
+
 
               {rate.cancelPolicy && (
                 <p className="rounded-xl border border-border/50 bg-muted/20 p-3 text-[11px] leading-snug text-muted-foreground">

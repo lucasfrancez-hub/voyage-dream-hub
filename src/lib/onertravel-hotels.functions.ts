@@ -401,28 +401,36 @@ export const onerCreateHotelCart = createServerFn({ method: "POST" })
     });
     const loc = `https://www.comprarviagem.com.br/viaair/hotel-list?${ctx.toString()}`;
 
-    // A operadora já mudou o formato do corpo algumas vezes; tentamos as
-    // variações conhecidas e ficamos com a primeira que devolver o carrinho.
+    // A operadora espera as tarifas escolhidas como rooms:[{order,key}] — um
+    // item por grupo de quarto da busca. Mantemos as variações antigas como
+    // rede de segurança caso o formato mude de novo.
+    const roomSel = (
+      data.rateKeys.length >= data.rooms
+        ? data.rateKeys.slice(0, data.rooms)
+        : Array.from({ length: data.rooms }, (_, i) => data.rateKeys[i] ?? data.rateKeys[0])
+    ).map((key, order) => ({ order, key }));
+
     const bodies: Record<string, unknown>[] = [
+      {
+        hotel: { searchKey: data.searchKey, hotelId: data.hotelId, rooms: roomSel },
+        searchBookingKey: null,
+        affiliateTag: null,
+        eventId: null,
+      },
+      {
+        hotel: { searchKey: data.searchKey, hotelId: data.hotelId, rooms: [{ order: 0, key: data.rateKeys[0] }] },
+        searchBookingKey: null,
+        affiliateTag: null,
+        eventId: null,
+      },
       {
         hotel: { searchKey: data.searchKey, hotelId: data.hotelId, roomRateKeys: data.rateKeys },
         searchBookingKey: null,
         affiliateTag: null,
         eventId: null,
       },
-      {
-        hotel: { searchKey: data.searchKey, hotelId: data.hotelId, keys: data.rateKeys },
-        searchBookingKey: null,
-        affiliateTag: null,
-        eventId: null,
-      },
-      {
-        hotel: { searchKey: data.searchKey, hotelId: data.hotelId, key: data.rateKeys[0] },
-        searchBookingKey: null,
-        affiliateTag: null,
-        eventId: null,
-      },
     ];
+
 
     let cartId = "";
     let lastStatus = 0;
@@ -452,4 +460,89 @@ export const onerCreateHotelCart = createServerFn({ method: "POST" })
     const cartQuery = new URLSearchParams({ newCartId: cartId });
     ctx.forEach((v, k) => cartQuery.set(k, v));
     return { cartId, url: `https://www.comprarviagem.com.br/viaair/hotel-cart?${cartQuery.toString()}` };
+  });
+
+// ------------------------------------------------- todos os quartos do hotel
+
+const HotelRoomsInput = z.object({
+  hotelId: z.number().int(),
+  checkIn: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  checkOut: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  rooms: z.array(RoomInput).min(1).max(5),
+});
+
+export type OnerHotelRooms = {
+  searchKey: string;
+  rates: OnerRoomRate[];
+};
+
+/* A listagem da operadora devolve só a tarifa mais barata de cada hotel.
+   A página de detalhe abre uma busca dedicada (search/{hotelId}/single) e é
+   ela que traz TODAS as acomodações — é o que replicamos aqui. */
+export const onerHotelRooms = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => HotelRoomsInput.parse(d))
+  .handler(async ({ data }): Promise<OnerHotelRooms> => {
+    const loc = "https://www.comprarviagem.com.br/viaair/hotel-detail";
+    const h = headers(loc);
+
+    const startRes = await fetch(`${SERVERLESS}/api/hotel/v1/search/${data.hotelId}/single`, {
+      method: "POST",
+      headers: h,
+      body: JSON.stringify({
+        isPackage: false,
+        startDate: `${data.checkIn}T00:00:00.000Z`,
+        endDate: `${data.checkOut}T00:00:00.000Z`,
+        rooms: data.rooms.map((r, i) => ({
+          numberOfAdults: r.adults,
+          numberOfInfant: 0,
+          numberOfChilds: r.children,
+          roomNum: i,
+          agesOfChild: r.childrenAges,
+          arrNumberChildren: r.childrenAges,
+        })),
+      }),
+    });
+    const startJson = (await startRes.json().catch(() => null)) as { data?: string } | null;
+    const searchKey = startJson?.data ?? "";
+    if (!searchKey) throw new Error(`A operadora não abriu a busca do hotel (HTTP ${startRes.status}).`);
+
+    type RawRate = {
+      key?: string;
+      name?: string;
+      isPackage?: boolean;
+      price?: { total?: number; totalPerNight?: number };
+      mealPlan?: { type?: number; description?: string | null };
+      cancelPolicy?: { refundable?: boolean; description?: string | null };
+    };
+
+    let rates: OnerRoomRate[] = [];
+    for (let i = 0; i < 12; i++) {
+      await sleep(i === 0 ? 1500 : 2200);
+      const res = await fetch(`${SERVERLESS}/api/hotel/v1/search/${searchKey}/hotel/${data.hotelId}`, {
+        headers: h,
+      });
+      if (!res.ok) continue;
+      const json = (await res.json().catch(() => null)) as {
+        data?: { rooms?: Array<{ roomRates?: RawRate[] }> };
+      } | null;
+      const raw = (json?.data?.rooms ?? []).flatMap((r) => r.roomRates ?? []);
+      if (raw.length > rates.length) {
+        rates = raw.map((rt) => ({
+          key: rt.key ?? "",
+          name: rt.name ?? "Quarto",
+          isPackage: rt.isPackage,
+          price: { total: rt.price?.total ?? 0, totalPerNight: rt.price?.totalPerNight ?? 0 },
+          mealPlanLabel:
+            rt.mealPlan?.description ?? MEAL_PLANS[rt.mealPlan?.type ?? 0] ?? "Consultar refeições",
+          refundable: !!rt.cancelPolicy?.refundable,
+          cancelPolicy: rt.cancelPolicy?.description ?? null,
+        }));
+      } else if (rates.length) break; // conjunto estabilizou
+    }
+
+    if (!rates.length) throw new Error("A operadora não devolveu acomodações para este hotel.");
+    // ordena do mais barato para o mais caro e remove duplicatas de chave
+    const uniq = new Map(rates.map((r) => [r.key, r]));
+    return { searchKey, rates: [...uniq.values()].sort((a, b) => a.price.total - b.price.total) };
   });
