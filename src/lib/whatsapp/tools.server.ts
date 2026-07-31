@@ -415,7 +415,7 @@ export function buildCamilaTools(conversation: WaConversation, scope: ToolProtoc
         };
         const { buildFlightOptionCaption } = await import("./flight-caption.server");
 
-        const { buildFlightCardData, renderFlightCardAsset } = await import("./flight-card.server");
+        const { buildFlightCardData, renderFlightCardAssetRetry, mapWithLimit } = await import("./flight-card.server");
         const { sendWhatsAppImageBytes } = await import("./send.server");
         const { saveMessage } = await import("./conversation.server");
 
@@ -490,20 +490,19 @@ export function buildCamilaTools(conversation: WaConversation, scope: ToolProtoc
         }
 
 
-        // Renderiza TODAS as artes em paralelo (antes era uma de cada vez).
-        const artes = await Promise.all(
-          alvo.map(async (numero) => {
-            const op = quote.opcoes.find((o) => o.opcao === numero);
-            if (!op) return { numero, op: null, url: null as string | null, erro: "opção inexistente" };
-            try {
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              const data = buildFlightCardData(quote as any, op as any);
-              return { numero, op, asset: await renderFlightCardAsset(data), erro: undefined };
-            } catch (e) {
-              return { numero, op, asset: null, erro: e instanceof Error ? e.message : "falha" };
-            }
-          }),
-        );
+        // Renderiza em lotes de 2 (limite de sessões do Browserless) e com
+        // nova tentativa: disparar 4 juntas fazia só a Opção 1 chegar.
+        const artes = await mapWithLimit(alvo, 2, async (numero) => {
+          const op = quote.opcoes.find((o) => o.opcao === numero);
+          if (!op) return { numero, op: null, asset: null, erro: "opção inexistente" };
+          try {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const data = buildFlightCardData(quote as any, op as any);
+            return { numero, op, asset: await renderFlightCardAssetRetry(data), erro: undefined };
+          } catch (e) {
+            return { numero, op, asset: null, erro: e instanceof Error ? e.message : "falha" };
+          }
+        });
 
         // Envia na ordem, pra o cliente receber as opções em sequência.
         for (const arte of artes) {
@@ -546,13 +545,17 @@ export function buildCamilaTools(conversation: WaConversation, scope: ToolProtoc
           .map((e) => quote.opcoes.find((o) => o.opcao === e.opcao))
           .filter(Boolean)
           .map((o) => fp(o as OptLite));
+        const faltaram = enviados.some((e) => !e.ok);
         if (rowId) {
           if (novosFps.length) {
             await supabaseAdmin
               .from("wa_flight_quotes")
               .update({
                 sent_fingerprints: Array.from(new Set([...jaFps, ...novosFps])),
-                cards_sent_at: new Date().toISOString(),
+                // Entrega parcial: libera a reserva pra recuperação mandar as
+                // opções que faltaram (as já entregues ficam protegidas pelas
+                // impressões digitais).
+                cards_sent_at: faltaram ? null : new Date().toISOString(),
               })
               .eq("id", rowId);
           } else {

@@ -92,27 +92,30 @@ export async function sendPendingFlightCards(
   const opcoes = todas.filter((o) => !jaFps.has(fingerprint(o)));
   if (!opcoes.length) return { sent: 0, quote_id: row.id as string };
 
-  const { buildFlightCardData, renderFlightCardAsset } = await import("./flight-card.server");
+  const { buildFlightCardData, renderFlightCardAssetRetry, mapWithLimit } = await import("./flight-card.server");
   const { buildFlightOptionCaption } = await import("./flight-caption.server");
   const { sendWhatsAppImageBytes } = await import("./send.server");
   const { saveMessage } = await import("./conversation.server");
 
-  const artes = await Promise.all(
-    opcoes.map(async (op) => {
-      try {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const data = buildFlightCardData(quote as any, op as any);
-        return { op, asset: await renderFlightCardAsset(data) };
-      } catch {
-        return { op, asset: null };
-      }
-    }),
-  );
+  // Lotes de 2 + nova tentativa: o Browserless recusa muitas sessões juntas.
+  const artes = await mapWithLimit(opcoes, 2, async (op) => {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const data = buildFlightCardData(quote as any, op as any);
+      return { op, asset: await renderFlightCardAssetRetry(data) };
+    } catch {
+      return { op, asset: null };
+    }
+  });
 
   let sent = 0;
+  let falhou = false;
   const novosFps: string[] = [];
   for (const arte of artes) {
-    if (!arte.asset) continue;
+    if (!arte.asset) {
+      falhou = true;
+      continue;
+    }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const caption = buildFlightOptionCaption(quote as any, arte.op as any);
     try {
@@ -133,9 +136,11 @@ export async function sendPendingFlightCards(
         });
         sent++;
         novosFps.push(fingerprint(arte.op));
+      } else {
+        falhou = true;
       }
     } catch {
-      /* segue pras próximas */
+      falhou = true;
     }
   }
 
@@ -146,7 +151,11 @@ export async function sendPendingFlightCards(
 
   await supabaseAdmin
     .from("wa_flight_quotes")
-    .update({ sent_fingerprints: Array.from(new Set([...jaFps, ...novosFps])) })
+    .update({
+      sent_fingerprints: Array.from(new Set([...jaFps, ...novosFps])),
+      // Se alguma opção não saiu, deixa a cotação pendente pra próxima rodada.
+      cards_sent_at: falhou ? null : new Date().toISOString(),
+    })
     .eq("id", row.id);
 
   return { sent, quote_id: row.id as string };

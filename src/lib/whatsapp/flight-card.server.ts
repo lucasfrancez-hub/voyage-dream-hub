@@ -165,6 +165,46 @@ export async function renderFlightCardAsset(
   return { bytes, url: `${PUBLIC_BASE}/api/public/broadcast-media/${path}`, filename };
 }
 
+/**
+ * Renderiza a arte com nova tentativa. O Browserless limita as sessões
+ * simultâneas: quando 4 opções disparam juntas, algumas voltam 429/timeout e
+ * o cliente recebia só a Opção 1.
+ */
+export async function renderFlightCardAssetRetry(
+  data: FlightCardData,
+  tentativas = 3,
+): Promise<{ bytes: Uint8Array; url: string; filename: string }> {
+  let last: unknown;
+  for (let i = 0; i < tentativas; i++) {
+    try {
+      return await renderFlightCardAsset(data);
+    } catch (e) {
+      last = e;
+      console.warn(`[flight-card] tentativa ${i + 1}/${tentativas} falhou:`, e);
+      await new Promise((r) => setTimeout(r, 1200 * (i + 1)));
+    }
+  }
+  throw last instanceof Error ? last : new Error("falha ao renderizar a arte");
+}
+
+/** Executa em lotes pequenos pra não estourar a concorrência do Browserless. */
+export async function mapWithLimit<T, R>(
+  items: T[],
+  limit: number,
+  fn: (item: T) => Promise<R>,
+): Promise<R[]> {
+  const out: R[] = new Array(items.length);
+  let idx = 0;
+  const workers = Array.from({ length: Math.max(1, Math.min(limit, items.length)) }, async () => {
+    while (idx < items.length) {
+      const i = idx++;
+      out[i] = await fn(items[i]);
+    }
+  });
+  await Promise.all(workers);
+  return out;
+}
+
 /** Mantém a API usada pelos previews e diagnósticos. */
 export async function renderFlightCardImage(data: FlightCardData): Promise<string> {
   return (await renderFlightCardAsset(data)).url;
