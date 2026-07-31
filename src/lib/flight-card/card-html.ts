@@ -42,6 +42,8 @@ export type FlightCardData = {
 
 const NAVY = "#0B2545";
 const ORANGE = "#F26B1F";
+const BLUE = "#2563EB";
+
 
 function esc(s: string | null | undefined): string {
   return String(s ?? "").replace(/[&<>"']/g, (c) =>
