@@ -782,7 +782,7 @@ export const closeProtocoloManually = createServerFn({ method: "POST" })
 
     const { data: conv, error: cErr } = await context.supabase
       .from("wa_conversations")
-      .select("id, wa_phone, funnel_stage, protocolo_ativo_id")
+      .select("id, wa_phone, funnel_stage, protocolo_ativo_id, tags")
       .eq("id", data.conversation_id)
       .single();
     if (cErr || !conv) throw new Error("Conversa não encontrada");
@@ -882,10 +882,15 @@ export const closeProtocoloManually = createServerFn({ method: "POST" })
       })
       .eq("id", proto.id);
 
+    // Encerrou o protocolo → a conversa não está mais "aguardando humano".
+    const closeTags = ((conv.tags ?? []) as string[]).filter(
+      (t) => t !== "aguardando_humano" && t !== "escalada_implicita" && t !== "transferencia_nominal",
+    );
     await supabaseAdmin
       .from("wa_conversations")
-      .update({ protocolo_ativo_id: null, mode: "resolved" })
+      .update({ protocolo_ativo_id: null, mode: "resolved", tags: closeTags })
       .eq("id", conv.id);
+
 
     return { ok: true, numero: proto.numero };
   });
@@ -1075,6 +1080,7 @@ export const clearConversationHistory = createServerFn({ method: "POST" })
         ai_debounce_until: null,
         last_message_preview: null,
         unread_count: 0,
+        tags: [],
       })
       .eq("id", data.conversation_id);
     if (upErr) throw new Error(upErr.message);

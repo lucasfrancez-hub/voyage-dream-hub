@@ -159,7 +159,7 @@ export const Route = createFileRoute("/api/public/hooks/close-inactive-protocols
 
             const { data: conv } = await supabaseAdmin
               .from("wa_conversations")
-              .select("wa_phone, funnel_stage")
+              .select("wa_phone, funnel_stage, tags")
               .eq("id", proto.conversation_id)
               .maybeSingle();
             if (!conv) continue;
@@ -190,10 +190,14 @@ export const Route = createFileRoute("/api/public/hooks/close-inactive-protocols
               continue;
             }
 
+            // Protocolo encerrado → tira a marcação de "aguardando humano".
+            const closeTags = ((conv.tags ?? []) as string[]).filter(
+              (t) => t !== "aguardando_humano" && t !== "escalada_implicita" && t !== "transferencia_nominal",
+            );
             await supabaseAdmin
               .from("wa_conversations")
               // limpa agent_slug: próximo protocolo pode escolher outra IA
-              .update({ protocolo_ativo_id: null, agent_slug: null })
+              .update({ protocolo_ativo_id: null, agent_slug: null, tags: closeTags })
               .eq("id", proto.conversation_id);
 
 
