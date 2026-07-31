@@ -115,7 +115,7 @@ async function screenshotCard(url: string): Promise<Uint8Array> {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       url,
-      gotoOptions: { waitUntil: "domcontentloaded", timeout: 15000 },
+      gotoOptions: { waitUntil: "load", timeout: 15000 },
       viewport: { width: 1200, height: 900, deviceScaleFactor: 2 },
       options: { type: "png", fullPage: true, omitBackground: false },
     }),
