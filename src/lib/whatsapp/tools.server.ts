@@ -534,34 +534,91 @@ export function buildCamilaTools(conversation: WaConversation, scope: ToolProtoc
       }),
       execute: async ({ destino, origem, limit }) => {
         const cap = limit ?? 5;
-        let base = supabaseAdmin
-          .from("packages")
-          .select("slug, title, destination, origin, going_date, return_date, nights, price_per_person, hotel_name, hotel_stars, base_occupancy, image_url, meal_plan, includes, services, outbound_flight, return_flight")
+        const COLS =
+          "slug, title, destination, origin, going_date, return_date, nights, price_per_person, hotel_name, hotel_stars, base_occupancy, image_url, meal_plan, includes, services, outbound_flight, return_flight";
+        const hoje = new Date().toISOString().slice(0, 10);
 
-          .eq("is_active", true)
-          .order("going_date", { ascending: true });
-        if (destino) base = base.ilike("destination", `%${destino}%`);
+        /**
+         * O cliente fala por REGIÃO ("nordeste", "caribe", "praia", "Disney"),
+         * mas a coluna destination guarda a CIDADE. Sem esse mapa, buscas como
+         * "Nordeste" não retornavam nada e o robô dizia que não tinha pacote.
+         */
+        const REGIOES: Record<string, string[]> = {
+          nordeste: ["Recife", "Salvador", "Natal", "Maceió", "Fortaleza", "João Pessoa", "Aracaju", "Porto Seguro", "Ilhéus"],
+          praia: ["Recife", "Salvador", "Natal", "Maceió", "Fortaleza", "João Pessoa", "Aracaju", "Porto Seguro", "Ilhéus", "Punta Cana", "Aruba"],
+          caribe: ["Punta Cana", "Aruba"],
+          "estados unidos": ["Orlando", "Nova Iorque", "Miami", "Disney", "Universal", "Epic"],
+          eua: ["Orlando", "Nova Iorque", "Miami", "Disney", "Universal", "Epic"],
+          "america do sul": ["Buenos Aires", "Santiago", "Montevidéu", "Mendoza"],
+          "américa do sul": ["Buenos Aires", "Santiago", "Montevidéu", "Mendoza"],
+          argentina: ["Buenos Aires", "Mendoza"],
+          chile: ["Santiago"],
+          disney: ["Disney", "Orlando", "Magic Kingdom", "Hollywood Studios", "Animal Kingdon"],
+          universal: ["Universal", "Epic", "Orlando"],
+          parques: ["Disney", "Universal", "Epic", "Beto Carrero", "Orlando"],
+          "nova york": ["Nova Iorque"],
+        };
+        const chave = (destino ?? "")
+          .toLocaleLowerCase("pt-BR")
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .trim();
+        const termos =
+          Object.entries(REGIOES).find(([k]) =>
+            chave.includes(k.normalize("NFD").replace(/[\u0300-\u036f]/g, "")),
+          )?.[1] ?? null;
+
+        /** Filtro de destino: casa cidade OU título, e expande região → cidades. */
+        const aplicaDestino = <T extends { or: (f: string) => T; ilike: (c: string, v: string) => T }>(q: T): T => {
+          if (!destino) return q;
+          const alvos = termos ?? [destino];
+          const ors = alvos
+            .flatMap((t) => [`destination.ilike.%${t}%`, `title.ilike.%${t}%`])
+            .join(",");
+          return q.or(ors);
+        };
+
+        const novaBase = () => {
+          const q = supabaseAdmin
+            .from("packages")
+            .select(COLS)
+            .eq("is_active", true)
+            .or(`going_date.gte.${hoje},going_date.is.null`)
+            .order("going_date", { ascending: true });
+          return aplicaDestino(q as never) as unknown as typeof q;
+        };
 
         let data: any[] = [];
         if (origem) {
-          const { data: match, error: e1 } = await base.ilike("origin", `%${origem}%`).limit(cap);
+          const { data: match, error: e1 } = await novaBase().ilike("origin", `%${origem}%`).limit(cap);
           if (e1) return { error: e1.message };
           data = match ?? [];
           if (data.length < cap) {
-            let base2 = supabaseAdmin
-              .from("packages")
-              .select("slug, title, destination, origin, going_date, return_date, nights, price_per_person, hotel_name, hotel_stars, base_occupancy, image_url, meal_plan, includes, services, outbound_flight, return_flight")
-              .eq("is_active", true)
-              .order("going_date", { ascending: true });
-            if (destino) base2 = base2.ilike("destination", `%${destino}%`);
-            const { data: rest } = await base2.not("origin", "ilike", `%${origem}%`).limit(cap - data.length);
+            const { data: rest } = await novaBase()
+              .not("origin", "ilike", `%${origem}%`)
+              .limit(cap - data.length);
             data = [...data, ...(rest ?? [])];
           }
         } else {
-          const { data: all, error } = await base.limit(cap);
+          const { data: all, error } = await novaBase().limit(cap);
           if (error) return { error: error.message };
           data = all ?? [];
         }
+        // Última rede: destino muito específico e sem match → mostra o que existe
+        // pra aquela origem, em vez de dizer "não temos nada".
+        if (data.length === 0 && destino) {
+          const q = supabaseAdmin
+            .from("packages")
+            .select(COLS)
+            .eq("is_active", true)
+            .or(`going_date.gte.${hoje},going_date.is.null`)
+            .order("going_date", { ascending: true });
+          const { data: fallback } = origem
+            ? await q.ilike("origin", `%${origem}%`).limit(cap)
+            : await q.limit(cap);
+          data = fallback ?? [];
+        }
+
         if (!data || data.length === 0) {
           return { encontrados: 0, mensagem: "Nenhum pacote pronto para esse filtro. Posso montar uma proposta personalizada com o time comercial." };
         }
