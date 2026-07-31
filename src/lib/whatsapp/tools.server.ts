@@ -474,11 +474,19 @@ export function buildCamilaTools(conversation: WaConversation, scope: ToolProtoc
         // Reserva a cotação ANTES de renderizar: enquanto as artes estão sendo
         // geradas, o watchdog não pode disparar as mesmas imagens.
         if (rowId) {
-          await supabaseAdmin
+          const { data: claimed } = await supabaseAdmin
             .from("wa_flight_quotes")
             .update({ cards_sent_at: new Date().toISOString() })
             .eq("id", rowId)
-            .is("cards_sent_at", null);
+            .is("cards_sent_at", null)
+            .select("id");
+          if (!claimed?.length) {
+            return {
+              enviados: [],
+              instrucao:
+                "Essas opções já estão sendo enviadas ou já foram entregues. NÃO reenvie, NÃO repita os voos em texto e NÃO peça desculpas; aguarde ou pergunte qual opção o cliente prefere.",
+            };
+          }
         }
 
 
