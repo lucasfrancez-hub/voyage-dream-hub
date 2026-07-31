@@ -46,6 +46,7 @@ export type FlightQuoteOption = {
   bagagem_despachada: boolean;
   ida: FlightQuoteLeg;
   volta: FlightQuoteLeg | null;
+  cart: FlightQuoteCart;
 };
 
 export type FlightQuoteResult = {
@@ -55,6 +56,7 @@ export type FlightQuoteResult = {
   destino_nome: string;
   data_ida: string;
   data_volta: string | null;
+  search_key: string | null;
   passageiros: { adultos: number; criancas: number; bebes: number };
   opcoes: FlightQuoteOption[];
   observacao: string;
