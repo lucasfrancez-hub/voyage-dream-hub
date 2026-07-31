@@ -37,7 +37,7 @@ type Mode = "aereo" | "hotel" | "carro" | "combo";
 
 /** Por enquanto o motor de busca só opera AÉREO. Hotel, carro e aéreo+hotel
  * ficam visíveis porém bloqueados. */
-const ENABLED_MODES: Mode[] = ["aereo"];
+const ENABLED_MODES: Mode[] = ["aereo", "hotel", "carro", "aereo_hotel"];
 
 const MODES: { id: Mode; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
   { id: "aereo", label: "Aéreo", icon: Plane },
