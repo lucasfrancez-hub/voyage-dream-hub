@@ -295,6 +295,12 @@ export async function quoteFlights(params: QuoteFlightsParams): Promise<FlightQu
       bagagem_despachada: flightHasBaggage(volta ?? ida),
       ida: toLeg(ida),
       volta: volta ? toLeg(volta) : null,
+      cart: {
+        outboundFareId: ida.key,
+        outboundItineraryId: ida.journey.key,
+        inboundFareId: volta?.key ?? null,
+        inboundItineraryId: volta?.journey.key ?? null,
+      },
     });
   }
 
