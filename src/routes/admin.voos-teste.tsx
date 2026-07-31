@@ -1133,7 +1133,7 @@ function SummaryCard({
                     flightBooking: {
                       searchKey: searchKey ?? "",
                       outboundFareId: out.key,
-                      outboundItineraryId: out.journey.key,
+                      outboundItineraryId: out.journey.key ?? "",
                       inboundFareId: inb?.key ?? null,
                       inboundItineraryId: inb?.journey.key ?? null,
                       isRoundTrip: !!inb,
