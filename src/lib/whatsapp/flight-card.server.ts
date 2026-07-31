@@ -122,7 +122,9 @@ async function screenshotCard(url: string): Promise<Uint8Array> {
       viewport: { width: 900, height: 600, deviceScaleFactor: 2 },
       // Captura também uma pequena área transparente ao redor do cartão.
       // Isso impede que o processamento da mídia encoste o recorte nos cantos.
-      selector: ".capture",
+      // O fallback mantém a geração funcionando durante a troca de versão,
+      // enquanto a rota pública ainda não recebeu o wrapper novo.
+      selector: ".capture, .card",
       options: { type: "png", omitBackground: true },
     }),
   });
