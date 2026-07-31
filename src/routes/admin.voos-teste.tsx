@@ -1355,7 +1355,12 @@ export function VoosPage({
           filters: toOperatorFilters(outFilters),
         },
       }),
-    onSuccess: (r) => {
+    onSuccess: (raw) => {
+      const r = normalizeSearchResult(raw);
+      if (!r) {
+        toast.info("A operadora não respondeu agora, tente de novo em instantes");
+        return;
+      }
       setResult((prev) => {
         if (!prev) return r;
         const map = new Map(prev.outbound.flights.map((f) => [flightSignature(f), f]));
@@ -1392,16 +1397,18 @@ export function VoosPage({
         data: {
           ...paxData(),
           returnDate: form.returnDate,
-          searchKey: result!.searchKey,
+          searchKey: result?.searchKey ?? "",
           flightKey: opts.flightKey,
           filters: toOperatorFilters(opts.filters),
         },
       }),
-    onSuccess: (r, vars) => {
+    onSuccess: (raw, vars) => {
+      const r = normalizeLeg(raw);
       setInbound(r);
       if (!r.flights.length) toast.warning("Nenhuma volta disponível com esses filtros");
       void vars;
     },
+
     onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Erro ao buscar volta"),
   });
 
