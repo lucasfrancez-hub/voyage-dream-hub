@@ -115,18 +115,18 @@ export function renderFlightCardHtml(d: FlightCardData, baseUrl: string): string
 body{width:1200px;background:#fff;font-family:Poppins,system-ui,sans-serif;color:${NAVY};-webkit-font-smoothing:antialiased}
 .card{width:1200px;border-radius:34px;overflow:hidden;box-shadow:0 24px 60px rgba(11,37,69,.16);border:1px solid #eef1f5}
 .head{display:flex;align-items:stretch;background:#fff;height:150px}
-.brand{position:relative;width:370px;background:${NAVY};display:flex;flex-direction:column;justify-content:center;padding:0 34px;color:#fff}
+.brand{position:relative;width:300px;flex:none;background:${NAVY};display:flex;flex-direction:column;justify-content:center;padding:0 26px;color:#fff}
 .brand:after{content:"";position:absolute;right:-58px;top:0;bottom:0;width:120px;background:${NAVY};transform:skewX(-14deg)}
-.brand img{height:52px;object-fit:contain;object-position:left}
-.brand .tagline{margin-top:8px;font-size:17px;opacity:.9}
-.route{flex:1;display:flex;align-items:center;justify-content:center;gap:34px;padding-left:60px}
-.route .r-iata{font-size:48px;font-weight:800;line-height:1}
-.route .r-city{font-size:19px;text-align:center;color:#42526b;margin-top:2px}
-.route .circle{width:62px;height:62px;border-radius:50%;background:${NAVY};display:flex;align-items:center;justify-content:center}
-.dates{display:flex;align-items:center;gap:16px;padding:0 40px 0 20px}
+.brand img{height:46px;object-fit:contain;object-position:left;position:relative;z-index:1}
+.brand .tagline{position:relative;z-index:1;margin-top:8px;font-size:15px;opacity:.9;white-space:nowrap}
+.route{flex:1;display:flex;align-items:center;justify-content:center;gap:22px;padding-left:90px;min-width:0;position:relative;z-index:1}
+.route .r-city{font-size:34px;font-weight:800;line-height:1.05;text-align:center;max-width:200px}
+.route .r-iata{font-size:19px;font-weight:600;letter-spacing:2px;text-align:center;color:#8b98ac;margin-top:4px}
+.route .circle{width:62px;height:62px;flex:none;border-radius:50%;background:${NAVY};display:flex;align-items:center;justify-content:center}
+.dates{display:flex;align-items:center;gap:14px;flex:none;padding:0 32px 0 18px}
 .dates .cal{width:46px;height:46px;border:3px solid ${ORANGE};border-radius:10px;position:relative}
 .dates .cal:before{content:"";position:absolute;left:0;right:0;top:8px;height:3px;background:${ORANGE}}
-.dates .d-row{font-size:21px;font-weight:700;letter-spacing:.5px}
+.dates .d-row{font-size:20px;font-weight:700;letter-spacing:.5px;white-space:nowrap}
 .dates .d-row span{color:${ORANGE};display:inline-block;min-width:82px}
 .leg{display:grid;grid-template-columns:120px 1fr 1fr 1fr 1fr 170px;align-items:center;border-top:1px solid #edf0f4;min-height:200px}
 .leg-b{border-top:1px solid #edf0f4}
@@ -166,9 +166,9 @@ body{width:1200px;background:#fff;font-family:Poppins,system-ui,sans-serif;color
   <div class="head">
     <div class="brand">${logo ? `<img src="${esc(logo)}" alt="VIA AIR"/>` : `<div style="font-size:38px;font-weight:800">VIA AIR</div>`}<div class="tagline">Sua viagem, do seu jeito.</div></div>
     <div class="route">
-      <div><div class="r-iata">${esc(d.origem_iata)}</div><div class="r-city">${esc(d.origem_cidade)}</div></div>
+      <div><div class="r-city">${esc(d.origem_cidade || d.origem_iata)}</div><div class="r-iata">${esc(d.origem_iata)}</div></div>
       <div class="circle">${planeIcon(0)}</div>
-      <div><div class="r-iata">${esc(d.destino_iata)}</div><div class="r-city">${esc(d.destino_cidade)}</div></div>
+      <div><div class="r-city">${esc(d.destino_cidade || d.destino_iata)}</div><div class="r-iata">${esc(d.destino_iata)}</div></div>
     </div>
     <div class="dates">
       <div class="cal"></div>
