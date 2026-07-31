@@ -1,11 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { Plane, BedDouble, Layers, MapPin, ArrowLeftRight, CalendarDays, Users, Search, Car, ClipboardCheck, ChevronRight, ChevronLeft } from "lucide-react";
+import { Plane, BedDouble, Layers, MapPin, ArrowLeftRight, CalendarDays, Users, Search, Car, ClipboardCheck, ChevronRight, ChevronLeft, Loader2, ExternalLink, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { VoosPage } from "./admin.voos-teste";
+import { VoosPage, NewOrderFromFlightsDialog } from "./admin.voos-teste";
+import type { ComboPick } from "@/lib/combo-selection";
 import { HoteisPage } from "./admin.hoteis-teste";
 import { CarrosPage } from "./admin.carros";
 import { DateRangeField } from "@/components/search/DateRangeField";
@@ -232,6 +233,31 @@ function BuscarPage() {
   const [combo, setCombo] = useState<ComboForm>(COMBO_INITIAL);
   const [runToken, setRunToken] = useState(0);
   const [step, setStep] = useState<ComboStep>(1);
+  const [flightPick, setFlightPick] = useState<ComboPick | null>(null);
+  const [hotelPick, setHotelPick] = useState<ComboPick | null>(null);
+  const [orderOpen, setOrderOpen] = useState(false);
+  const [buying, setBuying] = useState(false);
+  const [cartLinks, setCartLinks] = useState<{ label: string; url: string }[]>([]);
+
+  const comboTotal = (flightPick?.total ?? 0) + (hotelPick?.total ?? 0);
+  const comboSummary = [flightPick?.summary, hotelPick?.summary].filter(Boolean).join("\n\n");
+
+  async function buyCombo() {
+    setBuying(true);
+    setCartLinks([]);
+    const links: { label: string; url: string }[] = [];
+    try {
+      if (flightPick) links.push({ label: "A\u00e9reo", url: await flightPick.buy() });
+      if (hotelPick) links.push({ label: "Hospedagem", url: await hotelPick.buy() });
+      setCartLinks(links);
+      toast.success("Carrinho(s) do Comprar Viagem gerado(s)");
+    } catch (e) {
+      setCartLinks(links);
+      toast.error(e instanceof Error ? e.message : "Erro ao gerar carrinho");
+    } finally {
+      setBuying(false);
+    }
+  }
 
   const heroTitle =
     mode === "carro" ? (
@@ -267,6 +293,9 @@ function BuscarPage() {
     combo.arrivalIata.length === 3 &&
     !!combo.departureDate &&
     !!combo.returnDate;
+
+  const fmtBRL = (v: number) =>
+    v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
   function runCombo() {
     if (!comboReady) {
@@ -316,6 +345,9 @@ function BuscarPage() {
                 onSearch={() => {
                   runCombo();
                   setStep(1);
+                  setFlightPick(null);
+                  setHotelPick(null);
+                  setCartLinks([]);
                 }}
                 disabled={!comboReady}
               />
@@ -355,9 +387,11 @@ function BuscarPage() {
                   hideForm
                   preset={flightPreset}
                   runToken={runToken}
-                  header={
-                    <SectionHeader icon={Plane} title="Aéreo" subtitle="Escolha a ida e a volta do pacote." />
-                  }
+                  onComboSelect={(pick) => {
+                    setFlightPick(pick);
+                    setStep(2);
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                  }}
                 />
               </div>
 
@@ -366,13 +400,11 @@ function BuscarPage() {
                   hideForm
                   preset={hotelPreset}
                   runToken={runToken}
-                  header={
-                    <SectionHeader
-                      icon={BedDouble}
-                      title="Hospedagem"
-                      subtitle="Escolha o hotel e o quarto no destino, nas mesmas datas."
-                    />
-                  }
+                  onComboSelect={(pick) => {
+                    setHotelPick(pick);
+                    setStep(3);
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                  }}
                 />
               </div>
 
@@ -385,27 +417,119 @@ function BuscarPage() {
                       subtitle="Confira o roteiro antes de gerar o pedido."
                     />
                     <div className="mt-5 space-y-3 text-sm">
-                      <div className="flex items-center gap-2">
-                        <Plane className="h-4 w-4 text-primary" />
-                        {combo.departureIata} → {combo.arrivalIata} • {combo.departureDate} a {combo.returnDate}
+                      <div className="rounded-2xl border border-border/60 bg-background/50 p-4">
+                        <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                          <Plane className="h-3.5 w-3.5 text-primary" /> Aéreo
+                        </div>
+                        {flightPick ? (
+                          <>
+                            <p className="mt-1 font-semibold">{flightPick.title}</p>
+                            <p className="whitespace-pre-line text-xs text-muted-foreground">
+                              {flightPick.summary}
+                            </p>
+                            <p className="mt-1 font-bold text-primary">{fmtBRL(flightPick.total)}</p>
+                          </>
+                        ) : (
+                          <p className="mt-1 text-xs text-muted-foreground">
+                            Nenhum voo selecionado.{" "}
+                            <button className="underline" onClick={() => setStep(1)} type="button">
+                              Escolher aéreo
+                            </button>
+                          </p>
+                        )}
                       </div>
-                      <div className="flex items-center gap-2">
-                        <BedDouble className="h-4 w-4 text-primary" />
-                        {hotelPreset.destination} • {combo.rooms} quarto(s)
+
+                      <div className="rounded-2xl border border-border/60 bg-background/50 p-4">
+                        <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                          <BedDouble className="h-3.5 w-3.5 text-primary" /> Hospedagem
+                        </div>
+                        {hotelPick ? (
+                          <>
+                            <p className="mt-1 font-semibold">{hotelPick.title}</p>
+                            <p className="whitespace-pre-line text-xs text-muted-foreground">
+                              {hotelPick.summary}
+                            </p>
+                            <p className="mt-1 font-bold text-primary">{fmtBRL(hotelPick.total)}</p>
+                          </>
+                        ) : (
+                          <p className="mt-1 text-xs text-muted-foreground">
+                            Nenhuma hospedagem selecionada.{" "}
+                            <button className="underline" onClick={() => setStep(2)} type="button">
+                              Escolher hotel
+                            </button>
+                          </p>
+                        )}
                       </div>
+
                       <div className="flex items-center gap-2">
                         <Users className="h-4 w-4 text-primary" />
                         {combo.adults} adulto(s), {combo.children} criança(s), {combo.infants} bebê(s)
                       </div>
+
+                      <div className="flex items-center justify-between rounded-2xl border border-primary/40 bg-primary/5 px-4 py-3">
+                        <span className="text-xs uppercase tracking-widest text-muted-foreground">
+                          Total do pacote
+                        </span>
+                        <span className="text-2xl font-black text-primary">{fmtBRL(comboTotal)}</span>
+                      </div>
                     </div>
+
                     <Button
                       size="lg"
                       className="mt-6 w-full"
-                      onClick={() => toast.success("Pedido enviado para o Command Center")}
+                      disabled={!comboTotal}
+                      onClick={() => setOrderOpen(true)}
                     >
                       <ClipboardCheck className="mr-2 h-4 w-4" /> Fazer pedido
                     </Button>
+                    <Button
+                      size="lg"
+                      variant="outline"
+                      className="mt-3 w-full"
+                      disabled={buying || (!flightPick && !hotelPick)}
+                      onClick={buyCombo}
+                    >
+                      {buying ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      ) : (
+                        <ExternalLink className="mr-2 h-4 w-4" />
+                      )}
+                      Comprar viagem
+                    </Button>
+
+                    {cartLinks.length > 0 && (
+                      <div className="mt-4 space-y-2 rounded-2xl border border-primary/30 bg-primary/5 p-3">
+                        <div className="text-xs font-semibold">Links do carrinho</div>
+                        {cartLinks.map((l) => (
+                          <div key={l.url} className="space-y-1">
+                            <div className="text-[11px] font-medium">{l.label}</div>
+                            <div className="break-all text-[11px] text-muted-foreground">{l.url}</div>
+                          </div>
+                        ))}
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          className="w-full"
+                          onClick={() => {
+                            navigator.clipboard.writeText(
+                              cartLinks.map((l) => `${l.label}: ${l.url}`).join("\n"),
+                            );
+                            toast.success("Links copiados");
+                          }}
+                        >
+                          <Copy className="mr-2 h-3.5 w-3.5" /> Copiar links
+                        </Button>
+                      </div>
+                    )}
                   </div>
+
+                  <NewOrderFromFlightsDialog
+                    open={orderOpen}
+                    onOpenChange={setOrderOpen}
+                    total={comboTotal}
+                    pax={Math.max(1, combo.adults + combo.children)}
+                    summary={comboSummary}
+                  />
                 </section>
               )}
 
