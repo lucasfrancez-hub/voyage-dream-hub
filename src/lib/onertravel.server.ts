@@ -183,7 +183,7 @@ async function poll(
     const enough = i + 1 >= MIN_ROUNDS && acc.size > 0 && stable >= STABLE_ROUNDS;
     if (enough || Date.now() - startedAt > TIME_BUDGET_MS) break;
 
-    if (i + 1 < maxRounds) await sleep(900);
+    if (i + 1 < maxRounds) await sleep(GAP_MS);
   }
 
   const flights = [...acc.values()].sort((a, b) => a.price.total - b.price.total);
