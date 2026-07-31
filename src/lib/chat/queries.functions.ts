@@ -882,10 +882,15 @@ export const closeProtocoloManually = createServerFn({ method: "POST" })
       })
       .eq("id", proto.id);
 
+    // Encerrou o protocolo → a conversa não está mais "aguardando humano".
+    const closeTags = ((conv.tags ?? []) as string[]).filter(
+      (t) => t !== "aguardando_humano" && t !== "escalada_implicita" && t !== "transferencia_nominal",
+    );
     await supabaseAdmin
       .from("wa_conversations")
-      .update({ protocolo_ativo_id: null, mode: "resolved" })
+      .update({ protocolo_ativo_id: null, mode: "resolved", tags: closeTags })
       .eq("id", conv.id);
+
 
     return { ok: true, numero: proto.numero };
   });
