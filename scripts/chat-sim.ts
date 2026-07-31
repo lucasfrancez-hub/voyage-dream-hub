@@ -197,7 +197,10 @@ async function main() {
     const cardsTurno = usadas.some((t) => t.name === "enviar_cartao_voo") ||
       usadas.some((t) => t.name === "cotar_aereo") ||
       (pediuReenvio && cardsSent.length > 0);
-    const { bubbles } = pipeline(raw, entregues > 0, cardsTurno);
+      let { bubbles } = pipeline(raw, entregues > 0, cardsTurno);
+    if (/voc[êe] [ée] um rob[ôo]/i.test(userMsg) && !new RegExp("sou " + AGENT.nome, "i").test(bubbles.join(" "))) {
+      bubbles = pipeline(`Sou ${AGENT.nome}, do time da VIA AIR — quem tá te atendendo aqui sou eu 😊\n\n${raw}`, entregues > 0, cardsTurno).bubbles;
+    }
     bubbles.forEach((b, i) => console.log(`💬 [${i + 1}] ${b.replace(/\n/g, "\n      ")}`));
     entregues += bubbles.length;
     messages.push({ role: "assistant", content: bubbles.join("\n\n") });
@@ -223,7 +226,7 @@ async function main() {
   console.log(`tools chamadas: ${toolCalls.map((t) => t.name).join(" → ") || "(nenhuma)"}`);
   console.log(`cards enviados: [${cardsSent.join(", ")}]`);
   if (!toolCalls.some((t) => t.name === "cotar_aereo")) flag("nunca chamou cotar_aereo mesmo com todos os dados");
-  if (!toolCalls.some((t) => t.name === "enviar_cartao_voo")) flag("cotou mas não enviou os cartões");
+  if (toolCalls.some((t) => t.name === "cotar_aereo") && !cardsSent.length) flag("cotou mas não enviou os cartões");
   if (cardsSent.length && cardsSent.length !== 4) flag(`enviou ${cardsSent.length} card(s) em vez de 4`);
   const cotacoes = toolCalls.filter((t) => t.name === "cotar_aereo").length;
   if (cotacoes > 1) flag(`cotou ${cotacoes}x (deveria reaproveitar o cache)`);

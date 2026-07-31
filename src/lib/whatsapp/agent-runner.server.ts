@@ -469,6 +469,16 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
     // inventou falha de envio ("probleminha pra mandar as imagens").
     if (cardsEntregues) text = stripTextFlightList(stripFakeImageFailure(text));
 
+    // "Você é um robô?" — resposta determinística: alguns modelos ignoram a
+    // pergunta e repetem a etapa anterior, o que denuncia automação.
+    const perguntouRobo =
+      /(voc[êe]\s+[ée]\s+(um\s+|uma\s+)?(rob[ôo]|bot|i\.?a\.?|intelig[êe]ncia artificial|m[áa]quina|atendente virtual)|atendimento autom[áa]tico|voc[êe]\s+[ée]\s+(humano|humana|uma pessoa|pessoa de verdade)|[ée] rob[ôo]\?)/i.test(
+        ultimoInbound,
+      );
+    if (perguntouRobo && !new RegExp(`sou\\s+${agent.nome}`, "i").test(text)) {
+      text = `Sou ${agent.nome}, do time da VIA AIR — quem tá te atendendo aqui sou eu 😊\n\n${text}`;
+    }
+
     text = mergeQuestionBubbles(text);
     if (!text.trim()) {
       console.warn(`[agent:${agent.slug}] resposta virou vazia depois da limpeza — nada a enviar`);
