@@ -107,7 +107,8 @@ export const Route = createFileRoute("/api/public/hooks/flight-quote-watchdog")(
           const encerrou = depois.some((m) => /protocolo\s+\S+\s+foi encerrado/i.test(m.content ?? ""));
           if (encerrou) continue;
 
-          const jaAvisou = depois.some((m) => (m.content ?? "").includes(MARCA_AVISO));
+          const avisoMsg = depois.find((m) => (m.content ?? "").includes(MARCA_AVISO));
+          const jaAvisou = Boolean(avisoMsg);
           const jaFalhou = depois.some((m) => (m.content ?? "").includes(MARCA_FALHA));
           if (jaFalhou) continue;
 
@@ -133,7 +134,9 @@ export const Route = createFileRoute("/api/public/hooks/flight-quote-watchdog")(
             continue;
           }
 
-          if (elapsedMin >= 10) {
+          // só escala depois de dar mais 5 min a partir do aviso (nunca no minuto seguinte)
+          const desdeAvisoMin = (now - new Date(avisoMsg!.created_at).getTime()) / 60000;
+          if (elapsedMin >= 10 && desdeAvisoMin >= 5) {
             const texto =
               `${voc}tivemos uma ${MARCA_FALHA} agora e a busca não retornou\n\n` +
               `Pra não te deixar esperando, já passei sua solicitação pro nosso time comercial — um consultor te manda a cotação por aqui mesmo`;
