@@ -145,8 +145,8 @@ function pipeline(rawText: string, jaFalouAntes: boolean, cardsEntregues = false
   let text = capitalizeKnownNames(capitalizeBubbles(fixGluedSentences(rawText)), [clientFirst]);
   text = stripAgentSignature(text, AGENT.nome);
   if (cardsEntregues) text = stripTextFlightList(stripFakeImageFailure(text));
-  if (roboPrefix) text = `${roboPrefix}\n\n${text}`;
   if (jaFalouAntes) text = stripReintroBubbles(text);
+  if (roboPrefix) text = `${roboPrefix}\n\n${text}`;
   text = mergeQuestionBubbles(text);
   const prefix = buildSenderPrefix(AGENT.nome);
   return { text, bubbles: splitToBubbles(text, prefix) };
