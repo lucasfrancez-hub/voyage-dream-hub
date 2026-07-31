@@ -73,7 +73,10 @@ const tools = {
     execute: async (args) => {
       toolCalls.push({ name: "cotar_aereo", input: args });
       lastQuoteId = `quote-${++quoteCounter}`;
+      cardsSent.push(1, 2, 3, 4);
       return {
+        cards_enviados: 4,
+        instrucao: "As 4 artes JÁ FORAM ENVIADAS automaticamente. NÃO chame enviar_cartao_voo. NÃO liste voos em texto. Só pergunte qual opção o cliente preferiu.",
         quote_id: lastQuoteId,
         opcoes: [1, 2, 3, 4].map((n) => ({
           opcao: n,
@@ -82,7 +85,6 @@ const tools = {
           conexoes: n === 1 ? 0 : 1,
           total: 1200 + n * 130,
         })),
-        instrucao: "Agora chame enviar_cartao_voo com todas as opções.",
       };
     },
   }),

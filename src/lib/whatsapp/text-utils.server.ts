@@ -223,7 +223,7 @@ export function capitalizeKnownNames(text: string, names: (string | null | undef
  */
 export function stripFakeImageFailure(fullText: string): string {
   const FALHA =
-    /(probleminha|problema|instabilidade|falha|dificuldade|erro|n[aã]o consegui|n[aã]o foi poss[íi]vel)[^\n]{0,80}(imagem|imagens|arte|artes|foto|fotos|enviar|mandar)/iu;
+    /(probleminha|problema|instabilidade|falha|dificuldade|erro|n[aã]o consegui|n[aã]o foi poss[íi]vel)[^\n]{0,80}(imagem|imagens|arte|artes|foto|fotos|enviar|mandar|buscar|busca|pesquisa|cota[çc][aã]o|sistema)/iu;
   const OFERTA_TEXTO =
     /(passar|mandar|enviar|te passo|posso te passar)[^\n]{0,60}(por (aqui )?texto|em texto|por escrito)/iu;
   const kept = fullText
