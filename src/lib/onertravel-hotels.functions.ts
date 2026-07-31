@@ -401,28 +401,36 @@ export const onerCreateHotelCart = createServerFn({ method: "POST" })
     });
     const loc = `https://www.comprarviagem.com.br/viaair/hotel-list?${ctx.toString()}`;
 
-    // A operadora já mudou o formato do corpo algumas vezes; tentamos as
-    // variações conhecidas e ficamos com a primeira que devolver o carrinho.
+    // A operadora espera as tarifas escolhidas como rooms:[{order,key}] — um
+    // item por grupo de quarto da busca. Mantemos as variações antigas como
+    // rede de segurança caso o formato mude de novo.
+    const roomSel = (
+      data.rateKeys.length >= data.rooms
+        ? data.rateKeys.slice(0, data.rooms)
+        : Array.from({ length: data.rooms }, (_, i) => data.rateKeys[i] ?? data.rateKeys[0])
+    ).map((key, order) => ({ order, key }));
+
     const bodies: Record<string, unknown>[] = [
+      {
+        hotel: { searchKey: data.searchKey, hotelId: data.hotelId, rooms: roomSel },
+        searchBookingKey: null,
+        affiliateTag: null,
+        eventId: null,
+      },
+      {
+        hotel: { searchKey: data.searchKey, hotelId: data.hotelId, rooms: [{ order: 0, key: data.rateKeys[0] }] },
+        searchBookingKey: null,
+        affiliateTag: null,
+        eventId: null,
+      },
       {
         hotel: { searchKey: data.searchKey, hotelId: data.hotelId, roomRateKeys: data.rateKeys },
         searchBookingKey: null,
         affiliateTag: null,
         eventId: null,
       },
-      {
-        hotel: { searchKey: data.searchKey, hotelId: data.hotelId, keys: data.rateKeys },
-        searchBookingKey: null,
-        affiliateTag: null,
-        eventId: null,
-      },
-      {
-        hotel: { searchKey: data.searchKey, hotelId: data.hotelId, key: data.rateKeys[0] },
-        searchBookingKey: null,
-        affiliateTag: null,
-        eventId: null,
-      },
     ];
+
 
     let cartId = "";
     let lastStatus = 0;
