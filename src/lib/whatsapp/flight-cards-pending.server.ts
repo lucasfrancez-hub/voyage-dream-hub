@@ -213,8 +213,8 @@ export async function sendPendingFlightCards(
 
   const { buildFlightCardData, renderFlightCardAssetRetry } = await import("./flight-card.server");
   const { buildFlightOptionCaption } = await import("./flight-caption.server");
-  const { sendWhatsAppImageBytes, sendWhatsAppBubbles } = await import("./send.server");
-  const { saveMessage } = await import("./conversation.server");
+  const { sendWhatsAppImageBytes } = await import("./send.server");
+  const { saveMessage, saveAndSendText } = await import("./conversation.server");
 
   // Nunca mandar arte "do nada": se a IA não avisou nada nos últimos minutos,
   // o próprio sistema manda a transição antes das imagens.
@@ -233,25 +233,12 @@ export async function sendPendingFlightCards(
     );
     if (!jaAvisou) {
       const aviso = "Já verifiquei aqui com as companhias e vou te mandar as melhores opções agora";
-      const row = await saveMessage({
-        conversation_id: conversationId,
-        direction: "outbound",
-        sender: "camila",
-        content: aviso,
-      });
-      const enviados = await sendWhatsAppBubbles(waPhone, aviso);
-      // Sem gravar o wa_message_id o varredor de "não entregues" reenviava o
-      // mesmo aviso 25s depois — era a origem das mensagens duplicadas.
-      const primeiro = enviados.find((e) => e.id)?.id ?? null;
-      if (row?.id) {
-        const { setWaMessageId, setSendError } = await import("./conversation.server");
-        if (primeiro) await setWaMessageId(row.id, primeiro);
-        else await setSendError(row.id, enviados[0]?.error ?? "Não entregue pelo WhatsApp");
-      }
+      await saveAndSendText(conversationId, waPhone, aviso);
     }
   } catch {
     /* aviso é auxiliar: nunca bloqueia o envio das artes */
   }
+
 
   let sent = 0;
   let falhou = false;

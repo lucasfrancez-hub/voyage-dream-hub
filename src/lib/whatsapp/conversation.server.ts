@@ -388,6 +388,45 @@ export async function recordHandoff(input: {
   });
 }
 
+/** Marca temporária: o balão está SENDO enviado agora (trava o varredor). */
+export const SENDING_CLAIM = "__enviando__";
+
+/**
+ * Salva + envia um texto outbound de forma segura contra duplicidade.
+ *
+ * A sequência de balões pode levar mais de 25s (pausas humanas). Nesse meio
+ * tempo o varredor de "não entregues" achava a linha sem wa_message_id e
+ * reenviava o MESMO texto — era a origem das mensagens repetidas. Aqui a linha
+ * é travada antes do envio e destravada no fim.
+ */
+export async function saveAndSendText(
+  conversationId: string,
+  waPhone: string,
+  texto: string,
+  opts?: { sender?: "camila" | "system"; agent_slug?: string | null },
+): Promise<void> {
+  const row = await saveMessage({
+    conversation_id: conversationId,
+    direction: "outbound",
+    sender: opts?.sender ?? "camila",
+    content: texto,
+    agent_slug: opts?.agent_slug ?? null,
+  });
+  if (row?.id) await setSendError(row.id, SENDING_CLAIM);
+  const { sendWhatsAppBubbles } = await import("./send.server");
+  const enviados = await sendWhatsAppBubbles(waPhone, texto);
+  const primeiro = enviados.find((e) => e.id)?.id ?? null;
+  if (!row?.id) return;
+  if (primeiro) {
+    await supabaseAdmin
+      .from("wa_messages")
+      .update({ wa_message_id: primeiro, error: null })
+      .eq("id", row.id);
+  } else {
+    await setSendError(row.id, enviados[0]?.error ?? "Não entregue pelo WhatsApp");
+  }
+}
+
 /**
  * Grava o ID retornado pela Meta na linha já salva (envios outbound).
  * Sem isso, o balão não pode ser citado (reply) nem casado quando o

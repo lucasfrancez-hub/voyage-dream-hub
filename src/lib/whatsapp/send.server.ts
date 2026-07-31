@@ -222,10 +222,14 @@ export function splitToBubbles(fullText: string, prefix?: string | null): string
   const cleaned: string[] = [];
   for (const raw of bubbles.map((b) => stripTrailingPeriod(b)).filter(Boolean)) {
     // Limpa pontuação solta sem apagar "- " de listas legítimas.
-    const b = raw.replace(/^[\s,;:]+/u, "").trim();
+    let b = raw.replace(/^[\s,;:.!?]+/u, "").trim();
+    // Restos de frase cortada por sanitização anterior: o balão começava com
+    // um confirmador solto ("Tá?", "Certo?", "Ok!") que ficou sem a oração.
+    b = b.replace(/^(t[aá]|certo|ok|beleza|blz|combinado|viu)\s*[?!.,]+\s*/iu, "").trim();
     if (!b || !/[\p{L}\p{N}]/u.test(b)) continue;
     cleaned.push(b.charAt(0).toLocaleUpperCase("pt-BR") + b.slice(1));
   }
+
   // O prefixo (ex.: "*Maria:*") só entra depois da limpeza, pra nunca gerar um
   // balão só com o nome do atendente seguido de pontuação solta.
   if (prefix?.trim() && cleaned.length) {
