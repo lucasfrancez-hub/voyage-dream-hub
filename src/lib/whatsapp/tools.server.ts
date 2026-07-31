@@ -302,6 +302,13 @@ export function buildCamilaTools(conversation: WaConversation) {
         }
 
 
+        if (enviados.some((e) => e.ok)) {
+          await supabaseAdmin
+            .from("wa_flight_quotes")
+            .update({ cards_sent_at: new Date().toISOString() })
+            .eq("id", quote_id);
+        }
+
         return { enviados, instrucao: "Artes enviadas. Agora só pergunte qual opção o cliente prefere." };
       },
     }),
