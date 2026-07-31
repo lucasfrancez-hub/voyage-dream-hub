@@ -448,6 +448,389 @@ function HotelCard({
   );
 }
 
+// -------------------------------------------- resumo da hospedagem (modal)
+
+function HotelSummaryDialog({
+  open,
+  onOpenChange,
+  hotel,
+  rate,
+  nights,
+  rooms,
+  checkIn,
+  checkOut,
+  adults,
+  children,
+  point,
+  searchKey,
+  onChangeRate,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  hotel: OnerHotel | null;
+  rate: OnerRoomRate | null;
+  nights: number;
+  rooms: number;
+  checkIn: string;
+  checkOut: string;
+  adults: number;
+  children: number;
+  point: OnerHotelPoint | null;
+  searchKey: string;
+  onChangeRate: (rateKey: string) => void;
+}) {
+  const createCart = useServerFn(onerCreateHotelCart);
+  const [cartUrl, setCartUrl] = useState<string | null>(null);
+  const [roomsOpen, setRoomsOpen] = useState(false);
+  const [orderOpen, setOrderOpen] = useState(false);
+
+  useEffect(() => {
+    setCartUrl(null);
+  }, [rate?.key]);
+
+  const cartMut = useMutation({
+    mutationFn: () =>
+      createCart({
+        data: {
+          searchKey,
+          hotelId: hotel!.hotelId,
+          rateKeys: [rate!.key],
+          cityName: point?.name ?? hotel!.city ?? "",
+          pointId: point?.id ?? "",
+          pointType: point?.type ?? 1,
+          checkIn,
+          checkOut,
+          adults,
+          children,
+          rooms,
+        },
+      }),
+    onSuccess: (r) => {
+      setCartUrl(r.url);
+      window.open(r.url, "_blank", "noopener");
+      toast.success("Link do Comprar Viagem gerado");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  if (!hotel || !rate) return null;
+
+  const period = `${checkIn.split("-").reverse().join("/")} a ${checkOut.split("-").reverse().join("/")}`;
+  const summaryText = [
+    `Hospedagem: ${hotel.name} (${hotel.stars}★)`,
+    hotel.city ? `Local: ${[hotel.city, hotel.address].filter(Boolean).join(" — ")}` : null,
+    `Quarto: ${rate.name}`,
+    `${rate.mealPlanLabel} • ${rate.refundable ? "Reembolsável" : "Não reembolsável"}`,
+    `${period} • ${nights} noite(s) • ${rooms} quarto(s)`,
+    `Diária média: ${fmtMoney(rate.price.totalPerNight)}`,
+    `Total: ${fmtMoney(rate.price.total)} (taxas inclusas)`,
+  ]
+    .filter(Boolean)
+    .join("\n");
+
+  return (
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="flex max-h-[90vh] max-w-3xl flex-col gap-0 overflow-hidden rounded-3xl border-border/60 bg-card p-0">
+          <DialogHeader className="border-b border-border/50 bg-background/40 px-6 py-5 text-left">
+            <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-primary">
+              Resumo da hospedagem
+            </span>
+            <DialogTitle className="mt-1 flex items-center gap-2 text-xl font-bold">
+              {hotel.name}
+              <Stars n={hotel.stars} />
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="grid flex-1 gap-6 overflow-y-auto p-6 md:grid-cols-12">
+            <div className="space-y-6 md:col-span-7">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="rounded-xl border border-border/60 bg-background/50 p-4">
+                  <span className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                    Período
+                  </span>
+                  <p className="mt-1 text-sm font-medium">{period}</p>
+                  <p className="text-[11px] text-muted-foreground">
+                    {nights} noite(s) • {rooms} quarto(s) • {adults} adulto(s)
+                  </p>
+                </div>
+                <div className="rounded-xl border border-border/60 bg-background/50 p-4">
+                  <span className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                    Status da tarifa
+                  </span>
+                  <p className="mt-1 flex items-center gap-1 text-sm font-medium">
+                    <Utensils className="h-3 w-3 text-muted-foreground" /> {rate.mealPlanLabel}
+                  </p>
+                  <p
+                    className={`flex items-center gap-1 text-[11px] ${
+                      rate.refundable ? "text-primary" : "text-destructive"
+                    }`}
+                  >
+                    {rate.refundable ? <ShieldCheck className="h-3 w-3" /> : <ShieldOff className="h-3 w-3" />}
+                    {rate.refundable ? "Reembolsável" : "Não reembolsável"}
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                  Alterar quarto ou tarifa
+                </Label>
+                <button
+                  type="button"
+                  onClick={() => setRoomsOpen((v) => !v)}
+                  className="flex w-full items-center justify-between gap-3 rounded-xl border border-border/70 bg-background/60 p-4 text-left transition hover:border-primary/60"
+                >
+                  <span className="min-w-0">
+                    <span className="block truncate text-sm font-medium">{rate.name}</span>
+                    <span className="block text-xs text-muted-foreground">
+                      {rate.mealPlanLabel} • {fmtMoney(rate.price.total)}
+                    </span>
+                  </span>
+                  <ChevronDown
+                    className={`h-5 w-5 shrink-0 text-muted-foreground transition ${roomsOpen ? "rotate-180" : ""}`}
+                  />
+                </button>
+
+                {roomsOpen && (
+                  <div className="max-h-64 space-y-2 overflow-y-auto rounded-xl border border-border/60 bg-background/40 p-2">
+                    {hotel.rates.map((r) => {
+                      const active = r.key === rate.key;
+                      const diff = r.price.total - rate.price.total;
+                      return (
+                        <button
+                          key={r.key}
+                          type="button"
+                          onClick={() => {
+                            onChangeRate(r.key);
+                            setRoomsOpen(false);
+                          }}
+                          className={`flex w-full items-center justify-between gap-3 rounded-lg border px-3 py-2.5 text-left transition ${
+                            active
+                              ? "border-primary bg-primary/10"
+                              : "border-border/60 hover:border-primary/50 hover:bg-muted/30"
+                          }`}
+                        >
+                          <span className="min-w-0">
+                            <span className="block truncate text-xs font-medium">{r.name}</span>
+                            <span className="block text-[11px] text-muted-foreground">
+                              {r.mealPlanLabel} • {r.refundable ? "Reembolsável" : "Não reembolsável"}
+                            </span>
+                          </span>
+                          <span className="shrink-0 text-right">
+                            <span className="block text-xs font-bold text-primary">
+                              {fmtMoney(r.price.total)}
+                            </span>
+                            {!active && diff !== 0 && (
+                              <span className="block text-[10px] text-muted-foreground">
+                                {diff > 0 ? "+" : "−"} {fmtMoney(Math.abs(diff))}
+                              </span>
+                            )}
+                            {active && <span className="block text-[10px] text-primary">Atual</span>}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {rate.cancelPolicy && (
+                <p className="rounded-xl border border-border/50 bg-muted/20 p-3 text-[11px] leading-snug text-muted-foreground">
+                  {rate.cancelPolicy}
+                </p>
+              )}
+
+              {cartUrl && (
+                <div className="space-y-2 rounded-xl border border-primary/30 bg-primary/5 p-3">
+                  <div className="text-xs font-semibold">Link do carrinho</div>
+                  <div className="break-all text-[11px] text-muted-foreground">{cartUrl}</div>
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      className="flex-1"
+                      onClick={() => {
+                        navigator.clipboard.writeText(cartUrl);
+                        toast.success("Link copiado");
+                      }}
+                    >
+                      <Copy className="h-3.5 w-3.5" /> Copiar
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      className="flex-1"
+                      onClick={() =>
+                        window.open(
+                          `https://wa.me/?text=${encodeURIComponent(
+                            `Segue o link para concluir a reserva da hospedagem:\n${cartUrl}`,
+                          )}`,
+                          "_blank",
+                          "noopener",
+                        )
+                      }
+                    >
+                      WhatsApp
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="flex flex-col justify-between gap-6 md:col-span-5">
+              <div className="rounded-2xl border border-border/60 bg-background/60 p-5">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Diária média</span>
+                  <span className="font-medium">{fmtMoney(rate.price.totalPerNight)}</span>
+                </div>
+                <Separator className="my-4" />
+                <span className="text-xs text-muted-foreground">Total da hospedagem</span>
+                <div className="text-3xl font-black tracking-tight text-primary">
+                  {fmtMoney(rate.price.total)}
+                </div>
+                <p className="mt-2 text-[11px] text-muted-foreground">
+                  Taxas e impostos inclusos no valor total
+                </p>
+              </div>
+
+              <div className="flex flex-col gap-3">
+                <Button
+                  className="w-full py-6 text-xs font-black uppercase tracking-[0.15em]"
+                  disabled={cartMut.isPending}
+                  onClick={() => cartMut.mutate()}
+                >
+                  {cartMut.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <ExternalLink className="h-4 w-4" />
+                  )}
+                  Comprar viagem
+                </Button>
+                <Button
+                  variant="outline"
+                  className="w-full py-5 text-[10px] font-black uppercase tracking-[0.15em]"
+                  onClick={() => setOrderOpen(true)}
+                >
+                  <ShoppingCart className="h-4 w-4" /> Fazer pedido
+                </Button>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <NewOrderFromHotelDialog
+        open={orderOpen}
+        onOpenChange={setOrderOpen}
+        total={rate.price.total}
+        pax={Math.max(1, adults)}
+        summary={summaryText}
+      />
+    </>
+  );
+}
+
+/** Cria o pedido interno já com o valor e o resumo da hospedagem escolhida. */
+function NewOrderFromHotelDialog({
+  open,
+  onOpenChange,
+  total,
+  pax,
+  summary,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  total: number;
+  pax: number;
+  summary: string;
+}) {
+  const navigate = useNavigate();
+  const create = useServerFn(createOrder);
+  const [form, setForm] = useState({ full_name: "", cpf: "", email: "", phone: "" });
+
+  const mut = useMutation({
+    mutationFn: async () =>
+      create({
+        data: {
+          full_name: form.full_name,
+          cpf: form.cpf,
+          email: form.email,
+          phone: form.phone,
+          payment_method: "other",
+          expected_total: total,
+          total_price: total,
+          adults: pax,
+          notes: summary,
+          supplier_name: "Comprar Viagem",
+        },
+      }),
+    onSuccess: (r: { id: string; order_number: string | number }) => {
+      toast.success(`Pedido ${r.order_number} criado`);
+      onOpenChange(false);
+      navigate({ to: "/admin/pedidos/$id", params: { id: r.id } });
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Erro ao criar pedido"),
+  });
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Fazer pedido</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div className="whitespace-pre-line rounded-xl border border-border/60 bg-muted/40 p-3 text-xs">
+            {summary}
+          </div>
+          <div className="flex items-center justify-between rounded-xl border border-primary/40 bg-primary/5 px-3 py-2">
+            <span className="text-sm text-muted-foreground">Total do pedido</span>
+            <span className="text-lg font-bold text-primary">{fmtMoney(total)}</span>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-1">
+              <Label>Nome completo</Label>
+              <Input
+                value={form.full_name}
+                onChange={(e) => setForm((f) => ({ ...f, full_name: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label>CPF</Label>
+              <Input value={form.cpf} onChange={(e) => setForm((f) => ({ ...f, cpf: e.target.value }))} />
+            </div>
+            <div className="space-y-1">
+              <Label>E-mail</Label>
+              <Input value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} />
+            </div>
+            <div className="space-y-1">
+              <Label>Telefone</Label>
+              <Input value={form.phone} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} />
+            </div>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Cancelar
+          </Button>
+          <Button
+            disabled={mut.isPending}
+            onClick={() => {
+              if (!form.full_name.trim()) return toast.error("Preencha o nome completo");
+              if (!form.cpf.trim()) return toast.error("Informe o CPF");
+              mut.mutate();
+            }}
+          >
+            {mut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShoppingCart className="h-4 w-4" />}
+            Criar pedido
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+
 // ---------------------------------------------------------------- página
 
 export type HotelPreset = {
