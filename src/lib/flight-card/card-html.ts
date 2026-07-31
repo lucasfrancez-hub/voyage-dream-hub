@@ -1,9 +1,10 @@
 /**
  * Gera o HTML do cartão de opção de voo (arte enviada no WhatsApp).
+ * Layout vertical "v2" (aprovado): cabeçalho VIA AIR + rota, um bloco por trecho
+ * e rodapé escuro com valor total e parcelamento.
  * Puro: sem imports server-only, usado tanto na rota pública quanto no preview.
  */
 import { findAirline } from "@/lib/airlines";
-import viaairLogo from "@/assets/viaair-logo-white.png.asset.json";
 
 export type FlightCardPlace = {
   hora: string; // "03:50"
@@ -20,6 +21,7 @@ export type FlightCardLeg = {
   voo: string; // "G3 1787"
   duracao: string; // "8h20"
   paradas: number;
+  escalas?: string | null; // "BSB (1h10)"
   familia?: string | null; // "LIGHT"
   bagagem: string; // "10kg inclusa" | "só de mão"
   partida: FlightCardPlace;
@@ -42,6 +44,7 @@ export type FlightCardData = {
 
 const NAVY = "#0B2545";
 const ORANGE = "#F26B1F";
+const BLUE = "#1F6FEB";
 
 function esc(s: string | null | undefined): string {
   return String(s ?? "").replace(/[&<>"']/g, (c) =>
@@ -56,144 +59,119 @@ function abs(base: string, url: string | undefined): string | null {
 }
 
 function stopsLabel(n: number): string {
-  if (!n) return "DIRETO";
-  return n === 1 ? "1 CONEXÃO" : `${n} CONEXÕES`;
+  if (!n) return "VOO DIRETO";
+  return n === 1 ? "1 PARADA" : `${n} PARADAS`;
 }
 
-function planeIcon(rot: number): string {
-  return `<svg viewBox="0 0 24 24" width="34" height="34" fill="#fff" style="transform:rotate(${rot}deg)"><path d="M21 16v-2l-8-5V3.5A1.5 1.5 0 0 0 11.5 2 1.5 1.5 0 0 0 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/></svg>`;
-}
-
+/** Um trecho (ida ou volta). */
 function legBlock(leg: FlightCardLeg, base: string, i: number): string {
   const logo = abs(base, findAirline(leg.cia_iata || leg.cia)?.logo);
   const plus = leg.chegada.mais_dias ? `<sup class="plus">+${leg.chegada.mais_dias}</sup>` : "";
+  const cor = i ? ORANGE : BLUE;
   return `
   <div class="leg${i ? " leg-b" : ""}">
-    <div class="tag">${planeIcon(i ? 20 : -20)}<span>${esc(leg.rotulo)}</span></div>
-    <div class="side">
-      <div class="time">${esc(leg.partida.hora)}</div>
-      <div class="iata">${esc(leg.partida.iata)}</div>
-      <div class="city">${esc(leg.partida.cidade)}</div>
-      <div class="apt">${esc(leg.partida.aeroporto)}</div>
+    <div class="leg-top">
+      <div class="leg-tag"><i style="background:${cor}"></i>${esc(leg.rotulo)} &middot; ${esc(leg.cia)}
+        ${logo ? `<img class="cia-logo" src="${esc(logo)}" alt="${esc(leg.cia)}"/>` : ""}
+      </div>
+      <div class="chips"><span class="chip">${esc(leg.voo)}</span><span class="chip">${esc(leg.duracao)}</span></div>
     </div>
-    <div class="carrier">
-      ${logo ? `<img class="logo" src="${esc(logo)}" alt="${esc(leg.cia)}"/>` : ""}
-      <div class="cia">${esc(leg.cia)}</div>
-      <div class="voo">${esc(leg.voo)}</div>
-    </div>
-    <div class="mid">
-      <div class="dur">${esc(leg.duracao)}</div>
-      <div class="line"><i class="dot"></i><span class="pill">${stopsLabel(leg.paradas)}</span><i class="dot"></i></div>
-      ${leg.familia ? `<div class="fam">${esc(leg.familia)}</div>` : ""}
-    </div>
-    <div class="side right">
-      <div class="time">${esc(leg.chegada.hora)}${plus}</div>
-      <div class="iata">${esc(leg.chegada.iata)}</div>
-      <div class="city">${esc(leg.chegada.cidade)}</div>
-      <div class="apt">${esc(leg.chegada.aeroporto)}</div>
+    <div class="leg-mid">
+      <div class="pt">
+        <div class="time">${esc(leg.partida.hora)}</div>
+        <div class="iata">${esc(leg.partida.iata)}</div>
+        <div class="city">${esc(leg.partida.cidade)}</div>
+      </div>
+      <div class="path">
+        <div class="stops" style="color:${cor}">${stopsLabel(leg.paradas)}</div>
+        <div class="track"><span class="bullet" style="border-color:${cor}"></span></div>
+        <div class="scale">${esc(leg.escalas || leg.familia || "")}</div>
+      </div>
+      <div class="pt right">
+        <div class="time">${esc(leg.chegada.hora)}${plus}</div>
+        <div class="iata">${esc(leg.chegada.iata)}</div>
+        <div class="city">${esc(leg.chegada.cidade)}</div>
+      </div>
     </div>
     <div class="bag">
-      <svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="${NAVY}" stroke-width="1.7"><path d="M9 6V4.5A1.5 1.5 0 0 1 10.5 3h3A1.5 1.5 0 0 1 15 4.5V6"/><rect x="4" y="6" width="16" height="14" rx="2.5"/></svg>
-      <div class="bag-t">${esc(leg.bagagem)}</div>
+      <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="#7b8aa0" stroke-width="1.7"><path d="M9 6V4.5A1.5 1.5 0 0 1 10.5 3h3A1.5 1.5 0 0 1 15 4.5V6"/><rect x="4" y="6" width="16" height="14" rx="2.5"/></svg>
+      <span>${esc(leg.bagagem)}</span>
     </div>
   </div>`;
 }
 
 export function renderFlightCardHtml(d: FlightCardData, baseUrl: string): string {
-  const logo = abs(baseUrl, viaairLogo.url);
+  const datas = d.data_volta ? `${esc(d.data_ida)} - ${esc(d.data_volta)}` : esc(d.data_ida);
   const parcela =
     d.parcelas && d.parcela_formatada
-      ? `<div class="f-item"><div class="f-ico">${creditIcon()}</div><div><div class="f-lab">PARCELE EM ATÉ</div><div class="f-big">${d.parcelas}x</div><div class="f-sub">de ${esc(d.parcela_formatada)} sem juros</div></div></div>`
+      ? `<div class="pay"><span>PARCELAMENTO</span><b>${d.parcelas}x de ${esc(d.parcela_formatada)}</b></div>`
       : "";
 
   return `<!doctype html>
 <html lang="pt-BR"><head><meta charset="utf-8"/>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{width:1200px;background:#fff;font-family:Poppins,system-ui,sans-serif;color:${NAVY};-webkit-font-smoothing:antialiased}
-.card{width:1200px;border-radius:34px;overflow:hidden;box-shadow:0 24px 60px rgba(11,37,69,.16);border:1px solid #eef1f5}
-.head{display:flex;align-items:stretch;background:#fff;height:150px}
-.brand{position:relative;width:300px;flex:none;background:${NAVY};display:flex;flex-direction:column;justify-content:center;padding:0 26px;color:#fff}
-.brand:after{content:"";position:absolute;right:-58px;top:0;bottom:0;width:120px;background:${NAVY};transform:skewX(-14deg)}
-.brand img{height:46px;object-fit:contain;object-position:left;position:relative;z-index:1}
-.brand .tagline{position:relative;z-index:1;margin-top:8px;font-size:15px;opacity:.9;white-space:nowrap}
-.route{flex:1;display:flex;align-items:center;justify-content:center;gap:22px;padding-left:90px;min-width:0;position:relative;z-index:1}
-.route .r-city{font-size:34px;font-weight:800;line-height:1.05;text-align:center;max-width:200px}
-.route .r-iata{font-size:19px;font-weight:600;letter-spacing:2px;text-align:center;color:#8b98ac;margin-top:4px}
-.route .circle{width:62px;height:62px;flex:none;border-radius:50%;background:${NAVY};display:flex;align-items:center;justify-content:center}
-.dates{display:flex;align-items:center;gap:14px;flex:none;padding:0 32px 0 18px}
-.dates .cal{width:46px;height:46px;border:3px solid ${ORANGE};border-radius:10px;position:relative}
-.dates .cal:before{content:"";position:absolute;left:0;right:0;top:8px;height:3px;background:${ORANGE}}
-.dates .d-row{font-size:20px;font-weight:700;letter-spacing:.5px;white-space:nowrap}
-.dates .d-row span{color:${ORANGE};display:inline-block;min-width:82px}
-.leg{display:grid;grid-template-columns:120px 1fr 1fr 1fr 1fr 170px;align-items:center;border-top:1px solid #edf0f4;min-height:200px}
-.leg-b{border-top:1px solid #edf0f4}
-.tag{align-self:stretch;background:${ORANGE};color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;font-weight:700;letter-spacing:1px;font-size:17px}
-.side{padding:0 16px}
-.side.right{text-align:right}
-.time{font-size:46px;font-weight:800;line-height:1.05}
-.plus{font-size:22px;color:${ORANGE};font-weight:700;vertical-align:super}
-.iata{font-size:28px;font-weight:700;color:${ORANGE};margin-top:2px}
-.city{font-size:18px;color:#42526b}
-.apt{font-size:16px;color:#7b8aa0}
-.carrier{text-align:center;padding:0 10px}
-.carrier .logo{height:42px;max-width:150px;object-fit:contain;margin-bottom:8px}
-.cia{font-size:17px;font-weight:700;text-transform:uppercase;letter-spacing:.4px}
-.voo{font-size:16px;color:#8b98ac;margin-top:2px}
-.mid{text-align:center;padding:0 10px}
-.dur{font-size:22px;font-weight:600;color:#42526b}
-.line{display:flex;align-items:center;justify-content:center;gap:8px;margin:10px 0 8px}
-.line .dot{width:12px;height:12px;border-radius:50%;background:${ORANGE}}
-.pill{background:${NAVY};color:#fff;border-radius:999px;padding:7px 16px;font-size:15px;font-weight:600;letter-spacing:.6px}
-.fam{font-size:16px;color:#9aa6b8;letter-spacing:1px}
-.bag{border-left:1px solid #edf0f4;height:120px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px}
-.bag-t{font-size:16px;text-align:center;line-height:1.25;max-width:130px}
-.footer{display:flex;align-items:center;background:#f4f6f9;padding:26px 34px;gap:26px}
-.f-item{flex:1;display:flex;align-items:center;gap:16px;border-right:1px solid #e2e7ee}
-.f-item:last-child{border-right:0}
-.f-ico{width:64px;height:64px;border-radius:50%;background:${NAVY};display:flex;align-items:center;justify-content:center;flex:none}
-.f-lab{font-size:15px;font-weight:600;letter-spacing:1px;color:#42526b}
-.f-big{font-size:36px;font-weight:800;color:${ORANGE};line-height:1.1}
-.f-sub{font-size:15px;color:#6b7a90}
-.bar{background:${NAVY};color:#fff;display:flex;align-items:center;gap:20px;padding:20px 34px;font-size:19px}
-.bar b{font-weight:700}
-.bar .sep{width:1px;height:26px;background:rgba(255,255,255,.3)}
-.bar .soft{opacity:.85;font-size:17px}
+body{width:820px;background:#eef2f7;font-family:Poppins,system-ui,sans-serif;color:${NAVY};-webkit-font-smoothing:antialiased}
+.card{width:820px;background:#fff;border-radius:34px;overflow:hidden;box-shadow:0 24px 60px rgba(11,37,69,.14)}
+.head{padding:36px 52px 0}
+.head-top{display:flex;align-items:center;justify-content:space-between}
+.wordmark{font-size:38px;font-weight:900;font-style:italic;letter-spacing:-1px}
+.wordmark span{color:${ORANGE}}
+.verified{display:flex;align-items:center;gap:10px;background:#eaf1fe;color:${BLUE};border-radius:999px;padding:12px 24px;font-size:16px;font-weight:700;letter-spacing:1.2px}
+.verified i{width:10px;height:10px;border-radius:50%;background:${BLUE}}
+.route{display:flex;align-items:flex-end;justify-content:space-between;margin-top:34px}
+.route .r{font-size:40px;font-weight:800;letter-spacing:-.5px}
+.route .r em{font-style:normal;color:#8b98ac;font-weight:600;padding:0 8px}
+.route .dt{font-size:22px;color:#8b98ac;font-weight:500}
+.leg{padding:34px 52px 0}
+.leg-b{border-top:1px dashed #e3e8ef;margin-top:34px}
+.leg-top{display:flex;align-items:center;justify-content:space-between}
+.leg-tag{display:flex;align-items:center;gap:12px;font-size:18px;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;color:#5c6b82}
+.leg-tag i{width:12px;height:12px;border-radius:50%;flex:none}
+.cia-logo{height:26px;max-width:90px;object-fit:contain}
+.chips{display:flex;gap:12px}
+.chip{background:#f3f6fa;border-radius:12px;padding:9px 18px;font-size:17px;font-weight:600;color:#42526b}
+.leg-mid{display:flex;align-items:center;justify-content:space-between;gap:24px;margin-top:20px}
+.pt{min-width:170px}
+.pt.right{text-align:right}
+.time{font-size:56px;font-weight:800;line-height:1}
+.plus{font-size:24px;color:${ORANGE};font-weight:800;vertical-align:super}
+.iata{font-size:26px;font-weight:600;color:#5c6b82;margin-top:8px}
+.city{font-size:19px;color:#94a1b2;margin-top:2px}
+.path{flex:1;text-align:center}
+.stops{font-size:17px;font-weight:700;letter-spacing:1.4px}
+.track{position:relative;height:2px;background:#e3e8ef;margin:16px 0 14px}
+.bullet{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:16px;height:16px;border-radius:50%;background:#fff;border:4px solid ${ORANGE}}
+.scale{font-size:17px;color:#94a1b2;letter-spacing:1px}
+.bag{display:flex;align-items:center;gap:14px;background:#f6f8fb;border-radius:18px;padding:20px 24px;margin-top:26px;font-size:20px;color:#42526b}
+.foot{background:${NAVY};color:#fff;margin-top:34px;padding:40px 52px 34px;text-align:center}
+.foot .lab{font-size:18px;font-weight:700;letter-spacing:3px;color:#8fa2bd}
+.foot .price{margin-top:14px;font-size:78px;font-weight:800;color:${ORANGE};line-height:1}
+.foot .price small{font-size:34px;font-weight:700;vertical-align:super;margin-right:6px}
+.pay{display:flex;align-items:center;justify-content:space-between;border-top:1px solid rgba(255,255,255,.14);margin-top:32px;padding-top:24px;font-size:19px}
+.pay span{color:#8fa2bd;font-weight:600;letter-spacing:2px}
+.pay b{font-weight:700}
+.safe{margin-top:20px;font-size:17px;color:#8fa2bd}
 </style></head>
 <body><div class="card">
   <div class="head">
-    <div class="brand">${logo ? `<img src="${esc(logo)}" alt="VIA AIR"/>` : `<div style="font-size:38px;font-weight:800">VIA AIR</div>`}<div class="tagline">Sua viagem, do seu jeito.</div></div>
-    <div class="route">
-      <div><div class="r-city">${esc(d.origem_cidade || d.origem_iata)}</div><div class="r-iata">${esc(d.origem_iata)}</div></div>
-      <div class="circle">${planeIcon(0)}</div>
-      <div><div class="r-city">${esc(d.destino_cidade || d.destino_iata)}</div><div class="r-iata">${esc(d.destino_iata)}</div></div>
+    <div class="head-top">
+      <div class="wordmark">VIA<span>AIR</span></div>
+      <div class="verified"><i></i>VERIFICADO</div>
     </div>
-    <div class="dates">
-      <div class="cal"></div>
-      <div>
-        <div class="d-row"><span>IDA</span>${esc(d.data_ida)}</div>
-        ${d.data_volta ? `<div class="d-row"><span>VOLTA</span>${esc(d.data_volta)}</div>` : ""}
-      </div>
+    <div class="route">
+      <div class="r">${esc(d.origem_iata)}<em>&rarr;</em>${esc(d.destino_iata)}</div>
+      <div class="dt">${datas}</div>
     </div>
   </div>
   ${d.legs.map((l, i) => legBlock(l, baseUrl, i)).join("")}
-  <div class="footer">
-    <div class="f-item"><div class="f-ico">${moneyIcon()}</div><div><div class="f-lab">VALOR FINAL</div><div class="f-big">${esc(d.total_formatado)}</div><div class="f-sub">${esc(d.pax_label)}</div></div></div>
+  <div class="foot">
+    <div class="lab">VALOR TOTAL ${esc(d.pax_label)}</div>
+    <div class="price">${esc(d.total_formatado).replace(/^R\$\s*/, '<small>R$</small>')}</div>
     ${parcela}
-    <div class="f-item"><div class="f-ico">${shieldIcon()}</div><div><div class="f-lab" style="font-size:17px;color:${NAVY}">COMPRA 100% SEGURA</div><div class="f-sub">Seus dados protegidos</div></div></div>
+    <div class="safe">Compra 100% segura &bull; VIA AIR</div>
   </div>
-  <div class="bar"><b>Atendimento inteligente VIA AIR</b><div class="sep"></div><span class="soft">Agilidade, segurança e as melhores opções para você.</span></div>
 </div></body></html>`;
-}
-
-function moneyIcon(): string {
-  return `<svg viewBox="0 0 24 24" width="32" height="32" fill="#fff"><path d="M12 2a1 1 0 0 1 1 1v1.1c1.9.3 3.2 1.5 3.3 3.2h-2.1c-.1-.8-.9-1.4-2.2-1.4-1.3 0-2.1.5-2.1 1.3 0 .7.5 1.1 2.3 1.5l.9.2c2.5.5 3.6 1.5 3.6 3.3 0 1.9-1.4 3.1-3.7 3.4V17a1 1 0 1 1-2 0v-1.4c-2-.3-3.4-1.5-3.5-3.4h2.1c.1 1 1 1.6 2.5 1.6 1.4 0 2.3-.6 2.3-1.4 0-.7-.5-1.1-2.1-1.4l-1-.2C9 10.2 7.9 9.2 7.9 7.5c0-1.8 1.3-3 3.1-3.4V3a1 1 0 0 1 1-1z"/></svg>`;
-}
-function creditIcon(): string {
-  return `<svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="#fff" stroke-width="1.9"><rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="M2.5 9.5h19M5.5 15h4"/></svg>`;
-}
-function shieldIcon(): string {
-  return `<svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="#fff" stroke-width="1.9"><path d="M12 3l7 3v5.5c0 4.2-2.9 7.7-7 9-4.1-1.3-7-4.8-7-9V6l7-3z"/><path d="M9 12.2l2.2 2.2L15.5 10"/></svg>`;
 }
