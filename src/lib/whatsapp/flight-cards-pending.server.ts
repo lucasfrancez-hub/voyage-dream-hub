@@ -107,8 +107,10 @@ export async function sendPendingFlightCards(
     sent_fingerprints?: unknown;
     cards_sent_at?: string | null;
   }>;
-  // Só a cotação mais recente do protocolo pode avançar. Antes, ao concluir a
-  // mais nova, o .find() descia para cotações antigas e voltava a enviar voos.
+  // Só a cotação mais recente do protocolo pode avançar. As duplicadas antigas
+  // ficam definitivamente fora da fila; do contrário, após concluir a atual o
+  // cron voltaria nelas e repetiria os mesmos voos. A criação de novas cópias
+  // da busca é bloqueada em `cotar_aereo`, que reaproveita a atual incompleta.
   const maisRecente = quotesRecentes[0];
   const row = maisRecente && disponivel(maisRecente) ? maisRecente : undefined;
 

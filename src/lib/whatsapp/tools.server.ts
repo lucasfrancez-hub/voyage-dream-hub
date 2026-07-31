@@ -269,7 +269,7 @@ export function buildCamilaTools(conversation: WaConversation, scope: ToolProtoc
         const desdeRecente = new Date(Date.now() - 45 * 60 * 1000).toISOString();
         const { data: recentes } = await supabaseAdmin
           .from("wa_flight_quotes")
-          .select("id, payload, cards_sent_at, created_at")
+          .select("id, payload, cards_sent_at, sent_fingerprints, created_at")
           .eq("conversation_id", conversation.id)
           .gte("created_at", desdeRecente)
           .order("created_at", { ascending: false })
@@ -293,13 +293,39 @@ export function buildCamilaTools(conversation: WaConversation, scope: ToolProtoc
             k === chaveRota ||
             (String(p.data_ida ?? "") === args.data_ida &&
               String(p.destino_iata ?? "").toUpperCase() === args.destino.trim().toUpperCase());
-          if (mesmaRota && r.cards_sent_at) {
+          const entregues = Array.isArray(r.sent_fingerprints)
+            ? r.sent_fingerprints.length
+            : 0;
+          if (mesmaRota && entregues >= 2) {
             return {
               ...(r.payload as object),
               quote_id: r.id,
               ja_enviado: true,
               instrucao:
                 "Essa cotação já foi feita e as artes JÁ foram enviadas ao cliente. NÃO chame enviar_cartao_voo de novo. Só converse: pergunte qual opção agradou, ou ofereça outros horários/datas se ele pedir.",
+            };
+          }
+
+          // `cards_sent_at` também funciona como trava/claim enquanto a arte é
+          // renderizada. Portanto ele sozinho NUNCA prova entrega. Se a mesma
+          // busca já existe, reutiliza a cotação incompleta em vez de consultar
+          // novamente e criar uma fila de cotações idênticas.
+          if (mesmaRota && entregues < 2) {
+            const { sendPendingFlightCards } = await import("./flight-cards-pending.server");
+            const envio = await sendPendingFlightCards(
+              conversation.id,
+              conversation.wa_phone,
+              60 * 60 * 1000,
+              scope.openedAt,
+              scope.protocolId,
+            ).catch(() => ({ sent: 0 }));
+            return {
+              ...(r.payload as object),
+              quote_id: r.id,
+              cards_enviados: envio.sent ?? 0,
+              envio_em_andamento: true,
+              instrucao:
+                "A busca já existe e a entrega das artes está em andamento. NÃO faça outra busca, NÃO chame enviar_cartao_voo, NÃO liste voos em texto e NÃO mande aviso de demora. Aguarde a entrega automática.",
             };
           }
         }
