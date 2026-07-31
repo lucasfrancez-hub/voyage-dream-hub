@@ -164,6 +164,28 @@ const EMPTY_FILTERS: Filters = {
   arrAirports: [],
 };
 
+/** A operadora às vezes devolve resposta vazia/parcial — normaliza para nunca quebrar a tela. */
+function normalizeLeg(leg: unknown): OnerLegResult {
+  const l = (leg ?? {}) as Partial<OnerLegResult>;
+  const flights = Array.isArray(l.flights) ? l.flights : [];
+  return {
+    flights,
+    totalFlightsCount: Number(l.totalFlightsCount ?? flights.length) || flights.length,
+    priceRange: l.priceRange ?? null,
+  };
+}
+
+function normalizeSearchResult(raw: unknown): OnerSearchResult | null {
+  if (!raw || typeof raw !== "object") return null;
+  const r = raw as Partial<OnerSearchResult>;
+  return {
+    searchKey: r.searchKey ?? "",
+    outbound: normalizeLeg(r.outbound),
+    inbound: r.inbound ? normalizeLeg(r.inbound) : null,
+  };
+}
+
+
 function fmtMinutes(m: number) {
   const v = Math.min(m, 1439);
   return `${String(Math.floor(v / 60)).padStart(2, "0")}:${String(v % 60).padStart(2, "0")}`;
@@ -1295,7 +1317,12 @@ export function VoosPage({
           filters: toOperatorFilters(opts.filters),
         },
       }),
-    onSuccess: (r, vars) => {
+    onSuccess: (raw, vars) => {
+      const r = normalizeSearchResult(raw);
+      if (!r) {
+        toast.error("A operadora não respondeu a busca. Tente novamente.");
+        return;
+      }
       setResult(r);
       if (!vars.searchKey) {
         setSelectedOut(null);
@@ -1314,6 +1341,7 @@ export function VoosPage({
     onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Erro na busca"),
   });
 
+
   // "Ver mais voos": a operadora libera os fornecedores em ondas, então uma nova
   // consulta com a MESMA busca costuma trazer opções (e tarifas menores) que
   // ainda não tinham chegado. Os voos novos são somados aos já exibidos.
@@ -1327,7 +1355,12 @@ export function VoosPage({
           filters: toOperatorFilters(outFilters),
         },
       }),
-    onSuccess: (r) => {
+    onSuccess: (raw) => {
+      const r = normalizeSearchResult(raw);
+      if (!r) {
+        toast.info("A operadora não respondeu agora, tente de novo em instantes");
+        return;
+      }
       setResult((prev) => {
         if (!prev) return r;
         const map = new Map(prev.outbound.flights.map((f) => [flightSignature(f), f]));
@@ -1364,16 +1397,18 @@ export function VoosPage({
         data: {
           ...paxData(),
           returnDate: form.returnDate,
-          searchKey: result!.searchKey,
+          searchKey: result?.searchKey ?? "",
           flightKey: opts.flightKey,
           filters: toOperatorFilters(opts.filters),
         },
       }),
-    onSuccess: (r, vars) => {
+    onSuccess: (raw, vars) => {
+      const r = normalizeLeg(raw);
       setInbound(r);
       if (!r.flights.length) toast.warning("Nenhuma volta disponível com esses filtros");
       void vars;
     },
+
     onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Erro ao buscar volta"),
   });
 

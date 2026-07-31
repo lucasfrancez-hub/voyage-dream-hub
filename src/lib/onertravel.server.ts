@@ -130,8 +130,17 @@ async function poll(
   maxRounds = 30,
 ): Promise<OnerLegResult> {
   const acc = new Map<string, OnerFlight>();
+  const startedAt = Date.now();
+  // Fornecedores publicam em ondas. Em vez de esperar sempre todas as rodadas,
+  // paramos quando o conteúdo estabiliza (nada novo nem mais barato) — mesma
+  // qualidade de resultado, bem menos espera.
+  const MIN_ROUNDS = 6;
+  const STABLE_ROUNDS = 4;
+  const TIME_BUDGET_MS = 26_000;
+  let stable = 0;
 
   for (let i = 0; i < maxRounds; i++) {
+    let changed = false;
     let haveMore = false;
     let page = 1;
     do {
@@ -151,6 +160,7 @@ async function poll(
           const previous = acc.get(signature);
           if (!previous || flight.price.total < previous.price.total) {
             acc.set(signature, flight);
+            changed = true;
           }
         }
         haveMore = !!json.haveMore && (json.flights?.length ?? 0) > 0;
@@ -159,6 +169,11 @@ async function poll(
         break;
       }
     } while (haveMore && page <= 50);
+
+    stable = changed ? 0 : stable + 1;
+
+    const enough = i + 1 >= MIN_ROUNDS && acc.size > 0 && stable >= STABLE_ROUNDS;
+    if (enough || Date.now() - startedAt > TIME_BUDGET_MS) break;
 
     if (i + 1 < maxRounds) await sleep(900);
   }
@@ -173,6 +188,7 @@ async function poll(
       : null,
   };
 }
+
 
 export async function searchAirports(data: z.infer<typeof airportSearchInput>) {
   const url = `${API}/api/airport/search?name=${encodeURIComponent(data.query)}&isDeparture=${data.isDeparture}`;
