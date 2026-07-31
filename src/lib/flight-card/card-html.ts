@@ -118,7 +118,7 @@ body{width:1200px;background:#fff;font-family:Poppins,system-ui,sans-serif;color
 .brand{position:relative;width:300px;flex:none;background:${NAVY};display:flex;flex-direction:column;justify-content:center;padding:0 34px;color:#fff}
 .brand:after{content:"";position:absolute;right:-58px;top:0;bottom:0;width:120px;background:${NAVY};transform:skewX(-14deg)}
 .brand img{height:46px;object-fit:contain;object-position:left}
-.brand .tagline{margin-top:8px;font-size:17px;opacity:.9}
+.brand .tagline{margin-top:8px;font-size:15px;opacity:.9;white-space:nowrap}
 .route{flex:1;display:flex;align-items:center;justify-content:center;gap:22px;padding-left:90px;min-width:0;position:relative;z-index:1}
 .route .r-city{font-size:34px;font-weight:800;line-height:1.05;text-align:center;max-width:200px}
 .route .r-iata{font-size:19px;font-weight:600;letter-spacing:2px;text-align:center;color:#8b98ac;margin-top:4px}
