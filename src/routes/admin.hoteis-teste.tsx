@@ -516,13 +516,14 @@ function HotelSummaryDialog({
   });
 
   const allRates = roomsQuery.data?.rates ?? hotel?.rates ?? [];
-  const activeRate = pickedRate ?? rate;
+  const activeRate = pickedRate ?? baseRate;
   // a chave de tarifa precisa vir da mesma busca que gerou a tarifa
   const activeSearchKey = pickedRate ? (roomsQuery.data?.searchKey ?? searchKey) : searchKey;
 
   useEffect(() => {
     setCartUrl(null);
-  }, [rate?.key, pickedRate?.key]);
+  }, [baseRate?.key, pickedRate?.key]);
+
 
   useEffect(() => {
     setPickedRate(null);
