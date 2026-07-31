@@ -205,9 +205,6 @@ export function splitToBubbles(fullText: string, prefix?: string | null): string
     .filter(Boolean)
     .map((s) => s.charAt(0).toLocaleUpperCase("pt-BR") + s.slice(1));
   const rawBubbles = paragraphs.length ? paragraphs : [fullText.trim()].filter(Boolean);
-  if (prefix?.trim() && rawBubbles.length) {
-    rawBubbles[0] = `${prefix.trim()}\n${rawBubbles[0]}`;
-  }
   // Quebra parágrafos gigantes no limite oficial da Meta (~4096)
   const bubbles: string[] = [];
   for (const p of rawBubbles) {
@@ -228,6 +225,11 @@ export function splitToBubbles(fullText: string, prefix?: string | null): string
     const b = raw.replace(/^[\s,;:]+/u, "").trim();
     if (!b || !/[\p{L}\p{N}]/u.test(b)) continue;
     cleaned.push(b.charAt(0).toLocaleUpperCase("pt-BR") + b.slice(1));
+  }
+  // O prefixo (ex.: "*Maria:*") só entra depois da limpeza, pra nunca gerar um
+  // balão só com o nome do atendente seguido de pontuação solta.
+  if (prefix?.trim() && cleaned.length) {
+    cleaned[0] = `${prefix.trim()}\n${cleaned[0]}`;
   }
   return cleaned;
 }

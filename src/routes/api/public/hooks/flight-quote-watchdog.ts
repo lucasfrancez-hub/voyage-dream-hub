@@ -102,9 +102,21 @@ export const Route = createFileRoute("/api/public/hooks/flight-quote-watchdog")(
             (m) =>
               m.direction === "outbound" &&
               m.sender !== "system" &&
-              /https?:\/\/\S*(?:flight-cards|broadcast-media)\/\S+\.png/i.test(m.content ?? ""),
+              (/\[\[media:image/i.test(m.content ?? "") ||
+                /https?:\/\/\S*(?:flight-cards|broadcast-media)\/\S+\.(?:png|jpe?g|webp)/i.test(m.content ?? "") ||
+                /^\s*\*?Op[çc][ãa]o\s*\d/i.test(m.content ?? "")),
           );
           if (entregou) continue;
+
+          // Se alguma cotação do protocolo já teve card enviado, o watchdog cala:
+          // a entrega está em andamento (1 card por minuto) e não é instabilidade.
+          const { data: qs } = await supabaseAdmin
+            .from("wa_flight_quotes")
+            .select("id, cards_sent_at")
+            .eq("conversation_id", convId)
+            .gte("created_at", inicio ?? new Date(now - 6 * 60 * 60 * 1000).toISOString())
+            .limit(20);
+          if ((qs ?? []).some((q) => q.cards_sent_at)) continue;
 
           // protocolo encerrado depois da promessa (mensagem de sistema) → para
           const encerrou = depois.some((m) => /protocolo\s+\S+\s+foi encerrado/i.test(m.content ?? ""));
