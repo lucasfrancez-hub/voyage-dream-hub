@@ -56,7 +56,7 @@ export async function sendPendingFlightCards(
       }
     | null
     | undefined;
-  const todas = (quote?.opcoes ?? []).slice(0, 4);
+  const todas = (quote?.opcoes ?? []).slice(0, 3);
   if (!row?.id || !quote || !todas.length) return { sent: 0 };
 
   // ---- claim atômico: quem conseguir marcar cards_sent_at é quem envia ----

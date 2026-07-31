@@ -459,7 +459,7 @@ export function buildCamilaTools(conversation: WaConversation, scope: ToolProtoc
             .join("|");
 
         const enviados: Array<{ opcao: number; ok: boolean; erro?: string }> = [];
-        let alvo = (opcoes.length ? opcoes : quote.opcoes.map((o) => o.opcao)).slice(0, 4);
+        let alvo = (opcoes.length ? opcoes : quote.opcoes.map((o) => o.opcao)).slice(0, 3);
 
         // Fingerprints já entregues em QUALQUER cotação desta conversa nas
         // últimas 24h.
