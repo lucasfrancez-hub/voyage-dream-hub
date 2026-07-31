@@ -104,7 +104,7 @@ export async function sendPendingFlightCards(
   let sent = 0;
   let falhou = false;
   const novosFps: string[] = [];
-  const INTERVALO_MS = 12_000; // uma opção por vez, intervalo curto (< 1 min)
+  const INTERVALO_MS = 4_000; // uma opção por vez, intervalo curto
 
   for (let i = 0; i < opcoes.length; i++) {
     const op = opcoes[i];
@@ -114,7 +114,7 @@ export async function sendPendingFlightCards(
       const data = buildFlightCardData(quote as any, op as any);
       const asset = await renderFlightCardAssetRetry(data);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const caption = buildFlightOptionCaption(quote as any, op as any);
+      const caption = buildFlightOptionCaption(quote as any, op as any, jaFps.size + i + 1);
       const r = await sendWhatsAppImageBytes(
         waPhone,
         asset.bytes,
