@@ -40,6 +40,16 @@ export async function retryUndeliveredOutbound(limit = 15): Promise<number> {
   for (const row of pendentes) {
     const texto = (row.content ?? "").trim();
     if (!texto || texto.startsWith("⚠️")) continue;
+    // Linhas de MÍDIA (artes de voo/hotel) nunca podem ser reenviadas como
+    // texto — o marcador vazaria no WhatsApp como link quebrado. O reenvio
+    // dessas artes é feito pelo fluxo de cartões (sendPendingFlightCards).
+    if (/\[\[media:/i.test(texto)) {
+      await supabaseAdmin
+        .from("wa_messages")
+        .update({ error: "mídia não reenviada como texto" })
+        .eq("id", row.id);
+      continue;
+    }
 
     // Claim atômico: só segue quem conseguir marcar a linha.
     const { data: claimed } = await supabaseAdmin
