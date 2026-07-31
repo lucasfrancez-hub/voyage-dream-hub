@@ -240,7 +240,24 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
 
   const agents = await loadAgents();
   const stickySlug = (conv as unknown as { agent_slug?: string | null }).agent_slug ?? null;
-  const agent = pickAgent(agents, stickySlug);
+  // Se a conversa já foi pro setor de aéreo, ela FICA lá (agente virtual).
+  const stickyFlight = findFlightAgent(stickySlug);
+  let agent = stickyFlight
+    ? ({
+        id: `flight:${stickyFlight.slug}`,
+        slug: stickyFlight.slug,
+        nome: stickyFlight.nome,
+        system_prompt: "",
+        horario_inicio: "00:00:00",
+        horario_fim: "00:00:00",
+        timezone: "America/Sao_Paulo",
+        ativo: true,
+        tools_habilitadas: [],
+        temas_proibidos: [],
+        mensagem_ausencia: null,
+      } as Agent)
+    : pickAgent(agents, stickySlug);
+
 
 
 
