@@ -67,21 +67,31 @@ function ModeHeader({
       <div className="flex w-fit gap-1 rounded-full border border-border/50 bg-card/70 p-1 backdrop-blur-xl">
         {MODES.map((m) => {
           const active = mode === m.id;
+          const disabled = !ENABLED_MODES.includes(m.id);
           return (
             <button
               key={m.id}
               type="button"
-              onClick={() => setMode(m.id)}
+              disabled={disabled}
+              title={disabled ? "Indisponível no momento — em breve" : undefined}
+              onClick={() => {
+                if (disabled) return;
+                setMode(m.id);
+              }}
               className={`flex items-center gap-2 rounded-full px-5 py-2.5 text-sm transition-all sm:px-6 ${
-                active
-                  ? "bg-primary font-semibold text-primary-foreground shadow-lg shadow-primary/20"
-                  : "font-medium text-muted-foreground hover:text-foreground"
+                disabled
+                  ? "cursor-not-allowed font-medium text-muted-foreground/40"
+                  : active
+                    ? "bg-primary font-semibold text-primary-foreground shadow-lg shadow-primary/20"
+                    : "font-medium text-muted-foreground hover:text-foreground"
               }`}
             >
               <m.icon className="h-4 w-4" /> {m.label}
+              {disabled ? <span className="text-[10px] uppercase opacity-70">em breve</span> : null}
             </button>
           );
         })}
+
       </div>
     </div>
 
