@@ -19,12 +19,18 @@ function safeText(value: unknown): string {
   return String(value);
 }
 
+const MEDIA_RE = /\[\[media:(image|document|audio|video)\|([^|\]]+)\|([^\]]+)\]\]/;
 function parseMedia(content: unknown): { media: Media | null; text: string } {
   const normalized = safeText(content);
-  const m = normalized.match(/^\[\[media:(image|document|audio|video)\|([^|]+)\|([^\]]+)\]\](?:\n([\s\S]*))?$/);
+  // O marcador pode vir no começo OU depois da legenda/assinatura do agente
+  // ("Maria:\n...texto...[[media:image|...]]"). Antes só casávamos no início,
+  // então o card de voo aparecia como texto cru no painel.
+  const m = normalized.match(MEDIA_RE);
   if (!m) return { media: null, text: normalized };
-  return { media: { kind: m[1] as Media["kind"], url: m[2], filename: m[3] }, text: (m[4] ?? "").trim() };
+  const text = normalized.replace(m[0], "").trim();
+  return { media: { kind: m[1] as Media["kind"], url: m[2], filename: m[3] }, text };
 }
+
 
 interface Props {
   side: "in" | "out";
@@ -52,7 +58,8 @@ export function WhatsAppBubble({ side, content, timestamp, senderLabel, status, 
   const label = firstName(senderLabel);
   const displayContent = (() => {
     const normalized = safeText(content);
-    if (!label || normalized.startsWith("[[media:")) return content;
+    if (!label) return content;
+
     const escaped = label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     // O WhatsApp recebe "Maria:\n..." no próprio texto, enquanto o painel já
     // mostra Maria como cabeçalho laranja. Remove todas as cópias visuais
