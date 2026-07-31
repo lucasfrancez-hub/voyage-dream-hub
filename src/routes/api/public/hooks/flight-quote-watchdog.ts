@@ -60,7 +60,29 @@ export const Route = createFileRoute("/api/public/hooks/flight-quote-watchdog")(
         const avisados: string[] = [];
         const escalados: string[] = [];
 
-        for (const [convId, msgs] of byConv) {
+        for (const [convId, msgsAll] of byConv) {
+          const { data: conv } = await supabaseAdmin
+            .from("wa_conversations")
+            .select("id, wa_phone, display_name, mode, ai_paused, tags, protocolo_ativo_id")
+            .eq("id", convId)
+            .maybeSingle();
+          if (!conv || conv.mode !== "ai" || conv.ai_paused) continue;
+
+          // Protocolo encerrado = ponto final. Nada de robô continuando busca
+          // de um atendimento já fechado (ou de um protocolo anterior).
+          if (!conv.protocolo_ativo_id) continue;
+          const { data: proto } = await supabaseAdmin
+            .from("wa_protocolos")
+            .select("id, status, opened_at, created_at")
+            .eq("id", conv.protocolo_ativo_id as string)
+            .maybeSingle();
+          if (!proto || proto.status !== "aberto") continue;
+
+          // Só olha o que aconteceu DENTRO do protocolo aberto atual.
+          const inicio = (proto.opened_at ?? proto.created_at) as string | null;
+          const msgs = inicio ? msgsAll.filter((m) => m.created_at >= inicio) : msgsAll;
+          if (!msgs.length) continue;
+
           // última promessa de pesquisa feita pela IA
           let promessa: Row | null = null;
           for (const m of msgs) {
@@ -81,6 +103,10 @@ export const Route = createFileRoute("/api/public/hooks/flight-quote-watchdog")(
           );
           if (entregou) continue;
 
+          // protocolo encerrado depois da promessa (mensagem de sistema) → para
+          const encerrou = depois.some((m) => /protocolo\s+\S+\s+foi encerrado/i.test(m.content ?? ""));
+          if (encerrou) continue;
+
           const jaAvisou = depois.some((m) => (m.content ?? "").includes(MARCA_AVISO));
           const jaFalhou = depois.some((m) => (m.content ?? "").includes(MARCA_FALHA));
           if (jaFalhou) continue;
@@ -88,12 +114,6 @@ export const Route = createFileRoute("/api/public/hooks/flight-quote-watchdog")(
           const elapsedMin = (now - new Date(promessa.created_at).getTime()) / 60000;
           if (elapsedMin < 5) continue;
 
-          const { data: conv } = await supabaseAdmin
-            .from("wa_conversations")
-            .select("id, wa_phone, display_name, mode, ai_paused, tags, protocolo_ativo_id")
-            .eq("id", convId)
-            .maybeSingle();
-          if (!conv || conv.mode !== "ai" || conv.ai_paused) continue;
 
           const nome = firstName(conv.display_name as string | null);
           const voc = nome ? `${nome}, ` : "";
