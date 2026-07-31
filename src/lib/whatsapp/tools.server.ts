@@ -261,33 +261,46 @@ export function buildCamilaTools(conversation: WaConversation) {
         const enviados: Array<{ opcao: number; ok: boolean; erro?: string }> = [];
         const alvo = (opcoes.length ? opcoes : quote.opcoes.map((o) => o.opcao)).slice(0, 4);
 
-        for (const numero of alvo) {
-          const op = quote.opcoes.find((o) => o.opcao === numero);
-          if (!op) {
-            enviados.push({ opcao: numero, ok: false, erro: "opção inexistente" });
+        // Renderiza TODAS as artes em paralelo (antes era uma de cada vez).
+        const artes = await Promise.all(
+          alvo.map(async (numero) => {
+            const op = quote.opcoes.find((o) => o.opcao === numero);
+            if (!op) return { numero, op: null, url: null as string | null, erro: "opção inexistente" };
+            try {
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              const data = buildFlightCardData(quote as any, op as any);
+              return { numero, op, url: await renderFlightCardImage(data), erro: undefined };
+            } catch (e) {
+              return { numero, op, url: null, erro: e instanceof Error ? e.message : "falha" };
+            }
+          }),
+        );
+
+        // Envia na ordem, pra o cliente receber as opções em sequência.
+        for (const arte of artes) {
+          if (!arte.url || !arte.op) {
+            enviados.push({ opcao: arte.numero, ok: false, erro: arte.erro ?? "falha" });
             continue;
           }
           try {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const data = buildFlightCardData(quote as any, op as any);
-            const url = await renderFlightCardImage(data);
             const caption =
               enviados.length === 0 && legenda
                 ? legenda
-                : `Opção ${op.opcao} — ${op.destaque}`;
-            const r = await sendWhatsAppImage(conversation.wa_phone, url, caption);
+                : `Opção ${arte.op.opcao} — ${arte.op.destaque}`;
+            const r = await sendWhatsAppImage(conversation.wa_phone, arte.url, caption);
             await saveMessage({
               conversation_id: conversation.id,
               direction: "outbound",
               sender: "camila",
-              content: `${caption}\n${url}`,
+              content: `${caption}\n${arte.url}`,
               wa_message_id: r.id ?? null,
             });
-            enviados.push({ opcao: numero, ok: !r.error, erro: r.error });
+            enviados.push({ opcao: arte.numero, ok: !r.error, erro: r.error });
           } catch (e) {
-            enviados.push({ opcao: numero, ok: false, erro: e instanceof Error ? e.message : "falha" });
+            enviados.push({ opcao: arte.numero, ok: false, erro: e instanceof Error ? e.message : "falha" });
           }
         }
+
 
         return { enviados, instrucao: "Artes enviadas. Agora só pergunte qual opção o cliente prefere." };
       },
