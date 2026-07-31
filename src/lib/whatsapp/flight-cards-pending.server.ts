@@ -214,7 +214,10 @@ export async function sendPendingFlightCards(
   const { buildFlightCardData, renderFlightCardAssetRetry } = await import("./flight-card.server");
   const { buildFlightOptionCaption } = await import("./flight-caption.server");
   const { sendWhatsAppImageBytes } = await import("./send.server");
-  const { saveMessage, saveAndSendText } = await import("./conversation.server");
+  const { saveMessage, saveAndSendText, setSendError, SENDING_CLAIM } = await import(
+    "./conversation.server"
+  );
+
 
   // Nunca mandar arte "do nada": se a IA não avisou nada nos últimos minutos,
   // o próprio sistema manda a transição antes das imagens.
