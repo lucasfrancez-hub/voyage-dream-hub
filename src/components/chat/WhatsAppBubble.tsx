@@ -92,10 +92,16 @@ export function WhatsAppBubble({ side, content, timestamp, senderLabel, status, 
           return (
             <>
               {media?.kind === "image" && (
-                <a href={media.url} target="_blank" rel="noopener noreferrer" className="mb-1 block">
+                <button
+                  type="button"
+                  onClick={() => setLightbox({ url: media.url, filename: media.filename })}
+                  className="mb-1 block w-full cursor-zoom-in"
+                  title="Ver imagem"
+                >
                   <img src={media.url} alt={media.filename} className="max-h-72 w-full rounded-md object-cover" />
-                </a>
+                </button>
               )}
+
               {media?.kind === "audio" && (
                 <audio src={media.url} controls preload="none" className="mb-1 w-56 max-w-full" />
               )}
