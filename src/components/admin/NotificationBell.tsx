@@ -166,6 +166,8 @@ export function AdminNotificationBell() {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState<AlertRow | null>(null);
+  const [tab, setTab] = useState<"pendentes" | "finalizados">("pendentes");
+
   const [sending, setSending] = useState(false);
 
 
