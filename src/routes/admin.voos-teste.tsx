@@ -1,3 +1,4 @@
+import type { ComboPick } from "@/lib/combo-selection";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -1117,6 +1118,26 @@ function SummaryCard({
           </div>
 
           <div className="space-y-3 border-t border-border/50 bg-background/40 p-5">
+            {onComboSelect ? (
+              <Button
+                className="w-full py-6 text-xs font-black uppercase tracking-[0.15em]"
+                onClick={() => {
+                  onComboSelect({
+                    title: `${out.journey.departure.iata} \u2192 ${out.journey.destination.iata}${inb ? " \u2022 ida e volta" : ""}`,
+                    summary: summaryText,
+                    total,
+                    buy: async () => {
+                      const r = await cartMut.mutateAsync();
+                      return r.url;
+                    },
+                  });
+                  onOpenChange(false);
+                }}
+              >
+                Continuar para hospedagem
+              </Button>
+            ) : (
+            <>
             <Button
               onClick={() => setOrderOpen(true)}
               className="w-full py-6 text-xs font-black uppercase tracking-[0.15em]"
@@ -1136,6 +1157,8 @@ function SummaryCard({
               )}
               Comprar viagem
             </Button>
+            </>
+            )}
           </div>
         </DialogContent>
       </Dialog>
@@ -1153,7 +1176,7 @@ function SummaryCard({
 
 
 /** Cria o pedido já com o valor e o resumo dos voos escolhidos. */
-function NewOrderFromFlightsDialog({
+export function NewOrderFromFlightsDialog({
   open,
   onOpenChange,
   total,
@@ -1281,11 +1304,13 @@ export function VoosPage({
   hideForm,
   preset,
   runToken,
+  onComboSelect,
 }: {
   header?: React.ReactNode;
   hideForm?: boolean;
   preset?: FlightPreset;
   runToken?: number;
+  onComboSelect?: (pick: ComboPick) => void;
 } = {}) {
   const search = useServerFn(onerFlightSearch);
   const searchInbound = useServerFn(onerInboundSearch);
@@ -1516,6 +1541,7 @@ export function VoosPage({
   return (
     <div className={header ? "" : "min-h-screen bg-background"}>
       {/* motor de busca */}
+      {!hideForm && (
       <header className="relative overflow-hidden border-b border-border/60">
         <div
           className="absolute inset-0 opacity-60"
@@ -1788,6 +1814,7 @@ export function VoosPage({
 
                     open={summaryOpen}
                     onOpenChange={setSummaryOpen}
+                    onComboSelect={onComboSelect}
                   />
                 </>
               )}
