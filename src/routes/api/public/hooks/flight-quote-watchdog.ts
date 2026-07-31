@@ -19,7 +19,6 @@ const PROMESSA =
   /(deixa? eu (pesquisar|ver|dar uma olhada|verificar)|vou (pesquisar|verificar|buscar|dar uma olhada|consultar)|estou (pesquisando|verificando|buscando|consultando)|to (pesquisando|verificando|buscando)|um (instante|minutinho|momento)|já te trago|já volto com)/i;
 
 const MARCA_FECHO = "essas são as melhores opções que encontrei";
-const MARCA_AVISO = "tô finalizando a busca aqui";
 const MARCA_FALHA = "instabilidade no sistema de tarifas";
 
 export const Route = createFileRoute("/api/public/hooks/flight-quote-watchdog")({
@@ -121,7 +120,7 @@ export const Route = createFileRoute("/api/public/hooks/flight-quote-watchdog")(
 
           // ETAPA DE ENTREGA: toda rodada tenta mandar a PRÓXIMA arte pendente
           // (uma por rodada). É o motor do processo em passos: pesquisou →
-          // opção 1 → opção 2 → fecho.
+          // primeira arte → segunda arte → fecho.
           const nome = firstName(conv.display_name as string | null);
           const voc = nome ? `${nome}, ` : "";
           const { sendPendingFlightCards } = await import("@/lib/whatsapp/flight-cards-pending.server");
@@ -143,8 +142,7 @@ export const Route = createFileRoute("/api/public/hooks/flight-quote-watchdog")(
             (m) =>
               m.direction === "outbound" &&
               m.sender !== "system" &&
-              (/\[\[media:image/i.test(m.content ?? "") ||
-                /^\s*\*?Op[çc][ãa]o\s*\d/i.test(m.content ?? "")),
+              /\[\[media:image/i.test(m.content ?? ""),
           );
           if (cards.length) {
             // Entrega concluída: fecha com um convite, uma vez só.
@@ -152,8 +150,9 @@ export const Route = createFileRoute("/api/public/hooks/flight-quote-watchdog")(
             const ultimoCard = new Date(cards[cards.length - 1].created_at).getTime();
             if (!jaFechou && cards.length >= 2 && now - ultimoCard > 60_000) {
               const fecho =
-                `${voc}${MARCA_FECHO}\n\n` +
-                `Se preferir outro horário, é só me falar que eu pesquiso mais opções pra você`;
+                `${voc}${MARCA_FECHO}. Os valores já consideram tarifas e taxas; ` +
+                `o acúmulo de milhas depende da regra da tarifa e do programa da companhia.\n\n` +
+                `Dá uma olhada e me diz se alguma ficou boa pra você. Se preferir outro horário, eu pesquiso mais duas alternativas`;
               await saveAndSend(convId, conv.wa_phone as string, fecho);
               avisados.push(convId);
             }
@@ -170,32 +169,18 @@ export const Route = createFileRoute("/api/public/hooks/flight-quote-watchdog")(
             (m) =>
               m.direction === "outbound" &&
               m.sender !== "system" &&
-              (/\[\[media:image/i.test(m.content ?? "") ||
-                /^\s*\*?Op[çc][ãa]o\s*\d/i.test(m.content ?? "")),
+              /\[\[media:image/i.test(m.content ?? ""),
           );
           if (cardsProtocolo.length) continue;
 
-          const avisoMsg = msgs.find((m) => (m.content ?? "").includes(MARCA_AVISO));
-          const jaAvisou = Boolean(avisoMsg);
           const jaFalhou = msgs.some((m) => (m.content ?? "").includes(MARCA_FALHA));
           if (jaFalhou) continue;
 
           const elapsedMin = (now - new Date(promessa.created_at).getTime()) / 60000;
-          if (elapsedMin < 5) continue;
-
-          if (!jaAvisou) {
-            const texto =
-              `${voc}${MARCA_AVISO}\n\n` +
-              `A consulta com as companhias tá demorando um pouquinho mais que o normal, mas já já te mando as opções`;
-            await saveAndSend(convId, conv.wa_phone as string, texto);
-            avisados.push(convId);
-            continue;
-          }
-
-
-          // só escala depois de dar mais 5 min a partir do aviso (nunca no minuto seguinte)
-          const desdeAvisoMin = (now - new Date(avisoMsg!.created_at).getTime()) / 60000;
-          if (elapsedMin >= 10 && desdeAvisoMin >= 5) {
+          // Não existe mais aviso intermediário de "finalizando/demorando": ele
+          // competia com a entrega em etapas e aparecia fora de ordem. Até 10
+          // minutos, o watchdog apenas continua tentando entregar as artes.
+          if (elapsedMin >= 10) {
             const texto =
               `${voc}tivemos uma ${MARCA_FALHA} agora e a busca não retornou\n\n` +
               `Pra não te deixar esperando, já passei sua solicitação pro nosso time comercial — um consultor te manda a cotação por aqui mesmo`;
