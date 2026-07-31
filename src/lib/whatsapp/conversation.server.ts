@@ -105,7 +105,7 @@ export async function getOrCreateConversation(waPhone: string, profileName?: str
 export async function ensureActiveProtocolo(conversationId: string): Promise<WaProtocolo> {
   const { data: conv } = await supabaseAdmin
     .from("wa_conversations")
-    .select("id, protocolo_ativo_id")
+    .select("id, protocolo_ativo_id, tags")
     .eq("id", conversationId)
     .maybeSingle();
 
@@ -117,6 +117,14 @@ export async function ensureActiveProtocolo(conversationId: string): Promise<WaP
       .maybeSingle();
     if (data && data.status === "aberto") return data as WaProtocolo;
   }
+
+  // Protocolo novo/reaberto = atendimento novo: as tags de escalação do
+  // protocolo anterior não podem sobreviver (senão a conversa continua
+  // marcada como "atendimento necessário" mesmo depois de encerrada).
+  const ESCALATION_TAGS = ["aguardando_humano", "escalada_implicita", "transferencia_nominal"];
+  const freshTags = (((conv as { tags?: string[] | null } | null)?.tags ?? []) as string[]).filter(
+    (t) => !ESCALATION_TAGS.includes(t),
+  );
 
   // Tenta reabrir um protocolo recém-encerrado POR INATIVIDADE (continuação do mesmo assunto).
   // Encerramento MANUAL é ponto final: qualquer mensagem posterior gera protocolo novo (novo lead).
@@ -143,7 +151,7 @@ export async function ensureActiveProtocolo(conversationId: string): Promise<WaP
       .from("wa_conversations")
       // Protocolo NOVO (reabertura de antigo): zera agent_slug pra sortear
       // outro atendente entre os que estão na janela agora.
-      .update({ protocolo_ativo_id: recent.id, agent_slug: null })
+      .update({ protocolo_ativo_id: recent.id, agent_slug: null, tags: freshTags })
       .eq("id", conversationId);
     return reopened as WaProtocolo;
   }
@@ -158,10 +166,11 @@ export async function ensureActiveProtocolo(conversationId: string): Promise<WaP
   await supabaseAdmin
     .from("wa_conversations")
     // Protocolo NOVO: nunca herda o agente do protocolo anterior.
-    .update({ protocolo_ativo_id: created.id, agent_slug: null })
+    .update({ protocolo_ativo_id: created.id, agent_slug: null, tags: freshTags })
     .eq("id", conversationId);
   return created as WaProtocolo;
 }
+
 
 /**
  * Salva mensagem. Dedupe por wa_message_id (idempotente para retentativas da Meta).
