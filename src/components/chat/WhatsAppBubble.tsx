@@ -170,7 +170,11 @@ export function WhatsAppBubble({ side, content, timestamp, senderLabel, status, 
           <CornerUpLeft className="h-3.5 w-3.5" />
         </button>
       )}
+      {lightbox && (
+        <ImageLightbox url={lightbox.url} filename={lightbox.filename} onClose={() => setLightbox(null)} />
+      )}
     </div>
+
   );
 }
 
