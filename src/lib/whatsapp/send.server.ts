@@ -219,7 +219,8 @@ export function splitToBubbles(fullText: string, prefix?: string | null): string
   // o nome do cliente ficou vazio) e descarta balões sem nenhuma letra/número.
   const cleaned: string[] = [];
   for (const raw of bubbles.map((b) => stripTrailingPeriod(b)).filter(Boolean)) {
-    const b = raw.replace(/^[\s,;:–—-]+/u, "").trim();
+    // Limpa pontuação solta sem apagar "- " de listas legítimas.
+    const b = raw.replace(/^[\s,;:]+/u, "").trim();
     if (!b || !/[\p{L}\p{N}]/u.test(b)) continue;
     cleaned.push(b.charAt(0).toLocaleUpperCase("pt-BR") + b.slice(1));
   }

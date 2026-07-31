@@ -131,15 +131,19 @@ export function mergeQuestionBubbles(fullText: string): string {
     /^(oi+|ol[áa]|bom dia|boa tarde|boa noite|e a[íi])\b/iu;
   const APRESENTACAO = /\b(sou|aqui [ée]|meu nome [ée])\b[^.\n]{0,60}\b(consultor[a]?|via ?air)\b/iu;
 
-  const isPergunta = (b: string) =>
-    !b.includes("\n") &&
-    b.length <= 120 &&
-    !SAUDACAO_OU_APRESENTACAO.test(b) &&
-    !APRESENTACAO.test(b) &&
-    (/\?\s*$/.test(b) ||
+  const withoutMarker = (b: string) =>
+    b.replace(/^\s*(?:[-•▪◦‣⁃]|\d+[.)])\s*/u, "").trim();
+  const isPergunta = (b: string) => {
+    const clean = withoutMarker(b);
+    return !clean.includes("\n") &&
+    clean.length <= 120 &&
+    !SAUDACAO_OU_APRESENTACAO.test(clean) &&
+    !APRESENTACAO.test(clean) &&
+    (/\?\s*$/.test(clean) ||
       /^(seria|quantos|quantas|voc[êe] tem|tem alguma|qual|quais|prefere|precisa|de onde|para quando|pra quando|em que|me diz|poderia)\b/iu.test(
-        b,
+        clean,
       ));
+  };
 
   const bubbles = fullText
     .split(/\n{2,}/)
