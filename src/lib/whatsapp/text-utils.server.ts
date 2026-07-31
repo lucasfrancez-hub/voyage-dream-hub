@@ -91,14 +91,14 @@ export function stripAgentSignature(fullText: string, agentName: string | null |
   const fn = firstName(agentName);
   if (!fn) return fullText;
   const esc = fn.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  // Remove uma ou várias linhas de assinatura consecutivas. O modelo chegou a
-  // devolver "*Maria:*\n*Maria:*"; tirar só a primeira criava "Maria: Maria:".
-  const re = new RegExp(`^(?:[*_~]*\\s*${esc}\\s*:\\s*[*_~]*\\s*(?:\\n|$))+`, "i");
-  return fullText
-    .split(/\n{2,}/)
-    .map((b) => b.replace(re, "").trim())
-    .filter((b) => b.length > 0)
-    .join("\n\n");
+  // Remove qualquer linha inicial que contenha somente a assinatura. Tratar
+  // linha a linha cobre "Maria:\n*Maria:*", markdown e linhas em branco.
+  const signatureLine = new RegExp(`^[*_~\\s]*${esc}\\s*:\\s*[*_~\\s]*$`, "i");
+  const inlineSignature = new RegExp(`^[*_~\\s]*${esc}\\s*:\\s*[*_~\\s]*`, "i");
+  const lines = fullText.split("\n");
+  while (lines.length && (lines[0].trim() === "" || signatureLine.test(lines[0]))) lines.shift();
+  if (lines.length) lines[0] = lines[0].replace(inlineSignature, "");
+  return lines.join("\n").trim();
 }
 
 

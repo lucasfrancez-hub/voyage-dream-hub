@@ -27,19 +27,21 @@ export async function sendPendingFlightCards(
   waPhone: string,
   maxAgeMs = 60 * 60 * 1000,
   protocolOpenedAt?: string | null,
+  protocolId?: string | null,
 ): Promise<{ sent: number; quote_id?: string }> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
   const desde = new Date(Date.now() - maxAgeMs).toISOString();
   let pendingQuery = supabaseAdmin
     .from("wa_flight_quotes")
-    .select("id, payload")
+    .select("id, payload, protocolo_id")
     .eq("conversation_id", conversationId)
     .is("cards_sent_at", null)
     .gte("created_at", desde)
     .order("created_at", { ascending: false })
     .limit(1);
   if (protocolOpenedAt) pendingQuery = pendingQuery.gte("created_at", protocolOpenedAt);
+  if (protocolId) pendingQuery = pendingQuery.eq("protocolo_id", protocolId);
   const { data: row } = await pendingQuery.maybeSingle();
 
   const quote = row?.payload as
@@ -56,16 +58,19 @@ export async function sendPendingFlightCards(
   if (!row?.id || !quote || !todas.length) return { sent: 0 };
 
   // ---- claim atômico: quem conseguir marcar cards_sent_at é quem envia ----
-  const { data: claimed } = await supabaseAdmin
+  let claimQuery = supabaseAdmin
     .from("wa_flight_quotes")
     .update({ cards_sent_at: new Date().toISOString() })
     .eq("id", row.id)
-    .is("cards_sent_at", null)
-    .select("id");
+    .is("cards_sent_at", null);
+  if (protocolId) claimQuery = claimQuery.eq("protocolo_id", protocolId);
+  const { data: claimed } = await claimQuery.select("id");
   if (!claimed?.length) return { sent: 0, quote_id: row.id as string };
 
   const liberarClaim = async () => {
-    await supabaseAdmin.from("wa_flight_quotes").update({ cards_sent_at: null }).eq("id", row.id);
+    let releaseQuery = supabaseAdmin.from("wa_flight_quotes").update({ cards_sent_at: null }).eq("id", row.id);
+    if (protocolId) releaseQuery = releaseQuery.eq("protocolo_id", protocolId);
+    await releaseQuery;
   };
 
   // ---- fingerprints já entregues nesta conversa (últimas 24h / protocolo) --

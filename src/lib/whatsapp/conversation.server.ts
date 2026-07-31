@@ -148,13 +148,35 @@ export async function ensureActiveProtocolo(conversationId: string): Promise<WaP
     return reopened as WaProtocolo;
   }
 
-  // Cria novo
+  // Cria novo. O índice único parcial no banco garante apenas um protocolo
+  // aberto por conversa mesmo quando webhook e runner chegam em paralelo.
   const { data: created, error } = await supabaseAdmin
     .from("wa_protocolos")
     .insert({ conversation_id: conversationId })
     .select("*")
     .single();
-  if (error || !created) throw new Error(`create protocolo: ${error?.message}`);
+  if (error || !created) {
+    // Outra execução pode ter criado o protocolo entre a leitura e o INSERT.
+    // Nesse caso usamos o vencedor, em vez de abrir dois atendimentos.
+    if (error?.code === "23505") {
+      const { data: winner, error: winnerError } = await supabaseAdmin
+        .from("wa_protocolos")
+        .select("*")
+        .eq("conversation_id", conversationId)
+        .eq("status", "aberto")
+        .order("opened_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (winner && !winnerError) {
+        await supabaseAdmin
+          .from("wa_conversations")
+          .update({ protocolo_ativo_id: winner.id })
+          .eq("id", conversationId);
+        return winner as WaProtocolo;
+      }
+    }
+    throw new Error(`create protocolo: ${error?.message}`);
+  }
   await supabaseAdmin
     .from("wa_conversations")
     // Protocolo NOVO: nunca herda o agente do protocolo anterior.

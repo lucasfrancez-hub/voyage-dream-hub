@@ -83,11 +83,13 @@ export const Route = createFileRoute("/api/public/hooks/flight-quote-watchdog")(
           const msgs = inicio ? msgsAll.filter((m) => m.created_at >= inicio) : msgsAll;
           if (!msgs.length) continue;
 
-          // última promessa de pesquisa feita pela IA
+          // Primeira promessa ainda não resolvida. Usar a última fazia uma nova
+          // desculpa ("vou verificar") zerar o relógio e travar o atendimento.
           let promessa: Row | null = null;
           for (const m of msgs) {
             if (m.direction === "outbound" && m.sender !== "system" && PROMESSA.test(m.content ?? "")) {
               promessa = m;
+              break;
             }
           }
           if (!promessa) continue;
@@ -128,6 +130,7 @@ export const Route = createFileRoute("/api/public/hooks/flight-quote-watchdog")(
             conv.wa_phone as string,
             60 * 60 * 1000,
             inicio,
+            proto.id as string,
           ).catch(() => ({ sent: 0 }));
           if (pend.sent > 0) {
             const fecho = `${voc}essas são as melhores opções que encontrei\n\nQual delas faz mais sentido pra você?`;

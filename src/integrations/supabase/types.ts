@@ -3854,6 +3854,7 @@ export type Database = {
           created_at: string
           id: string
           payload: Json
+          protocolo_id: string | null
           sent_fingerprints: Json
         }
         Insert: {
@@ -3862,6 +3863,7 @@ export type Database = {
           created_at?: string
           id?: string
           payload: Json
+          protocolo_id?: string | null
           sent_fingerprints?: Json
         }
         Update: {
@@ -3870,9 +3872,18 @@ export type Database = {
           created_at?: string
           id?: string
           payload?: Json
+          protocolo_id?: string | null
           sent_fingerprints?: Json
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "wa_flight_quotes_protocolo_id_fkey"
+            columns: ["protocolo_id"]
+            isOneToOne: false
+            referencedRelation: "wa_protocolos"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       wa_handoff_events: {
         Row: {

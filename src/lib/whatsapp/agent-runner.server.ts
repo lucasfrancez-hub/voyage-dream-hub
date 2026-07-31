@@ -377,6 +377,7 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
         conv.wa_phone,
         60 * 60 * 1000,
         sinceIso,
+        protocolo.id,
       ).catch((error) => {
         console.warn(`[agent:${agent.slug}] fallback imediato dos cards falhou:`, error);
         return { sent: 0 };
