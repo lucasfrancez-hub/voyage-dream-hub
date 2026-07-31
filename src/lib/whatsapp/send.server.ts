@@ -335,9 +335,18 @@ export async function sendWhatsAppImageBytes(
 ): Promise<{ id: string | null; error?: string }> {
   const uploaded = await metaUploadMedia(bytes, filename, "image/png");
   if (uploaded.id) {
-    return metaSendMedia(to, {
+    const byId = await metaSendMedia(to, {
       type: "image",
       image: { id: uploaded.id, ...(caption ? { caption: caption.slice(0, 1024) } : {}) },
+    });
+    if (byId.id || !fallbackLink) return byId;
+    // Há casos em que o upload é aceito, mas a Meta recusa o envio pelo media
+    // ID logo depois. A URL pública já está pronta: tenta por ela antes de
+    // considerar o card perdido e deixar o watchdog gerar a mesma arte sempre.
+    console.warn("[whatsapp/meta image] envio por media ID falhou; tentando URL:", byId.error);
+    return metaSendMedia(to, {
+      type: "image",
+      image: { link: fallbackLink, ...(caption ? { caption: caption.slice(0, 1024) } : {}) },
     });
   }
   if (!fallbackLink) return uploaded;
