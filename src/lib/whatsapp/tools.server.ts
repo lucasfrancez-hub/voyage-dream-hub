@@ -855,28 +855,63 @@ export function buildCamilaTools(conversation: WaConversation, scope: ToolProtoc
         const { sendWhatsAppImage, sendWhatsAppText } = await import("./send.server");
         const { saveMessage } = await import("./conversation.server");
 
+        // O WhatsApp corta legenda de imagem acima de ~1024 caracteres (e a Meta
+        // chega a recusar a mensagem). Quando o resumo do pacote passa disso,
+        // manda a FOTO com uma legenda curta e o RESUMO COMPLETO logo em seguida,
+        // como texto — assim o cliente sempre recebe foto + resumo + link.
+        const LIMITE_LEGENDA = 950;
+        const tituloCurto = String(pkg.title || pkg.destination || "Pacote").toUpperCase();
+        const precisaSeparar = caption.length > LIMITE_LEGENDA;
+
         let sendErr: string | undefined;
         let sentWaId: string | null = null;
+
         if (pkg.image_url) {
-          const r = await sendWhatsAppImage(conversation.wa_phone, pkg.image_url, caption);
+          const legenda = precisaSeparar ? `*${tituloCurto}*` : caption;
+          const r = await sendWhatsAppImage(conversation.wa_phone, pkg.image_url, legenda);
           sentWaId = r.id ?? null;
           if (r.error) {
             sendErr = r.error;
             const fb = await sendWhatsAppText(conversation.wa_phone, caption);
             sentWaId = fb.id ?? null;
+            await saveMessage({
+              conversation_id: conversation.id,
+              direction: "outbound",
+              sender: "camila",
+              content: caption,
+              wa_message_id: sentWaId,
+            });
+          } else {
+            await saveMessage({
+              conversation_id: conversation.id,
+              direction: "outbound",
+              sender: "camila",
+              content: `[[media:image|${pkg.image_url}|${pkg.slug}.jpg]]\n${legenda}`,
+              wa_message_id: sentWaId,
+            });
+            if (precisaSeparar) {
+              const t = await sendWhatsAppText(conversation.wa_phone, caption);
+              await saveMessage({
+                conversation_id: conversation.id,
+                direction: "outbound",
+                sender: "camila",
+                content: caption,
+                wa_message_id: t.id ?? null,
+              });
+            }
           }
         } else {
           const r = await sendWhatsAppText(conversation.wa_phone, caption);
           sentWaId = r.id ?? null;
+          await saveMessage({
+            conversation_id: conversation.id,
+            direction: "outbound",
+            sender: "camila",
+            content: caption,
+            wa_message_id: sentWaId,
+          });
         }
 
-        await saveMessage({
-          conversation_id: conversation.id,
-          direction: "outbound",
-          sender: "camila",
-          content: caption,
-          wa_message_id: sentWaId,
-        });
 
         // Detecta se já foi enviado pacote antes nessa conversa (folder tem o link /w/)
         // e se o cliente falou em personalização nas últimas mensagens.
