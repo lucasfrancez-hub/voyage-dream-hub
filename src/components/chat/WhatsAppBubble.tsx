@@ -58,7 +58,8 @@ export function WhatsAppBubble({ side, content, timestamp, senderLabel, status, 
   const label = firstName(senderLabel);
   const displayContent = (() => {
     const normalized = safeText(content);
-    if (!label || normalized.startsWith("[[media:")) return content;
+    if (!label || MEDIA_RE.test(normalized)) return content;
+
     const escaped = label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     // O WhatsApp recebe "Maria:\n..." no próprio texto, enquanto o painel já
     // mostra Maria como cabeçalho laranja. Remove todas as cópias visuais
