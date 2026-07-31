@@ -295,6 +295,32 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
 
   const history = await loadHistory(conv.id, 30, sinceIso);
 
+  // TRANSFERÊNCIA PRO SETOR DE AÉREO: cliente pediu cotação de voo e a conversa
+  // ainda está com o time de atendimento → assume Bruno ou Letícia (prompt próprio).
+  if (!isFlightAgentSlug(agent.slug)) {
+    const falasCliente = history
+      .filter((m) => m.sender === "customer")
+      .slice(-4)
+      .map((m) => m.content);
+    if (wantsFlightQuote(falasCliente)) {
+      const fa = pickFlightAgent(conv.id);
+      agent = {
+        ...agent,
+        id: `flight:${fa.slug}`,
+        slug: fa.slug,
+        nome: fa.nome,
+        temas_proibidos: [],
+      };
+      await supabaseAdmin
+        .from("wa_conversations")
+        .update({ agent_slug: fa.slug })
+        .eq("id", conv.id);
+      console.log(`[agent] conversa ${conv.id} transferida pro setor de aéreo (${fa.slug})`);
+    }
+  }
+
+
+
   // Uma execução atrasada do cron não pode inventar uma nova resposta quando
   // o último turno já foi respondido. Isso elimina continuações soltas como
   // "Quer que eu faça isso?" sem uma nova mensagem do cliente.
