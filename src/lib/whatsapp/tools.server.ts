@@ -516,7 +516,7 @@ export function buildCamilaTools(conversation: WaConversation, scope: ToolProtoc
         // Uma opção por vez: renderiza, entrega, dá um intervalo curto e vai
         // pra próxima. Assim o Browserless nunca recebe capturas simultâneas
         // (era o que fazia só a Opção 1 chegar).
-        const INTERVALO_MS = 12_000; // bem abaixo do teto de 1 minuto
+        const INTERVALO_MS = 4_000; // curto: as 4 artes saem em poucos segundos
         for (let i = 0; i < alvo.length; i++) {
           const numero = alvo[i];
           const op = quote.opcoes.find((o) => o.opcao === numero);
@@ -529,7 +529,7 @@ export function buildCamilaTools(conversation: WaConversation, scope: ToolProtoc
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const data = buildFlightCardData(quote as any, op as any);
             const asset = await renderFlightCardAssetRetry(data);
-            const caption = buildFlightOptionCaption(quote, op);
+            const caption = buildFlightOptionCaption(quote, op, jaFps.size + i + 1);
 
             const r = await sendWhatsAppImageBytes(
               conversation.wa_phone,
