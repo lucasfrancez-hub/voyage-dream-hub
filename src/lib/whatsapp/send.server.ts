@@ -213,7 +213,15 @@ export function splitToBubbles(fullText: string, prefix?: string | null): string
     }
     if (remaining) bubbles.push(remaining);
   }
-  return bubbles.map((b) => stripTrailingPeriod(b)).filter(Boolean);
+  // Sanitiza: junta fragmentos que começam com pontuação (ex.: ", tá bom?" quando
+  // o nome do cliente ficou vazio) e descarta balões sem nenhuma letra/número.
+  const cleaned: string[] = [];
+  for (const raw of bubbles.map((b) => stripTrailingPeriod(b)).filter(Boolean)) {
+    const b = raw.replace(/^[\s,;:–—-]+/u, "").trim();
+    if (!b || !/[\p{L}\p{N}]/u.test(b)) continue;
+    cleaned.push(b.charAt(0).toLocaleUpperCase("pt-BR") + b.slice(1));
+  }
+  return cleaned;
 }
 
 /**
