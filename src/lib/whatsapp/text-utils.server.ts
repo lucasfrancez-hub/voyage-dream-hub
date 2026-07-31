@@ -80,8 +80,10 @@ export function capitalizeBubbles(fullText: string): string {
 export function buildSenderPrefix(name: string | null | undefined): string | null {
   const fn = firstName(name);
   if (!fn) return null;
-  return `${fn}:`;
+  // Negrito do WhatsApp: destaca quem está atendendo, como era antes.
+  return `*${fn}:*`;
 }
+
 
 /**
  * Remove assinaturas que o próprio modelo escreveu ("*Maria:*", "Maria:")
