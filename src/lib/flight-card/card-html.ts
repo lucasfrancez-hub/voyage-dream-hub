@@ -72,7 +72,7 @@ function legBlock(leg: FlightCardLeg, base: string, i: number): string {
   return `
   <div class="leg${i ? " leg-b" : ""}">
     <div class="leg-top">
-      <div class="leg-tag"><i style="background:${cor}"></i>${esc(leg.rotulo)} &middot; ${esc(leg.cia)}
+      <div class="leg-tag"><i style="background:${cor}"></i>${esc(leg.rotulo)}${leg.data ? ` &middot; <b class="leg-date">${esc(leg.data)}</b>` : ""} &middot; ${esc(leg.cia)}
         ${logo ? `<img class="cia-logo" src="${esc(logo)}" alt="${esc(leg.cia)}"/>` : ""}
       </div>
       <div class="chips"><span class="chip">${esc(leg.voo)}</span><span class="chip">${esc(leg.duracao)}</span></div>
