@@ -254,8 +254,8 @@ export function buildCamilaTools(conversation: WaConversation) {
           destino_nome: string;
           opcoes: Array<{ opcao: number; destaque: string }>;
         };
-        const { buildFlightCardData, renderFlightCardImage } = await import("./flight-card.server");
-        const { sendWhatsAppImage } = await import("./send.server");
+        const { buildFlightCardData, renderFlightCardAsset } = await import("./flight-card.server");
+        const { sendWhatsAppImageBytes } = await import("./send.server");
         const { saveMessage } = await import("./conversation.server");
 
         const enviados: Array<{ opcao: number; ok: boolean; erro?: string }> = [];
@@ -269,16 +269,16 @@ export function buildCamilaTools(conversation: WaConversation) {
             try {
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               const data = buildFlightCardData(quote as any, op as any);
-              return { numero, op, url: await renderFlightCardImage(data), erro: undefined };
+              return { numero, op, asset: await renderFlightCardAsset(data), erro: undefined };
             } catch (e) {
-              return { numero, op, url: null, erro: e instanceof Error ? e.message : "falha" };
+              return { numero, op, asset: null, erro: e instanceof Error ? e.message : "falha" };
             }
           }),
         );
 
         // Envia na ordem, pra o cliente receber as opções em sequência.
         for (const arte of artes) {
-          if (!arte.url || !arte.op) {
+          if (!arte.asset || !arte.op) {
             enviados.push({ opcao: arte.numero, ok: false, erro: arte.erro ?? "falha" });
             continue;
           }
@@ -287,14 +287,22 @@ export function buildCamilaTools(conversation: WaConversation) {
               enviados.length === 0 && legenda
                 ? legenda
                 : `Opção ${arte.op.opcao} — ${arte.op.destaque}`;
-            const r = await sendWhatsAppImage(conversation.wa_phone, arte.url, caption);
-            await saveMessage({
-              conversation_id: conversation.id,
-              direction: "outbound",
-              sender: "camila",
-              content: `${caption}\n${arte.url}`,
-              wa_message_id: r.id ?? null,
-            });
+            const r = await sendWhatsAppImageBytes(
+              conversation.wa_phone,
+              arte.asset.bytes,
+              arte.asset.filename,
+              caption,
+              arte.asset.url,
+            );
+            if (!r.error && r.id) {
+              await saveMessage({
+                conversation_id: conversation.id,
+                direction: "outbound",
+                sender: "camila",
+                content: `${caption}\n${arte.asset.url}`,
+                wa_message_id: r.id,
+              });
+            }
             enviados.push({ opcao: arte.numero, ok: !r.error, erro: r.error });
           } catch (e) {
             enviados.push({ opcao: arte.numero, ok: false, erro: e instanceof Error ? e.message : "falha" });
@@ -302,14 +310,20 @@ export function buildCamilaTools(conversation: WaConversation) {
         }
 
 
-        if (enviados.some((e) => e.ok)) {
+        if (enviados.length > 0 && enviados.every((e) => e.ok)) {
           await supabaseAdmin
             .from("wa_flight_quotes")
             .update({ cards_sent_at: new Date().toISOString() })
             .eq("id", quote_id);
         }
 
-        return { enviados, instrucao: "Artes enviadas. Agora só pergunte qual opção o cliente prefere." };
+        const todasEnviadas = enviados.length > 0 && enviados.every((e) => e.ok);
+        return {
+          enviados,
+          instrucao: todasEnviadas
+            ? "Artes enviadas. Agora só pergunte qual opção o cliente prefere."
+            : "Uma ou mais artes não foram entregues. Não diga que enviou as opções; o sistema tentará novamente.",
+        };
       },
     }),
 

@@ -331,8 +331,15 @@ export async function sendWhatsAppImageBytes(
   caption?: string | null,
   fallbackLink?: string,
 ): Promise<{ id: string | null; error?: string }> {
-  void bytes;
-  if (!fallbackLink) return { id: null, error: "URL da imagem ausente" };
+  const uploaded = await metaUploadMedia(bytes, filename, "image/png");
+  if (uploaded.id) {
+    return metaSendMedia(to, {
+      type: "image",
+      image: { id: uploaded.id, ...(caption ? { caption: caption.slice(0, 1024) } : {}) },
+    });
+  }
+  if (!fallbackLink) return uploaded;
+  console.warn("[whatsapp/meta image] upload direto falhou; tentando URL:", uploaded.error);
   return metaSendMedia(to, {
     type: "image",
     image: { link: fallbackLink, ...(caption ? { caption: caption.slice(0, 1024) } : {}) },

@@ -128,14 +128,22 @@ async function screenshotCard(url: string): Promise<Uint8Array> {
   return new Uint8Array(await res.arrayBuffer());
 }
 
-/** Gera a arte da opção e devolve a URL pública do PNG. */
-export async function renderFlightCardImage(data: FlightCardData): Promise<string> {
+/** Gera a arte da opção e devolve os bytes e a URL pública do PNG. */
+export async function renderFlightCardAsset(
+  data: FlightCardData,
+): Promise<{ bytes: Uint8Array; url: string; filename: string }> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const bytes = await screenshotCard(flightCardPreviewUrl(data));
-  const path = `flight-cards/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.png`;
+  const filename = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.png`;
+  const path = `flight-cards/${filename}`;
   const { error } = await supabaseAdmin.storage
     .from(BUCKET)
     .upload(path, bytes, { contentType: "image/png", upsert: true });
   if (error) throw new Error(`Falha ao salvar a arte: ${error.message}`);
-  return `${PUBLIC_BASE}/api/public/broadcast-media/${path}`;
+  return { bytes, url: `${PUBLIC_BASE}/api/public/broadcast-media/${path}`, filename };
+}
+
+/** Mantém a API usada pelos previews e diagnósticos. */
+export async function renderFlightCardImage(data: FlightCardData): Promise<string> {
+  return (await renderFlightCardAsset(data)).url;
 }
