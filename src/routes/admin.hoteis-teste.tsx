@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useState } from "react";
@@ -18,6 +18,10 @@ import {
   SlidersHorizontal,
   RotateCcw,
   Hotel,
+  ShoppingCart,
+  ExternalLink,
+  Copy,
+  ChevronDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,17 +29,21 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { createOrder } from "@/lib/orders.functions";
 import { SearchSkeleton } from "@/components/search/SearchSkeleton";
 import { DestinationAutocomplete } from "@/components/search/DestinationAutocomplete";
 import {
   onerHotelDestinations,
   onerHotelSearch,
+  onerCreateHotelCart,
   type OnerHotel,
   type OnerHotelPoint,
   type OnerHotelSearchResult,
   type OnerRoomRate,
 } from "@/lib/onertravel-hotels.functions";
 import { onerAirportSearch } from "@/lib/onertravel.functions";
+
 
 export const Route = createFileRoute("/admin/hoteis-teste")({
   head: () => ({
