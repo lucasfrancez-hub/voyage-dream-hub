@@ -3854,6 +3854,7 @@ export type Database = {
           created_at: string
           id: string
           payload: Json
+          sent_fingerprints: Json
         }
         Insert: {
           cards_sent_at?: string | null
@@ -3861,6 +3862,7 @@ export type Database = {
           created_at?: string
           id?: string
           payload: Json
+          sent_fingerprints?: Json
         }
         Update: {
           cards_sent_at?: string | null
@@ -3868,6 +3870,7 @@ export type Database = {
           created_at?: string
           id?: string
           payload?: Json
+          sent_fingerprints?: Json
         }
         Relationships: []
       }
