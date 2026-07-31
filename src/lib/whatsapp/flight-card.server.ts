@@ -1,0 +1,137 @@
+/**
+ * Gera a arte (PNG) do cartão de voo e envia no WhatsApp.
+ * Fotografa a rota /api/public/flight-card no Browserless, guarda o PNG no
+ * storage e manda o link pro cliente. SERVER-ONLY.
+ */
+import type { FlightQuoteOption, FlightQuoteResult, FlightQuoteLeg } from "./flight-quote.server";
+import type { FlightCardData, FlightCardLeg } from "@/lib/flight-card/card-html";
+
+const PUBLIC_BASE = "https://pedidos.viaair.tur.br";
+const BROWSERLESS_BASE = "https://production-sfo.browserless.io";
+const BUCKET = "broadcast-media";
+
+/** Parcelamento por cia em voos nacionais: Latam 4x, Gol/Azul 5x. */
+function parcelasDaCia(cia: string): number {
+  const c = cia.toLowerCase();
+  if (c.includes("latam")) return 4;
+  if (c.includes("gol")) return 5;
+  if (c.includes("azul")) return 5;
+  return 4;
+}
+
+function money(n: number): string {
+  return n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+
+function parseStamp(s: string): { dia: string; hora: string; date: Date } {
+  const [d, t] = s.split(" ");
+  const [y, m, day] = (d ?? "").split("-").map(Number);
+  const [hh, mm] = (t ?? "").split(":").map(Number);
+  return {
+    dia: `${String(day).padStart(2, "0")}/${String(m).padStart(2, "0")}`,
+    hora: `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}`,
+    date: new Date(Date.UTC(y, (m || 1) - 1, day || 1, hh || 0, mm || 0)),
+  };
+}
+
+function toCardLeg(
+  leg: FlightQuoteLeg,
+  rotulo: string,
+  cidades: Record<string, string>,
+): FlightCardLeg {
+  const dep = parseStamp(leg.partida);
+  const arr = parseStamp(leg.chegada);
+  const diff = Math.floor(
+    (Date.UTC(arr.date.getUTCFullYear(), arr.date.getUTCMonth(), arr.date.getUTCDate()) -
+      Date.UTC(dep.date.getUTCFullYear(), dep.date.getUTCMonth(), dep.date.getUTCDate())) /
+      86400000,
+  );
+  return {
+    rotulo,
+    cia: leg.cia,
+    cia_iata: leg.cia,
+    voo: leg.voo,
+    duracao: leg.duracao,
+    paradas: leg.paradas,
+    familia: leg.escalas.length ? leg.escalas.join(" • ") : null,
+    bagagem: leg.bagagem_despachada ? "Bagagem despachada inclusa" : "Somente bagagem de mão",
+    partida: { hora: dep.hora, iata: leg.origem, cidade: cidades[leg.origem] ?? "", aeroporto: "" },
+    chegada: {
+      hora: arr.hora,
+      iata: leg.destino,
+      cidade: cidades[leg.destino] ?? "",
+      aeroporto: "",
+      mais_dias: diff > 0 ? diff : undefined,
+    },
+  };
+}
+
+export function buildFlightCardData(
+  quote: Pick<
+    FlightQuoteResult,
+    "origem_iata" | "destino_iata" | "origem_nome" | "destino_nome"
+  >,
+  op: FlightQuoteOption,
+): FlightCardData {
+  const cidades: Record<string, string> = {
+    [quote.origem_iata]: quote.origem_nome,
+    [quote.destino_iata]: quote.destino_nome,
+  };
+  const legs: FlightCardLeg[] = [toCardLeg(op.ida, "IDA", cidades)];
+  if (op.volta) legs.push(toCardLeg(op.volta, "VOLTA", cidades));
+
+  const parcelas = parcelasDaCia(op.ida.cia);
+  return {
+    origem_iata: quote.origem_iata,
+    origem_cidade: quote.origem_nome,
+    destino_iata: quote.destino_iata,
+    destino_cidade: quote.destino_nome,
+    data_ida: parseStamp(op.ida.partida).dia,
+    data_volta: op.volta ? parseStamp(op.volta.partida).dia : null,
+    total_formatado: op.total_formatado,
+    pax_label: `${op.passageiros} PAX`,
+    parcelas,
+    parcela_formatada: money(op.total / parcelas),
+    legs,
+  };
+}
+
+function encodeData(data: FlightCardData): string {
+  const json = JSON.stringify(data);
+  const b64 = btoa(unescape(encodeURIComponent(json)));
+  return b64.replace(/\+/g, "-").replace(/\//g, "_");
+}
+
+export function flightCardPreviewUrl(data: FlightCardData, base = PUBLIC_BASE): string {
+  return `${base}/api/public/flight-card?d=${encodeData(data)}`;
+}
+
+/** Fotografa o cartão e devolve os bytes do PNG. */
+async function screenshotCard(url: string): Promise<Uint8Array> {
+  const token = process.env.BROWSERLESS_TOKEN;
+  if (!token) throw new Error("BROWSERLESS_TOKEN não configurado");
+  const res = await fetch(`${BROWSERLESS_BASE}/screenshot?token=${encodeURIComponent(token)}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      url,
+      gotoOptions: { waitUntil: "networkidle2", timeout: 30000 },
+      viewport: { width: 1200, height: 900, deviceScaleFactor: 2 },
+      options: { type: "png", fullPage: true, omitBackground: false },
+    }),
+  });
+  if (!res.ok) throw new Error(`Browserless ${res.status}: ${(await res.text()).slice(0, 200)}`);
+  return new Uint8Array(await res.arrayBuffer());
+}
+
+/** Gera a arte da opção e devolve a URL pública do PNG. */
+export async function renderFlightCardImage(data: FlightCardData): Promise<string> {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const bytes = await screenshotCard(flightCardPreviewUrl(data));
+  const path = `flight-cards/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.png`;
+  const { error } = await supabaseAdmin.storage
+    .from(BUCKET)
+    .upload(path, bytes, { contentType: "image/png", upsert: true });
+  if (error) throw new Error(`Falha ao salvar a arte: ${error.message}`);
+  return `${PUBLIC_BASE}/api/public/broadcast-media/${path}`;
+}

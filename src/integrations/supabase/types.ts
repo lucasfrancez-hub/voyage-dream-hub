@@ -3847,6 +3847,27 @@ export type Database = {
         }
         Relationships: []
       }
+      wa_flight_quotes: {
+        Row: {
+          conversation_id: string | null
+          created_at: string
+          id: string
+          payload: Json
+        }
+        Insert: {
+          conversation_id?: string | null
+          created_at?: string
+          id?: string
+          payload: Json
+        }
+        Update: {
+          conversation_id?: string | null
+          created_at?: string
+          id?: string
+          payload?: Json
+        }
+        Relationships: []
+      }
       wa_handoff_events: {
         Row: {
           actor: string | null
