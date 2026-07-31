@@ -78,6 +78,7 @@ import { Route as AdminPessoasIdRouteImport } from './routes/admin.pessoas.$id'
 import { Route as ApiChatCamilaRouteImport } from './routes/api/chat.camila'
 import { Route as ApiPublicClicksignWebhookRouteImport } from './routes/api/public/clicksign-webhook'
 import { Route as ApiPublicFlightCardRouteImport } from './routes/api/public/flight-card'
+import { Route as ApiPublicHotelCardRouteImport } from './routes/api/public/hotel-card'
 import { Route as ApiPublicImportAereoRouteImport } from './routes/api/public/import-aereo'
 import { Route as ApiPublicInstagramWebhookRouteImport } from './routes/api/public/instagram-webhook'
 import { Route as ApiPublicItauPixWebhookRouteImport } from './routes/api/public/itau-pix-webhook'
@@ -450,6 +451,11 @@ const ApiPublicFlightCardRoute = ApiPublicFlightCardRouteImport.update({
   path: '/api/public/flight-card',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicHotelCardRoute = ApiPublicHotelCardRouteImport.update({
+  id: '/api/public/hotel-card',
+  path: '/api/public/hotel-card',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicImportAereoRoute = ApiPublicImportAereoRouteImport.update({
   id: '/api/public/import-aereo',
   path: '/api/public/import-aereo',
@@ -661,6 +667,7 @@ export interface FileRoutesByFullPath {
   '/api/chat/camila': typeof ApiChatCamilaRoute
   '/api/public/clicksign-webhook': typeof ApiPublicClicksignWebhookRoute
   '/api/public/flight-card': typeof ApiPublicFlightCardRoute
+  '/api/public/hotel-card': typeof ApiPublicHotelCardRoute
   '/api/public/import-aereo': typeof ApiPublicImportAereoRoute
   '/api/public/instagram-webhook': typeof ApiPublicInstagramWebhookRoute
   '/api/public/itau-pix-webhook': typeof ApiPublicItauPixWebhookRoute
@@ -756,6 +763,7 @@ export interface FileRoutesByTo {
   '/api/chat/camila': typeof ApiChatCamilaRoute
   '/api/public/clicksign-webhook': typeof ApiPublicClicksignWebhookRoute
   '/api/public/flight-card': typeof ApiPublicFlightCardRoute
+  '/api/public/hotel-card': typeof ApiPublicHotelCardRoute
   '/api/public/import-aereo': typeof ApiPublicImportAereoRoute
   '/api/public/instagram-webhook': typeof ApiPublicInstagramWebhookRoute
   '/api/public/itau-pix-webhook': typeof ApiPublicItauPixWebhookRoute
@@ -853,6 +861,7 @@ export interface FileRoutesById {
   '/api/chat/camila': typeof ApiChatCamilaRoute
   '/api/public/clicksign-webhook': typeof ApiPublicClicksignWebhookRoute
   '/api/public/flight-card': typeof ApiPublicFlightCardRoute
+  '/api/public/hotel-card': typeof ApiPublicHotelCardRoute
   '/api/public/import-aereo': typeof ApiPublicImportAereoRoute
   '/api/public/instagram-webhook': typeof ApiPublicInstagramWebhookRoute
   '/api/public/itau-pix-webhook': typeof ApiPublicItauPixWebhookRoute
@@ -951,6 +960,7 @@ export interface FileRouteTypes {
     | '/api/chat/camila'
     | '/api/public/clicksign-webhook'
     | '/api/public/flight-card'
+    | '/api/public/hotel-card'
     | '/api/public/import-aereo'
     | '/api/public/instagram-webhook'
     | '/api/public/itau-pix-webhook'
@@ -1046,6 +1056,7 @@ export interface FileRouteTypes {
     | '/api/chat/camila'
     | '/api/public/clicksign-webhook'
     | '/api/public/flight-card'
+    | '/api/public/hotel-card'
     | '/api/public/import-aereo'
     | '/api/public/instagram-webhook'
     | '/api/public/itau-pix-webhook'
@@ -1142,6 +1153,7 @@ export interface FileRouteTypes {
     | '/api/chat/camila'
     | '/api/public/clicksign-webhook'
     | '/api/public/flight-card'
+    | '/api/public/hotel-card'
     | '/api/public/import-aereo'
     | '/api/public/instagram-webhook'
     | '/api/public/itau-pix-webhook'
@@ -1201,6 +1213,7 @@ export interface RootRouteChildren {
   ApiChatCamilaRoute: typeof ApiChatCamilaRoute
   ApiPublicClicksignWebhookRoute: typeof ApiPublicClicksignWebhookRoute
   ApiPublicFlightCardRoute: typeof ApiPublicFlightCardRoute
+  ApiPublicHotelCardRoute: typeof ApiPublicHotelCardRoute
   ApiPublicImportAereoRoute: typeof ApiPublicImportAereoRoute
   ApiPublicInstagramWebhookRoute: typeof ApiPublicInstagramWebhookRoute
   ApiPublicItauPixWebhookRoute: typeof ApiPublicItauPixWebhookRoute
@@ -1711,6 +1724,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicFlightCardRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hotel-card': {
+      id: '/api/public/hotel-card'
+      path: '/api/public/hotel-card'
+      fullPath: '/api/public/hotel-card'
+      preLoaderRoute: typeof ApiPublicHotelCardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/import-aereo': {
       id: '/api/public/import-aereo'
       path: '/api/public/import-aereo'
@@ -2037,6 +2057,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiChatCamilaRoute: ApiChatCamilaRoute,
   ApiPublicClicksignWebhookRoute: ApiPublicClicksignWebhookRoute,
   ApiPublicFlightCardRoute: ApiPublicFlightCardRoute,
+  ApiPublicHotelCardRoute: ApiPublicHotelCardRoute,
   ApiPublicImportAereoRoute: ApiPublicImportAereoRoute,
   ApiPublicInstagramWebhookRoute: ApiPublicInstagramWebhookRoute,
   ApiPublicItauPixWebhookRoute: ApiPublicItauPixWebhookRoute,
@@ -2067,13 +2088,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
