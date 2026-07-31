@@ -5,6 +5,9 @@
  * Puro: sem imports server-only, usado tanto na rota pública quanto no preview.
  */
 import { findAirline } from "@/lib/airlines";
+import viaairLogo from "@/assets/viaair-logo.png.asset.json";
+
+const LOGO_URL = viaairLogo.url;
 
 export type FlightCardPlace = {
   hora: string; // "03:50"
@@ -16,6 +19,7 @@ export type FlightCardPlace = {
 
 export type FlightCardLeg = {
   rotulo: string; // "IDA" | "VOLTA"
+  data?: string | null; // "10/09" – data desse trecho
   cia: string; // nome
   cia_iata?: string | null;
   voo: string; // "G3 1787"
@@ -71,7 +75,7 @@ function legBlock(leg: FlightCardLeg, base: string, i: number): string {
   return `
   <div class="leg${i ? " leg-b" : ""}">
     <div class="leg-top">
-      <div class="leg-tag"><i style="background:${cor}"></i>${esc(leg.rotulo)} &middot; ${esc(leg.cia)}
+      <div class="leg-tag"><i style="background:${cor}"></i>${esc(leg.rotulo)}${leg.data ? ` &middot; <b class="leg-date">${esc(leg.data)}</b>` : ""} &middot; ${esc(leg.cia)}
         ${logo ? `<img class="cia-logo" src="${esc(logo)}" alt="${esc(leg.cia)}"/>` : ""}
       </div>
       <div class="chips"><span class="chip">${esc(leg.voo)}</span><span class="chip">${esc(leg.duracao)}</span></div>
@@ -113,12 +117,13 @@ export function renderFlightCardHtml(d: FlightCardData, baseUrl: string): string
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{width:820px;background:#fff;font-family:Poppins,system-ui,sans-serif;color:${NAVY};-webkit-font-smoothing:antialiased}
+html,body{width:820px;max-width:820px;overflow-x:hidden;background:#fff}
+body{font-family:Poppins,system-ui,sans-serif;color:${NAVY};-webkit-font-smoothing:antialiased}
 .card{width:820px;background:#fff;overflow:hidden}
 .head{padding:36px 52px 0}
 .head-top{display:flex;align-items:center;justify-content:space-between}
-.wordmark{font-size:38px;font-weight:900;font-style:italic;letter-spacing:-1px}
-.wordmark span{color:${ORANGE}}
+.brand{height:52px;width:auto;object-fit:contain;display:block}
+.leg-date{font-weight:800;color:#42526b}
 .verified{display:flex;align-items:center;gap:10px;background:#eaf1fe;color:${BLUE};border-radius:999px;padding:12px 24px;font-size:16px;font-weight:700;letter-spacing:1.2px}
 .verified i{width:10px;height:10px;border-radius:50%;background:${BLUE}}
 .route{display:flex;align-items:flex-end;justify-content:space-between;margin-top:34px}
@@ -158,7 +163,7 @@ body{width:820px;background:#fff;font-family:Poppins,system-ui,sans-serif;color:
 <body><div class="card">
   <div class="head">
     <div class="head-top">
-      <div class="wordmark">VIA<span>AIR</span></div>
+      <img class="brand" src="${esc(abs(baseUrl, LOGO_URL) || "")}" alt="VIA AIR"/>
       <div class="verified"><i></i>VERIFICADO</div>
     </div>
     <div class="route">

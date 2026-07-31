@@ -48,6 +48,7 @@ function toCardLeg(
   );
   return {
     rotulo,
+    data: dep.dia,
     cia: leg.cia,
     cia_iata: leg.cia,
     voo: leg.voo,
