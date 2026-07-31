@@ -160,7 +160,7 @@ body{font-family:Poppins,system-ui,sans-serif;color:${NAVY};-webkit-font-smoothi
 <body><div class="card">
   <div class="head">
     <div class="head-top">
-      <div class="wordmark">VIA<span>AIR</span></div>
+      <img class="brand" src="${esc(abs(baseUrl, LOGO_URL) || "")}" alt="VIA AIR"/>
       <div class="verified"><i></i>VERIFICADO</div>
     </div>
     <div class="route">
