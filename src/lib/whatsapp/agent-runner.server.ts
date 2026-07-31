@@ -367,7 +367,10 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
     const executedToolNames = new Set(
       (result.steps ?? []).flatMap((step) => (step.toolCalls ?? []).map((call) => call.toolName)),
     );
-    if (executedToolNames.has("cotar_aereo") && !executedToolNames.has("enviar_cartao_voo")) {
+    // Faz a checagem mesmo quando enviar_cartao_voo foi chamado: a tool pode
+    // ter sido executada, mas todas as imagens terem falhado no transporte.
+    // Se deu certo, cards_sent_at já está preenchido e esta chamada é no-op.
+    if (executedToolNames.has("cotar_aereo")) {
       const { sendPendingFlightCards } = await import("./flight-cards-pending.server");
       const recovered = await sendPendingFlightCards(
         conv.id,
