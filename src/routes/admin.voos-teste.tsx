@@ -337,8 +337,8 @@ function FiltersPanel({
   const depAirports = useMemo(() => {
     const map = new Map<string, string>();
     flights.forEach((f) => {
-      const p = f.journey.departure;
-      if (p?.iata) map.set(p.iata, p.name?.trim() || p.iata);
+      const p = depPlaceOf(f);
+      if (p?.iata) map.set(p.iata, p.city?.trim() || p.name?.trim() || p.iata);
     });
     return [...map.entries()].sort((a, b) => a[1].localeCompare(b[1]));
   }, [flights]);
@@ -346,8 +346,8 @@ function FiltersPanel({
   const arrAirports = useMemo(() => {
     const map = new Map<string, string>();
     flights.forEach((f) => {
-      const p = f.journey.destination;
-      if (p?.iata) map.set(p.iata, p.name?.trim() || p.iata);
+      const p = arrPlaceOf(f);
+      if (p?.iata) map.set(p.iata, p.city?.trim() || p.name?.trim() || p.iata);
     });
     return [...map.entries()].sort((a, b) => a[1].localeCompare(b[1]));
   }, [flights]);
