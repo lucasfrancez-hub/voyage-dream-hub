@@ -118,6 +118,50 @@ export async function ensureActiveProtocolo(conversationId: string): Promise<WaP
     if (data && data.status === "aberto") return data as WaProtocolo;
   }
 
+  // AUTOCURA: protocolo aberto "órfão" (a conversa não aponta mais pra ele).
+  // Sem isso o índice único bloqueia a criação do próximo protocolo e a
+  // conversa inteira trava — mensagem entra e a IA nunca responde.
+  const { data: abertos } = await supabaseAdmin
+    .from("wa_protocolos")
+    .select("*")
+    .eq("conversation_id", conversationId)
+    .eq("status", "aberto")
+    .order("opened_at", { ascending: false });
+  if (abertos?.length) {
+    // Só reaproveita se for o protocolo MAIS RECENTE da conversa e ainda
+    // estiver dentro da janela — se veio outro depois (encerrado manualmente),
+    // esse aberto é lixo e o cliente merece um protocolo novo.
+    const { data: ultimo } = await supabaseAdmin
+      .from("wa_protocolos")
+      .select("id")
+      .eq("conversation_id", conversationId)
+      .order("opened_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    const vivo = abertos.find(
+      (p) =>
+        p.id === ultimo?.id &&
+        Date.now() - new Date(p.last_activity_at ?? p.opened_at).getTime() < REOPEN_WINDOW_MS,
+    );
+    // Fecha todos os órfãos que não vamos reaproveitar.
+    const fechar = abertos.filter((p) => p.id !== vivo?.id).map((p) => p.id);
+    if (fechar.length) {
+      await supabaseAdmin
+        .from("wa_protocolos")
+        .update({ status: "encerrado_inatividade", closed_at: new Date().toISOString() })
+        .in("id", fechar);
+      console.warn(`[wa/protocolo] ${fechar.length} protocolo(s) órfão(s) encerrado(s) em ${conversationId}`);
+    }
+    if (vivo) {
+      await supabaseAdmin
+        .from("wa_conversations")
+        .update({ protocolo_ativo_id: vivo.id })
+        .eq("id", conversationId);
+      return vivo as WaProtocolo;
+    }
+  }
+
+
   // Tenta reabrir um protocolo recém-encerrado POR INATIVIDADE (continuação do mesmo assunto).
   // Encerramento MANUAL é ponto final: qualquer mensagem posterior gera protocolo novo (novo lead).
   const cutoff = new Date(Date.now() - REOPEN_WINDOW_MS).toISOString();
@@ -156,32 +200,40 @@ export async function ensureActiveProtocolo(conversationId: string): Promise<WaP
     .select("*")
     .single();
   if (error || !created) {
-    // Outra execução pode ter criado o protocolo entre a leitura e o INSERT.
-    // Nesse caso usamos o vencedor, em vez de abrir dois atendimentos.
-    if (error?.code === "23505") {
-      const { data: winner, error: winnerError } = await supabaseAdmin
-        .from("wa_protocolos")
-        .select("*")
-        .eq("conversation_id", conversationId)
-        .eq("status", "aberto")
-        .order("opened_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      if (winner && !winnerError) {
-        await supabaseAdmin
-          .from("wa_conversations")
-          .update({ protocolo_ativo_id: winner.id })
-          .eq("id", conversationId);
-        return winner as WaProtocolo;
-      }
+    // Qualquer falha na criação (corrida com outra execução, índice único,
+    // etc.): adota o protocolo aberto que existir, em vez de derrubar o
+    // atendimento inteiro. Só desiste se realmente não houver nenhum.
+    const { data: winner } = await supabaseAdmin
+      .from("wa_protocolos")
+      .select("*")
+      .eq("conversation_id", conversationId)
+      .eq("status", "aberto")
+      .order("opened_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (winner) {
+      await supabaseAdmin
+        .from("wa_conversations")
+        .update({ protocolo_ativo_id: winner.id })
+        .eq("id", conversationId);
+      return winner as WaProtocolo;
     }
     throw new Error(`create protocolo: ${error?.message}`);
   }
+
   await supabaseAdmin
     .from("wa_conversations")
     // Protocolo NOVO: nunca herda o agente do protocolo anterior.
     .update({ protocolo_ativo_id: created.id, agent_slug: null })
     .eq("id", conversationId);
+  // Mensagens que entraram enquanto a criação de protocolo estava quebrada
+  // ficam sem vínculo — adota elas neste protocolo pra não sumir do histórico.
+  await supabaseAdmin
+    .from("wa_messages")
+    .update({ protocolo_id: created.id })
+    .eq("conversation_id", conversationId)
+    .is("protocolo_id", null)
+    .gte("created_at", new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString());
   return created as WaProtocolo;
 }
 
