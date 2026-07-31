@@ -43,9 +43,9 @@ export function buildCamilaTools(conversation: WaConversation, scope: ToolProtoc
       description:
         "Busca um pedido por UMA de três opções equivalentes: número do pedido, localizador/número da reserva ou CPF. Se o cliente já forneceu uma delas, consulte imediatamente e nunca peça outra. Retorna status, viajantes, voos, hotel e pagamentos.",
       inputSchema: z.object({
-        numero: z.string().nullable().describe("Número do pedido, 8 dígitos"),
-        localizador: z.string().nullable().describe("Localizador ou número da reserva, como ABC123"),
-        cpf: z.string().nullable().describe("CPF do cliente (só dígitos ou formatado)"),
+        numero: z.string().nullish().describe("Número do pedido, 8 dígitos"),
+        localizador: z.string().nullish().describe("Localizador ou número da reserva, como ABC123"),
+        cpf: z.string().nullish().describe("CPF do cliente (só dígitos ou formatado)"),
       }),
       execute: async ({ numero, localizador, cpf }) => {
         if (!numero && !localizador && !cpf) {
@@ -188,18 +188,18 @@ export function buildCamilaTools(conversation: WaConversation, scope: ToolProtoc
         origem: z.string().describe("Cidade ou IATA de origem, ex: 'Curitiba' ou 'CWB'"),
         destino: z.string().describe("Cidade ou IATA de destino"),
         data_ida: z.string().describe("Data de ida no formato AAAA-MM-DD"),
-        data_volta: z.string().nullable().describe("Data de volta AAAA-MM-DD, ou null se só ida"),
-        adultos: z.number().nullable().describe("Adultos (12+), padrão 1"),
-        criancas: z.number().nullable().describe("Crianças de 2 a 11 anos"),
-        bebes: z.number().nullable().describe("Bebês de colo, até 2 anos"),
+        data_volta: z.string().nullish().describe("Data de volta AAAA-MM-DD, ou null se só ida"),
+        adultos: z.number().nullish().describe("Adultos (12+), padrão 1"),
+        criancas: z.number().nullish().describe("Crianças de 2 a 11 anos"),
+        bebes: z.number().nullish().describe("Bebês de colo, até 2 anos"),
         periodo_ida: z
           .enum(["manha", "tarde", "noite", "livre"])
-          .nullable()
+          .nullish()
           .describe("Preferência de horário da ida; 'livre' se o cliente não tem preferência"),
-        periodo_volta: z.enum(["manha", "tarde", "noite", "livre"]).nullable(),
+        periodo_volta: z.enum(["manha", "tarde", "noite", "livre"]).nullish(),
         bagagem_despachada: z
           .boolean()
-          .nullable()
+          .nullish()
           .describe("true se o cliente precisa de bagagem despachada inclusa"),
       }),
       execute: async (args) => {
@@ -396,11 +396,11 @@ export function buildCamilaTools(conversation: WaConversation, scope: ToolProtoc
           .describe("Números das opções a enviar, ex: [1,2,3]"),
         legenda: z
           .string()
-          .nullable()
+          .nullish()
           .describe("Deixe null. A legenda descritiva de cada opção é montada automaticamente com cidades, horários, companhia e conexões."),
         reenviar: z
           .boolean()
-          .nullable()
+          .nullish()
           .describe(
             "true SOMENTE quando o cliente disser que não recebeu as imagens. Nos demais casos deixe null — opções já enviadas nesta cotação não são reenviadas.",
           ),
@@ -528,9 +528,9 @@ export function buildCamilaTools(conversation: WaConversation, scope: ToolProtoc
       description:
         "Lista pacotes disponíveis no admin, opcionalmente filtrados por destino e origem. Retorna a lista SÓ pra você escolher — não envia nada ao cliente. SEMPRE informe 'origem' quando souber a cidade do cliente: a busca prioriza pacotes saindo dessa cidade e, se não houver, retorna também as opções de outras origens marcadas como fallback. Depois use enviar_pacote (folder completo com imagem + preços) ou enviar_link_pacote.",
       inputSchema: z.object({
-        destino: z.string().nullable().describe("Cidade/país (ex: 'Buenos Aires', 'Nordeste')"),
-        origem: z.string().nullable().describe("Cidade/origem preferida do cliente (ex: 'Curitiba'). Pacotes dessa origem vêm primeiro; se não houver, entram os de outras origens."),
-        limit: z.number().nullable().describe("Máximo de resultados, padrão 5"),
+        destino: z.string().nullish().describe("Cidade/país (ex: 'Buenos Aires', 'Nordeste')"),
+        origem: z.string().nullish().describe("Cidade/origem preferida do cliente (ex: 'Curitiba'). Pacotes dessa origem vêm primeiro; se não houver, entram os de outras origens."),
+        limit: z.number().nullish().describe("Máximo de resultados, padrão 5"),
       }),
       execute: async ({ destino, origem, limit }) => {
         // Regiões precisam de variedade para o modelo escolher e enviar opções.
@@ -697,7 +697,7 @@ export function buildCamilaTools(conversation: WaConversation, scope: ToolProtoc
         "Envia o FOLDER completo do pacote pelo WhatsApp: imagem do header + descritivo formatado (origem, datas, hotel, refeição, serviços inclusos) + formas de pagamento (Pix com 5% off, cartão 10x sem juros — e quando for pacote Cativa Operadora, Visa e Master saem em 15x sem juros e demais bandeiras em 10x sem juros —, boleto 10x mediante aprovação, boleto sem análise de crédito até a data da viagem) + link. NUNCA use o termo 'assessoria completa' nem 'assessoria' em nenhum lugar. Use SEMPRE que o cliente demonstrar interesse num pacote específico. NÃO exige CPF nem confirmação — pacote é conteúdo público. Depois de chamar, responda com UM balão curto só perguntando 'O que você achou?' (ou variação natural).",
       inputSchema: z.object({
         slug: z.string().describe("slug do pacote (vem de buscar_pacotes)"),
-        quantidade_adultos: z.number().int().nullable().describe("adultos para calcular Pix total; padrão = base_occupancy (geralmente 2)"),
+        quantidade_adultos: z.number().int().nullish().describe("adultos para calcular Pix total; padrão = base_occupancy (geralmente 2)"),
       }),
       execute: async ({ slug, quantidade_adultos }) => {
         const { data: pkg } = await supabaseAdmin
@@ -1064,16 +1064,16 @@ export function buildCamilaTools(conversation: WaConversation, scope: ToolProtoc
         motivo: z
           .enum(["nova_cotacao", "alteracao_voo", "reclamacao", "outro"])
           .describe("Categoria do motivo"),
-        destino: z.string().nullable().describe("Cidade/país de destino, ex: 'Cancún' ou 'Orlando + Miami'"),
-        data_ida: z.string().nullable().describe("Data de ida no formato DD/MM/AAAA ou período aproximado, ex: '15/03/2026' ou 'segunda quinzena de março'"),
-        data_volta: z.string().nullable().describe("Data de volta no formato DD/MM/AAAA ou duração, ex: '22/03/2026' ou '7 noites'"),
-        quantidade_adultos: z.number().int().nullable().describe("Número de adultos"),
-        quantidade_criancas: z.number().int().nullable().describe("Número de crianças (com idades no campo observacoes se houver)"),
-        voo_info: z.string().nullable().describe("Info de voo relevante: cia preferida, localizador, número do voo, ou 'a definir'"),
-        orcamento: z.string().nullable().describe("Orçamento informado pelo cliente, ex: 'até R$ 8.000 por pessoa'"),
-        hotel_preferencia: z.string().nullable().describe("Preferência de hotel/categoria, ex: '4 estrelas all inclusive'"),
-        observacoes: z.string().nullable().describe("Qualquer info extra relevante: idades de crianças, restrições, urgência, contexto emocional"),
-        prioridade: z.enum(["normal", "high", "urgent"]).nullable(),
+        destino: z.string().nullish().describe("Cidade/país de destino, ex: 'Cancún' ou 'Orlando + Miami'"),
+        data_ida: z.string().nullish().describe("Data de ida no formato DD/MM/AAAA ou período aproximado, ex: '15/03/2026' ou 'segunda quinzena de março'"),
+        data_volta: z.string().nullish().describe("Data de volta no formato DD/MM/AAAA ou duração, ex: '22/03/2026' ou '7 noites'"),
+        quantidade_adultos: z.number().int().nullish().describe("Número de adultos"),
+        quantidade_criancas: z.number().int().nullish().describe("Número de crianças (com idades no campo observacoes se houver)"),
+        voo_info: z.string().nullish().describe("Info de voo relevante: cia preferida, localizador, número do voo, ou 'a definir'"),
+        orcamento: z.string().nullish().describe("Orçamento informado pelo cliente, ex: 'até R$ 8.000 por pessoa'"),
+        hotel_preferencia: z.string().nullish().describe("Preferência de hotel/categoria, ex: '4 estrelas all inclusive'"),
+        observacoes: z.string().nullish().describe("Qualquer info extra relevante: idades de crianças, restrições, urgência, contexto emocional"),
+        prioridade: z.enum(["normal", "high", "urgent"]).nullish(),
       }),
       execute: async ({
         motivo,
