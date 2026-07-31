@@ -481,6 +481,8 @@ export function HoteisPage({
   const [result, setResult] = useState<OnerHotelSearchResult | null>(null);
   const [filters, setFilters] = useState<Filters>(EMPTY);
   const [selected, setSelected] = useState<{ hotelId: number; rateKey: string } | null>(null);
+  const [summaryOpen, setSummaryOpen] = useState(false);
+
   const [pendingRun, setPendingRun] = useState(0);
   const [page, setPage] = useState(1);
 
