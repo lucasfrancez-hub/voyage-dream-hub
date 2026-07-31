@@ -17,7 +17,7 @@ import {
 } from "./conversation.server";
 import { buildCamilaTools } from "./tools.server";
 import { sendWhatsAppBubbles } from "./send.server";
-import { buildSenderPrefix, capitalizeBubbles, capitalizeKnownNames, fixGluedSentences, mergeQuestionBubbles, stripAgentSignature, stripFakeImageFailure, stripReintroBubbles, firstName as extractFirstName } from "./text-utils.server";
+import { buildSenderPrefix, capitalizeBubbles, capitalizeKnownNames, fixGluedSentences, mergeQuestionBubbles, stripAgentSignature, stripFakeImageFailure, stripTextFlightList, stripReintroBubbles, firstName as extractFirstName } from "./text-utils.server";
 import { buildSharedAgentPrompt } from "@/lib/chat/camila-prompt";
 import { isCompanyDataBlocked } from "./data-blocklist";
 
@@ -467,7 +467,7 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
 
     // Se as artes REALMENTE saíram, corta qualquer balão em que o modelo
     // inventou falha de envio ("probleminha pra mandar as imagens").
-    if (cardsEntregues) text = stripFakeImageFailure(text);
+    if (cardsEntregues) text = stripTextFlightList(stripFakeImageFailure(text));
 
     text = mergeQuestionBubbles(text);
     if (!text.trim()) {

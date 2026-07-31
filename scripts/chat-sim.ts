@@ -15,6 +15,8 @@ import {
   mergeQuestionBubbles,
   stripAgentSignature,
   stripReintroBubbles,
+  stripFakeImageFailure,
+  stripTextFlightList,
   firstName,
 } from "@/lib/whatsapp/text-utils.server";
 import { splitToBubbles } from "@/lib/whatsapp/send.server";
@@ -138,10 +140,11 @@ const tools = {
 };
 
 // ---------------- pipeline igual ao agent-runner --------------------------
-function pipeline(rawText: string, jaFalouAntes: boolean) {
+function pipeline(rawText: string, jaFalouAntes: boolean, cardsEntregues = false) {
   const clientFirst = firstName(CLIENTE);
   let text = capitalizeKnownNames(capitalizeBubbles(fixGluedSentences(rawText)), [clientFirst]);
   text = stripAgentSignature(text, AGENT.nome);
+  if (cardsEntregues) text = stripTextFlightList(stripFakeImageFailure(text));
   if (jaFalouAntes) text = stripReintroBubbles(text);
   text = mergeQuestionBubbles(text);
   const prefix = buildSenderPrefix(AGENT.nome);
@@ -189,7 +192,12 @@ async function main() {
       messages.push({ role: "assistant", content: "(vazio)" });
       continue;
     }
-    const { bubbles } = pipeline(raw, entregues > 0);
+    // emula o reenvio forçado por código quando o cliente diz que não recebeu
+    const pediuReenvio = /(n[aã]o (recebi|chegou|veio)|manda(r)? de novo|reenvia)/i.test(userMsg);
+    const cardsTurno = usadas.some((t) => t.name === "enviar_cartao_voo") ||
+      usadas.some((t) => t.name === "cotar_aereo") ||
+      (pediuReenvio && cardsSent.length > 0);
+    const { bubbles } = pipeline(raw, entregues > 0, cardsTurno);
     bubbles.forEach((b, i) => console.log(`💬 [${i + 1}] ${b.replace(/\n/g, "\n      ")}`));
     entregues += bubbles.length;
     messages.push({ role: "assistant", content: bubbles.join("\n\n") });

@@ -233,3 +233,20 @@ export function stripFakeImageFailure(fullText: string): string {
     .filter((b) => !FALHA.test(b) && !OFERTA_TEXTO.test(b));
   return kept.join("\n\n");
 }
+
+/**
+ * Remove listagem de voos em TEXTO quando as artes já foram entregues.
+ * O modelo às vezes "reescreve" as opções (e inventa horários/valores),
+ * o que é o erro mais grave possível. As imagens já mostram tudo.
+ */
+export function stripTextFlightList(fullText: string): string {
+  const OPCAO = /^\**\s*op[çc][aã]o\s*\d+\s*\**\s*[:.-]?\s*$/iu;
+  const VOO_LINHA = /(^|\n)\s*(✈️|🛫|🛬)?\s*(ida|volta)\s*:/iu;
+  const VALOR = /^\s*(total|valor|parcelamento)\s*:/iu;
+  const kept = fullText
+    .split(/\n{2,}/)
+    .map((b) => b.trim())
+    .filter(Boolean)
+    .filter((b) => !OPCAO.test(b) && !VOO_LINHA.test(b) && !VALOR.test(b));
+  return kept.join("\n\n");
+}
