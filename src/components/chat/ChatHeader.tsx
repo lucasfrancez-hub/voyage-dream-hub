@@ -83,7 +83,6 @@ export function ChatHeader({ title, subtitle, userEmail, userFullName, theme = "
       </div>
 
 
-      <button
       <AiStatusButton />
 
       <button
