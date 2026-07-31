@@ -19,12 +19,18 @@ function safeText(value: unknown): string {
   return String(value);
 }
 
+const MEDIA_RE = /\[\[media:(image|document|audio|video)\|([^|\]]+)\|([^\]]+)\]\]/;
 function parseMedia(content: unknown): { media: Media | null; text: string } {
   const normalized = safeText(content);
-  const m = normalized.match(/^\[\[media:(image|document|audio|video)\|([^|]+)\|([^\]]+)\]\](?:\n([\s\S]*))?$/);
+  // O marcador pode vir no começo OU depois da legenda/assinatura do agente
+  // ("Maria:\n...texto...[[media:image|...]]"). Antes só casávamos no início,
+  // então o card de voo aparecia como texto cru no painel.
+  const m = normalized.match(MEDIA_RE);
   if (!m) return { media: null, text: normalized };
-  return { media: { kind: m[1] as Media["kind"], url: m[2], filename: m[3] }, text: (m[4] ?? "").trim() };
+  const text = normalized.replace(m[0], "").trim();
+  return { media: { kind: m[1] as Media["kind"], url: m[2], filename: m[3] }, text };
 }
+
 
 interface Props {
   side: "in" | "out";
