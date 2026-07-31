@@ -452,10 +452,10 @@ export function buildCamilaTools(conversation: WaConversation) {
             continue;
           }
           try {
+            const resumo = legendaOpcao(arte.op);
             const caption =
-              enviados.length === 0 && legenda
-                ? legenda
-                : `Opção ${arte.op.opcao} — ${arte.op.destaque}`;
+              enviados.length === 0 && legenda ? `${legenda}\n\n${resumo}` : resumo;
+
             const r = await sendWhatsAppImageBytes(
               conversation.wa_phone,
               arte.asset.bytes,
