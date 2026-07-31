@@ -198,6 +198,52 @@ export function buildCamilaTools(conversation: WaConversation) {
           .describe("true se o cliente precisa de bagagem despachada inclusa"),
       }),
       execute: async (args) => {
+        // Se já cotamos essa MESMA rota/data/pax há pouco e as artes já foram
+        // entregues, reaproveita a cotação em vez de buscar de novo (era isso
+        // que fazia o robô repetir as mesmas opções).
+        const chaveRota = [
+          args.origem.trim().toUpperCase(),
+          args.destino.trim().toUpperCase(),
+          args.data_ida,
+          args.data_volta ?? "-",
+          args.adultos ?? 1,
+          args.criancas ?? 0,
+          args.bebes ?? 0,
+        ].join("|");
+        const desdeRecente = new Date(Date.now() - 45 * 60 * 1000).toISOString();
+        const { data: recentes } = await supabaseAdmin
+          .from("wa_flight_quotes")
+          .select("id, payload, cards_sent_at")
+          .eq("conversation_id", conversation.id)
+          .gte("created_at", desdeRecente)
+          .order("created_at", { ascending: false })
+          .limit(5);
+        for (const r of recentes ?? []) {
+          const p = (r.payload ?? {}) as Record<string, unknown>;
+          const k = [
+            String(p.origem_iata ?? "").toUpperCase(),
+            String(p.destino_iata ?? "").toUpperCase(),
+            String(p.data_ida ?? ""),
+            String(p.data_volta ?? "-") || "-",
+            (p.passageiros as { adultos?: number } | undefined)?.adultos ?? 1,
+            (p.passageiros as { criancas?: number } | undefined)?.criancas ?? 0,
+            (p.passageiros as { bebes?: number } | undefined)?.bebes ?? 0,
+          ].join("|");
+          const mesmaRota =
+            k === chaveRota ||
+            (String(p.data_ida ?? "") === args.data_ida &&
+              String(p.destino_iata ?? "").toUpperCase() === args.destino.trim().toUpperCase());
+          if (mesmaRota && r.cards_sent_at) {
+            return {
+              ...(r.payload as object),
+              quote_id: r.id,
+              ja_enviado: true,
+              instrucao:
+                "Essa cotação já foi feita e as artes JÁ foram enviadas ao cliente. NÃO chame enviar_cartao_voo de novo. Só converse: pergunte qual opção agradou, ou ofereça outros horários/datas se ele pedir.",
+            };
+          }
+        }
+
         const { quoteFlights } = await import("./flight-quote.server");
         const result = await quoteFlights({
           origem: args.origem,
@@ -212,6 +258,7 @@ export function buildCamilaTools(conversation: WaConversation) {
           bagagem_despachada: args.bagagem_despachada,
         });
         if ("error" in result) return result;
+
 
         // Guarda a cotação pra poder gerar a arte de cada opção depois.
         let quote_id: string | null = null;
