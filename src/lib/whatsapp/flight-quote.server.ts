@@ -229,28 +229,38 @@ export async function quoteFlights(params: QuoteFlightsParams): Promise<FlightQu
   const opcoes: FlightQuoteOption[] = [];
   const pax = adultos + criancas;
 
-  for (const ida of escolhidos) {
-    let volta: OnerFlight | null = null;
-    if (params.data_volta) {
+  // Buscas de volta em PARALELO (antes eram sequenciais: 4 idas = 4 esperas)
+  const voltas = await Promise.all(
+    escolhidos.map(async (ida): Promise<OnerFlight | null> => {
+      if (!params.data_volta) return null;
       try {
-        const inbound = await searchInboundFlights({
-          ...base,
-          returnDate: params.data_volta,
-          searchKey: search.searchKey,
-          flightKey: ida.key,
-          filters: { ...baseFilters, departureFrom: jVolta.from, departureTo: jVolta.to },
-        });
-        const voltas = inbound.flights ?? [];
-        if (!voltas.length) continue;
-        volta = [...voltas].sort(
+        const inbound = await searchInboundFlights(
+          {
+            ...base,
+            returnDate: params.data_volta,
+            searchKey: search.searchKey,
+            flightKey: ida.key,
+            filters: { ...baseFilters, departureFrom: jVolta.from, departureTo: jVolta.to },
+          },
+          "fast",
+        );
+        const lista = inbound.flights ?? [];
+        if (!lista.length) return null;
+        return [...lista].sort(
           (a, b) =>
             score(a.price.total, duracaoMin(a), a.journey.numberOfStops) -
             score(b.price.total, duracaoMin(b), b.journey.numberOfStops),
         )[0];
       } catch {
-        continue;
+        return null;
       }
-    }
+    }),
+  );
+
+  for (let i = 0; i < escolhidos.length; i++) {
+    const ida = escolhidos[i];
+    const volta = voltas[i];
+    if (params.data_volta && !volta) continue;
 
     // Na operadora, o preço da volta já é o total do par ida+volta.
     const total = volta ? volta.price.total : ida.price.total;
@@ -277,6 +287,7 @@ export async function quoteFlights(params: QuoteFlightsParams): Promise<FlightQu
       volta: volta ? toLeg(volta) : null,
     });
   }
+
 
   if (!opcoes.length) return { error: "Não consegui montar combinações de ida e volta para essas datas" };
 
