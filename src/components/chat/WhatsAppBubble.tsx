@@ -55,8 +55,12 @@ export function WhatsAppBubble({ side, content, timestamp, senderLabel, status, 
     if (!label || normalized.startsWith("[[media:")) return content;
     const escaped = label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     // O WhatsApp recebe "Maria:\n..." no próprio texto, enquanto o painel já
-    // mostra Maria como cabeçalho do balão. Remove só essa cópia visual.
-    return normalized.replace(new RegExp(`^[*_~]*\\s*${escaped}\\s*:\\s*[*_~]*\\s*`, "i"), "");
+    // mostra Maria como cabeçalho laranja. Remove todas as cópias visuais
+    // (o modelo às vezes repete "Maria:" em linhas seguidas).
+    const re = new RegExp(`^[*_~]*\\s*${escaped}\\s*:\\s*[*_~]*\\s*`, "i");
+    let out = normalized;
+    while (re.test(out)) out = out.replace(re, "");
+    return out.trim();
   })();
   const replySender = firstName(reply?.sender ?? null);
   const replySnippet = safeText(reply?.snippet).trim();

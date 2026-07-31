@@ -91,14 +91,28 @@ export function stripAgentSignature(fullText: string, agentName: string | null |
   const fn = firstName(agentName);
   if (!fn) return fullText;
   const esc = fn.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  // Remove qualquer linha inicial que contenha somente a assinatura. Tratar
-  // linha a linha cobre "Maria:\n*Maria:*", markdown e linhas em branco.
-  const signatureLine = new RegExp(`^[*_~\\s]*${esc}\\s*:\\s*[*_~\\s]*$`, "i");
-  const inlineSignature = new RegExp(`^[*_~\\s]*${esc}\\s*:\\s*[*_~\\s]*`, "i");
-  const lines = fullText.split("\n");
-  while (lines.length && (lines[0].trim() === "" || signatureLine.test(lines[0]))) lines.shift();
-  if (lines.length) lines[0] = lines[0].replace(inlineSignature, "");
-  return lines.join("\n").trim();
+  // Linha que é SÓ a assinatura ("Maria:", "*Maria:*", "_Maria_:") — pode
+  // aparecer em qualquer ponto do texto, não só no começo.
+  const signatureLine = new RegExp(`^[*_~\\s]*${esc}\\s*:?\\s*[*_~\\s]*$`, "i");
+  // Assinatura grudada no início de um parágrafo ("Maria: oi, Lucas").
+  const inlineSignature = new RegExp(`^[*_~]*\\s*${esc}\\s*:\\s*[*_~]*\\s*`, "i");
+
+  const lines = fullText
+    .split("\n")
+    .filter((l) => !signatureLine.test(l) || l.trim() === "");
+
+  const cleaned = lines
+    .join("\n")
+    .split(/\n{2,}/)
+    .map((b) => {
+      let out = b.trim();
+      // Repete enquanto houver assinatura no início ("Maria: Maria: oi").
+      while (inlineSignature.test(out)) out = out.replace(inlineSignature, "").trim();
+      return out;
+    })
+    .filter(Boolean);
+
+  return cleaned.join("\n\n").trim();
 }
 
 
