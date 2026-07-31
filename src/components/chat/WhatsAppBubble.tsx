@@ -50,6 +50,14 @@ function formatTime(iso: string) {
 export function WhatsAppBubble({ side, content, timestamp, senderLabel, status, deleted, replied, reply, onReply }: Props) {
   const isOut = side === "out";
   const label = firstName(senderLabel);
+  const displayContent = (() => {
+    const normalized = safeText(content);
+    if (!label || normalized.startsWith("[[media:")) return content;
+    const escaped = label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    // O WhatsApp recebe "Maria:\n..." no próprio texto, enquanto o painel já
+    // mostra Maria como cabeçalho do balão. Remove só essa cópia visual.
+    return normalized.replace(new RegExp(`^[*_~]*\\s*${escaped}\\s*:\\s*[*_~]*\\s*`, "i"), "");
+  })();
   const replySender = firstName(reply?.sender ?? null);
   const replySnippet = safeText(reply?.snippet).trim();
   return (
@@ -88,7 +96,7 @@ export function WhatsAppBubble({ side, content, timestamp, senderLabel, status, 
           </div>
         )}
         {(() => {
-          const { media, text } = parseMedia(content);
+          const { media, text } = parseMedia(displayContent);
           return (
             <>
               {media?.kind === "image" && (
