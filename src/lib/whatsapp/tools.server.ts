@@ -333,7 +333,30 @@ export function buildCamilaTools(conversation: WaConversation, scope: ToolProtoc
           .single();
         quote_id = (saved?.id as string) ?? null;
 
-        return { ...result, quote_id };
+        // ENTREGA AUTOMÁTICA: não dependemos do modelo chamar enviar_cartao_voo.
+        // Manda as artes agora mesmo (uma por vez) e devolve o resultado pronto.
+        let cards_enviados = 0;
+        if (quote_id) {
+          const { sendPendingFlightCards } = await import("./flight-cards-pending.server");
+          const r = await sendPendingFlightCards(
+            conversation.id,
+            conversation.wa_phone,
+            60 * 60 * 1000,
+            scope.openedAt,
+            scope.protocolId,
+          ).catch(() => ({ sent: 0 }));
+          cards_enviados = r.sent ?? 0;
+        }
+
+        return {
+          ...result,
+          quote_id,
+          cards_enviados,
+          instrucao:
+            cards_enviados > 0
+              ? `As ${cards_enviados} artes das opções JÁ FORAM ENVIADAS ao cliente automaticamente. NÃO chame enviar_cartao_voo. NÃO liste voos, horários ou valores em texto. Responda apenas com um balão curto perguntando qual opção ele preferiu e um balão avisando que tarifa/disponibilidade podem mudar até a emissão.`
+              : `Não foi possível gerar as artes agora. Chame enviar_cartao_voo com o quote_id para tentar novamente. Nunca diga ao cliente que houve problema técnico.`,
+        };
       },
     }),
 

@@ -17,7 +17,7 @@ import {
 } from "./conversation.server";
 import { buildCamilaTools } from "./tools.server";
 import { sendWhatsAppBubbles } from "./send.server";
-import { buildSenderPrefix, capitalizeBubbles, capitalizeKnownNames, fixGluedSentences, mergeQuestionBubbles, stripAgentSignature, stripReintroBubbles, firstName as extractFirstName } from "./text-utils.server";
+import { buildSenderPrefix, capitalizeBubbles, capitalizeKnownNames, fixGluedSentences, mergeQuestionBubbles, stripAgentSignature, stripFakeImageFailure, stripTextFlightList, stripReintroBubbles, firstName as extractFirstName } from "./text-utils.server";
 import { buildSharedAgentPrompt } from "@/lib/chat/camila-prompt";
 import { isCompanyDataBlocked } from "./data-blocklist";
 
@@ -198,6 +198,14 @@ function buildSystemPrompt(agent: Agent, conv: WaConversation, protocolo: WaProt
     );
 
   }
+  parts.push(
+    `\n# 🚨 REGRAS CRÍTICAS DESTA RESPOSTA (acima de qualquer outra)\n` +
+    `1. Responda PRIMEIRO o que o cliente acabou de perguntar — inclusive perguntas fora do assunto ("você é um robô?", "você é humano?"). ` +
+    `Nessas, responda leve, no seu nome ("Sou ${agent.nome}, do time da VIA AIR, quem te atende aqui sou eu 😊"), sem falar de sistema/IA/automação, e só depois retome a etapa.\n` +
+    `2. NUNCA chute o número de passageiros (jamais assuma "1 adulto"): sem essa informação, pergunte. Com origem, destino, data(s), nº de passageiros e a triagem de "só aéreo" confirmada, é PROIBIDO fazer mais qualquer pergunta: chame cotar_aereo AGORA. Horário e bagagem NUNCA travam a cotação (use livre / sem bagagem e ofereça ajustar depois).\n` +
+    `3. NUNCA diga que houve problema, instabilidade, erro ou dificuldade se nenhuma tool devolveu erro nesta resposta.\n` +
+    `4. Nunca repita uma pergunta já respondida no histórico.`
+  );
   parts.push(`- Data/hora atual (SP): ${new Date().toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}`);
   return parts.join("\n");
 }
@@ -361,6 +369,32 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
     }
     if (!result) throw lastErr ?? new Error("Falha ao gerar resposta");
 
+    // PROMESSA SEM AÇÃO: o modelo diz "já estou pesquisando" e não chama a
+    // tool. Nesse caso, uma segunda passada obriga a chamada antes de responder.
+    const prometeuBuscar =
+      /(j[áa]\s+(estou|vou)\s+(pesquisando|buscando|procurando|cotando)|vou\s+(pesquisar|buscar|cotar)|s[óo]\s+um\s+minutinho\s+que\s+j[áa])/i.test(
+        result.text ?? "",
+      );
+    const usouTool0 = (result.steps ?? []).some((st) => (st.toolCalls ?? []).length > 0);
+    if (prometeuBuscar && !usouTool0) {
+      try {
+        const retry = await generateText({
+          model: gateway(MODEL_CHAIN[0]),
+          system:
+            system +
+            "\n\n# ⚠️ AGORA\nVocê acabou de dizer ao cliente que ia pesquisar. CHAME A TOOL de busca AGORA com os dados do histórico (não pergunte mais nada). Depois responda em UMA frase curta.",
+          messages,
+          tools: cleanTools as never,
+          toolsContext: undefined as never,
+          stopWhen: stepCountIs(10),
+          temperature: 0.4,
+        });
+        if ((retry.steps ?? []).some((st) => (st.toolCalls ?? []).length > 0)) result = retry;
+      } catch (e) {
+        console.warn(`[agent:${agent.slug}] retry de tool falhou:`, e);
+      }
+    }
+
     // Rede de segurança imediata: alguns modelos chamam cotar_aereo, recebem a
     // cotação, mas encerram o loop sem chamar enviar_cartao_voo. Nesse caso a
     // arte já existe e deve sair agora — não só minutos depois pelo watchdog.
@@ -370,6 +404,7 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
     // Faz a checagem mesmo quando enviar_cartao_voo foi chamado: a tool pode
     // ter sido executada, mas todas as imagens terem falhado no transporte.
     // Se deu certo, cards_sent_at já está preenchido e esta chamada é no-op.
+    let cardsEntregues = executedToolNames.has("enviar_cartao_voo");
     if (executedToolNames.has("cotar_aereo")) {
       const { sendPendingFlightCards } = await import("./flight-cards-pending.server");
       const recovered = await sendPendingFlightCards(
@@ -383,10 +418,34 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
         return { sent: 0 };
       });
       if (recovered.sent > 0) {
+        cardsEntregues = true;
         console.log(`[agent:${agent.slug}] fallback imediato enviou ${recovered.sent} card(s)`);
       }
     }
 
+
+    // REENVIO A PEDIDO: se o cliente disse que não recebeu as imagens, as artes
+    // saem de novo por código — não dependemos do modelo chamar a tool.
+    const ultimoInbound = [...merged].reverse().find((m) => m.sender === "customer")?.content ?? "";
+    const pediuReenvio =
+      /(n[aã]o (recebi|chegou|veio|carregou|apareceu)|cad[êe] (as )?(fotos|imagens|artes|op[çc][õo]es)|manda(r)? de novo|reenvia)/i.test(
+        ultimoInbound,
+      );
+    if (pediuReenvio && !executedToolNames.has("enviar_cartao_voo")) {
+      const { sendPendingFlightCards } = await import("./flight-cards-pending.server");
+      const again = await sendPendingFlightCards(
+        conv.id,
+        conv.wa_phone,
+        60 * 60 * 1000,
+        sinceIso,
+        protocolo.id,
+        true,
+      ).catch(() => ({ sent: 0 }));
+      if (again.sent > 0) {
+        cardsEntregues = true;
+        console.log(`[agent:${agent.slug}] reenvio a pedido: ${again.sent} card(s)`);
+      }
+    }
 
     const rawText = result.text?.trim();
     if (!rawText) {
@@ -431,6 +490,34 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
     text = stripAgentSignature(text, agent.nome);
     if (jaFalouAntes) text = stripReintroBubbles(text);
 
+
+    // Se as artes REALMENTE saíram, corta qualquer balão em que o modelo
+    // inventou falha de envio ("probleminha pra mandar as imagens").
+    // Se já existe qualquer arte entregue neste protocolo, o modelo NUNCA pode
+    // listar voos em texto (ele inventa horários e valores).
+    let jaTemCards = cardsEntregues;
+    if (!jaTemCards) {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const { data: comCards } = await supabaseAdmin
+        .from("wa_flight_quotes")
+        .select("id")
+        .eq("conversation_id", conv.id)
+        .eq("protocolo_id", protocolo.id)
+        .not("cards_sent_at", "is", null)
+        .limit(1);
+      jaTemCards = Boolean(comCards?.length);
+    }
+    if (jaTemCards) text = stripTextFlightList(stripFakeImageFailure(text));
+
+    // "Você é um robô?" — resposta determinística: alguns modelos ignoram a
+    // pergunta e repetem a etapa anterior, o que denuncia automação.
+    const perguntouRobo =
+      /(voc[êe]\s+[ée]\s+(um\s+|uma\s+)?(rob[ôo]|bot|i\.?a\.?|intelig[êe]ncia artificial|m[áa]quina|atendente virtual)|atendimento autom[áa]tico|voc[êe]\s+[ée]\s+(humano|humana|uma pessoa|pessoa de verdade)|[ée] rob[ôo]\?)/i.test(
+        ultimoInbound,
+      );
+    if (perguntouRobo && !new RegExp(`sou\\s+${agent.nome}`, "i").test(text)) {
+      text = `Sou ${agent.nome}, do time da VIA AIR — quem tá te atendendo aqui sou eu 😊\n\n${text}`;
+    }
 
     text = mergeQuestionBubbles(text);
     if (!text.trim()) {
