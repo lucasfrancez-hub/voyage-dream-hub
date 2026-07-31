@@ -449,9 +449,10 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
           .find((s): s is string => !!s);
         if (first) {
           console.log(`[agent:${agent.slug}] fallback: enviando pacote ${first} (IA prometeu e não chamou a tool)`);
-          const enviar = (tools as Record<string, { execute?: (a: unknown) => Promise<unknown> }>)
+          const enviar = (tools as unknown as Record<string, { execute?: (...a: unknown[]) => Promise<unknown> }>)
             .enviar_pacote;
-          await enviar?.execute?.({ slug: first, quantidade_adultos: null });
+          await enviar?.execute?.({ slug: first, quantidade_adultos: null }, {});
+
           toolCallsSummary?.push({ name: "enviar_pacote", input: { slug: first, fallback: true } });
         }
       }
