@@ -199,7 +199,7 @@ export function buildCamilaTools(conversation: WaConversation) {
       }),
       execute: async (args) => {
         const { quoteFlights } = await import("./flight-quote.server");
-        return await quoteFlights({
+        const result = await quoteFlights({
           origem: args.origem,
           destino: args.destino,
           data_ida: args.data_ida,
@@ -211,8 +211,90 @@ export function buildCamilaTools(conversation: WaConversation) {
           periodo_volta: args.periodo_volta,
           bagagem_despachada: args.bagagem_despachada,
         });
+        if ("error" in result) return result;
+
+        // Guarda a cotação pra poder gerar a arte de cada opção depois.
+        let quote_id: string | null = null;
+        const { data: saved } = await supabaseAdmin
+          .from("wa_flight_quotes")
+          .insert({ conversation_id: conversation.id, payload: result })
+          .select("id")
+          .single();
+        quote_id = (saved?.id as string) ?? null;
+
+        return { ...result, quote_id };
       },
     }),
+
+    enviar_cartao_voo: tool({
+      description:
+        "Envia ao cliente a ARTE (imagem) das opções de voo já cotadas por cotar_aereo. Use logo depois de cotar, mandando as opções que quer apresentar (normalmente todas). Cada opção vira uma imagem no WhatsApp com horários, conexões, bagagem, valor total e parcelamento. Depois de enviar as artes, escreva só um balão curto perguntando qual o cliente prefere — não repita os dados dos voos em texto.",
+      inputSchema: z.object({
+        quote_id: z.string().describe("ID devolvido por cotar_aereo"),
+        opcoes: z
+          .array(z.number())
+          .describe("Números das opções a enviar, ex: [1,2,3]"),
+        legenda: z
+          .string()
+          .nullable()
+          .describe("Legenda curta da primeira imagem, ex: 'Opção 1 — voo direto'"),
+      }),
+      execute: async ({ quote_id, opcoes, legenda }) => {
+        const { data: row } = await supabaseAdmin
+          .from("wa_flight_quotes")
+          .select("payload")
+          .eq("id", quote_id)
+          .single();
+        if (!row?.payload) return { error: "Cotação não encontrada — refaça a busca com cotar_aereo" };
+
+        const quote = row.payload as {
+          origem_iata: string;
+          destino_iata: string;
+          origem_nome: string;
+          destino_nome: string;
+          opcoes: Array<{ opcao: number; destaque: string }>;
+        };
+        const { buildFlightCardData, renderFlightCardImage } = await import("./flight-card.server");
+        const { sendWhatsAppImage } = await import("./send.server");
+        const { saveMessage } = await import("./conversation.server");
+
+        const enviados: Array<{ opcao: number; ok: boolean; erro?: string }> = [];
+        const alvo = (opcoes.length ? opcoes : quote.opcoes.map((o) => o.opcao)).slice(0, 4);
+
+        for (const numero of alvo) {
+          const op = quote.opcoes.find((o) => o.opcao === numero);
+          if (!op) {
+            enviados.push({ opcao: numero, ok: false, erro: "opção inexistente" });
+            continue;
+          }
+          try {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const data = buildFlightCardData(quote as any, op as any);
+            const url = await renderFlightCardImage(data);
+            const caption =
+              enviados.length === 0 && legenda
+                ? legenda
+                : `Opção ${op.opcao} — ${op.destaque}`;
+            const r = await sendWhatsAppImage(conversation.wa_phone, url, caption);
+            await saveMessage({
+              conversation_id: conversation.id,
+              direction: "outbound",
+              sender: "camila",
+              content: caption,
+              wa_message_id: r.id ?? null,
+              media_url: url,
+              media_type: "image",
+            });
+            enviados.push({ opcao: numero, ok: !r.error, erro: r.error });
+          } catch (e) {
+            enviados.push({ opcao: numero, ok: false, erro: e instanceof Error ? e.message : "falha" });
+          }
+        }
+
+        return { enviados, instrucao: "Artes enviadas. Agora só pergunte qual opção o cliente prefere." };
+      },
+    }),
+
 
 
 
