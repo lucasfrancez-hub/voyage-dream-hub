@@ -113,7 +113,7 @@ export function renderFlightCardHtml(d: FlightCardData, baseUrl: string): string
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{width:900px;padding:40px;display:flex;justify-content:center;background:#eef2f7;font-family:Poppins,system-ui,sans-serif;color:${NAVY};-webkit-font-smoothing:antialiased}
+body{width:900px;padding:24px;display:flex;justify-content:center;background:#eef2f7;font-family:Poppins,system-ui,sans-serif;color:${NAVY};-webkit-font-smoothing:antialiased}
 .card{width:820px;background:#fff;border-radius:34px;overflow:hidden;box-shadow:0 24px 60px rgba(11,37,69,.14)}
 .head{padding:36px 52px 0}
 .head-top{display:flex;align-items:center;justify-content:space-between}
