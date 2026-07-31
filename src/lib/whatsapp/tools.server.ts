@@ -354,7 +354,7 @@ export function buildCamilaTools(conversation: WaConversation, scope: ToolProtoc
           cards_enviados,
           instrucao:
             cards_enviados > 0
-              ? `As ${cards_enviados} artes das opções JÁ FORAM ENVIADAS ao cliente automaticamente. NÃO chame enviar_cartao_voo. NÃO liste voos, horários ou valores em texto. Responda apenas com um balão curto perguntando qual opção ele preferiu e um balão avisando que tarifa/disponibilidade podem mudar até a emissão.`
+              ? `A arte da 1ª opção JÁ FOI ENVIADA ao cliente e a 2ª sai automaticamente em cerca de 1 minuto. NÃO chame enviar_cartao_voo, NÃO liste voos, horários ou valores em texto e NÃO mande mensagem de espera. Responda apenas com UM balão curto avisando que está mandando as opções (ex.: "Te mando as melhores opções agora, dá uma olhada").`
               : `Não foi possível gerar as artes agora. Chame enviar_cartao_voo com o quote_id para tentar novamente. Nunca diga ao cliente que houve problema técnico.`,
         };
       },

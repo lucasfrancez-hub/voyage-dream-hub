@@ -12,8 +12,10 @@
  *   um timeout no meio do caminho nunca gera arte repetida na próxima rodada;
  * - se nada for enviado, libera o claim pra próxima tentativa.
  *
- * Entrega: no máximo 2 opções, com horários de partida DIFERENTES, uma por
- * minuto — cadência humana e sem pressão no renderizador.
+ * Entrega em ETAPAS (uma arte por rodada): cada chamada renderiza e envia UMA
+ * opção e devolve o controle. O cron (watchdog, 1x/min) chama de novo pra
+ * mandar a próxima. Assim o worker nunca fica dormindo 60s e a numeração das
+ * opções continua de onde parou (Opção 1, Opção 2...).
  */
 type LegLite = { cia?: string; voo?: string; partida?: string };
 type OptLite = {
@@ -23,13 +25,43 @@ type OptLite = {
   volta?: LegLite | null;
 };
 
-const MAX_OPCOES = 2;
-const INTERVALO_MS = 60_000; // 1 minuto entre as artes
+const MAX_OPCOES = 2; // por cotação, salvo pedido explícito de mais horários
+const INTERVALO_MS = 45_000; // espaçamento mínimo entre duas artes
 
 const fingerprint = (o: OptLite): string =>
   [o.ida?.cia, o.ida?.voo, o.ida?.partida, o.volta?.cia, o.volta?.voo, o.volta?.partida, Math.round(Number(o.total ?? 0))]
     .map((v) => String(v ?? "-"))
     .join("|");
+
+/**
+ * Última numeração de opção já mostrada ao cliente nesta conversa e o momento
+ * do último card. A numeração vem do que o cliente REALMENTE viu (legenda
+ * "*Opção N*"), então nunca repete "Opção 1" numa segunda busca.
+ */
+async function ultimoEnvio(
+  conversationId: string,
+  desde: string,
+): Promise<{ maiorNumero: number; ultimoEm: number | null }> {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data } = await supabaseAdmin
+    .from("wa_messages")
+    .select("content, created_at")
+    .eq("conversation_id", conversationId)
+    .eq("direction", "outbound")
+    .gte("created_at", desde)
+    .order("created_at", { ascending: false })
+    .limit(40);
+  let maiorNumero = 0;
+  let ultimoEm: number | null = null;
+  for (const m of (data ?? []) as { content: string | null; created_at: string }[]) {
+    const match = /\*?Op[çc][ãa]o\s*(\d+)\*?/i.exec(m.content ?? "");
+    if (!match) continue;
+    maiorNumero = Math.max(maiorNumero, Number(match[1]) || 0);
+    const t = new Date(m.created_at).getTime();
+    if (ultimoEm === null || t > ultimoEm) ultimoEm = t;
+  }
+  return { maiorNumero, ultimoEm };
+}
 
 /** Chave de horário: usada pra não mandar duas opções que saem no mesmo horário. */
 const horarioIda = (o: OptLite): string => String(o.ida?.partida ?? "").slice(0, 16);
@@ -48,7 +80,7 @@ export async function sendPendingFlightCards(
   const desde = new Date(Date.now() - maxAgeMs).toISOString();
   let pendingQuery = supabaseAdmin
     .from("wa_flight_quotes")
-    .select("id, payload, protocolo_id")
+    .select("id, payload, protocolo_id, sent_fingerprints")
     .eq("conversation_id", conversationId)
     .gte("created_at", desde)
     .order("created_at", { ascending: false })
@@ -70,6 +102,13 @@ export async function sendPendingFlightCards(
     | undefined;
   const todas = quote?.opcoes ?? [];
   if (!row?.id || !quote || !todas.length) return { sent: 0 };
+
+  // ---- espaçamento e numeração contínua (Opção 1, 2, 3...) ----
+  const desdeNum = protocolOpenedAt ?? new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const { maiorNumero, ultimoEm } = await ultimoEnvio(conversationId, desdeNum);
+  if (!force && ultimoEm && Date.now() - ultimoEm < INTERVALO_MS) {
+    return { sent: 0, quote_id: row.id as string };
+  }
 
   // ---- claim atômico: quem conseguir marcar cards_sent_at é quem envia ----
   let claimQuery = supabaseAdmin
@@ -109,18 +148,40 @@ export async function sendPendingFlightCards(
   };
   const jaFps = await carregarFps();
 
-  // Filtra o que já foi entregue e escolhe no máximo 2 com HORÁRIOS distintos.
-  const candidatas = force ? todas : todas.filter((o) => !jaFps.has(fingerprint(o)));
-  const horariosUsados = new Set<string>();
-  const opcoes: OptLite[] = [];
-  for (const op of candidatas) {
-    const h = horarioIda(op);
-    if (h && horariosUsados.has(h)) continue;
-    horariosUsados.add(h);
-    opcoes.push(op);
-    if (opcoes.length >= MAX_OPCOES) break;
+  // ETAPA ATUAL: quantas artes desta cotação já saíram e qual o próximo número.
+  const fpsDaCotacao = new Set<string>(
+    Array.isArray((row as { sent_fingerprints?: unknown }).sent_fingerprints)
+      ? ((row as { sent_fingerprints: unknown[] }).sent_fingerprints as unknown[]).map(String)
+      : [],
+  );
+  const restante = force ? MAX_OPCOES : MAX_OPCOES - fpsDaCotacao.size;
+  if (restante <= 0) {
+    await supabaseAdmin
+      .from("wa_flight_quotes")
+      .update({ cards_sent_at: new Date().toISOString() })
+      .eq("id", row.id);
+    return { sent: 0, quote_id: row.id as string };
   }
-  if (!opcoes.length) return { sent: 0, quote_id: row.id as string };
+
+  // Horários já mostrados (nesta cotação) pra não repetir a mesma partida.
+  const horariosUsados = new Set<string>(
+    todas.filter((o) => jaFps.has(fingerprint(o))).map((o) => horarioIda(o)).filter(Boolean),
+  );
+  const candidatas = force ? todas : todas.filter((o) => !jaFps.has(fingerprint(o)));
+  // UMA opção por rodada: renderiza, envia e devolve o controle. O cron chama
+  // de novo no minuto seguinte pra mandar a próxima.
+  const proxima = candidatas.find((o) => {
+    const h = horarioIda(o);
+    return !h || !horariosUsados.has(h);
+  });
+  const opcoes: OptLite[] = proxima ? [proxima] : [];
+  if (!opcoes.length) {
+    await supabaseAdmin
+      .from("wa_flight_quotes")
+      .update({ cards_sent_at: new Date().toISOString() })
+      .eq("id", row.id);
+    return { sent: 0, quote_id: row.id as string };
+  }
 
   const { buildFlightCardData, renderFlightCardAssetRetry } = await import("./flight-card.server");
   const { buildFlightOptionCaption } = await import("./flight-caption.server");
@@ -176,7 +237,7 @@ export async function sendPendingFlightCards(
       const data = buildFlightCardData(quote as any, op as any);
       const asset = await renderFlightCardAssetRetry(data);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const caption = buildFlightOptionCaption(quote as any, op as any, jaFps.size + i + 1);
+      const caption = buildFlightOptionCaption(quote as any, op as any, maiorNumero + i + 1);
       const r = await sendWhatsAppImageBytes(
         waPhone,
         asset.bytes,
@@ -212,12 +273,13 @@ export async function sendPendingFlightCards(
     return { sent: 0, quote_id: row.id as string };
   }
 
+  // Concluiu a cotação só quando as 2 artes saíram; senão libera o claim pra
+  // que a próxima rodada do cron mande a etapa seguinte.
+  const totalEnviadas = fpsDaCotacao.size + sent;
+  const concluiu = !falhou && totalEnviadas >= MAX_OPCOES;
   await supabaseAdmin
     .from("wa_flight_quotes")
-    .update({
-      // Se alguma opção não saiu, deixa a cotação pendente pra próxima rodada.
-      cards_sent_at: falhou ? null : new Date().toISOString(),
-    })
+    .update({ cards_sent_at: concluiu ? new Date().toISOString() : null })
     .eq("id", row.id);
 
   return { sent, quote_id: row.id as string };

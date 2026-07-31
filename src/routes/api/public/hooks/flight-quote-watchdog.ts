@@ -18,6 +18,7 @@ import { createFileRoute } from "@tanstack/react-router";
 const PROMESSA =
   /(deixa? eu (pesquisar|ver|dar uma olhada|verificar)|vou (pesquisar|verificar|buscar|dar uma olhada|consultar)|estou (pesquisando|verificando|buscando|consultando)|to (pesquisando|verificando|buscando)|um (instante|minutinho|momento)|já te trago|já volto com)/i;
 
+const MARCA_FECHO = "essas são as melhores opções que encontrei";
 const MARCA_AVISO = "tô finalizando a busca aqui";
 const MARCA_FALHA = "instabilidade no sistema de tarifas";
 
@@ -96,27 +97,52 @@ export const Route = createFileRoute("/api/public/hooks/flight-quote-watchdog")(
 
           const depois = msgs.filter((m) => m.created_at > promessa!.created_at);
 
+          // ETAPA DE ENTREGA: toda rodada tenta mandar a PRÓXIMA arte pendente
+          // (uma por rodada). É o motor do processo em passos: pesquisou →
+          // opção 1 → opção 2 → fecho.
+          const nome = firstName(conv.display_name as string | null);
+          const voc = nome ? `${nome}, ` : "";
+          const { sendPendingFlightCards } = await import("@/lib/whatsapp/flight-cards-pending.server");
+          const pend = await sendPendingFlightCards(
+            convId,
+            conv.wa_phone as string,
+            60 * 60 * 1000,
+            inicio,
+            proto.id as string,
+          ).catch(() => ({ sent: 0, done: false }) as { sent: number; done?: boolean });
+          if (pend.sent > 0) {
+            avisados.push(convId);
+            continue;
+          }
+
           // Só considera entregue quando existe uma arte registrada. Texto como
           // "achei opções" não pode impedir o reenvio dos cards pendentes.
-          const entregou = depois.some(
+          const cards = depois.filter(
             (m) =>
               m.direction === "outbound" &&
               m.sender !== "system" &&
               (/\[\[media:image/i.test(m.content ?? "") ||
-                /https?:\/\/\S*(?:flight-cards|broadcast-media)\/\S+\.(?:png|jpe?g|webp)/i.test(m.content ?? "") ||
                 /^\s*\*?Op[çc][ãa]o\s*\d/i.test(m.content ?? "")),
           );
-          if (entregou) continue;
-
-          // Se alguma cotação do protocolo já teve card enviado, o watchdog cala:
-          // a entrega está em andamento (1 card por minuto) e não é instabilidade.
-          const { data: qs } = await supabaseAdmin
-            .from("wa_flight_quotes")
-            .select("id, cards_sent_at")
-            .eq("conversation_id", convId)
-            .gte("created_at", inicio ?? new Date(now - 6 * 60 * 60 * 1000).toISOString())
-            .limit(20);
-          if ((qs ?? []).some((q) => q.cards_sent_at)) continue;
+          if (cards.length) {
+            // Entrega concluída: fecha com um convite, uma vez só.
+            const jaFechou = depois.some((m) => (m.content ?? "").includes(MARCA_FECHO));
+            const ultimoCard = new Date(cards[cards.length - 1].created_at).getTime();
+            if (!jaFechou && cards.length >= 2 && now - ultimoCard > 60_000) {
+              const fecho =
+                `${voc}${MARCA_FECHO}\n\n` +
+                `Se preferir outro horário, é só me falar que eu pesquiso mais opções pra você`;
+              await saveMessage({
+                conversation_id: convId,
+                direction: "outbound",
+                sender: "camila",
+                content: fecho,
+              });
+              await sendWhatsAppBubbles(conv.wa_phone as string, fecho);
+              avisados.push(convId);
+            }
+            continue;
+          }
 
           // protocolo encerrado depois da promessa (mensagem de sistema) → para
           const encerrou = depois.some((m) => /protocolo\s+\S+\s+foi encerrado/i.test(m.content ?? ""));
@@ -129,33 +155,6 @@ export const Route = createFileRoute("/api/public/hooks/flight-quote-watchdog")(
 
           const elapsedMin = (now - new Date(promessa.created_at).getTime()) / 60000;
           if (elapsedMin < 2) continue;
-
-          const nome = firstName(conv.display_name as string | null);
-          const voc = nome ? `${nome}, ` : "";
-
-          // ANTES de avisar/escalar: se a cotação já existe e as artes nunca
-          // foram enviadas, manda as artes agora — o cliente não precisa
-          // esperar nada.
-          const { sendPendingFlightCards } = await import("@/lib/whatsapp/flight-cards-pending.server");
-          const pend = await sendPendingFlightCards(
-            convId,
-            conv.wa_phone as string,
-            60 * 60 * 1000,
-            inicio,
-            proto.id as string,
-          ).catch(() => ({ sent: 0 }));
-          if (pend.sent > 0) {
-            const fecho = `${voc}essas são as melhores opções que encontrei\n\nQual delas faz mais sentido pra você?`;
-            await saveMessage({
-              conversation_id: convId,
-              direction: "outbound",
-              sender: "camila",
-              content: fecho,
-            });
-            await sendWhatsAppBubbles(conv.wa_phone as string, fecho);
-            avisados.push(convId);
-            continue;
-          }
 
           if (elapsedMin < 5) continue;
 
