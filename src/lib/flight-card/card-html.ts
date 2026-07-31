@@ -119,7 +119,7 @@ body{width:1200px;background:#fff;font-family:Poppins,system-ui,sans-serif;color
 .brand:after{content:"";position:absolute;right:-58px;top:0;bottom:0;width:120px;background:${NAVY};transform:skewX(-14deg)}
 .brand img{height:52px;object-fit:contain;object-position:left}
 .brand .tagline{margin-top:8px;font-size:17px;opacity:.9}
-.route{flex:1;display:flex;align-items:center;justify-content:center;gap:34px;padding-left:60px}
+.route{flex:1;display:flex;align-items:center;justify-content:center;gap:30px;padding-left:120px}
 .route .r-city{font-size:40px;font-weight:800;line-height:1.05;text-align:center;max-width:300px}
 .route .r-iata{font-size:19px;font-weight:600;letter-spacing:2px;text-align:center;color:#8b98ac;margin-top:4px}
 .route .circle{width:62px;height:62px;border-radius:50%;background:${NAVY};display:flex;align-items:center;justify-content:center}
