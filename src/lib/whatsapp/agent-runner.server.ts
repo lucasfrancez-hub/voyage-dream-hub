@@ -19,7 +19,14 @@ import { buildCamilaTools } from "./tools.server";
 import { sendWhatsAppBubbles } from "./send.server";
 import { buildSenderPrefix, capitalizeBubbles, capitalizeKnownNames, fixGluedSentences, mergeQuestionBubbles, stripAgentSignature, stripFakeImageFailure, stripTextFlightList, stripReintroBubbles, firstName as extractFirstName } from "./text-utils.server";
 import { buildSharedAgentPrompt } from "@/lib/chat/camila-prompt";
+import {
+  buildFlightAgentPrompt,
+  findFlightAgent,
+  isFlightAgentSlug,
+  pickFlightAgent,
+} from "@/lib/chat/aereo-prompt";
 import { isCompanyDataBlocked } from "./data-blocklist";
+
 
 // Gênero por slug (usado pra montar o prompt compartilhado com a flexão certa).
 const AGENT_GENDER: Record<string, "f" | "m"> = {
@@ -29,7 +36,11 @@ const AGENT_GENDER: Record<string, "f" | "m"> = {
   roberto: "m",
   fabricio: "m",
   giovani: "m",
+  // setor de aéreo
+  bruno: "m",
+  leticia: "f",
 };
+
 function genderOf(slug: string): "f" | "m" {
   return AGENT_GENDER[slug.toLowerCase()] ?? "f";
 }
@@ -100,7 +111,26 @@ function pickAgent(agents: Agent[], stickySlug?: string | null): Agent | null {
 
 
 
+/**
+ * Detecta pedido de COTAÇÃO DE AÉREO nas últimas falas do cliente.
+ * Serve pra passar o atendimento pro setor de aéreo (Bruno / Letícia),
+ * que tem prompt próprio e não mistura com o time de atendimento.
+ */
+function wantsFlightQuote(texts: string[]): boolean {
+  const t = texts.join(" \n ").toLowerCase();
+  if (!t.trim()) return false;
+  const temAereo =
+    /(passage(m|ns)\s+a[ée]rea|passagem|só\s+o?\s*a[ée]reo|somente\s+a[ée]reo|apenas\s+a[ée]reo|cota[çc][ãa]o\s+de\s+(voo|a[ée]reo)|cotar\s+(voo|a[ée]reo)|pre[çc]o\s+d[eo]\s+(voo|passagem)|valor\s+d[eo]\s+(voo|passagem)|bilhete\s+a[ée]reo)/i.test(
+      t,
+    );
+  if (!temAereo) return false;
+  // pedido de pacote/hospedagem no mesmo texto → segue com o time normal
+  const ehPacote = /(pacote|hotel|hospedagem|resort|all\s*inclusive|cruzeiro|passeio|ingresso)/i.test(t);
+  return !ehPacote;
+}
+
 function firstAvailableAusencia(agents: Agent[]): string | null {
+
   for (const a of agents) if (a.mensagem_ausencia) return a.mensagem_ausencia;
   return null;
 }
@@ -117,10 +147,13 @@ function looksLikeRealName(v: string | null | undefined): boolean {
 }
 
 function buildSystemPrompt(agent: Agent, conv: WaConversation, protocolo: WaProtocolo, isNewProtocolo: boolean): string {
-  // Sempre gera o prompt compartilhado com o nome/gênero deste agente,
-  // ignorando o system_prompt armazenado (mantém a base única pra todo o time).
-  const base = buildSharedAgentPrompt(agent.nome, genderOf(agent.slug));
+  // Setor de aéreo tem prompt PRÓPRIO (aereo-prompt.ts) — não usa a base do
+  // time de atendimento, justamente pra uma mexida não quebrar a outra.
+  const base = isFlightAgentSlug(agent.slug)
+    ? buildFlightAgentPrompt(agent.nome, genderOf(agent.slug))
+    : buildSharedAgentPrompt(agent.nome, genderOf(agent.slug));
   const parts = [base];
+
 
   parts.push(`\n\n# CONTEXTO DESTA CONVERSA`);
   parts.push(`- Você é: ${agent.nome}`);
@@ -136,7 +169,7 @@ function buildSystemPrompt(agent: Agent, conv: WaConversation, protocolo: WaProt
   parts.push(`- Protocolo ATIVO: ${protocolo.numero} (uso interno — NÃO mencione o número ao cliente na abertura nem no meio da conversa; ele só aparece na mensagem automática de encerramento).`);
   parts.push(
     isNewProtocolo
-      ? `- PRIMEIRA RESPOSTA DESTE PROTOCOLO: SIM. Antes de qualquer tool, cumprimente, diga seu nome e reaja ao pedido. Se for viagem/cotação, faça a triagem (só aéreo ou pacote com hospedagem) e NÃO cote ainda — mesmo que o "HISTÓRICO ANTERIOR" abaixo mostre confirmação de um protocolo passado JÁ ENCERRADO: aquela resposta NÃO vale pra esta nova solicitação. A triagem tem que ser refeita nesta conversa antes de chamar cotar_aereo/enviar_cartao_voo.`
+      ? `- PRIMEIRA RESPOSTA DESTE PROTOCOLO: SIM. Cumprimente, diga seu nome e reaja ao pedido do cliente.`
       : `- PRIMEIRA RESPOSTA DESTE PROTOCOLO: NÃO. Não repita apresentação; continue naturalmente do ponto atual.`,
   );
   parts.push(
@@ -147,25 +180,7 @@ function buildSystemPrompt(agent: Agent, conv: WaConversation, protocolo: WaProt
     `Assuma que o pedido está identificado por esse localizador e siga o atendimento.`
   );
 
-  parts.push(
-    `\n# ✍️ FORMATAÇÃO OBRIGATÓRIA (WhatsApp)\n` +
-    `- Cada ideia/frase vai em um PARÁGRAFO próprio, separado por UMA LINHA EM BRANCO (\\n\\n). Nunca junte tudo num único bloco.\n` +
-    `- Resumos e listas SEMPRE em tópicos, um por linha, começando com "- " (ex.: "- Origem: Maringá").\n` +
-    `- Antes de uma lista, quebre a linha depois dos dois-pontos.\n` +
-    `- Nunca cole palavras/frases (proibido "PerfeitoO Fabrício", "pedido.Vou", "HotelVou"): sempre espaço ou quebra de linha.\n` +
-    `- Máximo ~3 linhas por parágrafo. Sem markdown de título; negrito só com *asterisco simples*.`
-  );
 
-
-  parts.push(
-    `\n# ❌ NUNCA PEÇA DADO QUE NÃO EXISTE\n` +
-    `- Se o assunto é COTAÇÃO / ORÇAMENTO / PROPOSTA / "o comercial não entrou em contato", NÃO existe pedido, nem localizador, nem reserva. ` +
-    `É PROIBIDO pedir número do pedido, localizador, reserva ou CPF nesses casos. ` +
-    `Reconheça o ocorrido, retome a solicitação a partir do histórico e diga que vai priorizar o retorno.\n` +
-    `- Só peça pedido/localizador/CPF quando o cliente falar de uma COMPRA JÁ EMITIDA (voucher, bilhete, check-in, reembolso, remarcação) ` +
-    `E não houver nenhum dado no histórico que identifique essa compra.\n` +
-    `- Antes de perguntar qualquer coisa, releia o histórico: se a informação já foi dita alguma vez, use-a.`
-  );
 
 
 
@@ -199,13 +214,13 @@ function buildSystemPrompt(agent: Agent, conv: WaConversation, protocolo: WaProt
 
   }
   parts.push(
-    `\n# 🚨 REGRAS CRÍTICAS DESTA RESPOSTA (acima de qualquer outra)\n` +
+    `\n# 🚨 REGRAS CRÍTICAS DESTA RESPOSTA\n` +
     `1. Responda PRIMEIRO o que o cliente acabou de perguntar — inclusive perguntas fora do assunto ("você é um robô?", "você é humano?"). ` +
-    `Nessas, responda leve, no seu nome ("Sou ${agent.nome}, do time da VIA AIR, quem te atende aqui sou eu 😊"), sem falar de sistema/IA/automação, e só depois retome a etapa.\n` +
-    `2. NUNCA chute o número de passageiros (jamais assuma "1 adulto"): sem essa informação, pergunte. Com origem, destino, data(s), nº de passageiros e a triagem de "só aéreo" confirmada, é PROIBIDO fazer mais qualquer pergunta: chame cotar_aereo AGORA. Horário e bagagem NUNCA travam a cotação (use livre / sem bagagem e ofereça ajustar depois).\n` +
-    `3. NUNCA diga que houve problema, instabilidade, erro ou dificuldade se nenhuma tool devolveu erro nesta resposta.\n` +
-    `4. Nunca repita uma pergunta já respondida no histórico.`
+    `Nessas, responda leve, no seu nome ("Sou ${agent.nome}, do time da VIA AIR, quem te atende aqui sou eu"), sem falar de sistema/IA/automação, e só depois retome a etapa.\n` +
+    `2. NUNCA diga que houve problema, instabilidade, erro ou dificuldade se nenhuma tool devolveu erro nesta resposta.\n` +
+    `3. Nunca repita uma pergunta já respondida no histórico.`
   );
+
   parts.push(`- Data/hora atual (SP): ${new Date().toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}`);
   return parts.join("\n");
 }
@@ -225,7 +240,24 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
 
   const agents = await loadAgents();
   const stickySlug = (conv as unknown as { agent_slug?: string | null }).agent_slug ?? null;
-  const agent = pickAgent(agents, stickySlug);
+  // Se a conversa já foi pro setor de aéreo, ela FICA lá (agente virtual).
+  const stickyFlight = findFlightAgent(stickySlug);
+  let agent = stickyFlight
+    ? ({
+        id: `flight:${stickyFlight.slug}`,
+        slug: stickyFlight.slug,
+        nome: stickyFlight.nome,
+        system_prompt: "",
+        horario_inicio: "00:00:00",
+        horario_fim: "00:00:00",
+        timezone: "America/Sao_Paulo",
+        ativo: true,
+        tools_habilitadas: [],
+        temas_proibidos: [],
+        mensagem_ausencia: null,
+      } as Agent)
+    : pickAgent(agents, stickySlug);
+
 
 
 
@@ -262,6 +294,32 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
   const sinceIso: string | undefined = pMeta?.opened_at ?? undefined;
 
   const history = await loadHistory(conv.id, 30, sinceIso);
+
+  // TRANSFERÊNCIA PRO SETOR DE AÉREO: cliente pediu cotação de voo e a conversa
+  // ainda está com o time de atendimento → assume Bruno ou Letícia (prompt próprio).
+  if (!isFlightAgentSlug(agent.slug)) {
+    const falasCliente = history
+      .filter((m) => m.sender === "customer")
+      .slice(-4)
+      .map((m) => m.content);
+    if (wantsFlightQuote(falasCliente)) {
+      const fa = pickFlightAgent(conv.id);
+      agent = {
+        ...agent,
+        id: `flight:${fa.slug}`,
+        slug: fa.slug,
+        nome: fa.nome,
+        temas_proibidos: [],
+      };
+      await supabaseAdmin
+        .from("wa_conversations")
+        .update({ agent_slug: fa.slug })
+        .eq("id", conv.id);
+      console.log(`[agent] conversa ${conv.id} transferida pro setor de aéreo (${fa.slug})`);
+    }
+  }
+
+
 
   // Uma execução atrasada do cron não pode inventar uma nova resposta quando
   // o último turno já foi respondido. Isso elimina continuações soltas como
