@@ -354,12 +354,17 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
   }
 
 
-  const { count: outboundNoProto } = await supabaseAdmin
+  // Captura o estado ANTES de chamar o modelo. As tools podem enviar e salvar
+  // imagens durante generateText; contar depois faria a própria arte "gastar"
+  // a apresentação da primeira resposta do protocolo.
+  const { count: deliveredBeforeRun } = await supabaseAdmin
     .from("wa_messages")
     .select("id", { count: "exact", head: true })
     .eq("protocolo_id", protocolo.id)
-    .eq("direction", "outbound");
-  const isNewProtocolo = (outboundNoProto ?? 0) === 0;
+    .eq("direction", "outbound")
+    .neq("sender", "system")
+    .not("wa_message_id", "is", null);
+  const isNewProtocolo = (deliveredBeforeRun ?? 0) === 0;
 
 
   const gateway = createLovableAiGatewayProvider(key);
@@ -432,19 +437,7 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
     // IMPORTANTE: só conta mensagem que o cliente REALMENTE recebeu
     // (wa_message_id preenchido). Balão salvo mas não entregue não pode
     // "gastar" a apresentação — foi o que fez o nome sumir no WhatsApp.
-    let jaFalouAntes = false;
-    try {
-      const { data: entregues } = await supabaseAdmin
-        .from("wa_messages")
-        .select("id")
-        .eq("conversation_id", conv.id)
-        .eq("protocolo_id", protocolo.id)
-        .eq("direction", "outbound")
-        .neq("sender", "system")
-        .not("wa_message_id", "is", null)
-        .limit(1);
-      jaFalouAntes = (entregues?.length ?? 0) > 0;
-    } catch { /* noop */ }
+    const jaFalouAntes = !isNewProtocolo;
 
     // O nome do atendente ("*Roberto:*") assina SEMPRE o primeiro balão de cada
     // resposta — é a assinatura da conversa no WhatsApp, não a apresentação.
