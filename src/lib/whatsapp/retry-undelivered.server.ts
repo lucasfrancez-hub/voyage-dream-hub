@@ -16,6 +16,16 @@ export async function retryUndeliveredOutbound(limit = 15): Promise<number> {
   const desde = new Date(agora - 30 * 60 * 1000).toISOString();
   const ate = new Date(agora - 25 * 1000).toISOString(); // dá tempo do envio normal terminar
 
+  // Linhas travadas em "__enviando__" há mais de 10 min: o worker caiu no meio.
+  // Marcamos como não entregues (sem reenviar) — reenviar duplicaria balões que
+  // provavelmente já chegaram no aparelho do cliente.
+  await supabaseAdmin
+    .from("wa_messages")
+    .update({ error: "Não entregue pelo WhatsApp" })
+    .eq("error", "__enviando__")
+    .lt("created_at", new Date(agora - 10 * 60 * 1000).toISOString());
+
+
   const { data: pendentes, error } = await supabaseAdmin
     .from("wa_messages")
     .select("id, conversation_id, content, sender, media_url, created_at")
