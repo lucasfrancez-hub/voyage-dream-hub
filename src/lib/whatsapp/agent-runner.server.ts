@@ -116,7 +116,7 @@ function looksLikeRealName(v: string | null | undefined): boolean {
   return true;
 }
 
-function buildSystemPrompt(agent: Agent, conv: WaConversation, protocolo: WaProtocolo, _isNewProtocolo: boolean, previousContext?: string): string {
+function buildSystemPrompt(agent: Agent, conv: WaConversation, protocolo: WaProtocolo, isNewProtocolo: boolean, previousContext?: string): string {
   // Sempre gera o prompt compartilhado com o nome/gênero deste agente,
   // ignorando o system_prompt armazenado (mantém a base única pra todo o time).
   const base = buildSharedAgentPrompt(agent.nome, genderOf(agent.slug));
@@ -134,6 +134,11 @@ function buildSystemPrompt(agent: Agent, conv: WaConversation, protocolo: WaProt
     parts.push(`- nome_do_cliente: não informado. Pergunte como pode chamar antes de continuar.`);
   }
   parts.push(`- Protocolo ATIVO: ${protocolo.numero} (uso interno — NÃO mencione o número ao cliente na abertura nem no meio da conversa; ele só aparece na mensagem automática de encerramento).`);
+  parts.push(
+    isNewProtocolo
+      ? `- PRIMEIRA RESPOSTA DESTE PROTOCOLO: SIM. Antes de qualquer tool, cumprimente, diga seu nome e reaja ao pedido. Se for viagem/cotação e o cliente ainda não confirmou se quer só aéreo ou pacote com hospedagem, faça a triagem e NÃO cote ainda.`
+      : `- PRIMEIRA RESPOSTA DESTE PROTOCOLO: NÃO. Não repita apresentação; continue naturalmente do ponto atual.`,
+  );
   parts.push(
     `- Mensagens marcadas com "[sistema · <tipo>]" no histórico são AÇÕES AUTOMÁTICAS que a VIA AIR já enviou pra esse cliente (check-in, alerta/cancelamento de voo, voucher, recibo, contrato). ` +
     `Elas trazem localizador, número do voo, pedido, data, passageiro e outros dados. ` +
@@ -456,33 +461,6 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
       ?.flatMap((s) => s.toolCalls ?? [])
       .map((tc) => ({ name: tc.toolName, input: tc.input }));
 
-    // A imagem precisa chegar ANTES de qualquer texto dizendo que as opções
-    // foram encontradas/enviadas. Mesmo quando a tool falha silenciosamente,
-    // tenta de novo por upload direto e confirma no banco antes de prosseguir.
-    try {
-      const { sendPendingFlightCards } = await import("./flight-cards-pending.server");
-      await sendPendingFlightCards(conv.id, conv.wa_phone);
-
-      const desde = new Date(Date.now() - 60 * 60 * 1000).toISOString();
-      const { data: pendente } = await supabaseAdmin
-        .from("wa_flight_quotes")
-        .select("id")
-        .eq("conversation_id", conv.id)
-        .is("cards_sent_at", null)
-        .gte("created_at", desde)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      const anunciaOpcoes = /(achei|encontrei|enviei|essas são|essas sao).{0,50}(opções|opcoes|voos)|qual dessas opções/i.test(
-        text,
-      );
-      if (pendente?.id && anunciaOpcoes) {
-        text = `${clientFirst ? `${clientFirst}, ` : ""}estou finalizando as opções e já te envio por aqui`;
-      }
-    } catch (e) {
-      console.warn("[agent] confirmação das artes de voo falhou:", e);
-    }
-
     // Prefixo "*Roberto:*" na primeira mensagem do atendimento (ou depois de
     // 30 min parado). O MESMO texto é salvo e enviado, pra o histórico interno
     // bater 100% com o que o cliente vê no WhatsApp.
@@ -581,38 +559,6 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
     const failed = sent.filter((s) => s.error);
     if (failed.length > 0) console.error(`[agent:${agent.slug}] falha ao enviar:`, failed);
 
-    // FALLBACK: existe cotação recente cujas artes NUNCA foram enviadas
-    // (a IA esqueceu de chamar enviar_cartao_voo, ou parou no "aguarde").
-    // Vale para qualquer turno, não só o da cotação.
-    try {
-      const usadas = new Set((toolCallsSummary ?? []).map((t) => t.name));
-      if (!usadas.has("enviar_cartao_voo")) {
-        const desde = new Date(Date.now() - 60 * 60 * 1000).toISOString();
-        const { data: q } = await supabaseAdmin
-          .from("wa_flight_quotes")
-          .select("id, payload, cards_sent_at")
-          .eq("conversation_id", conv.id)
-          .is("cards_sent_at", null)
-          .gte("created_at", desde)
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .maybeSingle();
-        const opcoes = ((q?.payload as { opcoes?: Array<{ opcao: number }> } | null)?.opcoes ?? [])
-          .map((o) => o.opcao)
-          .slice(0, 4);
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const cardTool = (cleanTools as any)?.enviar_cartao_voo;
-        if (q?.id && opcoes.length && cardTool?.execute) {
-          await cardTool.execute(
-            { quote_id: q.id as string, opcoes, legenda: null },
-            {} as never,
-          );
-          console.log(`[agent:${agent.slug}] artes de voo enviadas por fallback`);
-        }
-      }
-    } catch (e) {
-      console.warn("[agent] fallback de artes de voo falhou:", e);
-    }
     // Guarda o wa_message_id de cada balão pra permitir citar/casar replies depois
     const { setWaMessageId, setSendError } = await import("./conversation.server");
     for (let i = 0; i < savedRowIds.length; i++) {
