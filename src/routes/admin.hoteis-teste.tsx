@@ -482,21 +482,58 @@ function HotelSummaryDialog({
   onChangeRate: (rateKey: string) => void;
 }) {
   const createCart = useServerFn(onerCreateHotelCart);
+  const loadRooms = useServerFn(onerHotelRooms);
   const [cartUrl, setCartUrl] = useState<string | null>(null);
-  const [roomsOpen, setRoomsOpen] = useState(false);
+  const [roomsOpen, setRoomsOpen] = useState(true);
   const [orderOpen, setOrderOpen] = useState(false);
+  /* tarifa escolhida na lista completa de acomodações (busca dedicada) */
+  const [pickedRate, setPickedRate] = useState<OnerRoomRate | null>(null);
+
+  const adultsPerRoom = Math.max(1, Math.ceil(adults / Math.max(1, rooms)));
+  const childrenPerRoom = Math.max(0, Math.floor(children / Math.max(1, rooms)));
+
+  // A listagem só traz a tarifa mais barata: aqui buscamos TODOS os quartos
+  // do hotel, igual à página de detalhe da operadora.
+  const roomsQuery = useQuery({
+    queryKey: ["oner-hotel-rooms", hotel?.hotelId, checkIn, checkOut, rooms, adultsPerRoom, childrenPerRoom],
+    enabled: open && !!hotel && !!checkIn && !!checkOut,
+    staleTime: 5 * 60 * 1000,
+    retry: false,
+    queryFn: () =>
+      loadRooms({
+        data: {
+          hotelId: hotel!.hotelId,
+          checkIn,
+          checkOut,
+          rooms: Array.from({ length: Math.max(1, rooms) }).map(() => ({
+            adults: adultsPerRoom,
+            children: childrenPerRoom,
+            childrenAges: [] as number[],
+          })),
+        },
+      }),
+  });
+
+  const allRates = roomsQuery.data?.rates ?? hotel?.rates ?? [];
+  const activeRate = pickedRate ?? rate;
+  // a chave de tarifa precisa vir da mesma busca que gerou a tarifa
+  const activeSearchKey = pickedRate ? (roomsQuery.data?.searchKey ?? searchKey) : searchKey;
 
   useEffect(() => {
     setCartUrl(null);
-  }, [rate?.key]);
+  }, [rate?.key, pickedRate?.key]);
+
+  useEffect(() => {
+    setPickedRate(null);
+  }, [hotel?.hotelId, checkIn, checkOut]);
 
   const cartMut = useMutation({
     mutationFn: () =>
       createCart({
         data: {
-          searchKey,
+          searchKey: activeSearchKey,
           hotelId: hotel!.hotelId,
-          rateKeys: [rate!.key],
+          rateKeys: [activeRate!.key],
           cityName: point?.name ?? hotel!.city ?? "",
           pointId: point?.id ?? "",
           pointType: point?.type ?? 1,
@@ -515,7 +552,9 @@ function HotelSummaryDialog({
     onError: (e: Error) => toast.error(e.message),
   });
 
-  if (!hotel || !rate) return null;
+  if (!hotel || !activeRate) return null;
+  const rate = activeRate;
+
 
   const period = `${checkIn.split("-").reverse().join("/")} a ${checkOut.split("-").reverse().join("/")}`;
   const summaryText = [
