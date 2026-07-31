@@ -94,6 +94,7 @@ import { Route as ApiPublicHooksBroadcastDispatchRouteImport } from './routes/ap
 import { Route as ApiPublicHooksCheckFlightChangesRouteImport } from './routes/api/public/hooks/check-flight-changes'
 import { Route as ApiPublicHooksCloseInactiveProtocolsRouteImport } from './routes/api/public/hooks/close-inactive-protocols'
 import { Route as ApiPublicHooksDispatchAiDebouncedRouteImport } from './routes/api/public/hooks/dispatch-ai-debounced'
+import { Route as ApiPublicHooksFlightQuoteWatchdogRouteImport } from './routes/api/public/hooks/flight-quote-watchdog'
 import { Route as ApiPublicHooksRunCheckinsRouteImport } from './routes/api/public/hooks/run-checkins'
 import { Route as ApiPublicPackageHotelPhotoSplatRouteImport } from './routes/api/public/package-hotel-photo.$'
 import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
@@ -538,6 +539,12 @@ const ApiPublicHooksDispatchAiDebouncedRoute =
     path: '/api/public/hooks/dispatch-ai-debounced',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicHooksFlightQuoteWatchdogRoute =
+  ApiPublicHooksFlightQuoteWatchdogRouteImport.update({
+    id: '/api/public/hooks/flight-quote-watchdog',
+    path: '/api/public/hooks/flight-quote-watchdog',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicHooksRunCheckinsRoute =
   ApiPublicHooksRunCheckinsRouteImport.update({
     id: '/api/public/hooks/run-checkins',
@@ -665,6 +672,7 @@ export interface FileRoutesByFullPath {
   '/api/public/hooks/check-flight-changes': typeof ApiPublicHooksCheckFlightChangesRoute
   '/api/public/hooks/close-inactive-protocols': typeof ApiPublicHooksCloseInactiveProtocolsRoute
   '/api/public/hooks/dispatch-ai-debounced': typeof ApiPublicHooksDispatchAiDebouncedRoute
+  '/api/public/hooks/flight-quote-watchdog': typeof ApiPublicHooksFlightQuoteWatchdogRoute
   '/api/public/hooks/run-checkins': typeof ApiPublicHooksRunCheckinsRoute
   '/api/public/package-hotel-photo/$': typeof ApiPublicPackageHotelPhotoSplatRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
@@ -758,6 +766,7 @@ export interface FileRoutesByTo {
   '/api/public/hooks/check-flight-changes': typeof ApiPublicHooksCheckFlightChangesRoute
   '/api/public/hooks/close-inactive-protocols': typeof ApiPublicHooksCloseInactiveProtocolsRoute
   '/api/public/hooks/dispatch-ai-debounced': typeof ApiPublicHooksDispatchAiDebouncedRoute
+  '/api/public/hooks/flight-quote-watchdog': typeof ApiPublicHooksFlightQuoteWatchdogRoute
   '/api/public/hooks/run-checkins': typeof ApiPublicHooksRunCheckinsRoute
   '/api/public/package-hotel-photo/$': typeof ApiPublicPackageHotelPhotoSplatRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
@@ -853,6 +862,7 @@ export interface FileRoutesById {
   '/api/public/hooks/check-flight-changes': typeof ApiPublicHooksCheckFlightChangesRoute
   '/api/public/hooks/close-inactive-protocols': typeof ApiPublicHooksCloseInactiveProtocolsRoute
   '/api/public/hooks/dispatch-ai-debounced': typeof ApiPublicHooksDispatchAiDebouncedRoute
+  '/api/public/hooks/flight-quote-watchdog': typeof ApiPublicHooksFlightQuoteWatchdogRoute
   '/api/public/hooks/run-checkins': typeof ApiPublicHooksRunCheckinsRoute
   '/api/public/package-hotel-photo/$': typeof ApiPublicPackageHotelPhotoSplatRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
@@ -949,6 +959,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/check-flight-changes'
     | '/api/public/hooks/close-inactive-protocols'
     | '/api/public/hooks/dispatch-ai-debounced'
+    | '/api/public/hooks/flight-quote-watchdog'
     | '/api/public/hooks/run-checkins'
     | '/api/public/package-hotel-photo/$'
     | '/lovable/email/auth/preview'
@@ -1042,6 +1053,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/check-flight-changes'
     | '/api/public/hooks/close-inactive-protocols'
     | '/api/public/hooks/dispatch-ai-debounced'
+    | '/api/public/hooks/flight-quote-watchdog'
     | '/api/public/hooks/run-checkins'
     | '/api/public/package-hotel-photo/$'
     | '/lovable/email/auth/preview'
@@ -1136,6 +1148,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/check-flight-changes'
     | '/api/public/hooks/close-inactive-protocols'
     | '/api/public/hooks/dispatch-ai-debounced'
+    | '/api/public/hooks/flight-quote-watchdog'
     | '/api/public/hooks/run-checkins'
     | '/api/public/package-hotel-photo/$'
     | '/lovable/email/auth/preview'
@@ -1190,6 +1203,7 @@ export interface RootRouteChildren {
   ApiPublicHooksCheckFlightChangesRoute: typeof ApiPublicHooksCheckFlightChangesRoute
   ApiPublicHooksCloseInactiveProtocolsRoute: typeof ApiPublicHooksCloseInactiveProtocolsRoute
   ApiPublicHooksDispatchAiDebouncedRoute: typeof ApiPublicHooksDispatchAiDebouncedRoute
+  ApiPublicHooksFlightQuoteWatchdogRoute: typeof ApiPublicHooksFlightQuoteWatchdogRoute
   ApiPublicHooksRunCheckinsRoute: typeof ApiPublicHooksRunCheckinsRoute
   ApiPublicPackageHotelPhotoSplatRoute: typeof ApiPublicPackageHotelPhotoSplatRoute
   LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
@@ -1796,6 +1810,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksDispatchAiDebouncedRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/flight-quote-watchdog': {
+      id: '/api/public/hooks/flight-quote-watchdog'
+      path: '/api/public/hooks/flight-quote-watchdog'
+      fullPath: '/api/public/hooks/flight-quote-watchdog'
+      preLoaderRoute: typeof ApiPublicHooksFlightQuoteWatchdogRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/run-checkins': {
       id: '/api/public/hooks/run-checkins'
       path: '/api/public/hooks/run-checkins'
@@ -2012,6 +2033,8 @@ const rootRouteChildren: RootRouteChildren = {
     ApiPublicHooksCloseInactiveProtocolsRoute,
   ApiPublicHooksDispatchAiDebouncedRoute:
     ApiPublicHooksDispatchAiDebouncedRoute,
+  ApiPublicHooksFlightQuoteWatchdogRoute:
+    ApiPublicHooksFlightQuoteWatchdogRoute,
   ApiPublicHooksRunCheckinsRoute: ApiPublicHooksRunCheckinsRoute,
   ApiPublicPackageHotelPhotoSplatRoute: ApiPublicPackageHotelPhotoSplatRoute,
   LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,
