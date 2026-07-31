@@ -178,7 +178,7 @@ export function buildCamilaTools(conversation: WaConversation) {
 
     cotar_aereo: tool({
       description:
-        "Cota passagens aéreas AO VIVO na operadora e devolve 3-4 opções já rankeadas (mais em conta, voo direto, melhor custo-benefício). Use SOMENTE quando o cliente pedir cotação de AÉREO e você já tiver: origem, destino, data de ida, data de volta (se for ida e volta) e quantidade de passageiros. Nunca chame sem esses dados. Não envia nada ao cliente — você escreve a resposta com o resultado.",
+        "Cota passagens aéreas AO VIVO e devolve 3-4 opções. Use SOMENTE depois que o cliente confirmar explicitamente que quer SÓ AÉREO e você já tiver origem, destino, data de ida, volta (se houver) e passageiros. Se ainda não estiver claro se é só voo ou pacote com hospedagem, NÃO chame esta tool.",
       inputSchema: z.object({
         origem: z.string().describe("Cidade ou IATA de origem, ex: 'Curitiba' ou 'CWB'"),
         destino: z.string().describe("Cidade ou IATA de destino"),
@@ -198,6 +198,34 @@ export function buildCamilaTools(conversation: WaConversation) {
           .describe("true se o cliente precisa de bagagem despachada inclusa"),
       }),
       execute: async (args) => {
+        // Trava de negócio no servidor: não basta o modelo "achar" que é aéreo.
+        // O cliente precisa ter respondido explicitamente que não quer pacote/
+        // hospedagem antes de a busca ao vivo poder começar.
+        let inboundQuery = supabaseAdmin
+          .from("wa_messages")
+          .select("content")
+          .eq("conversation_id", conversation.id)
+          .eq("direction", "inbound")
+          .order("created_at", { ascending: false })
+          .limit(12);
+        if (conversation.protocolo_ativo_id) {
+          inboundQuery = inboundQuery.eq("protocolo_id", conversation.protocolo_ativo_id);
+        }
+        const { data: recentInbound } = await inboundQuery;
+        const customerText = (recentInbound ?? [])
+          .map((message) => message.content ?? "")
+          .join("\n")
+          .toLocaleLowerCase("pt-BR");
+        const explicitlyFlightOnly =
+          /\b(s[oó]\s+(?:o\s+)?(?:a[eé]reo|voo|passagem)|somente\s+(?:o\s+)?(?:a[eé]reo|voo|passagem)|apenas\s+(?:o\s+)?(?:a[eé]reo|voo|passagem)|n[aã]o\s+(?:vou\s+)?(?:precis[oa]|quero)(?:\s+de)?\s+(?:hotel|hospedagem|pacote)|sem\s+(?:hotel|hospedagem))\b/i.test(customerText);
+        if (!explicitlyFlightOnly) {
+          return {
+            triagem_pendente: true,
+            instrucao:
+              "NÃO faça a cotação ainda. Pergunte se o cliente quer só o aéreo ou a viagem com hospedagem também e espere a resposta. Não envie cards nem diga que já pesquisou.",
+          };
+        }
+
         // Se já cotamos essa MESMA rota/data/pax há pouco e as artes já foram
         // entregues, reaproveita a cotação em vez de buscar de novo (era isso
         // que fazia o robô repetir as mesmas opções).
@@ -284,7 +312,7 @@ export function buildCamilaTools(conversation: WaConversation) {
         legenda: z
           .string()
           .nullable()
-          .describe("Legenda curta da primeira imagem, ex: 'Opção 1 — voo direto'"),
+          .describe("Deixe null. A legenda descritiva de cada opção é montada automaticamente com cidades, horários, companhia e conexões."),
         reenviar: z
           .boolean()
           .nullable()
@@ -346,32 +374,7 @@ export function buildCamilaTools(conversation: WaConversation) {
           destino_nome: string;
           opcoes: OptLite[];
         };
-        const { findAirline } = await import("@/lib/airlines");
-        const horaDe = (s?: string) => (s ?? "").split(" ")[1]?.slice(0, 5) ?? "";
-        const cidadeDe = (iata?: string) =>
-          iata === quote.origem_iata
-            ? quote.origem_nome
-            : iata === quote.destino_iata
-              ? quote.destino_nome
-              : (iata ?? "");
-        const linhaTrecho = (leg?: LegLite | null): string | null => {
-          if (!leg) return null;
-          const cia = findAirline(leg.cia)?.name ?? leg.cia ?? "";
-          const paradas = leg.paradas ?? 0;
-          const escala =
-            paradas === 0
-              ? "direto"
-              : `${paradas} parada${paradas > 1 ? "s" : ""}${leg.escalas?.length ? ` (${leg.escalas.join(", ")})` : ""}`;
-          return `${cidadeDe(leg.origem)} ${horaDe(leg.partida)} → ${cidadeDe(leg.destino)} ${horaDe(leg.chegada)} · ${cia} · ${escala}`;
-        };
-        const legendaOpcao = (op: OptLite): string => {
-          const ida = linhaTrecho(op.ida);
-          const volta = linhaTrecho(op.volta);
-          const linhas = [`*Opção ${op.opcao}*`];
-          if (ida) linhas.push(volta ? `Ida: ${ida}` : ida);
-          if (volta) linhas.push(`Volta: ${volta}`);
-          return linhas.join("\n");
-        };
+        const { buildFlightOptionCaption } = await import("./flight-caption.server");
 
         const { buildFlightCardData, renderFlightCardAsset } = await import("./flight-card.server");
         const { sendWhatsAppImageBytes } = await import("./send.server");
@@ -452,9 +455,7 @@ export function buildCamilaTools(conversation: WaConversation) {
             continue;
           }
           try {
-            const resumo = legendaOpcao(arte.op);
-            const caption =
-              enviados.length === 0 && legenda ? `${legenda}\n\n${resumo}` : resumo;
+            const caption = buildFlightOptionCaption(quote, arte.op);
 
             const r = await sendWhatsAppImageBytes(
               conversation.wa_phone,

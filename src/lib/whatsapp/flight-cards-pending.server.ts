@@ -6,28 +6,41 @@ export async function sendPendingFlightCards(
   conversationId: string,
   waPhone: string,
   maxAgeMs = 60 * 60 * 1000,
+  protocolOpenedAt?: string | null,
 ): Promise<{ sent: number; quote_id?: string }> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
   const desde = new Date(Date.now() - maxAgeMs).toISOString();
-  const { data: row } = await supabaseAdmin
+  let pendingQuery = supabaseAdmin
     .from("wa_flight_quotes")
     .select("id, payload")
     .eq("conversation_id", conversationId)
     .is("cards_sent_at", null)
     .gte("created_at", desde)
     .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .limit(1);
+  if (protocolOpenedAt) pendingQuery = pendingQuery.gte("created_at", protocolOpenedAt);
+  const { data: row } = await pendingQuery.maybeSingle();
 
   const quote = row?.payload as
-    | { opcoes?: Array<{ opcao: number; destaque: string }> }
+    | {
+        origem_iata: string;
+        destino_iata: string;
+        origem_nome: string;
+        destino_nome: string;
+        opcoes?: Array<{
+          opcao: number;
+          ida?: { cia?: string; origem?: string; destino?: string; partida?: string; chegada?: string; paradas?: number; escalas?: string[] } | null;
+          volta?: { cia?: string; origem?: string; destino?: string; partida?: string; chegada?: string; paradas?: number; escalas?: string[] } | null;
+        }>;
+      }
     | null
     | undefined;
   const opcoes = (quote?.opcoes ?? []).slice(0, 4);
-  if (!row?.id || !opcoes.length) return { sent: 0 };
+  if (!row?.id || !quote || !opcoes.length) return { sent: 0 };
 
   const { buildFlightCardData, renderFlightCardAsset } = await import("./flight-card.server");
+  const { buildFlightOptionCaption } = await import("./flight-caption.server");
   const { sendWhatsAppImageBytes } = await import("./send.server");
   const { saveMessage } = await import("./conversation.server");
 
@@ -46,7 +59,7 @@ export async function sendPendingFlightCards(
   let sent = 0;
   for (const arte of artes) {
     if (!arte.asset) continue;
-    const caption = `Opção ${arte.op.opcao} — ${arte.op.destaque}`;
+    const caption = buildFlightOptionCaption(quote, arte.op);
     try {
       const r = await sendWhatsAppImageBytes(
         waPhone,
