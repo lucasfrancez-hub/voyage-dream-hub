@@ -401,7 +401,10 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
 
 
     let text = capitalizeKnownNames(capitalizeBubbles(fixGluedSentences(rawText)), [clientFirst]);
+    // O modelo às vezes assina sozinho ("*Maria:*") — a assinatura é do código.
+    text = stripAgentSignature(text, agent.nome);
     if (jaFalouAntes) text = stripReintroBubbles(text);
+
 
     text = mergeQuestionBubbles(text);
 
