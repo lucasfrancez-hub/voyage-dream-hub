@@ -263,6 +263,18 @@ export async function sendPendingFlightCards(
       const asset = await renderFlightCardAssetRetry(data);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const caption = buildFlightOptionCaption(quote as any, op as any);
+
+      // Registra no NOSSO chat ANTES de mandar pelo WhatsApp. Antes, a arte só
+      // era salva depois de um envio bem-sucedido: se a API falhasse ou o worker
+      // caísse no meio, o cliente às vezes recebia e no painel não aparecia nada.
+      const row = await saveMessage({
+        conversation_id: conversationId,
+        direction: "outbound",
+        sender: "camila",
+        content: `[[media:image|${asset.url}|${asset.filename}]]\n${caption}`,
+      });
+      if (row?.id) await setSendError(row.id, SENDING_CLAIM);
+
       const r = await sendWhatsAppImageBytes(
         waPhone,
         asset.bytes,
@@ -270,16 +282,18 @@ export async function sendPendingFlightCards(
         caption,
         asset.url,
       );
+
+      if (row?.id) {
+        await supabaseAdmin
+          .from("wa_messages")
+          .update({
+            wa_message_id: r.id ?? null,
+            error: r.error ?? null,
+          })
+          .eq("id", row.id);
+      }
+
       if (!r.error) {
-        // Registra no painel MESMO sem id do WhatsApp — antes, quando a API não
-        // devolvia id, a arte chegava pro cliente e sumia do nosso chat.
-        await saveMessage({
-          conversation_id: conversationId,
-          direction: "outbound",
-          sender: "camila",
-          content: `[[media:image|${asset.url}|${asset.filename}]]\n${caption}`,
-          wa_message_id: r.id ?? null,
-        });
         sent++;
         const fp = fingerprint(op);
         novosFps.push(fp);
@@ -291,6 +305,7 @@ export async function sendPendingFlightCards(
     } catch {
       falhou = true;
     }
+
   }
 
   if (sent === 0) {
