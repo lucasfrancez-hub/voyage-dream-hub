@@ -107,9 +107,16 @@ export function stripReintroBubbles(fullText: string): string {
  * e garante "?" no final de cada pergunta. Evita a metralhadora de 5 balões.
  */
 export function mergeQuestionBubbles(fullText: string): string {
+  // Saudação/apresentação NUNCA se junta com pergunta — são balões próprios.
+  const SAUDACAO_OU_APRESENTACAO =
+    /^(oi+|ol[áa]|bom dia|boa tarde|boa noite|e a[íi])\b/iu;
+  const APRESENTACAO = /\b(sou|aqui [ée]|meu nome [ée])\b[^.\n]{0,60}\b(consultor[a]?|via ?air)\b/iu;
+
   const isPergunta = (b: string) =>
     !b.includes("\n") &&
-    b.length <= 200 &&
+    b.length <= 120 &&
+    !SAUDACAO_OU_APRESENTACAO.test(b) &&
+    !APRESENTACAO.test(b) &&
     (/\?\s*$/.test(b) ||
       /^(seria|quantos|quantas|voc[êe] tem|tem alguma|qual|quais|prefere|precisa|de onde|para quando|pra quando|em que|me diz|poderia)\b/iu.test(
         b,
