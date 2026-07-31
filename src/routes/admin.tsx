@@ -231,7 +231,7 @@ function AdminLayout() {
               <img src={viaAirLogo.url} alt="Via Air" className="h-7 sm:h-8 w-auto" />
             </Link>
             <nav className="hidden md:flex items-center gap-1">
-              {isAdmin && <NavItem to="/admin/pacotes" icon={Package} label="Pacotes" active={pathname.startsWith("/admin/pacotes")} />}
+              {isAdmin && <ProdutosNav pathname={pathname} />}
               {isAdmin && <DashboardNav pathname={pathname} />}
               {isAdmin
                 ? <PedidosNav pathname={pathname} />
@@ -287,7 +287,7 @@ function AdminLayout() {
         </div>
         <nav className="md:hidden border-t border-border overflow-x-auto">
           <div className="mx-auto max-w-7xl px-3 sm:px-6 py-2 flex items-center gap-1 whitespace-nowrap">
-            {isAdmin && <NavItem to="/admin/pacotes" icon={Package} label="Pacotes" active={pathname.startsWith("/admin/pacotes")} />}
+            {isAdmin && <ProdutosNav pathname={pathname} />}
             {isAdmin && <DashboardNav pathname={pathname} />}
             {isAdmin
               ? <PedidosNav pathname={pathname} />
@@ -342,6 +342,40 @@ function NavItem({
     >
       <Icon className="h-4 w-4" /> {label}
     </Link>
+  );
+}
+
+function ProdutosNav({ pathname }: { pathname: string }) {
+  const active =
+    pathname.startsWith("/admin/pacotes") ||
+    pathname.startsWith("/admin/buscar") ||
+    pathname.startsWith("/admin/voos-teste") ||
+    pathname.startsWith("/admin/hoteis-teste") ||
+    pathname.startsWith("/admin/carros");
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm transition outline-none ${
+          active ? "bg-brand-orange/10 text-brand-orange" : "text-muted-foreground hover:text-foreground"
+        }`}
+      >
+        <Package className="h-4 w-4" /> Produtos <ChevronDown className="h-3.5 w-3.5" />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" className="w-64">
+        <DropdownMenuItem asChild>
+          <Link to="/admin/pacotes" className="flex flex-col items-start gap-0.5">
+            <span className="text-sm font-medium">Command Center</span>
+            <span className="text-xs text-muted-foreground">Pacotes, ingressos, passeios e cruzeiros</span>
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link to="/admin/buscar" className="flex flex-col items-start gap-0.5">
+            <span className="text-sm font-medium">Motor de busca</span>
+            <span className="text-xs text-muted-foreground">Aéreo, hotel, carro e aéreo+hotel</span>
+          </Link>
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
