@@ -325,15 +325,30 @@ export const onerHotelSearch = createServerFn({ method: "POST" })
           if (!res.ok) return;
           const json = (await res.json().catch(() => null)) as {
             data?: {
-              address?: string | null;
-              city?: string | null;
+              address?: unknown;
+              city?: unknown;
               images?: Array<string | { url?: string; path?: string }>;
             };
           } | null;
           const d = json?.data;
           if (!d) return;
-          hotel.address = d.address ?? null;
-          hotel.city = d.city ?? null;
+          // a operadora às vezes devolve address/city como objeto — achatamos em texto
+          const flat = (v: unknown): string | null => {
+            if (!v) return null;
+            if (typeof v === "string") return v.trim() || null;
+            if (typeof v === "number") return String(v);
+            if (typeof v === "object") {
+              const o = v as Record<string, unknown>;
+              const parts = [o.street, o.address, o.name, o.number, o.district, o.neighborhood, o.city, o.state]
+                .map((x) => (typeof x === "string" || typeof x === "number" ? String(x).trim() : ""))
+                .filter(Boolean);
+              return parts.length ? [...new Set(parts)].join(", ") : null;
+            }
+            return null;
+          };
+          hotel.address = flat(d.address);
+          hotel.city = flat(d.city);
+
           hotel.images = (d.images ?? [])
             .map((img) => (typeof img === "string" ? img : (img.url ?? img.path ?? "")))
             .filter(Boolean)
