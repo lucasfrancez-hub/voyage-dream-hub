@@ -27,9 +27,31 @@ export const Route = createFileRoute("/api/public/hooks/flight-quote-watchdog")(
     handlers: {
       POST: async () => {
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-        const { saveMessage, recordHandoff } = await import("@/lib/whatsapp/conversation.server");
+        const { saveMessage, recordHandoff, setWaMessageId, setSendError } = await import(
+          "@/lib/whatsapp/conversation.server"
+        );
         const { sendWhatsAppBubbles } = await import("@/lib/whatsapp/send.server");
         const { firstName } = await import("@/lib/whatsapp/text-utils.server");
+
+        /**
+         * Salva + envia gravando o wa_message_id do primeiro balão. Sem isso o
+         * varredor de "não entregues" reenviava o mesmo texto 25s depois, o que
+         * duplicava os avisos no WhatsApp do cliente.
+         */
+        const saveAndSend = async (convId: string, phone: string, texto: string) => {
+          const row = await saveMessage({
+            conversation_id: convId,
+            direction: "outbound",
+            sender: "camila",
+            content: texto,
+          });
+          const enviados = await sendWhatsAppBubbles(phone, texto);
+          const primeiro = enviados.find((e) => e.id)?.id ?? null;
+          if (row?.id) {
+            if (primeiro) await setWaMessageId(row.id, primeiro);
+            else await setSendError(row.id, enviados[0]?.error ?? "Não entregue pelo WhatsApp");
+          }
+        };
 
         const now = Date.now();
         const since = new Date(now - 60 * 60 * 1000).toISOString();
@@ -132,13 +154,7 @@ export const Route = createFileRoute("/api/public/hooks/flight-quote-watchdog")(
               const fecho =
                 `${voc}${MARCA_FECHO}\n\n` +
                 `Se preferir outro horário, é só me falar que eu pesquiso mais opções pra você`;
-              await saveMessage({
-                conversation_id: convId,
-                direction: "outbound",
-                sender: "camila",
-                content: fecho,
-              });
-              await sendWhatsAppBubbles(conv.wa_phone as string, fecho);
+              await saveAndSend(convId, conv.wa_phone as string, fecho);
               avisados.push(convId);
             }
             continue;
@@ -148,31 +164,34 @@ export const Route = createFileRoute("/api/public/hooks/flight-quote-watchdog")(
           const encerrou = depois.some((m) => /protocolo\s+\S+\s+foi encerrado/i.test(m.content ?? ""));
           if (encerrou) continue;
 
-          const avisoMsg = depois.find((m) => (m.content ?? "").includes(MARCA_AVISO));
+          // Se JÁ saiu arte neste protocolo (mesmo antes desta promessa), nunca
+          // mandar "a consulta tá demorando" — era a mensagem falsa de atraso.
+          const cardsProtocolo = msgs.filter(
+            (m) =>
+              m.direction === "outbound" &&
+              m.sender !== "system" &&
+              (/\[\[media:image/i.test(m.content ?? "") ||
+                /^\s*\*?Op[çc][ãa]o\s*\d/i.test(m.content ?? "")),
+          );
+          if (cardsProtocolo.length) continue;
+
+          const avisoMsg = msgs.find((m) => (m.content ?? "").includes(MARCA_AVISO));
           const jaAvisou = Boolean(avisoMsg);
-          const jaFalhou = depois.some((m) => (m.content ?? "").includes(MARCA_FALHA));
+          const jaFalhou = msgs.some((m) => (m.content ?? "").includes(MARCA_FALHA));
           if (jaFalhou) continue;
 
           const elapsedMin = (now - new Date(promessa.created_at).getTime()) / 60000;
-          if (elapsedMin < 2) continue;
-
           if (elapsedMin < 5) continue;
-
 
           if (!jaAvisou) {
             const texto =
               `${voc}${MARCA_AVISO}\n\n` +
               `A consulta com as companhias tá demorando um pouquinho mais que o normal, mas já já te mando as opções`;
-            await saveMessage({
-              conversation_id: convId,
-              direction: "outbound",
-              sender: "camila",
-              content: texto,
-            });
-            await sendWhatsAppBubbles(conv.wa_phone as string, texto);
+            await saveAndSend(convId, conv.wa_phone as string, texto);
             avisados.push(convId);
             continue;
           }
+
 
           // só escala depois de dar mais 5 min a partir do aviso (nunca no minuto seguinte)
           const desdeAvisoMin = (now - new Date(avisoMsg!.created_at).getTime()) / 60000;
@@ -180,13 +199,8 @@ export const Route = createFileRoute("/api/public/hooks/flight-quote-watchdog")(
             const texto =
               `${voc}tivemos uma ${MARCA_FALHA} agora e a busca não retornou\n\n` +
               `Pra não te deixar esperando, já passei sua solicitação pro nosso time comercial — um consultor te manda a cotação por aqui mesmo`;
-            await saveMessage({
-              conversation_id: convId,
-              direction: "outbound",
-              sender: "camila",
-              content: texto,
-            });
-            await sendWhatsAppBubbles(conv.wa_phone as string, texto);
+            await saveAndSend(convId, conv.wa_phone as string, texto);
+
 
             const tags = Array.from(
               new Set([...((conv.tags as string[] | null) ?? []), "nova_cotacao", "aguardando_humano"]),

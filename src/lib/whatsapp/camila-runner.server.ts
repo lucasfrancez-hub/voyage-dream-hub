@@ -137,13 +137,18 @@ export async function runCamila(input: { wa_phone: string; profile_name?: string
     const fallback =
       "Opa, tive um probleminha rápido aqui do meu lado 🙈 Já já retomo com você, tá? Se quiser, pode reenviar sua última mensagem 💛";
     try {
-      await saveMessage({
+      const rowFb = await saveMessage({
         conversation_id: conv.id,
         direction: "outbound",
         sender: "camila",
         content: fallback,
       });
-      await sendWhatsAppBubbles(conv.wa_phone, fallback);
+      const envFb = await sendWhatsAppBubbles(conv.wa_phone, fallback);
+      const idFb = envFb.find((e) => e.id)?.id ?? null;
+      if (rowFb?.id && idFb) {
+        const { setWaMessageId } = await import("./conversation.server");
+        await setWaMessageId(rowFb.id, idFb);
+      }
     } catch (sendErr) {
       console.error("[camila] falha ao enviar fallback:", sendErr);
     }
@@ -157,13 +162,18 @@ export async function runCamila(input: { wa_phone: string; profile_name?: string
     console.warn("[camila] resposta vazia — enviando fallback");
     const fallback =
       "Deixa eu confirmar uma informação aqui rapidinho e já volto pra te responder direitinho 💛";
-    await saveMessage({
+    const rowVazio = await saveMessage({
       conversation_id: conv.id,
       direction: "outbound",
       sender: "camila",
       content: fallback,
     });
-    await sendWhatsAppBubbles(conv.wa_phone, fallback);
+    const envVazio = await sendWhatsAppBubbles(conv.wa_phone, fallback);
+    const idVazio = envVazio.find((e) => e.id)?.id ?? null;
+    if (rowVazio?.id && idVazio) {
+      const { setWaMessageId } = await import("./conversation.server");
+      await setWaMessageId(rowVazio.id, idVazio);
+    }
     return;
   }
 
