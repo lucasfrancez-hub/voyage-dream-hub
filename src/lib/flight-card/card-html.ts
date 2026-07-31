@@ -3,7 +3,7 @@
  * Puro: sem imports server-only, usado tanto na rota pública quanto no preview.
  */
 import { findAirline } from "@/lib/airlines";
-import viaairLogo from "@/assets/viaair-logo-white.png.asset.json";
+import viaairLogo from "@/assets/viaair-logo.png.asset.json";
 
 export type FlightCardPlace = {
   hora: string; // "03:50"
