@@ -124,6 +124,26 @@ function score(total: number, minutos: number, paradas: number): number {
   return total + paradas * 180 + minutos * 1.2;
 }
 
+/** Nomes por extenso para códigos de cidade que a operadora devolve abreviados. */
+const NOMES_CIDADE: Record<string, string> = {
+  SAO: "São Paulo",
+  RIO: "Rio de Janeiro",
+  BHZ: "Belo Horizonte",
+  GRU: "São Paulo",
+  CGH: "São Paulo",
+  VCP: "Campinas",
+  GIG: "Rio de Janeiro",
+  SDU: "Rio de Janeiro",
+  BSB: "Brasília",
+  CWB: "Curitiba",
+  MAO: "Manaus",
+  BUE: "Buenos Aires",
+  NYC: "Nova York",
+  MIA: "Miami",
+  MCO: "Orlando",
+  LIS: "Lisboa",
+};
+
 /** Resolve texto livre ("Curitiba", "cwb", "São Paulo") no IATA da operadora. */
 async function resolveIata(
   query: string,
@@ -137,7 +157,11 @@ async function resolveIata(
   const exato = list.find((a) => a.iata.toUpperCase() === up && up.length === 3);
   const cidade = list.find((a) => a.isCity) ?? list[0];
   const pick = exato ?? cidade;
-  return { iata: pick.iata.toUpperCase(), nome: pick.city || pick.name || pick.iata };
+  const iata = pick.iata.toUpperCase();
+  let nome = pick.city || pick.name || iata;
+  // A operadora às vezes devolve o próprio código ("SAO") como nome da cidade.
+  if (/^[A-Z]{3}$/.test(nome.trim().toUpperCase())) nome = NOMES_CIDADE[iata] ?? nome;
+  return { iata, nome };
 }
 
 export type QuoteFlightsParams = {
