@@ -378,14 +378,29 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
   // e alternamos entre modelos, com backoff crescente, antes de desistir.
   // O Gemini está instável (502 em rajada em todas as gerações), então o
   // ChatGPT virou o principal e o Gemini ficou só como último recurso.
-  const ATTEMPTS = [
-    { model: "openai/gpt-5.4-mini", wait: 1500 },
-    { model: "openai/gpt-5.4-mini", wait: 2500 },
-    { model: "openai/gpt-5.4", wait: 3500 },
-    { model: "openai/gpt-5.4-nano", wait: 5000 },
-    { model: "google/gemini-3.6-flash", wait: 6000 },
-    { model: "google/gemini-3.1-flash-lite", wait: 0 },
+  const DEFAULT_CHAIN = [
+    "openai/gpt-5.4-mini",
+    "openai/gpt-5.4-mini",
+    "openai/gpt-5.4",
+    "openai/gpt-5.4-nano",
+    "google/gemini-3.6-flash",
+    "google/gemini-3.1-flash-lite",
   ];
+  // A ordem é configurável no painel (botão "status da IA" no cabeçalho do chat).
+  let chain = DEFAULT_CHAIN;
+  try {
+    const { data: cfg } = await supabaseAdmin
+      .from("ai_model_chain")
+      .select("models")
+      .eq("id", "whatsapp")
+      .maybeSingle();
+    const saved = (cfg as { models?: unknown } | null)?.models;
+    if (Array.isArray(saved) && saved.length) chain = saved as string[];
+  } catch {
+    /* mantém o padrão */
+  }
+  const WAITS = [1500, 2500, 3500, 5000, 6000, 0];
+  const ATTEMPTS = chain.map((model, i) => ({ model, wait: WAITS[i] ?? 0 }));
 
   const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
