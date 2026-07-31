@@ -326,6 +326,7 @@ function HotelCard({
   selected,
   onSelect,
   cheapest,
+  readOnly,
 }: {
   h: OnerHotel;
   rate: OnerRoomRate;
@@ -333,13 +334,14 @@ function HotelCard({
   selected: boolean;
   onSelect: (rateKey: string) => void;
   cheapest: boolean;
+  readOnly?: boolean;
 }) {
   const [openRooms, setOpenRooms] = useState(false);
   return (
     <article
-      className={`relative overflow-hidden rounded-2xl border bg-card/80 backdrop-blur transition hover:-translate-y-0.5 hover:border-primary/60 hover:shadow-[var(--shadow-card)] ${
-        selected ? "border-primary ring-2 ring-primary/30" : "border-border/70"
-      }`}
+      className={`relative overflow-hidden rounded-2xl border bg-card/80 backdrop-blur transition ${
+        readOnly ? "" : "hover:-translate-y-0.5 hover:border-primary/60 hover:shadow-[var(--shadow-card)]"
+      } ${selected ? "border-primary ring-2 ring-primary/30" : "border-border/70"}`}
     >
       {cheapest && (
         <span className="absolute right-0 top-0 z-10 rounded-bl-xl bg-primary px-2 py-1 text-[10px] font-semibold text-primary-foreground">
@@ -401,7 +403,7 @@ function HotelCard({
           <Button
             variant="ghost"
             size="sm"
-            className="mt-2 h-7 px-2 text-xs"
+            className={`mt-2 h-7 px-2 text-xs ${readOnly ? "hidden" : ""}`}
             onClick={() => (h.rates.length > 1 ? setOpenRooms((v) => !v) : onSelect(rate.key))}
           >
             {h.rates.length > 1
@@ -441,15 +443,17 @@ function HotelCard({
             </div>
             <div className="text-[11px] text-muted-foreground">Taxas e impostos inclusos</div>
           </div>
-          <Button size="sm" variant={selected ? "default" : "outline"} onClick={() => onSelect(rate.key)}>
-            {selected ? (
-              <>
-                <Check className="mr-1 h-3.5 w-3.5" /> Selecionado
-              </>
-            ) : (
-              "Selecionar"
-            )}
-          </Button>
+          {!readOnly && (
+            <Button size="sm" variant={selected ? "default" : "outline"} onClick={() => onSelect(rate.key)}>
+              {selected ? (
+                <>
+                  <Check className="mr-1 h-3.5 w-3.5" /> Selecionado
+                </>
+              ) : (
+                "Selecionar"
+              )}
+            </Button>
+          )}
         </div>
       </div>
     </article>
@@ -778,6 +782,17 @@ function HotelSummaryDialog({
                         title: `${hotel.name} \u2022 ${rate.name}`,
                         summary: summaryText,
                         total: rate.price.total,
+                        card: (
+                          <HotelCard
+                            h={hotel}
+                            rate={rate}
+                            nights={nights}
+                            selected={false}
+                            cheapest={false}
+                            readOnly
+                            onSelect={() => {}}
+                          />
+                        ),
                         buy: async () => {
                           const r = await cartMut.mutateAsync();
                           return r.url;

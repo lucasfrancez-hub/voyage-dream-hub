@@ -437,7 +437,7 @@ function BuscarPage() {
               </div>
 
               {step === 3 && (
-                <section className="mx-auto max-w-3xl px-4 py-10">
+                <section className="mx-auto max-w-5xl px-4 py-10">
                   <div className="rounded-[28px] border border-border/50 bg-card/60 p-6 backdrop-blur-xl">
                     <SectionHeader
                       icon={ClipboardCheck}
@@ -450,6 +450,9 @@ function BuscarPage() {
                           <Plane className="h-3.5 w-3.5 text-primary" /> Aéreo
                         </div>
                         {flightPick ? (
+                          flightPick.card ? (
+                            <div className="mt-3">{flightPick.card}</div>
+                          ) : (
                           <>
                             <p className="mt-1 font-semibold">{flightPick.title}</p>
                             <p className="whitespace-pre-line text-xs text-muted-foreground">
@@ -457,6 +460,7 @@ function BuscarPage() {
                             </p>
                             <p className="mt-1 font-bold text-primary">{fmtBRL(flightPick.total)}</p>
                           </>
+                          )
                         ) : (
                           <p className="mt-1 text-xs text-muted-foreground">
                             Nenhum voo selecionado.{" "}
@@ -472,6 +476,9 @@ function BuscarPage() {
                           <BedDouble className="h-3.5 w-3.5 text-primary" /> Hospedagem
                         </div>
                         {hotelPick ? (
+                          hotelPick.card ? (
+                            <div className="mt-3">{hotelPick.card}</div>
+                          ) : (
                           <>
                             <p className="mt-1 font-semibold">{hotelPick.title}</p>
                             <p className="whitespace-pre-line text-xs text-muted-foreground">
@@ -479,6 +486,7 @@ function BuscarPage() {
                             </p>
                             <p className="mt-1 font-bold text-primary">{fmtBRL(hotelPick.total)}</p>
                           </>
+                          )
                         ) : (
                           <p className="mt-1 text-xs text-muted-foreground">
                             Nenhuma hospedagem selecionada.{" "}

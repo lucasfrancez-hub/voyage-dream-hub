@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import type { ComboFlightBookingData, ComboHotelBookingData } from "@/lib/onertravel-combo.functions";
 
 /** Seleção de uma etapa do modo Aéreo + Hotel (aéreo ou hospedagem). */
@@ -13,4 +14,6 @@ export type ComboPick = {
   /** Dados crus da reserva — usados para gerar UM único carrinho combinado */
   flightBooking?: ComboFlightBookingData;
   hotelBooking?: ComboHotelBookingData;
+  /** Card visual completo (mesmo card das buscas de aéreo/hotel) */
+  card?: ReactNode;
 };
