@@ -399,14 +399,22 @@ export function buildCamilaTools(conversation: WaConversation) {
           }
         }
 
-
-        if (enviados.length > 0 && enviados.every((e) => e.ok)) {
+        // Marca as opções realmente entregues, pra nunca repetir depois.
+        const novosFps = enviados
+          .filter((e) => e.ok)
+          .map((e) => quote.opcoes.find((o) => o.opcao === e.opcao))
+          .filter(Boolean)
+          .map((o) => fp(o as OptLite));
+        if (novosFps.length && rowId) {
           await supabaseAdmin
             .from("wa_flight_quotes")
-            .update({ cards_sent_at: new Date().toISOString() })
-            .eq("conversation_id", conversation.id)
-            .is("cards_sent_at", null);
+            .update({
+              sent_fingerprints: Array.from(new Set([...jaFps, ...novosFps])),
+              cards_sent_at: new Date().toISOString(),
+            })
+            .eq("id", rowId);
         }
+
 
         const todasEnviadas = enviados.length > 0 && enviados.every((e) => e.ok);
         return {
