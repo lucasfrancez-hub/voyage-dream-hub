@@ -27,9 +27,31 @@ export const Route = createFileRoute("/api/public/hooks/flight-quote-watchdog")(
     handlers: {
       POST: async () => {
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-        const { saveMessage, recordHandoff } = await import("@/lib/whatsapp/conversation.server");
+        const { saveMessage, recordHandoff, setWaMessageId, setSendError } = await import(
+          "@/lib/whatsapp/conversation.server"
+        );
         const { sendWhatsAppBubbles } = await import("@/lib/whatsapp/send.server");
         const { firstName } = await import("@/lib/whatsapp/text-utils.server");
+
+        /**
+         * Salva + envia gravando o wa_message_id do primeiro balão. Sem isso o
+         * varredor de "não entregues" reenviava o mesmo texto 25s depois, o que
+         * duplicava os avisos no WhatsApp do cliente.
+         */
+        const saveAndSend = async (convId: string, phone: string, texto: string) => {
+          const row = await saveMessage({
+            conversation_id: convId,
+            direction: "outbound",
+            sender: "camila",
+            content: texto,
+          });
+          const enviados = await sendWhatsAppBubbles(phone, texto);
+          const primeiro = enviados.find((e) => e.id)?.id ?? null;
+          if (row?.id) {
+            if (primeiro) await setWaMessageId(row.id, primeiro);
+            else await setSendError(row.id, enviados[0]?.error ?? "Não entregue pelo WhatsApp");
+          }
+        };
 
         const now = Date.now();
         const since = new Date(now - 60 * 60 * 1000).toISOString();
