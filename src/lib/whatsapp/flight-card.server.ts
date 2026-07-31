@@ -110,7 +110,7 @@ export function flightCardPreviewUrl(data: FlightCardData, base = PUBLIC_BASE): 
 }
 
 /** Fotografa o cartão e devolve os bytes do PNG. */
-async function screenshotCard(url: string): Promise<Uint8Array> {
+async function shot(url: string, selector: string, omitBackground: boolean): Promise<Uint8Array> {
   const token = process.env.BROWSERLESS_TOKEN;
   if (!token) throw new Error("BROWSERLESS_TOKEN não configurado");
   const res = await fetch(`${BROWSERLESS_BASE}/screenshot?token=${encodeURIComponent(token)}`, {
@@ -120,17 +120,31 @@ async function screenshotCard(url: string): Promise<Uint8Array> {
       url,
       gotoOptions: { waitUntil: "load", timeout: 15000 },
       viewport: { width: 900, height: 600, deviceScaleFactor: 2 },
-      // Captura também uma pequena área transparente ao redor do cartão.
-      // Isso impede que o processamento da mídia encoste o recorte nos cantos.
-      // O fallback mantém a geração funcionando durante a troca de versão,
-      // enquanto a rota pública ainda não recebeu o wrapper novo.
-      selector: ".capture, .card",
-      options: { type: "png", omitBackground: true },
+      selector,
+      options: { type: "png", omitBackground },
     }),
   });
   if (!res.ok) throw new Error(`Browserless ${res.status}: ${(await res.text()).slice(0, 200)}`);
   return new Uint8Array(await res.arrayBuffer());
 }
+
+/**
+ * Tenta a captura com a margem transparente ao redor do cartão. Se o
+ * Browserless não encontrar o wrapper ou falhar por qualquer motivo, cai
+ * para a captura simples do cartão — entregar a arte é mais importante
+ * do que ter o fundo transparente.
+ */
+async function screenshotCard(url: string): Promise<Uint8Array> {
+  try {
+    const bytes = await shot(url, ".capture", true);
+    if (bytes.byteLength > 1000) return bytes;
+    throw new Error("captura vazia");
+  } catch (e) {
+    console.warn("[flight-card] captura transparente falhou, usando fallback:", e);
+    return shot(url, ".card", false);
+  }
+}
+
 
 /** Gera a arte da opção e devolve os bytes e a URL pública do PNG. */
 export async function renderFlightCardAsset(
