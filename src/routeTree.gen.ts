@@ -28,6 +28,8 @@ import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as TermosDeUsoRouteImport } from './routes/termos-de-uso'
 import { Route as UnsubscribeRouteImport } from './routes/unsubscribe'
 import { Route as ValidacaoRouteImport } from './routes/validacao'
+import { Route as AdminBuscarRouteImport } from './routes/admin.buscar'
+import { Route as AdminCarrosRouteImport } from './routes/admin.carros'
 import { Route as AdminCheckinTreinoRouteImport } from './routes/admin.checkin-treino'
 import { Route as AdminCheckinsRouteImport } from './routes/admin.checkins'
 import { Route as AdminCofreRouteImport } from './routes/admin.cofre'
@@ -35,6 +37,7 @@ import { Route as AdminContasPagarRouteImport } from './routes/admin.contas-paga
 import { Route as AdminContasReceberRouteImport } from './routes/admin.contas-receber'
 import { Route as AdminDashboardRouteImport } from './routes/admin.dashboard'
 import { Route as AdminEncurtadorRouteImport } from './routes/admin.encurtador'
+import { Route as AdminHoteisTesteRouteImport } from './routes/admin.hoteis-teste'
 import { Route as AdminInstagramRouteImport } from './routes/admin.instagram'
 import { Route as AdminInstalarExtensaoRouteImport } from './routes/admin.instalar-extensao'
 import { Route as AdminLinkBoletoRouteImport } from './routes/admin.link-boleto'
@@ -45,6 +48,7 @@ import { Route as AdminPacotesRouteImport } from './routes/admin.pacotes'
 import { Route as AdminPessoasRouteImport } from './routes/admin.pessoas'
 import { Route as AdminSegurancaRouteImport } from './routes/admin.seguranca'
 import { Route as AdminUsuariosRouteImport } from './routes/admin.usuarios'
+import { Route as AdminVoosTesteRouteImport } from './routes/admin.voos-teste'
 import { Route as ChatAgendaRouteImport } from './routes/chat.agenda'
 import { Route as ChatAgentesRouteImport } from './routes/chat.agentes'
 import { Route as ChatBroadcastRouteImport } from './routes/chat.broadcast'
@@ -192,6 +196,16 @@ const ValidacaoRoute = ValidacaoRouteImport.update({
   path: '/validacao',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminBuscarRoute = AdminBuscarRouteImport.update({
+  id: '/buscar',
+  path: '/buscar',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminCarrosRoute = AdminCarrosRouteImport.update({
+  id: '/carros',
+  path: '/carros',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminCheckinTreinoRoute = AdminCheckinTreinoRouteImport.update({
   id: '/checkin-treino',
   path: '/checkin-treino',
@@ -225,6 +239,11 @@ const AdminDashboardRoute = AdminDashboardRouteImport.update({
 const AdminEncurtadorRoute = AdminEncurtadorRouteImport.update({
   id: '/encurtador',
   path: '/encurtador',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminHoteisTesteRoute = AdminHoteisTesteRouteImport.update({
+  id: '/hoteis-teste',
+  path: '/hoteis-teste',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminInstagramRoute = AdminInstagramRouteImport.update({
@@ -275,6 +294,11 @@ const AdminSegurancaRoute = AdminSegurancaRouteImport.update({
 const AdminUsuariosRoute = AdminUsuariosRouteImport.update({
   id: '/usuarios',
   path: '/usuarios',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminVoosTesteRoute = AdminVoosTesteRouteImport.update({
+  id: '/voos-teste',
+  path: '/voos-teste',
   getParentRoute: () => AdminRoute,
 } as any)
 const ChatAgendaRoute = ChatAgendaRouteImport.update({
@@ -569,6 +593,8 @@ export interface FileRoutesByFullPath {
   '/termos-de-uso': typeof TermosDeUsoRoute
   '/unsubscribe': typeof UnsubscribeRoute
   '/validacao': typeof ValidacaoRoute
+  '/admin/buscar': typeof AdminBuscarRoute
+  '/admin/carros': typeof AdminCarrosRoute
   '/admin/checkin-treino': typeof AdminCheckinTreinoRoute
   '/admin/checkins': typeof AdminCheckinsRoute
   '/admin/cofre': typeof AdminCofreRoute
@@ -576,6 +602,7 @@ export interface FileRoutesByFullPath {
   '/admin/contas-receber': typeof AdminContasReceberRoute
   '/admin/dashboard': typeof AdminDashboardRoute
   '/admin/encurtador': typeof AdminEncurtadorRoute
+  '/admin/hoteis-teste': typeof AdminHoteisTesteRoute
   '/admin/instagram': typeof AdminInstagramRoute
   '/admin/instalar-extensao': typeof AdminInstalarExtensaoRoute
   '/admin/link-boleto': typeof AdminLinkBoletoRoute
@@ -586,6 +613,7 @@ export interface FileRoutesByFullPath {
   '/admin/pessoas': typeof AdminPessoasRouteWithChildren
   '/admin/seguranca': typeof AdminSegurancaRoute
   '/admin/usuarios': typeof AdminUsuariosRoute
+  '/admin/voos-teste': typeof AdminVoosTesteRoute
   '/chat/agenda': typeof ChatAgendaRoute
   '/chat/agentes': typeof ChatAgentesRoute
   '/chat/broadcast': typeof ChatBroadcastRoute
@@ -657,6 +685,8 @@ export interface FileRoutesByTo {
   '/termos-de-uso': typeof TermosDeUsoRoute
   '/unsubscribe': typeof UnsubscribeRoute
   '/validacao': typeof ValidacaoRoute
+  '/admin/buscar': typeof AdminBuscarRoute
+  '/admin/carros': typeof AdminCarrosRoute
   '/admin/checkin-treino': typeof AdminCheckinTreinoRoute
   '/admin/checkins': typeof AdminCheckinsRoute
   '/admin/cofre': typeof AdminCofreRoute
@@ -664,6 +694,7 @@ export interface FileRoutesByTo {
   '/admin/contas-receber': typeof AdminContasReceberRoute
   '/admin/dashboard': typeof AdminDashboardRoute
   '/admin/encurtador': typeof AdminEncurtadorRoute
+  '/admin/hoteis-teste': typeof AdminHoteisTesteRoute
   '/admin/instagram': typeof AdminInstagramRoute
   '/admin/instalar-extensao': typeof AdminInstalarExtensaoRoute
   '/admin/link-boleto': typeof AdminLinkBoletoRoute
@@ -674,6 +705,7 @@ export interface FileRoutesByTo {
   '/admin/pessoas': typeof AdminPessoasRouteWithChildren
   '/admin/seguranca': typeof AdminSegurancaRoute
   '/admin/usuarios': typeof AdminUsuariosRoute
+  '/admin/voos-teste': typeof AdminVoosTesteRoute
   '/chat/agenda': typeof ChatAgendaRoute
   '/chat/agentes': typeof ChatAgentesRoute
   '/chat/broadcast': typeof ChatBroadcastRoute
@@ -747,6 +779,8 @@ export interface FileRoutesById {
   '/termos-de-uso': typeof TermosDeUsoRoute
   '/unsubscribe': typeof UnsubscribeRoute
   '/validacao': typeof ValidacaoRoute
+  '/admin/buscar': typeof AdminBuscarRoute
+  '/admin/carros': typeof AdminCarrosRoute
   '/admin/checkin-treino': typeof AdminCheckinTreinoRoute
   '/admin/checkins': typeof AdminCheckinsRoute
   '/admin/cofre': typeof AdminCofreRoute
@@ -754,6 +788,7 @@ export interface FileRoutesById {
   '/admin/contas-receber': typeof AdminContasReceberRoute
   '/admin/dashboard': typeof AdminDashboardRoute
   '/admin/encurtador': typeof AdminEncurtadorRoute
+  '/admin/hoteis-teste': typeof AdminHoteisTesteRoute
   '/admin/instagram': typeof AdminInstagramRoute
   '/admin/instalar-extensao': typeof AdminInstalarExtensaoRoute
   '/admin/link-boleto': typeof AdminLinkBoletoRoute
@@ -764,6 +799,7 @@ export interface FileRoutesById {
   '/admin/pessoas': typeof AdminPessoasRouteWithChildren
   '/admin/seguranca': typeof AdminSegurancaRoute
   '/admin/usuarios': typeof AdminUsuariosRoute
+  '/admin/voos-teste': typeof AdminVoosTesteRoute
   '/chat/agenda': typeof ChatAgendaRoute
   '/chat/agentes': typeof ChatAgentesRoute
   '/chat/broadcast': typeof ChatBroadcastRoute
@@ -838,6 +874,8 @@ export interface FileRouteTypes {
     | '/termos-de-uso'
     | '/unsubscribe'
     | '/validacao'
+    | '/admin/buscar'
+    | '/admin/carros'
     | '/admin/checkin-treino'
     | '/admin/checkins'
     | '/admin/cofre'
@@ -845,6 +883,7 @@ export interface FileRouteTypes {
     | '/admin/contas-receber'
     | '/admin/dashboard'
     | '/admin/encurtador'
+    | '/admin/hoteis-teste'
     | '/admin/instagram'
     | '/admin/instalar-extensao'
     | '/admin/link-boleto'
@@ -855,6 +894,7 @@ export interface FileRouteTypes {
     | '/admin/pessoas'
     | '/admin/seguranca'
     | '/admin/usuarios'
+    | '/admin/voos-teste'
     | '/chat/agenda'
     | '/chat/agentes'
     | '/chat/broadcast'
@@ -926,6 +966,8 @@ export interface FileRouteTypes {
     | '/termos-de-uso'
     | '/unsubscribe'
     | '/validacao'
+    | '/admin/buscar'
+    | '/admin/carros'
     | '/admin/checkin-treino'
     | '/admin/checkins'
     | '/admin/cofre'
@@ -933,6 +975,7 @@ export interface FileRouteTypes {
     | '/admin/contas-receber'
     | '/admin/dashboard'
     | '/admin/encurtador'
+    | '/admin/hoteis-teste'
     | '/admin/instagram'
     | '/admin/instalar-extensao'
     | '/admin/link-boleto'
@@ -943,6 +986,7 @@ export interface FileRouteTypes {
     | '/admin/pessoas'
     | '/admin/seguranca'
     | '/admin/usuarios'
+    | '/admin/voos-teste'
     | '/chat/agenda'
     | '/chat/agentes'
     | '/chat/broadcast'
@@ -1015,6 +1059,8 @@ export interface FileRouteTypes {
     | '/termos-de-uso'
     | '/unsubscribe'
     | '/validacao'
+    | '/admin/buscar'
+    | '/admin/carros'
     | '/admin/checkin-treino'
     | '/admin/checkins'
     | '/admin/cofre'
@@ -1022,6 +1068,7 @@ export interface FileRouteTypes {
     | '/admin/contas-receber'
     | '/admin/dashboard'
     | '/admin/encurtador'
+    | '/admin/hoteis-teste'
     | '/admin/instagram'
     | '/admin/instalar-extensao'
     | '/admin/link-boleto'
@@ -1032,6 +1079,7 @@ export interface FileRouteTypes {
     | '/admin/pessoas'
     | '/admin/seguranca'
     | '/admin/usuarios'
+    | '/admin/voos-teste'
     | '/chat/agenda'
     | '/chat/agentes'
     | '/chat/broadcast'
@@ -1273,6 +1321,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ValidacaoRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/buscar': {
+      id: '/admin/buscar'
+      path: '/buscar'
+      fullPath: '/admin/buscar'
+      preLoaderRoute: typeof AdminBuscarRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/carros': {
+      id: '/admin/carros'
+      path: '/carros'
+      fullPath: '/admin/carros'
+      preLoaderRoute: typeof AdminCarrosRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/checkin-treino': {
       id: '/admin/checkin-treino'
       path: '/checkin-treino'
@@ -1320,6 +1382,13 @@ declare module '@tanstack/react-router' {
       path: '/encurtador'
       fullPath: '/admin/encurtador'
       preLoaderRoute: typeof AdminEncurtadorRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/hoteis-teste': {
+      id: '/admin/hoteis-teste'
+      path: '/hoteis-teste'
+      fullPath: '/admin/hoteis-teste'
+      preLoaderRoute: typeof AdminHoteisTesteRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/instagram': {
@@ -1390,6 +1459,13 @@ declare module '@tanstack/react-router' {
       path: '/usuarios'
       fullPath: '/admin/usuarios'
       preLoaderRoute: typeof AdminUsuariosRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/voos-teste': {
+      id: '/admin/voos-teste'
+      path: '/voos-teste'
+      fullPath: '/admin/voos-teste'
+      preLoaderRoute: typeof AdminVoosTesteRouteImport
       parentRoute: typeof AdminRoute
     }
     '/chat/agenda': {
@@ -1765,6 +1841,8 @@ const AdminPessoasRouteWithChildren = AdminPessoasRoute._addFileChildren(
 )
 
 interface AdminRouteChildren {
+  AdminBuscarRoute: typeof AdminBuscarRoute
+  AdminCarrosRoute: typeof AdminCarrosRoute
   AdminCheckinTreinoRoute: typeof AdminCheckinTreinoRoute
   AdminCheckinsRoute: typeof AdminCheckinsRoute
   AdminCofreRoute: typeof AdminCofreRoute
@@ -1772,6 +1850,7 @@ interface AdminRouteChildren {
   AdminContasReceberRoute: typeof AdminContasReceberRoute
   AdminDashboardRoute: typeof AdminDashboardRoute
   AdminEncurtadorRoute: typeof AdminEncurtadorRoute
+  AdminHoteisTesteRoute: typeof AdminHoteisTesteRoute
   AdminInstagramRoute: typeof AdminInstagramRoute
   AdminInstalarExtensaoRoute: typeof AdminInstalarExtensaoRoute
   AdminLinkBoletoRoute: typeof AdminLinkBoletoRoute
@@ -1782,12 +1861,15 @@ interface AdminRouteChildren {
   AdminPessoasRoute: typeof AdminPessoasRouteWithChildren
   AdminSegurancaRoute: typeof AdminSegurancaRoute
   AdminUsuariosRoute: typeof AdminUsuariosRoute
+  AdminVoosTesteRoute: typeof AdminVoosTesteRoute
   AdminPedidosIdRoute: typeof AdminPedidosIdRoute
   AdminPedidosTerceirosRoute: typeof AdminPedidosTerceirosRoute
   AdminPedidosIndexRoute: typeof AdminPedidosIndexRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
+  AdminBuscarRoute: AdminBuscarRoute,
+  AdminCarrosRoute: AdminCarrosRoute,
   AdminCheckinTreinoRoute: AdminCheckinTreinoRoute,
   AdminCheckinsRoute: AdminCheckinsRoute,
   AdminCofreRoute: AdminCofreRoute,
@@ -1795,6 +1877,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminContasReceberRoute: AdminContasReceberRoute,
   AdminDashboardRoute: AdminDashboardRoute,
   AdminEncurtadorRoute: AdminEncurtadorRoute,
+  AdminHoteisTesteRoute: AdminHoteisTesteRoute,
   AdminInstagramRoute: AdminInstagramRoute,
   AdminInstalarExtensaoRoute: AdminInstalarExtensaoRoute,
   AdminLinkBoletoRoute: AdminLinkBoletoRoute,
@@ -1805,6 +1888,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminPessoasRoute: AdminPessoasRouteWithChildren,
   AdminSegurancaRoute: AdminSegurancaRoute,
   AdminUsuariosRoute: AdminUsuariosRoute,
+  AdminVoosTesteRoute: AdminVoosTesteRoute,
   AdminPedidosIdRoute: AdminPedidosIdRoute,
   AdminPedidosTerceirosRoute: AdminPedidosTerceirosRoute,
   AdminPedidosIndexRoute: AdminPedidosIndexRoute,
