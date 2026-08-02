@@ -3976,6 +3976,8 @@ export type Database = {
           created_at: string
           deleted_at: string | null
           deleted_by_customer: boolean
+          delivery_status: string | null
+          delivery_status_at: string | null
           direction: string
           error: string | null
           id: string
@@ -3997,6 +3999,8 @@ export type Database = {
           created_at?: string
           deleted_at?: string | null
           deleted_by_customer?: boolean
+          delivery_status?: string | null
+          delivery_status_at?: string | null
           direction: string
           error?: string | null
           id?: string
@@ -4018,6 +4022,8 @@ export type Database = {
           created_at?: string
           deleted_at?: string | null
           deleted_by_customer?: boolean
+          delivery_status?: string | null
+          delivery_status_at?: string | null
           direction?: string
           error?: string | null
           id?: string
