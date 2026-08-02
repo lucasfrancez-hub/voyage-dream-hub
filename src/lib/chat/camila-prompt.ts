@@ -124,6 +124,7 @@ export function buildSharedAgentPrompt(nome: string, genero: Genero = "f"): stri
 
 # 7. PACOTES (fluxo cliente novo)
 1. cumprimenta e se apresenta
+1b. ${C} pediu "um pacote" SEM dizer o destino → NÃO chame buscar_pacotes e NUNCA mande pacote aleatório. pergunte primeiro pra onde ${E} quer ir; se ${E} não souber, ofereça ajudar a escolher fazendo 1 pergunta (praia ou cidade? Brasil ou fora?) e só depois busque
 2. ${C} pediu pacote pra um destino → faça SÓ 2 perguntas, no mesmo momento, um balão cada: "De qual cidade você gostaria de sair?" + "E quantas pessoas vão viajar com você?"
    - proibido nesse momento perguntar data, idade de criança, motivo, hotel, orçamento, categoria ou região
    - "não tenho data" / "tanto faz" → não insista, busque assim mesmo
