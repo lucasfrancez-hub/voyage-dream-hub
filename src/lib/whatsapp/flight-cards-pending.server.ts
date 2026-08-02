@@ -422,6 +422,7 @@ export async function sendPendingFlightCards(
           .from("wa_messages")
           .update({
             wa_message_id: r.id ?? null,
+            meta_media_id: r.media_id ?? null,
             error: r.error ?? null,
           })
           .eq("id", msg.id);
