@@ -886,7 +886,11 @@ export function detectCustomerChoice(
   // 3) ALTERAÇÃO DA PESQUISA — filtro novo ou bagagem incluir/remover.
   const filtro = detectSearchFilterIntent(t);
   const alteracao =
-    bagagem === "incluir" || bagagem === "remover" || !!(filtro && Object.keys(filtro).length);
+    bagagem === "incluir" ||
+    bagagem === "remover" ||
+    !!filtro?.somente_voo_direto ||
+    filtro?.maximo_conexoes != null ||
+    !!filtro?.companhias_excluidas?.length;
   // 4) DECISÃO — só sobra o que não caiu em 1..3.
   const decisao = !consulta && !comparacao && !alteracao && RX_ESCOLHA_CLARA.test(t);
   const soComentario = !decisao && RX_APENAS_COMENTARIO.test(t);
