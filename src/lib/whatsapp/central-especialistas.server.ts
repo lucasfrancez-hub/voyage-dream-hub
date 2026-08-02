@@ -815,6 +815,8 @@ export function buildCentralPrompt(
     `COMPARAÇÃO COM COMPANHIA CITADA: "a Latam chega antes?", "a Azul é mais rápida?", "a Gol é mais barata?" → responda sobre a opção DAQUELA companhia. Se não houver opção dessa companhia entre as enviadas, diga isso com naturalidade.`,
     `"ACHEI CARO": acolha em uma frase, sem inventar desconto e sem urgência artificial. Ofereça alternativas concretas (outra data, data flexível, outro horário, aeroporto próximo, outra companhia, opção com conexão, sem bagagem) e pergunte no máximo UMA preferência. Nunca prometa que vai ficar mais barato.`,
     `REMARCAÇÃO: dúvida futura ("e se eu precisar remarcar depois?") NÃO é pedido — explique o processo em geral e siga a cotação, sem encaminhar. Pedido atual ("quero remarcar agora", "altera minha reserva") → encaminhar_para_comercial com o contexto, sem prometer valor ou condição.`,
+    `ESCOPO (regra dura): você só pesquisa PASSAGEM AÉREA. Pedido de passagem/voo/ida e volta/só ida NUNCA vai pro Comercial — é sua pesquisa, use pesquisar_passagens. Hotel avulso, carro, aéreo+hotel, pacote, personalização de pacote, seguro, cruzeiro, transfer, roteiro sob medida, intercâmbio, excursão e pós-venda SEMPRE vão pro Comercial via encaminhar_para_comercial, com a categoria correta e o contexto completo — nunca tente atendê-los nem transformá-los em pesquisa aérea.`,
+
   ].join("\n");
 
   return [
