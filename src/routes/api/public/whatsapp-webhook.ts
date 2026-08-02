@@ -297,47 +297,51 @@ async function processPayload(payload: WhatsAppPayload) {
           conv.mode = "ai";
         }
 
-        // Se a mensagem é uma resposta (reply nativo), busca o snippet da mensagem citada
+        // Se a mensagem é uma resposta (reply nativo), resolve a mensagem citada.
+        // NUNCA chutar a última mensagem da conversa: se não achar, registramos
+        // reply_context_not_found e a IA pede confirmação quando precisar.
         let replySnippet: string | null = null;
         let replySender: string | null = null;
+        let replyToMessageId: string | null = null;
         const replyToId = msg.context?.id ?? null;
         if (replyToId) {
           const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
           const { data: quoted } = await supabaseAdmin
             .from("wa_messages")
-            .select("content, direction, sender")
+            .select("id, content, direction, sender")
             .eq("wa_message_id", replyToId)
             .maybeSingle();
           if (quoted) {
+            replyToMessageId = quoted.id as string;
             replySnippet = previewFromContent(String(quoted.content ?? ""));
             replySender = quoted.direction === "outbound" ? "me" : (quoted.sender ?? "customer");
           } else {
-            // Não achamos a original pelo id (ex.: envio antigo sem wa_message_id gravado,
-            // ou mensagem enviada direto do celular). Fallback: pega a última mensagem
-            // da conversa (últimas 24h) que ainda está sem id — quase sempre é essa
-            // que o cliente citou — pra o preview não ficar só "mensagem".
             const isFromUs = !!msg.context?.from && msg.context.from !== msg.from;
             replySender = isFromUs ? "me" : "customer";
-            const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-            const { data: guess } = await supabaseAdmin
-              .from("wa_messages")
-              .select("content, direction, sender")
-              .eq("conversation_id", conv.id)
-              .eq("direction", isFromUs ? "outbound" : "inbound")
-              .is("wa_message_id", null)
-              .is("deleted_at", null)
-              .gte("created_at", since)
-              .order("created_at", { ascending: false })
-              .limit(1)
-              .maybeSingle();
-            if (guess) {
-              replySnippet = previewFromContent(String(guess.content ?? ""));
-              replySender = guess.direction === "outbound" ? "me" : (guess.sender ?? "customer");
-            }
+            console.log(
+              JSON.stringify({
+                event: "reply_context_not_found",
+                conversation_id: conv.id,
+                reply_to_wa_id: replyToId,
+                from: msg.from,
+                at: new Date().toISOString(),
+              }),
+            );
           }
-
         }
 
+        const inboundType =
+          msg.type === "audio" || msg.type === "voice"
+            ? "audio"
+            : msg.type === "image" || msg.type === "sticker"
+              ? "image"
+              : msg.type === "video"
+                ? "video"
+                : msg.type === "document"
+                  ? "document"
+                  : msg.type === "interactive"
+                    ? "button"
+                    : "text";
 
         const saved = await saveMessage({
           conversation_id: conv.id,
@@ -346,9 +350,13 @@ async function processPayload(payload: WhatsAppPayload) {
           content,
           wa_message_id: msg.id,
           reply_to_wa_id: replyToId,
+          reply_to_message_id: replyToMessageId,
           reply_to_snippet: replySnippet,
           reply_to_sender: replySender,
+          message_type: inboundType,
+          transcricao: inboundTranscript,
         });
+
         if (!saved) {
           console.log(`[wa-webhook] mensagem ${msg.id} já processada (dedupe)`);
           continue;
