@@ -35,12 +35,14 @@ export const Route = createFileRoute("/api/public/hooks/dispatch-ai-debounced")(
           // ruim, o próximo tick (a cada 30s) reprocessa em até 90s no pior
           // caso — bem dentro do orçamento total de 3min de resposta.
           const leaseUntil = new Date(Date.now() + 90 * 1000).toISOString();
-          const { error: leaseErr } = await supabaseAdmin
+          const { data: claimed, error: leaseErr } = await supabaseAdmin
             .from("wa_conversations")
             .update({ ai_debounce_until: leaseUntil })
             .eq("id", conv.id)
-            .eq("ai_debounce_until", conv.ai_debounce_until); // guard: só pega se ninguém já empurrou
-          if (leaseErr) {
+            .eq("ai_debounce_until", conv.ai_debounce_until)
+            .select("id")
+            .maybeSingle(); // guard: só pega se ninguém já empurrou
+          if (leaseErr || !claimed) {
             console.warn(`[dispatch-ai-debounced] falha ao pegar lease ${conv.id}:`, leaseErr);
             continue;
           }

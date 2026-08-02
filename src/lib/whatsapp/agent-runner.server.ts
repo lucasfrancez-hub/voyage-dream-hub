@@ -309,6 +309,11 @@ export async function runAgent(input: {
   const agents = await loadAgents();
   const stickySlug = (conv as unknown as { agent_slug?: string | null }).agent_slug ?? null;
 
+  // O protocolo precisa existir ANTES da triagem. Criar/reabrir um protocolo
+  // limpa o runtime anterior; se isso acontecer depois da triagem, apagaria o
+  // central_slug que acabou de ser gravado e abriria uma corrida consultor x Central.
+  const protocolo = await ensureActiveProtocolo(conv.id);
+
   // ── Central de Especialistas ────────────────────────────────────────────
   // Dois caminhos chegam aqui:
   // 1) o consultor encaminhou durante a conversa (central_slug já preenchido);
@@ -358,9 +363,6 @@ export async function runAgent(input: {
     console.error("[agent] LOVABLE_API_KEY ausente");
     return;
   }
-
-  // Protocolo ativo (abre/reabre conforme regra) + detecta se ainda é a primeira resposta nele
-  const protocolo = await ensureActiveProtocolo(conv.id);
 
   const { data: latestInboundAtStart } = await supabaseAdmin
     .from("wa_messages")
@@ -762,11 +764,13 @@ export async function runAgent(input: {
         : Promise.resolve({ count: 0 }),
     ]);
     const activeSlug = centralAgent ? currentConv?.central_slug : currentConv?.agent_slug;
+    const runtimeSwitchedToCentral = !centralAgent && currentConv?.central_slug != null;
     const staleRun =
       currentConv?.mode !== "ai" ||
       currentConv?.ai_paused === true ||
       currentConv?.protocolo_ativo_id !== protocolo.id ||
       latestInboundNow?.id !== triggerMessageId ||
+      runtimeSwitchedToCentral ||
       (activeSlug != null && activeSlug !== agent.slug) ||
       (alreadyAnswered ?? 0) > 0;
     if (staleRun) {
