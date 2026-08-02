@@ -15,7 +15,6 @@
 import { tool } from "ai";
 import { z } from "zod";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import { buildSharedAgentPrompt } from "@/lib/chat/camila-prompt";
 import { recordHandoff, type WaConversation } from "./conversation.server";
 import type {
   FlightQuoteLeg,
