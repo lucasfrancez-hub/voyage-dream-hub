@@ -64,4 +64,30 @@ describe("origem nunca presumida", () => {
     const r = validateFlightSearch({ ...base, origem: "", origem_informada_pelo_cliente: true });
     expect(r.ok).toBe(false);
   });
+
+  it("flag ausente (undefined) bloqueia — origem só passa com confirmação explícita", () => {
+    const r = validateFlightSearch({ ...base });
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.campos).toContain("origem");
+  });
+
+  it("instrução proíbe usar origem de pacote pronto como origem do aéreo", () => {
+    const r = validateFlightSearch({ ...base, origem_informada_pelo_cliente: false });
+    if (!r.ok) expect(r.instrucao).toMatch(/pacote pronto/i);
+  });
+});
+
+describe("separação de regras de origem: pacote x aéreo", () => {
+  it("prompt dos Consultores trata origem alternativa como oferta do catálogo", async () => {
+    const { CAMILA_SYSTEM_PROMPT } = await import("../../chat/camila-prompt");
+    expect(CAMILA_SYSTEM_PROMPT).toMatch(/ORIGEM ALTERNATIVA É OFERTA DO CATÁLOGO/i);
+    expect(CAMILA_SYSTEM_PROMPT).toMatch(/substituir silenciosamente/i);
+  });
+
+  it("prompt da Central proíbe origem alternativa no aéreo", async () => {
+    const { buildCentralBasePrompt } = await import("../central-especialistas.server");
+    const p = buildCentralBasePrompt("paula", "f");
+    expect(p).toMatch(/NÃO EXISTE "ORIGEM ALTERNATIVA" NO AÉREO/i);
+    expect(p).toMatch(/nunca troque Maringá por Curitiba/i);
+  });
 });
