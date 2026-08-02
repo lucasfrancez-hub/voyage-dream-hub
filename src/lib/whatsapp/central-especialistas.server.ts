@@ -214,7 +214,14 @@ async function escalarPorFalha(conversation: WaConversation, briefing: string) {
   );
   await supabaseAdmin
     .from("wa_conversations")
-    .update({ tags, assigned_to: null, priority: "high" })
+    .update({
+      tags,
+      assigned_to: null,
+      priority: "high",
+      // sai da Central: se o cliente voltar a falar, quem atende é o consultor
+      central_slug: null,
+      central_busca: null,
+    })
     .eq("id", conversation.id);
   if (conversation.protocolo_ativo_id) {
     await supabaseAdmin
