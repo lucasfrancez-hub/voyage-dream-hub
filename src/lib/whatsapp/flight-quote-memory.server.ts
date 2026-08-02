@@ -370,7 +370,7 @@ const RX_FILTRO_UMA_CONEXAO =
   /\b(no m[áa]ximo (uma|1) conex(ã|a)o|s[óo] (uma|1) conex(ã|a)o|at[ée] (uma|1) conex(ã|a)o)\b/i;
 const RX_FILTRO_CONEXAO_CURTA = /\bconex(ã|a)o (r[áa]pida|curta)\b/i;
 const RX_FILTRO_SEM_CIA = /\b(sem|n(ã|a)o (quero|gosto de|pode ser)|tirando|exceto|menos)\s+(a\s+)?(gol|azul|latam|tam|avianca|copa|american|united|air ?europa|tap|ita)\b/i;
-const RX_FILTRO_SO_CIA = /\b(s[óo]|somente|apenas|prefiro|pode ser)\s+(a\s+)?(gol|azul|latam|tam|avianca|copa|american|united|air ?europa|tap|ita)\b/i;
+const RX_FILTRO_SO_CIA = /\b(s[óo]|somente|apenas)\s+(a\s+)?(gol|azul|latam|tam|avianca|copa|american|united|air ?europa|tap|ita)\b/i;
 const RX_CIA_TOKEN = /\b(gol|azul|latam|tam|avianca|copa|american|united|air ?europa|tap|ita)\b/gi;
 
 /**
