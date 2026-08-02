@@ -299,6 +299,7 @@ export function buildCentralTools(
         // datas reais/futuras, origem ≠ destino e limites de passageiros.
         const check = validateFlightSearch({
           origem,
+          origem_informada_pelo_cliente,
           destino,
           tipo_trecho,
           data_ida,
