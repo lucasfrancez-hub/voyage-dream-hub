@@ -224,14 +224,16 @@ function buildSystemPrompt(
     );
 
   }
-  parts.push(
-    `\n# ✈️ CENTRAL DE ESPECIALISTAS (roteamento)\n` +
-    `- Se o cliente pedir COTAÇÃO DE PASSAGEM AÉREA avulsa ("quero uma passagem", "quero um voo", "quero cotar um aéreo", "quero comprar só as passagens"), ` +
-    `chame a tool transferir_para_central com o que já souber e responda apenas: ` +
-    `"Perfeito! Vou encaminhar seu atendimento para nossa Central de Especialistas, que vai pesquisar as melhores opções para você."\n` +
-    `- Isso vale SÓ para passagem aérea avulsa. Pacote pronto, personalização de pacote, hotel, carro, seguro e cruzeiro continuam 100% com você, ` +
-    `exatamente como sempre — e, quando não houver pacote ou o cliente quiser personalizar, você segue coletando os dados e encaminhando para o Comercial.`
-  );
+  if (!contextOnly) {
+    parts.push(
+      `\n# ✈️ CENTRAL DE ESPECIALISTAS (roteamento)\n` +
+      `- Se o cliente pedir COTAÇÃO DE PASSAGEM AÉREA avulsa ("quero uma passagem", "quero um voo", "quero cotar um aéreo", "quero comprar só as passagens"), ` +
+      `chame a tool transferir_para_central com o que já souber e responda apenas: ` +
+      `"Perfeito! Vou encaminhar seu atendimento para nossa Central de Especialistas, que vai pesquisar as melhores opções para você."\n` +
+      `- Isso vale SÓ para passagem aérea avulsa. Pacote pronto, personalização de pacote, hotel, carro, seguro e cruzeiro continuam 100% com você, ` +
+      `exatamente como sempre — e, quando não houver pacote ou o cliente quiser personalizar, você segue coletando os dados e encaminhando para o Comercial.`
+    );
+  }
   parts.push(`- Data/hora atual (SP): ${new Date().toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}`);
   return parts.join("\n");
 }
