@@ -173,16 +173,21 @@ export function buildCentralTools(conversation: WaConversation, habilitadas?: st
 
     pesquisar_passagens: tool({
       description:
-        "Pesquisa passagens aéreas no motor de busca oficial (Comprar Viagem) e ENVIA automaticamente as ARTES (cards) das duas melhores opções ao cliente. Use SOMENTE quando o próprio cliente já tiver informado origem, destino, data de ida, se é só ida ou ida e volta, e quantidade de passageiros. NUNCA chame com data, trecho ou quantidade de passageiros presumidos por você. Se o cliente pedir outro horário depois, chame de novo com a preferência de horário.",
+        "Pesquisa passagens aéreas no motor de busca oficial (Comprar Viagem) e ENVIA automaticamente as ARTES (cards) das duas melhores opções ao cliente. Use SOMENTE quando o próprio cliente já tiver informado origem, destino, tipo de trecho (somente ida ou ida e volta), data(s) e quantidade de passageiros. NUNCA chame com data, trecho ou quantidade de passageiros presumidos por você. Se algum dado faltar ou estiver incoerente, a tool devolve o que perguntar em vez de pesquisar. Se o cliente pedir outro horário depois, chame de novo com a preferência de horário.",
       inputSchema: z.object({
         origem: z.string().min(2).describe("Cidade ou IATA de origem, ex.: 'Maringá' ou 'MGF'"),
         destino: z.string().min(2).describe("Cidade ou IATA de destino, ex.: 'Recife' ou 'REC'"),
+        tipo_trecho: z
+          .enum(["somente_ida", "ida_e_volta"])
+          .describe(
+            "Campo OBRIGATÓRIO e explícito: só preencha com o que o cliente disse. Nunca deduza pelo fato de existir ou não uma data de volta.",
+          ),
         data_ida: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).describe("Data de ida AAAA-MM-DD, exatamente como o cliente informou (nunca estimada)"),
         data_volta: z
           .string()
           .regex(/^\d{4}-\d{2}-\d{2}$/)
           .nullable()
-          .describe("Data de volta AAAA-MM-DD, ou null se for somente ida"),
+          .describe("Data de volta AAAA-MM-DD. Obrigatória quando tipo_trecho = ida_e_volta; null em somente_ida"),
         data_informada_pelo_cliente: z
           .boolean()
           .describe(
@@ -207,6 +212,7 @@ export function buildCentralTools(conversation: WaConversation, habilitadas?: st
       execute: async ({
         origem,
         destino,
+        tipo_trecho,
         data_ida,
         data_volta,
         data_informada_pelo_cliente,
@@ -217,27 +223,35 @@ export function buildCentralTools(conversation: WaConversation, habilitadas?: st
         preferencia_horario,
         somente_com_bagagem,
       }) => {
-        // TRAVA: nunca pesquisar com data ou pax presumidos.
-        if (!data_informada_pelo_cliente) {
-          console.warn("[central] pesquisa bloqueada: data não informada pelo cliente");
+        // TRAVA ÚNICA no servidor: dados obrigatórios, coerência de trecho,
+        // datas reais/futuras, origem ≠ destino e limites de passageiros.
+        const check = validateFlightSearch({
+          origem,
+          destino,
+          tipo_trecho,
+          data_ida,
+          data_volta: tipo_trecho === "somente_ida" ? null : data_volta,
+          data_informada_pelo_cliente,
+          pax_informado_pelo_cliente,
+          adultos,
+          criancas,
+          bebes,
+        });
+        if (!check.ok) {
+          console.warn(
+            `[central] pesquisa bloqueada (${check.faltam_dados ? "faltam_dados" : "dados_invalidos"}): ${check.campos.join(", ")}`,
+          );
           return {
             ok: false,
-            faltam_dados: true,
-            campos_faltando: ["data_ida"],
-            instrucao:
-              "NÃO pesquise. O cliente ainda não informou a data da viagem. Pergunte de forma curta e natural qual é a data da ida (e se é só ida ou ida e volta). Nunca sugira nem assuma uma data.",
+            faltam_dados: check.faltam_dados ?? false,
+            dados_invalidos: check.dados_invalidos ?? false,
+            campos_faltando: check.campos,
+            instrucao: check.instrucao,
           };
         }
-        if (!pax_informado_pelo_cliente) {
-          console.warn("[central] pesquisa bloqueada: quantidade de passageiros não informada");
-          return {
-            ok: false,
-            faltam_dados: true,
-            campos_faltando: ["adultos"],
-            instrucao:
-              "NÃO pesquise. Pergunte de forma curta e natural quantas pessoas vão viajar. Nunca assuma a quantidade de passageiros.",
-          };
-        }
+        // somente ida nunca leva data de volta ao motor
+        if (tipo_trecho === "somente_ida") data_volta = null;
+
 
         const briefing =
           `✈️ Pesquisa de passagem aérea (Central de Especialistas)\n` +
