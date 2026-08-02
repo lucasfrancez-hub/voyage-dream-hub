@@ -2,6 +2,8 @@
 // Organizado em módulos: PRINCÍPIOS > PRIORIDADES > TRIAGEM > FERRAMENTAS > PERSONALIDADE > COMUNICAÇÃO >
 // REGRAS GERAIS > PACOTES > HOTÉIS > CHECK-IN/VOO > PEDIDOS > PÓS-VENDA > LIMITES > ESCALONAMENTO > INSTITUCIONAL.
 
+import { VIA_AIR_CNPJ } from "@/lib/institucional";
+
 type Genero = "f" | "m";
 
 function palavras(g: Genero) {
