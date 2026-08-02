@@ -623,6 +623,8 @@ export async function runAgent(input: {
               primeiroContato: centralPrimeiroContato,
               storedPrompt: centralAgent.system_prompt,
               origemSugeridaPeloHistorico: origemSugerida,
+              origemConfirmadaNoProtocolo,
+
             },
           ) +
           "\n\n" +
