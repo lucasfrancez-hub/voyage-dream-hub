@@ -131,7 +131,13 @@ describe("decisão", () => {
   it.each(["fico com a segunda", "quero essa", "pode emitir a primeira", "pode fechar a segunda"])(
     "marca escolha clara em %s",
     (f: string) => {
-      expect(detectCustomerChoice(memorias, f)?.clara).toBe(true);
+      const ref = resolveOptionReference(memorias, f, {
+        quote_id: "q1",
+        option_index: 2,
+        companhia: "Latam",
+        assunto: null,
+      });
+      expect(detectCustomerChoice(memorias, f, ref)?.clara).toBe(true);
     },
   );
 });
