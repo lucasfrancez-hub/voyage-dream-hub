@@ -127,11 +127,20 @@ function looksLikeRealName(v: string | null | undefined): boolean {
   return true;
 }
 
-function buildSystemPrompt(agent: Agent, conv: WaConversation, protocolo: WaProtocolo, _isNewProtocolo: boolean, previousContext?: string): string {
+function buildSystemPrompt(
+  agent: Agent,
+  conv: WaConversation,
+  protocolo: WaProtocolo,
+  _isNewProtocolo: boolean,
+  previousContext?: string,
+  opts?: { contextOnly?: boolean },
+): string {
   // Sempre gera o prompt compartilhado com o nome/gênero deste agente,
   // ignorando o system_prompt armazenado (mantém a base única pra todo o time).
-  const base = buildSharedAgentPrompt(agent.nome, genderOf(agent.slug));
-  const parts = [base];
+  // contextOnly = agentes da Central: eles têm prompt próprio e NÃO recebem
+  // os fluxos de negócio das consultoras (evita regras contraditórias).
+  const contextOnly = opts?.contextOnly === true;
+  const parts: string[] = contextOnly ? [] : [buildSharedAgentPrompt(agent.nome, genderOf(agent.slug))];
 
   parts.push(`\n\n# CONTEXTO DESTA CONVERSA`);
   parts.push(`- Você é: ${agent.nome}`);
@@ -215,14 +224,16 @@ function buildSystemPrompt(agent: Agent, conv: WaConversation, protocolo: WaProt
     );
 
   }
-  parts.push(
-    `\n# ✈️ CENTRAL DE ESPECIALISTAS (roteamento)\n` +
-    `- Se o cliente pedir COTAÇÃO DE PASSAGEM AÉREA avulsa ("quero uma passagem", "quero um voo", "quero cotar um aéreo", "quero comprar só as passagens"), ` +
-    `chame a tool transferir_para_central com o que já souber e responda apenas: ` +
-    `"Perfeito! Vou encaminhar seu atendimento para nossa Central de Especialistas, que vai pesquisar as melhores opções para você."\n` +
-    `- Isso vale SÓ para passagem aérea avulsa. Pacote pronto, personalização de pacote, hotel, carro, seguro e cruzeiro continuam 100% com você, ` +
-    `exatamente como sempre — e, quando não houver pacote ou o cliente quiser personalizar, você segue coletando os dados e encaminhando para o Comercial.`
-  );
+  if (!contextOnly) {
+    parts.push(
+      `\n# ✈️ CENTRAL DE ESPECIALISTAS (roteamento)\n` +
+      `- Se o cliente pedir COTAÇÃO DE PASSAGEM AÉREA avulsa ("quero uma passagem", "quero um voo", "quero cotar um aéreo", "quero comprar só as passagens"), ` +
+      `chame a tool transferir_para_central com o que já souber e responda apenas: ` +
+      `"Perfeito! Vou encaminhar seu atendimento para nossa Central de Especialistas, que vai pesquisar as melhores opções para você."\n` +
+      `- Isso vale SÓ para passagem aérea avulsa. Pacote pronto, personalização de pacote, hotel, carro, seguro e cruzeiro continuam 100% com você, ` +
+      `exatamente como sempre — e, quando não houver pacote ou o cliente quiser personalizar, você segue coletando os dados e encaminhando para o Comercial.`
+    );
+  }
   parts.push(`- Data/hora atual (SP): ${new Date().toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}`);
   return parts.join("\n");
 }
@@ -461,7 +472,7 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
           { primeiroContato: centralPrimeiroContato, storedPrompt: centralAgent.system_prompt },
         ) +
         "\n\n" +
-        buildSystemPrompt(agent, conv, protocolo, isNewProtocolo, previousContext)
+        buildSystemPrompt(agent, conv, protocolo, isNewProtocolo, previousContext, { contextOnly: true })
       : buildSystemPrompt(agent, conv, protocolo, isNewProtocolo, previousContext);
     let result: { text?: string; steps?: Array<{ toolCalls?: Array<{ toolName: string; input: unknown }> }> } | null = null;
     let lastErr: unknown = null;
