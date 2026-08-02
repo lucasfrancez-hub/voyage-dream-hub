@@ -51,9 +51,13 @@ const RX_AEREO =
 const RX_BLOQUEIO =
   /\b(pacote|pacotes|hotel|hoteis|hospedagem|resort|cruzeiro|navio|roteiro|ferias|lua de mel|excursao|all inclusive|aereo\s*\+\s*hotel|aereo e hotel|passeio|ingresso|disney|universal|seguro viagem|transfer|meu pedido|minha reserva|localizador|check-?in|voucher|remarca|reembolso|cancel|reclama|problema com|atraso do voo|bagagem extraviada)\b/i;
 
+// Pedido de trecho aéreo dito sem a palavra "passagem": "quero ida e volta",
+// "quero só ida". Sozinhos já indicam cotação de aéreo avulso.
+const RX_TRECHO = /\b(ida\s*e\s*volta|(so|somente|apenas)\s*(a\s*)?ida|ida\s*simples)\b/i;
+
 function heuristicaAereo(textoBruto: string): boolean {
   const texto = normalizarTexto(textoBruto);
-  if (!RX_AEREO.test(texto)) return false;
+  if (!RX_AEREO.test(texto) && !RX_TRECHO.test(texto)) return false;
   if (RX_BLOQUEIO.test(texto)) return false;
   return true;
 }
