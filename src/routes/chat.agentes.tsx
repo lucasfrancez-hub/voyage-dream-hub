@@ -30,30 +30,63 @@ function AgentesPage() {
 
   return (
     <div className="flex h-full">
-      <aside className="w-64 shrink-0 border-r border-slate-200 bg-white p-3">
-        <div className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-slate-400">Agentes</div>
-        {agents.map((a) => (
-          <button
-            key={a.id}
-            onClick={() => setActiveSlug(a.slug)}
-            className={cn(
-              "mb-1 flex w-full items-center gap-3 rounded-md p-2 text-left transition-colors",
-              activeSlug === a.slug ? "bg-orange-50" : "hover:bg-slate-50",
-            )}
-          >
-            <div className={cn(
-              "flex h-9 w-9 items-center justify-center rounded-full text-xs font-semibold text-white",
-              a.slug === "camila" ? "bg-gradient-to-br from-[#F26B1F] to-orange-400" : "bg-gradient-to-br from-indigo-500 to-blue-500",
-            )}>
-              {a.nome[0]}
+      <aside className="w-64 shrink-0 overflow-y-auto border-r border-slate-200 bg-white p-3">
+        {([
+          { key: "consultor", label: "Consultores", hint: "Pacotes e atendimento geral" },
+          { key: "especialista", label: "Especialistas", hint: "Passagens aéreas" },
+        ] as const).map((grupo) => {
+          const doGrupo = agents.filter((a) =>
+            grupo.key === "especialista"
+              ? (a as { equipe?: string | null }).equipe === "especialista"
+              : (a as { equipe?: string | null }).equipe !== "especialista",
+          );
+          if (doGrupo.length === 0) return null;
+          return (
+            <div key={grupo.key} className="mb-4">
+              <div className="mb-1 flex items-baseline gap-1.5 px-1">
+                <span className={cn(
+                  "text-[10px] font-semibold uppercase tracking-wider",
+                  grupo.key === "especialista" ? "text-sky-600" : "text-emerald-600",
+                )}>
+                  {grupo.label}
+                </span>
+                <span className="text-[10px] text-slate-400">{doGrupo.length}</span>
+              </div>
+              <div className="mb-2 px-1 text-[10px] text-slate-400">{grupo.hint}</div>
+              {doGrupo.map((a) => (
+                <button
+                  key={a.id}
+                  onClick={() => setActiveSlug(a.slug)}
+                  className={cn(
+                    "mb-1 flex w-full items-center gap-3 rounded-md p-2 text-left transition-colors",
+                    activeSlug === a.slug ? "bg-orange-50" : "hover:bg-slate-50",
+                  )}
+                >
+                  <div className={cn(
+                    "flex h-9 w-9 items-center justify-center rounded-full text-xs font-semibold text-white",
+                    grupo.key === "especialista"
+                      ? "bg-gradient-to-br from-sky-500 to-cyan-500"
+                      : a.slug === "camila"
+                        ? "bg-gradient-to-br from-[#F26B1F] to-orange-400"
+                        : "bg-gradient-to-br from-indigo-500 to-blue-500",
+                  )}>
+                    {a.nome[0]}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-sm font-medium text-slate-900">{a.nome}</div>
+                    <div className="text-[10px] text-slate-500">{a.horario_inicio.slice(0, 5)} — {a.horario_fim.slice(0, 5)}</div>
+                  </div>
+                  {a.ativo && (
+                    <span className={cn(
+                      "h-1.5 w-1.5 rounded-full",
+                      grupo.key === "especialista" ? "bg-sky-500" : "bg-emerald-500",
+                    )} />
+                  )}
+                </button>
+              ))}
             </div>
-            <div className="min-w-0 flex-1">
-              <div className="truncate text-sm font-medium text-slate-900">{a.nome}</div>
-              <div className="text-[10px] text-slate-500">{a.horario_inicio.slice(0, 5)} — {a.horario_fim.slice(0, 5)}</div>
-            </div>
-            {a.ativo && <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />}
-          </button>
-        ))}
+          );
+        })}
       </aside>
 
       <main className="flex-1 overflow-y-auto p-6">
