@@ -858,9 +858,14 @@ export function buildCentralPrompt(
       ? `\n## 📋 O QUE O CONSULTOR JÁ COLETOU (não peça de novo)\n${brief.trim()}`
       : "",
     opts?.origemSugeridaPeloHistorico?.trim()
-      ? `\n## 🔁 ORIGEM DO HISTÓRICO (apenas sugestão)\nEm pesquisas anteriores desta conversa o embarque foi por ${opts.origemSugeridaPeloHistorico.trim()}.\nIsso NÃO vale como origem confirmada desta nova cotação. Se o cliente não disser a origem agora, pergunte: "Vai manter o embarque por ${opts.origemSugeridaPeloHistorico.trim()} ou quer mudar a origem?" e só pesquise depois da resposta. Nunca diga que vai pesquisar saindo de ${opts.origemSugeridaPeloHistorico.trim()} antes da confirmação.`
+    opts?.origemConfirmadaNoProtocolo?.trim()
+      ? `\n## ✅ ORIGEM JÁ CONFIRMADA NESTE ATENDIMENTO\nNeste mesmo protocolo o cliente já confirmou que embarca de ${opts.origemConfirmadaNoProtocolo.trim()}.\nNÃO pergunte a origem de novo. Se ele mudar só o destino ("agora quero ir pra Florianópolis"), mantenha ${opts.origemConfirmadaNoProtocolo.trim()} como origem e pesquise (origem = ${opts.origemConfirmadaNoProtocolo.trim()}, origem_informada_pelo_cliente = true). Só troque se ele disser outra cidade de embarque.`
+      : "",
+    !opts?.origemConfirmadaNoProtocolo?.trim() && opts?.origemSugeridaPeloHistorico?.trim()
+      ? `\n## 🔁 ORIGEM DE ATENDIMENTO ANTERIOR (apenas sugestão)\nEm um protocolo ANTERIOR desta conversa o embarque foi por ${opts.origemSugeridaPeloHistorico.trim()}.\nIsso NÃO vale como origem confirmada deste novo atendimento. Se o cliente não disser a origem agora, pergunte: "Vai manter o embarque por ${opts.origemSugeridaPeloHistorico.trim()} ou quer mudar a origem?" e só pesquise depois da resposta. Nunca diga que vai pesquisar saindo de ${opts.origemSugeridaPeloHistorico.trim()} antes da confirmação.`
       : "",
     `\n## 🚪 ABERTURA`,
+
     opts?.primeiroContato
       ? `Este é o PRIMEIRO contato: o cliente abriu a conversa já pedindo passagem aérea e você é quem atende desde o começo. Abra a conversa você mesm${genero === "f" ? "a" : "o"}, tipo: "Olá! Sou ${nome}, da Central de Especialistas da VIA AIR. Claro, vou verificar as melhores opções de voo para você." Nunca cite outro consultor, nunca diga que o atendimento foi transferido/encaminhado e nunca mencione triagem ou sistema. Depois siga pedindo só os dados obrigatórios que faltam.`
       : `Você entra na conversa já em andamento. Cumprimente rapidinho se apresentando pelo nome, diga que vai cuidar da pesquisa das passagens e siga. Nada de recomeçar o atendimento do zero nem repetir perguntas já respondidas.`,
