@@ -145,33 +145,11 @@ async function escalarPorFalha(conversation: WaConversation, briefing: string) {
 }
 
 /**
- * Devolve o atendimento à fila das IAs consultoras (NÃO é escalonamento humano).
- * Usado quando o cliente pede algo que não é passagem aérea avulsa.
+ * Encaminha o atendimento ao time Comercial (fila humana) quando o assunto
+ * não é passagem aérea avulsa. A Central NÃO devolve para as IAs consultoras.
  */
-async function devolverParaConsultor(conversation: WaConversation, briefing: string) {
-  await supabaseAdmin
-    .from("wa_conversations")
-    .update({
-      central_slug: null,
-      central_busca: null,
-      central_brief: briefing,
-      // segue com IA: quem responde a partir de agora é a consultora geral
-      mode: "ai",
-    })
-    .eq("id", conversation.id);
-  if (conversation.protocolo_ativo_id) {
-    await supabaseAdmin
-      .from("wa_protocolos")
-      .update({ assunto_resumo: briefing })
-      .eq("id", conversation.protocolo_ativo_id);
-  }
-  await recordHandoff({
-    conversation_id: conversation.id,
-    from_mode: "ai",
-    to_mode: "ai",
-    reason: "central_devolveu_para_consultor",
-    briefing,
-  }).catch(() => {});
+async function encaminharParaComercial(conversation: WaConversation, briefing: string) {
+  await escalarPorFalha(conversation, briefing);
 }
 
 
@@ -314,26 +292,9 @@ export function buildCentralTools(conversation: WaConversation) {
       },
     }),
 
-    devolver_para_consultor: tool({
-      description:
-        "Use SEMPRE que o assunto não for passagem aérea avulsa (pacote pronto, hotel, carro, aéreo+hotel, seguro, cruzeiro, planejamento de viagem, pedido já emitido, check-in, pós-venda, institucional). Devolve o atendimento para a IA consultora geral preservando todo o contexto. NÃO é escalonamento humano.",
-      inputSchema: z.object({
-        motivo: z.string().min(3).describe("O que o cliente pediu, em uma frase"),
-        resumo: z.string().min(3).describe("Contexto já coletado na conversa"),
-      }),
-      execute: async ({ motivo, resumo }) => {
-        await devolverParaConsultor(conversation, `↩️ Central → Consultores\n${motivo}\n\n${resumo}`);
-        return {
-          ok: true,
-          instrucao:
-            "Responda com UM balão curto e natural dizendo que já está passando o atendimento pra consultora que cuida desse assunto e que ela continua por aqui em instantes. Não fale em sistema, setor técnico, IA nem transferência automática.",
-        };
-      },
-    }),
-
     encaminhar_para_comercial: tool({
       description:
-        "Use SOMENTE em falha técnica, quando a pesquisa não puder ser concluída ou quando o cliente pedir expressamente para falar com um atendente humano. Não use para outros produtos — nesse caso use devolver_para_consultor.",
+        "Use em DOIS casos: (1) o assunto não é passagem aérea avulsa (pacote pronto, hotel, carro, aéreo+hotel, seguro, cruzeiro, planejamento de viagem, pedido já emitido, check-in, pós-venda, institucional); (2) falha técnica ou pesquisa que não pode ser concluída. Encaminha o atendimento ao time Comercial preservando o contexto. Nunca diga ao cliente que é uma transferência entre sistemas ou entre IA e humano.",
       inputSchema: z.object({
         motivo: z.string().min(3).describe("Motivo em uma frase"),
         resumo: z
@@ -342,7 +303,7 @@ export function buildCentralTools(conversation: WaConversation) {
           .describe("Resumo do que já foi coletado: origem, destino, datas, pax, preferências"),
       }),
       execute: async ({ motivo, resumo }) => {
-        await escalarPorFalha(conversation, `✈️ Central de Especialistas → Comercial\n${motivo}\n\n${resumo}`);
+        await encaminharParaComercial(conversation, `✈️ Central de Especialistas → Comercial\n${motivo}\n\n${resumo}`);
         return {
           ok: true,
           instrucao:
@@ -390,7 +351,7 @@ export function buildCentralBasePrompt(nome: string, genero: "f" | "m"): string 
     `3. Pesquisar com a tool pesquisar_passagens.`,
     `4. Apresentar DUAS opções por vez.`,
     `5. Usar o texto de contingência quando os cards falharem.`,
-    `6. Encaminhar ao Comercial só em falha técnica.`,
+    `6. Encaminhar ao Comercial quando o assunto não for aéreo ou em falha técnica.`,
     `Você JÁ É a Central — nunca fale em "encaminhar para a Central" e nunca chame nenhuma tool de transferência para a Central.`,
 
     `\n# 📝 INFORMAÇÕES NECESSÁRIAS (peça só o que faltar, no máximo 2 por mensagem)`,
@@ -410,14 +371,15 @@ export function buildCentralBasePrompt(nome: string, genero: "f" | "m"): string 
     `SEMPRE DUAS opções por vez. Se o cliente pedir outro horário, outra companhia ou bagagem incluída, faça uma NOVA pesquisa e apresente outras duas. Sempre em pares.`,
     `Contingência: quando a tool devolver contingencia_texto, envie o conteúdo de texto_pronto exatamente como veio (pode escrever uma frase curta e natural antes). Não altere valores, horários, companhias nem o formato.`,
 
-    `\n# ↩️ QUANDO NÃO FOR PASSAGEM AÉREA`,
+    `\n# ↪️ QUANDO NÃO FOR PASSAGEM AÉREA`,
     `Pacote pronto, hotel, carro, aéreo+hotel, seguro, cruzeiro, planejamento geral de viagem, pedido já emitido, check-in, cartão de embarque, pós-venda, alteração, cancelamento, dúvidas institucionais: NADA disso é seu.`,
-    `Não tente atender esses assuntos e não mande direto pro humano. Chame devolver_para_consultor com o resumo do que o cliente pediu — a consultora geral assume mantendo o contexto.`,
-    `Explique isso ao cliente de forma natural ("já vou passar pra consultora que cuida disso, ela continua com vc por aqui"), sem falar em sistema, fila, setor ou automação.`,
+    `Não tente atender esses assuntos. Chame encaminhar_para_comercial com o resumo do que o cliente pediu — o time Comercial assume mantendo o contexto.`,
+    `Avise o cliente de forma natural ("já estou passando pro time que cuida disso, eles continuam com vc por aqui"), sem falar em sistema, fila, setor, IA, robô, atendente humano nem automação.`,
 
-    `\n# ⚠️ ESCALONAMENTO HUMANO (só nestes casos)`,
-    `Falha técnica, pesquisa que não pode ser concluída, caso que exige mesmo uma pessoa, ou cliente pedindo expressamente falar com atendente: use encaminhar_para_comercial.`,
+    `\n# ⚠️ FALHA TÉCNICA`,
+    `Se a pesquisa não puder ser concluída, use encaminhar_para_comercial.`,
     `Se a tool devolver falha_tecnica, responda SOMENTE: "${CENTRAL_FALHA_MSG}" — nunca mostre erro, código, nome de sistema ou detalhe técnico, e nunca deixe o cliente sem resposta.`,
+    `Nunca diga que vai passar para "um humano", "uma pessoa" ou "um atendente de verdade": você fala do time Comercial, e nada mais.`,
 
     `\n# 🚫 LIMITES`,
     `Nunca invente voo, horário, companhia, preço, regra ou prazo: só existe o que a tool devolveu.`,
