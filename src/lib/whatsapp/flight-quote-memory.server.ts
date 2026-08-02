@@ -616,15 +616,34 @@ export function buildChoiceBlock(escolha: ChoiceDetection | null): string {
   if (!escolha) return "";
   const o = escolha.opcao;
   const resumo = `opção ${o.option_index} · ${o.companhia} · ${o.saida} → ${o.chegada}${o.volta_saida ? ` · volta ${o.volta_saida}` : ""} · ${o.valor_formatado}`;
+  const staleAviso = escolha.stale
+    ? `\n⏳ Essa cotação já tem mais de ${QUOTE_STALE_HOURS}h. Antes de confirmar valor ou disponibilidade, diga que vai consultar novamente ("vou consultar novamente a disponibilidade e o valor atualizado dessa opção") e refaça a busca.`
+    : "";
+  const origem =
+    escolha.match === "citada"
+      ? " (ele respondeu diretamente a esse card pelo WhatsApp)"
+      : escolha.match === "ultima_referencia"
+        ? " (é a última opção que ele mesmo comentou — não peça confirmação de qual é)"
+        : "";
+
+  if (escolha.match === "comparacao") {
+    return (
+      `\n# ⚖️ O CLIENTE PEDIU UMA COMPARAÇÃO (não é escolha)\n` +
+      `Pelos dados reais, a resposta é a ${resumo}. Responda comparando horários/duração das opções enviadas e explique o porquê. Não trate isso como fechamento.` +
+      staleAviso
+    );
+  }
   if (!escolha.clara) {
     return (
       `\n# 👉 O CLIENTE COMENTOU UMA OPÇÃO ESPECÍFICA\n` +
-      `Ele se referiu à ${resumo} (quote_id ${escolha.quote_id}). Fale dessa opção usando exatamente esses dados. Ele ainda NÃO fechou: siga conduzindo com naturalidade.`
+      `Ele se referiu à ${resumo} (quote_id ${escolha.quote_id})${origem}. Fale dessa opção usando exatamente esses dados. Ele ainda NÃO fechou: siga conduzindo com naturalidade.` +
+      staleAviso
     );
   }
   return (
     `\n# ✅ ESCOLHA DO CLIENTE (confirmada pelo registro, não deduza)\n` +
-    `Ele escolheu a ${resumo} (quote_id ${escolha.quote_id}).\n` +
-    `Confirme essa opção pelos dados reais, não mande outras opções e conduza para o próximo passo do fechamento.`
+    `Ele escolheu a ${resumo} (quote_id ${escolha.quote_id})${origem}.\n` +
+    `Confirme essa opção pelos dados reais, não mande outras opções e conduza para o próximo passo do fechamento.` +
+    staleAviso
   );
 }
