@@ -46,6 +46,11 @@ export type QuoteMemory = {
   cancelada: boolean;
   escolha_option_index: number | null;
   rota: string;
+  /** Cidades/IATAs pra resolver "a segunda de Recife". */
+  origem_termos: string[];
+  destino_termos: string[];
+  /** Horas desde a criação — usado pra reconfirmar disponibilidade. */
+  idade_horas: number;
   data_ida: string;
   data_volta: string | null;
   passageiros: string;
