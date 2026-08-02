@@ -415,13 +415,73 @@ const RX_FILTRO_DIRETO =
 const RX_FILTRO_UMA_CONEXAO =
   /\b(no m[áa]ximo (uma|1) conex(ã|a)o|s[óo] (uma|1) conex(ã|a)o|at[ée] (uma|1) conex(ã|a)o)\b/i;
 const RX_FILTRO_CONEXAO_CURTA = /\bconex(ã|a)o (r[áa]pida|curta)\b/i;
-const RX_FILTRO_SEM_CIA = /\b(sem|n(ã|a)o (quero|gosto de|pode ser)|tirando|exceto|menos)\s+(a\s+)?(gol|azul|latam|tam|avianca|copa|american|united|air ?europa|tap|ita)\b/i;
-const RX_FILTRO_SO_CIA = /\b(s[óo]|somente|apenas)\s+(a\s+)?(gol|azul|latam|tam|avianca|copa|american|united|air ?europa|tap|ita)\b/i;
-const RX_CIA_TOKEN = /\b(gol|azul|latam|tam|avianca|copa|american|united|air ?europa|tap|ita)\b/gi;
+const CIA_ALT = "gol|azul|latam|tam|avianca|copa|american|united|air ?europa|tap|ita|iberia|klm|delta";
+const RX_CIA_TOKEN = new RegExp(`\\b(${CIA_ALT})\\b`, "gi");
+/** Linguagem natural de EXCLUSÃO: "sem Gol", "evita a Gol", "qualquer uma menos Gol". */
+const RX_CIA_EXCLUIR = new RegExp(
+  `\\b(?:sem|n(?:ã|a)o\\s+(?:quero|gosto\\s+de|pode\\s+ser|curto)|evit(?:a|ar|e)|tir(?:a|ar|e)|tirando|exceto|fora|nada\\s+de|menos|qualquer\\s+uma\\s+menos|qualquer\\s+um\\s+menos)\\s+(?:a\\s+|o\\s+|da\\s+|de\\s+)?(${CIA_ALT})\\b`,
+  "gi",
+);
+/** Linguagem natural de INCLUSÃO: "pode ser Azul ou Latam", "prefiro Azul", "quero Latam". */
+const RX_CIA_INCLUIR = new RegExp(
+  `\\b(?:s(?:ó|o)|somente|apenas|prefiro|prefer(?:e|ência|encia)\\s+por|quero|queria|gostaria\\s+de|pode\\s+ser|podia\\s+ser|de\\s+prefer(?:ê|e)ncia|se\\s+for)\\s+(?:a\\s+|o\\s+|na\\s+|pela\\s+|de\\s+)?(${CIA_ALT})\\b`,
+  "gi",
+);
+
+/** Coleta companhias citadas logo após um marcador ("Azul ou Latam"). */
+function ciasNaSequencia(texto: string, from: number): string[] {
+  const trecho = texto.slice(from).split(/[.!?;]|\bmas\b|\bpor(é|e)m\b/i)[0] ?? "";
+  return (trecho.match(RX_CIA_TOKEN) ?? []).map((c) => c.trim());
+}
+
+const dedupCia = (arr: string[]): string[] => {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const c of arr) {
+    const k = c.toLowerCase().replace(/\s+/g, "");
+    if (!seen.has(k)) {
+      seen.add(k);
+      out.push(c);
+    }
+  }
+  return out;
+};
+
+/**
+ * Filtros de companhia em linguagem natural. A EXCLUSÃO é lida primeiro:
+ * "não quero Gol" tem o verbo "quero" dentro, e não pode virar inclusão.
+ */
+export function detectAirlineFilters(texto: string): {
+  companhias_excluidas?: string[];
+  companhias_incluidas?: string[];
+} {
+  const t = String(texto ?? "");
+  const excluidas: string[] = [];
+  const trechosExcluidos: Array<[number, number]> = [];
+  RX_CIA_EXCLUIR.lastIndex = 0;
+  for (let m = RX_CIA_EXCLUIR.exec(t); m; m = RX_CIA_EXCLUIR.exec(t)) {
+    excluidas.push(...ciasNaSequencia(t, m.index));
+    trechosExcluidos.push([m.index, m.index + m[0].length + 40]);
+  }
+  const incluidas: string[] = [];
+  RX_CIA_INCLUIR.lastIndex = 0;
+  for (let m = RX_CIA_INCLUIR.exec(t); m; m = RX_CIA_INCLUIR.exec(t)) {
+    if (trechosExcluidos.some(([a, b]) => m!.index >= a && m!.index <= b)) continue;
+    incluidas.push(...ciasNaSequencia(t, m.index));
+  }
+  const exc = dedupCia(excluidas);
+  const excKeys = new Set(exc.map((c) => c.toLowerCase().replace(/\s+/g, "")));
+  const inc = dedupCia(incluidas).filter((c) => !excKeys.has(c.toLowerCase().replace(/\s+/g, "")));
+  const out: { companhias_excluidas?: string[]; companhias_incluidas?: string[] } = {};
+  if (exc.length) out.companhias_excluidas = exc;
+  if (inc.length) out.companhias_incluidas = inc;
+  return out;
+}
 
 /**
  * Detecta pedido de FILTRO na pesquisa. Deve ser checado ANTES do resolvedor
  * de referências: "tem alguma sem conexão?" é filtro, não referência.
+ * Nunca limpa filtros anteriores — só devolve o que apareceu nesta mensagem.
  */
 export function detectSearchFilterIntent(texto: string): SearchFilterIntent | null {
   const t = String(texto ?? "");
@@ -434,34 +494,40 @@ export function detectSearchFilterIntent(texto: string): SearchFilterIntent | nu
   } else if (RX_FILTRO_DIRETO.test(t)) {
     out.somente_voo_direto = true;
   }
-  if (RX_FILTRO_SEM_CIA.test(t)) {
-    const m = RX_FILTRO_SEM_CIA.exec(t);
-    if (m?.[4]) out.companhias_excluidas = [m[4]];
-  } else if (RX_FILTRO_SO_CIA.test(t)) {
-    const cias = String(t.match(RX_CIA_TOKEN) ?? []).length ? (t.match(RX_CIA_TOKEN) as string[]) : [];
-    if (cias.length) out.companhias_incluidas = cias;
-  }
+  Object.assign(out, detectAirlineFilters(t));
   return Object.keys(out).length ? out : null;
 }
 
 /**
- * BAGAGEM. Duas intenções bem diferentes:
- * - `consulta_tarifa`: "essa já tem bagagem?" → responder pelo dado da opção;
- * - `nova_pesquisa`: "quanto fica com bagagem?" → NOVA pesquisa no motor com
- *   o filtro de bagagem. Nunca somar valor por conta própria.
+ * BAGAGEM. Três intenções bem diferentes:
+ * - `consultar`: "essa tem bagagem?" → responder pelo dado da própria tarifa;
+ * - `incluir`: "quanto fica com bagagem?" → NOVA pesquisa com
+ *   `bagagem_despachada: true`. Nunca somar valor por conta própria;
+ * - `remover`: "sem bagagem fica quanto?" → NOVA pesquisa com
+ *   `bagagem_despachada: false`.
  */
-export type BaggageIntent = "consulta_tarifa" | "nova_pesquisa" | null;
+export type BaggageIntent = "consultar" | "incluir" | "remover" | null;
 const RX_BAGAGEM = /\b(bagagem|bagagens|mala|malas|despachad|franquia|\d{1,2}\s?kg|quilos?)\b/i;
-const RX_BAGAGEM_JA_TEM = /\b(j[áa] (tem|inclui|vem com)|tem bagagem|inclui bagagem|vem com bagagem|essa tem mala|tem mala)\b/i;
+const RX_BAGAGEM_JA_TEM =
+  /\b(j[áa] (tem|inclui|vem com|est[áa] com)|tem bagagem|tem mala|inclui bagagem|vem com bagagem|essa tem mala|acompanha (mala|bagagem)|(é|e) com bagagem)\b/i;
+const RX_BAGAGEM_REMOVER =
+  /\b(sem\s+(a\s+)?(mala|bagagem)|tir(a|ar|ando)\s+(a\s+)?(mala|bagagem)|n(ã|a)o\s+(quero|preciso|vou\s+levar)\s+(de\s+)?(mala|bagagem)|s[óo]\s+(com\s+)?bagagem\s+de\s+m(ã|a)o|s[óo]\s+m(ã|a)o)\b/i;
 const RX_BAGAGEM_INCLUIR =
-  /\b(quanto (fica|ficaria|custa|sai|muda)|com (uma )?(mala|bagagem)|incluindo|inclu(ir|indo)|acrescent|adiciona(r|ndo)?|quero (a )?tarifa com|op(ç|c)(õ|o)es com bagagem|com bagagem despachada|com \d{1,2}\s?kg)\b/i;
+  /\b(quanto (fica|ficaria|custa|sai|muda|sairia)|com (uma )?(mala|bagagem)|incluindo|inclu(ir|indo)|acrescent|adiciona(r|ndo)?|quero (a )?tarifa com|op(ç|c)(õ|o)es com bagagem|com bagagem despachada|com \d{1,2}\s?kg|despachar)\b/i;
 
 export function detectBaggageIntent(texto: string): BaggageIntent {
   const t = String(texto ?? "");
   if (!RX_BAGAGEM.test(t)) return null;
-  if (RX_BAGAGEM_INCLUIR.test(t)) return "nova_pesquisa";
-  if (RX_BAGAGEM_JA_TEM.test(t)) return "consulta_tarifa";
-  return "consulta_tarifa";
+  // Remoção primeiro: "sem bagagem fica quanto?" também casa com RX_INCLUIR.
+  if (RX_BAGAGEM_REMOVER.test(t)) return "remover";
+  if (RX_BAGAGEM_JA_TEM.test(t)) return "consultar";
+  if (RX_BAGAGEM_INCLUIR.test(t)) return "incluir";
+  return "consultar";
+}
+
+/** `bagagem_despachada` a mandar ao motor — null quando é só consulta. */
+export function baggageSearchFlag(intent: BaggageIntent): boolean | null {
+  return intent === "incluir" ? true : intent === "remover" ? false : null;
 }
 
 /** "manda novamente aquela opção" → o agente deve usar a tool reenviar_opcao. */
