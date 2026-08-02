@@ -314,14 +314,22 @@ export async function runAgent(input: {
   // central_slug que acabou de ser gravado e abriria uma corrida consultor x Central.
   const protocolo = await ensureActiveProtocolo(conv.id);
 
+  // `conv` foi carregada antes de ensureActiveProtocolo e pode conter o runtime
+  // do protocolo encerrado. Sempre releia o roteamento já limpo/persistido.
+  const { data: routingState } = await supabaseAdmin
+    .from("wa_conversations")
+    .select("agent_slug, central_slug, central_brief")
+    .eq("id", conv.id)
+    .single();
+
   // ── Central de Especialistas ────────────────────────────────────────────
   // Dois caminhos chegam aqui:
   // 1) o consultor encaminhou durante a conversa (central_slug já preenchido);
   // 2) a PRIMEIRA mensagem do cliente já era pedido claro de passagem aérea —
   //    nesse caso a triagem direciona antes de qualquer saudação, sem passar
   //    pelas consultoras e sem transferência visível.
-  let centralSlug = (conv as unknown as { central_slug?: string | null }).central_slug ?? null;
-  let centralBrief = (conv as unknown as { central_brief?: string | null }).central_brief ?? null;
+  let centralSlug = routingState?.central_slug ?? null;
+  let centralBrief = routingState?.central_brief ?? null;
   let centralPrimeiroContato = false;
 
   if (!centralSlug) {
