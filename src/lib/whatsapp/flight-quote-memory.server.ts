@@ -450,18 +450,31 @@ export async function resolveTurnReference(
   memorias: QuoteMemory[],
   texto: string,
   replyToWaId?: string | null,
+  replyToMessageId?: string | null,
 ): Promise<OptionReference | null> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-  // 1) resposta citada — prioridade máxima
-  if (replyToWaId) {
-    const { data: citada } = await supabaseAdmin
-      .from("wa_messages")
-      .select("quote_id, option_index")
-      .eq("wa_message_id", replyToWaId)
-      .maybeSingle();
-    const qid = (citada?.quote_id as string | null) ?? null;
-    const oidx = (citada?.option_index as number | null) ?? null;
+  // 1) resposta citada — prioridade máxima (FK interna primeiro, depois id da Meta)
+  if (replyToMessageId || replyToWaId) {
+    let citada: { quote_id: string | null; option_index: number | null } | null = null;
+    if (replyToMessageId) {
+      const { data } = await supabaseAdmin
+        .from("wa_messages")
+        .select("quote_id, option_index")
+        .eq("id", replyToMessageId)
+        .maybeSingle();
+      citada = (data as typeof citada) ?? null;
+    }
+    if (!citada && replyToWaId) {
+      const { data } = await supabaseAdmin
+        .from("wa_messages")
+        .select("quote_id, option_index")
+        .eq("wa_message_id", replyToWaId)
+        .maybeSingle();
+      citada = (data as typeof citada) ?? null;
+    }
+    const qid = citada?.quote_id ?? null;
+    const oidx = citada?.option_index ?? null;
     if (qid && oidx) {
       const q = memorias.find((m) => m.quote_id === qid);
       const o = q?.opcoes.find((x) => x.option_index === oidx);
@@ -478,6 +491,7 @@ export async function resolveTurnReference(
       }
     }
   }
+
 
   // 2) texto + 3) última referência persistida
   const { data: conv } = await supabaseAdmin
