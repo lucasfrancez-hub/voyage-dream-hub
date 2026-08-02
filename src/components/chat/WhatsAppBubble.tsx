@@ -40,7 +40,7 @@ interface Props {
   /** Marca visual "respondida" — aparece uma setinha ↩ ao lado do horário */
   replied?: boolean;
   /** Prévia da mensagem citada (reply/quote) */
-  reply?: { sender?: string | null; snippet: unknown } | null;
+  reply?: { sender?: string | null; snippet: unknown; deleted?: boolean; revokedBy?: "customer" | "business" | null } | null;
   /** Handler pra "Responder" — clica na setinha que aparece no hover */
   onReply?: () => void;
 }
@@ -85,11 +85,18 @@ export function WhatsAppBubble({ side, content, timestamp, senderLabel, status, 
         )}
         {reply && (
           <div
-            className="mb-1 truncate rounded-md border-l-4 bg-black/10 px-2 py-1 text-[11px] leading-tight"
+            className="mb-1 rounded-md border-l-4 bg-black/10 px-2 py-1 text-[11px] leading-tight"
             style={{ borderColor: "var(--brand-orange)", color: "color-mix(in oklab, var(--chat-bubble-fg) 80%, transparent)" }}
           >
             {replySender && <div className="font-semibold" style={{ color: "var(--brand-orange)" }}>{replySender}</div>}
             <div className="line-clamp-2 opacity-80">{replySnippet || "mensagem"}</div>
+            {reply.deleted && (
+              <div className="mt-0.5 text-[10px] font-medium text-red-500">
+                {reply.revokedBy === "business"
+                  ? "Mensagem apagada pela empresa"
+                  : "Mensagem apagada pelo cliente"}
+              </div>
+            )}
           </div>
         )}
         {(() => {
