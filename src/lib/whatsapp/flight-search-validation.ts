@@ -207,3 +207,45 @@ export function validateFlightSearch(
 
   return { ok: true };
 }
+
+/* ─────────────────────────────────────────────────────────────
+   Combinação real de ida e volta (bate-volta e virada de dia)
+   ───────────────────────────────────────────────────────────── */
+
+/**
+ * Converte o carimbo do motor ("2026-08-10 07:35", já no horário LOCAL de cada
+ * aeroporto) em minutos comparáveis. Retorna null quando o formato não bate.
+ */
+export function stampToMinutes(s: string | null | undefined): number | null {
+  const m = /^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})/.exec(String(s ?? "").trim());
+  if (!m) return null;
+  return (
+    Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), Number(m[4]), Number(m[5])) / 60000
+  );
+}
+
+/** Folga mínima entre pousar da ida e decolar da volta (conexão em solo). */
+export const FOLGA_MIN_MINUTOS = 60;
+
+/**
+ * A combinação ida + volta é possível?
+ *
+ * Compara a CHEGADA FINAL da ida (com conexões e virada de dia já embutidas no
+ * carimbo do motor) com a PARTIDA INICIAL da volta. Nunca compara saída x saída.
+ * Quando a volta parte de um aeroporto diferente do de chegada da ida, exige
+ * uma folga maior para o deslocamento em solo.
+ */
+export function combinacaoIdaVoltaValida(
+  ida: { chegada?: string | null; destino?: string | null } | null | undefined,
+  volta: { partida?: string | null; origem?: string | null } | null | undefined,
+): boolean {
+  if (!ida || !volta) return true; // somente ida: nada a combinar
+  const chegada = stampToMinutes(ida.chegada);
+  const partida = stampToMinutes(volta.partida);
+  if (chegada === null || partida === null) return true; // sem dado, não descarta
+  const mudaAeroporto =
+    !!ida.destino && !!volta.origem && ida.destino.toUpperCase() !== volta.origem.toUpperCase();
+  const folga = mudaAeroporto ? FOLGA_MIN_MINUTOS * 3 : FOLGA_MIN_MINUTOS;
+  return partida - chegada >= folga;
+}
+
