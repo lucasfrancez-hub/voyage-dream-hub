@@ -202,30 +202,46 @@ export async function pickEspecialista(): Promise<string> {
 
 
 /**
- * Analisa a primeira mensagem da conversa. Se for pedido claro de passagem
- * aérea, grava o direcionamento para a Central e devolve o especialista.
- * Retorna null quando o atendimento deve seguir com as consultoras.
+ * Analisa as mensagens do cliente que ainda NÃO foram respondidas por uma IA
+ * consultora ou por um atendente. Se houver pedido claro de passagem aérea,
+ * grava o direcionamento para a Central e devolve o especialista.
+ *
+ * REGRESSÃO CORRIGIDA (ago/2026): antes bastava existir QUALQUER mensagem
+ * outbound nas últimas 12h para desligar a triagem — inclusive avisos
+ * automáticos do sistema (encerramento de protocolo, alerta de voo) e até
+ * mensagens que a Meta recusou. Um cliente que voltasse pedindo passagem caía
+ * na consultora e o pedido virava "pacote". Agora só conta como resposta
+ * nossa uma mensagem de verdade (IA consultora ou atendente, entregue), e a
+ * triagem reavalia sempre as mensagens novas que vieram depois dela.
  */
 export async function triageFirstMessage(conv: WaConversation): Promise<TriageResult> {
   const desde = new Date(Date.now() - JANELA_HORAS * 60 * 60 * 1000).toISOString();
 
-  // Só vale como "primeira mensagem" se ninguém do nosso lado já respondeu.
-  const { count: respondidas } = await supabaseAdmin
+  // Última resposta REAL nossa (não conta aviso automático do sistema nem
+  // mensagem que falhou no envio).
+  const { data: respostas } = await supabaseAdmin
     .from("wa_messages")
-    .select("id", { count: "exact", head: true })
+    .select("created_at, sender, error")
     .eq("conversation_id", conv.id)
     .eq("direction", "outbound")
-    .gte("created_at", desde);
-  if ((respondidas ?? 0) > 0) return null;
+    .gte("created_at", desde)
+    .order("created_at", { ascending: false })
+    .limit(30);
 
-  const { data: entradas } = await supabaseAdmin
+  const ultimaResposta =
+    (respostas ?? []).find(
+      (m) => (m.sender ?? "") !== "system" && !m.error,
+    )?.created_at ?? null;
+
+  // Mensagens do cliente ainda não respondidas.
+  let q = supabaseAdmin
     .from("wa_messages")
     .select("content")
     .eq("conversation_id", conv.id)
     .eq("direction", "inbound")
-    .gte("created_at", desde)
-    .order("created_at", { ascending: true })
-    .limit(10);
+    .gte("created_at", ultimaResposta ?? desde);
+  if (ultimaResposta) q = q.gt("created_at", ultimaResposta);
+  const { data: entradas } = await q.order("created_at", { ascending: true }).limit(10);
 
   const texto = (entradas ?? [])
     .map((m) => (m.content ?? "").trim())
@@ -240,6 +256,7 @@ export async function triageFirstMessage(conv: WaConversation): Promise<TriageRe
 
   const c = await classificar(texto);
   if (!c.aereo_avulso) return null;
+
 
   const linhas = ["✈️ Cotação de passagem aérea (cliente já abriu a conversa pedindo aéreo)"];
   if (c.origem) linhas.push(`📍 Origem: ${c.origem}`);
