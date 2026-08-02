@@ -26,7 +26,7 @@ type OptLite = {
 };
 
 const MAX_OPCOES = 2; // por cotação, salvo pedido explícito de mais horários
-const INTERVALO_MS = 45_000; // espaçamento mínimo entre duas artes
+const INTERVALO_MS = 30_000; // espaçamento entre a 1ª e a 2ª arte (auditoria: 30s)
 const CLAIM_TRAVADO_MS = 90_000; // claim preso (worker caiu no render) → destrava
 
 
