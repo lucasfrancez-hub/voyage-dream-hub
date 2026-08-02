@@ -17,7 +17,8 @@ export type CardLogEvent =
   | "card_failed"
   | "card_status"
   | "card_cancelled"
-  | "card_delivery_delayed";
+  | "card_delivery_delayed"
+  | "option_resent";
 
 /** Etapa exata em que a entrega quebrou — nunca use um genérico "send". */
 export type CardFailureStage =
@@ -73,6 +74,8 @@ export type CardLogEntry = {
   fallback_sent?: boolean | null;
   fallback_status?: "sent" | "failed" | "skipped" | null;
   fallback_message_id?: string | null;
+  /** reenvio: formato realmente usado na reentrega. */
+  resend_format?: "card" | "texto" | null;
 };
 
 export function logCardEvent(entry: CardLogEntry): void {
