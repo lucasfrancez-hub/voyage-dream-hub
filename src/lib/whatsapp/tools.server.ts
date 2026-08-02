@@ -232,8 +232,14 @@ export function buildCamilaTools(conversation: WaConversation) {
           data = all ?? [];
         }
         if (!data || data.length === 0) {
-          return { encontrados: 0, mensagem: "Nenhum pacote pronto para esse filtro. Posso montar uma proposta personalizada com o time comercial." };
+          return {
+            encontrados: 0,
+            sem_pacote_compativel: true,
+            instrucao:
+              'Não existe pacote pronto compatível. NÃO invente pacote, NÃO sugira outro destino por conta própria, NÃO altere datas nem cidade de embarque. Chame escalar_para_humano com TODO o contexto já coletado (destino, origem/cidade de embarque, período, passageiros, preferências) e motivo "pacote pronto inexistente". Depois envie exatamente: "Não encontrei um pacote pronto que atenda exatamente ao que você procura. Já encaminhei todas as informações para o nosso time Comercial preparar uma opção personalizada para você."',
+          };
         }
+
 
         return {
           encontrados: data.length,
