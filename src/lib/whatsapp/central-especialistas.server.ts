@@ -145,6 +145,38 @@ async function escalarPorFalha(conversation: WaConversation, briefing: string) {
   }).catch(() => {});
 }
 
+/**
+ * Devolve o atendimento à fila das IAs consultoras (NÃO é escalonamento humano).
+ * Usado quando o cliente pede algo que não é passagem aérea avulsa.
+ */
+async function devolverParaConsultor(conversation: WaConversation, briefing: string) {
+  await supabaseAdmin
+    .from("wa_conversations")
+    .update({
+      central_slug: null,
+      central_busca: null,
+      central_brief: briefing,
+      // segue com IA: quem responde a partir de agora é a consultora geral
+      mode: "ai",
+    })
+    .eq("id", conversation.id);
+  if (conversation.protocolo_ativo_id) {
+    await supabaseAdmin
+      .from("wa_protocolos")
+      .update({ assunto_resumo: briefing })
+      .eq("id", conversation.protocolo_ativo_id);
+  }
+  await recordHandoff({
+    conversation_id: conversation.id,
+    from_mode: "ai",
+    to_mode: "ai",
+    reason: "central_devolveu_para_consultor",
+    briefing,
+  }).catch(() => {});
+}
+
+
+
 /* ─────────────────────────────────────────────────────────────
    Tools da Central
    ───────────────────────────────────────────────────────────── */
