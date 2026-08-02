@@ -284,6 +284,7 @@ export function buildCentralTools(
       execute: async ({
         origem,
         origem_informada_pelo_cliente,
+        origem_sugerida_pelo_historico,
         destino,
         tipo_trecho,
         data_ida,
@@ -306,6 +307,7 @@ export function buildCentralTools(
         const check = validateFlightSearch({
           origem,
           origem_informada_pelo_cliente,
+          origem_sugerida_pelo_historico,
           destino,
           tipo_trecho,
           data_ida,
