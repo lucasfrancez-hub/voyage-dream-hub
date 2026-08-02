@@ -872,7 +872,7 @@ export function buildChoiceBlock(escolha: ChoiceDetection | null): string {
       ? `\n# 🧳 PEDIDO DE VALOR COM BAGAGEM DESPACHADA\n` +
         `Ele quer saber QUANTO FICA com bagagem despachada. NUNCA estime, some ou "chute" o valor.\n` +
         `Faça uma NOVA busca com \`pesquisar_passagens\` usando os mesmos trechos/datas/pax e \`bagagem_despachada: true\`, e responda com o valor real retornado. Avise que está consultando o valor com bagagem.`
-      : escolha.bagagem === "consulta"
+      : escolha.bagagem === "consulta_tarifa"
         ? `\n# 🧳 DÚVIDA SOBRE BAGAGEM DA OPÇÃO ATUAL\n` +
           `Ele quer saber se ESSA opção já inclui bagagem despachada. Responda apenas com o que está registrado nessa cotação. Se a franquia/peso não estiver registrada, diga que confirma a franquia exata com a companhia — NÃO invente quilos, peças nem regra de bagagem.`
         : "";
