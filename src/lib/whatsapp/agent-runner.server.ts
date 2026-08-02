@@ -698,6 +698,24 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
         .eq("id", conv.id);
     }
 
+    // ASSUNÇÃO HUMANA: relê o estado da conversa IMEDIATAMENTE antes de enviar.
+    // Se um atendente assumiu (mode != ai), pausou a IA ou a conversa foi
+    // atribuída a um humano enquanto a resposta era gerada, nada é enviado.
+    {
+      const { abortIfHumanTookOver } = await import("./human-takeover.server");
+      if (await abortIfHumanTookOver(conv.id, "baloes_da_ia")) {
+        for (const rowId of savedRowIds) {
+          if (rowId) {
+            await supabaseAdmin
+              .from("wa_messages")
+              .update({ deleted_at: new Date().toISOString(), error: "Envio cancelado: atendimento assumido por humano" })
+              .eq("id", rowId);
+          }
+        }
+        return;
+      }
+    }
+
     const prefix = buildSenderPrefix(agent.nome);
     const sent = await sendWhatsAppBubbles(conv.wa_phone, text, prefix);
     const failed = sent.filter((s) => s.error);

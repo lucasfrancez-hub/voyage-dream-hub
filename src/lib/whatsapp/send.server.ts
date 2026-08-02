@@ -328,7 +328,47 @@ export async function sendWhatsAppDocumentBytes(
  * Envia uma imagem já carregada pelo servidor — usada para os cartões de
  * voo/embarque. Sobe os bytes para a Meta e envia como FOTO real (media ID),
  * nunca como link, garantindo preview nativo no WhatsApp.
+ *
+ * A versão "detalhada" devolve também o media_id e a ETAPA exata da falha
+ * (upload x envio), usada pelo log de diagnóstico das artes.
  */
+export async function sendWhatsAppImageBytesDetailed(
+  to: string,
+  bytes: Uint8Array,
+  filename: string,
+  caption?: string | null,
+  fallbackLink?: string,
+): Promise<{
+  id: string | null;
+  error?: string;
+  media_id?: string | null;
+  uploaded_at?: string | null;
+  stage?: "meta_media_upload" | "meta_message_send";
+}> {
+  const name = filename.slice(0, 240);
+  const cap = caption ? { caption: caption.slice(0, 1024) } : {};
+  const mime = /\.jpe?g$/i.test(name) ? "image/jpeg" : "image/png";
+  if (bytes?.byteLength) {
+    const uploaded = await metaUploadMedia(bytes, name, mime);
+    if (uploaded.id) {
+      const r = await metaSendMedia(to, { type: "image", image: { id: uploaded.id, ...cap } });
+      return {
+        ...r,
+        media_id: uploaded.id,
+        uploaded_at: new Date().toISOString(),
+        stage: r.error ? "meta_message_send" : undefined,
+      };
+    }
+    console.error("[whatsapp] upload de imagem falhou:", uploaded.error);
+    if (!fallbackLink) {
+      return { id: null, error: uploaded.error ?? "Falha no upload da imagem", media_id: null, stage: "meta_media_upload" };
+    }
+  }
+  if (!fallbackLink) return { id: null, error: "URL da imagem ausente", stage: "meta_media_upload" };
+  const r = await metaSendMedia(to, { type: "image", image: { link: fallbackLink, ...cap } });
+  return { ...r, media_id: null, stage: r.error ? "meta_message_send" : undefined };
+}
+
 export async function sendWhatsAppImageBytes(
   to: string,
   bytes: Uint8Array,
@@ -336,19 +376,10 @@ export async function sendWhatsAppImageBytes(
   caption?: string | null,
   fallbackLink?: string,
 ): Promise<{ id: string | null; error?: string }> {
-  const name = filename.slice(0, 240);
-  const cap = caption ? { caption: caption.slice(0, 1024) } : {};
-  const mime = /\.jpe?g$/i.test(name) ? "image/jpeg" : "image/png";
-  if (bytes?.byteLength) {
-    const uploaded = await metaUploadMedia(bytes, name, mime);
-    if (uploaded.id) {
-      return metaSendMedia(to, { type: "image", image: { id: uploaded.id, ...cap } });
-    }
-    console.error("[whatsapp] upload de imagem falhou:", uploaded.error);
-  }
-  if (!fallbackLink) return { id: null, error: "URL da imagem ausente" };
-  return metaSendMedia(to, { type: "image", image: { link: fallbackLink, ...cap } });
+  const r = await sendWhatsAppImageBytesDetailed(to, bytes, filename, caption, fallbackLink);
+  return { id: r.id, ...(r.error ? { error: r.error } : {}) };
 }
+
 
 /** Envia um áudio (nota de voz) por link público/assinado. */
 export async function sendWhatsAppAudio(

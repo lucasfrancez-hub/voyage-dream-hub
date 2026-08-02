@@ -55,10 +55,23 @@ const RX_BLOQUEIO =
 // "quero só ida". Sozinhos já indicam cotação de aéreo avulso.
 const RX_TRECHO = /\b(ida\s*e\s*volta|(so|somente|apenas)\s*(a\s*)?ida|ida\s*simples)\b/i;
 
-function heuristicaAereo(textoBruto: string): boolean {
+// Bate-volta dito de forma informal: "preciso ir e voltar no mesmo dia",
+// "quero ir e voltar hoje", "bate volta", "vou e volto no mesmo dia",
+// "quero ir cedo e voltar a noite". Sozinhas já são pedido de aéreo.
+const RX_BATE_VOLTA =
+  /(bate\s*-?\s*volta|\b(ir|vou|viajar|preciso ir|quero ir)\b[^.!?]{0,40}\bvolt(ar|o|a)\b[^.!?]{0,30}\b(no mesmo dia|mesmo dia|hoje|a noite|de noite|mais tarde|cedo)\b|\bir e voltar\b|\bvou e volto\b)/i;
+
+// Deslocamento terrestre / passeio: "ida e volta" aqui NÃO é passagem aérea.
+const RX_TERRESTRE =
+  /\b(onibus|van|carro|traslado|transfer|translado|passeio|city tour|excursao de um dia|barco|trem)\b/i;
+
+export function heuristicaAereo(textoBruto: string): boolean {
   const texto = normalizarTexto(textoBruto);
-  if (!RX_AEREO.test(texto) && !RX_TRECHO.test(texto)) return false;
+  const pedeTrecho = RX_TRECHO.test(texto) || RX_BATE_VOLTA.test(texto);
+  if (!RX_AEREO.test(texto) && !pedeTrecho) return false;
   if (RX_BLOQUEIO.test(texto)) return false;
+  // "ida e volta" de ônibus/van/passeio não é aéreo — só segue se falou de voo.
+  if (!RX_AEREO.test(texto) && RX_TERRESTRE.test(texto)) return false;
   return true;
 }
 
@@ -83,9 +96,13 @@ quer PESQUISAR, COTAR ou COMPRAR SOMENTE PASSAGEM AÉREA.
 Exemplos true: "quero ver uma passagem", "preciso de um voo para Recife",
 "quero cotar uma passagem para Lisboa", "tem voo de Maringá para São Paulo?",
 "quanto está a passagem para Salvador?", "preciso comprar só o aéreo",
-"quero ver opções de voo", "quero ida e volta", "quero só ida", "quero ida simples".
-Frases sobre o tipo de trecho ("ida e volta", "só ida") sem menção a pacote/hotel
-também são aereo_avulso = true.
+"quero ver opções de voo", "quero ida e volta", "quero só ida", "quero ida simples",
+"preciso ir e voltar no mesmo dia", "quero ir e voltar hoje", "preciso fazer um bate-volta",
+"vou e volto no mesmo dia", "quero ir cedo e voltar à noite".
+Frases sobre o tipo de trecho ("ida e volta", "só ida") e sobre bate-volta
+("ir e voltar no mesmo dia") sem menção a pacote/hotel também são aereo_avulso = true.
+Mas se a ida e volta for claramente por ônibus, van, carro, transfer ou passeio,
+responda false.
 
 Responda aereo_avulso = false em TODOS os outros casos, inclusive:
 - mensagens genéricas: "oi", "boa tarde", "quero viajar", "preciso de ajuda com uma viagem";

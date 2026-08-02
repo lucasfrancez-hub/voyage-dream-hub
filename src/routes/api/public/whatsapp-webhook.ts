@@ -113,20 +113,55 @@ async function processPayload(payload: WhatsAppPayload) {
       if (value.statuses) {
         for (const st of value.statuses) {
           console.log(`[wa-webhook] status ${st.status} para ${st.id}`);
-          if (st.status === "failed") {
-            const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-            const failure = st.errors?.[0];
-            const details = failure?.error_data?.details;
-            const message = details ?? failure?.message ?? failure?.title ?? "O WhatsApp não entregou a mensagem";
-            const code = failure?.code ? `Meta ${failure.code}: ` : "";
+          const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+          const failure = st.errors?.[0];
+          const details = failure?.error_data?.details;
+          const message =
+            details ?? failure?.message ?? failure?.title ?? "O WhatsApp não entregou a mensagem";
+          const code = failure?.code ? `Meta ${failure.code}: ` : "";
+
+          // STATUS REAL: sent ≠ delivered ≠ read. "Aceito pela Meta" não é entrega.
+          const conhecido = ["sent", "delivered", "read", "failed"].includes(st.status);
+          const patch: Record<string, unknown> = conhecido
+            ? { delivery_status: st.status, delivery_status_at: new Date().toISOString() }
+            : {};
+          if (st.status === "failed") patch.error = `${code}${message}`;
+          if (Object.keys(patch).length) {
             const { error } = await supabaseAdmin
               .from("wa_messages")
-              .update({ error: `${code}${message}` })
+              .update(patch as never)
               .eq("wa_message_id", st.id);
             if (error) console.error("[wa-webhook] falha ao registrar status:", error.message);
           }
+
+          // Se a mensagem era uma ARTE de voo, o status real entra no log dos cards.
+          try {
+            const { data: msg } = await supabaseAdmin
+              .from("wa_messages")
+              .select("conversation_id, content")
+              .eq("wa_message_id", st.id)
+              .maybeSingle();
+            const ehCard = /\[\[media:image/i.test(
+              (msg as { content?: string | null } | null)?.content ?? "",
+            );
+            if (ehCard && conhecido) {
+              const { logCardEvent } = await import("@/lib/whatsapp/card-log.server");
+              logCardEvent({
+                event: st.status === "failed" ? "card_failed" : "card_status",
+                conversation_id: (msg as { conversation_id?: string | null }).conversation_id ?? null,
+                meta_message_id: st.id,
+                delivery_status: st.status as "sent" | "delivered" | "read" | "failed",
+                ...(st.status === "failed"
+                  ? { failed_stage: "meta_delivery" as const, failure_reason: `${code}${message}` }
+                  : {}),
+              });
+            }
+          } catch (e) {
+            console.warn("[wa-webhook] log de status do card falhou:", e);
+          }
         }
       }
+
 
       for (const msg of value.messages ?? []) {
         const profileName =

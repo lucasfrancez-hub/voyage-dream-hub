@@ -19,12 +19,7 @@ import { recordHandoff, type WaConversation } from "./conversation.server";
 import { validateFlightSearch } from "./flight-search-validation";
 import { VIA_AIR_CNPJ, VIA_AIR_EMAIL_EMERGENCIA } from "@/lib/institucional";
 
-import type {
-  FlightQuoteLeg,
-  FlightQuoteOption,
-  FlightQuoteResult,
-  PeriodoDia,
-} from "./flight-quote.server";
+import type { PeriodoDia } from "./flight-quote.server";
 
 /* ─────────────────────────────────────────────────────────────
    Módulos da Central (expansão futura)
@@ -60,59 +55,10 @@ export const CENTRAL_FALHA_MSG =
   "Estou com um probleminha no meu sistema para concluir essa pesquisa, mas já encaminhei seu atendimento para o nosso time Comercial. Eles vão continuar a pesquisa e verificar as melhores opções para você.";
 
 /* ─────────────────────────────────────────────────────────────
-   Helpers de formatação (modelo de contingência em texto)
+   Modelo de contingência em texto (mesmos dados estruturados do card)
    ───────────────────────────────────────────────────────────── */
-function fmtDataHora(s: string): { data: string; hora: string } {
-  // "2026-08-10 07:35"
-  const [d, h] = String(s ?? "").split(" ");
-  const [y, m, dd] = (d ?? "").split("-");
-  return { data: dd && m ? `${dd}/${m}/${y}` : (d ?? "—"), hora: h ?? "—" };
-}
-
-function legBlock(leg: FlightQuoteLeg, icon: string): string[] {
-  const ida = fmtDataHora(leg.partida);
-  const chg = fmtDataHora(leg.chegada);
-  const paradas =
-    leg.paradas <= 0
-      ? "Direto"
-      : `${leg.paradas === 1 ? "1 conexão" : `${leg.paradas} conexões`}${leg.escalas?.length ? ` em ${leg.escalas.join(", ")}` : ""}`;
-  const lines = [
-    `📅 ${ida.data}`,
-    `${icon} ${ida.hora} → ${chg.hora}`,
-    `🏢 ${leg.cia}`,
-    `🔁 ${paradas}`,
-  ];
-  if (leg.paradas > 0 && leg.duracao) lines.push(`⏱ Tempo total: ${leg.duracao}`);
-  return lines;
-}
-
-/** Monta o texto de contingência exatamente no modelo aprovado no briefing. */
-export function formatOptionsText(quote: FlightQuoteResult, opcoes: FlightQuoteOption[]): string {
-  const sep = "━━━━━━━━━━━━━━━━━━";
-  const blocks: string[] = [];
-  opcoes.forEach((op, i) => {
-    const lines: string[] = [
-      sep,
-      `✈️ Opção ${i + 1}`,
-      `📍 ${quote.origem_nome} → ${quote.destino_nome}`,
-    ];
-    if (op.volta) {
-      lines.push("", "Ida", ...legBlock(op.ida, "🕘"), "", "Volta", ...legBlock(op.volta, "🕓"));
-    } else {
-      lines.push(...legBlock(op.ida, "🕘"));
-    }
-    lines.push(
-      `🧳 ${op.bagagem_despachada ? "Tarifa com bagagem despachada incluída" : "Tarifa promocional (bagagem conforme tarifa)"}`,
-    );
-    lines.push(`💰 ${op.por_pessoa_formatado} por pessoa`);
-    blocks.push(lines.join("\n"));
-  });
-  blocks.push(sep);
-  blocks.push(
-    "Se preferir, posso pesquisar outras companhias, horários ou opções com bagagem incluída.",
-  );
-  return blocks.join("\n");
-}
+import { formatOptionText, formatOptionsText } from "./flight-option-text.server";
+export { formatOptionText, formatOptionsText };
 
 /* ─────────────────────────────────────────────────────────────
    Escalação automática pro Comercial quando o motor falha
@@ -202,10 +148,18 @@ export function buildCentralTools(conversation: WaConversation, habilitadas?: st
           .describe("true somente se o cliente informou quantos passageiros vão viajar"),
         criancas: z.number().int().min(0).max(9).nullable().describe("Crianças de 2 a 11 anos"),
         bebes: z.number().int().min(0).max(9).nullable().describe("Bebês de colo (menos de 2 anos)"),
-        preferencia_horario: z
-          .enum(["manha", "tarde", "noite", "madrugada"])
+        preferencia_horario_ida: z
+          .enum(["madrugada", "manha", "tarde", "noite"])
           .nullable()
-          .describe("Só preencha se o cliente informou espontaneamente"),
+          .describe(
+            "Preferência de horário SOMENTE da IDA. Só preencha se o cliente informou espontaneamente. Nunca copie a preferência da volta.",
+          ),
+        preferencia_horario_volta: z
+          .enum(["madrugada", "manha", "tarde", "noite"])
+          .nullable()
+          .describe(
+            "Preferência de horário SOMENTE da VOLTA. Só preencha se o cliente informou espontaneamente. Nunca repita aqui a preferência da ida.",
+          ),
         somente_com_bagagem: z
           .boolean()
           .nullable()
@@ -223,7 +177,8 @@ export function buildCentralTools(conversation: WaConversation, habilitadas?: st
         pax_informado_pelo_cliente,
         criancas,
         bebes,
-        preferencia_horario,
+        preferencia_horario_ida,
+        preferencia_horario_volta,
         somente_com_bagagem,
       }) => {
         // TRAVA ÚNICA no servidor: dados obrigatórios, coerência de trecho,
@@ -261,16 +216,18 @@ export function buildCentralTools(conversation: WaConversation, habilitadas?: st
           `📍 ${origem} → ${destino}\n` +
           `📅 Ida ${data_ida}${data_volta ? ` · Volta ${data_volta}` : " (somente ida)"}\n` +
           `👥 ${adultos} adulto(s)${criancas ? ` + ${criancas} criança(s)` : ""}${bebes ? ` + ${bebes} bebê(s)` : ""}` +
-          (preferencia_horario ? `\n🕘 Preferência de horário: ${preferencia_horario}` : "") +
+          (preferencia_horario_ida ? `\n🕘 Preferência de horário na ida: ${preferencia_horario_ida}` : "") +
+          (preferencia_horario_volta ? `\n🕗 Preferência de horário na volta: ${preferencia_horario_volta}` : "") +
           (somente_com_bagagem ? `\n🧳 Cliente pediu bagagem despachada` : "");
 
 
         try {
           const { quoteFlights } = await import("./flight-quote.server");
-          const periodo: PeriodoDia =
-            preferencia_horario === "madrugada"
-              ? "manha"
-              : ((preferencia_horario ?? "livre") as PeriodoDia);
+          // Preferências INDEPENDENTES: a da ida nunca é reaproveitada na volta.
+          const toPeriodo = (p?: string | null): PeriodoDia =>
+            p === "madrugada" ? "manha" : ((p ?? "livre") as PeriodoDia);
+          const periodoIda = toPeriodo(preferencia_horario_ida);
+          const periodoVolta = data_volta ? toPeriodo(preferencia_horario_volta) : null;
           const result = await quoteFlights({
             origem,
             destino,
@@ -279,11 +236,20 @@ export function buildCentralTools(conversation: WaConversation, habilitadas?: st
             adultos,
             criancas,
             bebes,
-            periodo_ida: periodo,
-            periodo_volta: null,
+            periodo_ida: periodoIda,
+            periodo_volta: periodoVolta,
             bagagem_despachada: somente_com_bagagem,
           });
           if ("error" in result) {
+            if (result.sem_combinacao) {
+              return {
+                ok: true,
+                sem_resultado: true,
+                sem_combinacao: true,
+                instrucao:
+                  "Existem voos soltos, mas NENHUMA combinação de ida e volta é possível nesses horários (a volta sairia antes da ida chegar). NÃO apresente nenhuma combinação. Diga com naturalidade que nesse formato não dá certo e ofereça outra data, outro horário ou pernoite. Isso NÃO é falha técnica: nunca fale em sistema, motor ou erro.",
+              };
+            }
             return {
               ok: true,
               sem_resultado: true,
@@ -349,9 +315,11 @@ export function buildCentralTools(conversation: WaConversation, habilitadas?: st
               event: "card_failed",
               conversation_id: conversation.id,
               quote_id: quote_id ?? null,
-              stage: "send",
-              reason: "cards_enviados=0 — fallback em texto",
+              failed_stage: "meta_message_send",
+              failure_reason: "cards_enviados=0 — fallback em texto",
+              delivery_status: "failed",
               fallback_sent: true,
+              fallback_status: "sent",
             });
           }
           return {
@@ -467,6 +435,8 @@ export function buildCentralBasePrompt(nome: string, genero: "f" | "m"): string 
     `Crianças: só pergunte se houver MAIS DE UM passageiro — "entre os passageiros tem alguma criança? se sim, qual a idade?".`,
     `Bagagem: NÃO pergunte automaticamente; só entra no assunto se o cliente mencionar.`,
     `Horário: NÃO pergunte automaticamente; só considere se o cliente falar espontaneamente.`,
+    `Preferência de horário é SEPARADA por trecho: "quero ir cedo e voltar à noite" = preferencia_horario_ida manhã e preferencia_horario_volta noite. Nunca aplique a preferência da ida na volta.`,
+    `Se o cliente pedir só mudança em um trecho ("quero uma volta mais tarde"), mantenha TODOS os dados anteriores, altere apenas a preferência daquele trecho e faça uma nova pesquisa.`,
 
     `\n# 🔎 PESQUISA E APRESENTAÇÃO`,
     `Assim que o CLIENTE tiver informado todas as informações mínimas obrigatórias, inicie a pesquisa IMEDIATAMENTE. Não faça perguntas desnecessárias antes de chamar pesquisar_passagens — mas também nunca antecipe a pesquisa com dado que ele não informou.`,
@@ -477,6 +447,10 @@ export function buildCentralBasePrompt(nome: string, genero: "f" | "m"): string 
     `NOVA PESQUISA: sempre que o cliente pedir outro horário, outra companhia, outra tarifa, bagagem incluída ou outra combinação de voos, faça uma NOVA pesquisa com os novos critérios — nunca reaproveite resultados anteriores.`,
     `Contingência: quando a tool devolver contingencia_texto, envie o conteúdo de texto_pronto exatamente como veio (pode escrever uma frase curta e natural antes). Não altere valores, horários, companhias nem o formato.`,
     `NUNCA explique que o card falhou. Se usar o texto de contingência, o cliente não pode perceber que houve qualquer problema técnico.`,
+
+    `\n# 🔁 IDA E VOLTA NO MESMO DIA (bate-volta)`,
+    `Bate-volta é permitido. Quem valida se a combinação é possível é a pesquisa, não você.`,
+    `Se a tool devolver sem_combinacao, existem voos mas nenhuma combinação viável: não apresente nada, explique com naturalidade e ofereça outra data, outro horário ou pernoite. Isso não é falha técnica.`,
 
     `\n# 🔍 SEM RESULTADOS`,
     `Pesquisa concluída sem voos NÃO é erro: nunca use a mensagem de falha técnica nesse caso e nunca fale em sistema, motor ou problema.`,
@@ -532,6 +506,8 @@ export function buildCentralPrompt(
     `Ordem de coleta: origem → destino → somente ida ou ida e volta → data(s) → passageiros. Nunca pule etapa, nunca pergunte o que já foi informado.`,
     `Tipo de trecho é pergunta EXPLÍCITA. Nunca deduza pela ausência de data de volta.`,
     `Nunca invente, estime ou assuma data, trecho ou quantidade de passageiros. A tool valida no servidor: quando devolver faltam_dados ou dados_invalidos, faça a pergunta da instrucao com naturalidade e não fale em erro, validação ou sistema.`,
+    `Preferência de horário é por trecho: preencha preferencia_horario_ida e preferencia_horario_volta separadamente. Nunca aplique a preferência da ida na volta. Pedido de mudar só um trecho ("uma volta mais tarde"): mantenha todo o resto e pesquise de novo.`,
+    `Ida e volta no mesmo dia é permitido. Quando a tool devolver sem_combinacao, não apresente nenhuma combinação: explique com naturalidade e ofereça outra data, outro horário ou pernoite.`,
     `Pesquisa sem resultados NÃO é falha técnica: informe com naturalidade e ofereça datas/aeroportos próximos.`,
     `Institucional: sede em Paranavaí – Paraná, operação 100% Home Office, sem loja física. CNPJ ${VIA_AIR_CNPJ} só quando o cliente pedir explicitamente. Emergência em viagem: ${VIA_AIR_EMAIL_EMERGENCIA}, nunca telefone ou 0800.`,
     `Nunca diga que é IA, robô, bot ou automação, e nunca fale em atendente humano — o time é o Comercial.`,
