@@ -315,40 +315,82 @@ export type OptionReference = {
     | "continuidade";
   /** Cotação com mais de QUOTE_STALE_HOURS — precisa reconsultar. */
   stale?: boolean;
+  /** Companhia da opção — mantém o escopo em perguntas seguintes ("ela"). */
+  companhia?: string | null;
+  /** Assunto tratado no turno (bagagem, conexão, valor…). */
+  assunto?: string | null;
+  /** Conflito entre a mensagem citada e o texto ("respondeu a 1 e pediu a 2"). */
+  conflito?: { option_index_texto: number; option_index_citada: number } | null;
 };
 
+/** Assunto do turno — usado para manter a referência entre perguntas. */
+export function detectAssunto(texto: string): string | null {
+  const t = String(texto ?? "");
+  if (/\b(bagagem|mala|despachad|franquia|quilos?|kg)\b/i.test(t)) return "bagagem";
+  if (/\b(conex(ã|a)o|escala|dura(ç|c)(ã|a)o|quanto (demora|tempo))\b/i.test(t)) return "conexao";
+  if (/\b(valor|pre(ç|c)o|quanto (fica|custa|sai)|parcel|desconto)\b/i.test(t)) return "valor";
+  if (/\b(hor[áa]rio|sai|chega|decola)\b/i.test(t)) return "horario";
+  if (/\b(assento|marca(ç|c)(ã|a)o)\b/i.test(t)) return "assento";
+  if (/\b(tarifa|regras|remarca|alter|reembols|cancel)\b/i.test(t)) return "tarifa";
+  if (/\b(emiss(ã|a)o|emitir|pagamento|fechar)\b/i.test(t)) return "emissao";
+  return null;
+}
+
 /** Última opção que o cliente comentou (persistida na conversa). */
-export type LastReference = { quote_id: string; option_index: number } | null;
+export type LastReference = {
+  quote_id: string;
+  option_index: number;
+  /** Companhia travada na referência ("a Latam chega antes?" → "ela" = Latam). */
+  companhia?: string | null;
+  /** Assunto que estava sendo tratado (bagagem, conexão, valor…). */
+  assunto?: string | null;
+} | null;
 
 /**
  * Pronomes/refências vagas à ÚLTIMA opção comentada:
- * "essa", "aquela", "a de antes", "a que você mandou", "a mesma"...
+ * "essa", "aquela", "ela", "nela", "dessa", "a de antes", "a mesma"...
  */
 const RX_PRONOME_VAGO =
-  /\b(essa|esse|est[ae]|nessa|nesse|aquela|aquele|naquela|naquele|a de cima|a de antes|o de antes|a anterior|o anterior|aquela anterior|a mesma|essa mesma|aquela mesma|o mesmo|esse mesmo|aquele mesmo|a (que|q) (voc[êe]|vc|tu) (mandou|enviou|passou|mostrou)|a op(ç|c)(ã|a)o que (voc[êe]|vc) (mandou|enviou)|aquel[ao] (voo|hor[áa]rio|op(ç|c)(ã|a)o|passagem))\b/i;
+  /\b(ess[ae]|est[ae]|iss[oe]|dess[ae]|dest[ae]|diss[oe]|ness[ae]|nest[ae]|niss[oe]|aquel[ae]|aquilo|daquel[ae]|naquel[ae]|el[ae]|nel[ae]|del[ae]|ess[ae] da[ií]|aquel[ae] da[ií]|ess[ae] mesm[ao]|aquel[ae] mesm[ao]|a mesma|o mesmo|a de cima|a de antes|o de antes|a anterior|o anterior|a (que|q) (voc[êe]|vc|tu) (mandou|enviou|passou|mostrou)|aquel[ao] (voo|hor[áa]rio|op(ç|c)(ã|a)o|passagem|tarifa))\b/i;
 
 /**
  * CONTINUIDADE: pergunta de acompanhamento SEM pronome, que ainda fala da
- * mesma opção ("quanto fica com bagagem?", "a conexão é longa?").
+ * mesma opção ("quanto fica com bagagem?", "e são quantos quilos?").
  */
 const RX_CONTINUIDADE =
-  /\b(bagagem|mala|despachad|conex(ã|a)o|escala|dura(ç|c)(ã|a)o|quanto (demora|tempo)|chega (que horas|a que horas)|sai (que horas|a que horas)|hor[áa]rio|assento|marca(ç|c)(ã|a)o de assento|remarca(ç|c)(ã|a)o|reembols|parcel|quanto fica|qual o valor|preço|pre(ç|c)o|d[áa] tempo)\b/i;
+  /\b(bagagem|bagagens|mala|malas|despachad|franquia|quantos? quilos?|\d{1,2}\s?kg|kg\b|dimens(õ|o)es|bagagem de m(ã|a)o|conex(ã|a)o|conex(õ|o)es|escala|dura(ç|c)(ã|a)o|quanto (demora|tempo|custa|fica|ficaria|muda|sai)|qual (o|a) (valor|pre(ç|c)o|diferen(ç|c)a)|diferen(ç|c)a|chega (que horas|a que horas)|sai (que horas|a que horas)|hor[áa]rio|assento|marca(ç|c)(ã|a)o de assento|remarca(ç|c)(ã|a)o|remarcar|alter(a|ar|a(ç|c)(ã|a)o)|cancelamento|reembols|tarifa|regras|emiss(ã|a)o|emitir|parcel|valor|pre(ç|c)o|d[áa] tempo|ainda (est[áa]|t[áa]) dispon[íi]vel|dispon[íi]vel)\b/i;
 
 /** Pedido de REENVIO da mesma opção ("manda de novo", "reenvia aquela"). */
 const RX_REENVIO =
-  /\b(manda(r)?|envia(r)?|reenvia(r)?|mostra(r)?|passa(r)?|repete|repetir|ver|rever)\b[^.?!]{0,40}\b(de novo|novamente|outra vez|mais uma vez)\b|\breenvi(a|e|ar|ando)\b/i;
+  /\b(manda(r)?|envia(r)?|reenvia(r)?|mostra(r)?|passa(r)?|repete|repetir|ver|rever)\b[^.?!]{0,40}\b(de novo|novamente|outra vez|mais uma vez|pra mim|para mim)\b|\breenvi(a|e|ar|ando)\b/i;
+
+/**
+ * PERGUNTA (preço/condição/comparação) — nunca é decisão de compra.
+ * "quanto fica com bagagem?" ≠ "fico com essa". Checado ANTES da regex de
+ * escolha para não gerar falso positivo de fechamento.
+ */
+const RX_PERGUNTA_NAO_DECISAO =
+  /\b(quanto|quando|qual|quais|como|quantos?|quantas?|tem|teria|h[áa]|d[áa] pra|dá pra|ser[áa]|e se)\b[^.?!]{0,80}\b(fica|ficaria|ficam|custa|custaria|sai|sairia|muda|mudaria|inclui|incluindo|com|barat|caro|dispon[íi]vel)\b|\?\s*$/i;
+/** Interrogativa pura de preço: "quanto fica", "quanto ficaria", "qual fica mais barata". */
+const RX_INTERROGATIVA_PRECO =
+  /\b(quanto|qual|quais|como)\b[^.?!]{0,40}\b(fica|ficaria|ficam|custa|custaria|sai|sairia|muda|mudaria)\b/i;
 
 /** Intenção de FILTRO/nova pesquisa — tem prioridade sobre resolver referência. */
 export type SearchFilterIntent = {
   somente_voo_direto?: boolean;
   maximo_conexoes?: number;
   preferir_conexao_curta?: boolean;
+  companhias_excluidas?: string[];
+  companhias_incluidas?: string[];
 };
 const RX_FILTRO_DIRETO =
   /\b(sem (conex(ã|a)o|escala)|voo direto|voos diretos|direto mesmo|n(ã|a)o quero (escala|conex(ã|a)o)|quero evitar (escala|conex(ã|a)o)|evitar conex(ã|a)o)\b/i;
 const RX_FILTRO_UMA_CONEXAO =
   /\b(no m[áa]ximo (uma|1) conex(ã|a)o|s[óo] (uma|1) conex(ã|a)o|at[ée] (uma|1) conex(ã|a)o)\b/i;
 const RX_FILTRO_CONEXAO_CURTA = /\bconex(ã|a)o (r[áa]pida|curta)\b/i;
+const RX_FILTRO_SEM_CIA = /\b(sem|n(ã|a)o (quero|gosto de|pode ser)|tirando|exceto|menos)\s+(a\s+)?(gol|azul|latam|tam|avianca|copa|american|united|air ?europa|tap|ita)\b/i;
+const RX_FILTRO_SO_CIA = /\b(s[óo]|somente|apenas)\s+(a\s+)?(gol|azul|latam|tam|avianca|copa|american|united|air ?europa|tap|ita)\b/i;
+const RX_CIA_TOKEN = /\b(gol|azul|latam|tam|avianca|copa|american|united|air ?europa|tap|ita)\b/gi;
 
 /**
  * Detecta pedido de FILTRO na pesquisa. Deve ser checado ANTES do resolvedor
@@ -356,16 +398,50 @@ const RX_FILTRO_CONEXAO_CURTA = /\bconex(ã|a)o (r[áa]pida|curta)\b/i;
  */
 export function detectSearchFilterIntent(texto: string): SearchFilterIntent | null {
   const t = String(texto ?? "");
-  if (RX_FILTRO_CONEXAO_CURTA.test(t)) return { maximo_conexoes: 1, preferir_conexao_curta: true };
-  if (RX_FILTRO_UMA_CONEXAO.test(t)) return { maximo_conexoes: 1 };
-  if (RX_FILTRO_DIRETO.test(t)) return { somente_voo_direto: true };
-  return null;
+  const out: SearchFilterIntent = {};
+  if (RX_FILTRO_CONEXAO_CURTA.test(t)) {
+    out.maximo_conexoes = 1;
+    out.preferir_conexao_curta = true;
+  } else if (RX_FILTRO_UMA_CONEXAO.test(t)) {
+    out.maximo_conexoes = 1;
+  } else if (RX_FILTRO_DIRETO.test(t)) {
+    out.somente_voo_direto = true;
+  }
+  if (RX_FILTRO_SEM_CIA.test(t)) {
+    const m = RX_FILTRO_SEM_CIA.exec(t);
+    if (m?.[4]) out.companhias_excluidas = [m[4]];
+  } else if (RX_FILTRO_SO_CIA.test(t)) {
+    const cias = String(t.match(RX_CIA_TOKEN) ?? []).length ? (t.match(RX_CIA_TOKEN) as string[]) : [];
+    if (cias.length) out.companhias_incluidas = cias;
+  }
+  return Object.keys(out).length ? out : null;
+}
+
+/**
+ * BAGAGEM. Duas intenções bem diferentes:
+ * - `consulta_tarifa`: "essa já tem bagagem?" → responder pelo dado da opção;
+ * - `nova_pesquisa`: "quanto fica com bagagem?" → NOVA pesquisa no motor com
+ *   o filtro de bagagem. Nunca somar valor por conta própria.
+ */
+export type BaggageIntent = "consulta_tarifa" | "nova_pesquisa" | null;
+const RX_BAGAGEM = /\b(bagagem|bagagens|mala|malas|despachad|franquia|\d{1,2}\s?kg|quilos?)\b/i;
+const RX_BAGAGEM_JA_TEM = /\b(j[áa] (tem|inclui|vem com)|tem bagagem|inclui bagagem|vem com bagagem|essa tem mala|tem mala)\b/i;
+const RX_BAGAGEM_INCLUIR =
+  /\b(quanto (fica|ficaria|custa|sai|muda)|com (uma )?(mala|bagagem)|incluindo|inclu(ir|indo)|acrescent|adiciona(r|ndo)?|quero (a )?tarifa com|op(ç|c)(õ|o)es com bagagem|com bagagem despachada|com \d{1,2}\s?kg)\b/i;
+
+export function detectBaggageIntent(texto: string): BaggageIntent {
+  const t = String(texto ?? "");
+  if (!RX_BAGAGEM.test(t)) return null;
+  if (RX_BAGAGEM_INCLUIR.test(t)) return "nova_pesquisa";
+  if (RX_BAGAGEM_JA_TEM.test(t)) return "consulta_tarifa";
+  return "consulta_tarifa";
 }
 
 /** "manda novamente aquela opção" → o agente deve usar a tool reenviar_opcao. */
 export function detectResendIntent(texto: string): boolean {
   return RX_REENVIO.test(String(texto ?? ""));
 }
+
 
 /** Escolhe a cotação alvo considerando "pesquisa anterior" e cidade citada. */
 function escolherCotacao(comEnvio: QuoteMemory[], t: string): QuoteMemory {
@@ -412,26 +488,42 @@ export function resolveOptionReference(
           option_index: o.option_index,
           opcao: o,
           match,
+          companhia: o.companhia,
+          assunto: detectAssunto(t),
           stale: alvo.idade_horas >= QUOTE_STALE_HOURS,
         }
       : null;
 
-  /** Opções da companhia citada na frase (quando houver). */
-  const daCompanhiaCitada = enviadas.filter((o) => {
+  const citaCompanhia = (o: QuoteOptionMemory, texto: string) => {
     const nome = o.companhia.split(/\s+/)[0] ?? o.companhia;
     return (
-      new RegExp(`\\b${nome.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i").test(t) ||
-      airlineMatches(o.companhia, t)
+      new RegExp(`\\b${nome.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i").test(texto) ||
+      airlineMatches(o.companhia, texto)
     );
-  });
+  };
 
-  // -1) FILTRO DE PESQUISA vem antes de tudo: "tem alguma sem conexão?" é
+  /** Opções da companhia citada na frase (quando houver). */
+  let daCompanhiaCitada = enviadas.filter((o) => citaCompanhia(o, t));
+
+  /**
+   * ESCOPO DE COMPANHIA HERDADO: "a Latam chega antes?" → "ela demora menos
+   * também?". Sem companhia no texto, mantemos a companhia da referência
+   * anterior — nunca trocamos silenciosamente para a vencedora da comparação.
+   */
+  const pronome = RX_PRONOME_VAGO.test(t);
+  if (!daCompanhiaCitada.length && ultimaRef?.companhia && (pronome || RX_CONTINUIDADE.test(t))) {
+    const herdada = enviadas.filter((o) => citaCompanhia(o, ultimaRef.companhia as string));
+    if (herdada.length) daCompanhiaCitada = herdada;
+  }
+
+  // -1) FILTRO DE CONEXÃO vem antes de tudo: "tem alguma sem conexão?" é
   //     alteração de busca, não referência a uma opção já enviada.
-  if (detectSearchFilterIntent(t)) return null;
+  const filtro = detectSearchFilterIntent(t);
+  if (filtro && (filtro.somente_voo_direto || filtro.maximo_conexoes != null)) return null;
 
   // 0) COMPARAÇÃO vem antes do ordinal: "qual chega primeiro" ≠ "a primeira".
-  //    Se o cliente citou uma companhia ("a Latam chega antes?"), a comparação
-  //    fica RESTRITA a essa companhia — nunca responde por outra.
+  //    Se o cliente citou (ou herdou) uma companhia, a comparação fica
+  //    RESTRITA a essa companhia — nunca responde por outra.
   const comparacao = detectComparisonIntent(t);
   if (comparacao) {
     const universo = daCompanhiaCitada.length ? daCompanhiaCitada : enviadas;
@@ -439,6 +531,7 @@ export function resolveOptionReference(
     const vencedora = resolveComparison(universo, comparacao);
     return vencedora ? achar(vencedora, "comparacao") : null;
   }
+
 
   // 1) ordinal explícito
   for (const { rx, n } of ORDINAIS) {
@@ -473,40 +566,44 @@ export function resolveOptionReference(
   }
 
   // 5) só existe UMA opção entregue e o cliente falou "essa"
-  if (enviadas.length === 1 && RX_PRONOME_VAGO.test(t)) {
+  if (enviadas.length === 1 && pronome) {
     return achar(enviadas[0], "unica");
   }
 
-  // 6) pronome vago + última opção COMENTADA pelo cliente ("gostei da primeira"
-  //    → "fechamos essa"). Não é compra: é só a referência mais recente.
-  if (ultimaRef && RX_PRONOME_VAGO.test(t)) {
+  const daUltimaRef = (match: OptionReference["match"]): OptionReference | null => {
+    if (!ultimaRef) return null;
     const q = memorias.find((m) => m.quote_id === ultimaRef.quote_id);
     const o = q?.opcoes.find((x) => x.option_index === ultimaRef.option_index);
-    if (q && o) {
-      return {
-        quote_id: q.quote_id,
-        option_index: o.option_index,
-        opcao: o,
-        match: "ultima_referencia",
-        stale: q.idade_horas >= QUOTE_STALE_HOURS,
-      };
-    }
+    if (!q || !o) return null;
+    return {
+      quote_id: q.quote_id,
+      option_index: o.option_index,
+      opcao: o,
+      match,
+      companhia: o.companhia,
+      assunto: detectAssunto(t) ?? ultimaRef.assunto ?? null,
+      stale: q.idade_horas >= QUOTE_STALE_HOURS,
+    };
+  };
+
+  // 6) pronome vago ("essa", "aquela", "ela", "dessa") + última opção comentada.
+  if (pronome) {
+    const ref = daUltimaRef("ultima_referencia");
+    if (ref) return ref;
   }
 
   // 7) CONTINUIDADE: pergunta de acompanhamento sem pronome ("quanto fica com
-  //    bagagem?", "a conexão é longa?") continua na última opção comentada.
-  if (ultimaRef && RX_CONTINUIDADE.test(t)) {
-    const q = memorias.find((m) => m.quote_id === ultimaRef.quote_id);
-    const o = q?.opcoes.find((x) => x.option_index === ultimaRef.option_index);
-    if (q && o) {
-      return {
-        quote_id: q.quote_id,
-        option_index: o.option_index,
-        opcao: o,
-        match: "continuidade",
-        stale: q.idade_horas >= QUOTE_STALE_HOURS,
-      };
-    }
+  //    bagagem?", "e são quantos quilos?") continua na última opção comentada.
+  if (RX_CONTINUIDADE.test(t)) {
+    const ref = daUltimaRef("continuidade");
+    if (ref) return ref;
+  }
+
+  // 8) REENVIO sem pronome ("manda de novo", "reenvia pra mim") também mantém
+  //    a última referência — o cliente não precisa repetir qual é.
+  if (RX_REENVIO.test(t)) {
+    const ref = daUltimaRef("ultima_referencia");
+    if (ref) return ref;
   }
   return null;
 }
@@ -526,6 +623,26 @@ export async function resolveTurnReference(
   replyToMessageId?: string | null,
 ): Promise<OptionReference | null> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+  // Última referência persistida (usada tanto no caminho 2 quanto no 3).
+  const { data: conv } = await supabaseAdmin
+    .from("wa_conversations")
+    .select(
+      "ultima_quote_referenciada, ultima_opcao_referenciada, ultima_companhia_referenciada, ultima_referencia_assunto",
+    )
+    .eq("id", conversationId)
+    .maybeSingle();
+  const ultimaRef: LastReference =
+    conv?.ultima_quote_referenciada && conv?.ultima_opcao_referenciada
+      ? {
+          quote_id: conv.ultima_quote_referenciada as string,
+          option_index: conv.ultima_opcao_referenciada as number,
+          companhia: (conv.ultima_companhia_referenciada as string | null) ?? null,
+          assunto: (conv.ultima_referencia_assunto as string | null) ?? null,
+        }
+      : null;
+
+  const refTexto = resolveOptionReference(memorias, texto, ultimaRef);
 
   // 1) resposta citada — prioridade máxima (FK interna primeiro, depois id da Meta)
   if (replyToMessageId || replyToWaId) {
@@ -554,11 +671,34 @@ export async function resolveTurnReference(
       const q = memorias.find((m) => m.quote_id === qid);
       const o = q?.opcoes.find((x) => x.option_index === oidx);
       if (q && o) {
+        // CONFLITO: o cliente respondeu a um card mas escreveu outra opção
+        // explicitamente ("responde a opção 1 e diz 'quero a segunda'").
+        // Não escolhemos em silêncio — sinalizamos para a IA confirmar.
+        const conflito =
+          refTexto &&
+          (refTexto.match === "ordinal" || refTexto.match === "companhia" || refTexto.match === "horario") &&
+          (refTexto.quote_id !== q.quote_id || refTexto.option_index !== o.option_index)
+            ? { option_index_texto: refTexto.option_index, option_index_citada: o.option_index }
+            : null;
+        if (conflito) {
+          console.log(
+            JSON.stringify({
+              event: "reply_text_conflict",
+              conversation_id: conversationId,
+              quote_id: q.quote_id,
+              ...conflito,
+              at: new Date().toISOString(),
+            }),
+          );
+        }
         const ref: OptionReference = {
           quote_id: q.quote_id,
           option_index: o.option_index,
           opcao: o,
           match: "citada",
+          companhia: o.companhia,
+          assunto: detectAssunto(texto),
+          conflito,
           stale: q.idade_horas >= QUOTE_STALE_HOURS,
         };
         await persistLastReference(conversationId, ref);
@@ -567,24 +707,9 @@ export async function resolveTurnReference(
     }
   }
 
-
   // 2) texto + 3) última referência persistida
-  const { data: conv } = await supabaseAdmin
-    .from("wa_conversations")
-    .select("ultima_quote_referenciada, ultima_opcao_referenciada")
-    .eq("id", conversationId)
-    .maybeSingle();
-  const ultimaRef: LastReference =
-    conv?.ultima_quote_referenciada && conv?.ultima_opcao_referenciada
-      ? {
-          quote_id: conv.ultima_quote_referenciada as string,
-          option_index: conv.ultima_opcao_referenciada as number,
-        }
-      : null;
-
-  const ref = resolveOptionReference(memorias, texto, ultimaRef);
-  if (ref) await persistLastReference(conversationId, ref);
-  return ref;
+  if (refTexto) await persistLastReference(conversationId, refTexto);
+  return refTexto;
 }
 
 /** Grava a última opção comentada (NÃO é compra, é só referência). */
@@ -599,6 +724,9 @@ export async function persistLastReference(
       ultima_quote_referenciada: ref.quote_id,
       ultima_opcao_referenciada: ref.option_index,
       ultima_referencia_at: new Date().toISOString(),
+      ultima_referencia_source: ref.match === "citada" ? "reply" : ref.match,
+      ultima_companhia_referenciada: ref.companhia ?? null,
+      ultima_referencia_assunto: ref.assunto ?? null,
     })
     .eq("id", conversationId);
 }
@@ -607,9 +735,13 @@ export async function persistLastReference(
    Escolha do cliente + cancelamento do card pendente
    ───────────────────────────────────────────────────────────── */
 
-/** Intenção INEQUÍVOCA de escolher ("quero a segunda", "fecho com a da Azul"). */
+/**
+ * Intenção INEQUÍVOCA de escolher. "fica com" saiu daqui de propósito:
+ * "quanto FICA COM bagagem?" é pergunta de preço, não fechamento. Só entram
+ * formas de decisão em 1ª pessoa ("fico com", "vou nessa", "pode fechar").
+ */
 const RX_ESCOLHA_CLARA =
-  /\b(quero|vou (querer|ficar|de|nessa|nesse)|vamos nessa|fico com|fica(mos)? com|pode (ser|fechar|reservar|emitir)|fech(a|ar|o|amos)|reserv(a|ar|e)|emit(e|ir)|escolho|prefiro|me (manda|passa) (o )?(link|pagamento)|bora (nessa|de)|garant(e|ir))\b|\bacho que vai ser essa\b/i;
+  /\b(quero (ess[ae]|aquel[ae]|a (primeira|segunda|terceira)|prosseguir|fechar|emitir|reservar)|quero ir nessa|vou (querer|ficar com|nessa|nesse|de ess[ae])|vamos (nessa|nessa op(ç|c)(ã|a)o)|fico com|ficamos com|pode (fechar|reservar|emitir|seguir com)|fech(a|ar|o|amos)\b|reserv(a|ar|e)\b|emit(e|ir)\b|escolho|escolhi|me (manda|passa) (o )?(link|pagamento)|bora (nessa|de)|garant(e|ir))\b|\bacho que vai ser essa\b/i;
 /** Comentário sem decisão ("essa parece boa", "gostei", "interessante"). */
 const RX_APENAS_COMENTARIO = /\b(parece|achei|t(á|a) (boa|bom|legal)|interessante|gostei|ficou melhor)\b/i;
 
@@ -620,12 +752,18 @@ export type ChoiceDetection = {
   clara: boolean;
   match: OptionReference["match"];
   stale: boolean;
+  conflito?: OptionReference["conflito"];
+  /** Bagagem: consulta da tarifa atual x pedido de nova pesquisa com bagagem. */
+  bagagem?: BaggageIntent;
 };
 
 /**
  * Detecta a escolha do cliente na última mensagem. `clara` só é true quando há
  * verbo de decisão + referência resolvida; "essa parece boa" fica em `false`
  * (a segunda arte continua saindo, para comparação).
+ *
+ * ORDEM OBRIGATÓRIA: pergunta de preço/condição, comparação, filtro e pedido
+ * de informação são avaliados ANTES de qualquer leitura de decisão.
  */
 export function detectCustomerChoice(
   memorias: QuoteMemory[],
@@ -634,16 +772,24 @@ export function detectCustomerChoice(
 ): ChoiceDetection | null {
   const ref = refPre ?? resolveOptionReference(memorias, texto);
   if (!ref) return null;
-  const decisao = RX_ESCOLHA_CLARA.test(texto);
-  const soComentario = !decisao && RX_APENAS_COMENTARIO.test(texto);
+  const t = String(texto ?? "");
+  const bagagem = detectBaggageIntent(t);
+  // 1º: é pergunta? ("quanto fica com bagagem?", "como fica com conexão?")
+  const pergunta =
+    RX_INTERROGATIVA_PRECO.test(t) ||
+    (/\?/.test(t) && RX_PERGUNTA_NAO_DECISAO.test(t) && !/\b(pode (fechar|emitir|reservar))\b/i.test(t));
+  const decisao = !pergunta && RX_ESCOLHA_CLARA.test(t);
+  const soComentario = !decisao && RX_APENAS_COMENTARIO.test(t);
   return {
     quote_id: ref.quote_id,
     option_index: ref.option_index,
     opcao: ref.opcao,
-    // Comparação ("qual chega primeiro") nunca é escolha.
-    clara: decisao && !soComentario && ref.match !== "comparacao",
+    // Comparação ("qual chega primeiro") e conflito nunca fecham sozinhos.
+    clara: decisao && !soComentario && ref.match !== "comparacao" && !ref.conflito,
     match: ref.match,
     stale: !!ref.stale,
+    conflito: ref.conflito ?? null,
+    bagagem,
   };
 }
 
@@ -663,8 +809,9 @@ export async function registerCustomerChoice(
 
   const escolha = detectCustomerChoice(memorias, texto, ref);
   if (!escolha) return null;
-  // Comparação não é escolha: não grava escolha_option_index.
-  if (escolha.match === "comparacao") return escolha;
+  // Comparação, conflito e pergunta não são escolha: não gravam nada.
+  if (escolha.match === "comparacao" || escolha.conflito) return escolha;
+  if (!escolha.clara) return escolha;
 
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const { logCardEvent } = await import("./card-log.server");
@@ -685,6 +832,7 @@ export async function registerCustomerChoice(
     patch.cancelled_reason = "pending_card_cancelled_by_customer_choice";
   }
   await supabaseAdmin.from("wa_flight_quotes").update(patch).eq("id", escolha.quote_id);
+
 
   if (escolha.clara && pendentes.length) {
     for (const idx of pendentes) {
@@ -719,24 +867,45 @@ export function buildChoiceBlock(escolha: ChoiceDetection | null): string {
         ? " (é a última opção que ele mesmo comentou — não peça confirmação de qual é)"
         : "";
 
+  const bagagemAviso =
+    escolha.bagagem === "nova_pesquisa"
+      ? `\n# 🧳 PEDIDO DE VALOR COM BAGAGEM DESPACHADA\n` +
+        `Ele quer saber QUANTO FICA com bagagem despachada. NUNCA estime, some ou "chute" o valor.\n` +
+        `Faça uma NOVA busca com \`pesquisar_passagens\` usando os mesmos trechos/datas/pax e \`bagagem_despachada: true\`, e responda com o valor real retornado. Avise que está consultando o valor com bagagem.`
+      : escolha.bagagem === "consulta_tarifa"
+        ? `\n# 🧳 DÚVIDA SOBRE BAGAGEM DA OPÇÃO ATUAL\n` +
+          `Ele quer saber se ESSA opção já inclui bagagem despachada. Responda apenas com o que está registrado nessa cotação. Se a franquia/peso não estiver registrada, diga que confirma a franquia exata com a companhia — NÃO invente quilos, peças nem regra de bagagem.`
+        : "";
+
+  if (escolha.conflito) {
+    return (
+      `\n# ⚠️ CONFLITO ENTRE A MENSAGEM RESPONDIDA E O TEXTO\n` +
+      `Ele respondeu ao card da opção ${escolha.conflito.option_index_citada}, mas no texto citou a opção ${escolha.conflito.option_index_texto}. NÃO escolha sozinha: pergunte de forma curta e natural qual das duas ele quer seguir antes de qualquer outro passo.` +
+      staleAviso
+    );
+  }
+
   if (escolha.match === "comparacao") {
     return (
       `\n# ⚖️ O CLIENTE PEDIU UMA COMPARAÇÃO (não é escolha)\n` +
       `Pelos dados reais, a resposta é a ${resumo}. Responda comparando horários/duração das opções enviadas e explique o porquê. Não trate isso como fechamento.` +
-      staleAviso
+      staleAviso +
+      bagagemAviso
     );
   }
   if (!escolha.clara) {
     return (
       `\n# 👉 O CLIENTE COMENTOU UMA OPÇÃO ESPECÍFICA\n` +
       `Ele se referiu à ${resumo} (quote_id ${escolha.quote_id})${origem}. Fale dessa opção usando exatamente esses dados. Ele ainda NÃO fechou: siga conduzindo com naturalidade.` +
-      staleAviso
+      staleAviso +
+      bagagemAviso
     );
   }
   return (
     `\n# ✅ ESCOLHA DO CLIENTE (confirmada pelo registro, não deduza)\n` +
     `Ele escolheu a ${resumo} (quote_id ${escolha.quote_id})${origem}.\n` +
     `Confirme essa opção pelos dados reais, não mande outras opções e conduza para o próximo passo do fechamento.` +
-    staleAviso
+    staleAviso +
+    bagagemAviso
   );
 }

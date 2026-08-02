@@ -89,6 +89,51 @@ export type Database = {
         }
         Relationships: []
       }
+      airline_baggage_rules: {
+        Row: {
+          airline_code: string
+          carry_on_dimensions: string | null
+          carry_on_weight: number | null
+          checked_baggage_pieces: number | null
+          checked_baggage_weight: number | null
+          created_at: string
+          fare_family: string | null
+          id: string
+          personal_item_rules: string | null
+          route_type: string | null
+          source: string | null
+          updated_at: string
+        }
+        Insert: {
+          airline_code: string
+          carry_on_dimensions?: string | null
+          carry_on_weight?: number | null
+          checked_baggage_pieces?: number | null
+          checked_baggage_weight?: number | null
+          created_at?: string
+          fare_family?: string | null
+          id?: string
+          personal_item_rules?: string | null
+          route_type?: string | null
+          source?: string | null
+          updated_at?: string
+        }
+        Update: {
+          airline_code?: string
+          carry_on_dimensions?: string | null
+          carry_on_weight?: number | null
+          checked_baggage_pieces?: number | null
+          checked_baggage_weight?: number | null
+          created_at?: string
+          fare_family?: string | null
+          id?: string
+          personal_item_rules?: string | null
+          route_type?: string | null
+          source?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       broadcast_suggestions: {
         Row: {
           approved_by: string | null
@@ -3646,9 +3691,14 @@ export type Database = {
           priority: string
           protocolo_ativo_id: string | null
           tags: string[]
+          ultima_companhia_referenciada: string | null
+          ultima_opcao_hotel_referenciada: Json | null
           ultima_opcao_referenciada: number | null
           ultima_quote_referenciada: string | null
+          ultima_referencia_assunto: string | null
           ultima_referencia_at: string | null
+          ultima_referencia_source: string | null
+          ultimo_pacote_referenciado: Json | null
           unread_count: number
           updated_at: string
           wa_phone: string
@@ -3680,9 +3730,14 @@ export type Database = {
           priority?: string
           protocolo_ativo_id?: string | null
           tags?: string[]
+          ultima_companhia_referenciada?: string | null
+          ultima_opcao_hotel_referenciada?: Json | null
           ultima_opcao_referenciada?: number | null
           ultima_quote_referenciada?: string | null
+          ultima_referencia_assunto?: string | null
           ultima_referencia_at?: string | null
+          ultima_referencia_source?: string | null
+          ultimo_pacote_referenciado?: Json | null
           unread_count?: number
           updated_at?: string
           wa_phone: string
@@ -3714,9 +3769,14 @@ export type Database = {
           priority?: string
           protocolo_ativo_id?: string | null
           tags?: string[]
+          ultima_companhia_referenciada?: string | null
+          ultima_opcao_hotel_referenciada?: Json | null
           ultima_opcao_referenciada?: number | null
           ultima_quote_referenciada?: string | null
+          ultima_referencia_assunto?: string | null
           ultima_referencia_at?: string | null
+          ultima_referencia_source?: string | null
+          ultimo_pacote_referenciado?: Json | null
           unread_count?: number
           updated_at?: string
           wa_phone?: string
@@ -4019,6 +4079,8 @@ export type Database = {
           message_type: string | null
           meta_media_id: string | null
           option_index: number | null
+          product_id: string | null
+          product_option_index: number | null
           product_type: string | null
           protocolo_id: string | null
           quote_id: string | null
@@ -4056,6 +4118,8 @@ export type Database = {
           message_type?: string | null
           meta_media_id?: string | null
           option_index?: number | null
+          product_id?: string | null
+          product_option_index?: number | null
           product_type?: string | null
           protocolo_id?: string | null
           quote_id?: string | null
@@ -4093,6 +4157,8 @@ export type Database = {
           message_type?: string | null
           meta_media_id?: string | null
           option_index?: number | null
+          product_id?: string | null
+          product_option_index?: number | null
           product_type?: string | null
           protocolo_id?: string | null
           quote_id?: string | null
