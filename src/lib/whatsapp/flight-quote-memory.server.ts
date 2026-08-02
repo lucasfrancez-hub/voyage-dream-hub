@@ -234,8 +234,60 @@ const ORDINAIS: Array<{ rx: RegExp; n: number }> = [
 
 const RX_ANTERIOR = /(pesquisa|cota(ç|c)(ã|a)o|busca)\s+(anterior|passada|de ontem|antiga)|de ontem|da outra (pesquisa|cota)/i;
 const RX_MAIS_BARATA = /\bmais barat|\bmenor pre(ç|c)o|\bmais em conta\b/i;
-const RX_MAIS_RAPIDA = /\bmais r(á|a)pid|\bmenos tempo\b|\bmais curt/i;
+const RX_MAIS_RAPIDA = /\bmais r(á|a)pid|\bmenos tempo\b|\bmais curt|\bmenor dura(ç|c)(ã|a)o\b/i;
 const RX_DIRETO = /\bdiret[oa]\b|\bsem (escala|conex)/i;
+
+/** Depois de quantas horas a cotação precisa ser reconfirmada no motor. */
+export const QUOTE_STALE_HOURS = 6;
+
+/**
+ * "Qual chega primeiro?" NÃO é a opção 1 — é comparação de horário.
+ * Detectado ANTES do ordinal justamente para não colidir com "primeira".
+ */
+const RX_CHEGA_CEDO = /\bchega(r|m)?\s+(primeir[oa]|mais\s+cedo|antes|mais\s+r[áa]pido)\b/i;
+const RX_SAI_CEDO = /\b(sai|sair|saem|parte|partem|decola(m|r)?)\s+(primeir[oa]|mais\s+cedo|antes)\b/i;
+const RX_MENOR_DURACAO = /\bmenor\s+dura(ç|c)(ã|a)o\b|\bmais\s+r[áa]pid[ao]\b|\bmenos\s+tempo\s+de\s+voo\b/i;
+
+export type ComparisonIntent = "chegada_mais_cedo" | "saida_mais_cedo" | "menor_duracao";
+
+/** Detecta intenção de COMPARAÇÃO (tem prioridade sobre a leitura ordinal). */
+export function detectComparisonIntent(texto: string): ComparisonIntent | null {
+  const t = String(texto ?? "");
+  if (RX_CHEGA_CEDO.test(t)) return "chegada_mais_cedo";
+  if (RX_SAI_CEDO.test(t)) return "saida_mais_cedo";
+  if (RX_MENOR_DURACAO.test(t)) return "menor_duracao";
+  return null;
+}
+
+const minutosHora = (hhmm: string): number => {
+  const m = /^(\d{1,2}):(\d{2})$/.exec(hhmm.trim());
+  return m ? Number(m[1]) * 60 + Number(m[2]) : 99999;
+};
+const minutosDuracao = (d: string): number => {
+  const m = d.match(/(\d+)\s*h\s*(\d+)?/i);
+  return m ? Number(m[1]) * 60 + Number(m[2] ?? 0) : 99999;
+};
+
+/** Resolve a opção vencedora de uma comparação de horário/duração. */
+export function resolveComparison(
+  opcoes: QuoteOptionMemory[],
+  intent: ComparisonIntent,
+): QuoteOptionMemory | null {
+  if (opcoes.length < 1) return null;
+  const chave = (o: QuoteOptionMemory) =>
+    intent === "chegada_mais_cedo"
+      ? minutosHora(o.chegada)
+      : intent === "saida_mais_cedo"
+        ? minutosHora(o.saida)
+        : minutosDuracao(o.duracao);
+  const ord = [...opcoes].sort((a, b) => chave(a) - chave(b));
+  if (ord.length > 1 && chave(ord[0]) === chave(ord[1])) return null; // empate → ambíguo
+  return ord[0];
+}
+
+/** Normaliza pra comparar cidade citada ("Recife", "REC", "São Paulo"). */
+const semAcento = (s: string) =>
+  s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 
 /** "8h", "08:10", "as 8", "das 11h40" → "HH:MM" aproximado (só a hora). */
 function horaCitada(texto: string): string | null {
