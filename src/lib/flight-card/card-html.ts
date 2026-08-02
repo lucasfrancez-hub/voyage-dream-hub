@@ -173,12 +173,13 @@ body{font-family:Poppins,system-ui,sans-serif;color:${NAVY};-webkit-font-smoothi
 .time{font-size:56px;font-weight:800;line-height:1}
 .plus{font-size:24px;color:${ORANGE};font-weight:800;vertical-align:super}
 .iata{font-size:26px;font-weight:600;color:#5c6b82;margin-top:8px}
-.city{font-size:19px;color:#94a1b2;margin-top:2px}
+.city{font-size:19px;color:#94a1b2;margin-top:2px;overflow-wrap:anywhere;line-height:1.2}
 .path{flex:1;text-align:center}
 .stops{font-size:17px;font-weight:700;letter-spacing:1.4px}
 .track{position:relative;height:2px;background:#e3e8ef;margin:16px 0 14px}
 .bullet{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:16px;height:16px;border-radius:50%;background:#fff;border:4px solid ${ORANGE}}
 .scale{font-size:17px;color:#94a1b2;letter-spacing:1px}
+.scale:empty{display:none}
 .bag{display:flex;gap:12px;background:#f6f8fb;border-radius:22px;padding:14px 16px;margin-top:20px}
 .bag-item{flex:1;text-align:center;color:#42526b}
 .bag-item.off{color:#aab4c2}
