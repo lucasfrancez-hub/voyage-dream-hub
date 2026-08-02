@@ -469,26 +469,42 @@ export function resolveOptionReference(
           option_index: o.option_index,
           opcao: o,
           match,
+          companhia: o.companhia,
+          assunto: detectAssunto(t),
           stale: alvo.idade_horas >= QUOTE_STALE_HOURS,
         }
       : null;
 
-  /** Opções da companhia citada na frase (quando houver). */
-  const daCompanhiaCitada = enviadas.filter((o) => {
+  const citaCompanhia = (o: QuoteOptionMemory, texto: string) => {
     const nome = o.companhia.split(/\s+/)[0] ?? o.companhia;
     return (
-      new RegExp(`\\b${nome.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i").test(t) ||
-      airlineMatches(o.companhia, t)
+      new RegExp(`\\b${nome.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i").test(texto) ||
+      airlineMatches(o.companhia, texto)
     );
-  });
+  };
 
-  // -1) FILTRO DE PESQUISA vem antes de tudo: "tem alguma sem conexão?" é
+  /** Opções da companhia citada na frase (quando houver). */
+  let daCompanhiaCitada = enviadas.filter((o) => citaCompanhia(o, t));
+
+  /**
+   * ESCOPO DE COMPANHIA HERDADO: "a Latam chega antes?" → "ela demora menos
+   * também?". Sem companhia no texto, mantemos a companhia da referência
+   * anterior — nunca trocamos silenciosamente para a vencedora da comparação.
+   */
+  const pronome = RX_PRONOME_VAGO.test(t);
+  if (!daCompanhiaCitada.length && ultimaRef?.companhia && (pronome || RX_CONTINUIDADE.test(t))) {
+    const herdada = enviadas.filter((o) => citaCompanhia(o, ultimaRef.companhia as string));
+    if (herdada.length) daCompanhiaCitada = herdada;
+  }
+
+  // -1) FILTRO DE CONEXÃO vem antes de tudo: "tem alguma sem conexão?" é
   //     alteração de busca, não referência a uma opção já enviada.
-  if (detectSearchFilterIntent(t)) return null;
+  const filtro = detectSearchFilterIntent(t);
+  if (filtro && (filtro.somente_voo_direto || filtro.maximo_conexoes != null)) return null;
 
   // 0) COMPARAÇÃO vem antes do ordinal: "qual chega primeiro" ≠ "a primeira".
-  //    Se o cliente citou uma companhia ("a Latam chega antes?"), a comparação
-  //    fica RESTRITA a essa companhia — nunca responde por outra.
+  //    Se o cliente citou (ou herdou) uma companhia, a comparação fica
+  //    RESTRITA a essa companhia — nunca responde por outra.
   const comparacao = detectComparisonIntent(t);
   if (comparacao) {
     const universo = daCompanhiaCitada.length ? daCompanhiaCitada : enviadas;
@@ -496,6 +512,7 @@ export function resolveOptionReference(
     const vencedora = resolveComparison(universo, comparacao);
     return vencedora ? achar(vencedora, "comparacao") : null;
   }
+
 
   // 1) ordinal explícito
   for (const { rx, n } of ORDINAIS) {
