@@ -31,10 +31,13 @@ export const Route = createFileRoute("/api/public/hooks/dispatch-ai-debounced")(
 
         const dispatched: string[] = [];
         for (const conv of due ?? []) {
-          // LEASE curto: worker do Cloudflare cai em ~30s se travar. Se der
-          // ruim, o próximo tick (a cada 30s) reprocessa em até 90s no pior
-          // caso — bem dentro do orçamento total de 3min de resposta.
-          const leaseUntil = new Date(Date.now() + 90 * 1000).toISOString();
+          // O lease precisa cobrir geração, tools e envio completos. Com 90s,
+          // uma execução lenta podia expirar ainda ativa e outro tick iniciava
+          // um segundo runAgent para a mesma mensagem. Cinco minutos mantêm a
+          // exclusão durante o orçamento máximo do atendimento; mensagem nova
+          // continua podendo reagendar o debounce e invalida o run antigo pelo
+          // trigger_message_id antes de qualquer persistência/envio.
+          const leaseUntil = new Date(Date.now() + 5 * 60 * 1000).toISOString();
           const { data: claimed, error: leaseErr } = await supabaseAdmin
             .from("wa_conversations")
             .update({ ai_debounce_until: leaseUntil })
