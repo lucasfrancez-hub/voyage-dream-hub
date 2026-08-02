@@ -193,6 +193,18 @@ export async function saveMessage(input: {
   reply_to_snippet?: string | null;
   /** Nome/participante da mensagem citada. */
   reply_to_sender?: string | null;
+  /** Nome exibido do agente ("Bruno") — preservado mesmo quando o cron dispara. */
+  agent_name?: string | null;
+  /** Cotação de voo que originou este balão (arte ou fallback em texto). */
+  quote_id?: string | null;
+  /** Qual opção da cotação este balão representa (1, 2, 3…). */
+  option_index?: number | null;
+  /** Tool que produziu o conteúdo ("pesquisar_passagens", "cotar_aereo"…). */
+  source_tool?: string | null;
+  /** Id da mídia na Meta, quando a arte foi enviada por upload de bytes. */
+  meta_media_id?: string | null;
+  /** Resumo estruturado da opção (companhia, horários, valor) pra IA e painel. */
+  card_option?: unknown | null;
 }): Promise<WaMessage | null> {
   // Dedupe manual quando temos wa_message_id
   if (input.wa_message_id) {
@@ -226,6 +238,12 @@ export async function saveMessage(input: {
       tool_calls: (input.tool_calls ?? null) as never,
       sender_user_id: input.sender_user_id ?? null,
       agent_slug: input.agent_slug ?? null,
+      agent_name: input.agent_name ?? null,
+      quote_id: input.quote_id ?? null,
+      option_index: input.option_index ?? null,
+      source_tool: input.source_tool ?? null,
+      meta_media_id: input.meta_media_id ?? null,
+      card_option: (input.card_option ?? null) as never,
       protocolo_id: protocoloId,
       reply_to_wa_id: input.reply_to_wa_id ?? null,
       reply_to_snippet: input.reply_to_snippet ?? null,
