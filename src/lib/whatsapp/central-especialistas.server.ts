@@ -60,59 +60,9 @@ export const CENTRAL_FALHA_MSG =
   "Estou com um probleminha no meu sistema para concluir essa pesquisa, mas já encaminhei seu atendimento para o nosso time Comercial. Eles vão continuar a pesquisa e verificar as melhores opções para você.";
 
 /* ─────────────────────────────────────────────────────────────
-   Helpers de formatação (modelo de contingência em texto)
+   Modelo de contingência em texto (mesmos dados estruturados do card)
    ───────────────────────────────────────────────────────────── */
-function fmtDataHora(s: string): { data: string; hora: string } {
-  // "2026-08-10 07:35"
-  const [d, h] = String(s ?? "").split(" ");
-  const [y, m, dd] = (d ?? "").split("-");
-  return { data: dd && m ? `${dd}/${m}/${y}` : (d ?? "—"), hora: h ?? "—" };
-}
-
-function legBlock(leg: FlightQuoteLeg, icon: string): string[] {
-  const ida = fmtDataHora(leg.partida);
-  const chg = fmtDataHora(leg.chegada);
-  const paradas =
-    leg.paradas <= 0
-      ? "Direto"
-      : `${leg.paradas === 1 ? "1 conexão" : `${leg.paradas} conexões`}${leg.escalas?.length ? ` em ${leg.escalas.join(", ")}` : ""}`;
-  const lines = [
-    `📅 ${ida.data}`,
-    `${icon} ${ida.hora} → ${chg.hora}`,
-    `🏢 ${leg.cia}`,
-    `🔁 ${paradas}`,
-  ];
-  if (leg.paradas > 0 && leg.duracao) lines.push(`⏱ Tempo total: ${leg.duracao}`);
-  return lines;
-}
-
-/** Monta o texto de contingência exatamente no modelo aprovado no briefing. */
-export function formatOptionsText(quote: FlightQuoteResult, opcoes: FlightQuoteOption[]): string {
-  const sep = "━━━━━━━━━━━━━━━━━━";
-  const blocks: string[] = [];
-  opcoes.forEach((op, i) => {
-    const lines: string[] = [
-      sep,
-      `✈️ Opção ${i + 1}`,
-      `📍 ${quote.origem_nome} → ${quote.destino_nome}`,
-    ];
-    if (op.volta) {
-      lines.push("", "Ida", ...legBlock(op.ida, "🕘"), "", "Volta", ...legBlock(op.volta, "🕓"));
-    } else {
-      lines.push(...legBlock(op.ida, "🕘"));
-    }
-    lines.push(
-      `🧳 ${op.bagagem_despachada ? "Tarifa com bagagem despachada incluída" : "Tarifa promocional (bagagem conforme tarifa)"}`,
-    );
-    lines.push(`💰 ${op.por_pessoa_formatado} por pessoa`);
-    blocks.push(lines.join("\n"));
-  });
-  blocks.push(sep);
-  blocks.push(
-    "Se preferir, posso pesquisar outras companhias, horários ou opções com bagagem incluída.",
-  );
-  return blocks.join("\n");
-}
+export { formatOptionText, formatOptionsText } from "./flight-option-text.server";
 
 /* ─────────────────────────────────────────────────────────────
    Escalação automática pro Comercial quando o motor falha
@@ -202,10 +152,18 @@ export function buildCentralTools(conversation: WaConversation, habilitadas?: st
           .describe("true somente se o cliente informou quantos passageiros vão viajar"),
         criancas: z.number().int().min(0).max(9).nullable().describe("Crianças de 2 a 11 anos"),
         bebes: z.number().int().min(0).max(9).nullable().describe("Bebês de colo (menos de 2 anos)"),
-        preferencia_horario: z
-          .enum(["manha", "tarde", "noite", "madrugada"])
+        preferencia_horario_ida: z
+          .enum(["madrugada", "manha", "tarde", "noite"])
           .nullable()
-          .describe("Só preencha se o cliente informou espontaneamente"),
+          .describe(
+            "Preferência de horário SOMENTE da IDA. Só preencha se o cliente informou espontaneamente. Nunca copie a preferência da volta.",
+          ),
+        preferencia_horario_volta: z
+          .enum(["madrugada", "manha", "tarde", "noite"])
+          .nullable()
+          .describe(
+            "Preferência de horário SOMENTE da VOLTA. Só preencha se o cliente informou espontaneamente. Nunca repita aqui a preferência da ida.",
+          ),
         somente_com_bagagem: z
           .boolean()
           .nullable()
@@ -223,7 +181,8 @@ export function buildCentralTools(conversation: WaConversation, habilitadas?: st
         pax_informado_pelo_cliente,
         criancas,
         bebes,
-        preferencia_horario,
+        preferencia_horario_ida,
+        preferencia_horario_volta,
         somente_com_bagagem,
       }) => {
         // TRAVA ÚNICA no servidor: dados obrigatórios, coerência de trecho,
@@ -261,16 +220,18 @@ export function buildCentralTools(conversation: WaConversation, habilitadas?: st
           `📍 ${origem} → ${destino}\n` +
           `📅 Ida ${data_ida}${data_volta ? ` · Volta ${data_volta}` : " (somente ida)"}\n` +
           `👥 ${adultos} adulto(s)${criancas ? ` + ${criancas} criança(s)` : ""}${bebes ? ` + ${bebes} bebê(s)` : ""}` +
-          (preferencia_horario ? `\n🕘 Preferência de horário: ${preferencia_horario}` : "") +
+          (preferencia_horario_ida ? `\n🕘 Preferência de horário na ida: ${preferencia_horario_ida}` : "") +
+          (preferencia_horario_volta ? `\n🕗 Preferência de horário na volta: ${preferencia_horario_volta}` : "") +
           (somente_com_bagagem ? `\n🧳 Cliente pediu bagagem despachada` : "");
 
 
         try {
           const { quoteFlights } = await import("./flight-quote.server");
-          const periodo: PeriodoDia =
-            preferencia_horario === "madrugada"
-              ? "manha"
-              : ((preferencia_horario ?? "livre") as PeriodoDia);
+          // Preferências INDEPENDENTES: a da ida nunca é reaproveitada na volta.
+          const toPeriodo = (p?: string | null): PeriodoDia =>
+            p === "madrugada" ? "manha" : ((p ?? "livre") as PeriodoDia);
+          const periodoIda = toPeriodo(preferencia_horario_ida);
+          const periodoVolta = data_volta ? toPeriodo(preferencia_horario_volta) : null;
           const result = await quoteFlights({
             origem,
             destino,
@@ -279,11 +240,20 @@ export function buildCentralTools(conversation: WaConversation, habilitadas?: st
             adultos,
             criancas,
             bebes,
-            periodo_ida: periodo,
-            periodo_volta: null,
+            periodo_ida: periodoIda,
+            periodo_volta: periodoVolta,
             bagagem_despachada: somente_com_bagagem,
           });
           if ("error" in result) {
+            if (result.sem_combinacao) {
+              return {
+                ok: true,
+                sem_resultado: true,
+                sem_combinacao: true,
+                instrucao:
+                  "Existem voos soltos, mas NENHUMA combinação de ida e volta é possível nesses horários (a volta sairia antes da ida chegar). NÃO apresente nenhuma combinação. Diga com naturalidade que nesse formato não dá certo e ofereça outra data, outro horário ou pernoite. Isso NÃO é falha técnica: nunca fale em sistema, motor ou erro.",
+              };
+            }
             return {
               ok: true,
               sem_resultado: true,
@@ -349,9 +319,11 @@ export function buildCentralTools(conversation: WaConversation, habilitadas?: st
               event: "card_failed",
               conversation_id: conversation.id,
               quote_id: quote_id ?? null,
-              stage: "send",
-              reason: "cards_enviados=0 — fallback em texto",
+              failed_stage: "meta_message_send",
+              failure_reason: "cards_enviados=0 — fallback em texto",
+              delivery_status: "failed",
               fallback_sent: true,
+              fallback_status: "sent",
             });
           }
           return {
