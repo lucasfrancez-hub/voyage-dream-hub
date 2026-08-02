@@ -94,12 +94,76 @@ async function escalarPorFalha(conversation: WaConversation, briefing: string) {
 }
 
 /**
+ * Categorias de encaminhamento ao Comercial (fora do escopo da Central).
+ * Usadas para registrar o MOTIVO real do handoff — nunca "falha_central".
+ */
+export type MotivoComercial =
+  | "pacote_sem_opcao"
+  | "personalizacao_pacote"
+  | "hotel"
+  | "carro"
+  | "aereo_hotel"
+  | "seguro"
+  | "cruzeiro"
+  | "transfer"
+  | "roteiro_personalizado"
+  | "intercambio"
+  | "excursao"
+  | "pos_venda"
+  | "institucional"
+  | "falha_tecnica"
+  | "outro";
+
+/**
  * Encaminha o atendimento ao time Comercial (fila humana) quando o assunto
  * não é passagem aérea avulsa. A Central NÃO devolve para as IAs consultoras.
+ * Preserva todo o contexto no protocolo ativo e registra motivo + prioridade.
+ * Enquanto nenhum humano assumir, a IA continua respondendo normalmente.
  */
-async function encaminharParaComercial(conversation: WaConversation, briefing: string) {
-  await escalarPorFalha(conversation, briefing);
+async function encaminharParaComercial(
+  conversation: WaConversation,
+  briefing: string,
+  categoria: MotivoComercial = "outro",
+  prioridade: "normal" | "high" | "urgent" = "normal",
+) {
+  const tags = Array.from(
+    new Set([
+      ...(conversation.tags ?? []),
+      "aguardando_humano",
+      "encaminhado_comercial",
+      `comercial:${categoria}`,
+    ]),
+  );
+  await supabaseAdmin
+    .from("wa_conversations")
+    .update({
+      tags,
+      assigned_to: null,
+      priority: prioridade,
+      // sai da Central: o assunto não é pesquisa aérea
+      central_slug: null,
+      central_busca: null,
+    })
+    .eq("id", conversation.id);
+
+  if (conversation.protocolo_ativo_id) {
+    await supabaseAdmin
+      .from("wa_protocolos")
+      .update({ assunto_resumo: briefing })
+      .eq("id", conversation.protocolo_ativo_id);
+  }
+
+  await recordHandoff({
+    conversation_id: conversation.id,
+    from_mode: "ai",
+    to_mode: "ai",
+    reason: `aguardando_humano:comercial:${categoria}`,
+    briefing,
+  }).catch(() => {});
+
+  console.log(`[central] encaminhado ao Comercial (${categoria}/${prioridade}) conv=${conversation.id}`);
 }
+
 
 
 
@@ -498,22 +562,53 @@ export function buildCentralTools(
 
     encaminhar_para_comercial: tool({
       description:
-        "Use em DOIS casos: (1) o assunto não é passagem aérea avulsa (pacote pronto, hotel, carro, aéreo+hotel, seguro, cruzeiro, planejamento de viagem, pedido já emitido, check-in, pós-venda, institucional); (2) falha técnica ou pesquisa que não pode ser concluída. Encaminha o atendimento ao time Comercial preservando o contexto. Nunca diga ao cliente que é uma transferência entre sistemas ou entre IA e humano.",
+        "Use SEMPRE que o assunto sair do escopo da Central (pesquisa de passagem aérea): hotel avulso, aluguel de carro, aéreo+hotel, pacote, personalização de pacote, seguro, cruzeiro, transfer, roteiro personalizado, intercâmbio, excursão, planejamento geral, pedido já emitido, pós-venda, institucional — ou quando a pesquisa não puder ser concluída (falha técnica). Encaminha ao time Comercial preservando TODO o contexto. Nunca diga ao cliente que é transferência entre sistemas, IA ou humano.",
       inputSchema: z.object({
+        categoria: z
+          .enum([
+            "pacote_sem_opcao",
+            "personalizacao_pacote",
+            "hotel",
+            "carro",
+            "aereo_hotel",
+            "seguro",
+            "cruzeiro",
+            "transfer",
+            "roteiro_personalizado",
+            "intercambio",
+            "excursao",
+            "pos_venda",
+            "institucional",
+            "falha_tecnica",
+            "outro",
+          ])
+          .describe("Categoria do encaminhamento"),
         motivo: z.string().min(3).describe("Motivo em uma frase"),
         resumo: z
           .string()
           .min(3)
-          .describe("Resumo do que já foi coletado: origem, destino, datas, pax, preferências"),
+          .describe(
+            "TODO o contexto coletado: origem/cidade de embarque, destino, datas, passageiros, preferências, pesquisa aérea já feita e opções apresentadas",
+          ),
+        prioridade: z.enum(["normal", "high", "urgent"]).nullable().describe("urgent só em emergência de viagem"),
       }),
-      execute: async ({ motivo, resumo }) => {
-        await encaminharParaComercial(conversation, `✈️ Central de Especialistas → Comercial\n${motivo}\n\n${resumo}`);
+      execute: async ({ categoria, motivo, resumo, prioridade }) => {
+        await encaminharParaComercial(
+          conversation,
+          `✈️ Central de Especialistas → Comercial\n[${categoria}] ${motivo}\n\n${resumo}`,
+          categoria,
+          prioridade ?? (categoria === "pos_venda" ? "high" : "normal"),
+        );
         return {
           ok: true,
+          categoria,
           instrucao:
-            "Envie UMA mensagem curta e natural avisando que já encaminhou pro time Comercial e que em breve um consultor continua o atendimento por aqui. Agradeça com 'obrigado pela preferência'.",
+            categoria === "pacote_sem_opcao"
+              ? "Envie EXATAMENTE esta mensagem, em um balão: \"Não encontrei um pacote pronto que atenda exatamente ao que você procura. Já encaminhei todas as informações para o nosso time Comercial preparar uma opção personalizada para você.\" Não invente pacote, não troque destino, data nem cidade de embarque."
+              : "Envie UMA mensagem curta e natural avisando que já encaminhou pro time Comercial e que em breve um consultor continua o atendimento por aqui. Não peça de novo nenhuma informação que o cliente já deu. Agradeça com 'obrigado pela preferência'.",
         };
       },
+
     }),
   };
 
@@ -653,10 +748,16 @@ export function buildCentralBasePrompt(nome: string, genero: "f" | "m"): string 
     `Pedido atual ("quero remarcar", "preciso mudar a data agora", "altera minha reserva", "quero trocar o voo que já comprei"): chame encaminhar_para_comercial com todo o contexto, sem prometer valores ou condições.`,
 
     `\n# ↪️ QUANDO NÃO FOR PASSAGEM AÉREA`,
-    `Pacote pronto, hotel, carro, aéreo+hotel, seguro, cruzeiro, planejamento geral de viagem, pedido já emitido, cartão de embarque, pós-venda, alteração, cancelamento, dúvidas institucionais: NADA disso é seu.`,
+    `Seu escopo é EXCLUSIVO: coletar dados da viagem, pesquisar voos, apresentar opções, refazer a pesquisa quando o cliente mudar filtros, comparar opções, reenviar cards e responder dúvidas do voo pesquisado. Nada além disso.`,
+    `Pacote, personalização de pacote, hotel avulso, aluguel de carro, aéreo+hotel, seguro, cruzeiro, transfer, roteiro personalizado, viagem sob medida, intercâmbio, excursão, planejamento geral, pedido já emitido, cartão de embarque, pós-venda, alteração, cancelamento, dúvidas institucionais: NADA disso é seu.`,
+    `HOTEL AVULSO ("quero um hotel em Natal", "quanto custa hospedagem em Gramado"): nunca pesquise voo, nunca tente converter em pacote — chame encaminhar_para_comercial (categoria hotel) preservando destino, datas, hóspedes e preferências.`,
+    `CARRO ("quero alugar um carro em Orlando"): registre local de retirada, local de devolução, datas, horários e categoria (quando informados) e chame encaminhar_para_comercial (categoria carro).`,
+    `AÉREO + HOTEL ("quero voo e hotel para Maceió"): NÃO siga só com o aéreo e não divida em dois atendimentos — preserve toda a pesquisa aérea já feita, registre o interesse pela hospedagem e chame encaminhar_para_comercial (categoria aereo_hotel).`,
     `EXCEÇÃO — prazo de check-in: se perguntarem quando abre o check-in, responda direto: voos nacionais 48h antes, internacionais 24h antes. Só encaminhe se o cliente precisar que ALGUÉM faça o check-in ou emita o cartão de embarque.`,
-    `Não tente atender os demais assuntos. Chame encaminhar_para_comercial enviando TODO o contexto já coletado (o que o cliente pediu, datas, cidades, passageiros, preferências e o que já foi conversado), para que ele não precise repetir nenhuma informação.`,
+    `Não tente atender os demais assuntos. Chame encaminhar_para_comercial enviando TODO o contexto já coletado (o que o cliente pediu, datas, cidades, passageiros, preferências, opções de voo já apresentadas e o que já foi conversado), para que ele não precise repetir nenhuma informação.`,
+    `Depois de encaminhar, você CONTINUA respondendo normalmente até um atendente do Comercial assumir. Nunca mande o cliente "aguardar em silêncio".`,
     `Avise o cliente de forma natural ("já estou passando pro time que cuida disso, eles continuam com vc por aqui"), sem falar em sistema, fila, setor, IA, robô, atendente humano nem automação.`,
+
 
     `\n# ⚠️ FALHA TÉCNICA`,
     `Se a pesquisa não puder ser concluída, use encaminhar_para_comercial.`,
@@ -714,6 +815,8 @@ export function buildCentralPrompt(
     `COMPARAÇÃO COM COMPANHIA CITADA: "a Latam chega antes?", "a Azul é mais rápida?", "a Gol é mais barata?" → responda sobre a opção DAQUELA companhia. Se não houver opção dessa companhia entre as enviadas, diga isso com naturalidade.`,
     `"ACHEI CARO": acolha em uma frase, sem inventar desconto e sem urgência artificial. Ofereça alternativas concretas (outra data, data flexível, outro horário, aeroporto próximo, outra companhia, opção com conexão, sem bagagem) e pergunte no máximo UMA preferência. Nunca prometa que vai ficar mais barato.`,
     `REMARCAÇÃO: dúvida futura ("e se eu precisar remarcar depois?") NÃO é pedido — explique o processo em geral e siga a cotação, sem encaminhar. Pedido atual ("quero remarcar agora", "altera minha reserva") → encaminhar_para_comercial com o contexto, sem prometer valor ou condição.`,
+    `ESCOPO (regra dura): você só pesquisa PASSAGEM AÉREA. Pedido de passagem/voo/ida e volta/só ida NUNCA vai pro Comercial — é sua pesquisa, use pesquisar_passagens. Hotel avulso, carro, aéreo+hotel, pacote, personalização de pacote, seguro, cruzeiro, transfer, roteiro sob medida, intercâmbio, excursão e pós-venda SEMPRE vão pro Comercial via encaminhar_para_comercial, com a categoria correta e o contexto completo — nunca tente atendê-los nem transformá-los em pesquisa aérea.`,
+
   ].join("\n");
 
   return [
