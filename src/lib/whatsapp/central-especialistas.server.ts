@@ -372,7 +372,13 @@ export function buildCentralTools(conversation: WaConversation, habilitadas?: st
       },
     }),
   };
+
+  if (!permitidas.length) return todas;
+  const filtradas: Partial<typeof todas> = {};
+  for (const nome of permitidas) filtradas[nome as keyof typeof todas] = todas[nome as keyof typeof todas];
+  return filtradas as typeof todas;
 }
+
 
 /* ─────────────────────────────────────────────────────────────
    Prompt da Central — mesma personalidade + regras de pesquisa
