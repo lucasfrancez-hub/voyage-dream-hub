@@ -66,7 +66,7 @@ describe("comparação por duração", () => {
     "qual tem menor duração",
     "qual viagem é mais curta",
   ];
-  it.each(frases)("detecta duração em %s", (f) => {
+  it.each(frases)("detecta duração em %s", (f: string) => {
     expect(detectDurationComparisonIntent(f)).toEqual({ comparison_type: "duration" });
     expect(detectComparisonIntent(f)).toBe("menor_duracao");
     expect(detectComparisonType(f)).toBe("duration");
@@ -88,7 +88,7 @@ describe("comparação por duração", () => {
 describe("filtros de companhia", () => {
   it.each(["sem Gol", "não quero Gol", "evita Gol", "qualquer uma menos Gol", "tira a Gol"])(
     "exclui em %s",
-    (f) => {
+    (f: string) => {
       expect(detectAirlineFilters(f).companhias_excluidas?.map((c) => c.toLowerCase())).toContain("gol");
       expect(detectAirlineFilters(f).companhias_incluidas).toBeUndefined();
     },
@@ -99,7 +99,7 @@ describe("filtros de companhia", () => {
     expect(r.companhias_incluidas?.map((c) => c.toLowerCase())).toEqual(["azul", "latam"]);
   });
 
-  it.each(["prefiro Azul", "quero Latam"])("inclui em %s", (f) => {
+  it.each(["prefiro Azul", "quero Latam"])("inclui em %s", (f: string) => {
     expect(detectAirlineFilters(f).companhias_incluidas?.length).toBe(1);
   });
 
@@ -130,7 +130,7 @@ describe("bagagem", () => {
 describe("decisão", () => {
   it.each(["fico com a segunda", "quero essa", "pode emitir a primeira", "pode fechar a segunda"])(
     "marca escolha clara em %s",
-    (f) => {
+    (f: string) => {
       expect(detectCustomerChoice(memorias, f)?.clara).toBe(true);
     },
   );
@@ -140,7 +140,7 @@ describe("continuidade da referência", () => {
   const ultima = { quote_id: "q1", option_index: 2, companhia: "Latam", assunto: "bagagem" };
   it.each(["essa tem bagagem?", "quanto fica?", "e a conexão?", "quanto demora?", "ela chega cedo?"])(
     "mantém a opção ativa em %s",
-    (f) => {
+    (f: string) => {
       const ref = resolveOptionReference(memorias, f, ultima);
       expect(ref?.option_index).toBe(2);
     },
@@ -150,7 +150,7 @@ describe("continuidade da referência", () => {
 describe("reenvio", () => {
   it.each(["manda ela de novo", "reenvia aquela", "manda aquela opção novamente", "pode reenviar"])(
     "detecta reenvio em %s",
-    (f) => {
+    (f: string) => {
       expect(detectResendIntent(f)).toBe(true);
     },
   );
