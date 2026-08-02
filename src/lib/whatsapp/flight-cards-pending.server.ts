@@ -397,6 +397,13 @@ export async function sendPendingFlightCards(
         direction: "outbound",
         sender: "camila",
         content: `[[media:image|${asset.url}|${asset.filename}]]\n${caption}`,
+        // Vínculo completo: cotação + opção + autor real da pesquisa.
+        agent_slug: autor.slug,
+        agent_name: autor.nome,
+        quote_id: quoteId,
+        option_index: optionIndex,
+        source_tool: "pesquisar_passagens",
+        card_option: op as unknown,
       });
       if (msg?.id) await setSendError(msg.id, SENDING_CLAIM);
 
