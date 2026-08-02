@@ -595,8 +595,24 @@ export const sendHumanMedia = createServerFn({ method: "POST" })
 
     // Marcador embutido pra UI renderizar o preview
     const marker = `[[media:${data.kind}|${signed.signedUrl}|${data.filename}]]`;
+
+    // Áudio enviado pela VIA AIR também é transcrito e resumido: assim, quando o
+    // cliente responder ao áudio, a IA sabe exatamente o que foi dito nele.
+    let transcricao: string | null = null;
+    if (data.kind === "audio") {
+      try {
+        const { transcribeAudio } = await import("@/lib/whatsapp/media.server");
+        transcricao = await transcribeAudio(
+          new Blob([bytes as unknown as BlobPart], { type: data.mime_type }),
+          data.mime_type,
+        );
+      } catch (err) {
+        console.warn("[chat/audio] transcrição do áudio enviado falhou:", err);
+      }
+    }
+
     const content = data.kind === "audio"
-      ? `${marker}${deliveredAs === "document" ? "\n🎤 [áudio enviado como arquivo]" : "\n🎤 [áudio enviado]"}`
+      ? `${marker}${deliveredAs === "document" ? "\n🎤 [áudio enviado como arquivo]" : "\n🎤 [áudio enviado]"}${transcricao ? `\n${transcricao}` : ""}`
       : data.caption ? `${marker}\n${data.caption}` : marker;
 
     await saveMessage({
@@ -605,8 +621,13 @@ export const sendHumanMedia = createServerFn({ method: "POST" })
       sender: "human",
       content,
       sender_user_id: context.userId,
+      agent_name: senderName,
       wa_message_id: sendRes.id,
+      message_type: data.kind === "audio" ? "audio" : data.kind,
+      transcricao,
+      resumo: transcricao ? transcricao.slice(0, 240) : null,
     });
+
 
 
     await clearAwaitingHumanTag(conv.id);
