@@ -300,14 +300,38 @@ export async function sendPendingFlightCards(
         sent++;
         const fp = fingerprint(op);
         novosFps.push(fp);
+        console.log(
+          `[flight-card] enviado (quote ${row.id}, opção ${fpsDaCotacao.size + sent}/${MAX_OPCOES}) em ${new Date().toISOString()}`,
+        );
         // grava já: se o worker cair aqui, esta opção não volta na próxima rodada
         await persistirFp(fp).catch(() => undefined);
       } else {
         falhou = true;
+        console.warn(`[flight-card] falha no envio (quote ${row.id}): ${r.error}`);
+        await supabaseAdmin
+          .from("wa_flight_quotes")
+          .update({
+            card_failed: true,
+            card_failed_at: new Date().toISOString(),
+            card_failed_reason: String(r.error).slice(0, 300),
+          })
+          .eq("id", row.id)
+          .then(() => {}, () => {});
       }
-    } catch {
+    } catch (e) {
       falhou = true;
+      console.warn(`[flight-card] exceção ao gerar/enviar arte (quote ${row.id}):`, e);
+      await supabaseAdmin
+        .from("wa_flight_quotes")
+        .update({
+          card_failed: true,
+          card_failed_at: new Date().toISOString(),
+          card_failed_reason: `exceção: ${(e as Error)?.message ?? "desconhecida"}`.slice(0, 300),
+        })
+        .eq("id", row.id)
+        .then(() => {}, () => {});
     }
+
 
   }
 
