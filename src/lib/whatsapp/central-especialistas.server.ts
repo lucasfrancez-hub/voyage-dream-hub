@@ -308,7 +308,12 @@ export function buildCentralTools(conversation: WaConversation) {
 /* ─────────────────────────────────────────────────────────────
    Prompt da Central — mesma personalidade + regras de pesquisa
    ───────────────────────────────────────────────────────────── */
-export function buildCentralPrompt(nome: string, genero: "f" | "m", brief?: string | null): string {
+export function buildCentralPrompt(
+  nome: string,
+  genero: "f" | "m",
+  brief?: string | null,
+  opts?: { primeiroContato?: boolean },
+): string {
   const base = buildSharedAgentPrompt(nome, genero);
   const hoje = new Intl.DateTimeFormat("pt-BR", {
     timeZone: "America/Sao_Paulo",
