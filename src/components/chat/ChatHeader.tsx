@@ -25,7 +25,24 @@ export function ChatHeader({ title, subtitle, userEmail, userFullName, theme = "
     refetchInterval: 60_000, // revalida de minuto em minuto
     staleTime: 30_000,
   });
-  const agents: string[] = (agentsData ?? []).map((a: { nome: string }) => a.nome);
+  const online = (agentsData ?? []) as Array<{ slug: string; nome: string; equipe: string }>;
+  const grupos: Array<{ key: string; label: string; dot: string; text: string; agents: typeof online }> = [
+    {
+      key: "consultor",
+      label: "Consultores",
+      dot: "bg-emerald-500",
+      text: "text-emerald-600",
+      agents: online.filter((a) => a.equipe !== "especialista"),
+    },
+    {
+      key: "especialista",
+      label: "Especialistas",
+      dot: "bg-sky-500",
+      text: "text-sky-600",
+      agents: online.filter((a) => a.equipe === "especialista"),
+    },
+  ].filter((g) => g.agents.length > 0);
+  const agents: string[] = online.map((a) => a.nome);
   const displayName = (userFullName?.trim())
     || (userEmail ? userEmail.split("@")[0]!.replace(/[._-]+/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()) : null);
   return (
@@ -55,24 +72,33 @@ export function ChatHeader({ title, subtitle, userEmail, userFullName, theme = "
         />
       </div>
 
-      {/* Lista dos atendentes online (um chip por pessoa) */}
-      <div className="hidden sm:flex items-center gap-1.5" title="Atendentes online agora">
-        {agents.map((nome) => (
-          <span
-            key={nome}
-            className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1"
-          >
-            <span className="relative flex h-2 w-2">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
-            </span>
-            <span className="text-xs font-medium text-slate-700">{nome}</span>
-          </span>
+      {/* Atendentes online agora, agrupados por categoria */}
+      <div className="hidden sm:flex items-center gap-3">
+        {grupos.map((g) => (
+          <div key={g.key} className="flex items-center gap-1.5">
+            <span className={`text-[9px] font-semibold uppercase tracking-wider ${g.text}`}>{g.label}</span>
+            {g.agents.map((a) => (
+              <span
+                key={a.slug}
+                title={`${a.nome} — ${g.label.slice(0, -2)}`}
+                className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1"
+              >
+                <span className="relative flex h-2 w-2">
+                  <span className={`absolute inline-flex h-full w-full animate-ping rounded-full ${g.dot} opacity-60`} />
+                  <span className={`relative inline-flex h-2 w-2 rounded-full ${g.dot}`} />
+                </span>
+                <span className="text-xs font-medium text-slate-700">{a.nome}</span>
+              </span>
+            ))}
+          </div>
         ))}
       </div>
 
-      {/* Mobile: um único chip com contagem + iniciais */}
-      <div className="sm:hidden flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-2 py-1" title={`Online: ${agents.join(", ")}`}>
+      {/* Mobile: um único chip com contagem por categoria */}
+      <div
+        className="sm:hidden flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-2 py-1"
+        title={grupos.map((g) => `${g.label}: ${g.agents.map((a) => a.nome).join(", ")}`).join(" · ")}
+      >
         <span className="relative flex h-2 w-2">
           <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
           <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
@@ -81,6 +107,7 @@ export function ChatHeader({ title, subtitle, userEmail, userFullName, theme = "
           {agents.length === 1 ? agents[0] : `${agents.length} online`}
         </span>
       </div>
+
 
 
       <AiStatusButton />
