@@ -254,6 +254,40 @@ export function buildCentralTools(
         // somente ida nunca leva data de volta ao motor
         if (tipo_trecho === "somente_ida") data_volta = null;
 
+        // TRAVA DE BAGAGEM (item 8): a intenção do cliente manda no filtro.
+        // "quanto fica com bagagem?" SEMPRE vira pesquisa com
+        // bagagem_despachada = true — o valor nunca pode ser estimado.
+        try {
+          const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+          const { data: ultima } = await supabaseAdmin
+            .from("wa_messages")
+            .select("content")
+            .eq("conversation_id", conversation.id)
+            .eq("direction", "inbound")
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          const { detectBaggageIntent, baggageSearchFlag } = await import(
+            "./flight-quote-memory.server"
+          );
+          const intent = detectBaggageIntent(String((ultima as { content?: string } | null)?.content ?? ""));
+          const flag = baggageSearchFlag(intent);
+          if (flag !== null && somente_com_bagagem !== flag) {
+            console.log(
+              JSON.stringify({
+                event: "baggage_filter_forced",
+                conversation_id: conversation.id,
+                bagagem_intent: intent,
+                bagagem_despachada: flag,
+                at: new Date().toISOString(),
+              }),
+            );
+            somente_com_bagagem = flag;
+          }
+        } catch (err) {
+          console.warn("[central] trava de bagagem indisponível:", err);
+        }
+
 
         const filtrosTexto =
           (somente_voo_direto ? `\n🛫 Só voo direto` : "") +
@@ -672,6 +706,10 @@ export function buildCentralPrompt(
     `Nunca diga que é IA, robô, bot ou automação, e nunca fale em atendente humano — o time é o Comercial.`,
     `REENVIO: "manda novamente", "pode reenviar?", "manda aquela opção de novo", "quero ver de novo a da Azul" → use reenviar_opcao com quote_id + option_index do bloco de opções enviadas. NUNCA pesquise de novo e nunca altere preço, horário ou companhia. Se a referência estiver clara (última opção comentada, ordinal, companhia, horário, destino), reenvie sem perguntar "qual opção?".`,
     `REFERÊNCIA VAGA: "essa", "aquela", "a de antes", "a anterior", "a que você mandou", "a mesma", "aquele voo" = a última opção comentada. Perguntas de acompanhamento sem pronome ("quanto fica com bagagem?", "a conexão é longa?", "chega que horas?") continuam na MESMA opção — responda direto.`,
+    `BAGAGEM — três intenções distintas. CONSULTAR ("essa tem bagagem?", "já inclui mala?"): responda só com o que está registrado na cotação, SEM nova pesquisa. INCLUIR ("quanto fica com bagagem?", "quero com mala de 23kg"): chame pesquisar_passagens com os MESMOS trechos/datas/passageiros e somente_com_bagagem: true. REMOVER ("sem bagagem fica quanto?", "só bagagem de mão"): mesma pesquisa com somente_com_bagagem: false.`,
+    `NUNCA estime, some ou subtraia o valor da bagagem, nunca reaproveite preço antigo como se fosse o novo, e nunca invente franquia, peso, peças ou dimensões: se não estiver na cotação, diga que confirma a franquia exata com a companhia.`,
+    `DURAÇÃO: "qual demora menos", "qual leva menos tempo", "qual é mais rápida", "qual tem menor duração", "qual viagem é mais curta" são COMPARAÇÃO de duração entre as opções já enviadas — nunca a opção 1 e nunca fechamento. Compare as durações reais do bloco de opções e diga qual vence e por quê.`,
+    `REENVIO POR PRONOME: "ela", "essa", "aquela", "a de antes", "a segunda de Recife" quando o cliente pede pra ver de novo → reenviar_opcao. Jamais pesquisar_passagens.`,
     `FILTRO ≠ REFERÊNCIA: "tem alguma sem conexão?", "voo direto", "no máximo uma conexão", "conexão rápida" são filtro de pesquisa (somente_voo_direto / maximo_conexoes = 1) — faça nova pesquisa, não trate como referência.`,
     `COMPARAÇÃO COM COMPANHIA CITADA: "a Latam chega antes?", "a Azul é mais rápida?", "a Gol é mais barata?" → responda sobre a opção DAQUELA companhia. Se não houver opção dessa companhia entre as enviadas, diga isso com naturalidade.`,
     `"ACHEI CARO": acolha em uma frase, sem inventar desconto e sem urgência artificial. Ofereça alternativas concretas (outra data, data flexível, outro horário, aeroporto próximo, outra companhia, opção com conexão, sem bagagem) e pergunte no máximo UMA preferência. Nunca prometa que vai ficar mais barato.`,

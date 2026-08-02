@@ -246,17 +246,44 @@ export const QUOTE_STALE_HOURS = 6;
  */
 const RX_CHEGA_CEDO = /\bchega(r|m)?\s+(primeir[oa]|mais\s+cedo|antes|mais\s+r[áa]pido)\b/i;
 const RX_SAI_CEDO = /\b(sai|sair|saem|parte|partem|decola(m|r)?)\s+(primeir[oa]|mais\s+cedo|antes)\b/i;
-const RX_MENOR_DURACAO = /\bmenor\s+dura(ç|c)(ã|a)o\b|\bmais\s+r[áa]pid[ao]\b|\bmenos\s+tempo\s+de\s+voo\b/i;
+/**
+ * DURAÇÃO: "qual demora menos", "qual leva menos tempo", "qual é mais rápida",
+ * "qual tem menor duração", "qual viagem é mais curta", "qual voa menos".
+ * Nunca é escolha — é comparação entre as opções já enviadas.
+ */
+const RX_DURACAO_COMPARACAO =
+  /\b(menor|menos)\s+(tempo|dura(ç|c)(ã|a)o)\b|\bdura(ç|c)(ã|a)o\s+menor\b|\b(demora|leva|dura|voa)\s+menos\b|\bmenos\s+(horas?|tempo)\s+(de\s+)?(voo|viagem)?\b|\bmais\s+r[áa]pid[ao]s?\b|\bmais\s+curt[ao]s?\b|\bviagem\s+mais\s+curta\b|\bchega\s+em\s+menos\s+tempo\b/i;
 
 export type ComparisonIntent = "chegada_mais_cedo" | "saida_mais_cedo" | "menor_duracao";
+/** Tipo publicado no contexto do agente (`comparison_type`). */
+export type ComparisonType = "arrival" | "departure" | "duration";
+
+const COMPARISON_TYPE: Record<ComparisonIntent, ComparisonType> = {
+  chegada_mais_cedo: "arrival",
+  saida_mais_cedo: "departure",
+  menor_duracao: "duration",
+};
+
+/** Comparação por DURAÇÃO ("qual demora menos"). Nunca é escolha. */
+export function detectDurationComparisonIntent(
+  texto: string,
+): { comparison_type: "duration" } | null {
+  return RX_DURACAO_COMPARACAO.test(String(texto ?? "")) ? { comparison_type: "duration" } : null;
+}
 
 /** Detecta intenção de COMPARAÇÃO (tem prioridade sobre a leitura ordinal). */
 export function detectComparisonIntent(texto: string): ComparisonIntent | null {
   const t = String(texto ?? "");
   if (RX_CHEGA_CEDO.test(t)) return "chegada_mais_cedo";
   if (RX_SAI_CEDO.test(t)) return "saida_mais_cedo";
-  if (RX_MENOR_DURACAO.test(t)) return "menor_duracao";
+  if (detectDurationComparisonIntent(t)) return "menor_duracao";
   return null;
+}
+
+/** `comparison_type` normalizado da mensagem ("arrival" | "departure" | "duration"). */
+export function detectComparisonType(texto: string): ComparisonType | null {
+  const intent = detectComparisonIntent(texto);
+  return intent ? COMPARISON_TYPE[intent] : null;
 }
 
 const minutosHora = (hhmm: string): number => {
@@ -388,13 +415,73 @@ const RX_FILTRO_DIRETO =
 const RX_FILTRO_UMA_CONEXAO =
   /\b(no m[áa]ximo (uma|1) conex(ã|a)o|s[óo] (uma|1) conex(ã|a)o|at[ée] (uma|1) conex(ã|a)o)\b/i;
 const RX_FILTRO_CONEXAO_CURTA = /\bconex(ã|a)o (r[áa]pida|curta)\b/i;
-const RX_FILTRO_SEM_CIA = /\b(sem|n(ã|a)o (quero|gosto de|pode ser)|tirando|exceto|menos)\s+(a\s+)?(gol|azul|latam|tam|avianca|copa|american|united|air ?europa|tap|ita)\b/i;
-const RX_FILTRO_SO_CIA = /\b(s[óo]|somente|apenas)\s+(a\s+)?(gol|azul|latam|tam|avianca|copa|american|united|air ?europa|tap|ita)\b/i;
-const RX_CIA_TOKEN = /\b(gol|azul|latam|tam|avianca|copa|american|united|air ?europa|tap|ita)\b/gi;
+const CIA_ALT = "gol|azul|latam|tam|avianca|copa|american|united|air ?europa|tap|ita|iberia|klm|delta";
+const RX_CIA_TOKEN = new RegExp(`\\b(${CIA_ALT})\\b`, "gi");
+/** Linguagem natural de EXCLUSÃO: "sem Gol", "evita a Gol", "qualquer uma menos Gol". */
+const RX_CIA_EXCLUIR = new RegExp(
+  `\\b(?:sem|n(?:ã|a)o\\s+(?:quero|gosto\\s+de|pode\\s+ser|curto)|evit(?:a|ar|e)|tir(?:a|ar|e)|tirando|exceto|fora|nada\\s+de|menos|qualquer\\s+uma\\s+menos|qualquer\\s+um\\s+menos)\\s+(?:a\\s+|o\\s+|da\\s+|de\\s+)?(${CIA_ALT})\\b`,
+  "gi",
+);
+/** Linguagem natural de INCLUSÃO: "pode ser Azul ou Latam", "prefiro Azul", "quero Latam". */
+const RX_CIA_INCLUIR = new RegExp(
+  `\\b(?:s(?:ó|o)|somente|apenas|prefiro|prefer(?:e|ência|encia)\\s+por|quero|queria|gostaria\\s+de|pode\\s+ser|podia\\s+ser|de\\s+prefer(?:ê|e)ncia|se\\s+for)\\s+(?:a\\s+|o\\s+|na\\s+|pela\\s+|de\\s+)?(${CIA_ALT})\\b`,
+  "gi",
+);
+
+/** Coleta companhias citadas logo após um marcador ("Azul ou Latam"). */
+function ciasNaSequencia(texto: string, from: number): string[] {
+  const trecho = texto.slice(from).split(/[.!?;]|\bmas\b|\bpor(é|e)m\b/i)[0] ?? "";
+  return (trecho.match(RX_CIA_TOKEN) ?? []).map((c) => c.trim());
+}
+
+const dedupCia = (arr: string[]): string[] => {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const c of arr) {
+    const k = c.toLowerCase().replace(/\s+/g, "");
+    if (!seen.has(k)) {
+      seen.add(k);
+      out.push(c);
+    }
+  }
+  return out;
+};
+
+/**
+ * Filtros de companhia em linguagem natural. A EXCLUSÃO é lida primeiro:
+ * "não quero Gol" tem o verbo "quero" dentro, e não pode virar inclusão.
+ */
+export function detectAirlineFilters(texto: string): {
+  companhias_excluidas?: string[];
+  companhias_incluidas?: string[];
+} {
+  const t = String(texto ?? "");
+  const excluidas: string[] = [];
+  const trechosExcluidos: Array<[number, number]> = [];
+  RX_CIA_EXCLUIR.lastIndex = 0;
+  for (let m = RX_CIA_EXCLUIR.exec(t); m; m = RX_CIA_EXCLUIR.exec(t)) {
+    excluidas.push(...ciasNaSequencia(t, m.index));
+    trechosExcluidos.push([m.index, m.index + m[0].length + 40]);
+  }
+  const incluidas: string[] = [];
+  RX_CIA_INCLUIR.lastIndex = 0;
+  for (let m = RX_CIA_INCLUIR.exec(t); m; m = RX_CIA_INCLUIR.exec(t)) {
+    if (trechosExcluidos.some(([a, b]) => m!.index >= a && m!.index <= b)) continue;
+    incluidas.push(...ciasNaSequencia(t, m.index));
+  }
+  const exc = dedupCia(excluidas);
+  const excKeys = new Set(exc.map((c) => c.toLowerCase().replace(/\s+/g, "")));
+  const inc = dedupCia(incluidas).filter((c) => !excKeys.has(c.toLowerCase().replace(/\s+/g, "")));
+  const out: { companhias_excluidas?: string[]; companhias_incluidas?: string[] } = {};
+  if (exc.length) out.companhias_excluidas = exc;
+  if (inc.length) out.companhias_incluidas = inc;
+  return out;
+}
 
 /**
  * Detecta pedido de FILTRO na pesquisa. Deve ser checado ANTES do resolvedor
  * de referências: "tem alguma sem conexão?" é filtro, não referência.
+ * Nunca limpa filtros anteriores — só devolve o que apareceu nesta mensagem.
  */
 export function detectSearchFilterIntent(texto: string): SearchFilterIntent | null {
   const t = String(texto ?? "");
@@ -407,34 +494,40 @@ export function detectSearchFilterIntent(texto: string): SearchFilterIntent | nu
   } else if (RX_FILTRO_DIRETO.test(t)) {
     out.somente_voo_direto = true;
   }
-  if (RX_FILTRO_SEM_CIA.test(t)) {
-    const m = RX_FILTRO_SEM_CIA.exec(t);
-    if (m?.[4]) out.companhias_excluidas = [m[4]];
-  } else if (RX_FILTRO_SO_CIA.test(t)) {
-    const cias = String(t.match(RX_CIA_TOKEN) ?? []).length ? (t.match(RX_CIA_TOKEN) as string[]) : [];
-    if (cias.length) out.companhias_incluidas = cias;
-  }
+  Object.assign(out, detectAirlineFilters(t));
   return Object.keys(out).length ? out : null;
 }
 
 /**
- * BAGAGEM. Duas intenções bem diferentes:
- * - `consulta_tarifa`: "essa já tem bagagem?" → responder pelo dado da opção;
- * - `nova_pesquisa`: "quanto fica com bagagem?" → NOVA pesquisa no motor com
- *   o filtro de bagagem. Nunca somar valor por conta própria.
+ * BAGAGEM. Três intenções bem diferentes:
+ * - `consultar`: "essa tem bagagem?" → responder pelo dado da própria tarifa;
+ * - `incluir`: "quanto fica com bagagem?" → NOVA pesquisa com
+ *   `bagagem_despachada: true`. Nunca somar valor por conta própria;
+ * - `remover`: "sem bagagem fica quanto?" → NOVA pesquisa com
+ *   `bagagem_despachada: false`.
  */
-export type BaggageIntent = "consulta_tarifa" | "nova_pesquisa" | null;
+export type BaggageIntent = "consultar" | "incluir" | "remover" | null;
 const RX_BAGAGEM = /\b(bagagem|bagagens|mala|malas|despachad|franquia|\d{1,2}\s?kg|quilos?)\b/i;
-const RX_BAGAGEM_JA_TEM = /\b(j[áa] (tem|inclui|vem com)|tem bagagem|inclui bagagem|vem com bagagem|essa tem mala|tem mala)\b/i;
+const RX_BAGAGEM_JA_TEM =
+  /\b(j[áa] (tem|inclui|vem com|est[áa] com)|tem bagagem|tem mala|inclui bagagem|vem com bagagem|essa tem mala|acompanha (mala|bagagem)|(é|e) com bagagem)\b/i;
+const RX_BAGAGEM_REMOVER =
+  /\b(sem\s+(a\s+)?(mala|bagagem)|tir(a|ar|ando)\s+(a\s+)?(mala|bagagem)|n(ã|a)o\s+(quero|preciso|vou\s+levar)\s+(de\s+)?(mala|bagagem)|s[óo]\s+(com\s+)?bagagem\s+de\s+m(ã|a)o|s[óo]\s+m(ã|a)o)\b/i;
 const RX_BAGAGEM_INCLUIR =
-  /\b(quanto (fica|ficaria|custa|sai|muda)|com (uma )?(mala|bagagem)|incluindo|inclu(ir|indo)|acrescent|adiciona(r|ndo)?|quero (a )?tarifa com|op(ç|c)(õ|o)es com bagagem|com bagagem despachada|com \d{1,2}\s?kg)\b/i;
+  /\b(quanto (fica|ficaria|custa|sai|muda|sairia)|com (uma )?(mala|bagagem)|incluindo|inclu(ir|indo)|acrescent|adiciona(r|ndo)?|quero (a )?tarifa com|op(ç|c)(õ|o)es com bagagem|com bagagem despachada|com \d{1,2}\s?kg|despachar)\b/i;
 
 export function detectBaggageIntent(texto: string): BaggageIntent {
   const t = String(texto ?? "");
   if (!RX_BAGAGEM.test(t)) return null;
-  if (RX_BAGAGEM_INCLUIR.test(t)) return "nova_pesquisa";
-  if (RX_BAGAGEM_JA_TEM.test(t)) return "consulta_tarifa";
-  return "consulta_tarifa";
+  // Remoção primeiro: "sem bagagem fica quanto?" também casa com RX_INCLUIR.
+  if (RX_BAGAGEM_REMOVER.test(t)) return "remover";
+  if (RX_BAGAGEM_JA_TEM.test(t)) return "consultar";
+  if (RX_BAGAGEM_INCLUIR.test(t)) return "incluir";
+  return "consultar";
+}
+
+/** `bagagem_despachada` a mandar ao motor — null quando é só consulta. */
+export function baggageSearchFlag(intent: BaggageIntent): boolean | null {
+  return intent === "incluir" ? true : intent === "remover" ? false : null;
 }
 
 /** "manda novamente aquela opção" → o agente deve usar a tool reenviar_opcao. */
@@ -707,8 +800,14 @@ export async function resolveTurnReference(
     }
   }
 
-  // 2) texto + 3) última referência persistida
-  if (refTexto) await persistLastReference(conversationId, refTexto);
+  // 2) texto + 3) última referência persistida.
+  // O assunto nunca é apagado: se este turno não trouxe um assunto novo,
+  // mantemos o anterior ("essa tem bagagem?" → "quanto fica?" → "e a conexão?").
+  if (refTexto) {
+    if (!refTexto.assunto && ultimaRef?.assunto) refTexto.assunto = ultimaRef.assunto;
+    if (!refTexto.companhia && ultimaRef?.companhia) refTexto.companhia = ultimaRef.companhia;
+    await persistLastReference(conversationId, refTexto);
+  }
   return refTexto;
 }
 
@@ -753,8 +852,12 @@ export type ChoiceDetection = {
   match: OptionReference["match"];
   stale: boolean;
   conflito?: OptionReference["conflito"];
-  /** Bagagem: consulta da tarifa atual x pedido de nova pesquisa com bagagem. */
+  /** Bagagem: consultar (tarifa atual) x incluir/remover (nova pesquisa). */
   bagagem?: BaggageIntent;
+  /** Mesmo valor de `bagagem`, com o nome usado no contrato do fluxo aéreo. */
+  bagagem_intent?: BaggageIntent;
+  /** Comparação pedida no turno ("arrival" | "departure" | "duration"). */
+  comparison_type?: ComparisonType | null;
 };
 
 /**
@@ -762,8 +865,12 @@ export type ChoiceDetection = {
  * verbo de decisão + referência resolvida; "essa parece boa" fica em `false`
  * (a segunda arte continua saindo, para comparação).
  *
- * ORDEM OBRIGATÓRIA: pergunta de preço/condição, comparação, filtro e pedido
- * de informação são avaliados ANTES de qualquer leitura de decisão.
+ * ORDEM OBRIGATÓRIA DE CLASSIFICAÇÃO (item 4):
+ *   1) consulta (pergunta de preço/condição/bagagem);
+ *   2) comparação ("qual demora menos");
+ *   3) alteração da pesquisa (filtro, bagagem incluir/remover);
+ *   4) decisão.
+ * Só chega em "decisão" o que não foi classificado antes.
  */
 export function detectCustomerChoice(
   memorias: QuoteMemory[],
@@ -774,22 +881,36 @@ export function detectCustomerChoice(
   if (!ref) return null;
   const t = String(texto ?? "");
   const bagagem = detectBaggageIntent(t);
-  // 1º: é pergunta? ("quanto fica com bagagem?", "como fica com conexão?")
-  const pergunta =
+  const comparison_type = detectComparisonType(t);
+
+  // 1) CONSULTA — "quanto fica com bagagem?", "como fica com conexão?"
+  const consulta =
     RX_INTERROGATIVA_PRECO.test(t) ||
     (/\?/.test(t) && RX_PERGUNTA_NAO_DECISAO.test(t) && !/\b(pode (fechar|emitir|reservar))\b/i.test(t));
-  const decisao = !pergunta && RX_ESCOLHA_CLARA.test(t);
+  // 2) COMPARAÇÃO — nunca é escolha.
+  const comparacao = !!comparison_type || ref.match === "comparacao";
+  // 3) ALTERAÇÃO DA PESQUISA — filtro novo ou bagagem incluir/remover.
+  const filtro = detectSearchFilterIntent(t);
+  const alteracao =
+    bagagem === "incluir" ||
+    bagagem === "remover" ||
+    !!filtro?.somente_voo_direto ||
+    filtro?.maximo_conexoes != null ||
+    !!filtro?.companhias_excluidas?.length;
+  // 4) DECISÃO — só sobra o que não caiu em 1..3.
+  const decisao = !consulta && !comparacao && !alteracao && RX_ESCOLHA_CLARA.test(t);
   const soComentario = !decisao && RX_APENAS_COMENTARIO.test(t);
   return {
     quote_id: ref.quote_id,
     option_index: ref.option_index,
     opcao: ref.opcao,
-    // Comparação ("qual chega primeiro") e conflito nunca fecham sozinhos.
-    clara: decisao && !soComentario && ref.match !== "comparacao" && !ref.conflito,
+    clara: decisao && !soComentario && !ref.conflito,
     match: ref.match,
     stale: !!ref.stale,
     conflito: ref.conflito ?? null,
     bagagem,
+    bagagem_intent: bagagem,
+    comparison_type,
   };
 }
 
@@ -868,14 +989,17 @@ export function buildChoiceBlock(escolha: ChoiceDetection | null): string {
         : "";
 
   const bagagemAviso =
-    escolha.bagagem === "nova_pesquisa"
-      ? `\n# 🧳 PEDIDO DE VALOR COM BAGAGEM DESPACHADA\n` +
-        `Ele quer saber QUANTO FICA com bagagem despachada. NUNCA estime, some ou "chute" o valor.\n` +
-        `Faça uma NOVA busca com \`pesquisar_passagens\` usando os mesmos trechos/datas/pax e \`bagagem_despachada: true\`, e responda com o valor real retornado. Avise que está consultando o valor com bagagem.`
-      : escolha.bagagem === "consulta_tarifa"
-        ? `\n# 🧳 DÚVIDA SOBRE BAGAGEM DA OPÇÃO ATUAL\n` +
-          `Ele quer saber se ESSA opção já inclui bagagem despachada. Responda apenas com o que está registrado nessa cotação. Se a franquia/peso não estiver registrada, diga que confirma a franquia exata com a companhia — NÃO invente quilos, peças nem regra de bagagem.`
-        : "";
+    escolha.bagagem === "incluir"
+      ? `\n# 🧳 PEDIDO DE VALOR COM BAGAGEM DESPACHADA (bagagem_intent: incluir)\n` +
+        `Ele quer saber QUANTO FICA com bagagem despachada. NUNCA estime, some ou "chute" o valor, e nunca reaproveite o preço antigo.\n` +
+        `Faça uma NOVA busca com \`pesquisar_passagens\` usando os mesmos trechos/datas/pax e \`somente_com_bagagem: true\`, e responda com o valor real retornado. Avise que está consultando o valor com bagagem.`
+      : escolha.bagagem === "remover"
+        ? `\n# 🧳 PEDIDO DE VALOR SEM BAGAGEM DESPACHADA (bagagem_intent: remover)\n` +
+          `Ele quer o valor SEM bagagem despachada. Faça uma NOVA busca com \`pesquisar_passagens\` (mesmos trechos/datas/pax) e \`somente_com_bagagem: false\`. Nunca subtraia valor por conta própria.`
+        : escolha.bagagem === "consultar"
+          ? `\n# 🧳 DÚVIDA SOBRE BAGAGEM DA OPÇÃO ATUAL (bagagem_intent: consultar)\n` +
+            `Ele quer saber se ESSA opção já inclui bagagem despachada. Responda apenas com o que está registrado nessa cotação, SEM nova pesquisa. Se a franquia/peso não estiver registrada, diga que confirma a franquia exata com a companhia — NÃO invente quilos, peças nem regra de bagagem.`
+          : "";
 
   if (escolha.conflito) {
     return (
