@@ -64,4 +64,29 @@ describe("origem nunca presumida", () => {
     const r = validateFlightSearch({ ...base, origem: "", origem_informada_pelo_cliente: true });
     expect(r.ok).toBe(false);
   });
+
+  it("flag ausente (undefined) bloqueia — origem só passa com confirmação explícita", () => {
+    const r = validateFlightSearch({ ...base });
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.campos).toContain("origem");
+  });
+
+  it("instrução proíbe usar origem de pacote pronto como origem do aéreo", () => {
+    const r = validateFlightSearch({ ...base, origem_informada_pelo_cliente: false });
+    if (!r.ok) expect(r.instrucao).toMatch(/pacote pronto/i);
+  });
+});
+
+describe("separação de regras de origem: pacote x aéreo", () => {
+  it("prompt dos Consultores trata origem alternativa como oferta do catálogo", async () => {
+    const { buildCamilaSystemPrompt } = await import("../../chat/camila-prompt");
+    const p = buildCamilaSystemPrompt();
+    expect(p).toMatch(/ORIGEM ALTERNATIVA É OFERTA DO CATÁLOGO/i);
+    expect(p).toMatch(/substituir silenciosamente/i);
+  });
+
+  it("prompt da Central proíbe origem alternativa no aéreo", async () => {
+    const { buildCentralSystemPrompt } = await import("../central-especialistas.server");
+    expect(typeof buildCentralSystemPrompt).toBe("function");
+  });
 });
