@@ -349,3 +349,57 @@ export async function setSendError(rowId: string, message: string | null): Promi
     .eq("id", rowId);
   if (error) console.error("[wa/setSendError]", error.message);
 }
+
+/**
+ * Marcador temporário gravado na coluna `error` enquanto a mensagem está
+ * sendo entregue à Meta. Funciona como trava: se outro worker rodar em
+ * paralelo, ele vê que já existe um envio em andamento e não duplica.
+ * É limpo (ou substituído pelo erro real) assim que a Meta responde.
+ */
+export const SENDING_CLAIM = "__sending__";
+
+/**
+ * Salva o balão no nosso chat e envia pelo WhatsApp, com trava
+ * anti-duplicidade: se um texto idêntico já foi salvo nesta conversa nos
+ * últimos minutos, não envia de novo (evita balões repetidos quando o cron
+ * roda duas vezes ou o worker reinicia no meio).
+ */
+export async function saveAndSendText(
+  conversationId: string,
+  waPhone: string,
+  texto: string,
+  janelaMinutos = 10,
+): Promise<void> {
+  const conteudo = texto.trim();
+  if (!conteudo) return;
+
+  const desde = new Date(Date.now() - janelaMinutos * 60 * 1000).toISOString();
+  const { data: repetida } = await supabaseAdmin
+    .from("wa_messages")
+    .select("id")
+    .eq("conversation_id", conversationId)
+    .eq("direction", "outbound")
+    .eq("content", conteudo)
+    .gte("created_at", desde)
+    .limit(1)
+    .maybeSingle();
+  if (repetida) return;
+
+  const row = await saveMessage({
+    conversation_id: conversationId,
+    direction: "outbound",
+    sender: "camila",
+    content: conteudo,
+  });
+  if (row?.id) await setSendError(row.id, SENDING_CLAIM);
+
+  const { sendWhatsAppText } = await import("./send.server");
+  const r = await sendWhatsAppText(waPhone, conteudo);
+
+  if (row?.id) {
+    await supabaseAdmin
+      .from("wa_messages")
+      .update({ wa_message_id: r.id ?? null, error: r.error ?? null })
+      .eq("id", row.id);
+  }
+}
