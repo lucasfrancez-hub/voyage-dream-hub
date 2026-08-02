@@ -19,12 +19,7 @@ import { recordHandoff, type WaConversation } from "./conversation.server";
 import { validateFlightSearch } from "./flight-search-validation";
 import { VIA_AIR_CNPJ, VIA_AIR_EMAIL_EMERGENCIA } from "@/lib/institucional";
 
-import type {
-  FlightQuoteLeg,
-  FlightQuoteOption,
-  FlightQuoteResult,
-  PeriodoDia,
-} from "./flight-quote.server";
+import type { PeriodoDia } from "./flight-quote.server";
 
 /* ─────────────────────────────────────────────────────────────
    Módulos da Central (expansão futura)
@@ -62,7 +57,8 @@ export const CENTRAL_FALHA_MSG =
 /* ─────────────────────────────────────────────────────────────
    Modelo de contingência em texto (mesmos dados estruturados do card)
    ───────────────────────────────────────────────────────────── */
-export { formatOptionText, formatOptionsText } from "./flight-option-text.server";
+import { formatOptionText, formatOptionsText } from "./flight-option-text.server";
+export { formatOptionText, formatOptionsText };
 
 /* ─────────────────────────────────────────────────────────────
    Escalação automática pro Comercial quando o motor falha
@@ -439,6 +435,8 @@ export function buildCentralBasePrompt(nome: string, genero: "f" | "m"): string 
     `Crianças: só pergunte se houver MAIS DE UM passageiro — "entre os passageiros tem alguma criança? se sim, qual a idade?".`,
     `Bagagem: NÃO pergunte automaticamente; só entra no assunto se o cliente mencionar.`,
     `Horário: NÃO pergunte automaticamente; só considere se o cliente falar espontaneamente.`,
+    `Preferência de horário é SEPARADA por trecho: "quero ir cedo e voltar à noite" = preferencia_horario_ida manhã e preferencia_horario_volta noite. Nunca aplique a preferência da ida na volta.`,
+    `Se o cliente pedir só mudança em um trecho ("quero uma volta mais tarde"), mantenha TODOS os dados anteriores, altere apenas a preferência daquele trecho e faça uma nova pesquisa.`,
 
     `\n# 🔎 PESQUISA E APRESENTAÇÃO`,
     `Assim que o CLIENTE tiver informado todas as informações mínimas obrigatórias, inicie a pesquisa IMEDIATAMENTE. Não faça perguntas desnecessárias antes de chamar pesquisar_passagens — mas também nunca antecipe a pesquisa com dado que ele não informou.`,
@@ -449,6 +447,10 @@ export function buildCentralBasePrompt(nome: string, genero: "f" | "m"): string 
     `NOVA PESQUISA: sempre que o cliente pedir outro horário, outra companhia, outra tarifa, bagagem incluída ou outra combinação de voos, faça uma NOVA pesquisa com os novos critérios — nunca reaproveite resultados anteriores.`,
     `Contingência: quando a tool devolver contingencia_texto, envie o conteúdo de texto_pronto exatamente como veio (pode escrever uma frase curta e natural antes). Não altere valores, horários, companhias nem o formato.`,
     `NUNCA explique que o card falhou. Se usar o texto de contingência, o cliente não pode perceber que houve qualquer problema técnico.`,
+
+    `\n# 🔁 IDA E VOLTA NO MESMO DIA (bate-volta)`,
+    `Bate-volta é permitido. Quem valida se a combinação é possível é a pesquisa, não você.`,
+    `Se a tool devolver sem_combinacao, existem voos mas nenhuma combinação viável: não apresente nada, explique com naturalidade e ofereça outra data, outro horário ou pernoite. Isso não é falha técnica.`,
 
     `\n# 🔍 SEM RESULTADOS`,
     `Pesquisa concluída sem voos NÃO é erro: nunca use a mensagem de falha técnica nesse caso e nunca fale em sistema, motor ou problema.`,
