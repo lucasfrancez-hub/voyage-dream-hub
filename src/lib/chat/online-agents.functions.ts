@@ -33,17 +33,18 @@ export const listOnlineAgents = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { data } = await context.supabase
       .from("ai_agents")
-      .select("slug, nome, ativo, horario_inicio, horario_fim")
+      .select("slug, nome, ativo, equipe, horario_inicio, horario_fim")
       .eq("ativo", true);
     const now = nowDecimalSP();
     const rows = (data ?? []) as Array<{
       slug: string;
       nome: string;
       ativo: boolean;
+      equipe: string | null;
       horario_inicio: string;
       horario_fim: string;
     }>;
     return rows
       .filter((a) => inWindow(now, hmToDecimal(a.horario_inicio), hmToDecimal(a.horario_fim)))
-      .map((a) => ({ slug: a.slug, nome: a.nome }));
+      .map((a) => ({ slug: a.slug, nome: a.nome, equipe: a.equipe ?? "consultor" }));
   });
