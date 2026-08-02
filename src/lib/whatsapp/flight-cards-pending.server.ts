@@ -257,6 +257,7 @@ export async function sendPendingFlightCards(
       .eq("id", row.id);
   };
 
+  const quoteId = row.id as string;
   for (let i = 0; i < opcoes.length; i++) {
     const op = opcoes[i];
     if (i > 0) await new Promise((r) => setTimeout(r, INTERVALO_MS));
@@ -270,13 +271,13 @@ export async function sendPendingFlightCards(
       // Registra no NOSSO chat ANTES de mandar pelo WhatsApp. Antes, a arte só
       // era salva depois de um envio bem-sucedido: se a API falhasse ou o worker
       // caísse no meio, o cliente às vezes recebia e no painel não aparecia nada.
-      const row = await saveMessage({
+      const msg = await saveMessage({
         conversation_id: conversationId,
         direction: "outbound",
         sender: "camila",
         content: `[[media:image|${asset.url}|${asset.filename}]]\n${caption}`,
       });
-      if (row?.id) await setSendError(row.id, SENDING_CLAIM);
+      if (msg?.id) await setSendError(msg.id, SENDING_CLAIM);
 
       const r = await sendWhatsAppImageBytes(
         waPhone,
@@ -286,14 +287,14 @@ export async function sendPendingFlightCards(
         asset.url,
       );
 
-      if (row?.id) {
+      if (msg?.id) {
         await supabaseAdmin
           .from("wa_messages")
           .update({
             wa_message_id: r.id ?? null,
             error: r.error ?? null,
           })
-          .eq("id", row.id);
+          .eq("id", msg.id);
       }
 
       if (!r.error) {
@@ -301,13 +302,13 @@ export async function sendPendingFlightCards(
         const fp = fingerprint(op);
         novosFps.push(fp);
         console.log(
-          `[flight-card] enviado (quote ${row.id}, opção ${fpsDaCotacao.size + sent}/${MAX_OPCOES}) em ${new Date().toISOString()}`,
+          `[flight-card] enviado (quote ${quoteId}, opção ${fpsDaCotacao.size + sent}/${MAX_OPCOES}) em ${new Date().toISOString()}`,
         );
         // grava já: se o worker cair aqui, esta opção não volta na próxima rodada
         await persistirFp(fp).catch(() => undefined);
       } else {
         falhou = true;
-        console.warn(`[flight-card] falha no envio (quote ${row.id}): ${r.error}`);
+        console.warn(`[flight-card] falha no envio (quote ${quoteId}): ${r.error}`);
         await supabaseAdmin
           .from("wa_flight_quotes")
           .update({
@@ -315,12 +316,12 @@ export async function sendPendingFlightCards(
             card_failed_at: new Date().toISOString(),
             card_failed_reason: String(r.error).slice(0, 300),
           })
-          .eq("id", row.id)
+          .eq("id", quoteId)
           .then(() => {}, () => {});
       }
     } catch (e) {
       falhou = true;
-      console.warn(`[flight-card] exceção ao gerar/enviar arte (quote ${row.id}):`, e);
+      console.warn(`[flight-card] exceção ao gerar/enviar arte (quote ${quoteId}):`, e);
       await supabaseAdmin
         .from("wa_flight_quotes")
         .update({
@@ -328,9 +329,10 @@ export async function sendPendingFlightCards(
           card_failed_at: new Date().toISOString(),
           card_failed_reason: `exceção: ${(e as Error)?.message ?? "desconhecida"}`.slice(0, 300),
         })
-        .eq("id", row.id)
+        .eq("id", quoteId)
         .then(() => {}, () => {});
     }
+
 
 
   }
