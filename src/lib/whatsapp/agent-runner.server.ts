@@ -26,6 +26,7 @@ import { sendWhatsAppBubbles } from "./send.server";
 import { buildSenderPrefix, capitalizeBubbles, capitalizeKnownNames, fixGluedSentences, firstName as extractFirstName } from "./text-utils.server";
 import { buildSharedAgentPrompt } from "@/lib/chat/camila-prompt";
 import { isCompanyDataBlocked } from "./data-blocklist";
+import { triageFirstMessage } from "./triage.server";
 
 // Gênero por slug (usado pra montar o prompt compartilhado com a flexão certa).
 const AGENT_GENDER: Record<string, "f" | "m"> = {
