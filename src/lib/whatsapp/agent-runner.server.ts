@@ -31,6 +31,7 @@ import { createHash, randomUUID } from "node:crypto";
 import {
   CENTRAL_PROMPT_VERSION,
   centralBriefHasMissingOrigin,
+  isValidOriginQuestion,
   isInvalidMissingOriginResponse,
   safeMissingOriginResponse,
 } from "./airflow-guard";
@@ -605,7 +606,11 @@ export async function runAgent(input: {
             centralAgent.nome,
             CENTRAL_GENDER[centralAgent.slug as CentralSlug] ?? "f",
             centralBrief,
-            { primeiroContato: centralPrimeiroContato, storedPrompt: centralAgent.system_prompt },
+            {
+              primeiroContato: centralPrimeiroContato,
+              storedPrompt: centralAgent.system_prompt,
+              origemSugeridaPeloHistorico: origemSugerida,
+            },
           ) +
           "\n\n" +
           buildSystemPrompt(agent, conv, protocolo, isNewProtocolo, previousContext, { contextOnly: true })
@@ -629,6 +634,7 @@ export async function runAgent(input: {
       loaded_prompt_version: centralAgent ? CENTRAL_PROMPT_VERSION : "consultor-shared",
       enabled_tools: enabledTools,
       origem_informada_pelo_cliente: centralAgent ? !centralBriefHasMissingOrigin(centralBrief) : null,
+      origem_sugerida_pelo_historico: centralAgent ? origemSugerida : null,
       central_brief: centralAgent ? centralBrief : null,
     };
     console.log("[agent-runtime]", JSON.stringify(runtimeAudit));
@@ -692,14 +698,14 @@ export async function runAgent(input: {
     // Garante primeira letra maiúscula em cada balão (o modelo escreve tudo minúsculo)
     // e capitaliza o primeiro nome do cliente sempre que aparecer no meio do texto.
     if (centralAgent && centralBriefHasMissingOrigin(centralBrief)) {
-      if (isInvalidMissingOriginResponse(rawText) || !/de qual cidade (?:voc[eê] )?(?:vai |quer )?embarcar/i.test(rawText)) {
+      if (isInvalidMissingOriginResponse(rawText) || !isValidOriginQuestion(rawText, origemSugerida)) {
         console.warn("[agent-runtime]", JSON.stringify({
           ...runtimeAudit,
           event: "invalid_airflow_response_blocked",
           reason: "missing_origin_or_wrong_product",
           generated_response: rawText,
         }));
-        rawText = safeMissingOriginResponse(conv.display_name);
+        rawText = safeMissingOriginResponse(conv.display_name, origemSugerida);
       }
     }
 
