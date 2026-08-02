@@ -83,7 +83,9 @@ quer PESQUISAR, COTAR ou COMPRAR SOMENTE PASSAGEM AÉREA.
 Exemplos true: "quero ver uma passagem", "preciso de um voo para Recife",
 "quero cotar uma passagem para Lisboa", "tem voo de Maringá para São Paulo?",
 "quanto está a passagem para Salvador?", "preciso comprar só o aéreo",
-"quero ver opções de voo".
+"quero ver opções de voo", "quero ida e volta", "quero só ida", "quero ida simples".
+Frases sobre o tipo de trecho ("ida e volta", "só ida") sem menção a pacote/hotel
+também são aereo_avulso = true.
 
 Responda aereo_avulso = false em TODOS os outros casos, inclusive:
 - mensagens genéricas: "oi", "boa tarde", "quero viajar", "preciso de ajuda com uma viagem";
