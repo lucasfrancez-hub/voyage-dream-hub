@@ -805,7 +805,11 @@ export function buildCentralPrompt(
   nome: string,
   genero: "f" | "m",
   brief?: string | null,
-  opts?: { primeiroContato?: boolean; storedPrompt?: string | null },
+  opts?: {
+    primeiroContato?: boolean;
+    storedPrompt?: string | null;
+    origemSugeridaPeloHistorico?: string | null;
+  },
 ): string {
   const stored = opts?.storedPrompt?.trim();
   const base = stored && stored.length > 50 ? stored : buildCentralBasePrompt(nome, genero);
@@ -850,6 +854,9 @@ export function buildCentralPrompt(
     `Hoje é ${hoje} (America/Sao_Paulo).`,
     brief?.trim()
       ? `\n## 📋 O QUE O CONSULTOR JÁ COLETOU (não peça de novo)\n${brief.trim()}`
+      : "",
+    opts?.origemSugeridaPeloHistorico?.trim()
+      ? `\n## 🔁 ORIGEM DO HISTÓRICO (apenas sugestão)\nEm pesquisas anteriores desta conversa o embarque foi por ${opts.origemSugeridaPeloHistorico.trim()}.\nIsso NÃO vale como origem confirmada desta nova cotação. Se o cliente não disser a origem agora, pergunte: "Vai manter o embarque por ${opts.origemSugeridaPeloHistorico.trim()} ou quer mudar a origem?" e só pesquise depois da resposta. Nunca diga que vai pesquisar saindo de ${opts.origemSugeridaPeloHistorico.trim()} antes da confirmação.`
       : "",
     `\n## 🚪 ABERTURA`,
     opts?.primeiroContato
