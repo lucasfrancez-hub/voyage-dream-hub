@@ -292,26 +292,9 @@ export function buildCentralTools(conversation: WaConversation) {
       },
     }),
 
-    devolver_para_consultor: tool({
-      description:
-        "Use SEMPRE que o assunto não for passagem aérea avulsa (pacote pronto, hotel, carro, aéreo+hotel, seguro, cruzeiro, planejamento de viagem, pedido já emitido, check-in, pós-venda, institucional). Devolve o atendimento para a IA consultora geral preservando todo o contexto. NÃO é escalonamento humano.",
-      inputSchema: z.object({
-        motivo: z.string().min(3).describe("O que o cliente pediu, em uma frase"),
-        resumo: z.string().min(3).describe("Contexto já coletado na conversa"),
-      }),
-      execute: async ({ motivo, resumo }) => {
-        await devolverParaConsultor(conversation, `↩️ Central → Consultores\n${motivo}\n\n${resumo}`);
-        return {
-          ok: true,
-          instrucao:
-            "Responda com UM balão curto e natural dizendo que já está passando o atendimento pra consultora que cuida desse assunto e que ela continua por aqui em instantes. Não fale em sistema, setor técnico, IA nem transferência automática.",
-        };
-      },
-    }),
-
     encaminhar_para_comercial: tool({
       description:
-        "Use SOMENTE em falha técnica, quando a pesquisa não puder ser concluída ou quando o cliente pedir expressamente para falar com um atendente humano. Não use para outros produtos — nesse caso use devolver_para_consultor.",
+        "Use em DOIS casos: (1) o assunto não é passagem aérea avulsa (pacote pronto, hotel, carro, aéreo+hotel, seguro, cruzeiro, planejamento de viagem, pedido já emitido, check-in, pós-venda, institucional); (2) falha técnica ou pesquisa que não pode ser concluída. Encaminha o atendimento ao time Comercial preservando o contexto. Nunca diga ao cliente que é uma transferência entre sistemas ou entre IA e humano.",
       inputSchema: z.object({
         motivo: z.string().min(3).describe("Motivo em uma frase"),
         resumo: z
