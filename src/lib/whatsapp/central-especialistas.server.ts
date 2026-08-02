@@ -201,7 +201,12 @@ export function buildCentralTools(
       description:
         "Pesquisa passagens aéreas no motor de busca oficial (Comprar Viagem) e ENVIA automaticamente as ARTES (cards) das duas melhores opções ao cliente. Use SOMENTE quando o próprio cliente já tiver informado origem, destino, tipo de trecho (somente ida ou ida e volta), data(s) e quantidade de passageiros. NUNCA chame com data, trecho ou quantidade de passageiros presumidos por você. Se algum dado faltar ou estiver incoerente, a tool devolve o que perguntar em vez de pesquisar. Se o cliente pedir outro horário depois, chame de novo com a preferência de horário.",
       inputSchema: z.object({
-        origem: z.string().min(2).describe("Cidade ou IATA de origem, ex.: 'Maringá' ou 'MGF'"),
+        origem: z.string().min(2).describe("Cidade ou IATA de origem, ex.: 'Maringá' ou 'MGF'. SOMENTE a cidade que o próprio cliente informou."),
+        origem_informada_pelo_cliente: z
+          .boolean()
+          .describe(
+            "true SOMENTE se o próprio cliente disse a cidade de embarque nesta conversa. Se você estiver usando cadastro, cidade da empresa, conversa antiga, aeroporto mais próximo ou qualquer padrão, mande false — a pesquisa será bloqueada.",
+          ),
         destino: z.string().min(2).describe("Cidade ou IATA de destino, ex.: 'Recife' ou 'REC'"),
         tipo_trecho: z
           .enum(["somente_ida", "ida_e_volta"])
@@ -272,6 +277,7 @@ export function buildCentralTools(
 
       execute: async ({
         origem,
+        origem_informada_pelo_cliente,
         destino,
         tipo_trecho,
         data_ida,
@@ -293,6 +299,7 @@ export function buildCentralTools(
         // datas reais/futuras, origem ≠ destino e limites de passageiros.
         const check = validateFlightSearch({
           origem,
+          origem_informada_pelo_cliente,
           destino,
           tipo_trecho,
           data_ida,
@@ -673,6 +680,8 @@ export function buildCentralBasePrompt(nome: string, genero: "f" | "m"): string 
     `4. data da ida (e a data da volta quando for ida e volta)`,
     `5. quantidade de passageiros`,
     `Nunca pule uma etapa nem pergunte fora de ordem. O que o cliente já informou, você pula — nunca pergunta de novo.`,
+    `🚫 ORIGEM NUNCA É PRESUMIDA. Se o cliente não disse a cidade de embarque nesta conversa, a primeira pergunta é sempre "De qual cidade você vai embarcar?". É PROIBIDO usar cidade do cadastro, cidade da empresa (Paranavaí), cidade de conversa antiga, localização aproximada, aeroporto mais próximo ou qualquer cidade padrão. Nesses casos mande origem_informada_pelo_cliente = false.`,
+    `Enquanto faltar a origem, NÃO pergunte horário, bagagem, companhia nem conexão — colete origem, destino, tipo de trecho, data(s) e passageiros nessa ordem.`,
     `Datas em linguagem natural ("dia 15 de setembro", "mês que vem") você converte para AAAA-MM-DD antes de pesquisar. Data sem ano: use o ano que faz a data cair no futuro.`,
     `🚫 NUNCA invente, assuma, estime ou "chute" data de viagem, tipo de trecho ou quantidade de passageiros. Se o cliente não disse, PERGUNTE.`,
     `Se o cliente só disse origem e destino (ex.: "quero uma passagem de Maringá para Recife"), pergunte se é só ida ou ida e volta e qual a data — e só pesquise depois que ele responder.`,
