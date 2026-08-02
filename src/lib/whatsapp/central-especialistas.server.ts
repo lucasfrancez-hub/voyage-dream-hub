@@ -173,17 +173,25 @@ export function buildCentralTools(conversation: WaConversation, habilitadas?: st
 
     pesquisar_passagens: tool({
       description:
-        "Pesquisa passagens aéreas no motor de busca oficial (Comprar Viagem) e ENVIA automaticamente as ARTES (cards) das duas melhores opções ao cliente. Use somente quando tiver origem, destino, data de ida, se é só ida ou ida e volta, e quantidade de passageiros. Se o cliente pedir outro horário depois, chame de novo com a preferência de horário.",
+        "Pesquisa passagens aéreas no motor de busca oficial (Comprar Viagem) e ENVIA automaticamente as ARTES (cards) das duas melhores opções ao cliente. Use SOMENTE quando o próprio cliente já tiver informado origem, destino, data de ida, se é só ida ou ida e volta, e quantidade de passageiros. NUNCA chame com data, trecho ou quantidade de passageiros presumidos por você. Se o cliente pedir outro horário depois, chame de novo com a preferência de horário.",
       inputSchema: z.object({
         origem: z.string().min(2).describe("Cidade ou IATA de origem, ex.: 'Maringá' ou 'MGF'"),
         destino: z.string().min(2).describe("Cidade ou IATA de destino, ex.: 'Recife' ou 'REC'"),
-        data_ida: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).describe("Data de ida AAAA-MM-DD"),
+        data_ida: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).describe("Data de ida AAAA-MM-DD, exatamente como o cliente informou (nunca estimada)"),
         data_volta: z
           .string()
           .regex(/^\d{4}-\d{2}-\d{2}$/)
           .nullable()
           .describe("Data de volta AAAA-MM-DD, ou null se for somente ida"),
+        data_informada_pelo_cliente: z
+          .boolean()
+          .describe(
+            "true SOMENTE se o cliente informou a data de ida (mesmo em linguagem natural, ex.: 'dia 15 de setembro'). Se você estiver assumindo/estimando a data, mande false — a pesquisa não será feita.",
+          ),
         adultos: z.number().int().min(1).max(9),
+        pax_informado_pelo_cliente: z
+          .boolean()
+          .describe("true somente se o cliente informou quantos passageiros vão viajar"),
         criancas: z.number().int().min(0).max(9).nullable().describe("Crianças de 2 a 11 anos"),
         bebes: z.number().int().min(0).max(9).nullable().describe("Bebês de colo (menos de 2 anos)"),
         preferencia_horario: z
@@ -195,6 +203,7 @@ export function buildCentralTools(conversation: WaConversation, habilitadas?: st
           .nullable()
           .describe("Só true se o cliente pediu bagagem despachada"),
       }),
+
       execute: async ({
         origem,
         destino,
