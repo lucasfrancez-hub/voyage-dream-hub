@@ -65,7 +65,7 @@ const RX_BATE_VOLTA =
 const RX_TERRESTRE =
   /\b(onibus|van|carro|traslado|transfer|translado|passeio|city tour|excursao de um dia|barco|trem)\b/i;
 
-function heuristicaAereo(textoBruto: string): boolean {
+export function heuristicaAereo(textoBruto: string): boolean {
   const texto = normalizarTexto(textoBruto);
   const pedeTrecho = RX_TRECHO.test(texto) || RX_BATE_VOLTA.test(texto);
   if (!RX_AEREO.test(texto) && !pedeTrecho) return false;
