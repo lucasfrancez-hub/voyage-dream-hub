@@ -26,7 +26,9 @@ type OptLite = {
 };
 
 const MAX_OPCOES = 2; // por cotação, salvo pedido explícito de mais horários
-const INTERVALO_MS = 30_000; // espaçamento entre a 1ª e a 2ª arte (auditoria: 30s)
+const INTERVALO_MS = 30_000; // 2ª arte fica elegível 30s depois da 1ª; o envio
+// ocorre na próxima execução do cron (1x/min), então na prática o cliente recebe
+// a segunda opção normalmente entre 30 e 90 segundos.
 const CLAIM_TRAVADO_MS = 90_000; // claim preso (worker caiu no render) → destrava
 
 
