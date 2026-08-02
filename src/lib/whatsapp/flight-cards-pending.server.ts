@@ -217,10 +217,12 @@ export async function sendPendingFlightCards(
 
   const { buildFlightCardData, renderFlightCardAssetRetry } = await import("./flight-card.server");
   const { buildFlightOptionCaption } = await import("./flight-caption.server");
-  const { sendWhatsAppImageBytes } = await import("./send.server");
+  const { sendWhatsAppImageBytesDetailed, sendWhatsAppText } = await import("./send.server");
   const { saveMessage, saveAndSendText, setSendError, SENDING_CLAIM } = await import(
     "./conversation.server"
   );
+  const { formatOptionText } = await import("./flight-option-text.server");
+  const { abortIfHumanTookOver } = await import("./human-takeover.server");
 
 
   // Nunca mandar arte "do nada": se a IA não avisou nada nos últimos minutos,
@@ -262,32 +264,114 @@ export async function sendPendingFlightCards(
   };
 
   const quoteId = row.id as string;
-  const { logCardEvent, gapSeconds } = await import("./card-log.server");
+  const { logCardEvent, gapSeconds, logCardDelayIfNeeded } = await import("./card-log.server");
+  type Stage = import("./card-log.server").CardFailureStage;
+
+  const marcarFalhaNaCotacao = async (motivo: string) => {
+    await supabaseAdmin
+      .from("wa_flight_quotes")
+      .update({
+        card_failed: true,
+        card_failed_at: new Date().toISOString(),
+        card_failed_reason: motivo.slice(0, 300),
+      })
+      .eq("id", quoteId)
+      .then(() => {}, () => {});
+  };
+
+  /**
+   * FALLBACK REAL EM TEXTO — nunca é uma nova tentativa de imagem.
+   * Monta o texto SÓ desta opção, com os dados estruturados da pesquisa,
+   * e envia imediatamente pela Meta.
+   */
+  const enviarFallbackTexto = async (
+    op: OptLite,
+    numero: number,
+  ): Promise<{ status: "sent" | "failed"; id: string | null; stage?: Stage; reason?: string }> => {
+    let texto: string;
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      texto = formatOptionText(quote as any, op as any, numero);
+      if (!texto.trim()) throw new Error("texto vazio");
+    } catch (e) {
+      return {
+        status: "failed",
+        id: null,
+        stage: "fallback_generation",
+        reason: (e as Error)?.message ?? "falha ao montar o texto da opção",
+      };
+    }
+    if (await abortIfHumanTookOver(conversationId, `fallback_opcao_${numero}`)) {
+      return { status: "failed", id: null, stage: "fallback_send", reason: "assunção humana" };
+    }
+    try {
+      const msg = await saveMessage({
+        conversation_id: conversationId,
+        direction: "outbound",
+        sender: "camila",
+        content: texto,
+      });
+      const r = await sendWhatsAppText(waPhone, texto);
+      if (msg?.id) {
+        await supabaseAdmin
+          .from("wa_messages")
+          .update({ wa_message_id: r.id ?? null, error: r.error ?? null })
+          .eq("id", msg.id);
+      }
+      if (r.error) {
+        return { status: "failed", id: null, stage: "fallback_send", reason: String(r.error).slice(0, 300) };
+      }
+      return { status: "sent", id: r.id ?? null };
+    } catch (e) {
+      return {
+        status: "failed",
+        id: null,
+        stage: "fallback_send",
+        reason: (e as Error)?.message ?? "exceção no envio do texto",
+      };
+    }
+  };
+
   for (let i = 0; i < opcoes.length; i++) {
     const op = opcoes[i];
     if (i > 0) await new Promise((r) => setTimeout(r, INTERVALO_MS));
     const optionIndex = fpsDaCotacao.size + sent + 1;
+    const processadoEm = new Date().toISOString();
     const base = {
       conversation_id: conversationId,
       quote_id: quoteId,
       option_index: optionIndex,
       eligible_at: elegivelEm,
+      processed_at: processadoEm,
+      card_type: "flight_option",
     };
+
+    // ASSUNÇÃO HUMANA: relê o estado imediatamente antes de cada mídia.
+    if (await abortIfHumanTookOver(conversationId, `card_opcao_${optionIndex}`)) {
+      await liberarClaim();
+      return { sent, quote_id: quoteId };
+    }
+
     let geradoEm: string | null = null;
-    let estagio: "render" | "upload" | "send" | "persist" | "unknown" = "render";
+    let estagio: Stage = "image_render";
     try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const data = buildFlightCardData(quote as any, op as any);
+      estagio = "image_render";
       const asset = await renderFlightCardAssetRetry(data);
       geradoEm = new Date().toISOString();
-      logCardEvent({ ...base, event: "card_generated", generated_at: geradoEm });
+      logCardEvent({
+        ...base,
+        event: "card_generated",
+        generated_at: geradoEm,
+        storage_reference: asset.url ?? asset.filename ?? null,
+        delivery_status: "generated",
+      });
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const caption = buildFlightOptionCaption(quote as any, op as any);
 
-      // Registra no NOSSO chat ANTES de mandar pelo WhatsApp. Antes, a arte só
-      // era salva depois de um envio bem-sucedido: se a API falhasse ou o worker
-      // caísse no meio, o cliente às vezes recebia e no painel não aparecia nada.
-      estagio = "persist";
+      // Registra no NOSSO chat ANTES de mandar pelo WhatsApp.
+      estagio = "file_storage";
       const msg = await saveMessage({
         conversation_id: conversationId,
         direction: "outbound",
@@ -296,14 +380,15 @@ export async function sendPendingFlightCards(
       });
       if (msg?.id) await setSendError(msg.id, SENDING_CLAIM);
 
-      estagio = "send";
-      const r = await sendWhatsAppImageBytes(
+      estagio = "meta_media_upload";
+      const r = await sendWhatsAppImageBytesDetailed(
         waPhone,
         asset.bytes,
         asset.filename,
         caption,
         asset.url,
       );
+      estagio = r.stage ?? "meta_message_send";
 
       if (msg?.id) {
         await supabaseAdmin
@@ -316,6 +401,7 @@ export async function sendPendingFlightCards(
       }
 
       const agora = Date.now();
+      const gap = gapSeconds(ultimoEm, agora);
       if (!r.error) {
         sent++;
         const fp = fingerprint(op);
@@ -324,73 +410,146 @@ export async function sendPendingFlightCards(
           ...base,
           event: "card_sent",
           generated_at: geradoEm,
+          uploaded_at: r.uploaded_at ?? null,
           sent_at: new Date(agora).toISOString(),
-          meta_status: "ok",
+          meta_media_id: r.media_id ?? null,
           meta_message_id: r.id ?? null,
-          gap_seconds: gapSeconds(ultimoEm, agora),
+          // "sent" = a Meta aceitou. delivered/read só via webhook de status.
+          delivery_status: "sent",
+          gap_seconds: gap,
         });
+        logCardDelayIfNeeded({ ...base, gap_seconds: gap });
         // grava já: se o worker cair aqui, esta opção não volta na próxima rodada
         await persistirFp(fp).catch(() => undefined);
       } else {
         falhou = true;
+        // FALLBACK EM TEXTO desta opção (nunca reenviar a imagem).
+        const fb = await enviarFallbackTexto(op, optionIndex);
         logCardEvent({
           ...base,
           event: "card_failed",
           generated_at: geradoEm,
-          stage: "send",
-          reason: String(r.error).slice(0, 300),
-          meta_status: String(r.error).slice(0, 120),
-          fallback_sent: false,
-          gap_seconds: gapSeconds(ultimoEm, agora),
+          failed_stage: estagio,
+          failure_reason: String(r.error).slice(0, 300),
+          retry_count: 0,
+          meta_media_id: r.media_id ?? null,
+          meta_message_id: r.id ?? null,
+          delivery_status: "failed",
+          fallback_sent: fb.status === "sent",
+          fallback_status: fb.status,
+          fallback_message_id: fb.id,
+          gap_seconds: gap,
         });
-        await supabaseAdmin
-          .from("wa_flight_quotes")
-          .update({
-            card_failed: true,
-            card_failed_at: new Date().toISOString(),
-            card_failed_reason: String(r.error).slice(0, 300),
-          })
-          .eq("id", quoteId)
-          .then(() => {}, () => {});
+        if (fb.status === "failed") {
+          logCardEvent({
+            ...base,
+            event: "card_failed",
+            failed_stage: fb.stage ?? "fallback_send",
+            failure_reason: fb.reason ?? "falha no fallback em texto",
+            fallback_sent: false,
+            fallback_status: "failed",
+          });
+          await escalarPorFalhaDeCard(conversationId, quoteId, optionIndex);
+        } else {
+          // Texto entregue: a opção está cumprida, não repete na próxima rodada
+          // e NÃO vira encaminhamento ao Comercial.
+          const fp = fingerprint(op);
+          novosFps.push(fp);
+          await persistirFp(fp).catch(() => undefined);
+        }
+        await marcarFalhaNaCotacao(String(r.error));
       }
     } catch (e) {
       falhou = true;
+      const motivo = `exceção: ${(e as Error)?.message ?? "desconhecida"}`;
+      const fb = await enviarFallbackTexto(op, optionIndex);
       logCardEvent({
         ...base,
         event: "card_failed",
         generated_at: geradoEm,
-        stage: estagio,
-        reason: `exceção: ${(e as Error)?.message ?? "desconhecida"}`.slice(0, 300),
-        fallback_sent: false,
+        failed_stage: estagio,
+        failure_reason: motivo.slice(0, 300),
+        retry_count: 0,
+        delivery_status: "failed",
+        fallback_sent: fb.status === "sent",
+        fallback_status: fb.status,
+        fallback_message_id: fb.id,
       });
-      await supabaseAdmin
-        .from("wa_flight_quotes")
-        .update({
-          card_failed: true,
-          card_failed_at: new Date().toISOString(),
-          card_failed_reason: `exceção: ${(e as Error)?.message ?? "desconhecida"}`.slice(0, 300),
-        })
-        .eq("id", quoteId)
-        .then(() => {}, () => {});
+      if (fb.status === "failed") {
+        logCardEvent({
+          ...base,
+          event: "card_failed",
+          failed_stage: fb.stage ?? "fallback_send",
+          failure_reason: fb.reason ?? "falha no fallback em texto",
+          fallback_sent: false,
+          fallback_status: "failed",
+        });
+        await escalarPorFalhaDeCard(conversationId, quoteId, optionIndex);
+      } else {
+        const fp = fingerprint(op);
+        novosFps.push(fp);
+        await persistirFp(fp).catch(() => undefined);
+      }
+      await marcarFalhaNaCotacao(motivo);
     }
-
-
-
   }
 
-  if (sent === 0) {
+  if (sent === 0 && !novosFps.length) {
     await liberarClaim();
     return { sent: 0, quote_id: row.id as string };
   }
 
-  // Concluiu a cotação só quando as 2 artes saíram; senão libera o claim pra
-  // que a próxima rodada do cron mande a etapa seguinte.
-  const totalEnviadas = fpsDaCotacao.size + sent;
-  const concluiu = !falhou && totalEnviadas >= MAX_OPCOES;
+  // Concluiu a cotação só quando as 2 opções saíram (arte ou texto); senão
+  // libera o claim pra que a próxima rodada do cron mande a etapa seguinte.
+  const totalEnviadas = fpsDaCotacao.size + novosFps.length;
+  const concluiu = totalEnviadas >= MAX_OPCOES;
   await supabaseAdmin
     .from("wa_flight_quotes")
     .update({ cards_sent_at: concluiu ? new Date().toISOString() : null })
     .eq("id", row.id);
 
+  void falhou;
   return { sent, quote_id: row.id as string };
 }
+
+/**
+ * Card E fallback falharam na mesma opção: aí sim o atendimento vai para o
+ * time Comercial, preservando o contexto da pesquisa. Nada técnico chega ao
+ * cliente.
+ */
+async function escalarPorFalhaDeCard(
+  conversationId: string,
+  quoteId: string,
+  optionIndex: number,
+): Promise<void> {
+  try {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: conv } = await supabaseAdmin
+      .from("wa_conversations")
+      .select("id, tags, protocolo_ativo_id")
+      .eq("id", conversationId)
+      .maybeSingle();
+    const tags = Array.from(
+      new Set([
+        ...(((conv as { tags?: string[] | null } | null)?.tags ?? []) as string[]),
+        "aguardando_humano",
+        "falha_central",
+      ]),
+    );
+    await supabaseAdmin
+      .from("wa_conversations")
+      .update({ tags, assigned_to: null, priority: "high" })
+      .eq("id", conversationId);
+    const { recordHandoff } = await import("./conversation.server");
+    await recordHandoff({
+      conversation_id: conversationId,
+      from_mode: "ai",
+      to_mode: "ai",
+      reason: "aguardando_humano:falha_card_e_fallback",
+      briefing: `Arte e texto da opção ${optionIndex} não puderam ser entregues (cotação ${quoteId}). Dados da pesquisa preservados.`,
+    }).catch(() => {});
+  } catch (e) {
+    console.error("[flight-cards] falha ao escalar após card+fallback:", e);
+  }
+}
+
