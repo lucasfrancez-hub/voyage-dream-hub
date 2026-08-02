@@ -800,8 +800,14 @@ export async function resolveTurnReference(
     }
   }
 
-  // 2) texto + 3) última referência persistida
-  if (refTexto) await persistLastReference(conversationId, refTexto);
+  // 2) texto + 3) última referência persistida.
+  // O assunto nunca é apagado: se este turno não trouxe um assunto novo,
+  // mantemos o anterior ("essa tem bagagem?" → "quanto fica?" → "e a conexão?").
+  if (refTexto) {
+    if (!refTexto.assunto && ultimaRef?.assunto) refTexto.assunto = ultimaRef.assunto;
+    if (!refTexto.companhia && ultimaRef?.companhia) refTexto.companhia = ultimaRef.companhia;
+    await persistLastReference(conversationId, refTexto);
+  }
   return refTexto;
 }
 
