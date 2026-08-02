@@ -88,7 +88,13 @@ async function loadAgents(): Promise<Agent[]> {
   return (data ?? []) as unknown as Agent[];
 }
 
-function pickAgent(agents: Agent[], stickySlug?: string | null): Agent | null {
+/**
+ * Escolhe o consultor de forma DETERMINÍSTICA (sem sorteio), igual à Central:
+ * 1) menor carga — menos conversas atendidas nas últimas 24h;
+ * 2) empate → quem está há mais tempo sem atender (round-robin);
+ * 3) empate → ordem alfabética do slug.
+ */
+async function pickAgent(agents: Agent[], stickySlug?: string | null): Promise<Agent | null> {
   // A Central de Especialistas (Paula/Bruno) NUNCA é sorteada no atendimento
   // normal — ela só entra quando o consultor encaminha explicitamente.
   agents = agents.filter((a) => (a.equipe ?? "consultor") !== "especialista");
@@ -99,14 +105,51 @@ function pickAgent(agents: Agent[], stickySlug?: string | null): Agent | null {
   );
   // stickiness DENTRO do mesmo protocolo: só mantém o agente se ele ainda
   // está no plantão agora. Se saiu da janela (ex.: Roberto do noturno num
-  // horário de dia), sorteia outro entre os disponíveis — nunca deixa um
+  // horário de dia), escolhe outro entre os disponíveis — nunca deixa um
   // agente fora do turno responder porque atendeu antes.
   if (stickySlug) {
     const kept = inWindow.find((a) => a.slug === stickySlug);
     if (kept) return kept;
   }
   if (!inWindow.length) return null;
-  return inWindow[Math.floor(Math.random() * inWindow.length)];
+  if (inWindow.length === 1) return inWindow[0]!;
+
+  const slugs = inWindow.map((a) => a.slug);
+  const desde24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const { data: recentes } = await supabaseAdmin
+    .from("wa_conversations")
+    .select("agent_slug, last_message_at")
+    .in("agent_slug", slugs)
+    .gte("last_message_at", desde24h);
+
+  const carga = new Map<string, number>(slugs.map((s) => [s, 0]));
+  const ultimo = new Map<string, number>(slugs.map((s) => [s, 0]));
+  for (const r of recentes ?? []) {
+    const s = (r as { agent_slug?: string | null }).agent_slug ?? null;
+    if (!s || !carga.has(s)) continue;
+    carga.set(s, (carga.get(s) ?? 0) + 1);
+    const t = (r as { last_message_at?: string | null }).last_message_at
+      ? new Date((r as { last_message_at: string }).last_message_at).getTime()
+      : 0;
+    if (t > (ultimo.get(s) ?? 0)) ultimo.set(s, t);
+  }
+
+  const ordenados = [...inWindow].sort((a, b) => {
+    const ca = carga.get(a.slug) ?? 0;
+    const cb = carga.get(b.slug) ?? 0;
+    if (ca !== cb) return ca - cb; // menor carga primeiro
+    const ua = ultimo.get(a.slug) ?? 0;
+    const ub = ultimo.get(b.slug) ?? 0;
+    if (ua !== ub) return ua - ub; // há mais tempo sem atender primeiro
+    return a.slug.localeCompare(b.slug);
+  });
+  const escolhido = ordenados[0]!;
+  console.log(
+    `[agentes] consultor escolhido: ${escolhido.slug} (carga 24h: ${slugs
+      .map((s) => `${s}=${carga.get(s) ?? 0}`)
+      .join(", ")})`,
+  );
+  return escolhido;
 }
 
 
@@ -280,7 +323,7 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
     ? agents.find((a) => a.slug === centralSlug && (a.equipe ?? "") === "especialista") ?? null
     : null;
 
-  const agent = centralAgent ?? pickAgent(agents, stickySlug);
+  const agent = centralAgent ?? (await pickAgent(agents, stickySlug));
 
 
 

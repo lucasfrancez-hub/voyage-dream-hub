@@ -864,14 +864,9 @@ export function buildCamilaTools(conversation: WaConversation) {
         if (input.observacoes) linhas.push(`📝 Obs: ${input.observacoes}`);
         const brief = linhas.join("\n");
 
-        // Sorteia o especialista disponível (Paula / Bruno).
-        const { data: espec } = await supabaseAdmin
-          .from("ai_agents")
-          .select("slug")
-          .eq("equipe", "especialista")
-          .eq("ativo", true);
-        const slugs = (espec ?? []).map((a) => a.slug as string);
-        const escolhido = slugs.length ? slugs[Math.floor(Math.random() * slugs.length)] : "paula";
+        // Escolhe o especialista de forma determinística (menor carga → round-robin).
+        const { pickEspecialista } = await import("./triage.server");
+        const escolhido = await pickEspecialista();
 
         await supabaseAdmin
           .from("wa_conversations")
