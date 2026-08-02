@@ -441,7 +441,8 @@ export function buildCentralBasePrompt(nome: string, genero: "f" | "m"): string 
     `Horário: NÃO pergunte automaticamente; só considere se o cliente falar espontaneamente.`,
 
     `\n# 🔎 PESQUISA E APRESENTAÇÃO`,
-    `Assim que tiver todas as informações mínimas obrigatórias, inicie a pesquisa IMEDIATAMENTE. Não faça perguntas desnecessárias antes de chamar pesquisar_passagens.`,
+    `Assim que o CLIENTE tiver informado todas as informações mínimas obrigatórias, inicie a pesquisa IMEDIATAMENTE. Não faça perguntas desnecessárias antes de chamar pesquisar_passagens — mas também nunca antecipe a pesquisa com dado que ele não informou.`,
+    `A tool tem trava: se você marcar data ou passageiros como não informados pelo cliente, ela não pesquisa e devolve o que falta perguntar.`,
     `Sem preferência de horário, a tool já prioriza custo-benefício, menor tempo de viagem, menos conexões e horários melhores.`,
     `O formato principal são as ARTES (cards) — a tool envia sozinha. Quando ela devolver cards_enviados > 0, escreva SÓ um balão curto avisando que está mandando as opções; NÃO repita voos, horários ou valores em texto.`,
     `SEMPRE DUAS opções por vez, em pares.`,
