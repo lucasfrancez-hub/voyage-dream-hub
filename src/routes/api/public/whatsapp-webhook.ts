@@ -100,7 +100,42 @@ type WhatsAppPayload = {
   }>;
 };
 
+/**
+ * Registra no banco o evento bruto recebido da Meta (sanitizado pela própria
+ * Meta — não contém credenciais). Serve de evidência: prova se o evento de
+ * revogação chegou, qual id veio e se a mensagem original foi localizada.
+ */
+async function logWebhookEvent(
+  admin: { from: (t: string) => { insert: (v: unknown) => Promise<{ error: { message: string } | null }> } },
+  ev: {
+    event_type: string;
+    meta_message_id?: string | null;
+    wa_from?: string | null;
+    conversation_id?: string | null;
+    matched_message_id?: string | null;
+    note?: string | null;
+    payload?: Record<string, unknown> | null;
+  },
+) {
+  try {
+    const { error } = await admin.from("wa_webhook_events").insert({
+      webhook_field: "messages",
+      event_type: ev.event_type,
+      meta_message_id: ev.meta_message_id ?? null,
+      wa_from: ev.wa_from ?? null,
+      conversation_id: ev.conversation_id ?? null,
+      matched_message_id: ev.matched_message_id ?? null,
+      note: ev.note ?? null,
+      payload: ev.payload ?? null,
+    });
+    if (error) console.error("[wa-webhook] log de evento falhou:", error.message);
+  } catch (e) {
+    console.error("[wa-webhook] log de evento falhou:", e);
+  }
+}
+
 async function processPayload(payload: WhatsAppPayload) {
+
   const { getOrCreateConversation, saveMessage } = await import("@/lib/whatsapp/conversation.server");
   const { runAgent } = await import("@/lib/whatsapp/agent-runner.server");
   const { downloadWhatsAppMedia, transcribeAudio, storeInboundMedia, extFromMime } = await import("@/lib/whatsapp/media.server");
