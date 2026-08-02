@@ -456,14 +456,15 @@ export async function resolveTurnReference(
 
   // 1) resposta citada — prioridade máxima (FK interna primeiro, depois id da Meta)
   if (replyToMessageId || replyToWaId) {
-    let citada: { quote_id: string | null; option_index: number | null } | null = null;
+    type Citada = { quote_id: string | null; option_index: number | null };
+    let citada: Citada | null = null;
     if (replyToMessageId) {
       const { data } = await supabaseAdmin
         .from("wa_messages")
         .select("quote_id, option_index")
         .eq("id", replyToMessageId)
         .maybeSingle();
-      citada = (data as typeof citada) ?? null;
+      citada = (data as Citada | null) ?? null;
     }
     if (!citada && replyToWaId) {
       const { data } = await supabaseAdmin
@@ -471,10 +472,11 @@ export async function resolveTurnReference(
         .select("quote_id, option_index")
         .eq("wa_message_id", replyToWaId)
         .maybeSingle();
-      citada = (data as typeof citada) ?? null;
+      citada = (data as Citada | null) ?? null;
     }
     const qid = citada?.quote_id ?? null;
     const oidx = citada?.option_index ?? null;
+
     if (qid && oidx) {
       const q = memorias.find((m) => m.quote_id === qid);
       const o = q?.opcoes.find((x) => x.option_index === oidx);
