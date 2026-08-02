@@ -583,9 +583,11 @@ export async function registerCustomerChoice(
   memorias: QuoteMemory[],
   texto: string,
   replyToWaId?: string | null,
+  replyToMessageId?: string | null,
 ): Promise<ChoiceDetection | null> {
   // Prioridade: mensagem citada > texto > última opção comentada.
-  const ref = await resolveTurnReference(conversationId, memorias, texto, replyToWaId);
+  const ref = await resolveTurnReference(conversationId, memorias, texto, replyToWaId, replyToMessageId);
+
   const escolha = detectCustomerChoice(memorias, texto, ref);
   if (!escolha) return null;
   // Comparação não é escolha: não grava escolha_option_index.
