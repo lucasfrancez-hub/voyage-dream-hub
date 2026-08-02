@@ -459,6 +459,30 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
     });
   }
 
+  // MEMÓRIA ESTRUTURADA DAS COTAÇÕES: o que foi enviado ao cliente vem do
+  // banco, não da leitura da legenda das artes. É isso que faz "gostei da
+  // segunda" apontar sempre para a opção certa, mesmo com mensagens no meio.
+  let quoteBlock = "";
+  try {
+    const {
+      loadQuoteMemory,
+      buildQuoteMemoryBlock,
+      registerCustomerChoice,
+      buildChoiceBlock,
+    } = await import("./flight-quote-memory.server");
+    const memorias = await loadQuoteMemory(conv.id);
+    if (memorias.length) {
+      const ultimaDoCliente = [...merged].reverse().find((m) => m.sender === "customer");
+      const escolha = ultimaDoCliente
+        ? await registerCustomerChoice(conv.id, memorias, ultimaDoCliente.content).catch(() => null)
+        : null;
+      quoteBlock = buildQuoteMemoryBlock(memorias) + buildChoiceBlock(escolha);
+    }
+  } catch (err) {
+    console.warn("[agent] memória de cotações indisponível:", err);
+  }
+
+
 
   const { count: outboundNoProto } = await supabaseAdmin
     .from("wa_messages")
