@@ -809,8 +809,9 @@ export async function registerCustomerChoice(
 
   const escolha = detectCustomerChoice(memorias, texto, ref);
   if (!escolha) return null;
-  // Comparação não é escolha: não grava escolha_option_index.
-  if (escolha.match === "comparacao") return escolha;
+  // Comparação, conflito e pergunta não são escolha: não gravam nada.
+  if (escolha.match === "comparacao" || escolha.conflito) return escolha;
+  if (!escolha.clara) return escolha;
 
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const { logCardEvent } = await import("./card-log.server");
@@ -831,6 +832,7 @@ export async function registerCustomerChoice(
     patch.cancelled_reason = "pending_card_cancelled_by_customer_choice";
   }
   await supabaseAdmin.from("wa_flight_quotes").update(patch).eq("id", escolha.quote_id);
+
 
   if (escolha.clara && pendentes.length) {
     for (const idx of pendentes) {
