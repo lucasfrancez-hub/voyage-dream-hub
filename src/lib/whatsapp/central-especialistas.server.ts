@@ -254,6 +254,40 @@ export function buildCentralTools(
         // somente ida nunca leva data de volta ao motor
         if (tipo_trecho === "somente_ida") data_volta = null;
 
+        // TRAVA DE BAGAGEM (item 8): a intenção do cliente manda no filtro.
+        // "quanto fica com bagagem?" SEMPRE vira pesquisa com
+        // bagagem_despachada = true — o valor nunca pode ser estimado.
+        try {
+          const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+          const { data: ultima } = await supabaseAdmin
+            .from("wa_messages")
+            .select("content")
+            .eq("conversation_id", conversation.id)
+            .eq("direction", "inbound")
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          const { detectBaggageIntent, baggageSearchFlag } = await import(
+            "./flight-quote-memory.server"
+          );
+          const intent = detectBaggageIntent(String((ultima as { content?: string } | null)?.content ?? ""));
+          const flag = baggageSearchFlag(intent);
+          if (flag !== null && somente_com_bagagem !== flag) {
+            console.log(
+              JSON.stringify({
+                event: "baggage_filter_forced",
+                conversation_id: conversation.id,
+                bagagem_intent: intent,
+                bagagem_despachada: flag,
+                at: new Date().toISOString(),
+              }),
+            );
+            somente_com_bagagem = flag;
+          }
+        } catch (err) {
+          console.warn("[central] trava de bagagem indisponível:", err);
+        }
+
 
         const filtrosTexto =
           (somente_voo_direto ? `\n🛫 Só voo direto` : "") +
