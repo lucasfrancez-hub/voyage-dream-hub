@@ -347,7 +347,7 @@ export function buildCentralTools(conversation: WaConversation, habilitadas?: st
             const { logCardEvent } = await import("./card-log.server");
             logCardEvent({
               event: "card_failed",
-              conversation_id: conv?.id ?? null,
+              conversation_id: conversation.id,
               quote_id: quote_id ?? null,
               stage: "send",
               reason: "cards_enviados=0 — fallback em texto",
