@@ -318,37 +318,60 @@ export type OptionReference = {
 };
 
 /** Última opção que o cliente comentou (persistida na conversa). */
-export type LastReference = { quote_id: string; option_index: number } | null;
+export type LastReference = {
+  quote_id: string;
+  option_index: number;
+  /** Companhia travada na referência ("a Latam chega antes?" → "ela" = Latam). */
+  companhia?: string | null;
+  /** Assunto que estava sendo tratado (bagagem, conexão, valor…). */
+  assunto?: string | null;
+} | null;
 
 /**
  * Pronomes/refências vagas à ÚLTIMA opção comentada:
- * "essa", "aquela", "a de antes", "a que você mandou", "a mesma"...
+ * "essa", "aquela", "ela", "nela", "dessa", "a de antes", "a mesma"...
  */
 const RX_PRONOME_VAGO =
-  /\b(essa|esse|est[ae]|nessa|nesse|aquela|aquele|naquela|naquele|a de cima|a de antes|o de antes|a anterior|o anterior|aquela anterior|a mesma|essa mesma|aquela mesma|o mesmo|esse mesmo|aquele mesmo|a (que|q) (voc[êe]|vc|tu) (mandou|enviou|passou|mostrou)|a op(ç|c)(ã|a)o que (voc[êe]|vc) (mandou|enviou)|aquel[ao] (voo|hor[áa]rio|op(ç|c)(ã|a)o|passagem))\b/i;
+  /\b(ess[ae]|est[ae]|iss[oe]|dess[ae]|dest[ae]|diss[oe]|ness[ae]|nest[ae]|niss[oe]|aquel[ae]|aquilo|daquel[ae]|naquel[ae]|el[ae]|nel[ae]|del[ae]|ess[ae] da[ií]|aquel[ae] da[ií]|ess[ae] mesm[ao]|aquel[ae] mesm[ao]|a mesma|o mesmo|a de cima|a de antes|o de antes|a anterior|o anterior|a (que|q) (voc[êe]|vc|tu) (mandou|enviou|passou|mostrou)|aquel[ao] (voo|hor[áa]rio|op(ç|c)(ã|a)o|passagem|tarifa))\b/i;
 
 /**
  * CONTINUIDADE: pergunta de acompanhamento SEM pronome, que ainda fala da
- * mesma opção ("quanto fica com bagagem?", "a conexão é longa?").
+ * mesma opção ("quanto fica com bagagem?", "e são quantos quilos?").
  */
 const RX_CONTINUIDADE =
-  /\b(bagagem|mala|despachad|conex(ã|a)o|escala|dura(ç|c)(ã|a)o|quanto (demora|tempo)|chega (que horas|a que horas)|sai (que horas|a que horas)|hor[áa]rio|assento|marca(ç|c)(ã|a)o de assento|remarca(ç|c)(ã|a)o|reembols|parcel|quanto fica|qual o valor|preço|pre(ç|c)o|d[áa] tempo)\b/i;
+  /\b(bagagem|bagagens|mala|malas|despachad|franquia|quantos? quilos?|\d{1,2}\s?kg|kg\b|dimens(õ|o)es|bagagem de m(ã|a)o|conex(ã|a)o|conex(õ|o)es|escala|dura(ç|c)(ã|a)o|quanto (demora|tempo|custa|fica|ficaria|muda|sai)|qual (o|a) (valor|pre(ç|c)o|diferen(ç|c)a)|diferen(ç|c)a|chega (que horas|a que horas)|sai (que horas|a que horas)|hor[áa]rio|assento|marca(ç|c)(ã|a)o de assento|remarca(ç|c)(ã|a)o|remarcar|alter(a|ar|a(ç|c)(ã|a)o)|cancelamento|reembols|tarifa|regras|emiss(ã|a)o|emitir|parcel|valor|pre(ç|c)o|d[áa] tempo|ainda (est[áa]|t[áa]) dispon[íi]vel|dispon[íi]vel)\b/i;
 
 /** Pedido de REENVIO da mesma opção ("manda de novo", "reenvia aquela"). */
 const RX_REENVIO =
-  /\b(manda(r)?|envia(r)?|reenvia(r)?|mostra(r)?|passa(r)?|repete|repetir|ver|rever)\b[^.?!]{0,40}\b(de novo|novamente|outra vez|mais uma vez)\b|\breenvi(a|e|ar|ando)\b/i;
+  /\b(manda(r)?|envia(r)?|reenvia(r)?|mostra(r)?|passa(r)?|repete|repetir|ver|rever)\b[^.?!]{0,40}\b(de novo|novamente|outra vez|mais uma vez|pra mim|para mim)\b|\breenvi(a|e|ar|ando)\b/i;
+
+/**
+ * PERGUNTA (preço/condição/comparação) — nunca é decisão de compra.
+ * "quanto fica com bagagem?" ≠ "fico com essa". Checado ANTES da regex de
+ * escolha para não gerar falso positivo de fechamento.
+ */
+const RX_PERGUNTA_NAO_DECISAO =
+  /\b(quanto|quando|qual|quais|como|quantos?|quantas?|tem|teria|h[áa]|d[áa] pra|dá pra|ser[áa]|e se)\b[^.?!]{0,80}\b(fica|ficaria|ficam|custa|custaria|sai|sairia|muda|mudaria|inclui|incluindo|com|barat|caro|dispon[íi]vel)\b|\?\s*$/i;
+/** Interrogativa pura de preço: "quanto fica", "quanto ficaria", "qual fica mais barata". */
+const RX_INTERROGATIVA_PRECO =
+  /\b(quanto|qual|quais|como)\b[^.?!]{0,40}\b(fica|ficaria|ficam|custa|custaria|sai|sairia|muda|mudaria)\b/i;
 
 /** Intenção de FILTRO/nova pesquisa — tem prioridade sobre resolver referência. */
 export type SearchFilterIntent = {
   somente_voo_direto?: boolean;
   maximo_conexoes?: number;
   preferir_conexao_curta?: boolean;
+  companhias_excluidas?: string[];
+  companhias_incluidas?: string[];
 };
 const RX_FILTRO_DIRETO =
   /\b(sem (conex(ã|a)o|escala)|voo direto|voos diretos|direto mesmo|n(ã|a)o quero (escala|conex(ã|a)o)|quero evitar (escala|conex(ã|a)o)|evitar conex(ã|a)o)\b/i;
 const RX_FILTRO_UMA_CONEXAO =
   /\b(no m[áa]ximo (uma|1) conex(ã|a)o|s[óo] (uma|1) conex(ã|a)o|at[ée] (uma|1) conex(ã|a)o)\b/i;
 const RX_FILTRO_CONEXAO_CURTA = /\bconex(ã|a)o (r[áa]pida|curta)\b/i;
+const RX_FILTRO_SEM_CIA = /\b(sem|n(ã|a)o (quero|gosto de|pode ser)|tirando|exceto|menos)\s+(a\s+)?(gol|azul|latam|tam|avianca|copa|american|united|air ?europa|tap|ita)\b/i;
+const RX_FILTRO_SO_CIA = /\b(s[óo]|somente|apenas|prefiro|pode ser)\s+(a\s+)?(gol|azul|latam|tam|avianca|copa|american|united|air ?europa|tap|ita)\b/i;
+const RX_CIA_TOKEN = /\b(gol|azul|latam|tam|avianca|copa|american|united|air ?europa|tap|ita)\b/gi;
 
 /**
  * Detecta pedido de FILTRO na pesquisa. Deve ser checado ANTES do resolvedor
@@ -356,16 +379,50 @@ const RX_FILTRO_CONEXAO_CURTA = /\bconex(ã|a)o (r[áa]pida|curta)\b/i;
  */
 export function detectSearchFilterIntent(texto: string): SearchFilterIntent | null {
   const t = String(texto ?? "");
-  if (RX_FILTRO_CONEXAO_CURTA.test(t)) return { maximo_conexoes: 1, preferir_conexao_curta: true };
-  if (RX_FILTRO_UMA_CONEXAO.test(t)) return { maximo_conexoes: 1 };
-  if (RX_FILTRO_DIRETO.test(t)) return { somente_voo_direto: true };
-  return null;
+  const out: SearchFilterIntent = {};
+  if (RX_FILTRO_CONEXAO_CURTA.test(t)) {
+    out.maximo_conexoes = 1;
+    out.preferir_conexao_curta = true;
+  } else if (RX_FILTRO_UMA_CONEXAO.test(t)) {
+    out.maximo_conexoes = 1;
+  } else if (RX_FILTRO_DIRETO.test(t)) {
+    out.somente_voo_direto = true;
+  }
+  if (RX_FILTRO_SEM_CIA.test(t)) {
+    const m = RX_FILTRO_SEM_CIA.exec(t);
+    if (m?.[4]) out.companhias_excluidas = [m[4]];
+  } else if (RX_FILTRO_SO_CIA.test(t)) {
+    const cias = String(t.match(RX_CIA_TOKEN) ?? []).length ? (t.match(RX_CIA_TOKEN) as string[]) : [];
+    if (cias.length) out.companhias_incluidas = cias;
+  }
+  return Object.keys(out).length ? out : null;
+}
+
+/**
+ * BAGAGEM. Duas intenções bem diferentes:
+ * - `consulta_tarifa`: "essa já tem bagagem?" → responder pelo dado da opção;
+ * - `nova_pesquisa`: "quanto fica com bagagem?" → NOVA pesquisa no motor com
+ *   o filtro de bagagem. Nunca somar valor por conta própria.
+ */
+export type BaggageIntent = "consulta_tarifa" | "nova_pesquisa" | null;
+const RX_BAGAGEM = /\b(bagagem|bagagens|mala|malas|despachad|franquia|\d{1,2}\s?kg|quilos?)\b/i;
+const RX_BAGAGEM_JA_TEM = /\b(j[áa] (tem|inclui|vem com)|tem bagagem|inclui bagagem|vem com bagagem|essa tem mala|tem mala)\b/i;
+const RX_BAGAGEM_INCLUIR =
+  /\b(quanto (fica|ficaria|custa|sai|muda)|com (uma )?(mala|bagagem)|incluindo|inclu(ir|indo)|acrescent|adiciona(r|ndo)?|quero (a )?tarifa com|op(ç|c)(õ|o)es com bagagem|com bagagem despachada|com \d{1,2}\s?kg)\b/i;
+
+export function detectBaggageIntent(texto: string): BaggageIntent {
+  const t = String(texto ?? "");
+  if (!RX_BAGAGEM.test(t)) return null;
+  if (RX_BAGAGEM_INCLUIR.test(t)) return "nova_pesquisa";
+  if (RX_BAGAGEM_JA_TEM.test(t)) return "consulta_tarifa";
+  return "consulta_tarifa";
 }
 
 /** "manda novamente aquela opção" → o agente deve usar a tool reenviar_opcao. */
 export function detectResendIntent(texto: string): boolean {
   return RX_REENVIO.test(String(texto ?? ""));
 }
+
 
 /** Escolhe a cotação alvo considerando "pesquisa anterior" e cidade citada. */
 function escolherCotacao(comEnvio: QuoteMemory[], t: string): QuoteMemory {
