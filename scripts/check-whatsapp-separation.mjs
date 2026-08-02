@@ -56,7 +56,9 @@ const errors = [];
 
 for (const file of walk(SRC)) {
   const rel = relative(ROOT, file).replaceAll("\\", "/");
-  const code = readFileSync(file, "utf8");
+  const raw = readFileSync(file, "utf8");
+  // Remove comentários: menções em documentação não contam como uso.
+  const code = raw.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
   const isBroadcast = rel.startsWith("src/lib/broadcast/") || rel.endsWith("hooks/broadcast-dispatch.ts");
   const isChatbot = CHATBOT_PREFIXES.some((p) => rel === p || rel.startsWith(p));
 
@@ -65,7 +67,7 @@ for (const file of walk(SRC)) {
     const offending = code
       .split("\n")
       .map((l, i) => [i + 1, l])
-      .filter(([, l]) => UAZ_RE.test(l) && !/^\s*(\/?\*|\/\/)/.test(l));
+      .filter(([, l]) => UAZ_RE.test(l));
     if (offending.length) {
       errors.push(
         `${rel}: uso da UazAPI fora do módulo de broadcast (linhas ${offending
