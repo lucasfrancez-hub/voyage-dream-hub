@@ -472,7 +472,7 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
           { primeiroContato: centralPrimeiroContato, storedPrompt: centralAgent.system_prompt },
         ) +
         "\n\n" +
-        buildSystemPrompt(agent, conv, protocolo, isNewProtocolo, previousContext)
+        buildSystemPrompt(agent, conv, protocolo, isNewProtocolo, previousContext, { contextOnly: true })
       : buildSystemPrompt(agent, conv, protocolo, isNewProtocolo, previousContext);
     let result: { text?: string; steps?: Array<{ toolCalls?: Array<{ toolName: string; input: unknown }> }> } | null = null;
     let lastErr: unknown = null;
