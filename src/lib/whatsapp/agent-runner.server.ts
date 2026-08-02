@@ -577,7 +577,10 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
           ) +
           "\n\n" +
           buildSystemPrompt(agent, conv, protocolo, isNewProtocolo, previousContext, { contextOnly: true })
-        : buildSystemPrompt(agent, conv, protocolo, isNewProtocolo, previousContext)) + quoteBlock;
+        : buildSystemPrompt(agent, conv, protocolo, isNewProtocolo, previousContext)) +
+      repliedBlock +
+      quoteBlock;
+
     let result: { text?: string; steps?: Array<{ toolCalls?: Array<{ toolName: string; input: unknown }> }> } | null = null;
     let lastErr: unknown = null;
     for (let i = 0; i < ATTEMPTS.length; i++) {
