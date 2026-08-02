@@ -3646,6 +3646,9 @@ export type Database = {
           priority: string
           protocolo_ativo_id: string | null
           tags: string[]
+          ultima_opcao_referenciada: number | null
+          ultima_quote_referenciada: string | null
+          ultima_referencia_at: string | null
           unread_count: number
           updated_at: string
           wa_phone: string
@@ -3677,6 +3680,9 @@ export type Database = {
           priority?: string
           protocolo_ativo_id?: string | null
           tags?: string[]
+          ultima_opcao_referenciada?: number | null
+          ultima_quote_referenciada?: string | null
+          ultima_referencia_at?: string | null
           unread_count?: number
           updated_at?: string
           wa_phone: string
@@ -3708,6 +3714,9 @@ export type Database = {
           priority?: string
           protocolo_ativo_id?: string | null
           tags?: string[]
+          ultima_opcao_referenciada?: number | null
+          ultima_quote_referenciada?: string | null
+          ultima_referencia_at?: string | null
           unread_count?: number
           updated_at?: string
           wa_phone?: string
