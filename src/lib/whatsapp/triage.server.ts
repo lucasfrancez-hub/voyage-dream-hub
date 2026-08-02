@@ -88,6 +88,8 @@ Responda aereo_avulso = false em TODOS os outros casos, inclusive:
 - pedido existente, alteração, cancelamento, reclamação, emergência, check-in, voucher.
 
 NUNCA marque true só porque apareceu a palavra "viagem", "avião" ou o nome de um destino.
+Ignore erros de digitação, falta de acento e abreviações: "pasagem", "passagen", "vôo",
+"quero cotar aerio pra Recife" contam como pedido de passagem aérea.
 Na dúvida, responda false.
 
 Extraia também o que já estiver explícito (origem, destino, data_ida, data_volta,
