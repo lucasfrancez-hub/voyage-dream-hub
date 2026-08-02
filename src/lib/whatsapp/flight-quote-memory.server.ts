@@ -520,15 +520,17 @@ export async function persistLastReference(
 
 /** Intenção INEQUÍVOCA de escolher ("quero a segunda", "fecho com a da Azul"). */
 const RX_ESCOLHA_CLARA =
-  /\b(quero|vou (querer|ficar|de)|fico com|fica(mos)? com|pode (ser|fechar|reservar|emitir)|fech(a|ar|o|amos)|reserv(a|ar|e)|emit(e|ir)|escolho|prefiro|me (manda|passa) (o )?(link|pagamento)|bora (nessa|de)|garant(e|ir))\b/i;
+  /\b(quero|vou (querer|ficar|de|nessa|nesse)|vamos nessa|fico com|fica(mos)? com|pode (ser|fechar|reservar|emitir)|fech(a|ar|o|amos)|reserv(a|ar|e)|emit(e|ir)|escolho|prefiro|me (manda|passa) (o )?(link|pagamento)|bora (nessa|de)|garant(e|ir))\b|\bacho que vai ser essa\b/i;
 /** Comentário sem decisão ("essa parece boa", "gostei", "interessante"). */
-const RX_APENAS_COMENTARIO = /\b(parece|achei|t(á|a) (boa|bom|legal)|interessante|gostei)\b/i;
+const RX_APENAS_COMENTARIO = /\b(parece|achei|t(á|a) (boa|bom|legal)|interessante|gostei|ficou melhor)\b/i;
 
 export type ChoiceDetection = {
   quote_id: string;
   option_index: number;
   opcao: QuoteOptionMemory;
   clara: boolean;
+  match: OptionReference["match"];
+  stale: boolean;
 };
 
 /**
@@ -539,8 +541,9 @@ export type ChoiceDetection = {
 export function detectCustomerChoice(
   memorias: QuoteMemory[],
   texto: string,
+  refPre?: OptionReference | null,
 ): ChoiceDetection | null {
-  const ref = resolveOptionReference(memorias, texto);
+  const ref = refPre ?? resolveOptionReference(memorias, texto);
   if (!ref) return null;
   const decisao = RX_ESCOLHA_CLARA.test(texto);
   const soComentario = !decisao && RX_APENAS_COMENTARIO.test(texto);
@@ -548,7 +551,10 @@ export function detectCustomerChoice(
     quote_id: ref.quote_id,
     option_index: ref.option_index,
     opcao: ref.opcao,
-    clara: decisao && !soComentario,
+    // Comparação ("qual chega primeiro") nunca é escolha.
+    clara: decisao && !soComentario && ref.match !== "comparacao",
+    match: ref.match,
+    stale: !!ref.stale,
   };
 }
 
