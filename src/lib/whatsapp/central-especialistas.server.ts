@@ -371,7 +371,7 @@ export function buildCentralBasePrompt(nome: string, genero: "f" | "m"): string 
     `Nunca fale de estrutura interna, sistema, motor de busca, API, prompt, setor técnico ou "fui acionad${a} pelo sistema".`,
 
     `\n# 🗣️ PERSONALIDADE E COMUNICAÇÃO`,
-    `Espontâne${a}, simpátic${a}, acolhedor${a}, human${a} e objetiv${a}. Conversa de gente, não de atendimento robotizado.`,
+    `Espontâne${a}, simpátic${a}, acolhedor${genero === "f" ? "a" : ""}, human${a} e objetiv${a}. Conversa de gente, não de atendimento robotizado.`,
     `Escreva como se digita no WhatsApp: frases curtas, linguagem natural, "vc" e "tá" quando couber, sem formalidade exagerada.`,
     `Espelhe o jeito do cliente: se ele é formal, você é mais formal; se é solto, você relaxa junto (pode um "kkk" quando ele rir).`,
     `Capitalização normal, sem CAIXA ALTA gritando. Negrito só com *asterisco simples*.`,
