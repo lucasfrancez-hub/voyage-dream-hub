@@ -156,7 +156,7 @@ body{font-family:Poppins,system-ui,sans-serif;color:${NAVY};-webkit-font-smoothi
 .verified{display:flex;align-items:center;gap:10px;background:#eaf1fe;color:${BLUE};border-radius:999px;padding:12px 24px;font-size:16px;font-weight:700;letter-spacing:1.2px}
 .verified i{width:10px;height:10px;border-radius:50%;background:${BLUE}}
 .route{display:flex;align-items:flex-end;justify-content:space-between;margin-top:34px}
-.route .r{font-size:36px;font-weight:800;letter-spacing:-.5px;max-width:520px;line-height:1.15;overflow-wrap:anywhere;hyphens:auto}
+.route .r{font-size:36px;font-weight:800;letter-spacing:-.5px;max-width:520px;line-height:1.15}
 .route .r em{font-style:normal;color:#8b98ac;font-weight:600;padding:0 8px}
 .route .dt{font-size:22px;color:#8b98ac;font-weight:500}
 .leg{padding:34px 52px 0}
@@ -173,13 +173,12 @@ body{font-family:Poppins,system-ui,sans-serif;color:${NAVY};-webkit-font-smoothi
 .time{font-size:56px;font-weight:800;line-height:1}
 .plus{font-size:24px;color:${ORANGE};font-weight:800;vertical-align:super}
 .iata{font-size:26px;font-weight:600;color:#5c6b82;margin-top:8px}
-.city{font-size:19px;color:#94a1b2;margin-top:2px;overflow-wrap:anywhere;line-height:1.2}
+.city{font-size:19px;color:#94a1b2;margin-top:2px}
 .path{flex:1;text-align:center}
 .stops{font-size:17px;font-weight:700;letter-spacing:1.4px}
 .track{position:relative;height:2px;background:#e3e8ef;margin:16px 0 14px}
 .bullet{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:16px;height:16px;border-radius:50%;background:#fff;border:4px solid ${ORANGE}}
 .scale{font-size:17px;color:#94a1b2;letter-spacing:1px}
-.scale:empty{display:none}
 .bag{display:flex;gap:12px;background:#f6f8fb;border-radius:22px;padding:14px 16px;margin-top:20px}
 .bag-item{flex:1;text-align:center;color:#42526b}
 .bag-item.off{color:#aab4c2}

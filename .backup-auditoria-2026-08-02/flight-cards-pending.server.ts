@@ -26,7 +26,7 @@ type OptLite = {
 };
 
 const MAX_OPCOES = 2; // por cotação, salvo pedido explícito de mais horários
-const INTERVALO_MS = 30_000; // espaçamento entre a 1ª e a 2ª arte (auditoria: 30s)
+const INTERVALO_MS = 45_000; // espaçamento mínimo entre duas artes
 const CLAIM_TRAVADO_MS = 90_000; // claim preso (worker caiu no render) → destrava
 
 
@@ -257,7 +257,6 @@ export async function sendPendingFlightCards(
       .eq("id", row.id);
   };
 
-  const quoteId = row.id as string;
   for (let i = 0; i < opcoes.length; i++) {
     const op = opcoes[i];
     if (i > 0) await new Promise((r) => setTimeout(r, INTERVALO_MS));
@@ -271,13 +270,13 @@ export async function sendPendingFlightCards(
       // Registra no NOSSO chat ANTES de mandar pelo WhatsApp. Antes, a arte só
       // era salva depois de um envio bem-sucedido: se a API falhasse ou o worker
       // caísse no meio, o cliente às vezes recebia e no painel não aparecia nada.
-      const msg = await saveMessage({
+      const row = await saveMessage({
         conversation_id: conversationId,
         direction: "outbound",
         sender: "camila",
         content: `[[media:image|${asset.url}|${asset.filename}]]\n${caption}`,
       });
-      if (msg?.id) await setSendError(msg.id, SENDING_CLAIM);
+      if (row?.id) await setSendError(row.id, SENDING_CLAIM);
 
       const r = await sendWhatsAppImageBytes(
         waPhone,
@@ -287,53 +286,28 @@ export async function sendPendingFlightCards(
         asset.url,
       );
 
-      if (msg?.id) {
+      if (row?.id) {
         await supabaseAdmin
           .from("wa_messages")
           .update({
             wa_message_id: r.id ?? null,
             error: r.error ?? null,
           })
-          .eq("id", msg.id);
+          .eq("id", row.id);
       }
 
       if (!r.error) {
         sent++;
         const fp = fingerprint(op);
         novosFps.push(fp);
-        console.log(
-          `[flight-card] enviado (quote ${quoteId}, opção ${fpsDaCotacao.size + sent}/${MAX_OPCOES}) em ${new Date().toISOString()}`,
-        );
         // grava já: se o worker cair aqui, esta opção não volta na próxima rodada
         await persistirFp(fp).catch(() => undefined);
       } else {
         falhou = true;
-        console.warn(`[flight-card] falha no envio (quote ${quoteId}): ${r.error}`);
-        await supabaseAdmin
-          .from("wa_flight_quotes")
-          .update({
-            card_failed: true,
-            card_failed_at: new Date().toISOString(),
-            card_failed_reason: String(r.error).slice(0, 300),
-          })
-          .eq("id", quoteId)
-          .then(() => {}, () => {});
       }
-    } catch (e) {
+    } catch {
       falhou = true;
-      console.warn(`[flight-card] exceção ao gerar/enviar arte (quote ${quoteId}):`, e);
-      await supabaseAdmin
-        .from("wa_flight_quotes")
-        .update({
-          card_failed: true,
-          card_failed_at: new Date().toISOString(),
-          card_failed_reason: `exceção: ${(e as Error)?.message ?? "desconhecida"}`.slice(0, 300),
-        })
-        .eq("id", quoteId)
-        .then(() => {}, () => {});
     }
-
-
 
   }
 

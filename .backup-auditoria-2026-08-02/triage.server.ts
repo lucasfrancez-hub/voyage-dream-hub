@@ -27,37 +27,19 @@ export type TriageResult = { slug: string; brief: string } | null;
 
 /* ── heurísticas de segurança (usadas antes e depois do modelo) ───────── */
 
-/**
- * Normaliza a mensagem antes de qualquer regex: tira acento, baixa a caixa,
- * colapsa letras repetidas ("passaaagem" → "passagem") e junta espaços.
- * Assim erros comuns de digitação no WhatsApp não derrubam a triagem.
- */
-export function normalizarTexto(s: string): string {
-  return (s ?? "")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .replace(/(.)\1{2,}/g, "$1")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-// Sinais de que é PASSAGEM AÉREA avulsa. Tolerante a erros de digitação:
-// "pasagem", "passagen", "vôo", "aerio", "bilhete aereo", "so o aereo".
+// Sinais de que é PASSAGEM AÉREA avulsa.
 const RX_AEREO =
-  /(pas+ag[ea][nm]s?|pasage[nm]s?|\bvo+s?\b|\bvoo?s\b|a[eé]r[ei]?[oa]s?|bilhete\s*a[eé]re[oa]|trecho\s*a[eé]re[oa]|passagem\s*de\s*avi[aã]o|so\s*(o\s*)?a[eé]reo)/i;
+  /\b(passagem|passagens|voo|voos|a[ée]reo|a[ée]rea|bilhete a[ée]reo|trecho a[ée]reo)\b/i;
 
 // Sinais de que NÃO é aéreo avulso (pacote / viagem completa / pós-venda).
 const RX_BLOQUEIO =
-  /\b(pacote|pacotes|hotel|hoteis|hospedagem|resort|cruzeiro|navio|roteiro|ferias|lua de mel|excursao|all inclusive|aereo\s*\+\s*hotel|aereo e hotel|passeio|ingresso|disney|universal|seguro viagem|transfer|meu pedido|minha reserva|localizador|check-?in|voucher|remarca|reembolso|cancel|reclama|problema com|atraso do voo|bagagem extraviada)\b/i;
+  /\b(pacote|pacotes|hotel|hot[ée]is|hospedagem|resort|cruzeiro|navio|roteiro|f[ée]rias|lua de mel|excurs[aã]o|all inclusive|a[ée]reo\s*\+\s*hotel|passeio|ingresso|disney|universal|seguro viagem|transfer|meu pedido|minha reserva|localizador|check-?in|voucher|remarca|reembolso|cancel|reclama|problema com|atraso do voo|bagagem extraviada)\b/i;
 
-function heuristicaAereo(textoBruto: string): boolean {
-  const texto = normalizarTexto(textoBruto);
+function heuristicaAereo(texto: string): boolean {
   if (!RX_AEREO.test(texto)) return false;
   if (RX_BLOQUEIO.test(texto)) return false;
   return true;
 }
-
 
 /* ── classificação por IA ─────────────────────────────────────────────── */
 
@@ -88,8 +70,6 @@ Responda aereo_avulso = false em TODOS os outros casos, inclusive:
 - pedido existente, alteração, cancelamento, reclamação, emergência, check-in, voucher.
 
 NUNCA marque true só porque apareceu a palavra "viagem", "avião" ou o nome de um destino.
-Ignore erros de digitação, falta de acento e abreviações: "pasagem", "passagen", "vôo",
-"quero cotar aerio pra Recife" contam como pedido de passagem aérea.
 Na dúvida, responda false.
 
 Extraia também o que já estiver explícito (origem, destino, data_ida, data_volta,

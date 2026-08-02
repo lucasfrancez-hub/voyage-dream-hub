@@ -16,9 +16,6 @@ import { tool } from "ai";
 import { z } from "zod";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { recordHandoff, type WaConversation } from "./conversation.server";
-import { validateFlightSearch } from "./flight-search-validation";
-import { VIA_AIR_CNPJ, VIA_AIR_EMAIL_EMERGENCIA } from "@/lib/institucional";
-
 import type {
   FlightQuoteLeg,
   FlightQuoteOption,
@@ -176,21 +173,16 @@ export function buildCentralTools(conversation: WaConversation, habilitadas?: st
 
     pesquisar_passagens: tool({
       description:
-        "Pesquisa passagens aéreas no motor de busca oficial (Comprar Viagem) e ENVIA automaticamente as ARTES (cards) das duas melhores opções ao cliente. Use SOMENTE quando o próprio cliente já tiver informado origem, destino, tipo de trecho (somente ida ou ida e volta), data(s) e quantidade de passageiros. NUNCA chame com data, trecho ou quantidade de passageiros presumidos por você. Se algum dado faltar ou estiver incoerente, a tool devolve o que perguntar em vez de pesquisar. Se o cliente pedir outro horário depois, chame de novo com a preferência de horário.",
+        "Pesquisa passagens aéreas no motor de busca oficial (Comprar Viagem) e ENVIA automaticamente as ARTES (cards) das duas melhores opções ao cliente. Use SOMENTE quando o próprio cliente já tiver informado origem, destino, data de ida, se é só ida ou ida e volta, e quantidade de passageiros. NUNCA chame com data, trecho ou quantidade de passageiros presumidos por você. Se o cliente pedir outro horário depois, chame de novo com a preferência de horário.",
       inputSchema: z.object({
         origem: z.string().min(2).describe("Cidade ou IATA de origem, ex.: 'Maringá' ou 'MGF'"),
         destino: z.string().min(2).describe("Cidade ou IATA de destino, ex.: 'Recife' ou 'REC'"),
-        tipo_trecho: z
-          .enum(["somente_ida", "ida_e_volta"])
-          .describe(
-            "Campo OBRIGATÓRIO e explícito: só preencha com o que o cliente disse. Nunca deduza pelo fato de existir ou não uma data de volta.",
-          ),
         data_ida: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).describe("Data de ida AAAA-MM-DD, exatamente como o cliente informou (nunca estimada)"),
         data_volta: z
           .string()
           .regex(/^\d{4}-\d{2}-\d{2}$/)
           .nullable()
-          .describe("Data de volta AAAA-MM-DD. Obrigatória quando tipo_trecho = ida_e_volta; null em somente_ida"),
+          .describe("Data de volta AAAA-MM-DD, ou null se for somente ida"),
         data_informada_pelo_cliente: z
           .boolean()
           .describe(
@@ -215,7 +207,6 @@ export function buildCentralTools(conversation: WaConversation, habilitadas?: st
       execute: async ({
         origem,
         destino,
-        tipo_trecho,
         data_ida,
         data_volta,
         data_informada_pelo_cliente,
@@ -226,35 +217,27 @@ export function buildCentralTools(conversation: WaConversation, habilitadas?: st
         preferencia_horario,
         somente_com_bagagem,
       }) => {
-        // TRAVA ÚNICA no servidor: dados obrigatórios, coerência de trecho,
-        // datas reais/futuras, origem ≠ destino e limites de passageiros.
-        const check = validateFlightSearch({
-          origem,
-          destino,
-          tipo_trecho,
-          data_ida,
-          data_volta: tipo_trecho === "somente_ida" ? null : data_volta,
-          data_informada_pelo_cliente,
-          pax_informado_pelo_cliente,
-          adultos,
-          criancas,
-          bebes,
-        });
-        if (!check.ok) {
-          console.warn(
-            `[central] pesquisa bloqueada (${check.faltam_dados ? "faltam_dados" : "dados_invalidos"}): ${check.campos.join(", ")}`,
-          );
+        // TRAVA: nunca pesquisar com data ou pax presumidos.
+        if (!data_informada_pelo_cliente) {
+          console.warn("[central] pesquisa bloqueada: data não informada pelo cliente");
           return {
             ok: false,
-            faltam_dados: check.faltam_dados ?? false,
-            dados_invalidos: check.dados_invalidos ?? false,
-            campos_faltando: check.campos,
-            instrucao: check.instrucao,
+            faltam_dados: true,
+            campos_faltando: ["data_ida"],
+            instrucao:
+              "NÃO pesquise. O cliente ainda não informou a data da viagem. Pergunte de forma curta e natural qual é a data da ida (e se é só ida ou ida e volta). Nunca sugira nem assuma uma data.",
           };
         }
-        // somente ida nunca leva data de volta ao motor
-        if (tipo_trecho === "somente_ida") data_volta = null;
-
+        if (!pax_informado_pelo_cliente) {
+          console.warn("[central] pesquisa bloqueada: quantidade de passageiros não informada");
+          return {
+            ok: false,
+            faltam_dados: true,
+            campos_faltando: ["adultos"],
+            instrucao:
+              "NÃO pesquise. Pergunte de forma curta e natural quantas pessoas vão viajar. Nunca assuma a quantidade de passageiros.",
+          };
+        }
 
         const briefing =
           `✈️ Pesquisa de passagem aérea (Central de Especialistas)\n` +
@@ -444,36 +427,33 @@ export function buildCentralBasePrompt(nome: string, genero: "f" | "m"): string 
     `6. Encaminhar ao Comercial quando o assunto não for aéreo ou em falha técnica.`,
     `Você JÁ É a Central — nunca fale em "encaminhar para a Central" e nunca chame nenhuma tool de transferência para a Central.`,
 
-    `\n# 📝 ORDEM DE COLETA (siga exatamente esta sequência, no máximo 2 perguntas por mensagem)`,
-    `1. origem`,
-    `2. destino`,
-    `3. tipo de trecho: somente ida ou ida e volta (pergunta explícita — nunca deduza)`,
-    `4. data da ida (e a data da volta quando for ida e volta)`,
-    `5. quantidade de passageiros`,
-    `Nunca pule uma etapa nem pergunte fora de ordem. O que o cliente já informou, você pula — nunca pergunta de novo.`,
-    `Datas em linguagem natural ("dia 15 de setembro", "mês que vem") você converte para AAAA-MM-DD antes de pesquisar. Data sem ano: use o ano que faz a data cair no futuro.`,
-    `🚫 NUNCA invente, assuma, estime ou "chute" data de viagem, tipo de trecho ou quantidade de passageiros. Se o cliente não disse, PERGUNTE.`,
-    `Se o cliente só disse origem e destino (ex.: "quero uma passagem de Maringá para Recife"), pergunte se é só ida ou ida e volta e qual a data — e só pesquise depois que ele responder.`,
+    `\n# 📝 INFORMAÇÕES NECESSÁRIAS (peça só o que faltar, no máximo 2 por mensagem)`,
+    `- origem`,
+    `- destino`,
+    `- data da ida`,
+    `- somente ida ou ida e volta (e a data da volta, se for o caso)`,
+    `- quantidade de passageiros`,
+    `Datas em linguagem natural ("dia 15 de setembro", "mês que vem") você converte para AAAA-MM-DD antes de pesquisar.`,
+    `🚫 NUNCA invente, assuma, estime ou "chute" data de viagem, trecho ou quantidade de passageiros. Se o cliente não disse a data, PERGUNTE — nada de pesquisar com data padrão, "próximo mês" ou data de exemplo.`,
+    `Se o cliente só disse origem e destino (ex.: "quero uma passagem de Maringá para Recife"), responda algo como "perfeito! qual seria a data da ida?" e só pesquise depois que ele responder.`,
     `Crianças: só pergunte se houver MAIS DE UM passageiro — "entre os passageiros tem alguma criança? se sim, qual a idade?".`,
     `Bagagem: NÃO pergunte automaticamente; só entra no assunto se o cliente mencionar.`,
     `Horário: NÃO pergunte automaticamente; só considere se o cliente falar espontaneamente.`,
 
     `\n# 🔎 PESQUISA E APRESENTAÇÃO`,
     `Assim que o CLIENTE tiver informado todas as informações mínimas obrigatórias, inicie a pesquisa IMEDIATAMENTE. Não faça perguntas desnecessárias antes de chamar pesquisar_passagens — mas também nunca antecipe a pesquisa com dado que ele não informou.`,
-    `A tool valida tudo no servidor. Se devolver faltam_dados ou dados_invalidos, ela NÃO pesquisou: faça exatamente a pergunta da instrucao, com naturalidade, e só depois pesquise. Nunca diga que houve erro, validação ou sistema.`,
+    `A tool tem trava: se você marcar data ou passageiros como não informados pelo cliente, ela não pesquisa e devolve o que falta perguntar.`,
     `Sem preferência de horário, a tool já prioriza custo-benefício, menor tempo de viagem, menos conexões e horários melhores.`,
     `O formato principal são as ARTES (cards) — a tool envia sozinha. Quando ela devolver cards_enviados > 0, escreva SÓ um balão curto avisando que está mandando as opções; NÃO repita voos, horários ou valores em texto.`,
-    `SEMPRE DUAS opções por vez, em pares. A segunda arte sai automaticamente cerca de 30 segundos depois da primeira — não avise sobre isso e não reenvie nada.`,
+    `SEMPRE DUAS opções por vez, em pares.`,
     `NOVA PESQUISA: sempre que o cliente pedir outro horário, outra companhia, outra tarifa, bagagem incluída ou outra combinação de voos, faça uma NOVA pesquisa com os novos critérios — nunca reaproveite resultados anteriores.`,
     `Contingência: quando a tool devolver contingencia_texto, envie o conteúdo de texto_pronto exatamente como veio (pode escrever uma frase curta e natural antes). Não altere valores, horários, companhias nem o formato.`,
     `NUNCA explique que o card falhou. Se usar o texto de contingência, o cliente não pode perceber que houve qualquer problema técnico.`,
 
     `\n# 🔍 SEM RESULTADOS`,
-    `Pesquisa concluída sem voos NÃO é erro: nunca use a mensagem de falha técnica nesse caso e nunca fale em sistema, motor ou problema.`,
-    `Informe de forma natural que não encontrou voos para aquela data/trecho.`,
-    `Ofereça alternativas — datas próximas, outro aeroporto próximo ou outra companhia — e pesquise de novo com o que o cliente escolher.`,
+    `Se a pesquisa não retornar voos disponíveis: informe de forma natural, sem drama.`,
+    `Ofereça alternativas — pesquisar datas próximas, outro aeroporto próximo ou outra companhia — e pesquise de novo com o que o cliente escolher.`,
     `Não encerre o atendimento. Só encaminhe ao Comercial quando realmente não houver alternativa ou quando o cliente pedir.`,
-
 
     `\n# ↪️ QUANDO NÃO FOR PASSAGEM AÉREA`,
     `Pacote pronto, hotel, carro, aéreo+hotel, seguro, cruzeiro, planejamento geral de viagem, pedido já emitido, cartão de embarque, pós-venda, alteração, cancelamento, dúvidas institucionais: NADA disso é seu.`,
@@ -490,14 +470,7 @@ export function buildCentralBasePrompt(nome: string, genero: "f" | "m"): string 
     `Nunca invente voo, horário, companhia, preço, regra ou prazo: só existe o que a tool devolveu.`,
     `Nunca prometa o que não pode cumprir. Nunca exponha erro técnico. Nunca fale de outros clientes ou de dados internos da empresa.`,
     `Se não souber algo, diga com naturalidade que vai verificar e siga o atendimento.`,
-
-    `\n# 🏢 INSTITUCIONAL (fonte única — nada aqui se deduz)`,
-    `Sede em Paranavaí – Paraná. Operação 100% Home Office, sem loja física.`,
-    `CNPJ: ${VIA_AIR_CNPJ}. Só informe se o cliente PEDIR explicitamente; nunca espontaneamente. Nunca passe endereço completo.`,
-    `Qualquer outra dúvida institucional (endereço, estrutura, tempo de mercado, sociedade): encaminhar_para_comercial. Nunca improvise.`,
-    `Emergência durante a viagem (voo cancelado agora, passageiro no aeroporto/destino, bagagem extraviada): oriente o e-mail ${VIA_AIR_EMAIL_EMERGENCIA} e chame encaminhar_para_comercial com urgência. Nunca cite telefone, 0800 ou plantão de whatsapp.`,
   ].join("\n");
-
 }
 
 export function buildCentralPrompt(
@@ -515,23 +488,9 @@ export function buildCentralPrompt(
     year: "numeric",
   }).format(new Date());
 
-  // Regras não negociáveis: entram SEMPRE, inclusive por cima do prompt
-  // editado em /chat/agentes, para não depender de sincronização manual.
-  const obrigatorias = [
-    `\n## ⛔ REGRAS OBRIGATÓRIAS (prevalecem sobre qualquer outra instrução acima)`,
-    `Ordem de coleta: origem → destino → somente ida ou ida e volta → data(s) → passageiros. Nunca pule etapa, nunca pergunte o que já foi informado.`,
-    `Tipo de trecho é pergunta EXPLÍCITA. Nunca deduza pela ausência de data de volta.`,
-    `Nunca invente, estime ou assuma data, trecho ou quantidade de passageiros. A tool valida no servidor: quando devolver faltam_dados ou dados_invalidos, faça a pergunta da instrucao com naturalidade e não fale em erro, validação ou sistema.`,
-    `Pesquisa sem resultados NÃO é falha técnica: informe com naturalidade e ofereça datas/aeroportos próximos.`,
-    `Institucional: sede em Paranavaí – Paraná, operação 100% Home Office, sem loja física. CNPJ ${VIA_AIR_CNPJ} só quando o cliente pedir explicitamente. Emergência em viagem: ${VIA_AIR_EMAIL_EMERGENCIA}, nunca telefone ou 0800.`,
-    `Nunca diga que é IA, robô, bot ou automação, e nunca fale em atendente humano — o time é o Comercial.`,
-  ].join("\n");
-
   return [
     base,
-    obrigatorias,
     `\n## 📅 DATA`,
-
     `Hoje é ${hoje} (America/Sao_Paulo).`,
     brief?.trim()
       ? `\n## 📋 O QUE O CONSULTOR JÁ COLETOU (não peça de novo)\n${brief.trim()}`
