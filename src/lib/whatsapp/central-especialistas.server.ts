@@ -251,6 +251,12 @@ export function buildCentralTools(
         if (tipo_trecho === "somente_ida") data_volta = null;
 
 
+        const filtrosTexto =
+          (somente_voo_direto ? `\n🛫 Só voo direto` : "") +
+          (!somente_voo_direto && maximo_conexoes != null ? `\n🔁 Máximo de ${maximo_conexoes} conexão(ões)` : "") +
+          (companhias_incluidas?.length ? `\n🏷️ Só ${companhias_incluidas.join(", ")}` : "") +
+          (companhias_excluidas?.length ? `\n🚫 Sem ${companhias_excluidas.join(", ")}` : "");
+
         const briefing =
           `✈️ Pesquisa de passagem aérea (Central de Especialistas)\n` +
           `📍 ${origem} → ${destino}\n` +
@@ -258,7 +264,8 @@ export function buildCentralTools(
           `👥 ${adultos} adulto(s)${criancas ? ` + ${criancas} criança(s)` : ""}${bebes ? ` + ${bebes} bebê(s)` : ""}` +
           (preferencia_horario_ida ? `\n🕘 Preferência de horário na ida: ${preferencia_horario_ida}` : "") +
           (preferencia_horario_volta ? `\n🕗 Preferência de horário na volta: ${preferencia_horario_volta}` : "") +
-          (somente_com_bagagem ? `\n🧳 Cliente pediu bagagem despachada` : "");
+          (somente_com_bagagem ? `\n🧳 Cliente pediu bagagem despachada` : "") +
+          filtrosTexto;
 
 
         try {
@@ -279,6 +286,10 @@ export function buildCentralTools(
             periodo_ida: periodoIda,
             periodo_volta: periodoVolta,
             bagagem_despachada: somente_com_bagagem,
+            somente_voo_direto,
+            maximo_conexoes,
+            companhias_incluidas,
+            companhias_excluidas,
           });
           if ("error" in result) {
             if (result.sem_combinacao) {
@@ -290,6 +301,16 @@ export function buildCentralTools(
                   "Existem voos soltos, mas NENHUMA combinação de ida e volta é possível nesses horários (a volta sairia antes da ida chegar). NÃO apresente nenhuma combinação. Diga com naturalidade que nesse formato não dá certo e ofereça outra data, outro horário ou pernoite. Isso NÃO é falha técnica: nunca fale em sistema, motor ou erro.",
               };
             }
+            if (result.sem_resultado_por_filtro) {
+              return {
+                ok: true,
+                sem_resultado: true,
+                sem_resultado_por_filtro: true,
+                filtros_aplicados: result.filtros ?? null,
+                instrucao:
+                  "Há voos nessa data, mas NENHUM atende os filtros que o cliente pediu (companhia, voo direto ou limite de conexões). Diga isso com naturalidade, sem falar em sistema/motor/erro, e pergunte se ele topa flexibilizar — aceitar uma conexão, outra companhia, outra data ou outro horário.",
+              };
+            }
             return {
               ok: true,
               sem_resultado: true,
@@ -297,6 +318,7 @@ export function buildCentralTools(
                 "O motor não trouxe voos para essa data/trecho. Diga isso com naturalidade (sem falar em sistema, motor ou erro) e pergunte se ele topa outra data próxima ou outro aeroporto próximo. Se preferir, ofereça passar pro time Comercial.",
             };
           }
+
 
           // Guarda a cotação: é dela que saem as ARTES (cards) enviadas ao cliente.
           const { data: saved } = await supabaseAdmin
