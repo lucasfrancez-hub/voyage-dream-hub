@@ -206,9 +206,17 @@ export function buildQuoteMemoryBlock(memorias: QuoteMemory[]): string {
     if (m.escolha_option_index) {
       linhas.push(`  ✅ O cliente JÁ ESCOLHEU a opção ${m.escolha_option_index} desta cotação.`);
     }
+    if (m.idade_horas >= QUOTE_STALE_HOURS) {
+      linhas.push(
+        `  ⏳ Esta cotação foi feita há ~${Math.round(m.idade_horas)}h. Tarifa e disponibilidade PODEM ter mudado:` +
+          ` antes de confirmar ou repetir o valor, avise naturalmente ("vou consultar novamente a disponibilidade e o valor atualizado dessa opção")` +
+          ` e refaça a busca com a ferramenta. Nunca afirme que o preço continua o mesmo.`,
+      );
+    }
   }
   linhas.push(
     `\nRegra: ao falar de uma opção, use SEMPRE os dados acima (companhia, horário e valor exatos). Se o cliente citar uma opção que não está nesta lista, pergunte a qual ele se refere em vez de supor.`,
+    `Comparação: "qual chega primeiro", "qual sai primeiro", "qual é mais rápida" NÃO são a opção 1 — compare os horários/durações reais acima e responda qual vence, dizendo o porquê.`,
   );
   return linhas.join("\n");
 }
