@@ -324,7 +324,7 @@ export function buildCentralTools(conversation: WaConversation, habilitadas?: st
               quote_id,
               cards_enviados,
               instrucao:
-                "A ARTE da 1ª opção JÁ FOI ENVIADA ao cliente e a 2ª sai automaticamente em cerca de 1 minuto. NÃO liste voos, horários ou valores em texto. Responda apenas com UM balão curto e natural avisando que está mandando as duas melhores opções.",
+                "A ARTE da 1ª opção JÁ FOI ENVIADA ao cliente e a 2ª sai automaticamente logo em seguida (normalmente entre 30 e 90 segundos). NÃO liste voos, horários ou valores em texto. Responda apenas com UM balão curto e natural avisando que está mandando as duas melhores opções.",
             };
           }
 
