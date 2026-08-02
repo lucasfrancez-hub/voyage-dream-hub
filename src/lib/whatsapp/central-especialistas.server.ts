@@ -16,6 +16,9 @@ import { tool } from "ai";
 import { z } from "zod";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { recordHandoff, type WaConversation } from "./conversation.server";
+import { validateFlightSearch } from "./flight-search-validation";
+import { VIA_AIR_CNPJ, VIA_AIR_EMAIL_EMERGENCIA } from "@/lib/institucional";
+
 import type {
   FlightQuoteLeg,
   FlightQuoteOption,
