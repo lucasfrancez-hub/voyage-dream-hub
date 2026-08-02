@@ -173,6 +173,33 @@ export function buildCentralTools(
           .boolean()
           .nullable()
           .describe("Só true se o cliente pediu bagagem despachada"),
+        somente_voo_direto: z
+          .boolean()
+          .nullable()
+          .describe(
+            "true quando o cliente pediu voo direto / sem escala / sem conexão. O motor filtra de verdade — pode oferecer isso.",
+          ),
+        maximo_conexoes: z
+          .number()
+          .int()
+          .min(0)
+          .max(2)
+          .nullable()
+          .describe(
+            "Teto de conexões por trecho quando o cliente limita ('no máximo uma conexão'). 0 = direto. Deixe null se ele não falou nada.",
+          ),
+        companhias_incluidas: z
+          .array(z.string())
+          .nullable()
+          .describe(
+            "Companhias que o cliente QUER, como ele falou: ['Azul'], ['LATAM','Gol']. Só preencha se ele pediu.",
+          ),
+        companhias_excluidas: z
+          .array(z.string())
+          .nullable()
+          .describe(
+            "Companhias que o cliente NÃO quer ('não quero Gol'): ['Gol']. Só preencha se ele pediu.",
+          ),
       }),
 
       execute: async ({
@@ -189,6 +216,10 @@ export function buildCentralTools(
         preferencia_horario_ida,
         preferencia_horario_volta,
         somente_com_bagagem,
+        somente_voo_direto,
+        maximo_conexoes,
+        companhias_incluidas,
+        companhias_excluidas,
       }) => {
         // TRAVA ÚNICA no servidor: dados obrigatórios, coerência de trecho,
         // datas reais/futuras, origem ≠ destino e limites de passageiros.
