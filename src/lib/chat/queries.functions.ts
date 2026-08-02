@@ -481,10 +481,14 @@ export const sendHumanReply = createServerFn({ method: "POST" })
         sender: "human",
         content: bubbles[i],
         sender_user_id: context.userId,
+        // A IA precisa saber exatamente QUEM enviou a mensagem citada.
+        agent_name: senderName,
+        message_type: "text",
         reply_to_wa_id: i === 0 ? (data.reply_to_wa_id ?? null) : null,
         reply_to_snippet: i === 0 ? (data.reply_to_snippet ?? null) : null,
         reply_to_sender: i === 0 ? (data.reply_to_sender ?? null) : null,
       });
+
       savedRowIds.push(row?.id ?? null);
     }
 
