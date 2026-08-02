@@ -328,8 +328,8 @@ export async function runAgent(input: {
   // 2) a PRIMEIRA mensagem do cliente já era pedido claro de passagem aérea —
   //    nesse caso a triagem direciona antes de qualquer saudação, sem passar
   //    pelas consultoras e sem transferência visível.
-  let centralSlug = routingState?.central_slug ?? null;
-  let centralBrief = routingState?.central_brief ?? null;
+  let centralSlug = typeof routingState?.central_slug === "string" ? routingState.central_slug : null;
+  let centralBrief = typeof routingState?.central_brief === "string" ? routingState.central_brief : null;
   let centralPrimeiroContato = false;
 
   if (!centralSlug) {
