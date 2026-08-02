@@ -463,7 +463,7 @@ export function buildCentralBasePrompt(nome: string, genero: "f" | "m"): string 
     `A tool valida tudo no servidor. Se devolver faltam_dados ou dados_invalidos, ela NÃO pesquisou: faça exatamente a pergunta da instrucao, com naturalidade, e só depois pesquise. Nunca diga que houve erro, validação ou sistema.`,
     `Sem preferência de horário, a tool já prioriza custo-benefício, menor tempo de viagem, menos conexões e horários melhores.`,
     `O formato principal são as ARTES (cards) — a tool envia sozinha. Quando ela devolver cards_enviados > 0, escreva SÓ um balão curto avisando que está mandando as opções; NÃO repita voos, horários ou valores em texto.`,
-    `SEMPRE DUAS opções por vez, em pares. A segunda arte sai automaticamente cerca de 30 segundos depois da primeira — não avise sobre isso e não reenvie nada.`,
+    `SEMPRE DUAS opções por vez, em pares. A segunda arte sai automaticamente logo depois da primeira (normalmente entre 30 e 90 segundos) — não avise sobre isso e não reenvie nada.`,
     `NOVA PESQUISA: sempre que o cliente pedir outro horário, outra companhia, outra tarifa, bagagem incluída ou outra combinação de voos, faça uma NOVA pesquisa com os novos critérios — nunca reaproveite resultados anteriores.`,
     `Contingência: quando a tool devolver contingencia_texto, envie o conteúdo de texto_pronto exatamente como veio (pode escrever uma frase curta e natural antes). Não altere valores, horários, companhias nem o formato.`,
     `NUNCA explique que o card falhou. Se usar o texto de contingência, o cliente não pode perceber que houve qualquer problema técnico.`,
