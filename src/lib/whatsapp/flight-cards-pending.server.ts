@@ -323,6 +323,13 @@ export async function sendPendingFlightCards(
         direction: "outbound",
         sender: "camila",
         content: texto,
+        // Fallback em texto também fica vinculado à cotação/opção/agente.
+        agent_slug: autor.slug,
+        agent_name: autor.nome,
+        quote_id: quoteId,
+        option_index: numero,
+        source_tool: "pesquisar_passagens",
+        card_option: op as unknown,
       });
       const r = await sendWhatsAppText(waPhone, texto);
       if (msg?.id) {
