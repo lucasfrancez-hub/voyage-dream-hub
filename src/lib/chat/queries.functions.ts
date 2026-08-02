@@ -541,7 +541,7 @@ export const sendHumanMedia = createServerFn({ method: "POST" })
     if (cErr || !conv) throw new Error("Conversa não encontrada");
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { sendWhatsAppImage, sendWhatsAppDocument, sendWhatsAppAudioBytes } = await import("@/lib/whatsapp/send.server");
+    const { sendWhatsAppImageBytes, sendWhatsAppDocument, sendWhatsAppAudioBytes } = await import("@/lib/whatsapp/send.server");
     const { saveMessage } = await import("@/lib/whatsapp/conversation.server");
 
     // Upload no bucket privado
@@ -575,7 +575,7 @@ export const sendHumanMedia = createServerFn({ method: "POST" })
     let deliveredAs: "image" | "document" | "audio" = data.kind;
 
     let sendRes = data.kind === "image"
-      ? await sendWhatsAppImage(conv.wa_phone, signed.signedUrl, captionWithPrefix ?? null)
+      ? await sendWhatsAppImageBytes(conv.wa_phone, bytes, data.filename, captionWithPrefix ?? null, signed.signedUrl)
       : data.kind === "audio" && audioOk
         ? await sendWhatsAppAudioBytes(conv.wa_phone, bytes, data.filename, data.mime_type)
         : await sendWhatsAppDocument(conv.wa_phone, signed.signedUrl, data.filename, captionWithPrefix ?? null);

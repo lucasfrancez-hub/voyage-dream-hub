@@ -290,8 +290,8 @@ export async function sendWhatsAppDocument(
 }
 
 /**
- * Envia um documento já carregado pelo servidor. Evita URLs assinadas e
- * permite que a entrega de cartões use diretamente os bytes do storage.
+ * Envia um documento já carregado pelo servidor: sobe os bytes para a Meta
+ * e envia pelo media ID. Só cai para o link público se o upload falhar.
  */
 export async function sendWhatsAppDocumentBytes(
   to: string,
@@ -300,21 +300,29 @@ export async function sendWhatsAppDocumentBytes(
   caption?: string | null,
   fallbackLink?: string,
 ): Promise<{ id: string | null; error?: string }> {
-  void bytes;
+  const name = filename.slice(0, 240);
+  const cap = caption ? { caption: caption.slice(0, 1024) } : {};
+  if (bytes?.byteLength) {
+    const uploaded = await metaUploadMedia(bytes, name, "application/pdf");
+    if (uploaded.id) {
+      return metaSendMedia(to, {
+        type: "document",
+        document: { id: uploaded.id, filename: name, ...cap },
+      });
+    }
+    console.error("[whatsapp] upload de documento falhou:", uploaded.error);
+  }
   if (!fallbackLink) return { id: null, error: "URL do documento ausente" };
   return metaSendMedia(to, {
     type: "document",
-    document: {
-      link: fallbackLink,
-      filename: filename.slice(0, 240),
-      ...(caption ? { caption: caption.slice(0, 1024) } : {}),
-    },
+    document: { link: fallbackLink, filename: name, ...cap },
   });
 }
 
 /**
- * Envia uma imagem já carregada pelo servidor — usada para cartões de
- * embarque capturados como PNG, que exibem preview direto no WhatsApp.
+ * Envia uma imagem já carregada pelo servidor — usada para os cartões de
+ * voo/embarque. Sobe os bytes para a Meta e envia como FOTO real (media ID),
+ * nunca como link, garantindo preview nativo no WhatsApp.
  */
 export async function sendWhatsAppImageBytes(
   to: string,
@@ -323,12 +331,18 @@ export async function sendWhatsAppImageBytes(
   caption?: string | null,
   fallbackLink?: string,
 ): Promise<{ id: string | null; error?: string }> {
-  void bytes;
+  const name = filename.slice(0, 240);
+  const cap = caption ? { caption: caption.slice(0, 1024) } : {};
+  const mime = /\.jpe?g$/i.test(name) ? "image/jpeg" : "image/png";
+  if (bytes?.byteLength) {
+    const uploaded = await metaUploadMedia(bytes, name, mime);
+    if (uploaded.id) {
+      return metaSendMedia(to, { type: "image", image: { id: uploaded.id, ...cap } });
+    }
+    console.error("[whatsapp] upload de imagem falhou:", uploaded.error);
+  }
   if (!fallbackLink) return { id: null, error: "URL da imagem ausente" };
-  return metaSendMedia(to, {
-    type: "image",
-    image: { link: fallbackLink, ...(caption ? { caption: caption.slice(0, 1024) } : {}) },
-  });
+  return metaSendMedia(to, { type: "image", image: { link: fallbackLink, ...cap } });
 }
 
 /** Envia um áudio (nota de voz) por link público/assinado. */
