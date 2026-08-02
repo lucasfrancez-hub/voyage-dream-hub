@@ -145,6 +145,16 @@ export async function loadQuoteMemory(
       cancelada: !!q.cancelled_at,
       escolha_option_index: (q.escolha_option_index as number | null) ?? null,
       rota: `${payload.origem_nome ?? payload.origem_iata ?? "?"} → ${payload.destino_nome ?? payload.destino_iata ?? "?"}`,
+      origem_termos: [payload.origem_nome, payload.origem_iata].filter(
+        (x): x is string => typeof x === "string" && x.length > 1,
+      ),
+      destino_termos: [payload.destino_nome, payload.destino_iata].filter(
+        (x): x is string => typeof x === "string" && x.length > 1,
+      ),
+      idade_horas: Math.max(
+        0,
+        (Date.now() - new Date(q.created_at as string).getTime()) / 3_600_000,
+      ),
       data_ida: payload.data_ida ?? "—",
       data_volta: payload.data_volta ?? null,
       passageiros: pax
