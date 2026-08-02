@@ -4016,19 +4016,24 @@ export type Database = {
           is_revoked: boolean
           media_type: string | null
           media_url: string | null
+          message_type: string | null
           meta_media_id: string | null
           option_index: number | null
+          product_type: string | null
           protocolo_id: string | null
           quote_id: string | null
+          reply_to_message_id: string | null
           reply_to_sender: string | null
           reply_to_snippet: string | null
           reply_to_wa_id: string | null
+          resumo: string | null
           revoked_at: string | null
           revoked_by: string | null
           sender: string
           sender_user_id: string | null
           source_tool: string | null
           tool_calls: Json | null
+          transcricao: string | null
           wa_message_id: string | null
         }
         Insert: {
@@ -4048,19 +4053,24 @@ export type Database = {
           is_revoked?: boolean
           media_type?: string | null
           media_url?: string | null
+          message_type?: string | null
           meta_media_id?: string | null
           option_index?: number | null
+          product_type?: string | null
           protocolo_id?: string | null
           quote_id?: string | null
+          reply_to_message_id?: string | null
           reply_to_sender?: string | null
           reply_to_snippet?: string | null
           reply_to_wa_id?: string | null
+          resumo?: string | null
           revoked_at?: string | null
           revoked_by?: string | null
           sender: string
           sender_user_id?: string | null
           source_tool?: string | null
           tool_calls?: Json | null
+          transcricao?: string | null
           wa_message_id?: string | null
         }
         Update: {
@@ -4080,19 +4090,24 @@ export type Database = {
           is_revoked?: boolean
           media_type?: string | null
           media_url?: string | null
+          message_type?: string | null
           meta_media_id?: string | null
           option_index?: number | null
+          product_type?: string | null
           protocolo_id?: string | null
           quote_id?: string | null
+          reply_to_message_id?: string | null
           reply_to_sender?: string | null
           reply_to_snippet?: string | null
           reply_to_wa_id?: string | null
+          resumo?: string | null
           revoked_at?: string | null
           revoked_by?: string | null
           sender?: string
           sender_user_id?: string | null
           source_tool?: string | null
           tool_calls?: Json | null
+          transcricao?: string | null
           wa_message_id?: string | null
         }
         Relationships: [
@@ -4108,6 +4123,13 @@ export type Database = {
             columns: ["protocolo_id"]
             isOneToOne: false
             referencedRelation: "wa_protocolos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wa_messages_reply_to_message_id_fkey"
+            columns: ["reply_to_message_id"]
+            isOneToOne: false
+            referencedRelation: "wa_messages"
             referencedColumns: ["id"]
           },
         ]

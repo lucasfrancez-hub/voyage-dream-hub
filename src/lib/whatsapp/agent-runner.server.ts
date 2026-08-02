@@ -459,6 +459,32 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
     });
   }
 
+  // MENSAGEM RESPONDIDA (botão "Responder" do WhatsApp): prioridade absoluta.
+  // Lemos os campos já gravados em wa_messages (quote_id, option_index,
+  // card_option, agent_name, source_tool, product_type) e entregamos prontos
+  // ao modelo, antes do histórico — a IA para de deduzir pelo texto.
+  const ultimaDoCliente = [...merged].reverse().find((m) => m.sender === "customer") as
+    | (typeof merged)[number]
+    | undefined;
+  const replyToWaId =
+    (ultimaDoCliente as unknown as { reply_to_wa_id?: string | null } | undefined)?.reply_to_wa_id ?? null;
+  const replyToMessageId =
+    (ultimaDoCliente as unknown as { reply_to_message_id?: string | null } | undefined)
+      ?.reply_to_message_id ?? null;
+
+  let repliedBlock = "";
+  try {
+    const { loadRepliedMessage, buildRepliedMessageBlock } = await import("./replied-message.server");
+    const ctx = await loadRepliedMessage({
+      conversation_id: conv.id,
+      reply_to_message_id: replyToMessageId,
+      reply_to_wa_id: replyToWaId,
+    });
+    repliedBlock = buildRepliedMessageBlock(ctx);
+  } catch (err) {
+    console.warn("[agent] bloco de mensagem respondida indisponível:", err);
+  }
+
   // MEMÓRIA ESTRUTURADA DAS COTAÇÕES: o que foi enviado ao cliente vem do
   // banco, não da leitura da legenda das artes. É isso que faz "gostei da
   // segunda" apontar sempre para a opção certa, mesmo com mensagens no meio.
@@ -472,16 +498,13 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
     } = await import("./flight-quote-memory.server");
     const memorias = await loadQuoteMemory(conv.id);
     if (memorias.length) {
-      const ultimaDoCliente = [...merged].reverse().find((m) => m.sender === "customer");
-      const replyToWaId =
-        (ultimaDoCliente as unknown as { reply_to_wa_id?: string | null } | undefined)
-          ?.reply_to_wa_id ?? null;
       const escolha = ultimaDoCliente
         ? await registerCustomerChoice(
             conv.id,
             memorias,
             ultimaDoCliente.content,
             replyToWaId,
+            replyToMessageId,
           ).catch(() => null)
         : null;
       quoteBlock = buildQuoteMemoryBlock(memorias) + buildChoiceBlock(escolha);
@@ -489,6 +512,7 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
   } catch (err) {
     console.warn("[agent] memória de cotações indisponível:", err);
   }
+
 
 
 
@@ -553,7 +577,10 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
           ) +
           "\n\n" +
           buildSystemPrompt(agent, conv, protocolo, isNewProtocolo, previousContext, { contextOnly: true })
-        : buildSystemPrompt(agent, conv, protocolo, isNewProtocolo, previousContext)) + quoteBlock;
+        : buildSystemPrompt(agent, conv, protocolo, isNewProtocolo, previousContext)) +
+      repliedBlock +
+      quoteBlock;
+
     let result: { text?: string; steps?: Array<{ toolCalls?: Array<{ toolName: string; input: unknown }> }> } | null = null;
     let lastErr: unknown = null;
     for (let i = 0; i < ATTEMPTS.length; i++) {

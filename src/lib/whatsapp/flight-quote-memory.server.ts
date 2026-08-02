@@ -450,18 +450,33 @@ export async function resolveTurnReference(
   memorias: QuoteMemory[],
   texto: string,
   replyToWaId?: string | null,
+  replyToMessageId?: string | null,
 ): Promise<OptionReference | null> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-  // 1) resposta citada — prioridade máxima
-  if (replyToWaId) {
-    const { data: citada } = await supabaseAdmin
-      .from("wa_messages")
-      .select("quote_id, option_index")
-      .eq("wa_message_id", replyToWaId)
-      .maybeSingle();
-    const qid = (citada?.quote_id as string | null) ?? null;
-    const oidx = (citada?.option_index as number | null) ?? null;
+  // 1) resposta citada — prioridade máxima (FK interna primeiro, depois id da Meta)
+  if (replyToMessageId || replyToWaId) {
+    type Citada = { quote_id: string | null; option_index: number | null };
+    let citada: Citada | null = null;
+    if (replyToMessageId) {
+      const { data } = await supabaseAdmin
+        .from("wa_messages")
+        .select("quote_id, option_index")
+        .eq("id", replyToMessageId)
+        .maybeSingle();
+      citada = (data as Citada | null) ?? null;
+    }
+    if (!citada && replyToWaId) {
+      const { data } = await supabaseAdmin
+        .from("wa_messages")
+        .select("quote_id, option_index")
+        .eq("wa_message_id", replyToWaId)
+        .maybeSingle();
+      citada = (data as Citada | null) ?? null;
+    }
+    const qid = citada?.quote_id ?? null;
+    const oidx = citada?.option_index ?? null;
+
     if (qid && oidx) {
       const q = memorias.find((m) => m.quote_id === qid);
       const o = q?.opcoes.find((x) => x.option_index === oidx);
@@ -478,6 +493,7 @@ export async function resolveTurnReference(
       }
     }
   }
+
 
   // 2) texto + 3) última referência persistida
   const { data: conv } = await supabaseAdmin
@@ -567,9 +583,11 @@ export async function registerCustomerChoice(
   memorias: QuoteMemory[],
   texto: string,
   replyToWaId?: string | null,
+  replyToMessageId?: string | null,
 ): Promise<ChoiceDetection | null> {
   // Prioridade: mensagem citada > texto > última opção comentada.
-  const ref = await resolveTurnReference(conversationId, memorias, texto, replyToWaId);
+  const ref = await resolveTurnReference(conversationId, memorias, texto, replyToWaId, replyToMessageId);
+
   const escolha = detectCustomerChoice(memorias, texto, ref);
   if (!escolha) return null;
   // Comparação não é escolha: não grava escolha_option_index.
