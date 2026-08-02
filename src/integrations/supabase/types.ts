@@ -19,6 +19,7 @@ export type Database = {
           ativo: boolean
           avatar_url: string | null
           created_at: string
+          equipe: string
           horario_fim: string
           horario_inicio: string
           id: string
@@ -36,6 +37,7 @@ export type Database = {
           ativo?: boolean
           avatar_url?: string | null
           created_at?: string
+          equipe?: string
           horario_fim?: string
           horario_inicio?: string
           id?: string
@@ -53,6 +55,7 @@ export type Database = {
           ativo?: boolean
           avatar_url?: string | null
           created_at?: string
+          equipe?: string
           horario_fim?: string
           horario_inicio?: string
           id?: string
@@ -3624,6 +3627,10 @@ export type Database = {
           ai_instruction_by: string | null
           ai_paused: boolean
           assigned_to: string | null
+          central_brief: Json | null
+          central_busca: Json | null
+          central_desde: string | null
+          central_slug: string | null
           created_at: string
           display_name: string | null
           funnel_stage: string | null
@@ -3651,6 +3658,10 @@ export type Database = {
           ai_instruction_by?: string | null
           ai_paused?: boolean
           assigned_to?: string | null
+          central_brief?: Json | null
+          central_busca?: Json | null
+          central_desde?: string | null
+          central_slug?: string | null
           created_at?: string
           display_name?: string | null
           funnel_stage?: string | null
@@ -3678,6 +3689,10 @@ export type Database = {
           ai_instruction_by?: string | null
           ai_paused?: boolean
           assigned_to?: string | null
+          central_brief?: Json | null
+          central_busca?: Json | null
+          central_desde?: string | null
+          central_slug?: string | null
           created_at?: string
           display_name?: string | null
           funnel_stage?: string | null
