@@ -336,7 +336,7 @@ const RX_CONTINUIDADE =
 
 /** Pedido de REENVIO da mesma opção ("manda de novo", "reenvia aquela"). */
 const RX_REENVIO =
-  /\b(manda(r)?|envia(r)?|reenvia(r)?|mostra(r)?|passa(r)?|repete|repetir)\b[^.?!]{0,40}\b(de novo|novamente|outra vez|de volta)\b|\b(reenvi[ae]|manda de novo|envia de novo|quero ver (de novo|novamente))\b/i;
+  /\b(manda(r)?|envia(r)?|reenvia(r)?|mostra(r)?|passa(r)?|repete|repetir|ver|rever)\b[^.?!]{0,40}\b(de novo|novamente|outra vez|mais uma vez)\b|\breenvi[ae]\b/i;
 
 /** Intenção de FILTRO/nova pesquisa — tem prioridade sobre resolver referência. */
 export type SearchFilterIntent = {
