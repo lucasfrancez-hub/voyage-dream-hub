@@ -374,9 +374,12 @@ export function buildCentralTools(conversation: WaConversation, habilitadas?: st
   };
 
   if (!permitidas.length) return todas;
-  const filtradas: Partial<typeof todas> = {};
-  for (const nome of permitidas) filtradas[nome as keyof typeof todas] = todas[nome as keyof typeof todas];
+  const filtradas = { ...todas } as Record<string, unknown>;
+  for (const nome of Object.keys(todas)) {
+    if (!permitidas.includes(nome)) delete filtradas[nome];
+  }
   return filtradas as typeof todas;
+
 }
 
 
