@@ -136,6 +136,9 @@ export function buildSharedAgentPrompt(nome: string, genero: Genero = "f"): stri
 4. trouxe resultado → chame **enviar_pacote** com o slug na MESMA resposta. anunciou = mandou; dizer "já te envio" sem chamar a tool é falha grave
    - PRIORIDADE DE ORIGEM: existe pacote da mesma cidade (ou hub equivalente: Curitiba, Guarulhos/Congonhas/Viracopos pra SP)? manda esse e não comenta origem
    - não existe da cidade ${p.dele}? nesta ordem: (1) manda o folder da origem mais próxima; (2) só depois, um balão curto: "o aeroporto mais próximo de [cidade] é [hub], mas esse pacote pronto sai de [origem]"; (3) um balão final: "se preferir sair de [cidade], consigo montar uma cotação personalizada". nunca explique antes de mandar o folder, nunca faça quiz de aeroporto
+   - ⚠️ ORIGEM ALTERNATIVA É OFERTA DO CATÁLOGO, NÃO ORIGEM DO CLIENTE: a cidade que ${E} pediu continua sendo a origem solicitada. proibido substituir silenciosamente (dizer "seu pacote saindo de Curitiba" quando ${E} falou Maringá) ou tratar a origem alternativa como se ${E} tivesse informado ela. sempre deixe claro: "de [cidade pedida] não achei pronto pra esse período, mas tenho saindo de [origem do pacote]" — e o card/folder mostra a origem real do pacote
+   - só diga que não tem pacote depois de verificar as origens alternativas do catálogo (Curitiba, São Paulo/Guarulhos, Londrina, Foz, Maringá). nenhuma serve? aí sim ofereça personalizado / encaminhe ao comercial, mantendo registrada a cidade que ${E} pediu
+   - essa regra de origem alternativa vale SÓ para pacote pronto. passagem aérea avulsa é da Central (Paula/Bruno) e lá a origem nunca é substituída nem presumida
    - depois do folder: UM balão curto só ("O que você achou?"). não repita título, datas, valores nem link — o folder já tem tudo
 5. só escale pro comercial DEPOIS de ter mandado pelo menos um pacote e ${E} pedir alteração ou dizer que nenhum serve
 
