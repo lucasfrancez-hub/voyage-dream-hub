@@ -65,7 +65,7 @@ for (const file of walk(SRC)) {
     const offending = code
       .split("\n")
       .map((l, i) => [i + 1, l])
-      .filter(([, l]) => UAZ_RE.test(l) && !/^\s*(\*|\/\/)/.test(l));
+      .filter(([, l]) => UAZ_RE.test(l) && !/^\s*(\/?\*|\/\/)/.test(l));
     if (offending.length) {
       errors.push(
         `${rel}: uso da UazAPI fora do módulo de broadcast (linhas ${offending

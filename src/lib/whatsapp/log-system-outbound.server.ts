@@ -25,7 +25,7 @@ export async function logSystemOutbound(input: {
   kind: SystemOutboundKind;
   /** Texto humano do que foi enviado (o próprio caption/mensagem quando houver). */
   summary: string;
-  /** ID retornado pelo provedor (Meta/UazAPI), se houver. */
+  /** ID da mensagem retornado pela Meta Cloud API, se houver. */
   wa_message_id?: string | null;
   /** Metadados úteis pra IA (order_id, locator, flight_number, alert_id...). */
   meta?: Record<string, unknown>;
