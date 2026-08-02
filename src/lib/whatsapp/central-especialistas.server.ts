@@ -307,20 +307,14 @@ export function buildCentralTools(conversation: WaConversation) {
 
 /* ─────────────────────────────────────────────────────────────
    Prompt da Central — mesma personalidade + regras de pesquisa
+
+   IMPORTANTE: o texto base abaixo é o que fica PERSISTIDO em
+   public.ai_agents.system_prompt (Bruno e Paula, um registro cada) e
+   editável na tela /chat/agentes. Em runtime usamos SEMPRE o valor do
+   banco quando ele existe (storedPrompt); esta função só é fallback.
    ───────────────────────────────────────────────────────────── */
-export function buildCentralPrompt(
-  nome: string,
-  genero: "f" | "m",
-  brief?: string | null,
-  opts?: { primeiroContato?: boolean },
-): string {
+export function buildCentralBasePrompt(nome: string, genero: "f" | "m"): string {
   const base = buildSharedAgentPrompt(nome, genero);
-  const hoje = new Intl.DateTimeFormat("pt-BR", {
-    timeZone: "America/Sao_Paulo",
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  }).format(new Date());
 
   const modulosOff = (Object.keys(CENTRAL_MODULES) as CentralModule[])
     .filter((m) => !CENTRAL_MODULES[m])
@@ -331,14 +325,7 @@ export function buildCentralPrompt(
     `\n\n# 🎧 VOCÊ É DA CENTRAL DE ESPECIALISTAS`,
     `Você faz parte da mesma equipe VIA AIR e atende com a MESMA personalidade, tom e jeito de escrever das consultoras. Para o cliente você é só mais uma pessoa do time — nunca explique estrutura interna, nunca diga "fui acionada pelo sistema", nunca fale de IA, motor de busca, API ou setores técnicos.`,
     `Sua especialidade nesta fase é UMA só: PESQUISA DE PASSAGENS AÉREAS.`,
-    `Hoje é ${hoje} (America/Sao_Paulo). Toda data que o cliente falar em linguagem natural ("dia 15 de setembro", "mês que vem") você converte para AAAA-MM-DD antes de pesquisar.`,
-    brief?.trim()
-      ? `\n## 📋 O QUE O CONSULTOR JÁ COLETOU (não peça de novo)\n${brief.trim()}`
-      : "",
-    `\n## 🚪 ABERTURA`,
-    opts?.primeiroContato
-      ? `Este é o PRIMEIRO contato: o cliente abriu a conversa já pedindo passagem aérea e você é quem atende desde o começo. Abra a conversa você mesm${genero === "f" ? "a" : "o"}, tipo: "Olá! Sou ${nome}, da Central de Especialistas da VIA AIR. Claro, vou verificar as melhores opções de voo para você." Nunca cite outro consultor, nunca diga que o atendimento foi transferido/encaminhado e nunca mencione triagem ou sistema. Depois siga pedindo só os dados obrigatórios que faltam.`
-      : `Você entra na conversa já em andamento. Cumprimente rapidinho se apresentando pelo nome, diga que vai cuidar da pesquisa das passagens e siga. Nada de recomeçar o atendimento do zero nem repetir perguntas já respondidas.`,
+    `Toda data que o cliente falar em linguagem natural ("dia 15 de setembro", "mês que vem") você converte para AAAA-MM-DD antes de pesquisar.`,
     `\n## 📝 INFORMAÇÕES NECESSÁRIAS (nunca vire questionário)`,
     `Peça SÓ o que estiver faltando, no máximo 2 itens por mensagem, em tom de conversa:`,
     `- origem`,
@@ -358,7 +345,37 @@ export function buildCentralPrompt(
     `Pacotes prontos, personalização de viagem, ${modulosOff} — nada disso é da Central nesta fase. Se o cliente pedir, use encaminhar_para_comercial e avise com naturalidade que o time Comercial continua com ele.`,
     `\n## ⚠️ FALHAS`,
     `Se qualquer coisa der errado (a tool retornar falha_tecnica), responda SOMENTE: "${CENTRAL_FALHA_MSG}" — nunca mostre erro, código, nome de sistema ou detalhe técnico, e nunca deixe o cliente sem resposta.`,
+  ].join("\n");
+}
+
+export function buildCentralPrompt(
+  nome: string,
+  genero: "f" | "m",
+  brief?: string | null,
+  opts?: { primeiroContato?: boolean; storedPrompt?: string | null },
+): string {
+  const stored = opts?.storedPrompt?.trim();
+  const base = stored && stored.length > 50 ? stored : buildCentralBasePrompt(nome, genero);
+  const hoje = new Intl.DateTimeFormat("pt-BR", {
+    timeZone: "America/Sao_Paulo",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  }).format(new Date());
+
+  return [
+    base,
+    `\n## 📅 DATA`,
+    `Hoje é ${hoje} (America/Sao_Paulo).`,
+    brief?.trim()
+      ? `\n## 📋 O QUE O CONSULTOR JÁ COLETOU (não peça de novo)\n${brief.trim()}`
+      : "",
+    `\n## 🚪 ABERTURA`,
+    opts?.primeiroContato
+      ? `Este é o PRIMEIRO contato: o cliente abriu a conversa já pedindo passagem aérea e você é quem atende desde o começo. Abra a conversa você mesm${genero === "f" ? "a" : "o"}, tipo: "Olá! Sou ${nome}, da Central de Especialistas da VIA AIR. Claro, vou verificar as melhores opções de voo para você." Nunca cite outro consultor, nunca diga que o atendimento foi transferido/encaminhado e nunca mencione triagem ou sistema. Depois siga pedindo só os dados obrigatórios que faltam.`
+      : `Você entra na conversa já em andamento. Cumprimente rapidinho se apresentando pelo nome, diga que vai cuidar da pesquisa das passagens e siga. Nada de recomeçar o atendimento do zero nem repetir perguntas já respondidas.`,
   ]
     .filter(Boolean)
     .join("\n");
 }
+

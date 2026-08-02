@@ -458,7 +458,7 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
           centralAgent.nome,
           CENTRAL_GENDER[centralAgent.slug as CentralSlug] ?? "f",
           centralBrief,
-          { primeiroContato: centralPrimeiroContato },
+          { primeiroContato: centralPrimeiroContato, storedPrompt: centralAgent.system_prompt },
         ) +
         "\n\n" +
         buildSystemPrompt(agent, conv, protocolo, isNewProtocolo, previousContext)
