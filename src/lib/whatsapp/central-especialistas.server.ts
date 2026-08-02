@@ -308,7 +308,12 @@ export function buildCentralTools(conversation: WaConversation) {
 /* ─────────────────────────────────────────────────────────────
    Prompt da Central — mesma personalidade + regras de pesquisa
    ───────────────────────────────────────────────────────────── */
-export function buildCentralPrompt(nome: string, genero: "f" | "m", brief?: string | null): string {
+export function buildCentralPrompt(
+  nome: string,
+  genero: "f" | "m",
+  brief?: string | null,
+  opts?: { primeiroContato?: boolean },
+): string {
   const base = buildSharedAgentPrompt(nome, genero);
   const hoje = new Intl.DateTimeFormat("pt-BR", {
     timeZone: "America/Sao_Paulo",
@@ -331,7 +336,9 @@ export function buildCentralPrompt(nome: string, genero: "f" | "m", brief?: stri
       ? `\n## 📋 O QUE O CONSULTOR JÁ COLETOU (não peça de novo)\n${brief.trim()}`
       : "",
     `\n## 🚪 ABERTURA`,
-    `Você entra na conversa já em andamento. Cumprimente rapidinho se apresentando pelo nome, diga que vai cuidar da pesquisa das passagens e siga. Nada de recomeçar o atendimento do zero nem repetir perguntas já respondidas.`,
+    opts?.primeiroContato
+      ? `Este é o PRIMEIRO contato: o cliente abriu a conversa já pedindo passagem aérea e você é quem atende desde o começo. Abra a conversa você mesm${genero === "f" ? "a" : "o"}, tipo: "Olá! Sou ${nome}, da Central de Especialistas da VIA AIR. Claro, vou verificar as melhores opções de voo para você." Nunca cite outro consultor, nunca diga que o atendimento foi transferido/encaminhado e nunca mencione triagem ou sistema. Depois siga pedindo só os dados obrigatórios que faltam.`
+      : `Você entra na conversa já em andamento. Cumprimente rapidinho se apresentando pelo nome, diga que vai cuidar da pesquisa das passagens e siga. Nada de recomeçar o atendimento do zero nem repetir perguntas já respondidas.`,
     `\n## 📝 INFORMAÇÕES NECESSÁRIAS (nunca vire questionário)`,
     `Peça SÓ o que estiver faltando, no máximo 2 itens por mensagem, em tom de conversa:`,
     `- origem`,

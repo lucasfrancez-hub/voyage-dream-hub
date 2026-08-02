@@ -26,6 +26,7 @@ import { sendWhatsAppBubbles } from "./send.server";
 import { buildSenderPrefix, capitalizeBubbles, capitalizeKnownNames, fixGluedSentences, firstName as extractFirstName } from "./text-utils.server";
 import { buildSharedAgentPrompt } from "@/lib/chat/camila-prompt";
 import { isCompanyDataBlocked } from "./data-blocklist";
+import { triageFirstMessage } from "./triage.server";
 
 // Gênero por slug (usado pra montar o prompt compartilhado com a flexão certa).
 const AGENT_GENDER: Record<string, "f" | "m"> = {
@@ -243,10 +244,27 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
   const stickySlug = (conv as unknown as { agent_slug?: string | null }).agent_slug ?? null;
 
   // ── Central de Especialistas ────────────────────────────────────────────
-  // Se o consultor já encaminhou (central_slug preenchido), quem responde é
-  // o especialista — com a MESMA personalidade, mas com as tools de pesquisa.
-  const centralSlug = (conv as unknown as { central_slug?: string | null }).central_slug ?? null;
-  const centralBrief = (conv as unknown as { central_brief?: string | null }).central_brief ?? null;
+  // Dois caminhos chegam aqui:
+  // 1) o consultor encaminhou durante a conversa (central_slug já preenchido);
+  // 2) a PRIMEIRA mensagem do cliente já era pedido claro de passagem aérea —
+  //    nesse caso a triagem direciona antes de qualquer saudação, sem passar
+  //    pelas consultoras e sem transferência visível.
+  let centralSlug = (conv as unknown as { central_slug?: string | null }).central_slug ?? null;
+  let centralBrief = (conv as unknown as { central_brief?: string | null }).central_brief ?? null;
+  let centralPrimeiroContato = false;
+
+  if (!centralSlug) {
+    const triagem = await triageFirstMessage(conv).catch((err) => {
+      console.error("[agent] triagem inicial falhou:", err);
+      return null;
+    });
+    if (triagem) {
+      centralSlug = triagem.slug;
+      centralBrief = triagem.brief;
+      centralPrimeiroContato = true;
+    }
+  }
+
   const centralAgent = centralSlug
     ? agents.find((a) => a.slug === centralSlug && (a.equipe ?? "") === "especialista") ?? null
     : null;
@@ -440,6 +458,7 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
           centralAgent.nome,
           CENTRAL_GENDER[centralAgent.slug as CentralSlug] ?? "f",
           centralBrief,
+          { primeiroContato: centralPrimeiroContato },
         ) +
         "\n\n" +
         buildSystemPrompt(agent, conv, protocolo, isNewProtocolo, previousContext)
