@@ -129,7 +129,7 @@ async function processPayload(payload: WhatsAppPayload) {
           if (Object.keys(patch).length) {
             const { error } = await supabaseAdmin
               .from("wa_messages")
-              .update(patch)
+              .update(patch as never)
               .eq("wa_message_id", st.id);
             if (error) console.error("[wa-webhook] falha ao registrar status:", error.message);
           }
