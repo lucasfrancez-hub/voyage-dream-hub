@@ -100,7 +100,46 @@ type WhatsAppPayload = {
   }>;
 };
 
+/**
+ * Registra no banco o evento bruto recebido da Meta (sanitizado pela própria
+ * Meta — não contém credenciais). Serve de evidência: prova se o evento de
+ * revogação chegou, qual id veio e se a mensagem original foi localizada.
+ */
+async function logWebhookEvent(
+  admin: unknown,
+  ev: {
+    event_type: string;
+    meta_message_id?: string | null;
+    wa_from?: string | null;
+    conversation_id?: string | null;
+    matched_message_id?: string | null;
+    note?: string | null;
+    payload?: Record<string, unknown> | null;
+  },
+) {
+  type Insertable = {
+    from: (t: string) => { insert: (v: Record<string, unknown>) => Promise<{ error: { message: string } | null }> };
+  };
+  try {
+    const { error } = await (admin as Insertable).from("wa_webhook_events").insert({
+
+      webhook_field: "messages",
+      event_type: ev.event_type,
+      meta_message_id: ev.meta_message_id ?? null,
+      wa_from: ev.wa_from ?? null,
+      conversation_id: ev.conversation_id ?? null,
+      matched_message_id: ev.matched_message_id ?? null,
+      note: ev.note ?? null,
+      payload: ev.payload ?? null,
+    });
+    if (error) console.error("[wa-webhook] log de evento falhou:", error.message);
+  } catch (e) {
+    console.error("[wa-webhook] log de evento falhou:", e);
+  }
+}
+
 async function processPayload(payload: WhatsAppPayload) {
+
   const { getOrCreateConversation, saveMessage } = await import("@/lib/whatsapp/conversation.server");
   const { runAgent } = await import("@/lib/whatsapp/agent-runner.server");
   const { downloadWhatsAppMedia, transcribeAudio, storeInboundMedia, extFromMime } = await import("@/lib/whatsapp/media.server");
@@ -168,13 +207,14 @@ async function processPayload(payload: WhatsAppPayload) {
           value.contacts?.find((c) => c.wa_id === msg.from)?.profile?.name ?? null;
 
         // --- DELEÇÃO ("apagar para todos") ---
-        // Meta sinaliza como type=unsupported + errors[code=131051].
-        // O `id` recebido aqui É o id da mensagem que foi apagada.
-        const isRevoke =
-          msg.type === "unsupported" &&
-          Array.isArray(msg.errors) &&
-          msg.errors.some((e) => e?.code === 131051);
-        if (isRevoke) {
+        // A Meta manda o evento no MESMO endpoint das mensagens, com
+        // type=unsupported (+ errors[131051]). O `id` costuma ser o id da
+        // mensagem original; em alguns casos vem em `context.id`.
+        // Detecção tolerante: qualquer `unsupported` é tratado como candidato
+        // a revogação — se não achar a mensagem, fica registrado como falha.
+        const isUnsupported = msg.type === "unsupported";
+        const isRevokeType = /revok|deleted|delete/i.test(msg.type ?? "");
+        if (isUnsupported || isRevokeType) {
           const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
           // Horário informado pela Meta no evento (epoch em segundos), com fallback pro agora.
           const revokedAt = (() => {
@@ -183,9 +223,56 @@ async function processPayload(payload: WhatsAppPayload) {
               ? new Date(ts * 1000).toISOString()
               : new Date().toISOString();
           })();
-          // Idempotente: só atualiza se ainda não estiver marcada (evento duplicado
-          // não gera segunda legenda, segundo log nem nova mensagem).
-          const { data: updated } = await supabaseAdmin
+
+          // Todos os ids que a Meta pode ter usado pra apontar a mensagem original.
+          const candidatos = [msg.id, msg.context?.id].filter(
+            (v): v is string => typeof v === "string" && v.length > 0,
+          );
+
+          const { data: alvo } = candidatos.length
+            ? await supabaseAdmin
+                .from("wa_messages")
+                .select("id, conversation_id, is_revoked, wa_message_id")
+                .in("wa_message_id", candidatos)
+                .order("created_at", { ascending: false })
+                .limit(1)
+                .maybeSingle()
+            : { data: null };
+
+          if (!alvo) {
+            // Não pode falhar em silêncio: fica gravado o payload real.
+            console.error(
+              JSON.stringify({
+                event: "message_revoke_target_not_found",
+                revoke_target_meta_id: msg.id,
+                context_id: msg.context?.id ?? null,
+                wa_from: msg.from,
+                received_at: revokedAt,
+              }),
+            );
+            await logWebhookEvent(supabaseAdmin, {
+              event_type: "message_revoke_target_not_found",
+              meta_message_id: msg.id,
+              wa_from: msg.from,
+              note: `type=${msg.type} errors=${JSON.stringify(msg.errors ?? [])}`,
+              payload: msg as unknown as Record<string, unknown>,
+            });
+            continue;
+          }
+
+          if (alvo.is_revoked) {
+            // Evento duplicado: não regrava, não duplica log de revogação.
+            await logWebhookEvent(supabaseAdmin, {
+              event_type: "message_revoke_duplicate",
+              meta_message_id: msg.id,
+              wa_from: msg.from,
+              conversation_id: alvo.conversation_id,
+              matched_message_id: alvo.id,
+            });
+            continue;
+          }
+
+          const { data: updated, error: upErr } = await supabaseAdmin
             .from("wa_messages")
             .update({
               is_revoked: true,
@@ -194,28 +281,55 @@ async function processPayload(payload: WhatsAppPayload) {
               deleted_at: revokedAt,
               deleted_by_customer: true,
             })
-            .eq("wa_message_id", msg.id)
-            .eq("is_revoked", false)
-            .select("id, conversation_id")
+            .eq("id", alvo.id)
+            .select("id, conversation_id, is_revoked, revoked_at, revoked_by")
             .maybeSingle();
-          if (updated) {
-            console.log(
-              JSON.stringify({
-                event: "message_revoked",
-                conversation_id: updated.conversation_id,
-                message_id: updated.id,
-                meta_message_id: msg.id,
-                revoked_by: "customer",
-                revoked_at: revokedAt,
-              }),
-            );
-          } else {
-            console.log(
-              `[wa-webhook] REVOKE Meta ${msg.id} — já marcada ou não encontrada (ignorado)`,
-            );
+
+          if (upErr || !updated) {
+            console.error("[wa-webhook] falha ao marcar revogação:", upErr?.message);
+            await logWebhookEvent(supabaseAdmin, {
+              event_type: "message_revoke_update_failed",
+              meta_message_id: msg.id,
+              wa_from: msg.from,
+              conversation_id: alvo.conversation_id,
+              matched_message_id: alvo.id,
+              note: upErr?.message ?? "update não retornou registro",
+              payload: msg as unknown as Record<string, unknown>,
+            });
+            continue;
           }
+
+          console.log(
+            JSON.stringify({
+              event: "message_revoked",
+              conversation_id: updated.conversation_id,
+              message_id: updated.id,
+              meta_message_id: alvo.wa_message_id,
+              is_revoked: updated.is_revoked,
+              revoked_by: updated.revoked_by,
+              revoked_at: updated.revoked_at,
+            }),
+          );
+          await logWebhookEvent(supabaseAdmin, {
+            event_type: "message_revoked",
+            meta_message_id: alvo.wa_message_id ?? msg.id,
+            wa_from: msg.from,
+            conversation_id: updated.conversation_id,
+            matched_message_id: updated.id,
+            note: `revoked_at=${updated.revoked_at}`,
+            payload: msg as unknown as Record<string, unknown>,
+          });
+
+          // Realtime: o UPDATE na wa_messages já é publicado em
+          // supabase_realtime, e o painel escuta UPDATE por conversation_id.
+          // Um toque na conversa garante que a lista também se atualize.
+          await supabaseAdmin
+            .from("wa_conversations")
+            .update({ last_message_at: new Date().toISOString() })
+            .eq("id", updated.conversation_id);
           continue;
         }
+
 
         const conv = await getOrCreateConversation(msg.from, profileName);
 
