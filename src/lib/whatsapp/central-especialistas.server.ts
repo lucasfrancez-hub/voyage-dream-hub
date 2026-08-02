@@ -157,8 +157,20 @@ async function encaminharParaComercial(conversation: WaConversation, briefing: s
 /* ─────────────────────────────────────────────────────────────
    Tools da Central
    ───────────────────────────────────────────────────────────── */
-export function buildCentralTools(conversation: WaConversation) {
-  return {
+/** Ferramentas que a Central pode expor (espelhado em ai_agents.tools_habilitadas). */
+export const CENTRAL_TOOL_SLUGS = ["pesquisar_passagens", "encaminhar_para_comercial"] as const;
+
+/**
+ * Monta as tools da Central. Quando o agente tem `tools_habilitadas`
+ * preenchido no cadastro (/chat/agentes), só entram as tools listadas lá —
+ * assim a configuração do banco é a fonte de verdade. Lista vazia = todas.
+ */
+export function buildCentralTools(conversation: WaConversation, habilitadas?: string[] | null) {
+  const permitidas = (habilitadas ?? []).filter((t) =>
+    (CENTRAL_TOOL_SLUGS as readonly string[]).includes(t),
+  );
+  const todas = {
+
     pesquisar_passagens: tool({
       description:
         "Pesquisa passagens aéreas no motor de busca oficial (Comprar Viagem) e ENVIA automaticamente as ARTES (cards) das duas melhores opções ao cliente. Use somente quando tiver origem, destino, data de ida, se é só ida ou ida e volta, e quantidade de passageiros. Se o cliente pedir outro horário depois, chame de novo com a preferência de horário.",
