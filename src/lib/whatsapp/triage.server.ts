@@ -151,13 +151,8 @@ export async function triageFirstMessage(conv: WaConversation): Promise<TriageRe
   linhas.push(`💬 Primeira mensagem: "${texto.slice(0, 300)}"`);
   const brief = linhas.join("\n");
 
-  const { data: espec } = await supabaseAdmin
-    .from("ai_agents")
-    .select("slug")
-    .eq("equipe", "especialista")
-    .eq("ativo", true);
-  const slugs = (espec ?? []).map((a) => a.slug as string);
-  const slug = slugs.length ? slugs[Math.floor(Math.random() * slugs.length)]! : "paula";
+  const slug = await pickEspecialista();
+
 
   await supabaseAdmin
     .from("wa_conversations")
