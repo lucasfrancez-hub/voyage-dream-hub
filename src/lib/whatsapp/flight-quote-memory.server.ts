@@ -315,7 +315,26 @@ export type OptionReference = {
     | "continuidade";
   /** Cotação com mais de QUOTE_STALE_HOURS — precisa reconsultar. */
   stale?: boolean;
+  /** Companhia da opção — mantém o escopo em perguntas seguintes ("ela"). */
+  companhia?: string | null;
+  /** Assunto tratado no turno (bagagem, conexão, valor…). */
+  assunto?: string | null;
+  /** Conflito entre a mensagem citada e o texto ("respondeu a 1 e pediu a 2"). */
+  conflito?: { option_index_texto: number; option_index_citada: number } | null;
 };
+
+/** Assunto do turno — usado para manter a referência entre perguntas. */
+export function detectAssunto(texto: string): string | null {
+  const t = String(texto ?? "");
+  if (/\b(bagagem|mala|despachad|franquia|quilos?|kg)\b/i.test(t)) return "bagagem";
+  if (/\b(conex(ã|a)o|escala|dura(ç|c)(ã|a)o|quanto (demora|tempo))\b/i.test(t)) return "conexao";
+  if (/\b(valor|pre(ç|c)o|quanto (fica|custa|sai)|parcel|desconto)\b/i.test(t)) return "valor";
+  if (/\b(hor[áa]rio|sai|chega|decola)\b/i.test(t)) return "horario";
+  if (/\b(assento|marca(ç|c)(ã|a)o)\b/i.test(t)) return "assento";
+  if (/\b(tarifa|regras|remarca|alter|reembols|cancel)\b/i.test(t)) return "tarifa";
+  if (/\b(emiss(ã|a)o|emitir|pagamento|fechar)\b/i.test(t)) return "emissao";
+  return null;
+}
 
 /** Última opção que o cliente comentou (persistida na conversa). */
 export type LastReference = {
