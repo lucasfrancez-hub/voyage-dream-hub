@@ -323,7 +323,7 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
     ? agents.find((a) => a.slug === centralSlug && (a.equipe ?? "") === "especialista") ?? null
     : null;
 
-  const agent = centralAgent ?? pickAgent(agents, stickySlug);
+  const agent = centralAgent ?? (await pickAgent(agents, stickySlug));
 
 
 
