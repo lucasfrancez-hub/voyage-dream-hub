@@ -566,40 +566,44 @@ export function resolveOptionReference(
   }
 
   // 5) só existe UMA opção entregue e o cliente falou "essa"
-  if (enviadas.length === 1 && RX_PRONOME_VAGO.test(t)) {
+  if (enviadas.length === 1 && pronome) {
     return achar(enviadas[0], "unica");
   }
 
-  // 6) pronome vago + última opção COMENTADA pelo cliente ("gostei da primeira"
-  //    → "fechamos essa"). Não é compra: é só a referência mais recente.
-  if (ultimaRef && RX_PRONOME_VAGO.test(t)) {
+  const daUltimaRef = (match: OptionReference["match"]): OptionReference | null => {
+    if (!ultimaRef) return null;
     const q = memorias.find((m) => m.quote_id === ultimaRef.quote_id);
     const o = q?.opcoes.find((x) => x.option_index === ultimaRef.option_index);
-    if (q && o) {
-      return {
-        quote_id: q.quote_id,
-        option_index: o.option_index,
-        opcao: o,
-        match: "ultima_referencia",
-        stale: q.idade_horas >= QUOTE_STALE_HOURS,
-      };
-    }
+    if (!q || !o) return null;
+    return {
+      quote_id: q.quote_id,
+      option_index: o.option_index,
+      opcao: o,
+      match,
+      companhia: o.companhia,
+      assunto: detectAssunto(t) ?? ultimaRef.assunto ?? null,
+      stale: q.idade_horas >= QUOTE_STALE_HOURS,
+    };
+  };
+
+  // 6) pronome vago ("essa", "aquela", "ela", "dessa") + última opção comentada.
+  if (pronome) {
+    const ref = daUltimaRef("ultima_referencia");
+    if (ref) return ref;
   }
 
   // 7) CONTINUIDADE: pergunta de acompanhamento sem pronome ("quanto fica com
-  //    bagagem?", "a conexão é longa?") continua na última opção comentada.
-  if (ultimaRef && RX_CONTINUIDADE.test(t)) {
-    const q = memorias.find((m) => m.quote_id === ultimaRef.quote_id);
-    const o = q?.opcoes.find((x) => x.option_index === ultimaRef.option_index);
-    if (q && o) {
-      return {
-        quote_id: q.quote_id,
-        option_index: o.option_index,
-        opcao: o,
-        match: "continuidade",
-        stale: q.idade_horas >= QUOTE_STALE_HOURS,
-      };
-    }
+  //    bagagem?", "e são quantos quilos?") continua na última opção comentada.
+  if (RX_CONTINUIDADE.test(t)) {
+    const ref = daUltimaRef("continuidade");
+    if (ref) return ref;
+  }
+
+  // 8) REENVIO sem pronome ("manda de novo", "reenvia pra mim") também mantém
+  //    a última referência — o cliente não precisa repetir qual é.
+  if (RX_REENVIO.test(t)) {
+    const ref = daUltimaRef("ultima_referencia");
+    if (ref) return ref;
   }
   return null;
 }
