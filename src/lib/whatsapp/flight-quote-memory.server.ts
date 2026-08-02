@@ -624,6 +624,26 @@ export async function resolveTurnReference(
 ): Promise<OptionReference | null> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
+  // Última referência persistida (usada tanto no caminho 2 quanto no 3).
+  const { data: conv } = await supabaseAdmin
+    .from("wa_conversations")
+    .select(
+      "ultima_quote_referenciada, ultima_opcao_referenciada, ultima_companhia_referenciada, ultima_referencia_assunto",
+    )
+    .eq("id", conversationId)
+    .maybeSingle();
+  const ultimaRef: LastReference =
+    conv?.ultima_quote_referenciada && conv?.ultima_opcao_referenciada
+      ? {
+          quote_id: conv.ultima_quote_referenciada as string,
+          option_index: conv.ultima_opcao_referenciada as number,
+          companhia: (conv.ultima_companhia_referenciada as string | null) ?? null,
+          assunto: (conv.ultima_referencia_assunto as string | null) ?? null,
+        }
+      : null;
+
+  const refTexto = resolveOptionReference(memorias, texto, ultimaRef);
+
   // 1) resposta citada — prioridade máxima (FK interna primeiro, depois id da Meta)
   if (replyToMessageId || replyToWaId) {
     type Citada = { quote_id: string | null; option_index: number | null };
@@ -651,11 +671,34 @@ export async function resolveTurnReference(
       const q = memorias.find((m) => m.quote_id === qid);
       const o = q?.opcoes.find((x) => x.option_index === oidx);
       if (q && o) {
+        // CONFLITO: o cliente respondeu a um card mas escreveu outra opção
+        // explicitamente ("responde a opção 1 e diz 'quero a segunda'").
+        // Não escolhemos em silêncio — sinalizamos para a IA confirmar.
+        const conflito =
+          refTexto &&
+          (refTexto.match === "ordinal" || refTexto.match === "companhia" || refTexto.match === "horario") &&
+          (refTexto.quote_id !== q.quote_id || refTexto.option_index !== o.option_index)
+            ? { option_index_texto: refTexto.option_index, option_index_citada: o.option_index }
+            : null;
+        if (conflito) {
+          console.log(
+            JSON.stringify({
+              event: "reply_text_conflict",
+              conversation_id: conversationId,
+              quote_id: q.quote_id,
+              ...conflito,
+              at: new Date().toISOString(),
+            }),
+          );
+        }
         const ref: OptionReference = {
           quote_id: q.quote_id,
           option_index: o.option_index,
           opcao: o,
           match: "citada",
+          companhia: o.companhia,
+          assunto: detectAssunto(texto),
+          conflito,
           stale: q.idade_horas >= QUOTE_STALE_HOURS,
         };
         await persistLastReference(conversationId, ref);
@@ -664,24 +707,9 @@ export async function resolveTurnReference(
     }
   }
 
-
   // 2) texto + 3) última referência persistida
-  const { data: conv } = await supabaseAdmin
-    .from("wa_conversations")
-    .select("ultima_quote_referenciada, ultima_opcao_referenciada")
-    .eq("id", conversationId)
-    .maybeSingle();
-  const ultimaRef: LastReference =
-    conv?.ultima_quote_referenciada && conv?.ultima_opcao_referenciada
-      ? {
-          quote_id: conv.ultima_quote_referenciada as string,
-          option_index: conv.ultima_opcao_referenciada as number,
-        }
-      : null;
-
-  const ref = resolveOptionReference(memorias, texto, ultimaRef);
-  if (ref) await persistLastReference(conversationId, ref);
-  return ref;
+  if (refTexto) await persistLastReference(conversationId, refTexto);
+  return refTexto;
 }
 
 /** Grava a última opção comentada (NÃO é compra, é só referência). */
@@ -696,6 +724,9 @@ export async function persistLastReference(
       ultima_quote_referenciada: ref.quote_id,
       ultima_opcao_referenciada: ref.option_index,
       ultima_referencia_at: new Date().toISOString(),
+      ultima_referencia_source: ref.match === "citada" ? "reply" : ref.match,
+      ultima_companhia_referenciada: ref.companhia ?? null,
+      ultima_referencia_assunto: ref.assunto ?? null,
     })
     .eq("id", conversationId);
 }
