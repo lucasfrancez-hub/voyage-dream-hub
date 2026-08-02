@@ -846,8 +846,12 @@ export type ChoiceDetection = {
   match: OptionReference["match"];
   stale: boolean;
   conflito?: OptionReference["conflito"];
-  /** Bagagem: consulta da tarifa atual x pedido de nova pesquisa com bagagem. */
+  /** Bagagem: consultar (tarifa atual) x incluir/remover (nova pesquisa). */
   bagagem?: BaggageIntent;
+  /** Mesmo valor de `bagagem`, com o nome usado no contrato do fluxo aéreo. */
+  bagagem_intent?: BaggageIntent;
+  /** Comparação pedida no turno ("arrival" | "departure" | "duration"). */
+  comparison_type?: ComparisonType | null;
 };
 
 /**
@@ -855,8 +859,12 @@ export type ChoiceDetection = {
  * verbo de decisão + referência resolvida; "essa parece boa" fica em `false`
  * (a segunda arte continua saindo, para comparação).
  *
- * ORDEM OBRIGATÓRIA: pergunta de preço/condição, comparação, filtro e pedido
- * de informação são avaliados ANTES de qualquer leitura de decisão.
+ * ORDEM OBRIGATÓRIA DE CLASSIFICAÇÃO (item 4):
+ *   1) consulta (pergunta de preço/condição/bagagem);
+ *   2) comparação ("qual demora menos");
+ *   3) alteração da pesquisa (filtro, bagagem incluir/remover);
+ *   4) decisão.
+ * Só chega em "decisão" o que não foi classificado antes.
  */
 export function detectCustomerChoice(
   memorias: QuoteMemory[],
@@ -867,22 +875,32 @@ export function detectCustomerChoice(
   if (!ref) return null;
   const t = String(texto ?? "");
   const bagagem = detectBaggageIntent(t);
-  // 1º: é pergunta? ("quanto fica com bagagem?", "como fica com conexão?")
-  const pergunta =
+  const comparison_type = detectComparisonType(t);
+
+  // 1) CONSULTA — "quanto fica com bagagem?", "como fica com conexão?"
+  const consulta =
     RX_INTERROGATIVA_PRECO.test(t) ||
     (/\?/.test(t) && RX_PERGUNTA_NAO_DECISAO.test(t) && !/\b(pode (fechar|emitir|reservar))\b/i.test(t));
-  const decisao = !pergunta && RX_ESCOLHA_CLARA.test(t);
+  // 2) COMPARAÇÃO — nunca é escolha.
+  const comparacao = !!comparison_type || ref.match === "comparacao";
+  // 3) ALTERAÇÃO DA PESQUISA — filtro novo ou bagagem incluir/remover.
+  const filtro = detectSearchFilterIntent(t);
+  const alteracao =
+    bagagem === "incluir" || bagagem === "remover" || !!(filtro && Object.keys(filtro).length);
+  // 4) DECISÃO — só sobra o que não caiu em 1..3.
+  const decisao = !consulta && !comparacao && !alteracao && RX_ESCOLHA_CLARA.test(t);
   const soComentario = !decisao && RX_APENAS_COMENTARIO.test(t);
   return {
     quote_id: ref.quote_id,
     option_index: ref.option_index,
     opcao: ref.opcao,
-    // Comparação ("qual chega primeiro") e conflito nunca fecham sozinhos.
-    clara: decisao && !soComentario && ref.match !== "comparacao" && !ref.conflito,
+    clara: decisao && !soComentario && !ref.conflito,
     match: ref.match,
     stale: !!ref.stale,
     conflito: ref.conflito ?? null,
     bagagem,
+    bagagem_intent: bagagem,
+    comparison_type,
   };
 }
 
