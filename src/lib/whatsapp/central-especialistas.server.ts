@@ -113,12 +113,21 @@ export const CENTRAL_TOOL_SLUGS = ["pesquisar_passagens", "encaminhar_para_comer
  * Monta as tools da Central. Quando o agente tem `tools_habilitadas`
  * preenchido no cadastro (/chat/agentes), só entram as tools listadas lá —
  * assim a configuração do banco é a fonte de verdade. Lista vazia = todas.
+ *
+ * `agente` fica gravado na cotação: se foi o Bruno que pesquisou, TODAS as
+ * artes daquela cotação (inclusive as que o watchdog dispara depois) precisam
+ * continuar aparecendo como enviadas pelo Bruno.
  */
-export function buildCentralTools(conversation: WaConversation, habilitadas?: string[] | null) {
+export function buildCentralTools(
+  conversation: WaConversation,
+  habilitadas?: string[] | null,
+  agente?: { slug: string; nome: string } | null,
+) {
   const permitidas = (habilitadas ?? []).filter((t) =>
     (CENTRAL_TOOL_SLUGS as readonly string[]).includes(t),
   );
   const todas = {
+
 
     pesquisar_passagens: tool({
       description:
