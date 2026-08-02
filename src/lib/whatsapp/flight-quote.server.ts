@@ -354,7 +354,8 @@ export async function quoteFlights(params: QuoteFlightsParams): Promise<FlightQu
           },
           "fast",
         );
-        const lista = inbound.flights ?? [];
+        // A volta obedece aos MESMOS filtros pedidos pelo cliente.
+        const lista = (inbound.flights ?? []).filter(atendeFiltros);
         if (!lista.length) return null;
         return [...lista].sort(
           (a, b) =>
