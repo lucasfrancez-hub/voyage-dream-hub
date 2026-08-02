@@ -351,6 +351,14 @@ export async function runAgent(input: {
 
   const agent = centralAgent ?? (await pickAgent(agents, stickySlug));
 
+  // Origem de pesquisas anteriores: entra como SUGESTÃO para confirmação,
+  // nunca como origem válida da nova cotação.
+  let origemSugerida: string | null = null;
+  if (centralAgent && centralBriefHasMissingOrigin(centralBrief)) {
+    const { loadOrigemSugeridaPeloHistorico } = await import("./origin-history.server");
+    origemSugerida = await loadOrigemSugeridaPeloHistorico(conv.id);
+  }
+
 
 
   if (!agent) {
