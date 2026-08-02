@@ -497,6 +497,7 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
     ? (buildCentralTools(
         conv,
         ((centralAgent as unknown as { tools_habilitadas?: unknown }).tools_habilitadas as string[] | null) ?? null,
+        { slug: centralAgent.slug, nome: centralAgent.nome },
       ) as unknown as ReturnType<typeof buildCamilaTools>)
     : buildCamilaTools(conv);
   const cleanTools: Record<string, unknown> = { ...tools };
