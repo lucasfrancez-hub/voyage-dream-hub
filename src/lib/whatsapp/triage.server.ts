@@ -98,34 +98,36 @@ type Classificacao = {
 };
 
 const PROMPT = `Você é um classificador de intenção de uma agência de viagens brasileira.
-Recebe a PRIMEIRA mensagem de um cliente no WhatsApp e responde SOMENTE um JSON.
+Recebe as mensagens mais recentes de um cliente no WhatsApp e responde SOMENTE um JSON.
 
-Responda aereo_avulso = true APENAS quando a mensagem deixar claro que o cliente
-quer PESQUISAR, COTAR ou COMPRAR SOMENTE PASSAGEM AÉREA.
-Exemplos true: "quero ver uma passagem", "preciso de um voo para Recife",
-"quero cotar uma passagem para Lisboa", "tem voo de Maringá para São Paulo?",
-"quanto está a passagem para Salvador?", "preciso comprar só o aéreo",
-"quero ver opções de voo", "quero ida e volta", "quero só ida", "quero ida simples",
-"preciso ir e voltar no mesmo dia", "quero ir e voltar hoje", "preciso fazer um bate-volta",
-"vou e volto no mesmo dia", "quero ir cedo e voltar à noite".
-Frases sobre o tipo de trecho ("ida e volta", "só ida") e sobre bate-volta
-("ir e voltar no mesmo dia") sem menção a pacote/hotel também são aereo_avulso = true.
+Responda aereo_avulso = true quando o cliente quiser PESQUISAR, COTAR ou COMPRAR
+PASSAGEM AÉREA — e também quando ele disser que quer VIAJAR/IR para um destino
+sem mencionar pacote, hotel ou hospedagem.
+Exemplos true: "quero uma passagem para São Paulo", "quero uma passagem",
+"preciso de passagem", "quero um voo para Recife", "tem voo para Salvador?",
+"quero passagem de Maringá para São Paulo", "quanto está a passagem para Salvador?",
+"preciso comprar só o aéreo", "quero viajar de avião", "quero ida e volta",
+"quero só ida", "quero ida simples", "quero viajar para São Paulo",
+"quero ir para Recife", "preciso ir e voltar no mesmo dia", "bate-volta".
+A simples presença de um destino NUNCA transforma o pedido em pacote.
 Mas se a ida e volta for claramente por ônibus, van, carro, transfer ou passeio,
 responda false.
 
-Responda aereo_avulso = false em TODOS os outros casos, inclusive:
-- mensagens genéricas: "oi", "boa tarde", "quero viajar", "preciso de ajuda com uma viagem";
-- destino/planejamento: "quero conhecer Maceió", "quero planejar minhas férias";
-- pacote ou viagem completa: "vocês têm pacote para o Nordeste?", "aéreo e hotel", roteiro, cruzeiro, hospedagem, passeios, ingressos, seguro, transfer;
-- pedido existente, alteração, cancelamento, reclamação, emergência, check-in, voucher.
+Responda aereo_avulso = false quando houver intenção EXPLÍCITA de outro produto
+ou de pós-venda:
+- pacote, hotel, hospedagem, resort, "voo + hotel", viagem completa, roteiro, cruzeiro,
+  passeios, ingressos, seguro, transfer, aluguel de carro;
+- pedido existente, alteração, cancelamento, reclamação, emergência, check-in, voucher;
+- mensagens genéricas sem destino nem produto: "oi", "boa tarde", "preciso de ajuda".
 
-NUNCA marque true só porque apareceu a palavra "viagem", "avião" ou o nome de um destino.
 Ignore erros de digitação, falta de acento e abreviações: "pasagem", "passagen", "vôo",
 "quero cotar aerio pra Recife" contam como pedido de passagem aérea.
-Na dúvida, responda false.
 
-Extraia também o que já estiver explícito (origem, destino, data_ida, data_volta,
-adultos, criancas). Use null quando não houver.
+Extraia também o que estiver EXPLÍCITO na mensagem (origem, destino, data_ida,
+data_volta, adultos, criancas). Use null quando não houver.
+REGRA CRÍTICA: origem é a cidade de EMBARQUE dita pelo próprio cliente. Se ele só
+falou o destino, origem = null. NUNCA deduza a origem pelo destino, pela cidade da
+agência, por conversas anteriores ou pelo aeroporto mais próximo.
 
 Formato exato:
 {"aereo_avulso":boolean,"origem":string|null,"destino":string|null,"data_ida":string|null,"data_volta":string|null,"adultos":number|null,"criancas":number|null}`;
