@@ -94,12 +94,76 @@ async function escalarPorFalha(conversation: WaConversation, briefing: string) {
 }
 
 /**
+ * Categorias de encaminhamento ao Comercial (fora do escopo da Central).
+ * Usadas para registrar o MOTIVO real do handoff — nunca "falha_central".
+ */
+export type MotivoComercial =
+  | "pacote_sem_opcao"
+  | "personalizacao_pacote"
+  | "hotel"
+  | "carro"
+  | "aereo_hotel"
+  | "seguro"
+  | "cruzeiro"
+  | "transfer"
+  | "roteiro_personalizado"
+  | "intercambio"
+  | "excursao"
+  | "pos_venda"
+  | "institucional"
+  | "falha_tecnica"
+  | "outro";
+
+/**
  * Encaminha o atendimento ao time Comercial (fila humana) quando o assunto
  * não é passagem aérea avulsa. A Central NÃO devolve para as IAs consultoras.
+ * Preserva todo o contexto no protocolo ativo e registra motivo + prioridade.
+ * Enquanto nenhum humano assumir, a IA continua respondendo normalmente.
  */
-async function encaminharParaComercial(conversation: WaConversation, briefing: string) {
-  await escalarPorFalha(conversation, briefing);
+async function encaminharParaComercial(
+  conversation: WaConversation,
+  briefing: string,
+  categoria: MotivoComercial = "outro",
+  prioridade: "normal" | "high" | "urgent" = "normal",
+) {
+  const tags = Array.from(
+    new Set([
+      ...(conversation.tags ?? []),
+      "aguardando_humano",
+      "encaminhado_comercial",
+      `comercial:${categoria}`,
+    ]),
+  );
+  await supabaseAdmin
+    .from("wa_conversations")
+    .update({
+      tags,
+      assigned_to: null,
+      priority: prioridade,
+      // sai da Central: o assunto não é pesquisa aérea
+      central_slug: null,
+      central_busca: null,
+    })
+    .eq("id", conversation.id);
+
+  if (conversation.protocolo_ativo_id) {
+    await supabaseAdmin
+      .from("wa_protocolos")
+      .update({ assunto_resumo: briefing })
+      .eq("id", conversation.protocolo_ativo_id);
+  }
+
+  await recordHandoff({
+    conversation_id: conversation.id,
+    from_mode: "ai",
+    to_mode: "ai",
+    reason: `aguardando_humano:comercial:${categoria}`,
+    briefing,
+  }).catch(() => {});
+
+  console.log(`[central] encaminhado ao Comercial (${categoria}/${prioridade}) conv=${conversation.id}`);
 }
+
 
 
 
