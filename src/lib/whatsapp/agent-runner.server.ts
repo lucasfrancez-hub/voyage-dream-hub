@@ -16,6 +16,12 @@ import {
   type WaProtocolo,
 } from "./conversation.server";
 import { buildCamilaTools } from "./tools.server";
+import {
+  buildCentralPrompt,
+  buildCentralTools,
+  CENTRAL_GENDER,
+  type CentralSlug,
+} from "./central-especialistas.server";
 import { sendWhatsAppBubbles } from "./send.server";
 import { buildSenderPrefix, capitalizeBubbles, capitalizeKnownNames, fixGluedSentences, firstName as extractFirstName } from "./text-utils.server";
 import { buildSharedAgentPrompt } from "@/lib/chat/camila-prompt";
@@ -45,6 +51,7 @@ type Agent = {
   timezone: string;
   ativo: boolean;
   tools_habilitadas: string[];
+  equipe?: string | null;
   temas_proibidos: string[];
   mensagem_ausencia: string | null;
 };
@@ -81,6 +88,9 @@ async function loadAgents(): Promise<Agent[]> {
 }
 
 function pickAgent(agents: Agent[], stickySlug?: string | null): Agent | null {
+  // A Central de Especialistas (Paula/Bruno) NUNCA é sorteada no atendimento
+  // normal — ela só entra quando o consultor encaminha explicitamente.
+  agents = agents.filter((a) => (a.equipe ?? "consultor") !== "especialista");
   if (!agents.length) return null;
   const now = currentHourInSaoPaulo();
   const inWindow = agents.filter((a) =>
@@ -204,6 +214,14 @@ function buildSystemPrompt(agent: Agent, conv: WaConversation, protocolo: WaProt
     );
 
   }
+  parts.push(
+    `\n# ✈️ CENTRAL DE ESPECIALISTAS (roteamento)\n` +
+    `- Se o cliente pedir COTAÇÃO DE PASSAGEM AÉREA avulsa ("quero uma passagem", "quero um voo", "quero cotar um aéreo", "quero comprar só as passagens"), ` +
+    `chame a tool transferir_para_central com o que já souber e responda apenas: ` +
+    `"Perfeito! Vou encaminhar seu atendimento para nossa Central de Especialistas, que vai pesquisar as melhores opções para você."\n` +
+    `- Isso vale SÓ para passagem aérea avulsa. Pacote pronto, personalização de pacote, hotel, carro, seguro e cruzeiro continuam 100% com você, ` +
+    `exatamente como sempre — e, quando não houver pacote ou o cliente quiser personalizar, você segue coletando os dados e encaminhando para o Comercial.`
+  );
   parts.push(`- Data/hora atual (SP): ${new Date().toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}`);
   return parts.join("\n");
 }
@@ -223,7 +241,17 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
 
   const agents = await loadAgents();
   const stickySlug = (conv as unknown as { agent_slug?: string | null }).agent_slug ?? null;
-  const agent = pickAgent(agents, stickySlug);
+
+  // ── Central de Especialistas ────────────────────────────────────────────
+  // Se o consultor já encaminhou (central_slug preenchido), quem responde é
+  // o especialista — com a MESMA personalidade, mas com as tools de pesquisa.
+  const centralSlug = (conv as unknown as { central_slug?: string | null }).central_slug ?? null;
+  const centralBrief = (conv as unknown as { central_brief?: string | null }).central_brief ?? null;
+  const centralAgent = centralSlug
+    ? agents.find((a) => a.slug === centralSlug && (a.equipe ?? "") === "especialista") ?? null
+    : null;
+
+  const agent = centralAgent ?? pickAgent(agents, stickySlug);
 
 
 
@@ -369,7 +397,9 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
 
 
   const gateway = createLovableAiGatewayProvider(key);
-  const tools = buildCamilaTools(conv);
+  const tools = centralAgent
+    ? (buildCentralTools(conv) as unknown as ReturnType<typeof buildCamilaTools>)
+    : buildCamilaTools(conv);
   const cleanTools: Record<string, unknown> = { ...tools };
   delete cleanTools._meta;
 
@@ -405,7 +435,15 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
   const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
   try {
-    const system = buildSystemPrompt(agent, conv, protocolo, isNewProtocolo, previousContext);
+    const system = centralAgent
+      ? buildCentralPrompt(
+          centralAgent.nome,
+          CENTRAL_GENDER[centralAgent.slug as CentralSlug] ?? "f",
+          centralBrief,
+        ) +
+        "\n\n" +
+        buildSystemPrompt(agent, conv, protocolo, isNewProtocolo, previousContext)
+      : buildSystemPrompt(agent, conv, protocolo, isNewProtocolo, previousContext);
     let result: { text?: string; steps?: Array<{ toolCalls?: Array<{ toolName: string; input: unknown }> }> } | null = null;
     let lastErr: unknown = null;
     for (let i = 0; i < ATTEMPTS.length; i++) {

@@ -840,7 +840,67 @@ export function buildCamilaTools(conversation: WaConversation) {
       },
     }),
 
+    /* ── Roteamento para a Central de Especialistas (só passagens aéreas) ── */
+    transferir_para_central: tool({
+      description:
+        "Use SOMENTE quando o cliente pedir uma cotação de PASSAGEM AÉREA avulsa (ex.: 'quero uma passagem', 'quero um voo', 'quero cotar um aéreo', 'quero comprar só as passagens'). Encaminha o atendimento para a Central de Especialistas, que opera o motor de busca de passagens. NUNCA use para pacotes prontos, personalização de pacote, hotel, carro, seguro ou cruzeiro — esses continuam com você (e, se não houver pacote, com o time Comercial).",
+      inputSchema: z.object({
+        origem: z.string().nullable().describe("Cidade/aeroporto de origem, se já informado"),
+        destino: z.string().nullable().describe("Cidade/aeroporto de destino, se já informado"),
+        data_ida: z.string().nullable().describe("Data de ida como o cliente falou"),
+        data_volta: z.string().nullable().describe("Data de volta, ou null se só ida"),
+        quantidade_adultos: z.number().int().nullable(),
+        quantidade_criancas: z.number().int().nullable(),
+        observacoes: z.string().nullable().describe("Preferências já ditas: horário, companhia, bagagem, orçamento"),
+      }),
+      execute: async (input) => {
+        const linhas: string[] = ["✈️ Cotação de passagem aérea (encaminhado à Central de Especialistas)"];
+        if (input.origem) linhas.push(`📍 Origem: ${input.origem}`);
+        if (input.destino) linhas.push(`📍 Destino: ${input.destino}`);
+        if (input.data_ida) linhas.push(`📅 Ida: ${input.data_ida}`);
+        linhas.push(`🔁 Tipo: ${input.data_volta ? `ida e volta (volta ${input.data_volta})` : "a confirmar / somente ida"}`);
+        if (input.quantidade_adultos != null) linhas.push(`👥 Adultos: ${input.quantidade_adultos}`);
+        if (input.quantidade_criancas != null) linhas.push(`🧒 Crianças: ${input.quantidade_criancas}`);
+        if (input.observacoes) linhas.push(`📝 Obs: ${input.observacoes}`);
+        const brief = linhas.join("\n");
+
+        // Sorteia o especialista disponível (Paula / Bruno).
+        const { data: espec } = await supabaseAdmin
+          .from("ai_agents")
+          .select("slug")
+          .eq("equipe", "especialista")
+          .eq("ativo", true);
+        const slugs = (espec ?? []).map((a) => a.slug as string);
+        const escolhido = slugs.length ? slugs[Math.floor(Math.random() * slugs.length)] : "paula";
+
+        await supabaseAdmin
+          .from("wa_conversations")
+          .update({
+            central_slug: escolhido,
+            central_desde: new Date().toISOString(),
+            central_brief: brief,
+            central_busca: "aereo",
+          })
+          .eq("id", conversation.id);
+
+        await recordHandoff({
+          conversation_id: conversation.id,
+          from_mode: "ai",
+          to_mode: "ai",
+          reason: "central_especialistas:aereo",
+          briefing: brief,
+        }).catch(() => {});
+
+        return {
+          ok: true,
+          instrucao:
+            'Envie AGORA uma única mensagem curta, exatamente com este sentido e sem acrescentar perguntas: "Perfeito! Vou encaminhar seu atendimento para nossa Central de Especialistas, que vai pesquisar as melhores opções para você." Não peça mais nenhum dado — a Central continua daqui.',
+        };
+      },
+    }),
+
     _meta: { isIdentityVerified }, // usado só pelo runner pra decidir prompt
+
   };
 }
 
