@@ -246,17 +246,44 @@ export const QUOTE_STALE_HOURS = 6;
  */
 const RX_CHEGA_CEDO = /\bchega(r|m)?\s+(primeir[oa]|mais\s+cedo|antes|mais\s+r[áa]pido)\b/i;
 const RX_SAI_CEDO = /\b(sai|sair|saem|parte|partem|decola(m|r)?)\s+(primeir[oa]|mais\s+cedo|antes)\b/i;
-const RX_MENOR_DURACAO = /\bmenor\s+dura(ç|c)(ã|a)o\b|\bmais\s+r[áa]pid[ao]\b|\bmenos\s+tempo\s+de\s+voo\b/i;
+/**
+ * DURAÇÃO: "qual demora menos", "qual leva menos tempo", "qual é mais rápida",
+ * "qual tem menor duração", "qual viagem é mais curta", "qual voa menos".
+ * Nunca é escolha — é comparação entre as opções já enviadas.
+ */
+const RX_DURACAO_COMPARACAO =
+  /\b(menor|menos)\s+(tempo|dura(ç|c)(ã|a)o)\b|\bdura(ç|c)(ã|a)o\s+menor\b|\b(demora|leva|dura|voa)\s+menos\b|\bmenos\s+(horas?|tempo)\s+(de\s+)?(voo|viagem)?\b|\bmais\s+r[áa]pid[ao]s?\b|\bmais\s+curt[ao]s?\b|\bviagem\s+mais\s+curta\b|\bchega\s+em\s+menos\s+tempo\b/i;
 
 export type ComparisonIntent = "chegada_mais_cedo" | "saida_mais_cedo" | "menor_duracao";
+/** Tipo publicado no contexto do agente (`comparison_type`). */
+export type ComparisonType = "arrival" | "departure" | "duration";
+
+const COMPARISON_TYPE: Record<ComparisonIntent, ComparisonType> = {
+  chegada_mais_cedo: "arrival",
+  saida_mais_cedo: "departure",
+  menor_duracao: "duration",
+};
+
+/** Comparação por DURAÇÃO ("qual demora menos"). Nunca é escolha. */
+export function detectDurationComparisonIntent(
+  texto: string,
+): { comparison_type: "duration" } | null {
+  return RX_DURACAO_COMPARACAO.test(String(texto ?? "")) ? { comparison_type: "duration" } : null;
+}
 
 /** Detecta intenção de COMPARAÇÃO (tem prioridade sobre a leitura ordinal). */
 export function detectComparisonIntent(texto: string): ComparisonIntent | null {
   const t = String(texto ?? "");
   if (RX_CHEGA_CEDO.test(t)) return "chegada_mais_cedo";
   if (RX_SAI_CEDO.test(t)) return "saida_mais_cedo";
-  if (RX_MENOR_DURACAO.test(t)) return "menor_duracao";
+  if (detectDurationComparisonIntent(t)) return "menor_duracao";
   return null;
+}
+
+/** `comparison_type` normalizado da mensagem ("arrival" | "departure" | "duration"). */
+export function detectComparisonType(texto: string): ComparisonType | null {
+  const intent = detectComparisonIntent(texto);
+  return intent ? COMPARISON_TYPE[intent] : null;
 }
 
 const minutosHora = (hhmm: string): number => {
