@@ -125,11 +125,13 @@ export function WhatsAppBubble({ side, content, timestamp, senderLabel, status, 
                 </a>
               )}
               {text && (
-                <div className={cn("whitespace-pre-wrap break-words text-sm leading-relaxed", deleted && "opacity-60")}>{text}</div>
+                <div className="whitespace-pre-wrap break-words text-sm leading-relaxed">{text}</div>
               )}
               {deleted && (
-                <div className="mt-1 text-[11px] font-medium italic text-red-500">
-                  🚫 mensagem apagada
+                <div className="mt-1 text-[11px] font-medium text-red-500">
+                  {revokedBy === "business"
+                    ? "Mensagem apagada pela empresa"
+                    : "Mensagem apagada pelo cliente"}
                 </div>
               )}
             </>
