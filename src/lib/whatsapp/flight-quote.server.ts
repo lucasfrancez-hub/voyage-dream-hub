@@ -11,6 +11,7 @@ import {
 } from "@/lib/onertravel.server";
 import type { OnerFlight, OnerPlace } from "@/lib/onertravel.types";
 import { flightHasBaggage } from "@/lib/onertravel.types";
+import { combinacaoIdaVoltaValida } from "./flight-search-validation";
 
 export type PeriodoDia = "manha" | "tarde" | "noite" | "livre";
 
@@ -178,7 +179,9 @@ export type QuoteFlightsParams = {
   max_opcoes?: number | null;
 };
 
-export async function quoteFlights(params: QuoteFlightsParams): Promise<FlightQuoteResult | { error: string }> {
+export type FlightQuoteError = { error: string; sem_combinacao?: boolean };
+
+export async function quoteFlights(params: QuoteFlightsParams): Promise<FlightQuoteResult | FlightQuoteError> {
   const adultos = Math.max(1, params.adultos ?? 1);
   const criancas = Math.max(0, params.criancas ?? 0);
   const bebes = Math.max(0, params.bebes ?? 0);
