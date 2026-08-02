@@ -258,14 +258,17 @@ export async function triageFirstMessage(conv: WaConversation): Promise<TriageRe
   if (!c.aereo_avulso) return null;
 
 
-  const linhas = ["✈️ Cotação de passagem aérea (cliente já abriu a conversa pedindo aéreo)"];
-  if (c.origem) linhas.push(`📍 Origem: ${c.origem}`);
+  const linhas = ["✈️ Cotação de passagem aérea (pedido de aéreo identificado na triagem)"];
+  // ORIGEM: só entra no briefing quando o CLIENTE disse a cidade de embarque.
+  // Nunca preenchemos com cadastro, cidade da empresa ou hub mais próximo.
+  if (c.origem) linhas.push(`📍 Origem (informada pelo cliente): ${c.origem}`);
+  else linhas.push("📍 Origem: NÃO informada — pergunte de qual cidade ele vai embarcar (nunca presuma)");
   if (c.destino) linhas.push(`📍 Destino: ${c.destino}`);
   if (c.data_ida) linhas.push(`📅 Ida: ${c.data_ida}`);
   if (c.data_volta) linhas.push(`🔁 Volta: ${c.data_volta}`);
   if (c.adultos != null) linhas.push(`👥 Adultos: ${c.adultos}`);
   if (c.criancas != null) linhas.push(`🧒 Crianças: ${c.criancas}`);
-  linhas.push(`💬 Primeira mensagem: "${texto.slice(0, 300)}"`);
+  linhas.push(`💬 Mensagem do cliente: "${texto.slice(0, 300)}"`);
   const brief = linhas.join("\n");
 
   const slug = await pickEspecialista();
