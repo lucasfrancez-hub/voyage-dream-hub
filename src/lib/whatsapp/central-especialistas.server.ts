@@ -343,7 +343,17 @@ export function buildCentralTools(conversation: WaConversation, habilitadas?: st
               .eq("id", quote_id)
               .then(() => {}, () => {});
           }
-          console.warn(`[central] card_failed=true (quote ${quote_id}) — usando fallback em texto`);
+          {
+            const { logCardEvent } = await import("./card-log.server");
+            logCardEvent({
+              event: "card_failed",
+              conversation_id: conv?.id ?? null,
+              quote_id: quote_id ?? null,
+              stage: "send",
+              reason: "cards_enviados=0 — fallback em texto",
+              fallback_sent: true,
+            });
+          }
           return {
             ok: true,
             quote_id,
