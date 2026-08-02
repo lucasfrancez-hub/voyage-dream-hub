@@ -157,21 +157,41 @@ async function encaminharParaComercial(conversation: WaConversation, briefing: s
 /* ─────────────────────────────────────────────────────────────
    Tools da Central
    ───────────────────────────────────────────────────────────── */
-export function buildCentralTools(conversation: WaConversation) {
-  return {
+/** Ferramentas que a Central pode expor (espelhado em ai_agents.tools_habilitadas). */
+export const CENTRAL_TOOL_SLUGS = ["pesquisar_passagens", "encaminhar_para_comercial"] as const;
+
+/**
+ * Monta as tools da Central. Quando o agente tem `tools_habilitadas`
+ * preenchido no cadastro (/chat/agentes), só entram as tools listadas lá —
+ * assim a configuração do banco é a fonte de verdade. Lista vazia = todas.
+ */
+export function buildCentralTools(conversation: WaConversation, habilitadas?: string[] | null) {
+  const permitidas = (habilitadas ?? []).filter((t) =>
+    (CENTRAL_TOOL_SLUGS as readonly string[]).includes(t),
+  );
+  const todas = {
+
     pesquisar_passagens: tool({
       description:
-        "Pesquisa passagens aéreas no motor de busca oficial (Comprar Viagem) e ENVIA automaticamente as ARTES (cards) das duas melhores opções ao cliente. Use somente quando tiver origem, destino, data de ida, se é só ida ou ida e volta, e quantidade de passageiros. Se o cliente pedir outro horário depois, chame de novo com a preferência de horário.",
+        "Pesquisa passagens aéreas no motor de busca oficial (Comprar Viagem) e ENVIA automaticamente as ARTES (cards) das duas melhores opções ao cliente. Use SOMENTE quando o próprio cliente já tiver informado origem, destino, data de ida, se é só ida ou ida e volta, e quantidade de passageiros. NUNCA chame com data, trecho ou quantidade de passageiros presumidos por você. Se o cliente pedir outro horário depois, chame de novo com a preferência de horário.",
       inputSchema: z.object({
         origem: z.string().min(2).describe("Cidade ou IATA de origem, ex.: 'Maringá' ou 'MGF'"),
         destino: z.string().min(2).describe("Cidade ou IATA de destino, ex.: 'Recife' ou 'REC'"),
-        data_ida: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).describe("Data de ida AAAA-MM-DD"),
+        data_ida: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).describe("Data de ida AAAA-MM-DD, exatamente como o cliente informou (nunca estimada)"),
         data_volta: z
           .string()
           .regex(/^\d{4}-\d{2}-\d{2}$/)
           .nullable()
           .describe("Data de volta AAAA-MM-DD, ou null se for somente ida"),
+        data_informada_pelo_cliente: z
+          .boolean()
+          .describe(
+            "true SOMENTE se o cliente informou a data de ida (mesmo em linguagem natural, ex.: 'dia 15 de setembro'). Se você estiver assumindo/estimando a data, mande false — a pesquisa não será feita.",
+          ),
         adultos: z.number().int().min(1).max(9),
+        pax_informado_pelo_cliente: z
+          .boolean()
+          .describe("true somente se o cliente informou quantos passageiros vão viajar"),
         criancas: z.number().int().min(0).max(9).nullable().describe("Crianças de 2 a 11 anos"),
         bebes: z.number().int().min(0).max(9).nullable().describe("Bebês de colo (menos de 2 anos)"),
         preferencia_horario: z
@@ -183,17 +203,42 @@ export function buildCentralTools(conversation: WaConversation) {
           .nullable()
           .describe("Só true se o cliente pediu bagagem despachada"),
       }),
+
       execute: async ({
         origem,
         destino,
         data_ida,
         data_volta,
+        data_informada_pelo_cliente,
         adultos,
+        pax_informado_pelo_cliente,
         criancas,
         bebes,
         preferencia_horario,
         somente_com_bagagem,
       }) => {
+        // TRAVA: nunca pesquisar com data ou pax presumidos.
+        if (!data_informada_pelo_cliente) {
+          console.warn("[central] pesquisa bloqueada: data não informada pelo cliente");
+          return {
+            ok: false,
+            faltam_dados: true,
+            campos_faltando: ["data_ida"],
+            instrucao:
+              "NÃO pesquise. O cliente ainda não informou a data da viagem. Pergunte de forma curta e natural qual é a data da ida (e se é só ida ou ida e volta). Nunca sugira nem assuma uma data.",
+          };
+        }
+        if (!pax_informado_pelo_cliente) {
+          console.warn("[central] pesquisa bloqueada: quantidade de passageiros não informada");
+          return {
+            ok: false,
+            faltam_dados: true,
+            campos_faltando: ["adultos"],
+            instrucao:
+              "NÃO pesquise. Pergunte de forma curta e natural quantas pessoas vão viajar. Nunca assuma a quantidade de passageiros.",
+          };
+        }
+
         const briefing =
           `✈️ Pesquisa de passagem aérea (Central de Especialistas)\n` +
           `📍 ${origem} → ${destino}\n` +
@@ -201,6 +246,7 @@ export function buildCentralTools(conversation: WaConversation) {
           `👥 ${adultos} adulto(s)${criancas ? ` + ${criancas} criança(s)` : ""}${bebes ? ` + ${bebes} bebê(s)` : ""}` +
           (preferencia_horario ? `\n🕘 Preferência de horário: ${preferencia_horario}` : "") +
           (somente_com_bagagem ? `\n🧳 Cliente pediu bagagem despachada` : "");
+
 
         try {
           const { quoteFlights } = await import("./flight-quote.server");
@@ -268,6 +314,19 @@ export function buildCentralTools(conversation: WaConversation) {
           // CONTINGÊNCIA: as artes falharam — manda o modelo em texto do briefing.
           const duas = result.opcoes.slice(0, 2);
           if (!duas.length) throw new Error("sem opções");
+          // Métrica: registra a falha do card para medir a frequência do fallback.
+          if (quote_id) {
+            await supabaseAdmin
+              .from("wa_flight_quotes")
+              .update({
+                card_failed: true,
+                card_failed_at: new Date().toISOString(),
+                card_failed_reason: "cards_enviados=0 — fallback em texto",
+              })
+              .eq("id", quote_id)
+              .then(() => {}, () => {});
+          }
+          console.warn(`[central] card_failed=true (quote ${quote_id}) — usando fallback em texto`);
           return {
             ok: true,
             quote_id,
@@ -275,8 +334,9 @@ export function buildCentralTools(conversation: WaConversation) {
             contingencia_texto: true,
             texto_pronto: formatOptionsText(result, duas),
             instrucao:
-              "Envie ao cliente EXATAMENTE o conteúdo de texto_pronto (pode escrever uma frase curta e natural antes). Não altere valores, horários, companhias nem o formato do bloco.",
+              "Envie ao cliente EXATAMENTE o conteúdo de texto_pronto (pode escrever uma frase curta e natural antes). Não altere valores, horários, companhias nem o formato do bloco. NUNCA diga que houve qualquer problema no envio.",
           };
+
         } catch (e) {
           console.error("[central] falha na pesquisa de passagens:", e);
           await escalarPorFalha(
@@ -312,7 +372,16 @@ export function buildCentralTools(conversation: WaConversation) {
       },
     }),
   };
+
+  if (!permitidas.length) return todas;
+  const filtradas = { ...todas } as Record<string, unknown>;
+  for (const nome of Object.keys(todas)) {
+    if (!permitidas.includes(nome)) delete filtradas[nome];
+  }
+  return filtradas as typeof todas;
+
 }
+
 
 /* ─────────────────────────────────────────────────────────────
    Prompt da Central — mesma personalidade + regras de pesquisa
@@ -365,12 +434,15 @@ export function buildCentralBasePrompt(nome: string, genero: "f" | "m"): string 
     `- somente ida ou ida e volta (e a data da volta, se for o caso)`,
     `- quantidade de passageiros`,
     `Datas em linguagem natural ("dia 15 de setembro", "mês que vem") você converte para AAAA-MM-DD antes de pesquisar.`,
+    `🚫 NUNCA invente, assuma, estime ou "chute" data de viagem, trecho ou quantidade de passageiros. Se o cliente não disse a data, PERGUNTE — nada de pesquisar com data padrão, "próximo mês" ou data de exemplo.`,
+    `Se o cliente só disse origem e destino (ex.: "quero uma passagem de Maringá para Recife"), responda algo como "perfeito! qual seria a data da ida?" e só pesquise depois que ele responder.`,
     `Crianças: só pergunte se houver MAIS DE UM passageiro — "entre os passageiros tem alguma criança? se sim, qual a idade?".`,
     `Bagagem: NÃO pergunte automaticamente; só entra no assunto se o cliente mencionar.`,
     `Horário: NÃO pergunte automaticamente; só considere se o cliente falar espontaneamente.`,
 
     `\n# 🔎 PESQUISA E APRESENTAÇÃO`,
-    `Assim que tiver todas as informações mínimas obrigatórias, inicie a pesquisa IMEDIATAMENTE. Não faça perguntas desnecessárias antes de chamar pesquisar_passagens.`,
+    `Assim que o CLIENTE tiver informado todas as informações mínimas obrigatórias, inicie a pesquisa IMEDIATAMENTE. Não faça perguntas desnecessárias antes de chamar pesquisar_passagens — mas também nunca antecipe a pesquisa com dado que ele não informou.`,
+    `A tool tem trava: se você marcar data ou passageiros como não informados pelo cliente, ela não pesquisa e devolve o que falta perguntar.`,
     `Sem preferência de horário, a tool já prioriza custo-benefício, menor tempo de viagem, menos conexões e horários melhores.`,
     `O formato principal são as ARTES (cards) — a tool envia sozinha. Quando ela devolver cards_enviados > 0, escreva SÓ um balão curto avisando que está mandando as opções; NÃO repita voos, horários ou valores em texto.`,
     `SEMPRE DUAS opções por vez, em pares.`,

@@ -427,7 +427,10 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
 
   const gateway = createLovableAiGatewayProvider(key);
   const tools = centralAgent
-    ? (buildCentralTools(conv) as unknown as ReturnType<typeof buildCamilaTools>)
+    ? (buildCentralTools(
+        conv,
+        ((centralAgent as unknown as { tools_habilitadas?: unknown }).tools_habilitadas as string[] | null) ?? null,
+      ) as unknown as ReturnType<typeof buildCamilaTools>)
     : buildCamilaTools(conv);
   const cleanTools: Record<string, unknown> = { ...tools };
   delete cleanTools._meta;

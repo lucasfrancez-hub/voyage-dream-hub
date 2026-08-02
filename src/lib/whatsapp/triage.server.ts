@@ -99,7 +99,63 @@ async function classificar(texto: string): Promise<Classificacao> {
   }
 }
 
+/* ── escolha determinística do especialista ───────────────────────────── */
+
+/**
+ * Escolhe o especialista de forma DETERMINÍSTICA (sem sorteio):
+ * 1) menor carga — quem tem menos conversas ativas nas últimas 24h;
+ * 2) empate → quem está há mais tempo sem receber atendimento (round-robin);
+ * 3) empate → ordem alfabética do slug.
+ * Assim o rodízio fica previsível e auditável.
+ */
+export async function pickEspecialista(): Promise<string> {
+  const { data: espec } = await supabaseAdmin
+    .from("ai_agents")
+    .select("slug")
+    .eq("equipe", "especialista")
+    .eq("ativo", true)
+    .order("slug");
+  const slugs = (espec ?? []).map((a) => a.slug as string);
+  if (!slugs.length) return "paula";
+  if (slugs.length === 1) return slugs[0]!;
+
+  const desde24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const { data: recentes } = await supabaseAdmin
+    .from("wa_conversations")
+    .select("central_slug, central_desde")
+    .in("central_slug", slugs)
+    .gte("central_desde", desde24h);
+
+  const carga = new Map<string, number>(slugs.map((s) => [s, 0]));
+  const ultimo = new Map<string, number>(slugs.map((s) => [s, 0]));
+  for (const r of recentes ?? []) {
+    const s = r.central_slug as string | null;
+    if (!s || !carga.has(s)) continue;
+    carga.set(s, (carga.get(s) ?? 0) + 1);
+    const t = r.central_desde ? new Date(r.central_desde as string).getTime() : 0;
+    if (t > (ultimo.get(s) ?? 0)) ultimo.set(s, t);
+  }
+
+  const ordenados = [...slugs].sort((a, b) => {
+    const ca = carga.get(a) ?? 0;
+    const cb = carga.get(b) ?? 0;
+    if (ca !== cb) return ca - cb; // menor carga primeiro
+    const ua = ultimo.get(a) ?? 0;
+    const ub = ultimo.get(b) ?? 0;
+    if (ua !== ub) return ua - ub; // há mais tempo sem atender primeiro
+    return a.localeCompare(b);
+  });
+  const escolhido = ordenados[0]!;
+  console.log(
+    `[triagem] especialista escolhido: ${escolhido} (carga 24h: ${slugs
+      .map((s) => `${s}=${carga.get(s) ?? 0}`)
+      .join(", ")})`,
+  );
+  return escolhido;
+}
+
 /* ── entrada pública ──────────────────────────────────────────────────── */
+
 
 /**
  * Analisa a primeira mensagem da conversa. Se for pedido claro de passagem
@@ -151,13 +207,8 @@ export async function triageFirstMessage(conv: WaConversation): Promise<TriageRe
   linhas.push(`💬 Primeira mensagem: "${texto.slice(0, 300)}"`);
   const brief = linhas.join("\n");
 
-  const { data: espec } = await supabaseAdmin
-    .from("ai_agents")
-    .select("slug")
-    .eq("equipe", "especialista")
-    .eq("ativo", true);
-  const slugs = (espec ?? []).map((a) => a.slug as string);
-  const slug = slugs.length ? slugs[Math.floor(Math.random() * slugs.length)]! : "paula";
+  const slug = await pickEspecialista();
+
 
   await supabaseAdmin
     .from("wa_conversations")

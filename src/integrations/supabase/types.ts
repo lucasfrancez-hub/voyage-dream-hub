@@ -3882,6 +3882,9 @@ export type Database = {
       }
       wa_flight_quotes: {
         Row: {
+          card_failed: boolean
+          card_failed_at: string | null
+          card_failed_reason: string | null
           cards_sent_at: string | null
           conversation_id: string | null
           created_at: string
@@ -3891,6 +3894,9 @@ export type Database = {
           sent_fingerprints: Json
         }
         Insert: {
+          card_failed?: boolean
+          card_failed_at?: string | null
+          card_failed_reason?: string | null
           cards_sent_at?: string | null
           conversation_id?: string | null
           created_at?: string
@@ -3900,6 +3906,9 @@ export type Database = {
           sent_fingerprints?: Json
         }
         Update: {
+          card_failed?: boolean
+          card_failed_at?: string | null
+          card_failed_reason?: string | null
           cards_sent_at?: string | null
           conversation_id?: string | null
           created_at?: string
