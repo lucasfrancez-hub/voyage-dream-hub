@@ -205,7 +205,13 @@ export function buildCentralTools(
         origem_informada_pelo_cliente: z
           .boolean()
           .describe(
-            "true SOMENTE se o próprio cliente disse a cidade de embarque nesta conversa. Se você estiver usando cadastro, cidade da empresa, conversa antiga, aeroporto mais próximo ou qualquer padrão, mande false — a pesquisa será bloqueada.",
+            "true SOMENTE se o próprio cliente disse (ou confirmou nesta conversa, depois da pergunta) a cidade de embarque desta cotação. Origem só recuperada do histórico, sem confirmação dele agora, é false — a pesquisa será bloqueada.",
+          ),
+        origem_sugerida_pelo_historico: z
+          .string()
+          .nullable()
+          .describe(
+            "Cidade de embarque usada em pesquisa anterior desta conversa, quando existir. É só sugestão para confirmar com o cliente — nunca libera a pesquisa sozinha.",
           ),
         destino: z.string().min(2).describe("Cidade ou IATA de destino, ex.: 'Recife' ou 'REC'"),
         tipo_trecho: z
