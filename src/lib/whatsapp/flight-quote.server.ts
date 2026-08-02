@@ -424,6 +424,7 @@ export async function quoteFlights(params: QuoteFlightsParams): Promise<FlightQu
         ? "Existem voos, mas nenhuma combinação de ida e volta é possível nesses horários"
         : "Não consegui montar combinações de ida e volta para essas datas",
       sem_combinacao: descartadasPorCombinacao > 0,
+      filtros,
     };
   }
 
@@ -441,6 +442,7 @@ export async function quoteFlights(params: QuoteFlightsParams): Promise<FlightQu
     search_key: search.searchKey ?? null,
     passageiros: { adultos, criancas, bebes },
     opcoes,
+    filtros,
     observacao:
       "Valores da operadora em tempo real, sujeitos a alteração e disponibilidade até a emissão. Total já inclui taxas para todos os passageiros.",
   };
