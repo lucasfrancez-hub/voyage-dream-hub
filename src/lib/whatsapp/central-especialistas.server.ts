@@ -303,7 +303,7 @@ export function buildCentralTools(conversation: WaConversation) {
           .describe("Resumo do que já foi coletado: origem, destino, datas, pax, preferências"),
       }),
       execute: async ({ motivo, resumo }) => {
-        await escalarPorFalha(conversation, `✈️ Central de Especialistas → Comercial\n${motivo}\n\n${resumo}`);
+        await encaminharParaComercial(conversation, `✈️ Central de Especialistas → Comercial\n${motivo}\n\n${resumo}`);
         return {
           ok: true,
           instrucao:
