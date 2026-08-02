@@ -50,6 +50,17 @@ export type FlightQuoteOption = {
   cart: FlightQuoteCart;
 };
 
+/** Filtros que o cliente pediu e que foram efetivamente aplicados na busca. */
+export type FlightQuoteFilters = {
+  somente_voo_direto: boolean;
+  maximo_conexoes: number;
+  companhias_incluidas: string[]; // IATA
+  companhias_excluidas: string[]; // IATA
+  bagagem_despachada: boolean;
+  periodo_ida: PeriodoDia;
+  periodo_volta: PeriodoDia | null;
+};
+
 export type FlightQuoteResult = {
   origem_iata: string;
   destino_iata: string;
@@ -60,8 +71,10 @@ export type FlightQuoteResult = {
   search_key: string | null;
   passageiros: { adultos: number; criancas: number; bebes: number };
   opcoes: FlightQuoteOption[];
+  filtros: FlightQuoteFilters;
   observacao: string;
 };
+
 
 const PERIODOS: Record<Exclude<PeriodoDia, "livre">, [number, number]> = {
   manha: [300, 720], // 05:00 - 12:00
