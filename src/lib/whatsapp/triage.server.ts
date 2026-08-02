@@ -27,19 +27,37 @@ export type TriageResult = { slug: string; brief: string } | null;
 
 /* ── heurísticas de segurança (usadas antes e depois do modelo) ───────── */
 
-// Sinais de que é PASSAGEM AÉREA avulsa.
+/**
+ * Normaliza a mensagem antes de qualquer regex: tira acento, baixa a caixa,
+ * colapsa letras repetidas ("passaaagem" → "passagem") e junta espaços.
+ * Assim erros comuns de digitação no WhatsApp não derrubam a triagem.
+ */
+export function normalizarTexto(s: string): string {
+  return (s ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/(.)\1{2,}/g, "$1")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+// Sinais de que é PASSAGEM AÉREA avulsa. Tolerante a erros de digitação:
+// "pasagem", "passagen", "vôo", "aerio", "bilhete aereo", "so o aereo".
 const RX_AEREO =
-  /\b(passagem|passagens|voo|voos|a[ée]reo|a[ée]rea|bilhete a[ée]reo|trecho a[ée]reo)\b/i;
+  /(pas+ag[ea][nm]s?|pasage[nm]s?|\bvo+s?\b|\bvoo?s\b|a[eé]r[ei]?[oa]s?|bilhete\s*a[eé]re[oa]|trecho\s*a[eé]re[oa]|passagem\s*de\s*avi[aã]o|so\s*(o\s*)?a[eé]reo)/i;
 
 // Sinais de que NÃO é aéreo avulso (pacote / viagem completa / pós-venda).
 const RX_BLOQUEIO =
-  /\b(pacote|pacotes|hotel|hot[ée]is|hospedagem|resort|cruzeiro|navio|roteiro|f[ée]rias|lua de mel|excurs[aã]o|all inclusive|a[ée]reo\s*\+\s*hotel|passeio|ingresso|disney|universal|seguro viagem|transfer|meu pedido|minha reserva|localizador|check-?in|voucher|remarca|reembolso|cancel|reclama|problema com|atraso do voo|bagagem extraviada)\b/i;
+  /\b(pacote|pacotes|hotel|hoteis|hospedagem|resort|cruzeiro|navio|roteiro|ferias|lua de mel|excursao|all inclusive|aereo\s*\+\s*hotel|aereo e hotel|passeio|ingresso|disney|universal|seguro viagem|transfer|meu pedido|minha reserva|localizador|check-?in|voucher|remarca|reembolso|cancel|reclama|problema com|atraso do voo|bagagem extraviada)\b/i;
 
-function heuristicaAereo(texto: string): boolean {
+function heuristicaAereo(textoBruto: string): boolean {
+  const texto = normalizarTexto(textoBruto);
   if (!RX_AEREO.test(texto)) return false;
   if (RX_BLOQUEIO.test(texto)) return false;
   return true;
 }
+
 
 /* ── classificação por IA ─────────────────────────────────────────────── */
 
