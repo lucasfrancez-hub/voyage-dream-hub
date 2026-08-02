@@ -26,6 +26,12 @@ export type FlightSearchDraft = {
   /** Confirmações explícitas de que o dado veio do cliente (nunca presumido). */
   data_informada_pelo_cliente?: boolean;
   pax_informado_pelo_cliente?: boolean;
+  /**
+   * true SOMENTE quando a cidade de embarque foi dita pelo próprio cliente
+   * (ou já registrada nesta conversa por ele). Cadastro, cidade da empresa,
+   * conversa antiga, hub mais próximo ou qualquer padrão = false.
+   */
+  origem_informada_pelo_cliente?: boolean;
 };
 
 export type ValidationFailure = {
