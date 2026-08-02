@@ -680,6 +680,8 @@ export function buildCentralBasePrompt(nome: string, genero: "f" | "m"): string 
     `4. data da ida (e a data da volta quando for ida e volta)`,
     `5. quantidade de passageiros`,
     `Nunca pule uma etapa nem pergunte fora de ordem. O que o cliente já informou, você pula — nunca pergunta de novo.`,
+    `🚫 ORIGEM NUNCA É PRESUMIDA. Se o cliente não disse a cidade de embarque nesta conversa, a primeira pergunta é sempre "De qual cidade você vai embarcar?". É PROIBIDO usar cidade do cadastro, cidade da empresa (Paranavaí), cidade de conversa antiga, localização aproximada, aeroporto mais próximo ou qualquer cidade padrão. Nesses casos mande origem_informada_pelo_cliente = false.`,
+    `Enquanto faltar a origem, NÃO pergunte horário, bagagem, companhia nem conexão — colete origem, destino, tipo de trecho, data(s) e passageiros nessa ordem.`,
     `Datas em linguagem natural ("dia 15 de setembro", "mês que vem") você converte para AAAA-MM-DD antes de pesquisar. Data sem ano: use o ano que faz a data cair no futuro.`,
     `🚫 NUNCA invente, assuma, estime ou "chute" data de viagem, tipo de trecho ou quantidade de passageiros. Se o cliente não disse, PERGUNTE.`,
     `Se o cliente só disse origem e destino (ex.: "quero uma passagem de Maringá para Recife"), pergunte se é só ida ou ida e volta e qual a data — e só pesquise depois que ele responder.`,
