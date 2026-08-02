@@ -96,9 +96,18 @@ export function validateFlightSearch(
 ): ValidationFailure | ValidationSuccess {
   const hoje = hojeSaoPaulo(now);
 
-  // 1. origem
+  // 1. origem — nunca presumida (cadastro, empresa, hub próximo, conversa antiga)
+  if (d.origem_informada_pelo_cliente === false) {
+    return falta(
+      ["origem"],
+      "NÃO pesquise. A cidade de embarque NÃO foi informada pelo cliente. Pergunte: \"De qual cidade você vai embarcar?\". Nunca use o cadastro, a cidade da empresa, o aeroporto mais próximo nem qualquer cidade padrão.",
+    );
+  }
   if (!d.origem || d.origem.trim().length < 2) {
-    return falta(["origem"], "NÃO pesquise. Pergunte de qual cidade o cliente quer sair.");
+    return falta(
+      ["origem"],
+      "NÃO pesquise. Pergunte de qual cidade o cliente vai embarcar. Nunca presuma a cidade.",
+    );
   }
   // 2. destino
   if (!d.destino || d.destino.trim().length < 2) {
