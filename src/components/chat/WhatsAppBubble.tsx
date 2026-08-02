@@ -35,6 +35,8 @@ interface Props {
   senderLabel?: string; // qualquer nome (completo ou não) — o balão extrai o primeiro
   status?: "sent" | "delivered" | "read" | "failed";
   deleted?: boolean;
+  /** Quem apagou a mensagem no WhatsApp */
+  revokedBy?: "customer" | "business" | null;
   /** Marca visual "respondida" — aparece uma setinha ↩ ao lado do horário */
   replied?: boolean;
   /** Prévia da mensagem citada (reply/quote) */
@@ -49,7 +51,7 @@ function formatTime(iso: string) {
   return d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
 }
 
-export function WhatsAppBubble({ side, content, timestamp, senderLabel, status, deleted, replied, reply, onReply }: Props) {
+export function WhatsAppBubble({ side, content, timestamp, senderLabel, status, deleted, revokedBy, replied, reply, onReply }: Props) {
   const isOut = side === "out";
   const label = firstName(senderLabel);
   const replySender = firstName(reply?.sender ?? null);
