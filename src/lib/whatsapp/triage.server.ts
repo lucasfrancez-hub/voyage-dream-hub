@@ -45,7 +45,7 @@ export function normalizarTexto(s: string): string {
 // Sinais de que é PASSAGEM AÉREA avulsa. Tolerante a erros de digitação:
 // "pasagem", "passagen", "vôo", "aerio", "bilhete aereo", "so o aereo".
 const RX_AEREO =
-  /(pas+ag[ea][nm]s?|pasage[nm]s?|\bvo+s?\b|\bvoo?s\b|a[eé]r[ei]?[oa]s?|bilhete\s*a[eé]re[oa]|trecho\s*a[eé]re[oa]|passagem\s*de\s*avi[aã]o|so\s*(o\s*)?a[eé]reo)/i;
+  /(pas+ag[ea][nm]s?|pasage[nm]s?|\bvo+s?\b|\bvoo?s\b|a[eé]r[ei]?[oa]s?|bilhete\s*a[eé]re[oa]|trecho\s*a[eé]re[oa]|passagem\s*de\s*avi[aã]o|(viajar|ir|voar)\s*(de|no)\s*avi[aã]o|so\s*(o\s*)?a[eé]reo)/i;
 
 // Sinais de que NÃO é aéreo avulso (pacote / viagem completa / pós-venda).
 const RX_BLOQUEIO =
@@ -62,6 +62,12 @@ const RX_TRECHO = /\b(ida\s*e\s*volta|(so|somente|apenas)\s*(a\s*)?ida|ida\s*sim
 const RX_BATE_VOLTA =
   /(bate\s*-?\s*volta|\b(ir|vou|viajar|preciso ir|quero ir)\b[^.!?]{0,40}\bvolt(ar|o|a)\b[^.!?]{0,30}\b(no mesmo dia|mesmo dia|hoje|a noite|de noite|mais tarde|cedo)\b|\bir e voltar\b|\bvou e volto\b)/i;
 
+// "Quero viajar para São Paulo", "preciso ir para Recife": destino sem menção a
+// pacote/hotel. Pela regra de escopo, começa como intenção AÉREA — só vira
+// pacote quando o cliente falar de pacote, hotel ou hospedagem.
+const RX_VIAGEM_DESTINO =
+  /\b(quero|queria|gostaria de|preciso|pretendo|vou)\s+(viajar|ir)\s+(pra|para|pro|ate)\s+\S/i;
+
 // Deslocamento terrestre / passeio: "ida e volta" aqui NÃO é passagem aérea.
 const RX_TERRESTRE =
   /\b(onibus|van|carro|traslado|transfer|translado|passeio|city tour|excursao de um dia|barco|trem)\b/i;
@@ -69,9 +75,11 @@ const RX_TERRESTRE =
 export function heuristicaAereo(textoBruto: string): boolean {
   const texto = normalizarTexto(textoBruto);
   const pedeTrecho = RX_TRECHO.test(texto) || RX_BATE_VOLTA.test(texto);
-  if (!RX_AEREO.test(texto) && !pedeTrecho) return false;
+  const viagemDestino = RX_VIAGEM_DESTINO.test(texto);
+  if (!RX_AEREO.test(texto) && !pedeTrecho && !viagemDestino) return false;
+  // pacote / hotel / pós-venda tem prioridade sobre qualquer sinal de aéreo
   if (RX_BLOQUEIO.test(texto)) return false;
-  // "ida e volta" de ônibus/van/passeio não é aéreo — só segue se falou de voo.
+  // "ida e volta" / "quero ir para" de ônibus, van ou passeio não é aéreo.
   if (!RX_AEREO.test(texto) && RX_TERRESTRE.test(texto)) return false;
   return true;
 }
