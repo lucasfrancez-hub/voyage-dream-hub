@@ -191,7 +191,18 @@ export function buildCamilaTools(conversation: WaConversation) {
         limit: z.number().nullable().describe("Máximo de resultados, padrão 5"),
       }),
       execute: async ({ destino, origem, limit }) => {
+        // Sem destino a busca devolveria pacotes aleatórios: bloqueia e manda perguntar.
+        if (!destino || destino.trim().length < 2) {
+          return {
+            encontrados: 0,
+            faltam_dados: true,
+            campos_faltando: ["destino"],
+            instrucao:
+              "NÃO liste pacotes. O cliente ainda não disse o destino. Pergunte, em um balão curto, para onde ele quer viajar (ou se quer sugestões de destino). Nunca mande pacote aleatório.",
+          };
+        }
         const cap = limit ?? 5;
+
         let base = supabaseAdmin
           .from("packages")
           .select("slug, title, destination, origin, going_date, return_date, nights, price_per_person, hotel_name, hotel_stars, base_occupancy, image_url, meal_plan, includes, services, outbound_flight, return_flight")
