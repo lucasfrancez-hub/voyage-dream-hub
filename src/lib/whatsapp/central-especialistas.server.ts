@@ -205,7 +205,13 @@ export function buildCentralTools(
         origem_informada_pelo_cliente: z
           .boolean()
           .describe(
-            "true SOMENTE se o próprio cliente disse a cidade de embarque nesta conversa. Se você estiver usando cadastro, cidade da empresa, conversa antiga, aeroporto mais próximo ou qualquer padrão, mande false — a pesquisa será bloqueada.",
+            "true SOMENTE se o próprio cliente disse (ou confirmou nesta conversa, depois da pergunta) a cidade de embarque desta cotação. Origem só recuperada do histórico, sem confirmação dele agora, é false — a pesquisa será bloqueada.",
+          ),
+        origem_sugerida_pelo_historico: z
+          .string()
+          .nullable()
+          .describe(
+            "Cidade de embarque usada em pesquisa anterior desta conversa, quando existir. É só sugestão para confirmar com o cliente — nunca libera a pesquisa sozinha.",
           ),
         destino: z.string().min(2).describe("Cidade ou IATA de destino, ex.: 'Recife' ou 'REC'"),
         tipo_trecho: z
@@ -278,6 +284,7 @@ export function buildCentralTools(
       execute: async ({
         origem,
         origem_informada_pelo_cliente,
+        origem_sugerida_pelo_historico,
         destino,
         tipo_trecho,
         data_ida,
@@ -300,6 +307,7 @@ export function buildCentralTools(
         const check = validateFlightSearch({
           origem,
           origem_informada_pelo_cliente,
+          origem_sugerida_pelo_historico,
           destino,
           tipo_trecho,
           data_ida,
@@ -682,6 +690,10 @@ export function buildCentralBasePrompt(nome: string, genero: "f" | "m"): string 
     `Nunca pule uma etapa nem pergunte fora de ordem. O que o cliente já informou, você pula — nunca pergunta de novo.`,
     `🚫 ORIGEM NUNCA É PRESUMIDA. Se o cliente não disse a cidade de embarque nesta conversa, a primeira pergunta é sempre "De qual cidade você vai embarcar?". É PROIBIDO usar cidade do cadastro, cidade da empresa (Paranavaí), cidade de conversa antiga, localização aproximada, aeroporto mais próximo ou qualquer cidade padrão. Nesses casos mande origem_informada_pelo_cliente = false.`,
     `🚫 NÃO EXISTE "ORIGEM ALTERNATIVA" NO AÉREO. A lógica de buscar hub/aeroporto próximo ou origem alternativa pertence EXCLUSIVAMENTE aos pacotes prontos dos Consultores. Aqui é passagem aérea avulsa: nunca troque Maringá por Curitiba, Paranavaí por Maringá, nem sugira "posso pesquisar saindo de X" antes de o cliente dizer a cidade. Se ele não disse a origem, apenas pergunte.`,
+    `🔁 ORIGEM RECUPERADA DO HISTÓRICO = SUGESTÃO, NUNCA PRESUNÇÃO. Se o bloco de contexto trouxer uma origem usada antes (ex.: Maringá) e o cliente NÃO disser a origem na mensagem atual, não pesquise: pergunte de forma natural "Vai manter o embarque por Maringá ou quer mudar a origem?". Enquanto ele não responder, origem = null e origem_informada_pelo_cliente = false (mande a cidade antiga só em origem_sugerida_pelo_historico).`,
+    `Depois da confirmação ("pode manter Maringá") a origem passa a valer: origem = Maringá e origem_informada_pelo_cliente = true. Se ele trocar ("dessa vez saio de Curitiba"), vale Curitiba e a antiga é descartada.`,
+    `Se o cliente já disser a origem espontaneamente ("passagem de Londrina para São Paulo"), NÃO pergunte sobre a origem anterior — a informação atual sempre prevalece sobre o histórico.`,
+    `Em protocolo novo a origem antiga também é só sugestão: nunca diga "vou pesquisar saindo de Maringá" antes de ele confirmar.`,
     `🚫 Você nunca fala de pacote pronto, folder, hotel ou proposta personalizada. Se o assunto sair do aéreo avulso, encaminhe ao Comercial.`,
     `Enquanto faltar a origem, NÃO pergunte horário, bagagem, companhia nem conexão — colete origem, destino, tipo de trecho, data(s) e passageiros nessa ordem.`,
     `Datas em linguagem natural ("dia 15 de setembro", "mês que vem") você converte para AAAA-MM-DD antes de pesquisar. Data sem ano: use o ano que faz a data cair no futuro.`,
@@ -793,7 +805,11 @@ export function buildCentralPrompt(
   nome: string,
   genero: "f" | "m",
   brief?: string | null,
-  opts?: { primeiroContato?: boolean; storedPrompt?: string | null },
+  opts?: {
+    primeiroContato?: boolean;
+    storedPrompt?: string | null;
+    origemSugeridaPeloHistorico?: string | null;
+  },
 ): string {
   const stored = opts?.storedPrompt?.trim();
   const base = stored && stored.length > 50 ? stored : buildCentralBasePrompt(nome, genero);
@@ -838,6 +854,9 @@ export function buildCentralPrompt(
     `Hoje é ${hoje} (America/Sao_Paulo).`,
     brief?.trim()
       ? `\n## 📋 O QUE O CONSULTOR JÁ COLETOU (não peça de novo)\n${brief.trim()}`
+      : "",
+    opts?.origemSugeridaPeloHistorico?.trim()
+      ? `\n## 🔁 ORIGEM DO HISTÓRICO (apenas sugestão)\nEm pesquisas anteriores desta conversa o embarque foi por ${opts.origemSugeridaPeloHistorico.trim()}.\nIsso NÃO vale como origem confirmada desta nova cotação. Se o cliente não disser a origem agora, pergunte: "Vai manter o embarque por ${opts.origemSugeridaPeloHistorico.trim()} ou quer mudar a origem?" e só pesquise depois da resposta. Nunca diga que vai pesquisar saindo de ${opts.origemSugeridaPeloHistorico.trim()} antes da confirmação.`
       : "",
     `\n## 🚪 ABERTURA`,
     opts?.primeiroContato

@@ -32,6 +32,11 @@ export type FlightSearchDraft = {
    * conversa antiga, hub mais próximo ou qualquer padrão = false.
    */
   origem_informada_pelo_cliente?: boolean;
+  /**
+   * Origem recuperada do histórico da conversa. É apenas SUGESTÃO: nunca
+   * libera a pesquisa, só muda a pergunta para uma confirmação natural.
+   */
+  origem_sugerida_pelo_historico?: string | null;
 };
 
 export type ValidationFailure = {
@@ -98,10 +103,14 @@ export function validateFlightSearch(
 
   // 1. origem — nunca presumida (cadastro, empresa, hub próximo, conversa antiga,
   // origem de pacote pronto). Só passa com confirmação explícita === true.
+  // A origem recuperada do histórico é SUGESTÃO: não libera a pesquisa.
   if (d.origem_informada_pelo_cliente !== true) {
+    const sugestao = (d.origem_sugerida_pelo_historico ?? "").trim();
     return falta(
       ["origem"],
-      "NÃO pesquise. A cidade de embarque NÃO foi informada pelo cliente. Pergunte: \"De qual cidade você vai embarcar?\". Nunca use o cadastro, a cidade da empresa, o aeroporto mais próximo, a origem de um pacote pronto nem qualquer cidade padrão.",
+      sugestao
+        ? `NÃO pesquise. O cliente ainda não confirmou a origem desta nova cotação. Existe uma origem usada antes (${sugestao}), mas ela é só sugestão. Pergunte: "Vai manter o embarque por ${sugestao} ou quer mudar a origem?" e só pesquise depois da resposta dele.`
+        : "NÃO pesquise. A cidade de embarque NÃO foi informada pelo cliente. Pergunte: \"De qual cidade você vai embarcar?\". Nunca use o cadastro, a cidade da empresa, o aeroporto mais próximo, a origem de um pacote pronto nem qualquer cidade padrão.",
     );
   }
   if (!d.origem || d.origem.trim().length < 2) {
