@@ -809,6 +809,8 @@ export function buildCentralPrompt(
     primeiroContato?: boolean;
     storedPrompt?: string | null;
     origemSugeridaPeloHistorico?: string | null;
+    origemConfirmadaNoProtocolo?: string | null;
+
   },
 ): string {
   const stored = opts?.storedPrompt?.trim();
