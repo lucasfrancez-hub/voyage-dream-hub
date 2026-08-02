@@ -156,7 +156,7 @@ body{font-family:Poppins,system-ui,sans-serif;color:${NAVY};-webkit-font-smoothi
 .verified{display:flex;align-items:center;gap:10px;background:#eaf1fe;color:${BLUE};border-radius:999px;padding:12px 24px;font-size:16px;font-weight:700;letter-spacing:1.2px}
 .verified i{width:10px;height:10px;border-radius:50%;background:${BLUE}}
 .route{display:flex;align-items:flex-end;justify-content:space-between;margin-top:34px}
-.route .r{font-size:36px;font-weight:800;letter-spacing:-.5px;max-width:520px;line-height:1.15}
+.route .r{font-size:36px;font-weight:800;letter-spacing:-.5px;max-width:520px;line-height:1.15;overflow-wrap:anywhere;hyphens:auto}
 .route .r em{font-style:normal;color:#8b98ac;font-weight:600;padding:0 8px}
 .route .dt{font-size:22px;color:#8b98ac;font-weight:500}
 .leg{padding:34px 52px 0}
