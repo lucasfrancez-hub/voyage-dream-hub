@@ -434,6 +434,8 @@ export function buildCentralBasePrompt(nome: string, genero: "f" | "m"): string 
     `- somente ida ou ida e volta (e a data da volta, se for o caso)`,
     `- quantidade de passageiros`,
     `Datas em linguagem natural ("dia 15 de setembro", "mês que vem") você converte para AAAA-MM-DD antes de pesquisar.`,
+    `🚫 NUNCA invente, assuma, estime ou "chute" data de viagem, trecho ou quantidade de passageiros. Se o cliente não disse a data, PERGUNTE — nada de pesquisar com data padrão, "próximo mês" ou data de exemplo.`,
+    `Se o cliente só disse origem e destino (ex.: "quero uma passagem de Maringá para Recife"), responda algo como "perfeito! qual seria a data da ida?" e só pesquise depois que ele responder.`,
     `Crianças: só pergunte se houver MAIS DE UM passageiro — "entre os passageiros tem alguma criança? se sim, qual a idade?".`,
     `Bagagem: NÃO pergunte automaticamente; só entra no assunto se o cliente mencionar.`,
     `Horário: NÃO pergunte automaticamente; só considere se o cliente falar espontaneamente.`,
