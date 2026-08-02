@@ -473,8 +473,16 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
     const memorias = await loadQuoteMemory(conv.id);
     if (memorias.length) {
       const ultimaDoCliente = [...merged].reverse().find((m) => m.sender === "customer");
+      const replyToWaId =
+        (ultimaDoCliente as unknown as { reply_to_wa_id?: string | null } | undefined)
+          ?.reply_to_wa_id ?? null;
       const escolha = ultimaDoCliente
-        ? await registerCustomerChoice(conv.id, memorias, ultimaDoCliente.content).catch(() => null)
+        ? await registerCustomerChoice(
+            conv.id,
+            memorias,
+            ultimaDoCliente.content,
+            replyToWaId,
+          ).catch(() => null)
         : null;
       quoteBlock = buildQuoteMemoryBlock(memorias) + buildChoiceBlock(escolha);
     }

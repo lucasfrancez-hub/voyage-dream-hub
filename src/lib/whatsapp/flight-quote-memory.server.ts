@@ -46,6 +46,11 @@ export type QuoteMemory = {
   cancelada: boolean;
   escolha_option_index: number | null;
   rota: string;
+  /** Cidades/IATAs pra resolver "a segunda de Recife". */
+  origem_termos: string[];
+  destino_termos: string[];
+  /** Horas desde a criação — usado pra reconfirmar disponibilidade. */
+  idade_horas: number;
   data_ida: string;
   data_volta: string | null;
   passageiros: string;
@@ -140,6 +145,16 @@ export async function loadQuoteMemory(
       cancelada: !!q.cancelled_at,
       escolha_option_index: (q.escolha_option_index as number | null) ?? null,
       rota: `${payload.origem_nome ?? payload.origem_iata ?? "?"} → ${payload.destino_nome ?? payload.destino_iata ?? "?"}`,
+      origem_termos: [payload.origem_nome, payload.origem_iata].filter(
+        (x): x is string => typeof x === "string" && x.length > 1,
+      ),
+      destino_termos: [payload.destino_nome, payload.destino_iata].filter(
+        (x): x is string => typeof x === "string" && x.length > 1,
+      ),
+      idade_horas: Math.max(
+        0,
+        (Date.now() - new Date(q.created_at as string).getTime()) / 3_600_000,
+      ),
       data_ida: payload.data_ida ?? "—",
       data_volta: payload.data_volta ?? null,
       passageiros: pax
@@ -191,9 +206,17 @@ export function buildQuoteMemoryBlock(memorias: QuoteMemory[]): string {
     if (m.escolha_option_index) {
       linhas.push(`  ✅ O cliente JÁ ESCOLHEU a opção ${m.escolha_option_index} desta cotação.`);
     }
+    if (m.idade_horas >= QUOTE_STALE_HOURS) {
+      linhas.push(
+        `  ⏳ Esta cotação foi feita há ~${Math.round(m.idade_horas)}h. Tarifa e disponibilidade PODEM ter mudado:` +
+          ` antes de confirmar ou repetir o valor, avise naturalmente ("vou consultar novamente a disponibilidade e o valor atualizado dessa opção")` +
+          ` e refaça a busca com a ferramenta. Nunca afirme que o preço continua o mesmo.`,
+      );
+    }
   }
   linhas.push(
     `\nRegra: ao falar de uma opção, use SEMPRE os dados acima (companhia, horário e valor exatos). Se o cliente citar uma opção que não está nesta lista, pergunte a qual ele se refere em vez de supor.`,
+    `Comparação: "qual chega primeiro", "qual sai primeiro", "qual é mais rápida" NÃO são a opção 1 — compare os horários/durações reais acima e responda qual vence, dizendo o porquê.`,
   );
   return linhas.join("\n");
 }
@@ -211,8 +234,60 @@ const ORDINAIS: Array<{ rx: RegExp; n: number }> = [
 
 const RX_ANTERIOR = /(pesquisa|cota(ç|c)(ã|a)o|busca)\s+(anterior|passada|de ontem|antiga)|de ontem|da outra (pesquisa|cota)/i;
 const RX_MAIS_BARATA = /\bmais barat|\bmenor pre(ç|c)o|\bmais em conta\b/i;
-const RX_MAIS_RAPIDA = /\bmais r(á|a)pid|\bmenos tempo\b|\bmais curt/i;
+const RX_MAIS_RAPIDA = /\bmais r(á|a)pid|\bmenos tempo\b|\bmais curt|\bmenor dura(ç|c)(ã|a)o\b/i;
 const RX_DIRETO = /\bdiret[oa]\b|\bsem (escala|conex)/i;
+
+/** Depois de quantas horas a cotação precisa ser reconfirmada no motor. */
+export const QUOTE_STALE_HOURS = 6;
+
+/**
+ * "Qual chega primeiro?" NÃO é a opção 1 — é comparação de horário.
+ * Detectado ANTES do ordinal justamente para não colidir com "primeira".
+ */
+const RX_CHEGA_CEDO = /\bchega(r|m)?\s+(primeir[oa]|mais\s+cedo|antes|mais\s+r[áa]pido)\b/i;
+const RX_SAI_CEDO = /\b(sai|sair|saem|parte|partem|decola(m|r)?)\s+(primeir[oa]|mais\s+cedo|antes)\b/i;
+const RX_MENOR_DURACAO = /\bmenor\s+dura(ç|c)(ã|a)o\b|\bmais\s+r[áa]pid[ao]\b|\bmenos\s+tempo\s+de\s+voo\b/i;
+
+export type ComparisonIntent = "chegada_mais_cedo" | "saida_mais_cedo" | "menor_duracao";
+
+/** Detecta intenção de COMPARAÇÃO (tem prioridade sobre a leitura ordinal). */
+export function detectComparisonIntent(texto: string): ComparisonIntent | null {
+  const t = String(texto ?? "");
+  if (RX_CHEGA_CEDO.test(t)) return "chegada_mais_cedo";
+  if (RX_SAI_CEDO.test(t)) return "saida_mais_cedo";
+  if (RX_MENOR_DURACAO.test(t)) return "menor_duracao";
+  return null;
+}
+
+const minutosHora = (hhmm: string): number => {
+  const m = /^(\d{1,2}):(\d{2})$/.exec(hhmm.trim());
+  return m ? Number(m[1]) * 60 + Number(m[2]) : 99999;
+};
+const minutosDuracao = (d: string): number => {
+  const m = d.match(/(\d+)\s*h\s*(\d+)?/i);
+  return m ? Number(m[1]) * 60 + Number(m[2] ?? 0) : 99999;
+};
+
+/** Resolve a opção vencedora de uma comparação de horário/duração. */
+export function resolveComparison(
+  opcoes: QuoteOptionMemory[],
+  intent: ComparisonIntent,
+): QuoteOptionMemory | null {
+  if (opcoes.length < 1) return null;
+  const chave = (o: QuoteOptionMemory) =>
+    intent === "chegada_mais_cedo"
+      ? minutosHora(o.chegada)
+      : intent === "saida_mais_cedo"
+        ? minutosHora(o.saida)
+        : minutosDuracao(o.duracao);
+  const ord = [...opcoes].sort((a, b) => chave(a) - chave(b));
+  if (ord.length > 1 && chave(ord[0]) === chave(ord[1])) return null; // empate → ambíguo
+  return ord[0];
+}
+
+/** Normaliza pra comparar cidade citada ("Recife", "REC", "São Paulo"). */
+const semAcento = (s: string) =>
+  s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 
 /** "8h", "08:10", "as 8", "das 11h40" → "HH:MM" aproximado (só a hora). */
 function horaCitada(texto: string): string | null {
@@ -228,16 +303,53 @@ export type OptionReference = {
   option_index: number;
   opcao: QuoteOptionMemory;
   /** Como a referência foi resolvida (diagnóstico). */
-  match: "ordinal" | "companhia" | "horario" | "destaque" | "unica";
+  match:
+    | "ordinal"
+    | "companhia"
+    | "horario"
+    | "destaque"
+    | "unica"
+    | "comparacao"
+    | "citada"
+    | "ultima_referencia";
+  /** Cotação com mais de QUOTE_STALE_HOURS — precisa reconsultar. */
+  stale?: boolean;
 };
+
+/** Última opção que o cliente comentou (persistida na conversa). */
+export type LastReference = { quote_id: string; option_index: number } | null;
+
+/** Pronomes vagos: "essa", "vou nessa", "fechamos essa", "essa ficou melhor". */
+const RX_PRONOME_VAGO =
+  /\b(essa|esse|est[ae]|nessa|nesse|a de cima|essa a[ií]|essa mesmo|essa op(ç|c)(ã|a)o)\b/i;
+
+/** Escolhe a cotação alvo considerando "pesquisa anterior" e cidade citada. */
+function escolherCotacao(comEnvio: QuoteMemory[], t: string): QuoteMemory {
+  const alvoTxt = semAcento(t);
+  // Referência por destino/origem/rota: "a segunda de Recife", "a de Salvador"
+  const porCidade = comEnvio.filter((m) =>
+    [...m.destino_termos, ...m.origem_termos].some((termo) => {
+      const n = semAcento(termo);
+      return n.length > 2 && alvoTxt.includes(n);
+    }),
+  );
+  if (porCidade.length === 1) return porCidade[0];
+  if (porCidade.length > 1) return porCidade[0]; // mais recente entre as da cidade
+  if (RX_ANTERIOR.test(t)) return comEnvio.find((m) => !m.atual) ?? comEnvio[0];
+  return comEnvio[0];
+}
 
 /**
  * Resolve a qual opção o cliente se referiu. Só devolve resultado quando a
  * referência é INEQUÍVOCA — na dúvida devolve null e o agente pergunta.
+ *
+ * Prioridade: mensagem citada (Reply) > texto explícito > última opção
+ * comentada (`ultimaRef`).
  */
 export function resolveOptionReference(
   memorias: QuoteMemory[],
   texto: string,
+  ultimaRef?: LastReference,
 ): OptionReference | null {
   const t = String(texto ?? "").trim();
   if (!t) return null;
@@ -245,15 +357,27 @@ export function resolveOptionReference(
   const comEnvio = memorias.filter((m) => m.opcoes.some((o) => o.enviada_em));
   if (!comEnvio.length) return null;
 
-  // "a segunda da pesquisa anterior" → cotação anterior; senão, a atual.
-  const alvo = RX_ANTERIOR.test(t)
-    ? (comEnvio.find((m) => !m.atual) ?? comEnvio[0])
-    : comEnvio[0];
+  const alvo = escolherCotacao(comEnvio, t);
   const enviadas = alvo.opcoes.filter((o) => o.enviada_em);
   if (!enviadas.length) return null;
 
   const achar = (o: QuoteOptionMemory | undefined, match: OptionReference["match"]) =>
-    o ? { quote_id: alvo.quote_id, option_index: o.option_index, opcao: o, match } : null;
+    o
+      ? {
+          quote_id: alvo.quote_id,
+          option_index: o.option_index,
+          opcao: o,
+          match,
+          stale: alvo.idade_horas >= QUOTE_STALE_HOURS,
+        }
+      : null;
+
+  // 0) COMPARAÇÃO vem antes do ordinal: "qual chega primeiro" ≠ "a primeira".
+  const comparacao = detectComparisonIntent(t);
+  if (comparacao) {
+    const vencedora = resolveComparison(enviadas, comparacao);
+    return vencedora ? achar(vencedora, "comparacao") : null;
+  }
 
   // 1) ordinal explícito
   for (const { rx, n } of ORDINAIS) {
@@ -283,14 +407,8 @@ export function resolveOptionReference(
     if (ordenadas.length && ordenadas[0].valor !== ordenadas[1]?.valor) return achar(ordenadas[0], "destaque");
   }
   if (RX_MAIS_RAPIDA.test(t)) {
-    const min = (o: QuoteOptionMemory) => {
-      const m = o.duracao.match(/(\d+)h(\d+)?/);
-      return m ? Number(m[1]) * 60 + Number(m[2] ?? 0) : 99999;
-    };
-    const ordenadas = [...enviadas].sort((a, b) => min(a) - min(b));
-    if (ordenadas.length && min(ordenadas[0]) !== min(ordenadas[1] ?? ordenadas[0])) {
-      return achar(ordenadas[0], "destaque");
-    }
+    const vencedora = resolveComparison(enviadas, "menor_duracao");
+    if (vencedora) return achar(vencedora, "destaque");
   }
   if (RX_DIRETO.test(t)) {
     const diretas = enviadas.filter((o) => o.paradas === 0);
@@ -298,10 +416,102 @@ export function resolveOptionReference(
   }
 
   // 5) só existe UMA opção entregue e o cliente falou "essa"
-  if (enviadas.length === 1 && /\b(essa|esse|est[ae]|a de cima|essa a[ií])\b/i.test(t)) {
+  if (enviadas.length === 1 && RX_PRONOME_VAGO.test(t)) {
     return achar(enviadas[0], "unica");
   }
+
+  // 6) pronome vago + última opção COMENTADA pelo cliente ("gostei da primeira"
+  //    → "fechamos essa"). Não é compra: é só a referência mais recente.
+  if (ultimaRef && RX_PRONOME_VAGO.test(t)) {
+    const q = memorias.find((m) => m.quote_id === ultimaRef.quote_id);
+    const o = q?.opcoes.find((x) => x.option_index === ultimaRef.option_index);
+    if (q && o) {
+      return {
+        quote_id: q.quote_id,
+        option_index: o.option_index,
+        opcao: o,
+        match: "ultima_referencia",
+        stale: q.idade_horas >= QUOTE_STALE_HOURS,
+      };
+    }
+  }
   return null;
+}
+
+/**
+ * Resolve a referência do TURNO inteiro, com a prioridade oficial:
+ * 1) mensagem citada pelo botão "Responder" do WhatsApp;
+ * 2) texto da mensagem (ordinal, companhia, horário, valor, comparação);
+ * 3) última opção referenciada persistida na conversa.
+ * Sempre que resolve, PERSISTE a referência na conversa.
+ */
+export async function resolveTurnReference(
+  conversationId: string,
+  memorias: QuoteMemory[],
+  texto: string,
+  replyToWaId?: string | null,
+): Promise<OptionReference | null> {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+  // 1) resposta citada — prioridade máxima
+  if (replyToWaId) {
+    const { data: citada } = await supabaseAdmin
+      .from("wa_messages")
+      .select("quote_id, option_index")
+      .eq("wa_message_id", replyToWaId)
+      .maybeSingle();
+    const qid = (citada?.quote_id as string | null) ?? null;
+    const oidx = (citada?.option_index as number | null) ?? null;
+    if (qid && oidx) {
+      const q = memorias.find((m) => m.quote_id === qid);
+      const o = q?.opcoes.find((x) => x.option_index === oidx);
+      if (q && o) {
+        const ref: OptionReference = {
+          quote_id: q.quote_id,
+          option_index: o.option_index,
+          opcao: o,
+          match: "citada",
+          stale: q.idade_horas >= QUOTE_STALE_HOURS,
+        };
+        await persistLastReference(conversationId, ref);
+        return ref;
+      }
+    }
+  }
+
+  // 2) texto + 3) última referência persistida
+  const { data: conv } = await supabaseAdmin
+    .from("wa_conversations")
+    .select("ultima_quote_referenciada, ultima_opcao_referenciada")
+    .eq("id", conversationId)
+    .maybeSingle();
+  const ultimaRef: LastReference =
+    conv?.ultima_quote_referenciada && conv?.ultima_opcao_referenciada
+      ? {
+          quote_id: conv.ultima_quote_referenciada as string,
+          option_index: conv.ultima_opcao_referenciada as number,
+        }
+      : null;
+
+  const ref = resolveOptionReference(memorias, texto, ultimaRef);
+  if (ref) await persistLastReference(conversationId, ref);
+  return ref;
+}
+
+/** Grava a última opção comentada (NÃO é compra, é só referência). */
+export async function persistLastReference(
+  conversationId: string,
+  ref: OptionReference,
+): Promise<void> {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  await supabaseAdmin
+    .from("wa_conversations")
+    .update({
+      ultima_quote_referenciada: ref.quote_id,
+      ultima_opcao_referenciada: ref.option_index,
+      ultima_referencia_at: new Date().toISOString(),
+    })
+    .eq("id", conversationId);
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -310,15 +520,17 @@ export function resolveOptionReference(
 
 /** Intenção INEQUÍVOCA de escolher ("quero a segunda", "fecho com a da Azul"). */
 const RX_ESCOLHA_CLARA =
-  /\b(quero|vou (querer|ficar|de)|fico com|fica(mos)? com|pode (ser|fechar|reservar|emitir)|fech(a|ar|o|amos)|reserv(a|ar|e)|emit(e|ir)|escolho|prefiro|me (manda|passa) (o )?(link|pagamento)|bora (nessa|de)|garant(e|ir))\b/i;
+  /\b(quero|vou (querer|ficar|de|nessa|nesse)|vamos nessa|fico com|fica(mos)? com|pode (ser|fechar|reservar|emitir)|fech(a|ar|o|amos)|reserv(a|ar|e)|emit(e|ir)|escolho|prefiro|me (manda|passa) (o )?(link|pagamento)|bora (nessa|de)|garant(e|ir))\b|\bacho que vai ser essa\b/i;
 /** Comentário sem decisão ("essa parece boa", "gostei", "interessante"). */
-const RX_APENAS_COMENTARIO = /\b(parece|achei|t(á|a) (boa|bom|legal)|interessante|gostei)\b/i;
+const RX_APENAS_COMENTARIO = /\b(parece|achei|t(á|a) (boa|bom|legal)|interessante|gostei|ficou melhor)\b/i;
 
 export type ChoiceDetection = {
   quote_id: string;
   option_index: number;
   opcao: QuoteOptionMemory;
   clara: boolean;
+  match: OptionReference["match"];
+  stale: boolean;
 };
 
 /**
@@ -329,8 +541,9 @@ export type ChoiceDetection = {
 export function detectCustomerChoice(
   memorias: QuoteMemory[],
   texto: string,
+  refPre?: OptionReference | null,
 ): ChoiceDetection | null {
-  const ref = resolveOptionReference(memorias, texto);
+  const ref = refPre ?? resolveOptionReference(memorias, texto);
   if (!ref) return null;
   const decisao = RX_ESCOLHA_CLARA.test(texto);
   const soComentario = !decisao && RX_APENAS_COMENTARIO.test(texto);
@@ -338,7 +551,10 @@ export function detectCustomerChoice(
     quote_id: ref.quote_id,
     option_index: ref.option_index,
     opcao: ref.opcao,
-    clara: decisao && !soComentario,
+    // Comparação ("qual chega primeiro") nunca é escolha.
+    clara: decisao && !soComentario && ref.match !== "comparacao",
+    match: ref.match,
+    stale: !!ref.stale,
   };
 }
 
@@ -350,9 +566,14 @@ export async function registerCustomerChoice(
   conversationId: string,
   memorias: QuoteMemory[],
   texto: string,
+  replyToWaId?: string | null,
 ): Promise<ChoiceDetection | null> {
-  const escolha = detectCustomerChoice(memorias, texto);
+  // Prioridade: mensagem citada > texto > última opção comentada.
+  const ref = await resolveTurnReference(conversationId, memorias, texto, replyToWaId);
+  const escolha = detectCustomerChoice(memorias, texto, ref);
   if (!escolha) return null;
+  // Comparação não é escolha: não grava escolha_option_index.
+  if (escolha.match === "comparacao") return escolha;
 
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const { logCardEvent } = await import("./card-log.server");
@@ -395,15 +616,34 @@ export function buildChoiceBlock(escolha: ChoiceDetection | null): string {
   if (!escolha) return "";
   const o = escolha.opcao;
   const resumo = `opção ${o.option_index} · ${o.companhia} · ${o.saida} → ${o.chegada}${o.volta_saida ? ` · volta ${o.volta_saida}` : ""} · ${o.valor_formatado}`;
+  const staleAviso = escolha.stale
+    ? `\n⏳ Essa cotação já tem mais de ${QUOTE_STALE_HOURS}h. Antes de confirmar valor ou disponibilidade, diga que vai consultar novamente ("vou consultar novamente a disponibilidade e o valor atualizado dessa opção") e refaça a busca.`
+    : "";
+  const origem =
+    escolha.match === "citada"
+      ? " (ele respondeu diretamente a esse card pelo WhatsApp)"
+      : escolha.match === "ultima_referencia"
+        ? " (é a última opção que ele mesmo comentou — não peça confirmação de qual é)"
+        : "";
+
+  if (escolha.match === "comparacao") {
+    return (
+      `\n# ⚖️ O CLIENTE PEDIU UMA COMPARAÇÃO (não é escolha)\n` +
+      `Pelos dados reais, a resposta é a ${resumo}. Responda comparando horários/duração das opções enviadas e explique o porquê. Não trate isso como fechamento.` +
+      staleAviso
+    );
+  }
   if (!escolha.clara) {
     return (
       `\n# 👉 O CLIENTE COMENTOU UMA OPÇÃO ESPECÍFICA\n` +
-      `Ele se referiu à ${resumo} (quote_id ${escolha.quote_id}). Fale dessa opção usando exatamente esses dados. Ele ainda NÃO fechou: siga conduzindo com naturalidade.`
+      `Ele se referiu à ${resumo} (quote_id ${escolha.quote_id})${origem}. Fale dessa opção usando exatamente esses dados. Ele ainda NÃO fechou: siga conduzindo com naturalidade.` +
+      staleAviso
     );
   }
   return (
     `\n# ✅ ESCOLHA DO CLIENTE (confirmada pelo registro, não deduza)\n` +
-    `Ele escolheu a ${resumo} (quote_id ${escolha.quote_id}).\n` +
-    `Confirme essa opção pelos dados reais, não mande outras opções e conduza para o próximo passo do fechamento.`
+    `Ele escolheu a ${resumo} (quote_id ${escolha.quote_id})${origem}.\n` +
+    `Confirme essa opção pelos dados reais, não mande outras opções e conduza para o próximo passo do fechamento.` +
+    staleAviso
   );
 }
