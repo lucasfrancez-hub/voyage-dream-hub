@@ -20,6 +20,9 @@ export type FlightSearchDraft = {
   adultos?: number | null;
   criancas?: number | null;
   bebes?: number | null;
+  /** Horários opcionais (HH:MM). Só usados para validar ida e volta no MESMO dia. */
+  hora_ida?: string | null;
+  hora_volta?: string | null;
   /** Confirmações explícitas de que o dado veio do cliente (nunca presumido). */
   data_informada_pelo_cliente?: boolean;
   pax_informado_pelo_cliente?: boolean;
@@ -143,11 +146,33 @@ export function validateFlightSearch(
         "NÃO pesquise. A data de volta não é válida. Confirme o dia, o mês e o ano do retorno.",
       );
     }
+    // Volta no MESMO dia da ida é válida (ex.: ida 07:00, volta 20:00).
+    // Só bloqueia quando o retorno é ANTERIOR à ida.
     if (d.data_volta < d.data_ida) {
       return invalido(
         ["data_volta"],
         "NÃO pesquise. A data de volta é anterior à de ida. Confirme com o cliente as duas datas.",
       );
+    }
+    // Mesmo dia: se os horários vierem informados, o retorno precisa sair
+    // depois da ida (com folga mínima para a ida chegar ao destino).
+    if (d.data_volta === d.data_ida && d.hora_ida && d.hora_volta) {
+      const min = (h: string) => {
+        const m = /^(\d{1,2}):(\d{2})$/.exec(h.trim());
+        if (!m) return null;
+        const hh = Number(m[1]);
+        const mm = Number(m[2]);
+        if (hh > 23 || mm > 59) return null;
+        return hh * 60 + mm;
+      };
+      const ida = min(d.hora_ida);
+      const volta = min(d.hora_volta);
+      if (ida !== null && volta !== null && volta <= ida) {
+        return invalido(
+          ["hora_volta"],
+          "NÃO pesquise. A ida e a volta são no mesmo dia e o horário do retorno é igual ou anterior ao da ida. Confirme os horários com o cliente.",
+        );
+      }
     }
   }
 
