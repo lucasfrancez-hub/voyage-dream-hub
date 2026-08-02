@@ -712,7 +712,8 @@ export async function runAgent(input: {
 
     // Garante primeira letra maiúscula em cada balão (o modelo escreve tudo minúsculo)
     // e capitaliza o primeiro nome do cliente sempre que aparecer no meio do texto.
-    if (centralAgent && centralBriefHasMissingOrigin(centralBrief)) {
+    // Origem já confirmada neste mesmo protocolo não exige nova pergunta.
+    if (centralAgent && !origemConfirmadaNoProtocolo && centralBriefHasMissingOrigin(centralBrief)) {
       if (isInvalidMissingOriginResponse(rawText) || !isValidOriginQuestion(rawText, origemSugerida)) {
         console.warn("[agent-runtime]", JSON.stringify({
           ...runtimeAudit,
