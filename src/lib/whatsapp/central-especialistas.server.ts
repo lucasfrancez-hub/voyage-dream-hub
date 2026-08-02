@@ -857,8 +857,8 @@ export function buildCentralPrompt(
     brief?.trim()
       ? `\n## 📋 O QUE O CONSULTOR JÁ COLETOU (não peça de novo)\n${brief.trim()}`
       : "",
-    opts?.origemSugeridaPeloHistorico?.trim()
     opts?.origemConfirmadaNoProtocolo?.trim()
+
       ? `\n## ✅ ORIGEM JÁ CONFIRMADA NESTE ATENDIMENTO\nNeste mesmo protocolo o cliente já confirmou que embarca de ${opts.origemConfirmadaNoProtocolo.trim()}.\nNÃO pergunte a origem de novo. Se ele mudar só o destino ("agora quero ir pra Florianópolis"), mantenha ${opts.origemConfirmadaNoProtocolo.trim()} como origem e pesquise (origem = ${opts.origemConfirmadaNoProtocolo.trim()}, origem_informada_pelo_cliente = true). Só troque se ele disser outra cidade de embarque.`
       : "",
     !opts?.origemConfirmadaNoProtocolo?.trim() && opts?.origemSugeridaPeloHistorico?.trim()
