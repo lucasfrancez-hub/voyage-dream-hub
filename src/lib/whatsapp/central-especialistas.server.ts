@@ -690,7 +690,9 @@ export function buildCentralBasePrompt(nome: string, genero: "f" | "m"): string 
     `Nunca pule uma etapa nem pergunte fora de ordem. O que o cliente já informou, você pula — nunca pergunta de novo.`,
     `🚫 ORIGEM NUNCA É PRESUMIDA. Se o cliente não disse a cidade de embarque nesta conversa, a primeira pergunta é sempre "De qual cidade você vai embarcar?". É PROIBIDO usar cidade do cadastro, cidade da empresa (Paranavaí), cidade de conversa antiga, localização aproximada, aeroporto mais próximo ou qualquer cidade padrão. Nesses casos mande origem_informada_pelo_cliente = false.`,
     `🚫 NÃO EXISTE "ORIGEM ALTERNATIVA" NO AÉREO. A lógica de buscar hub/aeroporto próximo ou origem alternativa pertence EXCLUSIVAMENTE aos pacotes prontos dos Consultores. Aqui é passagem aérea avulsa: nunca troque Maringá por Curitiba, Paranavaí por Maringá, nem sugira "posso pesquisar saindo de X" antes de o cliente dizer a cidade. Se ele não disse a origem, apenas pergunte.`,
-    `🔁 ORIGEM RECUPERADA DO HISTÓRICO = SUGESTÃO, NUNCA PRESUNÇÃO. Se o bloco de contexto trouxer uma origem usada antes (ex.: Maringá) e o cliente NÃO disser a origem na mensagem atual, não pesquise: pergunte de forma natural "Vai manter o embarque por Maringá ou quer mudar a origem?". Enquanto ele não responder, origem = null e origem_informada_pelo_cliente = false (mande a cidade antiga só em origem_sugerida_pelo_historico).`,
+    `🔁 CONFIRMAÇÃO DE ORIGEM SÓ VALE PARA PROTOCOLO NOVO. Se a origem veio de um atendimento ANTERIOR (protocolo antigo) e o cliente NÃO disser a origem agora, não pesquise: pergunte de forma natural "Vai manter o embarque por Maringá ou quer mudar a origem?". Enquanto ele não responder, origem = null e origem_informada_pelo_cliente = false (mande a cidade antiga só em origem_sugerida_pelo_historico).`,
+    `✅ DENTRO DO MESMO PROTOCOLO A ORIGEM JÁ CONFIRMADA PERMANECE. Se neste mesmo atendimento o cliente já disse de onde embarca, NUNCA pergunte de novo — nem quando ele muda o destino ("agora quero ir pra Florianópolis"), nem quando muda data, passageiros ou trecho. Reaproveite a mesma origem com origem_informada_pelo_cliente = true e pesquise direto. Só troque se ele mesmo indicar outra cidade de embarque.`,
+
     `Depois da confirmação ("pode manter Maringá") a origem passa a valer: origem = Maringá e origem_informada_pelo_cliente = true. Se ele trocar ("dessa vez saio de Curitiba"), vale Curitiba e a antiga é descartada.`,
     `Se o cliente já disser a origem espontaneamente ("passagem de Londrina para São Paulo"), NÃO pergunte sobre a origem anterior — a informação atual sempre prevalece sobre o histórico.`,
     `Em protocolo novo a origem antiga também é só sugestão: nunca diga "vou pesquisar saindo de Maringá" antes de ele confirmar.`,
@@ -809,6 +811,8 @@ export function buildCentralPrompt(
     primeiroContato?: boolean;
     storedPrompt?: string | null;
     origemSugeridaPeloHistorico?: string | null;
+    origemConfirmadaNoProtocolo?: string | null;
+
   },
 ): string {
   const stored = opts?.storedPrompt?.trim();
@@ -855,10 +859,15 @@ export function buildCentralPrompt(
     brief?.trim()
       ? `\n## 📋 O QUE O CONSULTOR JÁ COLETOU (não peça de novo)\n${brief.trim()}`
       : "",
-    opts?.origemSugeridaPeloHistorico?.trim()
-      ? `\n## 🔁 ORIGEM DO HISTÓRICO (apenas sugestão)\nEm pesquisas anteriores desta conversa o embarque foi por ${opts.origemSugeridaPeloHistorico.trim()}.\nIsso NÃO vale como origem confirmada desta nova cotação. Se o cliente não disser a origem agora, pergunte: "Vai manter o embarque por ${opts.origemSugeridaPeloHistorico.trim()} ou quer mudar a origem?" e só pesquise depois da resposta. Nunca diga que vai pesquisar saindo de ${opts.origemSugeridaPeloHistorico.trim()} antes da confirmação.`
+    opts?.origemConfirmadaNoProtocolo?.trim()
+
+      ? `\n## ✅ ORIGEM JÁ CONFIRMADA NESTE ATENDIMENTO\nNeste mesmo protocolo o cliente já confirmou que embarca de ${opts.origemConfirmadaNoProtocolo.trim()}.\nNÃO pergunte a origem de novo. Se ele mudar só o destino ("agora quero ir pra Florianópolis"), mantenha ${opts.origemConfirmadaNoProtocolo.trim()} como origem e pesquise (origem = ${opts.origemConfirmadaNoProtocolo.trim()}, origem_informada_pelo_cliente = true). Só troque se ele disser outra cidade de embarque.`
+      : "",
+    !opts?.origemConfirmadaNoProtocolo?.trim() && opts?.origemSugeridaPeloHistorico?.trim()
+      ? `\n## 🔁 ORIGEM DE ATENDIMENTO ANTERIOR (apenas sugestão)\nEm um protocolo ANTERIOR desta conversa o embarque foi por ${opts.origemSugeridaPeloHistorico.trim()}.\nIsso NÃO vale como origem confirmada deste novo atendimento. Se o cliente não disser a origem agora, pergunte: "Vai manter o embarque por ${opts.origemSugeridaPeloHistorico.trim()} ou quer mudar a origem?" e só pesquise depois da resposta. Nunca diga que vai pesquisar saindo de ${opts.origemSugeridaPeloHistorico.trim()} antes da confirmação.`
       : "",
     `\n## 🚪 ABERTURA`,
+
     opts?.primeiroContato
       ? `Este é o PRIMEIRO contato: o cliente abriu a conversa já pedindo passagem aérea e você é quem atende desde o começo. Abra a conversa você mesm${genero === "f" ? "a" : "o"}, tipo: "Olá! Sou ${nome}, da Central de Especialistas da VIA AIR. Claro, vou verificar as melhores opções de voo para você." Nunca cite outro consultor, nunca diga que o atendimento foi transferido/encaminhado e nunca mencione triagem ou sistema. Depois siga pedindo só os dados obrigatórios que faltam.`
       : `Você entra na conversa já em andamento. Cumprimente rapidinho se apresentando pelo nome, diga que vai cuidar da pesquisa das passagens e siga. Nada de recomeçar o atendimento do zero nem repetir perguntas já respondidas.`,

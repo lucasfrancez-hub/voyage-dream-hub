@@ -351,13 +351,18 @@ export async function runAgent(input: {
 
   const agent = centralAgent ?? (await pickAgent(agents, stickySlug));
 
-  // Origem de pesquisas anteriores: entra como SUGESTÃO para confirmação,
-  // nunca como origem válida da nova cotação.
+  // Origem: dentro do MESMO protocolo ela já foi confirmada pelo cliente e é
+  // reutilizada direto (mesmo que ele troque o destino). De protocolos
+  // anteriores entra apenas como SUGESTÃO, exigindo confirmação.
   let origemSugerida: string | null = null;
+  let origemConfirmadaNoProtocolo: string | null = null;
   if (centralAgent && centralBriefHasMissingOrigin(centralBrief)) {
-    const { loadOrigemSugeridaPeloHistorico } = await import("./origin-history.server");
-    origemSugerida = await loadOrigemSugeridaPeloHistorico(conv.id);
+    const { loadOrigemHistorico } = await import("./origin-history.server");
+    const hist = await loadOrigemHistorico(conv.id, protocolo?.id ?? null);
+    origemConfirmadaNoProtocolo = hist.confirmadaNoProtocolo;
+    origemSugerida = hist.confirmadaNoProtocolo ? null : hist.sugerida;
   }
+
 
 
 
@@ -618,6 +623,8 @@ export async function runAgent(input: {
               primeiroContato: centralPrimeiroContato,
               storedPrompt: centralAgent.system_prompt,
               origemSugeridaPeloHistorico: origemSugerida,
+              origemConfirmadaNoProtocolo,
+
             },
           ) +
           "\n\n" +
@@ -705,7 +712,8 @@ export async function runAgent(input: {
 
     // Garante primeira letra maiúscula em cada balão (o modelo escreve tudo minúsculo)
     // e capitaliza o primeiro nome do cliente sempre que aparecer no meio do texto.
-    if (centralAgent && centralBriefHasMissingOrigin(centralBrief)) {
+    // Origem já confirmada neste mesmo protocolo não exige nova pergunta.
+    if (centralAgent && !origemConfirmadaNoProtocolo && centralBriefHasMissingOrigin(centralBrief)) {
       if (isInvalidMissingOriginResponse(rawText) || !isValidOriginQuestion(rawText, origemSugerida)) {
         console.warn("[agent-runtime]", JSON.stringify({
           ...runtimeAudit,
