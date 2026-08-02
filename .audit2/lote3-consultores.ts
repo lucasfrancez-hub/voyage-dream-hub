@@ -113,7 +113,8 @@ for (const caso of CASOS) {
     const system =
       buildSharedAgentPrompt("Camila", "f") +
       `\n\n# CONTEXTO DESTA CONVERSA\n- Você é: Camila\n- Telefone do cliente: ${phone}\n- nome_do_cliente: não informado.\n- Data de hoje: ${new Date().toISOString().slice(0, 10)}`;
-    const tools = buildCamilaTools(conv as never);
+    const tools = buildCamilaTools(conv as never) as Record<string, unknown>;
+    delete tools._meta; // o runner real remove esse marcador antes de chamar o modelo
     const out = await generateText({
       model: provider("openai/gpt-5.4-mini"), system, messages: caso.msgs,
       tools: tools as never, stopWhen: stepCountIs(6),
