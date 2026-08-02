@@ -566,9 +566,14 @@ export async function registerCustomerChoice(
   conversationId: string,
   memorias: QuoteMemory[],
   texto: string,
+  replyToWaId?: string | null,
 ): Promise<ChoiceDetection | null> {
-  const escolha = detectCustomerChoice(memorias, texto);
+  // Prioridade: mensagem citada > texto > última opção comentada.
+  const ref = await resolveTurnReference(conversationId, memorias, texto, replyToWaId);
+  const escolha = detectCustomerChoice(memorias, texto, ref);
   if (!escolha) return null;
+  // Comparação não é escolha: não grava escolha_option_index.
+  if (escolha.match === "comparacao") return escolha;
 
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const { logCardEvent } = await import("./card-log.server");
