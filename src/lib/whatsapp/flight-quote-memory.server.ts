@@ -867,24 +867,45 @@ export function buildChoiceBlock(escolha: ChoiceDetection | null): string {
         ? " (é a última opção que ele mesmo comentou — não peça confirmação de qual é)"
         : "";
 
+  const bagagemAviso =
+    escolha.bagagem === "nova_pesquisa"
+      ? `\n# 🧳 PEDIDO DE VALOR COM BAGAGEM DESPACHADA\n` +
+        `Ele quer saber QUANTO FICA com bagagem despachada. NUNCA estime, some ou "chute" o valor.\n` +
+        `Faça uma NOVA busca com \`pesquisar_passagens\` usando os mesmos trechos/datas/pax e \`bagagem_despachada: true\`, e responda com o valor real retornado. Avise que está consultando o valor com bagagem.`
+      : escolha.bagagem === "consulta"
+        ? `\n# 🧳 DÚVIDA SOBRE BAGAGEM DA OPÇÃO ATUAL\n` +
+          `Ele quer saber se ESSA opção já inclui bagagem despachada. Responda apenas com o que está registrado nessa cotação. Se a franquia/peso não estiver registrada, diga que confirma a franquia exata com a companhia — NÃO invente quilos, peças nem regra de bagagem.`
+        : "";
+
+  if (escolha.conflito) {
+    return (
+      `\n# ⚠️ CONFLITO ENTRE A MENSAGEM RESPONDIDA E O TEXTO\n` +
+      `Ele respondeu ao card da opção ${escolha.conflito.option_index_citada}, mas no texto citou a opção ${escolha.conflito.option_index_texto}. NÃO escolha sozinha: pergunte de forma curta e natural qual das duas ele quer seguir antes de qualquer outro passo.` +
+      staleAviso
+    );
+  }
+
   if (escolha.match === "comparacao") {
     return (
       `\n# ⚖️ O CLIENTE PEDIU UMA COMPARAÇÃO (não é escolha)\n` +
       `Pelos dados reais, a resposta é a ${resumo}. Responda comparando horários/duração das opções enviadas e explique o porquê. Não trate isso como fechamento.` +
-      staleAviso
+      staleAviso +
+      bagagemAviso
     );
   }
   if (!escolha.clara) {
     return (
       `\n# 👉 O CLIENTE COMENTOU UMA OPÇÃO ESPECÍFICA\n` +
       `Ele se referiu à ${resumo} (quote_id ${escolha.quote_id})${origem}. Fale dessa opção usando exatamente esses dados. Ele ainda NÃO fechou: siga conduzindo com naturalidade.` +
-      staleAviso
+      staleAviso +
+      bagagemAviso
     );
   }
   return (
     `\n# ✅ ESCOLHA DO CLIENTE (confirmada pelo registro, não deduza)\n` +
     `Ele escolheu a ${resumo} (quote_id ${escolha.quote_id})${origem}.\n` +
     `Confirme essa opção pelos dados reais, não mande outras opções e conduza para o próximo passo do fechamento.` +
-    staleAviso
+    staleAviso +
+    bagagemAviso
   );
 }
