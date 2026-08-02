@@ -107,7 +107,11 @@ async function encaminharParaComercial(conversation: WaConversation, briefing: s
    Tools da Central
    ───────────────────────────────────────────────────────────── */
 /** Ferramentas que a Central pode expor (espelhado em ai_agents.tools_habilitadas). */
-export const CENTRAL_TOOL_SLUGS = ["pesquisar_passagens", "encaminhar_para_comercial"] as const;
+export const CENTRAL_TOOL_SLUGS = [
+  "pesquisar_passagens",
+  "reenviar_opcao",
+  "encaminhar_para_comercial",
+] as const;
 
 /**
  * Monta as tools da Central. Quando o agente tem `tools_habilitadas`
@@ -414,6 +418,50 @@ export function buildCentralTools(
       },
     }),
 
+    reenviar_opcao: tool({
+      description:
+        "Reenvia ao cliente uma opção de voo QUE JÁ FOI APRESENTADA, sem refazer a pesquisa. Use sempre que ele pedir 'manda novamente', 'pode reenviar?', 'manda aquela opção de novo', 'manda a segunda novamente', 'quero ver de novo a da Azul'. NUNCA use pesquisar_passagens nesses casos. Pegue quote_id e option_index no bloco de OPÇÕES JÁ ENVIADAS. Nunca altere preço, horário, companhia ou bagagem.",
+      inputSchema: z.object({
+        quote_id: z.string().min(6).describe("quote_id da cotação, exatamente como está no bloco de opções já enviadas"),
+        option_index: z.number().int().min(1).max(9).describe("Número da opção dentro dessa cotação (1, 2, 3…)"),
+        formato_preferido: z
+          .enum(["card", "texto", "automatico"])
+          .nullable()
+          .describe("Deixe 'automatico' (ou null) para tentar a arte e cair no texto se a imagem falhar."),
+      }),
+      execute: async ({ quote_id, option_index, formato_preferido }) => {
+        const { resendFlightOption } = await import("./flight-option-resend.server");
+        const r = await resendFlightOption({
+          conversationId: conversation.id,
+          waPhone: conversation.wa_phone,
+          quoteId: quote_id,
+          optionIndex: option_index,
+          formato: formato_preferido ?? "automatico",
+        });
+        if (!r.ok) {
+          return {
+            ok: false,
+            motivo: r.motivo,
+            instrucao:
+              r.motivo === "opcao_nao_encontrada"
+                ? "Essa opção não está no registro. Pergunte objetivamente a qual opção ele se refere — não invente dados e não faça nova pesquisa."
+                : "Não consegui reenviar agora. Responda com naturalidade repetindo os dados da opção pelo bloco de opções já enviadas, sem falar em sistema ou erro.",
+          };
+        }
+        return {
+          ok: true,
+          quote_id: r.quote_id,
+          option_index: r.option_index,
+          formato: r.format,
+          instrucao:
+            `A ${r.resumo} JÁ FOI REENVIADA ao cliente (${r.format === "card" ? "arte" : "texto"}). Responda com UM balão curto e natural confirmando que mandou de novo. Não liste os dados outra vez` +
+            (r.stale
+              ? " e avise que, se ele quiser seguir com essa, você confirma novamente a disponibilidade e o valor atualizado."
+              : "."),
+        };
+      },
+    }),
+
     encaminhar_para_comercial: tool({
       description:
         "Use em DOIS casos: (1) o assunto não é passagem aérea avulsa (pacote pronto, hotel, carro, aéreo+hotel, seguro, cruzeiro, planejamento de viagem, pedido já emitido, check-in, pós-venda, institucional); (2) falha técnica ou pesquisa que não pode ser concluída. Encaminha o atendimento ao time Comercial preservando o contexto. Nunca diga ao cliente que é uma transferência entre sistemas ou entre IA e humano.",
@@ -544,6 +592,26 @@ export function buildCentralBasePrompt(nome: string, genero: "f" | "m"): string 
     `Quando ele escolher claramente uma opção, confirme por companhia, horário e valor exatos daquela opção e siga para o próximo passo — não mande novas opções.`,
 
 
+    `\n# 🔁 REENVIAR UMA OPÇÃO JÁ APRESENTADA`,
+    `"pode mandar novamente aquela opção?", "manda a de antes", "reenvia aquela da Azul", "quero ver de novo a segunda": isso NÃO é pesquisa nova. Use a tool reenviar_opcao com o quote_id e o option_index do bloco de opções enviadas.`,
+    `NUNCA chame pesquisar_passagens pra reenviar algo que já foi mostrado, e nunca altere preço, horário, companhia ou bagagem no reenvio.`,
+    `Se a referência estiver clara (última opção comentada, ordinal, companhia, horário ou destino), reenvie direto — não pergunte "qual opção?".`,
+    `Só pergunte quando existirem duas opções igualmente possíveis. Se a cotação for antiga, avise que reconfirma disponibilidade e valor caso ele queira seguir.`,
+
+    `\n# 🧭 REFERÊNCIA vs FILTRO (não confunda)`,
+    `"tem alguma sem conexão?", "só voo direto", "no máximo uma conexão", "conexão rápida" são FILTRO de pesquisa: faça uma nova pesquisa com somente_voo_direto ou maximo_conexoes. Não trate como referência a uma opção já enviada.`,
+    `Perguntas de acompanhamento sem pronome ("quanto fica com bagagem?", "a conexão é longa?", "chega que horas?", "dá tempo da conexão?") continuam falando da MESMA opção que já estava em pauta: responda direto, sem perguntar de qual opção se trata.`,
+    `Quando o cliente citar uma companhia numa comparação ("a Latam chega antes?", "a Azul é mais rápida?"), responda sobre a opção DAQUELA companhia. Se não houver opção dessa companhia entre as enviadas, diga isso com naturalidade.`,
+
+    `\n# 💸 OBJEÇÃO DE PREÇO ("achei caro")`,
+    `Demonstre compreensão em uma frase, sem drama. Nunca invente desconto, nunca crie urgência ("últimas vagas", "vai subir hoje") e nunca prometa que vai ficar mais barato.`,
+    `Ofereça alternativas concretas e pergunte NO MÁXIMO uma preferência pra refazer a busca: outra data, data flexível, outro horário, aeroporto próximo, outra companhia, opção com conexão ou sem bagagem.`,
+    `Ex.: "entendo, realmente ficou um valor mais alto\n\nposso tentar uma data próxima ou uma opção com conexão pra ver se conseguimos reduzir. qual dos dois vc prefere?"`,
+
+    `\n# 📆 REMARCAÇÃO: dúvida futura ≠ pedido agora`,
+    `Dúvida/possibilidade ("e se eu precisar remarcar?", "talvez eu mude depois", "essa passagem permite alteração?"): explique o processo de forma geral (depende da regra da tarifa, pode ter diferença de valor e taxa da companhia), NÃO encaminhe e siga a cotação normalmente.`,
+    `Pedido atual ("quero remarcar", "preciso mudar a data agora", "altera minha reserva", "quero trocar o voo que já comprei"): chame encaminhar_para_comercial com todo o contexto, sem prometer valores ou condições.`,
+
     `\n# ↪️ QUANDO NÃO FOR PASSAGEM AÉREA`,
     `Pacote pronto, hotel, carro, aéreo+hotel, seguro, cruzeiro, planejamento geral de viagem, pedido já emitido, cartão de embarque, pós-venda, alteração, cancelamento, dúvidas institucionais: NADA disso é seu.`,
     `EXCEÇÃO — prazo de check-in: se perguntarem quando abre o check-in, responda direto: voos nacionais 48h antes, internacionais 24h antes. Só encaminhe se o cliente precisar que ALGUÉM faça o check-in ou emita o cartão de embarque.`,
@@ -596,6 +664,12 @@ export function buildCentralPrompt(
     `Pesquisa sem resultados NÃO é falha técnica: informe com naturalidade e ofereça datas/aeroportos próximos.`,
     `Institucional: sede em Paranavaí – Paraná, operação 100% Home Office, sem loja física. CNPJ ${VIA_AIR_CNPJ} só quando o cliente pedir explicitamente. Emergência em viagem: ${VIA_AIR_EMAIL_EMERGENCIA}, nunca telefone ou 0800.`,
     `Nunca diga que é IA, robô, bot ou automação, e nunca fale em atendente humano — o time é o Comercial.`,
+    `REENVIO: "manda novamente", "pode reenviar?", "manda aquela opção de novo", "quero ver de novo a da Azul" → use reenviar_opcao com quote_id + option_index do bloco de opções enviadas. NUNCA pesquise de novo e nunca altere preço, horário ou companhia. Se a referência estiver clara (última opção comentada, ordinal, companhia, horário, destino), reenvie sem perguntar "qual opção?".`,
+    `REFERÊNCIA VAGA: "essa", "aquela", "a de antes", "a anterior", "a que você mandou", "a mesma", "aquele voo" = a última opção comentada. Perguntas de acompanhamento sem pronome ("quanto fica com bagagem?", "a conexão é longa?", "chega que horas?") continuam na MESMA opção — responda direto.`,
+    `FILTRO ≠ REFERÊNCIA: "tem alguma sem conexão?", "voo direto", "no máximo uma conexão", "conexão rápida" são filtro de pesquisa (somente_voo_direto / maximo_conexoes = 1) — faça nova pesquisa, não trate como referência.`,
+    `COMPARAÇÃO COM COMPANHIA CITADA: "a Latam chega antes?", "a Azul é mais rápida?", "a Gol é mais barata?" → responda sobre a opção DAQUELA companhia. Se não houver opção dessa companhia entre as enviadas, diga isso com naturalidade.`,
+    `"ACHEI CARO": acolha em uma frase, sem inventar desconto e sem urgência artificial. Ofereça alternativas concretas (outra data, data flexível, outro horário, aeroporto próximo, outra companhia, opção com conexão, sem bagagem) e pergunte no máximo UMA preferência. Nunca prometa que vai ficar mais barato.`,
+    `REMARCAÇÃO: dúvida futura ("e se eu precisar remarcar depois?") NÃO é pedido — explique o processo em geral e siga a cotação, sem encaminhar. Pedido atual ("quero remarcar agora", "altera minha reserva") → encaminhar_para_comercial com o contexto, sem prometer valor ou condição.`,
   ].join("\n");
 
   return [

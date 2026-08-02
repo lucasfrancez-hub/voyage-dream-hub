@@ -311,7 +311,8 @@ export type OptionReference = {
     | "unica"
     | "comparacao"
     | "citada"
-    | "ultima_referencia";
+    | "ultima_referencia"
+    | "continuidade";
   /** Cotação com mais de QUOTE_STALE_HOURS — precisa reconsultar. */
   stale?: boolean;
 };
@@ -319,9 +320,52 @@ export type OptionReference = {
 /** Última opção que o cliente comentou (persistida na conversa). */
 export type LastReference = { quote_id: string; option_index: number } | null;
 
-/** Pronomes vagos: "essa", "vou nessa", "fechamos essa", "essa ficou melhor". */
+/**
+ * Pronomes/refências vagas à ÚLTIMA opção comentada:
+ * "essa", "aquela", "a de antes", "a que você mandou", "a mesma"...
+ */
 const RX_PRONOME_VAGO =
-  /\b(essa|esse|est[ae]|nessa|nesse|a de cima|essa a[ií]|essa mesmo|essa op(ç|c)(ã|a)o)\b/i;
+  /\b(essa|esse|est[ae]|nessa|nesse|aquela|aquele|naquela|naquele|a de cima|a de antes|o de antes|a anterior|o anterior|aquela anterior|a mesma|essa mesma|aquela mesma|o mesmo|esse mesmo|aquele mesmo|a (que|q) (voc[êe]|vc|tu) (mandou|enviou|passou|mostrou)|a op(ç|c)(ã|a)o que (voc[êe]|vc) (mandou|enviou)|aquel[ao] (voo|hor[áa]rio|op(ç|c)(ã|a)o|passagem))\b/i;
+
+/**
+ * CONTINUIDADE: pergunta de acompanhamento SEM pronome, que ainda fala da
+ * mesma opção ("quanto fica com bagagem?", "a conexão é longa?").
+ */
+const RX_CONTINUIDADE =
+  /\b(bagagem|mala|despachad|conex(ã|a)o|escala|dura(ç|c)(ã|a)o|quanto (demora|tempo)|chega (que horas|a que horas)|sai (que horas|a que horas)|hor[áa]rio|assento|marca(ç|c)(ã|a)o de assento|remarca(ç|c)(ã|a)o|reembols|parcel|quanto fica|qual o valor|preço|pre(ç|c)o|d[áa] tempo)\b/i;
+
+/** Pedido de REENVIO da mesma opção ("manda de novo", "reenvia aquela"). */
+const RX_REENVIO =
+  /\b(manda(r)?|envia(r)?|reenvia(r)?|mostra(r)?|passa(r)?|repete|repetir|ver|rever)\b[^.?!]{0,40}\b(de novo|novamente|outra vez|mais uma vez)\b|\breenvi(a|e|ar|ando)\b/i;
+
+/** Intenção de FILTRO/nova pesquisa — tem prioridade sobre resolver referência. */
+export type SearchFilterIntent = {
+  somente_voo_direto?: boolean;
+  maximo_conexoes?: number;
+  preferir_conexao_curta?: boolean;
+};
+const RX_FILTRO_DIRETO =
+  /\b(sem (conex(ã|a)o|escala)|voo direto|voos diretos|direto mesmo|n(ã|a)o quero (escala|conex(ã|a)o)|quero evitar (escala|conex(ã|a)o)|evitar conex(ã|a)o)\b/i;
+const RX_FILTRO_UMA_CONEXAO =
+  /\b(no m[áa]ximo (uma|1) conex(ã|a)o|s[óo] (uma|1) conex(ã|a)o|at[ée] (uma|1) conex(ã|a)o)\b/i;
+const RX_FILTRO_CONEXAO_CURTA = /\bconex(ã|a)o (r[áa]pida|curta)\b/i;
+
+/**
+ * Detecta pedido de FILTRO na pesquisa. Deve ser checado ANTES do resolvedor
+ * de referências: "tem alguma sem conexão?" é filtro, não referência.
+ */
+export function detectSearchFilterIntent(texto: string): SearchFilterIntent | null {
+  const t = String(texto ?? "");
+  if (RX_FILTRO_CONEXAO_CURTA.test(t)) return { maximo_conexoes: 1, preferir_conexao_curta: true };
+  if (RX_FILTRO_UMA_CONEXAO.test(t)) return { maximo_conexoes: 1 };
+  if (RX_FILTRO_DIRETO.test(t)) return { somente_voo_direto: true };
+  return null;
+}
+
+/** "manda novamente aquela opção" → o agente deve usar a tool reenviar_opcao. */
+export function detectResendIntent(texto: string): boolean {
+  return RX_REENVIO.test(String(texto ?? ""));
+}
 
 /** Escolhe a cotação alvo considerando "pesquisa anterior" e cidade citada. */
 function escolherCotacao(comEnvio: QuoteMemory[], t: string): QuoteMemory {
@@ -372,10 +416,27 @@ export function resolveOptionReference(
         }
       : null;
 
+  /** Opções da companhia citada na frase (quando houver). */
+  const daCompanhiaCitada = enviadas.filter((o) => {
+    const nome = o.companhia.split(/\s+/)[0] ?? o.companhia;
+    return (
+      new RegExp(`\\b${nome.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i").test(t) ||
+      airlineMatches(o.companhia, t)
+    );
+  });
+
+  // -1) FILTRO DE PESQUISA vem antes de tudo: "tem alguma sem conexão?" é
+  //     alteração de busca, não referência a uma opção já enviada.
+  if (detectSearchFilterIntent(t)) return null;
+
   // 0) COMPARAÇÃO vem antes do ordinal: "qual chega primeiro" ≠ "a primeira".
+  //    Se o cliente citou uma companhia ("a Latam chega antes?"), a comparação
+  //    fica RESTRITA a essa companhia — nunca responde por outra.
   const comparacao = detectComparisonIntent(t);
   if (comparacao) {
-    const vencedora = resolveComparison(enviadas, comparacao);
+    const universo = daCompanhiaCitada.length ? daCompanhiaCitada : enviadas;
+    if (daCompanhiaCitada.length === 1) return achar(daCompanhiaCitada[0], "comparacao");
+    const vencedora = resolveComparison(universo, comparacao);
     return vencedora ? achar(vencedora, "comparacao") : null;
   }
 
@@ -388,11 +449,7 @@ export function resolveOptionReference(
   }
 
   // 2) companhia citada (só quando UMA opção é daquela companhia)
-  const porCia = enviadas.filter((o) => {
-    const nome = o.companhia.split(/\s+/)[0] ?? o.companhia;
-    return new RegExp(`\\b${nome.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i").test(t) || airlineMatches(o.companhia, t);
-  });
-  if (porCia.length === 1) return achar(porCia[0], "companhia");
+  if (daCompanhiaCitada.length === 1) return achar(daCompanhiaCitada[0], "companhia");
 
   // 3) horário citado
   const h = horaCitada(t);
@@ -431,6 +488,22 @@ export function resolveOptionReference(
         option_index: o.option_index,
         opcao: o,
         match: "ultima_referencia",
+        stale: q.idade_horas >= QUOTE_STALE_HOURS,
+      };
+    }
+  }
+
+  // 7) CONTINUIDADE: pergunta de acompanhamento sem pronome ("quanto fica com
+  //    bagagem?", "a conexão é longa?") continua na última opção comentada.
+  if (ultimaRef && RX_CONTINUIDADE.test(t)) {
+    const q = memorias.find((m) => m.quote_id === ultimaRef.quote_id);
+    const o = q?.opcoes.find((x) => x.option_index === ultimaRef.option_index);
+    if (q && o) {
+      return {
+        quote_id: q.quote_id,
+        option_index: o.option_index,
+        opcao: o,
+        match: "continuidade",
         stale: q.idade_horas >= QUOTE_STALE_HOURS,
       };
     }
@@ -640,7 +713,9 @@ export function buildChoiceBlock(escolha: ChoiceDetection | null): string {
   const origem =
     escolha.match === "citada"
       ? " (ele respondeu diretamente a esse card pelo WhatsApp)"
-      : escolha.match === "ultima_referencia"
+      : escolha.match === "continuidade"
+        ? " (a pergunta é continuação da mesma opção que ele já estava discutindo — responda direto, sem perguntar de qual opção se trata)"
+        : escolha.match === "ultima_referencia"
         ? " (é a última opção que ele mesmo comentou — não peça confirmação de qual é)"
         : "";
 
