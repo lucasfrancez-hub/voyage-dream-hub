@@ -222,6 +222,8 @@ async function processPayload(payload: WhatsAppPayload) {
         // Monta o conteúdo (texto, botão, mídia com marcador [[media:...]] ou transcrição de áudio)
         let content: string | null = null;
         let buttonReplyId: string | null = null;
+        let inboundTranscript: string | null = null;
+
         if (msg.type === "text" && msg.text?.body) {
           content = msg.text.body;
         } else if (msg.type === "interactive" && msg.interactive?.button_reply) {
