@@ -327,6 +327,11 @@ export function buildCentralTools(
               conversation_id: conversation.id,
               protocolo_id: conversation.protocolo_ativo_id ?? null,
               payload: result as never,
+              // Quem pesquisou continua sendo o autor de TODAS as artes desta
+              // cotação, inclusive as disparadas depois pelo watchdog.
+              agent_slug: agente?.slug ?? null,
+              agent_name: agente?.nome ?? null,
+              filtros: result.filtros as never,
             })
             .select("id")
             .single();
