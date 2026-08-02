@@ -49,7 +49,8 @@ const RX_AEREO =
 
 // Sinais de que NÃO é aéreo avulso (pacote / viagem completa / pós-venda).
 const RX_BLOQUEIO =
-  /\b(pacote|pacotes|hotel|hoteis|hospedagem|resort|cruzeiro|navio|roteiro|ferias|lua de mel|excursao|all inclusive|aereo\s*\+\s*hotel|aereo e hotel|passeio|ingresso|disney|universal|seguro viagem|transfer|meu pedido|minha reserva|localizador|check-?in|voucher|remarca|reembolso|cancel|reclama|problema com|atraso do voo|bagagem extraviada)\b/i;
+  /\b(pacote|pacotes|hotel|hoteis|hospedagem|resort|cruzeiro|navio|roteiro|ferias|lua de mel|excursao|all inclusive|aereo\s*\+\s*hotel|aereo e hotel|passeio|ingresso|disney|universal|seguro viagem|transfer|alug(ar|uel)|loca[çc][aã]o|carro|intercambio|meu pedido|minha reserva|localizador|check-?in|voucher|remarca\w*|reembols\w*|cancel\w*|reclama\w*|problema com|atraso do voo|bagagem extraviada)\b/i;
+
 
 // Pedido de trecho aéreo dito sem a palavra "passagem": "quero ida e volta",
 // "quero só ida". Sozinhos já indicam cotação de aéreo avulso.
