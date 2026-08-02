@@ -96,11 +96,12 @@ export function validateFlightSearch(
 ): ValidationFailure | ValidationSuccess {
   const hoje = hojeSaoPaulo(now);
 
-  // 1. origem — nunca presumida (cadastro, empresa, hub próximo, conversa antiga)
-  if (d.origem_informada_pelo_cliente === false) {
+  // 1. origem — nunca presumida (cadastro, empresa, hub próximo, conversa antiga,
+  // origem de pacote pronto). Só passa com confirmação explícita === true.
+  if (d.origem_informada_pelo_cliente !== true) {
     return falta(
       ["origem"],
-      "NÃO pesquise. A cidade de embarque NÃO foi informada pelo cliente. Pergunte: \"De qual cidade você vai embarcar?\". Nunca use o cadastro, a cidade da empresa, o aeroporto mais próximo nem qualquer cidade padrão.",
+      "NÃO pesquise. A cidade de embarque NÃO foi informada pelo cliente. Pergunte: \"De qual cidade você vai embarcar?\". Nunca use o cadastro, a cidade da empresa, o aeroporto mais próximo, a origem de um pacote pronto nem qualquer cidade padrão.",
     );
   }
   if (!d.origem || d.origem.trim().length < 2) {
