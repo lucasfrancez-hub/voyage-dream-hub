@@ -20,6 +20,9 @@ export type FlightSearchDraft = {
   adultos?: number | null;
   criancas?: number | null;
   bebes?: number | null;
+  /** Horários opcionais (HH:MM). Só usados para validar ida e volta no MESMO dia. */
+  hora_ida?: string | null;
+  hora_volta?: string | null;
   /** Confirmações explícitas de que o dado veio do cliente (nunca presumido). */
   data_informada_pelo_cliente?: boolean;
   pax_informado_pelo_cliente?: boolean;
