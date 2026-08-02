@@ -291,10 +291,22 @@ export async function quoteFlights(params: QuoteFlightsParams): Promise<FlightQu
     }),
   );
 
+  let descartadasPorCombinacao = 0;
   for (let i = 0; i < escolhidos.length; i++) {
     const ida = escolhidos[i];
     const volta = voltas[i];
     if (params.data_volta && !volta) continue;
+
+    const legIda = toLeg(ida);
+    const legVolta = volta ? toLeg(volta) : null;
+
+    // COMBINAÇÃO REAL: a volta precisa decolar DEPOIS da chegada final da ida
+    // (considerando conexões, virada de dia, mudança de aeroporto e o horário
+    // local devolvido pelo motor). Vale principalmente para o bate-volta.
+    if (legVolta && !combinacaoIdaVoltaValida(legIda, legVolta)) {
+      descartadasPorCombinacao++;
+      continue;
+    }
 
     // Na operadora, o preço da volta já é o total do par ida+volta.
     const total = volta ? volta.price.total : ida.price.total;
@@ -317,8 +329,8 @@ export async function quoteFlights(params: QuoteFlightsParams): Promise<FlightQu
       por_pessoa_formatado: money(total / totalPax),
       passageiros: totalPax,
       bagagem_despachada: flightHasBaggage(volta ?? ida),
-      ida: toLeg(ida),
-      volta: volta ? toLeg(volta) : null,
+      ida: legIda,
+      volta: legVolta,
       cart: {
         outboundFareId: ida.key,
         outboundItineraryId: ida.journey.key ?? "",
@@ -329,7 +341,15 @@ export async function quoteFlights(params: QuoteFlightsParams): Promise<FlightQu
   }
 
 
-  if (!opcoes.length) return { error: "Não consegui montar combinações de ida e volta para essas datas" };
+  if (!opcoes.length) {
+    return {
+      error: descartadasPorCombinacao
+        ? "Existem voos, mas nenhuma combinação de ida e volta é possível nesses horários"
+        : "Não consegui montar combinações de ida e volta para essas datas",
+      sem_combinacao: descartadasPorCombinacao > 0,
+    };
+  }
+
 
   opcoes.sort((a, b) => a.total - b.total);
   opcoes.forEach((o, i) => (o.opcao = i + 1));
