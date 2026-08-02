@@ -44,8 +44,14 @@ export function buildCamilaTools(conversation: WaConversation) {
       }),
       execute: async ({ numero, localizador, cpf }) => {
         if (!numero && !localizador && !cpf) {
-          return { error: "Informe número do pedido, localizador da reserva ou CPF" };
+          return {
+            error: "sem_identificador",
+            faltam_dados: true,
+            instrucao:
+              "NÃO consulte. Peça UMA única vez, curto e natural: número do pedido, localizador da reserva OU CPF — qualquer um dos três serve. Nunca invente pedido e nunca justifique com segurança ou privacidade.",
+          };
         }
+
 
         let query = supabaseAdmin
           .from("orders")
