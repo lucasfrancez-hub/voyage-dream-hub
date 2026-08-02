@@ -535,16 +535,17 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
   const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
   try {
-    const system = centralAgent
-      ? buildCentralPrompt(
-          centralAgent.nome,
-          CENTRAL_GENDER[centralAgent.slug as CentralSlug] ?? "f",
-          centralBrief,
-          { primeiroContato: centralPrimeiroContato, storedPrompt: centralAgent.system_prompt },
-        ) +
-        "\n\n" +
-        buildSystemPrompt(agent, conv, protocolo, isNewProtocolo, previousContext, { contextOnly: true })
-      : buildSystemPrompt(agent, conv, protocolo, isNewProtocolo, previousContext);
+    const system =
+      (centralAgent
+        ? buildCentralPrompt(
+            centralAgent.nome,
+            CENTRAL_GENDER[centralAgent.slug as CentralSlug] ?? "f",
+            centralBrief,
+            { primeiroContato: centralPrimeiroContato, storedPrompt: centralAgent.system_prompt },
+          ) +
+          "\n\n" +
+          buildSystemPrompt(agent, conv, protocolo, isNewProtocolo, previousContext, { contextOnly: true })
+        : buildSystemPrompt(agent, conv, protocolo, isNewProtocolo, previousContext)) + quoteBlock;
     let result: { text?: string; steps?: Array<{ toolCalls?: Array<{ toolName: string; input: unknown }> }> } | null = null;
     let lastErr: unknown = null;
     for (let i = 0; i < ATTEMPTS.length; i++) {
