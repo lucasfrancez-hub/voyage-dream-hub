@@ -961,14 +961,17 @@ export function buildChoiceBlock(escolha: ChoiceDetection | null): string {
         : "";
 
   const bagagemAviso =
-    escolha.bagagem === "nova_pesquisa"
-      ? `\n# 🧳 PEDIDO DE VALOR COM BAGAGEM DESPACHADA\n` +
-        `Ele quer saber QUANTO FICA com bagagem despachada. NUNCA estime, some ou "chute" o valor.\n` +
-        `Faça uma NOVA busca com \`pesquisar_passagens\` usando os mesmos trechos/datas/pax e \`bagagem_despachada: true\`, e responda com o valor real retornado. Avise que está consultando o valor com bagagem.`
-      : escolha.bagagem === "consulta_tarifa"
-        ? `\n# 🧳 DÚVIDA SOBRE BAGAGEM DA OPÇÃO ATUAL\n` +
-          `Ele quer saber se ESSA opção já inclui bagagem despachada. Responda apenas com o que está registrado nessa cotação. Se a franquia/peso não estiver registrada, diga que confirma a franquia exata com a companhia — NÃO invente quilos, peças nem regra de bagagem.`
-        : "";
+    escolha.bagagem === "incluir"
+      ? `\n# 🧳 PEDIDO DE VALOR COM BAGAGEM DESPACHADA (bagagem_intent: incluir)\n` +
+        `Ele quer saber QUANTO FICA com bagagem despachada. NUNCA estime, some ou "chute" o valor, e nunca reaproveite o preço antigo.\n` +
+        `Faça uma NOVA busca com \`pesquisar_passagens\` usando os mesmos trechos/datas/pax e \`somente_com_bagagem: true\`, e responda com o valor real retornado. Avise que está consultando o valor com bagagem.`
+      : escolha.bagagem === "remover"
+        ? `\n# 🧳 PEDIDO DE VALOR SEM BAGAGEM DESPACHADA (bagagem_intent: remover)\n` +
+          `Ele quer o valor SEM bagagem despachada. Faça uma NOVA busca com \`pesquisar_passagens\` (mesmos trechos/datas/pax) e \`somente_com_bagagem: false\`. Nunca subtraia valor por conta própria.`
+        : escolha.bagagem === "consultar"
+          ? `\n# 🧳 DÚVIDA SOBRE BAGAGEM DA OPÇÃO ATUAL (bagagem_intent: consultar)\n` +
+            `Ele quer saber se ESSA opção já inclui bagagem despachada. Responda apenas com o que está registrado nessa cotação, SEM nova pesquisa. Se a franquia/peso não estiver registrada, diga que confirma a franquia exata com a companhia — NÃO invente quilos, peças nem regra de bagagem.`
+          : "";
 
   if (escolha.conflito) {
     return (
