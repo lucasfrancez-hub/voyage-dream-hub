@@ -201,7 +201,12 @@ export function buildCentralTools(
       description:
         "Pesquisa passagens aéreas no motor de busca oficial (Comprar Viagem) e ENVIA automaticamente as ARTES (cards) das duas melhores opções ao cliente. Use SOMENTE quando o próprio cliente já tiver informado origem, destino, tipo de trecho (somente ida ou ida e volta), data(s) e quantidade de passageiros. NUNCA chame com data, trecho ou quantidade de passageiros presumidos por você. Se algum dado faltar ou estiver incoerente, a tool devolve o que perguntar em vez de pesquisar. Se o cliente pedir outro horário depois, chame de novo com a preferência de horário.",
       inputSchema: z.object({
-        origem: z.string().min(2).describe("Cidade ou IATA de origem, ex.: 'Maringá' ou 'MGF'"),
+        origem: z.string().min(2).describe("Cidade ou IATA de origem, ex.: 'Maringá' ou 'MGF'. SOMENTE a cidade que o próprio cliente informou."),
+        origem_informada_pelo_cliente: z
+          .boolean()
+          .describe(
+            "true SOMENTE se o próprio cliente disse a cidade de embarque nesta conversa. Se você estiver usando cadastro, cidade da empresa, conversa antiga, aeroporto mais próximo ou qualquer padrão, mande false — a pesquisa será bloqueada.",
+          ),
         destino: z.string().min(2).describe("Cidade ou IATA de destino, ex.: 'Recife' ou 'REC'"),
         tipo_trecho: z
           .enum(["somente_ida", "ida_e_volta"])
