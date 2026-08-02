@@ -29,7 +29,7 @@ export function isValidOriginQuestion(
   if (!s) return false;
   const esc = s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   return new RegExp(
-    `(manter|continua|segue|sai(?:r|ndo)?|embarq\\w*|permanece)[^\\n]{0,40}${esc}|${esc}[^\\n]{0,40}(ou (?:quer|prefere|vai)|mudar a origem|trocar a origem)`,
+    `(manter|mant[eé]m|continua|permanece|segue)[^\\n]{0,40}${esc}|${esc}[^\\n]{0,40}(ou (?:quer|prefere|vai|deseja)|mudar a origem|trocar a origem)`,
     "i",
   ).test(text);
 }
