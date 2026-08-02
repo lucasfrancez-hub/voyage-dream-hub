@@ -176,18 +176,44 @@ async function processPayload(payload: WhatsAppPayload) {
           msg.errors.some((e) => e?.code === 131051);
         if (isRevoke) {
           const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+          // Horário informado pela Meta no evento (epoch em segundos), com fallback pro agora.
+          const revokedAt = (() => {
+            const ts = Number(msg.timestamp);
+            return Number.isFinite(ts) && ts > 0
+              ? new Date(ts * 1000).toISOString()
+              : new Date().toISOString();
+          })();
+          // Idempotente: só atualiza se ainda não estiver marcada (evento duplicado
+          // não gera segunda legenda, segundo log nem nova mensagem).
           const { data: updated } = await supabaseAdmin
             .from("wa_messages")
             .update({
-              deleted_at: new Date().toISOString(),
+              is_revoked: true,
+              revoked_by: "customer",
+              revoked_at: revokedAt,
+              deleted_at: revokedAt,
               deleted_by_customer: true,
             })
             .eq("wa_message_id", msg.id)
-            .select("id")
+            .eq("is_revoked", false)
+            .select("id, conversation_id")
             .maybeSingle();
-          console.log(
-            `[wa-webhook] REVOKE Meta ${msg.id} — ${updated ? "marcada" : "não encontrada"}`,
-          );
+          if (updated) {
+            console.log(
+              JSON.stringify({
+                event: "message_revoked",
+                conversation_id: updated.conversation_id,
+                message_id: updated.id,
+                meta_message_id: msg.id,
+                revoked_by: "customer",
+                revoked_at: revokedAt,
+              }),
+            );
+          } else {
+            console.log(
+              `[wa-webhook] REVOKE Meta ${msg.id} — já marcada ou não encontrada (ignorado)`,
+            );
+          }
           continue;
         }
 
