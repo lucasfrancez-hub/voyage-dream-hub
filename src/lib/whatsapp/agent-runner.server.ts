@@ -127,11 +127,20 @@ function looksLikeRealName(v: string | null | undefined): boolean {
   return true;
 }
 
-function buildSystemPrompt(agent: Agent, conv: WaConversation, protocolo: WaProtocolo, _isNewProtocolo: boolean, previousContext?: string): string {
+function buildSystemPrompt(
+  agent: Agent,
+  conv: WaConversation,
+  protocolo: WaProtocolo,
+  _isNewProtocolo: boolean,
+  previousContext?: string,
+  opts?: { contextOnly?: boolean },
+): string {
   // Sempre gera o prompt compartilhado com o nome/gênero deste agente,
   // ignorando o system_prompt armazenado (mantém a base única pra todo o time).
-  const base = buildSharedAgentPrompt(agent.nome, genderOf(agent.slug));
-  const parts = [base];
+  // contextOnly = agentes da Central: eles têm prompt próprio e NÃO recebem
+  // os fluxos de negócio das consultoras (evita regras contraditórias).
+  const contextOnly = opts?.contextOnly === true;
+  const parts: string[] = contextOnly ? [] : [buildSharedAgentPrompt(agent.nome, genderOf(agent.slug))];
 
   parts.push(`\n\n# CONTEXTO DESTA CONVERSA`);
   parts.push(`- Você é: ${agent.nome}`);
