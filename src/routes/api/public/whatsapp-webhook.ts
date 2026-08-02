@@ -106,7 +106,7 @@ type WhatsAppPayload = {
  * revogação chegou, qual id veio e se a mensagem original foi localizada.
  */
 async function logWebhookEvent(
-  admin: { from: (t: string) => { insert: (v: unknown) => Promise<{ error: { message: string } | null }> } },
+  admin: unknown,
   ev: {
     event_type: string;
     meta_message_id?: string | null;
@@ -117,8 +117,12 @@ async function logWebhookEvent(
     payload?: Record<string, unknown> | null;
   },
 ) {
+  type Insertable = {
+    from: (t: string) => { insert: (v: Record<string, unknown>) => Promise<{ error: { message: string } | null }> };
+  };
   try {
-    const { error } = await admin.from("wa_webhook_events").insert({
+    const { error } = await (admin as Insertable).from("wa_webhook_events").insert({
+
       webhook_field: "messages",
       event_type: ev.event_type,
       meta_message_id: ev.meta_message_id ?? null,
