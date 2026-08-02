@@ -76,6 +76,8 @@ import { Route as AdminPedidosTerceirosRouteImport } from './routes/admin.pedido
 import { Route as AdminPessoasIdRouteImport } from './routes/admin.pessoas.$id'
 import { Route as ApiChatCamilaRouteImport } from './routes/api/chat.camila'
 import { Route as ApiPublicClicksignWebhookRouteImport } from './routes/api/public/clicksign-webhook'
+import { Route as ApiPublicFlightCardRouteImport } from './routes/api/public/flight-card'
+import { Route as ApiPublicHotelCardRouteImport } from './routes/api/public/hotel-card'
 import { Route as ApiPublicImportAereoRouteImport } from './routes/api/public/import-aereo'
 import { Route as ApiPublicInstagramWebhookRouteImport } from './routes/api/public/instagram-webhook'
 import { Route as ApiPublicItauPixWebhookRouteImport } from './routes/api/public/itau-pix-webhook'
@@ -93,6 +95,7 @@ import { Route as ApiPublicHooksBroadcastDispatchRouteImport } from './routes/ap
 import { Route as ApiPublicHooksCheckFlightChangesRouteImport } from './routes/api/public/hooks/check-flight-changes'
 import { Route as ApiPublicHooksCloseInactiveProtocolsRouteImport } from './routes/api/public/hooks/close-inactive-protocols'
 import { Route as ApiPublicHooksDispatchAiDebouncedRouteImport } from './routes/api/public/hooks/dispatch-ai-debounced'
+import { Route as ApiPublicHooksFlightQuoteWatchdogRouteImport } from './routes/api/public/hooks/flight-quote-watchdog'
 import { Route as ApiPublicHooksRunCheckinsRouteImport } from './routes/api/public/hooks/run-checkins'
 import { Route as ApiPublicPackageHotelPhotoSplatRouteImport } from './routes/api/public/package-hotel-photo.$'
 import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
@@ -437,6 +440,16 @@ const ApiPublicClicksignWebhookRoute =
     path: '/api/public/clicksign-webhook',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicFlightCardRoute = ApiPublicFlightCardRouteImport.update({
+  id: '/api/public/flight-card',
+  path: '/api/public/flight-card',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicHotelCardRoute = ApiPublicHotelCardRouteImport.update({
+  id: '/api/public/hotel-card',
+  path: '/api/public/hotel-card',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicImportAereoRoute = ApiPublicImportAereoRouteImport.update({
   id: '/api/public/import-aereo',
   path: '/api/public/import-aereo',
@@ -530,6 +543,12 @@ const ApiPublicHooksDispatchAiDebouncedRoute =
   ApiPublicHooksDispatchAiDebouncedRouteImport.update({
     id: '/api/public/hooks/dispatch-ai-debounced',
     path: '/api/public/hooks/dispatch-ai-debounced',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicHooksFlightQuoteWatchdogRoute =
+  ApiPublicHooksFlightQuoteWatchdogRouteImport.update({
+    id: '/api/public/hooks/flight-quote-watchdog',
+    path: '/api/public/hooks/flight-quote-watchdog',
     getParentRoute: () => rootRouteImport,
   } as any)
 const ApiPublicHooksRunCheckinsRoute =
@@ -640,6 +659,8 @@ export interface FileRoutesByFullPath {
   '/admin/pessoas/$id': typeof AdminPessoasIdRoute
   '/api/chat/camila': typeof ApiChatCamilaRoute
   '/api/public/clicksign-webhook': typeof ApiPublicClicksignWebhookRoute
+  '/api/public/flight-card': typeof ApiPublicFlightCardRoute
+  '/api/public/hotel-card': typeof ApiPublicHotelCardRoute
   '/api/public/import-aereo': typeof ApiPublicImportAereoRoute
   '/api/public/instagram-webhook': typeof ApiPublicInstagramWebhookRoute
   '/api/public/itau-pix-webhook': typeof ApiPublicItauPixWebhookRoute
@@ -658,6 +679,7 @@ export interface FileRoutesByFullPath {
   '/api/public/hooks/check-flight-changes': typeof ApiPublicHooksCheckFlightChangesRoute
   '/api/public/hooks/close-inactive-protocols': typeof ApiPublicHooksCloseInactiveProtocolsRoute
   '/api/public/hooks/dispatch-ai-debounced': typeof ApiPublicHooksDispatchAiDebouncedRoute
+  '/api/public/hooks/flight-quote-watchdog': typeof ApiPublicHooksFlightQuoteWatchdogRoute
   '/api/public/hooks/run-checkins': typeof ApiPublicHooksRunCheckinsRoute
   '/api/public/package-hotel-photo/$': typeof ApiPublicPackageHotelPhotoSplatRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
@@ -732,6 +754,8 @@ export interface FileRoutesByTo {
   '/admin/pessoas/$id': typeof AdminPessoasIdRoute
   '/api/chat/camila': typeof ApiChatCamilaRoute
   '/api/public/clicksign-webhook': typeof ApiPublicClicksignWebhookRoute
+  '/api/public/flight-card': typeof ApiPublicFlightCardRoute
+  '/api/public/hotel-card': typeof ApiPublicHotelCardRoute
   '/api/public/import-aereo': typeof ApiPublicImportAereoRoute
   '/api/public/instagram-webhook': typeof ApiPublicInstagramWebhookRoute
   '/api/public/itau-pix-webhook': typeof ApiPublicItauPixWebhookRoute
@@ -750,6 +774,7 @@ export interface FileRoutesByTo {
   '/api/public/hooks/check-flight-changes': typeof ApiPublicHooksCheckFlightChangesRoute
   '/api/public/hooks/close-inactive-protocols': typeof ApiPublicHooksCloseInactiveProtocolsRoute
   '/api/public/hooks/dispatch-ai-debounced': typeof ApiPublicHooksDispatchAiDebouncedRoute
+  '/api/public/hooks/flight-quote-watchdog': typeof ApiPublicHooksFlightQuoteWatchdogRoute
   '/api/public/hooks/run-checkins': typeof ApiPublicHooksRunCheckinsRoute
   '/api/public/package-hotel-photo/$': typeof ApiPublicPackageHotelPhotoSplatRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
@@ -826,6 +851,8 @@ export interface FileRoutesById {
   '/admin/pessoas/$id': typeof AdminPessoasIdRoute
   '/api/chat/camila': typeof ApiChatCamilaRoute
   '/api/public/clicksign-webhook': typeof ApiPublicClicksignWebhookRoute
+  '/api/public/flight-card': typeof ApiPublicFlightCardRoute
+  '/api/public/hotel-card': typeof ApiPublicHotelCardRoute
   '/api/public/import-aereo': typeof ApiPublicImportAereoRoute
   '/api/public/instagram-webhook': typeof ApiPublicInstagramWebhookRoute
   '/api/public/itau-pix-webhook': typeof ApiPublicItauPixWebhookRoute
@@ -844,6 +871,7 @@ export interface FileRoutesById {
   '/api/public/hooks/check-flight-changes': typeof ApiPublicHooksCheckFlightChangesRoute
   '/api/public/hooks/close-inactive-protocols': typeof ApiPublicHooksCloseInactiveProtocolsRoute
   '/api/public/hooks/dispatch-ai-debounced': typeof ApiPublicHooksDispatchAiDebouncedRoute
+  '/api/public/hooks/flight-quote-watchdog': typeof ApiPublicHooksFlightQuoteWatchdogRoute
   '/api/public/hooks/run-checkins': typeof ApiPublicHooksRunCheckinsRoute
   '/api/public/package-hotel-photo/$': typeof ApiPublicPackageHotelPhotoSplatRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
@@ -921,6 +949,8 @@ export interface FileRouteTypes {
     | '/admin/pessoas/$id'
     | '/api/chat/camila'
     | '/api/public/clicksign-webhook'
+    | '/api/public/flight-card'
+    | '/api/public/hotel-card'
     | '/api/public/import-aereo'
     | '/api/public/instagram-webhook'
     | '/api/public/itau-pix-webhook'
@@ -939,6 +969,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/check-flight-changes'
     | '/api/public/hooks/close-inactive-protocols'
     | '/api/public/hooks/dispatch-ai-debounced'
+    | '/api/public/hooks/flight-quote-watchdog'
     | '/api/public/hooks/run-checkins'
     | '/api/public/package-hotel-photo/$'
     | '/lovable/email/auth/preview'
@@ -1013,6 +1044,8 @@ export interface FileRouteTypes {
     | '/admin/pessoas/$id'
     | '/api/chat/camila'
     | '/api/public/clicksign-webhook'
+    | '/api/public/flight-card'
+    | '/api/public/hotel-card'
     | '/api/public/import-aereo'
     | '/api/public/instagram-webhook'
     | '/api/public/itau-pix-webhook'
@@ -1031,6 +1064,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/check-flight-changes'
     | '/api/public/hooks/close-inactive-protocols'
     | '/api/public/hooks/dispatch-ai-debounced'
+    | '/api/public/hooks/flight-quote-watchdog'
     | '/api/public/hooks/run-checkins'
     | '/api/public/package-hotel-photo/$'
     | '/lovable/email/auth/preview'
@@ -1106,6 +1140,8 @@ export interface FileRouteTypes {
     | '/admin/pessoas/$id'
     | '/api/chat/camila'
     | '/api/public/clicksign-webhook'
+    | '/api/public/flight-card'
+    | '/api/public/hotel-card'
     | '/api/public/import-aereo'
     | '/api/public/instagram-webhook'
     | '/api/public/itau-pix-webhook'
@@ -1124,6 +1160,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/check-flight-changes'
     | '/api/public/hooks/close-inactive-protocols'
     | '/api/public/hooks/dispatch-ai-debounced'
+    | '/api/public/hooks/flight-quote-watchdog'
     | '/api/public/hooks/run-checkins'
     | '/api/public/package-hotel-photo/$'
     | '/lovable/email/auth/preview'
@@ -1162,6 +1199,8 @@ export interface RootRouteChildren {
   WSlugRoute: typeof WSlugRoute
   ApiChatCamilaRoute: typeof ApiChatCamilaRoute
   ApiPublicClicksignWebhookRoute: typeof ApiPublicClicksignWebhookRoute
+  ApiPublicFlightCardRoute: typeof ApiPublicFlightCardRoute
+  ApiPublicHotelCardRoute: typeof ApiPublicHotelCardRoute
   ApiPublicImportAereoRoute: typeof ApiPublicImportAereoRoute
   ApiPublicInstagramWebhookRoute: typeof ApiPublicInstagramWebhookRoute
   ApiPublicItauPixWebhookRoute: typeof ApiPublicItauPixWebhookRoute
@@ -1177,6 +1216,7 @@ export interface RootRouteChildren {
   ApiPublicHooksCheckFlightChangesRoute: typeof ApiPublicHooksCheckFlightChangesRoute
   ApiPublicHooksCloseInactiveProtocolsRoute: typeof ApiPublicHooksCloseInactiveProtocolsRoute
   ApiPublicHooksDispatchAiDebouncedRoute: typeof ApiPublicHooksDispatchAiDebouncedRoute
+  ApiPublicHooksFlightQuoteWatchdogRoute: typeof ApiPublicHooksFlightQuoteWatchdogRoute
   ApiPublicHooksRunCheckinsRoute: typeof ApiPublicHooksRunCheckinsRoute
   ApiPublicPackageHotelPhotoSplatRoute: typeof ApiPublicPackageHotelPhotoSplatRoute
   LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
@@ -1657,6 +1697,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicClicksignWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/flight-card': {
+      id: '/api/public/flight-card'
+      path: '/api/public/flight-card'
+      fullPath: '/api/public/flight-card'
+      preLoaderRoute: typeof ApiPublicFlightCardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/hotel-card': {
+      id: '/api/public/hotel-card'
+      path: '/api/public/hotel-card'
+      fullPath: '/api/public/hotel-card'
+      preLoaderRoute: typeof ApiPublicHotelCardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/import-aereo': {
       id: '/api/public/import-aereo'
       path: '/api/public/import-aereo'
@@ -1774,6 +1828,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/hooks/dispatch-ai-debounced'
       fullPath: '/api/public/hooks/dispatch-ai-debounced'
       preLoaderRoute: typeof ApiPublicHooksDispatchAiDebouncedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/hooks/flight-quote-watchdog': {
+      id: '/api/public/hooks/flight-quote-watchdog'
+      path: '/api/public/hooks/flight-quote-watchdog'
+      fullPath: '/api/public/hooks/flight-quote-watchdog'
+      preLoaderRoute: typeof ApiPublicHooksFlightQuoteWatchdogRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/hooks/run-checkins': {
@@ -1974,6 +2035,8 @@ const rootRouteChildren: RootRouteChildren = {
   WSlugRoute: WSlugRoute,
   ApiChatCamilaRoute: ApiChatCamilaRoute,
   ApiPublicClicksignWebhookRoute: ApiPublicClicksignWebhookRoute,
+  ApiPublicFlightCardRoute: ApiPublicFlightCardRoute,
+  ApiPublicHotelCardRoute: ApiPublicHotelCardRoute,
   ApiPublicImportAereoRoute: ApiPublicImportAereoRoute,
   ApiPublicInstagramWebhookRoute: ApiPublicInstagramWebhookRoute,
   ApiPublicItauPixWebhookRoute: ApiPublicItauPixWebhookRoute,
@@ -1991,6 +2054,8 @@ const rootRouteChildren: RootRouteChildren = {
     ApiPublicHooksCloseInactiveProtocolsRoute,
   ApiPublicHooksDispatchAiDebouncedRoute:
     ApiPublicHooksDispatchAiDebouncedRoute,
+  ApiPublicHooksFlightQuoteWatchdogRoute:
+    ApiPublicHooksFlightQuoteWatchdogRoute,
   ApiPublicHooksRunCheckinsRoute: ApiPublicHooksRunCheckinsRoute,
   ApiPublicPackageHotelPhotoSplatRoute: ApiPublicPackageHotelPhotoSplatRoute,
   LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,
