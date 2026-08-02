@@ -4262,6 +4262,45 @@ export type Database = {
           },
         ]
       }
+      wa_webhook_events: {
+        Row: {
+          conversation_id: string | null
+          event_type: string
+          id: string
+          matched_message_id: string | null
+          meta_message_id: string | null
+          note: string | null
+          payload: Json | null
+          received_at: string
+          wa_from: string | null
+          webhook_field: string | null
+        }
+        Insert: {
+          conversation_id?: string | null
+          event_type: string
+          id?: string
+          matched_message_id?: string | null
+          meta_message_id?: string | null
+          note?: string | null
+          payload?: Json | null
+          received_at?: string
+          wa_from?: string | null
+          webhook_field?: string | null
+        }
+        Update: {
+          conversation_id?: string | null
+          event_type?: string
+          id?: string
+          matched_message_id?: string | null
+          meta_message_id?: string | null
+          note?: string | null
+          payload?: Json | null
+          received_at?: string
+          wa_from?: string | null
+          webhook_field?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
