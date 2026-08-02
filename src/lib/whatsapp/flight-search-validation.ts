@@ -32,6 +32,11 @@ export type FlightSearchDraft = {
    * conversa antiga, hub mais próximo ou qualquer padrão = false.
    */
   origem_informada_pelo_cliente?: boolean;
+  /**
+   * Origem recuperada do histórico da conversa. É apenas SUGESTÃO: nunca
+   * libera a pesquisa, só muda a pergunta para uma confirmação natural.
+   */
+  origem_sugerida_pelo_historico?: string | null;
 };
 
 export type ValidationFailure = {
