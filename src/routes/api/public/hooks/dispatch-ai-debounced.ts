@@ -50,7 +50,7 @@ export const Route = createFileRoute("/api/public/hooks/dispatch-ai-debounced")(
             // Usa o wa_message_id da última mensagem inbound da conversa.
             const { data: lastInbound } = await supabaseAdmin
               .from("wa_messages")
-              .select("wa_message_id")
+              .select("id, wa_message_id")
               .eq("conversation_id", conv.id)
               .eq("direction", "inbound")
               .not("wa_message_id", "is", null)
@@ -62,7 +62,11 @@ export const Route = createFileRoute("/api/public/hooks/dispatch-ai-debounced")(
               await sendWhatsAppTypingIndicator(lastInbound.wa_message_id);
             }
 
-            await runAgent({ wa_phone: conv.wa_phone, profile_name: conv.display_name });
+            await runAgent({
+              wa_phone: conv.wa_phone,
+              profile_name: conv.display_name,
+              trigger_message_id: lastInbound?.id ?? undefined,
+            });
 
             // Sucesso: só agora zeramos o debounce. Se uma nova mensagem chegou
             // durante o processamento, ela já empurrou o lease pra outra data

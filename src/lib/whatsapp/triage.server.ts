@@ -264,8 +264,10 @@ export async function triageFirstMessage(conv: WaConversation): Promise<TriageRe
   // ou com sinal de pacote/pós-venda, nem classificamos.
   if (!heuristicaAereo(texto)) return null;
 
+  // A heurística dura já confirmou um pedido aéreo explícito. O classificador
+  // serve apenas para extrair os campos; ele não pode rebaixar a intenção e
+  // mandar a conversa de volta para pacote por uma classificação instável.
   const c = await classificar(texto);
-  if (!c.aereo_avulso) return null;
 
 
   const linhas = ["✈️ Cotação de passagem aérea (pedido de aéreo identificado na triagem)"];

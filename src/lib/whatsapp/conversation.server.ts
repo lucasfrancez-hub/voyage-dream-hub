@@ -151,7 +151,15 @@ export async function ensureActiveProtocolo(conversationId: string): Promise<WaP
       .from("wa_conversations")
       // Protocolo NOVO (reabertura de antigo): zera agent_slug pra sortear
       // outro atendente entre os que estão na janela agora.
-      .update({ protocolo_ativo_id: recent.id, agent_slug: null, tags: freshTags })
+      .update({
+        protocolo_ativo_id: recent.id,
+        agent_slug: null,
+        central_slug: null,
+        central_desde: null,
+        central_brief: null,
+        central_busca: null,
+        tags: freshTags,
+      })
       .eq("id", conversationId);
     return reopened as WaProtocolo;
   }
@@ -166,7 +174,15 @@ export async function ensureActiveProtocolo(conversationId: string): Promise<WaP
   await supabaseAdmin
     .from("wa_conversations")
     // Protocolo NOVO: nunca herda o agente do protocolo anterior.
-    .update({ protocolo_ativo_id: created.id, agent_slug: null, tags: freshTags })
+    .update({
+      protocolo_ativo_id: created.id,
+      agent_slug: null,
+      central_slug: null,
+      central_desde: null,
+      central_brief: null,
+      central_busca: null,
+      tags: freshTags,
+    })
     .eq("id", conversationId);
   return created as WaProtocolo;
 }
