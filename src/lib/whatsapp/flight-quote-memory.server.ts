@@ -358,7 +358,12 @@ export async function registerCustomerChoice(
   const { logCardEvent } = await import("./card-log.server");
   const quote = memorias.find((m) => m.quote_id === escolha.quote_id);
 
-  const patch: Record<string, unknown> = {
+  const patch: {
+    escolha_option_index: number;
+    escolha_at: string;
+    cancelled_at?: string;
+    cancelled_reason?: string;
+  } = {
     escolha_option_index: escolha.option_index,
     escolha_at: new Date().toISOString(),
   };
