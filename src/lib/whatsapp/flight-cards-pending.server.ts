@@ -80,7 +80,9 @@ export async function sendPendingFlightCards(
   const desde = new Date(Date.now() - maxAgeMs).toISOString();
   let pendingQuery = supabaseAdmin
     .from("wa_flight_quotes")
-    .select("id, payload, protocolo_id, sent_fingerprints, cards_sent_at")
+    .select(
+      "id, payload, protocolo_id, sent_fingerprints, cards_sent_at, agent_slug, agent_name, cancelled_at",
+    )
     .eq("conversation_id", conversationId)
     .gte("created_at", desde)
     .order("created_at", { ascending: false })
@@ -95,7 +97,13 @@ export async function sendPendingFlightCards(
   // Uma cotação está disponível quando ainda não foi reivindicada OU quando o
   // claim ficou preso (worker caiu no meio do render): claim antigo + artes
   // incompletas = destrava e tenta de novo, senão o cliente nunca recebe nada.
-  const disponivel = (r: { cards_sent_at?: string | null; sent_fingerprints?: unknown }) => {
+  // Cotação cancelada (o cliente já escolheu uma opção) nunca volta pra fila.
+  const disponivel = (r: {
+    cards_sent_at?: string | null;
+    sent_fingerprints?: unknown;
+    cancelled_at?: string | null;
+  }) => {
+    if (r.cancelled_at) return false;
     if (force) return true;
     if (!r.cards_sent_at) return true;
     const idade = Date.now() - new Date(r.cards_sent_at).getTime();
@@ -108,6 +116,9 @@ export async function sendPendingFlightCards(
     protocolo_id: string | null;
     sent_fingerprints?: unknown;
     cards_sent_at?: string | null;
+    agent_slug?: string | null;
+    agent_name?: string | null;
+    cancelled_at?: string | null;
   }>;
   // Só a cotação mais recente do protocolo pode avançar. As duplicadas antigas
   // ficam definitivamente fora da fila; do contrário, após concluir a atual o
@@ -115,6 +126,8 @@ export async function sendPendingFlightCards(
   // da busca é bloqueada em `cotar_aereo`, que reaproveita a atual incompleta.
   const maisRecente = quotesRecentes[0];
   const row = maisRecente && disponivel(maisRecente) ? maisRecente : undefined;
+  /** Autor real da pesquisa — preservado mesmo quando quem dispara é o cron. */
+  const autor = { slug: row?.agent_slug ?? null, nome: row?.agent_name ?? null };
 
   const quote = row?.payload as
     | {
@@ -310,6 +323,13 @@ export async function sendPendingFlightCards(
         direction: "outbound",
         sender: "camila",
         content: texto,
+        // Fallback em texto também fica vinculado à cotação/opção/agente.
+        agent_slug: autor.slug,
+        agent_name: autor.nome,
+        quote_id: quoteId,
+        option_index: numero,
+        source_tool: "pesquisar_passagens",
+        card_option: op as unknown,
       });
       const r = await sendWhatsAppText(waPhone, texto);
       if (msg?.id) {
@@ -377,6 +397,13 @@ export async function sendPendingFlightCards(
         direction: "outbound",
         sender: "camila",
         content: `[[media:image|${asset.url}|${asset.filename}]]\n${caption}`,
+        // Vínculo completo: cotação + opção + autor real da pesquisa.
+        agent_slug: autor.slug,
+        agent_name: autor.nome,
+        quote_id: quoteId,
+        option_index: optionIndex,
+        source_tool: "pesquisar_passagens",
+        card_option: op as unknown,
       });
       if (msg?.id) await setSendError(msg.id, SENDING_CLAIM);
 
@@ -395,6 +422,7 @@ export async function sendPendingFlightCards(
           .from("wa_messages")
           .update({
             wa_message_id: r.id ?? null,
+            meta_media_id: r.media_id ?? null,
             error: r.error ?? null,
           })
           .eq("id", msg.id);

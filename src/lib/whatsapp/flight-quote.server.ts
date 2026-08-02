@@ -12,6 +12,7 @@ import {
 import type { OnerFlight, OnerPlace } from "@/lib/onertravel.types";
 import { flightHasBaggage } from "@/lib/onertravel.types";
 import { combinacaoIdaVoltaValida } from "./flight-search-validation";
+import { airlineListToIatas, airlineMatches } from "./airline-codes";
 
 export type PeriodoDia = "manha" | "tarde" | "noite" | "livre";
 
@@ -50,6 +51,17 @@ export type FlightQuoteOption = {
   cart: FlightQuoteCart;
 };
 
+/** Filtros que o cliente pediu e que foram efetivamente aplicados na busca. */
+export type FlightQuoteFilters = {
+  somente_voo_direto: boolean;
+  maximo_conexoes: number;
+  companhias_incluidas: string[]; // IATA
+  companhias_excluidas: string[]; // IATA
+  bagagem_despachada: boolean;
+  periodo_ida: PeriodoDia;
+  periodo_volta: PeriodoDia | null;
+};
+
 export type FlightQuoteResult = {
   origem_iata: string;
   destino_iata: string;
@@ -60,8 +72,10 @@ export type FlightQuoteResult = {
   search_key: string | null;
   passageiros: { adultos: number; criancas: number; bebes: number };
   opcoes: FlightQuoteOption[];
+  filtros: FlightQuoteFilters;
   observacao: string;
 };
+
 
 const PERIODOS: Record<Exclude<PeriodoDia, "livre">, [number, number]> = {
   manha: [300, 720], // 05:00 - 12:00
@@ -177,9 +191,23 @@ export type QuoteFlightsParams = {
   periodo_volta?: PeriodoDia | null;
   bagagem_despachada?: boolean | null;
   max_opcoes?: number | null;
+  /** Cliente pediu SÓ voo direto (equivale a maximo_conexoes = 0). */
+  somente_voo_direto?: boolean | null;
+  /** Teto de conexões por trecho (0, 1 ou 2). */
+  maximo_conexoes?: number | null;
+  /** Só estas companhias (nome falado ou IATA): "Azul", "LATAM", "AD"… */
+  companhias_incluidas?: string[] | null;
+  /** Nunca estas companhias ("não quero Gol"). */
+  companhias_excluidas?: string[] | null;
 };
 
-export type FlightQuoteError = { error: string; sem_combinacao?: boolean };
+export type FlightQuoteError = {
+  error: string;
+  sem_combinacao?: boolean;
+  /** Havia voos, mas nenhum atende os filtros pedidos pelo cliente. */
+  sem_resultado_por_filtro?: boolean;
+  filtros?: FlightQuoteFilters;
+};
 
 export async function quoteFlights(params: QuoteFlightsParams): Promise<FlightQuoteResult | FlightQuoteError> {
   const adultos = Math.max(1, params.adultos ?? 1);
@@ -198,13 +226,49 @@ export async function quoteFlights(params: QuoteFlightsParams): Promise<FlightQu
   const jVolta = janela(params.periodo_volta);
   const bagagem = !!params.bagagem_despachada;
 
+  // ── FILTROS PEDIDOS PELO CLIENTE ──────────────────────────────────────────
+  // O motor aceita maxStops e marketingAirlineIatas; o que ele não garante
+  // (exclusão de companhia e teto exato de conexões) é reforçado aqui.
+  const incluidas = airlineListToIatas(params.companhias_incluidas);
+  const excluidas = airlineListToIatas(params.companhias_excluidas).filter(
+    (i) => !incluidas.includes(i),
+  );
+  const direto = !!params.somente_voo_direto;
+  const maxConexoes = direto
+    ? 0
+    : Math.min(2, Math.max(0, params.maximo_conexoes ?? 2));
+
+  const filtros: FlightQuoteFilters = {
+    somente_voo_direto: direto,
+    maximo_conexoes: maxConexoes,
+    companhias_incluidas: incluidas,
+    companhias_excluidas: excluidas,
+    bagagem_despachada: bagagem,
+    periodo_ida: params.periodo_ida ?? "livre",
+    periodo_volta: params.data_volta ? (params.periodo_volta ?? "livre") : null,
+  };
+
   const baseFilters = {
     containsDispatchBaggage: bagagem,
-    maxStops: 2,
+    maxStops: maxConexoes,
     startPrice: null,
     endPrice: null,
-    airlineIatas: [] as string[],
+    airlineIatas: incluidas,
     cabinClass: null,
+  };
+
+  /** Reforço no cliente: o motor nem sempre respeita teto/exclusão à risca. */
+  const atendeFiltros = (f: OnerFlight): boolean => {
+    const paradas = f.journey.numberOfStops ?? Math.max(0, (f.journey.segments?.length ?? 1) - 1);
+    if (paradas > maxConexoes) return false;
+    const cias = [
+      f.journey.marketingAirline?.name,
+      f.journey.marketingAirline?.iata,
+      ...(f.journey.segments ?? []).map((s) => s.marketingAirline?.name),
+    ].filter((v): v is string => !!v);
+    if (excluidas.length && cias.some((c) => excluidas.some((e) => airlineMatches(c, e)))) return false;
+    if (incluidas.length && !cias.some((c) => incluidas.some((e) => airlineMatches(c, e)))) return false;
+    return true;
   };
 
   const base = {
@@ -236,8 +300,17 @@ export async function quoteFlights(params: QuoteFlightsParams): Promise<FlightQu
   }
 
 
-  const idas = [...(search.outbound?.flights ?? [])];
-  if (!idas.length) return { error: "A operadora não retornou voos para essa data/rota" };
+  const brutas = [...(search.outbound?.flights ?? [])];
+  if (!brutas.length) return { error: "A operadora não retornou voos para essa data/rota", filtros };
+  const idas = brutas.filter(atendeFiltros);
+  if (!idas.length) {
+    return {
+      error: "Existem voos nessa data, mas nenhum atende os filtros pedidos pelo cliente",
+      sem_resultado_por_filtro: true,
+      filtros,
+    };
+  }
+
 
   // Melhores candidatos de ida por custo-benefício (mais alguns baratos e diretos)
   const porScore = [...idas].sort(
@@ -281,7 +354,8 @@ export async function quoteFlights(params: QuoteFlightsParams): Promise<FlightQu
           },
           "fast",
         );
-        const lista = inbound.flights ?? [];
+        // A volta obedece aos MESMOS filtros pedidos pelo cliente.
+        const lista = (inbound.flights ?? []).filter(atendeFiltros);
         if (!lista.length) return null;
         return [...lista].sort(
           (a, b) =>
@@ -350,6 +424,7 @@ export async function quoteFlights(params: QuoteFlightsParams): Promise<FlightQu
         ? "Existem voos, mas nenhuma combinação de ida e volta é possível nesses horários"
         : "Não consegui montar combinações de ida e volta para essas datas",
       sem_combinacao: descartadasPorCombinacao > 0,
+      filtros,
     };
   }
 
@@ -367,6 +442,7 @@ export async function quoteFlights(params: QuoteFlightsParams): Promise<FlightQu
     search_key: search.searchKey ?? null,
     passageiros: { adultos, criancas, bebes },
     opcoes,
+    filtros,
     observacao:
       "Valores da operadora em tempo real, sujeitos a alteração e disponibilidade até a emissão. Total já inclui taxas para todos os passageiros.",
   };

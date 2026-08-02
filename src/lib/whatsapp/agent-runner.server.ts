@@ -459,6 +459,30 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
     });
   }
 
+  // MEMÓRIA ESTRUTURADA DAS COTAÇÕES: o que foi enviado ao cliente vem do
+  // banco, não da leitura da legenda das artes. É isso que faz "gostei da
+  // segunda" apontar sempre para a opção certa, mesmo com mensagens no meio.
+  let quoteBlock = "";
+  try {
+    const {
+      loadQuoteMemory,
+      buildQuoteMemoryBlock,
+      registerCustomerChoice,
+      buildChoiceBlock,
+    } = await import("./flight-quote-memory.server");
+    const memorias = await loadQuoteMemory(conv.id);
+    if (memorias.length) {
+      const ultimaDoCliente = [...merged].reverse().find((m) => m.sender === "customer");
+      const escolha = ultimaDoCliente
+        ? await registerCustomerChoice(conv.id, memorias, ultimaDoCliente.content).catch(() => null)
+        : null;
+      quoteBlock = buildQuoteMemoryBlock(memorias) + buildChoiceBlock(escolha);
+    }
+  } catch (err) {
+    console.warn("[agent] memória de cotações indisponível:", err);
+  }
+
+
 
   const { count: outboundNoProto } = await supabaseAdmin
     .from("wa_messages")
@@ -473,6 +497,7 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
     ? (buildCentralTools(
         conv,
         ((centralAgent as unknown as { tools_habilitadas?: unknown }).tools_habilitadas as string[] | null) ?? null,
+        { slug: centralAgent.slug, nome: centralAgent.nome },
       ) as unknown as ReturnType<typeof buildCamilaTools>)
     : buildCamilaTools(conv);
   const cleanTools: Record<string, unknown> = { ...tools };
@@ -510,16 +535,17 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
   const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
   try {
-    const system = centralAgent
-      ? buildCentralPrompt(
-          centralAgent.nome,
-          CENTRAL_GENDER[centralAgent.slug as CentralSlug] ?? "f",
-          centralBrief,
-          { primeiroContato: centralPrimeiroContato, storedPrompt: centralAgent.system_prompt },
-        ) +
-        "\n\n" +
-        buildSystemPrompt(agent, conv, protocolo, isNewProtocolo, previousContext, { contextOnly: true })
-      : buildSystemPrompt(agent, conv, protocolo, isNewProtocolo, previousContext);
+    const system =
+      (centralAgent
+        ? buildCentralPrompt(
+            centralAgent.nome,
+            CENTRAL_GENDER[centralAgent.slug as CentralSlug] ?? "f",
+            centralBrief,
+            { primeiroContato: centralPrimeiroContato, storedPrompt: centralAgent.system_prompt },
+          ) +
+          "\n\n" +
+          buildSystemPrompt(agent, conv, protocolo, isNewProtocolo, previousContext, { contextOnly: true })
+        : buildSystemPrompt(agent, conv, protocolo, isNewProtocolo, previousContext)) + quoteBlock;
     let result: { text?: string; steps?: Array<{ toolCalls?: Array<{ toolName: string; input: unknown }> }> } | null = null;
     let lastErr: unknown = null;
     for (let i = 0; i < ATTEMPTS.length; i++) {

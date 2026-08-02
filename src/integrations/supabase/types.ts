@@ -3882,36 +3882,57 @@ export type Database = {
       }
       wa_flight_quotes: {
         Row: {
+          agent_name: string | null
+          agent_slug: string | null
+          cancelled_at: string | null
+          cancelled_reason: string | null
           card_failed: boolean
           card_failed_at: string | null
           card_failed_reason: string | null
           cards_sent_at: string | null
           conversation_id: string | null
           created_at: string
+          escolha_at: string | null
+          escolha_option_index: number | null
+          filtros: Json | null
           id: string
           payload: Json
           protocolo_id: string | null
           sent_fingerprints: Json
         }
         Insert: {
+          agent_name?: string | null
+          agent_slug?: string | null
+          cancelled_at?: string | null
+          cancelled_reason?: string | null
           card_failed?: boolean
           card_failed_at?: string | null
           card_failed_reason?: string | null
           cards_sent_at?: string | null
           conversation_id?: string | null
           created_at?: string
+          escolha_at?: string | null
+          escolha_option_index?: number | null
+          filtros?: Json | null
           id?: string
           payload: Json
           protocolo_id?: string | null
           sent_fingerprints?: Json
         }
         Update: {
+          agent_name?: string | null
+          agent_slug?: string | null
+          cancelled_at?: string | null
+          cancelled_reason?: string | null
           card_failed?: boolean
           card_failed_at?: string | null
           card_failed_reason?: string | null
           cards_sent_at?: string | null
           conversation_id?: string | null
           created_at?: string
+          escolha_at?: string | null
+          escolha_option_index?: number | null
+          filtros?: Json | null
           id?: string
           payload?: Json
           protocolo_id?: string | null
@@ -3970,7 +3991,9 @@ export type Database = {
       }
       wa_messages: {
         Row: {
+          agent_name: string | null
           agent_slug: string | null
+          card_option: Json | null
           content: string
           conversation_id: string
           created_at: string
@@ -3983,17 +4006,23 @@ export type Database = {
           id: string
           media_type: string | null
           media_url: string | null
+          meta_media_id: string | null
+          option_index: number | null
           protocolo_id: string | null
+          quote_id: string | null
           reply_to_sender: string | null
           reply_to_snippet: string | null
           reply_to_wa_id: string | null
           sender: string
           sender_user_id: string | null
+          source_tool: string | null
           tool_calls: Json | null
           wa_message_id: string | null
         }
         Insert: {
+          agent_name?: string | null
           agent_slug?: string | null
+          card_option?: Json | null
           content: string
           conversation_id: string
           created_at?: string
@@ -4006,17 +4035,23 @@ export type Database = {
           id?: string
           media_type?: string | null
           media_url?: string | null
+          meta_media_id?: string | null
+          option_index?: number | null
           protocolo_id?: string | null
+          quote_id?: string | null
           reply_to_sender?: string | null
           reply_to_snippet?: string | null
           reply_to_wa_id?: string | null
           sender: string
           sender_user_id?: string | null
+          source_tool?: string | null
           tool_calls?: Json | null
           wa_message_id?: string | null
         }
         Update: {
+          agent_name?: string | null
           agent_slug?: string | null
+          card_option?: Json | null
           content?: string
           conversation_id?: string
           created_at?: string
@@ -4029,12 +4064,16 @@ export type Database = {
           id?: string
           media_type?: string | null
           media_url?: string | null
+          meta_media_id?: string | null
+          option_index?: number | null
           protocolo_id?: string | null
+          quote_id?: string | null
           reply_to_sender?: string | null
           reply_to_snippet?: string | null
           reply_to_wa_id?: string | null
           sender?: string
           sender_user_id?: string | null
+          source_tool?: string | null
           tool_calls?: Json | null
           wa_message_id?: string | null
         }

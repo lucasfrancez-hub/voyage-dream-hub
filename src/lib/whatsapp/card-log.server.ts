@@ -16,6 +16,7 @@ export type CardLogEvent =
   | "card_sent"
   | "card_failed"
   | "card_status"
+  | "card_cancelled"
   | "card_delivery_delayed";
 
 /** Etapa exata em que a entrega quebrou — nunca use um genérico "send". */

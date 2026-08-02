@@ -113,12 +113,21 @@ export const CENTRAL_TOOL_SLUGS = ["pesquisar_passagens", "encaminhar_para_comer
  * Monta as tools da Central. Quando o agente tem `tools_habilitadas`
  * preenchido no cadastro (/chat/agentes), só entram as tools listadas lá —
  * assim a configuração do banco é a fonte de verdade. Lista vazia = todas.
+ *
+ * `agente` fica gravado na cotação: se foi o Bruno que pesquisou, TODAS as
+ * artes daquela cotação (inclusive as que o watchdog dispara depois) precisam
+ * continuar aparecendo como enviadas pelo Bruno.
  */
-export function buildCentralTools(conversation: WaConversation, habilitadas?: string[] | null) {
+export function buildCentralTools(
+  conversation: WaConversation,
+  habilitadas?: string[] | null,
+  agente?: { slug: string; nome: string } | null,
+) {
   const permitidas = (habilitadas ?? []).filter((t) =>
     (CENTRAL_TOOL_SLUGS as readonly string[]).includes(t),
   );
   const todas = {
+
 
     pesquisar_passagens: tool({
       description:
@@ -164,6 +173,33 @@ export function buildCentralTools(conversation: WaConversation, habilitadas?: st
           .boolean()
           .nullable()
           .describe("Só true se o cliente pediu bagagem despachada"),
+        somente_voo_direto: z
+          .boolean()
+          .nullable()
+          .describe(
+            "true quando o cliente pediu voo direto / sem escala / sem conexão. O motor filtra de verdade — pode oferecer isso.",
+          ),
+        maximo_conexoes: z
+          .number()
+          .int()
+          .min(0)
+          .max(2)
+          .nullable()
+          .describe(
+            "Teto de conexões por trecho quando o cliente limita ('no máximo uma conexão'). 0 = direto. Deixe null se ele não falou nada.",
+          ),
+        companhias_incluidas: z
+          .array(z.string())
+          .nullable()
+          .describe(
+            "Companhias que o cliente QUER, como ele falou: ['Azul'], ['LATAM','Gol']. Só preencha se ele pediu.",
+          ),
+        companhias_excluidas: z
+          .array(z.string())
+          .nullable()
+          .describe(
+            "Companhias que o cliente NÃO quer ('não quero Gol'): ['Gol']. Só preencha se ele pediu.",
+          ),
       }),
 
       execute: async ({
@@ -180,6 +216,10 @@ export function buildCentralTools(conversation: WaConversation, habilitadas?: st
         preferencia_horario_ida,
         preferencia_horario_volta,
         somente_com_bagagem,
+        somente_voo_direto,
+        maximo_conexoes,
+        companhias_incluidas,
+        companhias_excluidas,
       }) => {
         // TRAVA ÚNICA no servidor: dados obrigatórios, coerência de trecho,
         // datas reais/futuras, origem ≠ destino e limites de passageiros.
@@ -211,6 +251,12 @@ export function buildCentralTools(conversation: WaConversation, habilitadas?: st
         if (tipo_trecho === "somente_ida") data_volta = null;
 
 
+        const filtrosTexto =
+          (somente_voo_direto ? `\n🛫 Só voo direto` : "") +
+          (!somente_voo_direto && maximo_conexoes != null ? `\n🔁 Máximo de ${maximo_conexoes} conexão(ões)` : "") +
+          (companhias_incluidas?.length ? `\n🏷️ Só ${companhias_incluidas.join(", ")}` : "") +
+          (companhias_excluidas?.length ? `\n🚫 Sem ${companhias_excluidas.join(", ")}` : "");
+
         const briefing =
           `✈️ Pesquisa de passagem aérea (Central de Especialistas)\n` +
           `📍 ${origem} → ${destino}\n` +
@@ -218,7 +264,8 @@ export function buildCentralTools(conversation: WaConversation, habilitadas?: st
           `👥 ${adultos} adulto(s)${criancas ? ` + ${criancas} criança(s)` : ""}${bebes ? ` + ${bebes} bebê(s)` : ""}` +
           (preferencia_horario_ida ? `\n🕘 Preferência de horário na ida: ${preferencia_horario_ida}` : "") +
           (preferencia_horario_volta ? `\n🕗 Preferência de horário na volta: ${preferencia_horario_volta}` : "") +
-          (somente_com_bagagem ? `\n🧳 Cliente pediu bagagem despachada` : "");
+          (somente_com_bagagem ? `\n🧳 Cliente pediu bagagem despachada` : "") +
+          filtrosTexto;
 
 
         try {
@@ -239,6 +286,10 @@ export function buildCentralTools(conversation: WaConversation, habilitadas?: st
             periodo_ida: periodoIda,
             periodo_volta: periodoVolta,
             bagagem_despachada: somente_com_bagagem,
+            somente_voo_direto,
+            maximo_conexoes,
+            companhias_incluidas,
+            companhias_excluidas,
           });
           if ("error" in result) {
             if (result.sem_combinacao) {
@@ -250,6 +301,16 @@ export function buildCentralTools(conversation: WaConversation, habilitadas?: st
                   "Existem voos soltos, mas NENHUMA combinação de ida e volta é possível nesses horários (a volta sairia antes da ida chegar). NÃO apresente nenhuma combinação. Diga com naturalidade que nesse formato não dá certo e ofereça outra data, outro horário ou pernoite. Isso NÃO é falha técnica: nunca fale em sistema, motor ou erro.",
               };
             }
+            if (result.sem_resultado_por_filtro) {
+              return {
+                ok: true,
+                sem_resultado: true,
+                sem_resultado_por_filtro: true,
+                filtros_aplicados: result.filtros ?? null,
+                instrucao:
+                  "Há voos nessa data, mas NENHUM atende os filtros que o cliente pediu (companhia, voo direto ou limite de conexões). Diga isso com naturalidade, sem falar em sistema/motor/erro, e pergunte se ele topa flexibilizar — aceitar uma conexão, outra companhia, outra data ou outro horário.",
+              };
+            }
             return {
               ok: true,
               sem_resultado: true,
@@ -258,6 +319,7 @@ export function buildCentralTools(conversation: WaConversation, habilitadas?: st
             };
           }
 
+
           // Guarda a cotação: é dela que saem as ARTES (cards) enviadas ao cliente.
           const { data: saved } = await supabaseAdmin
             .from("wa_flight_quotes")
@@ -265,6 +327,11 @@ export function buildCentralTools(conversation: WaConversation, habilitadas?: st
               conversation_id: conversation.id,
               protocolo_id: conversation.protocolo_ativo_id ?? null,
               payload: result as never,
+              // Quem pesquisou continua sendo o autor de TODAS as artes desta
+              // cotação, inclusive as disparadas depois pelo watchdog.
+              agent_slug: agente?.slug ?? null,
+              agent_name: agente?.nome ?? null,
+              filtros: result.filtros as never,
             })
             .select("id")
             .single();
@@ -457,6 +524,24 @@ export function buildCentralBasePrompt(nome: string, genero: "f" | "m"): string 
     `Informe de forma natural que não encontrou voos para aquela data/trecho.`,
     `Ofereça alternativas — datas próximas, outro aeroporto próximo ou outra companhia — e pesquise de novo com o que o cliente escolher.`,
     `Não encerre o atendimento. Só encaminhe ao Comercial quando realmente não houver alternativa ou quando o cliente pedir.`,
+
+    `\n# 🎯 FILTROS QUE VOCÊ PODE OFERECER (o motor aplica de verdade)`,
+    `Voo direto/sem escala, teto de conexões, companhia desejada e companhia rejeitada são filtros REAIS: preencha somente_voo_direto, maximo_conexoes, companhias_incluidas ou companhias_excluidas na pesquisa.`,
+    `"Não quero Gol" → companhias_excluidas: ["Gol"]. "Só na Azul" → companhias_incluidas: ["Azul"]. "Sem conexão" → somente_voo_direto: true. "No máximo uma parada" → maximo_conexoes: 1.`,
+    `Só preencha filtro que o CLIENTE pediu. Nunca prometa um filtro e pesquise sem ele.`,
+    `Se voltar sem_resultado_por_filtro, há voos mas nenhum dentro do que ele pediu: diga isso com naturalidade e proponha flexibilizar (aceitar uma conexão, outra companhia, outro horário ou outra data).`,
+
+    `\n# 💬 POSTURA CONSULTIVA (não seja um balcão)`,
+    `Você não joga duas opções e espera. Ajude a decidir usando SOMENTE os dados reais das opções já enviadas (as que estão no bloco de opções enviadas).`,
+    `Se o cliente disser "não sei qual escolher" ou "qual é melhor?", COMPARE e RECOMENDE uma, dizendo o porquê em uma frase: preço, horário de chegada, duração, conexões ou bagagem. Ex.: "eu iria na primeira — ficou mais barata, chega mais cedo e ainda voa menos tempo".`,
+    `Nunca responda "as duas são boas" nem recomende por causa da companhia ou de vantagem inventada. Só compare o que está nos dados.`,
+    `Objeções: "tá caro" → ofereça outra data, outro aeroporto próximo ou outro horário e pesquise de novo. "quero mais conforto" → compare duração, conexões e bagagem. "tô com pressa" → priorize menor duração e chegada mais cedo.`,
+    `Depois de comparar, conduza para a decisão com uma pergunta objetiva ("fecho nessa pra vc?"), sem pressionar.`,
+
+    `\n# 🔢 QUANDO O CLIENTE CITA UMA OPÇÃO`,
+    `"a primeira", "a segunda", "a da Azul", "a das 8h", "a da pesquisa anterior": use SEMPRE o bloco de opções enviadas como fonte de verdade — nunca deduza pela imagem nem invente horário/valor.`,
+    `Se a referência não estiver nesse bloco ou ficar ambígua, pergunte a qual opção ele se refere em vez de adivinhar.`,
+    `Quando ele escolher claramente uma opção, confirme por companhia, horário e valor exatos daquela opção e siga para o próximo passo — não mande novas opções.`,
 
 
     `\n# ↪️ QUANDO NÃO FOR PASSAGEM AÉREA`,
