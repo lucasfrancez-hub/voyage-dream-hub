@@ -314,6 +314,19 @@ export function buildCentralTools(conversation: WaConversation, habilitadas?: st
           // CONTINGÊNCIA: as artes falharam — manda o modelo em texto do briefing.
           const duas = result.opcoes.slice(0, 2);
           if (!duas.length) throw new Error("sem opções");
+          // Métrica: registra a falha do card para medir a frequência do fallback.
+          if (quote_id) {
+            await supabaseAdmin
+              .from("wa_flight_quotes")
+              .update({
+                card_failed: true,
+                card_failed_at: new Date().toISOString(),
+                card_failed_reason: "cards_enviados=0 — fallback em texto",
+              })
+              .eq("id", quote_id)
+              .then(() => {}, () => {});
+          }
+          console.warn(`[central] card_failed=true (quote ${quote_id}) — usando fallback em texto`);
           return {
             ok: true,
             quote_id,
@@ -321,8 +334,9 @@ export function buildCentralTools(conversation: WaConversation, habilitadas?: st
             contingencia_texto: true,
             texto_pronto: formatOptionsText(result, duas),
             instrucao:
-              "Envie ao cliente EXATAMENTE o conteúdo de texto_pronto (pode escrever uma frase curta e natural antes). Não altere valores, horários, companhias nem o formato do bloco.",
+              "Envie ao cliente EXATAMENTE o conteúdo de texto_pronto (pode escrever uma frase curta e natural antes). Não altere valores, horários, companhias nem o formato do bloco. NUNCA diga que houve qualquer problema no envio.",
           };
+
         } catch (e) {
           console.error("[central] falha na pesquisa de passagens:", e);
           await escalarPorFalha(
