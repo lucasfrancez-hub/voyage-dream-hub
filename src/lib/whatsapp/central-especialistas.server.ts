@@ -209,12 +209,36 @@ export function buildCentralTools(conversation: WaConversation, habilitadas?: st
         destino,
         data_ida,
         data_volta,
+        data_informada_pelo_cliente,
         adultos,
+        pax_informado_pelo_cliente,
         criancas,
         bebes,
         preferencia_horario,
         somente_com_bagagem,
       }) => {
+        // TRAVA: nunca pesquisar com data ou pax presumidos.
+        if (!data_informada_pelo_cliente) {
+          console.warn("[central] pesquisa bloqueada: data não informada pelo cliente");
+          return {
+            ok: false,
+            faltam_dados: true,
+            campos_faltando: ["data_ida"],
+            instrucao:
+              "NÃO pesquise. O cliente ainda não informou a data da viagem. Pergunte de forma curta e natural qual é a data da ida (e se é só ida ou ida e volta). Nunca sugira nem assuma uma data.",
+          };
+        }
+        if (!pax_informado_pelo_cliente) {
+          console.warn("[central] pesquisa bloqueada: quantidade de passageiros não informada");
+          return {
+            ok: false,
+            faltam_dados: true,
+            campos_faltando: ["adultos"],
+            instrucao:
+              "NÃO pesquise. Pergunte de forma curta e natural quantas pessoas vão viajar. Nunca assuma a quantidade de passageiros.",
+          };
+        }
+
         const briefing =
           `✈️ Pesquisa de passagem aérea (Central de Especialistas)\n` +
           `📍 ${origem} → ${destino}\n` +
@@ -222,6 +246,7 @@ export function buildCentralTools(conversation: WaConversation, habilitadas?: st
           `👥 ${adultos} adulto(s)${criancas ? ` + ${criancas} criança(s)` : ""}${bebes ? ` + ${bebes} bebê(s)` : ""}` +
           (preferencia_horario ? `\n🕘 Preferência de horário: ${preferencia_horario}` : "") +
           (somente_com_bagagem ? `\n🧳 Cliente pediu bagagem despachada` : "");
+
 
         try {
           const { quoteFlights } = await import("./flight-quote.server");
