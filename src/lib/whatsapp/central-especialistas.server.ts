@@ -59,98 +59,49 @@ export const CENTRAL_FALHA_MSG =
 /* ─────────────────────────────────────────────────────────────
    Helpers de formatação (modelo de contingência em texto)
    ───────────────────────────────────────────────────────────── */
-const pad = (n: number) => String(n).padStart(2, "0");
-
-function fmtDate(p: OnerFlight["journey"]["departure"]): string {
-  const d = p?.date;
-  if (!d) return "—";
-  return `${pad(d.day)}/${pad(d.month)}/${d.year}`;
-}
-function fmtTime(p?: { time?: { hour: number; minute: number } }): string {
-  const t = p?.time;
-  if (!t) return "—";
-  return `${pad(t.hour)}:${pad(t.minute)}`;
-}
-function fmtBRL(n: number): string {
-  return n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-}
-function stopsLabel(f: OnerFlight): string {
-  const segs = f.journey.segments ?? [];
-  const stops = f.journey.numberOfStops ?? Math.max(0, segs.length - 1);
-  if (stops <= 0) return "Direto";
-  const conexoes = segs
-    .slice(0, -1)
-    .map((s) => s.destination?.city || s.destination?.iata)
-    .filter(Boolean)
-    .join(", ");
-  const plural = stops === 1 ? "1 conexão" : `${stops} conexões`;
-  return conexoes ? `${plural} em ${conexoes}` : plural;
-}
-function durationLabel(f: OnerFlight): string | null {
-  const t = f.journey.flyingTime;
-  if (!t) return null;
-  return `${t.hour}h${t.minute ? pad(t.minute) : "00"}`;
-}
-function durationMinutes(f: OnerFlight): number {
-  const t = f.journey.flyingTime;
-  return (t?.hour ?? 0) * 60 + (t?.minute ?? 0);
-}
-function airline(f: OnerFlight): string {
-  return f.journey.marketingAirline?.name || f.journey.marketingAirline?.iata || "—";
-}
-function fareLabel(f: OnerFlight): string {
-  const fam = f.journey.fareClass?.airlineFareFamily?.trim();
-  if (flightHasBaggage(f)) {
-    return fam
-      ? `Tarifa ${fam} (bagagem despachada incluída)`
-      : "Tarifa com bagagem despachada incluída";
-  }
-  return fam ? `Tarifa ${fam} (bagagem conforme tarifa)` : "Tarifa promocional (bagagem conforme tarifa)";
+function fmtDataHora(s: string): { data: string; hora: string } {
+  // "2026-08-10 07:35"
+  const [d, h] = String(s ?? "").split(" ");
+  const [y, m, dd] = (d ?? "").split("-");
+  return { data: dd && m ? `${dd}/${m}/${y}` : d ?? "—", hora: h ?? "—" };
 }
 
-function legBlock(f: OnerFlight, prefixIcon: string): string[] {
-  const dur = durationLabel(f);
-  const stops = stopsLabel(f);
+function legBlock(leg: FlightQuoteLeg, icon: string): string[] {
+  const ida = fmtDataHora(leg.partida);
+  const chg = fmtDataHora(leg.chegada);
+  const paradas =
+    leg.paradas <= 0
+      ? "Direto"
+      : `${leg.paradas === 1 ? "1 conexão" : `${leg.paradas} conexões`}${leg.escalas?.length ? ` em ${leg.escalas.join(", ")}` : ""}`;
   const lines = [
-    `📅 ${fmtDate(f.journey.departure)}`,
-    `${prefixIcon} ${fmtTime(f.journey.departure)} → ${fmtTime(f.journey.destination)}`,
-    `🏢 ${airline(f)}`,
-    `🔁 ${stops}`,
+    `📅 ${ida.data}`,
+    `${icon} ${ida.hora} → ${chg.hora}`,
+    `🏢 ${leg.cia}`,
+    `🔁 ${paradas}`,
   ];
-  if (stops !== "Direto" && dur) lines.push(`⏱ Tempo total: ${dur}`);
+  if (leg.paradas > 0 && leg.duracao) lines.push(`⏱ Tempo total: ${leg.duracao}`);
   return lines;
 }
 
-export type CentralOption = {
-  outbound: OnerFlight;
-  inbound: OnerFlight | null;
-  totalPorPessoa: number;
-};
-
 /** Monta o texto de contingência exatamente no modelo aprovado no briefing. */
-export function formatOptionsText(
-  origem: string,
-  destino: string,
-  options: CentralOption[],
-): string {
+export function formatOptionsText(quote: FlightQuoteResult, opcoes: FlightQuoteOption[]): string {
   const sep = "━━━━━━━━━━━━━━━━━━";
   const blocks: string[] = [];
-  options.forEach((opt, i) => {
-    const o = opt.outbound;
-    const inb = opt.inbound;
-    const lines: string[] = [sep, `✈️ Opção ${i + 1}`, `📍 ${origem} → ${destino}`];
-    if (inb) {
-      lines.push("", "Ida", ...legBlock(o, "🕘"), "", "Volta", ...legBlock(inb, "🕓"));
+  opcoes.forEach((op, i) => {
+    const lines: string[] = [
+      sep,
+      `✈️ Opção ${i + 1}`,
+      `📍 ${quote.origem_nome} → ${quote.destino_nome}`,
+    ];
+    if (op.volta) {
+      lines.push("", "Ida", ...legBlock(op.ida, "🕘"), "", "Volta", ...legBlock(op.volta, "🕓"));
     } else {
-      lines.push(`📅 Ida: ${fmtDate(o.journey.departure)}`);
-      lines.push(`🕘 ${fmtTime(o.journey.departure)} → ${fmtTime(o.journey.destination)}`);
-      lines.push(`🏢 ${airline(o)}`);
-      lines.push(`🔁 ${stopsLabel(o)}`);
-      const dur = durationLabel(o);
-      if (stopsLabel(o) !== "Direto" && dur) lines.push(`⏱ Tempo total: ${dur}`);
+      lines.push(...legBlock(op.ida, "🕘"));
     }
-    lines.push(`🧳 ${fareLabel(inb ?? o)}`);
-    lines.push(`💰 ${fmtBRL(opt.totalPorPessoa)} por pessoa`);
+    lines.push(
+      `🧳 ${op.bagagem_despachada ? "Tarifa com bagagem despachada incluída" : "Tarifa promocional (bagagem conforme tarifa)"}`,
+    );
+    lines.push(`💰 ${op.por_pessoa_formatado} por pessoa`);
     blocks.push(lines.join("\n"));
   });
   blocks.push(sep);
@@ -160,50 +111,6 @@ export function formatOptionsText(
   return blocks.join("\n");
 }
 
-/* ─────────────────────────────────────────────────────────────
-   Seleção das 2 melhores opções
-   ───────────────────────────────────────────────────────────── */
-function pickTwo(flights: OnerFlight[]): OnerFlight[] {
-  if (flights.length <= 2) return flights.slice(0, 2);
-  const byPrice = [...flights].sort((a, b) => a.price.total - b.price.total);
-  const first = byPrice[0];
-  const cheapest = first.price.total || 1;
-  // 2ª opção: melhor custo-benefício entre as demais (menos conexões,
-  // menor tempo de voo), penalizando preço acima do mais barato.
-  const rest = byPrice.slice(1);
-  const score = (f: OnerFlight) =>
-    (f.journey.numberOfStops ?? 0) * 90 +
-    durationMinutes(f) +
-    ((f.price.total - cheapest) / cheapest) * 240;
-  const second = rest.reduce((best, f) => (score(f) < score(best) ? f : best), rest[0]);
-  return [first, second];
-}
-
-function inWindow(f: OnerFlight, from: number | null, to: number | null): boolean {
-  if (from == null && to == null) return true;
-  const t = f.journey.departure?.time;
-  const mins = (t?.hour ?? 0) * 60 + (t?.minute ?? 0);
-  if (from != null && mins < from) return false;
-  if (to != null && mins > to) return false;
-  return true;
-}
-
-async function resolveAirport(query: string): Promise<{ iata: string; isCity: boolean; label: string } | null> {
-  const q = query.trim();
-  if (!q) return null;
-  // Se o cliente já mandou o IATA
-  if (/^[A-Za-z]{3}$/.test(q)) {
-    return { iata: q.toUpperCase(), isCity: false, label: q.toUpperCase() };
-  }
-  const list = await searchAirports({ query: q, isDeparture: true });
-  const hit = list.find((a) => a.isCity) ?? list[0];
-  if (!hit) return null;
-  return {
-    iata: hit.iata,
-    isCity: hit.isCity,
-    label: hit.city || hit.name || hit.iata,
-  };
-}
 
 /* ─────────────────────────────────────────────────────────────
    Escalação automática pro Comercial quando o motor falha
