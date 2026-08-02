@@ -237,6 +237,8 @@ async function processPayload(payload: WhatsAppPayload) {
             continue;
           }
           const transcript = await transcribeAudio(media.blob, media.mimeType);
+          inboundTranscript = transcript ?? null;
+
           const stored = await storeInboundMedia({
             conversationId: conv.id,
             blob: media.blob,
