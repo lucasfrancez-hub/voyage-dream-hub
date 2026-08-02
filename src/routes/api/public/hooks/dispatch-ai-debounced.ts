@@ -31,16 +31,21 @@ export const Route = createFileRoute("/api/public/hooks/dispatch-ai-debounced")(
 
         const dispatched: string[] = [];
         for (const conv of due ?? []) {
-          // LEASE curto: worker do Cloudflare cai em ~30s se travar. Se der
-          // ruim, o próximo tick (a cada 30s) reprocessa em até 90s no pior
-          // caso — bem dentro do orçamento total de 3min de resposta.
-          const leaseUntil = new Date(Date.now() + 90 * 1000).toISOString();
-          const { error: leaseErr } = await supabaseAdmin
+          // O lease precisa cobrir geração, tools e envio completos. Com 90s,
+          // uma execução lenta podia expirar ainda ativa e outro tick iniciava
+          // um segundo runAgent para a mesma mensagem. Cinco minutos mantêm a
+          // exclusão durante o orçamento máximo do atendimento; mensagem nova
+          // continua podendo reagendar o debounce e invalida o run antigo pelo
+          // trigger_message_id antes de qualquer persistência/envio.
+          const leaseUntil = new Date(Date.now() + 5 * 60 * 1000).toISOString();
+          const { data: claimed, error: leaseErr } = await supabaseAdmin
             .from("wa_conversations")
             .update({ ai_debounce_until: leaseUntil })
             .eq("id", conv.id)
-            .eq("ai_debounce_until", conv.ai_debounce_until); // guard: só pega se ninguém já empurrou
-          if (leaseErr) {
+            .eq("ai_debounce_until", conv.ai_debounce_until)
+            .select("id")
+            .maybeSingle(); // guard: só pega se ninguém já empurrou
+          if (leaseErr || !claimed) {
             console.warn(`[dispatch-ai-debounced] falha ao pegar lease ${conv.id}:`, leaseErr);
             continue;
           }
@@ -50,7 +55,7 @@ export const Route = createFileRoute("/api/public/hooks/dispatch-ai-debounced")(
             // Usa o wa_message_id da última mensagem inbound da conversa.
             const { data: lastInbound } = await supabaseAdmin
               .from("wa_messages")
-              .select("wa_message_id")
+              .select("id, wa_message_id")
               .eq("conversation_id", conv.id)
               .eq("direction", "inbound")
               .not("wa_message_id", "is", null)
@@ -62,7 +67,11 @@ export const Route = createFileRoute("/api/public/hooks/dispatch-ai-debounced")(
               await sendWhatsAppTypingIndicator(lastInbound.wa_message_id);
             }
 
-            await runAgent({ wa_phone: conv.wa_phone, profile_name: conv.display_name });
+            await runAgent({
+              wa_phone: conv.wa_phone,
+              profile_name: conv.display_name,
+              trigger_message_id: lastInbound?.id ?? undefined,
+            });
 
             // Sucesso: só agora zeramos o debounce. Se uma nova mensagem chegou
             // durante o processamento, ela já empurrou o lease pra outra data

@@ -27,6 +27,13 @@ import { buildSenderPrefix, capitalizeBubbles, capitalizeKnownNames, fixGluedSen
 import { buildSharedAgentPrompt } from "@/lib/chat/camila-prompt";
 import { isCompanyDataBlocked } from "./data-blocklist";
 import { triageFirstMessage } from "./triage.server";
+import { createHash, randomUUID } from "node:crypto";
+import {
+  CENTRAL_PROMPT_VERSION,
+  centralBriefHasMissingOrigin,
+  isInvalidMissingOriginResponse,
+  safeMissingOriginResponse,
+} from "./airflow-guard";
 
 // Gênero por slug (usado pra montar o prompt compartilhado com a flexão certa).
 const AGENT_GENDER: Record<string, "f" | "m"> = {
@@ -281,8 +288,13 @@ function buildSystemPrompt(
   return parts.join("\n");
 }
 
-export async function runAgent(input: { wa_phone: string; profile_name?: string | null }): Promise<void> {
+export async function runAgent(input: {
+  wa_phone: string;
+  profile_name?: string | null;
+  trigger_message_id?: string;
+}): Promise<void> {
   const conv = await getOrCreateConversation(input.wa_phone, input.profile_name);
+  const aiRunId = randomUUID();
 
   if (conv.mode !== "ai") {
     console.log(`[agent] conversa ${conv.id} em modo ${conv.mode} — IA não responde`);
@@ -297,14 +309,27 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
   const agents = await loadAgents();
   const stickySlug = (conv as unknown as { agent_slug?: string | null }).agent_slug ?? null;
 
+  // O protocolo precisa existir ANTES da triagem. Criar/reabrir um protocolo
+  // limpa o runtime anterior; se isso acontecer depois da triagem, apagaria o
+  // central_slug que acabou de ser gravado e abriria uma corrida consultor x Central.
+  const protocolo = await ensureActiveProtocolo(conv.id);
+
+  // `conv` foi carregada antes de ensureActiveProtocolo e pode conter o runtime
+  // do protocolo encerrado. Sempre releia o roteamento já limpo/persistido.
+  const { data: routingState } = await supabaseAdmin
+    .from("wa_conversations")
+    .select("agent_slug, central_slug, central_brief")
+    .eq("id", conv.id)
+    .single();
+
   // ── Central de Especialistas ────────────────────────────────────────────
   // Dois caminhos chegam aqui:
   // 1) o consultor encaminhou durante a conversa (central_slug já preenchido);
   // 2) a PRIMEIRA mensagem do cliente já era pedido claro de passagem aérea —
   //    nesse caso a triagem direciona antes de qualquer saudação, sem passar
   //    pelas consultoras e sem transferência visível.
-  let centralSlug = (conv as unknown as { central_slug?: string | null }).central_slug ?? null;
-  let centralBrief = (conv as unknown as { central_brief?: string | null }).central_brief ?? null;
+  let centralSlug = typeof routingState?.central_slug === "string" ? routingState.central_slug : null;
+  let centralBrief = typeof routingState?.central_brief === "string" ? routingState.central_brief : null;
   let centralPrimeiroContato = false;
 
   if (!centralSlug) {
@@ -347,8 +372,15 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
     return;
   }
 
-  // Protocolo ativo (abre/reabre conforme regra) + detecta se ainda é a primeira resposta nele
-  const protocolo = await ensureActiveProtocolo(conv.id);
+  const { data: latestInboundAtStart } = await supabaseAdmin
+    .from("wa_messages")
+    .select("id, created_at")
+    .eq("conversation_id", conv.id)
+    .eq("direction", "inbound")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const triggerMessageId = input.trigger_message_id ?? latestInboundAtStart?.id ?? null;
 
   // Escopo do histórico: SÓ mensagens do protocolo atual (desde opened_at).
   // Sem isso a IA puxa assunto de protocolos anteriores encerrados.
@@ -581,6 +613,34 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
       repliedBlock +
       quoteBlock;
 
+    const loadedPromptType = centralAgent ? "central_especialistas" : "consultor";
+    const enabledTools = Object.keys(cleanTools).sort();
+    const promptHash = createHash("sha256").update(system).digest("hex");
+    const runtimeAudit = {
+      event: "ai_run_started",
+      conversation_id: conv.id,
+      protocol_id: protocolo.id,
+      ai_run_id: aiRunId,
+      trigger_message_id: triggerMessageId,
+      selected_agent_slug: agent.slug,
+      selected_agent_name: agent.nome,
+      loaded_prompt_type: loadedPromptType,
+      loaded_prompt_hash: promptHash,
+      loaded_prompt_version: centralAgent ? CENTRAL_PROMPT_VERSION : "consultor-shared",
+      enabled_tools: enabledTools,
+      origem_informada_pelo_cliente: centralAgent ? !centralBriefHasMissingOrigin(centralBrief) : null,
+      central_brief: centralAgent ? centralBrief : null,
+    };
+    console.log("[agent-runtime]", JSON.stringify(runtimeAudit));
+
+    const agentPromptMismatch =
+      ((agent.equipe ?? "consultor") === "especialista") !== (loadedPromptType === "central_especialistas") ||
+      (loadedPromptType === "central_especialistas" && !enabledTools.includes("pesquisar_passagens"));
+    if (agentPromptMismatch) {
+      console.error("[agent-runtime]", JSON.stringify({ ...runtimeAudit, event: "agent_prompt_mismatch" }));
+      return;
+    }
+
     let result: { text?: string; steps?: Array<{ toolCalls?: Array<{ toolName: string; input: unknown }> }> } | null = null;
     let lastErr: unknown = null;
     for (let i = 0; i < ATTEMPTS.length; i++) {
@@ -608,7 +668,7 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
     if (!result) throw lastErr ?? new Error("Falha ao gerar resposta");
 
 
-    const rawText = result.text?.trim();
+    let rawText = result.text?.trim();
     if (!rawText) {
       console.warn(`[agent:${agent.slug}] resposta vazia`);
       return;
@@ -631,6 +691,18 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
 
     // Garante primeira letra maiúscula em cada balão (o modelo escreve tudo minúsculo)
     // e capitaliza o primeiro nome do cliente sempre que aparecer no meio do texto.
+    if (centralAgent && centralBriefHasMissingOrigin(centralBrief)) {
+      if (isInvalidMissingOriginResponse(rawText) || !/de qual cidade (?:voc[eê] )?(?:vai |quer )?embarcar/i.test(rawText)) {
+        console.warn("[agent-runtime]", JSON.stringify({
+          ...runtimeAudit,
+          event: "invalid_airflow_response_blocked",
+          reason: "missing_origin_or_wrong_product",
+          generated_response: rawText,
+        }));
+        rawText = safeMissingOriginResponse(conv.display_name);
+      }
+    }
+
     const clientFirst = extractFirstName(conv.display_name);
     const text = capitalizeKnownNames(capitalizeBubbles(fixGluedSentences(rawText)), [clientFirst]);
 
@@ -671,6 +743,55 @@ export async function runAgent(input: { wa_phone: string; profile_name?: string 
       console.warn("[agent] fallback enviar_pacote falhou:", e);
     }
 
+
+    // Confirma o vínculo imediatamente antes de persistir/enviar. Uma nova
+    // mensagem, protocolo ou troca de agente invalida esta execução antiga.
+    const [{ data: currentConv }, { data: latestInboundNow }, { count: alreadyAnswered }] = await Promise.all([
+      supabaseAdmin
+        .from("wa_conversations")
+        .select("protocolo_ativo_id, central_slug, agent_slug, mode, ai_paused")
+        .eq("id", conv.id)
+        .maybeSingle(),
+      supabaseAdmin
+        .from("wa_messages")
+        .select("id")
+        .eq("conversation_id", conv.id)
+        .eq("direction", "inbound")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+      triggerMessageId && latestInboundAtStart?.created_at
+        ? supabaseAdmin
+            .from("wa_messages")
+            .select("id", { count: "exact", head: true })
+            .eq("conversation_id", conv.id)
+            .eq("protocolo_id", protocolo.id)
+            .eq("direction", "outbound")
+            .neq("sender", "system")
+            .gt("created_at", latestInboundAtStart.created_at)
+        : Promise.resolve({ count: 0 }),
+    ]);
+    const activeSlug = centralAgent ? currentConv?.central_slug : currentConv?.agent_slug;
+    const runtimeSwitchedToCentral = !centralAgent && currentConv?.central_slug != null;
+    const staleRun =
+      currentConv?.mode !== "ai" ||
+      currentConv?.ai_paused === true ||
+      currentConv?.protocolo_ativo_id !== protocolo.id ||
+      latestInboundNow?.id !== triggerMessageId ||
+      runtimeSwitchedToCentral ||
+      (activeSlug != null && activeSlug !== agent.slug) ||
+      (alreadyAnswered ?? 0) > 0;
+    if (staleRun) {
+      console.warn("[agent-runtime]", JSON.stringify({
+        ...runtimeAudit,
+        event: "pending_ai_run_cancelled",
+        previous_agent_slug: agent.slug,
+        new_agent_slug: activeSlug ?? null,
+        latest_trigger_message_id: latestInboundNow?.id ?? null,
+        already_answered: (alreadyAnswered ?? 0) > 0,
+      }));
+      return;
+    }
 
     const { splitToBubbles } = await import("./send.server");
     const bubbles = splitToBubbles(text);
