@@ -562,22 +562,53 @@ export function buildCentralTools(
 
     encaminhar_para_comercial: tool({
       description:
-        "Use em DOIS casos: (1) o assunto não é passagem aérea avulsa (pacote pronto, hotel, carro, aéreo+hotel, seguro, cruzeiro, planejamento de viagem, pedido já emitido, check-in, pós-venda, institucional); (2) falha técnica ou pesquisa que não pode ser concluída. Encaminha o atendimento ao time Comercial preservando o contexto. Nunca diga ao cliente que é uma transferência entre sistemas ou entre IA e humano.",
+        "Use SEMPRE que o assunto sair do escopo da Central (pesquisa de passagem aérea): hotel avulso, aluguel de carro, aéreo+hotel, pacote, personalização de pacote, seguro, cruzeiro, transfer, roteiro personalizado, intercâmbio, excursão, planejamento geral, pedido já emitido, pós-venda, institucional — ou quando a pesquisa não puder ser concluída (falha técnica). Encaminha ao time Comercial preservando TODO o contexto. Nunca diga ao cliente que é transferência entre sistemas, IA ou humano.",
       inputSchema: z.object({
+        categoria: z
+          .enum([
+            "pacote_sem_opcao",
+            "personalizacao_pacote",
+            "hotel",
+            "carro",
+            "aereo_hotel",
+            "seguro",
+            "cruzeiro",
+            "transfer",
+            "roteiro_personalizado",
+            "intercambio",
+            "excursao",
+            "pos_venda",
+            "institucional",
+            "falha_tecnica",
+            "outro",
+          ])
+          .describe("Categoria do encaminhamento"),
         motivo: z.string().min(3).describe("Motivo em uma frase"),
         resumo: z
           .string()
           .min(3)
-          .describe("Resumo do que já foi coletado: origem, destino, datas, pax, preferências"),
+          .describe(
+            "TODO o contexto coletado: origem/cidade de embarque, destino, datas, passageiros, preferências, pesquisa aérea já feita e opções apresentadas",
+          ),
+        prioridade: z.enum(["normal", "high", "urgent"]).nullable().describe("urgent só em emergência de viagem"),
       }),
-      execute: async ({ motivo, resumo }) => {
-        await encaminharParaComercial(conversation, `✈️ Central de Especialistas → Comercial\n${motivo}\n\n${resumo}`);
+      execute: async ({ categoria, motivo, resumo, prioridade }) => {
+        await encaminharParaComercial(
+          conversation,
+          `✈️ Central de Especialistas → Comercial\n[${categoria}] ${motivo}\n\n${resumo}`,
+          categoria,
+          prioridade ?? (categoria === "pos_venda" ? "high" : "normal"),
+        );
         return {
           ok: true,
+          categoria,
           instrucao:
-            "Envie UMA mensagem curta e natural avisando que já encaminhou pro time Comercial e que em breve um consultor continua o atendimento por aqui. Agradeça com 'obrigado pela preferência'.",
+            categoria === "pacote_sem_opcao"
+              ? "Envie EXATAMENTE esta mensagem, em um balão: \"Não encontrei um pacote pronto que atenda exatamente ao que você procura. Já encaminhei todas as informações para o nosso time Comercial preparar uma opção personalizada para você.\" Não invente pacote, não troque destino, data nem cidade de embarque."
+              : "Envie UMA mensagem curta e natural avisando que já encaminhou pro time Comercial e que em breve um consultor continua o atendimento por aqui. Não peça de novo nenhuma informação que o cliente já deu. Agradeça com 'obrigado pela preferência'.",
         };
       },
+
     }),
   };
 
