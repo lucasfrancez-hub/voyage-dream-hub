@@ -277,6 +277,7 @@ export function buildCentralTools(
 
       execute: async ({
         origem,
+        origem_informada_pelo_cliente,
         destino,
         tipo_trecho,
         data_ida,
