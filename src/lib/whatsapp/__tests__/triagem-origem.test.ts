@@ -79,14 +79,15 @@ describe("origem nunca presumida", () => {
 
 describe("separação de regras de origem: pacote x aéreo", () => {
   it("prompt dos Consultores trata origem alternativa como oferta do catálogo", async () => {
-    const { buildCamilaSystemPrompt } = await import("../../chat/camila-prompt");
-    const p = buildCamilaSystemPrompt();
-    expect(p).toMatch(/ORIGEM ALTERNATIVA É OFERTA DO CATÁLOGO/i);
-    expect(p).toMatch(/substituir silenciosamente/i);
+    const { CAMILA_SYSTEM_PROMPT } = await import("../../chat/camila-prompt");
+    expect(CAMILA_SYSTEM_PROMPT).toMatch(/ORIGEM ALTERNATIVA É OFERTA DO CATÁLOGO/i);
+    expect(CAMILA_SYSTEM_PROMPT).toMatch(/substituir silenciosamente/i);
   });
 
   it("prompt da Central proíbe origem alternativa no aéreo", async () => {
-    const { buildCentralSystemPrompt } = await import("../central-especialistas.server");
-    expect(typeof buildCentralSystemPrompt).toBe("function");
+    const { buildCentralBasePrompt } = await import("../central-especialistas.server");
+    const p = buildCentralBasePrompt("paula", "f");
+    expect(p).toMatch(/NÃO EXISTE "ORIGEM ALTERNATIVA" NO AÉREO/i);
+    expect(p).toMatch(/nunca troque Maringá por Curitiba/i);
   });
 });
