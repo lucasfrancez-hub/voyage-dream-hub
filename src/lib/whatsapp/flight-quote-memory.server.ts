@@ -735,9 +735,13 @@ export async function persistLastReference(
    Escolha do cliente + cancelamento do card pendente
    ───────────────────────────────────────────────────────────── */
 
-/** Intenção INEQUÍVOCA de escolher ("quero a segunda", "fecho com a da Azul"). */
+/**
+ * Intenção INEQUÍVOCA de escolher. "fica com" saiu daqui de propósito:
+ * "quanto FICA COM bagagem?" é pergunta de preço, não fechamento. Só entram
+ * formas de decisão em 1ª pessoa ("fico com", "vou nessa", "pode fechar").
+ */
 const RX_ESCOLHA_CLARA =
-  /\b(quero|vou (querer|ficar|de|nessa|nesse)|vamos nessa|fico com|fica(mos)? com|pode (ser|fechar|reservar|emitir)|fech(a|ar|o|amos)|reserv(a|ar|e)|emit(e|ir)|escolho|prefiro|me (manda|passa) (o )?(link|pagamento)|bora (nessa|de)|garant(e|ir))\b|\bacho que vai ser essa\b/i;
+  /\b(quero (ess[ae]|aquel[ae]|a (primeira|segunda|terceira)|prosseguir|fechar|emitir|reservar)|quero ir nessa|vou (querer|ficar com|nessa|nesse|de ess[ae])|vamos (nessa|nessa op(ç|c)(ã|a)o)|fico com|ficamos com|pode (fechar|reservar|emitir|seguir com)|fech(a|ar|o|amos)\b|reserv(a|ar|e)\b|emit(e|ir)\b|escolho|escolhi|me (manda|passa) (o )?(link|pagamento)|bora (nessa|de)|garant(e|ir))\b|\bacho que vai ser essa\b/i;
 /** Comentário sem decisão ("essa parece boa", "gostei", "interessante"). */
 const RX_APENAS_COMENTARIO = /\b(parece|achei|t(á|a) (boa|bom|legal)|interessante|gostei|ficou melhor)\b/i;
 
@@ -748,12 +752,18 @@ export type ChoiceDetection = {
   clara: boolean;
   match: OptionReference["match"];
   stale: boolean;
+  conflito?: OptionReference["conflito"];
+  /** Bagagem: consulta da tarifa atual x pedido de nova pesquisa com bagagem. */
+  bagagem?: BaggageIntent;
 };
 
 /**
  * Detecta a escolha do cliente na última mensagem. `clara` só é true quando há
  * verbo de decisão + referência resolvida; "essa parece boa" fica em `false`
  * (a segunda arte continua saindo, para comparação).
+ *
+ * ORDEM OBRIGATÓRIA: pergunta de preço/condição, comparação, filtro e pedido
+ * de informação são avaliados ANTES de qualquer leitura de decisão.
  */
 export function detectCustomerChoice(
   memorias: QuoteMemory[],
@@ -762,16 +772,24 @@ export function detectCustomerChoice(
 ): ChoiceDetection | null {
   const ref = refPre ?? resolveOptionReference(memorias, texto);
   if (!ref) return null;
-  const decisao = RX_ESCOLHA_CLARA.test(texto);
-  const soComentario = !decisao && RX_APENAS_COMENTARIO.test(texto);
+  const t = String(texto ?? "");
+  const bagagem = detectBaggageIntent(t);
+  // 1º: é pergunta? ("quanto fica com bagagem?", "como fica com conexão?")
+  const pergunta =
+    RX_INTERROGATIVA_PRECO.test(t) ||
+    (/\?/.test(t) && RX_PERGUNTA_NAO_DECISAO.test(t) && !/\b(pode (fechar|emitir|reservar))\b/i.test(t));
+  const decisao = !pergunta && RX_ESCOLHA_CLARA.test(t);
+  const soComentario = !decisao && RX_APENAS_COMENTARIO.test(t);
   return {
     quote_id: ref.quote_id,
     option_index: ref.option_index,
     opcao: ref.opcao,
-    // Comparação ("qual chega primeiro") nunca é escolha.
-    clara: decisao && !soComentario && ref.match !== "comparacao",
+    // Comparação ("qual chega primeiro") e conflito nunca fecham sozinhos.
+    clara: decisao && !soComentario && ref.match !== "comparacao" && !ref.conflito,
     match: ref.match,
     stale: !!ref.stale,
+    conflito: ref.conflito ?? null,
+    bagagem,
   };
 }
 
