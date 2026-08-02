@@ -189,6 +189,8 @@ export async function saveMessage(input: {
   skip_protocolo?: boolean;
   /** Reply/quote — id da mensagem WhatsApp original que este balão cita. */
   reply_to_wa_id?: string | null;
+  /** FK interna da mensagem citada (wa_messages.id). Resolvida automaticamente se ausente. */
+  reply_to_message_id?: string | null;
   /** Trecho da mensagem citada, pra renderizar preview no balão. */
   reply_to_snippet?: string | null;
   /** Nome/participante da mensagem citada. */
@@ -205,6 +207,14 @@ export async function saveMessage(input: {
   meta_media_id?: string | null;
   /** Resumo estruturado da opção (companhia, horários, valor) pra IA e painel. */
   card_option?: unknown | null;
+  /** text | image | card | fallback | audio | document | video */
+  message_type?: string | null;
+  /** flight | package | hotel | transfer | insurance | order | tour | cruise */
+  product_type?: string | null;
+  /** Transcrição de áudio (recebido ou enviado). */
+  transcricao?: string | null;
+  /** Resumo curto da mensagem (usado quando o cliente responde a um áudio). */
+  resumo?: string | null;
 }): Promise<WaMessage | null> {
   // Dedupe manual quando temos wa_message_id
   if (input.wa_message_id) {
@@ -227,6 +237,43 @@ export async function saveMessage(input: {
     }
   }
 
+  // FK interna da mensagem citada: resolve pelo id da Meta quando não veio pronta.
+  let replyToMessageId = input.reply_to_message_id ?? null;
+  if (!replyToMessageId && input.reply_to_wa_id) {
+    const { data: orig } = await supabaseAdmin
+      .from("wa_messages")
+      .select("id")
+      .eq("wa_message_id", input.reply_to_wa_id)
+      .eq("conversation_id", input.conversation_id)
+      .maybeSingle();
+    replyToMessageId = (orig?.id as string | undefined) ?? null;
+    if (!replyToMessageId) {
+      console.log(
+        JSON.stringify({
+          event: "reply_context_not_found",
+          conversation_id: input.conversation_id,
+          reply_to_wa_id: input.reply_to_wa_id,
+          at: new Date().toISOString(),
+        }),
+      );
+    }
+  }
+
+  // Tipo da mensagem: usa o informado; senão infere do conteúdo/cotação.
+  const inferredType =
+    input.message_type ??
+    (input.card_option || (input.quote_id && input.option_index)
+      ? "card"
+      : /\[\[media:audio\|/.test(input.content)
+        ? "audio"
+        : /\[\[media:image\|/.test(input.content)
+          ? "image"
+          : /\[\[media:video\|/.test(input.content)
+            ? "video"
+            : /\[\[media:document\|/.test(input.content)
+              ? "document"
+              : "text");
+
   const { data, error } = await supabaseAdmin
     .from("wa_messages")
     .insert({
@@ -246,11 +293,17 @@ export async function saveMessage(input: {
       card_option: (input.card_option ?? null) as never,
       protocolo_id: protocoloId,
       reply_to_wa_id: input.reply_to_wa_id ?? null,
+      reply_to_message_id: replyToMessageId,
       reply_to_snippet: input.reply_to_snippet ?? null,
       reply_to_sender: input.reply_to_sender ?? null,
+      message_type: inferredType,
+      product_type: input.product_type ?? (input.quote_id ? "flight" : null),
+      transcricao: input.transcricao ?? null,
+      resumo: input.resumo ?? null,
     })
     .select("*")
     .single();
+
 
   if (error) {
     console.error("[wa/saveMessage] error:", error.message);
