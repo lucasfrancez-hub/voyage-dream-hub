@@ -1,7 +1,15 @@
 /**
- * Sincroniza grupos e canais/newsletters da linha WhatsApp comercial (UazAPI).
+ * broadcastService — ÚNICO módulo autorizado a falar com a UazAPI.
+ * Escopo: broadcast/disparo em massa (grupos, canais/newsletters, campanhas
+ * e comunicações programadas). Sincroniza grupos e canais da linha comercial.
+ *
+ * ⛔ PROIBIDO usar qualquer função deste arquivo no fluxo do chatbot
+ * (recebimento, respostas, mídias, cards, transferência, status de conversa).
+ * O chatbot usa exclusivamente a Meta Cloud API em `@/lib/whatsapp/send.server`.
+ * Guarda automática: `npm run check:whatsapp`.
  * SERVER-ONLY.
  */
+
 
 type SyncCounts = { groups: number; channels: number };
 

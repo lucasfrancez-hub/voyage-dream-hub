@@ -1,9 +1,14 @@
 /**
- * Envia mensagens pelo WhatsApp oficial da VIA AIR.
- * O chat, alertas e automações usam exclusivamente a Meta Cloud API.
- * UazAPI fica restrita ao módulo independente de broadcast.
+ * chatbotWhatsAppService — envio do chatbot/atendimento individual da VIA AIR.
+ * Canal ÚNICO: Meta WhatsApp Cloud API (texto, imagem, áudio, documento, cards,
+ * contingência, reenvio em falha e status). Chat, alertas e automações usam isto.
+ *
+ * ⛔ PROIBIDO importar ou chamar a UazAPI (`@/lib/broadcast/sync.server`) aqui
+ * ou em qualquer módulo do chatbot — UazAPI é exclusiva de broadcast.
+ * Guarda automática: `npm run check:whatsapp`.
  * SERVER-ONLY — nunca importar de rotas/componentes.
  */
+
 
 const GRAPH_VERSION = "v21.0";
 
