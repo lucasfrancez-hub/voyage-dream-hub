@@ -133,6 +133,8 @@ export async function sendPendingFlightCards(
   if (!force && ultimoEm && Date.now() - ultimoEm < INTERVALO_MS) {
     return { sent: 0, quote_id: row.id as string };
   }
+  // Elegível agora: a partir daqui só falta o claim e o render.
+  const elegivelEm = new Date().toISOString();
 
   // ---- claim atômico: quem conseguir marcar cards_sent_at é quem envia ----
   const claimAnterior = row.cards_sent_at ?? null;
