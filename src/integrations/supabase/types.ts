@@ -4004,6 +4004,7 @@ export type Database = {
           direction: string
           error: string | null
           id: string
+          is_revoked: boolean
           media_type: string | null
           media_url: string | null
           meta_media_id: string | null
@@ -4013,6 +4014,8 @@ export type Database = {
           reply_to_sender: string | null
           reply_to_snippet: string | null
           reply_to_wa_id: string | null
+          revoked_at: string | null
+          revoked_by: string | null
           sender: string
           sender_user_id: string | null
           source_tool: string | null
@@ -4033,6 +4036,7 @@ export type Database = {
           direction: string
           error?: string | null
           id?: string
+          is_revoked?: boolean
           media_type?: string | null
           media_url?: string | null
           meta_media_id?: string | null
@@ -4042,6 +4046,8 @@ export type Database = {
           reply_to_sender?: string | null
           reply_to_snippet?: string | null
           reply_to_wa_id?: string | null
+          revoked_at?: string | null
+          revoked_by?: string | null
           sender: string
           sender_user_id?: string | null
           source_tool?: string | null
@@ -4062,6 +4068,7 @@ export type Database = {
           direction?: string
           error?: string | null
           id?: string
+          is_revoked?: boolean
           media_type?: string | null
           media_url?: string | null
           meta_media_id?: string | null
@@ -4071,6 +4078,8 @@ export type Database = {
           reply_to_sender?: string | null
           reply_to_snippet?: string | null
           reply_to_wa_id?: string | null
+          revoked_at?: string | null
+          revoked_by?: string | null
           sender?: string
           sender_user_id?: string | null
           source_tool?: string | null

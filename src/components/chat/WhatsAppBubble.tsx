@@ -35,10 +35,12 @@ interface Props {
   senderLabel?: string; // qualquer nome (completo ou não) — o balão extrai o primeiro
   status?: "sent" | "delivered" | "read" | "failed";
   deleted?: boolean;
+  /** Quem apagou a mensagem no WhatsApp */
+  revokedBy?: "customer" | "business" | null;
   /** Marca visual "respondida" — aparece uma setinha ↩ ao lado do horário */
   replied?: boolean;
   /** Prévia da mensagem citada (reply/quote) */
-  reply?: { sender?: string | null; snippet: unknown } | null;
+  reply?: { sender?: string | null; snippet: unknown; deleted?: boolean; revokedBy?: "customer" | "business" | null } | null;
   /** Handler pra "Responder" — clica na setinha que aparece no hover */
   onReply?: () => void;
 }
@@ -49,7 +51,7 @@ function formatTime(iso: string) {
   return d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
 }
 
-export function WhatsAppBubble({ side, content, timestamp, senderLabel, status, deleted, replied, reply, onReply }: Props) {
+export function WhatsAppBubble({ side, content, timestamp, senderLabel, status, deleted, revokedBy, replied, reply, onReply }: Props) {
   const isOut = side === "out";
   const label = firstName(senderLabel);
   const replySender = firstName(reply?.sender ?? null);
@@ -83,11 +85,18 @@ export function WhatsAppBubble({ side, content, timestamp, senderLabel, status, 
         )}
         {reply && (
           <div
-            className="mb-1 truncate rounded-md border-l-4 bg-black/10 px-2 py-1 text-[11px] leading-tight"
+            className="mb-1 rounded-md border-l-4 bg-black/10 px-2 py-1 text-[11px] leading-tight"
             style={{ borderColor: "var(--brand-orange)", color: "color-mix(in oklab, var(--chat-bubble-fg) 80%, transparent)" }}
           >
             {replySender && <div className="font-semibold" style={{ color: "var(--brand-orange)" }}>{replySender}</div>}
             <div className="line-clamp-2 opacity-80">{replySnippet || "mensagem"}</div>
+            {reply.deleted && (
+              <div className="mt-0.5 text-[10px] font-medium text-red-500">
+                {reply.revokedBy === "business"
+                  ? "Mensagem apagada pela empresa"
+                  : "Mensagem apagada pelo cliente"}
+              </div>
+            )}
           </div>
         )}
         {(() => {
@@ -125,11 +134,13 @@ export function WhatsAppBubble({ side, content, timestamp, senderLabel, status, 
                 </a>
               )}
               {text && (
-                <div className={cn("whitespace-pre-wrap break-words text-sm leading-relaxed", deleted && "opacity-60")}>{text}</div>
+                <div className="whitespace-pre-wrap break-words text-sm leading-relaxed">{text}</div>
               )}
               {deleted && (
-                <div className="mt-1 text-[11px] font-medium italic text-red-500">
-                  🚫 mensagem apagada
+                <div className="mt-1 text-[11px] font-medium text-red-500">
+                  {revokedBy === "business"
+                    ? "Mensagem apagada pela empresa"
+                    : "Mensagem apagada pelo cliente"}
                 </div>
               )}
             </>

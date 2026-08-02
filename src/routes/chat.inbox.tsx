@@ -684,6 +684,9 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
       .channel(`wa_msgs_${conv.id}`)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "wa_messages", filter: `conversation_id=eq.${conv.id}` },
         () => qc.invalidateQueries({ queryKey: ["chat", "messages", conv.id] }))
+      // UPDATE cobre a revogação ("apagar para todos") — a legenda aparece sem recarregar
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "wa_messages", filter: `conversation_id=eq.${conv.id}` },
+        () => qc.invalidateQueries({ queryKey: ["chat", "messages", conv.id] }))
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [conv.id, qc]);
@@ -776,7 +779,13 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
           ? (conv.display_name ?? conv.wa_phone)
           : "Você"
         : null);
-    return { snippet, sender };
+    const orig = original as { is_revoked?: boolean | null; revoked_by?: string | null; deleted_at?: string | null } | undefined;
+    return {
+      snippet,
+      sender,
+      deleted: !!(orig?.is_revoked || orig?.deleted_at),
+      revokedBy: (orig?.revoked_by ?? null) as "customer" | "business" | null,
+    };
   };
   const lastInbound = [...messages].reverse().find((m) => m.direction === "inbound");
   const hoursSince = lastInbound ? (Date.now() - new Date(lastInbound.created_at).getTime()) / 3600000 : 0;
@@ -925,7 +934,8 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
                           : undefined
                       }
 
-                      deleted={!!m.deleted_at}
+                      deleted={!!(m as { is_revoked?: boolean | null }).is_revoked || !!m.deleted_at}
+                      revokedBy={((m as { revoked_by?: string | null }).revoked_by ?? null) as "customer" | "business" | null}
                       replied={!!m.wa_message_id && repliedIds.has(m.wa_message_id)}
                       reply={resolveReply(m)}
                       onReply={
