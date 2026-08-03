@@ -128,12 +128,13 @@ function InboxPage() {
     queryFn: () => igListFn(),
     refetchInterval: 15_000,
   });
-  const igCommentsFn = useServerFn(listInstagramComments);
-  const { data: igComments = [] } = useQuery({
-    queryKey: ["ig", "comments"],
-    queryFn: () => igCommentsFn(),
-    refetchInterval: 30_000,
+  const igThreadsFn = useServerFn(listInstagramCommentThreads);
+  const { data: igCommentThreads = [] } = useQuery({
+    queryKey: ["ig", "comment-threads"],
+    queryFn: () => igThreadsFn(),
+    refetchInterval: 20_000,
   });
+
   const igActive = channel === "instagram_dm" && activeId ? igConversations.find((c) => c.id === activeId) ?? null : null;
   const igMirrorConv = igActive
     ? conversations.find((c) => c.wa_phone === `ig:${igActive.contact_ig_id}`) ?? null
