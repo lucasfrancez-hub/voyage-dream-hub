@@ -91,6 +91,41 @@ export const eventosAgendaApp = createServerFn({ method: "POST" })
     };
   });
 
+/** Cria um compromisso direto pelo app da agenda (link + PIN). */
+export const criarEventoAgendaApp = createServerFn({ method: "POST" })
+  .inputValidator((d: {
+    token: string;
+    pin?: string | null;
+    titulo: string;
+    descricao?: string | null;
+    local?: string | null;
+    inicio: string;
+    fim: string;
+    accountId?: string | null;
+  }) => {
+    if (!d?.token) throw new Error("Link inválido.");
+    if (!d?.titulo?.trim()) throw new Error("Informe o título do compromisso.");
+    if (!d?.inicio || !d?.fim) throw new Error("Informe início e fim.");
+    if (new Date(d.fim) <= new Date(d.inicio)) throw new Error("O fim precisa ser depois do início.");
+    return d;
+  })
+  .handler(async ({ data }) => {
+    const link = await exigirAcesso(data.token, data.pin);
+    const { criarEvento } = await import("@/lib/whatsapp/calendar.server");
+    const evento = await criarEvento({
+      titulo: data.titulo.trim(),
+      descricao: data.descricao ?? null,
+      local: data.local ?? null,
+      inicio: data.inicio,
+      fim: data.fim,
+      accountId: data.accountId ?? null,
+      criado_por: `app:${link.nome}`,
+    });
+    return { ok: true, id: evento.id };
+  });
+
+
+
 /* ------------------------------------------------------------------ */
 /* Notificações push                                                   */
 /* ------------------------------------------------------------------ */
