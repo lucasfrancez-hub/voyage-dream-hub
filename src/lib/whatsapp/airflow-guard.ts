@@ -1,4 +1,4 @@
-export const CENTRAL_PROMPT_VERSION = "central-especialistas-2026-08-02.3";
+export const CENTRAL_PROMPT_VERSION = "central-especialistas-2026-08-03.1";
 
 export function centralBriefHasMissingOrigin(brief: string | null | undefined): boolean {
   return /origem:\s*(?:n[aã]o informada|null)|origem[^\n]*n[aã]o foi informada/i.test(brief ?? "");
