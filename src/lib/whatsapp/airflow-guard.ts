@@ -9,7 +9,7 @@ export function isInvalidMissingOriginResponse(text: string): boolean {
 }
 
 /** Pergunta obrigatória quando não há nenhuma origem no histórico. */
-const RX_PERGUNTA_ORIGEM = /de qual cidade (?:voc[eê] )?(?:vai |quer )?embarcar/i;
+const RX_PERGUNTA_ORIGEM = /de qual cidade (?:voc[eê] )?(?:vai |quer |pretende )?embarcar/i;
 
 /**
  * Pergunta de confirmação quando existe origem recuperada do histórico.
