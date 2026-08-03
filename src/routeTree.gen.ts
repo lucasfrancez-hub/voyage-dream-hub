@@ -95,6 +95,7 @@ import { Route as ApiPublicHooksBroadcastDispatchRouteImport } from './routes/ap
 import { Route as ApiPublicHooksCheckFlightChangesRouteImport } from './routes/api/public/hooks/check-flight-changes'
 import { Route as ApiPublicHooksCloseInactiveProtocolsRouteImport } from './routes/api/public/hooks/close-inactive-protocols'
 import { Route as ApiPublicHooksDispatchAiDebouncedRouteImport } from './routes/api/public/hooks/dispatch-ai-debounced'
+import { Route as ApiPublicHooksFlightCardsContinueRouteImport } from './routes/api/public/hooks/flight-cards-continue'
 import { Route as ApiPublicHooksFlightQuoteWatchdogRouteImport } from './routes/api/public/hooks/flight-quote-watchdog'
 import { Route as ApiPublicHooksRunCheckinsRouteImport } from './routes/api/public/hooks/run-checkins'
 import { Route as ApiPublicPackageHotelPhotoSplatRouteImport } from './routes/api/public/package-hotel-photo.$'
@@ -545,6 +546,12 @@ const ApiPublicHooksDispatchAiDebouncedRoute =
     path: '/api/public/hooks/dispatch-ai-debounced',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicHooksFlightCardsContinueRoute =
+  ApiPublicHooksFlightCardsContinueRouteImport.update({
+    id: '/api/public/hooks/flight-cards-continue',
+    path: '/api/public/hooks/flight-cards-continue',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicHooksFlightQuoteWatchdogRoute =
   ApiPublicHooksFlightQuoteWatchdogRouteImport.update({
     id: '/api/public/hooks/flight-quote-watchdog',
@@ -679,6 +686,7 @@ export interface FileRoutesByFullPath {
   '/api/public/hooks/check-flight-changes': typeof ApiPublicHooksCheckFlightChangesRoute
   '/api/public/hooks/close-inactive-protocols': typeof ApiPublicHooksCloseInactiveProtocolsRoute
   '/api/public/hooks/dispatch-ai-debounced': typeof ApiPublicHooksDispatchAiDebouncedRoute
+  '/api/public/hooks/flight-cards-continue': typeof ApiPublicHooksFlightCardsContinueRoute
   '/api/public/hooks/flight-quote-watchdog': typeof ApiPublicHooksFlightQuoteWatchdogRoute
   '/api/public/hooks/run-checkins': typeof ApiPublicHooksRunCheckinsRoute
   '/api/public/package-hotel-photo/$': typeof ApiPublicPackageHotelPhotoSplatRoute
@@ -774,6 +782,7 @@ export interface FileRoutesByTo {
   '/api/public/hooks/check-flight-changes': typeof ApiPublicHooksCheckFlightChangesRoute
   '/api/public/hooks/close-inactive-protocols': typeof ApiPublicHooksCloseInactiveProtocolsRoute
   '/api/public/hooks/dispatch-ai-debounced': typeof ApiPublicHooksDispatchAiDebouncedRoute
+  '/api/public/hooks/flight-cards-continue': typeof ApiPublicHooksFlightCardsContinueRoute
   '/api/public/hooks/flight-quote-watchdog': typeof ApiPublicHooksFlightQuoteWatchdogRoute
   '/api/public/hooks/run-checkins': typeof ApiPublicHooksRunCheckinsRoute
   '/api/public/package-hotel-photo/$': typeof ApiPublicPackageHotelPhotoSplatRoute
@@ -871,6 +880,7 @@ export interface FileRoutesById {
   '/api/public/hooks/check-flight-changes': typeof ApiPublicHooksCheckFlightChangesRoute
   '/api/public/hooks/close-inactive-protocols': typeof ApiPublicHooksCloseInactiveProtocolsRoute
   '/api/public/hooks/dispatch-ai-debounced': typeof ApiPublicHooksDispatchAiDebouncedRoute
+  '/api/public/hooks/flight-cards-continue': typeof ApiPublicHooksFlightCardsContinueRoute
   '/api/public/hooks/flight-quote-watchdog': typeof ApiPublicHooksFlightQuoteWatchdogRoute
   '/api/public/hooks/run-checkins': typeof ApiPublicHooksRunCheckinsRoute
   '/api/public/package-hotel-photo/$': typeof ApiPublicPackageHotelPhotoSplatRoute
@@ -969,6 +979,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/check-flight-changes'
     | '/api/public/hooks/close-inactive-protocols'
     | '/api/public/hooks/dispatch-ai-debounced'
+    | '/api/public/hooks/flight-cards-continue'
     | '/api/public/hooks/flight-quote-watchdog'
     | '/api/public/hooks/run-checkins'
     | '/api/public/package-hotel-photo/$'
@@ -1064,6 +1075,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/check-flight-changes'
     | '/api/public/hooks/close-inactive-protocols'
     | '/api/public/hooks/dispatch-ai-debounced'
+    | '/api/public/hooks/flight-cards-continue'
     | '/api/public/hooks/flight-quote-watchdog'
     | '/api/public/hooks/run-checkins'
     | '/api/public/package-hotel-photo/$'
@@ -1160,6 +1172,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/check-flight-changes'
     | '/api/public/hooks/close-inactive-protocols'
     | '/api/public/hooks/dispatch-ai-debounced'
+    | '/api/public/hooks/flight-cards-continue'
     | '/api/public/hooks/flight-quote-watchdog'
     | '/api/public/hooks/run-checkins'
     | '/api/public/package-hotel-photo/$'
@@ -1216,6 +1229,7 @@ export interface RootRouteChildren {
   ApiPublicHooksCheckFlightChangesRoute: typeof ApiPublicHooksCheckFlightChangesRoute
   ApiPublicHooksCloseInactiveProtocolsRoute: typeof ApiPublicHooksCloseInactiveProtocolsRoute
   ApiPublicHooksDispatchAiDebouncedRoute: typeof ApiPublicHooksDispatchAiDebouncedRoute
+  ApiPublicHooksFlightCardsContinueRoute: typeof ApiPublicHooksFlightCardsContinueRoute
   ApiPublicHooksFlightQuoteWatchdogRoute: typeof ApiPublicHooksFlightQuoteWatchdogRoute
   ApiPublicHooksRunCheckinsRoute: typeof ApiPublicHooksRunCheckinsRoute
   ApiPublicPackageHotelPhotoSplatRoute: typeof ApiPublicPackageHotelPhotoSplatRoute
@@ -1830,6 +1844,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksDispatchAiDebouncedRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/flight-cards-continue': {
+      id: '/api/public/hooks/flight-cards-continue'
+      path: '/api/public/hooks/flight-cards-continue'
+      fullPath: '/api/public/hooks/flight-cards-continue'
+      preLoaderRoute: typeof ApiPublicHooksFlightCardsContinueRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/flight-quote-watchdog': {
       id: '/api/public/hooks/flight-quote-watchdog'
       path: '/api/public/hooks/flight-quote-watchdog'
@@ -2054,6 +2075,8 @@ const rootRouteChildren: RootRouteChildren = {
     ApiPublicHooksCloseInactiveProtocolsRoute,
   ApiPublicHooksDispatchAiDebouncedRoute:
     ApiPublicHooksDispatchAiDebouncedRoute,
+  ApiPublicHooksFlightCardsContinueRoute:
+    ApiPublicHooksFlightCardsContinueRoute,
   ApiPublicHooksFlightQuoteWatchdogRoute:
     ApiPublicHooksFlightQuoteWatchdogRoute,
   ApiPublicHooksRunCheckinsRoute: ApiPublicHooksRunCheckinsRoute,

@@ -1048,7 +1048,8 @@ export async function runAgent(input: {
     }
 
     const { splitToBubbles } = await import("./send.server");
-    const bubbles = splitToBubbles(text);
+    const { aplicarViciosDeLinguagem } = await import("./text-utils.server");
+    const bubbles = splitToBubbles(aplicarViciosDeLinguagem(text));
     const savedRowIds: Array<string | null> = [];
     for (let i = 0; i < bubbles.length; i++) {
       const row = await saveMessage({

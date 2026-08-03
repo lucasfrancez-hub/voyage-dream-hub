@@ -33,9 +33,15 @@ type OptLite = {
  */
 export const MAX_OPCOES = 3; // meta por cotação
 export const MIN_OPCOES = 2; // piso: nunca parar em 1 havendo alternativa
-const INTERVALO_MS = 10_000; // espaçamento mínimo entre RODADAS de envio
+const INTERVALO_MS = 2_000; // espaçamento mínimo entre RODADAS de envio
 const ENTRE_CARDS_MS = 1_500; // espaçamento entre as artes DENTRO do mesmo lote
-// (as 2-3 opções saem juntas, uma a cada ~4s, porque já foram pré-renderizadas)
+/**
+ * UMA opção por execução. Gerar e mandar 2-3 artes na mesma execução estourava
+ * o tempo do worker: o processo morria depois da primeira imagem e o cliente
+ * recebia uma opção só. Agora cada rodada entrega uma opção e dispara a
+ * próxima em execução nova (flight-cards-continue).
+ */
+const CARDS_POR_RODADA = 1;
 const CLAIM_TRAVADO_MS = 45_000; // claim preso (worker caiu no render) → destrava
 /**
  * Prazo BRANDO da arte quando ela ainda não está no cache: passou disso, a
@@ -114,6 +120,8 @@ export async function sendPendingFlightCards(
   limiteOpcoes = MAX_OPCOES,
   /** Pedido explícito do cliente: entrega já, sem esperar o intervalo entre artes. */
   ignorarIntervalo = false,
+  /** Profundidade do encadeamento entre rodadas (1 = primeira continuação). */
+  depth = 0,
 ): Promise<{ sent: number; quote_id?: string }> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
@@ -312,6 +320,12 @@ export async function sendPendingFlightCards(
     escolhidas.add(fp);
     opcoes.push(o);
   }
+
+  // Esta execução entrega no máximo CARDS_POR_RODADA opções; o restante vai na
+  // rodada seguinte, encadeada no fim, sempre em execução nova.
+  const faltavamNoLote = Math.max(0, opcoes.length - CARDS_POR_RODADA);
+  opcoes.splice(CARDS_POR_RODADA);
+
 
   if (!opcoes.length) {
     await supabaseAdmin
@@ -659,6 +673,20 @@ export async function sendPendingFlightCards(
     .from("wa_flight_quotes")
     .update({ cards_sent_at: concluiu ? new Date().toISOString() : null })
     .eq("id", row.id);
+
+  // AINDA FALTA OPÇÃO? Dispara a rodada seguinte AGORA, em execução nova. É o
+  // que garante as 2-3 opções da política: cada arte tem o tempo inteiro de um
+  // worker só pra ela, então nada morre no meio do caminho.
+  if (!concluiu && (faltavamNoLote > 0 || totalEnviadas < previstasNaCotacao(todas, limiteOpcoes))) {
+    const { continuarEnvioDeOpcoes } = await import("./flight-cards-continue.server");
+    await continuarEnvioDeOpcoes({
+      conversation_id: conversationId,
+      wa_phone: waPhone,
+      protocolo_id: protocolId ?? null,
+      protocol_opened_at: protocolOpenedAt ?? null,
+      depth: depth + 1,
+    });
+  }
 
   void falhou;
   return { sent, quote_id: row.id as string };
