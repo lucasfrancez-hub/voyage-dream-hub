@@ -9,8 +9,10 @@
  * SERVER-ONLY — nunca importar de rotas/componentes.
  */
 
+import { stripMarkdownForWhatsApp } from "./text-utils.server";
 
 const GRAPH_VERSION = "v21.0";
+
 
 function normalizePhone(raw: string): string {
   const digits = raw.replace(/\D/g, "");
@@ -197,6 +199,8 @@ export async function sendWhatsAppTypingIndicator(
  * por balão (mesmo padrão que chega no WhatsApp do cliente).
  */
 export function splitToBubbles(fullText: string, prefix?: string | null): string[] {
+  // WhatsApp não renderiza Markdown: tudo sai em texto simples.
+  fullText = stripMarkdownForWhatsApp(fullText);
   const paragraphs = fullText
     .split(/\n{2,}/)
     .map((s) => s.trim())
@@ -274,7 +278,10 @@ export async function sendWhatsAppImage(
 ): Promise<{ id: string | null; error?: string }> {
   return metaSendMedia(to, {
     type: "image",
-    image: { link, ...(caption ? { caption: caption.slice(0, 1024) } : {}) },
+    image: {
+      link,
+      ...(caption ? { caption: stripMarkdownForWhatsApp(caption).slice(0, 1024) } : {}),
+    },
   });
 }
 
@@ -289,7 +296,7 @@ export async function sendWhatsAppDocument(
     document: {
       link,
       filename: filename.slice(0, 240),
-      ...(caption ? { caption: caption.slice(0, 1024) } : {}),
+      ...(caption ? { caption: stripMarkdownForWhatsApp(caption).slice(0, 1024) } : {}),
     },
   });
 }
