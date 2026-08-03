@@ -246,6 +246,8 @@ async function processPayload(payload: IGPayload) {
           media_caption: midia.caption,
           media_thumbnail: midia.thumbnail,
           media_type: midia.media_type,
+          media_permalink: midia.permalink,
+
         },
         { onConflict: "comment_id" },
       );
