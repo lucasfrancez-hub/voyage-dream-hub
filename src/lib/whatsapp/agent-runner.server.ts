@@ -546,7 +546,10 @@ export async function runAgent(input: {
       registerCustomerChoice,
       buildChoiceBlock,
     } = await import("./flight-quote-memory.server");
-    const memorias = await loadQuoteMemory(conv.id);
+    const memorias = await loadQuoteMemory(conv.id, {
+      protocolId: protocolo.id,
+      extraQuoteIds: [],
+    });
     if (memorias.length) {
       const escolha = ultimaDoCliente
         ? await registerCustomerChoice(
