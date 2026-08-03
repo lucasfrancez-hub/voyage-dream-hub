@@ -1261,6 +1261,71 @@ export type Database = {
         }
         Relationships: []
       }
+      instagram_api_logs: {
+        Row: {
+          account_id: string | null
+          created_at: string
+          duration_ms: number | null
+          endpoint: string
+          error_code: string | null
+          error_message: string | null
+          error_subcode: string | null
+          fbtrace_id: string | null
+          http_status: number | null
+          id: string
+          method: string
+          operation: string
+          request_payload: Json | null
+          response_body: Json | null
+          response_raw: string | null
+          success: boolean
+        }
+        Insert: {
+          account_id?: string | null
+          created_at?: string
+          duration_ms?: number | null
+          endpoint: string
+          error_code?: string | null
+          error_message?: string | null
+          error_subcode?: string | null
+          fbtrace_id?: string | null
+          http_status?: number | null
+          id?: string
+          method: string
+          operation: string
+          request_payload?: Json | null
+          response_body?: Json | null
+          response_raw?: string | null
+          success?: boolean
+        }
+        Update: {
+          account_id?: string | null
+          created_at?: string
+          duration_ms?: number | null
+          endpoint?: string
+          error_code?: string | null
+          error_message?: string | null
+          error_subcode?: string | null
+          fbtrace_id?: string | null
+          http_status?: number | null
+          id?: string
+          method?: string
+          operation?: string
+          request_payload?: Json | null
+          response_body?: Json | null
+          response_raw?: string | null
+          success?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "instagram_api_logs_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "instagram_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       instagram_comments: {
         Row: {
           account_id: string
@@ -1390,6 +1455,95 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "instagram_conversations_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "instagram_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      instagram_health_checks: {
+        Row: {
+          account_connected: boolean | null
+          account_id: string | null
+          app_id: string | null
+          callback_url: string | null
+          checked_at: string
+          connected_username: string | null
+          created_at: string
+          error_code: string | null
+          error_subcode: string | null
+          fbtrace_id: string | null
+          http_status: number | null
+          id: string
+          ig_user_id: string | null
+          last_error: string | null
+          last_webhook_at: string | null
+          messages_subscribed: boolean | null
+          overall_status: string
+          report: Json
+          signature_configured: boolean | null
+          subscribed: boolean | null
+          subscribed_fields: string[]
+          token_valid: boolean | null
+          verify_token_configured: boolean | null
+          webhook_reachable: boolean | null
+        }
+        Insert: {
+          account_connected?: boolean | null
+          account_id?: string | null
+          app_id?: string | null
+          callback_url?: string | null
+          checked_at?: string
+          connected_username?: string | null
+          created_at?: string
+          error_code?: string | null
+          error_subcode?: string | null
+          fbtrace_id?: string | null
+          http_status?: number | null
+          id?: string
+          ig_user_id?: string | null
+          last_error?: string | null
+          last_webhook_at?: string | null
+          messages_subscribed?: boolean | null
+          overall_status: string
+          report?: Json
+          signature_configured?: boolean | null
+          subscribed?: boolean | null
+          subscribed_fields?: string[]
+          token_valid?: boolean | null
+          verify_token_configured?: boolean | null
+          webhook_reachable?: boolean | null
+        }
+        Update: {
+          account_connected?: boolean | null
+          account_id?: string | null
+          app_id?: string | null
+          callback_url?: string | null
+          checked_at?: string
+          connected_username?: string | null
+          created_at?: string
+          error_code?: string | null
+          error_subcode?: string | null
+          fbtrace_id?: string | null
+          http_status?: number | null
+          id?: string
+          ig_user_id?: string | null
+          last_error?: string | null
+          last_webhook_at?: string | null
+          messages_subscribed?: boolean | null
+          overall_status?: string
+          report?: Json
+          signature_configured?: boolean | null
+          subscribed?: boolean | null
+          subscribed_fields?: string[]
+          token_valid?: boolean | null
+          verify_token_configured?: boolean | null
+          webhook_reachable?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "instagram_health_checks_account_id_fkey"
             columns: ["account_id"]
             isOneToOne: false
             referencedRelation: "instagram_accounts"
@@ -1545,6 +1699,87 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      instagram_webhook_logs: {
+        Row: {
+          account_external_id: string | null
+          conversation_external_id: string | null
+          created_at: string
+          event_object: string | null
+          event_type: string | null
+          headers: Json
+          id: string
+          message_external_id: string | null
+          method: string
+          processed_at: string | null
+          processing_error: string | null
+          processing_status: string
+          query_string: string | null
+          raw_body: string | null
+          received_at: string
+          rejection_reason: string | null
+          response_status: number | null
+          sender_external_id: string | null
+          signature_calculated: string | null
+          signature_received: string | null
+          signature_valid: boolean | null
+          source_ip: string | null
+          validation_status: string
+          verify_token_valid: boolean | null
+        }
+        Insert: {
+          account_external_id?: string | null
+          conversation_external_id?: string | null
+          created_at?: string
+          event_object?: string | null
+          event_type?: string | null
+          headers?: Json
+          id?: string
+          message_external_id?: string | null
+          method: string
+          processed_at?: string | null
+          processing_error?: string | null
+          processing_status?: string
+          query_string?: string | null
+          raw_body?: string | null
+          received_at?: string
+          rejection_reason?: string | null
+          response_status?: number | null
+          sender_external_id?: string | null
+          signature_calculated?: string | null
+          signature_received?: string | null
+          signature_valid?: boolean | null
+          source_ip?: string | null
+          validation_status?: string
+          verify_token_valid?: boolean | null
+        }
+        Update: {
+          account_external_id?: string | null
+          conversation_external_id?: string | null
+          created_at?: string
+          event_object?: string | null
+          event_type?: string | null
+          headers?: Json
+          id?: string
+          message_external_id?: string | null
+          method?: string
+          processed_at?: string | null
+          processing_error?: string | null
+          processing_status?: string
+          query_string?: string | null
+          raw_body?: string | null
+          received_at?: string
+          rejection_reason?: string | null
+          response_status?: number | null
+          sender_external_id?: string | null
+          signature_calculated?: string | null
+          signature_received?: string | null
+          signature_valid?: boolean | null
+          source_ip?: string | null
+          validation_status?: string
+          verify_token_valid?: boolean | null
+        }
+        Relationships: []
       }
       login_email_codes: {
         Row: {
