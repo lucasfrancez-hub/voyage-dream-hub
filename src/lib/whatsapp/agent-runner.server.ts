@@ -321,6 +321,13 @@ export async function runAgent(input: {
     return;
   }
 
+  // Orientação do supervisor: o atendente pode instruir a IA MESMO que a última
+  // mensagem do cliente já tenha sido respondida. Nesse caso o run não é "stale":
+  // ele existe justamente para transmitir a orientação.
+  const instructionRun = Boolean(
+    (conv as unknown as { ai_instruction?: string | null }).ai_instruction?.trim(),
+  );
+
   const agents = await loadAgents();
   const stickySlug = (conv as unknown as { agent_slug?: string | null }).agent_slug ?? null;
 
