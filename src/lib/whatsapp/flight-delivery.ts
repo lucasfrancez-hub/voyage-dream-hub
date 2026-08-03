@@ -25,6 +25,8 @@ export const INTERVALO_MIN_MS = 30_000;
 export const INTERVALO_MAX_MS = 90_000;
 /** Cotação incompleta por mais que isso → despejo em texto e conclusão. */
 export const EMERGENCIA_MS = 5 * 60_000;
+/** Opção sem entrega por mais que isso → recuperação forçada pelo reconciliador. */
+export const RECUPERACAO_FORCADA_MS = 2 * 60_000;
 /** Tentativas por opção antes de desistir do card e ir direto ao texto. */
 export const MAX_TENTATIVAS = 3;
 
@@ -32,8 +34,14 @@ export type OptionDeliveryStatus =
   | "pending"
   | "claimed"
   | "rendering"
+  | "card_generated"
+  | "sending_card"
   | "delivered_card"
   | "delivered_text"
+  | "retry_scheduled"
+  | "failed_recoverable"
+  | "failed_final"
+  /** @deprecated compatibilidade com linhas antigas. */
   | "failed"
   | "cancelled";
 
@@ -41,6 +49,7 @@ export type QuoteDeliveryStatus =
   | "pending"
   | "processing"
   | "partially_delivered"
+  | "recovering"
   | "completed"
   | "failed"
   | "cancelled";
@@ -49,6 +58,20 @@ export const ENTREGUES: OptionDeliveryStatus[] = ["delivered_card", "delivered_t
 
 export const foiEntregue = (s: string | null | undefined): boolean =>
   s === "delivered_card" || s === "delivered_text";
+
+/** Estados terminais: não voltam para a fila de jeito nenhum. */
+export const ehTerminal = (s: string | null | undefined): boolean =>
+  foiEntregue(s) || s === "cancelled" || s === "failed_final";
+
+/** Estados que só existem no meio de uma tentativa (worker vivo ou morto). */
+export const emAndamento = (s: string | null | undefined): boolean =>
+  s === "claimed" || s === "rendering" || s === "card_generated" || s === "sending_card";
+
+/** Falha recuperável até o limite de tentativas; depois vira failed_final. */
+export function statusAposFalha(tentativas: number, max = MAX_TENTATIVAS): OptionDeliveryStatus {
+  return tentativas >= max ? "failed_final" : "failed_recoverable";
+}
+
 
 /** Impressão digital da opção (idempotência): companhia+voo+horário+preço. */
 export function fingerprintOpcao(o: OptLite): string {
