@@ -3684,6 +3684,120 @@ export type Database = {
           },
         ]
       }
+      wa_calendar_config: {
+        Row: {
+          ativo: boolean
+          calendar_nome: string | null
+          calendar_url: string | null
+          created_at: string
+          id: string
+          last_error: string | null
+          last_sync_at: string | null
+          password: string | null
+          provider: string
+          server_url: string
+          timezone: string
+          updated_at: string
+          username: string | null
+        }
+        Insert: {
+          ativo?: boolean
+          calendar_nome?: string | null
+          calendar_url?: string | null
+          created_at?: string
+          id?: string
+          last_error?: string | null
+          last_sync_at?: string | null
+          password?: string | null
+          provider?: string
+          server_url?: string
+          timezone?: string
+          updated_at?: string
+          username?: string | null
+        }
+        Update: {
+          ativo?: boolean
+          calendar_nome?: string | null
+          calendar_url?: string | null
+          created_at?: string
+          id?: string
+          last_error?: string | null
+          last_sync_at?: string | null
+          password?: string | null
+          provider?: string
+          server_url?: string
+          timezone?: string
+          updated_at?: string
+          username?: string | null
+        }
+        Relationships: []
+      }
+      wa_calendar_events: {
+        Row: {
+          conversation_id: string | null
+          created_at: string
+          criado_por: string | null
+          deleted_at: string | null
+          descricao: string | null
+          dia_inteiro: boolean
+          etag: string | null
+          fim: string
+          href: string | null
+          id: string
+          inicio: string
+          local: string | null
+          origem: string
+          raw_ics: string | null
+          situacao: string
+          telefone: string | null
+          titulo: string
+          uid: string
+          updated_at: string
+        }
+        Insert: {
+          conversation_id?: string | null
+          created_at?: string
+          criado_por?: string | null
+          deleted_at?: string | null
+          descricao?: string | null
+          dia_inteiro?: boolean
+          etag?: string | null
+          fim: string
+          href?: string | null
+          id?: string
+          inicio: string
+          local?: string | null
+          origem?: string
+          raw_ics?: string | null
+          situacao?: string
+          telefone?: string | null
+          titulo?: string
+          uid: string
+          updated_at?: string
+        }
+        Update: {
+          conversation_id?: string | null
+          created_at?: string
+          criado_por?: string | null
+          deleted_at?: string | null
+          descricao?: string | null
+          dia_inteiro?: boolean
+          etag?: string | null
+          fim?: string
+          href?: string | null
+          id?: string
+          inicio?: string
+          local?: string | null
+          origem?: string
+          raw_ics?: string | null
+          situacao?: string
+          telefone?: string | null
+          titulo?: string
+          uid?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       wa_conversations: {
         Row: {
           agent_slug: string | null
