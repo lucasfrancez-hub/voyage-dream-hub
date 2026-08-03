@@ -15,7 +15,10 @@ const blob = (bytes = 64) => new Blob([new Uint8Array(bytes)], { type: "image/pn
 
 const mockGateway = (content: string) => {
   const fetchMock = vi.fn(async () =>
-    new Response(JSON.stringify({ choices: [{ message: { content } }] }), { status: 200 }),
+    new Response(
+      JSON.stringify({ output: [{ content: [{ type: "output_text", text: content }] }] }),
+      { status: 200 },
+    ),
   );
   vi.stubGlobal("fetch", fetchMock);
   return fetchMock;
