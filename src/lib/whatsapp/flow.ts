@@ -84,6 +84,20 @@ export const TIPO_LABEL: Record<FlowNodeTipo, string> = {
   regra: "Regra",
 };
 
+export const ACAO_LABEL: Record<FlowAcaoTipo, string> = {
+  mensagem: "Enviar mensagem",
+  pergunta: "Perguntar ao cliente",
+  pesquisar_voos: "Pesquisar voos",
+  enviar_cards: "Enviar cards de cotação",
+  buscar_pacotes: "Buscar pacotes",
+  transferir: "Transferir de setor",
+  abrir_protocolo: "Abrir protocolo",
+  encerrar_protocolo: "Encerrar protocolo",
+  notificar_humano: "Notificar humano",
+  aguardar: "Aguardar resposta",
+  tag: "Marcar etiqueta",
+};
+
 /** Mesma normalização da triagem: sem acento, minúsculo, letras repetidas. */
 export function normalizar(s: string): string {
   return (s ?? "")
