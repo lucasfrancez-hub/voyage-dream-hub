@@ -260,11 +260,24 @@ export async function triageFirstMessage(conv: WaConversation): Promise<TriageRe
     .trim();
   if (!texto) return null;
 
+  // MAPA DE ATENDIMENTO (aba Fluxos): as palavras-chave desenhadas pela equipe
+  // valem como gatilho oficial. Se o mapa aponta o texto pro Setor Aéreo, a
+  // conversa vai pra Central mesmo que a heurística fixa não tenha reconhecido.
+  const { rotearPeloFluxo } = await import("./flow.server");
+  const rota = await rotearPeloFluxo(texto).catch(() => null);
+  if (rota) {
+    console.log(`[triagem] fluxo: "${rota.titulo}" → ${rota.setor} (gatilhos: ${rota.matched.join(", ")})`);
+  }
+  if (rota?.setor === "aereo") return routeAereoParaCentral(conv, texto);
+  // Mapa mandou pra Consultoria/Comercial: não é aéreo, sai da triagem.
+  if (rota && rota.setor !== "aereo") return null;
+
   // Barreira dura antes de gastar chamada: sem menção a passagem/voo/aéreo,
   // ou com sinal de pacote/pós-venda, nem classificamos.
   if (!heuristicaAereo(texto)) return null;
 
   return routeAereoParaCentral(conv, texto);
+
 }
 
 /**
