@@ -129,11 +129,15 @@ function ChatLayout() {
     const failsafe = setTimeout(() => {
       if (!temSessaoSalva()) setSession((c) => (c === undefined ? null : c));
     }, 4000);
-    supabase.auth.getSession().then(({ data }) => {
+    void (async () => {
+      const { data } = await supabase.auth.getSession();
       clearTimeout(failsafe);
-      if (data.session) setSession(data.session);
-      else if (!temSessaoSalva()) setSession(null);
-    });
+      if (data.session) { setSession(data.session); return; }
+      if (!temSessaoSalva()) { setSession(null); return; }
+      // Token salvo mas sem sessão ativa: tenta renovar antes de derrubar.
+      const { data: rf } = await supabase.auth.refreshSession();
+      setSession(rf.session ?? null);
+    })();
     return () => { clearTimeout(failsafe); sub.subscription.unsubscribe(); };
   }, []);
 
