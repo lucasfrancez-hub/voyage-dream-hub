@@ -12,10 +12,12 @@ import {
   Link2,
   Loader2,
   MapPin,
+  Plus,
   RefreshCw,
   Users,
   X,
 } from "lucide-react";
+
 import {
   abrirAgendaApp,
   eventosAgendaApp,
