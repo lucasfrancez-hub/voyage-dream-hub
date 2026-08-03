@@ -52,6 +52,31 @@ const fingerprint = (o: OptLite): string =>
     .join("|");
 
 /**
+ * Quantas opções esta cotação PREVÊ entregar: a meta da política (3) limitada
+ * ao que a pesquisa realmente trouxe, contando horários de ida distintos.
+ * Sem isso, uma rota com 1 ou 2 opções nunca fecharia.
+ */
+export function previstasNaCotacao(todas: OptLite[], limite: number): number {
+  const horarios = new Set<string>();
+  let semHorario = 0;
+  for (const o of todas) {
+    const h = horarioIda(o);
+    if (h) horarios.add(h);
+    else semHorario++;
+  }
+  return Math.max(1, Math.min(limite, horarios.size + semHorario));
+}
+
+/**
+ * Conclusão da cotação: independe do formato. Card e texto entram na mesma
+ * lista de entregues (sent_fingerprints), então card+texto+card = completa.
+ */
+export function cotacaoConcluida(totalEntregues: number, previstas: number): boolean {
+  return totalEntregues >= previstas;
+}
+
+
+/**
  * Momento do último card realmente registrado na conversa. É usado somente
  * para manter o intervalo entre as duas artes, sem depender da legenda.
  */
@@ -564,10 +589,13 @@ export async function sendPendingFlightCards(
     return { sent: 0, quote_id: row.id as string };
   }
 
-  // Concluiu a cotação só quando as 2 opções saíram (arte ou texto); senão
-  // libera o claim pra que a próxima rodada do cron mande a etapa seguinte.
+  // CONCLUSÃO INDEPENDENTE DE FORMATO: o que conta é a impressão digital da
+  // opção entregue — card ou texto entram na MESMA lista (sent_fingerprints).
+  // Então card+texto+card = 3 entregues = cotação completa.
+  // Previstas = o que a política pede (3) limitado ao que a pesquisa realmente
+  // trouxe, pra uma rota com só 1 ou 2 opções não ficar eternamente pendente.
   const totalEnviadas = fpsDaCotacao.size + novosFps.length;
-  const concluiu = totalEnviadas >= limiteOpcoes;
+  const concluiu = cotacaoConcluida(totalEnviadas, previstasNaCotacao(todas, limiteOpcoes));
   await supabaseAdmin
     .from("wa_flight_quotes")
     .update({ cards_sent_at: concluiu ? new Date().toISOString() : null })
