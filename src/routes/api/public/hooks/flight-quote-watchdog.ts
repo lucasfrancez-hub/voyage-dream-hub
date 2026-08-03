@@ -49,7 +49,20 @@ export const Route = createFileRoute("/api/public/hooks/flight-quote-watchdog")(
         // conversa nem de resposta da IA. Claim preso (worker morreu no render)
         // expira em 45s e a opção volta pra fila automaticamente.
         const destravadas: string[] = [];
+        let reconciliadas: unknown = null;
         try {
+          // 1) Autocorreção: olha o estado, descobre o que faltou (claim órfão,
+          //    card gerado sem envio, envio sem baixa no banco, rodada não
+          //    encadeada, contador errado) e executa o próximo passo.
+          const { reconcileFlightDeliveries } = await import(
+            "@/lib/whatsapp/flight-reconcile.server"
+          );
+          reconciliadas = await reconcileFlightDeliveries();
+        } catch (e) {
+          console.warn("[watchdog] reconciliação falhou:", (e as Error)?.message ?? e);
+        }
+        try {
+          // 2) Fila normal das cotações que já estão consistentes.
           const { sweepFlightQuoteDeliveries } = await import(
             "@/lib/whatsapp/flight-delivery.server"
           );
@@ -58,6 +71,7 @@ export const Route = createFileRoute("/api/public/hooks/flight-quote-watchdog")(
         } catch (e) {
           console.warn("[watchdog] varredura de cotações falhou:", (e as Error)?.message ?? e);
         }
+
 
 
 
@@ -213,7 +227,7 @@ export const Route = createFileRoute("/api/public/hooks/flight-quote-watchdog")(
           }
         }
 
-        return Response.json({ ok: true, avisados, escalados, destravadas });
+        return Response.json({ ok: true, avisados, escalados, destravadas, reconciliadas });
       },
     },
   },

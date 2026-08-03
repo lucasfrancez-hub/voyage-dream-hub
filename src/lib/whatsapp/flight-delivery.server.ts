@@ -36,6 +36,8 @@ import {
   opcaoDisponivel,
   proximoIntervaloMs,
   quoteStatus,
+  statusAposFalha,
+  ehTerminal,
   type OptLite,
 } from "./flight-delivery";
 
@@ -384,6 +386,13 @@ async function entregarOpcao(
     });
     log({ event: "flight_delivery_render_completed", quote_id: quote.id, option_index: linha.option_index, cache_hit: from_cache });
 
+    // Arte pronta: o estado passa a card_generated. Se o worker morrer daqui
+    // pra frente, o reconciliador sabe que existe arte pronta e reaproveita.
+    await supabaseAdmin
+      .from("wa_flight_quote_options")
+      .update({ delivery_status: "card_generated" })
+      .eq("id", linha.id);
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const caption = buildFlightOptionCaption(quote.payload as any, op as any);
     const msg = await saveMessage({
@@ -399,6 +408,11 @@ async function entregarOpcao(
       card_option: op as unknown,
     });
     if (msg?.id) await setSendError(msg.id, SENDING_CLAIM);
+    await supabaseAdmin
+      .from("wa_flight_quote_options")
+      .update({ delivery_status: "sending_card" })
+      .eq("id", linha.id);
+
 
     const r = await sendWhatsAppImageBytesDetailed(
       ctx.wa_phone,
@@ -484,17 +498,29 @@ async function marcarEntregue(
 
 async function falhar(linha: OptionRow, erro: string): Promise<void> {
   const supabaseAdmin = await db();
+  const status = statusAposFalha(linha.attempt_count);
   await supabaseAdmin
     .from("wa_flight_quote_options")
     .update({
-      delivery_status: "failed",
+      delivery_status: status,
       last_error: erro.slice(0, 300),
       claim_id: null,
       claim_expires_at: null,
-      next_run_at: new Date(Date.now() + 30_000).toISOString(),
+      // failed_final não volta pra fila; recuperável tenta de novo em 30s.
+      next_run_at: status === "failed_final" ? null : new Date(Date.now() + 30_000).toISOString(),
     })
     .eq("id", linha.id);
+  log({
+    event: status === "failed_final" ? "flight_delivery_auto_repair_failed" : "flight_delivery_retry_scheduled",
+    quote_id: linha.quote_id,
+    option_index: linha.option_index,
+    estado_anterior: linha.delivery_status,
+    estado_novo: status,
+    motivo: erro.slice(0, 200),
+    tentativa: linha.attempt_count,
+  });
 }
+
 
 /* ─────────────────────── seleção da cotação da vez ──────────────────────── */
 
@@ -691,7 +717,7 @@ export async function processNextFlightQuoteOption(params: {
   const completou = cotacaoConcluida(entregues, expected);
 
   const proximaLinha = linhas.find(
-    (l) => l.option_index !== reivindicada.option_index && !foiEntregue(l.delivery_status) && l.delivery_status !== "cancelled",
+    (l) => l.option_index !== reivindicada.option_index && !ehTerminal(l.delivery_status),
   );
   const intervalo = params.imediato ? 2_000 : proximoIntervaloMs();
   const nextRunAt = completou || !proximaLinha ? null : new Date(Date.now() + intervalo).toISOString();
