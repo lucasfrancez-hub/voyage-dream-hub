@@ -963,78 +963,120 @@ function Detalhes({ evento, cor, origem, onFechar }: { evento: Evento; cor: stri
     participantes?: Array<{ nome?: string; email?: string; status?: string }>;
     url?: string;
   };
+  const inicio = new Date(evento.inicio);
+  const mesVoltar = inicio.toLocaleDateString("pt-BR", { month: "long" });
+
+  useEffect(() => {
+    const anterior = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = anterior;
+    };
+  }, []);
+
   return (
-    <div className="fixed inset-0 z-40 flex items-end justify-center" style={{ background: "rgba(0,0,0,0.6)", backdropFilter: "blur(6px)" }} onClick={onFechar}>
+    <div
+      className="fixed inset-0 z-50 overflow-y-auto overscroll-contain"
+      style={{ background: "#05172d", animation: "agendaSlideIn 260ms cubic-bezier(0.32,0.72,0,1)" }}
+    >
+      <style>{`@keyframes agendaSlideIn{from{transform:translateX(100%)}to{transform:translateX(0)}}`}</style>
+
       <div
-        className="max-h-[85dvh] w-full max-w-xl overflow-y-auto rounded-t-3xl border-t p-5 pb-[max(1.5rem,env(safe-area-inset-bottom))]"
-        style={{ background: "#0b1122", borderColor: `${cor}55` }}
-        onClick={(ev) => ev.stopPropagation()}
+        className="sticky top-0 z-10 px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))]"
+        style={{ background: "rgba(5,23,45,0.85)", backdropFilter: "blur(12px)" }}
       >
-        <div className="mb-4 flex items-start gap-3">
-          <span className="mt-1.5 h-3 w-3 shrink-0 rounded-full" style={{ background: cor }} />
-          <h2 className="flex-1 text-lg font-semibold leading-snug">{evento.titulo}</h2>
-          <button onClick={onFechar} aria-label="Fechar" className="opacity-60">
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-
-        <span
-          className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs"
-          style={{ borderColor: cor, color: cor }}
+        <button
+          onClick={onFechar}
+          className="inline-flex items-center gap-1 rounded-full py-1.5 pl-1.5 pr-3 text-[15px] font-medium"
+          style={{ background: "rgba(255,255,255,0.08)", color: cor }}
         >
-          <CalendarDays className="h-3.5 w-3.5" />
-          {origem}
-        </span>
+          <ChevronLeft className="h-5 w-5" />
+          <span className="capitalize">{mesVoltar}</span>
+        </button>
+      </div>
 
-        <div className="mt-4 space-y-3 text-sm">
-          <Linha icone={<Clock className="h-4 w-4" />}>
-            <span className="capitalize">{porExtenso(new Date(evento.inicio))}</span>
-            {!evento.dia_inteiro ? ` · ${hora(evento.inicio)} – ${hora(evento.fim)}` : " · dia inteiro"}
-          </Linha>
+      <div className="px-5 pb-[max(3rem,env(safe-area-inset-bottom))]">
+        <h1 className="text-[26px] font-bold leading-tight tracking-tight">{evento.titulo}</h1>
+
+        <p className="mt-2 text-[15px] leading-snug opacity-70">
+          <span className="capitalize">{porExtenso(inicio)}</span>
+          {!evento.dia_inteiro ? ` · ${hora(evento.inicio)} – ${hora(evento.fim)}` : " · dia inteiro"}
+        </p>
+
+        <div className="mt-5 space-y-3">
+          <div className="rounded-2xl px-4 py-3" style={{ background: "rgba(255,255,255,0.06)" }}>
+            <div className="flex items-center justify-between gap-3 text-[15px]">
+              <span className="opacity-60">Calendário</span>
+              <span className="inline-flex min-w-0 items-center gap-2">
+                <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: cor }} />
+                <span className="truncate">{origem}</span>
+              </span>
+            </div>
+          </div>
 
           {evento.local ? (
-            <Linha icone={<MapPin className="h-4 w-4" />}>
-              <a
-                href={`https://maps.google.com/?q=${encodeURIComponent(evento.local)}`}
-                target="_blank"
-                rel="noreferrer"
-                className="underline underline-offset-2"
-              >
-                {evento.local}
-              </a>
-            </Linha>
+            <a
+              href={`https://maps.google.com/?q=${encodeURIComponent(evento.local)}`}
+              target="_blank"
+              rel="noreferrer"
+              className="flex items-start gap-3 rounded-2xl px-4 py-3 text-[15px]"
+              style={{ background: "rgba(255,255,255,0.06)" }}
+            >
+              <MapPin className="mt-0.5 h-4 w-4 shrink-0 opacity-50" />
+              <span className="min-w-0 flex-1 underline underline-offset-2">{evento.local}</span>
+              <ChevronRight className="mt-0.5 h-4 w-4 shrink-0 opacity-40" />
+            </a>
           ) : null}
 
           {d.link_reuniao ? (
-            <Linha icone={<Link2 className="h-4 w-4" />}>
-              <a href={d.link_reuniao} target="_blank" rel="noreferrer" className="underline underline-offset-2" style={{ color: cor }}>
-                Entrar na reunião
-              </a>
-            </Linha>
+            <a
+              href={d.link_reuniao}
+              target="_blank"
+              rel="noreferrer"
+              className="flex items-center gap-3 rounded-2xl px-4 py-3 text-[15px] font-medium"
+              style={{ background: "rgba(255,255,255,0.06)", color: cor }}
+            >
+              <Link2 className="h-4 w-4 shrink-0" />
+              Entrar na reunião
+              <ChevronRight className="ml-auto h-4 w-4 opacity-50" />
+            </a>
+          ) : null}
+
+          {d.organizador?.nome || d.organizador?.email ? (
+            <div className="rounded-2xl px-4 py-3" style={{ background: "rgba(255,255,255,0.06)" }}>
+              <p className="text-[13px] opacity-50">Organizador</p>
+              <p className="mt-0.5 truncate text-[15px]">{d.organizador?.nome || d.organizador?.email}</p>
+            </div>
           ) : null}
 
           {d.participantes?.length ? (
-            <Linha icone={<Users className="h-4 w-4" />}>
-              <div className="flex flex-wrap gap-1.5">
+            <div className="rounded-2xl px-4 py-3" style={{ background: "rgba(255,255,255,0.06)" }}>
+              <div className="flex items-center gap-2 text-[13px] opacity-50">
+                <Users className="h-3.5 w-3.5" />
+                Convidados · {d.participantes.length}
+              </div>
+              <div className="mt-2 flex flex-wrap gap-1.5">
                 {d.participantes.map((p, i) => (
-                  <span key={i} className="rounded-full px-2 py-0.5 text-[11px]" style={{ background: "rgba(255,255,255,0.07)" }}>
+                  <span key={i} className="rounded-full px-2.5 py-1 text-[12px]" style={{ background: "rgba(255,255,255,0.08)" }}>
                     {p.nome || p.email}
                   </span>
                 ))}
               </div>
-            </Linha>
+            </div>
           ) : null}
 
           {evento.descricao ? (
-            <p className="whitespace-pre-wrap rounded-2xl p-3 text-[13px] leading-relaxed opacity-80" style={{ background: "rgba(255,255,255,0.04)" }}>
-              {evento.descricao}
-            </p>
+            <div className="rounded-2xl px-4 py-3" style={{ background: "rgba(255,255,255,0.06)" }}>
+              <p className="text-[13px] opacity-50">Notas</p>
+              <p className="mt-1 whitespace-pre-wrap break-words text-[14px] leading-relaxed opacity-85">{evento.descricao}</p>
+            </div>
           ) : null}
         </div>
       </div>
     </div>
   );
 }
+
 
 function Linha({ icone, children }: { icone: React.ReactNode; children: React.ReactNode }) {
   return (
