@@ -351,7 +351,8 @@ function InboxPage() {
             {channel === "instagram_dm" ? (
               <InstagramList folder={folder} search={search} activeId={activeId} onSelect={setActiveId} />
             ) : channel === "instagram_comments" ? (
-              <InstagramCommentsList search={search} />
+              <InstagramMediaThreadList search={search} activeId={activeId} onSelect={setActiveId} />
+
             ) : filtered.length === 0 ? (
               <div className="p-6 text-center text-xs text-slate-400">Nenhuma conversa</div>
             ) : (
