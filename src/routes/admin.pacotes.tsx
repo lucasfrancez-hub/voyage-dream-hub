@@ -1508,6 +1508,17 @@ function AdminPackages() {
         </>
       )}
 
+      <PackageSocialDialog
+        pkg={socialPkg}
+        open={!!socialPkg}
+        initialChannel={socialChannel}
+        onOpenChange={(v) => {
+          if (!v) setSocialPkg(null);
+        }}
+      />
+
+
+
       {editing && (
         <PackageEditorModal
           editing={editing}
