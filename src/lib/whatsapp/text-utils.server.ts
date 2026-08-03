@@ -110,3 +110,32 @@ export function capitalizeKnownNames(text: string, names: (string | null | undef
   }
   return out;
 }
+
+/**
+ * Remove Markdown das mensagens que vão pro WhatsApp.
+ *
+ * O WhatsApp não renderiza `**negrito**`, `__itálico__` nem `# título` —
+ * eles chegam como lixo visual. Aqui o texto vira texto simples; só o
+ * negrito nativo do WhatsApp (*asterisco simples*) é preservado.
+ */
+export function stripMarkdownForWhatsApp(text: string): string {
+  let out = String(text ?? "");
+  // blocos e trechos de código
+  out = out.replace(/```[a-z]*\n?/gi, "").replace(/`([^`\n]+)`/g, "$1");
+  // **negrito** e ***negrito itálico*** → texto simples
+  out = out.replace(/\*{2,3}([^*\n]+)\*{2,3}/g, "$1");
+  // asteriscos duplos soltos que sobraram
+  out = out.replace(/\*{2,}/g, "");
+  // __itálico__ / ___texto___
+  out = out.replace(/_{2,3}([^_\n]+)_{2,3}/g, "$1");
+  out = out.replace(/_{2,}/g, "");
+  // títulos "# ", "## ", "### " no início da linha
+  out = out.replace(/^\s{0,3}#{1,6}\s+/gm, "");
+  // links markdown [texto](url) → texto (url)
+  out = out.replace(/\[([^\]\n]+)\]\((https?:\/\/[^)\s]+)\)/g, "$1 ($2)");
+  // marcadores de lista "* item" → "- item"
+  out = out.replace(/^\s{0,3}\*\s+/gm, "- ");
+  // linhas horizontais
+  out = out.replace(/^\s{0,3}(-{3,}|_{3,})\s*$/gm, "");
+  return out;
+}
