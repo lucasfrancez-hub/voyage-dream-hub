@@ -377,6 +377,9 @@ function FluxosPage() {
         <Button variant="outline" size="sm" onClick={() => flow && aplicar(flow)} disabled={!sujo}>
           <RotateCcw className="mr-1.5 h-3.5 w-3.5" /> Desfazer
         </Button>
+        <Button variant="outline" size="sm" onClick={organizar}>
+          <LayoutGrid className="mr-1.5 h-3.5 w-3.5" /> Organizar
+        </Button>
         <Button variant="outline" size="sm" onClick={novoQuadro}>
           <Plus className="mr-1.5 h-3.5 w-3.5" /> Quadro
         </Button>
