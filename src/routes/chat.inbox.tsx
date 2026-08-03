@@ -366,16 +366,17 @@ function InboxPage() {
       <main className={cn(
         "min-w-0 flex-1 flex-col bg-[var(--chat-conversation)]",
         // Mobile: só mostra se tiver conversa ativa
-        (active || (channel === "instagram_dm" && activeId)) ? "flex" : "hidden md:flex",
+        (active || ((channel === "instagram_dm" || channel === "instagram_comments") && activeId)) ? "flex" : "hidden md:flex",
       )}>
         {channel === "instagram_dm" ? (
           activeId ? <InstagramConversationView conversationId={activeId} onBack={() => setActiveId(null)} /> : <EmptyState />
         ) : channel === "instagram_comments" ? (
-          <EmptyState />
+          activeId ? <InstagramCommentThreadView mediaId={activeId} onBack={() => setActiveId(null)} /> : <EmptyState />
         ) : active ? (
           <ConversationView conv={active} onRefetch={refetch} onBack={() => setActiveId(null)} />
         ) : <EmptyState />}
       </main>
+
 
 
       {/* Coluna 3 — Detalhes */}
