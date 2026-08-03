@@ -41,6 +41,10 @@ export type QuoteOptionMemory = {
 
 export type QuoteMemory = {
   quote_id: string;
+  /** Protocolo em que a cotação foi criada. */
+  protocolo_id?: string | null;
+  /** true quando a cotação pertence a um protocolo ANTERIOR (referência histórica). */
+  historica?: boolean;
   criada_em: string;
   atual: boolean;
   cancelada: boolean;
