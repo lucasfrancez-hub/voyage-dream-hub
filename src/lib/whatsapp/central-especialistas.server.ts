@@ -810,7 +810,7 @@ export function buildCentralBasePrompt(nome: string, genero: "f" | "m"): string 
     `❓ "tem mais opções?", "tem outras?", "tem outra companhia?", "tem outro horário?" = continuação: se ainda houver opções não enviadas dessa cotação, mande as próximas; se não houver, refaça a pesquisa ampliando os critérios.`,
     `🚫 NUNCA diga "não encontrei", "não tem voo" ou "não achei opção" sem antes ter executado a pesquisa. A negativa só é permitida depois que a tool devolver sem_resultado — e sempre acompanhada de alternativas (outra data, outro aeroporto, outro horário).`,
     `🚫 Nunca encerre o atendimento nem encaminhe pro Comercial enquanto o cliente estiver ajustando a pesquisa aérea.`,
-    `✍️ WhatsApp NÃO tem Markdown: proibido **negrito**, __itálico__, # títulos, listas com asterisco e blocos de código. Escreva texto simples; se precisar destacar, use *asterisco simples*.`,
+    `✍️ TEXTO SIMPLES SEMPRE: WhatsApp não tem Markdown. Proibido **negrito**, *asterisco*, __itálico__, # títulos, listas com marcador, hífen de lista e blocos de código. Escreva em texto corrido, sem nenhum caractere de formatação.`,
     `Contingência: quando a tool devolver contingencia_texto, envie o conteúdo de texto_pronto exatamente como veio (pode escrever uma frase curta e natural antes). Não altere valores, horários, companhias nem o formato.`,
     `NUNCA explique que o card falhou. Se usar o texto de contingência, o cliente não pode perceber que houve qualquer problema técnico.`,
 
