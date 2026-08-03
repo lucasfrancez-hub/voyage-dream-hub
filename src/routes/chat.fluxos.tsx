@@ -551,6 +551,72 @@ function PainelQuadro({
         </div>
       </div>
 
+      {/* ações / disparos do quadro */}
+      <div className="space-y-2">
+        <Label className="flex items-center gap-1.5 text-xs">
+          <Zap className="h-3.5 w-3.5" /> Ações e disparos
+        </Label>
+        <div className="space-y-2">
+          {(data.acoes ?? []).map((a) => (
+            <div key={a.id} className="space-y-1.5 rounded-md border border-border p-2">
+              <div className="flex items-center gap-1.5">
+                <select
+                  className="h-8 min-w-0 flex-1 rounded-md border border-input bg-background px-2 text-xs"
+                  value={a.tipo}
+                  onChange={(e) =>
+                    onChange({
+                      acoes: (data.acoes ?? []).map((x) =>
+                        x.id === a.id ? { ...x, tipo: e.target.value as FlowAcaoTipo } : x,
+                      ),
+                    })
+                  }
+                >
+                  {Object.entries(ACAO_LABEL).map(([k, v]) => (
+                    <option key={k} value={k}>
+                      {v}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  className="text-muted-foreground hover:text-destructive"
+                  onClick={() => onChange({ acoes: (data.acoes ?? []).filter((x) => x.id !== a.id) })}
+                  aria-label="Remover ação"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
+              <Input
+                className="h-8 text-xs"
+                value={a.detalhe}
+                placeholder="O que exatamente ela faz aqui"
+                onChange={(e) =>
+                  onChange({
+                    acoes: (data.acoes ?? []).map((x) => (x.id === a.id ? { ...x, detalhe: e.target.value } : x)),
+                  })
+                }
+              />
+            </div>
+          ))}
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          className="w-full"
+          onClick={() =>
+            onChange({
+              acoes: [
+                ...(data.acoes ?? []),
+                { id: `ac_${Date.now()}`, tipo: "mensagem" as FlowAcaoTipo, detalhe: "" } as FlowAcao,
+              ],
+            })
+          }
+        >
+          <Plus className="mr-1.5 h-3.5 w-3.5" /> Adicionar ação
+        </Button>
+      </div>
+
+
       <Button variant="outline" size="sm" className="w-full text-destructive" onClick={onExcluir}>
         <Trash2 className="mr-1.5 h-3.5 w-3.5" /> Excluir quadro
       </Button>
