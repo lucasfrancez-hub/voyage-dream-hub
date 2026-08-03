@@ -1003,13 +1003,14 @@ export function buildCentralPrompt(
       ? `\n## ✅ ORIGEM JÁ CONFIRMADA NESTE ATENDIMENTO\nNeste mesmo protocolo o cliente já confirmou que embarca de ${opts.origemConfirmadaNoProtocolo.trim()}.\nNÃO pergunte a origem de novo. Se ele mudar só o destino ("agora quero ir pra Florianópolis"), mantenha ${opts.origemConfirmadaNoProtocolo.trim()} como origem e pesquise (origem = ${opts.origemConfirmadaNoProtocolo.trim()}, origem_informada_pelo_cliente = true). Só troque se ele disser outra cidade de embarque.`
       : "",
     !opts?.origemConfirmadaNoProtocolo?.trim() && opts?.origemSugeridaPeloHistorico?.trim()
-      ? `\n## 🔁 ORIGEM DE ATENDIMENTO ANTERIOR (apenas sugestão)\nEm um protocolo ANTERIOR desta conversa o embarque foi por ${opts.origemSugeridaPeloHistorico.trim()}.\nIsso NÃO vale como origem confirmada deste novo atendimento. Se o cliente não disser a origem agora, pergunte: "Vai manter o embarque por ${opts.origemSugeridaPeloHistorico.trim()} ou quer mudar a origem?" e só pesquise depois da resposta. Nunca diga que vai pesquisar saindo de ${opts.origemSugeridaPeloHistorico.trim()} antes da confirmação.`
+      ? `\n## 🔁 O CLIENTE PEDIU PARA REPETIR O ATENDIMENTO ANTERIOR\nEle mesmo pediu para manter igual à última vez, e naquele atendimento o embarque foi por ${opts.origemSugeridaPeloHistorico.trim()}.\nConfirme em uma frase natural ("Vai manter o embarque por ${opts.origemSugeridaPeloHistorico.trim()}?") e só pesquise depois da resposta. Fora esse pedido explícito, dado de protocolo anterior nunca é citado.`
       : "",
     `\n## 🚪 ABERTURA`,
 
     opts?.primeiroContato
-      ? `Este é o PRIMEIRO contato: o cliente abriu a conversa já pedindo passagem aérea e você é quem atende desde o começo. Abra você mesm${genero === "f" ? "a" : "o"}, de forma natural e calorosa: cumprimente pelo nome ("Oi, Lucas! Tudo bem?"), se apresente ("Aqui é ${genero === "f" ? "a" : "o"} ${nome}, da Central de Especialistas da VIA AIR") e demonstre disposição ("vou cuidar da sua cotação certinho" / "pode deixar que já vou verificar as melhores opções pra vc"). Nunca cite outro consultor, nunca diga que o atendimento foi transferido/encaminhado e nunca mencione triagem ou sistema. Depois siga pedindo só os dados obrigatórios que faltam.`
-      : `Você entra na conversa já em andamento. Cumprimente rapidinho de forma natural e se apresente pelo nome ("Oi! Aqui é ${genero === "f" ? "a" : "o"} ${nome}, da Central de Especialistas da VIA AIR, vou cuidar da sua cotação"), e siga. Nada de recomeçar o atendimento do zero nem repetir perguntas já respondidas.`,
+      ? `Este é o PRIMEIRO contato: o cliente abriu a conversa já pedindo passagem aérea e você é quem atende desde o começo. Abra você mesm${genero === "f" ? "a" : "o"}: "Oi, <Nome>! Tudo bem?", depois "Sou ${genero === "f" ? "a" : "o"} ${nome}, do setor aéreo da VIA AIR." e "Vou cuidar da sua cotação por aqui." Nunca cite outro consultor, nunca diga que o atendimento foi transferido/encaminhado e nunca mencione triagem, central ou sistema. Depois siga pedindo só os dados obrigatórios que faltam.`
+      : `Você assume um atendimento que veio do consultor. Abra assim, uma frase por balão: "Oi, <Nome>! Tudo bem?" / "Sou ${genero === "f" ? "a" : "o"} ${nome}, do setor aéreo da VIA AIR." / "Vou cuidar da sua cotação por aqui." Depois siga do ponto em que o cliente parou — nada de recomeçar o atendimento nem repetir perguntas já respondidas.`,
+
 
   ]
     .filter(Boolean)
