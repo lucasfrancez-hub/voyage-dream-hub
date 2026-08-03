@@ -302,11 +302,42 @@ export function buildCentralTools(
         companhias_incluidas,
         companhias_excluidas,
       }) => {
+        const protocoloId =
+          (conversation as unknown as { protocolo_ativo_id?: string | null }).protocolo_ativo_id ?? null;
+
+        // TRAVA SERVER-SIDE DA ORIGEM: o booleano da IA não vale nada sozinho.
+        // A origem só é aceita quando existe mensagem inbound DESTE protocolo
+        // informando ou confirmando expressamente a cidade de embarque.
+        let origemAutorizada = false;
+        if (protocoloId) {
+          const { confirmFlightOrigin, logProtocolEvent } = await import("./protocol-runtime.server");
+          const { originIsUsable } = await import("./flight-origin-state");
+          const state = await confirmFlightOrigin({
+            conversation_id: conversation.id,
+            protocolo_id: protocoloId,
+            origin: origem,
+            suggested_origin: origem_sugerida_pelo_historico,
+          });
+          origemAutorizada = originIsUsable(state);
+          if (!origemAutorizada) {
+            await logProtocolEvent("flight_search_blocked", {
+              conversation_id: conversation.id,
+              protocolo_id: protocoloId,
+              agent_slug: agente?.slug ?? null,
+              field: "origem",
+              origem_pedida: origem,
+              origem_informada_pelo_cliente_ia: origem_informada_pelo_cliente,
+              motivo: "origem_sem_confirmacao_no_protocolo_atual",
+            });
+          }
+        }
+
         // TRAVA ÚNICA no servidor: dados obrigatórios, coerência de trecho,
         // datas reais/futuras, origem ≠ destino e limites de passageiros.
         const check = validateFlightSearch({
           origem,
-          origem_informada_pelo_cliente,
+          // Confiamos apenas no estado persistido do protocolo atual.
+          origem_informada_pelo_cliente: origemAutorizada,
           origem_sugerida_pelo_historico,
           destino,
           tipo_trecho,
