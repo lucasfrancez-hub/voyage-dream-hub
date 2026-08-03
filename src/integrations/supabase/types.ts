@@ -1335,6 +1335,8 @@ export type Database = {
           auto_reply_text: string | null
           comment_id: string
           created_at: string
+          dm_scheduled_at: string | null
+          dm_text: string | null
           from_ig_id: string | null
           from_username: string | null
           id: string
@@ -1356,6 +1358,8 @@ export type Database = {
           auto_reply_text?: string | null
           comment_id: string
           created_at?: string
+          dm_scheduled_at?: string | null
+          dm_text?: string | null
           from_ig_id?: string | null
           from_username?: string | null
           id?: string
@@ -1377,6 +1381,8 @@ export type Database = {
           auto_reply_text?: string | null
           comment_id?: string
           created_at?: string
+          dm_scheduled_at?: string | null
+          dm_text?: string | null
           from_ig_id?: string | null
           from_username?: string | null
           id?: string

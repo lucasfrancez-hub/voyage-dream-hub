@@ -100,6 +100,7 @@ import { Route as ApiPublicHooksCloseInactiveProtocolsRouteImport } from './rout
 import { Route as ApiPublicHooksDispatchAiDebouncedRouteImport } from './routes/api/public/hooks/dispatch-ai-debounced'
 import { Route as ApiPublicHooksFlightCardsContinueRouteImport } from './routes/api/public/hooks/flight-cards-continue'
 import { Route as ApiPublicHooksFlightQuoteWatchdogRouteImport } from './routes/api/public/hooks/flight-quote-watchdog'
+import { Route as ApiPublicHooksInstagramDmQueueRouteImport } from './routes/api/public/hooks/instagram-dm-queue'
 import { Route as ApiPublicHooksInstagramHealthRouteImport } from './routes/api/public/hooks/instagram-health'
 import { Route as ApiPublicHooksKeepWindowAliveRouteImport } from './routes/api/public/hooks/keep-window-alive'
 import { Route as ApiPublicHooksRunCheckinsRouteImport } from './routes/api/public/hooks/run-checkins'
@@ -581,6 +582,12 @@ const ApiPublicHooksFlightQuoteWatchdogRoute =
     path: '/api/public/hooks/flight-quote-watchdog',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicHooksInstagramDmQueueRoute =
+  ApiPublicHooksInstagramDmQueueRouteImport.update({
+    id: '/api/public/hooks/instagram-dm-queue',
+    path: '/api/public/hooks/instagram-dm-queue',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicHooksInstagramHealthRoute =
   ApiPublicHooksInstagramHealthRouteImport.update({
     id: '/api/public/hooks/instagram-health',
@@ -732,6 +739,7 @@ export interface FileRoutesByFullPath {
   '/api/public/hooks/dispatch-ai-debounced': typeof ApiPublicHooksDispatchAiDebouncedRoute
   '/api/public/hooks/flight-cards-continue': typeof ApiPublicHooksFlightCardsContinueRoute
   '/api/public/hooks/flight-quote-watchdog': typeof ApiPublicHooksFlightQuoteWatchdogRoute
+  '/api/public/hooks/instagram-dm-queue': typeof ApiPublicHooksInstagramDmQueueRoute
   '/api/public/hooks/instagram-health': typeof ApiPublicHooksInstagramHealthRoute
   '/api/public/hooks/keep-window-alive': typeof ApiPublicHooksKeepWindowAliveRoute
   '/api/public/hooks/run-checkins': typeof ApiPublicHooksRunCheckinsRoute
@@ -834,6 +842,7 @@ export interface FileRoutesByTo {
   '/api/public/hooks/dispatch-ai-debounced': typeof ApiPublicHooksDispatchAiDebouncedRoute
   '/api/public/hooks/flight-cards-continue': typeof ApiPublicHooksFlightCardsContinueRoute
   '/api/public/hooks/flight-quote-watchdog': typeof ApiPublicHooksFlightQuoteWatchdogRoute
+  '/api/public/hooks/instagram-dm-queue': typeof ApiPublicHooksInstagramDmQueueRoute
   '/api/public/hooks/instagram-health': typeof ApiPublicHooksInstagramHealthRoute
   '/api/public/hooks/keep-window-alive': typeof ApiPublicHooksKeepWindowAliveRoute
   '/api/public/hooks/run-checkins': typeof ApiPublicHooksRunCheckinsRoute
@@ -938,6 +947,7 @@ export interface FileRoutesById {
   '/api/public/hooks/dispatch-ai-debounced': typeof ApiPublicHooksDispatchAiDebouncedRoute
   '/api/public/hooks/flight-cards-continue': typeof ApiPublicHooksFlightCardsContinueRoute
   '/api/public/hooks/flight-quote-watchdog': typeof ApiPublicHooksFlightQuoteWatchdogRoute
+  '/api/public/hooks/instagram-dm-queue': typeof ApiPublicHooksInstagramDmQueueRoute
   '/api/public/hooks/instagram-health': typeof ApiPublicHooksInstagramHealthRoute
   '/api/public/hooks/keep-window-alive': typeof ApiPublicHooksKeepWindowAliveRoute
   '/api/public/hooks/run-checkins': typeof ApiPublicHooksRunCheckinsRoute
@@ -1043,6 +1053,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/dispatch-ai-debounced'
     | '/api/public/hooks/flight-cards-continue'
     | '/api/public/hooks/flight-quote-watchdog'
+    | '/api/public/hooks/instagram-dm-queue'
     | '/api/public/hooks/instagram-health'
     | '/api/public/hooks/keep-window-alive'
     | '/api/public/hooks/run-checkins'
@@ -1145,6 +1156,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/dispatch-ai-debounced'
     | '/api/public/hooks/flight-cards-continue'
     | '/api/public/hooks/flight-quote-watchdog'
+    | '/api/public/hooks/instagram-dm-queue'
     | '/api/public/hooks/instagram-health'
     | '/api/public/hooks/keep-window-alive'
     | '/api/public/hooks/run-checkins'
@@ -1248,6 +1260,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/dispatch-ai-debounced'
     | '/api/public/hooks/flight-cards-continue'
     | '/api/public/hooks/flight-quote-watchdog'
+    | '/api/public/hooks/instagram-dm-queue'
     | '/api/public/hooks/instagram-health'
     | '/api/public/hooks/keep-window-alive'
     | '/api/public/hooks/run-checkins'
@@ -1311,6 +1324,7 @@ export interface RootRouteChildren {
   ApiPublicHooksDispatchAiDebouncedRoute: typeof ApiPublicHooksDispatchAiDebouncedRoute
   ApiPublicHooksFlightCardsContinueRoute: typeof ApiPublicHooksFlightCardsContinueRoute
   ApiPublicHooksFlightQuoteWatchdogRoute: typeof ApiPublicHooksFlightQuoteWatchdogRoute
+  ApiPublicHooksInstagramDmQueueRoute: typeof ApiPublicHooksInstagramDmQueueRoute
   ApiPublicHooksInstagramHealthRoute: typeof ApiPublicHooksInstagramHealthRoute
   ApiPublicHooksKeepWindowAliveRoute: typeof ApiPublicHooksKeepWindowAliveRoute
   ApiPublicHooksRunCheckinsRoute: typeof ApiPublicHooksRunCheckinsRoute
@@ -1962,6 +1976,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksFlightQuoteWatchdogRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/instagram-dm-queue': {
+      id: '/api/public/hooks/instagram-dm-queue'
+      path: '/api/public/hooks/instagram-dm-queue'
+      fullPath: '/api/public/hooks/instagram-dm-queue'
+      preLoaderRoute: typeof ApiPublicHooksInstagramDmQueueRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/instagram-health': {
       id: '/api/public/hooks/instagram-health'
       path: '/api/public/hooks/instagram-health'
@@ -2207,6 +2228,7 @@ const rootRouteChildren: RootRouteChildren = {
     ApiPublicHooksFlightCardsContinueRoute,
   ApiPublicHooksFlightQuoteWatchdogRoute:
     ApiPublicHooksFlightQuoteWatchdogRoute,
+  ApiPublicHooksInstagramDmQueueRoute: ApiPublicHooksInstagramDmQueueRoute,
   ApiPublicHooksInstagramHealthRoute: ApiPublicHooksInstagramHealthRoute,
   ApiPublicHooksKeepWindowAliveRoute: ApiPublicHooksKeepWindowAliveRoute,
   ApiPublicHooksRunCheckinsRoute: ApiPublicHooksRunCheckinsRoute,
