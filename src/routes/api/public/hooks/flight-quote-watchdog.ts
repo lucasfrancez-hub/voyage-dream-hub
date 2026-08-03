@@ -124,23 +124,12 @@ export const Route = createFileRoute("/api/public/hooks/flight-quote-watchdog")(
 
           const depois = msgs.filter((m) => m.created_at > promessa!.created_at);
 
-          // ETAPA DE ENTREGA: toda rodada tenta mandar a PRÓXIMA arte pendente
-          // (uma por rodada). É o motor do processo em passos: pesquisou →
-          // primeira arte → segunda arte → fecho.
+          // A entrega das opções já foi feita pela varredura central lá em cima
+          // (processNextFlightQuoteOption). Aqui o watchdog cuida só do fecho e
+          // do plano B quando a pesquisa não retornou nada.
           const nome = firstName(conv.display_name as string | null);
           const voc = nome ? `${nome}, ` : "";
-          const { sendPendingFlightCards } = await import("@/lib/whatsapp/flight-cards-pending.server");
-          const pend = await sendPendingFlightCards(
-            convId,
-            conv.wa_phone as string,
-            60 * 60 * 1000,
-            inicio,
-            proto.id as string,
-          ).catch(() => ({ sent: 0, done: false }) as { sent: number; done?: boolean });
-          if (pend.sent > 0) {
-            avisados.push(convId);
-            continue;
-          }
+
 
           // Só considera entregue quando existe uma arte registrada. Texto como
           // "achei opções" não pode impedir o reenvio dos cards pendentes.
