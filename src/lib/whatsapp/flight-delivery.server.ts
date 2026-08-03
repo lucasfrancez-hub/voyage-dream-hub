@@ -906,7 +906,7 @@ export async function cancelarCotacoesAnteriores(
     .in("id", ids);
   await supabaseAdmin
     .from("wa_flight_quote_options")
-    .update({ status: "cancelled", claimed_by: null, claim_expires_at: null })
+    .update({ status: "cancelled", claimed_by: null, claim_expires_at: null } as never)
     .in("quote_id", ids)
     .in("status", ["pending", "rendering", "sending"]);
   log({ event: "flight_delivery_superseded", conversation_id: conversationId, cancelled: ids.length });
