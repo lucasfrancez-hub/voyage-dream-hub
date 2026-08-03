@@ -3949,6 +3949,45 @@ export type Database = {
         }
         Relationships: []
       }
+      wa_flight_card_cache: {
+        Row: {
+          created_at: string
+          filename: string
+          hits: number
+          last_used_at: string
+          option_index: number | null
+          protocolo_id: string | null
+          public_url: string
+          quote_id: string | null
+          signature: string
+          storage_path: string
+        }
+        Insert: {
+          created_at?: string
+          filename: string
+          hits?: number
+          last_used_at?: string
+          option_index?: number | null
+          protocolo_id?: string | null
+          public_url: string
+          quote_id?: string | null
+          signature: string
+          storage_path: string
+        }
+        Update: {
+          created_at?: string
+          filename?: string
+          hits?: number
+          last_used_at?: string
+          option_index?: number | null
+          protocolo_id?: string | null
+          public_url?: string
+          quote_id?: string | null
+          signature?: string
+          storage_path?: string
+        }
+        Relationships: []
+      }
       wa_flight_quotes: {
         Row: {
           agent_name: string | null

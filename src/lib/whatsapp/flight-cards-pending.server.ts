@@ -37,6 +37,13 @@ const INTERVALO_MS = 30_000; // 2ª arte fica elegível 30s depois da 1ª; o env
 // ocorre na próxima execução do cron (1x/min), então na prática o cliente recebe
 // a segunda opção normalmente entre 30 e 90 segundos.
 const CLAIM_TRAVADO_MS = 45_000; // claim preso (worker caiu no render) → destrava
+/**
+ * Prazo BRANDO da arte quando ela ainda não está no cache: passou disso, a
+ * opção vai em TEXTO na hora e o card daquela opção é CANCELADO (nunca manda
+ * a mesma cotação duas vezes, em texto e depois em imagem).
+ */
+const SOFT_DEADLINE_MS = 6_000;
+
 
 
 const fingerprint = (o: OptLite): string =>
@@ -241,7 +248,9 @@ export async function sendPendingFlightCards(
     return { sent: 0, quote_id: row.id as string };
   }
 
-  const { buildFlightCardData, renderFlightCardAssetRetry } = await import("./flight-card.server");
+  const { buildFlightCardData } = await import("./flight-card.server");
+  const { getOrRenderCard } = await import("./flight-card-cache.server");
+
   const { buildFlightOptionCaption } = await import("./flight-caption.server");
   const { sendWhatsAppImageBytesDetailed, sendWhatsAppText } = await import("./send.server");
   const { saveMessage, saveAndSendText, setSendError, SENDING_CLAIM } = await import(
@@ -391,15 +400,26 @@ export async function sendPendingFlightCards(
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const data = buildFlightCardData(quote as any, op as any);
       estagio = "image_render";
-      const asset = await renderFlightCardAssetRetry(data, 2, renderBudgetMs);
+      // CACHE-FIRST: se o pré-aquecimento já rendeu esta opção, o envio é
+      // imediato. Sem cache, a arte tem um prazo brando (6s) — estourou, cai
+      // no texto e o card desta opção não é mais tentado.
+      const semCache = Math.min(SOFT_DEADLINE_MS, renderBudgetMs);
+      const { asset, from_cache } = await getOrRenderCard(data, {
+        softDeadlineMs: semCache,
+        tentativas: 1,
+        quote_id: quoteId,
+        protocolo_id: protocolId ?? null,
+        option_index: optionIndex,
+      });
       geradoEm = new Date().toISOString();
       logCardEvent({
         ...base,
         event: "card_generated",
         generated_at: geradoEm,
         storage_reference: asset.url ?? asset.filename ?? null,
-        delivery_status: "generated",
+        delivery_status: from_cache ? "generated_from_cache" : "generated",
       });
+
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const caption = buildFlightOptionCaption(quote as any, op as any);
 

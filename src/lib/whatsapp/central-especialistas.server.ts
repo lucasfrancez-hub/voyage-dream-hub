@@ -534,9 +534,23 @@ export function buildCentralTools(
             .single();
           const quote_id = (saved?.id as string | undefined) ?? null;
 
-          // Entrega automática das artes (formato principal do briefing).
+          // PRÉ-GERAÇÃO EM PARALELO: assim que o motor respondeu, as artes das
+          // opções selecionadas começam a ser renderizadas ao mesmo tempo, em
+          // segundo plano. Ficam no cache vinculadas a quote_id/protocolo/opção
+          // e são canceladas se a cotação ou o protocolo mudarem.
           let cards_enviados = 0;
           if (quote_id) {
+            const { prewarmFlightCards } = await import("./flight-card-cache.server");
+            const prewarm = prewarmFlightCards(result, result.opcoes.slice(0, selecionadas), {
+              conversation_id: conversation.id,
+              quote_id,
+              protocolo_id: conversation.protocolo_ativo_id ?? null,
+              limite: selecionadas,
+            }).catch(() => undefined);
+            // Espera no máximo ~6s pela 1ª arte; o resto continua em paralelo.
+            await Promise.race([prewarm, new Promise((r) => setTimeout(r, 6_000))]);
+            void prewarm;
+
             const { sendPendingFlightCards } = await import("./flight-cards-pending.server");
             const envio = await sendPendingFlightCards(
               conversation.id,
@@ -547,6 +561,7 @@ export function buildCentralTools(
             ).catch(() => ({ sent: 0 }));
             cards_enviados = envio.sent ?? 0;
           }
+
 
           if (cards_enviados > 0) {
             return {

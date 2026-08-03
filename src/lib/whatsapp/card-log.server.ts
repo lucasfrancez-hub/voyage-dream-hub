@@ -36,11 +36,14 @@ export type CardFailureStage =
 /** Status real da entrega (só muda para delivered/read via webhook da Meta). */
 export type CardDeliveryStatus =
   | "generated"
+  /** arte reaproveitada do cache de renderização (mesma assinatura da opção). */
+  | "generated_from_cache"
   | "uploaded"
   | "sent"
   | "delivered"
   | "read"
   | "failed";
+
 
 export type CardLogEntry = {
   event: CardLogEvent;
