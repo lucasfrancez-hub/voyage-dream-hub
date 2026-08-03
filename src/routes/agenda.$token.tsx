@@ -207,7 +207,7 @@ function AgendaApp() {
 function Fundo({ children }: { children: React.ReactNode }) {
   return (
     <div
-      className="min-h-dvh text-white"
+      className="min-h-dvh text-white [touch-action:manipulation]"
       style={{
         background: "radial-gradient(1200px 600px at 50% -10%, #14213f 0%, #080d1a 55%, #05070f 100%)",
       }}
@@ -571,7 +571,7 @@ function NovoCompromisso({
   });
 
   const campo =
-    "w-full rounded-xl border px-3 py-2.5 text-sm outline-none placeholder:opacity-40";
+    "w-full rounded-xl border px-3 py-2.5 text-base outline-none placeholder:opacity-40";
   const estiloCampo = { borderColor: "rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.05)", color: "#fff" } as const;
 
   return (
