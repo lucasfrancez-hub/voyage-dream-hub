@@ -12,8 +12,8 @@ self.addEventListener("push", (event) => {
   event.waitUntil(
     self.registration.showNotification(dados.title, {
       body: dados.body,
-      icon: "/mockups/agenda-icon-192.png",
-      badge: "/mockups/agenda-icon-192.png",
+      icon: "/agenda-icon-192.png",
+      badge: "/agenda-icon-192.png",
       tag: dados.tag || undefined,
       data: { url: dados.url || "/" },
       vibrate: [80, 40, 80],
