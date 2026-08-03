@@ -1,0 +1,2 @@
+REVOKE EXECUTE ON FUNCTION public.close_protocol_and_reset_runtime(uuid, text, text) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.close_protocol_and_reset_runtime(uuid, text, text) TO service_role;
