@@ -9,8 +9,10 @@
  * SERVER-ONLY — nunca importar de rotas/componentes.
  */
 
+import { stripMarkdownForWhatsApp } from "./text-utils.server";
 
 const GRAPH_VERSION = "v21.0";
+
 
 function normalizePhone(raw: string): string {
   const digits = raw.replace(/\D/g, "");
