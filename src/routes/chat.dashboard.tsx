@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useSuspenseQuery, queryOptions } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Users, MessageSquare, Bot, UserCheck, TrendingUp } from "lucide-react";
+import { Users, MessageSquare, Bot, UserCheck, TrendingUp, MessageCircle, Instagram, MessageSquareText, type LucideIcon } from "lucide-react";
 import { LineChart, Line, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
 import { Suspense } from "react";
 import { Loader2 } from "lucide-react";
