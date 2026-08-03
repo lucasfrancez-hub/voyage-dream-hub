@@ -29,7 +29,7 @@ const MAX_OPCOES = 2; // por cotação, salvo pedido explícito de mais horário
 const INTERVALO_MS = 30_000; // 2ª arte fica elegível 30s depois da 1ª; o envio
 // ocorre na próxima execução do cron (1x/min), então na prática o cliente recebe
 // a segunda opção normalmente entre 30 e 90 segundos.
-const CLAIM_TRAVADO_MS = 90_000; // claim preso (worker caiu no render) → destrava
+const CLAIM_TRAVADO_MS = 45_000; // claim preso (worker caiu no render) → destrava
 
 
 const fingerprint = (o: OptLite): string =>
@@ -74,6 +74,8 @@ export async function sendPendingFlightCards(
   protocolId?: string | null,
   /** true = reenvio pedido pelo cliente ("não recebi"): ignora claim e fingerprints. */
   force = false,
+  /** Orçamento total de renderização desta rodada. Estourou → fallback em texto. */
+  renderBudgetMs = 26_000,
 ): Promise<{ sent: number; quote_id?: string }> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
@@ -378,7 +380,7 @@ export async function sendPendingFlightCards(
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const data = buildFlightCardData(quote as any, op as any);
       estagio = "image_render";
-      const asset = await renderFlightCardAssetRetry(data);
+      const asset = await renderFlightCardAssetRetry(data, 2, renderBudgetMs);
       geradoEm = new Date().toISOString();
       logCardEvent({
         ...base,
