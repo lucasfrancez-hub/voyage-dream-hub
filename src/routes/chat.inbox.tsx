@@ -234,7 +234,29 @@ function InboxPage() {
                 <Plus className="h-4 w-4" />
               </button>
             </div>
-            {/* Abas de canal ocultas temporariamente — Instagram voltará depois */}
+            <div className="-mx-1 mt-2 flex gap-1 overflow-x-auto px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              {([
+                { key: "whatsapp", label: "WhatsApp", icon: MessageCircle },
+                { key: "instagram_dm", label: "Instagram", icon: Instagram },
+                { key: "instagram_comments", label: "Comentários", icon: Heart },
+              ] as const).map((c) => (
+                <button
+                  key={c.key}
+                  onClick={() => { setChannel(c.key); setActiveId(null); }}
+                  className={cn(
+                    "flex shrink-0 items-center gap-1 whitespace-nowrap rounded-md px-2.5 py-1.5 text-[11px] font-medium transition-colors",
+                    channel === c.key
+                      ? "bg-orange-50 text-[#F26B1F]"
+                      : "text-slate-500 hover:bg-slate-50 hover:text-slate-900",
+                  )}
+                >
+                  <c.icon className="h-3 w-3" />
+                  {c.label}
+                </button>
+              ))}
+            </div>
+
+
 
             <div className="-mx-1 mt-2 flex gap-1 overflow-x-auto px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               {FOLDERS.map((f) => (
