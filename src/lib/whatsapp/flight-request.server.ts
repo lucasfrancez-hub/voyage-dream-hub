@@ -71,6 +71,11 @@ export type FlightSearchRequest = {
   customer_nudge_count: number;
   recovery_priority: string;
   recovery_started_at: string | null;
+  recovery_attempts: number;
+  last_recovery_at: string | null;
+  transferred_at: string | null;
+  transfer_reason: string | null;
+  transfer_briefing: string | null;
   created_at: string;
   updated_at: string;
   completed_at: string | null;
