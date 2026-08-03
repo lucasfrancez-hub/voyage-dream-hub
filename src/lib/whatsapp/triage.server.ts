@@ -270,7 +270,7 @@ export async function triageFirstMessage(conv: WaConversation): Promise<TriageRe
   }
   if (rota?.setor === "aereo") return routeAereoParaCentral(conv, texto);
   // Mapa mandou pra Consultoria/Comercial: não é aéreo, sai da triagem.
-  if (rota && rota.setor !== "aereo") return null;
+  if (rota) return null;
 
   // Barreira dura antes de gastar chamada: sem menção a passagem/voo/aéreo,
   // ou com sinal de pacote/pós-venda, nem classificamos.
