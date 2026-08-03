@@ -104,6 +104,8 @@ function InboxPage() {
 
   const filtered = useMemo(() => {
     return conversations.filter((c) => {
+      // Espelhos de DM do Instagram nunca aparecem na lista do WhatsApp.
+      if (c.wa_phone?.startsWith("ig:")) return false;
       // Arquivadas só aparecem na aba "Arquivadas".
       if (folder !== "resolved" && c.mode === "resolved") return false;
       if (folder === "ai" && c.mode !== "ai") return false;
@@ -125,12 +127,31 @@ function InboxPage() {
     queryKey: ["ig", "conversations"],
     queryFn: () => igListFn(),
     refetchInterval: 15_000,
-    enabled: channel === "instagram_dm",
+  });
+  const igCommentsFn = useServerFn(listInstagramComments);
+  const { data: igComments = [] } = useQuery({
+    queryKey: ["ig", "comments"],
+    queryFn: () => igCommentsFn(),
+    refetchInterval: 30_000,
   });
   const igActive = channel === "instagram_dm" && activeId ? igConversations.find((c) => c.id === activeId) ?? null : null;
   const igMirrorConv = igActive
     ? conversations.find((c) => c.wa_phone === `ig:${igActive.contact_ig_id}`) ?? null
     : null;
+
+  const waUnread = useMemo(
+    () => conversations.reduce((n, c) => (c.wa_phone?.startsWith("ig:") ? n : n + ((c.unread_count ?? 0) > 0 ? 1 : 0)), 0),
+    [conversations],
+  );
+  const igUnread = useMemo(
+    () => igConversations.reduce((n: number, c: any) => n + ((c.unread_count ?? 0) > 0 ? 1 : 0), 0),
+    [igConversations],
+  );
+  const commentsUnread = useMemo(
+    () => igComments.filter((c: any) => !c.auto_replied_at && !c.auto_dm_sent_at).length,
+    [igComments],
+  );
+
 
 
 
