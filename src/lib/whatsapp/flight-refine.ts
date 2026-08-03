@@ -212,6 +212,23 @@ export function buildRefineBlock(
 
   const deltas = intents.map((i) => `- ${DELTA[i.kind](i)}`);
 
+  // MEMÓRIA DO FILTRO: aeroporto travado pelo cliente nesta cotação.
+  const travaDestino = intents.find((i) => i.kind === "aeroporto_destino" && i.iata);
+  const travaOrigem = intents.find((i) => i.kind === "aeroporto_origem" && i.iata);
+  const trava: string[] = [];
+  if (travaDestino?.iata) {
+    const cidade = cidadeDoAeroporto(travaDestino.iata);
+    trava.push(
+      `- aeroporto_destino = ${travaDestino.iata} (${travaDestino.aeroporto})${cidade ? `, cidade_destino = ${cidade.cidade}` : ""}. Enquanto o cliente não pedir outra coisa, pesquise SÓ ${travaDestino.iata} — nunca volte a pesquisar a cidade inteira nem trocar por outro aeroporto por conta própria.`,
+    );
+  }
+  if (travaOrigem?.iata) {
+    const cidade = cidadeDoAeroporto(travaOrigem.iata);
+    trava.push(
+      `- aeroporto_origem = ${travaOrigem.iata} (${travaOrigem.aeroporto})${cidade ? `, cidade_origem = ${cidade.cidade}` : ""}. Pesquise SÓ esse aeroporto de embarque.`,
+    );
+  }
+
   return [
     `\n# 🔄 CONTINUAÇÃO DA PESQUISA (o cliente está refinando a cotação ativa)`,
     `A última mensagem NÃO é uma pergunta isolada: é um ajuste da pesquisa que já está em andamento. Trate como pesquisa contínua, igual a um consultor humano.`,
@@ -219,8 +236,10 @@ export function buildRefineBlock(
     ...params.map((p) => `- ${p}`),
     `\nO que muda agora:`,
     ...deltas,
+    ...(trava.length ? [`\nFILTRO TRAVADO NESTE PROTOCOLO (memória do filtro):`, ...trava] : []),
     `\nOBRIGATÓRIO: chame pesquisar_passagens AGORA com esses parâmetros (todos os anteriores + a alteração). Você já tem origem, destino, data e passageiros desta cotação — NÃO pergunte de novo e NÃO peça confirmação de origem.`,
     `É PROIBIDO responder "não encontrei", "não tem opção" ou qualquer negativa antes de executar a nova pesquisa. Só depois que a tool devolver sem_resultado você informa que não achou e oferece alternativas (outra data, outro aeroporto próximo, outro horário).`,
+    `VALIDAÇÃO CRUZADA antes de qualquer negativa: se a tool devolveu opcoes > 0, é PROIBIDO dizer "não apareceu opção", "não encontrei" ou "não tem voo". Responda exatamente o que o motor retornou.`,
     `Nunca encerre o atendimento nem transfira enquanto o cliente estiver ajustando a pesquisa.`,
   ].join("\n");
 }
