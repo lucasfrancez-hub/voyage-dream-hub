@@ -2052,6 +2052,22 @@ function InstagramCommentsList({ search }: { search: string }) {
                 )}
               </div>
               <p className="mt-0.5 text-xs text-slate-700">{c.text}</p>
+              {(c.media_thumbnail || c.media_caption) && (
+                <div className="mt-1.5 flex items-start gap-2 rounded-md bg-slate-50 p-1.5">
+                  {c.media_thumbnail && (
+                    <img src={c.media_thumbnail} alt="Publicação" className="h-9 w-9 shrink-0 rounded object-cover" />
+                  )}
+                  <div className="min-w-0">
+                    <div className="text-[9px] font-semibold uppercase tracking-wide text-slate-400">
+                      Publicação{c.media_type ? ` · ${c.media_type.toLowerCase()}` : ""}
+                    </div>
+                    <p className="line-clamp-2 text-[10px] text-slate-600 [overflow-wrap:anywhere]">
+                      {c.media_caption ?? "Sem legenda"}
+                    </p>
+                  </div>
+                </div>
+              )}
+
               {c.media_permalink && (
                 <a href={c.media_permalink} target="_blank" rel="noreferrer" className="mt-0.5 inline-flex items-center gap-0.5 text-[10px] text-slate-400 hover:text-pink-600">
                   <ExternalLink className="h-2.5 w-2.5" /> ver publicação
