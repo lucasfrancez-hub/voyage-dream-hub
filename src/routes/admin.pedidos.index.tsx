@@ -9,7 +9,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL } from "@/lib/format";
 import { statusLabel } from "@/lib/order-labels";
-import { createOrder } from "@/lib/orders.functions";
+import { createOrder, duplicateOrder } from "@/lib/orders.functions";
 import { searchPeople, listPersonCards } from "@/lib/people.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
