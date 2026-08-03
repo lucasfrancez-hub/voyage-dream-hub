@@ -579,6 +579,17 @@ export function buildCentralTools(
           );
 
 
+          // Nova pesquisa SUBSTITUI a anterior: cancela cotações antigas ainda
+          // incompletas deste protocolo para não misturar opções de buscas
+          // diferentes na mesma conversa.
+          {
+            const { cancelarCotacoesAnteriores } = await import("./flight-delivery.server");
+            await cancelarCotacoesAnteriores(
+              conversation.id,
+              conversation.protocolo_ativo_id ?? null,
+            ).catch(() => {});
+          }
+
           // Guarda a cotação: é dela que saem as ARTES (cards) enviadas ao cliente.
           const { data: saved } = await supabaseAdmin
             .from("wa_flight_quotes")
@@ -591,6 +602,8 @@ export function buildCentralTools(
               agent_slug: agente?.slug ?? null,
               agent_name: agente?.nome ?? null,
               filtros: result.filtros as never,
+              expected_options: selecionadas,
+              delivery_status: "pending",
             })
             .select("id")
             .single();
@@ -613,19 +626,23 @@ export function buildCentralTools(
             await Promise.race([prewarm, new Promise((r) => setTimeout(r, 6_000))]);
             void prewarm;
 
-            const { sendPendingFlightCards } = await import("./flight-cards-pending.server");
-            const envio = await sendPendingFlightCards(
-              conversation.id,
-              conversation.wa_phone,
-              60 * 60 * 1000,
-              null,
-              conversation.protocolo_ativo_id ?? null,
-            ).catch(() => ({ sent: 0 }));
-            cards_enviados = envio.sent ?? 0;
+            // Entrega a 1ª opção agora; as demais são encadeadas pelo próprio
+            // worker (execução nova por opção) e garantidas pelo watchdog.
+            const { processNextFlightQuoteOption } = await import("./flight-delivery.server");
+            const envio = await processNextFlightQuoteOption({
+              quote_id,
+              conversation_id: conversation.id,
+              protocolo_id: conversation.protocolo_ativo_id ?? null,
+              imediato: true,
+              meta: selecionadas,
+            }).catch(() => ({ delivered: 0 }) as { delivered: number });
+            cards_enviados = envio.delivered ?? 0;
           }
 
 
-          if (cards_enviados > 0) {
+          if (quote_id) {
+            // A entrega é garantida pelo pipeline (card ou texto). O agente
+            // NUNCA repete os voos em texto aqui — isso duplicaria as opções.
             return {
               ok: true,
               quote_id,
@@ -634,34 +651,23 @@ export function buildCentralTools(
               instrucao:
                 selecionadas > 1
                   ? `As ARTES das ${selecionadas} opções JÁ ESTÃO SENDO ENVIADAS agora, uma logo após a outra (${cards_enviados} já saiu/saíram). NÃO liste voos, horários ou valores em texto. Responda apenas com UM balão curto e natural dizendo que separou ${selecionadas === 3 ? "três" : "duas"} alternativas para ele comparar.`
-                  : "A ARTE da ÚNICA opção disponível JÁ FOI ENVIADA. O motor não trouxe outra alternativa válida nem ampliando a pesquisa. NÃO liste voos, horários ou valores em texto. Responda com UM balão curto e natural dizendo que essa foi a alternativa que encontrou para essa data e ofereça olhar outra data ou outro aeroporto.",
+                  : "A ARTE da ÚNICA opção disponível JÁ ESTÁ SENDO ENVIADA. O motor não trouxe outra alternativa válida nem ampliando a pesquisa. NÃO liste voos, horários ou valores em texto. Responda com UM balão curto e natural dizendo que essa foi a alternativa que encontrou para essa data e ofereça olhar outra data ou outro aeroporto.",
             };
           }
 
-          // CONTINGÊNCIA: as artes falharam — manda o modelo em texto do briefing.
-          // Falha técnica NUNCA reduz a quantidade de opções entregues.
+          // CONTINGÊNCIA: a cotação nem chegou a ser gravada — manda o modelo
+          // em texto do briefing. Falha técnica NUNCA reduz a quantidade de
+          // opções entregues.
           const duas = result.opcoes.slice(0, selecionadas);
           if (!duas.length) throw new Error("sem opções");
-          // Métrica: registra a falha do card para medir a frequência do fallback.
-          if (quote_id) {
-            await supabaseAdmin
-              .from("wa_flight_quotes")
-              .update({
-                card_failed: true,
-                card_failed_at: new Date().toISOString(),
-                card_failed_reason: "cards_enviados=0 — fallback em texto",
-              })
-              .eq("id", quote_id)
-              .then(() => {}, () => {});
-          }
           {
             const { logCardEvent } = await import("./card-log.server");
             logCardEvent({
               event: "card_failed",
               conversation_id: conversation.id,
-              quote_id: quote_id ?? null,
-              failed_stage: "meta_message_send",
-              failure_reason: "cards_enviados=0 — fallback em texto",
+              quote_id: null,
+              failed_stage: "quote_persist",
+              failure_reason: "cotação não persistida — fallback em texto",
               delivery_status: "failed",
               fallback_sent: true,
               fallback_status: "sent",
@@ -676,6 +682,7 @@ export function buildCentralTools(
             instrucao:
               "Envie ao cliente EXATAMENTE o conteúdo de texto_pronto (pode escrever uma frase curta e natural antes). Não altere valores, horários, companhias nem o formato do bloco. NUNCA diga que houve qualquer problema no envio.",
           };
+
 
         } catch (e) {
           console.error("[central] falha na pesquisa de passagens:", e);
