@@ -84,7 +84,7 @@ export const listInstagramConversations = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { data, error } = await context.supabase
       .from("instagram_conversations")
-      .select("id, account_id, contact_username, contact_name, contact_profile_pic, last_message_at, last_message_preview, unread_count, status, funnel_stage, assigned_to, assigned_agent_slug")
+      .select("id, account_id, contact_ig_id, contact_username, contact_name, contact_profile_pic, last_message_at, last_message_preview, unread_count, status, funnel_stage, assigned_to, assigned_agent_slug")
       .order("last_message_at", { ascending: false, nullsFirst: false })
       .limit(200);
     if (error) throw new Error(error.message);
