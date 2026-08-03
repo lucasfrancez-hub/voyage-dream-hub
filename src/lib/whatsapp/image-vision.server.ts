@@ -8,7 +8,7 @@
  * mensagem — logo, na memória do protocolo e no contexto de qualquer agente.
  */
 
-const MODEL = "google/gemini-3.6-flash";
+const MODEL = "openai/gpt-5.4";
 const MAX_BYTES = 12 * 1024 * 1024; // limite defensivo pro data URL
 const TIMEOUT_MS = 25_000;
 
@@ -108,18 +108,18 @@ export async function analyzeImage(params: {
     const timer = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
     let res: Response;
     try {
-      res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      res = await fetch("https://ai.gateway.lovable.dev/v1/responses", {
         method: "POST",
         headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
         signal: ctrl.signal,
         body: JSON.stringify({
           model: MODEL,
-          messages: [
+          input: [
             {
               role: "user",
               content: [
-                { type: "text", text: partesTexto.join("\n") },
-                { type: "image_url", image_url: { url: dataUrl } },
+                { type: "input_text", text: partesTexto.join("\n") },
+                { type: "input_image", image_url: dataUrl },
               ],
             },
           ],
@@ -135,8 +135,21 @@ export async function analyzeImage(params: {
       return { ok: false, texto: null, ilegivel: false, erro: `gateway_${res.status}` };
     }
 
-    const data = JSON.parse(raw) as { choices?: Array<{ message?: { content?: string } }> };
-    const texto = data.choices?.[0]?.message?.content?.trim() ?? "";
+    const data = JSON.parse(raw) as {
+      output_text?: string;
+      output?: Array<{ content?: Array<{ type?: string; text?: string }> }>;
+      choices?: Array<{ message?: { content?: string } }>;
+    };
+    const texto = (
+      data.output_text ??
+      data.output
+        ?.flatMap((item) => item.content ?? [])
+        .filter((part) => part?.type === "output_text" || typeof part?.text === "string")
+        .map((part) => part.text ?? "")
+        .join("") ??
+      data.choices?.[0]?.message?.content ??
+      ""
+    ).trim();
     if (!texto) {
       log("image_analysis_failed", { reason: "empty_response" });
       return { ok: false, texto: null, ilegivel: false, erro: "empty_response" };
