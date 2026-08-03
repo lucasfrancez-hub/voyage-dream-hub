@@ -1947,9 +1947,19 @@ function InstagramConversationView({ conversationId, onBack }: { conversationId:
                 m.direction === "outbound" ? "bg-[#F26B1F] text-white" : "bg-white text-slate-900",
               )}>
                 {m.attachment_url ? (
-                  <a href={m.attachment_url} target="_blank" rel="noreferrer" className="underline">
-                    {m.message_type ?? "mídia"}
-                  </a>
+                  (m.message_type ?? "").includes("audio") ? (
+                    <audio controls src={m.attachment_url} className="max-w-[240px]" />
+                  ) : (m.message_type ?? "").includes("video") ? (
+                    <video controls src={m.attachment_url} className="max-h-60 max-w-[240px] rounded-lg" />
+                  ) : (m.message_type ?? "").includes("image") ? (
+                    <a href={m.attachment_url} target="_blank" rel="noreferrer">
+                      <img src={m.attachment_url} alt="Mídia" className="max-h-60 rounded-lg object-cover" />
+                    </a>
+                  ) : (
+                    <a href={m.attachment_url} target="_blank" rel="noreferrer" className="underline">
+                      {m.message_type ?? "mídia"}
+                    </a>
+                  )
                 ) : null}
                 {m.text ? <div className="whitespace-pre-wrap break-words">{m.text}</div> : null}
                 <div className={cn("mt-0.5 text-[10px]", m.direction === "outbound" ? "text-white/70" : "text-slate-400")}>
