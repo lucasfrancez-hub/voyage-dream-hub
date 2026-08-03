@@ -60,7 +60,8 @@ export type ProtocolEvent =
   | "flight_request_answer_resolved"
   | "flight_sector_locked"
   | "flight_turn_recovered"
-  | "flight_turn_escalated";
+  | "flight_turn_escalated"
+  | "transferencia_instabilidade";
 
 export async function logProtocolEvent(
   event: ProtocolEvent,

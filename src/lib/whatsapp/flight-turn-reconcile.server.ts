@@ -20,21 +20,6 @@ const RETRY_MS = 3 * 60_000;
 /** Sem resposta por mais que isso → atendimento humano com contexto. */
 const ESCALATE_MS = 12 * 60_000;
 
-function resumoDaSolicitacao(r: FlightSearchRequest): string {
-  const p: string[] = [];
-  p.push(`✈️ Cotação aérea em andamento (retomar com o cliente)`);
-  p.push(`📍 ${r.origin ?? "origem não informada"} → ${r.destination ?? "destino não informado"}`);
-  if (r.departure_date) p.push(`📅 Ida ${r.departure_date}${r.return_date ? ` · Volta ${r.return_date}` : " (somente ida)"}`);
-  if (r.adults != null)
-    p.push(`👥 ${r.adults} adulto(s)${r.children ? ` + ${r.children} criança(s)` : ""}${r.infants ? ` + ${r.infants} bebê(s)` : ""}`);
-  if (r.baggage_filter) p.push(`🧳 Cliente pediu bagagem despachada`);
-  if (r.direct_flight_filter) p.push(`🛫 Só voo direto`);
-  if (r.pending_question) p.push(`❓ Última pergunta feita: ${r.pending_question}`);
-  if (r.customer_nudge_count) p.push(`⏳ Cliente cobrou retorno ${r.customer_nudge_count}x`);
-  p.push(`⚠️ A IA não conseguiu concluir o turno — assumir manualmente.`);
-  return p.join("\n");
-}
-
 export async function reconcilePendingAgentTurns(): Promise<{
   reexecutados: string[];
   escalados: string[];
@@ -76,6 +61,24 @@ export async function reconcilePendingAgentTurns(): Promise<{
     if (parado < RETRY_MS) continue;
 
     if (parado < ESCALATE_MS) {
+      // Proibido loop: cada reexecução conta. Estourou o limite → válvula de
+      // segurança (transferência automática por instabilidade).
+      const { registrarTentativaRecuperacao, transferirPorInstabilidade } = await import(
+        "./transferencia-instabilidade.server"
+      );
+      const { esgotou } = await registrarTentativaRecuperacao(raw);
+      if (esgotou) {
+        await transferirPorInstabilidade({
+          conversation_id: raw.conversation_id,
+          protocol_id: raw.protocol_id,
+          request: raw,
+          motivo: "recuperacao_esgotada",
+          detalhe: `turno parado há ${Math.round(parado / 60000)} min`,
+        });
+        escalados.push(raw.id);
+        continue;
+      }
+
       // Reexecuta o turno: basta liberar o debounce — o dispatcher pega no
       // próximo tick e o runAgent já retoma pelo estado persistido.
       if (!conv.ai_debounce_until || new Date(conv.ai_debounce_until as string) > new Date()) {
@@ -98,48 +101,15 @@ export async function reconcilePendingAgentTurns(): Promise<{
       continue;
     }
 
-    // Nem a reexecução resolveu: humano assume COM o contexto completo.
-    const briefing = resumoDaSolicitacao(raw);
-    const { recordHandoff, saveAndSendText } = await import("./conversation.server");
-    await saveAndSendText(
-      raw.conversation_id,
-      conv.wa_phone as string,
-      "Desculpa a demora! Vou chamar um consultor aqui do time pra te atender agora mesmo, tá?",
-    ).catch(() => {});
-
-    const tags = Array.from(
-      new Set([...(((conv as { tags?: string[] | null }).tags ?? []) as string[]), "aguardando_humano", "nova_cotacao"]),
-    );
-    await supabaseAdmin
-      .from("wa_conversations")
-      .update({ tags, priority: "high", ai_paused: true, assigned_to: null })
-      .eq("id", raw.conversation_id);
-    if (raw.protocol_id) {
-      await supabaseAdmin
-        .from("wa_protocolos")
-        .update({ assunto_resumo: briefing })
-        .eq("id", raw.protocol_id);
-    }
-    await recordHandoff({
+    // Nem a reexecução resolveu: válvula de segurança (uma mensagem só,
+    // IA pausada, jobs cancelados, briefing completo pro Comercial).
+    const { transferirPorInstabilidade } = await import("./transferencia-instabilidade.server");
+    await transferirPorInstabilidade({
       conversation_id: raw.conversation_id,
-      from_mode: "ai",
-      to_mode: "human",
-      reason: "turno_travado:cotacao_aerea",
-      briefing,
-    }).catch(() => {});
-    await supabaseAdmin
-      .from("wa_flight_search_requests")
-      .update({
-        status: "transferred",
-        failure_reason: "turno_travado",
-        cancelled_at: new Date().toISOString(),
-      } as never)
-      .eq("id", raw.id);
-    await logProtocolEvent("flight_turn_escalated", {
-      conversation_id: raw.conversation_id,
-      protocolo_id: raw.protocol_id,
-      search_request_id: raw.id,
-      parado_ms: parado,
+      protocol_id: raw.protocol_id,
+      request: raw,
+      motivo: "reconciliador_falhou",
+      detalhe: `sem resposta há ${Math.round(parado / 60000)} min`,
     });
     escalados.push(raw.id);
   }

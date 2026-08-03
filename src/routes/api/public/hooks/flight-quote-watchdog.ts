@@ -217,35 +217,19 @@ export const Route = createFileRoute("/api/public/hooks/flight-quote-watchdog")(
           // competia com a entrega em etapas e aparecia fora de ordem. Até 10
           // minutos, o watchdog apenas continua tentando entregar as artes.
           if (elapsedMin >= 10) {
-            const texto =
-              `${voc}tivemos uma ${MARCA_FALHA} agora e a busca não retornou\n\n` +
-              `Pra não te deixar esperando, já passei sua solicitação pro nosso time comercial — um consultor te manda a cotação por aqui mesmo`;
-            await saveAndSend(convId, conv.wa_phone as string, texto);
-
-
-            const tags = Array.from(
-              new Set([...((conv.tags as string[] | null) ?? []), "nova_cotacao", "aguardando_humano"]),
+            // VÁLVULA DE SEGURANÇA: pesquisa sem progresso real por 10 min.
+            // Uma mensagem só, IA pausada, jobs/retries/follow-ups cancelados
+            // e briefing completo pro Comercial. Proibido loop de recuperação.
+            const { transferirPorInstabilidade } = await import(
+              "@/lib/whatsapp/transferencia-instabilidade.server"
             );
-            await supabaseAdmin
-              .from("wa_conversations")
-              .update({ tags, priority: "high", assigned_to: null })
-              .eq("id", convId);
-
-            const briefing =
-              "⚠️ Cotação ao vivo travou (instabilidade). Cliente aguarda cotação — enviar manualmente.";
-            if (conv.protocolo_ativo_id) {
-              await supabaseAdmin
-                .from("wa_protocolos")
-                .update({ assunto_resumo: briefing })
-                .eq("id", conv.protocolo_ativo_id as string);
-            }
-            await recordHandoff({
+            const r = await transferirPorInstabilidade({
               conversation_id: convId,
-              from_mode: "ai",
-              to_mode: "ai",
-              reason: "aguardando_humano:nova_cotacao",
-              briefing,
+              protocol_id: (conv.protocolo_ativo_id as string | null) ?? null,
+              motivo: "pesquisa_sem_progresso",
+              detalhe: `promessa de pesquisa sem entrega há ${Math.round(elapsedMin)} min`,
             });
+            if (!r.transferido) continue;
             escalados.push(convId);
           }
         }
