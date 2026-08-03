@@ -192,8 +192,9 @@ export async function transferirParaConsultores(
 
   const meta = {
     ...(((atual?.meta as Record<string, unknown> | null) ?? {}) as Record<string, unknown>),
-
+    transferencia_consultores: {
       motivo: "interesse_em_pacote",
+
       agente_anterior: params.agenteAnterior,
       destino_do_roteamento: "consultores",
       contexto_preservado: true,
