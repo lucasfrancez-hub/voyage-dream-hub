@@ -287,6 +287,8 @@ function TelaPin({
         maxLength={4}
         onChange={(e) => setValor(e.target.value.replace(/\D/g, "").slice(0, 4))}
         className="absolute h-px w-px opacity-0"
+        style={{ fontSize: 16 }}
+
         aria-label="PIN"
       />
 
