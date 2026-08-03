@@ -8,6 +8,7 @@ import {
   CalendarDays,
   Check,
   Clock,
+  Copy,
   Link as LinkIcon,
   MapPin,
   UserRound,
@@ -23,6 +24,7 @@ import {
   TriangleAlert,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { confirm } from "@/lib/confirm";
 import {
