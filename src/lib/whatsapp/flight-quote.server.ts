@@ -308,9 +308,26 @@ export async function quoteFlights(params: QuoteFlightsParams): Promise<FlightQu
     children: criancas,
     infants: bebes,
     pageSize: 50,
-    departureIsCity: false,
-    arrivalIsCity: false,
+    departureIsCity: org.isCity,
+    arrivalIsCity: dst.isCity,
   };
+
+  // LOG de interpretação: cliente disse × interpretado × pesquisado.
+  console.log(
+    JSON.stringify({
+      event: "flight_search_locais",
+      origem_cliente: params.origem,
+      origem_interpretado: org.interpretacao?.tipo ?? "motor",
+      origem_pesquisada: org.iata,
+      origem_is_cidade: org.isCity,
+      destino_cliente: params.destino,
+      destino_interpretado: dst.interpretacao?.tipo ?? "motor",
+      destino_pesquisado: dst.iata,
+      destino_is_cidade: dst.isCity,
+      destino_aeroportos: dst.interpretacao?.aeroportos ?? [],
+      at: new Date().toISOString(),
+    }),
+  );
 
   let search;
   try {
