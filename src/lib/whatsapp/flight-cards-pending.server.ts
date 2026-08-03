@@ -564,10 +564,13 @@ export async function sendPendingFlightCards(
     return { sent: 0, quote_id: row.id as string };
   }
 
-  // Concluiu a cotação só quando as 2 opções saíram (arte ou texto); senão
-  // libera o claim pra que a próxima rodada do cron mande a etapa seguinte.
+  // CONCLUSÃO INDEPENDENTE DE FORMATO: o que conta é a impressão digital da
+  // opção entregue — card ou texto entram na MESMA lista (sent_fingerprints).
+  // Então card+texto+card = 3 entregues = cotação completa.
+  // Previstas = o que a política pede (3) limitado ao que a pesquisa realmente
+  // trouxe, pra uma rota com só 1 ou 2 opções não ficar eternamente pendente.
   const totalEnviadas = fpsDaCotacao.size + novosFps.length;
-  const concluiu = totalEnviadas >= limiteOpcoes;
+  const concluiu = cotacaoConcluida(totalEnviadas, previstasNaCotacao(todas, limiteOpcoes));
   await supabaseAdmin
     .from("wa_flight_quotes")
     .update({ cards_sent_at: concluiu ? new Date().toISOString() : null })
