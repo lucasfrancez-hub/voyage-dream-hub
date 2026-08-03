@@ -167,6 +167,59 @@ async function encaminharParaComercial(
 
 
 
+/**
+ * PACOTE NÃO É ESCOPO DA CENTRAL — e também não vai direto pro Comercial.
+ *
+ * Paula e Bruno cuidam só de aéreo. Quando o cliente pede pacote, quem atende
+ * é um CONSULTOR (Maria, Roberto, Giovani...), que entende a necessidade e
+ * pesquisa pacote pronto. Só o Consultor decide, depois, se precisa do
+ * Comercial humano.
+ *
+ * A cotação aérea continua salva (quote_id, opções, escolha): a transferência
+ * limpa só o vínculo com a Central, nunca o histórico aéreo. O contexto aéreo
+ * fica em meta.transferencia_consultores como HISTÓRICO — o Consultor não pode
+ * usar destino/origem/datas/pax do voo como dados do pacote sem confirmar.
+ */
+export async function transferirParaConsultores(
+  conversation: WaConversation,
+  params: { agenteAnterior: string; contexto: string; pedido?: string | null },
+) {
+  const meta = {
+    ...((conversation.meta as Record<string, unknown> | null) ?? {}),
+    transferencia_consultores: {
+      motivo: "interesse_em_pacote",
+      agente_anterior: params.agenteAnterior,
+      destino_do_roteamento: "consultores",
+      contexto_preservado: true,
+      pedido_do_cliente: params.pedido ?? null,
+      contexto_aereo_historico: params.contexto,
+      at: new Date().toISOString(),
+    },
+  };
+
+  await supabaseAdmin
+    .from("wa_conversations")
+    .update({
+      meta,
+      // sai da Central (aéreo), mas NÃO vai pro Comercial nem pra fila humana
+      central_slug: null,
+      central_busca: null,
+      // zera o consultor fixo pra que um Consultor assuma e se apresente
+      agent_slug: null,
+    })
+    .eq("id", conversation.id);
+
+  await recordHandoff({
+    conversation_id: conversation.id,
+    from_mode: "ai",
+    to_mode: "ai",
+    reason: "consultores:interesse_em_pacote",
+    briefing: `✈️ ${params.agenteAnterior} (aéreo) → Consultores\nMotivo: interesse em pacote\n\nContexto aéreo (histórico, NÃO é o pacote):\n${params.contexto}`,
+  }).catch(() => {});
+
+  console.log(`[central] pacote → Consultores conv=${conversation.id} de=${params.agenteAnterior}`);
+}
+
 /* ─────────────────────────────────────────────────────────────
    Tools da Central
    ───────────────────────────────────────────────────────────── */
@@ -174,8 +227,10 @@ async function encaminharParaComercial(
 export const CENTRAL_TOOL_SLUGS = [
   "pesquisar_passagens",
   "reenviar_opcao",
+  "transferir_para_consultores",
   "encaminhar_para_comercial",
 ] as const;
+
 
 /**
  * Monta as tools da Central. Quando o agente tem `tools_habilitadas`
