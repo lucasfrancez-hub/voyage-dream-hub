@@ -496,17 +496,29 @@ async function marcarEntregue(
 
 async function falhar(linha: OptionRow, erro: string): Promise<void> {
   const supabaseAdmin = await db();
+  const status = statusAposFalha(linha.attempt_count);
   await supabaseAdmin
     .from("wa_flight_quote_options")
     .update({
-      delivery_status: "failed",
+      delivery_status: status,
       last_error: erro.slice(0, 300),
       claim_id: null,
       claim_expires_at: null,
-      next_run_at: new Date(Date.now() + 30_000).toISOString(),
+      // failed_final não volta pra fila; recuperável tenta de novo em 30s.
+      next_run_at: status === "failed_final" ? null : new Date(Date.now() + 30_000).toISOString(),
     })
     .eq("id", linha.id);
+  log({
+    event: status === "failed_final" ? "flight_delivery_auto_repair_failed" : "flight_delivery_retry_scheduled",
+    quote_id: linha.quote_id,
+    option_index: linha.option_index,
+    estado_anterior: linha.delivery_status,
+    estado_novo: status,
+    motivo: erro.slice(0, 200),
+    tentativa: linha.attempt_count,
+  });
 }
+
 
 /* ─────────────────────── seleção da cotação da vez ──────────────────────── */
 
