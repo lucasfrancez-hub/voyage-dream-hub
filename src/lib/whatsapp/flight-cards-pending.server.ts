@@ -646,6 +646,7 @@ export async function sendRemainingOptions(
     false,
     26_000,
     enviadas + 1, // libera exatamente a próxima opção ainda não apresentada
+    true, // pedido explícito: sem espera entre artes
   );
   console.log(
     JSON.stringify({
