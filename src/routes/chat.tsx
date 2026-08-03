@@ -16,6 +16,10 @@ export const Route = createFileRoute("/chat")({
   head: () => ({
     meta: [
       { title: "VIA AIR Chat — Central de Atendimento" },
+      {
+        name: "viewport",
+        content: "width=device-width, initial-scale=1, viewport-fit=cover",
+      },
       { name: "description", content: "CRM WhatsApp + IA integrado da VIA AIR" },
       { name: "robots", content: "noindex, nofollow" },
       { name: "theme-color", content: "#16A34A" },
