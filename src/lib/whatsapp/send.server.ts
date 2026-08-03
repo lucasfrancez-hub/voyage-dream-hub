@@ -200,7 +200,8 @@ export async function sendWhatsAppTypingIndicator(
  */
 export function splitToBubbles(fullText: string, prefix?: string | null): string[] {
   // WhatsApp não renderiza Markdown: tudo sai em texto simples.
-  fullText = stripMarkdownForWhatsApp(fullText);
+  // E o marcador interno de mídia NUNCA sai como texto (viraria link cru).
+  fullText = removerMarcadorMidia(stripMarkdownForWhatsApp(fullText));
   const paragraphs = fullText
     .split(/\n{2,}/)
     .map((s) => s.trim())
