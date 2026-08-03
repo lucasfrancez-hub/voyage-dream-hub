@@ -474,14 +474,26 @@ export function AdminOrders({ scope, initialStatus }: { scope: "mine" | "third_p
                             <RotateCcw className="h-4 w-4" />
                           </button>
                         ) : (
-                          <button
-                            type="button"
-                            aria-label="Excluir"
-                            onClick={() => { setDeleteTarget({ id: o.id, label: displayOrderNumber }); setDeleteReason(""); }}
-                            className="rounded-md p-2 text-muted-foreground/40 opacity-0 group-hover:opacity-100 hover:bg-destructive/10 hover:text-destructive transition-all"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
+                          <>
+                            <button
+                              type="button"
+                              aria-label="Duplicar"
+                              title="Duplicar pedido"
+                              disabled={duplicate.isPending}
+                              onClick={() => confirmThen(`Duplicar o pedido ${displayOrderNumber}?`, () => duplicate.mutate(o.id))}
+                              className="rounded-md p-2 text-muted-foreground/40 opacity-0 group-hover:opacity-100 hover:bg-muted hover:text-foreground transition-all disabled:opacity-50"
+                            >
+                              {duplicate.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Copy className="h-4 w-4" />}
+                            </button>
+                            <button
+                              type="button"
+                              aria-label="Excluir"
+                              onClick={() => { setDeleteTarget({ id: o.id, label: displayOrderNumber }); setDeleteReason(""); }}
+                              className="rounded-md p-2 text-muted-foreground/40 opacity-0 group-hover:opacity-100 hover:bg-destructive/10 hover:text-destructive transition-all"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </>
                         )}
                       </div>
                     </td>
