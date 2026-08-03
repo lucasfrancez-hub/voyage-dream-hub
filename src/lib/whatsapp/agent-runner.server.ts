@@ -509,6 +509,19 @@ export async function runAgent(input: {
 
   const agent = centralAgent ?? (await pickAgent(agents, stickySlug));
 
+  // Atendimento aéreo sempre tem uma solicitação persistida — é ela que
+  // segura o setor, guarda os dados coletados e sobrevive a "isso"/"?".
+  if (centralAgent) {
+    const { ensureFlightRequest, buildFlightRequestBlock } = await import("./flight-request.server");
+    const req = await ensureFlightRequest({
+      conversation_id: conv.id,
+      protocol_id: protocolo.id,
+      agent_slug: centralAgent.slug,
+    }).catch(() => null);
+    if (req && !flightBlock) flightBlock = buildFlightRequestBlock(req);
+  }
+
+
   /* ── PACOTE: aéreo (Paula/Bruno) nunca atende, sempre passa aos Consultores ──
      Se o especialista está ativo e o cliente falou de pacote, o prompt recebe
      uma ordem dura de chamar transferir_para_consultores nesta mesma resposta.
