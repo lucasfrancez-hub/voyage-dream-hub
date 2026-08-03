@@ -967,7 +967,14 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
                               });
                             }
                       }
+                      onResend={
+                        m.direction === "outbound" && (m as { error?: string | null }).error
+                          ? () => resendMut.mutate(m.id)
+                          : undefined
+                      }
+                      resending={resendingId === m.id}
                     />
+
                   </div>
                 );
               })}
