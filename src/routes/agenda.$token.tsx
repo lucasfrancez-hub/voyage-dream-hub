@@ -677,34 +677,38 @@ function CardEvento({
   onAbrir,
   compacto,
 }: { e: Evento; cor: string; origem: string; onAbrir: (e: Evento) => void; compacto?: boolean }) {
+  const Icone = e.local && /meet|zoom|teams|http/i.test(e.local) ? Link2 : e.local ? MapPin : CalendarDays;
   return (
     <button
       onClick={() => onAbrir(e)}
-      className="w-full overflow-hidden rounded-2xl border p-3 text-left backdrop-blur-md"
+      className="flex h-full w-full items-center gap-3 overflow-hidden rounded-2xl border-l-[3px] px-3 py-2.5 text-left backdrop-blur-md"
       style={{
-        borderColor: `${cor}55`,
-        background: `linear-gradient(135deg, ${cor}22, rgba(255,255,255,0.03))`,
+        borderLeftColor: cor,
+        background: `linear-gradient(120deg, ${cor}26, rgba(255,255,255,0.035))`,
+        boxShadow: "0 6px 18px rgba(0,0,0,0.25)",
       }}
     >
-      <div className="flex items-start gap-3">
-        <span className="mt-1 h-full min-h-[2.2rem] w-1 shrink-0 rounded-full" style={{ background: cor }} />
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-[15px] font-semibold">{e.titulo}</p>
-          <p className="mt-0.5 text-xs opacity-70">
-            {e.dia_inteiro ? "dia inteiro" : `${hora(e.inicio)} – ${hora(e.fim)}`}
-            {e.local ? ` · ${e.local}` : ""}
-          </p>
-          {!compacto ? (
-            <span
-              className="mt-2 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px]"
-              style={{ background: `${cor}22`, color: cor }}
-            >
-              <CalendarDays className="h-3 w-3" />
-              {origem}
-            </span>
-          ) : null}
-        </div>
+      <span
+        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
+        style={{ background: `${cor}2e`, border: `1px solid ${cor}55`, color: cor }}
+      >
+        <Icone className="h-[18px] w-[18px]" />
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-[15px] font-semibold leading-tight">{e.titulo}</p>
+        <p className="mt-0.5 flex items-center gap-1 truncate text-[12px] opacity-60">
+          <span className="truncate">{e.local || origem}</span>
+        </p>
       </div>
+      {!compacto ? (
+        <span className="shrink-0 text-[12px] font-semibold tabular-nums" style={{ color: cor }}>
+          {e.dia_inteiro ? "dia inteiro" : `${hora(e.inicio)} – ${hora(e.fim)}`}
+        </span>
+      ) : (
+        <span className="shrink-0 text-[11px] font-semibold tabular-nums" style={{ color: cor }}>
+          {e.dia_inteiro ? "dia" : hora(e.inicio)}
+        </span>
+      )}
     </button>
   );
 }
@@ -714,8 +718,9 @@ function VistaDia({ dia, eventos, cor, origem, onAbrir }: VistaProps & { dia: Da
   const agora = new Date();
   const ehHoje = mesmoDia(dia, agora);
   const horas = Array.from({ length: 18 }, (_, i) => i + 6); // 06h às 23h
+  const ALT = 64;
 
-  const posicao = (d: Date) => (d.getHours() + d.getMinutes() / 60 - 6) * 64;
+  const posicao = (d: Date) => (d.getHours() + d.getMinutes() / 60 - 6) * ALT;
 
   return (
     <div className="pt-2">
@@ -729,20 +734,28 @@ function VistaDia({ dia, eventos, cor, origem, onAbrir }: VistaProps & { dia: Da
         </div>
       ) : null}
 
-      <div className="relative" style={{ height: 18 * 64 }}>
+      <div className="relative" style={{ height: 18 * ALT }}>
+        {/* trilho vertical */}
+        <span
+          className="absolute bottom-0 top-0 w-px"
+          style={{ left: 52, background: "rgba(255,255,255,0.09)" }}
+        />
+
         {horas.map((h, i) => (
-          <div key={h} className="absolute left-0 right-0 flex items-start gap-2" style={{ top: i * 64 }}>
-            <span className="w-11 shrink-0 pt-[2px] text-[11px] tabular-nums opacity-40">
+          <div key={h} className="absolute left-0 right-0 flex items-start gap-2" style={{ top: i * ALT }}>
+            <span className="w-11 shrink-0 pt-[2px] text-right text-[11px] tabular-nums opacity-35">
               {String(h).padStart(2, "0")}:00
             </span>
-            <span className="mt-2 h-px flex-1" style={{ background: "rgba(255,255,255,0.07)" }} />
           </div>
         ))}
 
         {ehHoje && agora.getHours() >= 6 ? (
-          <div className="absolute left-11 right-0 z-10 flex items-center" style={{ top: posicao(agora) }}>
+          <div className="absolute left-0 right-0 z-10 flex items-center gap-1" style={{ top: posicao(agora) }}>
+            <span className="w-11 shrink-0 text-right text-[11px] font-semibold tabular-nums" style={{ color: "#F26B1F" }}>
+              {agora.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+            </span>
             <span className="h-2 w-2 rounded-full" style={{ background: "#F26B1F" }} />
-            <span className="h-px flex-1" style={{ background: "#F26B1F" }} />
+            <span className="h-px flex-1" style={{ background: "rgba(242,107,31,0.55)" }} />
           </div>
         ) : null}
 
@@ -752,16 +765,15 @@ function VistaDia({ dia, eventos, cor, origem, onAbrir }: VistaProps & { dia: Da
             const ini = new Date(e.inicio);
             const fim = new Date(e.fim);
             const topo = Math.max(0, posicao(ini));
-            const altura = Math.max(52, Math.min(posicao(fim) - topo, 18 * 64 - topo));
+            const altura = Math.max(56, Math.min(posicao(fim) - topo, 18 * ALT - topo));
             return (
-              <div key={e.id} className="absolute" style={{ top: topo, left: 56, right: 0, height: altura }}>
-                <div className="h-full">
-                  <CardEvento e={e} cor={cor(e)} origem={origem(e)} onAbrir={onAbrir} compacto={altura < 80} />
-                </div>
+              <div key={e.id} className="absolute" style={{ top: topo, left: 64, right: 0, height: altura }}>
+                <CardEvento e={e} cor={cor(e)} origem={origem(e)} onAbrir={onAbrir} compacto={altura < 76} />
               </div>
             );
           })}
       </div>
+
 
       {lista.length === 0 ? <Vazio texto="Nenhum compromisso nesse dia" /> : null}
     </div>
