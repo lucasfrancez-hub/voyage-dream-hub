@@ -426,15 +426,43 @@ export async function runAgent(input: {
 
   // Origem: dentro do MESMO protocolo ela já foi confirmada pelo cliente e é
   // reutilizada direto (mesmo que ele troque o destino). De protocolos
-  // anteriores entra apenas como SUGESTÃO, exigindo confirmação.
+  // ANTERIORES ela NUNCA é reaproveitada automaticamente — só quando o cliente
+  // pedir explicitamente ("mantém igual da última vez"). Sem esse pedido, o
+  // atendimento pergunta do zero: "De qual cidade você pretende embarcar?".
   let origemSugerida: string | null = null;
   let origemConfirmadaNoProtocolo: string | null = null;
   if (centralAgent && centralBriefHasMissingOrigin(centralBrief)) {
     const { loadOrigemHistorico } = await import("./origin-history.server");
+    const { pediuMesmosDadosDaUltimaVez } = await import("./airflow-guard");
     const hist = await loadOrigemHistorico(conv.id, protocolo?.id ?? null);
     origemConfirmadaNoProtocolo = hist.confirmadaNoProtocolo;
-    origemSugerida = hist.confirmadaNoProtocolo ? null : hist.sugerida;
+
+    const { data: ultimasIn } = await supabaseAdmin
+      .from("wa_messages")
+      .select("content")
+      .eq("conversation_id", conv.id)
+      .eq("direction", "inbound")
+      .eq("protocolo_id", protocolo.id)
+      .order("created_at", { ascending: false })
+      .limit(5);
+    const textoCliente = ((ultimasIn ?? []) as Array<{ content: string | null }>)
+      .map((m) => m.content ?? "")
+      .join("\n");
+    const pediuRepetir = pediuMesmosDadosDaUltimaVez(textoCliente);
+
+    origemSugerida = hist.confirmadaNoProtocolo || !pediuRepetir ? null : hist.sugerida;
+    if (hist.sugerida && !pediuRepetir && !hist.confirmadaNoProtocolo) {
+      console.log(
+        JSON.stringify({
+          event: "origem_historico_ignorada_protocolo_novo",
+          conversation_id: conv.id,
+          protocolo_id: protocolo.id,
+          origem_historico: hist.sugerida,
+        }),
+      );
+    }
   }
+
 
 
 
