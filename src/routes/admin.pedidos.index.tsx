@@ -127,6 +127,16 @@ export function AdminOrders({ scope, initialStatus }: { scope: "mine" | "third_p
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erro ao restaurar"),
   });
 
+  const duplicateFn = useServerFn(duplicateOrder);
+  const duplicate = useMutation({
+    mutationFn: (id: string) => duplicateFn({ data: { id } }),
+    onSuccess: (res) => {
+      toast.success(`Pedido duplicado${res?.order_number ? ` — ${res.order_number}` : ""}`);
+      qc.invalidateQueries({ queryKey: ["admin", "orders", "list"] });
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Erro ao duplicar"),
+  });
+
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; label: string } | null>(null);
   const [deleteReason, setDeleteReason] = useState("");
 
