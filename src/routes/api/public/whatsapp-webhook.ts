@@ -553,9 +553,10 @@ async function processPayload(payload: WhatsAppPayload) {
         }
 
         // Debounce ADAPTATIVO: agenda a resposta da IA pra daqui X segundos.
-        // - Se o cliente mandou 2+ mensagens em menos de 30s (rajada) → 4 min
-        // - Se já existe uma janela de debounce aberta (mid-conversa) → 3 min
-        // - Se é a 1ª mensagem depois de um silêncio → 90s (responde mais rápido)
+        // - Rajada (2+ mensagens em menos de 30s) → 60s; o dispatcher ainda
+        //   adia enquanto o cliente continuar digitando (guarda de 25s).
+        // - Janela já aberta (follow-up mid-conversa) → 120s
+        // - 1ª mensagem depois de um silêncio → 90s
         // Toda mensagem nova recalcula e empurra o horário. Um cron a cada 30s
         // (hook dispatch-ai-debounced) dispara quando vencer.
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -576,12 +577,13 @@ async function processPayload(payload: WhatsAppPayload) {
 
         let waitMs: number;
         if ((recentBurst ?? 0) >= 2) {
-          waitMs = 3 * 60 * 1000; // rajada → cap de 3min (máx. inicial)
+          waitMs = 60 * 1000; // rajada → 60s; dispatcher estabiliza o resto
         } else if (convState?.ai_debounce_until) {
-          waitMs = 2 * 60 * 1000; // janela já aberta → follow-up mais curto
+          waitMs = 120 * 1000; // janela já aberta → follow-up
         } else {
-          waitMs = 90 * 1000; // mensagem isolada após silêncio → responde rápido
+          waitMs = 90 * 1000; // mensagem isolada após silêncio
         }
+
 
         // CAP ABSOLUTO: nunca deixar a IA demorar mais que 3min a contar da
         // PRIMEIRA mensagem não respondida do cliente. Se novas mensagens
