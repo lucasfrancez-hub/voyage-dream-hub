@@ -1,4 +1,5 @@
 import { createHmac, timingSafeEqual } from "crypto";
+import type { Json } from "@/integrations/supabase/types";
 
 const GRAPH = "https://graph.instagram.com/v21.0";
 const CALLBACK_URL = "https://pedidos.viaair.tur.br/api/public/instagram-webhook";
@@ -57,7 +58,16 @@ function metaError(body: Record<string, unknown> | null): MetaError | null {
   return value && typeof value === "object" ? (value as MetaError) : null;
 }
 
-async function probe(url: string, token?: string) {
+type ProbeResult = {
+  ok: boolean;
+  status: number | null;
+  raw: string;
+  body: Record<string, unknown> | null;
+  error: MetaError | null;
+  durationMs: number;
+};
+
+async function probe(url: string, token?: string): Promise<ProbeResult> {
   const started = Date.now();
   try {
     const response = await fetch(url, {
@@ -80,7 +90,7 @@ async function probe(url: string, token?: string) {
       status: null,
       raw: "",
       body: null,
-      error: { message: error instanceof Error ? error.message : String(error) },
+      error: { message: error instanceof Error ? error.message : String(error) } as MetaError,
       durationMs: Date.now() - started,
     };
   }
@@ -99,7 +109,7 @@ async function logProbe(params: {
     operation: params.operation,
     endpoint: params.endpoint,
     method: "GET",
-    response_body: params.result.body,
+    response_body: params.result.body as Json | null,
     response_raw: params.result.body ? null : params.result.raw.slice(0, 20_000),
     http_status: params.result.status,
     success: params.result.ok,
@@ -169,7 +179,7 @@ export async function runInstagramHealthCheck(accountId?: string) {
       .maybeSingle();
     const report = {
       accountId: account.id,
-      appId: env("INSTAGRAM_APP_ID") ?? env("META_APP_ID") ?? String(account.metadata?.app_id ?? "") || null,
+      appId: env("INSTAGRAM_APP_ID") ?? env("META_APP_ID") ?? (String(account.metadata?.app_id ?? "") || null),
       igUserId: account.ig_user_id,
       connectedUsername,
       tokenValid,
@@ -212,7 +222,7 @@ export async function runInstagramHealthCheck(accountId?: string) {
       error_code: report.errorCode,
       error_subcode: report.errorSubcode,
       fbtrace_id: report.fbtraceId,
-      report,
+      report: report as unknown as Json,
     });
     reports.push(report);
   }
