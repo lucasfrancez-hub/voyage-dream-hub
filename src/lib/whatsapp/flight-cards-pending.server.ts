@@ -85,6 +85,8 @@ export async function sendPendingFlightCards(
   renderBudgetMs = 26_000,
   /** Teto de opções desta cotação. Sobe quando o cliente pede "tem mais opções?". */
   limiteOpcoes = MAX_OPCOES,
+  /** Pedido explícito do cliente: entrega já, sem esperar o intervalo entre artes. */
+  ignorarIntervalo = false,
 ): Promise<{ sent: number; quote_id?: string }> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
