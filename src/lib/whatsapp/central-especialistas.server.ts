@@ -167,6 +167,66 @@ async function encaminharParaComercial(
 
 
 
+/**
+ * PACOTE NÃO É ESCOPO DA CENTRAL — e também não vai direto pro Comercial.
+ *
+ * Paula e Bruno cuidam só de aéreo. Quando o cliente pede pacote, quem atende
+ * é um CONSULTOR (Maria, Roberto, Giovani...), que entende a necessidade e
+ * pesquisa pacote pronto. Só o Consultor decide, depois, se precisa do
+ * Comercial humano.
+ *
+ * A cotação aérea continua salva (quote_id, opções, escolha): a transferência
+ * limpa só o vínculo com a Central, nunca o histórico aéreo. O contexto aéreo
+ * fica em meta.transferencia_consultores como HISTÓRICO — o Consultor não pode
+ * usar destino/origem/datas/pax do voo como dados do pacote sem confirmar.
+ */
+export async function transferirParaConsultores(
+  conversation: WaConversation,
+  params: { agenteAnterior: string; contexto: string; pedido?: string | null },
+) {
+  const { data: atual } = await supabaseAdmin
+    .from("wa_conversations")
+    .select("meta")
+    .eq("id", conversation.id)
+    .maybeSingle();
+
+  const meta = {
+    ...(((atual?.meta as Record<string, unknown> | null) ?? {}) as Record<string, unknown>),
+    transferencia_consultores: {
+      motivo: "interesse_em_pacote",
+
+      agente_anterior: params.agenteAnterior,
+      destino_do_roteamento: "consultores",
+      contexto_preservado: true,
+      pedido_do_cliente: params.pedido ?? null,
+      contexto_aereo_historico: params.contexto,
+      at: new Date().toISOString(),
+    },
+  };
+
+  await supabaseAdmin
+    .from("wa_conversations")
+    .update({
+      meta,
+      // sai da Central (aéreo), mas NÃO vai pro Comercial nem pra fila humana
+      central_slug: null,
+      central_busca: null,
+      // zera o consultor fixo pra que um Consultor assuma e se apresente
+      agent_slug: null,
+    })
+    .eq("id", conversation.id);
+
+  await recordHandoff({
+    conversation_id: conversation.id,
+    from_mode: "ai",
+    to_mode: "ai",
+    reason: "consultores:interesse_em_pacote",
+    briefing: `✈️ ${params.agenteAnterior} (aéreo) → Consultores\nMotivo: interesse em pacote\n\nContexto aéreo (histórico, NÃO é o pacote):\n${params.contexto}`,
+  }).catch(() => {});
+
+  console.log(`[central] pacote → Consultores conv=${conversation.id} de=${params.agenteAnterior}`);
+}
+
 /* ─────────────────────────────────────────────────────────────
    Tools da Central
    ───────────────────────────────────────────────────────────── */
@@ -174,8 +234,10 @@ async function encaminharParaComercial(
 export const CENTRAL_TOOL_SLUGS = [
   "pesquisar_passagens",
   "reenviar_opcao",
+  "transferir_para_consultores",
   "encaminhar_para_comercial",
 ] as const;
+
 
 /**
  * Monta as tools da Central. Quando o agente tem `tools_habilitadas`
@@ -674,21 +736,47 @@ export function buildCentralTools(
       },
     }),
 
+    transferir_para_consultores: tool({
+      description:
+        "Use SEMPRE que o cliente demonstrar QUALQUER interesse em pacote (pacote, pacote com hotel, opções completas, promoção de pacote, conhecer outros destinos, pacote de praia, viagem montada). Você é do aéreo: não pesquisa pacote, não interpreta qual pacote é, não diz que não existe pacote e NÃO encaminha ao Comercial. Transfere para os Consultores da VIA AIR, que entendem a necessidade e pesquisam pacote pronto.",
+      inputSchema: z.object({
+        pedido: z
+          .string()
+          .min(2)
+          .describe("O que o cliente pediu, com as palavras dele (ex.: 'queria ver umas opções de pacote também')"),
+        contexto_aereo: z
+          .string()
+          .describe(
+            "Resumo do que já rolou no AÉREO (trecho, datas, pax, opções enviadas). É só histórico — não são os dados do pacote",
+          ),
+      }),
+      execute: async ({ pedido, contexto_aereo }) => {
+        await transferirParaConsultores(conversation, {
+          agenteAnterior: agente?.nome ?? "Setor aéreo",
+          contexto: contexto_aereo,
+          pedido,
+        });
+        return {
+          ok: true,
+          instrucao:
+            'Envie UM balão curto e natural, tipo: "Perfeito! Vou te transferir para um dos nossos consultores, que vai entender certinho o tipo de pacote que vc procura e te mostrar as opções disponíveis". ' +
+            "NÃO diga que não encontrou pacote, NÃO fale em Comercial, NÃO pergunte destino/datas/pax do pacote e NÃO repita os dados do voo. Depois desse balão, pare — quem continua é o consultor.",
+        };
+      },
+    }),
+
     encaminhar_para_comercial: tool({
       description:
-        "Use SEMPRE que o assunto sair do escopo da Central (pesquisa de passagem aérea): hotel avulso, aluguel de carro, aéreo+hotel, pacote, personalização de pacote, seguro, cruzeiro, transfer, roteiro personalizado, intercâmbio, excursão, planejamento geral, pedido já emitido, pós-venda, institucional — ou quando a pesquisa não puder ser concluída (falha técnica). Encaminha ao time Comercial preservando TODO o contexto. Nunca diga ao cliente que é transferência entre sistemas, IA ou humano.",
+        "Use quando o assunto sair do escopo do aéreo e NÃO for pacote: hotel avulso, aluguel de carro, aéreo+hotel, seguro, cruzeiro, transfer, intercâmbio, excursão, pedido já emitido, pós-venda, institucional — ou quando a pesquisa aérea não puder ser concluída (falha técnica). PACOTE NUNCA vem pra cá: use transferir_para_consultores. Nunca diga ao cliente que é transferência entre sistemas, IA ou humano.",
       inputSchema: z.object({
         categoria: z
           .enum([
-            "pacote_sem_opcao",
-            "personalizacao_pacote",
             "hotel",
             "carro",
             "aereo_hotel",
             "seguro",
             "cruzeiro",
             "transfer",
-            "roteiro_personalizado",
             "intercambio",
             "excursao",
             "pos_venda",
@@ -696,7 +784,7 @@ export function buildCentralTools(
             "falha_tecnica",
             "outro",
           ])
-          .describe("Categoria do encaminhamento"),
+          .describe("Categoria do encaminhamento (nenhuma delas é pacote)"),
         motivo: z.string().min(3).describe("Motivo em uma frase"),
         resumo: z
           .string()
@@ -717,13 +805,11 @@ export function buildCentralTools(
           ok: true,
           categoria,
           instrucao:
-            categoria === "pacote_sem_opcao"
-              ? "Envie EXATAMENTE esta mensagem, em um balão: \"Não encontrei um pacote pronto que atenda exatamente ao que você procura. Já encaminhei todas as informações para o nosso time Comercial preparar uma opção personalizada para você.\" Não invente pacote, não troque destino, data nem cidade de embarque."
-              : "Envie UMA mensagem curta e natural avisando que já encaminhou pro time Comercial e que em breve um consultor continua o atendimento por aqui. Não peça de novo nenhuma informação que o cliente já deu. Agradeça com 'obrigado pela preferência'.",
+            "Envie UMA mensagem curta e natural avisando que já encaminhou pro time Comercial e que em breve um consultor continua o atendimento por aqui. Não peça de novo nenhuma informação que o cliente já deu. Agradeça com 'obrigado pela preferência'.",
         };
       },
-
     }),
+
   };
 
   if (!permitidas.length) return todas;
@@ -802,7 +888,7 @@ export function buildCentralBasePrompt(nome: string, genero: "f" | "m"): string 
     `Depois da confirmação ("pode manter Maringá") a origem passa a valer: origem = Maringá e origem_informada_pelo_cliente = true. Se ele trocar ("dessa vez saio de Curitiba"), vale Curitiba e a antiga é descartada.`,
     `Se o cliente já disser a origem espontaneamente ("passagem de Londrina para São Paulo"), NÃO pergunte sobre a origem anterior — a informação atual sempre prevalece sobre o histórico.`,
     `Em protocolo novo a origem antiga também é só sugestão: nunca diga "vou pesquisar saindo de Maringá" antes de ele confirmar.`,
-    `🚫 Você nunca fala de pacote pronto, folder, hotel ou proposta personalizada. Se o assunto sair do aéreo avulso, encaminhe ao Comercial.`,
+    `🚫 Você nunca fala de pacote pronto, folder, hotel ou proposta personalizada. Interesse em pacote = transferir_para_consultores na hora. Os outros assuntos fora do aéreo é que vão pro Comercial.`,
     `Enquanto faltar a origem, NÃO pergunte horário, bagagem, companhia nem conexão — colete origem, destino, tipo de trecho, data(s) e passageiros nessa ordem.`,
     `Datas em linguagem natural ("dia 15 de setembro", "mês que vem") você converte para AAAA-MM-DD antes de pesquisar. Data sem ano: use o ano que faz a data cair no futuro.`,
     `🚫 NUNCA invente, assuma, estime ou "chute" data de viagem, tipo de trecho ou quantidade de passageiros. Se o cliente não disse, PERGUNTE.`,
@@ -902,7 +988,10 @@ export function buildCentralBasePrompt(nome: string, genero: "f" | "m"): string 
     `\n# ↪️ QUANDO NÃO FOR PASSAGEM AÉREA`,
     `Seu escopo é EXCLUSIVO: coletar dados da viagem, pesquisar voos, apresentar opções, refazer a pesquisa quando o cliente mudar filtros, comparar opções, reenviar cards e responder dúvidas do voo pesquisado. Nada além disso.`,
     `Pacote, personalização de pacote, hotel avulso, aluguel de carro, aéreo+hotel, seguro, cruzeiro, transfer, roteiro personalizado, viagem sob medida, intercâmbio, excursão, planejamento geral, pedido já emitido, cartão de embarque, pós-venda, alteração, cancelamento, dúvidas institucionais: NADA disso é seu.`,
+    `📦 PACOTE (regra absoluta): qualquer sinal de interesse em pacote — "quero ver pacotes também", "tem pacote?", "queria uma opção de pacote", "tem pacote com hotel?", "tem promoção de pacote?", "queria ver umas opções completas", "quero conhecer outros destinos", "pacote de praia" — você PARA o fluxo aéreo e chama transferir_para_consultores IMEDIATAMENTE. Você NÃO pesquisa pacote, NÃO adivinha qual pacote é, NÃO presume que é pro mesmo destino da passagem, NÃO diz que não existe pacote, NÃO monta briefing de pacote, NÃO oferece viagem personalizada e NÃO encaminha ao Comercial. Fale só: "Perfeito! Vou te transferir para um dos nossos consultores, que vai entender certinho o tipo de pacote que vc procura e te mostrar as opções disponíveis". Quem decide entre pacote pronto e Comercial é o Consultor, nunca você.`,
+    `A cotação aérea continua salva e vale como histórico. Se o cliente voltar a falar de passagem depois, o aéreo é seu de novo, tratado separadamente do pacote.`,
     `HOTEL AVULSO ("quero um hotel em Natal", "quanto custa hospedagem em Gramado"): nunca pesquise voo, nunca tente converter em pacote — chame encaminhar_para_comercial (categoria hotel) preservando destino, datas, hóspedes e preferências.`,
+
     `CARRO ("quero alugar um carro em Orlando"): registre local de retirada, local de devolução, datas, horários e categoria (quando informados) e chame encaminhar_para_comercial (categoria carro).`,
     `AÉREO + HOTEL ("quero voo e hotel para Maceió"): NÃO siga só com o aéreo e não divida em dois atendimentos — preserve toda a pesquisa aérea já feita, registre o interesse pela hospedagem e chame encaminhar_para_comercial (categoria aereo_hotel).`,
     `EXCEÇÃO — prazo de check-in: se perguntarem quando abre o check-in, responda direto: voos nacionais 48h antes, internacionais 24h antes. Só encaminhe se o cliente precisar que ALGUÉM faça o check-in ou emita o cartão de embarque.`,
@@ -973,7 +1062,7 @@ export function buildCentralPrompt(
     `COMPARAÇÃO COM COMPANHIA CITADA: "a Latam chega antes?", "a Azul é mais rápida?", "a Gol é mais barata?" → responda sobre a opção DAQUELA companhia. Se não houver opção dessa companhia entre as enviadas, diga isso com naturalidade.`,
     `"ACHEI CARO": acolha em uma frase, sem inventar desconto e sem urgência artificial. Ofereça alternativas concretas (outra data, data flexível, outro horário, aeroporto próximo, outra companhia, opção com conexão, sem bagagem) e pergunte no máximo UMA preferência. Nunca prometa que vai ficar mais barato.`,
     `REMARCAÇÃO: dúvida futura ("e se eu precisar remarcar depois?") NÃO é pedido — explique o processo em geral e siga a cotação, sem encaminhar. Pedido atual ("quero remarcar agora", "altera minha reserva") → encaminhar_para_comercial com o contexto, sem prometer valor ou condição.`,
-    `ESCOPO (regra dura): você só pesquisa PASSAGEM AÉREA. Pedido de passagem/voo/ida e volta/só ida NUNCA vai pro Comercial — é sua pesquisa, use pesquisar_passagens. Hotel avulso, carro, aéreo+hotel, pacote, personalização de pacote, seguro, cruzeiro, transfer, roteiro sob medida, intercâmbio, excursão e pós-venda SEMPRE vão pro Comercial via encaminhar_para_comercial, com a categoria correta e o contexto completo — nunca tente atendê-los nem transformá-los em pesquisa aérea.`,
+    `ESCOPO (regra dura): você só pesquisa PASSAGEM AÉREA. Pedido de passagem/voo/ida e volta/só ida NUNCA vai pro Comercial — é sua pesquisa, use pesquisar_passagens. PACOTE (qualquer menção) vai SEMPRE para os Consultores via transferir_para_consultores — nunca pro Comercial e nunca pesquisado por você. Hotel avulso, carro, aéreo+hotel, seguro, cruzeiro, transfer, intercâmbio, excursão e pós-venda vão pro Comercial via encaminhar_para_comercial, com a categoria correta e o contexto completo.`,
     `\n## 💬 TOM E POSTURA (prevalece sobre o prompt salvo)`,
     `Você é ${nome}, consultor${genero === "f" ? "a" : ""} experiente da VIA AIR. ${genero === "f" ? "Acolhedora, calorosa e simpática" : "Direto, objetivo e seguro"}, sempre natural, leve, consultiv${genero === "f" ? "a" : "o"} e proativ${genero === "f" ? "a" : "o"}. Nada de resposta curta e fria, nada de tom de robô.`,
     `Apresentação só na PRIMEIRA mensagem sua neste protocolo: "Oi, <Nome>! Tudo bem?" / "Sou ${genero === "f" ? "a" : "o"} ${nome}, do setor aéreo da VIA AIR." / "Vou cuidar da sua cotação por aqui." Depois disso, nunca repita a apresentação.`,

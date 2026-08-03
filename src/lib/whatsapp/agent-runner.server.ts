@@ -409,6 +409,82 @@ export async function runAgent(input: {
 
   const agent = centralAgent ?? (await pickAgent(agents, stickySlug));
 
+  /* ── PACOTE: aéreo (Paula/Bruno) nunca atende, sempre passa aos Consultores ──
+     Se o especialista está ativo e o cliente falou de pacote, o prompt recebe
+     uma ordem dura de chamar transferir_para_consultores nesta mesma resposta.
+     Do lado do Consultor que recebe, entra a orientação de se apresentar e
+     entender o pacote do zero (sem herdar destino/datas/pax do voo). */
+  let pacoteBlock = "";
+  {
+    const { data: ultimaIn } = await supabaseAdmin
+      .from("wa_messages")
+      .select("content")
+      .eq("conversation_id", conv.id)
+      .eq("direction", "inbound")
+      .eq("protocolo_id", protocolo.id)
+      .order("created_at", { ascending: false })
+      .limit(3);
+    const textoPacote = ((ultimaIn ?? []) as Array<{ content: string | null }>)
+      .map((m) => (m.content ?? "").trim())
+      .filter(Boolean)
+      .join("\n");
+
+    if (centralAgent) {
+      const { detectarInteressePacote } = await import("./pacote-intent");
+      if (detectarInteressePacote(textoPacote)) {
+        pacoteBlock =
+          `\n\n# 📦 O CLIENTE PEDIU PACOTE — TRANSFIRA AGORA\n` +
+          `Você é do aéreo. Chame a tool transferir_para_consultores NESTA resposta e envie APENAS: ` +
+          `"Perfeito! Vou te transferir para um dos nossos consultores, que vai entender certinho o tipo de pacote que vc procura e te mostrar as opções disponíveis".\n` +
+          `Proibido: pesquisar pacote, adivinhar qual pacote é, presumir que é pro mesmo destino da passagem, dizer que não encontrou pacote, montar briefing, oferecer viagem personalizada ou falar em Comercial.\n` +
+          `A cotação aérea continua salva; não repita os dados do voo.`;
+        console.log(
+          JSON.stringify({
+            event: "pacote_intent_no_aereo",
+            conversation_id: conv.id,
+            protocol_id: protocolo.id,
+            agente: centralAgent.slug,
+          }),
+        );
+      }
+    } else {
+      const { data: convMeta } = await supabaseAdmin
+        .from("wa_conversations")
+        .select("meta")
+        .eq("id", conv.id)
+        .maybeSingle();
+      const transf = ((convMeta?.meta as Record<string, unknown> | null) ?? {})[
+        "transferencia_consultores"
+      ] as Record<string, unknown> | undefined;
+      if (transf && transf["motivo"] === "interesse_em_pacote") {
+        pacoteBlock =
+          `\n\n# 🤝 VOCÊ ACABOU DE ASSUMIR ESTE ATENDIMENTO (veio do setor aéreo)\n` +
+          `O cliente estava cotando passagem e pediu pacote. Apresente-se antes de continuar: ` +
+          `"Oi, <Nome>! Sou o(a) <seu nome>, consultor(a) da VIA AIR" e em seguida ` +
+          `"Me conta um pouquinho do que vc está procurando nesse pacote. Já tem algum destino em mente ou quer ver sugestões?".\n` +
+          `🚫 NÃO presuma que o pacote é pro mesmo destino, origem, datas ou passageiros da cotação aérea — isso é só histórico:\n` +
+          `${String(transf["contexto_aereo_historico"] ?? "—")}\n` +
+          `Pedido do cliente: ${String(transf["pedido_do_cliente"] ?? "interesse em pacote")}\n` +
+          `Se ele já disse o destino do pacote (ex.: "tem pacote pra Porto Seguro?"), use ESSE destino.\n` +
+          `Entenda destino/tipo de destino, origem, período, passageiros, preferências e perfil da viagem; depois pesquise pacote pronto com buscar_pacotes. ` +
+          `Só encaminhe ao Comercial se não houver pacote compatível ou se o cliente quiser personalizar.`;
+
+        // A apresentação é uma vez só: marca como consumida (o contexto aéreo
+        // segue guardado no histórico de handoff e na cotação).
+        const metaLimpa = { ...((convMeta?.meta as Record<string, unknown> | null) ?? {}) };
+        metaLimpa["transferencia_consultores"] = { ...transf, assumido_em: new Date().toISOString(), motivo: "assumido" };
+        await supabaseAdmin
+          .from("wa_conversations")
+          .update({ meta: metaLimpa as never })
+          .eq("id", conv.id);
+
+      }
+
+    }
+  }
+
+
+
 
   // VÍNCULO AGENTE ↔ PROTOCOLO: o agente e o tipo de prompt passam a pertencer
   // ao protocolo ativo. Nenhum protocolo novo herda esse estado.
@@ -863,7 +939,9 @@ export async function runAgent(input: {
         : buildSystemPrompt(agent, conv, protocolo, isNewProtocolo, previousContext)) +
       repliedBlock +
       imagemBlock +
-      quoteBlock;
+      quoteBlock +
+      pacoteBlock;
+
 
     const loadedPromptType = centralAgent ? "central_especialistas" : "consultor";
     const enabledTools = Object.keys(cleanTools).sort();
