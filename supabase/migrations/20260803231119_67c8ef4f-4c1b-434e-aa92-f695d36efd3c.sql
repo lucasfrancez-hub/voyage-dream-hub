@@ -1,0 +1,1 @@
+update public.instagram_accounts set page_id = '17841464110975224' where ig_user_id = '27551534044489283' and (page_id is null or page_id = '');
