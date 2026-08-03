@@ -26,7 +26,7 @@ import { sendWhatsAppBubbles } from "./send.server";
 import { buildSenderPrefix, capitalizeBubbles, capitalizeKnownNames, fixGluedSentences, firstName as extractFirstName } from "./text-utils.server";
 import { buildSharedAgentPrompt } from "@/lib/chat/camila-prompt";
 import { isCompanyDataBlocked } from "./data-blocklist";
-import { triageFirstMessage } from "./triage.server";
+import { triageFirstMessage, heuristicaAereo, routeAereoParaCentral } from "./triage.server";
 import { createHash, randomUUID } from "node:crypto";
 import {
   CENTRAL_PROMPT_VERSION,
