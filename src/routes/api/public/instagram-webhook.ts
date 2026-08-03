@@ -78,10 +78,12 @@ async function processPayload(payload: IGPayload) {
     const igAccountId = entry.id;
     if (!igAccountId) continue;
 
+    // A conta pode chegar com o ID do Instagram Login (ig_user_id) ou com o
+    // ID business 17841... (guardado em page_id). Aceita os dois.
     const { data: account } = await supabaseAdmin
       .from("instagram_accounts")
       .select("id")
-      .eq("ig_user_id", igAccountId)
+      .or(`ig_user_id.eq.${igAccountId},page_id.eq.${igAccountId}`)
       .maybeSingle();
     if (!account) {
       console.warn(`[ig-webhook] conta ${igAccountId} não cadastrada`);
