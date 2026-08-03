@@ -300,10 +300,21 @@ export async function runAgent(input: {
   const conv = await getOrCreateConversation(input.wa_phone, input.profile_name);
   const aiRunId = randomUUID();
 
+  // Interruptor global: com as IAs desligadas, todo atendimento é humano —
+  // vale para as conversas atuais e para as que surgirem depois.
+  {
+    const { isAiGloballyOff } = await import("./ai-global-switch.server");
+    if (await isAiGloballyOff()) {
+      console.log(`[agent] interruptor global desligado — IA não responde (conversa ${conv.id})`);
+      return;
+    }
+  }
+
   if (conv.mode !== "ai") {
     console.log(`[agent] conversa ${conv.id} em modo ${conv.mode} — IA não responde`);
     return;
   }
+
 
   if ((conv as unknown as { ai_paused?: boolean | null }).ai_paused) {
     console.log(`[agent] conversa ${conv.id} com IA pausada pelo atendente — não responde`);
