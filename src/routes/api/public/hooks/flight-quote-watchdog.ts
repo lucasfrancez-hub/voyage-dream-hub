@@ -61,6 +61,18 @@ export const Route = createFileRoute("/api/public/hooks/flight-quote-watchdog")(
         } catch (e) {
           console.warn("[watchdog] varredura de envios presos falhou:", (e as Error)?.message ?? e);
         }
+        let turnos: unknown = null;
+        try {
+          // 0.5) Turno travado: cliente respondeu e nada saiu. Reexecuta pelo
+          //      estado persistido e, se insistir em travar, passa pra humano
+          //      com o contexto completo da cotação.
+          const { reconcilePendingAgentTurns } = await import(
+            "@/lib/whatsapp/flight-turn-reconcile.server"
+          );
+          turnos = await reconcilePendingAgentTurns();
+        } catch (e) {
+          console.warn("[watchdog] reconciliação de turnos falhou:", (e as Error)?.message ?? e);
+        }
         try {
           // 1) Autocorreção: olha o estado, descobre o que faltou (claim órfão,
           //    card gerado sem envio, envio sem baixa no banco, rodada não
