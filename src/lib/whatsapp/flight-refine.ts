@@ -282,7 +282,22 @@ export function buildRefineBlock(
     );
   }
 
+  const o = contexto?.opcao ?? null;
+  const resumoOpcao = o
+    ? `opção ${o.option_index}${o.companhia ? ` · ${o.companhia}` : ""}${o.saida && o.chegada ? ` · ${o.saida} → ${o.chegada}` : ""}${o.ida_origem_iata && o.ida_destino_iata ? ` · ${o.ida_origem_iata} → ${o.ida_destino_iata}` : ""}${o.valor_formatado ? ` · ${o.valor_formatado}` : ""}`
+    : null;
+  const cabecalhoReply =
+    contexto?.fonte === "reply" && resumoOpcao
+      ? [
+          `\n# 📌 REFERÊNCIA TRAVADA PELO REPLY (prioridade máxima)`,
+          `O cliente usou o botão Responder do WhatsApp em cima de um card específico: ${resumoOpcao}.`,
+          `A base desta nova pesquisa é ESSA opção — é PROIBIDO usar a última pesquisa da conversa, outra opção ou outro aeroporto como referência. Se o card é ${o?.ida_destino_iata ?? "do aeroporto citado"}, a nova pesquisa continua nesse mesmo aeroporto.`,
+          `Altere SÓ o que ele pediu (bagagem, horário, aeroporto, companhia) e mantenha todos os demais parâmetros dessa opção respondida.`,
+        ]
+      : [];
+
   return [
+    ...cabecalhoReply,
     `\n# 🔄 CONTINUAÇÃO DA PESQUISA (o cliente está refinando a cotação ativa)`,
     `A última mensagem NÃO é uma pergunta isolada: é um ajuste da pesquisa que já está em andamento. Trate como pesquisa contínua, igual a um consultor humano.`,
     `\nParâmetros da pesquisa atual (mantenha TODOS, exceto o que muda abaixo):`,
@@ -294,5 +309,7 @@ export function buildRefineBlock(
     `É PROIBIDO responder "não encontrei", "não tem opção" ou qualquer negativa antes de executar a nova pesquisa. Só depois que a tool devolver sem_resultado você informa que não achou e oferece alternativas (outra data, outro aeroporto próximo, outro horário).`,
     `VALIDAÇÃO CRUZADA antes de qualquer negativa: se a tool devolveu opcoes > 0, é PROIBIDO dizer "não apareceu opção", "não encontrei" ou "não tem voo". Responda exatamente o que o motor retornou.`,
     `Nunca encerre o atendimento nem transfira enquanto o cliente estiver ajustando a pesquisa.`,
+    `POSTURA: ao devolver o novo valor, comente a mudança ("recalculei essa mesma opção com bagagem, ficou em X") e termine com uma pergunta que dê continuidade.`,
   ].join("\n");
 }
+
