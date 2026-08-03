@@ -204,20 +204,23 @@ function FluxosPage() {
   const noSelecionado = useMemo(() => nodes.find((n) => n.id === selecionado) ?? null, [nodes, selecionado]);
 
   const aplicar = useCallback((f: Flow) => {
-    setNodes(
-      (f.nodes ?? []).map((n) => ({
-        id: n.id,
-        type: "fluxo" as const,
-        position: n.position,
-        data: n.data,
-      })),
-    );
+    const base = (f.nodes ?? []).map((n) => ({
+      id: n.id,
+      type: "fluxo" as const,
+      position: n.position,
+      data: n.data,
+    }));
+    // Se o mapa foi salvo empilhado (tudo na mesma coluna), já abre organizado LR.
+    const xs = base.map((n) => n.position.x);
+    const vertical = base.length > 1 && Math.max(...xs) - Math.min(...xs) < 120;
+    setNodes(vertical ? organizarLR(base, f.edges ?? []) : base);
     setEdges(
       (f.edges ?? []).map((e) => ({
         id: e.id,
         source: e.source,
         target: e.target,
         label: e.label || undefined,
+        type: "smoothstep",
         animated: true,
         markerEnd: { type: MarkerType.ArrowClosed },
       })),
