@@ -3450,6 +3450,27 @@ export type Database = {
         }
         Relationships: []
       }
+      wa_ai_switch: {
+        Row: {
+          ai_enabled: boolean
+          id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          ai_enabled?: boolean
+          id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          ai_enabled?: boolean
+          id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       wa_broadcast_campanhas: {
         Row: {
           aprovada_por: string | null
