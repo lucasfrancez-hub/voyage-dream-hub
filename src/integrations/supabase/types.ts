@@ -4185,6 +4185,7 @@ export type Database = {
           last_customer_message_id: string | null
           last_processed_message_id: string | null
           last_progress_at: string
+          last_recovery_at: string | null
           last_referenced_option_index: number | null
           last_referenced_quote_id: string | null
           max_connections: number | null
@@ -4195,11 +4196,15 @@ export type Database = {
           pending_question_context: Json
           pending_question_message_id: string | null
           protocol_id: string | null
+          recovery_attempts: number
           recovery_priority: string
           recovery_started_at: string | null
           return_date: string | null
           return_time_preference: string | null
           status: string
+          transfer_briefing: string | null
+          transfer_reason: string | null
+          transferred_at: string | null
           trip_type: string | null
           updated_at: string
           wait_message_sent_at: string | null
@@ -4228,6 +4233,7 @@ export type Database = {
           last_customer_message_id?: string | null
           last_processed_message_id?: string | null
           last_progress_at?: string
+          last_recovery_at?: string | null
           last_referenced_option_index?: number | null
           last_referenced_quote_id?: string | null
           max_connections?: number | null
@@ -4238,11 +4244,15 @@ export type Database = {
           pending_question_context?: Json
           pending_question_message_id?: string | null
           protocol_id?: string | null
+          recovery_attempts?: number
           recovery_priority?: string
           recovery_started_at?: string | null
           return_date?: string | null
           return_time_preference?: string | null
           status?: string
+          transfer_briefing?: string | null
+          transfer_reason?: string | null
+          transferred_at?: string | null
           trip_type?: string | null
           updated_at?: string
           wait_message_sent_at?: string | null
@@ -4271,6 +4281,7 @@ export type Database = {
           last_customer_message_id?: string | null
           last_processed_message_id?: string | null
           last_progress_at?: string
+          last_recovery_at?: string | null
           last_referenced_option_index?: number | null
           last_referenced_quote_id?: string | null
           max_connections?: number | null
@@ -4281,11 +4292,15 @@ export type Database = {
           pending_question_context?: Json
           pending_question_message_id?: string | null
           protocol_id?: string | null
+          recovery_attempts?: number
           recovery_priority?: string
           recovery_started_at?: string | null
           return_date?: string | null
           return_time_preference?: string | null
           status?: string
+          transfer_briefing?: string | null
+          transfer_reason?: string | null
+          transferred_at?: string | null
           trip_type?: string | null
           updated_at?: string
           wait_message_sent_at?: string | null
