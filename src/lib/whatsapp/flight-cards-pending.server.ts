@@ -165,12 +165,42 @@ export async function sendPendingFlightCards(
     agent_name?: string | null;
     cancelled_at?: string | null;
   }>;
-  // Só a cotação mais recente do protocolo pode avançar. As duplicadas antigas
-  // ficam definitivamente fora da fila; do contrário, após concluir a atual o
-  // cron voltaria nelas e repetiria os mesmos voos. A criação de novas cópias
-  // da busca é bloqueada em `cotar_aereo`, que reaproveita a atual incompleta.
-  const maisRecente = quotesRecentes[0];
-  const row = maisRecente && disponivel(maisRecente) ? maisRecente : undefined;
+  // Cada TRECHO pedido (origem+destino+data+passageiros) é uma cotação própria
+  // e todas precisam ser entregues: o cliente que pede "duas no dia 11 e uma no
+  // dia 12" tem que receber as duas pesquisas. Então agrupamos por assinatura
+  // do trecho, ficamos só com a versão mais recente de cada trecho (as buscas
+  // repetidas do mesmo trecho continuam descartadas) e atendemos a mais ANTIGA
+  // ainda incompleta — assim nenhum trecho fica pra trás.
+  const assinaturaTrecho = (r: { payload: unknown }) => {
+    const p = (r.payload ?? {}) as {
+      origem_iata?: string;
+      destino_iata?: string;
+      data_ida?: string;
+      data_volta?: string | null;
+      passageiros?: { adultos?: number; criancas?: number; bebes?: number };
+    };
+    const pax = p.passageiros ?? {};
+    return [
+      p.origem_iata,
+      p.destino_iata,
+      p.data_ida,
+      p.data_volta ?? "-",
+      pax.adultos ?? 1,
+      pax.criancas ?? 0,
+      pax.bebes ?? 0,
+    ].join("|");
+  };
+  const maisRecentePorTrecho = new Map<string, (typeof quotesRecentes)[number]>();
+  for (const q of quotesRecentes) {
+    // `quotesRecentes` vem em ordem decrescente: o primeiro de cada trecho é o atual.
+    const k = assinaturaTrecho(q);
+    if (!maisRecentePorTrecho.has(k)) maisRecentePorTrecho.set(k, q);
+  }
+  const pendentes = Array.from(maisRecentePorTrecho.values())
+    .filter((q) => disponivel(q))
+    .sort((a, b) => String(a.created_at ?? "").localeCompare(String(b.created_at ?? "")));
+  const row = pendentes[0];
+
   /** Autor real da pesquisa — preservado mesmo quando quem dispara é o cron. */
   const autor = { slug: row?.agent_slug ?? null, nome: row?.agent_name ?? null };
 
