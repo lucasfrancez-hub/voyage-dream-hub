@@ -138,7 +138,13 @@ async function gravarEvento(conta: ContaAgenda, ev: {
       dia_inteiro: ev.diaInteiro,
       situacao: ev.situacao,
       raw_ics: ev.rawIcs ?? null,
-      detalhes: (ev.detalhes as Record<string, unknown>) ?? {},
+      detalhes: {
+        ...((ev.detalhes as Record<string, unknown>) ?? {}),
+        calendario:
+          ((ev.detalhes as { calendario?: string | null } | undefined)?.calendario) ??
+          conta.calendar_nome ??
+          conta.nome,
+      },
       deleted_at: null,
     },
     { onConflict: "account_id,uid" },
