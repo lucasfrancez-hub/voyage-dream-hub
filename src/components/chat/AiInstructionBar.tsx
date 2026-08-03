@@ -83,21 +83,14 @@ export function AiInstructionBar({
             placeholder="Ex.: diga que o pacote de Orlando saindo de Curitiba em março está R$ 6.480 por pessoa e ofereça enviar o folder."
             className="w-full resize-none rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 caret-[#F26B1F] focus:border-[#F26B1F] focus:outline-none focus:ring-2 focus:ring-[#F26B1F]/20"
           />
-          <DialogFooter className="gap-2 sm:justify-between">
-            <button
-              onClick={() => mut.mutate({ instruction: text })}
-              disabled={!text.trim() || mut.isPending}
-              className="rounded-md border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-40"
-            >
-              Guardar p/ próxima resposta
-            </button>
+          <DialogFooter>
             <button
               onClick={() => mut.mutate({ instruction: text, respond_now: true })}
               disabled={!text.trim() || mut.isPending}
               className="inline-flex items-center gap-2 rounded-md bg-[#F26B1F] px-3 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-40"
             >
               {mut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-              Responder agora
+              Enviar orientação
             </button>
           </DialogFooter>
         </DialogContent>

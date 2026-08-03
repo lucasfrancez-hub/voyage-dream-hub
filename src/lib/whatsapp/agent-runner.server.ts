@@ -327,6 +327,9 @@ export async function runAgent(input: {
   const instructionRun = Boolean(
     (conv as unknown as { ai_instruction?: string | null }).ai_instruction?.trim(),
   );
+  const instructionAtStart = (
+    conv as unknown as { ai_instruction_at?: string | null }
+  ).ai_instruction_at ?? null;
 
   const agents = await loadAgents();
   const stickySlug = (conv as unknown as { agent_slug?: string | null }).agent_slug ?? null;
@@ -1215,7 +1218,7 @@ export async function runAgent(input: {
     const [{ data: currentConv }, { data: latestInboundNow }, { count: alreadyAnswered }] = await Promise.all([
       supabaseAdmin
         .from("wa_conversations")
-        .select("protocolo_ativo_id, central_slug, agent_slug, mode, ai_paused")
+        .select("protocolo_ativo_id, central_slug, agent_slug, mode, ai_paused, ai_instruction_at")
         .eq("id", conv.id)
         .maybeSingle(),
       supabaseAdmin
@@ -1245,7 +1248,12 @@ export async function runAgent(input: {
       currentConv?.protocolo_ativo_id !== protocolo.id ||
       latestInboundNow?.id !== triggerMessageId ||
       runtimeSwitchedToCentral ||
-      (activeSlug != null && activeSlug !== agent.slug) ||
+      (instructionRun && currentConv?.ai_instruction_at !== instructionAtStart) ||
+      // Uma orientação pode ser enviada horas depois da última conversa. Se o
+      // plantão mudou nesse intervalo, pickAgent escolhe o agente disponível e
+      // bindAgentToProtocol já atualiza o protocolo. Não cancele esse run só
+      // porque a coluna legada da conversa ainda aponta para o agente anterior.
+      (!instructionRun && activeSlug != null && activeSlug !== agent.slug) ||
       (!instructionRun && (alreadyAnswered ?? 0) > 0);
     if (staleRun) {
       console.warn("[agent-runtime]", JSON.stringify({
@@ -1341,10 +1349,12 @@ export async function runAgent(input: {
 
     // Consome a orientação do supervisor (vale só para esta resposta).
     if ((conv as unknown as { ai_instruction?: string | null }).ai_instruction) {
-      await supabaseAdmin
+      let clearInstruction = supabaseAdmin
         .from("wa_conversations")
         .update({ ai_instruction: null, ai_instruction_at: null, ai_instruction_by: null })
         .eq("id", conv.id);
+      if (instructionAtStart) clearInstruction = clearInstruction.eq("ai_instruction_at", instructionAtStart);
+      await clearInstruction;
     }
 
     // ASSUNÇÃO HUMANA: relê o estado da conversa IMEDIATAMENTE antes de enviar.

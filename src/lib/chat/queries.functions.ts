@@ -743,7 +743,8 @@ export const toggleConversationMode = createServerFn({ method: "POST" })
 /**
  * Orientação do atendente para a IA: o que ela deve responder na próxima
  * mensagem. Vale só para a próxima resposta (a IA limpa depois de enviar).
- * `respond_now` antecipa o debounce para a IA responder no próximo ciclo.
+ * Toda orientação nova agenda a execução no próximo ciclo; isso evita que uma
+ * orientação fique salva indefinidamente quando não há nova mensagem do cliente.
  */
 export const setAiInstruction = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -760,7 +761,7 @@ export const setAiInstruction = createServerFn({ method: "POST" })
       ai_instruction: text,
       ai_instruction_at: text ? new Date().toISOString() : null,
       ai_instruction_by: text ? context.userId : null,
-      ...(text && data.respond_now ? { ai_debounce_until: new Date().toISOString() } : {}),
+      ...(text ? { ai_debounce_until: new Date().toISOString() } : {}),
     };
     const { error } = await context.supabase
       .from("wa_conversations")
