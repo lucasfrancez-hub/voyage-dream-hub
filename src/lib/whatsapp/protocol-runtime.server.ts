@@ -184,7 +184,7 @@ export async function closeProtocolAndResetRuntime(params: {
   const { data, error } = await supabaseAdmin.rpc("close_protocol_and_reset_runtime", {
     p_protocol_id: params.protocolo_id,
     p_status: params.status ?? "encerrado_manual",
-    p_reason: params.reason ?? null,
+    p_reason: params.reason ?? undefined,
   });
   if (error) {
     console.error("[protocol] falha ao encerrar protocolo:", error.message);
