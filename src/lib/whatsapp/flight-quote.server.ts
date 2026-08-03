@@ -13,6 +13,12 @@ import type { OnerFlight, OnerPlace } from "@/lib/onertravel.types";
 import { flightHasBaggage } from "@/lib/onertravel.types";
 import { combinacaoIdaVoltaValida } from "./flight-search-validation";
 import { airlineListToIatas, airlineMatches } from "./airline-codes";
+import {
+  atendePedido,
+  interpretarLocal,
+  isCodigoDeCidade,
+  type LocalInterpretado,
+} from "./airport-city";
 
 export type PeriodoDia = "manha" | "tarde" | "noite" | "livre";
 
@@ -159,15 +165,37 @@ const NOMES_CIDADE: Record<string, string> = {
   LIS: "Lisboa",
 };
 
-/** Resolve texto livre ("Curitiba", "cwb", "São Paulo") no IATA da operadora. */
+/**
+ * Resolve texto livre ("Curitiba", "cwb", "Congonhas", "São Paulo") no que deve
+ * ser efetivamente pesquisado.
+ *
+ * Aeroporto específico ("Congonhas"/"CGH") trava a pesquisa naquele IATA.
+ * Cidade ("São Paulo") pesquisa a cidade inteira (GRU + CGH + VCP).
+ */
 async function resolveIata(
   query: string,
   isDeparture: boolean,
-): Promise<{ iata: string; nome: string } | null> {
+): Promise<{ iata: string; nome: string; isCity: boolean; interpretacao: LocalInterpretado | null } | null> {
   const raw = query.trim();
   if (!raw) return null;
+
+  const local = interpretarLocal(raw);
+  if (local?.tipo === "aeroporto" && local.aeroporto_iata) {
+    return {
+      iata: local.aeroporto_iata,
+      nome: local.aeroporto_nome ?? local.aeroporto_iata,
+      isCity: false,
+      interpretacao: local,
+    };
+  }
+
   const list = await searchAirports({ query: raw, isDeparture });
-  if (!list.length) return null;
+  if (!list.length) {
+    if (local?.tipo === "cidade") {
+      return { iata: local.codigo_pesquisa, nome: local.cidade ?? local.codigo_pesquisa, isCity: true, interpretacao: local };
+    }
+    return null;
+  }
   const up = raw.toUpperCase();
   const exato = list.find((a) => a.iata.toUpperCase() === up && up.length === 3);
   const cidade = list.find((a) => a.isCity) ?? list[0];
@@ -176,7 +204,8 @@ async function resolveIata(
   let nome = pick.city || pick.name || iata;
   // A operadora às vezes devolve o próprio código ("SAO") como nome da cidade.
   if (/^[A-Z]{3}$/.test(nome.trim().toUpperCase())) nome = NOMES_CIDADE[iata] ?? nome;
-  return { iata, nome };
+  const isCity = !!pick.isCity || isCodigoDeCidade(iata);
+  return { iata, nome, isCity, interpretacao: local };
 }
 
 export type QuoteFlightsParams = {
@@ -268,6 +297,15 @@ export async function quoteFlights(params: QuoteFlightsParams): Promise<FlightQu
     ].filter((v): v is string => !!v);
     if (excluidas.length && cias.some((c) => excluidas.some((e) => airlineMatches(c, e)))) return false;
     if (incluidas.length && !cias.some((c) => incluidas.some((e) => airlineMatches(c, e)))) return false;
+    // Aeroporto travado pelo cliente ("quero Congonhas"): descarta o que não é dele.
+    const chegada = f.journey.destination?.iata;
+    if (dst?.interpretacao?.tipo === "aeroporto" && chegada && !atendePedido(dst.interpretacao, chegada)) {
+      return false;
+    }
+    const partida = f.journey.departure?.iata;
+    if (org?.interpretacao?.tipo === "aeroporto" && partida && !atendePedido(org.interpretacao, partida)) {
+      return false;
+    }
     return true;
   };
 
@@ -279,9 +317,26 @@ export async function quoteFlights(params: QuoteFlightsParams): Promise<FlightQu
     children: criancas,
     infants: bebes,
     pageSize: 50,
-    departureIsCity: false,
-    arrivalIsCity: false,
+    departureIsCity: org.isCity,
+    arrivalIsCity: dst.isCity,
   };
+
+  // LOG de interpretação: cliente disse × interpretado × pesquisado.
+  console.log(
+    JSON.stringify({
+      event: "flight_search_locais",
+      origem_cliente: params.origem,
+      origem_interpretado: org.interpretacao?.tipo ?? "motor",
+      origem_pesquisada: org.iata,
+      origem_is_cidade: org.isCity,
+      destino_cliente: params.destino,
+      destino_interpretado: dst.interpretacao?.tipo ?? "motor",
+      destino_pesquisado: dst.iata,
+      destino_is_cidade: dst.isCity,
+      destino_aeroportos: dst.interpretacao?.aeroportos ?? [],
+      at: new Date().toISOString(),
+    }),
+  );
 
   let search;
   try {
@@ -431,6 +486,20 @@ export async function quoteFlights(params: QuoteFlightsParams): Promise<FlightQu
 
   opcoes.sort((a, b) => a.total - b.total);
   opcoes.forEach((o, i) => (o.opcao = i + 1));
+
+  // LOG de validação cruzada: o que o motor devolveu de fato.
+  console.log(
+    JSON.stringify({
+      event: "flight_search_resultado",
+      destino_cliente: params.destino,
+      destino_pesquisado: dst.iata,
+      aeroportos_retornados: [...new Set(opcoes.map((o) => o.ida.destino))],
+      origens_retornadas: [...new Set(opcoes.map((o) => o.ida.origem))],
+      total_opcoes: opcoes.length,
+      at: new Date().toISOString(),
+    }),
+  );
+
 
   return {
     origem_iata: org.iata,
