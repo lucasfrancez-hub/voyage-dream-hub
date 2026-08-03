@@ -487,6 +487,20 @@ export async function quoteFlights(params: QuoteFlightsParams): Promise<FlightQu
   opcoes.sort((a, b) => a.total - b.total);
   opcoes.forEach((o, i) => (o.opcao = i + 1));
 
+  // LOG de validação cruzada: o que o motor devolveu de fato.
+  console.log(
+    JSON.stringify({
+      event: "flight_search_resultado",
+      destino_cliente: params.destino,
+      destino_pesquisado: dst.iata,
+      aeroportos_retornados: [...new Set(opcoes.map((o) => o.ida.destino))],
+      origens_retornadas: [...new Set(opcoes.map((o) => o.ida.origem))],
+      total_opcoes: opcoes.length,
+      at: new Date().toISOString(),
+    }),
+  );
+
+
   return {
     origem_iata: org.iata,
     destino_iata: dst.iata,
