@@ -708,7 +708,21 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
     ? attendantsList.find((a) => a.id === conv.assigned_to)?.full_name ?? null
     : null;
 
+  const resendFn = useServerFn(resendHumanMessage);
+  const [resendingId, setResendingId] = useState<string | null>(null);
+  const resendMut = useMutation({
+    mutationFn: async (messageId: string) => resendFn({ data: { message_id: messageId } }),
+    onMutate: (messageId: string) => setResendingId(messageId),
+    onSuccess: () => {
+      toast.success("Mensagem reenviada");
+      qc.invalidateQueries({ queryKey: ["chat", "messages", conv.id] });
+    },
+    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Não deu pra reenviar"),
+    onSettled: () => setResendingId(null),
+  });
+
   const sendMut = useMutation({
+
     mutationFn: async (content: string) => sendFn({ data: {
       conversation_id: conv.id,
       content,
