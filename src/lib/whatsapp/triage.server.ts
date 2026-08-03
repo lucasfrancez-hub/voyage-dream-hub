@@ -264,11 +264,26 @@ export async function triageFirstMessage(conv: WaConversation): Promise<TriageRe
   // ou com sinal de pacote/pós-venda, nem classificamos.
   if (!heuristicaAereo(texto)) return null;
 
+  return routeAereoParaCentral(conv, texto);
+}
+
+/**
+ * ROTEAMENTO ÚNICO PARA A CENTRAL.
+ *
+ * A triagem só ROTEIA: identifica a intenção aérea, monta o briefing com o que
+ * o cliente já disse e entrega o atendimento a Paula ou Bruno. Ela nunca conduz
+ * a coleta nem encaminha ao Comercial. Também é usada como rede de segurança
+ * pelo runner quando a janela da triagem já tinha sido "gasta" por uma resposta
+ * anterior nossa.
+ */
+export async function routeAereoParaCentral(
+  conv: WaConversation,
+  texto: string,
+): Promise<TriageResult> {
   // A heurística dura já confirmou um pedido aéreo explícito. O classificador
   // serve apenas para extrair os campos; ele não pode rebaixar a intenção e
   // mandar a conversa de volta para pacote por uma classificação instável.
   const c = await classificar(texto);
-
 
   const linhas = ["✈️ Cotação de passagem aérea (pedido de aéreo identificado na triagem)"];
   // ORIGEM: só entra no briefing quando o CLIENTE disse a cidade de embarque.
@@ -284,7 +299,6 @@ export async function triageFirstMessage(conv: WaConversation): Promise<TriageRe
   const brief = linhas.join("\n");
 
   const slug = await pickEspecialista();
-
 
   await supabaseAdmin
     .from("wa_conversations")
@@ -307,3 +321,4 @@ export async function triageFirstMessage(conv: WaConversation): Promise<TriageRe
   console.log(`[triagem] conversa ${conv.id} direcionada à Central (${slug})`);
   return { slug, brief };
 }
+

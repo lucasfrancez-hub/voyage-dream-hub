@@ -26,7 +26,7 @@ import { sendWhatsAppBubbles } from "./send.server";
 import { buildSenderPrefix, capitalizeBubbles, capitalizeKnownNames, fixGluedSentences, firstName as extractFirstName } from "./text-utils.server";
 import { buildSharedAgentPrompt } from "@/lib/chat/camila-prompt";
 import { isCompanyDataBlocked } from "./data-blocklist";
-import { triageFirstMessage } from "./triage.server";
+import { triageFirstMessage, heuristicaAereo, routeAereoParaCentral } from "./triage.server";
 import { createHash, randomUUID } from "node:crypto";
 import {
   CENTRAL_PROMPT_VERSION,
@@ -278,11 +278,14 @@ function buildSystemPrompt(
   if (!contextOnly) {
     parts.push(
       `\n# ✈️ CENTRAL DE ESPECIALISTAS (roteamento)\n` +
-      `- Se o cliente pedir COTAÇÃO DE PASSAGEM AÉREA avulsa ("quero uma passagem", "quero um voo", "quero cotar um aéreo", "quero comprar só as passagens"), ` +
-      `chame a tool transferir_para_central com o que já souber e responda apenas: ` +
-      `"Perfeito! Vou encaminhar seu atendimento para nossa Central de Especialistas, que vai pesquisar as melhores opções para você."\n` +
+      `- Se o cliente pedir COTAÇÃO DE PASSAGEM AÉREA avulsa ("quero uma passagem", "preciso cotar umas passagens", "quero um voo", "quero cotar um aéreo", "quero comprar só as passagens"), ` +
+      `chame IMEDIATAMENTE a tool transferir_para_central com o que já souber, na MESMA resposta, sem perguntar origem, destino, datas ou passageiros. ` +
+      `Responda apenas: "Perfeito! Já estou te passando para nossa Central de Especialistas, que vai pesquisar as melhores opções para você."\n` +
+      `- 🚫 PROIBIDO, em pedido de passagem aérea: perguntar origem/destino/datas/passageiros, encaminhar ao Comercial, falar de horário de atendimento do Comercial ou dizer que alguém retorna depois. ` +
+      `Cotação aérea NUNCA vai para o Comercial — ela é sempre da Central, 24h por dia.\n` +
       `- Isso vale SÓ para passagem aérea avulsa. Pacote pronto, personalização de pacote, hotel, carro, seguro e cruzeiro continuam 100% com você, ` +
       `exatamente como sempre — e, quando não houver pacote ou o cliente quiser personalizar, você segue coletando os dados e encaminhando para o Comercial.`
+
     );
   }
   parts.push(`- Data/hora atual (SP): ${new Date().toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}`);
@@ -345,11 +348,56 @@ export async function runAgent(input: {
     }
   }
 
-  const centralAgent = centralSlug
+  // REDE DE SEGURANÇA: mesmo que a triagem não tenha rodado (por exemplo,
+  // porque já havia uma resposta nossa na janela), TODO pedido explícito de
+  // passagem aérea pertence à Central. Nenhum consultor conduz cotação aérea
+  // nem encaminha ao Comercial enquanto o pedido estiver no escopo da Central.
+  if (!centralSlug) {
+    const { data: ultimas } = await supabaseAdmin
+      .from("wa_messages")
+      .select("content")
+      .eq("conversation_id", conv.id)
+      .eq("direction", "inbound")
+      .eq("protocolo_id", protocolo.id)
+      .order("created_at", { ascending: false })
+      .limit(3);
+    const textoRecente = ((ultimas ?? []) as Array<{ content: string | null }>)
+      .map((m) => (m.content ?? "").trim())
+      .filter(Boolean)
+      .reverse()
+      .join("\n");
+    if (textoRecente && heuristicaAereo(textoRecente)) {
+      const forcado = await routeAereoParaCentral(conv, textoRecente).catch((err) => {
+        console.error("[agent] roteamento aéreo forçado falhou:", err);
+        return null;
+      });
+      if (forcado) {
+        centralSlug = forcado.slug;
+        centralBrief = forcado.brief;
+        centralPrimeiroContato = true;
+        console.log(`[agent] pedido aéreo redirecionado à Central (${forcado.slug}) fora da triagem inicial`);
+      }
+    }
+  }
+
+  let centralAgent = centralSlug
     ? agents.find((a) => a.slug === centralSlug && (a.equipe ?? "") === "especialista") ?? null
     : null;
 
+  // Se o especialista escolhido não veio na lista carregada (cache/ativo),
+  // busca direto no banco — jamais cair no consultor por isso.
+  if (centralSlug && !centralAgent) {
+    const { data: espec } = await supabaseAdmin
+      .from("ai_agents")
+      .select("*")
+      .eq("slug", centralSlug)
+      .eq("equipe", "especialista")
+      .maybeSingle();
+    if (espec) centralAgent = espec as unknown as Agent;
+  }
+
   const agent = centralAgent ?? (await pickAgent(agents, stickySlug));
+
 
   // VÍNCULO AGENTE ↔ PROTOCOLO: o agente e o tipo de prompt passam a pertencer
   // ao protocolo ativo. Nenhum protocolo novo herda esse estado.
