@@ -631,7 +631,37 @@ export async function runAgent(input: {
       if (cotacaoAtiva && ultimaDoCliente?.content) {
         const { detectRefineIntents, buildRefineBlock } = await import("./flight-refine");
         const intents = detectRefineIntents(ultimaDoCliente.content);
-        if (intents.length) {
+
+        // CASO 1 da política de quantidade: "tem mais opções?" com opções da
+        // MESMA pesquisa ainda não apresentadas → entrega imediata, sem motor.
+        const soPediuMais =
+          intents.length === 1 && intents[0]?.kind === "mais_opcoes";
+        let entregouRestantes = false;
+        if (soPediuMais) {
+          try {
+            const { countUnsentOptions, sendRemainingOptions } = await import(
+              "./flight-cards-pending.server"
+            );
+            const { restantes } = await countUnsentOptions(conv.id, protocolo.id);
+            if (restantes > 0) {
+              const r = await sendRemainingOptions(
+                conv.id,
+                conv.wa_phone,
+                protocolo.id,
+                protocolo.opened_at ?? null,
+              );
+              entregouRestantes = r.sent > 0;
+              if (entregouRestantes) {
+                quoteBlock +=
+                  "\n\n[CONTINUIDADE] O cliente pediu mais opções e ainda havia alternativas desta MESMA pesquisa: elas JÁ estão sendo enviadas agora. NÃO pesquise de novo e NÃO liste voos em texto — responda só com um balão curto e natural avisando que está mandando outra alternativa para ele comparar.\n";
+              }
+            }
+          } catch (err) {
+            console.warn("[agent] entrega de opções restantes indisponível:", err);
+          }
+        }
+
+        if (intents.length && !entregouRestantes) {
           const refine = buildRefineBlock(cotacaoAtiva.busca ?? null, intents);
           if (refine) {
             quoteBlock += refine;

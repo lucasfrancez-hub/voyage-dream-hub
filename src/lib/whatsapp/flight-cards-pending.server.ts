@@ -25,7 +25,14 @@ type OptLite = {
   volta?: LegLite | null;
 };
 
-const MAX_OPCOES = 2; // por cotação, salvo pedido explícito de mais horários
+/**
+ * POLÍTICA DE QUANTIDADE (Central de Especialistas):
+ * - preferencialmente 3 opções por cotação;
+ * - mínimo 2 opções;
+ * - 1 opção só quando o motor realmente não tiver outra alternativa válida.
+ */
+export const MAX_OPCOES = 3; // meta por cotação
+export const MIN_OPCOES = 2; // piso: nunca parar em 1 havendo alternativa
 const INTERVALO_MS = 30_000; // 2ª arte fica elegível 30s depois da 1ª; o envio
 // ocorre na próxima execução do cron (1x/min), então na prática o cliente recebe
 // a segunda opção normalmente entre 30 e 90 segundos.
@@ -76,6 +83,10 @@ export async function sendPendingFlightCards(
   force = false,
   /** Orçamento total de renderização desta rodada. Estourou → fallback em texto. */
   renderBudgetMs = 26_000,
+  /** Teto de opções desta cotação. Sobe quando o cliente pede "tem mais opções?". */
+  limiteOpcoes = MAX_OPCOES,
+  /** Pedido explícito do cliente: entrega já, sem esperar o intervalo entre artes. */
+  ignorarIntervalo = false,
 ): Promise<{ sent: number; quote_id?: string }> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
@@ -109,7 +120,7 @@ export async function sendPendingFlightCards(
     if (force) return true;
     if (!r.cards_sent_at) return true;
     const idade = Date.now() - new Date(r.cards_sent_at).getTime();
-    return idade > CLAIM_TRAVADO_MS && contaFps(r) < MAX_OPCOES;
+    return idade > CLAIM_TRAVADO_MS && contaFps(r) < limiteOpcoes;
   };
 
   const quotesRecentes = (rows ?? []) as Array<{
@@ -147,7 +158,7 @@ export async function sendPendingFlightCards(
   // ---- espaçamento entre as duas artes ----
   const desdeNum = protocolOpenedAt ?? new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
   const { ultimoEm } = await ultimoEnvio(conversationId, desdeNum);
-  if (!force && ultimoEm && Date.now() - ultimoEm < INTERVALO_MS) {
+  if (!force && !ignorarIntervalo && ultimoEm && Date.now() - ultimoEm < INTERVALO_MS) {
     return { sent: 0, quote_id: row.id as string };
   }
   // Elegível agora: a partir daqui só falta o claim e o render.
@@ -201,7 +212,7 @@ export async function sendPendingFlightCards(
       ? ((row as { sent_fingerprints: unknown[] }).sent_fingerprints as unknown[]).map(String)
       : [],
   );
-  const restante = force ? MAX_OPCOES : MAX_OPCOES - fpsDaCotacao.size;
+  const restante = force ? limiteOpcoes : limiteOpcoes - fpsDaCotacao.size;
   if (restante <= 0) {
     await supabaseAdmin
       .from("wa_flight_quotes")
@@ -532,7 +543,7 @@ export async function sendPendingFlightCards(
   // Concluiu a cotação só quando as 2 opções saíram (arte ou texto); senão
   // libera o claim pra que a próxima rodada do cron mande a etapa seguinte.
   const totalEnviadas = fpsDaCotacao.size + novosFps.length;
-  const concluiu = totalEnviadas >= MAX_OPCOES;
+  const concluiu = totalEnviadas >= limiteOpcoes;
   await supabaseAdmin
     .from("wa_flight_quotes")
     .update({ cards_sent_at: concluiu ? new Date().toISOString() : null })
@@ -583,3 +594,71 @@ async function escalarPorFalhaDeCard(
   }
 }
 
+
+/**
+ * Quantas opções da cotação ATIVA ainda não foram apresentadas ao cliente.
+ * Base da política "tem mais opções?": havendo restante, entrega sem nova
+ * pesquisa; zerado, o agente refaz a pesquisa ampliando os critérios.
+ */
+export async function countUnsentOptions(
+  conversationId: string,
+  protocolId?: string | null,
+): Promise<{ quote_id: string | null; enviadas: number; restantes: number }> {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  let q = supabaseAdmin
+    .from("wa_flight_quotes")
+    .select("id, payload, sent_fingerprints, cancelled_at")
+    .eq("conversation_id", conversationId)
+    .order("created_at", { ascending: false })
+    .limit(1);
+  if (protocolId) q = q.eq("protocolo_id", protocolId);
+  const { data } = await q;
+  const row = (data ?? [])[0] as
+    | { id: string; payload: unknown; sent_fingerprints?: unknown; cancelled_at?: string | null }
+    | undefined;
+  if (!row || row.cancelled_at) return { quote_id: null, enviadas: 0, restantes: 0 };
+  const todas = ((row.payload as { opcoes?: OptLite[] } | null)?.opcoes ?? []) as OptLite[];
+  const fps = new Set<string>(
+    Array.isArray(row.sent_fingerprints) ? (row.sent_fingerprints as unknown[]).map(String) : [],
+  );
+  const restantes = todas.filter((o) => !fps.has(fingerprint(o))).length;
+  return { quote_id: row.id, enviadas: fps.size, restantes };
+}
+
+/**
+ * Entrega imediata das opções ainda não apresentadas (Caso 1 da política de
+ * quantidade). Não chama o motor de busca.
+ */
+export async function sendRemainingOptions(
+  conversationId: string,
+  waPhone: string,
+  protocolId?: string | null,
+  protocolOpenedAt?: string | null,
+): Promise<{ sent: number; restantes_antes: number }> {
+  const { enviadas, restantes } = await countUnsentOptions(conversationId, protocolId);
+  if (restantes <= 0) return { sent: 0, restantes_antes: 0 };
+  const r = await sendPendingFlightCards(
+    conversationId,
+    waPhone,
+    60 * 60 * 1000,
+    protocolOpenedAt ?? null,
+    protocolId ?? null,
+    false,
+    26_000,
+    enviadas + 1, // libera exatamente a próxima opção ainda não apresentada
+    true, // pedido explícito: sem espera entre artes
+  );
+  console.log(
+    JSON.stringify({
+      event: "flight_options_more_requested",
+      conversation_id: conversationId,
+      protocolo_id: protocolId ?? null,
+      already_sent: enviadas,
+      remaining_before: restantes,
+      sent_now: r.sent,
+      new_search: false,
+      at: new Date().toISOString(),
+    }),
+  );
+  return { sent: r.sent, restantes_antes: restantes };
+}
