@@ -242,7 +242,19 @@ export async function sendPendingFlightCards(
   if (protocolId) claimQuery = claimQuery.eq("protocolo_id", protocolId);
   if (!force) {
     const { data: claimed } = await claimQuery.select("id");
-    if (!claimed?.length) return { sent: 0, quote_id: row.id as string };
+    if (!claimed?.length) {
+      console.log(
+        JSON.stringify({
+          event: "flight_delivery_claim_lost",
+          quote_id: row.id,
+          conversation_id: conversationId,
+          protocolo_id: protocolId ?? null,
+          at: new Date().toISOString(),
+        }),
+      );
+      return { sent: 0, quote_id: row.id as string };
+    }
+
   }
 
 
