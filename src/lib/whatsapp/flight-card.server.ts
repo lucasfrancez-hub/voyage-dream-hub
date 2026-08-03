@@ -137,25 +137,31 @@ async function shot(
  * para a captura simples do cartão — entregar a arte é mais importante
  * do que ter o fundo transparente.
  */
-async function screenshotCard(url: string): Promise<Uint8Array> {
+async function screenshotCard(url: string, timeoutMs = RENDER_TIMEOUT_MS): Promise<Uint8Array> {
   try {
-    const bytes = await shot(url, ".capture", true);
+    const bytes = await shot(url, ".capture", true, timeoutMs);
     if (bytes.byteLength > 1000) return bytes;
     throw new Error("captura vazia");
   } catch (e) {
     console.warn("[flight-card] captura transparente falhou, usando fallback:", e);
-    return shot(url, ".card", false, 15000);
+    return shot(url, ".card", false, timeoutMs);
   }
 }
 
-
+/**
+ * Orçamento máximo de UMA tentativa de renderização. Curto de propósito: a
+ * entrega da cotação nunca pode ficar refém do Browserless — falhou, cai
+ * imediatamente no texto.
+ */
+export const RENDER_TIMEOUT_MS = 12_000;
 
 /** Gera a arte da opção e devolve os bytes e a URL pública do PNG. */
 export async function renderFlightCardAsset(
   data: FlightCardData,
+  timeoutMs = RENDER_TIMEOUT_MS,
 ): Promise<{ bytes: Uint8Array; url: string; filename: string }> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const bytes = await screenshotCard(flightCardPreviewUrl(data));
+  const bytes = await screenshotCard(flightCardPreviewUrl(data), timeoutMs);
   const filename = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.png`;
   const path = `flight-cards/${filename}`;
   const { error } = await supabaseAdmin.storage
@@ -166,22 +172,28 @@ export async function renderFlightCardAsset(
 }
 
 /**
- * Renderiza a arte com nova tentativa. O Browserless limita as sessões
- * simultâneas: quando 4 opções disparam juntas, algumas voltam 429/timeout e
- * o cliente recebia só a Opção 1.
+ * Renderiza a arte com nova tentativa, sempre dentro de um orçamento total.
+ * Estourou o orçamento → erro imediato, para o chamador mandar o fallback em
+ * texto ainda dentro da mesma execução.
  */
 export async function renderFlightCardAssetRetry(
   data: FlightCardData,
-  tentativas = 3,
+  tentativas = 2,
+  orcamentoMs = 26_000,
 ): Promise<{ bytes: Uint8Array; url: string; filename: string }> {
   let last: unknown;
+  const fim = Date.now() + orcamentoMs;
   for (let i = 0; i < tentativas; i++) {
+    const restante = fim - Date.now();
+    if (restante < 3_000) break;
     try {
-      return await renderFlightCardAsset(data);
+      return await renderFlightCardAsset(data, Math.min(RENDER_TIMEOUT_MS, restante));
     } catch (e) {
       last = e;
       console.warn(`[flight-card] tentativa ${i + 1}/${tentativas} falhou:`, e);
-      await new Promise((r) => setTimeout(r, 1200 * (i + 1)));
+      if (Date.now() + 1_200 < fim && i + 1 < tentativas) {
+        await new Promise((r) => setTimeout(r, 1_200));
+      }
     }
   }
   throw last instanceof Error ? last : new Error("falha ao renderizar a arte");
