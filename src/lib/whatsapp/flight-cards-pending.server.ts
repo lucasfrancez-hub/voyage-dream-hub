@@ -398,15 +398,26 @@ export async function sendPendingFlightCards(
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const data = buildFlightCardData(quote as any, op as any);
       estagio = "image_render";
-      const asset = await renderFlightCardAssetRetry(data, 2, renderBudgetMs);
+      // CACHE-FIRST: se o pré-aquecimento já rendeu esta opção, o envio é
+      // imediato. Sem cache, a arte tem um prazo brando (6s) — estourou, cai
+      // no texto e o card desta opção não é mais tentado.
+      const semCache = Math.min(SOFT_DEADLINE_MS, renderBudgetMs);
+      const { asset, from_cache } = await getOrRenderCard(data, {
+        softDeadlineMs: semCache,
+        tentativas: 1,
+        quote_id: quoteId,
+        protocolo_id: protocolId ?? null,
+        option_index: optionIndex,
+      });
       geradoEm = new Date().toISOString();
       logCardEvent({
         ...base,
         event: "card_generated",
         generated_at: geradoEm,
         storage_reference: asset.url ?? asset.filename ?? null,
-        delivery_status: "generated",
+        delivery_status: from_cache ? "generated_from_cache" : "generated",
       });
+
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const caption = buildFlightOptionCaption(quote as any, op as any);
 
