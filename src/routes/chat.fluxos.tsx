@@ -83,13 +83,14 @@ type FluxoNodeType = Node<FlowNodeData, "fluxo">;
 
 function QuadroFluxo({ data, selected }: NodeProps<FluxoNodeType>) {
   const setor = data.setor ?? "";
+  const acoes = data.acoes ?? [];
   return (
     <div
-      className={`min-w-[190px] max-w-[240px] rounded-xl border-2 px-3 py-2 shadow-sm transition-shadow ${
+      className={`w-[240px] rounded-xl border-2 px-3 py-2 shadow-sm transition-shadow ${
         SETOR_CLASSE[setor] ?? "border-border bg-card"
       } ${selected ? "ring-2 ring-ring" : ""}`}
     >
-      <Handle type="target" position={Position.Top} className="!h-2 !w-2 !bg-muted-foreground" />
+      <Handle type="target" position={Position.Left} className="!h-2.5 !w-2.5 !bg-muted-foreground" />
       <div className="flex items-center gap-1.5">
         <span className={`h-2 w-2 rounded-full ${SETOR_PONTO[setor] ?? "bg-muted-foreground"}`} />
         <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
@@ -112,9 +113,69 @@ function QuadroFluxo({ data, selected }: NodeProps<FluxoNodeType>) {
           ) : null}
         </div>
       ) : null}
-      <Handle type="source" position={Position.Bottom} className="!h-2 !w-2 !bg-muted-foreground" />
+      {acoes.length ? (
+        <div className="mt-2 space-y-1 border-t border-border/60 pt-1.5">
+          {acoes.slice(0, 4).map((a) => (
+            <div key={a.id} className="flex items-start gap-1.5 text-[10px] leading-snug text-foreground/80">
+              <Zap className="mt-[1px] h-3 w-3 shrink-0 text-primary" />
+              <span className="truncate">
+                <span className="font-medium">{ACAO_LABEL[a.tipo] ?? a.tipo}</span>
+                {a.detalhe ? <span className="text-muted-foreground"> — {a.detalhe}</span> : null}
+              </span>
+            </div>
+          ))}
+          {acoes.length > 4 ? (
+            <span className="text-[10px] text-muted-foreground">+{acoes.length - 4} ações</span>
+          ) : null}
+        </div>
+      ) : null}
+      <Handle type="source" position={Position.Right} className="!h-2.5 !w-2.5 !bg-muted-foreground" />
     </div>
   );
+}
+
+/* ───────────── auto-organização da esquerda pra direita ─────────────────── */
+
+function organizarLR<T extends { id: string; position: { x: number; y: number } }>(
+  nodes: T[],
+  edges: { source: string; target: string }[],
+): T[] {
+  if (!nodes.length) return nodes;
+  const nivel = new Map<string, number>();
+  const entradas = new Map<string, number>();
+  for (const n of nodes) entradas.set(n.id, 0);
+  for (const e of edges) entradas.set(e.target, (entradas.get(e.target) ?? 0) + 1);
+
+  let fila = nodes.filter((n) => (entradas.get(n.id) ?? 0) === 0).map((n) => n.id);
+  if (!fila.length) fila = [nodes[0]!.id];
+  for (const id of fila) nivel.set(id, 0);
+
+  // BFS com limite pra não travar em ciclos
+  let guarda = nodes.length * 4;
+  while (fila.length && guarda-- > 0) {
+    const atual = fila.shift()!;
+    const base = nivel.get(atual) ?? 0;
+    for (const e of edges.filter((x) => x.source === atual)) {
+      const prox = (nivel.get(e.target) ?? -1) < base + 1 ? base + 1 : nivel.get(e.target)!;
+      if (nivel.get(e.target) !== prox) {
+        nivel.set(e.target, prox);
+        fila.push(e.target);
+      }
+    }
+  }
+
+  const porNivel = new Map<number, string[]>();
+  for (const n of nodes) {
+    const l = nivel.get(n.id) ?? 0;
+    porNivel.set(l, [...(porNivel.get(l) ?? []), n.id]);
+  }
+  const COL = 320;
+  const LINHA = 170;
+  const pos = new Map<string, { x: number; y: number }>();
+  for (const [l, ids] of porNivel) {
+    ids.forEach((id, i) => pos.set(id, { x: 40 + l * COL, y: 40 + i * LINHA }));
+  }
+  return nodes.map((n) => ({ ...n, position: pos.get(n.id) ?? n.position }));
 }
 
 const nodeTypes = { fluxo: QuadroFluxo };
