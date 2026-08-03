@@ -553,13 +553,17 @@ export function buildCentralTools(
               ok: true,
               quote_id,
               cards_enviados,
+              opcoes_selecionadas: selecionadas,
               instrucao:
-                "A ARTE da 1ª opção JÁ FOI ENVIADA ao cliente e a 2ª sai automaticamente logo em seguida (normalmente entre 30 e 90 segundos). NÃO liste voos, horários ou valores em texto. Responda apenas com UM balão curto e natural avisando que está mandando as duas melhores opções.",
+                selecionadas > 1
+                  ? `A ARTE da 1ª opção JÁ FOI ENVIADA e as demais (${selecionadas} no total) saem automaticamente logo em seguida (normalmente entre 30 e 90 segundos cada). NÃO liste voos, horários ou valores em texto. Responda apenas com UM balão curto e natural dizendo que separou ${selecionadas === 3 ? "três" : "duas"} alternativas para ele comparar.`
+                  : "A ARTE da ÚNICA opção disponível JÁ FOI ENVIADA. O motor não trouxe outra alternativa válida nem ampliando a pesquisa. NÃO liste voos, horários ou valores em texto. Responda com UM balão curto e natural dizendo que essa foi a alternativa que encontrou para essa data e ofereça olhar outra data ou outro aeroporto.",
             };
           }
 
           // CONTINGÊNCIA: as artes falharam — manda o modelo em texto do briefing.
-          const duas = result.opcoes.slice(0, 2);
+          // Falha técnica NUNCA reduz a quantidade de opções entregues.
+          const duas = result.opcoes.slice(0, selecionadas);
           if (!duas.length) throw new Error("sem opções");
           // Métrica: registra a falha do card para medir a frequência do fallback.
           if (quote_id) {
