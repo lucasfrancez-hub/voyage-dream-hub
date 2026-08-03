@@ -719,10 +719,27 @@ export async function sendPendingFlightCards(
   // trouxe, pra uma rota com só 1 ou 2 opções não ficar eternamente pendente.
   const totalEnviadas = fpsDaCotacao.size + novosFps.length;
   const concluiu = cotacaoConcluida(totalEnviadas, previstasNaCotacao(todas, limiteOpcoes));
+  console.log(
+    JSON.stringify({
+      event: "flight_delivery_round_result",
+      quote_id: row.id,
+      conversation_id: conversationId,
+      protocolo_id: protocolId ?? null,
+      delivered_this_round: novosFps.length,
+      delivered_total: totalEnviadas,
+      expected_options: previstasNaCotacao(todas, limiteOpcoes),
+      concluded: concluiu,
+      will_chain_next_round:
+        !concluiu && (faltavamNoLote > 0 || totalEnviadas < previstasNaCotacao(todas, limiteOpcoes)),
+      depth,
+      at: new Date().toISOString(),
+    }),
+  );
   await supabaseAdmin
     .from("wa_flight_quotes")
     .update({ cards_sent_at: concluiu ? new Date().toISOString() : null })
     .eq("id", row.id);
+
 
   // AINDA FALTA OPÇÃO? Dispara a rodada seguinte AGORA, em execução nova. É o
   // que garante as 2-3 opções da política: cada arte tem o tempo inteiro de um
