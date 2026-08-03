@@ -421,9 +421,9 @@ function FluxosPage() {
           ) : (
             <div className="space-y-3 text-sm text-muted-foreground">
               <p className="font-medium text-foreground">Como funciona</p>
-              <p>Clique num quadro pra editar título, setor responsável, descrição e palavras-chave.</p>
-              <p>Arraste da bolinha de baixo de um quadro até a de cima de outro pra criar a seta do caminho.</p>
-              <p>As palavras-chave são os gatilhos: quando o cliente escreve uma delas, o atendimento vai direto pro setor daquele quadro.</p>
+              <p>Clique num quadro pra editar título, setor responsável, descrição, gatilhos e as ações que ele dispara.</p>
+              <p>Arraste da bolinha da direita de um quadro até a da esquerda do outro pra criar a seta do caminho. O botão “Organizar” alinha tudo da esquerda pra direita.</p>
+              <p>As palavras-chave são os gatilhos: quando o cliente escreve uma delas, o atendimento vai direto pro setor daquele quadro. As ações dizem o que a IA faz ali.</p>
               <div className="space-y-1 pt-2">
                 {Object.entries(SETOR_LABEL).map(([k, v]) => (
                   <div key={k} className="flex items-center gap-2 text-xs">
