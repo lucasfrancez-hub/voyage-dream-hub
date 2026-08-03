@@ -44,7 +44,7 @@ describe("envio ao modelo multimodal", () => {
     const fetchMock = mockGateway("TIPO: print\nLEITURA: ok\nDADOS:\n- x");
     await analyzeImage({ blob: blob(), mimeType: "image/png", caption: "olha isso", conversationId: "c1" });
 
-    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    const [url, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
     expect(url).toContain("/v1/chat/completions");
     const body = JSON.parse(String(init.body));
     const parts = body.messages[0].content;
