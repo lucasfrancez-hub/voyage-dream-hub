@@ -660,13 +660,8 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
   };
 
   const submit = () => {
-    // O WhatsApp bloqueia mensagens livres depois de 24h sem resposta do cliente
-    // (erro Meta 131047). Avisa antes de gastar o envio.
-    if (window24) {
-      toast.error("Janela de 24h encerrada — o WhatsApp não entrega mensagem livre. O cliente precisa responder primeiro.");
-      return;
-    }
     if (audioDraft) {
+
       const file = audioDraft.file;
       discardDraft();
       mediaMut.mutate({ file, caption: "", kind: "audio" });
