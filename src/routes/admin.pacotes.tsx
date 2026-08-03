@@ -247,6 +247,11 @@ function AdminPackages() {
   >("manual");
   const [view, setView] = useState<"list" | "curadoria">("list");
   const [cruiseImportOpen, setCruiseImportOpen] = useState(false);
+  const [socialPkg, setSocialPkg] = useState<any | null>(null);
+  const [socialChannel, setSocialChannel] = useState<"whatsapp" | "instagram" | undefined>(
+    undefined,
+  );
+
 
   // Cada rascunho ganha um identificador estável. Toda a sincronização é feita
   // por esse id (nunca pelo índice da aba), senão uma atualização assíncrona
