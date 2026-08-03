@@ -473,7 +473,11 @@ export async function runAgent(input: {
         // segue guardado no histórico de handoff e na cotação).
         const metaLimpa = { ...((convMeta?.meta as Record<string, unknown> | null) ?? {}) };
         metaLimpa["transferencia_consultores"] = { ...transf, assumido_em: new Date().toISOString(), motivo: "assumido" };
-        await supabaseAdmin.from("wa_conversations").update({ meta: metaLimpa }).eq("id", conv.id);
+        await supabaseAdmin
+          .from("wa_conversations")
+          .update({ meta: metaLimpa as never })
+          .eq("id", conv.id);
+
       }
 
     }
