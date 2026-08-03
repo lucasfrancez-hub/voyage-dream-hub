@@ -345,11 +345,56 @@ export async function runAgent(input: {
     }
   }
 
-  const centralAgent = centralSlug
+  // REDE DE SEGURANÇA: mesmo que a triagem não tenha rodado (por exemplo,
+  // porque já havia uma resposta nossa na janela), TODO pedido explícito de
+  // passagem aérea pertence à Central. Nenhum consultor conduz cotação aérea
+  // nem encaminha ao Comercial enquanto o pedido estiver no escopo da Central.
+  if (!centralSlug) {
+    const { data: ultimas } = await supabaseAdmin
+      .from("wa_messages")
+      .select("content")
+      .eq("conversation_id", conv.id)
+      .eq("direction", "inbound")
+      .eq("protocolo_id", protocolo.id)
+      .order("created_at", { ascending: false })
+      .limit(3);
+    const textoRecente = ((ultimas ?? []) as Array<{ content: string | null }>)
+      .map((m) => (m.content ?? "").trim())
+      .filter(Boolean)
+      .reverse()
+      .join("\n");
+    if (textoRecente && heuristicaAereo(textoRecente)) {
+      const forcado = await routeAereoParaCentral(conv, textoRecente).catch((err) => {
+        console.error("[agent] roteamento aéreo forçado falhou:", err);
+        return null;
+      });
+      if (forcado) {
+        centralSlug = forcado.slug;
+        centralBrief = forcado.brief;
+        centralPrimeiroContato = true;
+        console.log(`[agent] pedido aéreo redirecionado à Central (${forcado.slug}) fora da triagem inicial`);
+      }
+    }
+  }
+
+  let centralAgent = centralSlug
     ? agents.find((a) => a.slug === centralSlug && (a.equipe ?? "") === "especialista") ?? null
     : null;
 
+  // Se o especialista escolhido não veio na lista carregada (cache/ativo),
+  // busca direto no banco — jamais cair no consultor por isso.
+  if (centralSlug && !centralAgent) {
+    const { data: espec } = await supabaseAdmin
+      .from("ai_agents")
+      .select("*")
+      .eq("slug", centralSlug)
+      .eq("equipe", "especialista")
+      .maybeSingle();
+    if (espec) centralAgent = espec as unknown as Agent;
+  }
+
   const agent = centralAgent ?? (await pickAgent(agents, stickySlug));
+
 
   // VÍNCULO AGENTE ↔ PROTOCOLO: o agente e o tipo de prompt passam a pertencer
   // ao protocolo ativo. Nenhum protocolo novo herda esse estado.
