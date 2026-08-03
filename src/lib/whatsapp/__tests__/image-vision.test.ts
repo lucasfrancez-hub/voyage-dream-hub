@@ -15,7 +15,10 @@ const blob = (bytes = 64) => new Blob([new Uint8Array(bytes)], { type: "image/pn
 
 const mockGateway = (content: string) => {
   const fetchMock = vi.fn(async () =>
-    new Response(JSON.stringify({ choices: [{ message: { content } }] }), { status: 200 }),
+    new Response(
+      JSON.stringify({ output: [{ content: [{ type: "output_text", text: content }] }] }),
+      { status: 200 },
+    ),
   );
   vi.stubGlobal("fetch", fetchMock);
   return fetchMock;
@@ -45,13 +48,14 @@ describe("envio ao modelo multimodal", () => {
     await analyzeImage({ blob: blob(), mimeType: "image/png", caption: "olha isso", conversationId: "c1" });
 
     const [url, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
-    expect(url).toContain("/v1/chat/completions");
+    expect(url).toContain("/v1/responses");
     const body = JSON.parse(String(init.body));
-    const parts = body.messages[0].content;
+    expect(body.model).toBe("openai/gpt-5.4");
+    const parts = body.input[0].content;
     expect(Array.isArray(parts)).toBe(true);
-    expect(parts.some((p: { type: string }) => p.type === "text")).toBe(true);
-    const img = parts.find((p: { type: string }) => p.type === "image_url");
-    expect(img.image_url.url.startsWith("data:image/png;base64,")).toBe(true);
+    expect(parts.some((p: { type: string }) => p.type === "input_text")).toBe(true);
+    const img = parts.find((p: { type: string }) => p.type === "input_image");
+    expect(img.image_url.startsWith("data:image/png;base64,")).toBe(true);
     // a legenda do cliente acompanha a imagem
     expect(parts[0].text).toContain("olha isso");
   });
