@@ -316,7 +316,7 @@ export async function criarEvento(entrada: EntradaEvento): Promise<AgendaEvento>
       inicio: entrada.inicio,
       fim: entrada.fim,
       dia_inteiro: entrada.diaInteiro ?? false,
-      detalhes: (Object.keys(detalhes).length ? detalhes : null) as unknown as never,
+      detalhes: detalhes as unknown as never,
       origem: "chat",
       telefone: entrada.telefone ?? null,
       criado_por: entrada.criado_por ?? null,
