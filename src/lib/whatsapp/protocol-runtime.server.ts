@@ -263,7 +263,7 @@ export async function confirmFlightOrigin(params: {
 
   const state = resolveOriginState({
     origin: params.origin,
-    inbound: ((inbound ?? []) as Array<{ id: string; content: string | null; created_at: string }>) ?? [],
+    inbound: (inbound ?? []) as Array<{ id: string; content: string | null; created_at: string }>,
     askedOriginAt: pergunta?.created_at ?? null,
     suggestedOrigin: params.suggested_origin ?? null,
   });
