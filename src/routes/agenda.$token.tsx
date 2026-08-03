@@ -485,9 +485,8 @@ function Painel({ token, pin, nome, vapid }: { token: string; pin: string | null
         style={{ background: "linear-gradient(140deg,#F26B1F,#d1560f)", boxShadow: "0 12px 30px rgba(242,107,31,0.4)" }}
       >
         <Plus className="h-7 w-7" />
-
-        <Plus className="h-6 w-6" />
       </button>
+
 
       {detalhe ? (
         <Detalhes evento={detalhe} cor={corDa(detalhe)} origem={origemDe(detalhe)} onFechar={() => setDetalhe(null)} />
