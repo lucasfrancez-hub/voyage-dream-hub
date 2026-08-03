@@ -2,14 +2,14 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
-import { Search, ExternalLink, Loader2, Plus, Cloud, Trash2, RotateCcw } from "lucide-react";
+import { Search, ExternalLink, Loader2, Plus, Cloud, Trash2, RotateCcw, Copy } from "lucide-react";
 
 import { MondeSaleImportDialog } from "@/components/monde/MondeSaleImportDialog";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL } from "@/lib/format";
 import { statusLabel } from "@/lib/order-labels";
-import { createOrder } from "@/lib/orders.functions";
+import { createOrder, duplicateOrder } from "@/lib/orders.functions";
 import { searchPeople, listPersonCards } from "@/lib/people.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -125,6 +125,16 @@ export function AdminOrders({ scope, initialStatus }: { scope: "mine" | "third_p
       qc.invalidateQueries({ queryKey: ["admin", "orders", "list"] });
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erro ao restaurar"),
+  });
+
+  const duplicateFn = useServerFn(duplicateOrder);
+  const duplicate = useMutation({
+    mutationFn: (id: string) => duplicateFn({ data: { id } }),
+    onSuccess: (res) => {
+      toast.success(`Pedido duplicado${res?.order_number ? ` — ${res.order_number}` : ""}`);
+      qc.invalidateQueries({ queryKey: ["admin", "orders", "list"] });
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Erro ao duplicar"),
   });
 
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; label: string } | null>(null);
@@ -339,14 +349,29 @@ export function AdminOrders({ scope, initialStatus }: { scope: "mine" | "third_p
                     <RotateCcw className="h-4 w-4" />
                   </button>
                 ) : (
-                  <button
-                    type="button"
-                    aria-label="Excluir pedido"
-                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); setDeleteTarget({ id: o.id, label: displayOrderNumber }); setDeleteReason(""); }}
-                    className="absolute top-3 right-3 rounded-full p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
+                  <div className="absolute top-3 right-3 flex items-center gap-1">
+                    <button
+                      type="button"
+                      aria-label="Duplicar pedido"
+                      disabled={duplicate.isPending}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        confirmThen(`Duplicar o pedido ${displayOrderNumber}?`, () => duplicate.mutate(o.id));
+                      }}
+                      className="rounded-full p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-50"
+                    >
+                      <Copy className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
+                      aria-label="Excluir pedido"
+                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); setDeleteTarget({ id: o.id, label: displayOrderNumber }); setDeleteReason(""); }}
+                      className="rounded-full p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
                 )}
               </div>
             );
@@ -449,14 +474,26 @@ export function AdminOrders({ scope, initialStatus }: { scope: "mine" | "third_p
                             <RotateCcw className="h-4 w-4" />
                           </button>
                         ) : (
-                          <button
-                            type="button"
-                            aria-label="Excluir"
-                            onClick={() => { setDeleteTarget({ id: o.id, label: displayOrderNumber }); setDeleteReason(""); }}
-                            className="rounded-md p-2 text-muted-foreground/40 opacity-0 group-hover:opacity-100 hover:bg-destructive/10 hover:text-destructive transition-all"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
+                          <>
+                            <button
+                              type="button"
+                              aria-label="Duplicar"
+                              title="Duplicar pedido"
+                              disabled={duplicate.isPending}
+                              onClick={() => confirmThen(`Duplicar o pedido ${displayOrderNumber}?`, () => duplicate.mutate(o.id))}
+                              className="rounded-md p-2 text-muted-foreground/40 opacity-0 group-hover:opacity-100 hover:bg-muted hover:text-foreground transition-all disabled:opacity-50"
+                            >
+                              {duplicate.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Copy className="h-4 w-4" />}
+                            </button>
+                            <button
+                              type="button"
+                              aria-label="Excluir"
+                              onClick={() => { setDeleteTarget({ id: o.id, label: displayOrderNumber }); setDeleteReason(""); }}
+                              className="rounded-md p-2 text-muted-foreground/40 opacity-0 group-hover:opacity-100 hover:bg-destructive/10 hover:text-destructive transition-all"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </>
                         )}
                       </div>
                     </td>
