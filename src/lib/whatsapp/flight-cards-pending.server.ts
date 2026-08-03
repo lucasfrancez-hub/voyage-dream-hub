@@ -53,19 +53,14 @@ const fingerprint = (o: OptLite): string =>
 
 /**
  * Quantas opções esta cotação PREVÊ entregar: a meta da política (3) limitada
- * ao que a pesquisa realmente trouxe, contando horários de ida distintos.
- * Sem isso, uma rota com 1 ou 2 opções nunca fecharia.
+ * ao que a pesquisa realmente trouxe. Conta OPÇÕES, não horários distintos —
+ * dois voos que saem no mesmo horário (companhias/tarifas/volta diferentes)
+ * são duas opções válidas e as duas precisam chegar ao cliente.
  */
 export function previstasNaCotacao(todas: OptLite[], limite: number): number {
-  const horarios = new Set<string>();
-  let semHorario = 0;
-  for (const o of todas) {
-    const h = horarioIda(o);
-    if (h) horarios.add(h);
-    else semHorario++;
-  }
-  return Math.max(1, Math.min(limite, horarios.size + semHorario));
+  return Math.max(1, Math.min(limite, todas.length));
 }
+
 
 /**
  * Conclusão da cotação: independe do formato. Card e texto entram na mesma
@@ -284,22 +279,40 @@ export async function sendPendingFlightCards(
     return { sent: 0, quote_id: row.id as string };
   }
 
-  // Horários já mostrados (nesta cotação) pra não repetir a mesma partida.
+  // SELEÇÃO DO LOTE — a meta é SEMPRE completar `restante` opções.
+  // O que NUNCA pode repetir é a mesma opção DESTA cotação (fpsDaCotacao).
+  // Não ter saído antes na conversa (jaFps) e ter horário de partida inédito
+  // são apenas PREFERÊNCIAS de ordenação: se, respeitando-as, o lote não
+  // fechar a quantidade pedida, completamos com as demais opções da pesquisa.
+  // Antes elas eram filtros duros e o cliente acabava recebendo uma só.
+  const candidatas = force ? todas : todas.filter((o) => !fpsDaCotacao.has(fingerprint(o)));
+  const opcoes: OptLite[] = [];
+  const escolhidas = new Set<string>();
   const horariosUsados = new Set<string>(
     todas.filter((o) => jaFps.has(fingerprint(o))).map((o) => horarioIda(o)).filter(Boolean),
   );
-  const candidatas = force ? todas : todas.filter((o) => !jaFps.has(fingerprint(o)));
-  // LOTE por rodada: com as artes pré-geradas em paralelo (cache), mandamos as
-  // 2-3 opções da cotação na MESMA rodada, espaçadas por poucos segundos, em vez
-  // de uma por minuto. O que não couber no lote fica pra próxima execução.
-  const opcoes: OptLite[] = [];
+  // 1ª passada: inéditas na conversa e com horário de partida diferente.
   for (const o of candidatas) {
     if (opcoes.length >= restante) break;
+    const fp = fingerprint(o);
+    if (!force && jaFps.has(fp)) continue;
     const h = horarioIda(o);
     if (h && horariosUsados.has(h)) continue;
     if (h) horariosUsados.add(h);
+    escolhidas.add(fp);
     opcoes.push(o);
   }
+  // 2ª passada: completa o lote com o restante da pesquisa (mesmo horário de
+  // partida ou já mostrada em outra cotação) — melhor repetir um horário do
+  // que entregar uma opção só.
+  for (const o of candidatas) {
+    if (opcoes.length >= restante) break;
+    const fp = fingerprint(o);
+    if (escolhidas.has(fp)) continue;
+    escolhidas.add(fp);
+    opcoes.push(o);
+  }
+
   if (!opcoes.length) {
     await supabaseAdmin
       .from("wa_flight_quotes")
