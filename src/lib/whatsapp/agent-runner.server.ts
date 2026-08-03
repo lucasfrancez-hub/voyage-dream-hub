@@ -1052,7 +1052,8 @@ export async function runAgent(input: {
       repliedBlock +
       imagemBlock +
       quoteBlock +
-      pacoteBlock;
+      pacoteBlock +
+      flightBlock;
 
 
 
