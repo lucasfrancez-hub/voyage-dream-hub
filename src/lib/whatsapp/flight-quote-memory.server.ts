@@ -41,6 +41,10 @@ export type QuoteOptionMemory = {
 
 export type QuoteMemory = {
   quote_id: string;
+  /** Protocolo em que a cotação foi criada. */
+  protocolo_id?: string | null;
+  /** true quando a cotação pertence a um protocolo ANTERIOR (referência histórica). */
+  historica?: boolean;
   criada_em: string;
   atual: boolean;
   cancelada: boolean;
@@ -70,26 +74,55 @@ function money(n: number): string {
 }
 
 /**
- * Carrega as cotações recentes da conversa já cruzadas com o que foi
+ * Carrega as cotações do PROTOCOLO ATUAL já cruzadas com o que foi
  * efetivamente entregue (wa_messages). A primeira da lista é a ATUAL.
+ *
+ * ISOLAMENTO POR PROTOCOLO (briefing item 13): quando `protocolId` é
+ * informado, cotações de protocolos encerrados NÃO entram — nunca podem ser
+ * apresentadas como cotação atual. Uma cotação antiga só entra quando o
+ * cliente citou explicitamente aquele card (`extraQuoteIds`), e mesmo assim
+ * vem marcada como `historica`.
  */
 export async function loadQuoteMemory(
   conversationId: string,
-  horas = 48,
+  opts: { protocolId?: string | null; horas?: number; extraQuoteIds?: string[] } | number = {},
 ): Promise<QuoteMemory[]> {
+  const options = typeof opts === "number" ? { horas: opts } : opts;
+  const horas = options.horas ?? 48;
+  const protocolId = options.protocolId ?? null;
+  const extraQuoteIds = (options.extraQuoteIds ?? []).filter(Boolean);
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const desde = new Date(Date.now() - horas * 60 * 60 * 1000).toISOString();
 
-  const { data: quotes } = await supabaseAdmin
+  const COLS =
+    "id, payload, created_at, agent_slug, agent_name, filtros, cancelled_at, escolha_option_index, protocolo_id";
+
+  let query = supabaseAdmin
     .from("wa_flight_quotes")
-    .select(
-      "id, payload, created_at, agent_slug, agent_name, filtros, cancelled_at, escolha_option_index",
-    )
+    .select(COLS)
     .eq("conversation_id", conversationId)
     .gte("created_at", desde)
     .order("created_at", { ascending: false })
     .limit(5);
-  if (!quotes?.length) return [];
+  if (protocolId) query = query.eq("protocolo_id", protocolId);
+  const { data: doProtocolo } = await query;
+
+  let quotes = (doProtocolo ?? []) as Array<Record<string, unknown>>;
+
+  // Referência explícita a um card de protocolo anterior: entra como histórica.
+  if (extraQuoteIds.length) {
+    const faltando = extraQuoteIds.filter((id) => !quotes.some((q) => q.id === id));
+    if (faltando.length) {
+      const { data: antigas } = await supabaseAdmin
+        .from("wa_flight_quotes")
+        .select(COLS)
+        .eq("conversation_id", conversationId)
+        .in("id", faltando);
+      quotes = [...quotes, ...((antigas ?? []) as Array<Record<string, unknown>>)];
+    }
+  }
+  if (!quotes.length) return [];
+
 
   const ids = quotes.map((q) => q.id as string);
   const { data: cards } = await supabaseAdmin
@@ -138,10 +171,13 @@ export async function loadQuoteMemory(
         opcao: op,
       };
     });
+    const historica = !!protocolId && (q.protocolo_id as string | null) !== protocolId;
     return {
       quote_id: q.id as string,
+      protocolo_id: (q.protocolo_id as string | null) ?? null,
+      historica,
       criada_em: q.created_at as string,
-      atual: idx === 0,
+      atual: idx === 0 && !historica,
       cancelada: !!q.cancelled_at,
       escolha_option_index: (q.escolha_option_index as number | null) ?? null,
       rota: `${payload.origem_nome ?? payload.origem_iata ?? "?"} → ${payload.destino_nome ?? payload.destino_iata ?? "?"}`,
@@ -181,7 +217,7 @@ export function buildQuoteMemoryBlock(memorias: QuoteMemory[]): string {
 
   for (const m of comEnvio) {
     linhas.push(
-      `\n${m.atual ? "▶ COTAÇÃO ATUAL" : "· cotação anterior"} · quote_id: ${m.quote_id}` +
+      `\n${m.historica ? "🗄 REFERÊNCIA HISTÓRICA (protocolo anterior — reconfirme tudo, não é cotação válida)" : m.atual ? "▶ COTAÇÃO ATUAL" : "· cotação anterior deste mesmo atendimento"} · quote_id: ${m.quote_id}` +
         ` · ${m.rota} · ida ${m.data_ida}${m.data_volta ? ` · volta ${m.data_volta}` : " (somente ida)"} · ${m.passageiros}` +
         (m.agente_nome ? ` · pesquisada por ${m.agente_nome}` : ""),
     );

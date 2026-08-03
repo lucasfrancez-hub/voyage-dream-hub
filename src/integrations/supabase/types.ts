@@ -4200,8 +4200,46 @@ export type Database = {
           },
         ]
       }
+      wa_protocol_events: {
+        Row: {
+          agent_slug: string | null
+          conversation_id: string | null
+          created_at: string
+          deployment_id: string | null
+          event: string
+          id: string
+          payload: Json
+          protocolo_id: string | null
+          trigger_message_id: string | null
+        }
+        Insert: {
+          agent_slug?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          deployment_id?: string | null
+          event: string
+          id?: string
+          payload?: Json
+          protocolo_id?: string | null
+          trigger_message_id?: string | null
+        }
+        Update: {
+          agent_slug?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          deployment_id?: string | null
+          event?: string
+          id?: string
+          payload?: Json
+          protocolo_id?: string | null
+          trigger_message_id?: string | null
+        }
+        Relationships: []
+      }
       wa_protocolos: {
         Row: {
+          agent_name: string | null
+          agent_slug: string | null
           assunto_resumo: string | null
           closed_at: string | null
           conversation_id: string
@@ -4210,15 +4248,28 @@ export type Database = {
           id: string
           inactivity_warned_at: string | null
           last_activity_at: string
+          last_option_index: number | null
+          last_quote_id: string | null
+          last_reference_at: string | null
+          last_reference_message_id: string | null
           numero: string
           numero_pedido: string | null
           numero_reserva: string | null
           opened_at: string
+          origin: string | null
+          origin_confirmed_at: string | null
+          origin_confirmed_by_message_id: string | null
+          origin_status: string
+          product_type: string | null
+          prompt_type: string | null
           resumo_conversa: string | null
+          runtime_reset_at: string | null
           status: string
           updated_at: string
         }
         Insert: {
+          agent_name?: string | null
+          agent_slug?: string | null
           assunto_resumo?: string | null
           closed_at?: string | null
           conversation_id: string
@@ -4227,15 +4278,28 @@ export type Database = {
           id?: string
           inactivity_warned_at?: string | null
           last_activity_at?: string
+          last_option_index?: number | null
+          last_quote_id?: string | null
+          last_reference_at?: string | null
+          last_reference_message_id?: string | null
           numero?: string
           numero_pedido?: string | null
           numero_reserva?: string | null
           opened_at?: string
+          origin?: string | null
+          origin_confirmed_at?: string | null
+          origin_confirmed_by_message_id?: string | null
+          origin_status?: string
+          product_type?: string | null
+          prompt_type?: string | null
           resumo_conversa?: string | null
+          runtime_reset_at?: string | null
           status?: string
           updated_at?: string
         }
         Update: {
+          agent_name?: string | null
+          agent_slug?: string | null
           assunto_resumo?: string | null
           closed_at?: string | null
           conversation_id?: string
@@ -4244,11 +4308,22 @@ export type Database = {
           id?: string
           inactivity_warned_at?: string | null
           last_activity_at?: string
+          last_option_index?: number | null
+          last_quote_id?: string | null
+          last_reference_at?: string | null
+          last_reference_message_id?: string | null
           numero?: string
           numero_pedido?: string | null
           numero_reserva?: string | null
           opened_at?: string
+          origin?: string | null
+          origin_confirmed_at?: string | null
+          origin_confirmed_by_message_id?: string | null
+          origin_status?: string
+          product_type?: string | null
+          prompt_type?: string | null
           resumo_conversa?: string | null
+          runtime_reset_at?: string | null
           status?: string
           updated_at?: string
         }
@@ -4307,6 +4382,10 @@ export type Database = {
     }
     Functions: {
       _iata_city: { Args: { code: string }; Returns: string }
+      close_protocol_and_reset_runtime: {
+        Args: { p_protocol_id: string; p_reason?: string; p_status?: string }
+        Returns: Json
+      }
       delete_email: {
         Args: { message_id: number; queue_name: string }
         Returns: boolean

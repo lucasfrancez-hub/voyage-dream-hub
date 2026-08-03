@@ -351,6 +351,20 @@ export async function runAgent(input: {
 
   const agent = centralAgent ?? (await pickAgent(agents, stickySlug));
 
+  // VÍNCULO AGENTE ↔ PROTOCOLO: o agente e o tipo de prompt passam a pertencer
+  // ao protocolo ativo. Nenhum protocolo novo herda esse estado.
+  if (agent && protocolo?.id) {
+    const { bindAgentToProtocol } = await import("./protocol-runtime.server");
+    await bindAgentToProtocol({
+      protocolo_id: protocolo.id,
+      conversation_id: conv.id,
+      agent_slug: agent.slug,
+      agent_name: agent.nome ?? agent.slug,
+      product_type: centralAgent ? "flight" : "other",
+      prompt_type: centralAgent ? "central_especialistas" : "consultor",
+    }).catch(() => {});
+  }
+
   // Origem: dentro do MESMO protocolo ela já foi confirmada pelo cliente e é
   // reutilizada direto (mesmo que ele troque o destino). De protocolos
   // anteriores entra apenas como SUGESTÃO, exigindo confirmação.
@@ -408,11 +422,15 @@ export async function runAgent(input: {
   const history = await loadHistory(conv.id, 30, sinceIso);
 
   // CONTEXTO ANTERIOR: mensagens de ANTES do protocolo atual (últimos 45 dias).
-  // O cliente frequentemente retoma um assunto antigo ("o comercial não entrou
-  // em contato", "e a cotação?"). Sem esse histórico a IA não entende do que
-  // ele fala e acaba pedindo pedido/localizador/CPF sem necessidade.
+  // NUNCA entra sozinho. Só é carregado quando o próprio cliente referencia
+  // expressamente um atendimento anterior ("da outra vez", "e a cotação?",
+  // "o comercial não retornou") — protocolo encerrado não vaza para o novo.
   let previousContext = "";
-  if (sinceIso) {
+  const ultimaInboundTexto =
+    [...history].reverse().find((m) => (m as { sender?: string }).sender === "customer")?.content ?? null;
+  const { shouldLoadPreviousContext } = await import("./history-reference");
+  const podeCarregarAnterior = shouldLoadPreviousContext({ lastCustomerText: ultimaInboundTexto });
+  if (sinceIso && podeCarregarAnterior) {
     const prevSince = new Date(Date.now() - 45 * 24 * 60 * 60 * 1000).toISOString();
     const { data: prevRows } = await supabaseAdmin
       .from("wa_messages")
@@ -542,7 +560,10 @@ export async function runAgent(input: {
       registerCustomerChoice,
       buildChoiceBlock,
     } = await import("./flight-quote-memory.server");
-    const memorias = await loadQuoteMemory(conv.id);
+    const memorias = await loadQuoteMemory(conv.id, {
+      protocolId: protocolo.id,
+      extraQuoteIds: [],
+    });
     if (memorias.length) {
       const escolha = ultimaDoCliente
         ? await registerCustomerChoice(

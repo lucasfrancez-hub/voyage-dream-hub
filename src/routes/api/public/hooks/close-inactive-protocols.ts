@@ -164,31 +164,32 @@ export const Route = createFileRoute("/api/public/hooks/close-inactive-protocols
               .maybeSingle();
             if (!conv) continue;
 
-            // CRÍTICO: fecha o protocolo ANTES de qualquer envio/IA.
-            // Se travar depois (resumo IA, envio WhatsApp), o próximo cron NÃO
-            // reencontra esse protocolo e não reenvia a mensagem de encerramento.
-            // Usa .eq("status","aberto") como guard de concorrência: se outro cron
-            // já fechou, updateRes.count será 0 e a gente pula.
-            const { data: updatedRows, error: updateErr } = await supabaseAdmin
-              .from("wa_protocolos")
-              .update({
-                status: "encerrado_inatividade",
-                closed_at: new Date().toISOString(),
-                funnel_stage_final: conv.funnel_stage ?? null,
-              })
-              .eq("id", proto.id)
-              .eq("status", "aberto")
-              .select("id");
-
-            if (updateErr) {
-              console.error("[inactivity] close update:", updateErr.message);
+            // CRÍTICO: fecha o protocolo ANTES de qualquer envio/IA, e de forma
+            // ATÔMICA — o encerramento e a limpeza de TODO o runtime (agente,
+            // prompt, produto, origem, cotação, referência, reply, job) acontecem
+            // na mesma transação. Se outro cron já fechou, `closed` volta false.
+            const { closeProtocolAndResetRuntime } = await import(
+              "@/lib/whatsapp/protocol-runtime.server"
+            );
+            const res = await closeProtocolAndResetRuntime({
+              protocolo_id: proto.id,
+              status: "encerrado_inatividade",
+              reason: "inatividade_2h",
+            });
+            if (!res.ok) {
+              console.error("[inactivity] falha ao encerrar protocolo", proto.numero);
               continue;
             }
-            if (!updatedRows || updatedRows.length === 0) {
+            if (res.closed === false) {
               // Já foi fechado por outro ciclo — não reenvia.
               skipped.push(proto.numero);
               continue;
             }
+
+            await supabaseAdmin
+              .from("wa_protocolos")
+              .update({ funnel_stage_final: conv.funnel_stage ?? null })
+              .eq("id", proto.id);
 
             // Protocolo encerrado → tira a marcação de "aguardando humano".
             const closeTags = ((conv.tags ?? []) as string[]).filter(
@@ -196,8 +197,7 @@ export const Route = createFileRoute("/api/public/hooks/close-inactive-protocols
             );
             await supabaseAdmin
               .from("wa_conversations")
-              // limpa agent_slug: próximo protocolo pode escolher outra IA
-              .update({ protocolo_ativo_id: null, agent_slug: null, tags: closeTags })
+              .update({ tags: closeTags })
               .eq("id", proto.conversation_id);
 
 
