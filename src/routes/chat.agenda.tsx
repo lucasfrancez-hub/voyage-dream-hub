@@ -818,10 +818,10 @@ function DetalhesDialog({
   return (
     <Dialog open onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="max-h-[88vh] gap-0 overflow-hidden border-border bg-card p-0 sm:max-w-lg">
-        <div className="flex max-h-[88vh] flex-col sm:flex-row">
+        <div className="flex max-h-[88vh] w-full min-w-0 max-w-full flex-col overflow-hidden sm:flex-row">
           <div className="h-1.5 w-full shrink-0 sm:h-auto sm:w-2" style={{ background: cor }} />
 
-          <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+          <div className="flex w-full min-w-0 max-w-full flex-1 flex-col overflow-hidden">
             <DialogHeader className="space-y-1.5 px-6 pb-4 pt-6 text-left">
               <div className="flex items-center gap-2">
                 <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: cor }} />
@@ -919,7 +919,7 @@ function DetalhesDialog({
                     <AlignLeft className="h-3.5 w-3.5 text-muted-foreground" />
                     <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Detalhes</p>
                   </div>
-                  <div className="w-full min-w-0 whitespace-pre-wrap break-words text-sm leading-relaxed text-muted-foreground [overflow-wrap:anywhere] [&_a]:break-all [&_a]:font-semibold [&_a]:text-primary">
+                  <div className="max-w-full overflow-x-auto whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground [overflow-wrap:anywhere] [word-break:break-word] [&_a]:break-all [&_a]:font-semibold [&_a]:text-primary">
                     {comLinks(evento.descricao)}
                   </div>
                 </div>
