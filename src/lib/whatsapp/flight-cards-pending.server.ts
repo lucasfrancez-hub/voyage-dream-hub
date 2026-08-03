@@ -126,7 +126,7 @@ export async function sendPendingFlightCards(
   let pendingQuery = supabaseAdmin
     .from("wa_flight_quotes")
     .select(
-      "id, payload, protocolo_id, sent_fingerprints, cards_sent_at, agent_slug, agent_name, cancelled_at",
+      "id, payload, protocolo_id, sent_fingerprints, cards_sent_at, agent_slug, agent_name, cancelled_at, created_at",
     )
     .eq("conversation_id", conversationId)
     .gte("created_at", desde)
@@ -159,6 +159,7 @@ export async function sendPendingFlightCards(
     id: string;
     payload: unknown;
     protocolo_id: string | null;
+    created_at?: string | null;
     sent_fingerprints?: unknown;
     cards_sent_at?: string | null;
     agent_slug?: string | null;
