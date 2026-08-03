@@ -688,7 +688,44 @@ export async function runAgent(input: {
         }
 
         if (intents.length && !entregouRestantes) {
-          const refine = buildRefineBlock(cotacaoAtiva.busca ?? null, intents);
+          // PRIORIDADE DO REPLY: se o cliente respondeu a um card específico,
+          // a base do refino é a OPÇÃO RESPONDIDA (com os aeroportos daquele
+          // card), nunca a última pesquisa da conversa.
+          const { baseFromRepliedOption } = await import("./flight-refine");
+          const quoteRef = escolha
+            ? memorias.find((m) => m.quote_id === escolha.quote_id)
+            : null;
+          const usouReply = escolha?.match === "citada" && !!escolha.opcao;
+          const repliedOption = usouReply
+            ? {
+                option_index: escolha!.opcao.option_index,
+                companhia: escolha!.opcao.companhia,
+                saida: escolha!.opcao.saida,
+                chegada: escolha!.opcao.chegada,
+                data_ida: escolha!.opcao.data_ida,
+                valor_formatado: escolha!.opcao.valor_formatado,
+                ida_origem_iata: escolha!.opcao.opcao?.ida?.origem ?? null,
+                ida_destino_iata: escolha!.opcao.opcao?.ida?.destino ?? null,
+              }
+            : null;
+
+          const baseBusca = usouReply
+            ? baseFromRepliedOption(
+                (quoteRef?.busca ?? cotacaoAtiva.busca) ?? null,
+                repliedOption!,
+              )
+            : (cotacaoAtiva.busca ?? null);
+
+          const refine = buildRefineBlock(baseBusca, intents, {
+            fonte: usouReply
+              ? "reply"
+              : escolha?.match === "ordinal"
+                ? "ordinal"
+                : escolha?.match === "ultima_referencia"
+                  ? "ultima_referencia"
+                  : "texto",
+            opcao: repliedOption,
+          });
           if (refine) {
             quoteBlock += refine;
             console.log(
@@ -698,6 +735,10 @@ export async function runAgent(input: {
                 protocolo_id: protocolo.id,
                 quote_id: cotacaoAtiva.quote_id,
                 intents: intents.map((i) => i.kind),
+                referencia_fonte: usouReply ? "reply" : (escolha?.match ?? "nenhuma"),
+                reply_option_index: repliedOption?.option_index ?? null,
+                base_origem_iata: baseBusca?.origem_iata ?? null,
+                base_destino_iata: baseBusca?.destino_iata ?? null,
                 at: new Date().toISOString(),
               }),
             );
