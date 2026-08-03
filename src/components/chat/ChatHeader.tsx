@@ -111,6 +111,8 @@ export function ChatHeader({ title, subtitle, userEmail, userFullName, theme = "
 
 
 
+      <AiMasterSwitch />
+
       <AiStatusButton />
 
       <button
