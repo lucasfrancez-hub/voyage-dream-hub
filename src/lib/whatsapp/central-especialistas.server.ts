@@ -666,7 +666,7 @@ export function buildCentralTools(
               event: "card_failed",
               conversation_id: conversation.id,
               quote_id: null,
-              failed_stage: "quote_persist",
+              failed_stage: "pending_processing",
               failure_reason: "cotação não persistida — fallback em texto",
               delivery_status: "failed",
               fallback_sent: true,
