@@ -3684,6 +3684,69 @@ export type Database = {
           },
         ]
       }
+      wa_calendar_accounts: {
+        Row: {
+          ativo: boolean
+          calendar_id: string | null
+          calendar_nome: string | null
+          calendar_url: string | null
+          cor: string
+          created_at: string
+          id: string
+          last_error: string | null
+          last_sync_at: string | null
+          nome: string
+          padrao: boolean
+          password: string | null
+          provider: string
+          server_url: string | null
+          timezone: string
+          updated_at: string
+          username: string | null
+          visivel: boolean
+        }
+        Insert: {
+          ativo?: boolean
+          calendar_id?: string | null
+          calendar_nome?: string | null
+          calendar_url?: string | null
+          cor?: string
+          created_at?: string
+          id?: string
+          last_error?: string | null
+          last_sync_at?: string | null
+          nome: string
+          padrao?: boolean
+          password?: string | null
+          provider: string
+          server_url?: string | null
+          timezone?: string
+          updated_at?: string
+          username?: string | null
+          visivel?: boolean
+        }
+        Update: {
+          ativo?: boolean
+          calendar_id?: string | null
+          calendar_nome?: string | null
+          calendar_url?: string | null
+          cor?: string
+          created_at?: string
+          id?: string
+          last_error?: string | null
+          last_sync_at?: string | null
+          nome?: string
+          padrao?: boolean
+          password?: string | null
+          provider?: string
+          server_url?: string | null
+          timezone?: string
+          updated_at?: string
+          username?: string | null
+          visivel?: boolean
+        }
+        Relationships: []
+      }
       wa_calendar_config: {
         Row: {
           ativo: boolean
@@ -3734,6 +3797,7 @@ export type Database = {
       }
       wa_calendar_events: {
         Row: {
+          account_id: string | null
           conversation_id: string | null
           created_at: string
           criado_por: string | null
@@ -3747,6 +3811,7 @@ export type Database = {
           inicio: string
           local: string | null
           origem: string
+          provider: string
           raw_ics: string | null
           situacao: string
           telefone: string | null
@@ -3755,6 +3820,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          account_id?: string | null
           conversation_id?: string | null
           created_at?: string
           criado_por?: string | null
@@ -3768,6 +3834,7 @@ export type Database = {
           inicio: string
           local?: string | null
           origem?: string
+          provider?: string
           raw_ics?: string | null
           situacao?: string
           telefone?: string | null
@@ -3776,6 +3843,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          account_id?: string | null
           conversation_id?: string | null
           created_at?: string
           criado_por?: string | null
@@ -3789,6 +3857,7 @@ export type Database = {
           inicio?: string
           local?: string | null
           origem?: string
+          provider?: string
           raw_ics?: string | null
           situacao?: string
           telefone?: string | null
@@ -3796,7 +3865,15 @@ export type Database = {
           uid?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "wa_calendar_events_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "wa_calendar_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       wa_conversations: {
         Row: {
