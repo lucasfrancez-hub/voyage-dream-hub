@@ -1052,6 +1052,22 @@ export const assignConversation = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+export const markConversationRead = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) =>
+    z.object({ conversation_id: z.string().uuid() }).parse(data),
+  )
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase
+      .from("wa_conversations")
+      .update({ unread_count: 0 })
+      .eq("id", data.conversation_id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+
+
 export const listAttendants = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
