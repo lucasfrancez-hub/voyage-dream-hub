@@ -439,10 +439,40 @@ export const sendHumanReply = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { data: conv, error: cErr } = await context.supabase
       .from("wa_conversations")
-      .select("id, wa_phone, mode")
+      .select("id, wa_phone, mode, meta")
       .eq("id", data.conversation_id)
       .single();
     if (cErr || !conv) throw new Error("Conversa não encontrada");
+
+    // Conversa do Instagram → responde via DM do Instagram
+    const { isInstagramConversation } = await import("@/lib/instagram/bridge.server");
+    if (isInstagramConversation(conv.wa_phone)) {
+      const meta = (conv.meta ?? {}) as Record<string, string>;
+      if (!meta.ig_account_id || !meta.ig_conversation_id || !meta.ig_contact_id) {
+        throw new Error("Conversa do Instagram sem vínculo de conta");
+      }
+      const { saveMessage } = await import("@/lib/whatsapp/conversation.server");
+      const { sendInstagramDM } = await import("@/lib/instagram/send.server");
+      await sendInstagramDM({
+        conversationId: meta.ig_conversation_id,
+        accountId: meta.ig_account_id,
+        recipientIgId: meta.ig_contact_id,
+        text: data.content,
+        sentBy: context.userId,
+      });
+      await saveMessage({
+        conversation_id: conv.id,
+        direction: "outbound",
+        sender: "human",
+        content: data.content,
+        sender_user_id: context.userId,
+        message_type: "text",
+      });
+      await clearAwaitingHumanTag(conv.id);
+      return { ok: true };
+    }
+
+
 
     // Nome do admin logado (pra prefixar o balão)
     const { data: profile } = await context.supabase
