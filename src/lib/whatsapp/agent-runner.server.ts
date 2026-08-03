@@ -928,7 +928,9 @@ export async function runAgent(input: {
         : buildSystemPrompt(agent, conv, protocolo, isNewProtocolo, previousContext)) +
       repliedBlock +
       imagemBlock +
-      quoteBlock;
+      quoteBlock +
+      pacoteBlock;
+
 
     const loadedPromptType = centralAgent ? "central_especialistas" : "consultor";
     const enabledTools = Object.keys(cleanTools).sort();
