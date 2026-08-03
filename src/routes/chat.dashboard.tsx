@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useSuspenseQuery, queryOptions } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Users, MessageSquare, Bot, UserCheck, TrendingUp } from "lucide-react";
+import { Users, MessageSquare, Bot, UserCheck, TrendingUp, MessageCircle, Instagram, MessageSquareText, type LucideIcon } from "lucide-react";
 import { LineChart, Line, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
 import { Suspense } from "react";
 import { Loader2 } from "lucide-react";
@@ -50,6 +50,39 @@ function Inner() {
           </div>
         ))}
       </div>
+      <div className="grid gap-4 sm:grid-cols-3">
+        <ChannelCard
+          title="WhatsApp"
+          icon={MessageCircle}
+          accent="text-emerald-600 bg-emerald-50"
+          primary={data.canais.whatsapp.mensagens14d}
+          primaryLabel="mensagens (14d)"
+          rows={[
+            { label: "Conversas", value: data.canais.whatsapp.conversas },
+            { label: "Abertas", value: data.canais.whatsapp.abertas },
+          ]}
+        />
+        <ChannelCard
+          title="Instagram DM"
+          icon={Instagram}
+          accent="text-pink-600 bg-pink-50"
+          primary={data.canais.instagramDm.mensagens14d}
+          primaryLabel="mensagens (14d)"
+          rows={[
+            { label: "Conversas", value: data.canais.instagramDm.conversas },
+            { label: "Abertas", value: data.canais.instagramDm.abertas },
+          ]}
+        />
+        <ChannelCard
+          title="Comentários"
+          icon={MessageSquareText}
+          accent="text-[#F26B1F] bg-orange-50"
+          primary={data.canais.comentarios.total14d}
+          primaryLabel="comentários (14d)"
+          rows={[]}
+        />
+      </div>
+
 
       <div className="grid gap-4 lg:grid-cols-3">
         <div className="rounded-lg border border-slate-200 bg-white p-4 lg:col-span-2">
@@ -92,6 +125,45 @@ function AgentRow({ name, count, shift }: { name: string; count: number; shift: 
         <div className="text-[11px] text-slate-500">{shift}</div>
       </div>
       <div className="text-lg font-semibold text-slate-900">{count}</div>
+    </div>
+  );
+}
+
+function ChannelCard({
+  title,
+  icon: Icon,
+  accent,
+  primary,
+  primaryLabel,
+  rows,
+}: {
+  title: string;
+  icon: LucideIcon;
+  accent: string;
+  primary: number;
+  primaryLabel: string;
+  rows: { label: string; value: number }[];
+}) {
+  return (
+    <div className="rounded-lg border border-slate-200 bg-white p-4">
+      <div className="flex items-center gap-2">
+        <div className={`inline-flex h-8 w-8 items-center justify-center rounded-md ${accent}`}>
+          <Icon className="h-4 w-4" />
+        </div>
+        <div className="text-sm font-semibold text-slate-900">{title}</div>
+      </div>
+      <div className="mt-3 text-2xl font-semibold text-slate-900">{primary}</div>
+      <div className="text-xs text-slate-500">{primaryLabel}</div>
+      {rows.length > 0 && (
+        <div className="mt-3 space-y-1 border-t border-slate-100 pt-2">
+          {rows.map((r) => (
+            <div key={r.label} className="flex items-center justify-between text-xs">
+              <span className="text-slate-500">{r.label}</span>
+              <span className="font-medium text-slate-900">{r.value}</span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
