@@ -404,8 +404,18 @@ function FluxosPage() {
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
             onConnect={onConnect}
-            onNodeClick={(_, n) => setSelecionado(n.id)}
-            onPaneClick={() => setSelecionado(null)}
+            onNodeClick={(_, n) => {
+              setSelecionado(n.id);
+              setSetaSelecionada(null);
+            }}
+            onEdgeClick={(_, e) => {
+              setSetaSelecionada(e.id);
+              setSelecionado(null);
+            }}
+            onPaneClick={() => {
+              setSelecionado(null);
+              setSetaSelecionada(null);
+            }}
             fitView
             proOptions={{ hideAttribution: true }}
           >
@@ -423,12 +433,20 @@ function FluxosPage() {
               onChange={atualizarNo}
               onExcluir={excluirNo}
             />
+          ) : edgeSelecionada ? (
+            <PainelSeta
+              origem={nodes.find((n) => n.id === edgeSelecionada.source)?.data.titulo ?? "?"}
+              destino={nodes.find((n) => n.id === edgeSelecionada.target)?.data.titulo ?? "?"}
+              label={typeof edgeSelecionada.label === "string" ? edgeSelecionada.label : ""}
+              onChange={atualizarSeta}
+              onExcluir={excluirSeta}
+            />
           ) : (
             <div className="space-y-3 text-sm text-muted-foreground">
               <p className="font-medium text-foreground">Como funciona</p>
               <p>Clique num quadro pra editar título, setor responsável, descrição, gatilhos e as ações que ele dispara.</p>
               <p>Arraste da bolinha da direita de um quadro até a da esquerda do outro pra criar a seta do caminho. O botão “Organizar” alinha tudo da esquerda pra direita.</p>
-              <p>As palavras-chave são os gatilhos: quando o cliente escreve uma delas, o atendimento vai direto pro setor daquele quadro. As ações dizem o que a IA faz ali.</p>
+              <p>Clique numa seta pra escrever a condição dela — o motivo de o atendimento seguir por aquele caminho (ex.: “cliente quer só passagem aérea”). A IA lê essas condições.</p>
               <div className="space-y-1 pt-2">
                 {Object.entries(SETOR_LABEL).map(([k, v]) => (
                   <div key={k} className="flex items-center gap-2 text-xs">
