@@ -104,6 +104,8 @@ function InboxPage() {
 
   const filtered = useMemo(() => {
     return conversations.filter((c) => {
+      // Espelhos de DM do Instagram nunca aparecem na lista do WhatsApp.
+      if (c.wa_phone?.startsWith("ig:")) return false;
       // Arquivadas só aparecem na aba "Arquivadas".
       if (folder !== "resolved" && c.mode === "resolved") return false;
       if (folder === "ai" && c.mode !== "ai") return false;
@@ -125,12 +127,31 @@ function InboxPage() {
     queryKey: ["ig", "conversations"],
     queryFn: () => igListFn(),
     refetchInterval: 15_000,
-    enabled: channel === "instagram_dm",
+  });
+  const igCommentsFn = useServerFn(listInstagramComments);
+  const { data: igComments = [] } = useQuery({
+    queryKey: ["ig", "comments"],
+    queryFn: () => igCommentsFn(),
+    refetchInterval: 30_000,
   });
   const igActive = channel === "instagram_dm" && activeId ? igConversations.find((c) => c.id === activeId) ?? null : null;
   const igMirrorConv = igActive
     ? conversations.find((c) => c.wa_phone === `ig:${igActive.contact_ig_id}`) ?? null
     : null;
+
+  const waUnread = useMemo(
+    () => conversations.reduce((n, c) => (c.wa_phone?.startsWith("ig:") ? n : n + ((c.unread_count ?? 0) > 0 ? 1 : 0)), 0),
+    [conversations],
+  );
+  const igUnread = useMemo(
+    () => igConversations.reduce((n: number, c: any) => n + ((c.unread_count ?? 0) > 0 ? 1 : 0), 0),
+    [igConversations],
+  );
+  const commentsUnread = useMemo(
+    () => igComments.filter((c: any) => !c.auto_replied_at && !c.auto_dm_sent_at).length,
+    [igComments],
+  );
+
 
 
 
@@ -256,15 +277,15 @@ function InboxPage() {
             </div>
             <div className="-mx-1 mt-2 flex gap-1 overflow-x-auto px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               {([
-                { key: "whatsapp", label: "WhatsApp", icon: MessageCircle },
-                { key: "instagram_dm", label: "Instagram", icon: Instagram },
-                { key: "instagram_comments", label: "Comentários", icon: Heart },
+                { key: "whatsapp", label: "WhatsApp", icon: MessageCircle, badge: waUnread },
+                { key: "instagram_dm", label: "Instagram", icon: Instagram, badge: igUnread },
+                { key: "instagram_comments", label: "Comentários", icon: Heart, badge: commentsUnread },
               ] as const).map((c) => (
                 <button
                   key={c.key}
                   onClick={() => { setChannel(c.key); setActiveId(null); }}
                   className={cn(
-                    "flex shrink-0 items-center gap-1 whitespace-nowrap rounded-md px-2.5 py-1.5 text-[11px] font-medium transition-colors",
+                    "relative flex shrink-0 items-center gap-1 whitespace-nowrap rounded-md px-2.5 py-1.5 text-[11px] font-medium transition-colors",
                     channel === c.key
                       ? "bg-orange-50 text-[#F26B1F]"
                       : "text-slate-500 hover:bg-slate-50 hover:text-slate-900",
@@ -272,9 +293,15 @@ function InboxPage() {
                 >
                   <c.icon className="h-3 w-3" />
                   {c.label}
+                  {c.badge > 0 ? (
+                    <span className="ml-0.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-[#F26B1F] px-1 text-[9px] font-semibold text-white">
+                      {c.badge > 99 ? "99+" : c.badge}
+                    </span>
+                  ) : null}
                 </button>
               ))}
             </div>
+
 
 
 
