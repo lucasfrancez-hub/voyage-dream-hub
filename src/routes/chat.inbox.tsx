@@ -149,9 +149,10 @@ function InboxPage() {
     [igConversations],
   );
   const commentsUnread = useMemo(
-    () => igComments.filter((c: any) => !c.auto_replied_at && !c.auto_dm_sent_at).length,
-    [igComments],
+    () => igCommentThreads.reduce((n: number, t: any) => n + (t.pendentes ?? 0), 0),
+    [igCommentThreads],
   );
+
 
 
 
