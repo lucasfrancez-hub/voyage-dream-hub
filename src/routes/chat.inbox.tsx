@@ -71,8 +71,8 @@ function InboxPage() {
     refetchInterval: 15_000,
   });
 
-  const [channel, _setChannel] = useState<"whatsapp" | "instagram_dm" | "instagram_comments">("whatsapp");
-  const setChannel = (_c: "whatsapp" | "instagram_dm" | "instagram_comments") => _setChannel("whatsapp");
+  const [channel, setChannel] = useState<"whatsapp" | "instagram_dm" | "instagram_comments">("whatsapp");
+
 
   const [folder, setFolder] = useState<string>("all");
   const [search, setSearch] = useState("");
@@ -169,12 +169,16 @@ function InboxPage() {
   }, [refetch, conversations]);
 
   useEffect(() => {
+    if (channel !== "whatsapp") return;
     if (typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches) return;
     if (!activeId && filtered.length > 0) setActiveId(filtered[0].id);
-  }, [filtered, activeId]);
+  }, [filtered, activeId, channel]);
 
 
-  const active = filtered.find((c) => c.id === activeId) ?? conversations.find((c) => c.id === activeId) ?? null;
+  const active = channel === "whatsapp"
+    ? (filtered.find((c) => c.id === activeId) ?? conversations.find((c) => c.id === activeId) ?? null)
+    : null;
+
 
   return (
     <div className="flex h-full min-h-0">
@@ -234,7 +238,29 @@ function InboxPage() {
                 <Plus className="h-4 w-4" />
               </button>
             </div>
-            {/* Abas de canal ocultas temporariamente — Instagram voltará depois */}
+            <div className="-mx-1 mt-2 flex gap-1 overflow-x-auto px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              {([
+                { key: "whatsapp", label: "WhatsApp", icon: MessageCircle },
+                { key: "instagram_dm", label: "Instagram", icon: Instagram },
+                { key: "instagram_comments", label: "Comentários", icon: Heart },
+              ] as const).map((c) => (
+                <button
+                  key={c.key}
+                  onClick={() => { setChannel(c.key); setActiveId(null); }}
+                  className={cn(
+                    "flex shrink-0 items-center gap-1 whitespace-nowrap rounded-md px-2.5 py-1.5 text-[11px] font-medium transition-colors",
+                    channel === c.key
+                      ? "bg-orange-50 text-[#F26B1F]"
+                      : "text-slate-500 hover:bg-slate-50 hover:text-slate-900",
+                  )}
+                >
+                  <c.icon className="h-3 w-3" />
+                  {c.label}
+                </button>
+              ))}
+            </div>
+
+
 
             <div className="-mx-1 mt-2 flex gap-1 overflow-x-auto px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               {FOLDERS.map((f) => (
@@ -273,10 +299,17 @@ function InboxPage() {
       <main className={cn(
         "min-w-0 flex-1 flex-col bg-[var(--chat-conversation)]",
         // Mobile: só mostra se tiver conversa ativa
-        active ? "flex" : "hidden md:flex",
+        (active || (channel === "instagram_dm" && activeId)) ? "flex" : "hidden md:flex",
       )}>
-        {active ? <ConversationView conv={active} onRefetch={refetch} onBack={() => setActiveId(null)} /> : <EmptyState />}
+        {channel === "instagram_dm" ? (
+          activeId ? <InstagramConversationView conversationId={activeId} onBack={() => setActiveId(null)} /> : <EmptyState />
+        ) : channel === "instagram_comments" ? (
+          <EmptyState />
+        ) : active ? (
+          <ConversationView conv={active} onRefetch={refetch} onBack={() => setActiveId(null)} />
+        ) : <EmptyState />}
       </main>
+
 
       {/* Coluna 3 — Detalhes */}
       <aside className="hidden w-72 shrink-0 border-l border-slate-200 bg-white lg:block">
@@ -1811,7 +1844,94 @@ function groupByDay(msgs: Msg[]) {
   return groups;
 }
 
+// ============ Instagram DM conversa ============
+
+function InstagramConversationView({ conversationId, onBack }: { conversationId: string; onBack: () => void }) {
+  const msgsFn = useServerFn(listInstagramMessages);
+  const sendFn = useServerFn(sendInstagramReply);
+  const qc = useQueryClient();
+  const [text, setText] = useState("");
+
+  const { data: msgs = [], isLoading } = useQuery({
+    queryKey: ["ig", "messages", conversationId],
+    queryFn: () => msgsFn({ data: { conversation_id: conversationId } }),
+    refetchInterval: 10_000,
+  });
+
+  const send = useMutation({
+    mutationFn: (t: string) => sendFn({ data: { conversation_id: conversationId, text: t } }),
+    onSuccess: () => {
+      setText("");
+      qc.invalidateQueries({ queryKey: ["ig", "messages", conversationId] });
+      qc.invalidateQueries({ queryKey: ["ig", "conversations"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  return (
+    <div className="flex h-full min-h-0 flex-col">
+      <header className="flex items-center gap-2 border-b border-slate-200 bg-white px-3 py-2">
+        <button onClick={onBack} className="md:hidden" aria-label="Voltar">
+          <ArrowLeft className="h-4 w-4 text-slate-500" />
+        </button>
+        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-pink-500 to-orange-500 text-white">
+          <Instagram className="h-4 w-4" />
+        </div>
+        <div className="text-sm font-medium text-slate-900">Instagram Direct</div>
+      </header>
+
+      <div className="flex-1 space-y-2 overflow-y-auto p-4">
+        {isLoading ? (
+          <div className="text-center text-xs text-slate-400">Carregando…</div>
+        ) : msgs.length === 0 ? (
+          <div className="text-center text-xs text-slate-400">Nenhuma mensagem</div>
+        ) : (
+          msgs.map((m) => (
+            <div key={m.id} className={cn("flex", m.direction === "outbound" ? "justify-end" : "justify-start")}>
+              <div className={cn(
+                "max-w-[70%] rounded-2xl px-3 py-2 text-sm shadow-sm",
+                m.direction === "outbound" ? "bg-[#F26B1F] text-white" : "bg-white text-slate-900",
+              )}>
+                {m.attachment_url ? (
+                  <a href={m.attachment_url} target="_blank" rel="noreferrer" className="underline">
+                    {m.message_type ?? "mídia"}
+                  </a>
+                ) : null}
+                {m.text ? <div className="whitespace-pre-wrap break-words">{m.text}</div> : null}
+                <div className={cn("mt-0.5 text-[10px]", m.direction === "outbound" ? "text-white/70" : "text-slate-400")}>
+                  {new Date(m.created_at as string).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                  {m.status === "failed" ? " · não entregue" : ""}
+                </div>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      <form
+        onSubmit={(e) => { e.preventDefault(); if (text.trim()) send.mutate(text.trim()); }}
+        className="flex items-center gap-2 border-t border-slate-200 bg-white p-3"
+      >
+        <input
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          placeholder="Responder no Instagram…"
+          className="flex-1 rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm focus:border-[#F26B1F]/50 focus:bg-white focus:outline-none"
+        />
+        <button
+          type="submit"
+          disabled={send.isPending || !text.trim()}
+          className="flex h-9 w-9 items-center justify-center rounded-full bg-[#F26B1F] text-white disabled:opacity-50"
+        >
+          {send.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+        </button>
+      </form>
+    </div>
+  );
+}
+
 // ============ Instagram DM list (embedded) ============
+
 
 function InstagramList({ folder, search, activeId, onSelect }: { folder: string; search: string; activeId: string | null; onSelect: (id: string) => void }) {
   const listFn = useServerFn(listInstagramConversations);
