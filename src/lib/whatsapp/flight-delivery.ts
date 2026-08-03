@@ -101,11 +101,14 @@ export function expectedOptions(savedOptionsCount: number, meta = META_OPCOES): 
 export function quoteStatus(
   deliveredCount: number,
   expected: number,
-  opts: { cancelled?: boolean; anyFailed?: boolean } = {},
+  opts: { cancelled?: boolean; anyFailed?: boolean; recovering?: boolean; allFinalFailed?: boolean } = {},
 ): QuoteDeliveryStatus {
   if (opts.cancelled) return "cancelled";
   if (expected <= 0) return "failed";
   if (deliveredCount >= expected) return "completed";
+  // Nada entregue e nada mais recuperável: falha real (vai pro humano).
+  if (opts.allFinalFailed && deliveredCount <= 0) return "failed";
+  if (opts.recovering) return "recovering";
   if (deliveredCount <= 0) return opts.anyFailed ? "processing" : "pending";
   return "partially_delivered";
 }
@@ -131,12 +134,138 @@ export function opcaoDisponivel(
   o: { delivery_status: string; claim_expires_at?: string | null; next_run_at?: string | null },
   agora = Date.now(),
 ): boolean {
-  if (foiEntregue(o.delivery_status) || o.delivery_status === "cancelled") return false;
+  if (ehTerminal(o.delivery_status)) return false;
   if (o.next_run_at && new Date(o.next_run_at).getTime() > agora) return false;
-  if (o.delivery_status === "pending" || o.delivery_status === "failed") return true;
-  // claimed/rendering: só se o claim tiver expirado (worker morreu).
+  if (
+    o.delivery_status === "pending" ||
+    o.delivery_status === "failed" ||
+    o.delivery_status === "failed_recoverable" ||
+    o.delivery_status === "retry_scheduled"
+  ) {
+    return true;
+  }
+  // claimed/rendering/card_generated/sending_card: só se o claim expirou.
   return claimExpirado(o.claim_expires_at, agora);
 }
+
+export type TipoInconsistencia =
+  | "claim_orfao"
+  | "card_gerado_nao_enviado"
+  | "envio_nao_reconciliado"
+  | "opcao_parada"
+  | "rodada_nao_agendada"
+  | "status_incorreto";
+
+export type Inconsistencia = {
+  tipo: TipoInconsistencia;
+  option_index: number | null;
+  estado_anterior: string | null;
+  motivo: string;
+};
+
+type OptSnapshot = {
+  option_index: number;
+  delivery_status: string;
+  claim_expires_at?: string | null;
+  next_run_at?: string | null;
+  last_attempt_at?: string | null;
+  provider_message_id?: string | null;
+  attempt_count?: number | null;
+};
+
+type QuoteSnapshot = {
+  created_at?: string | null;
+  delivery_status?: string | null;
+  delivered_options_count?: number | null;
+  expected_options?: number | null;
+  next_run_at?: string | null;
+};
+
+/**
+ * Compara o que está gravado com o que deveria estar. Base da autocorreção:
+ * o reconciliador não "tenta de novo às cegas" — ele descobre o que faltou.
+ */
+export function detectarInconsistencias(
+  quote: QuoteSnapshot,
+  opcoes: OptSnapshot[],
+  agora = Date.now(),
+): Inconsistencia[] {
+  const out: Inconsistencia[] = [];
+  const expected = Number(quote.expected_options ?? 0);
+  const entreguesReais = opcoes.filter((o) => foiEntregue(o.delivery_status)).length;
+
+  for (const o of opcoes) {
+    if (ehTerminal(o.delivery_status)) continue;
+
+    if (emAndamento(o.delivery_status) && claimExpirado(o.claim_expires_at, agora)) {
+      out.push({
+        tipo:
+          o.delivery_status === "card_generated" || o.delivery_status === "sending_card"
+            ? "card_gerado_nao_enviado"
+            : "claim_orfao",
+        option_index: o.option_index,
+        estado_anterior: o.delivery_status,
+        motivo: "claim expirado sem entrega",
+      });
+      continue;
+    }
+
+    // Envio saiu no provedor mas o banco não fechou o estado.
+    if (o.provider_message_id && !foiEntregue(o.delivery_status)) {
+      out.push({
+        tipo: "envio_nao_reconciliado",
+        option_index: o.option_index,
+        estado_anterior: o.delivery_status,
+        motivo: "provider_message_id existe sem estado entregue",
+      });
+      continue;
+    }
+
+    // Opção parada há tempo demais sem nenhuma tentativa em curso.
+    const ref = o.last_attempt_at ?? quote.created_at ?? null;
+    const parada = ref ? agora - new Date(ref).getTime() > RECUPERACAO_FORCADA_MS : false;
+    const agendadaProFuturo = o.next_run_at ? new Date(o.next_run_at).getTime() > agora : false;
+    if (parada && !agendadaProFuturo) {
+      out.push({
+        tipo: "opcao_parada",
+        option_index: o.option_index,
+        estado_anterior: o.delivery_status,
+        motivo: `sem entrega há mais de ${Math.round(RECUPERACAO_FORCADA_MS / 1000)}s`,
+      });
+    }
+  }
+
+  // Faltam opções e ninguém agendou a rodada seguinte.
+  const faltam = expected - entreguesReais;
+  const temPendente = opcoes.some((o) => !ehTerminal(o.delivery_status));
+  if (faltam > 0 && temPendente && !quote.next_run_at) {
+    out.push({
+      tipo: "rodada_nao_agendada",
+      option_index: null,
+      estado_anterior: quote.delivery_status ?? null,
+      motivo: "delivered < expected sem next_run_at",
+    });
+  }
+
+  // Contador ou status da cotação divergindo das opções reais.
+  const statusEsperado = quoteStatus(entreguesReais, expected);
+  const contadorErrado = Number(quote.delivered_options_count ?? 0) !== entreguesReais;
+  const statusErrado =
+    quote.delivery_status !== statusEsperado &&
+    quote.delivery_status !== "recovering" &&
+    quote.delivery_status !== "cancelled";
+  if (expected > 0 && (contadorErrado || statusErrado)) {
+    out.push({
+      tipo: "status_incorreto",
+      option_index: null,
+      estado_anterior: quote.delivery_status ?? null,
+      motivo: `gravado=${quote.delivery_status}/${quote.delivered_options_count} real=${statusEsperado}/${entreguesReais}`,
+    });
+  }
+
+  return out;
+}
+
 
 /** Cotação parada há mais de 5 min com opções faltando → despejo em texto. */
 export function emEmergencia(
