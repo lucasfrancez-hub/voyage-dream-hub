@@ -434,6 +434,27 @@ export async function sendPendingFlightCards(
     }
   };
 
+  // RENDER EM PARALELO: as 2-3 artes do lote são geradas ao mesmo tempo, antes
+  // do envio. Renderizar uma de cada vez fazia a rodada estourar o tempo do
+  // worker e o cliente recebia só a primeira opção.
+  const semCache = Math.min(SOFT_DEADLINE_MS, renderBudgetMs);
+  const rendersEmParalelo = opcoes.map((op, i) =>
+    (async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const data = buildFlightCardData(quote as any, op as any);
+      return getOrRenderCard(data, {
+        softDeadlineMs: semCache,
+        tentativas: 1,
+        quote_id: quoteId,
+        protocolo_id: protocolId ?? null,
+        option_index: fpsDaCotacao.size + i + 1,
+      });
+    })().then(
+      (r) => ({ ok: true as const, ...r }),
+      (e: unknown) => ({ ok: false as const, erro: e as Error }),
+    ),
+  );
+
   for (let i = 0; i < opcoes.length; i++) {
     const op = opcoes[i];
     if (i > 0) await new Promise((r) => setTimeout(r, ENTRE_CARDS_MS));
@@ -457,20 +478,14 @@ export async function sendPendingFlightCards(
     let geradoEm: string | null = null;
     let estagio: Stage = "image_render";
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const data = buildFlightCardData(quote as any, op as any);
       estagio = "image_render";
-      // CACHE-FIRST: se o pré-aquecimento já rendeu esta opção, o envio é
-      // imediato. Sem cache, a arte tem um prazo brando (6s) — estourou, cai
-      // no texto e o card desta opção não é mais tentado.
-      const semCache = Math.min(SOFT_DEADLINE_MS, renderBudgetMs);
-      const { asset, from_cache } = await getOrRenderCard(data, {
-        softDeadlineMs: semCache,
-        tentativas: 1,
-        quote_id: quoteId,
-        protocolo_id: protocolId ?? null,
-        option_index: optionIndex,
-      });
+      // CACHE-FIRST: a arte já foi disparada em paralelo lá em cima. Se falhar
+      // ou estourar o prazo brando (6s), esta opção cai no texto e o card dela
+      // não é mais tentado.
+      const render = await rendersEmParalelo[i];
+      if (!render.ok) throw render.erro;
+      const { asset, from_cache } = render;
+
       geradoEm = new Date().toISOString();
       logCardEvent({
         ...base,
