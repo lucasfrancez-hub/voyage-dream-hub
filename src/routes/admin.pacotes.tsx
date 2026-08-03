@@ -87,6 +87,11 @@ import {
 import { useIgnoredHotels } from "@/lib/ignored-hotels";
 
 import { CurationTab } from "@/components/packages/CurationTab";
+import {
+  PackageSocialDialog,
+  WhatsAppIcon,
+  InstagramIcon,
+} from "@/components/packages/PackageSocialDialog";
 import { confirm } from "@/lib/confirm";
 import { dedupeOrigins, originKey } from "@/lib/packages/origin";
 import { buildPackagesCsv, downloadCsv, type ExportDatePrice } from "@/lib/packages/export-csv";
