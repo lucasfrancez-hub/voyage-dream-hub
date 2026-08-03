@@ -16,7 +16,9 @@
  *   instagram_business_content_publish
  */
 
-const GRAPH = "https://graph.facebook.com/v21.0";
+// Instagram API com Instagram Login → host graph.instagram.com.
+// (graph.facebook.com só aceita tokens de Página/Facebook Login e devolve OAuth 190.)
+const GRAPH = "https://graph.instagram.com/v21.0";
 
 export type IGSendResult = { message_id?: string; recipient_id?: string; error?: string };
 
