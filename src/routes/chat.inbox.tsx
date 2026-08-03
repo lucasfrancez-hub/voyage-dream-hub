@@ -1945,6 +1945,16 @@ function InstagramConversationView({ conversationId, onBack }: { conversationId:
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const igListFn = useServerFn(listInstagramConversations);
+  const { data: igConvs = [] } = useQuery({
+    queryKey: ["ig", "conversations"],
+    queryFn: () => igListFn(),
+    refetchInterval: 15_000,
+  });
+  const profile = igConvs.find((c) => c.id === conversationId) ?? null;
+
+
+
   return (
     <div className="flex h-full min-h-0 flex-col">
       <header className="flex items-center gap-2 border-b border-slate-200 bg-white px-3 py-2">
