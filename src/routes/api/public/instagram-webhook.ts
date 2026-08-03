@@ -146,7 +146,26 @@ async function processPayload(payload: IGPayload) {
             .update({ unread_count: (conv.unread_count ?? 0) + 1 })
             .eq("id", conv.id);
       }
+
+      // Espelha no inbox do chatbot (/chat)
+      try {
+        const { mirrorInstagramMessage } = await import("@/lib/instagram/bridge.server");
+        await mirrorInstagramMessage({
+          igAccountRowId: account.id,
+          igConversationId: conv.id,
+          contactIgId: contactIgId,
+          direction: isFromMe ? "outbound" : "inbound",
+          text: msg.message.text ?? null,
+          messageType: msg.message.attachments?.[0]?.type ?? "text",
+          attachmentUrl: msg.message.attachments?.[0]?.payload?.url ?? null,
+          igMessageId: msg.message.mid ?? null,
+          timestamp: msg.timestamp ?? null,
+        });
+      } catch (e) {
+        console.error("[instagram] espelho no chat falhou:", (e as Error).message);
+      }
     }
+
 
     // ============ Comentários / Mentions ============
     for (const change of entry.changes ?? []) {
