@@ -217,7 +217,7 @@ export function buildQuoteMemoryBlock(memorias: QuoteMemory[]): string {
 
   for (const m of comEnvio) {
     linhas.push(
-      `\n${m.atual ? "▶ COTAÇÃO ATUAL" : "· cotação anterior"} · quote_id: ${m.quote_id}` +
+      `\n${m.historica ? "🗄 REFERÊNCIA HISTÓRICA (protocolo anterior — reconfirme tudo, não é cotação válida)" : m.atual ? "▶ COTAÇÃO ATUAL" : "· cotação anterior deste mesmo atendimento"} · quote_id: ${m.quote_id}` +
         ` · ${m.rota} · ida ${m.data_ida}${m.data_volta ? ` · volta ${m.data_volta}` : " (somente ida)"} · ${m.passageiros}` +
         (m.agente_nome ? ` · pesquisada por ${m.agente_nome}` : ""),
     );
