@@ -120,13 +120,46 @@ function firstText(el: Element, name: string): string | null {
  */
 const CAMINHOS_INICIAIS = ["/principals/", "/", "/.well-known/caldav", "/dav/"];
 
+/** Extrai calendários de uma resposta multistatus de PROPFIND. */
+function extrairCalendarios(root: string, xml: string): { calendarios: CalDavCalendar[]; colecoes: string[] } {
+  const doc = parseXml(xml);
+  const calendarios: CalDavCalendar[] = [];
+  const colecoes: string[] = [];
+  for (const resp of findAll(doc, "response")) {
+    const href = firstText(resp, "href");
+    if (!href) continue;
+    const url = absolutize(root, href);
+    const tipos = findAll(resp, "resourcetype")[0];
+    const ehCalendario = tipos ? findAll(tipos, "calendar").length > 0 : false;
+    const ehColecao = tipos ? findAll(tipos, "collection").length > 0 : false;
+    if (ehCalendario) {
+      calendarios.push({ url, nome: firstText(resp, "displayname") ?? "Calendário" });
+    } else if (ehColecao) {
+      colecoes.push(url);
+    }
+  }
+  return { calendarios, colecoes };
+}
+
+const LISTA_XML = `<?xml version="1.0" encoding="utf-8" ?>
+<d:propfind xmlns:d="DAV:"><d:prop><d:resourcetype/><d:displayname/></d:prop></d:propfind>`;
+
+async function listarEm(auth: CalDavAuth, root: string, url: string) {
+  try {
+    const r = await dav(auth, url, "PROPFIND", LISTA_XML, { Depth: "1" });
+    return extrairCalendarios(root, r.text);
+  } catch {
+    return { calendarios: [] as CalDavCalendar[], colecoes: [] as string[] };
+  }
+}
+
 /** Descobre os calendários da conta. */
 export async function listarCalendarios(auth: CalDavAuth): Promise<CalDavCalendar[]> {
   const root = auth.serverUrl.replace(/\/+$/, "");
 
   // 1) principal
   const principalXml = `<?xml version="1.0" encoding="utf-8" ?>
-<d:propfind xmlns:d="DAV:"><d:prop><d:current-user-principal/></d:prop></d:propfind>`;
+<d:propfind xmlns:d="DAV:"><d:prop><d:current-user-principal/><d:principal-URL/></d:prop></d:propfind>`;
 
   let p: { text: string } | null = null;
   let ultimoErro: unknown = null;
@@ -152,44 +185,75 @@ export async function listarCalendarios(auth: CalDavAuth): Promise<CalDavCalenda
     );
   }
 
-  const principalHref = firstText(parseXml(p.text).documentElement as unknown as Element, "href");
+  // O href do principal está DENTRO de <current-user-principal> (ou <principal-URL>);
+  // pegar o primeiro href do documento devolve o caminho da própria requisição.
+  const pDoc = parseXml(p.text);
+  const bloco = findAll(pDoc, "current-user-principal")[0] ?? findAll(pDoc, "principal-url")[0];
+  const principalHref = bloco ? firstText(bloco, "href") : firstText(pDoc.documentElement as unknown as Element, "href");
   const principal = absolutize(root, principalHref ?? "/");
-
 
   // 2) calendar-home-set
   const homeXml = `<?xml version="1.0" encoding="utf-8" ?>
 <d:propfind xmlns:d="DAV:" xmlns:c="urn:ietf:params:xml:ns:caldav"><d:prop><c:calendar-home-set/></d:prop></d:propfind>`;
-  const h = await dav(auth, principal, "PROPFIND", homeXml, { Depth: "0" });
-  const homeDoc = parseXml(h.text);
-  const homeSet = findAll(homeDoc, "calendar-home-set")[0];
-  const homeHref = homeSet ? firstText(homeSet, "href") : null;
-  const home = absolutize(root, homeHref ?? principal);
-
-  // 3) calendários dentro do home
-  const listXml = `<?xml version="1.0" encoding="utf-8" ?>
-<d:propfind xmlns:d="DAV:"><d:prop><d:resourcetype/><d:displayname/></d:prop></d:propfind>`;
-  const l = await dav(auth, home, "PROPFIND", listXml, { Depth: "1" });
-  const doc = parseXml(l.text);
-  const calendars: CalDavCalendar[] = [];
-  for (const resp of findAll(doc, "response")) {
-    const href = firstText(resp, "href");
-    if (!href) continue;
-    const isCalendar = findAll(resp, "calendar").length > 0;
-    if (!isCalendar) continue;
-    calendars.push({
-      url: absolutize(root, href),
-      nome: firstText(resp, "displayname") ?? "Calendário",
-    });
+  let home = principal;
+  try {
+    const h = await dav(auth, principal, "PROPFIND", homeXml, { Depth: "0" });
+    const homeSet = findAll(parseXml(h.text), "calendar-home-set")[0];
+    const homeHref = homeSet ? firstText(homeSet, "href") : null;
+    if (homeHref) home = absolutize(root, homeHref);
+  } catch {
+    /* sem calendar-home-set: seguimos a partir do principal */
   }
-  return calendars;
+
+  // 3) candidatos de "home" — alguns servidores (Titan) não expõem calendar-home-set
+  const usuario = auth.username;
+  const candidatos = Array.from(
+    new Set(
+      [
+        home,
+        principal,
+        `${root}/calendars/${encodeURIComponent(usuario)}/`,
+        `${root}/calendars/`,
+        `${root}/dav/${encodeURIComponent(usuario)}/`,
+        `${root}/${encodeURIComponent(usuario)}/`,
+      ].map((u) => (u.endsWith("/") ? u : `${u}/`)),
+    ),
+  );
+
+  const encontrados = new Map<string, CalDavCalendar>();
+  const paraVarrer: string[] = [];
+
+  for (const url of candidatos) {
+    const { calendarios, colecoes } = await listarEm(auth, root, url);
+    for (const c of calendarios) encontrados.set(c.url, c);
+    paraVarrer.push(...colecoes);
+    if (encontrados.size) break;
+  }
+
+  // 4) se nada apareceu, desce um nível nas coleções encontradas
+  if (!encontrados.size) {
+    for (const url of paraVarrer.slice(0, 12)) {
+      const { calendarios } = await listarEm(auth, root, url);
+      for (const c of calendarios) encontrados.set(c.url, c);
+      if (encontrados.size) break;
+    }
+  }
+
+  return Array.from(encontrados.values());
 }
 
 /** Testa credenciais e devolve os calendários disponíveis. */
 export async function testarConexao(auth: CalDavAuth): Promise<CalDavCalendar[]> {
   const cals = await listarCalendarios(auth);
-  if (!cals.length) throw new Error("Conectou, mas nenhum calendário foi encontrado nesta conta.");
+  if (!cals.length) {
+    throw new Error(
+      "Conectou no servidor, mas não consegui listar os calendários dessa conta. " +
+        "Confira se o endereço do servidor é o de CalDAV (ex.: https://caldav.titan.email) e se a senha é a do e-mail.",
+    );
+  }
   return cals;
 }
+
 
 function icsStamp(d: Date): string {
   return `${d.toISOString().replace(/[-:]/g, "").split(".")[0]}Z`;
