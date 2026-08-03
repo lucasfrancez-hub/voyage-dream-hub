@@ -623,7 +623,33 @@ export async function runAgent(input: {
           ).catch(() => null)
         : null;
       quoteBlock = buildQuoteMemoryBlock(memorias) + buildChoiceBlock(escolha);
+
+      // CONTINUIDADE: com cotação ativa, mensagem sobre voo é REFINO da
+      // pesquisa (aeroporto, horário, bagagem, companhia, "tem mais opções?").
+      // O agente é obrigado a rodar nova pesquisa mantendo o restante.
+      const cotacaoAtiva = memorias.find((m) => m.atual && !m.cancelada && !m.historica);
+      if (cotacaoAtiva && ultimaDoCliente?.content) {
+        const { detectRefineIntents, buildRefineBlock } = await import("./flight-refine");
+        const intents = detectRefineIntents(ultimaDoCliente.content);
+        if (intents.length) {
+          const refine = buildRefineBlock(cotacaoAtiva.busca ?? null, intents);
+          if (refine) {
+            quoteBlock += refine;
+            console.log(
+              JSON.stringify({
+                event: "flight_refine_detected",
+                conversation_id: conv.id,
+                protocolo_id: protocolo.id,
+                quote_id: cotacaoAtiva.quote_id,
+                intents: intents.map((i) => i.kind),
+                at: new Date().toISOString(),
+              }),
+            );
+          }
+        }
+      }
     }
+
   } catch (err) {
     console.warn("[agent] memória de cotações indisponível:", err);
   }
