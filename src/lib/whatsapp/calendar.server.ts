@@ -268,6 +268,10 @@ export type EntradaEvento = {
   telefone?: string | null;
   criado_por?: string | null;
   accountId?: string | null;
+  diaInteiro?: boolean | null;
+  linkReuniao?: string | null;
+  convidados?: string[] | null;
+  url?: string | null;
 };
 
 /** Cria o compromisso na agenda escolhida (ou na padrão) e no banco. */
@@ -290,6 +294,13 @@ export async function criarEvento(entrada: EntradaEvento): Promise<AgendaEvento>
     }
   }
 
+  const detalhes: Record<string, string | Array<{ email: string }>> = {};
+  if (entrada.linkReuniao) detalhes['link_reuniao'] = entrada.linkReuniao;
+  if (entrada.url) detalhes['url'] = entrada.url;
+  if (entrada.convidados?.length) {
+    detalhes['participantes'] = entrada.convidados.map((email) => ({ email }));
+  }
+
   const { data, error } = await supabaseAdmin
     .from("wa_calendar_events")
     .insert({
@@ -304,6 +315,8 @@ export async function criarEvento(entrada: EntradaEvento): Promise<AgendaEvento>
       local: entrada.local ?? null,
       inicio: entrada.inicio,
       fim: entrada.fim,
+      dia_inteiro: entrada.diaInteiro ?? false,
+      detalhes: (Object.keys(detalhes).length ? detalhes : null) as unknown as never,
       origem: "chat",
       telefone: entrada.telefone ?? null,
       criado_por: entrada.criado_por ?? null,

@@ -457,11 +457,28 @@ export type NovoEvento = {
   local?: string | null;
   inicio: string; // ISO
   fim: string; // ISO
+  diaInteiro?: boolean | null;
+  linkReuniao?: string | null;
+  convidados?: string[] | null;
+  url?: string | null;
 };
+
+function icsDia(d: Date): string {
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}`;
+}
 
 /** Monta o ICS de um evento (sempre em UTC). */
 export function montarIcs(ev: NovoEvento): string {
   const agora = icsStamp(new Date());
+  const inicio = new Date(ev.inicio);
+  const fim = new Date(ev.fim);
+  const datas = ev.diaInteiro
+    ? [`DTSTART;VALUE=DATE:${icsDia(inicio)}`, `DTEND;VALUE=DATE:${icsDia(fim)}`]
+    : [`DTSTART:${icsStamp(inicio)}`, `DTEND:${icsStamp(fim)}`];
+  const descricao = [ev.descricao || "", ev.linkReuniao ? `Reunião: ${ev.linkReuniao}` : ""]
+    .filter(Boolean)
+    .join("\n\n");
   return [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
@@ -470,11 +487,13 @@ export function montarIcs(ev: NovoEvento): string {
     "BEGIN:VEVENT",
     `UID:${ev.uid}`,
     `DTSTAMP:${agora}`,
-    `DTSTART:${icsStamp(new Date(ev.inicio))}`,
-    `DTEND:${icsStamp(new Date(ev.fim))}`,
+    ...datas,
     `SUMMARY:${escapeIcs(ev.titulo)}`,
-    ...(ev.descricao ? [`DESCRIPTION:${escapeIcs(ev.descricao)}`] : []),
+    ...(descricao ? [`DESCRIPTION:${escapeIcs(descricao)}`] : []),
     ...(ev.local ? [`LOCATION:${escapeIcs(ev.local)}`] : []),
+    ...(ev.url ? [`URL:${escapeIcs(ev.url)}`] : []),
+    ...(ev.linkReuniao ? [`X-GOOGLE-CONFERENCE:${escapeIcs(ev.linkReuniao)}`] : []),
+    ...(ev.convidados || []).map((e) => `ATTENDEE;CN=${escapeIcs(e)};RSVP=TRUE:mailto:${e}`),
     "STATUS:CONFIRMED",
     "END:VEVENT",
     "END:VCALENDAR",

@@ -207,11 +207,19 @@ function AgendaApp() {
 function Fundo({ children }: { children: React.ReactNode }) {
   return (
     <div
-      className="min-h-dvh text-white [touch-action:manipulation]"
+      className="agenda-app min-h-dvh text-white [touch-action:manipulation]"
       style={{
         background: "radial-gradient(1200px 600px at 50% -10%, #14213f 0%, #080d1a 55%, #05070f 100%)",
+        colorScheme: "dark",
       }}
     >
+      {/* A agenda é sempre escura: trava o tema do sistema pra nunca renderizar claro */}
+      <style>{`
+        .agenda-app, .agenda-app * { color-scheme: dark; }
+        .agenda-app input, .agenda-app textarea, .agenda-app select { color: #fff; }
+        .agenda-app input::placeholder, .agenda-app textarea::placeholder { color: rgba(255,255,255,0.4); }
+        .agenda-app input::-webkit-calendar-picker-indicator { filter: invert(1); opacity: 0.7; }
+      `}</style>
       {children}
     </div>
   );
@@ -546,6 +554,10 @@ function NovoCompromisso({
   const [titulo, setTitulo] = useState("");
   const [local, setLocal] = useState("");
   const [descricao, setDescricao] = useState("");
+  const [linkReuniao, setLinkReuniao] = useState("");
+  const [convidados, setConvidados] = useState("");
+  const [url, setUrl] = useState("");
+  const [diaInteiro, setDiaInteiro] = useState(false);
   const [inicio, setInicio] = useState(() => paraInput(base));
   const [fim, setFim] = useState(() => paraInput(new Date(base.getTime() + 60 * 60 * 1000)));
   const [conta, setConta] = useState(contas[0]?.id ?? "");
@@ -562,6 +574,13 @@ function NovoCompromisso({
           titulo,
           local: local || null,
           descricao: descricao || null,
+          linkReuniao: linkReuniao.trim() || null,
+          url: url.trim() || null,
+          convidados: convidados
+            .split(/[,;\s]+/)
+            .map((s) => s.trim())
+            .filter((s) => s.includes("@")),
+          diaInteiro,
           inicio: new Date(inicio).toISOString(),
           fim: new Date(fim).toISOString(),
           accountId: conta || null,
@@ -573,17 +592,26 @@ function NovoCompromisso({
   });
 
   const campo =
-    "w-full rounded-xl border px-3 py-2.5 text-base outline-none placeholder:opacity-40";
-  const estiloCampo = { borderColor: "rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.05)", color: "#fff" } as const;
+    "w-full rounded-xl border px-3 py-2.5 text-base text-white outline-none placeholder:text-white/40";
+  const estiloCampo = {
+    borderColor: "rgba(255,255,255,0.14)",
+    background: "rgba(255,255,255,0.06)",
+    color: "#ffffff",
+    colorScheme: "dark",
+  } as const;
+  const rotulo = "text-[11px] uppercase tracking-wider text-white/50";
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center" style={{ background: "rgba(3,6,14,0.7)", backdropFilter: "blur(6px)" }}>
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center text-white"
+      style={{ background: "rgba(3,6,14,0.7)", backdropFilter: "blur(6px)", colorScheme: "dark" }}
+    >
       <div
-        className="max-h-[92dvh] w-full max-w-xl overflow-y-auto rounded-t-3xl border-t px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-4"
-        style={{ background: "rgba(12,18,34,0.98)", borderColor: "rgba(255,255,255,0.1)" }}
+        className="max-h-[92dvh] w-full max-w-xl overflow-y-auto rounded-t-3xl border-t px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-4 text-white"
+        style={{ background: "rgba(12,18,34,0.98)", borderColor: "rgba(255,255,255,0.1)", colorScheme: "dark" }}
       >
         <div className="mb-4 flex items-center gap-2">
-          <h2 className="flex-1 text-lg font-semibold">Novo compromisso</h2>
+          <h2 className="flex-1 text-lg font-semibold text-white">Novo compromisso</h2>
           <BotaoIcone onClick={onFechar} rotulo="Fechar">
             <X className="h-4 w-4" />
           </BotaoIcone>
@@ -591,27 +619,103 @@ function NovoCompromisso({
 
         <div className="space-y-3">
           <input className={campo} style={estiloCampo} placeholder="Título" value={titulo} onChange={(e) => setTitulo(e.target.value)} autoFocus />
+
+          <button
+            type="button"
+            onClick={() => setDiaInteiro((v) => !v)}
+            className="flex w-full items-center justify-between rounded-xl border px-3 py-2.5 text-sm text-white"
+            style={{ borderColor: "rgba(255,255,255,0.14)", background: "rgba(255,255,255,0.06)" }}
+          >
+            <span>Dia inteiro</span>
+            <span
+              className="relative h-6 w-11 rounded-full transition-colors"
+              style={{ background: diaInteiro ? "#F26B1F" : "rgba(255,255,255,0.2)" }}
+            >
+              <span
+                className="absolute top-0.5 h-5 w-5 rounded-full bg-white transition-all"
+                style={{ left: diaInteiro ? 22 : 2 }}
+              />
+            </span>
+          </button>
+
           <div className="grid grid-cols-2 gap-3">
             <label className="space-y-1">
-              <span className="text-[11px] uppercase tracking-wider opacity-50">Início</span>
-              <input type="datetime-local" className={campo} style={estiloCampo} value={inicio} onChange={(e) => setInicio(e.target.value)} />
+              <span className={rotulo}>Início</span>
+              <input
+                type={diaInteiro ? "date" : "datetime-local"}
+                className={campo}
+                style={estiloCampo}
+                value={diaInteiro ? inicio.slice(0, 10) : inicio}
+                onChange={(e) => setInicio(diaInteiro ? `${e.target.value}T00:00` : e.target.value)}
+              />
             </label>
             <label className="space-y-1">
-              <span className="text-[11px] uppercase tracking-wider opacity-50">Fim</span>
-              <input type="datetime-local" className={campo} style={estiloCampo} value={fim} onChange={(e) => setFim(e.target.value)} />
+              <span className={rotulo}>Fim</span>
+              <input
+                type={diaInteiro ? "date" : "datetime-local"}
+                className={campo}
+                style={estiloCampo}
+                value={diaInteiro ? fim.slice(0, 10) : fim}
+                onChange={(e) => setFim(diaInteiro ? `${e.target.value}T23:59` : e.target.value)}
+              />
             </label>
           </div>
-          <input className={campo} style={estiloCampo} placeholder="Local (opcional)" value={local} onChange={(e) => setLocal(e.target.value)} />
-          <textarea
-            className={`${campo} min-h-20`}
-            style={estiloCampo}
-            placeholder="Observações (opcional)"
-            value={descricao}
-            onChange={(e) => setDescricao(e.target.value)}
-          />
+
+          <label className="block space-y-1">
+            <span className={rotulo}>Local</span>
+            <input className={campo} style={estiloCampo} placeholder="Endereço ou sala (opcional)" value={local} onChange={(e) => setLocal(e.target.value)} />
+          </label>
+
+          <label className="block space-y-1">
+            <span className={rotulo}>Link da reunião</span>
+            <input
+              className={campo}
+              style={estiloCampo}
+              inputMode="url"
+              placeholder="Meet, Zoom, Teams…"
+              value={linkReuniao}
+              onChange={(e) => setLinkReuniao(e.target.value)}
+            />
+          </label>
+
+          <label className="block space-y-1">
+            <span className={rotulo}>Convidados</span>
+            <input
+              className={campo}
+              style={estiloCampo}
+              inputMode="email"
+              placeholder="E-mails separados por vírgula"
+              value={convidados}
+              onChange={(e) => setConvidados(e.target.value)}
+            />
+          </label>
+
+          <label className="block space-y-1">
+            <span className={rotulo}>Link de referência</span>
+            <input
+              className={campo}
+              style={estiloCampo}
+              inputMode="url"
+              placeholder="Pedido, proposta, documento… (opcional)"
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+            />
+          </label>
+
+          <label className="block space-y-1">
+            <span className={rotulo}>Observações</span>
+            <textarea
+              className={`${campo} min-h-20`}
+              style={estiloCampo}
+              placeholder="Notas do compromisso (opcional)"
+              value={descricao}
+              onChange={(e) => setDescricao(e.target.value)}
+            />
+          </label>
+
           {contas.length > 1 ? (
             <label className="space-y-1 block">
-              <span className="text-[11px] uppercase tracking-wider opacity-50">Salvar em</span>
+              <span className={rotulo}>Salvar em</span>
               <select className={campo} style={estiloCampo} value={conta} onChange={(e) => setConta(e.target.value)}>
                 {contas.map((c) => (
                   <option key={c.id} value={c.id} style={{ color: "#0b1220" }}>

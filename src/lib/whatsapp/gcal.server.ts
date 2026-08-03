@@ -172,20 +172,42 @@ export type EntradaGoogle = {
   local?: string | null;
   inicio: string;
   fim: string;
+  diaInteiro?: boolean | null;
+  linkReuniao?: string | null;
+  convidados?: string[] | null;
+  url?: string | null;
 };
+
+function diaGoogle(iso: string): string {
+  const d = new Date(iso);
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
+
+function corpoGoogle(ev: EntradaGoogle) {
+  const descricao = [ev.descricao || "", ev.linkReuniao ? `Reunião: ${ev.linkReuniao}` : ""]
+    .filter(Boolean)
+    .join("\n\n");
+  return {
+    summary: ev.titulo,
+    description: descricao || undefined,
+    location: ev.local ?? undefined,
+    source: ev.url ? { title: ev.titulo, url: ev.url } : undefined,
+    attendees: ev.convidados?.length ? ev.convidados.map((email) => ({ email })) : undefined,
+    ...(ev.diaInteiro
+      ? { start: { date: diaGoogle(ev.inicio) }, end: { date: diaGoogle(ev.fim) } }
+      : {
+          start: { dateTime: new Date(ev.inicio).toISOString(), timeZone: "America/Sao_Paulo" },
+          end: { dateTime: new Date(ev.fim).toISOString(), timeZone: "America/Sao_Paulo" },
+        }),
+  };
+}
 
 /** Cria um evento e devolve o id gerado pelo Google. */
 export async function criarEventoGoogle(calendarId: string, ev: EntradaGoogle): Promise<string> {
-  const body = {
-    summary: ev.titulo,
-    description: ev.descricao ?? undefined,
-    location: ev.local ?? undefined,
-    start: { dateTime: new Date(ev.inicio).toISOString(), timeZone: "America/Sao_Paulo" },
-    end: { dateTime: new Date(ev.fim).toISOString(), timeZone: "America/Sao_Paulo" },
-  };
   const data = (await gcal(`/calendars/${encodeURIComponent(calendarId)}/events`, {
     method: "POST",
-    body: JSON.stringify(body),
+    body: JSON.stringify(corpoGoogle(ev)),
   })) as { id?: string };
   if (!data?.id) throw new Error("O Google não devolveu o identificador do compromisso.");
   return data.id;
