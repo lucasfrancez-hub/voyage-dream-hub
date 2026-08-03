@@ -20,6 +20,7 @@ import {
 
 import {
   abrirAgendaApp,
+  criarEventoAgendaApp,
   eventosAgendaApp,
   removerPushAgenda,
   salvarPushAgenda,
