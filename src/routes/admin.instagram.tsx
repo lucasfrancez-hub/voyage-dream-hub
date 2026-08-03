@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { toast } from "sonner";
-import { Instagram, Send, MessageSquare, Image as ImageIcon, ExternalLink, CheckCircle2, XCircle, Loader2, Copy } from "lucide-react";
+import { Instagram, Send, MessageSquare, Image as ImageIcon, ExternalLink, CheckCircle2, XCircle, Loader2, Copy, Activity, RefreshCw, ShieldCheck, Webhook } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   listInstagramAccounts,
@@ -12,8 +12,11 @@ import {
   upsertInstagramAccount,
   triggerAutoReplyComment,
   publishToInstagram,
+  getInstagramDiagnostics,
+  testInstagramConnection,
 } from "@/lib/instagram/queries.functions";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/admin/instagram")({
   component: InstagramAdminPage,
@@ -52,6 +55,7 @@ function InstagramAdminPage() {
             <ImageIcon className="mr-1 h-3.5 w-3.5" /> Publicar
           </TabsTrigger>
           <TabsTrigger value="history">Histórico</TabsTrigger>
+          <TabsTrigger value="diagnostics"><Activity className="mr-1 h-3.5 w-3.5" /> Diagnóstico</TabsTrigger>
         </TabsList>
 
         <TabsContent value="setup" className="mt-4">
@@ -65,6 +69,9 @@ function InstagramAdminPage() {
         </TabsContent>
         <TabsContent value="history" className="mt-4">
           <HistoryTab />
+        </TabsContent>
+        <TabsContent value="diagnostics" className="mt-4">
+          <DiagnosticsTab />
         </TabsContent>
       </Tabs>
     </div>
@@ -359,4 +366,67 @@ function HistoryTab() {
       ))}
     </div>
   );
+}
+
+function DiagnosticsTab() {
+  const diagnosticsFn = useServerFn(getInstagramDiagnostics);
+  const testFn = useServerFn(testInstagramConnection);
+  const qc = useQueryClient();
+  const { data, isLoading, error } = useQuery({ queryKey: ["ig-diagnostics"], queryFn: () => diagnosticsFn(), refetchInterval: 60_000 });
+  const test = useMutation({
+    mutationFn: () => testFn({ data: {} }),
+    onSuccess: () => { toast.success("Teste concluído"); qc.invalidateQueries({ queryKey: ["ig-diagnostics"] }); },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Falha no teste"),
+  });
+  if (isLoading) return <div className="flex items-center gap-2 p-8 text-sm text-muted-foreground"><Loader2 className="animate-spin" /> Carregando diagnóstico…</div>;
+  if (error || !data) return <div role="alert" className="rounded-md border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">{error instanceof Error ? error.message : "Não foi possível carregar o diagnóstico"}</div>;
+  const latest = data.checks[0];
+  const healthy = latest?.overall_status === "healthy";
+  const account = data.accounts[0];
+  return (
+    <div className="space-y-4">
+      <section className="flex flex-col gap-3 rounded-lg border bg-card p-4 md:flex-row md:items-center md:justify-between">
+        <div className="flex items-center gap-3">
+          <div className={cn("grid h-10 w-10 place-items-center rounded-md", healthy ? "bg-emerald-500/10 text-emerald-600" : "bg-destructive/10 text-destructive")}><Activity /></div>
+          <div><h2 className="font-semibold text-foreground">Saúde da integração</h2><p className="text-xs text-muted-foreground">{latest ? (healthy ? "Todos os testes passaram" : latest.last_error ?? "Falha detectada") : "Nenhum teste executado"}</p></div>
+        </div>
+        <Button onClick={() => test.mutate()} disabled={test.isPending}>{test.isPending ? <Loader2 className="animate-spin" /> : <RefreshCw />} Testar Instagram</Button>
+      </section>
+
+      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <DiagnosticCard label="Conexão" value={latest?.account_connected ? "Conectada" : "Não confirmada"} ok={latest?.account_connected} icon={<Instagram />} />
+        <DiagnosticCard label="Token / API" value={latest?.token_valid ? `HTTP ${latest.http_status ?? 200}` : `Falha HTTP ${latest?.http_status ?? "—"}`} ok={latest?.token_valid} icon={<ShieldCheck />} />
+        <DiagnosticCard label="Webhook" value={latest?.webhook_reachable ? "Callback acessível" : "Callback indisponível"} ok={latest?.webhook_reachable} icon={<Webhook />} />
+        <DiagnosticCard label="Campo messages" value={latest?.messages_subscribed ? "Assinado" : "Não assinado"} ok={latest?.messages_subscribed} icon={<MessageSquare />} />
+      </div>
+
+      <section className="rounded-lg border bg-card p-4">
+        <h3 className="mb-3 text-sm font-semibold text-foreground">Configuração observada</h3>
+        <dl className="grid gap-x-6 gap-y-3 text-xs md:grid-cols-2">
+          <Detail label="App ID" value={latest?.app_id ?? String(account?.metadata?.app_id ?? "Não identificado")} />
+          <Detail label="IG User ID" value={latest?.ig_user_id ?? account?.ig_user_id ?? "—"} />
+          <Detail label="Conta conectada" value={latest?.connected_username ? `@${latest.connected_username}` : account?.username ? `@${account.username}` : "—"} />
+          <Detail label="Callback" value={data.callbackUrl} />
+          <Detail label="Último webhook" value={latest?.last_webhook_at ? new Date(latest.last_webhook_at).toLocaleString("pt-BR") : "Nenhum registrado"} />
+          <Detail label="Campos assinados" value={latest?.subscribed_fields?.join(", ") || "Nenhum confirmado"} />
+          <Detail label="Último erro Meta" value={latest?.last_error ?? "Sem erro"} />
+          <Detail label="fbtrace_id" value={latest?.fbtrace_id ?? "—"} />
+        </dl>
+      </section>
+
+      <LogTable title="Webhooks recebidos" empty="Nenhuma requisição chegou ao callback" rows={data.webhookLogs.map((log) => ({ id: log.id, at: log.received_at, main: `${log.method} · ${log.event_type ?? "evento desconhecido"}`, status: `${log.response_status ?? "—"} · ${log.processing_status}`, detail: log.rejection_reason ?? log.processing_error ?? `message_id: ${log.message_external_id ?? "—"}` }))} />
+      <LogTable title="Chamadas à Meta" empty="Nenhuma chamada registrada" rows={data.apiLogs.map((log) => ({ id: log.id, at: log.created_at, main: `${log.method} · ${log.operation}`, status: `HTTP ${log.http_status ?? "—"} · ${log.success ? "OK" : "falha"}`, detail: log.error_message ?? `fbtrace_id: ${log.fbtrace_id ?? "—"}` }))} />
+      <LogTable title="Mensagens recebidas" empty="Nenhuma DM recebida" rows={data.receivedMessages.map((message) => { const relation = Array.isArray(message.instagram_conversations) ? message.instagram_conversations[0] : message.instagram_conversations; return { id: message.id, at: message.created_at, main: `${message.message_type} · usuário ${relation?.contact_ig_id ?? "—"}`, status: `message_id: ${message.ig_message_id ?? "—"}`, detail: `conversation_id: ${message.conversation_id}` }; })} />
+    </div>
+  );
+}
+
+function DiagnosticCard({ label, value, ok, icon }: { label: string; value: string; ok?: boolean | null; icon: React.ReactNode }) {
+  return <div className="rounded-lg border bg-card p-4"><div className={cn("mb-3 [&_svg]:h-4 [&_svg]:w-4", ok ? "text-emerald-600" : "text-destructive")}>{icon}</div><div className="text-xs text-muted-foreground">{label}</div><div className="mt-1 text-sm font-medium text-foreground">{value}</div></div>;
+}
+
+function Detail({ label, value }: { label: string; value: string }) { return <div className="min-w-0"><dt className="text-muted-foreground">{label}</dt><dd className="mt-0.5 break-all font-mono text-foreground">{value}</dd></div>; }
+
+function LogTable({ title, empty, rows }: { title: string; empty: string; rows: Array<{ id: string; at: string; main: string; status: string; detail: string }> }) {
+  return <section className="overflow-hidden rounded-lg border bg-card"><div className="border-b px-4 py-3 text-sm font-semibold text-foreground">{title}</div>{rows.length === 0 ? <p className="p-5 text-xs text-muted-foreground">{empty}</p> : <div className="divide-y">{rows.slice(0, 30).map((row) => <div key={row.id} className="grid gap-1 p-3 text-xs md:grid-cols-[160px_1fr_180px] md:items-center"><time className="text-muted-foreground">{new Date(row.at).toLocaleString("pt-BR")}</time><div className="min-w-0"><div className="font-medium text-foreground">{row.main}</div><div className="break-all text-muted-foreground">{row.detail}</div></div><div className="font-mono text-muted-foreground md:text-right">{row.status}</div></div>)}</div>}</section>;
 }
