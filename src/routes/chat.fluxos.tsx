@@ -264,22 +264,40 @@ function FluxosPage() {
 
   const onConnect = useCallback((c: Connection) => {
     setEdges((es) =>
-      addEdge({ ...c, id: `e${Date.now()}`, animated: true, markerEnd: { type: MarkerType.ArrowClosed } }, es),
+      addEdge(
+        { ...c, id: `e${Date.now()}`, type: "smoothstep", animated: true, markerEnd: { type: MarkerType.ArrowClosed } },
+        es,
+      ),
     );
     setSujo(true);
   }, []);
 
+  const organizar = () => {
+    setNodes((ns) => organizarLR(ns, edges));
+    setSujo(true);
+  };
+
   const novoQuadro = () => {
     const id = `no_${Date.now()}`;
-    setNodes((ns) => [
-      ...ns,
-      {
-        id,
-        type: "fluxo" as const,
-        position: { x: 60 + ns.length * 24, y: 60 + ns.length * 24 },
-        data: { titulo: "Novo quadro", tipo: "intencao", setor: null, descricao: "", keywords: [] },
-      },
-    ]);
+    setNodes((ns) => {
+      const maxX = ns.length ? Math.max(...ns.map((n) => n.position.x)) : 0;
+      return [
+        ...ns,
+        {
+          id,
+          type: "fluxo" as const,
+          position: { x: maxX + 320, y: 40 + (ns.length % 4) * 170 },
+          data: {
+            titulo: "Novo quadro",
+            tipo: "intencao" as FlowNodeTipo,
+            setor: null,
+            descricao: "",
+            keywords: [],
+            acoes: [],
+          },
+        },
+      ];
+    });
     setSelecionado(id);
     setSujo(true);
   };
