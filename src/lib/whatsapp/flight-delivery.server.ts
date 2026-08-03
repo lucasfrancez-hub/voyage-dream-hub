@@ -258,7 +258,7 @@ async function entregarOpcao(
   const supabaseAdmin = await db();
   const { saveMessage, setSendError, SENDING_CLAIM } = await import("./conversation.server");
   const { abortIfHumanTookOver } = await import("./human-takeover.server");
-  const { sendWhatsAppImageBytesDetailed, sendWhatsAppText } = await import("./send.server");
+  const { sendWhatsAppImagePreferLink, sendWhatsAppText } = await import("./send.server");
   const { formatOptionText } = await import("./flight-option-text.server");
   const { logCardEvent } = await import("./card-log.server");
 
