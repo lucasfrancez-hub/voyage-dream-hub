@@ -278,7 +278,10 @@ export async function sendWhatsAppImage(
 ): Promise<{ id: string | null; error?: string }> {
   return metaSendMedia(to, {
     type: "image",
-    image: { link, ...(caption ? { caption: caption.slice(0, 1024) } : {}) },
+    image: {
+      link,
+      ...(caption ? { caption: stripMarkdownForWhatsApp(caption).slice(0, 1024) } : {}),
+    },
   });
 }
 
@@ -293,7 +296,7 @@ export async function sendWhatsAppDocument(
     document: {
       link,
       filename: filename.slice(0, 240),
-      ...(caption ? { caption: caption.slice(0, 1024) } : {}),
+      ...(caption ? { caption: stripMarkdownForWhatsApp(caption).slice(0, 1024) } : {}),
     },
   });
 }
