@@ -462,25 +462,34 @@ function ConectarDialog({
                 ? "Use o e-mail e a senha do Titan (dav.titan.email). O e-mail continua hospedado normalmente."
                 : "Use o Apple ID e uma senha de app gerada em appleid.apple.com (o iCloud não aceita a senha principal)."}
             </p>
-            <input
-              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
-              placeholder="Apelido da agenda"
-              value={nome}
-              onChange={(e) => setNome(e.target.value)}
-            />
-            <input
-              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
-              placeholder={provider === "titan" ? "contato@viaair.tur.br" : "seu@icloud.com"}
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-            <input
-              type="password"
-              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
-              placeholder={provider === "titan" ? "Senha do Titan" : "Senha de app do iCloud"}
-              value={senha}
-              onChange={(e) => setSenha(e.target.value)}
-            />
+            <label className="block text-xs font-medium text-foreground">
+              Apelido da agenda
+              <input
+                className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground"
+                placeholder={provider === "titan" ? "Ex.: Titan VIA AIR" : "Ex.: iCloud pessoal"}
+                value={nome}
+                onChange={(e) => setNome(e.target.value)}
+              />
+            </label>
+            <label className="block text-xs font-medium text-foreground">
+              E-mail
+              <input
+                className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground"
+                placeholder={provider === "titan" ? "contato@viaair.tur.br" : "seu@icloud.com"}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+            </label>
+            <label className="block text-xs font-medium text-foreground">
+              {provider === "titan" ? "Senha do Titan" : "Senha de app do iCloud"}
+              <input
+                type="password"
+                className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground"
+                placeholder="••••••••"
+                value={senha}
+                onChange={(e) => setSenha(e.target.value)}
+              />
+            </label>
             <Button className="w-full" onClick={buscarCalendarios} disabled={ocupado || !email || !senha}>
               {ocupado ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
               Buscar calendários
@@ -489,20 +498,25 @@ function ConectarDialog({
         )}
 
         {opcoes.length > 0 && (
-          <ul className="mt-2 space-y-2">
-            {opcoes.map((op) => (
-              <li key={op.url ?? op.id}>
-                <button
-                  type="button"
-                  disabled={ocupado}
-                  onClick={() => escolher(op)}
-                  className="w-full rounded-md border border-border px-3 py-2 text-left text-sm hover:bg-muted"
-                >
-                  {op.nome}
-                </button>
-              </li>
-            ))}
-          </ul>
+          <div className="mt-2">
+            <p className="mb-2 text-xs text-muted-foreground">
+              Escolha qual calendário vc quer trazer pra cá (dá pra conectar vários, um de cada vez):
+            </p>
+            <ul className="space-y-2">
+              {opcoes.map((op) => (
+                <li key={op.url ?? op.id}>
+                  <button
+                    type="button"
+                    disabled={ocupado}
+                    onClick={() => escolher(op)}
+                    className="w-full rounded-md border border-border px-3 py-2 text-left text-sm text-foreground hover:bg-muted"
+                  >
+                    {op.nome}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
         )}
         {provider === "google" && ocupado && opcoes.length === 0 && (
           <p className="text-xs text-muted-foreground">Buscando seus calendários do Google…</p>
