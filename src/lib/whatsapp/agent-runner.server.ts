@@ -347,6 +347,105 @@ export async function runAgent(input: {
   let centralBrief = typeof routingState?.central_brief === "string" ? routingState.central_brief : null;
   let centralPrimeiroContato = false;
 
+  /* ── TRAVA DE SETOR PELA SOLICITAÇÃO AÉREA ATIVA ────────────────────────
+     Enquanto existir uma solicitação aérea em aberto neste protocolo, o
+     atendimento é do Aéreo (Paula/Bruno). Resposta curta ("isso", "ok", "?")
+     NÃO recalcula produto nem setor — ela pertence à cotação em andamento.
+     O setor só muda quando o cliente pede outra necessidade de verdade
+     (hotel, carro, pacote, seguro, pós-venda...). */
+  let flightBlock = "";
+  {
+    const {
+      loadActiveFlightRequest,
+      closeActiveFlightRequests,
+      updateFlightRequest,
+      markFlightProgress,
+      clearPendingQuestion,
+      registerCustomerNudge,
+      buildFlightRequestBlock,
+    } = await import("./flight-request.server");
+    const { classifyCustomerMessage, detectarMudancaDeNecessidade, resolvePendingFlightAnswer } =
+      await import("./short-answer");
+
+    const ativa = await loadActiveFlightRequest(protocolo.id).catch(() => null);
+    if (ativa) {
+      const { data: ultimaIn } = await supabaseAdmin
+        .from("wa_messages")
+        .select("id, content")
+        .eq("conversation_id", conv.id)
+        .eq("direction", "inbound")
+        .eq("protocolo_id", protocolo.id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      const texto = ((ultimaIn?.content as string | null) ?? "").trim();
+      const mudanca = detectarMudancaDeNecessidade(texto);
+
+      if (mudanca) {
+        // Mudança real de necessidade: encerra a solicitação aérea e deixa a
+        // triagem/consultor assumirem normalmente.
+        await closeActiveFlightRequests({
+          protocol_id: protocolo.id,
+          status: "transferred",
+          reason: `mudanca_de_necessidade:${mudanca}`,
+        });
+        await logProtocolEvent("flight_request_closed", {
+          conversation_id: conv.id,
+          protocolo_id: protocolo.id,
+          search_request_id: ativa.id,
+          motivo: `mudanca_de_necessidade:${mudanca}`,
+        });
+      } else {
+        // Setor travado no aéreo — sem nova triagem.
+        centralSlug = ativa.agent_slug ?? centralSlug;
+        const kind = classifyCustomerMessage(texto, {
+          pesquisaEmAndamento: ativa.status === "searching" || ativa.status === "delivering",
+        });
+        if (kind === "nudge") await registerCustomerNudge(ativa).catch(() => {});
+
+        // Resolvedor determinístico da pergunta pendente.
+        let resolvido: string | null = null;
+        const r = resolvePendingFlightAnswer({
+          pending_question: ativa.pending_question,
+          pending_question_context: ativa.pending_question_context,
+          texto,
+        });
+        if (r.resolved) {
+          await markFlightProgress(ativa.id, {
+            ...r.patch,
+            next_action: r.next_action,
+            status: r.next_action === "run_search" ? "searching" : "collecting",
+            last_customer_message_id: (ultimaIn?.id as string | undefined) ?? null,
+          } as never);
+          await clearPendingQuestion(ativa.id);
+          resolvido = r.note ?? String(ativa.pending_question);
+          Object.assign(ativa, r.patch, { next_action: r.next_action, pending_question: null });
+          await logProtocolEvent("flight_request_answer_resolved", {
+            conversation_id: conv.id,
+            protocolo_id: protocolo.id,
+            search_request_id: ativa.id,
+            pergunta: ativa.pending_question,
+            resolvido,
+          });
+        } else if (r.ambiguous) {
+          await updateFlightRequest(ativa.id, { recovery_priority: "high" } as never);
+        }
+
+        flightBlock = buildFlightRequestBlock(ativa, {
+          resolvido,
+          cobranca: kind === "nudge",
+        });
+        await logProtocolEvent("flight_sector_locked", {
+          conversation_id: conv.id,
+          protocolo_id: protocolo.id,
+          search_request_id: ativa.id,
+          agent_slug: ativa.agent_slug,
+          status: ativa.status,
+        });
+      }
+    }
+  }
+
   if (!centralSlug) {
     const triagem = await triageFirstMessage(conv).catch((err) => {
       console.error("[agent] triagem inicial falhou:", err);
