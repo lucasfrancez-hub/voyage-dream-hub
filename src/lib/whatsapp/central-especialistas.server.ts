@@ -477,6 +477,40 @@ export function buildCentralTools(
           (somente_com_bagagem ? `\n🧳 Cliente pediu bagagem despachada` : "") +
           filtrosTexto;
 
+        // AVISO HUMANO ANTES DA BUSCA: "Claro! Já vou verificar aqui pra vc".
+        // Sai na hora, antes do motor rodar — o cliente nunca fica no vácuo
+        // esperando os cards. Só uma vez a cada 3 min por conversa.
+        try {
+          const conv = conversation as unknown as { wa_phone?: string; display_name?: string | null };
+          if (conv.wa_phone) {
+            const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+            const desde = new Date(Date.now() - 3 * 60_000).toISOString();
+            const { data: recentes } = await supabaseAdmin
+              .from("wa_messages")
+              .select("content")
+              .eq("conversation_id", conversation.id)
+              .eq("direction", "outbound")
+              .gte("created_at", desde)
+              .order("created_at", { ascending: false })
+              .limit(6);
+            const { AVISO_PESQUISA_RE, montarAvisoPesquisa } = await import("./aviso-pesquisa");
+            const jaAvisou = (recentes ?? []).some((m) =>
+              AVISO_PESQUISA_RE.test(String((m as { content?: string }).content ?? "")),
+            );
+            if (!jaAvisou) {
+              const { saveAndSendText } = await import("./conversation.server");
+              const { firstName } = await import("./text-utils.server");
+              await saveAndSendText(
+                conversation.id,
+                conv.wa_phone,
+                montarAvisoPesquisa(firstName(conv.display_name ?? null)),
+                3,
+              );
+            }
+          }
+        } catch (e) {
+          console.warn("[central] aviso pré-pesquisa falhou:", (e as Error)?.message ?? e);
+        }
 
         try {
           const { quoteFlights } = await import("./flight-quote.server");
