@@ -258,7 +258,7 @@ async function entregarOpcao(
   const supabaseAdmin = await db();
   const { saveMessage, setSendError, SENDING_CLAIM } = await import("./conversation.server");
   const { abortIfHumanTookOver } = await import("./human-takeover.server");
-  const { sendWhatsAppImageBytesDetailed, sendWhatsAppText } = await import("./send.server");
+  const { sendWhatsAppImagePreferLink, sendWhatsAppText } = await import("./send.server");
   const { formatOptionText } = await import("./flight-option-text.server");
   const { logCardEvent } = await import("./card-log.server");
 
@@ -414,12 +414,14 @@ async function entregarOpcao(
       .eq("id", linha.id);
 
 
-    const r = await sendWhatsAppImageBytesDetailed(
+    // Manda pelo LINK da arte (leve). O upload dos bytes só entra se o link
+    // falhar — era ele que estourava o worker e deixava o balão "não entregue".
+    const r = await sendWhatsAppImagePreferLink(
       ctx.wa_phone,
-      asset.bytes,
+      asset.url,
+      asset.bytes ?? null,
       asset.filename,
       caption,
-      asset.url,
     );
     if (msg?.id) {
       await supabaseAdmin
