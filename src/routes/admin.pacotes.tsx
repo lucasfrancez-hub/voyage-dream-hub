@@ -1322,10 +1322,10 @@ function AdminPackages() {
                             setSocialChannel("whatsapp");
                             setSocialPkg(p);
                           }}
-                          className="flex h-7 w-7 items-center justify-center rounded-lg text-[#25D366] transition-colors hover:bg-[#25D366]/15"
+                          className="flex h-6 w-6 items-center justify-center rounded-lg text-[#25D366] transition-colors hover:bg-[#25D366]/15"
                           title="Gerar texto para WhatsApp"
                         >
-                          <WhatsAppIcon className="h-[15px] w-[15px]" />
+                          <WhatsAppIcon className="h-[14px] w-[14px]" />
                         </button>
                         <button
                           type="button"
@@ -1333,18 +1333,18 @@ function AdminPackages() {
                             setSocialChannel("instagram");
                             setSocialPkg(p);
                           }}
-                          className="flex h-7 w-7 items-center justify-center rounded-lg text-[#E1306C] transition-colors hover:bg-[#E1306C]/15"
+                          className="flex h-6 w-6 items-center justify-center rounded-lg text-[#E1306C] transition-colors hover:bg-[#E1306C]/15"
                           title="Gerar legenda para Instagram"
                         >
-                          <InstagramIcon className="h-[15px] w-[15px]" />
+                          <InstagramIcon className="h-[14px] w-[14px]" />
                         </button>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <button
-                              className="flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-brand-orange/15 hover:text-brand-orange"
+                              className="flex h-6 w-6 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-brand-orange/15 hover:text-brand-orange"
                               title="Baixar arte para redes sociais"
                             >
-                              <Download className="h-[15px] w-[15px]" strokeWidth={2} />
+                              <Download className="h-[14px] w-[14px]" strokeWidth={2} />
                             </button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
@@ -1403,22 +1403,22 @@ function AdminPackages() {
                       </div>
 
                       {/* Gestão */}
-                      <div className="flex items-center gap-0.5 rounded-xl border border-border/60 bg-background/50 px-1.5 py-1">
+                      <div className="flex items-center gap-0.5 rounded-xl border border-border/60 bg-background/50 px-1 py-0.5">
                         <a
                           href={`/pacotes/${p.slug}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-brand-orange/15 hover:text-brand-orange"
+                          className="flex h-6 w-6 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-brand-orange/15 hover:text-brand-orange"
                           title="Abrir página do pacote"
                         >
-                          <LinkIcon className="h-[15px] w-[15px]" strokeWidth={2} />
+                          <LinkIcon className="h-[14px] w-[14px]" strokeWidth={2} />
                         </a>
                         <button
                           onClick={() => setEditing(p)}
-                          className="flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-foreground/10 hover:text-foreground"
+                          className="flex h-6 w-6 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-foreground/10 hover:text-foreground"
                           title="Editar"
                         >
-                          <Pencil className="h-[15px] w-[15px]" strokeWidth={2} />
+                          <Pencil className="h-[14px] w-[14px]" strokeWidth={2} />
                         </button>
                         <button
                           onClick={() => {
@@ -1431,17 +1431,17 @@ function AdminPackages() {
                             } as any);
                             toast.info("Duplicando pacote — ajuste as datas e salve.");
                           }}
-                          className="flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-brand-orange/15 hover:text-brand-orange"
+                          className="flex h-6 w-6 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-brand-orange/15 hover:text-brand-orange"
                           title="Duplicar"
                         >
-                          <Copy className="h-[15px] w-[15px]" strokeWidth={2} />
+                          <Copy className="h-[14px] w-[14px]" strokeWidth={2} />
                         </button>
                         <button
                           onClick={() => remove(p)}
-                          className="flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground/60 transition-colors hover:bg-red-500/15 hover:text-red-500"
+                          className="flex h-6 w-6 items-center justify-center rounded-lg text-muted-foreground/60 transition-colors hover:bg-red-500/15 hover:text-red-500"
                           title="Excluir"
                         >
-                          <Trash2 className="h-[15px] w-[15px]" strokeWidth={2} />
+                          <Trash2 className="h-[14px] w-[14px]" strokeWidth={2} />
                         </button>
                       </div>
                     </div>
