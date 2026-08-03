@@ -233,13 +233,17 @@ export async function sendPendingFlightCards(
     todas.filter((o) => jaFps.has(fingerprint(o))).map((o) => horarioIda(o)).filter(Boolean),
   );
   const candidatas = force ? todas : todas.filter((o) => !jaFps.has(fingerprint(o)));
-  // UMA opção por rodada: renderiza, envia e devolve o controle. O cron chama
-  // de novo no minuto seguinte pra mandar a próxima.
-  const proxima = candidatas.find((o) => {
+  // LOTE por rodada: com as artes pré-geradas em paralelo (cache), mandamos as
+  // 2-3 opções da cotação na MESMA rodada, espaçadas por poucos segundos, em vez
+  // de uma por minuto. O que não couber no lote fica pra próxima execução.
+  const opcoes: OptLite[] = [];
+  for (const o of candidatas) {
+    if (opcoes.length >= restante) break;
     const h = horarioIda(o);
-    return !h || !horariosUsados.has(h);
-  });
-  const opcoes: OptLite[] = proxima ? [proxima] : [];
+    if (h && horariosUsados.has(h)) continue;
+    if (h) horariosUsados.add(h);
+    opcoes.push(o);
+  }
   if (!opcoes.length) {
     await supabaseAdmin
       .from("wa_flight_quotes")
