@@ -217,17 +217,21 @@ export const Route = createFileRoute("/api/public/hooks/flight-quote-watchdog")(
               /\[\[media:image/i.test(m.content ?? ""),
           );
           if (cards.length) {
-            // Entrega concluída: fecha com um convite, uma vez só.
-            const jaFechou = depois.some((m) => (m.content ?? "").includes(MARCA_FECHO));
+            // Entrega concluída: fecha puxando a venda, uma vez só e sempre
+            // com texto variado (ver fecho-cotacao.ts).
+            const { montarFecho, FECHO_RE } = await import("@/lib/whatsapp/fecho-cotacao");
+            const jaFechou = depois.some(
+              (m) => (m.content ?? "").includes(MARCA_FECHO) || FECHO_RE.test(m.content ?? ""),
+            );
             const ultimoCard = new Date(cards[cards.length - 1].created_at).getTime();
-            if (!jaFechou && cards.length >= 2 && now - ultimoCard > 60_000) {
-              const fecho =
-                `${voc}${MARCA_FECHO}. Os valores já consideram tarifas e taxas; ` +
-                `o acúmulo de milhas depende da regra da tarifa e do programa da companhia.\n\n` +
-                `Dá uma olhada e me diz se alguma ficou boa pra você. Se preferir outro horário, eu pesquiso mais duas alternativas`;
-              await saveAndSend(convId, conv.wa_phone as string, fecho);
+            const espera = cards.length >= 2 ? 60_000 : 180_000;
+            if (!jaFechou && now - ultimoCard > espera) {
+              for (const balao of montarFecho(nome, cards.length)) {
+                await saveAndSend(convId, conv.wa_phone as string, balao);
+              }
               avisados.push(convId);
             }
+
             continue;
           }
 
