@@ -32,6 +32,11 @@ export const Route = createFileRoute("/agenda/$token")({
   head: ({ params }) => ({
     meta: [
       { title: "Agenda VIA AIR" },
+      {
+        name: "viewport",
+        content:
+          "width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover",
+      },
       { name: "description", content: "Agenda unificada da VIA AIR: Google, Titan e iCloud num app só." },
       { name: "robots", content: "noindex, nofollow" },
       { name: "theme-color", content: "#080d1a" },
@@ -50,6 +55,7 @@ export const Route = createFileRoute("/agenda/$token")({
       { rel: "apple-touch-icon", sizes: "180x180", href: "/apple-touch-icon-agenda.png" },
     ],
   }),
+
 
 });
 
