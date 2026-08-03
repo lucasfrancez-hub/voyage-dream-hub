@@ -128,3 +128,42 @@ function AgentRow({ name, count, shift }: { name: string; count: number; shift: 
     </div>
   );
 }
+
+function ChannelCard({
+  title,
+  icon: Icon,
+  accent,
+  primary,
+  primaryLabel,
+  rows,
+}: {
+  title: string;
+  icon: LucideIcon;
+  accent: string;
+  primary: number;
+  primaryLabel: string;
+  rows: { label: string; value: number }[];
+}) {
+  return (
+    <div className="rounded-lg border border-slate-200 bg-white p-4">
+      <div className="flex items-center gap-2">
+        <div className={`inline-flex h-8 w-8 items-center justify-center rounded-md ${accent}`}>
+          <Icon className="h-4 w-4" />
+        </div>
+        <div className="text-sm font-semibold text-slate-900">{title}</div>
+      </div>
+      <div className="mt-3 text-2xl font-semibold text-slate-900">{primary}</div>
+      <div className="text-xs text-slate-500">{primaryLabel}</div>
+      {rows.length > 0 && (
+        <div className="mt-3 space-y-1 border-t border-slate-100 pt-2">
+          {rows.map((r) => (
+            <div key={r.label} className="flex items-center justify-between text-xs">
+              <span className="text-slate-500">{r.label}</span>
+              <span className="font-medium text-slate-900">{r.value}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
