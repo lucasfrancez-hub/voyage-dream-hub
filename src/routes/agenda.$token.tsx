@@ -477,31 +477,15 @@ function Painel({ token, pin, nome, vapid }: { token: string; pin: string | null
         ) : null}
       </main>
 
-      {/* abas */}
-      <nav
-        className="fixed inset-x-0 bottom-0 z-30 mx-auto flex max-w-xl justify-around border-t px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 backdrop-blur-xl"
-        style={{ background: "rgba(8,13,26,0.85)", borderColor: "rgba(255,255,255,0.08)" }}
-      >
-        {(["dia", "semana", "mes", "lista"] as Modo[]).map((m) => (
-          <button
-            key={m}
-            onClick={() => setModo(m)}
-            className="flex flex-1 flex-col items-center gap-1 rounded-xl py-1.5 text-[11px] capitalize"
-            style={{ color: modo === m ? "#F26B1F" : "rgba(255,255,255,0.55)" }}
-          >
-            <span className="text-[15px] font-semibold">{m === "mes" ? "Mês" : m[0]!.toUpperCase() + m.slice(1)}</span>
-            <span className="h-0.5 w-6 rounded-full" style={{ background: modo === m ? "#F26B1F" : "transparent" }} />
-          </button>
-        ))}
-      </nav>
-
       {/* novo compromisso */}
       <button
         onClick={() => setNovo(true)}
         aria-label="Adicionar compromisso"
-        className="fixed bottom-[calc(4.5rem+env(safe-area-inset-bottom))] right-[max(1rem,calc(50vw-19rem))] z-40 flex h-14 w-14 items-center justify-center rounded-2xl text-white shadow-lg transition active:scale-95"
-        style={{ background: "linear-gradient(140deg,#F26B1F,#d1560f)", boxShadow: "0 12px 30px rgba(242,107,31,0.35)" }}
+        className="fixed bottom-[calc(1.5rem+env(safe-area-inset-bottom))] right-[max(1rem,calc(50vw-19rem))] z-40 flex h-16 w-16 items-center justify-center rounded-full text-white shadow-lg transition active:scale-95"
+        style={{ background: "linear-gradient(140deg,#F26B1F,#d1560f)", boxShadow: "0 12px 30px rgba(242,107,31,0.4)" }}
       >
+        <Plus className="h-7 w-7" />
+
         <Plus className="h-6 w-6" />
       </button>
 
