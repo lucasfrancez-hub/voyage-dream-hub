@@ -6,8 +6,8 @@ import { Pause, Play, Search, Send, Bot, User, MoreVertical, Loader2, Inbox as I
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
-import { listConversations, listMessages, sendHumanReply, resendHumanMessage, sendHumanMedia, toggleConversationMode, startOutboundConversation, setFunnelStage, assignConversation, setAiPaused, listAttendants, getActiveProtocolo, closeProtocoloManually, listConversationProtocolos, getConversationOrders, updateProtocoloDetails, listProtocoloMessages, ensureProtocoloResumo, clearConversationHistory } from "@/lib/chat/queries.functions";
-import { listInstagramConversations, listInstagramMessages, sendInstagramAttachment, sendInstagramReply, listInstagramComments, triggerAutoReplyComment } from "@/lib/instagram/queries.functions";
+import { listConversations, listMessages, sendHumanReply, resendHumanMessage, sendHumanMedia, toggleConversationMode, startOutboundConversation, setFunnelStage, assignConversation, setAiPaused, listAttendants, getActiveProtocolo, closeProtocoloManually, listConversationProtocolos, getConversationOrders, updateProtocoloDetails, listProtocoloMessages, ensureProtocoloResumo, clearConversationHistory, markConversationRead } from "@/lib/chat/queries.functions";
+import { listInstagramConversations, listInstagramMessages, sendInstagramAttachment, sendInstagramReply, listInstagramComments, triggerAutoReplyComment, markInstagramConversationRead } from "@/lib/instagram/queries.functions";
 import { firstName } from "@/lib/whatsapp/text-utils.shared";
 import { confirmThen } from "@/lib/confirm";
 import { audioBlobToMp3 } from "@/lib/audio-to-mp3";
@@ -209,6 +209,27 @@ function InboxPage() {
     if (typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches) return;
     if (!activeId && filtered.length > 0) setActiveId(filtered[0].id);
   }, [filtered, activeId, channel]);
+
+  // Marca como lida ao abrir a conversa (WhatsApp e Instagram)
+  const qcInbox = useQueryClient();
+  const markWaReadFn = useServerFn(markConversationRead);
+  const markIgReadFn = useServerFn(markInstagramConversationRead);
+  useEffect(() => {
+    if (!activeId) return;
+    if (channel === "whatsapp") {
+      const conv = conversations.find((c) => c.id === activeId);
+      if (!conv || (conv.unread_count ?? 0) <= 0) return;
+      markWaReadFn({ data: { conversation_id: activeId } })
+        .then(() => qcInbox.invalidateQueries({ queryKey: ["chat", "conversations"] }))
+        .catch(() => {});
+    } else if (channel === "instagram_dm") {
+      const conv = igConversations.find((c: any) => c.id === activeId);
+      if (!conv || ((conv as any).unread_count ?? 0) <= 0) return;
+      markIgReadFn({ data: { conversation_id: activeId } })
+        .then(() => qcInbox.invalidateQueries({ queryKey: ["ig", "conversations"] }))
+        .catch(() => {});
+    }
+  }, [activeId, channel, conversations, igConversations, markWaReadFn, markIgReadFn, qcInbox]);
 
 
   const active = channel === "whatsapp"
