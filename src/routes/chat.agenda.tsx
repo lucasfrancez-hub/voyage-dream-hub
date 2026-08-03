@@ -39,6 +39,7 @@ import {
   testarCalendario,
   verificarConflitos,
 } from "@/lib/calendar.functions";
+import { criarLinkAgenda, listarLinksAgenda, removerLinkAgenda } from "@/lib/calendar-app.functions";
 
 export const Route = createFileRoute("/chat/agenda")({
   ssr: false,
@@ -929,5 +930,115 @@ function DetalhesDialog({
         </div>
       </DialogContent>
     </Dialog>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* App privado (link secreto + PIN)                                    */
+/* ------------------------------------------------------------------ */
+
+function AppPrivado() {
+  const carregar = useServerFn(listarLinksAgenda);
+  const criar = useServerFn(criarLinkAgenda);
+  const excluir = useServerFn(removerLinkAgenda);
+
+  const [links, setLinks] = useState<Array<{ id: string; token: string; nome: string; ativo: boolean; temPin: boolean; last_seen_at: string | null }>>([]);
+  const [aparelhos, setAparelhos] = useState(0);
+  const [pin, setPin] = useState("");
+  const [nome, setNome] = useState("");
+  const [salvando, setSalvando] = useState(false);
+
+  const recarregar = useCallback(async () => {
+    const r = (await carregar()) as { links: typeof links; aparelhos: number };
+    setLinks(r.links);
+    setAparelhos(r.aparelhos);
+  }, [carregar]);
+
+  useEffect(() => {
+    void recarregar();
+  }, [recarregar]);
+
+  const base = typeof window === "undefined" ? "" : window.location.origin;
+
+  return (
+    <section className="rounded-xl border border-border bg-card p-4">
+      <h2 className="mb-1 text-sm font-semibold text-foreground">App no celular</h2>
+      <p className="mb-3 text-xs text-muted-foreground">
+        Link secreto (sem login) para adicionar à tela de início. Protegido por PIN de 4 números.
+      </p>
+
+      <ul className="space-y-2">
+        {links.map((l) => (
+          <li key={l.id} className="rounded-lg border border-border/70 p-3">
+            <div className="flex items-center gap-2">
+              <span className="flex-1 truncate text-sm text-foreground">{l.nome}</span>
+              <button
+                type="button"
+                aria-label="Copiar link"
+                onClick={() => {
+                  void navigator.clipboard.writeText(`${base}/agenda/${l.token}`);
+                  toast.success("Link copiado.");
+                }}
+              >
+                <Copy className="h-4 w-4 text-muted-foreground hover:text-primary" />
+              </button>
+              <button
+                type="button"
+                aria-label="Remover link"
+                onClick={async () => {
+                  const ok = await confirm({
+                    title: "Remover este link?",
+                    description: "Quem já instalou o app perde o acesso na hora.",
+                  });
+                  if (!ok) return;
+                  await excluir({ data: { id: l.id } });
+                  toast.success("Link removido.");
+                  void recarregar();
+                }}
+              >
+                <Trash2 className="h-4 w-4 text-muted-foreground hover:text-destructive" />
+              </button>
+            </div>
+            <p className="mt-1 break-all text-[11px] text-muted-foreground">{`${base}/agenda/${l.token}`}</p>
+          </li>
+        ))}
+        {links.length === 0 && <p className="text-xs text-muted-foreground">Nenhum link criado ainda.</p>}
+      </ul>
+
+      <div className="mt-3 space-y-2">
+        <Input placeholder="Nome (ex.: iPhone do Lucas)" value={nome} onChange={(e) => setNome(e.target.value)} />
+        <Input
+          placeholder="PIN de 4 números"
+          inputMode="numeric"
+          maxLength={4}
+          value={pin}
+          onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
+        />
+        <Button
+          size="sm"
+          className="w-full"
+          disabled={salvando || pin.length !== 4}
+          onClick={async () => {
+            setSalvando(true);
+            try {
+              const r = (await criar({ data: { nome, pin } })) as { token: string };
+              await navigator.clipboard.writeText(`${base}/agenda/${r.token}`).catch(() => {});
+              toast.success("Link criado e copiado.");
+              setPin("");
+              setNome("");
+              void recarregar();
+            } catch (err) {
+              toast.error(err instanceof Error ? err.message : "Falha ao criar o link.");
+            } finally {
+              setSalvando(false);
+            }
+          }}
+        >
+          {salvando ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Plus className="mr-2 h-4 w-4" />}
+          Criar link do app
+        </Button>
+        <p className="text-[11px] text-muted-foreground">{aparelhos} aparelho(s) recebendo notificações.</p>
+      </div>
+    </section>
   );
 }
