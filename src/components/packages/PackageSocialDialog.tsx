@@ -174,6 +174,16 @@ export function PackageSocialDialog({
     }
   }
 
+  const autoKey = useRef<string | null>(null);
+  useEffect(() => {
+    if (!open || !pkg) return;
+    const key = `${pkg.id}:${initialChannel ?? ""}`;
+    if (!initialChannel || autoKey.current === key) return;
+    autoKey.current = key;
+    void handleGenerate(initialChannel);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, pkg?.id, initialChannel]);
+
   return (
     <Dialog
       open={open}
@@ -182,11 +192,11 @@ export function PackageSocialDialog({
         if (!v) {
           setOutput(null);
           setShareFile(null);
-        } else if (initialChannel && !output && loading === null) {
-          void handleGenerate(initialChannel);
+          autoKey.current = null;
         }
       }}
     >
+
       <DialogContent className="max-w-xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-base">
