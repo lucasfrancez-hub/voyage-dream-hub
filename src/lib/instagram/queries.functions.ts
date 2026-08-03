@@ -58,6 +58,25 @@ export const upsertInstagramAccount = createServerFn({ method: "POST" })
     return { id: row!.id };
   });
 
+export const getInstagramDiagnostics = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data: isAdmin } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
+    if (!isAdmin) throw new Error("Apenas admins podem consultar o diagnóstico do Instagram");
+    const diagnostics = await import("./diagnostics.server");
+    return diagnostics.getInstagramDiagnostics();
+  });
+
+export const testInstagramConnection = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { account_id?: string }) => z.object({ account_id: z.string().uuid().optional() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { data: isAdmin } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
+    if (!isAdmin) throw new Error("Apenas admins podem testar o Instagram");
+    const diagnostics = await import("./diagnostics.server");
+    return diagnostics.runInstagramHealthCheck(data.account_id);
+  });
+
 // ============ Conversas / DMs ============
 
 export const listInstagramConversations = createServerFn({ method: "GET" })

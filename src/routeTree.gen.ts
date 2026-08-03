@@ -100,6 +100,7 @@ import { Route as ApiPublicHooksCloseInactiveProtocolsRouteImport } from './rout
 import { Route as ApiPublicHooksDispatchAiDebouncedRouteImport } from './routes/api/public/hooks/dispatch-ai-debounced'
 import { Route as ApiPublicHooksFlightCardsContinueRouteImport } from './routes/api/public/hooks/flight-cards-continue'
 import { Route as ApiPublicHooksFlightQuoteWatchdogRouteImport } from './routes/api/public/hooks/flight-quote-watchdog'
+import { Route as ApiPublicHooksInstagramHealthRouteImport } from './routes/api/public/hooks/instagram-health'
 import { Route as ApiPublicHooksKeepWindowAliveRouteImport } from './routes/api/public/hooks/keep-window-alive'
 import { Route as ApiPublicHooksRunCheckinsRouteImport } from './routes/api/public/hooks/run-checkins'
 import { Route as ApiPublicHooksSyncCalendarsRouteImport } from './routes/api/public/hooks/sync-calendars'
@@ -580,6 +581,12 @@ const ApiPublicHooksFlightQuoteWatchdogRoute =
     path: '/api/public/hooks/flight-quote-watchdog',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicHooksInstagramHealthRoute =
+  ApiPublicHooksInstagramHealthRouteImport.update({
+    id: '/api/public/hooks/instagram-health',
+    path: '/api/public/hooks/instagram-health',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicHooksKeepWindowAliveRoute =
   ApiPublicHooksKeepWindowAliveRouteImport.update({
     id: '/api/public/hooks/keep-window-alive',
@@ -725,6 +732,7 @@ export interface FileRoutesByFullPath {
   '/api/public/hooks/dispatch-ai-debounced': typeof ApiPublicHooksDispatchAiDebouncedRoute
   '/api/public/hooks/flight-cards-continue': typeof ApiPublicHooksFlightCardsContinueRoute
   '/api/public/hooks/flight-quote-watchdog': typeof ApiPublicHooksFlightQuoteWatchdogRoute
+  '/api/public/hooks/instagram-health': typeof ApiPublicHooksInstagramHealthRoute
   '/api/public/hooks/keep-window-alive': typeof ApiPublicHooksKeepWindowAliveRoute
   '/api/public/hooks/run-checkins': typeof ApiPublicHooksRunCheckinsRoute
   '/api/public/hooks/sync-calendars': typeof ApiPublicHooksSyncCalendarsRoute
@@ -826,6 +834,7 @@ export interface FileRoutesByTo {
   '/api/public/hooks/dispatch-ai-debounced': typeof ApiPublicHooksDispatchAiDebouncedRoute
   '/api/public/hooks/flight-cards-continue': typeof ApiPublicHooksFlightCardsContinueRoute
   '/api/public/hooks/flight-quote-watchdog': typeof ApiPublicHooksFlightQuoteWatchdogRoute
+  '/api/public/hooks/instagram-health': typeof ApiPublicHooksInstagramHealthRoute
   '/api/public/hooks/keep-window-alive': typeof ApiPublicHooksKeepWindowAliveRoute
   '/api/public/hooks/run-checkins': typeof ApiPublicHooksRunCheckinsRoute
   '/api/public/hooks/sync-calendars': typeof ApiPublicHooksSyncCalendarsRoute
@@ -929,6 +938,7 @@ export interface FileRoutesById {
   '/api/public/hooks/dispatch-ai-debounced': typeof ApiPublicHooksDispatchAiDebouncedRoute
   '/api/public/hooks/flight-cards-continue': typeof ApiPublicHooksFlightCardsContinueRoute
   '/api/public/hooks/flight-quote-watchdog': typeof ApiPublicHooksFlightQuoteWatchdogRoute
+  '/api/public/hooks/instagram-health': typeof ApiPublicHooksInstagramHealthRoute
   '/api/public/hooks/keep-window-alive': typeof ApiPublicHooksKeepWindowAliveRoute
   '/api/public/hooks/run-checkins': typeof ApiPublicHooksRunCheckinsRoute
   '/api/public/hooks/sync-calendars': typeof ApiPublicHooksSyncCalendarsRoute
@@ -1033,6 +1043,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/dispatch-ai-debounced'
     | '/api/public/hooks/flight-cards-continue'
     | '/api/public/hooks/flight-quote-watchdog'
+    | '/api/public/hooks/instagram-health'
     | '/api/public/hooks/keep-window-alive'
     | '/api/public/hooks/run-checkins'
     | '/api/public/hooks/sync-calendars'
@@ -1134,6 +1145,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/dispatch-ai-debounced'
     | '/api/public/hooks/flight-cards-continue'
     | '/api/public/hooks/flight-quote-watchdog'
+    | '/api/public/hooks/instagram-health'
     | '/api/public/hooks/keep-window-alive'
     | '/api/public/hooks/run-checkins'
     | '/api/public/hooks/sync-calendars'
@@ -1236,6 +1248,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/dispatch-ai-debounced'
     | '/api/public/hooks/flight-cards-continue'
     | '/api/public/hooks/flight-quote-watchdog'
+    | '/api/public/hooks/instagram-health'
     | '/api/public/hooks/keep-window-alive'
     | '/api/public/hooks/run-checkins'
     | '/api/public/hooks/sync-calendars'
@@ -1298,6 +1311,7 @@ export interface RootRouteChildren {
   ApiPublicHooksDispatchAiDebouncedRoute: typeof ApiPublicHooksDispatchAiDebouncedRoute
   ApiPublicHooksFlightCardsContinueRoute: typeof ApiPublicHooksFlightCardsContinueRoute
   ApiPublicHooksFlightQuoteWatchdogRoute: typeof ApiPublicHooksFlightQuoteWatchdogRoute
+  ApiPublicHooksInstagramHealthRoute: typeof ApiPublicHooksInstagramHealthRoute
   ApiPublicHooksKeepWindowAliveRoute: typeof ApiPublicHooksKeepWindowAliveRoute
   ApiPublicHooksRunCheckinsRoute: typeof ApiPublicHooksRunCheckinsRoute
   ApiPublicHooksSyncCalendarsRoute: typeof ApiPublicHooksSyncCalendarsRoute
@@ -1948,6 +1962,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksFlightQuoteWatchdogRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/instagram-health': {
+      id: '/api/public/hooks/instagram-health'
+      path: '/api/public/hooks/instagram-health'
+      fullPath: '/api/public/hooks/instagram-health'
+      preLoaderRoute: typeof ApiPublicHooksInstagramHealthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/keep-window-alive': {
       id: '/api/public/hooks/keep-window-alive'
       path: '/api/public/hooks/keep-window-alive'
@@ -2186,6 +2207,7 @@ const rootRouteChildren: RootRouteChildren = {
     ApiPublicHooksFlightCardsContinueRoute,
   ApiPublicHooksFlightQuoteWatchdogRoute:
     ApiPublicHooksFlightQuoteWatchdogRoute,
+  ApiPublicHooksInstagramHealthRoute: ApiPublicHooksInstagramHealthRoute,
   ApiPublicHooksKeepWindowAliveRoute: ApiPublicHooksKeepWindowAliveRoute,
   ApiPublicHooksRunCheckinsRoute: ApiPublicHooksRunCheckinsRoute,
   ApiPublicHooksSyncCalendarsRoute: ApiPublicHooksSyncCalendarsRoute,
