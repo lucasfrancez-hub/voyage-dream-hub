@@ -11,6 +11,27 @@ export type FlowNodeTipo = "inicio" | "condicao" | "intencao" | "acao" | "setor"
 /** Setor responsável — casa com o roteamento real do chatbot. */
 export type FlowSetor = "aereo" | "consultoria" | "comercial" | null;
 
+/** O que o quadro dispara quando o atendimento passa por ele. */
+export type FlowAcaoTipo =
+  | "mensagem"
+  | "pergunta"
+  | "pesquisar_voos"
+  | "enviar_cards"
+  | "buscar_pacotes"
+  | "transferir"
+  | "abrir_protocolo"
+  | "encerrar_protocolo"
+  | "notificar_humano"
+  | "aguardar"
+  | "tag";
+
+export type FlowAcao = {
+  id: string;
+  tipo: FlowAcaoTipo;
+  /** Texto livre: o que exatamente a IA faz/dispara aqui. */
+  detalhe: string;
+};
+
 export type FlowNodeData = {
   titulo: string;
   tipo: FlowNodeTipo;
@@ -18,6 +39,8 @@ export type FlowNodeData = {
   descricao: string;
   /** Gatilhos textuais que levam a este caminho. */
   keywords: string[];
+  /** Ações/disparos executados neste ponto (opcional). */
+  acoes?: FlowAcao[];
 };
 
 export type FlowNode = {
