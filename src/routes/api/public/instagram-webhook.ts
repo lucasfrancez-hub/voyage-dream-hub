@@ -98,10 +98,13 @@ async function processPayload(payload: IGPayload) {
     // ID business 17841... (guardado em page_id). Aceita os dois.
     const { data: account } = await supabaseAdmin
       .from("instagram_accounts")
-      .select("id")
+      .select("id, ig_user_id, page_id, access_token")
       .or(`ig_user_id.eq.${igAccountId},page_id.eq.${igAccountId}`)
       .maybeSingle();
     if (!account) throw new Error(`Conta ${igAccountId} não cadastrada`);
+    const igToken = (account as { access_token?: string }).access_token ?? null;
+    const igApiUserId = (account as { ig_user_id?: string }).ig_user_id ?? igAccountId;
+
 
     // ============ DMs ============
     for (const msg of entry.messaging ?? []) {
