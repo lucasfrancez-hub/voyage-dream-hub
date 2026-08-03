@@ -232,6 +232,10 @@ export const criarCompromisso = createServerFn({ method: "POST" })
     fim: string;
     telefone?: string | null;
     accountId?: string | null;
+    diaInteiro?: boolean | null;
+    linkReuniao?: string | null;
+    url?: string | null;
+    convidados?: string[] | null;
   }) => {
     if (!d?.titulo?.trim()) throw new Error("Informe o título do compromisso.");
     if (!d?.inicio || !d?.fim) throw new Error("Informe início e fim.");
