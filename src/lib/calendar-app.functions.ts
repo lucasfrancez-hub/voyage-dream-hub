@@ -102,6 +102,10 @@ export const criarEventoAgendaApp = createServerFn({ method: "POST" })
     inicio: string;
     fim: string;
     accountId?: string | null;
+    diaInteiro?: boolean | null;
+    linkReuniao?: string | null;
+    convidados?: string[] | null;
+    url?: string | null;
   }) => {
     if (!d?.token) throw new Error("Link inválido.");
     if (!d?.titulo?.trim()) throw new Error("Informe o título do compromisso.");
@@ -119,6 +123,10 @@ export const criarEventoAgendaApp = createServerFn({ method: "POST" })
       inicio: data.inicio,
       fim: data.fim,
       accountId: data.accountId ?? null,
+      diaInteiro: data.diaInteiro ?? false,
+      linkReuniao: data.linkReuniao ?? null,
+      convidados: data.convidados ?? null,
+      url: data.url ?? null,
       criado_por: `app:${link.nome}`,
     });
     return { ok: true, id: evento.id };
