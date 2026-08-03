@@ -174,6 +174,12 @@ export function fluxoParaTexto(flow: Pick<Flow, "nome" | "nodes" | "edges">): st
     if (d.setor) partes.push(`  → responsável: ${SETOR_LABEL[d.setor] ?? d.setor}`);
     if (d.descricao) partes.push(`  → ${d.descricao}`);
     if (d.keywords?.length) partes.push(`  → gatilhos: ${d.keywords.join(", ")}`);
+    if (d.acoes?.length)
+      partes.push(
+        `  → ações aqui: ${d.acoes
+          .map((a) => `${ACAO_LABEL[a.tipo] ?? a.tipo}${a.detalhe ? ` (${a.detalhe})` : ""}`)
+          .join(" | ")}`,
+      );
     if (saidas.length) partes.push(`  → segue para: ${saidas.join(" | ")}`);
     linhas.push(partes.join("\n"));
   }
