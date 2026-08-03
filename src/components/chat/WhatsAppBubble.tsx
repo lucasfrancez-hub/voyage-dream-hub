@@ -77,16 +77,17 @@ export function WhatsAppBubble({ side, content, timestamp, senderLabel, status, 
           "relative max-w-[70%] rounded-lg px-3 py-2 shadow-sm",
           isOut ? "bg-[var(--chat-bubble-out)]" : "bg-[var(--chat-bubble-in)]",
         )}
-        style={{ color: "var(--chat-bubble-fg)" }}
+        style={{ color: isOut ? "var(--chat-bubble-out-fg)" : "var(--chat-bubble-fg)" }}
       >
         {label && (
           <div
             className="mb-0.5 text-[11px] font-bold"
-            style={{ color: isOut ? "var(--brand-orange)" : "color-mix(in oklab, var(--chat-bubble-fg) 65%, transparent)" }}
+            style={{ color: isOut ? "var(--chat-bubble-out-fg)" : "color-mix(in oklab, var(--chat-bubble-fg) 65%, transparent)" }}
           >
             {label}:
           </div>
         )}
+
         {reply && (
           <div
             className="mb-1 rounded-md border-l-4 bg-black/10 px-2 py-1 text-[11px] leading-tight"
