@@ -64,7 +64,24 @@ export type QuoteMemory = {
   opcoes: QuoteOptionMemory[];
   /** Opções que ainda não saíram (arte pendente). */
   pendentes: number[];
+  /** Parâmetros brutos da pesquisa — base do refino incremental. */
+  busca: {
+    origem: string | null;
+    origem_iata: string | null;
+    destino: string | null;
+    destino_iata: string | null;
+    data_ida: string | null;
+    data_volta: string | null;
+    adultos: number | null;
+    criancas: number | null;
+    bebes: number | null;
+    bagagem_despachada: boolean | null;
+    somente_voo_direto: boolean | null;
+    companhias_incluidas: string[] | null;
+    companhias_excluidas: string[] | null;
+  };
 };
+
 
 const hora = (s: string | null | undefined): string => String(s ?? "").split(" ")[1] ?? "—";
 const dia = (s: string | null | undefined): string => String(s ?? "").split(" ")[0] ?? "—";
