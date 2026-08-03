@@ -97,6 +97,7 @@ import { Route as ApiPublicHooksCloseInactiveProtocolsRouteImport } from './rout
 import { Route as ApiPublicHooksDispatchAiDebouncedRouteImport } from './routes/api/public/hooks/dispatch-ai-debounced'
 import { Route as ApiPublicHooksFlightCardsContinueRouteImport } from './routes/api/public/hooks/flight-cards-continue'
 import { Route as ApiPublicHooksFlightQuoteWatchdogRouteImport } from './routes/api/public/hooks/flight-quote-watchdog'
+import { Route as ApiPublicHooksKeepWindowAliveRouteImport } from './routes/api/public/hooks/keep-window-alive'
 import { Route as ApiPublicHooksRunCheckinsRouteImport } from './routes/api/public/hooks/run-checkins'
 import { Route as ApiPublicPackageHotelPhotoSplatRouteImport } from './routes/api/public/package-hotel-photo.$'
 import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
@@ -558,6 +559,12 @@ const ApiPublicHooksFlightQuoteWatchdogRoute =
     path: '/api/public/hooks/flight-quote-watchdog',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicHooksKeepWindowAliveRoute =
+  ApiPublicHooksKeepWindowAliveRouteImport.update({
+    id: '/api/public/hooks/keep-window-alive',
+    path: '/api/public/hooks/keep-window-alive',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicHooksRunCheckinsRoute =
   ApiPublicHooksRunCheckinsRouteImport.update({
     id: '/api/public/hooks/run-checkins',
@@ -688,6 +695,7 @@ export interface FileRoutesByFullPath {
   '/api/public/hooks/dispatch-ai-debounced': typeof ApiPublicHooksDispatchAiDebouncedRoute
   '/api/public/hooks/flight-cards-continue': typeof ApiPublicHooksFlightCardsContinueRoute
   '/api/public/hooks/flight-quote-watchdog': typeof ApiPublicHooksFlightQuoteWatchdogRoute
+  '/api/public/hooks/keep-window-alive': typeof ApiPublicHooksKeepWindowAliveRoute
   '/api/public/hooks/run-checkins': typeof ApiPublicHooksRunCheckinsRoute
   '/api/public/package-hotel-photo/$': typeof ApiPublicPackageHotelPhotoSplatRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
@@ -784,6 +792,7 @@ export interface FileRoutesByTo {
   '/api/public/hooks/dispatch-ai-debounced': typeof ApiPublicHooksDispatchAiDebouncedRoute
   '/api/public/hooks/flight-cards-continue': typeof ApiPublicHooksFlightCardsContinueRoute
   '/api/public/hooks/flight-quote-watchdog': typeof ApiPublicHooksFlightQuoteWatchdogRoute
+  '/api/public/hooks/keep-window-alive': typeof ApiPublicHooksKeepWindowAliveRoute
   '/api/public/hooks/run-checkins': typeof ApiPublicHooksRunCheckinsRoute
   '/api/public/package-hotel-photo/$': typeof ApiPublicPackageHotelPhotoSplatRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
@@ -882,6 +891,7 @@ export interface FileRoutesById {
   '/api/public/hooks/dispatch-ai-debounced': typeof ApiPublicHooksDispatchAiDebouncedRoute
   '/api/public/hooks/flight-cards-continue': typeof ApiPublicHooksFlightCardsContinueRoute
   '/api/public/hooks/flight-quote-watchdog': typeof ApiPublicHooksFlightQuoteWatchdogRoute
+  '/api/public/hooks/keep-window-alive': typeof ApiPublicHooksKeepWindowAliveRoute
   '/api/public/hooks/run-checkins': typeof ApiPublicHooksRunCheckinsRoute
   '/api/public/package-hotel-photo/$': typeof ApiPublicPackageHotelPhotoSplatRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
@@ -981,6 +991,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/dispatch-ai-debounced'
     | '/api/public/hooks/flight-cards-continue'
     | '/api/public/hooks/flight-quote-watchdog'
+    | '/api/public/hooks/keep-window-alive'
     | '/api/public/hooks/run-checkins'
     | '/api/public/package-hotel-photo/$'
     | '/lovable/email/auth/preview'
@@ -1077,6 +1088,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/dispatch-ai-debounced'
     | '/api/public/hooks/flight-cards-continue'
     | '/api/public/hooks/flight-quote-watchdog'
+    | '/api/public/hooks/keep-window-alive'
     | '/api/public/hooks/run-checkins'
     | '/api/public/package-hotel-photo/$'
     | '/lovable/email/auth/preview'
@@ -1174,6 +1186,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/dispatch-ai-debounced'
     | '/api/public/hooks/flight-cards-continue'
     | '/api/public/hooks/flight-quote-watchdog'
+    | '/api/public/hooks/keep-window-alive'
     | '/api/public/hooks/run-checkins'
     | '/api/public/package-hotel-photo/$'
     | '/lovable/email/auth/preview'
@@ -1231,6 +1244,7 @@ export interface RootRouteChildren {
   ApiPublicHooksDispatchAiDebouncedRoute: typeof ApiPublicHooksDispatchAiDebouncedRoute
   ApiPublicHooksFlightCardsContinueRoute: typeof ApiPublicHooksFlightCardsContinueRoute
   ApiPublicHooksFlightQuoteWatchdogRoute: typeof ApiPublicHooksFlightQuoteWatchdogRoute
+  ApiPublicHooksKeepWindowAliveRoute: typeof ApiPublicHooksKeepWindowAliveRoute
   ApiPublicHooksRunCheckinsRoute: typeof ApiPublicHooksRunCheckinsRoute
   ApiPublicPackageHotelPhotoSplatRoute: typeof ApiPublicPackageHotelPhotoSplatRoute
   LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
@@ -1858,6 +1872,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksFlightQuoteWatchdogRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/keep-window-alive': {
+      id: '/api/public/hooks/keep-window-alive'
+      path: '/api/public/hooks/keep-window-alive'
+      fullPath: '/api/public/hooks/keep-window-alive'
+      preLoaderRoute: typeof ApiPublicHooksKeepWindowAliveRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/run-checkins': {
       id: '/api/public/hooks/run-checkins'
       path: '/api/public/hooks/run-checkins'
@@ -2079,6 +2100,7 @@ const rootRouteChildren: RootRouteChildren = {
     ApiPublicHooksFlightCardsContinueRoute,
   ApiPublicHooksFlightQuoteWatchdogRoute:
     ApiPublicHooksFlightQuoteWatchdogRoute,
+  ApiPublicHooksKeepWindowAliveRoute: ApiPublicHooksKeepWindowAliveRoute,
   ApiPublicHooksRunCheckinsRoute: ApiPublicHooksRunCheckinsRoute,
   ApiPublicPackageHotelPhotoSplatRoute: ApiPublicPackageHotelPhotoSplatRoute,
   LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,
@@ -2090,3 +2112,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
