@@ -1277,7 +1277,7 @@ function AdminPackages() {
                   </div>
 
                   {/* Status + Actions */}
-                  <div className="col-span-1 md:col-span-2 flex flex-row md:flex-col items-center md:items-end justify-between md:justify-center gap-3">
+                  <div className="col-span-1 md:col-span-3 flex flex-row md:flex-col flex-wrap items-center md:items-end justify-between md:justify-center gap-2">
                     <button
                       type="button"
                       role="switch"
@@ -1286,30 +1286,25 @@ function AdminPackages() {
                       title={
                         p.is_active ? "Ativo · toque para ocultar" : "Oculto · toque para ativar"
                       }
-                      className="group inline-flex items-center gap-2 select-none focus:outline-none"
+                      className="group inline-flex items-center gap-1.5 select-none focus:outline-none"
                     >
                       <span
-                        className={`relative inline-flex h-[26px] w-[52px] shrink-0 items-center rounded-sm border transition-colors duration-200 ${
+                        className={`relative inline-flex h-[18px] w-[34px] shrink-0 items-center rounded-full border transition-colors duration-200 ${
                           p.is_active
                             ? "bg-brand-orange/10 border-brand-orange"
-                            : "bg-[#1A1D23] border-[#2D333D]"
+                            : "bg-muted border-border"
                         } group-focus-visible:ring-2 group-focus-visible:ring-brand-orange/40`}
                       >
                         <span
-                          className={`absolute top-[3px] left-[3px] flex h-[18px] w-[18px] items-center justify-center rounded-sm shadow-md transition-transform duration-300 ease-out ${
+                          className={`absolute top-[2px] left-[2px] h-[12px] w-[12px] rounded-full shadow-sm transition-transform duration-300 ease-out ${
                             p.is_active
-                              ? "translate-x-[26px] bg-brand-orange"
-                              : "translate-x-0 bg-[#3D4450]"
+                              ? "translate-x-[16px] bg-brand-orange"
+                              : "translate-x-0 bg-muted-foreground/60"
                           }`}
-                        >
-                          <span className="flex gap-[2px]">
-                            <span className="h-2 w-[2px] rounded-full bg-black/25" />
-                            <span className="h-2 w-[2px] rounded-full bg-black/25" />
-                          </span>
-                        </span>
+                        />
                       </span>
                       <span
-                        className={`text-[10px] font-black uppercase tracking-tighter ${
+                        className={`text-[9px] font-bold uppercase tracking-wider ${
                           p.is_active ? "text-brand-orange" : "text-muted-foreground"
                         }`}
                       >
@@ -1317,9 +1312,10 @@ function AdminPackages() {
                       </span>
                     </button>
 
-                    <div className="flex items-center gap-1">
+                    <div className="flex flex-nowrap items-center justify-end gap-1">
                       {/* Divulgação */}
-                      <div className="flex items-center gap-0.5 rounded-xl border border-border/60 bg-background/50 px-1.5 py-1">
+                      <div className="flex items-center gap-0.5 rounded-xl border border-border/60 bg-background/50 px-1 py-0.5">
+
                         <button
                           type="button"
                           onClick={() => {
