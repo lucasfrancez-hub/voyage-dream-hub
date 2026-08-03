@@ -11,6 +11,27 @@ export type FlowNodeTipo = "inicio" | "condicao" | "intencao" | "acao" | "setor"
 /** Setor responsável — casa com o roteamento real do chatbot. */
 export type FlowSetor = "aereo" | "consultoria" | "comercial" | null;
 
+/** O que o quadro dispara quando o atendimento passa por ele. */
+export type FlowAcaoTipo =
+  | "mensagem"
+  | "pergunta"
+  | "pesquisar_voos"
+  | "enviar_cards"
+  | "buscar_pacotes"
+  | "transferir"
+  | "abrir_protocolo"
+  | "encerrar_protocolo"
+  | "notificar_humano"
+  | "aguardar"
+  | "tag";
+
+export type FlowAcao = {
+  id: string;
+  tipo: FlowAcaoTipo;
+  /** Texto livre: o que exatamente a IA faz/dispara aqui. */
+  detalhe: string;
+};
+
 export type FlowNodeData = {
   titulo: string;
   tipo: FlowNodeTipo;
@@ -18,6 +39,8 @@ export type FlowNodeData = {
   descricao: string;
   /** Gatilhos textuais que levam a este caminho. */
   keywords: string[];
+  /** Ações/disparos executados neste ponto (opcional). */
+  acoes?: FlowAcao[];
 };
 
 export type FlowNode = {
@@ -59,6 +82,20 @@ export const TIPO_LABEL: Record<FlowNodeTipo, string> = {
   acao: "Ação",
   setor: "Setor",
   regra: "Regra",
+};
+
+export const ACAO_LABEL: Record<FlowAcaoTipo, string> = {
+  mensagem: "Enviar mensagem",
+  pergunta: "Perguntar ao cliente",
+  pesquisar_voos: "Pesquisar voos",
+  enviar_cards: "Enviar cards de cotação",
+  buscar_pacotes: "Buscar pacotes",
+  transferir: "Transferir de setor",
+  abrir_protocolo: "Abrir protocolo",
+  encerrar_protocolo: "Encerrar protocolo",
+  notificar_humano: "Notificar humano",
+  aguardar: "Aguardar resposta",
+  tag: "Marcar etiqueta",
 };
 
 /** Mesma normalização da triagem: sem acento, minúsculo, letras repetidas. */
@@ -137,6 +174,12 @@ export function fluxoParaTexto(flow: Pick<Flow, "nome" | "nodes" | "edges">): st
     if (d.setor) partes.push(`  → responsável: ${SETOR_LABEL[d.setor] ?? d.setor}`);
     if (d.descricao) partes.push(`  → ${d.descricao}`);
     if (d.keywords?.length) partes.push(`  → gatilhos: ${d.keywords.join(", ")}`);
+    if (d.acoes?.length)
+      partes.push(
+        `  → ações aqui: ${d.acoes
+          .map((a) => `${ACAO_LABEL[a.tipo] ?? a.tipo}${a.detalhe ? ` (${a.detalhe})` : ""}`)
+          .join(" | ")}`,
+      );
     if (saidas.length) partes.push(`  → segue para: ${saidas.join(" | ")}`);
     linhas.push(partes.join("\n"));
   }
