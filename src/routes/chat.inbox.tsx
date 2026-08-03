@@ -119,6 +119,21 @@ function InboxPage() {
     });
   }, [conversations, folder, search]);
 
+  // Instagram: reaproveita o espelho em wa_conversations pra mostrar protocolo/funil na lateral
+  const igListFn = useServerFn(listInstagramConversations);
+  const { data: igConversations = [] } = useQuery({
+    queryKey: ["ig", "conversations"],
+    queryFn: () => igListFn(),
+    refetchInterval: 15_000,
+    enabled: channel === "instagram_dm",
+  });
+  const igActive = channel === "instagram_dm" && activeId ? igConversations.find((c) => c.id === activeId) ?? null : null;
+  const igMirrorConv = igActive
+    ? conversations.find((c) => c.wa_phone === `ig:${igActive.contact_ig_id}`) ?? null
+    : null;
+
+
+
   // Realtime + push notifications (desktop/electron/web)
   useEffect(() => {
     if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "default") {
