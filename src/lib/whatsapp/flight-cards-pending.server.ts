@@ -158,7 +158,7 @@ export async function sendPendingFlightCards(
   // ---- espaçamento entre as duas artes ----
   const desdeNum = protocolOpenedAt ?? new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
   const { ultimoEm } = await ultimoEnvio(conversationId, desdeNum);
-  if (!force && ultimoEm && Date.now() - ultimoEm < INTERVALO_MS) {
+  if (!force && !ignorarIntervalo && ultimoEm && Date.now() - ultimoEm < INTERVALO_MS) {
     return { sent: 0, quote_id: row.id as string };
   }
   // Elegível agora: a partir daqui só falta o claim e o render.
