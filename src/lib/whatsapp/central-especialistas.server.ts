@@ -184,9 +184,15 @@ export async function transferirParaConsultores(
   conversation: WaConversation,
   params: { agenteAnterior: string; contexto: string; pedido?: string | null },
 ) {
+  const { data: atual } = await supabaseAdmin
+    .from("wa_conversations")
+    .select("meta")
+    .eq("id", conversation.id)
+    .maybeSingle();
+
   const meta = {
-    ...((conversation.meta as Record<string, unknown> | null) ?? {}),
-    transferencia_consultores: {
+    ...(((atual?.meta as Record<string, unknown> | null) ?? {}) as Record<string, unknown>),
+
       motivo: "interesse_em_pacote",
       agente_anterior: params.agenteAnterior,
       destino_do_roteamento: "consultores",
