@@ -280,21 +280,50 @@ export async function buscarEventos(
   const r = await dav(auth, calendarUrl, "REPORT", body, { Depth: "1" });
   const doc = parseXml(r.text);
   const eventos: CalDavEvent[] = [];
+  const pendentes: { href: string; etag: string | null }[] = [];
+
   for (const resp of findAll(doc, "response")) {
     const href = firstText(resp, "href");
+    if (!href) continue;
+    const url = absolutize(auth.serverUrl, href);
+    if (!/\.ics$/i.test(url) && !firstText(resp, "calendar-data")) continue;
     const ics = firstText(resp, "calendar-data");
-    if (!href || !ics) continue;
-    const parsed = parseIcs(ics);
-    if (!parsed) continue;
-    eventos.push({
-      ...parsed,
-      href: absolutize(auth.serverUrl, href),
-      etag: firstText(resp, "getetag"),
-      rawIcs: ics,
-    });
+    const etag = firstText(resp, "getetag");
+    const parsed = ics ? parseIcs(ics) : null;
+    if (parsed) {
+      eventos.push({ ...parsed, href: url, etag, rawIcs: ics! });
+    } else if (/\.ics$/i.test(url)) {
+      // Titan devolve o REPORT sem o VEVENT: baixamos cada item individualmente.
+      pendentes.push({ href: url, etag });
+    }
   }
-  return eventos;
+
+  if (pendentes.length) {
+    const lote = pendentes.slice(0, 300);
+    const baixados = await Promise.all(
+      lote.map(async ({ href, etag }) => {
+        try {
+          const item = await dav(auth, href, "GET", null, { Accept: "text/calendar" });
+          const parsed = parseIcs(item.text);
+          return parsed ? { ...parsed, href, etag: etag ?? item.etag, rawIcs: item.text } : null;
+        } catch {
+          return null;
+        }
+      }),
+    );
+    for (const e of baixados) if (e) eventos.push(e);
+  }
+
+  // alguns servidores ignoram o time-range: filtramos aqui também
+  const ini = de.getTime();
+  const fim = ate.getTime();
+  return eventos.filter((e) => {
+    const a = new Date(e.inicio).getTime();
+    const b = new Date(e.fim).getTime();
+    return Number.isFinite(a) && Number.isFinite(b) ? b > ini && a < fim : true;
+  });
 }
+
 
 type IcsCore = Omit<CalDavEvent, "href" | "etag" | "rawIcs">;
 
