@@ -118,7 +118,7 @@ export async function sendPendingFlightCards(
     if (force) return true;
     if (!r.cards_sent_at) return true;
     const idade = Date.now() - new Date(r.cards_sent_at).getTime();
-    return idade > CLAIM_TRAVADO_MS && contaFps(r) < MAX_OPCOES;
+    return idade > CLAIM_TRAVADO_MS && contaFps(r) < limiteOpcoes;
   };
 
   const quotesRecentes = (rows ?? []) as Array<{
@@ -210,7 +210,7 @@ export async function sendPendingFlightCards(
       ? ((row as { sent_fingerprints: unknown[] }).sent_fingerprints as unknown[]).map(String)
       : [],
   );
-  const restante = force ? MAX_OPCOES : MAX_OPCOES - fpsDaCotacao.size;
+  const restante = force ? limiteOpcoes : limiteOpcoes - fpsDaCotacao.size;
   if (restante <= 0) {
     await supabaseAdmin
       .from("wa_flight_quotes")
@@ -541,7 +541,7 @@ export async function sendPendingFlightCards(
   // Concluiu a cotação só quando as 2 opções saíram (arte ou texto); senão
   // libera o claim pra que a próxima rodada do cron mande a etapa seguinte.
   const totalEnviadas = fpsDaCotacao.size + novosFps.length;
-  const concluiu = totalEnviadas >= MAX_OPCOES;
+  const concluiu = totalEnviadas >= limiteOpcoes;
   await supabaseAdmin
     .from("wa_flight_quotes")
     .update({ cards_sent_at: concluiu ? new Date().toISOString() : null })
