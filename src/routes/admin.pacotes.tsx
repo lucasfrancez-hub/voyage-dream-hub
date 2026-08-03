@@ -1216,11 +1216,12 @@ function AdminPackages() {
 
           {/* Row Header */}
           <div className="hidden md:grid grid-cols-12 px-8 py-2 text-[10px] font-bold uppercase tracking-[0.3em] text-muted-foreground/60">
-            <div className="col-span-5">Identificação do Pacote</div>
+            <div className="col-span-4">Identificação do Pacote</div>
             <div className="col-span-3 text-center">Período Operacional</div>
             <div className="col-span-2 text-right">Valor Base</div>
-            <div className="col-span-2 text-right">Status / Gestão</div>
+            <div className="col-span-3 text-right">Status / Gestão</div>
           </div>
+
 
           {/* List */}
           <div className="space-y-3 mt-2">
