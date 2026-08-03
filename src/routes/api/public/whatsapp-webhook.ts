@@ -391,11 +391,41 @@ async function processPayload(payload: WhatsAppPayload) {
           });
           const caption =
             (msg.type === "image" ? msg.image?.caption : msg.type === "video" ? msg.video?.caption : msg.document?.caption) ?? "";
+
+          // ANÁLISE MULTIMODAL — infraestrutura comum a TODOS os agentes.
+          // Roda na ingestão, antes de qualquer agente responder, e a leitura
+          // vira parte do conteúdo da mensagem (memória do protocolo).
+          let analiseBloco = "";
+          const { analyzeImage, isAnalyzableImage, buildAnalysisBlock } = await import(
+            "@/lib/whatsapp/image-vision.server"
+          );
+          if (isAnalyzableImage(media.mimeType)) {
+            console.log(
+              JSON.stringify({
+                event: "image_received",
+                conversation_id: conv.id,
+                from: msg.from,
+                media_id: part.id,
+                mime_type: media.mimeType,
+                bytes: media.blob.size,
+                at: new Date().toISOString(),
+              }),
+            );
+            const analysis = await analyzeImage({
+              blob: media.blob,
+              mimeType: media.mimeType,
+              caption,
+              conversationId: conv.id,
+            });
+            analiseBloco = `\n${buildAnalysisBlock(analysis)}`;
+          }
+
           if (!stored) {
-            content = caption || `📎 [${msg.type} recebido — falha ao salvar]`;
+            const label = caption || `📎 [${msg.type} recebido — falha ao salvar]`;
+            content = `${label}${analiseBloco}`;
           } else {
             const label = kind === "image" ? "🖼️ [imagem recebida]" : kind === "video" ? "🎬 [vídeo recebido]" : "📎 [documento recebido]";
-            content = `[[media:${kind}|${stored.url}|${stored.filename}]]\n${caption || label}`;
+            content = `[[media:${kind}|${stored.url}|${stored.filename}]]\n${caption || label}${analiseBloco}`;
           }
         } else {
           console.log(`[wa-webhook] tipo não suportado: ${msg.type}`);
