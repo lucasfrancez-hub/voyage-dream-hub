@@ -590,6 +590,10 @@ function NovoCompromissoDialog({
   const [descricao, setDescricao] = useState("");
   const [inicio, setInicio] = useState("");
   const [fim, setFim] = useState("");
+  const [diaInteiro, setDiaInteiro] = useState(false);
+  const [linkReuniao, setLinkReuniao] = useState("");
+  const [url, setUrl] = useState("");
+  const [convidados, setConvidados] = useState("");
   const [choques, setChoques] = useState<Evento[]>([]);
   const [salvando, setSalvando] = useState(false);
 
@@ -618,6 +622,13 @@ function NovoCompromissoDialog({
           inicio: brtParaIso(inicio),
           fim: brtParaIso(fim),
           accountId: accountId || null,
+          diaInteiro,
+          linkReuniao: linkReuniao.trim() || null,
+          url: url.trim() || null,
+          convidados: convidados
+            .split(/[,;\s]+/)
+            .map((e) => e.trim())
+            .filter((e) => e.includes("@")),
         },
       });
       toast.success("Compromisso criado.");
@@ -629,63 +640,121 @@ function NovoCompromissoDialog({
     }
   }
 
+  const campo =
+    "w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40";
+  const rotulo = "mb-1 block text-xs font-medium text-muted-foreground";
+
   return (
     <Dialog open onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-h-[85vh] max-w-md overflow-y-auto bg-card text-card-foreground">
         <DialogHeader>
-          <DialogTitle>Novo compromisso</DialogTitle>
+          <DialogTitle className="text-foreground">Novo compromisso</DialogTitle>
         </DialogHeader>
         <div className="space-y-3">
-          <input
-            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
-            placeholder="Título"
-            value={titulo}
-            onChange={(e) => setTitulo(e.target.value)}
-          />
-          <div className="grid grid-cols-2 gap-2">
-            <label className="text-xs text-muted-foreground">
-              Início
-              <input
-                type="datetime-local"
-                className="mt-1 w-full rounded-md border border-border bg-background px-2 py-2 text-sm"
-                value={inicio}
-                onChange={(e) => setInicio(e.target.value)}
-              />
-            </label>
-            <label className="text-xs text-muted-foreground">
-              Fim
-              <input
-                type="datetime-local"
-                className="mt-1 w-full rounded-md border border-border bg-background px-2 py-2 text-sm"
-                value={fim}
-                onChange={(e) => setFim(e.target.value)}
-              />
-            </label>
+          <div>
+            <label className={rotulo}>Título</label>
+            <input
+              className={campo}
+              placeholder="Ex.: Reunião com cliente"
+              value={titulo}
+              onChange={(e) => setTitulo(e.target.value)}
+            />
           </div>
-          <input
-            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
-            placeholder="Local (opcional)"
-            value={local}
-            onChange={(e) => setLocal(e.target.value)}
-          />
-          <textarea
-            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
-            rows={2}
-            placeholder="Observações (opcional)"
-            value={descricao}
-            onChange={(e) => setDescricao(e.target.value)}
-          />
+
+          <label className="flex items-center gap-2 text-sm text-foreground">
+            <input
+              type="checkbox"
+              className="h-4 w-4 accent-[hsl(var(--primary))]"
+              checked={diaInteiro}
+              onChange={(e) => setDiaInteiro(e.target.checked)}
+            />
+            Dia inteiro
+          </label>
+
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className={rotulo}>Início</label>
+              <input
+                type={diaInteiro ? "date" : "datetime-local"}
+                className={campo}
+                value={diaInteiro ? inicio.slice(0, 10) : inicio}
+                onChange={(e) =>
+                  setInicio(diaInteiro ? `${e.target.value}T00:00` : e.target.value)
+                }
+              />
+            </div>
+            <div>
+              <label className={rotulo}>Fim</label>
+              <input
+                type={diaInteiro ? "date" : "datetime-local"}
+                className={campo}
+                value={diaInteiro ? fim.slice(0, 10) : fim}
+                onChange={(e) => setFim(diaInteiro ? `${e.target.value}T23:59` : e.target.value)}
+              />
+            </div>
+          </div>
 
           <div>
-            <p className="mb-1 text-xs text-muted-foreground">Salvar em:</p>
+            <label className={rotulo}>Local</label>
+            <input
+              className={campo}
+              placeholder="Endereço ou sala (opcional)"
+              value={local}
+              onChange={(e) => setLocal(e.target.value)}
+            />
+          </div>
+
+          <div>
+            <label className={rotulo}>Link da reunião</label>
+            <input
+              className={campo}
+              placeholder="https://meet.google.com/..."
+              value={linkReuniao}
+              onChange={(e) => setLinkReuniao(e.target.value)}
+            />
+          </div>
+
+          <div>
+            <label className={rotulo}>Link relacionado</label>
+            <input
+              className={campo}
+              placeholder="Pedido, proposta, documento… (opcional)"
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+            />
+          </div>
+
+          <div>
+            <label className={rotulo}>Convidados</label>
+            <input
+              className={campo}
+              placeholder="email1@dominio.com, email2@dominio.com"
+              value={convidados}
+              onChange={(e) => setConvidados(e.target.value)}
+            />
+          </div>
+
+          <div>
+            <label className={rotulo}>Observações</label>
+            <textarea
+              className={campo}
+              rows={2}
+              placeholder="Detalhes do compromisso (opcional)"
+              value={descricao}
+              onChange={(e) => setDescricao(e.target.value)}
+            />
+          </div>
+
+          <div>
+            <p className={rotulo}>Salvar em</p>
             <div className="space-y-1">
               {contas.map((c) => (
                 <button
                   key={c.id}
                   type="button"
                   onClick={() => setAccountId(c.id)}
-                  className={`flex w-full items-center gap-2 rounded-md border px-3 py-2 text-sm ${
-                    accountId === c.id ? "border-primary bg-primary/10" : "border-border"
+                  className={`flex w-full items-center gap-2 rounded-md border px-3 py-2 text-sm text-foreground ${
+                    accountId === c.id ? "border-primary bg-primary/10" : "border-border bg-background"
                   }`}
                 >
                   <span className="h-2.5 w-2.5 rounded-full" style={{ background: c.cor }} />
