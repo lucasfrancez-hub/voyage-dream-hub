@@ -1338,8 +1338,11 @@ export type Database = {
           from_ig_id: string | null
           from_username: string | null
           id: string
+          media_caption: string | null
           media_id: string
           media_permalink: string | null
+          media_thumbnail: string | null
+          media_type: string | null
           metadata: Json
           parent_comment_id: string | null
           text: string | null
@@ -1356,8 +1359,11 @@ export type Database = {
           from_ig_id?: string | null
           from_username?: string | null
           id?: string
+          media_caption?: string | null
           media_id: string
           media_permalink?: string | null
+          media_thumbnail?: string | null
+          media_type?: string | null
           metadata?: Json
           parent_comment_id?: string | null
           text?: string | null
@@ -1374,8 +1380,11 @@ export type Database = {
           from_ig_id?: string | null
           from_username?: string | null
           id?: string
+          media_caption?: string | null
           media_id?: string
           media_permalink?: string | null
+          media_thumbnail?: string | null
+          media_type?: string | null
           metadata?: Json
           parent_comment_id?: string | null
           text?: string | null
