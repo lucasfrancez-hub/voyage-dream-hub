@@ -1092,17 +1092,39 @@ export const listAttendants = createServerFn({ method: "GET" })
 export const getDashboardMetrics = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const [conv, msg, contacts] = await Promise.all([
-      context.supabase.from("wa_conversations").select("mode, agent_slug", { count: "exact" }),
+    const desde14d = new Date(Date.now() - 14 * 24 * 3600 * 1000).toISOString();
+    const [conv, msg, contacts, igMsg, igComments] = await Promise.all([
+      context.supabase.from("wa_conversations").select("mode, agent_slug, wa_phone", { count: "exact" }),
       context.supabase
         .from("wa_messages")
         .select("created_at, sender, direction", { count: "exact" })
-        .gte("created_at", new Date(Date.now() - 14 * 24 * 3600 * 1000).toISOString()),
+        .gte("created_at", desde14d),
       context.supabase.from("people").select("id", { count: "exact", head: true }),
+      context.supabase
+        .from("instagram_messages")
+        .select("created_at", { count: "exact" })
+        .gte("created_at", desde14d),
+      context.supabase
+        .from("instagram_comments")
+        .select("created_at", { count: "exact" })
+        .gte("created_at", desde14d),
     ]);
 
     const conversations = conv.data ?? [];
     const messages = msg.data ?? [];
+    const igMessages = igMsg.data ?? [];
+    const comentarios = igComments.data ?? [];
+
+    // Conversas espelhadas do Instagram vivem em wa_conversations com wa_phone "ig:*"
+    const ehEspelhoIg = (c: { wa_phone?: string | null }) => !!c.wa_phone?.startsWith("ig:");
+    const convWhats = conversations.filter((c) => !ehEspelhoIg(c));
+    const convIg = conversations.filter(ehEspelhoIg);
+
+    // Mensagens de DM do Instagram são espelhadas em wa_messages; pra não contar
+    // duas vezes no total, o WhatsApp puro é o total menos as do Instagram.
+    const igMsgCount = igMsg.count ?? igMessages.length;
+    const waMsgCount = Math.max(0, (msg.count ?? 0) - igMsgCount);
+    const comentariosCount = igComments.count ?? comentarios.length;
 
     const byDay: Record<string, number> = {};
     for (const m of messages) {
@@ -1121,6 +1143,21 @@ export const getDashboardMetrics = createServerFn({ method: "GET" })
       humanConversations: conversations.filter((c) => c.mode === "human").length,
       aiConversations: conversations.filter((c) => c.mode === "ai").length,
       messages14d: msg.count ?? 0,
+      canais: {
+        whatsapp: {
+          conversas: convWhats.length,
+          abertas: convWhats.filter((c) => c.mode === "ai" || c.mode === "human").length,
+          mensagens14d: waMsgCount,
+        },
+        instagramDm: {
+          conversas: convIg.length,
+          abertas: convIg.filter((c) => c.mode === "ai" || c.mode === "human").length,
+          mensagens14d: igMsgCount,
+        },
+        comentarios: {
+          total14d: comentariosCount,
+        },
+      },
       byAgent: {
         camila: conversations.filter((c) => c.agent_slug === "camila").length,
         roberto: conversations.filter((c) => c.agent_slug === "roberto").length,
@@ -1128,6 +1165,7 @@ export const getDashboardMetrics = createServerFn({ method: "GET" })
       daily,
     };
   });
+
 
 export const listAgents = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
