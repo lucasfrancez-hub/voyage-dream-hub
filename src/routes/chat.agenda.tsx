@@ -308,7 +308,10 @@ function AgendaPage() {
               </Button>
             </div>
           </section>
+
+          <AppPrivado />
         </aside>
+
 
         {/* Calendário */}
         <main className="min-w-0 flex-1 space-y-4">
