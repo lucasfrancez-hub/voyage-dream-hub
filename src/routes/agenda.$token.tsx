@@ -301,6 +301,7 @@ function Painel({ token, pin, nome, vapid }: { token: string; pin: string | null
   const [carregando, setCarregando] = useState(true);
   const [detalhe, setDetalhe] = useState<Evento | null>(null);
   const [config, setConfig] = useState(false);
+  const [novo, setNovo] = useState(false);
 
   const buscar = useServerFn(eventosAgendaApp);
 
