@@ -510,6 +510,15 @@ async function processPayload(payload: WhatsAppPayload) {
           continue;
         }
 
+        // O cliente respondeu → janela de 24h da Meta reabriu.
+        // Reenvia automaticamente tudo que ficou preso por 131047.
+        try {
+          const { liberarFilaDaJanela } = await import("@/lib/whatsapp/janela-24h.server");
+          await liberarFilaDaJanela(conv.id, msg.from);
+        } catch (err) {
+          console.error("[wa-webhook] falha ao liberar fila da janela:", err);
+        }
+
         // Se foi resposta de botão do robô de voos (via id interativo), trata sem IA
         if (buttonReplyId && buttonReplyId.startsWith("flight_alert:")) {
           const { handleFlightAlertReply } = await import("@/lib/whatsapp/flight-alert-reply.server");
