@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import type { FlowEdge, FlowNode } from "@/lib/whatsapp/flow";
+import type { Flow, FlowEdge, FlowNode } from "@/lib/whatsapp/flow";
 
 /** Lista os fluxos de atendimento (mapa do chat). */
 export const listFlows = createServerFn({ method: "GET" })
@@ -18,7 +18,7 @@ export const listFlows = createServerFn({ method: "GET" })
       .select("id, slug, nome, descricao, ativo, versao, nodes, edges, updated_at, updated_by")
       .order("nome", { ascending: true });
     if (error) throw new Error(error.message);
-    return (data ?? []) as unknown[];
+    return (data ?? []) as Flow[];
   });
 
 /** Salva o desenho do fluxo (quadros, setas e palavras-chave). */
@@ -35,7 +35,7 @@ export const saveFlow = createServerFn({ method: "POST" })
         update: (v: Record<string, unknown>) => {
           eq: (c: string, v: string) => {
             select: (s: string) => {
-              maybeSingle: () => Promise<{ data: unknown; error: { message: string } | null }>;
+              maybeSingle: () => Promise<{ data: { id: string; versao: number; updated_at: string } | null; error: { message: string } | null }>;
             };
           };
         };
@@ -73,5 +73,5 @@ export const saveFlow = createServerFn({ method: "POST" })
     // O robô lê o mapa com cache de 1 min; derruba na hora após salvar.
     const { invalidarFluxoCache } = await import("@/lib/whatsapp/flow.server");
     invalidarFluxoCache();
-    return row as unknown;
+    return row ?? null;
   });
