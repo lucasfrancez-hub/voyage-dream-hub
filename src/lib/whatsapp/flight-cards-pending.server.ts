@@ -380,7 +380,7 @@ export async function sendPendingFlightCards(
 
   for (let i = 0; i < opcoes.length; i++) {
     const op = opcoes[i];
-    if (i > 0) await new Promise((r) => setTimeout(r, INTERVALO_MS));
+    if (i > 0) await new Promise((r) => setTimeout(r, ENTRE_CARDS_MS));
     const optionIndex = fpsDaCotacao.size + sent + 1;
     const processadoEm = new Date().toISOString();
     const base = {
