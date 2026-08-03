@@ -267,19 +267,24 @@ async function processPayload(payload: IGPayload) {
               mediaPermalink: midia.permalink,
             });
             if (resposta) {
-              const { replyToComment, sendPrivateReplyToComment } = await import("@/lib/instagram/api.server");
+              const { replyToComment } = await import("@/lib/instagram/api.server");
               await replyToComment({ commentId: v.id, token: igToken, message: resposta.publica });
-              try {
-                await sendPrivateReplyToComment({
-                  igUserId: igApiUserId,
-                  token: igToken,
-                  commentId: v.id,
-                  text: resposta.dm,
-                });
-              } catch (e) {
-                console.error("[instagram] resposta privada falhou:", (e as Error).message);
-              }
+              // O direct sai depois, com um respiro de 1min30 a 2min, pra não
+              // parecer robô respondendo tudo no mesmo segundo. Quem envia é o
+              // cron /api/public/hooks/instagram-dm-queue.
+              const espera = 90_000 + Math.floor(Math.random() * 30_000);
+              await supabaseAdmin
+                .from("instagram_comments")
+                .update({
+                  auto_reply_status: "sent",
+                  auto_reply_text: resposta.publica,
+                  auto_replied_at: new Date().toISOString(),
+                  dm_text: resposta.dm ?? null,
+                  dm_scheduled_at: resposta.dm ? new Date(Date.now() + espera).toISOString() : null,
+                })
+                .eq("comment_id", v.id);
             }
+
           }
         } catch (e) {
           console.error("[instagram] IA de comentário falhou:", (e as Error).message);
