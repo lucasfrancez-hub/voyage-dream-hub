@@ -248,7 +248,9 @@ export async function sendPendingFlightCards(
     return { sent: 0, quote_id: row.id as string };
   }
 
-  const { buildFlightCardData, renderFlightCardAssetRetry } = await import("./flight-card.server");
+  const { buildFlightCardData } = await import("./flight-card.server");
+  const { getOrRenderCard } = await import("./flight-card-cache.server");
+
   const { buildFlightOptionCaption } = await import("./flight-caption.server");
   const { sendWhatsAppImageBytesDetailed, sendWhatsAppText } = await import("./send.server");
   const { saveMessage, saveAndSendText, setSendError, SENDING_CLAIM } = await import(
