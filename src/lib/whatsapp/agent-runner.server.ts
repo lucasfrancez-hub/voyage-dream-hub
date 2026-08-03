@@ -364,6 +364,7 @@ export async function runAgent(input: {
       registerCustomerNudge,
       buildFlightRequestBlock,
     } = await import("./flight-request.server");
+    const { logProtocolEvent } = await import("./protocol-runtime.server");
     const { classifyCustomerMessage, detectarMudancaDeNecessidade, resolvePendingFlightAnswer } =
       await import("./short-answer");
 
