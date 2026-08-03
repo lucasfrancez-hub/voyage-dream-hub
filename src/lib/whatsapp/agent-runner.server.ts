@@ -782,6 +782,7 @@ export async function runAgent(input: {
           buildSystemPrompt(agent, conv, protocolo, isNewProtocolo, previousContext, { contextOnly: true })
         : buildSystemPrompt(agent, conv, protocolo, isNewProtocolo, previousContext)) +
       repliedBlock +
+      imagemBlock +
       quoteBlock;
 
     const loadedPromptType = centralAgent ? "central_especialistas" : "consultor";
