@@ -615,7 +615,9 @@ export async function runAgent(input: {
             minute: "2-digit",
           });
           const who = m.sender === "customer" ? "CLIENTE" : "VIA AIR";
-          return `[${when}] ${who}: ${String(m.content ?? "").slice(0, 700)}`;
+          // O marcador interno de mídia vira descrição: se entrar cru aqui, a
+          // IA copia e o cliente recebe o link em vez da foto.
+          return `[${when}] ${who}: ${descreverMidiaNoHistorico(String(m.content ?? "")).slice(0, 700)}`;
         })
         .join("\n");
     }
