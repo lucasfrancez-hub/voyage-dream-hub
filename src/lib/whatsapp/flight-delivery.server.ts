@@ -878,3 +878,37 @@ export async function sweepFlightQuoteDeliveries(limite = 25): Promise<{
   log({ event: "flight_delivery_sweep", cotacoes, entregues });
   return { cotacoes, entregues };
 }
+
+/**
+ * Nova pesquisa substitui a anterior: marca como cancelled toda cotação ainda
+ * incompleta da mesma conversa/protocolo. As opções ainda não entregues param
+ * de sair, evitando misturar buscas diferentes na mesma conversa.
+ */
+export async function cancelarCotacoesAnteriores(
+  conversationId: string,
+  protocoloId?: string | null,
+): Promise<number> {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  let q = supabaseAdmin
+    .from("wa_flight_quotes")
+    .select("id")
+    .eq("conversation_id", conversationId)
+    .is("cancelled_at", null)
+    .neq("delivery_status", "completed");
+  if (protocoloId) q = q.eq("protocolo_id", protocoloId);
+  const { data } = await q;
+  const ids = (data ?? []).map((r) => r.id as string);
+  if (!ids.length) return 0;
+  const agora = new Date().toISOString();
+  await supabaseAdmin
+    .from("wa_flight_quotes")
+    .update({ cancelled_at: agora, delivery_status: "cancelled", next_run_at: null })
+    .in("id", ids);
+  await supabaseAdmin
+    .from("wa_flight_quote_options")
+    .update({ status: "cancelled", claimed_by: null, claim_expires_at: null })
+    .in("quote_id", ids)
+    .in("status", ["pending", "rendering", "sending"]);
+  log({ event: "flight_delivery_superseded", conversation_id: conversationId, cancelled: ids.length });
+  return ids.length;
+}
