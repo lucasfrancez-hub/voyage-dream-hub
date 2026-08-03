@@ -51,6 +51,17 @@ export const Route = createFileRoute("/api/public/hooks/flight-quote-watchdog")(
         const destravadas: string[] = [];
         let reconciliadas: unknown = null;
         try {
+          // 0) Envio abortado no meio (worker morreu no upload da arte): o
+          //    balão fica "não entregue" pra sempre e trava o reenvio. Some
+          //    com a linha presa e devolve a opção pra fila.
+          const { sweepEnviosInterrompidos } = await import(
+            "@/lib/whatsapp/envio-interrompido.server"
+          );
+          await sweepEnviosInterrompidos();
+        } catch (e) {
+          console.warn("[watchdog] varredura de envios presos falhou:", (e as Error)?.message ?? e);
+        }
+        try {
           // 1) Autocorreção: olha o estado, descobre o que faltou (claim órfão,
           //    card gerado sem envio, envio sem baixa no banco, rodada não
           //    encadeada, contador errado) e executa o próximo passo.
