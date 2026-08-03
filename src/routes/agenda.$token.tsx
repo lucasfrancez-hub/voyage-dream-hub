@@ -368,14 +368,27 @@ function Painel({ token, pin, nome, vapid }: { token: string; pin: string | null
     else if (modo === "mes") setAncora(new Date(ancora.getFullYear(), ancora.getMonth() + dir, 1));
   }
 
+  const mesTitulo = ancora.toLocaleDateString("pt-BR", { month: "long" });
+  const subtitulo =
+    modo === "lista"
+      ? "Próximos compromissos"
+      : modo === "mes"
+        ? ancora.toLocaleDateString("pt-BR", { month: "long", year: "numeric" })
+        : porExtenso(ancora);
+
   return (
-    <div className="mx-auto flex min-h-dvh w-full max-w-xl flex-col pb-24">
+    <div className="mx-auto flex min-h-dvh w-full max-w-xl flex-col pb-28">
       {/* topo */}
-      <header className="sticky top-0 z-20 px-4 pb-3 pt-[max(1rem,env(safe-area-inset-top))] backdrop-blur-xl" style={{ background: "rgba(8,13,26,0.72)" }}>
-        <div className="flex items-center gap-2">
+      <header
+        className="sticky top-0 z-20 px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] backdrop-blur-xl"
+        style={{ background: "rgba(8,13,26,0.82)" }}
+      >
+        <div className="flex items-center gap-3">
           <div className="min-w-0 flex-1">
-            <p className="text-[11px] uppercase tracking-widest opacity-50">{nome}</p>
-            <h1 className="truncate text-xl font-semibold capitalize">{titulo}</h1>
+            <h1 className="truncate text-[26px] font-semibold capitalize leading-tight">
+              {modo === "semana" ? titulo : mesTitulo}
+            </h1>
+            <p className="truncate text-[13px] capitalize opacity-55">{subtitulo}</p>
           </div>
           <BotaoIcone onClick={() => void recarregar()} rotulo="Sincronizar">
             <RefreshCw className={`h-4 w-4 ${carregando ? "animate-spin" : ""}`} />
@@ -383,6 +396,31 @@ function Painel({ token, pin, nome, vapid }: { token: string; pin: string | null
           <BotaoIcone onClick={() => setConfig(true)} rotulo="Notificações">
             <Bell className="h-4 w-4" />
           </BotaoIcone>
+        </div>
+
+        {/* abas em pílula (estilo aprovado) */}
+        <div
+          className="mt-3 flex rounded-2xl p-1"
+          style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)" }}
+        >
+          {(["dia", "semana", "mes", "lista"] as Modo[]).map((m) => (
+            <button
+              key={m}
+              onClick={() => setModo(m)}
+              className="flex-1 rounded-xl py-1.5 text-[13px] font-semibold capitalize transition"
+              style={
+                modo === m
+                  ? {
+                      background: "linear-gradient(140deg,#F26B1F,#c2540c)",
+                      color: "#fff",
+                      boxShadow: "0 6px 18px rgba(242,107,31,0.35)",
+                    }
+                  : { color: "rgba(255,255,255,0.6)" }
+              }
+            >
+              {m === "mes" ? "Mês" : m}
+            </button>
+          ))}
         </div>
 
         {modo !== "lista" ? (
@@ -403,6 +441,7 @@ function Painel({ token, pin, nome, vapid }: { token: string; pin: string | null
           </div>
         ) : null}
       </header>
+
 
       <main className="flex-1 px-4">
         {modo === "dia" ? (
