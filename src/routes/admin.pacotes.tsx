@@ -1311,109 +1311,139 @@ function AdminPackages() {
                       </span>
                     </button>
 
-                    <div className="flex items-center gap-4">
-                      <a
-                        href={`/pacotes/${p.slug}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-muted-foreground hover:text-brand-orange transition-colors"
-                        title="Abrir página do pacote"
-                      >
-                        <LinkIcon className="h-[18px] w-[18px]" strokeWidth={2} />
-                      </a>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <button
-                            className="text-muted-foreground hover:text-brand-orange transition-colors"
-                            title="Baixar arte para redes sociais"
-                          >
-                            <Download className="h-[18px] w-[18px]" strokeWidth={2} />
-                          </button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem
-                            onClick={async () => {
-                              const t = toast.loading("Gerando arte do story…");
-                              try {
-                                const { generatePackageStoryArt } =
-                                  await import("@/lib/packages/story-art");
-                                const delivery = await generatePackageStoryArt(p);
-                                toast.success(
-                                  delivery === "shared"
-                                    ? "Arte pronta para salvar ou compartilhar!"
-                                    : delivery === "cancelled"
-                                      ? "Compartilhamento cancelado."
-                                      : "Arte baixada!",
-                                  { id: t },
-                                );
-                              } catch (e) {
-                                toast.error(
-                                  e instanceof Error ? e.message : "Falha ao gerar arte",
-                                  { id: t },
-                                );
-                              }
-                            }}
-                          >
-                            Story (1080×1920)
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={async () => {
-                              const t = toast.loading("Gerando arte do feed…");
-                              try {
-                                const { generatePackageFeedArt } =
-                                  await import("@/lib/packages/feed-art");
-                                const delivery = await generatePackageFeedArt(p);
-                                toast.success(
-                                  delivery === "shared"
-                                    ? "Arte pronta para salvar ou compartilhar!"
-                                    : delivery === "cancelled"
-                                      ? "Compartilhamento cancelado."
-                                      : "Arte baixada!",
-                                  { id: t },
-                                );
-                              } catch (e) {
-                                toast.error(
-                                  e instanceof Error ? e.message : "Falha ao gerar arte",
-                                  { id: t },
-                                );
-                              }
-                            }}
-                          >
-                            Feed (1080×1440)
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                      <button
-                        onClick={() => setEditing(p)}
-                        className="text-muted-foreground hover:text-foreground transition-colors"
-                        title="Editar"
-                      >
-                        <Pencil className="h-[18px] w-[18px]" strokeWidth={2} />
-                      </button>
-                      <button
-                        onClick={() => {
-                          const { id: _id, slug: _slug, created_at: _c, updated_at: _u, ...rest } = p as any;
-                          setEditing({
-                            ...rest,
-                            id: undefined,
-                            slug: "",
-                            title: p.title,
-                          } as any);
-                          toast.info("Duplicando pacote — ajuste as datas e salve.");
-                        }}
-                        className="text-muted-foreground hover:text-brand-orange transition-colors"
-                        title="Duplicar"
-                      >
-                        <Copy className="h-[18px] w-[18px]" strokeWidth={2} />
-                      </button>
-                      <button
-                        onClick={() => remove(p)}
-                        className="text-muted-foreground/60 hover:text-red-500 transition-colors"
-                        title="Excluir"
-                      >
-                        <Trash2 className="h-[18px] w-[18px]" strokeWidth={2} />
-                      </button>
+                    <div className="flex items-center gap-1">
+                      {/* Divulgação */}
+                      <div className="flex items-center gap-0.5 rounded-xl border border-border/60 bg-background/50 px-1.5 py-1">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSocialChannel("whatsapp");
+                            setSocialPkg(p);
+                          }}
+                          className="flex h-7 w-7 items-center justify-center rounded-lg text-[#25D366] transition-colors hover:bg-[#25D366]/15"
+                          title="Gerar texto para WhatsApp"
+                        >
+                          <WhatsAppIcon className="h-[15px] w-[15px]" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSocialChannel("instagram");
+                            setSocialPkg(p);
+                          }}
+                          className="flex h-7 w-7 items-center justify-center rounded-lg text-[#E1306C] transition-colors hover:bg-[#E1306C]/15"
+                          title="Gerar legenda para Instagram"
+                        >
+                          <InstagramIcon className="h-[15px] w-[15px]" />
+                        </button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <button
+                              className="flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-brand-orange/15 hover:text-brand-orange"
+                              title="Baixar arte para redes sociais"
+                            >
+                              <Download className="h-[15px] w-[15px]" strokeWidth={2} />
+                            </button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              onClick={async () => {
+                                const t = toast.loading("Gerando arte do story…");
+                                try {
+                                  const { generatePackageStoryArt } =
+                                    await import("@/lib/packages/story-art");
+                                  const delivery = await generatePackageStoryArt(p);
+                                  toast.success(
+                                    delivery === "shared"
+                                      ? "Arte pronta para salvar ou compartilhar!"
+                                      : delivery === "cancelled"
+                                        ? "Compartilhamento cancelado."
+                                        : "Arte baixada!",
+                                    { id: t },
+                                  );
+                                } catch (e) {
+                                  toast.error(
+                                    e instanceof Error ? e.message : "Falha ao gerar arte",
+                                    { id: t },
+                                  );
+                                }
+                              }}
+                            >
+                              Story (1080×1920)
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={async () => {
+                                const t = toast.loading("Gerando arte do feed…");
+                                try {
+                                  const { generatePackageFeedArt } =
+                                    await import("@/lib/packages/feed-art");
+                                  const delivery = await generatePackageFeedArt(p);
+                                  toast.success(
+                                    delivery === "shared"
+                                      ? "Arte pronta para salvar ou compartilhar!"
+                                      : delivery === "cancelled"
+                                        ? "Compartilhamento cancelado."
+                                        : "Arte baixada!",
+                                    { id: t },
+                                  );
+                                } catch (e) {
+                                  toast.error(
+                                    e instanceof Error ? e.message : "Falha ao gerar arte",
+                                    { id: t },
+                                  );
+                                }
+                              }}
+                            >
+                              Feed (1080×1440)
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+
+                      {/* Gestão */}
+                      <div className="flex items-center gap-0.5 rounded-xl border border-border/60 bg-background/50 px-1.5 py-1">
+                        <a
+                          href={`/pacotes/${p.slug}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-brand-orange/15 hover:text-brand-orange"
+                          title="Abrir página do pacote"
+                        >
+                          <LinkIcon className="h-[15px] w-[15px]" strokeWidth={2} />
+                        </a>
+                        <button
+                          onClick={() => setEditing(p)}
+                          className="flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-foreground/10 hover:text-foreground"
+                          title="Editar"
+                        >
+                          <Pencil className="h-[15px] w-[15px]" strokeWidth={2} />
+                        </button>
+                        <button
+                          onClick={() => {
+                            const { id: _id, slug: _slug, created_at: _c, updated_at: _u, ...rest } = p as any;
+                            setEditing({
+                              ...rest,
+                              id: undefined,
+                              slug: "",
+                              title: p.title,
+                            } as any);
+                            toast.info("Duplicando pacote — ajuste as datas e salve.");
+                          }}
+                          className="flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-brand-orange/15 hover:text-brand-orange"
+                          title="Duplicar"
+                        >
+                          <Copy className="h-[15px] w-[15px]" strokeWidth={2} />
+                        </button>
+                        <button
+                          onClick={() => remove(p)}
+                          className="flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground/60 transition-colors hover:bg-red-500/15 hover:text-red-500"
+                          title="Excluir"
+                        >
+                          <Trash2 className="h-[15px] w-[15px]" strokeWidth={2} />
+                        </button>
+                      </div>
                     </div>
+
                   </div>
                 </div>
               </div>
