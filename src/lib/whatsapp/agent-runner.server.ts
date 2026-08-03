@@ -649,9 +649,12 @@ export async function runAgent(input: {
 
   const messages: ModelMessage[] = merged.map((m) => {
     const wasDeleted = !!(m as { deleted_at?: string | null }).deleted_at;
+    // Marcador interno de mídia vira descrição — assim a IA sabe que a foto
+    // foi enviada, mas não tem como copiar o link cru pro cliente.
+    const base = descreverMidiaNoHistorico(String(m.content ?? ""));
     const content = wasDeleted
-      ? `[MENSAGEM APAGADA PELO CLIENTE — ignore, não responda a esta mensagem específica] ${m.content}`
-      : m.content;
+      ? `[MENSAGEM APAGADA PELO CLIENTE — ignore, não responda a esta mensagem específica] ${base}`
+      : base;
     return {
       role: m.sender === "customer" ? "user" : "assistant",
       content,
