@@ -150,10 +150,15 @@ export async function runInstagramHealthCheck(accountId?: string) {
     );
     const subscribed = subscriptions?.ok === true && subscriptionRows.length > 0;
     const messagesSubscribed = subscribedFields.includes("messages");
-    const callback = await probe(CALLBACK_URL);
-    const webhookReachable = callback.status === 403 || callback.ok;
     const secret = instagramAppSecret();
     const verifyToken = instagramVerifyToken();
+    const challenge = `viaair-${Date.now()}`;
+    const verificationUrl = verifyToken
+      ? `${CALLBACK_URL}?hub.mode=subscribe&hub.verify_token=${encodeURIComponent(verifyToken)}&hub.challenge=${encodeURIComponent(challenge)}`
+      : CALLBACK_URL;
+    const callback = await probe(verificationUrl);
+    const webhookReachable = callback.ok && (!verifyToken || callback.raw === challenge);
+    const verifyTokenValid = Boolean(verifyToken && callback.ok && callback.raw === challenge);
     const localPayload = JSON.stringify({ diagnostic: true, at: new Date().toISOString() });
     const localSignature = secret ? validateInstagramSignature(localPayload, calculateInstagramSignature(localPayload, secret), secret).valid : false;
     const identityData = identity?.body && typeof identity.body === "object" ? identity.body : null;
@@ -167,6 +172,7 @@ export async function runInstagramHealthCheck(accountId?: string) {
       !webhookReachable && "Callback do webhook não respondeu",
       !secret && "APP_SECRET não configurado",
       !verifyToken && "Verify Token não configurado",
+      Boolean(verifyToken) && !verifyTokenValid && "Verify Token do backend foi rejeitado pelo callback",
       !subscribed && "Conta sem inscrição ativa no webhook",
       subscribed && !messagesSubscribed && "Campo messages não está assinado",
     ].filter((v): v is string => Boolean(v));
@@ -186,7 +192,7 @@ export async function runInstagramHealthCheck(accountId?: string) {
       accountConnected,
       webhookReachable,
       signatureConfigured: Boolean(secret) && localSignature,
-      verifyTokenConfigured: Boolean(verifyToken),
+      verifyTokenConfigured: verifyTokenValid,
       subscribed,
       subscribedFields,
       messagesSubscribed,
