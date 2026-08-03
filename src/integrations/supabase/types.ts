@@ -3747,6 +3747,39 @@ export type Database = {
         }
         Relationships: []
       }
+      wa_calendar_app_links: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          id: string
+          last_seen_at: string | null
+          nome: string
+          pin_hash: string | null
+          token: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          last_seen_at?: string | null
+          nome?: string
+          pin_hash?: string | null
+          token: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          last_seen_at?: string | null
+          nome?: string
+          pin_hash?: string | null
+          token?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       wa_calendar_config: {
         Row: {
           ativo: boolean
@@ -3874,6 +3907,80 @@ export type Database = {
             columns: ["account_id"]
             isOneToOne: false
             referencedRelation: "wa_calendar_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wa_calendar_push_log: {
+        Row: {
+          chave: string
+          created_at: string
+          id: string
+        }
+        Insert: {
+          chave: string
+          created_at?: string
+          id?: string
+        }
+        Update: {
+          chave?: string
+          created_at?: string
+          id?: string
+        }
+        Relationships: []
+      }
+      wa_calendar_push_subs: {
+        Row: {
+          ativo: boolean
+          auth: string
+          created_at: string
+          endpoint: string
+          id: string
+          link_id: string
+          minutos_antes: number
+          p256dh: string
+          pref_lembrete: boolean
+          pref_novo: boolean
+          pref_resumo: boolean
+          updated_at: string
+          user_agent: string | null
+        }
+        Insert: {
+          ativo?: boolean
+          auth: string
+          created_at?: string
+          endpoint: string
+          id?: string
+          link_id: string
+          minutos_antes?: number
+          p256dh: string
+          pref_lembrete?: boolean
+          pref_novo?: boolean
+          pref_resumo?: boolean
+          updated_at?: string
+          user_agent?: string | null
+        }
+        Update: {
+          ativo?: boolean
+          auth?: string
+          created_at?: string
+          endpoint?: string
+          id?: string
+          link_id?: string
+          minutos_antes?: number
+          p256dh?: string
+          pref_lembrete?: boolean
+          pref_novo?: boolean
+          pref_resumo?: boolean
+          updated_at?: string
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wa_calendar_push_subs_link_id_fkey"
+            columns: ["link_id"]
+            isOneToOne: false
+            referencedRelation: "wa_calendar_app_links"
             referencedColumns: ["id"]
           },
         ]
