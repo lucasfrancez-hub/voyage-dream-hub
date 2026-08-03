@@ -1486,3 +1486,91 @@ export const searchOrders = createServerFn({ method: "POST" })
 
     return Array.from(results.values()).slice(0, 30);
   });
+
+// --------- Duplicar pedido ---------
+export const duplicateOrder = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { id: string }) => input)
+  .handler(async ({ data, context }): Promise<{ id: string; order_number: string | null }> => {
+    const sb = context.supabase;
+    const { data: isAdmin } = await sb.rpc("has_role", { _user_id: context.userId, _role: "admin" });
+    if (!isAdmin) {
+      const { data: isPartner } = await sb.rpc("has_role", { _user_id: context.userId, _role: "partner" });
+      if (!isPartner) throw new Error("Forbidden");
+    }
+
+    const { data: src, error: e0 } = await sb.from("orders").select("*").eq("id", data.id).single();
+    if (e0 || !src) throw new Error(e0?.message ?? "Pedido não encontrado");
+
+    const skip = new Set([
+      "id", "created_at", "updated_at", "order_number",
+      "deleted_at", "deleted_reason", "deleted_by",
+    ]);
+    const payload: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(src as Record<string, unknown>)) {
+      if (!skip.has(k)) payload[k] = v;
+    }
+    payload.status = "pending";
+    payload.owner_user_id = (src as { owner_user_id?: string | null }).owner_user_id ?? context.userId;
+
+    const { data: created, error: e1 } = await sb
+      .from("orders")
+      .insert(payload as never)
+      .select("id, order_number")
+      .single();
+    if (e1 || !created) throw new Error(e1?.message ?? "Erro ao duplicar pedido");
+    const newOrderId = created.id as string;
+
+    // Passageiros
+    const passengerMap: Record<string, string> = {};
+    const { data: pax } = await sb.from("order_passengers").select("*").eq("order_id", data.id).order("sort_order");
+    for (const p of pax ?? []) {
+      const row: Record<string, unknown> = {};
+      for (const [k, v] of Object.entries(p as Record<string, unknown>)) {
+        if (k !== "id" && k !== "created_at" && k !== "updated_at") row[k] = v;
+      }
+      row.order_id = newOrderId;
+      const { data: np } = await sb.from("order_passengers").insert(row as never).select("id").single();
+      if (np?.id) passengerMap[(p as { id: string }).id] = np.id as string;
+    }
+
+    // Itens + financeiros + vínculos
+    const { data: items } = await sb.from("order_items").select("*").eq("order_id", data.id).order("sort_order");
+    for (const it of items ?? []) {
+      const oldItemId = (it as { id: string }).id;
+      const row: Record<string, unknown> = {};
+      for (const [k, v] of Object.entries(it as Record<string, unknown>)) {
+        if (k !== "id" && k !== "created_at" && k !== "updated_at") row[k] = v;
+      }
+      row.order_id = newOrderId;
+      const { data: ni } = await sb.from("order_items").insert(row as never).select("id").single();
+      if (!ni?.id) continue;
+      const newItemId = ni.id as string;
+
+      const { data: fins } = await sb.from("order_item_financials").select("*").eq("order_item_id", oldItemId);
+      for (const f of fins ?? []) {
+        const frow: Record<string, unknown> = {};
+        for (const [k, v] of Object.entries(f as Record<string, unknown>)) {
+          if (k !== "id" && k !== "created_at" && k !== "updated_at") frow[k] = v;
+        }
+        frow.order_item_id = newItemId;
+        await sb.from("order_item_financials").insert(frow as never);
+      }
+
+      const { data: links } = await sb
+        .from("order_item_passengers")
+        .select("passenger_id")
+        .eq("order_item_id", oldItemId);
+      const linkRows = (links ?? [])
+        .map((l) => passengerMap[(l as { passenger_id: string }).passenger_id])
+        .filter(Boolean)
+        .map((pid) => ({ order_id: newOrderId, order_item_id: newItemId, passenger_id: pid }));
+      if (linkRows.length > 0) {
+        await sb
+          .from("order_item_passengers")
+          .upsert(linkRows as never, { onConflict: "order_item_id,passenger_id", ignoreDuplicates: true });
+      }
+    }
+
+    return { id: newOrderId, order_number: (created.order_number as string | null) ?? null };
+  });
