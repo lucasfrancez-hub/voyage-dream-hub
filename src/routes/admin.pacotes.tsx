@@ -1237,7 +1237,7 @@ function AdminPackages() {
               >
                 <div className="grid grid-cols-1 md:grid-cols-12 items-center p-4 md:px-6 md:py-4 gap-3 md:gap-2">
                   {/* Info */}
-                  <div className="col-span-1 md:col-span-5 space-y-0.5 min-w-0">
+                  <div className="col-span-1 md:col-span-4 space-y-0.5 min-w-0">
                     <div className="flex items-center gap-2.5">
                       <span
                         className="inline-flex h-6 min-w-[26px] items-center justify-center rounded-md border border-brand-orange/30 bg-brand-orange/10 px-1.5 text-[11px] font-bold tabular-nums text-brand-orange shrink-0"
