@@ -546,13 +546,36 @@ export const resendHumanMessage = createServerFn({ method: "POST" })
       .maybeSingle();
     if (!conv?.wa_phone) throw new Error("Conversa não encontrada");
 
-    const { sendWhatsAppText } = await import("@/lib/whatsapp/send.server");
+    const { sendWhatsAppText, sendWhatsAppTemplate } = await import("@/lib/whatsapp/send.server");
     const { setWaMessageId, setSendError } = await import("@/lib/whatsapp/conversation.server");
+    const { janelaAberta, marcarAguardandoJanela } = await import("@/lib/whatsapp/janela-24h.server");
+
+    // Janela de 24h da Meta fechada? Texto livre é recusado (131047).
+    // Mandamos o modelo aprovado pra reabrir e deixamos a mensagem na fila:
+    // assim que o cliente responder, ela sai sozinha.
+    const aberta = await janelaAberta(msg.conversation_id);
+    if (!aberta) {
+      const primeiroNome = "tudo bem";
+      const tpl = await sendWhatsAppTemplate(conv.wa_phone, "retomar_atendimento", [primeiroNome]);
+      await marcarAguardandoJanela(msg.id);
+      if (tpl.id) {
+        return {
+          ok: true,
+          modo: "template" as const,
+          aviso:
+            "Passaram-se mais de 24h desde a última resposta do cliente — o WhatsApp só aceita modelo aprovado. Enviei o modelo de retomada; sua mensagem sai automaticamente assim que ele responder.",
+        };
+      }
+      throw new Error(
+        `Janela de 24h fechada e o modelo não pôde ser enviado (${tpl.error ?? "modelo ainda em aprovação na Meta"}). A mensagem ficou na fila e sai sozinha quando o cliente responder.`,
+      );
+    }
+
     const res = await sendWhatsAppText(conv.wa_phone, content, msg.reply_to_wa_id ?? null);
     if (res.id) {
       await setWaMessageId(msg.id, res.id);
       await setSendError(msg.id, null);
-      return { ok: true };
+      return { ok: true, modo: "texto" as const };
     }
     const err = res.error ?? "Não entregue pelo WhatsApp";
     await setSendError(msg.id, err);

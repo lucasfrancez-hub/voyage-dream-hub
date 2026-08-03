@@ -165,6 +165,65 @@ export async function sendWhatsAppText(
   return metaSendText(to, body, replyId);
 }
 
+/**
+ * Envia um MODELO (template) aprovado. É o único jeito oficial de falar com
+ * o cliente quando a janela de 24h da Meta está fechada (erro 131047).
+ */
+export async function sendWhatsAppTemplate(
+  to: string,
+  name: string,
+  params: string[] = [],
+  language = "pt_BR",
+): Promise<{ id: string | null; error?: string }> {
+  const token = process.env.WHATSAPP_ACCESS_TOKEN;
+  const phoneId = process.env.WHATSAPP_PHONE_NUMBER_ID;
+  if (!token || !phoneId) return { id: null, error: "WhatsApp credentials missing" };
+  const url = `https://graph.facebook.com/${GRAPH_VERSION}/${phoneId}/messages`;
+  const payload = {
+    messaging_product: "whatsapp",
+    recipient_type: "individual",
+    to: normalizePhone(to),
+    type: "template",
+    template: {
+      name,
+      language: { code: language },
+      ...(params.length
+        ? {
+            components: [
+              {
+                type: "body",
+                parameters: params.map((text) => ({ type: "text", text })),
+              },
+            ],
+          }
+        : {}),
+    },
+  };
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const rawText = await res.text();
+    let data: { messages?: Array<{ id: string }>; error?: { message: string } } = {};
+    try {
+      data = JSON.parse(rawText);
+    } catch {
+      /* keep empty */
+    }
+    if (!res.ok) {
+      const msg = data.error?.message ?? `HTTP ${res.status}: ${rawText.slice(0, 200)}`;
+      console.error("[whatsapp/template] falha:", msg);
+      return { id: null, error: msg };
+    }
+    return { id: data.messages?.[0]?.id ?? null };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return { id: null, error: msg };
+  }
+}
+
 /** Indicador "digitando…" oficial da Meta. */
 export async function sendWhatsAppTypingIndicator(
   inbound_wa_message_id: string,
