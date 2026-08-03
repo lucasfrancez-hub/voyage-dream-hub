@@ -37,6 +37,13 @@ const INTERVALO_MS = 30_000; // 2ª arte fica elegível 30s depois da 1ª; o env
 // ocorre na próxima execução do cron (1x/min), então na prática o cliente recebe
 // a segunda opção normalmente entre 30 e 90 segundos.
 const CLAIM_TRAVADO_MS = 45_000; // claim preso (worker caiu no render) → destrava
+/**
+ * Prazo BRANDO da arte quando ela ainda não está no cache: passou disso, a
+ * opção vai em TEXTO na hora e o card daquela opção é CANCELADO (nunca manda
+ * a mesma cotação duas vezes, em texto e depois em imagem).
+ */
+const SOFT_DEADLINE_MS = 6_000;
+
 
 
 const fingerprint = (o: OptLite): string =>
