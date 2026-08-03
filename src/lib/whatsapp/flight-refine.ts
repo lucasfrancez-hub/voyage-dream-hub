@@ -92,18 +92,28 @@ export function detectRefineIntents(texto: string): RefineIntent[] {
   const out: RefineIntent[] = [];
 
   // Aeroporto citado — "tem por Congonhas?", "e por CGH?", "pode ser Viracopos?"
-  for (const ap of AEROPORTOS) {
-    const achou = ap.termos.some((termo) =>
-      new RegExp(`(?<![a-z0-9])${termo}(?![a-z0-9])`, "i").test(t),
-    );
-    if (!achou) continue;
-    const origem = RX_CONTEXTO_ORIGEM.test(raw);
+  // A camada de normalização cidade × aeroporto tem prioridade (Congonhas -> CGH).
+  const local = interpretarLocal(raw);
+  if (local?.tipo === "aeroporto" && local.aeroporto_iata) {
     out.push({
-      kind: origem ? "aeroporto_origem" : "aeroporto_destino",
-      iata: ap.iata,
-      aeroporto: ap.nome,
+      kind: RX_CONTEXTO_ORIGEM.test(raw) ? "aeroporto_origem" : "aeroporto_destino",
+      iata: local.aeroporto_iata,
+      aeroporto: local.aeroporto_nome ?? local.aeroporto_iata,
     });
-    break;
+  } else {
+    for (const ap of AEROPORTOS) {
+      const achou = ap.termos.some((termo) =>
+        new RegExp(`(?<![a-z0-9])${termo}(?![a-z0-9])`, "i").test(t),
+      );
+      if (!achou) continue;
+      const origem = RX_CONTEXTO_ORIGEM.test(raw);
+      out.push({
+        kind: origem ? "aeroporto_origem" : "aeroporto_destino",
+        iata: ap.iata,
+        aeroporto: ap.nome,
+      });
+      break;
+    }
   }
 
   if (RX_SEM_CONEXAO.test(t)) out.push({ kind: "sem_conexao" });
