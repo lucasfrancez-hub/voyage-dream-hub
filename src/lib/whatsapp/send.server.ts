@@ -20,6 +20,55 @@ function normalizePhone(raw: string): string {
   return digits;
 }
 
+// ================== Instagram (DMs) ==================
+
+/** Conta + token do Instagram para responder um contato `ig:<id>`. */
+async function igRouting(to: string) {
+  const { isInstagramConversation, igContactIdFromPhone } = await import("@/lib/instagram/bridge.server");
+  if (!isInstagramConversation(to)) return null;
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data: account } = await supabaseAdmin
+    .from("instagram_accounts")
+    .select("ig_user_id, page_id, access_token")
+    .not("access_token", "is", null)
+    .limit(1)
+    .maybeSingle();
+  if (!account?.access_token) return null;
+  return {
+    igUserId: (account.ig_user_id ?? account.page_id) as string,
+    token: account.access_token as string,
+    recipientIgId: igContactIdFromPhone(to),
+  };
+}
+
+async function igSendText(to: string, body: string): Promise<{ id: string | null; error?: string } | null> {
+  const rota = await igRouting(to);
+  if (!rota) return null;
+  try {
+    const { sendDirectMessage } = await import("@/lib/instagram/api.server");
+    const r = await sendDirectMessage({ ...rota, text: body });
+    return { id: r.message_id ?? null };
+  } catch (err) {
+    return { id: null, error: err instanceof Error ? err.message : String(err) };
+  }
+}
+
+async function igSendMediaUrl(
+  to: string,
+  url: string,
+  type: "image" | "audio" | "video" | "file",
+): Promise<{ id: string | null; error?: string } | null> {
+  const rota = await igRouting(to);
+  if (!rota) return null;
+  try {
+    const { sendDirectAttachment } = await import("@/lib/instagram/api.server");
+    const r = (await sendDirectAttachment({ ...rota, url, type })) as { message_id?: string };
+    return { id: r.message_id ?? null };
+  } catch (err) {
+    return { id: null, error: err instanceof Error ? err.message : String(err) };
+  }
+}
+
 // ================== Meta Cloud API ==================
 
 async function metaSendText(
@@ -27,6 +76,9 @@ async function metaSendText(
   body: string,
   replyId?: string | null,
 ): Promise<{ id: string | null; error?: string }> {
+  const viaInstagram = await igSendText(to, body);
+  if (viaInstagram) return viaInstagram;
+
   const token = process.env.WHATSAPP_ACCESS_TOKEN;
   const phoneId = process.env.WHATSAPP_PHONE_NUMBER_ID;
   if (!token || !phoneId) return { id: null, error: "WhatsApp credentials missing" };
@@ -79,6 +131,15 @@ async function metaSendMedia(
   to: string,
   extra: Record<string, unknown>,
 ): Promise<{ id: string | null; error?: string }> {
+  {
+    const tipo = (extra as { type?: string }).type;
+    const link = (extra as Record<string, { link?: string } | undefined>)[tipo ?? ""]?.link;
+    if (link && (tipo === "image" || tipo === "audio" || tipo === "video" || tipo === "document")) {
+      const viaInstagram = await igSendMediaUrl(to, link, tipo === "document" ? "file" : tipo);
+      if (viaInstagram) return viaInstagram;
+    }
+  }
+
   const token = process.env.WHATSAPP_ACCESS_TOKEN;
   const phoneId = process.env.WHATSAPP_PHONE_NUMBER_ID;
   if (!token || !phoneId) return { id: null, error: "WhatsApp credentials missing" };
