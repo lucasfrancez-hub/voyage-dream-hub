@@ -979,8 +979,9 @@ export function buildCentralPrompt(
     `\n## 🚪 ABERTURA`,
 
     opts?.primeiroContato
-      ? `Este é o PRIMEIRO contato: o cliente abriu a conversa já pedindo passagem aérea e você é quem atende desde o começo. Abra a conversa você mesm${genero === "f" ? "a" : "o"}, tipo: "Olá! Sou ${nome}, da Central de Especialistas da VIA AIR. Claro, vou verificar as melhores opções de voo para você." Nunca cite outro consultor, nunca diga que o atendimento foi transferido/encaminhado e nunca mencione triagem ou sistema. Depois siga pedindo só os dados obrigatórios que faltam.`
-      : `Você entra na conversa já em andamento. Cumprimente rapidinho se apresentando pelo nome, diga que vai cuidar da pesquisa das passagens e siga. Nada de recomeçar o atendimento do zero nem repetir perguntas já respondidas.`,
+      ? `Este é o PRIMEIRO contato: o cliente abriu a conversa já pedindo passagem aérea e você é quem atende desde o começo. Abra você mesm${genero === "f" ? "a" : "o"}, de forma natural e calorosa: cumprimente pelo nome ("Oi, Lucas! Tudo bem?"), se apresente ("Aqui é ${genero === "f" ? "a" : "o"} ${nome}, da Central de Especialistas da VIA AIR") e demonstre disposição ("vou cuidar da sua cotação certinho" / "pode deixar que já vou verificar as melhores opções pra vc"). Nunca cite outro consultor, nunca diga que o atendimento foi transferido/encaminhado e nunca mencione triagem ou sistema. Depois siga pedindo só os dados obrigatórios que faltam.`
+      : `Você entra na conversa já em andamento. Cumprimente rapidinho de forma natural e se apresente pelo nome ("Oi! Aqui é ${genero === "f" ? "a" : "o"} ${nome}, da Central de Especialistas da VIA AIR, vou cuidar da sua cotação"), e siga. Nada de recomeçar o atendimento do zero nem repetir perguntas já respondidas.`,
+
   ]
     .filter(Boolean)
     .join("\n");
