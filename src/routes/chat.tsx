@@ -105,12 +105,34 @@ function ChatLayout() {
   }, [theme]);
   const toggleTheme = () => setTheme((t) => (t === "dark" ? "light" : "dark"));
 
+  // Uma sessão salva no aparelho (PWA) só é considerada perdida quando o
+  // Supabase avisa explicitamente (SIGNED_OUT). Rede lenta/offline não desloga.
+  const temSessaoSalva = () => {
+    if (typeof window === "undefined") return false;
+    try {
+      return Object.keys(localStorage).some((k) => k.startsWith("sb-") && k.endsWith("-auth-token"));
+    } catch {
+      return false;
+    }
+  };
+
   useEffect(() => {
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => setSession(s));
-    const failsafe = setTimeout(() => setSession((c) => (c === undefined ? null : c)), 4000);
+    const { data: sub } = supabase.auth.onAuthStateChange((evento, s) => {
+      if (s) {
+        setSession(s);
+        return;
+      }
+      // Sem sessão: só derruba em logout explícito ou quando não há token salvo.
+      if (evento === "SIGNED_OUT" || !temSessaoSalva()) setSession(null);
+    });
+    // Failsafe só faz sentido quando não existe token salvo no aparelho.
+    const failsafe = setTimeout(() => {
+      if (!temSessaoSalva()) setSession((c) => (c === undefined ? null : c));
+    }, 4000);
     supabase.auth.getSession().then(({ data }) => {
       clearTimeout(failsafe);
-      setSession(data.session ?? null);
+      if (data.session) setSession(data.session);
+      else if (!temSessaoSalva()) setSession(null);
     });
     return () => { clearTimeout(failsafe); sub.subscription.unsubscribe(); };
   }, []);
@@ -127,6 +149,7 @@ function ChatLayout() {
       }
       return;
     }
+
     (async () => {
       const { data, error } = await supabase
         .from("user_roles")
