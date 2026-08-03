@@ -114,6 +114,8 @@ export async function sendPendingFlightCards(
   limiteOpcoes = MAX_OPCOES,
   /** Pedido explícito do cliente: entrega já, sem esperar o intervalo entre artes. */
   ignorarIntervalo = false,
+  /** Profundidade do encadeamento entre rodadas (1 = primeira continuação). */
+  depth = 0,
 ): Promise<{ sent: number; quote_id?: string }> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
