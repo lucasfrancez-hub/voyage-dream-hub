@@ -83,6 +83,8 @@ export async function sendPendingFlightCards(
   force = false,
   /** Orçamento total de renderização desta rodada. Estourou → fallback em texto. */
   renderBudgetMs = 26_000,
+  /** Teto de opções desta cotação. Sobe quando o cliente pede "tem mais opções?". */
+  limiteOpcoes = MAX_OPCOES,
 ): Promise<{ sent: number; quote_id?: string }> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
