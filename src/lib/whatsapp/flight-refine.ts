@@ -182,6 +182,57 @@ const DELTA: Record<RefineKind, (i: RefineIntent) => string> = {
     `use a NOVA data que o cliente informou em data_ida (converta para AAAA-MM-DD). Se ele não disse a data, pergunte antes.`,
 };
 
+/** Opção respondida (reply) — só o que o refino precisa. */
+export type RepliedOption = {
+  option_index: number;
+  companhia?: string | null;
+  saida?: string | null;
+  chegada?: string | null;
+  data_ida?: string | null;
+  valor_formatado?: string | null;
+  /** IATA real do trecho de ida da opção (o que apareceu no card). */
+  ida_origem_iata?: string | null;
+  ida_destino_iata?: string | null;
+};
+
+export type RefineSource = "reply" | "ordinal" | "texto" | "ultima_referencia";
+
+/**
+ * PRIORIDADE DO REPLY: quando o cliente responde a um card específico, a base
+ * do refino é a OPÇÃO RESPONDIDA, não a última pesquisa da conversa. Os
+ * aeroportos do card sobrescrevem origem/destino da busca (o card pode ser de
+ * CGH enquanto a última pesquisa foi na cidade inteira / GRU).
+ */
+export function baseFromRepliedOption(
+  base: RefineBaseSearch | null,
+  opcao: RepliedOption,
+): RefineBaseSearch {
+  const b: RefineBaseSearch = base
+    ? { ...base }
+    : {
+        origem: null,
+        origem_iata: null,
+        destino: null,
+        destino_iata: null,
+        data_ida: null,
+        data_volta: null,
+        adultos: 1,
+        criancas: 0,
+        bebes: 0,
+      };
+  if (opcao.ida_origem_iata) {
+    b.origem_iata = opcao.ida_origem_iata;
+    b.origem = cidadeDoAeroporto(opcao.ida_origem_iata)?.cidade ?? b.origem ?? opcao.ida_origem_iata;
+  }
+  if (opcao.ida_destino_iata) {
+    b.destino_iata = opcao.ida_destino_iata;
+    b.destino =
+      cidadeDoAeroporto(opcao.ida_destino_iata)?.cidade ?? b.destino ?? opcao.ida_destino_iata;
+  }
+  if (opcao.data_ida) b.data_ida = opcao.data_ida;
+  return b;
+}
+
 /**
  * Bloco injetado no prompt: parâmetros da cotação ativa + o que muda +
  * ordem explícita de rodar nova pesquisa antes de qualquer resposta.
@@ -189,8 +240,10 @@ const DELTA: Record<RefineKind, (i: RefineIntent) => string> = {
 export function buildRefineBlock(
   base: RefineBaseSearch | null,
   intents: RefineIntent[],
+  contexto?: { fonte?: RefineSource; opcao?: RepliedOption | null },
 ): string {
   if (!intents.length || !base) return "";
+
 
   const params = [
     `origem: ${base.origem ?? "?"}${base.origem_iata ? ` (${base.origem_iata})` : ""}`,
@@ -229,7 +282,22 @@ export function buildRefineBlock(
     );
   }
 
+  const o = contexto?.opcao ?? null;
+  const resumoOpcao = o
+    ? `opção ${o.option_index}${o.companhia ? ` · ${o.companhia}` : ""}${o.saida && o.chegada ? ` · ${o.saida} → ${o.chegada}` : ""}${o.ida_origem_iata && o.ida_destino_iata ? ` · ${o.ida_origem_iata} → ${o.ida_destino_iata}` : ""}${o.valor_formatado ? ` · ${o.valor_formatado}` : ""}`
+    : null;
+  const cabecalhoReply =
+    contexto?.fonte === "reply" && resumoOpcao
+      ? [
+          `\n# 📌 REFERÊNCIA TRAVADA PELO REPLY (prioridade máxima)`,
+          `O cliente usou o botão Responder do WhatsApp em cima de um card específico: ${resumoOpcao}.`,
+          `A base desta nova pesquisa é ESSA opção — é PROIBIDO usar a última pesquisa da conversa, outra opção ou outro aeroporto como referência. Se o card é ${o?.ida_destino_iata ?? "do aeroporto citado"}, a nova pesquisa continua nesse mesmo aeroporto.`,
+          `Altere SÓ o que ele pediu (bagagem, horário, aeroporto, companhia) e mantenha todos os demais parâmetros dessa opção respondida.`,
+        ]
+      : [];
+
   return [
+    ...cabecalhoReply,
     `\n# 🔄 CONTINUAÇÃO DA PESQUISA (o cliente está refinando a cotação ativa)`,
     `A última mensagem NÃO é uma pergunta isolada: é um ajuste da pesquisa que já está em andamento. Trate como pesquisa contínua, igual a um consultor humano.`,
     `\nParâmetros da pesquisa atual (mantenha TODOS, exceto o que muda abaixo):`,
@@ -241,5 +309,7 @@ export function buildRefineBlock(
     `É PROIBIDO responder "não encontrei", "não tem opção" ou qualquer negativa antes de executar a nova pesquisa. Só depois que a tool devolver sem_resultado você informa que não achou e oferece alternativas (outra data, outro aeroporto próximo, outro horário).`,
     `VALIDAÇÃO CRUZADA antes de qualquer negativa: se a tool devolveu opcoes > 0, é PROIBIDO dizer "não apareceu opção", "não encontrei" ou "não tem voo". Responda exatamente o que o motor retornou.`,
     `Nunca encerre o atendimento nem transfira enquanto o cliente estiver ajustando a pesquisa.`,
+    `POSTURA: ao devolver o novo valor, comente a mudança ("recalculei essa mesma opção com bagagem, ficou em X") e termine com uma pergunta que dê continuidade.`,
   ].join("\n");
 }
+
