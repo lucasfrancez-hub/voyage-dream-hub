@@ -53,19 +53,14 @@ const fingerprint = (o: OptLite): string =>
 
 /**
  * Quantas opções esta cotação PREVÊ entregar: a meta da política (3) limitada
- * ao que a pesquisa realmente trouxe, contando horários de ida distintos.
- * Sem isso, uma rota com 1 ou 2 opções nunca fecharia.
+ * ao que a pesquisa realmente trouxe. Conta OPÇÕES, não horários distintos —
+ * dois voos que saem no mesmo horário (companhias/tarifas/volta diferentes)
+ * são duas opções válidas e as duas precisam chegar ao cliente.
  */
 export function previstasNaCotacao(todas: OptLite[], limite: number): number {
-  const horarios = new Set<string>();
-  let semHorario = 0;
-  for (const o of todas) {
-    const h = horarioIda(o);
-    if (h) horarios.add(h);
-    else semHorario++;
-  }
-  return Math.max(1, Math.min(limite, horarios.size + semHorario));
+  return Math.max(1, Math.min(limite, todas.length));
 }
+
 
 /**
  * Conclusão da cotação: independe do formato. Card e texto entram na mesma
