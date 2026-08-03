@@ -317,10 +317,18 @@ function PayPage() {
 
     try {
       const authorizedAt = new Date().toISOString();
+      // Cliente final não é autenticado: geramos o ID aqui e NÃO usamos .select()
+      // (o anon tem permissão de INSERT, mas não de SELECT em orders — era a causa
+      // do "Erro ao processar pagamento" em dispositivos fora do painel).
+      const newOrderId =
+        typeof crypto !== "undefined" && "randomUUID" in crypto
+          ? crypto.randomUUID()
+          : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
-      const { data: inserted, error } = await supabase
+      const { error } = await supabase
         .from("orders")
         .insert({
+          id: newOrderId,
           package_id: null,
           package_snapshot: {
             kind: secureMode ? "payment_link" : "payment_link_simple",
@@ -358,9 +366,9 @@ function PayPage() {
                 : {}),
             },
           },
-          full_name: fullName,
-          email,
-          phone,
+          full_name: fullName.trim(),
+          email: email.trim(),
+          phone: phone.trim(),
           cpf: cpf || null,
           birth_date: birthDate || null,
           adults: 1,
@@ -368,15 +376,13 @@ function PayPage() {
           payment_method: `credit_card_${installments}x`,
           total_price: totalNumber,
           notes: null,
-        })
-        .select("id")
-        .single();
+        });
       if (error) throw error;
 
       // Vincula o PDF assinado ao pedido
-      if (secureMode && pendingId && inserted?.id) {
+      if (secureMode && pendingId) {
         try {
-          await consumePendingFn({ data: { pendingId, orderId: inserted.id } });
+          await consumePendingFn({ data: { pendingId, orderId: newOrderId } });
         } catch (e) {
           console.error("[pagar] Falha ao vincular PDF assinado:", e);
           // Não bloqueia o sucesso do pedido — o admin ainda pode sincronizar depois
@@ -386,10 +392,20 @@ function PayPage() {
       setSuccess(true);
       toast.success("Seu pedido foi enviado para análise, em breve você receberá um retorno.");
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Erro ao processar pagamento");
+      const detail =
+        err instanceof Error
+          ? err.message
+          : typeof err === "object" && err !== null
+            ? [(err as { message?: string }).message, (err as { details?: string }).details]
+                .filter(Boolean)
+                .join(" — ")
+            : "";
+      console.error("[pagar] Falha ao enviar pedido:", err);
+      toast.error(detail ? `Erro ao processar pagamento: ${detail}` : "Erro ao processar pagamento");
     } finally {
       setSubmitting(false);
     }
+
 
 
   }
