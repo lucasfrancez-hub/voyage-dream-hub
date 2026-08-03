@@ -159,15 +159,37 @@ const NOMES_CIDADE: Record<string, string> = {
   LIS: "Lisboa",
 };
 
-/** Resolve texto livre ("Curitiba", "cwb", "São Paulo") no IATA da operadora. */
+/**
+ * Resolve texto livre ("Curitiba", "cwb", "Congonhas", "São Paulo") no que deve
+ * ser efetivamente pesquisado.
+ *
+ * Aeroporto específico ("Congonhas"/"CGH") trava a pesquisa naquele IATA.
+ * Cidade ("São Paulo") pesquisa a cidade inteira (GRU + CGH + VCP).
+ */
 async function resolveIata(
   query: string,
   isDeparture: boolean,
-): Promise<{ iata: string; nome: string } | null> {
+): Promise<{ iata: string; nome: string; isCity: boolean; interpretacao: LocalInterpretado | null } | null> {
   const raw = query.trim();
   if (!raw) return null;
+
+  const local = interpretarLocal(raw);
+  if (local?.tipo === "aeroporto" && local.aeroporto_iata) {
+    return {
+      iata: local.aeroporto_iata,
+      nome: local.aeroporto_nome ?? local.aeroporto_iata,
+      isCity: false,
+      interpretacao: local,
+    };
+  }
+
   const list = await searchAirports({ query: raw, isDeparture });
-  if (!list.length) return null;
+  if (!list.length) {
+    if (local?.tipo === "cidade") {
+      return { iata: local.codigo_pesquisa, nome: local.cidade ?? local.codigo_pesquisa, isCity: true, interpretacao: local };
+    }
+    return null;
+  }
   const up = raw.toUpperCase();
   const exato = list.find((a) => a.iata.toUpperCase() === up && up.length === 3);
   const cidade = list.find((a) => a.isCity) ?? list[0];
@@ -176,7 +198,8 @@ async function resolveIata(
   let nome = pick.city || pick.name || iata;
   // A operadora às vezes devolve o próprio código ("SAO") como nome da cidade.
   if (/^[A-Z]{3}$/.test(nome.trim().toUpperCase())) nome = NOMES_CIDADE[iata] ?? nome;
-  return { iata, nome };
+  const isCity = !!pick.isCity || isCodigoDeCidade(iata);
+  return { iata, nome, isCity, interpretacao: local };
 }
 
 export type QuoteFlightsParams = {
