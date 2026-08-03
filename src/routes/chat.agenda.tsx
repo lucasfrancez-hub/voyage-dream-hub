@@ -67,6 +67,23 @@ type Conta = {
   ultimoErro: string | null;
 };
 
+type Participante = { nome?: string | null; email?: string | null; resposta?: string | null; organizador?: boolean };
+
+type DetalhesEvento = {
+  url?: string | null;
+  conferencia?: string | null;
+  organizador?: Participante | null;
+  criador?: Participante | null;
+  participantes?: Participante[];
+  lembretes?: string[];
+  recorrencia?: string | null;
+  fusoHorario?: string | null;
+  visibilidade?: string | null;
+  disponibilidade?: string | null;
+  calendario?: string | null;
+  meuStatus?: string | null;
+};
+
 type Evento = {
   id: string;
   titulo: string;
@@ -78,6 +95,8 @@ type Evento = {
   provider: string;
   account_id: string | null;
   origem: string;
+  situacao?: string;
+  detalhes?: DetalhesEvento | null;
 };
 
 const BRT = "America/Sao_Paulo";
@@ -116,6 +135,7 @@ function AgendaPage() {
 
   const [contas, setContas] = useState<Conta[]>([]);
   const [eventos, setEventos] = useState<Evento[]>([]);
+  const [detalhe, setDetalhe] = useState<Evento | null>(null);
   const [mes, setMes] = useState(() => inicioDoMes(new Date()));
   const [carregando, setCarregando] = useState(true);
   const [sincronizando, setSincronizando] = useState(false);
@@ -333,17 +353,7 @@ function AgendaPage() {
                               <button
                                 type="button"
                                 className="truncate text-left text-foreground hover:underline"
-                                onClick={async () => {
-                                  const ok = await confirm({
-                                    title: e.titulo,
-                                    description: `${hora(e.inicio)} às ${hora(e.fim)}${e.local ? ` · ${e.local}` : ""}. Excluir este compromisso?`,
-                                    confirmText: "Excluir",
-                                  });
-                                  if (!ok) return;
-                                  await apagarEvento({ data: { id: e.id } });
-                                  toast.success("Compromisso excluído.");
-                                  void recarregar();
-                                }}
+                                onClick={() => setDetalhe(e)}
                               >
                                 {hora(e.inicio)} {e.titulo}
                               </button>
@@ -363,6 +373,25 @@ function AgendaPage() {
         </main>
       </div>
 
+      {detalhe && (
+        <DetalhesDialog
+          evento={detalhe}
+          conta={detalhe.account_id ? (contaPorId.get(detalhe.account_id) ?? null) : null}
+          onClose={() => setDetalhe(null)}
+          onExcluir={async () => {
+            const ok = await confirm({
+              title: detalhe.titulo,
+              description: "Excluir este compromisso da agenda?",
+              confirmText: "Excluir",
+            });
+            if (!ok) return;
+            await apagarEvento({ data: { id: detalhe.id } });
+            toast.success("Compromisso excluído.");
+            setDetalhe(null);
+            void recarregar();
+          }}
+        />
+      )}
       {conectar && (
         <ConectarDialog
           provider={conectar}
