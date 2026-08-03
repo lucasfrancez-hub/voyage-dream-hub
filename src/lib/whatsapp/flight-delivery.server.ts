@@ -384,6 +384,13 @@ async function entregarOpcao(
     });
     log({ event: "flight_delivery_render_completed", quote_id: quote.id, option_index: linha.option_index, cache_hit: from_cache });
 
+    // Arte pronta: o estado passa a card_generated. Se o worker morrer daqui
+    // pra frente, o reconciliador sabe que existe arte pronta e reaproveita.
+    await supabaseAdmin
+      .from("wa_flight_quote_options")
+      .update({ delivery_status: "card_generated" })
+      .eq("id", linha.id);
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const caption = buildFlightOptionCaption(quote.payload as any, op as any);
     const msg = await saveMessage({
@@ -399,6 +406,11 @@ async function entregarOpcao(
       card_option: op as unknown,
     });
     if (msg?.id) await setSendError(msg.id, SENDING_CLAIM);
+    await supabaseAdmin
+      .from("wa_flight_quote_options")
+      .update({ delivery_status: "sending_card" })
+      .eq("id", linha.id);
+
 
     const r = await sendWhatsAppImageBytesDetailed(
       ctx.wa_phone,
