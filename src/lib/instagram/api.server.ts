@@ -15,6 +15,7 @@
  *   instagram_business_manage_comments
  *   instagram_business_content_publish
  */
+import type { Json } from "@/integrations/supabase/types";
 
 // Instagram API com Instagram Login → host graph.instagram.com.
 // (graph.facebook.com só aceita tokens de Página/Facebook Login e devolve OAuth 190.)
@@ -47,8 +48,8 @@ async function fetchGraph(path: string, init: RequestInit & { token: string; ope
       operation: init.operation ?? "graph_api",
       endpoint: path,
       method: rest.method ?? "GET",
-      request_payload: requestPayload,
-      response_body: parsed,
+      request_payload: requestPayload as Json | null,
+      response_body: parsed as Json | null,
       response_raw: parsed ? null : body.slice(0, 20_000),
       http_status: res.status,
       success: res.ok,
