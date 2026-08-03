@@ -376,6 +376,40 @@ export async function sendWhatsAppImageBytesDetailed(
   return { ...r, media_id: null, stage: r.error ? "meta_message_send" : undefined };
 }
 
+/**
+ * ENVIO LEVE DA ARTE (caminho padrão dos cartões de voo).
+ *
+ * A arte já está salva no nosso storage com URL pública, então mandamos o
+ * LINK: é um JSON de 300 bytes, a Meta é quem baixa a imagem. Subir os bytes
+ * em multipart dentro do worker consumia CPU/memória demais e era o que
+ * matava o processo no meio do envio (balão "não entregue").
+ *
+ * Só se o link falhar é que caímos no upload dos bytes.
+ */
+export async function sendWhatsAppImagePreferLink(
+  to: string,
+  link: string,
+  bytes: Uint8Array | null,
+  filename: string,
+  caption?: string | null,
+): Promise<{
+  id: string | null;
+  error?: string;
+  media_id?: string | null;
+  stage?: "meta_media_upload" | "meta_message_send";
+}> {
+  const cap = caption ? { caption: caption.slice(0, 1024) } : {};
+  if (link) {
+    const r = await metaSendMedia(to, { type: "image", image: { link, ...cap } });
+    if (r.id) return { ...r, media_id: null };
+    console.error("[whatsapp] envio da arte por link falhou:", r.error);
+  }
+  if (bytes?.byteLength) {
+    return await sendWhatsAppImageBytesDetailed(to, bytes, filename, caption);
+  }
+  return { id: null, error: "URL da imagem ausente", stage: "meta_message_send" };
+}
+
 export async function sendWhatsAppImageBytes(
   to: string,
   bytes: Uint8Array,
