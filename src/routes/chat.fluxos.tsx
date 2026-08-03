@@ -328,6 +328,28 @@ function FluxosPage() {
     setSujo(true);
   };
 
+  const atualizarSeta = (label: string) => {
+    if (!setaSelecionada) return;
+    setEdges((es) => es.map((e) => (e.id === setaSelecionada ? { ...e, label: label || undefined } : e)));
+    setSujo(true);
+  };
+
+  const excluirSeta = async () => {
+    if (!setaSelecionada) return;
+    const ok = await confirm({
+      title: "Excluir seta",
+      description: "O caminho entre os dois quadros será removido.",
+      confirmText: "Excluir",
+      destructive: true,
+    });
+    if (!ok) return;
+    setEdges((es) => es.filter((e) => e.id !== setaSelecionada));
+    setSetaSelecionada(null);
+    setSujo(true);
+  };
+
+
+
   const salvarTudo = async () => {
     if (!flow) return;
     const payloadNodes: FlowNode[] = nodes.map((n) => ({
