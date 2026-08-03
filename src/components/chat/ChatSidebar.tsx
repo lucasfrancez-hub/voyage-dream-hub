@@ -61,7 +61,10 @@ export function ChatSidebar({ mobileOpen = false, onCloseMobile }: { mobileOpen?
           mobileOpen && "!flex fixed inset-y-0 left-0 z-50 w-64 md:relative md:z-auto",
         )}
       >
-        <div className="flex h-14 items-center justify-center gap-2 border-b border-slate-200 px-3">
+        <div
+          className="flex items-center justify-center gap-2 border-b border-slate-200 px-3"
+          style={{ paddingTop: "env(safe-area-inset-top)", minHeight: "calc(3.5rem + env(safe-area-inset-top))" }}
+        >
           {collapsed ? (
             <img src={viaAirMark.url} alt="VIA AIR" className="h-7 w-7 shrink-0" />
           ) : (
