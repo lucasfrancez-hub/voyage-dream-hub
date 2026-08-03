@@ -66,13 +66,20 @@ async function dav(
   });
   const text = await res.text().catch(() => "");
   if (res.status === 401 || res.status === 403) {
-    throw new Error("Login do calendário recusado. Confira o e-mail e a senha do Titan.");
+    const err = new Error(
+      "Login do calendário recusado. Confira o e-mail e a senha (no iCloud é preciso usar uma senha de app).",
+    );
+    (err as Error & { status?: number }).status = res.status;
+    throw err;
   }
   if (res.status >= 400) {
-    throw new Error(`CalDAV ${method} ${res.status}: ${text.slice(0, 300)}`);
+    const err = new Error(`CalDAV ${method} ${res.status}: ${text.slice(0, 300)}`);
+    (err as Error & { status?: number }).status = res.status;
+    throw err;
   }
   return { status: res.status, text, etag: res.headers.get("etag") };
 }
+
 
 function parseXml(xml: string): Document {
   return new DOMParser({
