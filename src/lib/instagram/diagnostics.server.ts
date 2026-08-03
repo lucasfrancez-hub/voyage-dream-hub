@@ -198,8 +198,8 @@ export async function runInstagramHealthCheck(accountId?: string) {
       errorSubcode: apiError?.error_subcode != null ? String(apiError.error_subcode) : null,
       fbtraceId: apiError?.fbtrace_id ?? null,
       overallStatus: failures.length === 0 ? "healthy" : "failed",
-      identity: identity?.body,
-      subscriptions: subscriptions?.body,
+      identityOk: identity?.ok ?? false,
+      subscriptionCount: subscriptionRows.length,
     };
     await supabaseAdmin.from("instagram_health_checks").insert({
       account_id: account.id,
