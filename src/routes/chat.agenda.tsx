@@ -834,7 +834,7 @@ function DetalhesDialog({
               </DialogTitle>
             </DialogHeader>
 
-            <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-6 pb-6">
+            <div className="min-h-0 w-full min-w-0 flex-1 space-y-5 overflow-y-auto overflow-x-hidden px-6 pb-6 [overflow-wrap:anywhere]">
               <Linha icone={Clock} tom="primary">
                 <p className="font-bold capitalize text-foreground">{dataTexto}</p>
                 {horaTexto && <p className="font-medium text-muted-foreground">{horaTexto}</p>}
