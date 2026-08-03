@@ -150,43 +150,25 @@ async function processPayload(payload: IGPayload) {
             .eq("id", conv.id);
       }
 
-      // Nome e @ do contato (só busca quando ainda não temos)
+      // Nome, @ e foto do contato — busca sempre que faltar algum dado,
+      // inclusive quando o evento é um eco nosso (resposta privada a comentário).
       let contatoNome: string | null = null;
       let contatoUser: string | null = null;
       let contatoFoto: string | null = null;
-      if (!isFromMe && igToken) {
-        try {
-          const { data: convInfo } = await supabaseAdmin
-            .from("instagram_conversations")
-            .select("contact_name, contact_username, contact_profile_pic")
-            .eq("id", conv.id)
-            .maybeSingle();
-          contatoNome = convInfo?.contact_name ?? null;
-          contatoUser = convInfo?.contact_username ?? null;
-          contatoFoto = convInfo?.contact_profile_pic ?? null;
-          if (!contatoUser || !contatoNome) {
-            const { fetchContactProfile } = await import("@/lib/instagram/api.server");
-            const perfil = await fetchContactProfile({
-              igUserId: igApiUserId,
-              token: igToken,
-              contactIgId,
-            });
-            contatoNome = perfil.name ?? contatoNome;
-            contatoUser = perfil.username ?? contatoUser;
-            contatoFoto = perfil.profile_pic ?? contatoFoto;
-            await supabaseAdmin
-              .from("instagram_conversations")
-              .update({
-                contact_name: contatoNome,
-                contact_username: contatoUser,
-                contact_profile_pic: contatoFoto,
-              })
-              .eq("id", conv.id);
-          }
-        } catch (e) {
-          console.error("[instagram] perfil do contato falhou:", (e as Error).message);
-        }
+      try {
+        const { ensureInstagramContactProfile } = await import("@/lib/instagram/profile.server");
+        const perfil = await ensureInstagramContactProfile({
+          conversationId: conv.id,
+          accountRowId: account.id,
+          contactIgId,
+        });
+        contatoNome = perfil.name;
+        contatoUser = perfil.username;
+        contatoFoto = perfil.profile_pic;
+      } catch (e) {
+        console.error("[instagram] perfil do contato falhou:", (e as Error).message);
       }
+
 
       // Espelha no inbox do chatbot (/chat)
       let espelho: { waPhone: string } | null = null;
