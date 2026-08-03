@@ -427,7 +427,7 @@ async function talvezEscalar(quote: QuoteLite, expected: number): Promise<boolea
       .update({ assunto_resumo: briefing })
       .eq("id", c.protocolo_ativo_id);
   }
-  const { recordHandoff } = await import("./handoff.server");
+  const { recordHandoff } = await import("./conversation.server");
   await recordHandoff({
     conversation_id: quote.conversation_id,
     from_mode: "ai",
