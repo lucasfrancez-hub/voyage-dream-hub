@@ -597,6 +597,32 @@ export async function runAgent(input: {
     console.warn("[agent] bloco de mensagem respondida indisponível:", err);
   }
 
+  // VISÃO: regra global válida pra QUALQUER agente (consultores, Central de
+  // Especialistas e pós-venda). A leitura da imagem já veio na ingestão.
+  let imagemBlock = "";
+  try {
+    const { hasImageAnalysis } = await import("./image-vision.server");
+    const comImagem = [...merged]
+      .reverse()
+      .slice(0, 12)
+      .filter((m) => m.sender === "customer" && hasImageAnalysis(m.content));
+    if (comImagem.length) {
+      imagemBlock =
+        "\n\n[IMAGEM JÁ ANALISADA] O cliente enviou imagem(ns) e o conteúdo delas já foi lido e está no histórico, marcado com [[analise-imagem]]. Trate esses dados como se o cliente tivesse digitado: use companhia, aeroportos, datas, horários, valores, localizadores e mensagens de erro identificados. É PROIBIDO responder 'me manda o print', 'pode enviar uma imagem?' ou 'manda o print' quando existe leitura disponível. Relacione a imagem ao assunto atual da conversa (pesquisa, reserva ou pedido em andamento), não descreva a imagem isoladamente. Só peça nova imagem se a leitura indicar explicitamente que ficou ilegível ou falhou — e nesse caso explique que você tentou ler e peça mais resolução ou um recorte da parte importante.\n";
+      console.log(
+        JSON.stringify({
+          event: "image_context_injected",
+          conversation_id: conv.id,
+          protocolo_id: protocolo.id,
+          imagens: comImagem.length,
+          at: new Date().toISOString(),
+        }),
+      );
+    }
+  } catch (err) {
+    console.warn("[agent] bloco de imagem indisponível:", err);
+  }
+
   // MEMÓRIA ESTRUTURADA DAS COTAÇÕES: o que foi enviado ao cliente vem do
   // banco, não da leitura da legenda das artes. É isso que faz "gostei da
   // segunda" apontar sempre para a opção certa, mesmo com mensagens no meio.
