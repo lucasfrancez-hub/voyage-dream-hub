@@ -91,6 +91,20 @@ export const listInstagramConversations = createServerFn({ method: "GET" })
     return data ?? [];
   });
 
+export const markInstagramConversationRead = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { conversation_id: string }) => z.object({ conversation_id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase
+      .from("instagram_conversations")
+      .update({ unread_count: 0 })
+      .eq("id", data.conversation_id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+
+
 export const listInstagramMessages = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { conversation_id: string }) => z.object({ conversation_id: z.string().uuid() }).parse(d))
