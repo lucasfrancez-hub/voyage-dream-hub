@@ -522,6 +522,45 @@ export const sendHumanReply = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+/** Reenvia um balão que ficou como "não entregue" (mesma linha, sem duplicar). */
+export const resendHumanMessage = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) =>
+    z.object({ message_id: z.string().uuid() }).parse(data),
+  )
+  .handler(async ({ data, context }) => {
+    const { data: msg, error: mErr } = await context.supabase
+      .from("wa_messages")
+      .select("id, conversation_id, content, direction, reply_to_wa_id")
+      .eq("id", data.message_id)
+      .single();
+    if (mErr || !msg) throw new Error("Mensagem não encontrada");
+    if (msg.direction !== "outbound") throw new Error("Só dá pra reenviar mensagem enviada por nós");
+    const content = (msg.content ?? "").trim();
+    if (!content) throw new Error("Mensagem sem texto para reenviar");
+
+    const { data: conv } = await context.supabase
+      .from("wa_conversations")
+      .select("wa_phone")
+      .eq("id", msg.conversation_id)
+      .maybeSingle();
+    if (!conv?.wa_phone) throw new Error("Conversa não encontrada");
+
+    const { sendWhatsAppText } = await import("@/lib/whatsapp/send.server");
+    const { setWaMessageId, setSendError } = await import("@/lib/whatsapp/conversation.server");
+    const res = await sendWhatsAppText(conv.wa_phone, content, msg.reply_to_wa_id ?? null);
+    if (res.id) {
+      await setWaMessageId(msg.id, res.id);
+      await setSendError(msg.id, null);
+      return { ok: true };
+    }
+    const err = res.error ?? "Não entregue pelo WhatsApp";
+    await setSendError(msg.id, err);
+    throw new Error(err);
+  });
+
+
+
 
 export const sendHumanMedia = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])

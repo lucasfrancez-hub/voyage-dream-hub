@@ -6,7 +6,7 @@ import { Pause, Play, Search, Send, Bot, User, MoreVertical, Loader2, Inbox as I
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
-import { listConversations, listMessages, sendHumanReply, sendHumanMedia, toggleConversationMode, startOutboundConversation, setFunnelStage, assignConversation, setAiPaused, listAttendants, getActiveProtocolo, closeProtocoloManually, listConversationProtocolos, getConversationOrders, updateProtocoloDetails, listProtocoloMessages, ensureProtocoloResumo, clearConversationHistory } from "@/lib/chat/queries.functions";
+import { listConversations, listMessages, sendHumanReply, resendHumanMessage, sendHumanMedia, toggleConversationMode, startOutboundConversation, setFunnelStage, assignConversation, setAiPaused, listAttendants, getActiveProtocolo, closeProtocoloManually, listConversationProtocolos, getConversationOrders, updateProtocoloDetails, listProtocoloMessages, ensureProtocoloResumo, clearConversationHistory } from "@/lib/chat/queries.functions";
 import { listInstagramConversations, listInstagramMessages, sendInstagramReply, listInstagramComments, triggerAutoReplyComment } from "@/lib/instagram/queries.functions";
 import { firstName } from "@/lib/whatsapp/text-utils.shared";
 import { confirmThen } from "@/lib/confirm";
@@ -660,13 +660,8 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
   };
 
   const submit = () => {
-    // O WhatsApp bloqueia mensagens livres depois de 24h sem resposta do cliente
-    // (erro Meta 131047). Avisa antes de gastar o envio.
-    if (window24) {
-      toast.error("Janela de 24h encerrada — o WhatsApp não entrega mensagem livre. O cliente precisa responder primeiro.");
-      return;
-    }
     if (audioDraft) {
+
       const file = audioDraft.file;
       discardDraft();
       mediaMut.mutate({ file, caption: "", kind: "audio" });
@@ -713,7 +708,21 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
     ? attendantsList.find((a) => a.id === conv.assigned_to)?.full_name ?? null
     : null;
 
+  const resendFn = useServerFn(resendHumanMessage);
+  const [resendingId, setResendingId] = useState<string | null>(null);
+  const resendMut = useMutation({
+    mutationFn: async (messageId: string) => resendFn({ data: { message_id: messageId } }),
+    onMutate: (messageId: string) => setResendingId(messageId),
+    onSuccess: () => {
+      toast.success("Mensagem reenviada");
+      qc.invalidateQueries({ queryKey: ["chat", "messages", conv.id] });
+    },
+    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Não deu pra reenviar"),
+    onSettled: () => setResendingId(null),
+  });
+
   const sendMut = useMutation({
+
     mutationFn: async (content: string) => sendFn({ data: {
       conversation_id: conv.id,
       content,
@@ -901,9 +910,10 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
 
       {window24 && (
         <div className="border-b border-amber-200 bg-amber-50 px-4 py-2 text-xs text-amber-800">
-          ⚠️ Última mensagem do cliente há mais de 24h — janela do WhatsApp encerrada. Use um template aprovado.
+          ⚠️ Cliente sem responder há mais de 24h — o envio livre pode ser recusado pelo WhatsApp. Se der “não entregue”, use o botão reenviar no balão.
         </div>
       )}
+
 
       {/* Mensagens */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto p-4" style={wallpaper.style}>
@@ -957,7 +967,14 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
                               });
                             }
                       }
+                      onResend={
+                        m.direction === "outbound" && (m as { error?: string | null }).error
+                          ? () => resendMut.mutate(m.id)
+                          : undefined
+                      }
+                      resending={resendingId === m.id}
                     />
+
                   </div>
                 );
               })}
@@ -1026,12 +1043,12 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
           </div>
         )}
         {window24 && (
-          <div className="mb-2 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-900">
-            <strong>Janela de 24h encerrada.</strong> O cliente não responde há mais de 24h, então o WhatsApp
-            recusa qualquer mensagem livre (erro 131047) — ela aparece como “não entregue”. Só volta a funcionar
-            quando o cliente mandar uma mensagem nova, ou com um template aprovado.
+          <div className="mb-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] text-amber-900">
+            Cliente sem responder há mais de 24h — o WhatsApp pode recusar mensagem livre (erro 131047).
+            Se aparecer “não entregue”, dá pra clicar em <strong>reenviar</strong> no próprio balão.
           </div>
         )}
+
         <div className="flex items-end gap-2">
 
           <input

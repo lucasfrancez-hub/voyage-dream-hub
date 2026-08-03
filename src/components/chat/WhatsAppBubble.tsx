@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Check, CheckCheck, FileText, Download, CornerUpLeft, AlertCircle } from "lucide-react";
+import { Check, CheckCheck, FileText, Download, CornerUpLeft, AlertCircle, RotateCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { firstName } from "@/lib/whatsapp/text-utils.shared";
 import { ImageLightbox } from "@/components/chat/ImageLightbox";
@@ -43,6 +43,9 @@ interface Props {
   reply?: { sender?: string | null; snippet: unknown; deleted?: boolean; revokedBy?: "customer" | "business" | null } | null;
   /** Handler pra "Responder" — clica na setinha que aparece no hover */
   onReply?: () => void;
+  /** Handler pra reenviar um balão que não foi entregue */
+  onResend?: () => void;
+  resending?: boolean;
 }
 
 function formatTime(iso: string) {
@@ -51,7 +54,8 @@ function formatTime(iso: string) {
   return d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
 }
 
-export function WhatsAppBubble({ side, content, timestamp, senderLabel, status, deleted, revokedBy, replied, reply, onReply }: Props) {
+export function WhatsAppBubble({ side, content, timestamp, senderLabel, status, deleted, revokedBy, replied, reply, onReply, onResend, resending }: Props) {
+
   const isOut = side === "out";
   const label = firstName(senderLabel);
   const replySender = firstName(reply?.sender ?? null);
@@ -158,8 +162,22 @@ export function WhatsAppBubble({ side, content, timestamp, senderLabel, status, 
           )}
           {isOut && status && (
             status === "failed" ? (
-              <span className="flex items-center gap-0.5 font-medium text-red-500" title="Não entregue">
-                <AlertCircle className="h-3 w-3" /> não entregue
+              <span className="flex items-center gap-1 font-medium text-red-500">
+                <span className="flex items-center gap-0.5" title="Não entregue">
+                  <AlertCircle className="h-3 w-3" /> não entregue
+                </span>
+                {onResend && (
+                  <button
+                    type="button"
+                    onClick={onResend}
+                    disabled={resending}
+                    title="Reenviar esta mensagem"
+                    className="flex items-center gap-0.5 rounded-full border border-red-300 bg-white px-1.5 py-[1px] text-[10px] font-semibold text-red-600 hover:bg-red-50 disabled:opacity-60"
+                  >
+                    <RotateCw className={cn("h-3 w-3", resending && "animate-spin")} />
+                    reenviar
+                  </button>
+                )}
               </span>
             ) : status === "read" ? (
               <CheckCheck className="h-3 w-3 text-blue-500" />
@@ -169,6 +187,7 @@ export function WhatsAppBubble({ side, content, timestamp, senderLabel, status, 
               <Check className="h-3 w-3" />
             )
           )}
+
 
         </div>
       </div>
