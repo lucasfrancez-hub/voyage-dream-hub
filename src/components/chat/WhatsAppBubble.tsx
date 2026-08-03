@@ -158,8 +158,22 @@ export function WhatsAppBubble({ side, content, timestamp, senderLabel, status, 
           )}
           {isOut && status && (
             status === "failed" ? (
-              <span className="flex items-center gap-0.5 font-medium text-red-500" title="Não entregue">
-                <AlertCircle className="h-3 w-3" /> não entregue
+              <span className="flex items-center gap-1 font-medium text-red-500">
+                <span className="flex items-center gap-0.5" title="Não entregue">
+                  <AlertCircle className="h-3 w-3" /> não entregue
+                </span>
+                {onResend && (
+                  <button
+                    type="button"
+                    onClick={onResend}
+                    disabled={resending}
+                    title="Reenviar esta mensagem"
+                    className="flex items-center gap-0.5 rounded-full border border-red-300 bg-white px-1.5 py-[1px] text-[10px] font-semibold text-red-600 hover:bg-red-50 disabled:opacity-60"
+                  >
+                    <RotateCw className={cn("h-3 w-3", resending && "animate-spin")} />
+                    reenviar
+                  </button>
+                )}
               </span>
             ) : status === "read" ? (
               <CheckCheck className="h-3 w-3 text-blue-500" />
@@ -169,6 +183,7 @@ export function WhatsAppBubble({ side, content, timestamp, senderLabel, status, 
               <Check className="h-3 w-3" />
             )
           )}
+
 
         </div>
       </div>
