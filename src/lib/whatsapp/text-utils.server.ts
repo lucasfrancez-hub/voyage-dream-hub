@@ -118,6 +118,36 @@ export function capitalizeKnownNames(text: string, names: (string | null | undef
  * eles chegam como lixo visual. Aqui o texto vira texto simples; só o
  * negrito nativo do WhatsApp (*asterisco simples*) é preservado.
  */
+/**
+ * MARCADOR INTERNO DE MÍDIA — nunca pode virar mensagem.
+ *
+ * `[[media:image|url|arquivo.png]]` é só a forma como guardamos "aqui foi
+ * enviada uma foto". Se esse texto vaza pro histórico do prompt, a IA copia e
+ * o cliente recebe o LINK cru em vez da imagem. Então: no histórico vira uma
+ * descrição, e no envio de texto é apagado sempre.
+ */
+const MEDIA_RE = /\[\[media:(image|document|audio|video)\|([^|\]]+)\|([^\]]*)\]\]/gi;
+
+const ROTULO: Record<string, string> = {
+  image: "[foto enviada ao cliente]",
+  document: "[documento enviado ao cliente]",
+  audio: "[áudio enviado ao cliente]",
+  video: "[vídeo enviado ao cliente]",
+};
+
+/** Para o histórico que a IA lê: troca o marcador por uma descrição. */
+export function descreverMidiaNoHistorico(text: string): string {
+  return String(text ?? "").replace(MEDIA_RE, (_m, kind: string) => ROTULO[kind.toLowerCase()] ?? "[mídia enviada]");
+}
+
+/** Para o que sai pro cliente: apaga o marcador (e o link cru junto). */
+export function removerMarcadorMidia(text: string): string {
+  return String(text ?? "")
+    .replace(MEDIA_RE, "")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
 export function stripMarkdownForWhatsApp(text: string): string {
   let out = String(text ?? "");
   // blocos e trechos de código

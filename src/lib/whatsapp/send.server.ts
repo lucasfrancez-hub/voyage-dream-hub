@@ -9,7 +9,7 @@
  * SERVER-ONLY — nunca importar de rotas/componentes.
  */
 
-import { stripMarkdownForWhatsApp } from "./text-utils.server";
+import { removerMarcadorMidia, stripMarkdownForWhatsApp } from "./text-utils.server";
 
 const GRAPH_VERSION = "v21.0";
 
@@ -200,7 +200,8 @@ export async function sendWhatsAppTypingIndicator(
  */
 export function splitToBubbles(fullText: string, prefix?: string | null): string[] {
   // WhatsApp não renderiza Markdown: tudo sai em texto simples.
-  fullText = stripMarkdownForWhatsApp(fullText);
+  // E o marcador interno de mídia NUNCA sai como texto (viraria link cru).
+  fullText = removerMarcadorMidia(stripMarkdownForWhatsApp(fullText));
   const paragraphs = fullText
     .split(/\n{2,}/)
     .map((s) => s.trim())

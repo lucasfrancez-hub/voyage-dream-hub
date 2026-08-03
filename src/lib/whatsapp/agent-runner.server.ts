@@ -23,7 +23,7 @@ import {
   type CentralSlug,
 } from "./central-especialistas.server";
 import { sendWhatsAppBubbles } from "./send.server";
-import { buildSenderPrefix, capitalizeBubbles, capitalizeKnownNames, fixGluedSentences, firstName as extractFirstName } from "./text-utils.server";
+import { buildSenderPrefix, capitalizeBubbles, capitalizeKnownNames, descreverMidiaNoHistorico, fixGluedSentences, firstName as extractFirstName } from "./text-utils.server";
 import { buildSharedAgentPrompt } from "@/lib/chat/camila-prompt";
 import { isCompanyDataBlocked } from "./data-blocklist";
 import { triageFirstMessage, heuristicaAereo, routeAereoParaCentral } from "./triage.server";
@@ -615,7 +615,9 @@ export async function runAgent(input: {
             minute: "2-digit",
           });
           const who = m.sender === "customer" ? "CLIENTE" : "VIA AIR";
-          return `[${when}] ${who}: ${String(m.content ?? "").slice(0, 700)}`;
+          // O marcador interno de mídia vira descrição: se entrar cru aqui, a
+          // IA copia e o cliente recebe o link em vez da foto.
+          return `[${when}] ${who}: ${descreverMidiaNoHistorico(String(m.content ?? "")).slice(0, 700)}`;
         })
         .join("\n");
     }
@@ -647,9 +649,12 @@ export async function runAgent(input: {
 
   const messages: ModelMessage[] = merged.map((m) => {
     const wasDeleted = !!(m as { deleted_at?: string | null }).deleted_at;
+    // Marcador interno de mídia vira descrição — assim a IA sabe que a foto
+    // foi enviada, mas não tem como copiar o link cru pro cliente.
+    const base = descreverMidiaNoHistorico(String(m.content ?? ""));
     const content = wasDeleted
-      ? `[MENSAGEM APAGADA PELO CLIENTE — ignore, não responda a esta mensagem específica] ${m.content}`
-      : m.content;
+      ? `[MENSAGEM APAGADA PELO CLIENTE — ignore, não responda a esta mensagem específica] ${base}`
+      : base;
     return {
       role: m.sender === "customer" ? "user" : "assistant",
       content,
