@@ -197,6 +197,8 @@ export async function sendWhatsAppTypingIndicator(
  * por balão (mesmo padrão que chega no WhatsApp do cliente).
  */
 export function splitToBubbles(fullText: string, prefix?: string | null): string[] {
+  // WhatsApp não renderiza Markdown: tudo sai em texto simples.
+  fullText = stripMarkdownForWhatsApp(fullText);
   const paragraphs = fullText
     .split(/\n{2,}/)
     .map((s) => s.trim())
