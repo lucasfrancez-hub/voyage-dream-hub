@@ -467,6 +467,52 @@ export function buildCentralTools(
             };
           }
 
+          // ---- POLÍTICA DE QUANTIDADE DE OPÇÕES ----------------------------
+          // Preferencialmente 3, mínimo 2. Voltando só 1, amplia a pesquisa
+          // automaticamente (mantendo a intenção do cliente) antes de enviar.
+          const engineResults = result.opcoes.length;
+          let ampliou = false;
+          if (engineResults < MIN_OPCOES_POLITICA) {
+            const amplia = await quoteFlights({
+              origem,
+              destino,
+              data_ida,
+              data_volta,
+              adultos,
+              criancas,
+              bebes,
+              // horário livre = pequena variação de horário
+              periodo_ida: "livre",
+              periodo_volta: data_volta ? "livre" : null,
+              bagagem_despachada: somente_com_bagagem,
+              // libera outra conexão aceitável (nunca quando o cliente exigiu direto)
+              somente_voo_direto,
+              maximo_conexoes: somente_voo_direto ? 0 : null,
+              // libera outra companhia quando o cliente não restringiu
+              companhias_incluidas: null,
+              companhias_excluidas,
+            }).catch(() => null);
+            if (amplia && !("error" in amplia) && amplia.opcoes.length > engineResults) {
+              result = amplia;
+              ampliou = true;
+            }
+          }
+          const opcoesDisponiveis = result.opcoes.length;
+          const selecionadas = Math.min(opcoesDisponiveis, MAX_OPCOES_POLITICA);
+          console.log(
+            JSON.stringify({
+              event: "flight_options_policy",
+              conversation_id: conversation.id,
+              protocolo_id: conversation.protocolo_ativo_id ?? null,
+              engine_results: engineResults,
+              engine_results_after_broaden: opcoesDisponiveis,
+              broadened: ampliou,
+              selected_options: selecionadas,
+              reason: selecionadas === 1 ? "only_one_option_available" : null,
+              at: new Date().toISOString(),
+            }),
+          );
+
 
           // Guarda a cotação: é dela que saem as ARTES (cards) enviadas ao cliente.
           const { data: saved } = await supabaseAdmin
