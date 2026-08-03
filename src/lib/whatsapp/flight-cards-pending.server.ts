@@ -321,6 +321,12 @@ export async function sendPendingFlightCards(
     opcoes.push(o);
   }
 
+  // Esta execução entrega no máximo CARDS_POR_RODADA opções; o restante vai na
+  // rodada seguinte, encadeada no fim, sempre em execução nova.
+  const faltavamNoLote = Math.max(0, opcoes.length - CARDS_POR_RODADA);
+  opcoes.splice(CARDS_POR_RODADA);
+
+
   if (!opcoes.length) {
     await supabaseAdmin
       .from("wa_flight_quotes")
