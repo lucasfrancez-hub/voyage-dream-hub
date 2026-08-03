@@ -49,6 +49,7 @@ import { Route as AdminPessoasRouteImport } from './routes/admin.pessoas'
 import { Route as AdminSegurancaRouteImport } from './routes/admin.seguranca'
 import { Route as AdminUsuariosRouteImport } from './routes/admin.usuarios'
 import { Route as AdminVoosTesteRouteImport } from './routes/admin.voos-teste'
+import { Route as AgendaTokenRouteImport } from './routes/agenda.$token'
 import { Route as ChatAgendaRouteImport } from './routes/chat.agenda'
 import { Route as ChatAgentesRouteImport } from './routes/chat.agentes'
 import { Route as ChatBroadcastRouteImport } from './routes/chat.broadcast'
@@ -305,6 +306,11 @@ const AdminVoosTesteRoute = AdminVoosTesteRouteImport.update({
   id: '/voos-teste',
   path: '/voos-teste',
   getParentRoute: () => AdminRoute,
+} as any)
+const AgendaTokenRoute = AgendaTokenRouteImport.update({
+  id: '/agenda/$token',
+  path: '/agenda/$token',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const ChatAgendaRoute = ChatAgendaRouteImport.update({
   id: '/agenda',
@@ -647,6 +653,7 @@ export interface FileRoutesByFullPath {
   '/admin/seguranca': typeof AdminSegurancaRoute
   '/admin/usuarios': typeof AdminUsuariosRoute
   '/admin/voos-teste': typeof AdminVoosTesteRoute
+  '/agenda/$token': typeof AgendaTokenRoute
   '/chat/agenda': typeof ChatAgendaRoute
   '/chat/agentes': typeof ChatAgentesRoute
   '/chat/broadcast': typeof ChatBroadcastRoute
@@ -744,6 +751,7 @@ export interface FileRoutesByTo {
   '/admin/seguranca': typeof AdminSegurancaRoute
   '/admin/usuarios': typeof AdminUsuariosRoute
   '/admin/voos-teste': typeof AdminVoosTesteRoute
+  '/agenda/$token': typeof AgendaTokenRoute
   '/chat/agenda': typeof ChatAgendaRoute
   '/chat/agentes': typeof ChatAgentesRoute
   '/chat/broadcast': typeof ChatBroadcastRoute
@@ -843,6 +851,7 @@ export interface FileRoutesById {
   '/admin/seguranca': typeof AdminSegurancaRoute
   '/admin/usuarios': typeof AdminUsuariosRoute
   '/admin/voos-teste': typeof AdminVoosTesteRoute
+  '/agenda/$token': typeof AgendaTokenRoute
   '/chat/agenda': typeof ChatAgendaRoute
   '/chat/agentes': typeof ChatAgentesRoute
   '/chat/broadcast': typeof ChatBroadcastRoute
@@ -943,6 +952,7 @@ export interface FileRouteTypes {
     | '/admin/seguranca'
     | '/admin/usuarios'
     | '/admin/voos-teste'
+    | '/agenda/$token'
     | '/chat/agenda'
     | '/chat/agentes'
     | '/chat/broadcast'
@@ -1040,6 +1050,7 @@ export interface FileRouteTypes {
     | '/admin/seguranca'
     | '/admin/usuarios'
     | '/admin/voos-teste'
+    | '/agenda/$token'
     | '/chat/agenda'
     | '/chat/agentes'
     | '/chat/broadcast'
@@ -1138,6 +1149,7 @@ export interface FileRouteTypes {
     | '/admin/seguranca'
     | '/admin/usuarios'
     | '/admin/voos-teste'
+    | '/agenda/$token'
     | '/chat/agenda'
     | '/chat/agentes'
     | '/chat/broadcast'
@@ -1216,6 +1228,7 @@ export interface RootRouteChildren {
   TermosDeUsoRoute: typeof TermosDeUsoRoute
   UnsubscribeRoute: typeof UnsubscribeRoute
   ValidacaoRoute: typeof ValidacaoRoute
+  AgendaTokenRoute: typeof AgendaTokenRoute
   EmailUnsubscribeRoute: typeof EmailUnsubscribeRoute
   EmbedIngressosDestaqueRoute: typeof EmbedIngressosDestaqueRoute
   EmbedPacotesDestaqueRoute: typeof EmbedPacotesDestaqueRoute
@@ -1535,6 +1548,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/voos-teste'
       preLoaderRoute: typeof AdminVoosTesteRouteImport
       parentRoute: typeof AdminRoute
+    }
+    '/agenda/$token': {
+      id: '/agenda/$token'
+      path: '/agenda/$token'
+      fullPath: '/agenda/$token'
+      preLoaderRoute: typeof AgendaTokenRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/chat/agenda': {
       id: '/chat/agenda'
@@ -2068,6 +2088,7 @@ const rootRouteChildren: RootRouteChildren = {
   TermosDeUsoRoute: TermosDeUsoRoute,
   UnsubscribeRoute: UnsubscribeRoute,
   ValidacaoRoute: ValidacaoRoute,
+  AgendaTokenRoute: AgendaTokenRoute,
   EmailUnsubscribeRoute: EmailUnsubscribeRoute,
   EmbedIngressosDestaqueRoute: EmbedIngressosDestaqueRoute,
   EmbedPacotesDestaqueRoute: EmbedPacotesDestaqueRoute,
