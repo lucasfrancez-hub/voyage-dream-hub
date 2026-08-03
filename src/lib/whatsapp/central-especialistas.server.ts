@@ -418,12 +418,15 @@ export function buildCentralTools(
 
         try {
           const { quoteFlights } = await import("./flight-quote.server");
+          const { MAX_OPCOES: MAX_OPCOES_POLITICA, MIN_OPCOES: MIN_OPCOES_POLITICA } = await import(
+            "./flight-cards-pending.server"
+          );
           // Preferências INDEPENDENTES: a da ida nunca é reaproveitada na volta.
           const toPeriodo = (p?: string | null): PeriodoDia =>
             p === "madrugada" ? "manha" : ((p ?? "livre") as PeriodoDia);
           const periodoIda = toPeriodo(preferencia_horario_ida);
           const periodoVolta = data_volta ? toPeriodo(preferencia_horario_volta) : null;
-          const result = await quoteFlights({
+          let result = await quoteFlights({
             origem,
             destino,
             data_ida,
