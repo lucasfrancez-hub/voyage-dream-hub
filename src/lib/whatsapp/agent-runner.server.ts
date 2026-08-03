@@ -359,7 +359,8 @@ export async function runAgent(input: {
       protocolo_id: protocolo.id,
       conversation_id: conv.id,
       agent_slug: agent.slug,
-      prompt_type: centralAgent ? "central_especialistas" : "consultor",
+      agent_name: agent.nome ?? agent.slug,
+      product_type: centralAgent ? "flight" : "other",
     }).catch(() => {});
   }
 
