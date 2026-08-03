@@ -91,7 +91,7 @@ export function WhatsAppBubble({ side, content, timestamp, senderLabel, status, 
         {reply && (
           <div
             className="mb-1 rounded-md border-l-4 bg-black/10 px-2 py-1 text-[11px] leading-tight"
-            style={{ borderColor: "var(--brand-orange)", color: "color-mix(in oklab, var(--chat-bubble-fg) 80%, transparent)" }}
+            style={{ borderColor: "var(--brand-orange)", color: "color-mix(in oklab, ${bubbleFg} 85%, transparent)" }}
           >
             {replySender && <div className="font-semibold" style={{ color: "var(--brand-orange)" }}>{replySender}</div>}
             <div className="line-clamp-2 opacity-80">{replySnippet || "mensagem"}</div>
@@ -153,7 +153,7 @@ export function WhatsAppBubble({ side, content, timestamp, senderLabel, status, 
         })()}
         <div
           className={cn("mt-1 flex items-center gap-1 text-[10px]", isOut ? "justify-end" : "justify-start")}
-          style={{ color: "color-mix(in oklab, var(--chat-bubble-fg) 55%, transparent)" }}
+          style={{ color: "color-mix(in oklab, ${bubbleFg} 70%, transparent)" }}
         >
           <span>{formatTime(timestamp)}</span>
           {replied && (
