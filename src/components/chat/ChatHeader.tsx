@@ -47,7 +47,13 @@ export function ChatHeader({ title, subtitle, userEmail, userFullName, theme = "
   const displayName = (userFullName?.trim())
     || (userEmail ? userEmail.split("@")[0]!.replace(/[._-]+/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()) : null);
   return (
-    <header className="flex h-14 shrink-0 items-center gap-2 border-b border-slate-200 bg-white px-3 sm:gap-4 sm:px-5">
+    <header
+      className="flex shrink-0 items-center gap-2 border-b border-slate-200 bg-white px-3 sm:gap-4 sm:px-5"
+      style={{
+        paddingTop: "env(safe-area-inset-top)",
+        minHeight: "calc(3.5rem + env(safe-area-inset-top))",
+      }}
+    >
       {onOpenMobileNav && (
         <button
           onClick={onOpenMobileNav}

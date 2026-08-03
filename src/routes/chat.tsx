@@ -16,6 +16,10 @@ export const Route = createFileRoute("/chat")({
   head: () => ({
     meta: [
       { title: "VIA AIR Chat — Central de Atendimento" },
+      {
+        name: "viewport",
+        content: "width=device-width, initial-scale=1, viewport-fit=cover",
+      },
       { name: "description", content: "CRM WhatsApp + IA integrado da VIA AIR" },
       { name: "robots", content: "noindex, nofollow" },
       { name: "theme-color", content: "#16A34A" },
@@ -101,13 +105,39 @@ function ChatLayout() {
   }, [theme]);
   const toggleTheme = () => setTheme((t) => (t === "dark" ? "light" : "dark"));
 
+  // Uma sessão salva no aparelho (PWA) só é considerada perdida quando o
+  // Supabase avisa explicitamente (SIGNED_OUT). Rede lenta/offline não desloga.
+  const temSessaoSalva = () => {
+    if (typeof window === "undefined") return false;
+    try {
+      return Object.keys(localStorage).some((k) => k.startsWith("sb-") && k.endsWith("-auth-token"));
+    } catch {
+      return false;
+    }
+  };
+
   useEffect(() => {
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => setSession(s));
-    const failsafe = setTimeout(() => setSession((c) => (c === undefined ? null : c)), 4000);
-    supabase.auth.getSession().then(({ data }) => {
-      clearTimeout(failsafe);
-      setSession(data.session ?? null);
+    const { data: sub } = supabase.auth.onAuthStateChange((evento, s) => {
+      if (s) {
+        setSession(s);
+        return;
+      }
+      // Sem sessão: só derruba em logout explícito ou quando não há token salvo.
+      if (evento === "SIGNED_OUT" || !temSessaoSalva()) setSession(null);
     });
+    // Failsafe só faz sentido quando não existe token salvo no aparelho.
+    const failsafe = setTimeout(() => {
+      if (!temSessaoSalva()) setSession((c) => (c === undefined ? null : c));
+    }, 4000);
+    void (async () => {
+      const { data } = await supabase.auth.getSession();
+      clearTimeout(failsafe);
+      if (data.session) { setSession(data.session); return; }
+      if (!temSessaoSalva()) { setSession(null); return; }
+      // Token salvo mas sem sessão ativa: tenta renovar antes de derrubar.
+      const { data: rf } = await supabase.auth.refreshSession();
+      setSession(rf.session ?? null);
+    })();
     return () => { clearTimeout(failsafe); sub.subscription.unsubscribe(); };
   }, []);
 
@@ -123,6 +153,7 @@ function ChatLayout() {
       }
       return;
     }
+
     (async () => {
       const { data, error } = await supabase
         .from("user_roles")
