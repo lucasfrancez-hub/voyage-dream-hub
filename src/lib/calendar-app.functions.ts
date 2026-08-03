@@ -5,6 +5,7 @@
  * Por isso todas as funções aqui revalidam token+PIN a cada chamada.
  */
 import { createServerFn } from "@tanstack/react-start";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 /* ------------------------------------------------------------------ */
 /* Autenticação por link + PIN                                         */
@@ -172,7 +173,7 @@ export const testarPushAgenda = createServerFn({ method: "POST" })
 /* ------------------------------------------------------------------ */
 
 export const listarLinksAgenda = createServerFn({ method: "GET" })
-  .middleware([(await import("@/integrations/supabase/auth-middleware")).requireSupabaseAuth])
+  .middleware([requireSupabaseAuth])
   .handler(async () => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data } = await supabaseAdmin
@@ -191,7 +192,7 @@ export const listarLinksAgenda = createServerFn({ method: "GET" })
   });
 
 export const criarLinkAgenda = createServerFn({ method: "POST" })
-  .middleware([(await import("@/integrations/supabase/auth-middleware")).requireSupabaseAuth])
+  .middleware([requireSupabaseAuth])
   .inputValidator((d: { nome?: string; pin: string }) => {
     if (!/^\d{4}$/.test(d?.pin ?? "")) throw new Error("O PIN precisa ter 4 números.");
     return d;
@@ -212,7 +213,7 @@ export const criarLinkAgenda = createServerFn({ method: "POST" })
   });
 
 export const removerLinkAgenda = createServerFn({ method: "POST" })
-  .middleware([(await import("@/integrations/supabase/auth-middleware")).requireSupabaseAuth])
+  .middleware([requireSupabaseAuth])
   .inputValidator((d: { id: string }) => {
     if (!d?.id) throw new Error("Link inválido.");
     return d;
