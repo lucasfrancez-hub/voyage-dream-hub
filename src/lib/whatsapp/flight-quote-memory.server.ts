@@ -167,10 +167,13 @@ export async function loadQuoteMemory(
         opcao: op,
       };
     });
+    const historica = !!protocolId && (q.protocolo_id as string | null) !== protocolId;
     return {
       quote_id: q.id as string,
+      protocolo_id: (q.protocolo_id as string | null) ?? null,
+      historica,
       criada_em: q.created_at as string,
-      atual: idx === 0,
+      atual: idx === 0 && !historica,
       cancelada: !!q.cancelled_at,
       escolha_option_index: (q.escolha_option_index as number | null) ?? null,
       rota: `${payload.origem_nome ?? payload.origem_iata ?? "?"} → ${payload.destino_nome ?? payload.destino_iata ?? "?"}`,
