@@ -717,7 +717,7 @@ export async function processNextFlightQuoteOption(params: {
   const completou = cotacaoConcluida(entregues, expected);
 
   const proximaLinha = linhas.find(
-    (l) => l.option_index !== reivindicada.option_index && !foiEntregue(l.delivery_status) && l.delivery_status !== "cancelled",
+    (l) => l.option_index !== reivindicada.option_index && !ehTerminal(l.delivery_status),
   );
   const intervalo = params.imediato ? 2_000 : proximoIntervaloMs();
   const nextRunAt = completou || !proximaLinha ? null : new Date(Date.now() + intervalo).toISOString();
