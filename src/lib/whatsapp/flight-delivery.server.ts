@@ -36,6 +36,8 @@ import {
   opcaoDisponivel,
   proximoIntervaloMs,
   quoteStatus,
+  statusAposFalha,
+  ehTerminal,
   type OptLite,
 } from "./flight-delivery";
 
