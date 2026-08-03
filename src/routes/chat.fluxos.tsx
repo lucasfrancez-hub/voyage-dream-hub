@@ -196,12 +196,17 @@ function FluxosPage() {
   const [nodes, setNodes] = useState<FluxoNodeType[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
   const [selecionado, setSelecionado] = useState<string | null>(null);
+  const [setaSelecionada, setSetaSelecionada] = useState<string | null>(null);
   const [carregando, setCarregando] = useState(true);
   const [salvando, setSalvando] = useState(false);
   const [sujo, setSujo] = useState(false);
 
   const flow = useMemo(() => flows.find((f) => f.id === flowId) ?? null, [flows, flowId]);
   const noSelecionado = useMemo(() => nodes.find((n) => n.id === selecionado) ?? null, [nodes, selecionado]);
+  const edgeSelecionada = useMemo(
+    () => edges.find((e) => e.id === setaSelecionada) ?? null,
+    [edges, setaSelecionada],
+  );
 
   const aplicar = useCallback((f: Flow) => {
     const base = (f.nodes ?? []).map((n) => ({
