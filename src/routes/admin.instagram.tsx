@@ -383,6 +383,7 @@ function DiagnosticsTab() {
   const latest = data.checks[0];
   const healthy = latest?.overall_status === "healthy";
   const account = data.accounts[0];
+  const accountMetadata = account?.metadata && typeof account.metadata === "object" && !Array.isArray(account.metadata) ? account.metadata : null;
   return (
     <div className="space-y-4">
       <section className="flex flex-col gap-3 rounded-lg border bg-card p-4 md:flex-row md:items-center md:justify-between">
@@ -403,7 +404,7 @@ function DiagnosticsTab() {
       <section className="rounded-lg border bg-card p-4">
         <h3 className="mb-3 text-sm font-semibold text-foreground">Configuração observada</h3>
         <dl className="grid gap-x-6 gap-y-3 text-xs md:grid-cols-2">
-          <Detail label="App ID" value={latest?.app_id ?? String(account?.metadata?.app_id ?? "Não identificado")} />
+          <Detail label="App ID" value={latest?.app_id ?? String(accountMetadata?.app_id ?? "Não identificado")} />
           <Detail label="IG User ID" value={latest?.ig_user_id ?? account?.ig_user_id ?? "—"} />
           <Detail label="Conta conectada" value={latest?.connected_username ? `@${latest.connected_username}` : account?.username ? `@${account.username}` : "—"} />
           <Detail label="Callback" value={data.callbackUrl} />
