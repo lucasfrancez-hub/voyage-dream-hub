@@ -20,21 +20,6 @@ const RETRY_MS = 3 * 60_000;
 /** Sem resposta por mais que isso → atendimento humano com contexto. */
 const ESCALATE_MS = 12 * 60_000;
 
-function resumoDaSolicitacao(r: FlightSearchRequest): string {
-  const p: string[] = [];
-  p.push(`✈️ Cotação aérea em andamento (retomar com o cliente)`);
-  p.push(`📍 ${r.origin ?? "origem não informada"} → ${r.destination ?? "destino não informado"}`);
-  if (r.departure_date) p.push(`📅 Ida ${r.departure_date}${r.return_date ? ` · Volta ${r.return_date}` : " (somente ida)"}`);
-  if (r.adults != null)
-    p.push(`👥 ${r.adults} adulto(s)${r.children ? ` + ${r.children} criança(s)` : ""}${r.infants ? ` + ${r.infants} bebê(s)` : ""}`);
-  if (r.baggage_filter) p.push(`🧳 Cliente pediu bagagem despachada`);
-  if (r.direct_flight_filter) p.push(`🛫 Só voo direto`);
-  if (r.pending_question) p.push(`❓ Última pergunta feita: ${r.pending_question}`);
-  if (r.customer_nudge_count) p.push(`⏳ Cliente cobrou retorno ${r.customer_nudge_count}x`);
-  p.push(`⚠️ A IA não conseguiu concluir o turno — assumir manualmente.`);
-  return p.join("\n");
-}
-
 export async function reconcilePendingAgentTurns(): Promise<{
   reexecutados: string[];
   escalados: string[];
