@@ -22,6 +22,8 @@ type MirrorInput = {
   igConversationId: string;
   contactIgId: string;
   displayName?: string | null;
+  username?: string | null;
+  profilePic?: string | null;
   direction: "inbound" | "outbound";
   text: string | null;
   messageType?: string | null;
@@ -50,7 +52,8 @@ export async function mirrorInstagramMessage(input: MirrorInput) {
       .from("wa_conversations")
       .insert({
         wa_phone: waPhone,
-        display_name: input.displayName ?? `Instagram ${input.contactIgId.slice(-6)}`,
+        display_name:
+          input.displayName ?? (input.username ? `@${input.username}` : `Instagram ${input.contactIgId.slice(-6)}`),
         last_message_at: when,
         last_message_preview: preview,
         unread_count: input.direction === "inbound" ? 1 : 0,
@@ -59,6 +62,8 @@ export async function mirrorInstagramMessage(input: MirrorInput) {
           ig_account_id: input.igAccountRowId,
           ig_conversation_id: input.igConversationId,
           ig_contact_id: input.contactIgId,
+          ig_username: input.username ?? null,
+          ig_profile_pic: input.profilePic ?? null,
         },
       })
       .select("id")
@@ -74,13 +79,18 @@ export async function mirrorInstagramMessage(input: MirrorInput) {
         last_message_preview: preview,
         unread_count:
           input.direction === "inbound" ? (existing?.unread_count ?? 0) + 1 : existing?.unread_count ?? 0,
-        ...(input.displayName && !existing?.display_name ? { display_name: input.displayName } : {}),
+        ...(input.displayName &&
+        (!existing?.display_name || existing.display_name.startsWith("Instagram ") || existing.display_name === "sem nome")
+          ? { display_name: input.displayName }
+          : {}),
         meta: {
           ...meta,
           channel: "instagram",
           ig_account_id: input.igAccountRowId,
           ig_conversation_id: input.igConversationId,
           ig_contact_id: input.contactIgId,
+          ...(input.username ? { ig_username: input.username } : {}),
+          ...(input.profilePic ? { ig_profile_pic: input.profilePic } : {}),
         },
       })
       .eq("id", conversationId);
@@ -96,5 +106,5 @@ export async function mirrorInstagramMessage(input: MirrorInput) {
     message_type: input.messageType ?? "text",
   });
 
-  return { conversationId: conversationId! };
+  return { conversationId: conversationId!, waPhone };
 }

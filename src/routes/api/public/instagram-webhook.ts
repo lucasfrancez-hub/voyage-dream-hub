@@ -98,10 +98,13 @@ async function processPayload(payload: IGPayload) {
     // ID business 17841... (guardado em page_id). Aceita os dois.
     const { data: account } = await supabaseAdmin
       .from("instagram_accounts")
-      .select("id")
+      .select("id, ig_user_id, page_id, access_token")
       .or(`ig_user_id.eq.${igAccountId},page_id.eq.${igAccountId}`)
       .maybeSingle();
     if (!account) throw new Error(`Conta ${igAccountId} não cadastrada`);
+    const igToken = (account as { access_token?: string }).access_token ?? null;
+    const igApiUserId = (account as { ig_user_id?: string }).ig_user_id ?? igAccountId;
+
 
     // ============ DMs ============
     for (const msg of entry.messaging ?? []) {
@@ -147,13 +150,55 @@ async function processPayload(payload: IGPayload) {
             .eq("id", conv.id);
       }
 
+      // Nome e @ do contato (só busca quando ainda não temos)
+      let contatoNome: string | null = null;
+      let contatoUser: string | null = null;
+      let contatoFoto: string | null = null;
+      if (!isFromMe && igToken) {
+        try {
+          const { data: convInfo } = await supabaseAdmin
+            .from("instagram_conversations")
+            .select("contact_name, contact_username, contact_profile_pic")
+            .eq("id", conv.id)
+            .maybeSingle();
+          contatoNome = convInfo?.contact_name ?? null;
+          contatoUser = convInfo?.contact_username ?? null;
+          contatoFoto = convInfo?.contact_profile_pic ?? null;
+          if (!contatoUser || !contatoNome) {
+            const { fetchContactProfile } = await import("@/lib/instagram/api.server");
+            const perfil = await fetchContactProfile({
+              igUserId: igApiUserId,
+              token: igToken,
+              contactIgId,
+            });
+            contatoNome = perfil.name ?? contatoNome;
+            contatoUser = perfil.username ?? contatoUser;
+            contatoFoto = perfil.profile_pic ?? contatoFoto;
+            await supabaseAdmin
+              .from("instagram_conversations")
+              .update({
+                contact_name: contatoNome,
+                contact_username: contatoUser,
+                contact_profile_pic: contatoFoto,
+              })
+              .eq("id", conv.id);
+          }
+        } catch (e) {
+          console.error("[instagram] perfil do contato falhou:", (e as Error).message);
+        }
+      }
+
       // Espelha no inbox do chatbot (/chat)
+      let espelho: { waPhone: string } | null = null;
       try {
         const { mirrorInstagramMessage } = await import("@/lib/instagram/bridge.server");
-        await mirrorInstagramMessage({
+        espelho = await mirrorInstagramMessage({
           igAccountRowId: account.id,
           igConversationId: conv.id,
           contactIgId: contactIgId,
+          displayName: contatoNome ?? (contatoUser ? `@${contatoUser}` : null),
+          username: contatoUser,
+          profilePic: contatoFoto,
           direction: isFromMe ? "outbound" : "inbound",
           text: msg.message.text ?? null,
           messageType: msg.message.attachments?.[0]?.type ?? "text",
@@ -163,6 +208,20 @@ async function processPayload(payload: IGPayload) {
         });
       } catch (e) {
         console.error("[instagram] espelho no chat falhou:", (e as Error).message);
+      }
+
+      // IA responde as DMs com os mesmos agentes/regras do WhatsApp
+      if (!isFromMe && espelho) {
+        try {
+          const { runAgent } = await import("@/lib/whatsapp/agent-runner.server");
+          await runAgent({
+            wa_phone: espelho.waPhone,
+            profile_name: contatoNome ?? contatoUser ?? null,
+            trigger_message_id: msg.message.mid ?? undefined,
+          });
+        } catch (e) {
+          console.error("[instagram] IA falhou:", (e as Error).message);
+        }
       }
     }
 
@@ -179,6 +238,20 @@ async function processPayload(payload: IGPayload) {
       };
       if (!v.id || !v.media?.id) continue;
 
+      // Contexto da publicação: legenda, tipo e miniatura — a IA precisa saber
+      // de qual post veio o comentário.
+      let midia: { caption: string | null; media_type: string | null; permalink: string | null; thumbnail: string | null } = {
+        caption: null, media_type: null, permalink: null, thumbnail: null,
+      };
+      if (igToken) {
+        try {
+          const { fetchMediaInfo } = await import("@/lib/instagram/api.server");
+          midia = await fetchMediaInfo({ mediaId: v.media.id, token: igToken });
+        } catch (e) {
+          console.error("[instagram] dados da publicação falharam:", (e as Error).message);
+        }
+      }
+
       const { error: commentError } = await supabaseAdmin.from("instagram_comments").upsert(
         {
           account_id: account.id,
@@ -188,10 +261,46 @@ async function processPayload(payload: IGPayload) {
           from_ig_id: v.from?.id ?? null,
           from_username: v.from?.username ?? null,
           text: v.text ?? null,
+          media_caption: midia.caption,
+          media_thumbnail: midia.thumbnail,
+          media_type: midia.media_type,
         },
         { onConflict: "comment_id" },
       );
       if (commentError) throw new Error(commentError.message);
+
+      // Comentário é SEMPRE dos Consultores: resposta pública + convite no direct
+      const souEu = v.from?.id && (v.from.id === igAccountId || v.from.id === igApiUserId);
+      if (igToken && !souEu) {
+        try {
+          const { isAiGloballyOff } = await import("@/lib/whatsapp/ai-global-switch.server");
+          if (!(await isAiGloballyOff())) {
+            const { gerarRespostaComentario } = await import("@/lib/instagram/comment-ai.server");
+            const resposta = await gerarRespostaComentario({
+              fromUsername: v.from?.username ?? null,
+              text: v.text ?? null,
+              mediaCaption: midia.caption,
+              mediaPermalink: midia.permalink,
+            });
+            if (resposta) {
+              const { replyToComment, sendPrivateReplyToComment } = await import("@/lib/instagram/api.server");
+              await replyToComment({ commentId: v.id, token: igToken, message: resposta.publica });
+              try {
+                await sendPrivateReplyToComment({
+                  igUserId: igApiUserId,
+                  token: igToken,
+                  commentId: v.id,
+                  text: resposta.dm,
+                });
+              } catch (e) {
+                console.error("[instagram] resposta privada falhou:", (e as Error).message);
+              }
+            }
+          }
+        } catch (e) {
+          console.error("[instagram] IA de comentário falhou:", (e as Error).message);
+        }
+      }
     }
   }
 }

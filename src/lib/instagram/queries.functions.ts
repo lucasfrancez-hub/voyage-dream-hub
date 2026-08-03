@@ -129,6 +129,76 @@ export const sendInstagramReply = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+/** Envia mídia (imagem, áudio, vídeo ou arquivo) numa DM do Instagram. */
+export const sendInstagramAttachment = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { conversation_id: string; file_base64: string; mime: string; filename: string }) =>
+    z
+      .object({
+        conversation_id: z.string().uuid(),
+        file_base64: z.string().min(10),
+        mime: z.string().min(3),
+        filename: z.string().min(1).max(180),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { data: conv, error } = await context.supabase
+      .from("instagram_conversations")
+      .select("id, account_id, contact_ig_id")
+      .eq("id", data.conversation_id)
+      .maybeSingle();
+    if (error || !conv) throw new Error("Conversa não encontrada");
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const bytes = Uint8Array.from(atob(data.file_base64), (c) => c.charCodeAt(0));
+    const path = `instagram/${conv.id}/${Date.now()}-${data.filename.replace(/[^\w.-]/g, "_")}`;
+    const up = await supabaseAdmin.storage
+      .from("chat-media")
+      .upload(path, bytes, { contentType: data.mime, upsert: true });
+    if (up.error) throw new Error(`Falha ao guardar a mídia: ${up.error.message}`);
+    const signed = await supabaseAdmin.storage.from("chat-media").createSignedUrl(path, 60 * 60 * 24 * 7);
+    const url = signed.data?.signedUrl;
+    if (!url) throw new Error("Não consegui gerar o link da mídia");
+
+    const tipo: "image" | "audio" | "video" | "file" = data.mime.startsWith("image/")
+      ? "image"
+      : data.mime.startsWith("audio/")
+        ? "audio"
+        : data.mime.startsWith("video/")
+          ? "video"
+          : "file";
+
+    const { data: account } = await supabaseAdmin
+      .from("instagram_accounts")
+      .select("ig_user_id, page_id, access_token")
+      .eq("id", conv.account_id)
+      .maybeSingle();
+    if (!account?.access_token) throw new Error("Conta do Instagram sem token");
+
+    const { sendDirectAttachment } = await import("./api.server");
+    const res = (await sendDirectAttachment({
+      igUserId: (account.ig_user_id ?? account.page_id) as string,
+      token: account.access_token as string,
+      recipientIgId: conv.contact_ig_id,
+      url,
+      type: tipo,
+    })) as { message_id?: string };
+
+    await supabaseAdmin.from("instagram_messages").insert({
+      conversation_id: conv.id,
+      ig_message_id: res.message_id ?? null,
+      direction: "outbound",
+      message_type: tipo,
+      attachment_url: url,
+      attachment_type: tipo,
+      status: "sent",
+    });
+
+    return { ok: true, url, type: tipo };
+  });
+
+
 // ============ Comentários ============
 
 export const listInstagramComments = createServerFn({ method: "GET" })
@@ -136,7 +206,7 @@ export const listInstagramComments = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { data, error } = await context.supabase
       .from("instagram_comments")
-      .select("id, media_id, media_permalink, comment_id, from_username, text, auto_reply_status, auto_reply_text, auto_replied_at, auto_dm_sent_at, created_at")
+      .select("id, media_id, media_permalink, media_caption, media_thumbnail, media_type, comment_id, from_username, text, auto_reply_status, auto_reply_text, auto_replied_at, auto_dm_sent_at, created_at")
       .order("created_at", { ascending: false })
       .limit(100);
     if (error) throw new Error(error.message);

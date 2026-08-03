@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { listConversations, listMessages, sendHumanReply, resendHumanMessage, sendHumanMedia, toggleConversationMode, startOutboundConversation, setFunnelStage, assignConversation, setAiPaused, listAttendants, getActiveProtocolo, closeProtocoloManually, listConversationProtocolos, getConversationOrders, updateProtocoloDetails, listProtocoloMessages, ensureProtocoloResumo, clearConversationHistory } from "@/lib/chat/queries.functions";
-import { listInstagramConversations, listInstagramMessages, sendInstagramReply, listInstagramComments, triggerAutoReplyComment } from "@/lib/instagram/queries.functions";
+import { listInstagramConversations, listInstagramMessages, sendInstagramAttachment, sendInstagramReply, listInstagramComments, triggerAutoReplyComment } from "@/lib/instagram/queries.functions";
 import { firstName } from "@/lib/whatsapp/text-utils.shared";
 import { confirmThen } from "@/lib/confirm";
 import { audioBlobToMp3 } from "@/lib/audio-to-mp3";
@@ -209,7 +209,8 @@ function InboxPage() {
         <aside className={cn(
           "flex-col border-r border-slate-200 bg-white shrink-0",
           // Mobile: só mostra se não tem conversa aberta; ocupa tela toda
-          active ? "hidden md:flex" : "flex w-full",
+          active || (channel === "instagram_dm" && activeId) ? "hidden md:flex" : "flex w-full",
+
           "md:flex md:w-80",
         )}>
           <div className="border-b border-slate-200 p-3">
@@ -1849,8 +1850,61 @@ function groupByDay(msgs: Msg[]) {
 function InstagramConversationView({ conversationId, onBack }: { conversationId: string; onBack: () => void }) {
   const msgsFn = useServerFn(listInstagramMessages);
   const sendFn = useServerFn(sendInstagramReply);
+  const attachFn = useServerFn(sendInstagramAttachment);
   const qc = useQueryClient();
   const [text, setText] = useState("");
+  const fileRef = useRef<HTMLInputElement | null>(null);
+  const [igRecording, setIgRecording] = useState(false);
+  const igRecorderRef = useRef<MediaRecorder | null>(null);
+
+  const igAttach = useMutation({
+    mutationFn: async (file: File) => {
+      const buf = new Uint8Array(await file.arrayBuffer());
+      let bin = "";
+      for (const b of buf) bin += String.fromCharCode(b);
+      return attachFn({
+        data: {
+          conversation_id: conversationId,
+          file_base64: btoa(bin),
+          mime: file.type || "application/octet-stream",
+          filename: file.name || `arquivo-${Date.now()}`,
+        },
+      });
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["ig", "messages", conversationId] });
+      toast.success("Mídia enviada");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  async function toggleIgRecording() {
+    if (igRecording) {
+      igRecorderRef.current?.stop();
+      setIgRecording(false);
+      return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const rec = new MediaRecorder(stream);
+      const chunks: Blob[] = [];
+      rec.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data); };
+      rec.onstop = async () => {
+        stream.getTracks().forEach((t) => t.stop());
+        try {
+          const mp3 = await audioBlobToMp3(new Blob(chunks, { type: rec.mimeType || "audio/webm" }));
+          await igAttach.mutateAsync(new File([mp3], `audio-${Date.now()}.mp3`, { type: "audio/mpeg" }));
+        } catch (err) {
+          toast.error(err instanceof Error ? err.message : "Falha ao enviar o áudio");
+        }
+      };
+      igRecorderRef.current = rec;
+      rec.start();
+      setIgRecording(true);
+    } catch {
+      toast.error("Não consegui acessar o microfone");
+    }
+  }
 
   const { data: msgs = [], isLoading } = useQuery({
     queryKey: ["ig", "messages", conversationId],
@@ -1893,9 +1947,19 @@ function InstagramConversationView({ conversationId, onBack }: { conversationId:
                 m.direction === "outbound" ? "bg-[#F26B1F] text-white" : "bg-white text-slate-900",
               )}>
                 {m.attachment_url ? (
-                  <a href={m.attachment_url} target="_blank" rel="noreferrer" className="underline">
-                    {m.message_type ?? "mídia"}
-                  </a>
+                  (m.message_type ?? "").includes("audio") ? (
+                    <audio controls src={m.attachment_url} className="max-w-[240px]" />
+                  ) : (m.message_type ?? "").includes("video") ? (
+                    <video controls src={m.attachment_url} className="max-h-60 max-w-[240px] rounded-lg" />
+                  ) : (m.message_type ?? "").includes("image") ? (
+                    <a href={m.attachment_url} target="_blank" rel="noreferrer">
+                      <img src={m.attachment_url} alt="Mídia" className="max-h-60 rounded-lg object-cover" />
+                    </a>
+                  ) : (
+                    <a href={m.attachment_url} target="_blank" rel="noreferrer" className="underline">
+                      {m.message_type ?? "mídia"}
+                    </a>
+                  )
                 ) : null}
                 {m.text ? <div className="whitespace-pre-wrap break-words">{m.text}</div> : null}
                 <div className={cn("mt-0.5 text-[10px]", m.direction === "outbound" ? "text-white/70" : "text-slate-400")}>
@@ -1912,6 +1976,37 @@ function InstagramConversationView({ conversationId, onBack }: { conversationId:
         onSubmit={(e) => { e.preventDefault(); if (text.trim()) send.mutate(text.trim()); }}
         className="flex items-center gap-2 border-t border-slate-200 bg-white p-3"
       >
+        <input
+          ref={fileRef}
+          type="file"
+          accept="image/*,video/*,audio/*"
+          className="hidden"
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f) igAttach.mutate(f);
+            e.target.value = "";
+          }}
+        />
+        <button
+          type="button"
+          onClick={() => fileRef.current?.click()}
+          disabled={igAttach.isPending}
+          className="flex h-9 w-9 items-center justify-center rounded-full text-slate-500 hover:bg-slate-100 disabled:opacity-50"
+          aria-label="Anexar"
+        >
+          {igAttach.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Paperclip className="h-4 w-4" />}
+        </button>
+        <button
+          type="button"
+          onClick={toggleIgRecording}
+          className={cn(
+            "flex h-9 w-9 items-center justify-center rounded-full",
+            igRecording ? "bg-red-500 text-white" : "text-slate-500 hover:bg-slate-100",
+          )}
+          aria-label="Gravar áudio"
+        >
+          {igRecording ? <Square className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+        </button>
         <input
           value={text}
           onChange={(e) => setText(e.target.value)}
@@ -2052,6 +2147,22 @@ function InstagramCommentsList({ search }: { search: string }) {
                 )}
               </div>
               <p className="mt-0.5 text-xs text-slate-700">{c.text}</p>
+              {(c.media_thumbnail || c.media_caption) && (
+                <div className="mt-1.5 flex items-start gap-2 rounded-md bg-slate-50 p-1.5">
+                  {c.media_thumbnail && (
+                    <img src={c.media_thumbnail} alt="Publicação" className="h-9 w-9 shrink-0 rounded object-cover" />
+                  )}
+                  <div className="min-w-0">
+                    <div className="text-[9px] font-semibold uppercase tracking-wide text-slate-400">
+                      Publicação{c.media_type ? ` · ${c.media_type.toLowerCase()}` : ""}
+                    </div>
+                    <p className="line-clamp-2 text-[10px] text-slate-600 [overflow-wrap:anywhere]">
+                      {c.media_caption ?? "Sem legenda"}
+                    </p>
+                  </div>
+                </div>
+              )}
+
               {c.media_permalink && (
                 <a href={c.media_permalink} target="_blank" rel="noreferrer" className="mt-0.5 inline-flex items-center gap-0.5 text-[10px] text-slate-400 hover:text-pink-600">
                   <ExternalLink className="h-2.5 w-2.5" /> ver publicação

@@ -57,6 +57,7 @@ function formatTime(iso: string) {
 export function WhatsAppBubble({ side, content, timestamp, senderLabel, status, deleted, revokedBy, replied, reply, onReply, onResend, resending }: Props) {
 
   const isOut = side === "out";
+  const bubbleFg = isOut ? "var(--chat-bubble-out-fg)" : "var(--chat-bubble-fg)";
   const label = firstName(senderLabel);
   const replySender = firstName(reply?.sender ?? null);
   const replySnippet = safeText(reply?.snippet).trim();
@@ -77,22 +78,23 @@ export function WhatsAppBubble({ side, content, timestamp, senderLabel, status, 
           "relative max-w-[70%] rounded-lg px-3 py-2 shadow-sm",
           isOut ? "bg-[var(--chat-bubble-out)]" : "bg-[var(--chat-bubble-in)]",
         )}
-        style={{ color: "var(--chat-bubble-fg)" }}
+        style={{ color: bubbleFg }}
       >
         {label && (
           <div
             className="mb-0.5 text-[11px] font-bold"
-            style={{ color: isOut ? "var(--brand-orange)" : "color-mix(in oklab, var(--chat-bubble-fg) 65%, transparent)" }}
+            style={{ color: isOut ? "var(--chat-bubble-out-fg)" : "color-mix(in oklab, var(--chat-bubble-fg) 65%, transparent)" }}
           >
             {label}:
           </div>
         )}
+
         {reply && (
           <div
             className="mb-1 rounded-md border-l-4 bg-black/10 px-2 py-1 text-[11px] leading-tight"
-            style={{ borderColor: "var(--brand-orange)", color: "color-mix(in oklab, var(--chat-bubble-fg) 80%, transparent)" }}
+            style={{ borderColor: isOut ? "rgba(255,255,255,0.7)" : "var(--brand-orange)", color: `color-mix(in oklab, ${bubbleFg} 85%, transparent)` }}
           >
-            {replySender && <div className="font-semibold" style={{ color: "var(--brand-orange)" }}>{replySender}</div>}
+            {replySender && <div className="font-semibold" style={{ color: isOut ? "var(--chat-bubble-out-fg)" : "var(--brand-orange)" }}>{replySender}</div>}
             <div className="line-clamp-2 opacity-80">{replySnippet || "mensagem"}</div>
             {reply.deleted && (
               <div className="mt-0.5 text-[10px] font-medium text-red-500">
@@ -130,7 +132,7 @@ export function WhatsAppBubble({ side, content, timestamp, senderLabel, status, 
                   target="_blank"
                   rel="noopener noreferrer"
                   className="mb-1 flex items-center gap-2 rounded-md border border-black/10 bg-black/5 px-2 py-1.5 text-xs hover:bg-black/10"
-                  style={{ color: "var(--chat-bubble-fg)" }}
+                  style={{ color: bubbleFg }}
                 >
                   <FileText className="h-4 w-4 shrink-0" />
                   <span className="flex-1 truncate">{media.filename}</span>
@@ -152,11 +154,11 @@ export function WhatsAppBubble({ side, content, timestamp, senderLabel, status, 
         })()}
         <div
           className={cn("mt-1 flex items-center gap-1 text-[10px]", isOut ? "justify-end" : "justify-start")}
-          style={{ color: "color-mix(in oklab, var(--chat-bubble-fg) 55%, transparent)" }}
+          style={{ color: `color-mix(in oklab, ${bubbleFg} 70%, transparent)` }}
         >
           <span>{formatTime(timestamp)}</span>
           {replied && (
-            <span title="Respondida" className="flex items-center gap-0.5 text-[10px]" style={{ color: "var(--brand-orange)" }}>
+            <span title="Respondida" className="flex items-center gap-0.5 text-[10px]" style={{ color: isOut ? "var(--chat-bubble-out-fg)" : "var(--brand-orange)" }}>
               <CornerUpLeft className="h-3 w-3" />
             </span>
           )}

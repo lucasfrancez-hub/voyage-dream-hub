@@ -257,3 +257,52 @@ export async function refreshLongLivedToken(params: { token: string; appId: stri
   if (!res.ok) throw new Error(`refresh failed: ${res.status}`);
   return res.json() as Promise<{ access_token: string; token_type: string; expires_in: number }>;
 }
+
+// ============ Perfil do contato / mídia ============
+
+/** Nome e @ do usuário que mandou a DM (Instagram Messaging user profile). */
+export async function fetchContactProfile(params: { igUserId: string; token: string; contactIgId: string }) {
+  const json = await fetchGraph(
+    `/${params.contactIgId}?fields=name,username,profile_pic`,
+    { method: "GET", token: params.token, operation: "contact_profile" },
+  );
+  return {
+    name: (json.name as string) ?? null,
+    username: (json.username as string) ?? null,
+    profile_pic: (json.profile_pic as string) ?? null,
+  };
+}
+
+/** Dados da publicação onde o comentário foi feito (pra IA e pro painel). */
+export async function fetchMediaInfo(params: { mediaId: string; token: string }) {
+  const json = await fetchGraph(
+    `/${params.mediaId}?fields=caption,media_type,media_url,thumbnail_url,permalink,timestamp`,
+    { method: "GET", token: params.token, operation: "media_info" },
+  );
+  return {
+    caption: (json.caption as string) ?? null,
+    media_type: (json.media_type as string) ?? null,
+    permalink: (json.permalink as string) ?? null,
+    thumbnail: (json.thumbnail_url as string) ?? (json.media_url as string) ?? null,
+  };
+}
+
+/** Anexo por URL (áudio, imagem, vídeo ou arquivo) numa DM. */
+export async function sendDirectAttachment(params: {
+  igUserId: string;
+  token: string;
+  recipientIgId: string;
+  url: string;
+  type: "image" | "audio" | "video" | "file";
+}) {
+  const body = {
+    recipient: { id: params.recipientIgId },
+    message: { attachment: { type: params.type, payload: { url: params.url } } },
+  };
+  return fetchGraph(`/${params.igUserId}/messages`, {
+    method: "POST",
+    token: params.token,
+    operation: `send_dm_${params.type}`,
+    body: JSON.stringify(body),
+  });
+}
