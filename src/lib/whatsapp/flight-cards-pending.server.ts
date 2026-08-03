@@ -33,9 +33,9 @@ type OptLite = {
  */
 export const MAX_OPCOES = 3; // meta por cotação
 export const MIN_OPCOES = 2; // piso: nunca parar em 1 havendo alternativa
-const INTERVALO_MS = 30_000; // 2ª arte fica elegível 30s depois da 1ª; o envio
-// ocorre na próxima execução do cron (1x/min), então na prática o cliente recebe
-// a segunda opção normalmente entre 30 e 90 segundos.
+const INTERVALO_MS = 10_000; // espaçamento mínimo entre RODADAS de envio
+const ENTRE_CARDS_MS = 4_000; // espaçamento entre as artes DENTRO do mesmo lote
+// (as 2-3 opções saem juntas, uma a cada ~4s, porque já foram pré-renderizadas)
 const CLAIM_TRAVADO_MS = 45_000; // claim preso (worker caiu no render) → destrava
 /**
  * Prazo BRANDO da arte quando ela ainda não está no cache: passou disso, a
@@ -233,13 +233,17 @@ export async function sendPendingFlightCards(
     todas.filter((o) => jaFps.has(fingerprint(o))).map((o) => horarioIda(o)).filter(Boolean),
   );
   const candidatas = force ? todas : todas.filter((o) => !jaFps.has(fingerprint(o)));
-  // UMA opção por rodada: renderiza, envia e devolve o controle. O cron chama
-  // de novo no minuto seguinte pra mandar a próxima.
-  const proxima = candidatas.find((o) => {
+  // LOTE por rodada: com as artes pré-geradas em paralelo (cache), mandamos as
+  // 2-3 opções da cotação na MESMA rodada, espaçadas por poucos segundos, em vez
+  // de uma por minuto. O que não couber no lote fica pra próxima execução.
+  const opcoes: OptLite[] = [];
+  for (const o of candidatas) {
+    if (opcoes.length >= restante) break;
     const h = horarioIda(o);
-    return !h || !horariosUsados.has(h);
-  });
-  const opcoes: OptLite[] = proxima ? [proxima] : [];
+    if (h && horariosUsados.has(h)) continue;
+    if (h) horariosUsados.add(h);
+    opcoes.push(o);
+  }
   if (!opcoes.length) {
     await supabaseAdmin
       .from("wa_flight_quotes")
@@ -376,7 +380,7 @@ export async function sendPendingFlightCards(
 
   for (let i = 0; i < opcoes.length; i++) {
     const op = opcoes[i];
-    if (i > 0) await new Promise((r) => setTimeout(r, INTERVALO_MS));
+    if (i > 0) await new Promise((r) => setTimeout(r, ENTRE_CARDS_MS));
     const optionIndex = fpsDaCotacao.size + sent + 1;
     const processadoEm = new Date().toISOString();
     const base = {
