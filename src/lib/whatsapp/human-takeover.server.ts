@@ -20,6 +20,11 @@ export type HumanTakeover = {
 export async function checkHumanTakeover(conversationId: string): Promise<HumanTakeover> {
   try {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    // Interruptor global: com as IAs desligadas, nenhum envio automático sai.
+    const { isAiGloballyOff } = await import("./ai-global-switch.server");
+    if (await isAiGloballyOff()) {
+      return { aborted: true, mode: "human", ai_paused: true, human_assigned: false };
+    }
     const { data } = await supabaseAdmin
       .from("wa_conversations")
       .select("mode, ai_paused, assigned_to")
