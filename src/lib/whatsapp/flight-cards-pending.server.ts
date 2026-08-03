@@ -324,7 +324,57 @@ export async function sendPendingFlightCards(
   // Esta execução entrega no máximo CARDS_POR_RODADA opções; o restante vai na
   // rodada seguinte, encadeada no fim, sempre em execução nova.
   const faltavamNoLote = Math.max(0, opcoes.length - CARDS_POR_RODADA);
+  const adiadasNestaRodada = opcoes.slice(CARDS_POR_RODADA);
   opcoes.splice(CARDS_POR_RODADA);
+
+  // ---- AUDITORIA DO FUNIL (não altera comportamento) ----------------------
+  console.log(
+    JSON.stringify({
+      event: "flight_delivery_funnel",
+      quote_id: row.id,
+      conversation_id: conversationId,
+      protocolo_id: protocolId ?? null,
+      saved_options_count: todas.length,
+      already_sent_count: fpsDaCotacao.size,
+      expected_options: previstasNaCotacao(todas, limiteOpcoes),
+      remaining_target: restante,
+      candidates_count: candidatas.length,
+      selected_this_round: opcoes.length,
+      deferred_to_next_round: adiadasNestaRodada.length,
+      cards_por_rodada: CARDS_POR_RODADA,
+      options: todas.map((o, i) => {
+        const fp = fingerprint(o);
+        const enviada = fpsDaCotacao.has(fp);
+        const nesteLote = opcoes.some((x) => fingerprint(x) === fp);
+        const adiada = adiadasNestaRodada.some((x) => fingerprint(x) === fp);
+        const rec = o as unknown as Record<string, unknown>;
+        return {
+          option_index: i,
+          companhia: rec["companhia"] ?? rec["cia"] ?? null,
+          origem: rec["origem"] ?? null,
+          destino: rec["destino"] ?? null,
+          partida: horarioIda(o) || null,
+          preco: rec["preco_total"] ?? rec["preco"] ?? null,
+          status: enviada
+            ? "JA_ENVIADA"
+            : nesteLote
+              ? "SELECIONADA_NESTA_RODADA"
+              : adiada
+                ? "ADIADA_PROXIMA_RODADA"
+                : "DESCARTADA",
+          motivo: enviada
+            ? "fingerprint já entregue nesta cotação"
+            : nesteLote
+              ? null
+              : adiada
+                ? `limite de ${CARDS_POR_RODADA} card(s) por execução`
+                : "excedeu a meta de opções (restante atingido)",
+        };
+      }),
+      at: new Date().toISOString(),
+    }),
+  );
+
 
 
   if (!opcoes.length) {
