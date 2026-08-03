@@ -32,6 +32,11 @@ export const Route = createFileRoute("/agenda/$token")({
   head: ({ params }) => ({
     meta: [
       { title: "Agenda VIA AIR" },
+      {
+        name: "viewport",
+        content:
+          "width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover",
+      },
       { name: "description", content: "Agenda unificada da VIA AIR: Google, Titan e iCloud num app só." },
       { name: "robots", content: "noindex, nofollow" },
       { name: "theme-color", content: "#080d1a" },
@@ -50,6 +55,7 @@ export const Route = createFileRoute("/agenda/$token")({
       { rel: "apple-touch-icon", sizes: "180x180", href: "/apple-touch-icon-agenda.png" },
     ],
   }),
+
 
 });
 
@@ -201,7 +207,7 @@ function AgendaApp() {
 function Fundo({ children }: { children: React.ReactNode }) {
   return (
     <div
-      className="min-h-dvh text-white"
+      className="min-h-dvh text-white [touch-action:manipulation]"
       style={{
         background: "radial-gradient(1200px 600px at 50% -10%, #14213f 0%, #080d1a 55%, #05070f 100%)",
       }}
@@ -281,6 +287,8 @@ function TelaPin({
         maxLength={4}
         onChange={(e) => setValor(e.target.value.replace(/\D/g, "").slice(0, 4))}
         className="absolute h-px w-px opacity-0"
+        style={{ fontSize: 16 }}
+
         aria-label="PIN"
       />
 
@@ -362,14 +370,27 @@ function Painel({ token, pin, nome, vapid }: { token: string; pin: string | null
     else if (modo === "mes") setAncora(new Date(ancora.getFullYear(), ancora.getMonth() + dir, 1));
   }
 
+  const mesTitulo = ancora.toLocaleDateString("pt-BR", { month: "long" });
+  const subtitulo =
+    modo === "lista"
+      ? "Próximos compromissos"
+      : modo === "mes"
+        ? ancora.toLocaleDateString("pt-BR", { month: "long", year: "numeric" })
+        : porExtenso(ancora);
+
   return (
-    <div className="mx-auto flex min-h-dvh w-full max-w-xl flex-col pb-24">
+    <div className="mx-auto flex min-h-dvh w-full max-w-xl flex-col pb-28">
       {/* topo */}
-      <header className="sticky top-0 z-20 px-4 pb-3 pt-[max(1rem,env(safe-area-inset-top))] backdrop-blur-xl" style={{ background: "rgba(8,13,26,0.72)" }}>
-        <div className="flex items-center gap-2">
+      <header
+        className="sticky top-0 z-20 px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] backdrop-blur-xl"
+        style={{ background: "rgba(8,13,26,0.82)" }}
+      >
+        <div className="flex items-center gap-3">
           <div className="min-w-0 flex-1">
-            <p className="text-[11px] uppercase tracking-widest opacity-50">{nome}</p>
-            <h1 className="truncate text-xl font-semibold capitalize">{titulo}</h1>
+            <h1 className="truncate text-[26px] font-semibold capitalize leading-tight">
+              {modo === "semana" ? titulo : mesTitulo}
+            </h1>
+            <p className="truncate text-[13px] capitalize opacity-55">{subtitulo}</p>
           </div>
           <BotaoIcone onClick={() => void recarregar()} rotulo="Sincronizar">
             <RefreshCw className={`h-4 w-4 ${carregando ? "animate-spin" : ""}`} />
@@ -377,6 +398,31 @@ function Painel({ token, pin, nome, vapid }: { token: string; pin: string | null
           <BotaoIcone onClick={() => setConfig(true)} rotulo="Notificações">
             <Bell className="h-4 w-4" />
           </BotaoIcone>
+        </div>
+
+        {/* abas em pílula (estilo aprovado) */}
+        <div
+          className="mt-3 flex rounded-2xl p-1"
+          style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)" }}
+        >
+          {(["dia", "semana", "mes", "lista"] as Modo[]).map((m) => (
+            <button
+              key={m}
+              onClick={() => setModo(m)}
+              className="flex-1 rounded-xl py-1.5 text-[13px] font-semibold capitalize transition"
+              style={
+                modo === m
+                  ? {
+                      background: "linear-gradient(140deg,#F26B1F,#c2540c)",
+                      color: "#fff",
+                      boxShadow: "0 6px 18px rgba(242,107,31,0.35)",
+                    }
+                  : { color: "rgba(255,255,255,0.6)" }
+              }
+            >
+              {m === "mes" ? "Mês" : m}
+            </button>
+          ))}
         </div>
 
         {modo !== "lista" ? (
@@ -397,6 +443,7 @@ function Painel({ token, pin, nome, vapid }: { token: string; pin: string | null
           </div>
         ) : null}
       </header>
+
 
       <main className="flex-1 px-4">
         {modo === "dia" ? (
@@ -432,33 +479,16 @@ function Painel({ token, pin, nome, vapid }: { token: string; pin: string | null
         ) : null}
       </main>
 
-      {/* abas */}
-      <nav
-        className="fixed inset-x-0 bottom-0 z-30 mx-auto flex max-w-xl justify-around border-t px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 backdrop-blur-xl"
-        style={{ background: "rgba(8,13,26,0.85)", borderColor: "rgba(255,255,255,0.08)" }}
-      >
-        {(["dia", "semana", "mes", "lista"] as Modo[]).map((m) => (
-          <button
-            key={m}
-            onClick={() => setModo(m)}
-            className="flex flex-1 flex-col items-center gap-1 rounded-xl py-1.5 text-[11px] capitalize"
-            style={{ color: modo === m ? "#F26B1F" : "rgba(255,255,255,0.55)" }}
-          >
-            <span className="text-[15px] font-semibold">{m === "mes" ? "Mês" : m[0]!.toUpperCase() + m.slice(1)}</span>
-            <span className="h-0.5 w-6 rounded-full" style={{ background: modo === m ? "#F26B1F" : "transparent" }} />
-          </button>
-        ))}
-      </nav>
-
       {/* novo compromisso */}
       <button
         onClick={() => setNovo(true)}
         aria-label="Adicionar compromisso"
-        className="fixed bottom-[calc(4.5rem+env(safe-area-inset-bottom))] right-[max(1rem,calc(50vw-19rem))] z-40 flex h-14 w-14 items-center justify-center rounded-2xl text-white shadow-lg transition active:scale-95"
-        style={{ background: "linear-gradient(140deg,#F26B1F,#d1560f)", boxShadow: "0 12px 30px rgba(242,107,31,0.35)" }}
+        className="fixed bottom-[calc(1.5rem+env(safe-area-inset-bottom))] right-[max(1rem,calc(50vw-19rem))] z-40 flex h-16 w-16 items-center justify-center rounded-full text-white shadow-lg transition active:scale-95"
+        style={{ background: "linear-gradient(140deg,#F26B1F,#d1560f)", boxShadow: "0 12px 30px rgba(242,107,31,0.4)" }}
       >
-        <Plus className="h-6 w-6" />
+        <Plus className="h-7 w-7" />
       </button>
+
 
       {detalhe ? (
         <Detalhes evento={detalhe} cor={corDa(detalhe)} origem={origemDe(detalhe)} onFechar={() => setDetalhe(null)} />
@@ -543,7 +573,7 @@ function NovoCompromisso({
   });
 
   const campo =
-    "w-full rounded-xl border px-3 py-2.5 text-sm outline-none placeholder:opacity-40";
+    "w-full rounded-xl border px-3 py-2.5 text-base outline-none placeholder:opacity-40";
   const estiloCampo = { borderColor: "rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.05)", color: "#fff" } as const;
 
   return (
@@ -649,34 +679,38 @@ function CardEvento({
   onAbrir,
   compacto,
 }: { e: Evento; cor: string; origem: string; onAbrir: (e: Evento) => void; compacto?: boolean }) {
+  const Icone = e.local && /meet|zoom|teams|http/i.test(e.local) ? Link2 : e.local ? MapPin : CalendarDays;
   return (
     <button
       onClick={() => onAbrir(e)}
-      className="w-full overflow-hidden rounded-2xl border p-3 text-left backdrop-blur-md"
+      className="flex h-full w-full items-center gap-3 overflow-hidden rounded-2xl border-l-[3px] px-3 py-2.5 text-left backdrop-blur-md"
       style={{
-        borderColor: `${cor}55`,
-        background: `linear-gradient(135deg, ${cor}22, rgba(255,255,255,0.03))`,
+        borderLeftColor: cor,
+        background: `linear-gradient(120deg, ${cor}26, rgba(255,255,255,0.035))`,
+        boxShadow: "0 6px 18px rgba(0,0,0,0.25)",
       }}
     >
-      <div className="flex items-start gap-3">
-        <span className="mt-1 h-full min-h-[2.2rem] w-1 shrink-0 rounded-full" style={{ background: cor }} />
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-[15px] font-semibold">{e.titulo}</p>
-          <p className="mt-0.5 text-xs opacity-70">
-            {e.dia_inteiro ? "dia inteiro" : `${hora(e.inicio)} – ${hora(e.fim)}`}
-            {e.local ? ` · ${e.local}` : ""}
-          </p>
-          {!compacto ? (
-            <span
-              className="mt-2 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px]"
-              style={{ background: `${cor}22`, color: cor }}
-            >
-              <CalendarDays className="h-3 w-3" />
-              {origem}
-            </span>
-          ) : null}
-        </div>
+      <span
+        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
+        style={{ background: `${cor}2e`, border: `1px solid ${cor}55`, color: cor }}
+      >
+        <Icone className="h-[18px] w-[18px]" />
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-[15px] font-semibold leading-tight">{e.titulo}</p>
+        <p className="mt-0.5 flex items-center gap-1 truncate text-[12px] opacity-60">
+          <span className="truncate">{e.local || origem}</span>
+        </p>
       </div>
+      {!compacto ? (
+        <span className="shrink-0 text-[12px] font-semibold tabular-nums" style={{ color: cor }}>
+          {e.dia_inteiro ? "dia inteiro" : `${hora(e.inicio)} – ${hora(e.fim)}`}
+        </span>
+      ) : (
+        <span className="shrink-0 text-[11px] font-semibold tabular-nums" style={{ color: cor }}>
+          {e.dia_inteiro ? "dia" : hora(e.inicio)}
+        </span>
+      )}
     </button>
   );
 }
@@ -686,8 +720,9 @@ function VistaDia({ dia, eventos, cor, origem, onAbrir }: VistaProps & { dia: Da
   const agora = new Date();
   const ehHoje = mesmoDia(dia, agora);
   const horas = Array.from({ length: 18 }, (_, i) => i + 6); // 06h às 23h
+  const ALT = 64;
 
-  const posicao = (d: Date) => (d.getHours() + d.getMinutes() / 60 - 6) * 64;
+  const posicao = (d: Date) => (d.getHours() + d.getMinutes() / 60 - 6) * ALT;
 
   return (
     <div className="pt-2">
@@ -701,20 +736,28 @@ function VistaDia({ dia, eventos, cor, origem, onAbrir }: VistaProps & { dia: Da
         </div>
       ) : null}
 
-      <div className="relative" style={{ height: 18 * 64 }}>
+      <div className="relative" style={{ height: 18 * ALT }}>
+        {/* trilho vertical */}
+        <span
+          className="absolute bottom-0 top-0 w-px"
+          style={{ left: 52, background: "rgba(255,255,255,0.09)" }}
+        />
+
         {horas.map((h, i) => (
-          <div key={h} className="absolute left-0 right-0 flex items-start gap-2" style={{ top: i * 64 }}>
-            <span className="w-11 shrink-0 pt-[2px] text-[11px] tabular-nums opacity-40">
+          <div key={h} className="absolute left-0 right-0 flex items-start gap-2" style={{ top: i * ALT }}>
+            <span className="w-11 shrink-0 pt-[2px] text-right text-[11px] tabular-nums opacity-35">
               {String(h).padStart(2, "0")}:00
             </span>
-            <span className="mt-2 h-px flex-1" style={{ background: "rgba(255,255,255,0.07)" }} />
           </div>
         ))}
 
         {ehHoje && agora.getHours() >= 6 ? (
-          <div className="absolute left-11 right-0 z-10 flex items-center" style={{ top: posicao(agora) }}>
+          <div className="absolute left-0 right-0 z-10 flex items-center gap-1" style={{ top: posicao(agora) }}>
+            <span className="w-11 shrink-0 text-right text-[11px] font-semibold tabular-nums" style={{ color: "#F26B1F" }}>
+              {agora.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+            </span>
             <span className="h-2 w-2 rounded-full" style={{ background: "#F26B1F" }} />
-            <span className="h-px flex-1" style={{ background: "#F26B1F" }} />
+            <span className="h-px flex-1" style={{ background: "rgba(242,107,31,0.55)" }} />
           </div>
         ) : null}
 
@@ -724,16 +767,15 @@ function VistaDia({ dia, eventos, cor, origem, onAbrir }: VistaProps & { dia: Da
             const ini = new Date(e.inicio);
             const fim = new Date(e.fim);
             const topo = Math.max(0, posicao(ini));
-            const altura = Math.max(52, Math.min(posicao(fim) - topo, 18 * 64 - topo));
+            const altura = Math.max(56, Math.min(posicao(fim) - topo, 18 * ALT - topo));
             return (
-              <div key={e.id} className="absolute" style={{ top: topo, left: 56, right: 0, height: altura }}>
-                <div className="h-full">
-                  <CardEvento e={e} cor={cor(e)} origem={origem(e)} onAbrir={onAbrir} compacto={altura < 80} />
-                </div>
+              <div key={e.id} className="absolute" style={{ top: topo, left: 64, right: 0, height: altura }}>
+                <CardEvento e={e} cor={cor(e)} origem={origem(e)} onAbrir={onAbrir} compacto={altura < 76} />
               </div>
             );
           })}
       </div>
+
 
       {lista.length === 0 ? <Vazio texto="Nenhum compromisso nesse dia" /> : null}
     </div>
