@@ -4009,6 +4009,77 @@ export type Database = {
         }
         Relationships: []
       }
+      wa_flight_quote_options: {
+        Row: {
+          attempt_count: number
+          claim_expires_at: string | null
+          claim_id: string | null
+          claim_started_at: string | null
+          conversation_id: string
+          created_at: string
+          delivered_at: string | null
+          delivery_format: string | null
+          delivery_status: string
+          fingerprint: string
+          id: string
+          last_attempt_at: string | null
+          last_error: string | null
+          next_run_at: string | null
+          option_index: number
+          protocolo_id: string | null
+          provider_message_id: string | null
+          quote_id: string
+        }
+        Insert: {
+          attempt_count?: number
+          claim_expires_at?: string | null
+          claim_id?: string | null
+          claim_started_at?: string | null
+          conversation_id: string
+          created_at?: string
+          delivered_at?: string | null
+          delivery_format?: string | null
+          delivery_status?: string
+          fingerprint: string
+          id?: string
+          last_attempt_at?: string | null
+          last_error?: string | null
+          next_run_at?: string | null
+          option_index: number
+          protocolo_id?: string | null
+          provider_message_id?: string | null
+          quote_id: string
+        }
+        Update: {
+          attempt_count?: number
+          claim_expires_at?: string | null
+          claim_id?: string | null
+          claim_started_at?: string | null
+          conversation_id?: string
+          created_at?: string
+          delivered_at?: string | null
+          delivery_format?: string | null
+          delivery_status?: string
+          fingerprint?: string
+          id?: string
+          last_attempt_at?: string | null
+          last_error?: string | null
+          next_run_at?: string | null
+          option_index?: number
+          protocolo_id?: string | null
+          provider_message_id?: string | null
+          quote_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wa_flight_quote_options_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: false
+            referencedRelation: "wa_flight_quotes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       wa_flight_quotes: {
         Row: {
           agent_name: string | null
@@ -4021,10 +4092,14 @@ export type Database = {
           cards_sent_at: string | null
           conversation_id: string | null
           created_at: string
+          delivered_options_count: number
+          delivery_status: string
           escolha_at: string | null
           escolha_option_index: number | null
+          expected_options: number | null
           filtros: Json | null
           id: string
+          next_run_at: string | null
           payload: Json
           protocolo_id: string | null
           sent_fingerprints: Json
@@ -4040,10 +4115,14 @@ export type Database = {
           cards_sent_at?: string | null
           conversation_id?: string | null
           created_at?: string
+          delivered_options_count?: number
+          delivery_status?: string
           escolha_at?: string | null
           escolha_option_index?: number | null
+          expected_options?: number | null
           filtros?: Json | null
           id?: string
+          next_run_at?: string | null
           payload: Json
           protocolo_id?: string | null
           sent_fingerprints?: Json
@@ -4059,10 +4138,14 @@ export type Database = {
           cards_sent_at?: string | null
           conversation_id?: string | null
           created_at?: string
+          delivered_options_count?: number
+          delivery_status?: string
           escolha_at?: string | null
           escolha_option_index?: number | null
+          expected_options?: number | null
           filtros?: Json | null
           id?: string
+          next_run_at?: string | null
           payload?: Json
           protocolo_id?: string | null
           sent_fingerprints?: Json
