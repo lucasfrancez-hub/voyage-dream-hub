@@ -736,21 +736,47 @@ export function buildCentralTools(
       },
     }),
 
+    transferir_para_consultores: tool({
+      description:
+        "Use SEMPRE que o cliente demonstrar QUALQUER interesse em pacote (pacote, pacote com hotel, opções completas, promoção de pacote, conhecer outros destinos, pacote de praia, viagem montada). Você é do aéreo: não pesquisa pacote, não interpreta qual pacote é, não diz que não existe pacote e NÃO encaminha ao Comercial. Transfere para os Consultores da VIA AIR, que entendem a necessidade e pesquisam pacote pronto.",
+      inputSchema: z.object({
+        pedido: z
+          .string()
+          .min(2)
+          .describe("O que o cliente pediu, com as palavras dele (ex.: 'queria ver umas opções de pacote também')"),
+        contexto_aereo: z
+          .string()
+          .describe(
+            "Resumo do que já rolou no AÉREO (trecho, datas, pax, opções enviadas). É só histórico — não são os dados do pacote",
+          ),
+      }),
+      execute: async ({ pedido, contexto_aereo }) => {
+        await transferirParaConsultores(conversation, {
+          agenteAnterior: agente?.nome ?? "Setor aéreo",
+          contexto: contexto_aereo,
+          pedido,
+        });
+        return {
+          ok: true,
+          instrucao:
+            'Envie UM balão curto e natural, tipo: "Perfeito! Vou te transferir para um dos nossos consultores, que vai entender certinho o tipo de pacote que vc procura e te mostrar as opções disponíveis". ' +
+            "NÃO diga que não encontrou pacote, NÃO fale em Comercial, NÃO pergunte destino/datas/pax do pacote e NÃO repita os dados do voo. Depois desse balão, pare — quem continua é o consultor.",
+        };
+      },
+    }),
+
     encaminhar_para_comercial: tool({
       description:
-        "Use SEMPRE que o assunto sair do escopo da Central (pesquisa de passagem aérea): hotel avulso, aluguel de carro, aéreo+hotel, pacote, personalização de pacote, seguro, cruzeiro, transfer, roteiro personalizado, intercâmbio, excursão, planejamento geral, pedido já emitido, pós-venda, institucional — ou quando a pesquisa não puder ser concluída (falha técnica). Encaminha ao time Comercial preservando TODO o contexto. Nunca diga ao cliente que é transferência entre sistemas, IA ou humano.",
+        "Use quando o assunto sair do escopo do aéreo e NÃO for pacote: hotel avulso, aluguel de carro, aéreo+hotel, seguro, cruzeiro, transfer, intercâmbio, excursão, pedido já emitido, pós-venda, institucional — ou quando a pesquisa aérea não puder ser concluída (falha técnica). PACOTE NUNCA vem pra cá: use transferir_para_consultores. Nunca diga ao cliente que é transferência entre sistemas, IA ou humano.",
       inputSchema: z.object({
         categoria: z
           .enum([
-            "pacote_sem_opcao",
-            "personalizacao_pacote",
             "hotel",
             "carro",
             "aereo_hotel",
             "seguro",
             "cruzeiro",
             "transfer",
-            "roteiro_personalizado",
             "intercambio",
             "excursao",
             "pos_venda",
@@ -758,7 +784,7 @@ export function buildCentralTools(
             "falha_tecnica",
             "outro",
           ])
-          .describe("Categoria do encaminhamento"),
+          .describe("Categoria do encaminhamento (nenhuma delas é pacote)"),
         motivo: z.string().min(3).describe("Motivo em uma frase"),
         resumo: z
           .string()
@@ -779,13 +805,11 @@ export function buildCentralTools(
           ok: true,
           categoria,
           instrucao:
-            categoria === "pacote_sem_opcao"
-              ? "Envie EXATAMENTE esta mensagem, em um balão: \"Não encontrei um pacote pronto que atenda exatamente ao que você procura. Já encaminhei todas as informações para o nosso time Comercial preparar uma opção personalizada para você.\" Não invente pacote, não troque destino, data nem cidade de embarque."
-              : "Envie UMA mensagem curta e natural avisando que já encaminhou pro time Comercial e que em breve um consultor continua o atendimento por aqui. Não peça de novo nenhuma informação que o cliente já deu. Agradeça com 'obrigado pela preferência'.",
+            "Envie UMA mensagem curta e natural avisando que já encaminhou pro time Comercial e que em breve um consultor continua o atendimento por aqui. Não peça de novo nenhuma informação que o cliente já deu. Agradeça com 'obrigado pela preferência'.",
         };
       },
-
     }),
+
   };
 
   if (!permitidas.length) return todas;
