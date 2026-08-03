@@ -242,7 +242,19 @@ export async function sendPendingFlightCards(
   if (protocolId) claimQuery = claimQuery.eq("protocolo_id", protocolId);
   if (!force) {
     const { data: claimed } = await claimQuery.select("id");
-    if (!claimed?.length) return { sent: 0, quote_id: row.id as string };
+    if (!claimed?.length) {
+      console.log(
+        JSON.stringify({
+          event: "flight_delivery_claim_lost",
+          quote_id: row.id,
+          conversation_id: conversationId,
+          protocolo_id: protocolId ?? null,
+          at: new Date().toISOString(),
+        }),
+      );
+      return { sent: 0, quote_id: row.id as string };
+    }
+
   }
 
 
@@ -324,7 +336,57 @@ export async function sendPendingFlightCards(
   // Esta execução entrega no máximo CARDS_POR_RODADA opções; o restante vai na
   // rodada seguinte, encadeada no fim, sempre em execução nova.
   const faltavamNoLote = Math.max(0, opcoes.length - CARDS_POR_RODADA);
+  const adiadasNestaRodada = opcoes.slice(CARDS_POR_RODADA);
   opcoes.splice(CARDS_POR_RODADA);
+
+  // ---- AUDITORIA DO FUNIL (não altera comportamento) ----------------------
+  console.log(
+    JSON.stringify({
+      event: "flight_delivery_funnel",
+      quote_id: row.id,
+      conversation_id: conversationId,
+      protocolo_id: protocolId ?? null,
+      saved_options_count: todas.length,
+      already_sent_count: fpsDaCotacao.size,
+      expected_options: previstasNaCotacao(todas, limiteOpcoes),
+      remaining_target: restante,
+      candidates_count: candidatas.length,
+      selected_this_round: opcoes.length,
+      deferred_to_next_round: adiadasNestaRodada.length,
+      cards_por_rodada: CARDS_POR_RODADA,
+      options: todas.map((o, i) => {
+        const fp = fingerprint(o);
+        const enviada = fpsDaCotacao.has(fp);
+        const nesteLote = opcoes.some((x) => fingerprint(x) === fp);
+        const adiada = adiadasNestaRodada.some((x) => fingerprint(x) === fp);
+        const rec = o as unknown as Record<string, unknown>;
+        return {
+          option_index: i,
+          companhia: rec["companhia"] ?? rec["cia"] ?? null,
+          origem: rec["origem"] ?? null,
+          destino: rec["destino"] ?? null,
+          partida: horarioIda(o) || null,
+          preco: rec["preco_total"] ?? rec["preco"] ?? null,
+          status: enviada
+            ? "JA_ENVIADA"
+            : nesteLote
+              ? "SELECIONADA_NESTA_RODADA"
+              : adiada
+                ? "ADIADA_PROXIMA_RODADA"
+                : "DESCARTADA",
+          motivo: enviada
+            ? "fingerprint já entregue nesta cotação"
+            : nesteLote
+              ? null
+              : adiada
+                ? `limite de ${CARDS_POR_RODADA} card(s) por execução`
+                : "excedeu a meta de opções (restante atingido)",
+        };
+      }),
+      at: new Date().toISOString(),
+    }),
+  );
+
 
 
   if (!opcoes.length) {
@@ -669,10 +731,27 @@ export async function sendPendingFlightCards(
   // trouxe, pra uma rota com só 1 ou 2 opções não ficar eternamente pendente.
   const totalEnviadas = fpsDaCotacao.size + novosFps.length;
   const concluiu = cotacaoConcluida(totalEnviadas, previstasNaCotacao(todas, limiteOpcoes));
+  console.log(
+    JSON.stringify({
+      event: "flight_delivery_round_result",
+      quote_id: row.id,
+      conversation_id: conversationId,
+      protocolo_id: protocolId ?? null,
+      delivered_this_round: novosFps.length,
+      delivered_total: totalEnviadas,
+      expected_options: previstasNaCotacao(todas, limiteOpcoes),
+      concluded: concluiu,
+      will_chain_next_round:
+        !concluiu && (faltavamNoLote > 0 || totalEnviadas < previstasNaCotacao(todas, limiteOpcoes)),
+      depth,
+      at: new Date().toISOString(),
+    }),
+  );
   await supabaseAdmin
     .from("wa_flight_quotes")
     .update({ cards_sent_at: concluiu ? new Date().toISOString() : null })
     .eq("id", row.id);
+
 
   // AINDA FALTA OPÇÃO? Dispara a rodada seguinte AGORA, em execução nova. É o
   // que garante as 2-3 opções da política: cada arte tem o tempo inteiro de um
