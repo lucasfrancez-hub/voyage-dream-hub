@@ -53,17 +53,17 @@ describe("claim expira e devolve a opção para a fila", () => {
     expect(claimExpirado(new Date(agora + 10_000).toISOString(), agora)).toBe(false);
   });
   it("opção entregue nunca volta para a fila (sem duplicidade)", () => {
-    expect(opcaoDisponivel({ status: "delivered", claim_expires_at: null }, agora)).toBe(false);
-    expect(opcaoDisponivel({ status: "pending", claim_expires_at: null }, agora)).toBe(true);
+    expect(opcaoDisponivel({ delivery_status: "delivered", claim_expires_at: null }, agora)).toBe(false);
+    expect(opcaoDisponivel({ delivery_status: "pending", claim_expires_at: null }, agora)).toBe(true);
     expect(
       opcaoDisponivel(
-        { status: "rendering", claim_expires_at: new Date(agora + 30_000).toISOString() },
+        { delivery_status: "rendering", claim_expires_at: new Date(agora + 30_000).toISOString() },
         agora,
       ),
     ).toBe(false);
     expect(
       opcaoDisponivel(
-        { status: "rendering", claim_expires_at: new Date(agora - 1).toISOString() },
+        { delivery_status: "rendering", claim_expires_at: new Date(agora - 1).toISOString() },
         agora,
       ),
     ).toBe(true);
@@ -77,8 +77,8 @@ describe("prazos", () => {
   it("cotação parada por mais de 5 min entra em emergência", () => {
     expect(EMERGENCIA_MS).toBe(300_000);
     const inicio = Date.now() - 6 * 60_000;
-    expect(emEmergencia(new Date(inicio).toISOString())).toBe(true);
-    expect(emEmergencia(new Date(Date.now() - 10_000).toISOString())).toBe(false);
+    expect(emEmergencia({ created_at: new Date(inicio).toISOString(), delivered_options_count: 1, expected_options: 3 })).toBe(true);
+    expect(emEmergencia({ created_at: new Date(Date.now() - 10_000).toISOString(), delivered_options_count: 1, expected_options: 3 })).toBe(false);
   });
   it("intervalo entre opções fica entre 30s e 90s", () => {
     for (let i = 0; i < 50; i++) {
