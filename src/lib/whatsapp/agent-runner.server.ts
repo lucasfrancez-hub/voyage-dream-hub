@@ -920,6 +920,12 @@ export async function runAgent(input: {
   const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
   try {
+    // MAPA DE ATENDIMENTO: o fluxo desenhado na aba Fluxos entra no prompt de
+    // TODOS os agentes. Quem edita o mapa muda o roteamento sem tocar em código.
+    const { blocoFluxoParaPrompt } = await import("./flow.server");
+    const mapa = await blocoFluxoParaPrompt().catch(() => "");
+    const fluxoBlock = mapa ? `\n\n${mapa}` : "";
+
     const system =
       (centralAgent
         ? buildCentralPrompt(
@@ -937,10 +943,12 @@ export async function runAgent(input: {
           "\n\n" +
           buildSystemPrompt(agent, conv, protocolo, isNewProtocolo, previousContext, { contextOnly: true })
         : buildSystemPrompt(agent, conv, protocolo, isNewProtocolo, previousContext)) +
+      fluxoBlock +
       repliedBlock +
       imagemBlock +
       quoteBlock +
       pacoteBlock;
+
 
 
     const loadedPromptType = centralAgent ? "central_especialistas" : "consultor";
