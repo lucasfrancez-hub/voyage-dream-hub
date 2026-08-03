@@ -9,6 +9,8 @@
  *
  * Puro (sem I/O) para ser testável e auditável.
  */
+import { cidadeDoAeroporto, interpretarLocal } from "./airport-city";
+
 
 export type RefineKind =
   | "aeroporto_origem"
