@@ -53,7 +53,14 @@ export type ProtocolEvent =
   | "commercial_handoff"
   | "human_assumed"
   | "message_revoked"
-  | "reply_context_not_found";
+  | "reply_context_not_found"
+  | "flight_request_opened"
+  | "flight_request_closed"
+  | "flight_request_nudge"
+  | "flight_request_answer_resolved"
+  | "flight_sector_locked"
+  | "flight_turn_recovered"
+  | "flight_turn_escalated";
 
 export async function logProtocolEvent(
   event: ProtocolEvent,

@@ -4160,6 +4160,146 @@ export type Database = {
           },
         ]
       }
+      wa_flight_search_requests: {
+        Row: {
+          active_quote_id: string | null
+          adults: number | null
+          agent_slug: string | null
+          baggage_filter: boolean | null
+          cancelled_at: string | null
+          children: number | null
+          completed_at: string | null
+          conversation_id: string
+          created_at: string
+          customer_nudge_count: number
+          departure_date: string | null
+          departure_time_preference: string | null
+          destination: string | null
+          destination_airport: string | null
+          direct_flight_filter: boolean | null
+          excluded_airlines: string[] | null
+          failure_reason: string | null
+          id: string
+          included_airlines: string[] | null
+          infants: number | null
+          last_customer_message_id: string | null
+          last_processed_message_id: string | null
+          last_progress_at: string
+          last_referenced_option_index: number | null
+          last_referenced_quote_id: string | null
+          max_connections: number | null
+          next_action: string | null
+          origin: string | null
+          origin_status: string
+          pending_question: string | null
+          pending_question_context: Json
+          pending_question_message_id: string | null
+          protocol_id: string | null
+          recovery_priority: string
+          recovery_started_at: string | null
+          return_date: string | null
+          return_time_preference: string | null
+          status: string
+          trip_type: string | null
+          updated_at: string
+          wait_message_sent_at: string | null
+        }
+        Insert: {
+          active_quote_id?: string | null
+          adults?: number | null
+          agent_slug?: string | null
+          baggage_filter?: boolean | null
+          cancelled_at?: string | null
+          children?: number | null
+          completed_at?: string | null
+          conversation_id: string
+          created_at?: string
+          customer_nudge_count?: number
+          departure_date?: string | null
+          departure_time_preference?: string | null
+          destination?: string | null
+          destination_airport?: string | null
+          direct_flight_filter?: boolean | null
+          excluded_airlines?: string[] | null
+          failure_reason?: string | null
+          id?: string
+          included_airlines?: string[] | null
+          infants?: number | null
+          last_customer_message_id?: string | null
+          last_processed_message_id?: string | null
+          last_progress_at?: string
+          last_referenced_option_index?: number | null
+          last_referenced_quote_id?: string | null
+          max_connections?: number | null
+          next_action?: string | null
+          origin?: string | null
+          origin_status?: string
+          pending_question?: string | null
+          pending_question_context?: Json
+          pending_question_message_id?: string | null
+          protocol_id?: string | null
+          recovery_priority?: string
+          recovery_started_at?: string | null
+          return_date?: string | null
+          return_time_preference?: string | null
+          status?: string
+          trip_type?: string | null
+          updated_at?: string
+          wait_message_sent_at?: string | null
+        }
+        Update: {
+          active_quote_id?: string | null
+          adults?: number | null
+          agent_slug?: string | null
+          baggage_filter?: boolean | null
+          cancelled_at?: string | null
+          children?: number | null
+          completed_at?: string | null
+          conversation_id?: string
+          created_at?: string
+          customer_nudge_count?: number
+          departure_date?: string | null
+          departure_time_preference?: string | null
+          destination?: string | null
+          destination_airport?: string | null
+          direct_flight_filter?: boolean | null
+          excluded_airlines?: string[] | null
+          failure_reason?: string | null
+          id?: string
+          included_airlines?: string[] | null
+          infants?: number | null
+          last_customer_message_id?: string | null
+          last_processed_message_id?: string | null
+          last_progress_at?: string
+          last_referenced_option_index?: number | null
+          last_referenced_quote_id?: string | null
+          max_connections?: number | null
+          next_action?: string | null
+          origin?: string | null
+          origin_status?: string
+          pending_question?: string | null
+          pending_question_context?: Json
+          pending_question_message_id?: string | null
+          protocol_id?: string | null
+          recovery_priority?: string
+          recovery_started_at?: string | null
+          return_date?: string | null
+          return_time_preference?: string | null
+          status?: string
+          trip_type?: string | null
+          updated_at?: string
+          wait_message_sent_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wa_flight_search_requests_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "wa_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       wa_flows: {
         Row: {
           ativo: boolean

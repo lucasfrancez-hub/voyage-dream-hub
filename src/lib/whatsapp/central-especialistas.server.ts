@@ -478,26 +478,75 @@ export function buildCentralTools(
           filtrosTexto;
 
         // AVISO HUMANO ANTES DA BUSCA: "Claro! Já vou verificar aqui pra vc".
-        // Sai na hora, antes do motor rodar — o cliente nunca fica no vácuo
-        // esperando os cards. Só uma vez a cada 3 min por conversa.
+        // Sai UMA VEZ por solicitação aérea (wait_message_sent_at). Retry do
+        // dispatcher, timeout do motor ou cobrança do cliente não repetem o
+        // aviso — era isso que gerava a fila de "já verifico" na conversa.
         try {
-          const conv = conversation as unknown as { wa_phone?: string; display_name?: string | null };
+          const conv = conversation as unknown as {
+            wa_phone?: string;
+            display_name?: string | null;
+            protocolo_ativo_id?: string | null;
+          };
           if (conv.wa_phone) {
             const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-            const desde = new Date(Date.now() - 3 * 60_000).toISOString();
-            const { data: recentes } = await supabaseAdmin
-              .from("wa_messages")
-              .select("content")
-              .eq("conversation_id", conversation.id)
-              .eq("direction", "outbound")
-              .gte("created_at", desde)
-              .order("created_at", { ascending: false })
-              .limit(6);
-            const { AVISO_PESQUISA_RE, montarAvisoPesquisa } = await import("./aviso-pesquisa");
-            const jaAvisou = (recentes ?? []).some((m) =>
-              AVISO_PESQUISA_RE.test(String((m as { content?: string }).content ?? "")),
-            );
+            const {
+              ensureFlightRequest,
+              shouldSendWaitMessage,
+              markWaitMessageSent,
+              markFlightProgress,
+            } = await import("./flight-request.server");
+
+            const req = await ensureFlightRequest({
+              conversation_id: conversation.id,
+              protocol_id: conv.protocolo_ativo_id ?? null,
+              agent_slug: null,
+            }).catch(() => null);
+
+            // O estado da pesquisa passa a viver na solicitação: se o turno
+            // travar, o reconciliador sabe exatamente onde parou.
+            if (req) {
+              await markFlightProgress(req.id, {
+                status: "searching",
+                origin: origem,
+                origin_status: "confirmed_by_customer",
+                destination: destino,
+                departure_date: data_ida,
+                return_date: data_volta ?? null,
+                trip_type: data_volta ? "round_trip" : "one_way",
+                adults: adultos,
+                children: criancas ?? 0,
+                infants: bebes ?? 0,
+                baggage_filter: somente_com_bagagem ?? null,
+                direct_flight_filter: somente_voo_direto ?? null,
+                max_connections: maximo_conexoes ?? null,
+                included_airlines: companhias_incluidas ?? null,
+                excluded_airlines: companhias_excluidas ?? null,
+                departure_time_preference: preferencia_horario_ida ?? null,
+                return_time_preference: preferencia_horario_volta ?? null,
+                pending_question: null,
+                next_action: "deliver_options",
+              } as never).catch(() => {});
+            }
+
+            let jaAvisou = !shouldSendWaitMessage(req);
+            if (!req) {
+              const desde = new Date(Date.now() - 10 * 60_000).toISOString();
+              const { data: recentes } = await supabaseAdmin
+                .from("wa_messages")
+                .select("content")
+                .eq("conversation_id", conversation.id)
+                .eq("direction", "outbound")
+                .gte("created_at", desde)
+                .order("created_at", { ascending: false })
+                .limit(10);
+              const { AVISO_PESQUISA_RE } = await import("./aviso-pesquisa");
+              jaAvisou = (recentes ?? []).some((m) =>
+                AVISO_PESQUISA_RE.test(String((m as { content?: string }).content ?? "")),
+              );
+            }
+
             if (!jaAvisou) {
+              const { montarAvisoPesquisa } = await import("./aviso-pesquisa");
               const { saveAndSendText } = await import("./conversation.server");
               const { firstName } = await import("./text-utils.server");
               await saveAndSendText(
@@ -506,11 +555,13 @@ export function buildCentralTools(
                 montarAvisoPesquisa(firstName(conv.display_name ?? null)),
                 3,
               );
+              if (req) await markWaitMessageSent(req.id);
             }
           }
         } catch (e) {
           console.warn("[central] aviso pré-pesquisa falhou:", (e as Error)?.message ?? e);
         }
+
 
         try {
           const { quoteFlights } = await import("./flight-quote.server");
