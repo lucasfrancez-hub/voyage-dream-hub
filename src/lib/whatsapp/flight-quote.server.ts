@@ -297,6 +297,15 @@ export async function quoteFlights(params: QuoteFlightsParams): Promise<FlightQu
     ].filter((v): v is string => !!v);
     if (excluidas.length && cias.some((c) => excluidas.some((e) => airlineMatches(c, e)))) return false;
     if (incluidas.length && !cias.some((c) => incluidas.some((e) => airlineMatches(c, e)))) return false;
+    // Aeroporto travado pelo cliente ("quero Congonhas"): descarta o que não é dele.
+    const chegada = f.journey.destination?.iata;
+    if (dst?.interpretacao?.tipo === "aeroporto" && chegada && !atendePedido(dst.interpretacao, chegada)) {
+      return false;
+    }
+    const partida = f.journey.departure?.iata;
+    if (org?.interpretacao?.tipo === "aeroporto" && partida && !atendePedido(org.interpretacao, partida)) {
+      return false;
+    }
     return true;
   };
 
