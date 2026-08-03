@@ -169,12 +169,16 @@ function InboxPage() {
   }, [refetch, conversations]);
 
   useEffect(() => {
+    if (channel !== "whatsapp") return;
     if (typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches) return;
     if (!activeId && filtered.length > 0) setActiveId(filtered[0].id);
-  }, [filtered, activeId]);
+  }, [filtered, activeId, channel]);
 
 
-  const active = filtered.find((c) => c.id === activeId) ?? conversations.find((c) => c.id === activeId) ?? null;
+  const active = channel === "whatsapp"
+    ? (filtered.find((c) => c.id === activeId) ?? conversations.find((c) => c.id === activeId) ?? null)
+    : null;
+
 
   return (
     <div className="flex h-full min-h-0">
