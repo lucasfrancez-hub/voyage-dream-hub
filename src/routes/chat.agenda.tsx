@@ -834,7 +834,7 @@ function DetalhesDialog({
               </DialogTitle>
             </DialogHeader>
 
-            <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-6 pb-6">
+            <div className="min-h-0 w-full min-w-0 flex-1 space-y-5 overflow-y-auto overflow-x-hidden px-6 pb-6 [overflow-wrap:anywhere]">
               <Linha icone={Clock} tom="primary">
                 <p className="font-bold capitalize text-foreground">{dataTexto}</p>
                 {horaTexto && <p className="font-medium text-muted-foreground">{horaTexto}</p>}
@@ -914,12 +914,12 @@ function DetalhesDialog({
               )}
 
               {evento.descricao && (
-                <div className="rounded-xl border border-border bg-muted/50 p-4">
+                <div className="w-full min-w-0 overflow-hidden rounded-xl border border-border bg-muted/50 p-4">
                   <div className="flex items-center gap-2 pb-2">
                     <AlignLeft className="h-3.5 w-3.5 text-muted-foreground" />
                     <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Detalhes</p>
                   </div>
-                  <div className="whitespace-pre-wrap break-words text-sm leading-relaxed text-muted-foreground [&_a]:break-all [&_a]:font-semibold [&_a]:text-primary">
+                  <div className="w-full min-w-0 whitespace-pre-wrap break-words text-sm leading-relaxed text-muted-foreground [overflow-wrap:anywhere] [&_a]:break-all [&_a]:font-semibold [&_a]:text-primary">
                     {comLinks(evento.descricao)}
                   </div>
                 </div>

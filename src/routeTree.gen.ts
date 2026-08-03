@@ -102,6 +102,7 @@ import { Route as ApiPublicHooksFlightCardsContinueRouteImport } from './routes/
 import { Route as ApiPublicHooksFlightQuoteWatchdogRouteImport } from './routes/api/public/hooks/flight-quote-watchdog'
 import { Route as ApiPublicHooksKeepWindowAliveRouteImport } from './routes/api/public/hooks/keep-window-alive'
 import { Route as ApiPublicHooksRunCheckinsRouteImport } from './routes/api/public/hooks/run-checkins'
+import { Route as ApiPublicHooksSyncCalendarsRouteImport } from './routes/api/public/hooks/sync-calendars'
 import { Route as ApiPublicPackageHotelPhotoSplatRouteImport } from './routes/api/public/package-hotel-photo.$'
 import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
 import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/email/auth/webhook'
@@ -591,6 +592,12 @@ const ApiPublicHooksRunCheckinsRoute =
     path: '/api/public/hooks/run-checkins',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicHooksSyncCalendarsRoute =
+  ApiPublicHooksSyncCalendarsRouteImport.update({
+    id: '/api/public/hooks/sync-calendars',
+    path: '/api/public/hooks/sync-calendars',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicPackageHotelPhotoSplatRoute =
   ApiPublicPackageHotelPhotoSplatRouteImport.update({
     id: '/api/public/package-hotel-photo/$',
@@ -720,6 +727,7 @@ export interface FileRoutesByFullPath {
   '/api/public/hooks/flight-quote-watchdog': typeof ApiPublicHooksFlightQuoteWatchdogRoute
   '/api/public/hooks/keep-window-alive': typeof ApiPublicHooksKeepWindowAliveRoute
   '/api/public/hooks/run-checkins': typeof ApiPublicHooksRunCheckinsRoute
+  '/api/public/hooks/sync-calendars': typeof ApiPublicHooksSyncCalendarsRoute
   '/api/public/package-hotel-photo/$': typeof ApiPublicPackageHotelPhotoSplatRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
@@ -820,6 +828,7 @@ export interface FileRoutesByTo {
   '/api/public/hooks/flight-quote-watchdog': typeof ApiPublicHooksFlightQuoteWatchdogRoute
   '/api/public/hooks/keep-window-alive': typeof ApiPublicHooksKeepWindowAliveRoute
   '/api/public/hooks/run-checkins': typeof ApiPublicHooksRunCheckinsRoute
+  '/api/public/hooks/sync-calendars': typeof ApiPublicHooksSyncCalendarsRoute
   '/api/public/package-hotel-photo/$': typeof ApiPublicPackageHotelPhotoSplatRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
@@ -922,6 +931,7 @@ export interface FileRoutesById {
   '/api/public/hooks/flight-quote-watchdog': typeof ApiPublicHooksFlightQuoteWatchdogRoute
   '/api/public/hooks/keep-window-alive': typeof ApiPublicHooksKeepWindowAliveRoute
   '/api/public/hooks/run-checkins': typeof ApiPublicHooksRunCheckinsRoute
+  '/api/public/hooks/sync-calendars': typeof ApiPublicHooksSyncCalendarsRoute
   '/api/public/package-hotel-photo/$': typeof ApiPublicPackageHotelPhotoSplatRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
@@ -1025,6 +1035,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/flight-quote-watchdog'
     | '/api/public/hooks/keep-window-alive'
     | '/api/public/hooks/run-checkins'
+    | '/api/public/hooks/sync-calendars'
     | '/api/public/package-hotel-photo/$'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
@@ -1125,6 +1136,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/flight-quote-watchdog'
     | '/api/public/hooks/keep-window-alive'
     | '/api/public/hooks/run-checkins'
+    | '/api/public/hooks/sync-calendars'
     | '/api/public/package-hotel-photo/$'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
@@ -1226,6 +1238,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/flight-quote-watchdog'
     | '/api/public/hooks/keep-window-alive'
     | '/api/public/hooks/run-checkins'
+    | '/api/public/hooks/sync-calendars'
     | '/api/public/package-hotel-photo/$'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
@@ -1287,6 +1300,7 @@ export interface RootRouteChildren {
   ApiPublicHooksFlightQuoteWatchdogRoute: typeof ApiPublicHooksFlightQuoteWatchdogRoute
   ApiPublicHooksKeepWindowAliveRoute: typeof ApiPublicHooksKeepWindowAliveRoute
   ApiPublicHooksRunCheckinsRoute: typeof ApiPublicHooksRunCheckinsRoute
+  ApiPublicHooksSyncCalendarsRoute: typeof ApiPublicHooksSyncCalendarsRoute
   ApiPublicPackageHotelPhotoSplatRoute: typeof ApiPublicPackageHotelPhotoSplatRoute
   LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
   LovableEmailAuthWebhookRoute: typeof LovableEmailAuthWebhookRoute
@@ -1948,6 +1962,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksRunCheckinsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/sync-calendars': {
+      id: '/api/public/hooks/sync-calendars'
+      path: '/api/public/hooks/sync-calendars'
+      fullPath: '/api/public/hooks/sync-calendars'
+      preLoaderRoute: typeof ApiPublicHooksSyncCalendarsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/package-hotel-photo/$': {
       id: '/api/public/package-hotel-photo/$'
       path: '/api/public/package-hotel-photo/$'
@@ -2167,6 +2188,7 @@ const rootRouteChildren: RootRouteChildren = {
     ApiPublicHooksFlightQuoteWatchdogRoute,
   ApiPublicHooksKeepWindowAliveRoute: ApiPublicHooksKeepWindowAliveRoute,
   ApiPublicHooksRunCheckinsRoute: ApiPublicHooksRunCheckinsRoute,
+  ApiPublicHooksSyncCalendarsRoute: ApiPublicHooksSyncCalendarsRoute,
   ApiPublicPackageHotelPhotoSplatRoute: ApiPublicPackageHotelPhotoSplatRoute,
   LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,
   LovableEmailAuthWebhookRoute: LovableEmailAuthWebhookRoute,
