@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { listOnlineAgents } from "@/lib/chat/online-agents.functions";
 import { AiStatusButton } from "@/components/chat/AiStatusButton";
+import { AiMasterSwitch } from "@/components/chat/AiMasterSwitch";
 
 
 
@@ -109,6 +110,8 @@ export function ChatHeader({ title, subtitle, userEmail, userFullName, theme = "
       </div>
 
 
+
+      <AiMasterSwitch />
 
       <AiStatusButton />
 

@@ -14,6 +14,15 @@ export const Route = createFileRoute("/api/public/hooks/dispatch-ai-debounced")(
       POST: async () => {
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
         const { runAgent } = await import("@/lib/whatsapp/agent-runner.server");
+        const { isAiGloballyOff } = await import("@/lib/whatsapp/ai-global-switch.server");
+
+        // Interruptor global: IAs desligadas → nenhum disparo automático.
+        if (await isAiGloballyOff()) {
+          return new Response(JSON.stringify({ ok: true, skipped: "ai_globally_off" }), {
+            headers: { "content-type": "application/json" },
+          });
+        }
+
 
         const nowIso = new Date().toISOString();
         const { data: due, error } = await supabaseAdmin
