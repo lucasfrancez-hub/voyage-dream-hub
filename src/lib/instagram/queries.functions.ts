@@ -292,3 +292,76 @@ export const publishToInstagram = createServerFn({ method: "POST" })
     });
     return result;
   });
+
+/** Rebusca nome, @ e foto do contato de uma DM (usado quando o perfil veio vazio). */
+export const refreshInstagramProfile = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { conversation_id: string; force?: boolean }) =>
+    z.object({ conversation_id: z.string().uuid(), force: z.boolean().optional() }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { data: conv, error } = await context.supabase
+      .from("instagram_conversations")
+      .select("id, account_id, contact_ig_id")
+      .eq("id", data.conversation_id)
+      .maybeSingle();
+    if (error || !conv) throw new Error("Conversa não encontrada");
+    const { ensureInstagramContactProfile } = await import("./profile.server");
+    return ensureInstagramContactProfile({
+      conversationId: conv.id,
+      accountRowId: conv.account_id,
+      contactIgId: conv.contact_ig_id,
+      force: data.force,
+    });
+  });
+
+/** Comentários agrupados por publicação — cada post vira uma "conversa". */
+export const listInstagramCommentThreads = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data, error } = await context.supabase
+      .from("instagram_comments")
+      .select("id, media_id, media_permalink, media_caption, media_thumbnail, media_type, comment_id, parent_comment_id, from_ig_id, from_username, text, auto_reply_status, auto_reply_text, auto_replied_at, auto_dm_sent_at, created_at")
+      .order("created_at", { ascending: true })
+      .limit(500);
+    if (error) throw new Error(error.message);
+
+    const rows = data ?? [];
+    const threads = new Map<string, {
+      media_id: string;
+      media_permalink: string | null;
+      media_caption: string | null;
+      media_thumbnail: string | null;
+      media_type: string | null;
+      last_at: string | null;
+      total: number;
+      pendentes: number;
+      comments: typeof rows;
+    }>();
+
+    for (const c of rows) {
+      const key = c.media_id ?? "sem-publicacao";
+      const t = threads.get(key) ?? {
+        media_id: key,
+        media_permalink: null,
+        media_caption: null,
+        media_thumbnail: null,
+        media_type: null,
+        last_at: null,
+        total: 0,
+        pendentes: 0,
+        comments: [] as typeof rows,
+      };
+      t.media_permalink = c.media_permalink ?? t.media_permalink;
+      t.media_caption = c.media_caption ?? t.media_caption;
+      t.media_thumbnail = c.media_thumbnail ?? t.media_thumbnail;
+      t.media_type = c.media_type ?? t.media_type;
+      t.last_at = c.created_at ?? t.last_at;
+      t.total += 1;
+      if (!c.auto_replied_at && !c.auto_dm_sent_at) t.pendentes += 1;
+      t.comments.push(c);
+      threads.set(key, t);
+    }
+
+    return [...threads.values()].sort((a, b) => (b.last_at ?? "").localeCompare(a.last_at ?? ""));
+  });
