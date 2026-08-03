@@ -1245,7 +1245,11 @@ export async function runAgent(input: {
       currentConv?.protocolo_ativo_id !== protocolo.id ||
       latestInboundNow?.id !== triggerMessageId ||
       runtimeSwitchedToCentral ||
-      (activeSlug != null && activeSlug !== agent.slug) ||
+      // Uma orientação pode ser enviada horas depois da última conversa. Se o
+      // plantão mudou nesse intervalo, pickAgent escolhe o agente disponível e
+      // bindAgentToProtocol já atualiza o protocolo. Não cancele esse run só
+      // porque a coluna legada da conversa ainda aponta para o agente anterior.
+      (!instructionRun && activeSlug != null && activeSlug !== agent.slug) ||
       (!instructionRun && (alreadyAnswered ?? 0) > 0);
     if (staleRun) {
       console.warn("[agent-runtime]", JSON.stringify({
