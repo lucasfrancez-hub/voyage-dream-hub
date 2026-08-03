@@ -65,7 +65,7 @@ export type QuoteMemory = {
   /** Opções que ainda não saíram (arte pendente). */
   pendentes: number[];
   /** Parâmetros brutos da pesquisa — base do refino incremental. */
-  busca: {
+  busca?: {
     origem: string | null;
     origem_iata: string | null;
     destino: string | null;
@@ -218,6 +218,21 @@ export async function loadQuoteMemory(
       filtros: (q.filtros as Record<string, unknown> | null) ?? null,
       opcoes: mem,
       pendentes: mem.filter((o) => !o.enviada_em).map((o) => o.option_index),
+      busca: {
+        origem: payload.origem_nome ?? payload.origem_iata ?? null,
+        origem_iata: payload.origem_iata ?? null,
+        destino: payload.destino_nome ?? payload.destino_iata ?? null,
+        destino_iata: payload.destino_iata ?? null,
+        data_ida: payload.data_ida ?? null,
+        data_volta: payload.data_volta ?? null,
+        adultos: pax?.adultos ?? null,
+        criancas: pax?.criancas ?? null,
+        bebes: pax?.bebes ?? null,
+        bagagem_despachada: payload.filtros?.bagagem_despachada ?? null,
+        somente_voo_direto: payload.filtros?.somente_voo_direto ?? null,
+        companhias_incluidas: payload.filtros?.companhias_incluidas ?? null,
+        companhias_excluidas: payload.filtros?.companhias_excluidas ?? null,
+      },
     };
   });
 }
