@@ -2201,3 +2201,252 @@ function InstagramList({ folder, search, activeId, onSelect }: { folder: string;
 }
 
 // ============ Instagram Comments list (embedded) ============
+
+/** Lista de publicações: cada post vira uma "conversa" de comentários. */
+function InstagramMediaThreadList({
+  search,
+  activeId,
+  onSelect,
+}: {
+  search: string;
+  activeId: string | null;
+  onSelect: (id: string) => void;
+}) {
+  const threadsFn = useServerFn(listInstagramCommentThreads);
+  const { data: threads = [], isLoading } = useQuery({
+    queryKey: ["ig", "comment-threads"],
+    queryFn: () => threadsFn(),
+    refetchInterval: 20_000,
+  });
+
+  const filtered = threads.filter((t) => {
+    if (!search) return true;
+    const s = search.toLowerCase();
+    return (
+      (t.media_caption ?? "").toLowerCase().includes(s) ||
+      t.comments.some((c) => (c.from_username ?? "").toLowerCase().includes(s) || (c.text ?? "").toLowerCase().includes(s))
+    );
+  });
+
+  if (isLoading) return <div className="p-6 text-center text-xs text-slate-400">Carregando…</div>;
+  if (filtered.length === 0) return <div className="p-6 text-center text-xs text-slate-400">Nenhum comentário</div>;
+
+  return (
+    <>
+      {filtered.map((t) => {
+        const ultimo = t.comments[t.comments.length - 1];
+        return (
+          <button
+            key={t.media_id}
+            onClick={() => onSelect(t.media_id)}
+            className={cn(
+              "flex w-full items-start gap-2 rounded-lg border p-2.5 text-left transition-colors",
+              activeId === t.media_id
+                ? "border-[#F26B1F]/40 bg-orange-50"
+                : "border-slate-100 bg-white hover:bg-slate-50",
+            )}
+          >
+            {t.media_thumbnail ? (
+              <img src={t.media_thumbnail} alt="Publicação" className="h-11 w-11 shrink-0 rounded-md object-cover" />
+            ) : (
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md bg-gradient-to-br from-purple-500 via-pink-500 to-orange-500 text-white">
+                <Instagram className="h-4 w-4" />
+              </div>
+            )}
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-1">
+                <span className="truncate text-xs font-semibold text-slate-900">
+                  {t.media_caption?.slice(0, 40) || "Publicação sem legenda"}
+                </span>
+                {t.pendentes > 0 && (
+                  <span className="ml-auto inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-[#F26B1F] px-1 text-[9px] font-semibold text-white">
+                    {t.pendentes}
+                  </span>
+                )}
+              </div>
+              <p className="mt-0.5 line-clamp-1 text-[11px] text-slate-600 [overflow-wrap:anywhere]">
+                {ultimo ? `@${ultimo.from_username ?? "usuário"}: ${ultimo.text ?? ""}` : "Sem comentários"}
+              </p>
+              <div className="mt-0.5 text-[10px] text-slate-400">
+                {t.total} comentário{t.total === 1 ? "" : "s"}
+                {t.last_at ? ` · ${new Date(t.last_at as string).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}` : ""}
+              </div>
+            </div>
+          </button>
+        );
+      })}
+    </>
+  );
+}
+
+/** Janela da publicação: todos os comentários em formato de conversa. */
+function InstagramCommentThreadView({ mediaId, onBack }: { mediaId: string; onBack: () => void }) {
+  const threadsFn = useServerFn(listInstagramCommentThreads);
+  const accountsFn = useServerFn(listInstagramAccounts);
+  const replyFn = useServerFn(triggerAutoReplyComment);
+  const qc = useQueryClient();
+  const [text, setText] = useState("");
+  const [alvo, setAlvo] = useState<string | null>(null);
+  const [sending, setSending] = useState(false);
+  const bottomRef = useRef<HTMLDivElement | null>(null);
+
+  const { data: threads = [], isLoading } = useQuery({
+    queryKey: ["ig", "comment-threads"],
+    queryFn: () => threadsFn(),
+    refetchInterval: 15_000,
+  });
+  const { data: accounts = [] } = useQuery({
+    queryKey: ["ig", "accounts"],
+    queryFn: () => accountsFn(),
+    staleTime: 5 * 60_000,
+  });
+  const nossos = useMemo(
+    () => new Set(accounts.map((a) => (a.username ?? "").toLowerCase()).filter(Boolean)),
+    [accounts],
+  );
+
+  const thread = threads.find((t) => t.media_id === mediaId) ?? null;
+  const comments = thread?.comments ?? [];
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [comments.length, mediaId]);
+
+  // Alvo padrão: último comentário de terceiros ainda sem resposta.
+  const alvoPadrao = useMemo(() => {
+    for (let i = comments.length - 1; i >= 0; i--) {
+      const c = comments[i];
+      if (!nossos.has((c.from_username ?? "").toLowerCase())) return c;
+    }
+    return null;
+  }, [comments, nossos]);
+  const alvoAtual = comments.find((c) => c.id === alvo) ?? alvoPadrao;
+
+  async function enviar() {
+    if (!text.trim() || !alvoAtual) return;
+    setSending(true);
+    try {
+      await replyFn({ data: { id: alvoAtual.id, public_reply: text.trim() } });
+      toast.success("Resposta publicada");
+      setText("");
+      setAlvo(null);
+      qc.invalidateQueries({ queryKey: ["ig", "comment-threads"] });
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : "Erro ao publicar");
+    } finally {
+      setSending(false);
+    }
+  }
+
+  return (
+    <div className="flex h-full min-h-0 flex-col">
+      <header className="flex items-start gap-2 border-b border-slate-200 bg-white px-3 py-2">
+        <button onClick={onBack} className="mt-1 md:hidden" aria-label="Voltar">
+          <ArrowLeft className="h-4 w-4 text-slate-500" />
+        </button>
+        {thread?.media_thumbnail ? (
+          <img src={thread.media_thumbnail} alt="Publicação" className="h-10 w-10 shrink-0 rounded-md object-cover" />
+        ) : (
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-gradient-to-br from-purple-500 via-pink-500 to-orange-500 text-white">
+            <Instagram className="h-4 w-4" />
+          </div>
+        )}
+        <div className="min-w-0 flex-1">
+          <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+            Publicação{thread?.media_type ? ` · ${thread.media_type.toLowerCase()}` : ""}
+          </div>
+          <p className="line-clamp-2 text-xs text-slate-700 [overflow-wrap:anywhere]">
+            {thread?.media_caption ?? "Sem legenda"}
+          </p>
+          {thread?.media_permalink && (
+            <a
+              href={thread.media_permalink}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-0.5 text-[10px] text-slate-400 hover:text-[#F26B1F]"
+            >
+              <ExternalLink className="h-2.5 w-2.5" /> ver no Instagram
+            </a>
+          )}
+        </div>
+      </header>
+
+      <div className="flex-1 space-y-2 overflow-y-auto p-4">
+        {isLoading ? (
+          <div className="text-center text-xs text-slate-400">Carregando…</div>
+        ) : comments.length === 0 ? (
+          <div className="text-center text-xs text-slate-400">Nenhum comentário nesta publicação</div>
+        ) : (
+          comments.map((c) => {
+            const meu = nossos.has((c.from_username ?? "").toLowerCase());
+            return (
+              <div key={c.id} className={cn("flex", meu ? "justify-end" : "justify-start")}>
+                <div
+                  className={cn(
+                    "max-w-[75%] rounded-2xl px-3 py-2 text-sm shadow-sm",
+                    meu ? "bg-[#F26B1F] text-white" : "bg-white text-slate-900",
+                  )}
+                >
+                  <div className={cn("text-[11px] font-semibold", meu ? "text-white" : "text-[#F26B1F]")}>
+                    @{c.from_username ?? "usuário"}
+                  </div>
+                  <div className="whitespace-pre-wrap break-words [overflow-wrap:anywhere]">{c.text}</div>
+                  <div className={cn("mt-0.5 flex items-center gap-2 text-[10px]", meu ? "text-white/70" : "text-slate-400")}>
+                    {new Date(c.created_at as string).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                    {c.auto_replied_at && !meu ? " · respondido" : ""}
+                    {!meu && (
+                      <button
+                        onClick={() => setAlvo(c.id)}
+                        className="ml-auto inline-flex items-center gap-0.5 rounded px-1 hover:text-[#F26B1F]"
+                      >
+                        <MessageSquare className="h-2.5 w-2.5" /> responder
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })
+        )}
+        <div ref={bottomRef} />
+      </div>
+
+      <div className="border-t border-slate-200 bg-white p-3">
+        {alvoAtual ? (
+          <div className="mb-1.5 flex items-center gap-1 text-[11px] text-slate-500">
+            Respondendo <span className="font-medium text-slate-700">@{alvoAtual.from_username ?? "usuário"}</span>
+            {alvo && (
+              <button onClick={() => setAlvo(null)} className="ml-1 text-slate-400 hover:text-slate-700">
+                <X className="h-3 w-3" />
+              </button>
+            )}
+          </div>
+        ) : (
+          <div className="mb-1.5 text-[11px] text-slate-400">Nenhum comentário para responder</div>
+        )}
+        <div className="flex items-end gap-2">
+          <textarea
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                void enviar();
+              }
+            }}
+            rows={1}
+            placeholder="Responder no comentário…"
+            className="max-h-32 min-h-[38px] flex-1 resize-none rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-[#F26B1F]/50 focus:outline-none"
+          />
+          <button
+            onClick={() => void enviar()}
+            disabled={sending || !text.trim() || !alvoAtual}
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#F26B1F] text-white disabled:opacity-40"
+          >
+            {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
