@@ -26,7 +26,7 @@ import {
 
 export const Route = createFileRoute("/agenda/$token")({
   component: AgendaApp,
-  head: () => ({
+  head: ({ params }) => ({
     meta: [
       { title: "Agenda VIA AIR" },
       { name: "description", content: "Agenda unificada da VIA AIR: Google, Titan e iCloud num app só." },
@@ -41,10 +41,13 @@ export const Route = createFileRoute("/agenda/$token")({
       { name: "twitter:card", content: "summary" },
     ],
     links: [
-      { rel: "manifest", href: "/agenda-app.webmanifest" },
-      { rel: "apple-touch-icon", href: "/agenda-icon-192.png" },
+      { rel: "manifest", href: `/api/public/agenda-manifest/${params.token}` },
+      { rel: "icon", type: "image/png", sizes: "192x192", href: "/agenda-icon-192.png" },
+      { rel: "apple-touch-icon", href: "/apple-touch-icon-agenda.png" },
+      { rel: "apple-touch-icon", sizes: "180x180", href: "/apple-touch-icon-agenda.png" },
     ],
   }),
+
 });
 
 /* ------------------------------------------------------------------ */
