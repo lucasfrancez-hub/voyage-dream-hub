@@ -1,0 +1,317 @@
+/**
+ * Cliente CalDAV mínimo (Titan Mail / dav.titan.email).
+ *
+ * Suporta: descoberta de calendários, listagem de eventos por período,
+ * criação, edição e exclusão de eventos. Autenticação HTTP Basic.
+ *
+ * SERVER-ONLY.
+ */
+import { DOMParser } from "@xmldom/xmldom";
+
+export type CalDavAuth = {
+  serverUrl: string;
+  username: string;
+  password: string;
+};
+
+export type CalDavCalendar = {
+  url: string;
+  nome: string;
+};
+
+export type CalDavEvent = {
+  uid: string;
+  etag: string | null;
+  href: string;
+  titulo: string;
+  descricao: string | null;
+  local: string | null;
+  inicio: string; // ISO
+  fim: string; // ISO
+  diaInteiro: boolean;
+  situacao: string;
+  rawIcs: string;
+};
+
+const TZ_OFFSET = "-03:00"; // fallback: horário de Brasília
+
+function basic(auth: CalDavAuth): string {
+  const raw = `${auth.username}:${auth.password}`;
+  // btoa é global no runtime do Worker.
+  return `Basic ${btoa(unescape(encodeURIComponent(raw)))}`;
+}
+
+function absolutize(serverUrl: string, href: string): string {
+  if (/^https?:\/\//i.test(href)) return href;
+  const base = new URL(serverUrl);
+  return `${base.origin}${href.startsWith("/") ? "" : "/"}${href}`;
+}
+
+async function dav(
+  auth: CalDavAuth,
+  url: string,
+  method: string,
+  body: string | null,
+  headers: Record<string, string> = {},
+): Promise<{ status: number; text: string; etag: string | null }> {
+  const res = await fetch(url, {
+    method,
+    headers: {
+      Authorization: basic(auth),
+      ...(body ? { "Content-Type": headers["Content-Type"] ?? 'application/xml; charset="utf-8"' } : {}),
+      ...headers,
+    },
+    body: body ?? undefined,
+  });
+  const text = await res.text().catch(() => "");
+  if (res.status === 401 || res.status === 403) {
+    throw new Error("Login do calendário recusado. Confira o e-mail e a senha do Titan.");
+  }
+  if (res.status >= 400) {
+    throw new Error(`CalDAV ${method} ${res.status}: ${text.slice(0, 300)}`);
+  }
+  return { status: res.status, text, etag: res.headers.get("etag") };
+}
+
+function parseXml(xml: string): Document {
+  return new DOMParser({
+    onError: () => {
+      /* ignora avisos de namespace do servidor */
+    },
+  } as never).parseFromString(xml, "text/xml") as unknown as Document;
+}
+
+function localName(el: Element): string {
+  return (el.localName ?? el.nodeName.replace(/^.*:/, "")).toLowerCase();
+}
+
+function findAll(root: Document | Element, name: string): Element[] {
+  const out: Element[] = [];
+  const walk = (node: Element) => {
+    const kids = node.childNodes;
+    for (let i = 0; i < kids.length; i += 1) {
+      const child = kids[i] as Element;
+      if (child.nodeType !== 1) continue;
+      if (localName(child) === name) out.push(child);
+      walk(child);
+    }
+  };
+  walk((root as Document).documentElement ?? (root as Element));
+  return out;
+}
+
+function firstText(el: Element, name: string): string | null {
+  const found = findAll(el, name)[0];
+  return found ? (found.textContent ?? "").trim() || null : null;
+}
+
+/** Descobre os calendários da conta. */
+export async function listarCalendarios(auth: CalDavAuth): Promise<CalDavCalendar[]> {
+  const root = auth.serverUrl.replace(/\/+$/, "");
+
+  // 1) principal
+  const principalXml = `<?xml version="1.0" encoding="utf-8" ?>
+<d:propfind xmlns:d="DAV:"><d:prop><d:current-user-principal/></d:prop></d:propfind>`;
+  const p = await dav(auth, `${root}/`, "PROPFIND", principalXml, { Depth: "0" });
+  const principalHref = firstText(parseXml(p.text).documentElement as unknown as Element, "href");
+  const principal = absolutize(root, principalHref ?? "/");
+
+  // 2) calendar-home-set
+  const homeXml = `<?xml version="1.0" encoding="utf-8" ?>
+<d:propfind xmlns:d="DAV:" xmlns:c="urn:ietf:params:xml:ns:caldav"><d:prop><c:calendar-home-set/></d:prop></d:propfind>`;
+  const h = await dav(auth, principal, "PROPFIND", homeXml, { Depth: "0" });
+  const homeDoc = parseXml(h.text);
+  const homeSet = findAll(homeDoc, "calendar-home-set")[0];
+  const homeHref = homeSet ? firstText(homeSet, "href") : null;
+  const home = absolutize(root, homeHref ?? principal);
+
+  // 3) calendários dentro do home
+  const listXml = `<?xml version="1.0" encoding="utf-8" ?>
+<d:propfind xmlns:d="DAV:"><d:prop><d:resourcetype/><d:displayname/></d:prop></d:propfind>`;
+  const l = await dav(auth, home, "PROPFIND", listXml, { Depth: "1" });
+  const doc = parseXml(l.text);
+  const calendars: CalDavCalendar[] = [];
+  for (const resp of findAll(doc, "response")) {
+    const href = firstText(resp, "href");
+    if (!href) continue;
+    const isCalendar = findAll(resp, "calendar").length > 0;
+    if (!isCalendar) continue;
+    calendars.push({
+      url: absolutize(root, href),
+      nome: firstText(resp, "displayname") ?? "Calendário",
+    });
+  }
+  return calendars;
+}
+
+/** Testa credenciais e devolve os calendários disponíveis. */
+export async function testarConexao(auth: CalDavAuth): Promise<CalDavCalendar[]> {
+  const cals = await listarCalendarios(auth);
+  if (!cals.length) throw new Error("Conectou, mas nenhum calendário foi encontrado nesta conta.");
+  return cals;
+}
+
+function icsStamp(d: Date): string {
+  return `${d.toISOString().replace(/[-:]/g, "").split(".")[0]}Z`;
+}
+
+/** Eventos do calendário dentro de um período. */
+export async function buscarEventos(
+  auth: CalDavAuth,
+  calendarUrl: string,
+  de: Date,
+  ate: Date,
+): Promise<CalDavEvent[]> {
+  const body = `<?xml version="1.0" encoding="utf-8" ?>
+<c:calendar-query xmlns:d="DAV:" xmlns:c="urn:ietf:params:xml:ns:caldav">
+  <d:prop><d:getetag/><c:calendar-data/></d:prop>
+  <c:filter>
+    <c:comp-filter name="VCALENDAR">
+      <c:comp-filter name="VEVENT">
+        <c:time-range start="${icsStamp(de)}" end="${icsStamp(ate)}"/>
+      </c:comp-filter>
+    </c:comp-filter>
+  </c:filter>
+</c:calendar-query>`;
+  const r = await dav(auth, calendarUrl, "REPORT", body, { Depth: "1" });
+  const doc = parseXml(r.text);
+  const eventos: CalDavEvent[] = [];
+  for (const resp of findAll(doc, "response")) {
+    const href = firstText(resp, "href");
+    const ics = firstText(resp, "calendar-data");
+    if (!href || !ics) continue;
+    const parsed = parseIcs(ics);
+    if (!parsed) continue;
+    eventos.push({
+      ...parsed,
+      href: absolutize(auth.serverUrl, href),
+      etag: firstText(resp, "getetag"),
+      rawIcs: ics,
+    });
+  }
+  return eventos;
+}
+
+type IcsCore = Omit<CalDavEvent, "href" | "etag" | "rawIcs">;
+
+function unfold(ics: string): string[] {
+  const linhas = ics.replace(/\r\n/g, "\n").split("\n");
+  const out: string[] = [];
+  for (const linha of linhas) {
+    if (/^[ \t]/.test(linha) && out.length) out[out.length - 1] += linha.slice(1);
+    else out.push(linha);
+  }
+  return out;
+}
+
+function unescapeIcs(v: string): string {
+  return v.replace(/\\n/gi, "\n").replace(/\\,/g, ",").replace(/\\;/g, ";").replace(/\\\\/g, "\\");
+}
+
+function parseIcsDate(valor: string, params: string): { iso: string; diaInteiro: boolean } | null {
+  const v = valor.trim();
+  const diaInteiro = /VALUE=DATE(?!-TIME)/i.test(params) || /^\d{8}$/.test(v);
+  if (/^\d{8}$/.test(v)) {
+    return { iso: new Date(`${v.slice(0, 4)}-${v.slice(4, 6)}-${v.slice(6, 8)}T00:00:00${TZ_OFFSET}`).toISOString(), diaInteiro: true };
+  }
+  const m = /^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})(Z)?$/.exec(v);
+  if (!m) return null;
+  const [, y, mo, d, hh, mm, ss, z] = m;
+  const suffix = z ? "Z" : TZ_OFFSET;
+  const date = new Date(`${y}-${mo}-${d}T${hh}:${mm}:${ss}${suffix}`);
+  if (Number.isNaN(date.getTime())) return null;
+  return { iso: date.toISOString(), diaInteiro };
+}
+
+/** Extrai o primeiro VEVENT de um ICS. */
+export function parseIcs(ics: string): IcsCore | null {
+  const linhas = unfold(ics);
+  let dentro = false;
+  const campos: Record<string, { valor: string; params: string }> = {};
+  for (const linha of linhas) {
+    if (/^BEGIN:VEVENT/i.test(linha)) { dentro = true; continue; }
+    if (/^END:VEVENT/i.test(linha)) break;
+    if (!dentro) continue;
+    const idx = linha.indexOf(":");
+    if (idx < 0) continue;
+    const chaveCompleta = linha.slice(0, idx);
+    const valor = linha.slice(idx + 1);
+    const [chave, ...params] = chaveCompleta.split(";");
+    campos[chave.toUpperCase()] = { valor, params: params.join(";") };
+  }
+  const uid = campos.UID?.valor?.trim();
+  const dtstart = campos.DTSTART ? parseIcsDate(campos.DTSTART.valor, campos.DTSTART.params) : null;
+  if (!uid || !dtstart) return null;
+  let fim = campos.DTEND ? parseIcsDate(campos.DTEND.valor, campos.DTEND.params) : null;
+  if (!fim) {
+    const dur = new Date(new Date(dtstart.iso).getTime() + (dtstart.diaInteiro ? 86400000 : 3600000));
+    fim = { iso: dur.toISOString(), diaInteiro: dtstart.diaInteiro };
+  }
+  return {
+    uid,
+    titulo: unescapeIcs(campos.SUMMARY?.valor ?? "(sem título)"),
+    descricao: campos.DESCRIPTION ? unescapeIcs(campos.DESCRIPTION.valor) : null,
+    local: campos.LOCATION ? unescapeIcs(campos.LOCATION.valor) : null,
+    inicio: dtstart.iso,
+    fim: fim.iso,
+    diaInteiro: dtstart.diaInteiro,
+    situacao: (campos.STATUS?.valor ?? "CONFIRMED").toLowerCase(),
+  };
+}
+
+function escapeIcs(v: string): string {
+  return v.replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/,/g, "\\,").replace(/;/g, "\\;");
+}
+
+export type NovoEvento = {
+  uid: string;
+  titulo: string;
+  descricao?: string | null;
+  local?: string | null;
+  inicio: string; // ISO
+  fim: string; // ISO
+};
+
+/** Monta o ICS de um evento (sempre em UTC). */
+export function montarIcs(ev: NovoEvento): string {
+  const agora = icsStamp(new Date());
+  return [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "PRODID:-//VIA AIR//Agenda//PT-BR",
+    "CALSCALE:GREGORIAN",
+    "BEGIN:VEVENT",
+    `UID:${ev.uid}`,
+    `DTSTAMP:${agora}`,
+    `DTSTART:${icsStamp(new Date(ev.inicio))}`,
+    `DTEND:${icsStamp(new Date(ev.fim))}`,
+    `SUMMARY:${escapeIcs(ev.titulo)}`,
+    ...(ev.descricao ? [`DESCRIPTION:${escapeIcs(ev.descricao)}`] : []),
+    ...(ev.local ? [`LOCATION:${escapeIcs(ev.local)}`] : []),
+    "STATUS:CONFIRMED",
+    "END:VEVENT",
+    "END:VCALENDAR",
+  ].join("\r\n");
+}
+
+function hrefDoEvento(calendarUrl: string, uid: string): string {
+  return `${calendarUrl.replace(/\/+$/, "")}/${encodeURIComponent(uid)}.ics`;
+}
+
+/** Cria ou atualiza um evento no servidor. */
+export async function salvarEvento(
+  auth: CalDavAuth,
+  calendarUrl: string,
+  ev: NovoEvento,
+  href?: string | null,
+): Promise<{ href: string; etag: string | null; ics: string }> {
+  const alvo = href || hrefDoEvento(calendarUrl, ev.uid);
+  const ics = montarIcs(ev);
+  const r = await dav(auth, alvo, "PUT", ics, { "Content-Type": "text/calendar; charset=utf-8" });
+  return { href: alvo, etag: r.etag, ics };
+}
+
+/** Remove um evento do servidor. */
+export async function excluirEvento(auth: CalDavAuth, calendarUrl: string, uid: string, href?: string | null): Promise<void> {
+  await dav(auth, href || hrefDoEvento(calendarUrl, uid), "DELETE", null);
+}
