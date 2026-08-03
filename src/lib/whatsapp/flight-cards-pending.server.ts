@@ -52,6 +52,31 @@ const fingerprint = (o: OptLite): string =>
     .join("|");
 
 /**
+ * Quantas opções esta cotação PREVÊ entregar: a meta da política (3) limitada
+ * ao que a pesquisa realmente trouxe, contando horários de ida distintos.
+ * Sem isso, uma rota com 1 ou 2 opções nunca fecharia.
+ */
+export function previstasNaCotacao(todas: OptLite[], limite: number): number {
+  const horarios = new Set<string>();
+  let semHorario = 0;
+  for (const o of todas) {
+    const h = horarioIda(o);
+    if (h) horarios.add(h);
+    else semHorario++;
+  }
+  return Math.max(1, Math.min(limite, horarios.size + semHorario));
+}
+
+/**
+ * Conclusão da cotação: independe do formato. Card e texto entram na mesma
+ * lista de entregues (sent_fingerprints), então card+texto+card = completa.
+ */
+export function cotacaoConcluida(totalEntregues: number, previstas: number): boolean {
+  return totalEntregues >= previstas;
+}
+
+
+/**
  * Momento do último card realmente registrado na conversa. É usado somente
  * para manter o intervalo entre as duas artes, sem depender da legenda.
  */
