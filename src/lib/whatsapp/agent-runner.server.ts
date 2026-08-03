@@ -648,7 +648,7 @@ export async function runAgent(input: {
                 conv.id,
                 conv.wa_phone,
                 protocolo.id,
-                protocolo.criado_em ?? null,
+                protocolo.opened_at ?? null,
               );
               entregouRestantes = r.sent > 0;
               if (entregouRestantes) {
