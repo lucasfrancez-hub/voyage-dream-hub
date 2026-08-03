@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Check, CheckCheck, FileText, Download, CornerUpLeft, AlertCircle } from "lucide-react";
+import { Check, CheckCheck, FileText, Download, CornerUpLeft, AlertCircle, RotateCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { firstName } from "@/lib/whatsapp/text-utils.shared";
 import { ImageLightbox } from "@/components/chat/ImageLightbox";
