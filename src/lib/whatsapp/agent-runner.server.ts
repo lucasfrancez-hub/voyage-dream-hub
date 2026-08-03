@@ -361,6 +361,7 @@ export async function runAgent(input: {
       agent_slug: agent.slug,
       agent_name: agent.nome ?? agent.slug,
       product_type: centralAgent ? "flight" : "other",
+      prompt_type: centralAgent ? "central_especialistas" : "consultor",
     }).catch(() => {});
   }
 
