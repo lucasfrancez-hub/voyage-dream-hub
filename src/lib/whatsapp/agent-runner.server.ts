@@ -351,6 +351,18 @@ export async function runAgent(input: {
 
   const agent = centralAgent ?? (await pickAgent(agents, stickySlug));
 
+  // VÍNCULO AGENTE ↔ PROTOCOLO: o agente e o tipo de prompt passam a pertencer
+  // ao protocolo ativo. Nenhum protocolo novo herda esse estado.
+  if (agent && protocolo?.id) {
+    const { bindAgentToProtocol } = await import("./protocol-runtime.server");
+    await bindAgentToProtocol({
+      protocolo_id: protocolo.id,
+      conversation_id: conv.id,
+      agent_slug: agent.slug,
+      prompt_type: centralAgent ? "central_especialistas" : "consultor",
+    }).catch(() => {});
+  }
+
   // Origem: dentro do MESMO protocolo ela já foi confirmada pelo cliente e é
   // reutilizada direto (mesmo que ele troque o destino). De protocolos
   // anteriores entra apenas como SUGESTÃO, exigindo confirmação.
