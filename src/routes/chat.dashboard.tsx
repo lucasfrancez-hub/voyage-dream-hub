@@ -50,6 +50,39 @@ function Inner() {
           </div>
         ))}
       </div>
+      <div className="grid gap-4 sm:grid-cols-3">
+        <ChannelCard
+          title="WhatsApp"
+          icon={MessageCircle}
+          accent="text-emerald-600 bg-emerald-50"
+          primary={data.canais.whatsapp.mensagens14d}
+          primaryLabel="mensagens (14d)"
+          rows={[
+            { label: "Conversas", value: data.canais.whatsapp.conversas },
+            { label: "Abertas", value: data.canais.whatsapp.abertas },
+          ]}
+        />
+        <ChannelCard
+          title="Instagram DM"
+          icon={Instagram}
+          accent="text-pink-600 bg-pink-50"
+          primary={data.canais.instagramDm.mensagens14d}
+          primaryLabel="mensagens (14d)"
+          rows={[
+            { label: "Conversas", value: data.canais.instagramDm.conversas },
+            { label: "Abertas", value: data.canais.instagramDm.abertas },
+          ]}
+        />
+        <ChannelCard
+          title="Comentários"
+          icon={MessageSquareText}
+          accent="text-[#F26B1F] bg-orange-50"
+          primary={data.canais.comentarios.total14d}
+          primaryLabel="comentários (14d)"
+          rows={[]}
+        />
+      </div>
+
 
       <div className="grid gap-4 lg:grid-cols-3">
         <div className="rounded-lg border border-slate-200 bg-white p-4 lg:col-span-2">
