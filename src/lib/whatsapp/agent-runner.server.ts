@@ -468,7 +468,14 @@ export async function runAgent(input: {
           `Se ele já disse o destino do pacote (ex.: "tem pacote pra Porto Seguro?"), use ESSE destino.\n` +
           `Entenda destino/tipo de destino, origem, período, passageiros, preferências e perfil da viagem; depois pesquise pacote pronto com buscar_pacotes. ` +
           `Só encaminhe ao Comercial se não houver pacote compatível ou se o cliente quiser personalizar.`;
+
+        // A apresentação é uma vez só: marca como consumida (o contexto aéreo
+        // segue guardado no histórico de handoff e na cotação).
+        const metaLimpa = { ...((convMeta?.meta as Record<string, unknown> | null) ?? {}) };
+        metaLimpa["transferencia_consultores"] = { ...transf, assumido_em: new Date().toISOString(), motivo: "assumido" };
+        await supabaseAdmin.from("wa_conversations").update({ meta: metaLimpa }).eq("id", conv.id);
       }
+
     }
   }
 
