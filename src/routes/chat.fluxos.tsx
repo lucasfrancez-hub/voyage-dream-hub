@@ -30,6 +30,8 @@ import {
   Tag,
   X,
   RotateCcw,
+  Zap,
+  LayoutGrid,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -38,10 +40,13 @@ import { Label } from "@/components/ui/label";
 import { confirm } from "@/lib/confirm";
 import { listFlows, saveFlow } from "@/lib/flows.functions";
 import {
+  ACAO_LABEL,
   SETOR_LABEL,
   TIPO_LABEL,
   validarFluxo,
   type Flow,
+  type FlowAcao,
+  type FlowAcaoTipo,
   type FlowEdge,
   type FlowNode,
   type FlowNodeData,
