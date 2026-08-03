@@ -196,12 +196,17 @@ function FluxosPage() {
   const [nodes, setNodes] = useState<FluxoNodeType[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
   const [selecionado, setSelecionado] = useState<string | null>(null);
+  const [setaSelecionada, setSetaSelecionada] = useState<string | null>(null);
   const [carregando, setCarregando] = useState(true);
   const [salvando, setSalvando] = useState(false);
   const [sujo, setSujo] = useState(false);
 
   const flow = useMemo(() => flows.find((f) => f.id === flowId) ?? null, [flows, flowId]);
   const noSelecionado = useMemo(() => nodes.find((n) => n.id === selecionado) ?? null, [nodes, selecionado]);
+  const edgeSelecionada = useMemo(
+    () => edges.find((e) => e.id === setaSelecionada) ?? null,
+    [edges, setaSelecionada],
+  );
 
   const aplicar = useCallback((f: Flow) => {
     const base = (f.nodes ?? []).map((n) => ({
@@ -323,6 +328,28 @@ function FluxosPage() {
     setSujo(true);
   };
 
+  const atualizarSeta = (label: string) => {
+    if (!setaSelecionada) return;
+    setEdges((es) => es.map((e) => (e.id === setaSelecionada ? { ...e, label: label || undefined } : e)));
+    setSujo(true);
+  };
+
+  const excluirSeta = async () => {
+    if (!setaSelecionada) return;
+    const ok = await confirm({
+      title: "Excluir seta",
+      description: "O caminho entre os dois quadros será removido.",
+      confirmText: "Excluir",
+      destructive: true,
+    });
+    if (!ok) return;
+    setEdges((es) => es.filter((e) => e.id !== setaSelecionada));
+    setSetaSelecionada(null);
+    setSujo(true);
+  };
+
+
+
   const salvarTudo = async () => {
     if (!flow) return;
     const payloadNodes: FlowNode[] = nodes.map((n) => ({
@@ -399,8 +426,18 @@ function FluxosPage() {
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
             onConnect={onConnect}
-            onNodeClick={(_, n) => setSelecionado(n.id)}
-            onPaneClick={() => setSelecionado(null)}
+            onNodeClick={(_, n) => {
+              setSelecionado(n.id);
+              setSetaSelecionada(null);
+            }}
+            onEdgeClick={(_, e) => {
+              setSetaSelecionada(e.id);
+              setSelecionado(null);
+            }}
+            onPaneClick={() => {
+              setSelecionado(null);
+              setSetaSelecionada(null);
+            }}
             fitView
             proOptions={{ hideAttribution: true }}
           >
@@ -418,12 +455,20 @@ function FluxosPage() {
               onChange={atualizarNo}
               onExcluir={excluirNo}
             />
+          ) : edgeSelecionada ? (
+            <PainelSeta
+              origem={nodes.find((n) => n.id === edgeSelecionada.source)?.data.titulo ?? "?"}
+              destino={nodes.find((n) => n.id === edgeSelecionada.target)?.data.titulo ?? "?"}
+              label={typeof edgeSelecionada.label === "string" ? edgeSelecionada.label : ""}
+              onChange={atualizarSeta}
+              onExcluir={excluirSeta}
+            />
           ) : (
             <div className="space-y-3 text-sm text-muted-foreground">
               <p className="font-medium text-foreground">Como funciona</p>
               <p>Clique num quadro pra editar título, setor responsável, descrição, gatilhos e as ações que ele dispara.</p>
               <p>Arraste da bolinha da direita de um quadro até a da esquerda do outro pra criar a seta do caminho. O botão “Organizar” alinha tudo da esquerda pra direita.</p>
-              <p>As palavras-chave são os gatilhos: quando o cliente escreve uma delas, o atendimento vai direto pro setor daquele quadro. As ações dizem o que a IA faz ali.</p>
+              <p>Clique numa seta pra escrever a condição dela — o motivo de o atendimento seguir por aquele caminho (ex.: “cliente quer só passagem aérea”). A IA lê essas condições.</p>
               <div className="space-y-1 pt-2">
                 {Object.entries(SETOR_LABEL).map(([k, v]) => (
                   <div key={k} className="flex items-center gap-2 text-xs">
@@ -441,6 +486,77 @@ function FluxosPage() {
 }
 
 /* ───────────────────────── painel lateral ───────────────────────────────── */
+
+function PainelSeta({
+  origem,
+  destino,
+  label,
+  onChange,
+  onExcluir,
+}: {
+  origem: string;
+  destino: string;
+  label: string;
+  onChange: (label: string) => void;
+  onExcluir: () => void;
+}) {
+  const sugestoes = [
+    "cliente quer só passagem aérea",
+    "cliente quer pacote",
+    "cliente já tem reserva (pós-venda)",
+    "cliente não informou a origem",
+    "cliente confirmou a origem",
+    "não achou pacote disponível",
+    "cliente escolheu uma opção",
+    "cliente pediu mais opções",
+  ];
+  return (
+    <div className="space-y-4">
+      <div>
+        <p className="text-sm font-semibold text-foreground">Caminho</p>
+        <p className="text-xs text-muted-foreground">
+          {origem} → {destino}
+        </p>
+      </div>
+
+      <div className="space-y-1.5">
+        <Label htmlFor="seta-label">Condição / motivo</Label>
+        <Textarea
+          id="seta-label"
+          rows={3}
+          value={label}
+          placeholder="Ex.: cliente quer só passagem aérea"
+          onChange={(e) => onChange(e.target.value)}
+        />
+        <p className="text-[11px] text-muted-foreground">
+          É o que a IA lê pra saber por que o atendimento vai pra esse quadro.
+        </p>
+      </div>
+
+      <div className="space-y-1.5">
+        <p className="text-xs font-medium text-muted-foreground">Sugestões</p>
+        <div className="flex flex-wrap gap-1.5">
+          {sugestoes.map((s) => (
+            <button
+              key={s}
+              type="button"
+              onClick={() => onChange(s)}
+              className="rounded border border-border px-2 py-1 text-[11px] text-muted-foreground hover:bg-accent hover:text-foreground"
+            >
+              {s}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <Button variant="destructive" size="sm" className="w-full" onClick={onExcluir}>
+        <Trash2 className="mr-1.5 h-4 w-4" />
+        Excluir seta
+      </Button>
+    </div>
+  );
+}
+
 
 function PainelQuadro({
   data,
