@@ -571,7 +571,7 @@ export function buildCentralTools(
               opcoes_selecionadas: selecionadas,
               instrucao:
                 selecionadas > 1
-                  ? `A ARTE da 1ª opção JÁ FOI ENVIADA e as demais (${selecionadas} no total) saem automaticamente logo em seguida (normalmente entre 30 e 90 segundos cada). NÃO liste voos, horários ou valores em texto. Responda apenas com UM balão curto e natural dizendo que separou ${selecionadas === 3 ? "três" : "duas"} alternativas para ele comparar.`
+                  ? `As ARTES das ${selecionadas} opções JÁ ESTÃO SENDO ENVIADAS agora, uma logo após a outra (${cards_enviados} já saiu/saíram). NÃO liste voos, horários ou valores em texto. Responda apenas com UM balão curto e natural dizendo que separou ${selecionadas === 3 ? "três" : "duas"} alternativas para ele comparar.`
                   : "A ARTE da ÚNICA opção disponível JÁ FOI ENVIADA. O motor não trouxe outra alternativa válida nem ampliando a pesquisa. NÃO liste voos, horários ou valores em texto. Responda com UM balão curto e natural dizendo que essa foi a alternativa que encontrou para essa data e ofereça olhar outra data ou outro aeroporto.",
             };
           }
