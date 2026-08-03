@@ -799,6 +799,21 @@ function DetalhesDialog({
           </DialogTitle>
         </DialogHeader>
 
+        <div className="-mt-1 mb-1 flex flex-wrap items-center gap-1.5">
+          <span
+            className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium"
+            style={{ borderColor: cor, color: cor }}
+          >
+            <CalendarDays className="h-3.5 w-3.5" />
+            {conta ? ROTULO[conta.provider] : (evento.provider === "google" ? "Google Agenda" : evento.origem)}
+          </span>
+          {(d.calendario ?? conta?.calendarioNome ?? conta?.email) && (
+            <span className="inline-flex items-center rounded-full bg-muted px-2.5 py-1 text-xs text-muted-foreground">
+              {d.calendario ?? conta?.calendarioNome ?? conta?.email}
+            </span>
+          )}
+        </div>
+
         <div className="space-y-3">
           <Linha icone={Clock}>
             <p className="capitalize">{periodo}</p>
