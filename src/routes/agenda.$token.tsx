@@ -482,6 +482,134 @@ function Painel({ token, pin, nome, vapid }: { token: string; pin: string | null
   );
 }
 
+/* ------------------------------------------------------------------ */
+/* Novo compromisso                                                    */
+/* ------------------------------------------------------------------ */
+
+function paraInput(d: Date) {
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
+function NovoCompromisso({
+  token,
+  pin,
+  contas,
+  dia,
+  onFechar,
+  onCriado,
+}: {
+  token: string;
+  pin: string | null;
+  contas: Conta[];
+  dia: Date;
+  onFechar: () => void;
+  onCriado: () => void;
+}) {
+  const base = useMemo(() => {
+    const agora = new Date();
+    const d = new Date(dia);
+    d.setHours(mesmoDia(d, agora) ? agora.getHours() + 1 : 9, 0, 0, 0);
+    return d;
+  }, [dia]);
+
+  const [titulo, setTitulo] = useState("");
+  const [local, setLocal] = useState("");
+  const [descricao, setDescricao] = useState("");
+  const [inicio, setInicio] = useState(() => paraInput(base));
+  const [fim, setFim] = useState(() => paraInput(new Date(base.getTime() + 60 * 60 * 1000)));
+  const [conta, setConta] = useState(contas[0]?.id ?? "");
+  const [erro, setErro] = useState("");
+
+  const criar = useServerFn(criarEventoAgendaApp);
+  const salvar = useMutation({
+    mutationFn: async () => {
+      setErro("");
+      return await criar({
+        data: {
+          token,
+          pin,
+          titulo,
+          local: local || null,
+          descricao: descricao || null,
+          inicio: new Date(inicio).toISOString(),
+          fim: new Date(fim).toISOString(),
+          accountId: conta || null,
+        },
+      });
+    },
+    onSuccess: onCriado,
+    onError: (e: Error) => setErro(e.message || "Não deu pra salvar."),
+  });
+
+  const campo =
+    "w-full rounded-xl border px-3 py-2.5 text-sm outline-none placeholder:opacity-40";
+  const estiloCampo = { borderColor: "rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.05)", color: "#fff" } as const;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center" style={{ background: "rgba(3,6,14,0.7)", backdropFilter: "blur(6px)" }}>
+      <div
+        className="max-h-[92dvh] w-full max-w-xl overflow-y-auto rounded-t-3xl border-t px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-4"
+        style={{ background: "rgba(12,18,34,0.98)", borderColor: "rgba(255,255,255,0.1)" }}
+      >
+        <div className="mb-4 flex items-center gap-2">
+          <h2 className="flex-1 text-lg font-semibold">Novo compromisso</h2>
+          <BotaoIcone onClick={onFechar} rotulo="Fechar">
+            <X className="h-4 w-4" />
+          </BotaoIcone>
+        </div>
+
+        <div className="space-y-3">
+          <input className={campo} style={estiloCampo} placeholder="Título" value={titulo} onChange={(e) => setTitulo(e.target.value)} autoFocus />
+          <div className="grid grid-cols-2 gap-3">
+            <label className="space-y-1">
+              <span className="text-[11px] uppercase tracking-wider opacity-50">Início</span>
+              <input type="datetime-local" className={campo} style={estiloCampo} value={inicio} onChange={(e) => setInicio(e.target.value)} />
+            </label>
+            <label className="space-y-1">
+              <span className="text-[11px] uppercase tracking-wider opacity-50">Fim</span>
+              <input type="datetime-local" className={campo} style={estiloCampo} value={fim} onChange={(e) => setFim(e.target.value)} />
+            </label>
+          </div>
+          <input className={campo} style={estiloCampo} placeholder="Local (opcional)" value={local} onChange={(e) => setLocal(e.target.value)} />
+          <textarea
+            className={`${campo} min-h-20`}
+            style={estiloCampo}
+            placeholder="Observações (opcional)"
+            value={descricao}
+            onChange={(e) => setDescricao(e.target.value)}
+          />
+          {contas.length > 1 ? (
+            <label className="space-y-1 block">
+              <span className="text-[11px] uppercase tracking-wider opacity-50">Salvar em</span>
+              <select className={campo} style={estiloCampo} value={conta} onChange={(e) => setConta(e.target.value)}>
+                {contas.map((c) => (
+                  <option key={c.id} value={c.id} style={{ color: "#0b1220" }}>
+                    {c.calendarioNome || c.nome}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : null}
+
+          {erro ? <p className="text-sm" style={{ color: "#fca5a5" }}>{erro}</p> : null}
+
+          <button
+            onClick={() => salvar.mutate()}
+            disabled={salvar.isPending || !titulo.trim()}
+            className="flex w-full items-center justify-center gap-2 rounded-xl py-3 text-sm font-semibold text-white disabled:opacity-50"
+            style={{ background: "linear-gradient(140deg,#F26B1F,#d1560f)" }}
+          >
+            {salvar.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+            Salvar compromisso
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
 function BotaoIcone({ children, onClick, rotulo }: { children: React.ReactNode; onClick: () => void; rotulo: string }) {
   return (
     <button
