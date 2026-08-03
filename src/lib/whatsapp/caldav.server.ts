@@ -26,6 +26,7 @@ export type CalDavEvent = {
   titulo: string;
   descricao: string | null;
   local: string | null;
+  detalhes: import("./gcal.server").DetalhesEvento;
   inicio: string; // ISO
   fim: string; // ISO
   diaInteiro: boolean;
@@ -227,17 +228,28 @@ function parseIcsDate(valor: string, params: string): { iso: string; diaInteiro:
 export function parseIcs(ics: string): IcsCore | null {
   const linhas = unfold(ics);
   let dentro = false;
+  let dentroAlarme = false;
   const campos: Record<string, { valor: string; params: string }> = {};
+  const attendees: Array<{ valor: string; params: string }> = [];
+  const alarmes: string[] = [];
   for (const linha of linhas) {
     if (/^BEGIN:VEVENT/i.test(linha)) { dentro = true; continue; }
     if (/^END:VEVENT/i.test(linha)) break;
     if (!dentro) continue;
+    if (/^BEGIN:VALARM/i.test(linha)) { dentroAlarme = true; continue; }
+    if (/^END:VALARM/i.test(linha)) { dentroAlarme = false; continue; }
     const idx = linha.indexOf(":");
     if (idx < 0) continue;
     const chaveCompleta = linha.slice(0, idx);
     const valor = linha.slice(idx + 1);
-    const [chave, ...params] = chaveCompleta.split(";");
-    campos[chave.toUpperCase()] = { valor, params: params.join(";") };
+    const [chaveBruta, ...params] = chaveCompleta.split(";");
+    const chave = chaveBruta.toUpperCase();
+    if (dentroAlarme) {
+      if (chave === "TRIGGER") alarmes.push(descreverTrigger(valor));
+      continue;
+    }
+    if (chave === "ATTENDEE") { attendees.push({ valor, params: params.join(";") }); continue; }
+    campos[chave] = { valor, params: params.join(";") };
   }
   const uid = campos.UID?.valor?.trim();
   const dtstart = campos.DTSTART ? parseIcsDate(campos.DTSTART.valor, campos.DTSTART.params) : null;
@@ -256,7 +268,50 @@ export function parseIcs(ics: string): IcsCore | null {
     fim: fim.iso,
     diaInteiro: dtstart.diaInteiro,
     situacao: (campos.STATUS?.valor ?? "CONFIRMED").toLowerCase(),
+    detalhes: {
+      url: campos.URL ? campos.URL.valor.trim() : null,
+      conferencia:
+        campos["X-GOOGLE-CONFERENCE"]?.valor?.trim() ??
+        acharLinkReuniao(
+          [campos.LOCATION?.valor, campos.DESCRIPTION?.valor, campos["X-APPLE-STRUCTURED-LOCATION"]?.params]
+            .filter(Boolean)
+            .join(" "),
+        ),
+      organizador: campos.ORGANIZER ? pessoaIcs(campos.ORGANIZER.valor, campos.ORGANIZER.params, true) : null,
+      participantes: attendees.map((a) => pessoaIcs(a.valor, a.params, false)),
+      lembretes: alarmes,
+      recorrencia: campos.RRULE?.valor ?? null,
+      fusoHorario: /TZID=([^;:]+)/i.exec(campos.DTSTART?.params ?? "")?.[1] ?? null,
+      visibilidade: campos.CLASS?.valor?.toLowerCase() ?? null,
+      disponibilidade: campos.TRANSP?.valor?.toUpperCase() === "TRANSPARENT" ? "livre" : "ocupado",
+      calendario: null,
+      meuStatus: null,
+    },
   };
+}
+
+function descreverTrigger(valor: string): string {
+  const m = /^-?P?T?(?:(\d+)D)?(?:T?(\d+)H)?(?:(\d+)M)?/i.exec(valor.trim().replace(/^-/, "-"));
+  const dias = Number(m?.[1] ?? 0);
+  const horas = Number(m?.[2] ?? 0);
+  const min = Number(m?.[3] ?? 0);
+  const total = dias * 1440 + horas * 60 + min;
+  if (!total) return "no horário do compromisso";
+  if (total % 1440 === 0) return `${total / 1440} dia(s) antes`;
+  if (total % 60 === 0) return `${total / 60}h antes`;
+  return `${total} min antes`;
+}
+
+function acharLinkReuniao(texto: string): string | null {
+  const m = /https?:\/\/(?:meet\.google\.com|[\w.-]*zoom\.us|teams\.(?:microsoft|live)\.com|[\w.-]*whereby\.com)\/\S+/i.exec(texto);
+  return m ? m[0].replace(/[)>,.]+$/, "") : null;
+}
+
+function pessoaIcs(valor: string, params: string, organizador: boolean) {
+  const email = valor.replace(/^mailto:/i, "").trim() || null;
+  const nome = /CN=("?)([^";:]+)\1/i.exec(params)?.[2] ?? null;
+  const resposta = /PARTSTAT=([^;:]+)/i.exec(params)?.[1]?.toLowerCase() ?? null;
+  return { nome, email, resposta, organizador };
 }
 
 function escapeIcs(v: string): string {

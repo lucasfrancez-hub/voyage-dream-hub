@@ -3,8 +3,16 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import {
+  AlignLeft,
+  Bell,
   CalendarDays,
   Check,
+  Clock,
+  Link as LinkIcon,
+  MapPin,
+  UserRound,
+  Users,
+  Video,
   ChevronLeft,
   ChevronRight,
   Loader2,
@@ -67,6 +75,23 @@ type Conta = {
   ultimoErro: string | null;
 };
 
+type Participante = { nome?: string | null; email?: string | null; resposta?: string | null; organizador?: boolean };
+
+type DetalhesEvento = {
+  url?: string | null;
+  conferencia?: string | null;
+  organizador?: Participante | null;
+  criador?: Participante | null;
+  participantes?: Participante[];
+  lembretes?: string[];
+  recorrencia?: string | null;
+  fusoHorario?: string | null;
+  visibilidade?: string | null;
+  disponibilidade?: string | null;
+  calendario?: string | null;
+  meuStatus?: string | null;
+};
+
 type Evento = {
   id: string;
   titulo: string;
@@ -78,6 +103,8 @@ type Evento = {
   provider: string;
   account_id: string | null;
   origem: string;
+  situacao?: string;
+  detalhes?: DetalhesEvento | null;
 };
 
 const BRT = "America/Sao_Paulo";
@@ -116,6 +143,7 @@ function AgendaPage() {
 
   const [contas, setContas] = useState<Conta[]>([]);
   const [eventos, setEventos] = useState<Evento[]>([]);
+  const [detalhe, setDetalhe] = useState<Evento | null>(null);
   const [mes, setMes] = useState(() => inicioDoMes(new Date()));
   const [carregando, setCarregando] = useState(true);
   const [sincronizando, setSincronizando] = useState(false);
@@ -333,17 +361,7 @@ function AgendaPage() {
                               <button
                                 type="button"
                                 className="truncate text-left text-foreground hover:underline"
-                                onClick={async () => {
-                                  const ok = await confirm({
-                                    title: e.titulo,
-                                    description: `${hora(e.inicio)} às ${hora(e.fim)}${e.local ? ` · ${e.local}` : ""}. Excluir este compromisso?`,
-                                    confirmText: "Excluir",
-                                  });
-                                  if (!ok) return;
-                                  await apagarEvento({ data: { id: e.id } });
-                                  toast.success("Compromisso excluído.");
-                                  void recarregar();
-                                }}
+                                onClick={() => setDetalhe(e)}
                               >
                                 {hora(e.inicio)} {e.titulo}
                               </button>
@@ -363,6 +381,25 @@ function AgendaPage() {
         </main>
       </div>
 
+      {detalhe && (
+        <DetalhesDialog
+          evento={detalhe}
+          conta={detalhe.account_id ? (contaPorId.get(detalhe.account_id) ?? null) : null}
+          onClose={() => setDetalhe(null)}
+          onExcluir={async () => {
+            const ok = await confirm({
+              title: detalhe.titulo,
+              description: "Excluir este compromisso da agenda?",
+              confirmText: "Excluir",
+            });
+            if (!ok) return;
+            await apagarEvento({ data: { id: detalhe.id } });
+            toast.success("Compromisso excluído.");
+            setDetalhe(null);
+            void recarregar();
+          }}
+        />
+      )}
       {conectar && (
         <ConectarDialog
           provider={conectar}
@@ -673,6 +710,203 @@ function NovoCompromissoDialog({
           <Button className="w-full" onClick={salvar} disabled={salvando || !titulo || !inicio || !fim}>
             {salvando ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
             Salvar compromisso
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Detalhes completos do compromisso                                   */
+/* ------------------------------------------------------------------ */
+
+const RESPOSTA_ROTULO: Record<string, string> = {
+  accepted: "confirmado",
+  declined: "recusou",
+  tentative: "talvez",
+  needsaction: "aguardando resposta",
+  "needs-action": "aguardando resposta",
+};
+
+function dataLonga(v: string, diaInteiro: boolean): string {
+  return new Date(v).toLocaleDateString("pt-BR", {
+    timeZone: BRT,
+    weekday: "long",
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+    ...(diaInteiro ? {} : {}),
+  });
+}
+
+function comLinks(texto: string) {
+  const partes = texto.split(/(https?:\/\/\S+)/g);
+  return partes.map((p, i) =>
+    /^https?:\/\//.test(p) ? (
+      <a
+        key={i}
+        href={p}
+        target="_blank"
+        rel="noreferrer"
+        className="break-all text-primary underline underline-offset-2"
+      >
+        {p}
+      </a>
+    ) : (
+      <span key={i}>{p}</span>
+    ),
+  );
+}
+
+function Linha({ icone: Icone, children }: { icone: typeof Clock; children: React.ReactNode }) {
+  return (
+    <div className="flex items-start gap-3 text-sm">
+      <Icone className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+      <div className="min-w-0 flex-1 text-foreground">{children}</div>
+    </div>
+  );
+}
+
+function DetalhesDialog({
+  evento,
+  conta,
+  onClose,
+  onExcluir,
+}: {
+  evento: Evento;
+  conta: Conta | null;
+  onClose: () => void;
+  onExcluir: () => void | Promise<void>;
+}) {
+  const d = evento.detalhes ?? {};
+  const participantes = (d.participantes ?? []).filter((p) => p.email || p.nome);
+  const cor = conta?.cor ?? "#F26B1F";
+  const periodo = evento.dia_inteiro
+    ? `${dataLonga(evento.inicio, true)} · dia inteiro`
+    : `${dataLonga(evento.inicio, false)} · ${hora(evento.inicio)} às ${hora(evento.fim)}`;
+  const mapa = evento.local
+    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(evento.local)}`
+    : null;
+
+  return (
+    <Dialog open onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle className="flex items-start gap-2 pr-6 text-left">
+            <span className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: cor }} />
+            <span className="min-w-0 break-words">{evento.titulo}</span>
+          </DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-3">
+          <Linha icone={Clock}>
+            <p className="capitalize">{periodo}</p>
+            {(d.fusoHorario || d.recorrencia) && (
+              <p className="text-xs text-muted-foreground">
+                {[d.fusoHorario, d.recorrencia ? "compromisso que se repete" : null].filter(Boolean).join(" · ")}
+              </p>
+            )}
+          </Linha>
+
+          {d.conferencia && (
+            <Linha icone={Video}>
+              <a
+                href={d.conferencia}
+                target="_blank"
+                rel="noreferrer"
+                className="break-all text-primary underline underline-offset-2"
+              >
+                {d.conferencia}
+              </a>
+              <p className="text-xs text-muted-foreground">Link da reunião</p>
+            </Linha>
+          )}
+
+          {evento.local && (
+            <Linha icone={MapPin}>
+              <p className="break-words">{evento.local}</p>
+              {mapa && (
+                <a href={mapa} target="_blank" rel="noreferrer" className="text-xs text-primary underline">
+                  ver no mapa
+                </a>
+              )}
+            </Linha>
+          )}
+
+          {(d.organizador?.email || d.organizador?.nome) && (
+            <Linha icone={UserRound}>
+              <p>
+                {d.organizador.nome ?? d.organizador.email}
+                <span className="text-xs text-muted-foreground"> · organizador</span>
+              </p>
+              {d.organizador.nome && d.organizador.email && (
+                <p className="text-xs text-muted-foreground">{d.organizador.email}</p>
+              )}
+            </Linha>
+          )}
+
+          {participantes.length > 0 && (
+            <Linha icone={Users}>
+              <p className="font-medium">
+                {participantes.length} convidado{participantes.length > 1 ? "s" : ""}
+              </p>
+              <ul className="mt-1 space-y-1">
+                {participantes.map((p, i) => (
+                  <li key={`${p.email ?? p.nome}-${i}`} className="text-sm">
+                    <span className="break-all">{p.nome ?? p.email}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {p.organizador ? " · organizador" : ""}
+                      {p.resposta ? ` · ${RESPOSTA_ROTULO[p.resposta] ?? p.resposta}` : ""}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </Linha>
+          )}
+
+          {(d.lembretes?.length ?? 0) > 0 && (
+            <Linha icone={Bell}>
+              <p>{d.lembretes!.join(" · ")}</p>
+            </Linha>
+          )}
+
+          {evento.descricao && (
+            <Linha icone={AlignLeft}>
+              <div className="whitespace-pre-wrap break-words text-sm">{comLinks(evento.descricao)}</div>
+            </Linha>
+          )}
+
+          {d.url && (
+            <Linha icone={LinkIcon}>
+              <a href={d.url} target="_blank" rel="noreferrer" className="break-all text-primary underline">
+                abrir no {conta ? ROTULO[conta.provider] : "calendário de origem"}
+              </a>
+            </Linha>
+          )}
+
+          <Linha icone={CalendarDays}>
+            <p>{d.calendario ?? conta?.calendarioNome ?? conta?.nome ?? evento.origem}</p>
+            <p className="text-xs text-muted-foreground">
+              {[
+                conta ? ROTULO[conta.provider] : evento.provider,
+                d.disponibilidade ? (d.disponibilidade === "livre" ? "marcado como livre" : "ocupado") : null,
+                d.visibilidade && d.visibilidade !== "default" ? d.visibilidade : null,
+                evento.situacao && evento.situacao !== "confirmed" ? evento.situacao : null,
+              ]
+                .filter(Boolean)
+                .join(" · ")}
+            </p>
+          </Linha>
+        </div>
+
+        <div className="flex justify-end gap-2 pt-2">
+          <Button variant="outline" onClick={onClose}>
+            Fechar
+          </Button>
+          <Button variant="destructive" onClick={() => void onExcluir()}>
+            <Trash2 className="mr-1.5 h-4 w-4" />
+            Excluir
           </Button>
         </div>
       </DialogContent>

@@ -3803,6 +3803,7 @@ export type Database = {
           criado_por: string | null
           deleted_at: string | null
           descricao: string | null
+          detalhes: Json
           dia_inteiro: boolean
           etag: string | null
           fim: string
@@ -3826,6 +3827,7 @@ export type Database = {
           criado_por?: string | null
           deleted_at?: string | null
           descricao?: string | null
+          detalhes?: Json
           dia_inteiro?: boolean
           etag?: string | null
           fim: string
@@ -3849,6 +3851,7 @@ export type Database = {
           criado_por?: string | null
           deleted_at?: string | null
           descricao?: string | null
+          detalhes?: Json
           dia_inteiro?: boolean
           etag?: string | null
           fim?: string

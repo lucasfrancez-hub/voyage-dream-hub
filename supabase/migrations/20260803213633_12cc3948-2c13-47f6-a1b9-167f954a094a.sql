@@ -1,0 +1,1 @@
+ALTER TABLE public.wa_calendar_events ADD COLUMN IF NOT EXISTS detalhes jsonb NOT NULL DEFAULT '{}'::jsonb;

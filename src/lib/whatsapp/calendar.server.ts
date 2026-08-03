@@ -65,10 +65,11 @@ export type AgendaEvento = {
   account_id: string | null;
   telefone: string | null;
   criado_por: string | null;
+  detalhes: import("./gcal.server").DetalhesEvento | null;
 };
 
 const CAMPOS_EVENTO =
-  "id, uid, href, titulo, descricao, local, inicio, fim, dia_inteiro, situacao, origem, provider, account_id, telefone, criado_por";
+  "id, uid, href, titulo, descricao, local, inicio, fim, dia_inteiro, situacao, origem, provider, account_id, telefone, criado_por, detalhes";
 
 /* ------------------------------------------------------------------ */
 /* Contas                                                              */
@@ -119,6 +120,7 @@ async function gravarEvento(conta: ContaAgenda, ev: {
   diaInteiro: boolean;
   situacao: string;
   rawIcs?: string | null;
+  detalhes?: unknown;
 }) {
   const { error } = await supabaseAdmin.from("wa_calendar_events").upsert(
     {
@@ -136,6 +138,13 @@ async function gravarEvento(conta: ContaAgenda, ev: {
       dia_inteiro: ev.diaInteiro,
       situacao: ev.situacao,
       raw_ics: ev.rawIcs ?? null,
+      detalhes: {
+        ...((ev.detalhes as Record<string, unknown>) ?? {}),
+        calendario:
+          ((ev.detalhes as { calendario?: string | null } | undefined)?.calendario) ??
+          conta.calendar_nome ??
+          conta.nome,
+      },
       deleted_at: null,
     },
     { onConflict: "account_id,uid" },

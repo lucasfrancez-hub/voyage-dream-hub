@@ -16,6 +16,24 @@ export type GoogleEvento = {
   fim: string;
   diaInteiro: boolean;
   situacao: string;
+  detalhes: DetalhesEvento;
+};
+
+export type Participante = { nome: string | null; email: string | null; resposta: string | null; organizador?: boolean };
+
+export type DetalhesEvento = {
+  url?: string | null;
+  conferencia?: string | null;
+  organizador?: Participante | null;
+  criador?: Participante | null;
+  participantes?: Participante[];
+  lembretes?: string[];
+  recorrencia?: string | null;
+  fusoHorario?: string | null;
+  visibilidade?: string | null;
+  disponibilidade?: string | null;
+  calendario?: string | null;
+  meuStatus?: string | null;
 };
 
 function chaves(): { lovable: string; conexao: string } {
@@ -61,9 +79,19 @@ function normalizar(ev: {
   description?: string;
   location?: string;
   status?: string;
-  start?: { dateTime?: string; date?: string };
-  end?: { dateTime?: string; date?: string };
-}): GoogleEvento | null {
+  htmlLink?: string;
+  hangoutLink?: string;
+  transparency?: string;
+  visibility?: string;
+  recurrence?: string[];
+  organizer?: { email?: string; displayName?: string; self?: boolean };
+  creator?: { email?: string; displayName?: string };
+  attendees?: Array<{ email?: string; displayName?: string; responseStatus?: string; organizer?: boolean; self?: boolean }>;
+  conferenceData?: { entryPoints?: Array<{ uri?: string; entryPointType?: string }> };
+  reminders?: { useDefault?: boolean; overrides?: Array<{ method?: string; minutes?: number }> };
+  start?: { dateTime?: string; date?: string; timeZone?: string };
+  end?: { dateTime?: string; date?: string; timeZone?: string };
+}, calendario?: string): GoogleEvento | null {
   const inicioRaw = ev.start?.dateTime ?? ev.start?.date;
   const fimRaw = ev.end?.dateTime ?? ev.end?.date;
   const uid = ev.id ?? ev.iCalUID;
@@ -82,6 +110,32 @@ function normalizar(ev: {
     fim: fim.toISOString(),
     diaInteiro,
     situacao: (ev.status ?? "confirmed").toLowerCase(),
+    detalhes: {
+      url: ev.htmlLink ?? null,
+      conferencia:
+        ev.hangoutLink ??
+        ev.conferenceData?.entryPoints?.find((e) => e.entryPointType === "video")?.uri ??
+        null,
+      organizador: ev.organizer
+        ? { nome: ev.organizer.displayName ?? null, email: ev.organizer.email ?? null, resposta: null, organizador: true }
+        : null,
+      criador: ev.creator ? { nome: ev.creator.displayName ?? null, email: ev.creator.email ?? null, resposta: null } : null,
+      participantes: (ev.attendees ?? []).map((a) => ({
+        nome: a.displayName ?? null,
+        email: a.email ?? null,
+        resposta: (a.responseStatus ?? null)?.toLowerCase() ?? null,
+        organizador: Boolean(a.organizer),
+      })),
+      lembretes: (ev.reminders?.overrides ?? []).map((r) =>
+        `${r.minutes ?? 0} min antes${r.method ? ` (${r.method === "email" ? "e-mail" : "alerta"})` : ""}`,
+      ),
+      recorrencia: ev.recurrence?.[0] ?? null,
+      fusoHorario: ev.start?.timeZone ?? null,
+      visibilidade: ev.visibility ?? null,
+      disponibilidade: ev.transparency === "transparent" ? "livre" : "ocupado",
+      calendario: calendario ?? null,
+      meuStatus: (ev.attendees ?? []).find((a) => a.self)?.responseStatus?.toLowerCase() ?? null,
+    },
   };
 }
 
@@ -103,7 +157,7 @@ export async function buscarEventosGoogle(calendarId: string, de: Date, ate: Dat
       nextPageToken?: string;
     };
     for (const item of data.items ?? []) {
-      const ev = normalizar(item);
+      const ev = normalizar(item, calendarId);
       if (ev) saida.push(ev);
     }
     if (!data.nextPageToken) break;
