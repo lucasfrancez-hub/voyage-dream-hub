@@ -4160,6 +4160,48 @@ export type Database = {
           },
         ]
       }
+      wa_flows: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          descricao: string | null
+          edges: Json
+          id: string
+          nodes: Json
+          nome: string
+          slug: string
+          updated_at: string
+          updated_by: string | null
+          versao: number
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          descricao?: string | null
+          edges?: Json
+          id?: string
+          nodes?: Json
+          nome: string
+          slug: string
+          updated_at?: string
+          updated_by?: string | null
+          versao?: number
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          descricao?: string | null
+          edges?: Json
+          id?: string
+          nodes?: Json
+          nome?: string
+          slug?: string
+          updated_at?: string
+          updated_by?: string | null
+          versao?: number
+        }
+        Relationships: []
+      }
       wa_handoff_events: {
         Row: {
           actor: string | null
