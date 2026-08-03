@@ -163,12 +163,19 @@ export function stripMarkdownForWhatsApp(text: string): string {
   out = out.replace(/^\s{0,3}#{1,6}\s+/gm, "");
   // links markdown [texto](url) → texto (url)
   out = out.replace(/\[([^\]\n]+)\]\((https?:\/\/[^)\s]+)\)/g, "$1 ($2)");
-  // marcadores de lista "* item" → "- item"
+  // marcadores de lista "* item" → "- item" (antes de mexer em asterisco solto)
   out = out.replace(/^\s{0,3}\*\s+/gm, "- ");
+  // *negrito nativo do WhatsApp* → texto simples (nenhum agente usa negrito)
+  out = out.replace(/(?<![\p{L}\p{N}*])\*([^*\n]+)\*(?![\p{L}\p{N}*])/gu, "$1");
+  // asterisco solto que sobrou
+  out = out.replace(/\*/g, "");
+  // ~tachado~ do WhatsApp
+  out = out.replace(/(?<![\p{L}\p{N}~])~([^~\n]+)~(?![\p{L}\p{N}~])/gu, "$1");
   // linhas horizontais
   out = out.replace(/^\s{0,3}(-{3,}|_{3,})\s*$/gm, "");
   return out;
 }
+
 
 /**
  * VÍCIOS DE LINGUAGEM (fala de gente, não de sistema).
