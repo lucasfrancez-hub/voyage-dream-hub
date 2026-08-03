@@ -1,0 +1,145 @@
+/**
+ * Google Calendar via connector gateway da Lovable.
+ * SERVER-ONLY — usa LOVABLE_API_KEY + GOOGLE_CALENDAR_API_KEY.
+ */
+
+const GATEWAY = "https://connector-gateway.lovable.dev/google_calendar/calendar/v3";
+
+export type GoogleCalendario = { id: string; nome: string; principal: boolean; cor: string | null };
+
+export type GoogleEvento = {
+  uid: string;
+  titulo: string;
+  descricao: string | null;
+  local: string | null;
+  inicio: string;
+  fim: string;
+  diaInteiro: boolean;
+  situacao: string;
+};
+
+function chaves(): { lovable: string; conexao: string } {
+  const lovable = process.env["LOVABLE_API_KEY"];
+  const conexao = process.env["GOOGLE_CALENDAR_API_KEY"];
+  if (!lovable || !conexao) {
+    throw new Error("Google Agenda ainda não está conectado neste projeto.");
+  }
+  return { lovable, conexao };
+}
+
+async function gcal(path: string, init?: RequestInit): Promise<unknown> {
+  const { lovable, conexao } = chaves();
+  const headers = new Headers(init?.headers);
+  headers.set("Authorization", `Bearer ${lovable}`);
+  headers.set("X-Connection-Api-Key", conexao);
+  if (init?.body) headers.set("Content-Type", "application/json");
+  const res = await fetch(`${GATEWAY}${path}`, { ...init, headers });
+  const texto = await res.text().catch(() => "");
+  if (!res.ok) {
+    throw new Error(`Google Agenda ${res.status}: ${texto.slice(0, 300)}`);
+  }
+  return texto ? JSON.parse(texto) : null;
+}
+
+/** Calendários da conta Google conectada. */
+export async function listarCalendariosGoogle(): Promise<GoogleCalendario[]> {
+  const data = (await gcal("/users/me/calendarList?maxResults=100")) as {
+    items?: Array<{ id: string; summary?: string; primary?: boolean; backgroundColor?: string }>;
+  };
+  return (data.items ?? []).map((c) => ({
+    id: c.id,
+    nome: c.summary ?? c.id,
+    principal: Boolean(c.primary),
+    cor: c.backgroundColor ?? null,
+  }));
+}
+
+function normalizar(ev: {
+  id?: string;
+  iCalUID?: string;
+  summary?: string;
+  description?: string;
+  location?: string;
+  status?: string;
+  start?: { dateTime?: string; date?: string };
+  end?: { dateTime?: string; date?: string };
+}): GoogleEvento | null {
+  const inicioRaw = ev.start?.dateTime ?? ev.start?.date;
+  const fimRaw = ev.end?.dateTime ?? ev.end?.date;
+  const uid = ev.id ?? ev.iCalUID;
+  if (!uid || !inicioRaw) return null;
+  const diaInteiro = Boolean(ev.start?.date && !ev.start?.dateTime);
+  const inicio = new Date(diaInteiro ? `${inicioRaw}T00:00:00-03:00` : inicioRaw);
+  const fim = fimRaw
+    ? new Date(diaInteiro ? `${fimRaw}T00:00:00-03:00` : fimRaw)
+    : new Date(inicio.getTime() + 3600000);
+  return {
+    uid,
+    titulo: ev.summary ?? "(sem título)",
+    descricao: ev.description ?? null,
+    local: ev.location ?? null,
+    inicio: inicio.toISOString(),
+    fim: fim.toISOString(),
+    diaInteiro,
+    situacao: (ev.status ?? "confirmed").toLowerCase(),
+  };
+}
+
+/** Eventos de um período. */
+export async function buscarEventosGoogle(calendarId: string, de: Date, ate: Date): Promise<GoogleEvento[]> {
+  const qs = new URLSearchParams({
+    timeMin: de.toISOString(),
+    timeMax: ate.toISOString(),
+    singleEvents: "true",
+    orderBy: "startTime",
+    maxResults: "2500",
+  });
+  const data = (await gcal(`/calendars/${encodeURIComponent(calendarId)}/events?${qs}`)) as {
+    items?: Parameters<typeof normalizar>[0][];
+  };
+  return (data.items ?? []).map(normalizar).filter((e): e is GoogleEvento => Boolean(e));
+}
+
+export type EntradaGoogle = {
+  titulo: string;
+  descricao?: string | null;
+  local?: string | null;
+  inicio: string;
+  fim: string;
+};
+
+/** Cria um evento e devolve o id gerado pelo Google. */
+export async function criarEventoGoogle(calendarId: string, ev: EntradaGoogle): Promise<string> {
+  const body = {
+    summary: ev.titulo,
+    description: ev.descricao ?? undefined,
+    location: ev.local ?? undefined,
+    start: { dateTime: new Date(ev.inicio).toISOString(), timeZone: "America/Sao_Paulo" },
+    end: { dateTime: new Date(ev.fim).toISOString(), timeZone: "America/Sao_Paulo" },
+  };
+  const data = (await gcal(`/calendars/${encodeURIComponent(calendarId)}/events`, {
+    method: "POST",
+    body: JSON.stringify(body),
+  })) as { id?: string };
+  if (!data?.id) throw new Error("O Google não devolveu o identificador do compromisso.");
+  return data.id;
+}
+
+export async function atualizarEventoGoogle(calendarId: string, eventId: string, ev: EntradaGoogle): Promise<void> {
+  await gcal(`/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(eventId)}`, {
+    method: "PATCH",
+    body: JSON.stringify({
+      summary: ev.titulo,
+      description: ev.descricao ?? null,
+      location: ev.local ?? null,
+      start: { dateTime: new Date(ev.inicio).toISOString(), timeZone: "America/Sao_Paulo" },
+      end: { dateTime: new Date(ev.fim).toISOString(), timeZone: "America/Sao_Paulo" },
+    }),
+  });
+}
+
+export async function excluirEventoGoogle(calendarId: string, eventId: string): Promise<void> {
+  await gcal(`/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(eventId)}`, {
+    method: "DELETE",
+  });
+}
