@@ -43,6 +43,9 @@ interface Props {
   reply?: { sender?: string | null; snippet: unknown; deleted?: boolean; revokedBy?: "customer" | "business" | null } | null;
   /** Handler pra "Responder" — clica na setinha que aparece no hover */
   onReply?: () => void;
+  /** Handler pra reenviar um balão que não foi entregue */
+  onResend?: () => void;
+  resending?: boolean;
 }
 
 function formatTime(iso: string) {
@@ -51,7 +54,8 @@ function formatTime(iso: string) {
   return d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
 }
 
-export function WhatsAppBubble({ side, content, timestamp, senderLabel, status, deleted, revokedBy, replied, reply, onReply }: Props) {
+export function WhatsAppBubble({ side, content, timestamp, senderLabel, status, deleted, revokedBy, replied, reply, onReply, onResend, resending }: Props) {
+
   const isOut = side === "out";
   const label = firstName(senderLabel);
   const replySender = firstName(reply?.sender ?? null);
