@@ -25,7 +25,14 @@ type OptLite = {
   volta?: LegLite | null;
 };
 
-const MAX_OPCOES = 2; // por cotação, salvo pedido explícito de mais horários
+/**
+ * POLÍTICA DE QUANTIDADE (Central de Especialistas):
+ * - preferencialmente 3 opções por cotação;
+ * - mínimo 2 opções;
+ * - 1 opção só quando o motor realmente não tiver outra alternativa válida.
+ */
+export const MAX_OPCOES = 3; // meta por cotação
+export const MIN_OPCOES = 2; // piso: nunca parar em 1 havendo alternativa
 const INTERVALO_MS = 30_000; // 2ª arte fica elegível 30s depois da 1ª; o envio
 // ocorre na próxima execução do cron (1x/min), então na prática o cliente recebe
 // a segunda opção normalmente entre 30 e 90 segundos.
