@@ -25,8 +25,8 @@ describe("guard determinístico do fluxo aéreo sem origem", () => {
   });
 
   it("gera somente a pergunta segura com o nome", () => {
-    expect(safeMissingOriginResponse("Lucas Silva")).toBe(
-      "Boa tarde, Lucas!\n\nDe qual cidade você vai embarcar?",
+    expect(safeMissingOriginResponse("Lucas Silva")).toMatch(
+      /^(Bom dia|Boa tarde|Boa noite), Lucas!\n\nDe qual cidade você pretende embarcar\?$/,
     );
   });
 });
