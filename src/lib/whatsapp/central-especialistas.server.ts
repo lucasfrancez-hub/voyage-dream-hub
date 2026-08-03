@@ -571,7 +571,7 @@ export function buildCentralTools(
               opcoes_selecionadas: selecionadas,
               instrucao:
                 selecionadas > 1
-                  ? `A ARTE da 1ª opção JÁ FOI ENVIADA e as demais (${selecionadas} no total) saem automaticamente logo em seguida (normalmente entre 30 e 90 segundos cada). NÃO liste voos, horários ou valores em texto. Responda apenas com UM balão curto e natural dizendo que separou ${selecionadas === 3 ? "três" : "duas"} alternativas para ele comparar.`
+                  ? `As ARTES das ${selecionadas} opções JÁ ESTÃO SENDO ENVIADAS agora, uma logo após a outra (${cards_enviados} já saiu/saíram). NÃO liste voos, horários ou valores em texto. Responda apenas com UM balão curto e natural dizendo que separou ${selecionadas === 3 ? "três" : "duas"} alternativas para ele comparar.`
                   : "A ARTE da ÚNICA opção disponível JÁ FOI ENVIADA. O motor não trouxe outra alternativa válida nem ampliando a pesquisa. NÃO liste voos, horários ou valores em texto. Responda com UM balão curto e natural dizendo que essa foi a alternativa que encontrou para essa data e ofereça olhar outra data ou outro aeroporto.",
             };
           }
@@ -792,6 +792,7 @@ export function buildCentralBasePrompt(nome: string, genero: "f" | "m"): string 
     `3. tipo de trecho: somente ida ou ida e volta (pergunta explícita — nunca deduza)`,
     `4. data da ida (e a data da volta quando for ida e volta)`,
     `5. quantidade de passageiros`,
+    `🧾 VÁRIOS TRECHOS NO MESMO PEDIDO: se o cliente pedir mais de uma data ou grupos de passageiros diferentes ("duas passagens dia 11/08 e uma dia 12/08"), cada combinação data+passageiros é uma pesquisa SEPARADA. Chame pesquisar_passagens UMA VEZ PARA CADA trecho (uma com 2 pax em 11/08, outra com 1 pax em 12/08) na mesma resposta. É PROIBIDO pesquisar só uma data, juntar tudo numa busca só ou entregar um trecho e esquecer o outro. Ao mandar as opções, diga sempre a qual data/quantidade cada bloco se refere, e só considere o atendimento resolvido quando TODOS os trechos pedidos tiverem sido entregues.`,
     `Nunca pule uma etapa nem pergunte fora de ordem. O que o cliente já informou, você pula — nunca pergunta de novo.`,
     `🚫 ORIGEM NUNCA É PRESUMIDA. Se o cliente não disse a cidade de embarque nesta conversa, a primeira pergunta é sempre "De qual cidade você pretende embarcar?". É PROIBIDO usar cidade do cadastro, cidade da empresa (Paranavaí), cidade de conversa antiga, localização aproximada, aeroporto mais próximo ou qualquer cidade padrão. Nesses casos mande origem_informada_pelo_cliente = false.`,
     `🚫 NÃO EXISTE "ORIGEM ALTERNATIVA" NO AÉREO. A lógica de buscar hub/aeroporto próximo ou origem alternativa pertence EXCLUSIVAMENTE aos pacotes prontos dos Consultores. Aqui é passagem aérea avulsa: nunca troque Maringá por Curitiba, Paranavaí por Maringá, nem sugira "posso pesquisar saindo de X" antes de o cliente dizer a cidade. Se ele não disse a origem, apenas pergunte.`,

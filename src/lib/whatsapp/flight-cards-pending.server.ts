@@ -34,7 +34,7 @@ type OptLite = {
 export const MAX_OPCOES = 3; // meta por cotação
 export const MIN_OPCOES = 2; // piso: nunca parar em 1 havendo alternativa
 const INTERVALO_MS = 10_000; // espaçamento mínimo entre RODADAS de envio
-const ENTRE_CARDS_MS = 4_000; // espaçamento entre as artes DENTRO do mesmo lote
+const ENTRE_CARDS_MS = 1_500; // espaçamento entre as artes DENTRO do mesmo lote
 // (as 2-3 opções saem juntas, uma a cada ~4s, porque já foram pré-renderizadas)
 const CLAIM_TRAVADO_MS = 45_000; // claim preso (worker caiu no render) → destrava
 /**
@@ -126,7 +126,7 @@ export async function sendPendingFlightCards(
   let pendingQuery = supabaseAdmin
     .from("wa_flight_quotes")
     .select(
-      "id, payload, protocolo_id, sent_fingerprints, cards_sent_at, agent_slug, agent_name, cancelled_at",
+      "id, payload, protocolo_id, sent_fingerprints, cards_sent_at, agent_slug, agent_name, cancelled_at, created_at",
     )
     .eq("conversation_id", conversationId)
     .gte("created_at", desde)
@@ -159,18 +159,49 @@ export async function sendPendingFlightCards(
     id: string;
     payload: unknown;
     protocolo_id: string | null;
+    created_at?: string | null;
     sent_fingerprints?: unknown;
     cards_sent_at?: string | null;
     agent_slug?: string | null;
     agent_name?: string | null;
     cancelled_at?: string | null;
   }>;
-  // Só a cotação mais recente do protocolo pode avançar. As duplicadas antigas
-  // ficam definitivamente fora da fila; do contrário, após concluir a atual o
-  // cron voltaria nelas e repetiria os mesmos voos. A criação de novas cópias
-  // da busca é bloqueada em `cotar_aereo`, que reaproveita a atual incompleta.
-  const maisRecente = quotesRecentes[0];
-  const row = maisRecente && disponivel(maisRecente) ? maisRecente : undefined;
+  // Cada TRECHO pedido (origem+destino+data+passageiros) é uma cotação própria
+  // e todas precisam ser entregues: o cliente que pede "duas no dia 11 e uma no
+  // dia 12" tem que receber as duas pesquisas. Então agrupamos por assinatura
+  // do trecho, ficamos só com a versão mais recente de cada trecho (as buscas
+  // repetidas do mesmo trecho continuam descartadas) e atendemos a mais ANTIGA
+  // ainda incompleta — assim nenhum trecho fica pra trás.
+  const assinaturaTrecho = (r: { payload: unknown }) => {
+    const p = (r.payload ?? {}) as {
+      origem_iata?: string;
+      destino_iata?: string;
+      data_ida?: string;
+      data_volta?: string | null;
+      passageiros?: { adultos?: number; criancas?: number; bebes?: number };
+    };
+    const pax = p.passageiros ?? {};
+    return [
+      p.origem_iata,
+      p.destino_iata,
+      p.data_ida,
+      p.data_volta ?? "-",
+      pax.adultos ?? 1,
+      pax.criancas ?? 0,
+      pax.bebes ?? 0,
+    ].join("|");
+  };
+  const maisRecentePorTrecho = new Map<string, (typeof quotesRecentes)[number]>();
+  for (const q of quotesRecentes) {
+    // `quotesRecentes` vem em ordem decrescente: o primeiro de cada trecho é o atual.
+    const k = assinaturaTrecho(q);
+    if (!maisRecentePorTrecho.has(k)) maisRecentePorTrecho.set(k, q);
+  }
+  const pendentes = Array.from(maisRecentePorTrecho.values())
+    .filter((q) => disponivel(q))
+    .sort((a, b) => String(a.created_at ?? "").localeCompare(String(b.created_at ?? "")));
+  const row = pendentes[0];
+
   /** Autor real da pesquisa — preservado mesmo quando quem dispara é o cron. */
   const autor = { slug: row?.agent_slug ?? null, nome: row?.agent_name ?? null };
 
@@ -403,6 +434,27 @@ export async function sendPendingFlightCards(
     }
   };
 
+  // RENDER EM PARALELO: as 2-3 artes do lote são geradas ao mesmo tempo, antes
+  // do envio. Renderizar uma de cada vez fazia a rodada estourar o tempo do
+  // worker e o cliente recebia só a primeira opção.
+  const semCache = Math.min(SOFT_DEADLINE_MS, renderBudgetMs);
+  const rendersEmParalelo = opcoes.map((op, i) =>
+    (async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const data = buildFlightCardData(quote as any, op as any);
+      return getOrRenderCard(data, {
+        softDeadlineMs: semCache,
+        tentativas: 1,
+        quote_id: quoteId,
+        protocolo_id: protocolId ?? null,
+        option_index: fpsDaCotacao.size + i + 1,
+      });
+    })().then(
+      (r) => ({ ok: true as const, ...r }),
+      (e: unknown) => ({ ok: false as const, erro: e as Error }),
+    ),
+  );
+
   for (let i = 0; i < opcoes.length; i++) {
     const op = opcoes[i];
     if (i > 0) await new Promise((r) => setTimeout(r, ENTRE_CARDS_MS));
@@ -426,20 +478,14 @@ export async function sendPendingFlightCards(
     let geradoEm: string | null = null;
     let estagio: Stage = "image_render";
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const data = buildFlightCardData(quote as any, op as any);
       estagio = "image_render";
-      // CACHE-FIRST: se o pré-aquecimento já rendeu esta opção, o envio é
-      // imediato. Sem cache, a arte tem um prazo brando (6s) — estourou, cai
-      // no texto e o card desta opção não é mais tentado.
-      const semCache = Math.min(SOFT_DEADLINE_MS, renderBudgetMs);
-      const { asset, from_cache } = await getOrRenderCard(data, {
-        softDeadlineMs: semCache,
-        tentativas: 1,
-        quote_id: quoteId,
-        protocolo_id: protocolId ?? null,
-        option_index: optionIndex,
-      });
+      // CACHE-FIRST: a arte já foi disparada em paralelo lá em cima. Se falhar
+      // ou estourar o prazo brando (6s), esta opção cai no texto e o card dela
+      // não é mais tentado.
+      const render = await rendersEmParalelo[i];
+      if (!render.ok) throw render.erro;
+      const { asset, from_cache } = render;
+
       geradoEm = new Date().toISOString();
       logCardEvent({
         ...base,
