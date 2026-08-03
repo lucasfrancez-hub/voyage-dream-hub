@@ -53,7 +53,7 @@ describe("claim expira e devolve a opção para a fila", () => {
     expect(claimExpirado(new Date(agora + 10_000).toISOString(), agora)).toBe(false);
   });
   it("opção entregue nunca volta para a fila (sem duplicidade)", () => {
-    expect(opcaoDisponivel({ delivery_status: "delivered", claim_expires_at: null }, agora)).toBe(false);
+    expect(opcaoDisponivel({ delivery_status: "delivered_card", claim_expires_at: null }, agora)).toBe(false);
     expect(opcaoDisponivel({ delivery_status: "pending", claim_expires_at: null }, agora)).toBe(true);
     expect(
       opcaoDisponivel(
