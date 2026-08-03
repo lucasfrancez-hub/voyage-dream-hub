@@ -119,6 +119,21 @@ function InboxPage() {
     });
   }, [conversations, folder, search]);
 
+  // Instagram: reaproveita o espelho em wa_conversations pra mostrar protocolo/funil na lateral
+  const igListFn = useServerFn(listInstagramConversations);
+  const { data: igConversations = [] } = useQuery({
+    queryKey: ["ig", "conversations"],
+    queryFn: () => igListFn(),
+    refetchInterval: 15_000,
+    enabled: channel === "instagram_dm",
+  });
+  const igActive = channel === "instagram_dm" && activeId ? igConversations.find((c) => c.id === activeId) ?? null : null;
+  const igMirrorConv = igActive
+    ? conversations.find((c) => c.wa_phone === `ig:${igActive.contact_ig_id}`) ?? null
+    : null;
+
+
+
   // Realtime + push notifications (desktop/electron/web)
   useEffect(() => {
     if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "default") {
@@ -314,7 +329,15 @@ function InboxPage() {
 
       {/* Coluna 3 — Detalhes */}
       <aside className="hidden w-72 shrink-0 border-l border-slate-200 bg-white lg:block">
-        {active ? <ContactDetails conv={active} onChange={refetch} /> : null}
+        {channel === "instagram_dm" ? (
+          igMirrorConv ? (
+            <ContactDetails conv={igMirrorConv} onChange={refetch} />
+          ) : activeId ? (
+            <div className="p-4 text-xs text-slate-400">Sincronizando dados do perfil…</div>
+          ) : null
+        ) : active ? (
+          <ContactDetails conv={active} onChange={refetch} />
+        ) : null}
       </aside>
 
       <NewConversationDialog
@@ -1922,17 +1945,39 @@ function InstagramConversationView({ conversationId, onBack }: { conversationId:
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const igListFn = useServerFn(listInstagramConversations);
+  const { data: igConvs = [] } = useQuery({
+    queryKey: ["ig", "conversations"],
+    queryFn: () => igListFn(),
+    refetchInterval: 15_000,
+  });
+  const profile = igConvs.find((c) => c.id === conversationId) ?? null;
+
+
+
   return (
     <div className="flex h-full min-h-0 flex-col">
       <header className="flex items-center gap-2 border-b border-slate-200 bg-white px-3 py-2">
         <button onClick={onBack} className="md:hidden" aria-label="Voltar">
           <ArrowLeft className="h-4 w-4 text-slate-500" />
         </button>
-        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-pink-500 to-orange-500 text-white">
-          <Instagram className="h-4 w-4" />
+        {profile?.contact_profile_pic ? (
+          <img src={profile.contact_profile_pic} alt="" className="h-8 w-8 shrink-0 rounded-full object-cover" />
+        ) : (
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-pink-500 to-orange-500 text-white">
+            <Instagram className="h-4 w-4" />
+          </div>
+        )}
+        <div className="min-w-0">
+          <div className="truncate text-sm font-medium text-slate-900">
+            {profile?.contact_name ?? profile?.contact_username ?? "Instagram Direct"}
+          </div>
+          <div className="truncate text-[11px] text-slate-500">
+            {profile?.contact_username ? `@${profile.contact_username} · ` : ""}Instagram Direct
+          </div>
         </div>
-        <div className="text-sm font-medium text-slate-900">Instagram Direct</div>
       </header>
+
 
       <div className="flex-1 space-y-2 overflow-y-auto p-4">
         {isLoading ? (
