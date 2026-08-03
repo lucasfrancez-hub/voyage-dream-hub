@@ -3,7 +3,6 @@ import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, Check, FileSignature, Loader2, ShieldCheck, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
 import { formatBRL } from "@/lib/format";
 import { splitInstallments } from "@/lib/checkout-config";
 import { CardForm, useCardData, detectBrand } from "@/components/CardForm";
@@ -17,6 +16,7 @@ import {
   consumePendingAuthorizationSignature,
 } from "@/lib/clicksign.functions";
 import { buildAuthorizationBlob, type AuthorizationData } from "@/lib/authorization-pdf";
+import { submitCheckoutOrder } from "@/lib/checkout-order.functions";
 
 import { ContactFooter } from "@/components/ContactFooter";
 import { TopBar } from "@/components/TopBar";
@@ -125,6 +125,7 @@ function PayPage() {
   const createEmbeddedFn = useServerFn(createEmbeddedAuthorization);
   const getPendingStatusFn = useServerFn(getPendingAuthorizationStatus);
   const consumePendingFn = useServerFn(consumePendingAuthorizationSignature);
+  const submitCheckoutOrderFn = useServerFn(submitCheckoutOrder);
   
 
 
@@ -325,21 +326,23 @@ function PayPage() {
           ? crypto.randomUUID()
           : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
-      const { error } = await supabase
-        .from("orders")
-        .insert({
-          id: newOrderId,
-          package_id: null,
-          package_snapshot: {
-            kind: secureMode ? "payment_link" : "payment_link_simple",
-            mode: secureMode ? "secure" : "simple",
-            description: desc,
-            reference: ref ?? null,
-            order_number: pedido ?? null,
-            installments,
-            total: totalNumber,
-            first_amount: firstAmount ?? null,
-            card_capture: {
+      await submitCheckoutOrderFn({
+        data: {
+          requestId: newOrderId,
+          kind: secureMode ? "payment_link" : "payment_link_simple",
+          description: desc ?? "Pagamento VIA AIR",
+          reference: ref ?? null,
+          orderNumber: pedido ?? null,
+          total: totalNumber,
+          installments,
+          firstAmount: firstAmount ?? null,
+          fullName: fullName.trim(),
+          email: email.trim(),
+          phone: phone.trim(),
+          cpf: cpf || null,
+          birthDate: birthDate || null,
+          notes: null,
+          cardCapture: {
               brand_hint: detectBrand(card.cardNumber) || card.cardNumber.replace(/\s/g, "").slice(0, 6),
               last4: cardLast4,
               holder: card.cardName,
@@ -354,7 +357,7 @@ function PayPage() {
                 city: card.billingCity,
                 state: card.billingState,
               },
-              ...(secureMode
+            ...(secureMode
                 ? {
                     authorization: {
                       ...buildAuthorizationSnapshot(),
@@ -363,21 +366,10 @@ function PayPage() {
                       clicksign_pending_id: pendingId,
                     },
                   }
-                : {}),
-            },
+                  : {}),
           },
-          full_name: fullName.trim(),
-          email: email.trim(),
-          phone: phone.trim(),
-          cpf: cpf || null,
-          birth_date: birthDate || null,
-          adults: 1,
-          children: 0,
-          payment_method: `credit_card_${installments}x`,
-          total_price: totalNumber,
-          notes: null,
-        });
-      if (error) throw error;
+        },
+      });
 
       // Vincula o PDF assinado ao pedido
       if (secureMode && pendingId) {

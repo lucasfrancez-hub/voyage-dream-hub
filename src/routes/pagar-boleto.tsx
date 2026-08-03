@@ -2,13 +2,13 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { ArrowLeft, Check, Loader2, ShieldCheck, Plus, X } from "lucide-react";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
 import { formatBRL, maskCPF } from "@/lib/format";
 import { BoletoForm, emptyBoleto, validateBoleto } from "@/components/BoletoForm";
 import { DateBRInput } from "@/components/DateBRInput";
 
 import { ContactFooter } from "@/components/ContactFooter";
 import { TopBar } from "@/components/TopBar";
+import { submitCheckoutOrder } from "@/lib/checkout-order.functions";
 
 type Search = {
   desc?: string;
@@ -66,6 +66,7 @@ function PayBoletoPage() {
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [installments, setInstallments] = useState(1);
+  const submitCheckoutOrderFn = useServerFn(submitCheckoutOrder);
   const MAX_BOLETO_INSTALLMENTS = 10;
   const installmentValue = totalNumber > 0 && installments > 0 ? totalNumber / installments : 0;
 
@@ -137,50 +138,40 @@ function PayBoletoPage() {
 
     setSubmitting(true);
     try {
+      const requestId = crypto.randomUUID();
       const payload = {
-        package_id: null,
-        package_snapshot: {
-          kind: "payment_link_boleto",
-          description: desc,
-          reference: ref ?? null,
-          order_number: pedido ?? null,
-
-          total: totalNumber,
-          installments,
-          installment_value: installmentValue,
-          image_url: img ?? null,
-          passengers: passengers.map((p, i) => ({
+        requestId,
+        kind: "payment_link_boleto" as const,
+        description: desc ?? "Solicitação de boleto VIA AIR",
+        reference: ref ?? null,
+        orderNumber: pedido ?? null,
+        total: totalNumber,
+        installments,
+        imageUrl: img ?? null,
+        passengers: passengers.map((p, i) => ({
             index: i + 1,
             full_name: p.full_name.trim(),
             cpf: p.cpf || null,
             birth_date: p.birth_date || null,
             ...(i === 0 ? { email, phone: phoneRaw } : {}),
-          })),
-          boleto_capture: boleto,
-        },
-        full_name: fullName,
+        })),
+        boletoCapture: boleto,
+        fullName,
         email,
         phone: phoneRaw,
         cpf: primary.cpf || null,
-        birth_date: primary.birth_date || null,
-        adults: Math.min(Math.max(passengers.length, 1), 20),
-        children: 0,
-        payment_method: installments > 1 ? `boleto_${installments}x` : "boleto",
-        total_price: totalNumber,
+        birthDate: primary.birth_date || null,
         notes: notes || null,
       };
 
       let lastErr: unknown = null;
       for (let attempt = 0; attempt < 3; attempt++) {
         try {
-          const { error } = await supabase.from("orders").insert(payload);
-          if (!error) {
+          await submitCheckoutOrderFn({ data: payload });
+          {
             lastErr = null;
             break;
           }
-          lastErr = error;
-          // erros de validação/permissão não adiantam repetir
-          if (error.code && !["503", "504", "PGRST002"].includes(error.code)) break;
         } catch (netErr) {
           lastErr = netErr;
         }
