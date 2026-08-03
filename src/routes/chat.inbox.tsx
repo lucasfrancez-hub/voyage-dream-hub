@@ -1025,7 +1025,15 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
             </button>
           </div>
         )}
+        {window24 && (
+          <div className="mb-2 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+            <strong>Janela de 24h encerrada.</strong> O cliente não responde há mais de 24h, então o WhatsApp
+            recusa qualquer mensagem livre (erro 131047) — ela aparece como “não entregue”. Só volta a funcionar
+            quando o cliente mandar uma mensagem nova, ou com um template aprovado.
+          </div>
+        )}
         <div className="flex items-end gap-2">
+
           <input
             ref={fileRef}
             type="file"
