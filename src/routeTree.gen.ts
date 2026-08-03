@@ -89,6 +89,7 @@ import { Route as ApiPublicWhatsappWebhookRouteImport } from './routes/api/publi
 import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/email/suppression'
 import { Route as PacotesSlugIndexRouteImport } from './routes/pacotes.$slug.index'
 import { Route as PacotesSlugCheckoutRouteImport } from './routes/pacotes.$slug.checkout'
+import { Route as ApiPublicAgendaManifestTokenRouteImport } from './routes/api/public/agenda-manifest.$token'
 import { Route as ApiPublicBpIdRouteImport } from './routes/api/public/bp.$id'
 import { Route as ApiPublicBroadcastMediaSplatRouteImport } from './routes/api/public/broadcast-media.$'
 import { Route as ApiPublicHooksAutoSuggestionsRouteImport } from './routes/api/public/hooks/auto-suggestions'
@@ -513,6 +514,12 @@ const PacotesSlugCheckoutRoute = PacotesSlugCheckoutRouteImport.update({
   path: '/$slug/checkout',
   getParentRoute: () => PacotesRoute,
 } as any)
+const ApiPublicAgendaManifestTokenRoute =
+  ApiPublicAgendaManifestTokenRouteImport.update({
+    id: '/api/public/agenda-manifest/$token',
+    path: '/api/public/agenda-manifest/$token',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicBpIdRoute = ApiPublicBpIdRouteImport.update({
   id: '/api/public/bp/$id',
   path: '/api/public/bp/$id',
@@ -700,6 +707,7 @@ export interface FileRoutesByFullPath {
   '/pacotes/$slug/checkout': typeof PacotesSlugCheckoutRoute
   '/admin/pedidos/': typeof AdminPedidosIndexRoute
   '/pacotes/$slug/': typeof PacotesSlugIndexRoute
+  '/api/public/agenda-manifest/$token': typeof ApiPublicAgendaManifestTokenRoute
   '/api/public/bp/$id': typeof ApiPublicBpIdRoute
   '/api/public/broadcast-media/$': typeof ApiPublicBroadcastMediaSplatRoute
   '/api/public/hooks/auto-suggestions': typeof ApiPublicHooksAutoSuggestionsRoute
@@ -799,6 +807,7 @@ export interface FileRoutesByTo {
   '/pacotes/$slug/checkout': typeof PacotesSlugCheckoutRoute
   '/admin/pedidos': typeof AdminPedidosIndexRoute
   '/pacotes/$slug': typeof PacotesSlugIndexRoute
+  '/api/public/agenda-manifest/$token': typeof ApiPublicAgendaManifestTokenRoute
   '/api/public/bp/$id': typeof ApiPublicBpIdRoute
   '/api/public/broadcast-media/$': typeof ApiPublicBroadcastMediaSplatRoute
   '/api/public/hooks/auto-suggestions': typeof ApiPublicHooksAutoSuggestionsRoute
@@ -900,6 +909,7 @@ export interface FileRoutesById {
   '/pacotes/$slug/checkout': typeof PacotesSlugCheckoutRoute
   '/admin/pedidos/': typeof AdminPedidosIndexRoute
   '/pacotes/$slug/': typeof PacotesSlugIndexRoute
+  '/api/public/agenda-manifest/$token': typeof ApiPublicAgendaManifestTokenRoute
   '/api/public/bp/$id': typeof ApiPublicBpIdRoute
   '/api/public/broadcast-media/$': typeof ApiPublicBroadcastMediaSplatRoute
   '/api/public/hooks/auto-suggestions': typeof ApiPublicHooksAutoSuggestionsRoute
@@ -1002,6 +1012,7 @@ export interface FileRouteTypes {
     | '/pacotes/$slug/checkout'
     | '/admin/pedidos/'
     | '/pacotes/$slug/'
+    | '/api/public/agenda-manifest/$token'
     | '/api/public/bp/$id'
     | '/api/public/broadcast-media/$'
     | '/api/public/hooks/auto-suggestions'
@@ -1101,6 +1112,7 @@ export interface FileRouteTypes {
     | '/pacotes/$slug/checkout'
     | '/admin/pedidos'
     | '/pacotes/$slug'
+    | '/api/public/agenda-manifest/$token'
     | '/api/public/bp/$id'
     | '/api/public/broadcast-media/$'
     | '/api/public/hooks/auto-suggestions'
@@ -1201,6 +1213,7 @@ export interface FileRouteTypes {
     | '/pacotes/$slug/checkout'
     | '/admin/pedidos/'
     | '/pacotes/$slug/'
+    | '/api/public/agenda-manifest/$token'
     | '/api/public/bp/$id'
     | '/api/public/broadcast-media/$'
     | '/api/public/hooks/auto-suggestions'
@@ -1261,6 +1274,7 @@ export interface RootRouteChildren {
   ApiPublicWaDiagRoute: typeof ApiPublicWaDiagRoute
   ApiPublicWhatsappWebhookRoute: typeof ApiPublicWhatsappWebhookRoute
   LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
+  ApiPublicAgendaManifestTokenRoute: typeof ApiPublicAgendaManifestTokenRoute
   ApiPublicBpIdRoute: typeof ApiPublicBpIdRoute
   ApiPublicBroadcastMediaSplatRoute: typeof ApiPublicBroadcastMediaSplatRoute
   ApiPublicHooksAutoSuggestionsRoute: typeof ApiPublicHooksAutoSuggestionsRoute
@@ -1843,6 +1857,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PacotesSlugCheckoutRouteImport
       parentRoute: typeof PacotesRoute
     }
+    '/api/public/agenda-manifest/$token': {
+      id: '/api/public/agenda-manifest/$token'
+      path: '/api/public/agenda-manifest/$token'
+      fullPath: '/api/public/agenda-manifest/$token'
+      preLoaderRoute: typeof ApiPublicAgendaManifestTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/bp/$id': {
       id: '/api/public/bp/$id'
       path: '/api/public/bp/$id'
@@ -2129,6 +2150,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicWaDiagRoute: ApiPublicWaDiagRoute,
   ApiPublicWhatsappWebhookRoute: ApiPublicWhatsappWebhookRoute,
   LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
+  ApiPublicAgendaManifestTokenRoute: ApiPublicAgendaManifestTokenRoute,
   ApiPublicBpIdRoute: ApiPublicBpIdRoute,
   ApiPublicBroadcastMediaSplatRoute: ApiPublicBroadcastMediaSplatRoute,
   ApiPublicHooksAutoSuggestionsRoute: ApiPublicHooksAutoSuggestionsRoute,
@@ -2155,13 +2177,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
