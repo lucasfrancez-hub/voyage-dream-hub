@@ -207,11 +207,19 @@ function AgendaApp() {
 function Fundo({ children }: { children: React.ReactNode }) {
   return (
     <div
-      className="min-h-dvh text-white [touch-action:manipulation]"
+      className="agenda-app min-h-dvh text-white [touch-action:manipulation]"
       style={{
         background: "radial-gradient(1200px 600px at 50% -10%, #14213f 0%, #080d1a 55%, #05070f 100%)",
+        colorScheme: "dark",
       }}
     >
+      {/* A agenda é sempre escura: trava o tema do sistema pra nunca renderizar claro */}
+      <style>{`
+        .agenda-app, .agenda-app * { color-scheme: dark; }
+        .agenda-app input, .agenda-app textarea, .agenda-app select { color: #fff; }
+        .agenda-app input::placeholder, .agenda-app textarea::placeholder { color: rgba(255,255,255,0.4); }
+        .agenda-app input::-webkit-calendar-picker-indicator { filter: invert(1); opacity: 0.7; }
+      `}</style>
       {children}
     </div>
   );
