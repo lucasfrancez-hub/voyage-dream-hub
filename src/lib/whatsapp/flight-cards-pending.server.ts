@@ -33,9 +33,15 @@ type OptLite = {
  */
 export const MAX_OPCOES = 3; // meta por cotação
 export const MIN_OPCOES = 2; // piso: nunca parar em 1 havendo alternativa
-const INTERVALO_MS = 10_000; // espaçamento mínimo entre RODADAS de envio
+const INTERVALO_MS = 2_000; // espaçamento mínimo entre RODADAS de envio
 const ENTRE_CARDS_MS = 1_500; // espaçamento entre as artes DENTRO do mesmo lote
-// (as 2-3 opções saem juntas, uma a cada ~4s, porque já foram pré-renderizadas)
+/**
+ * UMA opção por execução. Gerar e mandar 2-3 artes na mesma execução estourava
+ * o tempo do worker: o processo morria depois da primeira imagem e o cliente
+ * recebia uma opção só. Agora cada rodada entrega uma opção e dispara a
+ * próxima em execução nova (flight-cards-continue).
+ */
+const CARDS_POR_RODADA = 1;
 const CLAIM_TRAVADO_MS = 45_000; // claim preso (worker caiu no render) → destrava
 /**
  * Prazo BRANDO da arte quando ela ainda não está no cache: passou disso, a
