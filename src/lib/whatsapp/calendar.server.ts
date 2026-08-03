@@ -294,7 +294,7 @@ export async function criarEvento(entrada: EntradaEvento): Promise<AgendaEvento>
     }
   }
 
-  const detalhes: Record<string, unknown> = {};
+  const detalhes: Record<string, string | Array<{ email: string }>> = {};
   if (entrada.linkReuniao) detalhes['link_reuniao'] = entrada.linkReuniao;
   if (entrada.url) detalhes['url'] = entrada.url;
   if (entrada.convidados?.length) {
