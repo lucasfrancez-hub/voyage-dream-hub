@@ -66,13 +66,20 @@ async function dav(
   });
   const text = await res.text().catch(() => "");
   if (res.status === 401 || res.status === 403) {
-    throw new Error("Login do calendário recusado. Confira o e-mail e a senha do Titan.");
+    const err = new Error(
+      "Login do calendário recusado. Confira o e-mail e a senha (no iCloud é preciso usar uma senha de app).",
+    );
+    (err as Error & { status?: number }).status = res.status;
+    throw err;
   }
   if (res.status >= 400) {
-    throw new Error(`CalDAV ${method} ${res.status}: ${text.slice(0, 300)}`);
+    const err = new Error(`CalDAV ${method} ${res.status}: ${text.slice(0, 300)}`);
+    (err as Error & { status?: number }).status = res.status;
+    throw err;
   }
   return { status: res.status, text, etag: res.headers.get("etag") };
 }
+
 
 function parseXml(xml: string): Document {
   return new DOMParser({
@@ -106,6 +113,13 @@ function firstText(el: Element, name: string): string | null {
   return found ? (found.textContent ?? "").trim() || null : null;
 }
 
+/**
+ * Cada servidor responde o PROPFIND inicial num caminho diferente:
+ * o iCloud atende na raiz, o Titan só atende em /principals/.
+ * Tentamos os caminhos conhecidos e ficamos com o primeiro que responder.
+ */
+const CAMINHOS_INICIAIS = ["/principals/", "/", "/.well-known/caldav", "/dav/"];
+
 /** Descobre os calendários da conta. */
 export async function listarCalendarios(auth: CalDavAuth): Promise<CalDavCalendar[]> {
   const root = auth.serverUrl.replace(/\/+$/, "");
@@ -113,9 +127,34 @@ export async function listarCalendarios(auth: CalDavAuth): Promise<CalDavCalenda
   // 1) principal
   const principalXml = `<?xml version="1.0" encoding="utf-8" ?>
 <d:propfind xmlns:d="DAV:"><d:prop><d:current-user-principal/></d:prop></d:propfind>`;
-  const p = await dav(auth, `${root}/`, "PROPFIND", principalXml, { Depth: "0" });
+
+  let p: { text: string } | null = null;
+  let ultimoErro: unknown = null;
+  for (const caminho of CAMINHOS_INICIAIS) {
+    try {
+      p = await dav(auth, `${root}${caminho}`, "PROPFIND", principalXml, { Depth: "0" });
+      break;
+    } catch (err) {
+      const status = (err as Error & { status?: number }).status;
+      // 404/405 = esse caminho não existe nesse servidor; seguimos tentando.
+      if (status === 404 || status === 405 || status === 501) {
+        ultimoErro = err;
+        continue;
+      }
+      throw err;
+    }
+  }
+  if (!p) {
+    throw new Error(
+      ultimoErro instanceof Error
+        ? `Não consegui falar com o servidor do calendário (${root}). ${ultimoErro.message}`
+        : `Não consegui falar com o servidor do calendário (${root}).`,
+    );
+  }
+
   const principalHref = firstText(parseXml(p.text).documentElement as unknown as Element, "href");
   const principal = absolutize(root, principalHref ?? "/");
+
 
   // 2) calendar-home-set
   const homeXml = `<?xml version="1.0" encoding="utf-8" ?>
