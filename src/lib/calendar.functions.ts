@@ -165,7 +165,7 @@ export const ajustarContaAgenda = createServerFn({ method: "POST" })
     await exigirAdmin(context as never);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     if (data.padrao) await supabaseAdmin.from("wa_calendar_accounts").update({ padrao: false }).neq("id", data.id);
-    const patch: Record<string, unknown> = {};
+    const patch: { visivel?: boolean; padrao?: boolean; nome?: string; cor?: string } = {};
     if (data.visivel !== undefined) patch.visivel = data.visivel;
     if (data.padrao !== undefined) patch.padrao = data.padrao;
     if (data.nome) patch.nome = data.nome;
