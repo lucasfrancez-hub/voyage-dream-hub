@@ -450,11 +450,35 @@ function Painel({ token, pin, nome, vapid }: { token: string; pin: string | null
         ))}
       </nav>
 
+      {/* novo compromisso */}
+      <button
+        onClick={() => setNovo(true)}
+        aria-label="Adicionar compromisso"
+        className="fixed bottom-[calc(4.5rem+env(safe-area-inset-bottom))] right-[max(1rem,calc(50vw-19rem))] z-40 flex h-14 w-14 items-center justify-center rounded-2xl text-white shadow-lg transition active:scale-95"
+        style={{ background: "linear-gradient(140deg,#F26B1F,#d1560f)", boxShadow: "0 12px 30px rgba(242,107,31,0.35)" }}
+      >
+        <Plus className="h-6 w-6" />
+      </button>
+
       {detalhe ? (
         <Detalhes evento={detalhe} cor={corDa(detalhe)} origem={origemDe(detalhe)} onFechar={() => setDetalhe(null)} />
       ) : null}
       {config ? <Notificacoes token={token} pin={pin} vapid={vapid} onFechar={() => setConfig(false)} /> : null}
+      {novo ? (
+        <NovoCompromisso
+          token={token}
+          pin={pin}
+          contas={contas}
+          dia={ancora}
+          onFechar={() => setNovo(false)}
+          onCriado={() => {
+            setNovo(false);
+            void recarregar();
+          }}
+        />
+      ) : null}
     </div>
+
   );
 }
 
