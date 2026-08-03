@@ -42,6 +42,91 @@ export const Route = createFileRoute("/api/public/hooks/flight-quote-watchdog")(
         const now = Date.now();
         const since = new Date(now - 60 * 60 * 1000).toISOString();
 
+        // ---- ENTREGA GARANTIDA (roda ANTES de qualquer outra regra) --------
+        // Antes, a entrega das artes pendentes só acontecia quando existia uma
+        // "promessa" ("deixa eu pesquisar...") ainda em aberto na conversa. Se
+        // a cotação travava sem essa frase, nada destravava — e a arte só saía
+        // quando o cliente mandava mensagem nova (o webhook reprocessava).
+        // Agora a fila é lida direto das cotações: qualquer cotação incompleta
+        // (ou com claim preso porque o worker caiu no meio do render) é
+        // retomada em no máximo 1 minuto, sem depender do cliente escrever.
+        const destravadas: string[] = [];
+        try {
+          const { data: pendentes } = await supabaseAdmin
+            .from("wa_flight_quotes")
+            .select("conversation_id, protocolo_id, cards_sent_at, cancelled_at, created_at")
+            .gte("created_at", since)
+            .is("cancelled_at", null)
+            .order("created_at", { ascending: true })
+            .limit(100);
+
+          const CLAIM_TRAVADO_MS = 45_000;
+          const convsPendentes = new Map<string, string | null>();
+          for (const q of (pendentes ?? []) as Array<{
+            conversation_id: string;
+            protocolo_id: string | null;
+            cards_sent_at: string | null;
+          }>) {
+            const claimPreso =
+              !!q.cards_sent_at && now - new Date(q.cards_sent_at).getTime() > CLAIM_TRAVADO_MS;
+            if (q.cards_sent_at && !claimPreso) continue;
+            if (!convsPendentes.has(q.conversation_id)) {
+              convsPendentes.set(q.conversation_id, q.protocolo_id);
+            }
+          }
+
+          if (convsPendentes.size) {
+            const { sendPendingFlightCards } = await import(
+              "@/lib/whatsapp/flight-cards-pending.server"
+            );
+            for (const [convId, protoId] of convsPendentes) {
+              const { data: c } = await supabaseAdmin
+                .from("wa_conversations")
+                .select("id, wa_phone, mode, ai_paused, protocolo_ativo_id")
+                .eq("id", convId)
+                .maybeSingle();
+              if (!c || c.mode !== "ai" || c.ai_paused) continue;
+              if (protoId && c.protocolo_ativo_id !== protoId) continue;
+
+              let abertoEm: string | null = null;
+              if (protoId) {
+                const { data: p } = await supabaseAdmin
+                  .from("wa_protocolos")
+                  .select("status, opened_at, created_at")
+                  .eq("id", protoId)
+                  .maybeSingle();
+                if (!p || p.status !== "aberto") continue;
+                abertoEm = ((p.opened_at ?? p.created_at) as string | null) ?? null;
+              }
+
+              const r = await sendPendingFlightCards(
+                convId,
+                c.wa_phone as string,
+                60 * 60 * 1000,
+                abertoEm,
+                protoId ?? null,
+              ).catch((e) => {
+                console.warn("[watchdog] falha ao retomar cotação:", (e as Error)?.message ?? e);
+                return { sent: 0 };
+              });
+              if (r.sent > 0) destravadas.push(convId);
+              console.log(
+                JSON.stringify({
+                  event: "flight_watchdog_resume",
+                  conversation_id: convId,
+                  protocolo_id: protoId,
+                  sent: r.sent,
+                  at: new Date().toISOString(),
+                }),
+              );
+            }
+          }
+        } catch (e) {
+          console.warn("[watchdog] varredura de cotações falhou:", (e as Error)?.message ?? e);
+        }
+
+
+
         const { data: rows } = await supabaseAdmin
           .from("wa_messages")
           .select("id, conversation_id, sender, direction, content, created_at")
@@ -201,7 +286,7 @@ export const Route = createFileRoute("/api/public/hooks/flight-quote-watchdog")(
           }
         }
 
-        return Response.json({ ok: true, avisados, escalados });
+        return Response.json({ ok: true, avisados, escalados, destravadas });
       },
     },
   },
