@@ -19,8 +19,8 @@ describe("origem recuperada do histórico é apenas sugestão", () => {
   it("cenário 1 — sem histórico: pergunta aberta", () => {
     const r = validateFlightSearch({ ...base, origem: null, origem_informada_pelo_cliente: false });
     expect(r.ok).toBe(false);
-    if (!r.ok) expect(r.instrucao).toMatch(/De qual cidade você vai embarcar/i);
-    expect(safeMissingOriginResponse(null)).toBe("De qual cidade você vai embarcar?");
+    if (!r.ok) expect(r.instrucao).toMatch(/De qual cidade você pretende embarcar/i);
+    expect(safeMissingOriginResponse(null)).toBe("De qual cidade você pretende embarcar?");
   });
 
   it("cenário 2 — histórico com Maringá: pergunta de confirmação e pesquisa bloqueada", () => {
@@ -73,7 +73,7 @@ describe("origem recuperada do histórico é apenas sugestão", () => {
 
   it("guard aceita a confirmação da origem sugerida como resposta válida", () => {
     expect(isValidOriginQuestion("Vai manter o embarque por Maringá ou quer mudar a origem?", "Maringá")).toBe(true);
-    expect(isValidOriginQuestion("De qual cidade você vai embarcar?", "Maringá")).toBe(true);
+    expect(isValidOriginQuestion("De qual cidade você pretende embarcar?", "Maringá")).toBe(true);
     expect(isValidOriginQuestion("Vou pesquisar saindo de Maringá", "Maringá")).toBe(false);
     // sem sugestão, só a pergunta aberta vale
     expect(isValidOriginQuestion("Vai manter o embarque por Maringá?", null)).toBe(false);
