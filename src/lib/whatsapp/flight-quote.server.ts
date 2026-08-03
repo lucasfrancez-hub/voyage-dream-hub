@@ -13,6 +13,12 @@ import type { OnerFlight, OnerPlace } from "@/lib/onertravel.types";
 import { flightHasBaggage } from "@/lib/onertravel.types";
 import { combinacaoIdaVoltaValida } from "./flight-search-validation";
 import { airlineListToIatas, airlineMatches } from "./airline-codes";
+import {
+  atendePedido,
+  interpretarLocal,
+  isCodigoDeCidade,
+  type LocalInterpretado,
+} from "./airport-city";
 
 export type PeriodoDia = "manha" | "tarde" | "noite" | "livre";
 
