@@ -408,11 +408,15 @@ export async function runAgent(input: {
   const history = await loadHistory(conv.id, 30, sinceIso);
 
   // CONTEXTO ANTERIOR: mensagens de ANTES do protocolo atual (últimos 45 dias).
-  // O cliente frequentemente retoma um assunto antigo ("o comercial não entrou
-  // em contato", "e a cotação?"). Sem esse histórico a IA não entende do que
-  // ele fala e acaba pedindo pedido/localizador/CPF sem necessidade.
+  // NUNCA entra sozinho. Só é carregado quando o próprio cliente referencia
+  // expressamente um atendimento anterior ("da outra vez", "e a cotação?",
+  // "o comercial não retornou") — protocolo encerrado não vaza para o novo.
   let previousContext = "";
-  if (sinceIso) {
+  const ultimaInboundTexto =
+    [...history].reverse().find((m) => (m as { sender?: string }).sender === "customer")?.content ?? null;
+  const { shouldLoadPreviousContext } = await import("./history-reference");
+  const podeCarregarAnterior = shouldLoadPreviousContext({ lastCustomerText: ultimaInboundTexto });
+  if (sinceIso && podeCarregarAnterior) {
     const prevSince = new Date(Date.now() - 45 * 24 * 60 * 60 * 1000).toISOString();
     const { data: prevRows } = await supabaseAdmin
       .from("wa_messages")
