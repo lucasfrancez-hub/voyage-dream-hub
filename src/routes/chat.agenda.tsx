@@ -765,11 +765,27 @@ function comLinks(texto: string) {
   );
 }
 
-function Linha({ icone: Icone, children }: { icone: typeof Clock; children: React.ReactNode }) {
+function Linha({
+  icone: Icone,
+  tom = "muted",
+  children,
+}: {
+  icone: typeof Clock;
+  tom?: "primary" | "accent" | "muted";
+  children: React.ReactNode;
+}) {
+  const chip =
+    tom === "primary"
+      ? "bg-primary/10 text-primary"
+      : tom === "accent"
+        ? "bg-accent text-accent-foreground"
+        : "bg-muted text-muted-foreground";
   return (
-    <div className="flex items-start gap-3 text-sm">
-      <Icone className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
-      <div className="min-w-0 flex-1 text-foreground">{children}</div>
+    <div className="flex items-start gap-3.5 text-sm">
+      <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-xl ${chip}`}>
+        <Icone className="h-4 w-4" />
+      </span>
+      <div className="min-w-0 flex-1 pt-1 text-foreground">{children}</div>
     </div>
   );
 }
@@ -788,152 +804,179 @@ function DetalhesDialog({
   const d = evento.detalhes ?? {};
   const participantes = (d.participantes ?? []).filter((p) => p.email || p.nome);
   const cor = conta?.cor ?? "#F26B1F";
-  const periodo = evento.dia_inteiro
+  const dataTexto = evento.dia_inteiro
     ? `${dataLonga(evento.inicio, true)} · dia inteiro`
-    : `${dataLonga(evento.inicio, false)} · ${hora(evento.inicio)} às ${hora(evento.fim)}`;
+    : dataLonga(evento.inicio, false);
+  const horaTexto = evento.dia_inteiro ? null : `${hora(evento.inicio)} às ${hora(evento.fim)}`;
   const mapa = evento.local
     ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(evento.local)}`
     : null;
+  const contaRotulo = conta ? ROTULO[conta.provider] : (evento.provider === "google" ? "Google Agenda" : evento.origem);
+  const contaEmail = d.calendario ?? conta?.calendarioNome ?? conta?.email ?? conta?.nome ?? evento.origem;
+  const inicial = (contaEmail ?? "?").trim().charAt(0).toUpperCase();
 
   return (
     <Dialog open onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle className="flex items-start gap-2 pr-6 text-left">
-            <span className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: cor }} />
-            <span className="min-w-0 break-words">{evento.titulo}</span>
-          </DialogTitle>
-        </DialogHeader>
+      <DialogContent className="max-h-[88vh] gap-0 overflow-hidden border-border bg-card p-0 sm:max-w-lg">
+        <div className="flex max-h-[88vh] flex-col sm:flex-row">
+          <div className="h-1.5 w-full shrink-0 sm:h-auto sm:w-2" style={{ background: cor }} />
 
-        <div className="-mt-1 mb-1 flex flex-wrap items-center gap-1.5">
-          <span
-            className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium"
-            style={{ borderColor: cor, color: cor }}
-          >
-            <CalendarDays className="h-3.5 w-3.5" />
-            {conta ? ROTULO[conta.provider] : (evento.provider === "google" ? "Google Agenda" : evento.origem)}
-          </span>
-          {(d.calendario ?? conta?.calendarioNome ?? conta?.email) && (
-            <span className="inline-flex items-center rounded-full bg-muted px-2.5 py-1 text-xs text-muted-foreground">
-              {d.calendario ?? conta?.calendarioNome ?? conta?.email}
-            </span>
-          )}
-        </div>
+          <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+            <DialogHeader className="space-y-1.5 px-6 pb-4 pt-6 text-left">
+              <div className="flex items-center gap-2">
+                <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: cor }} />
+                <span className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+                  Compromisso
+                </span>
+              </div>
+              <DialogTitle className="pr-8 text-2xl font-extrabold leading-tight text-foreground">
+                <span className="break-words">{evento.titulo}</span>
+              </DialogTitle>
+            </DialogHeader>
 
-        <div className="space-y-3">
-          <Linha icone={Clock}>
-            <p className="capitalize">{periodo}</p>
-            {(d.fusoHorario || d.recorrencia) && (
-              <p className="text-xs text-muted-foreground">
-                {[d.fusoHorario, d.recorrencia ? "compromisso que se repete" : null].filter(Boolean).join(" · ")}
-              </p>
-            )}
-          </Linha>
+            <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-6 pb-6">
+              <Linha icone={Clock} tom="primary">
+                <p className="font-bold capitalize text-foreground">{dataTexto}</p>
+                {horaTexto && <p className="font-medium text-muted-foreground">{horaTexto}</p>}
+                {(d.fusoHorario || d.recorrencia) && (
+                  <p className="text-xs text-muted-foreground">
+                    {[d.fusoHorario, d.recorrencia ? "compromisso que se repete" : null].filter(Boolean).join(" · ")}
+                  </p>
+                )}
+              </Linha>
 
-          {d.conferencia && (
-            <Linha icone={Video}>
-              <a
-                href={d.conferencia}
-                target="_blank"
-                rel="noreferrer"
-                className="break-all text-primary underline underline-offset-2"
-              >
-                {d.conferencia}
-              </a>
-              <p className="text-xs text-muted-foreground">Link da reunião</p>
-            </Linha>
-          )}
+              {d.conferencia && (
+                <Linha icone={Video} tom="accent">
+                  <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Link da reunião</p>
+                  <a
+                    href={d.conferencia}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="break-all text-sm font-semibold text-primary hover:underline"
+                  >
+                    {d.conferencia}
+                  </a>
+                </Linha>
+              )}
 
-          {evento.local && (
-            <Linha icone={MapPin}>
-              <p className="break-words">{evento.local}</p>
-              {mapa && (
-                <a href={mapa} target="_blank" rel="noreferrer" className="text-xs text-primary underline">
-                  ver no mapa
+              {evento.local && (
+                <Linha icone={MapPin} tom="accent">
+                  <p className="break-words text-sm font-bold text-foreground">{evento.local}</p>
+                  {mapa && (
+                    <a
+                      href={mapa}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="mt-1.5 inline-flex items-center gap-1 text-xs font-bold text-primary hover:underline"
+                    >
+                      Ver no Google Maps
+                      <LinkIcon className="h-3 w-3" />
+                    </a>
+                  )}
+                </Linha>
+              )}
+
+              {(d.organizador?.email || d.organizador?.nome) && (
+                <Linha icone={UserRound}>
+                  <p className="font-semibold">
+                    {d.organizador.nome ?? d.organizador.email}
+                    <span className="text-xs font-normal text-muted-foreground"> · organizador</span>
+                  </p>
+                  {d.organizador.nome && d.organizador.email && (
+                    <p className="text-xs text-muted-foreground">{d.organizador.email}</p>
+                  )}
+                </Linha>
+              )}
+
+              {participantes.length > 0 && (
+                <Linha icone={Users}>
+                  <p className="font-semibold">
+                    {participantes.length} convidado{participantes.length > 1 ? "s" : ""}
+                  </p>
+                  <ul className="mt-1 space-y-1">
+                    {participantes.map((p, i) => (
+                      <li key={`${p.email ?? p.nome}-${i}`} className="text-sm">
+                        <span className="break-all">{p.nome ?? p.email}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {p.organizador ? " · organizador" : ""}
+                          {p.resposta ? ` · ${RESPOSTA_ROTULO[p.resposta] ?? p.resposta}` : ""}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </Linha>
+              )}
+
+              {(d.lembretes?.length ?? 0) > 0 && (
+                <Linha icone={Bell}>
+                  <p>{d.lembretes!.join(" · ")}</p>
+                </Linha>
+              )}
+
+              {evento.descricao && (
+                <div className="rounded-xl border border-border bg-muted/50 p-4">
+                  <div className="flex items-center gap-2 pb-2">
+                    <AlignLeft className="h-3.5 w-3.5 text-muted-foreground" />
+                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Detalhes</p>
+                  </div>
+                  <div className="whitespace-pre-wrap break-words text-sm leading-relaxed text-muted-foreground [&_a]:break-all [&_a]:font-semibold [&_a]:text-primary">
+                    {comLinks(evento.descricao)}
+                  </div>
+                </div>
+              )}
+
+              {d.url && (
+                <a
+                  href={d.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1.5 text-xs font-bold text-primary hover:underline"
+                >
+                  <LinkIcon className="h-3.5 w-3.5" />
+                  abrir no {conta ? ROTULO[conta.provider] : "calendário de origem"}
                 </a>
               )}
-            </Linha>
-          )}
 
-          {(d.organizador?.email || d.organizador?.nome) && (
-            <Linha icone={UserRound}>
-              <p>
-                {d.organizador.nome ?? d.organizador.email}
-                <span className="text-xs text-muted-foreground"> · organizador</span>
-              </p>
-              {d.organizador.nome && d.organizador.email && (
-                <p className="text-xs text-muted-foreground">{d.organizador.email}</p>
-              )}
-            </Linha>
-          )}
+              <div className="flex items-center gap-3 border-t border-border pt-4">
+                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-border bg-muted text-sm font-bold text-muted-foreground">
+                  {inicial}
+                </span>
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-bold text-foreground">{contaEmail}</p>
+                  <p className="truncate text-xs text-muted-foreground">
+                    {[
+                      `Sincronizado via ${contaRotulo}`,
+                      d.disponibilidade ? (d.disponibilidade === "livre" ? "marcado como livre" : "ocupado") : null,
+                      d.visibilidade && d.visibilidade !== "default" ? d.visibilidade : null,
+                      evento.situacao && evento.situacao !== "confirmed" ? evento.situacao : null,
+                    ]
+                      .filter(Boolean)
+                      .join(" · ")}
+                  </p>
+                </div>
+              </div>
+            </div>
 
-          {participantes.length > 0 && (
-            <Linha icone={Users}>
-              <p className="font-medium">
-                {participantes.length} convidado{participantes.length > 1 ? "s" : ""}
-              </p>
-              <ul className="mt-1 space-y-1">
-                {participantes.map((p, i) => (
-                  <li key={`${p.email ?? p.nome}-${i}`} className="text-sm">
-                    <span className="break-all">{p.nome ?? p.email}</span>
-                    <span className="text-xs text-muted-foreground">
-                      {p.organizador ? " · organizador" : ""}
-                      {p.resposta ? ` · ${RESPOSTA_ROTULO[p.resposta] ?? p.resposta}` : ""}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </Linha>
-          )}
-
-          {(d.lembretes?.length ?? 0) > 0 && (
-            <Linha icone={Bell}>
-              <p>{d.lembretes!.join(" · ")}</p>
-            </Linha>
-          )}
-
-          {evento.descricao && (
-            <Linha icone={AlignLeft}>
-              <div className="whitespace-pre-wrap break-words text-sm">{comLinks(evento.descricao)}</div>
-            </Linha>
-          )}
-
-          {d.url && (
-            <Linha icone={LinkIcon}>
-              <a href={d.url} target="_blank" rel="noreferrer" className="break-all text-primary underline">
-                abrir no {conta ? ROTULO[conta.provider] : "calendário de origem"}
-              </a>
-            </Linha>
-          )}
-
-          <Linha icone={CalendarDays}>
-            <p>{d.calendario ?? conta?.calendarioNome ?? conta?.nome ?? evento.origem}</p>
-            <p className="text-xs text-muted-foreground">
-              {[
-                conta ? ROTULO[conta.provider] : evento.provider,
-                d.disponibilidade ? (d.disponibilidade === "livre" ? "marcado como livre" : "ocupado") : null,
-                d.visibilidade && d.visibilidade !== "default" ? d.visibilidade : null,
-                evento.situacao && evento.situacao !== "confirmed" ? evento.situacao : null,
-              ]
-                .filter(Boolean)
-                .join(" · ")}
-            </p>
-          </Linha>
-        </div>
-
-        <div className="flex justify-end gap-2 pt-2">
-          <Button variant="outline" onClick={onClose}>
-            Fechar
-          </Button>
-          <Button variant="destructive" onClick={() => void onExcluir()}>
-            <Trash2 className="mr-1.5 h-4 w-4" />
-            Excluir
-          </Button>
+            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border bg-muted/40 px-6 py-4">
+              <button
+                type="button"
+                onClick={() => void onExcluir()}
+                className="group inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-bold text-muted-foreground transition-colors hover:text-destructive"
+              >
+                <Trash2 className="h-4 w-4 transition-transform group-hover:scale-110" />
+                Excluir
+              </button>
+              <Button onClick={onClose} className="rounded-xl px-7 py-5 text-sm font-bold shadow-lg shadow-primary/20">
+                Fechar
+              </Button>
+            </div>
+          </div>
         </div>
       </DialogContent>
     </Dialog>
   );
 }
+
 
 /* ------------------------------------------------------------------ */
 /* App privado (link secreto + PIN)                                    */
