@@ -33,9 +33,9 @@ type OptLite = {
  */
 export const MAX_OPCOES = 3; // meta por cotação
 export const MIN_OPCOES = 2; // piso: nunca parar em 1 havendo alternativa
-const INTERVALO_MS = 30_000; // 2ª arte fica elegível 30s depois da 1ª; o envio
-// ocorre na próxima execução do cron (1x/min), então na prática o cliente recebe
-// a segunda opção normalmente entre 30 e 90 segundos.
+const INTERVALO_MS = 10_000; // espaçamento mínimo entre RODADAS de envio
+const ENTRE_CARDS_MS = 4_000; // espaçamento entre as artes DENTRO do mesmo lote
+// (as 2-3 opções saem juntas, uma a cada ~4s, porque já foram pré-renderizadas)
 const CLAIM_TRAVADO_MS = 45_000; // claim preso (worker caiu no render) → destrava
 /**
  * Prazo BRANDO da arte quando ela ainda não está no cache: passou disso, a
