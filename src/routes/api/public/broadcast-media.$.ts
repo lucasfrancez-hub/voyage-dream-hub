@@ -10,7 +10,12 @@ export const Route = createFileRoute("/api/public/broadcast-media/$")({
   server: {
     handlers: {
       GET: async ({ params }) => {
-        const path = decodeURIComponent(params._splat ?? "");
+        let path = decodeURIComponent(params._splat ?? "");
+        // Tolerância: quando o link é clicado a partir de um texto, o WhatsApp
+        // costuma grudar o que vem depois da extensão (ex.: "|arquivo.png]]").
+        // Cortamos tudo a partir da primeira extensão válida.
+        const corte = path.match(/^(.+?\.[A-Za-z0-9]{2,5})(?:[|\]].*)?$/);
+        if (corte) path = corte[1];
         if (!path || path.includes("..") || !/^[A-Za-z0-9/_-]+\.[A-Za-z0-9]{2,5}$/.test(path)) {
           return new Response("Not found", { status: 404 });
         }
