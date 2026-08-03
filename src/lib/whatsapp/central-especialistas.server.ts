@@ -771,16 +771,34 @@ export function buildCentralTools(
 
         } catch (e) {
           console.error("[central] falha na pesquisa de passagens:", e);
-          await escalarPorFalha(
-            conversation,
-            `${briefing}\n\n⚠️ Falha técnica no motor de busca — cliente encaminhado automaticamente ao Comercial.`,
+          // VÁLVULA DE SEGURANÇA: timeout, worker morto, Browserless fora do ar
+          // ou erro interno da ferramenta → nada de retry em loop. Uma mensagem
+          // só, IA pausada no protocolo, jobs cancelados e briefing completo.
+          const { classificarFalha, transferirPorInstabilidade } = await import(
+            "./transferencia-instabilidade.server"
           );
+          const r = await transferirPorInstabilidade({
+            conversation_id: conversation.id,
+            protocol_id: conversation.protocolo_ativo_id ?? null,
+            motivo: classificarFalha(e),
+            detalhe: e instanceof Error ? e.message : String(e),
+          });
+          if (!r.transferido) {
+            // Já havia humano/pausa: só garante o registro do contexto.
+            await escalarPorFalha(
+              conversation,
+              `${briefing}\n\n⚠️ Falha técnica no motor de busca — cliente encaminhado automaticamente ao Comercial.`,
+            );
+          }
           return {
             ok: false,
             falha_tecnica: true,
-            instrucao: `Responda ao cliente EXATAMENTE esta mensagem, sem acrescentar detalhes técnicos: "${CENTRAL_FALHA_MSG}"`,
+            transferido_ao_comercial: true,
+            instrucao:
+              "O cliente JÁ recebeu automaticamente o aviso de instabilidade e a transferência pro time Comercial, e a IA foi pausada neste protocolo. NÃO escreva mais nada, não repita a mensagem e não tente pesquisar de novo.",
           };
         }
+
       },
     }),
 
