@@ -592,3 +592,70 @@ async function escalarPorFalhaDeCard(
   }
 }
 
+
+/**
+ * Quantas opções da cotação ATIVA ainda não foram apresentadas ao cliente.
+ * Base da política "tem mais opções?": havendo restante, entrega sem nova
+ * pesquisa; zerado, o agente refaz a pesquisa ampliando os critérios.
+ */
+export async function countUnsentOptions(
+  conversationId: string,
+  protocolId?: string | null,
+): Promise<{ quote_id: string | null; enviadas: number; restantes: number }> {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  let q = supabaseAdmin
+    .from("wa_flight_quotes")
+    .select("id, payload, sent_fingerprints, cancelled_at")
+    .eq("conversation_id", conversationId)
+    .order("created_at", { ascending: false })
+    .limit(1);
+  if (protocolId) q = q.eq("protocolo_id", protocolId);
+  const { data } = await q;
+  const row = (data ?? [])[0] as
+    | { id: string; payload: unknown; sent_fingerprints?: unknown; cancelled_at?: string | null }
+    | undefined;
+  if (!row || row.cancelled_at) return { quote_id: null, enviadas: 0, restantes: 0 };
+  const todas = ((row.payload as { opcoes?: OptLite[] } | null)?.opcoes ?? []) as OptLite[];
+  const fps = new Set<string>(
+    Array.isArray(row.sent_fingerprints) ? (row.sent_fingerprints as unknown[]).map(String) : [],
+  );
+  const restantes = todas.filter((o) => !fps.has(fingerprint(o))).length;
+  return { quote_id: row.id, enviadas: fps.size, restantes };
+}
+
+/**
+ * Entrega imediata das opções ainda não apresentadas (Caso 1 da política de
+ * quantidade). Não chama o motor de busca.
+ */
+export async function sendRemainingOptions(
+  conversationId: string,
+  waPhone: string,
+  protocolId?: string | null,
+  protocolOpenedAt?: string | null,
+): Promise<{ sent: number; restantes_antes: number }> {
+  const { enviadas, restantes } = await countUnsentOptions(conversationId, protocolId);
+  if (restantes <= 0) return { sent: 0, restantes_antes: 0 };
+  const r = await sendPendingFlightCards(
+    conversationId,
+    waPhone,
+    60 * 60 * 1000,
+    protocolOpenedAt ?? null,
+    protocolId ?? null,
+    false,
+    26_000,
+    enviadas + 1, // libera exatamente a próxima opção ainda não apresentada
+  );
+  console.log(
+    JSON.stringify({
+      event: "flight_options_more_requested",
+      conversation_id: conversationId,
+      protocolo_id: protocolId ?? null,
+      already_sent: enviadas,
+      remaining_before: restantes,
+      sent_now: r.sent,
+      new_search: false,
+      at: new Date().toISOString(),
+    }),
+  );
+  return { sent: r.sent, restantes_antes: restantes };
+}
