@@ -349,14 +349,29 @@ export function AdminOrders({ scope, initialStatus }: { scope: "mine" | "third_p
                     <RotateCcw className="h-4 w-4" />
                   </button>
                 ) : (
-                  <button
-                    type="button"
-                    aria-label="Excluir pedido"
-                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); setDeleteTarget({ id: o.id, label: displayOrderNumber }); setDeleteReason(""); }}
-                    className="absolute top-3 right-3 rounded-full p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
+                  <div className="absolute top-3 right-3 flex items-center gap-1">
+                    <button
+                      type="button"
+                      aria-label="Duplicar pedido"
+                      disabled={duplicate.isPending}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        confirmThen(`Duplicar o pedido ${displayOrderNumber}?`, () => duplicate.mutate(o.id));
+                      }}
+                      className="rounded-full p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-50"
+                    >
+                      <Copy className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
+                      aria-label="Excluir pedido"
+                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); setDeleteTarget({ id: o.id, label: displayOrderNumber }); setDeleteReason(""); }}
+                      className="rounded-full p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
                 )}
               </div>
             );
