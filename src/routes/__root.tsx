@@ -114,37 +114,54 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
 
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
-  head: () => ({
-    meta: [
-      { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content" },
-      { title: "Via Air — Agência de viagens, passagens e pacotes" },
-      { name: "description", content: "Via Air: passagens aéreas, pacotes, hotéis, cruzeiros e experiências personalizadas com atendimento humano." },
-      { property: "og:title", content: "Via Air — Agência de viagens, passagens e pacotes" },
-      { property: "og:description", content: "Via Air: passagens aéreas, pacotes, hotéis, cruzeiros e experiências personalizadas com atendimento humano." },
-      { property: "og:type", content: "website" },
-      { property: "og:url", content: "https://pedidos.viaair.tur.br/" },
-      { property: "og:site_name", content: "Via Air" },
-      { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:title", content: "Via Air — Agência de viagens, passagens e pacotes" },
-      { name: "twitter:description", content: "Via Air: passagens aéreas, pacotes, hotéis, cruzeiros e experiências personalizadas com atendimento humano." },
-      { name: "google-site-verification", content: "_pcjKMoEJrMBzUL75rH0k8Dy_fMqOnaIZ4D49f4v42I" },
-      { name: "theme-color", content: "#0F172A" },
-      { name: "apple-mobile-web-app-capable", content: "yes" },
-      { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
-      { name: "apple-mobile-web-app-title", content: "VIA AIR" },
-      { name: "mobile-web-app-capable", content: "yes" },
-    ],
-    links: [
-      { rel: "stylesheet", href: appCss },
-      { rel: "icon", href: "/favicon.png", type: "image/png" },
-      { rel: "apple-touch-icon", href: "/apple-touch-icon.png" },
-      { rel: "manifest", href: "/manifest.webmanifest" },
-      { rel: "preconnect", href: "https://fonts.googleapis.com" },
-      { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
-      { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" },
-    ],
-  }),
+  head: ({ matches }) => {
+    // Apps isolados (Agenda e Chat) declaram o próprio manifest/ícone.
+    // O manifest do site não pode aparecer antes deles, senão o
+    // "Adicionar à tela de início" abre a home dos pacotes com o ícone do site.
+    const pathname = matches[matches.length - 1]?.pathname ?? "";
+    const appIsolado = pathname.startsWith("/agenda/") || pathname === "/chat" || pathname.startsWith("/chat/");
+
+    return {
+      meta: [
+        { charSet: "utf-8" },
+        { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content" },
+        { title: "Via Air — Agência de viagens, passagens e pacotes" },
+        { name: "description", content: "Via Air: passagens aéreas, pacotes, hotéis, cruzeiros e experiências personalizadas com atendimento humano." },
+        { property: "og:title", content: "Via Air — Agência de viagens, passagens e pacotes" },
+        { property: "og:description", content: "Via Air: passagens aéreas, pacotes, hotéis, cruzeiros e experiências personalizadas com atendimento humano." },
+        { property: "og:type", content: "website" },
+        { property: "og:url", content: "https://pedidos.viaair.tur.br/" },
+        { property: "og:site_name", content: "Via Air" },
+        { name: "twitter:card", content: "summary_large_image" },
+        { name: "twitter:title", content: "Via Air — Agência de viagens, passagens e pacotes" },
+        { name: "twitter:description", content: "Via Air: passagens aéreas, pacotes, hotéis, cruzeiros e experiências personalizadas com atendimento humano." },
+        { name: "google-site-verification", content: "_pcjKMoEJrMBzUL75rH0k8Dy_fMqOnaIZ4D49f4v42I" },
+        ...(appIsolado
+          ? []
+          : [
+              { name: "theme-color", content: "#0F172A" },
+              { name: "apple-mobile-web-app-title", content: "VIA AIR" },
+            ]),
+        { name: "apple-mobile-web-app-capable", content: "yes" },
+        { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
+        { name: "mobile-web-app-capable", content: "yes" },
+      ],
+      links: [
+        { rel: "stylesheet", href: appCss },
+        { rel: "icon", href: "/favicon.png", type: "image/png" },
+        ...(appIsolado
+          ? []
+          : [
+              { rel: "apple-touch-icon", href: "/apple-touch-icon.png" },
+              { rel: "manifest", href: "/manifest.webmanifest" },
+            ]),
+        { rel: "preconnect", href: "https://fonts.googleapis.com" },
+        { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
+        { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" },
+      ],
+    };
+  },
+
 
   shellComponent: RootShell,
   component: RootComponent,
