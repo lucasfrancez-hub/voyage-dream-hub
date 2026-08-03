@@ -914,12 +914,12 @@ function DetalhesDialog({
               )}
 
               {evento.descricao && (
-                <div className="rounded-xl border border-border bg-muted/50 p-4">
+                <div className="w-full min-w-0 overflow-hidden rounded-xl border border-border bg-muted/50 p-4">
                   <div className="flex items-center gap-2 pb-2">
                     <AlignLeft className="h-3.5 w-3.5 text-muted-foreground" />
                     <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Detalhes</p>
                   </div>
-                  <div className="whitespace-pre-wrap break-words text-sm leading-relaxed text-muted-foreground [&_a]:break-all [&_a]:font-semibold [&_a]:text-primary">
+                  <div className="w-full min-w-0 whitespace-pre-wrap break-words text-sm leading-relaxed text-muted-foreground [overflow-wrap:anywhere] [&_a]:break-all [&_a]:font-semibold [&_a]:text-primary">
                     {comLinks(evento.descricao)}
                   </div>
                 </div>
