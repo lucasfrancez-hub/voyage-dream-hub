@@ -286,7 +286,7 @@ export const Route = createFileRoute("/api/public/hooks/flight-quote-watchdog")(
           }
         }
 
-        return Response.json({ ok: true, avisados, escalados });
+        return Response.json({ ok: true, avisados, escalados, destravadas });
       },
     },
   },
