@@ -22,7 +22,8 @@ const GRAPH = "https://graph.instagram.com/v21.0";
 
 export type IGSendResult = { message_id?: string; recipient_id?: string; error?: string };
 
-async function fetchGraph(path: string, init: RequestInit & { token: string }) {
+async function fetchGraph(path: string, init: RequestInit & { token: string; operation?: string }) {
+  const started = Date.now();
   const { token, headers, ...rest } = init;
   const res = await fetch(`${GRAPH}${path}`, {
     ...rest,
@@ -33,12 +34,39 @@ async function fetchGraph(path: string, init: RequestInit & { token: string }) {
     },
   });
   const body = await res.text();
+  let parsed: Record<string, unknown> | null = null;
+  try { parsed = JSON.parse(body) as Record<string, unknown>; } catch { parsed = null; }
+  const metaError = parsed?.error && typeof parsed.error === "object" ? parsed.error as { message?: string; code?: number; error_subcode?: number; fbtrace_id?: string } : null;
+  try {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    let requestPayload: unknown = null;
+    if (typeof rest.body === "string") {
+      try { requestPayload = JSON.parse(rest.body); } catch { requestPayload = rest.body; }
+    }
+    await supabaseAdmin.from("instagram_api_logs").insert({
+      operation: init.operation ?? "graph_api",
+      endpoint: path,
+      method: rest.method ?? "GET",
+      request_payload: requestPayload,
+      response_body: parsed,
+      response_raw: parsed ? null : body.slice(0, 20_000),
+      http_status: res.status,
+      success: res.ok,
+      error_message: metaError?.message ?? (!res.ok ? body.slice(0, 2_000) : null),
+      error_code: metaError?.code != null ? String(metaError.code) : null,
+      error_subcode: metaError?.error_subcode != null ? String(metaError.error_subcode) : null,
+      fbtrace_id: metaError?.fbtrace_id ?? null,
+      duration_ms: Date.now() - started,
+    });
+  } catch (logError) {
+    console.error("[ig-api] falha ao persistir log", logError);
+  }
   if (!res.ok) {
     console.error(`[ig-api] ${path} failed [${res.status}]: ${body}`);
     throw new Error(`Instagram Graph API ${res.status}: ${body}`);
   }
   try {
-    return JSON.parse(body);
+    return parsed ?? JSON.parse(body);
   } catch {
     return { raw: body };
   }
@@ -59,6 +87,7 @@ export async function sendDirectMessage(params: {
   const json = await fetchGraph(`/${params.igUserId}/messages`, {
     method: "POST",
     token: params.token,
+    operation: "send_dm",
     body: JSON.stringify(body),
   });
   return { message_id: json.message_id, recipient_id: json.recipient_id };
@@ -77,6 +106,7 @@ export async function sendDirectImage(params: {
   return fetchGraph(`/${params.igUserId}/messages`, {
     method: "POST",
     token: params.token,
+    operation: "send_dm_image",
     body: JSON.stringify(body),
   });
 }
@@ -91,6 +121,7 @@ export async function replyToComment(params: {
   return fetchGraph(`/${params.commentId}/replies`, {
     method: "POST",
     token: params.token,
+    operation: "reply_comment",
     body: JSON.stringify({ message: params.message.slice(0, 500) }),
   });
 }
@@ -108,6 +139,7 @@ export async function sendPrivateReplyToComment(params: {
   return fetchGraph(`/${params.igUserId}/messages`, {
     method: "POST",
     token: params.token,
+    operation: "private_reply_comment",
     body: JSON.stringify(body),
   });
 }
