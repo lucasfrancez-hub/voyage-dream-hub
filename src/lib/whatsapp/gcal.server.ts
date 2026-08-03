@@ -85,19 +85,31 @@ function normalizar(ev: {
   };
 }
 
-/** Eventos de um período. */
+/** Eventos de um período (segue todas as páginas do Google). */
 export async function buscarEventosGoogle(calendarId: string, de: Date, ate: Date): Promise<GoogleEvento[]> {
-  const qs = new URLSearchParams({
-    timeMin: de.toISOString(),
-    timeMax: ate.toISOString(),
-    singleEvents: "true",
-    orderBy: "startTime",
-    maxResults: "2500",
-  });
-  const data = (await gcal(`/calendars/${encodeURIComponent(calendarId)}/events?${qs}`)) as {
-    items?: Parameters<typeof normalizar>[0][];
-  };
-  return (data.items ?? []).map(normalizar).filter((e): e is GoogleEvento => Boolean(e));
+  const saida: GoogleEvento[] = [];
+  let pageToken: string | undefined;
+  for (let pagina = 0; pagina < 20; pagina++) {
+    const qs = new URLSearchParams({
+      timeMin: de.toISOString(),
+      timeMax: ate.toISOString(),
+      singleEvents: "true",
+      orderBy: "startTime",
+      maxResults: "2500",
+      ...(pageToken ? { pageToken } : {}),
+    });
+    const data = (await gcal(`/calendars/${encodeURIComponent(calendarId)}/events?${qs}`)) as {
+      items?: Parameters<typeof normalizar>[0][];
+      nextPageToken?: string;
+    };
+    for (const item of data.items ?? []) {
+      const ev = normalizar(item);
+      if (ev) saida.push(ev);
+    }
+    if (!data.nextPageToken) break;
+    pageToken = data.nextPageToken;
+  }
+  return saida;
 }
 
 export type EntradaGoogle = {
