@@ -139,3 +139,36 @@ export function stripMarkdownForWhatsApp(text: string): string {
   out = out.replace(/^\s{0,3}(-{3,}|_{3,})\s*$/gm, "");
   return out;
 }
+
+/**
+ * VÍCIOS DE LINGUAGEM (fala de gente, não de sistema).
+ *
+ * A equipe da VIA AIR escreve no WhatsApp como conversa de verdade: "vc" no
+ * lugar de "você", "tá" no lugar de "está", "pra" no lugar de "para a/o".
+ * O modelo às vezes escorrega pro português formal — aqui o texto é ajustado
+ * antes de sair, sem tocar em links nem em nomes próprios.
+ */
+export function aplicarViciosDeLinguagem(text: string): string {
+  let out = String(text ?? "");
+  const trocas: Array<[RegExp, string]> = [
+    [/(?<![\p{L}])Você(?![\p{L}])/gu, "Vc"],
+    [/(?<![\p{L}])você(?![\p{L}])/gu, "vc"],
+    [/(?<![\p{L}])Está(?![\p{L}])/gu, "Tá"],
+    [/(?<![\p{L}])está(?![\p{L}])/gu, "tá"],
+    [/(?<![\p{L}])Estão(?![\p{L}])/gu, "Tão"],
+    [/(?<![\p{L}])estão(?![\p{L}])/gu, "tão"],
+    [/(?<![\p{L}])para vc(?![\p{L}])/gu, "pra vc"],
+    [/(?<![\p{L}])Para vc(?![\p{L}])/gu, "Pra vc"],
+  ];
+  // Preserva URLs: troca só fora de links.
+  const partes = out.split(/(https?:\/\/\S+)/g);
+  out = partes
+    .map((p, i) => {
+      if (i % 2 === 1) return p; // é o link
+      let t = p;
+      for (const [re, sub] of trocas) t = t.replace(re, sub);
+      return t;
+    })
+    .join("");
+  return out;
+}
