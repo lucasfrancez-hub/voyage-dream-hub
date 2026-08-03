@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { Json } from "@/integrations/supabase/types";
 
 const passengerSchema = z.object({
   index: z.number().int().min(1).max(20),
@@ -47,7 +48,12 @@ const checkoutOrderSchema = z.object({
       city: z.string().trim().min(2).max(100),
       state: z.string().trim().length(2),
     }),
-    authorization: z.record(z.string(), z.unknown()).optional(),
+    authorization: z.record(z.string(), z.union([
+      z.string(),
+      z.number(),
+      z.boolean(),
+      z.null(),
+    ])).optional(),
   }).optional(),
 });
 
@@ -93,7 +99,7 @@ export async function submitCheckoutOrderHandler({ data }: { data: z.infer<typeo
   const { error } = await supabaseAdmin.from("orders").insert({
     id: data.requestId,
     package_id: null,
-    package_snapshot: packageSnapshot,
+    package_snapshot: packageSnapshot as Json,
     full_name: data.fullName,
     email: data.email.toLowerCase(),
     phone: data.phone,
