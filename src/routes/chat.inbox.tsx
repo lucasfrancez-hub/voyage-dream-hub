@@ -314,7 +314,15 @@ function InboxPage() {
 
       {/* Coluna 3 — Detalhes */}
       <aside className="hidden w-72 shrink-0 border-l border-slate-200 bg-white lg:block">
-        {active ? <ContactDetails conv={active} onChange={refetch} /> : null}
+        {channel === "instagram_dm" ? (
+          igMirrorConv ? (
+            <ContactDetails conv={igMirrorConv} onChange={refetch} />
+          ) : activeId ? (
+            <div className="p-4 text-xs text-slate-400">Sincronizando dados do perfil…</div>
+          ) : null
+        ) : active ? (
+          <ContactDetails conv={active} onChange={refetch} />
+        ) : null}
       </aside>
 
       <NewConversationDialog
