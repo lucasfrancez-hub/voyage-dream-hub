@@ -2001,6 +2001,23 @@ function InstagramConversationView({ conversationId, onBack }: { conversationId:
   });
   const profile = igConvs.find((c) => c.id === conversationId) ?? null;
 
+  // Quando o @ ou a foto não vieram pelo webhook, busca o perfil na hora.
+  const refreshProfileFn = useServerFn(refreshInstagramProfile);
+  const tentouPerfil = useRef<string | null>(null);
+  useEffect(() => {
+    if (!profile) return;
+    if (profile.contact_username && profile.contact_profile_pic) return;
+    if (tentouPerfil.current === conversationId) return;
+    tentouPerfil.current = conversationId;
+    refreshProfileFn({ data: { conversation_id: conversationId } })
+      .then(() => {
+        qc.invalidateQueries({ queryKey: ["ig", "conversations"] });
+      })
+      .catch(() => {});
+  }, [profile, conversationId, refreshProfileFn, qc]);
+
+
+
 
 
   return (
