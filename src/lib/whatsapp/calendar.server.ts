@@ -120,10 +120,11 @@ async function gravarEvento(conta: ContaAgenda, ev: {
   situacao: string;
   rawIcs?: string | null;
 }) {
-  await supabaseAdmin.from("wa_calendar_events").upsert(
+  const { error } = await supabaseAdmin.from("wa_calendar_events").upsert(
     {
       account_id: conta.id,
       provider: conta.provider,
+      origem: conta.provider,
       uid: ev.uid,
       etag: ev.etag ?? null,
       href: ev.href ?? null,
@@ -139,6 +140,8 @@ async function gravarEvento(conta: ContaAgenda, ev: {
     },
     { onConflict: "account_id,uid" },
   );
+  // Sem isso, uma falha de gravação passava batido e a agenda ficava vazia.
+  if (error) throw new Error(`Falha ao salvar "${ev.titulo}": ${error.message}`);
 }
 
 /** Baixa os compromissos de uma conta e espelha no banco. */
