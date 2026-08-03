@@ -33,9 +33,11 @@ describe("conclusão da cotação (formato-agnóstica)", () => {
     expect(cotacaoConcluida(1, previstas)).toBe(true);
   });
 
-  it("horários de ida repetidos não inflam o previsto", () => {
+  it("opções com o mesmo horário de ida contam como opções distintas", () => {
+    // Mesmo horário, tarifas/voltas diferentes = duas alternativas reais:
+    // as duas precisam ser entregues, então o previsto é 3.
     const todas = [op("2026-09-01T06:00"), op("2026-09-01T06:00", 1200), op("2026-09-01T12:00")];
-    expect(previstasNaCotacao(todas, MAX_OPCOES)).toBe(2);
+    expect(previstasNaCotacao(todas, MAX_OPCOES)).toBe(3);
   });
 
   it("nunca prevê mais que a meta da política", () => {
