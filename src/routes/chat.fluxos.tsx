@@ -487,6 +487,77 @@ function FluxosPage() {
 
 /* ───────────────────────── painel lateral ───────────────────────────────── */
 
+function PainelSeta({
+  origem,
+  destino,
+  label,
+  onChange,
+  onExcluir,
+}: {
+  origem: string;
+  destino: string;
+  label: string;
+  onChange: (label: string) => void;
+  onExcluir: () => void;
+}) {
+  const sugestoes = [
+    "cliente quer só passagem aérea",
+    "cliente quer pacote",
+    "cliente já tem reserva (pós-venda)",
+    "cliente não informou a origem",
+    "cliente confirmou a origem",
+    "não achou pacote disponível",
+    "cliente escolheu uma opção",
+    "cliente pediu mais opções",
+  ];
+  return (
+    <div className="space-y-4">
+      <div>
+        <p className="text-sm font-semibold text-foreground">Caminho</p>
+        <p className="text-xs text-muted-foreground">
+          {origem} → {destino}
+        </p>
+      </div>
+
+      <div className="space-y-1.5">
+        <Label htmlFor="seta-label">Condição / motivo</Label>
+        <Textarea
+          id="seta-label"
+          rows={3}
+          value={label}
+          placeholder="Ex.: cliente quer só passagem aérea"
+          onChange={(e) => onChange(e.target.value)}
+        />
+        <p className="text-[11px] text-muted-foreground">
+          É o que a IA lê pra saber por que o atendimento vai pra esse quadro.
+        </p>
+      </div>
+
+      <div className="space-y-1.5">
+        <p className="text-xs font-medium text-muted-foreground">Sugestões</p>
+        <div className="flex flex-wrap gap-1.5">
+          {sugestoes.map((s) => (
+            <button
+              key={s}
+              type="button"
+              onClick={() => onChange(s)}
+              className="rounded border border-border px-2 py-1 text-[11px] text-muted-foreground hover:bg-accent hover:text-foreground"
+            >
+              {s}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <Button variant="destructive" size="sm" className="w-full" onClick={onExcluir}>
+        <Trash2 className="mr-1.5 h-4 w-4" />
+        Excluir seta
+      </Button>
+    </div>
+  );
+}
+
+
 function PainelQuadro({
   data,
   onChange,
