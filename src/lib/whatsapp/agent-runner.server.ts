@@ -1246,7 +1246,7 @@ export async function runAgent(input: {
       latestInboundNow?.id !== triggerMessageId ||
       runtimeSwitchedToCentral ||
       (activeSlug != null && activeSlug !== agent.slug) ||
-      (alreadyAnswered ?? 0) > 0;
+      (!instructionRun && (alreadyAnswered ?? 0) > 0);
     if (staleRun) {
       console.warn("[agent-runtime]", JSON.stringify({
         ...runtimeAudit,
