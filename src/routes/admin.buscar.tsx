@@ -302,6 +302,14 @@ function BuscarPage() {
       <>
         Aéreo <span className="font-bold text-primary">+</span> hotel juntos
       </>
+    ) : mode === "exclusivo" ? (
+      <>
+        O que temos de <span className="font-bold text-primary">exclusivo</span>?
+      </>
+    ) : mode === "seguro" ? (
+      <>
+        Qual <span className="font-bold text-primary">seguro</span> vamos cotar?
+      </>
     ) : (
       <>
         Para onde <span className="font-bold text-primary">vamos</span> hoje?
