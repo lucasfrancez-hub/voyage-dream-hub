@@ -2497,6 +2497,9 @@ function InstagramCommentThreadView({ mediaId, onBack }: { mediaId: string; onBa
   const [alvo, setAlvo] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const [verMidia, setVerMidia] = useState(false);
+  const [postAberto, setPostAberto] = useState(false);
+  const legendaLonga = (thread?.media_caption ?? "").length > 140;
+
 
   const bottomRef = useRef<HTMLDivElement | null>(null);
 
