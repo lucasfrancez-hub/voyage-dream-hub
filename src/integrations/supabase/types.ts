@@ -1338,6 +1338,7 @@ export type Database = {
           dm_scheduled_at: string | null
           dm_text: string | null
           from_ig_id: string | null
+          from_profile_pic: string | null
           from_username: string | null
           id: string
           media_caption: string | null
@@ -1347,6 +1348,7 @@ export type Database = {
           media_type: string | null
           metadata: Json
           parent_comment_id: string | null
+          read_at: string | null
           text: string | null
           updated_at: string
         }
@@ -1361,6 +1363,7 @@ export type Database = {
           dm_scheduled_at?: string | null
           dm_text?: string | null
           from_ig_id?: string | null
+          from_profile_pic?: string | null
           from_username?: string | null
           id?: string
           media_caption?: string | null
@@ -1370,6 +1373,7 @@ export type Database = {
           media_type?: string | null
           metadata?: Json
           parent_comment_id?: string | null
+          read_at?: string | null
           text?: string | null
           updated_at?: string
         }
@@ -1384,6 +1388,7 @@ export type Database = {
           dm_scheduled_at?: string | null
           dm_text?: string | null
           from_ig_id?: string | null
+          from_profile_pic?: string | null
           from_username?: string | null
           id?: string
           media_caption?: string | null
@@ -1393,6 +1398,7 @@ export type Database = {
           media_type?: string | null
           metadata?: Json
           parent_comment_id?: string | null
+          read_at?: string | null
           text?: string | null
           updated_at?: string
         }
