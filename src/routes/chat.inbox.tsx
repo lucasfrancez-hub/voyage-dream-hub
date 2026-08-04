@@ -2604,20 +2604,39 @@ function InstagramCommentThreadView({ mediaId, onBack }: { mediaId: string; onBa
           <DialogHeader>
             <DialogTitle className="text-sm">Publicação no Instagram</DialogTitle>
           </DialogHeader>
-          {thread?.media_permalink ? (
-            <iframe
-              src={`${thread.media_permalink.replace(/\/?$/, "/")}embed`}
-              title="Publicação no Instagram"
-              className="h-[520px] w-full rounded-lg border border-slate-200"
-              allowFullScreen
+          {midiaCarregando ? (
+            <div className="flex h-64 items-center justify-center text-xs text-slate-400">
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Carregando publicação…
+            </div>
+          ) : midia?.media_url && (midia.media_type ?? "").toUpperCase().includes("VIDEO") ? (
+            <video
+              src={midia.media_url}
+              poster={midia.thumbnail ?? thread?.media_thumbnail ?? undefined}
+              controls
+              autoPlay
+              playsInline
+              className="max-h-[70vh] w-full rounded-lg bg-black"
             />
+          ) : midia?.media_url ? (
+            <img src={midia.media_url} alt="Publicação" className="max-h-[70vh] w-full rounded-lg object-contain" />
           ) : thread?.media_thumbnail ? (
             <img src={thread.media_thumbnail} alt="Publicação" className="w-full rounded-lg" />
           ) : (
             <p className="text-xs text-slate-500">Publicação indisponível.</p>
           )}
+          {thread?.media_permalink && (
+            <a
+              href={thread.media_permalink}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1 text-xs text-slate-500 hover:text-[#F26B1F]"
+            >
+              <ExternalLink className="h-3 w-3" /> abrir no Instagram
+            </a>
+          )}
         </DialogContent>
       </Dialog>
+
 
       <div className="flex-1 space-y-2 overflow-y-auto p-4">
 
