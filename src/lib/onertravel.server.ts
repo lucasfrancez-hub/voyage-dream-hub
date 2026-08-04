@@ -176,10 +176,10 @@ async function poll(
           const signature = flightSignature(flight);
           let bucket = fares.get(signature);
           if (!bucket) {
-            bucket = new Map<string, number>();
+            bucket = new Map<string, OnerFlight>();
             fares.set(signature, bucket);
           }
-          if (flight.key && !bucket.has(flight.key)) bucket.set(flight.key, flight.price.total);
+          if (flight.key && !bucket.has(flight.key)) bucket.set(flight.key, flight);
           const previous = acc.get(signature);
           if (!previous || flight.price.total < previous.price.total) {
             acc.set(signature, flight);
@@ -209,14 +209,41 @@ async function poll(
 
   const flights = [...acc.entries()]
     .map(([signature, flight]) => {
-      const ordered = [...(fares.get(signature)?.entries() ?? [])].sort((a, b) => a[1] - b[1]);
+      const ordered = [...(fares.get(signature)?.values() ?? [])].sort(
+        (a, b) => a.price.total - b.price.total,
+      );
+      const fareOptions: OnerFareOption[] = [];
+      const seen = new Set<string>();
+      for (const f of ordered) {
+        const family = f.journey?.fareClass?.airlineFareFamily ?? null;
+        const bags = (f.journey?.baggagesAllowance ?? [])
+          .map((b) => `${b.typeDescription ?? ""}${b.quantity ?? ""}${b.weight ?? ""}`)
+          .sort()
+          .join(",");
+        // Mesma família + mesma bagagem + mesmo preço = tarifa duplicada de outro fornecedor.
+        const dedupe = `${family ?? ""}|${bags}|${f.journey?.allowedBaggage ? 1 : 0}|${f.price.total}`;
+        if (seen.has(dedupe)) continue;
+        seen.add(dedupe);
+        fareOptions.push({
+          key: f.key,
+          total: f.price.total,
+          price: f.price.price,
+          tax: f.price.tax,
+          cabinClass: f.journey?.fareClass?.cabinClass ?? f.journey?.segments?.[0]?.cabinClass ?? null,
+          fareFamily: family,
+          allowedBaggage: f.journey?.allowedBaggage,
+          baggagesAllowance: f.journey?.baggagesAllowance,
+        });
+      }
       return {
         ...flight,
-        altKeys: ordered.map(([key]) => key),
-        altTotals: ordered.map(([, total]) => total),
+        fareOptions,
+        altKeys: ordered.map((f) => f.key),
+        altTotals: ordered.map((f) => f.price.total),
       };
     })
     .sort((a, b) => a.price.total - b.price.total);
+
   const totals = flights.map((flight) => flight.price.total).filter(Number.isFinite);
   return {
     totalFlightsCount: flights.length,
