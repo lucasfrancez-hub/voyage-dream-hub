@@ -64,21 +64,19 @@ export async function notificarNovaMensagemChat({
       .eq("ativo", true);
     if (!subs || subs.length === 0) return;
 
-    const [presentes, naoLidas] = await Promise.all([presentesNaConversa(conversationId), totalNaoLidas()]);
+    const naoLidas = await totalNaoLidas();
 
     const payload = {
       title: `${canal === "instagram" ? "📸 " : "💬 "}${titulo}`,
       body: limpar(corpo || "Nova mensagem"),
       url: `/chat/inbox?c=${conversationId}`,
-      tag: `conv-${conversationId}`,
+      tag: `conv-${conversationId}-${messageId ?? Date.now()}`,
       conversationId,
       messageId: messageId ?? null,
       unreadCount: naoLidas,
     };
 
-    const alvos = subs.filter(
-      (s) => (canal === "instagram" ? s.pref_instagram : s.pref_novas) && !presentes.has(s.user_id as string),
-    );
+    const alvos = subs.filter((s) => (canal === "instagram" ? s.pref_instagram : s.pref_novas));
 
     await Promise.allSettled(alvos.map((s) => despachar(s, payload)));
   } catch (err) {
