@@ -782,7 +782,144 @@ function BagChip({
   );
 }
 
+/**
+ * "Mais opções para seu voo" — famílias tarifárias (LIGHT / CLASSIC / FLEX) do
+ * mesmo itinerário. A chave escolhida aqui é a que vai para a operadora
+ * (combinação da volta e geração do carrinho).
+ */
+function FareOptionsDialog({
+  f,
+  label,
+  open,
+  onOpenChange,
+  onConfirm,
+}: {
+  f: OnerFlight | null;
+  label: string;
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  onConfirm: (key: string) => void;
+}) {
+  const options = useMemo<OnerFareOption[]>(() => f?.fareOptions ?? [], [f]);
+  const [picked, setPicked] = useState<string | null>(null);
+  useEffect(() => {
+    if (open) setPicked(options[0]?.key ?? null);
+  }, [open, options]);
+
+  const base = options[0]?.total ?? 0;
+  const chosen = options.find((o) => o.key === picked) ?? options[0];
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-4xl">
+        <DialogHeader>
+          <DialogTitle className="text-base font-semibold">
+            Mais opções para seu voo de {label.toLowerCase()}
+          </DialogTitle>
+        </DialogHeader>
+
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {options.map((o, i) => {
+            const active = o.key === picked;
+            const delta = o.total - base;
+            return (
+              <div
+                key={o.key}
+                className={`relative flex flex-col rounded-2xl border-2 p-4 transition ${
+                  active ? "border-primary bg-primary/5" : "border-border/70 bg-card/60"
+                }`}
+              >
+                <span className="absolute right-3 top-3 rounded-full bg-primary/15 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-primary">
+                  {label}
+                </span>
+                <p className="mb-1 text-center text-lg font-black uppercase tracking-tight">
+                  {o.fareFamily?.trim() || `Tarifa ${i + 1}`}
+                </p>
+                <p className="mb-4 text-center text-xs text-muted-foreground">
+                  {cabinLabelOf(cabinIdOf(o.cabinClass) ?? "ECONOMY")}
+                </p>
+
+                <div className="space-y-2 border-y border-border/60 py-3 text-xs">
+                  <div className="flex items-center gap-2">
+                    <BriefcaseBusiness className="h-4 w-4 shrink-0 text-primary" />
+                    <span>{fareCarryOnText(o)}</span>
+                  </div>
+                  <div
+                    className={`flex items-center gap-2 ${
+                      fareHasBaggage(o) ? "" : "text-muted-foreground"
+                    }`}
+                  >
+                    <Luggage
+                      className={`h-4 w-4 shrink-0 ${
+                        fareHasBaggage(o) ? "text-primary" : "text-muted-foreground"
+                      }`}
+                    />
+                    <span>{fareCheckedText(o)}</span>
+                  </div>
+                </div>
+
+                <div className="mt-3 text-center">
+                  <p className="text-xs font-bold text-primary">
+                    {delta > 0 ? `+ ${fmtMoney(delta)}` : fmtMoney(0)}{" "}
+                    <span className="font-medium text-muted-foreground">/ diferença</span>
+                  </p>
+                  <p className="mt-1 text-2xl font-black tracking-tight">{fmtMoney(o.total)}</p>
+                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                    Total da {label.toLowerCase()}
+                  </p>
+                </div>
+
+                <Button
+                  variant={active ? "default" : "outline"}
+                  className="mt-4 w-full rounded-full text-xs font-bold uppercase tracking-wide"
+                  onClick={() => setPicked(o.key)}
+                >
+                  {active ? (
+                    <>
+                      <Check className="h-4 w-4" /> Selecionado
+                    </>
+                  ) : (
+                    "Selecionar"
+                  )}
+                </Button>
+              </div>
+            );
+          })}
+        </div>
+
+        <DialogFooter className="flex-col items-stretch gap-3 border-t border-border/60 pt-4 sm:flex-row sm:items-center sm:justify-between">
+          <p className="max-w-md text-[11px] leading-snug text-muted-foreground">
+            Taxas de não comparecimento, cancelamento ou alteração, acúmulo de milhas, reembolso e
+            marcação de assento conforme as regras da companhia para cada tipo de tarifa.
+          </p>
+          <div className="flex items-center gap-4">
+            <div className="text-right">
+              <p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
+                Total da {label.toLowerCase()}
+              </p>
+              <p className="text-xl font-black tracking-tight">
+                {fmtMoney(chosen?.total ?? f?.price.total ?? 0)}
+              </p>
+            </div>
+            <Button
+              className="rounded-full px-6 font-bold"
+              disabled={!chosen}
+              onClick={() => {
+                if (chosen) onConfirm(chosen.key);
+                onOpenChange(false);
+              }}
+            >
+              Prosseguir
+            </Button>
+          </div>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function FlightCard({
+
   f,
   selected,
   onSelect,
