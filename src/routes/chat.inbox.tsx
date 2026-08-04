@@ -138,10 +138,50 @@ function InboxPage() {
     refetchInterval: 20_000,
   });
 
-  const igActive = channel === "instagram_dm" && activeId ? igConversations.find((c) => c.id === activeId) ?? null : null;
+  // Qual painel deve ser renderizado (considera a aba "Todas").
+  const viewKind: "wa" | "ig" | "comment" | null =
+    channel === "all"
+      ? allKind
+      : channel === "whatsapp"
+        ? "wa"
+        : channel === "instagram_dm"
+          ? "ig"
+          : "comment";
+
+  const igActive = viewKind === "ig" && activeId ? igConversations.find((c) => c.id === activeId) ?? null : null;
   const igMirrorConv = igActive
     ? conversations.find((c) => c.wa_phone === `ig:${igActive.contact_ig_id}`) ?? null
     : null;
+
+  // Lista unificada da aba "Todas": WhatsApp + DMs do Instagram + comentários.
+  const unified = useMemo(() => {
+    const s = search.trim().toLowerCase();
+    const itens: Array<{ key: string; kind: "wa" | "ig" | "comment"; at: number; data: any }> = [];
+    for (const c of filtered) {
+      itens.push({ key: `wa-${c.id}`, kind: "wa", at: new Date(c.last_message_at ?? 0).getTime(), data: c });
+    }
+    for (const c of igConversations as any[]) {
+      if (folder === "unread" && (c.unread_count ?? 0) <= 0) continue;
+      if (folder === "resolved" ? c.status !== "closed" : c.status === "closed") continue;
+      if (s && !`${c.contact_name ?? ""} ${c.contact_username ?? ""}`.toLowerCase().includes(s)) continue;
+      itens.push({ key: `ig-${c.id}`, kind: "ig", at: new Date(c.last_message_at ?? 0).getTime(), data: c });
+    }
+    if (folder === "all" || folder === "unread") {
+      for (const t of igCommentThreads as any[]) {
+        if (folder === "unread" && (t.pendentes ?? 0) <= 0) continue;
+        if (s && !`${t.media_caption ?? ""}`.toLowerCase().includes(s)) continue;
+        const ultimo = t.comments?.[t.comments.length - 1];
+        itens.push({
+          key: `cm-${t.media_id}`,
+          kind: "comment",
+          at: new Date(ultimo?.created_at ?? 0).getTime(),
+          data: t,
+        });
+      }
+    }
+    return itens.sort((a, b) => b.at - a.at);
+  }, [filtered, igConversations, igCommentThreads, folder, search]);
+
 
   const waUnread = useMemo(
     () => conversations.reduce((n, c) => (c.wa_phone?.startsWith("ig:") ? n : n + ((c.unread_count ?? 0) > 0 ? 1 : 0)), 0),
