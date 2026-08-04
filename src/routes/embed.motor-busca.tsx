@@ -43,6 +43,9 @@ function EmbedMotorBusca() {
         /* remove o brilho azul de fundo dos cabeçalhos do motor no widget */
         [style*="brand-blue"]{background:none !important;opacity:0 !important;}
         header{background:transparent !important;}
+        /* no widget não mostramos os avisos de "informe os locais" — só o motor */
+        [data-empty-state]{display:none !important;}
+
       `}</style>
       <PublicEngineProvider value={true}>
         <SearchEngine publicMode initialMode="aereo" />

@@ -322,7 +322,7 @@ export function ExclusivosPage({ header }: { header?: React.ReactNode } = {}) {
         {run.isPending && <SearchSkeleton kind="exclusive" rows={4} />}
 
         {!result && !run.isPending && (
-          <div className="rounded-2xl border border-dashed border-border p-12 text-center">
+          <div data-empty-state className="rounded-2xl border border-dashed border-border p-12 text-center">
             <Sparkles className="mx-auto mb-3 h-6 w-6 text-muted-foreground" />
             <p className="text-sm text-muted-foreground">
               Escolha o destino e as datas. Os filtros aparecem na lateral depois da pesquisa.
