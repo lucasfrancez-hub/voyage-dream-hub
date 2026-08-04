@@ -84,8 +84,9 @@ export function AdminOrders({ scope, initialStatus }: { scope: "mine" | "third_p
         .select("id, order_number, created_at, status, full_name, email, phone, cpf, payment_method, total_price, package_snapshot, package_id, supplier_name, supplier_order_number, airline_locator, owner_user_id, deleted_at, deleted_reason")
         .order("created_at", { ascending: false })
         .limit(500);
-      if (scope === "mine") q = q.eq("owner_user_id", currentUserId!);
-      else q = q.neq("owner_user_id", currentUserId!);
+      // leads do site entram sem responsável (owner_user_id null) — aparecem em "meus pedidos"
+      if (scope === "mine") q = q.or(`owner_user_id.eq.${currentUserId!},owner_user_id.is.null`);
+      else q = q.neq("owner_user_id", currentUserId!).not("owner_user_id", "is", null);
       if (showDeleted) q = q.not("deleted_at", "is", null);
       else q = q.is("deleted_at", null);
       const { data, error } = await q;
