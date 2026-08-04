@@ -2479,6 +2479,8 @@ function InstagramCommentThreadView({ mediaId, onBack }: { mediaId: string; onBa
   const [text, setText] = useState("");
   const [alvo, setAlvo] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
+  const [verMidia, setVerMidia] = useState(false);
+
   const bottomRef = useRef<HTMLDivElement | null>(null);
 
   const { data: threads = [], isLoading } = useQuery({
