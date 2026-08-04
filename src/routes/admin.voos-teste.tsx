@@ -1456,6 +1456,10 @@ export function VoosPage({
   const [selectedOut, setSelectedOut] = useState<string | null>(null);
   const [selectedIn, setSelectedIn] = useState<string | null>(null);
   const [inbound, setInbound] = useState<OnerLegResult | null>(null);
+  /** Tarifa da ida efetivamente usada quando a mais barata não combina volta. */
+  const [outFareOverride, setOutFareOverride] = useState<{ key: string; total: number | null } | null>(
+    null,
+  );
   const [outFilters, setOutFilters] = useState<Filters>(EMPTY_FILTERS);
   const [inFilters, setInFilters] = useState<Filters>(EMPTY_FILTERS);
   const [isRoundTrip, setIsRoundTrip] = useState(false);
