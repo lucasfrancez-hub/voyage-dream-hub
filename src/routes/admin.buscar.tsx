@@ -367,7 +367,7 @@ export function SearchEngine({
         : "";
 
 
-  const hero = <ModeHeader mode={mode} setMode={setMode} title={heroTitle} subtitle={subtitle} />;
+  const hero = <ModeHeader mode={mode} setMode={changeMode} title={heroTitle} subtitle={subtitle} />;
 
   const comboReady =
     combo.departureIata.length === 3 &&
