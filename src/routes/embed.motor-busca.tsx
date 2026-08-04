@@ -22,7 +22,7 @@ function EmbedMotorBusca() {
   return (
     <div className="w-full p-0">
       <style>{`html,body,#root{background:transparent !important;margin:0;padding:0;}`}</style>
-      <PublicEngineProvider value={{ publicMode: true }}>
+      <PublicEngineProvider value={true}>
         <SearchEngine publicMode initialMode="aereo" />
       </PublicEngineProvider>
     </div>
