@@ -1408,7 +1408,7 @@ export function CarrosPage({
           </div>
         )}
 
-        {!result && !mut.isPending && (
+        {!result && !mut.isPending && !embedMode && (
           <div className="rounded-2xl border border-dashed border-border p-12 text-center">
             <Car className="mx-auto mb-3 h-6 w-6 text-muted-foreground" />
             <p className="text-sm text-muted-foreground">
