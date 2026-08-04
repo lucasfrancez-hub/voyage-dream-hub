@@ -69,7 +69,16 @@ function AbrirAppAdmin() {
     if (pin.length !== 4) return;
     setCarregando(true);
     try {
-      const r = (await abrir({ data: { token, pin, destino: "admin" } })) as { email: string; tokenHash: string };
+      const r = (await abrir({ data: { token, pin, destino: "admin" } })) as {
+        email?: string;
+        tokenHash?: string;
+        redirecionar?: "chat" | "admin";
+      };
+      if (r.redirecionar === "chat") {
+        window.location.replace(`/chat/app/${token}`);
+        return;
+      }
+      if (!r.email || !r.tokenHash) throw new Error("Link inválido ou desativado.");
       const { error } = await supabase.auth.verifyOtp({
         type: "magiclink",
         email: r.email,
