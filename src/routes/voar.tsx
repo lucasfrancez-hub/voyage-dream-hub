@@ -9,6 +9,8 @@ import { Plane, ShieldCheck, Headset, CreditCard, ChevronRight } from "lucide-re
 import { VoosPage } from "./admin.voos-teste";
 import { SearchEngine, type Mode } from "./admin.buscar";
 import { PaymentMethodsBar } from "@/components/flights/PaymentMethodsBar";
+import { ContactFooter } from "@/components/ContactFooter";
+
 
 import { TopBar } from "@/components/TopBar";
 import { InstallmentRulesDialog } from "@/components/flights/InstallmentRulesDialog";
@@ -161,7 +163,10 @@ function VoarPublicPage() {
         </div>
       </footer>
 
+      <ContactFooter whatsappMessage="Olá! Quero ajuda para escolher minha passagem aérea." />
+
     </div>
+
   );
 
 }
