@@ -1,12 +1,11 @@
 /**
  * Utilitário único de redimensionamento do widget (iframe) do motor de busca.
- * Elementos flutuantes (calendário, autocomplete) não conseguem ultrapassar o
- * iframe, então avisamos a página pai qual altura o widget precisa ter.
+ * NUNCA envia altura fixa: sempre mede a altura real do conteúdo renderizado.
  */
 const EMBED_MESSAGE_TYPE = "VIAAIR_EMBED_RESIZE";
 const LEGACY_MESSAGE_TYPE = "viaair-embed-height";
-const DEFAULT_EMBED_HEIGHT = 420;
-const MAX_EMBED_HEIGHT = 2400;
+const MIN_EMBED_HEIGHT = 120;
+const MAX_EMBED_HEIGHT = 6000;
 const EXTRA_BOTTOM_SPACE = 24;
 
 export function isInsideIframe(): boolean {
@@ -23,18 +22,33 @@ export function isEmbedPath(): boolean {
   return window.location.pathname.startsWith("/embed/");
 }
 
-function getDocumentHeight(): number {
-  if (typeof document === "undefined") return DEFAULT_EMBED_HEIGHT;
+/**
+ * Altura real do conteúdo. Como html/body podem estar com altura travada pelo
+ * próprio iframe, medimos também o wrapper e todos os elementos flutuantes
+ * (portais de calendário/dropdown) que ficam fora do fluxo.
+ */
+function getContentHeight(): number {
+  if (typeof document === "undefined") return MIN_EMBED_HEIGHT;
   const body = document.body;
   const html = document.documentElement;
-  return Math.max(
+
+  let height = Math.max(
     body?.scrollHeight ?? 0,
     body?.offsetHeight ?? 0,
-    html?.clientHeight ?? 0,
     html?.scrollHeight ?? 0,
     html?.offsetHeight ?? 0,
-    DEFAULT_EMBED_HEIGHT,
   );
+
+  const candidates = document.querySelectorAll<HTMLElement>(
+    ".embed-search-page, #root > *, [data-radix-popper-content-wrapper], .viaair-floating-layer",
+  );
+  candidates.forEach((el) => {
+    const rect = el.getBoundingClientRect();
+    if (rect.height <= 0) return;
+    height = Math.max(height, Math.round(window.scrollY + rect.bottom));
+  });
+
+  return height;
 }
 
 let lastSent = 0;
@@ -44,29 +58,30 @@ function sendHeight(height: number): void {
   const withFloor = Math.max(height, floatingFloor);
   const safeHeight = Math.min(
     MAX_EMBED_HEIGHT,
-    Math.max(DEFAULT_EMBED_HEIGHT, Math.ceil(withFloor)),
+    Math.max(MIN_EMBED_HEIGHT, Math.ceil(withFloor)),
   );
   if (safeHeight === lastSent) return;
   lastSent = safeHeight;
-  const payload = { type: EMBED_MESSAGE_TYPE, height: safeHeight };
-  window.parent?.postMessage(payload, "*");
+  window.parent?.postMessage({ type: EMBED_MESSAGE_TYPE, height: safeHeight }, "*");
   // compatibilidade com o snippet antigo já publicado no WordPress
   window.parent?.postMessage({ type: LEGACY_MESSAGE_TYPE, height: safeHeight }, "*");
 }
 
-/**
- * Piso de altura enquanto um elemento flutuante (calendário/dropdown) está
- * aberto. Sem isso, o observador global da página encolhe o iframe logo depois
- * e o navegador cria a barra de rolagem interna.
- */
+/** Piso enquanto um elemento flutuante está aberto (medido, nunca fixo). */
 let floatingFloor = 0;
 let floatingObserver: ResizeObserver | null = null;
 
-export function resizeEmbedToContent(extraSpace = 0): void {
+/** Função única: mede e envia a altura real, com re-checagens após o render. */
+export function updateEmbedHeight(extraSpace = 0): void {
   if (typeof window === "undefined") return;
-  window.requestAnimationFrame(() => {
-    sendHeight(getDocumentHeight() + extraSpace);
-  });
+  const run = () => window.requestAnimationFrame(() => sendHeight(getContentHeight() + extraSpace));
+  run();
+  window.setTimeout(run, 50);
+  window.setTimeout(run, 150);
+}
+
+export function resizeEmbedToContent(extraSpace = 0): void {
+  updateEmbedHeight(extraSpace);
 }
 
 function measureFloating(element: HTMLElement, extraSpace: number): number {
@@ -80,14 +95,16 @@ export function resizeEmbedForFloatingElement(
 ): void {
   if (typeof window === "undefined") return;
   if (!element) {
-    resizeEmbedToContent();
+    updateEmbedHeight();
     return;
   }
   const apply = () => {
     floatingFloor = measureFloating(element, extraSpace);
-    sendHeight(Math.max(getDocumentHeight(), floatingFloor));
+    sendHeight(Math.max(getContentHeight(), floatingFloor));
   };
   window.requestAnimationFrame(apply);
+  window.setTimeout(apply, 50);
+  window.setTimeout(apply, 150);
 
   // Recalcula sozinho quando o painel muda de tamanho (troca de mês, mais
   // sugestões na lista, 1 ou 2 meses no desktop, etc.).
@@ -102,8 +119,7 @@ export function resetEmbedHeight(): void {
   floatingObserver?.disconnect();
   floatingObserver = null;
   floatingFloor = 0;
-  resizeEmbedToContent();
+  updateEmbedHeight();
 }
 
 export const embedResizeMessageType = EMBED_MESSAGE_TYPE;
-
