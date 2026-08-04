@@ -41,6 +41,23 @@ const PAID = new Set(["paid", "approved", "confirmed", "awaiting_signature", "co
 const RANGES = [7, 30, 60, 90] as const;
 type Range = (typeof RANGES)[number];
 
+const PERIODS = [
+  { days: 0, label: "Hoje" },
+  { days: 7, label: "7 dias" },
+  { days: 14, label: "14 dias" },
+  { days: 30, label: "1 mês" },
+  { days: 60, label: "60 dias" },
+  { days: 90, label: "90 dias" },
+  { days: 365, label: "1 ano" },
+] as const;
+
+function periodStart(days: number) {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  if (days > 0) d.setDate(d.getDate() - days + 1);
+  return d;
+}
+
 function toDate(v: unknown): Date | null {
   if (!v) return null;
   const s = String(v);
@@ -58,6 +75,8 @@ function daysUntil(d: Date) {
 
 function DashboardPage() {
   const [range, setRange] = useState<Range>(7);
+  const [periodDays, setPeriodDays] = useState<number>(7);
+  const periodLabel = PERIODS.find((p) => p.days === periodDays)?.label ?? "7 dias";
   const { data: isAdmin = false } = useQuery({
     queryKey: ["admin", "dashboard", "is-admin"],
     queryFn: async () => {
@@ -142,7 +161,9 @@ function DashboardPage() {
 
 
   const stats = useMemo(() => {
-    const paidOrders = (orders ?? []).filter((o) => PAID.has((o.status ?? "").toLowerCase()));
+    const start = periodStart(periodDays);
+    const allPaid = (orders ?? []).filter((o) => PAID.has((o.status ?? "").toLowerCase()));
+    const paidOrders = allPaid.filter((o) => new Date(o.created_at) >= start);
     const totalSold = paidOrders.reduce((a, o) => a + Number(o.total_price ?? 0), 0);
     const count = paidOrders.length;
     const avgTicket = count > 0 ? totalSold / count : 0;
@@ -154,20 +175,23 @@ function DashboardPage() {
 
     const now = new Date();
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-    const monthOrders = paidOrders.filter((o) => new Date(o.created_at) >= monthStart);
+    const monthOrders = allPaid.filter((o) => new Date(o.created_at) >= monthStart);
     const monthTotal = monthOrders.reduce((a, o) => a + Number(o.total_price ?? 0), 0);
+    const monthIds = new Set(monthOrders.map((o) => o.id));
     const monthCommission = (fins ?? [])
-      .filter((f) => monthOrders.some((o) => o.id === f.order_id))
+      .filter((f) => monthIds.has(f.order_id))
       .reduce((a, f) => a + Number(f.commission_value ?? 0), 0);
 
-    const pending = (orders ?? []).filter((o) => (o.status ?? "").toLowerCase() === "pending").length;
+    const pending = (orders ?? []).filter(
+      (o) => (o.status ?? "").toLowerCase() === "pending" && new Date(o.created_at) >= start,
+    ).length;
 
     // 6-month trend
     const trend: { label: string; total: number }[] = [];
     for (let i = 5; i >= 0; i--) {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
       const next = new Date(now.getFullYear(), now.getMonth() - i + 1, 1);
-      const total = paidOrders
+      const total = allPaid
         .filter((o) => {
           const c = new Date(o.created_at);
           return c >= d && c < next;
@@ -179,8 +203,8 @@ function DashboardPage() {
       });
     }
 
-    return { totalSold, count, avgTicket, commission, monthTotal, monthCommission, monthCount: monthOrders.length, pending, trend };
-  }, [orders, fins]);
+    return { totalSold, count, avgTicket, commission, monthTotal, monthCommission, monthCount: monthOrders.length, pending, trend, start };
+  }, [orders, fins, periodDays]);
 
   const upcoming = useMemo(() => {
     if (!orders) return [];
@@ -232,7 +256,10 @@ function DashboardPage() {
   }, [orders, items, range]);
 
   const topClients = useMemo(() => {
-    const paidOrders = (orders ?? []).filter((o) => PAID.has((o.status ?? "").toLowerCase()));
+    const start = periodStart(periodDays);
+    const paidOrders = (orders ?? []).filter(
+      (o) => PAID.has((o.status ?? "").toLowerCase()) && new Date(o.created_at) >= start,
+    );
     const map = new Map<string, { name: string; total: number; count: number }>();
     for (const o of paidOrders) {
       const name = (o.full_name ?? "").trim();
@@ -246,7 +273,7 @@ function DashboardPage() {
     return Array.from(map.values())
       .sort((a, b) => b.total - a.total)
       .slice(0, 10);
-  }, [orders]);
+  }, [orders, periodDays]);
 
   const maxTrend = Math.max(1, ...stats.trend.map((t) => t.total));
 
@@ -261,9 +288,28 @@ function DashboardPage() {
   return (
     <div className="mx-auto max-w-7xl px-4 md:px-6 py-6 space-y-6">
       <WelcomeBanner />
-      <div>
-        <h1 className="text-2xl font-display font-bold">Dashboard</h1>
-        <p className="text-sm text-muted-foreground">Visão geral do negócio</p>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-display font-bold">Dashboard</h1>
+          <p className="text-sm text-muted-foreground">
+            Visão geral do negócio · {periodDays === 0 ? "hoje" : `últimos ${periodDays} dias`}
+          </p>
+        </div>
+        <div className="inline-flex flex-wrap rounded-lg border border-border p-0.5 bg-muted/30">
+          {PERIODS.map((p) => (
+            <button
+              key={p.days}
+              onClick={() => setPeriodDays(p.days)}
+              className={`px-3 py-1.5 text-xs rounded-md transition ${
+                periodDays === p.days
+                  ? "bg-brand-orange text-white font-semibold"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
       </div>
 
 
@@ -272,11 +318,11 @@ function DashboardPage() {
 
       {/* KPIs */}
       <div className={`grid gap-3 grid-cols-2 ${isAdmin ? "md:grid-cols-4" : "md:grid-cols-3"}`}>
-        <Kpi icon={DollarSign} label="Total vendido" value={formatBRL(stats.totalSold)} hint={`${stats.count} pedidos pagos`} accent="text-emerald-500" />
+        <Kpi icon={DollarSign} label={`Vendido · ${periodLabel}`} value={formatBRL(stats.totalSold)} hint={`${stats.count} pedidos pagos`} accent="text-emerald-500" />
         {isAdmin && (
-          <Kpi icon={TrendingUp} label="Lucro / comissão" value={formatBRL(stats.commission)} hint="Somatório do financeiro" accent="text-brand-orange" />
+          <Kpi icon={TrendingUp} label={`Lucro / comissão · ${periodLabel}`} value={formatBRL(stats.commission)} hint="Somatório do financeiro" accent="text-brand-orange" />
         )}
-        <Kpi icon={Receipt} label="Ticket médio" value={formatBRL(stats.avgTicket)} hint="Pagos" />
+        <Kpi icon={Receipt} label="Ticket médio" value={formatBRL(stats.avgTicket)} hint={`Pagos · ${periodLabel}`} />
         <Link to="/admin/pedidos" search={{ status: "pending" }} className="block rounded-2xl transition hover:opacity-90">
           <Kpi icon={ShoppingBag} label="Pendentes" value={String(stats.pending)} hint="Ver aguardando pagamento →" />
         </Link>
@@ -284,6 +330,7 @@ function DashboardPage() {
 
       {/* Mês atual + trend */}
       <div className="grid gap-4 md:grid-cols-3">
+
         <div className="rounded-2xl border border-border bg-card p-5 md:col-span-1">
           <div className="text-xs uppercase tracking-wider text-muted-foreground mb-3">Este mês</div>
           <div className="space-y-4">
