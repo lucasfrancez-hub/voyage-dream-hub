@@ -450,7 +450,15 @@ function InboxPage() {
         (active || ((viewKind === "ig" || viewKind === "comment") && activeId)) ? "flex" : "hidden md:flex",
       )}>
         {viewKind === "ig" ? (
-          activeId ? <InstagramConversationView conversationId={activeId} onBack={() => setActiveId(null)} /> : <EmptyState />
+          activeId ? (
+            <InstagramConversationView
+              conversationId={activeId}
+              mirror={igMirrorConv}
+              onRefetch={refetch}
+              onBack={() => setActiveId(null)}
+            />
+          ) : <EmptyState />
+
         ) : viewKind === "comment" ? (
           activeId ? <InstagramCommentThreadView mediaId={activeId} onBack={() => setActiveId(null)} /> : <EmptyState />
         ) : active ? (
