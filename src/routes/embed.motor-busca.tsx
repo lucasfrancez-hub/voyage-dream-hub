@@ -5,7 +5,19 @@
  */
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { MapPin, ArrowLeftRight, CalendarDays, Users, Search, Plane } from "lucide-react";
+import {
+  MapPin,
+  ArrowLeftRight,
+  CalendarDays,
+  Users,
+  Search,
+  Plane,
+  BedDouble,
+  Car,
+  Sparkles,
+  ShieldCheck,
+  Layers,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,6 +25,17 @@ import { AirportAutocomplete } from "@/components/search/AirportAutocomplete";
 import { DateRangeField } from "@/components/search/DateRangeField";
 
 const PUBLIC_SITE_URL = "https://pedidos.viaair.tur.br";
+
+/** Abas do motor: só "aereo" busca no widget; as outras abrem o motor completo. */
+const OTHER_MODES = [
+  { k: "aereo", l: "Aéreo", icon: Plane },
+  { k: "hotel", l: "Hotel", icon: BedDouble },
+  { k: "carro", l: "Carro", icon: Car },
+  { k: "combo", l: "Aéreo + Hotel", icon: Layers },
+  { k: "exclusivo", l: "Exclusivos", icon: Sparkles },
+  { k: "seguro", l: "Seguros", icon: ShieldCheck },
+] as const;
+
 
 export const Route = createFileRoute("/embed/motor-busca")({
   head: () => ({
