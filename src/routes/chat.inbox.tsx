@@ -261,25 +261,32 @@ function InboxPage() {
   const markIgReadFn = useServerFn(markInstagramConversationRead);
   useEffect(() => {
     if (!activeId) return;
-    if (channel === "whatsapp") {
+    if (viewKind === "wa") {
       const conv = conversations.find((c) => c.id === activeId);
       if (!conv || (conv.unread_count ?? 0) <= 0) return;
+      qcInbox.setQueryData(["chat", "conversations"], (old: any) =>
+        Array.isArray(old) ? old.map((c: any) => (c.id === activeId ? { ...c, unread_count: 0 } : c)) : old,
+      );
       markWaReadFn({ data: { conversation_id: activeId } })
         .then(() => qcInbox.invalidateQueries({ queryKey: ["chat", "conversations"] }))
         .catch(() => {});
-    } else if (channel === "instagram_dm") {
+    } else if (viewKind === "ig") {
       const conv = igConversations.find((c: any) => c.id === activeId);
       if (!conv || ((conv as any).unread_count ?? 0) <= 0) return;
+      qcInbox.setQueryData(["ig", "conversations"], (old: any) =>
+        Array.isArray(old) ? old.map((c: any) => (c.id === activeId ? { ...c, unread_count: 0 } : c)) : old,
+      );
       markIgReadFn({ data: { conversation_id: activeId } })
         .then(() => qcInbox.invalidateQueries({ queryKey: ["ig", "conversations"] }))
         .catch(() => {});
     }
-  }, [activeId, channel, conversations, igConversations, markWaReadFn, markIgReadFn, qcInbox]);
+  }, [activeId, viewKind, conversations, igConversations, markWaReadFn, markIgReadFn, qcInbox]);
 
 
-  const active = channel === "whatsapp"
-    ? (filtered.find((c) => c.id === activeId) ?? conversations.find((c) => c.id === activeId) ?? null)
+  const active = viewKind === "wa"
+    ? (filtered.find((c) => c.id === activeId) ?? null)
     : null;
+
 
 
   return (
