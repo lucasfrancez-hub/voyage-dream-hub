@@ -37,7 +37,7 @@ export const Route = createFileRoute("/voar")({
       {
         name: "description",
         content:
-          "Compare passagens aéreas de todas as companhias em tempo real e compre em até 15x sem juros com a VIA AIR.",
+          "Compare passagens aéreas de todas as companhias em tempo real e parcele no cartão conforme as regras de cada companhia com a VIA AIR.",
       },
       { property: "og:title", content: "Passagens aéreas em tempo real | VIA AIR" },
       {
