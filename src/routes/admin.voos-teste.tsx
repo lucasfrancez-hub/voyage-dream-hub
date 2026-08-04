@@ -2194,10 +2194,13 @@ export function VoosPage({
                   ))}
 
                   {!outFlights.length && (
-                    <p className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
-                      Nenhum voo com esses filtros.
-                    </p>
+                    <NoResults
+                      title="Desculpe, nenhum voo foi encontrado."
+                      hint="Nenhuma opção com esses filtros (classe, paradas, bagagem ou horário). Selecione outra opção de filtro."
+                      onClearFilters={() => setOutFilters(EMPTY_FILTERS)}
+                    />
                   )}
+
                   <Button
                     variant="outline"
                     className="w-full"
