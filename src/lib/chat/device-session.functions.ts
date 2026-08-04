@@ -240,3 +240,107 @@ export const esquecerAparelhoChat = createServerFn({ method: "POST" }).handler(a
   setResponseHeader("Set-Cookie", montarCookie("", 0));
   return { ok: true as const };
 });
+
+/* ------------------------------------------------------------------ */
+/* Link do app do Chat (igual à Agenda: link secreto + PIN)            */
+/* ------------------------------------------------------------------ */
+
+async function hashPinLink(token: string, pin: string): Promise<string> {
+  return sha256Hex(`viaair-chat:${token}:${pin}`);
+}
+
+/** Lista os links de app criados. */
+export const listarLinksChat = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async () => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data } = await supabaseAdmin
+      .from("chat_app_links")
+      .select("id, token, nome, ativo, last_seen_at")
+      .order("created_at", { ascending: true });
+    return { links: data ?? [] };
+  });
+
+/** Cria um link secreto de app protegido por PIN de 4 números. */
+export const criarLinkChat = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw: unknown) =>
+    z.object({ nome: z.string().max(60).optional(), pin: z.string().regex(/^\d{4}$/) }).parse(raw),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const bytes = crypto.getRandomValues(new Uint8Array(18));
+    const token = Array.from(bytes)
+      .map((b) => "abcdefghijkmnopqrstuvwxyz23456789"[b % 33])
+      .join("");
+    const { error } = await supabaseAdmin.from("chat_app_links").insert({
+      token,
+      nome: data.nome?.trim() || "Chat VIA AIR",
+      user_id: context.userId,
+      pin_hash: await hashPinLink(token, data.pin),
+    });
+    if (error) throw new Error(error.message);
+    return { token };
+  });
+
+/** Remove um link de app. */
+export const removerLinkChat = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw: unknown) => z.object({ id: z.string().uuid() }).parse(raw))
+  .handler(async ({ data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    await supabaseAdmin.from("chat_app_links").delete().eq("id", data.id);
+    return { ok: true as const };
+  });
+
+/**
+ * Abre o app pelo link secreto: confere o PIN, registra este aparelho por
+ * 30 dias (cookie httpOnly) e devolve o token para restaurar a sessão.
+ */
+export const abrirLinkChat = createServerFn({ method: "POST" })
+  .inputValidator((raw: unknown) =>
+    z.object({ token: z.string().min(10).max(40), pin: z.string().regex(/^\d{4}$/) }).parse(raw),
+  )
+  .handler(async ({ data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: link } = await supabaseAdmin
+      .from("chat_app_links")
+      .select("id, token, nome, user_id, pin_hash, ativo")
+      .eq("token", data.token)
+      .maybeSingle();
+    if (!link || !link.ativo) throw new Error("Link inválido ou desativado.");
+    if ((await hashPinLink(link.token, data.pin)) !== link.pin_hash) throw new Error("PIN incorreto.");
+
+    const { data: u } = await supabaseAdmin.auth.admin.getUserById(link.user_id);
+    const email = u?.user?.email;
+    if (!email) throw new Error("Usuário do link sem e-mail cadastrado.");
+
+    const { data: magic, error: magicErr } = await supabaseAdmin.auth.admin.generateLink({
+      type: "magiclink",
+      email,
+    });
+    if (magicErr || !magic?.properties?.hashed_token) {
+      throw new Error(magicErr?.message || "Não foi possível abrir a sessão.");
+    }
+
+    // Registra o aparelho para não cair antes dos 30 dias.
+    const req = getRequest();
+    const bruto = bytesParaHex(crypto.getRandomValues(new Uint8Array(32)).buffer);
+    const salt = bytesParaHex(crypto.getRandomValues(new Uint8Array(16)).buffer);
+    await supabaseAdmin.from("chat_device_sessions").insert({
+      user_id: link.user_id,
+      token_hash: await sha256Hex(bruto),
+      pin_hash: await hashPin(data.pin, salt),
+      label: link.nome,
+      user_agent: req.headers.get("user-agent")?.slice(0, 300) ?? null,
+      expires_at: new Date(Date.now() + DIAS * 864e5).toISOString(),
+    });
+    setResponseHeader("Set-Cookie", montarCookie(bruto, DIAS * 86400));
+
+    await supabaseAdmin
+      .from("chat_app_links")
+      .update({ last_seen_at: new Date().toISOString() })
+      .eq("id", link.id);
+
+    return { ok: true as const, email, tokenHash: magic.properties.hashed_token };
+  });

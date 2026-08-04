@@ -725,6 +725,39 @@ export type Database = {
           },
         ]
       }
+      chat_app_links: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          id: string
+          last_seen_at: string | null
+          nome: string
+          pin_hash: string
+          token: string
+          user_id: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          last_seen_at?: string | null
+          nome?: string
+          pin_hash: string
+          token: string
+          user_id: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          last_seen_at?: string | null
+          nome?: string
+          pin_hash?: string
+          token?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       chat_device_sessions: {
         Row: {
           attempts: number
