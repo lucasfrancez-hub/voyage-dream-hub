@@ -1289,6 +1289,8 @@ function SummaryCard({
   const createCart = useServerFn(publicMode ? onerCreateFlightCartPublic : onerCreateFlightCart);
   const logLead = useServerFn(createPublicFlightLead);
   const [buyingPublic, setBuyingPublic] = useState(false);
+  const leadDone = useRef(false);
+
 
   // Gera o carrinho oficial do Comprar Viagem (agência VIA AIR na URL),
   // para o cliente concluir o pagamento no ambiente da operadora.
