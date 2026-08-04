@@ -250,7 +250,20 @@ function ComboForm({
 }
 
 function BuscarPage() {
-  const [mode, setMode] = useState<Mode>("aereo");
+  return <SearchEngine />;
+}
+
+/** Motor de busca completo (aéreo, hotel, carro, combo, exclusivos, seguros).
+ *  `publicMode` liga a versão sem login usada em /voar e no widget. */
+export function SearchEngine({
+  publicMode = false,
+  initialMode = "aereo",
+}: {
+  publicMode?: boolean;
+  initialMode?: Mode;
+} = {}) {
+  const [mode, setMode] = useState<Mode>(initialMode);
+
   const [combo, setCombo] = useState<ComboForm>(COMBO_INITIAL);
   const [runToken, setRunToken] = useState(0);
   const [step, setStep] = useState<ComboStep>(1);
