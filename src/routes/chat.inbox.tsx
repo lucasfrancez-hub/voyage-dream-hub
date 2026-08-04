@@ -327,7 +327,10 @@ function InboxPage() {
         <aside className={cn(
           "flex-col border-r border-slate-200 bg-white shrink-0",
           // Mobile: só mostra se não tem conversa aberta; ocupa tela toda
-          active || (channel === "instagram_dm" && activeId) ? "hidden md:flex" : "flex w-full",
+          active || ((viewKind === "ig" || viewKind === "comment") && activeId)
+            ? "hidden md:flex"
+            : "flex w-full",
+
 
           "md:flex md:w-80",
         )}>
