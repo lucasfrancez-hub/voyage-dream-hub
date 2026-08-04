@@ -161,7 +161,9 @@ function DashboardPage() {
 
 
   const stats = useMemo(() => {
-    const paidOrders = (orders ?? []).filter((o) => PAID.has((o.status ?? "").toLowerCase()));
+    const start = periodStart(periodDays);
+    const allPaid = (orders ?? []).filter((o) => PAID.has((o.status ?? "").toLowerCase()));
+    const paidOrders = allPaid.filter((o) => new Date(o.created_at) >= start);
     const totalSold = paidOrders.reduce((a, o) => a + Number(o.total_price ?? 0), 0);
     const count = paidOrders.length;
     const avgTicket = count > 0 ? totalSold / count : 0;
@@ -173,20 +175,23 @@ function DashboardPage() {
 
     const now = new Date();
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-    const monthOrders = paidOrders.filter((o) => new Date(o.created_at) >= monthStart);
+    const monthOrders = allPaid.filter((o) => new Date(o.created_at) >= monthStart);
     const monthTotal = monthOrders.reduce((a, o) => a + Number(o.total_price ?? 0), 0);
+    const monthIds = new Set(monthOrders.map((o) => o.id));
     const monthCommission = (fins ?? [])
-      .filter((f) => monthOrders.some((o) => o.id === f.order_id))
+      .filter((f) => monthIds.has(f.order_id))
       .reduce((a, f) => a + Number(f.commission_value ?? 0), 0);
 
-    const pending = (orders ?? []).filter((o) => (o.status ?? "").toLowerCase() === "pending").length;
+    const pending = (orders ?? []).filter(
+      (o) => (o.status ?? "").toLowerCase() === "pending" && new Date(o.created_at) >= start,
+    ).length;
 
     // 6-month trend
     const trend: { label: string; total: number }[] = [];
     for (let i = 5; i >= 0; i--) {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
       const next = new Date(now.getFullYear(), now.getMonth() - i + 1, 1);
-      const total = paidOrders
+      const total = allPaid
         .filter((o) => {
           const c = new Date(o.created_at);
           return c >= d && c < next;
@@ -198,8 +203,8 @@ function DashboardPage() {
       });
     }
 
-    return { totalSold, count, avgTicket, commission, monthTotal, monthCommission, monthCount: monthOrders.length, pending, trend };
-  }, [orders, fins]);
+    return { totalSold, count, avgTicket, commission, monthTotal, monthCommission, monthCount: monthOrders.length, pending, trend, start };
+  }, [orders, fins, periodDays]);
 
   const upcoming = useMemo(() => {
     if (!orders) return [];
