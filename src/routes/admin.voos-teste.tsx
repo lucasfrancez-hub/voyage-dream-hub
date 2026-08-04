@@ -1500,6 +1500,7 @@ export function VoosPage({
         setSelectedOut(null);
         setSelectedIn(null);
         setInbound(null);
+        setOutFareOverride(null);
         setOutFilters(EMPTY_FILTERS);
         setInFilters(EMPTY_FILTERS);
         setIsRoundTrip(!!form.returnDate);
@@ -1655,6 +1656,7 @@ export function VoosPage({
     setSelectedOut(key);
     setSelectedIn(null);
     setInbound(null);
+    setOutFareOverride(null);
     if (isRoundTrip) inboundMut.mutate({ flightKey: key, filters: inFilters });
   }
 
@@ -1725,6 +1727,7 @@ export function VoosPage({
     setSelectedOut(null);
     setSelectedIn(null);
     setInbound(null);
+    setOutFareOverride(null);
   }
 
   const cheapestOut = outFlights.length ? Math.min(...outFlights.map((f) => f.price.total)) : null;
