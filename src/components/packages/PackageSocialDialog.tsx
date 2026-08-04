@@ -46,7 +46,11 @@ export function PackageSocialDialog({
 }) {
   const generateFn = useServerFn(generateCurationCopy);
   const fetchImageFn = useServerFn(fetchProxiedImage);
-  const [loading, setLoading] = useState<"whatsapp" | "instagram" | "feed" | "story" | null>(null);
+  const publishArtFn = useServerFn(publishPackageArtToInstagram);
+  const [loading, setLoading] = useState<
+    "whatsapp" | "instagram" | "feed" | "story" | "post-feed" | "post-story" | null
+  >(null);
+
   const [output, setOutput] = useState<{ channel: "whatsapp" | "instagram"; text: string } | null>(
     null,
   );
