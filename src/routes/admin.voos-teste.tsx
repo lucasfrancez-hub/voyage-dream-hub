@@ -2227,11 +2227,12 @@ export function VoosPage({
                     <FlightCard
                       key={f.key}
                       f={f}
-                      selected={selectedIn === f.key}
+                      selected={isSameFlight(f, selectedIn)}
                       cheapest={f.price.total === cheapestIn}
-                      onSelect={() => setSelectedIn(f.key)}
+                      onSelect={() => chooseFlight(f, "in")}
                     />
                   ))}
+
                   {!inFlights.length && (
                     <p className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
                       Nenhuma volta com esses filtros.
