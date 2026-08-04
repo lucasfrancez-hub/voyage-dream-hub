@@ -8,6 +8,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Plane, ShieldCheck, Headset, CreditCard, ChevronRight } from "lucide-react";
 import { VoosPage } from "./admin.voos-teste";
 import { SearchEngine, type Mode } from "./admin.buscar";
+import { PaymentMethodsBar } from "@/components/flights/PaymentMethodsBar";
 
 import { TopBar } from "@/components/TopBar";
 import { InstallmentRulesDialog } from "@/components/flights/InstallmentRulesDialog";
