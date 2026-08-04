@@ -20,8 +20,12 @@ export const Route = createFileRoute("/embed/motor-busca")({
 });
 
 function EmbedMotorBusca() {
-  // Informa a altura real para o site que embeda (auto-resize do iframe)
+  // O redimensionamento automático é opcional. Sem `autoHeight=1`, a altura
+  // definida manualmente no HTML do WordPress nunca é sobrescrita.
   useEffect(() => {
+    const autoHeight = new URLSearchParams(window.location.search).get("autoHeight") === "1";
+    if (!autoHeight) return;
+
     const post = () => {
       const h = Math.ceil(document.documentElement.scrollHeight);
       window.parent?.postMessage({ type: "viaair-embed-height", height: h }, "*");
