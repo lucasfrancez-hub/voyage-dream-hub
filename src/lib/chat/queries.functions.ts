@@ -670,16 +670,32 @@ export const sendHumanMedia = createServerFn({ method: "POST" })
     const audioOk = /(ogg|aac|amr|mpeg|mp3|mp4|m4a)/i.test(`${data.mime_type} ${data.filename}`);
     let deliveredAs: "image" | "document" | "audio" = data.kind;
 
-    let sendRes = data.kind === "image"
-      ? await sendWhatsAppImageBytes(conv.wa_phone, bytes, data.filename, captionWithPrefix ?? null, signed.signedUrl)
-      : data.kind === "audio" && audioOk
-        ? await sendWhatsAppAudioBytes(conv.wa_phone, bytes, data.filename, data.mime_type)
-        : await sendWhatsAppDocument(conv.wa_phone, signed.signedUrl, data.filename, captionWithPrefix ?? null);
-    if (data.kind === "audio" && (!audioOk || sendRes.error || !sendRes.id)) {
-      if (audioOk) console.warn("[chat/audio] Meta recusou a nota de voz:", sendRes.error);
-      sendRes = await sendWhatsAppDocument(conv.wa_phone, signed.signedUrl, data.filename, captionWithPrefix ?? null);
-      deliveredAs = "document";
+    // Conversa espelhada do Instagram: o envio é por URL na API do Instagram,
+    // que não aceita "documento" — o fallback é o link em texto.
+    const ehInstagram = conv.wa_phone.startsWith("ig:");
+    let sendRes: { id: string | null; error?: string };
+    if (ehInstagram) {
+      const { sendInstagramMediaFromMirror } = await import("@/lib/whatsapp/send.server");
+      sendRes = await sendInstagramMediaFromMirror(
+        conv.wa_phone,
+        signed.signedUrl,
+        data.mime_type,
+        data.filename,
+        captionWithPrefix ?? null,
+      );
+    } else {
+      sendRes = data.kind === "image"
+        ? await sendWhatsAppImageBytes(conv.wa_phone, bytes, data.filename, captionWithPrefix ?? null, signed.signedUrl)
+        : data.kind === "audio" && audioOk
+          ? await sendWhatsAppAudioBytes(conv.wa_phone, bytes, data.filename, data.mime_type)
+          : await sendWhatsAppDocument(conv.wa_phone, signed.signedUrl, data.filename, captionWithPrefix ?? null);
+      if (data.kind === "audio" && (!audioOk || sendRes.error || !sendRes.id)) {
+        if (audioOk) console.warn("[chat/audio] Meta recusou a nota de voz:", sendRes.error);
+        sendRes = await sendWhatsAppDocument(conv.wa_phone, signed.signedUrl, data.filename, captionWithPrefix ?? null);
+        deliveredAs = "document";
+      }
     }
+
 
     if (sendRes.error || !sendRes.id) {
       throw new Error(sendRes.error ?? "O WhatsApp não confirmou a entrega do arquivo");
