@@ -16,6 +16,7 @@ import {
   AIRLINE_INSTALLMENT_TABLE,
   ruleInstallmentsLabel,
   ruleMinLabel,
+  isPixOnly,
 } from "@/lib/airline-installments";
 
 export function InstallmentRulesDialog({ trigger }: { trigger: ReactNode }) {
