@@ -2610,6 +2610,15 @@ function InstagramCommentThreadView({ mediaId, onBack }: { mediaId: string; onBa
         </div>
       </header>
 
+      {thread?.collab && (
+        <div className="border-b border-[#F26B1F]/20 bg-[#F26B1F]/5 px-4 py-2 text-[11px] text-[#8a3d0d]">
+          Publicação em colaboração: o Instagram só deixa o perfil que publicou responder
+          publicamente. A IA já preparou uma sugestão de resposta para cada comentário.
+        </div>
+      )}
+
+
+
       {/* Card da publicação: capa, legenda e player pro vídeo */}
       {thread && (
         <div className="border-b border-slate-200 bg-slate-50 px-4 py-3">
