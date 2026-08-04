@@ -2670,8 +2670,17 @@ function InstagramCommentThreadView({ mediaId, onBack }: { mediaId: string; onBa
         ) : (
           comments.map((c) => {
             const meu = nossos.has((c.from_username ?? "").toLowerCase());
+            const inicial = (c.from_username ?? "?").replace(/^@/, "").charAt(0).toUpperCase();
             return (
-              <div key={c.id} className={cn("flex", meu ? "justify-end" : "justify-start")}>
+              <div key={c.id} className={cn("flex items-end gap-2", meu ? "justify-end" : "justify-start")}>
+                {!meu &&
+                  (c.from_profile_pic ? (
+                    <img src={c.from_profile_pic} alt="" className="h-7 w-7 shrink-0 rounded-full object-cover" />
+                  ) : (
+                    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-pink-500 to-orange-500 text-[11px] font-semibold text-white">
+                      {inicial}
+                    </div>
+                  ))}
                 <div
                   className={cn(
                     "max-w-[75%] rounded-2xl px-3 py-2 text-sm shadow-sm",
