@@ -41,9 +41,10 @@ let lastSent = 0;
 
 function sendHeight(height: number): void {
   if (!isInsideIframe() || !isEmbedPath()) return;
+  const withFloor = Math.max(height, floatingFloor);
   const safeHeight = Math.min(
     MAX_EMBED_HEIGHT,
-    Math.max(DEFAULT_EMBED_HEIGHT, Math.ceil(height)),
+    Math.max(DEFAULT_EMBED_HEIGHT, Math.ceil(withFloor)),
   );
   if (safeHeight === lastSent) return;
   lastSent = safeHeight;
@@ -53,11 +54,24 @@ function sendHeight(height: number): void {
   window.parent?.postMessage({ type: LEGACY_MESSAGE_TYPE, height: safeHeight }, "*");
 }
 
+/**
+ * Piso de altura enquanto um elemento flutuante (calendário/dropdown) está
+ * aberto. Sem isso, o observador global da página encolhe o iframe logo depois
+ * e o navegador cria a barra de rolagem interna.
+ */
+let floatingFloor = 0;
+let floatingObserver: ResizeObserver | null = null;
+
 export function resizeEmbedToContent(extraSpace = 0): void {
   if (typeof window === "undefined") return;
   window.requestAnimationFrame(() => {
     sendHeight(getDocumentHeight() + extraSpace);
   });
+}
+
+function measureFloating(element: HTMLElement, extraSpace: number): number {
+  const rect = element.getBoundingClientRect();
+  return window.scrollY + rect.bottom + extraSpace;
 }
 
 export function resizeEmbedForFloatingElement(
@@ -69,15 +83,27 @@ export function resizeEmbedForFloatingElement(
     resizeEmbedToContent();
     return;
   }
-  window.requestAnimationFrame(() => {
-    const rect = element.getBoundingClientRect();
-    const requiredHeight = window.scrollY + rect.bottom + extraSpace;
-    sendHeight(Math.max(getDocumentHeight(), requiredHeight));
-  });
+  const apply = () => {
+    floatingFloor = measureFloating(element, extraSpace);
+    sendHeight(Math.max(getDocumentHeight(), floatingFloor));
+  };
+  window.requestAnimationFrame(apply);
+
+  // Recalcula sozinho quando o painel muda de tamanho (troca de mês, mais
+  // sugestões na lista, 1 ou 2 meses no desktop, etc.).
+  floatingObserver?.disconnect();
+  if (typeof ResizeObserver !== "undefined") {
+    floatingObserver = new ResizeObserver(() => apply());
+    floatingObserver.observe(element);
+  }
 }
 
 export function resetEmbedHeight(): void {
+  floatingObserver?.disconnect();
+  floatingObserver = null;
+  floatingFloor = 0;
   resizeEmbedToContent();
 }
 
 export const embedResizeMessageType = EMBED_MESSAGE_TYPE;
+

@@ -25,9 +25,11 @@ function EmbedMotorBusca() {
   return (
     <div className="embed-search-page w-full p-0">
       <style>{`
-        html,body,#root{background:transparent !important;margin:0;padding:0;min-height:0;overflow-x:hidden;overflow-y:visible;}
-        .embed-search-page{overflow:visible;}
-        /* remove o brilho azul de fundo dos cabeçalhos do motor no widget */
+        html,body,#root{background:transparent !important;margin:0;padding:0;width:100%;height:auto !important;min-height:0 !important;overflow-x:hidden !important;overflow-y:hidden !important;}
+        .embed-search-page{width:100%;height:auto;min-height:0;overflow:visible;}
+        .embed-search-page .h-screen,.embed-search-page .min-h-screen{height:auto !important;min-height:0 !important;}
+        .embed-search-page .overflow-y-auto,.embed-search-page .overflow-auto{overflow:visible !important;}
+
         [style*="brand-blue"]{background:none !important;opacity:0 !important;}
         header{background:transparent !important;overflow:visible !important;}
         /* no widget não mostramos os avisos de "informe os locais" — só o motor */
