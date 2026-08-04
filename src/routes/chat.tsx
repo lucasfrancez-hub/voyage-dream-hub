@@ -9,6 +9,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { ChatSidebar } from "@/components/chat/ChatSidebar";
 import { ChatHeader } from "@/components/chat/ChatHeader";
 import { getMyProfile } from "@/lib/chat/queries.functions";
+import { statusAparelhoChat } from "@/lib/chat/device-session.functions";
+import { ChatPinUnlock, ChatPinSetup } from "@/components/chat/ChatPinUnlock";
 
 export const Route = createFileRoute("/chat")({
   ssr: false,
@@ -139,9 +141,40 @@ function ChatLayout() {
   }, []);
 
 
+  // Aparelho com PIN: em vez de mandar pro /auth, pede o PIN e restaura a sessão.
+  const statusAparelho = useServerFn(statusAparelhoChat);
+  const [aparelho, setAparelho] = useState<{ registrado: boolean; email: string | null } | undefined>(
+    undefined,
+  );
+  const [pedirPin, setPedirPin] = useState(false);
+  const [mostrarSetupPin, setMostrarSetupPin] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (!session || !aparelho || aparelho.registrado) return;
+    if (localStorage.getItem("viaair-chat-pin-ok")) return;
+    setMostrarSetupPin(true);
+  }, [session, aparelho]);
+
   useEffect(() => {
     if (session === undefined) return;
+    void (async () => {
+      try {
+        const r = (await statusAparelho()) as { registrado: boolean; email?: string | null };
+        setAparelho({ registrado: r.registrado, email: r.email ?? null });
+      } catch {
+        setAparelho({ registrado: false, email: null });
+      }
+    })();
+  }, [session, statusAparelho]);
+
+  useEffect(() => {
+    if (session === undefined || aparelho === undefined) return;
     if (!session) {
+      if (aparelho.registrado) {
+        setPedirPin(true);
+        return;
+      }
       const target = pathname && pathname.startsWith("/chat") ? pathname : "/chat/inbox";
       if (typeof window !== "undefined") {
         window.location.replace(`/auth?redirect=${encodeURIComponent(target)}`);
@@ -160,7 +193,7 @@ function ChatLayout() {
       if (error) { toast.error("Erro ao validar acesso"); setAuthorized(false); return; }
       setAuthorized((data ?? []).length > 0);
     })();
-  }, [session, navigate]);
+  }, [session, aparelho, navigate, pathname]);
 
   useEffect(() => {
     if (pathname === "/chat") navigate({ to: "/chat/inbox", replace: true });
@@ -174,7 +207,19 @@ function ChatLayout() {
     staleTime: 60_000,
   });
 
-  if (session === undefined || authorized === undefined) {
+  if (pedirPin && !session) {
+    return (
+      <ChatPinUnlock
+        email={aparelho?.email ?? null}
+        onEntrar={() => {
+          setPedirPin(false);
+          window.location.reload();
+        }}
+      />
+    );
+  }
+
+  if (session === undefined || authorized === undefined || (!session && aparelho === undefined)) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background text-muted-foreground">
         <Loader2 className="h-5 w-5 animate-spin" />
@@ -203,6 +248,9 @@ function ChatLayout() {
       style={{ height: "var(--chat-vh, 100dvh)" }}
     >
 
+      {session && aparelho && !aparelho.registrado && mostrarSetupPin ? (
+        <ChatPinSetup onFechar={() => setMostrarSetupPin(false)} />
+      ) : null}
       <ChatSidebar mobileOpen={mobileNavOpen} onCloseMobile={() => setMobileNavOpen(false)} />
       <div className="flex min-w-0 flex-1 flex-col">
         <ChatHeader
