@@ -9,7 +9,11 @@ import { listarLinksChat, criarLinkChat, removerLinkChat } from "@/lib/chat/devi
 
 type LinkApp = { id: string; token: string; nome: string; ativo: boolean; last_seen_at: string | null };
 
-export function AppNoCelularCard() {
+type AppNoCelularCardProps = {
+  destino: "chat" | "admin";
+};
+
+export function AppNoCelularCard({ destino }: AppNoCelularCardProps) {
   const carregar = useServerFn(listarLinksChat);
   const criar = useServerFn(criarLinkChat);
   const remover = useServerFn(removerLinkChat);
@@ -21,25 +25,28 @@ export function AppNoCelularCard() {
 
   const recarregar = useCallback(async () => {
     try {
-      const r = (await carregar()) as { links: LinkApp[] };
+      const r = (await carregar({ data: { destino } })) as { links: LinkApp[] };
       setLinks(r.links);
     } catch {
       /* sem acesso */
     }
-  }, [carregar]);
+  }, [carregar, destino]);
 
   useEffect(() => {
     void recarregar();
   }, [recarregar]);
 
   const base = typeof window === "undefined" ? "" : window.location.origin;
+  const titulo = destino === "chat" ? "Chat no celular" : "Admin no celular";
+  const caminho = destino === "chat" ? "/chat/app" : "/admin/app";
+  const nomePadrao = destino === "chat" ? "iPhone do atendimento" : "iPhone do administrador";
 
   return (
     <section className="rounded-xl border border-slate-200 bg-white p-4">
-      <h2 className="mb-1 text-sm font-semibold text-slate-900">App no celular</h2>
+      <h2 className="mb-1 text-sm font-semibold text-slate-900">{titulo}</h2>
       <p className="mb-3 text-xs text-slate-500">
-        Link secreto (sem login) para adicionar à tela de início. Protegido por PIN de 4 números e válido por 30 dias
-        a cada uso.
+        Link secreto para abrir {destino === "chat" ? "a Central de Atendimento" : "o painel Admin"} diretamente,
+        sem login ou autenticador. Protegido por PIN de 4 números e válido por 30 dias a cada uso.
       </p>
 
       <ul className="space-y-2">
@@ -51,8 +58,8 @@ export function AppNoCelularCard() {
                 type="button"
                 aria-label="Copiar link"
                 onClick={() => {
-                  void navigator.clipboard.writeText(`${base}/chat/app/${l.token}`);
-                  toast.success("Link copiado.");
+                   void navigator.clipboard.writeText(`${base}${caminho}/${l.token}`);
+                   toast.success(`Link do ${destino === "chat" ? "Chat" : "Admin"} copiado.`);
                 }}
               >
                 <Copy className="h-4 w-4 text-slate-400 hover:text-primary" />
@@ -74,28 +81,14 @@ export function AppNoCelularCard() {
                 <Trash2 className="h-4 w-4 text-slate-400 hover:text-rose-600" />
               </button>
             </div>
-            <p className="mt-1 break-all text-[11px] text-slate-500">{`${base}/chat/app/${l.token}`}</p>
-            <div className="mt-2 flex items-center gap-2">
-              <span className="break-all text-[11px] text-slate-500">{`${base}/admin/app/${l.token}`}</span>
-              <button
-                type="button"
-                aria-label="Copiar link do Admin"
-                onClick={() => {
-                  void navigator.clipboard.writeText(`${base}/admin/app/${l.token}`);
-                  toast.success("Link do Admin copiado.");
-                }}
-              >
-                <Copy className="h-4 w-4 text-slate-400 hover:text-primary" />
-              </button>
-            </div>
-
+            <p className="mt-1 break-all text-[11px] text-slate-500">{`${base}${caminho}/${l.token}`}</p>
           </li>
         ))}
         {links.length === 0 && <p className="text-xs text-slate-500">Nenhum link criado ainda.</p>}
       </ul>
 
       <div className="mt-3 space-y-2">
-        <Input placeholder="Nome (ex.: iPhone do Lucas)" value={nome} onChange={(e) => setNome(e.target.value)} />
+        <Input placeholder={`Nome (ex.: ${nomePadrao})`} value={nome} onChange={(e) => setNome(e.target.value)} />
         <Input
           placeholder="PIN de 4 números"
           inputMode="numeric"
@@ -110,10 +103,10 @@ export function AppNoCelularCard() {
           onClick={async () => {
             setSalvando(true);
             try {
-              await criar({ data: { nome: nome.trim() || undefined, pin } });
+              await criar({ data: { nome: nome.trim() || undefined, pin, destino } });
               setNome("");
               setPin("");
-              toast.success("Link do app criado.");
+              toast.success(`Link do ${destino === "chat" ? "Chat" : "Admin"} criado.`);
               void recarregar();
             } catch (e) {
               toast.error(e instanceof Error ? e.message : "Não foi possível criar o link.");
@@ -123,7 +116,7 @@ export function AppNoCelularCard() {
           }}
         >
           <Plus className="mr-1 h-4 w-4" />
-          Criar link do app
+          Criar link do {destino === "chat" ? "Chat" : "Admin"}
         </Button>
       </div>
     </section>

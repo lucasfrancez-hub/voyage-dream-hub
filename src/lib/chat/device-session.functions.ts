@@ -252,11 +252,13 @@ async function hashPinLink(token: string, pin: string): Promise<string> {
 /** Lista os links de app criados. */
 export const listarLinksChat = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .handler(async () => {
+  .inputValidator((raw: unknown) => z.object({ destino: z.enum(["chat", "admin"]) }).parse(raw))
+  .handler(async ({ data: input }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data } = await supabaseAdmin
       .from("chat_app_links")
       .select("id, token, nome, ativo, last_seen_at")
+      .eq("destino", input.destino)
       .order("created_at", { ascending: true });
     return { links: data ?? [] };
   });
@@ -265,7 +267,7 @@ export const listarLinksChat = createServerFn({ method: "GET" })
 export const criarLinkChat = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((raw: unknown) =>
-    z.object({ nome: z.string().max(60).optional(), pin: z.string().regex(/^\d{4}$/) }).parse(raw),
+    z.object({ nome: z.string().max(60).optional(), pin: z.string().regex(/^\d{4}$/), destino: z.enum(["chat", "admin"]) }).parse(raw),
   )
   .handler(async ({ data, context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -278,6 +280,7 @@ export const criarLinkChat = createServerFn({ method: "POST" })
       nome: data.nome?.trim() || "Chat VIA AIR",
       user_id: context.userId,
       pin_hash: await hashPinLink(token, data.pin),
+      destino: data.destino,
     });
     if (error) throw new Error(error.message);
     return { token };
@@ -299,14 +302,15 @@ export const removerLinkChat = createServerFn({ method: "POST" })
  */
 export const abrirLinkChat = createServerFn({ method: "POST" })
   .inputValidator((raw: unknown) =>
-    z.object({ token: z.string().min(10).max(40), pin: z.string().regex(/^\d{4}$/) }).parse(raw),
+    z.object({ token: z.string().min(10).max(40), pin: z.string().regex(/^\d{4}$/), destino: z.enum(["chat", "admin"]) }).parse(raw),
   )
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: link } = await supabaseAdmin
       .from("chat_app_links")
-      .select("id, token, nome, user_id, pin_hash, ativo")
+      .select("id, token, nome, user_id, pin_hash, ativo, destino")
       .eq("token", data.token)
+      .eq("destino", data.destino)
       .maybeSingle();
     if (!link || !link.ativo) throw new Error("Link inválido ou desativado.");
     if ((await hashPinLink(link.token, data.pin)) !== link.pin_hash) throw new Error("PIN incorreto.");
