@@ -301,6 +301,73 @@ export const publishToInstagram = createServerFn({ method: "POST" })
     return result;
   });
 
+/**
+ * Publica direto no Instagram uma arte gerada no navegador (Feed 3:4 ou Story 9:16).
+ * A imagem chega em base64, é guardada no storage e o link é enviado à API do Instagram.
+ */
+export const publishPackageArtToInstagram = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: {
+    media_type: "story_image" | "feed_image";
+    image_base64: string;
+    caption?: string;
+    package_id?: string;
+    account_id?: string;
+    slug?: string;
+  }) =>
+    z.object({
+      media_type: z.enum(["story_image", "feed_image"]),
+      image_base64: z.string().min(100),
+      caption: z.string().max(2200).optional(),
+      package_id: z.string().uuid().optional(),
+      account_id: z.string().uuid().optional(),
+      slug: z.string().max(120).optional(),
+    }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    let accountId = data.account_id;
+    if (!accountId) {
+      const { data: acc } = await supabaseAdmin
+        .from("instagram_accounts")
+        .select("id")
+        .eq("active", true)
+        .order("is_default", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (!acc?.id) throw new Error("Nenhuma conta do Instagram conectada");
+      accountId = acc.id as string;
+    }
+
+    const binary = atob(data.image_base64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
+
+    const path = `instagram-posts/${Date.now()}-${data.slug ?? "arte"}-${data.media_type}.png`;
+    const up = await supabaseAdmin.storage
+      .from("chat-media")
+      .upload(path, bytes, { contentType: "image/png", upsert: true });
+    if (up.error) throw new Error(`Falha ao guardar a arte: ${up.error.message}`);
+
+    const signed = await supabaseAdmin.storage
+      .from("chat-media")
+      .createSignedUrl(path, 60 * 60 * 24 * 7);
+    const url = signed.data?.signedUrl;
+    if (!url) throw new Error("Não consegui gerar o link da arte");
+
+    const { publishInstagramMedia } = await import("./publish.server");
+    return await publishInstagramMedia({
+      accountId,
+      mediaType: data.media_type,
+      imageUrls: [url],
+      caption: data.media_type === "feed_image" ? data.caption : undefined,
+      packageId: data.package_id ?? null,
+      createdBy: context.userId,
+    });
+  });
+
+
 /** Rebusca nome, @ e foto do contato de uma DM (usado quando o perfil veio vazio). */
 export const refreshInstagramProfile = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
