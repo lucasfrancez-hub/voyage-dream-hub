@@ -92,6 +92,7 @@ import { Route as ApiPublicNfseAtendenetTestRouteImport } from './routes/api/pub
 import { Route as ApiPublicTestFlightAlertRouteImport } from './routes/api/public/test-flight-alert'
 import { Route as ApiPublicWaDiagRouteImport } from './routes/api/public/wa-diag'
 import { Route as ApiPublicWhatsappWebhookRouteImport } from './routes/api/public/whatsapp-webhook'
+import { Route as ChatAppTokenRouteImport } from './routes/chat.app.$token'
 import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/email/suppression'
 import { Route as PacotesSlugIndexRouteImport } from './routes/pacotes.$slug.index'
 import { Route as PacotesSlugCheckoutRouteImport } from './routes/pacotes.$slug.checkout'
@@ -540,6 +541,11 @@ const ApiPublicWhatsappWebhookRoute =
     path: '/api/public/whatsapp-webhook',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ChatAppTokenRoute = ChatAppTokenRouteImport.update({
+  id: '/app/$token',
+  path: '/app/$token',
+  getParentRoute: () => ChatRoute,
+} as any)
 const LovableEmailSuppressionRoute = LovableEmailSuppressionRouteImport.update({
   id: '/lovable/email/suppression',
   path: '/lovable/email/suppression',
@@ -780,6 +786,7 @@ export interface FileRoutesByFullPath {
   '/api/public/test-flight-alert': typeof ApiPublicTestFlightAlertRoute
   '/api/public/wa-diag': typeof ApiPublicWaDiagRoute
   '/api/public/whatsapp-webhook': typeof ApiPublicWhatsappWebhookRoute
+  '/chat/app/$token': typeof ChatAppTokenRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/pacotes/$slug/checkout': typeof PacotesSlugCheckoutRoute
   '/admin/pedidos/': typeof AdminPedidosIndexRoute
@@ -891,6 +898,7 @@ export interface FileRoutesByTo {
   '/api/public/test-flight-alert': typeof ApiPublicTestFlightAlertRoute
   '/api/public/wa-diag': typeof ApiPublicWaDiagRoute
   '/api/public/whatsapp-webhook': typeof ApiPublicWhatsappWebhookRoute
+  '/chat/app/$token': typeof ChatAppTokenRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/pacotes/$slug/checkout': typeof PacotesSlugCheckoutRoute
   '/admin/pedidos': typeof AdminPedidosIndexRoute
@@ -1004,6 +1012,7 @@ export interface FileRoutesById {
   '/api/public/test-flight-alert': typeof ApiPublicTestFlightAlertRoute
   '/api/public/wa-diag': typeof ApiPublicWaDiagRoute
   '/api/public/whatsapp-webhook': typeof ApiPublicWhatsappWebhookRoute
+  '/chat/app/$token': typeof ChatAppTokenRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/pacotes/$slug/checkout': typeof PacotesSlugCheckoutRoute
   '/admin/pedidos/': typeof AdminPedidosIndexRoute
@@ -1118,6 +1127,7 @@ export interface FileRouteTypes {
     | '/api/public/test-flight-alert'
     | '/api/public/wa-diag'
     | '/api/public/whatsapp-webhook'
+    | '/chat/app/$token'
     | '/lovable/email/suppression'
     | '/pacotes/$slug/checkout'
     | '/admin/pedidos/'
@@ -1229,6 +1239,7 @@ export interface FileRouteTypes {
     | '/api/public/test-flight-alert'
     | '/api/public/wa-diag'
     | '/api/public/whatsapp-webhook'
+    | '/chat/app/$token'
     | '/lovable/email/suppression'
     | '/pacotes/$slug/checkout'
     | '/admin/pedidos'
@@ -1341,6 +1352,7 @@ export interface FileRouteTypes {
     | '/api/public/test-flight-alert'
     | '/api/public/wa-diag'
     | '/api/public/whatsapp-webhook'
+    | '/chat/app/$token'
     | '/lovable/email/suppression'
     | '/pacotes/$slug/checkout'
     | '/admin/pedidos/'
@@ -2022,6 +2034,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicWhatsappWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/chat/app/$token': {
+      id: '/chat/app/$token'
+      path: '/app/$token'
+      fullPath: '/chat/app/$token'
+      preLoaderRoute: typeof ChatAppTokenRouteImport
+      parentRoute: typeof ChatRoute
+    }
     '/lovable/email/suppression': {
       id: '/lovable/email/suppression'
       path: '/lovable/email/suppression'
@@ -2301,6 +2320,7 @@ interface ChatRouteChildren {
   ChatPastasRoute: typeof ChatPastasRoute
   ChatProtocolosRoute: typeof ChatProtocolosRoute
   ChatSugestoesRoute: typeof ChatSugestoesRoute
+  ChatAppTokenRoute: typeof ChatAppTokenRoute
 }
 
 const ChatRouteChildren: ChatRouteChildren = {
@@ -2318,6 +2338,7 @@ const ChatRouteChildren: ChatRouteChildren = {
   ChatPastasRoute: ChatPastasRoute,
   ChatProtocolosRoute: ChatProtocolosRoute,
   ChatSugestoesRoute: ChatSugestoesRoute,
+  ChatAppTokenRoute: ChatAppTokenRoute,
 }
 
 const ChatRouteWithChildren = ChatRoute._addFileChildren(ChatRouteChildren)
