@@ -183,8 +183,13 @@ async function poll(
     } while (haveMore && page <= 50);
 
     stable = changed ? 0 : stable + 1;
+    if (acc.size > 0) roundsWithFlights++;
 
-    const enough = i + 1 >= MIN_ROUNDS && acc.size > 0 && stable >= STABLE_ROUNDS;
+    const enough =
+      i + 1 >= MIN_ROUNDS &&
+      acc.size > 0 &&
+      roundsWithFlights >= (quick ? 2 : 5) &&
+      stable >= STABLE_ROUNDS;
     if (enough || Date.now() - startedAt > TIME_BUDGET_MS) break;
 
     if (i + 1 < maxRounds) await sleep(GAP_MS);
