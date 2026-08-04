@@ -20,6 +20,7 @@ import {
   Plus,
   RefreshCw,
   Star,
+  Pencil,
   Trash2,
   TriangleAlert,
 } from "lucide-react";
@@ -29,6 +30,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { confirm } from "@/lib/confirm";
 import {
   ajustarContaAgenda,
+  atualizarCompromisso,
   conectarCalendario,
   conectarGoogleAgenda,
   criarCompromisso,
@@ -136,6 +138,22 @@ function brtParaIso(local: string): string {
   return new Date(`${local}:00-03:00`).toISOString();
 }
 
+/** ISO → valor de <input type="datetime-local"> no fuso de Brasília. */
+function isoParaInput(iso: string): string {
+  const p = new Intl.DateTimeFormat("en-CA", {
+    timeZone: BRT,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  })
+    .formatToParts(new Date(iso))
+    .reduce<Record<string, string>>((acc, x) => ({ ...acc, [x.type]: x.value }), {});
+  return `${p['year']}-${p['month']}-${p['day']}T${p['hour'] === "24" ? "00" : p['hour']}:${p['minute']}`;
+}
+
 function AgendaPage() {
   const carregarContas = useServerFn(listarContasAgenda);
   const carregarEventos = useServerFn(listarCompromissos);
@@ -147,6 +165,8 @@ function AgendaPage() {
   const [contas, setContas] = useState<Conta[]>([]);
   const [eventos, setEventos] = useState<Evento[]>([]);
   const [detalhe, setDetalhe] = useState<Evento | null>(null);
+  const [editar, setEditar] = useState<Evento | null>(null);
+
   const [mes, setMes] = useState(() => inicioDoMes(new Date()));
   const [carregando, setCarregando] = useState(true);
   const [sincronizando, setSincronizando] = useState(false);
@@ -387,9 +407,24 @@ function AgendaPage() {
         </main>
       </div>
 
+      {editar && (
+        <NovoCompromissoDialog
+          contas={contas}
+          evento={editar}
+          onClose={() => setEditar(null)}
+          onPronto={() => {
+            setEditar(null);
+            void recarregar();
+          }}
+        />
+      )}
       {detalhe && (
         <DetalhesDialog
           evento={detalhe}
+          onEditar={() => {
+            setEditar(detalhe);
+            setDetalhe(null);
+          }}
           conta={detalhe.account_id ? (contaPorId.get(detalhe.account_id) ?? null) : null}
           onClose={() => setDetalhe(null)}
           onExcluir={async () => {
@@ -573,26 +608,31 @@ function ConectarDialog({
 
 function NovoCompromissoDialog({
   contas,
+  evento,
   onClose,
   onPronto,
 }: {
   contas: Conta[];
+  evento?: Evento | null;
   onClose: () => void;
   onPronto: () => void;
 }) {
   const criar = useServerFn(criarCompromisso);
+  const atualizar = useServerFn(atualizarCompromisso);
   const checar = useServerFn(verificarConflitos);
+  const editando = !!evento;
+  const det = (evento?.detalhes ?? {}) as { conferencia?: string; url?: unknown };
 
   const padrao = contas.find((c) => c.padrao) ?? contas[0];
-  const [accountId, setAccountId] = useState(padrao?.id ?? "");
-  const [titulo, setTitulo] = useState("");
-  const [local, setLocal] = useState("");
-  const [descricao, setDescricao] = useState("");
-  const [inicio, setInicio] = useState("");
-  const [fim, setFim] = useState("");
-  const [diaInteiro, setDiaInteiro] = useState(false);
-  const [linkReuniao, setLinkReuniao] = useState("");
-  const [url, setUrl] = useState("");
+  const [accountId, setAccountId] = useState(evento?.account_id ?? padrao?.id ?? "");
+  const [titulo, setTitulo] = useState(evento?.titulo ?? "");
+  const [local, setLocal] = useState(evento?.local ?? "");
+  const [descricao, setDescricao] = useState(evento?.descricao ?? "");
+  const [inicio, setInicio] = useState(evento ? isoParaInput(evento.inicio) : "");
+  const [fim, setFim] = useState(evento ? isoParaInput(evento.fim) : "");
+  const [diaInteiro, setDiaInteiro] = useState(evento?.dia_inteiro ?? false);
+  const [linkReuniao, setLinkReuniao] = useState(det.conferencia ?? "");
+  const [url, setUrl] = useState(det.url ? String(det.url) : "");
   const [convidados, setConvidados] = useState("");
   const [choques, setChoques] = useState<Evento[]>([]);
   const [salvando, setSalvando] = useState(false);
@@ -603,7 +643,7 @@ function NovoCompromissoDialog({
       return;
     }
     let vivo = true;
-    checar({ data: { inicio: brtParaIso(inicio), fim: brtParaIso(fim) } })
+    checar({ data: { inicio: brtParaIso(inicio), fim: brtParaIso(fim), ignorarId: evento?.id } })
       .then((r) => vivo && setChoques(r as Evento[]))
       .catch(() => undefined);
     return () => {
@@ -614,6 +654,21 @@ function NovoCompromissoDialog({
   async function salvar() {
     setSalvando(true);
     try {
+      if (editando && evento) {
+        await atualizar({
+          data: {
+            id: evento.id,
+            titulo,
+            descricao: descricao || null,
+            local: local || null,
+            inicio: brtParaIso(inicio),
+            fim: brtParaIso(fim),
+          },
+        });
+        toast.success("Compromisso atualizado.");
+        onPronto();
+        return;
+      }
       await criar({
         data: {
           titulo,
@@ -634,7 +689,7 @@ function NovoCompromissoDialog({
       toast.success("Compromisso criado.");
       onPronto();
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Não consegui criar o compromisso.");
+      toast.error(e instanceof Error ? e.message : "Não consegui salvar o compromisso.");
     } finally {
       setSalvando(false);
     }
@@ -648,7 +703,7 @@ function NovoCompromissoDialog({
     <Dialog open onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="max-h-[85vh] max-w-md overflow-y-auto bg-card text-card-foreground">
         <DialogHeader>
-          <DialogTitle className="text-foreground">Novo compromisso</DialogTitle>
+          <DialogTitle className="text-foreground">{editando ? "Editar compromisso" : "Novo compromisso"}</DialogTitle>
         </DialogHeader>
         <div className="space-y-3">
           <div>
@@ -784,7 +839,7 @@ function NovoCompromissoDialog({
 
           <Button className="w-full" onClick={salvar} disabled={salvando || !titulo || !inicio || !fim}>
             {salvando ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-            Salvar compromisso
+            {editando ? "Salvar alterações" : "Salvar compromisso"}
           </Button>
         </div>
       </DialogContent>
@@ -863,11 +918,13 @@ function DetalhesDialog({
   evento,
   conta,
   onClose,
+  onEditar,
   onExcluir,
 }: {
   evento: Evento;
   conta: Conta | null;
   onClose: () => void;
+  onEditar: () => void;
   onExcluir: () => void | Promise<void>;
 }) {
   const d = evento.detalhes ?? {};
@@ -1046,9 +1103,15 @@ function DetalhesDialog({
                 <Trash2 className="h-4 w-4 transition-transform group-hover:scale-110" />
                 Excluir
               </button>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" onClick={onEditar} className="rounded-xl px-5 py-5 text-sm font-bold">
+                  <Pencil className="mr-2 h-4 w-4" />
+                  Editar
+                </Button>
               <Button onClick={onClose} className="rounded-xl px-7 py-5 text-sm font-bold shadow-lg shadow-primary/20">
                 Fechar
               </Button>
+              </div>
             </div>
           </div>
         </div>

@@ -14,13 +14,18 @@ import {
   MapPin,
   Plus,
   RefreshCw,
+  Pencil,
+  Trash2,
   Users,
   X,
 } from "lucide-react";
 
+import { confirm } from "@/lib/confirm";
 import {
   abrirAgendaApp,
+  atualizarEventoAgendaApp,
   criarEventoAgendaApp,
+  excluirEventoAgendaApp,
   eventosAgendaApp,
   removerPushAgenda,
   salvarPushAgenda,
@@ -318,6 +323,10 @@ function Painel({ token, pin, nome, vapid }: { token: string; pin: string | null
   const [detalhe, setDetalhe] = useState<Evento | null>(null);
   const [config, setConfig] = useState(false);
   const [novo, setNovo] = useState(false);
+  const [editando, setEditando] = useState<Evento | null>(null);
+  const [apagando, setApagando] = useState(false);
+
+  const apagar = useServerFn(excluirEventoAgendaApp);
 
   const buscar = useServerFn(eventosAgendaApp);
 
@@ -499,7 +508,34 @@ function Painel({ token, pin, nome, vapid }: { token: string; pin: string | null
 
 
       {detalhe ? (
-        <Detalhes evento={detalhe} cor={corDa(detalhe)} origem={origemDe(detalhe)} onFechar={() => setDetalhe(null)} />
+        <Detalhes
+          evento={detalhe}
+          cor={corDa(detalhe)}
+          origem={origemDe(detalhe)}
+          onFechar={() => setDetalhe(null)}
+          onEditar={() => {
+            setEditando(detalhe);
+            setDetalhe(null);
+          }}
+          apagando={apagando}
+          onExcluir={async () => {
+            const ok = await confirm({
+              title: detalhe.titulo,
+              description: "Excluir este compromisso da agenda?",
+              confirmText: "Excluir",
+              destructive: true,
+            });
+            if (!ok) return;
+            setApagando(true);
+            try {
+              await apagar({ data: { token, pin, id: detalhe.id } });
+              setDetalhe(null);
+              await recarregar();
+            } finally {
+              setApagando(false);
+            }
+          }}
+        />
       ) : null}
       {config ? <Notificacoes token={token} pin={pin} vapid={vapid} onFechar={() => setConfig(false)} /> : null}
       {novo ? (
@@ -511,6 +547,20 @@ function Painel({ token, pin, nome, vapid }: { token: string; pin: string | null
           onFechar={() => setNovo(false)}
           onCriado={() => {
             setNovo(false);
+            void recarregar();
+          }}
+        />
+      ) : null}
+      {editando ? (
+        <NovoCompromisso
+          token={token}
+          pin={pin}
+          contas={contas}
+          dia={new Date(editando.inicio)}
+          evento={editando}
+          onFechar={() => setEditando(null)}
+          onCriado={() => {
+            setEditando(null);
             void recarregar();
           }}
         />
@@ -534,6 +584,7 @@ function NovoCompromisso({
   pin,
   contas,
   dia,
+  evento,
   onFechar,
   onCriado,
 }: {
@@ -541,9 +592,11 @@ function NovoCompromisso({
   pin: string | null;
   contas: Conta[];
   dia: Date;
+  evento?: Evento | null;
   onFechar: () => void;
   onCriado: () => void;
 }) {
+  const editando = !!evento;
   const base = useMemo(() => {
     const agora = new Date();
     const d = new Date(dia);
@@ -551,22 +604,43 @@ function NovoCompromisso({
     return d;
   }, [dia]);
 
-  const [titulo, setTitulo] = useState("");
-  const [local, setLocal] = useState("");
-  const [descricao, setDescricao] = useState("");
-  const [linkReuniao, setLinkReuniao] = useState("");
+  const detalhesEvento = (evento?.detalhes ?? {}) as { link_reuniao?: string; conferencia?: string; url?: string };
+
+  const [titulo, setTitulo] = useState(evento?.titulo ?? "");
+  const [local, setLocal] = useState(evento?.local ?? "");
+  const [descricao, setDescricao] = useState(evento?.descricao ?? "");
+  const [linkReuniao, setLinkReuniao] = useState(
+    detalhesEvento.conferencia ?? detalhesEvento.link_reuniao ?? "",
+  );
   const [convidados, setConvidados] = useState("");
-  const [url, setUrl] = useState("");
-  const [diaInteiro, setDiaInteiro] = useState(false);
-  const [inicio, setInicio] = useState(() => paraInput(base));
-  const [fim, setFim] = useState(() => paraInput(new Date(base.getTime() + 60 * 60 * 1000)));
-  const [conta, setConta] = useState(contas[0]?.id ?? "");
+  const [url, setUrl] = useState(detalhesEvento.url ?? "");
+  const [diaInteiro, setDiaInteiro] = useState(evento?.dia_inteiro ?? false);
+  const [inicio, setInicio] = useState(() => paraInput(evento ? new Date(evento.inicio) : base));
+  const [fim, setFim] = useState(() =>
+    paraInput(evento ? new Date(evento.fim) : new Date(base.getTime() + 60 * 60 * 1000)),
+  );
+  const [conta, setConta] = useState(evento?.account_id ?? contas[0]?.id ?? "");
   const [erro, setErro] = useState("");
 
   const criar = useServerFn(criarEventoAgendaApp);
+  const atualizar = useServerFn(atualizarEventoAgendaApp);
   const salvar = useMutation({
     mutationFn: async () => {
       setErro("");
+      if (editando && evento) {
+        return await atualizar({
+          data: {
+            token,
+            pin,
+            id: evento.id,
+            titulo,
+            local: local || null,
+            descricao: descricao || null,
+            inicio: new Date(inicio).toISOString(),
+            fim: new Date(fim).toISOString(),
+          },
+        });
+      }
       return await criar({
         data: {
           token,
@@ -591,6 +665,7 @@ function NovoCompromisso({
     onError: (e: Error) => setErro(e.message || "Não deu pra salvar."),
   });
 
+
   const campo =
     "w-full rounded-xl border px-3 py-2.5 text-base text-white outline-none placeholder:text-white/40";
   const estiloCampo = {
@@ -611,7 +686,7 @@ function NovoCompromisso({
         style={{ background: "rgba(12,18,34,0.98)", borderColor: "rgba(255,255,255,0.1)", colorScheme: "dark" }}
       >
         <div className="mb-4 flex items-center gap-2">
-          <h2 className="flex-1 text-lg font-semibold text-white">Novo compromisso</h2>
+          <h2 className="flex-1 text-lg font-semibold text-white">{editando ? "Editar compromisso" : "Novo compromisso"}</h2>
           <BotaoIcone onClick={onFechar} rotulo="Fechar">
             <X className="h-4 w-4" />
           </BotaoIcone>
@@ -734,8 +809,8 @@ function NovoCompromisso({
             className="flex w-full items-center justify-center gap-2 rounded-xl py-3 text-sm font-semibold text-white disabled:opacity-50"
             style={{ background: "linear-gradient(140deg,#F26B1F,#d1560f)" }}
           >
-            {salvar.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-            Salvar compromisso
+            {salvar.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : editando ? <Pencil className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+            {editando ? "Salvar alterações" : "Salvar compromisso"}
           </button>
         </div>
       </div>
@@ -1060,7 +1135,23 @@ function Vazio({ texto }: { texto: string }) {
 /* Detalhes                                                            */
 /* ------------------------------------------------------------------ */
 
-function Detalhes({ evento, cor, origem, onFechar }: { evento: Evento; cor: string; origem: string; onFechar: () => void }) {
+function Detalhes({
+  evento,
+  cor,
+  origem,
+  onFechar,
+  onEditar,
+  onExcluir,
+  apagando,
+}: {
+  evento: Evento;
+  cor: string;
+  origem: string;
+  onFechar: () => void;
+  onEditar: () => void;
+  onExcluir: () => void | Promise<void>;
+  apagando: boolean;
+}) {
   const d = (evento.detalhes ?? {}) as {
     link_reuniao?: string;
     organizador?: { nome?: string; email?: string };
@@ -1089,14 +1180,36 @@ function Detalhes({ evento, cor, origem, onFechar }: { evento: Evento; cor: stri
         className="sticky top-0 z-10 px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))]"
         style={{ background: "rgba(5,23,45,0.85)", backdropFilter: "blur(12px)" }}
       >
-        <button
-          onClick={onFechar}
-          className="inline-flex items-center gap-1 rounded-full py-1.5 pl-1.5 pr-3 text-[15px] font-medium"
-          style={{ background: "rgba(255,255,255,0.08)", color: cor }}
-        >
-          <ChevronLeft className="h-5 w-5" />
-          <span className="capitalize">{mesVoltar}</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={onFechar}
+            className="inline-flex items-center gap-1 rounded-full py-1.5 pl-1.5 pr-3 text-[15px] font-medium"
+            style={{ background: "rgba(255,255,255,0.08)", color: cor }}
+          >
+            <ChevronLeft className="h-5 w-5" />
+            <span className="capitalize">{mesVoltar}</span>
+          </button>
+          <span className="flex-1" />
+          <button
+            onClick={onEditar}
+            aria-label="Editar compromisso"
+            className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[14px] font-medium"
+            style={{ background: "rgba(255,255,255,0.08)", color: "#fff" }}
+          >
+            <Pencil className="h-4 w-4" />
+            Editar
+          </button>
+          <button
+            onClick={() => void onExcluir()}
+            disabled={apagando}
+            aria-label="Excluir compromisso"
+            className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[14px] font-medium disabled:opacity-50"
+            style={{ background: "rgba(248,113,113,0.14)", color: "#fca5a5" }}
+          >
+            {apagando ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+            Excluir
+          </button>
+        </div>
       </div>
 
       <div className="px-5 pb-[max(3rem,env(safe-area-inset-bottom))]">
