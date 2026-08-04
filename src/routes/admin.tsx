@@ -20,7 +20,7 @@ import { APP_VERSION, APP_BUILD_DATE } from "@/lib/version";
 
 export const Route = createFileRoute("/admin")({
   ssr: false,
-  component: AdminLayout,
+  component: AdminRoute,
   head: () => ({
     meta: [
       { title: "Admin - Via Air" },
@@ -31,7 +31,16 @@ export const Route = createFileRoute("/admin")({
 
 type Role = "admin" | "partner" | "marketing" | null;
 
+// O link secreto (/admin/app/<token>) entra pelo PIN — não passa pelo guard
+// de login/2FA do painel.
+function AdminRoute() {
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  if (pathname.startsWith("/admin/app/")) return <Outlet />;
+  return <AdminLayout />;
+}
+
 function AdminLayout() {
+
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [session, setSession] = useState<Session | null | undefined>(undefined);
