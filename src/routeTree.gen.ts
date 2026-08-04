@@ -62,6 +62,7 @@ import { Route as ChatCrmRouteImport } from './routes/chat.crm'
 import { Route as ChatDashboardRouteImport } from './routes/chat.dashboard'
 import { Route as ChatFluxosRouteImport } from './routes/chat.fluxos'
 import { Route as ChatInboxRouteImport } from './routes/chat.inbox'
+import { Route as ChatNotificacoesRouteImport } from './routes/chat.notificacoes'
 import { Route as ChatPastasRouteImport } from './routes/chat.pastas'
 import { Route as ChatProtocolosRouteImport } from './routes/chat.protocolos'
 import { Route as ChatSugestoesRouteImport } from './routes/chat.sugestoes'
@@ -380,6 +381,11 @@ const ChatFluxosRoute = ChatFluxosRouteImport.update({
 const ChatInboxRoute = ChatInboxRouteImport.update({
   id: '/inbox',
   path: '/inbox',
+  getParentRoute: () => ChatRoute,
+} as any)
+const ChatNotificacoesRoute = ChatNotificacoesRouteImport.update({
+  id: '/notificacoes',
+  path: '/notificacoes',
   getParentRoute: () => ChatRoute,
 } as any)
 const ChatPastasRoute = ChatPastasRouteImport.update({
@@ -732,6 +738,7 @@ export interface FileRoutesByFullPath {
   '/chat/dashboard': typeof ChatDashboardRoute
   '/chat/fluxos': typeof ChatFluxosRoute
   '/chat/inbox': typeof ChatInboxRoute
+  '/chat/notificacoes': typeof ChatNotificacoesRoute
   '/chat/pastas': typeof ChatPastasRoute
   '/chat/protocolos': typeof ChatProtocolosRoute
   '/chat/sugestoes': typeof ChatSugestoesRoute
@@ -840,6 +847,7 @@ export interface FileRoutesByTo {
   '/chat/dashboard': typeof ChatDashboardRoute
   '/chat/fluxos': typeof ChatFluxosRoute
   '/chat/inbox': typeof ChatInboxRoute
+  '/chat/notificacoes': typeof ChatNotificacoesRoute
   '/chat/pastas': typeof ChatPastasRoute
   '/chat/protocolos': typeof ChatProtocolosRoute
   '/chat/sugestoes': typeof ChatSugestoesRoute
@@ -950,6 +958,7 @@ export interface FileRoutesById {
   '/chat/dashboard': typeof ChatDashboardRoute
   '/chat/fluxos': typeof ChatFluxosRoute
   '/chat/inbox': typeof ChatInboxRoute
+  '/chat/notificacoes': typeof ChatNotificacoesRoute
   '/chat/pastas': typeof ChatPastasRoute
   '/chat/protocolos': typeof ChatProtocolosRoute
   '/chat/sugestoes': typeof ChatSugestoesRoute
@@ -1061,6 +1070,7 @@ export interface FileRouteTypes {
     | '/chat/dashboard'
     | '/chat/fluxos'
     | '/chat/inbox'
+    | '/chat/notificacoes'
     | '/chat/pastas'
     | '/chat/protocolos'
     | '/chat/sugestoes'
@@ -1169,6 +1179,7 @@ export interface FileRouteTypes {
     | '/chat/dashboard'
     | '/chat/fluxos'
     | '/chat/inbox'
+    | '/chat/notificacoes'
     | '/chat/pastas'
     | '/chat/protocolos'
     | '/chat/sugestoes'
@@ -1278,6 +1289,7 @@ export interface FileRouteTypes {
     | '/chat/dashboard'
     | '/chat/fluxos'
     | '/chat/inbox'
+    | '/chat/notificacoes'
     | '/chat/pastas'
     | '/chat/protocolos'
     | '/chat/sugestoes'
@@ -1774,6 +1786,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ChatInboxRouteImport
       parentRoute: typeof ChatRoute
     }
+    '/chat/notificacoes': {
+      id: '/chat/notificacoes'
+      path: '/notificacoes'
+      fullPath: '/chat/notificacoes'
+      preLoaderRoute: typeof ChatNotificacoesRouteImport
+      parentRoute: typeof ChatRoute
+    }
     '/chat/pastas': {
       id: '/chat/pastas'
       path: '/pastas'
@@ -2237,6 +2256,7 @@ interface ChatRouteChildren {
   ChatDashboardRoute: typeof ChatDashboardRoute
   ChatFluxosRoute: typeof ChatFluxosRoute
   ChatInboxRoute: typeof ChatInboxRoute
+  ChatNotificacoesRoute: typeof ChatNotificacoesRoute
   ChatPastasRoute: typeof ChatPastasRoute
   ChatProtocolosRoute: typeof ChatProtocolosRoute
   ChatSugestoesRoute: typeof ChatSugestoesRoute
@@ -2252,6 +2272,7 @@ const ChatRouteChildren: ChatRouteChildren = {
   ChatDashboardRoute: ChatDashboardRoute,
   ChatFluxosRoute: ChatFluxosRoute,
   ChatInboxRoute: ChatInboxRoute,
+  ChatNotificacoesRoute: ChatNotificacoesRoute,
   ChatPastasRoute: ChatPastasRoute,
   ChatProtocolosRoute: ChatProtocolosRoute,
   ChatSugestoesRoute: ChatSugestoesRoute,

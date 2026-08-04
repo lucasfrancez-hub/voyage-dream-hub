@@ -11,6 +11,7 @@ import {
   Calendar,
   Folder,
   Settings,
+  BellRing,
   FileText,
   PanelLeftClose,
   PanelLeft,
@@ -33,6 +34,7 @@ const ITEMS = [
   { to: "/chat/crm", label: "Funil de Venda", icon: Kanban },
   { to: "/chat/agenda", label: "Agenda", icon: Calendar },
   { to: "/chat/pastas", label: "Pastas", icon: Folder },
+  { to: "/chat/notificacoes", label: "Notificações", icon: BellRing },
   { to: "/chat/config", label: "Configurações", icon: Settings },
 ] as const;
 
