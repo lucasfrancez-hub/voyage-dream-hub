@@ -24,6 +24,8 @@ import {
 
 
 import { Button } from "@/components/ui/button";
+import { NoResults } from "@/components/flights/NoResults";
+
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { DateRangeField } from "@/components/search/DateRangeField";
@@ -497,10 +499,12 @@ export function SegurosPage({ header }: { header?: React.ReactNode } = {}) {
                   />
                 ))}
                 {filtered.length === 0 && (
-                  <p className="text-sm text-muted-foreground">
-                    Nenhum plano com os filtros selecionados.
-                  </p>
+                  <NoResults
+                    title="Desculpe, nenhum plano foi encontrado."
+                    hint="Nenhuma opção com esses filtros. Selecione outra opção de filtro."
+                  />
                 )}
+
               </div>
             </div>
           </div>

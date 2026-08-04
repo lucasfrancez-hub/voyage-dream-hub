@@ -35,6 +35,8 @@ import {
   Copy,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { NoResults } from "@/components/flights/NoResults";
+
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -2194,10 +2196,13 @@ export function VoosPage({
                   ))}
 
                   {!outFlights.length && (
-                    <p className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
-                      Nenhum voo com esses filtros.
-                    </p>
+                    <NoResults
+                      title="Desculpe, nenhum voo foi encontrado."
+                      hint="Nenhuma opção com esses filtros (classe, paradas, bagagem ou horário). Selecione outra opção de filtro."
+                      onClearFilters={() => setOutFilters(EMPTY_FILTERS)}
+                    />
                   )}
+
                   <Button
                     variant="outline"
                     className="w-full"
@@ -2246,10 +2251,13 @@ export function VoosPage({
                   ))}
 
                   {!inFlights.length && (
-                    <p className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
-                      Nenhuma volta com esses filtros.
-                    </p>
+                    <NoResults
+                      title="Desculpe, nenhum voo de volta foi encontrado."
+                      hint="Nenhuma opção com esses filtros (classe, paradas, bagagem ou horário). Selecione outra opção de filtro."
+                      onClearFilters={() => setInFilters(EMPTY_FILTERS)}
+                    />
                   )}
+
                   <Button
                     variant="outline"
                     className="w-full"

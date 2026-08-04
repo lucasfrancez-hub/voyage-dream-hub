@@ -25,6 +25,8 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { NoResults } from "@/components/flights/NoResults";
+
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
@@ -1325,10 +1327,12 @@ export function HoteisPage({
               ))}
 
               {!filtered.length && (
-                <p className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
-                  Nenhuma hospedagem com esses filtros.
-                </p>
+                <NoResults
+                  title="Desculpe, nenhuma hospedagem foi encontrada."
+                  hint="Nenhuma opção com esses filtros. Selecione outra opção de filtro."
+                />
               )}
+
 
               {result.hotels.length < result.count && (
                 <Button

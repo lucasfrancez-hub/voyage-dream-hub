@@ -23,6 +23,8 @@ import {
 
 
 import { Button } from "@/components/ui/button";
+import { NoResults } from "@/components/flights/NoResults";
+
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -354,11 +356,19 @@ export function ExclusivosPage({ header }: { header?: React.ReactNode } = {}) {
                 </Button>
               </div>
             </div>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {result.products.map((p) => (
-                <ProductCard key={p.uuid} product={p} onOpen={() => setDetail(p)} />
-              ))}
-            </div>
+            {result.products.length === 0 ? (
+              <NoResults
+                title="Desculpe, nenhum exclusivo foi encontrado."
+                hint="Nenhuma opção com esses filtros. Selecione outra opção de filtro."
+              />
+            ) : (
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {result.products.map((p) => (
+                  <ProductCard key={p.uuid} product={p} onOpen={() => setDetail(p)} />
+                ))}
+              </div>
+            )}
+
           </>
         )}
       </main>
