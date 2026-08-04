@@ -246,3 +246,4 @@ html:root {
     radial-gradient(900px 420px at 18% 30%, var(--brand-blue), transparent 68%),
     radial-gradient(1400px 620px at 25% -12%, var(--brand-blue), transparent 72%);
 }
+.voar-shell > *:not(.voar-glow) { position: relative; z-index: 1; }
