@@ -34,17 +34,9 @@ function limpar(texto: string) {
     .slice(0, 160);
 }
 
-/** Quem está com ESTA conversa aberta e a tela visível nos últimos 60s. */
-async function presentesNaConversa(conversationId: string): Promise<Set<string>> {
-  const limite = new Date(Date.now() - 60_000).toISOString();
-  const { data } = await supabaseAdmin
-    .from("wa_agent_presence")
-    .select("user_id")
-    .eq("conversation_id", conversationId)
-    .eq("visivel", true)
-    .gte("updated_at", limite);
-  return new Set((data ?? []).map((r) => r.user_id as string));
-}
+/* Presença não bloqueia mais o envio: o atendente é sempre notificado,
+   como no WhatsApp/Mac, mesmo com a conversa aberta. */
+
 
 /** Total de conversas com mensagens não lidas — usado no badge do ícone. */
 async function totalNaoLidas(): Promise<number> {
@@ -72,21 +64,19 @@ export async function notificarNovaMensagemChat({
       .eq("ativo", true);
     if (!subs || subs.length === 0) return;
 
-    const [presentes, naoLidas] = await Promise.all([presentesNaConversa(conversationId), totalNaoLidas()]);
+    const naoLidas = await totalNaoLidas();
 
     const payload = {
       title: `${canal === "instagram" ? "📸 " : "💬 "}${titulo}`,
       body: limpar(corpo || "Nova mensagem"),
       url: `/chat/inbox?c=${conversationId}`,
-      tag: `conv-${conversationId}`,
+      tag: `conv-${conversationId}-${messageId ?? Date.now()}`,
       conversationId,
       messageId: messageId ?? null,
       unreadCount: naoLidas,
     };
 
-    const alvos = subs.filter(
-      (s) => (canal === "instagram" ? s.pref_instagram : s.pref_novas) && !presentes.has(s.user_id as string),
-    );
+    const alvos = subs.filter((s) => (canal === "instagram" ? s.pref_instagram : s.pref_novas));
 
     await Promise.allSettled(alvos.map((s) => despachar(s, payload)));
   } catch (err) {
