@@ -1695,7 +1695,23 @@ export function VoosPage({
   const refiltering = mut.isPending && !!result;
   const outFlights = result ? applyFilters(result.outbound.flights, outFilters) : [];
   const inFlights = inbound ? applyFilters(inbound.flights, inFilters) : [];
-  const outFlight = result?.outbound.flights.find((f) => f.key === selectedOut) ?? null;
+  const outFlightBase = result?.outbound.flights.find((f) => f.key === selectedOut) ?? null;
+  // Se a volta só combinou com outra tarifa do mesmo voo, o carrinho e o resumo
+  // precisam usar essa tarifa (chave e preço reais).
+  const outFlight: OnerFlight | null =
+    outFlightBase && outFareOverride
+      ? {
+          ...outFlightBase,
+          key: outFareOverride.key,
+          price: outFareOverride.total
+            ? {
+                ...outFlightBase.price,
+                total: outFareOverride.total,
+                price: Math.max(0, outFareOverride.total - (outFlightBase.price.tax ?? 0)),
+              }
+            : outFlightBase.price,
+        }
+      : outFlightBase;
   const inFlight = inbound?.flights.find((f) => f.key === selectedIn) ?? null;
   const showSummary = !!outFlight && (!isRoundTrip || !!inFlight);
   const [summaryOpen, setSummaryOpen] = useState(false);
