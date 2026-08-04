@@ -450,7 +450,15 @@ function InboxPage() {
         (active || ((viewKind === "ig" || viewKind === "comment") && activeId)) ? "flex" : "hidden md:flex",
       )}>
         {viewKind === "ig" ? (
-          activeId ? <InstagramConversationView conversationId={activeId} onBack={() => setActiveId(null)} /> : <EmptyState />
+          activeId ? (
+            <InstagramConversationView
+              conversationId={activeId}
+              mirror={igMirrorConv}
+              onRefetch={refetch}
+              onBack={() => setActiveId(null)}
+            />
+          ) : <EmptyState />
+
         ) : viewKind === "comment" ? (
           activeId ? <InstagramCommentThreadView mediaId={activeId} onBack={() => setActiveId(null)} /> : <EmptyState />
         ) : active ? (
@@ -2004,11 +2012,38 @@ function groupByDay(msgs: Msg[]) {
 
 // ============ Instagram DM conversa ============
 
-function InstagramConversationView({ conversationId, onBack }: { conversationId: string; onBack: () => void }) {
+function InstagramConversationView({
+  conversationId,
+  mirror = null,
+  onRefetch,
+  onBack,
+}: {
+  conversationId: string;
+  mirror?: Conv | null;
+  onRefetch?: () => void;
+  onBack: () => void;
+}) {
   const msgsFn = useServerFn(listInstagramMessages);
   const sendFn = useServerFn(sendInstagramReply);
   const attachFn = useServerFn(sendInstagramAttachment);
+  const toggleFn = useServerFn(toggleConversationMode);
+  const pauseAiFn = useServerFn(setAiPaused);
   const qc = useQueryClient();
+  const igToggleMut = useMutation({
+    mutationFn: async (mode: "ai" | "human") => toggleFn({ data: { conversation_id: mirror!.id, mode } }),
+    onSuccess: () => { onRefetch?.(); toast.success("Modo alterado"); },
+    onError: (e) => toast.error(`Falha: ${(e as Error).message}`),
+  });
+  const igAiPaused = !!(mirror as { ai_paused?: boolean | null } | null)?.ai_paused;
+  const igPauseMut = useMutation({
+    mutationFn: async (paused: boolean) => pauseAiFn({ data: { conversation_id: mirror!.id, paused } }),
+    onSuccess: (_d, paused) => {
+      onRefetch?.();
+      toast.success(paused ? "IA pausada — ela não responde até você retomar" : "IA retomada");
+    },
+    onError: (e) => toast.error(`Falha: ${(e as Error).message}`),
+  });
+
   const [text, setText] = useState("");
   const fileRef = useRef<HTMLInputElement | null>(null);
   const [igRecording, setIgRecording] = useState(false);
@@ -2119,15 +2154,71 @@ function InstagramConversationView({ conversationId, onBack }: { conversationId:
             <Instagram className="h-4 w-4" />
           </div>
         )}
-        <div className="min-w-0">
-          <div className="truncate text-sm font-medium text-slate-900">
-            {profile?.contact_name ?? profile?.contact_username ?? "Instagram Direct"}
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-1.5">
+            <span className="truncate text-sm font-medium text-slate-900">
+              {profile?.contact_name ?? (profile?.contact_username ? `@${profile.contact_username}` : "Instagram Direct")}
+            </span>
+            {mirror?.protocolo_numero && (
+              <span className="rounded border border-slate-200 bg-slate-50 px-1.5 py-0.5 font-mono text-[10px] text-slate-600">
+                #{mirror.protocolo_numero}
+              </span>
+            )}
+            {profile?.contact_username && (
+              <a
+                href={`https://instagram.com/${profile.contact_username}`}
+                target="_blank"
+                rel="noreferrer"
+                title="Abrir perfil no Instagram"
+                aria-label="Abrir perfil no Instagram"
+                className="shrink-0 rounded-md p-1 text-slate-400 transition-colors hover:bg-slate-100 hover:text-[#F26B1F]"
+              >
+                <ExternalLink className="h-3.5 w-3.5" />
+              </a>
+            )}
           </div>
           <div className="truncate text-[11px] text-slate-500">
             {profile?.contact_username ? `@${profile.contact_username} · ` : ""}Instagram Direct
+            {mirror && (
+              <> · {mirror.mode === "ai" ? `IA (${mirror.agent_slug ?? "auto"})` : mirror.mode === "human" ? "Humano" : "Arquivada"}</>
+            )}
+            {mirror?.mode === "ai" && igAiPaused && (
+              <> · <span className="font-semibold text-amber-600">IA pausada</span></>
+            )}
           </div>
         </div>
+
+        {mirror && (
+          <>
+            {mirror.mode === "ai" && (
+              <button
+                onClick={() => igPauseMut.mutate(!igAiPaused)}
+                disabled={igPauseMut.isPending}
+                aria-label={igAiPaused ? "Retomar IA" : "Pausar IA"}
+                className={cn(
+                  "inline-flex shrink-0 items-center gap-1.5 rounded-md border px-2 py-1.5 text-[11px] font-medium transition-colors disabled:opacity-50",
+                  igAiPaused
+                    ? "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+                    : "border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100",
+                )}
+              >
+                {igPauseMut.isPending
+                  ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  : igAiPaused ? <Play className="h-3.5 w-3.5" /> : <Pause className="h-3.5 w-3.5" />}
+                <span className="hidden sm:inline">{igAiPaused ? "Retomar IA" : "Pausar IA"}</span>
+              </button>
+            )}
+            <button
+              onClick={() => igToggleMut.mutate(mirror.mode === "ai" ? "human" : "ai")}
+              className="shrink-0 rounded-md border border-slate-200 px-2 py-1.5 text-[11px] font-medium text-slate-700 hover:bg-slate-50 sm:px-3"
+            >
+              {mirror.mode === "ai" ? "Assumir" : "Devolver p/ IA"}
+            </button>
+            <ConversationMenu conv={mirror} onChange={() => onRefetch?.()} />
+          </>
+        )}
       </header>
+
 
 
       <div className="flex-1 space-y-2 overflow-y-auto p-4">
@@ -2136,12 +2227,26 @@ function InstagramConversationView({ conversationId, onBack }: { conversationId:
         ) : msgs.length === 0 ? (
           <div className="text-center text-xs text-slate-400">Nenhuma mensagem</div>
         ) : (
-          msgs.map((m) => (
+          msgs.map((m) => {
+            // A IA envia com o prefixo "*Nome:*" — mostramos o consultor igual no WhatsApp.
+            const bruto = (m.text ?? "") as string;
+            const casa = bruto.match(/^\*([^*\n]{2,40}):\*\s*\n?/);
+            const remetente = casa?.[1] ?? null;
+            const corpo = casa ? bruto.slice(casa[0].length) : bruto;
+            return (
             <div key={m.id} className={cn("flex", m.direction === "outbound" ? "justify-end" : "justify-start")}>
               <div className={cn(
                 "max-w-[70%] rounded-2xl px-3 py-2 text-sm shadow-sm",
                 m.direction === "outbound" ? "bg-[#F26B1F] text-white" : "bg-white text-slate-900",
               )}>
+                {remetente && (
+                  <div className={cn(
+                    "mb-0.5 text-[11px] font-semibold",
+                    m.direction === "outbound" ? "text-white" : "text-[#F26B1F]",
+                  )}>
+                    {remetente}:
+                  </div>
+                )}
                 {m.attachment_url ? (
                   (m.message_type ?? "").includes("audio") ? (
                     <audio controls src={m.attachment_url} className="max-w-[240px]" />
@@ -2157,14 +2262,18 @@ function InstagramConversationView({ conversationId, onBack }: { conversationId:
                     </a>
                   )
                 ) : null}
-                {m.text ? <div className="whitespace-pre-wrap break-words">{m.text}</div> : null}
+                {corpo ? <div className="whitespace-pre-wrap break-words">{corpo}</div> : null}
+
                 <div className={cn("mt-0.5 text-[10px]", m.direction === "outbound" ? "text-white/70" : "text-slate-400")}>
                   {new Date(m.created_at as string).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
                   {m.status === "failed" ? " · não entregue" : ""}
                 </div>
               </div>
             </div>
-          ))
+            );
+          })
+
+
         )}
       </div>
 
@@ -2370,6 +2479,8 @@ function InstagramCommentThreadView({ mediaId, onBack }: { mediaId: string; onBa
   const [text, setText] = useState("");
   const [alvo, setAlvo] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
+  const [verMidia, setVerMidia] = useState(false);
+
   const bottomRef = useRef<HTMLDivElement | null>(null);
 
   const { data: threads = [], isLoading } = useQuery({
@@ -2453,7 +2564,63 @@ function InstagramCommentThreadView({ mediaId, onBack }: { mediaId: string; onBa
         </div>
       </header>
 
+      {/* Card da publicação: capa, legenda e player pro vídeo */}
+      {thread && (
+        <div className="border-b border-slate-200 bg-slate-50 px-4 py-3">
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={() => setVerMidia(true)}
+              className="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl border border-slate-200 bg-slate-200"
+              aria-label="Abrir publicação"
+            >
+              {thread.media_thumbnail ? (
+                <img src={thread.media_thumbnail} alt="Publicação" className="h-full w-full object-cover" />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-purple-500 via-pink-500 to-orange-500 text-white">
+                  <Instagram className="h-6 w-6" />
+                </div>
+              )}
+              {(thread.media_type ?? "").toUpperCase().includes("VIDEO") && (
+                <span className="absolute inset-0 flex items-center justify-center bg-black/30">
+                  <Play className="h-7 w-7 fill-white text-white" />
+                </span>
+              )}
+            </button>
+            <div className="min-w-0 flex-1">
+              <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                {thread.media_type ? thread.media_type.toLowerCase() : "publicação"} · {comments.length} comentário{comments.length === 1 ? "" : "s"}
+              </div>
+              <p className="mt-1 whitespace-pre-wrap text-xs leading-relaxed text-slate-700 [overflow-wrap:anywhere]">
+                {thread.media_caption ?? "Sem legenda"}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <Dialog open={verMidia} onOpenChange={setVerMidia}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="text-sm">Publicação no Instagram</DialogTitle>
+          </DialogHeader>
+          {thread?.media_permalink ? (
+            <iframe
+              src={`${thread.media_permalink.replace(/\/?$/, "/")}embed`}
+              title="Publicação no Instagram"
+              className="h-[520px] w-full rounded-lg border border-slate-200"
+              allowFullScreen
+            />
+          ) : thread?.media_thumbnail ? (
+            <img src={thread.media_thumbnail} alt="Publicação" className="w-full rounded-lg" />
+          ) : (
+            <p className="text-xs text-slate-500">Publicação indisponível.</p>
+          )}
+        </DialogContent>
+      </Dialog>
+
       <div className="flex-1 space-y-2 overflow-y-auto p-4">
+
         {isLoading ? (
           <div className="text-center text-xs text-slate-400">Carregando…</div>
         ) : comments.length === 0 ? (

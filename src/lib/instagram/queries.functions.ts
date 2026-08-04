@@ -190,14 +190,15 @@ export const sendInstagramAttachment = createServerFn({ method: "POST" })
       .maybeSingle();
     if (!account?.access_token) throw new Error("Conta do Instagram sem token");
 
-    const { sendDirectAttachment } = await import("./api.server");
-    const res = (await sendDirectAttachment({
+    const { sendInstagramMediaSmart } = await import("./send-media.server");
+    const res = await sendInstagramMediaSmart({
       igUserId: (account.ig_user_id ?? account.page_id) as string,
       token: account.access_token as string,
       recipientIgId: conv.contact_ig_id,
       url,
-      type: tipo,
-    })) as { message_id?: string };
+      mime: data.mime,
+      filename: data.filename,
+    });
 
     await supabaseAdmin.from("instagram_messages").insert({
       conversation_id: conv.id,
@@ -206,8 +207,12 @@ export const sendInstagramAttachment = createServerFn({ method: "POST" })
       message_type: tipo,
       attachment_url: url,
       attachment_type: tipo,
-      status: "sent",
+      status: res.message_id ? "sent" : "failed",
+      ...(res.delivered_as === "link" ? { text: url } : {}),
     });
+
+    if (!res.message_id) throw new Error(res.error ?? "O Instagram não confirmou o envio da mídia");
+
 
     return { ok: true, url, type: tipo };
   });
