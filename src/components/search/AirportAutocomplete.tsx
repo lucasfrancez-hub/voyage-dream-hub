@@ -153,35 +153,49 @@ export function AirportAutocomplete({
       {isFetching && (
         <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-muted-foreground" />
       )}
-      {open && options.length > 0 && (
-        <div className="absolute z-50 mt-2 max-h-72 w-full min-w-[18rem] overflow-auto rounded-2xl border border-border/60 bg-popover/95 p-1.5 shadow-2xl backdrop-blur-xl">
-          {options.map((a, i) => (
-            <button
-              key={`${a.iata}-${a.name}-${i}`}
-              type="button"
-              onMouseEnter={() => setHighlight(i)}
-              onClick={() => choose(a)}
-              className={`flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left transition ${
-                i === highlight ? "bg-primary/15" : "hover:bg-muted/60"
-              } ${!a.isCity && a.cityCode ? "pl-7" : ""}`}
-            >
-              <span className="grid h-8 w-11 shrink-0 place-items-center rounded-lg bg-primary/15 text-xs font-bold text-primary">
-                {a.iata}
-              </span>
-              <span className="min-w-0">
-                <span className="block truncate text-sm font-medium">
-                  {a.isCity ? `${a.city || a.name} (todos os aeroportos)` : a.name || a.city}
+      {open &&
+        options.length > 0 &&
+        typeof document !== "undefined" &&
+        createPortal(
+          <div
+            ref={dropdownRef}
+            style={{
+              position: "absolute",
+              top: pos.top,
+              left: pos.left,
+              width: Math.max(pos.width, 288),
+            }}
+            className="z-[100] max-h-72 overflow-auto rounded-2xl border border-border/60 bg-popover/95 p-1.5 shadow-2xl backdrop-blur-xl"
+          >
+            {options.map((a, i) => (
+              <button
+                key={`${a.iata}-${a.name}-${i}`}
+                type="button"
+                onMouseEnter={() => setHighlight(i)}
+                onClick={() => choose(a)}
+                className={`flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left transition ${
+                  i === highlight ? "bg-primary/15" : "hover:bg-muted/60"
+                } ${!a.isCity && a.cityCode ? "pl-7" : ""}`}
+              >
+                <span className="grid h-8 w-11 shrink-0 place-items-center rounded-lg bg-primary/15 text-xs font-bold text-primary">
+                  {a.iata}
                 </span>
-                <span className="block truncate text-[11px] text-muted-foreground">
-                  {a.isCity ? "Cidade" : a.city}
-                  {a.country ? ` • ${a.country}` : ""}
+                <span className="min-w-0">
+                  <span className="block truncate text-sm font-medium">
+                    {a.isCity ? `${a.city || a.name} (todos os aeroportos)` : a.name || a.city}
+                  </span>
+                  <span className="block truncate text-[11px] text-muted-foreground">
+                    {a.isCity ? "Cidade" : a.city}
+                    {a.country ? ` • ${a.country}` : ""}
+                  </span>
                 </span>
-              </span>
-              <Plane className="ml-auto h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-            </button>
-          ))}
-        </div>
-      )}
+                <Plane className="ml-auto h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+              </button>
+            ))}
+          </div>,
+          document.body,
+        )}
+
     </div>
   );
 }
