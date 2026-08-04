@@ -73,6 +73,7 @@
   function mount(host, cfg) {
     if (!host || host.getAttribute("data-viaair-mounted") === "1") return;
     host.setAttribute("data-viaair-mounted", "1");
+    removeLegacyEmbeds(host);
 
     // Wrapper com altura FIXA (altura do formulário). Nunca cresce.
     var wrapper = document.createElement("div");
