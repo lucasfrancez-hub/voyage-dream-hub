@@ -11,7 +11,7 @@ import {
   testarPushChat,
   listarAparelhosPushChat,
 } from "@/lib/chat/push.functions";
-import { b64urlParaUint8, ehIOS, ehStandalone, nomeDoAparelho, SW_URL } from "@/lib/chat/push-client";
+import { assinarPush, ehIOS, ehStandalone, nomeDoAparelho, SW_URL } from "@/lib/chat/push-client";
 
 export const Route = createFileRoute("/chat/notificacoes")({
   ssr: false,
@@ -113,27 +113,37 @@ function NotificacoesPage() {
       }
       const reg = await navigator.serviceWorker.register(SW_URL, { scope: "/" });
       await navigator.serviceWorker.ready;
-      const sub =
-        (await reg.pushManager.getSubscription()) ??
-        (await reg.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: b64urlParaUint8(vapid) as BufferSource,
-        }));
-      const j = sub.toJSON() as { endpoint?: string; keys?: { p256dh?: string; auth?: string } };
-      await salvar({
-        data: {
-          endpoint: j.endpoint!,
-          p256dh: j.keys!.p256dh!,
-          auth: j.keys!.auth!,
-          userAgent: navigator.userAgent,
-          deviceName: nomeDoAparelho(),
-        },
-      });
-      const t = await testar({ data: { endpoint: j.endpoint! } });
-      toast[t.ok ? "success" : "error"](
-        t.ok ? "Notificações ativadas. Enviamos um teste pelo servidor." : `Assinatura salva, mas o teste falhou: ${t.erro}`,
+
+      // Assina (recriando se a assinatura antiga for de outra chave VAPID) e,
+      // se o push service disser que expirou, refaz uma vez do zero.
+      const registrar = async (forcar: boolean) => {
+        const sub = await assinarPush(reg, vapid, { forcar });
+        const j = sub.toJSON() as { endpoint?: string; keys?: { p256dh?: string; auth?: string } };
+        await salvar({
+          data: {
+            endpoint: j.endpoint!,
+            p256dh: j.keys!.p256dh!,
+            auth: j.keys!.auth!,
+            userAgent: navigator.userAgent,
+            deviceName: nomeDoAparelho(),
+          },
+        });
+        return { endpoint: j.endpoint!, teste: await testar({ data: { endpoint: j.endpoint! } }) };
+      };
+
+      let { endpoint: ep, teste } = await registrar(false);
+      if (!teste.ok && (teste.status === 404 || teste.status === 410)) {
+        await remover({ data: { endpoint: ep } }).catch(() => null);
+        ({ endpoint: ep, teste } = await registrar(true));
+      }
+
+      toast[teste.ok ? "success" : "error"](
+        teste.ok
+          ? "Notificações ativadas. Enviamos um teste pelo servidor."
+          : `Assinatura salva, mas o teste falhou: ${teste.erro}`,
       );
       await atualizar();
+
     } catch (e) {
       toast.error((e as Error).message || "Não consegui ativar as notificações.");
     } finally {

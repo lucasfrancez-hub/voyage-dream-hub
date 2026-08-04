@@ -64,3 +64,40 @@ export async function atualizarBadge(total: number) {
     /* badge é opcional */
   }
 }
+
+/**
+ * Garante uma assinatura válida para a chave VAPID atual.
+ * Se já existir uma assinatura criada com OUTRA chave (ou herdada de um
+ * service worker antigo), ela é cancelada antes — senão o push service
+ * responde 410 "unsubscribed or expired" na hora de enviar.
+ */
+export async function assinarPush(
+  reg: ServiceWorkerRegistration,
+  vapid: string,
+  { forcar = false }: { forcar?: boolean } = {},
+): Promise<PushSubscription> {
+  const chave = b64urlParaUint8(vapid);
+  const atual = await reg.pushManager.getSubscription();
+  if (atual) {
+    const mesma =
+      !forcar &&
+      !!atual.options?.applicationServerKey &&
+      mesmaChave(new Uint8Array(atual.options.applicationServerKey), chave);
+    if (mesma) return atual;
+    try {
+      await atual.unsubscribe();
+    } catch {
+      /* segue e tenta assinar de novo */
+    }
+  }
+  return reg.pushManager.subscribe({
+    userVisibleOnly: true,
+    applicationServerKey: chave as BufferSource,
+  });
+}
+
+function mesmaChave(a: Uint8Array, b: Uint8Array) {
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
+  return true;
+}

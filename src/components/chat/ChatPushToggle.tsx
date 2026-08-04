@@ -3,6 +3,7 @@ import { Bell, BellOff, BellRing, Loader2 } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { chaveVapidChat, salvarPushChat, removerPushChat, testarPushChat } from "@/lib/chat/push.functions";
+import { assinarPush } from "@/lib/chat/push-client";
 
 function b64urlParaUint8(base64: string) {
   const pad = "=".repeat((4 - (base64.length % 4)) % 4);
@@ -73,12 +74,7 @@ export function ChatPushToggle() {
       }
       const reg = await navigator.serviceWorker.register("/chat-sw.js");
       await navigator.serviceWorker.ready;
-      const sub =
-        (await reg.pushManager.getSubscription()) ??
-        (await reg.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: b64urlParaUint8(vapid) as BufferSource,
-        }));
+      const sub = await assinarPush(reg, vapid);
       const j = sub.toJSON() as { endpoint?: string; keys?: { p256dh?: string; auth?: string } };
       await salvar({
         data: { endpoint: j.endpoint!, p256dh: j.keys!.p256dh!, auth: j.keys!.auth!, userAgent: navigator.userAgent },
