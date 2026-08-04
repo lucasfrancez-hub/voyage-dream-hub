@@ -3,9 +3,6 @@ import { useEffect, useState, useCallback } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { Bell, BellOff, Check, X, Smartphone, Loader2, Send } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { confirm } from "@/lib/confirm";
 import { AppNoCelularCard } from "@/components/chat/AppNoCelularCard";
 import {
   chaveVapidChat,
