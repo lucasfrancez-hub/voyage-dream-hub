@@ -391,7 +391,8 @@ function CarSummaryDialog({
   open: boolean;
   onOpenChange: (v: boolean) => void;
 }) {
-  const createCart = useServerFn(onerCreateCarCart);
+  const isPublic = useIsPublicEngine();
+  const createCart = useServerFn(isPublic ? onerCreateCarCartPublic : onerCreateCarCart);
   const [cartUrl, setCartUrl] = useState<string | null>(null);
   const [orderOpen, setOrderOpen] = useState(false);
 
@@ -414,9 +415,14 @@ function CarSummaryDialog({
       }),
     onSuccess: (r) => {
       setCartUrl(r.url);
+      if (isPublic) {
+        window.location.href = r.url;
+        return;
+      }
       window.open(r.url, "_blank", "noopener");
       toast.success("Link do Comprar Viagem gerado");
     },
+
     onError: (e: Error) => toast.error(e.message),
   });
 
