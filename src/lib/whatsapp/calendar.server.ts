@@ -122,29 +122,53 @@ async function gravarEvento(conta: ContaAgenda, ev: {
   rawIcs?: string | null;
   detalhes?: unknown;
 }) {
+  // O que foi criado aqui pelo chat/agenda não pode ser apagado pela sincronização:
+  // alguns servidores (Titan/iCloud) devolvem o evento sem descrição, local ou convidados.
+  const { data: existente } = await supabaseAdmin
+    .from("wa_calendar_events")
+    .select("descricao, local, detalhes, origem, telefone, criado_por")
+    .eq("account_id", conta.id)
+    .eq("uid", ev.uid)
+    .maybeSingle();
+
+  const detalhesAtuais = (existente?.detalhes as Record<string, unknown> | null) ?? {};
+  const detalhesNovos = (ev.detalhes as Record<string, unknown> | null) ?? {};
+  const detalhes: Record<string, unknown> = { ...detalhesAtuais };
+  for (const [chave, valor] of Object.entries(detalhesNovos)) {
+    const vazio =
+      valor === null ||
+      valor === undefined ||
+      valor === "" ||
+      (Array.isArray(valor) && valor.length === 0);
+    // Só sobrescreve quando o servidor realmente trouxe a informação.
+    if (!vazio || detalhesAtuais[chave] === undefined) detalhes[chave] = valor;
+  }
+  detalhes['calendario'] =
+    (detalhesNovos['calendario'] as string | null) ??
+    (detalhesAtuais['calendario'] as string | null) ??
+    conta.calendar_nome ??
+    conta.nome;
+
   const { error } = await supabaseAdmin.from("wa_calendar_events").upsert(
     {
       account_id: conta.id,
       provider: conta.provider,
-      origem: conta.provider,
+      // Mantém a marca de origem "chat" pra não perder o histórico de quem criou.
+      origem: existente?.origem === "chat" ? "chat" : conta.provider,
       uid: ev.uid,
       etag: ev.etag ?? null,
       href: ev.href ?? null,
       titulo: ev.titulo,
-      descricao: ev.descricao,
-      local: ev.local,
+      descricao: ev.descricao ?? existente?.descricao ?? null,
+      local: ev.local ?? existente?.local ?? null,
       inicio: ev.inicio,
       fim: ev.fim,
       dia_inteiro: ev.diaInteiro,
       situacao: ev.situacao,
       raw_ics: ev.rawIcs ?? null,
-      detalhes: {
-        ...((ev.detalhes as Record<string, unknown>) ?? {}),
-        calendario:
-          ((ev.detalhes as { calendario?: string | null } | undefined)?.calendario) ??
-          conta.calendar_nome ??
-          conta.nome,
-      },
+      detalhes: detalhes as unknown as never,
+      telefone: existente?.telefone ?? null,
+      criado_por: existente?.criado_por ?? null,
       deleted_at: null,
     },
     { onConflict: "account_id,uid" },
@@ -152,6 +176,7 @@ async function gravarEvento(conta: ContaAgenda, ev: {
   // Sem isso, uma falha de gravação passava batido e a agenda ficava vazia.
   if (error) throw new Error(`Falha ao salvar "${ev.titulo}": ${error.message}`);
 }
+
 
 /** Baixa os compromissos de uma conta e espelha no banco. */
 export async function sincronizarConta(conta: ContaAgenda, dias = 120): Promise<{ total: number; erro?: string }> {
@@ -294,12 +319,26 @@ export async function criarEvento(entrada: EntradaEvento): Promise<AgendaEvento>
     }
   }
 
-  const detalhes: Record<string, string | Array<{ email: string }>> = {};
-  if (entrada.linkReuniao) detalhes['link_reuniao'] = entrada.linkReuniao;
+  const detalhes: Record<string, unknown> = {};
+  if (entrada.linkReuniao) {
+    // A tela do compromisso lê "conferencia"; mantemos link_reuniao por compatibilidade.
+    detalhes['conferencia'] = entrada.linkReuniao;
+    detalhes['link_reuniao'] = entrada.linkReuniao;
+  }
   if (entrada.url) detalhes['url'] = entrada.url;
   if (entrada.convidados?.length) {
-    detalhes['participantes'] = entrada.convidados.map((email) => ({ email }));
+    detalhes['participantes'] = entrada.convidados.map((email) => ({
+      email,
+      nome: null,
+      resposta: null,
+      organizador: false,
+    }));
   }
+  if (entrada.criado_por) {
+    detalhes['organizador'] = { nome: null, email: entrada.criado_por, resposta: null, organizador: true };
+  }
+  detalhes['calendario'] = conta?.calendar_nome ?? conta?.nome ?? null;
+
 
   const { data, error } = await supabaseAdmin
     .from("wa_calendar_events")

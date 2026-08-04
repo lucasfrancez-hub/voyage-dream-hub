@@ -479,7 +479,7 @@ export function montarIcs(ev: NovoEvento): string {
   const descricao = [ev.descricao || "", ev.linkReuniao ? `Reunião: ${ev.linkReuniao}` : ""]
     .filter(Boolean)
     .join("\n\n");
-  return [
+  const linhas = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
     "PRODID:-//VIA AIR//Agenda//PT-BR",
@@ -497,8 +497,24 @@ export function montarIcs(ev: NovoEvento): string {
     "STATUS:CONFIRMED",
     "END:VEVENT",
     "END:VCALENDAR",
-  ].join("\r\n");
+  ];
+  // Linhas longas precisam ser dobradas em 75 octetos; sem isso servidores como o
+  // Titan descartam a descrição inteira e o compromisso volta "vazio" na sincronização.
+  return linhas.map(dobrarLinha).join("\r\n");
 }
+
+function dobrarLinha(linha: string): string {
+  if (linha.length <= 73) return linha;
+  const partes: string[] = [linha.slice(0, 73)];
+  let resto = linha.slice(73);
+  while (resto.length > 72) {
+    partes.push(` ${resto.slice(0, 72)}`);
+    resto = resto.slice(72);
+  }
+  if (resto) partes.push(` ${resto}`);
+  return partes.join("\r\n");
+}
+
 
 function hrefDoEvento(calendarUrl: string, uid: string): string {
   return `${calendarUrl.replace(/\/+$/, "")}/${encodeURIComponent(uid)}.ics`;
