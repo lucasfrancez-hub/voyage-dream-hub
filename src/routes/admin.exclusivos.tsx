@@ -23,6 +23,8 @@ import {
 
 
 import { Button } from "@/components/ui/button";
+import { NoResults } from "@/components/flights/NoResults";
+
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import {
