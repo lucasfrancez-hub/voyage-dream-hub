@@ -246,16 +246,32 @@ export function arrPlaceOf(fl: OnerFlight) {
     : segs[segs.length - 1]?.destination;
 }
 
+/** Assinatura do que o cliente realmente enxerga: família + cabine + bagagem. */
+function fareIdentity(o: OnerFareOption) {
+  const bags = (o.baggagesAllowance ?? [])
+    .map((b) => `${b.typeDescription ?? ""}${b.quantity ?? ""}${b.weight ?? ""}`)
+    .sort()
+    .join(",");
+  return `${o.fareFamily ?? ""}|${o.cabinClass ?? ""}|${bags}|${o.allowedBaggage ? 1 : 0}`;
+}
+
 /** Une as famílias tarifárias já conhecidas com as da nova onda de resultados. */
 function mergeFares(prev: OnerFlight | undefined, next: OnerFlight): OnerFlight {
   if (!prev?.fareOptions?.length) return next;
   const map = new Map<string, OnerFareOption>();
-  for (const o of [...(next.fareOptions ?? []), ...prev.fareOptions]) map.set(o.key, o);
+  // Mantém apenas a mais barata de cada família/bagagem — tarifas idênticas de
+  // fornecedores diferentes não podem virar "opções" com diferença absurda.
+  for (const o of [...(next.fareOptions ?? []), ...prev.fareOptions]) {
+    const id = fareIdentity(o);
+    const cur = map.get(id);
+    if (!cur || o.total < cur.total) map.set(id, o);
+  }
   return {
     ...next,
     fareOptions: [...map.values()].sort((a, b) => a.total - b.total),
   };
 }
+
 
 
 function findByAnyKey(list: OnerFlight[], key: string | null | undefined): OnerFlight | null {
