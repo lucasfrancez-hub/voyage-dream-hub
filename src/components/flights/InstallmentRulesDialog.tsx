@@ -4,6 +4,8 @@
  */
 import { useMemo, useState, type ReactNode } from "react";
 import { CreditCard, Search, Check } from "lucide-react";
+import { AirlineLogo } from "@/components/AirlineLogo";
+
 import {
   Dialog,
   DialogContent,
@@ -70,12 +72,16 @@ export function InstallmentRulesDialog({ trigger }: { trigger: ReactNode }) {
                 key={r.iata}
                 className="grid grid-cols-[minmax(0,1fr)_auto] sm:grid-cols-[minmax(0,1fr)_9rem_10rem] items-center gap-x-4 gap-y-1 rounded-xl px-3 py-2.5 transition hover:bg-primary/5"
               >
-                <div className="min-w-0">
-                  <div className="truncate text-sm font-medium">{r.name}</div>
-                  <div className="text-[11px] uppercase tracking-widest text-muted-foreground">
-                    {r.iata}
+                <div className="flex min-w-0 items-center gap-3">
+                  <AirlineLogo airline={r.iata} size={32} />
+                  <div className="min-w-0">
+                    <div className="truncate text-sm font-medium">{r.name}</div>
+                    <div className="text-[11px] uppercase tracking-widest text-muted-foreground">
+                      {r.iata}
+                    </div>
                   </div>
                 </div>
+
                 <div
                   className={`whitespace-nowrap text-right text-sm font-semibold tabular-nums ${
                     isPixOnly(r.rule) ? "text-emerald-500" : "text-primary"
