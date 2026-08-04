@@ -278,7 +278,9 @@ export function SearchEngine({
   const comboTotal = (flightPick?.total ?? 0) + (hotelPick?.total ?? 0);
   const comboSummary = [flightPick?.summary, hotelPick?.summary].filter(Boolean).join("\n\n");
 
-  const createComboCart = useServerFn(onerCreateComboCart);
+  const createComboCart = useServerFn(
+    publicMode ? onerCreateComboCartPublic : onerCreateComboCart,
+  );
 
   async function buyCombo() {
     setBuying(true);
@@ -290,10 +292,15 @@ export function SearchEngine({
         const r = await createComboCart({
           data: { flight: flightPick.flightBooking, hotel: hotelPick.hotelBooking },
         });
+        if (publicMode) {
+          window.location.href = r.url;
+          return;
+        }
         setCartLinks([{ label: "Aéreo + Hotel", url: r.url }]);
         toast.success("Carrinho do Comprar Viagem gerado");
         return;
       }
+
       if (flightPick) links.push({ label: "A\u00e9reo", url: await flightPick.buy() });
       if (hotelPick) links.push({ label: "Hospedagem", url: await hotelPick.buy() });
       setCartLinks(links);
