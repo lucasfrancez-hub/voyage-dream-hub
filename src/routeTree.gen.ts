@@ -67,6 +67,7 @@ import { Route as ChatProtocolosRouteImport } from './routes/chat.protocolos'
 import { Route as ChatSugestoesRouteImport } from './routes/chat.sugestoes'
 import { Route as EmailUnsubscribeRouteImport } from './routes/email/unsubscribe'
 import { Route as EmbedIngressosDestaqueRouteImport } from './routes/embed.ingressos-destaque'
+import { Route as EmbedMotorBuscaRouteImport } from './routes/embed.motor-busca'
 import { Route as EmbedPacotesDestaqueRouteImport } from './routes/embed.pacotes-destaque'
 import { Route as LSlugRouteImport } from './routes/l.$slug'
 import { Route as OrcamentoTokenRouteImport } from './routes/orcamento.$token'
@@ -405,6 +406,11 @@ const EmbedIngressosDestaqueRoute = EmbedIngressosDestaqueRouteImport.update({
   path: '/embed/ingressos-destaque',
   getParentRoute: () => rootRouteImport,
 } as any)
+const EmbedMotorBuscaRoute = EmbedMotorBuscaRouteImport.update({
+  id: '/embed/motor-busca',
+  path: '/embed/motor-busca',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const EmbedPacotesDestaqueRoute = EmbedPacotesDestaqueRouteImport.update({
   id: '/embed/pacotes-destaque',
   path: '/embed/pacotes-destaque',
@@ -724,6 +730,7 @@ export interface FileRoutesByFullPath {
   '/chat/sugestoes': typeof ChatSugestoesRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/embed/ingressos-destaque': typeof EmbedIngressosDestaqueRoute
+  '/embed/motor-busca': typeof EmbedMotorBuscaRoute
   '/embed/pacotes-destaque': typeof EmbedPacotesDestaqueRoute
   '/l/$slug': typeof LSlugRoute
   '/orcamento/$token': typeof OrcamentoTokenRoute
@@ -830,6 +837,7 @@ export interface FileRoutesByTo {
   '/chat/sugestoes': typeof ChatSugestoesRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/embed/ingressos-destaque': typeof EmbedIngressosDestaqueRoute
+  '/embed/motor-busca': typeof EmbedMotorBuscaRoute
   '/embed/pacotes-destaque': typeof EmbedPacotesDestaqueRoute
   '/l/$slug': typeof LSlugRoute
   '/orcamento/$token': typeof OrcamentoTokenRoute
@@ -938,6 +946,7 @@ export interface FileRoutesById {
   '/chat/sugestoes': typeof ChatSugestoesRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/embed/ingressos-destaque': typeof EmbedIngressosDestaqueRoute
+  '/embed/motor-busca': typeof EmbedMotorBuscaRoute
   '/embed/pacotes-destaque': typeof EmbedPacotesDestaqueRoute
   '/l/$slug': typeof LSlugRoute
   '/orcamento/$token': typeof OrcamentoTokenRoute
@@ -1047,6 +1056,7 @@ export interface FileRouteTypes {
     | '/chat/sugestoes'
     | '/email/unsubscribe'
     | '/embed/ingressos-destaque'
+    | '/embed/motor-busca'
     | '/embed/pacotes-destaque'
     | '/l/$slug'
     | '/orcamento/$token'
@@ -1153,6 +1163,7 @@ export interface FileRouteTypes {
     | '/chat/sugestoes'
     | '/email/unsubscribe'
     | '/embed/ingressos-destaque'
+    | '/embed/motor-busca'
     | '/embed/pacotes-destaque'
     | '/l/$slug'
     | '/orcamento/$token'
@@ -1260,6 +1271,7 @@ export interface FileRouteTypes {
     | '/chat/sugestoes'
     | '/email/unsubscribe'
     | '/embed/ingressos-destaque'
+    | '/embed/motor-busca'
     | '/embed/pacotes-destaque'
     | '/l/$slug'
     | '/orcamento/$token'
@@ -1333,6 +1345,7 @@ export interface RootRouteChildren {
   AgendaTokenRoute: typeof AgendaTokenRoute
   EmailUnsubscribeRoute: typeof EmailUnsubscribeRoute
   EmbedIngressosDestaqueRoute: typeof EmbedIngressosDestaqueRoute
+  EmbedMotorBuscaRoute: typeof EmbedMotorBuscaRoute
   EmbedPacotesDestaqueRoute: typeof EmbedPacotesDestaqueRoute
   LSlugRoute: typeof LSlugRoute
   OrcamentoTokenRoute: typeof OrcamentoTokenRoute
@@ -1780,6 +1793,13 @@ declare module '@tanstack/react-router' {
       path: '/embed/ingressos-destaque'
       fullPath: '/embed/ingressos-destaque'
       preLoaderRoute: typeof EmbedIngressosDestaqueRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/embed/motor-busca': {
+      id: '/embed/motor-busca'
+      path: '/embed/motor-busca'
+      fullPath: '/embed/motor-busca'
+      preLoaderRoute: typeof EmbedMotorBuscaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/embed/pacotes-destaque': {
@@ -2259,6 +2279,7 @@ const rootRouteChildren: RootRouteChildren = {
   AgendaTokenRoute: AgendaTokenRoute,
   EmailUnsubscribeRoute: EmailUnsubscribeRoute,
   EmbedIngressosDestaqueRoute: EmbedIngressosDestaqueRoute,
+  EmbedMotorBuscaRoute: EmbedMotorBuscaRoute,
   EmbedPacotesDestaqueRoute: EmbedPacotesDestaqueRoute,
   LSlugRoute: LSlugRoute,
   OrcamentoTokenRoute: OrcamentoTokenRoute,
