@@ -43,7 +43,9 @@ export function AirportAutocomplete({
   const [open, setOpen] = useState(false);
   const [highlight, setHighlight] = useState(0);
   const boxRef = useRef<HTMLDivElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const typingRef = useRef(false);
+  const [pos, setPos] = useState({ top: 0, left: 0, width: 0 });
 
   // Só espelha o valor externo quando o usuário não está digitando,
   // senão cada tecla limparia o texto do campo.
@@ -60,11 +62,40 @@ export function AirportAutocomplete({
 
   useEffect(() => {
     function onDocClick(e: MouseEvent) {
-      if (boxRef.current && !boxRef.current.contains(e.target as Node)) setOpen(false);
+      const t = e.target as Node;
+      if (boxRef.current?.contains(t) || dropdownRef.current?.contains(t)) return;
+      setOpen(false);
     }
     document.addEventListener("mousedown", onDocClick);
     return () => document.removeEventListener("mousedown", onDocClick);
   }, []);
+
+  // Lista renderizada em portal: precisa acompanhar a posição do campo
+  // e fazer o iframe do widget crescer pra não cortar as opções.
+  useEffect(() => {
+    if (!open) {
+      resetEmbedHeight();
+      return;
+    }
+    const update = () => {
+      const el = boxRef.current;
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+      setPos({
+        top: window.scrollY + rect.bottom + 6,
+        left: window.scrollX + rect.left,
+        width: rect.width,
+      });
+    };
+    update();
+    window.addEventListener("resize", update);
+    window.addEventListener("scroll", update, true);
+    return () => {
+      window.removeEventListener("resize", update);
+      window.removeEventListener("scroll", update, true);
+    };
+  }, [open]);
+
 
   const { data, isFetching } = useQuery({
     queryKey: ["oner-airports", publicMode, debounced, isDeparture],
