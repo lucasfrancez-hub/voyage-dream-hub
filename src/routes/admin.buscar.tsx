@@ -76,7 +76,7 @@ function ModeHeader({
         <h1 className="text-4xl font-bold tracking-tight">{title}</h1>
         {subtitle ? <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p> : null}
       </div>
-      <div className="flex w-fit gap-1 rounded-full border border-border/50 bg-card/70 p-1 backdrop-blur-xl">
+      <div className="flex w-full max-w-full gap-1 overflow-x-auto rounded-full border border-border/50 bg-card/70 p-1 backdrop-blur-xl md:w-fit md:overflow-visible [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {MODES.map((m) => {
           const active = mode === m.id;
           const disabled = !ENABLED_MODES.includes(m.id);
@@ -90,7 +90,7 @@ function ModeHeader({
                 if (disabled) return;
                 setMode(m.id);
               }}
-              className={`flex items-center gap-2 rounded-full px-5 py-2.5 text-sm transition-all sm:px-6 ${
+              className={`flex h-11 shrink-0 items-center gap-2 whitespace-nowrap rounded-full px-5 text-sm leading-none transition-all sm:px-6 ${
                 disabled
                   ? "cursor-not-allowed font-medium text-muted-foreground/40"
                   : active
@@ -98,7 +98,8 @@ function ModeHeader({
                     : "font-medium text-muted-foreground hover:text-foreground"
               }`}
             >
-              <m.icon className="h-4 w-4" /> {m.label}
+              <m.icon className="h-4 w-4 shrink-0" /> {m.label}
+
               {disabled ? <span className="text-[10px] uppercase opacity-70">em breve</span> : null}
             </button>
           );
