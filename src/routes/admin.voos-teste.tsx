@@ -2249,10 +2249,13 @@ export function VoosPage({
                   ))}
 
                   {!inFlights.length && (
-                    <p className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
-                      Nenhuma volta com esses filtros.
-                    </p>
+                    <NoResults
+                      title="Desculpe, nenhum voo de volta foi encontrado."
+                      hint="Nenhuma opção com esses filtros (classe, paradas, bagagem ou horário). Selecione outra opção de filtro."
+                      onClearFilters={() => setInFilters(EMPTY_FILTERS)}
+                    />
                   )}
+
                   <Button
                     variant="outline"
                     className="w-full"
