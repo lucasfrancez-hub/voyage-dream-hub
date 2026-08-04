@@ -132,6 +132,47 @@ export const criarEventoAgendaApp = createServerFn({ method: "POST" })
     return { ok: true, id: evento.id };
   });
 
+/** Edita um compromisso pelo app da agenda (link + PIN). */
+export const atualizarEventoAgendaApp = createServerFn({ method: "POST" })
+  .inputValidator((d: {
+    token: string;
+    pin?: string | null;
+    id: string;
+    titulo?: string;
+    descricao?: string | null;
+    local?: string | null;
+    inicio?: string;
+    fim?: string;
+  }) => {
+    if (!d?.token) throw new Error("Link inválido.");
+    if (!d?.id) throw new Error("Compromisso inválido.");
+    if (d.inicio && d.fim && new Date(d.fim) <= new Date(d.inicio)) {
+      throw new Error("O fim precisa ser depois do início.");
+    }
+    return d;
+  })
+  .handler(async ({ data }) => {
+    await exigirAcesso(data.token, data.pin);
+    const { atualizarEvento } = await import("@/lib/whatsapp/calendar.server");
+    const { token: _t, pin: _p, id, ...patch } = data;
+    await atualizarEvento(id, patch);
+    return { ok: true };
+  });
+
+/** Exclui um compromisso pelo app da agenda (link + PIN). */
+export const excluirEventoAgendaApp = createServerFn({ method: "POST" })
+  .inputValidator((d: { token: string; pin?: string | null; id: string }) => {
+    if (!d?.token) throw new Error("Link inválido.");
+    if (!d?.id) throw new Error("Compromisso inválido.");
+    return d;
+  })
+  .handler(async ({ data }) => {
+    await exigirAcesso(data.token, data.pin);
+    const { removerEvento } = await import("@/lib/whatsapp/calendar.server");
+    await removerEvento(data.id);
+    return { ok: true };
+  });
+
 
 
 /* ------------------------------------------------------------------ */
