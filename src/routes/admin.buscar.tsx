@@ -552,17 +552,19 @@ export function SearchEngine({
                       </div>
                     </div>
 
+                    {!publicMode && (
+                      <Button
+                        size="lg"
+                        className="mt-6 w-full"
+                        disabled={!comboTotal}
+                        onClick={() => setOrderOpen(true)}
+                      >
+                        <ClipboardCheck className="mr-2 h-4 w-4" /> Fazer pedido
+                      </Button>
+                    )}
                     <Button
                       size="lg"
-                      className="mt-6 w-full"
-                      disabled={!comboTotal}
-                      onClick={() => setOrderOpen(true)}
-                    >
-                      <ClipboardCheck className="mr-2 h-4 w-4" /> Fazer pedido
-                    </Button>
-                    <Button
-                      size="lg"
-                      variant="outline"
+                      variant={publicMode ? "default" : "outline"}
                       className="mt-3 w-full"
                       disabled={buying || (!flightPick && !hotelPick)}
                       onClick={buyCombo}
@@ -572,10 +574,11 @@ export function SearchEngine({
                       ) : (
                         <ExternalLink className="mr-2 h-4 w-4" />
                       )}
-                      Comprar viagem
+                      {publicMode ? "Comprar agora" : "Comprar viagem"}
                     </Button>
 
-                    {cartLinks.length > 0 && (
+                    {cartLinks.length > 0 && !publicMode && (
+
                       <div className="mt-4 space-y-2 rounded-2xl border border-primary/30 bg-primary/5 p-3">
                         <div className="text-xs font-semibold">Links do carrinho</div>
                         {cartLinks.map((l) => (
