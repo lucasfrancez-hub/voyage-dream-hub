@@ -140,11 +140,15 @@ async function poll(
   // No modo "fast" (WhatsApp/IA) a prioridade é entregar rápido: cortamos as
   // rodadas mínimas, o tempo entre rodadas e o orçamento total.
   const quick = speed === "fast";
-  const MIN_ROUNDS = quick ? 2 : 6;
-  const STABLE_ROUNDS = quick ? 1 : 4;
-  const TIME_BUDGET_MS = quick ? 9_000 : 26_000;
-  const GAP_MS = quick ? 450 : 900;
+  const MIN_ROUNDS = quick ? 3 : 10;
+  const STABLE_ROUNDS = quick ? 2 : 6;
+  const TIME_BUDGET_MS = quick ? 11_000 : 42_000;
+  const GAP_MS = quick ? 450 : 800;
   let stable = 0;
+  // Rodadas em que já veio conteúdo. Fornecedores (GOL, LATAM, consolidadores)
+  // publicam em ondas diferentes — sair na primeira onda faz sumir voos e
+  // mostrar tarifa mais cara do que a real.
+  let roundsWithFlights = 0;
 
   for (let i = 0; i < maxRounds; i++) {
 
