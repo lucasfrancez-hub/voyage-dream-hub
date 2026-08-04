@@ -27,6 +27,8 @@ type VoarSearch = {
   ch?: number;
   inf?: number;
   m?: Mode;
+  /** Aba vinda do widget: ?tab=exclusivos */
+  tab?: string;
   /** Hotel vindo do widget */
   hd?: string;
   ci?: string;
@@ -46,7 +48,12 @@ export const Route = createFileRoute("/voar")({
     ad: Number(search.ad) > 0 ? Math.min(9, Number(search.ad)) : undefined,
     ch: Number(search.ch) > 0 ? Math.min(9, Number(search.ch)) : undefined,
     inf: Number(search.inf) > 0 ? Math.min(9, Number(search.inf)) : undefined,
-    m: MODES.includes(search.m as Mode) ? (search.m as Mode) : undefined,
+    m: MODES.includes(search.m as Mode)
+      ? (search.m as Mode)
+      : search.tab === "exclusivos" || search.tab === "exclusivo"
+        ? ("exclusivo" as Mode)
+        : undefined,
+    tab: typeof search.tab === "string" ? search.tab.slice(0, 20) : undefined,
     hd: typeof search.hd === "string" ? search.hd.slice(0, 120) : undefined,
     ci: typeof search.ci === "string" ? search.ci.slice(0, 10) : undefined,
     co: typeof search.co === "string" ? search.co.slice(0, 10) : undefined,
