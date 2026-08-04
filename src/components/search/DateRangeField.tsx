@@ -78,15 +78,21 @@ export function DateRangeField({
       update();
       resizeEmbedForFloatingElement(calendarRef.current, 32);
     }, 40);
+    const t2 = window.setTimeout(() => {
+      update();
+      resizeEmbedForFloatingElement(calendarRef.current, 32);
+    }, 220);
 
     window.addEventListener("resize", update);
     window.addEventListener("scroll", update, true);
     return () => {
       window.clearTimeout(t);
+      window.clearTimeout(t2);
       window.cancelAnimationFrame(raf);
       window.removeEventListener("resize", update);
       window.removeEventListener("scroll", update, true);
     };
+
 
   }, [open, embedded, focus]);
 
