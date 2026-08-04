@@ -543,56 +543,101 @@ function FiltersPanel({
 
 // ---------------------------------------------------------------- card
 
-/** Detalhamento de trechos e tempo de conexão. */
+/** Detalhamento de trechos e tempo de conexão — trilho vertical de precisão. */
 function SegmentsDetail({ f }: { f: OnerFlight }) {
   const segs = f.journey.segments;
   return (
-    <div className="mt-3 space-y-3 rounded-xl border border-border/60 bg-background/50 p-3">
+    <div className="mt-3 space-y-0 rounded-xl border border-border/60 bg-background/50 p-5">
       {segs.map((s, i) => {
         const prev = segs[i - 1];
         const layover = prev ? absMinutes(s.departure) - absMinutes(prev.destination) : 0;
+        const isLast = i === segs.length - 1;
         return (
-          <div key={`${s.segmentNumber}-${s.flightNumber}`} className="space-y-3">
+          <div key={`${s.segmentNumber}-${s.flightNumber}`}>
             {prev && (
-              <div className="flex items-center gap-2 text-[11px] font-medium text-muted-foreground">
-                <span className="h-px flex-1 bg-border" />
-                <Clock className="h-3 w-3" />
-                Conexão em {prev.destination.iata} • {fmtDur(layover)}
-                <span className="h-px flex-1 bg-border" />
+              <div className="relative py-6 pl-8">
+                <div className="absolute bottom-0 left-[9px] top-0 w-0 border-l-2 border-dashed border-border" />
+                <div className="flex w-fit items-center gap-3 rounded-xl border border-border/60 bg-muted/30 p-3 pr-6 backdrop-blur-sm">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-primary/25 bg-primary/10">
+                    <Clock className="h-4 w-4 text-primary" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="mb-1 text-[10px] font-bold uppercase leading-none tracking-[0.2em] text-muted-foreground">
+                      Conexão em {prev.destination.iata}
+                    </p>
+                    <p className="text-sm font-semibold text-foreground">
+                      Aguarde <span className="font-mono text-primary">{fmtDur(layover)}</span> no
+                      aeroporto
+                    </p>
+                  </div>
+                </div>
               </div>
             )}
-            <div className="flex flex-wrap items-center gap-3 text-xs">
-              {s.marketingAirline?.pathLogo ? (
-                <img
-                  src={s.marketingAirline.pathLogo}
-                  alt={s.marketingAirline?.name ?? "Companhia aérea"}
-                  className="h-5 w-5 rounded bg-white object-contain"
-                  loading="lazy"
-                />
-              ) : (
-                <Plane className="h-4 w-4 text-muted-foreground" />
-              )}
-              <span className="font-semibold">
-                {s.marketingAirline?.iata ?? ""}
-                {s.flightNumber}
-              </span>
-              <span>
-                <strong>{fmtTime(s.departure.time)}</strong> {s.departure.iata}
-                <span className="text-muted-foreground"> ({fmtDate(s.departure.date)})</span>
-              </span>
-              <ArrowRight className="h-3 w-3 text-muted-foreground" />
-              <span>
-                <strong>{fmtTime(s.destination.time)}</strong> {s.destination.iata}
-                <span className="text-muted-foreground"> ({fmtDate(s.destination.date)})</span>
-              </span>
-              <span className="text-muted-foreground">
-                {fmtDur(absMinutes(s.destination) - absMinutes(s.departure))}
-                {s.cabinClass ? ` • ${s.cabinClass}` : ""}
-                {s.airlineFareFamily ? ` • ${s.airlineFareFamily}` : ""}
-              </span>
-            </div>
-            <div className="text-[11px] text-muted-foreground">
-              {s.departure.name} → {s.destination.name}
+
+            <div className="flex flex-col">
+              <div className="mb-4 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+                <div className="flex min-w-0 items-center gap-3">
+                  {s.marketingAirline?.pathLogo ? (
+                    <img
+                      src={s.marketingAirline.pathLogo}
+                      alt={s.marketingAirline?.name ?? "Companhia aérea"}
+                      className="h-5 w-5 shrink-0 rounded bg-white object-contain"
+                      loading="lazy"
+                    />
+                  ) : (
+                    <Plane className="h-4 w-4 shrink-0" />
+                  )}
+                  <span className="h-3 w-px shrink-0 bg-border" />
+                  <span className="truncate">
+                    {s.marketingAirline?.iata ?? ""}
+                    {s.flightNumber}
+                    {s.cabinClass ? ` • ${s.cabinClass}` : ""}
+                    {s.airlineFareFamily ? ` • ${s.airlineFareFamily}` : ""}
+                  </span>
+                </div>
+                <div className="flex shrink-0 items-center gap-2 text-foreground/70">
+                  <Clock className="h-3.5 w-3.5 text-primary" />
+                  <span className="font-mono">
+                    {fmtDur(absMinutes(s.destination) - absMinutes(s.departure))}
+                  </span>
+                </div>
+              </div>
+
+              <div className="relative pl-8">
+                <div className="absolute bottom-2 left-[9px] top-2 w-[2px] rounded-full bg-primary" />
+
+                <div className="relative mb-8">
+                  <div className="absolute -left-[28px] top-1.5 h-[11px] w-[11px] rounded-full border-2 border-background bg-primary ring-1 ring-primary/30" />
+                  <div className="flex items-baseline gap-3">
+                    <span className="text-xl font-bold tracking-tight">
+                      {fmtTime(s.departure.time)}
+                    </span>
+                    <span className="text-2xl font-black tracking-tighter">{s.departure.iata}</span>
+                  </div>
+                  <p className="mt-0.5 text-xs font-medium text-muted-foreground">
+                    {s.departure.name} • {fmtDate(s.departure.date)}
+                  </p>
+                </div>
+
+                <div className="relative">
+                  {isLast ? (
+                    <div className="absolute -left-[30px] top-1.5 h-[15px] w-[15px] rounded-full border-[3.5px] border-background bg-primary ring-1 ring-primary" />
+                  ) : (
+                    <div className="absolute -left-[28px] top-1.5 h-[11px] w-[11px] rounded-full border-2 border-background bg-foreground" />
+                  )}
+                  <div className="flex items-baseline gap-3">
+                    <span className="text-xl font-bold tracking-tight">
+                      {fmtTime(s.destination.time)}
+                    </span>
+                    <span className="text-2xl font-black tracking-tighter">
+                      {s.destination.iata}
+                    </span>
+                  </div>
+                  <p className="mt-0.5 text-xs font-medium text-muted-foreground">
+                    {s.destination.name} • {fmtDate(s.destination.date)}
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         );
