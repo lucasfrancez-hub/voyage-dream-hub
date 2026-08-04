@@ -66,10 +66,16 @@ export type AgendaEvento = {
   telefone: string | null;
   criado_por: string | null;
   detalhes: import("./gcal.server").DetalhesEvento | null;
+  timezone?: string | null;
+  reminder_minutes?: number[] | null;
+  notifications_enabled?: boolean | null;
+  start_date?: string | null;
+  end_date?: string | null;
+  concluido_em?: string | null;
 };
 
 const CAMPOS_EVENTO =
-  "id, uid, href, titulo, descricao, local, inicio, fim, dia_inteiro, situacao, origem, provider, account_id, telefone, criado_por, detalhes";
+  "id, uid, href, titulo, descricao, local, inicio, fim, dia_inteiro, situacao, origem, provider, account_id, telefone, criado_por, detalhes, timezone, reminder_minutes, notifications_enabled, start_date, end_date, concluido_em";
 
 /* ------------------------------------------------------------------ */
 /* Contas                                                              */
