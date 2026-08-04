@@ -2154,15 +2154,71 @@ function InstagramConversationView({
             <Instagram className="h-4 w-4" />
           </div>
         )}
-        <div className="min-w-0">
-          <div className="truncate text-sm font-medium text-slate-900">
-            {profile?.contact_name ?? profile?.contact_username ?? "Instagram Direct"}
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-1.5">
+            <span className="truncate text-sm font-medium text-slate-900">
+              {profile?.contact_name ?? (profile?.contact_username ? `@${profile.contact_username}` : "Instagram Direct")}
+            </span>
+            {mirror?.protocolo_numero && (
+              <span className="rounded border border-slate-200 bg-slate-50 px-1.5 py-0.5 font-mono text-[10px] text-slate-600">
+                #{mirror.protocolo_numero}
+              </span>
+            )}
+            {profile?.contact_username && (
+              <a
+                href={`https://instagram.com/${profile.contact_username}`}
+                target="_blank"
+                rel="noreferrer"
+                title="Abrir perfil no Instagram"
+                aria-label="Abrir perfil no Instagram"
+                className="shrink-0 rounded-md p-1 text-slate-400 transition-colors hover:bg-slate-100 hover:text-[#F26B1F]"
+              >
+                <ExternalLink className="h-3.5 w-3.5" />
+              </a>
+            )}
           </div>
           <div className="truncate text-[11px] text-slate-500">
             {profile?.contact_username ? `@${profile.contact_username} · ` : ""}Instagram Direct
+            {mirror && (
+              <> · {mirror.mode === "ai" ? `IA (${mirror.agent_slug ?? "auto"})` : mirror.mode === "human" ? "Humano" : "Arquivada"}</>
+            )}
+            {mirror?.mode === "ai" && igAiPaused && (
+              <> · <span className="font-semibold text-amber-600">IA pausada</span></>
+            )}
           </div>
         </div>
+
+        {mirror && (
+          <>
+            {mirror.mode === "ai" && (
+              <button
+                onClick={() => igPauseMut.mutate(!igAiPaused)}
+                disabled={igPauseMut.isPending}
+                aria-label={igAiPaused ? "Retomar IA" : "Pausar IA"}
+                className={cn(
+                  "inline-flex shrink-0 items-center gap-1.5 rounded-md border px-2 py-1.5 text-[11px] font-medium transition-colors disabled:opacity-50",
+                  igAiPaused
+                    ? "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+                    : "border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100",
+                )}
+              >
+                {igPauseMut.isPending
+                  ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  : igAiPaused ? <Play className="h-3.5 w-3.5" /> : <Pause className="h-3.5 w-3.5" />}
+                <span className="hidden sm:inline">{igAiPaused ? "Retomar IA" : "Pausar IA"}</span>
+              </button>
+            )}
+            <button
+              onClick={() => igToggleMut.mutate(mirror.mode === "ai" ? "human" : "ai")}
+              className="shrink-0 rounded-md border border-slate-200 px-2 py-1.5 text-[11px] font-medium text-slate-700 hover:bg-slate-50 sm:px-3"
+            >
+              {mirror.mode === "ai" ? "Assumir" : "Devolver p/ IA"}
+            </button>
+            <ConversationMenu conv={mirror} onChange={() => onRefetch?.()} />
+          </>
+        )}
       </header>
+
 
 
       <div className="flex-1 space-y-2 overflow-y-auto p-4">
