@@ -40,6 +40,9 @@ export function DateRangeField({
   const [open, setOpen] = useState(false);
   const [focus, setFocus] = useState<"start" | "end">("start");
   const [embedded, setEmbedded] = useState(false);
+  const anchorRef = useRef<HTMLDivElement>(null);
+  const calendarRef = useRef<HTMLDivElement>(null);
+  const [pos, setPos] = useState({ top: 0, left: 0, width: 0 });
 
   useEffect(() => {
     try {
@@ -49,9 +52,37 @@ export function DateRangeField({
     }
   }, []);
 
+  // Posiciona o painel logo abaixo do campo e cresce o iframe pra ele caber.
+  useEffect(() => {
+    if (!embedded) return;
+    if (!open) {
+      resetEmbedHeight();
+      return;
+    }
+    const update = () => {
+      const el = anchorRef.current;
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+      setPos({
+        top: window.scrollY + rect.bottom + 8,
+        left: window.scrollX + rect.left,
+        width: rect.width,
+      });
+    };
+    update();
+    const t = window.setTimeout(() => resizeEmbedForFloatingElement(calendarRef.current, 32), 40);
+    window.addEventListener("resize", update);
+    window.addEventListener("scroll", update, true);
+    return () => {
+      window.clearTimeout(t);
+      window.removeEventListener("resize", update);
+      window.removeEventListener("scroll", update, true);
+    };
+  }, [open, embedded, focus]);
 
   const from = fromISO(departureDate);
   const to = fromISO(returnDate);
+
 
   // Fecha sozinho quando o intervalo está completo e o usuário pediu volta.
   useEffect(() => {
