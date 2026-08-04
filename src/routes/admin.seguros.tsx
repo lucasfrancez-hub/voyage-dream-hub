@@ -198,7 +198,7 @@ export function SegurosPage({ header }: { header?: React.ReactNode } = {}) {
           endDate,
           ages,
           page: 1,
-          pageSize: 20,
+          pageSize: 50,
           ordering: 1,
         },
       });
