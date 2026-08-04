@@ -497,6 +497,28 @@ function FiltersPanel({
           </div>
         </div>
 
+        <div className="space-y-3">
+          <SectionLabel>Classes</SectionLabel>
+          <div className="grid grid-cols-2 gap-1 rounded-2xl border border-border/40 bg-muted/30 p-1">
+            {CABIN_OPTIONS.map((c) => (
+              <button
+                key={c.id}
+                type="button"
+                onClick={() => onChange({ ...filters, cabins: toggle(filters.cabins, c.id) })}
+                className={`rounded-xl px-1 py-2 text-[11px] font-bold transition-all ${
+                  filters.cabins.includes(c.id)
+                    ? "bg-primary text-primary-foreground shadow-[var(--shadow-glow)]"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {c.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+
+
         <div className="space-y-6">
           <TimeRange
             label="Horário de partida"
