@@ -372,8 +372,30 @@ export async function saveMessage(input: {
     }
   }
 
+  // Notificação push pros atendentes (celular/desktop) quando o cliente escreve.
+  if (input.direction === "inbound" && input.sender === "customer") {
+    try {
+      const { data: conv } = await supabaseAdmin
+        .from("wa_conversations")
+        .select("display_name, wa_phone")
+        .eq("id", input.conversation_id)
+        .maybeSingle();
+      const phone = (conv?.wa_phone as string | null) ?? "";
+      const { notificarNovaMensagemChat } = await import("@/lib/chat/push.server");
+      await notificarNovaMensagemChat({
+        conversationId: input.conversation_id,
+        titulo: (conv?.display_name as string | null) || phone || "Nova mensagem",
+        corpo: input.content,
+        canal: phone.startsWith("ig:") ? "instagram" : "whatsapp",
+      });
+    } catch (err) {
+      console.error("[wa/saveMessage] push:", err);
+    }
+  }
+
   return data as WaMessage;
 }
+
 
 /**
  * Carrega histórico da conversa (para dar contexto ao modelo).
