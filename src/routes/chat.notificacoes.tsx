@@ -11,7 +11,7 @@ import {
   testarPushChat,
   listarAparelhosPushChat,
 } from "@/lib/chat/push.functions";
-import { b64urlParaUint8, ehIOS, ehStandalone, nomeDoAparelho, SW_URL } from "@/lib/chat/push-client";
+import { assinarPush, ehIOS, ehStandalone, nomeDoAparelho, SW_URL } from "@/lib/chat/push-client";
 
 export const Route = createFileRoute("/chat/notificacoes")({
   ssr: false,
