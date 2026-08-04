@@ -244,7 +244,19 @@ export function arrPlaceOf(fl: OnerFlight) {
     : segs[segs.length - 1]?.destination;
 }
 
+/** Acha o voo por qualquer chave: a do card ou a de uma família tarifária dele. */
+function findByAnyKey(list: OnerFlight[], key: string | null | undefined): OnerFlight | null {
+  if (!key) return null;
+  return list.find((f) => f.key === key || (f.fareOptions ?? []).some((o) => o.key === key)) ?? null;
+}
+
+/** O card está selecionado se a chave escolhida é dele ou de uma tarifa dele. */
+function isSameFlight(f: OnerFlight, key: string | null): boolean {
+  return !!key && (f.key === key || (f.fareOptions ?? []).some((o) => o.key === key));
+}
+
 /** Refinamentos locais que a API não representa corretamente. */
+
 function applyFilters(list: OnerFlight[], f: Filters) {
   return list.filter((fl) => {
     if (f.maxStops < 2 && fl.journey.numberOfStops > f.maxStops) return false;
