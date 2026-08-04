@@ -52,7 +52,7 @@ function EmbedMotorBusca() {
 
       `}</style>
       <PublicEngineProvider value={true}>
-        <SearchEngine publicMode initialMode="aereo" />
+        <SearchEngine publicMode embedMode initialMode="aereo" />
       </PublicEngineProvider>
     </div>
   );
