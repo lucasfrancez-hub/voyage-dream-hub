@@ -1877,6 +1877,16 @@ export function VoosPage({
       <main className="mx-auto max-w-7xl px-4 py-6">
         {mut.isPending && !result && <SearchSkeleton />}
 
+        {!result && !mut.isPending && (
+          <div className="rounded-2xl border border-dashed border-border p-12 text-center">
+            <Plane className="mx-auto mb-3 h-6 w-6 text-muted-foreground" />
+            <p className="text-sm text-muted-foreground">
+              Informe os locais de origem e destino e as datas. Os filtros aparecem na lateral
+              depois da pesquisa.
+            </p>
+          </div>
+        )}
+
 
         {result && (
           <div className={`grid gap-6 ${showSummary ? "" : "lg:grid-cols-[280px_1fr]"}`}>
