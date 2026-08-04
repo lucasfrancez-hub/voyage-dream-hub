@@ -1698,12 +1698,14 @@ function ItemsTab({
 // ignorando o status armazenado quando ele está inconsistente.
 // Aéreo: bilhete + localizador → confirmado; só localizador → reservado; nada → solicitado (pending).
 // Hotel: localizador → confirmado; sem localizador → solicitado (pending).
-function deriveItemStatus(item: OrderItem): OrderItem["status"] {
+function deriveItemStatus(item: OrderItem, hasTicket = false): OrderItem["status"] {
   if (item.status === "cancelled") return "cancelled";
   const d = (item.details ?? {}) as Record<string, unknown>;
   const loc = (item.supplier_locator ?? "").trim();
   if (item.kind === "flight") {
-    const tkt = String(d.ticket_number ?? "").trim();
+    // O bilhete hoje vive no passageiro (tickets por localizador); o campo do
+    // item é legado. Qualquer um dos dois já significa emitido.
+    const tkt = hasTicket || !!String(d.ticket_number ?? "").trim();
     if (tkt && loc) return "confirmed";
     if (loc) return "reserved";
     return "pending";
