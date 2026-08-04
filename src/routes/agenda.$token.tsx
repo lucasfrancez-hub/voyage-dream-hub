@@ -14,13 +14,17 @@ import {
   MapPin,
   Plus,
   RefreshCw,
+  Pencil,
+  Trash2,
   Users,
   X,
 } from "lucide-react";
 
 import {
   abrirAgendaApp,
+  atualizarEventoAgendaApp,
   criarEventoAgendaApp,
+  excluirEventoAgendaApp,
   eventosAgendaApp,
   removerPushAgenda,
   salvarPushAgenda,
@@ -318,6 +322,10 @@ function Painel({ token, pin, nome, vapid }: { token: string; pin: string | null
   const [detalhe, setDetalhe] = useState<Evento | null>(null);
   const [config, setConfig] = useState(false);
   const [novo, setNovo] = useState(false);
+  const [editando, setEditando] = useState<Evento | null>(null);
+  const [apagando, setApagando] = useState(false);
+
+  const apagar = useServerFn(excluirEventoAgendaApp);
 
   const buscar = useServerFn(eventosAgendaApp);
 
@@ -499,7 +507,28 @@ function Painel({ token, pin, nome, vapid }: { token: string; pin: string | null
 
 
       {detalhe ? (
-        <Detalhes evento={detalhe} cor={corDa(detalhe)} origem={origemDe(detalhe)} onFechar={() => setDetalhe(null)} />
+        <Detalhes
+          evento={detalhe}
+          cor={corDa(detalhe)}
+          origem={origemDe(detalhe)}
+          onFechar={() => setDetalhe(null)}
+          onEditar={() => {
+            setEditando(detalhe);
+            setDetalhe(null);
+          }}
+          apagando={apagando}
+          onExcluir={async () => {
+            if (!window.confirm(`Excluir "${detalhe.titulo}" da agenda?`)) return;
+            setApagando(true);
+            try {
+              await apagar({ data: { token, pin, id: detalhe.id } });
+              setDetalhe(null);
+              await recarregar();
+            } finally {
+              setApagando(false);
+            }
+          }}
+        />
       ) : null}
       {config ? <Notificacoes token={token} pin={pin} vapid={vapid} onFechar={() => setConfig(false)} /> : null}
       {novo ? (
@@ -511,6 +540,20 @@ function Painel({ token, pin, nome, vapid }: { token: string; pin: string | null
           onFechar={() => setNovo(false)}
           onCriado={() => {
             setNovo(false);
+            void recarregar();
+          }}
+        />
+      ) : null}
+      {editando ? (
+        <NovoCompromisso
+          token={token}
+          pin={pin}
+          contas={contas}
+          dia={new Date(editando.inicio)}
+          evento={editando}
+          onFechar={() => setEditando(null)}
+          onCriado={() => {
+            setEditando(null);
             void recarregar();
           }}
         />
@@ -636,7 +679,7 @@ function NovoCompromisso({
         style={{ background: "rgba(12,18,34,0.98)", borderColor: "rgba(255,255,255,0.1)", colorScheme: "dark" }}
       >
         <div className="mb-4 flex items-center gap-2">
-          <h2 className="flex-1 text-lg font-semibold text-white">Novo compromisso</h2>
+          <h2 className="flex-1 text-lg font-semibold text-white">{editando ? "Editar compromisso" : "Novo compromisso"}</h2>
           <BotaoIcone onClick={onFechar} rotulo="Fechar">
             <X className="h-4 w-4" />
           </BotaoIcone>
@@ -759,8 +802,8 @@ function NovoCompromisso({
             className="flex w-full items-center justify-center gap-2 rounded-xl py-3 text-sm font-semibold text-white disabled:opacity-50"
             style={{ background: "linear-gradient(140deg,#F26B1F,#d1560f)" }}
           >
-            {salvar.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-            Salvar compromisso
+            {salvar.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : editando ? <Pencil className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+            {editando ? "Salvar alterações" : "Salvar compromisso"}
           </button>
         </div>
       </div>
@@ -1085,7 +1128,23 @@ function Vazio({ texto }: { texto: string }) {
 /* Detalhes                                                            */
 /* ------------------------------------------------------------------ */
 
-function Detalhes({ evento, cor, origem, onFechar }: { evento: Evento; cor: string; origem: string; onFechar: () => void }) {
+function Detalhes({
+  evento,
+  cor,
+  origem,
+  onFechar,
+  onEditar,
+  onExcluir,
+  apagando,
+}: {
+  evento: Evento;
+  cor: string;
+  origem: string;
+  onFechar: () => void;
+  onEditar: () => void;
+  onExcluir: () => void | Promise<void>;
+  apagando: boolean;
+}) {
   const d = (evento.detalhes ?? {}) as {
     link_reuniao?: string;
     organizador?: { nome?: string; email?: string };
