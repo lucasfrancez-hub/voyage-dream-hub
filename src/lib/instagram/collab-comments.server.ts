@@ -92,21 +92,19 @@ export async function syncCollabComments(): Promise<CollabSyncResult> {
           });
           if (!resposta) continue;
 
-          const { replyToComment } = await import("@/lib/instagram/api.server");
-          await replyToComment({ commentId: c.id, token: conta.access_token, message: resposta.publica });
-
-          const espera = 90_000 + Math.floor(Math.random() * 30_000);
+          // Em post de colaboração quem responde publicamente e manda direct é
+          // só o perfil DONO da publicação — a Meta bloqueia o coautor. Então
+          // aqui guardamos a resposta como SUGESTÃO pra equipe enviar.
           await supabaseAdmin
             .from("instagram_comments")
             .update({
-              auto_reply_status: "sent",
+              auto_reply_status: "suggestion",
               auto_reply_text: resposta.publica,
-              auto_replied_at: new Date().toISOString(),
               dm_text: resposta.dm ?? null,
-              dm_scheduled_at: resposta.dm ? new Date(Date.now() + espera).toISOString() : null,
             })
             .eq("comment_id", c.id);
           resultado.respondidos++;
+
         } catch (e) {
           resultado.erros.push(`resposta ${c.id}: ${(e as Error).message}`);
         }
