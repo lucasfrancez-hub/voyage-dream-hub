@@ -350,13 +350,14 @@ function InboxPage() {
             </div>
             <div className="-mx-1 mt-2 flex gap-1 overflow-x-auto px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               {([
+                { key: "all", label: "Todas", icon: InboxIcon, badge: waUnread + igUnread + commentsUnread },
                 { key: "whatsapp", label: "WhatsApp", icon: MessageCircle, badge: waUnread },
                 { key: "instagram_dm", label: "Instagram", icon: Instagram, badge: igUnread },
                 { key: "instagram_comments", label: "Comentários", icon: Heart, badge: commentsUnread },
               ] as const).map((c) => (
                 <button
                   key={c.key}
-                  onClick={() => { setChannel(c.key); setActiveId(null); }}
+                  onClick={() => { setChannel(c.key); setActiveId(null); setAllKind(null); }}
                   className={cn(
                     "relative flex shrink-0 items-center gap-1 whitespace-nowrap rounded-md px-2.5 py-1.5 text-[11px] font-medium transition-colors",
                     channel === c.key
@@ -398,7 +399,37 @@ function InboxPage() {
 
           </div>
           <div className="flex-1 space-y-1 overflow-y-auto p-2">
-            {channel === "instagram_dm" ? (
+            {channel === "all" ? (
+              unified.length === 0 ? (
+                <div className="p-6 text-center text-xs text-slate-400">Nenhuma conversa</div>
+              ) : (
+                unified.map((it) =>
+                  it.kind === "wa" ? (
+                    <ConvItem
+                      key={it.key}
+                      conv={it.data}
+                      active={allKind === "wa" && activeId === it.data.id}
+                      onClick={() => { setAllKind("wa"); setActiveId(it.data.id); }}
+                      attendantName={it.data.assigned_to ? attendantMap[it.data.assigned_to] ?? null : null}
+                    />
+                  ) : it.kind === "ig" ? (
+                    <IgConvRow
+                      key={it.key}
+                      conv={it.data}
+                      active={allKind === "ig" && activeId === it.data.id}
+                      onClick={() => { setAllKind("ig"); setActiveId(it.data.id); }}
+                    />
+                  ) : (
+                    <IgThreadRow
+                      key={it.key}
+                      thread={it.data}
+                      active={allKind === "comment" && activeId === it.data.media_id}
+                      onClick={() => { setAllKind("comment"); setActiveId(it.data.media_id); }}
+                    />
+                  ),
+                )
+              )
+            ) : channel === "instagram_dm" ? (
               <InstagramList folder={folder} search={search} activeId={activeId} onSelect={setActiveId} />
             ) : channel === "instagram_comments" ? (
               <InstagramMediaThreadList search={search} activeId={activeId} onSelect={setActiveId} />
@@ -416,11 +447,11 @@ function InboxPage() {
       <main className={cn(
         "min-w-0 flex-1 flex-col bg-[var(--chat-conversation)]",
         // Mobile: só mostra se tiver conversa ativa
-        (active || ((channel === "instagram_dm" || channel === "instagram_comments") && activeId)) ? "flex" : "hidden md:flex",
+        (active || ((viewKind === "ig" || viewKind === "comment") && activeId)) ? "flex" : "hidden md:flex",
       )}>
-        {channel === "instagram_dm" ? (
+        {viewKind === "ig" ? (
           activeId ? <InstagramConversationView conversationId={activeId} onBack={() => setActiveId(null)} /> : <EmptyState />
-        ) : channel === "instagram_comments" ? (
+        ) : viewKind === "comment" ? (
           activeId ? <InstagramCommentThreadView mediaId={activeId} onBack={() => setActiveId(null)} /> : <EmptyState />
         ) : active ? (
           <ConversationView conv={active} onRefetch={refetch} onBack={() => setActiveId(null)} />
@@ -431,13 +462,14 @@ function InboxPage() {
 
       {/* Coluna 3 — Detalhes */}
       <aside className="hidden w-72 shrink-0 border-l border-slate-200 bg-white lg:block">
-        {channel === "instagram_dm" ? (
+        {viewKind === "ig" ? (
           igMirrorConv ? (
             <ContactDetails conv={igMirrorConv} onChange={refetch} />
           ) : activeId ? (
             <div className="p-4 text-xs text-slate-400">Sincronizando dados do perfil…</div>
           ) : null
         ) : active ? (
+
           <ContactDetails conv={active} onChange={refetch} />
         ) : null}
       </aside>
