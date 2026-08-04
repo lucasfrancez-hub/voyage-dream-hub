@@ -20,6 +20,7 @@ import {
   X,
 } from "lucide-react";
 
+import { confirm } from "@/lib/confirm";
 import {
   abrirAgendaApp,
   atualizarEventoAgendaApp,
@@ -518,7 +519,13 @@ function Painel({ token, pin, nome, vapid }: { token: string; pin: string | null
           }}
           apagando={apagando}
           onExcluir={async () => {
-            if (!window.confirm(`Excluir "${detalhe.titulo}" da agenda?`)) return;
+            const ok = await confirm({
+              title: detalhe.titulo,
+              description: "Excluir este compromisso da agenda?",
+              confirmText: "Excluir",
+              destructive: true,
+            });
+            if (!ok) return;
             setApagando(true);
             try {
               await apagar({ data: { token, pin, id: detalhe.id } });
@@ -1173,14 +1180,36 @@ function Detalhes({
         className="sticky top-0 z-10 px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))]"
         style={{ background: "rgba(5,23,45,0.85)", backdropFilter: "blur(12px)" }}
       >
-        <button
-          onClick={onFechar}
-          className="inline-flex items-center gap-1 rounded-full py-1.5 pl-1.5 pr-3 text-[15px] font-medium"
-          style={{ background: "rgba(255,255,255,0.08)", color: cor }}
-        >
-          <ChevronLeft className="h-5 w-5" />
-          <span className="capitalize">{mesVoltar}</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={onFechar}
+            className="inline-flex items-center gap-1 rounded-full py-1.5 pl-1.5 pr-3 text-[15px] font-medium"
+            style={{ background: "rgba(255,255,255,0.08)", color: cor }}
+          >
+            <ChevronLeft className="h-5 w-5" />
+            <span className="capitalize">{mesVoltar}</span>
+          </button>
+          <span className="flex-1" />
+          <button
+            onClick={onEditar}
+            aria-label="Editar compromisso"
+            className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[14px] font-medium"
+            style={{ background: "rgba(255,255,255,0.08)", color: "#fff" }}
+          >
+            <Pencil className="h-4 w-4" />
+            Editar
+          </button>
+          <button
+            onClick={() => void onExcluir()}
+            disabled={apagando}
+            aria-label="Excluir compromisso"
+            className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[14px] font-medium disabled:opacity-50"
+            style={{ background: "rgba(248,113,113,0.14)", color: "#fca5a5" }}
+          >
+            {apagando ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+            Excluir
+          </button>
+        </div>
       </div>
 
       <div className="px-5 pb-[max(3rem,env(safe-area-inset-bottom))]">
