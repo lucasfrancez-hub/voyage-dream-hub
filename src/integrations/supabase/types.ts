@@ -3706,6 +3706,27 @@ export type Database = {
         }
         Relationships: []
       }
+      wa_agent_presence: {
+        Row: {
+          conversation_id: string | null
+          updated_at: string
+          user_id: string
+          visivel: boolean
+        }
+        Insert: {
+          conversation_id?: string | null
+          updated_at?: string
+          user_id: string
+          visivel?: boolean
+        }
+        Update: {
+          conversation_id?: string | null
+          updated_at?: string
+          user_id?: string
+          visivel?: boolean
+        }
+        Relationships: []
+      }
       wa_ai_switch: {
         Row: {
           ai_enabled: boolean
@@ -4246,8 +4267,12 @@ export type Database = {
           ativo: boolean
           auth: string
           created_at: string
+          device_name: string | null
           endpoint: string
+          failure_count: number
           id: string
+          last_success_at: string | null
+          last_test_at: string | null
           p256dh: string
           pref_instagram: boolean
           pref_novas: boolean
@@ -4259,8 +4284,12 @@ export type Database = {
           ativo?: boolean
           auth: string
           created_at?: string
+          device_name?: string | null
           endpoint: string
+          failure_count?: number
           id?: string
+          last_success_at?: string | null
+          last_test_at?: string | null
           p256dh: string
           pref_instagram?: boolean
           pref_novas?: boolean
@@ -4272,8 +4301,12 @@ export type Database = {
           ativo?: boolean
           auth?: string
           created_at?: string
+          device_name?: string | null
           endpoint?: string
+          failure_count?: number
           id?: string
+          last_success_at?: string | null
+          last_test_at?: string | null
           p256dh?: string
           pref_instagram?: boolean
           pref_novas?: boolean
