@@ -72,6 +72,7 @@ export const AIRLINE_INSTALLMENT_TABLE: Array<{
 
 /** Texto curto do parcelamento de uma cia (ex.: "até 5x sem juros"). */
 export function ruleInstallmentsLabel(rule: AirlineRule): string {
+  if (isPixOnly(rule)) return "Somente Pix";
   if (rule.obs) return rule.obs.charAt(0).toUpperCase() + rule.obs.slice(1);
   if (rule.only) return `${rule.only.join("x, ")}x sem juros`;
   if (rule.max <= 1) return "À vista";
@@ -86,7 +87,7 @@ export function isPixOnly(rule: AirlineRule): boolean {
 
 /** Texto da parcela mínima (ex.: "R$ 70,00" ou "USD 80"). */
 export function ruleMinLabel(rule: AirlineRule): string {
-  if (isPixOnly(rule)) return "Somente Pix";
+  if (isPixOnly(rule)) return "Sem parcela mínima";
   if (rule.min == null) return "Sem parcela mínima";
   return rule.currency === "USD"
     ? `USD ${rule.min}`
