@@ -995,16 +995,27 @@ function DetalhesDialog({
               )}
 
               {d.url && (
-                <a
-                  href={d.url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-1.5 text-xs font-bold text-primary hover:underline"
-                >
-                  <LinkIcon className="h-3.5 w-3.5" />
-                  abrir no {conta ? ROTULO[conta.provider] : "calendário de origem"}
-                </a>
+                <Linha icone={LinkIcon} tom="accent">
+                  <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                    Link relacionado
+                  </p>
+                  {/^https?:\/\//i.test(String(d.url)) ? (
+                    <a
+                      href={String(d.url)}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="break-all text-sm font-semibold text-primary hover:underline"
+                    >
+                      {String(d.url)}
+                    </a>
+                  ) : (
+                    <p className="break-words text-sm font-semibold text-foreground [overflow-wrap:anywhere]">
+                      {comLinks(String(d.url))}
+                    </p>
+                  )}
+                </Linha>
               )}
+
 
               <div className="flex items-center gap-3 border-t border-border pt-4">
                 <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-border bg-muted text-sm font-bold text-muted-foreground">
