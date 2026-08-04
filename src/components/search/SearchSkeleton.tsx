@@ -1,4 +1,4 @@
-import { Plane, BedDouble, Car } from "lucide-react";
+import { Plane, BedDouble, Car, ShieldCheck, Sparkles } from "lucide-react";
 
 /** Barra com brilho animado usada nos esqueletos de busca. */
 function ShimmerBar({ className = "" }: { className?: string }) {
@@ -24,6 +24,16 @@ const PRESETS = {
     icon: Car,
     title: "Consultando locadoras…",
     subtitle: "Comparando categorias, proteções e diárias — pode levar até 30 segundos",
+  },
+  insurance: {
+    icon: ShieldCheck,
+    title: "Consultando as seguradoras…",
+    subtitle: "Comparando coberturas e valores — pode levar até 30 segundos",
+  },
+  exclusive: {
+    icon: Sparkles,
+    title: "Buscando produtos exclusivos…",
+    subtitle: "Comparando ofertas e destinos — pode levar até 30 segundos",
   },
 } as const;
 

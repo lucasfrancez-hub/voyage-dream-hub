@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useIsPublicEngine } from "@/lib/public-engine";
+import { SearchSkeleton } from "@/components/search/SearchSkeleton";
 import {
   onerExclusiveCriteriaPublic,
   onerExclusiveSearchPublic,
@@ -318,11 +319,7 @@ export function ExclusivosPage({ header }: { header?: React.ReactNode } = {}) {
       </header>
 
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
-        {run.isPending && (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" /> Buscando produtos exclusivos…
-          </div>
-        )}
+        {run.isPending && <SearchSkeleton kind="exclusive" rows={4} />}
 
         {result && !run.isPending && (
           <>
