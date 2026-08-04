@@ -71,7 +71,10 @@ function InboxPage() {
     refetchInterval: 15_000,
   });
 
-  const [channel, setChannel] = useState<"whatsapp" | "instagram_dm" | "instagram_comments">("whatsapp");
+  const [channel, setChannel] = useState<"all" | "whatsapp" | "instagram_dm" | "instagram_comments">("all");
+  // Na aba "Todas" o tipo do item aberto define qual painel renderizar.
+  const [allKind, setAllKind] = useState<"wa" | "ig" | "comment" | null>(null);
+
 
 
   const [folder, setFolder] = useState<string>("all");
@@ -135,10 +138,50 @@ function InboxPage() {
     refetchInterval: 20_000,
   });
 
-  const igActive = channel === "instagram_dm" && activeId ? igConversations.find((c) => c.id === activeId) ?? null : null;
+  // Qual painel deve ser renderizado (considera a aba "Todas").
+  const viewKind: "wa" | "ig" | "comment" | null =
+    channel === "all"
+      ? allKind
+      : channel === "whatsapp"
+        ? "wa"
+        : channel === "instagram_dm"
+          ? "ig"
+          : "comment";
+
+  const igActive = viewKind === "ig" && activeId ? igConversations.find((c) => c.id === activeId) ?? null : null;
   const igMirrorConv = igActive
     ? conversations.find((c) => c.wa_phone === `ig:${igActive.contact_ig_id}`) ?? null
     : null;
+
+  // Lista unificada da aba "Todas": WhatsApp + DMs do Instagram + comentários.
+  const unified = useMemo(() => {
+    const s = search.trim().toLowerCase();
+    const itens: Array<{ key: string; kind: "wa" | "ig" | "comment"; at: number; data: any }> = [];
+    for (const c of filtered) {
+      itens.push({ key: `wa-${c.id}`, kind: "wa", at: new Date(c.last_message_at ?? 0).getTime(), data: c });
+    }
+    for (const c of igConversations as any[]) {
+      if (folder === "unread" && (c.unread_count ?? 0) <= 0) continue;
+      if (folder === "resolved" ? c.status !== "closed" : c.status === "closed") continue;
+      if (s && !`${c.contact_name ?? ""} ${c.contact_username ?? ""}`.toLowerCase().includes(s)) continue;
+      itens.push({ key: `ig-${c.id}`, kind: "ig", at: new Date(c.last_message_at ?? 0).getTime(), data: c });
+    }
+    if (folder === "all" || folder === "unread") {
+      for (const t of igCommentThreads as any[]) {
+        if (folder === "unread" && (t.pendentes ?? 0) <= 0) continue;
+        if (s && !`${t.media_caption ?? ""}`.toLowerCase().includes(s)) continue;
+        const ultimo = t.comments?.[t.comments.length - 1];
+        itens.push({
+          key: `cm-${t.media_id}`,
+          kind: "comment",
+          at: new Date(ultimo?.created_at ?? 0).getTime(),
+          data: t,
+        });
+      }
+    }
+    return itens.sort((a, b) => b.at - a.at);
+  }, [filtered, igConversations, igCommentThreads, folder, search]);
+
 
   const waUnread = useMemo(
     () => conversations.reduce((n, c) => (c.wa_phone?.startsWith("ig:") ? n : n + ((c.unread_count ?? 0) > 0 ? 1 : 0)), 0),
@@ -218,25 +261,32 @@ function InboxPage() {
   const markIgReadFn = useServerFn(markInstagramConversationRead);
   useEffect(() => {
     if (!activeId) return;
-    if (channel === "whatsapp") {
+    if (viewKind === "wa") {
       const conv = conversations.find((c) => c.id === activeId);
       if (!conv || (conv.unread_count ?? 0) <= 0) return;
+      qcInbox.setQueryData(["chat", "conversations"], (old: any) =>
+        Array.isArray(old) ? old.map((c: any) => (c.id === activeId ? { ...c, unread_count: 0 } : c)) : old,
+      );
       markWaReadFn({ data: { conversation_id: activeId } })
         .then(() => qcInbox.invalidateQueries({ queryKey: ["chat", "conversations"] }))
         .catch(() => {});
-    } else if (channel === "instagram_dm") {
+    } else if (viewKind === "ig") {
       const conv = igConversations.find((c: any) => c.id === activeId);
       if (!conv || ((conv as any).unread_count ?? 0) <= 0) return;
+      qcInbox.setQueryData(["ig", "conversations"], (old: any) =>
+        Array.isArray(old) ? old.map((c: any) => (c.id === activeId ? { ...c, unread_count: 0 } : c)) : old,
+      );
       markIgReadFn({ data: { conversation_id: activeId } })
         .then(() => qcInbox.invalidateQueries({ queryKey: ["ig", "conversations"] }))
         .catch(() => {});
     }
-  }, [activeId, channel, conversations, igConversations, markWaReadFn, markIgReadFn, qcInbox]);
+  }, [activeId, viewKind, conversations, igConversations, markWaReadFn, markIgReadFn, qcInbox]);
 
 
-  const active = channel === "whatsapp"
-    ? (filtered.find((c) => c.id === activeId) ?? conversations.find((c) => c.id === activeId) ?? null)
+  const active = viewKind === "wa"
+    ? (filtered.find((c) => c.id === activeId) ?? null)
     : null;
+
 
 
   return (
@@ -300,13 +350,14 @@ function InboxPage() {
             </div>
             <div className="-mx-1 mt-2 flex gap-1 overflow-x-auto px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               {([
+                { key: "all", label: "Todas", icon: InboxIcon, badge: waUnread + igUnread + commentsUnread },
                 { key: "whatsapp", label: "WhatsApp", icon: MessageCircle, badge: waUnread },
                 { key: "instagram_dm", label: "Instagram", icon: Instagram, badge: igUnread },
                 { key: "instagram_comments", label: "Comentários", icon: Heart, badge: commentsUnread },
               ] as const).map((c) => (
                 <button
                   key={c.key}
-                  onClick={() => { setChannel(c.key); setActiveId(null); }}
+                  onClick={() => { setChannel(c.key); setActiveId(null); setAllKind(null); }}
                   className={cn(
                     "relative flex shrink-0 items-center gap-1 whitespace-nowrap rounded-md px-2.5 py-1.5 text-[11px] font-medium transition-colors",
                     channel === c.key
@@ -348,7 +399,37 @@ function InboxPage() {
 
           </div>
           <div className="flex-1 space-y-1 overflow-y-auto p-2">
-            {channel === "instagram_dm" ? (
+            {channel === "all" ? (
+              unified.length === 0 ? (
+                <div className="p-6 text-center text-xs text-slate-400">Nenhuma conversa</div>
+              ) : (
+                unified.map((it) =>
+                  it.kind === "wa" ? (
+                    <ConvItem
+                      key={it.key}
+                      conv={it.data}
+                      active={allKind === "wa" && activeId === it.data.id}
+                      onClick={() => { setAllKind("wa"); setActiveId(it.data.id); }}
+                      attendantName={it.data.assigned_to ? attendantMap[it.data.assigned_to] ?? null : null}
+                    />
+                  ) : it.kind === "ig" ? (
+                    <IgConvRow
+                      key={it.key}
+                      conv={it.data}
+                      active={allKind === "ig" && activeId === it.data.id}
+                      onClick={() => { setAllKind("ig"); setActiveId(it.data.id); }}
+                    />
+                  ) : (
+                    <IgThreadRow
+                      key={it.key}
+                      thread={it.data}
+                      active={allKind === "comment" && activeId === it.data.media_id}
+                      onClick={() => { setAllKind("comment"); setActiveId(it.data.media_id); }}
+                    />
+                  ),
+                )
+              )
+            ) : channel === "instagram_dm" ? (
               <InstagramList folder={folder} search={search} activeId={activeId} onSelect={setActiveId} />
             ) : channel === "instagram_comments" ? (
               <InstagramMediaThreadList search={search} activeId={activeId} onSelect={setActiveId} />
@@ -366,11 +447,11 @@ function InboxPage() {
       <main className={cn(
         "min-w-0 flex-1 flex-col bg-[var(--chat-conversation)]",
         // Mobile: só mostra se tiver conversa ativa
-        (active || ((channel === "instagram_dm" || channel === "instagram_comments") && activeId)) ? "flex" : "hidden md:flex",
+        (active || ((viewKind === "ig" || viewKind === "comment") && activeId)) ? "flex" : "hidden md:flex",
       )}>
-        {channel === "instagram_dm" ? (
+        {viewKind === "ig" ? (
           activeId ? <InstagramConversationView conversationId={activeId} onBack={() => setActiveId(null)} /> : <EmptyState />
-        ) : channel === "instagram_comments" ? (
+        ) : viewKind === "comment" ? (
           activeId ? <InstagramCommentThreadView mediaId={activeId} onBack={() => setActiveId(null)} /> : <EmptyState />
         ) : active ? (
           <ConversationView conv={active} onRefetch={refetch} onBack={() => setActiveId(null)} />
@@ -381,13 +462,14 @@ function InboxPage() {
 
       {/* Coluna 3 — Detalhes */}
       <aside className="hidden w-72 shrink-0 border-l border-slate-200 bg-white lg:block">
-        {channel === "instagram_dm" ? (
+        {viewKind === "ig" ? (
           igMirrorConv ? (
             <ContactDetails conv={igMirrorConv} onChange={refetch} />
           ) : activeId ? (
             <div className="p-4 text-xs text-slate-400">Sincronizando dados do perfil…</div>
           ) : null
         ) : active ? (
+
           <ContactDetails conv={active} onChange={refetch} />
         ) : null}
       </aside>
@@ -2448,5 +2530,79 @@ function InstagramCommentThreadView({ mediaId, onBack }: { mediaId: string; onBa
         </div>
       </div>
     </div>
+  );
+}
+
+/** Linha de DM do Instagram usada na aba unificada "Todas". */
+function IgConvRow({ conv, active, onClick }: { conv: any; active: boolean; onClick: () => void }) {
+  const nome = conv.contact_name ?? (conv.contact_username ? `@${conv.contact_username}` : "Instagram");
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        "flex w-full items-start gap-2 rounded-lg p-2 text-left transition-colors",
+        active ? "bg-pink-50" : "hover:bg-slate-50",
+      )}
+    >
+      {conv.contact_profile_pic ? (
+        <img src={conv.contact_profile_pic} alt="" className="h-9 w-9 shrink-0 rounded-full object-cover" />
+      ) : (
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-pink-500 to-orange-500 text-white">
+          <Instagram className="h-4 w-4" />
+        </div>
+      )}
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center justify-between gap-1">
+          <span className="truncate text-sm font-medium text-slate-900">{nome}</span>
+          {(conv.unread_count ?? 0) > 0 && (
+            <span className="rounded-full bg-[#F26B1F] px-1.5 text-[10px] font-medium text-white">{conv.unread_count}</span>
+          )}
+        </div>
+        <div className="flex items-center gap-1 text-[10px] text-slate-500">
+          <Instagram className="h-2.5 w-2.5" />
+          {conv.contact_username ? `@${conv.contact_username}` : "Direct"}
+        </div>
+        <div className="truncate text-xs text-slate-500">{conv.last_message_preview ?? "—"}</div>
+      </div>
+    </button>
+  );
+}
+
+/** Linha de publicação (comentários) usada na aba unificada "Todas". */
+function IgThreadRow({ thread, active, onClick }: { thread: any; active: boolean; onClick: () => void }) {
+  const ultimo = thread.comments?.[thread.comments.length - 1];
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        "flex w-full items-start gap-2 rounded-lg p-2 text-left transition-colors",
+        active ? "bg-orange-50" : "hover:bg-slate-50",
+      )}
+    >
+      {thread.media_thumbnail ? (
+        <img src={thread.media_thumbnail} alt="Publicação" className="h-9 w-9 shrink-0 rounded-md object-cover" />
+      ) : (
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-gradient-to-br from-purple-500 via-pink-500 to-orange-500 text-white">
+          <Heart className="h-4 w-4" />
+        </div>
+      )}
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center justify-between gap-1">
+          <span className="truncate text-sm font-medium text-slate-900">
+            {thread.media_caption?.slice(0, 40) || "Publicação"}
+          </span>
+          {(thread.pendentes ?? 0) > 0 && (
+            <span className="rounded-full bg-[#F26B1F] px-1.5 text-[10px] font-medium text-white">{thread.pendentes}</span>
+          )}
+        </div>
+        <div className="flex items-center gap-1 text-[10px] text-slate-500">
+          <Heart className="h-2.5 w-2.5" />
+          Comentários
+        </div>
+        <div className="truncate text-xs text-slate-500">
+          {ultimo ? `@${ultimo.from_username ?? "?"}: ${ultimo.text ?? ""}` : "—"}
+        </div>
+      </div>
+    </button>
   );
 }
