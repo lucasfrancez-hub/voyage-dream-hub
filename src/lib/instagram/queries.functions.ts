@@ -240,17 +240,20 @@ export const triggerAutoReplyComment = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { data: row, error } = await context.supabase
       .from("instagram_comments")
-      .select("id, account_id, comment_id")
+      .select("id, account_id, comment_id, metadata")
       .eq("id", data.id)
       .maybeSingle();
     if (error || !row) throw new Error("Comentário não encontrado");
+    const meta = (row.metadata ?? {}) as { collab?: boolean };
     const { autoReplyComment } = await import("./send.server");
     await autoReplyComment({
       accountId: row.account_id,
       commentId: row.comment_id,
       publicReply: data.public_reply,
       privateDm: data.private_dm ?? null,
+      collab: meta.collab === true,
     });
+
     return { ok: true };
   });
 
