@@ -31,6 +31,13 @@ import { createOrder } from "@/lib/orders.functions";
 import { DateRangeField } from "@/components/search/DateRangeField";
 import { SearchSkeleton } from "@/components/search/SearchSkeleton";
 import { onerCarLocations, onerCarSearch, onerCreateCarCart } from "@/lib/onertravel-cars.functions";
+import {
+  onerCarLocationsPublic,
+  onerCarSearchPublic,
+  onerCreateCarCartPublic,
+} from "@/lib/onertravel-public-extras.functions";
+import { useIsPublicEngine } from "@/lib/public-engine";
+
 import type {
   OnerCar,
   OnerCarLocation,
@@ -76,7 +83,7 @@ function LocationInput({
   onSelect: (l: OnerCarLocation | null) => void;
   placeholder: string;
 }) {
-  const searchLoc = useServerFn(onerCarLocations);
+  const searchLoc = useServerFn(useIsPublicEngine() ? onerCarLocationsPublic : onerCarLocations);
   const [text, setText] = useState(value?.locationName ?? "");
   const [options, setOptions] = useState<OnerCarLocation[]>([]);
   const [open, setOpen] = useState(false);
@@ -384,7 +391,8 @@ function CarSummaryDialog({
   open: boolean;
   onOpenChange: (v: boolean) => void;
 }) {
-  const createCart = useServerFn(onerCreateCarCart);
+  const isPublic = useIsPublicEngine();
+  const createCart = useServerFn(isPublic ? onerCreateCarCartPublic : onerCreateCarCart);
   const [cartUrl, setCartUrl] = useState<string | null>(null);
   const [orderOpen, setOrderOpen] = useState(false);
 
@@ -407,9 +415,14 @@ function CarSummaryDialog({
       }),
     onSuccess: (r) => {
       setCartUrl(r.url);
+      if (isPublic) {
+        window.location.href = r.url;
+        return;
+      }
       window.open(r.url, "_blank", "noopener");
       toast.success("Link do Comprar Viagem gerado");
     },
+
     onError: (e: Error) => toast.error(e.message),
   });
 
@@ -507,7 +520,7 @@ function CarSummaryDialog({
               </div>
             </div>
 
-            {cartUrl && (
+            {cartUrl && !isPublic && (
               <div className="space-y-2 rounded-xl border border-primary/30 bg-primary/5 p-3">
                 <div className="text-xs font-semibold">Link do carrinho</div>
                 <div className="break-all text-[11px] text-muted-foreground">{cartUrl}</div>
@@ -545,14 +558,16 @@ function CarSummaryDialog({
           </div>
 
           <div className="space-y-3 border-t border-border/50 bg-background/40 p-5">
+            {!isPublic && (
+              <Button
+                onClick={() => setOrderOpen(true)}
+                className="w-full py-6 text-xs font-black uppercase tracking-[0.15em]"
+              >
+                <ShoppingCart className="h-4 w-4" /> Fazer pedido
+              </Button>
+            )}
             <Button
-              onClick={() => setOrderOpen(true)}
-              className="w-full py-6 text-xs font-black uppercase tracking-[0.15em]"
-            >
-              <ShoppingCart className="h-4 w-4" /> Fazer pedido
-            </Button>
-            <Button
-              variant="outline"
+              variant={isPublic ? "default" : "outline"}
               disabled={cartMut.isPending}
               onClick={() => cartMut.mutate()}
               className="w-full py-5 text-[10px] font-black uppercase tracking-[0.15em]"
@@ -562,19 +577,22 @@ function CarSummaryDialog({
               ) : (
                 <ExternalLink className="h-4 w-4" />
               )}
-              Comprar viagem
+              {isPublic ? "Comprar agora" : "Comprar viagem"}
             </Button>
           </div>
         </DialogContent>
       </Dialog>
 
-      <NewOrderFromCarDialog
-        open={orderOpen}
-        onOpenChange={setOrderOpen}
-        total={car.finalPrice}
-        pax={car.passengerCount || 1}
-        summary={summaryText}
-      />
+      {!isPublic && (
+        <NewOrderFromCarDialog
+          open={orderOpen}
+          onOpenChange={setOrderOpen}
+          total={car.finalPrice}
+          pax={car.passengerCount || 1}
+          summary={summaryText}
+        />
+      )}
+
     </>
   );
 }
@@ -862,7 +880,7 @@ export type CarPreset = {
 };
 
 export function CarrosPage({ header }: { header?: React.ReactNode } = {}) {
-  const searchCars = useServerFn(onerCarSearch);
+  const searchCars = useServerFn(useIsPublicEngine() ? onerCarSearchPublic : onerCarSearch);
 
   const [pickup, setPickup] = useState<OnerCarLocation | null>(null);
   const [dropoff, setDropoff] = useState<OnerCarLocation | null>(null);

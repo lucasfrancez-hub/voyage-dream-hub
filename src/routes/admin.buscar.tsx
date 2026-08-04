@@ -8,12 +8,18 @@ import { toast } from "sonner";
 import { VoosPage, NewOrderFromFlightsDialog } from "./admin.voos-teste";
 import type { ComboPick } from "@/lib/combo-selection";
 import { useServerFn } from "@tanstack/react-start";
-import { onerCreateComboCart } from "@/lib/onertravel-combo.functions";
+import {
+  onerCreateComboCart,
+  onerCreateComboCartPublic,
+} from "@/lib/onertravel-combo.functions";
+
 import { HoteisPage } from "./admin.hoteis-teste";
 import { CarrosPage } from "./admin.carros";
 import { ExclusivosPage } from "./admin.exclusivos";
 import { SegurosPage } from "./admin.seguros";
 import { DateRangeField } from "@/components/search/DateRangeField";
+import { PublicEngineProvider } from "@/lib/public-engine";
+
 
 
 export const Route = createFileRoute("/admin/buscar")({
@@ -37,7 +43,7 @@ export const Route = createFileRoute("/admin/buscar")({
   component: BuscarPage,
 });
 
-type Mode = "aereo" | "hotel" | "carro" | "combo" | "exclusivo" | "seguro";
+export type Mode = "aereo" | "hotel" | "carro" | "combo" | "exclusivo" | "seguro";
 
 /** Motor interno: todos os modos liberados. O bloqueio de hotel/carro/pacote
  * vale apenas para o chatbot do WhatsApp. */
@@ -250,7 +256,20 @@ function ComboForm({
 }
 
 function BuscarPage() {
-  const [mode, setMode] = useState<Mode>("aereo");
+  return <SearchEngine />;
+}
+
+/** Motor de busca completo (aéreo, hotel, carro, combo, exclusivos, seguros).
+ *  `publicMode` liga a versão sem login usada em /voar e no widget. */
+export function SearchEngine({
+  publicMode = false,
+  initialMode = "aereo",
+}: {
+  publicMode?: boolean;
+  initialMode?: Mode;
+} = {}) {
+  const [mode, setMode] = useState<Mode>(initialMode);
+
   const [combo, setCombo] = useState<ComboForm>(COMBO_INITIAL);
   const [runToken, setRunToken] = useState(0);
   const [step, setStep] = useState<ComboStep>(1);
@@ -263,7 +282,9 @@ function BuscarPage() {
   const comboTotal = (flightPick?.total ?? 0) + (hotelPick?.total ?? 0);
   const comboSummary = [flightPick?.summary, hotelPick?.summary].filter(Boolean).join("\n\n");
 
-  const createComboCart = useServerFn(onerCreateComboCart);
+  const createComboCart = useServerFn(
+    publicMode ? onerCreateComboCartPublic : onerCreateComboCart,
+  );
 
   async function buyCombo() {
     setBuying(true);
@@ -275,10 +296,15 @@ function BuscarPage() {
         const r = await createComboCart({
           data: { flight: flightPick.flightBooking, hotel: hotelPick.hotelBooking },
         });
+        if (publicMode) {
+          window.location.href = r.url;
+          return;
+        }
         setCartLinks([{ label: "Aéreo + Hotel", url: r.url }]);
         toast.success("Carrinho do Comprar Viagem gerado");
         return;
       }
+
       if (flightPick) links.push({ label: "A\u00e9reo", url: await flightPick.buy() });
       if (hotelPick) links.push({ label: "Hospedagem", url: await hotelPick.buy() });
       setCartLinks(links);
@@ -365,12 +391,14 @@ function BuscarPage() {
   };
 
   return (
+    <PublicEngineProvider value={publicMode}>
     <div className="min-h-screen bg-background">
-      {mode === "aereo" && <VoosPage header={hero} />}
-      {mode === "hotel" && <HoteisPage header={hero} />}
+      {mode === "aereo" && <VoosPage header={hero} publicMode={publicMode} />}
+      {mode === "hotel" && <HoteisPage header={hero} publicMode={publicMode} />}
       {mode === "carro" && <CarrosPage header={hero} />}
       {mode === "exclusivo" && <ExclusivosPage header={hero} />}
       {mode === "seguro" && <SegurosPage header={hero} />}
+
       {mode === "combo" && (
         <>
           <header className="relative overflow-hidden border-b border-border/60">
@@ -524,17 +552,19 @@ function BuscarPage() {
                       </div>
                     </div>
 
+                    {!publicMode && (
+                      <Button
+                        size="lg"
+                        className="mt-6 w-full"
+                        disabled={!comboTotal}
+                        onClick={() => setOrderOpen(true)}
+                      >
+                        <ClipboardCheck className="mr-2 h-4 w-4" /> Fazer pedido
+                      </Button>
+                    )}
                     <Button
                       size="lg"
-                      className="mt-6 w-full"
-                      disabled={!comboTotal}
-                      onClick={() => setOrderOpen(true)}
-                    >
-                      <ClipboardCheck className="mr-2 h-4 w-4" /> Fazer pedido
-                    </Button>
-                    <Button
-                      size="lg"
-                      variant="outline"
+                      variant={publicMode ? "default" : "outline"}
                       className="mt-3 w-full"
                       disabled={buying || (!flightPick && !hotelPick)}
                       onClick={buyCombo}
@@ -544,10 +574,11 @@ function BuscarPage() {
                       ) : (
                         <ExternalLink className="mr-2 h-4 w-4" />
                       )}
-                      Comprar viagem
+                      {publicMode ? "Comprar agora" : "Comprar viagem"}
                     </Button>
 
-                    {cartLinks.length > 0 && (
+                    {cartLinks.length > 0 && !publicMode && (
+
                       <div className="mt-4 space-y-2 rounded-2xl border border-primary/30 bg-primary/5 p-3">
                         <div className="text-xs font-semibold">Links do carrinho</div>
                         {cartLinks.map((l) => (
@@ -605,6 +636,8 @@ function BuscarPage() {
       )}
 
     </div>
+    </PublicEngineProvider>
   );
+
 }
 

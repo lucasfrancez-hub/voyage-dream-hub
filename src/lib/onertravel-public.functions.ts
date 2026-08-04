@@ -15,6 +15,17 @@ import {
   searchFlights,
   searchInboundFlights,
 } from "@/lib/onertravel.server";
+import {
+  createHotelCart,
+  fetchHotelRooms,
+  hotelCartInput,
+  hotelDestinationsInput,
+  hotelRoomsInput,
+  hotelSearchInput,
+  searchHotelDestinations,
+  searchHotels,
+} from "@/lib/onertravel-hotels.server";
+
 
 export const onerAirportSearchPublic = createServerFn({ method: "GET" })
   .inputValidator((data) => airportSearchInput.parse(data))
@@ -31,3 +42,22 @@ export const onerInboundSearchPublic = createServerFn({ method: "POST" })
 export const onerCreateFlightCartPublic = createServerFn({ method: "POST" })
   .inputValidator((data) => cartInput.parse(data))
   .handler(async ({ data }) => createFlightCart(data));
+
+// ---------------------------------------------------------------- hotéis
+
+
+export const onerHotelDestinationsPublic = createServerFn({ method: "GET" })
+  .inputValidator((data) => hotelDestinationsInput.parse(data))
+  .handler(async ({ data }) => searchHotelDestinations(data));
+
+export const onerHotelSearchPublic = createServerFn({ method: "POST" })
+  .inputValidator((data) => hotelSearchInput.parse(data))
+  .handler(async ({ data }) => searchHotels(data));
+
+export const onerHotelRoomsPublic = createServerFn({ method: "POST" })
+  .inputValidator((data) => hotelRoomsInput.parse(data))
+  .handler(async ({ data }) => fetchHotelRooms(data));
+
+export const onerCreateHotelCartPublic = createServerFn({ method: "POST" })
+  .inputValidator((data) => hotelCartInput.parse(data))
+  .handler(async ({ data }) => createHotelCart(data));

@@ -46,6 +46,13 @@ import {
   type OnerRoomRate,
 } from "@/lib/onertravel-hotels.functions";
 import { onerAirportSearch } from "@/lib/onertravel.functions";
+import {
+  onerHotelDestinationsPublic,
+  onerHotelSearchPublic,
+  onerHotelRoomsPublic,
+  onerCreateHotelCartPublic,
+  onerAirportSearchPublic,
+} from "@/lib/onertravel-public.functions";
 
 
 export const Route = createFileRoute("/admin/hoteis-teste")({
@@ -478,6 +485,7 @@ function HotelSummaryDialog({
   searchKey,
   onChangeRate,
   onComboSelect,
+  publicMode = false,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
@@ -493,12 +501,14 @@ function HotelSummaryDialog({
   searchKey: string;
   onChangeRate: (rateKey: string) => void;
   onComboSelect?: (pick: ComboPick) => void;
+  publicMode?: boolean;
 }) {
-  const createCart = useServerFn(onerCreateHotelCart);
-  const loadRooms = useServerFn(onerHotelRooms);
+  const createCart = useServerFn(publicMode ? onerCreateHotelCartPublic : onerCreateHotelCart);
+  const loadRooms = useServerFn(publicMode ? onerHotelRoomsPublic : onerHotelRooms);
   const [cartUrl, setCartUrl] = useState<string | null>(null);
   const [roomsOpen, setRoomsOpen] = useState(true);
   const [orderOpen, setOrderOpen] = useState(false);
+  const [buyingPublic, setBuyingPublic] = useState(false);
   /* tarifa escolhida na lista completa de acomodações (busca dedicada) */
   const [pickedRate, setPickedRate] = useState<OnerRoomRate | null>(null);
 
@@ -560,8 +570,10 @@ function HotelSummaryDialog({
       }),
     onSuccess: (r) => {
       setCartUrl(r.url);
-      window.open(r.url, "_blank", "noopener");
-      toast.success("Link do Comprar Viagem gerado");
+      if (!publicMode) {
+        window.open(r.url, "_blank", "noopener");
+        toast.success("Link do Comprar Viagem gerado");
+      }
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -720,7 +732,7 @@ function HotelSummaryDialog({
                 </p>
               )}
 
-              {cartUrl && (
+              {cartUrl && !publicMode && (
                 <div className="space-y-2 rounded-xl border border-primary/30 bg-primary/5 p-3">
                   <div className="text-xs font-semibold">Link do carrinho</div>
                   <div className="break-all text-[11px] text-muted-foreground">{cartUrl}</div>
@@ -815,6 +827,27 @@ function HotelSummaryDialog({
                   >
                     Revisar pedido
                   </Button>
+                ) : publicMode ? (
+                <Button
+                  className="w-full py-6 text-xs font-black uppercase tracking-[0.15em]"
+                  disabled={buyingPublic}
+                  onClick={async () => {
+                    setBuyingPublic(true);
+                    try {
+                      const r = await cartMut.mutateAsync();
+                      window.location.href = r.url;
+                    } catch {
+                      setBuyingPublic(false);
+                    }
+                  }}
+                >
+                  {buyingPublic ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <ShoppingCart className="h-4 w-4" />
+                  )}
+                  Comprar viagem
+                </Button>
                 ) : (
                 <>
                 <Button
@@ -844,13 +877,15 @@ function HotelSummaryDialog({
         </DialogContent>
       </Dialog>
 
-      <NewOrderFromHotelDialog
-        open={orderOpen}
-        onOpenChange={setOrderOpen}
-        total={rate.price.total}
-        pax={Math.max(1, adults)}
-        summary={summaryText}
-      />
+      {!publicMode && (
+        <NewOrderFromHotelDialog
+          open={orderOpen}
+          onOpenChange={setOrderOpen}
+          total={rate.price.total}
+          pax={Math.max(1, adults)}
+          summary={summaryText}
+        />
+      )}
     </>
   );
 }
@@ -972,16 +1007,18 @@ export function HoteisPage({
   preset,
   runToken,
   onComboSelect,
+  publicMode = false,
 }: {
   header?: React.ReactNode;
   hideForm?: boolean;
   preset?: HotelPreset;
   runToken?: number;
   onComboSelect?: (pick: ComboPick) => void;
+  publicMode?: boolean;
 } = {}) {
-  const searchDest = useServerFn(onerHotelDestinations);
-  const searchAirports = useServerFn(onerAirportSearch);
-  const searchHotels = useServerFn(onerHotelSearch);
+  const searchDest = useServerFn(publicMode ? onerHotelDestinationsPublic : onerHotelDestinations);
+  const searchAirports = useServerFn(publicMode ? onerAirportSearchPublic : onerAirportSearch);
+  const searchHotels = useServerFn(publicMode ? onerHotelSearchPublic : onerHotelSearch);
 
   const [destQuery, setDestQuery] = useState("");
   const [point, setPoint] = useState<OnerHotelPoint | null>(null);
@@ -1329,6 +1366,7 @@ export function HoteisPage({
                   selectedEntry && setSelected({ hotelId: selectedEntry.h.hotelId, rateKey: key })
                 }
                 onComboSelect={onComboSelect}
+                publicMode={publicMode}
               />
 
             </div>
