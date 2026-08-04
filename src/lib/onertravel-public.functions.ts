@@ -15,6 +15,17 @@ import {
   searchFlights,
   searchInboundFlights,
 } from "@/lib/onertravel.server";
+import {
+  createHotelCart,
+  fetchHotelRooms,
+  hotelCartInput,
+  hotelDestinationsInput,
+  hotelRoomsInput,
+  hotelSearchInput,
+  searchHotelDestinations,
+  searchHotels,
+} from "@/lib/onertravel-hotels.server";
+
 
 export const onerAirportSearchPublic = createServerFn({ method: "GET" })
   .inputValidator((data) => airportSearchInput.parse(data))
@@ -34,16 +45,6 @@ export const onerCreateFlightCartPublic = createServerFn({ method: "POST" })
 
 // ---------------------------------------------------------------- hotéis
 
-import {
-  createHotelCart,
-  fetchHotelRooms,
-  hotelCartInput,
-  hotelDestinationsInput,
-  hotelRoomsInput,
-  hotelSearchInput,
-  searchHotelDestinations,
-  searchHotels,
-} from "@/lib/onertravel-hotels.server";
 
 export const onerHotelDestinationsPublic = createServerFn({ method: "GET" })
   .inputValidator((data) => hotelDestinationsInput.parse(data))
