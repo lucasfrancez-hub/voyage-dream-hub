@@ -78,8 +78,15 @@ export function ruleInstallmentsLabel(rule: AirlineRule): string {
   return `Até ${rule.max}x sem juros`;
 }
 
+/** Companhias que não parcelam (faturado/à vista) — pagamento via Pix. */
+export function isPixOnly(rule: AirlineRule): boolean {
+  const obs = (rule.obs ?? "").toLowerCase();
+  return obs.includes("faturado") || obs.includes("à vista") || obs.includes("a vista");
+}
+
 /** Texto da parcela mínima (ex.: "R$ 70,00" ou "USD 80"). */
 export function ruleMinLabel(rule: AirlineRule): string {
+  if (isPixOnly(rule)) return "Somente Pix";
   if (rule.min == null) return "Sem parcela mínima";
   return rule.currency === "USD"
     ? `USD ${rule.min}`

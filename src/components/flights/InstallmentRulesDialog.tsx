@@ -16,6 +16,7 @@ import {
   AIRLINE_INSTALLMENT_TABLE,
   ruleInstallmentsLabel,
   ruleMinLabel,
+  isPixOnly,
 } from "@/lib/airline-installments";
 
 export function InstallmentRulesDialog({ trigger }: { trigger: ReactNode }) {
@@ -80,9 +81,11 @@ export function InstallmentRulesDialog({ trigger }: { trigger: ReactNode }) {
                 </div>
                 <div
                   className={`col-span-2 text-left text-xs sm:col-span-1 sm:text-right sm:text-sm tabular-nums ${
-                    r.rule.min == null
-                      ? "text-muted-foreground"
-                      : "text-muted-foreground sm:text-foreground"
+                    isPixOnly(r.rule)
+                      ? "font-semibold text-emerald-500"
+                      : r.rule.min == null
+                        ? "text-muted-foreground"
+                        : "text-muted-foreground sm:text-foreground"
                   }`}
                 >
                   <span className="sm:hidden">Parcela mínima: </span>
