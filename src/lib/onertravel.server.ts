@@ -133,7 +133,12 @@ async function poll(
   speed: PollSpeed = "normal",
 ): Promise<OnerLegResult> {
   const acc = new Map<string, OnerFlight>();
+  // Todas as tarifas vistas para o MESMO voo (mesma assinatura). A operadora
+  // combina ida+volta por tarifa/fornecedor: a mais barata às vezes não tem
+  // volta combinável, então guardamos as demais como plano B.
+  const fares = new Map<string, Map<string, number>>();
   const startedAt = Date.now();
+
   // Fornecedores publicam em ondas. Em vez de esperar sempre todas as rodadas,
   // paramos quando o conteúdo estabiliza (nada novo nem mais barato) — mesma
   // qualidade de resultado, bem menos espera.
