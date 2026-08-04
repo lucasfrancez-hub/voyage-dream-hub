@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from "react";
-import { Copy, ImageDown, Loader2, RefreshCw, Smartphone, Wand2 } from "lucide-react";
+import { Copy, ImageDown, Loader2, RefreshCw, Send, Smartphone, Wand2 } from "lucide-react";
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
 import { generateCurationCopy } from "@/lib/packages/curate.functions";
 import { fetchProxiedImage } from "@/lib/image-proxy.functions";
+import { publishPackageArtToInstagram } from "@/lib/instagram/queries.functions";
+import { confirm } from "@/lib/confirm";
 import {
   Dialog,
   DialogContent,
@@ -11,6 +13,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+
 
 export function WhatsAppIcon({ className = "h-4 w-4" }: { className?: string }) {
   return (
