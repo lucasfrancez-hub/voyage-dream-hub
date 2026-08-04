@@ -1619,7 +1619,7 @@ export function VoosPage({
           ...paxData(),
           returnDate: form.returnDate,
           searchKey: result?.searchKey ?? "",
-          flightKey: selectedOut ?? "",
+          flightKey: outFareOverride?.key ?? selectedOut ?? "",
           filters: toOperatorFilters(inFilters),
         },
       }),
