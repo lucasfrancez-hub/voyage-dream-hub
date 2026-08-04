@@ -106,12 +106,20 @@ export function AirportAutocomplete({
 
   const options = useMemo(() => data ?? [], [data]);
 
+  useEffect(() => {
+    if (!open) return;
+    const t = window.setTimeout(() => resizeEmbedForFloatingElement(dropdownRef.current, 24), 40);
+    return () => window.clearTimeout(t);
+  }, [open, options, pos.top]);
+
   function choose(a: Airport) {
     typingRef.current = false;
     onSelect(a.iata.toUpperCase());
     setText(a.iata.toUpperCase());
     setOpen(false);
+    resetEmbedHeight();
   }
+
 
   return (
     <div ref={boxRef} className="relative">
