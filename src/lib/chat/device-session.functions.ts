@@ -188,6 +188,48 @@ export const desbloquearAparelhoChat = createServerFn({ method: "POST" })
     return { ok: true as const, email, tokenHash: link.properties.hashed_token };
   });
 
+/**
+ * Renova a sessão do Supabase silenciosamente (sem PIN) enquanto o aparelho
+ * registrado estiver válido. É isso que impede o app de cair antes dos 30 dias
+ * e mantém as notificações funcionando.
+ */
+export const renovarSessaoAparelhoChat = createServerFn({ method: "POST" }).handler(async () => {
+  const token = lerCookie(getRequest().headers.get("cookie"), COOKIE);
+  if (!token) return { ok: false as const };
+
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data: reg } = await supabaseAdmin
+    .from("chat_device_sessions")
+    .select("id, user_id, expires_at")
+    .eq("token_hash", await sha256Hex(token))
+    .maybeSingle();
+  if (!reg) return { ok: false as const };
+  if (new Date(reg.expires_at).getTime() < Date.now()) {
+    await supabaseAdmin.from("chat_device_sessions").delete().eq("id", reg.id);
+    return { ok: false as const };
+  }
+
+  const { data: u } = await supabaseAdmin.auth.admin.getUserById(reg.user_id);
+  const email = u?.user?.email;
+  if (!email) return { ok: false as const };
+
+  const { data: link, error } = await supabaseAdmin.auth.admin.generateLink({
+    type: "magiclink",
+    email,
+  });
+  if (error || !link?.properties?.hashed_token) return { ok: false as const };
+
+  // Janela deslizante: cada uso empurra a validade para mais 30 dias.
+  const novoExpira = new Date(Date.now() + DIAS * 864e5).toISOString();
+  await supabaseAdmin
+    .from("chat_device_sessions")
+    .update({ last_used_at: new Date().toISOString(), expires_at: novoExpira })
+    .eq("id", reg.id);
+  setResponseHeader("Set-Cookie", montarCookie(token, DIAS * 86400));
+
+  return { ok: true as const, email, tokenHash: link.properties.hashed_token };
+});
+
 /** Esquece este aparelho (logout definitivo). */
 export const esquecerAparelhoChat = createServerFn({ method: "POST" }).handler(async () => {
   const token = lerCookie(getRequest().headers.get("cookie"), COOKIE);
