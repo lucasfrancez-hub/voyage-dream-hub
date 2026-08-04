@@ -2765,8 +2765,8 @@ function IgConvRow({ conv, active, onClick }: { conv: any; active: boolean; onCl
       {conv.contact_profile_pic ? (
         <img src={conv.contact_profile_pic} alt="" className="h-9 w-9 shrink-0 rounded-full object-cover" />
       ) : (
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-pink-500 to-orange-500 text-white">
-          <Instagram className="h-4 w-4" />
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-pink-500 to-orange-500 text-sm font-semibold text-white">
+          {String(nome).replace(/^@/, "").charAt(0).toUpperCase()}
         </div>
       )}
       <div className="min-w-0 flex-1">
