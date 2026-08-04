@@ -66,17 +66,45 @@ export async function sendInstagramDM(params: {
   return result;
 }
 
+const AVISO_COLLAB =
+  "Publicação em colaboração: o Instagram só permite que o perfil que publicou responda ao comentário. " +
+  "A resposta foi salva como sugestão — copie e publique pelo perfil dono do post.";
+
+/** O Graph devolve 100/33 quando o comentário não pertence à conta (posts em collab). */
+function ehComentarioDeOutroPerfil(erro: unknown): boolean {
+  const msg = erro instanceof Error ? erro.message : String(erro);
+  return /error_subcode":\s*33/.test(msg) || /does not exist, cannot be loaded due to missing permissions/i.test(msg);
+}
+
 /**
  * Responde um comentário publicamente + envia DM privada ao autor.
+ * Em publicações collab a API bloqueia a resposta: guardamos como sugestão.
  */
 export async function autoReplyComment(params: {
   accountId: string;
   commentId: string;
   publicReply: string;
   privateDm?: string | null;
+  collab?: boolean;
 }) {
   const acc = await loadAccount(params.accountId);
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+  const salvarSugestao = async () => {
+    await supabaseAdmin
+      .from("instagram_comments")
+      .update({
+        auto_reply_status: "suggested",
+        auto_reply_text: params.publicReply,
+        auto_replied_at: null,
+      })
+      .eq("comment_id", params.commentId);
+  };
+
+  if (params.collab) {
+    await salvarSugestao();
+    throw new Error(AVISO_COLLAB);
+  }
 
   try {
     await replyToComment({
@@ -102,6 +130,10 @@ export async function autoReplyComment(params: {
       })
       .eq("comment_id", params.commentId);
   } catch (e) {
+    if (ehComentarioDeOutroPerfil(e)) {
+      await salvarSugestao();
+      throw new Error(AVISO_COLLAB);
+    }
     await supabaseAdmin
       .from("instagram_comments")
       .update({ auto_reply_status: "failed", auto_reply_text: (e as Error).message })
@@ -109,3 +141,4 @@ export async function autoReplyComment(params: {
     throw e;
   }
 }
+

@@ -2558,18 +2558,41 @@ function InstagramCommentThreadView({ mediaId, onBack }: { mediaId: string; onBa
   async function enviar() {
     if (!text.trim() || !alvoAtual) return;
     setSending(true);
+    const conteudo = text.trim();
     try {
-      await replyFn({ data: { id: alvoAtual.id, public_reply: text.trim() } });
+      await replyFn({ data: { id: alvoAtual.id, public_reply: conteudo } });
       toast.success("Resposta publicada");
       setText("");
       setAlvo(null);
       qc.invalidateQueries({ queryKey: ["ig", "comment-threads"] });
     } catch (e: unknown) {
-      toast.error(e instanceof Error ? e.message : "Erro ao publicar");
+      const msg = e instanceof Error ? e.message : "Erro ao publicar";
+      // Post em collab: o Instagram bloqueia a resposta pelo coautor.
+      // Em vez de mostrar erro cru, guardamos como sugestão e copiamos o texto.
+      if (/colabora/i.test(msg)) {
+        try {
+          await navigator.clipboard.writeText(conteudo);
+        } catch {
+          /* clipboard indisponível: o texto continua salvo como sugestão */
+        }
+        setText("");
+        setAlvo(null);
+        qc.invalidateQueries({ queryKey: ["ig", "comment-threads"] });
+        toast.info("Resposta salva como sugestão e copiada", {
+          description:
+            "Publicação em colaboração: o Instagram só aceita resposta pelo perfil que publicou. Cole o texto por lá.",
+          action: thread?.media_permalink
+            ? { label: "Abrir post", onClick: () => window.open(thread.media_permalink!, "_blank") }
+            : undefined,
+        });
+      } else {
+        toast.error(msg);
+      }
     } finally {
       setSending(false);
     }
   }
+
 
   return (
     <div className="flex h-full min-h-0 flex-col">
