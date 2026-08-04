@@ -326,12 +326,27 @@ export const listInstagramCommentThreads = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { data, error } = await context.supabase
       .from("instagram_comments")
-      .select("id, media_id, media_permalink, media_caption, media_thumbnail, media_type, comment_id, parent_comment_id, from_ig_id, from_username, text, auto_reply_status, auto_reply_text, auto_replied_at, auto_dm_sent_at, created_at")
+      .select("id, media_id, media_permalink, media_caption, media_thumbnail, media_type, comment_id, parent_comment_id, from_ig_id, from_username, from_profile_pic, text, auto_reply_status, auto_reply_text, auto_replied_at, auto_dm_sent_at, read_at, created_at")
       .order("created_at", { ascending: true })
       .limit(500);
     if (error) throw new Error(error.message);
 
     const rows = data ?? [];
+
+    // Foto de quem comentou: usa a que já temos guardada, senão puxa da DM do mesmo perfil.
+    const semFoto = [...new Set(rows.filter((c) => !c.from_profile_pic && c.from_ig_id).map((c) => c.from_ig_id as string))];
+    const fotos = new Map<string, string>();
+    if (semFoto.length > 0) {
+      const { data: convs } = await context.supabase
+        .from("instagram_conversations")
+        .select("contact_ig_id, contact_profile_pic")
+        .in("contact_ig_id", semFoto);
+      for (const c of convs ?? []) {
+        if (c.contact_profile_pic) fotos.set(c.contact_ig_id as string, c.contact_profile_pic as string);
+      }
+    }
+
+    type Comentario = (typeof rows)[number] & { from_profile_pic: string | null };
     const threads = new Map<string, {
       media_id: string;
       media_permalink: string | null;
@@ -341,10 +356,14 @@ export const listInstagramCommentThreads = createServerFn({ method: "GET" })
       last_at: string | null;
       total: number;
       pendentes: number;
-      comments: typeof rows;
+      comments: Comentario[];
     }>();
 
-    for (const c of rows) {
+    for (const raw of rows) {
+      const c: Comentario = {
+        ...raw,
+        from_profile_pic: raw.from_profile_pic ?? (raw.from_ig_id ? (fotos.get(raw.from_ig_id) ?? null) : null),
+      };
       const key = c.media_id ?? "sem-publicacao";
       const t = threads.get(key) ?? {
         media_id: key,
@@ -355,7 +374,7 @@ export const listInstagramCommentThreads = createServerFn({ method: "GET" })
         last_at: null,
         total: 0,
         pendentes: 0,
-        comments: [] as typeof rows,
+        comments: [] as Comentario[],
       };
       t.media_permalink = c.media_permalink ?? t.media_permalink;
       t.media_caption = c.media_caption ?? t.media_caption;
@@ -363,10 +382,50 @@ export const listInstagramCommentThreads = createServerFn({ method: "GET" })
       t.media_type = c.media_type ?? t.media_type;
       t.last_at = c.created_at ?? t.last_at;
       t.total += 1;
-      if (!c.auto_replied_at && !c.auto_dm_sent_at) t.pendentes += 1;
+      if (!c.read_at && !c.auto_replied_at && !c.auto_dm_sent_at) t.pendentes += 1;
       t.comments.push(c);
       threads.set(key, t);
     }
 
     return [...threads.values()].sort((a, b) => (b.last_at ?? "").localeCompare(a.last_at ?? ""));
+  });
+
+/** Marca todos os comentários de uma publicação como lidos (some o badge). */
+export const markInstagramCommentThreadRead = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { media_id: string }) => z.object({ media_id: z.string().min(1) }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase
+      .from("instagram_comments")
+      .update({ read_at: new Date().toISOString() })
+      .eq("media_id", data.media_id)
+      .is("read_at", null);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+/** Dados da publicação (inclusive o link do vídeo) direto da API do Instagram. */
+export const getInstagramMediaDetails = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { media_id: string }) => z.object({ media_id: z.string().min(1) }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { data: accounts } = await context.supabase
+      .from("instagram_accounts")
+      .select("id, is_default")
+      .order("is_default", { ascending: false })
+      .limit(1);
+    const accountId = accounts?.[0]?.id;
+    if (!accountId) throw new Error("Nenhuma conta do Instagram conectada");
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: account } = await supabaseAdmin
+      .from("instagram_accounts")
+      .select("access_token")
+      .eq("id", accountId)
+      .maybeSingle();
+    const token = (account as { access_token?: string } | null)?.access_token;
+    if (!token) throw new Error("Conta do Instagram sem token");
+
+    const { fetchMediaDetails } = await import("./api.server");
+    return fetchMediaDetails({ mediaId: data.media_id, token });
   });

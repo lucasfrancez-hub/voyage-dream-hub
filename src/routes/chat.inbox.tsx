@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { listConversations, listMessages, sendHumanReply, resendHumanMessage, sendHumanMedia, toggleConversationMode, startOutboundConversation, setFunnelStage, assignConversation, setAiPaused, listAttendants, getActiveProtocolo, closeProtocoloManually, listConversationProtocolos, getConversationOrders, updateProtocoloDetails, listProtocoloMessages, ensureProtocoloResumo, clearConversationHistory, markConversationRead } from "@/lib/chat/queries.functions";
-import { listInstagramAccounts, listInstagramConversations, listInstagramMessages, sendInstagramAttachment, sendInstagramReply, listInstagramCommentThreads, refreshInstagramProfile, triggerAutoReplyComment, markInstagramConversationRead } from "@/lib/instagram/queries.functions";
+import { listInstagramAccounts, listInstagramConversations, listInstagramMessages, sendInstagramAttachment, sendInstagramReply, listInstagramCommentThreads, refreshInstagramProfile, triggerAutoReplyComment, markInstagramConversationRead, markInstagramCommentThreadRead, getInstagramMediaDetails } from "@/lib/instagram/queries.functions";
 import { firstName } from "@/lib/whatsapp/text-utils.shared";
 import { confirmThen } from "@/lib/confirm";
 import { audioBlobToMp3 } from "@/lib/audio-to-mp3";
@@ -2369,8 +2369,8 @@ function InstagramList({ folder, search, activeId, onSelect }: { folder: string;
           {c.contact_profile_pic ? (
             <img src={c.contact_profile_pic} alt="" className="h-9 w-9 shrink-0 rounded-full object-cover" />
           ) : (
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-pink-500 to-orange-500 text-white">
-              <Instagram className="h-4 w-4" />
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-pink-500 to-orange-500 text-sm font-semibold text-white">
+              {(c.contact_name ?? c.contact_username ?? "?").replace(/^@/, "").charAt(0).toUpperCase()}
             </div>
           )}
           <div className="min-w-0 flex-1">
@@ -2501,9 +2501,32 @@ function InstagramCommentThreadView({ mediaId, onBack }: { mediaId: string; onBa
   const thread = threads.find((t) => t.media_id === mediaId) ?? null;
   const comments = thread?.comments ?? [];
 
+  // Ao abrir a publicação, marca os comentários como lidos (badge some).
+  const markReadFn = useServerFn(markInstagramCommentThreadRead);
+  const jaMarcou = useRef<string | null>(null);
+  useEffect(() => {
+    if (!mediaId || jaMarcou.current === mediaId) return;
+    if (!thread || thread.pendentes === 0) return;
+    jaMarcou.current = mediaId;
+    markReadFn({ data: { media_id: mediaId } })
+      .then(() => qc.invalidateQueries({ queryKey: ["ig", "comment-threads"] }))
+      .catch(() => {});
+  }, [mediaId, thread, markReadFn, qc]);
+
+  // Mídia real da publicação (vídeo/foto) pra tocar dentro do painel.
+  const mediaDetailsFn = useServerFn(getInstagramMediaDetails);
+  const { data: midia, isLoading: midiaCarregando } = useQuery({
+    queryKey: ["ig", "media", mediaId],
+    queryFn: () => mediaDetailsFn({ data: { media_id: mediaId } }),
+    enabled: verMidia && Boolean(mediaId),
+    staleTime: 5 * 60_000,
+    retry: false,
+  });
+
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [comments.length, mediaId]);
+
 
   // Alvo padrão: último comentário de terceiros ainda sem resposta.
   const alvoPadrao = useMemo(() => {
@@ -2604,20 +2627,39 @@ function InstagramCommentThreadView({ mediaId, onBack }: { mediaId: string; onBa
           <DialogHeader>
             <DialogTitle className="text-sm">Publicação no Instagram</DialogTitle>
           </DialogHeader>
-          {thread?.media_permalink ? (
-            <iframe
-              src={`${thread.media_permalink.replace(/\/?$/, "/")}embed`}
-              title="Publicação no Instagram"
-              className="h-[520px] w-full rounded-lg border border-slate-200"
-              allowFullScreen
+          {midiaCarregando ? (
+            <div className="flex h-64 items-center justify-center text-xs text-slate-400">
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Carregando publicação…
+            </div>
+          ) : midia?.media_url && (midia.media_type ?? "").toUpperCase().includes("VIDEO") ? (
+            <video
+              src={midia.media_url}
+              poster={midia.thumbnail ?? thread?.media_thumbnail ?? undefined}
+              controls
+              autoPlay
+              playsInline
+              className="max-h-[70vh] w-full rounded-lg bg-black"
             />
+          ) : midia?.media_url ? (
+            <img src={midia.media_url} alt="Publicação" className="max-h-[70vh] w-full rounded-lg object-contain" />
           ) : thread?.media_thumbnail ? (
             <img src={thread.media_thumbnail} alt="Publicação" className="w-full rounded-lg" />
           ) : (
             <p className="text-xs text-slate-500">Publicação indisponível.</p>
           )}
+          {thread?.media_permalink && (
+            <a
+              href={thread.media_permalink}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1 text-xs text-slate-500 hover:text-[#F26B1F]"
+            >
+              <ExternalLink className="h-3 w-3" /> abrir no Instagram
+            </a>
+          )}
         </DialogContent>
       </Dialog>
+
 
       <div className="flex-1 space-y-2 overflow-y-auto p-4">
 
@@ -2628,8 +2670,17 @@ function InstagramCommentThreadView({ mediaId, onBack }: { mediaId: string; onBa
         ) : (
           comments.map((c) => {
             const meu = nossos.has((c.from_username ?? "").toLowerCase());
+            const inicial = (c.from_username ?? "?").replace(/^@/, "").charAt(0).toUpperCase();
             return (
-              <div key={c.id} className={cn("flex", meu ? "justify-end" : "justify-start")}>
+              <div key={c.id} className={cn("flex items-end gap-2", meu ? "justify-end" : "justify-start")}>
+                {!meu &&
+                  (c.from_profile_pic ? (
+                    <img src={c.from_profile_pic} alt="" className="h-7 w-7 shrink-0 rounded-full object-cover" />
+                  ) : (
+                    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-pink-500 to-orange-500 text-[11px] font-semibold text-white">
+                      {inicial}
+                    </div>
+                  ))}
                 <div
                   className={cn(
                     "max-w-[75%] rounded-2xl px-3 py-2 text-sm shadow-sm",
@@ -2714,8 +2765,8 @@ function IgConvRow({ conv, active, onClick }: { conv: any; active: boolean; onCl
       {conv.contact_profile_pic ? (
         <img src={conv.contact_profile_pic} alt="" className="h-9 w-9 shrink-0 rounded-full object-cover" />
       ) : (
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-pink-500 to-orange-500 text-white">
-          <Instagram className="h-4 w-4" />
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-pink-500 to-orange-500 text-sm font-semibold text-white">
+          {String(nome).replace(/^@/, "").charAt(0).toUpperCase()}
         </div>
       )}
       <div className="min-w-0 flex-1">
