@@ -274,11 +274,16 @@ export function SearchEngine({
 } = {}) {
   const [mode, setMode] = useState<Mode>(initialMode);
 
-  /** No widget, "Exclusivos" não abre dentro do iframe do site: redireciona
-   *  para a página completa em outra aba. */
+  /** No widget, "Exclusivos" não abre dentro do iframe do site: leva o
+   *  usuário para a página completa, fora do iframe, já na aba certa. */
   function changeMode(next: Mode) {
     if (embedMode && next === "exclusivo") {
-      window.open(`${window.location.origin}/voar?m=exclusivo`, "_blank", "noopener,noreferrer");
+      const url = "https://pedidos.viaair.tur.br/voar?tab=exclusivos";
+      try {
+        window.open(url, "_top");
+      } catch {
+        window.open(url, "_blank", "noopener,noreferrer");
+      }
       return;
     }
     setMode(next);
@@ -415,7 +420,7 @@ export function SearchEngine({
         <HoteisPage header={hero} publicMode={publicMode} externalSearch={embedMode} />
       )}
 
-      {mode === "carro" && <CarrosPage header={hero} />}
+      {mode === "carro" && <CarrosPage header={hero} embedMode={embedMode} />}
       {mode === "exclusivo" && <ExclusivosPage header={hero} />}
       {mode === "seguro" && <SegurosPage header={hero} />}
 

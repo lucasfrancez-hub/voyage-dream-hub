@@ -879,7 +879,10 @@ export type CarPreset = {
   returnDate: string;
 };
 
-export function CarrosPage({ header }: { header?: React.ReactNode } = {}) {
+export function CarrosPage({
+  header,
+  embedMode = false,
+}: { header?: React.ReactNode; embedMode?: boolean } = {}) {
   const searchCars = useServerFn(useIsPublicEngine() ? onerCarSearchPublic : onerCarSearch);
 
   const [pickup, setPickup] = useState<OnerCarLocation | null>(null);
@@ -1405,7 +1408,7 @@ export function CarrosPage({ header }: { header?: React.ReactNode } = {}) {
           </div>
         )}
 
-        {!result && !mut.isPending && (
+        {!result && !mut.isPending && !embedMode && (
           <div className="rounded-2xl border border-dashed border-border p-12 text-center">
             <Car className="mx-auto mb-3 h-6 w-6 text-muted-foreground" />
             <p className="text-sm text-muted-foreground">
