@@ -2532,3 +2532,77 @@ function InstagramCommentThreadView({ mediaId, onBack }: { mediaId: string; onBa
     </div>
   );
 }
+
+/** Linha de DM do Instagram usada na aba unificada "Todas". */
+function IgConvRow({ conv, active, onClick }: { conv: any; active: boolean; onClick: () => void }) {
+  const nome = conv.contact_name ?? (conv.contact_username ? `@${conv.contact_username}` : "Instagram");
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        "flex w-full items-start gap-2 rounded-lg p-2 text-left transition-colors",
+        active ? "bg-pink-50" : "hover:bg-slate-50",
+      )}
+    >
+      {conv.contact_profile_pic ? (
+        <img src={conv.contact_profile_pic} alt="" className="h-9 w-9 shrink-0 rounded-full object-cover" />
+      ) : (
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-pink-500 to-orange-500 text-white">
+          <Instagram className="h-4 w-4" />
+        </div>
+      )}
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center justify-between gap-1">
+          <span className="truncate text-sm font-medium text-slate-900">{nome}</span>
+          {(conv.unread_count ?? 0) > 0 && (
+            <span className="rounded-full bg-[#F26B1F] px-1.5 text-[10px] font-medium text-white">{conv.unread_count}</span>
+          )}
+        </div>
+        <div className="flex items-center gap-1 text-[10px] text-slate-500">
+          <Instagram className="h-2.5 w-2.5" />
+          {conv.contact_username ? `@${conv.contact_username}` : "Direct"}
+        </div>
+        <div className="truncate text-xs text-slate-500">{conv.last_message_preview ?? "—"}</div>
+      </div>
+    </button>
+  );
+}
+
+/** Linha de publicação (comentários) usada na aba unificada "Todas". */
+function IgThreadRow({ thread, active, onClick }: { thread: any; active: boolean; onClick: () => void }) {
+  const ultimo = thread.comments?.[thread.comments.length - 1];
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        "flex w-full items-start gap-2 rounded-lg p-2 text-left transition-colors",
+        active ? "bg-orange-50" : "hover:bg-slate-50",
+      )}
+    >
+      {thread.media_thumbnail ? (
+        <img src={thread.media_thumbnail} alt="Publicação" className="h-9 w-9 shrink-0 rounded-md object-cover" />
+      ) : (
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-gradient-to-br from-purple-500 via-pink-500 to-orange-500 text-white">
+          <Heart className="h-4 w-4" />
+        </div>
+      )}
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center justify-between gap-1">
+          <span className="truncate text-sm font-medium text-slate-900">
+            {thread.media_caption?.slice(0, 40) || "Publicação"}
+          </span>
+          {(thread.pendentes ?? 0) > 0 && (
+            <span className="rounded-full bg-[#F26B1F] px-1.5 text-[10px] font-medium text-white">{thread.pendentes}</span>
+          )}
+        </div>
+        <div className="flex items-center gap-1 text-[10px] text-slate-500">
+          <Heart className="h-2.5 w-2.5" />
+          Comentários
+        </div>
+        <div className="truncate text-xs text-slate-500">
+          {ultimo ? `@${ultimo.from_username ?? "?"}: ${ultimo.text ?? ""}` : "—"}
+        </div>
+      </div>
+    </button>
+  );
+}
