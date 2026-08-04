@@ -29,6 +29,7 @@ import { Route as TermosDeUsoRouteImport } from './routes/termos-de-uso'
 import { Route as UnsubscribeRouteImport } from './routes/unsubscribe'
 import { Route as ValidacaoRouteImport } from './routes/validacao'
 import { Route as VoarRouteImport } from './routes/voar'
+import { Route as AdminAppCelularRouteImport } from './routes/admin.app-celular'
 import { Route as AdminBuscarRouteImport } from './routes/admin.buscar'
 import { Route as AdminCarrosRouteImport } from './routes/admin.carros'
 import { Route as AdminCheckinTreinoRouteImport } from './routes/admin.checkin-treino'
@@ -220,6 +221,11 @@ const VoarRoute = VoarRouteImport.update({
   id: '/voar',
   path: '/voar',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AdminAppCelularRoute = AdminAppCelularRouteImport.update({
+  id: '/app-celular',
+  path: '/app-celular',
+  getParentRoute: () => AdminRoute,
 } as any)
 const AdminBuscarRoute = AdminBuscarRouteImport.update({
   id: '/buscar',
@@ -724,6 +730,7 @@ export interface FileRoutesByFullPath {
   '/unsubscribe': typeof UnsubscribeRoute
   '/validacao': typeof ValidacaoRoute
   '/voar': typeof VoarRoute
+  '/admin/app-celular': typeof AdminAppCelularRoute
   '/admin/buscar': typeof AdminBuscarRoute
   '/admin/carros': typeof AdminCarrosRoute
   '/admin/checkin-treino': typeof AdminCheckinTreinoRoute
@@ -836,6 +843,7 @@ export interface FileRoutesByTo {
   '/unsubscribe': typeof UnsubscribeRoute
   '/validacao': typeof ValidacaoRoute
   '/voar': typeof VoarRoute
+  '/admin/app-celular': typeof AdminAppCelularRoute
   '/admin/buscar': typeof AdminBuscarRoute
   '/admin/carros': typeof AdminCarrosRoute
   '/admin/checkin-treino': typeof AdminCheckinTreinoRoute
@@ -950,6 +958,7 @@ export interface FileRoutesById {
   '/unsubscribe': typeof UnsubscribeRoute
   '/validacao': typeof ValidacaoRoute
   '/voar': typeof VoarRoute
+  '/admin/app-celular': typeof AdminAppCelularRoute
   '/admin/buscar': typeof AdminBuscarRoute
   '/admin/carros': typeof AdminCarrosRoute
   '/admin/checkin-treino': typeof AdminCheckinTreinoRoute
@@ -1065,6 +1074,7 @@ export interface FileRouteTypes {
     | '/unsubscribe'
     | '/validacao'
     | '/voar'
+    | '/admin/app-celular'
     | '/admin/buscar'
     | '/admin/carros'
     | '/admin/checkin-treino'
@@ -1177,6 +1187,7 @@ export interface FileRouteTypes {
     | '/unsubscribe'
     | '/validacao'
     | '/voar'
+    | '/admin/app-celular'
     | '/admin/buscar'
     | '/admin/carros'
     | '/admin/checkin-treino'
@@ -1290,6 +1301,7 @@ export interface FileRouteTypes {
     | '/unsubscribe'
     | '/validacao'
     | '/voar'
+    | '/admin/app-celular'
     | '/admin/buscar'
     | '/admin/carros'
     | '/admin/checkin-treino'
@@ -1592,6 +1604,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/voar'
       preLoaderRoute: typeof VoarRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/admin/app-celular': {
+      id: '/admin/app-celular'
+      path: '/app-celular'
+      fullPath: '/admin/app-celular'
+      preLoaderRoute: typeof AdminAppCelularRouteImport
+      parentRoute: typeof AdminRoute
     }
     '/admin/buscar': {
       id: '/admin/buscar'
@@ -2246,6 +2265,7 @@ const AdminPessoasRouteWithChildren = AdminPessoasRoute._addFileChildren(
 )
 
 interface AdminRouteChildren {
+  AdminAppCelularRoute: typeof AdminAppCelularRoute
   AdminBuscarRoute: typeof AdminBuscarRoute
   AdminCarrosRoute: typeof AdminCarrosRoute
   AdminCheckinTreinoRoute: typeof AdminCheckinTreinoRoute
@@ -2275,6 +2295,7 @@ interface AdminRouteChildren {
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
+  AdminAppCelularRoute: AdminAppCelularRoute,
   AdminBuscarRoute: AdminBuscarRoute,
   AdminCarrosRoute: AdminCarrosRoute,
   AdminCheckinTreinoRoute: AdminCheckinTreinoRoute,

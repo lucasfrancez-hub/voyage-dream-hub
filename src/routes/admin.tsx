@@ -1,7 +1,8 @@
 import { createFileRoute, Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
-import { Loader2, LogOut, Package, ClipboardList, Home, Link2, Settings, Users, ChevronDown, LayoutDashboard, Contact, Puzzle, MessageCircle, Sun, Moon } from "lucide-react";
+import { Loader2, LogOut, Package, ClipboardList, Home, Link2, Settings, Users, ChevronDown, LayoutDashboard, Contact, Smartphone,
+  Puzzle, MessageCircle, Sun, Moon } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -524,6 +525,7 @@ function SegurancaNav({ pathname, showUsuarios }: { pathname: string; showUsuari
   const active =
     pathname.startsWith("/admin/seguranca") ||
     pathname.startsWith("/admin/instalar-extensao") ||
+    pathname.startsWith("/admin/app-celular") ||
     pathname.startsWith("/admin/checkin-treino") ||
     (showUsuarios && pathname.startsWith("/admin/usuarios"));
 
@@ -549,6 +551,14 @@ function SegurancaNav({ pathname, showUsuarios }: { pathname: string; showUsuari
               <Puzzle className="h-3.5 w-3.5" /> Instalar extensão
             </span>
             <span className="text-xs text-muted-foreground">Importador de reservas</span>
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link to="/admin/app-celular" className="flex flex-col items-start gap-0.5">
+            <span className="text-sm font-medium flex items-center gap-1.5">
+              <Smartphone className="h-3.5 w-3.5" /> App no celular
+            </span>
+            <span className="text-xs text-muted-foreground">Link secreto com PIN para o Chat</span>
           </Link>
         </DropdownMenuItem>
         {showUsuarios && (
