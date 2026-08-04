@@ -1010,6 +1010,7 @@ export function HoteisPage({
   runToken,
   onComboSelect,
   publicMode = false,
+  externalSearch = false,
 }: {
   header?: React.ReactNode;
   hideForm?: boolean;
@@ -1017,7 +1018,10 @@ export function HoteisPage({
   runToken?: number;
   onComboSelect?: (pick: ComboPick) => void;
   publicMode?: boolean;
+  /** No widget, a busca abre /voar em outra aba já pesquisando. */
+  externalSearch?: boolean;
 } = {}) {
+
   const searchDest = useServerFn(publicMode ? onerHotelDestinationsPublic : onerHotelDestinations);
   const searchAirports = useServerFn(publicMode ? onerAirportSearchPublic : onerAirportSearch);
   const searchHotels = useServerFn(publicMode ? onerHotelSearchPublic : onerHotelSearch);
