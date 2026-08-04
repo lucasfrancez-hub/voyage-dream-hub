@@ -5,8 +5,11 @@
  * operadora registrando um pedido pendente no admin.
  */
 import { createFileRoute } from "@tanstack/react-router";
-import { Plane, ShieldCheck, Headset, BadgePercent } from "lucide-react";
+import { Plane, ShieldCheck, Headset, CreditCard, ChevronRight } from "lucide-react";
 import { VoosPage } from "./admin.voos-teste";
+import { TopBar } from "@/components/TopBar";
+import { InstallmentRulesDialog } from "@/components/flights/InstallmentRulesDialog";
+
 
 type VoarSearch = {
   o?: string;
