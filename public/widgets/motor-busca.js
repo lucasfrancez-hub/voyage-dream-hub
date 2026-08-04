@@ -32,20 +32,42 @@
   var PATH = "/embed/motor-busca";
   var Z = 2147483000;
   var MIN_H = 200;
+  var WIDGET_VERSION = "10";
+
+  try {
+    console.info("[VIA AIR] widget motor-busca v" + WIDGET_VERSION);
+  } catch (e) {}
 
   function readConfig(script) {
     var d = (script && script.dataset) || {};
     return {
       container: d.container || "viaair-motor-busca",
-      mode: d.mode || "",
+      // aceita data-mode OU data-tab (voos | hoteis | carros | seguro | exclusivo)
+      mode: d.mode || d.tab || "",
       minHeight: parseInt(d.minHeight || "", 10) || MIN_H,
     };
   }
 
   function buildSrc(cfg) {
-    var url = ORIGIN + PATH + "?widget=1&v=" + Date.now();
+    var url =
+      ORIGIN + PATH + "?widget=1&wv=" + WIDGET_VERSION + "&v=" + Date.now();
     if (cfg.mode) url += "&m=" + encodeURIComponent(cfg.mode);
     return url;
+  }
+
+  // Remove qualquer incorporação antiga (iframe colado direto no WordPress),
+  // para não ficar renderizando a versão velha ao lado do widget novo.
+  function removeLegacyEmbeds(host) {
+    try {
+      var frames = document.querySelectorAll('iframe[src*="' + PATH + '"]');
+      for (var i = 0; i < frames.length; i++) {
+        var f = frames[i];
+        if (host && host.contains(f)) continue;
+        if (f.getAttribute("data-viaair-widget") === "1") continue;
+        var box = f.closest(".elementor-widget-html, .wp-block-html") || f;
+        box.parentNode && box.parentNode.removeChild(box);
+      }
+    } catch (e) {}
   }
 
   function mount(host, cfg) {
