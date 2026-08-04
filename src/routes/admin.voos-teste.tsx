@@ -1841,8 +1841,6 @@ export function VoosPage({
       setInbound(r.leg);
       if (r.fareKey !== selectedOut) {
         setOutFareOverride({ key: r.fareKey, total: r.fareTotal });
-        if (r.leg.flights.length)
-          toast.info("A tarifa mais barata da ida não combinava volta — usamos a tarifa seguinte");
       } else {
         setOutFareOverride(null);
       }
@@ -1972,13 +1970,7 @@ export function VoosPage({
   }, [showSummary]);
   const inboundPhase = isRoundTrip && !!selectedOut;
 
-  /** Modal de famílias tarifárias (LIGHT/CLASSIC/FLEX) do voo clicado. */
-  const [fareDialog, setFareDialog] = useState<{ f: OnerFlight; leg: "out" | "in" } | null>(null);
   function chooseFlight(f: OnerFlight, leg: "out" | "in") {
-    if ((f.fareOptions?.length ?? 0) > 1) {
-      setFareDialog({ f, leg });
-      return;
-    }
     if (leg === "out") pickOutbound(f.key);
     else setSelectedIn(f.key);
   }
@@ -2338,17 +2330,6 @@ export function VoosPage({
           </div>
         )}
 
-        <FareOptionsDialog
-          f={fareDialog?.f ?? null}
-          label={fareDialog?.leg === "in" ? "Volta" : "Ida"}
-          open={!!fareDialog}
-          onOpenChange={(v) => !v && setFareDialog(null)}
-          onConfirm={(key) => {
-            if (fareDialog?.leg === "in") setSelectedIn(key);
-            else pickOutbound(key);
-            setFareDialog(null);
-          }}
-        />
       </main>
 
     </div>
