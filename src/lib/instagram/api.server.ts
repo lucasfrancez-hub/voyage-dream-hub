@@ -322,3 +322,46 @@ export async function sendDirectAttachment(params: {
     body: JSON.stringify(body),
   });
 }
+
+/**
+ * Publicações em que a conta foi MARCADA — inclui os posts em colaboração
+ * (collab) publicados por outro perfil. A Meta NÃO manda webhook de comentário
+ * pra quem é só coautor, então buscamos os comentários por aqui.
+ */
+export async function fetchTaggedMediaWithComments(params: {
+  igUserId: string;
+  token: string;
+  mediaLimit?: number;
+  commentLimit?: number;
+}) {
+  const fields = [
+    "id",
+    "permalink",
+    "caption",
+    "media_type",
+    "thumbnail_url",
+    "media_url",
+    "timestamp",
+    "comments_count",
+    `comments.limit(${params.commentLimit ?? 30}){id,text,timestamp,username,parent_id}`,
+  ].join(",");
+  const json = await fetchGraph(
+    `/${params.igUserId}/tags?fields=${encodeURIComponent(fields)}&limit=${params.mediaLimit ?? 8}`,
+    { method: "GET", token: params.token, operation: "tagged_media_comments" },
+  );
+  const data = (json.data as Array<Record<string, unknown>>) ?? [];
+  return data.map((m) => ({
+    mediaId: String(m.id ?? ""),
+    permalink: (m.permalink as string) ?? null,
+    caption: (m.caption as string) ?? null,
+    mediaType: (m.media_type as string) ?? null,
+    thumbnail: (m.thumbnail_url as string) ?? (m.media_url as string) ?? null,
+    comments: (((m.comments as { data?: Array<Record<string, unknown>> })?.data) ?? []).map((c) => ({
+      id: String(c.id ?? ""),
+      text: (c.text as string) ?? null,
+      timestamp: (c.timestamp as string) ?? null,
+      username: (c.username as string) ?? null,
+      parentId: (c.parent_id as string) ?? null,
+    })),
+  }));
+}

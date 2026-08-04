@@ -2585,9 +2585,15 @@ function InstagramCommentThreadView({ mediaId, onBack }: { mediaId: string; onBa
           </div>
         )}
         <div className="min-w-0 flex-1">
-          <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+          <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-slate-400">
             Publicação{thread?.media_type ? ` · ${thread.media_type.toLowerCase()}` : ""}
+            {thread?.collab && (
+              <span className="rounded-full bg-[#F26B1F]/10 px-1.5 py-0.5 text-[9px] font-bold text-[#F26B1F]">
+                collab
+              </span>
+            )}
           </div>
+
           <p className="line-clamp-2 text-xs text-slate-700 [overflow-wrap:anywhere]">
             {thread?.media_caption ?? "Sem legenda"}
           </p>
@@ -2603,6 +2609,15 @@ function InstagramCommentThreadView({ mediaId, onBack }: { mediaId: string; onBa
           )}
         </div>
       </header>
+
+      {thread?.collab && (
+        <div className="border-b border-[#F26B1F]/20 bg-[#F26B1F]/5 px-4 py-2 text-[11px] text-[#8a3d0d]">
+          Publicação em colaboração: o Instagram só deixa o perfil que publicou responder
+          publicamente. A IA já preparou uma sugestão de resposta para cada comentário.
+        </div>
+      )}
+
+
 
       {/* Card da publicação: capa, legenda e player pro vídeo */}
       {thread && (

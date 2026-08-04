@@ -104,6 +104,7 @@ import { Route as ApiPublicHooksCloseInactiveProtocolsRouteImport } from './rout
 import { Route as ApiPublicHooksDispatchAiDebouncedRouteImport } from './routes/api/public/hooks/dispatch-ai-debounced'
 import { Route as ApiPublicHooksFlightCardsContinueRouteImport } from './routes/api/public/hooks/flight-cards-continue'
 import { Route as ApiPublicHooksFlightQuoteWatchdogRouteImport } from './routes/api/public/hooks/flight-quote-watchdog'
+import { Route as ApiPublicHooksInstagramCollabCommentsRouteImport } from './routes/api/public/hooks/instagram-collab-comments'
 import { Route as ApiPublicHooksInstagramDmQueueRouteImport } from './routes/api/public/hooks/instagram-dm-queue'
 import { Route as ApiPublicHooksInstagramHealthRouteImport } from './routes/api/public/hooks/instagram-health'
 import { Route as ApiPublicHooksKeepWindowAliveRouteImport } from './routes/api/public/hooks/keep-window-alive'
@@ -606,6 +607,12 @@ const ApiPublicHooksFlightQuoteWatchdogRoute =
     path: '/api/public/hooks/flight-quote-watchdog',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicHooksInstagramCollabCommentsRoute =
+  ApiPublicHooksInstagramCollabCommentsRouteImport.update({
+    id: '/api/public/hooks/instagram-collab-comments',
+    path: '/api/public/hooks/instagram-collab-comments',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicHooksInstagramDmQueueRoute =
   ApiPublicHooksInstagramDmQueueRouteImport.update({
     id: '/api/public/hooks/instagram-dm-queue',
@@ -767,6 +774,7 @@ export interface FileRoutesByFullPath {
   '/api/public/hooks/dispatch-ai-debounced': typeof ApiPublicHooksDispatchAiDebouncedRoute
   '/api/public/hooks/flight-cards-continue': typeof ApiPublicHooksFlightCardsContinueRoute
   '/api/public/hooks/flight-quote-watchdog': typeof ApiPublicHooksFlightQuoteWatchdogRoute
+  '/api/public/hooks/instagram-collab-comments': typeof ApiPublicHooksInstagramCollabCommentsRoute
   '/api/public/hooks/instagram-dm-queue': typeof ApiPublicHooksInstagramDmQueueRoute
   '/api/public/hooks/instagram-health': typeof ApiPublicHooksInstagramHealthRoute
   '/api/public/hooks/keep-window-alive': typeof ApiPublicHooksKeepWindowAliveRoute
@@ -874,6 +882,7 @@ export interface FileRoutesByTo {
   '/api/public/hooks/dispatch-ai-debounced': typeof ApiPublicHooksDispatchAiDebouncedRoute
   '/api/public/hooks/flight-cards-continue': typeof ApiPublicHooksFlightCardsContinueRoute
   '/api/public/hooks/flight-quote-watchdog': typeof ApiPublicHooksFlightQuoteWatchdogRoute
+  '/api/public/hooks/instagram-collab-comments': typeof ApiPublicHooksInstagramCollabCommentsRoute
   '/api/public/hooks/instagram-dm-queue': typeof ApiPublicHooksInstagramDmQueueRoute
   '/api/public/hooks/instagram-health': typeof ApiPublicHooksInstagramHealthRoute
   '/api/public/hooks/keep-window-alive': typeof ApiPublicHooksKeepWindowAliveRoute
@@ -983,6 +992,7 @@ export interface FileRoutesById {
   '/api/public/hooks/dispatch-ai-debounced': typeof ApiPublicHooksDispatchAiDebouncedRoute
   '/api/public/hooks/flight-cards-continue': typeof ApiPublicHooksFlightCardsContinueRoute
   '/api/public/hooks/flight-quote-watchdog': typeof ApiPublicHooksFlightQuoteWatchdogRoute
+  '/api/public/hooks/instagram-collab-comments': typeof ApiPublicHooksInstagramCollabCommentsRoute
   '/api/public/hooks/instagram-dm-queue': typeof ApiPublicHooksInstagramDmQueueRoute
   '/api/public/hooks/instagram-health': typeof ApiPublicHooksInstagramHealthRoute
   '/api/public/hooks/keep-window-alive': typeof ApiPublicHooksKeepWindowAliveRoute
@@ -1093,6 +1103,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/dispatch-ai-debounced'
     | '/api/public/hooks/flight-cards-continue'
     | '/api/public/hooks/flight-quote-watchdog'
+    | '/api/public/hooks/instagram-collab-comments'
     | '/api/public/hooks/instagram-dm-queue'
     | '/api/public/hooks/instagram-health'
     | '/api/public/hooks/keep-window-alive'
@@ -1200,6 +1211,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/dispatch-ai-debounced'
     | '/api/public/hooks/flight-cards-continue'
     | '/api/public/hooks/flight-quote-watchdog'
+    | '/api/public/hooks/instagram-collab-comments'
     | '/api/public/hooks/instagram-dm-queue'
     | '/api/public/hooks/instagram-health'
     | '/api/public/hooks/keep-window-alive'
@@ -1308,6 +1320,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/dispatch-ai-debounced'
     | '/api/public/hooks/flight-cards-continue'
     | '/api/public/hooks/flight-quote-watchdog'
+    | '/api/public/hooks/instagram-collab-comments'
     | '/api/public/hooks/instagram-dm-queue'
     | '/api/public/hooks/instagram-health'
     | '/api/public/hooks/keep-window-alive'
@@ -1374,6 +1387,7 @@ export interface RootRouteChildren {
   ApiPublicHooksDispatchAiDebouncedRoute: typeof ApiPublicHooksDispatchAiDebouncedRoute
   ApiPublicHooksFlightCardsContinueRoute: typeof ApiPublicHooksFlightCardsContinueRoute
   ApiPublicHooksFlightQuoteWatchdogRoute: typeof ApiPublicHooksFlightQuoteWatchdogRoute
+  ApiPublicHooksInstagramCollabCommentsRoute: typeof ApiPublicHooksInstagramCollabCommentsRoute
   ApiPublicHooksInstagramDmQueueRoute: typeof ApiPublicHooksInstagramDmQueueRoute
   ApiPublicHooksInstagramHealthRoute: typeof ApiPublicHooksInstagramHealthRoute
   ApiPublicHooksKeepWindowAliveRoute: typeof ApiPublicHooksKeepWindowAliveRoute
@@ -2054,6 +2068,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksFlightQuoteWatchdogRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/instagram-collab-comments': {
+      id: '/api/public/hooks/instagram-collab-comments'
+      path: '/api/public/hooks/instagram-collab-comments'
+      fullPath: '/api/public/hooks/instagram-collab-comments'
+      preLoaderRoute: typeof ApiPublicHooksInstagramCollabCommentsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/instagram-dm-queue': {
       id: '/api/public/hooks/instagram-dm-queue'
       path: '/api/public/hooks/instagram-dm-queue'
@@ -2312,6 +2333,8 @@ const rootRouteChildren: RootRouteChildren = {
     ApiPublicHooksFlightCardsContinueRoute,
   ApiPublicHooksFlightQuoteWatchdogRoute:
     ApiPublicHooksFlightQuoteWatchdogRoute,
+  ApiPublicHooksInstagramCollabCommentsRoute:
+    ApiPublicHooksInstagramCollabCommentsRoute,
   ApiPublicHooksInstagramDmQueueRoute: ApiPublicHooksInstagramDmQueueRoute,
   ApiPublicHooksInstagramHealthRoute: ApiPublicHooksInstagramHealthRoute,
   ApiPublicHooksKeepWindowAliveRoute: ApiPublicHooksKeepWindowAliveRoute,
