@@ -136,7 +136,7 @@ async function poll(
   // Todas as tarifas vistas para o MESMO voo (mesma assinatura). A operadora
   // combina ida+volta por tarifa/fornecedor: a mais barata às vezes não tem
   // volta combinável, então guardamos as demais como plano B.
-  const fares = new Map<string, Map<string, number>>();
+  const fares = new Map<string, Map<string, OnerFlight>>();
   const startedAt = Date.now();
 
   // Fornecedores publicam em ondas. Em vez de esperar sempre todas as rodadas,
