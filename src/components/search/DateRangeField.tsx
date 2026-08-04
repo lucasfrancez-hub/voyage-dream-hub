@@ -253,9 +253,10 @@ export function DateRangeField({
                   position: "absolute",
                   top: pos.top,
                   left: pos.left,
-                  width: Math.max(pos.width, 320),
+                  width: "max-content",
                 }}
-                className="z-[100] max-w-[360px] rounded-2xl border border-border/60 bg-popover shadow-2xl"
+                className="z-[100] max-w-[calc(100vw-16px)] overflow-hidden rounded-2xl border border-border/60 bg-popover shadow-2xl"
+
               >
                 {panel(true)}
               </div>
