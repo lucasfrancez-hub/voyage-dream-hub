@@ -2562,7 +2562,63 @@ function InstagramCommentThreadView({ mediaId, onBack }: { mediaId: string; onBa
         </div>
       </header>
 
+      {/* Card da publicação: capa, legenda e player pro vídeo */}
+      {thread && (
+        <div className="border-b border-slate-200 bg-slate-50 px-4 py-3">
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={() => setVerMidia(true)}
+              className="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl border border-slate-200 bg-slate-200"
+              aria-label="Abrir publicação"
+            >
+              {thread.media_thumbnail ? (
+                <img src={thread.media_thumbnail} alt="Publicação" className="h-full w-full object-cover" />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-purple-500 via-pink-500 to-orange-500 text-white">
+                  <Instagram className="h-6 w-6" />
+                </div>
+              )}
+              {(thread.media_type ?? "").toUpperCase().includes("VIDEO") && (
+                <span className="absolute inset-0 flex items-center justify-center bg-black/30">
+                  <Play className="h-7 w-7 fill-white text-white" />
+                </span>
+              )}
+            </button>
+            <div className="min-w-0 flex-1">
+              <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                {thread.media_type ? thread.media_type.toLowerCase() : "publicação"} · {comments.length} comentário{comments.length === 1 ? "" : "s"}
+              </div>
+              <p className="mt-1 whitespace-pre-wrap text-xs leading-relaxed text-slate-700 [overflow-wrap:anywhere]">
+                {thread.media_caption ?? "Sem legenda"}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <Dialog open={verMidia} onOpenChange={setVerMidia}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="text-sm">Publicação no Instagram</DialogTitle>
+          </DialogHeader>
+          {thread?.media_permalink ? (
+            <iframe
+              src={`${thread.media_permalink.replace(/\/?$/, "/")}embed`}
+              title="Publicação no Instagram"
+              className="h-[520px] w-full rounded-lg border border-slate-200"
+              allowFullScreen
+            />
+          ) : thread?.media_thumbnail ? (
+            <img src={thread.media_thumbnail} alt="Publicação" className="w-full rounded-lg" />
+          ) : (
+            <p className="text-xs text-slate-500">Publicação indisponível.</p>
+          )}
+        </DialogContent>
+      </Dialog>
+
       <div className="flex-1 space-y-2 overflow-y-auto p-4">
+
         {isLoading ? (
           <div className="text-center text-xs text-slate-400">Carregando…</div>
         ) : comments.length === 0 ? (
