@@ -63,14 +63,22 @@ export function DateRangeField({
       const el = anchorRef.current;
       if (!el) return;
       const rect = el.getBoundingClientRect();
+      // Largura real do painel (conteúdo do calendário) pra não estourar a borda.
+      const panelWidth = calendarRef.current?.offsetWidth ?? 328;
+      const maxLeft = Math.max(8, window.innerWidth - panelWidth - 8);
       setPos({
         top: window.scrollY + rect.bottom + 8,
-        left: window.scrollX + rect.left,
+        left: window.scrollX + Math.min(Math.max(8, rect.left), maxLeft),
         width: rect.width,
       });
     };
     update();
-    const t = window.setTimeout(() => resizeEmbedForFloatingElement(calendarRef.current, 32), 40);
+    const raf = window.requestAnimationFrame(update);
+    const t = window.setTimeout(() => {
+      update();
+      resizeEmbedForFloatingElement(calendarRef.current, 32);
+    }, 40);
+
     window.addEventListener("resize", update);
     window.addEventListener("scroll", update, true);
     return () => {
