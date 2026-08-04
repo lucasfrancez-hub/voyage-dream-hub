@@ -2113,7 +2113,7 @@ export function VoosPage({
       <main className="mx-auto max-w-7xl px-4 py-6">
         {mut.isPending && !result && <SearchSkeleton />}
 
-        {!result && !mut.isPending && (
+        {!publicMode && !result && !mut.isPending && (
           <div data-empty-state className="rounded-2xl border border-dashed border-border p-12 text-center">
             <Plane className="mx-auto mb-3 h-6 w-6 text-muted-foreground" />
             <p className="text-sm text-muted-foreground">

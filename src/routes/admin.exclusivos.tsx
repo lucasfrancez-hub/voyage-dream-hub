@@ -323,7 +323,7 @@ export function ExclusivosPage({ header }: { header?: React.ReactNode } = {}) {
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
         {run.isPending && <SearchSkeleton kind="exclusive" rows={4} />}
 
-        {!result && !run.isPending && (
+        {!isPublic && !result && !run.isPending && (
           <div data-empty-state className="rounded-2xl border border-dashed border-border p-12 text-center">
             <Sparkles className="mx-auto mb-3 h-6 w-6 text-muted-foreground" />
             <p className="text-sm text-muted-foreground">
