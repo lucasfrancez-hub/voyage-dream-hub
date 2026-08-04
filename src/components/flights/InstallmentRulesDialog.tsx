@@ -3,7 +3,7 @@
  * Abre a partir do rodapé do motor de busca ("Consulte aqui").
  */
 import { useMemo, useState, type ReactNode } from "react";
-import { CreditCard, Search, Info } from "lucide-react";
+import { CreditCard, Search, Check } from "lucide-react";
 import {
   Dialog,
   DialogContent,
