@@ -37,6 +37,7 @@ import { Route as AdminContasPagarRouteImport } from './routes/admin.contas-paga
 import { Route as AdminContasReceberRouteImport } from './routes/admin.contas-receber'
 import { Route as AdminDashboardRouteImport } from './routes/admin.dashboard'
 import { Route as AdminEncurtadorRouteImport } from './routes/admin.encurtador'
+import { Route as AdminExclusivosRouteImport } from './routes/admin.exclusivos'
 import { Route as AdminHoteisTesteRouteImport } from './routes/admin.hoteis-teste'
 import { Route as AdminInstagramRouteImport } from './routes/admin.instagram'
 import { Route as AdminInstalarExtensaoRouteImport } from './routes/admin.instalar-extensao'
@@ -47,6 +48,7 @@ import { Route as AdminNotasFiscaisRouteImport } from './routes/admin.notas-fisc
 import { Route as AdminPacotesRouteImport } from './routes/admin.pacotes'
 import { Route as AdminPessoasRouteImport } from './routes/admin.pessoas'
 import { Route as AdminSegurancaRouteImport } from './routes/admin.seguranca'
+import { Route as AdminSegurosRouteImport } from './routes/admin.seguros'
 import { Route as AdminUsuariosRouteImport } from './routes/admin.usuarios'
 import { Route as AdminVoosTesteRouteImport } from './routes/admin.voos-teste'
 import { Route as AgendaTokenRouteImport } from './routes/agenda.$token'
@@ -252,6 +254,11 @@ const AdminEncurtadorRoute = AdminEncurtadorRouteImport.update({
   path: '/encurtador',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminExclusivosRoute = AdminExclusivosRouteImport.update({
+  id: '/exclusivos',
+  path: '/exclusivos',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminHoteisTesteRoute = AdminHoteisTesteRouteImport.update({
   id: '/hoteis-teste',
   path: '/hoteis-teste',
@@ -300,6 +307,11 @@ const AdminPessoasRoute = AdminPessoasRouteImport.update({
 const AdminSegurancaRoute = AdminSegurancaRouteImport.update({
   id: '/seguranca',
   path: '/seguranca',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminSegurosRoute = AdminSegurosRouteImport.update({
+  id: '/seguros',
+  path: '/seguros',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminUsuariosRoute = AdminUsuariosRouteImport.update({
@@ -676,6 +688,7 @@ export interface FileRoutesByFullPath {
   '/admin/contas-receber': typeof AdminContasReceberRoute
   '/admin/dashboard': typeof AdminDashboardRoute
   '/admin/encurtador': typeof AdminEncurtadorRoute
+  '/admin/exclusivos': typeof AdminExclusivosRoute
   '/admin/hoteis-teste': typeof AdminHoteisTesteRoute
   '/admin/instagram': typeof AdminInstagramRoute
   '/admin/instalar-extensao': typeof AdminInstalarExtensaoRoute
@@ -686,6 +699,7 @@ export interface FileRoutesByFullPath {
   '/admin/pacotes': typeof AdminPacotesRoute
   '/admin/pessoas': typeof AdminPessoasRouteWithChildren
   '/admin/seguranca': typeof AdminSegurancaRoute
+  '/admin/seguros': typeof AdminSegurosRoute
   '/admin/usuarios': typeof AdminUsuariosRoute
   '/admin/voos-teste': typeof AdminVoosTesteRoute
   '/agenda/$token': typeof AgendaTokenRoute
@@ -779,6 +793,7 @@ export interface FileRoutesByTo {
   '/admin/contas-receber': typeof AdminContasReceberRoute
   '/admin/dashboard': typeof AdminDashboardRoute
   '/admin/encurtador': typeof AdminEncurtadorRoute
+  '/admin/exclusivos': typeof AdminExclusivosRoute
   '/admin/hoteis-teste': typeof AdminHoteisTesteRoute
   '/admin/instagram': typeof AdminInstagramRoute
   '/admin/instalar-extensao': typeof AdminInstalarExtensaoRoute
@@ -789,6 +804,7 @@ export interface FileRoutesByTo {
   '/admin/pacotes': typeof AdminPacotesRoute
   '/admin/pessoas': typeof AdminPessoasRouteWithChildren
   '/admin/seguranca': typeof AdminSegurancaRoute
+  '/admin/seguros': typeof AdminSegurosRoute
   '/admin/usuarios': typeof AdminUsuariosRoute
   '/admin/voos-teste': typeof AdminVoosTesteRoute
   '/agenda/$token': typeof AgendaTokenRoute
@@ -884,6 +900,7 @@ export interface FileRoutesById {
   '/admin/contas-receber': typeof AdminContasReceberRoute
   '/admin/dashboard': typeof AdminDashboardRoute
   '/admin/encurtador': typeof AdminEncurtadorRoute
+  '/admin/exclusivos': typeof AdminExclusivosRoute
   '/admin/hoteis-teste': typeof AdminHoteisTesteRoute
   '/admin/instagram': typeof AdminInstagramRoute
   '/admin/instalar-extensao': typeof AdminInstalarExtensaoRoute
@@ -894,6 +911,7 @@ export interface FileRoutesById {
   '/admin/pacotes': typeof AdminPacotesRoute
   '/admin/pessoas': typeof AdminPessoasRouteWithChildren
   '/admin/seguranca': typeof AdminSegurancaRoute
+  '/admin/seguros': typeof AdminSegurosRoute
   '/admin/usuarios': typeof AdminUsuariosRoute
   '/admin/voos-teste': typeof AdminVoosTesteRoute
   '/agenda/$token': typeof AgendaTokenRoute
@@ -990,6 +1008,7 @@ export interface FileRouteTypes {
     | '/admin/contas-receber'
     | '/admin/dashboard'
     | '/admin/encurtador'
+    | '/admin/exclusivos'
     | '/admin/hoteis-teste'
     | '/admin/instagram'
     | '/admin/instalar-extensao'
@@ -1000,6 +1019,7 @@ export interface FileRouteTypes {
     | '/admin/pacotes'
     | '/admin/pessoas'
     | '/admin/seguranca'
+    | '/admin/seguros'
     | '/admin/usuarios'
     | '/admin/voos-teste'
     | '/agenda/$token'
@@ -1093,6 +1113,7 @@ export interface FileRouteTypes {
     | '/admin/contas-receber'
     | '/admin/dashboard'
     | '/admin/encurtador'
+    | '/admin/exclusivos'
     | '/admin/hoteis-teste'
     | '/admin/instagram'
     | '/admin/instalar-extensao'
@@ -1103,6 +1124,7 @@ export interface FileRouteTypes {
     | '/admin/pacotes'
     | '/admin/pessoas'
     | '/admin/seguranca'
+    | '/admin/seguros'
     | '/admin/usuarios'
     | '/admin/voos-teste'
     | '/agenda/$token'
@@ -1197,6 +1219,7 @@ export interface FileRouteTypes {
     | '/admin/contas-receber'
     | '/admin/dashboard'
     | '/admin/encurtador'
+    | '/admin/exclusivos'
     | '/admin/hoteis-teste'
     | '/admin/instagram'
     | '/admin/instalar-extensao'
@@ -1207,6 +1230,7 @@ export interface FileRouteTypes {
     | '/admin/pacotes'
     | '/admin/pessoas'
     | '/admin/seguranca'
+    | '/admin/seguros'
     | '/admin/usuarios'
     | '/admin/voos-teste'
     | '/agenda/$token'
@@ -1535,6 +1559,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminEncurtadorRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/exclusivos': {
+      id: '/admin/exclusivos'
+      path: '/exclusivos'
+      fullPath: '/admin/exclusivos'
+      preLoaderRoute: typeof AdminExclusivosRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/hoteis-teste': {
       id: '/admin/hoteis-teste'
       path: '/hoteis-teste'
@@ -1603,6 +1634,13 @@ declare module '@tanstack/react-router' {
       path: '/seguranca'
       fullPath: '/admin/seguranca'
       preLoaderRoute: typeof AdminSegurancaRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/seguros': {
+      id: '/admin/seguros'
+      path: '/seguros'
+      fullPath: '/admin/seguros'
+      preLoaderRoute: typeof AdminSegurosRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/usuarios': {
@@ -2078,6 +2116,7 @@ interface AdminRouteChildren {
   AdminContasReceberRoute: typeof AdminContasReceberRoute
   AdminDashboardRoute: typeof AdminDashboardRoute
   AdminEncurtadorRoute: typeof AdminEncurtadorRoute
+  AdminExclusivosRoute: typeof AdminExclusivosRoute
   AdminHoteisTesteRoute: typeof AdminHoteisTesteRoute
   AdminInstagramRoute: typeof AdminInstagramRoute
   AdminInstalarExtensaoRoute: typeof AdminInstalarExtensaoRoute
@@ -2088,6 +2127,7 @@ interface AdminRouteChildren {
   AdminPacotesRoute: typeof AdminPacotesRoute
   AdminPessoasRoute: typeof AdminPessoasRouteWithChildren
   AdminSegurancaRoute: typeof AdminSegurancaRoute
+  AdminSegurosRoute: typeof AdminSegurosRoute
   AdminUsuariosRoute: typeof AdminUsuariosRoute
   AdminVoosTesteRoute: typeof AdminVoosTesteRoute
   AdminPedidosIdRoute: typeof AdminPedidosIdRoute
@@ -2105,6 +2145,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminContasReceberRoute: AdminContasReceberRoute,
   AdminDashboardRoute: AdminDashboardRoute,
   AdminEncurtadorRoute: AdminEncurtadorRoute,
+  AdminExclusivosRoute: AdminExclusivosRoute,
   AdminHoteisTesteRoute: AdminHoteisTesteRoute,
   AdminInstagramRoute: AdminInstagramRoute,
   AdminInstalarExtensaoRoute: AdminInstalarExtensaoRoute,
@@ -2115,6 +2156,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminPacotesRoute: AdminPacotesRoute,
   AdminPessoasRoute: AdminPessoasRouteWithChildren,
   AdminSegurancaRoute: AdminSegurancaRoute,
+  AdminSegurosRoute: AdminSegurosRoute,
   AdminUsuariosRoute: AdminUsuariosRoute,
   AdminVoosTesteRoute: AdminVoosTesteRoute,
   AdminPedidosIdRoute: AdminPedidosIdRoute,

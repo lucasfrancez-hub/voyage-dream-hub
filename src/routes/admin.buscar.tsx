@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { Plane, BedDouble, Layers, MapPin, ArrowLeftRight, CalendarDays, Users, Search, Car, ClipboardCheck, ChevronRight, ChevronLeft, Loader2, ExternalLink, Copy } from "lucide-react";
+import { Plane, BedDouble, Layers, MapPin, ArrowLeftRight, CalendarDays, Users, Search, Car, ClipboardCheck, ChevronRight, ChevronLeft, Loader2, ExternalLink, Copy, Sparkles, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,6 +11,8 @@ import { useServerFn } from "@tanstack/react-start";
 import { onerCreateComboCart } from "@/lib/onertravel-combo.functions";
 import { HoteisPage } from "./admin.hoteis-teste";
 import { CarrosPage } from "./admin.carros";
+import { ExclusivosPage } from "./admin.exclusivos";
+import { SegurosPage } from "./admin.seguros";
 import { DateRangeField } from "@/components/search/DateRangeField";
 
 
@@ -35,17 +37,19 @@ export const Route = createFileRoute("/admin/buscar")({
   component: BuscarPage,
 });
 
-type Mode = "aereo" | "hotel" | "carro" | "combo";
+type Mode = "aereo" | "hotel" | "carro" | "combo" | "exclusivo" | "seguro";
 
 /** Motor interno: todos os modos liberados. O bloqueio de hotel/carro/pacote
  * vale apenas para o chatbot do WhatsApp. */
-const ENABLED_MODES: Mode[] = ["aereo", "hotel", "carro", "combo"];
+const ENABLED_MODES: Mode[] = ["aereo", "hotel", "carro", "combo", "exclusivo", "seguro"];
 
 const MODES: { id: Mode; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
   { id: "aereo", label: "Aéreo", icon: Plane },
   { id: "hotel", label: "Hotel", icon: BedDouble },
   { id: "carro", label: "Carro", icon: Car },
   { id: "combo", label: "Aéreo + Hotel", icon: Layers },
+  { id: "exclusivo", label: "Exclusivos", icon: Sparkles },
+  { id: "seguro", label: "Seguros", icon: ShieldCheck },
 ];
 
 
@@ -300,6 +304,14 @@ function BuscarPage() {
       <>
         Aéreo <span className="font-bold text-primary">+</span> hotel juntos
       </>
+    ) : mode === "exclusivo" ? (
+      <>
+        O que temos de <span className="font-bold text-primary">exclusivo</span>?
+      </>
+    ) : mode === "seguro" ? (
+      <>
+        Qual <span className="font-bold text-primary">seguro</span> vamos cotar?
+      </>
     ) : (
       <>
         Para onde <span className="font-bold text-primary">vamos</span> hoje?
@@ -357,6 +369,8 @@ function BuscarPage() {
       {mode === "aereo" && <VoosPage header={hero} />}
       {mode === "hotel" && <HoteisPage header={hero} />}
       {mode === "carro" && <CarrosPage header={hero} />}
+      {mode === "exclusivo" && <ExclusivosPage header={hero} />}
+      {mode === "seguro" && <SegurosPage header={hero} />}
       {mode === "combo" && (
         <>
           <header className="relative overflow-hidden border-b border-border/60">
