@@ -620,6 +620,8 @@ export function SearchEngine({
       )}
 
     </div>
+    </PublicEngineProvider>
   );
+
 }
 
