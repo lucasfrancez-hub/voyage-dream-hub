@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
@@ -222,6 +222,18 @@ function AgendaPage() {
 
   const hoje = diaKey(new Date());
 
+  // Abre direto o compromisso quando a notificação manda /chat/agenda?ev=ID
+  useEffect(() => {
+    if (typeof window === "undefined" || eventos.length === 0) return;
+    const alvo = new URLSearchParams(window.location.search).get("ev");
+    if (!alvo) return;
+    const ev = eventos.find((e) => e.id === alvo);
+    if (ev) {
+      setDetalhe(ev);
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+  }, [eventos]);
+
   async function sincronizarTudo() {
     setSincronizando(true);
     try {
@@ -247,6 +259,11 @@ function AgendaPage() {
         <Button variant="outline" size="sm" onClick={sincronizarTudo} disabled={sincronizando}>
           {sincronizando ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
           Sincronizar
+        </Button>
+        <Button variant="outline" size="sm" asChild>
+          <Link to="/chat/agenda-notificacoes">
+            <Bell className="mr-2 h-4 w-4" /> Notificações
+          </Link>
         </Button>
         <Button size="sm" onClick={() => setNovo(true)}>
           <Plus className="mr-2 h-4 w-4" /> Novo compromisso
