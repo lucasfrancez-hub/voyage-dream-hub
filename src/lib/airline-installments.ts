@@ -80,7 +80,7 @@ export function ruleInstallmentsLabel(rule: AirlineRule): string {
 
 /** Texto da parcela mínima (ex.: "R$ 70,00" ou "USD 80"). */
 export function ruleMinLabel(rule: AirlineRule): string {
-  if (rule.min == null) return "—";
+  if (rule.min == null) return "Sem parcela mínima";
   return rule.currency === "USD"
     ? `USD ${rule.min}`
     : rule.min.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });

@@ -58,7 +58,7 @@ export function InstallmentRulesDialog({ trigger }: { trigger: ReactNode }) {
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto px-3 py-2 sm:px-6 sm:py-4">
-          <div className="hidden sm:grid grid-cols-[minmax(0,1fr)_auto_auto] gap-4 px-3 pb-2 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+          <div className="hidden sm:grid grid-cols-[minmax(0,1fr)_9rem_10rem] gap-4 px-3 pb-2 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
             <span>Companhia</span>
             <span className="text-right">Parcelamento</span>
             <span className="text-right">Parcela mínima</span>
@@ -67,7 +67,7 @@ export function InstallmentRulesDialog({ trigger }: { trigger: ReactNode }) {
             {rows.map((r) => (
               <div
                 key={r.iata}
-                className="grid grid-cols-[minmax(0,1fr)_auto] sm:grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-x-4 gap-y-1 rounded-xl px-3 py-2.5 transition hover:bg-primary/5"
+                className="grid grid-cols-[minmax(0,1fr)_auto] sm:grid-cols-[minmax(0,1fr)_9rem_10rem] items-center gap-x-4 gap-y-1 rounded-xl px-3 py-2.5 transition hover:bg-primary/5"
               >
                 <div className="min-w-0">
                   <div className="truncate text-sm font-medium">{r.name}</div>
@@ -75,10 +75,16 @@ export function InstallmentRulesDialog({ trigger }: { trigger: ReactNode }) {
                     {r.iata}
                   </div>
                 </div>
-                <div className="text-right text-sm font-semibold text-primary">
+                <div className="whitespace-nowrap text-right text-sm font-semibold text-primary tabular-nums">
                   {ruleInstallmentsLabel(r.rule)}
                 </div>
-                <div className="col-span-2 text-left text-xs text-muted-foreground sm:col-span-1 sm:text-right sm:text-sm sm:text-foreground">
+                <div
+                  className={`col-span-2 text-left text-xs sm:col-span-1 sm:text-right sm:text-sm tabular-nums ${
+                    r.rule.min == null
+                      ? "text-muted-foreground"
+                      : "text-muted-foreground sm:text-foreground"
+                  }`}
+                >
                   <span className="sm:hidden">Parcela mínima: </span>
                   {ruleMinLabel(r.rule)}
                 </div>
@@ -92,7 +98,33 @@ export function InstallmentRulesDialog({ trigger }: { trigger: ReactNode }) {
           </div>
         </div>
 
-        <div className="border-t border-border/60 bg-background/40 px-6 py-4">
+        <div className="border-t border-border/60 bg-background/40 px-6 py-4 space-y-4">
+          <div>
+            <div className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+              Formas de pagamento aceitas
+            </div>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {[
+                "Pix",
+                "Cartão de crédito (até 3 cartões)",
+                "Visa",
+                "Mastercard",
+                "Elo",
+                "American Express",
+                "Hipercard",
+                "Diners Club",
+                "Boleto (sob análise)",
+              ].map((b) => (
+                <span
+                  key={b}
+                  className="rounded-full border border-border/60 bg-card/60 px-3 py-1 text-xs font-medium"
+                >
+                  {b}
+                </span>
+              ))}
+            </div>
+          </div>
+
           <div className="flex items-start gap-2 text-xs text-muted-foreground">
             <Info className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
             <div className="space-y-1">
@@ -100,11 +132,16 @@ export function InstallmentRulesDialog({ trigger }: { trigger: ReactNode }) {
                 A quantidade final de parcelas sempre respeita a parcela mínima da
                 companhia e aparece no seu pedido antes do pagamento.
               </p>
+              <p>
+                Companhias sem parcela mínima: condição válida para rotas com origem
+                ou destino no Brasil.
+              </p>
               <p>O pagamento pode ser dividido em até 3 cartões de crédito.</p>
               <p>Parcelas mínimas em USD são convertidas pelo câmbio do dia.</p>
             </div>
           </div>
         </div>
+
       </DialogContent>
     </Dialog>
   );
