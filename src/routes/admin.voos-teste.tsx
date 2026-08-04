@@ -1327,6 +1327,35 @@ function SummaryCard({
     .filter(Boolean)
     .join("\n");
 
+  // Registra o interesse (pedido pendente) sem travar a ida ao carrinho.
+  function registrarLead(url: string) {
+    if (leadDone.current) return;
+    leadDone.current = true;
+    void logLead({
+      data: {
+        departureIata: ctx.departureIata,
+        arrivalIata: ctx.arrivalIata,
+        departureDate: ctx.departureDate,
+        returnDate: ctx.returnDate ?? null,
+        adults: ctx.adults,
+        children: ctx.children,
+        infants: ctx.infants,
+        total,
+        summary: summaryText,
+        cartUrl: url,
+      },
+    }).catch((e) => console.error("[public-lead] falha ao registrar pedido pendente", e));
+  }
+
+  // Motor público: já prepara o carrinho enquanto o cliente lê o resumo, para o
+  // botão virar um link normal (sem pop-up bloqueado dentro do iframe do site).
+  useEffect(() => {
+    if (!publicMode || !open || !searchKey) return;
+    if (cartUrl || cartMut.isPending) return;
+    cartMut.mutate();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [publicMode, open, searchKey]);
+
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
