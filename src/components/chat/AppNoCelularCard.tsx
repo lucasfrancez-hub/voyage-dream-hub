@@ -75,6 +75,20 @@ export function AppNoCelularCard() {
               </button>
             </div>
             <p className="mt-1 break-all text-[11px] text-slate-500">{`${base}/chat/app/${l.token}`}</p>
+            <div className="mt-2 flex items-center gap-2">
+              <span className="break-all text-[11px] text-slate-500">{`${base}/admin/app/${l.token}`}</span>
+              <button
+                type="button"
+                aria-label="Copiar link do Admin"
+                onClick={() => {
+                  void navigator.clipboard.writeText(`${base}/admin/app/${l.token}`);
+                  toast.success("Link do Admin copiado.");
+                }}
+              >
+                <Copy className="h-4 w-4 text-slate-400 hover:text-primary" />
+              </button>
+            </div>
+
           </li>
         ))}
         {links.length === 0 && <p className="text-xs text-slate-500">Nenhum link criado ainda.</p>}
