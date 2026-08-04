@@ -337,6 +337,41 @@ export function PackageSocialDialog({
               STORY 9:16
             </button>
           </div>
+
+          <div className="flex items-center gap-2">
+            <span className="text-[9px] font-black uppercase tracking-tighter text-muted-foreground">
+              Publicar no Instagram:
+            </span>
+            <button
+              type="button"
+              onClick={() => publishArt("feed")}
+              disabled={loading !== null}
+              title="Publica a arte 3:4 com a legenda gerada"
+              className="flex items-center gap-1.5 rounded-lg bg-[#E1306C]/10 px-3 py-1.5 text-[10px] font-bold text-[#E1306C] ring-1 ring-[#E1306C]/20 transition-colors hover:bg-[#E1306C] hover:text-white disabled:opacity-60"
+            >
+              {loading === "post-feed" ? (
+                <Loader2 className="h-3 w-3 animate-spin" />
+              ) : (
+                <Send className="h-3 w-3" />
+              )}
+              FEED
+            </button>
+            <button
+              type="button"
+              onClick={() => publishArt("story")}
+              disabled={loading !== null}
+              title="Publica a arte 9:16 nos stories"
+              className="flex items-center gap-1.5 rounded-lg bg-[#E1306C]/10 px-3 py-1.5 text-[10px] font-bold text-[#E1306C] ring-1 ring-[#E1306C]/20 transition-colors hover:bg-[#E1306C] hover:text-white disabled:opacity-60"
+            >
+              {loading === "post-story" ? (
+                <Loader2 className="h-3 w-3 animate-spin" />
+              ) : (
+                <Smartphone className="h-3 w-3" />
+              )}
+              STORY
+            </button>
+          </div>
+
         </div>
 
         {output && (
