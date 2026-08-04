@@ -25,8 +25,10 @@ function EmbedMotorBusca() {
   return (
     <div className="embed-search-page w-full p-0">
       <style>{`
-        html,body,#root{background:transparent !important;margin:0;padding:0;width:100%;height:auto !important;min-height:0 !important;overflow-x:hidden !important;overflow-y:hidden !important;}
+        html,body,#root{background:transparent !important;margin:0;padding:0;width:100%;height:auto !important;min-height:0 !important;overflow-x:hidden !important;overflow-y:visible !important;}
         .embed-search-page{width:100%;height:auto;min-height:0;overflow:visible;}
+        /* painéis flutuantes sempre por cima e nunca cortados */
+        [data-radix-popper-content-wrapper],.viaair-floating-layer{z-index:2147483000 !important;}
         .embed-search-page .h-screen,.embed-search-page .min-h-screen{height:auto !important;min-height:0 !important;}
         .embed-search-page .overflow-y-auto,.embed-search-page .overflow-auto{overflow:visible !important;}
 
