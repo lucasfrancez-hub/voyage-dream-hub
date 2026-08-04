@@ -5,8 +5,10 @@
  * operadora registrando um pedido pendente no admin.
  */
 import { createFileRoute } from "@tanstack/react-router";
-import { Plane, ShieldCheck, Headset, CreditCard, ChevronRight } from "lucide-react";
+import { Plane, ShieldCheck, Headset, CreditCard, ChevronRight, BedDouble } from "lucide-react";
 import { VoosPage } from "./admin.voos-teste";
+import { HoteisPage } from "./admin.hoteis-teste";
+
 import { SearchEngine, type Mode } from "./admin.buscar";
 import { PaymentMethodsBar } from "@/components/flights/PaymentMethodsBar";
 import { ContactFooter } from "@/components/ContactFooter";
@@ -25,6 +27,11 @@ type VoarSearch = {
   ch?: number;
   inf?: number;
   m?: Mode;
+  /** Hotel vindo do widget */
+  hd?: string;
+  ci?: string;
+  co?: string;
+  rm?: number;
 };
 
 const MODES: Mode[] = ["aereo", "hotel", "carro", "combo", "exclusivo", "seguro"];
@@ -40,8 +47,12 @@ export const Route = createFileRoute("/voar")({
     ch: Number(search.ch) > 0 ? Math.min(9, Number(search.ch)) : undefined,
     inf: Number(search.inf) > 0 ? Math.min(9, Number(search.inf)) : undefined,
     m: MODES.includes(search.m as Mode) ? (search.m as Mode) : undefined,
-
+    hd: typeof search.hd === "string" ? search.hd.slice(0, 120) : undefined,
+    ci: typeof search.ci === "string" ? search.ci.slice(0, 10) : undefined,
+    co: typeof search.co === "string" ? search.co.slice(0, 10) : undefined,
+    rm: Number(search.rm) > 0 ? Math.min(5, Number(search.rm)) : undefined,
   }),
+
   head: () => ({
     meta: [
       { title: "Passagens aéreas em tempo real | VIA AIR" },
@@ -65,6 +76,7 @@ export const Route = createFileRoute("/voar")({
 function VoarPublicPage() {
   const s = Route.useSearch();
   const hasPreset = !!(s.o && s.d && s.ida);
+  const hasHotelPreset = s.m === "hotel" && !!(s.hd && s.ci && s.co);
 
   return (
     <div className="min-h-screen bg-background">
@@ -73,7 +85,30 @@ function VoarPublicPage() {
         backLabel="Voltar ao site"
         whatsappMessage="Olá! Estou pesquisando passagens aéreas no site da Via Air."
       />
-      {hasPreset ? (
+      {hasHotelPreset ? (
+        <HoteisPage
+          publicMode
+          header={
+            <div>
+              <h1 className="flex items-center gap-2 text-3xl font-bold tracking-tight">
+                <BedDouble className="h-7 w-7 text-primary" /> Hospedagem VIA AIR
+              </h1>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Tarifas em tempo real e reserva com atendimento humano.
+              </p>
+            </div>
+          }
+          preset={{
+            destination: s.hd!,
+            checkIn: s.ci!,
+            checkOut: s.co!,
+            adults: s.ad ?? 2,
+            children: s.ch ?? 0,
+            rooms: s.rm ?? 1,
+          }}
+          runToken={1}
+        />
+      ) : hasPreset ? (
         <VoosPage
           publicMode
           header={
@@ -100,6 +135,7 @@ function VoarPublicPage() {
       ) : (
         <SearchEngine publicMode initialMode={s.m ?? "aereo"} />
       )}
+
 
 
       <footer className="border-t border-border/50 bg-card/30">

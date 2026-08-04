@@ -1010,6 +1010,7 @@ export function HoteisPage({
   runToken,
   onComboSelect,
   publicMode = false,
+  externalSearch = false,
 }: {
   header?: React.ReactNode;
   hideForm?: boolean;
@@ -1017,7 +1018,10 @@ export function HoteisPage({
   runToken?: number;
   onComboSelect?: (pick: ComboPick) => void;
   publicMode?: boolean;
+  /** No widget, a busca abre /voar em outra aba já pesquisando. */
+  externalSearch?: boolean;
 } = {}) {
+
   const searchDest = useServerFn(publicMode ? onerHotelDestinationsPublic : onerHotelDestinations);
   const searchAirports = useServerFn(publicMode ? onerAirportSearchPublic : onerAirportSearch);
   const searchHotels = useServerFn(publicMode ? onerHotelSearchPublic : onerHotelSearch);
@@ -1248,20 +1252,37 @@ export function HoteisPage({
               </div>
 
               <div className="flex items-end">
-                <Button
-                  size="lg"
-                  className="h-11 w-full lg:w-auto"
-                  disabled={!canSearch || mut.isPending}
-                  onClick={() => mut.mutate()}
-                >
-                  {mut.isPending ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : (
-                    <Search className="mr-2 h-4 w-4" />
-                  )}
-                  Buscar
-                </Button>
+                {externalSearch ? (
+                  <form action="/voar" method="get" target="_blank" className="w-full lg:w-auto">
+                    <input type="hidden" name="m" value="hotel" />
+                    <input type="hidden" name="hd" value={point?.name ?? destQuery} />
+                    <input type="hidden" name="ci" value={form.checkIn} />
+                    <input type="hidden" name="co" value={form.checkOut} />
+                    <input type="hidden" name="ad" value={form.adults} />
+                    <input type="hidden" name="ch" value={form.children} />
+                    <input type="hidden" name="rm" value={form.rooms} />
+                    <Button type="submit" size="lg" className="h-11 w-full lg:w-auto" disabled={!canSearch}>
+                      <Search className="mr-2 h-4 w-4" />
+                      Buscar
+                    </Button>
+                  </form>
+                ) : (
+                  <Button
+                    size="lg"
+                    className="h-11 w-full lg:w-auto"
+                    disabled={!canSearch || mut.isPending}
+                    onClick={() => mut.mutate()}
+                  >
+                    {mut.isPending ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Search className="mr-2 h-4 w-4" />
+                    )}
+                    Buscar
+                  </Button>
+                )}
               </div>
+
             </div>
 
             <div className="mt-3 flex flex-wrap items-end gap-3 border-t border-border/60 pt-3">
