@@ -2293,7 +2293,19 @@ export function VoosPage({
           </div>
         )}
 
+        <FareOptionsDialog
+          f={fareDialog?.f ?? null}
+          label={fareDialog?.leg === "in" ? "Volta" : "Ida"}
+          open={!!fareDialog}
+          onOpenChange={(v) => !v && setFareDialog(null)}
+          onConfirm={(key) => {
+            if (fareDialog?.leg === "in") setSelectedIn(key);
+            else pickOutbound(key);
+            setFareDialog(null);
+          }}
+        />
       </main>
+
     </div>
   );
 }
