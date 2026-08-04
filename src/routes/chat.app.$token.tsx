@@ -87,7 +87,16 @@ function AbrirAppChat() {
     }
   };
 
+  if (verificando) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-muted/40">
+        <Loader2 className="h-5 w-5 animate-spin text-primary" />
+      </main>
+    );
+  }
+
   return (
+
     <main className="flex min-h-screen items-center justify-center bg-muted/40 p-6">
       <div className="w-full max-w-xs rounded-2xl border border-border bg-background p-6 text-center shadow-sm">
         <MessageSquare className="mx-auto h-8 w-8 text-primary" />
