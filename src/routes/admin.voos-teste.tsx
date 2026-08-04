@@ -1933,12 +1933,24 @@ export function VoosPage({
   }, [showSummary]);
   const inboundPhase = isRoundTrip && !!selectedOut;
 
+  /** Modal de famílias tarifárias (LIGHT/CLASSIC/FLEX) do voo clicado. */
+  const [fareDialog, setFareDialog] = useState<{ f: OnerFlight; leg: "out" | "in" } | null>(null);
+  function chooseFlight(f: OnerFlight, leg: "out" | "in") {
+    if ((f.fareOptions?.length ?? 0) > 1) {
+      setFareDialog({ f, leg });
+      return;
+    }
+    if (leg === "out") pickOutbound(f.key);
+    else setSelectedIn(f.key);
+  }
+
   function editOutbound() {
     setSelectedOut(null);
     setSelectedIn(null);
     setInbound(null);
     setOutFareOverride(null);
   }
+
 
   const cheapestOut = outFlights.length ? Math.min(...outFlights.map((f) => f.price.total)) : null;
   const cheapestIn = inFlights.length ? Math.min(...inFlights.map((f) => f.price.total)) : null;
