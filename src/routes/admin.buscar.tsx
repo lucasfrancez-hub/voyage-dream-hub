@@ -412,7 +412,13 @@ export function SearchEngine({
 
   return (
     <PublicEngineProvider value={publicMode}>
-    <div className={embedMode ? "bg-background" : "min-h-screen bg-background"}>
+    <div
+      className={
+        (embedMode ? "bg-background" : "min-h-screen bg-background") +
+        (embedMode ? "" : " voar-shell")
+      }
+    >
+      {!embedMode && <div className="voar-glow" aria-hidden />}
       {mode === "aereo" && (
         <VoosPage header={hero} publicMode={publicMode} externalSearch={embedMode} />
       )}
