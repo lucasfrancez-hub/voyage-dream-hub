@@ -105,6 +105,99 @@ export function DateRangeField({
     );
   };
 
+  const panel = (compact: boolean) => (
+    <>
+      <div className="flex items-center gap-2 border-b border-border/50 px-4 py-2.5 text-xs">
+        <span
+          className={cn(
+            "rounded-full px-2 py-1 font-semibold",
+            focus === "start" ? "bg-primary/15 text-primary" : "text-muted-foreground",
+          )}
+        >
+          {labels.start}
+        </span>
+        <ArrowRight className="h-3 w-3 text-muted-foreground" />
+        <span
+          className={cn(
+            "rounded-full px-2 py-1 font-semibold",
+            focus === "end" ? "bg-primary/15 text-primary" : "text-muted-foreground",
+          )}
+        >
+          {labels.end}
+        </span>
+        {compact && (
+          <button
+            type="button"
+            aria-label="Fechar calendário"
+            className="ml-auto rounded-full p-1 text-muted-foreground hover:text-foreground"
+            onClick={() => setOpen(false)}
+          >
+            <X className="h-4 w-4" />
+          </button>
+        )}
+      </div>
+
+      <Calendar
+        mode="range"
+        locale={ptBR}
+        numberOfMonths={compact ? 1 : 2}
+        defaultMonth={from ?? new Date()}
+        selected={{ from, to }}
+        onSelect={handleSelect}
+        disabled={{ before: new Date() }}
+        className={cn("pointer-events-auto p-3")}
+      />
+
+      <div className="flex items-center justify-between gap-2 border-t border-border/50 px-4 py-2.5">
+        <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => onChange("", "")}>
+          Limpar
+        </Button>
+        <div className="flex gap-2">
+          {allowOneWay && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 text-xs"
+              disabled={!from}
+              onClick={() => {
+                onChange(departureDate, "");
+                setOpen(false);
+              }}
+            >
+              Somente ida
+            </Button>
+          )}
+          <Button size="sm" className="h-8 text-xs" disabled={!from} onClick={() => setOpen(false)}>
+            Confirmar
+          </Button>
+        </div>
+      </div>
+    </>
+  );
+
+  // Dentro de um iframe (widget do site) o popover seria cortado pelas bordas.
+  // Nesse caso abrimos um painel fixo na área visível do próprio widget.
+  if (embedded) {
+    return (
+      <>
+        <div className={cn("grid grid-cols-2 gap-2", className)}>
+          {trigger("start")}
+          {trigger("end")}
+        </div>
+        {open && (
+          <div className="fixed inset-0 z-[100] flex items-start justify-center overflow-y-auto bg-background/80 p-2 backdrop-blur-sm">
+            <div
+              className="my-auto w-full max-w-[340px] rounded-2xl border border-border/60 bg-popover shadow-2xl"
+              role="dialog"
+            >
+              {panel(true)}
+            </div>
+          </div>
+        )}
+      </>
+    );
+  }
+
   return (
     <Popover
       open={open}
@@ -122,67 +215,9 @@ export function DateRangeField({
         align="start"
         className="w-auto rounded-2xl border-border/60 bg-popover/95 p-0 shadow-2xl backdrop-blur-xl"
       >
-        <div className="flex items-center gap-2 border-b border-border/50 px-4 py-2.5 text-xs">
-          <span
-            className={cn(
-              "rounded-full px-2 py-1 font-semibold",
-              focus === "start" ? "bg-primary/15 text-primary" : "text-muted-foreground",
-            )}
-          >
-            {labels.start}
-          </span>
-          <ArrowRight className="h-3 w-3 text-muted-foreground" />
-          <span
-            className={cn(
-              "rounded-full px-2 py-1 font-semibold",
-              focus === "end" ? "bg-primary/15 text-primary" : "text-muted-foreground",
-            )}
-          >
-            {labels.end}
-          </span>
-        </div>
-
-        <Calendar
-          mode="range"
-          locale={ptBR}
-          numberOfMonths={2}
-          defaultMonth={from ?? new Date()}
-          selected={{ from, to }}
-          onSelect={handleSelect}
-          disabled={{ before: new Date() }}
-          className={cn("pointer-events-auto p-3")}
-        />
-
-        <div className="flex items-center justify-between gap-2 border-t border-border/50 px-4 py-2.5">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 text-xs"
-            onClick={() => onChange("", "")}
-          >
-            Limpar
-          </Button>
-          <div className="flex gap-2">
-            {allowOneWay && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-8 text-xs"
-                disabled={!from}
-                onClick={() => {
-                  onChange(departureDate, "");
-                  setOpen(false);
-                }}
-              >
-                Somente ida
-              </Button>
-            )}
-            <Button size="sm" className="h-8 text-xs" disabled={!from} onClick={() => setOpen(false)}>
-              Confirmar
-            </Button>
-          </div>
-        </div>
+        {panel(false)}
       </PopoverContent>
     </Popover>
   );
 }
+
