@@ -3,14 +3,14 @@
  * o aparelho digita o PIN de 4 números e entra sem login, por 30 dias.
  */
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { Loader2, MessageSquare } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { abrirLinkChat } from "@/lib/chat/device-session.functions";
+import { abrirLinkChat, renovarSessaoAparelhoChat } from "@/lib/chat/device-session.functions";
 
 export const Route = createFileRoute("/chat/app/$token")({
   ssr: false,
