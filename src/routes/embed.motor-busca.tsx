@@ -4,6 +4,7 @@
  * (aéreo, hotel, carro, aéreo+hotel, exclusivos e seguros) em modo público.
  */
 import { createFileRoute } from "@tanstack/react-router";
+import { useEffect } from "react";
 import { PublicEngineProvider } from "@/lib/public-engine";
 import { SearchEngine } from "./admin.buscar";
 
@@ -19,6 +20,22 @@ export const Route = createFileRoute("/embed/motor-busca")({
 });
 
 function EmbedMotorBusca() {
+  // Informa a altura real para o site que embeda (auto-resize do iframe)
+  useEffect(() => {
+    const post = () => {
+      const h = Math.ceil(document.documentElement.scrollHeight);
+      window.parent?.postMessage({ type: "viaair-embed-height", height: h }, "*");
+    };
+    post();
+    const ro = new ResizeObserver(post);
+    ro.observe(document.body);
+    const t = setInterval(post, 1000);
+    return () => {
+      ro.disconnect();
+      clearInterval(t);
+    };
+  }, []);
+
   return (
     <div className="w-full p-0">
       <style>{`
