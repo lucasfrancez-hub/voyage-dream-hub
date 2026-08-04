@@ -82,13 +82,62 @@ export function ChatPinUnlock({ email, onEntrar }: { email: string | null; onEnt
   );
 }
 
-/** Convite para criar o PIN logo após o login (só no aparelho ainda não registrado). */
-export function ChatPinSetup({ onPronto }: { onPronto: () => void }) {
-  const registrar = useServerFn(
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    (await0 as never) as never,
+/** Convite para criar o PIN logo após o login (aparelho ainda não registrado). */
+export function ChatPinSetup({ onFechar }: { onFechar: () => void }) {
+  const registrar = useServerFn(registrarAparelhoChat);
+  const [pin, setPin] = useState("");
+  const [confirma, setConfirma] = useState("");
+  const [salvando, setSalvando] = useState(false);
+
+  const salvar = async () => {
+    if (!/^\d{4,8}$/.test(pin)) return toast.error("Use de 4 a 8 dígitos.");
+    if (pin !== confirma) return toast.error("Os PINs não conferem.");
+    setSalvando(true);
+    try {
+      await registrar({ data: { pin, label: navigator.userAgent.slice(0, 60) } });
+      localStorage.setItem("viaair-chat-pin-ok", "1");
+      toast.success("Pronto! Este aparelho fica conectado por 30 dias.");
+      onFechar();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Não foi possível salvar o PIN.");
+    } finally {
+      setSalvando(false);
+    }
+  };
+
+  const dispensar = () => {
+    localStorage.setItem("viaair-chat-pin-ok", "adiado");
+    onFechar();
+  };
+
+  return (
+    <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/60 p-6 backdrop-blur-sm">
+      <div className="w-full max-w-sm rounded-2xl border border-border bg-background p-6 shadow-xl">
+        <h2 className="text-lg font-semibold text-foreground">Manter conectado 30 dias</h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Crie um PIN para reentrar rápido no app do Chat sem precisar fazer login de novo.
+        </p>
+        <Input
+          value={pin}
+          onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 8))}
+          inputMode="numeric"
+          placeholder="PIN (4 a 8 dígitos)"
+          className="mt-4 text-center tracking-[0.4em]"
+        />
+        <Input
+          value={confirma}
+          onChange={(e) => setConfirma(e.target.value.replace(/\D/g, "").slice(0, 8))}
+          inputMode="numeric"
+          placeholder="Confirmar PIN"
+          className="mt-2 text-center tracking-[0.4em]"
+        />
+        <Button className="mt-4 w-full" onClick={() => void salvar()} disabled={salvando}>
+          {salvando ? <Loader2 className="h-4 w-4 animate-spin" /> : "Ativar"}
+        </Button>
+        <button type="button" className="mt-3 w-full text-xs text-muted-foreground underline" onClick={dispensar}>
+          Agora não
+        </button>
+      </div>
+    </div>
   );
-  return null;
-  void onPronto;
 }
-declare const await0: unknown;
