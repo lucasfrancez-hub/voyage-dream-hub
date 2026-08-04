@@ -256,7 +256,10 @@ function DashboardPage() {
   }, [orders, items, range]);
 
   const topClients = useMemo(() => {
-    const paidOrders = (orders ?? []).filter((o) => PAID.has((o.status ?? "").toLowerCase()));
+    const start = periodStart(periodDays);
+    const paidOrders = (orders ?? []).filter(
+      (o) => PAID.has((o.status ?? "").toLowerCase()) && new Date(o.created_at) >= start,
+    );
     const map = new Map<string, { name: string; total: number; count: number }>();
     for (const o of paidOrders) {
       const name = (o.full_name ?? "").trim();
@@ -270,7 +273,7 @@ function DashboardPage() {
     return Array.from(map.values())
       .sort((a, b) => b.total - a.total)
       .slice(0, 10);
-  }, [orders]);
+  }, [orders, periodDays]);
 
   const maxTrend = Math.max(1, ...stats.trend.map((t) => t.total));
 
