@@ -31,12 +31,10 @@ export function PaymentMethodsBar() {
                 className="relative h-24 w-auto object-contain drop-shadow-[0_0_18px_rgba(50,188,173,0.35)] transition-transform duration-500 group-hover:scale-105 sm:h-28"
               />
             </div>
-            <div>
-              <h3 className="text-2xl font-bold tracking-tight">Pix</h3>
-              <p className="mt-3 px-2 text-sm leading-relaxed text-muted-foreground">
-                Pagamento instantâneo com aprovação imediata para garantir sua reserva na hora.
-              </p>
-            </div>
+            <p className="max-w-xs px-2 text-sm leading-relaxed text-muted-foreground">
+              Pagamento na hora com aprovação imediata para garantir sua reserva na hora.
+            </p>
+
           </div>
 
           <div className="mt-4 h-1 w-full overflow-hidden rounded-full bg-emerald-500/15">
