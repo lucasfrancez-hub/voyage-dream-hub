@@ -1841,8 +1841,6 @@ export function VoosPage({
       setInbound(r.leg);
       if (r.fareKey !== selectedOut) {
         setOutFareOverride({ key: r.fareKey, total: r.fareTotal });
-        if (r.leg.flights.length)
-          toast.info("A tarifa mais barata da ida não combinava volta — usamos a tarifa seguinte");
       } else {
         setOutFareOverride(null);
       }
