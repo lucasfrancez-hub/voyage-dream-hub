@@ -8,9 +8,9 @@ export const Route = createFileRoute("/admin/app-celular")({
   head: () => ({
     meta: [
       { title: "App no celular — VIA AIR" },
-      { name: "description", content: "Gere o link secreto para instalar o Chat da VIA AIR no celular." },
+      { name: "description", content: "Gere o link secreto para abrir o painel Admin da VIA AIR no celular." },
       { property: "og:title", content: "App no celular — VIA AIR" },
-      { property: "og:description", content: "Gere o link secreto para instalar o Chat da VIA AIR no celular." },
+      { property: "og:description", content: "Gere o link secreto para abrir o painel Admin da VIA AIR no celular." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "robots", content: "noindex, nofollow" },
@@ -26,12 +26,12 @@ function AppCelularPage() {
         <div>
           <h1 className="text-lg font-semibold text-foreground">App no celular</h1>
           <p className="text-xs text-muted-foreground">
-            Crie um link secreto com PIN para abrir a Central de Atendimento no celular sem precisar logar.
+            Crie um link secreto com PIN para abrir somente o painel Admin, sem login ou autenticador.
           </p>
         </div>
       </header>
 
-      <AppNoCelularCard />
+      <AppNoCelularCard destino="admin" />
     </div>
   );
 }

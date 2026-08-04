@@ -57,6 +57,17 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   const router = useRouter();
   const [autoRecovering, setAutoRecovering] = useState(false);
 
+  const atualizarAplicativo = async () => {
+    if (typeof window === "undefined") return;
+    if ("caches" in window) {
+      const nomes = await window.caches.keys().catch(() => []);
+      await Promise.all(nomes.map((nome) => window.caches.delete(nome)));
+    }
+    const url = new URL(window.location.href);
+    url.searchParams.set("atualizar", Date.now().toString());
+    window.location.replace(url.toString());
+  };
+
   useEffect(() => {
     reportLovableError(error, { boundary: "tanstack_root_error_component" });
 
@@ -83,28 +94,25 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
         <h1 className="text-xl font-semibold tracking-tight text-foreground">
-          {autoRecovering ? "Recarregando…" : "This page didn't load"}
+          {autoRecovering ? "Atualizando…" : "Não foi possível abrir esta página"}
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">
           {autoRecovering
             ? "Detectamos uma versão desatualizada e estamos atualizando pra você."
-            : "Something went wrong on our end. You can try refreshing or head back home."}
+            : "O aplicativo pode estar com uma versão antiga salva. Atualize para carregar a versão mais recente."}
         </p>
         <div className="mt-6 flex flex-wrap justify-center gap-2">
           <button
-            onClick={() => {
-              router.invalidate();
-              reset();
-            }}
+            onClick={() => void atualizarAplicativo()}
             className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
           >
-            Try again
+            Atualizar aplicativo
           </button>
           <a
             href="/"
             className="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
           >
-            Go home
+            Ir para o início
           </a>
         </div>
       </div>

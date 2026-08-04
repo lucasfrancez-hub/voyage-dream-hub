@@ -270,7 +270,7 @@ function NotificacoesPage() {
         </ul>
       </section>
 
-      <AppNoCelularCard />
+      <AppNoCelularCard destino="chat" />
     </div>
   );
 }

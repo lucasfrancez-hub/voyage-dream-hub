@@ -567,7 +567,7 @@ function SegurancaNav({ pathname, showUsuarios }: { pathname: string; showUsuari
             <span className="text-sm font-medium flex items-center gap-1.5">
               <Smartphone className="h-3.5 w-3.5" /> App no celular
             </span>
-            <span className="text-xs text-muted-foreground">Link secreto com PIN para o Chat</span>
+            <span className="text-xs text-muted-foreground">Link secreto com PIN para o Admin</span>
           </Link>
         </DropdownMenuItem>
         {showUsuarios && (
