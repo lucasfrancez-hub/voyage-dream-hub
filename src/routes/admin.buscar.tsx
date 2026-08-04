@@ -367,6 +367,8 @@ function BuscarPage() {
       {mode === "aereo" && <VoosPage header={hero} />}
       {mode === "hotel" && <HoteisPage header={hero} />}
       {mode === "carro" && <CarrosPage header={hero} />}
+      {mode === "exclusivo" && <ExclusivosPage header={hero} />}
+      {mode === "seguro" && <SegurosPage header={hero} />}
       {mode === "combo" && (
         <>
           <header className="relative overflow-hidden border-b border-border/60">
