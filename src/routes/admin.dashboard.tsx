@@ -75,6 +75,8 @@ function daysUntil(d: Date) {
 
 function DashboardPage() {
   const [range, setRange] = useState<Range>(7);
+  const [periodDays, setPeriodDays] = useState<number>(7);
+  const periodLabel = PERIODS.find((p) => p.days === periodDays)?.label ?? "7 dias";
   const { data: isAdmin = false } = useQuery({
     queryKey: ["admin", "dashboard", "is-admin"],
     queryFn: async () => {
