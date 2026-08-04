@@ -9,7 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { ChatSidebar } from "@/components/chat/ChatSidebar";
 import { ChatHeader } from "@/components/chat/ChatHeader";
 import { getMyProfile } from "@/lib/chat/queries.functions";
-import { statusAparelhoChat } from "@/lib/chat/device-session.functions";
+import { statusAparelhoChat, renovarSessaoAparelhoChat } from "@/lib/chat/device-session.functions";
 import { ChatPinUnlock, ChatPinSetup } from "@/components/chat/ChatPinUnlock";
 
 export const Route = createFileRoute("/chat")({
@@ -148,6 +148,22 @@ function ChatLayout() {
   );
   const [pedirPin, setPedirPin] = useState(false);
   const [mostrarSetupPin, setMostrarSetupPin] = useState(false);
+  const renovar = useServerFn(renovarSessaoAparelhoChat);
+
+  // Mantém o token do Supabase sempre fresco enquanto o app estiver aberto/volta do fundo.
+  useEffect(() => {
+    if (!session) return;
+    const revalidar = () => {
+      if (document.visibilityState !== "visible") return;
+      void supabase.auth.refreshSession().catch(() => {});
+    };
+    const t = setInterval(revalidar, 30 * 60_000);
+    document.addEventListener("visibilitychange", revalidar);
+    return () => {
+      clearInterval(t);
+      document.removeEventListener("visibilitychange", revalidar);
+    };
+  }, [session]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -172,7 +188,21 @@ function ChatLayout() {
     if (session === undefined || aparelho === undefined) return;
     if (!session) {
       if (aparelho.registrado) {
-        setPedirPin(true);
+        // Tenta restaurar sozinho (sem PIN) enquanto o aparelho for confiável.
+        void (async () => {
+          try {
+            const r = (await renovar()) as { ok: boolean; email?: string; tokenHash?: string };
+            if (r.ok && r.email && r.tokenHash) {
+              const { error } = await supabase.auth.verifyOtp({
+                type: "magiclink",
+                email: r.email,
+                token_hash: r.tokenHash,
+              });
+              if (!error) return;
+            }
+          } catch { /* cai no PIN */ }
+          setPedirPin(true);
+        })();
         return;
       }
       const target = pathname && pathname.startsWith("/chat") ? pathname : "/chat/inbox";
@@ -193,7 +223,7 @@ function ChatLayout() {
       if (error) { toast.error("Erro ao validar acesso"); setAuthorized(false); return; }
       setAuthorized((data ?? []).length > 0);
     })();
-  }, [session, aparelho, navigate, pathname]);
+  }, [session, aparelho, navigate, pathname, renovar]);
 
   useEffect(() => {
     if (pathname === "/chat") navigate({ to: "/chat/inbox", replace: true });
