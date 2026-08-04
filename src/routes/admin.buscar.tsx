@@ -274,6 +274,17 @@ export function SearchEngine({
 } = {}) {
   const [mode, setMode] = useState<Mode>(initialMode);
 
+  /** No widget, "Exclusivos" não abre dentro do iframe do site: redireciona
+   *  para a página completa em outra aba. */
+  function changeMode(next: Mode) {
+    if (embedMode && next === "exclusivo") {
+      window.open(`${window.location.origin}/voar?m=exclusivo`, "_blank", "noopener,noreferrer");
+      return;
+    }
+    setMode(next);
+  }
+
+
   const [combo, setCombo] = useState<ComboForm>(COMBO_INITIAL);
   const [runToken, setRunToken] = useState(0);
   const [step, setStep] = useState<ComboStep>(1);
@@ -356,7 +367,7 @@ export function SearchEngine({
         : "";
 
 
-  const hero = <ModeHeader mode={mode} setMode={setMode} title={heroTitle} subtitle={subtitle} />;
+  const hero = <ModeHeader mode={mode} setMode={changeMode} title={heroTitle} subtitle={subtitle} />;
 
   const comboReady =
     combo.departureIata.length === 3 &&
