@@ -534,6 +534,7 @@ function NovoCompromisso({
   pin,
   contas,
   dia,
+  evento,
   onFechar,
   onCriado,
 }: {
@@ -541,9 +542,11 @@ function NovoCompromisso({
   pin: string | null;
   contas: Conta[];
   dia: Date;
+  evento?: Evento | null;
   onFechar: () => void;
   onCriado: () => void;
 }) {
+  const editando = !!evento;
   const base = useMemo(() => {
     const agora = new Date();
     const d = new Date(dia);
@@ -551,22 +554,43 @@ function NovoCompromisso({
     return d;
   }, [dia]);
 
-  const [titulo, setTitulo] = useState("");
-  const [local, setLocal] = useState("");
-  const [descricao, setDescricao] = useState("");
-  const [linkReuniao, setLinkReuniao] = useState("");
+  const detalhesEvento = (evento?.detalhes ?? {}) as { link_reuniao?: string; conferencia?: string; url?: string };
+
+  const [titulo, setTitulo] = useState(evento?.titulo ?? "");
+  const [local, setLocal] = useState(evento?.local ?? "");
+  const [descricao, setDescricao] = useState(evento?.descricao ?? "");
+  const [linkReuniao, setLinkReuniao] = useState(
+    detalhesEvento.conferencia ?? detalhesEvento.link_reuniao ?? "",
+  );
   const [convidados, setConvidados] = useState("");
-  const [url, setUrl] = useState("");
-  const [diaInteiro, setDiaInteiro] = useState(false);
-  const [inicio, setInicio] = useState(() => paraInput(base));
-  const [fim, setFim] = useState(() => paraInput(new Date(base.getTime() + 60 * 60 * 1000)));
-  const [conta, setConta] = useState(contas[0]?.id ?? "");
+  const [url, setUrl] = useState(detalhesEvento.url ?? "");
+  const [diaInteiro, setDiaInteiro] = useState(evento?.dia_inteiro ?? false);
+  const [inicio, setInicio] = useState(() => paraInput(evento ? new Date(evento.inicio) : base));
+  const [fim, setFim] = useState(() =>
+    paraInput(evento ? new Date(evento.fim) : new Date(base.getTime() + 60 * 60 * 1000)),
+  );
+  const [conta, setConta] = useState(evento?.account_id ?? contas[0]?.id ?? "");
   const [erro, setErro] = useState("");
 
   const criar = useServerFn(criarEventoAgendaApp);
+  const atualizar = useServerFn(atualizarEventoAgendaApp);
   const salvar = useMutation({
     mutationFn: async () => {
       setErro("");
+      if (editando && evento) {
+        return await atualizar({
+          data: {
+            token,
+            pin,
+            id: evento.id,
+            titulo,
+            local: local || null,
+            descricao: descricao || null,
+            inicio: new Date(inicio).toISOString(),
+            fim: new Date(fim).toISOString(),
+          },
+        });
+      }
       return await criar({
         data: {
           token,
@@ -590,6 +614,7 @@ function NovoCompromisso({
     onSuccess: onCriado,
     onError: (e: Error) => setErro(e.message || "Não deu pra salvar."),
   });
+
 
   const campo =
     "w-full rounded-xl border px-3 py-2.5 text-base text-white outline-none placeholder:text-white/40";
