@@ -2012,11 +2012,38 @@ function groupByDay(msgs: Msg[]) {
 
 // ============ Instagram DM conversa ============
 
-function InstagramConversationView({ conversationId, onBack }: { conversationId: string; onBack: () => void }) {
+function InstagramConversationView({
+  conversationId,
+  mirror = null,
+  onRefetch,
+  onBack,
+}: {
+  conversationId: string;
+  mirror?: Conv | null;
+  onRefetch?: () => void;
+  onBack: () => void;
+}) {
   const msgsFn = useServerFn(listInstagramMessages);
   const sendFn = useServerFn(sendInstagramReply);
   const attachFn = useServerFn(sendInstagramAttachment);
+  const toggleFn = useServerFn(toggleConversationMode);
+  const pauseAiFn = useServerFn(setAiPaused);
   const qc = useQueryClient();
+  const igToggleMut = useMutation({
+    mutationFn: async (mode: "ai" | "human") => toggleFn({ data: { conversation_id: mirror!.id, mode } }),
+    onSuccess: () => { onRefetch?.(); toast.success("Modo alterado"); },
+    onError: (e) => toast.error(`Falha: ${(e as Error).message}`),
+  });
+  const igAiPaused = !!(mirror as { ai_paused?: boolean | null } | null)?.ai_paused;
+  const igPauseMut = useMutation({
+    mutationFn: async (paused: boolean) => pauseAiFn({ data: { conversation_id: mirror!.id, paused } }),
+    onSuccess: (_d, paused) => {
+      onRefetch?.();
+      toast.success(paused ? "IA pausada — ela não responde até você retomar" : "IA retomada");
+    },
+    onError: (e) => toast.error(`Falha: ${(e as Error).message}`),
+  });
+
   const [text, setText] = useState("");
   const fileRef = useRef<HTMLInputElement | null>(null);
   const [igRecording, setIgRecording] = useState(false);
