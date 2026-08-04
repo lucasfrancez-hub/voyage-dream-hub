@@ -14,7 +14,7 @@ import {
 import { chaveVapidChat, salvarPushChat } from "@/lib/chat/push.functions";
 import { b64urlParaUint8, ehIOS, ehStandalone, nomeDoAparelho, SW_URL, suportaPush } from "@/lib/chat/push-client";
 
-export const Route = createFileRoute("/chat/agenda/notificacoes")({
+export const Route = createFileRoute("/chat/agenda-notificacoes")({
   ssr: false,
   component: AgendaNotificacoes,
   head: () => ({

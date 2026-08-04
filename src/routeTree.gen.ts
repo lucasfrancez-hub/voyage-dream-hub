@@ -91,6 +91,7 @@ import { Route as ApiPublicNfseAtendenetTestRouteImport } from './routes/api/pub
 import { Route as ApiPublicTestFlightAlertRouteImport } from './routes/api/public/test-flight-alert'
 import { Route as ApiPublicWaDiagRouteImport } from './routes/api/public/wa-diag'
 import { Route as ApiPublicWhatsappWebhookRouteImport } from './routes/api/public/whatsapp-webhook'
+import { Route as ChatAgendaNotificacoesRouteImport } from './routes/chat.agenda.notificacoes'
 import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/email/suppression'
 import { Route as PacotesSlugIndexRouteImport } from './routes/pacotes.$slug.index'
 import { Route as PacotesSlugCheckoutRouteImport } from './routes/pacotes.$slug.checkout'
@@ -534,6 +535,11 @@ const ApiPublicWhatsappWebhookRoute =
     path: '/api/public/whatsapp-webhook',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ChatAgendaNotificacoesRoute = ChatAgendaNotificacoesRouteImport.update({
+  id: '/notificacoes',
+  path: '/notificacoes',
+  getParentRoute: () => ChatAgendaRoute,
+} as any)
 const LovableEmailSuppressionRoute = LovableEmailSuppressionRouteImport.update({
   id: '/lovable/email/suppression',
   path: '/lovable/email/suppression',
@@ -736,7 +742,7 @@ export interface FileRoutesByFullPath {
   '/admin/usuarios': typeof AdminUsuariosRoute
   '/admin/voos-teste': typeof AdminVoosTesteRoute
   '/agenda/$token': typeof AgendaTokenRoute
-  '/chat/agenda': typeof ChatAgendaRoute
+  '/chat/agenda': typeof ChatAgendaRouteWithChildren
   '/chat/agentes': typeof ChatAgentesRoute
   '/chat/broadcast': typeof ChatBroadcastRoute
   '/chat/config': typeof ChatConfigRoute
@@ -773,6 +779,7 @@ export interface FileRoutesByFullPath {
   '/api/public/test-flight-alert': typeof ApiPublicTestFlightAlertRoute
   '/api/public/wa-diag': typeof ApiPublicWaDiagRoute
   '/api/public/whatsapp-webhook': typeof ApiPublicWhatsappWebhookRoute
+  '/chat/agenda/notificacoes': typeof ChatAgendaNotificacoesRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/pacotes/$slug/checkout': typeof PacotesSlugCheckoutRoute
   '/admin/pedidos/': typeof AdminPedidosIndexRoute
@@ -846,7 +853,7 @@ export interface FileRoutesByTo {
   '/admin/usuarios': typeof AdminUsuariosRoute
   '/admin/voos-teste': typeof AdminVoosTesteRoute
   '/agenda/$token': typeof AgendaTokenRoute
-  '/chat/agenda': typeof ChatAgendaRoute
+  '/chat/agenda': typeof ChatAgendaRouteWithChildren
   '/chat/agentes': typeof ChatAgentesRoute
   '/chat/broadcast': typeof ChatBroadcastRoute
   '/chat/config': typeof ChatConfigRoute
@@ -883,6 +890,7 @@ export interface FileRoutesByTo {
   '/api/public/test-flight-alert': typeof ApiPublicTestFlightAlertRoute
   '/api/public/wa-diag': typeof ApiPublicWaDiagRoute
   '/api/public/whatsapp-webhook': typeof ApiPublicWhatsappWebhookRoute
+  '/chat/agenda/notificacoes': typeof ChatAgendaNotificacoesRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/pacotes/$slug/checkout': typeof PacotesSlugCheckoutRoute
   '/admin/pedidos': typeof AdminPedidosIndexRoute
@@ -958,7 +966,7 @@ export interface FileRoutesById {
   '/admin/usuarios': typeof AdminUsuariosRoute
   '/admin/voos-teste': typeof AdminVoosTesteRoute
   '/agenda/$token': typeof AgendaTokenRoute
-  '/chat/agenda': typeof ChatAgendaRoute
+  '/chat/agenda': typeof ChatAgendaRouteWithChildren
   '/chat/agentes': typeof ChatAgentesRoute
   '/chat/broadcast': typeof ChatBroadcastRoute
   '/chat/config': typeof ChatConfigRoute
@@ -995,6 +1003,7 @@ export interface FileRoutesById {
   '/api/public/test-flight-alert': typeof ApiPublicTestFlightAlertRoute
   '/api/public/wa-diag': typeof ApiPublicWaDiagRoute
   '/api/public/whatsapp-webhook': typeof ApiPublicWhatsappWebhookRoute
+  '/chat/agenda/notificacoes': typeof ChatAgendaNotificacoesRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/pacotes/$slug/checkout': typeof PacotesSlugCheckoutRoute
   '/admin/pedidos/': typeof AdminPedidosIndexRoute
@@ -1108,6 +1117,7 @@ export interface FileRouteTypes {
     | '/api/public/test-flight-alert'
     | '/api/public/wa-diag'
     | '/api/public/whatsapp-webhook'
+    | '/chat/agenda/notificacoes'
     | '/lovable/email/suppression'
     | '/pacotes/$slug/checkout'
     | '/admin/pedidos/'
@@ -1218,6 +1228,7 @@ export interface FileRouteTypes {
     | '/api/public/test-flight-alert'
     | '/api/public/wa-diag'
     | '/api/public/whatsapp-webhook'
+    | '/chat/agenda/notificacoes'
     | '/lovable/email/suppression'
     | '/pacotes/$slug/checkout'
     | '/admin/pedidos'
@@ -1329,6 +1340,7 @@ export interface FileRouteTypes {
     | '/api/public/test-flight-alert'
     | '/api/public/wa-diag'
     | '/api/public/whatsapp-webhook'
+    | '/chat/agenda/notificacoes'
     | '/lovable/email/suppression'
     | '/pacotes/$slug/checkout'
     | '/admin/pedidos/'
@@ -2003,6 +2015,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicWhatsappWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/chat/agenda/notificacoes': {
+      id: '/chat/agenda/notificacoes'
+      path: '/notificacoes'
+      fullPath: '/chat/agenda/notificacoes'
+      preLoaderRoute: typeof ChatAgendaNotificacoesRouteImport
+      parentRoute: typeof ChatAgendaRoute
+    }
     '/lovable/email/suppression': {
       id: '/lovable/email/suppression'
       path: '/lovable/email/suppression'
@@ -2267,8 +2286,20 @@ const AdminRouteChildren: AdminRouteChildren = {
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
+interface ChatAgendaRouteChildren {
+  ChatAgendaNotificacoesRoute: typeof ChatAgendaNotificacoesRoute
+}
+
+const ChatAgendaRouteChildren: ChatAgendaRouteChildren = {
+  ChatAgendaNotificacoesRoute: ChatAgendaNotificacoesRoute,
+}
+
+const ChatAgendaRouteWithChildren = ChatAgendaRoute._addFileChildren(
+  ChatAgendaRouteChildren,
+)
+
 interface ChatRouteChildren {
-  ChatAgendaRoute: typeof ChatAgendaRoute
+  ChatAgendaRoute: typeof ChatAgendaRouteWithChildren
   ChatAgentesRoute: typeof ChatAgentesRoute
   ChatBroadcastRoute: typeof ChatBroadcastRoute
   ChatConfigRoute: typeof ChatConfigRoute
@@ -2284,7 +2315,7 @@ interface ChatRouteChildren {
 }
 
 const ChatRouteChildren: ChatRouteChildren = {
-  ChatAgendaRoute: ChatAgendaRoute,
+  ChatAgendaRoute: ChatAgendaRouteWithChildren,
   ChatAgentesRoute: ChatAgentesRoute,
   ChatBroadcastRoute: ChatBroadcastRoute,
   ChatConfigRoute: ChatConfigRoute,
