@@ -124,7 +124,9 @@ export const Route = createFileRoute("/api/public/hooks/calendar-jobs")({
 
           const resultados = await Promise.allSettled(
             destinos.map(async (d) => {
-              const r = await enviarPush({ endpoint: d.endpoint, p256dh: d.p256dh, auth: d.auth }, payload as never);
+              // no app da agenda o SW foca a janela já aberta; no chat abre o compromisso
+              const alvo = d.tabela === "wa_calendar_push_subs" ? { ...payload, url: "/" } : payload;
+              const r = await enviarPush({ endpoint: d.endpoint, p256dh: d.p256dh, auth: d.auth }, alvo as never);
               if (r.gone) {
                 // 404/410 → assinatura morta, desativa só aquele aparelho
                 await supabaseAdmin.from(d.tabela).update({ ativo: false }).eq("id", d.id);
