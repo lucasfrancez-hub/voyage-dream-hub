@@ -717,15 +717,15 @@ function SegmentsDetail({ f }: { f: OnerFlight }) {
               <div className="relative pl-8">
                 <div className="absolute bottom-2 left-[9px] top-2 w-[2px] rounded-full bg-primary" />
 
-                <div className="relative mb-8">
+                <div className="relative mb-6">
                   <div className="absolute -left-[28px] top-1.5 h-[11px] w-[11px] rounded-full border-2 border-background bg-primary ring-1 ring-primary/30" />
-                  <div className="flex items-baseline gap-3">
-                    <span className="text-xl font-bold tracking-tight">
+                  <div className="flex items-baseline gap-2.5">
+                    <span className="text-base font-bold tracking-tight">
                       {fmtTime(s.departure.time)}
                     </span>
-                    <span className="text-2xl font-black tracking-tighter">{s.departure.iata}</span>
+                    <span className="text-lg font-black tracking-tight">{s.departure.iata}</span>
                   </div>
-                  <p className="mt-0.5 text-xs font-medium text-muted-foreground">
+                  <p className="mt-0.5 text-[11px] font-medium text-muted-foreground">
                     {s.departure.name} • {fmtDate(s.departure.date)}
                   </p>
                 </div>
@@ -736,18 +736,17 @@ function SegmentsDetail({ f }: { f: OnerFlight }) {
                   ) : (
                     <div className="absolute -left-[28px] top-1.5 h-[11px] w-[11px] rounded-full border-2 border-background bg-foreground" />
                   )}
-                  <div className="flex items-baseline gap-3">
-                    <span className="text-xl font-bold tracking-tight">
+                  <div className="flex items-baseline gap-2.5">
+                    <span className="text-base font-bold tracking-tight">
                       {fmtTime(s.destination.time)}
                     </span>
-                    <span className="text-2xl font-black tracking-tighter">
-                      {s.destination.iata}
-                    </span>
+                    <span className="text-lg font-black tracking-tight">{s.destination.iata}</span>
                   </div>
-                  <p className="mt-0.5 text-xs font-medium text-muted-foreground">
+                  <p className="mt-0.5 text-[11px] font-medium text-muted-foreground">
                     {s.destination.name} • {fmtDate(s.destination.date)}
                   </p>
                 </div>
+
               </div>
             </div>
           </div>
