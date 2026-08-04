@@ -1901,7 +1901,10 @@ export function VoosPage({
   const refiltering = mut.isPending && !!result;
   const outFlights = result ? applyFilters(result.outbound.flights, outFilters) : [];
   const inFlights = inbound ? applyFilters(inbound.flights, inFilters) : [];
-  const outFlightBase = result?.outbound.flights.find((f) => f.key === selectedOut) ?? null;
+  const outFlightRaw = findByAnyKey(result?.outbound.flights ?? [], selectedOut);
+  // A tarifa escolhida no modal (LIGHT/CLASSIC/FLEX) define preço e bagagem.
+  const outFlightBase =
+    outFlightRaw && selectedOut ? applyFareOption(outFlightRaw, selectedOut) : outFlightRaw;
   // Se a volta só combinou com outra tarifa do mesmo voo, o carrinho e o resumo
   // precisam usar essa tarifa (chave e preço reais).
   const outFlight: OnerFlight | null =
@@ -1918,7 +1921,10 @@ export function VoosPage({
             : outFlightBase.price,
         }
       : outFlightBase;
-  const inFlight = inbound?.flights.find((f) => f.key === selectedIn) ?? null;
+  const inFlightRaw = findByAnyKey(inbound?.flights ?? [], selectedIn);
+  const inFlight =
+    inFlightRaw && selectedIn ? applyFareOption(inFlightRaw, selectedIn) : inFlightRaw;
+
   const showSummary = !!outFlight && (!isRoundTrip || !!inFlight);
   const [summaryOpen, setSummaryOpen] = useState(false);
   // Abre o modal assim que a seleção fica completa.
