@@ -21,7 +21,11 @@ type VoarSearch = {
   ad?: number;
   ch?: number;
   inf?: number;
+  m?: Mode;
 };
+
+const MODES: Mode[] = ["aereo", "hotel", "carro", "combo", "exclusivo", "seguro"];
+
 
 export const Route = createFileRoute("/voar")({
   validateSearch: (search: Record<string, unknown>): VoarSearch => ({
