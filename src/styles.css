@@ -231,3 +231,18 @@ html:root {
   scrollbar-gutter: stable;
   scrollbar-width: thin;
 }
+
+/* Página /voar: brilho azul do topo ocupando a largura inteira, atrás do TopBar */
+.voar-shell { position: relative; }
+.voar-shell > .voar-glow {
+  position: absolute;
+  inset-inline: 0;
+  top: 0;
+  height: 640px;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.6;
+  background: radial-gradient(1200px 560px at 20% -8%, var(--brand-blue), transparent 70%);
+}
+/* Remove os brilhos azuis internos das seções para não duplicar */
+.voar-shell [style*="brand-blue"] { background: none !important; opacity: 0 !important; }
