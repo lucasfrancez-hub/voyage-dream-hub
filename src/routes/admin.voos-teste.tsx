@@ -231,7 +231,10 @@ function toOperatorFilters(f: Filters) {
     departureFrom: f.dep[0],
     departureTo: f.dep[1],
     airlineIatas: f.airlines,
-    cabinClass: null,
+    // Uma classe por vez: a operadora só devolve o inventário correto quando a
+    // cabine vai na própria consulta (mudar aqui dispara nova busca).
+    cabinClass: f.cabins[0] ?? null,
+
   };
 }
 
@@ -545,7 +548,14 @@ function FiltersPanel({
               <button
                 key={c.id}
                 type="button"
-                onClick={() => onChange({ ...filters, cabins: toggle(filters.cabins, c.id) })}
+                onClick={() =>
+                  onChange({
+                    ...filters,
+                    // Seleção única: clicar na classe ativa limpa o filtro.
+                    cabins: filters.cabins[0] === c.id ? [] : [c.id],
+                  })
+                }
+
                 className={`rounded-xl px-1 py-2 text-[11px] font-bold transition-all ${
                   filters.cabins.includes(c.id)
                     ? "bg-primary text-primary-foreground shadow-[var(--shadow-glow)]"
@@ -656,22 +666,22 @@ function SegmentsDetail({ f }: { f: OnerFlight }) {
         return (
           <div key={`${s.segmentNumber}-${s.flightNumber}`}>
             {prev && (
-              <div className="relative py-6 pl-8">
+              <div className="relative py-4 pl-8">
                 <div className="absolute bottom-0 left-[9px] top-0 w-0 border-l-2 border-dashed border-border" />
-                <div className="flex w-fit items-center gap-3 rounded-xl border border-border/60 bg-muted/30 p-3 pr-6 backdrop-blur-sm">
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-primary/25 bg-primary/10">
-                    <Clock className="h-4 w-4 text-primary" />
+                <div className="flex w-fit items-center gap-2.5 rounded-lg border border-border/60 bg-muted/30 px-3 py-2 backdrop-blur-sm">
+                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-primary/25 bg-primary/10">
+                    <Clock className="h-3.5 w-3.5 text-primary" />
                   </div>
                   <div className="min-w-0">
-                    <p className="mb-1 text-[10px] font-bold uppercase leading-none tracking-[0.2em] text-muted-foreground">
+                    <p className="mb-0.5 text-[9px] font-bold uppercase leading-none tracking-[0.16em] text-muted-foreground">
                       Conexão em {prev.destination.iata}
                     </p>
-                    <p className="text-sm font-semibold text-foreground">
-                      Aguarde <span className="font-mono text-primary">{fmtDur(layover)}</span> no
-                      aeroporto
+                    <p className="text-xs font-semibold text-foreground">
+                      Aguarde <span className="text-primary">{fmtDur(layover)}</span> no aeroporto
                     </p>
                   </div>
                 </div>
+
               </div>
             )}
 
@@ -707,15 +717,15 @@ function SegmentsDetail({ f }: { f: OnerFlight }) {
               <div className="relative pl-8">
                 <div className="absolute bottom-2 left-[9px] top-2 w-[2px] rounded-full bg-primary" />
 
-                <div className="relative mb-8">
+                <div className="relative mb-6">
                   <div className="absolute -left-[28px] top-1.5 h-[11px] w-[11px] rounded-full border-2 border-background bg-primary ring-1 ring-primary/30" />
-                  <div className="flex items-baseline gap-3">
-                    <span className="text-xl font-bold tracking-tight">
+                  <div className="flex items-baseline gap-2.5">
+                    <span className="text-base font-bold tracking-tight">
                       {fmtTime(s.departure.time)}
                     </span>
-                    <span className="text-2xl font-black tracking-tighter">{s.departure.iata}</span>
+                    <span className="text-lg font-black tracking-tight">{s.departure.iata}</span>
                   </div>
-                  <p className="mt-0.5 text-xs font-medium text-muted-foreground">
+                  <p className="mt-0.5 text-[11px] font-medium text-muted-foreground">
                     {s.departure.name} • {fmtDate(s.departure.date)}
                   </p>
                 </div>
@@ -726,18 +736,17 @@ function SegmentsDetail({ f }: { f: OnerFlight }) {
                   ) : (
                     <div className="absolute -left-[28px] top-1.5 h-[11px] w-[11px] rounded-full border-2 border-background bg-foreground" />
                   )}
-                  <div className="flex items-baseline gap-3">
-                    <span className="text-xl font-bold tracking-tight">
+                  <div className="flex items-baseline gap-2.5">
+                    <span className="text-base font-bold tracking-tight">
                       {fmtTime(s.destination.time)}
                     </span>
-                    <span className="text-2xl font-black tracking-tighter">
-                      {s.destination.iata}
-                    </span>
+                    <span className="text-lg font-black tracking-tight">{s.destination.iata}</span>
                   </div>
-                  <p className="mt-0.5 text-xs font-medium text-muted-foreground">
+                  <p className="mt-0.5 text-[11px] font-medium text-muted-foreground">
                     {s.destination.name} • {fmtDate(s.destination.date)}
                   </p>
                 </div>
+
               </div>
             </div>
           </div>
