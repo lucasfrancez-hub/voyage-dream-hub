@@ -86,8 +86,11 @@ function VoarPublicPage() {
   const hasHotelPreset = s.m === "hotel" && !!(s.hd && s.ci && s.co);
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="voar-shell min-h-screen bg-background">
+      <div className="voar-glow" aria-hidden />
+      <div className="relative z-10">
       <TopBar
+        transparent
         backHref="https://viaair.tur.br"
         backLabel="Voltar ao site"
         whatsappMessage="Olá! Estou pesquisando passagens aéreas no site da Via Air."
