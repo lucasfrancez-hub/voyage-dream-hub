@@ -34,17 +34,9 @@ function limpar(texto: string) {
     .slice(0, 160);
 }
 
-/** Quem está com ESTA conversa aberta e a tela visível nos últimos 60s. */
-async function presentesNaConversa(conversationId: string): Promise<Set<string>> {
-  const limite = new Date(Date.now() - 60_000).toISOString();
-  const { data } = await supabaseAdmin
-    .from("wa_agent_presence")
-    .select("user_id")
-    .eq("conversation_id", conversationId)
-    .eq("visivel", true)
-    .gte("updated_at", limite);
-  return new Set((data ?? []).map((r) => r.user_id as string));
-}
+/* Presença não bloqueia mais o envio: o atendente é sempre notificado,
+   como no WhatsApp/Mac, mesmo com a conversa aberta. */
+
 
 /** Total de conversas com mensagens não lidas — usado no badge do ícone. */
 async function totalNaoLidas(): Promise<number> {
