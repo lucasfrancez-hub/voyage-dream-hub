@@ -15,7 +15,8 @@ import {
   type ArtDelivery,
 } from "@/lib/packages/art-export";
 
-export async function generatePackageStoryArt(pkg: FeedInputPkg): Promise<ArtDelivery> {
+/** Gera a arte 9:16 e devolve o PNG em memória (sem baixar). */
+export async function renderPackageStoryArtBlob(pkg: FeedInputPkg): Promise<Blob> {
   const data = await buildFeedArtData(pkg);
   await ensureFonts();
 
@@ -33,7 +34,7 @@ export async function generatePackageStoryArt(pkg: FeedInputPkg): Promise<ArtDel
     const stage = host.querySelector<HTMLDivElement>(".vstory-outer");
     if (!stage) throw new Error("Falha ao montar a arte");
 
-    const blob = await captureArtPng(stage, {
+    return await captureArtPng(stage, {
       width: 1080,
       height: 1920,
       innerSelector: ".vstory-inner",
@@ -42,9 +43,14 @@ export async function generatePackageStoryArt(pkg: FeedInputPkg): Promise<ArtDel
       gradientMiddle: 0.4,
       gradientTopOpacity: 0.5,
     });
-    return await deliverArtPng(blob, `viaair-${pkg.slug}-story.png`);
   } finally {
     root.unmount();
     host.remove();
   }
 }
+
+export async function generatePackageStoryArt(pkg: FeedInputPkg): Promise<ArtDelivery> {
+  const blob = await renderPackageStoryArtBlob(pkg);
+  return await deliverArtPng(blob, `viaair-${pkg.slug}-story.png`);
+}
+
