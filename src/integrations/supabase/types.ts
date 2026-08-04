@@ -725,6 +725,48 @@ export type Database = {
           },
         ]
       }
+      chat_device_sessions: {
+        Row: {
+          attempts: number
+          created_at: string
+          expires_at: string
+          id: string
+          label: string | null
+          last_used_at: string
+          locked_until: string | null
+          pin_hash: string
+          token_hash: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          attempts?: number
+          created_at?: string
+          expires_at: string
+          id?: string
+          label?: string | null
+          last_used_at?: string
+          locked_until?: string | null
+          pin_hash: string
+          token_hash: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          attempts?: number
+          created_at?: string
+          expires_at?: string
+          id?: string
+          label?: string | null
+          last_used_at?: string
+          locked_until?: string | null
+          pin_hash?: string
+          token_hash?: string
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       checkin_training_scripts: {
         Row: {
           airline: string
