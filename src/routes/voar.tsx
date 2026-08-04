@@ -36,6 +36,8 @@ export const Route = createFileRoute("/voar")({
     ad: Number(search.ad) > 0 ? Math.min(9, Number(search.ad)) : undefined,
     ch: Number(search.ch) > 0 ? Math.min(9, Number(search.ch)) : undefined,
     inf: Number(search.inf) > 0 ? Math.min(9, Number(search.inf)) : undefined,
+    m: MODES.includes(search.m as Mode) ? (search.m as Mode) : undefined,
+
   }),
   head: () => ({
     meta: [
