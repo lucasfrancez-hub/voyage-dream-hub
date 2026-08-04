@@ -231,7 +231,10 @@ function toOperatorFilters(f: Filters) {
     departureFrom: f.dep[0],
     departureTo: f.dep[1],
     airlineIatas: f.airlines,
-    cabinClass: null,
+    // Uma classe por vez: a operadora só devolve o inventário correto quando a
+    // cabine vai na própria consulta (mudar aqui dispara nova busca).
+    cabinClass: f.cabins[0] ?? null,
+
   };
 }
 
