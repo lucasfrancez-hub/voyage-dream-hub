@@ -3,6 +3,7 @@ import { Bell, BellOff, BellRing, Loader2 } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { chaveVapidChat, salvarPushChat, removerPushChat, testarPushChat } from "@/lib/chat/push.functions";
+import { assinarPush } from "@/lib/chat/push-client";
 
 function b64urlParaUint8(base64: string) {
   const pad = "=".repeat((4 - (base64.length % 4)) % 4);
