@@ -3,14 +3,14 @@
  * o aparelho digita o PIN de 4 números e entra sem login, por 30 dias.
  */
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { Loader2, MessageSquare } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { abrirLinkChat } from "@/lib/chat/device-session.functions";
+import { abrirLinkChat, renovarSessaoAparelhoChat } from "@/lib/chat/device-session.functions";
 
 export const Route = createFileRoute("/chat/app/$token")({
   ssr: false,
@@ -32,8 +32,40 @@ function AbrirAppChat() {
   const { token } = Route.useParams();
   const navigate = useNavigate();
   const abrir = useServerFn(abrirLinkChat);
+  const renovar = useServerFn(renovarSessaoAparelhoChat);
   const [pin, setPin] = useState("");
   const [carregando, setCarregando] = useState(false);
+  const [verificando, setVerificando] = useState(true);
+
+  // Se este aparelho já entrou pelo link antes (cookie de 30 dias), entra
+  // direto: nada de login, senha ou autenticador.
+  useEffect(() => {
+    void (async () => {
+      try {
+        const s = await supabase.auth.getSession();
+        if (s.data.session) {
+          await navigate({ to: "/chat/inbox" });
+          return;
+        }
+        const r = (await renovar()) as { ok: boolean; email?: string; tokenHash?: string };
+        if (r.ok && r.email && r.tokenHash) {
+          const { error } = await supabase.auth.verifyOtp({
+            type: "magiclink",
+            email: r.email,
+            token_hash: r.tokenHash,
+          });
+          if (!error) {
+            await navigate({ to: "/chat/inbox" });
+            return;
+          }
+        }
+      } catch {
+        /* pede o PIN */
+      }
+      setVerificando(false);
+    })();
+  }, [navigate, renovar]);
+
 
   const entrar = async () => {
     if (pin.length !== 4) return;
@@ -55,7 +87,16 @@ function AbrirAppChat() {
     }
   };
 
+  if (verificando) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-muted/40">
+        <Loader2 className="h-5 w-5 animate-spin text-primary" />
+      </main>
+    );
+  }
+
   return (
+
     <main className="flex min-h-screen items-center justify-center bg-muted/40 p-6">
       <div className="w-full max-w-xs rounded-2xl border border-border bg-background p-6 text-center shadow-sm">
         <MessageSquare className="mx-auto h-8 w-8 text-primary" />
