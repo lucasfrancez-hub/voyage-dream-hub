@@ -291,6 +291,28 @@ function DashboardPage() {
       <div>
         <h1 className="text-2xl font-display font-bold">Dashboard</h1>
         <p className="text-sm text-muted-foreground">Visão geral do negócio</p>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-display font-bold">Dashboard</h1>
+          <p className="text-sm text-muted-foreground">
+            Visão geral do negócio · {periodDays === 0 ? "hoje" : `últimos ${periodDays} dias`}
+          </p>
+        </div>
+        <div className="inline-flex flex-wrap rounded-lg border border-border p-0.5 bg-muted/30">
+          {PERIODS.map((p) => (
+            <button
+              key={p.days}
+              onClick={() => setPeriodDays(p.days)}
+              className={`px-3 py-1.5 text-xs rounded-md transition ${
+                periodDays === p.days
+                  ? "bg-brand-orange text-white font-semibold"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
       </div>
 
 
@@ -299,11 +321,11 @@ function DashboardPage() {
 
       {/* KPIs */}
       <div className={`grid gap-3 grid-cols-2 ${isAdmin ? "md:grid-cols-4" : "md:grid-cols-3"}`}>
-        <Kpi icon={DollarSign} label="Total vendido" value={formatBRL(stats.totalSold)} hint={`${stats.count} pedidos pagos`} accent="text-emerald-500" />
+        <Kpi icon={DollarSign} label={`Vendido · ${periodLabel}`} value={formatBRL(stats.totalSold)} hint={`${stats.count} pedidos pagos`} accent="text-emerald-500" />
         {isAdmin && (
-          <Kpi icon={TrendingUp} label="Lucro / comissão" value={formatBRL(stats.commission)} hint="Somatório do financeiro" accent="text-brand-orange" />
+          <Kpi icon={TrendingUp} label={`Lucro / comissão · ${periodLabel}`} value={formatBRL(stats.commission)} hint="Somatório do financeiro" accent="text-brand-orange" />
         )}
-        <Kpi icon={Receipt} label="Ticket médio" value={formatBRL(stats.avgTicket)} hint="Pagos" />
+        <Kpi icon={Receipt} label="Ticket médio" value={formatBRL(stats.avgTicket)} hint={`Pagos · ${periodLabel}`} />
         <Link to="/admin/pedidos" search={{ status: "pending" }} className="block rounded-2xl transition hover:opacity-90">
           <Kpi icon={ShoppingBag} label="Pendentes" value={String(stats.pending)} hint="Ver aguardando pagamento →" />
         </Link>
@@ -311,6 +333,7 @@ function DashboardPage() {
 
       {/* Mês atual + trend */}
       <div className="grid gap-4 md:grid-cols-3">
+
         <div className="rounded-2xl border border-border bg-card p-5 md:col-span-1">
           <div className="text-xs uppercase tracking-wider text-muted-foreground mb-3">Este mês</div>
           <div className="space-y-4">
