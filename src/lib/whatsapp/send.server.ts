@@ -569,3 +569,21 @@ export async function sendWhatsAppAudioBytes(
   if (!uploaded.id) return uploaded;
   return metaSendMedia(to, { type: "audio", audio: { id: uploaded.id } });
 }
+
+/**
+ * Envia mídia numa conversa espelhada do Instagram (`ig:<id>`) usando a URL
+ * assinada. Cai pro link em texto quando o Instagram recusa o formato.
+ */
+export async function sendInstagramMediaFromMirror(
+  to: string,
+  url: string,
+  mime: string,
+  filename: string,
+  caption?: string | null,
+): Promise<{ id: string | null; error?: string }> {
+  const rota = await igRouting(to);
+  if (!rota) return { id: null, error: "Conta do Instagram não encontrada" };
+  const { sendInstagramMediaSmart } = await import("@/lib/instagram/send-media.server");
+  const r = await sendInstagramMediaSmart({ ...rota, url, mime, filename, caption: caption ?? null });
+  return { id: r.message_id, ...(r.message_id ? {} : { error: r.error ?? "Instagram não confirmou o envio" }) };
+}
