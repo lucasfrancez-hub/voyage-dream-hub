@@ -9,6 +9,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { ChatSidebar } from "@/components/chat/ChatSidebar";
 import { ChatHeader } from "@/components/chat/ChatHeader";
 import { getMyProfile } from "@/lib/chat/queries.functions";
+import { statusAparelhoChat } from "@/lib/chat/device-session.functions";
+import { ChatPinUnlock, ChatPinSetup } from "@/components/chat/ChatPinUnlock";
 
 export const Route = createFileRoute("/chat")({
   ssr: false,
@@ -183,7 +185,7 @@ function ChatLayout() {
       if (error) { toast.error("Erro ao validar acesso"); setAuthorized(false); return; }
       setAuthorized((data ?? []).length > 0);
     })();
-  }, [session, navigate]);
+  }, [session, aparelho, navigate, pathname]);
 
   useEffect(() => {
     if (pathname === "/chat") navigate({ to: "/chat/inbox", replace: true });
@@ -197,7 +199,19 @@ function ChatLayout() {
     staleTime: 60_000,
   });
 
-  if (session === undefined || authorized === undefined) {
+  if (pedirPin && !session) {
+    return (
+      <ChatPinUnlock
+        email={aparelho?.email ?? null}
+        onEntrar={() => {
+          setPedirPin(false);
+          window.location.reload();
+        }}
+      />
+    );
+  }
+
+  if (session === undefined || authorized === undefined || (!session && aparelho === undefined)) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background text-muted-foreground">
         <Loader2 className="h-5 w-5 animate-spin" />
