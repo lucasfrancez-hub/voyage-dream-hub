@@ -10,7 +10,7 @@ import { ChatSidebar } from "@/components/chat/ChatSidebar";
 import { ChatHeader } from "@/components/chat/ChatHeader";
 import { getMyProfile } from "@/lib/chat/queries.functions";
 import { statusAparelhoChat, renovarSessaoAparelhoChat } from "@/lib/chat/device-session.functions";
-import { ChatPinUnlock, ChatPinSetup } from "@/components/chat/ChatPinUnlock";
+import { ChatPinUnlock } from "@/components/chat/ChatPinUnlock";
 
 export const Route = createFileRoute("/chat")({
   ssr: false,
@@ -147,7 +147,6 @@ function ChatLayout() {
     undefined,
   );
   const [pedirPin, setPedirPin] = useState(false);
-  const [mostrarSetupPin, setMostrarSetupPin] = useState(false);
   const renovar = useServerFn(renovarSessaoAparelhoChat);
 
   // Mantém o token do Supabase sempre fresco enquanto o app estiver aberto/volta do fundo.
@@ -164,13 +163,6 @@ function ChatLayout() {
       document.removeEventListener("visibilitychange", revalidar);
     };
   }, [session]);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    if (!session || !aparelho || aparelho.registrado) return;
-    if (localStorage.getItem("viaair-chat-pin-ok")) return;
-    setMostrarSetupPin(true);
-  }, [session, aparelho]);
 
   useEffect(() => {
     if (session === undefined) return;
@@ -278,9 +270,6 @@ function ChatLayout() {
       style={{ height: "var(--chat-vh, 100dvh)" }}
     >
 
-      {session && aparelho && !aparelho.registrado && mostrarSetupPin ? (
-        <ChatPinSetup onFechar={() => setMostrarSetupPin(false)} />
-      ) : null}
       <ChatSidebar mobileOpen={mobileNavOpen} onCloseMobile={() => setMobileNavOpen(false)} />
       <div className="flex min-w-0 flex-1 flex-col">
         <ChatHeader
