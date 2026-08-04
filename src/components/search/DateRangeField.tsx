@@ -83,9 +83,11 @@ export function DateRangeField({
     window.addEventListener("scroll", update, true);
     return () => {
       window.clearTimeout(t);
+      window.cancelAnimationFrame(raf);
       window.removeEventListener("resize", update);
       window.removeEventListener("scroll", update, true);
     };
+
   }, [open, embedded, focus]);
 
   const from = fromISO(departureDate);
