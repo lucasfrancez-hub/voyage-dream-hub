@@ -1,14 +1,19 @@
-/* Service worker de notificações da Central de Atendimento (não faz cache de app). */
+/* Service worker de notificações VIA AIR (mensagens + agenda). Não faz cache de app. */
 self.addEventListener("install", () => self.skipWaiting());
 self.addEventListener("activate", (e) => e.waitUntil(self.clients.claim()));
 
 self.addEventListener("push", (event) => {
-  let dados = { title: "VIA AIR Chat", body: "", url: "/chat/inbox" };
+  let dados = {};
   try {
-    if (event.data) dados = { ...dados, ...event.data.json() };
+    dados = event.data ? event.data.json() : {};
   } catch {
-    if (event.data) dados.body = event.data.text();
+    dados = { body: event.data ? event.data.text() : "Você tem um novo aviso." };
   }
+
+  const ehAgenda = dados.type === "calendar_reminder" || dados.type === "calendar_all_day";
+  const titulo = dados.title || (ehAgenda ? "Lembrete da agenda" : "VIA AIR Chat");
+  const url = dados.url || (ehAgenda ? "/chat/agenda" : "/chat/inbox");
+
   const badge =
     typeof dados.unreadCount === "number" && "setAppBadge" in self.registration
       ? self.registration.setAppBadge(dados.unreadCount).catch(() => {})
@@ -16,14 +21,17 @@ self.addEventListener("push", (event) => {
 
   event.waitUntil(
     Promise.all([
-      self.registration.showNotification(dados.title, {
-        body: dados.body,
-        icon: "/icon-chat-192.png",
-        badge: "/icon-chat-192.png",
-        tag: dados.tag || undefined,
-        renotify: !!dados.tag,
+      self.registration.showNotification(titulo, {
+        body: dados.body || "Você tem um novo aviso.",
+        icon: dados.icon || "/icon-chat-192.png",
+        badge: dados.badge || "/icon-chat-192.png",
+        tag: dados.tag || `${dados.type || "aviso"}-${Date.now()}`,
+        renotify: true,
+        timestamp: dados.eventTimestamp || Date.now(),
         data: {
-          url: dados.url || "/chat/inbox",
+          type: dados.type || null,
+          url,
+          eventId: dados.eventId || null,
           conversationId: dados.conversationId || null,
           messageId: dados.messageId || null,
         },
@@ -38,10 +46,10 @@ self.addEventListener("notificationclick", (event) => {
   event.notification.close();
   const alvo = (event.notification.data && event.notification.data.url) || "/chat/inbox";
   event.waitUntil(
-    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((lista) => {
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then(async (lista) => {
       for (const c of lista) {
-        if (c.url.includes("/chat") && "focus" in c) {
-          if ("navigate" in c) c.navigate(alvo).catch(() => {});
+        if ("focus" in c) {
+          if ("navigate" in c) await c.navigate(alvo).catch(() => {});
           return c.focus();
         }
       }
@@ -50,7 +58,7 @@ self.addEventListener("notificationclick", (event) => {
   );
 });
 
-/* O app avisa quantas conversas ainda estão não lidas para acertar/limpar o badge. */
+/* O app avisa quantas conversas/compromissos ainda estão pendentes para acertar o badge. */
 self.addEventListener("message", (event) => {
   const d = event.data || {};
   if (d.type !== "badge") return;

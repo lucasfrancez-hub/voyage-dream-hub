@@ -54,6 +54,7 @@ import { Route as AdminUsuariosRouteImport } from './routes/admin.usuarios'
 import { Route as AdminVoosTesteRouteImport } from './routes/admin.voos-teste'
 import { Route as AgendaTokenRouteImport } from './routes/agenda.$token'
 import { Route as ChatAgendaRouteImport } from './routes/chat.agenda'
+import { Route as ChatAgendaNotificacoesRouteImport } from './routes/chat.agenda-notificacoes'
 import { Route as ChatAgentesRouteImport } from './routes/chat.agentes'
 import { Route as ChatBroadcastRouteImport } from './routes/chat.broadcast'
 import { Route as ChatConfigRouteImport } from './routes/chat.config'
@@ -99,6 +100,7 @@ import { Route as ApiPublicBpIdRouteImport } from './routes/api/public/bp.$id'
 import { Route as ApiPublicBroadcastMediaSplatRouteImport } from './routes/api/public/broadcast-media.$'
 import { Route as ApiPublicHooksAutoSuggestionsRouteImport } from './routes/api/public/hooks/auto-suggestions'
 import { Route as ApiPublicHooksBroadcastDispatchRouteImport } from './routes/api/public/hooks/broadcast-dispatch'
+import { Route as ApiPublicHooksCalendarJobsRouteImport } from './routes/api/public/hooks/calendar-jobs'
 import { Route as ApiPublicHooksCalendarPushRouteImport } from './routes/api/public/hooks/calendar-push'
 import { Route as ApiPublicHooksCheckFlightChangesRouteImport } from './routes/api/public/hooks/check-flight-changes'
 import { Route as ApiPublicHooksCloseInactiveProtocolsRouteImport } from './routes/api/public/hooks/close-inactive-protocols'
@@ -343,6 +345,11 @@ const ChatAgendaRoute = ChatAgendaRouteImport.update({
   path: '/agenda',
   getParentRoute: () => ChatRoute,
 } as any)
+const ChatAgendaNotificacoesRoute = ChatAgendaNotificacoesRouteImport.update({
+  id: '/agenda-notificacoes',
+  path: '/agenda-notificacoes',
+  getParentRoute: () => ChatRoute,
+} as any)
 const ChatAgentesRoute = ChatAgentesRouteImport.update({
   id: '/agentes',
   path: '/agentes',
@@ -577,6 +584,12 @@ const ApiPublicHooksBroadcastDispatchRoute =
     path: '/api/public/hooks/broadcast-dispatch',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicHooksCalendarJobsRoute =
+  ApiPublicHooksCalendarJobsRouteImport.update({
+    id: '/api/public/hooks/calendar-jobs',
+    path: '/api/public/hooks/calendar-jobs',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicHooksCalendarPushRoute =
   ApiPublicHooksCalendarPushRouteImport.update({
     id: '/api/public/hooks/calendar-push',
@@ -730,6 +743,7 @@ export interface FileRoutesByFullPath {
   '/admin/voos-teste': typeof AdminVoosTesteRoute
   '/agenda/$token': typeof AgendaTokenRoute
   '/chat/agenda': typeof ChatAgendaRoute
+  '/chat/agenda-notificacoes': typeof ChatAgendaNotificacoesRoute
   '/chat/agentes': typeof ChatAgentesRoute
   '/chat/broadcast': typeof ChatBroadcastRoute
   '/chat/config': typeof ChatConfigRoute
@@ -775,6 +789,7 @@ export interface FileRoutesByFullPath {
   '/api/public/broadcast-media/$': typeof ApiPublicBroadcastMediaSplatRoute
   '/api/public/hooks/auto-suggestions': typeof ApiPublicHooksAutoSuggestionsRoute
   '/api/public/hooks/broadcast-dispatch': typeof ApiPublicHooksBroadcastDispatchRoute
+  '/api/public/hooks/calendar-jobs': typeof ApiPublicHooksCalendarJobsRoute
   '/api/public/hooks/calendar-push': typeof ApiPublicHooksCalendarPushRoute
   '/api/public/hooks/check-flight-changes': typeof ApiPublicHooksCheckFlightChangesRoute
   '/api/public/hooks/close-inactive-protocols': typeof ApiPublicHooksCloseInactiveProtocolsRoute
@@ -839,6 +854,7 @@ export interface FileRoutesByTo {
   '/admin/voos-teste': typeof AdminVoosTesteRoute
   '/agenda/$token': typeof AgendaTokenRoute
   '/chat/agenda': typeof ChatAgendaRoute
+  '/chat/agenda-notificacoes': typeof ChatAgendaNotificacoesRoute
   '/chat/agentes': typeof ChatAgentesRoute
   '/chat/broadcast': typeof ChatBroadcastRoute
   '/chat/config': typeof ChatConfigRoute
@@ -884,6 +900,7 @@ export interface FileRoutesByTo {
   '/api/public/broadcast-media/$': typeof ApiPublicBroadcastMediaSplatRoute
   '/api/public/hooks/auto-suggestions': typeof ApiPublicHooksAutoSuggestionsRoute
   '/api/public/hooks/broadcast-dispatch': typeof ApiPublicHooksBroadcastDispatchRoute
+  '/api/public/hooks/calendar-jobs': typeof ApiPublicHooksCalendarJobsRoute
   '/api/public/hooks/calendar-push': typeof ApiPublicHooksCalendarPushRoute
   '/api/public/hooks/check-flight-changes': typeof ApiPublicHooksCheckFlightChangesRoute
   '/api/public/hooks/close-inactive-protocols': typeof ApiPublicHooksCloseInactiveProtocolsRoute
@@ -950,6 +967,7 @@ export interface FileRoutesById {
   '/admin/voos-teste': typeof AdminVoosTesteRoute
   '/agenda/$token': typeof AgendaTokenRoute
   '/chat/agenda': typeof ChatAgendaRoute
+  '/chat/agenda-notificacoes': typeof ChatAgendaNotificacoesRoute
   '/chat/agentes': typeof ChatAgentesRoute
   '/chat/broadcast': typeof ChatBroadcastRoute
   '/chat/config': typeof ChatConfigRoute
@@ -995,6 +1013,7 @@ export interface FileRoutesById {
   '/api/public/broadcast-media/$': typeof ApiPublicBroadcastMediaSplatRoute
   '/api/public/hooks/auto-suggestions': typeof ApiPublicHooksAutoSuggestionsRoute
   '/api/public/hooks/broadcast-dispatch': typeof ApiPublicHooksBroadcastDispatchRoute
+  '/api/public/hooks/calendar-jobs': typeof ApiPublicHooksCalendarJobsRoute
   '/api/public/hooks/calendar-push': typeof ApiPublicHooksCalendarPushRoute
   '/api/public/hooks/check-flight-changes': typeof ApiPublicHooksCheckFlightChangesRoute
   '/api/public/hooks/close-inactive-protocols': typeof ApiPublicHooksCloseInactiveProtocolsRoute
@@ -1062,6 +1081,7 @@ export interface FileRouteTypes {
     | '/admin/voos-teste'
     | '/agenda/$token'
     | '/chat/agenda'
+    | '/chat/agenda-notificacoes'
     | '/chat/agentes'
     | '/chat/broadcast'
     | '/chat/config'
@@ -1107,6 +1127,7 @@ export interface FileRouteTypes {
     | '/api/public/broadcast-media/$'
     | '/api/public/hooks/auto-suggestions'
     | '/api/public/hooks/broadcast-dispatch'
+    | '/api/public/hooks/calendar-jobs'
     | '/api/public/hooks/calendar-push'
     | '/api/public/hooks/check-flight-changes'
     | '/api/public/hooks/close-inactive-protocols'
@@ -1171,6 +1192,7 @@ export interface FileRouteTypes {
     | '/admin/voos-teste'
     | '/agenda/$token'
     | '/chat/agenda'
+    | '/chat/agenda-notificacoes'
     | '/chat/agentes'
     | '/chat/broadcast'
     | '/chat/config'
@@ -1216,6 +1238,7 @@ export interface FileRouteTypes {
     | '/api/public/broadcast-media/$'
     | '/api/public/hooks/auto-suggestions'
     | '/api/public/hooks/broadcast-dispatch'
+    | '/api/public/hooks/calendar-jobs'
     | '/api/public/hooks/calendar-push'
     | '/api/public/hooks/check-flight-changes'
     | '/api/public/hooks/close-inactive-protocols'
@@ -1281,6 +1304,7 @@ export interface FileRouteTypes {
     | '/admin/voos-teste'
     | '/agenda/$token'
     | '/chat/agenda'
+    | '/chat/agenda-notificacoes'
     | '/chat/agentes'
     | '/chat/broadcast'
     | '/chat/config'
@@ -1326,6 +1350,7 @@ export interface FileRouteTypes {
     | '/api/public/broadcast-media/$'
     | '/api/public/hooks/auto-suggestions'
     | '/api/public/hooks/broadcast-dispatch'
+    | '/api/public/hooks/calendar-jobs'
     | '/api/public/hooks/calendar-push'
     | '/api/public/hooks/check-flight-changes'
     | '/api/public/hooks/close-inactive-protocols'
@@ -1393,6 +1418,7 @@ export interface RootRouteChildren {
   ApiPublicBroadcastMediaSplatRoute: typeof ApiPublicBroadcastMediaSplatRoute
   ApiPublicHooksAutoSuggestionsRoute: typeof ApiPublicHooksAutoSuggestionsRoute
   ApiPublicHooksBroadcastDispatchRoute: typeof ApiPublicHooksBroadcastDispatchRoute
+  ApiPublicHooksCalendarJobsRoute: typeof ApiPublicHooksCalendarJobsRoute
   ApiPublicHooksCalendarPushRoute: typeof ApiPublicHooksCalendarPushRoute
   ApiPublicHooksCheckFlightChangesRoute: typeof ApiPublicHooksCheckFlightChangesRoute
   ApiPublicHooksCloseInactiveProtocolsRoute: typeof ApiPublicHooksCloseInactiveProtocolsRoute
@@ -1730,6 +1756,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ChatAgendaRouteImport
       parentRoute: typeof ChatRoute
     }
+    '/chat/agenda-notificacoes': {
+      id: '/chat/agenda-notificacoes'
+      path: '/agenda-notificacoes'
+      fullPath: '/chat/agenda-notificacoes'
+      preLoaderRoute: typeof ChatAgendaNotificacoesRouteImport
+      parentRoute: typeof ChatRoute
+    }
     '/chat/agentes': {
       id: '/chat/agentes'
       path: '/agentes'
@@ -2045,6 +2078,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksBroadcastDispatchRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/calendar-jobs': {
+      id: '/api/public/hooks/calendar-jobs'
+      path: '/api/public/hooks/calendar-jobs'
+      fullPath: '/api/public/hooks/calendar-jobs'
+      preLoaderRoute: typeof ApiPublicHooksCalendarJobsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/calendar-push': {
       id: '/api/public/hooks/calendar-push'
       path: '/api/public/hooks/calendar-push'
@@ -2248,6 +2288,7 @@ const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
 interface ChatRouteChildren {
   ChatAgendaRoute: typeof ChatAgendaRoute
+  ChatAgendaNotificacoesRoute: typeof ChatAgendaNotificacoesRoute
   ChatAgentesRoute: typeof ChatAgentesRoute
   ChatBroadcastRoute: typeof ChatBroadcastRoute
   ChatConfigRoute: typeof ChatConfigRoute
@@ -2264,6 +2305,7 @@ interface ChatRouteChildren {
 
 const ChatRouteChildren: ChatRouteChildren = {
   ChatAgendaRoute: ChatAgendaRoute,
+  ChatAgendaNotificacoesRoute: ChatAgendaNotificacoesRoute,
   ChatAgentesRoute: ChatAgentesRoute,
   ChatBroadcastRoute: ChatBroadcastRoute,
   ChatConfigRoute: ChatConfigRoute,
@@ -2344,6 +2386,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicBroadcastMediaSplatRoute: ApiPublicBroadcastMediaSplatRoute,
   ApiPublicHooksAutoSuggestionsRoute: ApiPublicHooksAutoSuggestionsRoute,
   ApiPublicHooksBroadcastDispatchRoute: ApiPublicHooksBroadcastDispatchRoute,
+  ApiPublicHooksCalendarJobsRoute: ApiPublicHooksCalendarJobsRoute,
   ApiPublicHooksCalendarPushRoute: ApiPublicHooksCalendarPushRoute,
   ApiPublicHooksCheckFlightChangesRoute: ApiPublicHooksCheckFlightChangesRoute,
   ApiPublicHooksCloseInactiveProtocolsRoute:
