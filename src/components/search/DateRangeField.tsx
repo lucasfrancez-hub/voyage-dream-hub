@@ -1,11 +1,14 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { CalendarDays, ArrowRight, X } from "lucide-react";
 import { format, parse, isValid } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
+import { resetEmbedHeight, resizeEmbedForFloatingElement } from "@/lib/embed-resize";
 import { cn } from "@/lib/utils";
+
 
 const toISO = (d: Date) => format(d, "yyyy-MM-dd");
 const fromISO = (s: string) => {
