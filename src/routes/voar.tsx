@@ -8,6 +8,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Plane, ShieldCheck, Headset, CreditCard, ChevronRight } from "lucide-react";
 import { VoosPage } from "./admin.voos-teste";
 import { SearchEngine, type Mode } from "./admin.buscar";
+import { PaymentMethodsBar } from "@/components/flights/PaymentMethodsBar";
 
 import { TopBar } from "@/components/TopBar";
 import { InstallmentRulesDialog } from "@/components/flights/InstallmentRulesDialog";
@@ -144,28 +145,10 @@ function VoarPublicPage() {
         </div>
 
         <div className="mx-auto max-w-7xl px-4 pb-10">
-          <div className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+          <div className="mb-3 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
             Formas de pagamento aceitas
           </div>
-          <div className="mt-2 flex flex-wrap gap-2">
-            {[
-              "Pix",
-              "Cartão de crédito (até 3 cartões)",
-              "Visa",
-              "Mastercard",
-              "Elo",
-              "American Express",
-              "Hipercard",
-              "Diners Club",
-            ].map((b) => (
-              <span
-                key={b}
-                className="rounded-full border border-border/60 bg-card/60 px-3 py-1 text-xs font-medium"
-              >
-                {b}
-              </span>
-            ))}
-          </div>
+          <PaymentMethodsBar />
         </div>
       </footer>
     </div>
