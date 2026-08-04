@@ -165,6 +165,8 @@ function AgendaPage() {
   const [contas, setContas] = useState<Conta[]>([]);
   const [eventos, setEventos] = useState<Evento[]>([]);
   const [detalhe, setDetalhe] = useState<Evento | null>(null);
+  const [editar, setEditar] = useState<Evento | null>(null);
+
   const [mes, setMes] = useState(() => inicioDoMes(new Date()));
   const [carregando, setCarregando] = useState(true);
   const [sincronizando, setSincronizando] = useState(false);
