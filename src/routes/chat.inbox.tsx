@@ -2501,9 +2501,32 @@ function InstagramCommentThreadView({ mediaId, onBack }: { mediaId: string; onBa
   const thread = threads.find((t) => t.media_id === mediaId) ?? null;
   const comments = thread?.comments ?? [];
 
+  // Ao abrir a publicação, marca os comentários como lidos (badge some).
+  const markReadFn = useServerFn(markInstagramCommentThreadRead);
+  const jaMarcou = useRef<string | null>(null);
+  useEffect(() => {
+    if (!mediaId || jaMarcou.current === mediaId) return;
+    if (!thread || thread.pendentes === 0) return;
+    jaMarcou.current = mediaId;
+    markReadFn({ data: { media_id: mediaId } })
+      .then(() => qc.invalidateQueries({ queryKey: ["ig", "comment-threads"] }))
+      .catch(() => {});
+  }, [mediaId, thread, markReadFn, qc]);
+
+  // Mídia real da publicação (vídeo/foto) pra tocar dentro do painel.
+  const mediaDetailsFn = useServerFn(getInstagramMediaDetails);
+  const { data: midia, isLoading: midiaCarregando } = useQuery({
+    queryKey: ["ig", "media", mediaId],
+    queryFn: () => mediaDetailsFn({ data: { media_id: mediaId } }),
+    enabled: verMidia && Boolean(mediaId),
+    staleTime: 5 * 60_000,
+    retry: false,
+  });
+
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [comments.length, mediaId]);
+
 
   // Alvo padrão: último comentário de terceiros ainda sem resposta.
   const alvoPadrao = useMemo(() => {
