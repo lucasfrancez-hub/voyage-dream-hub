@@ -40,6 +40,17 @@ function EmbedMotorBusca() {
     form.departureIata.length === 3 && form.arrivalIata.length === 3 && !!form.departureDate;
   const paxTotal = Number(form.adults) + Number(form.children) + Number(form.infants);
 
+  function open(url: string) {
+    // Dentro do iframe: tenta levar a página inteira do site; se o navegador
+    // bloquear, abre em nova aba.
+    try {
+      if (window.top && window.top !== window.self) window.top.location.href = url;
+      else window.location.href = url;
+    } catch {
+      window.open(url, "_blank", "noopener");
+    }
+  }
+
   function go() {
     if (!canSearch) return;
     const q = new URLSearchParams({
@@ -51,15 +62,7 @@ function EmbedMotorBusca() {
       inf: String(form.infants),
     });
     if (form.returnDate) q.set("volta", form.returnDate);
-    const url = `${PUBLIC_SITE_URL}/voar?${q.toString()}`;
-    // Dentro do iframe: tenta levar a página inteira do site; se o navegador
-    // bloquear, abre em nova aba.
-    try {
-      if (window.top && window.top !== window.self) window.top.location.href = url;
-      else window.location.href = url;
-    } catch {
-      window.open(url, "_blank", "noopener");
-    }
+    open(`${PUBLIC_SITE_URL}/voar?${q.toString()}`);
   }
 
   return (
@@ -67,12 +70,23 @@ function EmbedMotorBusca() {
       <style>{`html,body,#root{background:transparent !important;margin:0;padding:0;}`}</style>
 
       <div className="rounded-[28px] border border-border/50 bg-card/80 p-5 shadow-2xl backdrop-blur-xl">
-        <div className="mb-4 flex items-center gap-2">
-          <Plane className="h-5 w-5 text-primary" />
-          <span className="text-sm font-bold uppercase tracking-widest text-muted-foreground">
-            Passagens aéreas
-          </span>
+        <div className="mb-4 flex flex-wrap items-center gap-2">
+          {OTHER_MODES.map((m) => (
+            <button
+              key={m.k}
+              type="button"
+              onClick={() => (m.k === "aereo" ? undefined : open(`${PUBLIC_SITE_URL}/voar?m=${m.k}`))}
+              className={
+                m.k === "aereo"
+                  ? "inline-flex items-center gap-1.5 rounded-full bg-primary px-3.5 py-1.5 text-xs font-bold text-primary-foreground"
+                  : "inline-flex items-center gap-1.5 rounded-full border border-border/50 px-3.5 py-1.5 text-xs font-semibold text-muted-foreground transition hover:border-primary/50 hover:text-foreground"
+              }
+            >
+              <m.icon className="h-3.5 w-3.5" /> {m.l}
+            </button>
+          ))}
         </div>
+
 
         <div className="grid grid-cols-12 items-end gap-3">
           <div className="col-span-12 space-y-2 md:col-span-3">
