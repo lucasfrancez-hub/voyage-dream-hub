@@ -324,42 +324,136 @@ export function SegurosPage({ header }: { header?: React.ReactNode } = {}) {
       </header>
 
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
-        {run.isPending && (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" /> Consultando as seguradoras…
-          </div>
-        )}
+        {run.isPending && <SearchSkeleton kind="insurance" rows={4} />}
 
         {result && !run.isPending && (
-          <>
-            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-              <p className="text-sm text-muted-foreground">
-                {result.count} plano(s) encontrados · {destinationName}
-              </p>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    navigator.clipboard.writeText(result.url);
-                    toast.success("Link copiado");
-                  }}
-                >
-                  <Copy className="h-3.5 w-3.5" /> Copiar link
-                </Button>
-                <Button size="sm" asChild>
-                  <a href={result.url} target="_blank" rel="noreferrer">
-                    <ExternalLink className="h-3.5 w-3.5" /> Abrir no Comprar Viagem
-                  </a>
-                </Button>
+          <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
+            <aside className="space-y-4">
+              <div className="rounded-2xl border border-border/60 bg-card/60 p-4 backdrop-blur">
+                <div className="mb-3 flex items-center justify-between">
+                  <p className="text-sm font-semibold">Filtros</p>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setCats([]);
+                      setInsurers([]);
+                      setMaxPrice(null);
+                    }}
+                  >
+                    Limpar
+                  </Button>
+                </div>
+
+                {allCats.length > 0 && (
+                  <div className="mb-4">
+                    <p className="mb-2 text-xs text-muted-foreground">Categorias</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {allCats.map((c) => (
+                        <button
+                          key={c}
+                          type="button"
+                          onClick={() => toggle(setCats, c)}
+                          className={`rounded-full border px-2.5 py-1 text-[11px] transition ${
+                            cats.includes(c)
+                              ? "border-primary bg-primary/15 text-primary"
+                              : "border-border/60 text-muted-foreground hover:border-primary/40"
+                          }`}
+                        >
+                          {c}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="mb-4">
+                  <p className="mb-2 text-xs text-muted-foreground">Preço total até</p>
+                  <input
+                    type="range"
+                    min={priceBounds.min}
+                    max={priceBounds.max}
+                    step={1}
+                    value={maxPrice ?? priceBounds.max}
+                    onChange={(e) => setMaxPrice(Number(e.target.value))}
+                    className="w-full accent-[var(--brand-orange)]"
+                  />
+                  <div className="mt-1 flex justify-between text-[11px] text-muted-foreground">
+                    <span>{fmtBRL(priceBounds.min)}</span>
+                    <span className="font-medium text-foreground">
+                      {fmtBRL(maxPrice ?? priceBounds.max)}
+                    </span>
+                  </div>
+                </div>
+
+                {allInsurers.length > 0 && (
+                  <div>
+                    <p className="mb-2 text-xs text-muted-foreground">Seguradoras</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {allInsurers.map((n) => (
+                        <button
+                          key={n}
+                          type="button"
+                          onClick={() => toggle(setInsurers, n)}
+                          className={`rounded-full border px-2.5 py-1 text-[11px] transition ${
+                            insurers.includes(n)
+                              ? "border-primary bg-primary/15 text-primary"
+                              : "border-border/60 text-muted-foreground hover:border-primary/40"
+                          }`}
+                        >
+                          {n}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </aside>
+
+            <div>
+              <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                <p className="text-sm text-muted-foreground">
+                  {filtered.length} de {result.plans.length} plano(s) · {destinationName}
+                </p>
+                {!isPublic && (
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        navigator.clipboard.writeText(result.url);
+                        toast.success("Link copiado");
+                      }}
+                    >
+                      <Copy className="h-3.5 w-3.5" /> Copiar link
+                    </Button>
+                    <Button size="sm" asChild>
+                      <a href={result.url} target="_blank" rel="noreferrer">
+                        <ExternalLink className="h-3.5 w-3.5" /> Abrir no Comprar Viagem
+                      </a>
+                    </Button>
+                  </div>
+                )}
+              </div>
+              <div className="grid gap-3">
+                {filtered.map((p) => (
+                  <PlanCard
+                    key={p.uuid}
+                    plan={p}
+                    onSelect={() => {
+                      if (isPublic) window.location.href = result.url;
+                      else window.open(result.url, "_blank", "noreferrer");
+                    }}
+                  />
+                ))}
+                {filtered.length === 0 && (
+                  <p className="text-sm text-muted-foreground">
+                    Nenhum plano com os filtros selecionados.
+                  </p>
+                )}
               </div>
             </div>
-            <div className="grid gap-3">
-              {result.plans.map((p) => (
-                <PlanCard key={p.uuid} plan={p} />
-              ))}
-            </div>
-          </>
+          </div>
         )}
       </main>
     </div>
