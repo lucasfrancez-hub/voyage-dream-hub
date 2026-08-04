@@ -349,7 +349,7 @@ export function SearchEngine({
     mode === "hotel"
       ? ""
       : mode === "combo"
-        ? "Um único motor: a mesma busca traz o voo e a hospedagem do destino."
+        ? "Uma única busca. Todas as opções de voo + hospedagem para sua viagem."
         : "";
 
 
