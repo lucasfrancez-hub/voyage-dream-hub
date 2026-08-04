@@ -207,7 +207,16 @@ async function poll(
     if (i + 1 < maxRounds) await sleep(GAP_MS);
   }
 
-  const flights = [...acc.values()].sort((a, b) => a.price.total - b.price.total);
+  const flights = [...acc.entries()]
+    .map(([signature, flight]) => {
+      const ordered = [...(fares.get(signature)?.entries() ?? [])].sort((a, b) => a[1] - b[1]);
+      return {
+        ...flight,
+        altKeys: ordered.map(([key]) => key),
+        altTotals: ordered.map(([, total]) => total),
+      };
+    })
+    .sort((a, b) => a.price.total - b.price.total);
   const totals = flights.map((flight) => flight.price.total).filter(Number.isFinite);
   return {
     totalFlightsCount: flights.length,
