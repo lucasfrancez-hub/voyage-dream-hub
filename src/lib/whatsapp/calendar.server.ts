@@ -319,12 +319,26 @@ export async function criarEvento(entrada: EntradaEvento): Promise<AgendaEvento>
     }
   }
 
-  const detalhes: Record<string, string | Array<{ email: string }>> = {};
-  if (entrada.linkReuniao) detalhes['link_reuniao'] = entrada.linkReuniao;
+  const detalhes: Record<string, unknown> = {};
+  if (entrada.linkReuniao) {
+    // A tela do compromisso lê "conferencia"; mantemos link_reuniao por compatibilidade.
+    detalhes['conferencia'] = entrada.linkReuniao;
+    detalhes['link_reuniao'] = entrada.linkReuniao;
+  }
   if (entrada.url) detalhes['url'] = entrada.url;
   if (entrada.convidados?.length) {
-    detalhes['participantes'] = entrada.convidados.map((email) => ({ email }));
+    detalhes['participantes'] = entrada.convidados.map((email) => ({
+      email,
+      nome: null,
+      resposta: null,
+      organizador: false,
+    }));
   }
+  if (entrada.criado_por) {
+    detalhes['organizador'] = { nome: null, email: entrada.criado_por, resposta: null, organizador: true };
+  }
+  detalhes['calendario'] = conta?.calendar_nome ?? conta?.nome ?? null;
+
 
   const { data, error } = await supabaseAdmin
     .from("wa_calendar_events")
