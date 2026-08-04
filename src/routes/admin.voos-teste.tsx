@@ -666,22 +666,22 @@ function SegmentsDetail({ f }: { f: OnerFlight }) {
         return (
           <div key={`${s.segmentNumber}-${s.flightNumber}`}>
             {prev && (
-              <div className="relative py-6 pl-8">
+              <div className="relative py-4 pl-8">
                 <div className="absolute bottom-0 left-[9px] top-0 w-0 border-l-2 border-dashed border-border" />
-                <div className="flex w-fit items-center gap-3 rounded-xl border border-border/60 bg-muted/30 p-3 pr-6 backdrop-blur-sm">
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-primary/25 bg-primary/10">
-                    <Clock className="h-4 w-4 text-primary" />
+                <div className="flex w-fit items-center gap-2.5 rounded-lg border border-border/60 bg-muted/30 px-3 py-2 backdrop-blur-sm">
+                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-primary/25 bg-primary/10">
+                    <Clock className="h-3.5 w-3.5 text-primary" />
                   </div>
                   <div className="min-w-0">
-                    <p className="mb-1 text-[10px] font-bold uppercase leading-none tracking-[0.2em] text-muted-foreground">
+                    <p className="mb-0.5 text-[9px] font-bold uppercase leading-none tracking-[0.16em] text-muted-foreground">
                       Conexão em {prev.destination.iata}
                     </p>
-                    <p className="text-sm font-semibold text-foreground">
-                      Aguarde <span className="font-mono text-primary">{fmtDur(layover)}</span> no
-                      aeroporto
+                    <p className="text-xs font-semibold text-foreground">
+                      Aguarde <span className="text-primary">{fmtDur(layover)}</span> no aeroporto
                     </p>
                   </div>
                 </div>
+
               </div>
             )}
 
