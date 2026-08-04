@@ -1,6 +1,8 @@
 import { z } from "zod";
 import {
   flightSignature,
+  type OnerFareOption,
+
   type OnerFlight,
   type OnerLegResult,
   type OnerSearchResult,
