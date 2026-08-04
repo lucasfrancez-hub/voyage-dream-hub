@@ -25,6 +25,11 @@ type VoarSearch = {
   ch?: number;
   inf?: number;
   m?: Mode;
+  /** Hotel vindo do widget */
+  hd?: string;
+  ci?: string;
+  co?: string;
+  rm?: number;
 };
 
 const MODES: Mode[] = ["aereo", "hotel", "carro", "combo", "exclusivo", "seguro"];
@@ -40,8 +45,12 @@ export const Route = createFileRoute("/voar")({
     ch: Number(search.ch) > 0 ? Math.min(9, Number(search.ch)) : undefined,
     inf: Number(search.inf) > 0 ? Math.min(9, Number(search.inf)) : undefined,
     m: MODES.includes(search.m as Mode) ? (search.m as Mode) : undefined,
-
+    hd: typeof search.hd === "string" ? search.hd.slice(0, 120) : undefined,
+    ci: typeof search.ci === "string" ? search.ci.slice(0, 10) : undefined,
+    co: typeof search.co === "string" ? search.co.slice(0, 10) : undefined,
+    rm: Number(search.rm) > 0 ? Math.min(5, Number(search.rm)) : undefined,
   }),
+
   head: () => ({
     meta: [
       { title: "Passagens aéreas em tempo real | VIA AIR" },
