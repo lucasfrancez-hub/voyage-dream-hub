@@ -59,12 +59,22 @@ import {
   onerInboundSearch,
 } from "@/lib/onertravel.functions";
 import {
+  applyFareOption,
+  CABIN_OPTIONS,
+  cabinIdOf,
+  cabinLabelOf,
+  fareCarryOnText,
+  fareCheckedText,
+  fareHasBaggage,
+  flightCabinId,
   flightHasBaggage,
   flightSignature,
+  type OnerFareOption,
   type OnerFlight,
   type OnerSearchResult,
   type OnerLegResult,
 } from "@/lib/onertravel.types";
+
 
 export const Route = createFileRoute("/admin/voos-teste")({
   head: () => ({
@@ -161,6 +171,8 @@ type Filters = {
   arr: [number, number];
   depAirports: string[];
   arrAirports: string[];
+  /** Classes de cabine (ECONOMY, PREMIUM_ECONOMY, BUSINESS, FIRST). */
+  cabins: string[];
 };
 
 const FULL_DAY: [number, number] = [0, 1440];
@@ -175,7 +187,9 @@ const EMPTY_FILTERS: Filters = {
   arr: [...FULL_DAY] as [number, number],
   depAirports: [],
   arrAirports: [],
+  cabins: [],
 };
+
 
 /** A operadora às vezes devolve resposta vazia/parcial — normaliza para nunca quebrar a tela. */
 function normalizeLeg(leg: unknown): OnerLegResult {
@@ -230,7 +244,30 @@ export function arrPlaceOf(fl: OnerFlight) {
     : segs[segs.length - 1]?.destination;
 }
 
+/** Une as famílias tarifárias já conhecidas com as da nova onda de resultados. */
+function mergeFares(prev: OnerFlight | undefined, next: OnerFlight): OnerFlight {
+  if (!prev?.fareOptions?.length) return next;
+  const map = new Map<string, OnerFareOption>();
+  for (const o of [...(next.fareOptions ?? []), ...prev.fareOptions]) map.set(o.key, o);
+  return {
+    ...next,
+    fareOptions: [...map.values()].sort((a, b) => a.total - b.total),
+  };
+}
+
+
+function findByAnyKey(list: OnerFlight[], key: string | null | undefined): OnerFlight | null {
+  if (!key) return null;
+  return list.find((f) => f.key === key || (f.fareOptions ?? []).some((o) => o.key === key)) ?? null;
+}
+
+/** O card está selecionado se a chave escolhida é dele ou de uma tarifa dele. */
+function isSameFlight(f: OnerFlight, key: string | null): boolean {
+  return !!key && (f.key === key || (f.fareOptions ?? []).some((o) => o.key === key));
+}
+
 /** Refinamentos locais que a API não representa corretamente. */
+
 function applyFilters(list: OnerFlight[], f: Filters) {
   return list.filter((fl) => {
     if (f.maxStops < 2 && fl.journey.numberOfStops > f.maxStops) return false;
@@ -238,6 +275,17 @@ function applyFilters(list: OnerFlight[], f: Filters) {
     const arrIata = arrPlaceOf(fl)?.iata;
     if (f.depAirports.length && (!depIata || !f.depAirports.includes(depIata))) return false;
     if (f.arrAirports.length && (!arrIata || !f.arrAirports.includes(arrIata))) return false;
+    if (f.cabins.length) {
+      // A classe pode estar só em alguma família tarifária do mesmo voo.
+      const cabins = new Set(
+        [
+          flightCabinId(fl),
+          ...(fl.fareOptions ?? []).map((o) => cabinIdOf(o.cabinClass)),
+        ].filter(Boolean) as string[],
+      );
+      if (!cabins.size) cabins.add("ECONOMY");
+      if (!f.cabins.some((c) => cabins.has(c))) return false;
+    }
     if (f.arr[0] !== FULL_DAY[0] || f.arr[1] !== FULL_DAY[1]) {
       const t = fl.journey.destination.time;
       const m = t.hour * 60 + t.minute;
@@ -257,9 +305,11 @@ function activeCount(f: Filters) {
     (f.dep[0] !== 0 || f.dep[1] !== 1440 ? 1 : 0) +
     (f.arr[0] !== 0 || f.arr[1] !== 1440 ? 1 : 0) +
     f.depAirports.length +
-    f.arrAirports.length
+    f.arrAirports.length +
+    f.cabins.length
   );
 }
+
 
 function toggle<T>(arr: T[], v: T): T[] {
   return arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v];
@@ -469,6 +519,28 @@ function FiltersPanel({
             />
           </div>
         </div>
+
+        <div className="space-y-3">
+          <SectionLabel>Classes</SectionLabel>
+          <div className="grid grid-cols-2 gap-1 rounded-2xl border border-border/40 bg-muted/30 p-1">
+            {CABIN_OPTIONS.map((c) => (
+              <button
+                key={c.id}
+                type="button"
+                onClick={() => onChange({ ...filters, cabins: toggle(filters.cabins, c.id) })}
+                className={`rounded-xl px-1 py-2 text-[11px] font-bold transition-all ${
+                  filters.cabins.includes(c.id)
+                    ? "bg-primary text-primary-foreground shadow-[var(--shadow-glow)]"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {c.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+
 
         <div className="space-y-6">
           <TimeRange
@@ -733,7 +805,144 @@ function BagChip({
   );
 }
 
+/**
+ * "Mais opções para seu voo" — famílias tarifárias (LIGHT / CLASSIC / FLEX) do
+ * mesmo itinerário. A chave escolhida aqui é a que vai para a operadora
+ * (combinação da volta e geração do carrinho).
+ */
+function FareOptionsDialog({
+  f,
+  label,
+  open,
+  onOpenChange,
+  onConfirm,
+}: {
+  f: OnerFlight | null;
+  label: string;
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  onConfirm: (key: string) => void;
+}) {
+  const options = useMemo<OnerFareOption[]>(() => f?.fareOptions ?? [], [f]);
+  const [picked, setPicked] = useState<string | null>(null);
+  useEffect(() => {
+    if (open) setPicked(options[0]?.key ?? null);
+  }, [open, options]);
+
+  const base = options[0]?.total ?? 0;
+  const chosen = options.find((o) => o.key === picked) ?? options[0];
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-4xl">
+        <DialogHeader>
+          <DialogTitle className="text-base font-semibold">
+            Mais opções para seu voo de {label.toLowerCase()}
+          </DialogTitle>
+        </DialogHeader>
+
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {options.map((o, i) => {
+            const active = o.key === picked;
+            const delta = o.total - base;
+            return (
+              <div
+                key={o.key}
+                className={`relative flex flex-col rounded-2xl border-2 p-4 transition ${
+                  active ? "border-primary bg-primary/5" : "border-border/70 bg-card/60"
+                }`}
+              >
+                <span className="absolute right-3 top-3 rounded-full bg-primary/15 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-primary">
+                  {label}
+                </span>
+                <p className="mb-1 text-center text-lg font-black uppercase tracking-tight">
+                  {o.fareFamily?.trim() || `Tarifa ${i + 1}`}
+                </p>
+                <p className="mb-4 text-center text-xs text-muted-foreground">
+                  {cabinLabelOf(cabinIdOf(o.cabinClass) ?? "ECONOMY")}
+                </p>
+
+                <div className="space-y-2 border-y border-border/60 py-3 text-xs">
+                  <div className="flex items-center gap-2">
+                    <BriefcaseBusiness className="h-4 w-4 shrink-0 text-primary" />
+                    <span>{fareCarryOnText(o)}</span>
+                  </div>
+                  <div
+                    className={`flex items-center gap-2 ${
+                      fareHasBaggage(o) ? "" : "text-muted-foreground"
+                    }`}
+                  >
+                    <Luggage
+                      className={`h-4 w-4 shrink-0 ${
+                        fareHasBaggage(o) ? "text-primary" : "text-muted-foreground"
+                      }`}
+                    />
+                    <span>{fareCheckedText(o)}</span>
+                  </div>
+                </div>
+
+                <div className="mt-3 text-center">
+                  <p className="text-xs font-bold text-primary">
+                    {delta > 0 ? `+ ${fmtMoney(delta)}` : fmtMoney(0)}{" "}
+                    <span className="font-medium text-muted-foreground">/ diferença</span>
+                  </p>
+                  <p className="mt-1 text-2xl font-black tracking-tight">{fmtMoney(o.total)}</p>
+                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                    Total da {label.toLowerCase()}
+                  </p>
+                </div>
+
+                <Button
+                  variant={active ? "default" : "outline"}
+                  className="mt-4 w-full rounded-full text-xs font-bold uppercase tracking-wide"
+                  onClick={() => setPicked(o.key)}
+                >
+                  {active ? (
+                    <>
+                      <Check className="h-4 w-4" /> Selecionado
+                    </>
+                  ) : (
+                    "Selecionar"
+                  )}
+                </Button>
+              </div>
+            );
+          })}
+        </div>
+
+        <DialogFooter className="flex-col items-stretch gap-3 border-t border-border/60 pt-4 sm:flex-row sm:items-center sm:justify-between">
+          <p className="max-w-md text-[11px] leading-snug text-muted-foreground">
+            Taxas de não comparecimento, cancelamento ou alteração, acúmulo de milhas, reembolso e
+            marcação de assento conforme as regras da companhia para cada tipo de tarifa.
+          </p>
+          <div className="flex items-center gap-4">
+            <div className="text-right">
+              <p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
+                Total da {label.toLowerCase()}
+              </p>
+              <p className="text-xl font-black tracking-tight">
+                {fmtMoney(chosen?.total ?? f?.price.total ?? 0)}
+              </p>
+            </div>
+            <Button
+              className="rounded-full px-6 font-bold"
+              disabled={!chosen}
+              onClick={() => {
+                if (chosen) onConfirm(chosen.key);
+                onOpenChange(false);
+              }}
+            >
+              Prosseguir
+            </Button>
+          </div>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function FlightCard({
+
   f,
   selected,
   onSelect,
@@ -1548,7 +1757,8 @@ export function VoosPage({
           const signature = flightSignature(f);
           const atual = map.get(signature);
           if (!atual) novos++;
-          if (!atual || f.price.total < atual.price.total) map.set(signature, f);
+          if (!atual || f.price.total < atual.price.total) map.set(signature, mergeFares(atual, f));
+
         }
         const flights = [...map.values()].sort((a, b) => a.price.total - b.price.total);
         toast[novos ? "success" : "info"](
@@ -1576,7 +1786,7 @@ export function VoosPage({
     // existindo voos. Então tentamos, em ordem de preço, as demais tarifas do
     // MESMO voo antes de dizer que não há volta.
     mutationFn: async (opts: { flightKey: string; filters: Filters }) => {
-      const base = result?.outbound.flights.find((f) => f.key === opts.flightKey);
+      const base = findByAnyKey(result?.outbound.flights ?? [], opts.flightKey);
       const keys = [
         opts.flightKey,
         ...(base?.altKeys ?? []).filter((k) => k && k !== opts.flightKey),
@@ -1640,7 +1850,7 @@ export function VoosPage({
           const signature = flightSignature(f);
           const atual = map.get(signature);
           if (!atual) novos++;
-          if (!atual || f.price.total < atual.price.total) map.set(signature, f);
+          if (!atual || f.price.total < atual.price.total) map.set(signature, mergeFares(atual, f));
         }
         const flights = [...map.values()].sort((a, b) => a.price.total - b.price.total);
         toast[novos ? "success" : "info"](
@@ -1703,7 +1913,10 @@ export function VoosPage({
   const refiltering = mut.isPending && !!result;
   const outFlights = result ? applyFilters(result.outbound.flights, outFilters) : [];
   const inFlights = inbound ? applyFilters(inbound.flights, inFilters) : [];
-  const outFlightBase = result?.outbound.flights.find((f) => f.key === selectedOut) ?? null;
+  const outFlightRaw = findByAnyKey(result?.outbound.flights ?? [], selectedOut);
+  // A tarifa escolhida no modal (LIGHT/CLASSIC/FLEX) define preço e bagagem.
+  const outFlightBase =
+    outFlightRaw && selectedOut ? applyFareOption(outFlightRaw, selectedOut) : outFlightRaw;
   // Se a volta só combinou com outra tarifa do mesmo voo, o carrinho e o resumo
   // precisam usar essa tarifa (chave e preço reais).
   const outFlight: OnerFlight | null =
@@ -1720,7 +1933,10 @@ export function VoosPage({
             : outFlightBase.price,
         }
       : outFlightBase;
-  const inFlight = inbound?.flights.find((f) => f.key === selectedIn) ?? null;
+  const inFlightRaw = findByAnyKey(inbound?.flights ?? [], selectedIn);
+  const inFlight =
+    inFlightRaw && selectedIn ? applyFareOption(inFlightRaw, selectedIn) : inFlightRaw;
+
   const showSummary = !!outFlight && (!isRoundTrip || !!inFlight);
   const [summaryOpen, setSummaryOpen] = useState(false);
   // Abre o modal assim que a seleção fica completa.
@@ -1729,12 +1945,24 @@ export function VoosPage({
   }, [showSummary]);
   const inboundPhase = isRoundTrip && !!selectedOut;
 
+  /** Modal de famílias tarifárias (LIGHT/CLASSIC/FLEX) do voo clicado. */
+  const [fareDialog, setFareDialog] = useState<{ f: OnerFlight; leg: "out" | "in" } | null>(null);
+  function chooseFlight(f: OnerFlight, leg: "out" | "in") {
+    if ((f.fareOptions?.length ?? 0) > 1) {
+      setFareDialog({ f, leg });
+      return;
+    }
+    if (leg === "out") pickOutbound(f.key);
+    else setSelectedIn(f.key);
+  }
+
   function editOutbound() {
     setSelectedOut(null);
     setSelectedIn(null);
     setInbound(null);
     setOutFareOverride(null);
   }
+
 
   const cheapestOut = outFlights.length ? Math.min(...outFlights.map((f) => f.price.total)) : null;
   const cheapestIn = inFlights.length ? Math.min(...inFlights.map((f) => f.price.total)) : null;
@@ -1959,11 +2187,12 @@ export function VoosPage({
                     <FlightCard
                       key={f.key}
                       f={f}
-                      selected={selectedOut === f.key}
+                      selected={isSameFlight(f, selectedOut)}
                       cheapest={f.price.total === cheapestOut}
-                      onSelect={() => pickOutbound(f.key)}
+                      onSelect={() => chooseFlight(f, "out")}
                     />
                   ))}
+
                   {!outFlights.length && (
                     <p className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
                       Nenhum voo com esses filtros.
@@ -2010,11 +2239,12 @@ export function VoosPage({
                     <FlightCard
                       key={f.key}
                       f={f}
-                      selected={selectedIn === f.key}
+                      selected={isSameFlight(f, selectedIn)}
                       cheapest={f.price.total === cheapestIn}
-                      onSelect={() => setSelectedIn(f.key)}
+                      onSelect={() => chooseFlight(f, "in")}
                     />
                   ))}
+
                   {!inFlights.length && (
                     <p className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
                       Nenhuma volta com esses filtros.
@@ -2075,7 +2305,19 @@ export function VoosPage({
           </div>
         )}
 
+        <FareOptionsDialog
+          f={fareDialog?.f ?? null}
+          label={fareDialog?.leg === "in" ? "Volta" : "Ida"}
+          open={!!fareDialog}
+          onOpenChange={(v) => !v && setFareDialog(null)}
+          onConfirm={(key) => {
+            if (fareDialog?.leg === "in") setSelectedIn(key);
+            else pickOutbound(key);
+            setFareDialog(null);
+          }}
+        />
       </main>
+
     </div>
   );
 }
