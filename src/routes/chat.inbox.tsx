@@ -399,6 +399,8 @@ function InboxPage() {
                 <button
                   key={f.key}
                   onClick={() => setFolder(f.key)}
+                  title={f.label}
+                  aria-label={f.label}
                   className={cn(
                     "flex shrink-0 items-center gap-1 whitespace-nowrap rounded-md px-2.5 py-1.5 text-[11px] font-medium transition-colors",
                     folder === f.key
@@ -406,8 +408,8 @@ function InboxPage() {
                       : "text-slate-500 hover:bg-slate-50 hover:text-slate-900",
                   )}
                 >
-                  <f.icon className="h-3 w-3" />
-                  {f.label}
+                  <f.icon className="h-3.5 w-3.5" />
+                  {f.iconOnly ? null : f.label}
                 </button>
               ))}
             </div>
