@@ -387,6 +387,7 @@ export async function saveMessage(input: {
         titulo: (conv?.display_name as string | null) || phone || "Nova mensagem",
         corpo: input.content,
         canal: phone.startsWith("ig:") ? "instagram" : "whatsapp",
+        messageId: (data as { id?: string })?.id,
       });
     } catch (err) {
       console.error("[wa/saveMessage] push:", err);

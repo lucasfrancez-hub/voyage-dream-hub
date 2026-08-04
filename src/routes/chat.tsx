@@ -44,6 +44,7 @@ const PAGE_TITLES: Record<string, { title: string; subtitle?: string }> = {
   "/chat/crm": { title: "CRM", subtitle: "Pipeline de vendas" },
   "/chat/agenda": { title: "Agenda", subtitle: "Compromissos e follow-ups" },
   "/chat/pastas": { title: "Pastas", subtitle: "Organização de conversas" },
+  "/chat/notificacoes": { title: "Notificações", subtitle: "Avisos push neste aparelho" },
   "/chat/config": { title: "Configurações", subtitle: "Integrações e permissões" },
 };
 
