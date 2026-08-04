@@ -548,7 +548,14 @@ function FiltersPanel({
               <button
                 key={c.id}
                 type="button"
-                onClick={() => onChange({ ...filters, cabins: toggle(filters.cabins, c.id) })}
+                onClick={() =>
+                  onChange({
+                    ...filters,
+                    // Seleção única: clicar na classe ativa limpa o filtro.
+                    cabins: filters.cabins[0] === c.id ? [] : [c.id],
+                  })
+                }
+
                 className={`rounded-xl px-1 py-2 text-[11px] font-bold transition-all ${
                   filters.cabins.includes(c.id)
                     ? "bg-primary text-primary-foreground shadow-[var(--shadow-glow)]"
