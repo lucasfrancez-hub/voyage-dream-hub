@@ -89,7 +89,7 @@
                     await deleteThreadFn({ data: { media_id: thread.media_id } });
                     toast.success("Histórico apagado");
                     qc.invalidateQueries({ queryKey: ["ig", "comment-threads"] });
-                    onBack?.();
+                    onBack();
                   } catch (e: unknown) {
                     toast.error(e instanceof Error ? e.message : "Erro ao apagar histórico");
                   }
