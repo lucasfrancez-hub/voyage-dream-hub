@@ -189,27 +189,39 @@ export function DateRangeField({
   );
 
   // Dentro de um iframe (widget do site) o popover seria cortado pelas bordas.
-  // Nesse caso abrimos um painel fixo na área visível do próprio widget.
+  // Renderizamos num portal no body e pedimos ao WordPress pra aumentar o iframe.
   if (embedded) {
     return (
       <>
-        <div className={cn("grid grid-cols-2 gap-2", className)}>
+        <div ref={anchorRef} className={cn("grid grid-cols-2 gap-2", className)}>
           {trigger("start")}
           {trigger("end")}
         </div>
-        {open && (
-          <div className="fixed inset-0 z-[100] flex items-start justify-center overflow-y-auto bg-background/80 p-2 backdrop-blur-sm">
-            <div
-              className="my-auto w-full max-w-[340px] rounded-2xl border border-border/60 bg-popover shadow-2xl"
-              role="dialog"
-            >
-              {panel(true)}
-            </div>
-          </div>
-        )}
+        {open &&
+          typeof document !== "undefined" &&
+          createPortal(
+            <>
+              <div className="fixed inset-0 z-[90]" onClick={() => setOpen(false)} />
+              <div
+                ref={calendarRef}
+                role="dialog"
+                style={{
+                  position: "absolute",
+                  top: pos.top,
+                  left: pos.left,
+                  width: Math.max(pos.width, 320),
+                }}
+                className="z-[100] max-w-[360px] rounded-2xl border border-border/60 bg-popover shadow-2xl"
+              >
+                {panel(true)}
+              </div>
+            </>,
+            document.body,
+          )}
       </>
     );
   }
+
 
   return (
     <Popover
