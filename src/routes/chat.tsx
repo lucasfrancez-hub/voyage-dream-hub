@@ -147,6 +147,14 @@ function ChatLayout() {
     undefined,
   );
   const [pedirPin, setPedirPin] = useState(false);
+  const [mostrarSetupPin, setMostrarSetupPin] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (!session || !aparelho || aparelho.registrado) return;
+    if (localStorage.getItem("viaair-chat-pin-ok")) return;
+    setMostrarSetupPin(true);
+  }, [session, aparelho]);
 
   useEffect(() => {
     if (session === undefined) return;
@@ -240,6 +248,9 @@ function ChatLayout() {
       style={{ height: "var(--chat-vh, 100dvh)" }}
     >
 
+      {session && aparelho && !aparelho.registrado && mostrarSetupPin ? (
+        <ChatPinSetup onFechar={() => setMostrarSetupPin(false)} />
+      ) : null}
       <ChatSidebar mobileOpen={mobileNavOpen} onCloseMobile={() => setMobileNavOpen(false)} />
       <div className="flex min-w-0 flex-1 flex-col">
         <ChatHeader
