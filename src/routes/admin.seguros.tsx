@@ -204,10 +204,49 @@ export function SegurosPage({ header }: { header?: React.ReactNode } = {}) {
     },
     onSuccess: (r) => {
       setResult(r);
+      setCats([]);
+      setInsurers([]);
+      setMaxPrice(null);
       if (!r.plans.length) toast.info("Nenhum plano retornado para esse período");
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erro na cotação"),
   });
+
+  // ---------------- filtros dos resultados
+  const [cats, setCats] = useState<string[]>([]);
+  const [insurers, setInsurers] = useState<string[]>([]);
+  const [maxPrice, setMaxPrice] = useState<number | null>(null);
+
+  const plans = result?.plans ?? [];
+  const allCats = useMemo(
+    () => Array.from(new Set(plans.map((p) => p.categoryName).filter(Boolean))),
+    [plans],
+  );
+  const allInsurers = useMemo(
+    () => Array.from(new Set(plans.map((p) => p.insurer.name).filter(Boolean))).sort(),
+    [plans],
+  );
+  const priceBounds = useMemo(() => {
+    if (!plans.length) return { min: 0, max: 1000 };
+    const vals = plans.map((p) => p.price);
+    return { min: Math.floor(Math.min(...vals)), max: Math.ceil(Math.max(...vals)) };
+  }, [plans]);
+  const filtered = useMemo(
+    () =>
+      plans.filter(
+        (p) =>
+          (cats.length === 0 || cats.includes(p.categoryName)) &&
+          (insurers.length === 0 || insurers.includes(p.insurer.name)) &&
+          (maxPrice === null || p.price <= maxPrice),
+      ),
+    [plans, cats, insurers, maxPrice],
+  );
+
+  const toggle = (
+    setter: React.Dispatch<React.SetStateAction<string[]>>,
+    value: string,
+  ) => setter((cur) => (cur.includes(value) ? cur.filter((v) => v !== value) : [...cur, value]));
+
 
   return (
     <div className={header ? "" : "min-h-screen bg-background"}>
