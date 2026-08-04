@@ -253,6 +253,23 @@ async function processPayload(payload: IGPayload) {
       );
       if (commentError) throw new Error(commentError.message);
 
+      // Push pros atendentes: comentário/menção novo (não avisa dos meus próprios).
+      const meuComentario = v.from?.id && (v.from.id === igAccountId || v.from.id === igApiUserId);
+      if (!meuComentario) {
+        try {
+          const { notificarNovaMensagemChat } = await import("@/lib/chat/push.server");
+          await notificarNovaMensagemChat({
+            conversationId: v.media.id,
+            titulo: `${v.from?.username ? "@" + v.from.username : "Instagram"} comentou`,
+            corpo: v.text ?? "Novo comentário",
+            canal: "instagram",
+            messageId: v.id,
+          });
+        } catch (e) {
+          console.error("[instagram] push comentário:", (e as Error).message);
+        }
+      }
+
       // Comentário é SEMPRE dos Consultores: resposta pública + convite no direct
       const souEu = v.from?.id && (v.from.id === igAccountId || v.from.id === igApiUserId);
       if (igToken && !souEu) {
