@@ -1314,7 +1314,7 @@ export function HoteisPage({
       )}
 
 
-      <main className="mx-auto max-w-7xl px-4 py-6">
+      <main className={`mx-auto max-w-7xl px-4 ${publicMode && !result && !mut.isPending ? "py-0" : "py-6"}`}>
         {mut.isPending && <SearchSkeleton kind="hotel" rows={3} />}
 
         {result && !mut.isPending && (
