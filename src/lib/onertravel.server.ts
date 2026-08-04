@@ -222,8 +222,12 @@ async function poll(
           .map((b) => `${b.typeDescription ?? ""}${b.quantity ?? ""}${b.weight ?? ""}`)
           .sort()
           .join(",");
-        // Mesma família + mesma bagagem + mesmo preço = tarifa duplicada de outro fornecedor.
-        const dedupe = `${family ?? ""}|${bags}|${f.journey?.allowedBaggage ? 1 : 0}|${f.price.total}`;
+        const cabin = f.journey?.fareClass?.cabinClass ?? f.journey?.segments?.[0]?.cabinClass ?? null;
+        // Mesma família + mesma cabine + mesma bagagem = a MESMA tarifa vinda de
+        // outro fornecedor/consolidador. Preço não entra na chave: se entrasse,
+        // o cliente veria "duas Light iguais" com diferença absurda de preço.
+        // Como `ordered` está do mais barato para o mais caro, fica a mais barata.
+        const dedupe = `${family ?? ""}|${cabin ?? ""}|${bags}|${f.journey?.allowedBaggage ? 1 : 0}`;
         if (seen.has(dedupe)) continue;
         seen.add(dedupe);
         fareOptions.push({
@@ -231,12 +235,13 @@ async function poll(
           total: f.price.total,
           price: f.price.price,
           tax: f.price.tax,
-          cabinClass: f.journey?.fareClass?.cabinClass ?? f.journey?.segments?.[0]?.cabinClass ?? null,
+          cabinClass: cabin,
           fareFamily: family,
           allowedBaggage: f.journey?.allowedBaggage,
           baggagesAllowance: f.journey?.baggagesAllowance,
         });
       }
+
       return {
         ...flight,
         fareOptions,
