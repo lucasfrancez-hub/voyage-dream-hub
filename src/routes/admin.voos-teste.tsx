@@ -59,12 +59,22 @@ import {
   onerInboundSearch,
 } from "@/lib/onertravel.functions";
 import {
+  applyFareOption,
+  CABIN_OPTIONS,
+  cabinIdOf,
+  cabinLabelOf,
+  fareCarryOnText,
+  fareCheckedText,
+  fareHasBaggage,
+  flightCabinId,
   flightHasBaggage,
   flightSignature,
+  type OnerFareOption,
   type OnerFlight,
   type OnerSearchResult,
   type OnerLegResult,
 } from "@/lib/onertravel.types";
+
 
 export const Route = createFileRoute("/admin/voos-teste")({
   head: () => ({
