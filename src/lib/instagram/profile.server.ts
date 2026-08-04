@@ -30,28 +30,45 @@ export async function ensureInstagramContactProfile(input: EnsureInput) {
   const completo = Boolean(nome && username && foto);
   if (completo && !input.force) return { name: nome, username, profile_pic: foto, fetched: false };
 
+  // Fallback barato: o @ costuma já estar salvo em um comentário desse mesmo IG id.
+  if (!username) {
+    const { data: comentario } = await supabaseAdmin
+      .from("instagram_comments")
+      .select("from_username")
+      .eq("from_ig_id", input.contactIgId)
+      .not("from_username", "is", null)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (comentario?.from_username) username = comentario.from_username as string;
+  }
+
   const { data: account } = await supabaseAdmin
     .from("instagram_accounts")
     .select("id, ig_user_id, page_id, access_token")
     .eq("id", input.accountRowId)
     .maybeSingle();
   const token = (account as { access_token?: string } | null)?.access_token ?? null;
-  if (!token) return { name: nome, username, profile_pic: foto, fetched: false };
 
-  try {
-    const { fetchContactProfile } = await import("./api.server");
-    const perfil = await fetchContactProfile({
-      igUserId: (account?.ig_user_id ?? account?.page_id ?? "") as string,
-      token,
-      contactIgId: input.contactIgId,
-    });
-    nome = perfil.name ?? nome;
-    username = perfil.username ?? username;
-    foto = perfil.profile_pic ?? foto;
-  } catch (e) {
-    console.error("[instagram] perfil do contato falhou:", (e as Error).message);
-    return { name: nome, username, profile_pic: foto, fetched: false };
+  if (token) {
+    try {
+      const { fetchContactProfile } = await import("./api.server");
+      const perfil = await fetchContactProfile({
+        igUserId: (account?.ig_user_id ?? account?.page_id ?? "") as string,
+        token,
+        contactIgId: input.contactIgId,
+      });
+      nome = perfil.name ?? nome;
+      username = perfil.username ?? username;
+      foto = perfil.profile_pic ?? foto;
+    } catch (e) {
+      console.error("[instagram] perfil do contato falhou:", (e as Error).message);
+    }
   }
+
+  if (!nome && !username && !foto) return { name: nome, username, profile_pic: foto, fetched: false };
+  if (!nome && username) nome = `@${username}`;
+
 
   await supabaseAdmin
     .from("instagram_conversations")
