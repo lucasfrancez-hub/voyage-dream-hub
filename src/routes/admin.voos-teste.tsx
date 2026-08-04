@@ -252,6 +252,17 @@ function applyFilters(list: OnerFlight[], f: Filters) {
     const arrIata = arrPlaceOf(fl)?.iata;
     if (f.depAirports.length && (!depIata || !f.depAirports.includes(depIata))) return false;
     if (f.arrAirports.length && (!arrIata || !f.arrAirports.includes(arrIata))) return false;
+    if (f.cabins.length) {
+      // A classe pode estar só em alguma família tarifária do mesmo voo.
+      const cabins = new Set(
+        [
+          flightCabinId(fl),
+          ...(fl.fareOptions ?? []).map((o) => cabinIdOf(o.cabinClass)),
+        ].filter(Boolean) as string[],
+      );
+      if (!cabins.size) cabins.add("ECONOMY");
+      if (!f.cabins.some((c) => cabins.has(c))) return false;
+    }
     if (f.arr[0] !== FULL_DAY[0] || f.arr[1] !== FULL_DAY[1]) {
       const t = fl.journey.destination.time;
       const m = t.hour * 60 + t.minute;
@@ -271,9 +282,11 @@ function activeCount(f: Filters) {
     (f.dep[0] !== 0 || f.dep[1] !== 1440 ? 1 : 0) +
     (f.arr[0] !== 0 || f.arr[1] !== 1440 ? 1 : 0) +
     f.depAirports.length +
-    f.arrAirports.length
+    f.arrAirports.length +
+    f.cabins.length
   );
 }
+
 
 function toggle<T>(arr: T[], v: T): T[] {
   return arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v];
