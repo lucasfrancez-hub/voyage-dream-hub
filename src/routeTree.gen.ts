@@ -28,6 +28,7 @@ import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as TermosDeUsoRouteImport } from './routes/termos-de-uso'
 import { Route as UnsubscribeRouteImport } from './routes/unsubscribe'
 import { Route as ValidacaoRouteImport } from './routes/validacao'
+import { Route as VoarRouteImport } from './routes/voar'
 import { Route as AdminBuscarRouteImport } from './routes/admin.buscar'
 import { Route as AdminCarrosRouteImport } from './routes/admin.carros'
 import { Route as AdminCheckinTreinoRouteImport } from './routes/admin.checkin-treino'
@@ -66,6 +67,7 @@ import { Route as ChatProtocolosRouteImport } from './routes/chat.protocolos'
 import { Route as ChatSugestoesRouteImport } from './routes/chat.sugestoes'
 import { Route as EmailUnsubscribeRouteImport } from './routes/email/unsubscribe'
 import { Route as EmbedIngressosDestaqueRouteImport } from './routes/embed.ingressos-destaque'
+import { Route as EmbedMotorBuscaRouteImport } from './routes/embed.motor-busca'
 import { Route as EmbedPacotesDestaqueRouteImport } from './routes/embed.pacotes-destaque'
 import { Route as LSlugRouteImport } from './routes/l.$slug'
 import { Route as OrcamentoTokenRouteImport } from './routes/orcamento.$token'
@@ -207,6 +209,11 @@ const UnsubscribeRoute = UnsubscribeRouteImport.update({
 const ValidacaoRoute = ValidacaoRouteImport.update({
   id: '/validacao',
   path: '/validacao',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const VoarRoute = VoarRouteImport.update({
+  id: '/voar',
+  path: '/voar',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminBuscarRoute = AdminBuscarRouteImport.update({
@@ -397,6 +404,11 @@ const EmailUnsubscribeRoute = EmailUnsubscribeRouteImport.update({
 const EmbedIngressosDestaqueRoute = EmbedIngressosDestaqueRouteImport.update({
   id: '/embed/ingressos-destaque',
   path: '/embed/ingressos-destaque',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EmbedMotorBuscaRoute = EmbedMotorBuscaRouteImport.update({
+  id: '/embed/motor-busca',
+  path: '/embed/motor-busca',
   getParentRoute: () => rootRouteImport,
 } as any)
 const EmbedPacotesDestaqueRoute = EmbedPacotesDestaqueRouteImport.update({
@@ -679,6 +691,7 @@ export interface FileRoutesByFullPath {
   '/termos-de-uso': typeof TermosDeUsoRoute
   '/unsubscribe': typeof UnsubscribeRoute
   '/validacao': typeof ValidacaoRoute
+  '/voar': typeof VoarRoute
   '/admin/buscar': typeof AdminBuscarRoute
   '/admin/carros': typeof AdminCarrosRoute
   '/admin/checkin-treino': typeof AdminCheckinTreinoRoute
@@ -717,6 +730,7 @@ export interface FileRoutesByFullPath {
   '/chat/sugestoes': typeof ChatSugestoesRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/embed/ingressos-destaque': typeof EmbedIngressosDestaqueRoute
+  '/embed/motor-busca': typeof EmbedMotorBuscaRoute
   '/embed/pacotes-destaque': typeof EmbedPacotesDestaqueRoute
   '/l/$slug': typeof LSlugRoute
   '/orcamento/$token': typeof OrcamentoTokenRoute
@@ -784,6 +798,7 @@ export interface FileRoutesByTo {
   '/termos-de-uso': typeof TermosDeUsoRoute
   '/unsubscribe': typeof UnsubscribeRoute
   '/validacao': typeof ValidacaoRoute
+  '/voar': typeof VoarRoute
   '/admin/buscar': typeof AdminBuscarRoute
   '/admin/carros': typeof AdminCarrosRoute
   '/admin/checkin-treino': typeof AdminCheckinTreinoRoute
@@ -822,6 +837,7 @@ export interface FileRoutesByTo {
   '/chat/sugestoes': typeof ChatSugestoesRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/embed/ingressos-destaque': typeof EmbedIngressosDestaqueRoute
+  '/embed/motor-busca': typeof EmbedMotorBuscaRoute
   '/embed/pacotes-destaque': typeof EmbedPacotesDestaqueRoute
   '/l/$slug': typeof LSlugRoute
   '/orcamento/$token': typeof OrcamentoTokenRoute
@@ -891,6 +907,7 @@ export interface FileRoutesById {
   '/termos-de-uso': typeof TermosDeUsoRoute
   '/unsubscribe': typeof UnsubscribeRoute
   '/validacao': typeof ValidacaoRoute
+  '/voar': typeof VoarRoute
   '/admin/buscar': typeof AdminBuscarRoute
   '/admin/carros': typeof AdminCarrosRoute
   '/admin/checkin-treino': typeof AdminCheckinTreinoRoute
@@ -929,6 +946,7 @@ export interface FileRoutesById {
   '/chat/sugestoes': typeof ChatSugestoesRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/embed/ingressos-destaque': typeof EmbedIngressosDestaqueRoute
+  '/embed/motor-busca': typeof EmbedMotorBuscaRoute
   '/embed/pacotes-destaque': typeof EmbedPacotesDestaqueRoute
   '/l/$slug': typeof LSlugRoute
   '/orcamento/$token': typeof OrcamentoTokenRoute
@@ -999,6 +1017,7 @@ export interface FileRouteTypes {
     | '/termos-de-uso'
     | '/unsubscribe'
     | '/validacao'
+    | '/voar'
     | '/admin/buscar'
     | '/admin/carros'
     | '/admin/checkin-treino'
@@ -1037,6 +1056,7 @@ export interface FileRouteTypes {
     | '/chat/sugestoes'
     | '/email/unsubscribe'
     | '/embed/ingressos-destaque'
+    | '/embed/motor-busca'
     | '/embed/pacotes-destaque'
     | '/l/$slug'
     | '/orcamento/$token'
@@ -1104,6 +1124,7 @@ export interface FileRouteTypes {
     | '/termos-de-uso'
     | '/unsubscribe'
     | '/validacao'
+    | '/voar'
     | '/admin/buscar'
     | '/admin/carros'
     | '/admin/checkin-treino'
@@ -1142,6 +1163,7 @@ export interface FileRouteTypes {
     | '/chat/sugestoes'
     | '/email/unsubscribe'
     | '/embed/ingressos-destaque'
+    | '/embed/motor-busca'
     | '/embed/pacotes-destaque'
     | '/l/$slug'
     | '/orcamento/$token'
@@ -1210,6 +1232,7 @@ export interface FileRouteTypes {
     | '/termos-de-uso'
     | '/unsubscribe'
     | '/validacao'
+    | '/voar'
     | '/admin/buscar'
     | '/admin/carros'
     | '/admin/checkin-treino'
@@ -1248,6 +1271,7 @@ export interface FileRouteTypes {
     | '/chat/sugestoes'
     | '/email/unsubscribe'
     | '/embed/ingressos-destaque'
+    | '/embed/motor-busca'
     | '/embed/pacotes-destaque'
     | '/l/$slug'
     | '/orcamento/$token'
@@ -1317,9 +1341,11 @@ export interface RootRouteChildren {
   TermosDeUsoRoute: typeof TermosDeUsoRoute
   UnsubscribeRoute: typeof UnsubscribeRoute
   ValidacaoRoute: typeof ValidacaoRoute
+  VoarRoute: typeof VoarRoute
   AgendaTokenRoute: typeof AgendaTokenRoute
   EmailUnsubscribeRoute: typeof EmailUnsubscribeRoute
   EmbedIngressosDestaqueRoute: typeof EmbedIngressosDestaqueRoute
+  EmbedMotorBuscaRoute: typeof EmbedMotorBuscaRoute
   EmbedPacotesDestaqueRoute: typeof EmbedPacotesDestaqueRoute
   LSlugRoute: typeof LSlugRoute
   OrcamentoTokenRoute: typeof OrcamentoTokenRoute
@@ -1494,6 +1520,13 @@ declare module '@tanstack/react-router' {
       path: '/validacao'
       fullPath: '/validacao'
       preLoaderRoute: typeof ValidacaoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/voar': {
+      id: '/voar'
+      path: '/voar'
+      fullPath: '/voar'
+      preLoaderRoute: typeof VoarRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/buscar': {
@@ -1760,6 +1793,13 @@ declare module '@tanstack/react-router' {
       path: '/embed/ingressos-destaque'
       fullPath: '/embed/ingressos-destaque'
       preLoaderRoute: typeof EmbedIngressosDestaqueRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/embed/motor-busca': {
+      id: '/embed/motor-busca'
+      path: '/embed/motor-busca'
+      fullPath: '/embed/motor-busca'
+      preLoaderRoute: typeof EmbedMotorBuscaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/embed/pacotes-destaque': {
@@ -2235,9 +2275,11 @@ const rootRouteChildren: RootRouteChildren = {
   TermosDeUsoRoute: TermosDeUsoRoute,
   UnsubscribeRoute: UnsubscribeRoute,
   ValidacaoRoute: ValidacaoRoute,
+  VoarRoute: VoarRoute,
   AgendaTokenRoute: AgendaTokenRoute,
   EmailUnsubscribeRoute: EmailUnsubscribeRoute,
   EmbedIngressosDestaqueRoute: EmbedIngressosDestaqueRoute,
+  EmbedMotorBuscaRoute: EmbedMotorBuscaRoute,
   EmbedPacotesDestaqueRoute: EmbedPacotesDestaqueRoute,
   LSlugRoute: LSlugRoute,
   OrcamentoTokenRoute: OrcamentoTokenRoute,

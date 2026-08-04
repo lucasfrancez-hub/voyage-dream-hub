@@ -4,6 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { Loader2, Plane } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { onerAirportSearch } from "@/lib/onertravel.functions";
+import { onerAirportSearchPublic } from "@/lib/onertravel-public.functions";
 
 type Airport = {
   iata: string;
@@ -23,14 +24,17 @@ export function AirportAutocomplete({
   placeholder,
   isDeparture = true,
   className,
+  publicMode = false,
 }: {
   value: string;
   onSelect: (iata: string) => void;
   placeholder?: string;
   isDeparture?: boolean;
   className?: string;
+  /** Motor público (sem login): usa a versão aberta da consulta. */
+  publicMode?: boolean;
 }) {
-  const search = useServerFn(onerAirportSearch);
+  const search = useServerFn(publicMode ? onerAirportSearchPublic : onerAirportSearch);
   const [text, setText] = useState(value);
   const [debounced, setDebounced] = useState("");
   const [open, setOpen] = useState(false);
@@ -60,7 +64,7 @@ export function AirportAutocomplete({
   }, []);
 
   const { data, isFetching } = useQuery({
-    queryKey: ["oner-airports", debounced, isDeparture],
+    queryKey: ["oner-airports", publicMode, debounced, isDeparture],
     queryFn: () => search({ data: { query: debounced, isDeparture } }) as Promise<Airport[]>,
     enabled: debounced.length >= 2,
     staleTime: 5 * 60 * 1000,

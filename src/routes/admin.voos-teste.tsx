@@ -44,6 +44,12 @@ import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Slider } from "@/components/ui/slider";
 import { AirportAutocomplete } from "@/components/search/AirportAutocomplete";
+import {
+  onerCreateFlightCartPublic,
+  onerFlightSearchPublic,
+  onerInboundSearchPublic,
+} from "@/lib/onertravel-public.functions";
+import { createPublicFlightLead } from "@/lib/public-lead.functions";
 import { DateRangeField } from "@/components/search/DateRangeField";
 import { SearchSkeleton } from "@/components/search/SearchSkeleton";
 import { installmentLabel, maxInstallments } from "@/lib/flight-installments";
@@ -1018,6 +1024,7 @@ function SummaryCard({
   open,
   onOpenChange,
   onComboSelect,
+  publicMode = false,
 }: {
   out: OnerFlight;
   inb: OnerFlight | null;
@@ -1026,6 +1033,8 @@ function SummaryCard({
   open: boolean;
   onOpenChange: (v: boolean) => void;
   onComboSelect?: (pick: ComboPick) => void;
+  /** Motor público: "Comprar agora" registra o pedido pendente e manda direto pro carrinho. */
+  publicMode?: boolean;
 }) {
 
 
@@ -1036,7 +1045,9 @@ function SummaryCard({
   const n = Math.min(maxInstallments(airlineOf(out)), inb ? maxInstallments(airlineOf(inb)) : 99);
   const [orderOpen, setOrderOpen] = useState(false);
   const [cartUrl, setCartUrl] = useState<string | null>(null);
-  const createCart = useServerFn(onerCreateFlightCart);
+  const createCart = useServerFn(publicMode ? onerCreateFlightCartPublic : onerCreateFlightCart);
+  const logLead = useServerFn(createPublicFlightLead);
+  const [buyingPublic, setBuyingPublic] = useState(false);
 
   // Gera o carrinho oficial do Comprar Viagem (agência VIA AIR na URL),
   // para o cliente concluir o pagamento no ambiente da operadora.
@@ -1056,7 +1067,7 @@ function SummaryCard({
       }),
     onSuccess: (r) => {
       setCartUrl(r.url);
-      window.open(r.url, "_blank", "noopener");
+      if (!publicMode) window.open(r.url, "_blank", "noopener");
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erro ao gerar carrinho"),
   });
@@ -1125,7 +1136,7 @@ function SummaryCard({
               </div>
             </div>
 
-            {cartUrl && (
+            {cartUrl && !publicMode && (
               <div className="space-y-2 rounded-xl border border-primary/30 bg-primary/5 p-3">
                 <div className="text-xs font-semibold">Link do carrinho</div>
                 <div className="break-all text-[11px] text-muted-foreground">{cartUrl}</div>
@@ -1202,6 +1213,47 @@ function SummaryCard({
               >
                 Continuar para hospedagem
               </Button>
+            ) : publicMode ? (
+              <Button
+                disabled={!searchKey || buyingPublic}
+                onClick={async () => {
+                  if (!searchKey) return;
+                  setBuyingPublic(true);
+                  try {
+                    const r = await cartMut.mutateAsync();
+                    // Log do interesse: entra em /admin/pedidos como pendente.
+                    try {
+                      await logLead({
+                        data: {
+                          departureIata: ctx.departureIata,
+                          arrivalIata: ctx.arrivalIata,
+                          departureDate: ctx.departureDate,
+                          returnDate: ctx.returnDate,
+                          adults: ctx.adults,
+                          children: ctx.children,
+                          infants: ctx.infants,
+                          total,
+                          summary: summaryText,
+                          cartUrl: r.url,
+                        },
+                      });
+                    } catch {
+                      /* o log nunca pode travar a compra do cliente */
+                    }
+                    window.location.href = r.url;
+                  } catch {
+                    setBuyingPublic(false);
+                  }
+                }}
+                className="w-full py-6 text-xs font-black uppercase tracking-[0.15em]"
+              >
+                {buyingPublic ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <ShoppingCart className="h-4 w-4" />
+                )}
+                Comprar agora
+              </Button>
             ) : (
             <>
             <Button
@@ -1225,6 +1277,7 @@ function SummaryCard({
             </Button>
             </>
             )}
+
           </div>
         </DialogContent>
       </Dialog>
@@ -1371,15 +1424,18 @@ export function VoosPage({
   preset,
   runToken,
   onComboSelect,
+  publicMode = false,
 }: {
   header?: React.ReactNode;
   hideForm?: boolean;
   preset?: FlightPreset;
   runToken?: number;
   onComboSelect?: (pick: ComboPick) => void;
+  /** Motor aberto ao cliente final (sem login). */
+  publicMode?: boolean;
 } = {}) {
-  const search = useServerFn(onerFlightSearch);
-  const searchInbound = useServerFn(onerInboundSearch);
+  const search = useServerFn(publicMode ? onerFlightSearchPublic : onerFlightSearch);
+  const searchInbound = useServerFn(publicMode ? onerInboundSearchPublic : onerInboundSearch);
   const [form, setForm] = useState({
     departureIata: "CWB",
     arrivalIata: "GRU",
@@ -1637,6 +1693,7 @@ export function VoosPage({
                   </Label>
                   <AirportAutocomplete
                     value={form.departureIata}
+                    publicMode={publicMode}
                     isDeparture
                     placeholder="Cidade ou IATA (ex.: Curitiba / CWB)"
                     className="h-12 rounded-xl border-border/40 bg-muted/40 px-4 text-base font-semibold uppercase transition-all focus-visible:ring-2 focus-visible:ring-primary/50"
@@ -1650,6 +1707,7 @@ export function VoosPage({
                   </Label>
                   <AirportAutocomplete
                     value={form.arrivalIata}
+                    publicMode={publicMode}
                     isDeparture={false}
                     placeholder="Cidade ou IATA (ex.: São Paulo / GRU)"
                     className="h-12 rounded-xl border-border/40 bg-muted/40 px-4 text-base font-semibold uppercase transition-all focus-visible:ring-2 focus-visible:ring-primary/50"
@@ -1882,6 +1940,7 @@ export function VoosPage({
                     open={summaryOpen}
                     onOpenChange={setSummaryOpen}
                     onComboSelect={onComboSelect}
+                    publicMode={publicMode}
                   />
                 </>
               )}

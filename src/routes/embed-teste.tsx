@@ -31,6 +31,24 @@ function EmbedTestePage() {
   title="Pacotes em destaque VIA AIR"
 ></iframe>`;
 
+  const motorUrl = `${origin}/embed/motor-busca`;
+  const motorSnippet = `<iframe
+  src="${motorUrl}"
+  style="width:100%;max-width:1100px;height:260px;border:0;display:block;margin:0 auto;background:transparent;"
+  loading="lazy"
+  referrerpolicy="no-referrer-when-downgrade"
+  title="Buscar passagens aéreas VIA AIR"
+></iframe>`;
+
+  const [copiedMotor, setCopiedMotor] = useState(false);
+  async function copyMotor() {
+    try {
+      await navigator.clipboard.writeText(motorSnippet);
+      setCopiedMotor(true);
+      setTimeout(() => setCopiedMotor(false), 1800);
+    } catch {}
+  }
+
   const [copied, setCopied] = useState(false);
   async function copy() {
     try {
@@ -89,6 +107,45 @@ function EmbedTestePage() {
             No WordPress: adicione um bloco "HTML personalizado" onde o widget
             deve aparecer e cole o código acima. A altura padrão é 560px —
             ajuste no atributo <code>height</code> se precisar.
+          </p>
+        </div>
+        <div className="mt-12 rounded-2xl border border-white/10 bg-[#0a1622] p-4">
+          <div className="mb-3 text-xs uppercase tracking-widest text-white/40">
+            Widget do motor de busca (passagens aéreas)
+          </div>
+          <iframe
+            src="/embed/motor-busca"
+            style={{
+              width: "100%",
+              maxWidth: 1100,
+              height: 260,
+              border: 0,
+              display: "block",
+              margin: "0 auto",
+            }}
+            title="Buscar passagens aéreas VIA AIR"
+          />
+
+          <div className="mt-4 flex items-center justify-between">
+            <div className="text-xs uppercase tracking-widest text-white/40">
+              Código para colar no WordPress
+            </div>
+            <button
+              type="button"
+              onClick={copyMotor}
+              className="rounded-full bg-brand-orange px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-white hover:brightness-110"
+            >
+              {copiedMotor ? "Copiado!" : "Copiar"}
+            </button>
+          </div>
+          <pre className="mt-2 overflow-x-auto rounded-lg bg-black/60 p-4 text-xs leading-relaxed text-white/85">
+            <code>{motorSnippet}</code>
+          </pre>
+          <p className="mt-3 text-xs text-white/50">
+            Ao buscar, o visitante é levado para <code>{origin}/voar</code> com
+            os parâmetros preenchidos. Ao clicar em "Comprar agora" ele vai
+            direto pro carrinho da operadora e o sistema registra um pedido
+            pendente em /admin/pedidos.
           </p>
         </div>
       </div>
