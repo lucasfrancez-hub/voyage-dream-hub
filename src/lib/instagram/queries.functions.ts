@@ -353,6 +353,7 @@ export const listInstagramCommentThreads = createServerFn({ method: "GET" })
       media_caption: string | null;
       media_thumbnail: string | null;
       media_type: string | null;
+      collab: boolean;
       last_at: string | null;
       total: number;
       pendentes: number;
@@ -371,6 +372,7 @@ export const listInstagramCommentThreads = createServerFn({ method: "GET" })
         media_caption: null,
         media_thumbnail: null,
         media_type: null,
+        collab: false,
         last_at: null,
         total: 0,
         pendentes: 0,
@@ -380,12 +382,15 @@ export const listInstagramCommentThreads = createServerFn({ method: "GET" })
       t.media_caption = c.media_caption ?? t.media_caption;
       t.media_thumbnail = c.media_thumbnail ?? t.media_thumbnail;
       t.media_type = c.media_type ?? t.media_type;
+      // Publicação em colaboração: veio da varredura de posts marcados.
+      if ((c.metadata as { collab?: boolean } | null)?.collab) t.collab = true;
       t.last_at = c.created_at ?? t.last_at;
       t.total += 1;
       if (!c.read_at && !c.auto_replied_at && !c.auto_dm_sent_at) t.pendentes += 1;
       t.comments.push(c);
       threads.set(key, t);
     }
+
 
     return [...threads.values()].sort((a, b) => (b.last_at ?? "").localeCompare(a.last_at ?? ""));
   });
