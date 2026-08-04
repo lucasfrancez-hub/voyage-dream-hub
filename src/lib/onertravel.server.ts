@@ -133,7 +133,12 @@ async function poll(
   speed: PollSpeed = "normal",
 ): Promise<OnerLegResult> {
   const acc = new Map<string, OnerFlight>();
+  // Todas as tarifas vistas para o MESMO voo (mesma assinatura). A operadora
+  // combina ida+volta por tarifa/fornecedor: a mais barata às vezes não tem
+  // volta combinável, então guardamos as demais como plano B.
+  const fares = new Map<string, Map<string, number>>();
   const startedAt = Date.now();
+
   // Fornecedores publicam em ondas. Em vez de esperar sempre todas as rodadas,
   // paramos quando o conteúdo estabiliza (nada novo nem mais barato) — mesma
   // qualidade de resultado, bem menos espera.
@@ -169,12 +174,19 @@ async function poll(
         };
         for (const flight of json.flights ?? []) {
           const signature = flightSignature(flight);
+          let bucket = fares.get(signature);
+          if (!bucket) {
+            bucket = new Map<string, number>();
+            fares.set(signature, bucket);
+          }
+          if (flight.key && !bucket.has(flight.key)) bucket.set(flight.key, flight.price.total);
           const previous = acc.get(signature);
           if (!previous || flight.price.total < previous.price.total) {
             acc.set(signature, flight);
             changed = true;
           }
         }
+
         haveMore = !!json.haveMore && (json.flights?.length ?? 0) > 0;
         page++;
       } catch {
@@ -195,7 +207,16 @@ async function poll(
     if (i + 1 < maxRounds) await sleep(GAP_MS);
   }
 
-  const flights = [...acc.values()].sort((a, b) => a.price.total - b.price.total);
+  const flights = [...acc.entries()]
+    .map(([signature, flight]) => {
+      const ordered = [...(fares.get(signature)?.entries() ?? [])].sort((a, b) => a[1] - b[1]);
+      return {
+        ...flight,
+        altKeys: ordered.map(([key]) => key),
+        altTotals: ordered.map(([, total]) => total),
+      };
+    })
+    .sort((a, b) => a.price.total - b.price.total);
   const totals = flights.map((flight) => flight.price.total).filter(Number.isFinite);
   return {
     totalFlightsCount: flights.length,

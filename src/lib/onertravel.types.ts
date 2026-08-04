@@ -42,6 +42,14 @@ export type OnerFlight = {
     marketingAirline?: { iata?: string; name?: string; pathLogo?: string };
     segments: OnerSegment[];
   };
+  /**
+   * Outras tarifas (fornecedores) para exatamente o mesmo voo, da mais barata
+   * para a mais cara. A operadora combina ida+volta por tarifa: se a tarifa
+   * escolhida não tem volta combinável, tentamos a próxima daqui.
+   */
+  altKeys?: string[];
+  /** Preço de cada tarifa alternativa, na mesma ordem de altKeys. */
+  altTotals?: number[];
 };
 
 export type OnerLegResult = {
