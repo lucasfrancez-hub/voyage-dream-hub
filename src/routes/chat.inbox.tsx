@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { listConversations, listMessages, sendHumanReply, resendHumanMessage, sendHumanMedia, toggleConversationMode, startOutboundConversation, setFunnelStage, assignConversation, setAiPaused, listAttendants, getActiveProtocolo, closeProtocoloManually, listConversationProtocolos, getConversationOrders, updateProtocoloDetails, listProtocoloMessages, ensureProtocoloResumo, clearConversationHistory, markConversationRead } from "@/lib/chat/queries.functions";
-import { listInstagramAccounts, listInstagramConversations, listInstagramMessages, sendInstagramAttachment, sendInstagramReply, listInstagramCommentThreads, refreshInstagramProfile, triggerAutoReplyComment, markInstagramConversationRead, markInstagramCommentThreadRead, getInstagramMediaDetails } from "@/lib/instagram/queries.functions";
+import { listInstagramAccounts, listInstagramConversations, listInstagramMessages, sendInstagramAttachment, sendInstagramReply, listInstagramCommentThreads, refreshInstagramProfile, triggerAutoReplyComment, markInstagramConversationRead, markInstagramCommentThreadRead, getInstagramMediaDetails, deleteInstagramCommentThread } from "@/lib/instagram/queries.functions";
 import { firstName } from "@/lib/whatsapp/text-utils.shared";
 import { confirmThen } from "@/lib/confirm";
 import { audioBlobToMp3 } from "@/lib/audio-to-mp3";
@@ -2523,6 +2523,7 @@ function InstagramCommentThreadView({ mediaId, onBack }: { mediaId: string; onBa
 
   // Ao abrir a publicação, marca os comentários como lidos (badge some).
   const markReadFn = useServerFn(markInstagramCommentThreadRead);
+  const deleteThreadFn = useServerFn(deleteInstagramCommentThread);
   const jaMarcou = useRef<string | null>(null);
   useEffect(() => {
     if (!mediaId || jaMarcou.current === mediaId) return;
@@ -2603,16 +2604,31 @@ function InstagramCommentThreadView({ mediaId, onBack }: { mediaId: string; onBa
         <button onClick={onBack} className="mt-1 md:hidden" aria-label="Voltar">
           <ArrowLeft className="h-4 w-4 text-slate-500" />
         </button>
-        {thread?.media_thumbnail ? (
-          <img src={thread.media_thumbnail} alt="Publicação" className="h-10 w-10 shrink-0 rounded-md object-cover" />
-        ) : (
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-gradient-to-br from-purple-500 via-pink-500 to-orange-500 text-white">
-            <Instagram className="h-4 w-4" />
-          </div>
-        )}
+        <button
+          type="button"
+          onClick={() => setVerMidia(true)}
+          className={cn(
+            "relative shrink-0 overflow-hidden rounded-md border border-slate-200 bg-slate-200 transition-all",
+            postAberto ? "h-20 w-20" : "h-10 w-10",
+          )}
+          aria-label="Abrir publicação"
+        >
+          {thread?.media_thumbnail ? (
+            <img src={thread.media_thumbnail} alt="Publicação" className="h-full w-full object-cover" />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-purple-500 via-pink-500 to-orange-500 text-white">
+              <Instagram className="h-4 w-4" />
+            </div>
+          )}
+          {(thread?.media_type ?? "").toUpperCase().includes("VIDEO") && (
+            <span className="absolute inset-0 flex items-center justify-center bg-black/30">
+              <Play className={cn("fill-white text-white", postAberto ? "h-6 w-6" : "h-4 w-4")} />
+            </span>
+          )}
+        </button>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-slate-400">
-            Publicação{thread?.media_type ? ` · ${thread.media_type.toLowerCase()}` : ""}
+            Publicação{thread?.media_type ? ` · ${thread.media_type.toLowerCase()}` : ""} · {comments.length} comentário{comments.length === 1 ? "" : "s"}
             {thread?.collab && (
               <span className="rounded-full bg-[#F26B1F]/10 px-1.5 py-0.5 text-[9px] font-bold text-[#F26B1F]">
                 collab
@@ -2620,20 +2636,75 @@ function InstagramCommentThreadView({ mediaId, onBack }: { mediaId: string; onBa
             )}
           </div>
 
-          <p className="line-clamp-2 text-xs text-slate-700 [overflow-wrap:anywhere]">
+          <p
+            className={cn(
+              "text-xs text-slate-700 [overflow-wrap:anywhere]",
+              postAberto
+                ? "max-h-64 overflow-y-auto whitespace-pre-wrap leading-relaxed pr-1"
+                : "line-clamp-2",
+            )}
+          >
             {thread?.media_caption ?? "Sem legenda"}
           </p>
-          {thread?.media_permalink && (
-            <a
-              href={thread.media_permalink}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-0.5 text-[10px] text-slate-400 hover:text-[#F26B1F]"
+          <div className="flex flex-wrap items-center gap-3">
+            {thread?.media_permalink && (
+              <a
+                href={thread.media_permalink}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-0.5 text-[10px] text-slate-400 hover:text-[#F26B1F]"
+              >
+                <ExternalLink className="h-2.5 w-2.5" /> ver no Instagram
+              </a>
+            )}
+            <button
+              type="button"
+              onClick={() => setPostAberto((v) => !v)}
+              className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-slate-400 hover:text-[#F26B1F]"
             >
-              <ExternalLink className="h-2.5 w-2.5" /> ver no Instagram
-            </a>
-          )}
+              {postAberto ? (
+                <>
+                  <ChevronUp className="h-2.5 w-2.5" /> recolher
+                </>
+              ) : (
+                <>
+                  <ChevronDown className="h-2.5 w-2.5" /> expandir
+                </>
+              )}
+            </button>
+          </div>
         </div>
+        {thread && (
+          <button
+            type="button"
+            onClick={() =>
+              confirmThen(
+                {
+                  title: "Apagar histórico de comentários?",
+                  description:
+                    "Os comentários desta publicação serão removidos apenas aqui no painel. Nada é apagado no Instagram.",
+                  confirmText: "Apagar histórico",
+                  destructive: true,
+                },
+                async () => {
+                  try {
+                    await deleteThreadFn({ data: { media_id: thread.media_id } });
+                    toast.success("Histórico apagado");
+                    qc.invalidateQueries({ queryKey: ["ig", "comment-threads"] });
+                    onBack();
+                  } catch (e: unknown) {
+                    toast.error(e instanceof Error ? e.message : "Erro ao apagar histórico");
+                  }
+                },
+              )
+            }
+            className="mt-1 shrink-0 rounded-md p-1.5 text-slate-400 transition-colors hover:bg-red-50 hover:text-red-600"
+            aria-label="Apagar histórico"
+            title="Apagar histórico"
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
+        )}
       </header>
 
       {thread?.collab && (
@@ -2645,66 +2716,6 @@ function InstagramCommentThreadView({ mediaId, onBack }: { mediaId: string; onBa
 
 
 
-      {/* Card da publicação: capa, legenda e player pro vídeo */}
-      {thread && (
-        <div className="border-b border-slate-200 bg-slate-50 px-4 py-3">
-          <div className="flex gap-3">
-            <button
-              type="button"
-              onClick={() => setVerMidia(true)}
-              className="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl border border-slate-200 bg-slate-200"
-              aria-label="Abrir publicação"
-            >
-              {thread.media_thumbnail ? (
-                <img src={thread.media_thumbnail} alt="Publicação" className="h-full w-full object-cover" />
-              ) : (
-                <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-purple-500 via-pink-500 to-orange-500 text-white">
-                  <Instagram className="h-6 w-6" />
-                </div>
-              )}
-              {(thread.media_type ?? "").toUpperCase().includes("VIDEO") && (
-                <span className="absolute inset-0 flex items-center justify-center bg-black/30">
-                  <Play className="h-7 w-7 fill-white text-white" />
-                </span>
-              )}
-            </button>
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center justify-between gap-2">
-                <div className="min-w-0 text-[10px] font-semibold uppercase tracking-wide text-slate-400">
-                  {thread.media_type ? thread.media_type.toLowerCase() : "publicação"} · {comments.length} comentário{comments.length === 1 ? "" : "s"}
-                </div>
-                {legendaLonga && (
-                  <button
-                    type="button"
-                    onClick={() => setPostAberto((v) => !v)}
-                    className="inline-flex shrink-0 items-center gap-1 rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[10px] font-semibold text-slate-500 hover:text-[#F26B1F]"
-                  >
-                    {postAberto ? (
-                      <>
-                        <ChevronUp className="h-3 w-3" /> Recolher
-                      </>
-                    ) : (
-                      <>
-                        <ChevronDown className="h-3 w-3" /> Expandir
-                      </>
-                    )}
-                  </button>
-                )}
-              </div>
-              <p
-                className={cn(
-                  "mt-1 whitespace-pre-wrap text-xs leading-relaxed text-slate-700 [overflow-wrap:anywhere]",
-                  !postAberto && "line-clamp-3",
-                  postAberto && "max-h-64 overflow-y-auto pr-1",
-                )}
-              >
-                {thread.media_caption ?? "Sem legenda"}
-              </p>
-            </div>
-
-          </div>
-        </div>
-      )}
 
       <Dialog open={verMidia} onOpenChange={setVerMidia}>
         <DialogContent className="max-w-lg">

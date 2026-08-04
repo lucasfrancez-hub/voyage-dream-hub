@@ -437,3 +437,16 @@ export const getInstagramMediaDetails = createServerFn({ method: "POST" })
     const { fetchMediaDetails } = await import("./api.server");
     return fetchMediaDetails({ mediaId: data.media_id, token });
   });
+
+/** Apaga o histórico de comentários de uma publicação (não remove nada no Instagram). */
+export const deleteInstagramCommentThread = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { media_id: string }) => z.object({ media_id: z.string().min(1) }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase
+      .from("instagram_comments")
+      .delete()
+      .eq("media_id", data.media_id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
