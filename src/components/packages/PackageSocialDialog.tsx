@@ -181,6 +181,66 @@ export function PackageSocialDialog({
     }
   }
 
+  async function blobToBase64(blob: Blob) {
+    const buffer = new Uint8Array(await blob.arrayBuffer());
+    let binary = "";
+    const chunk = 8192;
+    for (let i = 0; i < buffer.length; i += chunk) {
+      binary += String.fromCharCode(...buffer.subarray(i, i + chunk));
+    }
+    return btoa(binary);
+  }
+
+  /** Gera a arte e publica direto no Instagram (feed ou story). */
+  async function publishArt(kind: "feed" | "story") {
+    if (!pkg?.image_url) {
+      toast.error("Cadastre a URL da imagem de capa do pacote antes de publicar.");
+      return;
+    }
+    const caption = output?.channel === "instagram" ? output.text : undefined;
+    if (kind === "feed" && !caption) {
+      toast.error("Gere a legenda do Instagram antes de publicar no feed.");
+      return;
+    }
+    const ok = await confirm({
+      title: kind === "feed" ? "Publicar no feed?" : "Publicar no story?",
+      description:
+        kind === "feed"
+          ? "A arte 3:4 e a legenda gerada serão publicadas agora no perfil do Instagram."
+          : "A arte 9:16 será publicada agora nos stories do Instagram.",
+      confirmText: "Publicar agora",
+    });
+    if (!ok) return;
+
+    setLoading(kind === "feed" ? "post-feed" : "post-story");
+    try {
+      const blob =
+        kind === "feed"
+          ? await (await import("@/lib/packages/feed-art")).renderPackageFeedArtBlob(pkg as any)
+          : await (await import("@/lib/packages/story-art")).renderPackageStoryArtBlob(pkg as any);
+
+      const res = await publishArtFn({
+        data: {
+          media_type: kind === "feed" ? "feed_image" : "story_image",
+          image_base64: await blobToBase64(blob),
+          caption,
+          package_id: typeof pkg.id === "string" ? pkg.id : undefined,
+          slug: typeof pkg.slug === "string" ? pkg.slug : undefined,
+        },
+      });
+      toast.success(kind === "feed" ? "Publicado no feed!" : "Publicado nos stories!", {
+        action: res.permalink
+          ? { label: "Ver post", onClick: () => window.open(res.permalink!, "_blank") }
+          : undefined,
+      });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Falha ao publicar no Instagram");
+    } finally {
+      setLoading(null);
+    }
+  }
+
+
   const autoKey = useRef<string | null>(null);
   useEffect(() => {
     if (!open || !pkg) return;
