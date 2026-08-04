@@ -47,6 +47,7 @@ import { Route as AdminNotasFiscaisRouteImport } from './routes/admin.notas-fisc
 import { Route as AdminPacotesRouteImport } from './routes/admin.pacotes'
 import { Route as AdminPessoasRouteImport } from './routes/admin.pessoas'
 import { Route as AdminSegurancaRouteImport } from './routes/admin.seguranca'
+import { Route as AdminSegurosRouteImport } from './routes/admin.seguros'
 import { Route as AdminUsuariosRouteImport } from './routes/admin.usuarios'
 import { Route as AdminVoosTesteRouteImport } from './routes/admin.voos-teste'
 import { Route as AgendaTokenRouteImport } from './routes/agenda.$token'
@@ -300,6 +301,11 @@ const AdminPessoasRoute = AdminPessoasRouteImport.update({
 const AdminSegurancaRoute = AdminSegurancaRouteImport.update({
   id: '/seguranca',
   path: '/seguranca',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminSegurosRoute = AdminSegurosRouteImport.update({
+  id: '/seguros',
+  path: '/seguros',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminUsuariosRoute = AdminUsuariosRouteImport.update({
@@ -686,6 +692,7 @@ export interface FileRoutesByFullPath {
   '/admin/pacotes': typeof AdminPacotesRoute
   '/admin/pessoas': typeof AdminPessoasRouteWithChildren
   '/admin/seguranca': typeof AdminSegurancaRoute
+  '/admin/seguros': typeof AdminSegurosRoute
   '/admin/usuarios': typeof AdminUsuariosRoute
   '/admin/voos-teste': typeof AdminVoosTesteRoute
   '/agenda/$token': typeof AgendaTokenRoute
@@ -789,6 +796,7 @@ export interface FileRoutesByTo {
   '/admin/pacotes': typeof AdminPacotesRoute
   '/admin/pessoas': typeof AdminPessoasRouteWithChildren
   '/admin/seguranca': typeof AdminSegurancaRoute
+  '/admin/seguros': typeof AdminSegurosRoute
   '/admin/usuarios': typeof AdminUsuariosRoute
   '/admin/voos-teste': typeof AdminVoosTesteRoute
   '/agenda/$token': typeof AgendaTokenRoute
@@ -894,6 +902,7 @@ export interface FileRoutesById {
   '/admin/pacotes': typeof AdminPacotesRoute
   '/admin/pessoas': typeof AdminPessoasRouteWithChildren
   '/admin/seguranca': typeof AdminSegurancaRoute
+  '/admin/seguros': typeof AdminSegurosRoute
   '/admin/usuarios': typeof AdminUsuariosRoute
   '/admin/voos-teste': typeof AdminVoosTesteRoute
   '/agenda/$token': typeof AgendaTokenRoute
@@ -1000,6 +1009,7 @@ export interface FileRouteTypes {
     | '/admin/pacotes'
     | '/admin/pessoas'
     | '/admin/seguranca'
+    | '/admin/seguros'
     | '/admin/usuarios'
     | '/admin/voos-teste'
     | '/agenda/$token'
@@ -1103,6 +1113,7 @@ export interface FileRouteTypes {
     | '/admin/pacotes'
     | '/admin/pessoas'
     | '/admin/seguranca'
+    | '/admin/seguros'
     | '/admin/usuarios'
     | '/admin/voos-teste'
     | '/agenda/$token'
@@ -1207,6 +1218,7 @@ export interface FileRouteTypes {
     | '/admin/pacotes'
     | '/admin/pessoas'
     | '/admin/seguranca'
+    | '/admin/seguros'
     | '/admin/usuarios'
     | '/admin/voos-teste'
     | '/agenda/$token'
@@ -1603,6 +1615,13 @@ declare module '@tanstack/react-router' {
       path: '/seguranca'
       fullPath: '/admin/seguranca'
       preLoaderRoute: typeof AdminSegurancaRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/seguros': {
+      id: '/admin/seguros'
+      path: '/seguros'
+      fullPath: '/admin/seguros'
+      preLoaderRoute: typeof AdminSegurosRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/usuarios': {
@@ -2088,6 +2107,7 @@ interface AdminRouteChildren {
   AdminPacotesRoute: typeof AdminPacotesRoute
   AdminPessoasRoute: typeof AdminPessoasRouteWithChildren
   AdminSegurancaRoute: typeof AdminSegurancaRoute
+  AdminSegurosRoute: typeof AdminSegurosRoute
   AdminUsuariosRoute: typeof AdminUsuariosRoute
   AdminVoosTesteRoute: typeof AdminVoosTesteRoute
   AdminPedidosIdRoute: typeof AdminPedidosIdRoute
@@ -2115,6 +2135,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminPacotesRoute: AdminPacotesRoute,
   AdminPessoasRoute: AdminPessoasRouteWithChildren,
   AdminSegurancaRoute: AdminSegurancaRoute,
+  AdminSegurosRoute: AdminSegurosRoute,
   AdminUsuariosRoute: AdminUsuariosRoute,
   AdminVoosTesteRoute: AdminVoosTesteRoute,
   AdminPedidosIdRoute: AdminPedidosIdRoute,

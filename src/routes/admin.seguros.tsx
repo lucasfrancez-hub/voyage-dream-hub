@@ -237,8 +237,8 @@ export function SegurosPage({ header }: { header?: React.ReactNode } = {}) {
             <div className="space-y-1.5">
               <Label className="text-xs text-muted-foreground">Período da viagem</Label>
               <DateRangeField
-                startDate={startDate}
-                endDate={endDate}
+                departureDate={startDate}
+                returnDate={endDate}
                 onChange={(s, e) => {
                   setStartDate(s);
                   setEndDate(e);
