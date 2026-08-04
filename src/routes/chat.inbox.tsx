@@ -2227,12 +2227,26 @@ function InstagramConversationView({
         ) : msgs.length === 0 ? (
           <div className="text-center text-xs text-slate-400">Nenhuma mensagem</div>
         ) : (
-          msgs.map((m) => (
+          msgs.map((m) => {
+            // A IA envia com o prefixo "*Nome:*" — mostramos o consultor igual no WhatsApp.
+            const bruto = (m.text ?? "") as string;
+            const casa = bruto.match(/^\*([^*\n]{2,40}):\*\s*\n?/);
+            const remetente = casa?.[1] ?? null;
+            const corpo = casa ? bruto.slice(casa[0].length) : bruto;
+            return (
             <div key={m.id} className={cn("flex", m.direction === "outbound" ? "justify-end" : "justify-start")}>
               <div className={cn(
                 "max-w-[70%] rounded-2xl px-3 py-2 text-sm shadow-sm",
                 m.direction === "outbound" ? "bg-[#F26B1F] text-white" : "bg-white text-slate-900",
               )}>
+                {remetente && (
+                  <div className={cn(
+                    "mb-0.5 text-[11px] font-semibold",
+                    m.direction === "outbound" ? "text-white" : "text-[#F26B1F]",
+                  )}>
+                    {remetente}:
+                  </div>
+                )}
                 {m.attachment_url ? (
                   (m.message_type ?? "").includes("audio") ? (
                     <audio controls src={m.attachment_url} className="max-w-[240px]" />
@@ -2248,7 +2262,8 @@ function InstagramConversationView({
                     </a>
                   )
                 ) : null}
-                {m.text ? <div className="whitespace-pre-wrap break-words">{m.text}</div> : null}
+                {corpo ? <div className="whitespace-pre-wrap break-words">{corpo}</div> : null}
+
                 <div className={cn("mt-0.5 text-[10px]", m.direction === "outbound" ? "text-white/70" : "text-slate-400")}>
                   {new Date(m.created_at as string).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
                   {m.status === "failed" ? " · não entregue" : ""}
