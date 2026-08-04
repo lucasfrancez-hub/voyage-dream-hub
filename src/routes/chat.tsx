@@ -14,7 +14,7 @@ import { ChatPinUnlock } from "@/components/chat/ChatPinUnlock";
 
 export const Route = createFileRoute("/chat")({
   ssr: false,
-  component: ChatLayout,
+  component: ChatRoute,
   head: () => ({
     meta: [
       { title: "VIA AIR Chat — Central de Atendimento" },
