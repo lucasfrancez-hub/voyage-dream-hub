@@ -67,7 +67,7 @@ function fieldShell(children: React.ReactNode) {
   );
 }
 
-function PlanCard({ plan }: { plan: InsurancePlan }) {
+function PlanCard({ plan, onSelect }: { plan: InsurancePlan; onSelect?: () => void }) {
   const [open, setOpen] = useState(false);
   const highlights = plan.coverages.filter((c) => c.showInResults || c.isDMH).slice(0, 6);
   const list = open ? plan.coverages : highlights;
