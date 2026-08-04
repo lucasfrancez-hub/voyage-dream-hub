@@ -880,7 +880,7 @@ export type CarPreset = {
 };
 
 export function CarrosPage({ header }: { header?: React.ReactNode } = {}) {
-  const searchCars = useServerFn(onerCarSearch);
+  const searchCars = useServerFn(useIsPublicEngine() ? onerCarSearchPublic : onerCarSearch);
 
   const [pickup, setPickup] = useState<OnerCarLocation | null>(null);
   const [dropoff, setDropoff] = useState<OnerCarLocation | null>(null);
