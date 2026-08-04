@@ -43,7 +43,7 @@ export const Route = createFileRoute("/admin/buscar")({
   component: BuscarPage,
 });
 
-type Mode = "aereo" | "hotel" | "carro" | "combo" | "exclusivo" | "seguro";
+export type Mode = "aereo" | "hotel" | "carro" | "combo" | "exclusivo" | "seguro";
 
 /** Motor interno: todos os modos liberados. O bloqueio de hotel/carro/pacote
  * vale apenas para o chatbot do WhatsApp. */
