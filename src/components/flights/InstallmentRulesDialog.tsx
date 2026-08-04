@@ -4,6 +4,8 @@
  */
 import { useMemo, useState, type ReactNode } from "react";
 import { CreditCard, Search, Check } from "lucide-react";
+import { AirlineLogo } from "@/components/AirlineLogo";
+
 import {
   Dialog,
   DialogContent,
