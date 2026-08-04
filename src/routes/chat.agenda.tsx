@@ -338,6 +338,45 @@ function AgendaPage() {
 
         {/* Calendário */}
         <main className="min-w-0 flex-1 space-y-4">
+          {(() => {
+            const doDia = (porDia.get(hoje) ?? []).slice().sort((a, b) => a.inicio.localeCompare(b.inicio));
+            const diaInteiro = doDia.filter((e) => e.dia_inteiro);
+            const comHora = doDia.filter((e) => !e.dia_inteiro);
+            if (doDia.length === 0) return null;
+            return (
+              <section className="rounded-xl border border-primary/30 bg-primary/5 p-4">
+                <h2 className="mb-2 text-sm font-semibold text-foreground">Hoje</h2>
+                {diaInteiro.length > 0 && (
+                  <ul className="mb-2 flex flex-wrap gap-2">
+                    {diaInteiro.map((e) => (
+                      <li key={e.id}>
+                        <button
+                          type="button"
+                          onClick={() => setDetalhe(e)}
+                          className="rounded-full border border-primary/40 bg-background px-3 py-1 text-xs font-medium text-foreground hover:bg-primary/10"
+                        >
+                          Dia inteiro · {e.titulo}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                <ul className="space-y-1">
+                  {comHora.map((e) => (
+                    <li key={e.id} className="text-sm">
+                      <button
+                        type="button"
+                        onClick={() => setDetalhe(e)}
+                        className="text-left text-foreground hover:underline"
+                      >
+                        <span className="font-semibold text-primary">{hora(e.inicio)}</span> {e.titulo}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            );
+          })()}
           <div className="flex items-center gap-2">
             <Button
               variant="ghost"
