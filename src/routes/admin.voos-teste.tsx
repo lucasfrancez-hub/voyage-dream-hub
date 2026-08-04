@@ -1955,6 +1955,21 @@ export function VoosPage({
                       Nenhuma volta com esses filtros.
                     </p>
                   )}
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    disabled={moreInboundMut.isPending || inboundMut.isPending}
+                    onClick={() => moreInboundMut.mutate()}
+                  >
+                    {moreInboundMut.isPending ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Buscando mais companhias…
+                      </>
+                    ) : (
+                      `Ver mais voltas (${inFlights.length} exibidas)`
+                    )}
+                  </Button>
                 </section>
               )}
 
