@@ -143,8 +143,10 @@ export function ExclusivosPage({ header }: { header?: React.ReactNode } = {}) {
   const [result, setResult] = useState<ExclusiveSearchResult | null>(null);
   const [detail, setDetail] = useState<ExclusiveProduct | null>(null);
 
-  const loadCriteria = useServerFn(onerExclusiveCriteria);
-  const search = useServerFn(onerExclusiveSearch);
+  const isPublic = useIsPublicEngine();
+  const loadCriteria = useServerFn(isPublic ? onerExclusiveCriteriaPublic : onerExclusiveCriteria);
+  const search = useServerFn(isPublic ? onerExclusiveSearchPublic : onerExclusiveSearch);
+
 
   useEffect(() => {
     loadCriteria()

@@ -485,6 +485,7 @@ function HotelSummaryDialog({
   searchKey,
   onChangeRate,
   onComboSelect,
+  publicMode = false,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
@@ -500,12 +501,14 @@ function HotelSummaryDialog({
   searchKey: string;
   onChangeRate: (rateKey: string) => void;
   onComboSelect?: (pick: ComboPick) => void;
+  publicMode?: boolean;
 }) {
-  const createCart = useServerFn(onerCreateHotelCart);
-  const loadRooms = useServerFn(onerHotelRooms);
+  const createCart = useServerFn(publicMode ? onerCreateHotelCartPublic : onerCreateHotelCart);
+  const loadRooms = useServerFn(publicMode ? onerHotelRoomsPublic : onerHotelRooms);
   const [cartUrl, setCartUrl] = useState<string | null>(null);
   const [roomsOpen, setRoomsOpen] = useState(true);
   const [orderOpen, setOrderOpen] = useState(false);
+  const [buyingPublic, setBuyingPublic] = useState(false);
   /* tarifa escolhida na lista completa de acomodações (busca dedicada) */
   const [pickedRate, setPickedRate] = useState<OnerRoomRate | null>(null);
 
@@ -567,8 +570,10 @@ function HotelSummaryDialog({
       }),
     onSuccess: (r) => {
       setCartUrl(r.url);
-      window.open(r.url, "_blank", "noopener");
-      toast.success("Link do Comprar Viagem gerado");
+      if (!publicMode) {
+        window.open(r.url, "_blank", "noopener");
+        toast.success("Link do Comprar Viagem gerado");
+      }
     },
     onError: (e: Error) => toast.error(e.message),
   });
