@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useIsPublicEngine } from "@/lib/public-engine";
+import { SearchSkeleton } from "@/components/search/SearchSkeleton";
 import {
   onerInsuranceDestinationsPublic,
   onerInsuranceSearchPublic,
