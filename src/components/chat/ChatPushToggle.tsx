@@ -73,12 +73,7 @@ export function ChatPushToggle() {
       }
       const reg = await navigator.serviceWorker.register("/chat-sw.js");
       await navigator.serviceWorker.ready;
-      const sub =
-        (await reg.pushManager.getSubscription()) ??
-        (await reg.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: b64urlParaUint8(vapid) as BufferSource,
-        }));
+      const sub = await assinarPush(reg, vapid);
       const j = sub.toJSON() as { endpoint?: string; keys?: { p256dh?: string; auth?: string } };
       await salvar({
         data: { endpoint: j.endpoint!, p256dh: j.keys!.p256dh!, auth: j.keys!.auth!, userAgent: navigator.userAgent },
