@@ -4,8 +4,8 @@
  * (aéreo, hotel, carro, aéreo+hotel, exclusivos e seguros) em modo público.
  */
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect } from "react";
 import { PublicEngineProvider } from "@/lib/public-engine";
+import { useEmbedAutoResize } from "@/hooks/use-embed-auto-resize";
 import { SearchEngine } from "./admin.buscar";
 
 export const Route = createFileRoute("/embed/motor-busca")({
@@ -20,36 +20,18 @@ export const Route = createFileRoute("/embed/motor-busca")({
 });
 
 function EmbedMotorBusca() {
-  // O redimensionamento automático é opcional. Sem `autoHeight=1`, a altura
-  // definida manualmente no HTML do WordPress nunca é sobrescrita.
-  useEffect(() => {
-    const autoHeight = new URLSearchParams(window.location.search).get("autoHeight") === "1";
-    if (!autoHeight) return;
-
-    const post = () => {
-      const h = Math.ceil(document.documentElement.scrollHeight);
-      window.parent?.postMessage({ type: "viaair-embed-height", height: h }, "*");
-    };
-    post();
-    const ro = new ResizeObserver(post);
-    ro.observe(document.body);
-    const t = setInterval(post, 1000);
-    return () => {
-      ro.disconnect();
-      clearInterval(t);
-    };
-  }, []);
+  useEmbedAutoResize();
 
   return (
-    <div className="w-full p-0">
+    <div className="embed-search-page w-full p-0">
       <style>{`
-        html,body,#root{background:transparent !important;margin:0;padding:0;}
+        html,body,#root{background:transparent !important;margin:0;padding:0;min-height:0;overflow-x:hidden;overflow-y:visible;}
+        .embed-search-page{overflow:visible;}
         /* remove o brilho azul de fundo dos cabeçalhos do motor no widget */
         [style*="brand-blue"]{background:none !important;opacity:0 !important;}
-        header{background:transparent !important;}
+        header{background:transparent !important;overflow:visible !important;}
         /* no widget não mostramos os avisos de "informe os locais" — só o motor */
         [data-empty-state]{display:none !important;}
-
       `}</style>
       <PublicEngineProvider value={true}>
         <SearchEngine publicMode embedMode initialMode="aereo" />
