@@ -3,7 +3,7 @@
  * Abre a partir do rodapé do motor de busca ("Consulte aqui").
  */
 import { useMemo, useState, type ReactNode } from "react";
-import { CreditCard, Search, Info } from "lucide-react";
+import { CreditCard, Search, Check } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -101,23 +101,22 @@ export function InstallmentRulesDialog({ trigger }: { trigger: ReactNode }) {
           </div>
         </div>
 
-        <div className="border-t border-border/60 bg-background/40 px-6 py-4 space-y-4">
-          <div className="flex items-start gap-2 text-xs text-muted-foreground">
-            <Info className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-            <div className="space-y-1">
-              <p>
-                A quantidade final de parcelas sempre respeita a parcela mínima da
-                companhia e aparece no seu pedido antes do pagamento.
-              </p>
-              <p>
-                Companhias sem parcela mínima: condição válida para rotas com origem
-                ou destino no Brasil.
-              </p>
-              <p>O pagamento pode ser dividido em até 3 cartões de crédito.</p>
-              <p>Parcelas mínimas em USD são convertidas pelo câmbio do dia.</p>
-            </div>
-          </div>
+        <div className="border-t border-border/60 bg-background/40 px-6 py-4">
+          <ul className="space-y-2 text-xs text-muted-foreground">
+            {[
+              "O parcelamento segue as regras da companhia aérea, e a quantidade final de parcelas é informada antes da finalização do pedido.",
+              "Válido apenas para viagens com origem ou destino no Brasil.",
+              "Pagamento em até 3 cartões de crédito.",
+              "Parcelas mínimas em USD são convertidas pela cotação do dia.",
+            ].map((t) => (
+              <li key={t} className="flex items-start gap-2">
+                <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                <span className="leading-relaxed">{t}</span>
+              </li>
+            ))}
+          </ul>
         </div>
+
 
       </DialogContent>
     </Dialog>
