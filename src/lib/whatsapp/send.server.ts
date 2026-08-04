@@ -60,14 +60,17 @@ async function igSendMediaUrl(
 ): Promise<{ id: string | null; error?: string } | null> {
   const rota = await igRouting(to);
   if (!rota) return null;
+  const mime =
+    type === "image" ? "image/jpeg" : type === "audio" ? "audio/mpeg" : type === "video" ? "video/mp4" : "application/octet-stream";
   try {
-    const { sendDirectAttachment } = await import("@/lib/instagram/api.server");
-    const r = (await sendDirectAttachment({ ...rota, url, type })) as { message_id?: string };
-    return { id: r.message_id ?? null };
+    const { sendInstagramMediaSmart } = await import("@/lib/instagram/send-media.server");
+    const r = await sendInstagramMediaSmart({ ...rota, url, mime });
+    return { id: r.message_id, ...(r.message_id ? {} : { error: r.error ?? "Instagram não confirmou o envio" }) };
   } catch (err) {
     return { id: null, error: err instanceof Error ? err.message : String(err) };
   }
 }
+
 
 // ================== Meta Cloud API ==================
 
