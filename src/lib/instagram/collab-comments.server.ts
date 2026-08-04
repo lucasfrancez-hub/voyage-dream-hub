@@ -48,36 +48,40 @@ export async function syncCollabComments(): Promise<CollabSyncResult> {
       const ids = midia.comments.map((c) => c.id);
       const { data: existentes } = await supabaseAdmin
         .from("instagram_comments")
-        .select("comment_id")
+        .select("comment_id, auto_reply_status")
         .in("comment_id", ids);
-      const jaTem = new Set((existentes ?? []).map((r) => r.comment_id));
+      const jaTem = new Map((existentes ?? []).map((r) => [r.comment_id, r.auto_reply_status]));
 
       // Do mais antigo pro mais novo, pra respeitar a ordem da conversa.
-      const novos = midia.comments
-        .filter((c) => c.id && !jaTem.has(c.id))
+      const aTratar = midia.comments
+        .filter((c) => c.id)
         .filter((c) => !conta.username || c.username?.toLowerCase() !== conta.username.toLowerCase())
+        .filter((c) => !jaTem.has(c.id) || jaTem.get(c.id) === "pending")
         .sort((a, b) => (a.timestamp ?? "").localeCompare(b.timestamp ?? ""));
 
-      for (const c of novos) {
-        const { error } = await supabaseAdmin.from("instagram_comments").insert({
-          account_id: conta.id,
-          media_id: midia.mediaId,
-          comment_id: c.id,
-          parent_comment_id: c.parentId ?? null,
-          from_username: c.username ?? null,
-          text: c.text ?? null,
-          media_caption: midia.caption,
-          media_thumbnail: midia.thumbnail,
-          media_type: midia.mediaType,
-          media_permalink: midia.permalink,
-          created_at: c.timestamp ?? new Date().toISOString(),
-          metadata: { origem: "collab_sync", collab: true },
-        });
-        if (error) {
-          resultado.erros.push(`insert ${c.id}: ${error.message}`);
-          continue;
+      for (const c of aTratar) {
+        if (!jaTem.has(c.id)) {
+          const { error } = await supabaseAdmin.from("instagram_comments").insert({
+            account_id: conta.id,
+            media_id: midia.mediaId,
+            comment_id: c.id,
+            parent_comment_id: c.parentId ?? null,
+            from_username: c.username ?? null,
+            text: c.text ?? null,
+            media_caption: midia.caption,
+            media_thumbnail: midia.thumbnail,
+            media_type: midia.mediaType,
+            media_permalink: midia.permalink,
+            created_at: c.timestamp ?? new Date().toISOString(),
+            metadata: { origem: "collab_sync", collab: true },
+          });
+          if (error) {
+            resultado.erros.push(`insert ${c.id}: ${error.message}`);
+            continue;
+          }
+          resultado.novos++;
         }
-        resultado.novos++;
+
 
         try {
           const { isAiGloballyOff } = await import("@/lib/whatsapp/ai-global-switch.server");
