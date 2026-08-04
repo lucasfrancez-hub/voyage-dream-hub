@@ -153,8 +153,12 @@ export function SegurosPage({ header }: { header?: React.ReactNode } = {}) {
   const [ages, setAges] = useState<number[]>([35]);
   const [result, setResult] = useState<InsuranceSearchResult | null>(null);
 
-  const loadDestinations = useServerFn(onerInsuranceDestinations);
-  const search = useServerFn(onerInsuranceSearch);
+  const isPublic = useIsPublicEngine();
+  const loadDestinations = useServerFn(
+    isPublic ? onerInsuranceDestinationsPublic : onerInsuranceDestinations,
+  );
+  const search = useServerFn(isPublic ? onerInsuranceSearchPublic : onerInsuranceSearch);
+
 
   useEffect(() => {
     loadDestinations()
