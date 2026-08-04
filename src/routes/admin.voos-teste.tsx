@@ -1224,6 +1224,8 @@ function SummaryCard({
                 onClick={async () => {
                   if (!searchKey) return;
                   setBuyingPublic(true);
+                  // abre a aba ANTES do await pra não ser bloqueada pelo navegador
+                  const tab = window.open("", "_blank", "noopener");
                   try {
                     const r = await cartMut.mutateAsync();
                     // Log do interesse: entra em /admin/pedidos como pendente.
@@ -1233,7 +1235,7 @@ function SummaryCard({
                           departureIata: ctx.departureIata,
                           arrivalIata: ctx.arrivalIata,
                           departureDate: ctx.departureDate,
-                          returnDate: ctx.returnDate,
+                          returnDate: ctx.returnDate ?? null,
                           adults: ctx.adults,
                           children: ctx.children,
                           infants: ctx.infants,
@@ -1242,11 +1244,15 @@ function SummaryCard({
                           cartUrl: r.url,
                         },
                       });
-                    } catch {
-                      /* o log nunca pode travar a compra do cliente */
+                    } catch (e) {
+                      // o log nunca pode travar a compra do cliente
+                      console.error("[public-lead] falha ao registrar pedido pendente", e);
                     }
-                    window.location.href = r.url;
+                    if (tab) tab.location.href = r.url;
+                    else window.open(r.url, "_blank", "noopener");
+                    setBuyingPublic(false);
                   } catch {
+                    tab?.close();
                     setBuyingPublic(false);
                   }
                 }}
