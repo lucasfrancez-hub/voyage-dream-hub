@@ -287,6 +287,22 @@ export async function fetchMediaInfo(params: { mediaId: string; token: string })
   };
 }
 
+/** Igual ao fetchMediaInfo, mas devolve também o arquivo (vídeo/imagem) pra tocar no painel. */
+export async function fetchMediaDetails(params: { mediaId: string; token: string }) {
+  const json = await fetchGraph(
+    `/${params.mediaId}?fields=caption,media_type,media_url,thumbnail_url,permalink,timestamp`,
+    { method: "GET", token: params.token, operation: "media_details" },
+  );
+  return {
+    caption: (json.caption as string) ?? null,
+    media_type: (json.media_type as string) ?? null,
+    media_url: (json.media_url as string) ?? null,
+    thumbnail: (json.thumbnail_url as string) ?? (json.media_url as string) ?? null,
+    permalink: (json.permalink as string) ?? null,
+  };
+}
+
+
 /** Anexo por URL (áudio, imagem, vídeo ou arquivo) numa DM. */
 export async function sendDirectAttachment(params: {
   igUserId: string;
