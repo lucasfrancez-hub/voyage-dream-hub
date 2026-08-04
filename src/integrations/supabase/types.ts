@@ -4108,6 +4108,7 @@ export type Database = {
       wa_calendar_events: {
         Row: {
           account_id: string | null
+          concluido_em: string | null
           conversation_id: string | null
           created_at: string
           criado_por: string | null
@@ -4115,23 +4116,30 @@ export type Database = {
           descricao: string | null
           detalhes: Json
           dia_inteiro: boolean
+          end_date: string | null
           etag: string | null
           fim: string
           href: string | null
           id: string
           inicio: string
           local: string | null
+          notification_processed_at: string | null
+          notifications_enabled: boolean
           origem: string
           provider: string
           raw_ics: string | null
+          reminder_minutes: number[]
           situacao: string
+          start_date: string | null
           telefone: string | null
+          timezone: string
           titulo: string
           uid: string
           updated_at: string
         }
         Insert: {
           account_id?: string | null
+          concluido_em?: string | null
           conversation_id?: string | null
           created_at?: string
           criado_por?: string | null
@@ -4139,23 +4147,30 @@ export type Database = {
           descricao?: string | null
           detalhes?: Json
           dia_inteiro?: boolean
+          end_date?: string | null
           etag?: string | null
           fim: string
           href?: string | null
           id?: string
           inicio: string
           local?: string | null
+          notification_processed_at?: string | null
+          notifications_enabled?: boolean
           origem?: string
           provider?: string
           raw_ics?: string | null
+          reminder_minutes?: number[]
           situacao?: string
+          start_date?: string | null
           telefone?: string | null
+          timezone?: string
           titulo?: string
           uid: string
           updated_at?: string
         }
         Update: {
           account_id?: string | null
+          concluido_em?: string | null
           conversation_id?: string | null
           created_at?: string
           criado_por?: string | null
@@ -4163,17 +4178,23 @@ export type Database = {
           descricao?: string | null
           detalhes?: Json
           dia_inteiro?: boolean
+          end_date?: string | null
           etag?: string | null
           fim?: string
           href?: string | null
           id?: string
           inicio?: string
           local?: string | null
+          notification_processed_at?: string | null
+          notifications_enabled?: boolean
           origem?: string
           provider?: string
           raw_ics?: string | null
+          reminder_minutes?: number[]
           situacao?: string
+          start_date?: string | null
           telefone?: string | null
+          timezone?: string
           titulo?: string
           uid?: string
           updated_at?: string
@@ -4187,6 +4208,98 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      wa_calendar_notification_jobs: {
+        Row: {
+          attempts: number
+          created_at: string
+          event_id: string
+          id: string
+          idempotency_key: string
+          last_error: string | null
+          processed_at: string | null
+          reminder_type: string
+          scheduled_for: string
+          status: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          attempts?: number
+          created_at?: string
+          event_id: string
+          id?: string
+          idempotency_key: string
+          last_error?: string | null
+          processed_at?: string | null
+          reminder_type: string
+          scheduled_for: string
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          attempts?: number
+          created_at?: string
+          event_id?: string
+          id?: string
+          idempotency_key?: string
+          last_error?: string | null
+          processed_at?: string | null
+          reminder_type?: string
+          scheduled_for?: string
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wa_calendar_notification_jobs_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "wa_calendar_events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wa_calendar_notify_prefs: {
+        Row: {
+          ativo: boolean
+          aviso_vespera: boolean
+          created_at: string
+          hora_dia_inteiro: number
+          hora_vespera: number
+          lembretes: number[]
+          som: boolean
+          timezone: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ativo?: boolean
+          aviso_vespera?: boolean
+          created_at?: string
+          hora_dia_inteiro?: number
+          hora_vespera?: number
+          lembretes?: number[]
+          som?: boolean
+          timezone?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ativo?: boolean
+          aviso_vespera?: boolean
+          created_at?: string
+          hora_dia_inteiro?: number
+          hora_vespera?: number
+          lembretes?: number[]
+          som?: boolean
+          timezone?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       wa_calendar_push_log: {
         Row: {
@@ -4274,6 +4387,7 @@ export type Database = {
           last_success_at: string | null
           last_test_at: string | null
           p256dh: string
+          pref_agenda: boolean
           pref_instagram: boolean
           pref_novas: boolean
           updated_at: string
@@ -4291,6 +4405,7 @@ export type Database = {
           last_success_at?: string | null
           last_test_at?: string | null
           p256dh: string
+          pref_agenda?: boolean
           pref_instagram?: boolean
           pref_novas?: boolean
           updated_at?: string
@@ -4308,6 +4423,7 @@ export type Database = {
           last_success_at?: string | null
           last_test_at?: string | null
           p256dh?: string
+          pref_agenda?: boolean
           pref_instagram?: boolean
           pref_novas?: boolean
           updated_at?: string
@@ -5354,6 +5470,29 @@ export type Database = {
     }
     Functions: {
       _iata_city: { Args: { code: string }; Returns: string }
+      claim_calendar_jobs: {
+        Args: { p_limit?: number }
+        Returns: {
+          attempts: number
+          created_at: string
+          event_id: string
+          id: string
+          idempotency_key: string
+          last_error: string | null
+          processed_at: string | null
+          reminder_type: string
+          scheduled_for: string
+          status: string
+          updated_at: string
+          user_id: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "wa_calendar_notification_jobs"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       close_protocol_and_reset_runtime: {
         Args: { p_protocol_id: string; p_reason?: string; p_status?: string }
         Returns: Json
