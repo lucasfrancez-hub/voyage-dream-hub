@@ -432,7 +432,13 @@ export async function atualizarEvento(id: string, patch: Partial<EntradaEvento>)
 
   const { data, error } = await supabaseAdmin
     .from("wa_calendar_events")
-    .update({ ...merged, raw_ics: ics ?? undefined })
+    .update({
+      ...merged,
+      raw_ics: ics ?? undefined,
+      ...(ev.dia_inteiro
+        ? { start_date: diaNoFuso(merged.inicio, ev.timezone), end_date: diaNoFuso(merged.fim, ev.timezone) }
+        : {}),
+    })
     .eq("id", id)
     .select(CAMPOS_EVENTO)
     .single();
