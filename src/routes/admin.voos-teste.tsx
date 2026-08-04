@@ -121,7 +121,12 @@ const CITY_CODES = new Set([
   "BER",
 ]);
 function taxesOf(f: OnerFlight) {
-  return (f.price.tax ?? 0) + (f.price.serviceTax ?? 0);
+  // A operadora já devolve total = price + tax (o serviceTax está embutido em tax).
+  // Somar serviceTax de novo inflava as taxas exibidas.
+  const total = f.price.total ?? 0;
+  const fare = f.price.price ?? 0;
+  const tax = f.price.tax ?? 0;
+  return total && fare ? Math.max(total - fare, 0) : tax;
 }
 function airlineOf(f: OnerFlight) {
   return f.journey.marketingAirline ?? f.journey.segments[0]?.marketingAirline ?? null;
@@ -1575,6 +1580,47 @@ export function VoosPage({
     onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Erro ao buscar volta"),
   });
 
+  // "Ver mais voltas": mesma lógica da ida — a operadora libera fornecedores em
+  // ondas, então uma nova consulta soma opções (e tarifas menores) que faltavam.
+  const moreInboundMut = useMutation({
+    mutationFn: () =>
+      searchInbound({
+        data: {
+          ...paxData(),
+          returnDate: form.returnDate,
+          searchKey: result?.searchKey ?? "",
+          flightKey: selectedOut ?? "",
+          filters: toOperatorFilters(inFilters),
+        },
+      }),
+    onSuccess: (raw) => {
+      const r = normalizeLeg(raw);
+      setInbound((prev) => {
+        if (!prev) return r;
+        const map = new Map(prev.flights.map((f) => [flightSignature(f), f]));
+        let novos = 0;
+        for (const f of r.flights) {
+          const signature = flightSignature(f);
+          const atual = map.get(signature);
+          if (!atual) novos++;
+          if (!atual || f.price.total < atual.price.total) map.set(signature, f);
+        }
+        const flights = [...map.values()].sort((a, b) => a.price.total - b.price.total);
+        toast[novos ? "success" : "info"](
+          novos ? `+${novos} voltas encontradas` : "Nenhuma volta nova por enquanto",
+        );
+        return {
+          ...prev,
+          flights,
+          totalFlightsCount: Math.max(prev.totalFlightsCount, flights.length),
+          priceRange: r.priceRange ?? prev.priceRange,
+        };
+      });
+    },
+    onError: (e: unknown) =>
+      toast.error(e instanceof Error ? e.message : "Erro ao carregar mais voltas"),
+  });
+
   function pickOutbound(key: string) {
     setSelectedOut(key);
     setSelectedIn(null);
@@ -1909,6 +1955,21 @@ export function VoosPage({
                       Nenhuma volta com esses filtros.
                     </p>
                   )}
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    disabled={moreInboundMut.isPending || inboundMut.isPending}
+                    onClick={() => moreInboundMut.mutate()}
+                  >
+                    {moreInboundMut.isPending ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Buscando mais companhias…
+                      </>
+                    ) : (
+                      `Ver mais voltas (${inFlights.length} exibidas)`
+                    )}
+                  </Button>
                 </section>
               )}
 
