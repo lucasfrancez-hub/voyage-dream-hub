@@ -174,12 +174,19 @@ async function poll(
         };
         for (const flight of json.flights ?? []) {
           const signature = flightSignature(flight);
+          let bucket = fares.get(signature);
+          if (!bucket) {
+            bucket = new Map<string, number>();
+            fares.set(signature, bucket);
+          }
+          if (flight.key && !bucket.has(flight.key)) bucket.set(flight.key, flight.price.total);
           const previous = acc.get(signature);
           if (!previous || flight.price.total < previous.price.total) {
             acc.set(signature, flight);
             changed = true;
           }
         }
+
         haveMore = !!json.haveMore && (json.flights?.length ?? 0) > 0;
         page++;
       } catch {
