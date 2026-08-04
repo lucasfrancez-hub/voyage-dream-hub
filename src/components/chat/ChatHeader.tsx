@@ -121,12 +121,8 @@ export function ChatHeader({ title, subtitle, userEmail, userFullName, theme = "
 
       <AiStatusButton />
 
-      <button
-        className="hidden sm:inline-flex rounded-md p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-900"
-        title="Notificações"
-      >
-        <Bell className="h-4 w-4" />
-      </button>
+      <ChatPushToggle />
+
 
       {onToggleTheme && (
         <button
