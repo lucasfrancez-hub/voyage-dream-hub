@@ -303,7 +303,22 @@ export type EntradaEvento = {
   linkReuniao?: string | null;
   convidados?: string[] | null;
   url?: string | null;
+  timezone?: string | null;
+  lembretes?: number[] | null;
+  notificar?: boolean | null;
 };
+
+export const FUSO_AGENDA = "America/Sao_Paulo";
+
+/** Data local (YYYY-MM-DD) de um instante, no fuso do compromisso. */
+function diaNoFuso(iso: string, tz?: string | null): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: tz || FUSO_AGENDA,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date(iso));
+}
 
 /** Cria o compromisso na agenda escolhida (ou na padrão) e no banco. */
 export async function criarEvento(entrada: EntradaEvento): Promise<AgendaEvento> {
@@ -361,6 +376,11 @@ export async function criarEvento(entrada: EntradaEvento): Promise<AgendaEvento>
       inicio: entrada.inicio,
       fim: entrada.fim,
       dia_inteiro: entrada.diaInteiro ?? false,
+      timezone: entrada.timezone || FUSO_AGENDA,
+      reminder_minutes: entrada.lembretes?.length ? entrada.lembretes : undefined,
+      notifications_enabled: entrada.notificar ?? true,
+      start_date: entrada.diaInteiro ? diaNoFuso(entrada.inicio, entrada.timezone) : null,
+      end_date: entrada.diaInteiro ? diaNoFuso(entrada.fim, entrada.timezone) : null,
       detalhes: detalhes as unknown as never,
       origem: "chat",
       telefone: entrada.telefone ?? null,
@@ -369,7 +389,15 @@ export async function criarEvento(entrada: EntradaEvento): Promise<AgendaEvento>
     .select(CAMPOS_EVENTO)
     .single();
   if (error) throw new Error(error.message);
-  return data as AgendaEvento;
+  const criado = data as AgendaEvento;
+  // Lembretes vão para a fila do banco (cron), nunca para um timer do navegador.
+  try {
+    const { reagendarLembretes } = await import("@/lib/calendar/reminders.server");
+    await reagendarLembretes(criado.id);
+  } catch (err) {
+    console.warn("[agenda] falha ao agendar lembretes:", err);
+  }
+  return criado;
 }
 
 /** Atualiza um compromisso no banco e na agenda de origem. */
@@ -409,6 +437,13 @@ export async function atualizarEvento(id: string, patch: Partial<EntradaEvento>)
     .select(CAMPOS_EVENTO)
     .single();
   if (error) throw new Error(error.message);
+  // Editou → cancela os lembretes antigos e recalcula.
+  try {
+    const { reagendarLembretes } = await import("@/lib/calendar/reminders.server");
+    await reagendarLembretes(id);
+  } catch (err) {
+    console.warn("[agenda] falha ao recalcular lembretes:", err);
+  }
   return data as AgendaEvento;
 }
 
@@ -432,6 +467,12 @@ export async function removerEvento(id: string): Promise<void> {
     }
   } catch {
     /* se já não existe lá, segue e limpa aqui */
+  }
+  try {
+    const { cancelarLembretes } = await import("@/lib/calendar/reminders.server");
+    await cancelarLembretes(id);
+  } catch {
+    /* a exclusão em cascata já limpa a fila */
   }
   await supabaseAdmin.from("wa_calendar_events").delete().eq("id", id);
 }
