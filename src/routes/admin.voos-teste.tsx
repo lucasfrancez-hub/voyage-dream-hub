@@ -121,7 +121,12 @@ const CITY_CODES = new Set([
   "BER",
 ]);
 function taxesOf(f: OnerFlight) {
-  return (f.price.tax ?? 0) + (f.price.serviceTax ?? 0);
+  // A operadora já devolve total = price + tax (o serviceTax está embutido em tax).
+  // Somar serviceTax de novo inflava as taxas exibidas.
+  const total = f.price.total ?? 0;
+  const fare = f.price.price ?? 0;
+  const tax = f.price.tax ?? 0;
+  return total && fare ? Math.max(total - fare, 0) : tax;
 }
 function airlineOf(f: OnerFlight) {
   return f.journey.marketingAirline ?? f.journey.segments[0]?.marketingAirline ?? null;
