@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import {
   desbloquearAparelhoChat,
   esquecerAparelhoChat,
+  registrarAparelhoChat,
 } from "@/lib/chat/device-session.functions";
 
 export function ChatPinUnlock({ email, onEntrar }: { email: string | null; onEntrar: () => void }) {
