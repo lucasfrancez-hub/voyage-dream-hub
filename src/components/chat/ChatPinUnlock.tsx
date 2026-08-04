@@ -31,7 +31,6 @@ export function ChatPinUnlock({ email, onEntrar }: { email: string | null; onEnt
       const r = await desbloquear({ data: { pin } });
       const { error } = await supabase.auth.verifyOtp({
         type: "magiclink",
-        email: r.email,
         token_hash: r.tokenHash,
       });
       if (error) throw new Error(error.message);

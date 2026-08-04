@@ -196,7 +196,6 @@ function ChatLayout() {
             if (r.ok && r.email && r.tokenHash) {
               const { error } = await supabase.auth.verifyOtp({
                 type: "magiclink",
-                email: r.email,
                 token_hash: r.tokenHash,
               });
               if (!error) return;
