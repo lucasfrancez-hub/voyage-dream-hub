@@ -191,16 +191,19 @@ export function DateRangeField({
         )}
       </div>
 
-      <Calendar
-        mode="range"
-        locale={ptBR}
-        numberOfMonths={compact ? 1 : 2}
-        defaultMonth={from ?? new Date()}
-        selected={{ from, to }}
-        onSelect={handleSelect}
-        disabled={{ before: new Date() }}
-        className={cn("pointer-events-auto p-3")}
-      />
+      <div className="flex justify-center">
+        <Calendar
+          mode="range"
+          locale={ptBR}
+          numberOfMonths={compact ? 1 : 2}
+          defaultMonth={from ?? new Date()}
+          selected={{ from, to }}
+          onSelect={handleSelect}
+          disabled={{ before: new Date() }}
+          className={cn("pointer-events-auto p-3")}
+        />
+      </div>
+
 
       <div className="flex items-center justify-between gap-2 border-t border-border/50 px-4 py-2.5">
         <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => onChange("", "")}>
