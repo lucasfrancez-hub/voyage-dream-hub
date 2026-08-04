@@ -378,12 +378,14 @@ export function SearchEngine({
   };
 
   return (
+    <PublicEngineProvider value={publicMode}>
     <div className="min-h-screen bg-background">
-      {mode === "aereo" && <VoosPage header={hero} />}
-      {mode === "hotel" && <HoteisPage header={hero} />}
+      {mode === "aereo" && <VoosPage header={hero} publicMode={publicMode} />}
+      {mode === "hotel" && <HoteisPage header={hero} publicMode={publicMode} />}
       {mode === "carro" && <CarrosPage header={hero} />}
       {mode === "exclusivo" && <ExclusivosPage header={hero} />}
       {mode === "seguro" && <SegurosPage header={hero} />}
+
       {mode === "combo" && (
         <>
           <header className="relative overflow-hidden border-b border-border/60">
