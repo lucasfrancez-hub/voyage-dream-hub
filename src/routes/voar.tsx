@@ -101,56 +101,59 @@ function VoarPublicPage() {
 
 
       <footer className="border-t border-border/50 bg-card/30">
-        <div className="mx-auto grid max-w-7xl gap-6 px-4 py-10 sm:grid-cols-3">
-          <div className="flex items-start gap-3">
-            <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
-            <div>
-              <div className="text-sm font-semibold">Compra segura</div>
-              <div className="text-xs text-muted-foreground">
-                Pagamento no ambiente da operadora.
+        <div className="mx-auto grid max-w-7xl gap-6 px-4 py-10 md:grid-cols-3">
+          {/* Coluna 1: selos de confiança, um embaixo do outro */}
+          <div className="space-y-5">
+            <div className="flex items-start gap-3">
+              <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+              <div className="min-w-0">
+                <div className="text-sm font-semibold">Compra segura</div>
+                <div className="text-xs text-muted-foreground">
+                  Pagamento no ambiente da operadora.
+                </div>
               </div>
+            </div>
+
+            <div className="flex items-start gap-3">
+              <CreditCard className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+              <div className="min-w-0">
+                <div className="text-sm font-semibold">Parcelamento no cartão</div>
+                <div className="text-xs text-muted-foreground">
+                  Passagens aéreas: parcelas conforme a companhia. Demais serviços: até 6x.
+                </div>
+                <InstallmentRulesDialog
+                  trigger={
+                    <button
+                      type="button"
+                      className="mt-2 inline-flex items-center gap-1 rounded-full border border-primary/40 bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary transition hover:bg-primary hover:text-primary-foreground"
+                    >
+                      Consulte aqui <ChevronRight className="h-3.5 w-3.5" />
+                    </button>
+                  }
+                />
+              </div>
+            </div>
+
+            <div className="flex items-start gap-3">
+              <Headset className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+              <div className="min-w-0">
+                <div className="text-sm font-semibold">Atendimento humano</div>
+                <div className="text-xs text-muted-foreground">
+                  Especialistas VIA AIR do início ao fim.
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-1 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+              Formas de pagamento aceitas
             </div>
           </div>
 
-          <div className="flex items-start gap-3">
-            <CreditCard className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
-            <div className="min-w-0">
-              <div className="text-sm font-semibold">Parcelamento no cartão</div>
-              <div className="text-xs text-muted-foreground">
-                O número de parcelas sem juros varia conforme a companhia aérea e
-                aparece no seu pedido.
-              </div>
-              <InstallmentRulesDialog
-                trigger={
-                  <button
-                    type="button"
-                    className="mt-2 inline-flex items-center gap-1 rounded-full border border-primary/40 bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary transition hover:bg-primary hover:text-primary-foreground"
-                  >
-                    Consulte aqui <ChevronRight className="h-3.5 w-3.5" />
-                  </button>
-                }
-              />
-            </div>
-          </div>
-
-          <div className="flex items-start gap-3">
-            <Headset className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
-            <div>
-              <div className="text-sm font-semibold">Atendimento humano</div>
-              <div className="text-xs text-muted-foreground">
-                Especialistas VIA AIR do início ao fim.
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="mx-auto max-w-7xl px-4 pb-10">
-          <div className="mb-3 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
-            Formas de pagamento aceitas
-          </div>
+          {/* Colunas 2 e 3: Pix e Cartão */}
           <PaymentMethodsBar />
         </div>
       </footer>
+
     </div>
   );
 
