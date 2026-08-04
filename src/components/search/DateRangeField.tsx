@@ -36,6 +36,16 @@ export function DateRangeField({
 }) {
   const [open, setOpen] = useState(false);
   const [focus, setFocus] = useState<"start" | "end">("start");
+  const [embedded, setEmbedded] = useState(false);
+
+  useEffect(() => {
+    try {
+      setEmbedded(window.self !== window.top);
+    } catch {
+      setEmbedded(true);
+    }
+  }, []);
+
 
   const from = fromISO(departureDate);
   const to = fromISO(returnDate);
