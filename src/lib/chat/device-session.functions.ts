@@ -310,9 +310,12 @@ export const abrirLinkChat = createServerFn({ method: "POST" })
       .from("chat_app_links")
       .select("id, token, nome, user_id, pin_hash, ativo, destino")
       .eq("token", data.token)
-      .eq("destino", data.destino)
       .maybeSingle();
     if (!link || !link.ativo) throw new Error("Link inválido ou desativado.");
+    // Link criado para o outro app: em vez de erro, avisa o destino correto.
+    if ((link.destino ?? "chat") !== data.destino) {
+      return { redirecionar: (link.destino ?? "chat") as "chat" | "admin" };
+    }
     if ((await hashPinLink(link.token, data.pin)) !== link.pin_hash) throw new Error("PIN incorreto.");
 
     const { data: u } = await supabaseAdmin.auth.admin.getUserById(link.user_id);
