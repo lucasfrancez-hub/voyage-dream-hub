@@ -5,8 +5,10 @@
  * operadora registrando um pedido pendente no admin.
  */
 import { createFileRoute } from "@tanstack/react-router";
-import { Plane, ShieldCheck, Headset, CreditCard, ChevronRight } from "lucide-react";
+import { Plane, ShieldCheck, Headset, CreditCard, ChevronRight, BedDouble } from "lucide-react";
 import { VoosPage } from "./admin.voos-teste";
+import { HoteisPage } from "./admin.hoteis-teste";
+
 import { SearchEngine, type Mode } from "./admin.buscar";
 import { PaymentMethodsBar } from "@/components/flights/PaymentMethodsBar";
 import { ContactFooter } from "@/components/ContactFooter";
