@@ -171,6 +171,8 @@ type Filters = {
   arr: [number, number];
   depAirports: string[];
   arrAirports: string[];
+  /** Classes de cabine (ECONOMY, PREMIUM_ECONOMY, BUSINESS, FIRST). */
+  cabins: string[];
 };
 
 const FULL_DAY: [number, number] = [0, 1440];
@@ -185,7 +187,9 @@ const EMPTY_FILTERS: Filters = {
   arr: [...FULL_DAY] as [number, number],
   depAirports: [],
   arrAirports: [],
+  cabins: [],
 };
+
 
 /** A operadora às vezes devolve resposta vazia/parcial — normaliza para nunca quebrar a tela. */
 function normalizeLeg(leg: unknown): OnerLegResult {
