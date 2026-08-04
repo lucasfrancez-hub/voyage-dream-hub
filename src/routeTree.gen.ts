@@ -37,6 +37,7 @@ import { Route as AdminContasPagarRouteImport } from './routes/admin.contas-paga
 import { Route as AdminContasReceberRouteImport } from './routes/admin.contas-receber'
 import { Route as AdminDashboardRouteImport } from './routes/admin.dashboard'
 import { Route as AdminEncurtadorRouteImport } from './routes/admin.encurtador'
+import { Route as AdminExclusivosRouteImport } from './routes/admin.exclusivos'
 import { Route as AdminHoteisTesteRouteImport } from './routes/admin.hoteis-teste'
 import { Route as AdminInstagramRouteImport } from './routes/admin.instagram'
 import { Route as AdminInstalarExtensaoRouteImport } from './routes/admin.instalar-extensao'
@@ -251,6 +252,11 @@ const AdminDashboardRoute = AdminDashboardRouteImport.update({
 const AdminEncurtadorRoute = AdminEncurtadorRouteImport.update({
   id: '/encurtador',
   path: '/encurtador',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminExclusivosRoute = AdminExclusivosRouteImport.update({
+  id: '/exclusivos',
+  path: '/exclusivos',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminHoteisTesteRoute = AdminHoteisTesteRouteImport.update({
@@ -682,6 +688,7 @@ export interface FileRoutesByFullPath {
   '/admin/contas-receber': typeof AdminContasReceberRoute
   '/admin/dashboard': typeof AdminDashboardRoute
   '/admin/encurtador': typeof AdminEncurtadorRoute
+  '/admin/exclusivos': typeof AdminExclusivosRoute
   '/admin/hoteis-teste': typeof AdminHoteisTesteRoute
   '/admin/instagram': typeof AdminInstagramRoute
   '/admin/instalar-extensao': typeof AdminInstalarExtensaoRoute
@@ -786,6 +793,7 @@ export interface FileRoutesByTo {
   '/admin/contas-receber': typeof AdminContasReceberRoute
   '/admin/dashboard': typeof AdminDashboardRoute
   '/admin/encurtador': typeof AdminEncurtadorRoute
+  '/admin/exclusivos': typeof AdminExclusivosRoute
   '/admin/hoteis-teste': typeof AdminHoteisTesteRoute
   '/admin/instagram': typeof AdminInstagramRoute
   '/admin/instalar-extensao': typeof AdminInstalarExtensaoRoute
@@ -892,6 +900,7 @@ export interface FileRoutesById {
   '/admin/contas-receber': typeof AdminContasReceberRoute
   '/admin/dashboard': typeof AdminDashboardRoute
   '/admin/encurtador': typeof AdminEncurtadorRoute
+  '/admin/exclusivos': typeof AdminExclusivosRoute
   '/admin/hoteis-teste': typeof AdminHoteisTesteRoute
   '/admin/instagram': typeof AdminInstagramRoute
   '/admin/instalar-extensao': typeof AdminInstalarExtensaoRoute
@@ -999,6 +1008,7 @@ export interface FileRouteTypes {
     | '/admin/contas-receber'
     | '/admin/dashboard'
     | '/admin/encurtador'
+    | '/admin/exclusivos'
     | '/admin/hoteis-teste'
     | '/admin/instagram'
     | '/admin/instalar-extensao'
@@ -1103,6 +1113,7 @@ export interface FileRouteTypes {
     | '/admin/contas-receber'
     | '/admin/dashboard'
     | '/admin/encurtador'
+    | '/admin/exclusivos'
     | '/admin/hoteis-teste'
     | '/admin/instagram'
     | '/admin/instalar-extensao'
@@ -1208,6 +1219,7 @@ export interface FileRouteTypes {
     | '/admin/contas-receber'
     | '/admin/dashboard'
     | '/admin/encurtador'
+    | '/admin/exclusivos'
     | '/admin/hoteis-teste'
     | '/admin/instagram'
     | '/admin/instalar-extensao'
@@ -1545,6 +1557,13 @@ declare module '@tanstack/react-router' {
       path: '/encurtador'
       fullPath: '/admin/encurtador'
       preLoaderRoute: typeof AdminEncurtadorRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/exclusivos': {
+      id: '/admin/exclusivos'
+      path: '/exclusivos'
+      fullPath: '/admin/exclusivos'
+      preLoaderRoute: typeof AdminExclusivosRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/hoteis-teste': {
@@ -2097,6 +2116,7 @@ interface AdminRouteChildren {
   AdminContasReceberRoute: typeof AdminContasReceberRoute
   AdminDashboardRoute: typeof AdminDashboardRoute
   AdminEncurtadorRoute: typeof AdminEncurtadorRoute
+  AdminExclusivosRoute: typeof AdminExclusivosRoute
   AdminHoteisTesteRoute: typeof AdminHoteisTesteRoute
   AdminInstagramRoute: typeof AdminInstagramRoute
   AdminInstalarExtensaoRoute: typeof AdminInstalarExtensaoRoute
@@ -2125,6 +2145,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminContasReceberRoute: AdminContasReceberRoute,
   AdminDashboardRoute: AdminDashboardRoute,
   AdminEncurtadorRoute: AdminEncurtadorRoute,
+  AdminExclusivosRoute: AdminExclusivosRoute,
   AdminHoteisTesteRoute: AdminHoteisTesteRoute,
   AdminInstagramRoute: AdminInstagramRoute,
   AdminInstalarExtensaoRoute: AdminInstalarExtensaoRoute,

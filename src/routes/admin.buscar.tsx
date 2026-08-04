@@ -35,17 +35,19 @@ export const Route = createFileRoute("/admin/buscar")({
   component: BuscarPage,
 });
 
-type Mode = "aereo" | "hotel" | "carro" | "combo";
+type Mode = "aereo" | "hotel" | "carro" | "combo" | "exclusivo" | "seguro";
 
 /** Motor interno: todos os modos liberados. O bloqueio de hotel/carro/pacote
  * vale apenas para o chatbot do WhatsApp. */
-const ENABLED_MODES: Mode[] = ["aereo", "hotel", "carro", "combo"];
+const ENABLED_MODES: Mode[] = ["aereo", "hotel", "carro", "combo", "exclusivo", "seguro"];
 
 const MODES: { id: Mode; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
   { id: "aereo", label: "Aéreo", icon: Plane },
   { id: "hotel", label: "Hotel", icon: BedDouble },
   { id: "carro", label: "Carro", icon: Car },
   { id: "combo", label: "Aéreo + Hotel", icon: Layers },
+  { id: "exclusivo", label: "Exclusivos", icon: Sparkles },
+  { id: "seguro", label: "Seguros", icon: ShieldCheck },
 ];
 
 
