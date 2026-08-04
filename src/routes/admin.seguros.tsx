@@ -103,6 +103,11 @@ function PlanCard({ plan, onSelect }: { plan: InsurancePlan; onSelect?: () => vo
           ) : null}
           <p className="text-xl font-bold text-primary">{fmtBRL(plan.price)}</p>
           <p className="text-[11px] text-muted-foreground">total do período</p>
+          {onSelect && (
+            <Button size="sm" className="mt-2 rounded-xl" onClick={onSelect}>
+              Selecionar
+            </Button>
+          )}
         </div>
       </div>
 
