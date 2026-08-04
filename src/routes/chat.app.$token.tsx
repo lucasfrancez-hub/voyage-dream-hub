@@ -71,7 +71,7 @@ function AbrirAppChat() {
     if (pin.length !== 4) return;
     setCarregando(true);
     try {
-      const r = (await abrir({ data: { token, pin } })) as { email: string; tokenHash: string };
+      const r = (await abrir({ data: { token, pin, destino: "chat" } })) as { email: string; tokenHash: string };
       const { error } = await supabase.auth.verifyOtp({
         type: "magiclink",
         email: r.email,

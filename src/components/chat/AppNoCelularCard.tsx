@@ -25,12 +25,12 @@ export function AppNoCelularCard({ destino }: AppNoCelularCardProps) {
 
   const recarregar = useCallback(async () => {
     try {
-      const r = (await carregar()) as { links: LinkApp[] };
+      const r = (await carregar({ data: { destino } })) as { links: LinkApp[] };
       setLinks(r.links);
     } catch {
       /* sem acesso */
     }
-  }, [carregar]);
+  }, [carregar, destino]);
 
   useEffect(() => {
     void recarregar();
@@ -103,7 +103,7 @@ export function AppNoCelularCard({ destino }: AppNoCelularCardProps) {
           onClick={async () => {
             setSalvando(true);
             try {
-              await criar({ data: { nome: nome.trim() || undefined, pin } });
+              await criar({ data: { nome: nome.trim() || undefined, pin, destino } });
               setNome("");
               setPin("");
               toast.success(`Link do ${destino === "chat" ? "Chat" : "Admin"} criado.`);

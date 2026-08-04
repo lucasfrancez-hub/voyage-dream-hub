@@ -52,9 +52,8 @@ function isStaleCodeError(error: unknown): boolean {
   return STALE_CODE_PATTERNS.some((p) => msg.includes(p));
 }
 
-function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
+function ErrorComponent({ error }: { error: Error; reset: () => void }) {
   console.error(error);
-  const router = useRouter();
   const [autoRecovering, setAutoRecovering] = useState(false);
 
   const atualizarAplicativo = async () => {
