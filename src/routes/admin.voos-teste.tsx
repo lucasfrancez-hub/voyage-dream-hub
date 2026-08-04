@@ -244,7 +244,18 @@ export function arrPlaceOf(fl: OnerFlight) {
     : segs[segs.length - 1]?.destination;
 }
 
-/** Acha o voo por qualquer chave: a do card ou a de uma família tarifária dele. */
+/** Une as famílias tarifárias já conhecidas com as da nova onda de resultados. */
+function mergeFares(prev: OnerFlight | undefined, next: OnerFlight): OnerFlight {
+  if (!prev?.fareOptions?.length) return next;
+  const map = new Map<string, OnerFareOption>();
+  for (const o of [...(next.fareOptions ?? []), ...prev.fareOptions]) map.set(o.key, o);
+  return {
+    ...next,
+    fareOptions: [...map.values()].sort((a, b) => a.total - b.total),
+  };
+}
+
+
 function findByAnyKey(list: OnerFlight[], key: string | null | undefined): OnerFlight | null {
   if (!key) return null;
   return list.find((f) => f.key === key || (f.fareOptions ?? []).some((o) => o.key === key)) ?? null;
