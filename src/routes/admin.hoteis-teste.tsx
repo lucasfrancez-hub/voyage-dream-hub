@@ -46,6 +46,13 @@ import {
   type OnerRoomRate,
 } from "@/lib/onertravel-hotels.functions";
 import { onerAirportSearch } from "@/lib/onertravel.functions";
+import {
+  onerHotelDestinationsPublic,
+  onerHotelSearchPublic,
+  onerHotelRoomsPublic,
+  onerCreateHotelCartPublic,
+  onerAirportSearchPublic,
+} from "@/lib/onertravel-public.functions";
 
 
 export const Route = createFileRoute("/admin/hoteis-teste")({
