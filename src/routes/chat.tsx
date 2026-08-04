@@ -139,9 +139,32 @@ function ChatLayout() {
   }, []);
 
 
+  // Aparelho com PIN: em vez de mandar pro /auth, pede o PIN e restaura a sessão.
+  const statusAparelho = useServerFn(statusAparelhoChat);
+  const [aparelho, setAparelho] = useState<{ registrado: boolean; email: string | null } | undefined>(
+    undefined,
+  );
+  const [pedirPin, setPedirPin] = useState(false);
+
   useEffect(() => {
     if (session === undefined) return;
+    void (async () => {
+      try {
+        const r = (await statusAparelho()) as { registrado: boolean; email?: string | null };
+        setAparelho({ registrado: r.registrado, email: r.email ?? null });
+      } catch {
+        setAparelho({ registrado: false, email: null });
+      }
+    })();
+  }, [session, statusAparelho]);
+
+  useEffect(() => {
+    if (session === undefined || aparelho === undefined) return;
     if (!session) {
+      if (aparelho.registrado) {
+        setPedirPin(true);
+        return;
+      }
       const target = pathname && pathname.startsWith("/chat") ? pathname : "/chat/inbox";
       if (typeof window !== "undefined") {
         window.location.replace(`/auth?redirect=${encodeURIComponent(target)}`);
