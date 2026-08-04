@@ -1,0 +1,1 @@
+update public.instagram_comments set auto_reply_status = 'pending', auto_reply_text = null where metadata->>'origem' = 'collab_sync';
