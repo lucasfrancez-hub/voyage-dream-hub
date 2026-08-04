@@ -14,6 +14,12 @@ import {
   Tag,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useIsPublicEngine } from "@/lib/public-engine";
+import {
+  onerExclusiveCriteriaPublic,
+  onerExclusiveSearchPublic,
+} from "@/lib/onertravel-public-extras.functions";
+
 
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
