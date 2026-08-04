@@ -21,7 +21,12 @@ export const Route = createFileRoute("/embed/motor-busca")({
 function EmbedMotorBusca() {
   return (
     <div className="w-full p-0">
-      <style>{`html,body,#root{background:transparent !important;margin:0;padding:0;}`}</style>
+      <style>{`
+        html,body,#root{background:transparent !important;margin:0;padding:0;}
+        /* remove o brilho azul de fundo dos cabeçalhos do motor no widget */
+        [style*="brand-blue"]{background:none !important;opacity:0 !important;}
+        header{background:transparent !important;}
+      `}</style>
       <PublicEngineProvider value={true}>
         <SearchEngine publicMode initialMode="aereo" />
       </PublicEngineProvider>
