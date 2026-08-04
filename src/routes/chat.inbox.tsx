@@ -71,7 +71,10 @@ function InboxPage() {
     refetchInterval: 15_000,
   });
 
-  const [channel, setChannel] = useState<"whatsapp" | "instagram_dm" | "instagram_comments">("whatsapp");
+  const [channel, setChannel] = useState<"all" | "whatsapp" | "instagram_dm" | "instagram_comments">("all");
+  // Na aba "Todas" o tipo do item aberto define qual painel renderizar.
+  const [allKind, setAllKind] = useState<"wa" | "ig" | "comment" | null>(null);
+
 
 
   const [folder, setFolder] = useState<string>("all");
