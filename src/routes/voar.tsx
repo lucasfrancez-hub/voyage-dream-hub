@@ -62,33 +62,34 @@ function VoarPublicPage() {
         backLabel="Voltar ao site"
         whatsappMessage="Olá! Estou pesquisando passagens aéreas no site da Via Air."
       />
-      <VoosPage
-        publicMode
-        header={
-          <div>
-            <h1 className="flex items-center gap-2 text-3xl font-bold tracking-tight">
-              <Plane className="h-7 w-7 text-primary" /> Passagens aéreas VIA AIR
-            </h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Todas as companhias, tarifas em tempo real e compra segura.
-            </p>
-          </div>
-        }
-        preset={
-          hasPreset
-            ? {
-                departureIata: s.o!,
-                arrivalIata: s.d!,
-                departureDate: s.ida!,
-                returnDate: s.volta ?? "",
-                adults: s.ad ?? 1,
-                children: s.ch ?? 0,
-                infants: s.inf ?? 0,
-              }
-            : undefined
-        }
-        runToken={hasPreset ? 1 : undefined}
-      />
+      {hasPreset ? (
+        <VoosPage
+          publicMode
+          header={
+            <div>
+              <h1 className="flex items-center gap-2 text-3xl font-bold tracking-tight">
+                <Plane className="h-7 w-7 text-primary" /> Passagens aéreas VIA AIR
+              </h1>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Todas as companhias, tarifas em tempo real e compra segura.
+              </p>
+            </div>
+          }
+          preset={{
+            departureIata: s.o!,
+            arrivalIata: s.d!,
+            departureDate: s.ida!,
+            returnDate: s.volta ?? "",
+            adults: s.ad ?? 1,
+            children: s.ch ?? 0,
+            infants: s.inf ?? 0,
+          }}
+          runToken={1}
+        />
+      ) : (
+        <SearchEngine publicMode initialMode={s.m ?? "aereo"} />
+      )}
+
 
       <footer className="border-t border-border/50 bg-card/30">
         <div className="mx-auto grid max-w-7xl gap-6 px-4 py-10 sm:grid-cols-3">
