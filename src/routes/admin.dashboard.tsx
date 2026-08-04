@@ -288,9 +288,6 @@ function DashboardPage() {
   return (
     <div className="mx-auto max-w-7xl px-4 md:px-6 py-6 space-y-6">
       <WelcomeBanner />
-      <div>
-        <h1 className="text-2xl font-display font-bold">Dashboard</h1>
-        <p className="text-sm text-muted-foreground">Visão geral do negócio</p>
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl font-display font-bold">Dashboard</h1>
