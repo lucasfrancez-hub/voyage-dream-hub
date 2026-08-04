@@ -78,6 +78,7 @@ import { Route as PacotesIndexRouteImport } from './routes/pacotes.index'
 import { Route as PacotesAdminRouteImport } from './routes/pacotes.admin'
 import { Route as ProtocoloProtocoloIdRouteImport } from './routes/protocolo.$protocoloId'
 import { Route as WSlugRouteImport } from './routes/w.$slug'
+import { Route as AdminAppTokenRouteImport } from './routes/admin.app.$token'
 import { Route as AdminPedidosIndexRouteImport } from './routes/admin.pedidos.index'
 import { Route as AdminPedidosIdRouteImport } from './routes/admin.pedidos.$id'
 import { Route as AdminPedidosTerceirosRouteImport } from './routes/admin.pedidos.terceiros'
@@ -467,6 +468,11 @@ const WSlugRoute = WSlugRouteImport.update({
   path: '/w/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminAppTokenRoute = AdminAppTokenRouteImport.update({
+  id: '/app/$token',
+  path: '/app/$token',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminPedidosIndexRoute = AdminPedidosIndexRouteImport.update({
   id: '/pedidos/',
   path: '/pedidos/',
@@ -779,6 +785,7 @@ export interface FileRoutesByFullPath {
   '/protocolo/$protocoloId': typeof ProtocoloProtocoloIdRoute
   '/w/$slug': typeof WSlugRoute
   '/pacotes/': typeof PacotesIndexRoute
+  '/admin/app/$token': typeof AdminAppTokenRoute
   '/admin/pedidos/$id': typeof AdminPedidosIdRoute
   '/admin/pedidos/terceiros': typeof AdminPedidosTerceirosRoute
   '/admin/pessoas/$id': typeof AdminPessoasIdRoute
@@ -892,6 +899,7 @@ export interface FileRoutesByTo {
   '/protocolo/$protocoloId': typeof ProtocoloProtocoloIdRoute
   '/w/$slug': typeof WSlugRoute
   '/pacotes': typeof PacotesIndexRoute
+  '/admin/app/$token': typeof AdminAppTokenRoute
   '/admin/pedidos/$id': typeof AdminPedidosIdRoute
   '/admin/pedidos/terceiros': typeof AdminPedidosTerceirosRoute
   '/admin/pessoas/$id': typeof AdminPessoasIdRoute
@@ -1007,6 +1015,7 @@ export interface FileRoutesById {
   '/protocolo/$protocoloId': typeof ProtocoloProtocoloIdRoute
   '/w/$slug': typeof WSlugRoute
   '/pacotes/': typeof PacotesIndexRoute
+  '/admin/app/$token': typeof AdminAppTokenRoute
   '/admin/pedidos/$id': typeof AdminPedidosIdRoute
   '/admin/pedidos/terceiros': typeof AdminPedidosTerceirosRoute
   '/admin/pessoas/$id': typeof AdminPessoasIdRoute
@@ -1123,6 +1132,7 @@ export interface FileRouteTypes {
     | '/protocolo/$protocoloId'
     | '/w/$slug'
     | '/pacotes/'
+    | '/admin/app/$token'
     | '/admin/pedidos/$id'
     | '/admin/pedidos/terceiros'
     | '/admin/pessoas/$id'
@@ -1236,6 +1246,7 @@ export interface FileRouteTypes {
     | '/protocolo/$protocoloId'
     | '/w/$slug'
     | '/pacotes'
+    | '/admin/app/$token'
     | '/admin/pedidos/$id'
     | '/admin/pedidos/terceiros'
     | '/admin/pessoas/$id'
@@ -1350,6 +1361,7 @@ export interface FileRouteTypes {
     | '/protocolo/$protocoloId'
     | '/w/$slug'
     | '/pacotes/'
+    | '/admin/app/$token'
     | '/admin/pedidos/$id'
     | '/admin/pedidos/terceiros'
     | '/admin/pessoas/$id'
@@ -1948,6 +1960,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/app/$token': {
+      id: '/admin/app/$token'
+      path: '/app/$token'
+      fullPath: '/admin/app/$token'
+      preLoaderRoute: typeof AdminAppTokenRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/pedidos/': {
       id: '/admin/pedidos/'
       path: '/pedidos'
@@ -2289,6 +2308,7 @@ interface AdminRouteChildren {
   AdminSegurosRoute: typeof AdminSegurosRoute
   AdminUsuariosRoute: typeof AdminUsuariosRoute
   AdminVoosTesteRoute: typeof AdminVoosTesteRoute
+  AdminAppTokenRoute: typeof AdminAppTokenRoute
   AdminPedidosIdRoute: typeof AdminPedidosIdRoute
   AdminPedidosTerceirosRoute: typeof AdminPedidosTerceirosRoute
   AdminPedidosIndexRoute: typeof AdminPedidosIndexRoute
@@ -2319,6 +2339,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminSegurosRoute: AdminSegurosRoute,
   AdminUsuariosRoute: AdminUsuariosRoute,
   AdminVoosTesteRoute: AdminVoosTesteRoute,
+  AdminAppTokenRoute: AdminAppTokenRoute,
   AdminPedidosIdRoute: AdminPedidosIdRoute,
   AdminPedidosTerceirosRoute: AdminPedidosTerceirosRoute,
   AdminPedidosIndexRoute: AdminPedidosIndexRoute,
