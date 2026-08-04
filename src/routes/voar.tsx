@@ -211,6 +211,7 @@ function VoarPublicPage() {
 
       <ContactFooter whatsappMessage="Olá! Quero ajuda para escolher minha passagem aérea." />
 
+      </div>
     </div>
 
   );
