@@ -83,7 +83,7 @@ function LocationInput({
   onSelect: (l: OnerCarLocation | null) => void;
   placeholder: string;
 }) {
-  const searchLoc = useServerFn(onerCarLocations);
+  const searchLoc = useServerFn(useIsPublicEngine() ? onerCarLocationsPublic : onerCarLocations);
   const [text, setText] = useState(value?.locationName ?? "");
   const [options, setOptions] = useState<OnerCarLocation[]>([]);
   const [open, setOpen] = useState(false);
