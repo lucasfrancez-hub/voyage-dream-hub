@@ -12,6 +12,7 @@ type TopBarProps = {
   backParams?: Record<string, string>;
   whatsappMessage?: string;
   rightExtra?: ReactNode;
+  transparent?: boolean;
 };
 
 const SITE_URL = "https://viaair.tur.br";
@@ -28,6 +29,7 @@ export function TopBar({
   backParams,
   backLabel = "Voltar ao site",
   whatsappMessage = "Olá! Vim pelo site da Via Air e gostaria de ajuda.",
+  transparent = false,
 }: TopBarProps) {
   const [open, setOpen] = useState(false);
   const waUrl = `https://wa.me/${WHATSAPP_PHONE}?text=${encodeURIComponent(whatsappMessage)}`;
@@ -50,7 +52,13 @@ export function TopBar({
   );
 
   return (
-    <header className="sticky top-0 z-50 border-b border-border/60 bg-background/70 backdrop-blur-xl supports-[backdrop-filter]:bg-background/50">
+    <header
+      className={`sticky top-0 z-50 border-b backdrop-blur-xl ${
+        transparent
+          ? "border-border/30 bg-background/20 supports-[backdrop-filter]:bg-background/10"
+          : "border-border/60 bg-background/70 supports-[backdrop-filter]:bg-background/50"
+      }`}
+    >
       <div className="mx-auto max-w-7xl px-4 sm:px-6 h-16 flex items-center justify-between gap-3 sm:gap-6">
         <div className="flex items-center gap-2 min-w-0">
           <Sheet open={open} onOpenChange={setOpen}>
