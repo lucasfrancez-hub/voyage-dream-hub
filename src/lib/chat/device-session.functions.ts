@@ -29,7 +29,8 @@ async function hashPin(pin: string, saltHex: string): Promise<string> {
   ]);
   const salt = Uint8Array.from(saltHex.match(/.{2}/g)!.map((h) => parseInt(h, 16)));
   const bits = await crypto.subtle.deriveBits(
-    { name: "PBKDF2", salt, iterations: 120_000, hash: "SHA-256" },
+    // O runtime de borda (Workers) só aceita até 100.000 iterações no PBKDF2.
+    { name: "PBKDF2", salt, iterations: 100_000, hash: "SHA-256" },
     key,
     256,
   );
