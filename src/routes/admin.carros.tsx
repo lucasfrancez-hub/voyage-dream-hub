@@ -879,7 +879,10 @@ export type CarPreset = {
   returnDate: string;
 };
 
-export function CarrosPage({ header }: { header?: React.ReactNode } = {}) {
+export function CarrosPage({
+  header,
+  embedMode = false,
+}: { header?: React.ReactNode; embedMode?: boolean } = {}) {
   const searchCars = useServerFn(useIsPublicEngine() ? onerCarSearchPublic : onerCarSearch);
 
   const [pickup, setPickup] = useState<OnerCarLocation | null>(null);
