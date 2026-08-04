@@ -2270,7 +2270,10 @@ function InstagramConversationView({
                 </div>
               </div>
             </div>
-          ))
+            </div>
+            );
+          })
+
         )}
       </div>
 
