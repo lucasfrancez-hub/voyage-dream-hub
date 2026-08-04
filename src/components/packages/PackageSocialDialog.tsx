@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from "react";
-import { Copy, ImageDown, Loader2, RefreshCw, Smartphone, Wand2 } from "lucide-react";
+import { Copy, ImageDown, Loader2, RefreshCw, Send, Smartphone, Wand2 } from "lucide-react";
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
 import { generateCurationCopy } from "@/lib/packages/curate.functions";
 import { fetchProxiedImage } from "@/lib/image-proxy.functions";
+import { publishPackageArtToInstagram } from "@/lib/instagram/queries.functions";
+import { confirm } from "@/lib/confirm";
 import {
   Dialog,
   DialogContent,
@@ -11,6 +13,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+
 
 export function WhatsAppIcon({ className = "h-4 w-4" }: { className?: string }) {
   return (
@@ -43,7 +46,11 @@ export function PackageSocialDialog({
 }) {
   const generateFn = useServerFn(generateCurationCopy);
   const fetchImageFn = useServerFn(fetchProxiedImage);
-  const [loading, setLoading] = useState<"whatsapp" | "instagram" | "feed" | "story" | null>(null);
+  const publishArtFn = useServerFn(publishPackageArtToInstagram);
+  const [loading, setLoading] = useState<
+    "whatsapp" | "instagram" | "feed" | "story" | "post-feed" | "post-story" | null
+  >(null);
+
   const [output, setOutput] = useState<{ channel: "whatsapp" | "instagram"; text: string } | null>(
     null,
   );
@@ -174,6 +181,66 @@ export function PackageSocialDialog({
     }
   }
 
+  async function blobToBase64(blob: Blob) {
+    const buffer = new Uint8Array(await blob.arrayBuffer());
+    let binary = "";
+    const chunk = 8192;
+    for (let i = 0; i < buffer.length; i += chunk) {
+      binary += String.fromCharCode(...buffer.subarray(i, i + chunk));
+    }
+    return btoa(binary);
+  }
+
+  /** Gera a arte e publica direto no Instagram (feed ou story). */
+  async function publishArt(kind: "feed" | "story") {
+    if (!pkg?.image_url) {
+      toast.error("Cadastre a URL da imagem de capa do pacote antes de publicar.");
+      return;
+    }
+    const caption = output?.channel === "instagram" ? output.text : undefined;
+    if (kind === "feed" && !caption) {
+      toast.error("Gere a legenda do Instagram antes de publicar no feed.");
+      return;
+    }
+    const ok = await confirm({
+      title: kind === "feed" ? "Publicar no feed?" : "Publicar no story?",
+      description:
+        kind === "feed"
+          ? "A arte 3:4 e a legenda gerada serão publicadas agora no perfil do Instagram."
+          : "A arte 9:16 será publicada agora nos stories do Instagram.",
+      confirmText: "Publicar agora",
+    });
+    if (!ok) return;
+
+    setLoading(kind === "feed" ? "post-feed" : "post-story");
+    try {
+      const blob =
+        kind === "feed"
+          ? await (await import("@/lib/packages/feed-art")).renderPackageFeedArtBlob(pkg as any)
+          : await (await import("@/lib/packages/story-art")).renderPackageStoryArtBlob(pkg as any);
+
+      const res = await publishArtFn({
+        data: {
+          media_type: kind === "feed" ? "feed_image" : "story_image",
+          image_base64: await blobToBase64(blob),
+          caption,
+          package_id: typeof pkg.id === "string" ? pkg.id : undefined,
+          slug: typeof pkg.slug === "string" ? pkg.slug : undefined,
+        },
+      });
+      toast.success(kind === "feed" ? "Publicado no feed!" : "Publicado nos stories!", {
+        action: res.permalink
+          ? { label: "Ver post", onClick: () => window.open(res.permalink!, "_blank") }
+          : undefined,
+      });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Falha ao publicar no Instagram");
+    } finally {
+      setLoading(null);
+    }
+  }
+
+
   const autoKey = useRef<string | null>(null);
   useEffect(() => {
     if (!open || !pkg) return;
@@ -270,6 +337,41 @@ export function PackageSocialDialog({
               STORY 9:16
             </button>
           </div>
+
+          <div className="flex items-center gap-2">
+            <span className="text-[9px] font-black uppercase tracking-tighter text-muted-foreground">
+              Publicar no Instagram:
+            </span>
+            <button
+              type="button"
+              onClick={() => publishArt("feed")}
+              disabled={loading !== null}
+              title="Publica a arte 3:4 com a legenda gerada"
+              className="flex items-center gap-1.5 rounded-lg bg-[#E1306C]/10 px-3 py-1.5 text-[10px] font-bold text-[#E1306C] ring-1 ring-[#E1306C]/20 transition-colors hover:bg-[#E1306C] hover:text-white disabled:opacity-60"
+            >
+              {loading === "post-feed" ? (
+                <Loader2 className="h-3 w-3 animate-spin" />
+              ) : (
+                <Send className="h-3 w-3" />
+              )}
+              FEED
+            </button>
+            <button
+              type="button"
+              onClick={() => publishArt("story")}
+              disabled={loading !== null}
+              title="Publica a arte 9:16 nos stories"
+              className="flex items-center gap-1.5 rounded-lg bg-[#E1306C]/10 px-3 py-1.5 text-[10px] font-bold text-[#E1306C] ring-1 ring-[#E1306C]/20 transition-colors hover:bg-[#E1306C] hover:text-white disabled:opacity-60"
+            >
+              {loading === "post-story" ? (
+                <Loader2 className="h-3 w-3 animate-spin" />
+              ) : (
+                <Smartphone className="h-3 w-3" />
+              )}
+              STORY
+            </button>
+          </div>
+
         </div>
 
         {output && (
