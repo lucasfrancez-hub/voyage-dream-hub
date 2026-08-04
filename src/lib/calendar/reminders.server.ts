@@ -198,3 +198,70 @@ export async function reagendarLembretes(eventId: string): Promise<number> {
     return 0;
   }
 }
+
+/**
+ * Garante a fila dos próximos 90 dias (usado depois da sincronização das
+ * agendas externas). Cria o que falta e cancela lembretes que não batem mais
+ * com o horário atual do compromisso — sem reenviar o que já foi enviado.
+ */
+export async function garantirLembretesFuturos(dias = 90): Promise<{ criados: number; cancelados: number }> {
+  const agora = new Date();
+  const ate = new Date(agora.getTime() + dias * 86400_000);
+  const { data } = await supabaseAdmin
+    .from("wa_calendar_events")
+    .select(CAMPOS)
+    .gte("inicio", new Date(agora.getTime() - 86400_000).toISOString())
+    .lte("inicio", ate.toISOString())
+    .is("deleted_at", null);
+  const eventos = (data ?? []) as EventoLembrete[];
+  if (eventos.length === 0) return { criados: 0, cancelados: 0 };
+
+  const prefs = await prefsAgenda();
+  const linhas: Array<Record<string, unknown>> = [];
+  const validas = new Set<string>();
+
+  for (const ev of eventos) {
+    for (const l of calcularLembretes(ev, prefs, agora)) {
+      const chave = `calendar:${ev.id}:todos:${l.scheduled_for}:${l.reminder_type}`;
+      validas.add(chave);
+      linhas.push({
+        event_id: ev.id,
+        user_id: null,
+        scheduled_for: l.scheduled_for,
+        reminder_type: l.reminder_type,
+        status: "pending",
+        idempotency_key: chave,
+        updated_at: agora.toISOString(),
+      });
+    }
+  }
+
+  if (linhas.length) {
+    await supabaseAdmin
+      .from("wa_calendar_notification_jobs")
+      .upsert(linhas as never, { onConflict: "idempotency_key", ignoreDuplicates: true });
+  }
+
+  // cancela pendentes que não correspondem mais ao horário atual do evento
+  const { data: pendentes } = await supabaseAdmin
+    .from("wa_calendar_notification_jobs")
+    .select("id, idempotency_key, event_id")
+    .eq("status", "pending")
+    .in(
+      "event_id",
+      eventos.map((e) => e.id),
+    );
+  const sobrando = ((pendentes ?? []) as Array<{ id: string; idempotency_key: string }>).filter(
+    (j) => !validas.has(j.idempotency_key),
+  );
+  if (sobrando.length) {
+    await supabaseAdmin
+      .from("wa_calendar_notification_jobs")
+      .update({ status: "cancelled", updated_at: agora.toISOString() })
+      .in(
+        "id",
+        sobrando.map((j) => j.id),
+      );
+  }
+  return { criados: linhas.length, cancelados: sobrando.length };
+}

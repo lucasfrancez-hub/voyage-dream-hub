@@ -236,6 +236,12 @@ export async function sincronizar(dias = 120): Promise<{ total: number; erro?: s
     total += r.total;
     if (r.erro) erros.push(`${conta.nome}: ${r.erro}`);
   }
+  try {
+    const { garantirLembretesFuturos } = await import("@/lib/calendar/reminders.server");
+    await garantirLembretesFuturos();
+  } catch (err) {
+    console.warn("[agenda] não consegui recalcular os lembretes:", err);
+  }
   return erros.length ? { total, erro: erros.join(" · ") } : { total };
 }
 
