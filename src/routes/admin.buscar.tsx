@@ -420,7 +420,7 @@ export function SearchEngine({
         <HoteisPage header={hero} publicMode={publicMode} externalSearch={embedMode} />
       )}
 
-      {mode === "carro" && <CarrosPage header={hero} />}
+      {mode === "carro" && <CarrosPage header={hero} embedMode={embedMode} />}
       {mode === "exclusivo" && <ExclusivosPage header={hero} />}
       {mode === "seguro" && <SegurosPage header={hero} />}
 
