@@ -1375,9 +1375,17 @@ function Notificacoes({ token, pin, vapid, onFechar }: { token: string; pin: str
 
         {mensagem ? <p className="mt-3 text-center text-xs opacity-70">{mensagem}</p> : null}
 
-        <p className="mt-4 text-center text-[11px] leading-relaxed opacity-45">
-          No iPhone: toque em Compartilhar → “Adicionar à Tela de Início” e abra pelo ícone antes de ativar.
-        </p>
+        <div className="mt-4 rounded-2xl border p-3 text-[11px] leading-relaxed" style={{ borderColor: "rgba(255,255,255,0.10)" }}>
+          <p className="opacity-60">
+            Modo app (tela de início): <strong>{diag.standalone ? "sim" : "não"}</strong> · Permissão:{" "}
+            <strong>{diag.permissao}</strong> · Suporte a push: <strong>{diag.suporta ? "sim" : "não"}</strong>
+          </p>
+          <p className="mt-2 opacity-45">
+            No iPhone: toque em Compartilhar → “Adicionar à Tela de Início” e abra pelo ícone antes de ativar. O Safari
+            comum não entrega notificações.
+          </p>
+        </div>
+
       </div>
     </div>
   );
