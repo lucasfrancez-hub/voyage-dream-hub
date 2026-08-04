@@ -14,7 +14,7 @@ import { ChatPinUnlock } from "@/components/chat/ChatPinUnlock";
 
 export const Route = createFileRoute("/chat")({
   ssr: false,
-  component: ChatLayout,
+  component: ChatRoute,
   head: () => ({
     meta: [
       { title: "VIA AIR Chat — Central de Atendimento" },
@@ -50,7 +50,16 @@ const PAGE_TITLES: Record<string, { title: string; subtitle?: string }> = {
   "/chat/config": { title: "Configurações", subtitle: "Integrações e permissões" },
 };
 
+// A tela do link secreto (/chat/app/<token>) é pública: entra pelo PIN,
+// então não pode passar pelo guard de login da Central.
+function ChatRoute() {
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  if (pathname.startsWith("/chat/app/")) return <Outlet />;
+  return <ChatLayout />;
+}
+
 function ChatLayout() {
+
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [session, setSession] = useState<Session | null | undefined>(undefined);
