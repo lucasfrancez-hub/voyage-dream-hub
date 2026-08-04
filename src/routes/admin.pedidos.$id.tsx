@@ -2032,7 +2032,22 @@ function FlightReservationCard({
             {(() => {
               // Deriva status real de cada segmento antes de agregar.
               const rank: Record<string, number> = { pending: 0, reserved: 1, confirmed: 2, cancelled: -1 };
-              const derived = segments.map((s) => ({ ...s, status: deriveItemStatus(s) }));
+              // Bilhete emitido pode estar no passageiro (tickets por localizador).
+              const displayLoc = ((locator ?? "") || "").toUpperCase().trim();
+              const supplierKey = ((first?.supplier_locator ?? "") || "").toUpperCase().trim();
+              const carrierKey = String(((first?.details ?? {}) as Record<string, unknown>).carrier_locator ?? "")
+                .toUpperCase()
+                .trim();
+              const paxTicket = (passengers ?? []).some((p) => {
+                const tmap = (p.tickets ?? {}) as Record<string, string>;
+                return !!(
+                  (displayLoc && tmap[displayLoc]) ||
+                  (carrierKey && tmap[carrierKey]) ||
+                  (supplierKey && tmap[supplierKey]) ||
+                  (p.ticket_number ?? "").trim()
+                );
+              });
+              const derived = segments.map((s) => ({ ...s, status: deriveItemStatus(s, paxTicket) }));
               const nonCancel = derived.filter((s) => s.status !== "cancelled");
               const st = allCancelled ? "cancelled"
                 : nonCancel.reduce((acc, s) => (rank[s.status] > rank[acc] ? s.status : acc), nonCancel[0]?.status ?? "pending");
