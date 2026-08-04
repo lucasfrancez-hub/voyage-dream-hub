@@ -366,6 +366,16 @@ export function SegurosPage({ header }: { header?: React.ReactNode } = {}) {
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
         {run.isPending && <SearchSkeleton kind="insurance" rows={4} />}
 
+        {!result && !run.isPending && (
+          <div className="rounded-2xl border border-dashed border-border p-12 text-center">
+            <ShieldCheck className="mx-auto mb-3 h-6 w-6 text-muted-foreground" />
+            <p className="text-sm text-muted-foreground">
+              Informe o destino e as datas da viagem. Os filtros aparecem na lateral depois da
+              pesquisa.
+            </p>
+          </div>
+        )}
+
         {result && !run.isPending && (
           <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
             <aside className="space-y-4">
