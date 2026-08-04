@@ -76,21 +76,18 @@ export function InstallmentRulesDialog({ trigger }: { trigger: ReactNode }) {
                     {r.iata}
                   </div>
                 </div>
-                <div className="whitespace-nowrap text-right text-sm font-semibold text-primary tabular-nums">
-                  {ruleInstallmentsLabel(r.rule)}
-                </div>
                 <div
-                  className={`col-span-2 text-left text-xs sm:col-span-1 sm:text-right sm:text-sm tabular-nums ${
-                    isPixOnly(r.rule)
-                      ? "font-semibold text-emerald-500"
-                      : r.rule.min == null
-                        ? "text-muted-foreground"
-                        : "text-muted-foreground sm:text-foreground"
+                  className={`whitespace-nowrap text-right text-sm font-semibold tabular-nums ${
+                    isPixOnly(r.rule) ? "text-emerald-500" : "text-primary"
                   }`}
                 >
+                  {ruleInstallmentsLabel(r.rule)}
+                </div>
+                <div className="col-span-2 text-left text-xs text-muted-foreground sm:col-span-1 sm:text-right sm:text-sm tabular-nums">
                   <span className="sm:hidden">Parcela mínima: </span>
                   {ruleMinLabel(r.rule)}
                 </div>
+
               </div>
             ))}
             {rows.length === 0 && (
