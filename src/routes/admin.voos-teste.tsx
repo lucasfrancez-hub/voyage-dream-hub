@@ -1289,6 +1289,8 @@ function SummaryCard({
   const createCart = useServerFn(publicMode ? onerCreateFlightCartPublic : onerCreateFlightCart);
   const logLead = useServerFn(createPublicFlightLead);
   const [buyingPublic, setBuyingPublic] = useState(false);
+  const leadDone = useRef(false);
+
 
   // Gera o carrinho oficial do Comprar Viagem (agência VIA AIR na URL),
   // para o cliente concluir o pagamento no ambiente da operadora.
@@ -1324,6 +1326,35 @@ function SummaryCard({
   const summaryText = [legText(inb ? "Ida" : "Voo", out), inb ? legText("Volta", inb) : null]
     .filter(Boolean)
     .join("\n");
+
+  // Registra o interesse (pedido pendente) sem travar a ida ao carrinho.
+  function registrarLead(url: string) {
+    if (leadDone.current) return;
+    leadDone.current = true;
+    void logLead({
+      data: {
+        departureIata: ctx.departureIata,
+        arrivalIata: ctx.arrivalIata,
+        departureDate: ctx.departureDate,
+        returnDate: ctx.returnDate ?? null,
+        adults: ctx.adults,
+        children: ctx.children,
+        infants: ctx.infants,
+        total,
+        summary: summaryText,
+        cartUrl: url,
+      },
+    }).catch((e) => console.error("[public-lead] falha ao registrar pedido pendente", e));
+  }
+
+  // Motor público: já prepara o carrinho enquanto o cliente lê o resumo, para o
+  // botão virar um link normal (sem pop-up bloqueado dentro do iframe do site).
+  useEffect(() => {
+    if (!publicMode || !open || !searchKey) return;
+    if (cartUrl || cartMut.isPending) return;
+    cartMut.mutate();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [publicMode, open, searchKey]);
 
   return (
     <>
@@ -1455,52 +1486,48 @@ function SummaryCard({
                 Continuar para hospedagem
               </Button>
             ) : publicMode ? (
-              <Button
-                disabled={!searchKey || buyingPublic}
-                onClick={async () => {
-                  if (!searchKey) return;
-                  setBuyingPublic(true);
-                  // abre a aba ANTES do await pra não ser bloqueada pelo navegador
-                  const tab = window.open("", "_blank", "noopener");
-                  try {
-                    const r = await cartMut.mutateAsync();
-                    // Log do interesse: entra em /admin/pedidos como pendente.
-                    try {
-                      await logLead({
-                        data: {
-                          departureIata: ctx.departureIata,
-                          arrivalIata: ctx.arrivalIata,
-                          departureDate: ctx.departureDate,
-                          returnDate: ctx.returnDate ?? null,
-                          adults: ctx.adults,
-                          children: ctx.children,
-                          infants: ctx.infants,
-                          total,
-                          summary: summaryText,
-                          cartUrl: r.url,
-                        },
-                      });
-                    } catch (e) {
-                      // o log nunca pode travar a compra do cliente
-                      console.error("[public-lead] falha ao registrar pedido pendente", e);
-                    }
-                    if (tab) tab.location.href = r.url;
-                    else window.open(r.url, "_blank", "noopener");
-                    setBuyingPublic(false);
-                  } catch {
-                    tab?.close();
-                    setBuyingPublic(false);
-                  }
-                }}
-                className="w-full py-6 text-xs font-black uppercase tracking-[0.15em]"
-              >
-                {buyingPublic ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
+              cartUrl ? (
+                // Link real: navegação por clique do usuário nunca é tratada como pop-up,
+                // então nenhum bloqueador impede a ida ao carrinho.
+                <a
+                  href={cartUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => registrarLead(cartUrl)}
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-primary py-4 text-xs font-black uppercase tracking-[0.15em] text-primary-foreground transition-opacity hover:opacity-90"
+                >
                   <ShoppingCart className="h-4 w-4" />
-                )}
-                Comprar agora
-              </Button>
+                  Comprar agora
+                </a>
+              ) : (
+                <Button
+                  disabled={!searchKey || buyingPublic || cartMut.isPending}
+                  onClick={async () => {
+                    if (!searchKey) return;
+                    setBuyingPublic(true);
+                    // abre a aba ANTES do await pra não ser bloqueada pelo navegador
+                    const tab = window.open("", "_blank", "noopener");
+                    try {
+                      const r = await cartMut.mutateAsync();
+                      registrarLead(r.url);
+                      if (tab) tab.location.href = r.url;
+                      else window.open(r.url, "_blank", "noopener");
+                      setBuyingPublic(false);
+                    } catch {
+                      tab?.close();
+                      setBuyingPublic(false);
+                    }
+                  }}
+                  className="w-full py-6 text-xs font-black uppercase tracking-[0.15em]"
+                >
+                  {buyingPublic || cartMut.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <ShoppingCart className="h-4 w-4" />
+                  )}
+                  Comprar agora
+                </Button>
+              )
             ) : (
             <>
             <Button
