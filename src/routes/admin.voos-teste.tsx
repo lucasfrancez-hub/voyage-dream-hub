@@ -1850,7 +1850,7 @@ export function VoosPage({
           const signature = flightSignature(f);
           const atual = map.get(signature);
           if (!atual) novos++;
-          if (!atual || f.price.total < atual.price.total) map.set(signature, f);
+          if (!atual || f.price.total < atual.price.total) map.set(signature, mergeFares(atual, f));
         }
         const flights = [...map.values()].sort((a, b) => a.price.total - b.price.total);
         toast[novos ? "success" : "info"](
