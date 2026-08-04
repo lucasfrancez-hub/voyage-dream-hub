@@ -1047,6 +1047,7 @@ function SummaryCard({
   const [cartUrl, setCartUrl] = useState<string | null>(null);
   const createCart = useServerFn(publicMode ? onerCreateFlightCartPublic : onerCreateFlightCart);
   const logLead = useServerFn(createPublicFlightLead);
+  const [buyingPublic, setBuyingPublic] = useState(false);
 
   // Gera o carrinho oficial do Comprar Viagem (agência VIA AIR na URL),
   // para o cliente concluir o pagamento no ambiente da operadora.
@@ -1423,15 +1424,18 @@ export function VoosPage({
   preset,
   runToken,
   onComboSelect,
+  publicMode = false,
 }: {
   header?: React.ReactNode;
   hideForm?: boolean;
   preset?: FlightPreset;
   runToken?: number;
   onComboSelect?: (pick: ComboPick) => void;
+  /** Motor aberto ao cliente final (sem login). */
+  publicMode?: boolean;
 } = {}) {
-  const search = useServerFn(onerFlightSearch);
-  const searchInbound = useServerFn(onerInboundSearch);
+  const search = useServerFn(publicMode ? onerFlightSearchPublic : onerFlightSearch);
+  const searchInbound = useServerFn(publicMode ? onerInboundSearchPublic : onerInboundSearch);
   const [form, setForm] = useState({
     departureIata: "CWB",
     arrivalIata: "GRU",
@@ -1689,6 +1693,7 @@ export function VoosPage({
                   </Label>
                   <AirportAutocomplete
                     value={form.departureIata}
+                    publicMode={publicMode}
                     isDeparture
                     placeholder="Cidade ou IATA (ex.: Curitiba / CWB)"
                     className="h-12 rounded-xl border-border/40 bg-muted/40 px-4 text-base font-semibold uppercase transition-all focus-visible:ring-2 focus-visible:ring-primary/50"
@@ -1702,6 +1707,7 @@ export function VoosPage({
                   </Label>
                   <AirportAutocomplete
                     value={form.arrivalIata}
+                    publicMode={publicMode}
                     isDeparture={false}
                     placeholder="Cidade ou IATA (ex.: São Paulo / GRU)"
                     className="h-12 rounded-xl border-border/40 bg-muted/40 px-4 text-base font-semibold uppercase transition-all focus-visible:ring-2 focus-visible:ring-primary/50"
@@ -1934,6 +1940,7 @@ export function VoosPage({
                     open={summaryOpen}
                     onOpenChange={setSummaryOpen}
                     onComboSelect={onComboSelect}
+                    publicMode={publicMode}
                   />
                 </>
               )}
