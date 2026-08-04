@@ -520,7 +520,7 @@ function CarSummaryDialog({
               </div>
             </div>
 
-            {cartUrl && (
+            {cartUrl && !isPublic && (
               <div className="space-y-2 rounded-xl border border-primary/30 bg-primary/5 p-3">
                 <div className="text-xs font-semibold">Link do carrinho</div>
                 <div className="break-all text-[11px] text-muted-foreground">{cartUrl}</div>
@@ -558,14 +558,16 @@ function CarSummaryDialog({
           </div>
 
           <div className="space-y-3 border-t border-border/50 bg-background/40 p-5">
+            {!isPublic && (
+              <Button
+                onClick={() => setOrderOpen(true)}
+                className="w-full py-6 text-xs font-black uppercase tracking-[0.15em]"
+              >
+                <ShoppingCart className="h-4 w-4" /> Fazer pedido
+              </Button>
+            )}
             <Button
-              onClick={() => setOrderOpen(true)}
-              className="w-full py-6 text-xs font-black uppercase tracking-[0.15em]"
-            >
-              <ShoppingCart className="h-4 w-4" /> Fazer pedido
-            </Button>
-            <Button
-              variant="outline"
+              variant={isPublic ? "default" : "outline"}
               disabled={cartMut.isPending}
               onClick={() => cartMut.mutate()}
               className="w-full py-5 text-[10px] font-black uppercase tracking-[0.15em]"
@@ -575,19 +577,22 @@ function CarSummaryDialog({
               ) : (
                 <ExternalLink className="h-4 w-4" />
               )}
-              Comprar viagem
+              {isPublic ? "Comprar agora" : "Comprar viagem"}
             </Button>
           </div>
         </DialogContent>
       </Dialog>
 
-      <NewOrderFromCarDialog
-        open={orderOpen}
-        onOpenChange={setOrderOpen}
-        total={car.finalPrice}
-        pax={car.passengerCount || 1}
-        summary={summaryText}
-      />
+      {!isPublic && (
+        <NewOrderFromCarDialog
+          open={orderOpen}
+          onOpenChange={setOrderOpen}
+          total={car.finalPrice}
+          pax={car.passengerCount || 1}
+          summary={summaryText}
+        />
+      )}
+
     </>
   );
 }
