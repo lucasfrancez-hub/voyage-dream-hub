@@ -1,11 +1,14 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { CalendarDays, ArrowRight, X } from "lucide-react";
 import { format, parse, isValid } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
+import { resetEmbedHeight, resizeEmbedForFloatingElement } from "@/lib/embed-resize";
 import { cn } from "@/lib/utils";
+
 
 const toISO = (d: Date) => format(d, "yyyy-MM-dd");
 const fromISO = (s: string) => {
@@ -37,6 +40,9 @@ export function DateRangeField({
   const [open, setOpen] = useState(false);
   const [focus, setFocus] = useState<"start" | "end">("start");
   const [embedded, setEmbedded] = useState(false);
+  const anchorRef = useRef<HTMLDivElement>(null);
+  const calendarRef = useRef<HTMLDivElement>(null);
+  const [pos, setPos] = useState({ top: 0, left: 0, width: 0 });
 
   useEffect(() => {
     try {
@@ -46,9 +52,37 @@ export function DateRangeField({
     }
   }, []);
 
+  // Posiciona o painel logo abaixo do campo e cresce o iframe pra ele caber.
+  useEffect(() => {
+    if (!embedded) return;
+    if (!open) {
+      resetEmbedHeight();
+      return;
+    }
+    const update = () => {
+      const el = anchorRef.current;
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+      setPos({
+        top: window.scrollY + rect.bottom + 8,
+        left: window.scrollX + rect.left,
+        width: rect.width,
+      });
+    };
+    update();
+    const t = window.setTimeout(() => resizeEmbedForFloatingElement(calendarRef.current, 32), 40);
+    window.addEventListener("resize", update);
+    window.addEventListener("scroll", update, true);
+    return () => {
+      window.clearTimeout(t);
+      window.removeEventListener("resize", update);
+      window.removeEventListener("scroll", update, true);
+    };
+  }, [open, embedded, focus]);
 
   const from = fromISO(departureDate);
   const to = fromISO(returnDate);
+
 
   // Fecha sozinho quando o intervalo está completo e o usuário pediu volta.
   useEffect(() => {
@@ -186,27 +220,39 @@ export function DateRangeField({
   );
 
   // Dentro de um iframe (widget do site) o popover seria cortado pelas bordas.
-  // Nesse caso abrimos um painel fixo na área visível do próprio widget.
+  // Renderizamos num portal no body e pedimos ao WordPress pra aumentar o iframe.
   if (embedded) {
     return (
       <>
-        <div className={cn("grid grid-cols-2 gap-2", className)}>
+        <div ref={anchorRef} className={cn("grid grid-cols-2 gap-2", className)}>
           {trigger("start")}
           {trigger("end")}
         </div>
-        {open && (
-          <div className="fixed inset-0 z-[100] flex items-start justify-center overflow-y-auto bg-background/80 p-2 backdrop-blur-sm">
-            <div
-              className="my-auto w-full max-w-[340px] rounded-2xl border border-border/60 bg-popover shadow-2xl"
-              role="dialog"
-            >
-              {panel(true)}
-            </div>
-          </div>
-        )}
+        {open &&
+          typeof document !== "undefined" &&
+          createPortal(
+            <>
+              <div className="fixed inset-0 z-[90]" onClick={() => setOpen(false)} />
+              <div
+                ref={calendarRef}
+                role="dialog"
+                style={{
+                  position: "absolute",
+                  top: pos.top,
+                  left: pos.left,
+                  width: Math.max(pos.width, 320),
+                }}
+                className="z-[100] max-w-[360px] rounded-2xl border border-border/60 bg-popover shadow-2xl"
+              >
+                {panel(true)}
+              </div>
+            </>,
+            document.body,
+          )}
       </>
     );
   }
+
 
   return (
     <Popover
