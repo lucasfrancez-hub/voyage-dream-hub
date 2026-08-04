@@ -400,7 +400,10 @@ export function SearchEngine({
       {mode === "aereo" && (
         <VoosPage header={hero} publicMode={publicMode} externalSearch={embedMode} />
       )}
-      {mode === "hotel" && <HoteisPage header={hero} publicMode={publicMode} />}
+      {mode === "hotel" && (
+        <HoteisPage header={hero} publicMode={publicMode} externalSearch={embedMode} />
+      )}
+
       {mode === "carro" && <CarrosPage header={hero} />}
       {mode === "exclusivo" && <ExclusivosPage header={hero} />}
       {mode === "seguro" && <SegurosPage header={hero} />}
