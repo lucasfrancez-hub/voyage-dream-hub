@@ -1212,6 +1212,47 @@ function SummaryCard({
               >
                 Continuar para hospedagem
               </Button>
+            ) : publicMode ? (
+              <Button
+                disabled={!searchKey || buyingPublic}
+                onClick={async () => {
+                  if (!searchKey) return;
+                  setBuyingPublic(true);
+                  try {
+                    const r = await cartMut.mutateAsync();
+                    // Log do interesse: entra em /admin/pedidos como pendente.
+                    try {
+                      await logLead({
+                        data: {
+                          departureIata: ctx.departureIata,
+                          arrivalIata: ctx.arrivalIata,
+                          departureDate: ctx.departureDate,
+                          returnDate: ctx.returnDate,
+                          adults: ctx.adults,
+                          children: ctx.children,
+                          infants: ctx.infants,
+                          total,
+                          summary: summaryText,
+                          cartUrl: r.url,
+                        },
+                      });
+                    } catch {
+                      /* o log nunca pode travar a compra do cliente */
+                    }
+                    window.location.href = r.url;
+                  } catch {
+                    setBuyingPublic(false);
+                  }
+                }}
+                className="w-full py-6 text-xs font-black uppercase tracking-[0.15em]"
+              >
+                {buyingPublic ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <ShoppingCart className="h-4 w-4" />
+                )}
+                Comprar agora
+              </Button>
             ) : (
             <>
             <Button
@@ -1235,6 +1276,7 @@ function SummaryCard({
             </Button>
             </>
             )}
+
           </div>
         </DialogContent>
       </Dialog>
