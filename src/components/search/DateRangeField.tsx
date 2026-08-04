@@ -63,21 +63,31 @@ export function DateRangeField({
       const el = anchorRef.current;
       if (!el) return;
       const rect = el.getBoundingClientRect();
+      // Largura real do painel (conteúdo do calendário) pra não estourar a borda.
+      const panelWidth = calendarRef.current?.offsetWidth ?? 328;
+      const maxLeft = Math.max(8, window.innerWidth - panelWidth - 8);
       setPos({
         top: window.scrollY + rect.bottom + 8,
-        left: window.scrollX + rect.left,
+        left: window.scrollX + Math.min(Math.max(8, rect.left), maxLeft),
         width: rect.width,
       });
     };
     update();
-    const t = window.setTimeout(() => resizeEmbedForFloatingElement(calendarRef.current, 32), 40);
+    const raf = window.requestAnimationFrame(update);
+    const t = window.setTimeout(() => {
+      update();
+      resizeEmbedForFloatingElement(calendarRef.current, 32);
+    }, 40);
+
     window.addEventListener("resize", update);
     window.addEventListener("scroll", update, true);
     return () => {
       window.clearTimeout(t);
+      window.cancelAnimationFrame(raf);
       window.removeEventListener("resize", update);
       window.removeEventListener("scroll", update, true);
     };
+
   }, [open, embedded, focus]);
 
   const from = fromISO(departureDate);
@@ -181,16 +191,19 @@ export function DateRangeField({
         )}
       </div>
 
-      <Calendar
-        mode="range"
-        locale={ptBR}
-        numberOfMonths={compact ? 1 : 2}
-        defaultMonth={from ?? new Date()}
-        selected={{ from, to }}
-        onSelect={handleSelect}
-        disabled={{ before: new Date() }}
-        className={cn("pointer-events-auto p-3")}
-      />
+      <div className="flex justify-center">
+        <Calendar
+          mode="range"
+          locale={ptBR}
+          numberOfMonths={compact ? 1 : 2}
+          defaultMonth={from ?? new Date()}
+          selected={{ from, to }}
+          onSelect={handleSelect}
+          disabled={{ before: new Date() }}
+          className={cn("pointer-events-auto p-3")}
+        />
+      </div>
+
 
       <div className="flex items-center justify-between gap-2 border-t border-border/50 px-4 py-2.5">
         <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => onChange("", "")}>
@@ -240,9 +253,10 @@ export function DateRangeField({
                   position: "absolute",
                   top: pos.top,
                   left: pos.left,
-                  width: Math.max(pos.width, 320),
+                  width: "max-content",
                 }}
-                className="z-[100] max-w-[360px] rounded-2xl border border-border/60 bg-popover shadow-2xl"
+                className="z-[100] max-w-[calc(100vw-16px)] overflow-hidden rounded-2xl border border-border/60 bg-popover shadow-2xl"
+
               >
                 {panel(true)}
               </div>
