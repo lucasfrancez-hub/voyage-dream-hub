@@ -50,7 +50,6 @@ function AbrirAppAdmin() {
         if (r.ok && r.email && r.tokenHash) {
           const { error } = await supabase.auth.verifyOtp({
             type: "magiclink",
-            email: r.email,
             token_hash: r.tokenHash,
           });
           if (!error) {
@@ -81,7 +80,6 @@ function AbrirAppAdmin() {
       if (!r.email || !r.tokenHash) throw new Error("Link inválido ou desativado.");
       const { error } = await supabase.auth.verifyOtp({
         type: "magiclink",
-        email: r.email,
         token_hash: r.tokenHash,
       });
       if (error) throw new Error(error.message);
