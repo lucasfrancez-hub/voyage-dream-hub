@@ -2498,7 +2498,6 @@ function InstagramCommentThreadView({ mediaId, onBack }: { mediaId: string; onBa
   const [sending, setSending] = useState(false);
   const [verMidia, setVerMidia] = useState(false);
   const [postAberto, setPostAberto] = useState(false);
-  const legendaLonga = (thread?.media_caption ?? "").length > 140;
 
 
   const bottomRef = useRef<HTMLDivElement | null>(null);
@@ -2519,6 +2518,7 @@ function InstagramCommentThreadView({ mediaId, onBack }: { mediaId: string; onBa
   );
 
   const thread = threads.find((t) => t.media_id === mediaId) ?? null;
+  const legendaLonga = (thread?.media_caption ?? "").length > 140;
   const comments = thread?.comments ?? [];
 
   // Ao abrir a publicação, marca os comentários como lidos (badge some).
