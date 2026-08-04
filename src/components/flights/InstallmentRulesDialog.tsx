@@ -99,32 +99,6 @@ export function InstallmentRulesDialog({ trigger }: { trigger: ReactNode }) {
         </div>
 
         <div className="border-t border-border/60 bg-background/40 px-6 py-4 space-y-4">
-          <div>
-            <div className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
-              Formas de pagamento aceitas
-            </div>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {[
-                "Pix",
-                "Cartão de crédito (até 3 cartões)",
-                "Visa",
-                "Mastercard",
-                "Elo",
-                "American Express",
-                "Hipercard",
-                "Diners Club",
-                "Boleto (sob análise)",
-              ].map((b) => (
-                <span
-                  key={b}
-                  className="rounded-full border border-border/60 bg-card/60 px-3 py-1 text-xs font-medium"
-                >
-                  {b}
-                </span>
-              ))}
-            </div>
-          </div>
-
           <div className="flex items-start gap-2 text-xs text-muted-foreground">
             <Info className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
             <div className="space-y-1">
