@@ -1,8 +1,15 @@
 /**
  * Utilitário único de redimensionamento do widget (iframe) do motor de busca.
- * NUNCA envia altura fixa: sempre mede a altura real do conteúdo renderizado.
+ *
+ * Duas mensagens distintas:
+ *  - VIAAIR_EMBED_RESIZE  → altura REAL do formulário (o espaço que o motor ocupa
+ *    na página do WordPress). Nunca inclui calendários/listas.
+ *  - VIAAIR_EMBED_OVERLAY → altura extra necessária enquanto um painel flutuante
+ *    está aberto. O script do widget usa isso pra sobrepor o conteúdo da página,
+ *    SEM aumentar a altura do bloco do motor.
  */
 const EMBED_MESSAGE_TYPE = "VIAAIR_EMBED_RESIZE";
+const OVERLAY_MESSAGE_TYPE = "VIAAIR_EMBED_OVERLAY";
 const LEGACY_MESSAGE_TYPE = "viaair-embed-height";
 const MIN_EMBED_HEIGHT = 120;
 const MAX_EMBED_HEIGHT = 6000;
@@ -23,43 +30,38 @@ export function isEmbedPath(): boolean {
 }
 
 /**
- * Altura real do conteúdo. Como html/body podem estar com altura travada pelo
- * próprio iframe, medimos também o wrapper e todos os elementos flutuantes
- * (portais de calendário/dropdown) que ficam fora do fluxo.
+ * Altura real do conteúdo do motor — IGNORANDO os elementos flutuantes
+ * (calendário, autocomplete, passageiros), que viram overlay.
  */
 function getContentHeight(): number {
   if (typeof document === "undefined") return MIN_EMBED_HEIGHT;
-  const body = document.body;
-  const html = document.documentElement;
 
-  let height = Math.max(
-    body?.scrollHeight ?? 0,
-    body?.offsetHeight ?? 0,
-    html?.scrollHeight ?? 0,
-    html?.offsetHeight ?? 0,
-  );
-
-  const candidates = document.querySelectorAll<HTMLElement>(
-    ".embed-search-page, #root > *, [data-radix-popper-content-wrapper], .viaair-floating-layer",
-  );
+  let height = 0;
+  const candidates = document.querySelectorAll<HTMLElement>(".embed-search-page, #root > *");
   candidates.forEach((el) => {
     const rect = el.getBoundingClientRect();
     if (rect.height <= 0) return;
     height = Math.max(height, Math.round(window.scrollY + rect.bottom));
   });
 
+  if (height <= 0) {
+    const body = document.body;
+    height = Math.max(body?.scrollHeight ?? 0, body?.offsetHeight ?? 0);
+  }
+
   return height;
 }
 
 let lastSent = 0;
+let lastOverlay = -1;
+
+function clamp(height: number): number {
+  return Math.min(MAX_EMBED_HEIGHT, Math.max(MIN_EMBED_HEIGHT, Math.ceil(height)));
+}
 
 function sendHeight(height: number): void {
   if (!isInsideIframe() || !isEmbedPath()) return;
-  const withFloor = Math.max(height, floatingFloor);
-  const safeHeight = Math.min(
-    MAX_EMBED_HEIGHT,
-    Math.max(MIN_EMBED_HEIGHT, Math.ceil(withFloor)),
-  );
+  const safeHeight = clamp(height);
   if (safeHeight === lastSent) return;
   lastSent = safeHeight;
   window.parent?.postMessage({ type: EMBED_MESSAGE_TYPE, height: safeHeight }, "*");
@@ -67,8 +69,14 @@ function sendHeight(height: number): void {
   window.parent?.postMessage({ type: LEGACY_MESSAGE_TYPE, height: safeHeight }, "*");
 }
 
-/** Piso enquanto um elemento flutuante está aberto (medido, nunca fixo). */
-let floatingFloor = 0;
+function sendOverlay(height: number): void {
+  if (!isInsideIframe() || !isEmbedPath()) return;
+  const value = height > 0 ? clamp(height) : 0;
+  if (value === lastOverlay) return;
+  lastOverlay = value;
+  window.parent?.postMessage({ type: OVERLAY_MESSAGE_TYPE, height: value }, "*");
+}
+
 let floatingObserver: ResizeObserver | null = null;
 
 /** Função única: mede e envia a altura real, com re-checagens após o render. */
@@ -89,18 +97,22 @@ function measureFloating(element: HTMLElement, extraSpace: number): number {
   return window.scrollY + rect.bottom + extraSpace;
 }
 
+/**
+ * Painel flutuante aberto: em vez de aumentar a altura do motor, pedimos ao
+ * script do widget uma camada sobreposta (overlay) do tamanho necessário.
+ */
 export function resizeEmbedForFloatingElement(
   element: HTMLElement | null,
   extraSpace = EXTRA_BOTTOM_SPACE,
 ): void {
   if (typeof window === "undefined") return;
   if (!element) {
-    updateEmbedHeight();
+    resetEmbedHeight();
     return;
   }
   const apply = () => {
-    floatingFloor = measureFloating(element, extraSpace);
-    sendHeight(Math.max(getContentHeight(), floatingFloor));
+    sendOverlay(Math.max(getContentHeight(), measureFloating(element, extraSpace)));
+    sendHeight(getContentHeight());
   };
   window.requestAnimationFrame(apply);
   window.setTimeout(apply, 50);
@@ -118,8 +130,9 @@ export function resizeEmbedForFloatingElement(
 export function resetEmbedHeight(): void {
   floatingObserver?.disconnect();
   floatingObserver = null;
-  floatingFloor = 0;
+  sendOverlay(0);
   updateEmbedHeight();
 }
 
 export const embedResizeMessageType = EMBED_MESSAGE_TYPE;
+export const embedOverlayMessageType = OVERLAY_MESSAGE_TYPE;
