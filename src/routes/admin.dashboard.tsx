@@ -41,6 +41,23 @@ const PAID = new Set(["paid", "approved", "confirmed", "awaiting_signature", "co
 const RANGES = [7, 30, 60, 90] as const;
 type Range = (typeof RANGES)[number];
 
+const PERIODS = [
+  { days: 0, label: "Hoje" },
+  { days: 7, label: "7 dias" },
+  { days: 14, label: "14 dias" },
+  { days: 30, label: "1 mês" },
+  { days: 60, label: "60 dias" },
+  { days: 90, label: "90 dias" },
+  { days: 365, label: "1 ano" },
+] as const;
+
+function periodStart(days: number) {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  if (days > 0) d.setDate(d.getDate() - days + 1);
+  return d;
+}
+
 function toDate(v: unknown): Date | null {
   if (!v) return null;
   const s = String(v);
