@@ -1560,25 +1560,51 @@ export function VoosPage({
   });
 
   const inboundMut = useMutation({
-    mutationFn: (opts: { flightKey: string; filters: Filters }) =>
-      searchInbound({
-        data: {
-          ...paxData(),
-          returnDate: form.returnDate,
-          searchKey: result?.searchKey ?? "",
-          flightKey: opts.flightKey,
-          filters: toOperatorFilters(opts.filters),
-        },
-      }),
-    onSuccess: (raw, vars) => {
-      const r = normalizeLeg(raw);
-      setInbound(r);
-      if (!r.flights.length) toast.warning("Nenhuma volta disponível com esses filtros");
-      void vars;
+    // A operadora combina ida + volta POR TARIFA (fornecedor). Se a tarifa mais
+    // barata da ida não tem volta combinável, a lista volta vazia mesmo
+    // existindo voos. Então tentamos, em ordem de preço, as demais tarifas do
+    // MESMO voo antes de dizer que não há volta.
+    mutationFn: async (opts: { flightKey: string; filters: Filters }) => {
+      const base = result?.outbound.flights.find((f) => f.key === opts.flightKey);
+      const keys = [
+        opts.flightKey,
+        ...(base?.altKeys ?? []).filter((k) => k && k !== opts.flightKey),
+      ].slice(0, 4);
+      let last: OnerLegResult = { flights: [], totalFlightsCount: 0, priceRange: null };
+      for (const key of keys) {
+        const raw = await searchInbound({
+          data: {
+            ...paxData(),
+            returnDate: form.returnDate,
+            searchKey: result?.searchKey ?? "",
+            flightKey: key,
+            filters: toOperatorFilters(opts.filters),
+          },
+        });
+        last = normalizeLeg(raw);
+        if (last.flights.length) {
+          const idx = base?.altKeys?.indexOf(key) ?? -1;
+          return { leg: last, fareKey: key, fareTotal: base?.altTotals?.[idx] ?? null };
+        }
+      }
+      return { leg: last, fareKey: opts.flightKey, fareTotal: null };
+    },
+    onSuccess: (r) => {
+      setInbound(r.leg);
+      if (r.fareKey !== selectedOut) {
+        setOutFareOverride({ key: r.fareKey, total: r.fareTotal });
+        if (r.leg.flights.length)
+          toast.info("A tarifa mais barata da ida não combinava volta — usamos a tarifa seguinte");
+      } else {
+        setOutFareOverride(null);
+      }
+      if (!r.leg.flights.length)
+        toast.warning("Nenhuma volta disponível para esse voo (nenhuma tarifa combina)");
     },
 
     onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Erro ao buscar volta"),
   });
+
 
   // "Ver mais voltas": mesma lógica da ida — a operadora libera fornecedores em
   // ondas, então uma nova consulta soma opções (e tarifas menores) que faltavam.
