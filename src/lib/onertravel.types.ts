@@ -16,6 +16,25 @@ export type OnerSegment = {
   marketingAirline?: { iata?: string; name?: string; pathLogo?: string };
 };
 
+export type OnerBaggage = {
+  typeDescription?: string;
+  quantity?: number;
+  weight?: number;
+  unitDescription?: string;
+};
+
+/** Família tarifária (LIGHT / CLASSIC / FLEX...) do MESMO itinerário. */
+export type OnerFareOption = {
+  key: string;
+  total: number;
+  price: number;
+  tax: number;
+  cabinClass?: string | null;
+  fareFamily?: string | null;
+  allowedBaggage?: boolean;
+  baggagesAllowance?: OnerBaggage[];
+};
+
 export type OnerFlight = {
   key: string;
   price: {
@@ -31,12 +50,7 @@ export type OnerFlight = {
     numberOfStops: number;
     fareClass?: { cabinClass?: string; airlineFareFamily?: string };
     allowedBaggage?: boolean;
-    baggagesAllowance?: Array<{
-      typeDescription?: string;
-      quantity?: number;
-      weight?: number;
-      unitDescription?: string;
-    }>;
+    baggagesAllowance?: OnerBaggage[];
     departure: OnerPlace;
     destination: OnerPlace;
     marketingAirline?: { iata?: string; name?: string; pathLogo?: string };
@@ -50,7 +64,10 @@ export type OnerFlight = {
   altKeys?: string[];
   /** Preço de cada tarifa alternativa, na mesma ordem de altKeys. */
   altTotals?: number[];
+  /** Famílias tarifárias do mesmo itinerário, da mais barata para a mais cara. */
+  fareOptions?: OnerFareOption[];
 };
+
 
 export type OnerLegResult = {
   totalFlightsCount: number;
