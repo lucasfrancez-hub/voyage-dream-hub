@@ -2666,13 +2666,39 @@ function InstagramCommentThreadView({ mediaId, onBack }: { mediaId: string; onBa
               )}
             </button>
             <div className="min-w-0 flex-1">
-              <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
-                {thread.media_type ? thread.media_type.toLowerCase() : "publicação"} · {comments.length} comentário{comments.length === 1 ? "" : "s"}
+              <div className="flex items-center justify-between gap-2">
+                <div className="min-w-0 text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                  {thread.media_type ? thread.media_type.toLowerCase() : "publicação"} · {comments.length} comentário{comments.length === 1 ? "" : "s"}
+                </div>
+                {legendaLonga && (
+                  <button
+                    type="button"
+                    onClick={() => setPostAberto((v) => !v)}
+                    className="inline-flex shrink-0 items-center gap-1 rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[10px] font-semibold text-slate-500 hover:text-[#F26B1F]"
+                  >
+                    {postAberto ? (
+                      <>
+                        <ChevronUp className="h-3 w-3" /> Recolher
+                      </>
+                    ) : (
+                      <>
+                        <ChevronDown className="h-3 w-3" /> Expandir
+                      </>
+                    )}
+                  </button>
+                )}
               </div>
-              <p className="mt-1 whitespace-pre-wrap text-xs leading-relaxed text-slate-700 [overflow-wrap:anywhere]">
+              <p
+                className={cn(
+                  "mt-1 whitespace-pre-wrap text-xs leading-relaxed text-slate-700 [overflow-wrap:anywhere]",
+                  !postAberto && "line-clamp-3",
+                  postAberto && "max-h-64 overflow-y-auto pr-1",
+                )}
+              >
                 {thread.media_caption ?? "Sem legenda"}
               </p>
             </div>
+
           </div>
         </div>
       )}
