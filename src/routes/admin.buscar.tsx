@@ -11,6 +11,8 @@ import { useServerFn } from "@tanstack/react-start";
 import { onerCreateComboCart } from "@/lib/onertravel-combo.functions";
 import { HoteisPage } from "./admin.hoteis-teste";
 import { CarrosPage } from "./admin.carros";
+import { ExclusivosPage } from "./admin.exclusivos";
+import { SegurosPage } from "./admin.seguros";
 import { DateRangeField } from "@/components/search/DateRangeField";
 
 
