@@ -1762,7 +1762,7 @@ export function VoosPage({
     // existindo voos. Então tentamos, em ordem de preço, as demais tarifas do
     // MESMO voo antes de dizer que não há volta.
     mutationFn: async (opts: { flightKey: string; filters: Filters }) => {
-      const base = result?.outbound.flights.find((f) => f.key === opts.flightKey);
+      const base = findByAnyKey(result?.outbound.flights ?? [], opts.flightKey);
       const keys = [
         opts.flightKey,
         ...(base?.altKeys ?? []).filter((k) => k && k !== opts.flightKey),
