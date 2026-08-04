@@ -1,9 +1,11 @@
-import { Search, Bell, Sun, Moon, Menu } from "lucide-react";
+import { Search, Sun, Moon, Menu } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { listOnlineAgents } from "@/lib/chat/online-agents.functions";
 import { AiStatusButton } from "@/components/chat/AiStatusButton";
 import { AiMasterSwitch } from "@/components/chat/AiMasterSwitch";
+import { ChatPushToggle } from "@/components/chat/ChatPushToggle";
+
 
 
 
@@ -121,12 +123,8 @@ export function ChatHeader({ title, subtitle, userEmail, userFullName, theme = "
 
       <AiStatusButton />
 
-      <button
-        className="hidden sm:inline-flex rounded-md p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-900"
-        title="Notificações"
-      >
-        <Bell className="h-4 w-4" />
-      </button>
+      <ChatPushToggle />
+
 
       {onToggleTheme && (
         <button

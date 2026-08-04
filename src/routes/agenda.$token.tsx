@@ -1195,10 +1195,27 @@ function Linha({ icone, children }: { icone: React.ReactNode; children: React.Re
 /* Notificações                                                        */
 /* ------------------------------------------------------------------ */
 
+function ehStandaloneAgenda() {
+  if (typeof window === "undefined") return false;
+  return (
+    window.matchMedia?.("(display-mode: standalone)").matches ||
+    (window.navigator as unknown as { standalone?: boolean }).standalone === true
+  );
+}
+function ehIOSAgenda() {
+  if (typeof navigator === "undefined") return false;
+  return /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+}
+
 function Notificacoes({ token, pin, vapid, onFechar }: { token: string; pin: string | null; vapid: string; onFechar: () => void }) {
   const [ligado, setLigado] = useState(false);
   const [prefs, setPrefs] = useState({ lembrete: true, resumo: true, novo: true, minutosAntes: 30 });
   const [mensagem, setMensagem] = useState("");
+  const [diag, setDiag] = useState<{ standalone: boolean; permissao: string; suporta: boolean }>({
+    standalone: false,
+    permissao: "default",
+    suporta: true,
+  });
 
   const salvar = useServerFn(salvarPushAgenda);
   const remover = useServerFn(removerPushAgenda);
@@ -1206,10 +1223,18 @@ function Notificacoes({ token, pin, vapid, onFechar }: { token: string; pin: str
 
   useEffect(() => {
     void (async () => {
-      if (!("serviceWorker" in navigator)) return;
-      const reg = await navigator.serviceWorker.getRegistration("/agenda-sw.js");
+      const suporta = "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
+      setDiag({
+        standalone: ehStandaloneAgenda(),
+        permissao: suporta ? Notification.permission : "indisponível",
+        suporta,
+      });
+      if (!suporta) return;
+      // Registra cedo pra que o push fique pronto assim que o usuário permitir.
+      const reg = (await navigator.serviceWorker.getRegistration("/agenda-sw.js")) ??
+        (await navigator.serviceWorker.register("/agenda-sw.js").catch(() => null));
       const sub = await reg?.pushManager.getSubscription();
-      setLigado(!!sub);
+      setLigado(!!sub && Notification.permission === "granted");
     })();
   }, []);
 
@@ -1218,8 +1243,13 @@ function Notificacoes({ token, pin, vapid, onFechar }: { token: string; pin: str
       if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
         throw new Error("Esse aparelho não suporta notificações. No iPhone, adicione o app à tela de início primeiro.");
       }
+      if (ehIOSAgenda() && !ehStandaloneAgenda()) {
+        throw new Error("No iPhone, abra a Agenda pelo ícone da tela de início (não pelo Safari) antes de ativar.");
+      }
+      if (!vapid) throw new Error("Notificações não configuradas no servidor.");
       const permissao = await Notification.requestPermission();
       if (permissao !== "granted") throw new Error("Você precisa permitir as notificações.");
+
       const reg = await navigator.serviceWorker.register("/agenda-sw.js");
       await navigator.serviceWorker.ready;
       const sub =
@@ -1345,9 +1375,17 @@ function Notificacoes({ token, pin, vapid, onFechar }: { token: string; pin: str
 
         {mensagem ? <p className="mt-3 text-center text-xs opacity-70">{mensagem}</p> : null}
 
-        <p className="mt-4 text-center text-[11px] leading-relaxed opacity-45">
-          No iPhone: toque em Compartilhar → “Adicionar à Tela de Início” e abra pelo ícone antes de ativar.
-        </p>
+        <div className="mt-4 rounded-2xl border p-3 text-[11px] leading-relaxed" style={{ borderColor: "rgba(255,255,255,0.10)" }}>
+          <p className="opacity-60">
+            Modo app (tela de início): <strong>{diag.standalone ? "sim" : "não"}</strong> · Permissão:{" "}
+            <strong>{diag.permissao}</strong> · Suporte a push: <strong>{diag.suporta ? "sim" : "não"}</strong>
+          </p>
+          <p className="mt-2 opacity-45">
+            No iPhone: toque em Compartilhar → “Adicionar à Tela de Início” e abra pelo ícone antes de ativar. O Safari
+            comum não entrega notificações.
+          </p>
+        </div>
+
       </div>
     </div>
   );
