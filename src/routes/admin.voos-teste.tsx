@@ -2175,11 +2175,12 @@ export function VoosPage({
                     <FlightCard
                       key={f.key}
                       f={f}
-                      selected={selectedOut === f.key}
+                      selected={isSameFlight(f, selectedOut)}
                       cheapest={f.price.total === cheapestOut}
-                      onSelect={() => pickOutbound(f.key)}
+                      onSelect={() => chooseFlight(f, "out")}
                     />
                   ))}
+
                   {!outFlights.length && (
                     <p className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
                       Nenhum voo com esses filtros.
