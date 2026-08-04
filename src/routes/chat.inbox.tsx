@@ -1,3 +1,4 @@
+import { usePresencaEBadge } from "@/lib/chat/usePresencaEBadge";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -200,6 +201,9 @@ function InboxPage() {
     () => igConversations.reduce((n: number, c: any) => n + ((c.unread_count ?? 0) > 0 ? 1 : 0), 0),
     [igConversations],
   );
+  // Presença (heartbeat de 30s) + badge do ícone do app.
+  usePresencaEBadge(activeId, waUnread + igUnread);
+
   const commentsUnread = useMemo(
     () => igCommentThreads.reduce((n: number, t: any) => n + (t.pendentes ?? 0), 0),
     [igCommentThreads],
