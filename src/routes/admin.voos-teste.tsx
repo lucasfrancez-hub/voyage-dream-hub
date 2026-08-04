@@ -1699,6 +1699,7 @@ export function VoosPage({
   runToken,
   onComboSelect,
   publicMode = false,
+  externalSearch = false,
 }: {
   header?: React.ReactNode;
   hideForm?: boolean;
@@ -1707,6 +1708,8 @@ export function VoosPage({
   onComboSelect?: (pick: ComboPick) => void;
   /** Motor aberto ao cliente final (sem login). */
   publicMode?: boolean;
+  /** Envia a busca do iframe para /voar em uma nova aba usando submit nativo. */
+  externalSearch?: boolean;
 } = {}) {
   const search = useServerFn(publicMode ? onerFlightSearchPublic : onerFlightSearch);
   const searchInbound = useServerFn(publicMode ? onerInboundSearchPublic : onerInboundSearch);
@@ -2104,19 +2107,41 @@ export function VoosPage({
                 </div>
 
                 <div className="col-span-12 md:col-span-2">
-                  <Button
-                    size="lg"
-                    className="h-12 w-full rounded-xl font-bold shadow-xl shadow-primary/25 transition-all hover:scale-[1.02] active:scale-95"
-                    disabled={!canSearch || mut.isPending}
-                    onClick={() => mut.mutate({ searchKey: null, filters: EMPTY_FILTERS })}
-                  >
-                    {mut.isPending ? (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    ) : (
-                      <Search className="mr-2 h-4 w-4" />
-                    )}
-                    Buscar
-                  </Button>
+                  {externalSearch ? (
+                    <form action="/voar" method="get" target="_blank">
+                      <input type="hidden" name="m" value="aereo" />
+                      <input type="hidden" name="o" value={form.departureIata.trim().toUpperCase()} />
+                      <input type="hidden" name="d" value={form.arrivalIata.trim().toUpperCase()} />
+                      <input type="hidden" name="ida" value={form.departureDate} />
+                      <input type="hidden" name="volta" value={form.returnDate} />
+                      <input type="hidden" name="ad" value={form.adults} />
+                      <input type="hidden" name="ch" value={form.children} />
+                      <input type="hidden" name="inf" value={form.infants} />
+                      <Button
+                        type="submit"
+                        size="lg"
+                        className="h-12 w-full rounded-xl font-bold shadow-xl shadow-primary/25 transition-all hover:scale-[1.02] active:scale-95"
+                        disabled={!canSearch}
+                      >
+                        <Search className="mr-2 h-4 w-4" />
+                        Buscar
+                      </Button>
+                    </form>
+                  ) : (
+                    <Button
+                      size="lg"
+                      className="h-12 w-full rounded-xl font-bold shadow-xl shadow-primary/25 transition-all hover:scale-[1.02] active:scale-95"
+                      disabled={!canSearch || mut.isPending}
+                      onClick={() => mut.mutate({ searchKey: null, filters: EMPTY_FILTERS })}
+                    >
+                      {mut.isPending ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      ) : (
+                        <Search className="mr-2 h-4 w-4" />
+                      )}
+                      Buscar
+                    </Button>
+                  )}
                 </div>
 
                 <div className="col-span-12 mt-2 flex flex-col items-start gap-6 border-t border-border/40 pt-6 md:flex-row md:items-center md:justify-between">

@@ -264,9 +264,12 @@ function BuscarPage() {
  *  `publicMode` liga a versão sem login usada em /voar e no widget. */
 export function SearchEngine({
   publicMode = false,
+  embedMode = false,
   initialMode = "aereo",
 }: {
   publicMode?: boolean;
+  /** No widget, a pesquisa segue por navegação nativa para /voar em outra aba. */
+  embedMode?: boolean;
   initialMode?: Mode;
 } = {}) {
   const [mode, setMode] = useState<Mode>(initialMode);
@@ -393,8 +396,10 @@ export function SearchEngine({
 
   return (
     <PublicEngineProvider value={publicMode}>
-    <div className="min-h-screen bg-background">
-      {mode === "aereo" && <VoosPage header={hero} publicMode={publicMode} />}
+    <div className={embedMode ? "bg-background" : "min-h-screen bg-background"}>
+      {mode === "aereo" && (
+        <VoosPage header={hero} publicMode={publicMode} externalSearch={embedMode} />
+      )}
       {mode === "hotel" && <HoteisPage header={hero} publicMode={publicMode} />}
       {mode === "carro" && <CarrosPage header={hero} />}
       {mode === "exclusivo" && <ExclusivosPage header={hero} />}
