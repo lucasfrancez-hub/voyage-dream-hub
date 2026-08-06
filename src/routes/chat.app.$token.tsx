@@ -10,7 +10,7 @@ import { Loader2, MessageSquare } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { abrirLinkChat, renovarSessaoAparelhoChat } from "@/lib/chat/device-session.functions";
+import { abrirLinkChat } from "@/lib/chat/device-session.functions";
 import { garantirVersaoAtual } from "@/lib/app-version";
 
 export const Route = createFileRoute("/chat/app/$token")({
@@ -33,7 +33,6 @@ function AbrirAppChat() {
   const { token } = Route.useParams();
   const navigate = useNavigate();
   const abrir = useServerFn(abrirLinkChat);
-  const renovar = useServerFn(renovarSessaoAparelhoChat);
   const [pin, setPin] = useState("");
   const [carregando, setCarregando] = useState(false);
   const [verificando, setVerificando] = useState(true);
@@ -46,8 +45,8 @@ function AbrirAppChat() {
     await navigate({ to: "/chat/inbox" });
   };
 
-  // Se este aparelho já entrou pelo link antes (cookie de 30 dias), entra
-  // direto: nada de login, senha ou autenticador.
+  // Só entra direto se a sessão do Supabase ainda estiver ativa. Sem sessão,
+  // o PIN é sempre exigido (igual à Agenda) — nada de renovação silenciosa.
   useEffect(() => {
     void (async () => {
       try {
@@ -56,23 +55,13 @@ function AbrirAppChat() {
           await irParaInbox();
           return;
         }
-        const r = (await renovar()) as { ok: boolean; email?: string; tokenHash?: string };
-        if (r.ok && r.email && r.tokenHash) {
-          const { error } = await supabase.auth.verifyOtp({
-            type: "magiclink",
-            token_hash: r.tokenHash,
-          });
-          if (!error) {
-            await irParaInbox();
-            return;
-          }
-        }
       } catch {
         /* pede o PIN */
       }
       setVerificando(false);
     })();
-  }, [navigate, renovar]);
+  }, [navigate]);
+
 
 
   const entrar = async () => {

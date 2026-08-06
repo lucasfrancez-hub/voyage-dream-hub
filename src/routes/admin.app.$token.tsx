@@ -10,7 +10,7 @@ import { Loader2, ShieldCheck } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { abrirLinkChat, renovarSessaoAparelhoChat } from "@/lib/chat/device-session.functions";
+import { abrirLinkChat } from "@/lib/chat/device-session.functions";
 
 export const Route = createFileRoute("/admin/app/$token")({
   ssr: false,
@@ -32,12 +32,11 @@ function AbrirAppAdmin() {
   const { token } = Route.useParams();
   const navigate = useNavigate();
   const abrir = useServerFn(abrirLinkChat);
-  const renovar = useServerFn(renovarSessaoAparelhoChat);
   const [pin, setPin] = useState("");
   const [carregando, setCarregando] = useState(false);
   const [verificando, setVerificando] = useState(true);
 
-  // Aparelho já liberado antes: entra direto, sem PIN e sem 2FA.
+  // Só entra direto com sessão ativa; sem sessão, o PIN é sempre exigido.
   useEffect(() => {
     void (async () => {
       try {
@@ -46,23 +45,13 @@ function AbrirAppAdmin() {
           await navigate({ to: "/admin" });
           return;
         }
-        const r = (await renovar()) as { ok: boolean; email?: string; tokenHash?: string };
-        if (r.ok && r.email && r.tokenHash) {
-          const { error } = await supabase.auth.verifyOtp({
-            type: "magiclink",
-            token_hash: r.tokenHash,
-          });
-          if (!error) {
-            await navigate({ to: "/admin" });
-            return;
-          }
-        }
       } catch {
         /* pede o PIN */
       }
       setVerificando(false);
     })();
-  }, [navigate, renovar]);
+  }, [navigate]);
+
 
   const entrar = async () => {
     if (pin.length !== 4) return;
