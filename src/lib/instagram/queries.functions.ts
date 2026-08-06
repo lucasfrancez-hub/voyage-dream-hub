@@ -465,7 +465,7 @@ export const listInstagramCommentThreads = createServerFn({ method: "GET" })
       if ((c.metadata as { collab?: boolean } | null)?.collab) t.collab = true;
       t.last_at = c.created_at ?? t.last_at;
       t.total += 1;
-      if (!c.read_at && !c.auto_replied_at && !c.auto_dm_sent_at) t.pendentes += 1;
+      if (!c.read_at) t.pendentes += 1;
       t.comments.push(c);
       threads.set(key, t);
     }
@@ -484,6 +484,19 @@ export const markInstagramCommentThreadRead = createServerFn({ method: "POST" })
       .update({ read_at: new Date().toISOString() })
       .eq("media_id", data.media_id)
       .is("read_at", null);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+/** Marca a publicação como NÃO lida (volta o badge no inbox). */
+export const markInstagramCommentThreadUnread = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { media_id: string }) => z.object({ media_id: z.string().min(1) }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase
+      .from("instagram_comments")
+      .update({ read_at: null })
+      .eq("media_id", data.media_id);
     if (error) throw new Error(error.message);
     return { ok: true };
   });

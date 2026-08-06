@@ -126,6 +126,7 @@ export async function autoReplyComment(params: {
         auto_reply_status: "sent",
         auto_reply_text: params.publicReply,
         auto_replied_at: new Date().toISOString(),
+        read_at: new Date().toISOString(),
         auto_dm_sent_at: params.privateDm ? new Date().toISOString() : null,
       })
       .eq("comment_id", params.commentId);

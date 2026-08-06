@@ -368,6 +368,7 @@ async function processPayload(payload: IGPayload) {
                   auto_reply_status: "sent",
                   auto_reply_text: resposta.publica,
                   auto_replied_at: new Date().toISOString(),
+                  read_at: new Date().toISOString(),
                   dm_text: resposta.dm ?? null,
                   dm_scheduled_at: resposta.dm ? new Date(Date.now() + espera).toISOString() : null,
                 })

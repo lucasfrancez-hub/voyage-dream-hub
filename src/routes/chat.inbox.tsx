@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { listConversations, listMessages, sendHumanReply, resendHumanMessage, sendHumanMedia, toggleConversationMode, startOutboundConversation, setFunnelStage, assignConversation, setAiPaused, listAttendants, getActiveProtocolo, closeProtocoloManually, listConversationProtocolos, getConversationOrders, updateProtocoloDetails, listProtocoloMessages, ensureProtocoloResumo, clearConversationHistory, markConversationRead } from "@/lib/chat/queries.functions";
-import { listInstagramAccounts, listInstagramConversations, listInstagramMessages, sendInstagramAttachment, sendInstagramReply, listInstagramCommentThreads, refreshInstagramProfile, triggerAutoReplyComment, markInstagramConversationRead, markInstagramCommentThreadRead, getInstagramMediaDetails, getInstagramMediaStats, deleteInstagramCommentThread, deleteInstagramComment, setInstagramCommentHidden, syncInstagramCommentLikes, toggleInstagramCommentLike, deleteInstagramMessage } from "@/lib/instagram/queries.functions";
+import { listInstagramAccounts, listInstagramConversations, listInstagramMessages, sendInstagramAttachment, sendInstagramReply, listInstagramCommentThreads, refreshInstagramProfile, triggerAutoReplyComment, markInstagramConversationRead, markInstagramCommentThreadRead, markInstagramCommentThreadUnread, getInstagramMediaDetails, getInstagramMediaStats, deleteInstagramCommentThread, deleteInstagramComment, setInstagramCommentHidden, syncInstagramCommentLikes, toggleInstagramCommentLike, deleteInstagramMessage } from "@/lib/instagram/queries.functions";
 import { firstName } from "@/lib/whatsapp/text-utils.shared";
 import { confirmThen } from "@/lib/confirm";
 import { audioBlobToMp3 } from "@/lib/audio-to-mp3";
@@ -2558,11 +2558,14 @@ function InstagramMediaThreadList({
       {filtered.map((t) => {
         const ultimo = t.comments[t.comments.length - 1];
         return (
-          <button
+          <div
             key={t.media_id}
+            role="button"
+            tabIndex={0}
             onClick={() => onSelect(t.media_id)}
+            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onSelect(t.media_id); }}
             className={cn(
-              "flex w-full items-start gap-2 rounded-lg border p-2.5 text-left transition-colors",
+              "flex w-full cursor-pointer items-start gap-2 rounded-lg border p-2.5 text-left transition-colors",
               activeId === t.media_id
                 ? "border-[#F26B1F]/40 bg-orange-50"
                 : "border-slate-100 bg-white hover:bg-slate-50",
@@ -2580,11 +2583,14 @@ function InstagramMediaThreadList({
                 <span className="truncate text-xs font-semibold text-slate-900">
                   {t.media_caption?.slice(0, 40) || "Publicação sem legenda"}
                 </span>
-                {t.pendentes > 0 && (
-                  <span className="ml-auto inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-[#F26B1F] px-1 text-[9px] font-semibold text-white">
-                    {t.pendentes}
-                  </span>
-                )}
+                <div className="ml-auto flex shrink-0 items-center gap-1">
+                  {t.pendentes > 0 && (
+                    <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-[#F26B1F] px-1 text-[9px] font-semibold text-white">
+                      {t.pendentes}
+                    </span>
+                  )}
+                  <ThreadRowMenu mediaId={t.media_id} pendentes={t.pendentes ?? 0} />
+                </div>
               </div>
               <p className="mt-0.5 line-clamp-1 text-[11px] text-slate-600 [overflow-wrap:anywhere]">
                 {ultimo ? `@${ultimo.from_username ?? "usuário"}: ${ultimo.text ?? ""}` : "Sem comentários"}
@@ -2595,7 +2601,7 @@ function InstagramMediaThreadList({
                 {t.last_at ? ` · ${new Date(t.last_at as string).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}` : ""}
               </div>
             </div>
-          </button>
+          </div>
         );
       })}
     </>
@@ -2755,15 +2761,24 @@ function InstagramCommentThreadView({ mediaId, onBack }: { mediaId: string; onBa
       .catch(() => {});
   }, [mediaId, syncLikesFn, qc]);
 
-  const jaMarcou = useRef<string | null>(null);
+  // Sempre que a publicação aberta tiver comentários pendentes, marca como lida.
+  const marcando = useRef(false);
+  const pendentes = thread?.pendentes ?? 0;
   useEffect(() => {
-    if (!mediaId || jaMarcou.current === mediaId) return;
-    if (!thread || thread.pendentes === 0) return;
-    jaMarcou.current = mediaId;
+    if (!mediaId || pendentes <= 0 || marcando.current) return;
+    marcando.current = true;
+    // some na hora com o badge (otimista) e confirma no servidor
+    qc.setQueryData(["ig", "comment-threads"], (old: any) =>
+      Array.isArray(old) ? old.map((t: any) => (t.media_id === mediaId ? { ...t, pendentes: 0 } : t)) : old,
+    );
     markReadFn({ data: { media_id: mediaId } })
       .then(() => qc.invalidateQueries({ queryKey: ["ig", "comment-threads"] }))
-      .catch(() => {});
-  }, [mediaId, thread, markReadFn, qc]);
+      .catch((e: Error) => {
+        toast.error(`Não deu pra marcar como lida: ${e.message}`);
+        qc.invalidateQueries({ queryKey: ["ig", "comment-threads"] });
+      })
+      .finally(() => { marcando.current = false; });
+  }, [mediaId, pendentes, markReadFn, qc]);
 
   // Mídia real da publicação (vídeo/foto) pra tocar dentro do painel.
   const mediaDetailsFn = useServerFn(getInstagramMediaDetails);
@@ -3348,13 +3363,79 @@ function IgConvRow({ conv, active, onClick }: { conv: any; active: boolean; onCl
 }
 
 /** Linha de publicação (comentários) usada na aba unificada "Todas". */
+/** Menu de 3 pontinhos das publicações (marcar não lida / apagar do chatbot). */
+function ThreadRowMenu({ mediaId, pendentes }: { mediaId: string; pendentes: number }) {
+  const qc = useQueryClient();
+  const unreadFn = useServerFn(markInstagramCommentThreadUnread);
+  const readFn = useServerFn(markInstagramCommentThreadRead);
+  const delFn = useServerFn(deleteInstagramCommentThread);
+  const recarregar = () => qc.invalidateQueries({ queryKey: ["ig", "comment-threads"] });
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          type="button"
+          onClick={(e) => e.stopPropagation()}
+          className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+          aria-label="Opções da publicação"
+        >
+          <MoreVertical className="h-3.5 w-3.5" />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-52" onClick={(e) => e.stopPropagation()}>
+        {pendentes > 0 ? (
+          <DropdownMenuItem
+            onClick={() => readFn({ data: { media_id: mediaId } }).then(recarregar).catch((e: Error) => toast.error(e.message))}
+          >
+            <Check className="mr-2 h-3.5 w-3.5" /> Marcar como lida
+          </DropdownMenuItem>
+        ) : (
+          <DropdownMenuItem
+            onClick={() =>
+              unreadFn({ data: { media_id: mediaId } })
+                .then(() => { recarregar(); toast.success("Marcada como não lida"); })
+                .catch((e: Error) => toast.error(e.message))
+            }
+          >
+            <InboxIcon className="mr-2 h-3.5 w-3.5" /> Marcar como não lida
+          </DropdownMenuItem>
+        )}
+        <DropdownMenuSeparator />
+        <DropdownMenuItem
+          className="text-red-600 focus:text-red-600"
+          onClick={() =>
+            confirmThen(
+              {
+                title: "Apagar do chatbot?",
+                description: "Some o histórico desta publicação do nosso inbox. Os comentários continuam no Instagram.",
+                confirmText: "Apagar",
+                destructive: true,
+              },
+              () =>
+                delFn({ data: { media_id: mediaId } })
+                  .then(() => { recarregar(); toast.success("Histórico apagado"); })
+                  .catch((e: Error) => toast.error(e.message)),
+            )
+          }
+        >
+          <Trash2 className="mr-2 h-3.5 w-3.5" /> Apagar do chatbot
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
 function IgThreadRow({ thread, active, onClick }: { thread: any; active: boolean; onClick: () => void }) {
   const ultimo = thread.comments?.[thread.comments.length - 1];
   return (
-    <button
+    <div
+      role="button"
+      tabIndex={0}
       onClick={onClick}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onClick(); }}
       className={cn(
-        "flex w-full items-start gap-2 rounded-lg p-2 text-left transition-colors",
+        "flex w-full cursor-pointer items-start gap-2 rounded-lg p-2 text-left transition-colors",
         active ? "bg-orange-50" : "hover:bg-slate-50",
       )}
     >
@@ -3370,9 +3451,12 @@ function IgThreadRow({ thread, active, onClick }: { thread: any; active: boolean
           <span className="truncate text-sm font-medium text-slate-900">
             {thread.media_caption?.slice(0, 40) || "Publicação"}
           </span>
-          {(thread.pendentes ?? 0) > 0 && (
-            <span className="rounded-full bg-[#F26B1F] px-1.5 text-[10px] font-medium text-white">{thread.pendentes}</span>
-          )}
+          <div className="flex shrink-0 items-center gap-1">
+            {(thread.pendentes ?? 0) > 0 && (
+              <span className="rounded-full bg-[#F26B1F] px-1.5 text-[10px] font-medium text-white">{thread.pendentes}</span>
+            )}
+            <ThreadRowMenu mediaId={thread.media_id} pendentes={thread.pendentes ?? 0} />
+          </div>
         </div>
         <div className="flex items-center gap-1 text-[10px] text-slate-500">
           <Heart className="h-2.5 w-2.5" />
@@ -3383,6 +3467,6 @@ function IgThreadRow({ thread, active, onClick }: { thread: any; active: boolean
         </div>
         <ContaTag username={thread.account_username} className="mt-0.5" />
       </div>
-    </button>
+    </div>
   );
 }
