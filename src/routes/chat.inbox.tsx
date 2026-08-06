@@ -3170,7 +3170,9 @@ function InstagramCommentThreadView({ mediaId, onBack }: { mediaId: string; onBa
             <Trash2 className="h-4 w-4" />
           </button>
         )}
+        <WallpaperMenu wallpaper={wallpaper} className="mt-1" />
       </header>
+
 
       {thread?.collab && (
         <div className="border-b border-[#F26B1F]/20 bg-[#F26B1F]/5 px-4 py-2 text-[11px] text-[#8a3d0d]">
