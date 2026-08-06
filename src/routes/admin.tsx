@@ -50,7 +50,14 @@ function AdminLayout() {
   // marketing role is redirected to /chat/broadcast on entry
   const [theme, setTheme] = useState<"dark" | "light">(() => {
     if (typeof window === "undefined") return "dark";
-    return (window.localStorage.getItem("admin-theme") as "dark" | "light") || "dark";
+    // O Safari/iOS pode bloquear o Storage em abas privadas, PWAs restaurados
+    // ou logo depois de uma atualização. Isso não pode derrubar o painel.
+    try {
+      const saved = window.localStorage.getItem("admin-theme");
+      return saved === "light" ? "light" : "dark";
+    } catch {
+      return "dark";
+    }
   });
   useEffect(() => {
     try { window.localStorage.setItem("admin-theme", theme); } catch { /* noop */ }

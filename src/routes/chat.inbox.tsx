@@ -93,7 +93,12 @@ function InboxPage() {
   const [newOpen, setNewOpen] = useState(false);
   const [listCollapsed, setListCollapsed] = useState<boolean>(() => {
     if (typeof window === "undefined") return false;
-    return localStorage.getItem("chat-list-collapsed") === "1";
+    // Storage pode lançar SecurityError no Safari/PWA durante a restauração.
+    try {
+      return localStorage.getItem("chat-list-collapsed") === "1";
+    } catch {
+      return false;
+    }
   });
   const toggleList = () => {
     setListCollapsed((v) => {
@@ -764,24 +769,36 @@ function useWallpaper() {
   const [custom, setCustom] = useState<string | null>(null);
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const saved = localStorage.getItem(chaveWallpaper(tom));
-    setKey(saved ?? (tom === "dark" ? "none" : "dots"));
-    setCustom(localStorage.getItem(chaveWallpaperImg(tom)));
+    try {
+      const saved = localStorage.getItem(chaveWallpaper(tom));
+      setKey(saved ?? (tom === "dark" ? "none" : "dots"));
+      setCustom(localStorage.getItem(chaveWallpaperImg(tom)));
+    } catch {
+      setKey(tom === "dark" ? "none" : "dots");
+      setCustom(null);
+    }
   }, [tom]);
   const set = (k: string) => {
     setKey(k);
-    if (typeof window !== "undefined") localStorage.setItem(chaveWallpaper(tom), k);
+    if (typeof window !== "undefined") {
+      try { localStorage.setItem(chaveWallpaper(tom), k); } catch { /* mantém somente nesta sessão */ }
+    }
   };
   const setImagem = (dataUrl: string | null) => {
     setCustom(dataUrl);
     if (typeof window === "undefined") return;
-    if (dataUrl) {
-      localStorage.setItem(chaveWallpaperImg(tom), dataUrl);
-      localStorage.setItem(chaveWallpaper(tom), "custom");
-      setKey("custom");
-    } else {
-      localStorage.removeItem(chaveWallpaperImg(tom));
-      set(tom === "dark" ? "none" : "dots");
+    try {
+      if (dataUrl) {
+        localStorage.setItem(chaveWallpaperImg(tom), dataUrl);
+        localStorage.setItem(chaveWallpaper(tom), "custom");
+        setKey("custom");
+      } else {
+        localStorage.removeItem(chaveWallpaperImg(tom));
+        set(tom === "dark" ? "none" : "dots");
+      }
+    } catch {
+      // Imagens personalizadas podem exceder a cota do Safari; o chat continua aberto.
+      if (dataUrl) setKey("custom");
     }
   };
 

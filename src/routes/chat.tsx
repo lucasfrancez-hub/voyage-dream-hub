@@ -95,11 +95,17 @@ function ChatLayout() {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const saved = localStorage.getItem("chat-theme") as "dark" | "light" | null;
-    if (saved === "light" || saved === "dark") setTheme(saved);
+    try {
+      const saved = localStorage.getItem("chat-theme") as "dark" | "light" | null;
+      if (saved === "light" || saved === "dark") setTheme(saved);
+    } catch {
+      // Safari/PWA pode bloquear o Storage temporariamente; usa o tema padrão.
+    }
   }, []);
   useEffect(() => {
-    if (typeof window !== "undefined") localStorage.setItem("chat-theme", theme);
+    if (typeof window !== "undefined") {
+      try { localStorage.setItem("chat-theme", theme); } catch { /* mantém somente nesta sessão */ }
+    }
     // Aplica também no <body> pra portais (dropdown/tooltip/dialog) herdarem o tema correto.
     if (typeof document !== "undefined") {
       const body = document.body;
