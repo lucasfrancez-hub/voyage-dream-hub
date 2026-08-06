@@ -710,8 +710,26 @@ const WALLPAPERS: { key: string; label: string; css: string; size?: string }[] =
   { key: "diagonal", label: "Listras diagonais", css: "repeating-linear-gradient(45deg, color-mix(in oklab, var(--foreground) 6%, transparent) 0 2px, transparent 2px 14px)" },
 ];
 
-const CHAVE_WALLPAPER = "chat-wallpaper-v3";
-const CHAVE_WALLPAPER_IMG = "chat-wallpaper-custom-v1";
+/** Cada tom (claro/escuro) guarda o próprio plano de fundo. */
+type Tom = "light" | "dark";
+const chaveWallpaper = (tom: Tom) => `chat-wallpaper-v3:${tom}`;
+const chaveWallpaperImg = (tom: Tom) => `chat-wallpaper-custom-v1:${tom}`;
+
+/** Observa a classe do <body> que o /chat usa para alternar o tema. */
+function useTomAtual(): Tom {
+  const [tom, setTom] = useState<Tom>("light");
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    const ler = () =>
+      setTom(document.body.classList.contains("chat-dark") || document.body.classList.contains("dark") ? "dark" : "light");
+    ler();
+    const obs = new MutationObserver(ler);
+    obs.observe(document.body, { attributes: true, attributeFilter: ["class"] });
+    return () => obs.disconnect();
+  }, []);
+  return tom;
+}
+
 
 /** Reduz a imagem escolhida para caber no localStorage (JPEG ~1280px). */
 async function comprimirImagemFundo(file: File): Promise<string> {
@@ -741,30 +759,32 @@ async function comprimirImagemFundo(file: File): Promise<string> {
 type Wallpaper = ReturnType<typeof useWallpaper>;
 
 function useWallpaper() {
+  const tom = useTomAtual();
   const [key, setKey] = useState<string>("dots");
   const [custom, setCustom] = useState<string | null>(null);
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const saved = localStorage.getItem(CHAVE_WALLPAPER);
-    if (saved) setKey(saved);
-    setCustom(localStorage.getItem(CHAVE_WALLPAPER_IMG));
-  }, []);
+    const saved = localStorage.getItem(chaveWallpaper(tom));
+    setKey(saved ?? (tom === "dark" ? "none" : "dots"));
+    setCustom(localStorage.getItem(chaveWallpaperImg(tom)));
+  }, [tom]);
   const set = (k: string) => {
     setKey(k);
-    if (typeof window !== "undefined") localStorage.setItem(CHAVE_WALLPAPER, k);
+    if (typeof window !== "undefined") localStorage.setItem(chaveWallpaper(tom), k);
   };
   const setImagem = (dataUrl: string | null) => {
     setCustom(dataUrl);
     if (typeof window === "undefined") return;
     if (dataUrl) {
-      localStorage.setItem(CHAVE_WALLPAPER_IMG, dataUrl);
-      localStorage.setItem(CHAVE_WALLPAPER, "custom");
+      localStorage.setItem(chaveWallpaperImg(tom), dataUrl);
+      localStorage.setItem(chaveWallpaper(tom), "custom");
       setKey("custom");
     } else {
-      localStorage.removeItem(CHAVE_WALLPAPER_IMG);
-      set("dots");
+      localStorage.removeItem(chaveWallpaperImg(tom));
+      set(tom === "dark" ? "none" : "dots");
     }
   };
+
   const cur = WALLPAPERS.find((w) => w.key === key) ?? WALLPAPERS[0];
   const style: React.CSSProperties =
     key === "custom" && custom
@@ -778,7 +798,7 @@ function useWallpaper() {
         }
       : { backgroundImage: cur.css, backgroundColor: "var(--chat-conversation)" };
   if (key !== "custom" && cur.size) style.backgroundSize = cur.size;
-  return { key, set, style, custom, setImagem };
+  return { key, set, style, custom, setImagem, tom };
 }
 
 /** Botão de plano de fundo usado no WhatsApp, nas DMs e nos comentários. */
@@ -818,7 +838,10 @@ function WallpaperMenu({ wallpaper, className }: { wallpaper: Wallpaper; classNa
           </button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-56">
-          <DropdownMenuLabel>Plano de fundo</DropdownMenuLabel>
+          <DropdownMenuLabel>
+            Plano de fundo · tema {wallpaper.tom === "dark" ? "escuro" : "claro"}
+          </DropdownMenuLabel>
+
           <DropdownMenuSeparator />
           {WALLPAPERS.map((w) => (
             <DropdownMenuItem key={w.key} onClick={() => wallpaper.set(w.key)}>
