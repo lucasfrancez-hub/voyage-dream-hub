@@ -19,8 +19,9 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
-import viaAirMark from "@/assets/viaair-mark.png.asset.json";
 import viaAirLogo from "@/assets/viaair-logo.png.asset.json";
+import viaAirLogoWhite from "@/assets/viaair-logo-white.png.asset.json";
+
 
 const ITEMS = [
   { to: "/chat/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -67,11 +68,19 @@ export function ChatSidebar({ mobileOpen = false, onCloseMobile }: { mobileOpen?
           className="flex items-center justify-center gap-2 border-b border-slate-200 px-3"
           style={{ paddingTop: "env(safe-area-inset-top)", minHeight: "calc(3.5rem + env(safe-area-inset-top))" }}
         >
-          {collapsed ? (
-            <img src={viaAirMark.url} alt="VIA AIR" className="h-7 w-7 shrink-0" />
-          ) : (
-            <img src={viaAirLogo.url} alt="VIA AIR" className="h-8 w-auto max-w-full object-contain" />
-          )}
+          <span className={cn("flex min-w-0 items-center justify-center", collapsed ? "w-10" : "w-auto")}>
+            <img
+              src={viaAirLogo.url}
+              alt="VIA AIR"
+              className={cn("w-full object-contain dark:hidden", collapsed ? "h-6" : "h-8")}
+            />
+            <img
+              src={viaAirLogoWhite.url}
+              alt="VIA AIR"
+              className={cn("hidden w-full object-contain dark:block", collapsed ? "h-6" : "h-8")}
+            />
+          </span>
+
           {onCloseMobile && (
             <button
               onClick={onCloseMobile}
