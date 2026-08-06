@@ -37,57 +37,21 @@ function NotFoundComponent() {
   );
 }
 
-const STALE_CODE_PATTERNS = [
-  "Invalid server function ID",
-  "Failed to fetch dynamically imported module",
-  "Importing a module script failed",
-  "error loading dynamically imported module",
-  "ChunkLoadError",
-  "Loading chunk",
-  "Loading CSS chunk",
-];
-
-function isStaleCodeError(error: unknown): boolean {
-  const msg = error instanceof Error ? `${error.name}: ${error.message}` : String(error ?? "");
-  return STALE_CODE_PATTERNS.some((p) => msg.includes(p));
-}
-
 function ErrorComponent({ error }: { error: Error; reset: () => void }) {
   console.error(error);
   const [autoRecovering, setAutoRecovering] = useState(false);
 
   const atualizarAplicativo = async () => {
-    if (typeof window === "undefined") return;
-    if ("caches" in window) {
-      const nomes = await window.caches.keys().catch(() => []);
-      await Promise.all(nomes.map((nome) => window.caches.delete(nome)));
-    }
-    const url = new URL(window.location.href);
-    url.searchParams.set("atualizar", Date.now().toString());
-    window.location.replace(url.toString());
+    await hardRefreshApp();
   };
 
   useEffect(() => {
     reportLovableError(error, { boundary: "tanstack_root_error_component" });
 
-    // Auto-recover from stale-code / stale-chunk errors (e.g. old tab after a deploy).
-    // Only try once per session to avoid infinite reload loops.
-    if (typeof window === "undefined") return;
-    if (!isStaleCodeError(error)) return;
-    const key = "__viaair_stale_reload__";
-    try {
-      if (sessionStorage.getItem(key)) return;
-      sessionStorage.setItem(key, String(Date.now()));
-    } catch {
-      // sessionStorage may be unavailable; skip auto-reload rather than loop.
-      return;
-    }
-    setAutoRecovering(true);
-    const t = setTimeout(() => {
-      window.location.reload();
-    }, 300);
-    return () => clearTimeout(t);
+    // Auto-recupera de erros de código velho (aba/PWA antigo depois de um deploy).
+    if (tentarRecuperarVersaoAntiga(error)) setAutoRecovering(true);
   }, [error]);
+
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
