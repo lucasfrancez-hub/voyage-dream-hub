@@ -370,16 +370,19 @@ async function processPayload(payload: IGPayload) {
               // Nada de responder no mesmo segundo: a resposta pública fica
               // agendada pra ~1 minuto depois (cron instagram-dm-queue).
               const esperaResposta = 55_000 + Math.floor(Math.random() * 15_000);
+              const { contaEnviaDmAposComentario } = await import("@/lib/instagram/ai-toggle");
+              const podeMandarDm = contaEnviaDmAposComentario(igMetadata);
               await supabaseAdmin
                 .from("instagram_comments")
                 .update({
                   auto_reply_status: "scheduled",
                   auto_reply_text: resposta.publica,
-                  dm_text: resposta.dm ?? null,
+                  dm_text: podeMandarDm ? (resposta.dm ?? null) : null,
                   reply_scheduled_at: new Date(Date.now() + esperaResposta).toISOString(),
                 })
                 .eq("comment_id", v.id);
             }
+
 
 
           }

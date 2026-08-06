@@ -29,3 +29,12 @@ export function iaPodeResponderComentario(
   const meta = (metadata ?? {}) as IgAiMeta;
   return meta.ai_reels_only === true && ehReel(mediaType);
 }
+
+/**
+ * Só o perfil principal (VIA AIR) manda o convite no direct depois de
+ * responder o comentário. Perfis pessoais (ai_enabled = false) respondem
+ * publicamente e param por aí.
+ */
+export function contaEnviaDmAposComentario(metadata: unknown): boolean {
+  return contaComIaAtiva(metadata);
+}
