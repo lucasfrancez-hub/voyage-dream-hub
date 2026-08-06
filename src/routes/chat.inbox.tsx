@@ -2745,6 +2745,16 @@ function InstagramCommentThreadView({ mediaId, onBack }: { mediaId: string; onBa
     onError: (e: Error) => toast.error(e.message),
   });
 
+  // Ao abrir a publicação, atualiza a contagem de curtidas dos comentários.
+  const jaSincronizouLikes = useRef<string | null>(null);
+  useEffect(() => {
+    if (!mediaId || jaSincronizouLikes.current === mediaId) return;
+    jaSincronizouLikes.current = mediaId;
+    syncLikesFn({ data: { media_id: mediaId } })
+      .then(() => qc.invalidateQueries({ queryKey: ["ig", "comment-threads"] }))
+      .catch(() => {});
+  }, [mediaId, syncLikesFn, qc]);
+
   const jaMarcou = useRef<string | null>(null);
   useEffect(() => {
     if (!mediaId || jaMarcou.current === mediaId) return;
