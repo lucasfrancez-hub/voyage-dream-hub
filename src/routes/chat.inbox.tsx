@@ -2357,6 +2357,8 @@ function InstagramConversationView({
 
   return (
     <div className="flex h-full min-h-0 flex-col">
+      <MidiaLightbox url={midiaAberta} onClose={() => setMidiaAberta(null)} />
+
       <header className="flex items-center gap-2 border-b border-slate-200 bg-white px-3 py-2">
         <button onClick={onBack} className="md:hidden" aria-label="Voltar">
           <ArrowLeft className="h-4 w-4 text-slate-500" />
