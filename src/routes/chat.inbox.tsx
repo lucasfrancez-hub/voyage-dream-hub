@@ -2558,11 +2558,14 @@ function InstagramMediaThreadList({
       {filtered.map((t) => {
         const ultimo = t.comments[t.comments.length - 1];
         return (
-          <button
+          <div
             key={t.media_id}
+            role="button"
+            tabIndex={0}
             onClick={() => onSelect(t.media_id)}
+            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onSelect(t.media_id); }}
             className={cn(
-              "flex w-full items-start gap-2 rounded-lg border p-2.5 text-left transition-colors",
+              "flex w-full cursor-pointer items-start gap-2 rounded-lg border p-2.5 text-left transition-colors",
               activeId === t.media_id
                 ? "border-[#F26B1F]/40 bg-orange-50"
                 : "border-slate-100 bg-white hover:bg-slate-50",
@@ -2580,11 +2583,14 @@ function InstagramMediaThreadList({
                 <span className="truncate text-xs font-semibold text-slate-900">
                   {t.media_caption?.slice(0, 40) || "Publicação sem legenda"}
                 </span>
-                {t.pendentes > 0 && (
-                  <span className="ml-auto inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-[#F26B1F] px-1 text-[9px] font-semibold text-white">
-                    {t.pendentes}
-                  </span>
-                )}
+                <div className="ml-auto flex shrink-0 items-center gap-1">
+                  {t.pendentes > 0 && (
+                    <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-[#F26B1F] px-1 text-[9px] font-semibold text-white">
+                      {t.pendentes}
+                    </span>
+                  )}
+                  <ThreadRowMenu mediaId={t.media_id} pendentes={t.pendentes ?? 0} />
+                </div>
               </div>
               <p className="mt-0.5 line-clamp-1 text-[11px] text-slate-600 [overflow-wrap:anywhere]">
                 {ultimo ? `@${ultimo.from_username ?? "usuário"}: ${ultimo.text ?? ""}` : "Sem comentários"}
@@ -2595,7 +2601,7 @@ function InstagramMediaThreadList({
                 {t.last_at ? ` · ${new Date(t.last_at as string).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}` : ""}
               </div>
             </div>
-          </button>
+          </div>
         );
       })}
     </>
