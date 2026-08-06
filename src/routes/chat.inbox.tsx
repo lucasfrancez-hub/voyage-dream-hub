@@ -2168,7 +2168,45 @@ function groupByDay(msgs: Msg[]) {
   return groups;
 }
 
+/**
+ * Mídia do CDN do Instagram (lookaside/fbcdn): a URL não diz se é foto ou vídeo.
+ * Tenta como imagem e, se falhar, troca para player de vídeo.
+ */
+function MidiaCdn({
+  url,
+  alt,
+  className = "",
+  controls = false,
+}: { url: string; alt: string; className?: string; controls?: boolean }) {
+  const [ehVideo, setEhVideo] = useState(/\.mp4(\?|$)/i.test(url));
+  if (ehVideo) {
+    return <video src={url} controls={controls} playsInline className={className} />;
+  }
+  return <img src={url} alt={alt} className={className} onError={() => setEhVideo(true)} loading="lazy" />;
+}
+
+/** Lightbox dentro do chat — evita abrir nova aba ao clicar na mídia. */
+function MidiaLightbox({ url, onClose }: { url: string | null; onClose: () => void }) {
+  return (
+    <Dialog open={!!url} onOpenChange={(v) => { if (!v) onClose(); }}>
+      <DialogContent className="max-w-3xl border-none bg-transparent p-0 shadow-none">
+        <DialogHeader className="sr-only">
+          <DialogTitle>Mídia</DialogTitle>
+          <DialogDescription>Visualização da mídia da conversa</DialogDescription>
+        </DialogHeader>
+        {url && (
+          <div className="flex max-h-[85vh] items-center justify-center">
+            <MidiaCdn url={url} alt="Mídia" controls className="max-h-[85vh] w-auto rounded-xl object-contain" />
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 // ============ Instagram DM conversa ============
+
+
 
 function InstagramConversationView({
   conversationId,
