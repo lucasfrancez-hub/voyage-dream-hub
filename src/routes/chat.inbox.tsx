@@ -2969,6 +2969,7 @@ function InstagramCommentThreadView({ mediaId, onBack }: { mediaId: string; onBa
             const meu = nossos.has((c.from_username ?? "").replace(/^@/, "").toLowerCase());
             const inicial = (c.from_username ?? "?").replace(/^@/, "").charAt(0).toUpperCase();
             const anexo = anexoDoComentario(c);
+            const oculto = ((c as { metadata?: { hidden?: boolean } | null }).metadata?.hidden) === true;
             return (
               <div
                 key={c.id}
