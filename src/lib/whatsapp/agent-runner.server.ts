@@ -33,6 +33,7 @@ import {
   centralBriefHasMissingOrigin,
   isValidOriginQuestion,
   isInvalidMissingOriginResponse,
+  origemJaFoiRespondidaNoProtocolo,
   safeMissingOriginResponse,
 } from "./airflow-guard";
 
