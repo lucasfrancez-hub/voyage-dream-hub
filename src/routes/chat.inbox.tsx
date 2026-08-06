@@ -838,7 +838,10 @@ function WallpaperMenu({ wallpaper, className }: { wallpaper: Wallpaper; classNa
           </button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-56">
-          <DropdownMenuLabel>Plano de fundo</DropdownMenuLabel>
+          <DropdownMenuLabel>
+            Plano de fundo · tema {wallpaper.tom === "dark" ? "escuro" : "claro"}
+          </DropdownMenuLabel>
+
           <DropdownMenuSeparator />
           {WALLPAPERS.map((w) => (
             <DropdownMenuItem key={w.key} onClick={() => wallpaper.set(w.key)}>
