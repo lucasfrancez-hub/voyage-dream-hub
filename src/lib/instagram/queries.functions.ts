@@ -600,12 +600,12 @@ export const deleteInstagramComment = createServerFn({ method: "POST" })
             ultimoErro = e;
           }
         }
+        const { mensagemAmigavelInstagram } = await import("./errors");
         avisoInstagram = ocultado
           ? "O Instagram não deixa apagar comentário de outra pessoa. Ele foi ocultado na publicação (ninguém mais vê) e continua aqui como oculto."
-          : ultimoErro instanceof Error
-            ? ultimoErro.message
-            : "Falha ao apagar no Instagram";
+          : mensagemAmigavelInstagram(ultimoErro, "apagar o comentário no Instagram");
       }
+
     }
 
     if (ocultado) {
