@@ -164,6 +164,10 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const router = useRouter();
 
+  useEffect(() => instalarRecuperacaoVersaoAntiga(), []);
+
+
+
   useEffect(() => {
     let mounted = true;
     let unsub: (() => void) | undefined;
