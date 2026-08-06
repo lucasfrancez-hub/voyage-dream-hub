@@ -3283,11 +3283,11 @@ function InstagramCommentThreadView({ mediaId, onBack }: { mediaId: string; onBa
                       (meu
                         ? "border-r-2 border-white/40"
                         : contaAzul(thread?.account_username)
-                          ? "border-l-2 border-[#1E4E9C]/30"
+                          ? "border-l-2 border-[#56B8F0]/30"
                           : "border-l-2 border-[#F26B1F]/30"),
                   )}
                 >
-                  <div className={cn("text-[11px] font-semibold", meu ? "text-white" : contaAzul(thread?.account_username) ? "text-[#1E4E9C]" : "text-[#F26B1F]")}>
+                  <div className={cn("text-[11px] font-semibold", meu ? "text-white" : contaAzul(thread?.account_username) ? "text-[#56B8F0]" : "text-[#F26B1F]")}>
                     @{c.from_username ?? "usuário"}
                   </div>
                   {c.text && (
@@ -3467,13 +3467,13 @@ function contaAzul(username?: string | null) {
 /** Balão da DM: gradiente da conta (laranja VIA AIR ou azul-petróleo). */
 function bolhaConta(username?: string | null) {
   return contaAzul(username)
-    ? "bg-gradient-to-br from-[#3A6FC4] via-[#1E4E9C] to-[#0A1633] text-white"
+    ? "bg-gradient-to-br from-[#7FD0F7] via-[#56B8F0] to-[#1B6FA8] text-white"
     : "bg-gradient-to-br from-[#F9963F] via-[#F26B1F] to-[#C9450E] text-white";
 }
 
 /** Balão dos comentários: cor chapada da conta, sem gradiente. */
 function bolhaContaPlana(username?: string | null) {
-  return contaAzul(username) ? "bg-[#1E4E9C] text-white" : "bg-[#F26B1F] text-white";
+  return contaAzul(username) ? "bg-[#56B8F0] text-white" : "bg-[#F26B1F] text-white";
 }
 
 function ContaTag({ username, className }: { username?: string | null; className?: string }) {
@@ -3484,7 +3484,7 @@ function ContaTag({ username, className }: { username?: string | null; className
       className={cn(
         "inline-flex items-center gap-1 rounded-full px-1.5 py-[1px] text-[9px] font-semibold uppercase tracking-wide",
         azul
-          ? "bg-gradient-to-r from-[#4F86D6]/15 to-[#0A1633]/15 text-[#1E4E9C]"
+          ? "bg-gradient-to-r from-[#7FD0F7]/15 to-[#1B6FA8]/15 text-[#56B8F0]"
           : "bg-gradient-to-r from-[#F9963F]/15 to-[#C9450E]/15 text-[#C9450E]",
         className,
       )}
