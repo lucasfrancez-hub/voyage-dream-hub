@@ -55,7 +55,9 @@ export function ChatSidebar({ mobileOpen = false, onCloseMobile }: { mobileOpen?
     try { localStorage.setItem(SIDEBAR_KEY, valor ? "1" : "0"); } catch { /* ignore */ }
   };
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-
+  // Passar o mouse abre temporariamente quando está recolhido (desktop).
+  const [hover, setHover] = useState(false);
+  const expandido = !collapsed || hover || mobileOpen;
 
   return (
     <>
@@ -68,32 +70,39 @@ export function ChatSidebar({ mobileOpen = false, onCloseMobile }: { mobileOpen?
         />
       )}
 
+      {/* Espaço reservado enquanto o menu abre por cima no hover */}
+      {collapsed && hover && <div className="hidden md:block w-16 shrink-0" />}
+
       <aside
+        onMouseEnter={() => setHover(true)}
+        onMouseLeave={() => setHover(false)}
         className={cn(
           "flex h-full shrink-0 flex-col border-r border-slate-200 bg-white transition-[width,transform] duration-200",
           // Desktop
           "hidden md:flex",
-          collapsed ? "md:w-16" : "md:w-60",
+          collapsed ? (hover ? "md:fixed md:inset-y-0 md:left-0 md:z-50 md:w-60 md:shadow-xl" : "md:w-16") : "md:w-60",
           // Mobile drawer
           mobileOpen && "!flex fixed inset-y-0 left-0 z-50 w-64 md:relative md:z-auto",
         )}
       >
+
         <div
           className="flex items-center justify-center gap-2 border-b border-slate-200 px-3"
           style={{ paddingTop: "env(safe-area-inset-top)", minHeight: "calc(3.5rem + env(safe-area-inset-top))" }}
         >
-          <span className={cn("flex min-w-0 items-center justify-center", collapsed ? "w-10" : "w-auto")}>
+          <span className={cn("flex min-w-0 items-center justify-center", expandido ? "w-auto" : "w-10")}>
             <img
               src={viaAirLogo.url}
               alt="VIA AIR"
-              className={cn("w-full object-contain dark:hidden", collapsed ? "h-6" : "h-8")}
+              className={cn("w-full object-contain dark:hidden", expandido ? "h-8" : "h-6")}
             />
             <img
               src={viaAirLogoWhite.url}
               alt="VIA AIR"
-              className={cn("hidden w-full object-contain dark:block", collapsed ? "h-6" : "h-8")}
+              className={cn("hidden w-full object-contain dark:block", expandido ? "h-8" : "h-6")}
             />
           </span>
+
 
           {onCloseMobile && (
             <button
@@ -120,13 +129,14 @@ export function ChatSidebar({ mobileOpen = false, onCloseMobile }: { mobileOpen?
                     ? "bg-orange-50 text-[#F26B1F] font-medium"
                     : "text-slate-600 hover:bg-slate-50 hover:text-slate-900",
                 )}
-                title={collapsed ? item.label : undefined}
+                title={!expandido ? item.label : undefined}
               >
                 <item.icon className="h-4 w-4 shrink-0" />
-                {(!collapsed || mobileOpen) && <span className="truncate">{item.label}</span>}
-                {active && (!collapsed || mobileOpen) && (
+                {expandido && <span className="truncate">{item.label}</span>}
+                {active && expandido && (
                   <span className="ml-auto h-1.5 w-1.5 rounded-full bg-[#F26B1F]" />
                 )}
+
               </Link>
             );
           })}
@@ -136,11 +146,16 @@ export function ChatSidebar({ mobileOpen = false, onCloseMobile }: { mobileOpen?
           onClick={() => alternarRecolhido(!collapsed)}
           className="hidden md:flex h-10 items-center justify-center gap-2 border-t border-slate-200 text-xs text-slate-500 hover:bg-slate-50 hover:text-slate-900"
         >
-          {collapsed ? <PanelLeft className="h-4 w-4" /> : (
+          {collapsed && !hover ? <PanelLeft className="h-4 w-4" /> : collapsed ? (
+            <>
+              <PanelLeft className="h-4 w-4" /> Fixar aberto
+            </>
+          ) : (
             <>
               <PanelLeftClose className="h-4 w-4" /> Recolher
             </>
           )}
+
         </button>
       </aside>
     </>
