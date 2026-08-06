@@ -710,25 +710,144 @@ const WALLPAPERS: { key: string; label: string; css: string; size?: string }[] =
   { key: "diagonal", label: "Listras diagonais", css: "repeating-linear-gradient(45deg, color-mix(in oklab, var(--foreground) 6%, transparent) 0 2px, transparent 2px 14px)" },
 ];
 
+const CHAVE_WALLPAPER = "chat-wallpaper-v3";
+const CHAVE_WALLPAPER_IMG = "chat-wallpaper-custom-v1";
+
+/** Reduz a imagem escolhida para caber no localStorage (JPEG ~1280px). */
+async function comprimirImagemFundo(file: File): Promise<string> {
+  const dataUrl = await new Promise<string>((res, rej) => {
+    const fr = new FileReader();
+    fr.onload = () => res(String(fr.result));
+    fr.onerror = () => rej(new Error("Falha ao ler a imagem"));
+    fr.readAsDataURL(file);
+  });
+  const img = await new Promise<HTMLImageElement>((res, rej) => {
+    const i = new Image();
+    i.onload = () => res(i);
+    i.onerror = () => rej(new Error("Imagem inválida"));
+    i.src = dataUrl;
+  });
+  const max = 1280;
+  const escala = Math.min(1, max / Math.max(img.width, img.height));
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.round(img.width * escala);
+  canvas.height = Math.round(img.height * escala);
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return dataUrl;
+  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+  return canvas.toDataURL("image/jpeg", 0.82);
+}
+
+type Wallpaper = ReturnType<typeof useWallpaper>;
+
 function useWallpaper() {
   const [key, setKey] = useState<string>("dots");
+  const [custom, setCustom] = useState<string | null>(null);
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const saved = localStorage.getItem("chat-wallpaper-v3");
+    const saved = localStorage.getItem(CHAVE_WALLPAPER);
     if (saved) setKey(saved);
+    setCustom(localStorage.getItem(CHAVE_WALLPAPER_IMG));
   }, []);
   const set = (k: string) => {
     setKey(k);
-    if (typeof window !== "undefined") localStorage.setItem("chat-wallpaper-v3", k);
+    if (typeof window !== "undefined") localStorage.setItem(CHAVE_WALLPAPER, k);
+  };
+  const setImagem = (dataUrl: string | null) => {
+    setCustom(dataUrl);
+    if (typeof window === "undefined") return;
+    if (dataUrl) {
+      localStorage.setItem(CHAVE_WALLPAPER_IMG, dataUrl);
+      localStorage.setItem(CHAVE_WALLPAPER, "custom");
+      setKey("custom");
+    } else {
+      localStorage.removeItem(CHAVE_WALLPAPER_IMG);
+      set("dots");
+    }
   };
   const cur = WALLPAPERS.find((w) => w.key === key) ?? WALLPAPERS[0];
-  const style: React.CSSProperties = {
-    backgroundImage: cur.css,
-    backgroundColor: "var(--chat-conversation)",
-  };
-  if (cur.size) style.backgroundSize = cur.size;
-  return { key, set, style };
+  const style: React.CSSProperties =
+    key === "custom" && custom
+      ? {
+          backgroundImage: `url(${custom})`,
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          backgroundRepeat: "no-repeat",
+          backgroundAttachment: "local",
+          backgroundColor: "var(--chat-conversation)",
+        }
+      : { backgroundImage: cur.css, backgroundColor: "var(--chat-conversation)" };
+  if (key !== "custom" && cur.size) style.backgroundSize = cur.size;
+  return { key, set, style, custom, setImagem };
 }
+
+/** Botão de plano de fundo usado no WhatsApp, nas DMs e nos comentários. */
+function WallpaperMenu({ wallpaper, className }: { wallpaper: Wallpaper; className?: string }) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  return (
+    <>
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={async (e) => {
+          const file = e.target.files?.[0];
+          e.target.value = "";
+          if (!file) return;
+          try {
+            wallpaper.setImagem(await comprimirImagemFundo(file));
+            toast.success("Plano de fundo atualizado");
+          } catch {
+            toast.error("Não consegui usar essa imagem");
+          }
+        }}
+      />
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button
+            type="button"
+            title="Alterar plano de fundo"
+            aria-label="Alterar plano de fundo"
+            className={cn(
+              "shrink-0 rounded-md p-2 text-muted-foreground hover:bg-accent hover:text-foreground",
+              className,
+            )}
+          >
+            <ImageIcon className="h-4 w-4" />
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-56">
+          <DropdownMenuLabel>Plano de fundo</DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          {WALLPAPERS.map((w) => (
+            <DropdownMenuItem key={w.key} onClick={() => wallpaper.set(w.key)}>
+              {w.label} {wallpaper.key === w.key && "✓"}
+            </DropdownMenuItem>
+          ))}
+          <DropdownMenuSeparator />
+          {wallpaper.custom && (
+            <DropdownMenuItem onClick={() => wallpaper.set("custom")}>
+              Minha imagem {wallpaper.key === "custom" && "✓"}
+            </DropdownMenuItem>
+          )}
+          <DropdownMenuItem onClick={() => inputRef.current?.click()}>
+            {wallpaper.custom ? "Trocar imagem…" : "Usar imagem própria…"}
+          </DropdownMenuItem>
+          {wallpaper.custom && (
+            <DropdownMenuItem
+              className="text-red-600 focus:text-red-600"
+              onClick={() => wallpaper.setImagem(null)}
+            >
+              Remover imagem
+            </DropdownMenuItem>
+          )}
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </>
+  );
+}
+
 
 function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: () => void; onBack?: () => void }) {
   const qc = useQueryClient();
@@ -1092,25 +1211,8 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
         >
           {conv.mode === "ai" ? "Assumir" : "Devolver p/ IA"}
         </button>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button
-              title="Alterar plano de fundo"
-              className="hidden rounded-md p-2 text-muted-foreground hover:bg-accent hover:text-foreground md:inline-flex"
-            >
-              <ImageIcon className="h-4 w-4" />
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48">
-            <DropdownMenuLabel>Plano de fundo</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            {WALLPAPERS.map((w) => (
-              <DropdownMenuItem key={w.key} onClick={() => wallpaper.set(w.key)}>
-                {w.label} {wallpaper.key === w.key && "✓"}
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <WallpaperMenu wallpaper={wallpaper} className="hidden md:inline-flex" />
+
         <button
           onClick={() => setDetailsOpen(true)}
           title="Detalhes do contato e protocolo"
@@ -2057,6 +2159,8 @@ function InstagramConversationView({
   onBack: () => void;
 }) {
   const msgsFn = useServerFn(listInstagramMessages);
+  const wallpaper = useWallpaper();
+
   const sendFn = useServerFn(sendInstagramReply);
   const attachFn = useServerFn(sendInstagramAttachment);
   const toggleFn = useServerFn(toggleConversationMode);
@@ -2264,11 +2368,13 @@ function InstagramConversationView({
             <ConversationMenu conv={mirror} onChange={() => onRefetch?.()} />
           </>
         )}
+        <WallpaperMenu wallpaper={wallpaper} />
       </header>
 
 
 
-      <div className="flex-1 space-y-2 overflow-y-auto p-4">
+      <div className="flex-1 space-y-2 overflow-y-auto p-4" style={wallpaper.style}>
+
         {isLoading ? (
           <div className="text-center text-xs text-slate-400">Carregando…</div>
         ) : msgs.length === 0 ? (
@@ -2735,6 +2841,8 @@ function InstagramCommentThreadView({ mediaId, onBack }: { mediaId: string; onBa
 
 
   const bottomRef = useRef<HTMLDivElement | null>(null);
+  const wallpaper = useWallpaper();
+
 
   const { data: threads = [], isLoading } = useQuery({
     queryKey: ["ig", "comment-threads"],
@@ -3062,7 +3170,9 @@ function InstagramCommentThreadView({ mediaId, onBack }: { mediaId: string; onBa
             <Trash2 className="h-4 w-4" />
           </button>
         )}
+        <WallpaperMenu wallpaper={wallpaper} className="mt-1" />
       </header>
+
 
       {thread?.collab && (
         <div className="border-b border-[#F26B1F]/20 bg-[#F26B1F]/5 px-4 py-2 text-[11px] text-[#8a3d0d]">
@@ -3113,7 +3223,7 @@ function InstagramCommentThreadView({ mediaId, onBack }: { mediaId: string; onBa
       </Dialog>
 
 
-      <div className="flex-1 space-y-2 overflow-y-auto p-4">
+      <div className="flex-1 space-y-2 overflow-y-auto p-4" style={wallpaper.style}>
 
         {isLoading ? (
           <div className="text-center text-xs text-slate-400">Carregando…</div>
