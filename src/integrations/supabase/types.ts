@@ -1427,6 +1427,7 @@ export type Database = {
           metadata: Json
           parent_comment_id: string | null
           read_at: string | null
+          reply_scheduled_at: string | null
           text: string | null
           updated_at: string
         }
@@ -1452,6 +1453,7 @@ export type Database = {
           metadata?: Json
           parent_comment_id?: string | null
           read_at?: string | null
+          reply_scheduled_at?: string | null
           text?: string | null
           updated_at?: string
         }
@@ -1477,6 +1479,7 @@ export type Database = {
           metadata?: Json
           parent_comment_id?: string | null
           read_at?: string | null
+          reply_scheduled_at?: string | null
           text?: string | null
           updated_at?: string
         }
