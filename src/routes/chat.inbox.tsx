@@ -2334,7 +2334,7 @@ function InstagramConversationView({
                 "max-w-[70%] rounded-2xl px-3 py-2 text-sm shadow-sm",
                 apagada
                   ? "border border-dashed border-slate-300 bg-slate-100 italic text-slate-400"
-                  : m.direction === "outbound" ? "bg-[#F26B1F] text-white" : "bg-white text-slate-900",
+                  : m.direction === "outbound" ? bolhaConta((profile as any)?.account_username) : "bg-white text-slate-900",
               )}>
                 {apagada ? (
                   <div className="text-xs">Mensagem apagada</div>
