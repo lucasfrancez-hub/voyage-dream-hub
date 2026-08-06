@@ -3913,7 +3913,7 @@ function FinanceDialog({
       is_commissionable: commissionable,
       rav_value: initial?.rav_value ?? 0,
       exchange_rate: initial?.exchange_rate ?? 1,
-      due_date: initial?.due_date ?? "",
+      due_date: initial?.due_date ?? hojeISO,
       total: initial?.total ?? 0,
       notes: initial?.notes ?? "",
     });
