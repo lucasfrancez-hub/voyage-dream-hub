@@ -2496,7 +2496,85 @@ function InstagramMediaThreadList({
   );
 }
 
+/** URL de imagem enviada junto ao comentário (sticker/GIF/anexo), quando houver. */
+function anexoDoComentario(c: { text?: string | null; metadata?: unknown }): string | null {
+  const meta = (c.metadata ?? {}) as Record<string, unknown>;
+  const direto = (meta.attachment_url ?? meta.media_url ?? meta.image_url) as string | undefined;
+  if (typeof direto === "string" && /^https?:\/\//.test(direto)) return direto;
+  const naMensagem = (c.text ?? "").match(/https?:\/\/\S+\.(?:jpe?g|png|gif|webp)(?:\?\S*)?/i);
+  return naMensagem?.[0] ?? null;
+}
+
+type ComentarioBase = {
+  id: string;
+  comment_id?: string | null;
+  parent_comment_id?: string | null;
+  from_username?: string | null;
+  text?: string | null;
+  created_at?: string | null;
+};
+
+/**
+ * Coloca cada resposta logo embaixo do comentário que ela responde.
+ * Quando o Instagram não mandou o `parent_comment_id` (histórico antigo),
+ * inferimos pelo @menção no início da nossa resposta ou pelo último
+ * comentário de terceiro ainda sem resposta nossa.
+ */
+function ordenarComentariosEmThread<T extends ComentarioBase>(
+  comments: T[],
+  nossos: Set<string>,
+): Array<{ item: T; depth: number }> {
+  const cron = [...comments].sort((a, b) => (a.created_at ?? "").localeCompare(b.created_at ?? ""));
+  const chave = (c: T) => c.comment_id ?? c.id;
+  const existentes = new Set(cron.map(chave));
+
+  const paiDe = new Map<string, string>();
+  const respondidos = new Set<string>();
+
+  for (const c of cron) {
+    const k = chave(c);
+    const meu = nossos.has((c.from_username ?? "").replace(/^@/, "").toLowerCase());
+    let pai = c.parent_comment_id && existentes.has(c.parent_comment_id) ? c.parent_comment_id : null;
+
+    if (!pai && meu) {
+      const mencao = (c.text ?? "").match(/^\s*@([A-Za-z0-9._]+)/)?.[1]?.toLowerCase();
+      const anteriores = cron.filter(
+        (o) => (o.created_at ?? "") < (c.created_at ?? "") && !nossos.has((o.from_username ?? "").replace(/^@/, "").toLowerCase()),
+      );
+      const candidatos = mencao
+        ? anteriores.filter((o) => (o.from_username ?? "").replace(/^@/, "").toLowerCase() === mencao)
+        : anteriores;
+      const alvo =
+        [...candidatos].reverse().find((o) => !respondidos.has(chave(o))) ??
+        [...candidatos].reverse()[0];
+      if (alvo) pai = chave(alvo);
+    }
+
+    if (pai && pai !== k) {
+      paiDe.set(k, pai);
+      respondidos.add(pai);
+    }
+  }
+
+  const filhos = new Map<string, T[]>();
+  const raizes: T[] = [];
+  for (const c of cron) {
+    const pai = paiDe.get(chave(c));
+    if (pai) filhos.set(pai, [...(filhos.get(pai) ?? []), c]);
+    else raizes.push(c);
+  }
+
+  const saida: Array<{ item: T; depth: number }> = [];
+  const visitar = (c: T, depth: number) => {
+    saida.push({ item: c, depth });
+    for (const f of filhos.get(chave(c)) ?? []) visitar(f, Math.min(depth + 1, 1));
+  };
+  for (const r of raizes) visitar(r, 0);
+  return saida;
+}
+
 /** Janela da publicação: todos os comentários em formato de conversa. */
+
 function InstagramCommentThreadView({ mediaId, onBack }: { mediaId: string; onBack: () => void }) {
   const threadsFn = useServerFn(listInstagramCommentThreads);
   const accountsFn = useServerFn(listInstagramAccounts);
