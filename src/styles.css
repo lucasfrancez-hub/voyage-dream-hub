@@ -201,6 +201,11 @@ html:root {
 .chat-dark .bg-slate-50 { background-color: var(--chat-panel-raised); }
 .chat-dark .bg-slate-100 { background-color: var(--chat-panel-raised); }
 .chat-dark [class*="bg-orange-50"] { background-color: color-mix(in oklab, var(--brand-orange) 13%, transparent); }
+/* Linhas selecionadas do Instagram (DM/comentários) — mantêm fundo escuro translúcido
+   para o texto branco continuar legível no tom escuro. */
+.chat-dark [class*="bg-pink-50"] { background-color: color-mix(in oklab, oklch(0.68 0.19 0) 15%, transparent); }
+.chat-dark [class*="bg-blue-50"] { background-color: color-mix(in oklab, oklch(0.55 0.16 262) 18%, transparent); }
+.chat-dark [class*="bg-orange-100"] { background-color: color-mix(in oklab, var(--brand-orange) 18%, transparent); }
 .chat-dark .text-slate-900,
 .chat-dark .text-slate-800,
 .chat-dark .text-slate-700 { color: var(--foreground); }
