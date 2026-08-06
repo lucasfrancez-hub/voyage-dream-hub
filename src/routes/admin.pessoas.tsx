@@ -12,9 +12,10 @@ import { PersonEditorDialog } from "@/components/PersonEditorDialog";
 export const Route = createFileRoute("/admin/pessoas")({
   component: PeoplePage,
   head: () => ({ meta: [{ title: "Pessoas — Admin" }] }),
-  validateSearch: (s: Record<string, unknown>) => ({
+  validateSearch: (s: Record<string, unknown>): { edit?: string } => ({
     edit: typeof s.edit === "string" ? s.edit : undefined,
   }),
+
 });
 
 function PeoplePage() {
