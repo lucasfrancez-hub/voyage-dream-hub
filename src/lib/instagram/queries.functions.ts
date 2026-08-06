@@ -88,7 +88,11 @@ export const listInstagramConversations = createServerFn({ method: "GET" })
       .order("last_message_at", { ascending: false, nullsFirst: false })
       .limit(200);
     if (error) throw new Error(error.message);
-    return data ?? [];
+    const rows = data ?? [];
+    // @username da conta que recebeu a DM (identifica @viaairs x @lucasfrancez na lista)
+    const { data: contas } = await context.supabase.from("instagram_accounts").select("id, username");
+    const nomes = new Map((contas ?? []).map((a) => [a.id as string, (a.username as string | null) ?? null]));
+    return rows.map((r) => ({ ...r, account_username: nomes.get(r.account_id) ?? null }));
   });
 
 export const markInstagramConversationRead = createServerFn({ method: "POST" })
@@ -225,7 +229,7 @@ export const listInstagramComments = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { data, error } = await context.supabase
       .from("instagram_comments")
-      .select("id, media_id, media_permalink, media_caption, media_thumbnail, media_type, comment_id, from_username, text, auto_reply_status, auto_reply_text, auto_replied_at, auto_dm_sent_at, created_at")
+      .select("id, account_id, media_id, media_permalink, media_caption, media_thumbnail, media_type, comment_id, from_username, text, auto_reply_status, auto_reply_text, auto_replied_at, auto_dm_sent_at, created_at")
       .order("created_at", { ascending: false })
       .limit(100);
     if (error) throw new Error(error.message);
@@ -396,12 +400,14 @@ export const listInstagramCommentThreads = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { data, error } = await context.supabase
       .from("instagram_comments")
-      .select("id, media_id, media_permalink, media_caption, media_thumbnail, media_type, comment_id, parent_comment_id, from_ig_id, from_username, from_profile_pic, text, auto_reply_status, auto_reply_text, auto_replied_at, auto_dm_sent_at, read_at, created_at, metadata")
+      .select("id, account_id, media_id, media_permalink, media_caption, media_thumbnail, media_type, comment_id, parent_comment_id, from_ig_id, from_username, from_profile_pic, text, auto_reply_status, auto_reply_text, auto_replied_at, auto_dm_sent_at, read_at, created_at, metadata")
       .order("created_at", { ascending: true })
       .limit(500);
     if (error) throw new Error(error.message);
 
     const rows = data ?? [];
+    const { data: contas } = await context.supabase.from("instagram_accounts").select("id, username");
+    const nomesConta = new Map((contas ?? []).map((a) => [a.id as string, (a.username as string | null) ?? null]));
 
     // Foto de quem comentou: usa a que já temos guardada, senão puxa da DM do mesmo perfil.
     const semFoto = [...new Set(rows.filter((c) => !c.from_profile_pic && c.from_ig_id).map((c) => c.from_ig_id as string))];
@@ -423,6 +429,7 @@ export const listInstagramCommentThreads = createServerFn({ method: "GET" })
       media_caption: string | null;
       media_thumbnail: string | null;
       media_type: string | null;
+      account_username: string | null;
       collab: boolean;
       last_at: string | null;
       total: number;
@@ -442,6 +449,7 @@ export const listInstagramCommentThreads = createServerFn({ method: "GET" })
         media_caption: null,
         media_thumbnail: null,
         media_type: null,
+        account_username: null,
         collab: false,
         last_at: null,
         total: 0,
@@ -452,6 +460,7 @@ export const listInstagramCommentThreads = createServerFn({ method: "GET" })
       t.media_caption = c.media_caption ?? t.media_caption;
       t.media_thumbnail = c.media_thumbnail ?? t.media_thumbnail;
       t.media_type = c.media_type ?? t.media_type;
+      t.account_username = nomesConta.get(c.account_id as string) ?? t.account_username;
       // Publicação em colaboração: veio da varredura de posts marcados.
       if ((c.metadata as { collab?: boolean } | null)?.collab) t.collab = true;
       t.last_at = c.created_at ?? t.last_at;
