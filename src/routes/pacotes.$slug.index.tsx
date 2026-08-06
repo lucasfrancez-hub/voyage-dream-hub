@@ -94,9 +94,10 @@ function roomCategoryIcon(value: string): LucideIcon {
 }
 
 export const Route = createFileRoute("/pacotes/$slug/")({
-  validateSearch: (s: Record<string, unknown>) => ({
+  validateSearch: (s: Record<string, unknown>): { preview?: true } => ({
     preview: s.preview === "1" || s.preview === 1 || s.preview === true ? true : undefined,
   }),
+
   loader: async ({ params }) => {
     const slugs = params.slug.includes("#")
       ? [params.slug, params.slug.replace(/#/g, "-")]

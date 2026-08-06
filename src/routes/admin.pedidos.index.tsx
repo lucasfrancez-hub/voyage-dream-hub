@@ -21,9 +21,10 @@ import { confirmThen } from "@/lib/confirm";
 
 
 export const Route = createFileRoute("/admin/pedidos/")({
-  validateSearch: (s: Record<string, unknown>) => ({
+  validateSearch: (s: Record<string, unknown>): { status?: StatusFilter } => ({
     status: (typeof s.status === "string" ? s.status : "all") as StatusFilter,
   }),
+
   component: RouteComponent,
   head: () => ({ meta: [{ title: "Pedidos — Admin" }] }),
 });

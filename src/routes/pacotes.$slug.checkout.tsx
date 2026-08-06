@@ -20,7 +20,18 @@ import { TermsModal } from "@/components/TermsModal";
 
 export const Route = createFileRoute("/pacotes/$slug/checkout")({
   component: Checkout,
-  validateSearch: (s: Record<string, unknown>) => {
+  validateSearch: (
+    s: Record<string, unknown>,
+  ): {
+    qty?: number;
+    date?: string;
+    addons?: string;
+    modality?: string;
+    time?: string;
+    nights?: number;
+    birthday?: number;
+  } => {
+
     const raw = Number(s?.qty);
     const qty = Number.isFinite(raw) && raw > 0 ? Math.min(9, Math.floor(raw)) : undefined;
     const dateRaw = typeof s?.date === "string" ? s.date : "";
