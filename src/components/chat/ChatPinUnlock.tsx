@@ -14,6 +14,16 @@ import {
   esquecerAparelhoChat,
   registrarAparelhoChat,
 } from "@/lib/chat/device-session.functions";
+import { garantirVersaoAtual } from "@/lib/app-version";
+
+/** Storage do Safari pode lançar exceção (modo privado/PWA): nunca derruba a tela. */
+function guardarLocal(chave: string, valor: string) {
+  try {
+    localStorage.setItem(chave, valor);
+  } catch (error) {
+    console.warn("[VIA AIR] localStorage indisponível:", chave, error);
+  }
+}
 
 export function ChatPinUnlock({ email, onEntrar }: { email: string | null; onEntrar: () => void }) {
   const desbloquear = useServerFn(desbloquearAparelhoChat);
@@ -34,6 +44,8 @@ export function ChatPinUnlock({ email, onEntrar }: { email: string | null; onEnt
         token_hash: r.tokenHash,
       });
       if (error) throw new Error(error.message);
+      // Se este aparelho está com build antiga, atualiza antes de abrir o Chat.
+      if (await garantirVersaoAtual("pos-pin")) return;
       onEntrar();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Não foi possível entrar.");
@@ -95,7 +107,7 @@ export function ChatPinSetup({ onFechar }: { onFechar: () => void }) {
     setSalvando(true);
     try {
       await registrar({ data: { pin, label: navigator.userAgent.slice(0, 60) } });
-      localStorage.setItem("viaair-chat-pin-ok", "1");
+      guardarLocal("viaair-chat-pin-ok", "1");
       toast.success("Pronto! Este aparelho fica conectado por 30 dias.");
       onFechar();
     } catch (e) {
@@ -106,7 +118,7 @@ export function ChatPinSetup({ onFechar }: { onFechar: () => void }) {
   };
 
   const dispensar = () => {
-    localStorage.setItem("viaair-chat-pin-ok", "adiado");
+    guardarLocal("viaair-chat-pin-ok", "adiado");
     onFechar();
   };
 
