@@ -146,6 +146,35 @@ export async function setCommentHidden(params: { commentId: string; token: strin
   });
 }
 
+/** Lê a contagem de curtidas de um comentário (e se nossa conta curtiu, quando o campo vem). */
+export async function getCommentLikes(params: { commentId: string; token: string }): Promise<{
+  like_count: number | null;
+  user_has_liked: boolean | null;
+}> {
+  try {
+    const r = await fetchGraph(`/${params.commentId}?fields=like_count`, {
+      method: "GET",
+      token: params.token,
+      operation: "comment_likes",
+    });
+    return {
+      like_count: typeof r.like_count === "number" ? r.like_count : null,
+      user_has_liked: typeof r.user_has_liked === "boolean" ? r.user_has_liked : null,
+    };
+  } catch {
+    return { like_count: null, user_has_liked: null };
+  }
+}
+
+/** Curte/descurte um comentário como a conta da empresa. */
+export async function setCommentLiked(params: { commentId: string; token: string; like: boolean }) {
+  return fetchGraph(`/${params.commentId}/likes`, {
+    method: params.like ? "POST" : "DELETE",
+    token: params.token,
+    operation: params.like ? "like_comment" : "unlike_comment",
+  });
+}
+
 /** Apaga (unsend) uma mensagem enviada pela empresa — some para os dois lados. */
 export async function unsendMessage(params: { igUserId: string; token: string; messageId: string }) {
   return fetchGraph(`/${params.igUserId}/messages`, {
