@@ -2168,7 +2168,45 @@ function groupByDay(msgs: Msg[]) {
   return groups;
 }
 
+/**
+ * Mídia do CDN do Instagram (lookaside/fbcdn): a URL não diz se é foto ou vídeo.
+ * Tenta como imagem e, se falhar, troca para player de vídeo.
+ */
+function MidiaCdn({
+  url,
+  alt,
+  className = "",
+  controls = false,
+}: { url: string; alt: string; className?: string; controls?: boolean }) {
+  const [ehVideo, setEhVideo] = useState(/\.mp4(\?|$)/i.test(url));
+  if (ehVideo) {
+    return <video src={url} controls={controls} playsInline className={className} />;
+  }
+  return <img src={url} alt={alt} className={className} onError={() => setEhVideo(true)} loading="lazy" />;
+}
+
+/** Lightbox dentro do chat — evita abrir nova aba ao clicar na mídia. */
+function MidiaLightbox({ url, onClose }: { url: string | null; onClose: () => void }) {
+  return (
+    <Dialog open={!!url} onOpenChange={(v) => { if (!v) onClose(); }}>
+      <DialogContent className="max-w-3xl border-none bg-transparent p-0 shadow-none">
+        <DialogHeader className="sr-only">
+          <DialogTitle>Mídia</DialogTitle>
+          <DialogDescription>Visualização da mídia da conversa</DialogDescription>
+        </DialogHeader>
+        {url && (
+          <div className="flex max-h-[85vh] items-center justify-center">
+            <MidiaCdn url={url} alt="Mídia" controls className="max-h-[85vh] w-auto rounded-xl object-contain" />
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 // ============ Instagram DM conversa ============
+
+
 
 function InstagramConversationView({
   conversationId,
@@ -2205,6 +2243,8 @@ function InstagramConversationView({
   });
 
   const [text, setText] = useState("");
+  const [midiaAberta, setMidiaAberta] = useState<string | null>(null);
+
   const fileRef = useRef<HTMLInputElement | null>(null);
   const [igRecording, setIgRecording] = useState(false);
   const igRecorderRef = useRef<MediaRecorder | null>(null);
@@ -2317,6 +2357,8 @@ function InstagramConversationView({
 
   return (
     <div className="flex h-full min-h-0 flex-col">
+      <MidiaLightbox url={midiaAberta} onClose={() => setMidiaAberta(null)} />
+
       <header className="flex items-center gap-2 border-b border-slate-200 bg-white px-3 py-2">
         <button onClick={onBack} className="md:hidden" aria-label="Voltar">
           <ArrowLeft className="h-4 w-4 text-slate-500" />
@@ -2493,26 +2535,38 @@ function InstagramConversationView({
                   if (tipo.includes("video") && !ehShare) return <video controls src={url} className="max-h-60 max-w-[240px] rounded-lg" />;
                   if (ehStory || ehShare) {
                     const ehLink = /^https?:\/\//.test(url) && !/lookaside|cdninstagram|fbcdn/.test(url);
-                    return (
-                      <a href={url} target="_blank" rel="noreferrer" className={cn("block rounded-lg border p-1.5", m.direction === "outbound" ? "border-white/30" : "border-slate-200")}>
-                        <div className={cn("mb-1 text-[10px] font-semibold uppercase tracking-wide", m.direction === "outbound" ? "text-white/80" : "text-slate-500")}>
-                          {ehStory ? "Resposta ao story" : "Publicação compartilhada"}
-                        </div>
-                        {ehLink ? (
+                    const rotulo = (
+                      <div className={cn("mb-1 text-[10px] font-semibold uppercase tracking-wide", m.direction === "outbound" ? "text-white/80" : "text-slate-500")}>
+                        {ehStory ? "Resposta ao story" : "Publicação compartilhada"}
+                      </div>
+                    );
+                    if (ehLink) {
+                      return (
+                        <a href={url} target="_blank" rel="noreferrer" className={cn("block rounded-lg border p-1.5", m.direction === "outbound" ? "border-white/30" : "border-slate-200")}>
+                          {rotulo}
                           <span className="text-xs underline [overflow-wrap:anywhere]">{url}</span>
-                        ) : (
-                          <img src={url} alt={ehStory ? "Story" : "Publicação"} className="max-h-60 rounded-md object-cover" />
-                        )}
-                      </a>
+                        </a>
+                      );
+                    }
+                    return (
+                      <button
+                        type="button"
+                        onClick={() => setMidiaAberta(url)}
+                        className={cn("block rounded-lg border p-1.5 text-left", m.direction === "outbound" ? "border-white/30" : "border-slate-200")}
+                      >
+                        {rotulo}
+                        <MidiaCdn url={url} alt={ehStory ? "Story" : "Publicação"} className="max-h-60 rounded-md object-cover" />
+                      </button>
                     );
                   }
                   if (tipo.includes("image") || tipo.includes("gif") || tipo.includes("sticker")) {
                     return (
-                      <a href={url} target="_blank" rel="noreferrer">
-                        <img src={url} alt="Mídia" className="max-h-60 rounded-lg object-cover" />
-                      </a>
+                      <button type="button" onClick={() => setMidiaAberta(url)} className="block">
+                        <MidiaCdn url={url} alt="Mídia" className="max-h-60 rounded-lg object-cover" />
+                      </button>
                     );
                   }
+
                   return (
                     <a href={url} target="_blank" rel="noreferrer" className="underline">
                       {m.message_type ?? "mídia"}
