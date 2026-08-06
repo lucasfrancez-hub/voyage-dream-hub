@@ -798,7 +798,7 @@ function useWallpaper() {
         }
       : { backgroundImage: cur.css, backgroundColor: "var(--chat-conversation)" };
   if (key !== "custom" && cur.size) style.backgroundSize = cur.size;
-  return { key, set, style, custom, setImagem };
+  return { key, set, style, custom, setImagem, tom };
 }
 
 /** Botão de plano de fundo usado no WhatsApp, nas DMs e nos comentários. */
