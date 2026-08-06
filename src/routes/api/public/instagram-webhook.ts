@@ -196,9 +196,10 @@ async function processPayload(payload: IGPayload) {
       }
 
       // IA responde as DMs com os mesmos agentes/regras do WhatsApp
-      if (!isFromMe && espelho) {
+      if (!isFromMe && espelho && iaAtiva) {
         try {
           const { runAgent } = await import("@/lib/whatsapp/agent-runner.server");
+
           await runAgent({
             wa_phone: espelho.waPhone,
             profile_name: contatoNome ?? contatoUser ?? null,
