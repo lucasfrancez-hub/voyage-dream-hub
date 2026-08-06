@@ -14,6 +14,7 @@ import { reportLovableError } from "../lib/lovable-error-reporting";
 import {
   hardRefreshApp,
   instalarRecuperacaoVersaoAntiga,
+  isStaleCodeError,
   tentarRecuperarVersaoAntiga,
 } from "../lib/stale-app-recovery";
 import { Toaster } from "@/components/ui/sonner";
@@ -42,9 +43,10 @@ function NotFoundComponent() {
   );
 }
 
-function ErrorComponent({ error }: { error: Error; reset: () => void }) {
+function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   console.error(error);
   const [autoRecovering, setAutoRecovering] = useState(false);
+  const erroDeVersao = isStaleCodeError(error);
 
   const atualizarAplicativo = async () => {
     await hardRefreshApp();
@@ -67,14 +69,16 @@ function ErrorComponent({ error }: { error: Error; reset: () => void }) {
         <p className="mt-2 text-sm text-muted-foreground">
           {autoRecovering
             ? "Detectamos uma versão desatualizada e estamos atualizando pra você."
-            : "O aplicativo pode estar com uma versão antiga salva. Atualize para carregar a versão mais recente."}
+            : erroDeVersao
+              ? "O aplicativo estava com arquivos antigos. Atualize para carregar a versão mais recente."
+              : "Encontramos uma falha ao abrir esta tela. Tente novamente; se continuar, o erro já foi registrado para correção."}
         </p>
         <div className="mt-6 flex flex-wrap justify-center gap-2">
           <button
-            onClick={() => void atualizarAplicativo()}
+            onClick={() => erroDeVersao ? void atualizarAplicativo() : reset()}
             className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
           >
-            Atualizar aplicativo
+            {erroDeVersao ? "Atualizar aplicativo" : "Tentar novamente"}
           </button>
           <a
             href="/"
