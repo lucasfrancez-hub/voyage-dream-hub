@@ -328,6 +328,23 @@ function DashboardPage() {
         </Link>
       </div>
 
+      {/* Atalho — Redes sociais */}
+      <Link
+        to="/admin/redes-sociais"
+        className="flex items-center gap-3 rounded-2xl border border-border bg-card p-4 transition hover:border-brand-orange/40"
+      >
+        <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-orange-50 text-brand-orange">
+          <Instagram className="h-5 w-5" />
+        </span>
+        <span className="flex-1">
+          <span className="block text-sm font-semibold text-foreground">Redes sociais</span>
+          <span className="block text-xs text-muted-foreground">
+            Métricas de publicações, reels e stories da VIA AIR e do perfil pessoal
+          </span>
+        </span>
+        <ExternalLink className="h-4 w-4 text-muted-foreground" />
+      </Link>
+
       {/* Mês atual + trend */}
       <div className="grid gap-4 md:grid-cols-3">
 
