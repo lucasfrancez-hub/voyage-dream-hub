@@ -3009,15 +3009,73 @@ function InstagramCommentThreadView({ mediaId, onBack }: { mediaId: string; onBa
                   <div className={cn("mt-0.5 flex items-center gap-2 text-[10px]", meu ? "text-white/70" : "text-slate-400")}>
                     {new Date(c.created_at as string).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
                     {c.auto_replied_at && !meu ? " · respondido" : ""}
-                    {!meu && (
-                      <button
-                        onClick={() => setAlvo(c.id)}
-                        className="ml-auto inline-flex items-center gap-0.5 rounded px-1 hover:text-[#F26B1F]"
-                      >
-                        <MessageSquare className="h-2.5 w-2.5" /> responder
-                      </button>
-                    )}
+                    {oculto ? " · oculto" : ""}
+                    <span className="ml-auto inline-flex items-center gap-1">
+                      {!meu && (
+                        <button
+                          onClick={() => setAlvo(c.id)}
+                          className="inline-flex items-center gap-0.5 rounded px-1 hover:text-[#F26B1F]"
+                        >
+                          <MessageSquare className="h-2.5 w-2.5" /> responder
+                        </button>
+                      )}
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <button className="rounded px-0.5 hover:text-[#F26B1F]" aria-label="Ações do comentário">
+                            <MoreVertical className="h-3 w-3" />
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-60">
+                          <DropdownMenuLabel>Comentário</DropdownMenuLabel>
+                          <DropdownMenuSeparator />
+                          {!meu && (
+                            <DropdownMenuItem
+                              onClick={() => hideComment.mutate({ id: c.id, hidden: !oculto })}
+                            >
+                              {oculto ? (
+                                <><Eye className="mr-2 h-3.5 w-3.5" /> Reexibir na publicação</>
+                              ) : (
+                                <><EyeOff className="mr-2 h-3.5 w-3.5" /> Ocultar na publicação</>
+                              )}
+                            </DropdownMenuItem>
+                          )}
+                          <DropdownMenuItem
+                            className="text-destructive focus:text-destructive"
+                            onClick={() =>
+                              confirmThen(
+                                {
+                                  title: "Apagar no Instagram?",
+                                  description:
+                                    "O comentário é removido da publicação no Instagram (reflete para todo mundo) e some daqui.",
+                                  confirmText: "Apagar no Instagram",
+                                  destructive: true,
+                                },
+                                () => delComment.mutate({ id: c.id, escopo: "instagram" }),
+                              )
+                            }
+                          >
+                            <Trash2 className="mr-2 h-3.5 w-3.5" /> Apagar no Instagram
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() =>
+                              confirmThen(
+                                {
+                                  title: "Apagar só aqui?",
+                                  description: "Some apenas do painel; no Instagram o comentário continua.",
+                                  confirmText: "Apagar aqui",
+                                  destructive: true,
+                                },
+                                () => delComment.mutate({ id: c.id, escopo: "local" }),
+                              )
+                            }
+                          >
+                            Apagar só do painel
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </span>
                   </div>
+
                 </div>
               </div>
             );
