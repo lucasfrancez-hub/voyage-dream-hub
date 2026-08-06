@@ -87,6 +87,7 @@ type WhatsAppPayload = {
         statuses?: Array<{
           id: string;
           status: string;
+          timestamp?: string;
           recipient_id: string;
           errors?: Array<{
             code?: number;
