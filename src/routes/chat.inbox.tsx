@@ -2408,6 +2408,7 @@ function InstagramList({ folder, search, activeId, onSelect }: { folder: string;
             </div>
             {c.contact_username && <div className="text-[10px] text-slate-500">@{c.contact_username}</div>}
             <div className="truncate text-xs text-slate-500">{c.last_message_preview ?? "—"}</div>
+            <ContaTag username={(c as any).account_username} className="mt-0.5" />
           </div>
         </button>
       ))}
@@ -2482,6 +2483,7 @@ function InstagramMediaThreadList({
               <p className="mt-0.5 line-clamp-1 text-[11px] text-slate-600 [overflow-wrap:anywhere]">
                 {ultimo ? `@${ultimo.from_username ?? "usuário"}: ${ultimo.text ?? ""}` : "Sem comentários"}
               </p>
+              <ContaTag username={(t as any).account_username} className="mt-1" />
               <div className="mt-0.5 text-[10px] text-slate-400">
                 {t.total} comentário{t.total === 1 ? "" : "s"}
                 {t.last_at ? ` · ${new Date(t.last_at as string).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}` : ""}
@@ -2853,6 +2855,21 @@ function InstagramCommentThreadView({ mediaId, onBack }: { mediaId: string; onBa
   );
 }
 
+/** Etiqueta da conta do Instagram que recebeu a mensagem/comentário (@viaairs, @lucasfrancez…). */
+function ContaTag({ username, className }: { username?: string | null; className?: string }) {
+  if (!username) return null;
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-1 rounded-full bg-slate-100 px-1.5 py-[1px] text-[9px] font-semibold uppercase tracking-wide text-slate-500",
+        className,
+      )}
+    >
+      <Instagram className="h-2.5 w-2.5" />@{String(username).replace(/^@/, "")}
+    </span>
+  );
+}
+
 /** Linha de DM do Instagram usada na aba unificada "Todas". */
 function IgConvRow({ conv, active, onClick }: { conv: any; active: boolean; onClick: () => void }) {
   const nome = conv.contact_name ?? (conv.contact_username ? `@${conv.contact_username}` : "Instagram");
@@ -2883,6 +2900,7 @@ function IgConvRow({ conv, active, onClick }: { conv: any; active: boolean; onCl
           {conv.contact_username ? `@${conv.contact_username}` : "Direct"}
         </div>
         <div className="truncate text-xs text-slate-500">{conv.last_message_preview ?? "—"}</div>
+        <ContaTag username={conv.account_username} className="mt-0.5" />
       </div>
     </button>
   );
@@ -2922,6 +2940,7 @@ function IgThreadRow({ thread, active, onClick }: { thread: any; active: boolean
         <div className="truncate text-xs text-slate-500">
           {ultimo ? `@${ultimo.from_username ?? "?"}: ${ultimo.text ?? ""}` : "—"}
         </div>
+        <ContaTag username={thread.account_username} className="mt-0.5" />
       </div>
     </button>
   );
