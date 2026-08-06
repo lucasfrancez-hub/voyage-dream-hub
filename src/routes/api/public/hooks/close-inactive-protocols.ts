@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { isInstagramConversation } from "@/lib/instagram/bridge.server";
 
 /**
  * Robô de inatividade dos protocolos.
