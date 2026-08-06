@@ -3,12 +3,12 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Pause, Play, Search, Send, Bot, User, MoreVertical, Loader2, Inbox as InboxIcon, Users, Archive, Plus, ChevronDown, ChevronUp, Image as ImageIcon, XCircle, History, Paperclip, PanelLeftClose, PanelLeftOpen, FileText, X, Save, ExternalLink, ArrowLeft, Info, Instagram, MessageCircle, MessageSquare, Heart, Mic, Square, Trash2 } from "lucide-react";
+import { Pause, Play, Search, Send, Bot, User, MoreVertical, Loader2, Inbox as InboxIcon, Users, Archive, Plus, ChevronDown, ChevronUp, Image as ImageIcon, XCircle, History, Paperclip, PanelLeftClose, PanelLeftOpen, FileText, X, Save, ExternalLink, ArrowLeft, Info, Instagram, MessageCircle, MessageSquare, Heart, Mic, Square, Trash2, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { listConversations, listMessages, sendHumanReply, resendHumanMessage, sendHumanMedia, toggleConversationMode, startOutboundConversation, setFunnelStage, assignConversation, setAiPaused, listAttendants, getActiveProtocolo, closeProtocoloManually, listConversationProtocolos, getConversationOrders, updateProtocoloDetails, listProtocoloMessages, ensureProtocoloResumo, clearConversationHistory, markConversationRead } from "@/lib/chat/queries.functions";
-import { listInstagramAccounts, listInstagramConversations, listInstagramMessages, sendInstagramAttachment, sendInstagramReply, listInstagramCommentThreads, refreshInstagramProfile, triggerAutoReplyComment, markInstagramConversationRead, markInstagramCommentThreadRead, getInstagramMediaDetails, deleteInstagramCommentThread } from "@/lib/instagram/queries.functions";
+import { listInstagramAccounts, listInstagramConversations, listInstagramMessages, sendInstagramAttachment, sendInstagramReply, listInstagramCommentThreads, refreshInstagramProfile, triggerAutoReplyComment, markInstagramConversationRead, markInstagramCommentThreadRead, getInstagramMediaDetails, deleteInstagramCommentThread, deleteInstagramComment, setInstagramCommentHidden, deleteInstagramMessage } from "@/lib/instagram/queries.functions";
 import { firstName } from "@/lib/whatsapp/text-utils.shared";
 import { confirmThen } from "@/lib/confirm";
 import { audioBlobToMp3 } from "@/lib/audio-to-mp3";
@@ -2138,6 +2138,20 @@ function InstagramConversationView({
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const delMsgFn = useServerFn(deleteInstagramMessage);
+  const delMsg = useMutation({
+    mutationFn: (v: { id: string; escopo: "todos" | "aqui" }) => delMsgFn({ data: v }),
+    onSuccess: (r) => {
+      qc.invalidateQueries({ queryKey: ["ig", "messages", conversationId] });
+      qc.invalidateQueries({ queryKey: ["ig", "conversations"] });
+      const aviso = (r as { aviso?: string | null } | undefined)?.aviso;
+      if (aviso) toast.warning(aviso);
+      else toast.success("Mensagem apagada");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+
   const igListFn = useServerFn(listInstagramConversations);
   const { data: igConvs = [] } = useQuery({
     queryKey: ["ig", "conversations"],
@@ -2257,12 +2271,66 @@ function InstagramConversationView({
             const casa = bruto.match(/^\*([^*\n]{2,40}):\*\s*\n?/);
             const remetente = casa?.[1] ?? null;
             const corpo = casa ? bruto.slice(casa[0].length) : bruto;
+            const apagada = (m as { is_deleted?: boolean | null }).is_deleted === true;
             return (
-            <div key={m.id} className={cn("flex", m.direction === "outbound" ? "justify-end" : "justify-start")}>
+            <div key={m.id} className={cn("group flex items-center gap-1", m.direction === "outbound" ? "justify-end" : "justify-start")}>
+              {m.direction === "outbound" && !apagada && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      className="opacity-0 transition-opacity group-hover:opacity-100 focus:opacity-100"
+                      aria-label="Ações da mensagem"
+                    >
+                      <MoreVertical className="h-3.5 w-3.5 text-slate-400" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56">
+                    <DropdownMenuLabel>Apagar mensagem</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      className="text-destructive focus:text-destructive"
+                      onClick={() =>
+                        confirmThen(
+                          {
+                            title: "Apagar para todos?",
+                            description: "A mensagem some do Instagram para você e para o cliente.",
+                            confirmText: "Apagar para todos",
+                            destructive: true,
+                          },
+                          () => delMsg.mutate({ id: m.id as string, escopo: "todos" }),
+                        )
+                      }
+                    >
+                      Apagar para todos
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() =>
+                        confirmThen(
+                          {
+                            title: "Apagar só aqui?",
+                            description: "A mensagem some apenas do nosso painel; no Instagram ela continua.",
+                            confirmText: "Apagar aqui",
+                            destructive: true,
+                          },
+                          () => delMsg.mutate({ id: m.id as string, escopo: "aqui" }),
+                        )
+                      }
+                    >
+                      Apagar só aqui
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
               <div className={cn(
                 "max-w-[70%] rounded-2xl px-3 py-2 text-sm shadow-sm",
-                m.direction === "outbound" ? "bg-[#F26B1F] text-white" : "bg-white text-slate-900",
+                apagada
+                  ? "border border-dashed border-slate-300 bg-slate-100 italic text-slate-400"
+                  : m.direction === "outbound" ? "bg-[#F26B1F] text-white" : "bg-white text-slate-900",
               )}>
+                {apagada ? (
+                  <div className="text-xs">Mensagem apagada</div>
+                ) : (
+                <>
                 {remetente && (
                   <div className={cn(
                     "mb-0.5 text-[11px] font-semibold",
@@ -2287,14 +2355,37 @@ function InstagramConversationView({
                   )
                 ) : null}
                 {corpo ? <div className="whitespace-pre-wrap break-words">{corpo}</div> : null}
+                </>
+                )}
 
-                <div className={cn("mt-0.5 text-[10px]", m.direction === "outbound" ? "text-white/70" : "text-slate-400")}>
+                <div className={cn("mt-0.5 text-[10px]", apagada ? "text-slate-400" : m.direction === "outbound" ? "text-white/70" : "text-slate-400")}>
                   {new Date(m.created_at as string).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
-                  {m.status === "failed" ? " · não entregue" : ""}
+                  {m.status === "failed" && !apagada ? " · não entregue" : ""}
                 </div>
               </div>
+              {m.direction === "inbound" && !apagada && (
+                <button
+                  onClick={() =>
+                    confirmThen(
+                      {
+                        title: "Apagar só aqui?",
+                        description:
+                          "O Instagram não deixa apagar mensagem recebida — ela some apenas do nosso painel.",
+                        confirmText: "Apagar aqui",
+                        destructive: true,
+                      },
+                      () => delMsg.mutate({ id: m.id as string, escopo: "aqui" }),
+                    )
+                  }
+                  className="opacity-0 transition-opacity group-hover:opacity-100 focus:opacity-100"
+                  aria-label="Apagar mensagem"
+                >
+                  <Trash2 className="h-3.5 w-3.5 text-slate-400 hover:text-red-500" />
+                </button>
+              )}
             </div>
             );
+
           })
 
 
@@ -2611,6 +2702,27 @@ function InstagramCommentThreadView({ mediaId, onBack }: { mediaId: string; onBa
   // Ao abrir a publicação, marca os comentários como lidos (badge some).
   const markReadFn = useServerFn(markInstagramCommentThreadRead);
   const deleteThreadFn = useServerFn(deleteInstagramCommentThread);
+  const delCommentFn = useServerFn(deleteInstagramComment);
+  const hideCommentFn = useServerFn(setInstagramCommentHidden);
+  const delComment = useMutation({
+    mutationFn: (v: { id: string; escopo: "instagram" | "local" }) => delCommentFn({ data: v }),
+    onSuccess: (r) => {
+      qc.invalidateQueries({ queryKey: ["ig", "comment-threads"] });
+      const aviso = (r as { aviso?: string | null } | undefined)?.aviso;
+      if (aviso) toast.warning(aviso);
+      else toast.success("Comentário apagado");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  const hideComment = useMutation({
+    mutationFn: (v: { id: string; hidden: boolean }) => hideCommentFn({ data: v }),
+    onSuccess: (_r, v) => {
+      qc.invalidateQueries({ queryKey: ["ig", "comment-threads"] });
+      toast.success(v.hidden ? "Comentário ocultado no Instagram" : "Comentário reexibido");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const jaMarcou = useRef<string | null>(null);
   useEffect(() => {
     if (!mediaId || jaMarcou.current === mediaId) return;
@@ -2857,6 +2969,7 @@ function InstagramCommentThreadView({ mediaId, onBack }: { mediaId: string; onBa
             const meu = nossos.has((c.from_username ?? "").replace(/^@/, "").toLowerCase());
             const inicial = (c.from_username ?? "?").replace(/^@/, "").charAt(0).toUpperCase();
             const anexo = anexoDoComentario(c);
+            const oculto = ((c as { metadata?: { hidden?: boolean } | null }).metadata?.hidden) === true;
             return (
               <div
                 key={c.id}
@@ -2897,15 +3010,73 @@ function InstagramCommentThreadView({ mediaId, onBack }: { mediaId: string; onBa
                   <div className={cn("mt-0.5 flex items-center gap-2 text-[10px]", meu ? "text-white/70" : "text-slate-400")}>
                     {new Date(c.created_at as string).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
                     {c.auto_replied_at && !meu ? " · respondido" : ""}
-                    {!meu && (
-                      <button
-                        onClick={() => setAlvo(c.id)}
-                        className="ml-auto inline-flex items-center gap-0.5 rounded px-1 hover:text-[#F26B1F]"
-                      >
-                        <MessageSquare className="h-2.5 w-2.5" /> responder
-                      </button>
-                    )}
+                    {oculto ? " · oculto" : ""}
+                    <span className="ml-auto inline-flex items-center gap-1">
+                      {!meu && (
+                        <button
+                          onClick={() => setAlvo(c.id)}
+                          className="inline-flex items-center gap-0.5 rounded px-1 hover:text-[#F26B1F]"
+                        >
+                          <MessageSquare className="h-2.5 w-2.5" /> responder
+                        </button>
+                      )}
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <button className="rounded px-0.5 hover:text-[#F26B1F]" aria-label="Ações do comentário">
+                            <MoreVertical className="h-3 w-3" />
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-60">
+                          <DropdownMenuLabel>Comentário</DropdownMenuLabel>
+                          <DropdownMenuSeparator />
+                          {!meu && (
+                            <DropdownMenuItem
+                              onClick={() => hideComment.mutate({ id: c.id, hidden: !oculto })}
+                            >
+                              {oculto ? (
+                                <><Eye className="mr-2 h-3.5 w-3.5" /> Reexibir na publicação</>
+                              ) : (
+                                <><EyeOff className="mr-2 h-3.5 w-3.5" /> Ocultar na publicação</>
+                              )}
+                            </DropdownMenuItem>
+                          )}
+                          <DropdownMenuItem
+                            className="text-destructive focus:text-destructive"
+                            onClick={() =>
+                              confirmThen(
+                                {
+                                  title: "Apagar no Instagram?",
+                                  description:
+                                    "O comentário é removido da publicação no Instagram (reflete para todo mundo) e some daqui.",
+                                  confirmText: "Apagar no Instagram",
+                                  destructive: true,
+                                },
+                                () => delComment.mutate({ id: c.id, escopo: "instagram" }),
+                              )
+                            }
+                          >
+                            <Trash2 className="mr-2 h-3.5 w-3.5" /> Apagar no Instagram
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() =>
+                              confirmThen(
+                                {
+                                  title: "Apagar só aqui?",
+                                  description: "Some apenas do painel; no Instagram o comentário continua.",
+                                  confirmText: "Apagar aqui",
+                                  destructive: true,
+                                },
+                                () => delComment.mutate({ id: c.id, escopo: "local" }),
+                              )
+                            }
+                          >
+                            Apagar só do painel
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </span>
                   </div>
+
                 </div>
               </div>
             );

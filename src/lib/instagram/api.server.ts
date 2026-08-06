@@ -127,6 +127,37 @@ export async function replyToComment(params: {
   });
 }
 
+/** Apaga um comentário no Instagram (só funciona em comentários da própria conta ou em posts dela). */
+export async function deleteComment(params: { commentId: string; token: string }) {
+  return fetchGraph(`/${params.commentId}`, {
+    method: "DELETE",
+    token: params.token,
+    operation: "delete_comment",
+  });
+}
+
+/** Oculta/reexibe um comentário de terceiros na publicação. */
+export async function setCommentHidden(params: { commentId: string; token: string; hide: boolean }) {
+  return fetchGraph(`/${params.commentId}`, {
+    method: "POST",
+    token: params.token,
+    operation: "hide_comment",
+    body: JSON.stringify({ hide: params.hide }),
+  });
+}
+
+/** Apaga (unsend) uma mensagem enviada pela empresa — some para os dois lados. */
+export async function unsendMessage(params: { igUserId: string; token: string; messageId: string }) {
+  return fetchGraph(`/${params.igUserId}/messages`, {
+    method: "DELETE",
+    token: params.token,
+    operation: "unsend_message",
+    body: JSON.stringify({ message_id: params.messageId }),
+  });
+}
+
+
+
 export async function sendPrivateReplyToComment(params: {
   igUserId: string;
   token: string;
