@@ -229,7 +229,7 @@ export const listInstagramComments = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { data, error } = await context.supabase
       .from("instagram_comments")
-      .select("id, media_id, media_permalink, media_caption, media_thumbnail, media_type, comment_id, from_username, text, auto_reply_status, auto_reply_text, auto_replied_at, auto_dm_sent_at, created_at")
+      .select("id, account_id, media_id, media_permalink, media_caption, media_thumbnail, media_type, comment_id, from_username, text, auto_reply_status, auto_reply_text, auto_replied_at, auto_dm_sent_at, created_at")
       .order("created_at", { ascending: false })
       .limit(100);
     if (error) throw new Error(error.message);
@@ -400,7 +400,7 @@ export const listInstagramCommentThreads = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { data, error } = await context.supabase
       .from("instagram_comments")
-      .select("id, media_id, media_permalink, media_caption, media_thumbnail, media_type, comment_id, parent_comment_id, from_ig_id, from_username, from_profile_pic, text, auto_reply_status, auto_reply_text, auto_replied_at, auto_dm_sent_at, read_at, created_at, metadata")
+      .select("id, account_id, media_id, media_permalink, media_caption, media_thumbnail, media_type, comment_id, parent_comment_id, from_ig_id, from_username, from_profile_pic, text, auto_reply_status, auto_reply_text, auto_replied_at, auto_dm_sent_at, read_at, created_at, metadata")
       .order("created_at", { ascending: true })
       .limit(500);
     if (error) throw new Error(error.message);
