@@ -282,7 +282,7 @@ function NotasFiscaisPage() {
                       <span className={`text-sm font-bold ${isCancelled ? "text-muted-foreground" : "text-foreground"}`}>
                         {r.numero_nfse ? `Nº ${r.numero_nfse}` : "—"}
                       </span>
-                      {o?.order_number && (
+                      {o?.order_number && r.order_id && (
                         <Link
                           to="/admin/pedidos/$id"
                           params={{ id: r.order_id }}
