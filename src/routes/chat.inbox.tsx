@@ -2348,21 +2348,49 @@ function InstagramConversationView({
                     {remetente}:
                   </div>
                 )}
-                {m.attachment_url ? (
-                  (m.message_type ?? "").includes("audio") ? (
-                    <audio controls src={m.attachment_url} className="max-w-[240px]" />
-                  ) : (m.message_type ?? "").includes("video") ? (
-                    <video controls src={m.attachment_url} className="max-h-60 max-w-[240px] rounded-lg" />
-                  ) : (m.message_type ?? "").includes("image") ? (
-                    <a href={m.attachment_url} target="_blank" rel="noreferrer">
-                      <img src={m.attachment_url} alt="Mídia" className="max-h-60 rounded-lg object-cover" />
-                    </a>
-                  ) : (
-                    <a href={m.attachment_url} target="_blank" rel="noreferrer" className="underline">
+                {(() => {
+                  const tipo = (m.message_type ?? "").toLowerCase();
+                  const ehStory = tipo.includes("story");
+                  const ehShare = tipo.includes("share") || tipo.includes("reel");
+                  const url = m.attachment_url;
+                  if (!url) {
+                    return ehStory || ehShare ? (
+                      <div className={cn("rounded-lg border px-2 py-1 text-[11px]", m.direction === "outbound" ? "border-white/30 text-white/90" : "border-slate-200 text-slate-600")}>
+                        {ehStory ? "Resposta ao story" : "Publicação compartilhada"}
+                      </div>
+                    ) : null;
+                  }
+                  if (tipo.includes("audio")) return <audio controls src={url} className="max-w-[240px]" />;
+                  if (tipo.includes("video") && !ehShare) return <video controls src={url} className="max-h-60 max-w-[240px] rounded-lg" />;
+                  if (ehStory || ehShare) {
+                    const ehLink = /^https?:\/\//.test(url) && !/lookaside|cdninstagram|fbcdn/.test(url);
+                    return (
+                      <a href={url} target="_blank" rel="noreferrer" className={cn("block rounded-lg border p-1.5", m.direction === "outbound" ? "border-white/30" : "border-slate-200")}>
+                        <div className={cn("mb-1 text-[10px] font-semibold uppercase tracking-wide", m.direction === "outbound" ? "text-white/80" : "text-slate-500")}>
+                          {ehStory ? "Resposta ao story" : "Publicação compartilhada"}
+                        </div>
+                        {ehLink ? (
+                          <span className="text-xs underline [overflow-wrap:anywhere]">{url}</span>
+                        ) : (
+                          <img src={url} alt={ehStory ? "Story" : "Publicação"} className="max-h-60 rounded-md object-cover" />
+                        )}
+                      </a>
+                    );
+                  }
+                  if (tipo.includes("image") || tipo.includes("gif") || tipo.includes("sticker")) {
+                    return (
+                      <a href={url} target="_blank" rel="noreferrer">
+                        <img src={url} alt="Mídia" className="max-h-60 rounded-lg object-cover" />
+                      </a>
+                    );
+                  }
+                  return (
+                    <a href={url} target="_blank" rel="noreferrer" className="underline">
                       {m.message_type ?? "mídia"}
                     </a>
-                  )
-                ) : null}
+                  );
+                })()}
+
                 {corpo ? <div className="whitespace-pre-wrap break-words">{corpo}</div> : null}
                 </>
                 )}

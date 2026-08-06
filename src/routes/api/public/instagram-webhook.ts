@@ -68,7 +68,7 @@ type IGPayload = {
         text?: string;
         attachments?: Array<{ type: string; payload: { url: string } }>;
         is_deleted?: boolean;
-        reply_to?: { mid?: string };
+        reply_to?: { mid?: string; story?: { url?: string; id?: string } };
       };
       // Recibos do Direct: entrega e leitura
       delivery?: { mids?: string[]; watermark?: number };
@@ -166,6 +166,15 @@ async function processPayload(payload: IGPayload) {
       const contactIgId = isFromMe ? msg.recipient?.id : senderId;
       if (!contactIgId) continue;
 
+      // Áudio, foto, vídeo, reels compartilhado ou resposta de story.
+      const { descreverAnexoDM, previaMensagemDM } = await import("@/lib/instagram/attachments");
+      const anexo = descreverAnexoDM({
+        attachments: msg.message.attachments ?? null,
+        replyToStory: msg.message.reply_to?.story ?? null,
+        text: msg.message.text ?? null,
+      });
+      const previa = previaMensagemDM(msg.message.text, anexo);
+
       const { data: conv, error: convError } = await supabaseAdmin
         .from("instagram_conversations")
         .upsert(
@@ -173,7 +182,7 @@ async function processPayload(payload: IGPayload) {
             account_id: account.id,
             contact_ig_id: contactIgId,
             last_message_at: new Date((msg.timestamp ?? Date.now())).toISOString(),
-            last_message_preview: (msg.message.text ?? "[mídia]").slice(0, 140),
+            last_message_preview: previa.slice(0, 140),
           },
           { onConflict: "account_id,contact_ig_id" },
         )
@@ -185,15 +194,16 @@ async function processPayload(payload: IGPayload) {
         conversation_id: conv!.id,
         ig_message_id: msg.message.mid ?? null,
         direction: isFromMe ? "outbound" : "inbound",
-        message_type: msg.message.attachments?.[0]?.type ?? "text",
-        text: msg.message.text ?? null,
-        attachment_url: msg.message.attachments?.[0]?.payload?.url ?? null,
-        attachment_type: msg.message.attachments?.[0]?.type ?? null,
+        message_type: anexo.tipo,
+        text: msg.message.text ?? anexo.rotulo,
+        attachment_url: anexo.url,
+        attachment_type: anexo.tipo === "text" ? null : anexo.tipo,
         reply_to_ig_message_id: msg.message.reply_to?.mid ?? null,
         is_deleted: msg.message.is_deleted ?? false,
         status: isFromMe ? "sent" : "received",
       }, { onConflict: "ig_message_id", ignoreDuplicates: true });
       if (messageError) throw new Error(messageError.message);
+
 
       if (!isFromMe) {
         await supabaseAdmin
@@ -234,9 +244,10 @@ async function processPayload(payload: IGPayload) {
           username: contatoUser,
           profilePic: contatoFoto,
           direction: isFromMe ? "outbound" : "inbound",
-          text: msg.message.text ?? null,
-          messageType: msg.message.attachments?.[0]?.type ?? "text",
-          attachmentUrl: msg.message.attachments?.[0]?.payload?.url ?? null,
+          text: msg.message.text ?? anexo.rotulo,
+          messageType: anexo.tipo,
+          attachmentUrl: anexo.url,
+
           igMessageId: msg.message.mid ?? null,
           timestamp: msg.timestamp ?? null,
         });
