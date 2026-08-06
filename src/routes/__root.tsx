@@ -15,8 +15,10 @@ import {
   hardRefreshApp,
   instalarRecuperacaoVersaoAntiga,
   isStaleCodeError,
+  limparMarcasDeRecuperacao,
   tentarRecuperarVersaoAntiga,
 } from "../lib/stale-app-recovery";
+import { instalarHandshakeVersao } from "../lib/app-version";
 import { Toaster } from "@/components/ui/sonner";
 import { ConfirmProvider } from "@/lib/confirm";
 
