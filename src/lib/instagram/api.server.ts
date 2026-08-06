@@ -501,3 +501,103 @@ export async function fetchMediaStats(params: { mediaId: string; token: string }
     insights_error: insightsErro,
   };
 }
+
+// ============ Panorama de redes sociais (feed, reels e stories) ============
+
+export type IGMediaResumo = {
+  id: string;
+  caption: string | null;
+  media_type: string | null;
+  media_product_type: string | null;
+  permalink: string | null;
+  thumbnail: string | null;
+  timestamp: string | null;
+  like_count: number | null;
+  comments_count: number | null;
+  is_story: boolean;
+  insights: Record<string, number>;
+};
+
+const CAMPOS_MEDIA =
+  "id,caption,media_type,media_product_type,media_url,thumbnail_url,permalink,timestamp,like_count,comments_count";
+
+function normalizarMedia(item: Record<string, unknown>, isStory: boolean): IGMediaResumo {
+  return {
+    id: String(item.id),
+    caption: (item.caption as string) ?? null,
+    media_type: (item.media_type as string) ?? null,
+    media_product_type: (item.media_product_type as string) ?? null,
+    permalink: (item.permalink as string) ?? null,
+    thumbnail: (item.thumbnail_url as string) ?? (item.media_url as string) ?? null,
+    timestamp: (item.timestamp as string) ?? null,
+    like_count: typeof item.like_count === "number" ? item.like_count : null,
+    comments_count: typeof item.comments_count === "number" ? item.comments_count : null,
+    is_story: isStory,
+    insights: {},
+  };
+}
+
+/** Últimas publicações do feed/reels da conta. */
+export async function fetchAccountMedia(params: { igUserId: string; token: string; limit?: number }) {
+  const json = await fetchGraph(
+    `/${params.igUserId}/media?fields=${CAMPOS_MEDIA}&limit=${params.limit ?? 24}`,
+    { method: "GET", token: params.token, operation: "account_media" },
+  );
+  const lista = (json.data as Array<Record<string, unknown>> | undefined) ?? [];
+  return lista.map((m) => normalizarMedia(m, false));
+}
+
+/** Stories ativos (a Meta só devolve os das últimas 24h). */
+export async function fetchAccountStories(params: { igUserId: string; token: string }) {
+  try {
+    const json = await fetchGraph(`/${params.igUserId}/stories?fields=${CAMPOS_MEDIA}`, {
+      method: "GET",
+      token: params.token,
+      operation: "account_stories",
+    });
+    const lista = (json.data as Array<Record<string, unknown>> | undefined) ?? [];
+    return lista.map((m) => normalizarMedia(m, true));
+  } catch {
+    return [] as IGMediaResumo[];
+  }
+}
+
+/** Só os insights de uma mídia (sem repetir a leitura dos campos básicos). */
+export async function fetchMediaInsightsOnly(params: {
+  mediaId: string;
+  token: string;
+  isStory?: boolean;
+  isVideo?: boolean;
+}): Promise<Record<string, number>> {
+  const conjuntos = params.isStory
+    ? [["reach", "views", "replies", "total_interactions", "profile_visits", "follows"], ["reach", "views"]]
+    : params.isVideo
+      ? [
+          ["reach", "views", "likes", "comments", "saved", "shares", "total_interactions", "ig_reels_avg_watch_time", "follows", "profile_visits"],
+          ["reach", "views", "likes", "comments", "saved", "shares", "total_interactions"],
+        ]
+      : [
+          ["reach", "views", "likes", "comments", "saved", "shares", "total_interactions", "profile_visits", "follows"],
+          ["reach", "views", "likes", "comments", "saved", "shares", "total_interactions"],
+        ];
+
+  for (const lista of conjuntos) {
+    try {
+      const json = await fetchGraph(`/${params.mediaId}/insights?metric=${lista.join(",")}`, {
+        method: "GET",
+        token: params.token,
+        operation: "media_insights",
+      });
+      const linhas = (json.data as Array<{ name?: string; values?: Array<{ value?: number }> }> | undefined) ?? [];
+      const out: Record<string, number> = {};
+      for (const linha of linhas) {
+        if (!linha.name) continue;
+        out[linha.name] = Number(linha.values?.[0]?.value ?? 0);
+      }
+      return out;
+    } catch {
+      // tenta o próximo conjunto de métricas
+    }
+  }
+  return {};
+}
