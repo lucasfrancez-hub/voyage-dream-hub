@@ -2850,11 +2850,16 @@ function InstagramCommentThreadView({ mediaId, onBack }: { mediaId: string; onBa
         ) : comments.length === 0 ? (
           <div className="text-center text-xs text-slate-400">Nenhum comentário nesta publicação</div>
         ) : (
-          comments.map((c) => {
-            const meu = nossos.has((c.from_username ?? "").toLowerCase());
+          comentariosEmThread.map(({ item: c, depth }) => {
+            const meu = nossos.has((c.from_username ?? "").replace(/^@/, "").toLowerCase());
             const inicial = (c.from_username ?? "?").replace(/^@/, "").charAt(0).toUpperCase();
+            const anexo = anexoDoComentario(c);
             return (
-              <div key={c.id} className={cn("flex items-end gap-2", meu ? "justify-end" : "justify-start")}>
+              <div
+                key={c.id}
+                className={cn("flex items-end gap-2", meu ? "justify-end" : "justify-start")}
+                style={depth > 0 ? (meu ? { paddingRight: 0, paddingLeft: 28 } : { paddingLeft: 28 }) : undefined}
+              >
                 {!meu &&
                   (c.from_profile_pic ? (
                     <img src={c.from_profile_pic} alt="" className="h-7 w-7 shrink-0 rounded-full object-cover" />
@@ -2867,12 +2872,25 @@ function InstagramCommentThreadView({ mediaId, onBack }: { mediaId: string; onBa
                   className={cn(
                     "max-w-[75%] rounded-2xl px-3 py-2 text-sm shadow-sm",
                     meu ? "bg-[#F26B1F] text-white" : "bg-white text-slate-900",
+                    depth > 0 && (meu ? "border-r-2 border-white/40" : "border-l-2 border-[#F26B1F]/30"),
                   )}
                 >
                   <div className={cn("text-[11px] font-semibold", meu ? "text-white" : "text-[#F26B1F]")}>
                     @{c.from_username ?? "usuário"}
                   </div>
-                  <div className="whitespace-pre-wrap break-words [overflow-wrap:anywhere]">{c.text}</div>
+                  {c.text && (
+                    <div className="whitespace-pre-wrap break-words [overflow-wrap:anywhere]">{c.text}</div>
+                  )}
+                  {anexo && (
+                    <a href={anexo} target="_blank" rel="noreferrer" className="mt-1 block">
+                      <img
+                        src={anexo}
+                        alt="Imagem do comentário"
+                        loading="lazy"
+                        className="max-h-64 w-full rounded-lg object-cover"
+                      />
+                    </a>
+                  )}
                   <div className={cn("mt-0.5 flex items-center gap-2 text-[10px]", meu ? "text-white/70" : "text-slate-400")}>
                     {new Date(c.created_at as string).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
                     {c.auto_replied_at && !meu ? " · respondido" : ""}
@@ -2890,6 +2908,7 @@ function InstagramCommentThreadView({ mediaId, onBack }: { mediaId: string; onBa
             );
           })
         )}
+
         <div ref={bottomRef} />
       </div>
 
