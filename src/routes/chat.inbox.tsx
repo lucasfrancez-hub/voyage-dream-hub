@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { listConversations, listMessages, sendHumanReply, resendHumanMessage, sendHumanMedia, toggleConversationMode, startOutboundConversation, setFunnelStage, assignConversation, setAiPaused, listAttendants, getActiveProtocolo, closeProtocoloManually, listConversationProtocolos, getConversationOrders, updateProtocoloDetails, listProtocoloMessages, ensureProtocoloResumo, clearConversationHistory, markConversationRead } from "@/lib/chat/queries.functions";
-import { listInstagramAccounts, listInstagramConversations, listInstagramMessages, sendInstagramAttachment, sendInstagramReply, listInstagramCommentThreads, refreshInstagramProfile, triggerAutoReplyComment, markInstagramConversationRead, markInstagramCommentThreadRead, markInstagramCommentThreadUnread, getInstagramMediaDetails, getInstagramMediaStats, deleteInstagramCommentThread, deleteInstagramComment, setInstagramCommentHidden, syncInstagramCommentLikes, toggleInstagramCommentLike, deleteInstagramMessage } from "@/lib/instagram/queries.functions";
+import { listInstagramAccounts, listInstagramConversations, listInstagramMessages, sendInstagramAttachment, sendInstagramReply, listInstagramCommentThreads, refreshInstagramProfile, triggerAutoReplyComment, markInstagramConversationRead, markInstagramConversationUnread, deleteInstagramConversation, markInstagramCommentThreadRead, markInstagramCommentThreadUnread, getInstagramMediaDetails, getInstagramMediaStats, deleteInstagramCommentThread, deleteInstagramComment, setInstagramCommentHidden, syncInstagramCommentLikes, toggleInstagramCommentLike, deleteInstagramMessage } from "@/lib/instagram/queries.functions";
 import { firstName } from "@/lib/whatsapp/text-utils.shared";
 import { confirmThen } from "@/lib/confirm";
 import { audioBlobToMp3 } from "@/lib/audio-to-mp3";
@@ -2488,11 +2488,14 @@ function InstagramList({ folder, search, activeId, onSelect }: { folder: string;
   return (
     <>
       {filtered.map((c) => (
-        <button
+        <div
           key={c.id}
+          role="button"
+          tabIndex={0}
           onClick={() => onSelect(c.id)}
+          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onSelect(c.id); }}
           className={cn(
-            "flex w-full items-start gap-2 rounded-lg p-2 text-left transition-colors",
+            "flex w-full cursor-pointer items-start gap-2 rounded-lg p-2 text-left transition-colors",
             activeId === c.id ? "bg-pink-50" : "hover:bg-slate-50",
           )}
         >
@@ -2508,16 +2511,20 @@ function InstagramList({ folder, search, activeId, onSelect }: { folder: string;
               <span className="truncate text-sm font-medium text-slate-900">
                 {c.contact_name ?? c.contact_username ?? "sem nome"}
               </span>
-              {(c.unread_count ?? 0) > 0 && (
-                <span className="rounded-full bg-pink-500 px-1.5 text-[10px] font-medium text-white">{c.unread_count}</span>
-              )}
+              <div className="flex shrink-0 items-center gap-1">
+                {(c.unread_count ?? 0) > 0 && (
+                  <span className="rounded-full bg-pink-500 px-1.5 text-[10px] font-medium text-white">{c.unread_count}</span>
+                )}
+                <DmRowMenu conversationId={c.id} naoLidas={c.unread_count ?? 0} />
+              </div>
             </div>
             {c.contact_username && <div className="text-[10px] text-slate-500">@{c.contact_username}</div>}
             <div className="truncate text-xs text-slate-500">{c.last_message_preview ?? "—"}</div>
             <ContaTag username={(c as any).account_username} className="mt-0.5" />
           </div>
-        </button>
+        </div>
       ))}
+
     </>
   );
 }
@@ -3326,14 +3333,80 @@ function ContaTag({ username, className }: { username?: string | null; className
   );
 }
 
+/** Menu de 3 pontinhos das DMs (marcar não lida / apagar do chatbot). */
+function DmRowMenu({ conversationId, naoLidas }: { conversationId: string; naoLidas: number }) {
+  const qc = useQueryClient();
+  const unreadFn = useServerFn(markInstagramConversationUnread);
+  const readFn = useServerFn(markInstagramConversationRead);
+  const delFn = useServerFn(deleteInstagramConversation);
+  const recarregar = () => qc.invalidateQueries({ queryKey: ["ig", "conversations"] });
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); e.preventDefault(); }}
+          className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+          aria-label="Opções da conversa"
+        >
+          <MoreVertical className="h-3.5 w-3.5" />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-52" onClick={(e) => e.stopPropagation()}>
+        {naoLidas > 0 ? (
+          <DropdownMenuItem
+            onClick={() => readFn({ data: { conversation_id: conversationId } }).then(recarregar).catch((e: Error) => toast.error(e.message))}
+          >
+            <Check className="mr-2 h-3.5 w-3.5" /> Marcar como lida
+          </DropdownMenuItem>
+        ) : (
+          <DropdownMenuItem
+            onClick={() =>
+              unreadFn({ data: { conversation_id: conversationId } })
+                .then(() => { recarregar(); toast.success("Marcada como não lida"); })
+                .catch((e: Error) => toast.error(e.message))
+            }
+          >
+            <InboxIcon className="mr-2 h-3.5 w-3.5" /> Marcar como não lida
+          </DropdownMenuItem>
+        )}
+        <DropdownMenuSeparator />
+        <DropdownMenuItem
+          className="text-red-600 focus:text-red-600"
+          onClick={() =>
+            confirmThen(
+              {
+                title: "Apagar do chatbot?",
+                description: "Some com o histórico desta conversa no nosso inbox. As mensagens continuam no Instagram.",
+                confirmText: "Apagar",
+                destructive: true,
+              },
+              () =>
+                delFn({ data: { conversation_id: conversationId } })
+                  .then(() => { recarregar(); toast.success("Conversa apagada"); })
+                  .catch((e: Error) => toast.error(e.message)),
+            )
+          }
+        >
+          <Trash2 className="mr-2 h-3.5 w-3.5" /> Apagar do chatbot
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
 /** Linha de DM do Instagram usada na aba unificada "Todas". */
 function IgConvRow({ conv, active, onClick }: { conv: any; active: boolean; onClick: () => void }) {
   const nome = conv.contact_name ?? (conv.contact_username ? `@${conv.contact_username}` : "Instagram");
   return (
-    <button
+    <div
+      role="button"
+      tabIndex={0}
       onClick={onClick}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onClick(); }}
       className={cn(
-        "flex w-full items-start gap-2 rounded-lg p-2 text-left transition-colors",
+        "flex w-full cursor-pointer items-start gap-2 rounded-lg p-2 text-left transition-colors",
         active ? "bg-pink-50" : "hover:bg-slate-50",
       )}
     >
@@ -3347,9 +3420,12 @@ function IgConvRow({ conv, active, onClick }: { conv: any; active: boolean; onCl
       <div className="min-w-0 flex-1">
         <div className="flex items-center justify-between gap-1">
           <span className="truncate text-sm font-medium text-slate-900">{nome}</span>
-          {(conv.unread_count ?? 0) > 0 && (
-            <span className="rounded-full bg-[#F26B1F] px-1.5 text-[10px] font-medium text-white">{conv.unread_count}</span>
-          )}
+          <div className="flex shrink-0 items-center gap-1">
+            {(conv.unread_count ?? 0) > 0 && (
+              <span className="rounded-full bg-[#F26B1F] px-1.5 text-[10px] font-medium text-white">{conv.unread_count}</span>
+            )}
+            <DmRowMenu conversationId={conv.id} naoLidas={conv.unread_count ?? 0} />
+          </div>
         </div>
         <div className="flex items-center gap-1 text-[10px] text-slate-500">
           <Instagram className="h-2.5 w-2.5" />
@@ -3358,7 +3434,8 @@ function IgConvRow({ conv, active, onClick }: { conv: any; active: boolean; onCl
         <div className="truncate text-xs text-slate-500">{conv.last_message_preview ?? "—"}</div>
         <ContaTag username={conv.account_username} className="mt-0.5" />
       </div>
-    </button>
+    </div>
+
   );
 }
 
