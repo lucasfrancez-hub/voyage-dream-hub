@@ -618,6 +618,90 @@ export const setInstagramCommentHidden = createServerFn({ method: "POST" })
     return { ok: true, hidden: data.hidden };
   });
 
+/** Atualiza a contagem de curtidas dos comentários de uma publicação. */
+export const syncInstagramCommentLikes = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { media_id: string }) => z.object({ media_id: z.string().min(1) }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { data: rows } = await context.supabase
+      .from("instagram_comments")
+      .select("id, account_id, comment_id, metadata")
+      .eq("media_id", data.media_id)
+      .limit(80);
+    if (!rows?.length) return { ok: true, atualizados: 0 };
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { getCommentLikes } = await import("./api.server");
+    const contas = new Map<string, string>();
+    let atualizados = 0;
+
+    for (const row of rows) {
+      let token = contas.get(row.account_id as string);
+      if (!token) {
+        const { data: conta } = await supabaseAdmin
+          .from("instagram_accounts")
+          .select("access_token")
+          .eq("id", row.account_id)
+          .maybeSingle();
+        if (!conta?.access_token) continue;
+        token = conta.access_token as string;
+        contas.set(row.account_id as string, token);
+      }
+      const { like_count, user_has_liked } = await getCommentLikes({ commentId: row.comment_id, token });
+      if (like_count == null && user_has_liked == null) continue;
+      const meta = { ...((row.metadata ?? {}) as Record<string, unknown>) };
+      if (like_count != null) meta.like_count = like_count;
+      if (user_has_liked != null) meta.liked = user_has_liked;
+      await supabaseAdmin.from("instagram_comments").update({ metadata: meta as never }).eq("id", row.id);
+      atualizados += 1;
+    }
+    return { ok: true, atualizados };
+  });
+
+/** Curte ou descurte um comentário no Instagram. */
+export const toggleInstagramCommentLike = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { id: string; like: boolean }) =>
+    z.object({ id: z.string().uuid(), like: z.boolean() }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { data: row, error } = await context.supabase
+      .from("instagram_comments")
+      .select("id, account_id, comment_id, metadata")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (error || !row) throw new Error("Comentário não encontrado");
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: conta } = await supabaseAdmin
+      .from("instagram_accounts")
+      .select("access_token")
+      .eq("id", row.account_id)
+      .maybeSingle();
+    if (!conta?.access_token) throw new Error("Conta do Instagram sem token");
+
+    const { setCommentLiked, getCommentLikes } = await import("./api.server");
+    try {
+      await setCommentLiked({ commentId: row.comment_id, token: conta.access_token as string, like: data.like });
+    } catch (e) {
+      throw new Error(
+        e instanceof Error && /\b(400|403|404)\b/.test(e.message)
+          ? "O Instagram não permitiu curtir por aqui (a API só libera curtida em comentários de publicações da própria conta)."
+          : e instanceof Error
+            ? e.message
+            : "Falha ao curtir no Instagram",
+      );
+    }
+
+    const atual = await getCommentLikes({ commentId: row.comment_id, token: conta.access_token as string });
+    const meta = { ...((row.metadata ?? {}) as Record<string, unknown>), liked: data.like };
+    if (atual.like_count != null) meta.like_count = atual.like_count;
+    await supabaseAdmin.from("instagram_comments").update({ metadata: meta as never }).eq("id", row.id);
+    return { ok: true, liked: data.like, like_count: atual.like_count };
+  });
+
+
+
 /**
  * Apaga uma mensagem da DM.
  * escopo "todos" → unsend no Instagram (some pros dois lados; só mensagens enviadas por nós).
