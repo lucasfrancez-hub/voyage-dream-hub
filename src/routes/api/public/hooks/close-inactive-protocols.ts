@@ -108,6 +108,11 @@ export const Route = createFileRoute("/api/public/hooks/close-inactive-protocols
               .eq("id", proto.conversation_id)
               .maybeSingle();
             if (!conv) continue;
+            // Instagram Direct: nunca avisar nem encerrar por inatividade.
+            if (isInstagramConversation(conv.wa_phone)) {
+              skipped.push(proto.numero);
+              continue;
+            }
 
             const avisoMsg =
               `Notei que ficou um tempinho sem responder por aqui. Vou encerrar o atendimento por aqui, mas fique tranquila(o), qualquer coisa é só mandar mensagem que a gente volta a tratar do assunto de onde parou, ok? 😊`;
