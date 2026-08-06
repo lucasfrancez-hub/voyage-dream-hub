@@ -114,6 +114,50 @@ async function processPayload(payload: IGPayload) {
 
 
 
+    // ====== Recibos do Direct (entregue / lida) ======
+    for (const ev of entry.messaging ?? []) {
+      if (!ev.delivery && !ev.read) continue;
+      const contatoId = ev.sender?.id === igAccountId ? ev.recipient?.id : ev.sender?.id;
+      if (!contatoId) continue;
+      const { data: convRec } = await supabaseAdmin
+        .from("instagram_conversations")
+        .select("id")
+        .eq("account_id", account.id)
+        .eq("contact_ig_id", contatoId)
+        .maybeSingle();
+      if (!convRec) continue;
+
+      if (ev.delivery) {
+        const quando = new Date(ev.delivery.watermark ?? ev.timestamp ?? Date.now()).toISOString();
+        if (ev.delivery.mids?.length) {
+          await supabaseAdmin
+            .from("instagram_messages")
+            .update({ delivered_at: quando, status: "delivered" } as never)
+            .in("ig_message_id", ev.delivery.mids)
+            .is("delivered_at", null);
+        } else {
+          await supabaseAdmin
+            .from("instagram_messages")
+            .update({ delivered_at: quando, status: "delivered" } as never)
+            .eq("conversation_id", convRec.id)
+            .eq("direction", "outbound")
+            .lte("created_at", quando)
+            .is("delivered_at", null);
+        }
+      }
+
+      if (ev.read) {
+        const quando = new Date(ev.read.watermark ?? ev.timestamp ?? Date.now()).toISOString();
+        await supabaseAdmin
+          .from("instagram_messages")
+          .update({ read_at: quando, delivered_at: quando, status: "read" } as never)
+          .eq("conversation_id", convRec.id)
+          .eq("direction", "outbound")
+          .lte("created_at", quando)
+          .is("read_at", null);
+      }
+    }
+
     // ============ DMs ============
     for (const msg of entry.messaging ?? []) {
       if (!msg.message || !msg.sender?.id) continue;
