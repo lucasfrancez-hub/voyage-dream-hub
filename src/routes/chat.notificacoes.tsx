@@ -273,6 +273,8 @@ function NotificacoesPage() {
       </section>
 
       <AppNoCelularCard destino="chat" />
+      </div>
     </div>
+
   );
 }
