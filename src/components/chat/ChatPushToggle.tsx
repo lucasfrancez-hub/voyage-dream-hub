@@ -41,7 +41,7 @@ export function ChatPushToggle() {
   useEffect(() => {
     void (async () => {
       if (typeof window === "undefined") return;
-      if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
+      if (!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)) {
         setSuportado(false);
         return;
       }
@@ -58,6 +58,10 @@ export function ChatPushToggle() {
   const ativar = async () => {
     setOcupado(true);
     try {
+      if (typeof Notification === "undefined") {
+        setSuportado(false);
+        return;
+      }
       if (ehIOS() && !ehStandalone()) {
         toast.error("No iPhone, adicione o Chat à Tela de Início e abra pelo ícone para receber notificações.");
         return;
@@ -76,10 +80,13 @@ export function ChatPushToggle() {
       await navigator.serviceWorker.ready;
       const sub = await assinarPush(reg, vapid);
       const j = sub.toJSON() as { endpoint?: string; keys?: { p256dh?: string; auth?: string } };
+      if (!j.endpoint || !j.keys?.p256dh || !j.keys.auth) {
+        throw new Error("O aparelho não retornou uma assinatura de notificação válida.");
+      }
       await salvar({
-        data: { endpoint: j.endpoint!, p256dh: j.keys!.p256dh!, auth: j.keys!.auth!, userAgent: navigator.userAgent },
+        data: { endpoint: j.endpoint, p256dh: j.keys.p256dh, auth: j.keys.auth, userAgent: navigator.userAgent },
       });
-      await testar({ data: { endpoint: j.endpoint! } });
+      await testar({ data: { endpoint: j.endpoint } });
       setLigado(true);
       toast.success("Notificações ativadas neste aparelho.");
     } catch (e) {
@@ -121,7 +128,7 @@ export function ChatPushToggle() {
         <Loader2 className="h-4 w-4 animate-spin" />
       ) : ligado ? (
         <BellRing className="h-4 w-4" />
-      ) : Notification?.permission === "denied" ? (
+      ) : typeof Notification !== "undefined" && Notification.permission === "denied" ? (
         <BellOff className="h-4 w-4" />
       ) : (
         <Bell className="h-4 w-4" />

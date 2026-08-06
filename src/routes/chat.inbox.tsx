@@ -11,7 +11,6 @@ import { listConversations, listMessages, sendHumanReply, resendHumanMessage, se
 import { listInstagramAccounts, listInstagramConversations, listInstagramMessages, sendInstagramAttachment, sendInstagramReply, listInstagramCommentThreads, refreshInstagramProfile, triggerAutoReplyComment, markInstagramConversationRead, markInstagramConversationUnread, deleteInstagramConversation, markInstagramCommentThreadRead, markInstagramCommentThreadUnread, getInstagramMediaDetails, getInstagramMediaStats, deleteInstagramCommentThread, deleteInstagramComment, setInstagramCommentHidden, syncInstagramCommentLikes, toggleInstagramCommentLike, deleteInstagramMessage } from "@/lib/instagram/queries.functions";
 import { firstName } from "@/lib/whatsapp/text-utils.shared";
 import { confirmThen } from "@/lib/confirm";
-import { audioBlobToMp3 } from "@/lib/audio-to-mp3";
 
 import { FUNNEL_STAGES } from "@/lib/chat/funnel-stages";
 import { WhatsAppBubble, DateDivider } from "@/components/chat/WhatsAppBubble";
@@ -103,7 +102,13 @@ function InboxPage() {
   const toggleList = () => {
     setListCollapsed((v) => {
       const nv = !v;
-      if (typeof window !== "undefined") localStorage.setItem("chat-list-collapsed", nv ? "1" : "0");
+      if (typeof window !== "undefined") {
+        try {
+          localStorage.setItem("chat-list-collapsed", nv ? "1" : "0");
+        } catch {
+          // Safari/iOS pode bloquear o Storage temporariamente.
+        }
+      }
       return nv;
     });
   };
@@ -1000,6 +1005,7 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
         try {
           // A extensão sozinha não basta: a Meta valida o conteúdo binário.
           // Normalizamos qualquer gravação do navegador para MP3 real.
+          const { audioBlobToMp3 } = await import("@/lib/audio-to-mp3");
           const mp3 = await audioBlobToMp3(recordedBlob);
           const file = new File([mp3], `audio-${Date.now()}.mp3`, { type: "audio/mpeg" });
           setAudioDraft({ file, url: URL.createObjectURL(mp3), secs });
@@ -2332,6 +2338,7 @@ function InstagramConversationView({
       rec.onstop = async () => {
         stream.getTracks().forEach((t) => t.stop());
         try {
+          const { audioBlobToMp3 } = await import("@/lib/audio-to-mp3");
           const mp3 = await audioBlobToMp3(new Blob(chunks, { type: rec.mimeType || "audio/webm" }));
           await igAttach.mutateAsync(new File([mp3], `audio-${Date.now()}.mp3`, { type: "audio/mpeg" }));
         } catch (err) {

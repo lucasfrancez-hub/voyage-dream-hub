@@ -44,7 +44,7 @@ function NotFoundComponent() {
 }
 
 function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
-  console.error(error);
+  const router = useRouter();
   const [autoRecovering, setAutoRecovering] = useState(false);
   const erroDeVersao = isStaleCodeError(error);
 
@@ -53,6 +53,7 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   };
 
   useEffect(() => {
+    console.error(error);
     reportLovableError(error, { boundary: "tanstack_root_error_component" });
 
     // Auto-recupera de erros de código velho (aba/PWA antigo depois de um deploy).
@@ -75,7 +76,13 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
         </p>
         <div className="mt-6 flex flex-wrap justify-center gap-2">
           <button
-            onClick={() => erroDeVersao ? void atualizarAplicativo() : reset()}
+            onClick={() => {
+              if (erroDeVersao) {
+                void atualizarAplicativo();
+                return;
+              }
+              void router.invalidate().finally(reset);
+            }}
             className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
           >
             {erroDeVersao ? "Atualizar aplicativo" : "Tentar novamente"}
