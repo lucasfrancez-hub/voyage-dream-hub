@@ -488,6 +488,19 @@ export const markInstagramCommentThreadRead = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+/** Marca a publicação como NÃO lida (volta o badge no inbox). */
+export const markInstagramCommentThreadUnread = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { media_id: string }) => z.object({ media_id: z.string().min(1) }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase
+      .from("instagram_comments")
+      .update({ read_at: null })
+      .eq("media_id", data.media_id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
 /** Dados da publicação (inclusive o link do vídeo) direto da API do Instagram. */
 export const getInstagramMediaDetails = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
