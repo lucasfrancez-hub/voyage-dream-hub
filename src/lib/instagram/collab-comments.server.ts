@@ -84,17 +84,24 @@ export async function syncCollabComments(): Promise<CollabSyncResult> {
 
 
         try {
-          const { contaComIaAtiva } = await import("@/lib/instagram/ai-toggle");
-          if (!contaComIaAtiva(conta.metadata)) continue;
+          const { iaPodeResponderComentario } = await import("@/lib/instagram/ai-toggle");
+          if (!iaPodeResponderComentario(conta.metadata, midia.mediaType)) continue;
           const { isAiGloballyOff } = await import("@/lib/whatsapp/ai-global-switch.server");
           if (await isAiGloballyOff()) continue;
 
+          const { transcreverVideoDaPublicacao } = await import("@/lib/instagram/video-transcribe.server");
+          const videoTranscricao = await transcreverVideoDaPublicacao({
+            mediaId: midia.mediaId,
+            mediaUrl: (midia as { mediaUrl?: string | null }).mediaUrl ?? null,
+            mediaType: midia.mediaType,
+          });
           const { gerarRespostaComentario } = await import("@/lib/instagram/comment-ai.server");
           const resposta = await gerarRespostaComentario({
             fromUsername: c.username ?? null,
             text: c.text ?? null,
             mediaCaption: midia.caption,
             mediaPermalink: midia.permalink,
+            videoTranscricao,
           });
           if (!resposta) continue;
 
