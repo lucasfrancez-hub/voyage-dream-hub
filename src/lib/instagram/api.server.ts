@@ -444,8 +444,20 @@ export async function fetchMediaStats(params: { mediaId: string; token: string }
   const tipo = String(base.media_type ?? "").toUpperCase();
   const metricas =
     produto === "REELS" || tipo === "VIDEO"
-      ? ["reach", "views", "likes", "comments", "saved", "shares", "total_interactions"]
-      : ["reach", "views", "likes", "comments", "saved", "shares", "total_interactions", "profile_visits"];
+      ? [
+          "reach",
+          "views",
+          "likes",
+          "comments",
+          "saved",
+          "shares",
+          "total_interactions",
+          "ig_reels_avg_watch_time",
+          "ig_reels_video_view_total_time",
+          "follows",
+          "profile_visits",
+        ]
+      : ["reach", "views", "likes", "comments", "saved", "shares", "total_interactions", "profile_visits", "follows"];
 
   let insights: Record<string, number> = {};
   let insightsErro: string | null = null;
