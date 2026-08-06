@@ -52,9 +52,11 @@ export async function versaoPublicada(): Promise<string | null> {
     } catch {
       return null;
     } finally {
+      if (timer) clearTimeout(timer);
       ultimaConsulta = Date.now();
       consultaEmAndamento = null;
     }
+
   })();
   return consultaEmAndamento;
 }
