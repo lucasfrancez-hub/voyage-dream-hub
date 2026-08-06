@@ -55,7 +55,9 @@ export function ChatSidebar({ mobileOpen = false, onCloseMobile }: { mobileOpen?
     try { localStorage.setItem(SIDEBAR_KEY, valor ? "1" : "0"); } catch { /* ignore */ }
   };
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-
+  // Passar o mouse abre temporariamente quando está recolhido (desktop).
+  const [hover, setHover] = useState(false);
+  const expandido = !collapsed || hover || mobileOpen;
 
   return (
     <>
