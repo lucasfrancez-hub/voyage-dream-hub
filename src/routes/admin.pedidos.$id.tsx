@@ -3829,7 +3829,7 @@ function defaultCommissionPct(kind: OrderItem["kind"] | undefined, isPackage: bo
 
 
 function FinanceDialog({
-  open, onOpenChange, items, initial, selectedItem, setSelectedItem, packageDefaults, onSave,
+  open, onOpenChange, items, initial, selectedItem, setSelectedItem, packageDefaults, fallbackSupplier = "", onSave,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
@@ -3838,8 +3838,10 @@ function FinanceDialog({
   selectedItem: string | null;
   setSelectedItem: (v: string) => void;
   packageDefaults: { sale_value: number; tax_value: number } | null;
+  fallbackSupplier?: string;
   onSave: (p: Partial<OrderItemFinancial>, extra?: { otherTitle?: string }) => void;
 }) {
+
   const [otherTitle, setOtherTitle] = useState("");
   useEffect(() => { if (!open) setOtherTitle(""); }, [open]);
 
