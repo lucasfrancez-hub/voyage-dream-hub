@@ -15,6 +15,55 @@ export const Route = createFileRoute("/api/public/hooks/instagram-dm-queue")({
       POST: async () => {
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
+        // 1) Respostas públicas agendadas (~1 min após o comentário).
+        let respostas = 0;
+        const { data: aResponder } = await supabaseAdmin
+          .from("instagram_comments")
+          .select("id, comment_id, account_id, auto_reply_text, dm_text")
+          .eq("auto_reply_status", "scheduled")
+          .not("reply_scheduled_at", "is", null)
+          .lte("reply_scheduled_at", new Date().toISOString())
+          .limit(20);
+
+        for (const c of aResponder ?? []) {
+          try {
+            if (!c.auto_reply_text) throw new Error("sem texto de resposta");
+            const { data: acc } = await supabaseAdmin
+              .from("instagram_accounts")
+              .select("ig_user_id, access_token")
+              .eq("id", c.account_id)
+              .maybeSingle();
+            if (!acc?.access_token) throw new Error("conta sem token");
+
+            const { replyToComment } = await import("@/lib/instagram/api.server");
+            await replyToComment({
+              commentId: c.comment_id,
+              token: acc.access_token,
+              message: c.auto_reply_text,
+            });
+
+            const espera = 90_000 + Math.floor(Math.random() * 30_000);
+            await supabaseAdmin
+              .from("instagram_comments")
+              .update({
+                auto_reply_status: "sent",
+                auto_replied_at: new Date().toISOString(),
+                read_at: new Date().toISOString(),
+                reply_scheduled_at: null,
+                dm_scheduled_at: c.dm_text ? new Date(Date.now() + espera).toISOString() : null,
+              })
+              .eq("id", c.id);
+            respostas++;
+          } catch (e) {
+            console.error("[instagram-dm-queue] resposta pública falhou:", (e as Error).message);
+            await supabaseAdmin
+              .from("instagram_comments")
+              .update({ reply_scheduled_at: new Date(Date.now() + 60_000).toISOString() })
+              .eq("id", c.id);
+          }
+        }
+
+
         const { data: pendentes, error } = await supabaseAdmin
           .from("instagram_comments")
           .select("id, comment_id, account_id, dm_text")
