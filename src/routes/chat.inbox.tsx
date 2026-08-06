@@ -3413,9 +3413,12 @@ function IgConvRow({ conv, active, onClick }: { conv: any; active: boolean; onCl
       <div className="min-w-0 flex-1">
         <div className="flex items-center justify-between gap-1">
           <span className="truncate text-sm font-medium text-slate-900">{nome}</span>
-          {(conv.unread_count ?? 0) > 0 && (
-            <span className="rounded-full bg-[#F26B1F] px-1.5 text-[10px] font-medium text-white">{conv.unread_count}</span>
-          )}
+          <div className="flex shrink-0 items-center gap-1">
+            {(conv.unread_count ?? 0) > 0 && (
+              <span className="rounded-full bg-[#F26B1F] px-1.5 text-[10px] font-medium text-white">{conv.unread_count}</span>
+            )}
+            <DmRowMenu conversationId={conv.id} naoLidas={conv.unread_count ?? 0} />
+          </div>
         </div>
         <div className="flex items-center gap-1 text-[10px] text-slate-500">
           <Instagram className="h-2.5 w-2.5" />
@@ -3424,7 +3427,8 @@ function IgConvRow({ conv, active, onClick }: { conv: any; active: boolean; onCl
         <div className="truncate text-xs text-slate-500">{conv.last_message_preview ?? "—"}</div>
         <ContaTag username={conv.account_username} className="mt-0.5" />
       </div>
-    </button>
+    </div>
+
   );
 }
 
