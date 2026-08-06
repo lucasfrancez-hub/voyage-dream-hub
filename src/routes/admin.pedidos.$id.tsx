@@ -3859,6 +3859,7 @@ function FinanceDialog({
   const defaultSupplier = (() => {
     const s = typeof itemDetails.supplier_name === "string" ? itemDetails.supplier_name.trim() : "";
     if (s) return s;
+    if (fallbackSupplier.trim()) return fallbackSupplier.trim();
     if (selectedKind === "flight") {
       const a = typeof itemDetails.airline === "string" ? itemDetails.airline.trim() : "";
       if (a) return a;
@@ -3869,6 +3870,7 @@ function FinanceDialog({
     }
     return "";
   })();
+
 
 
   const [form, setForm] = useState({
