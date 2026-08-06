@@ -101,7 +101,7 @@ export async function backfillInstagramAccount(params: {
   // ================= DMs =================
   try {
     const conversas = await paginar<IGConversation>(
-      `/me/conversations?platform=instagram&limit=5&fields=${encodeURIComponent("id,updated_time,participants,messages.limit(20){id,created_time,from,message}")}`,
+      `/me/conversations?platform=instagram&limit=5&fields=${encodeURIComponent("id,updated_time,participants,messages.limit(20){id,created_time,from,message,attachments,shares,story}")}`,
       token,
       maxPaginas,
     );
