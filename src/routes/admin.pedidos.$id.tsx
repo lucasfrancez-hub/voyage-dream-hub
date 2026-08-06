@@ -3793,6 +3793,8 @@ function FinanceTab({
           selectedItem={selectedItem}
           setSelectedItem={setSelectedItem}
          packageDefaults={isPackageOrder ? { sale_value: packageFare, tax_value: packageTaxes } : null}
+          fallbackSupplier={(order.supplierName ?? "").trim() || String((snap as { supplier_name?: string }).supplier_name ?? "").trim()}
+
           onSave={async (payload, extra) => {
             let itemId = selectedItem;
             if (itemId === "__other__") {
@@ -3829,7 +3831,7 @@ function defaultCommissionPct(kind: OrderItem["kind"] | undefined, isPackage: bo
 
 
 function FinanceDialog({
-  open, onOpenChange, items, initial, selectedItem, setSelectedItem, packageDefaults, onSave,
+  open, onOpenChange, items, initial, selectedItem, setSelectedItem, packageDefaults, fallbackSupplier = "", onSave,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
@@ -3838,8 +3840,10 @@ function FinanceDialog({
   selectedItem: string | null;
   setSelectedItem: (v: string) => void;
   packageDefaults: { sale_value: number; tax_value: number } | null;
+  fallbackSupplier?: string;
   onSave: (p: Partial<OrderItemFinancial>, extra?: { otherTitle?: string }) => void;
 }) {
+
   const [otherTitle, setOtherTitle] = useState("");
   useEffect(() => { if (!open) setOtherTitle(""); }, [open]);
 
@@ -3859,6 +3863,7 @@ function FinanceDialog({
   const defaultSupplier = (() => {
     const s = typeof itemDetails.supplier_name === "string" ? itemDetails.supplier_name.trim() : "";
     if (s) return s;
+    if (fallbackSupplier.trim()) return fallbackSupplier.trim();
     if (selectedKind === "flight") {
       const a = typeof itemDetails.airline === "string" ? itemDetails.airline.trim() : "";
       if (a) return a;
@@ -3871,6 +3876,9 @@ function FinanceDialog({
   })();
 
 
+  // Vencimento padrão: a data em que o lançamento está sendo feito (editável).
+  const hojeISO = new Date().toLocaleDateString("en-CA");
+
   const [form, setForm] = useState({
     supplier_name: initial?.supplier_name ?? defaultSupplier,
     sale_value: initial?.sale_value ?? defaultSale,
@@ -3881,7 +3889,8 @@ function FinanceDialog({
     is_commissionable: initial?.is_commissionable ?? true,
     rav_value: initial?.rav_value ?? 0,
     exchange_rate: initial?.exchange_rate ?? 1,
-    due_date: initial?.due_date ?? "",
+    due_date: initial?.due_date ?? hojeISO,
+
     total: initial?.total ?? 0,
     notes: initial?.notes ?? "",
   });
@@ -3906,7 +3915,7 @@ function FinanceDialog({
       is_commissionable: commissionable,
       rav_value: initial?.rav_value ?? 0,
       exchange_rate: initial?.exchange_rate ?? 1,
-      due_date: initial?.due_date ?? "",
+      due_date: initial?.due_date ?? hojeISO,
       total: initial?.total ?? 0,
       notes: initial?.notes ?? "",
     });
@@ -4159,15 +4168,18 @@ function PaymentsSection({
   payments: OrderPayment[];
   onChange: () => void;
 }) {
-  // Fornecedor padrão para novos pagamentos: primeiro item com supplier_name preenchido
+  // Fornecedor padrão para novos pagamentos: item com supplier_name, senão o
+  // fornecedor cadastrado no pedido/produto.
   const defaultProvider = useMemo(() => {
     for (const it of items) {
       const d = (it.details ?? {}) as { supplier_name?: string };
       const s = (d.supplier_name ?? "").trim();
       if (s) return s;
     }
-    return "";
-  }, [items]);
+    const snap = (order.packageSnapshot ?? {}) as { supplier_name?: string };
+    return (order.supplierName ?? "").trim() || (snap.supplier_name ?? "").trim() || "";
+  }, [items, order.supplierName, order.packageSnapshot]);
+
 
   const upsert = useServerFn(upsertOrderPayment);
   const del = useServerFn(deleteOrderPayment);
