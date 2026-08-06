@@ -98,7 +98,7 @@ export async function backfillInstagramAccount(params: {
   // ================= DMs =================
   try {
     const conversas = await paginar<IGConversation>(
-      `/me/conversations?platform=instagram&limit=20&fields=${encodeURIComponent("id,updated_time,participants")}`,
+      `/me/conversations?platform=instagram&limit=5&fields=${encodeURIComponent("id,updated_time,participants,messages.limit(20){id,created_time,from,message}")}`,
       token,
       maxPaginas,
     );
@@ -106,15 +106,7 @@ export async function backfillInstagramAccount(params: {
     for (const conv of conversas) {
       // As mensagens vêm numa segunda chamada: pedir tudo junto estoura o
       // limite de payload da Graph API ("reduce the amount of data").
-      try {
-        const detalhe = await graph<IGConversation>(
-          `/${conv.id}?fields=${encodeURIComponent("messages.limit(30){id,created_time,from,message}")}`,
-          token,
-        );
-        conv.messages = detalhe.messages;
-      } catch (e) {
-        result.erros.push(`mensagens ${conv.id}: ${(e as Error).message}`);
-      }
+
       const participantes = conv.participants?.data ?? [];
       // O próprio perfil aparece nos participantes com o id business; registra.
       for (const p of participantes) {
