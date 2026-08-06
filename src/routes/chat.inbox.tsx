@@ -3,7 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Pause, Play, Search, Send, Bot, User, MoreVertical, Loader2, Inbox as InboxIcon, Users, Archive, Plus, ChevronDown, ChevronUp, Image as ImageIcon, XCircle, History, Paperclip, PanelLeftClose, PanelLeftOpen, FileText, X, Save, ExternalLink, ArrowLeft, Info, Instagram, MessageCircle, MessageSquare, Heart, Mic, Square, Trash2, Eye, EyeOff, Check, CheckCheck, Bookmark, Share2, BarChart3, RefreshCw } from "lucide-react";
+import { Pause, Play, Search, Send, Bot, User, MoreVertical, Loader2, Inbox as InboxIcon, Users, Archive, Plus, ChevronDown, ChevronUp, Image as ImageIcon, XCircle, History, Paperclip, PanelLeftClose, PanelLeftOpen, FileText, X, Save, ExternalLink, ArrowLeft, Info, Instagram, MessageCircle, MessageSquare, Heart, Mic, Square, Trash2, Eye, EyeOff, Check, CheckCheck, Bookmark, Share2, BarChart3, RefreshCw, UserPlus, Clock } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
@@ -2911,6 +2911,17 @@ function InstagramCommentThreadView({ mediaId, onBack }: { mediaId: string; onBa
                     { icone: Bookmark, valor: stats?.insights?.saved, titulo: "Salvamentos" },
                     { icone: Share2, valor: stats?.insights?.shares, titulo: "Compartilhamentos" },
                     { icone: BarChart3, valor: stats?.insights?.total_interactions, titulo: "Interações totais" },
+                    { icone: UserPlus, valor: stats?.insights?.follows, titulo: "Novos seguidores pelo post" },
+                    { icone: User, valor: stats?.insights?.profile_visits, titulo: "Visitas ao perfil" },
+                    {
+                      icone: Clock,
+                      valor:
+                        typeof stats?.insights?.ig_reels_avg_watch_time === "number"
+                          ? Math.round(stats.insights.ig_reels_avg_watch_time / 1000)
+                          : undefined,
+                      titulo: "Tempo médio de visualização (s)",
+                      sufixo: "s",
+                    },
                   ]
                     .filter((m) => typeof m.valor === "number")
                     .map((m) => (
@@ -2921,6 +2932,7 @@ function InstagramCommentThreadView({ mediaId, onBack }: { mediaId: string; onBa
                       >
                         <m.icone className="h-2.5 w-2.5" />
                         {(m.valor as number).toLocaleString("pt-BR")}
+                        {"sufixo" in m ? (m as { sufixo?: string }).sufixo : null}
                       </span>
                     ))}
                   <button
