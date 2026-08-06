@@ -90,18 +90,19 @@ export function ChatSidebar({ mobileOpen = false, onCloseMobile }: { mobileOpen?
           className="flex items-center justify-center gap-2 border-b border-slate-200 px-3"
           style={{ paddingTop: "env(safe-area-inset-top)", minHeight: "calc(3.5rem + env(safe-area-inset-top))" }}
         >
-          <span className={cn("flex min-w-0 items-center justify-center", collapsed ? "w-10" : "w-auto")}>
+          <span className={cn("flex min-w-0 items-center justify-center", expandido ? "w-auto" : "w-10")}>
             <img
               src={viaAirLogo.url}
               alt="VIA AIR"
-              className={cn("w-full object-contain dark:hidden", collapsed ? "h-6" : "h-8")}
+              className={cn("w-full object-contain dark:hidden", expandido ? "h-8" : "h-6")}
             />
             <img
               src={viaAirLogoWhite.url}
               alt="VIA AIR"
-              className={cn("hidden w-full object-contain dark:block", collapsed ? "h-6" : "h-8")}
+              className={cn("hidden w-full object-contain dark:block", expandido ? "h-8" : "h-6")}
             />
           </span>
+
 
           {onCloseMobile && (
             <button
