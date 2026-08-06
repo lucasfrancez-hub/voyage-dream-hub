@@ -427,3 +427,51 @@ export async function fetchTaggedMediaWithComments(params: {
     })),
   }));
 }
+
+/**
+ * Métricas da publicação: curtidas/comentários (campos) + insights
+ * (alcance, salvamentos, compartilhamentos, visualizações, interações).
+ * Insights só existem para publicações da própria conta — quando a Meta
+ * recusa, devolvemos apenas os contadores públicos.
+ */
+export async function fetchMediaStats(params: { mediaId: string; token: string }) {
+  const base = await fetchGraph(
+    `/${params.mediaId}?fields=id,media_type,media_product_type,permalink,timestamp,like_count,comments_count`,
+    { method: "GET", token: params.token, operation: "media_stats" },
+  );
+
+  const produto = String(base.media_product_type ?? "").toUpperCase();
+  const tipo = String(base.media_type ?? "").toUpperCase();
+  const metricas =
+    produto === "REELS" || tipo === "VIDEO"
+      ? ["reach", "views", "likes", "comments", "saved", "shares", "total_interactions"]
+      : ["reach", "views", "likes", "comments", "saved", "shares", "total_interactions", "profile_visits"];
+
+  let insights: Record<string, number> = {};
+  let insightsErro: string | null = null;
+  try {
+    const json = await fetchGraph(
+      `/${params.mediaId}/insights?metric=${metricas.join(",")}`,
+      { method: "GET", token: params.token, operation: "media_insights" },
+    );
+    const linhas = (json.data as Array<{ name?: string; values?: Array<{ value?: number }> }> | undefined) ?? [];
+    for (const linha of linhas) {
+      if (!linha.name) continue;
+      insights[linha.name] = Number(linha.values?.[0]?.value ?? 0);
+    }
+  } catch (e) {
+    insightsErro = e instanceof Error ? e.message : "insights indisponíveis";
+    insights = {};
+  }
+
+  return {
+    media_type: (base.media_type as string) ?? null,
+    media_product_type: (base.media_product_type as string) ?? null,
+    permalink: (base.permalink as string) ?? null,
+    timestamp: (base.timestamp as string) ?? null,
+    like_count: typeof base.like_count === "number" ? (base.like_count as number) : null,
+    comments_count: typeof base.comments_count === "number" ? (base.comments_count as number) : null,
+    insights,
+    insights_error: insightsErro,
+  };
+}
