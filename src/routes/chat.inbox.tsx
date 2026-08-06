@@ -3348,13 +3348,79 @@ function IgConvRow({ conv, active, onClick }: { conv: any; active: boolean; onCl
 }
 
 /** Linha de publicação (comentários) usada na aba unificada "Todas". */
+/** Menu de 3 pontinhos das publicações (marcar não lida / apagar do chatbot). */
+function ThreadRowMenu({ mediaId, pendentes }: { mediaId: string; pendentes: number }) {
+  const qc = useQueryClient();
+  const unreadFn = useServerFn(markInstagramCommentThreadUnread);
+  const readFn = useServerFn(markInstagramCommentThreadRead);
+  const delFn = useServerFn(deleteInstagramCommentThread);
+  const recarregar = () => qc.invalidateQueries({ queryKey: ["ig", "comment-threads"] });
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          type="button"
+          onClick={(e) => e.stopPropagation()}
+          className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+          aria-label="Opções da publicação"
+        >
+          <MoreVertical className="h-3.5 w-3.5" />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-52" onClick={(e) => e.stopPropagation()}>
+        {pendentes > 0 ? (
+          <DropdownMenuItem
+            onClick={() => readFn({ data: { media_id: mediaId } }).then(recarregar).catch((e: Error) => toast.error(e.message))}
+          >
+            <Check className="mr-2 h-3.5 w-3.5" /> Marcar como lida
+          </DropdownMenuItem>
+        ) : (
+          <DropdownMenuItem
+            onClick={() =>
+              unreadFn({ data: { media_id: mediaId } })
+                .then(() => { recarregar(); toast.success("Marcada como não lida"); })
+                .catch((e: Error) => toast.error(e.message))
+            }
+          >
+            <InboxIcon className="mr-2 h-3.5 w-3.5" /> Marcar como não lida
+          </DropdownMenuItem>
+        )}
+        <DropdownMenuSeparator />
+        <DropdownMenuItem
+          className="text-red-600 focus:text-red-600"
+          onClick={() =>
+            confirmThen(
+              {
+                title: "Apagar do chatbot?",
+                description: "Some o histórico desta publicação do nosso inbox. Os comentários continuam no Instagram.",
+                confirmText: "Apagar",
+                destructive: true,
+              },
+              () =>
+                delFn({ data: { media_id: mediaId } })
+                  .then(() => { recarregar(); toast.success("Histórico apagado"); })
+                  .catch((e: Error) => toast.error(e.message)),
+            )
+          }
+        >
+          <Trash2 className="mr-2 h-3.5 w-3.5" /> Apagar do chatbot
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
 function IgThreadRow({ thread, active, onClick }: { thread: any; active: boolean; onClick: () => void }) {
   const ultimo = thread.comments?.[thread.comments.length - 1];
   return (
-    <button
+    <div
+      role="button"
+      tabIndex={0}
       onClick={onClick}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onClick(); }}
       className={cn(
-        "flex w-full items-start gap-2 rounded-lg p-2 text-left transition-colors",
+        "flex w-full cursor-pointer items-start gap-2 rounded-lg p-2 text-left transition-colors",
         active ? "bg-orange-50" : "hover:bg-slate-50",
       )}
     >
@@ -3370,9 +3436,12 @@ function IgThreadRow({ thread, active, onClick }: { thread: any; active: boolean
           <span className="truncate text-sm font-medium text-slate-900">
             {thread.media_caption?.slice(0, 40) || "Publicação"}
           </span>
-          {(thread.pendentes ?? 0) > 0 && (
-            <span className="rounded-full bg-[#F26B1F] px-1.5 text-[10px] font-medium text-white">{thread.pendentes}</span>
-          )}
+          <div className="flex shrink-0 items-center gap-1">
+            {(thread.pendentes ?? 0) > 0 && (
+              <span className="rounded-full bg-[#F26B1F] px-1.5 text-[10px] font-medium text-white">{thread.pendentes}</span>
+            )}
+            <ThreadRowMenu mediaId={thread.media_id} pendentes={thread.pendentes ?? 0} />
+          </div>
         </div>
         <div className="flex items-center gap-1 text-[10px] text-slate-500">
           <Heart className="h-2.5 w-2.5" />
@@ -3383,6 +3452,6 @@ function IgThreadRow({ thread, active, onClick }: { thread: any; active: boolean
         </div>
         <ContaTag username={thread.account_username} className="mt-0.5" />
       </div>
-    </button>
+    </div>
   );
 }
