@@ -3022,7 +3022,7 @@ function InstagramCommentThreadView({ mediaId, onBack }: { mediaId: string; onBa
                 <div
                   className={cn(
                     "max-w-[75%] rounded-2xl px-3 py-2 text-sm shadow-sm",
-                    meu ? bolhaConta(c.from_username) : "bg-white text-slate-900",
+                    meu ? bolhaContaPlana(c.from_username) : "bg-white text-slate-900",
                     depth > 0 &&
                       (meu
                         ? "border-r-2 border-white/40"
@@ -3206,11 +3206,16 @@ function contaAzul(username?: string | null) {
   return u.includes("lucas");
 }
 
-/** Balão de resposta com o gradiente da conta (laranja VIA AIR ou azul-petróleo). */
+/** Balão da DM: gradiente da conta (laranja VIA AIR ou azul-petróleo). */
 function bolhaConta(username?: string | null) {
   return contaAzul(username)
     ? "bg-gradient-to-br from-[#2A7F9E] via-[#175E7C] to-[#0C3A50] text-white"
     : "bg-gradient-to-br from-[#F9963F] via-[#F26B1F] to-[#C9450E] text-white";
+}
+
+/** Balão dos comentários: cor chapada da conta, sem gradiente. */
+function bolhaContaPlana(username?: string | null) {
+  return contaAzul(username) ? "bg-[#175E7C] text-white" : "bg-[#F26B1F] text-white";
 }
 
 function ContaTag({ username, className }: { username?: string | null; className?: string }) {
