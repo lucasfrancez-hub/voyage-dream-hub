@@ -3163,12 +3163,29 @@ function ReciboDirect({ deliveredAt, readAt }: { deliveredAt?: string | null; re
   );
 }
 
+/** true quando a conta é o perfil pessoal do Lucas (identidade azul). */
+function contaAzul(username?: string | null) {
+  const u = String(username ?? "").replace(/^@/, "").toLowerCase();
+  return u.includes("lucas");
+}
+
+/** Balão de resposta com o gradiente da conta (laranja VIA AIR ou azul-petróleo). */
+function bolhaConta(username?: string | null) {
+  return contaAzul(username)
+    ? "bg-gradient-to-br from-[#2A7F9E] via-[#175E7C] to-[#0C3A50] text-white"
+    : "bg-gradient-to-br from-[#F9963F] via-[#F26B1F] to-[#C9450E] text-white";
+}
+
 function ContaTag({ username, className }: { username?: string | null; className?: string }) {
   if (!username) return null;
+  const azul = contaAzul(username);
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 rounded-full bg-slate-100 px-1.5 py-[1px] text-[9px] font-semibold uppercase tracking-wide text-slate-500",
+        "inline-flex items-center gap-1 rounded-full px-1.5 py-[1px] text-[9px] font-semibold uppercase tracking-wide",
+        azul
+          ? "bg-gradient-to-r from-[#2A7F9E]/15 to-[#0C3A50]/15 text-[#175E7C]"
+          : "bg-gradient-to-r from-[#F9963F]/15 to-[#C9450E]/15 text-[#C9450E]",
         className,
       )}
     >
