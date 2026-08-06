@@ -153,20 +153,22 @@ export async function backfillInstagramAccount(params: {
       for (const m of mensagens) {
         if (existentes.has(m.id)) continue;
         const souEu = m.from?.id ? meusIds.has(m.from.id) : false;
-        const anexo =
-          m.attachments?.data?.[0]?.image_data?.url ??
-          m.attachments?.data?.[0]?.video_data?.url ??
-          m.attachments?.data?.[0]?.file_url ??
-          null;
+        const { descreverAnexoDM } = await import("./attachments");
+        const info = descreverAnexoDM({
+          attachments: m.attachments?.data ?? null,
+          share: m.shares?.data?.[0] ?? null,
+          replyToStory: m.story?.reply_to ? { url: m.story.reply_to.link, id: m.story.reply_to.id } : null,
+          text: m.message ?? null,
+        });
 
         const { error: msgErr } = await supabaseAdmin.from("instagram_messages").upsert(
           {
             conversation_id: igConv.id,
             ig_message_id: m.id,
             direction: souEu ? "outbound" : "inbound",
-            message_type: anexo ? "image" : "text",
-            text: m.message ?? null,
-            attachment_url: anexo,
+            message_type: info.tipo,
+            text: m.message ?? info.rotulo,
+            attachment_url: info.url,
             status: souEu ? "sent" : "received",
             created_at: m.created_time ?? new Date().toISOString(),
           },
@@ -188,9 +190,10 @@ export async function backfillInstagramAccount(params: {
               displayName: contato.username ? `@${contato.username}` : null,
               username: contato.username ?? null,
               direction: souEu ? "outbound" : "inbound",
-              text: m.message ?? null,
-              messageType: anexo ? "image" : "text",
-              attachmentUrl: anexo,
+              text: m.message ?? info.rotulo,
+              messageType: info.tipo,
+              attachmentUrl: info.url,
+
               igMessageId: m.id,
               timestamp: m.created_time ? Date.parse(m.created_time) : null,
               skipProtocolo: true,
