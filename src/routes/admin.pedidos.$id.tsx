@@ -3934,6 +3934,19 @@ function FinanceDialog({
     setForm(next);
   };
 
+  // "Valor cobrado" = quanto o cliente paga de fato. A diferença entre ele e o
+  // custo (tarifa + taxas − desconto) vira RAV automaticamente.
+  const custoBase = Number(
+    ((Number(form.sale_value) || 0) + (Number(form.tax_value) || 0) - (Number(form.discount_value) || 0)).toFixed(2),
+  );
+  const [chargedRaw, setChargedRaw] = useState<string | null>(null);
+  const chargedValue = chargedRaw !== null ? chargedRaw : String(Number(form.total) || custoBase);
+  const aplicarCobrado = (v: string) => {
+    setChargedRaw(v);
+    const cobrado = Number(v);
+    if (!v.trim() || Number.isNaN(cobrado)) return;
+    recalc({ rav_value: Number(Math.max(0, cobrado - custoBase).toFixed(2)) });
+  };
 
   const base = Math.max(0, Number(form.sale_value) || 0);
 
