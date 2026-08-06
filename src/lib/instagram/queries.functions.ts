@@ -542,3 +542,141 @@ export const deleteInstagramCommentThread = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+/**
+ * Apaga um comentário.
+ * escopo "instagram" → apaga também na publicação (reflete pra todo mundo).
+ * escopo "local"     → some só do nosso inbox.
+ */
+export const deleteInstagramComment = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { id: string; escopo?: "instagram" | "local" }) =>
+    z.object({ id: z.string().uuid(), escopo: z.enum(["instagram", "local"]).default("instagram") }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { data: row, error } = await context.supabase
+      .from("instagram_comments")
+      .select("id, account_id, comment_id")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (error || !row) throw new Error("Comentário não encontrado");
+
+    let avisoInstagram: string | null = null;
+    if (data.escopo === "instagram") {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const { data: conta } = await supabaseAdmin
+        .from("instagram_accounts")
+        .select("access_token")
+        .eq("id", row.account_id)
+        .maybeSingle();
+      if (!conta?.access_token) throw new Error("Conta do Instagram sem token");
+      const { deleteComment } = await import("./api.server");
+      try {
+        await deleteComment({ commentId: row.comment_id, token: conta.access_token as string });
+      } catch (e) {
+        avisoInstagram =
+          e instanceof Error && /\b(400|403)\b/.test(e.message)
+            ? "O Instagram não permitiu apagar esse comentário (só dá pra apagar comentários da sua conta ou em publicações suas). Removido apenas do inbox."
+            : e instanceof Error
+              ? e.message
+              : "Falha ao apagar no Instagram";
+      }
+    }
+
+    const { error: delErr } = await context.supabase.from("instagram_comments").delete().eq("id", data.id);
+    if (delErr) throw new Error(delErr.message);
+    return { ok: true, aviso: avisoInstagram };
+  });
+
+/** Oculta ou reexibe um comentário na publicação do Instagram. */
+export const setInstagramCommentHidden = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { id: string; hidden: boolean }) =>
+    z.object({ id: z.string().uuid(), hidden: z.boolean() }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { data: row, error } = await context.supabase
+      .from("instagram_comments")
+      .select("id, account_id, comment_id, metadata")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (error || !row) throw new Error("Comentário não encontrado");
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: conta } = await supabaseAdmin
+      .from("instagram_accounts")
+      .select("access_token")
+      .eq("id", row.account_id)
+      .maybeSingle();
+    if (!conta?.access_token) throw new Error("Conta do Instagram sem token");
+
+    const { setCommentHidden } = await import("./api.server");
+    await setCommentHidden({ commentId: row.comment_id, token: conta.access_token as string, hide: data.hidden });
+
+    const meta = { ...((row.metadata ?? {}) as Record<string, unknown>), hidden: data.hidden };
+    await supabaseAdmin.from("instagram_comments").update({ metadata: meta }).eq("id", row.id);
+    return { ok: true, hidden: data.hidden };
+  });
+
+/**
+ * Apaga uma mensagem da DM.
+ * escopo "todos" → unsend no Instagram (some pros dois lados; só mensagens enviadas por nós).
+ * escopo "aqui"  → some só do nosso inbox.
+ */
+export const deleteInstagramMessage = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { id: string; escopo?: "todos" | "aqui" }) =>
+    z.object({ id: z.string().uuid(), escopo: z.enum(["todos", "aqui"]).default("aqui") }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { data: msg, error } = await context.supabase
+      .from("instagram_messages")
+      .select("id, conversation_id, direction, ig_message_id")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (error || !msg) throw new Error("Mensagem não encontrada");
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    let aviso: string | null = null;
+
+    if (data.escopo === "todos") {
+      if (msg.direction !== "outbound" || !msg.ig_message_id) {
+        aviso = "O Instagram só deixa apagar para todos as mensagens enviadas por nós. Apagada apenas aqui.";
+      } else {
+        const { data: conv } = await supabaseAdmin
+          .from("instagram_conversations")
+          .select("account_id")
+          .eq("id", msg.conversation_id)
+          .maybeSingle();
+        const { data: conta } = conv
+          ? await supabaseAdmin
+              .from("instagram_accounts")
+              .select("ig_user_id, page_id, access_token")
+              .eq("id", conv.account_id)
+              .maybeSingle()
+          : { data: null };
+        if (!conta?.access_token) throw new Error("Conta do Instagram sem token");
+        const { unsendMessage } = await import("./api.server");
+        try {
+          await unsendMessage({
+            igUserId: (conta.ig_user_id ?? conta.page_id) as string,
+            token: conta.access_token as string,
+            messageId: msg.ig_message_id,
+          });
+        } catch (e) {
+          aviso =
+            e instanceof Error
+              ? `O Instagram não apagou lá (${e.message.slice(0, 160)}). Apagada apenas aqui.`
+              : "Falha ao apagar no Instagram. Apagada apenas aqui.";
+        }
+      }
+    }
+
+    const { error: updErr } = await supabaseAdmin
+      .from("instagram_messages")
+      .update({ is_deleted: true, text: null, attachment_url: null })
+      .eq("id", msg.id);
+    if (updErr) throw new Error(updErr.message);
+    return { ok: true, aviso };
+  });
+
