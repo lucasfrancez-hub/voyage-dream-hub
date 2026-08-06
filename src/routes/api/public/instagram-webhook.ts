@@ -276,7 +276,7 @@ async function processPayload(payload: IGPayload) {
 
       // Comentário é SEMPRE dos Consultores: resposta pública + convite no direct
       const souEu = v.from?.id && (v.from.id === igAccountId || v.from.id === igApiUserId);
-      if (igToken && !souEu) {
+      if (igToken && !souEu && iaAtiva) {
         try {
           const { isAiGloballyOff } = await import("@/lib/whatsapp/ai-global-switch.server");
           if (!(await isAiGloballyOff())) {
