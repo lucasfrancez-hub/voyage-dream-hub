@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { abrirLinkChat, renovarSessaoAparelhoChat } from "@/lib/chat/device-session.functions";
+import { garantirVersaoAtual } from "@/lib/app-version";
 
 export const Route = createFileRoute("/chat/app/$token")({
   ssr: false,
@@ -37,6 +38,14 @@ function AbrirAppChat() {
   const [carregando, setCarregando] = useState(false);
   const [verificando, setVerificando] = useState(true);
 
+  // Antes de entrar na Caixa de Entrada, confere se este aparelho está na
+  // versão publicada. Se estiver velho, atualiza primeiro — assim o app nunca
+  // tenta importar um chunk que já foi removido pelo deploy.
+  const irParaInbox = async () => {
+    if (await garantirVersaoAtual("pre-chat-inbox")) return;
+    await navigate({ to: "/chat/inbox" });
+  };
+
   // Se este aparelho já entrou pelo link antes (cookie de 30 dias), entra
   // direto: nada de login, senha ou autenticador.
   useEffect(() => {
@@ -44,7 +53,7 @@ function AbrirAppChat() {
       try {
         const s = await supabase.auth.getSession();
         if (s.data.session) {
-          await navigate({ to: "/chat/inbox" });
+          await irParaInbox();
           return;
         }
         const r = (await renovar()) as { ok: boolean; email?: string; tokenHash?: string };
@@ -54,7 +63,7 @@ function AbrirAppChat() {
             token_hash: r.tokenHash,
           });
           if (!error) {
-            await navigate({ to: "/chat/inbox" });
+            await irParaInbox();
             return;
           }
         }
@@ -85,7 +94,7 @@ function AbrirAppChat() {
         token_hash: r.tokenHash,
       });
       if (error) throw new Error(error.message);
-      await navigate({ to: "/chat/inbox" });
+      await irParaInbox();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Não foi possível entrar.");
       setPin("");
