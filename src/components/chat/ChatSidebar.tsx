@@ -17,7 +17,7 @@ import {
   PanelLeft,
   X,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import viaAirLogo from "@/assets/viaair-logo.png.asset.json";
 import viaAirLogoWhite from "@/assets/viaair-logo-white.png.asset.json";
