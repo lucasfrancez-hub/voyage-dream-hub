@@ -465,7 +465,7 @@ export const listInstagramCommentThreads = createServerFn({ method: "GET" })
       if ((c.metadata as { collab?: boolean } | null)?.collab) t.collab = true;
       t.last_at = c.created_at ?? t.last_at;
       t.total += 1;
-      if (!c.read_at && !c.auto_replied_at && !c.auto_dm_sent_at) t.pendentes += 1;
+      if (!c.read_at) t.pendentes += 1;
       t.comments.push(c);
       threads.set(key, t);
     }
