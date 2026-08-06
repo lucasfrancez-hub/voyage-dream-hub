@@ -42,18 +42,18 @@ export function AppNoCelularCard({ destino }: AppNoCelularCardProps) {
   const nomePadrao = destino === "chat" ? "iPhone do atendimento" : "iPhone do administrador";
 
   return (
-    <section className="rounded-xl border border-slate-200 bg-white p-4">
-      <h2 className="mb-1 text-sm font-semibold text-slate-900">{titulo}</h2>
-      <p className="mb-3 text-xs text-slate-500">
+    <section className="rounded-xl border border-border bg-card p-4">
+      <h2 className="mb-1 text-sm font-semibold text-foreground">{titulo}</h2>
+      <p className="mb-3 text-xs text-muted-foreground">
         Link secreto para abrir {destino === "chat" ? "a Central de Atendimento" : "o painel Admin"} diretamente,
         sem login ou autenticador. Protegido por PIN de 4 números e válido por 30 dias a cada uso.
       </p>
 
       <ul className="space-y-2">
         {links.map((l) => (
-          <li key={l.id} className="rounded-lg border border-slate-200 p-3">
+          <li key={l.id} className="rounded-lg border border-border p-3">
             <div className="flex items-center gap-2">
-              <span className="flex-1 truncate text-sm text-slate-900">{l.nome}</span>
+              <span className="flex-1 truncate text-sm text-foreground">{l.nome}</span>
               <button
                 type="button"
                 aria-label="Copiar link"
@@ -62,7 +62,7 @@ export function AppNoCelularCard({ destino }: AppNoCelularCardProps) {
                    toast.success(`Link do ${destino === "chat" ? "Chat" : "Admin"} copiado.`);
                 }}
               >
-                <Copy className="h-4 w-4 text-slate-400 hover:text-primary" />
+                <Copy className="h-4 w-4 text-muted-foreground hover:text-primary" />
               </button>
               <button
                 type="button"
@@ -78,13 +78,13 @@ export function AppNoCelularCard({ destino }: AppNoCelularCardProps) {
                   void recarregar();
                 }}
               >
-                <Trash2 className="h-4 w-4 text-slate-400 hover:text-rose-600" />
+                <Trash2 className="h-4 w-4 text-muted-foreground hover:text-rose-600" />
               </button>
             </div>
-            <p className="mt-1 break-all text-[11px] text-slate-500">{`${base}${caminho}/${l.token}`}</p>
+            <p className="mt-1 break-all text-[11px] text-muted-foreground">{`${base}${caminho}/${l.token}`}</p>
           </li>
         ))}
-        {links.length === 0 && <p className="text-xs text-slate-500">Nenhum link criado ainda.</p>}
+        {links.length === 0 && <p className="text-xs text-muted-foreground">Nenhum link criado ainda.</p>}
       </ul>
 
       <div className="mt-3 space-y-2">
