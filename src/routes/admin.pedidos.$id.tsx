@@ -3874,6 +3874,8 @@ function FinanceDialog({
   })();
 
 
+  // Vencimento padrão: a data em que o lançamento está sendo feito (editável).
+  const hojeISO = new Date().toLocaleDateString("en-CA");
 
   const [form, setForm] = useState({
     supplier_name: initial?.supplier_name ?? defaultSupplier,
@@ -3885,7 +3887,8 @@ function FinanceDialog({
     is_commissionable: initial?.is_commissionable ?? true,
     rav_value: initial?.rav_value ?? 0,
     exchange_rate: initial?.exchange_rate ?? 1,
-    due_date: initial?.due_date ?? "",
+    due_date: initial?.due_date ?? hojeISO,
+
     total: initial?.total ?? 0,
     notes: initial?.notes ?? "",
   });
