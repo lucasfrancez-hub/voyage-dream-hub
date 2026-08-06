@@ -2644,7 +2644,10 @@ function InstagramCommentThreadView({ mediaId, onBack }: { mediaId: string; onBa
     }
     return null;
   }, [comments, nossos]);
+  const comentariosEmThread = useMemo(() => ordenarComentariosEmThread(comments, nossos), [comments, nossos]);
+
   const alvoAtual = comments.find((c) => c.id === alvo) ?? alvoPadrao;
+
 
   async function enviar() {
     if (!text.trim() || !alvoAtual) return;
