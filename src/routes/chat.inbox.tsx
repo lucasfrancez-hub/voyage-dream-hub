@@ -1729,11 +1729,40 @@ function ContactDetails({ conv, onChange, avatarUrl = null }: { conv: Conv; onCh
       <div className="flex h-full flex-col overflow-y-auto bg-white">
         {/* Header compacto */}
         <div className="border-b border-slate-200 px-4 py-4 text-center">
-          <div className="mx-auto mb-2 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-[#F26B1F] to-orange-400 text-base font-semibold text-white">
-            {(conv.display_name ?? conv.wa_phone).slice(0, 2).toUpperCase()}
-          </div>
+          {foto ? (
+            <button
+              type="button"
+              onClick={() => setFotoAberta(true)}
+              className="mx-auto mb-2 block h-14 w-14 overflow-hidden rounded-full ring-1 ring-slate-200 transition-transform hover:scale-105"
+              aria-label="Ver foto do contato"
+            >
+              <img src={foto} alt={conv.display_name ?? "Contato"} className="h-full w-full object-cover" />
+            </button>
+          ) : (
+            <div className="mx-auto mb-2 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-[#F26B1F] to-orange-400 text-base font-semibold text-white">
+              {(conv.display_name ?? conv.wa_phone).slice(0, 2).toUpperCase()}
+            </div>
+          )}
+          <Dialog open={fotoAberta} onOpenChange={setFotoAberta}>
+            <DialogContent className="max-w-sm border-none bg-transparent p-0 shadow-none">
+              <DialogHeader className="sr-only">
+                <DialogTitle>Foto do contato</DialogTitle>
+                <DialogDescription>Foto de perfil do contato</DialogDescription>
+              </DialogHeader>
+              {foto && (
+                <div className="flex items-center justify-center">
+                  <img
+                    src={foto}
+                    alt={conv.display_name ?? "Contato"}
+                    className="h-72 w-72 rounded-full object-cover shadow-2xl ring-4 ring-white/20"
+                  />
+                </div>
+              )}
+            </DialogContent>
+          </Dialog>
           <div className="truncate text-sm font-semibold text-slate-900">{conv.display_name ?? "Sem cadastro"}</div>
           <div className="text-[11px] text-slate-500">{conv.wa_phone}</div>
+
 
           {/* Modo em linha, só ícones + tooltip */}
           <div className="mt-3 inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 p-1">
