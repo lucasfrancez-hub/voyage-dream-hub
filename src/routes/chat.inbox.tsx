@@ -759,30 +759,32 @@ async function comprimirImagemFundo(file: File): Promise<string> {
 type Wallpaper = ReturnType<typeof useWallpaper>;
 
 function useWallpaper() {
+  const tom = useTomAtual();
   const [key, setKey] = useState<string>("dots");
   const [custom, setCustom] = useState<string | null>(null);
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const saved = localStorage.getItem(CHAVE_WALLPAPER);
-    if (saved) setKey(saved);
-    setCustom(localStorage.getItem(CHAVE_WALLPAPER_IMG));
-  }, []);
+    const saved = localStorage.getItem(chaveWallpaper(tom));
+    setKey(saved ?? (tom === "dark" ? "none" : "dots"));
+    setCustom(localStorage.getItem(chaveWallpaperImg(tom)));
+  }, [tom]);
   const set = (k: string) => {
     setKey(k);
-    if (typeof window !== "undefined") localStorage.setItem(CHAVE_WALLPAPER, k);
+    if (typeof window !== "undefined") localStorage.setItem(chaveWallpaper(tom), k);
   };
   const setImagem = (dataUrl: string | null) => {
     setCustom(dataUrl);
     if (typeof window === "undefined") return;
     if (dataUrl) {
-      localStorage.setItem(CHAVE_WALLPAPER_IMG, dataUrl);
-      localStorage.setItem(CHAVE_WALLPAPER, "custom");
+      localStorage.setItem(chaveWallpaperImg(tom), dataUrl);
+      localStorage.setItem(chaveWallpaper(tom), "custom");
       setKey("custom");
     } else {
-      localStorage.removeItem(CHAVE_WALLPAPER_IMG);
-      set("dots");
+      localStorage.removeItem(chaveWallpaperImg(tom));
+      set(tom === "dark" ? "none" : "dots");
     }
   };
+
   const cur = WALLPAPERS.find((w) => w.key === key) ?? WALLPAPERS[0];
   const style: React.CSSProperties =
     key === "custom" && custom
