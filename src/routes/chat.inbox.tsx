@@ -2159,6 +2159,8 @@ function InstagramConversationView({
   onBack: () => void;
 }) {
   const msgsFn = useServerFn(listInstagramMessages);
+  const wallpaper = useWallpaper();
+
   const sendFn = useServerFn(sendInstagramReply);
   const attachFn = useServerFn(sendInstagramAttachment);
   const toggleFn = useServerFn(toggleConversationMode);
