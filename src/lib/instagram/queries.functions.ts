@@ -640,15 +640,34 @@ export const setInstagramCommentHidden = createServerFn({ method: "POST" })
     if (error || !row) throw new Error("Comentário não encontrado");
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: conta } = await supabaseAdmin
+    const { data: contas } = await supabaseAdmin
       .from("instagram_accounts")
-      .select("access_token")
-      .eq("id", row.account_id)
-      .maybeSingle();
-    if (!conta?.access_token) throw new Error("Conta do Instagram sem token");
+      .select("id, access_token");
+    const tokens = (contas ?? [])
+      .filter((c) => !!c.access_token)
+      .sort((a, b) => (a.id === row.account_id ? -1 : b.id === row.account_id ? 1 : 0))
+      .map((c) => c.access_token as string);
+    if (!tokens.length) throw new Error("Conta do Instagram sem token");
 
     const { setCommentHidden } = await import("./api.server");
-    await setCommentHidden({ commentId: row.comment_id, token: conta.access_token as string, hide: data.hidden });
+    const { mensagemAmigavelInstagram } = await import("./errors");
+    let ok = false;
+    let ultimoErro: unknown = null;
+    for (const token of tokens) {
+      try {
+        await setCommentHidden({ commentId: row.comment_id, token, hide: data.hidden });
+        ok = true;
+        break;
+      } catch (e) {
+        ultimoErro = e;
+      }
+    }
+    if (!ok) {
+      throw new Error(
+        mensagemAmigavelInstagram(ultimoErro, data.hidden ? "ocultar o comentário" : "reexibir o comentário"),
+      );
+    }
+
 
     const meta = { ...((row.metadata ?? {}) as Record<string, unknown>), hidden: data.hidden };
     await supabaseAdmin.from("instagram_comments").update({ metadata: meta }).eq("id", row.id);
