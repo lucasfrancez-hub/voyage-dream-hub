@@ -49,6 +49,7 @@ import { Route as AdminLinkPagamentoRouteImport } from './routes/admin.link-paga
 import { Route as AdminNotasFiscaisRouteImport } from './routes/admin.notas-fiscais'
 import { Route as AdminPacotesRouteImport } from './routes/admin.pacotes'
 import { Route as AdminPessoasRouteImport } from './routes/admin.pessoas'
+import { Route as AdminRedesSociaisRouteImport } from './routes/admin.redes-sociais'
 import { Route as AdminSegurancaRouteImport } from './routes/admin.seguranca'
 import { Route as AdminSegurosRouteImport } from './routes/admin.seguros'
 import { Route as AdminUsuariosRouteImport } from './routes/admin.usuarios'
@@ -322,6 +323,11 @@ const AdminPacotesRoute = AdminPacotesRouteImport.update({
 const AdminPessoasRoute = AdminPessoasRouteImport.update({
   id: '/pessoas',
   path: '/pessoas',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminRedesSociaisRoute = AdminRedesSociaisRouteImport.update({
+  id: '/redes-sociais',
+  path: '/redes-sociais',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminSegurancaRoute = AdminSegurancaRouteImport.update({
@@ -763,6 +769,7 @@ export interface FileRoutesByFullPath {
   '/admin/notas-fiscais': typeof AdminNotasFiscaisRoute
   '/admin/pacotes': typeof AdminPacotesRoute
   '/admin/pessoas': typeof AdminPessoasRouteWithChildren
+  '/admin/redes-sociais': typeof AdminRedesSociaisRoute
   '/admin/seguranca': typeof AdminSegurancaRoute
   '/admin/seguros': typeof AdminSegurosRoute
   '/admin/usuarios': typeof AdminUsuariosRoute
@@ -878,6 +885,7 @@ export interface FileRoutesByTo {
   '/admin/notas-fiscais': typeof AdminNotasFiscaisRoute
   '/admin/pacotes': typeof AdminPacotesRoute
   '/admin/pessoas': typeof AdminPessoasRouteWithChildren
+  '/admin/redes-sociais': typeof AdminRedesSociaisRoute
   '/admin/seguranca': typeof AdminSegurancaRoute
   '/admin/seguros': typeof AdminSegurosRoute
   '/admin/usuarios': typeof AdminUsuariosRoute
@@ -995,6 +1003,7 @@ export interface FileRoutesById {
   '/admin/notas-fiscais': typeof AdminNotasFiscaisRoute
   '/admin/pacotes': typeof AdminPacotesRoute
   '/admin/pessoas': typeof AdminPessoasRouteWithChildren
+  '/admin/redes-sociais': typeof AdminRedesSociaisRoute
   '/admin/seguranca': typeof AdminSegurancaRoute
   '/admin/seguros': typeof AdminSegurosRoute
   '/admin/usuarios': typeof AdminUsuariosRoute
@@ -1113,6 +1122,7 @@ export interface FileRouteTypes {
     | '/admin/notas-fiscais'
     | '/admin/pacotes'
     | '/admin/pessoas'
+    | '/admin/redes-sociais'
     | '/admin/seguranca'
     | '/admin/seguros'
     | '/admin/usuarios'
@@ -1228,6 +1238,7 @@ export interface FileRouteTypes {
     | '/admin/notas-fiscais'
     | '/admin/pacotes'
     | '/admin/pessoas'
+    | '/admin/redes-sociais'
     | '/admin/seguranca'
     | '/admin/seguros'
     | '/admin/usuarios'
@@ -1344,6 +1355,7 @@ export interface FileRouteTypes {
     | '/admin/notas-fiscais'
     | '/admin/pacotes'
     | '/admin/pessoas'
+    | '/admin/redes-sociais'
     | '/admin/seguranca'
     | '/admin/seguros'
     | '/admin/usuarios'
@@ -1769,6 +1781,13 @@ declare module '@tanstack/react-router' {
       path: '/pessoas'
       fullPath: '/admin/pessoas'
       preLoaderRoute: typeof AdminPessoasRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/redes-sociais': {
+      id: '/admin/redes-sociais'
+      path: '/redes-sociais'
+      fullPath: '/admin/redes-sociais'
+      preLoaderRoute: typeof AdminRedesSociaisRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/seguranca': {
@@ -2325,6 +2344,7 @@ interface AdminRouteChildren {
   AdminNotasFiscaisRoute: typeof AdminNotasFiscaisRoute
   AdminPacotesRoute: typeof AdminPacotesRoute
   AdminPessoasRoute: typeof AdminPessoasRouteWithChildren
+  AdminRedesSociaisRoute: typeof AdminRedesSociaisRoute
   AdminSegurancaRoute: typeof AdminSegurancaRoute
   AdminSegurosRoute: typeof AdminSegurosRoute
   AdminUsuariosRoute: typeof AdminUsuariosRoute
@@ -2356,6 +2376,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminNotasFiscaisRoute: AdminNotasFiscaisRoute,
   AdminPacotesRoute: AdminPacotesRoute,
   AdminPessoasRoute: AdminPessoasRouteWithChildren,
+  AdminRedesSociaisRoute: AdminRedesSociaisRoute,
   AdminSegurancaRoute: AdminSegurancaRoute,
   AdminSegurosRoute: AdminSegurosRoute,
   AdminUsuariosRoute: AdminUsuariosRoute,

@@ -881,3 +881,73 @@ export const getInstagramMediaStats = createServerFn({ method: "POST" })
       ultimoErro instanceof Error ? ultimoErro.message : "Não foi possível ler as métricas da publicação",
     );
   });
+
+// ============ Panorama de redes sociais (admin) ============
+
+export const getSocialOverview = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { limit?: number } | undefined) =>
+    z.object({ limit: z.number().min(4).max(50).optional() }).parse(d ?? {}),
+  )
+  .handler(async ({ data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: contas } = await supabaseAdmin
+      .from("instagram_accounts")
+      .select("id, ig_user_id, username, display_name, profile_picture_url, access_token, active")
+      .order("is_default", { ascending: false });
+
+    const ativas = ((contas ?? []) as Array<{
+      id: string;
+      ig_user_id: string;
+      username: string;
+      display_name: string | null;
+      profile_picture_url: string | null;
+      access_token: string | null;
+      active: boolean;
+    }>).filter((c) => c.access_token && c.active);
+
+    const api = await import("./api.server");
+    const limite = data.limit ?? 18;
+
+    const resultado = await Promise.all(
+      ativas.map(async (conta) => {
+        const token = conta.access_token as string;
+        let erro: string | null = null;
+        let itens: Awaited<ReturnType<typeof api.fetchAccountMedia>> = [];
+        try {
+          const [feed, stories] = await Promise.all([
+            api.fetchAccountMedia({ igUserId: conta.ig_user_id, token, limit: limite }),
+            api.fetchAccountStories({ igUserId: conta.ig_user_id, token }),
+          ]);
+          itens = [...stories, ...feed];
+        } catch (e) {
+          erro = e instanceof Error ? e.message : "Falha ao ler publicações";
+        }
+
+        const comInsights = await Promise.all(
+          itens.map(async (item) => ({
+            ...item,
+            insights: await api.fetchMediaInsightsOnly({
+              mediaId: item.id,
+              token,
+              isStory: item.is_story,
+              isVideo:
+                String(item.media_product_type ?? "").toUpperCase() === "REELS" ||
+                String(item.media_type ?? "").toUpperCase() === "VIDEO",
+            }),
+          })),
+        );
+
+        return {
+          account_id: conta.id,
+          username: conta.username,
+          display_name: conta.display_name,
+          avatar: conta.profile_picture_url,
+          erro,
+          itens: comInsights,
+        };
+      }),
+    );
+
+    return { contas: resultado, atualizadoEm: new Date().toISOString() };
+  });

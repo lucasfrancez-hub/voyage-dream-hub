@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
-import { Loader2, TrendingUp, DollarSign, Receipt, ShoppingBag, Plane, CalendarClock, ExternalLink, CheckCircle2, Clock, BarChart3, ArrowUpRight, ArrowDownRight, AlertCircle, Trophy, Crown, Medal } from "lucide-react";
+import { Instagram, Loader2, TrendingUp, DollarSign, Receipt, ShoppingBag, Plane, CalendarClock, ExternalLink, CheckCircle2, Clock, BarChart3, ArrowUpRight, ArrowDownRight, AlertCircle, Trophy, Crown, Medal } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL } from "@/lib/format";
 
@@ -327,6 +327,23 @@ function DashboardPage() {
           <Kpi icon={ShoppingBag} label="Pendentes" value={String(stats.pending)} hint="Ver aguardando pagamento →" />
         </Link>
       </div>
+
+      {/* Atalho — Redes sociais */}
+      <Link
+        to="/admin/redes-sociais"
+        className="flex items-center gap-3 rounded-2xl border border-border bg-card p-4 transition hover:border-brand-orange/40"
+      >
+        <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-orange-50 text-brand-orange">
+          <Instagram className="h-5 w-5" />
+        </span>
+        <span className="flex-1">
+          <span className="block text-sm font-semibold text-foreground">Redes sociais</span>
+          <span className="block text-xs text-muted-foreground">
+            Métricas de publicações, reels e stories da VIA AIR e do perfil pessoal
+          </span>
+        </span>
+        <ExternalLink className="h-4 w-4 text-muted-foreground" />
+      </Link>
 
       {/* Mês atual + trend */}
       <div className="grid gap-4 md:grid-cols-3">

@@ -490,6 +490,12 @@ function DashboardNav({ pathname }: { pathname: string }) {
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
+          <Link to="/admin/redes-sociais" className="flex flex-col items-start gap-0.5">
+            <span className="text-sm font-medium">Redes sociais</span>
+            <span className="text-xs text-muted-foreground">Métricas de posts, reels e stories</span>
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
           <Link to="/admin/notas-fiscais" className="flex flex-col items-start gap-0.5">
             <span className="text-sm font-medium">Notas fiscais</span>
             <span className="text-xs text-muted-foreground">NFS-e emitidas, erros e relatórios</span>
