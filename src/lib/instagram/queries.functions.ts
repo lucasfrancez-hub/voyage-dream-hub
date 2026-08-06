@@ -751,14 +751,16 @@ export const toggleInstagramCommentLike = createServerFn({ method: "POST" })
       }
     }
     if (!tokenOk) {
+      const { ehObjetoDeOutroPerfil, mensagemAmigavelInstagram } = await import("./errors");
       throw new Error(
-        ultimoErro instanceof Error && /\b(400|403|404)\b/.test(ultimoErro.message)
-          ? "O Instagram permite consultar as curtidas, mas a API oficial não permite curtir comentários — inclusive em publicações da própria conta."
-          : ultimoErro instanceof Error
-            ? ultimoErro.message
-            : "Falha ao curtir no Instagram",
+        ehObjetoDeOutroPerfil(ultimoErro)
+          ? "Esse comentário está em uma publicação de outro perfil (colaboração). O Instagram só permite curtir pelo app, com o perfil dono do post."
+          : ultimoErro instanceof Error && /\b(400|403|404)\b/.test(ultimoErro.message)
+            ? "O Instagram permite consultar as curtidas, mas a API oficial não permite curtir comentários — inclusive em publicações da própria conta."
+            : mensagemAmigavelInstagram(ultimoErro, "curtir o comentário"),
       );
     }
+
 
     const atual = await getCommentLikes({ commentId: row.comment_id, token: tokenOk });
     const meta: Record<string, unknown> = { ...((row.metadata ?? {}) as Record<string, unknown>), liked: data.like };
