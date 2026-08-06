@@ -2775,6 +2775,20 @@ function InstagramCommentThreadView({ mediaId, onBack }: { mediaId: string; onBa
     retry: false,
   });
 
+  // Curtidas e insights da publicação (alcance, salvos, compartilhamentos…).
+  const mediaStatsFn = useServerFn(getInstagramMediaStats);
+  const {
+    data: stats,
+    isFetching: statsCarregando,
+    refetch: recarregarStats,
+  } = useQuery({
+    queryKey: ["ig", "media-stats", mediaId],
+    queryFn: () => mediaStatsFn({ data: { media_id: mediaId } }),
+    enabled: Boolean(mediaId),
+    staleTime: 2 * 60_000,
+    retry: false,
+  });
+
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [comments.length, mediaId]);
