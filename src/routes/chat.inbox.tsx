@@ -710,8 +710,26 @@ const WALLPAPERS: { key: string; label: string; css: string; size?: string }[] =
   { key: "diagonal", label: "Listras diagonais", css: "repeating-linear-gradient(45deg, color-mix(in oklab, var(--foreground) 6%, transparent) 0 2px, transparent 2px 14px)" },
 ];
 
-const CHAVE_WALLPAPER = "chat-wallpaper-v3";
-const CHAVE_WALLPAPER_IMG = "chat-wallpaper-custom-v1";
+/** Cada tom (claro/escuro) guarda o próprio plano de fundo. */
+type Tom = "light" | "dark";
+const chaveWallpaper = (tom: Tom) => `chat-wallpaper-v3:${tom}`;
+const chaveWallpaperImg = (tom: Tom) => `chat-wallpaper-custom-v1:${tom}`;
+
+/** Observa a classe do <body> que o /chat usa para alternar o tema. */
+function useTomAtual(): Tom {
+  const [tom, setTom] = useState<Tom>("light");
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    const ler = () =>
+      setTom(document.body.classList.contains("chat-dark") || document.body.classList.contains("dark") ? "dark" : "light");
+    ler();
+    const obs = new MutationObserver(ler);
+    obs.observe(document.body, { attributes: true, attributeFilter: ["class"] });
+    return () => obs.disconnect();
+  }, []);
+  return tom;
+}
+
 
 /** Reduz a imagem escolhida para caber no localStorage (JPEG ~1280px). */
 async function comprimirImagemFundo(file: File): Promise<string> {
