@@ -444,24 +444,50 @@ export async function fetchMediaStats(params: { mediaId: string; token: string }
   const tipo = String(base.media_type ?? "").toUpperCase();
   const metricas =
     produto === "REELS" || tipo === "VIDEO"
-      ? ["reach", "views", "likes", "comments", "saved", "shares", "total_interactions"]
-      : ["reach", "views", "likes", "comments", "saved", "shares", "total_interactions", "profile_visits"];
+      ? [
+          "reach",
+          "views",
+          "likes",
+          "comments",
+          "saved",
+          "shares",
+          "total_interactions",
+          "ig_reels_avg_watch_time",
+          "ig_reels_video_view_total_time",
+          "follows",
+          "profile_visits",
+        ]
+      : ["reach", "views", "likes", "comments", "saved", "shares", "total_interactions", "profile_visits", "follows"];
 
+  const basicas = ["reach", "views", "likes", "comments", "saved", "shares", "total_interactions"];
   let insights: Record<string, number> = {};
   let insightsErro: string | null = null;
-  try {
-    const json = await fetchGraph(
-      `/${params.mediaId}/insights?metric=${metricas.join(",")}`,
-      { method: "GET", token: params.token, operation: "media_insights" },
-    );
+
+  const buscar = async (lista: string[]) => {
+    const json = await fetchGraph(`/${params.mediaId}/insights?metric=${lista.join(",")}`, {
+      method: "GET",
+      token: params.token,
+      operation: "media_insights",
+    });
     const linhas = (json.data as Array<{ name?: string; values?: Array<{ value?: number }> }> | undefined) ?? [];
+    const out: Record<string, number> = {};
     for (const linha of linhas) {
       if (!linha.name) continue;
-      insights[linha.name] = Number(linha.values?.[0]?.value ?? 0);
+      out[linha.name] = Number(linha.values?.[0]?.value ?? 0);
     }
-  } catch (e) {
-    insightsErro = e instanceof Error ? e.message : "insights indisponíveis";
-    insights = {};
+    return out;
+  };
+
+  try {
+    insights = await buscar(metricas);
+  } catch {
+    // Alguma métrica opcional não é suportada nessa publicação: cai para o conjunto básico.
+    try {
+      insights = await buscar(basicas);
+    } catch (e2) {
+      insightsErro = e2 instanceof Error ? e2.message : "insights indisponíveis";
+      insights = {};
+    }
   }
 
   return {
