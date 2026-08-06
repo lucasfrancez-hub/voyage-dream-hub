@@ -493,25 +493,41 @@ export const getInstagramMediaDetails = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { media_id: string }) => z.object({ media_id: z.string().min(1) }).parse(d))
   .handler(async ({ data, context }) => {
-    const { data: accounts } = await context.supabase
-      .from("instagram_accounts")
-      .select("id, is_default")
-      .order("is_default", { ascending: false })
-      .limit(1);
-    const accountId = accounts?.[0]?.id;
-    if (!accountId) throw new Error("Nenhuma conta do Instagram conectada");
+    // A publicação pode ser de qualquer conta conectada (ou de um collab).
+    // Descobre a conta pelo comentário salvo e, se não der, tenta todas.
+    const { data: comentario } = await context.supabase
+      .from("instagram_comments")
+      .select("account_id")
+      .eq("media_id", data.media_id)
+      .limit(1)
+      .maybeSingle();
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: account } = await supabaseAdmin
+    const { data: contas } = await supabaseAdmin
       .from("instagram_accounts")
-      .select("access_token")
-      .eq("id", accountId)
-      .maybeSingle();
-    const token = (account as { access_token?: string } | null)?.access_token;
-    if (!token) throw new Error("Conta do Instagram sem token");
+      .select("id, access_token, is_default")
+      .order("is_default", { ascending: false });
+
+    const lista = (contas ?? []) as Array<{ id: string; access_token: string | null }>;
+    if (lista.length === 0) throw new Error("Nenhuma conta do Instagram conectada");
+    const preferida = comentario?.account_id;
+    const ordenadas = [
+      ...lista.filter((c) => c.id === preferida),
+      ...lista.filter((c) => c.id !== preferida),
+    ].filter((c) => c.access_token);
 
     const { fetchMediaDetails } = await import("./api.server");
-    return fetchMediaDetails({ mediaId: data.media_id, token });
+    let ultimoErro: unknown = null;
+    for (const conta of ordenadas) {
+      try {
+        return await fetchMediaDetails({ mediaId: data.media_id, token: conta.access_token as string });
+      } catch (e) {
+        ultimoErro = e;
+      }
+    }
+    throw new Error(
+      ultimoErro instanceof Error ? ultimoErro.message : "Publicação indisponível na API do Instagram",
+    );
   });
 
 /** Apaga o histórico de comentários de uma publicação (não remove nada no Instagram). */

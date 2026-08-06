@@ -104,8 +104,10 @@ async function processPayload(payload: IGPayload) {
     if (!account) throw new Error(`Conta ${igAccountId} não cadastrada`);
     const igToken = (account as { access_token?: string }).access_token ?? null;
     const igApiUserId = (account as { ig_user_id?: string }).ig_user_id ?? igAccountId;
+    const { iaPodeResponderComentario } = await import("@/lib/instagram/ai-toggle");
     const { contaComIaAtiva } = await import("@/lib/instagram/ai-toggle");
     const iaAtiva = contaComIaAtiva((account as { metadata?: unknown }).metadata);
+    const igMetadata = (account as { metadata?: unknown }).metadata;
 
 
 
@@ -235,13 +237,13 @@ async function processPayload(payload: IGPayload) {
 
       // Contexto da publicação: legenda, tipo e miniatura — a IA precisa saber
       // de qual post veio o comentário.
-      let midia: { caption: string | null; media_type: string | null; permalink: string | null; thumbnail: string | null } = {
-        caption: null, media_type: null, permalink: null, thumbnail: null,
+      let midia: { caption: string | null; media_type: string | null; permalink: string | null; thumbnail: string | null; media_url?: string | null } = {
+        caption: null, media_type: null, permalink: null, thumbnail: null, media_url: null,
       };
       if (igToken) {
         try {
-          const { fetchMediaInfo } = await import("@/lib/instagram/api.server");
-          midia = await fetchMediaInfo({ mediaId: v.media.id, token: igToken });
+          const { fetchMediaDetails } = await import("@/lib/instagram/api.server");
+          midia = await fetchMediaDetails({ mediaId: v.media.id, token: igToken });
         } catch (e) {
           console.error("[instagram] dados da publicação falharam:", (e as Error).message);
         }
@@ -287,16 +289,24 @@ async function processPayload(payload: IGPayload) {
 
       // Comentário é SEMPRE dos Consultores: resposta pública + convite no direct
       const souEu = v.from?.id && (v.from.id === igAccountId || v.from.id === igApiUserId);
-      if (igToken && !souEu && iaAtiva) {
+      if (igToken && !souEu && iaPodeResponderComentario(igMetadata, midia.media_type)) {
         try {
           const { isAiGloballyOff } = await import("@/lib/whatsapp/ai-global-switch.server");
           if (!(await isAiGloballyOff())) {
+            // Antes de responder, a IA assiste o vídeo (reels) pra entender o que foi falado.
+            const { transcreverVideoDaPublicacao } = await import("@/lib/instagram/video-transcribe.server");
+            const videoTranscricao = await transcreverVideoDaPublicacao({
+              mediaId: v.media.id,
+              mediaUrl: midia.media_url ?? null,
+              mediaType: midia.media_type,
+            });
             const { gerarRespostaComentario } = await import("@/lib/instagram/comment-ai.server");
             const resposta = await gerarRespostaComentario({
               fromUsername: v.from?.username ?? null,
               text: v.text ?? null,
               mediaCaption: midia.caption,
               mediaPermalink: midia.permalink,
+              videoTranscricao,
             });
             if (resposta) {
               const { replyToComment } = await import("@/lib/instagram/api.server");

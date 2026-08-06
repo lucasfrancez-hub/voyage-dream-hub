@@ -355,7 +355,9 @@ export async function fetchTaggedMediaWithComments(params: {
     permalink: (m.permalink as string) ?? null,
     caption: (m.caption as string) ?? null,
     mediaType: (m.media_type as string) ?? null,
+    mediaUrl: (m.media_url as string) ?? null,
     thumbnail: (m.thumbnail_url as string) ?? (m.media_url as string) ?? null,
+
     comments: (((m.comments as { data?: Array<Record<string, unknown>> })?.data) ?? []).map((c) => ({
       id: String(c.id ?? ""),
       text: (c.text as string) ?? null,
