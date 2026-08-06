@@ -169,6 +169,11 @@ export const Route = createFileRoute("/api/public/hooks/close-inactive-protocols
               .eq("id", proto.conversation_id)
               .maybeSingle();
             if (!conv) continue;
+            // Instagram Direct: conversa fica aberta, sem encerramento automático.
+            if (isInstagramConversation(conv.wa_phone)) {
+              skipped.push(proto.numero);
+              continue;
+            }
 
             // CRÍTICO: fecha o protocolo ANTES de qualquer envio/IA, e de forma
             // ATÔMICA — o encerramento e a limpeza de TODO o runtime (agente,
