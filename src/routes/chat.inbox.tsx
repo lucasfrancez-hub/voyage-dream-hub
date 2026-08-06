@@ -2894,6 +2894,53 @@ function InstagramCommentThreadView({ mediaId, onBack }: { mediaId: string; onBa
           >
             {thread?.media_caption ?? "Sem legenda"}
           </p>
+
+          {(stats || statsCarregando) && (
+            <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+              {statsCarregando && !stats ? (
+                <span className="inline-flex items-center gap-1 text-[10px] text-slate-400">
+                  <Loader2 className="h-2.5 w-2.5 animate-spin" /> carregando métricas…
+                </span>
+              ) : (
+                <>
+                  {[
+                    { icone: Heart, valor: stats?.like_count ?? stats?.insights?.likes, titulo: "Curtidas" },
+                    { icone: MessageCircle, valor: stats?.comments_count ?? stats?.insights?.comments, titulo: "Comentários" },
+                    { icone: Eye, valor: stats?.insights?.views, titulo: "Visualizações" },
+                    { icone: Users, valor: stats?.insights?.reach, titulo: "Contas alcançadas" },
+                    { icone: Bookmark, valor: stats?.insights?.saved, titulo: "Salvamentos" },
+                    { icone: Share2, valor: stats?.insights?.shares, titulo: "Compartilhamentos" },
+                    { icone: BarChart3, valor: stats?.insights?.total_interactions, titulo: "Interações totais" },
+                  ]
+                    .filter((m) => typeof m.valor === "number")
+                    .map((m) => (
+                      <span
+                        key={m.titulo}
+                        title={m.titulo}
+                        className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600"
+                      >
+                        <m.icone className="h-2.5 w-2.5" />
+                        {(m.valor as number).toLocaleString("pt-BR")}
+                      </span>
+                    ))}
+                  <button
+                    type="button"
+                    onClick={() => void recarregarStats()}
+                    className="inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] text-slate-400 hover:text-[#F26B1F]"
+                    title="Atualizar métricas"
+                  >
+                    <RefreshCw className={cn("h-2.5 w-2.5", statsCarregando && "animate-spin")} />
+                  </button>
+                  {stats?.insights_error && (
+                    <span className="text-[10px] text-slate-400" title={stats.insights_error}>
+                      insights indisponíveis para esta publicação
+                    </span>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+
           <div className="flex flex-wrap items-center gap-3">
             {thread?.media_permalink && (
               <a
