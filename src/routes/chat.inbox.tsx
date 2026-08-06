@@ -3002,11 +3002,16 @@ function InstagramCommentThreadView({ mediaId, onBack }: { mediaId: string; onBa
                 <div
                   className={cn(
                     "max-w-[75%] rounded-2xl px-3 py-2 text-sm shadow-sm",
-                    meu ? "bg-[#F26B1F] text-white" : "bg-white text-slate-900",
-                    depth > 0 && (meu ? "border-r-2 border-white/40" : "border-l-2 border-[#F26B1F]/30"),
+                    meu ? bolhaConta(c.from_username) : "bg-white text-slate-900",
+                    depth > 0 &&
+                      (meu
+                        ? "border-r-2 border-white/40"
+                        : contaAzul(thread?.account_username)
+                          ? "border-l-2 border-[#175E7C]/30"
+                          : "border-l-2 border-[#F26B1F]/30"),
                   )}
                 >
-                  <div className={cn("text-[11px] font-semibold", meu ? "text-white" : "text-[#F26B1F]")}>
+                  <div className={cn("text-[11px] font-semibold", meu ? "text-white" : contaAzul(thread?.account_username) ? "text-[#175E7C]" : "text-[#F26B1F]")}>
                     @{c.from_username ?? "usuário"}
                   </div>
                   {c.text && (
