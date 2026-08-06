@@ -1211,25 +1211,8 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
         >
           {conv.mode === "ai" ? "Assumir" : "Devolver p/ IA"}
         </button>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button
-              title="Alterar plano de fundo"
-              className="hidden rounded-md p-2 text-muted-foreground hover:bg-accent hover:text-foreground md:inline-flex"
-            >
-              <ImageIcon className="h-4 w-4" />
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48">
-            <DropdownMenuLabel>Plano de fundo</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            {WALLPAPERS.map((w) => (
-              <DropdownMenuItem key={w.key} onClick={() => wallpaper.set(w.key)}>
-                {w.label} {wallpaper.key === w.key && "✓"}
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <WallpaperMenu wallpaper={wallpaper} className="hidden md:inline-flex" />
+
         <button
           onClick={() => setDetailsOpen(true)}
           title="Detalhes do contato e protocolo"
