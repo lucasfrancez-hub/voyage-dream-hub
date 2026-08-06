@@ -710,31 +710,43 @@ export const toggleInstagramCommentLike = createServerFn({ method: "POST" })
     if (error || !row) throw new Error("Comentário não encontrado");
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: conta } = await supabaseAdmin
+    const { data: contas } = await supabaseAdmin
       .from("instagram_accounts")
-      .select("access_token")
-      .eq("id", row.account_id)
-      .maybeSingle();
-    if (!conta?.access_token) throw new Error("Conta do Instagram sem token");
+      .select("id, access_token");
+    const tokens = (contas ?? [])
+      .filter((c) => !!c.access_token)
+      .sort((a) => (a.id === row.account_id ? -1 : 1))
+      .map((c) => c.access_token as string);
+    if (!tokens.length) throw new Error("Conta do Instagram sem token");
 
     const { setCommentLiked, getCommentLikes } = await import("./api.server");
-    try {
-      await setCommentLiked({ commentId: row.comment_id, token: conta.access_token as string, like: data.like });
-    } catch (e) {
+    let tokenOk: string | null = null;
+    let ultimoErro: unknown = null;
+    for (const token of tokens) {
+      try {
+        await setCommentLiked({ commentId: row.comment_id, token, like: data.like });
+        tokenOk = token;
+        break;
+      } catch (e) {
+        ultimoErro = e;
+      }
+    }
+    if (!tokenOk) {
       throw new Error(
-        e instanceof Error && /\b(400|403|404)\b/.test(e.message)
-          ? "O Instagram não permitiu curtir por aqui (a API só libera curtida em comentários de publicações da própria conta)."
-          : e instanceof Error
-            ? e.message
+        ultimoErro instanceof Error && /\b(400|403|404)\b/.test(ultimoErro.message)
+          ? "O Instagram não permitiu curtir por aqui: a curtida só é liberada pelo perfil dono da publicação. Em posts em colaboração, curta direto pelo app do Instagram."
+          : ultimoErro instanceof Error
+            ? ultimoErro.message
             : "Falha ao curtir no Instagram",
       );
     }
 
-    const atual = await getCommentLikes({ commentId: row.comment_id, token: conta.access_token as string });
+    const atual = await getCommentLikes({ commentId: row.comment_id, token: tokenOk });
     const meta: Record<string, unknown> = { ...((row.metadata ?? {}) as Record<string, unknown>), liked: data.like };
     if (atual.like_count != null) meta.like_count = atual.like_count;
     await supabaseAdmin.from("instagram_comments").update({ metadata: meta as never }).eq("id", row.id);
     return { ok: true, liked: data.like, like_count: atual.like_count };
+
   });
 
 
