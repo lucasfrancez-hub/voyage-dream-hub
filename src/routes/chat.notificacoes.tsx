@@ -182,7 +182,9 @@ function NotificacoesPage() {
   const iosSemInstalar = ehIOS() && !ehStandalone();
 
   return (
-    <div className="mx-auto w-full max-w-2xl space-y-5 p-4 md:p-6">
+    <div className="h-full overflow-y-auto overscroll-contain">
+      <div className="mx-auto w-full max-w-2xl space-y-5 p-4 pb-[max(2rem,env(safe-area-inset-bottom))] md:p-6">
+
       <header>
         <h1 className="text-xl font-semibold text-slate-900">Notificações</h1>
         <p className="text-sm text-slate-500">Receba um aviso no aparelho quando chegar mensagem nova de cliente.</p>
@@ -271,6 +273,8 @@ function NotificacoesPage() {
       </section>
 
       <AppNoCelularCard destino="chat" />
+      </div>
     </div>
+
   );
 }

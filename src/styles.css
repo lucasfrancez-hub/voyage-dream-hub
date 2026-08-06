@@ -252,3 +252,13 @@ html:root {
     radial-gradient(1400px 620px at 25% -12%, var(--brand-blue), transparent 72%);
 }
 .voar-shell > *:not(.voar-glow) { position: relative; z-index: 1; }
+
+/* iOS: campo com fonte menor que 16px faz o Safari dar zoom ao focar. */
+@media (pointer: coarse) {
+  input,
+  textarea,
+  select,
+  [contenteditable="true"] {
+    font-size: max(16px, 1rem);
+  }
+}

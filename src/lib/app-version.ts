@@ -33,23 +33,30 @@ export async function versaoPublicada(): Promise<string | null> {
   if (typeof fetch === "undefined") return null;
   if (consultaEmAndamento) return consultaEmAndamento;
   consultaEmAndamento = (async () => {
+    // Rede lenta não pode travar a abertura do app: 2,5s e segue o jogo.
+    const ctrl = typeof AbortController !== "undefined" ? new AbortController() : null;
+    const timer = ctrl ? setTimeout(() => ctrl.abort(), 2500) : null;
     try {
       const r = await fetch(`/version.json?t=${Date.now()}`, {
         cache: "no-store",
         credentials: "omit",
         headers: { "cache-control": "no-cache" },
+        signal: ctrl?.signal,
       });
       if (!r.ok) return null;
       const ct = r.headers.get("content-type") ?? "";
       if (!ct.includes("json")) return null;
       const data = (await r.json()) as { version?: unknown };
       return typeof data.version === "string" ? data.version : null;
+
     } catch {
       return null;
     } finally {
+      if (timer) clearTimeout(timer);
       ultimaConsulta = Date.now();
       consultaEmAndamento = null;
     }
+
   })();
   return consultaEmAndamento;
 }
