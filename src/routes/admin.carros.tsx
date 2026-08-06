@@ -202,12 +202,38 @@ function prettyText(raw?: string | null) {
   return lower.charAt(0).toUpperCase() + lower.slice(1);
 }
 
+// Palavras que iniciam um novo tópico dentro do parágrafo.
+const INICIO_TOPICO = /^(?:proteção|cobertura|o cliente|na hipótese|nessa modalidade)\b/i;
+
+/**
+ * Quebra o texto em espaços que vêm depois de "." / ";" ou antes de uma
+ * palavra de início de tópico. Escrito sem lookbehind de propósito: iOS
+ * anterior ao 16.4 não compila `(?<=...)` e derrubaria o bundle inteiro.
+ */
+function quebrarTopicos(t: string): string[] {
+  const partes: string[] = [];
+  let inicio = 0;
+  for (let i = 0; i < t.length; i++) {
+    if (!/\s/.test(t[i]!)) continue;
+    let fim = i;
+    while (fim < t.length && /\s/.test(t[fim]!)) fim++;
+    const anterior = i > 0 ? t[i - 1] : "";
+    const corta = anterior === "." || anterior === ";" || INICIO_TOPICO.test(t.slice(fim));
+    if (corta) {
+      partes.push(t.slice(inicio, i));
+      inicio = fim;
+    }
+    i = fim - 1;
+  }
+  partes.push(t.slice(inicio));
+  return partes;
+}
+
 /** Quebra um parágrafo longo em tópicos legíveis. */
 function toBullets(raw?: string | null) {
   const t = prettyText(raw);
   if (!t) return [];
-  const parts = t
-    .split(/(?<=[.;])\s+|\s+(?=(?:proteção|cobertura|o cliente|na hipótese|nessa modalidade)\b)/i)
+  const parts = quebrarTopicos(t)
     .map((s) => s.trim())
     .filter((s) => s.length > 12);
   return parts.length > 1 ? parts : [t];
