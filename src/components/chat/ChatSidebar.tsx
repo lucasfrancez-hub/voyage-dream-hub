@@ -133,7 +133,7 @@ export function ChatSidebar({ mobileOpen = false, onCloseMobile }: { mobileOpen?
         </nav>
 
         <button
-          onClick={() => setCollapsed((c) => !c)}
+          onClick={() => alternarRecolhido(!collapsed)}
           className="hidden md:flex h-10 items-center justify-center gap-2 border-t border-slate-200 text-xs text-slate-500 hover:bg-slate-50 hover:text-slate-900"
         >
           {collapsed ? <PanelLeft className="h-4 w-4" /> : (
