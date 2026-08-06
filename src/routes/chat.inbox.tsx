@@ -496,7 +496,7 @@ function InboxPage() {
       <aside className="hidden w-72 shrink-0 border-l border-slate-200 bg-white lg:block">
         {viewKind === "ig" ? (
           igMirrorConv ? (
-            <ContactDetails conv={igMirrorConv} onChange={refetch} />
+            <ContactDetails conv={igMirrorConv} onChange={refetch} avatarUrl={(igActive as any)?.contact_profile_pic ?? null} />
           ) : activeId ? (
             <div className="p-4 text-xs text-slate-400">Sincronizando dados do perfil…</div>
           ) : null
