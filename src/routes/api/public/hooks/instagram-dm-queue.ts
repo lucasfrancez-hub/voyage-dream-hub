@@ -116,7 +116,7 @@ export const Route = createFileRoute("/api/public/hooks/instagram-dm-queue")({
           }
         }
 
-        return new Response(JSON.stringify({ pendentes: pendentes?.length ?? 0, enviados }), {
+        return new Response(JSON.stringify({ pendentes: pendentes?.length ?? 0, enviados, respostas }), {
           headers: { "Content-Type": "application/json" },
         });
       },
