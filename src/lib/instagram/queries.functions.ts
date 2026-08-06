@@ -562,30 +562,67 @@ export const deleteInstagramComment = createServerFn({ method: "POST" })
     if (error || !row) throw new Error("Comentário não encontrado");
 
     let avisoInstagram: string | null = null;
+    let ocultado = false;
     if (data.escopo === "instagram") {
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-      const { data: conta } = await supabaseAdmin
+      // tenta com o token da conta do comentário e, se falhar, com as demais contas
+      // conectadas (posts em collab pertencem à outra conta).
+      const { data: contas } = await supabaseAdmin
         .from("instagram_accounts")
-        .select("access_token")
-        .eq("id", row.account_id)
-        .maybeSingle();
-      if (!conta?.access_token) throw new Error("Conta do Instagram sem token");
-      const { deleteComment } = await import("./api.server");
-      try {
-        await deleteComment({ commentId: row.comment_id, token: conta.access_token as string });
-      } catch (e) {
-        avisoInstagram =
-          e instanceof Error && /\b(400|403)\b/.test(e.message)
-            ? "O Instagram não permitiu apagar esse comentário (só dá pra apagar comentários da sua conta ou em publicações suas). Removido apenas do inbox."
-            : e instanceof Error
-              ? e.message
-              : "Falha ao apagar no Instagram";
+        .select("id, access_token");
+      const tokens = (contas ?? [])
+        .sort((a) => (a.id === row.account_id ? -1 : 1))
+        .map((c) => c.access_token as string | null)
+        .filter((t): t is string => !!t);
+      if (!tokens.length) throw new Error("Conta do Instagram sem token");
+
+      const { deleteComment, setCommentHidden } = await import("./api.server");
+      let apagou = false;
+      let ultimoErro: unknown = null;
+      for (const token of tokens) {
+        try {
+          await deleteComment({ commentId: row.comment_id, token });
+          apagou = true;
+          break;
+        } catch (e) {
+          ultimoErro = e;
+        }
       }
+
+      if (!apagou) {
+        // Fallback: comentário de terceiros — o Instagram só permite ocultar.
+        for (const token of tokens) {
+          try {
+            await setCommentHidden({ commentId: row.comment_id, token, hide: true });
+            ocultado = true;
+            break;
+          } catch (e) {
+            ultimoErro = e;
+          }
+        }
+        avisoInstagram = ocultado
+          ? "O Instagram não deixa apagar comentário de outra pessoa. Ele foi ocultado na publicação (ninguém mais vê) e continua aqui como oculto."
+          : ultimoErro instanceof Error
+            ? ultimoErro.message
+            : "Falha ao apagar no Instagram";
+      }
+    }
+
+    if (ocultado) {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const { data: atual } = await supabaseAdmin
+        .from("instagram_comments")
+        .select("metadata")
+        .eq("id", row.id)
+        .maybeSingle();
+      const meta = { ...((atual?.metadata ?? {}) as Record<string, unknown>), hidden: true };
+      await supabaseAdmin.from("instagram_comments").update({ metadata: meta }).eq("id", row.id);
+      return { ok: true, aviso: avisoInstagram, hidden: true };
     }
 
     const { error: delErr } = await context.supabase.from("instagram_comments").delete().eq("id", data.id);
     if (delErr) throw new Error(delErr.message);
-    return { ok: true, aviso: avisoInstagram };
+    return { ok: true, aviso: avisoInstagram, hidden: false };
   });
 
 /** Oculta ou reexibe um comentário na publicação do Instagram. */
