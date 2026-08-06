@@ -30,6 +30,8 @@ type MirrorInput = {
   attachmentUrl?: string | null;
   igMessageId?: string | null;
   timestamp?: number | null;
+  /** Backfill histórico: não abre/atualiza protocolo. */
+  skipProtocolo?: boolean;
 };
 
 /** Cria/atualiza a conversa espelho e grava a mensagem no inbox do chat. */
@@ -104,6 +106,7 @@ export async function mirrorInstagramMessage(input: MirrorInput) {
     content: input.text ?? (input.attachmentUrl ? "[mídia do Instagram]" : "[mensagem]"),
     wa_message_id: input.igMessageId ?? null,
     message_type: input.messageType ?? "text",
+    skip_protocolo: input.skipProtocolo ?? false,
   });
 
   return { conversationId: conversationId!, waPhone };
