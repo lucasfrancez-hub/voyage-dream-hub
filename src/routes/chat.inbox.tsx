@@ -3326,14 +3326,80 @@ function ContaTag({ username, className }: { username?: string | null; className
   );
 }
 
+/** Menu de 3 pontinhos das DMs (marcar não lida / apagar do chatbot). */
+function DmRowMenu({ conversationId, naoLidas }: { conversationId: string; naoLidas: number }) {
+  const qc = useQueryClient();
+  const unreadFn = useServerFn(markInstagramConversationUnread);
+  const readFn = useServerFn(markInstagramConversationRead);
+  const delFn = useServerFn(deleteInstagramConversation);
+  const recarregar = () => qc.invalidateQueries({ queryKey: ["ig", "conversations"] });
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); e.preventDefault(); }}
+          className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+          aria-label="Opções da conversa"
+        >
+          <MoreVertical className="h-3.5 w-3.5" />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-52" onClick={(e) => e.stopPropagation()}>
+        {naoLidas > 0 ? (
+          <DropdownMenuItem
+            onClick={() => readFn({ data: { conversation_id: conversationId } }).then(recarregar).catch((e: Error) => toast.error(e.message))}
+          >
+            <Check className="mr-2 h-3.5 w-3.5" /> Marcar como lida
+          </DropdownMenuItem>
+        ) : (
+          <DropdownMenuItem
+            onClick={() =>
+              unreadFn({ data: { conversation_id: conversationId } })
+                .then(() => { recarregar(); toast.success("Marcada como não lida"); })
+                .catch((e: Error) => toast.error(e.message))
+            }
+          >
+            <InboxIcon className="mr-2 h-3.5 w-3.5" /> Marcar como não lida
+          </DropdownMenuItem>
+        )}
+        <DropdownMenuSeparator />
+        <DropdownMenuItem
+          className="text-red-600 focus:text-red-600"
+          onClick={() =>
+            confirmThen(
+              {
+                title: "Apagar do chatbot?",
+                description: "Some com o histórico desta conversa no nosso inbox. As mensagens continuam no Instagram.",
+                confirmText: "Apagar",
+                destructive: true,
+              },
+              () =>
+                delFn({ data: { conversation_id: conversationId } })
+                  .then(() => { recarregar(); toast.success("Conversa apagada"); })
+                  .catch((e: Error) => toast.error(e.message)),
+            )
+          }
+        >
+          <Trash2 className="mr-2 h-3.5 w-3.5" /> Apagar do chatbot
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
 /** Linha de DM do Instagram usada na aba unificada "Todas". */
 function IgConvRow({ conv, active, onClick }: { conv: any; active: boolean; onClick: () => void }) {
   const nome = conv.contact_name ?? (conv.contact_username ? `@${conv.contact_username}` : "Instagram");
   return (
-    <button
+    <div
+      role="button"
+      tabIndex={0}
       onClick={onClick}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onClick(); }}
       className={cn(
-        "flex w-full items-start gap-2 rounded-lg p-2 text-left transition-colors",
+        "flex w-full cursor-pointer items-start gap-2 rounded-lg p-2 text-left transition-colors",
         active ? "bg-pink-50" : "hover:bg-slate-50",
       )}
     >
