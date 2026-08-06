@@ -3793,6 +3793,8 @@ function FinanceTab({
           selectedItem={selectedItem}
           setSelectedItem={setSelectedItem}
          packageDefaults={isPackageOrder ? { sale_value: packageFare, tax_value: packageTaxes } : null}
+          fallbackSupplier={(order.supplierName ?? "").trim() || String((snap as { supplier_name?: string }).supplier_name ?? "").trim()}
+
           onSave={async (payload, extra) => {
             let itemId = selectedItem;
             if (itemId === "__other__") {
