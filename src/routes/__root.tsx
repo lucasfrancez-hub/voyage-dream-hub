@@ -183,6 +183,11 @@ function RootComponent() {
   const router = useRouter();
 
   useEffect(() => instalarRecuperacaoVersaoAntiga(), []);
+  // Handshake de versão: detecta build antiga ao abrir e ao voltar do
+  // segundo plano (iOS mantém o app congelado por dias).
+  useEffect(() => instalarHandshakeVersao(), []);
+  // App abriu bem: tira os parâmetros técnicos da URL e zera o contador.
+  useEffect(() => limparMarcasDeRecuperacao(), []);
 
 
 
