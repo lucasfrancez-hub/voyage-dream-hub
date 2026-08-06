@@ -17,6 +17,8 @@ export type CommentContext = {
   text: string | null;
   mediaCaption: string | null;
   mediaPermalink: string | null;
+  /** Transcrição/leitura do vídeo (reels), quando houver. */
+  videoTranscricao?: string | null;
 };
 
 export async function gerarRespostaComentario(ctx: CommentContext): Promise<{ publica: string; dm: string } | null> {
@@ -31,9 +33,11 @@ Você é dos CONSULTORES (nunca do Setor Aéreo) — comentário sempre é atend
 Contexto da publicação onde o comentário foi feito:
 - Legenda: ${ctx.mediaCaption?.slice(0, 800) ?? "(sem legenda)"}
 - Link: ${ctx.mediaPermalink ?? "(sem link)"}
+${ctx.videoTranscricao ? `- Conteúdo do vídeo (transcrição e leitura da tela):\n${ctx.videoTranscricao.slice(0, 2500)}\nUse esse conteúdo do vídeo para responder com precisão ao que foi falado.` : ""}
 
 Responda em JSON exato:
 {"publica":"resposta curta e simpática no comentário (máx 2 linhas, sem link)","dm":"mensagem privada convidando a seguir no direct, personalizada com o assunto do post"}`;
+
 
   try {
     const provider = createLovableAiGatewayProvider(key);
