@@ -61,13 +61,41 @@ export function pediuMesmosDadosDaUltimaVez(text: string | null | undefined): bo
   );
 }
 
+/**
+ * A pergunta de origem NUNCA pode ser repetida depois que o cliente respondeu.
+ *
+ * Se já perguntamos a origem neste protocolo e chegou qualquer mensagem do
+ * cliente depois disso, o guarda de segurança precisa sair do caminho — a
+ * resposta do modelo (que enxerga o histórico) vale mais do que repetir a
+ * pergunta e a saudação, que é exatamente o bug que o cliente reclamou.
+ */
+export function origemJaFoiRespondidaNoProtocolo(params: {
+  outbound: Array<{ content: string | null; created_at: string }>;
+  inbound: Array<{ content: string | null; created_at: string }>;
+  sugestao?: string | null;
+}): boolean {
+  const perguntas = params.outbound
+    .filter((m) => isValidOriginQuestion(String(m.content ?? ""), params.sugestao ?? null))
+    .map((m) => new Date(m.created_at).getTime())
+    .sort((a, b) => a - b);
+  if (!perguntas.length) return false;
+  const primeira = perguntas[0]!;
+  return params.inbound.some(
+    (m) => new Date(m.created_at).getTime() > primeira && String(m.content ?? "").trim().length > 0,
+  );
+}
+
+/** Já mandamos alguma coisa neste protocolo? Então não saúda de novo. */
 export function safeMissingOriginResponse(
   clientName?: string | null,
   sugestao?: string | null,
+  opts?: { semSaudacao?: boolean },
 ): string {
   const first = (clientName ?? "").trim().split(/\s+/)[0];
   const greeting =
-    first && /^[A-Za-zÀ-ÿ]{2,}$/.test(first) ? `${saudacaoPorHora()}, ${first}!\n\n` : "";
+    !opts?.semSaudacao && first && /^[A-Za-zÀ-ÿ]{2,}$/.test(first)
+      ? `${saudacaoPorHora()}, ${first}!\n\n`
+      : "";
   const s = (sugestao ?? "").trim();
   return `${greeting}${s ? originConfirmQuestion(s) : "De qual cidade você pretende embarcar?"}`;
 }

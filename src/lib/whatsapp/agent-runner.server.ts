@@ -33,6 +33,7 @@ import {
   centralBriefHasMissingOrigin,
   isValidOriginQuestion,
   isInvalidMissingOriginResponse,
+  origemJaFoiRespondidaNoProtocolo,
   safeMissingOriginResponse,
 } from "./airflow-guard";
 
@@ -1161,16 +1162,52 @@ export async function runAgent(input: {
     // e capitaliza o primeiro nome do cliente sempre que aparecer no meio do texto.
     // Origem já confirmada neste mesmo protocolo não exige nova pergunta.
     if (centralAgent && !origemConfirmadaNoProtocolo && centralBriefHasMissingOrigin(centralBrief)) {
-      if (isInvalidMissingOriginResponse(rawText) || !isValidOriginQuestion(rawText, origemSugerida)) {
+      // O brief da triagem é tirado da PRIMEIRA mensagem e nunca é atualizado.
+      // Se já perguntamos a origem neste protocolo e o cliente respondeu
+      // (ex.: "Maringá"), o guarda não pode repetir saudação + pergunta.
+      const [{ data: outProto }, { data: inProto }] = await Promise.all([
+        supabaseAdmin
+          .from("wa_messages")
+          .select("content, created_at")
+          .eq("conversation_id", conv.id)
+          .eq("protocolo_id", protocolo.id)
+          .eq("direction", "outbound")
+          .order("created_at", { ascending: true })
+          .limit(60),
+        supabaseAdmin
+          .from("wa_messages")
+          .select("content, created_at")
+          .eq("conversation_id", conv.id)
+          .eq("protocolo_id", protocolo.id)
+          .eq("direction", "inbound")
+          .order("created_at", { ascending: true })
+          .limit(60),
+      ]);
+      const outboundProto = (outProto ?? []) as Array<{ content: string | null; created_at: string }>;
+      const jaRespondeu = origemJaFoiRespondidaNoProtocolo({
+        outbound: outboundProto,
+        inbound: (inProto ?? []) as Array<{ content: string | null; created_at: string }>,
+        sugestao: origemSugerida,
+      });
+
+      if (!jaRespondeu && (isInvalidMissingOriginResponse(rawText) || !isValidOriginQuestion(rawText, origemSugerida))) {
         console.warn("[agent-runtime]", JSON.stringify({
           ...runtimeAudit,
           event: "invalid_airflow_response_blocked",
           reason: "missing_origin_or_wrong_product",
           generated_response: rawText,
         }));
-        rawText = safeMissingOriginResponse(conv.display_name, origemSugerida);
+        rawText = safeMissingOriginResponse(conv.display_name, origemSugerida, {
+          semSaudacao: outboundProto.length > 0,
+        });
+      } else if (jaRespondeu && isInvalidMissingOriginResponse(rawText)) {
+        console.warn("[agent-runtime]", JSON.stringify({
+          ...runtimeAudit,
+          event: "airflow_response_kept_origin_already_answered",
+        }));
       }
     }
+
 
     const clientFirst = extractFirstName(conv.display_name);
     const text = capitalizeKnownNames(capitalizeBubbles(fixGluedSentences(rawText)), [clientFirst]);
