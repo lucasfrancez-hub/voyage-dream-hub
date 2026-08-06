@@ -129,13 +129,14 @@ export function ChatSidebar({ mobileOpen = false, onCloseMobile }: { mobileOpen?
                     ? "bg-orange-50 text-[#F26B1F] font-medium"
                     : "text-slate-600 hover:bg-slate-50 hover:text-slate-900",
                 )}
-                title={collapsed ? item.label : undefined}
+                title={!expandido ? item.label : undefined}
               >
                 <item.icon className="h-4 w-4 shrink-0" />
-                {(!collapsed || mobileOpen) && <span className="truncate">{item.label}</span>}
-                {active && (!collapsed || mobileOpen) && (
+                {expandido && <span className="truncate">{item.label}</span>}
+                {active && expandido && (
                   <span className="ml-auto h-1.5 w-1.5 rounded-full bg-[#F26B1F]" />
                 )}
+
               </Link>
             );
           })}
