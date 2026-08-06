@@ -219,10 +219,19 @@ async function processPayload(payload: IGPayload) {
         id?: string;
         text?: string;
         from?: { id: string; username?: string };
-        media?: { id?: string; media_product_type?: string };
+        media?: { id?: string; media_product_type?: string; media_url?: string };
         parent_id?: string;
+        attachments?: { data?: Array<{ image_data?: { url?: string }; video_data?: { url?: string }; file_url?: string }> };
       };
       if (!v.id || !v.media?.id) continue;
+
+      // Imagem/sticker anexado ao comentário, quando a Meta manda.
+      const anexoComentario =
+        v.attachments?.data?.[0]?.image_data?.url ??
+        v.attachments?.data?.[0]?.video_data?.url ??
+        v.attachments?.data?.[0]?.file_url ??
+        null;
+
 
       // Contexto da publicação: legenda, tipo e miniatura — a IA precisa saber
       // de qual post veio o comentário.
