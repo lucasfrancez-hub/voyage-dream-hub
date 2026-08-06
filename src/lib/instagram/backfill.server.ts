@@ -50,10 +50,13 @@ type IGConversation = {
       from?: { id: string; username?: string };
       to?: { data?: Array<{ id: string; username?: string }> };
       message?: string;
-      attachments?: { data?: Array<{ image_data?: { url?: string }; video_data?: { url?: string }; file_url?: string }> };
+      attachments?: { data?: Array<{ type?: string; image_data?: { url?: string; preview_url?: string }; video_data?: { url?: string; preview_url?: string }; file_url?: string; name?: string }> };
+      shares?: { data?: Array<{ link?: string; name?: string }> };
+      story?: { mention?: { link?: string; id?: string }; reply_to?: { link?: string; id?: string } };
     }>;
   };
 };
+
 
 type IGMedia = {
   id: string;
