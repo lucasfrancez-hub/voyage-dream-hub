@@ -1,0 +1,2 @@
+ALTER TABLE public.instagram_comments ADD COLUMN IF NOT EXISTS reply_scheduled_at timestamptz;
+CREATE INDEX IF NOT EXISTS instagram_comments_reply_scheduled_idx ON public.instagram_comments (reply_scheduled_at) WHERE reply_scheduled_at IS NOT NULL;
