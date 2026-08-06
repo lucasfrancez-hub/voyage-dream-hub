@@ -63,6 +63,14 @@ export async function estaDesatualizado(): Promise<boolean> {
 }
 
 /**
+ * Esta página já é o resultado de uma atualização? (parâmetro técnico lido no
+ * carregamento, antes do `__root` limpar a URL). Se mesmo assim a versão
+ * continuar diferente, não recarregamos de novo — evita loop.
+ */
+const chegouDeRefresh =
+  typeof window !== "undefined" && window.location.search.includes("__app_refresh");
+
+/**
  * Garante que a tela seguinte vai abrir na versão publicada.
  * Se estiver velha, recarrega com cache-busting e devolve `true`
  * (quem chamou deve parar a navegação — a página vai ser trocada).
@@ -71,7 +79,17 @@ export async function garantirVersaoAtual(motivo = "handshake"): Promise<boolean
   if (typeof window === "undefined") return false;
   if (!(await estaDesatualizado())) return false;
   const { hardRefreshApp, registrarDiagnostico } = await import("./stale-app-recovery");
-  registrarDiagnostico({ tipo: "versao-antiga", motivo, versaoPublicada: await versaoPublicada() });
+  const publicada = await versaoPublicada();
+  if (chegouDeRefresh) {
+    registrarDiagnostico({
+      tipo: "versao-nao-atualizou",
+      motivo,
+      versaoPublicada: publicada,
+      recuperado: false,
+    });
+    return false;
+  }
+  registrarDiagnostico({ tipo: "versao-antiga", motivo, versaoPublicada: publicada });
   await hardRefreshApp();
   return true;
 }
