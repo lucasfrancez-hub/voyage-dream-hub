@@ -813,3 +813,50 @@ export const deleteInstagramMessage = createServerFn({ method: "POST" })
     return { ok: true, aviso };
   });
 
+
+/** Curtidas e insights (alcance, salvos, compartilhamentos…) de uma publicação. */
+export const getInstagramMediaStats = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { media_id: string }) => z.object({ media_id: z.string().min(1) }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { data: comentario } = await context.supabase
+      .from("instagram_comments")
+      .select("account_id")
+      .eq("media_id", data.media_id)
+      .limit(1)
+      .maybeSingle();
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: contas } = await supabaseAdmin
+      .from("instagram_accounts")
+      .select("id, access_token, is_default")
+      .order("is_default", { ascending: false });
+
+    const lista = ((contas ?? []) as Array<{ id: string; access_token: string | null }>).filter(
+      (c) => c.access_token,
+    );
+    if (lista.length === 0) throw new Error("Nenhuma conta do Instagram conectada");
+    const preferida = comentario?.account_id;
+    const ordenadas = [
+      ...lista.filter((c) => c.id === preferida),
+      ...lista.filter((c) => c.id !== preferida),
+    ];
+
+    const { fetchMediaStats } = await import("./api.server");
+    let melhor: Awaited<ReturnType<typeof fetchMediaStats>> | null = null;
+    let ultimoErro: unknown = null;
+    for (const conta of ordenadas) {
+      try {
+        const r = await fetchMediaStats({ mediaId: data.media_id, token: conta.access_token as string });
+        // Se a conta trouxe insights, é a dona da publicação — para por aqui.
+        if (Object.keys(r.insights).length > 0) return r;
+        melhor = melhor ?? r;
+      } catch (e) {
+        ultimoErro = e;
+      }
+    }
+    if (melhor) return melhor;
+    throw new Error(
+      ultimoErro instanceof Error ? ultimoErro.message : "Não foi possível ler as métricas da publicação",
+    );
+  });
