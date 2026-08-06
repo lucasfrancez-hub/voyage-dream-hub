@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { listConversations, listMessages, sendHumanReply, resendHumanMessage, sendHumanMedia, toggleConversationMode, startOutboundConversation, setFunnelStage, assignConversation, setAiPaused, listAttendants, getActiveProtocolo, closeProtocoloManually, listConversationProtocolos, getConversationOrders, updateProtocoloDetails, listProtocoloMessages, ensureProtocoloResumo, clearConversationHistory, markConversationRead } from "@/lib/chat/queries.functions";
-import { listInstagramAccounts, listInstagramConversations, listInstagramMessages, sendInstagramAttachment, sendInstagramReply, listInstagramCommentThreads, refreshInstagramProfile, triggerAutoReplyComment, markInstagramConversationRead, markInstagramCommentThreadRead, getInstagramMediaDetails, deleteInstagramCommentThread, deleteInstagramComment, setInstagramCommentHidden, toggleInstagramCommentLike, syncInstagramCommentLikes, deleteInstagramMessage } from "@/lib/instagram/queries.functions";
+import { listInstagramAccounts, listInstagramConversations, listInstagramMessages, sendInstagramAttachment, sendInstagramReply, listInstagramCommentThreads, refreshInstagramProfile, triggerAutoReplyComment, markInstagramConversationRead, markInstagramCommentThreadRead, getInstagramMediaDetails, deleteInstagramCommentThread, deleteInstagramComment, setInstagramCommentHidden, syncInstagramCommentLikes, deleteInstagramMessage } from "@/lib/instagram/queries.functions";
 import { firstName } from "@/lib/whatsapp/text-utils.shared";
 import { confirmThen } from "@/lib/confirm";
 import { audioBlobToMp3 } from "@/lib/audio-to-mp3";
@@ -2719,13 +2719,7 @@ function InstagramCommentThreadView({ mediaId, onBack }: { mediaId: string; onBa
   const deleteThreadFn = useServerFn(deleteInstagramCommentThread);
   const delCommentFn = useServerFn(deleteInstagramComment);
   const hideCommentFn = useServerFn(setInstagramCommentHidden);
-  const likeCommentFn = useServerFn(toggleInstagramCommentLike);
   const syncLikesFn = useServerFn(syncInstagramCommentLikes);
-  const likeComment = useMutation({
-    mutationFn: (v: { id: string; like: boolean }) => likeCommentFn({ data: v }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["ig", "comment-threads"] }),
-    onError: (e: Error) => toast.error(e.message),
-  });
   const delComment = useMutation({
     mutationFn: (v: { id: string; escopo: "instagram" | "local" }) => delCommentFn({ data: v }),
     onSuccess: (r) => {
@@ -3001,9 +2995,8 @@ function InstagramCommentThreadView({ mediaId, onBack }: { mediaId: string; onBa
             const meu = nossos.has((c.from_username ?? "").replace(/^@/, "").toLowerCase());
             const inicial = (c.from_username ?? "?").replace(/^@/, "").charAt(0).toUpperCase();
             const anexo = anexoDoComentario(c);
-            const meta = (c as { metadata?: { hidden?: boolean; liked?: boolean; like_count?: number } | null }).metadata;
+            const meta = (c as { metadata?: { hidden?: boolean; like_count?: number } | null }).metadata;
             const oculto = meta?.hidden === true;
-            const curtidoPorNos = meta?.liked === true;
             const curtidas = typeof meta?.like_count === "number" ? meta.like_count : 0;
             return (
               <div
@@ -3052,18 +3045,20 @@ function InstagramCommentThreadView({ mediaId, onBack }: { mediaId: string; onBa
                     {c.auto_replied_at && !meu ? " · respondido" : ""}
                     {oculto ? " · oculto" : ""}
                     <span className="ml-auto inline-flex items-center gap-1">
-                      <button
-                        onClick={() => likeComment.mutate({ id: c.id, like: !curtidoPorNos })}
-                        disabled={likeComment.isPending}
-                        title={curtidoPorNos ? "Descurtir comentário" : "Curtir comentário"}
+                      <a
+                        href={thread?.media_permalink ?? undefined}
+                        target="_blank"
+                        rel="noreferrer"
+                        title="Curtir no Instagram"
+                        aria-label={`Curtir no Instagram${curtidas > 0 ? ` — ${curtidas} curtidas` : ""}`}
                         className={cn(
-                          "inline-flex items-center gap-0.5 rounded px-1 transition-colors disabled:opacity-50",
-                          curtidoPorNos ? (meu ? "text-white" : "text-rose-500") : "hover:text-rose-500",
+                          "inline-flex items-center gap-0.5 rounded px-1 transition-colors hover:text-rose-500",
+                          !thread?.media_permalink && "pointer-events-none opacity-50",
                         )}
                       >
-                        <Heart className={cn("h-2.5 w-2.5", curtidoPorNos && "fill-current")} />
+                        <Heart className="h-2.5 w-2.5" />
                         {curtidas > 0 ? curtidas : ""}
-                      </button>
+                      </a>
                       {!meu && (
                         <button
                           onClick={() => setAlvo(c.id)}
