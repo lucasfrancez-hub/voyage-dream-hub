@@ -46,6 +46,10 @@ interface Props {
   /** Handler pra reenviar um balão que não foi entregue */
   onResend?: () => void;
   resending?: boolean;
+  /** Horário em que o WhatsApp confirmou a entrega */
+  deliveredAt?: string | null;
+  /** Horário em que o cliente leu */
+  readAt?: string | null;
 }
 
 function formatTime(iso: string) {
@@ -54,7 +58,12 @@ function formatTime(iso: string) {
   return d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
 }
 
-export function WhatsAppBubble({ side, content, timestamp, senderLabel, status, deleted, revokedBy, replied, reply, onReply, onResend, resending }: Props) {
+export function WhatsAppBubble({ side, content, timestamp, senderLabel, status, deleted, revokedBy, replied, reply, onReply, onResend, resending, deliveredAt, readAt }: Props) {
+  const reciboTitulo = [
+    status === "sent" || status === "delivered" || status === "read" ? `Enviada ${formatTime(timestamp)}` : null,
+    deliveredAt ? `Entregue ${formatTime(deliveredAt)}` : status === "delivered" || status === "read" ? "Entregue" : null,
+    readAt ? `Lida ${formatTime(readAt)}` : status === "read" ? "Lida" : "Ainda não lida",
+  ].filter(Boolean).join(" · ");
 
   const isOut = side === "out";
   const bubbleFg = isOut ? "var(--chat-bubble-out-fg)" : "var(--chat-bubble-fg)";
@@ -182,11 +191,11 @@ export function WhatsAppBubble({ side, content, timestamp, senderLabel, status, 
                 )}
               </span>
             ) : status === "read" ? (
-              <CheckCheck className="h-3 w-3 text-blue-500" />
+              <CheckCheck className="h-3 w-3 text-blue-500" aria-label={reciboTitulo}><title>{reciboTitulo}</title></CheckCheck>
             ) : status === "delivered" ? (
-              <CheckCheck className="h-3 w-3" />
+              <CheckCheck className="h-3 w-3" aria-label={reciboTitulo}><title>{reciboTitulo}</title></CheckCheck>
             ) : (
-              <Check className="h-3 w-3" />
+              <Check className="h-3 w-3" aria-label={reciboTitulo}><title>{reciboTitulo}</title></Check>
             )
           )}
 
