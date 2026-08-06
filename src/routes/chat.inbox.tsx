@@ -2720,6 +2720,12 @@ function InstagramCommentThreadView({ mediaId, onBack }: { mediaId: string; onBa
   const delCommentFn = useServerFn(deleteInstagramComment);
   const hideCommentFn = useServerFn(setInstagramCommentHidden);
   const syncLikesFn = useServerFn(syncInstagramCommentLikes);
+  const likeFn = useServerFn(toggleInstagramCommentLike);
+  const toggleLike = useMutation({
+    mutationFn: (v: { id: string; like: boolean }) => likeFn({ data: v }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["ig", "comment-threads"] }),
+    onError: (e: Error) => toast.error(e.message),
+  });
   const delComment = useMutation({
     mutationFn: (v: { id: string; escopo: "instagram" | "local" }) => delCommentFn({ data: v }),
     onSuccess: (r) => {
@@ -2995,9 +3001,10 @@ function InstagramCommentThreadView({ mediaId, onBack }: { mediaId: string; onBa
             const meu = nossos.has((c.from_username ?? "").replace(/^@/, "").toLowerCase());
             const inicial = (c.from_username ?? "?").replace(/^@/, "").charAt(0).toUpperCase();
             const anexo = anexoDoComentario(c);
-            const meta = (c as { metadata?: { hidden?: boolean; like_count?: number } | null }).metadata;
+            const meta = (c as { metadata?: { hidden?: boolean; like_count?: number; liked?: boolean } | null }).metadata;
             const oculto = meta?.hidden === true;
             const curtidas = typeof meta?.like_count === "number" ? meta.like_count : 0;
+            const curtido = meta?.liked === true;
             return (
               <div
                 key={c.id}
@@ -3045,20 +3052,20 @@ function InstagramCommentThreadView({ mediaId, onBack }: { mediaId: string; onBa
                     {c.auto_replied_at && !meu ? " · respondido" : ""}
                     {oculto ? " · oculto" : ""}
                     <span className="ml-auto inline-flex items-center gap-1">
-                      <a
-                        href={thread?.media_permalink ?? undefined}
-                        target="_blank"
-                        rel="noreferrer"
-                        title="Curtir no Instagram"
-                        aria-label={`Curtir no Instagram${curtidas > 0 ? ` — ${curtidas} curtidas` : ""}`}
+                      <button
+                        type="button"
+                        disabled={toggleLike.isPending}
+                        onClick={() => toggleLike.mutate({ id: c.id, like: !curtido })}
+                        title={curtido ? "Descurtir comentário" : "Curtir comentário"}
+                        aria-label={`${curtido ? "Descurtir" : "Curtir"} comentário${curtidas > 0 ? ` — ${curtidas} curtidas` : ""}`}
                         className={cn(
-                          "inline-flex items-center gap-0.5 rounded px-1 transition-colors hover:text-rose-500",
-                          !thread?.media_permalink && "pointer-events-none opacity-50",
+                          "inline-flex items-center gap-0.5 rounded px-1 transition-colors hover:text-rose-500 disabled:opacity-50",
+                          curtido && "text-rose-500",
                         )}
                       >
-                        <Heart className="h-2.5 w-2.5" />
+                        <Heart className={cn("h-2.5 w-2.5", curtido && "fill-current")} />
                         {curtidas > 0 ? curtidas : ""}
-                      </a>
+                      </button>
                       {!meu && (
                         <button
                           onClick={() => setAlvo(c.id)}
