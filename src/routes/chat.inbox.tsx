@@ -2138,6 +2138,20 @@ function InstagramConversationView({
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const delMsgFn = useServerFn(deleteInstagramMessage);
+  const delMsg = useMutation({
+    mutationFn: (v: { id: string; escopo: "todos" | "aqui" }) => delMsgFn({ data: v }),
+    onSuccess: (r) => {
+      qc.invalidateQueries({ queryKey: ["ig", "messages", conversationId] });
+      qc.invalidateQueries({ queryKey: ["ig", "conversations"] });
+      const aviso = (r as { aviso?: string | null } | undefined)?.aviso;
+      if (aviso) toast.warning(aviso);
+      else toast.success("Mensagem apagada");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+
   const igListFn = useServerFn(listInstagramConversations);
   const { data: igConvs = [] } = useQuery({
     queryKey: ["ig", "conversations"],
