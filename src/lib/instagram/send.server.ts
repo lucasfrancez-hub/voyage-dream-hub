@@ -73,12 +73,13 @@ const AVISO_COLLAB =
 /** O Graph devolve 100/33 quando o comentário não pertence à conta (posts em collab). */
 function ehComentarioDeOutroPerfil(erro: unknown): boolean {
   const msg = erro instanceof Error ? erro.message : String(erro);
-  return /error_subcode":\s*33/.test(msg) || /does not exist, cannot be loaded due to missing permissions/i.test(msg);
+  return /error_subcode"?:\s*33/.test(msg) || /does not exist, cannot be loaded due to missing permissions/i.test(msg);
 }
 
 /**
  * Responde um comentário publicamente + envia DM privada ao autor.
- * Em publicações collab a API bloqueia a resposta: guardamos como sugestão.
+ * Tenta o token da conta do comentário e, se a Meta recusar, o das demais
+ * contas conectadas (posts em collab pertencem ao outro perfil).
  */
 export async function autoReplyComment(params: {
   accountId: string;
@@ -87,8 +88,19 @@ export async function autoReplyComment(params: {
   privateDm?: string | null;
   collab?: boolean;
 }) {
-  const acc = await loadAccount(params.accountId);
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+  const { data: contas } = await supabaseAdmin
+    .from("instagram_accounts")
+    .select("id, ig_user_id, access_token");
+  const candidatas = (contas ?? [])
+    .filter((c) => !!c.access_token)
+    .sort((a, b) => (a.id === params.accountId ? -1 : b.id === params.accountId ? 1 : 0)) as Array<{
+    id: string;
+    ig_user_id: string;
+    access_token: string;
+  }>;
+  if (!candidatas.length) throw new Error(`instagram_account ${params.accountId} sem token`);
 
   const salvarSugestao = async () => {
     await supabaseAdmin
@@ -101,45 +113,60 @@ export async function autoReplyComment(params: {
       .eq("comment_id", params.commentId);
   };
 
-  if (params.collab) {
-    await salvarSugestao();
-    throw new Error(AVISO_COLLAB);
+  const { replyToComment, sendPrivateReplyToComment } = await import("./api.server");
+
+  let usada: { id: string; ig_user_id: string; access_token: string } | null = null;
+  let ultimoErro: unknown = null;
+  for (const conta of candidatas) {
+    try {
+      await replyToComment({
+        commentId: params.commentId,
+        token: conta.access_token,
+        message: params.publicReply,
+      });
+      usada = conta;
+      break;
+    } catch (e) {
+      ultimoErro = e;
+      if (!ehComentarioDeOutroPerfil(e)) break;
+    }
   }
 
-  try {
-    await replyToComment({
-      commentId: params.commentId,
-      token: acc.access_token,
-      message: params.publicReply,
-    });
-    if (params.privateDm) {
-      await sendPrivateReplyToComment({
-        igUserId: acc.ig_user_id,
-        token: acc.access_token,
-        commentId: params.commentId,
-        text: params.privateDm,
-      });
-    }
-    await supabaseAdmin
-      .from("instagram_comments")
-      .update({
-        auto_reply_status: "sent",
-        auto_reply_text: params.publicReply,
-        auto_replied_at: new Date().toISOString(),
-        read_at: new Date().toISOString(),
-        auto_dm_sent_at: params.privateDm ? new Date().toISOString() : null,
-      })
-      .eq("comment_id", params.commentId);
-  } catch (e) {
-    if (ehComentarioDeOutroPerfil(e)) {
+  if (!usada) {
+    if (ehComentarioDeOutroPerfil(ultimoErro)) {
       await salvarSugestao();
       throw new Error(AVISO_COLLAB);
     }
     await supabaseAdmin
       .from("instagram_comments")
-      .update({ auto_reply_status: "failed", auto_reply_text: (e as Error).message })
+      .update({ auto_reply_status: "failed", auto_reply_text: (ultimoErro as Error)?.message ?? "falha" })
       .eq("comment_id", params.commentId);
-    throw e;
+    throw ultimoErro instanceof Error ? ultimoErro : new Error(String(ultimoErro));
   }
+
+  if (params.privateDm) {
+    try {
+      await sendPrivateReplyToComment({
+        igUserId: usada.ig_user_id,
+        token: usada.access_token,
+        commentId: params.commentId,
+        text: params.privateDm,
+      });
+    } catch (e) {
+      console.warn("[ig] resposta pública enviada, DM privada falhou:", (e as Error).message);
+    }
+  }
+
+  await supabaseAdmin
+    .from("instagram_comments")
+    .update({
+      auto_reply_status: "sent",
+      auto_reply_text: params.publicReply,
+      auto_replied_at: new Date().toISOString(),
+      read_at: new Date().toISOString(),
+      auto_dm_sent_at: params.privateDm ? new Date().toISOString() : null,
+    })
+    .eq("comment_id", params.commentId);
 }
+
 
