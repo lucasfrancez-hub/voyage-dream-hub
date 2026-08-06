@@ -2271,12 +2271,66 @@ function InstagramConversationView({
             const casa = bruto.match(/^\*([^*\n]{2,40}):\*\s*\n?/);
             const remetente = casa?.[1] ?? null;
             const corpo = casa ? bruto.slice(casa[0].length) : bruto;
+            const apagada = (m as { is_deleted?: boolean | null }).is_deleted === true;
             return (
-            <div key={m.id} className={cn("flex", m.direction === "outbound" ? "justify-end" : "justify-start")}>
+            <div key={m.id} className={cn("group flex items-center gap-1", m.direction === "outbound" ? "justify-end" : "justify-start")}>
+              {m.direction === "outbound" && !apagada && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      className="opacity-0 transition-opacity group-hover:opacity-100 focus:opacity-100"
+                      aria-label="Ações da mensagem"
+                    >
+                      <MoreVertical className="h-3.5 w-3.5 text-slate-400" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56">
+                    <DropdownMenuLabel>Apagar mensagem</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      className="text-destructive focus:text-destructive"
+                      onClick={() =>
+                        confirmThen(
+                          {
+                            title: "Apagar para todos?",
+                            description: "A mensagem some do Instagram para você e para o cliente.",
+                            confirmText: "Apagar para todos",
+                            destructive: true,
+                          },
+                          () => delMsg.mutate({ id: m.id as string, escopo: "todos" }),
+                        )
+                      }
+                    >
+                      Apagar para todos
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() =>
+                        confirmThen(
+                          {
+                            title: "Apagar só aqui?",
+                            description: "A mensagem some apenas do nosso painel; no Instagram ela continua.",
+                            confirmText: "Apagar aqui",
+                            destructive: true,
+                          },
+                          () => delMsg.mutate({ id: m.id as string, escopo: "aqui" }),
+                        )
+                      }
+                    >
+                      Apagar só aqui
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
               <div className={cn(
                 "max-w-[70%] rounded-2xl px-3 py-2 text-sm shadow-sm",
-                m.direction === "outbound" ? "bg-[#F26B1F] text-white" : "bg-white text-slate-900",
+                apagada
+                  ? "border border-dashed border-slate-300 bg-slate-100 italic text-slate-400"
+                  : m.direction === "outbound" ? "bg-[#F26B1F] text-white" : "bg-white text-slate-900",
               )}>
+                {apagada ? (
+                  <div className="text-xs">Mensagem apagada</div>
+                ) : (
+                <>
                 {remetente && (
                   <div className={cn(
                     "mb-0.5 text-[11px] font-semibold",
@@ -2301,14 +2355,37 @@ function InstagramConversationView({
                   )
                 ) : null}
                 {corpo ? <div className="whitespace-pre-wrap break-words">{corpo}</div> : null}
+                </>
+                )}
 
-                <div className={cn("mt-0.5 text-[10px]", m.direction === "outbound" ? "text-white/70" : "text-slate-400")}>
+                <div className={cn("mt-0.5 text-[10px]", apagada ? "text-slate-400" : m.direction === "outbound" ? "text-white/70" : "text-slate-400")}>
                   {new Date(m.created_at as string).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
-                  {m.status === "failed" ? " · não entregue" : ""}
+                  {m.status === "failed" && !apagada ? " · não entregue" : ""}
                 </div>
               </div>
+              {m.direction === "inbound" && !apagada && (
+                <button
+                  onClick={() =>
+                    confirmThen(
+                      {
+                        title: "Apagar só aqui?",
+                        description:
+                          "O Instagram não deixa apagar mensagem recebida — ela some apenas do nosso painel.",
+                        confirmText: "Apagar aqui",
+                        destructive: true,
+                      },
+                      () => delMsg.mutate({ id: m.id as string, escopo: "aqui" }),
+                    )
+                  }
+                  className="opacity-0 transition-opacity group-hover:opacity-100 focus:opacity-100"
+                  aria-label="Apagar mensagem"
+                >
+                  <Trash2 className="h-3.5 w-3.5 text-slate-400 hover:text-red-500" />
+                </button>
+              )}
             </div>
             );
+
           })
 
 
