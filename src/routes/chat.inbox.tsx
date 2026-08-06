@@ -2366,11 +2366,13 @@ function InstagramConversationView({
             <ConversationMenu conv={mirror} onChange={() => onRefetch?.()} />
           </>
         )}
+        <WallpaperMenu wallpaper={wallpaper} />
       </header>
 
 
 
-      <div className="flex-1 space-y-2 overflow-y-auto p-4">
+      <div className="flex-1 space-y-2 overflow-y-auto p-4" style={wallpaper.style}>
+
         {isLoading ? (
           <div className="text-center text-xs text-slate-400">Carregando…</div>
         ) : msgs.length === 0 ? (
