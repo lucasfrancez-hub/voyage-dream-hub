@@ -39,9 +39,23 @@ const ITEMS = [
   { to: "/chat/config", label: "Configurações", icon: Settings },
 ] as const;
 
+const SIDEBAR_KEY = "chat-sidebar-collapsed";
+
 export function ChatSidebar({ mobileOpen = false, onCloseMobile }: { mobileOpen?: boolean; onCloseMobile?: () => void } = {}) {
-  const [collapsed, setCollapsed] = useState(false);
+  // Padrão: recolhido. E lembra a escolha do usuário entre recargas.
+  const [collapsed, setCollapsed] = useState(true);
+  useEffect(() => {
+    try {
+      const salvo = localStorage.getItem(SIDEBAR_KEY);
+      if (salvo !== null) setCollapsed(salvo === "1");
+    } catch { /* ignore */ }
+  }, []);
+  const alternarRecolhido = (valor: boolean) => {
+    setCollapsed(valor);
+    try { localStorage.setItem(SIDEBAR_KEY, valor ? "1" : "0"); } catch { /* ignore */ }
+  };
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+
 
   return (
     <>
