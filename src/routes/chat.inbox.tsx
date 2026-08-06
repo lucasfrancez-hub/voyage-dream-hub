@@ -3001,9 +3001,10 @@ function InstagramCommentThreadView({ mediaId, onBack }: { mediaId: string; onBa
             const meu = nossos.has((c.from_username ?? "").replace(/^@/, "").toLowerCase());
             const inicial = (c.from_username ?? "?").replace(/^@/, "").charAt(0).toUpperCase();
             const anexo = anexoDoComentario(c);
-            const meta = (c as { metadata?: { hidden?: boolean; like_count?: number } | null }).metadata;
+            const meta = (c as { metadata?: { hidden?: boolean; like_count?: number; liked?: boolean } | null }).metadata;
             const oculto = meta?.hidden === true;
             const curtidas = typeof meta?.like_count === "number" ? meta.like_count : 0;
+            const curtido = meta?.liked === true;
             return (
               <div
                 key={c.id}
