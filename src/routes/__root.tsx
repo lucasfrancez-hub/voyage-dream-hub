@@ -62,40 +62,45 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
     if (tentarRecuperarVersaoAntiga(error)) setAutoRecovering(true);
   }, [error]);
 
+  const titulo = autoRecovering
+    ? "O aplicativo foi atualizado"
+    : erroDeVersao
+      ? "Atualização disponível"
+      : "Não foi possível abrir esta página";
+
+  const texto = autoRecovering
+    ? "Estamos carregando a versão mais recente. Só um instante…"
+    : erroDeVersao
+      ? "Este aparelho estava com uma versão antiga aberta. Toque em Atualizar aplicativo para carregar a versão mais recente — sua conta e o PIN continuam salvos."
+      : "Encontramos uma falha ao abrir esta tela. Tente novamente; se continuar, o erro já foi registrado para correção.";
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
-        <h1 className="text-xl font-semibold tracking-tight text-foreground">
-          {autoRecovering ? "Atualizando…" : "Não foi possível abrir esta página"}
-        </h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          {autoRecovering
-            ? "Detectamos uma versão desatualizada e estamos atualizando pra você."
-            : erroDeVersao
-              ? "O aplicativo estava com arquivos antigos. Atualize para carregar a versão mais recente."
-              : "Encontramos uma falha ao abrir esta tela. Tente novamente; se continuar, o erro já foi registrado para correção."}
-        </p>
-        <div className="mt-6 flex flex-wrap justify-center gap-2">
-          <button
-            onClick={() => {
-              if (erroDeVersao) {
-                void atualizarAplicativo();
-                return;
-              }
-              void router.invalidate().finally(reset);
-            }}
-            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-          >
-            {erroDeVersao ? "Atualizar aplicativo" : "Tentar novamente"}
-          </button>
-          <a
-            href="/"
-            className="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
-          >
-            Ir para o início
-          </a>
-        </div>
+        <h1 className="text-xl font-semibold tracking-tight text-foreground">{titulo}</h1>
+        <p className="mt-2 text-sm text-muted-foreground">{texto}</p>
+        {!autoRecovering && (
+          <div className="mt-6 flex flex-wrap justify-center gap-2">
+            <button
+              onClick={() => {
+                if (erroDeVersao) {
+                  void atualizarAplicativo();
+                  return;
+                }
+                void router.invalidate().finally(reset);
+              }}
+              className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+            >
+              {erroDeVersao ? "Atualizar aplicativo" : "Tentar novamente"}
+            </button>
+            <a
+              href="/"
+              className="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
+            >
+              Ir para o início
+            </a>
+          </div>
+        )}
       </div>
     </div>
   );
