@@ -260,6 +260,8 @@ async function processPayload(payload: IGPayload) {
           media_thumbnail: midia.thumbnail,
           media_type: midia.media_type,
           media_permalink: midia.permalink,
+          ...(anexoComentario ? { metadata: { attachment_url: anexoComentario } } : {}),
+
 
         },
         { onConflict: "comment_id" },
