@@ -2496,7 +2496,85 @@ function InstagramMediaThreadList({
   );
 }
 
+/** URL de imagem enviada junto ao comentário (sticker/GIF/anexo), quando houver. */
+function anexoDoComentario(c: { text?: string | null; metadata?: unknown }): string | null {
+  const meta = (c.metadata ?? {}) as Record<string, unknown>;
+  const direto = (meta.attachment_url ?? meta.media_url ?? meta.image_url) as string | undefined;
+  if (typeof direto === "string" && /^https?:\/\//.test(direto)) return direto;
+  const naMensagem = (c.text ?? "").match(/https?:\/\/\S+\.(?:jpe?g|png|gif|webp)(?:\?\S*)?/i);
+  return naMensagem?.[0] ?? null;
+}
+
+type ComentarioBase = {
+  id: string;
+  comment_id?: string | null;
+  parent_comment_id?: string | null;
+  from_username?: string | null;
+  text?: string | null;
+  created_at?: string | null;
+};
+
+/**
+ * Coloca cada resposta logo embaixo do comentário que ela responde.
+ * Quando o Instagram não mandou o `parent_comment_id` (histórico antigo),
+ * inferimos pelo @menção no início da nossa resposta ou pelo último
+ * comentário de terceiro ainda sem resposta nossa.
+ */
+function ordenarComentariosEmThread<T extends ComentarioBase>(
+  comments: T[],
+  nossos: Set<string>,
+): Array<{ item: T; depth: number }> {
+  const cron = [...comments].sort((a, b) => (a.created_at ?? "").localeCompare(b.created_at ?? ""));
+  const chave = (c: T) => c.comment_id ?? c.id;
+  const existentes = new Set(cron.map(chave));
+
+  const paiDe = new Map<string, string>();
+  const respondidos = new Set<string>();
+
+  for (const c of cron) {
+    const k = chave(c);
+    const meu = nossos.has((c.from_username ?? "").replace(/^@/, "").toLowerCase());
+    let pai = c.parent_comment_id && existentes.has(c.parent_comment_id) ? c.parent_comment_id : null;
+
+    if (!pai && meu) {
+      const mencao = (c.text ?? "").match(/^\s*@([A-Za-z0-9._]+)/)?.[1]?.toLowerCase();
+      const anteriores = cron.filter(
+        (o) => (o.created_at ?? "") < (c.created_at ?? "") && !nossos.has((o.from_username ?? "").replace(/^@/, "").toLowerCase()),
+      );
+      const candidatos = mencao
+        ? anteriores.filter((o) => (o.from_username ?? "").replace(/^@/, "").toLowerCase() === mencao)
+        : anteriores;
+      const alvo =
+        [...candidatos].reverse().find((o) => !respondidos.has(chave(o))) ??
+        [...candidatos].reverse()[0];
+      if (alvo) pai = chave(alvo);
+    }
+
+    if (pai && pai !== k) {
+      paiDe.set(k, pai);
+      respondidos.add(pai);
+    }
+  }
+
+  const filhos = new Map<string, T[]>();
+  const raizes: T[] = [];
+  for (const c of cron) {
+    const pai = paiDe.get(chave(c));
+    if (pai) filhos.set(pai, [...(filhos.get(pai) ?? []), c]);
+    else raizes.push(c);
+  }
+
+  const saida: Array<{ item: T; depth: number }> = [];
+  const visitar = (c: T, depth: number) => {
+    saida.push({ item: c, depth });
+    for (const f of filhos.get(chave(c)) ?? []) visitar(f, Math.min(depth + 1, 1));
+  };
+  for (const r of raizes) visitar(r, 0);
+  return saida;
+}
+
 /** Janela da publicação: todos os comentários em formato de conversa. */
+
 function InstagramCommentThreadView({ mediaId, onBack }: { mediaId: string; onBack: () => void }) {
   const threadsFn = useServerFn(listInstagramCommentThreads);
   const accountsFn = useServerFn(listInstagramAccounts);
@@ -2566,7 +2644,10 @@ function InstagramCommentThreadView({ mediaId, onBack }: { mediaId: string; onBa
     }
     return null;
   }, [comments, nossos]);
+  const comentariosEmThread = useMemo(() => ordenarComentariosEmThread(comments, nossos), [comments, nossos]);
+
   const alvoAtual = comments.find((c) => c.id === alvo) ?? alvoPadrao;
+
 
   async function enviar() {
     if (!text.trim() || !alvoAtual) return;
@@ -2772,11 +2853,16 @@ function InstagramCommentThreadView({ mediaId, onBack }: { mediaId: string; onBa
         ) : comments.length === 0 ? (
           <div className="text-center text-xs text-slate-400">Nenhum comentário nesta publicação</div>
         ) : (
-          comments.map((c) => {
-            const meu = nossos.has((c.from_username ?? "").toLowerCase());
+          comentariosEmThread.map(({ item: c, depth }) => {
+            const meu = nossos.has((c.from_username ?? "").replace(/^@/, "").toLowerCase());
             const inicial = (c.from_username ?? "?").replace(/^@/, "").charAt(0).toUpperCase();
+            const anexo = anexoDoComentario(c);
             return (
-              <div key={c.id} className={cn("flex items-end gap-2", meu ? "justify-end" : "justify-start")}>
+              <div
+                key={c.id}
+                className={cn("flex items-end gap-2", meu ? "justify-end" : "justify-start")}
+                style={depth > 0 ? (meu ? { paddingRight: 0, paddingLeft: 28 } : { paddingLeft: 28 }) : undefined}
+              >
                 {!meu &&
                   (c.from_profile_pic ? (
                     <img src={c.from_profile_pic} alt="" className="h-7 w-7 shrink-0 rounded-full object-cover" />
@@ -2789,12 +2875,25 @@ function InstagramCommentThreadView({ mediaId, onBack }: { mediaId: string; onBa
                   className={cn(
                     "max-w-[75%] rounded-2xl px-3 py-2 text-sm shadow-sm",
                     meu ? "bg-[#F26B1F] text-white" : "bg-white text-slate-900",
+                    depth > 0 && (meu ? "border-r-2 border-white/40" : "border-l-2 border-[#F26B1F]/30"),
                   )}
                 >
                   <div className={cn("text-[11px] font-semibold", meu ? "text-white" : "text-[#F26B1F]")}>
                     @{c.from_username ?? "usuário"}
                   </div>
-                  <div className="whitespace-pre-wrap break-words [overflow-wrap:anywhere]">{c.text}</div>
+                  {c.text && (
+                    <div className="whitespace-pre-wrap break-words [overflow-wrap:anywhere]">{c.text}</div>
+                  )}
+                  {anexo && (
+                    <a href={anexo} target="_blank" rel="noreferrer" className="mt-1 block">
+                      <img
+                        src={anexo}
+                        alt="Imagem do comentário"
+                        loading="lazy"
+                        className="max-h-64 w-full rounded-lg object-cover"
+                      />
+                    </a>
+                  )}
                   <div className={cn("mt-0.5 flex items-center gap-2 text-[10px]", meu ? "text-white/70" : "text-slate-400")}>
                     {new Date(c.created_at as string).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
                     {c.auto_replied_at && !meu ? " · respondido" : ""}
@@ -2812,6 +2911,7 @@ function InstagramCommentThreadView({ mediaId, onBack }: { mediaId: string; onBa
             );
           })
         )}
+
         <div ref={bottomRef} />
       </div>
 
