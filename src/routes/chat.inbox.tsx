@@ -2761,15 +2761,24 @@ function InstagramCommentThreadView({ mediaId, onBack }: { mediaId: string; onBa
       .catch(() => {});
   }, [mediaId, syncLikesFn, qc]);
 
-  const jaMarcou = useRef<string | null>(null);
+  // Sempre que a publicação aberta tiver comentários pendentes, marca como lida.
+  const marcando = useRef(false);
+  const pendentes = thread?.pendentes ?? 0;
   useEffect(() => {
-    if (!mediaId || jaMarcou.current === mediaId) return;
-    if (!thread || thread.pendentes === 0) return;
-    jaMarcou.current = mediaId;
+    if (!mediaId || pendentes <= 0 || marcando.current) return;
+    marcando.current = true;
+    // some na hora com o badge (otimista) e confirma no servidor
+    qc.setQueryData(["ig", "comment-threads"], (old: any) =>
+      Array.isArray(old) ? old.map((t: any) => (t.media_id === mediaId ? { ...t, pendentes: 0 } : t)) : old,
+    );
     markReadFn({ data: { media_id: mediaId } })
       .then(() => qc.invalidateQueries({ queryKey: ["ig", "comment-threads"] }))
-      .catch(() => {});
-  }, [mediaId, thread, markReadFn, qc]);
+      .catch((e: Error) => {
+        toast.error(`Não deu pra marcar como lida: ${e.message}`);
+        qc.invalidateQueries({ queryKey: ["ig", "comment-threads"] });
+      })
+      .finally(() => { marcando.current = false; });
+  }, [mediaId, pendentes, markReadFn, qc]);
 
   // Mídia real da publicação (vídeo/foto) pra tocar dentro do painel.
   const mediaDetailsFn = useServerFn(getInstagramMediaDetails);
