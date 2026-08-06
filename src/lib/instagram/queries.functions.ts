@@ -107,6 +107,39 @@ export const markInstagramConversationRead = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+/** Marca a DM como não lida (badge volta na lista). */
+export const markInstagramConversationUnread = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { conversation_id: string }) => z.object({ conversation_id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase
+      .from("instagram_conversations")
+      .update({ unread_count: 1 })
+      .eq("id", data.conversation_id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+/** Apaga a conversa (DM) do nosso inbox. No Instagram as mensagens continuam. */
+export const deleteInstagramConversation = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { conversation_id: string }) => z.object({ conversation_id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { error: msgErr } = await context.supabase
+      .from("instagram_messages")
+      .delete()
+      .eq("conversation_id", data.conversation_id);
+    if (msgErr) throw new Error(msgErr.message);
+    const { error } = await context.supabase
+      .from("instagram_conversations")
+      .delete()
+      .eq("id", data.conversation_id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+
+
 
 
 export const listInstagramMessages = createServerFn({ method: "GET" })
