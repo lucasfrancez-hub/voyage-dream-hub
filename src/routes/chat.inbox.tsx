@@ -2334,7 +2334,7 @@ function InstagramConversationView({
                 "max-w-[70%] rounded-2xl px-3 py-2 text-sm shadow-sm",
                 apagada
                   ? "border border-dashed border-slate-300 bg-slate-100 italic text-slate-400"
-                  : m.direction === "outbound" ? "bg-[#F26B1F] text-white" : "bg-white text-slate-900",
+                  : m.direction === "outbound" ? bolhaConta((profile as any)?.account_username) : "bg-white text-slate-900",
               )}>
                 {apagada ? (
                   <div className="text-xs">Mensagem apagada</div>
@@ -3002,11 +3002,16 @@ function InstagramCommentThreadView({ mediaId, onBack }: { mediaId: string; onBa
                 <div
                   className={cn(
                     "max-w-[75%] rounded-2xl px-3 py-2 text-sm shadow-sm",
-                    meu ? "bg-[#F26B1F] text-white" : "bg-white text-slate-900",
-                    depth > 0 && (meu ? "border-r-2 border-white/40" : "border-l-2 border-[#F26B1F]/30"),
+                    meu ? bolhaConta(c.from_username) : "bg-white text-slate-900",
+                    depth > 0 &&
+                      (meu
+                        ? "border-r-2 border-white/40"
+                        : contaAzul(thread?.account_username)
+                          ? "border-l-2 border-[#175E7C]/30"
+                          : "border-l-2 border-[#F26B1F]/30"),
                   )}
                 >
-                  <div className={cn("text-[11px] font-semibold", meu ? "text-white" : "text-[#F26B1F]")}>
+                  <div className={cn("text-[11px] font-semibold", meu ? "text-white" : contaAzul(thread?.account_username) ? "text-[#175E7C]" : "text-[#F26B1F]")}>
                     @{c.from_username ?? "usuário"}
                   </div>
                   {c.text && (
@@ -3163,12 +3168,29 @@ function ReciboDirect({ deliveredAt, readAt }: { deliveredAt?: string | null; re
   );
 }
 
+/** true quando a conta é o perfil pessoal do Lucas (identidade azul). */
+function contaAzul(username?: string | null) {
+  const u = String(username ?? "").replace(/^@/, "").toLowerCase();
+  return u.includes("lucas");
+}
+
+/** Balão de resposta com o gradiente da conta (laranja VIA AIR ou azul-petróleo). */
+function bolhaConta(username?: string | null) {
+  return contaAzul(username)
+    ? "bg-gradient-to-br from-[#2A7F9E] via-[#175E7C] to-[#0C3A50] text-white"
+    : "bg-gradient-to-br from-[#F9963F] via-[#F26B1F] to-[#C9450E] text-white";
+}
+
 function ContaTag({ username, className }: { username?: string | null; className?: string }) {
   if (!username) return null;
+  const azul = contaAzul(username);
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 rounded-full bg-slate-100 px-1.5 py-[1px] text-[9px] font-semibold uppercase tracking-wide text-slate-500",
+        "inline-flex items-center gap-1 rounded-full px-1.5 py-[1px] text-[9px] font-semibold uppercase tracking-wide",
+        azul
+          ? "bg-gradient-to-r from-[#2A7F9E]/15 to-[#0C3A50]/15 text-[#175E7C]"
+          : "bg-gradient-to-r from-[#F9963F]/15 to-[#C9450E]/15 text-[#C9450E]",
         className,
       )}
     >
