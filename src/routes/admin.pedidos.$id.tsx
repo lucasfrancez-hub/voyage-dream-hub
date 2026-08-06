@@ -4159,15 +4159,18 @@ function PaymentsSection({
   payments: OrderPayment[];
   onChange: () => void;
 }) {
-  // Fornecedor padrão para novos pagamentos: primeiro item com supplier_name preenchido
+  // Fornecedor padrão para novos pagamentos: item com supplier_name, senão o
+  // fornecedor cadastrado no pedido/produto.
   const defaultProvider = useMemo(() => {
     for (const it of items) {
       const d = (it.details ?? {}) as { supplier_name?: string };
       const s = (d.supplier_name ?? "").trim();
       if (s) return s;
     }
-    return "";
-  }, [items]);
+    const snap = (order.packageSnapshot ?? {}) as { supplier_name?: string };
+    return (order.supplierName ?? "").trim() || (snap.supplier_name ?? "").trim() || "";
+  }, [items, order.supplierName, order.packageSnapshot]);
+
 
   const upsert = useServerFn(upsertOrderPayment);
   const del = useServerFn(deleteOrderPayment);
