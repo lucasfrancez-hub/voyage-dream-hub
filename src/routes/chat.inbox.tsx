@@ -2702,6 +2702,27 @@ function InstagramCommentThreadView({ mediaId, onBack }: { mediaId: string; onBa
   // Ao abrir a publicação, marca os comentários como lidos (badge some).
   const markReadFn = useServerFn(markInstagramCommentThreadRead);
   const deleteThreadFn = useServerFn(deleteInstagramCommentThread);
+  const delCommentFn = useServerFn(deleteInstagramComment);
+  const hideCommentFn = useServerFn(setInstagramCommentHidden);
+  const delComment = useMutation({
+    mutationFn: (v: { id: string; escopo: "instagram" | "local" }) => delCommentFn({ data: v }),
+    onSuccess: (r) => {
+      qc.invalidateQueries({ queryKey: ["ig", "comment-threads"] });
+      const aviso = (r as { aviso?: string | null } | undefined)?.aviso;
+      if (aviso) toast.warning(aviso);
+      else toast.success("Comentário apagado");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  const hideComment = useMutation({
+    mutationFn: (v: { id: string; hidden: boolean }) => hideCommentFn({ data: v }),
+    onSuccess: (_r, v) => {
+      qc.invalidateQueries({ queryKey: ["ig", "comment-threads"] });
+      toast.success(v.hidden ? "Comentário ocultado no Instagram" : "Comentário reexibido");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const jaMarcou = useRef<string | null>(null);
   useEffect(() => {
     if (!mediaId || jaMarcou.current === mediaId) return;
