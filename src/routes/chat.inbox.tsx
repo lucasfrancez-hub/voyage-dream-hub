@@ -2243,6 +2243,8 @@ function InstagramConversationView({
   });
 
   const [text, setText] = useState("");
+  const [midiaAberta, setMidiaAberta] = useState<string | null>(null);
+
   const fileRef = useRef<HTMLInputElement | null>(null);
   const [igRecording, setIgRecording] = useState(false);
   const igRecorderRef = useRef<MediaRecorder | null>(null);
