@@ -571,7 +571,7 @@ export const deleteInstagramComment = createServerFn({ method: "POST" })
         .from("instagram_accounts")
         .select("id, access_token");
       const tokens = (contas ?? [])
-        .sort((a) => (a.id === row.account_id ? -1 : 1))
+        .sort((a, b) => (a.id === row.account_id ? -1 : b.id === row.account_id ? 1 : 0))
         .map((c) => c.access_token as string | null)
         .filter((t): t is string => !!t);
       if (!tokens.length) throw new Error("Conta do Instagram sem token");
@@ -715,7 +715,7 @@ export const toggleInstagramCommentLike = createServerFn({ method: "POST" })
       .select("id, access_token");
     const tokens = (contas ?? [])
       .filter((c) => !!c.access_token)
-      .sort((a) => (a.id === row.account_id ? -1 : 1))
+      .sort((a, b) => (a.id === row.account_id ? -1 : b.id === row.account_id ? 1 : 0))
       .map((c) => c.access_token as string);
     if (!tokens.length) throw new Error("Conta do Instagram sem token");
 
