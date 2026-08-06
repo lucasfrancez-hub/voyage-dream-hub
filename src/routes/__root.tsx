@@ -11,6 +11,11 @@ import { useEffect, useState, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
+import {
+  hardRefreshApp,
+  instalarRecuperacaoVersaoAntiga,
+  tentarRecuperarVersaoAntiga,
+} from "../lib/stale-app-recovery";
 import { Toaster } from "@/components/ui/sonner";
 import { ConfirmProvider } from "@/lib/confirm";
 
