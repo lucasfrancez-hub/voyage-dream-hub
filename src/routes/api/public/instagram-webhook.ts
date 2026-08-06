@@ -98,12 +98,15 @@ async function processPayload(payload: IGPayload) {
     // ID business 17841... (guardado em page_id). Aceita os dois.
     const { data: account } = await supabaseAdmin
       .from("instagram_accounts")
-      .select("id, ig_user_id, page_id, access_token")
+      .select("id, ig_user_id, page_id, access_token, metadata")
       .or(`ig_user_id.eq.${igAccountId},page_id.eq.${igAccountId}`)
       .maybeSingle();
     if (!account) throw new Error(`Conta ${igAccountId} não cadastrada`);
     const igToken = (account as { access_token?: string }).access_token ?? null;
     const igApiUserId = (account as { ig_user_id?: string }).ig_user_id ?? igAccountId;
+    const { contaComIaAtiva } = await import("@/lib/instagram/ai-toggle");
+    const iaAtiva = contaComIaAtiva((account as { metadata?: unknown }).metadata);
+
 
 
     // ============ DMs ============
@@ -193,9 +196,10 @@ async function processPayload(payload: IGPayload) {
       }
 
       // IA responde as DMs com os mesmos agentes/regras do WhatsApp
-      if (!isFromMe && espelho) {
+      if (!isFromMe && espelho && iaAtiva) {
         try {
           const { runAgent } = await import("@/lib/whatsapp/agent-runner.server");
+
           await runAgent({
             wa_phone: espelho.waPhone,
             profile_name: contatoNome ?? contatoUser ?? null,
@@ -272,7 +276,7 @@ async function processPayload(payload: IGPayload) {
 
       // Comentário é SEMPRE dos Consultores: resposta pública + convite no direct
       const souEu = v.from?.id && (v.from.id === igAccountId || v.from.id === igApiUserId);
-      if (igToken && !souEu) {
+      if (igToken && !souEu && iaAtiva) {
         try {
           const { isAiGloballyOff } = await import("@/lib/whatsapp/ai-global-switch.server");
           if (!(await isAiGloballyOff())) {

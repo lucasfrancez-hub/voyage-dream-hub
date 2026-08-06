@@ -110,6 +110,7 @@ import { Route as ApiPublicHooksCloseInactiveProtocolsRouteImport } from './rout
 import { Route as ApiPublicHooksDispatchAiDebouncedRouteImport } from './routes/api/public/hooks/dispatch-ai-debounced'
 import { Route as ApiPublicHooksFlightCardsContinueRouteImport } from './routes/api/public/hooks/flight-cards-continue'
 import { Route as ApiPublicHooksFlightQuoteWatchdogRouteImport } from './routes/api/public/hooks/flight-quote-watchdog'
+import { Route as ApiPublicHooksInstagramBackfillRouteImport } from './routes/api/public/hooks/instagram-backfill'
 import { Route as ApiPublicHooksInstagramCollabCommentsRouteImport } from './routes/api/public/hooks/instagram-collab-comments'
 import { Route as ApiPublicHooksInstagramDmQueueRouteImport } from './routes/api/public/hooks/instagram-dm-queue'
 import { Route as ApiPublicHooksInstagramHealthRouteImport } from './routes/api/public/hooks/instagram-health'
@@ -644,6 +645,12 @@ const ApiPublicHooksFlightQuoteWatchdogRoute =
     path: '/api/public/hooks/flight-quote-watchdog',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicHooksInstagramBackfillRoute =
+  ApiPublicHooksInstagramBackfillRouteImport.update({
+    id: '/api/public/hooks/instagram-backfill',
+    path: '/api/public/hooks/instagram-backfill',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicHooksInstagramCollabCommentsRoute =
   ApiPublicHooksInstagramCollabCommentsRouteImport.update({
     id: '/api/public/hooks/instagram-collab-comments',
@@ -817,6 +824,7 @@ export interface FileRoutesByFullPath {
   '/api/public/hooks/dispatch-ai-debounced': typeof ApiPublicHooksDispatchAiDebouncedRoute
   '/api/public/hooks/flight-cards-continue': typeof ApiPublicHooksFlightCardsContinueRoute
   '/api/public/hooks/flight-quote-watchdog': typeof ApiPublicHooksFlightQuoteWatchdogRoute
+  '/api/public/hooks/instagram-backfill': typeof ApiPublicHooksInstagramBackfillRoute
   '/api/public/hooks/instagram-collab-comments': typeof ApiPublicHooksInstagramCollabCommentsRoute
   '/api/public/hooks/instagram-dm-queue': typeof ApiPublicHooksInstagramDmQueueRoute
   '/api/public/hooks/instagram-health': typeof ApiPublicHooksInstagramHealthRoute
@@ -931,6 +939,7 @@ export interface FileRoutesByTo {
   '/api/public/hooks/dispatch-ai-debounced': typeof ApiPublicHooksDispatchAiDebouncedRoute
   '/api/public/hooks/flight-cards-continue': typeof ApiPublicHooksFlightCardsContinueRoute
   '/api/public/hooks/flight-quote-watchdog': typeof ApiPublicHooksFlightQuoteWatchdogRoute
+  '/api/public/hooks/instagram-backfill': typeof ApiPublicHooksInstagramBackfillRoute
   '/api/public/hooks/instagram-collab-comments': typeof ApiPublicHooksInstagramCollabCommentsRoute
   '/api/public/hooks/instagram-dm-queue': typeof ApiPublicHooksInstagramDmQueueRoute
   '/api/public/hooks/instagram-health': typeof ApiPublicHooksInstagramHealthRoute
@@ -1047,6 +1056,7 @@ export interface FileRoutesById {
   '/api/public/hooks/dispatch-ai-debounced': typeof ApiPublicHooksDispatchAiDebouncedRoute
   '/api/public/hooks/flight-cards-continue': typeof ApiPublicHooksFlightCardsContinueRoute
   '/api/public/hooks/flight-quote-watchdog': typeof ApiPublicHooksFlightQuoteWatchdogRoute
+  '/api/public/hooks/instagram-backfill': typeof ApiPublicHooksInstagramBackfillRoute
   '/api/public/hooks/instagram-collab-comments': typeof ApiPublicHooksInstagramCollabCommentsRoute
   '/api/public/hooks/instagram-dm-queue': typeof ApiPublicHooksInstagramDmQueueRoute
   '/api/public/hooks/instagram-health': typeof ApiPublicHooksInstagramHealthRoute
@@ -1164,6 +1174,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/dispatch-ai-debounced'
     | '/api/public/hooks/flight-cards-continue'
     | '/api/public/hooks/flight-quote-watchdog'
+    | '/api/public/hooks/instagram-backfill'
     | '/api/public/hooks/instagram-collab-comments'
     | '/api/public/hooks/instagram-dm-queue'
     | '/api/public/hooks/instagram-health'
@@ -1278,6 +1289,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/dispatch-ai-debounced'
     | '/api/public/hooks/flight-cards-continue'
     | '/api/public/hooks/flight-quote-watchdog'
+    | '/api/public/hooks/instagram-backfill'
     | '/api/public/hooks/instagram-collab-comments'
     | '/api/public/hooks/instagram-dm-queue'
     | '/api/public/hooks/instagram-health'
@@ -1393,6 +1405,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/dispatch-ai-debounced'
     | '/api/public/hooks/flight-cards-continue'
     | '/api/public/hooks/flight-quote-watchdog'
+    | '/api/public/hooks/instagram-backfill'
     | '/api/public/hooks/instagram-collab-comments'
     | '/api/public/hooks/instagram-dm-queue'
     | '/api/public/hooks/instagram-health'
@@ -1461,6 +1474,7 @@ export interface RootRouteChildren {
   ApiPublicHooksDispatchAiDebouncedRoute: typeof ApiPublicHooksDispatchAiDebouncedRoute
   ApiPublicHooksFlightCardsContinueRoute: typeof ApiPublicHooksFlightCardsContinueRoute
   ApiPublicHooksFlightQuoteWatchdogRoute: typeof ApiPublicHooksFlightQuoteWatchdogRoute
+  ApiPublicHooksInstagramBackfillRoute: typeof ApiPublicHooksInstagramBackfillRoute
   ApiPublicHooksInstagramCollabCommentsRoute: typeof ApiPublicHooksInstagramCollabCommentsRoute
   ApiPublicHooksInstagramDmQueueRoute: typeof ApiPublicHooksInstagramDmQueueRoute
   ApiPublicHooksInstagramHealthRoute: typeof ApiPublicHooksInstagramHealthRoute
@@ -2184,6 +2198,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksFlightQuoteWatchdogRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/instagram-backfill': {
+      id: '/api/public/hooks/instagram-backfill'
+      path: '/api/public/hooks/instagram-backfill'
+      fullPath: '/api/public/hooks/instagram-backfill'
+      preLoaderRoute: typeof ApiPublicHooksInstagramBackfillRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/instagram-collab-comments': {
       id: '/api/public/hooks/instagram-collab-comments'
       path: '/api/public/hooks/instagram-collab-comments'
@@ -2460,6 +2481,7 @@ const rootRouteChildren: RootRouteChildren = {
     ApiPublicHooksFlightCardsContinueRoute,
   ApiPublicHooksFlightQuoteWatchdogRoute:
     ApiPublicHooksFlightQuoteWatchdogRoute,
+  ApiPublicHooksInstagramBackfillRoute: ApiPublicHooksInstagramBackfillRoute,
   ApiPublicHooksInstagramCollabCommentsRoute:
     ApiPublicHooksInstagramCollabCommentsRoute,
   ApiPublicHooksInstagramDmQueueRoute: ApiPublicHooksInstagramDmQueueRoute,

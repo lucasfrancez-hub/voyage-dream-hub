@@ -24,7 +24,7 @@ export async function syncCollabComments(): Promise<CollabSyncResult> {
 
   const { data: contas } = await supabaseAdmin
     .from("instagram_accounts")
-    .select("id, ig_user_id, page_id, username, access_token")
+    .select("id, ig_user_id, page_id, username, access_token, metadata")
     .eq("active", true);
 
   for (const conta of contas ?? []) {
@@ -84,6 +84,8 @@ export async function syncCollabComments(): Promise<CollabSyncResult> {
 
 
         try {
+          const { contaComIaAtiva } = await import("@/lib/instagram/ai-toggle");
+          if (!contaComIaAtiva(conta.metadata)) continue;
           const { isAiGloballyOff } = await import("@/lib/whatsapp/ai-global-switch.server");
           if (await isAiGloballyOff()) continue;
 
