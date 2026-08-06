@@ -2841,6 +2841,8 @@ function InstagramCommentThreadView({ mediaId, onBack }: { mediaId: string; onBa
 
 
   const bottomRef = useRef<HTMLDivElement | null>(null);
+  const wallpaper = useWallpaper();
+
 
   const { data: threads = [], isLoading } = useQuery({
     queryKey: ["ig", "comment-threads"],
