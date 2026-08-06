@@ -366,7 +366,7 @@ export const listMessages = createServerFn({ method: "POST" })
     // PRIMEIRAS, o que fazia as mensagens novas sumirem em conversas longas.
     const { data: rows, error } = await context.supabase
       .from("wa_messages")
-      .select("id, direction, sender, content, created_at, tool_calls, sender_user_id, agent_slug, deleted_at, is_revoked, revoked_at, revoked_by, wa_message_id, reply_to_wa_id, reply_to_snippet, reply_to_sender, error")
+      .select("id, direction, sender, content, created_at, tool_calls, sender_user_id, agent_slug, deleted_at, is_revoked, revoked_at, revoked_by, wa_message_id, reply_to_wa_id, reply_to_snippet, reply_to_sender, error, delivery_status, delivered_at, read_at")
       .eq("conversation_id", data.conversation_id)
       .order("created_at", { ascending: false })
       .limit(500);

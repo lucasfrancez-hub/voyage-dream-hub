@@ -115,7 +115,7 @@ export const listInstagramMessages = createServerFn({ method: "GET" })
   .handler(async ({ data, context }) => {
     const { data: rows, error } = await context.supabase
       .from("instagram_messages")
-      .select("id, direction, message_type, text, attachment_url, sent_by_agent_slug, status, is_deleted, created_at")
+      .select("id, direction, message_type, text, attachment_url, sent_by_agent_slug, status, is_deleted, created_at, delivered_at, read_at")
       .eq("conversation_id", data.conversation_id)
       .order("created_at", { ascending: true })
       .limit(500);
