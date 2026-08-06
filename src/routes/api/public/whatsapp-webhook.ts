@@ -87,6 +87,7 @@ type WhatsAppPayload = {
         statuses?: Array<{
           id: string;
           status: string;
+          timestamp?: string;
           recipient_id: string;
           errors?: Array<{
             code?: number;
@@ -161,16 +162,40 @@ async function processPayload(payload: WhatsAppPayload) {
 
           // STATUS REAL: sent ≠ delivered ≠ read. "Aceito pela Meta" não é entrega.
           const conhecido = ["sent", "delivered", "read", "failed"].includes(st.status);
+          const quando = st.timestamp
+            ? new Date(Number(st.timestamp) * 1000).toISOString()
+            : new Date().toISOString();
           const patch: Record<string, unknown> = conhecido
-            ? { delivery_status: st.status, delivery_status_at: new Date().toISOString() }
+            ? { delivery_status: st.status, delivery_status_at: quando }
             : {};
+          if (st.status === "delivered") patch.delivered_at = quando;
+          if (st.status === "read") {
+            patch.read_at = quando;
+            patch.delivered_at = quando; // lida implica entregue (Meta pode pular o delivered)
+          }
           if (st.status === "failed") patch.error = `${code}${message}`;
           if (Object.keys(patch).length) {
-            const { error } = await supabaseAdmin
+            // Nunca regride o status: read > delivered > sent.
+            const { data: atual } = await supabaseAdmin
               .from("wa_messages")
-              .update(patch as never)
-              .eq("wa_message_id", st.id);
-            if (error) console.error("[wa-webhook] falha ao registrar status:", error.message);
+              .select("delivery_status, delivered_at, read_at")
+              .eq("wa_message_id", st.id)
+              .maybeSingle();
+            const peso: Record<string, number> = { sent: 1, delivered: 2, read: 3, failed: 4 };
+            const anterior = (atual as { delivery_status?: string | null } | null)?.delivery_status ?? null;
+            if (anterior && conhecido && st.status !== "failed" && (peso[anterior] ?? 0) > (peso[st.status] ?? 0)) {
+              delete patch.delivery_status;
+              delete patch.delivery_status_at;
+            }
+            if ((atual as { delivered_at?: string | null } | null)?.delivered_at) delete patch.delivered_at;
+            if ((atual as { read_at?: string | null } | null)?.read_at) delete patch.read_at;
+            if (Object.keys(patch).length) {
+              const { error } = await supabaseAdmin
+                .from("wa_messages")
+                .update(patch as never)
+                .eq("wa_message_id", st.id);
+              if (error) console.error("[wa-webhook] falha ao registrar status:", error.message);
+            }
           }
 
           // Se a mensagem era uma ARTE de voo, o status real entra no log dos cards.

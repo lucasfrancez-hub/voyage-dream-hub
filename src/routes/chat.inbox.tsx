@@ -3,7 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Pause, Play, Search, Send, Bot, User, MoreVertical, Loader2, Inbox as InboxIcon, Users, Archive, Plus, ChevronDown, ChevronUp, Image as ImageIcon, XCircle, History, Paperclip, PanelLeftClose, PanelLeftOpen, FileText, X, Save, ExternalLink, ArrowLeft, Info, Instagram, MessageCircle, MessageSquare, Heart, Mic, Square, Trash2, Eye, EyeOff } from "lucide-react";
+import { Pause, Play, Search, Send, Bot, User, MoreVertical, Loader2, Inbox as InboxIcon, Users, Archive, Plus, ChevronDown, ChevronUp, Image as ImageIcon, XCircle, History, Paperclip, PanelLeftClose, PanelLeftOpen, FileText, X, Save, ExternalLink, ArrowLeft, Info, Instagram, MessageCircle, MessageSquare, Heart, Mic, Square, Trash2, Eye, EyeOff, Check, CheckCheck } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
@@ -1170,9 +1170,18 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
                       senderLabel={senderLabel}
                       status={
                         m.direction === "outbound"
-                          ? ((m as { error?: string | null }).error ? "failed" : m.wa_message_id ? "delivered" : "sent")
+                          ? ((m as { error?: string | null }).error
+                              ? "failed"
+                              : (((m as { delivery_status?: string | null }).delivery_status as
+                                  | "sent"
+                                  | "delivered"
+                                  | "read"
+                                  | "failed"
+                                  | null) ?? "sent"))
                           : undefined
                       }
+                      deliveredAt={(m as { delivered_at?: string | null }).delivered_at ?? null}
+                      readAt={(m as { read_at?: string | null }).read_at ?? null}
 
                       deleted={!!(m as { is_revoked?: boolean | null }).is_revoked || !!m.deleted_at}
                       revokedBy={((m as { revoked_by?: string | null }).revoked_by ?? null) as "customer" | "business" | null}
@@ -2361,6 +2370,12 @@ function InstagramConversationView({
                 <div className={cn("mt-0.5 text-[10px]", apagada ? "text-slate-400" : m.direction === "outbound" ? "text-white/70" : "text-slate-400")}>
                   {new Date(m.created_at as string).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
                   {m.status === "failed" && !apagada ? " · não entregue" : ""}
+                  {m.direction === "outbound" && !apagada && m.status !== "failed" ? (
+                    <ReciboDirect
+                      deliveredAt={(m as { delivered_at?: string | null }).delivered_at ?? null}
+                      readAt={(m as { read_at?: string | null }).read_at ?? null}
+                    />
+                  ) : null}
                 </div>
               </div>
               {m.direction === "inbound" && !apagada && (
@@ -3127,6 +3142,27 @@ function InstagramCommentThreadView({ mediaId, onBack }: { mediaId: string; onBa
 }
 
 /** Etiqueta da conta do Instagram que recebeu a mensagem/comentário (@viaairs, @lucasfrancez…). */
+function ReciboDirect({ deliveredAt, readAt }: { deliveredAt?: string | null; readAt?: string | null }) {
+  const hora = (iso: string) =>
+    new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  const titulo = readAt
+    ? `Lida às ${hora(readAt)}`
+    : deliveredAt
+      ? `Entregue às ${hora(deliveredAt)} · ainda não lida`
+      : "Enviada · o Instagram ainda não confirmou a entrega";
+  return (
+    <span title={titulo} className="ml-1 inline-flex align-middle">
+      {readAt ? (
+        <CheckCheck className="inline h-3 w-3 text-sky-300" />
+      ) : deliveredAt ? (
+        <CheckCheck className="inline h-3 w-3 opacity-80" />
+      ) : (
+        <Check className="inline h-3 w-3 opacity-70" />
+      )}
+    </span>
+  );
+}
+
 function ContaTag({ username, className }: { username?: string | null; className?: string }) {
   if (!username) return null;
   return (

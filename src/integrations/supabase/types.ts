@@ -1737,6 +1737,7 @@ export type Database = {
           attachment_url: string | null
           conversation_id: string
           created_at: string
+          delivered_at: string | null
           direction: string
           error: string | null
           id: string
@@ -1744,6 +1745,7 @@ export type Database = {
           is_deleted: boolean
           message_type: string
           metadata: Json
+          read_at: string | null
           reply_to_ig_message_id: string | null
           sent_by: string | null
           sent_by_agent_slug: string | null
@@ -1756,6 +1758,7 @@ export type Database = {
           attachment_url?: string | null
           conversation_id: string
           created_at?: string
+          delivered_at?: string | null
           direction: string
           error?: string | null
           id?: string
@@ -1763,6 +1766,7 @@ export type Database = {
           is_deleted?: boolean
           message_type?: string
           metadata?: Json
+          read_at?: string | null
           reply_to_ig_message_id?: string | null
           sent_by?: string | null
           sent_by_agent_slug?: string | null
@@ -1775,6 +1779,7 @@ export type Database = {
           attachment_url?: string | null
           conversation_id?: string
           created_at?: string
+          delivered_at?: string | null
           direction?: string
           error?: string | null
           id?: string
@@ -1782,6 +1787,7 @@ export type Database = {
           is_deleted?: boolean
           message_type?: string
           metadata?: Json
+          read_at?: string | null
           reply_to_ig_message_id?: string | null
           sent_by?: string | null
           sent_by_agent_slug?: string | null
@@ -5234,6 +5240,7 @@ export type Database = {
           created_at: string
           deleted_at: string | null
           deleted_by_customer: boolean
+          delivered_at: string | null
           delivery_status: string | null
           delivery_status_at: string | null
           direction: string
@@ -5250,6 +5257,7 @@ export type Database = {
           product_type: string | null
           protocolo_id: string | null
           quote_id: string | null
+          read_at: string | null
           reply_to_message_id: string | null
           reply_to_sender: string | null
           reply_to_snippet: string | null
@@ -5273,6 +5281,7 @@ export type Database = {
           created_at?: string
           deleted_at?: string | null
           deleted_by_customer?: boolean
+          delivered_at?: string | null
           delivery_status?: string | null
           delivery_status_at?: string | null
           direction: string
@@ -5289,6 +5298,7 @@ export type Database = {
           product_type?: string | null
           protocolo_id?: string | null
           quote_id?: string | null
+          read_at?: string | null
           reply_to_message_id?: string | null
           reply_to_sender?: string | null
           reply_to_snippet?: string | null
@@ -5312,6 +5322,7 @@ export type Database = {
           created_at?: string
           deleted_at?: string | null
           deleted_by_customer?: boolean
+          delivered_at?: string | null
           delivery_status?: string | null
           delivery_status_at?: string | null
           direction?: string
@@ -5328,6 +5339,7 @@ export type Database = {
           product_type?: string | null
           protocolo_id?: string | null
           quote_id?: string | null
+          read_at?: string | null
           reply_to_message_id?: string | null
           reply_to_sender?: string | null
           reply_to_snippet?: string | null
