@@ -70,6 +70,9 @@ type IGPayload = {
         is_deleted?: boolean;
         reply_to?: { mid?: string };
       };
+      // Recibos do Direct: entrega e leitura
+      delivery?: { mids?: string[]; watermark?: number };
+      read?: { mid?: string; watermark?: number };
     }>;
     changes?: Array<{
       field: string;
