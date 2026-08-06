@@ -1593,7 +1593,9 @@ function ConversationMenu({ conv, onChange }: { conv: Conv; onChange: () => void
   );
 }
 
-function ContactDetails({ conv, onChange }: { conv: Conv; onChange: () => void }) {
+function ContactDetails({ conv, onChange, avatarUrl = null }: { conv: Conv; onChange: () => void; avatarUrl?: string | null }) {
+  const [fotoAberta, setFotoAberta] = useState(false);
+  const foto = avatarUrl ?? (conv as { contact_profile_pic?: string | null }).contact_profile_pic ?? null;
   const toggleFn = useServerFn(toggleConversationMode);
   const stageFn = useServerFn(setFunnelStage);
   const assignFn = useServerFn(assignConversation);
