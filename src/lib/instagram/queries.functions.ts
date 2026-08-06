@@ -734,7 +734,7 @@ export const toggleInstagramCommentLike = createServerFn({ method: "POST" })
     if (!tokenOk) {
       throw new Error(
         ultimoErro instanceof Error && /\b(400|403|404)\b/.test(ultimoErro.message)
-          ? "O Instagram não permitiu curtir por aqui: a curtida só é liberada pelo perfil dono da publicação. Em posts em colaboração, curta direto pelo app do Instagram."
+          ? "O Instagram permite consultar as curtidas, mas a API oficial não permite curtir comentários — inclusive em publicações da própria conta."
           : ultimoErro instanceof Error
             ? ultimoErro.message
             : "Falha ao curtir no Instagram",
