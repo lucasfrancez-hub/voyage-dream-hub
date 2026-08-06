@@ -68,7 +68,7 @@ type IGPayload = {
         text?: string;
         attachments?: Array<{ type: string; payload: { url: string } }>;
         is_deleted?: boolean;
-        reply_to?: { mid?: string };
+        reply_to?: { mid?: string; story?: { url?: string; id?: string } };
       };
       // Recibos do Direct: entrega e leitura
       delivery?: { mids?: string[]; watermark?: number };
