@@ -244,9 +244,10 @@ async function processPayload(payload: IGPayload) {
           username: contatoUser,
           profilePic: contatoFoto,
           direction: isFromMe ? "outbound" : "inbound",
-          text: msg.message.text ?? null,
-          messageType: msg.message.attachments?.[0]?.type ?? "text",
-          attachmentUrl: msg.message.attachments?.[0]?.payload?.url ?? null,
+          text: msg.message.text ?? anexo.rotulo,
+          messageType: anexo.tipo,
+          attachmentUrl: anexo.url,
+
           igMessageId: msg.message.mid ?? null,
           timestamp: msg.timestamp ?? null,
         });
