@@ -4071,8 +4071,29 @@ function FinanceDialog({
           <div className="grid grid-cols-3 gap-3">
             <div><Label>Câmbio</Label><Input type="number" step="0.0001" value={form.exchange_rate} onChange={(e) => setForm({ ...form, exchange_rate: Number(e.target.value) })} /></div>
             <div><Label>Vencimento</Label><Input type="date" value={form.due_date ?? ""} onChange={(e) => setForm({ ...form, due_date: e.target.value })} /></div>
-            <div><Label>Total (venda)</Label><Input type="number" step="0.01" value={form.total} onChange={(e) => setForm({ ...form, total: Number(e.target.value) })} /></div>
+            <div>
+              <Label className="flex items-center gap-1">
+                Valor cobrado
+                <span className="rounded-md border border-brand-orange/40 bg-brand-orange/10 px-1 py-0 text-[9px] font-semibold uppercase tracking-wider text-brand-orange">gera RAV</span>
+              </Label>
+              <Input
+                type="number" step="0.01" min={0}
+                value={chargedValue}
+                onChange={(e) => aplicarCobrado(e.target.value)}
+                placeholder="0,00"
+              />
+              <p className="text-[11px] text-muted-foreground mt-0.5">
+                Custo: {formatBRL(custoBase)}
+                {Number(form.rav_value || 0) > 0 && (
+                  <span className="text-brand-orange"> · RAV automático {formatBRL(Number(form.rav_value))}</span>
+                )}
+              </p>
+            </div>
           </div>
+          <div className="grid grid-cols-3 gap-3">
+            <div className="col-start-3"><Label>Total (venda)</Label><Input type="number" step="0.01" value={form.total} onChange={(e) => setForm({ ...form, total: Number(e.target.value) })} /></div>
+          </div>
+
           <div>
             <Label>Observações</Label>
             <Textarea rows={2} value={form.notes ?? ""} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
