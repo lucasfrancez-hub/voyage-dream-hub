@@ -694,7 +694,7 @@ export const toggleInstagramCommentLike = createServerFn({ method: "POST" })
     }
 
     const atual = await getCommentLikes({ commentId: row.comment_id, token: conta.access_token as string });
-    const meta = { ...((row.metadata ?? {}) as Record<string, unknown>), liked: data.like };
+    const meta: Record<string, unknown> = { ...((row.metadata ?? {}) as Record<string, unknown>), liked: data.like };
     if (atual.like_count != null) meta.like_count = atual.like_count;
     await supabaseAdmin.from("instagram_comments").update({ metadata: meta as never }).eq("id", row.id);
     return { ok: true, liked: data.like, like_count: atual.like_count };
