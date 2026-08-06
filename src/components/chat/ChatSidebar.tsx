@@ -70,16 +70,22 @@ export function ChatSidebar({ mobileOpen = false, onCloseMobile }: { mobileOpen?
         />
       )}
 
+      {/* Espaço reservado enquanto o menu abre por cima no hover */}
+      {collapsed && hover && <div className="hidden md:block w-16 shrink-0" />}
+
       <aside
+        onMouseEnter={() => setHover(true)}
+        onMouseLeave={() => setHover(false)}
         className={cn(
           "flex h-full shrink-0 flex-col border-r border-slate-200 bg-white transition-[width,transform] duration-200",
           // Desktop
           "hidden md:flex",
-          collapsed ? "md:w-16" : "md:w-60",
+          collapsed ? (hover ? "md:fixed md:inset-y-0 md:left-0 md:z-50 md:w-60 md:shadow-xl" : "md:w-16") : "md:w-60",
           // Mobile drawer
           mobileOpen && "!flex fixed inset-y-0 left-0 z-50 w-64 md:relative md:z-auto",
         )}
       >
+
         <div
           className="flex items-center justify-center gap-2 border-b border-slate-200 px-3"
           style={{ paddingTop: "env(safe-area-inset-top)", minHeight: "calc(3.5rem + env(safe-area-inset-top))" }}
