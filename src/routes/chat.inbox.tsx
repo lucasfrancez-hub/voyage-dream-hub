@@ -2488,11 +2488,14 @@ function InstagramList({ folder, search, activeId, onSelect }: { folder: string;
   return (
     <>
       {filtered.map((c) => (
-        <button
+        <div
           key={c.id}
+          role="button"
+          tabIndex={0}
           onClick={() => onSelect(c.id)}
+          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onSelect(c.id); }}
           className={cn(
-            "flex w-full items-start gap-2 rounded-lg p-2 text-left transition-colors",
+            "flex w-full cursor-pointer items-start gap-2 rounded-lg p-2 text-left transition-colors",
             activeId === c.id ? "bg-pink-50" : "hover:bg-slate-50",
           )}
         >
@@ -2508,16 +2511,20 @@ function InstagramList({ folder, search, activeId, onSelect }: { folder: string;
               <span className="truncate text-sm font-medium text-slate-900">
                 {c.contact_name ?? c.contact_username ?? "sem nome"}
               </span>
-              {(c.unread_count ?? 0) > 0 && (
-                <span className="rounded-full bg-pink-500 px-1.5 text-[10px] font-medium text-white">{c.unread_count}</span>
-              )}
+              <div className="flex shrink-0 items-center gap-1">
+                {(c.unread_count ?? 0) > 0 && (
+                  <span className="rounded-full bg-pink-500 px-1.5 text-[10px] font-medium text-white">{c.unread_count}</span>
+                )}
+                <DmRowMenu conversationId={c.id} naoLidas={c.unread_count ?? 0} />
+              </div>
             </div>
             {c.contact_username && <div className="text-[10px] text-slate-500">@{c.contact_username}</div>}
             <div className="truncate text-xs text-slate-500">{c.last_message_preview ?? "—"}</div>
             <ContaTag username={(c as any).account_username} className="mt-0.5" />
           </div>
-        </button>
+        </div>
       ))}
+
     </>
   );
 }
