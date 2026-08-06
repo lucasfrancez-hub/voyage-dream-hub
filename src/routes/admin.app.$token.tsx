@@ -37,7 +37,7 @@ function AbrirAppAdmin() {
   const [carregando, setCarregando] = useState(false);
   const [verificando, setVerificando] = useState(true);
 
-  // Aparelho já liberado antes: entra direto, sem PIN e sem 2FA.
+  // Só entra direto com sessão ativa; sem sessão, o PIN é sempre exigido.
   useEffect(() => {
     void (async () => {
       try {
@@ -46,23 +46,13 @@ function AbrirAppAdmin() {
           await navigate({ to: "/admin" });
           return;
         }
-        const r = (await renovar()) as { ok: boolean; email?: string; tokenHash?: string };
-        if (r.ok && r.email && r.tokenHash) {
-          const { error } = await supabase.auth.verifyOtp({
-            type: "magiclink",
-            token_hash: r.tokenHash,
-          });
-          if (!error) {
-            await navigate({ to: "/admin" });
-            return;
-          }
-        }
       } catch {
         /* pede o PIN */
       }
       setVerificando(false);
     })();
-  }, [navigate, renovar]);
+  }, [navigate]);
+
 
   const entrar = async () => {
     if (pin.length !== 4) return;
