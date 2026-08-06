@@ -793,10 +793,10 @@ function useWallpaper() {
           backgroundSize: "cover",
           backgroundPosition: "center",
           backgroundRepeat: "no-repeat",
-          backgroundAttachment: "local",
+          backgroundAttachment: "scroll",
           backgroundColor: "var(--chat-conversation)",
         }
-      : { backgroundImage: cur.css, backgroundColor: "var(--chat-conversation)" };
+      : { backgroundImage: cur.css, backgroundColor: "var(--chat-conversation)", backgroundAttachment: "scroll" };
   if (key !== "custom" && cur.size) style.backgroundSize = cur.size;
   return { key, set, style, custom, setImagem, tom };
 }
