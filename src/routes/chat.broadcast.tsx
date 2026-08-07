@@ -129,7 +129,7 @@ const STATUS_COLOR: Record<Campanha["status"], string> = {
 };
 
 function DisparosPage() {
-  const [tab, setTab] = useState<"calendario" | "sugestoes" | "campanhas" | "destinos" | "instagram">("calendario");
+  const [tab, setTab] = useState<"calendario" | "sugestoes" | "campanhas" | "destinos">("calendario");
   const [campanhas, setCampanhas] = useState<Campanha[]>([]);
   const [destinos, setDestinos] = useState<Destino[]>([]);
   const [suggestions, setSuggestions] = useState<BroadcastSuggestion[]>([]);
@@ -272,7 +272,7 @@ function DisparosPage() {
       </div>
 
       <div className="inline-flex bg-muted/50 p-1 rounded-lg self-start overflow-x-auto">
-        {(["calendario", "sugestoes", "campanhas", "destinos", "instagram"] as const).map((t) => {
+        {(["calendario", "sugestoes", "campanhas", "destinos"] as const).map((t) => {
           const count =
             t === "calendario"
               ? campanhas.filter((c) => c.status === "agendada" && c.scheduled_at).length
@@ -280,9 +280,7 @@ function DisparosPage() {
               ? suggestions.filter((suggestion) => suggestion.status === "pending").length
               : t === "campanhas"
               ? campanhas.length
-              : t === "destinos"
-              ? destinos.length
-              : 0;
+              : destinos.length;
           return (
             <button
               key={t}
@@ -293,12 +291,13 @@ function DisparosPage() {
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              {t === "calendario" ? "Calendário" : t === "sugestoes" ? "Sugestões" : t === "campanhas" ? "Campanhas" : t === "destinos" ? "Destinos" : "Instagram"}
-              {t !== "instagram" && <span className="text-xs opacity-60 ml-1">({count})</span>}
+              {t === "calendario" ? "Calendário" : t === "sugestoes" ? "Sugestões" : t === "campanhas" ? "Campanhas" : "Destinos"}
+              <span className="text-xs opacity-60 ml-1">({count})</span>
             </button>
           );
         })}
       </div>
+
 
       {loading ? (
         <div className="py-16 flex justify-center">
@@ -349,8 +348,6 @@ function DisparosPage() {
           />
 
         </div>
-      ) : tab === "instagram" ? (
-        <InstagramPostTab />
       ) : tab === "sugestoes" ? (
         <BroadcastSuggestions
           suggestions={suggestions.filter((suggestion) => suggestion.status === "pending")}
@@ -1578,6 +1575,7 @@ function CampanhaEditor({
   const [saving, setSaving] = useState(false);
   const [loadingEdit, setLoadingEdit] = useState(Boolean(id));
   const [showPicker, setShowPicker] = useState(false);
+  const [canal, setCanal] = useState<"whatsapp" | "instagram">("whatsapp");
 
   const fetchOne = useServerFn(getCampanha);
   const doSalvar = useServerFn(salvarCampanha);
@@ -1788,23 +1786,51 @@ function CampanhaEditor({
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-muted-foreground">
                   <span className="inline-flex w-5 h-5 rounded-full bg-brand-orange/15 text-brand-orange items-center justify-center text-[10px] font-black">2</span>
-                  Destinos
+                  Onde publicar
                 </div>
-                <span className="text-[11px] font-semibold text-brand-orange">{selecionados.size} selecionado{selecionados.size === 1 ? "" : "s"}</span>
+                {canal === "whatsapp" && (
+                  <span className="text-[11px] font-semibold text-brand-orange">{selecionados.size} selecionado{selecionados.size === 1 ? "" : "s"}</span>
+                )}
               </div>
-              <div className="grid md:grid-cols-3 gap-3">
-                <DestSelector title="Canais" icon={Radio} items={canais} sel={selecionados} onToggle={toggleDest} />
-                <DestSelector title="Grupos" icon={Users} items={grupos} sel={selecionados} onToggle={toggleDest} />
-                <DestSelector title="Instagram Story" icon={Instagram} items={igStories} sel={selecionados} onToggle={toggleDest} />
+
+              <div className="grid sm:grid-cols-2 gap-2">
+                <button
+                  onClick={() => setCanal("whatsapp")}
+                  className={`rounded-xl border px-3 py-2 text-left transition-colors ${canal === "whatsapp" ? "border-brand-orange bg-brand-orange/10" : "border-border hover:border-brand-orange/40"}`}
+                >
+                  <span className="flex items-center gap-2 text-sm font-bold"><Radio className="h-4 w-4" /> WhatsApp</span>
+                  <span className="block text-[11px] text-muted-foreground">Canais e grupos · agendável</span>
+                </button>
+                <button
+                  onClick={() => setCanal("instagram")}
+                  className={`rounded-xl border px-3 py-2 text-left transition-colors ${canal === "instagram" ? "border-brand-orange bg-brand-orange/10" : "border-border hover:border-brand-orange/40"}`}
+                >
+                  <span className="flex items-center gap-2 text-sm font-bold"><Instagram className="h-4 w-4" /> Instagram</span>
+                  <span className="block text-[11px] text-muted-foreground">Reels, Publicação ou Story · publica agora</span>
+                </button>
               </div>
-              {temIgStory && (
-                <p className="mt-2 text-[11px] text-pink-500">
-                  📸 Story do Instagram só publica blocos de <b>imagem</b> com URL pública (o texto vira legenda opcional). Vídeos/documentos/botões são ignorados.
-                </p>
+
+              {canal === "whatsapp" ? (
+                <>
+                  <div className="grid md:grid-cols-3 gap-3">
+                    <DestSelector title="Canais" icon={Radio} items={canais} sel={selecionados} onToggle={toggleDest} />
+                    <DestSelector title="Grupos" icon={Users} items={grupos} sel={selecionados} onToggle={toggleDest} />
+                    <DestSelector title="Instagram Story" icon={Instagram} items={igStories} sel={selecionados} onToggle={toggleDest} />
+                  </div>
+                  {temIgStory && (
+                    <p className="mt-2 text-[11px] text-pink-500">
+                      📸 Story do Instagram só publica blocos de <b>imagem</b> com URL pública (o texto vira legenda opcional). Vídeos/documentos/botões são ignorados.
+                    </p>
+                  )}
+                </>
+              ) : (
+                <InstagramPostTab embedded />
               )}
             </section>
 
+
             {/* Secão 3: mensagens */}
+            {canal === "whatsapp" && (
             <section className="rounded-xl border border-border bg-card/50 p-4 space-y-3">
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-muted-foreground">
@@ -1844,26 +1870,32 @@ function CampanhaEditor({
                 </div>
               )}
             </section>
+            )}
 
             <div className="flex items-center justify-end gap-2 pt-4 border-t border-border">
               <button onClick={onClose} className="text-sm rounded-full border border-border px-4 py-2 hover:border-brand-orange">
                 Fechar
               </button>
-              <button
-                onClick={() => salvar("rascunho")}
-                disabled={saving}
-                className="text-sm rounded-full border border-border px-4 py-2 hover:border-brand-orange disabled:opacity-50"
-              >
-                Salvar rascunho
-              </button>
-              <button
-                onClick={() => salvar("agendada")}
-                disabled={saving || !scheduled}
-                className="text-sm rounded-full bg-brand-orange px-5 py-2 text-white font-semibold hover:opacity-90 disabled:opacity-50 shadow-lg shadow-brand-orange/25 inline-flex items-center gap-1"
-              >
-                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Send className="h-3.5 w-3.5" /> Agendar envio</>}
-              </button>
+              {canal === "whatsapp" && (
+                <>
+                  <button
+                    onClick={() => salvar("rascunho")}
+                    disabled={saving}
+                    className="text-sm rounded-full border border-border px-4 py-2 hover:border-brand-orange disabled:opacity-50"
+                  >
+                    Salvar rascunho
+                  </button>
+                  <button
+                    onClick={() => salvar("agendada")}
+                    disabled={saving || !scheduled}
+                    className="text-sm rounded-full bg-brand-orange px-5 py-2 text-white font-semibold hover:opacity-90 disabled:opacity-50 shadow-lg shadow-brand-orange/25 inline-flex items-center gap-1"
+                  >
+                    {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Send className="h-3.5 w-3.5" /> Agendar envio</>}
+                  </button>
+                </>
+              )}
             </div>
+
           </div>
         )}
       </div>

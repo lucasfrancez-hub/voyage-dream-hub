@@ -24,7 +24,7 @@ const FORMATOS: { key: Exclude<Formato, "story_image">; label: string; hint: str
   { key: "story_video", label: "Story", hint: "Vídeo ou imagem · 24h · sem legenda" },
 ];
 
-export function InstagramPostTab() {
+export function InstagramPostTab({ embedded = false }: { embedded?: boolean } = {}) {
   const carregarContas = useServerFn(listInstagramAccounts);
   const doUpload = useServerFn(uploadBroadcastMedia);
   const doPublish = useServerFn(publishInstagramFromUrl);
@@ -120,12 +120,15 @@ export function InstagramPostTab() {
   }
 
   return (
-    <div className="max-w-3xl space-y-6">
-      <div className="rounded-2xl border border-border bg-card p-4 sm:p-5 space-y-5">
-        <div className="flex items-center gap-2">
-          <Instagram className="h-4 w-4 text-brand-orange" />
-          <h2 className="text-sm font-bold uppercase tracking-tight">Publicar no Instagram</h2>
-        </div>
+    <div className={embedded ? "" : "max-w-3xl space-y-6"}>
+      <div className={embedded ? "space-y-5" : "rounded-2xl border border-border bg-card p-4 sm:p-5 space-y-5"}>
+        {!embedded && (
+          <div className="flex items-center gap-2">
+            <Instagram className="h-4 w-4 text-brand-orange" />
+            <h2 className="text-sm font-bold uppercase tracking-tight">Publicar no Instagram</h2>
+          </div>
+        )}
+
 
         {/* Conta */}
         <div className="space-y-2">
