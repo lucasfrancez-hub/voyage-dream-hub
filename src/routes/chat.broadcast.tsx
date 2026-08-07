@@ -348,8 +348,6 @@ function DisparosPage() {
           />
 
         </div>
-      ) : tab === "instagram" ? (
-        <InstagramPostTab />
       ) : tab === "sugestoes" ? (
         <BroadcastSuggestions
           suggestions={suggestions.filter((suggestion) => suggestion.status === "pending")}
