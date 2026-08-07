@@ -4000,6 +4000,7 @@ export type Database = {
           botoes: Json | null
           campanha_id: string
           created_at: string
+          destino_ids: string[] | null
           id: string
           midia_caption: string | null
           midia_filename: string | null
@@ -4014,6 +4015,7 @@ export type Database = {
           botoes?: Json | null
           campanha_id: string
           created_at?: string
+          destino_ids?: string[] | null
           id?: string
           midia_caption?: string | null
           midia_filename?: string | null
@@ -4028,6 +4030,7 @@ export type Database = {
           botoes?: Json | null
           campanha_id?: string
           created_at?: string
+          destino_ids?: string[] | null
           id?: string
           midia_caption?: string | null
           midia_filename?: string | null
