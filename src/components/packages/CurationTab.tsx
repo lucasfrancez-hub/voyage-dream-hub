@@ -560,26 +560,77 @@ function PackageRow({ pkg, groupTitle, groupReason }: { pkg: Pkg; groupTitle: st
     }
   }
 
+  function artInput() {
+    return {
+      slug: pkg.slug, destination: pkg.destination, origin: pkg.origin,
+      going_date: pkg.going_date, return_date: pkg.return_date, nights: pkg.nights,
+      price_per_person: Number(pkg.price_per_person), image_url: pkg.image_url,
+      includes: pkg.includes ?? null, hotel_name: pkg.hotel_name, hotel_stars: pkg.hotel_stars,
+      room_type: pkg.room_type ?? null, base_occupancy: pkg.base_occupancy ?? 2,
+      tripadvisor_address: pkg.tripadvisor_address ?? null,
+      meal_plan: (pkg as { meal_plan?: string | null }).meal_plan ?? null,
+      services: (pkg as { services?: unknown }).services ?? null,
+      supplier_name: (pkg as { supplier_name?: string | null }).supplier_name ?? null,
+      flexible_dates: !!pkg.flexible_dates,
+    };
+  }
 
+  async function blobToBase64(blob: Blob) {
+    const buffer = new Uint8Array(await blob.arrayBuffer());
+    let binary = "";
+    const chunk = 8192;
+    for (let i = 0; i < buffer.length; i += chunk) {
+      binary += String.fromCharCode(...buffer.subarray(i, i + chunk));
+    }
+    return btoa(binary);
+  }
 
+  /** Publica somente a arte no Instagram (sem legenda/texto). */
+  async function publishArt(kind: "feed" | "story") {
+    if (!pkg.image_url) { toast.error("Cadastre a URL da imagem de capa do pacote antes de publicar."); return; }
+    const ok = await confirm({
+      title: kind === "feed" ? "Postar a arte no feed?" : "Postar a arte no story?",
+      description:
+        kind === "feed"
+          ? "A arte 3:4 será publicada agora no feed do Instagram, sem legenda."
+          : "A arte 9:16 será publicada agora nos stories do Instagram.",
+      confirmText: "Postar agora",
+    });
+    if (!ok) return;
 
+    setLoading(kind === "feed" ? "post-feed" : "post-story");
+    try {
+      const input = artInput();
+      const blob = kind === "feed"
+        ? await (await import("@/lib/packages/feed-art")).renderPackageFeedArtBlob(input)
+        : await (await import("@/lib/packages/story-art")).renderPackageStoryArtBlob(input);
+
+      const res = await publishArtFn({
+        data: {
+          media_type: kind === "feed" ? "feed_image" : "story_image",
+          image_base64: await blobToBase64(blob),
+          package_id: pkg.id,
+          slug: pkg.slug,
+        },
+      });
+      toast.success(kind === "feed" ? "Arte publicada no feed!" : "Arte publicada nos stories!", {
+        action: res.permalink
+          ? { label: "Ver post", onClick: () => window.open(res.permalink!, "_blank") }
+          : undefined,
+      });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Falha ao publicar no Instagram");
+    } finally {
+      setLoading(null);
+    }
+  }
 
   async function downloadArt(kind: "feed" | "story") {
     if (!pkg.image_url) { toast.error("Cadastre a URL da imagem de capa do pacote antes de gerar a arte."); return; }
     setLoading(kind);
     try {
-      const input = {
-        slug: pkg.slug, destination: pkg.destination, origin: pkg.origin,
-        going_date: pkg.going_date, return_date: pkg.return_date, nights: pkg.nights,
-        price_per_person: Number(pkg.price_per_person), image_url: pkg.image_url,
-        includes: pkg.includes ?? null, hotel_name: pkg.hotel_name, hotel_stars: pkg.hotel_stars,
-        room_type: pkg.room_type ?? null, base_occupancy: pkg.base_occupancy ?? 2,
-        tripadvisor_address: pkg.tripadvisor_address ?? null,
-        meal_plan: (pkg as { meal_plan?: string | null }).meal_plan ?? null,
-        services: (pkg as { services?: unknown }).services ?? null,
-        supplier_name: (pkg as { supplier_name?: string | null }).supplier_name ?? null,
-        flexible_dates: !!pkg.flexible_dates,
-      };
+      const input = artInput();
+
 
 
       let delivery: "downloaded" | "shared" | "cancelled";
