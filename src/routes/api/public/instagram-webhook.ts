@@ -275,6 +275,12 @@ async function processPayload(payload: IGPayload) {
         const { contaRespondeDirectComoPessoa } = await import("@/lib/instagram/ai-toggle");
         if (contaRespondeDirectComoPessoa(igMetadata)) {
           try {
+            // Respeita o interruptor global e a pausa da IA feita na conversa.
+            const { isAiGloballyOff } = await import("@/lib/whatsapp/ai-global-switch.server");
+            const { isDmAiPaused } = await import("@/lib/instagram/comment-pause.server");
+            const pausada = espelho ? await isDmAiPaused(espelho.waPhone) : false;
+            if (await isAiGloballyOff()) continue;
+            if (pausada) continue;
             const { responderDirectComoDono } = await import("@/lib/instagram/persona-dm.server");
             await responderDirectComoDono({
               conversationId: conv.id,
@@ -287,6 +293,7 @@ async function processPayload(payload: IGPayload) {
           }
         }
       }
+
     }
 
 
