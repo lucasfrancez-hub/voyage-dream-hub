@@ -307,6 +307,8 @@ function ChatLayout() {
 
   return (
     <div
+      ref={chatRootRef}
+      data-chat-root=""
       className={`${themeClass} flex w-full overflow-hidden bg-[var(--chat-bg)] text-foreground`}
       style={{ height: "100dvh" }}
     >
