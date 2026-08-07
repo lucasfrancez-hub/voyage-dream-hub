@@ -55,6 +55,12 @@ const readSnapshot = (event: string): DebugSnapshot => {
   const htmlStyle = getComputedStyle(html);
   const bodyStyle = getComputedStyle(body);
   const chatStyle = chatRoot ? getComputedStyle(chatRoot) : null;
+  const composerStyle = composer ? getComputedStyle(composer) : null;
+  const safeProbe = document.createElement("div");
+  safeProbe.style.cssText = "position:fixed;left:-9999px;padding-bottom:env(safe-area-inset-bottom,0px)";
+  document.body.appendChild(safeProbe);
+  const safeAreaBottom = getComputedStyle(safeProbe).paddingBottom;
+  safeProbe.remove();
   const appStyle = appRoot ? getComputedStyle(appRoot) : null;
   const sampleX = Math.max(0, Math.min(window.innerWidth - 1, window.innerWidth / 2));
   const sampleY = Math.max(0, Math.min(window.innerHeight - 1, (vv?.height ?? window.innerHeight) - 2));
@@ -76,6 +82,12 @@ const readSnapshot = (event: string): DebugSnapshot => {
       ["chatRoot.height", rectValue(chatRoot, "height")],
       ["composer.top", rectValue(composer, "top")],
       ["composer.bottom", rectValue(composer, "bottom")],
+      ["composer.height", rectValue(composer, "height")],
+      ["composer.paddingTop", composerStyle?.paddingTop ?? "n/a"],
+      ["composer.paddingBottom", composerStyle?.paddingBottom ?? "n/a"],
+      ["composer.marginBottom", composerStyle?.marginBottom ?? "n/a"],
+      ["composer.minHeight", composerStyle?.minHeight ?? "n/a"],
+      ["safe-area-inset-bottom", safeAreaBottom],
       ["chatRoot.position", chatStyle?.position ?? "n/a"],
       ["chatRoot.css.height", chatStyle?.height ?? "n/a"],
       ["html.css.height", htmlStyle.height],
