@@ -102,7 +102,7 @@ export const StoryArtVariant = forwardRef<
         <span className="vsv-price-x">{parcelas}x</span>
         <span className="vsv-price-cur">R$</span>
         <span className="vsv-price-num">{reais}</span>
-        <span className="vsv-price-cents">,{centavos}</span>
+        <span className="vsv-price-cents">{`,${centavos ?? "00"}`}</span>
       </div>
       <div className="vsv-price-bar" />
       <p className="vsv-price-total">
@@ -317,7 +317,7 @@ const CSS = `
 .vsv-price-x{font-size:18px;font-weight:700;margin-right:6px}
 .vsv-price-cur{font-size:28px;font-weight:700;color:var(--brand-orange);margin-right:6px}
 .vsv-price-num{font-size:84px;font-weight:900;color:var(--brand-orange);letter-spacing:-.04em;line-height:1}
-.vsv-price-cents{font-size:32px;font-weight:700;color:var(--brand-orange);margin-left:-2px}
+.vsv-price-cents{font-size:32px;font-weight:700;color:var(--brand-orange);margin-left:0;white-space:pre}
 .vsv-price-bar{width:100%;height:1px;background:var(--brand-orange);opacity:.5;margin:10px 0}
 .vsv-price-total{margin:0;font-size:16px;font-weight:500}
 .vsv-price-total span{color:var(--brand-orange);font-weight:700}
