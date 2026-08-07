@@ -306,16 +306,12 @@ function ChatLayout() {
 
   return (
     <div
-      data-chat-root
-      className={`${themeClass} fixed inset-0 flex w-full overflow-hidden bg-[var(--chat-bg)] text-foreground`}
+      className={`${themeClass} flex w-full overflow-hidden bg-[var(--chat-bg)] text-foreground`}
+      style={{ height: "100dvh" }}
     >
-      <ChatViewportDebugPanel />
-
-
       <ChatSidebar mobileOpen={mobileNavOpen} onCloseMobile={() => setMobileNavOpen(false)} />
-      {/* O root cobre o layout viewport inteiro (fixed inset-0). Sem altura
-          manual: o WebKit reduz o layout viewport quando o teclado abre. */}
       <div className="flex min-w-0 flex-1 flex-col">
+
 
 
         <ChatHeader
