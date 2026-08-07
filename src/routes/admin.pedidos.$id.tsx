@@ -3192,7 +3192,7 @@ function ItemDialog({
                   })
                   .map((seg, idx) => {
                     const preserved = seg.id ? (preservedSiblingExtrasRef.current[seg.id] ?? {}) : {};
-                    const cd = { ...preserved, ...buildClean(seg.details) };
+                    const cd = { ...preserved, ...buildClean(seg.details), trip_group: tripGroup };
                     return {
                       id: seg.id,
                       title: segmentTitle(seg.details),
