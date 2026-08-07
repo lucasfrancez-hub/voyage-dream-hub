@@ -24,18 +24,35 @@ export const Route = createFileRoute("/api/public/hooks/broadcast-dispatch")({
         }
 
         const nowIso = new Date().toISOString();
-        const { data: pend } = await supabaseAdmin
+        // Campanhas prontas + campanhas travadas em "enviando" (worker morreu
+        // no meio de um upload demorado do Instagram, por exemplo).
+        const travadoIso = new Date(Date.now() - 5 * 60_000).toISOString();
+        const { data: agendadas } = await supabaseAdmin
           .from("wa_broadcast_campanhas")
           .select("id, destino_ids, nome")
           .eq("status", "agendada")
           .lte("scheduled_at", nowIso)
           .order("scheduled_at", { ascending: true })
           .limit(3);
+        const { data: travadas } = await supabaseAdmin
+          .from("wa_broadcast_campanhas")
+          .select("id, destino_ids, nome")
+          .eq("status", "enviando")
+          .lt("updated_at", travadoIso)
+          .limit(3);
+        const pend = [...(agendadas ?? []), ...(travadas ?? [])];
 
         const results: Array<{ id: string; ok: number; fail: number }> = [];
+        // Orçamento de tempo: o worker tem limite. Se estourar, a campanha
+        // volta para 'agendada' e a próxima rodada continua de onde parou.
+        const deadline = Date.now() + 40_000;
 
-        for (const camp of pend ?? []) {
-          await supabaseAdmin.from("wa_broadcast_campanhas").update({ status: "enviando" }).eq("id", camp.id);
+        for (const camp of pend) {
+          await supabaseAdmin
+            .from("wa_broadcast_campanhas")
+            .update({ status: "enviando", updated_at: new Date().toISOString() })
+            .eq("id", camp.id);
+
 
           const { data: msgs } = await supabaseAdmin
             .from("wa_broadcast_mensagens")
@@ -48,14 +65,19 @@ export const Route = createFileRoute("/api/public/hooks/broadcast-dispatch")({
             .in("id", camp.destino_ids as string[]);
 
           let ok = 0, fail = 0;
+          let estourouTempo = false;
+
           const now = Date.now();
           // Mensagens com horário próprio no futuro ficam para a próxima rodada.
           const prontas = (msgs ?? []).filter((m) => !m.scheduled_at || new Date(m.scheduled_at).getTime() <= now);
           const pendentesFuturas = (msgs ?? []).filter((m) => m.scheduled_at && new Date(m.scheduled_at).getTime() > now);
           for (const d of destinos ?? []) {
+            if (estourouTempo) break;
             const ehInstagram = d.tipo.startsWith("instagram_");
             for (const m of prontas) {
+              if (Date.now() > deadline) { estourouTempo = true; break; }
               // Destinos específicos do bloco (quando vazio, vai para todos da campanha)
+
               const alvos = (m as { destino_ids?: string[] | null }).destino_ids;
               if (alvos && alvos.length > 0 && !alvos.includes(d.id)) continue;
               // Em canais o WhatsApp já gera preview da URL no texto — pular
@@ -76,6 +98,20 @@ export const Route = createFileRoute("/api/public/hooks/broadcast-dispatch")({
                 .eq("mensagem_id", m.id)
                 .maybeSingle();
               if (existente && existente.status !== "pendente" && existente.status !== "falhou") continue;
+
+              // Claim: grava a tentativa ANTES de enviar. Se o worker morrer no
+              // meio (upload de vídeo/IG demora), a linha fica como 'pendente' e
+              // a próxima rodada retoma sem duplicar nada.
+              let envioId = existente?.id ?? null;
+              if (!envioId) {
+                const { data: novo } = await supabaseAdmin
+                  .from("wa_broadcast_envios")
+                  .insert({ campanha_id: camp.id, destino_id: d.id, mensagem_id: m.id, status: "pendente" })
+                  .select("id")
+                  .single();
+                envioId = novo?.id ?? null;
+              }
+
 
               let r: { id: string | null; error?: string | null };
               if (ehInstagram) {
@@ -134,11 +170,12 @@ export const Route = createFileRoute("/api/public/hooks/broadcast-dispatch")({
                 error: r.error ?? null,
                 sent_at: r.id ? new Date().toISOString() : null,
               };
-              if (existente) {
-                await supabaseAdmin.from("wa_broadcast_envios").update(row).eq("id", existente.id);
+              if (envioId) {
+                await supabaseAdmin.from("wa_broadcast_envios").update(row).eq("id", envioId);
               } else {
                 await supabaseAdmin.from("wa_broadcast_envios").insert(row);
               }
+
               if (r.id) ok++; else fail++;
               // pequena pausa entre envios
               await new Promise((res) => setTimeout(res, 400));
@@ -154,7 +191,19 @@ export const Route = createFileRoute("/api/public/hooks/broadcast-dispatch")({
           const totalEnviados = (todosEnvios ?? []).filter((e) => e.status === "enviado").length;
           const totalFalhas = (todosEnvios ?? []).filter((e) => e.status === "falhou").length;
 
-          if (pendentesFuturas.length > 0) {
+          if (estourouTempo) {
+            // Faltou tempo nesta rodada: volta para 'agendada' agora mesmo e o
+            // cron da próxima rodada continua exatamente de onde parou.
+            await supabaseAdmin
+              .from("wa_broadcast_campanhas")
+              .update({
+                status: "agendada",
+                scheduled_at: new Date().toISOString(),
+                metrics: { total: totalEnviados + totalFalhas, enviados: totalEnviados, falhas: totalFalhas },
+              })
+              .eq("id", camp.id);
+          } else if (pendentesFuturas.length > 0) {
+
             // Ainda há blocos com horário futuro: volta para 'agendada' apontando
             // para o próximo horário programado.
             const proximo = pendentesFuturas
