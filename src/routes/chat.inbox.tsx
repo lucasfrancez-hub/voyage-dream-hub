@@ -904,7 +904,7 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
   const sendFn = useServerFn(sendHumanReply);
   const toggleFn = useServerFn(toggleConversationMode);
   const pauseAiFn = useServerFn(setAiPaused);
-  const scrollRef = useRef<HTMLDivElement>(null);
+  
   const [input, setInput] = useState("");
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [replyTo, setReplyTo] = useState<{ wa_id: string; snippet: string; sender: string | null } | null>(null);
