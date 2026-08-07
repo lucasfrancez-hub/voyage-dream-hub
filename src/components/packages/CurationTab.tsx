@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import {
-  Copy, Loader2, ExternalLink, Wand2, ImageDown, Smartphone, RefreshCw,
+  Copy, Loader2, ExternalLink, Wand2, ImageDown, Smartphone, RefreshCw, Send,
   Wallet, Globe2, Snowflake, Palmtree, Timer, TreePine, Sparkles,
   PartyPopper, Egg, CalendarDays, LayoutGrid,
   type LucideIcon,
