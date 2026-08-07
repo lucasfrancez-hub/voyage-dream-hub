@@ -307,7 +307,7 @@ ${hookDirective}
       },
       body: JSON.stringify({
         model: "google/gemini-2.5-flash-lite",
-        temperature: 0.85,
+        temperature: 1.05,
         messages: [
           { role: "system", content: system },
           { role: "user", content: userMsg },
