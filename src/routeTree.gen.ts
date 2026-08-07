@@ -23,7 +23,6 @@ import { Route as PagarRouteImport } from './routes/pagar'
 import { Route as PagarBoletoRouteImport } from './routes/pagar-boleto'
 import { Route as PasseiosRouteImport } from './routes/passeios'
 import { Route as PoliticaDePrivacidadeRouteImport } from './routes/politica-de-privacidade'
-import { Route as PreviewSeloRouteImport } from './routes/preview-selo'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as TermosDeUsoRouteImport } from './routes/termos-de-uso'
@@ -196,11 +195,6 @@ const PasseiosRoute = PasseiosRouteImport.update({
 const PoliticaDePrivacidadeRoute = PoliticaDePrivacidadeRouteImport.update({
   id: '/politica-de-privacidade',
   path: '/politica-de-privacidade',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PreviewSeloRoute = PreviewSeloRouteImport.update({
-  id: '/preview-selo',
-  path: '/preview-selo',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
@@ -762,7 +756,6 @@ export interface FileRoutesByFullPath {
   '/pagar-boleto': typeof PagarBoletoRoute
   '/passeios': typeof PasseiosRoute
   '/politica-de-privacidade': typeof PoliticaDePrivacidadeRoute
-  '/preview-selo': typeof PreviewSeloRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/termos-de-uso': typeof TermosDeUsoRoute
@@ -881,7 +874,6 @@ export interface FileRoutesByTo {
   '/pagar-boleto': typeof PagarBoletoRoute
   '/passeios': typeof PasseiosRoute
   '/politica-de-privacidade': typeof PoliticaDePrivacidadeRoute
-  '/preview-selo': typeof PreviewSeloRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/termos-de-uso': typeof TermosDeUsoRoute
@@ -1002,7 +994,6 @@ export interface FileRoutesById {
   '/pagar-boleto': typeof PagarBoletoRoute
   '/passeios': typeof PasseiosRoute
   '/politica-de-privacidade': typeof PoliticaDePrivacidadeRoute
-  '/preview-selo': typeof PreviewSeloRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/termos-de-uso': typeof TermosDeUsoRoute
@@ -1124,7 +1115,6 @@ export interface FileRouteTypes {
     | '/pagar-boleto'
     | '/passeios'
     | '/politica-de-privacidade'
-    | '/preview-selo'
     | '/reset-password'
     | '/sitemap.xml'
     | '/termos-de-uso'
@@ -1243,7 +1233,6 @@ export interface FileRouteTypes {
     | '/pagar-boleto'
     | '/passeios'
     | '/politica-de-privacidade'
-    | '/preview-selo'
     | '/reset-password'
     | '/sitemap.xml'
     | '/termos-de-uso'
@@ -1363,7 +1352,6 @@ export interface FileRouteTypes {
     | '/pagar-boleto'
     | '/passeios'
     | '/politica-de-privacidade'
-    | '/preview-selo'
     | '/reset-password'
     | '/sitemap.xml'
     | '/termos-de-uso'
@@ -1484,7 +1472,6 @@ export interface RootRouteChildren {
   PagarBoletoRoute: typeof PagarBoletoRoute
   PasseiosRoute: typeof PasseiosRoute
   PoliticaDePrivacidadeRoute: typeof PoliticaDePrivacidadeRoute
-  PreviewSeloRoute: typeof PreviewSeloRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TermosDeUsoRoute: typeof TermosDeUsoRoute
@@ -1638,13 +1625,6 @@ declare module '@tanstack/react-router' {
       path: '/politica-de-privacidade'
       fullPath: '/politica-de-privacidade'
       preLoaderRoute: typeof PoliticaDePrivacidadeRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/preview-selo': {
-      id: '/preview-selo'
-      path: '/preview-selo'
-      fullPath: '/preview-selo'
-      preLoaderRoute: typeof PreviewSeloRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/reset-password': {
@@ -2521,7 +2501,6 @@ const rootRouteChildren: RootRouteChildren = {
   PagarBoletoRoute: PagarBoletoRoute,
   PasseiosRoute: PasseiosRoute,
   PoliticaDePrivacidadeRoute: PoliticaDePrivacidadeRoute,
-  PreviewSeloRoute: PreviewSeloRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   TermosDeUsoRoute: TermosDeUsoRoute,
