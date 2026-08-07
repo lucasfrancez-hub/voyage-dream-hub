@@ -337,7 +337,7 @@ async function processPayload(payload: IGPayload) {
             conversationId: v.media.id,
             titulo: `${v.from?.username ? "@" + v.from.username : "Instagram"} comentou`,
             corpo: v.text ?? "Novo comentário",
-            canal: "instagram",
+            canal: "instagram_comentario",
             messageId: v.id,
           });
         } catch (e) {

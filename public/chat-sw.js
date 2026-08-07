@@ -2,6 +2,26 @@
 self.addEventListener("install", () => self.skipWaiting());
 self.addEventListener("activate", (e) => e.waitUntil(self.clients.claim()));
 
+/* Badge (bolinha no ícone). No service worker a API fica em self.navigator;
+   algumas versões expõem em self.registration — tenta as duas. */
+function definirBadge(n) {
+  const total = Number(n);
+  if (!Number.isFinite(total)) return Promise.resolve();
+  const alvos = [self.navigator, self.registration].filter(Boolean);
+  const tarefas = [];
+  for (const alvo of alvos) {
+    try {
+      if (total > 0 && typeof alvo.setAppBadge === "function") tarefas.push(alvo.setAppBadge(total).catch(() => {}));
+      if (total === 0 && typeof alvo.clearAppBadge === "function") tarefas.push(alvo.clearAppBadge().catch(() => {}));
+    } catch {
+      /* ignora */
+    }
+  }
+  return Promise.all(tarefas);
+}
+
+
+
 self.addEventListener("push", (event) => {
   let dados = {};
   try {
@@ -14,10 +34,8 @@ self.addEventListener("push", (event) => {
   const titulo = dados.title || (ehAgenda ? "Lembrete da agenda" : "VIA AIR Chat");
   const url = dados.url || (ehAgenda ? "/chat/agenda" : "/chat/inbox");
 
-  const badge =
-    typeof dados.unreadCount === "number" && "setAppBadge" in self.registration
-      ? self.registration.setAppBadge(dados.unreadCount).catch(() => {})
-      : Promise.resolve();
+  const badge = definirBadge(dados.unreadCount);
+
 
   event.waitUntil(
     Promise.all([
@@ -62,7 +80,6 @@ self.addEventListener("notificationclick", (event) => {
 self.addEventListener("message", (event) => {
   const d = event.data || {};
   if (d.type !== "badge") return;
-  const n = Number(d.count) || 0;
-  if (n > 0 && "setAppBadge" in self.registration) self.registration.setAppBadge(n).catch(() => {});
-  if (n === 0 && "clearAppBadge" in self.registration) self.registration.clearAppBadge().catch(() => {});
+  event.waitUntil(definirBadge(Number(d.count) || 0));
 });
+

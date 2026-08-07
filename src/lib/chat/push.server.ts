@@ -10,7 +10,7 @@ type Args = {
   conversationId: string;
   titulo: string;
   corpo: string;
-  canal?: "whatsapp" | "instagram";
+  canal?: "whatsapp" | "instagram" | "instagram_comentario";
   messageId?: string;
 };
 
@@ -66,8 +66,15 @@ export async function notificarNovaMensagemChat({
 
     const naoLidas = await totalNaoLidas();
 
+    const origem =
+      canal === "instagram"
+        ? "📸 Instagram Direct"
+        : canal === "instagram_comentario"
+          ? "💬 Instagram Comentário"
+          : "💬 WhatsApp";
+
     const payload = {
-      title: `${canal === "instagram" ? "📸 " : "💬 "}${titulo}`,
+      title: `${origem} · ${titulo}`,
       body: limpar(corpo || "Nova mensagem"),
       url: `/chat/inbox?c=${conversationId}`,
       tag: `conv-${conversationId}-${messageId ?? Date.now()}`,
@@ -76,7 +83,8 @@ export async function notificarNovaMensagemChat({
       unreadCount: naoLidas,
     };
 
-    const alvos = subs.filter((s) => (canal === "instagram" ? s.pref_instagram : s.pref_novas));
+    const alvos = subs.filter((s) => (canal === "whatsapp" ? s.pref_novas : s.pref_instagram));
+
 
     await Promise.allSettled(alvos.map((s) => despachar(s, payload)));
   } catch (err) {
