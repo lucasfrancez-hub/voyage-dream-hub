@@ -92,6 +92,18 @@ function splitDestino(destino: string) {
   return { top: parts[0].toUpperCase(), bottom: parts.slice(1).join(" ").toUpperCase() };
 }
 
+/**
+ * Auto-fit do título: reduz a fonte quando o nome do destino é longo,
+ * para não invadir a imagem / empurrar o resto da arte.
+ * `avail` = largura útil em px (dentro do padding do conteúdo).
+ */
+export function fitDestSize(lines: string[], base: number, avail: number, min = base * 0.42) {
+  // largura média aproximada de um caractere maiúsculo Montserrat 900 ≈ 0.62em
+  const longest = Math.max(1, ...lines.map((l) => (l || "").trim().length));
+  const size = Math.min(base, avail / (longest * 0.62));
+  return Math.max(min, Math.round(size));
+}
+
 const APT_LABEL: Record<number, string> = {
   1: "individual", 2: "duplo", 3: "triplo", 4: "quádruplo", 5: "quíntuplo",
 };
