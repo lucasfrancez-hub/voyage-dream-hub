@@ -130,7 +130,7 @@ export const StoryArtVariant = forwardRef<
       <div className="vsv-card-icon">{isIngresso ? I.ticket : I.users}</div>
       <p>
         {isIngresso
-          ? "Preço por ingresso — até 9 unidades por pedido"
+          ? "Preço por ingresso"
           : "Valor por pessoa"}
       </p>
     </div>
