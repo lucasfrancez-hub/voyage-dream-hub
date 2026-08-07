@@ -24,9 +24,9 @@ export const Route = createFileRoute("/api/public/hooks/broadcast-dispatch")({
         }
 
         const nowIso = new Date().toISOString();
-        // Campanhas prontas + campanhas travadas em "enviando" (worker morreu
-        // no meio de um upload demorado do Instagram, por exemplo).
-        const travadoIso = new Date(Date.now() - 5 * 60_000).toISOString();
+        // Processa somente campanhas explicitamente agendadas. Uma campanha que
+        // ficou em "enviando" pode ter sido entregue antes de o worker cair;
+        // retomá-la automaticamente criaria risco de reenvio.
         const { data: agendadas } = await supabaseAdmin
           .from("wa_broadcast_campanhas")
           .select("id, destino_ids, nome")
@@ -34,13 +34,7 @@ export const Route = createFileRoute("/api/public/hooks/broadcast-dispatch")({
           .lte("scheduled_at", nowIso)
           .order("scheduled_at", { ascending: true })
           .limit(3);
-        const { data: travadas } = await supabaseAdmin
-          .from("wa_broadcast_campanhas")
-          .select("id, destino_ids, nome")
-          .eq("status", "enviando")
-          .lt("updated_at", travadoIso)
-          .limit(3);
-        const pend = [...(agendadas ?? []), ...(travadas ?? [])];
+        const pend = agendadas ?? [];
 
         const results: Array<{ id: string; ok: number; fail: number }> = [];
         // Orçamento de tempo: o worker tem limite. Se estourar, a campanha
@@ -89,7 +83,9 @@ export const Route = createFileRoute("/api/public/hooks/broadcast-dispatch")({
               if (d.tipo === "instagram_reels" && m.tipo !== "video") continue;
 
 
-              // Idempotência: pula se já enviado (retry seguro)
+              // Idempotência conservadora: qualquer registro significa que a
+              // tentativa já começou. "Pendente" também é pulado porque o
+              // provedor pode ter recebido a publicação antes de o worker cair.
               const { data: existente } = await supabaseAdmin
                 .from("wa_broadcast_envios")
                 .select("id,status")
@@ -97,20 +93,17 @@ export const Route = createFileRoute("/api/public/hooks/broadcast-dispatch")({
                 .eq("destino_id", d.id)
                 .eq("mensagem_id", m.id)
                 .maybeSingle();
-              if (existente && existente.status !== "pendente" && existente.status !== "falhou") continue;
+              if (existente) continue;
 
               // Claim: grava a tentativa ANTES de enviar. Se o worker morrer no
               // meio (upload de vídeo/IG demora), a linha fica como 'pendente' e
               // a próxima rodada retoma sem duplicar nada.
-              let envioId = existente?.id ?? null;
-              if (!envioId) {
-                const { data: novo } = await supabaseAdmin
-                  .from("wa_broadcast_envios")
-                  .insert({ campanha_id: camp.id, destino_id: d.id, mensagem_id: m.id, status: "pendente" })
-                  .select("id")
-                  .single();
-                envioId = novo?.id ?? null;
-              }
+              const { data: novo } = await supabaseAdmin
+                .from("wa_broadcast_envios")
+                .insert({ campanha_id: camp.id, destino_id: d.id, mensagem_id: m.id, status: "pendente" })
+                .select("id")
+                .single();
+              const envioId = novo?.id ?? null;
 
 
               let r: { id: string | null; error?: string | null };
