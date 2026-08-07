@@ -11,6 +11,7 @@ import { ChatHeader } from "@/components/chat/ChatHeader";
 import { getMyProfile } from "@/lib/chat/queries.functions";
 import { statusAparelhoChat, renovarSessaoAparelhoChat } from "@/lib/chat/device-session.functions";
 import { ChatPinUnlock } from "@/components/chat/ChatPinUnlock";
+import { ChatViewportDebugPanel } from "@/components/chat/ChatViewportDebugPanel";
 
 export const Route = createFileRoute("/chat")({
   ssr: false,
@@ -393,9 +394,11 @@ function ChatLayout() {
 
   return (
     <div
+      data-chat-root
       className={`${themeClass} fixed inset-x-0 top-0 flex w-full overflow-hidden bg-[var(--chat-bg)] text-foreground`}
       style={{ height: "var(--chat-vh, 100dvh)" }}
     >
+      <ChatViewportDebugPanel />
 
       <ChatSidebar mobileOpen={mobileNavOpen} onCloseMobile={() => setMobileNavOpen(false)} />
       <div className="flex min-w-0 flex-1 flex-col">
