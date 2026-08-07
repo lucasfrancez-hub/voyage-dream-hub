@@ -20,6 +20,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { useStickToBottom } from "@/lib/chat/use-stick-to-bottom";
 
 
 
@@ -903,7 +904,7 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
   const sendFn = useServerFn(sendHumanReply);
   const toggleFn = useServerFn(toggleConversationMode);
   const pauseAiFn = useServerFn(setAiPaused);
-  const scrollRef = useRef<HTMLDivElement>(null);
+  
   const [input, setInput] = useState("");
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [replyTo, setReplyTo] = useState<{ wa_id: string; snippet: string; sender: string | null } | null>(null);
@@ -1085,9 +1086,8 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
   }, [conv.id, qc]);
 
 
-  useEffect(() => {
-    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
-  }, [messages.length]);
+  // Abre sempre na última mensagem (e segue no fim conforme mídias carregam).
+  const scrollRef = useStickToBottom<HTMLDivElement>(conv.id, messages.length);
 
   const listUsersFn = useServerFn(listAttendants);
   const { data: attendantsList = [] } = useQuery({
@@ -2365,6 +2365,9 @@ function InstagramConversationView({
     refetchInterval: 10_000,
   });
 
+  // Abre sempre na última mensagem da DM.
+  const dmScrollRef = useStickToBottom<HTMLDivElement>(conversationId, msgs.length);
+
   const send = useMutation({
     mutationFn: (t: string) => sendFn({ data: { conversation_id: conversationId, text: t } }),
     onSuccess: () => {
@@ -2499,7 +2502,7 @@ function InstagramConversationView({
 
 
 
-      <div className="flex-1 space-y-2 overflow-y-auto p-4" style={wallpaper.style}>
+      <div ref={dmScrollRef} className="flex-1 space-y-2 overflow-y-auto p-4" style={wallpaper.style}>
 
         {isLoading ? (
           <div className="text-center text-xs text-slate-400">Carregando…</div>
@@ -3104,9 +3107,8 @@ function InstagramCommentThreadView({ mediaId, onBack }: { mediaId: string; onBa
     retry: false,
   });
 
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [comments.length, mediaId]);
+  // Abre sempre no comentário mais recente (e reajusta quando mídias carregam).
+  const comentariosScrollRef = useStickToBottom<HTMLDivElement>(mediaId, comments.length);
 
 
   // Alvo padrão: último comentário de terceiros ainda sem resposta.
@@ -3402,7 +3404,7 @@ function InstagramCommentThreadView({ mediaId, onBack }: { mediaId: string; onBa
       </Dialog>
 
 
-      <div className="flex-1 space-y-2 overflow-y-auto p-4" style={wallpaper.style}>
+      <div ref={comentariosScrollRef} className="flex-1 space-y-2 overflow-y-auto p-4" style={wallpaper.style}>
 
         {isLoading ? (
           <div className="text-center text-xs text-slate-400">Carregando…</div>
