@@ -79,6 +79,8 @@ function ChatLayout() {
   // usa apenas `height: 100dvh`. O hook abaixo age SOMENTE depois do teclado
   // fechar, quando o iOS deixa a viewport presa numa altura menor.
   const chatRootRef = useKeyboardViewportRecovery<HTMLDivElement>();
+  useBlockOverscroll();
+
 
 
 
