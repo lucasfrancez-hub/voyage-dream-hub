@@ -14,7 +14,7 @@ const MODEL = "google/gemini-2.5-flash";
 /** Canais oficiais para onde a conversa comercial é redirecionada. */
 const VIA_AIR_WHATSAPP_LINK = "wa.me/5544999514838";
 const VIA_AIR_WHATSAPP_FORMATADO = "(44) 99951-4838";
-const VIA_AIR_ARROBA = "@viaair";
+const VIA_AIR_ARROBA = "@viaars";
 
 type Historico = { direction: string; text: string | null }[];
 
