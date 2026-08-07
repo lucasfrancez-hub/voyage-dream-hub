@@ -277,3 +277,13 @@ html:root {
   }
 }
 
+
+/* Trava de rolagem estrutural — aplicada SÓ enquanto a rota /chat está montada.
+   O documento não rola: a única rolagem é a lista de mensagens dentro do root fixo. */
+html.chat-viewport-lock,
+body.chat-viewport-lock {
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+  position: relative;
+}
