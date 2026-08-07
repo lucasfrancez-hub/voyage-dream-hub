@@ -1843,6 +1843,7 @@ function CampanhaEditor({
                       idx={i}
                       total={blocos.length}
                       bloco={b}
+                      destinosCampanha={destinosSelecionados}
                       onChange={(p) => updateBloco(i, p)}
                       onRemove={() => removeBloco(i)}
                       onMove={(dir) => moveBloco(i, dir)}
@@ -2061,6 +2062,7 @@ function BlocoEditor({
   idx,
   total,
   bloco,
+  destinosCampanha,
   onChange,
   onRemove,
   onMove,
@@ -2068,6 +2070,7 @@ function BlocoEditor({
   idx: number;
   total: number;
   bloco: Bloco;
+  destinosCampanha: Destino[];
   onChange: (p: Partial<Bloco>) => void;
   onRemove: () => void;
   onMove: (dir: -1 | 1) => void;
@@ -2149,6 +2152,44 @@ function BlocoEditor({
           </button>
         </div>
       </div>
+
+      {/* destinos deste bloco */}
+      {destinosCampanha.length > 0 && (
+        <div className="border-b border-border px-3 py-2">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-[10px] font-bold uppercase tracking-tight text-muted-foreground">
+              Onde publicar esta mensagem
+            </span>
+            <span className="text-[10px] text-muted-foreground">
+              {(bloco.destino_ids?.length ?? 0) === 0 ? "todos os destinos da campanha" : `${bloco.destino_ids?.length} destino(s)`}
+            </span>
+          </div>
+          <div className="mt-1.5 flex flex-wrap gap-1.5">
+            <button
+              onClick={() => onChange({ destino_ids: null })}
+              className={`rounded-full border px-2.5 py-1 text-[10px] font-semibold transition-colors ${(bloco.destino_ids?.length ?? 0) === 0 ? "border-brand-orange bg-brand-orange/10 text-brand-orange" : "border-border text-muted-foreground hover:border-brand-orange/40"}`}
+            >
+              Todos
+            </button>
+            {destinosCampanha.map((d) => {
+              const ativos = bloco.destino_ids ?? [];
+              const on = ativos.includes(d.id);
+              return (
+                <button
+                  key={d.id}
+                  onClick={() =>
+                    onChange({ destino_ids: on ? ativos.filter((x) => x !== d.id) : [...ativos, d.id] })
+                  }
+                  title={d.nome}
+                  className={`max-w-[180px] truncate rounded-full border px-2.5 py-1 text-[10px] font-semibold transition-colors ${on ? "border-brand-orange bg-brand-orange/10 text-brand-orange" : "border-border text-muted-foreground hover:border-brand-orange/40"}`}
+                >
+                  {d.nome}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* corpo */}
       <div className="flex flex-col gap-4 p-4 sm:flex-row">
