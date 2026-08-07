@@ -24,7 +24,7 @@ const FORMATOS: { key: Exclude<Formato, "story_image">; label: string; hint: str
   { key: "story_video", label: "Story", hint: "Vídeo ou imagem · 24h · sem legenda" },
 ];
 
-export function InstagramPostTab() {
+export function InstagramPostTab({ embedded = false }: { embedded?: boolean } = {}) {
   const carregarContas = useServerFn(listInstagramAccounts);
   const doUpload = useServerFn(uploadBroadcastMedia);
   const doPublish = useServerFn(publishInstagramFromUrl);
