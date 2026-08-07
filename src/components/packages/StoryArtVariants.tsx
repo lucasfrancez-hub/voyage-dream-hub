@@ -139,7 +139,9 @@ export const StoryArtVariant = forwardRef<
   return (
     <div ref={ref}>
       <style>{CSS}</style>
-      <div className={`vsv-outer vsv-v${variant} ${isIngresso ? "vsv-ingresso" : "vsv-passeio"}`}>
+      <div
+        className={`vsv-outer vsv-v${variant} vsv-fmt-${format} ${isIngresso ? "vsv-ingresso" : "vsv-passeio"}`}
+      >
         <div className="vsv-inner">
           <div className="vsv-bg">
             {data.backgroundDataUrl ? <img src={data.backgroundDataUrl} alt="" /> : <div className="vsv-bg-fallback" />}
