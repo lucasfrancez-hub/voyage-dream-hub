@@ -72,10 +72,12 @@ function ChatLayout() {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   // ÚNICO controlador de viewport do chat.
-  // - fonte de altura: window.visualViewport.height (fallback innerHeight);
+  // - o ROOT não depende mais de --chat-vh: ele é fixed inset:0 e cobre a tela toda,
+  //   então o body nunca fica exposto (fim da faixa escura);
+  // - --chat-vh controla apenas a ÁREA ÚTIL interna quando o teclado abre;
   // - altura-base estável guardada em ref, nunca atualizada com teclado aberto;
-  // - documento travado (sem rolagem) enquanto a rota estiver montada;
-  // - root fixo, então não há coordenada de documento pra compensar.
+  // - documento travado (sem rolagem) enquanto a rota estiver montada.
+
   const alturaBaseRef = useRef(0);
   useEffect(() => {
     if (typeof window === "undefined") return;
