@@ -72,10 +72,12 @@ function ChatLayout() {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   // ÚNICO controlador de viewport do chat.
-  // - fonte de altura: window.visualViewport.height (fallback innerHeight);
+  // - o ROOT não depende mais de --chat-vh: ele é fixed inset:0 e cobre a tela toda,
+  //   então o body nunca fica exposto (fim da faixa escura);
+  // - --chat-vh controla apenas a ÁREA ÚTIL interna quando o teclado abre;
   // - altura-base estável guardada em ref, nunca atualizada com teclado aberto;
-  // - documento travado (sem rolagem) enquanto a rota estiver montada;
-  // - root fixo, então não há coordenada de documento pra compensar.
+  // - documento travado (sem rolagem) enquanto a rota estiver montada.
+
   const alturaBaseRef = useRef(0);
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -395,13 +397,19 @@ function ChatLayout() {
   return (
     <div
       data-chat-root
-      className={`${themeClass} fixed inset-x-0 top-0 flex w-full overflow-hidden bg-[var(--chat-bg)] text-foreground`}
-      style={{ height: "var(--chat-vh, 100dvh)" }}
+      className={`${themeClass} fixed inset-0 flex w-full overflow-hidden bg-[var(--chat-bg)] text-foreground`}
     >
       <ChatViewportDebugPanel />
 
+
       <ChatSidebar mobileOpen={mobileNavOpen} onCloseMobile={() => setMobileNavOpen(false)} />
-      <div className="flex min-w-0 flex-1 flex-col">
+      {/* O root cobre a tela inteira (inset:0). A --chat-vh limita apenas a ÁREA ÚTIL
+          interna quando o teclado abre — o fundo do root continua cobrindo o resto. */}
+      <div
+        className="flex min-w-0 flex-1 flex-col"
+        style={{ maxHeight: "var(--chat-vh, 100%)" }}
+      >
+
         <ChatHeader
           title={pageInfo.title}
           subtitle={pageInfo.subtitle}
