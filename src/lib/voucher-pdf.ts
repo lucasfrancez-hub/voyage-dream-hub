@@ -1248,7 +1248,11 @@ const drawFlightLegBlock = (
 
   // --- Card único cinza contendo TODOS os trechos + faixas de conexão ---
   const pillH = 16;
-  const segContentH = 68;
+  // Modelo "voo": reserva uma faixa extra em cada trecho pros assentos.
+  const showSeatsInFlight =
+    ctx.seatStyle === "voo" && segments.some((s) => Object.keys(segSeats(s)).length > 0);
+  const segContentH = showSeatsInFlight ? 86 : 68;
+
 
   const conBandH = 28;
   const padTop = pillH / 2 + 6;
