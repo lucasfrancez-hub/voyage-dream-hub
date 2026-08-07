@@ -231,7 +231,7 @@ function PackageDetails() {
     if (typeof window !== "undefined") window.location.replace("/pacotes");
     return null;
   }
-  const isPerUnit = (pkg as any).pricing_mode === "per_unit";
+  const isPerUnit = (pkg as any).pricing_mode === "per_unit" || isTicket;
 
   const flexibleDates = !!(pkg as unknown as { flexible_dates?: boolean }).flexible_dates;
   const isFlexibleDate = (pkg as any).date_mode === "flexible" || flexibleDates;
@@ -469,7 +469,7 @@ function PackageDetails() {
           <div className="rounded-2xl border border-border bg-card p-6 shadow-[var(--shadow-card)]">
             <div className="text-xs text-muted-foreground">
               {isPerUnit
-                ? "Preço por ingresso"
+                ? (isTour ? "Preço por pessoa" : "Preço por ingresso")
                 : `Preço para ${baseOccupancy === 1 ? "1 pessoa" : `${baseOccupancy} pessoas`}`}
             </div>
             <div className="mt-1 text-3xl font-display font-bold text-brand-orange">

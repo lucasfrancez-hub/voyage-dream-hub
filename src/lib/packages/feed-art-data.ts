@@ -333,6 +333,7 @@ export async function buildFeedArtData(pkg: FeedInputPkg): Promise<FeedArtData> 
   if (!pkg.image_url) throw new Error("Cadastre a URL da imagem de capa para gerar a arte.");
 
   const isService = pkg.kind === "service";
+  const isTour = pkg.kind === "tour";
 
   const [bg, tagline] = await Promise.all([
     toDataUrl(pkg.image_url),
@@ -341,8 +342,9 @@ export async function buildFeedArtData(pkg: FeedInputPkg): Promise<FeedArtData> 
       .catch(() => `Viva ${pkg.destination}.`),
   ]);
 
-  // Para ingressos: preço por unidade, base 1. Para pacotes: preço x ocupação.
-  const pessoas = isService ? 1 : Math.max(1, Number(pkg.base_occupancy) || 2);
+  // Ingressos e passeios: preço por unidade/pessoa, base 1 (não há mínimo).
+  // Pacotes: preço x ocupação.
+  const pessoas = isService || isTour ? 1 : Math.max(1, Number(pkg.base_occupancy) || 2);
   const isCativa = /cativa/i.test(pkg.supplier_name ?? "");
   const parks = (pkg.services?.tickets?.parks ?? [])
     .map((p) => String(p ?? "").trim())
@@ -366,7 +368,7 @@ export async function buildFeedArtData(pkg: FeedInputPkg): Promise<FeedArtData> 
     hotel: pkg.hotel_name || "",
     estrelas: pkg.hotel_stars,
     quantidadePessoas: pessoas,
-    apartamento: isService ? "" : (APT_LABEL[pessoas] || `de ${pessoas} pessoas`),
+    apartamento: isService || isTour ? "" : (APT_LABEL[pessoas] || `de ${pessoas} pessoas`),
     parcelas: isCativa ? 15 : 10,
     isCativa,
     valorTotal: (Number(pkg.price_per_person) || 0) * pessoas,
