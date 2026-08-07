@@ -2365,6 +2365,9 @@ function InstagramConversationView({
     refetchInterval: 10_000,
   });
 
+  // Abre sempre na última mensagem da DM.
+  const dmScrollRef = useStickToBottom<HTMLDivElement>(conversationId, msgs.length);
+
   const send = useMutation({
     mutationFn: (t: string) => sendFn({ data: { conversation_id: conversationId, text: t } }),
     onSuccess: () => {
