@@ -78,12 +78,16 @@ export function ChatViewportAudit() {
 
   const linhas = Object.entries(agora);
 
+  const base: React.CSSProperties = pos
+    ? { left: pos.x, top: pos.y }
+    : { right: 8, bottom: "calc(env(safe-area-inset-bottom, 0px) + 8px)" };
+
   if (!aberto) {
     return (
       <button
         onClick={() => setAberto(true)}
         style={{
-          position: "fixed", right: 6, top: 6, zIndex: 2147483647,
+          position: "fixed", ...base, zIndex: 2147483647,
           background: "#111", color: "#0f0", fontSize: 11, padding: "4px 8px", borderRadius: 6,
         }}
       >
@@ -94,11 +98,12 @@ export function ChatViewportAudit() {
 
   return (
     <div
+      onPointerDown={iniciarArrasto}
       style={{
-        position: "fixed", right: 4, top: 4, zIndex: 2147483647,
+        position: "fixed", ...base, zIndex: 2147483647,
         background: "rgba(0,0,0,.88)", color: "#0f0", fontFamily: "monospace",
         fontSize: 10, lineHeight: 1.35, padding: 6, borderRadius: 8, maxWidth: 210,
-        pointerEvents: "auto",
+        pointerEvents: "auto", touchAction: "none", cursor: "move",
       }}
     >
       <div style={{ display: "flex", gap: 4, marginBottom: 4 }}>
