@@ -322,8 +322,13 @@ ${hookDirective}
       throw new Error(`Falha IA (${resp.status}): ${txt.slice(0, 200)}`);
     }
     const json = (await resp.json()) as any;
-    const text = String(json?.choices?.[0]?.message?.content ?? "").trim();
+    const raw = String(json?.choices?.[0]?.message?.content ?? "").trim();
+    // Garante linha em branco entre o gancho em itálico e o bloco de dados (✈️/🗓️/🏨)
+    const text = raw
+      .replace(/(_\s*)\n(?=[ \t]*(✈️|🗓️|🏨))/g, "$1\n\n")
+      .replace(/\n{3,}/g, "\n\n");
     if (!text) throw new Error("IA não retornou texto");
+
 
     if (data.packageId) {
       await context.supabase.from("package_ai_copy").upsert({
