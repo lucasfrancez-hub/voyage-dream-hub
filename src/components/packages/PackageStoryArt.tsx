@@ -10,6 +10,7 @@
 import { forwardRef, Fragment, type ReactElement } from "react";
 import logoAsset from "@/assets/viaair-logo-white.png.asset.json";
 import type { FeedArtData } from "./PackageFeedArt";
+import { fitDestSize } from "./fit-title";
 
 const BRL = (n: number) =>
   n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
