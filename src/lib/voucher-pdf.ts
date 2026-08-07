@@ -1368,7 +1368,31 @@ const drawFlightLegBlock = (
     }
 
     // Cidades + horários
-    const bottomY = segBotY + 6;
+    const bottomY = segBotY + 6 + (showSeatsInFlight ? 18 : 0);
+    if (showSeatsInFlight) {
+      const seats = segSeats(seg);
+      const parts = ctx.passengers
+        .map((p) => (seats[p.id] ? `${paxShortName(p.full_name ?? "")} ${seats[p.id]}` : ""))
+        .filter(Boolean);
+      if (parts.length) {
+        const lbl = ctx.lang === "en" ? "Seats:" : "Assentos:";
+        const size = 7.5;
+        const txt = parts.join("   ·   ");
+        const lblW = measure(ctx.fontBold, lbl, size);
+        const txtW = measure(ctx.fontBold, txt, size);
+        const totalW = lblW + 6 + txtW;
+        const sx = segX + (segW - totalW) / 2;
+        const sy = segBotY + 7;
+        drawRoundedRect(ctx.page, sx - 8, sy - 4, totalW + 16, 15, COLOR_WHITE, 6);
+        ctx.page.drawText(sanitize(lbl), {
+          x: sx, y: sy, size, font: ctx.fontBold, color: COLOR_NAVY,
+        });
+        ctx.page.drawText(sanitize(txt), {
+          x: sx + lblW + 6, y: sy, size, font: ctx.fontBold, color: COLOR_ORANGE,
+        });
+      }
+    }
+
     if (fromCity) {
       ctx.page.drawText(sanitize(fromCity), {
         x: leftX, y: bottomY + 17, size: 7.5, font: ctx.font, color: COLOR_MUTED,
