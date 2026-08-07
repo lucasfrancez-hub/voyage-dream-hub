@@ -295,6 +295,43 @@ export const dispararAgora = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+/**
+ * Força o reenvio de uma campanha.
+ * - modo "pendentes" (padrão): apaga só os envios que não foram entregues
+ *   (pendente/falhou) e reagenda — nada que já saiu é repetido.
+ * - modo "tudo": apaga todos os envios e reenvia a campanha inteira.
+ */
+export const forcarReenvio = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { id: string; modo?: "pendentes" | "tudo" }) => d)
+  .handler(async ({ context, data }) => {
+    const role = await ensureMarketing(context);
+    if (role !== "admin") throw new Error("Apenas admin pode forçar reenvio");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    let del = supabaseAdmin.from("wa_broadcast_envios").delete().eq("campanha_id", data.id);
+    if (data.modo !== "tudo") del = del.neq("status", "enviado");
+    const { error: dErr } = await del;
+    if (dErr) throw new Error(dErr.message);
+
+    const { count } = await supabaseAdmin
+      .from("wa_broadcast_envios")
+      .select("id", { count: "exact", head: true })
+      .eq("campanha_id", data.id);
+
+    const { error } = await supabaseAdmin
+      .from("wa_broadcast_campanhas")
+      .update({
+        status: "agendada",
+        scheduled_at: new Date().toISOString(),
+        aprovada_por: context.userId,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true, mantidos: count ?? 0 };
+  });
+
 // ==================== Publicar pacote no WhatsApp (imediato) ====================
 
 /**
