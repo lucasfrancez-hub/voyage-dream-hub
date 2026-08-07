@@ -524,6 +524,7 @@ export const listInstagramCommentThreads = createServerFn({ method: "GET" })
       media_type: string | null;
       account_username: string | null;
       collab: boolean;
+      ai_paused: boolean;
       last_at: string | null;
       total: number;
       pendentes: number;
@@ -544,6 +545,7 @@ export const listInstagramCommentThreads = createServerFn({ method: "GET" })
         media_type: null,
         account_username: null,
         collab: false,
+        ai_paused: false,
         last_at: null,
         total: 0,
         pendentes: 0,
@@ -564,7 +566,42 @@ export const listInstagramCommentThreads = createServerFn({ method: "GET" })
     }
 
 
+    // Publicações com a IA pausada pelo atendente.
+    const { data: pausas } = await context.supabase
+      .from("instagram_comment_ai_pauses")
+      .select("media_id, paused");
+    for (const p of (pausas ?? []) as Array<{ media_id: string; paused: boolean }>) {
+      const t = threads.get(p.media_id);
+      if (t) t.ai_paused = !!p.paused;
+    }
+
     return [...threads.values()].sort((a, b) => (b.last_at ?? "").localeCompare(a.last_at ?? ""));
+  });
+
+/** Pausa/retoma a IA nos comentários de uma publicação. */
+export const setInstagramCommentAiPaused = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { media_id: string; paused: boolean }) =>
+    z.object({ media_id: z.string().min(1), paused: z.boolean() }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase
+      .from("instagram_comment_ai_pauses")
+      .upsert(
+        { media_id: data.media_id, paused: data.paused, updated_at: new Date().toISOString() },
+        { onConflict: "media_id" },
+      );
+    if (error) throw new Error(error.message);
+
+    // Ao pausar, cancela o que já estava agendado pra sair automático.
+    if (data.paused) {
+      await context.supabase
+        .from("instagram_comments")
+        .update({ auto_reply_status: "cancelled", reply_scheduled_at: null, dm_scheduled_at: null })
+        .eq("media_id", data.media_id)
+        .eq("auto_reply_status", "scheduled");
+    }
+    return { ok: true, paused: data.paused };
   });
 
 /** Marca todos os comentários de uma publicação como lidos (some o badge). */
