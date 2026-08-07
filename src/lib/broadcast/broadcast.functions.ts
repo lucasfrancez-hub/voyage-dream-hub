@@ -303,13 +303,14 @@ export const dispararAgora = createServerFn({ method: "POST" })
  */
 export const forcarReenvio = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: { id: string; modo?: "pendentes" | "tudo" }) => d)
+  .inputValidator((d: { id: string; modo?: "pendentes" | "tudo"; mensagem_id?: string | null }) => d)
   .handler(async ({ context, data }) => {
     const role = await ensureMarketing(context);
     if (role !== "admin") throw new Error("Apenas admin pode forçar reenvio");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     let del = supabaseAdmin.from("wa_broadcast_envios").delete().eq("campanha_id", data.id);
+    if (data.mensagem_id) del = del.eq("mensagem_id", data.mensagem_id);
     if (data.modo !== "tudo") del = del.neq("status", "enviado");
     const { error: dErr } = await del;
     if (dErr) throw new Error(dErr.message);
@@ -404,4 +405,49 @@ export const enviarPacoteWhatsapp = createServerFn({ method: "POST" })
       falhas: resultados.filter((r) => !r.ok),
       imagem_url: imagemUrl,
     };
+  });
+
+/** Detalhe por bloco de uma campanha: status de envio de cada mensagem. */
+export const detalheBlocos = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { id: string }) => d)
+  .handler(async ({ context, data }) => {
+    await ensureMarketing(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const [m, e, camp] = await Promise.all([
+      supabaseAdmin
+        .from("wa_broadcast_mensagens")
+        .select("id, ordem, tipo, texto, midia_caption, midia_filename, scheduled_at, destino_ids")
+        .eq("campanha_id", data.id)
+        .order("ordem"),
+      supabaseAdmin
+        .from("wa_broadcast_envios")
+        .select("mensagem_id, destino_id, status, error, sent_at")
+        .eq("campanha_id", data.id),
+      supabaseAdmin.from("wa_broadcast_campanhas").select("destino_ids").eq("id", data.id).maybeSingle(),
+    ]);
+    if (m.error) throw new Error(m.error.message);
+    if (e.error) throw new Error(e.error.message);
+
+    const geral = ((camp.data?.destino_ids as string[] | null) ?? []);
+    const envios = e.data ?? [];
+    const blocos = (m.data ?? []).map((b) => {
+      const alvo = ((b.destino_ids as string[] | null) ?? []).length
+        ? ((b.destino_ids as string[]))
+        : geral;
+      const meus = envios.filter((x) => x.mensagem_id === b.id);
+      return {
+        id: b.id as string,
+        ordem: (b.ordem as number) ?? 0,
+        tipo: b.tipo as string,
+        texto: (b.texto as string | null) ?? (b.midia_caption as string | null) ?? (b.midia_filename as string | null) ?? null,
+        scheduled_at: (b.scheduled_at as string | null) ?? null,
+        total: alvo.length,
+        enviados: meus.filter((x) => x.status === "enviado").length,
+        falhas: meus.filter((x) => x.status === "falhou").length,
+        pendentes: meus.filter((x) => x.status === "pendente").length,
+        erro: meus.find((x) => x.status === "falhou")?.error ?? null,
+      };
+    });
+    return { blocos };
   });
