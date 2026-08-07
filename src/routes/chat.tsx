@@ -70,50 +70,95 @@ function ChatLayout() {
   const [theme, setTheme] = useState<"dark" | "light">("light");
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
-  // Follow the visual viewport (iOS keyboard) so the chat container shrinks
-  // when the keyboard opens, keeping the header pinned WhatsApp-style
-  // instead of scrolling the top of the page off-screen.
+  // Estratégia única de viewport do chat (iOS/PWA):
+  // - altura-base estável guardada em ref, só atualizada com o teclado fechado;
+  // - teclado "aberto" = campo editável focado + visualViewport encolhido;
+  // - nada de documentElement.clientHeight (era medição circular do container).
+  const alturaBaseRef = useRef(0);
   useEffect(() => {
     if (typeof window === "undefined") return;
     const vv = window.visualViewport;
-    const timers = new Set<number>();
-    const apply = () => {
-      const viewportHeight = vv?.height ?? window.innerHeight;
-      const keyboardOpen = window.innerHeight - viewportHeight > 120;
-      // Ao terminar de fechar o teclado, o WebKit às vezes mantém por alguns
-      // quadros a altura reduzida do VisualViewport. Fora do teclado usamos a
-      // altura integral para não deixar uma faixa vazia na base do PWA.
-      const h = keyboardOpen
-        ? viewportHeight
-        : Math.max(window.innerHeight, document.documentElement.clientHeight);
-      document.documentElement.style.setProperty("--chat-vh", `${h}px`);
-      // Also compensate for any offset the browser applies when scrolling
-      // the focused input into view.
-      if (vv) window.scrollTo(0, 0);
+
+    const temFocoEditavel = () => {
+      const el = document.activeElement as HTMLElement | null;
+      if (!el) return false;
+      const tag = el.tagName;
+      return tag === "INPUT" || tag === "TEXTAREA" || el.isContentEditable === true;
     };
-    const settle = () => {
-      apply();
-      for (const delay of [80, 220, 500]) {
-        const timer = window.setTimeout(() => {
-          timers.delete(timer);
-          apply();
-        }, delay);
-        timers.add(timer);
+
+    const lerViewport = () => vv?.height ?? window.innerHeight;
+
+    const escrever = (h: number) => {
+      const valor = `${Math.round(h)}px`;
+      const raiz = document.documentElement;
+      // Só escreve quando muda: evita loop de resize do visualViewport.
+      if (raiz.style.getPropertyValue("--chat-vh") !== valor) {
+        raiz.style.setProperty("--chat-vh", valor);
       }
     };
-    apply();
-    vv?.addEventListener("resize", settle);
-    vv?.addEventListener("scroll", apply);
-    window.addEventListener("resize", settle);
-    window.addEventListener("focusout", settle);
-    window.addEventListener("pageshow", settle);
+
+    const tecladoAberto = () => {
+      if (!temFocoEditavel()) return false;
+      const base = alturaBaseRef.current;
+      return base > 0 && lerViewport() < base - 80;
+    };
+
+    const aplicar = () => {
+      const atual = lerViewport();
+      if (tecladoAberto()) {
+        // Com teclado aberto usamos a altura visual — sem tocar na base.
+        escrever(atual);
+        return;
+      }
+      // Sem teclado: a leitura atual vira (ou confirma) a altura-base.
+      if (!temFocoEditavel() && atual > 0) alturaBaseRef.current = atual;
+      escrever(alturaBaseRef.current || atual);
+    };
+
+    // Estabilização por requestAnimationFrame: o WebKit publica a altura
+    // correta alguns quadros depois do focusout/resize.
+    let rafId = 0;
+    const estabilizar = () => {
+      if (rafId) cancelAnimationFrame(rafId);
+      let frames = 0;
+      let iguais = 0;
+      let anterior = -1;
+      const passo = () => {
+        rafId = 0;
+        const atual = lerViewport();
+        iguais = Math.abs(atual - anterior) < 1 ? iguais + 1 : 0;
+        anterior = atual;
+        aplicar();
+        frames += 1;
+        if (iguais >= 2 || frames >= 30) {
+          // Já estabilizou: aí sim zera o scroll residual da página.
+          if (!temFocoEditavel() && window.scrollY !== 0) window.scrollTo(0, 0);
+          return;
+        }
+        rafId = requestAnimationFrame(passo);
+      };
+      rafId = requestAnimationFrame(passo);
+    };
+
+    // Inicializa a altura-base ao abrir a rota do chat.
+    alturaBaseRef.current = lerViewport();
+    aplicar();
+    estabilizar();
+
+    vv?.addEventListener("resize", aplicar);
+    vv?.addEventListener("scroll", aplicar);
+    window.addEventListener("orientationchange", estabilizar);
+    window.addEventListener("focusout", estabilizar);
+    window.addEventListener("pageshow", estabilizar);
+    document.addEventListener("visibilitychange", estabilizar);
     return () => {
-      for (const timer of timers) window.clearTimeout(timer);
-      vv?.removeEventListener("resize", settle);
-      vv?.removeEventListener("scroll", apply);
-      window.removeEventListener("resize", settle);
-      window.removeEventListener("focusout", settle);
-      window.removeEventListener("pageshow", settle);
+      if (rafId) cancelAnimationFrame(rafId);
+      vv?.removeEventListener("resize", aplicar);
+      vv?.removeEventListener("scroll", aplicar);
+      window.removeEventListener("orientationchange", estabilizar);
+      window.removeEventListener("focusout", estabilizar);
+      window.removeEventListener("pageshow", estabilizar);
+      document.removeEventListener("visibilitychange", estabilizar);
     };
   }, []);
 
