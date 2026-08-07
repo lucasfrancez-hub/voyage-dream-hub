@@ -3008,6 +3008,22 @@ function InstagramCommentThreadView({ mediaId, onBack }: { mediaId: string; onBa
   const hideCommentFn = useServerFn(setInstagramCommentHidden);
   const syncLikesFn = useServerFn(syncInstagramCommentLikes);
   const likeFn = useServerFn(toggleInstagramCommentLike);
+  const pausarIaFn = useServerFn(setInstagramCommentAiPaused);
+
+  // Pausa/retoma a IA nesta publicação (vale pra resposta pública e pro direct).
+  const comentarioPausaMut = useMutation({
+    mutationFn: (paused: boolean) => pausarIaFn({ data: { media_id: mediaId, paused } }),
+    onSuccess: (_r, paused) => {
+      qc.invalidateQueries({ queryKey: ["ig", "comment-threads"] });
+      toast.success(
+        paused
+          ? "IA pausada nesta publicação — nenhuma resposta automática vai sair"
+          : "IA retomada nesta publicação",
+      );
+    },
+    onError: (e) => toast.error(`Falha: ${(e as Error).message}`),
+  });
+
   const toggleLike = useMutation({
     mutationFn: (v: { id: string; like: boolean }) => likeFn({ data: v }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["ig", "comment-threads"] }),
