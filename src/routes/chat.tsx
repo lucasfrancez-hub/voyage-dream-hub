@@ -13,6 +13,7 @@ import { statusAparelhoChat, renovarSessaoAparelhoChat } from "@/lib/chat/device
 import { ChatPinUnlock } from "@/components/chat/ChatPinUnlock";
 // TEMPORÁRIO: painel de auditoria do viewport (remover após diagnóstico)
 import { useKeyboardViewportRecovery } from "@/lib/chat/use-keyboard-viewport-recovery";
+import { useBlockOverscroll } from "@/lib/chat/use-block-overscroll";
 
 export const Route = createFileRoute("/chat")({
   ssr: false,
@@ -78,6 +79,8 @@ function ChatLayout() {
   // usa apenas `height: 100dvh`. O hook abaixo age SOMENTE depois do teclado
   // fechar, quando o iOS deixa a viewport presa numa altura menor.
   const chatRootRef = useKeyboardViewportRecovery<HTMLDivElement>();
+  useBlockOverscroll();
+
 
 
 

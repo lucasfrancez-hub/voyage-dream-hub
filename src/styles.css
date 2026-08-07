@@ -276,3 +276,10 @@ html:root {
     box-shadow: none;
   }
 }
+
+/* Chat/PWA: nada de rubber-band mostrando o fundo atrás da tela. */
+html:has([data-chat-root]),
+body:has([data-chat-root]),
+[data-chat-root] {
+  overscroll-behavior: none;
+}
