@@ -2,6 +2,26 @@
 self.addEventListener("install", () => self.skipWaiting());
 self.addEventListener("activate", (e) => e.waitUntil(self.clients.claim()));
 
+/* Badge (bolinha no ícone). No service worker a API fica em self.navigator;
+   algumas versões expõem em self.registration — tenta as duas. */
+function definirBadge(n) {
+  const total = Number(n);
+  if (!Number.isFinite(total)) return Promise.resolve();
+  const alvos = [self.navigator, self.registration].filter(Boolean);
+  const tarefas = [];
+  for (const alvo of alvos) {
+    try {
+      if (total > 0 && typeof alvo.setAppBadge === "function") tarefas.push(alvo.setAppBadge(total).catch(() => {}));
+      if (total === 0 && typeof alvo.clearAppBadge === "function") tarefas.push(alvo.clearAppBadge().catch(() => {}));
+    } catch {
+      /* ignora */
+    }
+  }
+  return Promise.all(tarefas);
+}
+
+
+
 self.addEventListener("push", (event) => {
   let dados = {};
   try {
