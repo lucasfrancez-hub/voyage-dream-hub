@@ -33,6 +33,29 @@ export function ChatViewportAudit() {
   const [agora, setAgora] = useState<Snap>({});
   const [capturas, setCapturas] = useState<{ nome: string; s: Snap }[]>([]);
   const [aberto, setAberto] = useState(true);
+  // posição livre (arrastável). null = canto inferior direito padrão
+  const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
+
+  const iniciarArrasto = (e: React.PointerEvent) => {
+    const alvo = (e.target as HTMLElement).closest("button");
+    if (alvo) return;
+    const el = e.currentTarget as HTMLElement;
+    const r = el.getBoundingClientRect();
+    const dx = e.clientX - r.left;
+    const dy = e.clientY - r.top;
+    const mover = (ev: PointerEvent) => {
+      setPos({
+        x: Math.max(0, Math.min(window.innerWidth - r.width, ev.clientX - dx)),
+        y: Math.max(0, Math.min(window.innerHeight - r.height, ev.clientY - dy)),
+      });
+    };
+    const soltar = () => {
+      window.removeEventListener("pointermove", mover);
+      window.removeEventListener("pointerup", soltar);
+    };
+    window.addEventListener("pointermove", mover);
+    window.addEventListener("pointerup", soltar);
+  };
 
   useEffect(() => {
     const upd = () => setAgora(ler());
@@ -55,12 +78,16 @@ export function ChatViewportAudit() {
 
   const linhas = Object.entries(agora);
 
+  const base: React.CSSProperties = pos
+    ? { left: pos.x, top: pos.y }
+    : { right: 8, bottom: "calc(env(safe-area-inset-bottom, 0px) + 8px)" };
+
   if (!aberto) {
     return (
       <button
         onClick={() => setAberto(true)}
         style={{
-          position: "fixed", right: 6, top: 6, zIndex: 2147483647,
+          position: "fixed", ...base, zIndex: 2147483647,
           background: "#111", color: "#0f0", fontSize: 11, padding: "4px 8px", borderRadius: 6,
         }}
       >
@@ -71,11 +98,12 @@ export function ChatViewportAudit() {
 
   return (
     <div
+      onPointerDown={iniciarArrasto}
       style={{
-        position: "fixed", right: 4, top: 4, zIndex: 2147483647,
+        position: "fixed", ...base, zIndex: 2147483647,
         background: "rgba(0,0,0,.88)", color: "#0f0", fontFamily: "monospace",
         fontSize: 10, lineHeight: 1.35, padding: 6, borderRadius: 8, maxWidth: 210,
-        pointerEvents: "auto",
+        pointerEvents: "auto", touchAction: "none", cursor: "move",
       }}
     >
       <div style={{ display: "flex", gap: 4, marginBottom: 4 }}>
