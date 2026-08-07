@@ -1124,6 +1124,12 @@ function Checkout() {
                     value={`- ${formatBRL(pixDiscountValue)}`}
                   />
                 )}
+                {payment === "pix" && pixFeeValue > 0 && (
+                  <SummaryLine
+                    label="Taxa Pix"
+                    value={formatBRL(pixFeeValue)}
+                  />
+                )}
               </div>
               <div className="mt-4 border-t border-border pt-4 flex justify-between items-baseline">
                 <span className="text-muted-foreground text-sm">Total</span>
