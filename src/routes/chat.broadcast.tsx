@@ -20,7 +20,6 @@ import {
 } from "@/lib/broadcast/broadcast.functions";
 import { aprovarSuggestion, descartarSuggestion, listSuggestions } from "@/lib/broadcast/suggestions.functions";
 import { confirm } from "@/lib/confirm";
-import { InstagramPostTab } from "@/components/broadcast/InstagramPostTab";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
