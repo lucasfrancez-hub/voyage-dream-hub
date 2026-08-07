@@ -328,6 +328,7 @@ function ChatLayout() {
           <Outlet />
         </main>
       </div>
+      <ChatViewportAudit />
     </div>
   );
 }
