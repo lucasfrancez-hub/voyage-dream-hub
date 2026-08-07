@@ -340,24 +340,26 @@ const CSS = `
 .vsv-v3 .vsv-price{text-align:left;align-items:flex-start}
 .vsv-v3 .vsv-price-line{justify-content:flex-start}
 .vsv-v3 .vsv-price-total{text-align:left}
-/* Formato FEED 3:4 (1080x1440): mesma identidade, altura menor e ritmo mais compacto */
-.vsv-fmt-feed .vsv-outer,.vsv-outer.vsv-fmt-feed{height:1440px}
+/* Formato FEED 3:4 (1080x1440): mesma identidade, só a altura muda — caixas mantêm respiro */
+.vsv-outer.vsv-fmt-feed{height:1440px}
 .vsv-fmt-feed .vsv-inner{height:720px}
 .vsv-fmt-feed .vsv-content{padding:24px 24px 18px}
-.vsv-fmt-feed .vsv-logo{height:38px;margin-bottom:14px}
-.vsv-fmt-feed .vsv-bottom{gap:9px}
-.vsv-fmt-feed .vsv-info{padding:13px 12px}
-.vsv-fmt-feed .vsv-info-icon{width:20px;height:20px;margin-bottom:4px}
-.vsv-fmt-feed .vsv-info-icon svg{width:20px;height:20px}
+.vsv-fmt-feed .vsv-logo{height:36px;margin-bottom:12px}
+.vsv-fmt-feed .vsv-band{margin-bottom:12px}
+.vsv-fmt-feed .vsv-bottom{gap:11px}
+.vsv-fmt-feed .vsv-info{padding:16px 14px}
+.vsv-fmt-feed .vsv-info-icon{width:22px;height:22px;margin-bottom:6px}
+.vsv-fmt-feed .vsv-info-icon svg{width:22px;height:22px}
 .vsv-fmt-feed .vsv-info-strong{font-size:14px}
-.vsv-fmt-feed .vsv-info-div{height:44px}
-.vsv-fmt-feed .vsv-list{padding:11px 14px;gap:6px}
-.vsv-fmt-feed .vsv-price{padding:14px}
-.vsv-fmt-feed .vsv-price-num{font-size:62px}
-.vsv-fmt-feed .vsv-price-cents{font-size:26px}
-.vsv-fmt-feed .vsv-price-cur{font-size:24px}
-.vsv-fmt-feed .vsv-price-bar{margin:8px 0}
+.vsv-fmt-feed .vsv-info-div{height:48px}
+.vsv-fmt-feed .vsv-list{padding:14px 16px;gap:9px}
+.vsv-fmt-feed .vsv-price{padding:18px 20px}
+.vsv-fmt-feed .vsv-price-num{font-size:66px}
+.vsv-fmt-feed .vsv-price-cents{font-size:28px}
+.vsv-fmt-feed .vsv-price-cur{font-size:25px}
+.vsv-fmt-feed .vsv-price-bar{margin:10px 0}
 .vsv-fmt-feed .vsv-price-total{font-size:15px}
-.vsv-fmt-feed .vsv-card{padding:11px 14px}
-.vsv-fmt-feed .vsv-cards{gap:7px}
+.vsv-fmt-feed .vsv-card{padding:14px 16px}
+.vsv-fmt-feed .vsv-cards{gap:9px}
+.vsv-fmt-feed .vsv-note{margin-top:2px}
 `;
