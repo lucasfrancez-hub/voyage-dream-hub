@@ -129,6 +129,7 @@ type BlocoInput = {
   midia_caption?: string | null;
   botoes?: unknown;
   scheduled_at?: string | null;
+  destino_ids?: string[] | null;
 };
 
 
@@ -235,6 +236,7 @@ export const salvarCampanha = createServerFn({ method: "POST" })
       midia_filename: m.midia_filename ?? null,
       midia_caption: m.midia_caption ?? null,
       scheduled_at: m.scheduled_at ?? null,
+      destino_ids: m.destino_ids && m.destino_ids.length > 0 ? m.destino_ids : null,
       botoes: (m.botoes ?? null) as never,
     }));
 
