@@ -106,6 +106,7 @@ type Bloco = {
   midia_caption?: string | null;
   botoes?: unknown;
   scheduled_at?: string | null;
+  destino_ids?: string[] | null;
 };
 
 
@@ -1574,7 +1575,6 @@ function CampanhaEditor({
   const [saving, setSaving] = useState(false);
   const [loadingEdit, setLoadingEdit] = useState(Boolean(id));
   const [showPicker, setShowPicker] = useState(false);
-  const [canal, setCanal] = useState<"whatsapp" | "instagram">("whatsapp");
 
   const fetchOne = useServerFn(getCampanha);
   const doSalvar = useServerFn(salvarCampanha);
@@ -1812,7 +1812,6 @@ function CampanhaEditor({
 
 
             {/* Secão 3: mensagens */}
-            {(
             <section className="rounded-xl border border-border bg-card/50 p-4 space-y-3">
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-muted-foreground">
@@ -1870,7 +1869,7 @@ function CampanhaEditor({
                 disabled={saving || !scheduled}
                 className="text-sm rounded-full bg-brand-orange px-5 py-2 text-white font-semibold hover:opacity-90 disabled:opacity-50 shadow-lg shadow-brand-orange/25 inline-flex items-center gap-1"
               >
-                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Send className="h-3.5 w-3.5" /> {canal === "instagram" ? "Agendar publicação" : "Agendar envio"}</>}
+                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Send className="h-3.5 w-3.5" /> Agendar disparo</>}
               </button>
             </div>
 
