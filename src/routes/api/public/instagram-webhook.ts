@@ -269,6 +269,24 @@ async function processPayload(payload: IGPayload) {
           console.error("[instagram] IA falhou:", (e as Error).message);
         }
       }
+
+      // Perfil pessoal: nunca atendimento comercial — a IA responde como o dono.
+      if (!isFromMe && !iaAtiva) {
+        const { contaRespondeDirectComoPessoa } = await import("@/lib/instagram/ai-toggle");
+        if (contaRespondeDirectComoPessoa(igMetadata)) {
+          try {
+            const { responderDirectComoDono } = await import("@/lib/instagram/persona-dm.server");
+            await responderDirectComoDono({
+              conversationId: conv.id,
+              accountRowId: account.id,
+              contactIgId,
+              mensagem: msg.message.text ?? anexo.rotulo,
+            });
+          } catch (e) {
+            console.error("[instagram] IA pessoal falhou:", (e as Error).message);
+          }
+        }
+      }
     }
 
 
