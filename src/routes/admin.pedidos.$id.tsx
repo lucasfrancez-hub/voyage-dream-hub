@@ -3129,6 +3129,7 @@ function ItemDialog({
             // Merge extras preservados (arrays/objetos como `observations`, `tripadvisor_photos`)
             // ANTES dos escalares editados — assim edições no form ganham, mas o resto sobrevive.
             const cleanMain = { ...preservedExtrasRef.current, ...buildClean(details) };
+            let tripGroup = "";
             let effectiveTitle = title.trim();
             if (kind === "flight") {
               // Localizador opcional: se vier, precisa ter ao menos 6 alfanuméricos
