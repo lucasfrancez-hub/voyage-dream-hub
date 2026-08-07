@@ -2234,6 +2234,33 @@ function FlightReservationCard({
                           <Hash className="inline h-2.5 w-2.5" /> {ticketValue}
                         </div>
                       ) : null}
+                      {onPatchSeat && segments.map((seg) => {
+                        const sd = (seg.details ?? {}) as Record<string, unknown>;
+                        const segFrom = String(sd.from_iata ?? sd.origin ?? "").trim().toUpperCase();
+                        const segTo = String(sd.to_iata ?? sd.destination ?? "").trim().toUpperCase();
+                        const route = [segFrom, segTo].filter(Boolean).join("→");
+                        const seatMap = (sd.seats as Record<string, string> | undefined) ?? {};
+                        const seatValue = (seatMap[p.id] ?? "").trim();
+                        return (
+                          <div key={seg.id} className="mt-1 flex items-center gap-1">
+                            <Armchair className="h-2.5 w-2.5 text-muted-foreground shrink-0" />
+                            {segments.length > 1 && route && (
+                              <span className="text-[9px] text-muted-foreground font-mono shrink-0">{route}</span>
+                            )}
+                            <InlineText
+                              value={seatValue}
+                              placeholder="Assento"
+                              className="text-[10px] font-mono uppercase w-full"
+                              onCommit={(v) => {
+                                if ((v || "").trim().toUpperCase() !== seatValue.toUpperCase()) {
+                                  onPatchSeat(seg, p.id, v);
+                                }
+                              }}
+                            />
+                          </div>
+                        );
+                      })}
+
                     </div>
                     {onUnlink && (
                       <UnlinkButton onClick={() => onUnlink(p.id, segments.map((s) => s.id))} />
