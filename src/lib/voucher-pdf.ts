@@ -875,7 +875,12 @@ const passengerTypeLabel = (t: ReturnType<typeof T>, kind: string): string => {
   return t.adulto;
 };
 
-const drawPassengersSection = (ctx: Ctx, passengers: OrderPassenger[], reservationLocator: string | null = null) => {
+const drawPassengersSection = (
+  ctx: Ctx,
+  passengers: OrderPassenger[],
+  reservationLocator: string | null = null,
+  seatsByPassenger: Record<string, string> = {},
+) => {
   if (!passengers.length) return;
   const t = T(ctx);
   const rowH = 16;
@@ -893,11 +898,15 @@ const drawPassengersSection = (ctx: Ctx, passengers: OrderPassenger[], reservati
     const map = ((p as unknown as { tickets?: Record<string, string> }).tickets) ?? {};
     return (map[locKey] ?? p.ticket_number ?? "").trim();
   };
+  const seatFor = (p: OrderPassenger): string => (seatsByPassenger[p.id] ?? "").trim();
   // Só mostra a coluna Bilhete se pelo menos um passageiro tem número de bilhete
   const showTicket = passengers.some((p) => ticketFor(p).length > 0);
+  const showSeat = passengers.some((p) => seatFor(p).length > 0);
 
 
-  const weights = showTicket ? [2.2, 0.9, 1.6, 1.1, 1.3] : [2.4, 1.0, 1.8, 1.2];
+  const weights = [2.2, 0.9, 1.6, 1.1];
+  if (showTicket) weights.push(1.3);
+  if (showSeat) weights.push(1.0);
   const units = weights.reduce((a, b) => a + b, 0);
   const colWs = weights.map((u) => (innerW * u) / units);
   const colXs: number[] = [];
@@ -914,15 +923,17 @@ const drawPassengersSection = (ctx: Ctx, passengers: OrderPassenger[], reservati
   });
   cy -= 6;
 
-  const headers = showTicket
-    ? [t.passageiro, t.tipo, t.documento, t.dataNasc, t.bilhetePax]
-    : [t.passageiro, t.tipo, t.documento, t.dataNasc];
+  const headers: string[] = [t.passageiro, t.tipo, t.documento, t.dataNasc];
+  if (showTicket) headers.push(t.bilhetePax);
+  if (showSeat) headers.push(ctx.lang === "en" ? "SEAT" : "ASSENTO");
+
   headers.forEach((h, i) => {
     ctx.page.drawText(sanitize(h), {
       x: colXs[i], y: cy, size: 7.5, font: ctx.fontBold, color: COLOR_MUTED,
     });
   });
   cy -= 12;
+
 
   const NAME_SIZE = 8.5;
   const nameColW = colWs[0] - 6; // padding para não colar na próxima coluna
@@ -954,16 +965,19 @@ const drawPassengersSection = (ctx: Ctx, passengers: OrderPassenger[], reservati
     const rawTicket = ticketFor(p);
     const ticketFmt = formatTicketNumber(rawTicket);
 
-    const cells = showTicket
-      ? [name, tipo, doc, dob, ticketFmt || "-"]
-      : [name, tipo, doc, dob];
+    const cells: string[] = [name, tipo, doc, dob];
+    if (showTicket) cells.push(ticketFmt || "-");
+    const seatIdx = showSeat ? cells.length : -1;
+    if (showSeat) cells.push(seatFor(p) || "-");
 
     cells.forEach((v, i) => {
+      const isTicket = showTicket && i === 4;
       ctx.page.drawText(sanitize(v), {
         x: colXs[i], y: cy, size: i === 0 ? NAME_SIZE : 8.5, font: ctx.fontBold,
-        color: showTicket && i === 4 && v !== "-" ? COLOR_ORANGE : COLOR_TEXT,
+        color: (isTicket || i === seatIdx) && v !== "-" ? COLOR_ORANGE : COLOR_TEXT,
       });
     });
+
 
     cy -= rowH;
     if (idx < passengers.length - 1) {
@@ -2367,9 +2381,23 @@ export async function generateVoucher(
     // quando os passageiros não foram atrelados via order_item_passengers).
     return s.size === 0 ? new Set(allPassengerIds) : s;
   };
-  const drawPaxForIds = (ids: Set<string>, locator?: string | null) => {
+  const drawPaxForIds = (ids: Set<string>, locator?: string | null, seats: Record<string, string> = {}) => {
     const list = detail.passengers.filter((p) => ids.has(p.id));
-    if (list.length > 0) drawPassengersSection(ctx, list, locator ?? null);
+    if (list.length > 0) drawPassengersSection(ctx, list, locator ?? null, seats);
+  };
+  // Assentos ficam em details.seats de cada trecho ({ passengerId: "12A" }).
+  // Com múltiplos trechos, junta na ordem dos voos: "12A / 14C".
+  const seatsForItems = (its: OrderItem[]): Record<string, string> => {
+    const acc: Record<string, string[]> = {};
+    for (const it of its) {
+      const map = (((it.details ?? {}) as Record<string, unknown>).seats ?? {}) as Record<string, string>;
+      for (const [pid, seat] of Object.entries(map)) {
+        const v = String(seat ?? "").trim().toUpperCase();
+        if (!v) continue;
+        (acc[pid] ??= []).push(v);
+      }
+    }
+    return Object.fromEntries(Object.entries(acc).map(([pid, list]) => [pid, list.join(" / ")]));
   };
 
   const paxSignature = (ids: Set<string>) => [...ids].sort().join("|");
@@ -2379,11 +2407,13 @@ export async function generateVoucher(
   for (const key of groupOrder) {
     const g = groups.get(key)!;
     await drawAereoSection(ctx, g.outbound, g.returning);
-    const ids = paxSetForItems([...g.outbound, ...g.returning]);
-    const grpLoc = pickAereoLocator([...g.outbound, ...g.returning]);
-    drawPaxForIds(ids, grpLoc);
+    const items = [...g.outbound, ...g.returning];
+    const ids = paxSetForItems(items);
+    const grpLoc = pickAereoLocator(items);
+    drawPaxForIds(ids, grpLoc, seatsForItems(items));
     passengerSetsAlreadyShown.add(paxSignature(ids));
   }
+
 
 
 

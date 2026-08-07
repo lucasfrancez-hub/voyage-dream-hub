@@ -6,7 +6,7 @@ import { detectBrand } from "@/components/CardForm";
 
 import {
   ArrowLeft, Hotel, Plane, XCircle, FileText, DollarSign, Users, Plus,
-  Pencil, Trash2, Ban, RotateCcw, Loader2, Copy, Download, Hash,
+  Pencil, Trash2, Ban, RotateCcw, Loader2, Copy, Download, Hash, Armchair,
   Package, Percent, Mail, Printer, CheckCircle2, Signature, Settings,
   Vault, ExternalLink, X, UserPlus, Star, Backpack, Briefcase, Luggage,
   Phone, CreditCard, FolderOpen, ShieldCheck,
@@ -1316,7 +1316,26 @@ function ItemsTab({
   const linkFn = useServerFn(linkPassengerToItem);
   const unlinkFn = useServerFn(unlinkPassengerFromItem);
   const upsertPax = useServerFn(upsertPassenger);
+  const patchSeat = async (segment: OrderItem, passengerId: string, seat: string) => {
+    const details = { ...((segment.details ?? {}) as Record<string, unknown>) };
+    const seats: Record<string, string> = { ...((details.seats as Record<string, string> | undefined) ?? {}) };
+    const v = seat.trim().toUpperCase();
+    if (v) seats[passengerId] = v; else delete seats[passengerId];
+    details.seats = seats;
+    await upsert({ data: {
+      id: segment.id,
+      order_id: segment.order_id,
+      kind: segment.kind,
+      title: segment.title,
+      status: segment.status,
+      supplier_locator: segment.supplier_locator,
+      details,
+      sort_order: segment.sort_order,
+    } as any });
+    onChange();
+  };
   const patchPassengerTicket = async (passenger: OrderPassenger, locator: string, ticket: string) => {
+
     const key = (locator || "").toUpperCase().trim() || "_";
     const currentTickets: Record<string, string> = { ...(passenger.tickets ?? {}) };
     const t = ticket.trim();
@@ -1517,6 +1536,7 @@ function ItemsTab({
               onLink={(pid, iids) => linkMut.mutate({ passengerId: pid, itemIds: iids })}
               onUnlink={(pid, iids) => unlinkMut.mutate({ passengerId: pid, itemIds: iids })}
               onPatchPassengerTicket={patchPassengerTicket}
+              onPatchSeat={patchSeat}
 
             />
           ))}
@@ -1569,6 +1589,7 @@ function ItemsTab({
               onLink={(pid, iids) => linkMut.mutate({ passengerId: pid, itemIds: iids })}
               onUnlink={(pid, iids) => unlinkMut.mutate({ passengerId: pid, itemIds: iids })}
               onPatchPassengerTicket={patchPassengerTicket}
+              onPatchSeat={patchSeat}
 
             />
           ))}
@@ -1912,7 +1933,7 @@ function AddPassengerMenu({
 }
 
 function FlightReservationCard({
-  locator, segments, passengers, allPassengers, packageSnapshot, onEdit, onDelete, onCancel, onReactivate, onDeleteMany, onCancelMany, onLink, onUnlink, onPatchPassengerTicket,
+  locator, segments, passengers, allPassengers, packageSnapshot, onEdit, onDelete, onCancel, onReactivate, onDeleteMany, onCancelMany, onLink, onUnlink, onPatchPassengerTicket, onPatchSeat,
 }: {
   locator: string | null;
   segments: OrderItem[];
@@ -1928,6 +1949,8 @@ function FlightReservationCard({
   onLink?: (passengerId: string, segmentIds: string[]) => void;
   onUnlink?: (passengerId: string, segmentIds: string[]) => void;
   onPatchPassengerTicket?: (passenger: OrderPassenger, locator: string, ticket: string) => void | Promise<void>;
+  onPatchSeat?: (segment: OrderItem, passengerId: string, seat: string) => void | Promise<void>;
+
 }) {
   const allCancelled = segments.every((s) => s.status === "cancelled");
   const first = segments[0];
@@ -2211,6 +2234,33 @@ function FlightReservationCard({
                           <Hash className="inline h-2.5 w-2.5" /> {ticketValue}
                         </div>
                       ) : null}
+                      {onPatchSeat && segments.map((seg) => {
+                        const sd = (seg.details ?? {}) as Record<string, unknown>;
+                        const segFrom = String(sd.from_iata ?? sd.origin ?? "").trim().toUpperCase();
+                        const segTo = String(sd.to_iata ?? sd.destination ?? "").trim().toUpperCase();
+                        const route = [segFrom, segTo].filter(Boolean).join("→");
+                        const seatMap = (sd.seats as Record<string, string> | undefined) ?? {};
+                        const seatValue = (seatMap[p.id] ?? "").trim();
+                        return (
+                          <div key={seg.id} className="mt-1 flex items-center gap-1">
+                            <Armchair className="h-2.5 w-2.5 text-muted-foreground shrink-0" />
+                            {segments.length > 1 && route && (
+                              <span className="text-[9px] text-muted-foreground font-mono shrink-0">{route}</span>
+                            )}
+                            <InlineText
+                              value={seatValue}
+                              placeholder="Assento"
+                              className="text-[10px] font-mono uppercase w-full"
+                              onCommit={(v) => {
+                                if ((v || "").trim().toUpperCase() !== seatValue.toUpperCase()) {
+                                  onPatchSeat(seg, p.id, v);
+                                }
+                              }}
+                            />
+                          </div>
+                        );
+                      })}
+
                     </div>
                     {onUnlink && (
                       <UnlinkButton onClick={() => onUnlink(p.id, segments.map((s) => s.id))} />
