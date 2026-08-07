@@ -60,35 +60,51 @@ export const criarPixCobranca = createServerFn({ method: 'POST' })
       }
     }
 
-    const { createPixCobranca: sendToProxy, makeTxid } = await import('@/lib/pix.server')
+    const { makeTxid } = await import('@/lib/pix.server')
+    const { ensureAsaasCustomer, createAsaasPixPayment } = await import('@/lib/asaas.server')
 
     const txid = makeTxid(order.order_number || order.id.replace(/-/g, '').slice(0, 20))
     const expiracaoSeg = 1800 // 30 min
 
-    const cobranca = await sendToProxy({
-      txid,
-      valor: total,
-      expiracao_seg: expiracaoSeg,
-      devedor: order.cpf && order.full_name
-        ? { cpf: String(order.cpf).replace(/\D/g, ''), nome: order.full_name }
-        : undefined,
-      solicitacao: `Pedido VIA AIR #${order.order_number ?? ''}`.trim(),
+    const customerId = await ensureAsaasCustomer({
+      name: order.full_name || 'Cliente VIA AIR',
+      cpfCnpj: order.cpf,
+      email: order.email,
+      externalReference: order.id,
     })
 
-    const expiraEm = new Date(Date.now() + expiracaoSeg * 1000).toISOString()
+    const pix = await createAsaasPixPayment({
+      customerId,
+      value: total,
+      description: `Pedido VIA AIR #${order.order_number ?? ''}`.trim(),
+      externalReference: txid,
+      expiresInMinutes: Math.round(expiracaoSeg / 60),
+    })
+
+    const expiraEm = pix.expirationDate
+      ? new Date(pix.expirationDate).toISOString()
+      : new Date(Date.now() + expiracaoSeg * 1000).toISOString()
+
+    const cobranca = { txid, pixCopiaECola: pix.payload }
 
     const { error: insertErr } = await supabaseAdmin.from('pix_cobrancas').insert({
-      txid: cobranca.txid || txid,
+      txid,
       order_id: order.id,
       valor: total,
-      qr_code: cobranca.pixCopiaECola,
+      qr_code: pix.payload,
+      qr_code_image: pix.encodedImage ? `data:image/png;base64,${pix.encodedImage}` : null,
       status: 'ativa',
       expira_em: expiraEm,
       payer_name: order.full_name,
       payer_document: order.cpf,
-      raw_response: cobranca.raw ?? null,
+      provider: 'asaas',
+      asaas_payment_id: pix.paymentId,
+      asaas_customer_id: customerId,
+      invoice_url: pix.invoiceUrl,
+      raw_response: pix.raw ?? null,
     })
     if (insertErr) throw new Error(`Falha ao salvar cobrança: ${insertErr.message}`)
+
 
     // Dispara e-mail com o QR pro cliente (best-effort)
     if (order.email) {
