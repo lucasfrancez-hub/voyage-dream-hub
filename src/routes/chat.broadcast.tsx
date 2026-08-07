@@ -11,6 +11,7 @@ import {
   cancelarCampanha,
   excluirCampanha,
   dispararAgora,
+  forcarReenvio,
   getCampanha,
   adicionarDestinoPorLink,
   excluirDestino,
