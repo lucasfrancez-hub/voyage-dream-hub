@@ -1800,7 +1800,7 @@ function CampanhaEditor({
               </div>
 
               <p className="text-[11px] text-muted-foreground">
-                Selecione todos os canais da campanha — WhatsApp e Instagram juntos. Depois, se quiser, cada mensagem pode ir só para alguns deles.
+                Opcional: selecione aqui os canais que valem para a campanha inteira. Se preferir, deixe vazio e escolha o destino dentro de cada mensagem — só é obrigatório quando nenhuma mensagem tiver destino próprio.
               </p>
 
               <div className="grid md:grid-cols-2 gap-3">
