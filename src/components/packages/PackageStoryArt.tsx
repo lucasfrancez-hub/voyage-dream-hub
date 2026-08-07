@@ -10,6 +10,7 @@
 import { forwardRef, Fragment, type ReactElement } from "react";
 import logoAsset from "@/assets/viaair-logo-white.png.asset.json";
 import type { FeedArtData } from "./PackageFeedArt";
+import { fitDestSize } from "./fit-title";
 
 const BRL = (n: number) =>
   n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -91,6 +92,9 @@ function splitDestino(destino: string) {
   if (parts.length === 1) return { top: "", bottom: parts[0].toUpperCase() };
   return { top: parts[0].toUpperCase(), bottom: parts.slice(1).join(" ").toUpperCase() };
 }
+
+
+
 
 const APT_LABEL: Record<number, string> = {
   1: "individual", 2: "duplo", 3: "triplo", 4: "quádruplo", 5: "quíntuplo",
@@ -190,7 +194,10 @@ export const PackageStoryArt = forwardRef<HTMLDivElement, { data: FeedArtData }>
                 </div>
               ) : null}
 
-              <h2 className="vstory-dest">
+              <h2
+                className="vstory-dest"
+                style={{ fontSize: fitDestSize([top, bottom], 96, 484, 200) }}
+              >
                 {top ? (
                   <>
                     {top}

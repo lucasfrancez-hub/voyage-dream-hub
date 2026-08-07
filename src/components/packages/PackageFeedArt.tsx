@@ -6,6 +6,7 @@
  */
 import { forwardRef, Fragment, type ReactElement } from "react";
 import logoAsset from "@/assets/viaair-logo-white.png.asset.json";
+import { fitDestSize } from "./fit-title";
 
 export type FeedArtData = {
   kind?: "package" | "service" | "cruise" | "tour";
@@ -233,7 +234,10 @@ export const PackageFeedArt = forwardRef<HTMLDivElement, { data: FeedArtData }>(
                 </div>
               ) : null}
 
-              <h2 className="vfeed-dest">
+              <h2
+                className="vfeed-dest"
+                style={{ fontSize: fitDestSize([top, bottom], 100, 688, 240) }}
+              >
                 {bottom ? (
                   <>
                     {top}
