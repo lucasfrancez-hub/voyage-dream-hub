@@ -71,41 +71,11 @@ function ChatLayout() {
   const [theme, setTheme] = useState<"dark" | "light">("light");
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
-  // Viewport do chat: uma única estratégia.
-  // O layout viewport é reduzido pelo próprio WebKit via
-  // `interactive-widget=resizes-content` (meta única em __root.tsx), então o
-  // root `fixed inset-0` já acompanha a área acima do teclado.
-  // Aqui só travamos a rolagem estrutural do documento durante /chat.
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const raiz = document.documentElement;
-    const corpo = document.body;
-    raiz.classList.add("chat-viewport-lock");
-    corpo.classList.add("chat-viewport-lock");
-    return () => {
-      raiz.classList.remove("chat-viewport-lock");
-      corpo.classList.remove("chat-viewport-lock");
-    };
-  }, []);
+  // Viewport do chat: nenhuma medição em JavaScript.
+  // O WebKit reduz o layout viewport quando o teclado abre
+  // (`interactive-widget=resizes-content`, meta única em __root.tsx) e o root
+  // usa apenas `height: 100dvh`.
 
-  // TESTE TEMPORÁRIO DE ISOLAMENTO VISUAL (não altera layout, só pintura).
-  // Ative abrindo /chat/inbox?cores=1 no iPhone; desative com ?cores=0.
-  // html = vermelho · body = verde · [data-chat-root] = azul · composer = amarelo.
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const url = new URL(window.location.href);
-    const param = url.searchParams.get("cores");
-    if (param === "1") { try { localStorage.setItem("chat-debug-cores", "1"); } catch { /* ignora */ } }
-    if (param === "0") { try { localStorage.removeItem("chat-debug-cores"); } catch { /* ignora */ } }
-    let ligado = param === "1";
-    if (param !== "0" && !ligado) {
-      try { ligado = localStorage.getItem("chat-debug-cores") === "1"; } catch { ligado = false; }
-    }
-    const raiz = document.documentElement;
-    if (ligado) raiz.classList.add("chat-debug-cores");
-    else raiz.classList.remove("chat-debug-cores");
-    return () => raiz.classList.remove("chat-debug-cores");
-  }, []);
 
 
 
