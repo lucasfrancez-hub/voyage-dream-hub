@@ -1,5 +1,5 @@
 import { createFileRoute, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import type { Session } from "@supabase/supabase-js";
@@ -147,6 +147,7 @@ function ChatLayout() {
 
     vv?.addEventListener("resize", aplicar);
     vv?.addEventListener("scroll", aplicar);
+    window.addEventListener("resize", estabilizar);
     window.addEventListener("orientationchange", estabilizar);
     window.addEventListener("focusout", estabilizar);
     window.addEventListener("pageshow", estabilizar);
@@ -155,6 +156,7 @@ function ChatLayout() {
       if (rafId) cancelAnimationFrame(rafId);
       vv?.removeEventListener("resize", aplicar);
       vv?.removeEventListener("scroll", aplicar);
+      window.removeEventListener("resize", estabilizar);
       window.removeEventListener("orientationchange", estabilizar);
       window.removeEventListener("focusout", estabilizar);
       window.removeEventListener("pageshow", estabilizar);
