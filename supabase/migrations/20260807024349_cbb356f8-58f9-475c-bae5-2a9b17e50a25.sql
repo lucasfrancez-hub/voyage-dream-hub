@@ -1,0 +1,1 @@
+ALTER TABLE public.wa_broadcast_mensagens ADD COLUMN IF NOT EXISTS destino_ids uuid[];

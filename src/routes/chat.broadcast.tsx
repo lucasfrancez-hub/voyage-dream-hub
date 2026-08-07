@@ -106,6 +106,7 @@ type Bloco = {
   midia_caption?: string | null;
   botoes?: unknown;
   scheduled_at?: string | null;
+  destino_ids?: string[] | null;
 };
 
 
@@ -1574,7 +1575,6 @@ function CampanhaEditor({
   const [saving, setSaving] = useState(false);
   const [loadingEdit, setLoadingEdit] = useState(Boolean(id));
   const [showPicker, setShowPicker] = useState(false);
-  const [canal, setCanal] = useState<"whatsapp" | "instagram">("whatsapp");
 
   const fetchOne = useServerFn(getCampanha);
   const doSalvar = useServerFn(salvarCampanha);
@@ -1791,45 +1791,27 @@ function CampanhaEditor({
                 <span className="text-[11px] font-semibold text-brand-orange">{selecionados.size} selecionado{selecionados.size === 1 ? "" : "s"}</span>
               </div>
 
-              <div className="grid sm:grid-cols-2 gap-2">
-                <button
-                  onClick={() => setCanal("whatsapp")}
-                  className={`rounded-xl border px-3 py-2 text-left transition-colors ${canal === "whatsapp" ? "border-brand-orange bg-brand-orange/10" : "border-border hover:border-brand-orange/40"}`}
-                >
-                  <span className="flex items-center gap-2 text-sm font-bold"><Radio className="h-4 w-4" /> WhatsApp</span>
-                  <span className="block text-[11px] text-muted-foreground">Canais e grupos · agendável</span>
-                </button>
-                <button
-                  onClick={() => setCanal("instagram")}
-                  className={`rounded-xl border px-3 py-2 text-left transition-colors ${canal === "instagram" ? "border-brand-orange bg-brand-orange/10" : "border-border hover:border-brand-orange/40"}`}
-                >
-                  <span className="flex items-center gap-2 text-sm font-bold"><Instagram className="h-4 w-4" /> Instagram</span>
-                  <span className="block text-[11px] text-muted-foreground">Publicação, Reels ou Story · agendável</span>
-                </button>
-              </div>
+              <p className="text-[11px] text-muted-foreground">
+                Selecione todos os canais da campanha — WhatsApp e Instagram juntos. Depois, se quiser, cada mensagem pode ir só para alguns deles.
+              </p>
 
-              {canal === "whatsapp" ? (
-                <div className="grid md:grid-cols-2 gap-3">
-                  <DestSelector title="Canais" icon={Radio} items={canais} sel={selecionados} onToggle={toggleDest} />
-                  <DestSelector title="Grupos" icon={Users} items={grupos} sel={selecionados} onToggle={toggleDest} />
-                </div>
-              ) : (
-                <>
-                  <div className="grid md:grid-cols-3 gap-3">
-                    <DestSelector title="Publicação (feed)" icon={Instagram} items={igFeeds} sel={selecionados} onToggle={toggleDest} />
-                    <DestSelector title="Reels" icon={Instagram} items={igReels} sel={selecionados} onToggle={toggleDest} />
-                    <DestSelector title="Story" icon={Instagram} items={igStories} sel={selecionados} onToggle={toggleDest} />
-                  </div>
-                  <p className="mt-2 text-[11px] text-pink-500">
-                    📸 Instagram publica só blocos de mídia: <b>imagem</b> no feed/story e <b>vídeo</b> no Reels/story. Blocos de texto e PDF são ignorados.
-                  </p>
-                </>
-              )}
+              <div className="grid md:grid-cols-2 gap-3">
+                <DestSelector title="Canais WhatsApp" icon={Radio} items={canais} sel={selecionados} onToggle={toggleDest} />
+                <DestSelector title="Grupos WhatsApp" icon={Users} items={grupos} sel={selecionados} onToggle={toggleDest} />
+              </div>
+              <div className="grid md:grid-cols-3 gap-3">
+                <DestSelector title="IG Publicação" icon={Instagram} items={igFeeds} sel={selecionados} onToggle={toggleDest} />
+                <DestSelector title="IG Reels" icon={Instagram} items={igReels} sel={selecionados} onToggle={toggleDest} />
+                <DestSelector title="IG Story" icon={Instagram} items={igStories} sel={selecionados} onToggle={toggleDest} />
+              </div>
+              <p className="text-[11px] text-pink-500">
+                📸 Instagram publica só blocos de mídia: <b>imagem</b> no feed/story e <b>vídeo</b> no Reels/story. Texto e PDF são ignorados por lá.
+              </p>
             </section>
 
 
+
             {/* Secão 3: mensagens */}
-            {(
             <section className="rounded-xl border border-border bg-card/50 p-4 space-y-3">
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-muted-foreground">
@@ -1861,6 +1843,7 @@ function CampanhaEditor({
                       idx={i}
                       total={blocos.length}
                       bloco={b}
+                      destinosCampanha={destinosSelecionados}
                       onChange={(p) => updateBloco(i, p)}
                       onRemove={() => removeBloco(i)}
                       onMove={(dir) => moveBloco(i, dir)}
@@ -1869,7 +1852,6 @@ function CampanhaEditor({
                 </div>
               )}
             </section>
-            )}
 
             <div className="flex items-center justify-end gap-2 pt-4 border-t border-border">
               <button onClick={onClose} className="text-sm rounded-full border border-border px-4 py-2 hover:border-brand-orange">
@@ -1887,7 +1869,7 @@ function CampanhaEditor({
                 disabled={saving || !scheduled}
                 className="text-sm rounded-full bg-brand-orange px-5 py-2 text-white font-semibold hover:opacity-90 disabled:opacity-50 shadow-lg shadow-brand-orange/25 inline-flex items-center gap-1"
               >
-                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Send className="h-3.5 w-3.5" /> {canal === "instagram" ? "Agendar publicação" : "Agendar envio"}</>}
+                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Send className="h-3.5 w-3.5" /> Agendar disparo</>}
               </button>
             </div>
 
@@ -2080,6 +2062,7 @@ function BlocoEditor({
   idx,
   total,
   bloco,
+  destinosCampanha,
   onChange,
   onRemove,
   onMove,
@@ -2087,6 +2070,7 @@ function BlocoEditor({
   idx: number;
   total: number;
   bloco: Bloco;
+  destinosCampanha: Destino[];
   onChange: (p: Partial<Bloco>) => void;
   onRemove: () => void;
   onMove: (dir: -1 | 1) => void;
@@ -2168,6 +2152,44 @@ function BlocoEditor({
           </button>
         </div>
       </div>
+
+      {/* destinos deste bloco */}
+      {destinosCampanha.length > 0 && (
+        <div className="border-b border-border px-3 py-2">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-[10px] font-bold uppercase tracking-tight text-muted-foreground">
+              Onde publicar esta mensagem
+            </span>
+            <span className="text-[10px] text-muted-foreground">
+              {(bloco.destino_ids?.length ?? 0) === 0 ? "todos os destinos da campanha" : `${bloco.destino_ids?.length} destino(s)`}
+            </span>
+          </div>
+          <div className="mt-1.5 flex flex-wrap gap-1.5">
+            <button
+              onClick={() => onChange({ destino_ids: null })}
+              className={`rounded-full border px-2.5 py-1 text-[10px] font-semibold transition-colors ${(bloco.destino_ids?.length ?? 0) === 0 ? "border-brand-orange bg-brand-orange/10 text-brand-orange" : "border-border text-muted-foreground hover:border-brand-orange/40"}`}
+            >
+              Todos
+            </button>
+            {destinosCampanha.map((d) => {
+              const ativos = bloco.destino_ids ?? [];
+              const on = ativos.includes(d.id);
+              return (
+                <button
+                  key={d.id}
+                  onClick={() =>
+                    onChange({ destino_ids: on ? ativos.filter((x) => x !== d.id) : [...ativos, d.id] })
+                  }
+                  title={d.nome}
+                  className={`max-w-[180px] truncate rounded-full border px-2.5 py-1 text-[10px] font-semibold transition-colors ${on ? "border-brand-orange bg-brand-orange/10 text-brand-orange" : "border-border text-muted-foreground hover:border-brand-orange/40"}`}
+                >
+                  {d.nome}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* corpo */}
       <div className="flex flex-col gap-4 p-4 sm:flex-row">
