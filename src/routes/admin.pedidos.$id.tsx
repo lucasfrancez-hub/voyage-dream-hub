@@ -111,7 +111,29 @@ function StarsDisplay({ value, className = "" }: { value: number; className?: st
   );
 }
 
+// Opções padrão de hospedagem (mesmas usadas no cadastro de pacotes).
+const HOSP_REGIMES: string[] = [
+  "Sem refeição",
+  "Café da manhã",
+  "Meia pensão",
+  "Pensão completa",
+  "All inclusive",
+];
+const HOSP_CATEGORIAS: string[] = [
+  "Standard", "Superior", "Luxo", "Suíte", "Suíte Master", "Suíte Presidencial", "Bangalô", "Chalé",
+];
+const HOSP_CAMAS: string[] = [
+  "1 cama de casal", "1 cama king", "1 cama queen", "2 camas de solteiro", "2 camas queen",
+  "2 camas de casal", "1 casal + 1 solteiro", "1 casal + 2 solteiros", "3 camas de solteiro",
+  "Cama de casal + sofá-cama",
+];
+const HOSP_VISTAS: string[] = [
+  "Vista interna", "Vista cidade", "Vista jardim", "Vista piscina", "Vista parcial mar",
+  "Vista mar", "Frente mar", "Vista montanha",
+];
+
 function StarsInput({ value, onChange }: { value: number; onChange: (v: number) => void }) {
+
   const v = Math.max(0, Math.min(5, Number(value) || 0));
   return (
     <div className="flex items-center gap-2">
@@ -2987,31 +3009,57 @@ function ItemDialog({
               </div>
               <div><Label>Endereço</Label><Input value={String(details.address ?? "")} onChange={(e) => setField("address", e.target.value)} /></div>
               <div className="grid grid-cols-2 gap-3">
-                <div><Label>Categoria</Label><Input value={String(details.room ?? "")} onChange={(e) => setField("room", e.target.value)} placeholder="Ex: Suíte Luxo, Deluxe Ocean View..." /></div>
-                <div><Label>Regime</Label><Input value={String(details.board ?? "")} onChange={(e) => setField("board", e.target.value)} placeholder="Café da manhã, All inclusive..." /></div>
+                <div>
+                  <Label>Categoria</Label>
+                  <Input
+                    list="hosp-categorias"
+                    value={String(details.room ?? "")}
+                    onChange={(e) => setField("room", e.target.value)}
+                    placeholder="Standard, Superior, Luxo…"
+                  />
+                  <datalist id="hosp-categorias">
+                    {HOSP_CATEGORIAS.map((o) => <option key={o} value={o} />)}
+                  </datalist>
+                </div>
+                <div>
+                  <Label>Regime</Label>
+                  <select
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    value={String(details.board ?? "")}
+                    onChange={(e) => setField("board", e.target.value)}
+                  >
+                    <option value="">—</option>
+                    {HOSP_REGIMES.map((o) => <option key={o} value={o}>{o}</option>)}
+                  </select>
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <Label>Tipo de cama</Label>
                   <Input
+                    list="hosp-camas"
                     value={String(details.bed_type ?? "")}
                     onChange={(e) => setField("bed_type", e.target.value)}
-                    placeholder="Casal, 2 solteiros, King..."
+                    placeholder="1 cama de casal, 2 camas de solteiro…"
                   />
+                  <datalist id="hosp-camas">
+                    {HOSP_CAMAS.map((o) => <option key={o} value={o} />)}
+                  </datalist>
                 </div>
                 <div>
-                  <Label>Café da manhã</Label>
-                  <select
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                    value={String(details.breakfast ?? "")}
-                    onChange={(e) => setField("breakfast", e.target.value)}
-                  >
-                    <option value="">—</option>
-                    <option value="Incluso">Incluso</option>
-                    <option value="Não incluso">Não incluso</option>
-                  </select>
+                  <Label>Categoria / vista</Label>
+                  <Input
+                    list="hosp-vistas"
+                    value={String(details.room_view ?? "")}
+                    onChange={(e) => setField("room_view", e.target.value)}
+                    placeholder="Vista mar, Vista cidade…"
+                  />
+                  <datalist id="hosp-vistas">
+                    {HOSP_VISTAS.map((o) => <option key={o} value={o} />)}
+                  </datalist>
                 </div>
               </div>
+
               <div className="grid grid-cols-3 gap-3">
                 <div><Label>Check-in</Label><Input type="date" value={String(details.check_in ?? details.checkin ?? "")} onChange={(e) => setField("check_in", e.target.value)} /></div>
                 <div><Label>Check-out</Label><Input type="date" value={String(details.check_out ?? details.checkout ?? "")} onChange={(e) => setField("check_out", e.target.value)} /></div>
