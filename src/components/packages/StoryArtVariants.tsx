@@ -44,6 +44,14 @@ const I = {
 
 export type ArtMode = "passeio" | "ingresso";
 export type ArtVariant = 1 | 2 | 3;
+/** story = 1080x1920 (9:16) | feed = 1080x1440 (3:4) */
+export type ArtFormat = "story" | "feed";
+
+/** Deriva o modo (passeio/ingresso) a partir do kind do produto. */
+export function artModeFromKind(kind?: string | null): ArtMode {
+  return kind === "service" ? "ingresso" : "passeio";
+}
+
 
 /** Auto-fit: nomes longos (passeios) reduzem a fonte sem quebrar a estrutura. */
 function titleSize(name: string, base: number) {
@@ -71,8 +79,9 @@ function dateLabel(data: FeedArtData) {
 
 export const StoryArtVariant = forwardRef<
   HTMLDivElement,
-  { data: FeedArtData; mode: ArtMode; variant: ArtVariant }
->(function StoryArtVariant({ data, mode, variant }, ref) {
+  { data: FeedArtData; mode: ArtMode; variant: ArtVariant; format?: ArtFormat }
+>(function StoryArtVariant({ data, mode, variant, format = "story" }, ref) {
+
   const parcelas = data.parcelas || 10;
   const total = data.valorTotal || 0;
   const [reais, centavos] = BRL(total / parcelas).split(",");
@@ -130,7 +139,9 @@ export const StoryArtVariant = forwardRef<
   return (
     <div ref={ref}>
       <style>{CSS}</style>
-      <div className={`vsv-outer vsv-v${variant} ${isIngresso ? "vsv-ingresso" : "vsv-passeio"}`}>
+      <div
+        className={`vsv-outer vsv-v${variant} vsv-fmt-${format} ${isIngresso ? "vsv-ingresso" : "vsv-passeio"}`}
+      >
         <div className="vsv-inner">
           <div className="vsv-bg">
             {data.backgroundDataUrl ? <img src={data.backgroundDataUrl} alt="" /> : <div className="vsv-bg-fallback" />}
@@ -329,4 +340,24 @@ const CSS = `
 .vsv-v3 .vsv-price{text-align:left;align-items:flex-start}
 .vsv-v3 .vsv-price-line{justify-content:flex-start}
 .vsv-v3 .vsv-price-total{text-align:left}
+/* Formato FEED 3:4 (1080x1440): mesma identidade, altura menor e ritmo mais compacto */
+.vsv-fmt-feed .vsv-outer,.vsv-outer.vsv-fmt-feed{height:1440px}
+.vsv-fmt-feed .vsv-inner{height:720px}
+.vsv-fmt-feed .vsv-content{padding:24px 24px 18px}
+.vsv-fmt-feed .vsv-logo{height:38px;margin-bottom:14px}
+.vsv-fmt-feed .vsv-bottom{gap:9px}
+.vsv-fmt-feed .vsv-info{padding:13px 12px}
+.vsv-fmt-feed .vsv-info-icon{width:20px;height:20px;margin-bottom:4px}
+.vsv-fmt-feed .vsv-info-icon svg{width:20px;height:20px}
+.vsv-fmt-feed .vsv-info-strong{font-size:14px}
+.vsv-fmt-feed .vsv-info-div{height:44px}
+.vsv-fmt-feed .vsv-list{padding:11px 14px;gap:6px}
+.vsv-fmt-feed .vsv-price{padding:14px}
+.vsv-fmt-feed .vsv-price-num{font-size:62px}
+.vsv-fmt-feed .vsv-price-cents{font-size:26px}
+.vsv-fmt-feed .vsv-price-cur{font-size:24px}
+.vsv-fmt-feed .vsv-price-bar{margin:8px 0}
+.vsv-fmt-feed .vsv-price-total{font-size:15px}
+.vsv-fmt-feed .vsv-card{padding:11px 14px}
+.vsv-fmt-feed .vsv-cards{gap:7px}
 `;
