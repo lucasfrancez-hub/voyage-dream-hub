@@ -1847,8 +1847,10 @@ function flightGroupKey(item: OrderItem): string {
   const supplierLocator = item.supplier_locator?.trim() ?? "";
   const locator = carrierLocator || supplierLocator;
   if (locator) return `loc:${locator.toUpperCase()}`;
-  // Sem localizador: cada item vira seu próprio card pra não misturar
-  // reservas diferentes num único bloco "sem localizador".
+  // Sem localizador: ida e volta lançadas juntas compartilham o mesmo trip_group
+  const trip = String(details.trip_group ?? "").trim();
+  if (trip) return `trip:${trip}`;
+  // Sem localizador e sem grupo: cada item vira seu próprio card.
   return `item:${item.id}`;
 }
 function groupFlightItems(items: OrderItem[]): FlightGroup[] {
@@ -2967,6 +2969,15 @@ function ItemDialog({
               </div>
               <div><Label>Hóspedes</Label><Input value={String(details.guests ?? "")} onChange={(e) => setField("guests", e.target.value)} placeholder="2 adultos, 1 criança..." /></div>
               <div>
+                <Label>URL da foto do hotel (opcional)</Label>
+                <Input
+                  value={String(details.photo_url ?? "")}
+                  onChange={(e) => setField("photo_url", e.target.value)}
+                  placeholder="https://…/foto-do-hotel.jpg"
+                />
+                <p className="mt-1 text-[11px] text-muted-foreground">Usada no voucher quando o hotel não tem foto no TripAdvisor.</p>
+              </div>
+              <div>
                 <Label>Políticas do hotel</Label>
                 <Textarea
                   rows={3}
@@ -2981,7 +2992,10 @@ function ItemDialog({
 
           ) : kind === "flight" ? (
             (() => {
-              // Agrupa por perna. Main sempre é o primeiro da ida.
+              // Direção do bloco principal: normalmente Ida, mas pode ser Volta
+              // (ex.: volta emitida com outra companhia, em reserva separada).
+              const mainDir = String(details.direction ?? "outbound") === "return" ? "return" : "outbound";
+              const isMainReturn = mainDir === "return";
               const outboundExtras: { seg: Segment; idx: number }[] = [];
               const returnExtras: { seg: Segment; idx: number }[] = [];
               extraSegments.forEach((seg, idx) => {
@@ -2989,30 +3003,51 @@ function ItemDialog({
                 if (dir === "return") returnExtras.push({ seg, idx });
                 else outboundExtras.push({ seg, idx });
               });
-              const hasRet = returnExtras.length > 0;
+              const mainExtras = isMainReturn ? returnExtras : outboundExtras;
+              const hasRet = !isMainReturn && returnExtras.length > 0;
+              const setMainDirection = (v: "outbound" | "return") => {
+                setField("direction", v);
+                // conexões do bloco principal seguem a mesma direção
+                setExtraSegments((arr) => arr.map((s) => ({ ...s, details: { ...s.details, direction: v } })));
+              };
               return (
                 <>
-                  {/* IDA */}
-                  <div className="rounded-xl border border-brand-orange/40 bg-brand-orange/5 p-3 space-y-3">
-                    <div className="text-xs font-semibold uppercase tracking-wide text-brand-orange">Ida</div>
-                    {renderFlightSegment(details, legLabel(false, 0), setField)}
-                    {outboundExtras.map(({ seg, idx }, i) => (
-                      <div key={seg.id ?? `out-${idx}`}>
+                  {/* BLOCO PRINCIPAL (Ida ou Volta) */}
+                  <div className={`rounded-xl border p-3 space-y-3 ${isMainReturn ? "border-brand-blue/40 bg-brand-blue/5" : "border-brand-orange/40 bg-brand-orange/5"}`}>
+                    <div className="flex items-center justify-between gap-2">
+                      <div className={`text-xs font-semibold uppercase tracking-wide ${isMainReturn ? "text-brand-blue" : "text-brand-orange"}`}>
+                        {isMainReturn ? "Volta" : "Ida"}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Label className="text-[11px] text-muted-foreground">Trecho</Label>
+                        <select
+                          className="h-8 rounded-md border border-input bg-background px-2 text-xs"
+                          value={mainDir}
+                          onChange={(e) => setMainDirection(e.target.value === "return" ? "return" : "outbound")}
+                        >
+                          <option value="outbound">Ida</option>
+                          <option value="return">Volta</option>
+                        </select>
+                      </div>
+                    </div>
+                    {renderFlightSegment(details, legLabel(isMainReturn, 0), setField)}
+                    {mainExtras.map(({ seg, idx }, i) => (
+                      <div key={seg.id ?? `main-${idx}`}>
                         {renderFlightSegment(
                           seg.details,
-                          legLabel(false, i + 1),
+                          legLabel(isMainReturn, i + 1),
                           (k, v) => setSegField(idx, k, v),
                           () => removeSegment(idx),
                         )}
                       </div>
                     ))}
-                    <Button type="button" variant="outline" size="sm" onClick={() => addSegment("outbound")}>
+                    <Button type="button" variant="outline" size="sm" onClick={() => addSegment(mainDir)}>
                       <Plus className="h-3.5 w-3.5 mr-1" /> Adicionar trecho (conexão)
                     </Button>
                   </div>
 
-                  {/* VOLTA */}
-                  {hasRet ? (
+                  {/* VOLTA (só quando o bloco principal é a ida) */}
+                  {isMainReturn ? null : hasRet ? (
                     <div className="rounded-xl border border-brand-blue/40 bg-brand-blue/5 p-3 space-y-3">
                       <div className="flex items-center justify-between">
                         <div className="text-xs font-semibold uppercase tracking-wide text-brand-blue">Volta</div>
@@ -3118,6 +3153,7 @@ function ItemDialog({
             // Merge extras preservados (arrays/objetos como `observations`, `tripadvisor_photos`)
             // ANTES dos escalares editados — assim edições no form ganham, mas o resto sobrevive.
             const cleanMain = { ...preservedExtrasRef.current, ...buildClean(details) };
+            let tripGroup = "";
             let effectiveTitle = title.trim();
             if (kind === "flight") {
               // Localizador opcional: se vier, precisa ter ao menos 6 alfanuméricos
@@ -3139,6 +3175,12 @@ function ItemDialog({
                 toast.error("Preencha ao menos a origem e o destino da ida");
                 return;
               }
+
+              // Ida e volta lançadas juntas continuam num único card mesmo sem
+              // localizador: marcamos todos os trechos com o mesmo trip_group.
+              tripGroup = String(cleanMain.trip_group ?? "").trim()
+                || `tg-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+              cleanMain.trip_group = tripGroup;
 
               // Volta é opcional: descarta trechos de volta vazios (sem origem/destino)
               effectiveTitle = segmentTitle(details);
@@ -3174,7 +3216,7 @@ function ItemDialog({
                   })
                   .map((seg, idx) => {
                     const preserved = seg.id ? (preservedSiblingExtrasRef.current[seg.id] ?? {}) : {};
-                    const cd = { ...preserved, ...buildClean(seg.details) };
+                    const cd = { ...preserved, ...buildClean(seg.details), trip_group: tripGroup };
                     return {
                       id: seg.id,
                       title: segmentTitle(seg.details),
