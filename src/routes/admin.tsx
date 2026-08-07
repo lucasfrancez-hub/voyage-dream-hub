@@ -14,6 +14,7 @@ import {
 import viaAirLogo from "@/assets/viaair-logo.png.asset.json";
 import { AdminNotificationBell } from "@/components/admin/NotificationBell";
 import { GlobalSearchButton } from "@/components/admin/GlobalSearch";
+import { PublishQueueButton } from "@/components/admin/PublishQueueButton";
 import { APP_VERSION, APP_BUILD_DATE } from "@/lib/version";
 
 
@@ -279,7 +280,9 @@ function AdminLayout() {
             >
               <Home className="h-3.5 w-3.5" />
             </a>
+            <PublishQueueButton />
             <GlobalSearchButton />
+
             <a
               href="/chat"
               target="_blank"
