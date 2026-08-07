@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { listConversations, listMessages, sendHumanReply, resendHumanMessage, sendHumanMedia, toggleConversationMode, startOutboundConversation, setFunnelStage, assignConversation, setAiPaused, listAttendants, getActiveProtocolo, closeProtocoloManually, listConversationProtocolos, getConversationOrders, updateProtocoloDetails, listProtocoloMessages, ensureProtocoloResumo, clearConversationHistory, markConversationRead } from "@/lib/chat/queries.functions";
-import { listInstagramAccounts, listInstagramConversations, listInstagramMessages, sendInstagramAttachment, sendInstagramReply, listInstagramCommentThreads, refreshInstagramProfile, triggerAutoReplyComment, markInstagramConversationRead, markInstagramConversationUnread, deleteInstagramConversation, markInstagramCommentThreadRead, markInstagramCommentThreadUnread, getInstagramMediaDetails, getInstagramMediaStats, deleteInstagramCommentThread, deleteInstagramComment, setInstagramCommentHidden, syncInstagramCommentLikes, toggleInstagramCommentLike, deleteInstagramMessage } from "@/lib/instagram/queries.functions";
+import { listInstagramAccounts, listInstagramConversations, listInstagramMessages, sendInstagramAttachment, sendInstagramReply, listInstagramCommentThreads, refreshInstagramProfile, triggerAutoReplyComment, markInstagramConversationRead, markInstagramConversationUnread, deleteInstagramConversation, markInstagramCommentThreadRead, markInstagramCommentThreadUnread, getInstagramMediaDetails, getInstagramMediaStats, deleteInstagramCommentThread, deleteInstagramComment, setInstagramCommentHidden, syncInstagramCommentLikes, toggleInstagramCommentLike, deleteInstagramMessage, sugerirRespostaComentarioIa, dispensarAlertaComentario } from "@/lib/instagram/queries.functions";
 import { firstName } from "@/lib/whatsapp/text-utils.shared";
 import { confirmThen } from "@/lib/confirm";
 
@@ -2967,6 +2967,9 @@ function InstagramCommentThreadView({ mediaId, onBack }: { mediaId: string; onBa
   const threadsFn = useServerFn(listInstagramCommentThreads);
   const accountsFn = useServerFn(listInstagramAccounts);
   const replyFn = useServerFn(triggerAutoReplyComment);
+  const sugerirIaFn = useServerFn(sugerirRespostaComentarioIa);
+  const dispensarAlertaFn = useServerFn(dispensarAlertaComentario);
+  const [gerandoIa, setGerandoIa] = useState<string | null>(null);
   const qc = useQueryClient();
   const [text, setText] = useState("");
   const [alvo, setAlvo] = useState<string | null>(null);
@@ -3369,7 +3372,11 @@ function InstagramCommentThreadView({ mediaId, onBack }: { mediaId: string; onBa
             const meu = nossos.has((c.from_username ?? "").replace(/^@/, "").toLowerCase());
             const inicial = (c.from_username ?? "?").replace(/^@/, "").charAt(0).toUpperCase();
             const anexo = anexoDoComentario(c);
-            const meta = (c as { metadata?: { hidden?: boolean; like_count?: number; liked?: boolean } | null }).metadata;
+            const meta = (c as { metadata?: { hidden?: boolean; like_count?: number; liked?: boolean; tone?: { nivel?: number; categoria?: string; motivo?: string } } | null }).metadata;
+            const tomAlerta =
+              !meu && c.auto_reply_status === "needs_review" && meta?.tone
+                ? { categoria: meta.tone.categoria ?? "tom sensível", motivo: meta.tone.motivo ?? "" }
+                : null;
             const oculto = meta?.hidden === true;
             const curtidas = typeof meta?.like_count === "number" ? meta.like_count : 0;
             const curtido = meta?.liked === true;
@@ -3404,6 +3411,62 @@ function InstagramCommentThreadView({ mediaId, onBack }: { mediaId: string; onBa
                   </div>
                   {c.text && (
                     <div className="whitespace-pre-wrap break-words [overflow-wrap:anywhere]">{c.text}</div>
+                  )}
+                  {tomAlerta && (
+                    <div className="mt-1.5 rounded-lg border border-amber-300 bg-amber-50 p-2 text-[11px] text-amber-900">
+                      <div className="flex items-center gap-1 font-semibold">
+                        <AlertTriangle className="h-3 w-3" /> Comentário sensível — não respondemos automaticamente
+                      </div>
+                      <p className="mt-0.5 [overflow-wrap:anywhere]">
+                        {tomAlerta.categoria}
+                        {tomAlerta.motivo ? ` · ${tomAlerta.motivo}` : ""}
+                      </p>
+                      <div className="mt-1.5 flex flex-wrap gap-1.5">
+                        <button
+                          type="button"
+                          disabled={gerandoIa === c.id}
+                          onClick={async () => {
+                            setGerandoIa(c.id);
+                            try {
+                              const r = await sugerirIaFn({ data: { id: c.id } });
+                              setAlvo(c.id);
+                              setText(r.texto);
+                              toast.success("Sugestão gerada — revise antes de publicar");
+                            } catch (e: unknown) {
+                              toast.error(e instanceof Error ? e.message : "Erro ao gerar sugestão");
+                            } finally {
+                              setGerandoIa(null);
+                            }
+                          }}
+                          className="inline-flex items-center gap-1 rounded-md bg-amber-600 px-2 py-1 font-semibold text-white disabled:opacity-60"
+                        >
+                          {gerandoIa === c.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
+                          Responder com IA
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setAlvo(c.id)}
+                          className="rounded-md border border-amber-400 px-2 py-1 font-semibold text-amber-800"
+                        >
+                          Respondo eu
+                        </button>
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            try {
+                              await dispensarAlertaFn({ data: { id: c.id } });
+                              qc.invalidateQueries({ queryKey: ["ig", "comment-threads"] });
+                              toast.success("Alerta dispensado");
+                            } catch (e: unknown) {
+                              toast.error(e instanceof Error ? e.message : "Erro ao dispensar");
+                            }
+                          }}
+                          className="rounded-md px-2 py-1 font-semibold text-amber-700 underline"
+                        >
+                          Ignorar
+                        </button>
+                      </div>
+                    </div>
                   )}
                   {anexo && (
                     <a href={anexo} target="_blank" rel="noreferrer" className="mt-1 block">
