@@ -1370,7 +1370,7 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
       {/* Composer */}
       <div
         data-chat-composer="whatsapp"
-        className="shrink-0 border-t border-slate-200 bg-white px-3 pt-3"
+        className="shrink-0 border-t border-slate-200 px-3 pt-3"
         style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom, 0px))" }}
 
       >
@@ -2685,7 +2685,7 @@ function InstagramConversationView({
       <form
         data-chat-composer="instagram-dm"
         onSubmit={(e) => { e.preventDefault(); if (text.trim()) send.mutate(text.trim()); }}
-        className="shrink-0 flex items-center gap-2 border-t border-slate-200 bg-white px-3 pt-3"
+        className="shrink-0 flex items-center gap-2 border-t border-slate-200 px-3 pt-3"
         style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom, 0px))" }}
 
       >
@@ -3620,7 +3620,7 @@ function InstagramCommentThreadView({ mediaId, onBack }: { mediaId: string; onBa
 
       <div
         data-chat-composer="instagram-comments"
-        className="shrink-0 border-t border-slate-200 bg-white px-3 pt-3"
+        className="shrink-0 border-t border-slate-200 px-3 pt-3"
         style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom, 0px))" }}
       >
 
