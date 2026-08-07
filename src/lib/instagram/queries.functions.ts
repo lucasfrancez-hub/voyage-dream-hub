@@ -1008,3 +1008,35 @@ export const getSocialOverview = createServerFn({ method: "POST" })
 
     return { contas: resultado, atualizadoEm: new Date().toISOString() };
   });
+
+/** Publica no Instagram a partir de uma URL pública (vídeo para reels/story, imagem para feed/story). */
+export const publishInstagramFromUrl = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: {
+    account_id: string;
+    media_type: "reels_video" | "story_video" | "feed_image" | "story_image";
+    media_url: string;
+    caption?: string;
+    cover_url?: string;
+  }) =>
+    z.object({
+      account_id: z.string().uuid(),
+      media_type: z.enum(["reels_video", "story_video", "feed_image", "story_image"]),
+      media_url: z.string().url(),
+      caption: z.string().max(2200).optional(),
+      cover_url: z.string().url().optional(),
+    }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const isVideo = data.media_type === "reels_video" || data.media_type === "story_video";
+    const { publishInstagramMedia } = await import("./publish.server");
+    return await publishInstagramMedia({
+      accountId: data.account_id,
+      mediaType: data.media_type,
+      imageUrls: isVideo ? [] : [data.media_url],
+      videoUrl: isVideo ? data.media_url : undefined,
+      coverUrl: data.cover_url,
+      caption: data.media_type === "story_image" || data.media_type === "story_video" ? undefined : data.caption,
+      createdBy: context.userId,
+    });
+  });

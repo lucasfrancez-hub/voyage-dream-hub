@@ -1,4 +1,4 @@
-import { publishStoryImage, publishFeedImage, publishFeedCarousel } from "./api.server";
+import { publishStoryImage, publishFeedImage, publishFeedCarousel, publishReelsVideo, publishStoryVideo } from "./api.server";
 
 async function loadAccount(accountId: string) {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -13,8 +13,10 @@ async function loadAccount(accountId: string) {
 
 export async function publishInstagramMedia(params: {
   accountId: string;
-  mediaType: "story_image" | "feed_image" | "carousel";
+  mediaType: "story_image" | "feed_image" | "carousel" | "reels_video" | "story_video";
   imageUrls: string[];
+  videoUrl?: string;
+  coverUrl?: string;
   caption?: string;
   packageId?: string | null;
   createdBy?: string | null;
@@ -40,7 +42,23 @@ export async function publishInstagramMedia(params: {
 
   try {
     let result;
-    if (params.mediaType === "story_image") {
+    if (params.mediaType === "reels_video") {
+      if (!params.videoUrl) throw new Error("Vídeo obrigatório para Reels");
+      result = await publishReelsVideo({
+        igUserId: acc.ig_user_id,
+        token: acc.access_token,
+        videoUrl: params.videoUrl,
+        caption: params.caption,
+        coverUrl: params.coverUrl,
+      });
+    } else if (params.mediaType === "story_video") {
+      if (!params.videoUrl) throw new Error("Vídeo obrigatório para Story");
+      result = await publishStoryVideo({
+        igUserId: acc.ig_user_id,
+        token: acc.access_token,
+        videoUrl: params.videoUrl,
+      });
+    } else if (params.mediaType === "story_image") {
       result = await publishStoryImage({
         igUserId: acc.ig_user_id,
         token: acc.access_token,
