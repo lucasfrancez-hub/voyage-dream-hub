@@ -79,21 +79,44 @@ function ChatLayout() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     const vv = window.visualViewport;
+    const timers = new Set<number>();
     const apply = () => {
-      const h = vv?.height ?? window.innerHeight;
+      const viewportHeight = vv?.height ?? window.innerHeight;
+      const keyboardOpen = window.innerHeight - viewportHeight > 120;
+      // Ao terminar de fechar o teclado, o WebKit às vezes mantém por alguns
+      // quadros a altura reduzida do VisualViewport. Fora do teclado usamos a
+      // altura integral para não deixar uma faixa vazia na base do PWA.
+      const h = keyboardOpen
+        ? viewportHeight
+        : Math.max(window.innerHeight, document.documentElement.clientHeight);
       document.documentElement.style.setProperty("--chat-vh", `${h}px`);
       // Also compensate for any offset the browser applies when scrolling
       // the focused input into view.
       if (vv) window.scrollTo(0, 0);
     };
+    const settle = () => {
+      apply();
+      for (const delay of [80, 220, 500]) {
+        const timer = window.setTimeout(() => {
+          timers.delete(timer);
+          apply();
+        }, delay);
+        timers.add(timer);
+      }
+    };
     apply();
-    vv?.addEventListener("resize", apply);
+    vv?.addEventListener("resize", settle);
     vv?.addEventListener("scroll", apply);
-    window.addEventListener("resize", apply);
+    window.addEventListener("resize", settle);
+    window.addEventListener("focusout", settle);
+    window.addEventListener("pageshow", settle);
     return () => {
-      vv?.removeEventListener("resize", apply);
+      for (const timer of timers) window.clearTimeout(timer);
+      vv?.removeEventListener("resize", settle);
       vv?.removeEventListener("scroll", apply);
-      window.removeEventListener("resize", apply);
+      window.removeEventListener("resize", settle);
+      window.removeEventListener("focusout", settle);
+      window.removeEventListener("pageshow", settle);
     };
   }, []);
 
