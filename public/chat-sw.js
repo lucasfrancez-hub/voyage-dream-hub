@@ -80,7 +80,6 @@ self.addEventListener("notificationclick", (event) => {
 self.addEventListener("message", (event) => {
   const d = event.data || {};
   if (d.type !== "badge") return;
-  const n = Number(d.count) || 0;
-  if (n > 0 && "setAppBadge" in self.registration) self.registration.setAppBadge(n).catch(() => {});
-  if (n === 0 && "clearAppBadge" in self.registration) self.registration.clearAppBadge().catch(() => {});
+  event.waitUntil(definirBadge(Number(d.count) || 0));
 });
+
