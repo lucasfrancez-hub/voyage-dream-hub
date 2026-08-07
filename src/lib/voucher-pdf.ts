@@ -2542,9 +2542,14 @@ export async function generateVoucher(
     // quando os passageiros não foram atrelados via order_item_passengers).
     return s.size === 0 ? new Set(allPassengerIds) : s;
   };
-  const drawPaxForIds = (ids: Set<string>, locator?: string | null, seats: Record<string, string> = {}) => {
+  const drawPaxForIds = (
+    ids: Set<string>,
+    locator?: string | null,
+    seats: Record<string, string> = {},
+    legend: string[] = [],
+  ) => {
     const list = detail.passengers.filter((p) => ids.has(p.id));
-    if (list.length > 0) drawPassengersSection(ctx, list, locator ?? null, seats);
+    if (list.length > 0) drawPassengersSection(ctx, list, locator ?? null, seats, legend);
   };
   // Assentos ficam em details.seats de cada trecho ({ passengerId: "12A" }).
   // Com múltiplos trechos, junta na ordem dos voos: "12A / 14C".
@@ -2561,6 +2566,20 @@ export async function generateVoucher(
     return Object.fromEntries(Object.entries(acc).map(([pid, list]) => [pid, list.join(" / ")]));
   };
 
+  // Rótulos dos trechos na ordem em que os assentos aparecem: "IDA CWB-GRU".
+  const legLabels = (out: OrderItem[], ret: OrderItem[]) => {
+    const byDep = (arr: OrderItem[]) =>
+      [...arr].sort((a, b) =>
+        (Date.parse(String(((a.details ?? {}) as Record<string, unknown>).depart_at ?? "")) || 0)
+        - (Date.parse(String(((b.details ?? {}) as Record<string, unknown>).depart_at ?? "")) || 0));
+    const idaTxt = ctx.lang === "en" ? "OUTBOUND" : "IDA";
+    const voltaTxt = ctx.lang === "en" ? "RETURN" : "VOLTA";
+    return [
+      ...byDep(out).map((s) => ({ seg: s, label: `${idaTxt} ${segRouteLabel(s)}` })),
+      ...byDep(ret).map((s) => ({ seg: s, label: `${voltaTxt} ${segRouteLabel(s)}` })),
+    ];
+  };
+
   const paxSignature = (ids: Set<string>) => [...ids].sort().join("|");
   const passengerSetsAlreadyShown = new Set<string>();
 
@@ -2571,9 +2590,18 @@ export async function generateVoucher(
     const items = [...g.outbound, ...g.returning];
     const ids = paxSetForItems(items);
     const grpLoc = pickAereoLocator(items);
-    drawPaxForIds(ids, grpLoc, seatsForItems(items));
+    const labeled = legLabels(g.outbound, g.returning);
+    const ordered = labeled.map((l) => l.seg);
+    const legend = labeled
+      .filter((l) => Object.keys(segSeats(l.seg)).length > 0)
+      .map((l) => l.label);
+    drawPaxForIds(ids, grpLoc, seatsForItems(ordered), legend);
+    if (ctx.seatStyle === "bloco") {
+      drawSeatsBlock(ctx, labeled, detail.passengers.filter((p) => ids.has(p.id)));
+    }
     passengerSetsAlreadyShown.add(paxSignature(ids));
   }
+
 
 
 
