@@ -253,6 +253,42 @@ async function waitContainerReady(params: {
   throw new Error(`Tempo esgotado processando o vídeo (último status: ${lastStatus || "desconhecido"})`);
 }
 
+/**
+ * Imagem também pode demorar alguns segundos para o Meta processar.
+ * Espera (tolerando containers que não expõem status) e tenta publicar
+ * novamente enquanto o erro for 9007 / 2207027 ("Media ID is not available").
+ */
+async function publishContainerWhenReady(params: {
+  igUserId: string;
+  token: string;
+  containerId: string;
+  attempts?: number;
+}) {
+  const attempts = params.attempts ?? 12;
+  try {
+    await waitContainerReady({ containerId: params.containerId, token: params.token, timeoutMs: 60_000 });
+  } catch {
+    // containers de imagem às vezes não retornam status_code — segue para o publish com retry
+  }
+  let lastErr: unknown = null;
+  for (let i = 0; i < attempts; i += 1) {
+    try {
+      return await publishContainer({
+        igUserId: params.igUserId,
+        token: params.token,
+        containerId: params.containerId,
+      });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      const notReady = msg.includes("9007") || msg.includes("2207027") || msg.includes("Media ID is not available");
+      if (!notReady) throw e;
+      lastErr = e;
+      await new Promise((res) => setTimeout(res, 5000));
+    }
+  }
+  throw lastErr instanceof Error ? lastErr : new Error("Instagram não liberou a mídia para publicação");
+}
+
 async function publishVideoContainer(params: {
   igUserId: string;
   token: string;
