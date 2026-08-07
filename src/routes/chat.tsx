@@ -97,6 +97,41 @@ function ChatLayout() {
     };
   }, []);
 
+  // Bloqueia o zoom por pinça / duplo toque dentro do app (iOS ignora
+  // user-scalable=no no modo standalone e acabava "mudando a página").
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    const stop = (e: Event) => e.preventDefault();
+    const onTouchMove = (e: TouchEvent) => {
+      if (e.touches.length > 1) e.preventDefault();
+    };
+    const onWheel = (e: WheelEvent) => {
+      if (e.ctrlKey) e.preventDefault();
+    };
+    let ultimoToque = 0;
+    const onTouchEnd = (e: TouchEvent) => {
+      const agora = Date.now();
+      if (agora - ultimoToque < 300) e.preventDefault();
+      ultimoToque = agora;
+    };
+    document.addEventListener("gesturestart", stop);
+    document.addEventListener("gesturechange", stop);
+    document.addEventListener("gestureend", stop);
+    document.addEventListener("touchmove", onTouchMove, { passive: false });
+    document.addEventListener("touchend", onTouchEnd, { passive: false });
+    document.addEventListener("wheel", onWheel, { passive: false });
+    return () => {
+      document.removeEventListener("gesturestart", stop);
+      document.removeEventListener("gesturechange", stop);
+      document.removeEventListener("gestureend", stop);
+      document.removeEventListener("touchmove", onTouchMove);
+      document.removeEventListener("touchend", onTouchEnd);
+      document.removeEventListener("wheel", onWheel);
+    };
+  }, []);
+
+
+
 
 
   useEffect(() => {
