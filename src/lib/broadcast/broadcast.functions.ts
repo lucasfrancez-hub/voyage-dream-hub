@@ -176,8 +176,15 @@ export const salvarCampanha = createServerFn({ method: "POST" })
   .handler(async ({ context, data }) => {
     await ensureMarketing(context);
     if (!data.nome.trim()) throw new Error("Nome obrigatório");
-    if (data.destino_ids.length === 0) throw new Error("Selecione ao menos um destino");
     if (data.mensagens.length === 0) throw new Error("Adicione ao menos uma mensagem");
+    // Destino geral é opcional desde que cada mensagem tenha o seu próprio destino.
+    const destinosEfetivos = new Set<string>([
+      ...data.destino_ids,
+      ...data.mensagens.flatMap((m) => m.destino_ids ?? []),
+    ]);
+    if (destinosEfetivos.size === 0 || (data.destino_ids.length === 0 && data.mensagens.some((m) => (m.destino_ids?.length ?? 0) === 0))) {
+      throw new Error("Selecione um destino geral ou o destino de cada mensagem");
+    }
 
     // Trava horário comercial 09:00-21:00 (Brasília) para agendamento
     if (data.status === "agendada" && data.scheduled_at) {
