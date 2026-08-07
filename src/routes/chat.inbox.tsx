@@ -434,7 +434,6 @@ function InboxPage() {
           </div>
           <div
             className="flex-1 space-y-1 overflow-y-auto p-2"
-            style={{ paddingBottom: "max(0.5rem, env(safe-area-inset-bottom, 0px))" }}
           >
 
             {channel === "all" ? (
@@ -1369,9 +1368,8 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
 
       {/* Composer */}
       <div
-        data-chat-composer="whatsapp"
-        className="shrink-0 border-t border-slate-200 px-3 pt-3 pb-3"
-
+        className="shrink-0 border-t border-slate-200 bg-white p-3"
+        style={{ paddingBottom: "calc(0.75rem + env(safe-area-inset-bottom, 0px) + 6px)" }}
       >
         {conv.mode === "ai" && (
           <AiInstructionBar
@@ -2682,10 +2680,8 @@ function InstagramConversationView({
       </div>
 
       <form
-        data-chat-composer="instagram-dm"
         onSubmit={(e) => { e.preventDefault(); if (text.trim()) send.mutate(text.trim()); }}
-        className="shrink-0 flex items-center gap-2 border-t border-slate-200 px-3 pt-3 pb-3"
-
+        className="shrink-0 flex items-center gap-2 border-t border-slate-200 bg-white p-3"
       >
         <input
           ref={fileRef}
@@ -3617,8 +3613,7 @@ function InstagramCommentThreadView({ mediaId, onBack }: { mediaId: string; onBa
       </div>
 
       <div
-        data-chat-composer="instagram-comments"
-        className="shrink-0 border-t border-slate-200 px-3 pt-3 pb-3"
+        className="shrink-0 border-t border-slate-200 bg-white p-3"
       >
 
         {alvoAtual ? (
