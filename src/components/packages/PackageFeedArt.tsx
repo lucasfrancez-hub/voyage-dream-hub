@@ -233,7 +233,10 @@ export const PackageFeedArt = forwardRef<HTMLDivElement, { data: FeedArtData }>(
                 </div>
               ) : null}
 
-              <h2 className="vfeed-dest">
+              <h2
+                className="vfeed-dest"
+                style={{ fontSize: fitDestSize([top, bottom], 100, 688, 240) }}
+              >
                 {bottom ? (
                   <>
                     {top}
