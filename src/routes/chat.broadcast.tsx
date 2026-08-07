@@ -1664,7 +1664,9 @@ function CampanhaEditor({
         data: {
           id,
           nome: nome.trim(),
-          destino_ids: Array.from(selecionados),
+          destino_ids: Array.from(
+            new Set<string>([...selecionados, ...blocos.flatMap((b) => b.destino_ids ?? [])]),
+          ),
           scheduled_at,
           observacoes_marketing: obs.trim() || null,
           status,
