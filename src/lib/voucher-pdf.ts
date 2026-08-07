@@ -875,7 +875,12 @@ const passengerTypeLabel = (t: ReturnType<typeof T>, kind: string): string => {
   return t.adulto;
 };
 
-const drawPassengersSection = (ctx: Ctx, passengers: OrderPassenger[], reservationLocator: string | null = null) => {
+const drawPassengersSection = (
+  ctx: Ctx,
+  passengers: OrderPassenger[],
+  reservationLocator: string | null = null,
+  seatsByPassenger: Record<string, string> = {},
+) => {
   if (!passengers.length) return;
   const t = T(ctx);
   const rowH = 16;
@@ -893,11 +898,15 @@ const drawPassengersSection = (ctx: Ctx, passengers: OrderPassenger[], reservati
     const map = ((p as unknown as { tickets?: Record<string, string> }).tickets) ?? {};
     return (map[locKey] ?? p.ticket_number ?? "").trim();
   };
+  const seatFor = (p: OrderPassenger): string => (seatsByPassenger[p.id] ?? "").trim();
   // Só mostra a coluna Bilhete se pelo menos um passageiro tem número de bilhete
   const showTicket = passengers.some((p) => ticketFor(p).length > 0);
+  const showSeat = passengers.some((p) => seatFor(p).length > 0);
 
 
-  const weights = showTicket ? [2.2, 0.9, 1.6, 1.1, 1.3] : [2.4, 1.0, 1.8, 1.2];
+  const weights = [2.2, 0.9, 1.6, 1.1];
+  if (showTicket) weights.push(1.3);
+  if (showSeat) weights.push(1.0);
   const units = weights.reduce((a, b) => a + b, 0);
   const colWs = weights.map((u) => (innerW * u) / units);
   const colXs: number[] = [];
@@ -914,15 +923,16 @@ const drawPassengersSection = (ctx: Ctx, passengers: OrderPassenger[], reservati
   });
   cy -= 6;
 
-  const headers = showTicket
-    ? [t.passageiro, t.tipo, t.documento, t.dataNasc, t.bilhetePax]
-    : [t.passageiro, t.tipo, t.documento, t.dataNasc];
+  const headers = [t.passageiro, t.tipo, t.documento, t.dataNasc];
+  if (showTicket) headers.push(t.bilhetePax);
+  if (showSeat) headers.push(ctx.lang === "en" ? "SEAT" : "ASSENTO");
   headers.forEach((h, i) => {
     ctx.page.drawText(sanitize(h), {
       x: colXs[i], y: cy, size: 7.5, font: ctx.fontBold, color: COLOR_MUTED,
     });
   });
   cy -= 12;
+
 
   const NAME_SIZE = 8.5;
   const nameColW = colWs[0] - 6; // padding para não colar na próxima coluna
