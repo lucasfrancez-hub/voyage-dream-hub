@@ -1,6 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { buildHookDirective } from "@/lib/packages/curate-hook.server";
+
 
 async function assertAdmin(supabase: any, userId: string) {
   const { data, error } = await supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
@@ -227,6 +229,10 @@ export const generateCurationCopy = createServerFn({ method: "POST" })
 
 
     const channel = data.channel;
+    const hookDirective = buildHookDirective(
+      `${data.packageId ?? ""}${items[0]?.destination ?? ""}${Date.now()}`,
+    );
+
     const system =
       channel === "whatsapp"
         ? `Você é copywriter da VIA AIR gerando UMA mensagem PRONTA pra WhatsApp que o consultor vai colar e enviar.
@@ -235,14 +241,10 @@ NUNCA cumprimente, NUNCA se apresente ("Olá, aqui é a Camila…" está PROIBID
 FORMATO OBRIGATÓRIO (copie exatamente, incluindo asteriscos do WhatsApp para negrito):
 
 *DESTINO EM CAIXA ALTA* {1-2 emojis do país/vibe}
-_{Gancho de UMA linha, CRIATIVO E ORIGINAL, 100% conectado ao destino específico "{destino}" e ao clima/vibe do tema "${data.groupTitle}". VARIE MUITO a abertura — NÃO comece sempre com "Já imaginou". Alterne livremente entre estas famílias (escolha aleatoriamente uma diferente a cada pacote, e nunca repita a mesma abertura no mesmo lote):
- • Pergunta sensorial ("Sente o cheiro do mar chegando?", "Que tal acordar com vista pra montanha?")
- • Provocação/curiosidade ("Poucos sabem, mas ${"{destino}"} em NOVEMBRO fica quase deserto…", "Existe um jeito de conhecer ${"{destino}"} gastando menos do que você imagina.")
- • Cena viva ("Pé na areia branca, drink na mão, sem pressa nenhuma.", "Manhã fria, café quentinho, vista das serras pela janela.")
- • Fato/dado do destino ("${"{destino}"} tem 90km de praias — e a gente escolheu a melhor pra você.")
- • Convite direto e curto ("Bora fugir da rotina em ${"{destino}"}?", "Tá na hora de tirar esse ${"{destino}"} da lista.")
- • Contagem/urgência sutil ("Faltam poucos meses pra ${"{tema}"} — e os melhores hotéis já estão sumindo.")
-Regras do gancho: 1 linha só, no máximo 14 palavras, sem clichê genérico ("preço redondo", "oportunidade imperdível", "não perca"), sem emoji dentro do gancho, sem repetir o nome do destino se ele já apareceu no título acima. SEMPRE envolva a frase inteira em underscores para itálico no WhatsApp: _frase_.}_
+_{Gancho de UMA linha, CRIATIVO E ORIGINAL, 100% conectado ao destino específico "{destino}" e ao clima/vibe do tema "${data.groupTitle}".
+${hookDirective}
+Regras do gancho: 1 linha só, no máximo 14 palavras, sem clichê genérico ("preço redondo", "oportunidade imperdível", "não perca"), sem emoji dentro do gancho, sem repetir o nome do destino se ele já apareceu no título acima. Se houver mais de um pacote, cada um precisa de um gancho com estrutura DIFERENTE do anterior. SEMPRE envolva a frase inteira em underscores para itálico no WhatsApp: _frase_.}_
+
 
 ✈️ Saindo de {origem}
 🗓️ {SE "flexible_dates" for true, escreva EXATAMENTE "Datas flexíveis" seguido de " ({N noites})" quando houver noites — NUNCA escreva datas. SE for false, escreva {DD/MM a DD/MM} ({N noites})}
@@ -284,6 +286,8 @@ REGRAS FIRMES:
 Regras:
 - Português do Brasil, tom inspirador mas objetivo.
 - Comece com uma frase de gancho curta (1 linha, com 1 emoji).
+${hookDirective}
+
 - Para cada pacote, um bloco compacto (3 linhas): destino + período, hotel + regime, valor por pessoa e total para ${"{occupancy}"} pessoas.
 - Separe os pacotes com linha em branco.
 - Ao final: 1 linha de CTA ("Chama no direct" ou "Link na bio") e 5 a 8 hashtags relevantes (destinos, viagem, viaair).
@@ -303,7 +307,7 @@ Regras:
       },
       body: JSON.stringify({
         model: "google/gemini-2.5-flash-lite",
-        temperature: 0.85,
+        temperature: 1.05,
         messages: [
           { role: "system", content: system },
           { role: "user", content: userMsg },
