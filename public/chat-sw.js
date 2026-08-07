@@ -14,10 +14,8 @@ self.addEventListener("push", (event) => {
   const titulo = dados.title || (ehAgenda ? "Lembrete da agenda" : "VIA AIR Chat");
   const url = dados.url || (ehAgenda ? "/chat/agenda" : "/chat/inbox");
 
-  const badge =
-    typeof dados.unreadCount === "number" && "setAppBadge" in self.registration
-      ? self.registration.setAppBadge(dados.unreadCount).catch(() => {})
-      : Promise.resolve();
+  const badge = definirBadge(dados.unreadCount);
+
 
   event.waitUntil(
     Promise.all([
