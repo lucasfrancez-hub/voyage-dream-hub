@@ -395,10 +395,10 @@ function ChatLayout() {
   return (
     <div
       data-chat-root
-      className={`${themeClass} fixed inset-x-0 top-0 flex w-full overflow-hidden bg-[var(--chat-bg)] text-foreground`}
-      style={{ height: "var(--chat-vh, 100dvh)" }}
+      className={`${themeClass} fixed inset-0 flex w-full overflow-hidden bg-[var(--chat-bg)] text-foreground`}
     >
       <ChatViewportDebugPanel />
+
 
       <ChatSidebar mobileOpen={mobileNavOpen} onCloseMobile={() => setMobileNavOpen(false)} />
       <div className="flex min-w-0 flex-1 flex-col">
