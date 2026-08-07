@@ -2449,7 +2449,7 @@ const fetchLogo = async (pdf: PDFDocument): Promise<PDFImage | undefined> => {
 export async function generateVoucher(
   detail: OrderDetail,
   lang: VoucherLang = "pt",
-  seatStyle: SeatStyle = "tabela",
+  seatStyle: SeatStyle = "bloco",
 ): Promise<Blob> {
   const pdf = await PDFDocument.create();
   const font = await pdf.embedFont(StandardFonts.Helvetica);
