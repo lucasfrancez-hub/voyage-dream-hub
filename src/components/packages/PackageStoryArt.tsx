@@ -170,7 +170,7 @@ export const PackageStoryArt = forwardRef<HTMLDivElement, { data: FeedArtData }>
       <style>{CSS}</style>
       <div className="vstory-outer">
         <div className={`vstory-inner${seloAniversarioAtivo() ? " vstory-has-selo" : ""}`}>
-          <AnniversarySeal size={95} />
+          <AnniversarySeal size={128} />
           {/* Background */}
           <div className="vstory-bg">
             <img src={data.backgroundDataUrl} alt="" />

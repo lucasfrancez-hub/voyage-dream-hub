@@ -144,7 +144,7 @@ export const StoryArtVariant = forwardRef<
         className={`vsv-outer vsv-v${variant} vsv-fmt-${format} ${isIngresso ? "vsv-ingresso" : "vsv-passeio"}`}
       >
         <div className={`vsv-inner${seloAniversarioAtivo() ? " vsv-has-selo" : ""}`}>
-          <AnniversarySeal size={95} />
+          <AnniversarySeal size={128} />
           <div className="vsv-bg">
             {data.backgroundDataUrl ? <img src={data.backgroundDataUrl} alt="" /> : <div className="vsv-bg-fallback" />}
             <div className="vsv-bg-grad" />
