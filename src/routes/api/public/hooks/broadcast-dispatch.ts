@@ -55,6 +55,9 @@ export const Route = createFileRoute("/api/public/hooks/broadcast-dispatch")({
           for (const d of destinos ?? []) {
             const ehInstagram = d.tipo.startsWith("instagram_");
             for (const m of prontas) {
+              // Destinos específicos do bloco (quando vazio, vai para todos da campanha)
+              const alvos = (m as { destino_ids?: string[] | null }).destino_ids;
+              if (alvos && alvos.length > 0 && !alvos.includes(d.id)) continue;
               // Em canais o WhatsApp já gera preview da URL no texto — pular
               // blocos de imagem para não duplicar a arte.
               if (d.tipo === "channel" && (m.tipo === "image" || m.tipo === "video")) continue;
