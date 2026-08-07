@@ -343,7 +343,7 @@ const CSS = `
 /* Formato FEED 3:4 (1080x1440): mesma identidade, só a altura muda — caixas mantêm respiro */
 .vsv-outer.vsv-fmt-feed{height:1440px}
 .vsv-fmt-feed .vsv-inner{height:720px}
-.vsv-fmt-feed .vsv-content{padding:24px 24px 18px}
+.vsv-fmt-feed .vsv-content{padding:22px 22px 16px}
 .vsv-fmt-feed .vsv-logo{height:36px;margin-bottom:12px}
 .vsv-fmt-feed .vsv-band{margin-bottom:12px}
 .vsv-fmt-feed .vsv-bottom{gap:11px}
@@ -352,14 +352,14 @@ const CSS = `
 .vsv-fmt-feed .vsv-info-icon svg{width:22px;height:22px}
 .vsv-fmt-feed .vsv-info-strong{font-size:14px}
 .vsv-fmt-feed .vsv-info-div{height:48px}
-.vsv-fmt-feed .vsv-list{padding:14px 16px;gap:9px}
-.vsv-fmt-feed .vsv-price{padding:18px 20px}
-.vsv-fmt-feed .vsv-price-num{font-size:66px}
+.vsv-fmt-feed .vsv-list{padding:12px 14px;gap:8px}
+.vsv-fmt-feed .vsv-price{padding:14px 18px}
+.vsv-fmt-feed .vsv-price-num{font-size:58px}
 .vsv-fmt-feed .vsv-price-cents{font-size:28px}
 .vsv-fmt-feed .vsv-price-cur{font-size:25px}
-.vsv-fmt-feed .vsv-price-bar{margin:10px 0}
+.vsv-fmt-feed .vsv-price-bar{margin:8px 0}
 .vsv-fmt-feed .vsv-price-total{font-size:15px}
-.vsv-fmt-feed .vsv-card{padding:14px 16px}
+.vsv-fmt-feed .vsv-card{padding:11px 14px}
 .vsv-fmt-feed .vsv-cards{gap:9px}
 .vsv-fmt-feed .vsv-note{margin-top:2px}
 `;
