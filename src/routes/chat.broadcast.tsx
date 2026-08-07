@@ -1876,24 +1876,20 @@ function CampanhaEditor({
               <button onClick={onClose} className="text-sm rounded-full border border-border px-4 py-2 hover:border-brand-orange">
                 Fechar
               </button>
-              {canal === "whatsapp" && (
-                <>
-                  <button
-                    onClick={() => salvar("rascunho")}
-                    disabled={saving}
-                    className="text-sm rounded-full border border-border px-4 py-2 hover:border-brand-orange disabled:opacity-50"
-                  >
-                    Salvar rascunho
-                  </button>
-                  <button
-                    onClick={() => salvar("agendada")}
-                    disabled={saving || !scheduled}
-                    className="text-sm rounded-full bg-brand-orange px-5 py-2 text-white font-semibold hover:opacity-90 disabled:opacity-50 shadow-lg shadow-brand-orange/25 inline-flex items-center gap-1"
-                  >
-                    {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Send className="h-3.5 w-3.5" /> Agendar envio</>}
-                  </button>
-                </>
-              )}
+              <button
+                onClick={() => salvar("rascunho")}
+                disabled={saving}
+                className="text-sm rounded-full border border-border px-4 py-2 hover:border-brand-orange disabled:opacity-50"
+              >
+                Salvar rascunho
+              </button>
+              <button
+                onClick={() => salvar("agendada")}
+                disabled={saving || !scheduled}
+                className="text-sm rounded-full bg-brand-orange px-5 py-2 text-white font-semibold hover:opacity-90 disabled:opacity-50 shadow-lg shadow-brand-orange/25 inline-flex items-center gap-1"
+              >
+                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Send className="h-3.5 w-3.5" /> {canal === "instagram" ? "Agendar publicação" : "Agendar envio"}</>}
+              </button>
             </div>
 
           </div>
