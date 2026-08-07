@@ -49,7 +49,7 @@ const PASSEIO: FeedArtData = {
 };
 
 function Box({ w, h, children }: { w: number; h: number; children: React.ReactNode }) {
-  const s = 0.36;
+  const s = 1;
   return (
     <div style={{ width: w * s, height: h * s, overflow: "hidden" }}>
       <div style={{ transform: `scale(${s})`, transformOrigin: "top left" }}>{children}</div>
@@ -59,7 +59,7 @@ function Box({ w, h, children }: { w: number; h: number; children: React.ReactNo
 
 function P() {
   return (
-    <div style={{ display: "flex", gap: 24, padding: 24, background: "#0b1116" }}>
+    <div style={{ display: "flex", gap: 24, padding: 24, background: "#0b1116", alignItems: "flex-start" }}>
       <Box w={1080} h={1440}>
         <PackageFeedArt data={BASE} />
       </Box>
