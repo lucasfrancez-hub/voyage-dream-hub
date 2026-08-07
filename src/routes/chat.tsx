@@ -71,105 +71,23 @@ function ChatLayout() {
   const [theme, setTheme] = useState<"dark" | "light">("light");
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
-  // ÚNICO controlador de viewport do chat.
-  // - o ROOT não depende mais de --chat-vh: ele é fixed inset:0 e cobre a tela toda,
-  //   então o body nunca fica exposto (fim da faixa escura);
-  // - --chat-vh controla apenas a ÁREA ÚTIL interna quando o teclado abre;
-  // - altura-base estável guardada em ref, nunca atualizada com teclado aberto;
-  // - documento travado (sem rolagem) enquanto a rota estiver montada.
-
-  const alturaBaseRef = useRef(0);
+  // Viewport do chat: uma única estratégia.
+  // O layout viewport é reduzido pelo próprio WebKit via
+  // `interactive-widget=resizes-content` (meta única em __root.tsx), então o
+  // root `fixed inset-0` já acompanha a área acima do teclado.
+  // Aqui só travamos a rolagem estrutural do documento durante /chat.
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const vv = window.visualViewport;
     const raiz = document.documentElement;
     const corpo = document.body;
-
-    // Trava a rolagem estrutural apenas durante /chat.
     raiz.classList.add("chat-viewport-lock");
     corpo.classList.add("chat-viewport-lock");
-
-    const temFocoEditavel = () => {
-      const el = document.activeElement as HTMLElement | null;
-      if (!el) return false;
-      const tag = el.tagName;
-      return tag === "INPUT" || tag === "TEXTAREA" || el.isContentEditable === true;
-    };
-
-    const lerViewport = () => vv?.height ?? window.innerHeight;
-
-    const escrever = (h: number) => {
-      const valor = `${Math.round(h)}px`;
-      // Só escreve quando muda: evita loop de resize do visualViewport.
-      if (raiz.style.getPropertyValue("--chat-vh") !== valor) {
-        raiz.style.setProperty("--chat-vh", valor);
-      }
-    };
-
-    const tecladoAberto = () => {
-      if (!temFocoEditavel()) return false;
-      const base = alturaBaseRef.current;
-      return base > 0 && lerViewport() < base - 80;
-    };
-
-    const aplicar = () => {
-      const atual = lerViewport();
-      if (tecladoAberto()) {
-        // Teclado aberto: usa a altura visual e NÃO toca na base.
-        escrever(atual);
-        return;
-      }
-      // Sem teclado: a leitura atual confirma (ou amplia) a altura-base.
-      if (!temFocoEditavel() && atual > 0) alturaBaseRef.current = atual;
-      else if (atual > alturaBaseRef.current) alturaBaseRef.current = atual;
-      escrever(alturaBaseRef.current || atual);
-    };
-
-    // Estabilização por requestAnimationFrame: o WebKit publica a altura
-    // correta alguns quadros depois do focusout/resize.
-    let rafId = 0;
-    const estabilizar = () => {
-      if (rafId) cancelAnimationFrame(rafId);
-      let frames = 0;
-      let iguais = 0;
-      let anterior = -1;
-      const passo = () => {
-        rafId = 0;
-        const atual = lerViewport();
-        iguais = Math.abs(atual - anterior) < 1 ? iguais + 1 : 0;
-        anterior = atual;
-        aplicar();
-        frames += 1;
-        if (iguais >= 2 || frames >= 30) return;
-        rafId = requestAnimationFrame(passo);
-      };
-      rafId = requestAnimationFrame(passo);
-    };
-
-    // Inicializa a altura-base ao abrir a rota do chat.
-    alturaBaseRef.current = lerViewport();
-    aplicar();
-    estabilizar();
-
-    vv?.addEventListener("resize", aplicar);
-    window.addEventListener("resize", estabilizar);
-    window.addEventListener("orientationchange", estabilizar);
-    window.addEventListener("focusout", estabilizar);
-    window.addEventListener("pageshow", estabilizar);
-    document.addEventListener("visibilitychange", estabilizar);
     return () => {
-      if (rafId) cancelAnimationFrame(rafId);
       raiz.classList.remove("chat-viewport-lock");
       corpo.classList.remove("chat-viewport-lock");
-      raiz.style.removeProperty("--chat-vh");
-      vv?.removeEventListener("resize", aplicar);
-      window.removeEventListener("resize", estabilizar);
-      window.removeEventListener("orientationchange", estabilizar);
-      window.removeEventListener("focusout", estabilizar);
-      window.removeEventListener("pageshow", estabilizar);
-      document.removeEventListener("visibilitychange", estabilizar);
     };
   }, []);
+
 
 
   // Bloqueia o zoom por pinça / duplo toque dentro do app (iOS ignora
