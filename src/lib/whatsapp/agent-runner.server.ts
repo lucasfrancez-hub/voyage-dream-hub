@@ -358,6 +358,47 @@ export async function runAgent(input: {
   let centralBrief = typeof routingState?.central_brief === "string" ? routingState.central_brief : null;
   let centralPrimeiroContato = false;
 
+  /* ── RETOMADA APÓS LONGA INATIVIDADE ────────────────────────────────────
+     Se o cliente sumiu por muito tempo e volta com uma mensagem que NÃO é
+     pedido de cotação aérea (ex.: só "oi"), o atendimento volta para as
+     Consultoras. Sem isso, o Bruno/Paula continuava "cuidando da cotação"
+     dias depois, mesmo sem o cliente ter pedido nada. */
+  if (centralSlug) {
+    const STALE_CENTRAL_MS = 6 * 60 * 60 * 1000; // 6h sem interação
+    const { data: ultimas } = await supabaseAdmin
+      .from("wa_messages")
+      .select("content, direction, created_at")
+      .eq("conversation_id", conv.id)
+      .order("created_at", { ascending: false })
+      .limit(2);
+    const atual = ultimas?.[0];
+    const anterior = ultimas?.[1];
+    const gap =
+      atual && anterior
+        ? new Date(atual.created_at as string).getTime() -
+          new Date(anterior.created_at as string).getTime()
+        : 0;
+    const textoAtual = ((atual?.content as string | null) ?? "").trim();
+    if (gap >= STALE_CENTRAL_MS && !heuristicaAereo(textoAtual)) {
+      await supabaseAdmin
+        .from("wa_conversations")
+        .update({
+          central_slug: null,
+          central_desde: null,
+          central_brief: null,
+          central_busca: null,
+          agent_slug: null,
+        })
+        .eq("id", conv.id);
+      console.log(
+        `[agent] conversa ${conv.id}: retomada após ${(gap / 3600000).toFixed(1)}h sem cotação aérea — volta para as Consultoras`,
+      );
+      centralSlug = null;
+      centralBrief = null;
+    }
+  }
+
+
   /* ── TRAVA DE SETOR PELA SOLICITAÇÃO AÉREA ATIVA ────────────────────────
      Enquanto existir uma solicitação aérea em aberto neste protocolo, o
      atendimento é do Aéreo (Paula/Bruno). Resposta curta ("isso", "ok", "?")
