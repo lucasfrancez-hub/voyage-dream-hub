@@ -1086,9 +1086,8 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
   }, [conv.id, qc]);
 
 
-  useEffect(() => {
-    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
-  }, [messages.length]);
+  // Abre sempre na última mensagem (e segue no fim conforme mídias carregam).
+  const scrollRef = useStickToBottom<HTMLDivElement>(conv.id, messages.length);
 
   const listUsersFn = useServerFn(listAttendants);
   const { data: attendantsList = [] } = useQuery({
