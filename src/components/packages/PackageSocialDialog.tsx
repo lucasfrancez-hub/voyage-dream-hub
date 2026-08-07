@@ -263,7 +263,7 @@ export function PackageSocialDialog({
     return await blobToBase64(jpeg);
   }
 
-  async function enviarWhatsapp() {
+  function enviarWhatsapp() {
     if (!pkg) return;
     if (selecionados.size === 0) {
       toast.error("Escolha ao menos um canal ou grupo");
@@ -273,39 +273,32 @@ export function PackageSocialDialog({
       toast.error("Gere ou escreva o texto antes de enviar");
       return;
     }
+    const ids = [...selecionados];
+    const texto = textoWa.trim();
+    const slug = typeof pkg.slug === "string" ? pkg.slug : undefined;
+    const titulo = typeof pkg.title === "string" ? pkg.title : "Pacote";
     const nomes = destinos.filter((d) => selecionados.has(d.id)).map((d) => d.nome ?? "destino");
-    const ok = await confirm({
-      title: "Enviar no WhatsApp agora?",
-      description: `A foto do pacote e o texto vão para: ${nomes.join(", ")}. Canais recebem só o texto com o link.`,
-      confirmText: "Enviar agora",
+
+    enqueuePublish({
+      channel: "whatsapp",
+      label: `WhatsApp — ${titulo}`,
+      detail: nomes.join(", "),
+      run: async () => {
+        const imagem = await fotoBase64();
+        const res = await enviarWaFn({
+          data: { destino_ids: ids, texto, slug, imagem_base64: imagem },
+        });
+        if (res.falhas.length) {
+          return `Enviado para ${res.enviados}. Falhou em: ${res.falhas.map((f) => f.nome).join(", ")}`;
+        }
+        return `Enviado para ${res.enviados} destino${res.enviados === 1 ? "" : "s"}`;
+      },
     });
-    if (!ok) return;
-
-    setBusy("enviar-wa");
-    try {
-      const imagem = await fotoBase64();
-
-      const res = await enviarWaFn({
-        data: {
-          destino_ids: [...selecionados],
-          texto: textoWa.trim(),
-          slug: typeof pkg.slug === "string" ? pkg.slug : undefined,
-          imagem_base64: imagem,
-        },
-      });
-      if (res.falhas.length) {
-        toast.warning(`Enviado para ${res.enviados}. Falhou em: ${res.falhas.map((f) => f.nome).join(", ")}`);
-      } else {
-        toast.success(`Enviado para ${res.enviados} destino${res.enviados === 1 ? "" : "s"}!`);
-      }
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Falha ao enviar no WhatsApp");
-    } finally {
-      setBusy(null);
-    }
+    toast.success("Adicionado à fila de publicação");
+    onOpenChange(false);
   }
 
-  async function publicarInstagram() {
+  function publicarInstagram() {
     if (!pkg?.image_url) {
       toast.error("Cadastre a URL da imagem de capa do pacote antes de publicar.");
       return;
@@ -315,38 +308,31 @@ export function PackageSocialDialog({
       toast.error("Escreva ou gere a legenda antes de publicar.");
       return;
     }
-    const ok = await confirm({
-      title: formatoIg === "feed" ? "Publicar no feed?" : "Publicar no story?",
-      description:
-        formatoIg === "feed"
-          ? `A arte 3:4 será publicada agora no feed do Instagram da VIA AIR${caption ? " com a legenda abaixo" : " sem legenda"}.`
-          : "A arte 9:16 será publicada agora nos stories do Instagram da VIA AIR.",
-      confirmText: "Publicar agora",
-    });
-    if (!ok) return;
+    const formato = formatoIg;
+    const packageId = typeof pkg.id === "string" ? pkg.id : undefined;
+    const slug = typeof pkg.slug === "string" ? pkg.slug : undefined;
+    const titulo = typeof pkg.title === "string" ? pkg.title : "Pacote";
 
-    setBusy("publicar-ig");
-    try {
-      const res = await publishArtFn({
-        data: {
-          media_type: formatoIg === "feed" ? "feed_image" : "story_image",
-          image_base64: await arteBase64(formatoIg),
-          caption: formatoIg === "feed" ? caption : undefined,
-          package_id: typeof pkg.id === "string" ? pkg.id : undefined,
-          slug: typeof pkg.slug === "string" ? pkg.slug : undefined,
-        },
-      });
-      toast.success(formatoIg === "feed" ? "Publicado no feed!" : "Publicado nos stories!", {
-        action: res.permalink
-          ? { label: "Ver post", onClick: () => window.open(res.permalink!, "_blank") }
-          : undefined,
-      });
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Falha ao publicar no Instagram");
-    } finally {
-      setBusy(null);
-    }
+    enqueuePublish({
+      channel: "instagram",
+      label: `Instagram ${formato === "feed" ? "Feed" : "Story"} — ${titulo}`,
+      run: async () => {
+        const res = await publishArtFn({
+          data: {
+            media_type: formato === "feed" ? "feed_image" : "story_image",
+            image_base64: await arteBase64(formato),
+            caption: formato === "feed" ? caption : undefined,
+            package_id: packageId,
+            slug,
+          },
+        });
+        return res.permalink ? "Publicado — post disponível" : "Publicado";
+      },
+    });
+    toast.success("Adicionado à fila de publicação");
+    onOpenChange(false);
   }
+
 
   const canais = destinos.filter((d) => d.tipo === "channel");
   const grupos = destinos.filter((d) => d.tipo !== "channel");
