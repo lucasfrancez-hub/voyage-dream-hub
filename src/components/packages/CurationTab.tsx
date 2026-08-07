@@ -613,7 +613,7 @@ function PackageRow({ pkg, groupTitle, groupReason }: { pkg: Pkg; groupTitle: st
       const res = await publishArtFn({
         data: {
           media_type: kind === "feed" ? "feed_image" : "story_image",
-          image_base64: await blobToBase64(blob),
+          image_base64: await blobToBase64(await (await import("@/lib/packages/to-jpeg")).blobToJpeg(blob)),
           package_id: pkg.id,
           slug: pkg.slug,
         },
