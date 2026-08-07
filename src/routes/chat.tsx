@@ -70,14 +70,21 @@ function ChatLayout() {
   const [theme, setTheme] = useState<"dark" | "light">("light");
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
-  // Estratégia única de viewport do chat (iOS/PWA):
-  // - altura-base estável guardada em ref, só atualizada com o teclado fechado;
-  // - teclado "aberto" = campo editável focado + visualViewport encolhido;
-  // - nada de documentElement.clientHeight (era medição circular do container).
+  // ÚNICO controlador de viewport do chat.
+  // - fonte de altura: window.visualViewport.height (fallback innerHeight);
+  // - altura-base estável guardada em ref, nunca atualizada com teclado aberto;
+  // - documento travado (sem rolagem) enquanto a rota estiver montada;
+  // - root fixo, então não há coordenada de documento pra compensar.
   const alturaBaseRef = useRef(0);
   useEffect(() => {
     if (typeof window === "undefined") return;
     const vv = window.visualViewport;
+    const raiz = document.documentElement;
+    const corpo = document.body;
+
+    // Trava a rolagem estrutural apenas durante /chat.
+    raiz.classList.add("chat-viewport-lock");
+    corpo.classList.add("chat-viewport-lock");
 
     const temFocoEditavel = () => {
       const el = document.activeElement as HTMLElement | null;
@@ -90,7 +97,6 @@ function ChatLayout() {
 
     const escrever = (h: number) => {
       const valor = `${Math.round(h)}px`;
-      const raiz = document.documentElement;
       // Só escreve quando muda: evita loop de resize do visualViewport.
       if (raiz.style.getPropertyValue("--chat-vh") !== valor) {
         raiz.style.setProperty("--chat-vh", valor);
@@ -106,12 +112,13 @@ function ChatLayout() {
     const aplicar = () => {
       const atual = lerViewport();
       if (tecladoAberto()) {
-        // Com teclado aberto usamos a altura visual — sem tocar na base.
+        // Teclado aberto: usa a altura visual e NÃO toca na base.
         escrever(atual);
         return;
       }
-      // Sem teclado: a leitura atual vira (ou confirma) a altura-base.
+      // Sem teclado: a leitura atual confirma (ou amplia) a altura-base.
       if (!temFocoEditavel() && atual > 0) alturaBaseRef.current = atual;
+      else if (atual > alturaBaseRef.current) alturaBaseRef.current = atual;
       escrever(alturaBaseRef.current || atual);
     };
 
@@ -130,11 +137,7 @@ function ChatLayout() {
         anterior = atual;
         aplicar();
         frames += 1;
-        if (iguais >= 2 || frames >= 30) {
-          // Já estabilizou: aí sim zera o scroll residual da página.
-          if (!temFocoEditavel() && window.scrollY !== 0) window.scrollTo(0, 0);
-          return;
-        }
+        if (iguais >= 2 || frames >= 30) return;
         rafId = requestAnimationFrame(passo);
       };
       rafId = requestAnimationFrame(passo);
@@ -146,7 +149,6 @@ function ChatLayout() {
     estabilizar();
 
     vv?.addEventListener("resize", aplicar);
-    vv?.addEventListener("scroll", aplicar);
     window.addEventListener("resize", estabilizar);
     window.addEventListener("orientationchange", estabilizar);
     window.addEventListener("focusout", estabilizar);
@@ -154,8 +156,10 @@ function ChatLayout() {
     document.addEventListener("visibilitychange", estabilizar);
     return () => {
       if (rafId) cancelAnimationFrame(rafId);
+      raiz.classList.remove("chat-viewport-lock");
+      corpo.classList.remove("chat-viewport-lock");
+      raiz.style.removeProperty("--chat-vh");
       vv?.removeEventListener("resize", aplicar);
-      vv?.removeEventListener("scroll", aplicar);
       window.removeEventListener("resize", estabilizar);
       window.removeEventListener("orientationchange", estabilizar);
       window.removeEventListener("focusout", estabilizar);
@@ -163,6 +167,7 @@ function ChatLayout() {
       document.removeEventListener("visibilitychange", estabilizar);
     };
   }, []);
+
 
   // Bloqueia o zoom por pinça / duplo toque dentro do app (iOS ignora
   // user-scalable=no no modo standalone e acabava "mudando a página").
