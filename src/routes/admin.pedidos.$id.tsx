@@ -1847,8 +1847,10 @@ function flightGroupKey(item: OrderItem): string {
   const supplierLocator = item.supplier_locator?.trim() ?? "";
   const locator = carrierLocator || supplierLocator;
   if (locator) return `loc:${locator.toUpperCase()}`;
-  // Sem localizador: cada item vira seu próprio card pra não misturar
-  // reservas diferentes num único bloco "sem localizador".
+  // Sem localizador: ida e volta lançadas juntas compartilham o mesmo trip_group
+  const trip = String(details.trip_group ?? "").trim();
+  if (trip) return `trip:${trip}`;
+  // Sem localizador e sem grupo: cada item vira seu próprio card.
   return `item:${item.id}`;
 }
 function groupFlightItems(items: OrderItem[]): FlightGroup[] {
