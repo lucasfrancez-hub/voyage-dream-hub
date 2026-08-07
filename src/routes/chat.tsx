@@ -321,12 +321,10 @@ function ChatLayout() {
 
 
       <ChatSidebar mobileOpen={mobileNavOpen} onCloseMobile={() => setMobileNavOpen(false)} />
-      {/* O root cobre a tela inteira (inset:0). A --chat-vh limita apenas a ÁREA ÚTIL
-          interna quando o teclado abre — o fundo do root continua cobrindo o resto. */}
-      <div
-        className="flex min-w-0 flex-1 flex-col"
-        style={{ maxHeight: "var(--chat-vh, 100%)" }}
-      >
+      {/* O root cobre o layout viewport inteiro (fixed inset-0). Sem altura
+          manual: o WebKit reduz o layout viewport quando o teclado abre. */}
+      <div className="flex min-w-0 flex-1 flex-col">
+
 
         <ChatHeader
           title={pageInfo.title}
