@@ -11,7 +11,7 @@
  */
 
 
-type SyncCounts = { groups: number; channels: number };
+type SyncCounts = { groups: number; channels: number; instagram: number };
 
 async function uazPost(path: string, body: Record<string, unknown>): Promise<unknown> {
   const base = process.env.UAZAPI_URL!.replace(/\/+$/, "");
