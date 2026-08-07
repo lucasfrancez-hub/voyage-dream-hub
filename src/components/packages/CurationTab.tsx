@@ -716,143 +716,58 @@ function PackageRow({ pkg, groupTitle, groupReason }: { pkg: Pkg; groupTitle: st
           </div>
         </div>
 
-        {/* Dock unificado */}
-        <div className="mt-4 pt-3 border-t border-white/5 flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-6 flex-wrap">
-            <div className="flex items-center gap-2">
-              <span className="text-[9px] font-black uppercase text-slate-500 tracking-tighter">Gerar:</span>
-              <button
-                type="button"
-                title="Gerar legenda para WhatsApp"
-                aria-label="Gerar legenda para WhatsApp"
-                onClick={() => handleGenerate("whatsapp")}
-                disabled={loading !== null}
-                className="w-8 h-8 rounded-full flex items-center justify-center bg-[#25D366]/10 text-[#25D366] hover:bg-[#25D366] hover:text-white transition-all ring-1 ring-[#25D366]/20 disabled:opacity-60 disabled:cursor-not-allowed"
-              >
-                {loading === "whatsapp" ? <Loader2 className="w-4 h-4 animate-spin" /> : <WhatsAppIcon />}
-              </button>
-              <button
-                type="button"
-                title="Gerar legenda para Instagram"
-                aria-label="Gerar legenda para Instagram"
-                onClick={() => handleGenerate("instagram")}
-                disabled={loading !== null}
-                className="w-8 h-8 rounded-full flex items-center justify-center bg-[#E1306C]/10 text-[#E1306C] hover:bg-[#E1306C] hover:text-white transition-all ring-1 ring-[#E1306C]/20 disabled:opacity-60 disabled:cursor-not-allowed"
-              >
-                {loading === "instagram" ? <Loader2 className="w-4 h-4 animate-spin" /> : <InstagramIcon />}
-              </button>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <span className="text-[9px] font-black uppercase text-slate-500 tracking-tighter">Download:</span>
-              <button
-                type="button"
-                onClick={() => downloadArt("feed")}
-                disabled={loading !== null}
-                className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-[10px] font-bold text-slate-300 flex items-center gap-1.5 hover:bg-white/10 hover:text-brand-orange hover:border-brand-orange/40 transition-colors disabled:opacity-60"
-              >
-                {loading === "feed" ? <Loader2 className="w-3 h-3 animate-spin" /> : <ImageDown className="w-3 h-3" />}
-                FEED 3:4
-              </button>
-              <button
-                type="button"
-                onClick={() => downloadArt("story")}
-                disabled={loading !== null}
-                className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-[10px] font-bold text-slate-300 flex items-center gap-1.5 hover:bg-white/10 hover:text-brand-orange hover:border-brand-orange/40 transition-colors disabled:opacity-60"
-              >
-                {loading === "story" ? <Loader2 className="w-3 h-3 animate-spin" /> : <Smartphone className="w-3 h-3" />}
-                STORY 9:16
-              </button>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <span className="text-[9px] font-black uppercase text-slate-500 tracking-tighter">Postar:</span>
-              <button
-                type="button"
-                title="Postar a arte no feed do Instagram da VIA AIR (sem legenda)"
-                onClick={() => publishArt("feed")}
-                disabled={loading !== null}
-                className="px-3 py-1.5 rounded-lg bg-[#E1306C]/10 border border-[#E1306C]/30 text-[10px] font-bold text-[#E1306C] flex items-center gap-1.5 hover:bg-[#E1306C] hover:text-white transition-colors disabled:opacity-60"
-              >
-                {loading === "post-feed" ? <Loader2 className="w-3 h-3 animate-spin" /> : <InstagramIcon className="w-3 h-3" />}
-                FEED
-              </button>
-              <button
-                type="button"
-                title="Postar a arte nos stories do Instagram da VIA AIR"
-                onClick={() => publishArt("story")}
-                disabled={loading !== null}
-                className="px-3 py-1.5 rounded-lg bg-[#E1306C]/10 border border-[#E1306C]/30 text-[10px] font-bold text-[#E1306C] flex items-center gap-1.5 hover:bg-[#E1306C] hover:text-white transition-colors disabled:opacity-60"
-              >
-                {loading === "post-story" ? <Loader2 className="w-3 h-3 animate-spin" /> : <Send className="w-3 h-3" />}
-                STORY
-              </button>
-            </div>
+        {/* Três balõezinhos: abrem a janela de divulgação */}
+        <div className="mt-4 flex items-center justify-between gap-3 border-t border-white/5 pt-3">
+          <div className="flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-1.5 py-1">
+            <button
+              type="button"
+              title="WhatsApp — texto, foto e envio para canal ou grupo"
+              aria-label="Divulgar no WhatsApp"
+              onClick={() => setDialogAba("whatsapp")}
+              className="flex h-8 w-8 items-center justify-center rounded-full bg-[#25D366]/10 text-[#25D366] ring-1 ring-[#25D366]/20 transition-all hover:bg-[#25D366] hover:text-white"
+            >
+              <WhatsAppIcon />
+            </button>
+            <button
+              type="button"
+              title="Instagram — publicar no feed ou story"
+              aria-label="Divulgar no Instagram"
+              onClick={() => setDialogAba("instagram")}
+              className="flex h-8 w-8 items-center justify-center rounded-full bg-[#E1306C]/10 text-[#E1306C] ring-1 ring-[#E1306C]/20 transition-all hover:bg-[#E1306C] hover:text-white"
+            >
+              <InstagramIcon />
+            </button>
+            <button
+              type="button"
+              title="Baixar arte (feed 3:4 ou story 9:16)"
+              aria-label="Baixar arte"
+              onClick={() => setDialogAba("arte")}
+              className="flex h-8 w-8 items-center justify-center rounded-full bg-white/5 text-slate-300 ring-1 ring-white/10 transition-all hover:bg-brand-orange hover:text-white"
+            >
+              <ImageDown className="h-4 w-4" />
+            </button>
           </div>
-
 
           <a
             href={`/pacotes/${pkg.slug}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="p-2 rounded-xl text-slate-500 hover:text-foreground hover:bg-white/10 transition-all"
+            className="rounded-xl p-2 text-slate-500 transition-all hover:bg-white/10 hover:text-foreground"
             aria-label="Abrir pacote"
             title="Abrir pacote"
           >
             <ExternalLink className="w-4 h-4" />
           </a>
         </div>
-
-        {/* Output IA */}
-        {output && (
-          <div className="mt-3 rounded-lg border border-white/10 bg-black/30 p-3">
-            <div className="flex items-center justify-between mb-2">
-              <div className="text-[10px] font-bold uppercase tracking-widest text-brand-orange flex items-center gap-1.5">
-                <Wand2 className="h-3 w-3" />
-                Texto para {output.channel === "whatsapp" ? "WhatsApp" : "Instagram"}
-                {cache[pkg.id]?.[output.channel] && (
-                  <span className="ml-1 text-[9px] text-slate-500 normal-case tracking-normal">· salvo</span>
-                )}
-                <button
-                  type="button"
-                  onClick={() => handleGenerate(output.channel)}
-                  disabled={loading !== null}
-                  className="ml-1 inline-flex items-center gap-1 rounded-md border border-white/10 px-1.5 py-0.5 text-[9px] uppercase tracking-wider text-slate-400 hover:text-brand-orange hover:border-brand-orange/40 disabled:opacity-60"
-                  title="Regerar com a IA"
-                >
-                  {loading === output.channel ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
-                  Regerar
-                </button>
-              </div>
-              <div className="flex items-center gap-2">
-                {shareFile && (
-                  <button
-                    type="button"
-                    onClick={copyImage}
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-[10px] font-semibold text-slate-200 hover:border-brand-orange hover:text-brand-orange"
-                    title="Copiar foto do pacote"
-                  >
-                    <ImageDown className="h-3 w-3" /> Copiar foto
-                  </button>
-                )}
-                <button
-                  type="button"
-                  onClick={copyText}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-[10px] font-semibold text-slate-200 hover:border-brand-orange hover:text-brand-orange"
-                >
-                  <Copy className="h-3 w-3" /> Copiar texto
-                </button>
-              </div>
-
-            </div>
-            <textarea
-              readOnly
-              value={output.text}
-              className="w-full min-h-[180px] rounded-lg border border-white/10 bg-black/40 p-2.5 text-[11px] font-mono text-slate-200 leading-relaxed"
-            />
-          </div>
-        )}
       </div>
+
+      <PackageSocialDialog
+        pkg={pkg}
+        open={dialogAba !== null}
+        onOpenChange={(v) => !v && setDialogAba(null)}
+        initialChannel={dialogAba ?? undefined}
+      />
     </div>
   );
 }
+
