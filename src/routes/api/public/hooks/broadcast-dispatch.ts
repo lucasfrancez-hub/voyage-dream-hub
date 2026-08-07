@@ -24,18 +24,35 @@ export const Route = createFileRoute("/api/public/hooks/broadcast-dispatch")({
         }
 
         const nowIso = new Date().toISOString();
-        const { data: pend } = await supabaseAdmin
+        // Campanhas prontas + campanhas travadas em "enviando" (worker morreu
+        // no meio de um upload demorado do Instagram, por exemplo).
+        const travadoIso = new Date(Date.now() - 5 * 60_000).toISOString();
+        const { data: agendadas } = await supabaseAdmin
           .from("wa_broadcast_campanhas")
           .select("id, destino_ids, nome")
           .eq("status", "agendada")
           .lte("scheduled_at", nowIso)
           .order("scheduled_at", { ascending: true })
           .limit(3);
+        const { data: travadas } = await supabaseAdmin
+          .from("wa_broadcast_campanhas")
+          .select("id, destino_ids, nome")
+          .eq("status", "enviando")
+          .lt("updated_at", travadoIso)
+          .limit(3);
+        const pend = [...(agendadas ?? []), ...(travadas ?? [])];
 
         const results: Array<{ id: string; ok: number; fail: number }> = [];
+        // Orçamento de tempo: o worker tem limite. Se estourar, a campanha
+        // volta para 'agendada' e a próxima rodada continua de onde parou.
+        const deadline = Date.now() + 40_000;
 
-        for (const camp of pend ?? []) {
-          await supabaseAdmin.from("wa_broadcast_campanhas").update({ status: "enviando" }).eq("id", camp.id);
+        for (const camp of pend) {
+          await supabaseAdmin
+            .from("wa_broadcast_campanhas")
+            .update({ status: "enviando", updated_at: new Date().toISOString() })
+            .eq("id", camp.id);
+
 
           const { data: msgs } = await supabaseAdmin
             .from("wa_broadcast_mensagens")
