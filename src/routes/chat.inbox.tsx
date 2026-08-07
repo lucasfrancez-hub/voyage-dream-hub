@@ -432,7 +432,11 @@ function InboxPage() {
             </div>
 
           </div>
-          <div className="flex-1 space-y-1 overflow-y-auto p-2">
+          <div
+            className="flex-1 space-y-1 overflow-y-auto p-2"
+            style={{ paddingBottom: "max(0.5rem, env(safe-area-inset-bottom, 0px))" }}
+          >
+
             {channel === "all" ? (
               unified.length === 0 ? (
                 <div className="p-6 text-center text-xs text-slate-400">Nenhuma conversa</div>
@@ -1366,8 +1370,9 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
       {/* Composer */}
       <div
         data-chat-composer="whatsapp"
-        className="shrink-0 border-t border-slate-200 bg-white p-3"
-        style={{ paddingBottom: "calc(0.75rem + env(safe-area-inset-bottom, 0px) + 6px)" }}
+        className="shrink-0 border-t border-slate-200 bg-white px-3 pt-3"
+        style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom, 0px))" }}
+
       >
         {conv.mode === "ai" && (
           <AiInstructionBar
@@ -2680,7 +2685,9 @@ function InstagramConversationView({
       <form
         data-chat-composer="instagram-dm"
         onSubmit={(e) => { e.preventDefault(); if (text.trim()) send.mutate(text.trim()); }}
-        className="flex items-center gap-2 border-t border-slate-200 bg-white p-3"
+        className="shrink-0 flex items-center gap-2 border-t border-slate-200 bg-white px-3 pt-3"
+        style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom, 0px))" }}
+
       >
         <input
           ref={fileRef}
@@ -3611,7 +3618,12 @@ function InstagramCommentThreadView({ mediaId, onBack }: { mediaId: string; onBa
         <div ref={bottomRef} />
       </div>
 
-      <div data-chat-composer="instagram-comments" className="border-t border-slate-200 bg-white p-3">
+      <div
+        data-chat-composer="instagram-comments"
+        className="shrink-0 border-t border-slate-200 bg-white px-3 pt-3"
+        style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom, 0px))" }}
+      >
+
         {alvoAtual ? (
           <div className="mb-1.5 flex items-center gap-1 text-[11px] text-slate-500">
             Respondendo <span className="font-medium text-slate-700">@{alvoAtual.from_username ?? "usuário"}</span>
