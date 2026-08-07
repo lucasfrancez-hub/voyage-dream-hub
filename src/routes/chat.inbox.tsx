@@ -3104,9 +3104,8 @@ function InstagramCommentThreadView({ mediaId, onBack }: { mediaId: string; onBa
     retry: false,
   });
 
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [comments.length, mediaId]);
+  // Abre sempre no comentário mais recente (e reajusta quando mídias carregam).
+  const comentariosScrollRef = useStickToBottom<HTMLDivElement>(mediaId, comments.length);
 
 
   // Alvo padrão: último comentário de terceiros ainda sem resposta.
