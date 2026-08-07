@@ -11,6 +11,8 @@ import { ChatHeader } from "@/components/chat/ChatHeader";
 import { getMyProfile } from "@/lib/chat/queries.functions";
 import { statusAparelhoChat, renovarSessaoAparelhoChat } from "@/lib/chat/device-session.functions";
 import { ChatPinUnlock } from "@/components/chat/ChatPinUnlock";
+// TEMPORÁRIO: painel de auditoria do viewport (remover após diagnóstico)
+import { ChatViewportAudit } from "@/components/chat/ChatViewportAudit";
 
 export const Route = createFileRoute("/chat")({
   ssr: false,
