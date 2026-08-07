@@ -393,7 +393,7 @@ function ChatLayout() {
 
   return (
     <div
-      className={`${themeClass} flex w-full overflow-hidden bg-[var(--chat-bg)] text-foreground`}
+      className={`${themeClass} fixed inset-x-0 top-0 flex w-full overflow-hidden bg-[var(--chat-bg)] text-foreground`}
       style={{ height: "var(--chat-vh, 100dvh)" }}
     >
 
