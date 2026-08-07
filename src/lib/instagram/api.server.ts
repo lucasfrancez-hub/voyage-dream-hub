@@ -229,6 +229,85 @@ async function publishContainer(params: { igUserId: string; token: string; conta
   });
 }
 
+/** Vídeo no Instagram é processado de forma assíncrona: espera o container ficar FINISHED. */
+async function waitContainerReady(params: {
+  containerId: string;
+  token: string;
+  timeoutMs?: number;
+}): Promise<void> {
+  const deadline = Date.now() + (params.timeoutMs ?? 5 * 60 * 1000);
+  let lastStatus = "";
+  while (Date.now() < deadline) {
+    const r = await fetchGraph(`/${params.containerId}?fields=status_code,status`, {
+      method: "GET",
+      token: params.token,
+      operation: "container_status",
+    });
+    lastStatus = String(r.status_code ?? "");
+    if (lastStatus === "FINISHED") return;
+    if (lastStatus === "ERROR" || lastStatus === "EXPIRED") {
+      throw new Error(`Instagram não conseguiu processar o vídeo (${lastStatus}): ${r.status ?? ""}`);
+    }
+    await new Promise((res) => setTimeout(res, 5000));
+  }
+  throw new Error(`Tempo esgotado processando o vídeo (último status: ${lastStatus || "desconhecido"})`);
+}
+
+async function publishVideoContainer(params: {
+  igUserId: string;
+  token: string;
+  fields: Record<string, unknown>;
+}): Promise<PublishResult> {
+  const container = await createMediaContainer({
+    igUserId: params.igUserId,
+    token: params.token,
+    fields: params.fields,
+  });
+  await waitContainerReady({ containerId: container.id, token: params.token });
+  const published = await publishContainer({
+    igUserId: params.igUserId,
+    token: params.token,
+    containerId: container.id,
+  });
+  const permalink = await getPermalink({ mediaId: published.id, token: params.token });
+  return { id: published.id, permalink, container_id: container.id };
+}
+
+/** Reels (aparece no feed + aba reels). */
+export async function publishReelsVideo(params: {
+  igUserId: string;
+  token: string;
+  videoUrl: string;
+  caption?: string;
+  coverUrl?: string;
+  shareToFeed?: boolean;
+}): Promise<PublishResult> {
+  return publishVideoContainer({
+    igUserId: params.igUserId,
+    token: params.token,
+    fields: {
+      media_type: "REELS",
+      video_url: params.videoUrl,
+      caption: params.caption ?? "",
+      share_to_feed: params.shareToFeed !== false,
+      ...(params.coverUrl ? { cover_url: params.coverUrl } : {}),
+    },
+  });
+}
+
+/** Story em vídeo (até 60s). */
+export async function publishStoryVideo(params: {
+  igUserId: string;
+  token: string;
+  videoUrl: string;
+}): Promise<PublishResult> {
+  return publishVideoContainer({
+    igUserId: params.igUserId,
+    token: params.token,
+    fields: { media_type: "STORIES", video_url: params.videoUrl },
+  });
+}
+
 async function getPermalink(params: { mediaId: string; token: string }): Promise<string | undefined> {
   try {
     const r = await fetchGraph(`/${params.mediaId}?fields=permalink`, {
