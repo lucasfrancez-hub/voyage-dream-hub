@@ -160,10 +160,16 @@ export function useKeyboardViewportRecovery<T extends HTMLElement>() {
       timers.push(window.setTimeout(talvezAtualizarBase, 300) as unknown as number);
     };
 
+    const onScrollTeclado = () => {
+      if (temEditavelFocado()) ajustarComTecladoAberto();
+    };
+
     document.addEventListener("focusin", onFocusIn, true);
     document.addEventListener("focusout", onFocusOut, true);
     window.addEventListener("resize", onResize);
     window.visualViewport?.addEventListener("resize", onResize);
+    window.visualViewport?.addEventListener("scroll", onScrollTeclado);
+    window.addEventListener("scroll", onScrollTeclado, { passive: true });
     window.addEventListener("orientationchange", onOrientation);
     document.addEventListener("visibilitychange", onVisibility);
 
@@ -173,6 +179,8 @@ export function useKeyboardViewportRecovery<T extends HTMLElement>() {
       document.removeEventListener("focusout", onFocusOut, true);
       window.removeEventListener("resize", onResize);
       window.visualViewport?.removeEventListener("resize", onResize);
+      window.visualViewport?.removeEventListener("scroll", onScrollTeclado);
+      window.removeEventListener("scroll", onScrollTeclado);
       window.removeEventListener("orientationchange", onOrientation);
       document.removeEventListener("visibilitychange", onVisibility);
       removerOverride();
