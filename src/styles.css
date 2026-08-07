@@ -314,4 +314,21 @@ body.chat-viewport-lock {
   background-color: var(--chat-bottom-surface);
 }
 
+/* ===== TESTE TEMPORÁRIO DE ISOLAMENTO VISUAL (remover depois) =====
+   Ativado só com a classe html.chat-debug-cores (via /chat/inbox?cores=1).
+   Não muda layout, viewport, teclado, safe-area, padding nem height —
+   apenas pinta cada camada com uma cor diferente para revelar quem
+   está aparecendo na faixa inferior no iPhone. */
+html.chat-debug-cores.chat-viewport-lock {
+  background-color: red !important;
+}
+html.chat-debug-cores body.chat-viewport-lock {
+  background-color: green !important;
+}
+html.chat-debug-cores [data-chat-root] {
+  background-color: blue !important;
+}
+html.chat-debug-cores [data-chat-composer] {
+  background-color: yellow !important;
+}
 
