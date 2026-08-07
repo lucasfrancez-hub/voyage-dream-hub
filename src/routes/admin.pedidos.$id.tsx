@@ -1536,6 +1536,7 @@ function ItemsTab({
               onLink={(pid, iids) => linkMut.mutate({ passengerId: pid, itemIds: iids })}
               onUnlink={(pid, iids) => unlinkMut.mutate({ passengerId: pid, itemIds: iids })}
               onPatchPassengerTicket={patchPassengerTicket}
+              onPatchSeat={patchSeat}
 
             />
           ))}
@@ -1588,6 +1589,7 @@ function ItemsTab({
               onLink={(pid, iids) => linkMut.mutate({ passengerId: pid, itemIds: iids })}
               onUnlink={(pid, iids) => unlinkMut.mutate({ passengerId: pid, itemIds: iids })}
               onPatchPassengerTicket={patchPassengerTicket}
+              onPatchSeat={patchSeat}
 
             />
           ))}
