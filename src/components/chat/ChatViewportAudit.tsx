@@ -33,6 +33,29 @@ export function ChatViewportAudit() {
   const [agora, setAgora] = useState<Snap>({});
   const [capturas, setCapturas] = useState<{ nome: string; s: Snap }[]>([]);
   const [aberto, setAberto] = useState(true);
+  // posição livre (arrastável). null = canto inferior direito padrão
+  const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
+
+  const iniciarArrasto = (e: React.PointerEvent) => {
+    const alvo = (e.target as HTMLElement).closest("button");
+    if (alvo) return;
+    const el = e.currentTarget as HTMLElement;
+    const r = el.getBoundingClientRect();
+    const dx = e.clientX - r.left;
+    const dy = e.clientY - r.top;
+    const mover = (ev: PointerEvent) => {
+      setPos({
+        x: Math.max(0, Math.min(window.innerWidth - r.width, ev.clientX - dx)),
+        y: Math.max(0, Math.min(window.innerHeight - r.height, ev.clientY - dy)),
+      });
+    };
+    const soltar = () => {
+      window.removeEventListener("pointermove", mover);
+      window.removeEventListener("pointerup", soltar);
+    };
+    window.addEventListener("pointermove", mover);
+    window.addEventListener("pointerup", soltar);
+  };
 
   useEffect(() => {
     const upd = () => setAgora(ler());
