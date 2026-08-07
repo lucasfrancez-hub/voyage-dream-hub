@@ -365,6 +365,17 @@ export const publishPackageArtToInstagram = createServerFn({ method: "POST" })
 
     let accountId = data.account_id;
     if (!accountId) {
+      // Curadoria/pacotes sempre publicam na conta da VIA AIR (nunca em perfis pessoais).
+      const { data: viaair } = await supabaseAdmin
+        .from("instagram_accounts")
+        .select("id")
+        .eq("active", true)
+        .ilike("username", "%viaair%")
+        .limit(1)
+        .maybeSingle();
+      accountId = (viaair?.id as string | undefined) ?? undefined;
+    }
+    if (!accountId) {
       const { data: acc } = await supabaseAdmin
         .from("instagram_accounts")
         .select("id")
@@ -375,6 +386,7 @@ export const publishPackageArtToInstagram = createServerFn({ method: "POST" })
       if (!acc?.id) throw new Error("Nenhuma conta do Instagram conectada");
       accountId = acc.id as string;
     }
+
 
     const binary = atob(data.image_base64);
     const bytes = new Uint8Array(binary.length);
