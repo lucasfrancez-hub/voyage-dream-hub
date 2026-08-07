@@ -6,7 +6,7 @@ import { detectBrand } from "@/components/CardForm";
 
 import {
   ArrowLeft, Hotel, Plane, XCircle, FileText, DollarSign, Users, Plus,
-  Pencil, Trash2, Ban, RotateCcw, Loader2, Copy, Download, Hash,
+  Pencil, Trash2, Ban, RotateCcw, Loader2, Copy, Download, Hash, Armchair,
   Package, Percent, Mail, Printer, CheckCircle2, Signature, Settings,
   Vault, ExternalLink, X, UserPlus, Star, Backpack, Briefcase, Luggage,
   Phone, CreditCard, FolderOpen, ShieldCheck,
