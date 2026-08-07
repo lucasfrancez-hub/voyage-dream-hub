@@ -224,7 +224,10 @@ export const PackageStoryArt = forwardRef<HTMLDivElement, { data: FeedArtData }>
                 </div>
               ) : null}
 
-              <h2 className="vstory-dest">
+              <h2
+                className="vstory-dest"
+                style={{ fontSize: fitDestSize([top, bottom], 96, 484, 200) }}
+              >
                 {top ? (
                   <>
                     {top}
