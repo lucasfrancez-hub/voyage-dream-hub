@@ -1364,7 +1364,10 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
       </div>
 
       {/* Composer */}
-      <div className="shrink-0 border-t border-slate-200 bg-white p-3">
+      <div
+        className="shrink-0 border-t border-slate-200 bg-white p-3"
+        style={{ paddingBottom: "calc(0.75rem + env(safe-area-inset-bottom, 0px) + 6px)" }}
+      >
         {conv.mode === "ai" && (
           <AiInstructionBar
             conversationId={conv.id}

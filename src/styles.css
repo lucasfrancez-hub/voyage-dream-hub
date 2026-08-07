@@ -261,4 +261,19 @@ html:root {
   [contenteditable="true"] {
     font-size: max(16px, 1rem);
   }
+
+  /* iOS/Android: nada de realce azul ao tocar/focar em campos e botões. */
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+  input:focus,
+  textarea:focus,
+  select:focus,
+  button:focus,
+  [contenteditable="true"]:focus,
+  a:focus {
+    outline: none !important;
+    box-shadow: none;
+  }
 }
+
