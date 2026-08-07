@@ -764,7 +764,32 @@ function PackageRow({ pkg, groupTitle, groupReason }: { pkg: Pkg; groupTitle: st
                 STORY 9:16
               </button>
             </div>
+
+            <div className="flex items-center gap-2">
+              <span className="text-[9px] font-black uppercase text-slate-500 tracking-tighter">Postar:</span>
+              <button
+                type="button"
+                title="Postar a arte no feed do Instagram (sem legenda)"
+                onClick={() => publishArt("feed")}
+                disabled={loading !== null}
+                className="px-3 py-1.5 rounded-lg bg-[#E1306C]/10 border border-[#E1306C]/30 text-[10px] font-bold text-[#E1306C] flex items-center gap-1.5 hover:bg-[#E1306C] hover:text-white transition-colors disabled:opacity-60"
+              >
+                {loading === "post-feed" ? <Loader2 className="w-3 h-3 animate-spin" /> : <InstagramIcon className="w-3 h-3" />}
+                FEED
+              </button>
+              <button
+                type="button"
+                title="Postar a arte nos stories do Instagram"
+                onClick={() => publishArt("story")}
+                disabled={loading !== null}
+                className="px-3 py-1.5 rounded-lg bg-[#E1306C]/10 border border-[#E1306C]/30 text-[10px] font-bold text-[#E1306C] flex items-center gap-1.5 hover:bg-[#E1306C] hover:text-white transition-colors disabled:opacity-60"
+              >
+                {loading === "post-story" ? <Loader2 className="w-3 h-3 animate-spin" /> : <Send className="w-3 h-3" />}
+                STORY
+              </button>
+            </div>
           </div>
+
 
           <a
             href={`/pacotes/${pkg.slug}`}
