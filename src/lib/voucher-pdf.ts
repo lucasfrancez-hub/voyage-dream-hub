@@ -965,16 +965,19 @@ const drawPassengersSection = (
     const rawTicket = ticketFor(p);
     const ticketFmt = formatTicketNumber(rawTicket);
 
-    const cells = showTicket
-      ? [name, tipo, doc, dob, ticketFmt || "-"]
-      : [name, tipo, doc, dob];
+    const cells: string[] = [name, tipo, doc, dob];
+    if (showTicket) cells.push(ticketFmt || "-");
+    const seatIdx = showSeat ? cells.length : -1;
+    if (showSeat) cells.push(seatFor(p) || "-");
 
     cells.forEach((v, i) => {
+      const isTicket = showTicket && i === 4;
       ctx.page.drawText(sanitize(v), {
         x: colXs[i], y: cy, size: i === 0 ? NAME_SIZE : 8.5, font: ctx.fontBold,
-        color: showTicket && i === 4 && v !== "-" ? COLOR_ORANGE : COLOR_TEXT,
+        color: (isTicket || i === seatIdx) && v !== "-" ? COLOR_ORANGE : COLOR_TEXT,
       });
     });
+
 
     cy -= rowH;
     if (idx < passengers.length - 1) {
