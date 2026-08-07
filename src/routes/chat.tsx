@@ -72,10 +72,13 @@ function ChatLayout() {
   const [theme, setTheme] = useState<"dark" | "light">("light");
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
-  // Viewport do chat: nenhuma medição em JavaScript.
+  // Viewport do chat: nenhuma medição em JavaScript com o teclado aberto.
   // O WebKit reduz o layout viewport quando o teclado abre
   // (`interactive-widget=resizes-content`, meta única em __root.tsx) e o root
-  // usa apenas `height: 100dvh`.
+  // usa apenas `height: 100dvh`. O hook abaixo age SOMENTE depois do teclado
+  // fechar, quando o iOS deixa a viewport presa numa altura menor.
+  const chatRootRef = useKeyboardViewportRecovery<HTMLDivElement>();
+
 
 
 
