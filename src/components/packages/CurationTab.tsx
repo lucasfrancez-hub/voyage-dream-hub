@@ -10,6 +10,8 @@ import { useServerFn } from "@tanstack/react-start";
 import { generateCurationCopy, listPackageCopies } from "@/lib/packages/curate.functions";
 import { fetchProxiedImage } from "@/lib/image-proxy.functions";
 import { canonOrigin, originKey, dedupeOrigins } from "@/lib/packages/origin";
+import { publishPackageArtToInstagram } from "@/lib/instagram/queries.functions";
+import { confirm } from "@/lib/confirm";
 
 
 type CachedCopy = { text: string; updated_at: string };
@@ -465,7 +467,10 @@ function PackageRow({ pkg, groupTitle, groupReason }: { pkg: Pkg; groupTitle: st
   const generateFn = useServerFn(generateCurationCopy);
   const fetchImageFn = useServerFn(fetchProxiedImage);
   const { cache, setEntry } = useContext(CopyCacheContext);
-  const [loading, setLoading] = useState<"whatsapp" | "instagram" | "feed" | "story" | null>(null);
+  const publishArtFn = useServerFn(publishPackageArtToInstagram);
+  const [loading, setLoading] = useState<
+    "whatsapp" | "instagram" | "feed" | "story" | "post-feed" | "post-story" | null
+  >(null);
   const [output, setOutput] = useState<{ channel: "whatsapp" | "instagram"; text: string } | null>(null);
   const [shareFile, setShareFile] = useState<File | null>(null);
 
@@ -564,7 +569,7 @@ function PackageRow({ pkg, groupTitle, groupReason }: { pkg: Pkg; groupTitle: st
     return {
       slug: pkg.slug, destination: pkg.destination, origin: pkg.origin,
       going_date: pkg.going_date, return_date: pkg.return_date, nights: pkg.nights,
-      price_per_person: Number(pkg.price_per_person), image_url: pkg.image_url,
+      price_per_person: Number(pkg.price_per_person), image_url: pkg.image_url ?? null,
       includes: pkg.includes ?? null, hotel_name: pkg.hotel_name, hotel_stars: pkg.hotel_stars,
       room_type: pkg.room_type ?? null, base_occupancy: pkg.base_occupancy ?? 2,
       tripadvisor_address: pkg.tripadvisor_address ?? null,
