@@ -10,7 +10,7 @@ type Args = {
   conversationId: string;
   titulo: string;
   corpo: string;
-  canal?: "whatsapp" | "instagram";
+  canal?: "whatsapp" | "instagram" | "instagram_comentario";
   messageId?: string;
 };
 
