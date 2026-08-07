@@ -270,29 +270,10 @@ async function processPayload(payload: IGPayload) {
         }
       }
 
-      // Perfil pessoal: nunca atendimento comercial — a IA responde como o dono.
-      if (!isFromMe && !iaAtiva) {
-        const { contaRespondeDirectComoPessoa } = await import("@/lib/instagram/ai-toggle");
-        if (contaRespondeDirectComoPessoa(igMetadata)) {
-          try {
-            // Respeita o interruptor global e a pausa da IA feita na conversa.
-            const { isAiGloballyOff } = await import("@/lib/whatsapp/ai-global-switch.server");
-            const { isDmAiPaused } = await import("@/lib/instagram/comment-pause.server");
-            const pausada = espelho ? await isDmAiPaused(espelho.waPhone) : false;
-            if (await isAiGloballyOff()) continue;
-            if (pausada) continue;
-            const { responderDirectComoDono } = await import("@/lib/instagram/persona-dm.server");
-            await responderDirectComoDono({
-              conversationId: conv.id,
-              accountRowId: account.id,
-              contactIgId,
-              mensagem: msg.message.text ?? anexo.rotulo ?? "(mensagem)",
-            });
-          } catch (e) {
-            console.error("[instagram] IA pessoal falhou:", (e as Error).message);
-          }
-        }
-      }
+      // Perfil pessoal: a IA NUNCA responde no direct. A mensagem só é
+      // registrada no inbox para leitura/resposta humana. No perfil pessoal a
+      // IA só atua nos comentários de reels.
+
 
     }
 
