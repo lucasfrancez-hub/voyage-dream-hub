@@ -366,7 +366,7 @@ export async function publishStoryImage(params: {
     token: params.token,
     fields: { media_type: "STORIES", image_url: params.imageUrl },
   });
-  const published = await publishContainer({
+  const published = await publishContainerWhenReady({
     igUserId: params.igUserId,
     token: params.token,
     containerId: container.id,
@@ -386,7 +386,7 @@ export async function publishFeedImage(params: {
     token: params.token,
     fields: { image_url: params.imageUrl, caption: params.caption ?? "" },
   });
-  const published = await publishContainer({
+  const published = await publishContainerWhenReady({
     igUserId: params.igUserId,
     token: params.token,
     containerId: container.id,
@@ -415,7 +415,7 @@ export async function publishFeedCarousel(params: {
     token: params.token,
     fields: { media_type: "CAROUSEL", children, caption: params.caption ?? "" },
   });
-  const published = await publishContainer({
+  const published = await publishContainerWhenReady({
     igUserId: params.igUserId,
     token: params.token,
     containerId: container.id,
