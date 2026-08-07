@@ -1024,8 +1024,102 @@ const drawPassengersSection = (
     }
   });
 
+  // Legenda: ordem dos assentos por trecho (só no modelo "tabela")
+  if (showSeat && seatLegend.length) {
+    cy -= 4;
+    const capTitle = ctx.lang === "en" ? "Seat order:" : "Ordem dos assentos:";
+    ctx.page.drawText(sanitize(capTitle), {
+      x: innerX, y: cy, size: 7, font: ctx.fontBold, color: COLOR_NAVY,
+    });
+    cy -= 10;
+    const perLine = 3;
+    for (let i = 0; i < seatLegend.length; i += perLine) {
+      const line = seatLegend.slice(i, i + perLine).join("   ·   ");
+      ctx.page.drawText(sanitize(line), {
+        x: innerX, y: cy, size: 7, font: ctx.font, color: COLOR_MUTED,
+      });
+      cy -= 10;
+    }
+    cy -= 2;
+  }
+
   closeSectionCard(ctx, top, cy + 6);
 };
+
+// ---------- Assentos: bloco próprio (modelo "bloco") ----------
+const drawSeatsBlock = (
+  ctx: Ctx,
+  segs: { seg: OrderItem; label: string }[],
+  passengers: OrderPassenger[],
+) => {
+  const used = segs.filter((s) => Object.keys(segSeats(s.seg)).length > 0);
+  if (!used.length || !passengers.length) return;
+
+  const rowH = 16;
+  const cardH = 26 + 22 + rowH * passengers.length + 18;
+  const { top } = openSectionCard(ctx, cardH + 20);
+  const headerBottom = drawSectionHeader(
+    ctx, top, "user",
+    ctx.lang === "en" ? "ASSIGNED SEATS" : "ASSENTOS MARCADOS",
+  );
+
+  const innerX = MARGIN + 20;
+  const innerW = CONTENT_W - 40;
+  const nameW = innerW * 0.34;
+  const colW = (innerW - nameW) / used.length;
+
+  let cy = headerBottom - 10;
+  ctx.page.drawLine({
+    start: { x: MARGIN + 12, y: cy + 6 },
+    end: { x: MARGIN + CONTENT_W - 12, y: cy + 6 },
+    thickness: 0.5, color: COLOR_BORDER,
+  });
+  cy -= 4;
+
+  // Cabeçalho: rótulo do trecho (IDA CWB-GRU)
+  ctx.page.drawText(sanitize(ctx.lang === "en" ? "PASSENGER" : "PASSAGEIRO"), {
+    x: innerX, y: cy, size: 7.5, font: ctx.fontBold, color: COLOR_MUTED,
+  });
+  used.forEach((s, i) => {
+    const cx = innerX + nameW + i * colW;
+    const tw = measure(ctx.fontBold, s.label, 7.5);
+    ctx.page.drawText(sanitize(s.label), {
+      x: cx + (colW - tw) / 2, y: cy, size: 7.5, font: ctx.fontBold, color: COLOR_NAVY,
+    });
+  });
+  cy -= 14;
+
+  passengers.forEach((p, idx) => {
+    ctx.page.drawText(sanitize(paxShortName(p.full_name ?? "")), {
+      x: innerX, y: cy, size: 8.5, font: ctx.fontBold, color: COLOR_TEXT,
+    });
+    used.forEach((s, i) => {
+      const seat = segSeats(s.seg)[p.id] ?? "-";
+      const cx = innerX + nameW + i * colW;
+      const size = 9;
+      const tw = measure(ctx.fontBold, seat, size);
+      const bx = cx + (colW - tw) / 2;
+      if (seat !== "-") {
+        drawRoundedRect(ctx.page, bx - 7, cy - 4, tw + 14, 15, COLOR_ROW_ALT, 5);
+      }
+      ctx.page.drawText(sanitize(seat), {
+        x: bx, y: cy, size, font: ctx.fontBold,
+        color: seat === "-" ? COLOR_MUTED : COLOR_ORANGE,
+      });
+    });
+    cy -= rowH;
+    if (idx < passengers.length - 1) {
+      ctx.page.drawLine({
+        start: { x: MARGIN + 12, y: cy + 11 },
+        end: { x: MARGIN + CONTENT_W - 12, y: cy + 11 },
+        thickness: 0.3, color: COLOR_BORDER,
+      });
+    }
+  });
+
+  closeSectionCard(ctx, top, cy + 6);
+};
+
 
 // ---------- Aéreo ----------
 const airlineCheckinURL = (item: OrderItem): string => {
