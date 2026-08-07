@@ -1316,7 +1316,26 @@ function ItemsTab({
   const linkFn = useServerFn(linkPassengerToItem);
   const unlinkFn = useServerFn(unlinkPassengerFromItem);
   const upsertPax = useServerFn(upsertPassenger);
+  const patchSeat = async (segment: OrderItem, passengerId: string, seat: string) => {
+    const details = { ...((segment.details ?? {}) as Record<string, unknown>) };
+    const seats: Record<string, string> = { ...((details.seats as Record<string, string> | undefined) ?? {}) };
+    const v = seat.trim().toUpperCase();
+    if (v) seats[passengerId] = v; else delete seats[passengerId];
+    details.seats = seats;
+    await upsert({ data: {
+      id: segment.id,
+      order_id: segment.order_id,
+      kind: segment.kind,
+      title: segment.title,
+      status: segment.status,
+      supplier_locator: segment.supplier_locator,
+      details,
+      sort_order: segment.sort_order,
+    } as any });
+    onChange();
+  };
   const patchPassengerTicket = async (passenger: OrderPassenger, locator: string, ticket: string) => {
+
     const key = (locator || "").toUpperCase().trim() || "_";
     const currentTickets: Record<string, string> = { ...(passenger.tickets ?? {}) };
     const t = ticket.trim();
