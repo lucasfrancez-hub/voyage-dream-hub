@@ -11,6 +11,7 @@ import { forwardRef, Fragment, type ReactElement } from "react";
 import logoAsset from "@/assets/viaair-logo-white.png.asset.json";
 import type { FeedArtData } from "./PackageFeedArt";
 import { fitDestSize } from "./fit-title";
+import { AnniversarySeal, SELO_ANIVERSARIO_CSS, seloAniversarioAtivo } from "@/components/packages/AnniversarySeal";
 
 const BRL = (n: number) =>
   n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -168,7 +169,8 @@ export const PackageStoryArt = forwardRef<HTMLDivElement, { data: FeedArtData }>
     <div ref={ref}>
       <style>{CSS}</style>
       <div className="vstory-outer">
-        <div className="vstory-inner">
+        <div className={`vstory-inner${seloAniversarioAtivo() ? " vstory-has-selo" : ""}`}>
+          <AnniversarySeal size={175} />
           {/* Background */}
           <div className="vstory-bg">
             <img src={data.backgroundDataUrl} alt="" />
@@ -371,6 +373,8 @@ export const PackageStoryArt = forwardRef<HTMLDivElement, { data: FeedArtData }>
 const CSS = `
 .vstory-outer{width:1080px;height:1920px;position:relative;background:#000;overflow:hidden;--brand-orange:#ff7f00}
 .vstory-outer *{box-sizing:border-box}
+${SELO_ANIVERSARIO_CSS}
+.vstory-has-selo .vstory-logo-wrap,.vstory-has-selo .vstory-logo{justify-content:flex-end}
 .vstory-inner{width:540px;height:960px;position:absolute;top:0;left:0;transform:scale(2);transform-origin:top left;background:#000;color:#fff;font-family:'Montserrat',Arial,sans-serif;overflow:hidden}
 .vstory-bg{position:absolute;inset:0;z-index:0}
 .vstory-bg img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center top;display:block}

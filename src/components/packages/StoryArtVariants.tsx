@@ -11,6 +11,7 @@
 import { forwardRef } from "react";
 import logoAsset from "@/assets/viaair-logo-white.png.asset.json";
 import type { FeedArtData } from "./PackageFeedArt";
+import { AnniversarySeal, SELO_ANIVERSARIO_CSS, seloAniversarioAtivo } from "@/components/packages/AnniversarySeal";
 
 const BRL = (n: number) =>
   n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -142,7 +143,8 @@ export const StoryArtVariant = forwardRef<
       <div
         className={`vsv-outer vsv-v${variant} vsv-fmt-${format} ${isIngresso ? "vsv-ingresso" : "vsv-passeio"}`}
       >
-        <div className="vsv-inner">
+        <div className={`vsv-inner${seloAniversarioAtivo() ? " vsv-has-selo" : ""}`}>
+          <AnniversarySeal size={165} />
           <div className="vsv-bg">
             {data.backgroundDataUrl ? <img src={data.backgroundDataUrl} alt="" /> : <div className="vsv-bg-fallback" />}
             <div className="vsv-bg-grad" />
@@ -260,6 +262,8 @@ export const StoryArtVariant = forwardRef<
 const CSS = `
 .vsv-outer{width:1080px;height:1920px;position:relative;background:#000;overflow:hidden;--brand-orange:#ff7f00}
 .vsv-outer *{box-sizing:border-box}
+${SELO_ANIVERSARIO_CSS}
+.vsv-has-selo .vsv-logo-wrap,.vsv-has-selo .vsv-logo{justify-content:flex-end}
 .vsv-inner{width:540px;height:960px;position:absolute;top:0;left:0;transform:scale(2);transform-origin:top left;background:#000;color:#fff;font-family:'Montserrat',Arial,sans-serif;overflow:hidden}
 .vsv-bg{position:absolute;inset:0;z-index:0}
 .vsv-bg img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center top;display:block}
