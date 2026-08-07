@@ -3151,6 +3151,12 @@ function ItemDialog({
                 return;
               }
 
+              // Ida e volta lançadas juntas continuam num único card mesmo sem
+              // localizador: marcamos todos os trechos com o mesmo trip_group.
+              tripGroup = String(cleanMain.trip_group ?? "").trim()
+                || `tg-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+              cleanMain.trip_group = tripGroup;
+
               // Volta é opcional: descarta trechos de volta vazios (sem origem/destino)
               effectiveTitle = segmentTitle(details);
             }
