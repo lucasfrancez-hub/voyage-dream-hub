@@ -210,7 +210,7 @@ export const PackageFeedArt = forwardRef<HTMLDivElement, { data: FeedArtData }>(
       {/* 1080x1440 outer; conteúdo desenhado em 768x1024 e escalado 1.40625x */}
       <div className="vfeed-outer">
         <div className={`vfeed-inner${seloAniversarioAtivo() ? " vfeed-has-selo" : ""}`}>
-          <AnniversarySeal size={200} />
+          <AnniversarySeal size={105} />
           {/* Background */}
           <div className="vfeed-bg">
             <img src={data.backgroundDataUrl} alt="" />
