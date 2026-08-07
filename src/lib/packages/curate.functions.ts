@@ -286,6 +286,8 @@ REGRAS FIRMES:
 Regras:
 - Português do Brasil, tom inspirador mas objetivo.
 - Comece com uma frase de gancho curta (1 linha, com 1 emoji).
+${hookDirective}
+
 - Para cada pacote, um bloco compacto (3 linhas): destino + período, hotel + regime, valor por pessoa e total para ${"{occupancy}"} pessoas.
 - Separe os pacotes com linha em branco.
 - Ao final: 1 linha de CTA ("Chama no direct" ou "Link na bio") e 5 a 8 hashtags relevantes (destinos, viagem, viaair).
