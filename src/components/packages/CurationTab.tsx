@@ -1,17 +1,16 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import {
-  Copy, Loader2, ExternalLink, Wand2, ImageDown, Smartphone, RefreshCw, Send,
+  Loader2, ExternalLink, ImageDown,
   Wallet, Globe2, Snowflake, Palmtree, Timer, TreePine, Sparkles,
   PartyPopper, Egg, CalendarDays, LayoutGrid,
   type LucideIcon,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
-import { generateCurationCopy, listPackageCopies } from "@/lib/packages/curate.functions";
-import { fetchProxiedImage } from "@/lib/image-proxy.functions";
+import { listPackageCopies } from "@/lib/packages/curate.functions";
 import { canonOrigin, originKey, dedupeOrigins } from "@/lib/packages/origin";
-import { publishPackageArtToInstagram } from "@/lib/instagram/queries.functions";
-import { confirm } from "@/lib/confirm";
+import { PackageSocialDialog } from "@/components/packages/PackageSocialDialog";
+
 
 
 type CachedCopy = { text: string; updated_at: string };
