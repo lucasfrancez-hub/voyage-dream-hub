@@ -91,23 +91,52 @@ export function useKeyboardViewportRecovery<T extends HTMLElement>() {
       });
     };
 
+    /**
+     * Teclado ABERTO: encaixa o root na visual viewport e desfaz o scroll que o
+     * WebKit aplica na página inteira (era isso que empurrava o cabeçalho pra fora).
+     */
+    const ajustarComTecladoAberto = () => {
+      if (!temEditavelFocado()) return;
+      const vv = window.visualViewport;
+      if (!vv) return;
+      const el = rootRef.current;
+      if (el) {
+        overrideRef.current = true;
+        el.style.height = `${Math.round(vv.height)}px`;
+      }
+      if (window.scrollY !== 0) window.scrollTo(0, 0);
+      const doc = document.scrollingElement as HTMLElement | null;
+      if (doc && doc.scrollTop !== 0) doc.scrollTop = 0;
+    };
+
+    const agendarAjusteTeclado = () => {
+      requestAnimationFrame(ajustarComTecladoAberto);
+      [50, 150, 300, 500, 800].forEach((ms) => {
+        timers.push(window.setTimeout(ajustarComTecladoAberto, ms) as unknown as number);
+      });
+    };
+
     const onFocusIn = (e: FocusEvent) => {
       const alvo = e.target as HTMLElement | null;
       if (!alvo) return;
       const tag = alvo.tagName;
       if (tag === "INPUT" || tag === "TEXTAREA" || alvo.isContentEditable) {
         ultimaInteracaoTecladoRef.current = Date.now();
-        // nada de medir/alterar enquanto o teclado está aberto
+        agendarAjusteTeclado();
       }
     };
 
     const onFocusOut = () => {
       ultimaInteracaoTecladoRef.current = Date.now();
+      limparTimers();
       agendarVerificacoes();
     };
 
     const onResize = () => {
-      if (temEditavelFocado()) return;
+      if (temEditavelFocado()) {
+        ajustarComTecladoAberto();
+        return;
+      }
       const atual = alturaAtual();
       // WebKit voltou ao normal → tira o override e revalida a base
       if (overrideRef.current && atual >= baseRef.current - TOLERANCIA) removerOverride();
@@ -131,10 +160,16 @@ export function useKeyboardViewportRecovery<T extends HTMLElement>() {
       timers.push(window.setTimeout(talvezAtualizarBase, 300) as unknown as number);
     };
 
+    const onScrollTeclado = () => {
+      if (temEditavelFocado()) ajustarComTecladoAberto();
+    };
+
     document.addEventListener("focusin", onFocusIn, true);
     document.addEventListener("focusout", onFocusOut, true);
     window.addEventListener("resize", onResize);
     window.visualViewport?.addEventListener("resize", onResize);
+    window.visualViewport?.addEventListener("scroll", onScrollTeclado);
+    window.addEventListener("scroll", onScrollTeclado, { passive: true });
     window.addEventListener("orientationchange", onOrientation);
     document.addEventListener("visibilitychange", onVisibility);
 
@@ -144,6 +179,8 @@ export function useKeyboardViewportRecovery<T extends HTMLElement>() {
       document.removeEventListener("focusout", onFocusOut, true);
       window.removeEventListener("resize", onResize);
       window.visualViewport?.removeEventListener("resize", onResize);
+      window.visualViewport?.removeEventListener("scroll", onScrollTeclado);
+      window.removeEventListener("scroll", onScrollTeclado);
       window.removeEventListener("orientationchange", onOrientation);
       document.removeEventListener("visibilitychange", onVisibility);
       removerOverride();
