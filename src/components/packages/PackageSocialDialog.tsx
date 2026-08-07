@@ -222,7 +222,7 @@ export function PackageSocialDialog({
       const res = await publishArtFn({
         data: {
           media_type: kind === "feed" ? "feed_image" : "story_image",
-          image_base64: await blobToBase64(blob),
+          image_base64: await blobToBase64(await (await import("@/lib/packages/to-jpeg")).blobToJpeg(blob)),
           caption,
           package_id: typeof pkg.id === "string" ? pkg.id : undefined,
           slug: typeof pkg.slug === "string" ? pkg.slug : undefined,

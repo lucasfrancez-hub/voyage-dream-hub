@@ -392,10 +392,10 @@ export const publishPackageArtToInstagram = createServerFn({ method: "POST" })
     const bytes = new Uint8Array(binary.length);
     for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
 
-    const path = `instagram-posts/${Date.now()}-${data.slug ?? "arte"}-${data.media_type}.png`;
+    const path = `instagram-posts/${Date.now()}-${data.slug ?? "arte"}-${data.media_type}.jpg`;
     const up = await supabaseAdmin.storage
       .from("chat-media")
-      .upload(path, bytes, { contentType: "image/png", upsert: true });
+      .upload(path, bytes, { contentType: "image/jpeg", upsert: true });
     if (up.error) throw new Error(`Falha ao guardar a arte: ${up.error.message}`);
 
     const signed = await supabaseAdmin.storage
