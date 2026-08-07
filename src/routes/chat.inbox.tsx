@@ -3618,7 +3618,12 @@ function InstagramCommentThreadView({ mediaId, onBack }: { mediaId: string; onBa
         <div ref={bottomRef} />
       </div>
 
-      <div data-chat-composer="instagram-comments" className="border-t border-slate-200 bg-white p-3">
+      <div
+        data-chat-composer="instagram-comments"
+        className="shrink-0 border-t border-slate-200 bg-white px-3 pt-3"
+        style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom, 0px))" }}
+      >
+
         {alvoAtual ? (
           <div className="mb-1.5 flex items-center gap-1 text-[11px] text-slate-500">
             Respondendo <span className="font-medium text-slate-700">@{alvoAtual.from_username ?? "usuário"}</span>
