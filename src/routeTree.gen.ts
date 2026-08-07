@@ -23,6 +23,7 @@ import { Route as PagarRouteImport } from './routes/pagar'
 import { Route as PagarBoletoRouteImport } from './routes/pagar-boleto'
 import { Route as PasseiosRouteImport } from './routes/passeios'
 import { Route as PoliticaDePrivacidadeRouteImport } from './routes/politica-de-privacidade'
+import { Route as PreviewAssentosRouteImport } from './routes/preview-assentos'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as TermosDeUsoRouteImport } from './routes/termos-de-uso'
@@ -195,6 +196,11 @@ const PasseiosRoute = PasseiosRouteImport.update({
 const PoliticaDePrivacidadeRoute = PoliticaDePrivacidadeRouteImport.update({
   id: '/politica-de-privacidade',
   path: '/politica-de-privacidade',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PreviewAssentosRoute = PreviewAssentosRouteImport.update({
+  id: '/preview-assentos',
+  path: '/preview-assentos',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
@@ -756,6 +762,7 @@ export interface FileRoutesByFullPath {
   '/pagar-boleto': typeof PagarBoletoRoute
   '/passeios': typeof PasseiosRoute
   '/politica-de-privacidade': typeof PoliticaDePrivacidadeRoute
+  '/preview-assentos': typeof PreviewAssentosRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/termos-de-uso': typeof TermosDeUsoRoute
@@ -874,6 +881,7 @@ export interface FileRoutesByTo {
   '/pagar-boleto': typeof PagarBoletoRoute
   '/passeios': typeof PasseiosRoute
   '/politica-de-privacidade': typeof PoliticaDePrivacidadeRoute
+  '/preview-assentos': typeof PreviewAssentosRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/termos-de-uso': typeof TermosDeUsoRoute
@@ -994,6 +1002,7 @@ export interface FileRoutesById {
   '/pagar-boleto': typeof PagarBoletoRoute
   '/passeios': typeof PasseiosRoute
   '/politica-de-privacidade': typeof PoliticaDePrivacidadeRoute
+  '/preview-assentos': typeof PreviewAssentosRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/termos-de-uso': typeof TermosDeUsoRoute
@@ -1115,6 +1124,7 @@ export interface FileRouteTypes {
     | '/pagar-boleto'
     | '/passeios'
     | '/politica-de-privacidade'
+    | '/preview-assentos'
     | '/reset-password'
     | '/sitemap.xml'
     | '/termos-de-uso'
@@ -1233,6 +1243,7 @@ export interface FileRouteTypes {
     | '/pagar-boleto'
     | '/passeios'
     | '/politica-de-privacidade'
+    | '/preview-assentos'
     | '/reset-password'
     | '/sitemap.xml'
     | '/termos-de-uso'
@@ -1352,6 +1363,7 @@ export interface FileRouteTypes {
     | '/pagar-boleto'
     | '/passeios'
     | '/politica-de-privacidade'
+    | '/preview-assentos'
     | '/reset-password'
     | '/sitemap.xml'
     | '/termos-de-uso'
@@ -1472,6 +1484,7 @@ export interface RootRouteChildren {
   PagarBoletoRoute: typeof PagarBoletoRoute
   PasseiosRoute: typeof PasseiosRoute
   PoliticaDePrivacidadeRoute: typeof PoliticaDePrivacidadeRoute
+  PreviewAssentosRoute: typeof PreviewAssentosRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TermosDeUsoRoute: typeof TermosDeUsoRoute
@@ -1625,6 +1638,13 @@ declare module '@tanstack/react-router' {
       path: '/politica-de-privacidade'
       fullPath: '/politica-de-privacidade'
       preLoaderRoute: typeof PoliticaDePrivacidadeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/preview-assentos': {
+      id: '/preview-assentos'
+      path: '/preview-assentos'
+      fullPath: '/preview-assentos'
+      preLoaderRoute: typeof PreviewAssentosRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/reset-password': {
@@ -2501,6 +2521,7 @@ const rootRouteChildren: RootRouteChildren = {
   PagarBoletoRoute: PagarBoletoRoute,
   PasseiosRoute: PasseiosRoute,
   PoliticaDePrivacidadeRoute: PoliticaDePrivacidadeRoute,
+  PreviewAssentosRoute: PreviewAssentosRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   TermosDeUsoRoute: TermosDeUsoRoute,

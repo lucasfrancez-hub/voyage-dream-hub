@@ -257,6 +257,12 @@ const diffDays = (a: string, b: string): number => {
 
 // ---------- Ctx / drawing ----------
 type Color = ReturnType<typeof rgb>;
+// Como os assentos aparecem no voucher:
+// - "tabela": coluna ASSENTO na tabela de passageiros + legenda dos trechos
+// - "voo": assentos dentro do card do voo, trecho a trecho
+// - "bloco": seção própria "ASSENTOS MARCADOS" (matriz passageiro x trecho)
+export type SeatStyle = "tabela" | "voo" | "bloco";
+
 type Ctx = {
   pdf: PDFDocument;
   page: PDFPage;
@@ -269,7 +275,33 @@ type Ctx = {
   logo?: PDFImage;
   pages: PDFPage[];
   emojiCache?: Map<string, PDFImage | null>;
+  seatStyle: SeatStyle;
+  passengers: OrderPassenger[];
 };
+
+// Rótulo curto do trecho (CWB→GRU) e assentos de um trecho.
+const segRouteLabel = (seg: OrderItem): string => {
+  const d = (seg.details ?? {}) as Record<string, unknown>;
+  const from = String(d.from_iata ?? d.origin ?? "").trim() || "-";
+  const to = String(d.to_iata ?? d.destination ?? "").trim() || "-";
+  return `${from}-${to}`;
+};
+const segSeats = (seg: OrderItem): Record<string, string> => {
+  const map = (((seg.details ?? {}) as Record<string, unknown>).seats ?? {}) as Record<string, string>;
+  const out: Record<string, string> = {};
+  for (const [pid, s] of Object.entries(map)) {
+    const v = String(s ?? "").trim().toUpperCase();
+    if (v) out[pid] = v;
+  }
+  return out;
+};
+const paxShortName = (full: string): string => {
+  const parts = (full ?? "").toUpperCase().trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "-";
+  if (parts.length === 1) return parts[0];
+  return `${parts[0]} ${parts[parts.length - 1]}`;
+};
+
 
 // ---------- Emoji support (Twemoji PNGs) ----------
 // pdf-lib nao renderiza glifos de emoji das fontes padrao. Baixamos o PNG do
@@ -880,15 +912,18 @@ const drawPassengersSection = (
   passengers: OrderPassenger[],
   reservationLocator: string | null = null,
   seatsByPassenger: Record<string, string> = {},
+  seatLegend: string[] = [],
 ) => {
   if (!passengers.length) return;
   const t = T(ctx);
   const rowH = 16;
   const headerH = 26;
   const colHeaderH = 18;
-  const cardH = headerH + colHeaderH + rowH * passengers.length + 16;
+  const legendH = seatLegend.length ? 14 * Math.ceil(seatLegend.length / 3) + 8 : 0;
+  const cardH = headerH + colHeaderH + rowH * passengers.length + 16 + legendH;
   const { top } = openSectionCard(ctx, cardH + 20);
   const headerBottom = drawSectionHeader(ctx, top, "user", "PASSAGEIROS");
+
 
   const innerX = MARGIN + 20;
   const innerW = CONTENT_W - 40;
@@ -901,7 +936,7 @@ const drawPassengersSection = (
   const seatFor = (p: OrderPassenger): string => (seatsByPassenger[p.id] ?? "").trim();
   // Só mostra a coluna Bilhete se pelo menos um passageiro tem número de bilhete
   const showTicket = passengers.some((p) => ticketFor(p).length > 0);
-  const showSeat = passengers.some((p) => seatFor(p).length > 0);
+  const showSeat = ctx.seatStyle === "tabela" && passengers.some((p) => seatFor(p).length > 0);
 
 
   const weights = [2.2, 0.9, 1.6, 1.1];
@@ -989,8 +1024,102 @@ const drawPassengersSection = (
     }
   });
 
+  // Legenda: ordem dos assentos por trecho (só no modelo "tabela")
+  if (showSeat && seatLegend.length) {
+    cy -= 4;
+    const capTitle = ctx.lang === "en" ? "Seat order:" : "Ordem dos assentos:";
+    ctx.page.drawText(sanitize(capTitle), {
+      x: innerX, y: cy, size: 7, font: ctx.fontBold, color: COLOR_NAVY,
+    });
+    cy -= 10;
+    const perLine = 3;
+    for (let i = 0; i < seatLegend.length; i += perLine) {
+      const line = seatLegend.slice(i, i + perLine).join("   ·   ");
+      ctx.page.drawText(sanitize(line), {
+        x: innerX, y: cy, size: 7, font: ctx.font, color: COLOR_MUTED,
+      });
+      cy -= 10;
+    }
+    cy -= 2;
+  }
+
   closeSectionCard(ctx, top, cy + 6);
 };
+
+// ---------- Assentos: bloco próprio (modelo "bloco") ----------
+const drawSeatsBlock = (
+  ctx: Ctx,
+  segs: { seg: OrderItem; label: string }[],
+  passengers: OrderPassenger[],
+) => {
+  const used = segs.filter((s) => Object.keys(segSeats(s.seg)).length > 0);
+  if (!used.length || !passengers.length) return;
+
+  const rowH = 16;
+  const cardH = 26 + 22 + rowH * passengers.length + 18;
+  const { top } = openSectionCard(ctx, cardH + 20);
+  const headerBottom = drawSectionHeader(
+    ctx, top, "user",
+    ctx.lang === "en" ? "ASSIGNED SEATS" : "ASSENTOS MARCADOS",
+  );
+
+  const innerX = MARGIN + 20;
+  const innerW = CONTENT_W - 40;
+  const nameW = innerW * 0.34;
+  const colW = (innerW - nameW) / used.length;
+
+  let cy = headerBottom - 10;
+  ctx.page.drawLine({
+    start: { x: MARGIN + 12, y: cy + 6 },
+    end: { x: MARGIN + CONTENT_W - 12, y: cy + 6 },
+    thickness: 0.5, color: COLOR_BORDER,
+  });
+  cy -= 4;
+
+  // Cabeçalho: rótulo do trecho (IDA CWB-GRU)
+  ctx.page.drawText(sanitize(ctx.lang === "en" ? "PASSENGER" : "PASSAGEIRO"), {
+    x: innerX, y: cy, size: 7.5, font: ctx.fontBold, color: COLOR_MUTED,
+  });
+  used.forEach((s, i) => {
+    const cx = innerX + nameW + i * colW;
+    const tw = measure(ctx.fontBold, s.label, 7.5);
+    ctx.page.drawText(sanitize(s.label), {
+      x: cx + (colW - tw) / 2, y: cy, size: 7.5, font: ctx.fontBold, color: COLOR_NAVY,
+    });
+  });
+  cy -= 14;
+
+  passengers.forEach((p, idx) => {
+    ctx.page.drawText(sanitize(paxShortName(p.full_name ?? "")), {
+      x: innerX, y: cy, size: 8.5, font: ctx.fontBold, color: COLOR_TEXT,
+    });
+    used.forEach((s, i) => {
+      const seat = segSeats(s.seg)[p.id] ?? "-";
+      const cx = innerX + nameW + i * colW;
+      const size = 9;
+      const tw = measure(ctx.fontBold, seat, size);
+      const bx = cx + (colW - tw) / 2;
+      if (seat !== "-") {
+        drawRoundedRect(ctx.page, bx - 7, cy - 4, tw + 14, 15, COLOR_ROW_ALT, 5);
+      }
+      ctx.page.drawText(sanitize(seat), {
+        x: bx, y: cy, size, font: ctx.fontBold,
+        color: seat === "-" ? COLOR_MUTED : COLOR_ORANGE,
+      });
+    });
+    cy -= rowH;
+    if (idx < passengers.length - 1) {
+      ctx.page.drawLine({
+        start: { x: MARGIN + 12, y: cy + 11 },
+        end: { x: MARGIN + CONTENT_W - 12, y: cy + 11 },
+        thickness: 0.3, color: COLOR_BORDER,
+      });
+    }
+  });
+
+  closeSectionCard(ctx, top, cy + 6);
+};
+
 
 // ---------- Aéreo ----------
 const airlineCheckinURL = (item: OrderItem): string => {
@@ -1119,7 +1248,11 @@ const drawFlightLegBlock = (
 
   // --- Card único cinza contendo TODOS os trechos + faixas de conexão ---
   const pillH = 16;
-  const segContentH = 68;
+  // Modelo "voo": reserva uma faixa extra em cada trecho pros assentos.
+  const showSeatsInFlight =
+    ctx.seatStyle === "voo" && segments.some((s) => Object.keys(segSeats(s)).length > 0);
+  const segContentH = showSeatsInFlight ? 86 : 68;
+
 
   const conBandH = 28;
   const padTop = pillH / 2 + 6;
@@ -1235,7 +1368,31 @@ const drawFlightLegBlock = (
     }
 
     // Cidades + horários
-    const bottomY = segBotY + 6;
+    const bottomY = segBotY + 6 + (showSeatsInFlight ? 18 : 0);
+    if (showSeatsInFlight) {
+      const seats = segSeats(seg);
+      const parts = ctx.passengers
+        .map((p) => (seats[p.id] ? `${paxShortName(p.full_name ?? "")} ${seats[p.id]}` : ""))
+        .filter(Boolean);
+      if (parts.length) {
+        const lbl = ctx.lang === "en" ? "Seats:" : "Assentos:";
+        const size = 7.5;
+        const txt = parts.join("   ·   ");
+        const lblW = measure(ctx.fontBold, lbl, size);
+        const txtW = measure(ctx.fontBold, txt, size);
+        const totalW = lblW + 6 + txtW;
+        const sx = segX + (segW - totalW) / 2;
+        const sy = segBotY + 7;
+        drawRoundedRect(ctx.page, sx - 8, sy - 4, totalW + 16, 15, COLOR_WHITE, 6);
+        ctx.page.drawText(sanitize(lbl), {
+          x: sx, y: sy, size, font: ctx.fontBold, color: COLOR_NAVY,
+        });
+        ctx.page.drawText(sanitize(txt), {
+          x: sx + lblW + 6, y: sy, size, font: ctx.fontBold, color: COLOR_ORANGE,
+        });
+      }
+    }
+
     if (fromCity) {
       ctx.page.drawText(sanitize(fromCity), {
         x: leftX, y: bottomY + 17, size: 7.5, font: ctx.font, color: COLOR_MUTED,
@@ -2292,6 +2449,7 @@ const fetchLogo = async (pdf: PDFDocument): Promise<PDFImage | undefined> => {
 export async function generateVoucher(
   detail: OrderDetail,
   lang: VoucherLang = "pt",
+  seatStyle: SeatStyle = "tabela",
 ): Promise<Blob> {
   const pdf = await PDFDocument.create();
   const font = await pdf.embedFont(StandardFonts.Helvetica);
@@ -2304,7 +2462,10 @@ export async function generateVoucher(
     font, fontBold, lang,
     order: detail.order, items: detail.items, logo,
     pages: [firstPage],
+    seatStyle,
+    passengers: detail.passengers,
   };
+
 
   drawHeader(ctx);
   drawVoucherIdCard(ctx);
@@ -2381,9 +2542,14 @@ export async function generateVoucher(
     // quando os passageiros não foram atrelados via order_item_passengers).
     return s.size === 0 ? new Set(allPassengerIds) : s;
   };
-  const drawPaxForIds = (ids: Set<string>, locator?: string | null, seats: Record<string, string> = {}) => {
+  const drawPaxForIds = (
+    ids: Set<string>,
+    locator?: string | null,
+    seats: Record<string, string> = {},
+    legend: string[] = [],
+  ) => {
     const list = detail.passengers.filter((p) => ids.has(p.id));
-    if (list.length > 0) drawPassengersSection(ctx, list, locator ?? null, seats);
+    if (list.length > 0) drawPassengersSection(ctx, list, locator ?? null, seats, legend);
   };
   // Assentos ficam em details.seats de cada trecho ({ passengerId: "12A" }).
   // Com múltiplos trechos, junta na ordem dos voos: "12A / 14C".
@@ -2400,6 +2566,20 @@ export async function generateVoucher(
     return Object.fromEntries(Object.entries(acc).map(([pid, list]) => [pid, list.join(" / ")]));
   };
 
+  // Rótulos dos trechos na ordem em que os assentos aparecem: "IDA CWB-GRU".
+  const legLabels = (out: OrderItem[], ret: OrderItem[]) => {
+    const byDep = (arr: OrderItem[]) =>
+      [...arr].sort((a, b) =>
+        (Date.parse(String(((a.details ?? {}) as Record<string, unknown>).depart_at ?? "")) || 0)
+        - (Date.parse(String(((b.details ?? {}) as Record<string, unknown>).depart_at ?? "")) || 0));
+    const idaTxt = ctx.lang === "en" ? "OUTBOUND" : "IDA";
+    const voltaTxt = ctx.lang === "en" ? "RETURN" : "VOLTA";
+    return [
+      ...byDep(out).map((s) => ({ seg: s, label: `${idaTxt} ${segRouteLabel(s)}` })),
+      ...byDep(ret).map((s) => ({ seg: s, label: `${voltaTxt} ${segRouteLabel(s)}` })),
+    ];
+  };
+
   const paxSignature = (ids: Set<string>) => [...ids].sort().join("|");
   const passengerSetsAlreadyShown = new Set<string>();
 
@@ -2410,9 +2590,18 @@ export async function generateVoucher(
     const items = [...g.outbound, ...g.returning];
     const ids = paxSetForItems(items);
     const grpLoc = pickAereoLocator(items);
-    drawPaxForIds(ids, grpLoc, seatsForItems(items));
+    const labeled = legLabels(g.outbound, g.returning);
+    const ordered = labeled.map((l) => l.seg);
+    const legend = labeled
+      .filter((l) => Object.keys(segSeats(l.seg)).length > 0)
+      .map((l) => l.label);
+    drawPaxForIds(ids, grpLoc, seatsForItems(ordered), legend);
+    if (ctx.seatStyle === "bloco") {
+      drawSeatsBlock(ctx, labeled, detail.passengers.filter((p) => ids.has(p.id)));
+    }
     passengerSetsAlreadyShown.add(paxSignature(ids));
   }
+
 
 
 
