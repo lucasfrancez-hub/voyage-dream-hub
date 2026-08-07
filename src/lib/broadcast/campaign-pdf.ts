@@ -18,7 +18,7 @@ export type PdfCampanha = {
   metrics?: Record<string, number> | null;
 };
 
-export type PdfDestino = { nome: string; tipo: "channel" | "group" | "instagram_story" };
+export type PdfDestino = { nome: string; tipo: "channel" | "group" | "instagram_story" | "instagram_feed" | "instagram_reels" };
 
 const TIPO_LABEL: Record<PdfBloco["tipo"], string> = {
   text: "Texto",
@@ -32,6 +32,8 @@ const DEST_LABEL: Record<PdfDestino["tipo"], string> = {
   channel: "Canal",
   group: "Grupo",
   instagram_story: "Instagram Story",
+  instagram_feed: "Instagram Publicação",
+  instagram_reels: "Instagram Reels",
 };
 
 function fmt(iso?: string | null) {

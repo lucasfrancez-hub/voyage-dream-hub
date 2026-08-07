@@ -57,7 +57,7 @@ function dayKeyLabel(key: string, opts: Intl.DateTimeFormatOptions): string {
 type Destino = {
   id: string;
   jid: string;
-  tipo: "channel" | "group" | "instagram_story";
+  tipo: "channel" | "group" | "instagram_story" | "instagram_feed" | "instagram_reels";
   nome: string;
   foto_url: string | null;
   participantes: number | null;
