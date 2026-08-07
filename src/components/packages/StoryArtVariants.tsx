@@ -131,7 +131,7 @@ export const StoryArtVariant = forwardRef<
       <p>
         {isIngresso
           ? "Preço por ingresso — até 9 unidades por pedido"
-          : `Valor por pessoa${data.quantidadePessoas ? ` — mínimo ${data.quantidadePessoas}` : ""}`}
+          : "Valor por pessoa"}
       </p>
     </div>
   );
