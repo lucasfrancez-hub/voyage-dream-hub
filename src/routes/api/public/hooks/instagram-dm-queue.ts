@@ -19,13 +19,20 @@ export const Route = createFileRoute("/api/public/hooks/instagram-dm-queue")({
         let respostas = 0;
         const { data: aResponder } = await supabaseAdmin
           .from("instagram_comments")
-          .select("id, comment_id, account_id, auto_reply_text, dm_text")
+          .select("id, comment_id, account_id, media_id, auto_reply_text, dm_text")
           .eq("auto_reply_status", "scheduled")
           .not("reply_scheduled_at", "is", null)
           .lte("reply_scheduled_at", new Date().toISOString())
           .limit(20);
 
+        const { pausedMediaIds } = await import("@/lib/instagram/comment-pause.server");
+        const pausadas = await pausedMediaIds([
+          ...(aResponder ?? []).map((c) => c.media_id as string),
+        ]);
+
         for (const c of aResponder ?? []) {
+          // IA pausada nessa publicação: nada sai automático.
+          if (pausadas.has(c.media_id as string)) continue;
           try {
             if (!c.auto_reply_text) throw new Error("sem texto de resposta");
             const { data: acc } = await supabaseAdmin
@@ -66,7 +73,7 @@ export const Route = createFileRoute("/api/public/hooks/instagram-dm-queue")({
 
         const { data: pendentes, error } = await supabaseAdmin
           .from("instagram_comments")
-          .select("id, comment_id, account_id, dm_text")
+          .select("id, comment_id, account_id, media_id, dm_text")
           .not("dm_scheduled_at", "is", null)
           .is("auto_dm_sent_at", null)
           .lte("dm_scheduled_at", new Date().toISOString())
@@ -76,8 +83,10 @@ export const Route = createFileRoute("/api/public/hooks/instagram-dm-queue")({
           return new Response(JSON.stringify({ error: error.message }), { status: 500 });
         }
 
+        const pausadasDm = await pausedMediaIds([...(pendentes ?? []).map((c) => c.media_id as string)]);
         let enviados = 0;
         for (const c of pendentes ?? []) {
+          if (pausadasDm.has(c.media_id as string)) continue;
           if (!c.dm_text) {
             await supabaseAdmin
               .from("instagram_comments")
