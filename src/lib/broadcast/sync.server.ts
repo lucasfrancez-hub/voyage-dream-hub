@@ -46,7 +46,7 @@ function toArray(payload: unknown): unknown[] {
 
 export async function syncBroadcastDestinos(): Promise<SyncCounts> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const counts: SyncCounts = { groups: 0, channels: 0 };
+  const counts: SyncCounts = { groups: 0, channels: 0, instagram: 0 };
   const now = new Date().toISOString();
 
   // ==== Grupos ====
