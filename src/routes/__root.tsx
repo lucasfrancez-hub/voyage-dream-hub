@@ -109,11 +109,15 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
   head: ({ matches }) => {
-    // Apps isolados (Agenda e Chat) declaram o próprio manifest/ícone.
+    // Apps isolados (Agenda, Chat e o atalho do Admin) declaram o próprio manifest/ícone.
     // O manifest do site não pode aparecer antes deles, senão o
     // "Adicionar à tela de início" abre a home dos pacotes com o ícone do site.
     const pathname = matches[matches.length - 1]?.pathname ?? "";
-    const appIsolado = pathname.startsWith("/agenda/") || pathname === "/chat" || pathname.startsWith("/chat/");
+    const appIsolado =
+      pathname.startsWith("/agenda/") ||
+      pathname === "/chat" ||
+      pathname.startsWith("/chat/") ||
+      pathname.startsWith("/admin/app/");
 
     return {
       meta: [
