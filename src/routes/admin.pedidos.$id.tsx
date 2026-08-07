@@ -2992,7 +2992,10 @@ function ItemDialog({
 
           ) : kind === "flight" ? (
             (() => {
-              // Agrupa por perna. Main sempre é o primeiro da ida.
+              // Direção do bloco principal: normalmente Ida, mas pode ser Volta
+              // (ex.: volta emitida com outra companhia, em reserva separada).
+              const mainDir = String(details.direction ?? "outbound") === "return" ? "return" : "outbound";
+              const isMainReturn = mainDir === "return";
               const outboundExtras: { seg: Segment; idx: number }[] = [];
               const returnExtras: { seg: Segment; idx: number }[] = [];
               extraSegments.forEach((seg, idx) => {
@@ -3000,30 +3003,51 @@ function ItemDialog({
                 if (dir === "return") returnExtras.push({ seg, idx });
                 else outboundExtras.push({ seg, idx });
               });
-              const hasRet = returnExtras.length > 0;
+              const mainExtras = isMainReturn ? returnExtras : outboundExtras;
+              const hasRet = !isMainReturn && returnExtras.length > 0;
+              const setMainDirection = (v: "outbound" | "return") => {
+                setField("direction", v);
+                // conexões do bloco principal seguem a mesma direção
+                setExtraSegments((arr) => arr.map((s) => ({ ...s, details: { ...s.details, direction: v } })));
+              };
               return (
                 <>
-                  {/* IDA */}
-                  <div className="rounded-xl border border-brand-orange/40 bg-brand-orange/5 p-3 space-y-3">
-                    <div className="text-xs font-semibold uppercase tracking-wide text-brand-orange">Ida</div>
-                    {renderFlightSegment(details, legLabel(false, 0), setField)}
-                    {outboundExtras.map(({ seg, idx }, i) => (
-                      <div key={seg.id ?? `out-${idx}`}>
+                  {/* BLOCO PRINCIPAL (Ida ou Volta) */}
+                  <div className={`rounded-xl border p-3 space-y-3 ${isMainReturn ? "border-brand-blue/40 bg-brand-blue/5" : "border-brand-orange/40 bg-brand-orange/5"}`}>
+                    <div className="flex items-center justify-between gap-2">
+                      <div className={`text-xs font-semibold uppercase tracking-wide ${isMainReturn ? "text-brand-blue" : "text-brand-orange"}`}>
+                        {isMainReturn ? "Volta" : "Ida"}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Label className="text-[11px] text-muted-foreground">Trecho</Label>
+                        <select
+                          className="h-8 rounded-md border border-input bg-background px-2 text-xs"
+                          value={mainDir}
+                          onChange={(e) => setMainDirection(e.target.value === "return" ? "return" : "outbound")}
+                        >
+                          <option value="outbound">Ida</option>
+                          <option value="return">Volta</option>
+                        </select>
+                      </div>
+                    </div>
+                    {renderFlightSegment(details, legLabel(isMainReturn, 0), setField)}
+                    {mainExtras.map(({ seg, idx }, i) => (
+                      <div key={seg.id ?? `main-${idx}`}>
                         {renderFlightSegment(
                           seg.details,
-                          legLabel(false, i + 1),
+                          legLabel(isMainReturn, i + 1),
                           (k, v) => setSegField(idx, k, v),
                           () => removeSegment(idx),
                         )}
                       </div>
                     ))}
-                    <Button type="button" variant="outline" size="sm" onClick={() => addSegment("outbound")}>
+                    <Button type="button" variant="outline" size="sm" onClick={() => addSegment(mainDir)}>
                       <Plus className="h-3.5 w-3.5 mr-1" /> Adicionar trecho (conexão)
                     </Button>
                   </div>
 
-                  {/* VOLTA */}
-                  {hasRet ? (
+                  {/* VOLTA (só quando o bloco principal é a ida) */}
+                  {isMainReturn ? null : hasRet ? (
                     <div className="rounded-xl border border-brand-blue/40 bg-brand-blue/5 p-3 space-y-3">
                       <div className="flex items-center justify-between">
                         <div className="text-xs font-semibold uppercase tracking-wide text-brand-blue">Volta</div>
@@ -3056,6 +3080,9 @@ function ItemDialog({
                       <Plus className="h-3.5 w-3.5 mr-1" /> Adicionar volta
                     </Button>
                   )}
+                </>
+              );
+            })()
                 </>
               );
             })()
