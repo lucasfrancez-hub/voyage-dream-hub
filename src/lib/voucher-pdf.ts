@@ -923,9 +923,10 @@ const drawPassengersSection = (
   });
   cy -= 6;
 
-  const headers = [t.passageiro, t.tipo, t.documento, t.dataNasc];
+  const headers: string[] = [t.passageiro, t.tipo, t.documento, t.dataNasc];
   if (showTicket) headers.push(t.bilhetePax);
   if (showSeat) headers.push(ctx.lang === "en" ? "SEAT" : "ASSENTO");
+
   headers.forEach((h, i) => {
     ctx.page.drawText(sanitize(h), {
       x: colXs[i], y: cy, size: 7.5, font: ctx.fontBold, color: COLOR_MUTED,
