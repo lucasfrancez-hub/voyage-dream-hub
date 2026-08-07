@@ -1370,8 +1370,9 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
       {/* Composer */}
       <div
         data-chat-composer="whatsapp"
-        className="shrink-0 border-t border-slate-200 bg-white p-3"
-        style={{ paddingBottom: "calc(0.75rem + env(safe-area-inset-bottom, 0px) + 6px)" }}
+        className="shrink-0 border-t border-slate-200 bg-white px-3 pt-3"
+        style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom, 0px))" }}
+
       >
         {conv.mode === "ai" && (
           <AiInstructionBar
