@@ -1,0 +1,2 @@
+ALTER TABLE public.wa_broadcast_destinos DROP CONSTRAINT IF EXISTS wa_broadcast_destinos_tipo_check;
+ALTER TABLE public.wa_broadcast_destinos ADD CONSTRAINT wa_broadcast_destinos_tipo_check CHECK (tipo = ANY (ARRAY['channel'::text,'group'::text,'instagram_story'::text,'instagram_feed'::text,'instagram_reels'::text]));

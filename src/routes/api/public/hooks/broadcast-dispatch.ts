@@ -53,12 +53,15 @@ export const Route = createFileRoute("/api/public/hooks/broadcast-dispatch")({
           const prontas = (msgs ?? []).filter((m) => !m.scheduled_at || new Date(m.scheduled_at).getTime() <= now);
           const pendentesFuturas = (msgs ?? []).filter((m) => m.scheduled_at && new Date(m.scheduled_at).getTime() > now);
           for (const d of destinos ?? []) {
+            const ehInstagram = d.tipo.startsWith("instagram_");
             for (const m of prontas) {
               // Em canais o WhatsApp já gera preview da URL no texto — pular
               // blocos de imagem para não duplicar a arte.
               if (d.tipo === "channel" && (m.tipo === "image" || m.tipo === "video")) continue;
-              // Story do Instagram só aceita bloco de imagem ou vídeo com URL.
-              if (d.tipo === "instagram_story" && m.tipo !== "image") continue;
+              // Instagram só publica blocos de mídia (imagem/vídeo) com URL.
+              if (ehInstagram && m.tipo !== "image" && m.tipo !== "video") continue;
+              if (d.tipo === "instagram_feed" && m.tipo !== "image") continue;
+              if (d.tipo === "instagram_reels" && m.tipo !== "video") continue;
 
 
               // Idempotência: pula se já enviado (retry seguro)
@@ -72,23 +75,34 @@ export const Route = createFileRoute("/api/public/hooks/broadcast-dispatch")({
               if (existente && existente.status !== "pendente" && existente.status !== "falhou") continue;
 
               let r: { id: string | null; error?: string | null };
-              if (d.tipo === "instagram_story") {
-                const igUserId = d.jid.replace(/^ig_story:/, "");
+              if (ehInstagram) {
+                const igUserId = d.jid.replace(/^ig_(story|feed|reels):/, "");
                 const { data: acc } = await supabaseAdmin
                   .from("instagram_accounts")
                   .select("id")
                   .eq("ig_user_id", igUserId)
                   .maybeSingle();
-                if (!acc?.id || !m.midia_url || m.tipo !== "image") {
-                  r = { id: null, error: "Story exige bloco de imagem com URL" };
+                const ehVideo = m.tipo === "video";
+                const mediaType =
+                  d.tipo === "instagram_reels"
+                    ? ("reels_video" as const)
+                    : d.tipo === "instagram_feed"
+                      ? ("feed_image" as const)
+                      : ehVideo
+                        ? ("story_video" as const)
+                        : ("story_image" as const);
+                if (!acc?.id || !m.midia_url) {
+                  r = { id: null, error: "Instagram exige bloco de mídia com URL" };
                 } else {
                   const { publishInstagramMedia } = await import("@/lib/instagram/publish.server");
                   try {
+                    const legenda = m.midia_caption ?? m.texto ?? undefined;
                     const res = await publishInstagramMedia({
                       accountId: acc.id,
-                      mediaType: "story_image",
-                      imageUrls: [m.midia_url],
-                      caption: m.texto ?? undefined,
+                      mediaType,
+                      imageUrls: ehVideo ? [] : [m.midia_url],
+                      videoUrl: ehVideo ? m.midia_url : undefined,
+                      caption: mediaType === "story_image" || mediaType === "story_video" ? undefined : legenda,
                     });
                     r = { id: res.id ?? null, error: null };
                   } catch (e) {

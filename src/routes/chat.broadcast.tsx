@@ -20,7 +20,6 @@ import {
 } from "@/lib/broadcast/broadcast.functions";
 import { aprovarSuggestion, descartarSuggestion, listSuggestions } from "@/lib/broadcast/suggestions.functions";
 import { confirm } from "@/lib/confirm";
-import { InstagramPostTab } from "@/components/broadcast/InstagramPostTab";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
@@ -57,7 +56,7 @@ function dayKeyLabel(key: string, opts: Intl.DateTimeFormatOptions): string {
 type Destino = {
   id: string;
   jid: string;
-  tipo: "channel" | "group" | "instagram_story";
+  tipo: "channel" | "group" | "instagram_story" | "instagram_feed" | "instagram_reels";
   nome: string;
   foto_url: string | null;
   participantes: number | null;
@@ -193,7 +192,7 @@ function DisparosPage() {
     setSyncing(true);
     try {
       const r = await doSync();
-      toast.success(`Sincronizado: ${r.groups} grupos, ${r.channels} canais`);
+      toast.success(`Sincronizado: ${r.groups} grupos, ${r.channels} canais, ${r.instagram} destinos Instagram`);
       await load();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Erro na sincronização");
@@ -1472,7 +1471,7 @@ function DestinosList({ destinos, onChanged }: { destinos: Destino[]; onChanged:
 
   const grupos = destinos.filter((d) => d.tipo === "group");
   const canais = destinos.filter((d) => d.tipo === "channel");
-  const igStories = destinos.filter((d) => d.tipo === "instagram_story");
+  const igTodos = destinos.filter((d) => d.tipo.startsWith("instagram_"));
 
   return (
     <div className="space-y-6">
@@ -1512,7 +1511,7 @@ function DestinosList({ destinos, onChanged }: { destinos: Destino[]; onChanged:
         <div className="grid md:grid-cols-3 gap-6">
           <DestinoGroup title="Canais" icon={Radio} items={canais} onDelete={handleDelete} />
           <DestinoGroup title="Grupos" icon={Users} items={grupos} onDelete={handleDelete} />
-          <DestinoGroup title="Instagram Story" icon={Instagram} items={igStories} onDelete={handleDelete} />
+          <DestinoGroup title="Instagram" icon={Instagram} items={igTodos} onDelete={handleDelete} />
         </div>
       )}
     </div>
@@ -1678,9 +1677,10 @@ function CampanhaEditor({
   const canais = destinos.filter((d) => d.tipo === "channel");
   const grupos = destinos.filter((d) => d.tipo === "group");
   const igStories = destinos.filter((d) => d.tipo === "instagram_story");
+  const igFeeds = destinos.filter((d) => d.tipo === "instagram_feed");
+  const igReels = destinos.filter((d) => d.tipo === "instagram_reels");
   const destinosSelecionados = destinos.filter((d) => selecionados.has(d.id));
   const somenteCanais = destinosSelecionados.length > 0 && destinosSelecionados.every((d) => d.tipo === "channel");
-  const temIgStory = destinosSelecionados.some((d) => d.tipo === "instagram_story");
 
   useEffect(() => {
     if (!somenteCanais) return;
@@ -1788,9 +1788,7 @@ function CampanhaEditor({
                   <span className="inline-flex w-5 h-5 rounded-full bg-brand-orange/15 text-brand-orange items-center justify-center text-[10px] font-black">2</span>
                   Onde publicar
                 </div>
-                {canal === "whatsapp" && (
-                  <span className="text-[11px] font-semibold text-brand-orange">{selecionados.size} selecionado{selecionados.size === 1 ? "" : "s"}</span>
-                )}
+                <span className="text-[11px] font-semibold text-brand-orange">{selecionados.size} selecionado{selecionados.size === 1 ? "" : "s"}</span>
               </div>
 
               <div className="grid sm:grid-cols-2 gap-2">
@@ -1806,31 +1804,32 @@ function CampanhaEditor({
                   className={`rounded-xl border px-3 py-2 text-left transition-colors ${canal === "instagram" ? "border-brand-orange bg-brand-orange/10" : "border-border hover:border-brand-orange/40"}`}
                 >
                   <span className="flex items-center gap-2 text-sm font-bold"><Instagram className="h-4 w-4" /> Instagram</span>
-                  <span className="block text-[11px] text-muted-foreground">Reels, Publicação ou Story · publica agora</span>
+                  <span className="block text-[11px] text-muted-foreground">Publicação, Reels ou Story · agendável</span>
                 </button>
               </div>
 
               {canal === "whatsapp" ? (
+                <div className="grid md:grid-cols-2 gap-3">
+                  <DestSelector title="Canais" icon={Radio} items={canais} sel={selecionados} onToggle={toggleDest} />
+                  <DestSelector title="Grupos" icon={Users} items={grupos} sel={selecionados} onToggle={toggleDest} />
+                </div>
+              ) : (
                 <>
                   <div className="grid md:grid-cols-3 gap-3">
-                    <DestSelector title="Canais" icon={Radio} items={canais} sel={selecionados} onToggle={toggleDest} />
-                    <DestSelector title="Grupos" icon={Users} items={grupos} sel={selecionados} onToggle={toggleDest} />
-                    <DestSelector title="Instagram Story" icon={Instagram} items={igStories} sel={selecionados} onToggle={toggleDest} />
+                    <DestSelector title="Publicação (feed)" icon={Instagram} items={igFeeds} sel={selecionados} onToggle={toggleDest} />
+                    <DestSelector title="Reels" icon={Instagram} items={igReels} sel={selecionados} onToggle={toggleDest} />
+                    <DestSelector title="Story" icon={Instagram} items={igStories} sel={selecionados} onToggle={toggleDest} />
                   </div>
-                  {temIgStory && (
-                    <p className="mt-2 text-[11px] text-pink-500">
-                      📸 Story do Instagram só publica blocos de <b>imagem</b> com URL pública (o texto vira legenda opcional). Vídeos/documentos/botões são ignorados.
-                    </p>
-                  )}
+                  <p className="mt-2 text-[11px] text-pink-500">
+                    📸 Instagram publica só blocos de mídia: <b>imagem</b> no feed/story e <b>vídeo</b> no Reels/story. Blocos de texto e PDF são ignorados.
+                  </p>
                 </>
-              ) : (
-                <InstagramPostTab embedded />
               )}
             </section>
 
 
             {/* Secão 3: mensagens */}
-            {canal === "whatsapp" && (
+            {(
             <section className="rounded-xl border border-border bg-card/50 p-4 space-y-3">
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-muted-foreground">
@@ -1876,24 +1875,20 @@ function CampanhaEditor({
               <button onClick={onClose} className="text-sm rounded-full border border-border px-4 py-2 hover:border-brand-orange">
                 Fechar
               </button>
-              {canal === "whatsapp" && (
-                <>
-                  <button
-                    onClick={() => salvar("rascunho")}
-                    disabled={saving}
-                    className="text-sm rounded-full border border-border px-4 py-2 hover:border-brand-orange disabled:opacity-50"
-                  >
-                    Salvar rascunho
-                  </button>
-                  <button
-                    onClick={() => salvar("agendada")}
-                    disabled={saving || !scheduled}
-                    className="text-sm rounded-full bg-brand-orange px-5 py-2 text-white font-semibold hover:opacity-90 disabled:opacity-50 shadow-lg shadow-brand-orange/25 inline-flex items-center gap-1"
-                  >
-                    {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Send className="h-3.5 w-3.5" /> Agendar envio</>}
-                  </button>
-                </>
-              )}
+              <button
+                onClick={() => salvar("rascunho")}
+                disabled={saving}
+                className="text-sm rounded-full border border-border px-4 py-2 hover:border-brand-orange disabled:opacity-50"
+              >
+                Salvar rascunho
+              </button>
+              <button
+                onClick={() => salvar("agendada")}
+                disabled={saving || !scheduled}
+                className="text-sm rounded-full bg-brand-orange px-5 py-2 text-white font-semibold hover:opacity-90 disabled:opacity-50 shadow-lg shadow-brand-orange/25 inline-flex items-center gap-1"
+              >
+                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Send className="h-3.5 w-3.5" /> {canal === "instagram" ? "Agendar publicação" : "Agendar envio"}</>}
+              </button>
             </div>
 
           </div>
