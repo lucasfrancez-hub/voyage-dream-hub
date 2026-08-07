@@ -254,6 +254,15 @@ export function PackageSocialDialog({
     return await blobToBase64(await (await import("@/lib/packages/to-jpeg")).blobToJpeg(blob));
   }
 
+  /** Foto de capa do pacote em JPEG base64 — padrão do broadcast (foto + texto). */
+  async function fotoBase64() {
+    const file = shareFile ?? (await prepareShareFile());
+    if (!file) return null;
+    setShareFile(file);
+    const jpeg = await (await import("@/lib/packages/to-jpeg")).blobToJpeg(file);
+    return await blobToBase64(jpeg);
+  }
+
   async function enviarWhatsapp() {
     if (!pkg) return;
     if (selecionados.size === 0) {
@@ -267,14 +276,15 @@ export function PackageSocialDialog({
     const nomes = destinos.filter((d) => selecionados.has(d.id)).map((d) => d.nome ?? "destino");
     const ok = await confirm({
       title: "Enviar no WhatsApp agora?",
-      description: `A arte (feed 1080×1440) e o texto vão para: ${nomes.join(", ")}. Canais recebem só o texto com o link.`,
+      description: `A foto do pacote e o texto vão para: ${nomes.join(", ")}. Canais recebem só o texto com o link.`,
       confirmText: "Enviar agora",
     });
     if (!ok) return;
 
     setBusy("enviar-wa");
     try {
-      const imagem = pkg.image_url ? await arteBase64("feed") : null;
+      const imagem = await fotoBase64();
+
       const res = await enviarWaFn({
         data: {
           destino_ids: [...selecionados],
