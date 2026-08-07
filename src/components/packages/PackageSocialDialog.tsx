@@ -428,7 +428,9 @@ export function PackageSocialDialog({
               <ListaDestinos titulo="Canais" Icon={Radio} itens={canais} sel={selecionados} onToggle={toggleDestino} />
               <ListaDestinos titulo="Grupos" Icon={Users} itens={grupos} sel={selecionados} onToggle={toggleDestino} />
               <p className="text-[10px] text-muted-foreground">
-                Grupos recebem a arte de feed (1080×1440) com o texto na legenda. Canais recebem só o texto com o link.
+                Grupos recebem a foto do pacote com o texto na legenda (padrão do broadcast). Canais recebem só o
+                texto com o link.
+
               </p>
               <div className="flex justify-end">
                 <button
