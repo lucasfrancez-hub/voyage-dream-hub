@@ -368,7 +368,7 @@ export async function buildFeedArtData(pkg: FeedInputPkg): Promise<FeedArtData> 
     hotel: pkg.hotel_name || "",
     estrelas: pkg.hotel_stars,
     quantidadePessoas: pessoas,
-    apartamento: isService ? "" : (APT_LABEL[pessoas] || `de ${pessoas} pessoas`),
+    apartamento: isService || isTour ? "" : (APT_LABEL[pessoas] || `de ${pessoas} pessoas`),
     parcelas: isCativa ? 15 : 10,
     isCativa,
     valorTotal: (Number(pkg.price_per_person) || 0) * pessoas,
