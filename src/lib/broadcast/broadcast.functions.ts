@@ -328,16 +328,27 @@ export const enviarPacoteWhatsapp = createServerFn({ method: "POST" })
     if (dErr) throw new Error(dErr.message);
 
     const texto = data.texto.trim();
+    // Canal não aceita imagem + texto junto: manda só o texto e garante a URL do
+    // pacote no final, para o WhatsApp montar o preview com a imagem.
+    const link = data.slug ? `${PUBLIC_BASE}/w/${data.slug}` : null;
+    const textoCanal = link && !texto.includes(link) ? `${texto}\n\n${link}` : texto;
     const resultados: Array<{ nome: string; ok: boolean; error?: string }> = [];
 
     for (const d of destinos ?? []) {
-      const usaImagem = imagemUrl && d.tipo !== "channel";
+      const isCanal = d.tipo === "channel";
+      const usaImagem = imagemUrl && !isCanal;
       const r = await sendBroadcastBlock(
         d.jid,
         usaImagem
-          ? { tipo: "image", midia_url: imagemUrl, midia_filename: `${data.slug ?? "pacote"}.jpg`, midia_caption: texto }
-          : { tipo: "text", texto },
+          ? {
+              tipo: "image",
+              midia_url: imagemUrl,
+              midia_filename: `${data.slug ?? "pacote"}.jpg`,
+              midia_caption: texto,
+            }
+          : { tipo: "text", texto: isCanal ? textoCanal : texto },
       );
+
       resultados.push({ nome: d.nome ?? d.jid, ok: !!r.id, error: r.error ?? undefined });
       await new Promise((res) => setTimeout(res, 800));
     }
