@@ -280,7 +280,7 @@ async function processPayload(payload: IGPayload) {
               conversationId: conv.id,
               accountRowId: account.id,
               contactIgId,
-              mensagem: msg.message.text ?? anexo.rotulo,
+              mensagem: msg.message.text ?? anexo.rotulo ?? "(mensagem)",
             });
           } catch (e) {
             console.error("[instagram] IA pessoal falhou:", (e as Error).message);
