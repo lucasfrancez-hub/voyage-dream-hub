@@ -7,6 +7,7 @@
 import { forwardRef, Fragment, type ReactElement } from "react";
 import logoAsset from "@/assets/viaair-logo-white.png.asset.json";
 import { fitDestSize } from "./fit-title";
+import { AnniversarySeal, SELO_ANIVERSARIO_CSS, seloAniversarioAtivo } from "@/components/packages/AnniversarySeal";
 
 export type FeedArtData = {
   kind?: "package" | "service" | "cruise" | "tour";
@@ -208,7 +209,8 @@ export const PackageFeedArt = forwardRef<HTMLDivElement, { data: FeedArtData }>(
       <style>{CSS}</style>
       {/* 1080x1440 outer; conteúdo desenhado em 768x1024 e escalado 1.40625x */}
       <div className="vfeed-outer">
-        <div className="vfeed-inner">
+        <div className={`vfeed-inner${seloAniversarioAtivo() ? " vfeed-has-selo" : ""}`}>
+          <AnniversarySeal size={200} />
           {/* Background */}
           <div className="vfeed-bg">
             <img src={data.backgroundDataUrl} alt="" />
@@ -433,6 +435,8 @@ export const PackageFeedArt = forwardRef<HTMLDivElement, { data: FeedArtData }>(
 const CSS = `
 .vfeed-outer{width:1080px;height:1440px;position:relative;background:#000;overflow:hidden;--brand-orange:#ff7f00}
 .vfeed-outer *{box-sizing:border-box}
+${SELO_ANIVERSARIO_CSS}
+.vfeed-has-selo .vfeed-logo-wrap,.vfeed-has-selo .vfeed-logo{justify-content:flex-end}
 .vfeed-inner{width:768px;height:1024px;position:absolute;top:0;left:0;transform:scale(1.40625);transform-origin:top left;background:#000;color:#fff;font-family:'Montserrat',Arial,sans-serif;overflow:hidden;border-radius:0}
 .vfeed-bg{position:absolute;inset:0;z-index:0}
 .vfeed-bg img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center top;display:block}
