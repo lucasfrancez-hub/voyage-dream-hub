@@ -437,7 +437,6 @@ const CSS = `
 .vfeed-outer *{box-sizing:border-box}
 ${SELO_ANIVERSARIO_CSS}
 .vfeed-has-selo .vfeed-logo-wrap,.vfeed-has-selo .vfeed-logo{justify-content:flex-end}
-.vfeed-has-selo .vfeed-top,.vfeed-has-selo .vfeed-header{margin-top:52px}
 .vfeed-inner{width:768px;height:1024px;position:absolute;top:0;left:0;transform:scale(1.40625);transform-origin:top left;background:#000;color:#fff;font-family:'Montserrat',Arial,sans-serif;overflow:hidden;border-radius:0}
 .vfeed-bg{position:absolute;inset:0;z-index:0}
 .vfeed-bg img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center top;display:block}

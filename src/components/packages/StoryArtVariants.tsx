@@ -264,7 +264,6 @@ const CSS = `
 .vsv-outer *{box-sizing:border-box}
 ${SELO_ANIVERSARIO_CSS}
 .vsv-has-selo .vsv-logo-wrap,.vsv-has-selo .vsv-logo{justify-content:flex-end}
-.vsv-has-selo .vsv-top,.vsv-has-selo .vsv-header{margin-top:52px}
 .vsv-inner{width:540px;height:960px;position:absolute;top:0;left:0;transform:scale(2);transform-origin:top left;background:#000;color:#fff;font-family:'Montserrat',Arial,sans-serif;overflow:hidden}
 .vsv-bg{position:absolute;inset:0;z-index:0}
 .vsv-bg img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center top;display:block}

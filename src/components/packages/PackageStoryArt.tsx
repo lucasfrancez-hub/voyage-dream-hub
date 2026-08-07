@@ -375,7 +375,6 @@ const CSS = `
 .vstory-outer *{box-sizing:border-box}
 ${SELO_ANIVERSARIO_CSS}
 .vstory-has-selo .vstory-logo-wrap,.vstory-has-selo .vstory-logo{justify-content:flex-end}
-.vstory-has-selo .vstory-top,.vstory-has-selo .vstory-header{margin-top:52px}
 .vstory-inner{width:540px;height:960px;position:absolute;top:0;left:0;transform:scale(2);transform-origin:top left;background:#000;color:#fff;font-family:'Montserrat',Arial,sans-serif;overflow:hidden}
 .vstory-bg{position:absolute;inset:0;z-index:0}
 .vstory-bg img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center top;display:block}
