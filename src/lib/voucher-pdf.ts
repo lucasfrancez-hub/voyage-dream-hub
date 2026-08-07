@@ -257,6 +257,12 @@ const diffDays = (a: string, b: string): number => {
 
 // ---------- Ctx / drawing ----------
 type Color = ReturnType<typeof rgb>;
+// Como os assentos aparecem no voucher:
+// - "tabela": coluna ASSENTO na tabela de passageiros + legenda dos trechos
+// - "voo": assentos dentro do card do voo, trecho a trecho
+// - "bloco": seção própria "ASSENTOS MARCADOS" (matriz passageiro x trecho)
+export type SeatStyle = "tabela" | "voo" | "bloco";
+
 type Ctx = {
   pdf: PDFDocument;
   page: PDFPage;
@@ -269,7 +275,33 @@ type Ctx = {
   logo?: PDFImage;
   pages: PDFPage[];
   emojiCache?: Map<string, PDFImage | null>;
+  seatStyle: SeatStyle;
+  passengers: OrderPassenger[];
 };
+
+// Rótulo curto do trecho (CWB→GRU) e assentos de um trecho.
+const segRouteLabel = (seg: OrderItem): string => {
+  const d = (seg.details ?? {}) as Record<string, unknown>;
+  const from = String(d.from_iata ?? d.origin ?? "").trim() || "-";
+  const to = String(d.to_iata ?? d.destination ?? "").trim() || "-";
+  return `${from}-${to}`;
+};
+const segSeats = (seg: OrderItem): Record<string, string> => {
+  const map = (((seg.details ?? {}) as Record<string, unknown>).seats ?? {}) as Record<string, string>;
+  const out: Record<string, string> = {};
+  for (const [pid, s] of Object.entries(map)) {
+    const v = String(s ?? "").trim().toUpperCase();
+    if (v) out[pid] = v;
+  }
+  return out;
+};
+const paxShortName = (full: string): string => {
+  const parts = (full ?? "").toUpperCase().trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "-";
+  if (parts.length === 1) return parts[0];
+  return `${parts[0]} ${parts[parts.length - 1]}`;
+};
+
 
 // ---------- Emoji support (Twemoji PNGs) ----------
 // pdf-lib nao renderiza glifos de emoji das fontes padrao. Baixamos o PNG do
