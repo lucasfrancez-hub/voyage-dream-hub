@@ -280,7 +280,9 @@ function AdminLayout() {
             >
               <Home className="h-3.5 w-3.5" />
             </a>
+            <PublishQueueButton />
             <GlobalSearchButton />
+
             <a
               href="/chat"
               target="_blank"
