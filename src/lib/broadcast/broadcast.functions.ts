@@ -285,3 +285,66 @@ export const dispararAgora = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+// ==================== Publicar pacote no WhatsApp (imediato) ====================
+
+/**
+ * Envia a arte do pacote (feed 1080x1440) + texto para canais/grupos do WhatsApp
+ * escolhidos na hora. Canais não aceitam mídia no disparo, então recebem só o
+ * texto (o WhatsApp já gera o preview do link).
+ */
+export const enviarPacoteWhatsapp = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: {
+    destino_ids: string[];
+    texto: string;
+    slug?: string;
+    imagem_base64?: string | null;
+  }) => d)
+  .handler(async ({ context, data }) => {
+    await ensureMarketing(context);
+    if (!data.destino_ids?.length) throw new Error("Selecione ao menos um canal ou grupo");
+    if (!data.texto?.trim()) throw new Error("Escreva ou gere o texto antes de enviar");
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { sendBroadcastBlock } = await import("./sync.server");
+
+    let imagemUrl: string | null = null;
+    if (data.imagem_base64) {
+      const binary = Uint8Array.from(atob(data.imagem_base64), (c) => c.charCodeAt(0));
+      if (binary.byteLength > 25 * 1024 * 1024) throw new Error("Arte maior que 25MB");
+      const path = `${new Date().toISOString().slice(0, 10)}/${crypto.randomUUID()}.jpg`;
+      const { error } = await supabaseAdmin.storage
+        .from("broadcast-media")
+        .upload(path, binary, { contentType: "image/jpeg", upsert: true });
+      if (error) throw new Error(error.message);
+      imagemUrl = `${PUBLIC_BASE}/api/public/broadcast-media/${path}`;
+    }
+
+    const { data: destinos, error: dErr } = await supabaseAdmin
+      .from("wa_broadcast_destinos")
+      .select("id, nome, jid, tipo")
+      .in("id", data.destino_ids);
+    if (dErr) throw new Error(dErr.message);
+
+    const texto = data.texto.trim();
+    const resultados: Array<{ nome: string; ok: boolean; error?: string }> = [];
+
+    for (const d of destinos ?? []) {
+      const usaImagem = imagemUrl && d.tipo !== "channel";
+      const r = await sendBroadcastBlock(
+        d.jid,
+        usaImagem
+          ? { tipo: "image", midia_url: imagemUrl, midia_filename: `${data.slug ?? "pacote"}.jpg`, midia_caption: texto }
+          : { tipo: "text", texto },
+      );
+      resultados.push({ nome: d.nome ?? d.jid, ok: !!r.id, error: r.error ?? undefined });
+      await new Promise((res) => setTimeout(res, 800));
+    }
+
+    return {
+      enviados: resultados.filter((r) => r.ok).length,
+      falhas: resultados.filter((r) => !r.ok),
+      imagem_url: imagemUrl,
+    };
+  });
