@@ -12,6 +12,7 @@ import {
   excluirCampanha,
   dispararAgora,
   forcarReenvio,
+  detalheBlocos,
   getCampanha,
   adicionarDestinoPorLink,
   excluirDestino,
@@ -381,18 +382,24 @@ function DisparosPage() {
             toast.success("Enviando…");
             load();
           }}
-          onReenviar={async (id, modo) => {
+          onReenviar={async (id, modo, mensagemId) => {
             const ok = await confirm({
-              title: modo === "tudo" ? "Reenviar campanha inteira?" : "Forçar reenvio dos não enviados?",
+              title: mensagemId
+                ? modo === "tudo"
+                  ? "Reenviar essa mensagem?"
+                  : "Forçar envio dessa mensagem?"
+                : modo === "tudo"
+                ? "Reenviar campanha inteira?"
+                : "Forçar reenvio dos não enviados?",
               description:
                 modo === "tudo"
-                  ? "Todos os destinos vão receber novamente, inclusive quem já recebeu."
-                  : "Só os destinos que ficaram pendentes ou falharam serão reenviados agora.",
+                  ? `${mensagemId ? "Essa mensagem" : "A campanha"} será enviada de novo para todos os destinos, inclusive quem já recebeu.`
+                  : `Só os destinos que ficaram pendentes ou falharam ${mensagemId ? "nessa mensagem" : "na campanha"} serão reenviados agora.`,
               confirmText: "Reenviar",
             });
             if (!ok) return;
             try {
-              await doReenviar({ data: { id, modo } });
+              await doReenviar({ data: { id, modo, mensagem_id: mensagemId ?? null } });
               toast.success("Reenvio na fila");
               load();
             } catch (e) {
@@ -1360,7 +1367,7 @@ function CampanhasList({
   onCancelar: (id: string) => void;
   onExcluir: (id: string) => void;
   onDisparar: (id: string) => void;
-  onReenviar: (id: string, modo: "pendentes" | "tudo") => void;
+  onReenviar: (id: string, modo: "pendentes" | "tudo", mensagemId?: string) => void;
 
 }) {
   const destMap = useMemo(() => new Map(destinos.map((d) => [d.id, d])), [destinos]);
@@ -1374,7 +1381,35 @@ function CampanhasList({
   return (
     <div className="grid gap-3">
       {campanhas.map((c) => (
-        <div key={c.id} className="rounded-xl border border-border bg-card p-4 flex flex-col sm:flex-row sm:items-center gap-3">
+        <CampanhaRow key={c.id} c={c} destMap={destMap} onEdit={onEdit} onExportPdf={onExportPdf} onCancelar={onCancelar} onExcluir={onExcluir} onDisparar={onDisparar} onReenviar={onReenviar} />
+      ))}
+    </div>
+  );
+}
+
+function CampanhaRow({
+  c,
+  destMap,
+  onEdit,
+  onExportPdf,
+  onCancelar,
+  onExcluir,
+  onDisparar,
+  onReenviar,
+}: {
+  c: Campanha;
+  destMap: Map<string, Destino>;
+  onEdit: (id: string) => void;
+  onExportPdf: (id: string) => void;
+  onCancelar: (id: string) => void;
+  onExcluir: (id: string) => void;
+  onDisparar: (id: string) => void;
+  onReenviar: (id: string, modo: "pendentes" | "tudo", mensagemId?: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="rounded-xl border border-border bg-card p-4">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <h3 className="font-medium">{c.nome}</h3>
@@ -1459,6 +1494,13 @@ function CampanhasList({
               </button>
             )}
             <button
+              onClick={() => setOpen((v) => !v)}
+              className="inline-flex items-center gap-1 text-xs rounded-full border border-border px-3 py-1.5 hover:border-brand-orange"
+              title="Ver mensagens da campanha"
+            >
+              {open ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />} Mensagens
+            </button>
+            <button
               onClick={() => onExcluir(c.id)}
               className="rounded-full p-2 text-muted-foreground hover:text-red-500"
               title="Excluir"
@@ -1466,8 +1508,99 @@ function CampanhasList({
               <Trash2 className="h-4 w-4" />
             </button>
           </div>
-        </div>
-      ))}
+      </div>
+      {open && <CampanhaBlocos campanhaId={c.id} onReenviar={onReenviar} />}
+    </div>
+  );
+}
+
+type BlocoStatus = {
+  id: string;
+  ordem: number;
+  tipo: string;
+  texto: string | null;
+  scheduled_at: string | null;
+  total: number;
+  enviados: number;
+  falhas: number;
+  pendentes: number;
+  erro: string | null;
+};
+
+function CampanhaBlocos({
+  campanhaId,
+  onReenviar,
+}: {
+  campanhaId: string;
+  onReenviar: (id: string, modo: "pendentes" | "tudo", mensagemId?: string) => void;
+}) {
+  const [blocos, setBlocos] = useState<BlocoStatus[] | null>(null);
+  const fetchBlocos = useServerFn(detalheBlocos);
+
+  useEffect(() => {
+    let alive = true;
+    fetchBlocos({ data: { id: campanhaId } })
+      .then((r) => alive && setBlocos(r.blocos as BlocoStatus[]))
+      .catch((e) => toast.error(e instanceof Error ? e.message : "Erro ao carregar mensagens"));
+    return () => {
+      alive = false;
+    };
+  }, [campanhaId, fetchBlocos]);
+
+  if (!blocos) {
+    return (
+      <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
+        <Loader2 className="h-3 w-3 animate-spin" /> Carregando mensagens…
+      </div>
+    );
+  }
+  if (blocos.length === 0) {
+    return <div className="mt-3 text-xs text-muted-foreground">Nenhuma mensagem nessa campanha.</div>;
+  }
+  return (
+    <div className="mt-3 border-t border-border pt-3 grid gap-2">
+      {blocos.map((b, i) => {
+        const pendente = b.enviados < b.total;
+        return (
+          <div key={b.id} className="rounded-lg bg-muted/40 px-3 py-2 flex flex-col sm:flex-row sm:items-center gap-2">
+            <div className="flex-1 min-w-0">
+              <div className="text-xs font-medium truncate">
+                {i + 1}. {b.texto?.slice(0, 70) || `(${b.tipo})`}
+              </div>
+              <div className="text-[11px] text-muted-foreground flex flex-wrap gap-x-3">
+                {b.scheduled_at && (
+                  <span>
+                    <Clock className="inline h-3 w-3 mr-0.5" />
+                    {new Date(b.scheduled_at).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}
+                  </span>
+                )}
+                <span>✓ {b.enviados}/{b.total}</span>
+                {b.falhas > 0 && <span className="text-red-500">✗ {b.falhas}</span>}
+                {b.pendentes > 0 && <span className="text-amber-500">⏳ {b.pendentes}</span>}
+                {b.erro && <span className="text-red-500 truncate max-w-[240px]">{b.erro}</span>}
+              </div>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              {pendente && (
+                <button
+                  onClick={() => onReenviar(campanhaId, "pendentes", b.id)}
+                  className="inline-flex items-center gap-1 text-[11px] rounded-full bg-amber-500/15 text-amber-500 px-2.5 py-1 hover:bg-amber-500/25"
+                  title="Reenviar só quem ficou faltando nessa mensagem"
+                >
+                  <RefreshCw className="h-3 w-3" /> Forçar envio
+                </button>
+              )}
+              <button
+                onClick={() => onReenviar(campanhaId, "tudo", b.id)}
+                className="text-[11px] rounded-full border border-border px-2.5 py-1 hover:border-brand-orange"
+                title="Reenviar essa mensagem para todos os destinos"
+              >
+                Reenviar
+              </button>
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }
