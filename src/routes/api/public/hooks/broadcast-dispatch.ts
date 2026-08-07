@@ -99,6 +99,20 @@ export const Route = createFileRoute("/api/public/hooks/broadcast-dispatch")({
                 .maybeSingle();
               if (existente && existente.status !== "pendente" && existente.status !== "falhou") continue;
 
+              // Claim: grava a tentativa ANTES de enviar. Se o worker morrer no
+              // meio (upload de vídeo/IG demora), a linha fica como 'pendente' e
+              // a próxima rodada retoma sem duplicar nada.
+              let envioId = existente?.id ?? null;
+              if (!envioId) {
+                const { data: novo } = await supabaseAdmin
+                  .from("wa_broadcast_envios")
+                  .insert({ campanha_id: camp.id, destino_id: d.id, mensagem_id: m.id, status: "pendente" })
+                  .select("id")
+                  .single();
+                envioId = novo?.id ?? null;
+              }
+
+
               let r: { id: string | null; error?: string | null };
               if (ehInstagram) {
                 const igUserId = d.jid.replace(/^ig_(story|feed|reels):/, "");
