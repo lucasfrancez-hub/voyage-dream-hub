@@ -111,7 +111,29 @@ function StarsDisplay({ value, className = "" }: { value: number; className?: st
   );
 }
 
+// Opções padrão de hospedagem (mesmas usadas no cadastro de pacotes).
+const HOSP_REGIMES: string[] = [
+  "Sem refeição",
+  "Café da manhã",
+  "Meia pensão",
+  "Pensão completa",
+  "All inclusive",
+];
+const HOSP_CATEGORIAS: string[] = [
+  "Standard", "Superior", "Luxo", "Suíte", "Suíte Master", "Suíte Presidencial", "Bangalô", "Chalé",
+];
+const HOSP_CAMAS: string[] = [
+  "1 cama de casal", "1 cama king", "1 cama queen", "2 camas de solteiro", "2 camas queen",
+  "2 camas de casal", "1 casal + 1 solteiro", "1 casal + 2 solteiros", "3 camas de solteiro",
+  "Cama de casal + sofá-cama",
+];
+const HOSP_VISTAS: string[] = [
+  "Vista interna", "Vista cidade", "Vista jardim", "Vista piscina", "Vista parcial mar",
+  "Vista mar", "Frente mar", "Vista montanha",
+];
+
 function StarsInput({ value, onChange }: { value: number; onChange: (v: number) => void }) {
+
   const v = Math.max(0, Math.min(5, Number(value) || 0));
   return (
     <div className="flex items-center gap-2">
