@@ -44,6 +44,14 @@ const I = {
 
 export type ArtMode = "passeio" | "ingresso";
 export type ArtVariant = 1 | 2 | 3;
+/** story = 1080x1920 (9:16) | feed = 1080x1440 (3:4) */
+export type ArtFormat = "story" | "feed";
+
+/** Deriva o modo (passeio/ingresso) a partir do kind do produto. */
+export function artModeFromKind(kind?: string | null): ArtMode {
+  return kind === "service" ? "ingresso" : "passeio";
+}
+
 
 /** Auto-fit: nomes longos (passeios) reduzem a fonte sem quebrar a estrutura. */
 function titleSize(name: string, base: number) {
