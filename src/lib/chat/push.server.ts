@@ -38,14 +38,21 @@ function limpar(texto: string) {
    como no WhatsApp/Mac, mesmo com a conversa aberta. */
 
 
-/** Total de conversas com mensagens não lidas — usado no badge do ícone. */
+/**
+ * Total de conversas não lidas — usado no badge do ícone.
+ * Conta apenas as 200 conversas mais recentes (a mesma janela que o inbox
+ * carrega), senão conversas antigas que nunca foram abertas deixam o badge
+ * travado num número alto (ex.: 33) mesmo com só 1 mensagem nova.
+ */
 async function totalNaoLidas(): Promise<number> {
-  const { count } = await supabaseAdmin
+  const { data } = await supabaseAdmin
     .from("wa_conversations")
-    .select("id", { count: "exact", head: true })
-    .gt("unread_count", 0);
-  return count ?? 0;
+    .select("id, unread_count")
+    .order("last_message_at", { ascending: false })
+    .limit(200);
+  return (data ?? []).filter((c) => (c.unread_count ?? 0) > 0).length;
 }
+
 
 /** Avisa os atendentes de uma nova mensagem recebida. Nunca lança. */
 export async function notificarNovaMensagemChat({
