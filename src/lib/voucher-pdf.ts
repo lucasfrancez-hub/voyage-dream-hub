@@ -2324,6 +2324,7 @@ const fetchLogo = async (pdf: PDFDocument): Promise<PDFImage | undefined> => {
 export async function generateVoucher(
   detail: OrderDetail,
   lang: VoucherLang = "pt",
+  seatStyle: SeatStyle = "tabela",
 ): Promise<Blob> {
   const pdf = await PDFDocument.create();
   const font = await pdf.embedFont(StandardFonts.Helvetica);
@@ -2336,7 +2337,10 @@ export async function generateVoucher(
     font, fontBold, lang,
     order: detail.order, items: detail.items, logo,
     pages: [firstPage],
+    seatStyle,
+    passengers: detail.passengers,
   };
+
 
   drawHeader(ctx);
   drawVoucherIdCard(ctx);
