@@ -1512,7 +1512,7 @@ function DestinosList({ destinos, onChanged }: { destinos: Destino[]; onChanged:
         <div className="grid md:grid-cols-3 gap-6">
           <DestinoGroup title="Canais" icon={Radio} items={canais} onDelete={handleDelete} />
           <DestinoGroup title="Grupos" icon={Users} items={grupos} onDelete={handleDelete} />
-          <DestinoGroup title="Instagram Story" icon={Instagram} items={igStories} onDelete={handleDelete} />
+          <DestinoGroup title="Instagram" icon={Instagram} items={igTodos} onDelete={handleDelete} />
         </div>
       )}
     </div>
