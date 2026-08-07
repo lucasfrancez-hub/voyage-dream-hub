@@ -597,8 +597,8 @@ function PackageRow({ pkg, groupTitle, groupReason }: { pkg: Pkg; groupTitle: st
       title: kind === "feed" ? "Postar a arte no feed?" : "Postar a arte no story?",
       description:
         kind === "feed"
-          ? "A arte 3:4 será publicada agora no feed do Instagram, sem legenda."
-          : "A arte 9:16 será publicada agora nos stories do Instagram.",
+          ? "A arte 3:4 será publicada agora no feed do Instagram da VIA AIR, sem legenda."
+          : "A arte 9:16 será publicada agora nos stories do Instagram da VIA AIR.",
       confirmText: "Postar agora",
     });
     if (!ok) return;
@@ -769,7 +769,7 @@ function PackageRow({ pkg, groupTitle, groupReason }: { pkg: Pkg; groupTitle: st
               <span className="text-[9px] font-black uppercase text-slate-500 tracking-tighter">Postar:</span>
               <button
                 type="button"
-                title="Postar a arte no feed do Instagram (sem legenda)"
+                title="Postar a arte no feed do Instagram da VIA AIR (sem legenda)"
                 onClick={() => publishArt("feed")}
                 disabled={loading !== null}
                 className="px-3 py-1.5 rounded-lg bg-[#E1306C]/10 border border-[#E1306C]/30 text-[10px] font-bold text-[#E1306C] flex items-center gap-1.5 hover:bg-[#E1306C] hover:text-white transition-colors disabled:opacity-60"
@@ -779,7 +779,7 @@ function PackageRow({ pkg, groupTitle, groupReason }: { pkg: Pkg; groupTitle: st
               </button>
               <button
                 type="button"
-                title="Postar a arte nos stories do Instagram"
+                title="Postar a arte nos stories do Instagram da VIA AIR"
                 onClick={() => publishArt("story")}
                 disabled={loading !== null}
                 className="px-3 py-1.5 rounded-lg bg-[#E1306C]/10 border border-[#E1306C]/30 text-[10px] font-bold text-[#E1306C] flex items-center gap-1.5 hover:bg-[#E1306C] hover:text-white transition-colors disabled:opacity-60"
