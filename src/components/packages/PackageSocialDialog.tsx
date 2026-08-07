@@ -18,7 +18,7 @@ import { generateCurationCopy } from "@/lib/packages/curate.functions";
 import { fetchProxiedImage } from "@/lib/image-proxy.functions";
 import { publishPackageArtToInstagram } from "@/lib/instagram/queries.functions";
 import { listDestinos, enviarPacoteWhatsapp } from "@/lib/broadcast/broadcast.functions";
-import { confirm } from "@/lib/confirm";
+import { enqueuePublish } from "@/lib/publish-queue";
 import {
   Dialog,
   DialogContent,
