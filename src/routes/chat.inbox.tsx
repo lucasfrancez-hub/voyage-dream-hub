@@ -1365,6 +1365,7 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
 
       {/* Composer */}
       <div
+        data-chat-composer="whatsapp"
         className="shrink-0 border-t border-slate-200 bg-white p-3"
         style={{ paddingBottom: "calc(0.75rem + env(safe-area-inset-bottom, 0px) + 6px)" }}
       >
@@ -2677,6 +2678,7 @@ function InstagramConversationView({
       </div>
 
       <form
+        data-chat-composer="instagram-dm"
         onSubmit={(e) => { e.preventDefault(); if (text.trim()) send.mutate(text.trim()); }}
         className="flex items-center gap-2 border-t border-slate-200 bg-white p-3"
       >
@@ -3609,7 +3611,7 @@ function InstagramCommentThreadView({ mediaId, onBack }: { mediaId: string; onBa
         <div ref={bottomRef} />
       </div>
 
-      <div className="border-t border-slate-200 bg-white p-3">
+      <div data-chat-composer="instagram-comments" className="border-t border-slate-200 bg-white p-3">
         {alvoAtual ? (
           <div className="mb-1.5 flex items-center gap-1 text-[11px] text-slate-500">
             Respondendo <span className="font-medium text-slate-700">@{alvoAtual.from_username ?? "usuário"}</span>
