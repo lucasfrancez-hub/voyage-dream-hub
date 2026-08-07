@@ -192,7 +192,7 @@ function DisparosPage() {
     setSyncing(true);
     try {
       const r = await doSync();
-      toast.success(`Sincronizado: ${r.groups} grupos, ${r.channels} canais`);
+      toast.success(`Sincronizado: ${r.groups} grupos, ${r.channels} canais, ${r.instagram} destinos Instagram`);
       await load();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Erro na sincronização");
