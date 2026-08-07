@@ -3563,14 +3563,18 @@ export type Database = {
       }
       pix_cobrancas: {
         Row: {
+          asaas_customer_id: string | null
+          asaas_payment_id: string | null
           created_at: string
           e2eid: string | null
           expira_em: string
           id: string
+          invoice_url: string | null
           order_id: string | null
           pago_em: string | null
           payer_document: string | null
           payer_name: string | null
+          provider: string
           qr_code: string
           qr_code_image: string | null
           raw_response: Json | null
@@ -3581,14 +3585,18 @@ export type Database = {
           webhook_payload: Json | null
         }
         Insert: {
+          asaas_customer_id?: string | null
+          asaas_payment_id?: string | null
           created_at?: string
           e2eid?: string | null
           expira_em: string
           id?: string
+          invoice_url?: string | null
           order_id?: string | null
           pago_em?: string | null
           payer_document?: string | null
           payer_name?: string | null
+          provider?: string
           qr_code: string
           qr_code_image?: string | null
           raw_response?: Json | null
@@ -3599,14 +3607,18 @@ export type Database = {
           webhook_payload?: Json | null
         }
         Update: {
+          asaas_customer_id?: string | null
+          asaas_payment_id?: string | null
           created_at?: string
           e2eid?: string | null
           expira_em?: string
           id?: string
+          invoice_url?: string | null
           order_id?: string | null
           pago_em?: string | null
           payer_document?: string | null
           payer_name?: string | null
+          provider?: string
           qr_code?: string
           qr_code_image?: string | null
           raw_response?: Json | null
