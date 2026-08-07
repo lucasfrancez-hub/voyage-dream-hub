@@ -1636,8 +1636,14 @@ function CampanhaEditor({
 
   async function salvar(status: "rascunho" | "agendada") {
     if (!nome.trim()) return toast.error("Dê um nome à campanha");
-    if (selecionados.size === 0) return toast.error("Selecione ao menos um destino");
     if (blocos.length === 0) return toast.error("Adicione ao menos uma mensagem");
+    // Destino geral é opcional: basta cada mensagem ter o seu próprio destino.
+    if (selecionados.size === 0) {
+      const semDestino = blocos.some((b) => (b.destino_ids?.length ?? 0) === 0);
+      if (semDestino) {
+        return toast.error("Selecione um destino geral ou escolha o destino de cada mensagem");
+      }
+    }
     if (status === "agendada" && !scheduled) return toast.error("Escolha data e horário");
     if (status === "agendada" && scheduled) {
       const alvo = new Date(scheduled).getTime();
