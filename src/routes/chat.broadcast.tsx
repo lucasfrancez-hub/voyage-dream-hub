@@ -1575,6 +1575,7 @@ function CampanhaEditor({
   const [saving, setSaving] = useState(false);
   const [loadingEdit, setLoadingEdit] = useState(Boolean(id));
   const [showPicker, setShowPicker] = useState(false);
+  const [canal, setCanal] = useState<"whatsapp" | "instagram">("whatsapp");
 
   const fetchOne = useServerFn(getCampanha);
   const doSalvar = useServerFn(salvarCampanha);
