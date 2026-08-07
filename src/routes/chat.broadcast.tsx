@@ -379,6 +379,24 @@ function DisparosPage() {
             toast.success("Enviando…");
             load();
           }}
+          onReenviar={async (id, modo) => {
+            const ok = await confirm({
+              title: modo === "tudo" ? "Reenviar campanha inteira?" : "Forçar reenvio dos não enviados?",
+              description:
+                modo === "tudo"
+                  ? "Todos os destinos vão receber novamente, inclusive quem já recebeu."
+                  : "Só os destinos que ficaram pendentes ou falharam serão reenviados agora.",
+              confirmText: "Reenviar",
+            });
+            if (!ok) return;
+            try {
+              await doReenviar({ data: { id, modo } });
+              toast.success("Reenvio na fila");
+              load();
+            } catch (e) {
+              toast.error(e instanceof Error ? e.message : "Erro ao reenviar");
+            }
+          }}
         />
       ) : (
         <DestinosList destinos={destinos} onChanged={load} />
