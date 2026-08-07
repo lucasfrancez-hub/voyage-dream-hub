@@ -129,7 +129,7 @@ const STATUS_COLOR: Record<Campanha["status"], string> = {
 };
 
 function DisparosPage() {
-  const [tab, setTab] = useState<"calendario" | "sugestoes" | "campanhas" | "destinos" | "instagram">("calendario");
+  const [tab, setTab] = useState<"calendario" | "sugestoes" | "campanhas" | "destinos">("calendario");
   const [campanhas, setCampanhas] = useState<Campanha[]>([]);
   const [destinos, setDestinos] = useState<Destino[]>([]);
   const [suggestions, setSuggestions] = useState<BroadcastSuggestion[]>([]);
