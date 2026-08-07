@@ -170,11 +170,12 @@ export const Route = createFileRoute("/api/public/hooks/broadcast-dispatch")({
                 error: r.error ?? null,
                 sent_at: r.id ? new Date().toISOString() : null,
               };
-              if (existente) {
-                await supabaseAdmin.from("wa_broadcast_envios").update(row).eq("id", existente.id);
+              if (envioId) {
+                await supabaseAdmin.from("wa_broadcast_envios").update(row).eq("id", envioId);
               } else {
                 await supabaseAdmin.from("wa_broadcast_envios").insert(row);
               }
+
               if (r.id) ok++; else fail++;
               // pequena pausa entre envios
               await new Promise((res) => setTimeout(res, 400));
