@@ -24,17 +24,31 @@ export const Route = createFileRoute("/api/public/hooks/broadcast-dispatch")({
         }
 
         const nowIso = new Date().toISOString();
-        // Processa somente campanhas explicitamente agendadas. Uma campanha que
-        // ficou em "enviando" pode ter sido entregue antes de o worker cair;
-        // retomá-la automaticamente criaria risco de reenvio.
+        // Janela de retomada: só campanhas recentes (últimas 24h). Campanhas
+        // antigas NUNCA voltam sozinhas, para não reenviar histórico.
+        const janelaIso = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+        // Campanhas presas em "enviando" há mais de 3 min (worker morreu no meio)
+        // são retomadas — a idempotência por linha de envio impede duplicidade.
+        const travadaIso = new Date(Date.now() - 3 * 60 * 1000).toISOString();
+
         const { data: agendadas } = await supabaseAdmin
           .from("wa_broadcast_campanhas")
           .select("id, destino_ids, nome")
           .eq("status", "agendada")
           .lte("scheduled_at", nowIso)
+          .gte("scheduled_at", janelaIso)
           .order("scheduled_at", { ascending: true })
           .limit(3);
-        const pend = agendadas ?? [];
+        const { data: travadas } = await supabaseAdmin
+          .from("wa_broadcast_campanhas")
+          .select("id, destino_ids, nome")
+          .eq("status", "enviando")
+          .gte("scheduled_at", janelaIso)
+          .lt("updated_at", travadaIso)
+          .order("scheduled_at", { ascending: true })
+          .limit(3);
+        const pend = [...(agendadas ?? []), ...(travadas ?? [])];
+
 
         const results: Array<{ id: string; ok: number; fail: number }> = [];
         // Orçamento de tempo: o worker tem limite. Se estourar, a campanha
