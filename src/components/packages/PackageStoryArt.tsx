@@ -93,39 +93,8 @@ function splitDestino(destino: string) {
   return { top: parts[0].toUpperCase(), bottom: parts.slice(1).join(" ").toUpperCase() };
 }
 
-/**
- * Auto-fit do título: reduz a fonte quando o nome do destino é longo,
- * para o bloco não invadir a imagem nem empurrar o resto da arte.
- * `avail` = largura útil (px), `maxH` = altura máxima do bloco de título (px).
- */
-export function fitDestSize(lines: string[], base: number, avail: number, maxH: number) {
-  const CW = 0.62; // largura média de caractere maiúsculo Montserrat 900 (em em)
-  const LH = 0.92; // line-height do título
-  const words = lines.filter(Boolean).map((l) => l.trim().split(/\s+/));
-  const countLines = (size: number) => {
-    let total = 0;
-    for (const ws of words) {
-      let n = 1;
-      let cur = 0;
-      for (const w of ws) {
-        const wWidth = w.length * CW * size;
-        const spaceW = cur ? CW * size : 0;
-        if (cur && cur + spaceW + wWidth > avail) {
-          n += 1;
-          cur = wWidth;
-        } else {
-          cur += spaceW + wWidth;
-        }
-      }
-      total += n;
-    }
-    return total;
-  };
-  for (let size = base; size >= Math.round(base * 0.4); size -= 2) {
-    if (countLines(size) * LH * size <= maxH) return size;
-  }
-  return Math.round(base * 0.4);
-}
+
+
 
 const APT_LABEL: Record<number, string> = {
   1: "individual", 2: "duplo", 3: "triplo", 4: "quádruplo", 5: "quíntuplo",
