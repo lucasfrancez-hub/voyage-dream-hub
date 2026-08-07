@@ -79,8 +79,9 @@ function dateLabel(data: FeedArtData) {
 
 export const StoryArtVariant = forwardRef<
   HTMLDivElement,
-  { data: FeedArtData; mode: ArtMode; variant: ArtVariant }
->(function StoryArtVariant({ data, mode, variant }, ref) {
+  { data: FeedArtData; mode: ArtMode; variant: ArtVariant; format?: ArtFormat }
+>(function StoryArtVariant({ data, mode, variant, format = "story" }, ref) {
+
   const parcelas = data.parcelas || 10;
   const total = data.valorTotal || 0;
   const [reais, centavos] = BRL(total / parcelas).split(",");
