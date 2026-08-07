@@ -191,7 +191,19 @@ export const Route = createFileRoute("/api/public/hooks/broadcast-dispatch")({
           const totalEnviados = (todosEnvios ?? []).filter((e) => e.status === "enviado").length;
           const totalFalhas = (todosEnvios ?? []).filter((e) => e.status === "falhou").length;
 
-          if (pendentesFuturas.length > 0) {
+          if (estourouTempo) {
+            // Faltou tempo nesta rodada: volta para 'agendada' agora mesmo e o
+            // cron da próxima rodada continua exatamente de onde parou.
+            await supabaseAdmin
+              .from("wa_broadcast_campanhas")
+              .update({
+                status: "agendada",
+                scheduled_at: new Date().toISOString(),
+                metrics: { total: totalEnviados + totalFalhas, enviados: totalEnviados, falhas: totalFalhas },
+              })
+              .eq("id", camp.id);
+          } else if (pendentesFuturas.length > 0) {
+
             // Ainda há blocos com horário futuro: volta para 'agendada' apontando
             // para o próximo horário programado.
             const proximo = pendentesFuturas
