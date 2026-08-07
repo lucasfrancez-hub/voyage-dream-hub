@@ -912,15 +912,18 @@ const drawPassengersSection = (
   passengers: OrderPassenger[],
   reservationLocator: string | null = null,
   seatsByPassenger: Record<string, string> = {},
+  seatLegend: string[] = [],
 ) => {
   if (!passengers.length) return;
   const t = T(ctx);
   const rowH = 16;
   const headerH = 26;
   const colHeaderH = 18;
-  const cardH = headerH + colHeaderH + rowH * passengers.length + 16;
+  const legendH = seatLegend.length ? 14 * Math.ceil(seatLegend.length / 3) + 8 : 0;
+  const cardH = headerH + colHeaderH + rowH * passengers.length + 16 + legendH;
   const { top } = openSectionCard(ctx, cardH + 20);
   const headerBottom = drawSectionHeader(ctx, top, "user", "PASSAGEIROS");
+
 
   const innerX = MARGIN + 20;
   const innerW = CONTENT_W - 40;
