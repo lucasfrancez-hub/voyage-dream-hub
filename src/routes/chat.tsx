@@ -88,6 +88,28 @@ function ChatLayout() {
     };
   }, []);
 
+  // TESTE TEMPORÁRIO DE ISOLAMENTO VISUAL (não altera layout, só pintura).
+  // Ative abrindo /chat/inbox?cores=1 no iPhone; desative com ?cores=0.
+  // html = vermelho · body = verde · [data-chat-root] = azul · composer = amarelo.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const url = new URL(window.location.href);
+    const param = url.searchParams.get("cores");
+    if (param === "1") { try { localStorage.setItem("chat-debug-cores", "1"); } catch { /* ignora */ } }
+    if (param === "0") { try { localStorage.removeItem("chat-debug-cores"); } catch { /* ignora */ } }
+    let ligado = param === "1";
+    if (param !== "0" && !ligado) {
+      try { ligado = localStorage.getItem("chat-debug-cores") === "1"; } catch { ligado = false; }
+    }
+    const raiz = document.documentElement;
+    if (ligado) raiz.classList.add("chat-debug-cores");
+    else raiz.classList.remove("chat-debug-cores");
+    return () => raiz.classList.remove("chat-debug-cores");
+  }, []);
+
+
+
+
 
 
   // Bloqueia o zoom por pinça / duplo toque dentro do app (iOS ignora
