@@ -1785,21 +1785,48 @@ function CampanhaEditor({
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-muted-foreground">
                   <span className="inline-flex w-5 h-5 rounded-full bg-brand-orange/15 text-brand-orange items-center justify-center text-[10px] font-black">2</span>
-                  Destinos
+                  Onde publicar
                 </div>
-                <span className="text-[11px] font-semibold text-brand-orange">{selecionados.size} selecionado{selecionados.size === 1 ? "" : "s"}</span>
+                {canal === "whatsapp" && (
+                  <span className="text-[11px] font-semibold text-brand-orange">{selecionados.size} selecionado{selecionados.size === 1 ? "" : "s"}</span>
+                )}
               </div>
-              <div className="grid md:grid-cols-3 gap-3">
-                <DestSelector title="Canais" icon={Radio} items={canais} sel={selecionados} onToggle={toggleDest} />
-                <DestSelector title="Grupos" icon={Users} items={grupos} sel={selecionados} onToggle={toggleDest} />
-                <DestSelector title="Instagram Story" icon={Instagram} items={igStories} sel={selecionados} onToggle={toggleDest} />
+
+              <div className="grid sm:grid-cols-2 gap-2">
+                <button
+                  onClick={() => setCanal("whatsapp")}
+                  className={`rounded-xl border px-3 py-2 text-left transition-colors ${canal === "whatsapp" ? "border-brand-orange bg-brand-orange/10" : "border-border hover:border-brand-orange/40"}`}
+                >
+                  <span className="flex items-center gap-2 text-sm font-bold"><Radio className="h-4 w-4" /> WhatsApp</span>
+                  <span className="block text-[11px] text-muted-foreground">Canais e grupos · agendável</span>
+                </button>
+                <button
+                  onClick={() => setCanal("instagram")}
+                  className={`rounded-xl border px-3 py-2 text-left transition-colors ${canal === "instagram" ? "border-brand-orange bg-brand-orange/10" : "border-border hover:border-brand-orange/40"}`}
+                >
+                  <span className="flex items-center gap-2 text-sm font-bold"><Instagram className="h-4 w-4" /> Instagram</span>
+                  <span className="block text-[11px] text-muted-foreground">Reels, Publicação ou Story · publica agora</span>
+                </button>
               </div>
-              {temIgStory && (
-                <p className="mt-2 text-[11px] text-pink-500">
-                  📸 Story do Instagram só publica blocos de <b>imagem</b> com URL pública (o texto vira legenda opcional). Vídeos/documentos/botões são ignorados.
-                </p>
+
+              {canal === "whatsapp" ? (
+                <>
+                  <div className="grid md:grid-cols-3 gap-3">
+                    <DestSelector title="Canais" icon={Radio} items={canais} sel={selecionados} onToggle={toggleDest} />
+                    <DestSelector title="Grupos" icon={Users} items={grupos} sel={selecionados} onToggle={toggleDest} />
+                    <DestSelector title="Instagram Story" icon={Instagram} items={igStories} sel={selecionados} onToggle={toggleDest} />
+                  </div>
+                  {temIgStory && (
+                    <p className="mt-2 text-[11px] text-pink-500">
+                      📸 Story do Instagram só publica blocos de <b>imagem</b> com URL pública (o texto vira legenda opcional). Vídeos/documentos/botões são ignorados.
+                    </p>
+                  )}
+                </>
+              ) : (
+                <InstagramPostTab embedded />
               )}
             </section>
+
 
             {/* Secão 3: mensagens */}
             <section className="rounded-xl border border-border bg-card/50 p-4 space-y-3">
