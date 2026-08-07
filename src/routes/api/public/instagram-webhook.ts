@@ -377,6 +377,8 @@ async function processPayload(payload: IGPayload) {
           const { isAiGloballyOff } = await import("@/lib/whatsapp/ai-global-switch.server");
           // Régua de tom: comentário hostil/ofensivo nunca recebe resposta
           // automática — fica marcado pra revisão e dispara alerta no chatbot.
+          const { isCommentAiPaused } = await import("@/lib/instagram/comment-pause.server");
+          if (await isCommentAiPaused(v.media.id)) continue;
           const { avaliarTomComentario } = await import("@/lib/instagram/tone-guard.server");
           const tom = await avaliarTomComentario(v.text);
           if (tom.precisaRevisao) {
@@ -384,6 +386,7 @@ async function processPayload(payload: IGPayload) {
               .from("instagram_comments")
               .update({
                 auto_reply_status: "needs_review",
+
                 metadata: {
                   ...(anexoComentario ? { attachment_url: anexoComentario } : {}),
                   tone: { nivel: tom.nivel, categoria: tom.categoria, motivo: tom.motivo, avaliado_em: new Date().toISOString() },
