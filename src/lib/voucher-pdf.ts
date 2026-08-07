@@ -1699,6 +1699,11 @@ const drawHotelSection = async (
 
   // Fotos do TripAdvisor — tenta em ordem até uma carregar (URLs individuais expiram no CDN)
   const photoCandidates: string[] = [];
+  // Foto manual tem prioridade (hotéis sem retorno no TripAdvisor)
+  {
+    const manual = typeof d.photo_url === "string" ? (d.photo_url as string).trim() : "";
+    if (manual) photoCandidates.push(manual);
+  }
   try {
     if (typeof d.tripadvisor_photos_json === "string" && d.tripadvisor_photos_json) {
       const parsed = JSON.parse(d.tripadvisor_photos_json as string);
