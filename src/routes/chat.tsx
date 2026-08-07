@@ -12,7 +12,7 @@ import { getMyProfile } from "@/lib/chat/queries.functions";
 import { statusAparelhoChat, renovarSessaoAparelhoChat } from "@/lib/chat/device-session.functions";
 import { ChatPinUnlock } from "@/components/chat/ChatPinUnlock";
 // TEMPORÁRIO: painel de auditoria do viewport (remover após diagnóstico)
-import { ChatViewportAudit } from "@/components/chat/ChatViewportAudit";
+import { useKeyboardViewportRecovery } from "@/lib/chat/use-keyboard-viewport-recovery";
 
 export const Route = createFileRoute("/chat")({
   ssr: false,
@@ -72,10 +72,13 @@ function ChatLayout() {
   const [theme, setTheme] = useState<"dark" | "light">("light");
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
-  // Viewport do chat: nenhuma medição em JavaScript.
+  // Viewport do chat: nenhuma medição em JavaScript com o teclado aberto.
   // O WebKit reduz o layout viewport quando o teclado abre
   // (`interactive-widget=resizes-content`, meta única em __root.tsx) e o root
-  // usa apenas `height: 100dvh`.
+  // usa apenas `height: 100dvh`. O hook abaixo age SOMENTE depois do teclado
+  // fechar, quando o iOS deixa a viewport presa numa altura menor.
+  const chatRootRef = useKeyboardViewportRecovery<HTMLDivElement>();
+
 
 
 
@@ -307,6 +310,8 @@ function ChatLayout() {
 
   return (
     <div
+      ref={chatRootRef}
+      data-chat-root=""
       className={`${themeClass} flex w-full overflow-hidden bg-[var(--chat-bg)] text-foreground`}
       style={{ height: "100dvh" }}
     >
@@ -328,7 +333,6 @@ function ChatLayout() {
           <Outlet />
         </main>
       </div>
-      <ChatViewportAudit />
     </div>
   );
 }
