@@ -227,6 +227,10 @@ export const generateCurationCopy = createServerFn({ method: "POST" })
 
 
     const channel = data.channel;
+    const hookDirective = buildHookDirective(
+      `${data.packageId ?? ""}${items[0]?.destination ?? ""}${Date.now()}`,
+    );
+
     const system =
       channel === "whatsapp"
         ? `Você é copywriter da VIA AIR gerando UMA mensagem PRONTA pra WhatsApp que o consultor vai colar e enviar.
