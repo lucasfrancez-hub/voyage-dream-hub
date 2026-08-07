@@ -113,6 +113,41 @@ export async function syncBroadcastDestinos(): Promise<SyncCounts> {
     }
   }
 
+  // ==== Instagram (Publicação / Reels / Story por conta conectada) ====
+  try {
+    const { data: contas } = await supabaseAdmin
+      .from("instagram_accounts")
+      .select("ig_user_id, username, display_name, profile_picture_url, active")
+      .neq("active", false);
+    const formatos: { tipo: string; prefixo: string; rotulo: string }[] = [
+      { tipo: "instagram_feed", prefixo: "ig_feed", rotulo: "Publicação" },
+      { tipo: "instagram_reels", prefixo: "ig_reels", rotulo: "Reels" },
+      { tipo: "instagram_story", prefixo: "ig_story", rotulo: "Story" },
+    ];
+    for (const c of contas ?? []) {
+      if (!c.ig_user_id) continue;
+      const arroba = c.username ? `@${c.username}` : (c.display_name ?? "Instagram");
+      for (const f of formatos) {
+        await supabaseAdmin.from("wa_broadcast_destinos").upsert(
+          {
+            jid: `${f.prefixo}:${c.ig_user_id}`,
+            tipo: f.tipo,
+            nome: `${arroba} · ${f.rotulo}`,
+            foto_url: c.profile_picture_url ?? null,
+            participantes: null,
+            is_admin: true,
+            pode_postar: true,
+            ultima_sync: now,
+          },
+          { onConflict: "jid" },
+        );
+        counts.instagram += 1;
+      }
+    }
+  } catch (err) {
+    console.error("[broadcast/sync] instagram:", err);
+  }
+
   return counts;
 }
 
