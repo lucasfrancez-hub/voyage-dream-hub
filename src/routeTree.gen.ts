@@ -22,6 +22,7 @@ import { Route as PacotesRouteImport } from './routes/pacotes'
 import { Route as PagarRouteImport } from './routes/pagar'
 import { Route as PagarBoletoRouteImport } from './routes/pagar-boleto'
 import { Route as PasseiosRouteImport } from './routes/passeios'
+import { Route as PixPreviewRouteImport } from './routes/pix-preview'
 import { Route as PoliticaDePrivacidadeRouteImport } from './routes/politica-de-privacidade'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
@@ -191,6 +192,11 @@ const PagarBoletoRoute = PagarBoletoRouteImport.update({
 const PasseiosRoute = PasseiosRouteImport.update({
   id: '/passeios',
   path: '/passeios',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PixPreviewRoute = PixPreviewRouteImport.update({
+  id: '/pix-preview',
+  path: '/pix-preview',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PoliticaDePrivacidadeRoute = PoliticaDePrivacidadeRouteImport.update({
@@ -761,6 +767,7 @@ export interface FileRoutesByFullPath {
   '/pagar': typeof PagarRoute
   '/pagar-boleto': typeof PagarBoletoRoute
   '/passeios': typeof PasseiosRoute
+  '/pix-preview': typeof PixPreviewRoute
   '/politica-de-privacidade': typeof PoliticaDePrivacidadeRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
@@ -880,6 +887,7 @@ export interface FileRoutesByTo {
   '/pagar': typeof PagarRoute
   '/pagar-boleto': typeof PagarBoletoRoute
   '/passeios': typeof PasseiosRoute
+  '/pix-preview': typeof PixPreviewRoute
   '/politica-de-privacidade': typeof PoliticaDePrivacidadeRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
@@ -1001,6 +1009,7 @@ export interface FileRoutesById {
   '/pagar': typeof PagarRoute
   '/pagar-boleto': typeof PagarBoletoRoute
   '/passeios': typeof PasseiosRoute
+  '/pix-preview': typeof PixPreviewRoute
   '/politica-de-privacidade': typeof PoliticaDePrivacidadeRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
@@ -1123,6 +1132,7 @@ export interface FileRouteTypes {
     | '/pagar'
     | '/pagar-boleto'
     | '/passeios'
+    | '/pix-preview'
     | '/politica-de-privacidade'
     | '/reset-password'
     | '/sitemap.xml'
@@ -1242,6 +1252,7 @@ export interface FileRouteTypes {
     | '/pagar'
     | '/pagar-boleto'
     | '/passeios'
+    | '/pix-preview'
     | '/politica-de-privacidade'
     | '/reset-password'
     | '/sitemap.xml'
@@ -1362,6 +1373,7 @@ export interface FileRouteTypes {
     | '/pagar'
     | '/pagar-boleto'
     | '/passeios'
+    | '/pix-preview'
     | '/politica-de-privacidade'
     | '/reset-password'
     | '/sitemap.xml'
@@ -1483,6 +1495,7 @@ export interface RootRouteChildren {
   PagarRoute: typeof PagarRoute
   PagarBoletoRoute: typeof PagarBoletoRoute
   PasseiosRoute: typeof PasseiosRoute
+  PixPreviewRoute: typeof PixPreviewRoute
   PoliticaDePrivacidadeRoute: typeof PoliticaDePrivacidadeRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
@@ -1631,6 +1644,13 @@ declare module '@tanstack/react-router' {
       path: '/passeios'
       fullPath: '/passeios'
       preLoaderRoute: typeof PasseiosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pix-preview': {
+      id: '/pix-preview'
+      path: '/pix-preview'
+      fullPath: '/pix-preview'
+      preLoaderRoute: typeof PixPreviewRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/politica-de-privacidade': {
@@ -2520,6 +2540,7 @@ const rootRouteChildren: RootRouteChildren = {
   PagarRoute: PagarRoute,
   PagarBoletoRoute: PagarBoletoRoute,
   PasseiosRoute: PasseiosRoute,
+  PixPreviewRoute: PixPreviewRoute,
   PoliticaDePrivacidadeRoute: PoliticaDePrivacidadeRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
@@ -2584,3 +2605,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
