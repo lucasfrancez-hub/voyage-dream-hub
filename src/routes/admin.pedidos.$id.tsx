@@ -2967,6 +2967,15 @@ function ItemDialog({
               </div>
               <div><Label>Hóspedes</Label><Input value={String(details.guests ?? "")} onChange={(e) => setField("guests", e.target.value)} placeholder="2 adultos, 1 criança..." /></div>
               <div>
+                <Label>URL da foto do hotel (opcional)</Label>
+                <Input
+                  value={String(details.photo_url ?? "")}
+                  onChange={(e) => setField("photo_url", e.target.value)}
+                  placeholder="https://…/foto-do-hotel.jpg"
+                />
+                <p className="mt-1 text-[11px] text-muted-foreground">Usada no voucher quando o hotel não tem foto no TripAdvisor.</p>
+              </div>
+              <div>
                 <Label>Políticas do hotel</Label>
                 <Textarea
                   rows={3}
