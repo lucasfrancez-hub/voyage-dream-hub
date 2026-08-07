@@ -1851,7 +1851,7 @@ function CampanhaEditor({
                       idx={i}
                       total={blocos.length}
                       bloco={b}
-                      destinosCampanha={destinosSelecionados}
+                      destinosCampanha={destinosSelecionados.length > 0 ? destinosSelecionados : destinos}
                       onChange={(p) => updateBloco(i, p)}
                       onRemove={() => removeBloco(i)}
                       onMove={(dir) => moveBloco(i, dir)}
