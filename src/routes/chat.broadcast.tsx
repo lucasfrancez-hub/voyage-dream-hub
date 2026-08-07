@@ -1791,41 +1791,24 @@ function CampanhaEditor({
                 <span className="text-[11px] font-semibold text-brand-orange">{selecionados.size} selecionado{selecionados.size === 1 ? "" : "s"}</span>
               </div>
 
-              <div className="grid sm:grid-cols-2 gap-2">
-                <button
-                  onClick={() => setCanal("whatsapp")}
-                  className={`rounded-xl border px-3 py-2 text-left transition-colors ${canal === "whatsapp" ? "border-brand-orange bg-brand-orange/10" : "border-border hover:border-brand-orange/40"}`}
-                >
-                  <span className="flex items-center gap-2 text-sm font-bold"><Radio className="h-4 w-4" /> WhatsApp</span>
-                  <span className="block text-[11px] text-muted-foreground">Canais e grupos · agendável</span>
-                </button>
-                <button
-                  onClick={() => setCanal("instagram")}
-                  className={`rounded-xl border px-3 py-2 text-left transition-colors ${canal === "instagram" ? "border-brand-orange bg-brand-orange/10" : "border-border hover:border-brand-orange/40"}`}
-                >
-                  <span className="flex items-center gap-2 text-sm font-bold"><Instagram className="h-4 w-4" /> Instagram</span>
-                  <span className="block text-[11px] text-muted-foreground">Publicação, Reels ou Story · agendável</span>
-                </button>
-              </div>
+              <p className="text-[11px] text-muted-foreground">
+                Selecione todos os canais da campanha — WhatsApp e Instagram juntos. Depois, se quiser, cada mensagem pode ir só para alguns deles.
+              </p>
 
-              {canal === "whatsapp" ? (
-                <div className="grid md:grid-cols-2 gap-3">
-                  <DestSelector title="Canais" icon={Radio} items={canais} sel={selecionados} onToggle={toggleDest} />
-                  <DestSelector title="Grupos" icon={Users} items={grupos} sel={selecionados} onToggle={toggleDest} />
-                </div>
-              ) : (
-                <>
-                  <div className="grid md:grid-cols-3 gap-3">
-                    <DestSelector title="Publicação (feed)" icon={Instagram} items={igFeeds} sel={selecionados} onToggle={toggleDest} />
-                    <DestSelector title="Reels" icon={Instagram} items={igReels} sel={selecionados} onToggle={toggleDest} />
-                    <DestSelector title="Story" icon={Instagram} items={igStories} sel={selecionados} onToggle={toggleDest} />
-                  </div>
-                  <p className="mt-2 text-[11px] text-pink-500">
-                    📸 Instagram publica só blocos de mídia: <b>imagem</b> no feed/story e <b>vídeo</b> no Reels/story. Blocos de texto e PDF são ignorados.
-                  </p>
-                </>
-              )}
+              <div className="grid md:grid-cols-2 gap-3">
+                <DestSelector title="Canais WhatsApp" icon={Radio} items={canais} sel={selecionados} onToggle={toggleDest} />
+                <DestSelector title="Grupos WhatsApp" icon={Users} items={grupos} sel={selecionados} onToggle={toggleDest} />
+              </div>
+              <div className="grid md:grid-cols-3 gap-3">
+                <DestSelector title="IG Publicação" icon={Instagram} items={igFeeds} sel={selecionados} onToggle={toggleDest} />
+                <DestSelector title="IG Reels" icon={Instagram} items={igReels} sel={selecionados} onToggle={toggleDest} />
+                <DestSelector title="IG Story" icon={Instagram} items={igStories} sel={selecionados} onToggle={toggleDest} />
+              </div>
+              <p className="text-[11px] text-pink-500">
+                📸 Instagram publica só blocos de mídia: <b>imagem</b> no feed/story e <b>vídeo</b> no Reels/story. Texto e PDF são ignorados por lá.
+              </p>
             </section>
+
 
 
             {/* Secão 3: mensagens */}
