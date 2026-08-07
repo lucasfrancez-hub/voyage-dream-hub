@@ -1830,6 +1830,7 @@ function CampanhaEditor({
 
 
             {/* Secão 3: mensagens */}
+            {canal === "whatsapp" && (
             <section className="rounded-xl border border-border bg-card/50 p-4 space-y-3">
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-muted-foreground">
