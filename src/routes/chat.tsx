@@ -18,11 +18,8 @@ export const Route = createFileRoute("/chat")({
   head: () => ({
     meta: [
       { title: "VIA AIR Chat — Central de Atendimento" },
-      {
-        name: "viewport",
-        content:
-          "width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content",
-      },
+      // A tag <meta name="viewport"> é definida uma única vez em __root.tsx
+      // para não haver duas configurações concorrentes no DOM final.
       { name: "description", content: "CRM WhatsApp + IA integrado da VIA AIR" },
 
       { name: "robots", content: "noindex, nofollow" },
