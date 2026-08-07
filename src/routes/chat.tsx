@@ -11,7 +11,6 @@ import { ChatHeader } from "@/components/chat/ChatHeader";
 import { getMyProfile } from "@/lib/chat/queries.functions";
 import { statusAparelhoChat, renovarSessaoAparelhoChat } from "@/lib/chat/device-session.functions";
 import { ChatPinUnlock } from "@/components/chat/ChatPinUnlock";
-import { ChatViewportDebugPanel } from "@/components/chat/ChatViewportDebugPanel";
 
 export const Route = createFileRoute("/chat")({
   ssr: false,
