@@ -2381,9 +2381,23 @@ export async function generateVoucher(
     // quando os passageiros não foram atrelados via order_item_passengers).
     return s.size === 0 ? new Set(allPassengerIds) : s;
   };
-  const drawPaxForIds = (ids: Set<string>, locator?: string | null) => {
+  const drawPaxForIds = (ids: Set<string>, locator?: string | null, seats: Record<string, string> = {}) => {
     const list = detail.passengers.filter((p) => ids.has(p.id));
-    if (list.length > 0) drawPassengersSection(ctx, list, locator ?? null);
+    if (list.length > 0) drawPassengersSection(ctx, list, locator ?? null, seats);
+  };
+  // Assentos ficam em details.seats de cada trecho ({ passengerId: "12A" }).
+  // Com múltiplos trechos, junta na ordem dos voos: "12A / 14C".
+  const seatsForItems = (its: OrderItem[]): Record<string, string> => {
+    const acc: Record<string, string[]> = {};
+    for (const it of its) {
+      const map = (((it.details ?? {}) as Record<string, unknown>).seats ?? {}) as Record<string, string>;
+      for (const [pid, seat] of Object.entries(map)) {
+        const v = String(seat ?? "").trim().toUpperCase();
+        if (!v) continue;
+        (acc[pid] ??= []).push(v);
+      }
+    }
+    return Object.fromEntries(Object.entries(acc).map(([pid, list]) => [pid, list.join(" / ")]));
   };
 
   const paxSignature = (ids: Set<string>) => [...ids].sort().join("|");
@@ -2393,11 +2407,13 @@ export async function generateVoucher(
   for (const key of groupOrder) {
     const g = groups.get(key)!;
     await drawAereoSection(ctx, g.outbound, g.returning);
-    const ids = paxSetForItems([...g.outbound, ...g.returning]);
-    const grpLoc = pickAereoLocator([...g.outbound, ...g.returning]);
-    drawPaxForIds(ids, grpLoc);
+    const items = [...g.outbound, ...g.returning];
+    const ids = paxSetForItems(items);
+    const grpLoc = pickAereoLocator(items);
+    drawPaxForIds(ids, grpLoc, seatsForItems(items));
     passengerSetsAlreadyShown.add(paxSignature(ids));
   }
+
 
 
 
