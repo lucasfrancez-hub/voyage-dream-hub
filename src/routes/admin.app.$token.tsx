@@ -15,7 +15,7 @@ import { abrirLinkChat } from "@/lib/chat/device-session.functions";
 export const Route = createFileRoute("/admin/app/$token")({
   ssr: false,
   component: AbrirAppAdmin,
-  head: () => ({
+  head: ({ params }) => ({
     meta: [
       { title: "Abrir Admin — VIA AIR" },
       { name: "description", content: "Acesso rápido ao painel Admin da VIA AIR por PIN." },
@@ -24,6 +24,14 @@ export const Route = createFileRoute("/admin/app/$token")({
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "robots", content: "noindex, nofollow" },
+      { name: "theme-color", content: "#0F172A" },
+      { name: "apple-mobile-web-app-capable", content: "yes" },
+      { name: "mobile-web-app-capable", content: "yes" },
+      { name: "apple-mobile-web-app-title", content: "VIA AIR Admin" },
+    ],
+    links: [
+      // Manifest por token: instalar na tela de início abre o Admin, não a home.
+      { rel: "manifest", href: `/api/public/admin-manifest/${params.token}` },
     ],
   }),
 });

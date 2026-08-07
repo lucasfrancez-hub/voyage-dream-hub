@@ -99,6 +99,7 @@ import { Route as ChatAppTokenRouteImport } from './routes/chat.app.$token'
 import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/email/suppression'
 import { Route as PacotesSlugIndexRouteImport } from './routes/pacotes.$slug.index'
 import { Route as PacotesSlugCheckoutRouteImport } from './routes/pacotes.$slug.checkout'
+import { Route as ApiPublicAdminManifestTokenRouteImport } from './routes/api/public/admin-manifest.$token'
 import { Route as ApiPublicAgendaManifestTokenRouteImport } from './routes/api/public/agenda-manifest.$token'
 import { Route as ApiPublicBpIdRouteImport } from './routes/api/public/bp.$id'
 import { Route as ApiPublicBroadcastMediaSplatRouteImport } from './routes/api/public/broadcast-media.$'
@@ -580,6 +581,12 @@ const PacotesSlugCheckoutRoute = PacotesSlugCheckoutRouteImport.update({
   path: '/$slug/checkout',
   getParentRoute: () => PacotesRoute,
 } as any)
+const ApiPublicAdminManifestTokenRoute =
+  ApiPublicAdminManifestTokenRouteImport.update({
+    id: '/api/public/admin-manifest/$token',
+    path: '/api/public/admin-manifest/$token',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicAgendaManifestTokenRoute =
   ApiPublicAgendaManifestTokenRouteImport.update({
     id: '/api/public/agenda-manifest/$token',
@@ -819,6 +826,7 @@ export interface FileRoutesByFullPath {
   '/pacotes/$slug/checkout': typeof PacotesSlugCheckoutRoute
   '/admin/pedidos/': typeof AdminPedidosIndexRoute
   '/pacotes/$slug/': typeof PacotesSlugIndexRoute
+  '/api/public/admin-manifest/$token': typeof ApiPublicAdminManifestTokenRoute
   '/api/public/agenda-manifest/$token': typeof ApiPublicAgendaManifestTokenRoute
   '/api/public/bp/$id': typeof ApiPublicBpIdRoute
   '/api/public/broadcast-media/$': typeof ApiPublicBroadcastMediaSplatRoute
@@ -935,6 +943,7 @@ export interface FileRoutesByTo {
   '/pacotes/$slug/checkout': typeof PacotesSlugCheckoutRoute
   '/admin/pedidos': typeof AdminPedidosIndexRoute
   '/pacotes/$slug': typeof PacotesSlugIndexRoute
+  '/api/public/admin-manifest/$token': typeof ApiPublicAdminManifestTokenRoute
   '/api/public/agenda-manifest/$token': typeof ApiPublicAgendaManifestTokenRoute
   '/api/public/bp/$id': typeof ApiPublicBpIdRoute
   '/api/public/broadcast-media/$': typeof ApiPublicBroadcastMediaSplatRoute
@@ -1053,6 +1062,7 @@ export interface FileRoutesById {
   '/pacotes/$slug/checkout': typeof PacotesSlugCheckoutRoute
   '/admin/pedidos/': typeof AdminPedidosIndexRoute
   '/pacotes/$slug/': typeof PacotesSlugIndexRoute
+  '/api/public/admin-manifest/$token': typeof ApiPublicAdminManifestTokenRoute
   '/api/public/agenda-manifest/$token': typeof ApiPublicAgendaManifestTokenRoute
   '/api/public/bp/$id': typeof ApiPublicBpIdRoute
   '/api/public/broadcast-media/$': typeof ApiPublicBroadcastMediaSplatRoute
@@ -1172,6 +1182,7 @@ export interface FileRouteTypes {
     | '/pacotes/$slug/checkout'
     | '/admin/pedidos/'
     | '/pacotes/$slug/'
+    | '/api/public/admin-manifest/$token'
     | '/api/public/agenda-manifest/$token'
     | '/api/public/bp/$id'
     | '/api/public/broadcast-media/$'
@@ -1288,6 +1299,7 @@ export interface FileRouteTypes {
     | '/pacotes/$slug/checkout'
     | '/admin/pedidos'
     | '/pacotes/$slug'
+    | '/api/public/admin-manifest/$token'
     | '/api/public/agenda-manifest/$token'
     | '/api/public/bp/$id'
     | '/api/public/broadcast-media/$'
@@ -1405,6 +1417,7 @@ export interface FileRouteTypes {
     | '/pacotes/$slug/checkout'
     | '/admin/pedidos/'
     | '/pacotes/$slug/'
+    | '/api/public/admin-manifest/$token'
     | '/api/public/agenda-manifest/$token'
     | '/api/public/bp/$id'
     | '/api/public/broadcast-media/$'
@@ -1474,6 +1487,7 @@ export interface RootRouteChildren {
   ApiPublicWaDiagRoute: typeof ApiPublicWaDiagRoute
   ApiPublicWhatsappWebhookRoute: typeof ApiPublicWhatsappWebhookRoute
   LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
+  ApiPublicAdminManifestTokenRoute: typeof ApiPublicAdminManifestTokenRoute
   ApiPublicAgendaManifestTokenRoute: typeof ApiPublicAgendaManifestTokenRoute
   ApiPublicBpIdRoute: typeof ApiPublicBpIdRoute
   ApiPublicBroadcastMediaSplatRoute: typeof ApiPublicBroadcastMediaSplatRoute
@@ -2133,6 +2147,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PacotesSlugCheckoutRouteImport
       parentRoute: typeof PacotesRoute
     }
+    '/api/public/admin-manifest/$token': {
+      id: '/api/public/admin-manifest/$token'
+      path: '/api/public/admin-manifest/$token'
+      fullPath: '/api/public/admin-manifest/$token'
+      preLoaderRoute: typeof ApiPublicAdminManifestTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/agenda-manifest/$token': {
       id: '/api/public/agenda-manifest/$token'
       path: '/api/public/agenda-manifest/$token'
@@ -2486,6 +2507,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicWaDiagRoute: ApiPublicWaDiagRoute,
   ApiPublicWhatsappWebhookRoute: ApiPublicWhatsappWebhookRoute,
   LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
+  ApiPublicAdminManifestTokenRoute: ApiPublicAdminManifestTokenRoute,
   ApiPublicAgendaManifestTokenRoute: ApiPublicAgendaManifestTokenRoute,
   ApiPublicBpIdRoute: ApiPublicBpIdRoute,
   ApiPublicBroadcastMediaSplatRoute: ApiPublicBroadcastMediaSplatRoute,
