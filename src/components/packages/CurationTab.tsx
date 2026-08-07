@@ -1,17 +1,16 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import {
-  Copy, Loader2, ExternalLink, Wand2, ImageDown, Smartphone, RefreshCw, Send,
+  Loader2, ExternalLink, ImageDown, RefreshCw,
   Wallet, Globe2, Snowflake, Palmtree, Timer, TreePine, Sparkles,
   PartyPopper, Egg, CalendarDays, LayoutGrid,
   type LucideIcon,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
-import { generateCurationCopy, listPackageCopies } from "@/lib/packages/curate.functions";
-import { fetchProxiedImage } from "@/lib/image-proxy.functions";
+import { listPackageCopies } from "@/lib/packages/curate.functions";
 import { canonOrigin, originKey, dedupeOrigins } from "@/lib/packages/origin";
-import { publishPackageArtToInstagram } from "@/lib/instagram/queries.functions";
-import { confirm } from "@/lib/confirm";
+import { PackageSocialDialog } from "@/components/packages/PackageSocialDialog";
+
 
 
 type CachedCopy = { text: string; updated_at: string };
@@ -463,204 +462,13 @@ function GroupSection({ group, index }: { group: Group; index: number }) {
   );
 }
 
-function PackageRow({ pkg, groupTitle, groupReason }: { pkg: Pkg; groupTitle: string; groupReason: string }) {
-  const generateFn = useServerFn(generateCurationCopy);
-  const fetchImageFn = useServerFn(fetchProxiedImage);
-  const { cache, setEntry } = useContext(CopyCacheContext);
-  const publishArtFn = useServerFn(publishPackageArtToInstagram);
-  const [loading, setLoading] = useState<
-    "whatsapp" | "instagram" | "feed" | "story" | "post-feed" | "post-story" | null
-  >(null);
-  const [output, setOutput] = useState<{ channel: "whatsapp" | "instagram"; text: string } | null>(null);
-  const [shareFile, setShareFile] = useState<File | null>(null);
-
-  // Ao carregar cache, se este pacote já tem um WhatsApp salvo, mostra por padrão
-  useEffect(() => {
-    if (output) return;
-    const saved = cache[pkg.id];
-    if (!saved) return;
-    const pick = saved.whatsapp ?? saved.instagram;
-    if (!pick) return;
-    const channel: "whatsapp" | "instagram" = saved.whatsapp ? "whatsapp" : "instagram";
-    setOutput({ channel, text: pick.text });
-    prepareShareFile().then(setShareFile).catch(() => {});
-  }, [cache, pkg.id]);
-
+function PackageRow({ pkg }: { pkg: Pkg; groupTitle: string; groupReason: string }) {
+  const [dialogAba, setDialogAba] = useState<"whatsapp" | "instagram" | "arte" | null>(null);
 
   const total = Number(pkg.price_per_person) * (pkg.base_occupancy ?? 2);
   const dfmt = (s: string | null) =>
     s ? new Date(String(s) + "T12:00:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }) : "";
 
-  async function prepareShareFile() {
-    if (!pkg.image_url) return null;
-    try {
-      const image = await fetchImageFn({ data: { url: pkg.image_url } });
-      if (!image.ok) return null;
-      const mime = image.contentType.split(";")[0] || "image/jpeg";
-      const binary = atob(image.base64);
-      const bytes = new Uint8Array(binary.length);
-      for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
-      const extension = mime === "image/jpeg" ? "jpg" : (mime.split("/")[1] || "jpg").split("+")[0];
-      return new File([bytes], `${pkg.slug}.${extension}`, { type: mime });
-    } catch {
-      return null;
-    }
-  }
-
-  async function handleGenerate(channel: "whatsapp" | "instagram") {
-    setLoading(channel);
-    try {
-      const baseUrl = typeof window !== "undefined" ? window.location.origin : undefined;
-      const res = await generateFn({
-        data: {
-          channel, groupTitle, groupReason,
-          packageId: pkg.id,
-          packages: [{
-            title: pkg.title, destination: pkg.destination, origin: pkg.origin,
-            going_date: pkg.going_date, return_date: pkg.return_date, nights: pkg.nights,
-            price_per_person: Number(pkg.price_per_person), base_occupancy: pkg.base_occupancy ?? 2,
-            hotel_name: pkg.hotel_name, hotel_stars: pkg.hotel_stars, meal_plan: pkg.meal_plan, slug: pkg.slug,
-            supplier_name: pkg.supplier_name ?? null,
-            flexible_dates: !!pkg.flexible_dates,
-            services: (pkg.services ?? null) as any,
-          }],
-          baseUrl,
-        },
-      });
-      const preparedFile = await prepareShareFile();
-      setShareFile(preparedFile);
-      setOutput({ channel, text: res.text });
-      setEntry(pkg.id, channel, { text: res.text, updated_at: new Date().toISOString() });
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Falha ao gerar texto");
-    } finally {
-      setLoading(null);
-    }
-  }
-
-  async function copyText() {
-    if (!output) return;
-    try { await navigator.clipboard.writeText(output.text); toast.success("Texto copiado!"); }
-    catch { toast.error("Não foi possível copiar"); }
-  }
-
-  async function copyImage() {
-    if (!shareFile) { toast.error("Cadastre a URL da imagem de capa antes."); return; }
-    try {
-      const pngBlob = shareFile.type === "image/png"
-        ? shareFile
-        : await (async () => {
-            const bmp = await createImageBitmap(shareFile);
-            const canvas = document.createElement("canvas");
-            canvas.width = bmp.width; canvas.height = bmp.height;
-            canvas.getContext("2d")!.drawImage(bmp, 0, 0);
-            return await new Promise<Blob>((resolve, reject) =>
-              canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("toBlob"))), "image/png")
-            );
-          })();
-      await navigator.clipboard.write([new ClipboardItem({ "image/png": pngBlob })]);
-      toast.success("Foto copiada — cole (Cmd/Ctrl+V) no chat");
-    } catch {
-      toast.error("Não foi possível copiar a foto");
-    }
-  }
-
-  function artInput() {
-    return {
-      slug: pkg.slug, destination: pkg.destination, origin: pkg.origin,
-      going_date: pkg.going_date, return_date: pkg.return_date, nights: pkg.nights,
-      price_per_person: Number(pkg.price_per_person), image_url: pkg.image_url ?? null,
-      includes: pkg.includes ?? null, hotel_name: pkg.hotel_name, hotel_stars: pkg.hotel_stars,
-      room_type: pkg.room_type ?? null, base_occupancy: pkg.base_occupancy ?? 2,
-      tripadvisor_address: pkg.tripadvisor_address ?? null,
-      meal_plan: (pkg as { meal_plan?: string | null }).meal_plan ?? null,
-      services: (pkg as { services?: unknown }).services ?? null,
-      supplier_name: (pkg as { supplier_name?: string | null }).supplier_name ?? null,
-      flexible_dates: !!pkg.flexible_dates,
-    };
-  }
-
-  async function blobToBase64(blob: Blob) {
-    const buffer = new Uint8Array(await blob.arrayBuffer());
-    let binary = "";
-    const chunk = 8192;
-    for (let i = 0; i < buffer.length; i += chunk) {
-      binary += String.fromCharCode(...buffer.subarray(i, i + chunk));
-    }
-    return btoa(binary);
-  }
-
-  /** Publica somente a arte no Instagram (sem legenda/texto). */
-  async function publishArt(kind: "feed" | "story") {
-    if (!pkg.image_url) { toast.error("Cadastre a URL da imagem de capa do pacote antes de publicar."); return; }
-    const ok = await confirm({
-      title: kind === "feed" ? "Postar a arte no feed?" : "Postar a arte no story?",
-      description:
-        kind === "feed"
-          ? "A arte 3:4 será publicada agora no feed do Instagram da VIA AIR, sem legenda."
-          : "A arte 9:16 será publicada agora nos stories do Instagram da VIA AIR.",
-      confirmText: "Postar agora",
-    });
-    if (!ok) return;
-
-    setLoading(kind === "feed" ? "post-feed" : "post-story");
-    try {
-      const input = artInput();
-      const blob = kind === "feed"
-        ? await (await import("@/lib/packages/feed-art")).renderPackageFeedArtBlob(input)
-        : await (await import("@/lib/packages/story-art")).renderPackageStoryArtBlob(input);
-
-      const res = await publishArtFn({
-        data: {
-          media_type: kind === "feed" ? "feed_image" : "story_image",
-          image_base64: await blobToBase64(await (await import("@/lib/packages/to-jpeg")).blobToJpeg(blob)),
-          package_id: pkg.id,
-          slug: pkg.slug,
-        },
-      });
-      toast.success(kind === "feed" ? "Arte publicada no feed!" : "Arte publicada nos stories!", {
-        action: res.permalink
-          ? { label: "Ver post", onClick: () => window.open(res.permalink!, "_blank") }
-          : undefined,
-      });
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Falha ao publicar no Instagram");
-    } finally {
-      setLoading(null);
-    }
-  }
-
-  async function downloadArt(kind: "feed" | "story") {
-    if (!pkg.image_url) { toast.error("Cadastre a URL da imagem de capa do pacote antes de gerar a arte."); return; }
-    setLoading(kind);
-    try {
-      const input = artInput();
-
-
-
-      let delivery: "downloaded" | "shared" | "cancelled";
-      if (kind === "feed") {
-        const { generatePackageFeedArt } = await import("@/lib/packages/feed-art");
-        delivery = await generatePackageFeedArt(input);
-      } else {
-        const { generatePackageStoryArt } = await import("@/lib/packages/story-art");
-        delivery = await generatePackageStoryArt(input);
-      }
-      toast.success(
-        delivery === "shared"
-          ? "Arte pronta para salvar ou compartilhar!"
-          : delivery === "cancelled"
-            ? "Compartilhamento cancelado."
-            : kind === "feed"
-              ? "Arte Feed (3:4) baixada!"
-              : "Arte Story (9:16) baixada!",
-      );
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Falha ao gerar a arte");
-    } finally {
-      setLoading(null);
-    }
-  }
 
   return (
     <div className="group relative bg-white/[0.02] border border-white/5 hover:border-white/20 hover:bg-white/[0.04] p-4 rounded-2xl flex flex-col sm:flex-row items-stretch sm:items-center gap-4 sm:gap-6 transition-all duration-300">
@@ -716,143 +524,58 @@ function PackageRow({ pkg, groupTitle, groupReason }: { pkg: Pkg; groupTitle: st
           </div>
         </div>
 
-        {/* Dock unificado */}
-        <div className="mt-4 pt-3 border-t border-white/5 flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-6 flex-wrap">
-            <div className="flex items-center gap-2">
-              <span className="text-[9px] font-black uppercase text-slate-500 tracking-tighter">Gerar:</span>
-              <button
-                type="button"
-                title="Gerar legenda para WhatsApp"
-                aria-label="Gerar legenda para WhatsApp"
-                onClick={() => handleGenerate("whatsapp")}
-                disabled={loading !== null}
-                className="w-8 h-8 rounded-full flex items-center justify-center bg-[#25D366]/10 text-[#25D366] hover:bg-[#25D366] hover:text-white transition-all ring-1 ring-[#25D366]/20 disabled:opacity-60 disabled:cursor-not-allowed"
-              >
-                {loading === "whatsapp" ? <Loader2 className="w-4 h-4 animate-spin" /> : <WhatsAppIcon />}
-              </button>
-              <button
-                type="button"
-                title="Gerar legenda para Instagram"
-                aria-label="Gerar legenda para Instagram"
-                onClick={() => handleGenerate("instagram")}
-                disabled={loading !== null}
-                className="w-8 h-8 rounded-full flex items-center justify-center bg-[#E1306C]/10 text-[#E1306C] hover:bg-[#E1306C] hover:text-white transition-all ring-1 ring-[#E1306C]/20 disabled:opacity-60 disabled:cursor-not-allowed"
-              >
-                {loading === "instagram" ? <Loader2 className="w-4 h-4 animate-spin" /> : <InstagramIcon />}
-              </button>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <span className="text-[9px] font-black uppercase text-slate-500 tracking-tighter">Download:</span>
-              <button
-                type="button"
-                onClick={() => downloadArt("feed")}
-                disabled={loading !== null}
-                className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-[10px] font-bold text-slate-300 flex items-center gap-1.5 hover:bg-white/10 hover:text-brand-orange hover:border-brand-orange/40 transition-colors disabled:opacity-60"
-              >
-                {loading === "feed" ? <Loader2 className="w-3 h-3 animate-spin" /> : <ImageDown className="w-3 h-3" />}
-                FEED 3:4
-              </button>
-              <button
-                type="button"
-                onClick={() => downloadArt("story")}
-                disabled={loading !== null}
-                className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-[10px] font-bold text-slate-300 flex items-center gap-1.5 hover:bg-white/10 hover:text-brand-orange hover:border-brand-orange/40 transition-colors disabled:opacity-60"
-              >
-                {loading === "story" ? <Loader2 className="w-3 h-3 animate-spin" /> : <Smartphone className="w-3 h-3" />}
-                STORY 9:16
-              </button>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <span className="text-[9px] font-black uppercase text-slate-500 tracking-tighter">Postar:</span>
-              <button
-                type="button"
-                title="Postar a arte no feed do Instagram da VIA AIR (sem legenda)"
-                onClick={() => publishArt("feed")}
-                disabled={loading !== null}
-                className="px-3 py-1.5 rounded-lg bg-[#E1306C]/10 border border-[#E1306C]/30 text-[10px] font-bold text-[#E1306C] flex items-center gap-1.5 hover:bg-[#E1306C] hover:text-white transition-colors disabled:opacity-60"
-              >
-                {loading === "post-feed" ? <Loader2 className="w-3 h-3 animate-spin" /> : <InstagramIcon className="w-3 h-3" />}
-                FEED
-              </button>
-              <button
-                type="button"
-                title="Postar a arte nos stories do Instagram da VIA AIR"
-                onClick={() => publishArt("story")}
-                disabled={loading !== null}
-                className="px-3 py-1.5 rounded-lg bg-[#E1306C]/10 border border-[#E1306C]/30 text-[10px] font-bold text-[#E1306C] flex items-center gap-1.5 hover:bg-[#E1306C] hover:text-white transition-colors disabled:opacity-60"
-              >
-                {loading === "post-story" ? <Loader2 className="w-3 h-3 animate-spin" /> : <Send className="w-3 h-3" />}
-                STORY
-              </button>
-            </div>
+        {/* Três balõezinhos: abrem a janela de divulgação */}
+        <div className="mt-4 flex items-center justify-between gap-3 border-t border-white/5 pt-3">
+          <div className="flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-1.5 py-1">
+            <button
+              type="button"
+              title="WhatsApp — texto, foto e envio para canal ou grupo"
+              aria-label="Divulgar no WhatsApp"
+              onClick={() => setDialogAba("whatsapp")}
+              className="flex h-8 w-8 items-center justify-center rounded-full bg-[#25D366]/10 text-[#25D366] ring-1 ring-[#25D366]/20 transition-all hover:bg-[#25D366] hover:text-white"
+            >
+              <WhatsAppIcon />
+            </button>
+            <button
+              type="button"
+              title="Instagram — publicar no feed ou story"
+              aria-label="Divulgar no Instagram"
+              onClick={() => setDialogAba("instagram")}
+              className="flex h-8 w-8 items-center justify-center rounded-full bg-[#E1306C]/10 text-[#E1306C] ring-1 ring-[#E1306C]/20 transition-all hover:bg-[#E1306C] hover:text-white"
+            >
+              <InstagramIcon />
+            </button>
+            <button
+              type="button"
+              title="Baixar arte (feed 3:4 ou story 9:16)"
+              aria-label="Baixar arte"
+              onClick={() => setDialogAba("arte")}
+              className="flex h-8 w-8 items-center justify-center rounded-full bg-white/5 text-slate-300 ring-1 ring-white/10 transition-all hover:bg-brand-orange hover:text-white"
+            >
+              <ImageDown className="h-4 w-4" />
+            </button>
           </div>
-
 
           <a
             href={`/pacotes/${pkg.slug}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="p-2 rounded-xl text-slate-500 hover:text-foreground hover:bg-white/10 transition-all"
+            className="rounded-xl p-2 text-slate-500 transition-all hover:bg-white/10 hover:text-foreground"
             aria-label="Abrir pacote"
             title="Abrir pacote"
           >
             <ExternalLink className="w-4 h-4" />
           </a>
         </div>
-
-        {/* Output IA */}
-        {output && (
-          <div className="mt-3 rounded-lg border border-white/10 bg-black/30 p-3">
-            <div className="flex items-center justify-between mb-2">
-              <div className="text-[10px] font-bold uppercase tracking-widest text-brand-orange flex items-center gap-1.5">
-                <Wand2 className="h-3 w-3" />
-                Texto para {output.channel === "whatsapp" ? "WhatsApp" : "Instagram"}
-                {cache[pkg.id]?.[output.channel] && (
-                  <span className="ml-1 text-[9px] text-slate-500 normal-case tracking-normal">· salvo</span>
-                )}
-                <button
-                  type="button"
-                  onClick={() => handleGenerate(output.channel)}
-                  disabled={loading !== null}
-                  className="ml-1 inline-flex items-center gap-1 rounded-md border border-white/10 px-1.5 py-0.5 text-[9px] uppercase tracking-wider text-slate-400 hover:text-brand-orange hover:border-brand-orange/40 disabled:opacity-60"
-                  title="Regerar com a IA"
-                >
-                  {loading === output.channel ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
-                  Regerar
-                </button>
-              </div>
-              <div className="flex items-center gap-2">
-                {shareFile && (
-                  <button
-                    type="button"
-                    onClick={copyImage}
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-[10px] font-semibold text-slate-200 hover:border-brand-orange hover:text-brand-orange"
-                    title="Copiar foto do pacote"
-                  >
-                    <ImageDown className="h-3 w-3" /> Copiar foto
-                  </button>
-                )}
-                <button
-                  type="button"
-                  onClick={copyText}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-[10px] font-semibold text-slate-200 hover:border-brand-orange hover:text-brand-orange"
-                >
-                  <Copy className="h-3 w-3" /> Copiar texto
-                </button>
-              </div>
-
-            </div>
-            <textarea
-              readOnly
-              value={output.text}
-              className="w-full min-h-[180px] rounded-lg border border-white/10 bg-black/40 p-2.5 text-[11px] font-mono text-slate-200 leading-relaxed"
-            />
-          </div>
-        )}
       </div>
+
+      <PackageSocialDialog
+        pkg={pkg}
+        open={dialogAba !== null}
+        onOpenChange={(v) => !v && setDialogAba(null)}
+        initialChannel={dialogAba ?? undefined}
+      />
     </div>
   );
 }
+

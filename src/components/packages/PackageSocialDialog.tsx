@@ -1,10 +1,23 @@
 import { useEffect, useRef, useState } from "react";
-import { Copy, ImageDown, Loader2, RefreshCw, Send, Smartphone, Wand2 } from "lucide-react";
+import {
+  Check,
+  Copy,
+  Download,
+  ImageDown,
+  Loader2,
+  RefreshCw,
+  Radio,
+  Send,
+  Smartphone,
+  Users,
+  Wand2,
+} from "lucide-react";
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
 import { generateCurationCopy } from "@/lib/packages/curate.functions";
 import { fetchProxiedImage } from "@/lib/image-proxy.functions";
 import { publishPackageArtToInstagram } from "@/lib/instagram/queries.functions";
+import { listDestinos, enviarPacoteWhatsapp } from "@/lib/broadcast/broadcast.functions";
 import { confirm } from "@/lib/confirm";
 import {
   Dialog,
@@ -13,7 +26,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-
 
 export function WhatsAppIcon({ className = "h-4 w-4" }: { className?: string }) {
   return (
@@ -31,7 +43,18 @@ export function InstagramIcon({ className = "h-4 w-4" }: { className?: string })
   );
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyPkg = Record<string, any>;
+type Aba = "whatsapp" | "instagram" | "arte";
+type Destino = { id: string; nome: string | null; tipo: string; ativo?: boolean | null };
+
+async function blobToBase64(blob: Blob) {
+  const buffer = new Uint8Array(await blob.arrayBuffer());
+  let binary = "";
+  const chunk = 8192;
+  for (let i = 0; i < buffer.length; i += chunk) binary += String.fromCharCode(...buffer.subarray(i, i + chunk));
+  return btoa(binary);
+}
 
 export function PackageSocialDialog({
   pkg,
@@ -42,19 +65,41 @@ export function PackageSocialDialog({
   pkg: AnyPkg | null;
   open: boolean;
   onOpenChange: (v: boolean) => void;
-  initialChannel?: "whatsapp" | "instagram";
+  initialChannel?: Aba;
 }) {
   const generateFn = useServerFn(generateCurationCopy);
   const fetchImageFn = useServerFn(fetchProxiedImage);
   const publishArtFn = useServerFn(publishPackageArtToInstagram);
-  const [loading, setLoading] = useState<
-    "whatsapp" | "instagram" | "feed" | "story" | "post-feed" | "post-story" | null
-  >(null);
+  const listDestinosFn = useServerFn(listDestinos);
+  const enviarWaFn = useServerFn(enviarPacoteWhatsapp);
 
-  const [output, setOutput] = useState<{ channel: "whatsapp" | "instagram"; text: string } | null>(
-    null,
-  );
+  const [aba, setAba] = useState<Aba>(initialChannel ?? "whatsapp");
+  const [busy, setBusy] = useState<string | null>(null);
+
+  // Textos por canal (editáveis)
+  const [textoWa, setTextoWa] = useState("");
+  const [textoIg, setTextoIg] = useState("");
   const [shareFile, setShareFile] = useState<File | null>(null);
+
+  // WhatsApp
+  const [destinos, setDestinos] = useState<Destino[]>([]);
+  const [selecionados, setSelecionados] = useState<Set<string>>(new Set());
+
+  // Instagram
+  const [formatoIg, setFormatoIg] = useState<"feed" | "story">("feed");
+  const [comLegenda, setComLegenda] = useState(true);
+
+  useEffect(() => {
+    if (!open) return;
+    setAba(initialChannel ?? "whatsapp");
+  }, [open, initialChannel]);
+
+  useEffect(() => {
+    if (!open) return;
+    listDestinosFn()
+      .then((r) => setDestinos(((r?.destinos ?? []) as Destino[]).filter((d) => d.ativo !== false && d.tipo !== "instagram_story")))
+      .catch(() => setDestinos([]));
+  }, [open, listDestinosFn]);
 
   async function prepareShareFile() {
     if (!pkg?.image_url) return null;
@@ -72,9 +117,9 @@ export function PackageSocialDialog({
     }
   }
 
-  async function handleGenerate(channel: "whatsapp" | "instagram") {
+  async function gerarTexto(channel: "whatsapp" | "instagram") {
     if (!pkg) return;
-    setLoading(channel);
+    setBusy(`gerar-${channel}`);
     try {
       const baseUrl = typeof window !== "undefined" ? window.location.origin : undefined;
       const res = await generateFn({
@@ -99,42 +144,61 @@ export function PackageSocialDialog({
               slug: pkg.slug,
               supplier_name: pkg.supplier_name ?? null,
               flexible_dates: !!pkg.flexible_dates,
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               services: (pkg.services ?? null) as any,
             },
           ],
           baseUrl,
         },
       });
-      setShareFile(await prepareShareFile());
-      setOutput({ channel, text: res.text });
+      if (channel === "whatsapp") {
+        setTextoWa(res.text);
+        setShareFile(await prepareShareFile());
+      } else {
+        setTextoIg(res.text);
+      }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Falha ao gerar texto");
     } finally {
-      setLoading(null);
+      setBusy(null);
     }
   }
 
-  async function copyText() {
-    if (!output) return;
+  // Gera o texto automaticamente na primeira abertura de cada aba
+  const autoKey = useRef<string | null>(null);
+  useEffect(() => {
+    if (!open || !pkg || aba === "arte") return;
+    const key = `${pkg.id}:${aba}`;
+    if (autoKey.current === key) return;
+    const jaTem = aba === "whatsapp" ? textoWa : textoIg;
+    if (jaTem) return;
+    autoKey.current = key;
+    void gerarTexto(aba);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, pkg?.id, aba]);
+
+  async function copiarTexto(texto: string) {
     try {
-      await navigator.clipboard.writeText(output.text);
+      await navigator.clipboard.writeText(texto);
       toast.success("Texto copiado!");
     } catch {
       toast.error("Não foi possível copiar");
     }
   }
 
-  async function copyImage() {
-    if (!shareFile) {
+  async function copiarFoto() {
+    const file = shareFile ?? (await prepareShareFile());
+    if (!file) {
       toast.error("Cadastre a URL da imagem de capa antes.");
       return;
     }
+    setShareFile(file);
     try {
       const pngBlob =
-        shareFile.type === "image/png"
-          ? shareFile
+        file.type === "image/png"
+          ? file
           : await (async () => {
-              const bmp = await createImageBitmap(shareFile);
+              const bmp = await createImageBitmap(file);
               const canvas = document.createElement("canvas");
               canvas.width = bmp.width;
               canvas.height = bmp.height;
@@ -150,21 +214,19 @@ export function PackageSocialDialog({
     }
   }
 
-  async function downloadArt(kind: "feed" | "story") {
+  async function baixarArte(kind: "feed" | "story") {
     if (!pkg?.image_url) {
       toast.error("Cadastre a URL da imagem de capa do pacote antes de gerar a arte.");
       return;
     }
-    setLoading(kind);
+    setBusy(`baixar-${kind}`);
     try {
-      let delivery: "downloaded" | "shared" | "cancelled";
-      if (kind === "feed") {
-        const { generatePackageFeedArt } = await import("@/lib/packages/feed-art");
-        delivery = await generatePackageFeedArt(pkg as any);
-      } else {
-        const { generatePackageStoryArt } = await import("@/lib/packages/story-art");
-        delivery = await generatePackageStoryArt(pkg as any);
-      }
+      const delivery =
+        kind === "feed"
+          ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            await (await import("@/lib/packages/feed-art")).generatePackageFeedArt(pkg as any)
+          : // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            await (await import("@/lib/packages/story-art")).generatePackageStoryArt(pkg as any);
       toast.success(
         delivery === "shared"
           ? "Arte pronta para salvar ou compartilhar!"
@@ -177,58 +239,94 @@ export function PackageSocialDialog({
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Falha ao gerar a arte");
     } finally {
-      setLoading(null);
+      setBusy(null);
     }
   }
 
-  async function blobToBase64(blob: Blob) {
-    const buffer = new Uint8Array(await blob.arrayBuffer());
-    let binary = "";
-    const chunk = 8192;
-    for (let i = 0; i < buffer.length; i += chunk) {
-      binary += String.fromCharCode(...buffer.subarray(i, i + chunk));
-    }
-    return btoa(binary);
+  /** Gera a arte do formato pedido e devolve JPEG em base64. */
+  async function arteBase64(kind: "feed" | "story") {
+    const blob =
+      kind === "feed"
+        ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          await (await import("@/lib/packages/feed-art")).renderPackageFeedArtBlob(pkg as any)
+        : // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          await (await import("@/lib/packages/story-art")).renderPackageStoryArtBlob(pkg as any);
+    return await blobToBase64(await (await import("@/lib/packages/to-jpeg")).blobToJpeg(blob));
   }
 
-  /** Gera a arte e publica direto no Instagram (feed ou story). */
-  async function publishArt(kind: "feed" | "story") {
+  async function enviarWhatsapp() {
+    if (!pkg) return;
+    if (selecionados.size === 0) {
+      toast.error("Escolha ao menos um canal ou grupo");
+      return;
+    }
+    if (!textoWa.trim()) {
+      toast.error("Gere ou escreva o texto antes de enviar");
+      return;
+    }
+    const nomes = destinos.filter((d) => selecionados.has(d.id)).map((d) => d.nome ?? "destino");
+    const ok = await confirm({
+      title: "Enviar no WhatsApp agora?",
+      description: `A arte (feed 1080×1440) e o texto vão para: ${nomes.join(", ")}. Canais recebem só o texto com o link.`,
+      confirmText: "Enviar agora",
+    });
+    if (!ok) return;
+
+    setBusy("enviar-wa");
+    try {
+      const imagem = pkg.image_url ? await arteBase64("feed") : null;
+      const res = await enviarWaFn({
+        data: {
+          destino_ids: [...selecionados],
+          texto: textoWa.trim(),
+          slug: typeof pkg.slug === "string" ? pkg.slug : undefined,
+          imagem_base64: imagem,
+        },
+      });
+      if (res.falhas.length) {
+        toast.warning(`Enviado para ${res.enviados}. Falhou em: ${res.falhas.map((f) => f.nome).join(", ")}`);
+      } else {
+        toast.success(`Enviado para ${res.enviados} destino${res.enviados === 1 ? "" : "s"}!`);
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Falha ao enviar no WhatsApp");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function publicarInstagram() {
     if (!pkg?.image_url) {
       toast.error("Cadastre a URL da imagem de capa do pacote antes de publicar.");
       return;
     }
-    const caption = output?.channel === "instagram" ? output.text : undefined;
-    if (kind === "feed" && !caption) {
-      toast.error("Gere a legenda do Instagram antes de publicar no feed.");
+    const caption = comLegenda ? textoIg.trim() : undefined;
+    if (comLegenda && !caption) {
+      toast.error("Escreva ou gere a legenda antes de publicar.");
       return;
     }
     const ok = await confirm({
-      title: kind === "feed" ? "Publicar no feed?" : "Publicar no story?",
+      title: formatoIg === "feed" ? "Publicar no feed?" : "Publicar no story?",
       description:
-        kind === "feed"
-          ? "A arte 3:4 e a legenda gerada serão publicadas agora no perfil do Instagram."
-          : "A arte 9:16 será publicada agora nos stories do Instagram.",
+        formatoIg === "feed"
+          ? `A arte 3:4 será publicada agora no feed do Instagram da VIA AIR${caption ? " com a legenda abaixo" : " sem legenda"}.`
+          : "A arte 9:16 será publicada agora nos stories do Instagram da VIA AIR.",
       confirmText: "Publicar agora",
     });
     if (!ok) return;
 
-    setLoading(kind === "feed" ? "post-feed" : "post-story");
+    setBusy("publicar-ig");
     try {
-      const blob =
-        kind === "feed"
-          ? await (await import("@/lib/packages/feed-art")).renderPackageFeedArtBlob(pkg as any)
-          : await (await import("@/lib/packages/story-art")).renderPackageStoryArtBlob(pkg as any);
-
       const res = await publishArtFn({
         data: {
-          media_type: kind === "feed" ? "feed_image" : "story_image",
-          image_base64: await blobToBase64(await (await import("@/lib/packages/to-jpeg")).blobToJpeg(blob)),
-          caption,
+          media_type: formatoIg === "feed" ? "feed_image" : "story_image",
+          image_base64: await arteBase64(formatoIg),
+          caption: formatoIg === "feed" ? caption : undefined,
           package_id: typeof pkg.id === "string" ? pkg.id : undefined,
           slug: typeof pkg.slug === "string" ? pkg.slug : undefined,
         },
       });
-      toast.success(kind === "feed" ? "Publicado no feed!" : "Publicado nos stories!", {
+      toast.success(formatoIg === "feed" ? "Publicado no feed!" : "Publicado nos stories!", {
         action: res.permalink
           ? { label: "Ver post", onClick: () => window.open(res.permalink!, "_blank") }
           : undefined,
@@ -236,20 +334,27 @@ export function PackageSocialDialog({
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Falha ao publicar no Instagram");
     } finally {
-      setLoading(null);
+      setBusy(null);
     }
   }
 
+  const canais = destinos.filter((d) => d.tipo === "channel");
+  const grupos = destinos.filter((d) => d.tipo !== "channel");
 
-  const autoKey = useRef<string | null>(null);
-  useEffect(() => {
-    if (!open || !pkg) return;
-    const key = `${pkg.id}:${initialChannel ?? ""}`;
-    if (!initialChannel || autoKey.current === key) return;
-    autoKey.current = key;
-    void handleGenerate(initialChannel);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, pkg?.id, initialChannel]);
+  function toggleDestino(id: string) {
+    setSelecionados((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  const abas: { key: Aba; label: string; icon: React.ReactNode }[] = [
+    { key: "whatsapp", label: "WhatsApp", icon: <WhatsAppIcon className="h-3.5 w-3.5" /> },
+    { key: "instagram", label: "Instagram", icon: <InstagramIcon className="h-3.5 w-3.5" /> },
+    { key: "arte", label: "Arte", icon: <Download className="h-3.5 w-3.5" /> },
+  ];
 
   return (
     <Dialog
@@ -257,14 +362,15 @@ export function PackageSocialDialog({
       onOpenChange={(v) => {
         onOpenChange(v);
         if (!v) {
-          setOutput(null);
+          setTextoWa("");
+          setTextoIg("");
           setShareFile(null);
+          setSelecionados(new Set());
           autoKey.current = null;
         }
       }}
     >
-
-      <DialogContent className="max-w-xl">
+      <DialogContent className="max-h-[88vh] max-w-xl overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-base">
             <Wand2 className="h-4 w-4 text-brand-orange" />
@@ -273,155 +379,271 @@ export function PackageSocialDialog({
           <DialogDescription className="truncate">{pkg?.title}</DialogDescription>
         </DialogHeader>
 
-        <div className="flex flex-wrap items-center gap-4">
-          <div className="flex items-center gap-2">
-            <span className="text-[9px] font-black uppercase tracking-tighter text-muted-foreground">
-              Gerar texto:
-            </span>
+        {/* Abas */}
+        <div className="grid grid-cols-3 gap-1 rounded-xl border border-border bg-muted/30 p-1">
+          {abas.map((a) => (
             <button
+              key={a.key}
               type="button"
-              title="Gerar legenda para WhatsApp"
-              onClick={() => handleGenerate("whatsapp")}
-              disabled={loading !== null}
-              className="flex h-8 w-8 items-center justify-center rounded-full bg-[#25D366]/10 text-[#25D366] ring-1 ring-[#25D366]/20 transition-all hover:bg-[#25D366] hover:text-white disabled:opacity-60"
+              onClick={() => setAba(a.key)}
+              className={`flex items-center justify-center gap-1.5 rounded-lg px-2 py-1.5 text-[11px] font-bold uppercase tracking-wide transition-colors ${
+                aba === a.key
+                  ? "bg-background text-brand-orange shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
             >
-              {loading === "whatsapp" ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <WhatsAppIcon />
-              )}
+              {a.icon}
+              {a.label}
             </button>
-            <button
-              type="button"
-              title="Gerar legenda para Instagram"
-              onClick={() => handleGenerate("instagram")}
-              disabled={loading !== null}
-              className="flex h-8 w-8 items-center justify-center rounded-full bg-[#E1306C]/10 text-[#E1306C] ring-1 ring-[#E1306C]/20 transition-all hover:bg-[#E1306C] hover:text-white disabled:opacity-60"
-            >
-              {loading === "instagram" ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <InstagramIcon />
-              )}
-            </button>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <span className="text-[9px] font-black uppercase tracking-tighter text-muted-foreground">
-              Arte:
-            </span>
-            <button
-              type="button"
-              onClick={() => downloadArt("feed")}
-              disabled={loading !== null}
-              className="flex items-center gap-1.5 rounded-lg border border-border bg-muted/30 px-3 py-1.5 text-[10px] font-bold text-muted-foreground transition-colors hover:border-brand-orange/40 hover:text-brand-orange disabled:opacity-60"
-            >
-              {loading === "feed" ? (
-                <Loader2 className="h-3 w-3 animate-spin" />
-              ) : (
-                <ImageDown className="h-3 w-3" />
-              )}
-              FEED 3:4
-            </button>
-            <button
-              type="button"
-              onClick={() => downloadArt("story")}
-              disabled={loading !== null}
-              className="flex items-center gap-1.5 rounded-lg border border-border bg-muted/30 px-3 py-1.5 text-[10px] font-bold text-muted-foreground transition-colors hover:border-brand-orange/40 hover:text-brand-orange disabled:opacity-60"
-            >
-              {loading === "story" ? (
-                <Loader2 className="h-3 w-3 animate-spin" />
-              ) : (
-                <Smartphone className="h-3 w-3" />
-              )}
-              STORY 9:16
-            </button>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <span className="text-[9px] font-black uppercase tracking-tighter text-muted-foreground">
-              Publicar no Instagram:
-            </span>
-            <button
-              type="button"
-              onClick={() => publishArt("feed")}
-              disabled={loading !== null}
-              title="Publica a arte 3:4 com a legenda gerada"
-              className="flex items-center gap-1.5 rounded-lg bg-[#E1306C]/10 px-3 py-1.5 text-[10px] font-bold text-[#E1306C] ring-1 ring-[#E1306C]/20 transition-colors hover:bg-[#E1306C] hover:text-white disabled:opacity-60"
-            >
-              {loading === "post-feed" ? (
-                <Loader2 className="h-3 w-3 animate-spin" />
-              ) : (
-                <Send className="h-3 w-3" />
-              )}
-              FEED
-            </button>
-            <button
-              type="button"
-              onClick={() => publishArt("story")}
-              disabled={loading !== null}
-              title="Publica a arte 9:16 nos stories"
-              className="flex items-center gap-1.5 rounded-lg bg-[#E1306C]/10 px-3 py-1.5 text-[10px] font-bold text-[#E1306C] ring-1 ring-[#E1306C]/20 transition-colors hover:bg-[#E1306C] hover:text-white disabled:opacity-60"
-            >
-              {loading === "post-story" ? (
-                <Loader2 className="h-3 w-3 animate-spin" />
-              ) : (
-                <Smartphone className="h-3 w-3" />
-              )}
-              STORY
-            </button>
-          </div>
-
+          ))}
         </div>
 
-        {output && (
-          <div className="rounded-lg border border-border bg-background/60 p-3">
-            <div className="mb-2 flex items-center justify-between gap-2">
-              <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-brand-orange">
-                Texto para {output.channel === "whatsapp" ? "WhatsApp" : "Instagram"}
+        {/* ── WhatsApp ── */}
+        {aba === "whatsapp" && (
+          <div className="space-y-4">
+            <TextoBloco
+              titulo="Texto para WhatsApp"
+              valor={textoWa}
+              onChange={setTextoWa}
+              gerando={busy === "gerar-whatsapp"}
+              onRegerar={() => gerarTexto("whatsapp")}
+              onCopiarTexto={() => copiarTexto(textoWa)}
+              onCopiarFoto={copiarFoto}
+            />
+
+            <div className="space-y-2 rounded-xl border border-border bg-muted/20 p-3">
+              <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                Publicar no WhatsApp
+              </p>
+              <ListaDestinos titulo="Canais" Icon={Radio} itens={canais} sel={selecionados} onToggle={toggleDestino} />
+              <ListaDestinos titulo="Grupos" Icon={Users} itens={grupos} sel={selecionados} onToggle={toggleDestino} />
+              <p className="text-[10px] text-muted-foreground">
+                Grupos recebem a arte de feed (1080×1440) com o texto na legenda. Canais recebem só o texto com o link.
+              </p>
+              <div className="flex justify-end">
                 <button
                   type="button"
-                  onClick={() => handleGenerate(output.channel)}
-                  disabled={loading !== null}
-                  className="ml-1 inline-flex items-center gap-1 rounded-md border border-border px-1.5 py-0.5 text-[9px] uppercase tracking-wider text-muted-foreground hover:border-brand-orange/40 hover:text-brand-orange disabled:opacity-60"
-                  title="Regerar com a IA"
+                  onClick={enviarWhatsapp}
+                  disabled={busy !== null || selecionados.size === 0}
+                  className="inline-flex items-center gap-2 rounded-lg bg-[#25D366] px-3 py-2 text-[11px] font-bold uppercase tracking-wide text-white transition-opacity hover:opacity-90 disabled:opacity-50"
                 >
-                  {loading === output.channel ? (
-                    <Loader2 className="h-3 w-3 animate-spin" />
-                  ) : (
-                    <RefreshCw className="h-3 w-3" />
-                  )}
-                  Regerar
-                </button>
-              </div>
-              <div className="flex items-center gap-2">
-                {shareFile && (
-                  <button
-                    type="button"
-                    onClick={copyImage}
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-muted/30 px-2 py-1 text-[10px] font-semibold text-foreground hover:border-brand-orange hover:text-brand-orange"
-                    title="Copiar foto do pacote"
-                  >
-                    <ImageDown className="h-3 w-3" /> Copiar foto
-                  </button>
-                )}
-                <button
-                  type="button"
-                  onClick={copyText}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-muted/30 px-2 py-1 text-[10px] font-semibold text-foreground hover:border-brand-orange hover:text-brand-orange"
-                >
-                  <Copy className="h-3 w-3" /> Copiar texto
+                  {busy === "enviar-wa" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+                  Enviar agora
                 </button>
               </div>
             </div>
-            <textarea
-              readOnly
-              value={output.text}
-              className="min-h-[200px] w-full rounded-lg border border-border bg-background p-2.5 font-mono text-[11px] leading-relaxed text-foreground"
+          </div>
+        )}
+
+        {/* ── Instagram ── */}
+        {aba === "instagram" && (
+          <div className="space-y-4">
+            <div className="space-y-2 rounded-xl border border-border bg-muted/20 p-3">
+              <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                Publicar no Instagram
+              </p>
+              <div className="grid grid-cols-3 gap-2">
+                {([
+                  { key: "feed" as const, label: "Feed", hint: "Arte 3:4" },
+                  { key: "story" as const, label: "Story", hint: "Arte 9:16" },
+                ]).map((f) => (
+                  <button
+                    key={f.key}
+                    type="button"
+                    onClick={() => setFormatoIg(f.key)}
+                    className={`rounded-xl border px-3 py-2 text-left transition-colors ${
+                      formatoIg === f.key ? "border-[#E1306C] bg-[#E1306C]/10" : "border-border hover:border-[#E1306C]/40"
+                    }`}
+                  >
+                    <span className="block text-xs font-bold">{f.label}</span>
+                    <span className="block text-[10px] text-muted-foreground">{f.hint}</span>
+                  </button>
+                ))}
+                <div
+                  className="rounded-xl border border-dashed border-border px-3 py-2 text-left opacity-60"
+                  title="Reels precisa de vídeo — use Disparos › Nova campanha › Instagram"
+                >
+                  <span className="block text-xs font-bold">Reels</span>
+                  <span className="block text-[10px] text-muted-foreground">Precisa de vídeo</span>
+                </div>
+              </div>
+
+              <label className="flex items-center gap-2 pt-1 text-xs text-foreground">
+                <input
+                  type="checkbox"
+                  checked={comLegenda}
+                  onChange={(e) => setComLegenda(e.target.checked)}
+                  className="h-3.5 w-3.5 accent-[#E1306C]"
+                />
+                Publicar com legenda
+                {formatoIg === "story" && (
+                  <span className="text-[10px] text-muted-foreground">(story vai sempre sem legenda)</span>
+                )}
+              </label>
+
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={publicarInstagram}
+                  disabled={busy !== null}
+                  className="inline-flex items-center gap-2 rounded-lg bg-[#E1306C] px-3 py-2 text-[11px] font-bold uppercase tracking-wide text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+                >
+                  {busy === "publicar-ig" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+                  Publicar agora
+                </button>
+              </div>
+            </div>
+
+            <TextoBloco
+              titulo="Legenda do Instagram"
+              valor={textoIg}
+              onChange={setTextoIg}
+              gerando={busy === "gerar-instagram"}
+              onRegerar={() => gerarTexto("instagram")}
+              onCopiarTexto={() => copiarTexto(textoIg)}
             />
+          </div>
+        )}
+
+        {/* ── Arte ── */}
+        {aba === "arte" && (
+          <div className="space-y-2 rounded-xl border border-border bg-muted/20 p-3">
+            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Baixar arte</p>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => baixarArte("feed")}
+                disabled={busy !== null}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-muted/30 px-3 py-2 text-[11px] font-bold text-foreground hover:border-brand-orange hover:text-brand-orange disabled:opacity-60"
+              >
+                {busy === "baixar-feed" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ImageDown className="h-3.5 w-3.5" />}
+                FEED 3:4
+              </button>
+              <button
+                type="button"
+                onClick={() => baixarArte("story")}
+                disabled={busy !== null}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-muted/30 px-3 py-2 text-[11px] font-bold text-foreground hover:border-brand-orange hover:text-brand-orange disabled:opacity-60"
+              >
+                {busy === "baixar-story" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Smartphone className="h-3.5 w-3.5" />}
+                STORY 9:16
+              </button>
+              <button
+                type="button"
+                onClick={copiarFoto}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-muted/30 px-3 py-2 text-[11px] font-bold text-foreground hover:border-brand-orange hover:text-brand-orange"
+              >
+                <Copy className="h-3.5 w-3.5" /> Copiar foto
+              </button>
+            </div>
           </div>
         )}
       </DialogContent>
     </Dialog>
+  );
+}
+
+function TextoBloco({
+  titulo,
+  valor,
+  onChange,
+  gerando,
+  onRegerar,
+  onCopiarTexto,
+  onCopiarFoto,
+}: {
+  titulo: string;
+  valor: string;
+  onChange: (v: string) => void;
+  gerando: boolean;
+  onRegerar: () => void;
+  onCopiarTexto: () => void;
+  onCopiarFoto?: () => void;
+}) {
+  return (
+    <div className="rounded-xl border border-border bg-background/60 p-3">
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-brand-orange">
+          {titulo}
+          <button
+            type="button"
+            onClick={onRegerar}
+            disabled={gerando}
+            className="ml-1 inline-flex items-center gap-1 rounded-md border border-border px-1.5 py-0.5 text-[9px] uppercase tracking-wider text-muted-foreground hover:border-brand-orange/40 hover:text-brand-orange disabled:opacity-60"
+            title="Gerar de novo com a IA"
+          >
+            {gerando ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
+            Regerar
+          </button>
+        </div>
+        <div className="flex items-center gap-2">
+          {onCopiarFoto && (
+            <button
+              type="button"
+              onClick={onCopiarFoto}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-muted/30 px-2 py-1 text-[10px] font-semibold text-foreground hover:border-brand-orange hover:text-brand-orange"
+            >
+              <ImageDown className="h-3 w-3" /> Copiar foto
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={onCopiarTexto}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-muted/30 px-2 py-1 text-[10px] font-semibold text-foreground hover:border-brand-orange hover:text-brand-orange"
+          >
+            <Copy className="h-3 w-3" /> Copiar texto
+          </button>
+        </div>
+      </div>
+      <textarea
+        value={gerando && !valor ? "Gerando com a IA…" : valor}
+        onChange={(e) => onChange(e.target.value)}
+        className="min-h-[180px] w-full rounded-lg border border-border bg-background p-2.5 font-mono text-[11px] leading-relaxed text-foreground outline-none focus:border-brand-orange"
+        placeholder="Escreva ou gere o texto com a IA…"
+      />
+    </div>
+  );
+}
+
+function ListaDestinos({
+  titulo,
+  Icon,
+  itens,
+  sel,
+  onToggle,
+}: {
+  titulo: string;
+  Icon: React.ComponentType<{ className?: string }>;
+  itens: Destino[];
+  sel: Set<string>;
+  onToggle: (id: string) => void;
+}) {
+  if (itens.length === 0) return null;
+  return (
+    <div className="space-y-1">
+      <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
+        <Icon className="h-3 w-3" /> {titulo}
+      </p>
+      <div className="flex flex-wrap gap-1.5">
+        {itens.map((d) => {
+          const on = sel.has(d.id);
+          return (
+            <button
+              key={d.id}
+              type="button"
+              onClick={() => onToggle(d.id)}
+              className={`inline-flex items-center gap-1.5 rounded-lg border px-2 py-1 text-[11px] font-medium transition-colors ${
+                on
+                  ? "border-[#25D366] bg-[#25D366]/10 text-[#25D366]"
+                  : "border-border text-muted-foreground hover:border-[#25D366]/40"
+              }`}
+            >
+              {on && <Check className="h-3 w-3" />}
+              {d.nome ?? "sem nome"}
+            </button>
+          );
+        })}
+      </div>
+    </div>
   );
 }
