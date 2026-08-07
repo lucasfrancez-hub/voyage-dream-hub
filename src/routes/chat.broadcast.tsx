@@ -11,6 +11,7 @@ import {
   cancelarCampanha,
   excluirCampanha,
   dispararAgora,
+  forcarReenvio,
   getCampanha,
   adicionarDestinoPorLink,
   excluirDestino,
@@ -143,6 +144,7 @@ function DisparosPage() {
   const doCancelar = useServerFn(cancelarCampanha);
   const doExcluir = useServerFn(excluirCampanha);
   const doDisparar = useServerFn(dispararAgora);
+  const doReenviar = useServerFn(forcarReenvio);
   const fetchSuggestions = useServerFn(listSuggestions);
   const approveSuggestion = useServerFn(aprovarSuggestion);
   const dismissSuggestion = useServerFn(descartarSuggestion);
@@ -378,6 +380,24 @@ function DisparosPage() {
             await doDisparar({ data: { id } });
             toast.success("Enviando…");
             load();
+          }}
+          onReenviar={async (id, modo) => {
+            const ok = await confirm({
+              title: modo === "tudo" ? "Reenviar campanha inteira?" : "Forçar reenvio dos não enviados?",
+              description:
+                modo === "tudo"
+                  ? "Todos os destinos vão receber novamente, inclusive quem já recebeu."
+                  : "Só os destinos que ficaram pendentes ou falharam serão reenviados agora.",
+              confirmText: "Reenviar",
+            });
+            if (!ok) return;
+            try {
+              await doReenviar({ data: { id, modo } });
+              toast.success("Reenvio na fila");
+              load();
+            } catch (e) {
+              toast.error(e instanceof Error ? e.message : "Erro ao reenviar");
+            }
           }}
         />
       ) : (
@@ -1331,6 +1351,7 @@ function CampanhasList({
   onCancelar,
   onExcluir,
   onDisparar,
+  onReenviar,
 }: {
   campanhas: Campanha[];
   destinos: Destino[];
@@ -1339,6 +1360,7 @@ function CampanhasList({
   onCancelar: (id: string) => void;
   onExcluir: (id: string) => void;
   onDisparar: (id: string) => void;
+  onReenviar: (id: string, modo: "pendentes" | "tudo") => void;
 
 }) {
   const destMap = useMemo(() => new Map(destinos.map((d) => [d.id, d])), [destinos]);
@@ -1407,6 +1429,24 @@ function CampanhasList({
                   className="inline-flex items-center gap-1 text-xs rounded-full bg-emerald-500/15 text-emerald-500 px-3 py-1.5 hover:bg-emerald-500/25"
                 >
                   <Send className="h-3 w-3" /> Enviar agora
+                </button>
+              </>
+            )}
+            {(c.status === "concluida" || c.status === "falhou" || c.status === "enviando" || c.status === "cancelada") && (
+              <>
+                <button
+                  onClick={() => onReenviar(c.id, "pendentes")}
+                  className="inline-flex items-center gap-1 text-xs rounded-full bg-amber-500/15 text-amber-500 px-3 py-1.5 hover:bg-amber-500/25"
+                  title="Reenvia só os destinos pendentes ou que falharam"
+                >
+                  <RefreshCw className="h-3 w-3" /> Forçar reenvio
+                </button>
+                <button
+                  onClick={() => onReenviar(c.id, "tudo")}
+                  className="text-xs rounded-full border border-border px-3 py-1.5 hover:border-brand-orange"
+                  title="Reenvia para todos os destinos, inclusive quem já recebeu"
+                >
+                  Reenviar tudo
                 </button>
               </>
             )}
