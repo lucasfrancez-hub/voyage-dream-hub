@@ -11,6 +11,11 @@ import { createLovableAiGatewayProvider } from "@/lib/ai-gateway.server";
 
 const MODEL = "google/gemini-2.5-flash";
 
+/** Canais oficiais para onde a conversa comercial é redirecionada. */
+const VIA_AIR_WHATSAPP_LINK = "wa.me/5544999514838";
+const VIA_AIR_WHATSAPP_FORMATADO = "(44) 99951-4838";
+const VIA_AIR_ARROBA = "@viaair";
+
 type Historico = { direction: string; text: string | null }[];
 
 function buildSystem(nome: string, username: string | null) {
@@ -23,7 +28,7 @@ REGRAS ABSOLUTAS:
 - Nunca faça cotação, orçamento, pesquisa de passagem, preço, pagamento ou reserva.
 - Nunca cite consultores, atendentes, especialistas, Setor Aéreo, equipe ou protocolo.
 - Nunca peça dados de viagem (origem, destino, datas, passageiros, CPF).
-- Se o assunto virar viagem/compra, responda humano e breve e mande a pessoa falar no perfil da VIA AIR (@viaair) — sem detalhar valores nem prometer retorno de ninguém.
+- SEMPRE que a pessoa pedir cotação, valor, passagem, pacote, hotel, reserva ou qualquer coisa comercial: responda curto e passe UM dos canais oficiais — o WhatsApp ${VIA_AIR_WHATSAPP_FORMATADO} (${VIA_AIR_WHATSAPP_LINK}) ou o Instagram ${VIA_AIR_ARROBA}. Nunca prometa que alguém vai chamar, nunca cite valores.
 
 ESTILO: informal, direto, 1 ou 2 frases curtas, sem emoji em excesso (no máximo 1), sem saudação repetida se a conversa já começou, sem texto de vendedor.`;
 }
