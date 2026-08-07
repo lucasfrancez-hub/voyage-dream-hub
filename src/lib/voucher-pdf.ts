@@ -936,7 +936,7 @@ const drawPassengersSection = (
   const seatFor = (p: OrderPassenger): string => (seatsByPassenger[p.id] ?? "").trim();
   // Só mostra a coluna Bilhete se pelo menos um passageiro tem número de bilhete
   const showTicket = passengers.some((p) => ticketFor(p).length > 0);
-  const showSeat = passengers.some((p) => seatFor(p).length > 0);
+  const showSeat = ctx.seatStyle === "tabela" && passengers.some((p) => seatFor(p).length > 0);
 
 
   const weights = [2.2, 0.9, 1.6, 1.1];
