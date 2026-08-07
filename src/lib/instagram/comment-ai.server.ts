@@ -35,6 +35,10 @@ Contexto da publicação onde o comentário foi feito:
 - Link: ${ctx.mediaPermalink ?? "(sem link)"}
 ${ctx.videoTranscricao ? `- Conteúdo do vídeo (transcrição e leitura da tela):\n${ctx.videoTranscricao.slice(0, 2500)}\nUse esse conteúdo do vídeo para responder com precisão ao que foi falado.` : ""}
 
+RÉGUA DE TOM (obrigatória): responda SEMPRE com máxima educação, gentileza e serenidade.
+Nunca ironize, nunca rebata, nunca use sarcasmo, nunca discuta nem corrija o cliente de forma ríspida.
+Se o comentário for crítico ou provocativo, agradeça o retorno, mostre empatia e se coloque à disposição — em uma ou duas linhas, sem justificativas longas.
+
 Responda em JSON exato:
 {"publica":"resposta curta e simpática no comentário (máx 2 linhas, sem link)","dm":"mensagem privada convidando a seguir no direct, personalizada com o assunto do post"}`;
 
