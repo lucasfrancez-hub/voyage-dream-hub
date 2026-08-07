@@ -72,9 +72,12 @@ export const Route = createFileRoute("/api/public/hooks/broadcast-dispatch")({
           const prontas = (msgs ?? []).filter((m) => !m.scheduled_at || new Date(m.scheduled_at).getTime() <= now);
           const pendentesFuturas = (msgs ?? []).filter((m) => m.scheduled_at && new Date(m.scheduled_at).getTime() > now);
           for (const d of destinos ?? []) {
+            if (estourouTempo) break;
             const ehInstagram = d.tipo.startsWith("instagram_");
             for (const m of prontas) {
+              if (Date.now() > deadline) { estourouTempo = true; break; }
               // Destinos específicos do bloco (quando vazio, vai para todos da campanha)
+
               const alvos = (m as { destino_ids?: string[] | null }).destino_ids;
               if (alvos && alvos.length > 0 && !alvos.includes(d.id)) continue;
               // Em canais o WhatsApp já gera preview da URL no texto — pular
