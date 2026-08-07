@@ -1636,8 +1636,14 @@ function CampanhaEditor({
 
   async function salvar(status: "rascunho" | "agendada") {
     if (!nome.trim()) return toast.error("Dê um nome à campanha");
-    if (selecionados.size === 0) return toast.error("Selecione ao menos um destino");
     if (blocos.length === 0) return toast.error("Adicione ao menos uma mensagem");
+    // Destino geral é opcional: basta cada mensagem ter o seu próprio destino.
+    if (selecionados.size === 0) {
+      const semDestino = blocos.some((b) => (b.destino_ids?.length ?? 0) === 0);
+      if (semDestino) {
+        return toast.error("Selecione um destino geral ou escolha o destino de cada mensagem");
+      }
+    }
     if (status === "agendada" && !scheduled) return toast.error("Escolha data e horário");
     if (status === "agendada" && scheduled) {
       const alvo = new Date(scheduled).getTime();
@@ -1658,7 +1664,9 @@ function CampanhaEditor({
         data: {
           id,
           nome: nome.trim(),
-          destino_ids: Array.from(selecionados),
+          destino_ids: Array.from(
+            new Set<string>([...selecionados, ...blocos.flatMap((b) => b.destino_ids ?? [])]),
+          ),
           scheduled_at,
           observacoes_marketing: obs.trim() || null,
           status,
@@ -1792,7 +1800,7 @@ function CampanhaEditor({
               </div>
 
               <p className="text-[11px] text-muted-foreground">
-                Selecione todos os canais da campanha — WhatsApp e Instagram juntos. Depois, se quiser, cada mensagem pode ir só para alguns deles.
+                Opcional: selecione aqui os canais que valem para a campanha inteira. Se preferir, deixe vazio e escolha o destino dentro de cada mensagem — só é obrigatório quando nenhuma mensagem tiver destino próprio.
               </p>
 
               <div className="grid md:grid-cols-2 gap-3">
@@ -1843,7 +1851,7 @@ function CampanhaEditor({
                       idx={i}
                       total={blocos.length}
                       bloco={b}
-                      destinosCampanha={destinosSelecionados}
+                      destinosCampanha={destinosSelecionados.length > 0 ? destinosSelecionados : destinos}
                       onChange={(p) => updateBloco(i, p)}
                       onRemove={() => removeBloco(i)}
                       onMove={(dir) => moveBloco(i, dir)}
