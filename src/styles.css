@@ -287,3 +287,11 @@ body.chat-viewport-lock {
   overscroll-behavior: none;
   position: relative;
 }
+
+/* Enquanto /chat estiver montado, o fundo do documento acompanha o fundo
+   estrutural do chat (claro ou escuro), pra safe-area/área de sistema nunca
+   expor a cor escura padrão do :root. Somente pintura, sem espaçamento. */
+body.chat-viewport-lock {
+  background-color: var(--chat-bg);
+}
+
