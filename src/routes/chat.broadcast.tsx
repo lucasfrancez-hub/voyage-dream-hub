@@ -272,7 +272,7 @@ function DisparosPage() {
       </div>
 
       <div className="inline-flex bg-muted/50 p-1 rounded-lg self-start overflow-x-auto">
-        {(["calendario", "sugestoes", "campanhas", "destinos", "instagram"] as const).map((t) => {
+        {(["calendario", "sugestoes", "campanhas", "destinos"] as const).map((t) => {
           const count =
             t === "calendario"
               ? campanhas.filter((c) => c.status === "agendada" && c.scheduled_at).length
@@ -280,9 +280,7 @@ function DisparosPage() {
               ? suggestions.filter((suggestion) => suggestion.status === "pending").length
               : t === "campanhas"
               ? campanhas.length
-              : t === "destinos"
-              ? destinos.length
-              : 0;
+              : destinos.length;
           return (
             <button
               key={t}
@@ -293,12 +291,13 @@ function DisparosPage() {
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              {t === "calendario" ? "Calendário" : t === "sugestoes" ? "Sugestões" : t === "campanhas" ? "Campanhas" : t === "destinos" ? "Destinos" : "Instagram"}
-              {t !== "instagram" && <span className="text-xs opacity-60 ml-1">({count})</span>}
+              {t === "calendario" ? "Calendário" : t === "sugestoes" ? "Sugestões" : t === "campanhas" ? "Campanhas" : "Destinos"}
+              <span className="text-xs opacity-60 ml-1">({count})</span>
             </button>
           );
         })}
       </div>
+
 
       {loading ? (
         <div className="py-16 flex justify-center">
