@@ -293,6 +293,55 @@ export const triggerAutoReplyComment = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+/**
+ * Comentário sensível (régua de tom): a IA não responde sozinha. Aqui o
+ * atendente pede uma sugestão educada pra revisar antes de publicar.
+ */
+export const sugerirRespostaComentarioIa = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { id: string }) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { data: row, error } = await context.supabase
+      .from("instagram_comments")
+      .select("id, text, from_username, media_caption, media_permalink")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (error || !row) throw new Error("Comentário não encontrado");
+    const { gerarRespostaComentario } = await import("./comment-ai.server");
+    const r = await gerarRespostaComentario({
+      fromUsername: row.from_username,
+      text: row.text,
+      mediaCaption: row.media_caption,
+      mediaPermalink: row.media_permalink,
+    });
+    if (!r) throw new Error("Não consegui gerar a sugestão agora");
+    return { texto: r.publica };
+  });
+
+/** Libera o comentário sensível: o atendente decidiu que não precisa mais revisar. */
+export const dispensarAlertaComentario = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { id: string }) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { data: row } = await context.supabase
+      .from("instagram_comments")
+      .select("metadata")
+      .eq("id", data.id)
+      .maybeSingle();
+    const meta = ((row?.metadata ?? {}) as Record<string, unknown>);
+    const tone = (meta["tone"] ?? {}) as Record<string, unknown>;
+    const { error } = await context.supabase
+      .from("instagram_comments")
+      .update({
+        auto_reply_status: "review_dismissed",
+        metadata: { ...meta, tone: { ...tone, dispensado_em: new Date().toISOString() } },
+      })
+      .eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+
 // ============ Publicações ============
 
 export const listInstagramMedia = createServerFn({ method: "GET" })

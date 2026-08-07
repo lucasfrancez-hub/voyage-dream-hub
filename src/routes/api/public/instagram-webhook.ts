@@ -368,6 +368,35 @@ async function processPayload(payload: IGPayload) {
       if (igToken && !souEu && iaPodeResponderComentario(igMetadata, midia.media_type)) {
         try {
           const { isAiGloballyOff } = await import("@/lib/whatsapp/ai-global-switch.server");
+          // Régua de tom: comentário hostil/ofensivo nunca recebe resposta
+          // automática — fica marcado pra revisão e dispara alerta no chatbot.
+          const { avaliarTomComentario } = await import("@/lib/instagram/tone-guard.server");
+          const tom = await avaliarTomComentario(v.text);
+          if (tom.precisaRevisao) {
+            await supabaseAdmin
+              .from("instagram_comments")
+              .update({
+                auto_reply_status: "needs_review",
+                metadata: {
+                  ...(anexoComentario ? { attachment_url: anexoComentario } : {}),
+                  tone: { nivel: tom.nivel, categoria: tom.categoria, motivo: tom.motivo, avaliado_em: new Date().toISOString() },
+                },
+              })
+              .eq("comment_id", v.id);
+            try {
+              const { notificarNovaMensagemChat } = await import("@/lib/chat/push.server");
+              await notificarNovaMensagemChat({
+                conversationId: v.media.id,
+                titulo: `⚠️ Comentário sensível — ${v.from?.username ? "@" + v.from.username : "Instagram"}`,
+                corpo: `${tom.categoria}: ${v.text ?? ""}`.slice(0, 160),
+                canal: "instagram_comentario",
+                messageId: `${v.id}-tom`,
+              });
+            } catch (e) {
+              console.error("[instagram] alerta de tom:", (e as Error).message);
+            }
+            continue;
+          }
           if (!(await isAiGloballyOff())) {
             // Antes de responder, a IA assiste o vídeo (reels) pra entender o que foi falado.
             const { transcreverVideoDaPublicacao } = await import("@/lib/instagram/video-transcribe.server");
