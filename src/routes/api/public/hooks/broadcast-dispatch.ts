@@ -65,6 +65,8 @@ export const Route = createFileRoute("/api/public/hooks/broadcast-dispatch")({
             .in("id", camp.destino_ids as string[]);
 
           let ok = 0, fail = 0;
+          let estourouTempo = false;
+
           const now = Date.now();
           // Mensagens com horário próprio no futuro ficam para a próxima rodada.
           const prontas = (msgs ?? []).filter((m) => !m.scheduled_at || new Date(m.scheduled_at).getTime() <= now);
