@@ -235,14 +235,10 @@ NUNCA cumprimente, NUNCA se apresente ("Olá, aqui é a Camila…" está PROIBID
 FORMATO OBRIGATÓRIO (copie exatamente, incluindo asteriscos do WhatsApp para negrito):
 
 *DESTINO EM CAIXA ALTA* {1-2 emojis do país/vibe}
-_{Gancho de UMA linha, CRIATIVO E ORIGINAL, 100% conectado ao destino específico "{destino}" e ao clima/vibe do tema "${data.groupTitle}". VARIE MUITO a abertura — NÃO comece sempre com "Já imaginou". Alterne livremente entre estas famílias (escolha aleatoriamente uma diferente a cada pacote, e nunca repita a mesma abertura no mesmo lote):
- • Pergunta sensorial ("Sente o cheiro do mar chegando?", "Que tal acordar com vista pra montanha?")
- • Provocação/curiosidade ("Poucos sabem, mas ${"{destino}"} em NOVEMBRO fica quase deserto…", "Existe um jeito de conhecer ${"{destino}"} gastando menos do que você imagina.")
- • Cena viva ("Pé na areia branca, drink na mão, sem pressa nenhuma.", "Manhã fria, café quentinho, vista das serras pela janela.")
- • Fato/dado do destino ("${"{destino}"} tem 90km de praias — e a gente escolheu a melhor pra você.")
- • Convite direto e curto ("Bora fugir da rotina em ${"{destino}"}?", "Tá na hora de tirar esse ${"{destino}"} da lista.")
- • Contagem/urgência sutil ("Faltam poucos meses pra ${"{tema}"} — e os melhores hotéis já estão sumindo.")
-Regras do gancho: 1 linha só, no máximo 14 palavras, sem clichê genérico ("preço redondo", "oportunidade imperdível", "não perca"), sem emoji dentro do gancho, sem repetir o nome do destino se ele já apareceu no título acima. SEMPRE envolva a frase inteira em underscores para itálico no WhatsApp: _frase_.}_
+_{Gancho de UMA linha, CRIATIVO E ORIGINAL, 100% conectado ao destino específico "{destino}" e ao clima/vibe do tema "${data.groupTitle}".
+${hookDirective}
+Regras do gancho: 1 linha só, no máximo 14 palavras, sem clichê genérico ("preço redondo", "oportunidade imperdível", "não perca"), sem emoji dentro do gancho, sem repetir o nome do destino se ele já apareceu no título acima. Se houver mais de um pacote, cada um precisa de um gancho com estrutura DIFERENTE do anterior. SEMPRE envolva a frase inteira em underscores para itálico no WhatsApp: _frase_.}_
+
 
 ✈️ Saindo de {origem}
 🗓️ {SE "flexible_dates" for true, escreva EXATAMENTE "Datas flexíveis" seguido de " ({N noites})" quando houver noites — NUNCA escreva datas. SE for false, escreva {DD/MM a DD/MM} ({N noites})}
