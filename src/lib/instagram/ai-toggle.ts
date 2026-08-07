@@ -38,3 +38,11 @@ export function iaPodeResponderComentario(
 export function contaEnviaDmAposComentario(metadata: unknown): boolean {
   return contaComIaAtiva(metadata);
 }
+
+/**
+ * Perfil PESSOAL: o Direct nunca entra no atendimento comercial (consultores,
+ * especialistas, cotação). A IA responde fingindo ser o próprio dono do perfil.
+ */
+export function contaRespondeDirectComoPessoa(metadata: unknown): boolean {
+  return !contaComIaAtiva(metadata);
+}
