@@ -5,6 +5,7 @@
  */
 import { createRoot } from "react-dom/client";
 import { PackageFeedArt } from "@/components/packages/PackageFeedArt";
+import { StoryArtVariant, artModeFromKind } from "@/components/packages/StoryArtVariants";
 import { buildFeedArtData, ensureFonts, type FeedInputPkg } from "@/lib/packages/feed-art-data";
 import {
   captureArtPng,
@@ -19,25 +20,33 @@ export async function renderPackageFeedArtBlob(pkg: FeedInputPkg): Promise<Blob>
   const data = await buildFeedArtData(pkg);
   await ensureFonts();
 
+  // Passeio e ingresso usam o modelo 2 adaptado ao 3:4
+  const isAvulso = data.kind === "tour" || data.kind === "service";
   const host = createArtHost(1080, 1440);
   const root = createRoot(host);
 
   try {
     await new Promise<void>((resolve) => {
-      root.render(<PackageFeedArt data={data} />);
+      root.render(
+        isAvulso ? (
+          <StoryArtVariant data={data} mode={artModeFromKind(data.kind)} variant={2} format="feed" />
+        ) : (
+          <PackageFeedArt data={data} />
+        ),
+      );
       requestAnimationFrame(() => resolve());
     });
 
     await waitForArtAssets(host);
 
-    const stage = host.querySelector<HTMLDivElement>(".vfeed-outer");
+    const stage = host.querySelector<HTMLDivElement>(isAvulso ? ".vsv-outer" : ".vfeed-outer");
     if (!stage) throw new Error("Falha ao montar a arte");
 
     return await captureArtPng(stage, {
       width: 1080,
       height: 1440,
-      innerSelector: ".vfeed-inner",
-      backgroundSelector: ".vfeed-bg",
+      innerSelector: isAvulso ? ".vsv-inner" : ".vfeed-inner",
+      backgroundSelector: isAvulso ? ".vsv-bg" : ".vfeed-bg",
       backgroundDataUrl: data.backgroundDataUrl,
       gradientMiddle: 0.45,
       gradientTopOpacity: 0.6,
