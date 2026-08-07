@@ -6,6 +6,7 @@
  */
 import { forwardRef, Fragment, type ReactElement } from "react";
 import logoAsset from "@/assets/viaair-logo-white.png.asset.json";
+import { fitDestSize } from "./fit-title";
 
 export type FeedArtData = {
   kind?: "package" | "service" | "cruise" | "tour";
