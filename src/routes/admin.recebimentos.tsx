@@ -4,7 +4,9 @@ import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Barcode, Copy, Loader2, Plus, QrCode, RefreshCw, Search, Ban, ExternalLink,
+  AlertTriangle, CalendarClock, CheckCircle2, Wallet,
 } from "lucide-react";
+
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -51,6 +53,31 @@ const STATUS_META: Record<string, { label: string; cls: string }> = {
 function formatBRL(v: number) {
   return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
+
+function StatCard({
+  label, qtd, total, tone, icon,
+}: {
+  label: string;
+  qtd: number;
+  total: number;
+  tone: string;
+  icon: React.ReactNode;
+}) {
+  return (
+    <div className="rounded-2xl border border-border/60 bg-card/60 backdrop-blur-xl p-4">
+      <div className="flex items-center justify-between text-xs text-muted-foreground">
+        <span className="uppercase tracking-wider">{label}</span>
+        <span className={tone}>{icon}</span>
+      </div>
+      <p className={`mt-2 text-xl font-bold tabular-nums ${tone}`}>{formatBRL(total)}</p>
+      <p className="text-xs text-muted-foreground mt-0.5">
+        {qtd} {qtd === 1 ? "cobrança" : "cobranças"}
+      </p>
+    </div>
+  );
+}
+
+
 
 function RecebimentosPage() {
   const qc = useQueryClient();
@@ -108,8 +135,29 @@ function RecebimentosPage() {
     );
   }
 
+  const stats = useMemo(() => {
+    const rows = data ?? [];
+    const hoje = new Date().toISOString().slice(0, 10);
+    const sum = (list: any[]) => list.reduce((s, r) => s + Number(r.value || 0), 0);
+    const pendentes = rows.filter((r) => r.status === "pendente");
+    const atrasados = rows.filter(
+      (r) => r.status === "vencido" || (r.status === "pendente" && r.due_date && r.due_date < hoje),
+    );
+    const aVencer = pendentes.filter((r) => !r.due_date || r.due_date >= hoje);
+    const mes = hoje.slice(0, 7);
+    const recebidos = rows.filter(
+      (r) => r.status === "recebido" && String(r.paid_at ?? r.created_at ?? "").slice(0, 7) === mes,
+    );
+    return {
+      atrasados: { qtd: atrasados.length, total: sum(atrasados) },
+      aVencer: { qtd: aVencer.length, total: sum(aVencer) },
+      recebidos: { qtd: recebidos.length, total: sum(recebidos) },
+      geral: { qtd: rows.length, total: sum(rows) },
+    };
+  }, [data]);
+
   return (
-    <div className="space-y-6">
+    <div className="mx-auto max-w-7xl px-4 md:px-6 py-6 space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold">Recebimentos</h1>
@@ -117,21 +165,56 @@ function RecebimentosPage() {
             Cobranças Pix com QR Code e boletos bancários gerados na conta VIA AIR.
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
             <RefreshCw className={`h-4 w-4 mr-1.5 ${isFetching ? "animate-spin" : ""}`} /> Atualizar
           </Button>
           <Button
             size="sm"
-            variant="outline"
+            className="bg-brand-orange text-white hover:bg-brand-orange/90"
             onClick={() => { setNovoKind("boleto"); setNovoOpen(true); }}
           >
             <Barcode className="h-4 w-4 mr-1.5" /> Novo boleto
           </Button>
-          <Button size="sm" onClick={() => { setNovoKind("pix"); setNovoOpen(true); }}>
+          <Button
+            size="sm"
+            className="bg-emerald-600 text-white hover:bg-emerald-600/90"
+            onClick={() => { setNovoKind("pix"); setNovoOpen(true); }}
+          >
             <Plus className="h-4 w-4 mr-1.5" /> Nova cobrança Pix
           </Button>
         </div>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <StatCard
+          label="Atrasados"
+          qtd={stats.atrasados.qtd}
+          total={stats.atrasados.total}
+          tone="text-rose-400"
+          icon={<AlertTriangle className="h-4 w-4" />}
+        />
+        <StatCard
+          label="A vencer"
+          qtd={stats.aVencer.qtd}
+          total={stats.aVencer.total}
+          tone="text-amber-400"
+          icon={<CalendarClock className="h-4 w-4" />}
+        />
+        <StatCard
+          label="Recebido no mês"
+          qtd={stats.recebidos.qtd}
+          total={stats.recebidos.total}
+          tone="text-emerald-400"
+          icon={<CheckCircle2 className="h-4 w-4" />}
+        />
+        <StatCard
+          label="Total emitido"
+          qtd={stats.geral.qtd}
+          total={stats.geral.total}
+          tone="text-foreground"
+          icon={<Wallet className="h-4 w-4" />}
+        />
       </div>
 
       <div className="relative max-w-sm">
@@ -143,6 +226,7 @@ function RecebimentosPage() {
           className="pl-9"
         />
       </div>
+
 
       <div className="rounded-2xl border border-border bg-card overflow-hidden">
         {isLoading ? (
@@ -360,19 +444,27 @@ function CobrancaDialog({ row, onClose }: { row: any | null; onClose: () => void
               <p className="text-2xl font-bold text-brand-orange">{formatBRL(Number(row.value))}</p>
             </div>
 
-            {row.kind === "pix" && row.pix_qr_image && (
-              <img
-                src={row.pix_qr_image}
-                alt="QR Code Pix da cobrança"
-                className="mx-auto h-52 w-52 rounded-xl bg-white p-2"
-              />
+            {row.pix_qr_image && (
+              <div className="space-y-2">
+                <img
+                  src={row.pix_qr_image}
+                  alt="QR Code Pix da cobrança"
+                  className="mx-auto h-52 w-52 rounded-xl bg-white p-2"
+                />
+                {row.kind === "boleto" && (
+                  <p className="text-center text-[11px] text-muted-foreground">
+                    Boleto híbrido: pode ser pago pelo QR Code Pix ou pela linha digitável.
+                  </p>
+                )}
+              </div>
             )}
 
-            {row.kind === "pix" && row.pix_payload && (
+            {row.pix_payload && (
               <Button variant="outline" className="w-full" onClick={() => copy(row.pix_payload, "Código Pix copiado.")}>
                 <Copy className="h-4 w-4 mr-2" /> Copiar código Pix
               </Button>
             )}
+
 
             {row.kind === "boleto" && row.identification_field && (
               <div className="rounded-xl border border-border/60 bg-muted/20 p-3">
