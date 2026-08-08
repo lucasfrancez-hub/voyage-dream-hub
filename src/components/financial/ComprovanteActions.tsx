@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { Download, ExternalLink, Eye, Loader2, Receipt, Share2 } from "lucide-react";
+import { Download, Eye, Loader2, Receipt, Share2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -50,11 +50,6 @@ export function ComprovanteActions({
     } finally {
       setLoading(false);
     }
-  }
-
-  async function abrirNoAsaas() {
-    const u = await ensureUrl();
-    if (u) window.open(u, "_blank", "noopener,noreferrer");
   }
 
   async function baixarPdf() {
@@ -129,9 +124,6 @@ export function ComprovanteActions({
           )}
           <DropdownMenuItem onSelect={(e) => { e.preventDefault(); baixarPdf(); }}>
             <Download className="mr-2 h-4 w-4" /> Baixar PDF
-          </DropdownMenuItem>
-          <DropdownMenuItem onSelect={(e) => { e.preventDefault(); abrirNoAsaas(); }}>
-            <ExternalLink className="mr-2 h-4 w-4" /> Abrir no ASAAS
           </DropdownMenuItem>
           <DropdownMenuItem onSelect={(e) => { e.preventDefault(); compartilhar(); }}>
             <Share2 className="mr-2 h-4 w-4" /> Compartilhar

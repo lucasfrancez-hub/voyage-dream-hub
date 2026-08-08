@@ -15,6 +15,10 @@ export interface Comprovante {
   status: string | null
   reference: string | null
   receiptUrl: string | null
+  instituicao: string | null
+  chavePix: string | null
+  cpfCnpj: string | null
+  descricao: string | null
 }
 
 const TRANSFER_STATUS: Record<string, string> = {
@@ -76,6 +80,32 @@ function favoredOfTransfer(t: any): string | null {
   )
 }
 
+function digits(v: any): string | null {
+  const d = String(v ?? '').replace(/\D/g, '')
+  return d.length === 11 || d.length === 14 ? d : null
+}
+
+function bankOfTransfer(t: any): string | null {
+  return (
+    t?.bankAccount?.bank?.name ??
+    t?.bankAccount?.ispbName ??
+    t?.pixTransaction?.qrCode?.payer?.bankName ??
+    t?.bankAccount?.bank?.ispb ??
+    null
+  )
+}
+
+function docOfTransfer(t: any): string | null {
+  return (
+    digits(t?.bankAccount?.cpfCnpj) ??
+    digits(t?.pixAddressKeyOwnerCpfCnpj) ??
+    digits(t?.cpfCnpj) ??
+    (digits(t?.pixAddressKey) && String(t?.pixAddressKeyType ?? '').toUpperCase() === 'CPF'
+      ? digits(t?.pixAddressKey)
+      : null)
+  )
+}
+
 /** Busca comprovantes de transferências, cobranças e boletos no período. */
 export async function fetchComprovantes(range: {
   startDate: string
@@ -105,6 +135,10 @@ export async function fetchComprovantes(range: {
       status: TRANSFER_STATUS[String(t?.status ?? '')] ?? t?.status ?? null,
       reference: t?.externalReference ?? t?.id ?? null,
       receiptUrl: t?.transactionReceiptUrl ?? null,
+      instituicao: bankOfTransfer(t),
+      chavePix: t?.pixAddressKey ?? t?.pixTransaction?.qrCode?.pixKey ?? null,
+      cpfCnpj: docOfTransfer(t),
+      descricao: t?.description ?? null,
     })
   }
 
@@ -122,6 +156,10 @@ export async function fetchComprovantes(range: {
       status: PAYMENT_STATUS[String(p?.status ?? '')] ?? p?.status ?? null,
       reference: p?.externalReference ?? p?.invoiceNumber ?? p?.id ?? null,
       receiptUrl: p?.transactionReceiptUrl ?? null,
+      instituicao: p?.creditCard?.creditCardBrand ?? null,
+      chavePix: p?.pixTransaction?.qrCode?.pixKey ?? null,
+      cpfCnpj: digits(p?.customerCpfCnpj),
+      descricao: p?.description ?? null,
     })
   }
 
@@ -139,6 +177,10 @@ export async function fetchComprovantes(range: {
       status: BILL_STATUS[String(b?.status ?? '')] ?? b?.status ?? null,
       reference: b?.externalReference ?? b?.id ?? null,
       receiptUrl: b?.transactionReceiptUrl ?? null,
+      instituicao: b?.bankSlipInfo?.bankName ?? b?.bankName ?? null,
+      chavePix: null,
+      cpfCnpj: digits(b?.cpfCnpj ?? b?.beneficiaryCpfCnpj),
+      descricao: b?.description ?? b?.identificationField ?? null,
     })
   }
 

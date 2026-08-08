@@ -228,11 +228,16 @@ function ComprovantesPage() {
                           receipt={{
                             valor: Math.abs(Number(c.value ?? 0)),
                             favorecido: c.favored || "—",
+                            instituicao: c.instituicao ?? null,
+                            chavePix: c.chavePix ?? null,
+                            cpfCnpj: c.cpfCnpj ?? null,
+                            descricao: c.descricao ?? null,
                             tipo: c.operation,
                             dataHora: fmtDate(c.date),
                             transacaoId: c.reference || c.asaasId,
                             status: c.status ?? undefined,
                             concluido: true,
+                            pdfUrl: c.receiptUrl ?? null,
                           }}
                         />
                       ) : ["Concluído", "Recebido", "Confirmado", "Pago", "Recebido em dinheiro"].includes(
@@ -246,11 +251,16 @@ function ComprovantesPage() {
                           receipt={{
                             valor: Math.abs(Number(c.value ?? 0)),
                             favorecido: c.favored || "—",
+                            instituicao: c.instituicao ?? null,
+                            chavePix: c.chavePix ?? null,
+                            cpfCnpj: c.cpfCnpj ?? null,
+                            descricao: c.descricao ?? null,
                             tipo: c.operation,
                             dataHora: fmtDate(c.date),
                             transacaoId: c.reference || c.asaasId,
                             status: c.status ?? undefined,
                             concluido: true,
+                            pdfUrl: c.receiptUrl ?? null,
                           }}
                         />
 
