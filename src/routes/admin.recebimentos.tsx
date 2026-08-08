@@ -54,6 +54,31 @@ function formatBRL(v: number) {
   return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
+function StatCard({
+  label, qtd, total, tone, icon,
+}: {
+  label: string;
+  qtd: number;
+  total: number;
+  tone: string;
+  icon: React.ReactNode;
+}) {
+  return (
+    <div className="rounded-2xl border border-border/60 bg-card/60 backdrop-blur-xl p-4">
+      <div className="flex items-center justify-between text-xs text-muted-foreground">
+        <span className="uppercase tracking-wider">{label}</span>
+        <span className={tone}>{icon}</span>
+      </div>
+      <p className={`mt-2 text-xl font-bold tabular-nums ${tone}`}>{formatBRL(total)}</p>
+      <p className="text-xs text-muted-foreground mt-0.5">
+        {qtd} {qtd === 1 ? "cobrança" : "cobranças"}
+      </p>
+    </div>
+  );
+}
+
+
+
 function RecebimentosPage() {
   const qc = useQueryClient();
   const listar = useServerFn(listarRecebimentos);
