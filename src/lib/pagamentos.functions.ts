@@ -519,6 +519,28 @@ export const gerarBoletoPedidoAdmin = createServerFn({ method: 'POST' })
         descricao: z.string().trim().max(500).nullable().optional(),
         multaPercent: z.number().min(0).max(100).nullable().optional(),
         jurosPercent: z.number().min(0).max(100).nullable().optional(),
+        endereco: z
+          .object({
+            cep: z.string().trim().nullable().optional(),
+            logradouro: z.string().trim().nullable().optional(),
+            numero: z.string().trim().nullable().optional(),
+            complemento: z.string().trim().nullable().optional(),
+            bairro: z.string().trim().nullable().optional(),
+            cidade: z.string().trim().nullable().optional(),
+            estado: z.string().trim().nullable().optional(),
+          })
+          .nullable()
+          .optional(),
+        composicao: z
+          .object({
+            servico: z.string().trim().max(200).nullable().optional(),
+            destino: z.string().trim().max(200).nullable().optional(),
+            periodoInicio: z.string().trim().nullable().optional(),
+            periodoFim: z.string().trim().nullable().optional(),
+            passageiros: z.string().trim().max(1000).nullable().optional(),
+          })
+          .nullable()
+          .optional(),
       })
       .parse(input),
   )
