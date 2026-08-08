@@ -988,69 +988,14 @@ function Checkout() {
               )}
 
               {payment === "pix" && (
-                <div className="mt-6 pt-6 border-t border-border space-y-4">
-                  <div>
-                    <h4 className="text-sm font-semibold">Endereço de cobrança</h4>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Usamos esses dados para gerar o contrato e o recibo da sua reserva.
-                    </p>
-                  </div>
-                  <div className="grid sm:grid-cols-2 gap-4">
-                    <label className="block">
-                      <span className="block text-xs text-muted-foreground mb-1.5">CEP *</span>
-                      <input
-                        value={pixAddress.cep}
-                        onChange={(e) => setPixAddress((p) => ({ ...p, cep: e.target.value }))}
-                        className={inputCls}
-                        placeholder="00000-000"
-                        maxLength={9}
-                        required
-                      />
-                    </label>
-                    <label className="block">
-                      <span className="block text-xs text-muted-foreground mb-1.5">Endereço *</span>
-                      <input
-                        value={pixAddress.address}
-                        onChange={(e) => setPixAddress((p) => ({ ...p, address: e.target.value }))}
-                        className={inputCls}
-                        placeholder="Rua / Avenida"
-                        maxLength={200}
-                        required
-                      />
-                    </label>
-                    <label className="block">
-                      <span className="block text-xs text-muted-foreground mb-1.5">Número *</span>
-                      <input
-                        value={pixAddress.number}
-                        onChange={(e) => setPixAddress((p) => ({ ...p, number: e.target.value }))}
-                        className={inputCls}
-                        maxLength={20}
-                        required
-                      />
-                    </label>
-                    <label className="block">
-                      <span className="block text-xs text-muted-foreground mb-1.5">Cidade *</span>
-                      <input
-                        value={pixAddress.city}
-                        onChange={(e) => setPixAddress((p) => ({ ...p, city: e.target.value }))}
-                        className={inputCls}
-                        maxLength={120}
-                        required
-                      />
-                    </label>
-                    <label className="block">
-                      <span className="block text-xs text-muted-foreground mb-1.5">Estado *</span>
-                      <input
-                        value={pixAddress.state}
-                        onChange={(e) => setPixAddress((p) => ({ ...p, state: e.target.value.toUpperCase().slice(0, 2) }))}
-                        className={inputCls}
-                        maxLength={2}
-                        required
-                      />
-                    </label>
-                  </div>
+                <div className="mt-6 pt-6 border-t border-border">
+                  <p className="text-xs text-muted-foreground">
+                    Ao confirmar, o QR Code Pix é gerado na hora. Assim que o pagamento for
+                    identificado, você é redirecionado automaticamente para a confirmação.
+                  </p>
                 </div>
               )}
+
             </Card>
 
 
