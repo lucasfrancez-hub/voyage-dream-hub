@@ -795,18 +795,18 @@ function CobrancaDialog({ row, onClose }: { row: any | null; onClose: () => void
               </div>
             )}
 
-            {row.kind === "boleto" && (
-              <Button
-                className="w-full bg-brand-orange hover:bg-brand-orange/90"
-                onClick={async () => {
-                  if (!(await abrirBoletoHtml(recebimentoParaBoleto(row), true))) {
-                    toast.error("Libere pop-ups para gerar o boleto.");
-                  }
-                }}
-              >
-                <Barcode className="h-4 w-4 mr-2" /> Abrir boleto (PDF)
-              </Button>
-            )}
+            <Button
+              className="w-full bg-brand-orange hover:bg-brand-orange/90"
+              onClick={async () => {
+                if (!(await abrirBoletoHtml(recebimentoParaBoleto(row), true))) {
+                  toast.error("Libere pop-ups para gerar o documento.");
+                }
+              }}
+            >
+              <Barcode className="h-4 w-4 mr-2" />
+              {row.kind === "boleto" ? "Abrir boleto (PDF)" : "Abrir cobrança Pix (PDF)"}
+            </Button>
+
 
             {row.kind !== "boleto" && row.invoice_url && (
               <Button
