@@ -34,6 +34,7 @@ export function ComprovanteActions({
   const [loading, setLoading] = useState(false);
   const [receiptOpen, setReceiptOpen] = useState(false);
   const [fetched, setFetched] = useState<ReceiptData | null>(null);
+  const [auto, setAuto] = useState<"download" | "share" | null>(null);
 
 
   const podeConsultar = Boolean(paymentId || transferId || billId);
