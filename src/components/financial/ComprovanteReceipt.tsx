@@ -1,4 +1,4 @@
-import { CheckCircle2, Download, Loader2, Share2, X } from "lucide-react";
+import { CheckCircle2, Download, Loader2, Share2 } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { formatBRL } from "@/lib/format";
@@ -76,16 +76,7 @@ export function ComprovanteReceipt({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         className="max-w-[440px] p-0 border-0 bg-transparent shadow-none print-receipt-wrapper"
-        showCloseButton={false}
       >
-        <button
-          onClick={() => onOpenChange(false)}
-          aria-label="Fechar"
-          className="print:hidden absolute -top-3 -right-3 z-20 rounded-full bg-card border border-border p-2 hover:bg-muted transition"
-        >
-          <X className="h-4 w-4" />
-        </button>
-
         {loading || !data ? (
           <div className="rounded-3xl bg-card p-16 flex justify-center">
             <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
@@ -94,7 +85,7 @@ export function ComprovanteReceipt({
           <>
             <div
               id="comprovante-print"
-              className="print-receipt relative overflow-hidden rounded-3xl bg-[hsl(var(--card))] shadow-[0_32px_64px_-16px_rgba(0,0,0,0.6)]"
+              className="print-receipt relative overflow-hidden rounded-3xl bg-card shadow-[0_32px_64px_-16px_rgba(0,0,0,0.6)]"
             >
               <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-brand-orange/10 via-transparent to-emerald-500/5" />
               <div className="absolute inset-x-0 top-0 h-1 bg-brand-orange" />
@@ -169,7 +160,7 @@ export function ComprovanteReceipt({
               </button>
               <button
                 onClick={() => window.print()}
-                className="flex-1 py-3 px-4 bg-brand-orange hover:brightness-95 rounded-xl text-xs font-semibold text-white shadow-[0_8px_20px_-6px_hsl(var(--brand-orange)/0.5)] transition flex items-center justify-center gap-2"
+                className="flex-1 py-3 px-4 bg-brand-orange hover:brightness-95 rounded-xl text-xs font-semibold text-white shadow-[var(--shadow-glow)] transition flex items-center justify-center gap-2"
               >
                 <Download className="h-4 w-4" /> Salvar PDF
               </button>
