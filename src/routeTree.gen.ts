@@ -50,6 +50,7 @@ import { Route as AdminLinkCartaoSimplesRouteImport } from './routes/admin.link-
 import { Route as AdminLinkPagamentoRouteImport } from './routes/admin.link-pagamento'
 import { Route as AdminNotasFiscaisRouteImport } from './routes/admin.notas-fiscais'
 import { Route as AdminPacotesRouteImport } from './routes/admin.pacotes'
+import { Route as AdminPagamentosRouteImport } from './routes/admin.pagamentos'
 import { Route as AdminPessoasRouteImport } from './routes/admin.pessoas'
 import { Route as AdminRedesSociaisRouteImport } from './routes/admin.redes-sociais'
 import { Route as AdminSegurancaRouteImport } from './routes/admin.seguranca'
@@ -333,6 +334,11 @@ const AdminNotasFiscaisRoute = AdminNotasFiscaisRouteImport.update({
 const AdminPacotesRoute = AdminPacotesRouteImport.update({
   id: '/pacotes',
   path: '/pacotes',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminPagamentosRoute = AdminPagamentosRouteImport.update({
+  id: '/pagamentos',
+  path: '/pagamentos',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminPessoasRoute = AdminPessoasRouteImport.update({
@@ -802,6 +808,7 @@ export interface FileRoutesByFullPath {
   '/admin/link-pagamento': typeof AdminLinkPagamentoRoute
   '/admin/notas-fiscais': typeof AdminNotasFiscaisRoute
   '/admin/pacotes': typeof AdminPacotesRoute
+  '/admin/pagamentos': typeof AdminPagamentosRoute
   '/admin/pessoas': typeof AdminPessoasRouteWithChildren
   '/admin/redes-sociais': typeof AdminRedesSociaisRoute
   '/admin/seguranca': typeof AdminSegurancaRoute
@@ -923,6 +930,7 @@ export interface FileRoutesByTo {
   '/admin/link-pagamento': typeof AdminLinkPagamentoRoute
   '/admin/notas-fiscais': typeof AdminNotasFiscaisRoute
   '/admin/pacotes': typeof AdminPacotesRoute
+  '/admin/pagamentos': typeof AdminPagamentosRoute
   '/admin/pessoas': typeof AdminPessoasRouteWithChildren
   '/admin/redes-sociais': typeof AdminRedesSociaisRoute
   '/admin/seguranca': typeof AdminSegurancaRoute
@@ -1046,6 +1054,7 @@ export interface FileRoutesById {
   '/admin/link-pagamento': typeof AdminLinkPagamentoRoute
   '/admin/notas-fiscais': typeof AdminNotasFiscaisRoute
   '/admin/pacotes': typeof AdminPacotesRoute
+  '/admin/pagamentos': typeof AdminPagamentosRoute
   '/admin/pessoas': typeof AdminPessoasRouteWithChildren
   '/admin/redes-sociais': typeof AdminRedesSociaisRoute
   '/admin/seguranca': typeof AdminSegurancaRoute
@@ -1170,6 +1179,7 @@ export interface FileRouteTypes {
     | '/admin/link-pagamento'
     | '/admin/notas-fiscais'
     | '/admin/pacotes'
+    | '/admin/pagamentos'
     | '/admin/pessoas'
     | '/admin/redes-sociais'
     | '/admin/seguranca'
@@ -1291,6 +1301,7 @@ export interface FileRouteTypes {
     | '/admin/link-pagamento'
     | '/admin/notas-fiscais'
     | '/admin/pacotes'
+    | '/admin/pagamentos'
     | '/admin/pessoas'
     | '/admin/redes-sociais'
     | '/admin/seguranca'
@@ -1413,6 +1424,7 @@ export interface FileRouteTypes {
     | '/admin/link-pagamento'
     | '/admin/notas-fiscais'
     | '/admin/pacotes'
+    | '/admin/pagamentos'
     | '/admin/pessoas'
     | '/admin/redes-sociais'
     | '/admin/seguranca'
@@ -1854,6 +1866,13 @@ declare module '@tanstack/react-router' {
       path: '/pacotes'
       fullPath: '/admin/pacotes'
       preLoaderRoute: typeof AdminPacotesRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/pagamentos': {
+      id: '/admin/pagamentos'
+      path: '/pagamentos'
+      fullPath: '/admin/pagamentos'
+      preLoaderRoute: typeof AdminPagamentosRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/pessoas': {
@@ -2445,6 +2464,7 @@ interface AdminRouteChildren {
   AdminLinkPagamentoRoute: typeof AdminLinkPagamentoRoute
   AdminNotasFiscaisRoute: typeof AdminNotasFiscaisRoute
   AdminPacotesRoute: typeof AdminPacotesRoute
+  AdminPagamentosRoute: typeof AdminPagamentosRoute
   AdminPessoasRoute: typeof AdminPessoasRouteWithChildren
   AdminRedesSociaisRoute: typeof AdminRedesSociaisRoute
   AdminSegurancaRoute: typeof AdminSegurancaRoute
@@ -2478,6 +2498,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminLinkPagamentoRoute: AdminLinkPagamentoRoute,
   AdminNotasFiscaisRoute: AdminNotasFiscaisRoute,
   AdminPacotesRoute: AdminPacotesRoute,
+  AdminPagamentosRoute: AdminPagamentosRoute,
   AdminPessoasRoute: AdminPessoasRouteWithChildren,
   AdminRedesSociaisRoute: AdminRedesSociaisRoute,
   AdminSegurancaRoute: AdminSegurancaRoute,
