@@ -223,8 +223,8 @@ export function renderBoletoHtml(d: BoletoDocData): string {
 body{margin:0;background:#eceff2;color:var(--ink);font-family:Inter,ui-sans-serif,-apple-system,"Segoe UI",Arial,sans-serif}
 .page{width:1024px;min-height:1448px;margin:24px auto;background:#fff;padding:46px 54px 34px;box-shadow:0 10px 35px rgba(10,38,66,.12)}
 .top{display:grid;grid-template-columns:1fr 470px;gap:46px;align-items:start}
-.brand img{width:280px;max-height:90px;object-fit:contain;object-position:left center}
-h1{margin:24px 0 8px;font-size:34px;letter-spacing:-.8px;color:var(--navy)}
+.brand img{width:240px;max-height:72px;object-fit:contain;object-position:left center}
+h1{margin:16px 0 6px;font-size:31px;letter-spacing:-.8px;color:var(--navy)}
 .docline{font-size:15px}.docline b{color:var(--orange)}
 .top-cards{display:grid;grid-template-columns:1fr 1.2fr}
 .due{padding:18px;border-radius:18px 0 0 18px;background:#fafafa}
@@ -232,31 +232,31 @@ h1{margin:24px 0 8px;font-size:34px;letter-spacing:-.8px;color:var(--navy)}
 .due strong{display:block;color:var(--orange);font-size:22px;margin-top:3px}
 .amount{background:var(--navy);color:#fff;border-radius:18px;padding:18px 24px}
 .amount strong{display:block;font-size:34px;margin-top:3px;white-space:nowrap}
-.notice{display:flex;gap:10px;align-items:flex-start;margin-top:20px;padding:18px 22px;background:#f5f5f5;border-radius:18px;font-size:14px;line-height:1.4}
-.grid2{display:grid;grid-template-columns:1fr 1.05fr;gap:64px;margin-top:36px}
+.notice{display:flex;gap:10px;align-items:flex-start;margin-top:14px;padding:14px 18px;background:#f5f5f5;border-radius:18px;font-size:14px;line-height:1.4}
+.grid2{display:grid;grid-template-columns:1fr 1.05fr;gap:36px;margin-top:26px}
 .section-title{display:flex;align-items:center;gap:9px;font-size:18px;font-weight:800;color:var(--navy);margin-bottom:14px}
 .ico{flex:none;display:block}
-.card{border:1px solid #edf0f3;border-radius:22px;padding:24px 26px;box-shadow:0 6px 18px rgba(12,39,68,.06);background:#fff}
-.payer .row{display:flex;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid #e5e9ed;font-size:15px}
+.card{border:1px solid #edf0f3;border-radius:22px;padding:20px 22px;box-shadow:0 6px 18px rgba(12,39,68,.06);background:#fff}
+.payer .row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #e5e9ed;font-size:15px}
 .payer .row:last-child{border:0}
 .payer .row .sep{width:1px;height:16px;background:#e5e9ed;margin:0 6px}
-.pix-top{display:grid;grid-template-columns:188px 1fr;gap:20px;align-items:start}
-.qr{width:188px;height:188px;object-fit:contain}
+.pix-top{display:grid;grid-template-columns:168px 1fr;gap:16px;align-items:start}
+.qr{width:168px;height:168px;object-fit:contain}
 .pix-hint{display:flex;gap:10px;align-items:flex-start;font-size:14px;line-height:1.35}
 .copytitle{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:700;margin:18px 0 8px}
 .copybox{background:#f0f3f6;border-radius:12px;padding:12px 14px;font-size:10.5px;line-height:1.35;word-break:break-all;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
 .copyhint{font-size:11px;color:#9aa3ad;margin-top:7px}
-.composition{margin-top:36px}
+.composition{margin-top:26px}
 .comp-card{display:grid;grid-template-columns:1fr 285px;border:1px solid #edf0f3;border-radius:22px;overflow:hidden;box-shadow:0 6px 18px rgba(12,39,68,.05)}
 .comp-left{padding:22px 26px}
-.comp-row{display:grid;grid-template-columns:185px 1fr;align-items:center;padding:11px 0;border-bottom:1px solid #e6eaee}
+.comp-row{display:grid;grid-template-columns:185px 1fr;align-items:center;padding:8px 0;border-bottom:1px solid #e6eaee}
 .comp-row:last-child{border:0}
 .comp-label{display:flex;align-items:center;gap:9px;font-weight:800;color:var(--navy)}
 .comp-value{font-weight:600}
 .comp-total{border-left:1px solid #e5e9ed;display:flex;flex-direction:column;justify-content:center;padding:26px 40px;background:linear-gradient(90deg,#fff,#fafbfd)}
 .comp-total small{font-weight:700;color:var(--navy)}
 .comp-total strong{margin-top:12px;font-size:30px;color:var(--navy)}
-.cut{margin:44px -54px 22px;border-top:1.5px dashed #9aa4ae;position:relative}
+.cut{margin:26px -54px 18px;border-top:1.5px dashed #9aa4ae;position:relative}
 .cut span{position:absolute;top:-12px;left:54px;background:#fff;padding-right:12px;color:#8b96a2;font-size:12px}
 .bank{--finance-col:230px;border:1px solid #7d8791;font-family:Arial,Helvetica,sans-serif;font-size:11px;background:#fff}
 .bank-head{display:grid;grid-template-columns:180px 90px 1fr;min-height:50px;border-bottom:1px solid #7d8791}
@@ -283,7 +283,7 @@ h1{margin:24px 0 8px;font-size:34px;letter-spacing:-.8px;color:var(--navy)}
 .payer-bank{padding:10px 12px;min-height:70px}
 .barcode{margin:8px 12px 12px;width:575px}
 .bank-foot{display:flex;justify-content:flex-end;font-size:10px;color:#505d69;margin:0 12px 10px}
-.doc-foot{margin:16px 0 0;text-align:right;font-size:10px;line-height:1.4;color:#8a949e}
+.doc-foot{margin:12px 0 0;text-align:right;font-size:10px;line-height:1.4;color:#8a949e}
 .doc-foot strong{display:block;font-weight:700;color:#505d69}
 .preview-flag{position:fixed;top:10px;left:10px;background:var(--orange);color:#fff;font-size:12px;font-weight:700;padding:6px 12px;border-radius:999px}
 @media print{body{background:#fff}.preview-flag{display:none}.page{margin:0;box-shadow:none;width:210mm;min-height:297mm;padding:10mm 11mm 8mm}}
