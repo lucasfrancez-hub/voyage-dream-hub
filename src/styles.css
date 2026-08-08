@@ -219,23 +219,16 @@ html:root {
 .chat-dark input::placeholder,
 .chat-dark textarea::placeholder { color: var(--muted-foreground); }
 
+/* Scroll invisível em todo o sistema: rolagem continua funcionando,
+   mas a barrinha some (WebKit/Blink + Firefox). */
+*::-webkit-scrollbar { width: 0 !important; height: 0 !important; display: none !important; }
+html, body, * { scrollbar-width: none !important; -ms-overflow-style: none !important; }
+
 /* Hotel dialog helpers */
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-.custom-scrollbar::-webkit-scrollbar { width: 8px; }
-.custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background: color-mix(in oklab, var(--brand-orange) 55%, transparent);
-  border-radius: 8px;
-}
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: var(--brand-orange);
-}
-.custom-scrollbar {
-  scrollbar-color: color-mix(in oklab, var(--brand-orange) 55%, transparent) transparent;
-  scrollbar-gutter: stable;
-  scrollbar-width: thin;
-}
+.custom-scrollbar::-webkit-scrollbar { width: 0; }
+.custom-scrollbar { scrollbar-width: none; }
 
 /* Página /voar: brilho azul do topo ocupando a largura inteira, atrás do TopBar */
 .voar-shell { position: relative; }
