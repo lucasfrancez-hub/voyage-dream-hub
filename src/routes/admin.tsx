@@ -475,6 +475,14 @@ function DashboardNav({ pathname }: { pathname: string }) {
       columns={2}
       groups={[
         {
+          label: "Visão geral",
+          items: [{ to: "/admin/dashboard", label: "Dashboard" }],
+        },
+        {
+          label: "Cadastros",
+          items: [{ to: "/admin/pessoas", label: "Pessoas" }],
+        },
+        {
           label: "Financeiro",
           accent: true,
           items: [
@@ -484,14 +492,6 @@ function DashboardNav({ pathname }: { pathname: string }) {
             { to: "/admin/conta-bancaria", label: "Conta bancária" },
             { to: "/admin/comprovantes", label: "Comprovantes" },
           ],
-        },
-        {
-          label: "Visão geral",
-          items: [{ to: "/admin/dashboard", label: "Dashboard" }],
-        },
-        {
-          label: "Cadastros",
-          items: [{ to: "/admin/pessoas", label: "Pessoas" }],
         },
         {
           label: "Fiscal",
@@ -506,6 +506,7 @@ function DashboardNav({ pathname }: { pathname: string }) {
           items: [{ to: "/admin/redes-sociais", label: "Redes sociais" }],
         },
       ]}
+
     />
   );
 }
