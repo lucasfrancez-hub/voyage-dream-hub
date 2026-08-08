@@ -535,14 +535,48 @@ function NovoRecebimentoDialog({
           </div>
         </div>
 
-        <Button
-          className="w-full"
-          disabled={mut.isPending || !form.customerName || !form.cpfCnpj || !form.value}
-          onClick={() => mut.mutate()}
-        >
-          {mut.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
-          {kind === "pix" ? "Gerar QR Code" : "Gerar boleto"}
-        </Button>
+        <div className="flex gap-2">
+          {kind === "boleto" && (
+            <Button
+              variant="outline"
+              className="flex-1"
+              disabled={!form.customerName || !form.value}
+              onClick={() => {
+                const periodo = [form.periodoInicio, form.periodoFim].filter(Boolean).join(" • ");
+                abrirBoletoHtml({
+                  documentoRef: "PRÉVIA",
+                  vencimento: form.dueDate,
+                  valor: Number(form.value.replace(",", ".")) || 0,
+                  pagador: {
+                    nome: form.customerName,
+                    cpfCnpj: form.cpfCnpj || null,
+                    telefone: form.phone || null,
+                    email: form.email || null,
+                  },
+                  composicao: {
+                    servico: form.servico || form.description || null,
+                    destino: form.destino || null,
+                    periodo: periodo || null,
+                    passageiro: form.passageiros || null,
+                  },
+                  multaPercent: Number(form.finePercent) || null,
+                  jurosPercentMes: Number(form.interestPercent) || null,
+                  preview: true,
+                });
+              }}
+            >
+              Visualizar boleto
+            </Button>
+          )}
+          <Button
+            className="flex-1"
+            disabled={mut.isPending || !form.customerName || !form.cpfCnpj || !form.value}
+            onClick={() => mut.mutate()}
+          >
+            {mut.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+            {kind === "pix" ? "Gerar QR Code" : "Gerar boleto"}
+          </Button>
+        </div>
       </DialogContent>
     </Dialog>
   );
