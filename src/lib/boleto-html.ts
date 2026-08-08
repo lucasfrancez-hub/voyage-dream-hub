@@ -197,16 +197,20 @@ export function renderBoletoHtml(d: BoletoDocData): string {
   const codigoBarras = linhaDigitavelParaCodigoBarras(banco.linhaDigitavel);
   const barcode = codigoBarras ? barcodeItfSvg(codigoBarras) : "";
   const temPix = !!(d.pix?.qrImage || d.pix?.payload);
+  // Nº do documento sempre vem do ASAAS (nosso número).
+  const numeroDocumento = banco.nossoNumero || d.documentoRef || "";
+  const especieDoc = banco.especie || "DM";
+  const linhaFmt = formatarLinhaDigitavel(banco.linhaDigitavel);
   const compRows =
-    compRow("SERVIÇO", comp.servico) +
-    compRow("DESTINO", comp.destino) +
-    compRow("PERÍODO", comp.periodo) +
-    compRow("PASSAGEIRO", comp.passageiro);
+    compRow("send", "SERVIÇO", comp.servico) +
+    compRow("target", "DESTINO", comp.destino) +
+    compRow("calendar", "PERÍODO", comp.periodo) +
+    compRow("user", "PASSAGEIRO", comp.passageiro);
 
-  const logoUrl =
-    typeof window !== "undefined"
-      ? new URL(viaAirLogo.url, window.location.origin).toString()
-      : viaAirLogo.url;
+  const abs = (u: string) =>
+    typeof window !== "undefined" ? new URL(u, window.location.origin).toString() : u;
+  const logoUrl = abs(viaAirLogo.url);
+  const asaasLogoUrl = abs(asaasLogo.url);
 
   return `<!doctype html>
 <html lang="pt-BR"><head><meta charset="utf-8" />
