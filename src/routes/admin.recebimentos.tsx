@@ -17,6 +17,8 @@ import {
   listarRecebimentos, criarRecebimento, sincronizarRecebimento, cancelarRecebimento,
 } from "@/lib/recebimentos.functions";
 import { confirmThen } from "@/lib/confirm";
+import { ComprovanteActions } from "@/components/financial/ComprovanteActions";
+
 
 export const Route = createFileRoute("/admin/recebimentos")({
   head: () => ({
