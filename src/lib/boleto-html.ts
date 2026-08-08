@@ -355,9 +355,9 @@ ${d.preview ? '<div class="preview-flag">Pré-visualização</div>' : ""}
 
   <div class="bank">
     <div class="bank-head">
-      <div class="bank-logo">${esc(banco.nome ?? "")}</div>
+      <div class="bank-logo"><img src="${esc(asaasLogoUrl)}" alt="ASAAS" /></div>
       <div class="bank-code">${esc(banco.codigo ?? "")}</div>
-      <div class="digitable">${esc(banco.linhaDigitavel ?? "")}</div>
+      <div class="digitable">${esc(linhaFmt)}</div>
     </div>
     <div class="brow">
       ${bcell("Local de pagamento", banco.localPagamento ?? "Pagável em qualquer banco até o vencimento.")}
@@ -370,9 +370,9 @@ ${d.preview ? '<div class="preview-flag">Pré-visualização</div>' : ""}
     <div class="bank-row-with-side">
       <div class="bank-meta-left">
         ${bcell("Data do documento", dataBR(banco.dataDocumento))}
-        ${bcell("Nº do documento", d.documentoRef ?? "")}
-        ${bcell("Espécie doc.", banco.especie ?? "")}
-        ${bcell("Aceite", banco.aceite ?? "")}
+        ${bcell("Nº do documento", numeroDocumento)}
+        ${bcell("Espécie doc.", especieDoc)}
+        ${bcell("Aceite", banco.aceite ?? "N")}
         ${bcell("Data processamento", dataBR(banco.dataProcessamento))}
         ${bcell("Carteira", banco.carteira ?? "")}
       </div>
