@@ -299,7 +299,7 @@ ${d.preview ? '<div class="preview-flag">Pré-visualização</div>' : ""}
         <div class="due"><small>VENCIMENTO</small><strong>${esc(dataBR(d.vencimento))}</strong></div>
         <div class="amount"><small>VALOR DO PAGAMENTO</small><strong>R$ ${brl(d.valor)}</strong></div>
       </div>
-      <div class="notice">${esc(instrucoes)}</div>
+      <div class="notice">${esc(TEXTO_MULTA_JUROS_PADRAO)}</div>
     </div>
   </div>
 
