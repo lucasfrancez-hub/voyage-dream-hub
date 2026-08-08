@@ -4671,6 +4671,13 @@ function PaymentDialog({
   const [boletoLoading, setBoletoLoading] = useState(false);
   const [boletoDue, setBoletoDue] = useState(() => new Date(Date.now() + 3 * 86400000).toISOString().slice(0, 10));
   const [boletoData, setBoletoData] = useState<Awaited<ReturnType<typeof gerarBoletoPedidoAdmin>> | null>(null);
+  const [boletoMulta, setBoletoMulta] = useState("");
+  const [boletoJuros, setBoletoJuros] = useState("");
+  const [boletoServico, setBoletoServico] = useState("");
+  const [boletoDestino, setBoletoDestino] = useState("");
+  const [boletoPeriodoIni, setBoletoPeriodoIni] = useState("");
+  const [boletoPeriodoFim, setBoletoPeriodoFim] = useState("");
+  const [boletoPassageiros, setBoletoPassageiros] = useState("");
   const showCard = method === "credit_card" || method === "debit_card";
   const showInstallments = method === "credit_card" || method === "financing";
 
