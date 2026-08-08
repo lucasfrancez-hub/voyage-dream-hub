@@ -311,6 +311,11 @@ function OrderDetailPage() {
     return acc ?? order.paymentMethod;
   })();
   const pm = paymentMethodLabel(pmAgg);
+  const pixOrigemBadge = order.pixBaixaTipo === "asaas"
+    ? { label: "PIX ASAAS", className: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400" }
+    : order.pixBaixaTipo === "manual"
+      ? { label: "PIX MANUAL", className: "bg-amber-500/15 text-amber-600 dark:text-amber-400" }
+      : null;
 
 
   const hotelItems = detail.items.filter((i) => i.kind === "hotel" && i.status !== "cancelled");
