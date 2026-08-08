@@ -18,6 +18,8 @@ import { toast } from "sonner";
 import { Link } from "@tanstack/react-router";
 import { PixPaymentDialog } from "@/components/financial/PixPaymentDialog";
 import { BoletoPaymentDialog } from "@/components/financial/BoletoPaymentDialog";
+import { ComprovanteEntryButton } from "@/components/financial/ComprovanteEntryButton";
+
 
 type Kind = "payable" | "receivable";
 type Entry = {
