@@ -302,7 +302,7 @@ ${d.preview ? '<div class="preview-flag">Pré-visualização</div>' : ""}
         <div class="due"><small>VENCIMENTO</small><strong>${esc(dataBR(d.vencimento))}</strong></div>
         <div class="amount"><small>VALOR DO PAGAMENTO</small><strong>R$ ${brl(d.valor)}</strong></div>
       </div>
-      <div class="notice">${esc(TEXTO_MULTA_JUROS_PADRAO)}</div>
+      <div class="notice">${icon("info", 18)}<span>${esc(TEXTO_MULTA_JUROS_PADRAO)}</span></div>
     </div>
   </div>
 
@@ -408,6 +408,8 @@ ${d.preview ? '<div class="preview-flag">Pré-visualização</div>' : ""}
     </div>
     <div class="barcode">${barcode}</div>
     <div class="bank-foot">Autenticação mecânica - Ficha de compensação</div>
+  </div>
+  <div class="doc-foot"><strong>Boleto gerado pelo sistema VIA AIR</strong>Todos os direitos reservados
   </div>
 </div>
 </body></html>`;
