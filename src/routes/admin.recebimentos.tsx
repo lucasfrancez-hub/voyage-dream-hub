@@ -721,7 +721,7 @@ function NovoRecebimentoDialog({
             </Button>
           )}
           <Button
-            className="flex-[2] h-12 rounded-xl font-bold shadow-[0_8px_30px_-8px_rgba(242,107,31,0.5)] transition-all hover:brightness-110 active:scale-[0.98]"
+            className="flex-[2] h-12 rounded-xl font-bold shadow-[0_8px_30px_-8px_color-mix(in_oklab,var(--brand-orange)_50%,transparent)] transition-all hover:brightness-110 active:scale-[0.98]"
             disabled={mut.isPending || !form.customerName || !form.cpfCnpj || !form.value}
             onClick={() => mut.mutate()}
           >
