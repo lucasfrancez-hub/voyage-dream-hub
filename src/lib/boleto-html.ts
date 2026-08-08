@@ -220,7 +220,7 @@ export function renderBoletoHtml(d: BoletoDocData): string {
   return `<!doctype html>
 <html lang="pt-BR"><head><meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Boleto ${esc(d.documentoRef ?? "")} — VIA AIR</title>
+<title>${d.variant === "pix" ? "Cobrança Pix" : "Boleto"} ${esc(d.documentoRef ?? "")} — VIA AIR</title>
 <style>
 :root{--navy:#082f57;--navy2:#0a3c6e;--orange:#f47b20;--ink:#12233a;--muted:#6b7787;}
 *{box-sizing:border-box}
