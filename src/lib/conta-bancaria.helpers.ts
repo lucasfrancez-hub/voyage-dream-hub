@@ -12,6 +12,13 @@ export interface ExtratoItem {
   transferId: string | null
   link: { kind: 'pedido' | 'pagamento'; id: string; label: string } | null
   receiptUrl: string | null
+  /** Contraparte e dados completos do comprovante (quando disponíveis). */
+  counterparty: string | null
+  counterpartyLabel: string | null
+  instituicao: string | null
+  chavePix: string | null
+  cpfCnpj: string | null
+  operacao: string | null
 }
 
 export async function assertAdmin(context: { supabase: any; userId: string }) {
@@ -63,6 +70,12 @@ export function normalize(tx: any): ExtratoItem {
     transferId: tx?.transferId ?? tx?.transfer?.id ?? null,
     link: null,
     receiptUrl: null,
+    counterparty: null,
+    counterpartyLabel: null,
+    instituicao: null,
+    chavePix: null,
+    cpfCnpj: null,
+    operacao: null,
   }
 }
 
