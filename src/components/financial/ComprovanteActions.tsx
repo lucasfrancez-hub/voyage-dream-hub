@@ -28,10 +28,13 @@ export function ComprovanteActions({
   url, paymentId, transferId, billId, receipt = null, compact = true, label = "Comprovante",
 }: Props) {
   const consultar = useServerFn(obterComprovante);
+  const detalhar = useServerFn(obterComprovanteDetalhado);
   const baixarPdfFn = useServerFn(baixarComprovantePdf);
   const [resolved, setResolved] = useState<string | null>(url ?? null);
   const [loading, setLoading] = useState(false);
   const [receiptOpen, setReceiptOpen] = useState(false);
+  const [fetched, setFetched] = useState<ReceiptData | null>(null);
+
 
   const podeConsultar = Boolean(paymentId || transferId || billId);
 
