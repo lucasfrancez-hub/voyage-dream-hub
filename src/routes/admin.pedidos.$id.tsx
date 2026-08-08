@@ -9,7 +9,7 @@ import {
   Pencil, Trash2, Ban, RotateCcw, Loader2, Copy, Download, Hash, Armchair,
   Package, Percent, Mail, Printer, CheckCircle2, Signature, Settings,
   Vault, ExternalLink, X, UserPlus, Star, Backpack, Briefcase, Luggage,
-  Phone, CreditCard, FolderOpen, ShieldCheck,
+  Phone, CreditCard, FolderOpen, ShieldCheck, Info, Check,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
