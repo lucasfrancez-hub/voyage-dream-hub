@@ -4,6 +4,12 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { formatBRL } from "@/lib/format";
 import viaairLogo from "@/assets/viaair-logo-white.png.asset.json";
 
+export type ReceiptParty = {
+  nome?: string | null;
+  cpfCnpj?: string | null;
+  instituicao?: string | null;
+};
+
 export type ReceiptData = {
   valor: number;
   favorecido: string;
@@ -20,8 +26,24 @@ export type ReceiptData = {
   descricao?: string | null;
   status?: string;
   concluido?: boolean;
+  /** Forma de pagamento (Pix, Boleto, Cartão...) */
+  formaPagamento?: string | null;
+  /** Data de vencimento da cobrança */
+  dataVencimento?: string | null;
+  /** Data/hora do pagamento */
+  dataPagamento?: string | null;
+  /** Sobrescreve os blocos calculados a partir de `direction` */
+  pagador?: ReceiptParty | null;
+  recebedor?: ReceiptParty | null;
   /** URL do comprovante oficial (ASAAS) — quando presente, "Salvar PDF" abre este arquivo */
   pdfUrl?: string | null;
+};
+
+/** Dados fiscais fixos da conta VIA AIR no ASAAS. */
+const VIAAIR_PARTY: ReceiptParty = {
+  nome: "VIA AIR AGENCIA & REPRESENTACOES LTDA",
+  cpfCnpj: "56339877000166",
+  instituicao: "ASAAS GESTÃO FINANCEIRA INSTITUIÇÃO DE PAGAMENTO S.A.",
 };
 
 function maskDoc(doc?: string | null) {
@@ -31,6 +53,27 @@ function maskDoc(doc?: string | null) {
   if (d.length === 11) return `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6, 9)}-${d.slice(9)}`;
   return doc;
 }
+
+function formatDate(v?: string | null) {
+  if (!v) return "—";
+  const s = String(v);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
+    const [y, m, d] = s.split("-");
+    return `${d}/${m}/${y}`;
+  }
+  const dt = new Date(s);
+  if (!Number.isNaN(dt.getTime())) {
+    return dt.toLocaleString("pt-BR", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  }
+  return s;
+}
+
 
 export function ComprovanteReceipt({
   open,
