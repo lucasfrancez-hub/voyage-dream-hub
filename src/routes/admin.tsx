@@ -18,6 +18,7 @@ import { AdminNotificationBell } from "@/components/admin/NotificationBell";
 import { GlobalSearchButton } from "@/components/admin/GlobalSearch";
 import { PublishQueueButton } from "@/components/admin/PublishQueueButton";
 import { APP_VERSION, APP_BUILD_DATE } from "@/lib/version";
+import { NavMegaMenu, type NavMenuGroup } from "@/components/admin/NavMegaMenu";
 
 
 
