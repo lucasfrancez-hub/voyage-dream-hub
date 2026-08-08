@@ -127,7 +127,7 @@ export function ComprovanteActions({
         dataVencimento: c.dueDate,
         dataPagamento: c.paymentDate ?? c.date,
         dataHora: c.date,
-        transacaoId: c.asaasId,
+        transacaoId: c.endToEndId || c.asaasId,
         descricao: c.descricao,
         status: c.status ?? undefined,
         pdfUrl: c.receiptUrl,

@@ -27,6 +27,19 @@ export interface Comprovante {
   dueDate: string | null
   /** Data/hora efetiva do pagamento */
   paymentDate: string | null
+  /** Identificador Pix ponta-a-ponta (E2E) — mesmo valor do comprovante oficial */
+  endToEndId?: string | null
+}
+
+/** Extrai o identificador Pix (E2E) de qualquer payload ASAAS. */
+export function e2eOf(x: any): string | null {
+  return (
+    x?.pixTransaction?.endToEndIdentifier ??
+    x?.pixTransaction?.endToEndId ??
+    x?.endToEndIdentifier ??
+    x?.transactionReceiptId ??
+    null
+  )
 }
 
 const TRANSFER_STATUS: Record<string, string> = {
@@ -142,6 +155,7 @@ export function mapTransfer(t: any): Comprovante {
           : 'Transferência',
     dueDate: t?.scheduleDate ?? null,
     paymentDate: t?.effectiveDate ?? t?.dateCreated ?? null,
+    endToEndId: e2eOf(t),
   }
 }
 
@@ -175,6 +189,7 @@ export function mapPayment(p: any, cust?: any): Comprovante {
             : null,
     dueDate: p?.dueDate ?? null,
     paymentDate: p?.clientPaymentDate ?? p?.paymentDate ?? p?.confirmedDate ?? null,
+    endToEndId: e2eOf(p),
   }
 }
 
@@ -201,6 +216,7 @@ export function mapBill(b: any): Comprovante {
     formaPagamento: 'Boleto',
     dueDate: b?.dueDate ?? null,
     paymentDate: b?.paymentDate ?? null,
+    endToEndId: e2eOf(b),
   }
 }
 
