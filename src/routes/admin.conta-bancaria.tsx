@@ -67,42 +67,8 @@ function fmtDate(v: string | null) {
 
 const PAGE = 50;
 
-const TYPE_LABELS: Record<string, string> = {
-  PAYMENT_RECEIVED: "Pagamento recebido",
-  PAYMENT_CONFIRMED: "Pagamento confirmado",
-  PAYMENT_CREATED: "Cobrança criada",
-  PAYMENT_REFUNDED: "Pagamento estornado",
-  PAYMENT_FEE: "Taxa da cobrança",
-  PAYMENT_REVERSAL: "Estorno de pagamento",
-  PIX_FEE: "Taxa do Pix",
-  TRANSFER: "Transferência Pix",
-  TRANSFER_FEE: "Taxa de transferência",
-  INTERNAL_TRANSFER_CREDIT: "Transferência recebida",
-  INTERNAL_TRANSFER_DEBIT: "Transferência enviada",
-  INSTANT_TEXT_MESSAGE_FEE: "Taxa de mensagem (WhatsApp)",
-  PHONE_CALL_NOTIFICATION_FEE: "Taxa de ligação",
-  POSTAL_SERVICE_FEE: "Taxa de correio",
-  BILL_PAYMENT: "Pagamento de boleto",
-  BILL_PAYMENT_FEE: "Taxa de pagamento de conta",
-  BILL_PAYMENT_CANCELLED: "Pagamento de conta cancelado",
-  ASAAS_CARD_TRANSACTION: "Compra no cartão",
-  CREDIT_CARD_FEE: "Taxa de cartão",
-  DEBIT: "Débito",
-  CREDIT: "Crédito",
-  REFUND: "Reembolso",
-  CHARGEBACK: "Chargeback",
-  FEE: "Taxa",
-};
-
 function typeLabel(t: string | null) {
-  if (!t) return "Movimentação";
-  return (
-    TYPE_LABELS[t] ??
-    t
-      .toLowerCase()
-      .replace(/_/g, " ")
-      .replace(/^./, (c) => c.toUpperCase())
-  );
+  return asaasTypeLabel(t);
 }
 
 function typeTone(t: string | null, dir: "in" | "out") {
