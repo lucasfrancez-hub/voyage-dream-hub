@@ -9,7 +9,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { obterComprovante, baixarComprovantePdf } from "@/lib/comprovantes.functions";
+import { obterComprovante, obterComprovanteDetalhado, baixarComprovantePdf } from "@/lib/comprovantes.functions";
 import { ComprovanteReceipt, type ReceiptData } from "@/components/financial/ComprovanteReceipt";
 
 type Props = {
