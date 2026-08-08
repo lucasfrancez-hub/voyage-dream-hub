@@ -5291,14 +5291,9 @@ function PaymentDialog({
                             jurosPercentMes: 1,
                           })}
                         >
-                          Baixar boleto VIA AIR (PDF)
+                          Abrir boleto (PDF)
                         </Button>
-                        {boletoData.bankSlipUrl && (
-                          <Button type="button" size="sm" variant="outline"
-                            onClick={() => window.open(boletoData.bankSlipUrl!, "_blank", "noopener")}>
-                            Boleto do banco
-                          </Button>
-                        )}
+
                         {boletoData.linhaDigitavel && (
                           <Button type="button" size="sm" variant="outline"
                             onClick={() => { navigator.clipboard.writeText(boletoData.linhaDigitavel!); toast.success("Linha digitável copiada."); }}>
