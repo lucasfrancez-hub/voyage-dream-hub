@@ -51,7 +51,16 @@ export async function ensureAsaasCustomer(input: EnsureCustomerInput): Promise<s
   if (doc) {
     const found = await asaasFetch(`/customers?cpfCnpj=${doc}&limit=1`)
     const id = found?.data?.[0]?.id
-    if (id) return id
+    if (id) {
+      // Garante que o ASAAS não dispare e-mail/SMS/WhatsApp para o cliente.
+      if (found?.data?.[0]?.notificationDisabled !== true) {
+        await asaasFetch(`/customers/${id}`, {
+          method: 'POST',
+          body: JSON.stringify({ notificationDisabled: true }),
+        }).catch(() => null)
+      }
+      return id
+    }
   }
   const created = await asaasFetch('/customers', {
     method: 'POST',
@@ -116,8 +125,26 @@ export async function createAsaasPixPayment(
       dueDate: dueDateStr,
       description: input.description,
       externalReference: input.externalReference,
+      postalService: false,
     }),
   })
+
+  // Desliga qualquer régua de notificação (e-mail/SMS/WhatsApp) da cobrança.
+  await asaasFetch(`/payments/${payment.id}/notifications`, {
+    method: 'PUT',
+    body: JSON.stringify({
+      notifications: ['PAYMENT_CREATED', 'PAYMENT_DUEDATE_WARNING', 'PAYMENT_RECEIVED', 'SEND_LINHA_DIGITAVEL', 'PAYMENT_OVERDUE'].map((event) => ({
+        event,
+        enabled: false,
+        emailEnabledForProvider: false,
+        smsEnabledForProvider: false,
+        emailEnabledForCustomer: false,
+        smsEnabledForCustomer: false,
+        phoneCallEnabledForCustomer: false,
+        whatsappEnabledForCustomer: false,
+      })),
+    }),
+  }).catch(() => null)
 
   const qr = await asaasFetch(`/payments/${payment.id}/pixQrCode`, {
     method: 'POST',

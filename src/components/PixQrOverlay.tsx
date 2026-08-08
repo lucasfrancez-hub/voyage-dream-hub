@@ -35,7 +35,7 @@ export function PixQrOverlay({
           onClick={onClose}
           className="mt-3 w-full text-xs text-muted-foreground hover:text-foreground underline"
         >
-          Fechar (o QR também foi enviado por e-mail)
+          Fechar
         </button>
       </div>
     </div>
