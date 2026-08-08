@@ -86,11 +86,8 @@ export async function applyTransferStatus(opts: {
         paid_date: paidDate.slice(0, 10),
         payment_method: 'pix_asaas',
         notes: [
-          row.notes_prefix,
           `Pago via Pix ASAAS em ${new Date().toLocaleString('pt-BR')} — transferência ${row.asaas_transfer_id ?? ''} — valor R$ ${Number(row.value).toFixed(2)} — por ${row.created_by_name ?? 'sistema'}`,
-        ]
-          .filter(Boolean)
-          .join('\n'),
+        ].join('\n'),
       })
       .eq('id', row.financial_entry_id)
   }
