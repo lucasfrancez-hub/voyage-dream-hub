@@ -65,6 +65,49 @@ function Group({ group, pathname }: { group: NavMenuGroup; pathname: string }) {
   );
 }
 
+function ModuleRail({ groups, pathname }: { groups: NavMenuGroup[]; pathname: string }) {
+  const activeIndex = groups.findIndex((g) => g.items.some((i) => isItemActive(pathname, i)));
+  const [hovered, setHovered] = useState<number>(activeIndex >= 0 ? activeIndex : 0);
+  const current = groups[hovered] ?? groups[0];
+
+  return (
+    <div className="grid grid-cols-[190px_1fr]">
+      <div className="flex flex-col gap-0.5 border-r border-border/70 bg-foreground/[0.02] p-2">
+        {groups.map((g, i) => {
+          const label = g.label ?? "Geral";
+          const isOn = i === hovered;
+          return (
+            <button
+              key={label + i}
+              type="button"
+              onMouseEnter={() => setHovered(i)}
+              onFocus={() => setHovered(i)}
+              className={`flex items-center gap-2 rounded-lg px-3 py-2 text-left text-[12px] font-bold uppercase tracking-[0.12em] transition ${
+                isOn
+                  ? "bg-brand-orange/15 text-brand-orange"
+                  : "text-muted-foreground hover:bg-foreground/[0.05] hover:text-foreground"
+              }`}
+            >
+              <span className="truncate">{label}</span>
+              <ChevronRight className={`ml-auto h-3.5 w-3.5 shrink-0 ${isOn ? "opacity-80" : "opacity-40"}`} />
+            </button>
+          );
+        })}
+      </div>
+      <div className="min-h-[220px] p-3">
+        {current ? (
+          <nav className="flex flex-col gap-0.5">
+            {current.items.map((item) => (
+              <ItemLink key={item.to} item={item} active={isItemActive(pathname, item)} />
+            ))}
+          </nav>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+
 export function NavMegaMenu({
   icon: Icon,
   title,
