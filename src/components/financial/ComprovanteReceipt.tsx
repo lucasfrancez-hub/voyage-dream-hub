@@ -143,7 +143,7 @@ export function ComprovanteReceipt({
                 <img
                   src={viaairLogo.url}
                   alt="VIA AIR"
-                  className="h-5 w-auto mb-3 object-contain"
+                  className="h-8 w-auto mb-3 object-contain"
                 />
 
                 <div className="flex flex-col items-center mb-3 text-center">
@@ -183,11 +183,6 @@ export function ComprovanteReceipt({
                       value={data.formaPagamento || data.tipo || "Pix"}
                     />
                     {data.chavePix ? <Field label="Chave Pix" value={data.chavePix} /> : null}
-                    {data.descricao ? (
-                      <div className="col-span-2">
-                        <Field label="Descrição" value={data.descricao} clamp />
-                      </div>
-                    ) : null}
                   </div>
 
                   <div className="space-y-3">
@@ -260,16 +255,16 @@ function PartyBlock({ title, party }: { title: string; party: ReceiptParty }) {
         <div className="h-px flex-1 bg-border" />
       </div>
       <div className="grid grid-cols-3 gap-x-3 gap-y-1 items-baseline">
-        <span className="text-[11px] text-muted-foreground">Nome</span>
-        <span className="col-span-2 text-[11px] font-medium text-foreground text-right leading-snug break-words">
+        <span className="text-[9px] text-muted-foreground">Nome</span>
+        <span className="col-span-2 text-[9px] font-medium text-foreground text-right leading-snug break-words">
           {party.nome || "—"}
         </span>
-        <span className="text-[11px] text-muted-foreground">CPF/CNPJ</span>
-        <span className="col-span-2 text-[11px] font-medium text-foreground text-right tabular-nums">
+        <span className="text-[9px] text-muted-foreground">CPF/CNPJ</span>
+        <span className="col-span-2 text-[9px] font-medium text-foreground text-right tabular-nums">
           {maskDoc(party.cpfCnpj)}
         </span>
-        <span className="text-[11px] text-muted-foreground">Instituição</span>
-        <span className="col-span-2 text-[11px] font-medium text-foreground text-right leading-snug break-words">
+        <span className="text-[9px] text-muted-foreground">Instituição</span>
+        <span className="col-span-2 text-[9px] font-medium text-foreground text-right leading-snug break-words">
           {party.instituicao || "—"}
         </span>
       </div>
