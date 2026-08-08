@@ -4,14 +4,14 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import {
-  Loader2, Plus, RefreshCw, Ban, CalendarClock, Search,
+  Loader2, Plus, RefreshCw, Ban, CalendarClock, Search, Receipt,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
-import { ComprovanteActions } from "@/components/financial/ComprovanteActions";
+import { ComprovanteReceipt } from "@/components/financial/ComprovanteReceipt";
 import { formatBRL } from "@/lib/format";
 import { PixPaymentDialog } from "@/components/financial/PixPaymentDialog";
 import {
@@ -244,72 +244,123 @@ function PagamentosPage() {
 
 function DetalheDialog({ id, onClose }: { id: string | null; onClose: () => void }) {
   const detalhar = useServerFn(detalharPagamentoPix);
+  const [reciboOpen, setReciboOpen] = useState(false);
   const { data } = useQuery({
     queryKey: ["asaas-transfer", id],
     queryFn: async () => (await detalhar({ data: { id: id! } })) as any,
     enabled: !!id,
   });
   const t = data?.transfer;
+  const meta = t ? STATUS_META[t.status] : undefined;
+
+  const recibo = t
+    ? {
+        valor: Number(t.value),
+        favorecido: t.favored_name ?? "—",
+        instituicao: t.bank_name ?? null,
+        chavePix: t.pix_key ?? null,
+        cpfCnpj: t.cpf_cnpj ?? null,
+        tipo: "Transferência Pix",
+        dataHora: new Date(t.effective_date ?? t.created_at).toLocaleString("pt-BR"),
+        transacaoId: t.asaas_transfer_id ?? null,
+        descricao: t.description ?? null,
+        status: meta?.label ?? t.status,
+        concluido: t.status === "concluido",
+      }
+    : null;
 
   return (
-    <Dialog open={!!id} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-w-xl max-h-[85vh] overflow-y-auto">
-        <DialogHeader><DialogTitle>Detalhes do pagamento</DialogTitle></DialogHeader>
-        {!t ? (
-          <div className="p-6 flex justify-center"><Loader2 className="h-5 w-5 animate-spin" /></div>
-        ) : (
-          <div className="space-y-4 text-sm">
-            <div className="rounded-xl border border-border p-4 space-y-1.5">
-              <Line k="Favorecido" v={t.favored_name} />
-              <Line k="Chave Pix" v={`${t.pix_key}${t.pix_key_type ? ` (${t.pix_key_type})` : ""}`} />
-              <Line k="CPF/CNPJ" v={t.cpf_cnpj || "—"} />
-              <Line k="Valor" v={formatBRL(Number(t.value))} />
-              <Line k="Status" v={STATUS_META[t.status]?.label ?? t.status} />
-              <Line k="Origem" v={ORIGIN_LABEL[t.origin] ?? t.origin} />
-              <Line k="Data" v={t.scheduled_date ?? t.effective_date ?? new Date(t.created_at).toLocaleDateString("pt-BR")} />
-              <Line k="Descrição" v={t.description || "—"} />
-              <Line k="ID ASAAS" v={t.asaas_transfer_id || "—"} />
-              <Line k="Criado por" v={`${t.created_by_name ?? "—"}${t.created_ip ? ` · ${t.created_ip}` : ""}`} />
-              {t.fail_reason && <Line k="Falha" v={t.fail_reason} />}
-              <div className="pt-1">
-                <ComprovanteActions
-                  url={t.receipt_url}
-                  transferId={t.asaas_transfer_id}
-                  compact={false}
+    <>
+      <Dialog open={!!id} onOpenChange={(v) => !v && onClose()}>
+        <DialogContent className="max-w-[520px] max-h-[85vh] overflow-y-auto p-0 bg-card/70 backdrop-blur-xl border-border/60 rounded-2xl">
+          <DialogHeader className="p-6 border-b border-border/60">
+            <DialogTitle className="text-lg">Detalhes do pagamento</DialogTitle>
+          </DialogHeader>
+          {!t ? (
+            <div className="p-10 flex justify-center"><Loader2 className="h-5 w-5 animate-spin" /></div>
+          ) : (
+            <div className="p-6 space-y-6">
+              <div className="space-y-3">
+                <Line k="Favorecido" v={t.favored_name} />
+                <Line k="Chave Pix" v={`${t.pix_key}${t.pix_key_type ? ` (${t.pix_key_type})` : ""}`} />
+                <Line k="CPF/CNPJ" v={t.cpf_cnpj || "—"} />
+                <div className="flex justify-between items-baseline gap-4">
+                  <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Valor</span>
+                  <span className="text-brand-orange font-bold tabular-nums">{formatBRL(Number(t.value))}</span>
+                </div>
+                <div className="flex justify-between items-center gap-4">
+                  <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Status</span>
+                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${meta?.cls ?? "bg-muted"}`}>
+                    {meta?.label ?? t.status}
+                  </span>
+                </div>
+                <Line k="Origem" v={ORIGIN_LABEL[t.origin] ?? t.origin} />
+                <Line
+                  k="Data"
+                  v={t.scheduled_date ?? t.effective_date ?? new Date(t.created_at).toLocaleDateString("pt-BR")}
                 />
+                <Line k="Descrição" v={t.description || "—"} />
+                {t.fail_reason && <Line k="Falha" v={t.fail_reason} />}
               </div>
-            </div>
-            <div>
-              <div className="text-xs uppercase tracking-wider text-muted-foreground mb-2">Auditoria</div>
-              <div className="space-y-2">
-                {(data?.events ?? []).map((ev: any) => (
-                  <div key={ev.id} className="rounded-lg border border-border p-2.5 text-xs">
-                    <div className="flex justify-between gap-2">
-                      <span className="font-semibold">{ev.event}{ev.decision ? ` — ${ev.decision}` : ""}</span>
-                      <span className="text-muted-foreground">{new Date(ev.created_at).toLocaleString("pt-BR")}</span>
-                    </div>
-                    {ev.message && <div className="text-muted-foreground mt-0.5">{ev.message}</div>}
-                    {(ev.actor_name || ev.ip) && (
-                      <div className="text-muted-foreground mt-0.5">
-                        {ev.actor_name ?? "sistema"}{ev.ip ? ` · ${ev.ip}` : ""}
+
+              <div className="pt-4 border-t border-border/60 space-y-3">
+                <div>
+                  <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-widest">ID ASAAS</span>
+                  <p className="text-xs font-mono text-muted-foreground break-all bg-muted/30 p-2 rounded mt-1">
+                    {t.asaas_transfer_id || "—"}
+                  </p>
+                </div>
+                <div className="flex justify-between items-center gap-4 text-xs text-muted-foreground">
+                  <span>Criado por</span>
+                  <span className="text-foreground/80 text-right">
+                    {t.created_by_name ?? "—"}{t.created_ip ? ` · ${t.created_ip}` : ""}
+                  </span>
+                </div>
+              </div>
+
+              <Button className="w-full" onClick={() => setReciboOpen(true)}>
+                <Receipt className="h-4 w-4 mr-2" /> Ver comprovante
+              </Button>
+
+              <div className="space-y-3">
+                <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Auditoria</h3>
+                <div className="space-y-2">
+                  {(data?.events ?? []).map((ev: any) => (
+                    <div key={ev.id} className="rounded-lg border border-border/60 bg-muted/20 p-3 text-xs">
+                      <div className="flex justify-between gap-2">
+                        <span className="font-semibold uppercase text-[10px] tracking-wide">
+                          {ev.event}{ev.decision ? ` — ${ev.decision}` : ""}
+                        </span>
+                        <span className="text-muted-foreground text-[10px]">
+                          {new Date(ev.created_at).toLocaleString("pt-BR")}
+                        </span>
                       </div>
-                    )}
-                  </div>
-                ))}
+                      {ev.message && <div className="text-muted-foreground mt-1 italic text-[11px]">{ev.message}</div>}
+                      {(ev.actor_name || ev.ip) && (
+                        <div className="text-muted-foreground mt-0.5 text-[10px]">
+                          {ev.actor_name ?? "sistema"}{ev.ip ? ` · ${ev.ip}` : ""}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
-          </div>
-        )}
-      </DialogContent>
-    </Dialog>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <ComprovanteReceipt open={reciboOpen} onOpenChange={setReciboOpen} data={recibo} />
+    </>
   );
 }
 
 function Line({ k, v }: { k: string; v: string }) {
   return (
-    <div className="flex justify-between gap-4">
-      <span className="text-muted-foreground">{k}</span>
-      <span className="font-medium text-right break-all">{v}</span>
+    <div className="flex justify-between items-baseline gap-4">
+      <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{k}</span>
+      <span className="text-sm font-medium text-right break-all">{v}</span>
     </div>
   );
 }
+
