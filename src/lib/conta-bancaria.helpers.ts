@@ -13,7 +13,7 @@ export interface ExtratoItem {
   link: { kind: 'pedido' | 'pagamento'; id: string; label: string } | null
 }
 
-async function assertAdmin(context: { supabase: any; userId: string }) {
+export async function assertAdmin(context: { supabase: any; userId: string }) {
   const { data: isAdmin, error } = await context.supabase.rpc('has_role', {
     _user_id: context.userId,
     _role: 'admin',
@@ -22,22 +22,8 @@ async function assertAdmin(context: { supabase: any; userId: string }) {
   if (!isAdmin) throw new Error('Acesso restrito a administradores.')
 }
 
-export interface ExtratoItem {
-  id: string
-  date: string | null
-  createdAt: string | null
-  description: string | null
-  type: string | null
-  direction: 'in' | 'out'
-  value: number
-  balance: number | null
-  reference: string | null
-  paymentId: string | null
-  transferId: string | null
-  link: { kind: 'pedido' | 'pagamento'; id: string; label: string } | null
-}
 
-function brtToday() {
+export function brtToday() {
   const fmt = new Intl.DateTimeFormat('en-CA', {
     timeZone: 'America/Sao_Paulo',
     year: 'numeric',
@@ -47,7 +33,7 @@ function brtToday() {
   return fmt.format(new Date()) // yyyy-mm-dd
 }
 
-function monthRange(offset = 0) {
+export function monthRange(offset = 0) {
   const today = brtToday()
   const [y, m] = today.split('-').map(Number)
   const d = new Date(Date.UTC(y!, (m! - 1) + offset, 1))
@@ -59,7 +45,7 @@ function monthRange(offset = 0) {
   return { start: iso(start), finish: iso(end) }
 }
 
-function normalize(tx: any): ExtratoItem {
+export function normalize(tx: any): ExtratoItem {
   const value = Number(tx?.value ?? 0)
   return {
     id: String(tx?.id ?? crypto.randomUUID()),
