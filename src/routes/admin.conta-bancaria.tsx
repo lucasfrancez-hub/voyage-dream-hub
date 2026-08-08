@@ -13,6 +13,7 @@ import {
   obterResumoBancario, listarExtratoBancario,
 } from "@/lib/conta-bancaria.functions";
 import type { ExtratoItem } from "@/lib/conta-bancaria.helpers";
+import { asaasTypeLabel } from "@/lib/asaas-labels";
 
 export const Route = createFileRoute("/admin/conta-bancaria")({
   component: ContaBancariaPage,
@@ -67,42 +68,8 @@ function fmtDate(v: string | null) {
 
 const PAGE = 50;
 
-const TYPE_LABELS: Record<string, string> = {
-  PAYMENT_RECEIVED: "Pagamento recebido",
-  PAYMENT_CONFIRMED: "Pagamento confirmado",
-  PAYMENT_CREATED: "Cobrança criada",
-  PAYMENT_REFUNDED: "Pagamento estornado",
-  PAYMENT_FEE: "Taxa da cobrança",
-  PAYMENT_REVERSAL: "Estorno de pagamento",
-  PIX_FEE: "Taxa do Pix",
-  TRANSFER: "Transferência Pix",
-  TRANSFER_FEE: "Taxa de transferência",
-  INTERNAL_TRANSFER_CREDIT: "Transferência recebida",
-  INTERNAL_TRANSFER_DEBIT: "Transferência enviada",
-  INSTANT_TEXT_MESSAGE_FEE: "Taxa de mensagem (WhatsApp)",
-  PHONE_CALL_NOTIFICATION_FEE: "Taxa de ligação",
-  POSTAL_SERVICE_FEE: "Taxa de correio",
-  BILL_PAYMENT: "Pagamento de boleto",
-  BILL_PAYMENT_FEE: "Taxa de pagamento de conta",
-  BILL_PAYMENT_CANCELLED: "Pagamento de conta cancelado",
-  ASAAS_CARD_TRANSACTION: "Compra no cartão",
-  CREDIT_CARD_FEE: "Taxa de cartão",
-  DEBIT: "Débito",
-  CREDIT: "Crédito",
-  REFUND: "Reembolso",
-  CHARGEBACK: "Chargeback",
-  FEE: "Taxa",
-};
-
 function typeLabel(t: string | null) {
-  if (!t) return "Movimentação";
-  return (
-    TYPE_LABELS[t] ??
-    t
-      .toLowerCase()
-      .replace(/_/g, " ")
-      .replace(/^./, (c) => c.toUpperCase())
-  );
+  return asaasTypeLabel(t);
 }
 
 function typeTone(t: string | null, dir: "in" | "out") {
@@ -166,7 +133,7 @@ function ContaBancariaPage() {
   const erro = resumo.error || extrato.error;
 
   return (
-    <div className="space-y-8 p-4 md:p-8">
+    <div className="mx-auto w-full max-w-7xl space-y-8 px-3 py-6 sm:px-6 md:py-8">
       <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
         <div>
           <div className="mb-1 flex items-center gap-3">
@@ -308,16 +275,16 @@ function ContaBancariaPage() {
             <table className="w-full border-collapse text-left">
               <thead>
                 <tr className="border-b border-border/40 text-[11px] uppercase tracking-widest text-muted-foreground">
-                  <th className="px-6 py-4 font-semibold">Transação / Referência</th>
-                  <th className="px-6 py-4 font-semibold">Tipo / Data</th>
-                  <th className="px-6 py-4 text-right font-semibold">Valor</th>
-                  <th className="px-6 py-4 text-right font-semibold">Comprovante</th>
+                  <th className="px-4 py-4 font-semibold">Transação / Referência</th>
+                  <th className="px-4 py-4 font-semibold">Tipo / Data</th>
+                  <th className="px-4 py-4 text-right font-semibold">Valor</th>
+                  <th className="px-4 py-4 text-right font-semibold">Comprovante</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/40">
                 {filtrado.map((i) => (
                   <tr key={i.id} className="transition-colors hover:bg-foreground/[0.03]">
-                    <td className="px-6 py-5">
+                    <td className="px-4 py-5">
                       <div className="flex items-start gap-4">
                         <div
                           className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${
@@ -353,7 +320,7 @@ function ContaBancariaPage() {
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-5">
+                    <td className="px-4 py-5">
                       <span
                         className={`inline-block rounded-full border px-2.5 py-0.5 text-[11px] font-medium ${typeTone(i.type, i.direction)}`}
                       >
@@ -361,7 +328,7 @@ function ContaBancariaPage() {
                       </span>
                       <p className="mt-1 text-xs text-muted-foreground">{fmtDate(i.createdAt || i.date)}</p>
                     </td>
-                    <td className="px-6 py-5 text-right">
+                    <td className="px-4 py-5 text-right">
                       <span
                         className={`text-sm font-bold ${
                           i.direction === "in" ? "text-emerald-400" : "text-rose-400"
@@ -370,7 +337,7 @@ function ContaBancariaPage() {
                         {i.direction === "in" ? "+" : "−"} {formatBRL(Math.abs(i.value))}
                       </span>
                     </td>
-                    <td className="px-6 py-5 text-right">
+                    <td className="px-4 py-5 text-right">
                       {i.receiptUrl || i.paymentId || i.transferId ? (
                         <ComprovanteActions
                           url={i.receiptUrl}
@@ -378,8 +345,11 @@ function ContaBancariaPage() {
                           transferId={i.transferId}
                         />
                       ) : (
-                        <span className="text-xs text-muted-foreground">
-                          Comprovante ainda não disponível.
+                        <span
+                          className="text-xs text-muted-foreground"
+                          title="Taxas e tarifas do banco não geram comprovante."
+                        >
+                          —
                         </span>
                       )}
                     </td>
