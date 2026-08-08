@@ -645,6 +645,19 @@ function CobrancaDialog({ row, onClose }: { row: any | null; onClose: () => void
               </div>
             )}
 
+            {row.kind === "boleto" && (
+              <Button
+                className="w-full bg-brand-orange hover:bg-brand-orange/90"
+                onClick={() => {
+                  if (!abrirBoletoHtml(recebimentoParaBoleto(row), true)) {
+                    toast.error("Libere pop-ups para gerar o boleto.");
+                  }
+                }}
+              >
+                <Barcode className="h-4 w-4 mr-2" /> Boleto VIA AIR (imprimir / PDF)
+              </Button>
+            )}
+
             {(row.bank_slip_url || row.invoice_url) && (
               <Button
                 className="w-full"
