@@ -343,7 +343,17 @@ function ContaBancariaPage() {
                           url={i.receiptUrl}
                           paymentId={i.paymentId}
                           transferId={i.transferId}
+                          receipt={{
+                            valor: Math.abs(Number(i.value ?? 0)),
+                            favorecido: i.description || asaasTypeLabel(i.type) || "—",
+                            tipo: asaasTypeLabel(i.type) || undefined,
+                            dataHora: i.date ? new Date(i.date).toLocaleString("pt-BR") : null,
+                            transacaoId: i.reference || i.id,
+                            descricao: i.description,
+                            concluido: true,
+                          }}
                         />
+
                       ) : (
                         <span
                           className="text-xs text-muted-foreground"

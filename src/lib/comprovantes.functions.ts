@@ -51,3 +51,33 @@ export const obterComprovante = createServerFn({ method: 'POST' })
     }
     return { url: null as string | null }
   })
+
+const pdfInput = z.object({ url: z.string().url() })
+
+/**
+ * Baixa o comprovante do ASAAS. Quando o link responde um PDF, devolve o
+ * arquivo em base64 para download direto; caso contrário devolve `pdf: false`
+ * para o cliente abrir a página do comprovante.
+ */
+export const baixarComprovantePdf = createServerFn({ method: 'POST' })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => pdfInput.parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context as any)
+    const candidates = [data.url, data.url.includes('?') ? `${data.url}&pdf=true` : `${data.url}?pdf=true`]
+    for (const u of candidates) {
+      try {
+        const res = await fetch(u, { headers: { Accept: 'application/pdf' } })
+        if (!res.ok) continue
+        const ct = res.headers.get('content-type') ?? ''
+        if (!ct.includes('pdf')) continue
+        const buf = new Uint8Array(await res.arrayBuffer())
+        let bin = ''
+        for (const b of buf) bin += String.fromCharCode(b)
+        return { pdf: true as const, base64: btoa(bin) }
+      } catch {
+        /* tenta o próximo */
+      }
+    }
+    return { pdf: false as const, base64: null }
+  })
