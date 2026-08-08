@@ -17,6 +17,8 @@ import {
   listarRecebimentos, criarRecebimento, sincronizarRecebimento, cancelarRecebimento,
 } from "@/lib/recebimentos.functions";
 import { confirmThen } from "@/lib/confirm";
+import { ComprovanteActions } from "@/components/financial/ComprovanteActions";
+
 
 export const Route = createFileRoute("/admin/recebimentos")({
   head: () => ({
@@ -193,6 +195,9 @@ function RecebimentosPage() {
                     >
                       <RefreshCw className="h-4 w-4" />
                     </Button>
+                    {["recebido", "estornado"].includes(r.status) && r.asaas_payment_id && (
+                      <ComprovanteActions paymentId={r.asaas_payment_id} />
+                    )}
                     {!["recebido", "cancelado"].includes(r.status) && (
                       <Button
                         size="icon"
@@ -204,6 +209,7 @@ function RecebimentosPage() {
                         <Ban className="h-4 w-4 text-red-500" />
                       </Button>
                     )}
+
                   </div>
                 </div>
               );

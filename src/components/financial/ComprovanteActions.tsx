@@ -9,7 +9,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { obterComprovante, baixarComprovantePdf } from "@/lib/comprovantes.functions";
+import { obterComprovante, obterComprovanteDetalhado, baixarComprovantePdf } from "@/lib/comprovantes.functions";
 import { ComprovanteReceipt, type ReceiptData } from "@/components/financial/ComprovanteReceipt";
 
 type Props = {
@@ -28,10 +28,13 @@ export function ComprovanteActions({
   url, paymentId, transferId, billId, receipt = null, compact = true, label = "Comprovante",
 }: Props) {
   const consultar = useServerFn(obterComprovante);
+  const detalhar = useServerFn(obterComprovanteDetalhado);
   const baixarPdfFn = useServerFn(baixarComprovantePdf);
   const [resolved, setResolved] = useState<string | null>(url ?? null);
   const [loading, setLoading] = useState(false);
   const [receiptOpen, setReceiptOpen] = useState(false);
+  const [fetched, setFetched] = useState<ReceiptData | null>(null);
+
 
   const podeConsultar = Boolean(paymentId || transferId || billId);
 
@@ -96,11 +99,53 @@ export function ComprovanteActions({
     toast.success("Link do comprovante copiado.");
   }
 
+  async function abrirComprovante() {
+    if (receipt || fetched) {
+      setReceiptOpen(true);
+      return;
+    }
+    if (!podeConsultar) return;
+    setLoading(true);
+    try {
+      const res = await detalhar({ data: { paymentId, transferId, billId } });
+      const c = res.item;
+      if (!c) {
+        toast.info("Comprovante ainda não disponível.");
+        return;
+      }
+      setFetched({
+        valor: c.value,
+        favorecido: c.favored ?? "—",
+        favorecidoLabel: c.counterpartyLabel,
+        direction: c.direction,
+        instituicao: c.instituicao,
+        chavePix: c.chavePix,
+        cpfCnpj: c.cpfCnpj,
+        tipo: c.operation,
+        formaPagamento: c.formaPagamento,
+        dataVencimento: c.dueDate,
+        dataPagamento: c.paymentDate ?? c.date,
+        dataHora: c.date,
+        transacaoId: c.asaasId,
+        descricao: c.descricao,
+        status: c.status ?? undefined,
+        pdfUrl: c.receiptUrl,
+      });
+      setReceiptOpen(true);
+    } catch {
+      toast.error("Não foi possível carregar o comprovante.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
   if (!resolved && !podeConsultar && !receipt) {
     return (
       <span className="text-xs text-muted-foreground" title="Comprovante ainda não disponível para esta movimentação.">—</span>
     );
   }
+
+  const visivel = receipt ?? fetched;
 
   return (
     <>
@@ -117,11 +162,9 @@ export function ComprovanteActions({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-56">
-          {receipt && (
-            <DropdownMenuItem onSelect={(e) => { e.preventDefault(); setReceiptOpen(true); }}>
-              <Eye className="mr-2 h-4 w-4" /> Ver comprovante
-            </DropdownMenuItem>
-          )}
+          <DropdownMenuItem onSelect={(e) => { e.preventDefault(); abrirComprovante(); }}>
+            <Eye className="mr-2 h-4 w-4" /> Ver comprovante
+          </DropdownMenuItem>
           <DropdownMenuItem onSelect={(e) => { e.preventDefault(); baixarPdf(); }}>
             <Download className="mr-2 h-4 w-4" /> Baixar PDF
           </DropdownMenuItem>
@@ -131,11 +174,12 @@ export function ComprovanteActions({
         </DropdownMenuContent>
       </DropdownMenu>
 
-      {receipt && (
-        <ComprovanteReceipt open={receiptOpen} onOpenChange={setReceiptOpen} data={receipt} />
+      {visivel && (
+        <ComprovanteReceipt open={receiptOpen} onOpenChange={setReceiptOpen} data={visivel} />
       )}
     </>
   );
 }
+
 
 export default ComprovanteActions;

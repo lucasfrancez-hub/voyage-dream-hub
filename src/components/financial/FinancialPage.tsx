@@ -18,6 +18,8 @@ import { toast } from "sonner";
 import { Link } from "@tanstack/react-router";
 import { PixPaymentDialog } from "@/components/financial/PixPaymentDialog";
 import { BoletoPaymentDialog } from "@/components/financial/BoletoPaymentDialog";
+import { ComprovanteEntryButton } from "@/components/financial/ComprovanteEntryButton";
+
 
 type Kind = "payable" | "receivable";
 type Entry = {
@@ -334,6 +336,7 @@ export function FinancialPage({ kind }: { kind: Kind }) {
                     {formatBRL(Number(e.amount))}
                   </div>
                   <div className="flex gap-1">
+                    {e.status === "paid" && <ComprovanteEntryButton entryId={e.id} />}
                     {kind === "payable" && e.status !== "paid" && (
                       <>
                         <Button size="icon" variant="ghost" title="Pagar via Pix" onClick={() => setPixEntry(e)}>
@@ -344,6 +347,7 @@ export function FinancialPage({ kind }: { kind: Kind }) {
                         </Button>
                       </>
                     )}
+
                     <Button size="icon" variant="ghost" onClick={() => toggleStatus.mutate(e)} title={e.status === "paid" ? "Marcar como pendente" : "Marcar como pago"}>
                       {e.status === "paid" ? <X className="h-4 w-4" /> : <Check className="h-4 w-4 text-emerald-500" />}
                     </Button>
