@@ -335,11 +335,38 @@ function NovoRecebimentoDialog({
   const emptyForm = {
     customerName: "", cpfCnpj: "", email: "", phone: "", value: "", dueDate: hoje, description: "",
     finePercent: "2", interestPercent: "1",
+    cep: "", logradouro: "", numero: "", complemento: "", bairro: "", cidade: "", estado: "",
     servico: "", destino: "", periodoInicio: "", periodoFim: "", passageiros: "",
   };
   const [form, setForm] = useState(emptyForm);
   const [personId, setPersonId] = useState<string | null>(null);
   const [sugestoesOpen, setSugestoesOpen] = useState(false);
+  const [buscandoCep, setBuscandoCep] = useState(false);
+
+  async function buscarCep(valor: string) {
+    const cep = valor.replace(/\D/g, "");
+    if (cep.length !== 8) return;
+    setBuscandoCep(true);
+    try {
+      const res = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+      const j = await res.json();
+      if (j?.erro) {
+        toast.error("CEP não encontrado.");
+        return;
+      }
+      setForm((f) => ({
+        ...f,
+        logradouro: j.logradouro || f.logradouro,
+        bairro: j.bairro || f.bairro,
+        cidade: j.localidade || f.cidade,
+        estado: j.uf || f.estado,
+      }));
+    } catch {
+      toast.error("Não foi possível consultar o CEP.");
+    } finally {
+      setBuscandoCep(false);
+    }
+  }
 
   const { data: sugestoes = [] } = useQuery({
     queryKey: ["people-autocomplete", form.customerName],
