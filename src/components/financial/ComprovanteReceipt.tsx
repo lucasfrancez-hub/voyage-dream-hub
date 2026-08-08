@@ -143,41 +143,47 @@ export function ComprovanteReceipt({
                 <img
                   src={viaairLogo.url}
                   alt="VIA AIR"
-                  className="h-8 w-auto mb-8 object-contain"
+                  className="h-8 w-auto mb-6 object-contain"
                 />
 
-                <div className="flex flex-col items-center mb-6">
+                <div className="flex flex-col items-center mb-6 text-center">
                   <div className="w-12 h-12 rounded-full bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center mb-3">
                     <CheckCircle2 className="h-6 w-6 text-emerald-400" />
                   </div>
-                  <span className="text-emerald-400 font-semibold text-sm tracking-wide">
+                  <h2 className="text-base font-semibold text-foreground">
+                    Comprovante {data.formaPagamento || data.tipo || "Pix"}
+                  </h2>
+                  <span className="text-muted-foreground text-sm mt-1">
                     {data.concluido === false
                       ? (data.status ?? "Em processamento")
                       : data.direction === "in"
-                        ? "Pagamento recebido"
-                        : "Pagamento realizado"}
+                        ? "Pagamento recebido com sucesso"
+                        : "Pagamento realizado com sucesso"}
                   </span>
                 </div>
 
-                <div className="text-center mb-10">
-                  <span className="text-muted-foreground text-sm font-medium">Valor total</span>
+                <div className="text-center mb-8">
+                  <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-medium">
+                    Valor pago
+                  </span>
                   <h1 className="text-4xl font-bold text-foreground mt-1 tabular-nums">
                     {formatBRL(data.valor)}
                   </h1>
                 </div>
 
-                <div className="w-full space-y-5">
-                  <div className="grid grid-cols-2 gap-x-4 gap-y-5">
-                    <Field
-                      label="Forma de pagamento"
-                      value={data.formaPagamento || data.tipo || "Pix"}
-                    />
-                    <Field label="Valor pago" value={formatBRL(data.valor)} />
-                    <Field label="Data do vencimento" value={formatDate(data.dataVencimento)} />
+                <div className="w-full space-y-6">
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-5 bg-muted/20 border border-border rounded-2xl p-5">
                     <Field
                       label="Data do pagamento"
                       value={formatDate(data.dataPagamento ?? data.dataHora)}
                     />
+                    <Field label="Vencimento" value={formatDate(data.dataVencimento)} />
+                    <div className="col-span-2">
+                      <Field
+                        label="Forma de pagamento"
+                        value={data.formaPagamento || data.tipo || "Pix"}
+                      />
+                    </div>
                     {data.chavePix ? (
                       <div className="col-span-2">
                         <Field label="Chave Pix" value={data.chavePix} />
@@ -188,19 +194,23 @@ export function ComprovanteReceipt({
                         <Field label="Descrição" value={data.descricao} />
                       </div>
                     ) : null}
-                    <div className="col-span-2">
-                      <span className="text-[10px] text-muted-foreground uppercase tracking-widest">
-                        ID / Transação Pix
-                      </span>
-                      <p className="text-[10px] font-mono text-muted-foreground mt-1 bg-background/60 p-2 rounded border border-border break-all">
-                        {data.transacaoId || "—"}
-                      </p>
-                    </div>
                   </div>
 
-                  <PartyBlock title="Dados do pagador" party={pagador} />
-                  <PartyBlock title="Dados do recebedor" party={recebedor} />
+                  <div className="space-y-5">
+                    <PartyBlock title="Dados do pagador" party={pagador} />
+                    <PartyBlock title="Dados do recebedor" party={recebedor} />
+                  </div>
+
+                  <div>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-semibold text-center mb-2">
+                      ID da transação
+                    </p>
+                    <p className="text-[11px] font-mono text-muted-foreground bg-background/60 py-3 px-4 rounded-xl border border-border break-all text-center leading-relaxed">
+                      {data.transacaoId || "—"}
+                    </p>
+                  </div>
                 </div>
+
 
 
                 <div className="mt-10 w-full pt-6 border-t border-border flex flex-col items-center gap-4">
@@ -248,18 +258,32 @@ export function ComprovanteReceipt({
 
 function PartyBlock({ title, party }: { title: string; party: ReceiptParty }) {
   return (
-    <div className="pt-4 border-t border-border">
-      <p className="text-[11px] font-semibold text-foreground mb-3">{title}</p>
-      <div className="grid grid-cols-2 gap-x-4 gap-y-4">
-        <div className="col-span-2">
-          <Field label="Nome" value={party.nome || "—"} />
-        </div>
-        <Field label="CPF/CNPJ" value={maskDoc(party.cpfCnpj)} />
-        <Field label="Instituição" value={party.instituicao || "—"} />
+    <div className="space-y-3">
+      <div className="flex items-center gap-2">
+        <div className="h-px flex-1 bg-border" />
+        <span className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground whitespace-nowrap">
+          {title}
+        </span>
+        <div className="h-px flex-1 bg-border" />
+      </div>
+      <div className="grid grid-cols-3 gap-x-3 gap-y-2 items-baseline">
+        <span className="text-xs text-muted-foreground">Nome</span>
+        <span className="col-span-2 text-xs font-medium text-foreground text-right break-words">
+          {party.nome || "—"}
+        </span>
+        <span className="text-xs text-muted-foreground">CPF/CNPJ</span>
+        <span className="col-span-2 text-xs font-medium text-foreground text-right tabular-nums">
+          {maskDoc(party.cpfCnpj)}
+        </span>
+        <span className="text-xs text-muted-foreground">Instituição</span>
+        <span className="col-span-2 text-xs font-medium text-foreground text-right leading-tight break-words">
+          {party.instituicao || "—"}
+        </span>
       </div>
     </div>
   );
 }
+
 
 function Field({ label, value }: { label: string; value: string }) {
   return (
