@@ -129,7 +129,7 @@ function DashboardPage() {
     queryKey: ["admin", "dashboard", "bank"],
     enabled: isAdmin,
     staleTime: 60 * 1000,
-    queryFn: async () => await obterResumoBancario({ data: {} } as never),
+    queryFn: async () => await obterResumoBancario(),
   });
 
 
@@ -408,6 +408,44 @@ function DashboardPage() {
       </div>
 
 
+
+      {/* Movimentação bancária (admin) */}
+      {isAdmin && (
+        <div className="grid gap-3 grid-cols-2 md:grid-cols-4">
+          <Link to="/admin/conta-bancaria" className="rounded-2xl border border-border bg-card p-5 hover:border-brand-orange/40 transition">
+            <div className="flex items-center gap-2 text-[11px] uppercase tracking-wider text-muted-foreground">
+              <Wallet className="h-3.5 w-3.5 text-brand-orange" /> Saldo bancário
+            </div>
+            <div className="mt-2 text-2xl font-bold">{bank ? formatBRL(bank.saldo ?? 0) : "—"}</div>
+            <div className="text-[11px] text-muted-foreground">Conta VIA AIR</div>
+          </Link>
+          <Link to="/admin/pagamentos" className="rounded-2xl border border-border bg-card p-5 hover:border-red-500/40 transition">
+            <div className="flex items-center gap-2 text-[11px] uppercase tracking-wider text-muted-foreground">
+              <ArrowUpRight className="h-3.5 w-3.5 text-red-500" /> Pagamentos enviados
+            </div>
+            <div className="mt-2 text-2xl font-bold text-red-500">{bank ? formatBRL(bank.saidasMes ?? 0) : "—"}</div>
+            <div className="text-[11px] text-muted-foreground">Este mês</div>
+          </Link>
+          <Link to="/admin/recebimentos" className="rounded-2xl border border-border bg-card p-5 hover:border-emerald-500/40 transition">
+            <div className="flex items-center gap-2 text-[11px] uppercase tracking-wider text-muted-foreground">
+              <ArrowDownRight className="h-3.5 w-3.5 text-emerald-500" /> Pagamentos recebidos
+            </div>
+            <div className="mt-2 text-2xl font-bold text-emerald-500">{bank ? formatBRL(bank.entradasMes ?? 0) : "—"}</div>
+            <div className="text-[11px] text-muted-foreground">Este mês</div>
+          </Link>
+          <Link to="/admin/contas-pagar" className="rounded-2xl border border-border bg-card p-5 hover:border-amber-500/40 transition">
+            <div className="flex items-center gap-2 text-[11px] uppercase tracking-wider text-muted-foreground">
+              <AlertCircle className="h-3.5 w-3.5 text-amber-500" /> Pagamentos atrasados
+            </div>
+            <div className="mt-2 text-2xl font-bold text-amber-500">
+              {formatBRL(finSummary.payable.overdue + finSummary.receivable.overdue)}
+            </div>
+            <div className="text-[11px] text-muted-foreground">
+              {finSummary.payable.overdueCount} a pagar · {finSummary.receivable.overdueCount} a receber
+            </div>
+          </Link>
+        </div>
+      )}
 
       {/* Financeiro: a pagar / a receber (admin) */}
       {isAdmin && (
