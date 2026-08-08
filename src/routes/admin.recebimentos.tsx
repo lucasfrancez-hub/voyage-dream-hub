@@ -521,21 +521,77 @@ function NovoRecebimentoDialog({
               <Input value={form.email} onChange={set("email")} placeholder="cliente@email.com" />
             </div>
             <div>
+              <Label>Telefone (opcional)</Label>
+              <Input value={form.phone} onChange={set("phone")} inputMode="tel" placeholder="(44) 99999-0000" />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
               <Label>Vencimento</Label>
               <Input type="date" value={form.dueDate} onChange={set("dueDate")} />
             </div>
+            <div />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label>Multa por atraso (%)</Label>
+              <Label>Multa por atraso (%) — opcional</Label>
               <Input value={form.finePercent} onChange={set("finePercent")} inputMode="decimal" placeholder="2" />
             </div>
             <div>
-              <Label>Juros ao mês (%)</Label>
+              <Label>Juros ao mês (%) — opcional</Label>
               <Input value={form.interestPercent} onChange={set("interestPercent")} inputMode="decimal" placeholder="1" />
             </div>
           </div>
+
+          <div className="rounded-xl border border-border/60 bg-muted/10 p-3 space-y-3">
+            <p className="text-[11px] uppercase tracking-widest text-muted-foreground">
+              Endereço do pagador (opcional)
+            </p>
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <Label>CEP</Label>
+                <Input
+                  value={form.cep}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setForm((f) => ({ ...f, cep: v }));
+                    if (v.replace(/\D/g, "").length === 8) void buscarCep(v);
+                  }}
+                  onBlur={(e) => void buscarCep(e.target.value)}
+                  inputMode="numeric"
+                  placeholder={buscandoCep ? "Buscando..." : "87700-000"}
+                />
+              </div>
+              <div>
+                <Label>Número</Label>
+                <Input value={form.numero} onChange={set("numero")} placeholder="123" />
+              </div>
+              <div>
+                <Label>Complemento</Label>
+                <Input value={form.complemento} onChange={set("complemento")} placeholder="Apto 12" />
+              </div>
+            </div>
+            <div>
+              <Label>Endereço</Label>
+              <Input value={form.logradouro} onChange={set("logradouro")} placeholder="Rua / Avenida" />
+            </div>
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <Label>Bairro</Label>
+                <Input value={form.bairro} onChange={set("bairro")} placeholder="Centro" />
+              </div>
+              <div>
+                <Label>Cidade</Label>
+                <Input value={form.cidade} onChange={set("cidade")} placeholder="Paranavaí" />
+              </div>
+              <div>
+                <Label>Estado</Label>
+                <Input value={form.estado} onChange={set("estado")} maxLength={2} placeholder="PR" />
+              </div>
+            </div>
+          </div>
+
 
           <div className="rounded-xl border border-border/60 bg-muted/10 p-3 space-y-3">
             <p className="text-[11px] uppercase tracking-widest text-muted-foreground">
