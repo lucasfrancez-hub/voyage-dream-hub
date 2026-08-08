@@ -12,6 +12,8 @@ import { criarPixCobranca, consultarPixCobranca } from "@/lib/pix.functions";
 import { CardForm, useCardData, detectBrand } from "@/components/CardForm";
 import { BoletoForm, emptyBoleto, validateBoleto, type BoletoData } from "@/components/BoletoForm";
 import { DateBRInput } from "@/components/DateBRInput";
+import { PixQrOverlay } from "@/components/PixQrOverlay";
+
 
 import { ContactFooter } from "@/components/ContactFooter";
 import { TopBar } from "@/components/TopBar";
