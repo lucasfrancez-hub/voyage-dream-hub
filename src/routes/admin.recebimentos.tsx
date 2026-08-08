@@ -18,7 +18,9 @@ import {
 import {
   listarRecebimentos, criarRecebimento, sincronizarRecebimento, cancelarRecebimento,
 } from "@/lib/recebimentos.functions";
+import { searchPeople } from "@/lib/people.functions";
 import { confirmThen } from "@/lib/confirm";
+
 import { ComprovanteActions } from "@/components/financial/ComprovanteActions";
 
 
