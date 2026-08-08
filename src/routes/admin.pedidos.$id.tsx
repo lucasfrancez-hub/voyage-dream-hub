@@ -5286,6 +5286,7 @@ function PaymentDialog({
                             banco: {
                               linhaDigitavel: boletoData.linhaDigitavel,
                               nossoNumero: boletoData.nossoNumero,
+                              agenciaCodigo: (boletoData as any).agenciaCodigo ?? null,
                             },
                             multaPercent: 2,
                             jurosPercentMes: 1,
