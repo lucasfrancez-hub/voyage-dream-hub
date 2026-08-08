@@ -394,6 +394,15 @@ function NovoRecebimentoDialog({
           personId,
           finePercent: num(form.finePercent),
           interestPercent: num(form.interestPercent),
+          endereco: {
+            cep: form.cep,
+            logradouro: form.logradouro,
+            numero: form.numero,
+            complemento: form.complemento,
+            bairro: form.bairro,
+            cidade: form.cidade,
+            estado: form.estado,
+          },
           composicao: {
             servico: form.servico,
             destino: form.destino,
