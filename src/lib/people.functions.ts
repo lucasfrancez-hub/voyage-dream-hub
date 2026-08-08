@@ -195,7 +195,7 @@ export const searchPeople = createServerFn({ method: "POST" })
     const q = data.q.trim();
     let query = context.supabase
       .from("people")
-      .select("id, name, cpf, cnpj, email, phone, mobile_phone, birth_date, zip, address, number, district, city, state, rg")
+      .select("id, name, cpf, cnpj, email, phone, mobile_phone, birth_date, zip, address, number, complement, district, city, state, rg")
       .order("name", { ascending: true })
       .limit(15);
     if (q) {
