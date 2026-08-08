@@ -128,13 +128,6 @@ function Checkout() {
   const { data: card, patch: patchCard } = useCardData();
   const [boleto, setBoleto] = useState<BoletoData>(emptyBoleto);
   const [notes, setNotes] = useState("");
-  const [pixAddress, setPixAddress] = useState({
-    cep: "",
-    address: "",
-    number: "",
-    city: "",
-    state: "PR",
-  });
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [pixInfo, setPixInfo] = useState<{ txid: string; qrCode: string; expiraEm: string; valor: number } | null>(null);
@@ -371,18 +364,8 @@ function Checkout() {
 
 
 
-    if (payment === "pix") {
-      if (
-        !pixAddress.cep.trim() ||
-        !pixAddress.address.trim() ||
-        !pixAddress.number.trim() ||
-        !pixAddress.city.trim() ||
-        !pixAddress.state.trim()
-      ) {
-        toast.error("Preencha o endereço de cobrança (CEP, endereço, número, cidade e estado).");
-        return;
-      }
-    }
+
+
 
 
 
@@ -473,19 +456,6 @@ function Checkout() {
                 boleto_installment_value: totalPrice / Math.max(boletoInstallments, 1),
               }
             : {}),
-          ...(payment === "pix"
-            ? {
-                pix_capture: {
-                  billing: {
-                    zip: pixAddress.cep,
-                    address: pixAddress.address,
-                    number: pixAddress.number,
-                    city: pixAddress.city,
-                    state: pixAddress.state,
-                  },
-                },
-              }
-            : {}),
           },
           full_name: primary.full_name,
           email: primary.email,
@@ -507,11 +477,12 @@ function Checkout() {
           payer_cpf: payment === "credit_card" ? card.cardCpf : (primary.cpf || null),
           payer_email: primary.email,
           payer_phone: primary.phone,
-          payer_zip: payment === "credit_card" ? card.billingZip : payment === "pix" ? pixAddress.cep : null,
-          payer_address: payment === "credit_card" ? card.billingAddress : payment === "pix" ? pixAddress.address : null,
-          payer_number: payment === "credit_card" ? card.billingNumber : payment === "pix" ? pixAddress.number : null,
-          payer_city: payment === "credit_card" ? card.billingCity : payment === "pix" ? pixAddress.city : null,
-          payer_state: payment === "credit_card" ? card.billingState : payment === "pix" ? pixAddress.state : null,
+          payer_zip: payment === "credit_card" ? card.billingZip : null,
+          payer_address: payment === "credit_card" ? card.billingAddress : null,
+          payer_number: payment === "credit_card" ? card.billingNumber : null,
+          payer_city: payment === "credit_card" ? card.billingCity : null,
+          payer_state: payment === "credit_card" ? card.billingState : null,
+
         });
 
       if (error) throw error;
@@ -988,69 +959,14 @@ function Checkout() {
               )}
 
               {payment === "pix" && (
-                <div className="mt-6 pt-6 border-t border-border space-y-4">
-                  <div>
-                    <h4 className="text-sm font-semibold">Endereço de cobrança</h4>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Usamos esses dados para gerar o contrato e o recibo da sua reserva.
-                    </p>
-                  </div>
-                  <div className="grid sm:grid-cols-2 gap-4">
-                    <label className="block">
-                      <span className="block text-xs text-muted-foreground mb-1.5">CEP *</span>
-                      <input
-                        value={pixAddress.cep}
-                        onChange={(e) => setPixAddress((p) => ({ ...p, cep: e.target.value }))}
-                        className={inputCls}
-                        placeholder="00000-000"
-                        maxLength={9}
-                        required
-                      />
-                    </label>
-                    <label className="block">
-                      <span className="block text-xs text-muted-foreground mb-1.5">Endereço *</span>
-                      <input
-                        value={pixAddress.address}
-                        onChange={(e) => setPixAddress((p) => ({ ...p, address: e.target.value }))}
-                        className={inputCls}
-                        placeholder="Rua / Avenida"
-                        maxLength={200}
-                        required
-                      />
-                    </label>
-                    <label className="block">
-                      <span className="block text-xs text-muted-foreground mb-1.5">Número *</span>
-                      <input
-                        value={pixAddress.number}
-                        onChange={(e) => setPixAddress((p) => ({ ...p, number: e.target.value }))}
-                        className={inputCls}
-                        maxLength={20}
-                        required
-                      />
-                    </label>
-                    <label className="block">
-                      <span className="block text-xs text-muted-foreground mb-1.5">Cidade *</span>
-                      <input
-                        value={pixAddress.city}
-                        onChange={(e) => setPixAddress((p) => ({ ...p, city: e.target.value }))}
-                        className={inputCls}
-                        maxLength={120}
-                        required
-                      />
-                    </label>
-                    <label className="block">
-                      <span className="block text-xs text-muted-foreground mb-1.5">Estado *</span>
-                      <input
-                        value={pixAddress.state}
-                        onChange={(e) => setPixAddress((p) => ({ ...p, state: e.target.value.toUpperCase().slice(0, 2) }))}
-                        className={inputCls}
-                        maxLength={2}
-                        required
-                      />
-                    </label>
-                  </div>
+                <div className="mt-6 pt-6 border-t border-border">
+                  <p className="text-xs text-muted-foreground">
+                    Ao confirmar, o QR Code Pix é gerado na hora. Assim que o pagamento for
+                    identificado, você é redirecionado automaticamente para a confirmação.
+                  </p>
                 </div>
               )}
+
             </Card>
 
 
