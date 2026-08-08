@@ -5,7 +5,7 @@ import { ArrowLeft, CreditCard, QrCode, FileText, Loader2, Check, MessageCircle 
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL, formatDateBR, formatDateRange, maskCPF } from "@/lib/format";
-import { customQuoteWhatsappUrl, whatsappUrl } from "@/lib/checkout-config";
+import { customQuoteWhatsappUrl, whatsappUrl, PIX_FEE } from "@/lib/checkout-config";
 import { useServerFn } from "@tanstack/react-start";
 import { notifyPixOrder } from "@/lib/pix-notify.functions";
 import { criarPixCobranca, consultarPixCobranca } from "@/lib/pix.functions";
@@ -303,7 +303,7 @@ function Checkout() {
   }, [pkg, adults, children, isPerUnit]);
 
   const PIX_DISCOUNT = 0.05;
-  const PIX_FEE = 1.99; // taxa da transação Pix, sempre somada ao valor do cliente
+
   const taxesAmount = Number(pkg?.taxes ?? 0);
   const pixDiscountBase = Math.max(0, subtotalPrice - taxesAmount);
   const pixDiscountValue = payment === "pix" ? pixDiscountBase * PIX_DISCOUNT : 0;

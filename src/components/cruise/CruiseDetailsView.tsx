@@ -27,6 +27,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { criarPixCobranca } from "@/lib/pix.functions";
 import { notifyPixOrder } from "@/lib/pix-notify.functions";
 import { PixQrOverlay } from "@/components/PixQrOverlay";
+import { PIX_FEE } from "@/lib/checkout-config";
 import { CruiseMoreModal } from "./CruiseMoreModal";
 import {
   CABIN_TYPE_LABELS,
@@ -729,6 +730,8 @@ function CruiseCheckoutDialog({
 }) {
   const criarPix = useServerFn(criarPixCobranca);
   const notifyPix = useServerFn(notifyPixOrder);
+  // taxa Pix embutida no valor cobrado — nunca exibida como linha separada
+  const chargedTotal = mode === "pix" ? total + PIX_FEE : total;
 
   const [form, setForm] = useState({
     full_name: "",
@@ -803,7 +806,7 @@ function CruiseCheckoutDialog({
         adults,
         children: childrenCount,
         taxes: cabin.taxes_total,
-        total,
+        total: chargedTotal,
       };
 
       if (mode === "pix") {
@@ -829,7 +832,7 @@ function CruiseCheckoutDialog({
           adults,
           children: childrenCount,
           payment_method: "pix",
-          total_price: total,
+          total_price: chargedTotal,
           notes: form.notes || null,
           payer_full_name: form.full_name,
           payer_cpf: form.cpf || null,
@@ -851,7 +854,7 @@ function CruiseCheckoutDialog({
               productTitle: `${pkg.title} — ${cabin.name}`,
               adults,
               children: childrenCount,
-              totalPrice: formatBRL(total),
+              totalPrice: formatBRL(chargedTotal),
               customerName: form.full_name,
               customerEmail: form.email,
               customerPhone: form.phone,
@@ -863,7 +866,7 @@ function CruiseCheckoutDialog({
         }
 
         try {
-          const cob = await criarPix({ data: { orderId: newId, valorEsperado: total } });
+          const cob = await criarPix({ data: { orderId: newId, valorEsperado: chargedTotal } });
           setPix(cob);
         } catch (err) {
           console.error("[cruise] pix falhou", err);
@@ -880,7 +883,7 @@ function CruiseCheckoutDialog({
               productTitle: `${pkg.title} — ${cabin.name}`,
               adults,
               children: childrenCount,
-              totalPrice: formatBRL(total),
+              totalPrice: formatBRL(chargedTotal),
               customerName: form.full_name,
               customerEmail: form.email,
               customerPhone: form.phone,
@@ -943,7 +946,7 @@ function CruiseCheckoutDialog({
             <p className="text-xs text-muted-foreground mt-1">
               {cabin.name} · {adults} adulto{adults > 1 ? "s" : ""}
               {childrenCount > 0 ? ` + ${childrenCount} criança${childrenCount > 1 ? "s" : ""}` : ""} ·{" "}
-              <span className="font-semibold text-foreground">{formatBRL(total)}</span>
+              <span className="font-semibold text-foreground">{formatBRL(chargedTotal)}</span>
             </p>
           </div>
           <button

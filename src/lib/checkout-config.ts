@@ -153,3 +153,7 @@ export function splitInstallments(
   const rest = installments > 1 ? Math.max(total - first, 0) / (installments - 1) : 0;
   return { first, rest, restCount: installments - 1, equal: false };
 }
+
+// Taxa da transação Pix, sempre somada ao valor cobrado do cliente.
+// NUNCA exibir como linha separada — deve vir embutida no valor final do Pix.
+export const PIX_FEE = 1.99;
