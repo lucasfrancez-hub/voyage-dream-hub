@@ -684,42 +684,42 @@ function NovoRecebimentoDialog({
         </div>
 
         <div className="shrink-0 flex gap-3 border-t border-border/40 bg-background/30 px-6 py-5">
-          {kind === "boleto" && (
-            <Button
-              variant="outline"
-              className="flex-1 h-12 rounded-xl"
-              disabled={!form.customerName || !form.value}
-              onClick={() => {
-                const fmt = (d: string) =>
-                  d ? new Date(`${d}T12:00:00`).toLocaleDateString("pt-BR") : "";
-                const periodo = [fmt(form.periodoInicio), fmt(form.periodoFim)]
-                  .filter(Boolean)
-                  .join(" • ");
-                abrirBoletoHtml({
-                  documentoRef: "PRÉVIA",
-                  vencimento: form.dueDate,
-                  valor: Number(form.value.replace(",", ".")) || 0,
-                  pagador: {
-                    nome: form.customerName,
-                    cpfCnpj: form.cpfCnpj || null,
-                    telefone: form.phone || null,
-                    email: form.email || null,
-                  },
-                  composicao: {
-                    servico: form.servico || form.description || null,
-                    destino: form.destino || null,
-                    periodo: periodo || null,
-                    passageiro: form.passageiros || null,
-                  },
-                  multaPercent: Number(form.finePercent) || null,
-                  jurosPercentMes: Number(form.interestPercent) || null,
-                  preview: true,
-                });
-              }}
-            >
-              Visualizar boleto
-            </Button>
-          )}
+          <Button
+            variant="outline"
+            className="flex-1 h-12 rounded-xl"
+            disabled={!form.customerName || !form.value}
+            onClick={() => {
+              const fmt = (d: string) =>
+                d ? new Date(`${d}T12:00:00`).toLocaleDateString("pt-BR") : "";
+              const periodo = [fmt(form.periodoInicio), fmt(form.periodoFim)]
+                .filter(Boolean)
+                .join(" • ");
+              abrirBoletoHtml({
+                variant: kind === "pix" ? "pix" : "boleto",
+                documentoRef: "PRÉVIA",
+                vencimento: form.dueDate,
+                valor: Number(form.value.replace(",", ".")) || 0,
+                pagador: {
+                  nome: form.customerName,
+                  cpfCnpj: form.cpfCnpj || null,
+                  telefone: form.phone || null,
+                  email: form.email || null,
+                },
+                composicao: {
+                  servico: form.servico || form.description || null,
+                  destino: form.destino || null,
+                  periodo: periodo || null,
+                  passageiro: form.passageiros || null,
+                },
+                multaPercent: Number(form.finePercent) || null,
+                jurosPercentMes: Number(form.interestPercent) || null,
+                preview: true,
+              });
+            }}
+          >
+            {kind === "pix" ? "Visualizar cobrança" : "Visualizar boleto"}
+          </Button>
+
           <Button
             className="flex-[2] h-12 rounded-xl font-bold shadow-[0_8px_30px_-8px_color-mix(in_oklab,var(--brand-orange)_50%,transparent)] transition-all hover:brightness-110 active:scale-[0.98]"
             disabled={mut.isPending || !form.customerName || !form.cpfCnpj || !form.value}
@@ -795,18 +795,18 @@ function CobrancaDialog({ row, onClose }: { row: any | null; onClose: () => void
               </div>
             )}
 
-            {row.kind === "boleto" && (
-              <Button
-                className="w-full bg-brand-orange hover:bg-brand-orange/90"
-                onClick={async () => {
-                  if (!(await abrirBoletoHtml(recebimentoParaBoleto(row), true))) {
-                    toast.error("Libere pop-ups para gerar o boleto.");
-                  }
-                }}
-              >
-                <Barcode className="h-4 w-4 mr-2" /> Abrir boleto (PDF)
-              </Button>
-            )}
+            <Button
+              className="w-full bg-brand-orange hover:bg-brand-orange/90"
+              onClick={async () => {
+                if (!(await abrirBoletoHtml(recebimentoParaBoleto(row), true))) {
+                  toast.error("Libere pop-ups para gerar o documento.");
+                }
+              }}
+            >
+              <Barcode className="h-4 w-4 mr-2" />
+              {row.kind === "boleto" ? "Abrir boleto (PDF)" : "Abrir cobrança Pix (PDF)"}
+            </Button>
+
 
             {row.kind !== "boleto" && row.invoice_url && (
               <Button

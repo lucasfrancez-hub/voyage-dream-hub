@@ -33,6 +33,8 @@ export interface BoletoBanco {
 }
 
 export interface BoletoDocData {
+  /** "pix" remove a ficha de compensação bancária (mantém corte e rodapé). */
+  variant?: "boleto" | "pix";
   documentoRef?: string | null;
   vencimento?: string | null;
   valor: number;
@@ -218,7 +220,7 @@ export function renderBoletoHtml(d: BoletoDocData): string {
   return `<!doctype html>
 <html lang="pt-BR"><head><meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Boleto ${esc(d.documentoRef ?? "")} — VIA AIR</title>
+<title>${d.variant === "pix" ? "Cobrança Pix" : "Boleto"} ${esc(d.documentoRef ?? "")} — VIA AIR</title>
 <style>
 :root{--navy:#082f57;--navy2:#0a3c6e;--orange:#f47b20;--ink:#12233a;--muted:#6b7787;}
 *{box-sizing:border-box}
@@ -286,6 +288,7 @@ h1{margin:12px 0 6px;font-size:28px;letter-spacing:-.8px;color:var(--navy)}
 .barcode{margin:8px 12px 12px;width:575px}
 .bank-foot{display:flex;justify-content:flex-end;font-size:10px;color:#505d69;margin:0 12px 10px}
 .doc-foot{margin:12px 0 0;text-align:right;font-size:10px;line-height:1.4;color:#8a949e}
+${d.variant === "pix" ? ".page{min-height:auto;padding-bottom:26px}" : ""}
 .doc-foot strong{display:block;font-weight:700;color:#505d69}
 .preview-flag{position:fixed;top:10px;left:10px;background:var(--orange);color:#fff;font-size:12px;font-weight:700;padding:6px 12px;border-radius:999px}
 @page{size:A4;margin:0}
@@ -297,7 +300,7 @@ ${d.preview ? '<div class="preview-flag">Pré-visualização</div>' : ""}
   <div class="top">
     <div>
       <div class="brand"><img src="${esc(logoUrl)}" alt="VIA AIR" /></div>
-      <h1>BOLETO DE PAGAMENTO</h1>
+      <h1>${d.variant === "pix" ? "COBRANÇA PIX" : "BOLETO DE PAGAMENTO"}</h1>
       <div class="docline">Documento Nº <b>${esc(numeroDocumento || "—")}</b></div>
     </div>
     <div>
@@ -359,7 +362,10 @@ ${d.preview ? '<div class="preview-flag">Pré-visualização</div>' : ""}
 
   <div class="cut"><span>✂ CORTE NA LINHA PONTILHADA</span></div>
 
-  <div class="bank">
+  ${
+    d.variant === "pix"
+      ? ""
+      : `<div class="bank">
     <div class="bank-head">
       <div class="bank-logo"><img src="${esc(asaasLogoUrl)}" alt="ASAAS" /></div>
       <div class="bank-code">${esc(banco.codigo ?? "")}</div>
@@ -411,8 +417,9 @@ ${d.preview ? '<div class="preview-flag">Pré-visualização</div>' : ""}
     </div>
     <div class="barcode">${barcode}</div>
     <div class="bank-foot">Autenticação mecânica - Ficha de compensação</div>
-  </div>
-  <div class="doc-foot"><strong>Boleto gerado pelo sistema VIA AIR</strong>Todos os direitos reservados
+  </div>`
+  }
+  <div class="doc-foot"><strong>${d.variant === "pix" ? "Cobrança" : "Boleto"} gerado pelo sistema VIA AIR</strong>Todos os direitos reservados
   </div>
 </div>
 </body></html>`;
@@ -461,7 +468,7 @@ export async function abrirBoletoHtml(data: BoletoDocData, imprimir = false) {
     // Pop-up bloqueado: baixa o arquivo como fallback.
     const a = document.createElement("a");
     a.href = url;
-    a.download = `boleto-${data.documentoRef ?? "via-air"}.html`;
+    a.download = `${data.variant === "pix" ? "cobranca-pix" : "boleto"}-${data.documentoRef ?? "via-air"}.html`;
     document.body.appendChild(a);
     a.click();
     a.remove();
