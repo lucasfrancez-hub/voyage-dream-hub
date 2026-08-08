@@ -99,7 +99,21 @@ export const listarExtratoBancario = createServerFn({ method: 'POST' })
       if (t.asaas_transfer_id) byTransfer.set(t.asaas_transfer_id, t)
     }
 
+    // Comprovantes ao vivo (ASAAS) para o mesmo período.
+    const receipts = await (async () => {
+      try {
+        const { buildReceiptIndex } = await import('@/lib/comprovantes.server')
+        return await buildReceiptIndex({ startDate, finishDate })
+      } catch {
+        return new Map<string, string>()
+      }
+    })()
+
     for (const it of items) {
+      it.receiptUrl =
+        (it.transferId && receipts.get(it.transferId)) ||
+        (it.paymentId && receipts.get(it.paymentId)) ||
+        null
       if (it.paymentId && byPayment.has(it.paymentId)) {
         it.link = { kind: 'pedido', id: byPayment.get(it.paymentId)!, label: 'Abrir pedido' }
       } else if (it.transferId && byTransfer.has(it.transferId)) {
