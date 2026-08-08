@@ -258,18 +258,32 @@ export function ComprovanteReceipt({
 
 function PartyBlock({ title, party }: { title: string; party: ReceiptParty }) {
   return (
-    <div className="pt-4 border-t border-border">
-      <p className="text-[11px] font-semibold text-foreground mb-3">{title}</p>
-      <div className="grid grid-cols-2 gap-x-4 gap-y-4">
-        <div className="col-span-2">
-          <Field label="Nome" value={party.nome || "—"} />
-        </div>
-        <Field label="CPF/CNPJ" value={maskDoc(party.cpfCnpj)} />
-        <Field label="Instituição" value={party.instituicao || "—"} />
+    <div className="space-y-3">
+      <div className="flex items-center gap-2">
+        <div className="h-px flex-1 bg-border" />
+        <span className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground whitespace-nowrap">
+          {title}
+        </span>
+        <div className="h-px flex-1 bg-border" />
+      </div>
+      <div className="grid grid-cols-3 gap-x-3 gap-y-2 items-baseline">
+        <span className="text-xs text-muted-foreground">Nome</span>
+        <span className="col-span-2 text-xs font-medium text-foreground text-right break-words">
+          {party.nome || "—"}
+        </span>
+        <span className="text-xs text-muted-foreground">CPF/CNPJ</span>
+        <span className="col-span-2 text-xs font-medium text-foreground text-right tabular-nums">
+          {maskDoc(party.cpfCnpj)}
+        </span>
+        <span className="text-xs text-muted-foreground">Instituição</span>
+        <span className="col-span-2 text-xs font-medium text-foreground text-right leading-tight break-words">
+          {party.instituicao || "—"}
+        </span>
       </div>
     </div>
   );
 }
+
 
 function Field({ label, value }: { label: string; value: string }) {
   return (
