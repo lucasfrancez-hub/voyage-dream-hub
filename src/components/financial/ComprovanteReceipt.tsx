@@ -124,7 +124,7 @@ export function ComprovanteReceipt({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="max-w-[440px] p-0 border-0 bg-transparent shadow-none print-receipt-wrapper"
+        className="max-w-[400px] p-0 border-0 bg-transparent shadow-none print-receipt-wrapper"
       >
         {loading || !data ? (
           <div className="rounded-3xl bg-card p-16 flex justify-center">
@@ -134,26 +134,26 @@ export function ComprovanteReceipt({
           <>
             <div
               id="comprovante-print"
-              className="print-receipt relative overflow-hidden rounded-3xl bg-card shadow-[0_32px_64px_-16px_rgba(0,0,0,0.6)]"
+              className="print-receipt relative overflow-hidden rounded-2xl bg-card shadow-[0_24px_48px_-16px_rgba(0,0,0,0.6)]"
             >
               <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-brand-orange/10 via-transparent to-emerald-500/5" />
               <div className="absolute inset-x-0 top-0 h-1 bg-brand-orange" />
 
-              <div className="relative p-8 flex flex-col items-center">
+              <div className="relative px-5 py-4 flex flex-col items-center">
                 <img
                   src={viaairLogo.url}
                   alt="VIA AIR"
-                  className="h-8 w-auto mb-6 object-contain"
+                  className="h-5 w-auto mb-3 object-contain"
                 />
 
-                <div className="flex flex-col items-center mb-6 text-center">
-                  <div className="w-12 h-12 rounded-full bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center mb-3">
-                    <CheckCircle2 className="h-6 w-6 text-emerald-400" />
+                <div className="flex flex-col items-center mb-3 text-center">
+                  <div className="w-8 h-8 rounded-full bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center mb-1.5">
+                    <CheckCircle2 className="h-4 w-4 text-emerald-400" />
                   </div>
-                  <h2 className="text-base font-semibold text-foreground">
+                  <h2 className="text-sm font-semibold text-foreground">
                     Comprovante {data.formaPagamento || data.tipo || "Pix"}
                   </h2>
-                  <span className="text-muted-foreground text-sm mt-1">
+                  <span className="text-muted-foreground text-[11px]">
                     {data.concluido === false
                       ? (data.status ?? "Em processamento")
                       : data.direction === "in"
@@ -162,63 +162,55 @@ export function ComprovanteReceipt({
                   </span>
                 </div>
 
-                <div className="text-center mb-8">
-                  <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-medium">
-                    Valor pago
+                <div className="text-center mb-3">
+                  <span className="text-[9px] text-muted-foreground uppercase tracking-widest font-medium">
+                    {data.direction === "in" ? "Valor recebido" : "Valor pago"}
                   </span>
-                  <h1 className="text-4xl font-bold text-foreground mt-1 tabular-nums">
+                  <h1 className="text-2xl font-bold text-foreground tabular-nums leading-tight">
                     {formatBRL(data.valor)}
                   </h1>
                 </div>
 
-                <div className="w-full space-y-6">
-                  <div className="grid grid-cols-2 gap-x-4 gap-y-5 bg-muted/20 border border-border rounded-2xl p-5">
+                <div className="w-full space-y-3">
+                  <div className="grid grid-cols-2 gap-x-3 gap-y-2 bg-muted/20 border border-border rounded-xl p-3">
                     <Field
                       label="Data do pagamento"
                       value={formatDate(data.dataPagamento ?? data.dataHora)}
                     />
                     <Field label="Vencimento" value={formatDate(data.dataVencimento)} />
-                    <div className="col-span-2">
-                      <Field
-                        label="Forma de pagamento"
-                        value={data.formaPagamento || data.tipo || "Pix"}
-                      />
-                    </div>
-                    {data.chavePix ? (
-                      <div className="col-span-2">
-                        <Field label="Chave Pix" value={data.chavePix} />
-                      </div>
-                    ) : null}
+                    <Field
+                      label="Forma de pagamento"
+                      value={data.formaPagamento || data.tipo || "Pix"}
+                    />
+                    {data.chavePix ? <Field label="Chave Pix" value={data.chavePix} /> : null}
                     {data.descricao ? (
                       <div className="col-span-2">
-                        <Field label="Descrição" value={data.descricao} />
+                        <Field label="Descrição" value={data.descricao} clamp />
                       </div>
                     ) : null}
                   </div>
 
-                  <div className="space-y-5">
+                  <div className="space-y-3">
                     <PartyBlock title="Dados do pagador" party={pagador} />
                     <PartyBlock title="Dados do recebedor" party={recebedor} />
                   </div>
 
                   <div>
-                    <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-semibold text-center mb-2">
+                    <p className="text-[9px] text-muted-foreground uppercase tracking-widest font-semibold text-center mb-1">
                       ID da transação
                     </p>
-                    <p className="text-[11px] font-mono text-muted-foreground bg-background/60 py-3 px-4 rounded-xl border border-border break-all text-center leading-relaxed">
+                    <p className="text-[10px] font-mono text-muted-foreground bg-background/60 py-1.5 px-3 rounded-lg border border-border break-all text-center leading-snug">
                       {data.transacaoId || "—"}
                     </p>
                   </div>
                 </div>
 
-
-
-                <div className="mt-10 w-full pt-6 border-t border-border flex flex-col items-center gap-4">
+                <div className="mt-4 w-full pt-3 border-t border-border flex flex-col items-center gap-1">
                   <div className="flex items-center gap-2 opacity-60">
                     <span className="text-[9px] text-muted-foreground font-medium uppercase tracking-widest">
                       Processado por
                     </span>
-                    <span className="text-xs font-bold text-foreground tracking-widest">ASAAS</span>
+                    <span className="text-[11px] font-bold text-foreground tracking-widest">ASAAS</span>
                   </div>
                   <p className="text-[9px] text-muted-foreground text-center leading-tight">
                     Documento gerado pelo sistema VIA AIR para simples conferência.
@@ -226,15 +218,15 @@ export function ComprovanteReceipt({
                 </div>
               </div>
 
-              <div className="absolute bottom-0 inset-x-0 h-2 bg-gradient-to-r from-transparent via-brand-orange/20 to-transparent" />
+              <div className="absolute bottom-0 inset-x-0 h-1.5 bg-gradient-to-r from-transparent via-brand-orange/20 to-transparent" />
             </div>
 
-            <div className="flex gap-2 mt-3 print:hidden">
+            <div className="flex gap-2 mt-2 print:hidden">
               <button
                 onClick={compartilhar}
-                className="flex-1 py-3 px-4 bg-muted/40 hover:bg-muted rounded-xl text-xs font-semibold text-foreground border border-border transition flex items-center justify-center gap-2"
+                className="flex-1 py-2 px-3 bg-muted/40 hover:bg-muted rounded-lg text-xs font-semibold text-foreground border border-border transition flex items-center justify-center gap-2"
               >
-                <Share2 className="h-4 w-4" /> Compartilhar
+                <Share2 className="h-3.5 w-3.5" /> Compartilhar
               </button>
               <button
                 onClick={() => {
@@ -244,13 +236,14 @@ export function ComprovanteReceipt({
                   }
                   window.print();
                 }}
-                className="flex-1 py-3 px-4 bg-brand-orange hover:brightness-95 rounded-xl text-xs font-semibold text-white shadow-[var(--shadow-glow)] transition flex items-center justify-center gap-2"
+                className="flex-1 py-2 px-3 bg-brand-orange hover:brightness-95 rounded-lg text-xs font-semibold text-white shadow-[var(--shadow-glow)] transition flex items-center justify-center gap-2"
               >
-                <Download className="h-4 w-4" /> Salvar PDF
+                <Download className="h-3.5 w-3.5" /> Salvar PDF
               </button>
             </div>
           </>
         )}
+
       </DialogContent>
     </Dialog>
   );
