@@ -170,6 +170,7 @@ const ICON: Record<string, string> = {
   target: `<circle cx="12" cy="12" r="7"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3"/>`,
   calendar: `<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/>`,
   copy: `<rect x="9" y="9" width="11" height="11" rx="2"/><path d="M15 5H6a2 2 0 0 0-2 2v9"/>`,
+  info: `<circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><path d="M12 8h.01"/>`,
 };
 
 function icon(name: keyof typeof ICON | string, size = 18, color = "var(--orange)") {
@@ -231,7 +232,7 @@ h1{margin:24px 0 8px;font-size:34px;letter-spacing:-.8px;color:var(--navy)}
 .due strong{display:block;color:var(--orange);font-size:22px;margin-top:3px}
 .amount{background:var(--navy);color:#fff;border-radius:18px;padding:18px 24px}
 .amount strong{display:block;font-size:34px;margin-top:3px;white-space:nowrap}
-.notice{margin-top:20px;padding:18px 22px;background:#f5f5f5;border-radius:18px;font-size:14px;line-height:1.4}
+.notice{display:flex;gap:10px;align-items:flex-start;margin-top:20px;padding:18px 22px;background:#f5f5f5;border-radius:18px;font-size:14px;line-height:1.4}
 .grid2{display:grid;grid-template-columns:1fr 1.05fr;gap:64px;margin-top:36px}
 .section-title{display:flex;align-items:center;gap:9px;font-size:18px;font-weight:800;color:var(--navy);margin-bottom:14px}
 .ico{flex:none;display:block}
@@ -239,7 +240,7 @@ h1{margin:24px 0 8px;font-size:34px;letter-spacing:-.8px;color:var(--navy)}
 .payer .row{display:flex;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid #e5e9ed;font-size:15px}
 .payer .row:last-child{border:0}
 .payer .row .sep{width:1px;height:16px;background:#e5e9ed;margin:0 6px}
-.pix-top{display:grid;grid-template-columns:188px 1fr;gap:20px;align-items:center}
+.pix-top{display:grid;grid-template-columns:188px 1fr;gap:20px;align-items:start}
 .qr{width:188px;height:188px;object-fit:contain}
 .pix-hint{display:flex;gap:10px;align-items:flex-start;font-size:14px;line-height:1.35}
 .copytitle{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:700;margin:18px 0 8px}
@@ -260,8 +261,8 @@ h1{margin:24px 0 8px;font-size:34px;letter-spacing:-.8px;color:var(--navy)}
 .bank{--finance-col:230px;border:1px solid #7d8791;font-family:Arial,Helvetica,sans-serif;font-size:11px;background:#fff}
 .bank-head{display:grid;grid-template-columns:180px 90px 1fr;min-height:50px;border-bottom:1px solid #7d8791}
 .bank-logo{background:var(--navy);display:flex;align-items:center;justify-content:center;border-right:1px solid #7d8791;padding:8px 14px}
-.bank-logo img{width:100%;max-height:30px;object-fit:contain}
-.bank-code{display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;border-right:1px solid #7d8791}
+.bank-logo img{max-width:110px;max-height:18px;object-fit:contain}
+.bank-code{background:var(--navy);color:#fff;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;border-right:1px solid #7d8791}
 .digitable{display:flex;align-items:center;padding:0 18px;font-size:14px;font-weight:800;white-space:nowrap}
 .bcell{padding:6px 10px;border-right:1px solid #7d8791;min-width:0}
 .bcell:last-child{border-right:0}
@@ -282,6 +283,8 @@ h1{margin:24px 0 8px;font-size:34px;letter-spacing:-.8px;color:var(--navy)}
 .payer-bank{padding:10px 12px;min-height:70px}
 .barcode{margin:8px 12px 12px;width:575px}
 .bank-foot{display:flex;justify-content:flex-end;font-size:10px;color:#505d69;margin:0 12px 10px}
+.doc-foot{margin:16px 0 0;text-align:right;font-size:10px;line-height:1.4;color:#8a949e}
+.doc-foot strong{display:block;font-weight:700;color:#505d69}
 .preview-flag{position:fixed;top:10px;left:10px;background:var(--orange);color:#fff;font-size:12px;font-weight:700;padding:6px 12px;border-radius:999px}
 @media print{body{background:#fff}.preview-flag{display:none}.page{margin:0;box-shadow:none;width:210mm;min-height:297mm;padding:10mm 11mm 8mm}}
 </style></head>
