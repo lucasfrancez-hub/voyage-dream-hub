@@ -55,13 +55,11 @@ export function ComprovanteActions({
   async function baixar() {
     const u = await ensureUrl();
     if (!u) return;
-    const a = document.createElement("a");
-    a.href = u;
-    a.target = "_blank";
-    a.rel = "noreferrer";
-    a.download = "comprovante.pdf";
-    a.click();
+    // O comprovante do banco é uma página; abrimos para visualizar/salvar em PDF.
+    window.open(u, "_blank", "noopener,noreferrer");
+    toast.info("Use “Salvar como PDF” na janela do comprovante.");
   }
+
 
   async function compartilhar() {
     const u = await ensureUrl();
