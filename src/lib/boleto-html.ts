@@ -357,12 +357,28 @@ ${d.preview ? '<div class="preview-flag">Pré-visualização</div>' : ""}
 </body></html>`;
 }
 
-/** Abre o boleto em uma nova janela (preview ou impressão/PDF). */
+/** Abre o boleto em uma nova aba (preview ou impressão/PDF).
+ *  Usa Blob URL — funciona no Safari/Chrome, onde `document.write`
+ *  em janela com `noopener` resulta em página em branco. */
 export function abrirBoletoHtml(data: BoletoDocData, imprimir = false) {
-  const win = window.open("", "_blank", "noopener,noreferrer,width=1100,height=900");
-  if (!win) return false;
-  win.document.write(renderBoletoHtml(data));
-  win.document.close();
-  if (imprimir) setTimeout(() => win.print(), 600);
+  const html = renderBoletoHtml(data);
+  const blob = new Blob([html], { type: "text/html;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const win = window.open(url, "_blank");
+  if (!win) {
+    // Pop-up bloqueado: baixa o arquivo como fallback.
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `boleto-${data.documentoRef ?? "via-air"}.html`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 30000);
+    return false;
+  }
+  if (imprimir) {
+    win.addEventListener?.("load", () => setTimeout(() => win.print(), 300));
+  }
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
   return true;
 }
