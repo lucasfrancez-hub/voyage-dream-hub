@@ -170,7 +170,9 @@ export function NavMegaMenu({
       <DropdownMenuContent
         align="start"
         sideOffset={8}
-        className={`overflow-hidden rounded-xl p-0 shadow-2xl ${width ?? (columns === 2 ? "w-[520px]" : "w-64")}`}
+        className={`overflow-hidden rounded-xl p-0 shadow-2xl transition-[width] duration-150 ${
+          width ?? (columns === 2 ? "w-auto" : "w-64")
+        }`}
       >
         <div className="flex items-center gap-3 border-b border-border/70 bg-foreground/[0.02] px-4 py-3">
           <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-brand-orange/25 bg-brand-orange/10">
