@@ -700,29 +700,34 @@ function CobrancaDialog({ row, onClose }: { row: any | null; onClose: () => void
                   }
                 }}
               >
-                <Barcode className="h-4 w-4 mr-2" /> Boleto VIA AIR (imprimir / PDF)
+                <Barcode className="h-4 w-4 mr-2" /> Abrir boleto (PDF)
               </Button>
             )}
 
-            {(row.bank_slip_url || row.invoice_url) && (
+            {row.kind !== "boleto" && row.invoice_url && (
               <Button
                 className="w-full"
-                onClick={() => window.open(row.bank_slip_url || row.invoice_url, "_blank", "noopener,noreferrer")}
+                onClick={() => window.open(row.invoice_url, "_blank", "noopener,noreferrer")}
               >
-                <ExternalLink className="h-4 w-4 mr-2" />
-                {row.kind === "boleto" ? "Abrir boleto (PDF)" : "Abrir fatura"}
+                <ExternalLink className="h-4 w-4 mr-2" /> Abrir fatura
               </Button>
             )}
 
-            {row.invoice_url && (
-              <Button
-                variant="ghost"
-                className="w-full"
-                onClick={() => copy(row.invoice_url, "Link da cobrança copiado — envie ao cliente.")}
-              >
-                <Copy className="h-4 w-4 mr-2" /> Copiar link para o cliente
-              </Button>
-            )}
+            <Button
+              variant="ghost"
+              className="w-full"
+              onClick={() =>
+                copy(
+                  row.kind === "boleto"
+                    ? `${window.location.origin}/api/public/boleto/${row.id}`
+                    : row.invoice_url,
+                  "Link copiado — envie ao cliente.",
+                )
+              }
+            >
+              <Copy className="h-4 w-4 mr-2" /> Copiar link para o cliente
+            </Button>
+
           </div>
         )}
       </DialogContent>
