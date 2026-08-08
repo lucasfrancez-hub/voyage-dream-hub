@@ -259,7 +259,8 @@ h1{margin:24px 0 8px;font-size:34px;letter-spacing:-.8px;color:var(--navy)}
 .cut span{position:absolute;top:-12px;left:54px;background:#fff;padding-right:12px;color:#8b96a2;font-size:12px}
 .bank{--finance-col:230px;border:1px solid #7d8791;font-family:Arial,Helvetica,sans-serif;font-size:11px;background:#fff}
 .bank-head{display:grid;grid-template-columns:180px 90px 1fr;min-height:50px;border-bottom:1px solid #7d8791}
-.bank-logo{background:var(--navy);color:#fff;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:900;font-style:italic;border-right:1px solid #7d8791;text-align:center;padding:0 8px}
+.bank-logo{background:var(--navy);display:flex;align-items:center;justify-content:center;border-right:1px solid #7d8791;padding:8px 14px}
+.bank-logo img{width:100%;max-height:30px;object-fit:contain}
 .bank-code{display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;border-right:1px solid #7d8791}
 .digitable{display:flex;align-items:center;padding:0 18px;font-size:14px;font-weight:800;white-space:nowrap}
 .bcell{padding:6px 10px;border-right:1px solid #7d8791;min-width:0}
