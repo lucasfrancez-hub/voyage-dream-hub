@@ -5,6 +5,8 @@ import { Instagram, Loader2, TrendingUp, DollarSign, Receipt, ShoppingBag, Plane
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL } from "@/lib/format";
 import { obterResumoBancario } from "@/lib/conta-bancaria.functions";
+import { listarRecebimentos } from "@/lib/recebimentos.functions";
+
 import { Wallet } from "lucide-react";
 
 export const Route = createFileRoute("/admin/dashboard")({
