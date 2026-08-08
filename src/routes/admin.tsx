@@ -18,6 +18,7 @@ import { AdminNotificationBell } from "@/components/admin/NotificationBell";
 import { GlobalSearchButton } from "@/components/admin/GlobalSearch";
 import { PublishQueueButton } from "@/components/admin/PublishQueueButton";
 import { APP_VERSION, APP_BUILD_DATE } from "@/lib/version";
+import { NavMegaMenu, type NavMenuGroup } from "@/components/admin/NavMegaMenu";
 
 
 
@@ -399,29 +400,21 @@ function ProdutosNav({ pathname }: { pathname: string }) {
     pathname.startsWith("/admin/hoteis-teste") ||
     pathname.startsWith("/admin/carros");
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger
-        className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm transition outline-none ${
-          active ? "bg-brand-orange/10 text-brand-orange" : "text-muted-foreground hover:text-foreground"
-        }`}
-      >
-        <Package className="h-4 w-4" /> Produtos <ChevronDown className="h-3.5 w-3.5" />
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="w-64">
-        <DropdownMenuItem asChild>
-          <Link to="/admin/pacotes" className="flex flex-col items-start gap-0.5">
-            <span className="text-sm font-medium">Command Center</span>
-            <span className="text-xs text-muted-foreground">Pacotes, ingressos, passeios e cruzeiros</span>
-          </Link>
-        </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <Link to="/admin/buscar" className="flex flex-col items-start gap-0.5">
-            <span className="text-sm font-medium">Motor de busca</span>
-            <span className="text-xs text-muted-foreground">Aéreo, hotel, carro e aéreo+hotel</span>
-          </Link>
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <NavMegaMenu
+      icon={Package}
+      title="Produtos"
+      subtitle="Catálogo e busca"
+      pathname={pathname}
+      active={active}
+      groups={[
+        {
+          items: [
+            { to: "/admin/pacotes", label: "Command Center" },
+            { to: "/admin/buscar", label: "Motor de busca" },
+          ],
+        },
+      ]}
+    />
   );
 }
 
@@ -433,48 +426,31 @@ function CartaoNav({ pathname }: { pathname: string }) {
     pathname.startsWith("/admin/link-boleto") ||
     pathname.startsWith("/admin/cofre");
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger
-        className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm transition outline-none ${
-          active ? "bg-brand-orange/10 text-brand-orange" : "text-muted-foreground hover:text-foreground"
-        }`}
-      >
-        <Link2 className="h-4 w-4" /> Pagamentos <ChevronDown className="h-3.5 w-3.5" />
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="w-56">
-        <DropdownMenuItem asChild>
-          <Link to="/admin/link-pagamento" className="flex flex-col items-start gap-0.5">
-            <span className="text-sm font-medium">Link seguro</span>
-            <span className="text-xs text-muted-foreground">Com assinatura e biometria</span>
-          </Link>
-        </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <Link to="/admin/link-cartao-simples" className="flex flex-col items-start gap-0.5">
-            <span className="text-sm font-medium">Link convencional</span>
-            <span className="text-xs text-muted-foreground">Só dados do cartão</span>
-          </Link>
-        </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <Link to="/admin/link-boleto" className="flex flex-col items-start gap-0.5">
-            <span className="text-sm font-medium">Link boleto bancário</span>
-            <span className="text-xs text-muted-foreground">Gerar link de boleto</span>
-          </Link>
-        </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <Link to="/admin/cofre" className="flex flex-col items-start gap-0.5">
-            <span className="text-sm font-medium">Cofre</span>
-            <span className="text-xs text-muted-foreground">Cartões salvos com segurança</span>
-          </Link>
-        </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <Link to="/admin/encurtador" className="flex flex-col items-start gap-0.5">
-            <span className="text-sm font-medium">Encurtador de URL</span>
-            <span className="text-xs text-muted-foreground">Links curtos /l/xxxxxx</span>
-          </Link>
-        </DropdownMenuItem>
-
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <NavMegaMenu
+      icon={Link2}
+      title="Pagamentos"
+      subtitle="Links e cobrança"
+      pathname={pathname}
+      active={active}
+      groups={[
+        {
+          label: "Links",
+          accent: true,
+          items: [
+            { to: "/admin/link-pagamento", label: "Link seguro" },
+            { to: "/admin/link-cartao-simples", label: "Link convencional" },
+            { to: "/admin/link-boleto", label: "Link boleto bancário" },
+          ],
+        },
+        {
+          label: "Ferramentas",
+          items: [
+            { to: "/admin/cofre", label: "Cofre" },
+            { to: "/admin/encurtador", label: "Encurtador de URL" },
+          ],
+        },
+      ]}
+    />
   );
 }
 
@@ -485,89 +461,52 @@ function DashboardNav({ pathname }: { pathname: string }) {
     pathname.startsWith("/admin/notas-fiscais") ||
     pathname.startsWith("/admin/checkins") ||
     pathname.startsWith("/admin/contas-") ||
+    pathname.startsWith("/admin/pagamentos") ||
+    pathname.startsWith("/admin/conta-bancaria") ||
+    pathname.startsWith("/admin/redes-sociais") ||
     pathname.startsWith("/admin/comprovantes");
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger
-        className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm transition outline-none ${
-          active ? "bg-brand-orange/10 text-brand-orange" : "text-muted-foreground hover:text-foreground"
-        }`}
-      >
-        <LayoutDashboard className="h-4 w-4" /> Dashboard <ChevronDown className="h-3.5 w-3.5" />
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="w-72">
-        <DropdownMenuItem asChild>
-          <Link to="/admin/dashboard" className="flex flex-col items-start gap-0.5">
-            <span className="text-sm font-medium">Dashboard</span>
-            <span className="text-xs text-muted-foreground">Visão geral e métricas</span>
-          </Link>
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuLabel className="px-2 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">Cadastros</DropdownMenuLabel>
-        <DropdownMenuItem asChild>
-          <Link to="/admin/pessoas" className="flex flex-col items-start gap-0.5">
-            <span className="text-sm font-medium">Pessoas</span>
-            <span className="text-xs text-muted-foreground">Clientes e contatos</span>
-          </Link>
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuLabel className="px-2 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">Financeiro</DropdownMenuLabel>
-        <DropdownMenuItem asChild>
-          <Link to="/admin/contas-receber" className="flex flex-col items-start gap-0.5">
-            <span className="text-sm font-medium">Contas a receber</span>
-            <span className="text-xs text-muted-foreground">Vendas, comissões e entradas</span>
-          </Link>
-        </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <Link to="/admin/contas-pagar" className="flex flex-col items-start gap-0.5">
-            <span className="text-sm font-medium">Contas a pagar</span>
-            <span className="text-xs text-muted-foreground">Fornecedores e despesas</span>
-          </Link>
-        </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <Link to="/admin/pagamentos" className="flex flex-col items-start gap-0.5">
-            <span className="text-sm font-medium">Pagamentos</span>
-            <span className="text-xs text-muted-foreground">Pix de saída pela conta ASAAS</span>
-          </Link>
-        </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <Link to="/admin/conta-bancaria" className="flex flex-col items-start gap-0.5">
-            <span className="text-sm font-medium">Conta bancária</span>
-            <span className="text-xs text-muted-foreground">Saldo, entradas, saídas e extrato</span>
-          </Link>
-        </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <Link to="/admin/comprovantes" className="flex flex-col items-start gap-0.5">
-            <span className="text-sm font-medium">Comprovantes</span>
-            <span className="text-xs text-muted-foreground">Pix, cobranças e boletos pagos</span>
-          </Link>
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuLabel className="px-2 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">Fiscal</DropdownMenuLabel>
-        <DropdownMenuItem asChild>
-          <Link to="/admin/notas-fiscais" className="flex flex-col items-start gap-0.5">
-            <span className="text-sm font-medium">Notas fiscais</span>
-            <span className="text-xs text-muted-foreground">NFS-e emitidas, erros e relatórios</span>
-          </Link>
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuLabel className="px-2 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">Operação</DropdownMenuLabel>
-        <DropdownMenuItem asChild>
-          <Link to="/admin/checkins" className="flex flex-col items-start gap-0.5">
-            <span className="text-sm font-medium">Check-ins</span>
-            <span className="text-xs text-muted-foreground">Cartões de embarque automáticos (LATAM)</span>
-          </Link>
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuLabel className="px-2 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">Marketing</DropdownMenuLabel>
-        <DropdownMenuItem asChild>
-          <Link to="/admin/redes-sociais" className="flex flex-col items-start gap-0.5">
-            <span className="text-sm font-medium">Redes sociais</span>
-            <span className="text-xs text-muted-foreground">Métricas de posts, reels e stories</span>
-          </Link>
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <NavMegaMenu
+      icon={LayoutDashboard}
+      title="Dashboard"
+      subtitle="Sistema central"
+      pathname={pathname}
+      active={active}
+      columns={2}
+      groups={[
+        {
+          label: "Financeiro",
+          accent: true,
+          items: [
+            { to: "/admin/contas-receber", label: "Contas a receber" },
+            { to: "/admin/contas-pagar", label: "Contas a pagar" },
+            { to: "/admin/pagamentos", label: "Pagamentos" },
+            { to: "/admin/conta-bancaria", label: "Conta bancária" },
+            { to: "/admin/comprovantes", label: "Comprovantes" },
+          ],
+        },
+        {
+          label: "Visão geral",
+          items: [{ to: "/admin/dashboard", label: "Dashboard" }],
+        },
+        {
+          label: "Cadastros",
+          items: [{ to: "/admin/pessoas", label: "Pessoas" }],
+        },
+        {
+          label: "Fiscal",
+          items: [{ to: "/admin/notas-fiscais", label: "Notas fiscais" }],
+        },
+        {
+          label: "Operação",
+          items: [{ to: "/admin/checkins", label: "Check-ins" }],
+        },
+        {
+          label: "Marketing",
+          items: [{ to: "/admin/redes-sociais", label: "Redes sociais" }],
+        },
+      ]}
+    />
   );
 }
 
@@ -575,29 +514,21 @@ function DashboardNav({ pathname }: { pathname: string }) {
 function PedidosNav({ pathname }: { pathname: string }) {
   const active = pathname.startsWith("/admin/pedidos");
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger
-        className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm transition outline-none ${
-          active ? "bg-brand-orange/10 text-brand-orange" : "text-muted-foreground hover:text-foreground"
-        }`}
-      >
-        <ClipboardList className="h-4 w-4" /> Pedidos <ChevronDown className="h-3.5 w-3.5" />
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="w-56">
-        <DropdownMenuItem asChild>
-          <Link to="/admin/pedidos" className="flex flex-col items-start gap-0.5">
-            <span className="text-sm font-medium">Meus pedidos</span>
-            <span className="text-xs text-muted-foreground">Pedidos criados por você</span>
-          </Link>
-        </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <Link to="/admin/pedidos/terceiros" className="flex flex-col items-start gap-0.5">
-            <span className="text-sm font-medium">Pedidos de terceiro</span>
-            <span className="text-xs text-muted-foreground">Pedidos de agências parceiras</span>
-          </Link>
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <NavMegaMenu
+      icon={ClipboardList}
+      title="Pedidos"
+      subtitle="Vendas e reservas"
+      pathname={pathname}
+      active={active}
+      groups={[
+        {
+          items: [
+            { to: "/admin/pedidos", label: "Meus pedidos" },
+            { to: "/admin/pedidos/terceiros", label: "Pedidos de terceiro" },
+          ],
+        },
+      ]}
+    />
   );
 }
 
@@ -610,59 +541,37 @@ function SegurancaNav({ pathname, showUsuarios }: { pathname: string; showUsuari
     (showUsuarios && pathname.startsWith("/admin/usuarios"));
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger
-        className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm transition outline-none ${
-          active ? "bg-brand-orange/10 text-brand-orange" : "text-muted-foreground hover:text-foreground"
-        }`}
-      >
-        <Settings className="h-4 w-4" /> Configurações <ChevronDown className="h-3.5 w-3.5" />
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="w-56">
-        <DropdownMenuItem asChild>
-          <Link to="/admin/seguranca" className="flex flex-col items-start gap-0.5">
-            <span className="text-sm font-medium">Segurança</span>
-            <span className="text-xs text-muted-foreground">Alertas e políticas</span>
-          </Link>
-        </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <Link to="/admin/instalar-extensao" className="flex flex-col items-start gap-0.5">
-            <span className="text-sm font-medium flex items-center gap-1.5">
-              <Puzzle className="h-3.5 w-3.5" /> Instalar extensão
-            </span>
-            <span className="text-xs text-muted-foreground">Importador de reservas</span>
-          </Link>
-        </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <Link to="/admin/app-celular" className="flex flex-col items-start gap-0.5">
-            <span className="text-sm font-medium flex items-center gap-1.5">
-              <Smartphone className="h-3.5 w-3.5" /> App no celular
-            </span>
-            <span className="text-xs text-muted-foreground">Link secreto com PIN para o Admin</span>
-          </Link>
-        </DropdownMenuItem>
-        {showUsuarios && (
-          <DropdownMenuItem asChild>
-            <Link to="/admin/checkin-treino" className="flex flex-col items-start gap-0.5">
-              <span className="text-sm font-medium">Treinador de check-in</span>
-              <span className="text-xs text-muted-foreground">Ensinar IA passo a passo (admin)</span>
-            </Link>
-          </DropdownMenuItem>
-        )}
-
-        {showUsuarios && (
-          <DropdownMenuItem asChild>
-            <Link to="/admin/usuarios" className="flex flex-col items-start gap-0.5">
-              <span className="text-sm font-medium flex items-center gap-1.5">
-                <Users className="h-3.5 w-3.5" /> Usuários
-              </span>
-              <span className="text-xs text-muted-foreground">Contas e permissões</span>
-            </Link>
-          </DropdownMenuItem>
-        )}
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <NavMegaMenu
+      icon={Settings}
+      title="Configurações"
+      subtitle="Sistema e acessos"
+      pathname={pathname}
+      active={active}
+      groups={[
+        {
+          label: "Sistema",
+          accent: true,
+          items: [
+            { to: "/admin/seguranca", label: "Segurança" },
+            { to: "/admin/instalar-extensao", label: "Instalar extensão", icon: Puzzle },
+            { to: "/admin/app-celular", label: "App no celular", icon: Smartphone },
+          ],
+        },
+        ...(showUsuarios
+          ? [
+              {
+                label: "Admin",
+                items: [
+                  { to: "/admin/checkin-treino", label: "Treinador de check-in" },
+                  { to: "/admin/usuarios", label: "Usuários", icon: Users },
+                ],
+              } as NavMenuGroup,
+            ]
+          : []),
+      ]}
+    />
   );
 }
+
 
 
