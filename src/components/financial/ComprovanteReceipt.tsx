@@ -1,8 +1,10 @@
+import { useCallback, useEffect, useRef, useState } from "react";
 import { CheckCircle2, Download, Loader2, Share2 } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { formatBRL } from "@/lib/format";
 import viaairLogo from "@/assets/viaair-logo-white.png.asset.json";
+
 
 export type ReceiptParty = {
   nome?: string | null;
