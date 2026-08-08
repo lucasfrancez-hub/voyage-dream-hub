@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { Download, Eye, Loader2, Receipt, Share2 } from "lucide-react";
+import { Eye, ImageDown, Loader2, Receipt, Share2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
