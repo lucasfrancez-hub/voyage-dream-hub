@@ -190,15 +190,15 @@ export function ComprovanteReceipt({
                     {data.transacaoId || "—"}
                   </p>
 
-                  <div className="flex items-center justify-between mt-5 opacity-60">
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-[9px] text-muted-foreground uppercase font-bold tracking-widest">
+                  <div className="mt-5 flex flex-col items-center gap-1 opacity-60">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[9px] text-muted-foreground uppercase font-medium tracking-widest">
                         Processado por
                       </span>
-                      <span className="text-[10px] font-black text-foreground tracking-tight">ASAAS</span>
+                      <span className="text-[11px] font-bold text-foreground tracking-widest">ASAAS</span>
                     </div>
-                    <span className="text-[9px] text-muted-foreground">
-                      Documento para simples conferência
+                    <span className="text-[9px] text-muted-foreground text-center leading-tight">
+                      Documento gerado pelo sistema VIA AIR para simples conferência.
                     </span>
                   </div>
                 </div>
