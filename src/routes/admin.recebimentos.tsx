@@ -20,7 +20,7 @@ import {
 } from "@/lib/recebimentos.functions";
 import { searchPeople } from "@/lib/people.functions";
 import { confirmThen } from "@/lib/confirm";
-import { abrirBoletoHtml, type BoletoDocData } from "@/lib/boleto-html";
+import { abrirBoletoHtml } from "@/lib/boleto-html";
 
 import { ComprovanteActions } from "@/components/financial/ComprovanteActions";
 
@@ -587,54 +587,10 @@ function NovoRecebimentoDialog({
 }
 
 
-/** Converte um recebimento salvo no documento do boleto VIA AIR. */
-export function recebimentoParaBoleto(row: any): BoletoDocData {
-  const raw = row?.raw_response ?? {};
-  const pay = raw?.payment ?? raw ?? {};
-  const comp = row?.composicao ?? {};
-  return {
-    documentoRef: pay?.id ?? row?.id?.slice(0, 8)?.toUpperCase() ?? null,
-    vencimento: row?.due_date ?? null,
-    valor: Number(row?.value ?? 0),
-    pagador: {
-      nome: row?.customer_name ?? "",
-      cpfCnpj: row?.customer_cpf_cnpj ?? null,
-      telefone: row?.customer_phone ?? null,
-      email: row?.customer_email ?? null,
-      endereco: comp?.endereco ?? null,
-    },
-    composicao: {
-      servico: comp?.servico ?? row?.description ?? null,
-      destino: comp?.destino ?? null,
-      periodo:
-        comp?.periodo ??
-        [comp?.periodoInicio, comp?.periodoFim]
-          .filter(Boolean)
-          .map((d: string) => new Date(`${d}T12:00:00`).toLocaleDateString("pt-BR"))
-          .join(" • ") ??
-        null,
-      passageiro: Array.isArray(comp?.passageiros)
-        ? comp.passageiros.filter(Boolean).join(", ")
-        : (comp?.passageiros ?? comp?.passageiro ?? null),
-    },
-    pix: { qrImage: row?.pix_qr_image ?? null, payload: row?.pix_payload ?? null },
-    banco: {
-      nome: pay?.bank?.name ?? "ASAAS IP S.A.",
-      codigo: pay?.bank?.code ?? "461-0",
-      linhaDigitavel: row?.identification_field ?? null,
-      nossoNumero: pay?.nossoNumero ?? null,
-      dataDocumento: row?.created_at ?? null,
-      dataProcessamento: row?.created_at ?? null,
-      carteira: pay?.carteira ?? null,
-      especie: pay?.especie ?? null,
-      aceite: pay?.aceite ?? null,
-      agenciaCodigo: pay?.agenciaCodigo ?? null,
-    },
-    multaPercent: row?.fine_percent != null ? Number(row.fine_percent) : null,
-    jurosPercentMes: row?.interest_percent != null ? Number(row.interest_percent) : null,
-    descontoValor: Number(pay?.discount?.value ?? 0),
-  };
-}
+import { recebimentoParaBoleto } from "@/lib/boleto-map";
+export { recebimentoParaBoleto };
+
+
 
 function CobrancaDialog({ row, onClose }: { row: any | null; onClose: () => void }) {
   function copy(text: string, msg: string) {
@@ -700,29 +656,34 @@ function CobrancaDialog({ row, onClose }: { row: any | null; onClose: () => void
                   }
                 }}
               >
-                <Barcode className="h-4 w-4 mr-2" /> Boleto VIA AIR (imprimir / PDF)
+                <Barcode className="h-4 w-4 mr-2" /> Abrir boleto (PDF)
               </Button>
             )}
 
-            {(row.bank_slip_url || row.invoice_url) && (
+            {row.kind !== "boleto" && row.invoice_url && (
               <Button
                 className="w-full"
-                onClick={() => window.open(row.bank_slip_url || row.invoice_url, "_blank", "noopener,noreferrer")}
+                onClick={() => window.open(row.invoice_url, "_blank", "noopener,noreferrer")}
               >
-                <ExternalLink className="h-4 w-4 mr-2" />
-                {row.kind === "boleto" ? "Abrir boleto (PDF)" : "Abrir fatura"}
+                <ExternalLink className="h-4 w-4 mr-2" /> Abrir fatura
               </Button>
             )}
 
-            {row.invoice_url && (
-              <Button
-                variant="ghost"
-                className="w-full"
-                onClick={() => copy(row.invoice_url, "Link da cobrança copiado — envie ao cliente.")}
-              >
-                <Copy className="h-4 w-4 mr-2" /> Copiar link para o cliente
-              </Button>
-            )}
+            <Button
+              variant="ghost"
+              className="w-full"
+              onClick={() =>
+                copy(
+                  row.kind === "boleto"
+                    ? `${window.location.origin}/api/public/boleto/${row.id}`
+                    : row.invoice_url,
+                  "Link copiado — envie ao cliente.",
+                )
+              }
+            >
+              <Copy className="h-4 w-4 mr-2" /> Copiar link para o cliente
+            </Button>
+
           </div>
         )}
       </DialogContent>

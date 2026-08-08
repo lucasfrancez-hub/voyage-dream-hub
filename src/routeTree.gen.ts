@@ -109,6 +109,7 @@ import { Route as PacotesSlugIndexRouteImport } from './routes/pacotes.$slug.ind
 import { Route as PacotesSlugCheckoutRouteImport } from './routes/pacotes.$slug.checkout'
 import { Route as ApiPublicAdminManifestTokenRouteImport } from './routes/api/public/admin-manifest.$token'
 import { Route as ApiPublicAgendaManifestTokenRouteImport } from './routes/api/public/agenda-manifest.$token'
+import { Route as ApiPublicBoletoIdRouteImport } from './routes/api/public/boleto.$id'
 import { Route as ApiPublicBpIdRouteImport } from './routes/api/public/bp.$id'
 import { Route as ApiPublicBroadcastMediaSplatRouteImport } from './routes/api/public/broadcast-media.$'
 import { Route as ApiPublicHooksAutoSuggestionsRouteImport } from './routes/api/public/hooks/auto-suggestions'
@@ -642,6 +643,11 @@ const ApiPublicAgendaManifestTokenRoute =
     path: '/api/public/agenda-manifest/$token',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicBoletoIdRoute = ApiPublicBoletoIdRouteImport.update({
+  id: '/api/public/boleto/$id',
+  path: '/api/public/boleto/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicBpIdRoute = ApiPublicBpIdRouteImport.update({
   id: '/api/public/bp/$id',
   path: '/api/public/bp/$id',
@@ -885,6 +891,7 @@ export interface FileRoutesByFullPath {
   '/pacotes/$slug/': typeof PacotesSlugIndexRoute
   '/api/public/admin-manifest/$token': typeof ApiPublicAdminManifestTokenRoute
   '/api/public/agenda-manifest/$token': typeof ApiPublicAgendaManifestTokenRoute
+  '/api/public/boleto/$id': typeof ApiPublicBoletoIdRoute
   '/api/public/bp/$id': typeof ApiPublicBpIdRoute
   '/api/public/broadcast-media/$': typeof ApiPublicBroadcastMediaSplatRoute
   '/api/public/hooks/auto-suggestions': typeof ApiPublicHooksAutoSuggestionsRoute
@@ -1010,6 +1017,7 @@ export interface FileRoutesByTo {
   '/pacotes/$slug': typeof PacotesSlugIndexRoute
   '/api/public/admin-manifest/$token': typeof ApiPublicAdminManifestTokenRoute
   '/api/public/agenda-manifest/$token': typeof ApiPublicAgendaManifestTokenRoute
+  '/api/public/boleto/$id': typeof ApiPublicBoletoIdRoute
   '/api/public/bp/$id': typeof ApiPublicBpIdRoute
   '/api/public/broadcast-media/$': typeof ApiPublicBroadcastMediaSplatRoute
   '/api/public/hooks/auto-suggestions': typeof ApiPublicHooksAutoSuggestionsRoute
@@ -1137,6 +1145,7 @@ export interface FileRoutesById {
   '/pacotes/$slug/': typeof PacotesSlugIndexRoute
   '/api/public/admin-manifest/$token': typeof ApiPublicAdminManifestTokenRoute
   '/api/public/agenda-manifest/$token': typeof ApiPublicAgendaManifestTokenRoute
+  '/api/public/boleto/$id': typeof ApiPublicBoletoIdRoute
   '/api/public/bp/$id': typeof ApiPublicBpIdRoute
   '/api/public/broadcast-media/$': typeof ApiPublicBroadcastMediaSplatRoute
   '/api/public/hooks/auto-suggestions': typeof ApiPublicHooksAutoSuggestionsRoute
@@ -1265,6 +1274,7 @@ export interface FileRouteTypes {
     | '/pacotes/$slug/'
     | '/api/public/admin-manifest/$token'
     | '/api/public/agenda-manifest/$token'
+    | '/api/public/boleto/$id'
     | '/api/public/bp/$id'
     | '/api/public/broadcast-media/$'
     | '/api/public/hooks/auto-suggestions'
@@ -1390,6 +1400,7 @@ export interface FileRouteTypes {
     | '/pacotes/$slug'
     | '/api/public/admin-manifest/$token'
     | '/api/public/agenda-manifest/$token'
+    | '/api/public/boleto/$id'
     | '/api/public/bp/$id'
     | '/api/public/broadcast-media/$'
     | '/api/public/hooks/auto-suggestions'
@@ -1516,6 +1527,7 @@ export interface FileRouteTypes {
     | '/pacotes/$slug/'
     | '/api/public/admin-manifest/$token'
     | '/api/public/agenda-manifest/$token'
+    | '/api/public/boleto/$id'
     | '/api/public/bp/$id'
     | '/api/public/broadcast-media/$'
     | '/api/public/hooks/auto-suggestions'
@@ -1589,6 +1601,7 @@ export interface RootRouteChildren {
   LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
   ApiPublicAdminManifestTokenRoute: typeof ApiPublicAdminManifestTokenRoute
   ApiPublicAgendaManifestTokenRoute: typeof ApiPublicAgendaManifestTokenRoute
+  ApiPublicBoletoIdRoute: typeof ApiPublicBoletoIdRoute
   ApiPublicBpIdRoute: typeof ApiPublicBpIdRoute
   ApiPublicBroadcastMediaSplatRoute: typeof ApiPublicBroadcastMediaSplatRoute
   ApiPublicHooksAutoSuggestionsRoute: typeof ApiPublicHooksAutoSuggestionsRoute
@@ -2317,6 +2330,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicAgendaManifestTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/boleto/$id': {
+      id: '/api/public/boleto/$id'
+      path: '/api/public/boleto/$id'
+      fullPath: '/api/public/boleto/$id'
+      preLoaderRoute: typeof ApiPublicBoletoIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/bp/$id': {
       id: '/api/public/bp/$id'
       path: '/api/public/bp/$id'
@@ -2678,6 +2698,7 @@ const rootRouteChildren: RootRouteChildren = {
   LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
   ApiPublicAdminManifestTokenRoute: ApiPublicAdminManifestTokenRoute,
   ApiPublicAgendaManifestTokenRoute: ApiPublicAgendaManifestTokenRoute,
+  ApiPublicBoletoIdRoute: ApiPublicBoletoIdRoute,
   ApiPublicBpIdRoute: ApiPublicBpIdRoute,
   ApiPublicBroadcastMediaSplatRoute: ApiPublicBroadcastMediaSplatRoute,
   ApiPublicHooksAutoSuggestionsRoute: ApiPublicHooksAutoSuggestionsRoute,
