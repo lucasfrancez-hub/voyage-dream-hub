@@ -52,6 +52,18 @@ export const obterComprovante = createServerFn({ method: 'POST' })
     return { url: null as string | null }
   })
 
+/** Consulta o comprovante completo (dados do pagador/recebedor) de uma movimentação. */
+export const obterComprovanteDetalhado = createServerFn({ method: 'POST' })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => oneInput.parse(d ?? {}))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context as any)
+    const { fetchComprovanteById } = await import('@/lib/comprovantes.server')
+    const item = await fetchComprovanteById(data)
+    return { item }
+  })
+
+
 const pdfInput = z.object({ url: z.string().url() })
 
 /**
