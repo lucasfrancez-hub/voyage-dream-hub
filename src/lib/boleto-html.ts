@@ -51,6 +51,8 @@ export interface BoletoDocData {
   descontoValor?: number | null;
   beneficiario?: { nome: string; cnpj: string } | null;
   preview?: boolean;
+  /** URLs (ou data URIs) das logos — usadas para garantir renderização offline/blob. */
+  logos?: { viaAir?: string; asaas?: string };
 }
 
 const esc = (v: unknown) =>
