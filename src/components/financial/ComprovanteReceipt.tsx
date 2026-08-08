@@ -275,22 +275,28 @@ export function ComprovanteReceipt({
             <div className="flex gap-2 mt-2 print:hidden">
               <button
                 onClick={compartilhar}
-                className="flex-1 py-2 px-3 bg-muted/40 hover:bg-muted rounded-lg text-xs font-semibold text-foreground border border-border transition flex items-center justify-center gap-2"
+                disabled={busy !== null}
+                className="flex-1 py-2 px-3 bg-muted/40 hover:bg-muted rounded-lg text-xs font-semibold text-foreground border border-border transition flex items-center justify-center gap-2 disabled:opacity-60"
               >
-                <Share2 className="h-3.5 w-3.5" /> Compartilhar
+                {busy === "share" ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Share2 className="h-3.5 w-3.5" />
+                )}
+                Compartilhar
               </button>
               <button
-                onClick={() => {
-                  if (data.pdfUrl) {
-                    window.open(data.pdfUrl, "_blank", "noopener,noreferrer");
-                    return;
-                  }
-                  window.print();
-                }}
-                className="flex-1 py-2 px-3 bg-brand-orange hover:brightness-95 rounded-lg text-xs font-semibold text-white shadow-[var(--shadow-glow)] transition flex items-center justify-center gap-2"
+                onClick={baixarImagem}
+                disabled={busy !== null}
+                className="flex-1 py-2 px-3 bg-brand-orange hover:brightness-95 rounded-lg text-xs font-semibold text-white shadow-[var(--shadow-glow)] transition flex items-center justify-center gap-2 disabled:opacity-60"
               >
-                <Download className="h-3.5 w-3.5" /> Salvar PDF
-              </button>
+                {busy === "download" ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Download className="h-3.5 w-3.5" />
+                )}
+                Baixar imagem
+
             </div>
           </>
         )}
