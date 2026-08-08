@@ -166,6 +166,73 @@ export async function createAsaasPixPayment(
 }
 
 
+export interface CreateChargeInput {
+  customerId: string
+  billingType: 'PIX' | 'BOLETO'
+  value: number
+  dueDate: string
+  description?: string | null
+  externalReference?: string | null
+}
+
+/** Cria uma cobrança avulsa (Pix ou boleto) sem notificações do ASAAS. */
+export async function createAsaasCharge(input: CreateChargeInput) {
+  const payment = await asaasFetch('/payments', {
+    method: 'POST',
+    body: JSON.stringify({
+      customer: input.customerId,
+      billingType: input.billingType,
+      value: Number(input.value.toFixed(2)),
+      dueDate: input.dueDate,
+      description: input.description ?? undefined,
+      externalReference: input.externalReference ?? undefined,
+      postalService: false,
+    }),
+  })
+
+  await asaasFetch(`/payments/${payment.id}/notifications`, {
+    method: 'PUT',
+    body: JSON.stringify({
+      notifications: [
+        'PAYMENT_CREATED',
+        'PAYMENT_DUEDATE_WARNING',
+        'PAYMENT_RECEIVED',
+        'SEND_LINHA_DIGITAVEL',
+        'PAYMENT_OVERDUE',
+      ].map((event) => ({
+        event,
+        enabled: false,
+        emailEnabledForProvider: false,
+        smsEnabledForProvider: false,
+        emailEnabledForCustomer: false,
+        smsEnabledForCustomer: false,
+        phoneCallEnabledForCustomer: false,
+        whatsappEnabledForCustomer: false,
+      })),
+    }),
+  }).catch(() => null)
+
+  let pix: any = null
+  let identificationField: string | null = null
+  if (input.billingType === 'PIX') {
+    pix = await asaasFetch(`/payments/${payment.id}/pixQrCode`).catch(() => null)
+  } else {
+    const idf = await asaasFetch(`/payments/${payment.id}/identificationField`).catch(() => null)
+    identificationField = idf?.identificationField ?? null
+  }
+
+  return {
+    paymentId: String(payment.id),
+    invoiceUrl: payment.invoiceUrl ?? null,
+    bankSlipUrl: payment.bankSlipUrl ?? null,
+    identificationField,
+    pixPayload: pix?.payload ?? null,
+    pixEncodedImage: pix?.encodedImage ?? null,
+    pixExpiration: pix?.expirationDate ?? null,
+    raw: { payment, pix },
+  }
+}
+
 export async function getAsaasCustomer(customerId: string) {
   return asaasFetch(`/customers/${encodeURIComponent(customerId)}`)
 }
