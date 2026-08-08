@@ -500,6 +500,12 @@ function DashboardNav({ pathname }: { pathname: string }) {
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
+          <Link to="/admin/conta-bancaria" className="flex flex-col items-start gap-0.5">
+            <span className="text-sm font-medium">Conta bancária</span>
+            <span className="text-xs text-muted-foreground">Saldo, entradas, saídas e extrato ASAAS</span>
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
           <Link to="/admin/checkins" className="flex flex-col items-start gap-0.5">
             <span className="text-sm font-medium">Check-ins</span>
             <span className="text-xs text-muted-foreground">Cartões de embarque automáticos (LATAM)</span>
