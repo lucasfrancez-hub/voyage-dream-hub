@@ -164,21 +164,20 @@ export function ComprovanteReceipt({
                     value={formatDate(data.dataPagamento ?? data.dataHora)}
                   />
                   <div className="text-right">
-                    <Field label="Vencimento" value={formatDate(data.dataVencimento)} />
+                    <Field
+                      label="Forma de pagamento"
+                      value={data.formaPagamento || data.tipo || "Pix"}
+                    />
                   </div>
-                  <Field
-                    label="Forma de pagamento"
-                    value={data.formaPagamento || data.tipo || "Pix"}
-                  />
                   {data.chavePix ? (
-                    <div className="text-right">
+                    <div className="col-span-2">
                       <Field label="Chave Pix" value={data.chavePix} />
                     </div>
                   ) : null}
                 </div>
 
                 <div className="space-y-4">
-                  <PartyBlock title="Origem (Pagador)" party={pagador} />
+                  <PartyBlock title="Pagador" party={pagador} />
                   <div className="h-px w-full bg-border" />
                   <PartyBlock title="Destino (Recebedor)" party={recebedor} />
                 </div>
