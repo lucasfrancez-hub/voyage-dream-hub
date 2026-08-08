@@ -45,6 +45,18 @@ const criarInput = z.object({
   personId: z.string().uuid().optional().nullable(),
   finePercent: z.number().min(0).max(100).optional().nullable(),
   interestPercent: z.number().min(0).max(100).optional().nullable(),
+  endereco: z
+    .object({
+      cep: z.string().optional().or(z.literal('')),
+      logradouro: z.string().optional().or(z.literal('')),
+      numero: z.string().optional().or(z.literal('')),
+      complemento: z.string().optional().or(z.literal('')),
+      bairro: z.string().optional().or(z.literal('')),
+      cidade: z.string().optional().or(z.literal('')),
+      estado: z.string().optional().or(z.literal('')),
+    })
+    .optional()
+    .nullable(),
   composicao: z
     .object({
       servico: z.string().optional().or(z.literal('')),
