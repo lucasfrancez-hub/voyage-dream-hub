@@ -81,9 +81,9 @@ export const criarPixCobranca = createServerFn({ method: 'POST' })
       expiresInMinutes: Math.round(expiracaoSeg / 60),
     })
 
-    const expiraEm = pix.expirationDate
-      ? new Date(pix.expirationDate).toISOString()
-      : new Date(Date.now() + expiracaoSeg * 1000).toISOString()
+    // Validade real do QR: sempre 30 minutos
+    const expiraEm = pix.expiresAt
+
 
     const cobranca = { txid, pixCopiaECola: pix.payload }
 
