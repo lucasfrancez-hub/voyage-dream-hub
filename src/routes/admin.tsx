@@ -9,6 +9,8 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import viaAirLogo from "@/assets/viaair-logo.png.asset.json";
@@ -381,107 +383,23 @@ function ProdutosNav({ pathname }: { pathname: string }) {
       >
         <Package className="h-4 w-4" /> Produtos <ChevronDown className="h-3.5 w-3.5" />
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="w-64">
-        <DropdownMenuItem asChild>
-          <Link to="/admin/pacotes" className="flex flex-col items-start gap-0.5">
-            <span className="text-sm font-medium">Command Center</span>
-            <span className="text-xs text-muted-foreground">Pacotes, ingressos, passeios e cruzeiros</span>
-          </Link>
-        </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <Link to="/admin/buscar" className="flex flex-col items-start gap-0.5">
-            <span className="text-sm font-medium">Motor de busca</span>
-            <span className="text-xs text-muted-foreground">Aéreo, hotel, carro e aéreo+hotel</span>
-          </Link>
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
-}
-
-function CartaoNav({ pathname }: { pathname: string }) {
-  const active =
-    pathname === "/admin/link-pagamento" ||
-    pathname.startsWith("/admin/link-pagamento/") ||
-    pathname.startsWith("/admin/link-cartao-simples") ||
-    pathname.startsWith("/admin/link-boleto") ||
-    pathname.startsWith("/admin/cofre");
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger
-        className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm transition outline-none ${
-          active ? "bg-brand-orange/10 text-brand-orange" : "text-muted-foreground hover:text-foreground"
-        }`}
-      >
-        <Link2 className="h-4 w-4" /> Pagamentos <ChevronDown className="h-3.5 w-3.5" />
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="w-56">
-        <DropdownMenuItem asChild>
-          <Link to="/admin/link-pagamento" className="flex flex-col items-start gap-0.5">
-            <span className="text-sm font-medium">Link seguro</span>
-            <span className="text-xs text-muted-foreground">Com assinatura e biometria</span>
-          </Link>
-        </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <Link to="/admin/link-cartao-simples" className="flex flex-col items-start gap-0.5">
-            <span className="text-sm font-medium">Link convencional</span>
-            <span className="text-xs text-muted-foreground">Só dados do cartão</span>
-          </Link>
-        </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <Link to="/admin/link-boleto" className="flex flex-col items-start gap-0.5">
-            <span className="text-sm font-medium">Link boleto bancário</span>
-            <span className="text-xs text-muted-foreground">Gerar link de boleto</span>
-          </Link>
-        </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <Link to="/admin/cofre" className="flex flex-col items-start gap-0.5">
-            <span className="text-sm font-medium">Cofre</span>
-            <span className="text-xs text-muted-foreground">Cartões salvos com segurança</span>
-          </Link>
-        </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <Link to="/admin/encurtador" className="flex flex-col items-start gap-0.5">
-            <span className="text-sm font-medium">Encurtador de URL</span>
-            <span className="text-xs text-muted-foreground">Links curtos /l/xxxxxx</span>
-          </Link>
-        </DropdownMenuItem>
-
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
-}
-
-function DashboardNav({ pathname }: { pathname: string }) {
-  const active =
-    pathname.startsWith("/admin/dashboard") ||
-    pathname.startsWith("/admin/pessoas") ||
-    pathname.startsWith("/admin/notas-fiscais") ||
-    pathname.startsWith("/admin/checkins") ||
-    pathname.startsWith("/admin/contas-") ||
-    pathname.startsWith("/admin/comprovantes");
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger
-        className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm transition outline-none ${
-          active ? "bg-brand-orange/10 text-brand-orange" : "text-muted-foreground hover:text-foreground"
-        }`}
-      >
-        <LayoutDashboard className="h-4 w-4" /> Dashboard <ChevronDown className="h-3.5 w-3.5" />
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="w-64">
+      <DropdownMenuContent align="start" className="w-72">
         <DropdownMenuItem asChild>
           <Link to="/admin/dashboard" className="flex flex-col items-start gap-0.5">
             <span className="text-sm font-medium">Dashboard</span>
             <span className="text-xs text-muted-foreground">Visão geral e métricas</span>
           </Link>
         </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuLabel className="text-[11px] uppercase tracking-widest text-muted-foreground">Cadastros</DropdownMenuLabel>
         <DropdownMenuItem asChild>
           <Link to="/admin/pessoas" className="flex flex-col items-start gap-0.5">
             <span className="text-sm font-medium">Pessoas</span>
             <span className="text-xs text-muted-foreground">Clientes e contatos</span>
           </Link>
         </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuLabel className="text-[11px] uppercase tracking-widest text-muted-foreground">Financeiro</DropdownMenuLabel>
         <DropdownMenuItem asChild>
           <Link to="/admin/contas-receber" className="flex flex-col items-start gap-0.5">
             <span className="text-sm font-medium">Contas a receber</span>
@@ -503,7 +421,7 @@ function DashboardNav({ pathname }: { pathname: string }) {
         <DropdownMenuItem asChild>
           <Link to="/admin/conta-bancaria" className="flex flex-col items-start gap-0.5">
             <span className="text-sm font-medium">Conta bancária</span>
-            <span className="text-xs text-muted-foreground">Saldo, entradas, saídas e extrato ASAAS</span>
+            <span className="text-xs text-muted-foreground">Saldo, entradas, saídas e extrato</span>
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
@@ -512,22 +430,28 @@ function DashboardNav({ pathname }: { pathname: string }) {
             <span className="text-xs text-muted-foreground">Pix, cobranças e boletos pagos</span>
           </Link>
         </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuLabel className="text-[11px] uppercase tracking-widest text-muted-foreground">Fiscal</DropdownMenuLabel>
+        <DropdownMenuItem asChild>
+          <Link to="/admin/notas-fiscais" className="flex flex-col items-start gap-0.5">
+            <span className="text-sm font-medium">Notas fiscais</span>
+            <span className="text-xs text-muted-foreground">NFS-e emitidas, erros e relatórios</span>
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuLabel className="text-[11px] uppercase tracking-widest text-muted-foreground">Operação</DropdownMenuLabel>
         <DropdownMenuItem asChild>
           <Link to="/admin/checkins" className="flex flex-col items-start gap-0.5">
             <span className="text-sm font-medium">Check-ins</span>
             <span className="text-xs text-muted-foreground">Cartões de embarque automáticos (LATAM)</span>
           </Link>
         </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuLabel className="text-[11px] uppercase tracking-widest text-muted-foreground">Marketing</DropdownMenuLabel>
         <DropdownMenuItem asChild>
           <Link to="/admin/redes-sociais" className="flex flex-col items-start gap-0.5">
             <span className="text-sm font-medium">Redes sociais</span>
             <span className="text-xs text-muted-foreground">Métricas de posts, reels e stories</span>
-          </Link>
-        </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <Link to="/admin/notas-fiscais" className="flex flex-col items-start gap-0.5">
-            <span className="text-sm font-medium">Notas fiscais</span>
-            <span className="text-xs text-muted-foreground">NFS-e emitidas, erros e relatórios</span>
           </Link>
         </DropdownMenuItem>
       </DropdownMenuContent>
