@@ -108,8 +108,29 @@ function RecebimentosPage() {
     );
   }
 
+  const stats = useMemo(() => {
+    const rows = data ?? [];
+    const hoje = new Date().toISOString().slice(0, 10);
+    const sum = (list: any[]) => list.reduce((s, r) => s + Number(r.value || 0), 0);
+    const pendentes = rows.filter((r) => r.status === "pendente");
+    const atrasados = rows.filter(
+      (r) => r.status === "vencido" || (r.status === "pendente" && r.due_date && r.due_date < hoje),
+    );
+    const aVencer = pendentes.filter((r) => !r.due_date || r.due_date >= hoje);
+    const mes = hoje.slice(0, 7);
+    const recebidos = rows.filter(
+      (r) => r.status === "recebido" && String(r.paid_at ?? r.created_at ?? "").slice(0, 7) === mes,
+    );
+    return {
+      atrasados: { qtd: atrasados.length, total: sum(atrasados) },
+      aVencer: { qtd: aVencer.length, total: sum(aVencer) },
+      recebidos: { qtd: recebidos.length, total: sum(recebidos) },
+      geral: { qtd: rows.length, total: sum(rows) },
+    };
+  }, [data]);
+
   return (
-    <div className="space-y-6">
+    <div className="mx-auto max-w-7xl px-4 md:px-6 py-6 space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold">Recebimentos</h1>
@@ -117,21 +138,56 @@ function RecebimentosPage() {
             Cobranças Pix com QR Code e boletos bancários gerados na conta VIA AIR.
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
             <RefreshCw className={`h-4 w-4 mr-1.5 ${isFetching ? "animate-spin" : ""}`} /> Atualizar
           </Button>
           <Button
             size="sm"
-            variant="outline"
+            className="bg-brand-orange text-white hover:bg-brand-orange/90"
             onClick={() => { setNovoKind("boleto"); setNovoOpen(true); }}
           >
             <Barcode className="h-4 w-4 mr-1.5" /> Novo boleto
           </Button>
-          <Button size="sm" onClick={() => { setNovoKind("pix"); setNovoOpen(true); }}>
+          <Button
+            size="sm"
+            className="bg-emerald-600 text-white hover:bg-emerald-600/90"
+            onClick={() => { setNovoKind("pix"); setNovoOpen(true); }}
+          >
             <Plus className="h-4 w-4 mr-1.5" /> Nova cobrança Pix
           </Button>
         </div>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <StatCard
+          label="Atrasados"
+          qtd={stats.atrasados.qtd}
+          total={stats.atrasados.total}
+          tone="text-rose-400"
+          icon={<AlertTriangle className="h-4 w-4" />}
+        />
+        <StatCard
+          label="A vencer"
+          qtd={stats.aVencer.qtd}
+          total={stats.aVencer.total}
+          tone="text-amber-400"
+          icon={<CalendarClock className="h-4 w-4" />}
+        />
+        <StatCard
+          label="Recebido no mês"
+          qtd={stats.recebidos.qtd}
+          total={stats.recebidos.total}
+          tone="text-emerald-400"
+          icon={<CheckCircle2 className="h-4 w-4" />}
+        />
+        <StatCard
+          label="Total emitido"
+          qtd={stats.geral.qtd}
+          total={stats.geral.total}
+          tone="text-foreground"
+          icon={<Wallet className="h-4 w-4" />}
+        />
       </div>
 
       <div className="relative max-w-sm">
@@ -143,6 +199,7 @@ function RecebimentosPage() {
           className="pl-9"
         />
       </div>
+
 
       <div className="rounded-2xl border border-border bg-card overflow-hidden">
         {isLoading ? (
