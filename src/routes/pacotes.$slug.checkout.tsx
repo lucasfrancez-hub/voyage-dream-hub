@@ -128,13 +128,6 @@ function Checkout() {
   const { data: card, patch: patchCard } = useCardData();
   const [boleto, setBoleto] = useState<BoletoData>(emptyBoleto);
   const [notes, setNotes] = useState("");
-  const [pixAddress, setPixAddress] = useState({
-    cep: "",
-    address: "",
-    number: "",
-    city: "",
-    state: "PR",
-  });
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [pixInfo, setPixInfo] = useState<{ txid: string; qrCode: string; expiraEm: string; valor: number } | null>(null);
