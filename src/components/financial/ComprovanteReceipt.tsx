@@ -140,13 +140,11 @@ export function ComprovanteReceipt({
 
               <div className="relative p-6 flex flex-col gap-5">
                 <div className="flex flex-col items-center gap-2.5">
-                  <div className="w-20 h-20 rounded-2xl bg-muted/20 border border-border flex items-center justify-center">
-                    <img
-                      src={viaairLogo.url}
-                      alt="VIA AIR"
-                      className="h-9 w-auto object-contain"
-                    />
-                  </div>
+                  <img
+                    src={viaairLogo.url}
+                    alt="VIA AIR"
+                    className="h-12 w-auto object-contain"
+                  />
                   <h1 className="text-3xl font-bold tracking-tight text-foreground tabular-nums mt-1">
                     {formatBRL(data.valor)}
                   </h1>
