@@ -142,3 +142,45 @@ export async function createAsaasPixPayment(
 export async function getAsaasPayment(paymentId: string) {
   return asaasFetch(`/payments/${encodeURIComponent(paymentId)}`)
 }
+
+/* ============================================================
+ * TRANSFERÊNCIAS PIX (saques)
+ * ============================================================ */
+
+export interface CreatePixTransferInput {
+  value: number
+  pixKey: string
+  pixKeyType?: string | null
+  description?: string | null
+  /** YYYY-MM-DD — quando informado, agenda o pagamento */
+  scheduleDate?: string | null
+  externalReference?: string | null
+}
+
+export async function createAsaasPixTransfer(input: CreatePixTransferInput) {
+  const body: Record<string, unknown> = {
+    value: Number(input.value.toFixed(2)),
+    operationType: 'PIX',
+    pixAddressKey: input.pixKey,
+    description: input.description || undefined,
+    externalReference: input.externalReference || undefined,
+  }
+  if (input.pixKeyType) body['pixAddressKeyType'] = input.pixKeyType
+  if (input.scheduleDate) body['scheduleDate'] = input.scheduleDate
+  return asaasFetch('/transfers', { method: 'POST', body: JSON.stringify(body) })
+}
+
+export async function getAsaasTransfer(transferId: string) {
+  return asaasFetch(`/transfers/${encodeURIComponent(transferId)}`)
+}
+
+export async function cancelAsaasTransfer(transferId: string) {
+  try {
+    return await asaasFetch(`/transfers/${encodeURIComponent(transferId)}/cancel`, {
+      method: 'POST',
+      body: JSON.stringify({}),
+    })
+  } catch {
+    return asaasFetch(`/transfers/${encodeURIComponent(transferId)}`, { method: 'DELETE' })
+  }
+}

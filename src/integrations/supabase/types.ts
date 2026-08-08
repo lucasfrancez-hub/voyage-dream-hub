@@ -134,6 +134,158 @@ export type Database = {
         }
         Relationships: []
       }
+      asaas_transfer_events: {
+        Row: {
+          actor_name: string | null
+          actor_user_id: string | null
+          asaas_transfer_id: string | null
+          created_at: string
+          decision: string | null
+          event: string
+          id: string
+          ip: string | null
+          message: string | null
+          payload: Json | null
+          status: string | null
+          transfer_id: string | null
+        }
+        Insert: {
+          actor_name?: string | null
+          actor_user_id?: string | null
+          asaas_transfer_id?: string | null
+          created_at?: string
+          decision?: string | null
+          event: string
+          id?: string
+          ip?: string | null
+          message?: string | null
+          payload?: Json | null
+          status?: string | null
+          transfer_id?: string | null
+        }
+        Update: {
+          actor_name?: string | null
+          actor_user_id?: string | null
+          asaas_transfer_id?: string | null
+          created_at?: string
+          decision?: string | null
+          event?: string
+          id?: string
+          ip?: string | null
+          message?: string | null
+          payload?: Json | null
+          status?: string | null
+          transfer_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asaas_transfer_events_transfer_id_fkey"
+            columns: ["transfer_id"]
+            isOneToOne: false
+            referencedRelation: "asaas_transfers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      asaas_transfers: {
+        Row: {
+          asaas_transfer_id: string | null
+          authorized: boolean
+          authorized_at: string | null
+          cpf_cnpj: string | null
+          created_at: string
+          created_by: string | null
+          created_by_name: string | null
+          created_ip: string | null
+          description: string | null
+          effective_date: string | null
+          fail_reason: string | null
+          favored_name: string
+          financial_entry_id: string | null
+          id: string
+          idempotency_key: string
+          order_id: string | null
+          origin: string
+          pix_key: string
+          pix_key_type: string | null
+          raw_response: Json | null
+          receipt_url: string | null
+          scheduled_date: string | null
+          status: string
+          updated_at: string
+          value: number
+        }
+        Insert: {
+          asaas_transfer_id?: string | null
+          authorized?: boolean
+          authorized_at?: string | null
+          cpf_cnpj?: string | null
+          created_at?: string
+          created_by?: string | null
+          created_by_name?: string | null
+          created_ip?: string | null
+          description?: string | null
+          effective_date?: string | null
+          fail_reason?: string | null
+          favored_name: string
+          financial_entry_id?: string | null
+          id?: string
+          idempotency_key: string
+          order_id?: string | null
+          origin?: string
+          pix_key: string
+          pix_key_type?: string | null
+          raw_response?: Json | null
+          receipt_url?: string | null
+          scheduled_date?: string | null
+          status?: string
+          updated_at?: string
+          value: number
+        }
+        Update: {
+          asaas_transfer_id?: string | null
+          authorized?: boolean
+          authorized_at?: string | null
+          cpf_cnpj?: string | null
+          created_at?: string
+          created_by?: string | null
+          created_by_name?: string | null
+          created_ip?: string | null
+          description?: string | null
+          effective_date?: string | null
+          fail_reason?: string | null
+          favored_name?: string
+          financial_entry_id?: string | null
+          id?: string
+          idempotency_key?: string
+          order_id?: string | null
+          origin?: string
+          pix_key?: string
+          pix_key_type?: string | null
+          raw_response?: Json | null
+          receipt_url?: string | null
+          scheduled_date?: string | null
+          status?: string
+          updated_at?: string
+          value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asaas_transfers_financial_entry_id_fkey"
+            columns: ["financial_entry_id"]
+            isOneToOne: false
+            referencedRelation: "financial_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asaas_transfers_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       broadcast_suggestions: {
         Row: {
           approved_by: string | null
@@ -2601,6 +2753,14 @@ export type Database = {
           payment_method: string
           person_id: string | null
           phone: string | null
+          pix_baixa_tipo: string | null
+          pix_manual_at: string | null
+          pix_manual_by: string | null
+          pix_manual_by_name: string | null
+          pix_manual_comprovante_url: string | null
+          pix_manual_data: string | null
+          pix_manual_obs: string | null
+          pix_manual_valor: number | null
           quote_config: Json | null
           seller_email: string | null
           seller_name: string | null
@@ -2653,6 +2813,14 @@ export type Database = {
           payment_method: string
           person_id?: string | null
           phone?: string | null
+          pix_baixa_tipo?: string | null
+          pix_manual_at?: string | null
+          pix_manual_by?: string | null
+          pix_manual_by_name?: string | null
+          pix_manual_comprovante_url?: string | null
+          pix_manual_data?: string | null
+          pix_manual_obs?: string | null
+          pix_manual_valor?: number | null
           quote_config?: Json | null
           seller_email?: string | null
           seller_name?: string | null
@@ -2705,6 +2873,14 @@ export type Database = {
           payment_method?: string
           person_id?: string | null
           phone?: string | null
+          pix_baixa_tipo?: string | null
+          pix_manual_at?: string | null
+          pix_manual_by?: string | null
+          pix_manual_by_name?: string | null
+          pix_manual_comprovante_url?: string | null
+          pix_manual_data?: string | null
+          pix_manual_obs?: string | null
+          pix_manual_valor?: number | null
           quote_config?: Json | null
           seller_email?: string | null
           seller_name?: string | null
@@ -3739,6 +3915,39 @@ export type Database = {
           last_click_at?: string | null
           slug?: string
           target_url?: string
+        }
+        Relationships: []
+      }
+      supplier_pix_keys: {
+        Row: {
+          cpf_cnpj: string | null
+          created_at: string
+          favored_name: string | null
+          id: string
+          pix_key: string
+          pix_key_type: string | null
+          supplier_name: string
+          updated_at: string
+        }
+        Insert: {
+          cpf_cnpj?: string | null
+          created_at?: string
+          favored_name?: string | null
+          id?: string
+          pix_key: string
+          pix_key_type?: string | null
+          supplier_name: string
+          updated_at?: string
+        }
+        Update: {
+          cpf_cnpj?: string | null
+          created_at?: string
+          favored_name?: string | null
+          id?: string
+          pix_key?: string
+          pix_key_type?: string | null
+          supplier_name?: string
+          updated_at?: string
         }
         Relationships: []
       }

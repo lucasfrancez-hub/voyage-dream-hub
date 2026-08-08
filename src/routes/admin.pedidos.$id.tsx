@@ -64,6 +64,7 @@ import { getSignatureStatus } from "@/lib/clicksign.functions";
 import type { Json } from "@/integrations/supabase/types";
 import { HotelAutocomplete, type HotelSelection } from "@/components/HotelAutocomplete";
 import { QuoteDialog } from "@/components/QuoteDialog";
+import { gerarPixPedidoAdmin, baixaPixManualPedido } from "@/lib/pagamentos.functions";
 import { FlightLookupButton } from "@/components/FlightLookupButton";
 import { ImportarAereoDialog } from "@/components/ImportarAereoDialog";
 import { ImportarVoucherDialog } from "@/components/ImportarVoucherDialog";
@@ -310,6 +311,11 @@ function OrderDetailPage() {
     return acc ?? order.paymentMethod;
   })();
   const pm = paymentMethodLabel(pmAgg);
+  const pixOrigemBadge = order.pixBaixaTipo === "asaas"
+    ? { label: "PIX ASAAS", className: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400" }
+    : order.pixBaixaTipo === "manual"
+      ? { label: "PIX MANUAL", className: "bg-amber-500/15 text-amber-600 dark:text-amber-400" }
+      : null;
 
 
   const hotelItems = detail.items.filter((i) => i.kind === "hotel" && i.status !== "cancelled");
@@ -485,6 +491,11 @@ function OrderDetailPage() {
                 <CreditCard className="h-3 w-3 opacity-70" />
                 <span className="text-[10px] font-bold uppercase tracking-wide">{pm.label}</span>
               </div>
+              {pixOrigemBadge && (
+                <div className={`mt-2 ml-2 inline-flex items-center gap-2 px-3 py-1 rounded-full ${pixOrigemBadge.className}`}>
+                  <span className="text-[10px] font-bold uppercase tracking-wide">{pixOrigemBadge.label}</span>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -4646,6 +4657,14 @@ function PaymentDialog({
   }, [initial?.id, open]);
 
   const method = form.method ?? "pix";
+  const gerarPixFn = useServerFn(gerarPixPedidoAdmin);
+  const baixaPixManualFn = useServerFn(baixaPixManualPedido);
+  const [pixMode, setPixMode] = useState<"asaas" | "manual">("asaas");
+  const [pixLoading, setPixLoading] = useState(false);
+  const [pixData, setPixData] = useState<{ qrCode: string | null; qrCodeImage: string | null; expiraEm: string; valor: number; reused: boolean } | null>(null);
+  const [pixManualDate, setPixManualDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [pixManualObs, setPixManualObs] = useState("");
+  const [pixManualProof, setPixManualProof] = useState("");
   const showCard = method === "credit_card" || method === "debit_card";
   const showInstallments = method === "credit_card" || method === "financing";
 
@@ -5042,6 +5061,121 @@ function PaymentDialog({
                       onBlur={() => { const n = parseBRLInput(rawInstallment); if (n != null) setRawInstallment(fmtBRLInput(n)); }} />
                   </div>
                 </>
+              )}
+              {method === "pix" && (
+                <div className="md:col-span-2 rounded-lg border border-border bg-muted/30 p-3 space-y-3">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-sm font-medium">Pix</span>
+                    <div className="flex gap-1">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant={pixMode === "asaas" ? "default" : "outline"}
+                        onClick={() => setPixMode("asaas")}
+                      >
+                        Gerar QR Code
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant={pixMode === "manual" ? "default" : "outline"}
+                        onClick={() => setPixMode("manual")}
+                      >
+                        Pix manual
+                      </Button>
+                    </div>
+                  </div>
+
+                  {pixMode === "asaas" ? (
+                    <div className="space-y-2">
+                      <p className="text-xs text-muted-foreground">
+                        Gera uma cobrança Pix no ASAAS (validade de 30 minutos). A baixa é automática quando o pagamento for confirmado.
+                      </p>
+                      <Button
+                        type="button"
+                        size="sm"
+                        disabled={pixLoading}
+                        onClick={async () => {
+                          const valor = Number(form.amount ?? 0);
+                          if (!(valor > 0)) { toast.error("Informe o valor pago."); return; }
+                          setPixLoading(true);
+                          try {
+                            const res = await gerarPixFn({ data: { orderId: order.id, valor } });
+                            setPixData(res);
+                            toast.success(res.reused ? "QR Code Pix ativo recuperado." : "QR Code Pix gerado.");
+                          } catch (err) {
+                            toast.error(err instanceof Error ? err.message : "Falha ao gerar Pix.");
+                          } finally { setPixLoading(false); }
+                        }}
+                      >
+                        {pixLoading ? "Gerando…" : "Gerar QR Code Pix"}
+                      </Button>
+                      {pixData && (
+                        <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center">
+                          {pixData.qrCodeImage && (
+                            <img src={pixData.qrCodeImage} alt="QR Code Pix do pedido" className="h-40 w-40 rounded bg-white p-1" />
+                          )}
+                          <div className="flex-1 space-y-2">
+                            <p className="text-xs text-muted-foreground">
+                              Valor: {formatBRL(pixData.valor)} — expira em {new Date(pixData.expiraEm).toLocaleString("pt-BR")}
+                            </p>
+                            <Textarea readOnly value={pixData.qrCode ?? ""} className="h-20 text-xs" />
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              onClick={() => { navigator.clipboard.writeText(pixData.qrCode ?? ""); toast.success("Código copia e cola copiado."); }}
+                            >
+                              Copiar código
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <div>
+                        <Label>Data do pagamento</Label>
+                        <Input type="date" value={pixManualDate} onChange={(e) => setPixManualDate(e.target.value)} />
+                      </div>
+                      <div>
+                        <Label>Comprovante (URL)</Label>
+                        <Input value={pixManualProof} onChange={(e) => setPixManualProof(e.target.value)} placeholder="https://…" />
+                      </div>
+                      <div className="sm:col-span-2">
+                        <Label>Observação</Label>
+                        <Textarea value={pixManualObs} onChange={(e) => setPixManualObs(e.target.value)} placeholder="Ex.: Pix recebido na conta Itaú" className="h-16" />
+                      </div>
+                      <div className="sm:col-span-2">
+                        <Button
+                          type="button"
+                          size="sm"
+                          disabled={pixLoading}
+                          onClick={async () => {
+                            const valor = Number(form.amount ?? 0);
+                            if (!(valor > 0)) { toast.error("Informe o valor pago."); return; }
+                            setPixLoading(true);
+                            try {
+                              await baixaPixManualFn({ data: {
+                                orderId: order.id,
+                                valor,
+                                data: pixManualDate,
+                                observacao: pixManualObs || null,
+                                comprovanteUrl: pixManualProof || null,
+                              } });
+                              setField("status", "paid");
+                              toast.success("Baixa manual de Pix registrada.");
+                            } catch (err) {
+                              toast.error(err instanceof Error ? err.message : "Falha ao registrar baixa.");
+                            } finally { setPixLoading(false); }
+                          }}
+                        >
+                          {pixLoading ? "Registrando…" : "Registrar baixa manual"}
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
               )}
               {showCard && (
                 <>
