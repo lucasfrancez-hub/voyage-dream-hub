@@ -361,7 +361,10 @@ ${d.preview ? '<div class="preview-flag">Pré-visualização</div>' : ""}
 
   <div class="cut"><span>✂ CORTE NA LINHA PONTILHADA</span></div>
 
-  <div class="bank">
+  ${
+    d.variant === "pix"
+      ? ""
+      : `<div class="bank">
     <div class="bank-head">
       <div class="bank-logo"><img src="${esc(asaasLogoUrl)}" alt="ASAAS" /></div>
       <div class="bank-code">${esc(banco.codigo ?? "")}</div>
@@ -413,8 +416,9 @@ ${d.preview ? '<div class="preview-flag">Pré-visualização</div>' : ""}
     </div>
     <div class="barcode">${barcode}</div>
     <div class="bank-foot">Autenticação mecânica - Ficha de compensação</div>
-  </div>
-  <div class="doc-foot"><strong>Boleto gerado pelo sistema VIA AIR</strong>Todos os direitos reservados
+  </div>`
+  }
+  <div class="doc-foot"><strong>${d.variant === "pix" ? "Cobrança" : "Boleto"} gerado pelo sistema VIA AIR</strong>Todos os direitos reservados
   </div>
 </div>
 </body></html>`;
