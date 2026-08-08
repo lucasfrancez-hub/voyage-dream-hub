@@ -1,3 +1,4 @@
+import { PIX_FEE } from "@/lib/checkout-config";
 import { createFileRoute, notFound } from "@tanstack/react-router";
 import { useEffect, useMemo } from "react";
 import { Plane, Hotel, Ticket, Phone, Mail, MessageCircle, Printer, Calendar, Users, MapPin, Star } from "lucide-react";
