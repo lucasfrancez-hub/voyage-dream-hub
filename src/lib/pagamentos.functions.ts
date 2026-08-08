@@ -628,6 +628,24 @@ export const gerarBoletoPedidoAdmin = createServerFn({ method: 'POST' })
       ? `data:image/png;base64,${charge.pixEncodedImage}`
       : null
 
+    const enderecoTexto =
+      [
+        [end?.logradouro, end?.numero].filter(Boolean).join(', '),
+        end?.complemento,
+        end?.bairro,
+        [end?.cidade, end?.estado].filter(Boolean).join('/'),
+        end?.cep ? `CEP ${end.cep}` : '',
+      ]
+        .filter((p) => p && String(p).trim())
+        .join(' - ') || null
+
+    const fmtData = (d?: string | null) =>
+      d ? new Date(`${d}T12:00:00`).toLocaleDateString('pt-BR') : ''
+    const periodoTexto =
+      [fmtData(data.composicao?.periodoInicio), fmtData(data.composicao?.periodoFim)]
+        .filter(Boolean)
+        .join(' a ') || null
+
     const { data: row, error } = await supabaseAdmin
       .from('asaas_recebimentos')
       .insert({
@@ -641,8 +659,15 @@ export const gerarBoletoPedidoAdmin = createServerFn({ method: 'POST' })
         due_date: data.vencimento,
         description: descricao,
         order_id: order.id,
-        fine_percent: data.multaPercent ?? 2,
-        interest_percent: data.jurosPercent ?? 1,
+        fine_percent: data.multaPercent ?? null,
+        interest_percent: data.jurosPercent ?? null,
+        composicao: {
+          servico: data.composicao?.servico ?? null,
+          destino: data.composicao?.destino ?? null,
+          periodo: periodoTexto,
+          passageiro: data.composicao?.passageiros ?? null,
+          endereco: enderecoTexto,
+        } as any,
         asaas_payment_id: charge.paymentId,
         asaas_customer_id: customerId,
         invoice_url: charge.invoiceUrl,
@@ -670,6 +695,20 @@ export const gerarBoletoPedidoAdmin = createServerFn({ method: 'POST' })
       agenciaCodigo: (charge.agenciaCodigo ?? null) as string | null,
       pixPayload: charge.pixPayload,
       pixQrImage,
-      pagador: { nome, cpfCnpj, email: data.email || order.email || null, telefone: data.telefone || (order as any).phone || null },
+      pagador: {
+        nome,
+        cpfCnpj,
+        email: data.email || order.email || null,
+        telefone: data.telefone || (order as any).phone || null,
+        endereco: enderecoTexto,
+      },
+      composicao: {
+        servico: data.composicao?.servico ?? null,
+        destino: data.composicao?.destino ?? null,
+        periodo: periodoTexto,
+        passageiro: data.composicao?.passageiros ?? null,
+      },
+      multaPercent: data.multaPercent ?? null,
+      jurosPercentMes: data.jurosPercent ?? null,
     }
   })
