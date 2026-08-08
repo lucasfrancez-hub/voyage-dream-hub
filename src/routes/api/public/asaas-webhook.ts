@@ -72,6 +72,41 @@ export const Route = createFileRoute('/api/public/asaas-webhook')({
           cob = alt.data ?? null
         }
 
+        // Recebimentos avulsos (Pix/boleto gerados no admin)
+        {
+          const { data: rec } = await supabaseAdmin
+            .from('asaas_recebimentos')
+            .select('id, status')
+            .eq('asaas_payment_id', paymentId)
+            .maybeSingle()
+          if (rec) {
+            const map: Record<string, string> = {
+              PAYMENT_RECEIVED: 'recebido',
+              PAYMENT_CONFIRMED: 'recebido',
+              PAYMENT_OVERDUE: 'vencido',
+              PAYMENT_DELETED: 'cancelado',
+              PAYMENT_REFUNDED: 'estornado',
+            }
+            const novo = map[event]
+            if (novo) {
+              await supabaseAdmin
+                .from('asaas_recebimentos')
+                .update({
+                  status: novo,
+                  paid_at:
+                    novo === 'recebido'
+                      ? payment?.paymentDate
+                        ? new Date(payment.paymentDate).toISOString()
+                        : new Date().toISOString()
+                      : null,
+                  webhook_payload: body,
+                })
+                .eq('id', rec.id)
+            }
+            return Response.json({ ok: true, event, recebimento: true })
+          }
+        }
+
         if (!cob) {
           console.warn('[asaas-webhook] cobrança não encontrada', { paymentId, event })
           return Response.json({ ok: true, skipped: 'not found' })

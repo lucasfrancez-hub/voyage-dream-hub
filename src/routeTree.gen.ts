@@ -54,6 +54,7 @@ import { Route as AdminNotasFiscaisRouteImport } from './routes/admin.notas-fisc
 import { Route as AdminPacotesRouteImport } from './routes/admin.pacotes'
 import { Route as AdminPagamentosRouteImport } from './routes/admin.pagamentos'
 import { Route as AdminPessoasRouteImport } from './routes/admin.pessoas'
+import { Route as AdminRecebimentosRouteImport } from './routes/admin.recebimentos'
 import { Route as AdminRedesSociaisRouteImport } from './routes/admin.redes-sociais'
 import { Route as AdminSegurancaRouteImport } from './routes/admin.seguranca'
 import { Route as AdminSegurosRouteImport } from './routes/admin.seguros'
@@ -356,6 +357,11 @@ const AdminPagamentosRoute = AdminPagamentosRouteImport.update({
 const AdminPessoasRoute = AdminPessoasRouteImport.update({
   id: '/pessoas',
   path: '/pessoas',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminRecebimentosRoute = AdminRecebimentosRouteImport.update({
+  id: '/recebimentos',
+  path: '/recebimentos',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminRedesSociaisRoute = AdminRedesSociaisRouteImport.update({
@@ -824,6 +830,7 @@ export interface FileRoutesByFullPath {
   '/admin/pacotes': typeof AdminPacotesRoute
   '/admin/pagamentos': typeof AdminPagamentosRoute
   '/admin/pessoas': typeof AdminPessoasRouteWithChildren
+  '/admin/recebimentos': typeof AdminRecebimentosRoute
   '/admin/redes-sociais': typeof AdminRedesSociaisRoute
   '/admin/seguranca': typeof AdminSegurancaRoute
   '/admin/seguros': typeof AdminSegurosRoute
@@ -948,6 +955,7 @@ export interface FileRoutesByTo {
   '/admin/pacotes': typeof AdminPacotesRoute
   '/admin/pagamentos': typeof AdminPagamentosRoute
   '/admin/pessoas': typeof AdminPessoasRouteWithChildren
+  '/admin/recebimentos': typeof AdminRecebimentosRoute
   '/admin/redes-sociais': typeof AdminRedesSociaisRoute
   '/admin/seguranca': typeof AdminSegurancaRoute
   '/admin/seguros': typeof AdminSegurosRoute
@@ -1074,6 +1082,7 @@ export interface FileRoutesById {
   '/admin/pacotes': typeof AdminPacotesRoute
   '/admin/pagamentos': typeof AdminPagamentosRoute
   '/admin/pessoas': typeof AdminPessoasRouteWithChildren
+  '/admin/recebimentos': typeof AdminRecebimentosRoute
   '/admin/redes-sociais': typeof AdminRedesSociaisRoute
   '/admin/seguranca': typeof AdminSegurancaRoute
   '/admin/seguros': typeof AdminSegurosRoute
@@ -1201,6 +1210,7 @@ export interface FileRouteTypes {
     | '/admin/pacotes'
     | '/admin/pagamentos'
     | '/admin/pessoas'
+    | '/admin/recebimentos'
     | '/admin/redes-sociais'
     | '/admin/seguranca'
     | '/admin/seguros'
@@ -1325,6 +1335,7 @@ export interface FileRouteTypes {
     | '/admin/pacotes'
     | '/admin/pagamentos'
     | '/admin/pessoas'
+    | '/admin/recebimentos'
     | '/admin/redes-sociais'
     | '/admin/seguranca'
     | '/admin/seguros'
@@ -1450,6 +1461,7 @@ export interface FileRouteTypes {
     | '/admin/pacotes'
     | '/admin/pagamentos'
     | '/admin/pessoas'
+    | '/admin/recebimentos'
     | '/admin/redes-sociais'
     | '/admin/seguranca'
     | '/admin/seguros'
@@ -1918,6 +1930,13 @@ declare module '@tanstack/react-router' {
       path: '/pessoas'
       fullPath: '/admin/pessoas'
       preLoaderRoute: typeof AdminPessoasRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/recebimentos': {
+      id: '/admin/recebimentos'
+      path: '/recebimentos'
+      fullPath: '/admin/recebimentos'
+      preLoaderRoute: typeof AdminRecebimentosRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/redes-sociais': {
@@ -2506,6 +2525,7 @@ interface AdminRouteChildren {
   AdminPacotesRoute: typeof AdminPacotesRoute
   AdminPagamentosRoute: typeof AdminPagamentosRoute
   AdminPessoasRoute: typeof AdminPessoasRouteWithChildren
+  AdminRecebimentosRoute: typeof AdminRecebimentosRoute
   AdminRedesSociaisRoute: typeof AdminRedesSociaisRoute
   AdminSegurancaRoute: typeof AdminSegurancaRoute
   AdminSegurosRoute: typeof AdminSegurosRoute
@@ -2542,6 +2562,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminPacotesRoute: AdminPacotesRoute,
   AdminPagamentosRoute: AdminPagamentosRoute,
   AdminPessoasRoute: AdminPessoasRouteWithChildren,
+  AdminRecebimentosRoute: AdminRecebimentosRoute,
   AdminRedesSociaisRoute: AdminRedesSociaisRoute,
   AdminSegurancaRoute: AdminSegurancaRoute,
   AdminSegurosRoute: AdminSegurosRoute,
@@ -2690,13 +2711,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
