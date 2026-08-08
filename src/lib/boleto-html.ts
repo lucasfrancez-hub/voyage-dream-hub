@@ -286,7 +286,8 @@ h1{margin:12px 0 6px;font-size:28px;letter-spacing:-.8px;color:var(--navy)}
 .doc-foot{margin:12px 0 0;text-align:right;font-size:10px;line-height:1.4;color:#8a949e}
 .doc-foot strong{display:block;font-weight:700;color:#505d69}
 .preview-flag{position:fixed;top:10px;left:10px;background:var(--orange);color:#fff;font-size:12px;font-weight:700;padding:6px 12px;border-radius:999px}
-@media print{body{background:#fff}.preview-flag{display:none}.page{margin:0;box-shadow:none;width:210mm;min-height:297mm;padding:10mm 11mm 8mm}}
+@page{size:A4;margin:0}
+@media print{body{background:#fff}.preview-flag{display:none}.page{margin:0;box-shadow:none;width:1024px;min-height:0;padding:26px 46px 18px;zoom:.78}.cut{margin-left:-46px;margin-right:-46px}.cut span{left:46px}}
 </style></head>
 <body>
 ${d.preview ? '<div class="preview-flag">Pré-visualização</div>' : ""}
