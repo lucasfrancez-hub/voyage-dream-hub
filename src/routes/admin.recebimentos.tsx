@@ -436,6 +436,13 @@ function NovoRecebimentoDialog({
       cpfCnpj: p.cpf || p.cnpj || f.cpfCnpj,
       email: p.email || f.email,
       phone: p.mobile_phone || p.phone || f.phone,
+      cep: p.zip || f.cep,
+      logradouro: p.address || f.logradouro,
+      numero: p.number || f.numero,
+      complemento: p.complement || f.complemento,
+      bairro: p.district || f.bairro,
+      cidade: p.city || f.cidade,
+      estado: p.state || f.estado,
     }));
   }
 
