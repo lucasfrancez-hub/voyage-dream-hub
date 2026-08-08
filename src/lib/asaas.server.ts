@@ -214,12 +214,13 @@ export async function createAsaasCharge(input: CreateChargeInput) {
 
   let pix: any = null
   let identificationField: string | null = null
-  if (input.billingType === 'PIX') {
-    pix = await asaasFetch(`/payments/${payment.id}/pixQrCode`).catch(() => null)
-  } else {
+  // Boleto no ASAAS é híbrido: também expõe QR Code Pix. Buscamos os dois.
+  pix = await asaasFetch(`/payments/${payment.id}/pixQrCode`).catch(() => null)
+  if (input.billingType !== 'PIX') {
     const idf = await asaasFetch(`/payments/${payment.id}/identificationField`).catch(() => null)
     identificationField = idf?.identificationField ?? null
   }
+
 
   return {
     paymentId: String(payment.id),
