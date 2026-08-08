@@ -71,10 +71,12 @@ function computeInstallments(total: number, cfg: PublicQuote["config"]) {
   const rows: { label: string; each: number; total: number; highlight?: boolean }[] = [];
   if (cfg.pix.enabled) {
     const disc = total * (cfg.pix.discount_pct / 100);
+    // taxa Pix embutida no valor (nunca exibida separadamente ao cliente)
+    const pixTotal = total - disc + PIX_FEE;
     rows.push({
       label: `Pix — ${cfg.pix.discount_pct}% de desconto`,
-      each: total - disc,
-      total: total - disc,
+      each: pixTotal,
+      total: pixTotal,
       highlight: true,
     });
   }
