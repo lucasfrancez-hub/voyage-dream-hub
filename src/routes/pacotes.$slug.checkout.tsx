@@ -883,7 +883,7 @@ function Checkout() {
                   onClick={() => setPayment("pix")}
                   icon={QrCode}
                   title="Pix"
-                  desc="Realize o pagamento via Pix. Nosso time envia a chave/QR Code por e-mail em seguida."
+                  desc="QR Code gerado na hora, com baixa automática assim que o pagamento cair."
                   badge="-5% de desconto"
                 />
                 {!isService && (
