@@ -9,6 +9,8 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import viaAirLogo from "@/assets/viaair-logo.png.asset.json";
@@ -469,19 +471,23 @@ function DashboardNav({ pathname }: { pathname: string }) {
       >
         <LayoutDashboard className="h-4 w-4" /> Dashboard <ChevronDown className="h-3.5 w-3.5" />
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="w-64">
+      <DropdownMenuContent align="start" className="w-72">
         <DropdownMenuItem asChild>
           <Link to="/admin/dashboard" className="flex flex-col items-start gap-0.5">
             <span className="text-sm font-medium">Dashboard</span>
             <span className="text-xs text-muted-foreground">Visão geral e métricas</span>
           </Link>
         </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuLabel className="px-2 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">Cadastros</DropdownMenuLabel>
         <DropdownMenuItem asChild>
           <Link to="/admin/pessoas" className="flex flex-col items-start gap-0.5">
             <span className="text-sm font-medium">Pessoas</span>
             <span className="text-xs text-muted-foreground">Clientes e contatos</span>
           </Link>
         </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuLabel className="px-2 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">Financeiro</DropdownMenuLabel>
         <DropdownMenuItem asChild>
           <Link to="/admin/contas-receber" className="flex flex-col items-start gap-0.5">
             <span className="text-sm font-medium">Contas a receber</span>
@@ -503,7 +509,7 @@ function DashboardNav({ pathname }: { pathname: string }) {
         <DropdownMenuItem asChild>
           <Link to="/admin/conta-bancaria" className="flex flex-col items-start gap-0.5">
             <span className="text-sm font-medium">Conta bancária</span>
-            <span className="text-xs text-muted-foreground">Saldo, entradas, saídas e extrato ASAAS</span>
+            <span className="text-xs text-muted-foreground">Saldo, entradas, saídas e extrato</span>
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
@@ -512,22 +518,28 @@ function DashboardNav({ pathname }: { pathname: string }) {
             <span className="text-xs text-muted-foreground">Pix, cobranças e boletos pagos</span>
           </Link>
         </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuLabel className="px-2 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">Fiscal</DropdownMenuLabel>
+        <DropdownMenuItem asChild>
+          <Link to="/admin/notas-fiscais" className="flex flex-col items-start gap-0.5">
+            <span className="text-sm font-medium">Notas fiscais</span>
+            <span className="text-xs text-muted-foreground">NFS-e emitidas, erros e relatórios</span>
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuLabel className="px-2 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">Operação</DropdownMenuLabel>
         <DropdownMenuItem asChild>
           <Link to="/admin/checkins" className="flex flex-col items-start gap-0.5">
             <span className="text-sm font-medium">Check-ins</span>
             <span className="text-xs text-muted-foreground">Cartões de embarque automáticos (LATAM)</span>
           </Link>
         </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuLabel className="px-2 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">Marketing</DropdownMenuLabel>
         <DropdownMenuItem asChild>
           <Link to="/admin/redes-sociais" className="flex flex-col items-start gap-0.5">
             <span className="text-sm font-medium">Redes sociais</span>
             <span className="text-xs text-muted-foreground">Métricas de posts, reels e stories</span>
-          </Link>
-        </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <Link to="/admin/notas-fiscais" className="flex flex-col items-start gap-0.5">
-            <span className="text-sm font-medium">Notas fiscais</span>
-            <span className="text-xs text-muted-foreground">NFS-e emitidas, erros e relatórios</span>
           </Link>
         </DropdownMenuItem>
       </DropdownMenuContent>
