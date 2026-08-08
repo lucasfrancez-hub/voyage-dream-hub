@@ -145,6 +145,93 @@ export function mapTransfer(t: any): Comprovante {
   }
 }
 
+/** Converte uma cobrança ASAAS (recebimento) no formato de comprovante. */
+export function mapPayment(p: any, cust?: any): Comprovante {
+  const dt = p?.paymentDate ?? p?.clientPaymentDate ?? p?.confirmedDate ?? p?.dateCreated ?? null
+  return {
+    id: `payment:${p?.id}`,
+    kind: 'payment',
+    asaasId: String(p?.id ?? ''),
+    date: dt,
+    favored: cust?.name ?? cust?.company ?? p?.customerName ?? p?.description ?? null,
+    value: Math.abs(Number(p?.value ?? 0)),
+    operation: operationLabelPayment(p),
+    direction: 'in',
+    counterpartyLabel: 'Pagador',
+    status: PAYMENT_STATUS[String(p?.status ?? '')] ?? p?.status ?? null,
+    reference: p?.externalReference ?? p?.invoiceNumber ?? p?.id ?? null,
+    receiptUrl: p?.transactionReceiptUrl ?? null,
+    instituicao: p?.creditCard?.creditCardBrand ?? null,
+    chavePix: p?.pixTransaction?.qrCode?.pixKey ?? p?.pixQrCodeId ?? null,
+    cpfCnpj: digits(cust?.cpfCnpj ?? p?.customerCpfCnpj),
+    descricao: p?.description ?? null,
+    formaPagamento:
+      String(p?.billingType ?? '').toUpperCase() === 'PIX'
+        ? 'Pix'
+        : String(p?.billingType ?? '').toUpperCase() === 'BOLETO'
+          ? 'Boleto'
+          : String(p?.billingType ?? '').toUpperCase() === 'CREDIT_CARD'
+            ? 'Cartão de crédito'
+            : null,
+    dueDate: p?.dueDate ?? null,
+    paymentDate: p?.clientPaymentDate ?? p?.paymentDate ?? p?.confirmedDate ?? null,
+  }
+}
+
+/** Converte um pagamento de boleto ASAAS no formato de comprovante. */
+export function mapBill(b: any): Comprovante {
+  const dt = b?.paymentDate ?? b?.scheduleDate ?? b?.dateCreated ?? null
+  return {
+    id: `bill:${b?.id}`,
+    kind: 'bill',
+    asaasId: String(b?.id ?? ''),
+    date: dt,
+    favored: b?.companyName ?? b?.beneficiaryName ?? b?.description ?? null,
+    value: Math.abs(Number(b?.value ?? 0)),
+    operation: 'Boleto pago',
+    direction: 'out',
+    counterpartyLabel: 'Beneficiário',
+    status: BILL_STATUS[String(b?.status ?? '')] ?? b?.status ?? null,
+    reference: b?.externalReference ?? b?.id ?? null,
+    receiptUrl: b?.transactionReceiptUrl ?? null,
+    instituicao: b?.bankSlipInfo?.bankName ?? b?.bankName ?? null,
+    chavePix: null,
+    cpfCnpj: digits(b?.cpfCnpj ?? b?.beneficiaryCpfCnpj),
+    descricao: b?.description ?? b?.identificationField ?? null,
+    formaPagamento: 'Boleto',
+    dueDate: b?.dueDate ?? null,
+    paymentDate: b?.paymentDate ?? null,
+  }
+}
+
+/** Busca o comprovante completo de uma única movimentação, direto na API. */
+export async function fetchComprovanteById(args: {
+  paymentId?: string | null
+  transferId?: string | null
+  billId?: string | null
+}): Promise<Comprovante | null> {
+  const asaas = await import('@/lib/asaas.server')
+  if (args.transferId) {
+    const t = await asaas.getAsaasTransfer(args.transferId).catch(() => null)
+    if (t) return mapTransfer(t)
+  }
+  if (args.paymentId) {
+    const p = await asaas.getAsaasPayment(args.paymentId).catch(() => null)
+    if (p) {
+      const cid = typeof p?.customer === 'string' ? p.customer : p?.customer?.id
+      const cust = cid ? await asaas.getAsaasCustomer(cid).catch(() => null) : null
+      return mapPayment(p, cust)
+    }
+  }
+  if (args.billId) {
+    const b = await asaas.getAsaasBill(args.billId).catch(() => null)
+    if (b) return mapBill(b)
+  }
+  return null
+}
+
+
+
 /** Busca comprovantes de transferências, cobranças e boletos no período. */
 export async function fetchComprovantes(range: {
   startDate: string
