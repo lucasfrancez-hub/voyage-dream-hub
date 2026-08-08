@@ -5235,40 +5235,152 @@ function PaymentDialog({
                       {(payer.payer_cpf || order.cpf) ? ` · ${payer.payer_cpf || order.cpf}` : ""}
                     </span>
                   </div>
-                  <div className="grid gap-3 sm:grid-cols-2">
+                  <p className="text-[11px] text-muted-foreground">
+                    Endereço e telefone são puxados do pagador (preencha o CEP acima para o auto-preenchimento).
+                    Multa e juros são opcionais.
+                  </p>
+                  <div className="grid gap-3 sm:grid-cols-3">
                     <div>
                       <Label>Vencimento</Label>
                       <Input type="date" value={boletoDue} onChange={(e) => setBoletoDue(e.target.value)} />
                     </div>
-                    <div className="flex items-end">
-                      <Button
-                        type="button"
-                        size="sm"
-                        disabled={boletoLoading}
-                        onClick={async () => {
-                          const valor = Number(form.amount ?? 0);
-                          if (!(valor > 0)) { toast.error("Informe o valor pago."); return; }
-                          setBoletoLoading(true);
-                          try {
-                            const res = await gerarBoletoFn({ data: {
-                              orderId: order.id,
-                              valor,
-                              vencimento: boletoDue,
-                              nome: payer.payer_full_name || null,
-                              cpfCnpj: payer.payer_cpf || null,
-                              email: payer.payer_email || null,
-                              telefone: payer.payer_phone || null,
-                            } });
-                            setBoletoData(res);
-                            toast.success(res.reused ? "Boleto existente recuperado." : "Boleto gerado.");
-                          } catch (err) {
-                            toast.error(err instanceof Error ? err.message : "Falha ao gerar boleto.");
-                          } finally { setBoletoLoading(false); }
-                        }}
-                      >
-                        {boletoLoading ? "Gerando…" : "Gerar boleto"}
-                      </Button>
+                    <div>
+                      <Label>Multa por atraso (%) <span className="text-muted-foreground font-normal">(opcional)</span></Label>
+                      <Input value={boletoMulta} onChange={(e) => setBoletoMulta(e.target.value)} inputMode="decimal" placeholder="2" />
                     </div>
+                    <div>
+                      <Label>Juros ao mês (%) <span className="text-muted-foreground font-normal">(opcional)</span></Label>
+                      <Input value={boletoJuros} onChange={(e) => setBoletoJuros(e.target.value)} inputMode="decimal" placeholder="1" />
+                    </div>
+                  </div>
+
+                  <div className="rounded-md border border-border bg-background/50 p-3 space-y-3">
+                    <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                      Composição da cobrança
+                    </span>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <div>
+                        <Label>Serviço</Label>
+                        <Input value={boletoServico} onChange={(e) => setBoletoServico(e.target.value)} placeholder="Pacote, aéreo, hotel…" />
+                      </div>
+                      <div>
+                        <Label>Destino</Label>
+                        <Input value={boletoDestino} onChange={(e) => setBoletoDestino(e.target.value)} placeholder="Ex.: Orlando" />
+                      </div>
+                      <div>
+                        <Label>Período — início</Label>
+                        <Input type="date" value={boletoPeriodoIni} onChange={(e) => setBoletoPeriodoIni(e.target.value)} />
+                      </div>
+                      <div>
+                        <Label>Período — fim</Label>
+                        <Input type="date" value={boletoPeriodoFim} onChange={(e) => setBoletoPeriodoFim(e.target.value)} />
+                      </div>
+                      <div className="sm:col-span-2">
+                        <div className="flex items-center justify-between gap-2">
+                          <Label>Passageiros</Label>
+                          {passengers.length > 0 && (
+                            <button
+                              type="button"
+                              className="text-[11px] text-brand-orange hover:underline"
+                              onClick={() => setBoletoPassageiros(passengers.map((p: any) => p.full_name).filter(Boolean).join(", "))}
+                            >
+                              Usar passageiros do pedido
+                            </button>
+                          )}
+                        </div>
+                        <Textarea
+                          value={boletoPassageiros}
+                          onChange={(e) => setBoletoPassageiros(e.target.value)}
+                          className="h-16"
+                          placeholder="Separados por vírgula"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        const valor = Number(form.amount ?? 0);
+                        if (!(valor > 0)) { toast.error("Informe o valor pago."); return; }
+                        const fmt = (d: string) => (d ? new Date(`${d}T12:00:00`).toLocaleDateString("pt-BR") : "");
+                        abrirBoletoHtml({
+                          documentoRef: "PRÉVIA",
+                          vencimento: boletoDue,
+                          valor,
+                          pagador: {
+                            nome: payer.payer_full_name || order.fullName || "",
+                            cpfCnpj: payer.payer_cpf || order.cpf || null,
+                            telefone: payer.payer_phone || null,
+                            email: payer.payer_email || null,
+                            endereco: [
+                              [payer.payer_address, payer.payer_number].filter(Boolean).join(", "),
+                              payer.payer_district,
+                              [payer.payer_city, payer.payer_state].filter(Boolean).join("/"),
+                              payer.payer_zip ? `CEP ${payer.payer_zip}` : "",
+                            ].filter(Boolean).join(" - ") || null,
+                          },
+                          composicao: {
+                            servico: boletoServico || null,
+                            destino: boletoDestino || null,
+                            periodo: [fmt(boletoPeriodoIni), fmt(boletoPeriodoFim)].filter(Boolean).join(" • ") || null,
+                            passageiro: boletoPassageiros || null,
+                          },
+                          multaPercent: boletoMulta ? Number(boletoMulta.replace(",", ".")) : null,
+                          jurosPercentMes: boletoJuros ? Number(boletoJuros.replace(",", ".")) : null,
+                          preview: true,
+                        });
+                      }}
+                    >
+                      Visualizar boleto
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      disabled={boletoLoading}
+                      onClick={async () => {
+                        const valor = Number(form.amount ?? 0);
+                        if (!(valor > 0)) { toast.error("Informe o valor pago."); return; }
+                        setBoletoLoading(true);
+                        try {
+                          const res = await gerarBoletoFn({ data: {
+                            orderId: order.id,
+                            valor,
+                            vencimento: boletoDue,
+                            nome: payer.payer_full_name || null,
+                            cpfCnpj: payer.payer_cpf || null,
+                            email: payer.payer_email || null,
+                            telefone: payer.payer_phone || null,
+                            multaPercent: boletoMulta ? Number(boletoMulta.replace(",", ".")) : null,
+                            jurosPercent: boletoJuros ? Number(boletoJuros.replace(",", ".")) : null,
+                            endereco: {
+                              cep: payer.payer_zip || null,
+                              logradouro: payer.payer_address || null,
+                              numero: payer.payer_number || null,
+                              bairro: payer.payer_district || null,
+                              cidade: payer.payer_city || null,
+                              estado: payer.payer_state || null,
+                            },
+                            composicao: {
+                              servico: boletoServico || null,
+                              destino: boletoDestino || null,
+                              periodoInicio: boletoPeriodoIni || null,
+                              periodoFim: boletoPeriodoFim || null,
+                              passageiros: boletoPassageiros || null,
+                            },
+                          } });
+                          setBoletoData(res);
+                          toast.success(res.reused ? "Boleto existente recuperado." : "Boleto gerado.");
+                        } catch (err) {
+                          toast.error(err instanceof Error ? err.message : "Falha ao gerar boleto.");
+                        } finally { setBoletoLoading(false); }
+                      }}
+                    >
+                      {boletoLoading ? "Gerando…" : "Gerar boleto"}
+                    </Button>
                   </div>
                   {boletoData && (
                     <div className="space-y-2 rounded-md border border-border bg-background/60 p-3">
@@ -5288,15 +5400,17 @@ function PaymentDialog({
                               cpfCnpj: boletoData.pagador?.cpfCnpj ?? null,
                               telefone: boletoData.pagador?.telefone ?? null,
                               email: boletoData.pagador?.email ?? null,
+                              endereco: (boletoData.pagador as any)?.endereco ?? null,
                             },
+                            composicao: boletoData.composicao ?? null,
                             pix: { payload: boletoData.pixPayload, qrImage: boletoData.pixQrImage },
                             banco: {
                               linhaDigitavel: boletoData.linhaDigitavel,
                               nossoNumero: boletoData.nossoNumero,
                               agenciaCodigo: (boletoData as any).agenciaCodigo ?? null,
                             },
-                            multaPercent: 2,
-                            jurosPercentMes: 1,
+                            multaPercent: boletoData.multaPercent ?? null,
+                            jurosPercentMes: boletoData.jurosPercentMes ?? null,
                           })}
                         >
                           Abrir boleto (PDF)
