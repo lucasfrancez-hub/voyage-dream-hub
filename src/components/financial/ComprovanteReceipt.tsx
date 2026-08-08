@@ -86,6 +86,17 @@ export function ComprovanteReceipt({
   data: ReceiptData | null;
   loading?: boolean;
 }) {
+  const counterparty: ReceiptParty = {
+    nome: data?.favorecido ?? null,
+    cpfCnpj: data?.cpfCnpj ?? null,
+    instituicao: data?.instituicao ?? null,
+  };
+  const isIn = data?.direction === "in";
+  const pagador: ReceiptParty =
+    data?.pagador ?? (isIn ? counterparty : VIAAIR_PARTY);
+  const recebedor: ReceiptParty =
+    data?.recebedor ?? (isIn ? VIAAIR_PARTY : counterparty);
+
   async function compartilhar() {
     if (!data) return;
     const texto = [
@@ -232,6 +243,21 @@ export function ComprovanteReceipt({
         )}
       </DialogContent>
     </Dialog>
+  );
+}
+
+function PartyBlock({ title, party }: { title: string; party: ReceiptParty }) {
+  return (
+    <div className="pt-4 border-t border-border">
+      <p className="text-[11px] font-semibold text-foreground mb-3">{title}</p>
+      <div className="grid grid-cols-2 gap-x-4 gap-y-4">
+        <div className="col-span-2">
+          <Field label="Nome" value={party.nome || "—"} />
+        </div>
+        <Field label="CPF/CNPJ" value={maskDoc(party.cpfCnpj)} />
+        <Field label="Instituição" value={party.instituicao || "—"} />
+      </div>
+    </div>
   );
 }
 
