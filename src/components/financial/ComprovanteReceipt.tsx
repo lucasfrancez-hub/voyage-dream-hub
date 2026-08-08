@@ -238,27 +238,20 @@ export function ComprovanteReceipt({
 
 function PartyBlock({ title, party }: { title: string; party: ReceiptParty }) {
   return (
-    <div className="space-y-1.5">
-      <div className="flex items-center gap-2">
-        <div className="h-px flex-1 bg-border" />
-        <span className="text-[9px] uppercase font-bold tracking-widest text-muted-foreground whitespace-nowrap">
-          {title}
-        </span>
-        <div className="h-px flex-1 bg-border" />
-      </div>
-      <div className="grid grid-cols-3 gap-x-3 gap-y-1 items-baseline">
-        <span className="text-[9px] text-muted-foreground">Nome</span>
-        <span className="col-span-2 text-[9px] font-medium text-foreground text-right leading-snug break-words">
+    <div>
+      <p className="text-[10px] text-muted-foreground uppercase font-semibold tracking-wider mb-1.5">
+        {title}
+      </p>
+      <div className="flex flex-col gap-0.5">
+        <p className="text-[11px] font-semibold text-foreground leading-snug break-words">
           {party.nome || "—"}
-        </span>
-        <span className="text-[9px] text-muted-foreground">CPF/CNPJ</span>
-        <span className="col-span-2 text-[9px] font-medium text-foreground text-right tabular-nums">
+        </p>
+        <p className="text-[10px] text-muted-foreground tabular-nums">
           {maskDoc(party.cpfCnpj)}
-        </span>
-        <span className="text-[9px] text-muted-foreground">Instituição</span>
-        <span className="col-span-2 text-[9px] font-medium text-foreground text-right leading-snug break-words">
+        </p>
+        <p className="text-[10px] text-muted-foreground leading-snug break-words">
           {party.instituicao || "—"}
-        </span>
+        </p>
       </div>
     </div>
   );
