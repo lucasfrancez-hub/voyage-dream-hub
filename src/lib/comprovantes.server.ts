@@ -21,6 +21,12 @@ export interface Comprovante {
   chavePix: string | null
   cpfCnpj: string | null
   descricao: string | null
+  /** Forma de pagamento legível (Pix, Boleto, Cartão, TED...) */
+  formaPagamento: string | null
+  /** Data de vencimento (YYYY-MM-DD) quando aplicável */
+  dueDate: string | null
+  /** Data/hora efetiva do pagamento */
+  paymentDate: string | null
 }
 
 const TRANSFER_STATUS: Record<string, string> = {
@@ -144,6 +150,14 @@ export async function fetchComprovantes(range: {
       chavePix: t?.pixAddressKey ?? t?.pixTransaction?.qrCode?.pixKey ?? null,
       cpfCnpj: docOfTransfer(t),
       descricao: t?.description ?? null,
+      formaPagamento:
+        String(t?.operationType ?? '').toUpperCase() === 'PIX'
+          ? 'Pix'
+          : String(t?.operationType ?? '').toUpperCase() === 'TED'
+            ? 'TED'
+            : 'Transferência',
+      dueDate: t?.scheduleDate ?? null,
+      paymentDate: t?.effectiveDate ?? t?.dateCreated ?? null,
     })
   }
 
@@ -184,6 +198,16 @@ export async function fetchComprovantes(range: {
       chavePix: p?.pixTransaction?.qrCode?.pixKey ?? p?.pixQrCodeId ?? null,
       cpfCnpj: digits(cust?.cpfCnpj ?? p?.customerCpfCnpj),
       descricao: p?.description ?? null,
+      formaPagamento:
+        String(p?.billingType ?? '').toUpperCase() === 'PIX'
+          ? 'Pix'
+          : String(p?.billingType ?? '').toUpperCase() === 'BOLETO'
+            ? 'Boleto'
+            : String(p?.billingType ?? '').toUpperCase() === 'CREDIT_CARD'
+              ? 'Cartão de crédito'
+              : null,
+      dueDate: p?.dueDate ?? null,
+      paymentDate: p?.clientPaymentDate ?? p?.paymentDate ?? p?.confirmedDate ?? null,
     })
   }
 
@@ -207,6 +231,9 @@ export async function fetchComprovantes(range: {
       chavePix: null,
       cpfCnpj: digits(b?.cpfCnpj ?? b?.beneficiaryCpfCnpj),
       descricao: b?.description ?? b?.identificationField ?? null,
+      formaPagamento: 'Boleto',
+      dueDate: b?.dueDate ?? null,
+      paymentDate: b?.paymentDate ?? null,
     })
   }
 

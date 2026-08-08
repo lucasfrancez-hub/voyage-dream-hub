@@ -274,6 +274,9 @@ function ComprovantesPage() {
                             transacaoId: c.reference || c.asaasId,
                             status: c.status ?? undefined,
                             concluido: true,
+                            formaPagamento: c.formaPagamento ?? null,
+                            dataVencimento: c.dueDate ?? null,
+                            dataPagamento: c.paymentDate ?? c.date ?? null,
                             pdfUrl: c.receiptUrl ?? null,
                           }}
                         />
@@ -299,6 +302,9 @@ function ComprovantesPage() {
                             transacaoId: c.reference || c.asaasId,
                             status: c.status ?? undefined,
                             concluido: true,
+                            formaPagamento: c.formaPagamento ?? null,
+                            dataVencimento: c.dueDate ?? null,
+                            dataPagamento: c.paymentDate ?? c.date ?? null,
                             pdfUrl: c.receiptUrl ?? null,
                           }}
                         />

@@ -4,6 +4,12 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { formatBRL } from "@/lib/format";
 import viaairLogo from "@/assets/viaair-logo-white.png.asset.json";
 
+export type ReceiptParty = {
+  nome?: string | null;
+  cpfCnpj?: string | null;
+  instituicao?: string | null;
+};
+
 export type ReceiptData = {
   valor: number;
   favorecido: string;
@@ -20,8 +26,24 @@ export type ReceiptData = {
   descricao?: string | null;
   status?: string;
   concluido?: boolean;
+  /** Forma de pagamento (Pix, Boleto, Cartão...) */
+  formaPagamento?: string | null;
+  /** Data de vencimento da cobrança */
+  dataVencimento?: string | null;
+  /** Data/hora do pagamento */
+  dataPagamento?: string | null;
+  /** Sobrescreve os blocos calculados a partir de `direction` */
+  pagador?: ReceiptParty | null;
+  recebedor?: ReceiptParty | null;
   /** URL do comprovante oficial (ASAAS) — quando presente, "Salvar PDF" abre este arquivo */
   pdfUrl?: string | null;
+};
+
+/** Dados fiscais fixos da conta VIA AIR no ASAAS. */
+const VIAAIR_PARTY: ReceiptParty = {
+  nome: "VIA AIR AGENCIA & REPRESENTACOES LTDA",
+  cpfCnpj: "56339877000166",
+  instituicao: "ASAAS GESTÃO FINANCEIRA INSTITUIÇÃO DE PAGAMENTO S.A.",
 };
 
 function maskDoc(doc?: string | null) {
@@ -31,6 +53,27 @@ function maskDoc(doc?: string | null) {
   if (d.length === 11) return `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6, 9)}-${d.slice(9)}`;
   return doc;
 }
+
+function formatDate(v?: string | null) {
+  if (!v) return "—";
+  const s = String(v);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
+    const [y, m, d] = s.split("-");
+    return `${d}/${m}/${y}`;
+  }
+  const dt = new Date(s);
+  if (!Number.isNaN(dt.getTime())) {
+    return dt.toLocaleString("pt-BR", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  }
+  return s;
+}
+
 
 export function ComprovanteReceipt({
   open,
@@ -43,6 +86,17 @@ export function ComprovanteReceipt({
   data: ReceiptData | null;
   loading?: boolean;
 }) {
+  const counterparty: ReceiptParty = {
+    nome: data?.favorecido ?? null,
+    cpfCnpj: data?.cpfCnpj ?? null,
+    instituicao: data?.instituicao ?? null,
+  };
+  const isIn = data?.direction === "in";
+  const pagador: ReceiptParty =
+    data?.pagador ?? (isIn ? counterparty : VIAAIR_PARTY);
+  const recebedor: ReceiptParty =
+    data?.recebedor ?? (isIn ? VIAAIR_PARTY : counterparty);
+
   async function compartilhar() {
     if (!data) return;
     const texto = [
@@ -112,30 +166,42 @@ export function ComprovanteReceipt({
                   </h1>
                 </div>
 
-                <div className="w-full grid grid-cols-2 gap-x-4 gap-y-5">
-                  <Field
-                    label={data.favorecidoLabel || (data.direction === "in" ? "Pagador" : "Favorecido")}
-                    value={data.favorecido}
-                  />
-                  <Field label="Instituição" value={data.instituicao || "—"} />
-                  <Field label="Chave Pix" value={data.chavePix || "—"} />
-                  <Field label="Tipo" value={data.tipo || "Transferência Pix"} />
-                  <Field label="CPF/CNPJ" value={maskDoc(data.cpfCnpj)} />
-                  <Field label="Data e hora" value={data.dataHora || "—"} />
-                  {data.descricao ? (
+                <div className="w-full space-y-5">
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-5">
+                    <Field
+                      label="Forma de pagamento"
+                      value={data.formaPagamento || data.tipo || "Pix"}
+                    />
+                    <Field label="Valor pago" value={formatBRL(data.valor)} />
+                    <Field label="Data do vencimento" value={formatDate(data.dataVencimento)} />
+                    <Field
+                      label="Data do pagamento"
+                      value={formatDate(data.dataPagamento ?? data.dataHora)}
+                    />
+                    {data.chavePix ? (
+                      <div className="col-span-2">
+                        <Field label="Chave Pix" value={data.chavePix} />
+                      </div>
+                    ) : null}
+                    {data.descricao ? (
+                      <div className="col-span-2">
+                        <Field label="Descrição" value={data.descricao} />
+                      </div>
+                    ) : null}
                     <div className="col-span-2">
-                      <Field label="Descrição" value={data.descricao} />
+                      <span className="text-[10px] text-muted-foreground uppercase tracking-widest">
+                        ID / Transação Pix
+                      </span>
+                      <p className="text-[10px] font-mono text-muted-foreground mt-1 bg-background/60 p-2 rounded border border-border break-all">
+                        {data.transacaoId || "—"}
+                      </p>
                     </div>
-                  ) : null}
-                  <div className="col-span-2">
-                    <span className="text-[10px] text-muted-foreground uppercase tracking-widest">
-                      ID da transação
-                    </span>
-                    <p className="text-[10px] font-mono text-muted-foreground mt-1 bg-background/60 p-2 rounded border border-border break-all">
-                      {data.transacaoId || "—"}
-                    </p>
                   </div>
+
+                  <PartyBlock title="Dados do pagador" party={pagador} />
+                  <PartyBlock title="Dados do recebedor" party={recebedor} />
                 </div>
+
 
                 <div className="mt-10 w-full pt-6 border-t border-border flex flex-col items-center gap-4">
                   <div className="flex items-center gap-2 opacity-60">
@@ -177,6 +243,21 @@ export function ComprovanteReceipt({
         )}
       </DialogContent>
     </Dialog>
+  );
+}
+
+function PartyBlock({ title, party }: { title: string; party: ReceiptParty }) {
+  return (
+    <div className="pt-4 border-t border-border">
+      <p className="text-[11px] font-semibold text-foreground mb-3">{title}</p>
+      <div className="grid grid-cols-2 gap-x-4 gap-y-4">
+        <div className="col-span-2">
+          <Field label="Nome" value={party.nome || "—"} />
+        </div>
+        <Field label="CPF/CNPJ" value={maskDoc(party.cpfCnpj)} />
+        <Field label="Instituição" value={party.instituicao || "—"} />
+      </div>
+    </div>
   );
 }
 

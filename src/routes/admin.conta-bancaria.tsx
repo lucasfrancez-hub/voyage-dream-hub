@@ -358,6 +358,9 @@ function ContaBancariaPage() {
                             transacaoId: i.reference || i.id,
                             descricao: i.description,
                             concluido: true,
+                            formaPagamento: i.formaPagamento ?? null,
+                            dataVencimento: i.dueDate ?? null,
+                            dataPagamento: i.paymentDate ?? i.date ?? null,
                             pdfUrl: i.receiptUrl ?? null,
                           }}
                         />

@@ -276,6 +276,9 @@ function PagamentosPage() {
                 descricao: reciboRow.description ?? null,
                 status: STATUS_META[reciboRow.status]?.label ?? reciboRow.status,
                 concluido: reciboRow.status === "concluido",
+                formaPagamento: "Pix",
+                dataVencimento: reciboRow.scheduled_date ?? null,
+                dataPagamento: reciboRow.effective_date ?? reciboRow.created_at,
                 pdfUrl: reciboRow.receipt_url ?? null,
               }
             : null
@@ -320,6 +323,9 @@ function DetalheDialog({ id, onClose }: { id: string | null; onClose: () => void
         descricao: t.description ?? null,
         status: meta?.label ?? t.status,
         concluido: t.status === "concluido",
+        formaPagamento: "Pix",
+        dataVencimento: t.scheduled_date ?? null,
+        dataPagamento: t.effective_date ?? t.created_at,
         pdfUrl: t.receipt_url ?? null,
       }
     : null;
