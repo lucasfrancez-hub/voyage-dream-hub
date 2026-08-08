@@ -155,30 +155,42 @@ export function ComprovanteReceipt({
                   </h1>
                 </div>
 
-                <div className="w-full grid grid-cols-2 gap-x-4 gap-y-5">
-                  <Field
-                    label={data.favorecidoLabel || (data.direction === "in" ? "Pagador" : "Favorecido")}
-                    value={data.favorecido}
-                  />
-                  <Field label="Instituição" value={data.instituicao || "—"} />
-                  <Field label="Chave Pix" value={data.chavePix || "—"} />
-                  <Field label="Tipo" value={data.tipo || "Transferência Pix"} />
-                  <Field label="CPF/CNPJ" value={maskDoc(data.cpfCnpj)} />
-                  <Field label="Data e hora" value={data.dataHora || "—"} />
-                  {data.descricao ? (
+                <div className="w-full space-y-5">
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-5">
+                    <Field
+                      label="Forma de pagamento"
+                      value={data.formaPagamento || data.tipo || "Pix"}
+                    />
+                    <Field label="Valor pago" value={formatBRL(data.valor)} />
+                    <Field label="Data do vencimento" value={formatDate(data.dataVencimento)} />
+                    <Field
+                      label="Data do pagamento"
+                      value={formatDate(data.dataPagamento ?? data.dataHora)}
+                    />
+                    {data.chavePix ? (
+                      <div className="col-span-2">
+                        <Field label="Chave Pix" value={data.chavePix} />
+                      </div>
+                    ) : null}
+                    {data.descricao ? (
+                      <div className="col-span-2">
+                        <Field label="Descrição" value={data.descricao} />
+                      </div>
+                    ) : null}
                     <div className="col-span-2">
-                      <Field label="Descrição" value={data.descricao} />
+                      <span className="text-[10px] text-muted-foreground uppercase tracking-widest">
+                        ID / Transação Pix
+                      </span>
+                      <p className="text-[10px] font-mono text-muted-foreground mt-1 bg-background/60 p-2 rounded border border-border break-all">
+                        {data.transacaoId || "—"}
+                      </p>
                     </div>
-                  ) : null}
-                  <div className="col-span-2">
-                    <span className="text-[10px] text-muted-foreground uppercase tracking-widest">
-                      ID da transação
-                    </span>
-                    <p className="text-[10px] font-mono text-muted-foreground mt-1 bg-background/60 p-2 rounded border border-border break-all">
-                      {data.transacaoId || "—"}
-                    </p>
                   </div>
+
+                  <PartyBlock title="Dados do pagador" party={pagador} />
+                  <PartyBlock title="Dados do recebedor" party={recebedor} />
                 </div>
+
 
                 <div className="mt-10 w-full pt-6 border-t border-border flex flex-col items-center gap-4">
                   <div className="flex items-center gap-2 opacity-60">
