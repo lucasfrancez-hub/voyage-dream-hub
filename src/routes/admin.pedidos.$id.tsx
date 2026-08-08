@@ -29,6 +29,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 
 import { formatBRL } from "@/lib/format";
+import { PixQrPanel } from "@/components/pix/PixQrPanel";
 import { computeAutoTitle } from "@/lib/auto-title";
 import { paymentMethodLabel, statusLabel, itemStatusBadge } from "@/lib/order-labels";
 import {
@@ -5110,27 +5111,17 @@ function PaymentDialog({
                       >
                         {pixLoading ? "Gerando…" : "Gerar QR Code Pix"}
                       </Button>
-                      {pixData && (
-                        <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center">
-                          {pixData.qrCodeImage && (
-                            <img src={pixData.qrCodeImage} alt="QR Code Pix do pedido" className="h-40 w-40 rounded bg-white p-1" />
-                          )}
-                          <div className="flex-1 space-y-2">
-                            <p className="text-xs text-muted-foreground">
-                              Valor: {formatBRL(pixData.valor)} — expira em {new Date(pixData.expiraEm).toLocaleString("pt-BR")}
-                            </p>
-                            <Textarea readOnly value={pixData.qrCode ?? ""} className="h-20 text-xs" />
-                            <Button
-                              type="button"
-                              size="sm"
-                              variant="outline"
-                              onClick={() => { navigator.clipboard.writeText(pixData.qrCode ?? ""); toast.success("Código copia e cola copiado."); }}
-                            >
-                              Copiar código
-                            </Button>
-                          </div>
+                      {pixData?.qrCode && (
+                        <div className="flex justify-center pt-1">
+                          <PixQrPanel
+                            qrCode={pixData.qrCode}
+                            valor={Number(pixData.valor)}
+                            expiraEm={pixData.expiraEm}
+                            variant="minimal"
+                          />
                         </div>
                       )}
+
                     </div>
                   ) : (
                     <div className="grid gap-3 sm:grid-cols-2">
