@@ -82,16 +82,30 @@ export interface AsaasPixPayment {
   payload: string
   encodedImage: string | null
   expirationDate: string | null
+  /** instante real de expiração do QR (ISO) */
+  expiresAt: string
   invoiceUrl: string | null
   raw: any
+}
+
+/** Data (YYYY-MM-DD) do instante informado no fuso de São Paulo */
+function brtDateStr(date: Date) {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Sao_Paulo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(date)
 }
 
 export async function createAsaasPixPayment(
   input: CreatePixPaymentInput,
 ): Promise<AsaasPixPayment> {
-  const minutes = input.expiresInMinutes ?? 30
-  const dueDate = new Date(Date.now() + Math.max(minutes, 1) * 60_000)
-  const dueDateStr = dueDate.toISOString().slice(0, 10)
+  const minutes = Math.max(input.expiresInMinutes ?? 30, 1)
+  const expiresAt = new Date(Date.now() + minutes * 60_000)
+  // ASAAS aceita apenas data (sem hora) no vencimento: usamos a data local (BRT)
+  // do instante em que o QR expira, para o e-mail do ASAAS não divergir do QR.
+  const dueDateStr = brtDateStr(expiresAt)
 
   const payment = await asaasFetch('/payments', {
     method: 'POST',
@@ -105,18 +119,25 @@ export async function createAsaasPixPayment(
     }),
   })
 
-  const qr = await asaasFetch(`/payments/${payment.id}/pixQrCode`)
-  if (!qr?.payload) throw new Error('ASAAS: QR Code Pix não retornado.')
+  const qr = await asaasFetch(`/payments/${payment.id}/pixQrCode`, {
+    method: 'POST',
+    body: JSON.stringify({ expirationSeconds: minutes * 60 }),
+  }).catch(() => null)
+
+  const qrData = qr?.payload ? qr : await asaasFetch(`/payments/${payment.id}/pixQrCode`)
+  if (!qrData?.payload) throw new Error('ASAAS: QR Code Pix não retornado.')
 
   return {
     paymentId: payment.id,
-    payload: qr.payload,
-    encodedImage: qr.encodedImage ?? null,
-    expirationDate: qr.expirationDate ?? null,
+    payload: qrData.payload,
+    encodedImage: qrData.encodedImage ?? null,
+    expirationDate: qrData.expirationDate ?? null,
+    expiresAt: expiresAt.toISOString(),
     invoiceUrl: payment.invoiceUrl ?? null,
-    raw: { payment, qr },
+    raw: { payment, qr: qrData },
   }
 }
+
 
 export async function getAsaasPayment(paymentId: string) {
   return asaasFetch(`/payments/${encodeURIComponent(paymentId)}`)
