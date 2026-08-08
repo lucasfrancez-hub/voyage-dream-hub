@@ -444,19 +444,27 @@ function CobrancaDialog({ row, onClose }: { row: any | null; onClose: () => void
               <p className="text-2xl font-bold text-brand-orange">{formatBRL(Number(row.value))}</p>
             </div>
 
-            {row.kind === "pix" && row.pix_qr_image && (
-              <img
-                src={row.pix_qr_image}
-                alt="QR Code Pix da cobrança"
-                className="mx-auto h-52 w-52 rounded-xl bg-white p-2"
-              />
+            {row.pix_qr_image && (
+              <div className="space-y-2">
+                <img
+                  src={row.pix_qr_image}
+                  alt="QR Code Pix da cobrança"
+                  className="mx-auto h-52 w-52 rounded-xl bg-white p-2"
+                />
+                {row.kind === "boleto" && (
+                  <p className="text-center text-[11px] text-muted-foreground">
+                    Boleto híbrido: pode ser pago pelo QR Code Pix ou pela linha digitável.
+                  </p>
+                )}
+              </div>
             )}
 
-            {row.kind === "pix" && row.pix_payload && (
+            {row.pix_payload && (
               <Button variant="outline" className="w-full" onClick={() => copy(row.pix_payload, "Código Pix copiado.")}>
                 <Copy className="h-4 w-4 mr-2" /> Copiar código Pix
               </Button>
             )}
+
 
             {row.kind === "boleto" && row.identification_field && (
               <div className="rounded-xl border border-border/60 bg-muted/20 p-3">
