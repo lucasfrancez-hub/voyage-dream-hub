@@ -79,7 +79,7 @@ export function ComprovanteActions({
 
   if (!resolved && !podeConsultar) {
     return (
-      <span className="text-xs text-muted-foreground">Comprovante ainda não disponível.</span>
+      <span className="text-xs text-muted-foreground" title="Comprovante ainda não disponível para esta movimentação.">—</span>
     );
   }
 
