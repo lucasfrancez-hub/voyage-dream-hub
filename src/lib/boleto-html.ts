@@ -8,6 +8,7 @@
  */
 
 import viaAirLogo from "@/assets/viaair-logo.png.asset.json";
+import asaasLogo from "@/assets/asaas-logo-white.png.asset.json";
 import { VIA_AIR_CNPJ } from "@/lib/institucional";
 
 export interface BoletoComposicao {
@@ -118,6 +119,23 @@ export function barcodeItfSvg(code?: string | null, width = 575, height = 68): s
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">${rects}</svg>`;
 }
 
+/** Formata a linha digitável no padrão bancário: 00000.00000 00000.000000 00000.000000 0 00000000000000 */
+export function formatarLinhaDigitavel(linha?: string | null): string {
+  const d = String(linha ?? "").replace(/\D/g, "");
+  if (d.length !== 47) return String(linha ?? "");
+  return [
+    `${d.slice(0, 5)}.${d.slice(5, 10)}`,
+    `${d.slice(10, 15)}.${d.slice(15, 21)}`,
+    `${d.slice(21, 26)}.${d.slice(26, 32)}`,
+    d.slice(32, 33),
+    d.slice(33, 47),
+  ].join(" ");
+}
+
+/** Texto padrão do cabeçalho — condições reais ficam a cargo do banco emissor. */
+export const TEXTO_MULTA_JUROS_PADRAO =
+  "Após o vencimento, multa e juros conforme condições cadastradas no banco emissor.";
+
 /** Texto de instruções com multa e juros já calculados em reais. */
 export function textoMultaJuros(
   valor: number,
@@ -134,15 +152,34 @@ export function textoMultaJuros(
     const v = (valor * aoDia) / 100;
     partes.push(`Juros ${aoDia.toFixed(3).replace(".", ",")}% a.d. = R$ ${brl(v)}/dia`);
   }
-  if (!partes.length) {
-    return "Após o vencimento, multa e juros conforme condições cadastradas no banco emissor.";
-  }
+  if (!partes.length) return TEXTO_MULTA_JUROS_PADRAO;
   return `Após vencimento: ${partes.join("  ")}`;
 }
 
-function compRow(label: string, value?: string | null) {
+/** Ícones inline (SVG) — sem dependência de fontes externas no PDF. */
+const ICON: Record<string, string> = {
+  user: `<path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z"/><path d="M4 20a8 8 0 0 1 16 0"/>`,
+  phone: `<path d="M4 5c0-.6.4-1 1-1h2.6c.5 0 .9.3 1 .8l.7 3c.1.4 0 .8-.3 1L7.6 10c1 2.1 2.3 3.4 4.4 4.4l1.2-1.4c.3-.3.7-.4 1-.3l3 .7c.5.1.8.5.8 1V17c0 .6-.4 1-1 1A13 13 0 0 1 4 5Z"/>`,
+  mail: `<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3.5 6.5 8.5 6 8.5-6"/>`,
+  pin: `<path d="M12 21s7-5.7 7-11a7 7 0 1 0-14 0c0 5.3 7 11 7 11Z"/><circle cx="12" cy="10" r="2.5"/>`,
+  pix: `<path d="m12 3 4.2 4.2a3 3 0 0 1 0 4.2L12 15.6 7.8 11.4a3 3 0 0 1 0-4.2L12 3Z"/><path d="m12 21-4.2-4.2M12 21l4.2-4.2M3 12l4.2-4.2M21 12l-4.2-4.2"/>`,
+  qr: `<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM19 19h2v2h-2zM14 20h2M20 14h1"/>`,
+  phoneApp: `<rect x="7" y="3" width="10" height="18" rx="2"/><path d="M11 18h2"/>`,
+  list: `<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/>`,
+  send: `<path d="M21 3 10.5 13.5M21 3l-7 18-3.5-7.5L3 10l18-7Z"/>`,
+  target: `<circle cx="12" cy="12" r="7"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3"/>`,
+  calendar: `<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/>`,
+  copy: `<rect x="9" y="9" width="11" height="11" rx="2"/><path d="M15 5H6a2 2 0 0 0-2 2v9"/>`,
+};
+
+function icon(name: keyof typeof ICON | string, size = 18, color = "var(--orange)") {
+  const path = ICON[name] ?? "";
+  return `<svg class="ico" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${path}</svg>`;
+}
+
+function compRow(iconName: string, label: string, value?: string | null) {
   if (!value || !String(value).trim()) return "";
-  return `<div class="comp-row"><div class="comp-label">${esc(label)}</div><div class="comp-value">${esc(value)}</div></div>`;
+  return `<div class="comp-row"><div class="comp-label">${icon(iconName, 17, "#082f57")}<span>${esc(label)}</span></div><div class="comp-value">${esc(value)}</div></div>`;
 }
 
 function bcell(label: string, value?: string | null, cls = "") {
@@ -160,16 +197,20 @@ export function renderBoletoHtml(d: BoletoDocData): string {
   const codigoBarras = linhaDigitavelParaCodigoBarras(banco.linhaDigitavel);
   const barcode = codigoBarras ? barcodeItfSvg(codigoBarras) : "";
   const temPix = !!(d.pix?.qrImage || d.pix?.payload);
+  // Nº do documento sempre vem do ASAAS (nosso número).
+  const numeroDocumento = banco.nossoNumero || d.documentoRef || "";
+  const especieDoc = banco.especie || "DM";
+  const linhaFmt = formatarLinhaDigitavel(banco.linhaDigitavel);
   const compRows =
-    compRow("SERVIÇO", comp.servico) +
-    compRow("DESTINO", comp.destino) +
-    compRow("PERÍODO", comp.periodo) +
-    compRow("PASSAGEIRO", comp.passageiro);
+    compRow("send", "SERVIÇO", comp.servico) +
+    compRow("target", "DESTINO", comp.destino) +
+    compRow("calendar", "PERÍODO", comp.periodo) +
+    compRow("user", "PASSAGEIRO", comp.passageiro);
 
-  const logoUrl =
-    typeof window !== "undefined"
-      ? new URL(viaAirLogo.url, window.location.origin).toString()
-      : viaAirLogo.url;
+  const abs = (u: string) =>
+    typeof window !== "undefined" ? new URL(u, window.location.origin).toString() : u;
+  const logoUrl = abs(viaAirLogo.url);
+  const asaasLogoUrl = abs(asaasLogo.url);
 
   return `<!doctype html>
 <html lang="pt-BR"><head><meta charset="utf-8" />
@@ -192,20 +233,24 @@ h1{margin:24px 0 8px;font-size:34px;letter-spacing:-.8px;color:var(--navy)}
 .amount strong{display:block;font-size:34px;margin-top:3px;white-space:nowrap}
 .notice{margin-top:20px;padding:18px 22px;background:#f5f5f5;border-radius:18px;font-size:14px;line-height:1.4}
 .grid2{display:grid;grid-template-columns:1fr 1.05fr;gap:64px;margin-top:36px}
-.section-title{font-size:18px;font-weight:800;color:var(--navy);margin-bottom:14px}
+.section-title{display:flex;align-items:center;gap:9px;font-size:18px;font-weight:800;color:var(--navy);margin-bottom:14px}
+.ico{flex:none;display:block}
 .card{border:1px solid #edf0f3;border-radius:22px;padding:24px 26px;box-shadow:0 6px 18px rgba(12,39,68,.06);background:#fff}
-.payer .row{padding:12px 0;border-bottom:1px solid #e5e9ed;font-size:15px}
+.payer .row{display:flex;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid #e5e9ed;font-size:15px}
 .payer .row:last-child{border:0}
-.pix-card{display:grid;grid-template-columns:188px 1fr;gap:20px;align-items:start}
+.payer .row .sep{width:1px;height:16px;background:#e5e9ed;margin:0 6px}
+.pix-top{display:grid;grid-template-columns:188px 1fr;gap:20px;align-items:center}
 .qr{width:188px;height:188px;object-fit:contain}
-.copybox{background:#f0f3f6;border-radius:12px;padding:11px 12px;font-size:10px;line-height:1.28;word-break:break-all;min-height:86px}
+.pix-hint{display:flex;gap:10px;align-items:flex-start;font-size:14px;line-height:1.35}
+.copytitle{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:700;margin:18px 0 8px}
+.copybox{background:#f0f3f6;border-radius:12px;padding:12px 14px;font-size:10.5px;line-height:1.35;word-break:break-all;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
 .copyhint{font-size:11px;color:#9aa3ad;margin-top:7px}
 .composition{margin-top:36px}
 .comp-card{display:grid;grid-template-columns:1fr 285px;border:1px solid #edf0f3;border-radius:22px;overflow:hidden;box-shadow:0 6px 18px rgba(12,39,68,.05)}
 .comp-left{padding:22px 26px}
-.comp-row{display:grid;grid-template-columns:165px 1fr;padding:11px 0;border-bottom:1px solid #e6eaee}
+.comp-row{display:grid;grid-template-columns:185px 1fr;align-items:center;padding:11px 0;border-bottom:1px solid #e6eaee}
 .comp-row:last-child{border:0}
-.comp-label{font-weight:800;color:var(--navy)}
+.comp-label{display:flex;align-items:center;gap:9px;font-weight:800;color:var(--navy)}
 .comp-value{font-weight:600}
 .comp-total{border-left:1px solid #e5e9ed;display:flex;flex-direction:column;justify-content:center;padding:26px 40px;background:linear-gradient(90deg,#fff,#fafbfd)}
 .comp-total small{font-weight:700;color:var(--navy)}
@@ -214,7 +259,8 @@ h1{margin:24px 0 8px;font-size:34px;letter-spacing:-.8px;color:var(--navy)}
 .cut span{position:absolute;top:-12px;left:54px;background:#fff;padding-right:12px;color:#8b96a2;font-size:12px}
 .bank{--finance-col:230px;border:1px solid #7d8791;font-family:Arial,Helvetica,sans-serif;font-size:11px;background:#fff}
 .bank-head{display:grid;grid-template-columns:180px 90px 1fr;min-height:50px;border-bottom:1px solid #7d8791}
-.bank-logo{background:var(--navy);color:#fff;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:900;font-style:italic;border-right:1px solid #7d8791;text-align:center;padding:0 8px}
+.bank-logo{background:var(--navy);display:flex;align-items:center;justify-content:center;border-right:1px solid #7d8791;padding:8px 14px}
+.bank-logo img{width:100%;max-height:30px;object-fit:contain}
 .bank-code{display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;border-right:1px solid #7d8791}
 .digitable{display:flex;align-items:center;padding:0 18px;font-size:14px;font-weight:800;white-space:nowrap}
 .bcell{padding:6px 10px;border-right:1px solid #7d8791;min-width:0}
@@ -246,40 +292,47 @@ ${d.preview ? '<div class="preview-flag">Pré-visualização</div>' : ""}
     <div>
       <div class="brand"><img src="${esc(logoUrl)}" alt="VIA AIR" /></div>
       <h1>BOLETO DE PAGAMENTO</h1>
-      <div class="docline">Documento Nº <b>${esc(d.documentoRef ?? "—")}</b></div>
+      <div class="docline">Documento Nº <b>${esc(numeroDocumento || "—")}</b></div>
     </div>
     <div>
       <div class="top-cards">
         <div class="due"><small>VENCIMENTO</small><strong>${esc(dataBR(d.vencimento))}</strong></div>
         <div class="amount"><small>VALOR DO PAGAMENTO</small><strong>R$ ${brl(d.valor)}</strong></div>
       </div>
-      <div class="notice">${esc(instrucoes)}</div>
+      <div class="notice">${esc(TEXTO_MULTA_JUROS_PADRAO)}</div>
     </div>
   </div>
 
   <div class="grid2">
     <div>
-      <div class="section-title">DADOS DO PAGADOR</div>
+      <div class="section-title">${icon("user", 19)}<span>DADOS DO PAGADOR</span></div>
       <div class="card payer">
-        <div class="row"><strong>${esc(d.pagador.nome)}</strong>${d.pagador.cpfCnpj ? ` — ${esc(d.pagador.cpfCnpj)}` : ""}</div>
-        ${d.pagador.telefone || d.pagador.email ? `<div class="row">${[d.pagador.telefone, d.pagador.email].filter(Boolean).map(esc).join(" · ")}</div>` : ""}
-        ${d.pagador.endereco ? `<div class="row">${esc(d.pagador.endereco)}</div>` : ""}
+        <div class="row">${icon("user", 17)}<strong>${esc(d.pagador.nome)}</strong>${d.pagador.cpfCnpj ? `<span>— ${esc(d.pagador.cpfCnpj)}</span>` : ""}</div>
+        ${
+          d.pagador.telefone || d.pagador.email
+            ? `<div class="row">${[
+                d.pagador.telefone ? `${icon("phone", 17)}<span>${esc(d.pagador.telefone)}</span>` : "",
+                d.pagador.email ? `${icon("mail", 17)}<span>${esc(d.pagador.email)}</span>` : "",
+              ]
+                .filter(Boolean)
+                .join('<span class="sep"></span>')}</div>`
+            : ""
+        }
+        ${d.pagador.endereco ? `<div class="row">${icon("pin", 17)}<span>${esc(d.pagador.endereco)}</span></div>` : ""}
       </div>
     </div>
     ${
       temPix
         ? `<div>
-      <div class="section-title">PAGUE COM PIX</div>
+      <div class="section-title">${icon("pix", 19)}<span>PAGUE COM PIX</span></div>
       <div class="card">
-        <div class="pix-card">
+        <div class="pix-top">
           ${d.pix?.qrImage ? `<img class="qr" src="${esc(d.pix.qrImage)}" alt="QR Code Pix" />` : `<div class="qr"></div>`}
-          <div>
-            <div>Escaneie o QR Code com o app do seu banco e pague.</div>
-            <div style="font-size:14px;margin:13px 0 7px"><strong>Pix Copia e Cola</strong></div>
-            <div class="copybox">${esc(d.pix?.payload ?? "")}</div>
-            <div class="copyhint">Copie o código acima e cole no seu banco.</div>
-          </div>
+          <div class="pix-hint">${icon("phoneApp", 20)}<span><strong>Escaneie o QR Code</strong><br />com o app do seu banco e pague.</span></div>
         </div>
+        <div class="copytitle">${icon("copy", 16)}<span>Pix Copia e Cola</span></div>
+        <div class="copybox">${esc(d.pix?.payload ?? "")}</div>
+        <div class="copyhint">Copie o código acima e cole no seu banco.</div>
       </div>
     </div>`
         : "<div></div>"
@@ -289,7 +342,7 @@ ${d.preview ? '<div class="preview-flag">Pré-visualização</div>' : ""}
   ${
     compRows
       ? `<div class="composition">
-    <div class="section-title">COMPOSIÇÃO DA COBRANÇA</div>
+    <div class="section-title">${icon("list", 19)}<span>COMPOSIÇÃO DA COBRANÇA</span></div>
     <div class="comp-card">
       <div class="comp-left">${compRows}</div>
       <div class="comp-total"><small>VALOR DO DOCUMENTO</small><strong>R$ ${brl(d.valor)}</strong></div>
@@ -302,9 +355,9 @@ ${d.preview ? '<div class="preview-flag">Pré-visualização</div>' : ""}
 
   <div class="bank">
     <div class="bank-head">
-      <div class="bank-logo">${esc(banco.nome ?? "")}</div>
+      <div class="bank-logo"><img src="${esc(asaasLogoUrl)}" alt="ASAAS" /></div>
       <div class="bank-code">${esc(banco.codigo ?? "")}</div>
-      <div class="digitable">${esc(banco.linhaDigitavel ?? "")}</div>
+      <div class="digitable">${esc(linhaFmt)}</div>
     </div>
     <div class="brow">
       ${bcell("Local de pagamento", banco.localPagamento ?? "Pagável em qualquer banco até o vencimento.")}
@@ -317,9 +370,9 @@ ${d.preview ? '<div class="preview-flag">Pré-visualização</div>' : ""}
     <div class="bank-row-with-side">
       <div class="bank-meta-left">
         ${bcell("Data do documento", dataBR(banco.dataDocumento))}
-        ${bcell("Nº do documento", d.documentoRef ?? "")}
-        ${bcell("Espécie doc.", banco.especie ?? "")}
-        ${bcell("Aceite", banco.aceite ?? "")}
+        ${bcell("Nº do documento", numeroDocumento)}
+        ${bcell("Espécie doc.", especieDoc)}
+        ${bcell("Aceite", banco.aceite ?? "N")}
         ${bcell("Data processamento", dataBR(banco.dataProcessamento))}
         ${bcell("Carteira", banco.carteira ?? "")}
       </div>
