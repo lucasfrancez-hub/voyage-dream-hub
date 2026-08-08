@@ -73,7 +73,7 @@ function ModuleRail({ groups, pathname }: { groups: NavMenuGroup[]; pathname: st
 
 
   return (
-    <div className={hasPanel ? "grid grid-cols-[190px_1fr]" : "grid grid-cols-1"}>
+    <div className={hasPanel ? "grid grid-cols-[190px_260px]" : "grid grid-cols-[190px]"}>
       <div
         className={`flex flex-col gap-0.5 bg-foreground/[0.02] p-2 ${hasPanel ? "border-r border-border/70" : ""}`}
       >
