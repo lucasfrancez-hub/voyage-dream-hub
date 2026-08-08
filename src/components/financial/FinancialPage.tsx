@@ -12,10 +12,11 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Loader2, Plus, Download, FileText, Check, X, Search, AlertCircle, CalendarClock, TrendingDown, TrendingUp, Trash2, Pencil } from "lucide-react";
+import { Loader2, Plus, Download, FileText, Check, X, Search, AlertCircle, CalendarClock, TrendingDown, TrendingUp, Trash2, Pencil, QrCode } from "lucide-react";
 import jsPDF from "jspdf";
 import { toast } from "sonner";
 import { Link } from "@tanstack/react-router";
+import { PixPaymentDialog } from "@/components/financial/PixPaymentDialog";
 
 type Kind = "payable" | "receivable";
 type Entry = {
@@ -49,6 +50,7 @@ export function FinancialPage({ kind }: { kind: Kind }) {
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Entry | null>(null);
+  const [pixEntry, setPixEntry] = useState<Entry | null>(null);
 
   const { data: entries, isLoading } = useQuery({
     queryKey: ["financial", kind],
@@ -320,6 +322,11 @@ export function FinancialPage({ kind }: { kind: Kind }) {
                     {formatBRL(Number(e.amount))}
                   </div>
                   <div className="flex gap-1">
+                    {kind === "payable" && e.status !== "paid" && (
+                      <Button size="icon" variant="ghost" title="Pagar via Pix" onClick={() => setPixEntry(e)}>
+                        <QrCode className="h-4 w-4 text-brand-orange" />
+                      </Button>
+                    )}
                     <Button size="icon" variant="ghost" onClick={() => toggleStatus.mutate(e)} title={e.status === "paid" ? "Marcar como pendente" : "Marcar como pago"}>
                       {e.status === "paid" ? <X className="h-4 w-4" /> : <Check className="h-4 w-4 text-emerald-500" />}
                     </Button>
@@ -338,6 +345,21 @@ export function FinancialPage({ kind }: { kind: Kind }) {
           </div>
         )}
       </div>
+
+      <PixPaymentDialog
+        open={!!pixEntry}
+        onOpenChange={(v) => { if (!v) setPixEntry(null); }}
+        initial={{
+          origin: "contas_pagar",
+          financialEntryId: pixEntry?.id ?? null,
+          favoredName: pixEntry?.counterparty ?? "",
+          value: pixEntry ? Number(pixEntry.amount) : undefined,
+          description: pixEntry?.description ?? "",
+          date: pixEntry?.due_date ?? null,
+          supplierName: pixEntry?.counterparty ?? null,
+        }}
+        onDone={() => qc.invalidateQueries({ queryKey: ["financial", kind] })}
+      />
 
       <EntryDialog
         open={dialogOpen}
