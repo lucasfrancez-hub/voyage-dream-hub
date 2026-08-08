@@ -475,7 +475,7 @@ function DashboardNav({ pathname }: { pathname: string }) {
       columns={2}
       groups={[
         {
-          label: "Visão geral",
+          label: "Dashboard",
           items: [{ to: "/admin/dashboard", label: "Dashboard" }],
         },
         {

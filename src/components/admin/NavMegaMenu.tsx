@@ -67,15 +67,41 @@ function Group({ group, pathname }: { group: NavMenuGroup; pathname: string }) {
 }
 
 function ModuleRail({ groups, pathname }: { groups: NavMenuGroup[]; pathname: string }) {
-  const activeIndex = groups.findIndex((g) => g.items.some((i) => isItemActive(pathname, i)));
-  const [hovered, setHovered] = useState<number>(activeIndex >= 0 ? activeIndex : 0);
-  const current = groups[hovered] ?? groups[0];
+  const multiIndexes = groups.map((g, i) => (g.items.length > 1 ? i : -1)).filter((i) => i >= 0);
+  const activeIndex = groups.findIndex(
+    (g) => g.items.length > 1 && g.items.some((i) => isItemActive(pathname, i)),
+  );
+  const [hovered, setHovered] = useState<number>(activeIndex >= 0 ? activeIndex : (multiIndexes[0] ?? 0));
+  const current = groups[hovered];
+  const hasPanel = Boolean(current && current.items.length > 1);
 
   return (
-    <div className="grid grid-cols-[190px_1fr]">
-      <div className="flex flex-col gap-0.5 border-r border-border/70 bg-foreground/[0.02] p-2">
+    <div className={hasPanel ? "grid grid-cols-[190px_1fr]" : "grid grid-cols-1"}>
+      <div
+        className={`flex flex-col gap-0.5 bg-foreground/[0.02] p-2 ${hasPanel ? "border-r border-border/70" : ""}`}
+      >
         {groups.map((g, i) => {
           const label = g.label ?? "Geral";
+          const single = g.items.length === 1;
+          const item = g.items[0]!;
+
+          if (single) {
+            const active = isItemActive(pathname, item);
+            return (
+              <Link
+                key={label + i}
+                to={item.to}
+                className={`flex items-center gap-2 rounded-lg px-3 py-2 text-left text-[12px] font-bold uppercase tracking-[0.12em] transition ${
+                  active
+                    ? "bg-brand-orange/15 text-brand-orange"
+                    : "text-muted-foreground hover:bg-foreground/[0.05] hover:text-foreground"
+                }`}
+              >
+                <span className="truncate">{label}</span>
+              </Link>
+            );
+          }
+
           const isOn = i === hovered;
           return (
             <button
@@ -95,18 +121,19 @@ function ModuleRail({ groups, pathname }: { groups: NavMenuGroup[]; pathname: st
           );
         })}
       </div>
-      <div className="min-h-[220px] p-3">
-        {current ? (
+      {hasPanel ? (
+        <div className="min-h-[220px] p-3">
           <nav className="flex flex-col gap-0.5">
-            {current.items.map((item) => (
+            {current!.items.map((item) => (
               <ItemLink key={item.to} item={item} active={isItemActive(pathname, item)} />
             ))}
           </nav>
-        ) : null}
-      </div>
+        </div>
+      ) : null}
     </div>
   );
 }
+
 
 
 export function NavMegaMenu({
