@@ -33,6 +33,8 @@ export interface BoletoBanco {
 }
 
 export interface BoletoDocData {
+  /** "pix" remove a ficha de compensação bancária (mantém corte e rodapé). */
+  variant?: "boleto" | "pix";
   documentoRef?: string | null;
   vencimento?: string | null;
   valor: number;
