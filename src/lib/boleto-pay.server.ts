@@ -49,7 +49,7 @@ export async function aplicarStatusBoleto(billPaymentId: string, bill: any) {
       patch['paid_date'] = effective ?? new Date().toISOString().slice(0, 10)
       patch['payment_method'] = 'Boleto (ASAAS)'
     }
-    await supabaseAdmin.from('financial_entries').update(patch).eq('id', row.financial_entry_id)
+    await supabaseAdmin.from('financial_entries').update(patch as never).eq('id', row.financial_entry_id)
   }
 
   return updated ?? row
