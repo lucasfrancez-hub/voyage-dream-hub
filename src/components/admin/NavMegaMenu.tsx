@@ -117,18 +117,7 @@ export function NavMegaMenu({
         </div>
 
         {columns === 2 ? (
-          <div className="grid grid-cols-2 gap-x-6 gap-y-6 p-4">
-            <div className="flex flex-col gap-6">
-              {left.map((g, i) => (
-                <Group key={g.label ?? `l${i}`} group={g} pathname={pathname} />
-              ))}
-            </div>
-            <div className="flex flex-col gap-6">
-              {right.map((g, i) => (
-                <Group key={g.label ?? `r${i}`} group={g} pathname={pathname} />
-              ))}
-            </div>
-          </div>
+          <ModuleRail groups={groups} pathname={pathname} />
         ) : (
           <div className="flex flex-col gap-5 p-3">
             {groups.map((g, i) => (
@@ -136,6 +125,7 @@ export function NavMegaMenu({
             ))}
           </div>
         )}
+
       </DropdownMenuContent>
     </DropdownMenu>
   );
