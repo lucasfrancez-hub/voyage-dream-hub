@@ -558,6 +558,7 @@ export const gerarBoletoPedidoAdmin = createServerFn({ method: 'POST' })
         invoiceUrl: existing.invoice_url,
         linhaDigitavel: existing.identification_field,
         nossoNumero: ((existing.raw_response as any)?.payment?.nossoNumero ?? null) as string | null,
+        agenciaCodigo: ((existing.raw_response as any)?.conta?.agenciaCodigo ?? null) as string | null,
         pixPayload: existing.pix_payload,
         pixQrImage: existing.pix_qr_image,
         pagador: { nome: existing.customer_name, cpfCnpj: existing.customer_cpf_cnpj, email: existing.customer_email, telefone: existing.customer_phone },
