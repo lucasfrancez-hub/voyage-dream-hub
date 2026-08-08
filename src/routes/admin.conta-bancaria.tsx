@@ -345,8 +345,11 @@ function ContaBancariaPage() {
                           transferId={i.transferId}
                         />
                       ) : (
-                        <span className="text-xs text-muted-foreground">
-                          Comprovante ainda não disponível.
+                        <span
+                          className="text-xs text-muted-foreground"
+                          title="Taxas e tarifas do banco não geram comprovante."
+                        >
+                          —
                         </span>
                       )}
                     </td>
