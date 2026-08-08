@@ -103,6 +103,16 @@ export const detalharPagamentoPix = createServerFn({ method: 'POST' })
     return { transfer, events: events ?? [] }
   })
 
+/** Consulta o titular de uma chave Pix (DICT) antes de criar a transferência. */
+export const consultarChavePix = createServerFn({ method: 'POST' })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => z.object({ pixKey: z.string().trim().min(3).max(200) }).parse(input))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context as any)
+    const { lookupAsaasPixKey } = await import('@/lib/asaas.server')
+    return await lookupAsaasPixKey(data.pixKey)
+  })
+
 /**
  * Cria uma transferência Pix.
  * Idempotência: a chave é obrigatória e única na tabela — dois cliques em
@@ -114,7 +124,7 @@ export const criarPagamentoPix = createServerFn({ method: 'POST' })
     z
       .object({
         idempotencyKey: z.string().min(8).max(120),
-        favoredName: z.string().trim().min(2).max(150),
+        favoredName: z.string().trim().max(150).nullable().optional(),
         pixKey: z.string().trim().min(3).max(200),
         pixKeyType: z.enum(['CPF', 'CNPJ', 'EMAIL', 'PHONE', 'EVP']).nullable().optional(),
         cpfCnpj: z.string().trim().max(20).nullable().optional(),
@@ -135,6 +145,11 @@ export const criarPagamentoPix = createServerFn({ method: 'POST' })
     await assertAdmin(context as any)
     const { supabaseAdmin } = await import('@/integrations/supabase/client.server')
     const ip = clientIp()
+
+    // Revalida a chave no DICT: os dados do favorecido vêm sempre da consulta,
+    // nunca do que foi digitado no frontend.
+    const { lookupAsaasPixKey } = await import('@/lib/asaas.server')
+    const owner = await lookupAsaasPixKey(data.pixKey)
 
     // Controle de duplicidade: mesma chave => devolve o registro existente.
     const { data: existing } = await supabaseAdmin
@@ -161,10 +176,10 @@ export const criarPagamentoPix = createServerFn({ method: 'POST' })
       .insert({
         status: scheduled ? 'agendado' : 'pendente',
         idempotency_key: data.idempotencyKey,
-        favored_name: data.favoredName,
-        pix_key: data.pixKey,
-        pix_key_type: data.pixKeyType ?? null,
-        cpf_cnpj: data.cpfCnpj ?? null,
+        favored_name: owner.name,
+        pix_key: owner.pixKey,
+        pix_key_type: owner.pixKeyType,
+        cpf_cnpj: owner.cpfCnpj,
         value: data.value,
         description: data.description ?? null,
         scheduled_date: scheduled,
@@ -193,8 +208,8 @@ export const criarPagamentoPix = createServerFn({ method: 'POST' })
       const { createAsaasPixTransfer } = await import('@/lib/asaas.server')
       const res = await createAsaasPixTransfer({
         value: data.value,
-        pixKey: data.pixKey,
-        pixKeyType: data.pixKeyType ?? null,
+        pixKey: owner.pixKey,
+        pixKeyType: owner.pixKeyType,
         description: data.description ?? null,
         scheduleDate: scheduled,
         externalReference: row.id,
