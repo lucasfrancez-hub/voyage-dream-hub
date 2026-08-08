@@ -163,7 +163,7 @@ export const criarRecebimento = createServerFn({ method: 'POST' })
         person_id: data.personId ?? null,
         fine_percent: data.finePercent ?? null,
         interest_percent: data.interestPercent ?? null,
-        composicao: ({ ...(data.composicao ?? {}), endereco: enderecoTexto } as any) ?? null,
+        composicao: { ...(data.composicao ?? {}), endereco: enderecoTexto } as any,
         asaas_payment_id: charge.paymentId,
         asaas_customer_id: customerId,
         invoice_url: charge.invoiceUrl,
