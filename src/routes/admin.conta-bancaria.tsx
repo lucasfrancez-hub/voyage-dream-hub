@@ -345,14 +345,20 @@ function ContaBancariaPage() {
                           transferId={i.transferId}
                           receipt={{
                             valor: Math.abs(Number(i.value ?? 0)),
-                            favorecido: i.description || asaasTypeLabel(i.type) || "—",
+                            favorecido:
+                              i.counterparty || i.description || asaasTypeLabel(i.type) || "—",
                             direction: i.direction === "in" ? "in" : "out",
-                            favorecidoLabel: i.direction === "in" ? "Pagador" : "Favorecido",
-                            tipo: asaasTypeLabel(i.type) || undefined,
+                            favorecidoLabel:
+                              i.counterpartyLabel || (i.direction === "in" ? "Pagador" : "Favorecido"),
+                            instituicao: i.instituicao ?? null,
+                            chavePix: i.chavePix ?? null,
+                            cpfCnpj: i.cpfCnpj ?? null,
+                            tipo: i.operacao || asaasTypeLabel(i.type) || undefined,
                             dataHora: i.date ? new Date(i.date).toLocaleString("pt-BR") : null,
                             transacaoId: i.reference || i.id,
                             descricao: i.description,
                             concluido: true,
+                            pdfUrl: i.receiptUrl ?? null,
                           }}
                         />
 

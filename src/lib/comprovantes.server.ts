@@ -214,6 +214,14 @@ export async function fetchComprovantes(range: {
   return out
 }
 
+/** Índice id ASAAS -> comprovante completo, para enriquecer o extrato. */
+export async function buildComprovanteIndex(range: { startDate: string; finishDate: string }) {
+  const list = await fetchComprovantes(range)
+  const map = new Map<string, Comprovante>()
+  for (const c of list) if (c.asaasId) map.set(c.asaasId, c)
+  return map
+}
+
 /** Índice id ASAAS -> URL do comprovante, para anexar ao extrato. */
 export async function buildReceiptIndex(range: { startDate: string; finishDate: string }) {
   const list = await fetchComprovantes(range)

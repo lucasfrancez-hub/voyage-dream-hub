@@ -102,18 +102,33 @@ export const listarExtratoBancario = createServerFn({ method: 'POST' })
     // Comprovantes ao vivo (ASAAS) para o mesmo período.
     const receipts = await (async () => {
       try {
-        const { buildReceiptIndex } = await import('@/lib/comprovantes.server')
-        return await buildReceiptIndex({ startDate, finishDate })
+        const { buildComprovanteIndex } = await import('@/lib/comprovantes.server')
+        return await buildComprovanteIndex({ startDate, finishDate })
       } catch {
-        return new Map<string, string>()
+        return new Map<string, any>()
       }
     })()
 
     for (const it of items) {
-      it.receiptUrl =
+      const comp =
         (it.transferId && receipts.get(it.transferId)) ||
         (it.paymentId && receipts.get(it.paymentId)) ||
         null
+      it.receiptUrl = comp?.receiptUrl ?? null
+      if (comp) {
+        it.counterparty = comp.favored ?? null
+        it.counterpartyLabel = comp.counterpartyLabel ?? null
+        it.instituicao = comp.instituicao ?? null
+        it.chavePix = comp.chavePix ?? null
+        it.cpfCnpj = comp.cpfCnpj ?? null
+        it.operacao = comp.operation ?? null
+      }
+      if (!it.counterpartyLabel) {
+        it.counterpartyLabel = it.direction === 'in' ? 'Pagador' : 'Favorecido'
+      }
+      if (!it.counterparty && it.transferId && byTransfer.has(it.transferId)) {
+        it.counterparty = byTransfer.get(it.transferId).favored_name ?? null
+      }
       if (it.paymentId && byPayment.has(it.paymentId)) {
         it.link = { kind: 'pedido', id: byPayment.get(it.paymentId)!, label: 'Abrir pedido' }
       } else if (it.transferId && byTransfer.has(it.transferId)) {
