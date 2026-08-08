@@ -99,7 +99,7 @@ export function ComprovanteActions({
           <Eye className="mr-2 h-4 w-4" /> Visualizar
         </DropdownMenuItem>
         <DropdownMenuItem onSelect={(e) => { e.preventDefault(); baixar(); }}>
-          <Download className="mr-2 h-4 w-4" /> Baixar PDF
+          <Download className="mr-2 h-4 w-4" /> Salvar em PDF
         </DropdownMenuItem>
         <DropdownMenuItem onSelect={(e) => { e.preventDefault(); compartilhar(); }}>
           <Share2 className="mr-2 h-4 w-4" /> Compartilhar
