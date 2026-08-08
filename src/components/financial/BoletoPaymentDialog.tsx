@@ -11,6 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { ComprovanteActions } from "@/components/financial/ComprovanteActions";
 import { formatBRL } from "@/lib/format";
 import { confirmThen } from "@/lib/confirm";
 import { uploadBoletoDocument } from "@/lib/boleto-upload.functions";
@@ -162,6 +163,9 @@ export function BoletoPaymentDialog({
               <p className="text-muted-foreground">Data agendada: {fmtDate(ativo.scheduled_date ?? ativo.effective_date)}</p>
               <p className="text-muted-foreground break-all">ID ASAAS: {ativo.asaas_bill_id ?? "—"}</p>
               {ativo.fail_reason && <p className="text-red-500">{ativo.fail_reason}</p>}
+              <div className="pt-1">
+                <ComprovanteActions billId={ativo.asaas_bill_id} compact={false} />
+              </div>
             </div>
             <div className="flex gap-2">
               <Button variant="outline" className="gap-2" onClick={async () => {
