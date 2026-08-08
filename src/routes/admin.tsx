@@ -479,7 +479,7 @@ function DashboardNav({ pathname }: { pathname: string }) {
           items: [{ to: "/admin/dashboard", label: "Dashboard" }],
         },
         {
-          label: "Cadastros",
+          label: "Pessoas",
           items: [{ to: "/admin/pessoas", label: "Pessoas" }],
         },
         {
