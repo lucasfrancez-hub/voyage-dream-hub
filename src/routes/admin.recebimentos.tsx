@@ -587,7 +587,9 @@ function NovoRecebimentoDialog({
 }
 
 
-export { recebimentoParaBoleto } from "@/lib/boleto-map";
+import { recebimentoParaBoleto } from "@/lib/boleto-map";
+export { recebimentoParaBoleto };
+
 
 
 function CobrancaDialog({ row, onClose }: { row: any | null; onClose: () => void }) {
