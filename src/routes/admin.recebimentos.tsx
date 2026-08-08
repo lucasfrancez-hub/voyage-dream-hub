@@ -20,6 +20,7 @@ import {
 } from "@/lib/recebimentos.functions";
 import { searchPeople } from "@/lib/people.functions";
 import { confirmThen } from "@/lib/confirm";
+import { abrirBoletoHtml, type BoletoDocData } from "@/lib/boleto-html";
 
 import { ComprovanteActions } from "@/components/financial/ComprovanteActions";
 
