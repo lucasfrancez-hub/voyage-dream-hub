@@ -5214,6 +5214,97 @@ function PaymentDialog({
                   )}
                 </div>
               )}
+              {method === "boleto" && (
+                <div className="md:col-span-2 rounded-lg border border-border bg-muted/30 p-3 space-y-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="text-sm font-medium">Boleto bancário</span>
+                    <span className="text-xs text-muted-foreground">
+                      Pagador: {payer.payer_full_name || order.full_name || "—"}
+                      {(payer.payer_cpf || order.cpf) ? ` · ${payer.payer_cpf || order.cpf}` : ""}
+                    </span>
+                  </div>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div>
+                      <Label>Vencimento</Label>
+                      <Input type="date" value={boletoDue} onChange={(e) => setBoletoDue(e.target.value)} />
+                    </div>
+                    <div className="flex items-end">
+                      <Button
+                        type="button"
+                        size="sm"
+                        disabled={boletoLoading}
+                        onClick={async () => {
+                          const valor = Number(form.amount ?? 0);
+                          if (!(valor > 0)) { toast.error("Informe o valor pago."); return; }
+                          setBoletoLoading(true);
+                          try {
+                            const res = await gerarBoletoFn({ data: {
+                              orderId: order.id,
+                              valor,
+                              vencimento: boletoDue,
+                              nome: payer.payer_full_name || null,
+                              cpfCnpj: payer.payer_cpf || null,
+                              email: payer.payer_email || null,
+                              telefone: payer.payer_phone || null,
+                            } });
+                            setBoletoData(res);
+                            toast.success(res.reused ? "Boleto existente recuperado." : "Boleto gerado.");
+                          } catch (err) {
+                            toast.error(err instanceof Error ? err.message : "Falha ao gerar boleto.");
+                          } finally { setBoletoLoading(false); }
+                        }}
+                      >
+                        {boletoLoading ? "Gerando…" : "Gerar boleto"}
+                      </Button>
+                    </div>
+                  </div>
+                  {boletoData && (
+                    <div className="space-y-2 rounded-md border border-border bg-background/60 p-3">
+                      {boletoData.linhaDigitavel && (
+                        <p className="text-xs font-mono break-all">{boletoData.linhaDigitavel}</p>
+                      )}
+                      <div className="flex flex-wrap gap-2">
+                        <Button
+                          type="button"
+                          size="sm"
+                          onClick={() => abrirBoletoHtml({
+                            documentoRef: order.order_number ?? null,
+                            vencimento: boletoData.vencimento,
+                            valor: Number(boletoData.valor),
+                            pagador: {
+                              nome: boletoData.pagador?.nome ?? (payer.payer_full_name || order.full_name || ""),
+                              cpfCnpj: boletoData.pagador?.cpfCnpj ?? null,
+                              telefone: boletoData.pagador?.telefone ?? null,
+                              email: boletoData.pagador?.email ?? null,
+                            },
+                            pix: { payload: boletoData.pixPayload, qrImage: boletoData.pixQrImage },
+                            banco: {
+                              linhaDigitavel: boletoData.linhaDigitavel,
+                              nossoNumero: boletoData.nossoNumero,
+                            },
+                            multaPercent: 2,
+                            jurosPercentMes: 1,
+                          })}
+                        >
+                          Baixar boleto VIA AIR (PDF)
+                        </Button>
+                        {boletoData.bankSlipUrl && (
+                          <Button type="button" size="sm" variant="outline"
+                            onClick={() => window.open(boletoData.bankSlipUrl!, "_blank", "noopener")}>
+                            Boleto do banco
+                          </Button>
+                        )}
+                        {boletoData.linhaDigitavel && (
+                          <Button type="button" size="sm" variant="outline"
+                            onClick={() => { navigator.clipboard.writeText(boletoData.linhaDigitavel!); toast.success("Linha digitável copiada."); }}>
+                            Copiar linha digitável
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
               {showCard && (
                 <>
                   {selectedPersonId && savedCards.length > 0 && (
