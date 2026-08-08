@@ -242,6 +242,17 @@ function PagamentosPage() {
   );
 }
 
+function bancoDoRaw(raw: any): string | null {
+  if (!raw || typeof raw !== "object") return null;
+  return (
+    raw.bankAccount?.bank?.name ??
+    raw.bankAccount?.ispbName ??
+    raw.bankAccount?.bank?.ispb ??
+    raw.pixTransaction?.qrCode?.payer?.bankName ??
+    null
+  );
+}
+
 function DetalheDialog({ id, onClose }: { id: string | null; onClose: () => void }) {
   const detalhar = useServerFn(detalharPagamentoPix);
   const [reciboOpen, setReciboOpen] = useState(false);
@@ -257,7 +268,7 @@ function DetalheDialog({ id, onClose }: { id: string | null; onClose: () => void
     ? {
         valor: Number(t.value),
         favorecido: t.favored_name ?? "—",
-        instituicao: t.bank_name ?? null,
+        instituicao: t.bank_name ?? bancoDoRaw(t.raw_response) ?? null,
         chavePix: t.pix_key ?? null,
         cpfCnpj: t.cpf_cnpj ?? null,
         tipo: "Transferência Pix",
@@ -266,6 +277,7 @@ function DetalheDialog({ id, onClose }: { id: string | null; onClose: () => void
         descricao: t.description ?? null,
         status: meta?.label ?? t.status,
         concluido: t.status === "concluido",
+        pdfUrl: t.receipt_url ?? null,
       }
     : null;
 

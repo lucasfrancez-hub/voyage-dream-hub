@@ -1,0 +1,1 @@
+ALTER TABLE public.asaas_transfers ADD COLUMN IF NOT EXISTS bank_name text;

@@ -16,6 +16,8 @@ export type ReceiptData = {
   descricao?: string | null;
   status?: string;
   concluido?: boolean;
+  /** URL do comprovante oficial (ASAAS) — quando presente, "Salvar PDF" abre este arquivo */
+  pdfUrl?: string | null;
 };
 
 function maskDoc(doc?: string | null) {
@@ -24,17 +26,6 @@ function maskDoc(doc?: string | null) {
   if (d.length === 14) return `**.${d.slice(2, 5)}.***/${d.slice(8, 12)}-**`;
   if (d.length === 11) return `***.${d.slice(3, 6)}.***-**`;
   return doc;
-}
-
-function maskKey(key?: string | null) {
-  if (!key) return "—";
-  if (key.includes("@")) {
-    const [u, dom] = key.split("@");
-    return `${u.slice(0, 2)}***@${dom}`;
-  }
-  const d = key.replace(/\D/g, "");
-  if (d.length >= 11) return `${d.slice(0, 3)}***${d.slice(-4)}`;
-  return key;
 }
 
 export function ComprovanteReceipt({
@@ -116,7 +107,7 @@ export function ComprovanteReceipt({
                 <div className="w-full grid grid-cols-2 gap-x-4 gap-y-5">
                   <Field label="Favorecido" value={data.favorecido} />
                   <Field label="Instituição" value={data.instituicao || "ASAAS"} />
-                  <Field label="Chave Pix" value={maskKey(data.chavePix)} />
+                  <Field label="Chave Pix" value={data.chavePix || "—"} />
                   <Field label="Tipo" value={data.tipo || "Transferência Pix"} />
                   <Field label="CPF/CNPJ" value={maskDoc(data.cpfCnpj)} />
                   <Field label="Data e hora" value={data.dataHora || "—"} />
@@ -159,7 +150,13 @@ export function ComprovanteReceipt({
                 <Share2 className="h-4 w-4" /> Compartilhar
               </button>
               <button
-                onClick={() => window.print()}
+                onClick={() => {
+                  if (data.pdfUrl) {
+                    window.open(data.pdfUrl, "_blank", "noopener,noreferrer");
+                    return;
+                  }
+                  window.print();
+                }}
                 className="flex-1 py-3 px-4 bg-brand-orange hover:brightness-95 rounded-xl text-xs font-semibold text-white shadow-[var(--shadow-glow)] transition flex items-center justify-center gap-2"
               >
                 <Download className="h-4 w-4" /> Salvar PDF

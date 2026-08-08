@@ -346,6 +346,7 @@ export type Database = {
           asaas_transfer_id: string | null
           authorized: boolean
           authorized_at: string | null
+          bank_name: string | null
           cpf_cnpj: string | null
           created_at: string
           created_by: string | null
@@ -373,6 +374,7 @@ export type Database = {
           asaas_transfer_id?: string | null
           authorized?: boolean
           authorized_at?: string | null
+          bank_name?: string | null
           cpf_cnpj?: string | null
           created_at?: string
           created_by?: string | null
@@ -400,6 +402,7 @@ export type Database = {
           asaas_transfer_id?: string | null
           authorized?: boolean
           authorized_at?: string | null
+          bank_name?: string | null
           cpf_cnpj?: string | null
           created_at?: string
           created_by?: string | null
