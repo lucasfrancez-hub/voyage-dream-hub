@@ -232,6 +232,30 @@ function AdminLayout() {
       </div>
     );
   }
+
+  // Módulos financeiros sensíveis: exclusivos do admin
+  const adminOnly = (p: string) =>
+    p.startsWith("/admin/pagamentos") ||
+    p.startsWith("/admin/conta-bancaria") ||
+    p.startsWith("/admin/comprovantes");
+  if (!isAdmin && adminOnly(pathname)) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-6 text-center">
+        <div>
+          <h1 className="text-2xl font-semibold">Área restrita</h1>
+          <p className="mt-2 text-muted-foreground text-sm">
+            Pagamentos e Conta bancária são exclusivos de administradores.
+          </p>
+          <button
+            className="mt-4 text-brand-orange hover:underline"
+            onClick={() => navigate({ to: "/admin/pedidos" })}
+          >
+            Voltar para pedidos
+          </button>
+        </div>
+      </div>
+    );
+  }
   if (role === "marketing") {
     if (typeof window !== "undefined") window.location.replace("/chat/broadcast");
     return (
