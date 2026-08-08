@@ -219,7 +219,22 @@ function ComprovantesPage() {
                     </td>
                     <td className="px-6 py-4 text-right">
                       {c.receiptUrl ? (
-                        <ComprovanteActions url={c.receiptUrl} compact={false} />
+                        <ComprovanteActions
+                          url={c.receiptUrl}
+                          compact={false}
+                          paymentId={c.kind === "payment" ? c.asaasId : null}
+                          transferId={c.kind === "transfer" ? c.asaasId : null}
+                          billId={c.kind === "bill" ? c.asaasId : null}
+                          receipt={{
+                            valor: Math.abs(Number(c.value ?? 0)),
+                            favorecido: c.favored || "—",
+                            tipo: c.operation,
+                            dataHora: fmtDate(c.date),
+                            transacaoId: c.reference || c.asaasId,
+                            status: c.status ?? undefined,
+                            concluido: true,
+                          }}
+                        />
                       ) : ["Concluído", "Recebido", "Confirmado", "Pago", "Recebido em dinheiro"].includes(
                           String(c.status ?? ""),
                         ) ? (
@@ -228,7 +243,17 @@ function ComprovantesPage() {
                           paymentId={c.kind === "payment" ? c.asaasId : null}
                           transferId={c.kind === "transfer" ? c.asaasId : null}
                           billId={c.kind === "bill" ? c.asaasId : null}
+                          receipt={{
+                            valor: Math.abs(Number(c.value ?? 0)),
+                            favorecido: c.favored || "—",
+                            tipo: c.operation,
+                            dataHora: fmtDate(c.date),
+                            transacaoId: c.reference || c.asaasId,
+                            status: c.status ?? undefined,
+                            concluido: true,
+                          }}
                         />
+
                       ) : (
                         <span
                           className="text-xs text-muted-foreground"
