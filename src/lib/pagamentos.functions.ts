@@ -498,3 +498,146 @@ export const baixaPixManualPedido = createServerFn({ method: 'POST' })
     if (error) throw new Error(error.message)
     return { ok: true, by: actor?.full_name ?? null }
   })
+
+/* ============================================================
+ * BOLETO EM PEDIDOS (admin)
+ * ============================================================ */
+
+/** Gera (ou reaproveita) um boleto ASAAS para um pedido, com os dados do pagador. */
+export const gerarBoletoPedidoAdmin = createServerFn({ method: 'POST' })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z
+      .object({
+        orderId: z.string().uuid(),
+        valor: z.number().positive(),
+        vencimento: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+        nome: z.string().trim().min(2).nullable().optional(),
+        cpfCnpj: z.string().trim().nullable().optional(),
+        email: z.string().trim().nullable().optional(),
+        telefone: z.string().trim().nullable().optional(),
+        descricao: z.string().trim().max(500).nullable().optional(),
+        multaPercent: z.number().min(0).max(100).nullable().optional(),
+        jurosPercent: z.number().min(0).max(100).nullable().optional(),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context as any)
+    const { supabaseAdmin } = await import('@/integrations/supabase/client.server')
+
+    const { data: order } = await supabaseAdmin
+      .from('orders')
+      .select('id, order_number, full_name, cpf, email, phone')
+      .eq('id', data.orderId)
+      .maybeSingle()
+    if (!order) throw new Error('Pedido não encontrado.')
+
+    const nome = (data.nome || order.full_name || '').trim()
+    const cpfCnpj = (data.cpfCnpj || order.cpf || '').replace(/\D/g, '')
+    if (!nome) throw new Error('Informe o nome do pagador.')
+    if (cpfCnpj.length < 11) throw new Error('Informe o CPF/CNPJ do pagador.')
+
+    // Reaproveita boleto pendente já emitido para este pedido com o mesmo valor.
+    const { data: existing } = await supabaseAdmin
+      .from('asaas_recebimentos')
+      .select('*')
+      .eq('order_id', order.id)
+      .eq('kind', 'boleto')
+      .eq('status', 'pendente')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+    if (existing && Number(existing.value) === Number(data.valor.toFixed(2))) {
+      return {
+        reused: true,
+        id: existing.id,
+        valor: Number(existing.value),
+        vencimento: existing.due_date as string,
+        bankSlipUrl: existing.bank_slip_url,
+        invoiceUrl: existing.invoice_url,
+        linhaDigitavel: existing.identification_field,
+        nossoNumero: ((existing.raw_response as any)?.payment?.nossoNumero ?? null) as string | null,
+        pixPayload: existing.pix_payload,
+        pixQrImage: existing.pix_qr_image,
+        pagador: { nome: existing.customer_name, cpfCnpj: existing.customer_cpf_cnpj, email: existing.customer_email, telefone: existing.customer_phone },
+      }
+    }
+
+    const { ensureAsaasCustomer, createAsaasCharge } = await import('@/lib/asaas.server')
+    const customerId = await ensureAsaasCustomer({
+      name: nome,
+      cpfCnpj,
+      email: data.email || order.email || undefined,
+      phone: data.telefone || (order as any).phone || undefined,
+      externalReference: order.id,
+    } as any)
+
+    const descricao =
+      data.descricao || `Pedido VIA AIR #${order.order_number ?? ''}`.trim()
+
+    const charge = await createAsaasCharge({
+      customerId,
+      billingType: 'BOLETO',
+      value: data.valor,
+      dueDate: data.vencimento,
+      description: descricao,
+      externalReference: order.id,
+      finePercent: data.multaPercent ?? 2,
+      interestPercent: data.jurosPercent ?? 1,
+    })
+
+    const { data: actor } = await supabaseAdmin
+      .from('profiles')
+      .select('full_name')
+      .eq('id', context.userId)
+      .maybeSingle()
+
+    const pixQrImage = charge.pixEncodedImage
+      ? `data:image/png;base64,${charge.pixEncodedImage}`
+      : null
+
+    const { data: row, error } = await supabaseAdmin
+      .from('asaas_recebimentos')
+      .insert({
+        kind: 'boleto',
+        status: 'pendente',
+        customer_name: nome,
+        customer_cpf_cnpj: cpfCnpj,
+        customer_email: data.email || order.email || null,
+        customer_phone: data.telefone || (order as any).phone || null,
+        value: data.valor,
+        due_date: data.vencimento,
+        description: descricao,
+        order_id: order.id,
+        fine_percent: data.multaPercent ?? 2,
+        interest_percent: data.jurosPercent ?? 1,
+        asaas_payment_id: charge.paymentId,
+        asaas_customer_id: customerId,
+        invoice_url: charge.invoiceUrl,
+        bank_slip_url: charge.bankSlipUrl,
+        identification_field: charge.identificationField,
+        pix_payload: charge.pixPayload,
+        pix_qr_image: pixQrImage,
+        created_by: context.userId,
+        created_by_name: actor?.full_name ?? null,
+        raw_response: charge.raw as any,
+      })
+      .select('id')
+      .single()
+    if (error) throw new Error(`Falha ao salvar boleto: ${error.message}`)
+
+    return {
+      reused: false,
+      id: row.id as string,
+      valor: Number(data.valor.toFixed(2)),
+      vencimento: data.vencimento,
+      bankSlipUrl: charge.bankSlipUrl,
+      invoiceUrl: charge.invoiceUrl,
+      linhaDigitavel: charge.identificationField,
+      nossoNumero: ((charge.raw as any)?.payment?.nossoNumero ?? null) as string | null,
+      pixPayload: charge.pixPayload,
+      pixQrImage,
+      pagador: { nome, cpfCnpj, email: data.email || order.email || null, telefone: data.telefone || (order as any).phone || null },
+    }
+  })
