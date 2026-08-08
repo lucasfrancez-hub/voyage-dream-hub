@@ -298,6 +298,40 @@ export async function getAsaasPayment(paymentId: string) {
   return asaasFetch(`/payments/${encodeURIComponent(paymentId)}`)
 }
 
+/** Atualiza uma cobrança existente (valor, vencimento, descrição). */
+export async function updateAsaasPayment(
+  paymentId: string,
+  payload: Record<string, unknown>,
+) {
+  return asaasFetch(`/payments/${encodeURIComponent(paymentId)}`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  })
+}
+
+/** Rebusca linha digitável e QR Code Pix de uma cobrança (após atualização). */
+export async function getAsaasChargeArtifacts(paymentId: string, isBoleto: boolean) {
+  const pix = await asaasFetch(`/payments/${encodeURIComponent(paymentId)}/pixQrCode`).catch(
+    () => null,
+  )
+  let identificationField: string | null = null
+  let nossoNumero: string | null = null
+  if (isBoleto) {
+    const idf = await asaasFetch(
+      `/payments/${encodeURIComponent(paymentId)}/identificationField`,
+    ).catch(() => null)
+    identificationField = idf?.identificationField ?? null
+    nossoNumero = idf?.nossoNumero ?? null
+  }
+  return {
+    identificationField,
+    nossoNumero,
+    pixPayload: pix?.payload ?? null,
+    pixEncodedImage: pix?.encodedImage ?? null,
+  }
+}
+
+
 /* ============================================================
  * TRANSFERÊNCIAS PIX (saques)
  * ============================================================ */
