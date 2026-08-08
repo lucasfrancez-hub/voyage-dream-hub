@@ -65,7 +65,8 @@ import { getSignatureStatus } from "@/lib/clicksign.functions";
 import type { Json } from "@/integrations/supabase/types";
 import { HotelAutocomplete, type HotelSelection } from "@/components/HotelAutocomplete";
 import { QuoteDialog } from "@/components/QuoteDialog";
-import { gerarPixPedidoAdmin, baixaPixManualPedido } from "@/lib/pagamentos.functions";
+import { gerarPixPedidoAdmin, baixaPixManualPedido, gerarBoletoPedidoAdmin } from "@/lib/pagamentos.functions";
+import { abrirBoletoHtml } from "@/lib/boleto-html";
 import { FlightLookupButton } from "@/components/FlightLookupButton";
 import { ImportarAereoDialog } from "@/components/ImportarAereoDialog";
 import { ImportarVoucherDialog } from "@/components/ImportarVoucherDialog";
@@ -4666,6 +4667,10 @@ function PaymentDialog({
   const [pixManualDate, setPixManualDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [pixManualObs, setPixManualObs] = useState("");
   const [pixManualProof, setPixManualProof] = useState("");
+  const gerarBoletoFn = useServerFn(gerarBoletoPedidoAdmin);
+  const [boletoLoading, setBoletoLoading] = useState(false);
+  const [boletoDue, setBoletoDue] = useState(() => new Date(Date.now() + 3 * 86400000).toISOString().slice(0, 10));
+  const [boletoData, setBoletoData] = useState<Awaited<ReturnType<typeof gerarBoletoPedidoAdmin>> | null>(null);
   const showCard = method === "credit_card" || method === "debit_card";
   const showInstallments = method === "credit_card" || method === "financing";
 
@@ -5219,7 +5224,7 @@ function PaymentDialog({
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <span className="text-sm font-medium">Boleto bancário</span>
                     <span className="text-xs text-muted-foreground">
-                      Pagador: {payer.payer_full_name || order.full_name || "—"}
+                      Pagador: {payer.payer_full_name || order.fullName || "—"}
                       {(payer.payer_cpf || order.cpf) ? ` · ${payer.payer_cpf || order.cpf}` : ""}
                     </span>
                   </div>
@@ -5268,11 +5273,11 @@ function PaymentDialog({
                           type="button"
                           size="sm"
                           onClick={() => abrirBoletoHtml({
-                            documentoRef: order.order_number ?? null,
+                            documentoRef: order.orderNumber ?? null,
                             vencimento: boletoData.vencimento,
                             valor: Number(boletoData.valor),
                             pagador: {
-                              nome: boletoData.pagador?.nome ?? (payer.payer_full_name || order.full_name || ""),
+                              nome: boletoData.pagador?.nome ?? (payer.payer_full_name || order.fullName || ""),
                               cpfCnpj: boletoData.pagador?.cpfCnpj ?? null,
                               telefone: boletoData.pagador?.telefone ?? null,
                               email: boletoData.pagador?.email ?? null,
