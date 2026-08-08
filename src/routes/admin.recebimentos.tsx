@@ -542,7 +542,11 @@ function NovoRecebimentoDialog({
               className="flex-1"
               disabled={!form.customerName || !form.value}
               onClick={() => {
-                const periodo = [form.periodoInicio, form.periodoFim].filter(Boolean).join(" • ");
+                const fmt = (d: string) =>
+                  d ? new Date(`${d}T12:00:00`).toLocaleDateString("pt-BR") : "";
+                const periodo = [fmt(form.periodoInicio), fmt(form.periodoFim)]
+                  .filter(Boolean)
+                  .join(" • ");
                 abrirBoletoHtml({
                   documentoRef: "PRÉVIA",
                   vencimento: form.dueDate,
