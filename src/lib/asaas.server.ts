@@ -173,6 +173,10 @@ export interface CreateChargeInput {
   dueDate: string
   description?: string | null
   externalReference?: string | null
+  /** Multa por atraso, em % do valor. */
+  finePercent?: number | null
+  /** Juros ao mês por atraso, em %. */
+  interestPercent?: number | null
 }
 
 /** Cria uma cobrança avulsa (Pix ou boleto) sem notificações do ASAAS. */
@@ -187,8 +191,15 @@ export async function createAsaasCharge(input: CreateChargeInput) {
       description: input.description ?? undefined,
       externalReference: input.externalReference ?? undefined,
       postalService: false,
+      ...(input.finePercent
+        ? { fine: { value: Number(input.finePercent), type: 'PERCENTAGE' } }
+        : {}),
+      ...(input.interestPercent
+        ? { interest: { value: Number(input.interestPercent) } }
+        : {}),
     }),
   })
+
 
   await asaasFetch(`/payments/${payment.id}/notifications`, {
     method: 'PUT',

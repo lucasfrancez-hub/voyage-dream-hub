@@ -293,6 +293,7 @@ export type Database = {
           asaas_customer_id: string | null
           asaas_payment_id: string | null
           bank_slip_url: string | null
+          composicao: Json | null
           created_at: string
           created_by: string | null
           created_by_name: string | null
@@ -303,12 +304,15 @@ export type Database = {
           description: string | null
           due_date: string | null
           expira_em: string | null
+          fine_percent: number | null
           id: string
           identification_field: string | null
+          interest_percent: number | null
           invoice_url: string | null
           kind: string
           order_id: string | null
           paid_at: string | null
+          person_id: string | null
           pix_payload: string | null
           pix_qr_image: string | null
           raw_response: Json | null
@@ -321,6 +325,7 @@ export type Database = {
           asaas_customer_id?: string | null
           asaas_payment_id?: string | null
           bank_slip_url?: string | null
+          composicao?: Json | null
           created_at?: string
           created_by?: string | null
           created_by_name?: string | null
@@ -331,12 +336,15 @@ export type Database = {
           description?: string | null
           due_date?: string | null
           expira_em?: string | null
+          fine_percent?: number | null
           id?: string
           identification_field?: string | null
+          interest_percent?: number | null
           invoice_url?: string | null
           kind: string
           order_id?: string | null
           paid_at?: string | null
+          person_id?: string | null
           pix_payload?: string | null
           pix_qr_image?: string | null
           raw_response?: Json | null
@@ -349,6 +357,7 @@ export type Database = {
           asaas_customer_id?: string | null
           asaas_payment_id?: string | null
           bank_slip_url?: string | null
+          composicao?: Json | null
           created_at?: string
           created_by?: string | null
           created_by_name?: string | null
@@ -359,12 +368,15 @@ export type Database = {
           description?: string | null
           due_date?: string | null
           expira_em?: string | null
+          fine_percent?: number | null
           id?: string
           identification_field?: string | null
+          interest_percent?: number | null
           invoice_url?: string | null
           kind?: string
           order_id?: string | null
           paid_at?: string | null
+          person_id?: string | null
           pix_payload?: string | null
           pix_qr_image?: string | null
           raw_response?: Json | null
@@ -379,6 +391,13 @@ export type Database = {
             columns: ["order_id"]
             isOneToOne: false
             referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asaas_recebimentos_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "people"
             referencedColumns: ["id"]
           },
         ]

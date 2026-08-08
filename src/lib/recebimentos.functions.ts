@@ -42,7 +42,51 @@ const criarInput = z.object({
   value: z.number().positive(),
   dueDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   description: z.string().optional().or(z.literal('')),
+  personId: z.string().uuid().optional().nullable(),
+  finePercent: z.number().min(0).max(100).optional().nullable(),
+  interestPercent: z.number().min(0).max(100).optional().nullable(),
+  composicao: z
+    .object({
+      servico: z.string().optional().or(z.literal('')),
+      destino: z.string().optional().or(z.literal('')),
+      periodoInicio: z.string().optional().or(z.literal('')),
+      periodoFim: z.string().optional().or(z.literal('')),
+      passageiros: z.array(z.string()).optional(),
+      observacao: z.string().optional().or(z.literal('')),
+    })
+    .optional()
+    .nullable(),
 })
+
+/** Monta o texto da composição da cobrança (aparece no boleto/fatura). */
+function montarDescricao(data: {
+  description?: string | null
+  composicao?: {
+    servico?: string | null
+    destino?: string | null
+    periodoInicio?: string | null
+    periodoFim?: string | null
+    passageiros?: string[] | null
+    observacao?: string | null
+  } | null
+}) {
+  const c = data.composicao
+  const linhas: string[] = []
+  if (data.description) linhas.push(data.description)
+  if (c?.servico) linhas.push(`Servico: ${c.servico}`)
+  if (c?.destino) linhas.push(`Destino: ${c.destino}`)
+  const fmt = (d?: string | null) =>
+    d ? new Date(`${d}T12:00:00`).toLocaleDateString('pt-BR') : ''
+  if (c?.periodoInicio || c?.periodoFim) {
+    linhas.push(
+      `Periodo: ${[fmt(c.periodoInicio), fmt(c.periodoFim)].filter(Boolean).join(' a ')}`,
+    )
+  }
+  const pax = (c?.passageiros ?? []).filter((p) => p && p.trim())
+  if (pax.length) linhas.push(`Passageiros: ${pax.join(', ')}`)
+  if (c?.observacao) linhas.push(c.observacao)
+  return linhas.join(' | ') || null
+}
 
 export const criarRecebimento = createServerFn({ method: 'POST' })
   .middleware([requireSupabaseAuth])
@@ -64,7 +108,9 @@ export const criarRecebimento = createServerFn({ method: 'POST' })
       billingType: data.kind === 'pix' ? 'PIX' : 'BOLETO',
       value: data.value,
       dueDate: data.dueDate,
-      description: data.description || null,
+      description: montarDescricao(data),
+      finePercent: data.finePercent ?? null,
+      interestPercent: data.interestPercent ?? null,
     })
 
     const { data: nome } = await context.supabase
@@ -84,7 +130,11 @@ export const criarRecebimento = createServerFn({ method: 'POST' })
         customer_phone: data.phone || null,
         value: data.value,
         due_date: data.dueDate,
-        description: data.description || null,
+        description: montarDescricao(data),
+        person_id: data.personId ?? null,
+        fine_percent: data.finePercent ?? null,
+        interest_percent: data.interestPercent ?? null,
+        composicao: (data.composicao as any) ?? null,
         asaas_payment_id: charge.paymentId,
         asaas_customer_id: customerId,
         invoice_url: charge.invoiceUrl,
