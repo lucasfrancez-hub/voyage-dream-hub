@@ -134,86 +134,78 @@ export function ComprovanteReceipt({
           <>
             <div
               id="comprovante-print"
-              className="print-receipt relative overflow-hidden rounded-2xl bg-card shadow-[0_24px_48px_-16px_rgba(0,0,0,0.6)]"
+              className="print-receipt relative overflow-hidden rounded-3xl bg-card border border-border shadow-[0_24px_48px_-16px_rgba(0,0,0,0.6)]"
             >
-              <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-brand-orange/10 via-transparent to-emerald-500/5" />
-              <div className="absolute inset-x-0 top-0 h-1 bg-brand-orange" />
+              <div className="h-1.5 w-full bg-brand-orange" />
 
-              <div className="relative px-5 py-4 flex flex-col items-center">
-                <img
-                  src={viaairLogo.url}
-                  alt="VIA AIR"
-                  className="h-8 w-auto mb-3 object-contain"
-                />
-
-                <div className="flex flex-col items-center mb-3 text-center">
-                  <div className="w-8 h-8 rounded-full bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center mb-1.5">
-                    <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+              <div className="relative p-6 flex flex-col gap-5">
+                <div className="flex flex-col items-center gap-2.5">
+                  <div className="w-20 h-20 rounded-2xl bg-muted/20 border border-border flex items-center justify-center">
+                    <img
+                      src={viaairLogo.url}
+                      alt="VIA AIR"
+                      className="h-9 w-auto object-contain"
+                    />
                   </div>
-                  <h2 className="text-sm font-semibold text-foreground">
-                    Comprovante {data.formaPagamento || data.tipo || "Pix"}
-                  </h2>
-                  <span className="text-muted-foreground text-[11px]">
+                  <h1 className="text-3xl font-bold tracking-tight text-foreground tabular-nums mt-1">
+                    {formatBRL(data.valor)}
+                  </h1>
+                  <p className="text-emerald-400 text-[11px] font-medium bg-emerald-400/10 px-3 py-1 rounded-full flex items-center gap-1.5">
+                    <CheckCircle2 className="h-3 w-3" />
                     {data.concluido === false
                       ? (data.status ?? "Em processamento")
                       : data.direction === "in"
-                        ? "Pagamento recebido com sucesso"
-                        : "Pagamento realizado com sucesso"}
-                  </span>
-                </div>
-
-                <div className="text-center mb-3">
-                  <span className="text-[9px] text-muted-foreground uppercase tracking-widest font-medium">
-                    {data.direction === "in" ? "Valor recebido" : "Valor pago"}
-                  </span>
-                  <h1 className="text-2xl font-bold text-foreground tabular-nums leading-tight">
-                    {formatBRL(data.valor)}
-                  </h1>
-                </div>
-
-                <div className="w-full space-y-3">
-                  <div className="grid grid-cols-2 gap-x-3 gap-y-2 bg-muted/20 border border-border rounded-xl p-3">
-                    <Field
-                      label="Data do pagamento"
-                      value={formatDate(data.dataPagamento ?? data.dataHora)}
-                    />
-                    <Field label="Vencimento" value={formatDate(data.dataVencimento)} />
-                    <Field
-                      label="Forma de pagamento"
-                      value={data.formaPagamento || data.tipo || "Pix"}
-                    />
-                    {data.chavePix ? <Field label="Chave Pix" value={data.chavePix} /> : null}
-                  </div>
-
-                  <div className="space-y-3">
-                    <PartyBlock title="Dados do pagador" party={pagador} />
-                    <PartyBlock title="Dados do recebedor" party={recebedor} />
-                  </div>
-
-                  <div>
-                    <p className="text-[9px] text-muted-foreground uppercase tracking-widest font-semibold text-center mb-1">
-                      ID da transação
-                    </p>
-                    <p className="text-[10px] font-mono text-muted-foreground bg-background/60 py-1.5 px-3 rounded-lg border border-border break-all text-center leading-snug">
-                      {data.transacaoId || "—"}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="mt-4 w-full pt-3 border-t border-border flex flex-col items-center gap-1">
-                  <div className="flex items-center gap-2 opacity-60">
-                    <span className="text-[9px] text-muted-foreground font-medium uppercase tracking-widest">
-                      Processado por
-                    </span>
-                    <span className="text-[11px] font-bold text-foreground tracking-widest">ASAAS</span>
-                  </div>
-                  <p className="text-[9px] text-muted-foreground text-center leading-tight">
-                    Documento gerado pelo sistema VIA AIR para simples conferência.
+                        ? "Pagamento recebido"
+                        : "Pagamento realizado"}
                   </p>
                 </div>
-              </div>
 
-              <div className="absolute bottom-0 inset-x-0 h-1.5 bg-gradient-to-r from-transparent via-brand-orange/20 to-transparent" />
+                <div className="grid grid-cols-2 gap-4 bg-muted/20 rounded-2xl p-4 border border-border">
+                  <Field
+                    label="Data do pagamento"
+                    value={formatDate(data.dataPagamento ?? data.dataHora)}
+                  />
+                  <div className="text-right">
+                    <Field label="Vencimento" value={formatDate(data.dataVencimento)} />
+                  </div>
+                  <Field
+                    label="Forma de pagamento"
+                    value={data.formaPagamento || data.tipo || "Pix"}
+                  />
+                  {data.chavePix ? (
+                    <div className="text-right">
+                      <Field label="Chave Pix" value={data.chavePix} />
+                    </div>
+                  ) : null}
+                </div>
+
+                <div className="space-y-4">
+                  <PartyBlock title="Origem (Pagador)" party={pagador} />
+                  <div className="h-px w-full bg-border" />
+                  <PartyBlock title="Destino (Recebedor)" party={recebedor} />
+                </div>
+
+                <div className="pt-4 border-t border-border">
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold mb-1.5">
+                    ID da transação
+                  </p>
+                  <p className="text-[10px] font-mono text-muted-foreground break-all leading-snug">
+                    {data.transacaoId || "—"}
+                  </p>
+
+                  <div className="flex items-center justify-between mt-5 opacity-60">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[9px] text-muted-foreground uppercase font-bold tracking-widest">
+                        Processado por
+                      </span>
+                      <span className="text-[10px] font-black text-foreground tracking-tight">ASAAS</span>
+                    </div>
+                    <span className="text-[9px] text-muted-foreground">
+                      Documento para simples conferência
+                    </span>
+                  </div>
+                </div>
+              </div>
             </div>
 
             <div className="flex gap-2 mt-2 print:hidden">
