@@ -491,6 +491,11 @@ function OrderDetailPage() {
                 <CreditCard className="h-3 w-3 opacity-70" />
                 <span className="text-[10px] font-bold uppercase tracking-wide">{pm.label}</span>
               </div>
+              {pixOrigemBadge && (
+                <div className={`mt-2 ml-2 inline-flex items-center gap-2 px-3 py-1 rounded-full ${pixOrigemBadge.className}`}>
+                  <span className="text-[10px] font-bold uppercase tracking-wide">{pixOrigemBadge.label}</span>
+                </div>
+              )}
             </div>
           </div>
         </div>
