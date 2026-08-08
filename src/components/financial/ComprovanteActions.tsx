@@ -162,24 +162,31 @@ export function ComprovanteActions({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-56">
-          <DropdownMenuItem onSelect={(e) => { e.preventDefault(); abrirComprovante(); }}>
+          <DropdownMenuItem onSelect={(e) => { e.preventDefault(); setAuto(null); abrirComprovante(); }}>
             <Eye className="mr-2 h-4 w-4" /> Ver comprovante
           </DropdownMenuItem>
-          <DropdownMenuItem onSelect={(e) => { e.preventDefault(); baixarPdf(); }}>
-            <Download className="mr-2 h-4 w-4" /> Baixar PDF
+          <DropdownMenuItem onSelect={(e) => { e.preventDefault(); setAuto("download"); abrirComprovante(); }}>
+            <ImageDown className="mr-2 h-4 w-4" /> Baixar imagem
           </DropdownMenuItem>
-          <DropdownMenuItem onSelect={(e) => { e.preventDefault(); compartilhar(); }}>
-            <Share2 className="mr-2 h-4 w-4" /> Compartilhar
+          <DropdownMenuItem onSelect={(e) => { e.preventDefault(); setAuto("share"); abrirComprovante(); }}>
+            <Share2 className="mr-2 h-4 w-4" /> Compartilhar (WhatsApp)
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
 
       {visivel && (
-        <ComprovanteReceipt open={receiptOpen} onOpenChange={setReceiptOpen} data={visivel} />
+        <ComprovanteReceipt
+          open={receiptOpen}
+          onOpenChange={(v) => { setReceiptOpen(v); if (!v) setAuto(null); }}
+          data={visivel}
+          autoAction={auto}
+          onAutoActionDone={() => setAuto(null)}
+        />
       )}
     </>
   );
 }
+
 
 
 export default ComprovanteActions;
