@@ -583,7 +583,21 @@ export const gerarBoletoPedidoAdmin = createServerFn({ method: 'POST' })
         agenciaCodigo: ((existing.raw_response as any)?.conta?.agenciaCodigo ?? null) as string | null,
         pixPayload: existing.pix_payload,
         pixQrImage: existing.pix_qr_image,
-        pagador: { nome: existing.customer_name, cpfCnpj: existing.customer_cpf_cnpj, email: existing.customer_email, telefone: existing.customer_phone },
+        pagador: {
+          nome: existing.customer_name,
+          cpfCnpj: existing.customer_cpf_cnpj,
+          email: existing.customer_email,
+          telefone: existing.customer_phone,
+          endereco: ((existing.composicao as any)?.endereco ?? null) as string | null,
+        },
+        composicao: {
+          servico: ((existing.composicao as any)?.servico ?? null) as string | null,
+          destino: ((existing.composicao as any)?.destino ?? null) as string | null,
+          periodo: ((existing.composicao as any)?.periodo ?? null) as string | null,
+          passageiro: ((existing.composicao as any)?.passageiro ?? null) as string | null,
+        },
+        multaPercent: (existing.fine_percent ?? null) as number | null,
+        jurosPercentMes: (existing.interest_percent ?? null) as number | null,
       }
     }
 
