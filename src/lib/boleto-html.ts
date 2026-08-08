@@ -119,6 +119,23 @@ export function barcodeItfSvg(code?: string | null, width = 575, height = 68): s
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">${rects}</svg>`;
 }
 
+/** Formata a linha digitável no padrão bancário: 00000.00000 00000.000000 00000.000000 0 00000000000000 */
+export function formatarLinhaDigitavel(linha?: string | null): string {
+  const d = String(linha ?? "").replace(/\D/g, "");
+  if (d.length !== 47) return String(linha ?? "");
+  return [
+    `${d.slice(0, 5)}.${d.slice(5, 10)}`,
+    `${d.slice(10, 15)}.${d.slice(15, 21)}`,
+    `${d.slice(21, 26)}.${d.slice(26, 32)}`,
+    d.slice(32, 33),
+    d.slice(33, 47),
+  ].join(" ");
+}
+
+/** Texto padrão do cabeçalho — condições reais ficam a cargo do banco emissor. */
+export const TEXTO_MULTA_JUROS_PADRAO =
+  "Após o vencimento, multa e juros conforme condições cadastradas no banco emissor.";
+
 /** Texto de instruções com multa e juros já calculados em reais. */
 export function textoMultaJuros(
   valor: number,
@@ -135,15 +152,34 @@ export function textoMultaJuros(
     const v = (valor * aoDia) / 100;
     partes.push(`Juros ${aoDia.toFixed(3).replace(".", ",")}% a.d. = R$ ${brl(v)}/dia`);
   }
-  if (!partes.length) {
-    return "Após o vencimento, multa e juros conforme condições cadastradas no banco emissor.";
-  }
+  if (!partes.length) return TEXTO_MULTA_JUROS_PADRAO;
   return `Após vencimento: ${partes.join("  ")}`;
 }
 
-function compRow(label: string, value?: string | null) {
+/** Ícones inline (SVG) — sem dependência de fontes externas no PDF. */
+const ICON: Record<string, string> = {
+  user: `<path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z"/><path d="M4 20a8 8 0 0 1 16 0"/>`,
+  phone: `<path d="M4 5c0-.6.4-1 1-1h2.6c.5 0 .9.3 1 .8l.7 3c.1.4 0 .8-.3 1L7.6 10c1 2.1 2.3 3.4 4.4 4.4l1.2-1.4c.3-.3.7-.4 1-.3l3 .7c.5.1.8.5.8 1V17c0 .6-.4 1-1 1A13 13 0 0 1 4 5Z"/>`,
+  mail: `<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3.5 6.5 8.5 6 8.5-6"/>`,
+  pin: `<path d="M12 21s7-5.7 7-11a7 7 0 1 0-14 0c0 5.3 7 11 7 11Z"/><circle cx="12" cy="10" r="2.5"/>`,
+  pix: `<path d="m12 3 4.2 4.2a3 3 0 0 1 0 4.2L12 15.6 7.8 11.4a3 3 0 0 1 0-4.2L12 3Z"/><path d="m12 21-4.2-4.2M12 21l4.2-4.2M3 12l4.2-4.2M21 12l-4.2-4.2"/>`,
+  qr: `<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM19 19h2v2h-2zM14 20h2M20 14h1"/>`,
+  phoneApp: `<rect x="7" y="3" width="10" height="18" rx="2"/><path d="M11 18h2"/>`,
+  list: `<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/>`,
+  send: `<path d="M21 3 10.5 13.5M21 3l-7 18-3.5-7.5L3 10l18-7Z"/>`,
+  target: `<circle cx="12" cy="12" r="7"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3"/>`,
+  calendar: `<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/>`,
+  copy: `<rect x="9" y="9" width="11" height="11" rx="2"/><path d="M15 5H6a2 2 0 0 0-2 2v9"/>`,
+};
+
+function icon(name: keyof typeof ICON | string, size = 18, color = "var(--orange)") {
+  const path = ICON[name] ?? "";
+  return `<svg class="ico" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${path}</svg>`;
+}
+
+function compRow(iconName: string, label: string, value?: string | null) {
   if (!value || !String(value).trim()) return "";
-  return `<div class="comp-row"><div class="comp-label">${esc(label)}</div><div class="comp-value">${esc(value)}</div></div>`;
+  return `<div class="comp-row"><div class="comp-label">${icon(iconName, 17, "#082f57")}<span>${esc(label)}</span></div><div class="comp-value">${esc(value)}</div></div>`;
 }
 
 function bcell(label: string, value?: string | null, cls = "") {
