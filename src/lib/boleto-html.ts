@@ -8,6 +8,7 @@
  */
 
 import viaAirLogo from "@/assets/viaair-logo.png.asset.json";
+import asaasLogo from "@/assets/asaas-logo-white.png.asset.json";
 import { VIA_AIR_CNPJ } from "@/lib/institucional";
 
 export interface BoletoComposicao {
