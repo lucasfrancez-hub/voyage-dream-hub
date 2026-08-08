@@ -4,6 +4,8 @@ import { useMemo, useState } from "react";
 import { Instagram, Loader2, TrendingUp, DollarSign, Receipt, ShoppingBag, Plane, CalendarClock, ExternalLink, CheckCircle2, Clock, BarChart3, ArrowUpRight, ArrowDownRight, AlertCircle, Trophy, Crown, Medal } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL } from "@/lib/format";
+import { obterResumoBancario } from "@/lib/conta-bancaria.functions";
+import { Wallet } from "lucide-react";
 
 export const Route = createFileRoute("/admin/dashboard")({
   component: DashboardPage,
@@ -24,6 +26,7 @@ type OrderRow = {
 type FinancialRow = {
   order_item_id: string;
   commission_value: number | null;
+  rav_value: number | null;
   sale_value: number | null;
   tax_value: number | null;
   order_items: { order_id: string } | { order_id: string }[] | null;
@@ -180,7 +183,7 @@ function DashboardPage() {
     const paidIds = new Set(paidOrders.map((o) => o.id));
     const commission = (fins ?? [])
       .filter((f) => paidIds.has(f.order_id))
-      .reduce((a, f) => a + Number(f.commission_value ?? 0), 0);
+      .reduce((a, f) => a + Number(f.commission_value ?? 0) + Number(f.rav_value ?? 0), 0);
 
     const now = new Date();
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -189,7 +192,7 @@ function DashboardPage() {
     const monthIds = new Set(monthOrders.map((o) => o.id));
     const monthCommission = (fins ?? [])
       .filter((f) => monthIds.has(f.order_id))
-      .reduce((a, f) => a + Number(f.commission_value ?? 0), 0);
+      .reduce((a, f) => a + Number(f.commission_value ?? 0) + Number(f.rav_value ?? 0), 0);
 
     const pending = (orders ?? []).filter(
       (o) => (o.status ?? "").toLowerCase() === "pending" && new Date(o.created_at) >= start,
