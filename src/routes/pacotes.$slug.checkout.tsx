@@ -473,19 +473,6 @@ function Checkout() {
                 boleto_installment_value: totalPrice / Math.max(boletoInstallments, 1),
               }
             : {}),
-          ...(payment === "pix"
-            ? {
-                pix_capture: {
-                  billing: {
-                    zip: pixAddress.cep,
-                    address: pixAddress.address,
-                    number: pixAddress.number,
-                    city: pixAddress.city,
-                    state: pixAddress.state,
-                  },
-                },
-              }
-            : {}),
           },
           full_name: primary.full_name,
           email: primary.email,
@@ -507,11 +494,12 @@ function Checkout() {
           payer_cpf: payment === "credit_card" ? card.cardCpf : (primary.cpf || null),
           payer_email: primary.email,
           payer_phone: primary.phone,
-          payer_zip: payment === "credit_card" ? card.billingZip : payment === "pix" ? pixAddress.cep : null,
-          payer_address: payment === "credit_card" ? card.billingAddress : payment === "pix" ? pixAddress.address : null,
-          payer_number: payment === "credit_card" ? card.billingNumber : payment === "pix" ? pixAddress.number : null,
-          payer_city: payment === "credit_card" ? card.billingCity : payment === "pix" ? pixAddress.city : null,
-          payer_state: payment === "credit_card" ? card.billingState : payment === "pix" ? pixAddress.state : null,
+          payer_zip: payment === "credit_card" ? card.billingZip : null,
+          payer_address: payment === "credit_card" ? card.billingAddress : null,
+          payer_number: payment === "credit_card" ? card.billingNumber : null,
+          payer_city: payment === "credit_card" ? card.billingCity : null,
+          payer_state: payment === "credit_card" ? card.billingState : null,
+
         });
 
       if (error) throw error;
