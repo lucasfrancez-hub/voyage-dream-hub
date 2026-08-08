@@ -56,15 +56,30 @@ export interface EnsureCustomerInput {
 /** Busca cliente pelo CPF/CNPJ; cria se não existir. */
 export async function ensureAsaasCustomer(input: EnsureCustomerInput): Promise<string> {
   const doc = String(input.cpfCnpj || '').replace(/\D/g, '')
+  const endereco = {
+    postalCode: input.postalCode ? String(input.postalCode).replace(/\D/g, '') : undefined,
+    address: input.address || undefined,
+    addressNumber: input.addressNumber || undefined,
+    complement: input.complement || undefined,
+    province: input.province || undefined,
+  }
+  const temEndereco = Object.values(endereco).some(Boolean)
+  const contato = {
+    mobilePhone: input.phone ? String(input.phone).replace(/\D/g, '') : undefined,
+  }
   if (doc) {
     const found = await asaasFetch(`/customers?cpfCnpj=${doc}&limit=1`)
     const id = found?.data?.[0]?.id
     if (id) {
-      // Garante que o ASAAS não dispare e-mail/SMS/WhatsApp para o cliente.
-      if (found?.data?.[0]?.notificationDisabled !== true) {
+      // Garante que o ASAAS não dispare e-mail/SMS/WhatsApp e atualiza endereço/telefone informados.
+      const patch: Record<string, unknown> = {}
+      if (found?.data?.[0]?.notificationDisabled !== true) patch.notificationDisabled = true
+      if (temEndereco) Object.assign(patch, endereco)
+      if (contato.mobilePhone) Object.assign(patch, contato)
+      if (Object.keys(patch).length) {
         await asaasFetch(`/customers/${id}`, {
           method: 'POST',
-          body: JSON.stringify({ notificationDisabled: true }),
+          body: JSON.stringify(patch),
         }).catch(() => null)
       }
       return id
@@ -76,7 +91,8 @@ export async function ensureAsaasCustomer(input: EnsureCustomerInput): Promise<s
       name: input.name || 'Cliente VIA AIR',
       cpfCnpj: doc || undefined,
       email: input.email || undefined,
-      mobilePhone: input.phone ? String(input.phone).replace(/\D/g, '') : undefined,
+      ...contato,
+      ...endereco,
       externalReference: input.externalReference || undefined,
       notificationDisabled: true,
     }),
