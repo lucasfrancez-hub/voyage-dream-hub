@@ -299,7 +299,7 @@ ${d.preview ? '<div class="preview-flag">Pré-visualização</div>' : ""}
   <div class="top">
     <div>
       <div class="brand"><img src="${esc(logoUrl)}" alt="VIA AIR" /></div>
-      <h1>BOLETO DE PAGAMENTO</h1>
+      <h1>${d.variant === "pix" ? "COBRANÇA PIX" : "BOLETO DE PAGAMENTO"}</h1>
       <div class="docline">Documento Nº <b>${esc(numeroDocumento || "—")}</b></div>
     </div>
     <div>
