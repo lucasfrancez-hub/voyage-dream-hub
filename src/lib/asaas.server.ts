@@ -225,24 +225,41 @@ export async function createAsaasCharge(input: CreateChargeInput) {
 
   let pix: any = null
   let identificationField: string | null = null
+  let nossoNumero: string | null = null
   // Boleto no ASAAS é híbrido: também expõe QR Code Pix. Buscamos os dois.
   pix = await asaasFetch(`/payments/${payment.id}/pixQrCode`).catch(() => null)
   if (input.billingType !== 'PIX') {
     const idf = await asaasFetch(`/payments/${payment.id}/identificationField`).catch(() => null)
     identificationField = idf?.identificationField ?? null
+    nossoNumero = idf?.nossoNumero ?? payment?.nossoNumero ?? null
   }
 
+  const contaAsaas = await getAsaasAccountNumber()
 
   return {
     paymentId: String(payment.id),
     invoiceUrl: payment.invoiceUrl ?? null,
     bankSlipUrl: payment.bankSlipUrl ?? null,
     identificationField,
+    nossoNumero,
+    agenciaCodigo: contaAsaas?.agenciaCodigo ?? null,
     pixPayload: pix?.payload ?? null,
     pixEncodedImage: pix?.encodedImage ?? null,
     pixExpiration: pix?.expirationDate ?? null,
-    raw: { payment, pix },
+    raw: { payment: { ...payment, nossoNumero: nossoNumero ?? payment?.nossoNumero ?? null }, pix, conta: contaAsaas },
   }
+}
+
+/** Agência / conta da conta ASAAS (aparece no boleto como "Agência / Código do beneficiário"). */
+let _contaCache: { agencia: string; conta: string; agenciaCodigo: string } | null = null
+export async function getAsaasAccountNumber() {
+  if (_contaCache) return _contaCache
+  const data = await asaasFetch('/myAccount/accountNumber').catch(() => null)
+  if (!data?.account) return null
+  const agencia = String(data.agency ?? '').trim()
+  const conta = `${String(data.account ?? '').trim()}${data.accountDigit ? `-${data.accountDigit}` : ''}`
+  _contaCache = { agencia, conta, agenciaCodigo: [agencia, conta].filter(Boolean).join(' / ') }
+  return _contaCache
 }
 
 export async function getAsaasCustomer(customerId: string) {

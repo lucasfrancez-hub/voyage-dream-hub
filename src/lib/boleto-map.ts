@@ -35,13 +35,18 @@ export function recebimentoParaBoleto(row: any): BoletoDocData {
       nome: pay?.bank?.name ?? "ASAAS IP S.A.",
       codigo: pay?.bank?.code ?? "461-0",
       linhaDigitavel: row?.identification_field ?? null,
-      nossoNumero: pay?.nossoNumero ?? null,
+      nossoNumero: pay?.nossoNumero ?? raw?.identificationField?.nossoNumero ?? null,
       dataDocumento: row?.created_at ?? null,
       dataProcessamento: row?.created_at ?? null,
       carteira: pay?.carteira ?? null,
       especie: pay?.especie ?? null,
       aceite: pay?.aceite ?? null,
-      agenciaCodigo: pay?.agenciaCodigo ?? null,
+      agenciaCodigo:
+        raw?.conta?.agenciaCodigo ??
+        pay?.agenciaCodigo ??
+        (raw?.conta?.agencia
+          ? [raw.conta.agencia, raw.conta.conta].filter(Boolean).join(" / ")
+          : null),
     },
     multaPercent: row?.fine_percent != null ? Number(row.fine_percent) : null,
     jurosPercentMes: row?.interest_percent != null ? Number(row.interest_percent) : null,
