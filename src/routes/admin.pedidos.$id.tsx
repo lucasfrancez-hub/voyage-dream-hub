@@ -4959,43 +4959,89 @@ function PaymentDialog({
           </TabsList>
           <TabsContent value="pagamento" className="flex-1 min-h-0 overflow-y-auto pr-1">
             {reservationOptions.length > 0 && (
-              <div className="mb-3 rounded-md border bg-muted/40 p-3">
-                <div className="flex items-center justify-between mb-1.5">
-                  <Label className="text-xs uppercase tracking-wider">Reservas cobertas por este pagamento</Label>
-                  {selectedItemIds.length > 0 && (
-                    <button type="button" className="text-[11px] text-brand-orange hover:underline" onClick={() => setSelectedItemIds([])}>
-                      Limpar (cobrir pedido inteiro)
+              <div className="mb-4 space-y-3">
+                <div className="flex items-center justify-between gap-2">
+                  <Label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                    Reservas cobertas por este pagamento
+                  </Label>
+                  {selectedItemIds.length === 0 ? (
+                    <span className="rounded-full border border-brand-orange/25 bg-brand-orange/10 px-2 py-0.5 text-[10px] font-medium text-brand-orange">
+                      Cobrindo pedido inteiro
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      className="text-[11px] font-medium text-brand-orange hover:underline"
+                      onClick={() => setSelectedItemIds([])}
+                    >
+                      Limpar seleção
                     </button>
                   )}
                 </div>
-                <div className="space-y-1.5">
+
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   {reservationOptions.map((opt) => {
                     const checked = opt.itemIds.every((id) => selectedItemIds.includes(id));
+                    const isFlight = /→|->|voo/i.test(`${opt.label} ${opt.sub ?? ""}`);
+                    const Icon = isFlight ? Plane : Hotel;
                     return (
-                      <label key={opt.id} className="flex items-start gap-2 text-sm cursor-pointer">
+                      <label
+                        key={opt.id}
+                        className={`relative flex cursor-pointer items-start gap-3 rounded-xl border p-4 transition-all ${
+                          checked
+                            ? "border-brand-orange bg-brand-orange/5"
+                            : "border-border bg-muted/30 hover:bg-muted/60"
+                        }`}
+                      >
                         <input
                           type="checkbox"
-                          className="mt-0.5 accent-brand-orange"
+                          className="sr-only"
                           checked={checked}
                           onChange={() => toggleReservation(opt.itemIds)}
                         />
-                        <span className="flex-1">
-                          <span className="font-medium">{opt.label}</span>
-                          {opt.sub && <span className="text-muted-foreground"> — {opt.sub}</span>}
+                        <span
+                          className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded border-2 transition-colors ${
+                            checked ? "border-brand-orange bg-brand-orange" : "border-muted-foreground/40"
+                          }`}
+                        >
+                          {checked && <Check className="h-3 w-3 text-primary-foreground" strokeWidth={3} />}
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="flex items-center gap-2">
+                            <Icon className="h-4 w-4 shrink-0 text-muted-foreground" />
+                            <span className="truncate text-sm font-semibold text-foreground">{opt.label}</span>
+                          </span>
+                          {opt.sub && (
+                            <span className="mt-1 block text-xs text-muted-foreground">{opt.sub}</span>
+                          )}
                         </span>
                       </label>
                     );
                   })}
                 </div>
-                <div className="mt-2 text-[11px] text-muted-foreground">
-                  {selectedItemIds.length === 0
-                    ? "Nenhuma marcada: a autorização de débito lista todos os passageiros do pedido."
-                    : coveredPassengerNames && coveredPassengerNames.length > 0
-                      ? `Passageiros na autorização: ${coveredPassengerNames.join(", ")}`
-                      : "Nenhum passageiro vinculado às reservas marcadas."}
+
+                <div className="flex items-start gap-2 rounded-lg border border-border bg-muted/30 p-3">
+                  <Info className="mt-0.5 h-4 w-4 shrink-0 text-brand-orange" />
+                  <p className="text-[11px] leading-relaxed text-muted-foreground">
+                    {selectedItemIds.length === 0 ? (
+                      <>
+                        <strong className="text-foreground">Nada selecionado:</strong> a autorização de débito
+                        inclui automaticamente <span className="font-medium text-foreground">todas as reservas e passageiros</span> deste pedido.
+                        Marque um card acima só se este pagamento cobrir apenas parte do pedido.
+                      </>
+                    ) : coveredPassengerNames && coveredPassengerNames.length > 0 ? (
+                      <>
+                        <strong className="text-foreground">Passageiros na autorização:</strong>{" "}
+                        {coveredPassengerNames.join(", ")}
+                      </>
+                    ) : (
+                      "Nenhum passageiro vinculado às reservas marcadas."
+                    )}
+                  </p>
                 </div>
               </div>
             )}
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div>
                 <Label>Forma de pagamento</Label>
