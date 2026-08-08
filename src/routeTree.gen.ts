@@ -37,6 +37,7 @@ import { Route as AdminCarrosRouteImport } from './routes/admin.carros'
 import { Route as AdminCheckinTreinoRouteImport } from './routes/admin.checkin-treino'
 import { Route as AdminCheckinsRouteImport } from './routes/admin.checkins'
 import { Route as AdminCofreRouteImport } from './routes/admin.cofre'
+import { Route as AdminContaBancariaRouteImport } from './routes/admin.conta-bancaria'
 import { Route as AdminContasPagarRouteImport } from './routes/admin.contas-pagar'
 import { Route as AdminContasReceberRouteImport } from './routes/admin.contas-receber'
 import { Route as AdminDashboardRouteImport } from './routes/admin.dashboard'
@@ -269,6 +270,11 @@ const AdminCheckinsRoute = AdminCheckinsRouteImport.update({
 const AdminCofreRoute = AdminCofreRouteImport.update({
   id: '/cofre',
   path: '/cofre',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminContaBancariaRoute = AdminContaBancariaRouteImport.update({
+  id: '/conta-bancaria',
+  path: '/conta-bancaria',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminContasPagarRoute = AdminContasPagarRouteImport.update({
@@ -795,6 +801,7 @@ export interface FileRoutesByFullPath {
   '/admin/checkin-treino': typeof AdminCheckinTreinoRoute
   '/admin/checkins': typeof AdminCheckinsRoute
   '/admin/cofre': typeof AdminCofreRoute
+  '/admin/conta-bancaria': typeof AdminContaBancariaRoute
   '/admin/contas-pagar': typeof AdminContasPagarRoute
   '/admin/contas-receber': typeof AdminContasReceberRoute
   '/admin/dashboard': typeof AdminDashboardRoute
@@ -917,6 +924,7 @@ export interface FileRoutesByTo {
   '/admin/checkin-treino': typeof AdminCheckinTreinoRoute
   '/admin/checkins': typeof AdminCheckinsRoute
   '/admin/cofre': typeof AdminCofreRoute
+  '/admin/conta-bancaria': typeof AdminContaBancariaRoute
   '/admin/contas-pagar': typeof AdminContasPagarRoute
   '/admin/contas-receber': typeof AdminContasReceberRoute
   '/admin/dashboard': typeof AdminDashboardRoute
@@ -1041,6 +1049,7 @@ export interface FileRoutesById {
   '/admin/checkin-treino': typeof AdminCheckinTreinoRoute
   '/admin/checkins': typeof AdminCheckinsRoute
   '/admin/cofre': typeof AdminCofreRoute
+  '/admin/conta-bancaria': typeof AdminContaBancariaRoute
   '/admin/contas-pagar': typeof AdminContasPagarRoute
   '/admin/contas-receber': typeof AdminContasReceberRoute
   '/admin/dashboard': typeof AdminDashboardRoute
@@ -1166,6 +1175,7 @@ export interface FileRouteTypes {
     | '/admin/checkin-treino'
     | '/admin/checkins'
     | '/admin/cofre'
+    | '/admin/conta-bancaria'
     | '/admin/contas-pagar'
     | '/admin/contas-receber'
     | '/admin/dashboard'
@@ -1288,6 +1298,7 @@ export interface FileRouteTypes {
     | '/admin/checkin-treino'
     | '/admin/checkins'
     | '/admin/cofre'
+    | '/admin/conta-bancaria'
     | '/admin/contas-pagar'
     | '/admin/contas-receber'
     | '/admin/dashboard'
@@ -1411,6 +1422,7 @@ export interface FileRouteTypes {
     | '/admin/checkin-treino'
     | '/admin/checkins'
     | '/admin/cofre'
+    | '/admin/conta-bancaria'
     | '/admin/contas-pagar'
     | '/admin/contas-receber'
     | '/admin/dashboard'
@@ -1775,6 +1787,13 @@ declare module '@tanstack/react-router' {
       path: '/cofre'
       fullPath: '/admin/cofre'
       preLoaderRoute: typeof AdminCofreRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/conta-bancaria': {
+      id: '/admin/conta-bancaria'
+      path: '/conta-bancaria'
+      fullPath: '/admin/conta-bancaria'
+      preLoaderRoute: typeof AdminContaBancariaRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/contas-pagar': {
@@ -2451,6 +2470,7 @@ interface AdminRouteChildren {
   AdminCheckinTreinoRoute: typeof AdminCheckinTreinoRoute
   AdminCheckinsRoute: typeof AdminCheckinsRoute
   AdminCofreRoute: typeof AdminCofreRoute
+  AdminContaBancariaRoute: typeof AdminContaBancariaRoute
   AdminContasPagarRoute: typeof AdminContasPagarRoute
   AdminContasReceberRoute: typeof AdminContasReceberRoute
   AdminDashboardRoute: typeof AdminDashboardRoute
@@ -2485,6 +2505,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminCheckinTreinoRoute: AdminCheckinTreinoRoute,
   AdminCheckinsRoute: AdminCheckinsRoute,
   AdminCofreRoute: AdminCofreRoute,
+  AdminContaBancariaRoute: AdminContaBancariaRoute,
   AdminContasPagarRoute: AdminContasPagarRoute,
   AdminContasReceberRoute: AdminContasReceberRoute,
   AdminDashboardRoute: AdminDashboardRoute,
