@@ -43,6 +43,14 @@ export interface EnsureCustomerInput {
   email?: string | null
   phone?: string | null
   externalReference?: string | null
+  /** Endereço (opcional) — usado no boleto/fatura. */
+  postalCode?: string | null
+  address?: string | null
+  addressNumber?: string | null
+  complement?: string | null
+  province?: string | null
+  city?: string | null
+  state?: string | null
 }
 
 /** Busca cliente pelo CPF/CNPJ; cria se não existir. */
