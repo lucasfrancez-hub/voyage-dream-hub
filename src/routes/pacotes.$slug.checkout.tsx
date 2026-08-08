@@ -303,7 +303,7 @@ function Checkout() {
   }, [pkg, adults, children, isPerUnit]);
 
   const PIX_DISCOUNT = 0.05;
-  const PIX_FEE = 1.99; // taxa da transação Pix, sempre somada ao valor do cliente
+
   const taxesAmount = Number(pkg?.taxes ?? 0);
   const pixDiscountBase = Math.max(0, subtotalPrice - taxesAmount);
   const pixDiscountValue = payment === "pix" ? pixDiscountBase * PIX_DISCOUNT : 0;
