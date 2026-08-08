@@ -844,6 +844,29 @@ function CobrancaDialog({
               </div>
             )}
 
+            {vencido && (
+              <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 space-y-2">
+                <p className="text-[11px] text-amber-600 dark:text-amber-400">
+                  Cobrança vencida em{" "}
+                  {new Date(`${row.due_date}T12:00:00`).toLocaleDateString("pt-BR")}. Gere a
+                  segunda via com multa e juros atualizados direto na conta VIA AIR.
+                </p>
+                <Button
+                  className="w-full bg-amber-500 hover:bg-amber-500/90 text-white"
+                  disabled={atualizando}
+                  onClick={gerarSegundaVia}
+                >
+                  {atualizando ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                  )}
+                  Segunda via atualizada
+                </Button>
+              </div>
+            )}
+
+
             <Button
               className="w-full bg-brand-orange hover:bg-brand-orange/90"
               onClick={async () => {
