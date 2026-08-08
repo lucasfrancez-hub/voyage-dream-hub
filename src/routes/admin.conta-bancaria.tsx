@@ -275,16 +275,16 @@ function ContaBancariaPage() {
             <table className="w-full border-collapse text-left">
               <thead>
                 <tr className="border-b border-border/40 text-[11px] uppercase tracking-widest text-muted-foreground">
-                  <th className="px-6 py-4 font-semibold">Transação / Referência</th>
-                  <th className="px-6 py-4 font-semibold">Tipo / Data</th>
-                  <th className="px-6 py-4 text-right font-semibold">Valor</th>
-                  <th className="px-6 py-4 text-right font-semibold">Comprovante</th>
+                  <th className="px-4 py-4 font-semibold">Transação / Referência</th>
+                  <th className="px-4 py-4 font-semibold">Tipo / Data</th>
+                  <th className="px-4 py-4 text-right font-semibold">Valor</th>
+                  <th className="px-4 py-4 text-right font-semibold">Comprovante</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/40">
                 {filtrado.map((i) => (
                   <tr key={i.id} className="transition-colors hover:bg-foreground/[0.03]">
-                    <td className="px-6 py-5">
+                    <td className="px-4 py-5">
                       <div className="flex items-start gap-4">
                         <div
                           className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${
@@ -320,7 +320,7 @@ function ContaBancariaPage() {
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-5">
+                    <td className="px-4 py-5">
                       <span
                         className={`inline-block rounded-full border px-2.5 py-0.5 text-[11px] font-medium ${typeTone(i.type, i.direction)}`}
                       >
@@ -328,7 +328,7 @@ function ContaBancariaPage() {
                       </span>
                       <p className="mt-1 text-xs text-muted-foreground">{fmtDate(i.createdAt || i.date)}</p>
                     </td>
-                    <td className="px-6 py-5 text-right">
+                    <td className="px-4 py-5 text-right">
                       <span
                         className={`text-sm font-bold ${
                           i.direction === "in" ? "text-emerald-400" : "text-rose-400"
@@ -337,7 +337,7 @@ function ContaBancariaPage() {
                         {i.direction === "in" ? "+" : "−"} {formatBRL(Math.abs(i.value))}
                       </span>
                     </td>
-                    <td className="px-6 py-5 text-right">
+                    <td className="px-4 py-5 text-right">
                       {i.receiptUrl || i.paymentId || i.transferId ? (
                         <ComprovanteActions
                           url={i.receiptUrl}
