@@ -13,6 +13,7 @@ import {
   obterResumoBancario, listarExtratoBancario,
 } from "@/lib/conta-bancaria.functions";
 import type { ExtratoItem } from "@/lib/conta-bancaria.helpers";
+import { asaasTypeLabel } from "@/lib/asaas-labels";
 
 export const Route = createFileRoute("/admin/conta-bancaria")({
   component: ContaBancariaPage,
