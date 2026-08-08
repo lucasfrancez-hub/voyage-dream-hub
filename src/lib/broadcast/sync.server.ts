@@ -280,3 +280,31 @@ export async function sendBroadcastBlock(
     docName: bloco.midia_filename ?? undefined,
   });
 }
+
+/**
+ * Alerta operacional no WhatsApp pessoal (UazAPI).
+ * Usado para avisar Pix recebido no checkout e saques/pagamentos Pix.
+ * Nunca lança: falha de alerta não pode quebrar webhook/financeiro.
+ */
+export async function sendUazAlert(text: string, toOverride?: string): Promise<boolean> {
+  try {
+    const base = process.env.UAZAPI_URL?.replace(/\/+$/, "");
+    const token = process.env.UAZAPI_TOKEN;
+    const number = (toOverride ?? process.env.ALERTAS_WHATSAPP_NUMERO ?? "5544999093642").replace(/\D+/g, "");
+    if (!base || !token || !number) return false;
+
+    const res = await fetch(`${base}/send/text`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", token },
+      body: JSON.stringify({ number, text: text.slice(0, 4090), linkPreview: false }),
+    });
+    if (!res.ok) {
+      console.error("[uaz-alert] HTTP", res.status, (await res.text()).slice(0, 200));
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.error("[uaz-alert] falhou:", err);
+    return false;
+  }
+}

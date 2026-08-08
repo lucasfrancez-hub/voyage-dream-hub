@@ -92,5 +92,30 @@ export async function applyTransferStatus(opts: {
       .eq('id', row.financial_entry_id)
   }
 
+  // Alerta no WhatsApp pessoal (saques / pagamentos Pix)
+  if (['concluido', 'falhou', 'cancelado'].includes(status)) {
+    try {
+      const { sendUazAlert } = await import('@/lib/broadcast/sync.server')
+      const titulo =
+        status === 'concluido'
+          ? '\u{1F4B8} *Saque Pix concluído*'
+          : status === 'falhou'
+            ? '\u274C *Saque Pix falhou*'
+            : '\u26A0\uFE0F *Saque Pix cancelado*'
+      const linhas = [
+        titulo,
+        `Valor: R$ ${Number(row.value).toFixed(2)}`,
+        row.favored_name ? `Favorecido: ${row.favored_name}` : null,
+        row.description ? `Descrição: ${row.description}` : null,
+        `Quando: ${new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}`,
+        row.asaas_transfer_id ? `ASAAS: ${row.asaas_transfer_id}` : null,
+        raw?.failReason ? `Motivo: ${raw.failReason}` : null,
+      ].filter(Boolean)
+      await sendUazAlert(linhas.join('\n'))
+    } catch (err) {
+      console.error('[asaas-transfer] alerta WhatsApp falhou', err)
+    }
+  }
+
   return { ok: true as const, status }
 }
