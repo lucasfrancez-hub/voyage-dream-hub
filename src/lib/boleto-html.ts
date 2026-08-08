@@ -51,6 +51,8 @@ export interface BoletoDocData {
   descontoValor?: number | null;
   beneficiario?: { nome: string; cnpj: string } | null;
   preview?: boolean;
+  /** URLs (ou data URIs) das logos — usadas para garantir renderização offline/blob. */
+  logos?: { viaAir?: string; asaas?: string };
 }
 
 const esc = (v: unknown) =>
@@ -210,8 +212,8 @@ export function renderBoletoHtml(d: BoletoDocData): string {
 
   const abs = (u: string) =>
     typeof window !== "undefined" ? new URL(u, window.location.origin).toString() : u;
-  const logoUrl = abs(viaAirLogo.url);
-  const asaasLogoUrl = abs(asaasLogo.url);
+  const logoUrl = d.logos?.viaAir || abs(viaAirLogo.url);
+  const asaasLogoUrl = d.logos?.asaas || abs(asaasLogo.url);
 
   return `<!doctype html>
 <html lang="pt-BR"><head><meta charset="utf-8" />
@@ -259,9 +261,9 @@ h1{margin:12px 0 6px;font-size:28px;letter-spacing:-.8px;color:var(--navy)}
 .cut{margin:18px -54px 14px;border-top:1.5px dashed #9aa4ae;position:relative}
 .cut span{position:absolute;top:-12px;left:54px;background:#fff;padding-right:12px;color:#8b96a2;font-size:12px}
 .bank{--finance-col:230px;border:1px solid #7d8791;font-family:Arial,Helvetica,sans-serif;font-size:11px;background:#fff}
-.bank-head{display:grid;grid-template-columns:180px 90px 1fr;min-height:50px;border-bottom:1px solid #7d8791}
-.bank-logo{background:var(--navy);display:flex;align-items:center;justify-content:center;border-right:1px solid #7d8791;padding:8px 14px}
-.bank-logo img{max-width:110px;max-height:18px;object-fit:contain}
+.bank-head{display:grid;grid-template-columns:118px 78px 1fr;min-height:50px;border-bottom:1px solid #7d8791}
+.bank-logo{background:var(--navy);display:flex;align-items:center;justify-content:center;border-right:1px solid #7d8791;padding:6px 10px}
+.bank-logo img{max-width:96px;max-height:16px;object-fit:contain}
 .bank-code{background:var(--navy);color:#fff;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;border-right:1px solid #7d8791}
 .digitable{display:flex;align-items:center;padding:0 18px;font-size:14px;font-weight:800;white-space:nowrap}
 .bcell{padding:6px 10px;border-right:1px solid #7d8791;min-width:0}
@@ -416,14 +418,45 @@ ${d.preview ? '<div class="preview-flag">Pré-visualização</div>' : ""}
 </body></html>`;
 }
 
+/** Baixa as logos e converte em data URI (cache em memória).
+ *  Necessário porque o boleto é aberto via Blob URL, onde imagens
+ *  externas podem não carregar em alguns navegadores. */
+let logosCache: { viaAir?: string; asaas?: string } | null = null;
+export async function carregarLogosBoleto(): Promise<{ viaAir?: string; asaas?: string }> {
+  if (logosCache) return logosCache;
+  const toDataUrl = async (url: string) => {
+    try {
+      const res = await fetch(url);
+      if (!res.ok) return undefined;
+      const blob = await res.blob();
+      return await new Promise<string>((resolve, reject) => {
+        const fr = new FileReader();
+        fr.onload = () => resolve(String(fr.result));
+        fr.onerror = reject;
+        fr.readAsDataURL(blob);
+      });
+    } catch {
+      return undefined;
+    }
+  };
+  const [viaAir, asaas] = await Promise.all([
+    toDataUrl(viaAirLogo.url),
+    toDataUrl(asaasLogo.url),
+  ]);
+  logosCache = { viaAir, asaas };
+  return logosCache;
+}
+
 /** Abre o boleto em uma nova aba (preview ou impressão/PDF).
  *  Usa Blob URL — funciona no Safari/Chrome, onde `document.write`
  *  em janela com `noopener` resulta em página em branco. */
-export function abrirBoletoHtml(data: BoletoDocData, imprimir = false) {
-  const html = renderBoletoHtml(data);
+export async function abrirBoletoHtml(data: BoletoDocData, imprimir = false) {
+  // Abre a aba de forma síncrona (evita bloqueio de pop-up após o await).
+  const win = window.open("", "_blank");
+  const logos = await carregarLogosBoleto();
+  const html = renderBoletoHtml({ ...data, logos: { ...logos, ...data.logos } });
   const blob = new Blob([html], { type: "text/html;charset=utf-8" });
   const url = URL.createObjectURL(blob);
-  const win = window.open(url, "_blank");
   if (!win) {
     // Pop-up bloqueado: baixa o arquivo como fallback.
     const a = document.createElement("a");
@@ -435,6 +468,7 @@ export function abrirBoletoHtml(data: BoletoDocData, imprimir = false) {
     setTimeout(() => URL.revokeObjectURL(url), 30000);
     return false;
   }
+  win.location.replace(url);
   if (imprimir) {
     win.addEventListener?.("load", () => setTimeout(() => win.print(), 300));
   }

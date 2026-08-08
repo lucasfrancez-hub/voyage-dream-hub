@@ -650,8 +650,8 @@ function CobrancaDialog({ row, onClose }: { row: any | null; onClose: () => void
             {row.kind === "boleto" && (
               <Button
                 className="w-full bg-brand-orange hover:bg-brand-orange/90"
-                onClick={() => {
-                  if (!abrirBoletoHtml(recebimentoParaBoleto(row), true)) {
+                onClick={async () => {
+                  if (!(await abrirBoletoHtml(recebimentoParaBoleto(row), true))) {
                     toast.error("Libere pop-ups para gerar o boleto.");
                   }
                 }}
