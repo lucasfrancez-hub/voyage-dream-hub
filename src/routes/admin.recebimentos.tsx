@@ -446,199 +446,248 @@ function NovoRecebimentoDialog({
     }));
   }
 
+  const fieldCls =
+    "bg-foreground/[0.04] border-border/50 rounded-xl h-11 px-4 text-sm transition-all focus-visible:border-brand-orange/50 focus-visible:ring-4 focus-visible:ring-brand-orange/10";
+  const subFieldCls =
+    "bg-background/40 border-border/40 rounded-lg h-9 px-3 text-xs transition-all focus-visible:border-brand-orange/40 focus-visible:ring-2 focus-visible:ring-brand-orange/10";
+  const labelCls = "text-xs font-medium text-muted-foreground ml-1";
+  const microLabelCls = "text-[10px] font-medium uppercase tracking-wide text-muted-foreground/80";
+
+  const SectionTitle = ({ children }: { children: React.ReactNode }) => (
+    <div className="flex items-center gap-2 text-brand-orange/90">
+      <span className="h-1 w-4 rounded-full bg-brand-orange" />
+      <span className="text-xs font-bold uppercase tracking-widest">{children}</span>
+    </div>
+  );
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[560px] max-h-[90vh] overflow-y-auto bg-card/80 backdrop-blur-xl border-border/60 rounded-2xl">
-        <DialogHeader>
-          <DialogTitle>Nova cobrança</DialogTitle>
+      <DialogContent className="max-w-[680px] max-h-[90vh] p-0 gap-0 overflow-hidden flex flex-col bg-card/85 backdrop-blur-2xl border-border/50 rounded-3xl shadow-2xl">
+        <DialogHeader className="shrink-0 border-b border-border/40 bg-foreground/[0.02] px-6 py-5">
+          <DialogTitle className="text-xl font-semibold tracking-tight">Nova cobrança</DialogTitle>
         </DialogHeader>
 
-        <div className="grid grid-cols-2 gap-2">
-          {(["pix", "boleto"] as const).map((k) => (
-            <button
-              key={k}
-              type="button"
-              onClick={() => onKindChange(k)}
-              className={`flex items-center gap-2 rounded-xl border p-3 text-sm font-medium transition ${
-                kind === k
-                  ? "border-brand-orange bg-brand-orange/10 text-foreground"
-                  : "border-border/60 text-muted-foreground hover:bg-muted/30"
-              }`}
-            >
-              {k === "pix" ? <QrCode className="h-4 w-4" /> : <Barcode className="h-4 w-4" />}
-              {k === "pix" ? "Pix / QR Code" : "Boleto bancário"}
-            </button>
-          ))}
-        </div>
-
-        <div className="space-y-3">
-          <div className="relative">
-            <Label>Nome do pagador</Label>
-            <Input
-              value={form.customerName}
-              onChange={(e) => {
-                setPersonId(null);
-                setSugestoesOpen(true);
-                setForm((f) => ({ ...f, customerName: e.target.value }));
-              }}
-              onFocus={() => setSugestoesOpen(true)}
-              onBlur={() => setTimeout(() => setSugestoesOpen(false), 150)}
-              placeholder="Digite para buscar no cadastro de pessoas"
-              autoComplete="off"
-            />
-            {sugestoesOpen && sugestoes.length > 0 && (
-              <div className="absolute z-50 mt-1 w-full max-h-56 overflow-y-auto rounded-xl border border-border/60 bg-popover shadow-xl">
-                {sugestoes.map((p: any) => (
-                  <button
-                    key={p.id}
-                    type="button"
-                    className="w-full px-3 py-2 text-left hover:bg-muted/50"
-                    onMouseDown={(e) => e.preventDefault()}
-                    onClick={() => escolherPessoa(p)}
-                  >
-                    <div className="text-sm font-medium truncate">{p.name}</div>
-                    <div className="text-[11px] text-muted-foreground truncate">
-                      {[p.cpf || p.cnpj, p.email].filter(Boolean).join(" · ")}
-                    </div>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label>CPF/CNPJ</Label>
-              <Input value={form.cpfCnpj} onChange={set("cpfCnpj")} placeholder="000.000.000-00" />
-            </div>
-            <div>
-              <Label>Valor (R$)</Label>
-              <Input value={form.value} onChange={set("value")} inputMode="decimal" placeholder="0,00" />
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label>E-mail (opcional)</Label>
-              <Input value={form.email} onChange={set("email")} placeholder="cliente@email.com" />
-            </div>
-            <div>
-              <Label>Telefone (opcional)</Label>
-              <Input value={form.phone} onChange={set("phone")} inputMode="tel" placeholder="(44) 99999-0000" />
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label>Vencimento</Label>
-              <Input type="date" value={form.dueDate} onChange={set("dueDate")} />
-            </div>
-            <div />
+        <div className="flex-1 overflow-y-auto px-6 py-6 space-y-8">
+          {/* Tipo de cobrança */}
+          <div className="flex gap-1 rounded-xl border border-border/40 bg-background/50 p-1">
+            {(["pix", "boleto"] as const).map((k) => (
+              <button
+                key={k}
+                type="button"
+                onClick={() => onKindChange(k)}
+                className={`flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm transition-all duration-200 ${
+                  kind === k
+                    ? "bg-brand-orange text-primary-foreground font-semibold shadow-[0_0_20px_-5px_color-mix(in_oklab,var(--brand-orange)_60%,transparent)]"
+                    : "bg-foreground/[0.03] text-muted-foreground hover:text-foreground font-medium"
+                }`}
+              >
+                {k === "pix" ? <QrCode className="h-4 w-4" /> : <Barcode className="h-4 w-4" />}
+                {k === "pix" ? "Pix / QR Code" : "Boleto bancário"}
+              </button>
+            ))}
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label>Multa por atraso (%) — opcional</Label>
-              <Input value={form.finePercent} onChange={set("finePercent")} inputMode="decimal" placeholder="2" />
-            </div>
-            <div>
-              <Label>Juros ao mês (%) — opcional</Label>
-              <Input value={form.interestPercent} onChange={set("interestPercent")} inputMode="decimal" placeholder="1" />
-            </div>
-          </div>
+          {/* Dados do pagador */}
+          <div className="space-y-4">
+            <SectionTitle>Dados do pagador</SectionTitle>
 
-          <div className="rounded-xl border border-border/60 bg-muted/10 p-3 space-y-3">
-            <p className="text-[11px] uppercase tracking-widest text-muted-foreground">
-              Endereço do pagador (opcional)
-            </p>
-            <div className="grid grid-cols-3 gap-3">
-              <div>
-                <Label>CEP</Label>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="col-span-2 space-y-1.5 relative">
+                <Label className={labelCls}>Nome do pagador</Label>
                 <Input
-                  value={form.cep}
+                  className={fieldCls}
+                  value={form.customerName}
                   onChange={(e) => {
-                    const v = e.target.value;
-                    setForm((f) => ({ ...f, cep: v }));
-                    if (v.replace(/\D/g, "").length === 8) void buscarCep(v);
+                    setPersonId(null);
+                    setSugestoesOpen(true);
+                    setForm((f) => ({ ...f, customerName: e.target.value }));
                   }}
-                  onBlur={(e) => void buscarCep(e.target.value)}
-                  inputMode="numeric"
-                  placeholder={buscandoCep ? "Buscando..." : "87700-000"}
+                  onFocus={() => setSugestoesOpen(true)}
+                  onBlur={() => setTimeout(() => setSugestoesOpen(false), 150)}
+                  placeholder="Digite para buscar no cadastro de pessoas"
+                  autoComplete="off"
+                />
+                {sugestoesOpen && sugestoes.length > 0 && (
+                  <div className="absolute z-50 mt-1 w-full max-h-56 overflow-y-auto rounded-xl border border-border/60 bg-popover shadow-xl">
+                    {sugestoes.map((p: any) => (
+                      <button
+                        key={p.id}
+                        type="button"
+                        className="w-full px-3 py-2 text-left hover:bg-muted/50"
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => escolherPessoa(p)}
+                      >
+                        <div className="text-sm font-medium truncate">{p.name}</div>
+                        <div className="text-[11px] text-muted-foreground truncate">
+                          {[p.cpf || p.cnpj, p.email].filter(Boolean).join(" · ")}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className={labelCls}>CPF / CNPJ</Label>
+                <Input className={fieldCls} value={form.cpfCnpj} onChange={set("cpfCnpj")} placeholder="000.000.000-00" />
+              </div>
+              <div className="space-y-1.5">
+                <Label className={labelCls}>Telefone</Label>
+                <Input className={fieldCls} value={form.phone} onChange={set("phone")} inputMode="tel" placeholder="(44) 99999-0000" />
+              </div>
+              <div className="col-span-2 space-y-1.5">
+                <Label className={labelCls}>
+                  E-mail <span className="font-normal text-muted-foreground/70">(opcional)</span>
+                </Label>
+                <Input className={fieldCls} value={form.email} onChange={set("email")} placeholder="cliente@email.com" />
+              </div>
+            </div>
+
+            {/* Endereço */}
+            <div className="space-y-4 rounded-2xl border border-border/40 bg-foreground/[0.02] p-5">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                  Endereço de cobrança
+                </span>
+                <span className="rounded bg-foreground/[0.06] px-2 py-0.5 text-[10px] text-muted-foreground">
+                  {buscandoCep ? "Buscando CEP..." : "Auto-preenchimento via CEP"}
+                </span>
+              </div>
+              <div className="grid grid-cols-6 gap-3">
+                <div className="col-span-2 space-y-1">
+                  <Label className={microLabelCls}>CEP</Label>
+                  <Input
+                    className={subFieldCls}
+                    value={form.cep}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setForm((f) => ({ ...f, cep: v }));
+                      if (v.replace(/\D/g, "").length === 8) void buscarCep(v);
+                    }}
+                    onBlur={(e) => void buscarCep(e.target.value)}
+                    inputMode="numeric"
+                    placeholder="87700-000"
+                  />
+                </div>
+                <div className="col-span-3 space-y-1">
+                  <Label className={microLabelCls}>Rua</Label>
+                  <Input className={subFieldCls} value={form.logradouro} onChange={set("logradouro")} placeholder="Logradouro" />
+                </div>
+                <div className="col-span-1 space-y-1">
+                  <Label className={microLabelCls}>Nº</Label>
+                  <Input className={subFieldCls} value={form.numero} onChange={set("numero")} placeholder="123" />
+                </div>
+                <div className="col-span-3 space-y-1">
+                  <Label className={microLabelCls}>Complemento</Label>
+                  <Input className={subFieldCls} value={form.complemento} onChange={set("complemento")} placeholder="Apto 12" />
+                </div>
+                <div className="col-span-3 space-y-1">
+                  <Label className={microLabelCls}>Bairro</Label>
+                  <Input className={subFieldCls} value={form.bairro} onChange={set("bairro")} placeholder="Centro" />
+                </div>
+                <div className="col-span-4 space-y-1">
+                  <Label className={microLabelCls}>Cidade</Label>
+                  <Input className={subFieldCls} value={form.cidade} onChange={set("cidade")} placeholder="Paranavaí" />
+                </div>
+                <div className="col-span-2 space-y-1">
+                  <Label className={microLabelCls}>UF</Label>
+                  <Input className={`${subFieldCls} text-center`} value={form.estado} onChange={set("estado")} maxLength={2} placeholder="PR" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Valores e prazos */}
+          <div className="space-y-4">
+            <SectionTitle>Valores e prazos</SectionTitle>
+            <div className="grid grid-cols-4 gap-4">
+              <div className="col-span-2 space-y-1.5">
+                <Label className={labelCls}>Valor da cobrança</Label>
+                <div className="relative">
+                  <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-sm font-medium text-muted-foreground">
+                    R$
+                  </span>
+                  <Input
+                    className={`${fieldCls} pl-10 text-lg font-semibold`}
+                    value={form.value}
+                    onChange={set("value")}
+                    inputMode="decimal"
+                    placeholder="0,00"
+                  />
+                </div>
+              </div>
+              <div className="col-span-2 space-y-1.5">
+                <Label className={labelCls}>Vencimento</Label>
+                <Input className={fieldCls} type="date" value={form.dueDate} onChange={set("dueDate")} />
+              </div>
+              <div className="col-span-2 space-y-1.5">
+                <Label className={labelCls}>
+                  Multa por atraso (%) <span className="font-normal text-muted-foreground/70">(opcional)</span>
+                </Label>
+                <Input className={fieldCls} value={form.finePercent} onChange={set("finePercent")} inputMode="decimal" placeholder="2" />
+              </div>
+              <div className="col-span-2 space-y-1.5">
+                <Label className={labelCls}>
+                  Juros ao mês (%) <span className="font-normal text-muted-foreground/70">(opcional)</span>
+                </Label>
+                <Input className={fieldCls} value={form.interestPercent} onChange={set("interestPercent")} inputMode="decimal" placeholder="1" />
+              </div>
+            </div>
+          </div>
+
+          {/* Composição */}
+          <div className="space-y-4 rounded-2xl border border-brand-orange/10 bg-brand-orange/[0.03] p-5">
+            <span className="text-xs font-bold uppercase tracking-widest text-foreground/80">
+              Composição da cobrança
+            </span>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label className={microLabelCls}>Serviço</Label>
+                <Input className={`${subFieldCls} h-10 text-sm`} value={form.servico} onChange={set("servico")} placeholder="Pacote, aéreo, hotel..." />
+              </div>
+              <div className="space-y-1.5">
+                <Label className={microLabelCls}>Destino</Label>
+                <Input className={`${subFieldCls} h-10 text-sm`} value={form.destino} onChange={set("destino")} placeholder="Ex.: Orlando" />
+              </div>
+              <div className="space-y-1.5">
+                <Label className={microLabelCls}>Período — início</Label>
+                <Input className={`${subFieldCls} h-10 text-sm`} type="date" value={form.periodoInicio} onChange={set("periodoInicio")} />
+              </div>
+              <div className="space-y-1.5">
+                <Label className={microLabelCls}>Período — fim</Label>
+                <Input className={`${subFieldCls} h-10 text-sm`} type="date" value={form.periodoFim} onChange={set("periodoFim")} />
+              </div>
+              <div className="col-span-2 space-y-1.5">
+                <Label className={microLabelCls}>Passageiros</Label>
+                <Textarea
+                  className="bg-background/40 border-border/40 rounded-xl text-sm resize-none focus-visible:border-brand-orange/40"
+                  value={form.passageiros}
+                  onChange={set("passageiros")}
+                  rows={2}
+                  placeholder="Um por linha ou separados por vírgula"
                 />
               </div>
-              <div>
-                <Label>Número</Label>
-                <Input value={form.numero} onChange={set("numero")} placeholder="123" />
-              </div>
-              <div>
-                <Label>Complemento</Label>
-                <Input value={form.complemento} onChange={set("complemento")} placeholder="Apto 12" />
-              </div>
-            </div>
-            <div>
-              <Label>Endereço</Label>
-              <Input value={form.logradouro} onChange={set("logradouro")} placeholder="Rua / Avenida" />
-            </div>
-            <div className="grid grid-cols-3 gap-3">
-              <div>
-                <Label>Bairro</Label>
-                <Input value={form.bairro} onChange={set("bairro")} placeholder="Centro" />
-              </div>
-              <div>
-                <Label>Cidade</Label>
-                <Input value={form.cidade} onChange={set("cidade")} placeholder="Paranavaí" />
-              </div>
-              <div>
-                <Label>Estado</Label>
-                <Input value={form.estado} onChange={set("estado")} maxLength={2} placeholder="PR" />
-              </div>
             </div>
           </div>
 
-
-          <div className="rounded-xl border border-border/60 bg-muted/10 p-3 space-y-3">
-            <p className="text-[11px] uppercase tracking-widest text-muted-foreground">
-              Composição da cobrança
-            </p>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label>Serviço</Label>
-                <Input value={form.servico} onChange={set("servico")} placeholder="Pacote, aéreo, hotel..." />
-              </div>
-              <div>
-                <Label>Destino</Label>
-                <Input value={form.destino} onChange={set("destino")} placeholder="Ex.: Orlando" />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label>Período — início</Label>
-                <Input type="date" value={form.periodoInicio} onChange={set("periodoInicio")} />
-              </div>
-              <div>
-                <Label>Período — fim</Label>
-                <Input type="date" value={form.periodoFim} onChange={set("periodoFim")} />
-              </div>
-            </div>
-            <div>
-              <Label>Passageiros</Label>
-              <Textarea
-                value={form.passageiros}
-                onChange={set("passageiros")}
-                rows={2}
-                placeholder="Um por linha ou separados por vírgula"
-              />
-            </div>
-          </div>
-
-          <div>
-            <Label>Descrição (opcional)</Label>
-            <Textarea value={form.description} onChange={set("description")} rows={2} />
+          <div className="space-y-1.5">
+            <Label className={labelCls}>
+              Descrição <span className="font-normal text-muted-foreground/70">(opcional)</span>
+            </Label>
+            <Textarea
+              className="bg-foreground/[0.04] border-border/50 rounded-xl text-sm resize-none focus-visible:border-brand-orange/50"
+              value={form.description}
+              onChange={set("description")}
+              rows={3}
+            />
           </div>
         </div>
 
-        <div className="flex gap-2">
+        <div className="shrink-0 flex gap-3 border-t border-border/40 bg-background/30 px-6 py-5">
           {kind === "boleto" && (
             <Button
               variant="outline"
-              className="flex-1"
+              className="flex-1 h-12 rounded-xl"
               disabled={!form.customerName || !form.value}
               onClick={() => {
                 const fmt = (d: string) =>
@@ -672,7 +721,7 @@ function NovoRecebimentoDialog({
             </Button>
           )}
           <Button
-            className="flex-1"
+            className="flex-[2] h-12 rounded-xl font-bold shadow-[0_8px_30px_-8px_color-mix(in_oklab,var(--brand-orange)_50%,transparent)] transition-all hover:brightness-110 active:scale-[0.98]"
             disabled={mut.isPending || !form.customerName || !form.cpfCnpj || !form.value}
             onClick={() => mut.mutate()}
           >
