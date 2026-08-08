@@ -5,7 +5,7 @@ import { ArrowLeft, CreditCard, QrCode, FileText, Loader2, Check, MessageCircle 
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL, formatDateBR, formatDateRange, maskCPF } from "@/lib/format";
-import { customQuoteWhatsappUrl, whatsappUrl } from "@/lib/checkout-config";
+import { customQuoteWhatsappUrl, whatsappUrl, PIX_FEE } from "@/lib/checkout-config";
 import { useServerFn } from "@tanstack/react-start";
 import { notifyPixOrder } from "@/lib/pix-notify.functions";
 import { criarPixCobranca, consultarPixCobranca } from "@/lib/pix.functions";
