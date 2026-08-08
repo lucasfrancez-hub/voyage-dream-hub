@@ -20,6 +20,7 @@ import {
 } from "@/lib/recebimentos.functions";
 import { searchPeople } from "@/lib/people.functions";
 import { confirmThen } from "@/lib/confirm";
+import { abrirBoletoHtml, type BoletoDocData } from "@/lib/boleto-html";
 
 import { ComprovanteActions } from "@/components/financial/ComprovanteActions";
 
@@ -534,19 +535,106 @@ function NovoRecebimentoDialog({
           </div>
         </div>
 
-        <Button
-          className="w-full"
-          disabled={mut.isPending || !form.customerName || !form.cpfCnpj || !form.value}
-          onClick={() => mut.mutate()}
-        >
-          {mut.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
-          {kind === "pix" ? "Gerar QR Code" : "Gerar boleto"}
-        </Button>
+        <div className="flex gap-2">
+          {kind === "boleto" && (
+            <Button
+              variant="outline"
+              className="flex-1"
+              disabled={!form.customerName || !form.value}
+              onClick={() => {
+                const fmt = (d: string) =>
+                  d ? new Date(`${d}T12:00:00`).toLocaleDateString("pt-BR") : "";
+                const periodo = [fmt(form.periodoInicio), fmt(form.periodoFim)]
+                  .filter(Boolean)
+                  .join(" • ");
+                abrirBoletoHtml({
+                  documentoRef: "PRÉVIA",
+                  vencimento: form.dueDate,
+                  valor: Number(form.value.replace(",", ".")) || 0,
+                  pagador: {
+                    nome: form.customerName,
+                    cpfCnpj: form.cpfCnpj || null,
+                    telefone: form.phone || null,
+                    email: form.email || null,
+                  },
+                  composicao: {
+                    servico: form.servico || form.description || null,
+                    destino: form.destino || null,
+                    periodo: periodo || null,
+                    passageiro: form.passageiros || null,
+                  },
+                  multaPercent: Number(form.finePercent) || null,
+                  jurosPercentMes: Number(form.interestPercent) || null,
+                  preview: true,
+                });
+              }}
+            >
+              Visualizar boleto
+            </Button>
+          )}
+          <Button
+            className="flex-1"
+            disabled={mut.isPending || !form.customerName || !form.cpfCnpj || !form.value}
+            onClick={() => mut.mutate()}
+          >
+            {mut.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+            {kind === "pix" ? "Gerar QR Code" : "Gerar boleto"}
+          </Button>
+        </div>
       </DialogContent>
     </Dialog>
   );
 }
 
+
+/** Converte um recebimento salvo no documento do boleto VIA AIR. */
+export function recebimentoParaBoleto(row: any): BoletoDocData {
+  const raw = row?.raw_response ?? {};
+  const pay = raw?.payment ?? raw ?? {};
+  const comp = row?.composicao ?? {};
+  return {
+    documentoRef: pay?.id ?? row?.id?.slice(0, 8)?.toUpperCase() ?? null,
+    vencimento: row?.due_date ?? null,
+    valor: Number(row?.value ?? 0),
+    pagador: {
+      nome: row?.customer_name ?? "",
+      cpfCnpj: row?.customer_cpf_cnpj ?? null,
+      telefone: row?.customer_phone ?? null,
+      email: row?.customer_email ?? null,
+      endereco: comp?.endereco ?? null,
+    },
+    composicao: {
+      servico: comp?.servico ?? row?.description ?? null,
+      destino: comp?.destino ?? null,
+      periodo:
+        comp?.periodo ??
+        [comp?.periodoInicio, comp?.periodoFim]
+          .filter(Boolean)
+          .map((d: string) => new Date(`${d}T12:00:00`).toLocaleDateString("pt-BR"))
+          .join(" • ") ??
+        null,
+      passageiro: Array.isArray(comp?.passageiros)
+        ? comp.passageiros.filter(Boolean).join(", ")
+        : (comp?.passageiros ?? comp?.passageiro ?? null),
+    },
+    pix: { qrImage: row?.pix_qr_image ?? null, payload: row?.pix_payload ?? null },
+    banco: {
+      nome: pay?.bank?.name ?? "ASAAS IP S.A.",
+      codigo: pay?.bank?.code ?? "461-0",
+      linhaDigitavel: row?.identification_field ?? null,
+      nossoNumero: pay?.nossoNumero ?? null,
+      dataDocumento: row?.created_at ?? null,
+      dataProcessamento: row?.created_at ?? null,
+      carteira: pay?.carteira ?? null,
+      especie: pay?.especie ?? null,
+      aceite: pay?.aceite ?? null,
+      agenciaCodigo: pay?.agenciaCodigo ?? null,
+    },
+    multaPercent: row?.fine_percent != null ? Number(row.fine_percent) : null,
+    jurosPercentMes: row?.interest_percent != null ? Number(row.interest_percent) : null,
+    descontoValor: Number(pay?.discount?.value ?? 0),
+  };
+}
 
 function CobrancaDialog({ row, onClose }: { row: any | null; onClose: () => void }) {
   function copy(text: string, msg: string) {
@@ -601,6 +689,19 @@ function CobrancaDialog({ row, onClose }: { row: any | null; onClose: () => void
                   <Copy className="h-4 w-4 mr-2" /> Copiar linha digitável
                 </Button>
               </div>
+            )}
+
+            {row.kind === "boleto" && (
+              <Button
+                className="w-full bg-brand-orange hover:bg-brand-orange/90"
+                onClick={() => {
+                  if (!abrirBoletoHtml(recebimentoParaBoleto(row), true)) {
+                    toast.error("Libere pop-ups para gerar o boleto.");
+                  }
+                }}
+              >
+                <Barcode className="h-4 w-4 mr-2" /> Boleto VIA AIR (imprimir / PDF)
+              </Button>
             )}
 
             {(row.bank_slip_url || row.invoice_url) && (
