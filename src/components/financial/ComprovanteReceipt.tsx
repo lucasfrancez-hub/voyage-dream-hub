@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { CheckCircle2, Download, FileText, Loader2, Share2 } from "lucide-react";
+import { CheckCircle2, FileText, Loader2, Share2 } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { formatBRL } from "@/lib/format";
@@ -285,23 +285,11 @@ export function ComprovanteReceipt({
                 )}
                 Compartilhar
               </button>
-              <button
-                onClick={baixarImagem}
-                disabled={busy !== null}
-                className="flex-1 py-2 px-3 bg-brand-orange hover:brightness-95 rounded-lg text-xs font-semibold text-white shadow-[var(--shadow-glow)] transition flex items-center justify-center gap-2 disabled:opacity-60"
-              >
-                {busy === "download" ? (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                ) : (
-                  <Download className="h-3.5 w-3.5" />
-                )}
-                Baixar imagem
-              </button>
               {data?.pdfUrl ? (
                 <button
                   onClick={() => window.open(data.pdfUrl!, "_blank", "noopener,noreferrer")}
                   disabled={busy !== null}
-                  className="flex-1 py-2 px-3 bg-muted/40 hover:bg-muted rounded-lg text-xs font-semibold text-foreground border border-border transition flex items-center justify-center gap-2 disabled:opacity-60"
+                  className="flex-1 py-2 px-3 bg-brand-orange hover:brightness-95 rounded-lg text-xs font-semibold text-white shadow-[var(--shadow-glow)] transition flex items-center justify-center gap-2 disabled:opacity-60"
                 >
                   <FileText className="h-3.5 w-3.5" />
                   Salvar PDF
