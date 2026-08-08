@@ -548,6 +548,47 @@ function NovoRecebimentoDialog({
 }
 
 
+/** Converte um recebimento salvo no documento do boleto VIA AIR. */
+export function recebimentoParaBoleto(row: any): BoletoDocData {
+  const raw = row?.raw_response ?? {};
+  const pay = raw?.payment ?? raw ?? {};
+  const comp = row?.composicao ?? {};
+  return {
+    documentoRef: pay?.id ?? row?.id?.slice(0, 8)?.toUpperCase() ?? null,
+    vencimento: row?.due_date ?? null,
+    valor: Number(row?.value ?? 0),
+    pagador: {
+      nome: row?.customer_name ?? "",
+      cpfCnpj: row?.customer_cpf_cnpj ?? null,
+      telefone: row?.customer_phone ?? null,
+      email: row?.customer_email ?? null,
+      endereco: comp?.endereco ?? null,
+    },
+    composicao: {
+      servico: comp?.servico ?? row?.description ?? null,
+      destino: comp?.destino ?? null,
+      periodo: comp?.periodo ?? null,
+      passageiro: comp?.passageiros ?? comp?.passageiro ?? null,
+    },
+    pix: { qrImage: row?.pix_qr_image ?? null, payload: row?.pix_payload ?? null },
+    banco: {
+      nome: pay?.bank?.name ?? "ASAAS IP S.A.",
+      codigo: pay?.bank?.code ?? "461-0",
+      linhaDigitavel: row?.identification_field ?? null,
+      nossoNumero: pay?.nossoNumero ?? null,
+      dataDocumento: row?.created_at ?? null,
+      dataProcessamento: row?.created_at ?? null,
+      carteira: pay?.carteira ?? null,
+      especie: pay?.especie ?? null,
+      aceite: pay?.aceite ?? null,
+      agenciaCodigo: pay?.agenciaCodigo ?? null,
+    },
+    multaPercent: row?.fine_percent != null ? Number(row.fine_percent) : null,
+    jurosPercentMes: row?.interest_percent != null ? Number(row.interest_percent) : null,
+    descontoValor: Number(pay?.discount?.value ?? 0),
+  };
+}
+
 function CobrancaDialog({ row, onClose }: { row: any | null; onClose: () => void }) {
   function copy(text: string, msg: string) {
     navigator.clipboard.writeText(text);
