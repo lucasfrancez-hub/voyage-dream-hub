@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import {
-  Loader2, Plus, RefreshCw, Ban, CalendarClock, Search, Receipt,
+  Loader2, Plus, RefreshCw, Ban, CalendarClock, Search, Receipt, Eye,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -57,6 +57,7 @@ function PagamentosPage() {
   const cancelar = useServerFn(cancelarPagamentoPix);
 
   const [novoOpen, setNovoOpen] = useState(false);
+  const [reciboRow, setReciboRow] = useState<any | null>(null);
   const [detalheId, setDetalheId] = useState<string | null>(null);
   const [filter, setFilter] = useState<string>("todos");
   const [search, setSearch] = useState("");
@@ -215,11 +216,29 @@ function PagamentosPage() {
                   <span className={`px-2 py-0.5 rounded-full text-[11px] font-semibold ${meta.cls}`}>{meta.label}</span>
                   <span className="font-semibold tabular-nums w-28 text-right">{formatBRL(Number(r.value))}</span>
                   <div className="flex gap-1">
-                    <Button size="icon" variant="ghost" title="Sincronizar status" onClick={() => doSync(r.id)}>
+                    <Button
+                      size="icon"
+                      variant="outline"
+                      title="Detalhes e auditoria"
+                      className="rounded-full h-9 w-9 border-border/60"
+                      onClick={() => setDetalheId(r.id)}
+                    >
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="outline"
+                      title="Ver comprovante"
+                      className="rounded-full h-9 w-9 border-border/60"
+                      onClick={() => setReciboRow(r)}
+                    >
+                      <Receipt className="h-4 w-4" />
+                    </Button>
+                    <Button size="icon" variant="ghost" className="rounded-full h-9 w-9" title="Sincronizar status" onClick={() => doSync(r.id)}>
                       <RefreshCw className="h-4 w-4" />
                     </Button>
                     {cancelable && (
-                      <Button size="icon" variant="ghost" title="Cancelar" onClick={() => doCancel(r.id)}>
+                      <Button size="icon" variant="ghost" className="rounded-full h-9 w-9" title="Cancelar" onClick={() => doCancel(r.id)}>
                         <Ban className="h-4 w-4 text-red-500" />
                       </Button>
                     )}
@@ -238,6 +257,30 @@ function PagamentosPage() {
         onDone={() => qc.invalidateQueries({ queryKey: ["asaas-transfers"] })}
       />
       <DetalheDialog id={detalheId} onClose={() => setDetalheId(null)} />
+      <ComprovanteReceipt
+        open={!!reciboRow}
+        onOpenChange={(v) => !v && setReciboRow(null)}
+        data={
+          reciboRow
+            ? {
+                valor: Number(reciboRow.value),
+                favorecido: reciboRow.favored_name ?? "—",
+                instituicao: reciboRow.bank_name ?? bancoDoRaw(reciboRow.raw_response) ?? null,
+                chavePix: reciboRow.pix_key ?? null,
+                cpfCnpj: reciboRow.cpf_cnpj ?? null,
+                tipo: "Transferência Pix",
+                dataHora: new Date(
+                  reciboRow.effective_date ?? reciboRow.created_at,
+                ).toLocaleString("pt-BR"),
+                transacaoId: reciboRow.asaas_transfer_id ?? null,
+                descricao: reciboRow.description ?? null,
+                status: STATUS_META[reciboRow.status]?.label ?? reciboRow.status,
+                concluido: reciboRow.status === "concluido",
+                pdfUrl: reciboRow.receipt_url ?? null,
+              }
+            : null
+        }
+      />
     </div>
   );
 }
