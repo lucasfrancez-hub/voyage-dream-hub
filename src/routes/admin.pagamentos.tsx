@@ -272,7 +272,7 @@ function PagamentosPage() {
                 dataHora: new Date(
                   reciboRow.effective_date ?? reciboRow.created_at,
                 ).toLocaleString("pt-BR"),
-                transacaoId: reciboRow.asaas_transfer_id ?? null,
+                transacaoId: e2eDoRaw(reciboRow.raw_response) ?? reciboRow.asaas_transfer_id ?? null,
                 descricao: reciboRow.description ?? null,
                 status: STATUS_META[reciboRow.status]?.label ?? reciboRow.status,
                 concluido: reciboRow.status === "concluido",
@@ -285,6 +285,17 @@ function PagamentosPage() {
         }
       />
     </div>
+  );
+}
+
+function e2eDoRaw(raw: any): string | null {
+  if (!raw || typeof raw !== "object") return null;
+  return (
+    raw.pixTransaction?.endToEndIdentifier ??
+    raw.pixTransaction?.endToEndId ??
+    raw.endToEndIdentifier ??
+    raw.transactionReceiptId ??
+    null
   );
 }
 
@@ -319,7 +330,7 @@ function DetalheDialog({ id, onClose }: { id: string | null; onClose: () => void
         cpfCnpj: t.cpf_cnpj ?? null,
         tipo: "Transferência Pix",
         dataHora: new Date(t.effective_date ?? t.created_at).toLocaleString("pt-BR"),
-        transacaoId: t.asaas_transfer_id ?? null,
+        transacaoId: e2eDoRaw(t.raw_response) ?? t.asaas_transfer_id ?? null,
         descricao: t.description ?? null,
         status: meta?.label ?? t.status,
         concluido: t.status === "concluido",

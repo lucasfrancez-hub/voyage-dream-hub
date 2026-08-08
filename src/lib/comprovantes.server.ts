@@ -155,6 +155,7 @@ export function mapTransfer(t: any): Comprovante {
           : 'Transferência',
     dueDate: t?.scheduleDate ?? null,
     paymentDate: t?.effectiveDate ?? t?.dateCreated ?? null,
+    endToEndId: e2eOf(t),
   }
 }
 
@@ -188,6 +189,7 @@ export function mapPayment(p: any, cust?: any): Comprovante {
             : null,
     dueDate: p?.dueDate ?? null,
     paymentDate: p?.clientPaymentDate ?? p?.paymentDate ?? p?.confirmedDate ?? null,
+    endToEndId: e2eOf(p),
   }
 }
 
@@ -214,6 +216,7 @@ export function mapBill(b: any): Comprovante {
     formaPagamento: 'Boleto',
     dueDate: b?.dueDate ?? null,
     paymentDate: b?.paymentDate ?? null,
+    endToEndId: e2eOf(b),
   }
 }
 
