@@ -1,0 +1,1 @@
+CREATE POLICY "Admins manage boletos" ON storage.objects FOR ALL TO authenticated USING (bucket_id = 'boletos' AND public.has_role(auth.uid(), 'admin')) WITH CHECK (bucket_id = 'boletos' AND public.has_role(auth.uid(), 'admin'));

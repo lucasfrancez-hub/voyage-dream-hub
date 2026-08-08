@@ -29,6 +29,27 @@ export const Route = createFileRoute('/api/public/asaas-webhook')({
         }
 
         const event: string = body?.event || ''
+
+        // ----- Pague Contas (boletos) -----
+        const bill = body?.bill
+        if (event.startsWith('BILL_') || bill?.id) {
+          try {
+            const { supabaseAdmin: adm } = await import('@/integrations/supabase/client.server')
+            const { data: bp } = await adm
+              .from('asaas_bill_payments')
+              .select('id')
+              .eq('asaas_bill_id', bill?.id ?? '')
+              .maybeSingle()
+            if (!bp) return Response.json({ ok: true, skipped: 'bill not found' })
+            const { aplicarStatusBoleto } = await import('@/lib/boleto-pay.server')
+            await aplicarStatusBoleto(bp.id, bill)
+            return Response.json({ ok: true, event })
+          } catch (e) {
+            console.error('[asaas-webhook] bill error', (e as Error).message)
+            return Response.json({ ok: true, error: 'bill handling failed' })
+          }
+        }
+
         const payment = body?.payment
         const paymentId: string | undefined = payment?.id
         if (!paymentId) return Response.json({ ok: true, skipped: 'no payment id' })

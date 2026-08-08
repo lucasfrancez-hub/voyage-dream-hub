@@ -17,6 +17,7 @@ import jsPDF from "jspdf";
 import { toast } from "sonner";
 import { Link } from "@tanstack/react-router";
 import { PixPaymentDialog } from "@/components/financial/PixPaymentDialog";
+import { BoletoPaymentDialog } from "@/components/financial/BoletoPaymentDialog";
 
 type Kind = "payable" | "receivable";
 type Entry = {
@@ -34,6 +35,11 @@ type Entry = {
   notes: string | null;
   auto_generated: boolean;
   created_at: string;
+  boleto_path?: string | null;
+  boleto_line?: string | null;
+  boleto_beneficiary?: string | null;
+  cost_center?: string | null;
+  bill_payment_status?: string | null;
 };
 type Category = { id: string; kind: string; name: string };
 
@@ -51,6 +57,7 @@ export function FinancialPage({ kind }: { kind: Kind }) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Entry | null>(null);
   const [pixEntry, setPixEntry] = useState<Entry | null>(null);
+  const [boletoEntry, setBoletoEntry] = useState<Entry | null>(null);
 
   const { data: entries, isLoading } = useQuery({
     queryKey: ["financial", kind],
@@ -312,6 +319,11 @@ export function FinancialPage({ kind }: { kind: Kind }) {
                           ver pedido
                         </Link>
                       )}
+                      {e.bill_payment_status && e.bill_payment_status !== "cancelado" && (
+                        <span className="px-1.5 py-0.5 rounded bg-brand-orange/15 text-brand-orange text-[10px] uppercase">
+                          boleto {e.bill_payment_status}
+                        </span>
+                      )}
                       {over && <span className="text-red-500 font-medium">Vencido</span>}
                       {e.auto_generated && <span className="text-[10px] uppercase text-muted-foreground">auto</span>}
                     </div>
@@ -323,9 +335,14 @@ export function FinancialPage({ kind }: { kind: Kind }) {
                   </div>
                   <div className="flex gap-1">
                     {kind === "payable" && e.status !== "paid" && (
-                      <Button size="icon" variant="ghost" title="Pagar via Pix" onClick={() => setPixEntry(e)}>
-                        <QrCode className="h-4 w-4 text-brand-orange" />
-                      </Button>
+                      <>
+                        <Button size="icon" variant="ghost" title="Pagar via Pix" onClick={() => setPixEntry(e)}>
+                          <QrCode className="h-4 w-4 text-brand-orange" />
+                        </Button>
+                        <Button size="icon" variant="ghost" title="Pagar boleto via ASAAS" onClick={() => setBoletoEntry(e)}>
+                          <FileText className="h-4 w-4 text-brand-orange" />
+                        </Button>
+                      </>
                     )}
                     <Button size="icon" variant="ghost" onClick={() => toggleStatus.mutate(e)} title={e.status === "paid" ? "Marcar como pendente" : "Marcar como pago"}>
                       {e.status === "paid" ? <X className="h-4 w-4" /> : <Check className="h-4 w-4 text-emerald-500" />}
@@ -358,6 +375,13 @@ export function FinancialPage({ kind }: { kind: Kind }) {
           date: pixEntry?.due_date ?? null,
           supplierName: pixEntry?.counterparty ?? null,
         }}
+        onDone={() => qc.invalidateQueries({ queryKey: ["financial", kind] })}
+      />
+
+      <BoletoPaymentDialog
+        open={!!boletoEntry}
+        onOpenChange={(v) => { if (!v) setBoletoEntry(null); }}
+        entry={boletoEntry}
         onDone={() => qc.invalidateQueries({ queryKey: ["financial", kind] })}
       />
 

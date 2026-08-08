@@ -213,3 +213,60 @@ export async function getAsaasStatement(params: AsaasStatementParams) {
   })
   return asaasFetch(`/financialTransactions?${q.toString()}`)
 }
+
+/* ============================================================
+ * PAGUE CONTAS (boletos)
+ * ============================================================ */
+
+export interface BillSimulationResult {
+  identificationField?: string
+  barCode?: string
+  value?: number
+  discount?: number
+  interest?: number
+  fine?: number
+  totalValue?: number
+  dueDate?: string
+  companyName?: string
+  beneficiaryName?: string
+  canBePaidWithBalance?: boolean
+  [k: string]: any
+}
+
+/** Valida/interpreta a linha digitável no ASAAS antes de pagar. */
+export async function simulateAsaasBill(identificationField: string): Promise<BillSimulationResult> {
+  return asaasFetch('/bill/simulate', {
+    method: 'POST',
+    body: JSON.stringify({ identificationField }),
+  })
+}
+
+export interface CreateBillInput {
+  identificationField: string
+  scheduleDate?: string | null
+  description?: string | null
+  value?: number | null
+  dueDate?: string | null
+  externalReference?: string | null
+}
+
+/** Cria o pagamento (imediato ou agendado) de um boleto. */
+export async function createAsaasBill(input: CreateBillInput) {
+  const body: Record<string, any> = {
+    identificationField: input.identificationField,
+  }
+  if (input.scheduleDate) body['scheduleDate'] = input.scheduleDate
+  if (input.description) body['description'] = input.description
+  if (input.value != null) body['value'] = input.value
+  if (input.dueDate) body['dueDate'] = input.dueDate
+  if (input.externalReference) body['externalReference'] = input.externalReference
+  return asaasFetch('/bill', { method: 'POST', body: JSON.stringify(body) })
+}
+
+export async function getAsaasBill(billId: string) {
+  return asaasFetch(`/bill/${encodeURIComponent(billId)}`)
+}
+
+export async function cancelAsaasBill(billId: string) {
+  return asaasFetch(`/bill/${encodeURIComponent(billId)}/cancel`, { method: 'POST' })
+}

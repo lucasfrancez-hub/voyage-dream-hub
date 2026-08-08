@@ -134,6 +134,160 @@ export type Database = {
         }
         Relationships: []
       }
+      asaas_bill_payment_events: {
+        Row: {
+          actor_name: string | null
+          actor_user_id: string | null
+          asaas_bill_id: string | null
+          bill_payment_id: string | null
+          created_at: string
+          decision: string | null
+          event: string
+          id: string
+          ip: string | null
+          message: string | null
+          payload: Json | null
+          status: string | null
+        }
+        Insert: {
+          actor_name?: string | null
+          actor_user_id?: string | null
+          asaas_bill_id?: string | null
+          bill_payment_id?: string | null
+          created_at?: string
+          decision?: string | null
+          event: string
+          id?: string
+          ip?: string | null
+          message?: string | null
+          payload?: Json | null
+          status?: string | null
+        }
+        Update: {
+          actor_name?: string | null
+          actor_user_id?: string | null
+          asaas_bill_id?: string | null
+          bill_payment_id?: string | null
+          created_at?: string
+          decision?: string | null
+          event?: string
+          id?: string
+          ip?: string | null
+          message?: string | null
+          payload?: Json | null
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asaas_bill_payment_events_bill_payment_id_fkey"
+            columns: ["bill_payment_id"]
+            isOneToOne: false
+            referencedRelation: "asaas_bill_payments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      asaas_bill_payments: {
+        Row: {
+          asaas_bill_id: string | null
+          barcode: string | null
+          beneficiary_document: string | null
+          beneficiary_name: string | null
+          boleto_path: string | null
+          created_at: string
+          created_by: string | null
+          created_by_name: string | null
+          created_ip: string | null
+          description: string | null
+          discount: number | null
+          due_date: string | null
+          effective_date: string | null
+          external_reference: string | null
+          fail_reason: string | null
+          financial_entry_id: string | null
+          fine: number | null
+          id: string
+          idempotency_key: string
+          identification_field: string
+          interest: number | null
+          paid_value: number | null
+          raw_response: Json | null
+          raw_simulation: Json | null
+          scheduled_date: string | null
+          status: string
+          updated_at: string
+          value: number
+        }
+        Insert: {
+          asaas_bill_id?: string | null
+          barcode?: string | null
+          beneficiary_document?: string | null
+          beneficiary_name?: string | null
+          boleto_path?: string | null
+          created_at?: string
+          created_by?: string | null
+          created_by_name?: string | null
+          created_ip?: string | null
+          description?: string | null
+          discount?: number | null
+          due_date?: string | null
+          effective_date?: string | null
+          external_reference?: string | null
+          fail_reason?: string | null
+          financial_entry_id?: string | null
+          fine?: number | null
+          id?: string
+          idempotency_key: string
+          identification_field: string
+          interest?: number | null
+          paid_value?: number | null
+          raw_response?: Json | null
+          raw_simulation?: Json | null
+          scheduled_date?: string | null
+          status?: string
+          updated_at?: string
+          value?: number
+        }
+        Update: {
+          asaas_bill_id?: string | null
+          barcode?: string | null
+          beneficiary_document?: string | null
+          beneficiary_name?: string | null
+          boleto_path?: string | null
+          created_at?: string
+          created_by?: string | null
+          created_by_name?: string | null
+          created_ip?: string | null
+          description?: string | null
+          discount?: number | null
+          due_date?: string | null
+          effective_date?: string | null
+          external_reference?: string | null
+          fail_reason?: string | null
+          financial_entry_id?: string | null
+          fine?: number | null
+          id?: string
+          idempotency_key?: string
+          identification_field?: string
+          interest?: number | null
+          paid_value?: number | null
+          raw_response?: Json | null
+          raw_simulation?: Json | null
+          scheduled_date?: string | null
+          status?: string
+          updated_at?: string
+          value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asaas_bill_payments_financial_entry_id_fkey"
+            columns: ["financial_entry_id"]
+            isOneToOne: false
+            referencedRelation: "financial_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       asaas_transfer_events: {
         Row: {
           actor_name: string | null
@@ -1112,7 +1266,12 @@ export type Database = {
         Row: {
           amount: number
           auto_generated: boolean
+          bill_payment_status: string | null
+          boleto_beneficiary: string | null
+          boleto_line: string | null
+          boleto_path: string | null
           category: string | null
+          cost_center: string | null
           counterparty: string | null
           created_at: string
           created_by: string | null
@@ -1130,7 +1289,12 @@ export type Database = {
         Insert: {
           amount?: number
           auto_generated?: boolean
+          bill_payment_status?: string | null
+          boleto_beneficiary?: string | null
+          boleto_line?: string | null
+          boleto_path?: string | null
           category?: string | null
+          cost_center?: string | null
           counterparty?: string | null
           created_at?: string
           created_by?: string | null
@@ -1148,7 +1312,12 @@ export type Database = {
         Update: {
           amount?: number
           auto_generated?: boolean
+          bill_payment_status?: string | null
+          boleto_beneficiary?: string | null
+          boleto_line?: string | null
+          boleto_path?: string | null
           category?: string | null
+          cost_center?: string | null
           counterparty?: string | null
           created_at?: string
           created_by?: string | null
