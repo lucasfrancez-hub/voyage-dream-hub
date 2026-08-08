@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { CheckCircle2, Download, Loader2, Share2 } from "lucide-react";
+import { CheckCircle2, Download, FileText, Loader2, Share2 } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { formatBRL } from "@/lib/format";
