@@ -101,7 +101,10 @@ export const Route = createFileRoute('/api/public/asaas-webhook')({
           .eq('id', cob.id)
 
         if (cob.order_id) {
-          await supabaseAdmin.from('orders').update({ status: 'paid' }).eq('id', cob.order_id)
+          await supabaseAdmin
+            .from('orders')
+            .update({ status: 'paid', pix_baixa_tipo: 'asaas' })
+            .eq('id', cob.order_id)
 
           const description = `Pix ASAAS — ${paymentId}`
           const { data: existingPay } = await supabaseAdmin

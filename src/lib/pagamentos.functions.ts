@@ -342,3 +342,143 @@ export const salvarChavePixFornecedor = createServerFn({ method: 'POST' })
     if (error) throw new Error(error.message)
     return { ok: true }
   })
+
+/* ============================================================
+ * PIX EM PEDIDOS (admin)
+ * ============================================================ */
+
+/** Gera (ou reaproveita) o QR Code Pix de um pedido criado manualmente. */
+export const gerarPixPedidoAdmin = createServerFn({ method: 'POST' })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z
+      .object({
+        orderId: z.string().uuid(),
+        valor: z.number().positive(),
+        aplicarDesconto: z.boolean().optional(),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context as any)
+    const { supabaseAdmin } = await import('@/integrations/supabase/client.server')
+
+    const { data: order } = await supabaseAdmin
+      .from('orders')
+      .select('id, order_number, full_name, cpf, email')
+      .eq('id', data.orderId)
+      .maybeSingle()
+    if (!order) throw new Error('Pedido não encontrado.')
+
+    const valor = Number(
+      (data.aplicarDesconto ? data.valor * 0.95 : data.valor).toFixed(2),
+    )
+
+    const nowIso = new Date().toISOString()
+    const { data: existing } = await supabaseAdmin
+      .from('pix_cobrancas')
+      .select('txid, qr_code, qr_code_image, expira_em, valor')
+      .eq('order_id', order.id)
+      .eq('status', 'ativa')
+      .gt('expira_em', nowIso)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+    if (existing) {
+      return {
+        txid: existing.txid,
+        qrCode: existing.qr_code,
+        qrCodeImage: existing.qr_code_image,
+        expiraEm: existing.expira_em,
+        valor: Number(existing.valor),
+        reused: true,
+      }
+    }
+
+    const { makeTxid } = await import('@/lib/pix.server')
+    const { ensureAsaasCustomer, createAsaasPixPayment } = await import('@/lib/asaas.server')
+    const txid = makeTxid(order.order_number || order.id.replace(/-/g, '').slice(0, 20))
+
+    const customerId = await ensureAsaasCustomer({
+      name: order.full_name || 'Cliente VIA AIR',
+      cpfCnpj: order.cpf,
+      email: order.email,
+      externalReference: order.id,
+    })
+    const pix = await createAsaasPixPayment({
+      customerId,
+      value: valor,
+      description: `Pedido VIA AIR #${order.order_number ?? ''}`.trim(),
+      externalReference: txid,
+      expiresInMinutes: 30,
+    })
+
+    const image = pix.encodedImage ? `data:image/png;base64,${pix.encodedImage}` : null
+    const { error } = await supabaseAdmin.from('pix_cobrancas').insert({
+      txid,
+      order_id: order.id,
+      valor,
+      qr_code: pix.payload,
+      qr_code_image: image,
+      status: 'ativa',
+      expira_em: pix.expiresAt,
+      payer_name: order.full_name,
+      payer_document: order.cpf,
+      provider: 'asaas',
+      asaas_payment_id: pix.paymentId,
+      asaas_customer_id: customerId,
+      invoice_url: pix.invoiceUrl,
+      raw_response: pix.raw ?? null,
+    })
+    if (error) throw new Error(`Falha ao salvar cobrança: ${error.message}`)
+
+    return {
+      txid,
+      qrCode: pix.payload,
+      qrCodeImage: image,
+      expiraEm: pix.expiresAt,
+      valor,
+      reused: false,
+    }
+  })
+
+/** Baixa manual de Pix: o cliente já pagou por fora; não gera cobrança no ASAAS. */
+export const baixaPixManualPedido = createServerFn({ method: 'POST' })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z
+      .object({
+        orderId: z.string().uuid(),
+        valor: z.number().positive(),
+        data: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+        observacao: z.string().trim().max(1000).nullable().optional(),
+        comprovanteUrl: z.string().trim().max(600).nullable().optional(),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context as any)
+    const { supabaseAdmin } = await import('@/integrations/supabase/client.server')
+    const { data: actor } = await supabaseAdmin
+      .from('profiles')
+      .select('full_name')
+      .eq('id', context.userId)
+      .maybeSingle()
+
+    const { error } = await supabaseAdmin
+      .from('orders')
+      .update({
+        status: 'paid',
+        pix_baixa_tipo: 'manual',
+        pix_manual_valor: data.valor,
+        pix_manual_data: data.data,
+        pix_manual_obs: data.observacao ?? null,
+        pix_manual_comprovante_url: data.comprovanteUrl ?? null,
+        pix_manual_by: context.userId,
+        pix_manual_by_name: actor?.full_name ?? null,
+        pix_manual_at: new Date().toISOString(),
+      })
+      .eq('id', data.orderId)
+    if (error) throw new Error(error.message)
+    return { ok: true, by: actor?.full_name ?? null }
+  })
