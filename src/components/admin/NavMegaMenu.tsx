@@ -88,6 +88,8 @@ function ModuleRail({ groups, pathname }: { groups: NavMenuGroup[]; pathname: st
               <Link
                 key={label + i}
                 to={item.to}
+                onMouseEnter={() => setHovered(null)}
+
                 className={`flex items-center gap-2 rounded-lg px-3 py-2 text-left text-[12px] font-bold uppercase tracking-[0.12em] transition ${
                   active
                     ? "bg-brand-orange/15 text-brand-orange"
