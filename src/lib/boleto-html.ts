@@ -288,6 +288,7 @@ h1{margin:12px 0 6px;font-size:28px;letter-spacing:-.8px;color:var(--navy)}
 .barcode{margin:8px 12px 12px;width:575px}
 .bank-foot{display:flex;justify-content:flex-end;font-size:10px;color:#505d69;margin:0 12px 10px}
 .doc-foot{margin:12px 0 0;text-align:right;font-size:10px;line-height:1.4;color:#8a949e}
+${d.variant === "pix" ? ".page{min-height:auto;padding-bottom:26px}" : ""}
 .doc-foot strong{display:block;font-weight:700;color:#505d69}
 .preview-flag{position:fixed;top:10px;left:10px;background:var(--orange);color:#fff;font-size:12px;font-weight:700;padding:6px 12px;border-radius:999px}
 @page{size:A4;margin:0}
