@@ -180,6 +180,7 @@ export const criarPagamentoPix = createServerFn({ method: 'POST' })
         pix_key: owner.pixKey,
         pix_key_type: owner.pixKeyType,
         cpf_cnpj: owner.cpfCnpj,
+        bank_name: owner.bankName ?? null,
         value: data.value,
         description: data.description ?? null,
         scheduled_date: scheduled,
