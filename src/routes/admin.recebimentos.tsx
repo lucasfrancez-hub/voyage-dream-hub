@@ -606,8 +606,16 @@ export function recebimentoParaBoleto(row: any): BoletoDocData {
     composicao: {
       servico: comp?.servico ?? row?.description ?? null,
       destino: comp?.destino ?? null,
-      periodo: comp?.periodo ?? null,
-      passageiro: comp?.passageiros ?? comp?.passageiro ?? null,
+      periodo:
+        comp?.periodo ??
+        [comp?.periodoInicio, comp?.periodoFim]
+          .filter(Boolean)
+          .map((d: string) => new Date(`${d}T12:00:00`).toLocaleDateString("pt-BR"))
+          .join(" • ") ??
+        null,
+      passageiro: Array.isArray(comp?.passageiros)
+        ? comp.passageiros.filter(Boolean).join(", ")
+        : (comp?.passageiros ?? comp?.passageiro ?? null),
     },
     pix: { qrImage: row?.pix_qr_image ?? null, payload: row?.pix_payload ?? null },
     banco: {
