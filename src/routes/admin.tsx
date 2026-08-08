@@ -479,7 +479,7 @@ function DashboardNav({ pathname }: { pathname: string }) {
           items: [{ to: "/admin/dashboard", label: "Dashboard" }],
         },
         {
-          label: "Cadastros",
+          label: "Pessoas",
           items: [{ to: "/admin/pessoas", label: "Pessoas" }],
         },
         {
@@ -495,15 +495,15 @@ function DashboardNav({ pathname }: { pathname: string }) {
           ],
         },
         {
-          label: "Fiscal",
+          label: "Notas fiscais",
           items: [{ to: "/admin/notas-fiscais", label: "Notas fiscais" }],
         },
         {
-          label: "Operação",
+          label: "Check-in",
           items: [{ to: "/admin/checkins", label: "Check-ins" }],
         },
         {
-          label: "Marketing",
+          label: "Redes sociais",
           items: [{ to: "/admin/redes-sociais", label: "Redes sociais" }],
         },
       ]}
