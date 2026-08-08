@@ -108,11 +108,28 @@ export const criarRecebimento = createServerFn({ method: 'POST' })
     const { supabaseAdmin } = await import('@/integrations/supabase/client.server')
     const { ensureAsaasCustomer, createAsaasCharge } = await import('@/lib/asaas.server')
 
+    const end = data.endereco ?? null
+    const enderecoTexto =
+      [
+        [end?.logradouro, end?.numero].filter(Boolean).join(', '),
+        end?.complemento,
+        end?.bairro,
+        [end?.cidade, end?.estado].filter(Boolean).join('/'),
+        end?.cep ? `CEP ${end.cep}` : '',
+      ]
+        .filter((p) => p && String(p).trim())
+        .join(' - ') || null
+
     const customerId = await ensureAsaasCustomer({
       name: data.customerName,
       cpfCnpj: data.cpfCnpj.replace(/\D/g, ''),
       email: data.email || undefined,
       phone: data.phone || undefined,
+      postalCode: end?.cep || undefined,
+      address: end?.logradouro || undefined,
+      addressNumber: end?.numero || undefined,
+      complement: end?.complemento || undefined,
+      province: end?.bairro || undefined,
     } as any)
 
     const charge = await createAsaasCharge({
