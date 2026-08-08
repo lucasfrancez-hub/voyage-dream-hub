@@ -352,7 +352,10 @@ function Checkout() {
       return;
     }
 
-
+    if (payment === "pix" && primary.cpf.replace(/\D/g, "").length !== 11) {
+      toast.error("Informe o CPF do passageiro 1 para gerar o QR Code Pix.");
+      return;
+    }
 
     if (payment === "boleto") {
       const err = validateBoleto(boleto, isThirdPartyFinancier);
@@ -816,7 +819,7 @@ function Checkout() {
                         maxLength={120}
                       />
                     </Field>
-                    <Field label="CPF">
+                    <Field label={i === 0 && payment === "pix" ? "CPF *" : "CPF"}>
                       <input
                         value={t.cpf}
                         onChange={(e) => updateTraveler(i, { cpf: maskCPF(e.target.value) })}
@@ -880,7 +883,7 @@ function Checkout() {
                   onClick={() => setPayment("pix")}
                   icon={QrCode}
                   title="Pix"
-                  desc="Realize o pagamento via Pix. Nosso time envia a chave/QR Code por e-mail em seguida."
+                  desc="QR Code gerado na hora, com baixa automática assim que o pagamento cair."
                   badge="-5% de desconto"
                 />
                 {!isService && (
