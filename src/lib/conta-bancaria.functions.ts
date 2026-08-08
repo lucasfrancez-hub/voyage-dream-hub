@@ -122,6 +122,9 @@ export const listarExtratoBancario = createServerFn({ method: 'POST' })
         it.chavePix = comp.chavePix ?? null
         it.cpfCnpj = comp.cpfCnpj ?? null
         it.operacao = comp.operation ?? null
+        it.formaPagamento = comp.formaPagamento ?? null
+        it.dueDate = comp.dueDate ?? null
+        it.paymentDate = comp.paymentDate ?? null
       }
       if (!it.counterpartyLabel) {
         it.counterpartyLabel = it.direction === 'in' ? 'Pagador' : 'Favorecido'

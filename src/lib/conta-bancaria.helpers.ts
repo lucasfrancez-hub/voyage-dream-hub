@@ -19,6 +19,9 @@ export interface ExtratoItem {
   chavePix: string | null
   cpfCnpj: string | null
   operacao: string | null
+  formaPagamento: string | null
+  dueDate: string | null
+  paymentDate: string | null
 }
 
 export async function assertAdmin(context: { supabase: any; userId: string }) {
@@ -76,6 +79,9 @@ export function normalize(tx: any): ExtratoItem {
     chavePix: null,
     cpfCnpj: null,
     operacao: null,
+    formaPagamento: null,
+    dueDate: null,
+    paymentDate: null,
   }
 }
 
