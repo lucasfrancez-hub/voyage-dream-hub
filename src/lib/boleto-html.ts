@@ -451,11 +451,12 @@ export async function carregarLogosBoleto(): Promise<{ viaAir?: string; asaas?: 
  *  Usa Blob URL — funciona no Safari/Chrome, onde `document.write`
  *  em janela com `noopener` resulta em página em branco. */
 export async function abrirBoletoHtml(data: BoletoDocData, imprimir = false) {
+  // Abre a aba de forma síncrona (evita bloqueio de pop-up após o await).
+  const win = window.open("", "_blank");
   const logos = await carregarLogosBoleto();
   const html = renderBoletoHtml({ ...data, logos: { ...logos, ...data.logos } });
   const blob = new Blob([html], { type: "text/html;charset=utf-8" });
   const url = URL.createObjectURL(blob);
-  const win = window.open(url, "_blank");
   if (!win) {
     // Pop-up bloqueado: baixa o arquivo como fallback.
     const a = document.createElement("a");
@@ -467,6 +468,7 @@ export async function abrirBoletoHtml(data: BoletoDocData, imprimir = false) {
     setTimeout(() => URL.revokeObjectURL(url), 30000);
     return false;
   }
+  win.location.replace(url);
   if (imprimir) {
     win.addEventListener?.("load", () => setTimeout(() => win.print(), 300));
   }
