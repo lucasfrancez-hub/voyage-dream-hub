@@ -237,6 +237,10 @@ export async function getAsaasCustomer(customerId: string) {
   return asaasFetch(`/customers/${encodeURIComponent(customerId)}`)
 }
 
+export async function deleteAsaasPayment(paymentId: string) {
+  return asaasFetch(`/payments/${encodeURIComponent(paymentId)}`, { method: 'DELETE' })
+}
+
 export async function getAsaasPayment(paymentId: string) {
   return asaasFetch(`/payments/${encodeURIComponent(paymentId)}`)
 }
