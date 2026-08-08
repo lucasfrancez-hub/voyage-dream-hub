@@ -132,6 +132,30 @@ function DashboardPage() {
     queryFn: async () => await obterResumoBancario(),
   });
 
+  // Cobranças Pix/boleto geradas por nós (fonte real das "contas atrasadas")
+  const { data: recebimentos } = useQuery({
+    queryKey: ["admin", "dashboard", "recebimentos"],
+    enabled: isAdmin,
+    staleTime: 60 * 1000,
+    queryFn: async () => await listarRecebimentos({ data: { limit: 500 } }),
+  });
+
+  const cobrancasAtrasadas = useMemo(() => {
+    const hoje = new Date().toISOString().slice(0, 10);
+    const rows = (recebimentos ?? []) as any[];
+    const vencidas = rows.filter(
+      (r) => r.status === "vencido" || (r.status === "pendente" && r.due_date && r.due_date < hoje),
+    );
+    return {
+      total: vencidas.reduce((a, r) => a + Number(r.value ?? 0), 0),
+      count: vencidas.length,
+      pendentes: rows
+        .filter((r) => r.status === "pendente")
+        .reduce((a, r) => a + Number(r.value ?? 0), 0),
+    };
+  }, [recebimentos]);
+
+
 
   const { data: items } = useQuery({
     queryKey: ["admin", "dashboard", "items"],
