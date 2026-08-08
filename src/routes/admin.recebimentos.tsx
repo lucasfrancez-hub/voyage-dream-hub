@@ -327,10 +327,27 @@ function NovoRecebimentoDialog({
   onCreated: (row: any) => void;
 }) {
   const criar = useServerFn(criarRecebimento);
+  const buscarPessoas = useServerFn(searchPeople);
   const hoje = new Date().toISOString().slice(0, 10);
-  const [form, setForm] = useState({
+  const emptyForm = {
     customerName: "", cpfCnpj: "", email: "", phone: "", value: "", dueDate: hoje, description: "",
+    finePercent: "2", interestPercent: "1",
+    servico: "", destino: "", periodoInicio: "", periodoFim: "", passageiros: "",
+  };
+  const [form, setForm] = useState(emptyForm);
+  const [personId, setPersonId] = useState<string | null>(null);
+  const [sugestoesOpen, setSugestoesOpen] = useState(false);
+
+  const { data: sugestoes = [] } = useQuery({
+    queryKey: ["people-autocomplete", form.customerName],
+    enabled: open && sugestoesOpen && form.customerName.trim().length >= 2,
+    queryFn: async () => (await buscarPessoas({ data: { q: form.customerName.trim() } })) as any[],
   });
+
+  const num = (v: string) => {
+    const n = Number(String(v).replace(/\./g, "").replace(",", "."));
+    return Number.isFinite(n) ? n : null;
+  };
 
   const mut = useMutation({
     mutationFn: async () =>
@@ -344,12 +361,26 @@ function NovoRecebimentoDialog({
           value: Number(String(form.value).replace(/\./g, "").replace(",", ".")),
           dueDate: form.dueDate,
           description: form.description || undefined,
+          personId,
+          finePercent: num(form.finePercent),
+          interestPercent: num(form.interestPercent),
+          composicao: {
+            servico: form.servico,
+            destino: form.destino,
+            periodoInicio: form.periodoInicio,
+            periodoFim: form.periodoFim,
+            passageiros: form.passageiros
+              .split(/[\n,;]+/)
+              .map((p) => p.trim())
+              .filter(Boolean),
+          },
         },
       }),
     onSuccess: (row) => {
       toast.success(kind === "pix" ? "QR Code gerado." : "Boleto gerado.");
       onOpenChange(false);
-      setForm({ customerName: "", cpfCnpj: "", email: "", phone: "", value: "", dueDate: hoje, description: "" });
+      setForm(emptyForm);
+      setPersonId(null);
       onCreated(row);
     },
     onError: (e: any) => toast.error(e?.message ?? "Falha ao gerar cobrança."),
@@ -357,9 +388,21 @@ function NovoRecebimentoDialog({
 
   const set = (k: string) => (e: any) => setForm((f) => ({ ...f, [k]: e.target.value }));
 
+  function escolherPessoa(p: any) {
+    setPersonId(p.id);
+    setSugestoesOpen(false);
+    setForm((f) => ({
+      ...f,
+      customerName: p.name ?? f.customerName,
+      cpfCnpj: p.cpf || p.cnpj || f.cpfCnpj,
+      email: p.email || f.email,
+      phone: p.mobile_phone || p.phone || f.phone,
+    }));
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[520px] bg-card/80 backdrop-blur-xl border-border/60 rounded-2xl">
+      <DialogContent className="max-w-[560px] max-h-[90vh] overflow-y-auto bg-card/80 backdrop-blur-xl border-border/60 rounded-2xl">
         <DialogHeader>
           <DialogTitle>Nova cobrança</DialogTitle>
         </DialogHeader>
@@ -383,9 +426,38 @@ function NovoRecebimentoDialog({
         </div>
 
         <div className="space-y-3">
-          <div>
+          <div className="relative">
             <Label>Nome do pagador</Label>
-            <Input value={form.customerName} onChange={set("customerName")} placeholder="Nome completo" />
+            <Input
+              value={form.customerName}
+              onChange={(e) => {
+                setPersonId(null);
+                setSugestoesOpen(true);
+                setForm((f) => ({ ...f, customerName: e.target.value }));
+              }}
+              onFocus={() => setSugestoesOpen(true)}
+              onBlur={() => setTimeout(() => setSugestoesOpen(false), 150)}
+              placeholder="Digite para buscar no cadastro de pessoas"
+              autoComplete="off"
+            />
+            {sugestoesOpen && sugestoes.length > 0 && (
+              <div className="absolute z-50 mt-1 w-full max-h-56 overflow-y-auto rounded-xl border border-border/60 bg-popover shadow-xl">
+                {sugestoes.map((p: any) => (
+                  <button
+                    key={p.id}
+                    type="button"
+                    className="w-full px-3 py-2 text-left hover:bg-muted/50"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => escolherPessoa(p)}
+                  >
+                    <div className="text-sm font-medium truncate">{p.name}</div>
+                    <div className="text-[11px] text-muted-foreground truncate">
+                      {[p.cpf || p.cnpj, p.email].filter(Boolean).join(" · ")}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -407,6 +479,53 @@ function NovoRecebimentoDialog({
               <Input type="date" value={form.dueDate} onChange={set("dueDate")} />
             </div>
           </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label>Multa por atraso (%)</Label>
+              <Input value={form.finePercent} onChange={set("finePercent")} inputMode="decimal" placeholder="2" />
+            </div>
+            <div>
+              <Label>Juros ao mês (%)</Label>
+              <Input value={form.interestPercent} onChange={set("interestPercent")} inputMode="decimal" placeholder="1" />
+            </div>
+          </div>
+
+          <div className="rounded-xl border border-border/60 bg-muted/10 p-3 space-y-3">
+            <p className="text-[11px] uppercase tracking-widest text-muted-foreground">
+              Composição da cobrança
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>Serviço</Label>
+                <Input value={form.servico} onChange={set("servico")} placeholder="Pacote, aéreo, hotel..." />
+              </div>
+              <div>
+                <Label>Destino</Label>
+                <Input value={form.destino} onChange={set("destino")} placeholder="Ex.: Orlando" />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>Período — início</Label>
+                <Input type="date" value={form.periodoInicio} onChange={set("periodoInicio")} />
+              </div>
+              <div>
+                <Label>Período — fim</Label>
+                <Input type="date" value={form.periodoFim} onChange={set("periodoFim")} />
+              </div>
+            </div>
+            <div>
+              <Label>Passageiros</Label>
+              <Textarea
+                value={form.passageiros}
+                onChange={set("passageiros")}
+                rows={2}
+                placeholder="Um por linha ou separados por vírgula"
+              />
+            </div>
+          </div>
+
           <div>
             <Label>Descrição (opcional)</Label>
             <Textarea value={form.description} onChange={set("description")} rows={2} />
@@ -425,6 +544,7 @@ function NovoRecebimentoDialog({
     </Dialog>
   );
 }
+
 
 function CobrancaDialog({ row, onClose }: { row: any | null; onClose: () => void }) {
   function copy(text: string, msg: string) {
