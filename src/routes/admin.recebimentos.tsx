@@ -477,7 +477,7 @@ function NovoRecebimentoDialog({
                 onClick={() => onKindChange(k)}
                 className={`flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm transition-all duration-200 ${
                   kind === k
-                    ? "bg-brand-orange text-white font-semibold shadow-[0_0_20px_-5px_var(--brand-orange,rgba(242,107,31,0.5))]"
+                    ? "bg-brand-orange text-primary-foreground font-semibold shadow-[0_0_20px_-5px_color-mix(in_oklab,var(--brand-orange)_60%,transparent)]"
                     : "bg-foreground/[0.03] text-muted-foreground hover:text-foreground font-medium"
                 }`}
               >
