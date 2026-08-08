@@ -114,6 +114,37 @@ function docOfTransfer(t: any): string | null {
   )
 }
 
+/** Converte uma transferência ASAAS no formato de comprovante. */
+export function mapTransfer(t: any): Comprovante {
+  const dt = t?.effectiveDate ?? t?.dateCreated ?? t?.scheduleDate ?? null
+  return {
+    id: `transfer:${t?.id}`,
+    kind: 'transfer',
+    asaasId: String(t?.id ?? ''),
+    date: dt,
+    favored: favoredOfTransfer(t),
+    value: Math.abs(Number(t?.value ?? 0)),
+    operation: operationLabelTransfer(t),
+    direction: 'out',
+    counterpartyLabel: 'Favorecido',
+    status: TRANSFER_STATUS[String(t?.status ?? '')] ?? t?.status ?? null,
+    reference: t?.externalReference ?? t?.id ?? null,
+    receiptUrl: t?.transactionReceiptUrl ?? null,
+    instituicao: bankOfTransfer(t),
+    chavePix: t?.pixAddressKey ?? t?.pixTransaction?.qrCode?.pixKey ?? null,
+    cpfCnpj: docOfTransfer(t),
+    descricao: t?.description ?? null,
+    formaPagamento:
+      String(t?.operationType ?? '').toUpperCase() === 'PIX'
+        ? 'Pix'
+        : String(t?.operationType ?? '').toUpperCase() === 'TED'
+          ? 'TED'
+          : 'Transferência',
+    dueDate: t?.scheduleDate ?? null,
+    paymentDate: t?.effectiveDate ?? t?.dateCreated ?? null,
+  }
+}
+
 /** Busca comprovantes de transferências, cobranças e boletos no período. */
 export async function fetchComprovantes(range: {
   startDate: string
@@ -133,33 +164,9 @@ export async function fetchComprovantes(range: {
   for (const t of transfers) {
     const dt = t?.effectiveDate ?? t?.dateCreated ?? t?.scheduleDate ?? null
     if (!inRange(dt, range.startDate, range.finishDate)) continue
-    out.push({
-      id: `transfer:${t?.id}`,
-      kind: 'transfer',
-      asaasId: String(t?.id ?? ''),
-      date: dt,
-      favored: favoredOfTransfer(t),
-      value: Math.abs(Number(t?.value ?? 0)),
-      operation: operationLabelTransfer(t),
-      direction: 'out',
-      counterpartyLabel: 'Favorecido',
-      status: TRANSFER_STATUS[String(t?.status ?? '')] ?? t?.status ?? null,
-      reference: t?.externalReference ?? t?.id ?? null,
-      receiptUrl: t?.transactionReceiptUrl ?? null,
-      instituicao: bankOfTransfer(t),
-      chavePix: t?.pixAddressKey ?? t?.pixTransaction?.qrCode?.pixKey ?? null,
-      cpfCnpj: docOfTransfer(t),
-      descricao: t?.description ?? null,
-      formaPagamento:
-        String(t?.operationType ?? '').toUpperCase() === 'PIX'
-          ? 'Pix'
-          : String(t?.operationType ?? '').toUpperCase() === 'TED'
-            ? 'TED'
-            : 'Transferência',
-      dueDate: t?.scheduleDate ?? null,
-      paymentDate: t?.effectiveDate ?? t?.dateCreated ?? null,
-    })
+    out.push(mapTransfer(t))
   }
+
 
   const customerIds = Array.from(
     new Set(
