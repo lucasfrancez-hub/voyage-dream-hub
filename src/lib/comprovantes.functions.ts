@@ -93,3 +93,32 @@ export const baixarComprovantePdf = createServerFn({ method: 'POST' })
     }
     return { pdf: false as const, base64: null }
   })
+
+/** Descobre o comprovante ASAAS vinculado a um lançamento financeiro. */
+export const comprovanteDoLancamento = createServerFn({ method: 'POST' })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ entryId: z.string() }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context as any)
+    const { supabase } = context as any
+    const [{ data: tr }, { data: bp }] = await Promise.all([
+      supabase
+        .from('asaas_transfers')
+        .select('asaas_transfer_id')
+        .eq('financial_entry_id', data.entryId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+      supabase
+        .from('asaas_bill_payments')
+        .select('asaas_bill_id')
+        .eq('financial_entry_id', data.entryId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+    ])
+    return {
+      transferId: (tr as any)?.asaas_transfer_id ?? null,
+      billId: (bp as any)?.asaas_bill_id ?? null,
+    }
+  })
