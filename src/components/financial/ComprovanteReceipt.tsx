@@ -179,7 +179,7 @@ export function ComprovanteReceipt({
                 <div className="space-y-4">
                   <PartyBlock title="Pagador" party={pagador} />
                   <div className="h-px w-full bg-border" />
-                  <PartyBlock title="Destino (Recebedor)" party={recebedor} />
+                  <PartyBlock title="Recebedor" party={recebedor} />
                 </div>
 
                 <div className="pt-4 border-t border-border">
