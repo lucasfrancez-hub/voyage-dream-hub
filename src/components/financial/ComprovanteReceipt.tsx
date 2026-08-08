@@ -296,6 +296,8 @@ export function ComprovanteReceipt({
                   <Download className="h-3.5 w-3.5" />
                 )}
                 Baixar imagem
+              </button>
+
 
             </div>
           </>
