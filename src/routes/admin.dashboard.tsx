@@ -111,7 +111,8 @@ function DashboardPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("order_item_financials")
-        .select("order_item_id, commission_value, sale_value, tax_value, order_items!inner(order_id)");
+        .select("order_item_id, commission_value, rav_value, sale_value, tax_value, order_items!inner(order_id)")
+        .limit(5000);
       if (error) throw error;
       const rows = (data ?? []) as unknown as FinancialRow[];
       return rows.map((r) => {
@@ -120,6 +121,14 @@ function DashboardPage() {
       });
     },
   });
+
+  const { data: bank } = useQuery({
+    queryKey: ["admin", "dashboard", "bank"],
+    enabled: isAdmin,
+    staleTime: 60 * 1000,
+    queryFn: async () => await obterResumoBancario({ data: {} } as never),
+  });
+
 
   const { data: items } = useQuery({
     queryKey: ["admin", "dashboard", "items"],
