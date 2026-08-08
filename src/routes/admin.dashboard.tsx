@@ -433,9 +433,10 @@ function DashboardPage() {
             <div className="mt-2 text-2xl font-bold text-emerald-500">{bank ? formatBRL(bank.entradasMes ?? 0) : "—"}</div>
             <div className="text-[11px] text-muted-foreground">Este mês</div>
           </Link>
-          <Link to="/admin/contas-pagar" className="rounded-2xl border border-border bg-card p-5 hover:border-amber-500/40 transition">
+          <Link to={finSummary.payable.overdueCount > 0 ? "/admin/contas-pagar" : "/admin/contas-receber"} className="rounded-2xl border border-border bg-card p-5 hover:border-amber-500/40 transition">
             <div className="flex items-center gap-2 text-[11px] uppercase tracking-wider text-muted-foreground">
-              <AlertCircle className="h-3.5 w-3.5 text-amber-500" /> Pagamentos atrasados
+              <AlertCircle className="h-3.5 w-3.5 text-amber-500" /> Contas atrasadas
+
             </div>
             <div className="mt-2 text-2xl font-bold text-amber-500">
               {formatBRL(finSummary.payable.overdue + finSummary.receivable.overdue)}
