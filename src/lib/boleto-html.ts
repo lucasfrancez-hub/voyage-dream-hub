@@ -418,11 +418,41 @@ ${d.preview ? '<div class="preview-flag">Pré-visualização</div>' : ""}
 </body></html>`;
 }
 
+/** Baixa as logos e converte em data URI (cache em memória).
+ *  Necessário porque o boleto é aberto via Blob URL, onde imagens
+ *  externas podem não carregar em alguns navegadores. */
+let logosCache: { viaAir?: string; asaas?: string } | null = null;
+export async function carregarLogosBoleto(): Promise<{ viaAir?: string; asaas?: string }> {
+  if (logosCache) return logosCache;
+  const toDataUrl = async (url: string) => {
+    try {
+      const res = await fetch(url);
+      if (!res.ok) return undefined;
+      const blob = await res.blob();
+      return await new Promise<string>((resolve, reject) => {
+        const fr = new FileReader();
+        fr.onload = () => resolve(String(fr.result));
+        fr.onerror = reject;
+        fr.readAsDataURL(blob);
+      });
+    } catch {
+      return undefined;
+    }
+  };
+  const [viaAir, asaas] = await Promise.all([
+    toDataUrl(viaAirLogo.url),
+    toDataUrl(asaasLogo.url),
+  ]);
+  logosCache = { viaAir, asaas };
+  return logosCache;
+}
+
 /** Abre o boleto em uma nova aba (preview ou impressão/PDF).
  *  Usa Blob URL — funciona no Safari/Chrome, onde `document.write`
  *  em janela com `noopener` resulta em página em branco. */
-export function abrirBoletoHtml(data: BoletoDocData, imprimir = false) {
-  const html = renderBoletoHtml(data);
+export async function abrirBoletoHtml(data: BoletoDocData, imprimir = false) {
+  const logos = await carregarLogosBoleto();
+  const html = renderBoletoHtml({ ...data, logos: { ...logos, ...data.logos } });
   const blob = new Blob([html], { type: "text/html;charset=utf-8" });
   const url = URL.createObjectURL(blob);
   const win = window.open(url, "_blank");
