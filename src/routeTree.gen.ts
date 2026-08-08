@@ -14,7 +14,6 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as ChatRouteImport } from './routes/chat'
 import { Route as CruzeirosRouteImport } from './routes/cruzeiros'
-import { Route as DevComprovanteRouteImport } from './routes/dev-comprovante'
 import { Route as EmbedTesteRouteImport } from './routes/embed-teste'
 import { Route as ExclusaoDeDadosRouteImport } from './routes/exclusao-de-dados'
 import { Route as IngressosRouteImport } from './routes/ingressos'
@@ -158,11 +157,6 @@ const ChatRoute = ChatRouteImport.update({
 const CruzeirosRoute = CruzeirosRouteImport.update({
   id: '/cruzeiros',
   path: '/cruzeiros',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DevComprovanteRoute = DevComprovanteRouteImport.update({
-  id: '/dev-comprovante',
-  path: '/dev-comprovante',
   getParentRoute: () => rootRouteImport,
 } as any)
 const EmbedTesteRoute = EmbedTesteRouteImport.update({
@@ -796,7 +790,6 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/chat': typeof ChatRouteWithChildren
   '/cruzeiros': typeof CruzeirosRoute
-  '/dev-comprovante': typeof DevComprovanteRoute
   '/embed-teste': typeof EmbedTesteRoute
   '/exclusao-de-dados': typeof ExclusaoDeDadosRoute
   '/ingressos': typeof IngressosRoute
@@ -923,7 +916,6 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/chat': typeof ChatRouteWithChildren
   '/cruzeiros': typeof CruzeirosRoute
-  '/dev-comprovante': typeof DevComprovanteRoute
   '/embed-teste': typeof EmbedTesteRoute
   '/exclusao-de-dados': typeof ExclusaoDeDadosRoute
   '/ingressos': typeof IngressosRoute
@@ -1050,7 +1042,6 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/chat': typeof ChatRouteWithChildren
   '/cruzeiros': typeof CruzeirosRoute
-  '/dev-comprovante': typeof DevComprovanteRoute
   '/embed-teste': typeof EmbedTesteRoute
   '/exclusao-de-dados': typeof ExclusaoDeDadosRoute
   '/ingressos': typeof IngressosRoute
@@ -1179,7 +1170,6 @@ export interface FileRouteTypes {
     | '/auth'
     | '/chat'
     | '/cruzeiros'
-    | '/dev-comprovante'
     | '/embed-teste'
     | '/exclusao-de-dados'
     | '/ingressos'
@@ -1306,7 +1296,6 @@ export interface FileRouteTypes {
     | '/auth'
     | '/chat'
     | '/cruzeiros'
-    | '/dev-comprovante'
     | '/embed-teste'
     | '/exclusao-de-dados'
     | '/ingressos'
@@ -1432,7 +1421,6 @@ export interface FileRouteTypes {
     | '/auth'
     | '/chat'
     | '/cruzeiros'
-    | '/dev-comprovante'
     | '/embed-teste'
     | '/exclusao-de-dados'
     | '/ingressos'
@@ -1560,7 +1548,6 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   ChatRoute: typeof ChatRouteWithChildren
   CruzeirosRoute: typeof CruzeirosRoute
-  DevComprovanteRoute: typeof DevComprovanteRoute
   EmbedTesteRoute: typeof EmbedTesteRoute
   ExclusaoDeDadosRoute: typeof ExclusaoDeDadosRoute
   IngressosRoute: typeof IngressosRoute
@@ -1663,13 +1650,6 @@ declare module '@tanstack/react-router' {
       path: '/cruzeiros'
       fullPath: '/cruzeiros'
       preLoaderRoute: typeof CruzeirosRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/dev-comprovante': {
-      id: '/dev-comprovante'
-      path: '/dev-comprovante'
-      fullPath: '/dev-comprovante'
-      preLoaderRoute: typeof DevComprovanteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/embed-teste': {
@@ -2657,7 +2637,6 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   ChatRoute: ChatRouteWithChildren,
   CruzeirosRoute: CruzeirosRoute,
-  DevComprovanteRoute: DevComprovanteRoute,
   EmbedTesteRoute: EmbedTesteRoute,
   ExclusaoDeDadosRoute: ExclusaoDeDadosRoute,
   IngressosRoute: IngressosRoute,
