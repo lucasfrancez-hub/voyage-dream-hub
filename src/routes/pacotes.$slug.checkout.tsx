@@ -819,7 +819,7 @@ function Checkout() {
                         maxLength={120}
                       />
                     </Field>
-                    <Field label="CPF">
+                    <Field label={i === 0 && payment === "pix" ? "CPF *" : "CPF"}>
                       <input
                         value={t.cpf}
                         onChange={(e) => updateTraveler(i, { cpf: maskCPF(e.target.value) })}
