@@ -179,6 +179,28 @@ export const Route = createFileRoute('/api/public/asaas-webhook')({
           }
         }
 
+        try {
+          const { sendUazAlert } = await import('@/lib/broadcast/sync.server')
+          const { data: ord } = cob.order_id
+            ? await supabaseAdmin
+                .from('orders')
+                .select('order_number, full_name')
+                .eq('id', cob.order_id)
+                .maybeSingle()
+            : { data: null as any }
+          const linhas = [
+            '\u2705 *Pix recebido*',
+            `Valor: R$ ${valor.toFixed(2)}`,
+            ord?.order_number ? `Pedido: ${ord.order_number}` : null,
+            ord?.full_name ? `Cliente: ${ord.full_name}` : null,
+            `Quando: ${new Date(horario).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}`,
+            `ASAAS: ${paymentId}`,
+          ].filter(Boolean)
+          await sendUazAlert(linhas.join('\n'))
+        } catch (err) {
+          console.error('[asaas-webhook] alerta WhatsApp falhou', err)
+        }
+
         return Response.json({ ok: true, event, paid: true })
       },
     },
