@@ -45,6 +45,18 @@ const criarInput = z.object({
   personId: z.string().uuid().optional().nullable(),
   finePercent: z.number().min(0).max(100).optional().nullable(),
   interestPercent: z.number().min(0).max(100).optional().nullable(),
+  endereco: z
+    .object({
+      cep: z.string().optional().or(z.literal('')),
+      logradouro: z.string().optional().or(z.literal('')),
+      numero: z.string().optional().or(z.literal('')),
+      complemento: z.string().optional().or(z.literal('')),
+      bairro: z.string().optional().or(z.literal('')),
+      cidade: z.string().optional().or(z.literal('')),
+      estado: z.string().optional().or(z.literal('')),
+    })
+    .optional()
+    .nullable(),
   composicao: z
     .object({
       servico: z.string().optional().or(z.literal('')),
@@ -96,11 +108,28 @@ export const criarRecebimento = createServerFn({ method: 'POST' })
     const { supabaseAdmin } = await import('@/integrations/supabase/client.server')
     const { ensureAsaasCustomer, createAsaasCharge } = await import('@/lib/asaas.server')
 
+    const end = data.endereco ?? null
+    const enderecoTexto =
+      [
+        [end?.logradouro, end?.numero].filter(Boolean).join(', '),
+        end?.complemento,
+        end?.bairro,
+        [end?.cidade, end?.estado].filter(Boolean).join('/'),
+        end?.cep ? `CEP ${end.cep}` : '',
+      ]
+        .filter((p) => p && String(p).trim())
+        .join(' - ') || null
+
     const customerId = await ensureAsaasCustomer({
       name: data.customerName,
       cpfCnpj: data.cpfCnpj.replace(/\D/g, ''),
       email: data.email || undefined,
       phone: data.phone || undefined,
+      postalCode: end?.cep || undefined,
+      address: end?.logradouro || undefined,
+      addressNumber: end?.numero || undefined,
+      complement: end?.complemento || undefined,
+      province: end?.bairro || undefined,
     } as any)
 
     const charge = await createAsaasCharge({
@@ -134,7 +163,7 @@ export const criarRecebimento = createServerFn({ method: 'POST' })
         person_id: data.personId ?? null,
         fine_percent: data.finePercent ?? null,
         interest_percent: data.interestPercent ?? null,
-        composicao: (data.composicao as any) ?? null,
+        composicao: { ...(data.composicao ?? {}), endereco: enderecoTexto } as any,
         asaas_payment_id: charge.paymentId,
         asaas_customer_id: customerId,
         invoice_url: charge.invoiceUrl,
