@@ -352,7 +352,10 @@ function Checkout() {
       return;
     }
 
-
+    if (payment === "pix" && primary.cpf.replace(/\D/g, "").length !== 11) {
+      toast.error("Informe o CPF do passageiro 1 para gerar o QR Code Pix.");
+      return;
+    }
 
     if (payment === "boleto") {
       const err = validateBoleto(boleto, isThirdPartyFinancier);
