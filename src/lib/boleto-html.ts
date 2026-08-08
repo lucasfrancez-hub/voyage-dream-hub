@@ -305,27 +305,34 @@ ${d.preview ? '<div class="preview-flag">Pré-visualização</div>' : ""}
 
   <div class="grid2">
     <div>
-      <div class="section-title">DADOS DO PAGADOR</div>
+      <div class="section-title">${icon("user", 19)}<span>DADOS DO PAGADOR</span></div>
       <div class="card payer">
-        <div class="row"><strong>${esc(d.pagador.nome)}</strong>${d.pagador.cpfCnpj ? ` — ${esc(d.pagador.cpfCnpj)}` : ""}</div>
-        ${d.pagador.telefone || d.pagador.email ? `<div class="row">${[d.pagador.telefone, d.pagador.email].filter(Boolean).map(esc).join(" · ")}</div>` : ""}
-        ${d.pagador.endereco ? `<div class="row">${esc(d.pagador.endereco)}</div>` : ""}
+        <div class="row">${icon("user", 17)}<strong>${esc(d.pagador.nome)}</strong>${d.pagador.cpfCnpj ? `<span>— ${esc(d.pagador.cpfCnpj)}</span>` : ""}</div>
+        ${
+          d.pagador.telefone || d.pagador.email
+            ? `<div class="row">${[
+                d.pagador.telefone ? `${icon("phone", 17)}<span>${esc(d.pagador.telefone)}</span>` : "",
+                d.pagador.email ? `${icon("mail", 17)}<span>${esc(d.pagador.email)}</span>` : "",
+              ]
+                .filter(Boolean)
+                .join('<span class="sep"></span>')}</div>`
+            : ""
+        }
+        ${d.pagador.endereco ? `<div class="row">${icon("pin", 17)}<span>${esc(d.pagador.endereco)}</span></div>` : ""}
       </div>
     </div>
     ${
       temPix
         ? `<div>
-      <div class="section-title">PAGUE COM PIX</div>
+      <div class="section-title">${icon("pix", 19)}<span>PAGUE COM PIX</span></div>
       <div class="card">
-        <div class="pix-card">
+        <div class="pix-top">
           ${d.pix?.qrImage ? `<img class="qr" src="${esc(d.pix.qrImage)}" alt="QR Code Pix" />` : `<div class="qr"></div>`}
-          <div>
-            <div>Escaneie o QR Code com o app do seu banco e pague.</div>
-            <div style="font-size:14px;margin:13px 0 7px"><strong>Pix Copia e Cola</strong></div>
-            <div class="copybox">${esc(d.pix?.payload ?? "")}</div>
-            <div class="copyhint">Copie o código acima e cole no seu banco.</div>
-          </div>
+          <div class="pix-hint">${icon("phoneApp", 20)}<span><strong>Escaneie o QR Code</strong><br />com o app do seu banco e pague.</span></div>
         </div>
+        <div class="copytitle">${icon("copy", 16)}<span>Pix Copia e Cola</span></div>
+        <div class="copybox">${esc(d.pix?.payload ?? "")}</div>
+        <div class="copyhint">Copie o código acima e cole no seu banco.</div>
       </div>
     </div>`
         : "<div></div>"
@@ -335,7 +342,7 @@ ${d.preview ? '<div class="preview-flag">Pré-visualização</div>' : ""}
   ${
     compRows
       ? `<div class="composition">
-    <div class="section-title">COMPOSIÇÃO DA COBRANÇA</div>
+    <div class="section-title">${icon("list", 19)}<span>COMPOSIÇÃO DA COBRANÇA</span></div>
     <div class="comp-card">
       <div class="comp-left">${compRows}</div>
       <div class="comp-total"><small>VALOR DO DOCUMENTO</small><strong>R$ ${brl(d.valor)}</strong></div>
