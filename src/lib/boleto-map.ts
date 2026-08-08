@@ -6,6 +6,7 @@ export function recebimentoParaBoleto(row: any): BoletoDocData {
   const pay = raw?.payment ?? raw ?? {};
   const comp = row?.composicao ?? {};
   return {
+    variant: row?.kind === "pix" || row?.billing_type === "PIX" ? "pix" : "boleto",
     documentoRef: pay?.id ?? row?.id?.slice(0, 8)?.toUpperCase() ?? null,
     vencimento: row?.due_date ?? null,
     valor: Number(row?.value ?? 0),
