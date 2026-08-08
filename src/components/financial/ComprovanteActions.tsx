@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { Download, Eye, Loader2, Receipt, Share2 } from "lucide-react";
+import { Eye, ImageDown, Loader2, Receipt, Share2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -34,6 +34,7 @@ export function ComprovanteActions({
   const [loading, setLoading] = useState(false);
   const [receiptOpen, setReceiptOpen] = useState(false);
   const [fetched, setFetched] = useState<ReceiptData | null>(null);
+  const [auto, setAuto] = useState<"download" | "share" | null>(null);
 
 
   const podeConsultar = Boolean(paymentId || transferId || billId);
@@ -162,24 +163,31 @@ export function ComprovanteActions({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-56">
-          <DropdownMenuItem onSelect={(e) => { e.preventDefault(); abrirComprovante(); }}>
+          <DropdownMenuItem onSelect={(e) => { e.preventDefault(); setAuto(null); abrirComprovante(); }}>
             <Eye className="mr-2 h-4 w-4" /> Ver comprovante
           </DropdownMenuItem>
-          <DropdownMenuItem onSelect={(e) => { e.preventDefault(); baixarPdf(); }}>
-            <Download className="mr-2 h-4 w-4" /> Baixar PDF
+          <DropdownMenuItem onSelect={(e) => { e.preventDefault(); setAuto("download"); abrirComprovante(); }}>
+            <ImageDown className="mr-2 h-4 w-4" /> Baixar imagem
           </DropdownMenuItem>
-          <DropdownMenuItem onSelect={(e) => { e.preventDefault(); compartilhar(); }}>
-            <Share2 className="mr-2 h-4 w-4" /> Compartilhar
+          <DropdownMenuItem onSelect={(e) => { e.preventDefault(); setAuto("share"); abrirComprovante(); }}>
+            <Share2 className="mr-2 h-4 w-4" /> Compartilhar (WhatsApp)
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
 
       {visivel && (
-        <ComprovanteReceipt open={receiptOpen} onOpenChange={setReceiptOpen} data={visivel} />
+        <ComprovanteReceipt
+          open={receiptOpen}
+          onOpenChange={(v) => { setReceiptOpen(v); if (!v) setAuto(null); }}
+          data={visivel}
+          autoAction={auto}
+          onAutoActionDone={() => setAuto(null)}
+        />
       )}
     </>
   );
 }
+
 
 
 export default ComprovanteActions;

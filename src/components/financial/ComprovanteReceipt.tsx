@@ -1,8 +1,10 @@
+import { useCallback, useEffect, useRef, useState } from "react";
 import { CheckCircle2, Download, Loader2, Share2 } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { formatBRL } from "@/lib/format";
 import viaairLogo from "@/assets/viaair-logo-white.png.asset.json";
+
 
 export type ReceiptParty = {
   nome?: string | null;
@@ -80,12 +82,19 @@ export function ComprovanteReceipt({
   onOpenChange,
   data,
   loading,
+  autoAction = null,
+  onAutoActionDone,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   data: ReceiptData | null;
   loading?: boolean;
+  /** Executa automaticamente ao abrir: baixar imagem ou compartilhar. */
+  autoAction?: "download" | "share" | null;
+  onAutoActionDone?: () => void;
 }) {
+  const cardRef = useRef<HTMLDivElement | null>(null);
+  const [busy, setBusy] = useState<null | "download" | "share">(null);
   const counterparty: ReceiptParty = {
     nome: data?.favorecido ?? null,
     cpfCnpj: data?.cpfCnpj ?? null,
@@ -97,29 +106,85 @@ export function ComprovanteReceipt({
   const recebedor: ReceiptParty =
     data?.recebedor ?? (isIn ? VIAAIR_PARTY : counterparty);
 
-  async function compartilhar() {
-    if (!data) return;
-    const texto = [
-      "Comprovante de transferência Pix — VIA AIR",
-      `Valor: ${formatBRL(data.valor)}`,
-      `${data.favorecidoLabel || (data.direction === 'in' ? 'Pagador' : 'Favorecido')}: ${data.favorecido}`,
-      `Data: ${data.dataHora ?? "—"}`,
-      data.transacaoId ? `ID: ${data.transacaoId}` : "",
-    ]
-      .filter(Boolean)
-      .join("\n");
-    const nav = navigator as Navigator & { share?: (d: ShareData) => Promise<void> };
-    if (nav.share) {
-      try {
-        await nav.share({ title: "Comprovante VIA AIR", text: texto });
-        return;
-      } catch {
-        /* cancelado */
-      }
+  const fileName = `comprovante-viaair-${(data?.transacaoId || "pix").slice(0, 12)}.png`;
+
+  const gerarPng = useCallback(async (): Promise<Blob | null> => {
+    const node = cardRef.current;
+    if (!node) return null;
+    const { toBlob } = await import("html-to-image");
+    const bg = getComputedStyle(document.body).backgroundColor || "#0b0f14";
+    return await toBlob(node, { pixelRatio: 3, cacheBust: true, backgroundColor: bg });
+  }, []);
+
+  const baixarImagem = useCallback(async () => {
+    setBusy("download");
+    try {
+      const blob = await gerarPng();
+      if (!blob) throw new Error("sem imagem");
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 10000);
+      toast.success("Imagem do comprovante baixada.");
+    } catch {
+      toast.error("Não foi possível gerar a imagem do comprovante.");
+    } finally {
+      setBusy(null);
     }
-    await navigator.clipboard.writeText(texto);
-    toast.success("Comprovante copiado.");
-  }
+  }, [gerarPng, fileName]);
+
+  const compartilhar = useCallback(async () => {
+    if (!data) return;
+    setBusy("share");
+    try {
+      const blob = await gerarPng();
+      const nav = navigator as Navigator & {
+        share?: (d: ShareData) => Promise<void>;
+        canShare?: (d: ShareData) => boolean;
+      };
+      if (blob) {
+        const file = new File([blob], fileName, { type: "image/png" });
+        if (nav.share && (!nav.canShare || nav.canShare({ files: [file] }))) {
+          try {
+            await nav.share({ files: [file], title: "Comprovante VIA AIR" });
+            return;
+          } catch {
+            /* cancelado */
+          }
+        }
+        // Sem compartilhamento de arquivo: tenta copiar a imagem, senão baixa
+        try {
+          const CI = (window as unknown as { ClipboardItem?: typeof ClipboardItem }).ClipboardItem;
+          if (CI && navigator.clipboard && "write" in navigator.clipboard) {
+            await navigator.clipboard.write([new CI({ "image/png": blob })]);
+            toast.success("Imagem copiada — cole no WhatsApp.");
+            return;
+          }
+        } catch {
+          /* segue para download */
+        }
+        await baixarImagem();
+        toast.info("Imagem baixada — anexe no WhatsApp.");
+        return;
+      }
+      toast.error("Não foi possível gerar a imagem do comprovante.");
+    } finally {
+      setBusy(null);
+    }
+  }, [data, gerarPng, fileName, baixarImagem]);
+
+  useEffect(() => {
+    if (!open || !autoAction || !data || loading) return;
+    const t = setTimeout(() => {
+      const run = autoAction === "share" ? compartilhar : baixarImagem;
+      void run().finally(() => onAutoActionDone?.());
+    }, 350);
+    return () => clearTimeout(t);
+  }, [open, autoAction, data, loading, compartilhar, baixarImagem, onAutoActionDone]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -133,9 +198,11 @@ export function ComprovanteReceipt({
         ) : (
           <>
             <div
+              ref={cardRef}
               id="comprovante-print"
               className="print-receipt relative overflow-hidden rounded-3xl bg-card border border-border shadow-[0_24px_48px_-16px_rgba(0,0,0,0.6)]"
             >
+
               <div className="h-1.5 w-full bg-brand-orange" />
 
               <div className="relative p-6 flex flex-col gap-5">
@@ -208,22 +275,30 @@ export function ComprovanteReceipt({
             <div className="flex gap-2 mt-2 print:hidden">
               <button
                 onClick={compartilhar}
-                className="flex-1 py-2 px-3 bg-muted/40 hover:bg-muted rounded-lg text-xs font-semibold text-foreground border border-border transition flex items-center justify-center gap-2"
+                disabled={busy !== null}
+                className="flex-1 py-2 px-3 bg-muted/40 hover:bg-muted rounded-lg text-xs font-semibold text-foreground border border-border transition flex items-center justify-center gap-2 disabled:opacity-60"
               >
-                <Share2 className="h-3.5 w-3.5" /> Compartilhar
+                {busy === "share" ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Share2 className="h-3.5 w-3.5" />
+                )}
+                Compartilhar
               </button>
               <button
-                onClick={() => {
-                  if (data.pdfUrl) {
-                    window.open(data.pdfUrl, "_blank", "noopener,noreferrer");
-                    return;
-                  }
-                  window.print();
-                }}
-                className="flex-1 py-2 px-3 bg-brand-orange hover:brightness-95 rounded-lg text-xs font-semibold text-white shadow-[var(--shadow-glow)] transition flex items-center justify-center gap-2"
+                onClick={baixarImagem}
+                disabled={busy !== null}
+                className="flex-1 py-2 px-3 bg-brand-orange hover:brightness-95 rounded-lg text-xs font-semibold text-white shadow-[var(--shadow-glow)] transition flex items-center justify-center gap-2 disabled:opacity-60"
               >
-                <Download className="h-3.5 w-3.5" /> Salvar PDF
+                {busy === "download" ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Download className="h-3.5 w-3.5" />
+                )}
+                Baixar imagem
               </button>
+
+
             </div>
           </>
         )}
