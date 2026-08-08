@@ -106,7 +106,7 @@ export function ComprovanteReceipt({
 
                 <div className="w-full grid grid-cols-2 gap-x-4 gap-y-5">
                   <Field label="Favorecido" value={data.favorecido} />
-                  <Field label="Instituição" value={data.instituicao || "ASAAS"} />
+                  <Field label="Instituição" value={data.instituicao || "—"} />
                   <Field label="Chave Pix" value={data.chavePix || "—"} />
                   <Field label="Tipo" value={data.tipo || "Transferência Pix"} />
                   <Field label="CPF/CNPJ" value={maskDoc(data.cpfCnpj)} />
