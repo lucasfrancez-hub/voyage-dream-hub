@@ -748,7 +748,46 @@ export { recebimentoParaBoleto };
 
 
 
-function CobrancaDialog({ row, onClose }: { row: any | null; onClose: () => void }) {
+function CobrancaDialog({
+  row,
+  onClose,
+  onUpdated,
+}: {
+  row: any | null;
+  onClose: () => void;
+  onUpdated?: (row: any) => void;
+}) {
+  const segundaVia = useServerFn(segundaViaRecebimento);
+  const [atualizando, setAtualizando] = useState(false);
+
+  const hojeISO = new Date().toISOString().slice(0, 10);
+  const vencido =
+    !!row &&
+    row.status !== "recebido" &&
+    row.status !== "cancelado" &&
+    row.status !== "estornado" &&
+    String(row.due_date ?? "") < hojeISO;
+
+  async function gerarSegundaVia() {
+    if (!row) return;
+    setAtualizando(true);
+    try {
+      const res: any = await segundaVia({ data: { id: row.id } });
+      onUpdated?.(res.row);
+      toast.success(
+        `Valor atualizado: multa ${formatBRL(res.multa)} + juros ${formatBRL(res.juros)} (${res.diasAtraso} dias).`,
+      );
+      if (!(await abrirBoletoHtml(recebimentoParaBoleto(res.row), true))) {
+        toast.error("Libere pop-ups para gerar o documento.");
+      }
+    } catch (e: any) {
+      toast.error(e?.message ?? "Falha ao gerar segunda via.");
+    } finally {
+      setAtualizando(false);
+    }
+  }
+
+
   function copy(text: string, msg: string) {
     navigator.clipboard.writeText(text);
     toast.success(msg);
