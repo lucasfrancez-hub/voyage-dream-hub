@@ -588,12 +588,20 @@ export const gerarBoletoPedidoAdmin = createServerFn({ method: 'POST' })
     }
 
     const { ensureAsaasCustomer, createAsaasCharge } = await import('@/lib/asaas.server')
+    const end = data.endereco ?? null
     const customerId = await ensureAsaasCustomer({
       name: nome,
       cpfCnpj,
       email: data.email || order.email || undefined,
       phone: data.telefone || (order as any).phone || undefined,
       externalReference: order.id,
+      postalCode: end?.cep || undefined,
+      address: end?.logradouro || undefined,
+      addressNumber: end?.numero || undefined,
+      complement: end?.complemento || undefined,
+      province: end?.bairro || undefined,
+      city: end?.cidade || undefined,
+      state: end?.estado || undefined,
     } as any)
 
     const descricao =
@@ -606,8 +614,8 @@ export const gerarBoletoPedidoAdmin = createServerFn({ method: 'POST' })
       dueDate: data.vencimento,
       description: descricao,
       externalReference: order.id,
-      finePercent: data.multaPercent ?? 2,
-      interestPercent: data.jurosPercent ?? 1,
+      finePercent: data.multaPercent ?? null,
+      interestPercent: data.jurosPercent ?? null,
     })
 
     const { data: actor } = await supabaseAdmin
