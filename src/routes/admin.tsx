@@ -488,6 +488,7 @@ function DashboardNav({ pathname }: { pathname: string }) {
           items: [
             { to: "/admin/contas-receber", label: "Contas a receber" },
             { to: "/admin/contas-pagar", label: "Contas a pagar" },
+            { to: "/admin/recebimentos", label: "Recebimentos" },
             { to: "/admin/pagamentos", label: "Pagamentos" },
             { to: "/admin/conta-bancaria", label: "Conta bancária" },
             { to: "/admin/comprovantes", label: "Comprovantes" },

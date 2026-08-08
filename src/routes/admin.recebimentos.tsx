@@ -1,0 +1,410 @@
+import { useMemo, useState } from "react";
+import { createFileRoute } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  Barcode, Copy, Loader2, Plus, QrCode, RefreshCw, Search, Ban, ExternalLink,
+} from "lucide-react";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  listarRecebimentos, criarRecebimento, sincronizarRecebimento, cancelarRecebimento,
+} from "@/lib/recebimentos.functions";
+import { confirmThen } from "@/lib/confirm";
+
+export const Route = createFileRoute("/admin/recebimentos")({
+  head: () => ({
+    meta: [
+      { title: "Recebimentos Pix e boleto | VIA AIR" },
+      {
+        name: "description",
+        content: "Gere cobranças Pix com QR Code e boletos bancários avulsos pela conta VIA AIR.",
+      },
+      { property: "og:title", content: "Recebimentos Pix e boleto | VIA AIR" },
+      {
+        property: "og:description",
+        content: "Cobranças Pix e boletos avulsos gerados direto no sistema.",
+      },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
+  component: RecebimentosPage,
+});
+
+const STATUS_META: Record<string, { label: string; cls: string }> = {
+  pendente: { label: "Pendente", cls: "bg-amber-500/15 text-amber-400" },
+  recebido: { label: "Recebido", cls: "bg-emerald-500/15 text-emerald-400" },
+  vencido: { label: "Vencido", cls: "bg-orange-500/15 text-orange-400" },
+  cancelado: { label: "Cancelado", cls: "bg-muted text-muted-foreground" },
+  estornado: { label: "Estornado", cls: "bg-rose-500/15 text-rose-400" },
+};
+
+function formatBRL(v: number) {
+  return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+
+function RecebimentosPage() {
+  const qc = useQueryClient();
+  const listar = useServerFn(listarRecebimentos);
+  const sincronizar = useServerFn(sincronizarRecebimento);
+  const cancelar = useServerFn(cancelarRecebimento);
+
+  const [novoOpen, setNovoOpen] = useState(false);
+  const [novoKind, setNovoKind] = useState<"pix" | "boleto">("pix");
+  const [busca, setBusca] = useState("");
+  const [detalhe, setDetalhe] = useState<any | null>(null);
+
+  const { data, isLoading, isFetching, refetch } = useQuery({
+    queryKey: ["asaas-recebimentos"],
+    queryFn: async () => (await listar({ data: {} })) as any[],
+  });
+
+  const filtered = useMemo(() => {
+    const rows = data ?? [];
+    const q = busca.trim().toLowerCase();
+    if (!q) return rows;
+    return rows.filter((r) =>
+      [r.customer_name, r.customer_cpf_cnpj, r.description]
+        .filter(Boolean)
+        .some((v: string) => String(v).toLowerCase().includes(q)),
+    );
+  }, [data, busca]);
+
+  async function doSync(id: string) {
+    try {
+      await sincronizar({ data: { id } });
+      qc.invalidateQueries({ queryKey: ["asaas-recebimentos"] });
+      toast.success("Status atualizado.");
+    } catch (e: any) {
+      toast.error(e?.message ?? "Falha ao sincronizar.");
+    }
+  }
+
+  function doCancel(id: string) {
+    confirmThen(
+      {
+        title: "Cancelar cobrança?",
+        description: "A cobrança será removida no banco e não poderá mais ser paga.",
+        confirmText: "Cancelar cobrança",
+      },
+      async () => {
+        try {
+          await cancelar({ data: { id } });
+          qc.invalidateQueries({ queryKey: ["asaas-recebimentos"] });
+          toast.success("Cobrança cancelada.");
+        } catch (e: any) {
+          toast.error(e?.message ?? "Falha ao cancelar.");
+        }
+      },
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold">Recebimentos</h1>
+          <p className="text-sm text-muted-foreground">
+            Cobranças Pix com QR Code e boletos bancários gerados na conta VIA AIR.
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
+            <RefreshCw className={`h-4 w-4 mr-1.5 ${isFetching ? "animate-spin" : ""}`} /> Atualizar
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => { setNovoKind("boleto"); setNovoOpen(true); }}
+          >
+            <Barcode className="h-4 w-4 mr-1.5" /> Novo boleto
+          </Button>
+          <Button size="sm" onClick={() => { setNovoKind("pix"); setNovoOpen(true); }}>
+            <Plus className="h-4 w-4 mr-1.5" /> Nova cobrança Pix
+          </Button>
+        </div>
+      </div>
+
+      <div className="relative max-w-sm">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          value={busca}
+          onChange={(e) => setBusca(e.target.value)}
+          placeholder="Buscar cliente, CPF/CNPJ, descrição..."
+          className="pl-9"
+        />
+      </div>
+
+      <div className="rounded-2xl border border-border bg-card overflow-hidden">
+        {isLoading ? (
+          <div className="p-10 flex justify-center">
+            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="p-10 text-center text-sm text-muted-foreground">
+            Nenhuma cobrança gerada ainda.
+          </div>
+        ) : (
+          <div className="divide-y divide-border">
+            {filtered.map((r) => {
+              const meta = STATUS_META[r.status] ?? { label: r.status, cls: "bg-muted" };
+              return (
+                <div key={r.id} className="flex flex-wrap items-center gap-3 px-4 py-3 hover:bg-muted/30">
+                  <span className="rounded-full bg-muted/40 p-2">
+                    {r.kind === "pix" ? <QrCode className="h-4 w-4" /> : <Barcode className="h-4 w-4" />}
+                  </span>
+                  <button onClick={() => setDetalhe(r)} className="min-w-0 flex-1 text-left">
+                    <div className="font-medium truncate">{r.customer_name}</div>
+                    <div className="text-xs text-muted-foreground truncate">
+                      {r.kind === "pix" ? "Pix" : "Boleto"}
+                      {r.due_date ? ` · vence ${new Date(`${r.due_date}T12:00:00`).toLocaleDateString("pt-BR")}` : ""}
+                      {r.description ? ` · ${r.description}` : ""}
+                    </div>
+                  </button>
+                  <span className={`px-2 py-0.5 rounded-full text-[11px] font-semibold ${meta.cls}`}>
+                    {meta.label}
+                  </span>
+                  <span className="font-semibold tabular-nums w-28 text-right">
+                    {formatBRL(Number(r.value))}
+                  </span>
+                  <div className="flex gap-1">
+                    <Button
+                      size="icon"
+                      variant="outline"
+                      title="Ver cobrança"
+                      className="rounded-full h-9 w-9 border-border/60"
+                      onClick={() => setDetalhe(r)}
+                    >
+                      {r.kind === "pix" ? <QrCode className="h-4 w-4" /> : <Barcode className="h-4 w-4" />}
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="rounded-full h-9 w-9"
+                      title="Sincronizar status"
+                      onClick={() => doSync(r.id)}
+                    >
+                      <RefreshCw className="h-4 w-4" />
+                    </Button>
+                    {!["recebido", "cancelado"].includes(r.status) && (
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="rounded-full h-9 w-9"
+                        title="Cancelar cobrança"
+                        onClick={() => doCancel(r.id)}
+                      >
+                        <Ban className="h-4 w-4 text-red-500" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      <NovoRecebimentoDialog
+        open={novoOpen}
+        kind={novoKind}
+        onKindChange={setNovoKind}
+        onOpenChange={setNovoOpen}
+        onCreated={(row) => {
+          qc.invalidateQueries({ queryKey: ["asaas-recebimentos"] });
+          setDetalhe(row);
+        }}
+      />
+      <CobrancaDialog row={detalhe} onClose={() => setDetalhe(null)} />
+    </div>
+  );
+}
+
+function NovoRecebimentoDialog({
+  open, kind, onKindChange, onOpenChange, onCreated,
+}: {
+  open: boolean;
+  kind: "pix" | "boleto";
+  onKindChange: (k: "pix" | "boleto") => void;
+  onOpenChange: (v: boolean) => void;
+  onCreated: (row: any) => void;
+}) {
+  const criar = useServerFn(criarRecebimento);
+  const hoje = new Date().toISOString().slice(0, 10);
+  const [form, setForm] = useState({
+    customerName: "", cpfCnpj: "", email: "", phone: "", value: "", dueDate: hoje, description: "",
+  });
+
+  const mut = useMutation({
+    mutationFn: async () =>
+      await criar({
+        data: {
+          kind,
+          customerName: form.customerName.trim(),
+          cpfCnpj: form.cpfCnpj,
+          email: form.email || undefined,
+          phone: form.phone || undefined,
+          value: Number(String(form.value).replace(/\./g, "").replace(",", ".")),
+          dueDate: form.dueDate,
+          description: form.description || undefined,
+        },
+      }),
+    onSuccess: (row) => {
+      toast.success(kind === "pix" ? "QR Code gerado." : "Boleto gerado.");
+      onOpenChange(false);
+      setForm({ customerName: "", cpfCnpj: "", email: "", phone: "", value: "", dueDate: hoje, description: "" });
+      onCreated(row);
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Falha ao gerar cobrança."),
+  });
+
+  const set = (k: string) => (e: any) => setForm((f) => ({ ...f, [k]: e.target.value }));
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-[520px] bg-card/80 backdrop-blur-xl border-border/60 rounded-2xl">
+        <DialogHeader>
+          <DialogTitle>Nova cobrança</DialogTitle>
+        </DialogHeader>
+
+        <div className="grid grid-cols-2 gap-2">
+          {(["pix", "boleto"] as const).map((k) => (
+            <button
+              key={k}
+              type="button"
+              onClick={() => onKindChange(k)}
+              className={`flex items-center gap-2 rounded-xl border p-3 text-sm font-medium transition ${
+                kind === k
+                  ? "border-brand-orange bg-brand-orange/10 text-foreground"
+                  : "border-border/60 text-muted-foreground hover:bg-muted/30"
+              }`}
+            >
+              {k === "pix" ? <QrCode className="h-4 w-4" /> : <Barcode className="h-4 w-4" />}
+              {k === "pix" ? "Pix / QR Code" : "Boleto bancário"}
+            </button>
+          ))}
+        </div>
+
+        <div className="space-y-3">
+          <div>
+            <Label>Nome do pagador</Label>
+            <Input value={form.customerName} onChange={set("customerName")} placeholder="Nome completo" />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label>CPF/CNPJ</Label>
+              <Input value={form.cpfCnpj} onChange={set("cpfCnpj")} placeholder="000.000.000-00" />
+            </div>
+            <div>
+              <Label>Valor (R$)</Label>
+              <Input value={form.value} onChange={set("value")} inputMode="decimal" placeholder="0,00" />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label>E-mail (opcional)</Label>
+              <Input value={form.email} onChange={set("email")} placeholder="cliente@email.com" />
+            </div>
+            <div>
+              <Label>Vencimento</Label>
+              <Input type="date" value={form.dueDate} onChange={set("dueDate")} />
+            </div>
+          </div>
+          <div>
+            <Label>Descrição (opcional)</Label>
+            <Textarea value={form.description} onChange={set("description")} rows={2} />
+          </div>
+        </div>
+
+        <Button
+          className="w-full"
+          disabled={mut.isPending || !form.customerName || !form.cpfCnpj || !form.value}
+          onClick={() => mut.mutate()}
+        >
+          {mut.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+          {kind === "pix" ? "Gerar QR Code" : "Gerar boleto"}
+        </Button>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function CobrancaDialog({ row, onClose }: { row: any | null; onClose: () => void }) {
+  function copy(text: string, msg: string) {
+    navigator.clipboard.writeText(text);
+    toast.success(msg);
+  }
+  return (
+    <Dialog open={!!row} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="max-w-[440px] bg-card/80 backdrop-blur-xl border-border/60 rounded-2xl">
+        <DialogHeader>
+          <DialogTitle>{row?.kind === "pix" ? "Cobrança Pix" : "Boleto bancário"}</DialogTitle>
+        </DialogHeader>
+        {row && (
+          <div className="space-y-4">
+            <div className="text-center">
+              <p className="text-sm text-muted-foreground">{row.customer_name}</p>
+              <p className="text-2xl font-bold text-brand-orange">{formatBRL(Number(row.value))}</p>
+            </div>
+
+            {row.kind === "pix" && row.pix_qr_image && (
+              <img
+                src={row.pix_qr_image}
+                alt="QR Code Pix da cobrança"
+                className="mx-auto h-52 w-52 rounded-xl bg-white p-2"
+              />
+            )}
+
+            {row.kind === "pix" && row.pix_payload && (
+              <Button variant="outline" className="w-full" onClick={() => copy(row.pix_payload, "Código Pix copiado.")}>
+                <Copy className="h-4 w-4 mr-2" /> Copiar código Pix
+              </Button>
+            )}
+
+            {row.kind === "boleto" && row.identification_field && (
+              <div className="rounded-xl border border-border/60 bg-muted/20 p-3">
+                <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Linha digitável</p>
+                <p className="font-mono text-xs break-all mt-1">{row.identification_field}</p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="mt-2 w-full"
+                  onClick={() => copy(row.identification_field, "Linha digitável copiada.")}
+                >
+                  <Copy className="h-4 w-4 mr-2" /> Copiar linha digitável
+                </Button>
+              </div>
+            )}
+
+            {(row.bank_slip_url || row.invoice_url) && (
+              <Button
+                className="w-full"
+                onClick={() => window.open(row.bank_slip_url || row.invoice_url, "_blank", "noopener,noreferrer")}
+              >
+                <ExternalLink className="h-4 w-4 mr-2" />
+                {row.kind === "boleto" ? "Abrir boleto (PDF)" : "Abrir fatura"}
+              </Button>
+            )}
+
+            {row.invoice_url && (
+              <Button
+                variant="ghost"
+                className="w-full"
+                onClick={() => copy(row.invoice_url, "Link da cobrança copiado — envie ao cliente.")}
+              >
+                <Copy className="h-4 w-4 mr-2" /> Copiar link para o cliente
+              </Button>
+            )}
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}

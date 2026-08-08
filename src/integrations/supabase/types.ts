@@ -288,6 +288,101 @@ export type Database = {
           },
         ]
       }
+      asaas_recebimentos: {
+        Row: {
+          asaas_customer_id: string | null
+          asaas_payment_id: string | null
+          bank_slip_url: string | null
+          created_at: string
+          created_by: string | null
+          created_by_name: string | null
+          customer_cpf_cnpj: string | null
+          customer_email: string | null
+          customer_name: string
+          customer_phone: string | null
+          description: string | null
+          due_date: string | null
+          expira_em: string | null
+          id: string
+          identification_field: string | null
+          invoice_url: string | null
+          kind: string
+          order_id: string | null
+          paid_at: string | null
+          pix_payload: string | null
+          pix_qr_image: string | null
+          raw_response: Json | null
+          status: string
+          updated_at: string
+          value: number
+          webhook_payload: Json | null
+        }
+        Insert: {
+          asaas_customer_id?: string | null
+          asaas_payment_id?: string | null
+          bank_slip_url?: string | null
+          created_at?: string
+          created_by?: string | null
+          created_by_name?: string | null
+          customer_cpf_cnpj?: string | null
+          customer_email?: string | null
+          customer_name: string
+          customer_phone?: string | null
+          description?: string | null
+          due_date?: string | null
+          expira_em?: string | null
+          id?: string
+          identification_field?: string | null
+          invoice_url?: string | null
+          kind: string
+          order_id?: string | null
+          paid_at?: string | null
+          pix_payload?: string | null
+          pix_qr_image?: string | null
+          raw_response?: Json | null
+          status?: string
+          updated_at?: string
+          value: number
+          webhook_payload?: Json | null
+        }
+        Update: {
+          asaas_customer_id?: string | null
+          asaas_payment_id?: string | null
+          bank_slip_url?: string | null
+          created_at?: string
+          created_by?: string | null
+          created_by_name?: string | null
+          customer_cpf_cnpj?: string | null
+          customer_email?: string | null
+          customer_name?: string
+          customer_phone?: string | null
+          description?: string | null
+          due_date?: string | null
+          expira_em?: string | null
+          id?: string
+          identification_field?: string | null
+          invoice_url?: string | null
+          kind?: string
+          order_id?: string | null
+          paid_at?: string | null
+          pix_payload?: string | null
+          pix_qr_image?: string | null
+          raw_response?: Json | null
+          status?: string
+          updated_at?: string
+          value?: number
+          webhook_payload?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asaas_recebimentos_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       asaas_transfer_events: {
         Row: {
           actor_name: string | null
