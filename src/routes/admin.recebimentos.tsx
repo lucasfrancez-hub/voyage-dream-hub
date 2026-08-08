@@ -315,7 +315,15 @@ function RecebimentosPage() {
           setDetalhe(row);
         }}
       />
-      <CobrancaDialog row={detalhe} onClose={() => setDetalhe(null)} />
+      <CobrancaDialog
+        row={detalhe}
+        onClose={() => setDetalhe(null)}
+        onUpdated={(row) => {
+          setDetalhe(row);
+          qc.invalidateQueries({ queryKey: ["asaas-recebimentos"] });
+        }}
+      />
+
     </div>
   );
 }
