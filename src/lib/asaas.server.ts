@@ -184,3 +184,32 @@ export async function cancelAsaasTransfer(transferId: string) {
     return asaasFetch(`/transfers/${encodeURIComponent(transferId)}`, { method: 'DELETE' })
   }
 }
+
+/* ============================================================
+ * CONTA BANCÁRIA (saldo + extrato)
+ * ============================================================ */
+
+/** Saldo disponível da conta ASAAS. */
+export async function getAsaasBalance(): Promise<number> {
+  const res = await asaasFetch('/finance/balance')
+  return Number(res?.balance ?? 0)
+}
+
+export interface AsaasStatementParams {
+  startDate: string // yyyy-mm-dd
+  finishDate: string // yyyy-mm-dd
+  offset?: number
+  limit?: number
+}
+
+/** Extrato (financial transactions) da conta ASAAS. */
+export async function getAsaasStatement(params: AsaasStatementParams) {
+  const q = new URLSearchParams({
+    startDate: params.startDate,
+    finishDate: params.finishDate,
+    offset: String(params.offset ?? 0),
+    limit: String(Math.min(params.limit ?? 50, 100)),
+    order: 'desc',
+  })
+  return asaasFetch(`/financialTransactions?${q.toString()}`)
+}
