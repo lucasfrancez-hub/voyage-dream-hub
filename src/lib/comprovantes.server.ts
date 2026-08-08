@@ -15,6 +15,8 @@ export interface Comprovante {
   status: string | null
   reference: string | null
   receiptUrl: string | null
+  direction: 'in' | 'out'
+  counterpartyLabel: string
   instituicao: string | null
   chavePix: string | null
   cpfCnpj: string | null
@@ -113,6 +115,7 @@ export async function fetchComprovantes(range: {
 }): Promise<Comprovante[]> {
   const { listAsaasTransfers, listAsaasPayments, listAsaasBills } = await import('@/lib/asaas.server')
 
+  const { getAsaasCustomer } = await import('@/lib/asaas.server')
   const [transfers, payments, bills] = await Promise.all([
     listAsaasTransfers(range).catch(() => [] as any[]),
     listAsaasPayments(range).catch(() => [] as any[]),
@@ -132,6 +135,8 @@ export async function fetchComprovantes(range: {
       favored: favoredOfTransfer(t),
       value: Math.abs(Number(t?.value ?? 0)),
       operation: operationLabelTransfer(t),
+      direction: 'out',
+      counterpartyLabel: 'Favorecido',
       status: TRANSFER_STATUS[String(t?.status ?? '')] ?? t?.status ?? null,
       reference: t?.externalReference ?? t?.id ?? null,
       receiptUrl: t?.transactionReceiptUrl ?? null,
@@ -142,7 +147,24 @@ export async function fetchComprovantes(range: {
     })
   }
 
+  const customerIds = Array.from(
+    new Set(
+      payments
+        .map((p: any) => (typeof p?.customer === 'string' ? p.customer : p?.customer?.id))
+        .filter(Boolean) as string[],
+    ),
+  ).slice(0, 60)
+  const customers = new Map<string, any>()
+  await Promise.all(
+    customerIds.map(async (id) => {
+      const c = await getAsaasCustomer(id).catch(() => null)
+      if (c) customers.set(id, c)
+    }),
+  )
+
   for (const p of payments) {
+    const cid = typeof p?.customer === 'string' ? p.customer : p?.customer?.id
+    const cust = cid ? customers.get(cid) : null
     const dt = p?.paymentDate ?? p?.clientPaymentDate ?? p?.confirmedDate ?? p?.dateCreated ?? null
     if (!inRange(dt, range.startDate, range.finishDate)) continue
     out.push({
@@ -150,15 +172,17 @@ export async function fetchComprovantes(range: {
       kind: 'payment',
       asaasId: String(p?.id ?? ''),
       date: dt,
-      favored: p?.customerName ?? p?.description ?? null,
+      favored: cust?.name ?? cust?.company ?? p?.customerName ?? p?.description ?? null,
       value: Math.abs(Number(p?.value ?? 0)),
       operation: operationLabelPayment(p),
+      direction: 'in',
+      counterpartyLabel: 'Pagador',
       status: PAYMENT_STATUS[String(p?.status ?? '')] ?? p?.status ?? null,
       reference: p?.externalReference ?? p?.invoiceNumber ?? p?.id ?? null,
       receiptUrl: p?.transactionReceiptUrl ?? null,
       instituicao: p?.creditCard?.creditCardBrand ?? null,
-      chavePix: p?.pixTransaction?.qrCode?.pixKey ?? null,
-      cpfCnpj: digits(p?.customerCpfCnpj),
+      chavePix: p?.pixTransaction?.qrCode?.pixKey ?? p?.pixQrCodeId ?? null,
+      cpfCnpj: digits(cust?.cpfCnpj ?? p?.customerCpfCnpj),
       descricao: p?.description ?? null,
     })
   }
@@ -174,6 +198,8 @@ export async function fetchComprovantes(range: {
       favored: b?.companyName ?? b?.beneficiaryName ?? b?.description ?? null,
       value: Math.abs(Number(b?.value ?? 0)),
       operation: 'Boleto pago',
+      direction: 'out',
+      counterpartyLabel: 'Beneficiário',
       status: BILL_STATUS[String(b?.status ?? '')] ?? b?.status ?? null,
       reference: b?.externalReference ?? b?.id ?? null,
       receiptUrl: b?.transactionReceiptUrl ?? null,

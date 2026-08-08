@@ -7,6 +7,10 @@ import viaairLogo from "@/assets/viaair-logo-white.png.asset.json";
 export type ReceiptData = {
   valor: number;
   favorecido: string;
+  /** Rótulo da contraparte: "Favorecido" (envio) ou "Pagador" (recebimento). */
+  favorecidoLabel?: string;
+  /** Sentido da movimentação — muda o título do comprovante. */
+  direction?: 'in' | 'out';
   instituicao?: string | null;
   chavePix?: string | null;
   cpfCnpj?: string | null;
@@ -44,7 +48,7 @@ export function ComprovanteReceipt({
     const texto = [
       "Comprovante de transferência Pix — VIA AIR",
       `Valor: ${formatBRL(data.valor)}`,
-      `Favorecido: ${data.favorecido}`,
+      `${data.favorecidoLabel || (data.direction === 'in' ? 'Pagador' : 'Favorecido')}: ${data.favorecido}`,
       `Data: ${data.dataHora ?? "—"}`,
       data.transacaoId ? `ID: ${data.transacaoId}` : "",
     ]
@@ -93,7 +97,11 @@ export function ComprovanteReceipt({
                     <CheckCircle2 className="h-6 w-6 text-emerald-400" />
                   </div>
                   <span className="text-emerald-400 font-semibold text-sm tracking-wide">
-                    {data.concluido === false ? (data.status ?? "Em processamento") : "Pagamento realizado"}
+                    {data.concluido === false
+                      ? (data.status ?? "Em processamento")
+                      : data.direction === "in"
+                        ? "Pagamento recebido"
+                        : "Pagamento realizado"}
                   </span>
                 </div>
 
@@ -105,7 +113,10 @@ export function ComprovanteReceipt({
                 </div>
 
                 <div className="w-full grid grid-cols-2 gap-x-4 gap-y-5">
-                  <Field label="Favorecido" value={data.favorecido} />
+                  <Field
+                    label={data.favorecidoLabel || (data.direction === "in" ? "Pagador" : "Favorecido")}
+                    value={data.favorecido}
+                  />
                   <Field label="Instituição" value={data.instituicao || "—"} />
                   <Field label="Chave Pix" value={data.chavePix || "—"} />
                   <Field label="Tipo" value={data.tipo || "Transferência Pix"} />

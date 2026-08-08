@@ -346,6 +346,8 @@ function ContaBancariaPage() {
                           receipt={{
                             valor: Math.abs(Number(i.value ?? 0)),
                             favorecido: i.description || asaasTypeLabel(i.type) || "—",
+                            direction: i.direction === "in" ? "in" : "out",
+                            favorecidoLabel: i.direction === "in" ? "Pagador" : "Favorecido",
                             tipo: asaasTypeLabel(i.type) || undefined,
                             dataHora: i.date ? new Date(i.date).toLocaleString("pt-BR") : null,
                             transacaoId: i.reference || i.id,

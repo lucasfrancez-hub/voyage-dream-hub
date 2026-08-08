@@ -70,6 +70,7 @@ function ComprovantesPage() {
     return { start: `${t.slice(0, 7)}-01`, finish: t };
   });
   const [busca, setBusca] = useState("");
+  const [fluxo, setFluxo] = useState<"todos" | "in" | "out">("todos");
 
   const range = useMemo(() => rangeFor(preset, custom), [preset, custom]);
 
@@ -82,14 +83,15 @@ function ComprovantesPage() {
 
   const filtrado = useMemo(() => {
     const s = busca.trim().toLowerCase();
-    const items = q.data?.items ?? [];
+    const base = q.data?.items ?? [];
+    const items = fluxo === "todos" ? base : base.filter((i) => i.direction === fluxo);
     if (!s) return items;
     return items.filter((i) =>
       `${i.favored ?? ""} ${i.operation} ${i.status ?? ""} ${i.reference ?? ""} ${i.asaasId} ${formatBRL(i.value)} ${i.value}`
         .toLowerCase()
         .includes(s),
     );
-  }, [q.data, busca]);
+  }, [q.data, busca, fluxo]);
 
   return (
     <div className="mx-auto w-full max-w-7xl space-y-8 px-3 py-6 sm:px-6 md:py-8">
@@ -157,6 +159,32 @@ function ComprovantesPage() {
           </div>
         </div>
 
+        <div className="flex flex-wrap items-center gap-2 border-b border-border/60 px-4 py-3">
+          {([
+            { id: "todos", label: "Todos" },
+            { id: "in", label: "Recebidos" },
+            { id: "out", label: "Enviados" },
+          ] as const).map((f) => (
+            <button
+              key={f.id}
+              type="button"
+              onClick={() => setFluxo(f.id)}
+              className={
+                "rounded-full border px-3 py-1 text-xs font-medium transition-colors " +
+                (fluxo === f.id
+                  ? f.id === "in"
+                    ? "border-emerald-500/50 bg-emerald-500/15 text-emerald-400"
+                    : f.id === "out"
+                      ? "border-red-500/50 bg-red-500/15 text-red-400"
+                      : "border-primary/50 bg-primary/15 text-primary"
+                  : "border-border/60 bg-background/40 text-muted-foreground hover:text-foreground")
+              }
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
+
         {preset === "custom" && (
           <div className="flex flex-wrap items-center gap-2 border-b border-border/60 p-4 text-sm">
             <Input
@@ -209,7 +237,14 @@ function ComprovantesPage() {
                       </p>
                     </td>
                     <td className="px-6 py-4">
-                      <span className="inline-block rounded-full border border-border/60 bg-foreground/5 px-2.5 py-0.5 text-[11px] font-medium">
+                      <span
+                        className={
+                          "inline-block rounded-full border px-2.5 py-0.5 text-[11px] font-medium " +
+                          (c.direction === "in"
+                            ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-400"
+                            : "border-red-500/40 bg-red-500/10 text-red-400")
+                        }
+                      >
                         {c.operation}
                       </span>
                       <p className="mt-1 text-xs text-muted-foreground">{c.status || "—"}</p>
@@ -228,6 +263,8 @@ function ComprovantesPage() {
                           receipt={{
                             valor: Math.abs(Number(c.value ?? 0)),
                             favorecido: c.favored || "—",
+                            favorecidoLabel: c.counterpartyLabel,
+                            direction: c.direction,
                             instituicao: c.instituicao ?? null,
                             chavePix: c.chavePix ?? null,
                             cpfCnpj: c.cpfCnpj ?? null,
@@ -251,6 +288,8 @@ function ComprovantesPage() {
                           receipt={{
                             valor: Math.abs(Number(c.value ?? 0)),
                             favorecido: c.favored || "—",
+                            favorecidoLabel: c.counterpartyLabel,
+                            direction: c.direction,
                             instituicao: c.instituicao ?? null,
                             chavePix: c.chavePix ?? null,
                             cpfCnpj: c.cpfCnpj ?? null,
