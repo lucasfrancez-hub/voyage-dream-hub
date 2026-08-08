@@ -67,13 +67,10 @@ function Group({ group, pathname }: { group: NavMenuGroup; pathname: string }) {
 }
 
 function ModuleRail({ groups, pathname }: { groups: NavMenuGroup[]; pathname: string }) {
-  const multiIndexes = groups.map((g, i) => (g.items.length > 1 ? i : -1)).filter((i) => i >= 0);
-  const activeIndex = groups.findIndex(
-    (g) => g.items.length > 1 && g.items.some((i) => isItemActive(pathname, i)),
-  );
-  const [hovered, setHovered] = useState<number>(activeIndex >= 0 ? activeIndex : (multiIndexes[0] ?? 0));
-  const current = groups[hovered];
+  const [hovered, setHovered] = useState<number | null>(null);
+  const current = hovered === null ? undefined : groups[hovered];
   const hasPanel = Boolean(current && current.items.length > 1);
+
 
   return (
     <div className={hasPanel ? "grid grid-cols-[190px_1fr]" : "grid grid-cols-1"}>
