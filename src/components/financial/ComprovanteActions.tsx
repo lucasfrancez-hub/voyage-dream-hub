@@ -130,9 +130,6 @@ export function ComprovanteActions({
           <DropdownMenuItem onSelect={(e) => { e.preventDefault(); baixarPdf(); }}>
             <Download className="mr-2 h-4 w-4" /> Baixar PDF
           </DropdownMenuItem>
-          <DropdownMenuItem onSelect={(e) => { e.preventDefault(); abrirNoAsaas(); }}>
-            <ExternalLink className="mr-2 h-4 w-4" /> Abrir no ASAAS
-          </DropdownMenuItem>
           <DropdownMenuItem onSelect={(e) => { e.preventDefault(); compartilhar(); }}>
             <Share2 className="mr-2 h-4 w-4" /> Compartilhar
           </DropdownMenuItem>
