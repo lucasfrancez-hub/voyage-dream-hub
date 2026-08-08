@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
+import { ComprovanteActions } from "@/components/financial/ComprovanteActions";
 import { formatBRL } from "@/lib/format";
 import { PixPaymentDialog } from "@/components/financial/PixPaymentDialog";
 import {
@@ -270,12 +271,13 @@ function DetalheDialog({ id, onClose }: { id: string | null; onClose: () => void
               <Line k="ID ASAAS" v={t.asaas_transfer_id || "—"} />
               <Line k="Criado por" v={`${t.created_by_name ?? "—"}${t.created_ip ? ` · ${t.created_ip}` : ""}`} />
               {t.fail_reason && <Line k="Falha" v={t.fail_reason} />}
-              {t.receipt_url && (
-                <a href={t.receipt_url} target="_blank" rel="noreferrer"
-                  className="inline-flex items-center gap-1 text-brand-orange hover:underline">
-                  Comprovante <ExternalLink className="h-3.5 w-3.5" />
-                </a>
-              )}
+              <div className="pt-1">
+                <ComprovanteActions
+                  url={t.receipt_url}
+                  transferId={t.asaas_transfer_id}
+                  compact={false}
+                />
+              </div>
             </div>
             <div>
               <div className="text-xs uppercase tracking-wider text-muted-foreground mb-2">Auditoria</div>

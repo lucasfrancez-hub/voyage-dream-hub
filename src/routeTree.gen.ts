@@ -37,6 +37,7 @@ import { Route as AdminCarrosRouteImport } from './routes/admin.carros'
 import { Route as AdminCheckinTreinoRouteImport } from './routes/admin.checkin-treino'
 import { Route as AdminCheckinsRouteImport } from './routes/admin.checkins'
 import { Route as AdminCofreRouteImport } from './routes/admin.cofre'
+import { Route as AdminComprovantesRouteImport } from './routes/admin.comprovantes'
 import { Route as AdminContaBancariaRouteImport } from './routes/admin.conta-bancaria'
 import { Route as AdminContasPagarRouteImport } from './routes/admin.contas-pagar'
 import { Route as AdminContasReceberRouteImport } from './routes/admin.contas-receber'
@@ -270,6 +271,11 @@ const AdminCheckinsRoute = AdminCheckinsRouteImport.update({
 const AdminCofreRoute = AdminCofreRouteImport.update({
   id: '/cofre',
   path: '/cofre',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminComprovantesRoute = AdminComprovantesRouteImport.update({
+  id: '/comprovantes',
+  path: '/comprovantes',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminContaBancariaRoute = AdminContaBancariaRouteImport.update({
@@ -801,6 +807,7 @@ export interface FileRoutesByFullPath {
   '/admin/checkin-treino': typeof AdminCheckinTreinoRoute
   '/admin/checkins': typeof AdminCheckinsRoute
   '/admin/cofre': typeof AdminCofreRoute
+  '/admin/comprovantes': typeof AdminComprovantesRoute
   '/admin/conta-bancaria': typeof AdminContaBancariaRoute
   '/admin/contas-pagar': typeof AdminContasPagarRoute
   '/admin/contas-receber': typeof AdminContasReceberRoute
@@ -924,6 +931,7 @@ export interface FileRoutesByTo {
   '/admin/checkin-treino': typeof AdminCheckinTreinoRoute
   '/admin/checkins': typeof AdminCheckinsRoute
   '/admin/cofre': typeof AdminCofreRoute
+  '/admin/comprovantes': typeof AdminComprovantesRoute
   '/admin/conta-bancaria': typeof AdminContaBancariaRoute
   '/admin/contas-pagar': typeof AdminContasPagarRoute
   '/admin/contas-receber': typeof AdminContasReceberRoute
@@ -1049,6 +1057,7 @@ export interface FileRoutesById {
   '/admin/checkin-treino': typeof AdminCheckinTreinoRoute
   '/admin/checkins': typeof AdminCheckinsRoute
   '/admin/cofre': typeof AdminCofreRoute
+  '/admin/comprovantes': typeof AdminComprovantesRoute
   '/admin/conta-bancaria': typeof AdminContaBancariaRoute
   '/admin/contas-pagar': typeof AdminContasPagarRoute
   '/admin/contas-receber': typeof AdminContasReceberRoute
@@ -1175,6 +1184,7 @@ export interface FileRouteTypes {
     | '/admin/checkin-treino'
     | '/admin/checkins'
     | '/admin/cofre'
+    | '/admin/comprovantes'
     | '/admin/conta-bancaria'
     | '/admin/contas-pagar'
     | '/admin/contas-receber'
@@ -1298,6 +1308,7 @@ export interface FileRouteTypes {
     | '/admin/checkin-treino'
     | '/admin/checkins'
     | '/admin/cofre'
+    | '/admin/comprovantes'
     | '/admin/conta-bancaria'
     | '/admin/contas-pagar'
     | '/admin/contas-receber'
@@ -1422,6 +1433,7 @@ export interface FileRouteTypes {
     | '/admin/checkin-treino'
     | '/admin/checkins'
     | '/admin/cofre'
+    | '/admin/comprovantes'
     | '/admin/conta-bancaria'
     | '/admin/contas-pagar'
     | '/admin/contas-receber'
@@ -1787,6 +1799,13 @@ declare module '@tanstack/react-router' {
       path: '/cofre'
       fullPath: '/admin/cofre'
       preLoaderRoute: typeof AdminCofreRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/comprovantes': {
+      id: '/admin/comprovantes'
+      path: '/comprovantes'
+      fullPath: '/admin/comprovantes'
+      preLoaderRoute: typeof AdminComprovantesRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/conta-bancaria': {
@@ -2470,6 +2489,7 @@ interface AdminRouteChildren {
   AdminCheckinTreinoRoute: typeof AdminCheckinTreinoRoute
   AdminCheckinsRoute: typeof AdminCheckinsRoute
   AdminCofreRoute: typeof AdminCofreRoute
+  AdminComprovantesRoute: typeof AdminComprovantesRoute
   AdminContaBancariaRoute: typeof AdminContaBancariaRoute
   AdminContasPagarRoute: typeof AdminContasPagarRoute
   AdminContasReceberRoute: typeof AdminContasReceberRoute
@@ -2505,6 +2525,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminCheckinTreinoRoute: AdminCheckinTreinoRoute,
   AdminCheckinsRoute: AdminCheckinsRoute,
   AdminCofreRoute: AdminCofreRoute,
+  AdminComprovantesRoute: AdminComprovantesRoute,
   AdminContaBancariaRoute: AdminContaBancariaRoute,
   AdminContasPagarRoute: AdminContasPagarRoute,
   AdminContasReceberRoute: AdminContasReceberRoute,
