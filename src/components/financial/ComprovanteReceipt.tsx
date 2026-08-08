@@ -82,12 +82,19 @@ export function ComprovanteReceipt({
   onOpenChange,
   data,
   loading,
+  autoAction = null,
+  onAutoActionDone,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   data: ReceiptData | null;
   loading?: boolean;
+  /** Executa automaticamente ao abrir: baixar imagem ou compartilhar. */
+  autoAction?: "download" | "share" | null;
+  onAutoActionDone?: () => void;
 }) {
+  const cardRef = useRef<HTMLDivElement | null>(null);
+  const [busy, setBusy] = useState<null | "download" | "share">(null);
   const counterparty: ReceiptParty = {
     nome: data?.favorecido ?? null,
     cpfCnpj: data?.cpfCnpj ?? null,
@@ -99,29 +106,85 @@ export function ComprovanteReceipt({
   const recebedor: ReceiptParty =
     data?.recebedor ?? (isIn ? VIAAIR_PARTY : counterparty);
 
-  async function compartilhar() {
-    if (!data) return;
-    const texto = [
-      "Comprovante de transferência Pix — VIA AIR",
-      `Valor: ${formatBRL(data.valor)}`,
-      `${data.favorecidoLabel || (data.direction === 'in' ? 'Pagador' : 'Favorecido')}: ${data.favorecido}`,
-      `Data: ${data.dataHora ?? "—"}`,
-      data.transacaoId ? `ID: ${data.transacaoId}` : "",
-    ]
-      .filter(Boolean)
-      .join("\n");
-    const nav = navigator as Navigator & { share?: (d: ShareData) => Promise<void> };
-    if (nav.share) {
-      try {
-        await nav.share({ title: "Comprovante VIA AIR", text: texto });
-        return;
-      } catch {
-        /* cancelado */
-      }
+  const fileName = `comprovante-viaair-${(data?.transacaoId || "pix").slice(0, 12)}.png`;
+
+  const gerarPng = useCallback(async (): Promise<Blob | null> => {
+    const node = cardRef.current;
+    if (!node) return null;
+    const { toBlob } = await import("html-to-image");
+    const bg = getComputedStyle(document.body).backgroundColor || "#0b0f14";
+    return await toBlob(node, { pixelRatio: 3, cacheBust: true, backgroundColor: bg });
+  }, []);
+
+  const baixarImagem = useCallback(async () => {
+    setBusy("download");
+    try {
+      const blob = await gerarPng();
+      if (!blob) throw new Error("sem imagem");
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 10000);
+      toast.success("Imagem do comprovante baixada.");
+    } catch {
+      toast.error("Não foi possível gerar a imagem do comprovante.");
+    } finally {
+      setBusy(null);
     }
-    await navigator.clipboard.writeText(texto);
-    toast.success("Comprovante copiado.");
-  }
+  }, [gerarPng, fileName]);
+
+  const compartilhar = useCallback(async () => {
+    if (!data) return;
+    setBusy("share");
+    try {
+      const blob = await gerarPng();
+      const nav = navigator as Navigator & {
+        share?: (d: ShareData) => Promise<void>;
+        canShare?: (d: ShareData) => boolean;
+      };
+      if (blob) {
+        const file = new File([blob], fileName, { type: "image/png" });
+        if (nav.share && (!nav.canShare || nav.canShare({ files: [file] }))) {
+          try {
+            await nav.share({ files: [file], title: "Comprovante VIA AIR" });
+            return;
+          } catch {
+            /* cancelado */
+          }
+        }
+        // Sem compartilhamento de arquivo: tenta copiar a imagem, senão baixa
+        try {
+          const CI = (window as unknown as { ClipboardItem?: typeof ClipboardItem }).ClipboardItem;
+          if (CI && navigator.clipboard && "write" in navigator.clipboard) {
+            await navigator.clipboard.write([new CI({ "image/png": blob })]);
+            toast.success("Imagem copiada — cole no WhatsApp.");
+            return;
+          }
+        } catch {
+          /* segue para download */
+        }
+        await baixarImagem();
+        toast.info("Imagem baixada — anexe no WhatsApp.");
+        return;
+      }
+      toast.error("Não foi possível gerar a imagem do comprovante.");
+    } finally {
+      setBusy(null);
+    }
+  }, [data, gerarPng, fileName, baixarImagem]);
+
+  useEffect(() => {
+    if (!open || !autoAction || !data || loading) return;
+    const t = setTimeout(() => {
+      const run = autoAction === "share" ? compartilhar : baixarImagem;
+      void run().finally(() => onAutoActionDone?.());
+    }, 350);
+    return () => clearTimeout(t);
+  }, [open, autoAction, data, loading, compartilhar, baixarImagem, onAutoActionDone]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -135,9 +198,11 @@ export function ComprovanteReceipt({
         ) : (
           <>
             <div
+              ref={cardRef}
               id="comprovante-print"
               className="print-receipt relative overflow-hidden rounded-3xl bg-card border border-border shadow-[0_24px_48px_-16px_rgba(0,0,0,0.6)]"
             >
+
               <div className="h-1.5 w-full bg-brand-orange" />
 
               <div className="relative p-6 flex flex-col gap-5">
