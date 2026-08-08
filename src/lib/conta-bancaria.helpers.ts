@@ -11,6 +11,7 @@ export interface ExtratoItem {
   paymentId: string | null
   transferId: string | null
   link: { kind: 'pedido' | 'pagamento'; id: string; label: string } | null
+  receiptUrl: string | null
 }
 
 export async function assertAdmin(context: { supabase: any; userId: string }) {
@@ -61,6 +62,7 @@ export function normalize(tx: any): ExtratoItem {
     paymentId: tx?.paymentId ?? tx?.payment?.id ?? null,
     transferId: tx?.transferId ?? tx?.transfer?.id ?? null,
     link: null,
+    receiptUrl: null,
   }
 }
 

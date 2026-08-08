@@ -8,6 +8,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { formatBRL } from "@/lib/format";
+import { ComprovanteActions } from "@/components/financial/ComprovanteActions";
 import {
   obterResumoBancario, listarExtratoBancario,
 } from "@/lib/conta-bancaria.functions";
@@ -310,6 +311,7 @@ function ContaBancariaPage() {
                   <th className="px-6 py-4 font-semibold">Transação / Referência</th>
                   <th className="px-6 py-4 font-semibold">Tipo / Data</th>
                   <th className="px-6 py-4 text-right font-semibold">Valor</th>
+                  <th className="px-6 py-4 text-right font-semibold">Comprovante</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/40">
@@ -367,6 +369,19 @@ function ContaBancariaPage() {
                       >
                         {i.direction === "in" ? "+" : "−"} {formatBRL(Math.abs(i.value))}
                       </span>
+                    </td>
+                    <td className="px-6 py-5 text-right">
+                      {i.receiptUrl || i.paymentId || i.transferId ? (
+                        <ComprovanteActions
+                          url={i.receiptUrl}
+                          paymentId={i.paymentId}
+                          transferId={i.transferId}
+                        />
+                      ) : (
+                        <span className="text-xs text-muted-foreground">
+                          Comprovante ainda não disponível.
+                        </span>
+                      )}
                     </td>
                   </tr>
                 ))}

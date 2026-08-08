@@ -1,0 +1,53 @@
+import { createServerFn } from '@tanstack/react-start'
+import { z } from 'zod'
+import { requireSupabaseAuth } from '@/integrations/supabase/auth-middleware'
+import { assertAdmin, monthRange } from './conta-bancaria.helpers'
+
+const rangeInput = z.object({
+  startDate: z.string().optional(),
+  finishDate: z.string().optional(),
+})
+
+/** Lista os comprovantes disponíveis no período, direto da API do ASAAS. */
+export const listarComprovantes = createServerFn({ method: 'POST' })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => rangeInput.parse(d ?? {}))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context as any)
+    const { fetchComprovantes } = await import('@/lib/comprovantes.server')
+    const fallback = monthRange(0)
+    const items = await fetchComprovantes({
+      startDate: data.startDate || fallback.start,
+      finishDate: data.finishDate || fallback.finish,
+    })
+    return { items, atualizadoEm: new Date().toISOString() }
+  })
+
+const oneInput = z.object({
+  paymentId: z.string().optional().nullable(),
+  transferId: z.string().optional().nullable(),
+  billId: z.string().optional().nullable(),
+})
+
+/** Consulta ao vivo o comprovante de uma movimentação específica. */
+export const obterComprovante = createServerFn({ method: 'POST' })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => oneInput.parse(d ?? {}))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context as any)
+    const asaas = await import('@/lib/asaas.server')
+
+    if (data.transferId) {
+      const url = await asaas.getAsaasTransferReceiptUrl(data.transferId)
+      if (url) return { url }
+    }
+    if (data.paymentId) {
+      const url = await asaas.getAsaasPaymentReceiptUrl(data.paymentId)
+      if (url) return { url }
+    }
+    if (data.billId) {
+      const bill = await asaas.getAsaasBill(data.billId).catch(() => null)
+      if (bill?.transactionReceiptUrl) return { url: String(bill.transactionReceiptUrl) }
+    }
+    return { url: null as string | null }
+  })

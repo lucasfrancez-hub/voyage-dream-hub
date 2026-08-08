@@ -458,7 +458,8 @@ function DashboardNav({ pathname }: { pathname: string }) {
     pathname.startsWith("/admin/pessoas") ||
     pathname.startsWith("/admin/notas-fiscais") ||
     pathname.startsWith("/admin/checkins") ||
-    pathname.startsWith("/admin/contas-");
+    pathname.startsWith("/admin/contas-") ||
+    pathname.startsWith("/admin/comprovantes");
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
@@ -503,6 +504,12 @@ function DashboardNav({ pathname }: { pathname: string }) {
           <Link to="/admin/conta-bancaria" className="flex flex-col items-start gap-0.5">
             <span className="text-sm font-medium">Conta bancária</span>
             <span className="text-xs text-muted-foreground">Saldo, entradas, saídas e extrato ASAAS</span>
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link to="/admin/comprovantes" className="flex flex-col items-start gap-0.5">
+            <span className="text-sm font-medium">Comprovantes</span>
+            <span className="text-xs text-muted-foreground">Pix, cobranças e boletos pagos</span>
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>

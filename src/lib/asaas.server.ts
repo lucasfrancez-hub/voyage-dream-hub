@@ -405,3 +405,54 @@ export async function lookupAsaasPixKey(rawKey: string): Promise<PixKeyOwner> {
     personType: receiver.personType ?? null,
   }
 }
+
+/* ============================================================
+ * COMPROVANTES (transferências, cobranças e boletos pagos)
+ * ============================================================ */
+
+export interface AsaasListRange {
+  startDate: string // yyyy-mm-dd
+  finishDate: string // yyyy-mm-dd
+  limit?: number
+}
+
+/** Transferências (Pix/TED de saída) do período. */
+export async function listAsaasTransfers(range: AsaasListRange) {
+  const q = new URLSearchParams({
+    'dateCreated[ge]': range.startDate,
+    'dateCreated[le]': range.finishDate,
+    limit: String(Math.min(range.limit ?? 100, 100)),
+  })
+  const res = await asaasFetch(`/transfers?${q.toString()}`)
+  return (res?.data ?? []) as any[]
+}
+
+/** Cobranças recebidas no período. */
+export async function listAsaasPayments(range: AsaasListRange) {
+  const q = new URLSearchParams({
+    'paymentDate[ge]': range.startDate,
+    'paymentDate[le]': range.finishDate,
+    limit: String(Math.min(range.limit ?? 100, 100)),
+  })
+  const res = await asaasFetch(`/payments?${q.toString()}`)
+  return (res?.data ?? []) as any[]
+}
+
+/** Pagamentos de contas/boletos do período. */
+export async function listAsaasBills(range: AsaasListRange) {
+  const q = new URLSearchParams({ limit: String(Math.min(range.limit ?? 100, 100)) })
+  const res = await asaasFetch(`/bill?${q.toString()}`).catch(() => ({ data: [] }))
+  return (res?.data ?? []) as any[]
+}
+
+/** URL do comprovante de uma cobrança específica. */
+export async function getAsaasPaymentReceiptUrl(paymentId: string): Promise<string | null> {
+  const p = await getAsaasPayment(paymentId).catch(() => null)
+  return p?.transactionReceiptUrl ?? null
+}
+
+/** URL do comprovante de uma transferência específica. */
+export async function getAsaasTransferReceiptUrl(transferId: string): Promise<string | null> {
+  const t = await getAsaasTransfer(transferId).catch(() => null)
+  return t?.transactionReceiptUrl ?? null
+}
