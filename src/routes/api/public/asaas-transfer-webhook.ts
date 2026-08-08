@@ -47,7 +47,10 @@ export const Route = createFileRoute('/api/public/asaas-transfer-webhook')({
           failReason: transfer?.failReason,
         })
 
-        return Response.json({ ok: true, authorized: true, event })
+        // Resposta esperada pela "Validação de saque via Webhook" do ASAAS:
+        // status APPROVED libera o saque, REFUSED bloqueia.
+        return Response.json({ status: 'APPROVED' })
+
       },
 
       GET: async () => Response.json({ ok: true, service: 'asaas-transfer-webhook' }),
