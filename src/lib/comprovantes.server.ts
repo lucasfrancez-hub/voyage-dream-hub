@@ -27,6 +27,19 @@ export interface Comprovante {
   dueDate: string | null
   /** Data/hora efetiva do pagamento */
   paymentDate: string | null
+  /** Identificador Pix ponta-a-ponta (E2E) — mesmo valor do comprovante oficial */
+  endToEndId?: string | null
+}
+
+/** Extrai o identificador Pix (E2E) de qualquer payload ASAAS. */
+export function e2eOf(x: any): string | null {
+  return (
+    x?.pixTransaction?.endToEndIdentifier ??
+    x?.pixTransaction?.endToEndId ??
+    x?.endToEndIdentifier ??
+    x?.transactionReceiptId ??
+    null
+  )
 }
 
 const TRANSFER_STATUS: Record<string, string> = {
