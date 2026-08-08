@@ -297,3 +297,111 @@ export async function getAsaasBill(billId: string) {
 export async function cancelAsaasBill(billId: string) {
   return asaasFetch(`/bill/${encodeURIComponent(billId)}/cancel`, { method: 'POST' })
 }
+
+/* ============================================================
+ * CONSULTA DE CHAVE PIX (DICT)
+ * ============================================================ */
+
+export type PixKeyType = 'CPF' | 'CNPJ' | 'EMAIL' | 'PHONE' | 'EVP'
+
+/** Detecta o tipo da chave Pix informada. */
+export function detectPixKeyType(raw: string): PixKeyType | null {
+  const key = String(raw || '').trim()
+  if (!key) return null
+  if (/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(key)) return 'EMAIL'
+  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(key)) return 'EVP'
+  const digits = key.replace(/\D/g, '')
+  if (/^\+/.test(key) || (digits.length >= 10 && digits.length <= 13 && digits.length !== 11 && digits.length !== 14)) {
+    if (digits.length >= 10 && digits.length <= 13) return 'PHONE'
+  }
+  if (digits.length === 11) return key.startsWith('+') ? 'PHONE' : 'CPF'
+  if (digits.length === 14) return 'CNPJ'
+  if (digits.length >= 10 && digits.length <= 13) return 'PHONE'
+  return null
+}
+
+/** Normaliza a chave para o formato aceito pelo DICT. */
+export function normalizePixKey(raw: string, type: PixKeyType | null): string {
+  const key = String(raw || '').trim()
+  if (type === 'CPF' || type === 'CNPJ') return key.replace(/\D/g, '')
+  if (type === 'PHONE') {
+    const d = key.replace(/\D/g, '')
+    return `+${d.startsWith('55') ? d : `55${d}`}`
+  }
+  if (type === 'EMAIL') return key.toLowerCase()
+  return key
+}
+
+function pixTlv(id: string, value: string) {
+  return `${id}${String(value.length).padStart(2, '0')}${value}`
+}
+
+function pixCrc16(payload: string) {
+  let crc = 0xffff
+  for (const ch of payload) {
+    crc ^= ch.charCodeAt(0) << 8
+    for (let i = 0; i < 8; i++) crc = crc & 0x8000 ? ((crc << 1) ^ 0x1021) & 0xffff : (crc << 1) & 0xffff
+  }
+  return crc.toString(16).toUpperCase().padStart(4, '0')
+}
+
+/** Monta um BR Code estático mínimo para a chave (usado só na consulta DICT). */
+function staticPixPayload(key: string) {
+  const mai = pixTlv('00', 'br.gov.bcb.pix') + pixTlv('01', key)
+  const base =
+    pixTlv('00', '01') +
+    pixTlv('26', mai) +
+    pixTlv('52', '0000') +
+    pixTlv('53', '986') +
+    pixTlv('58', 'BR') +
+    pixTlv('59', 'N') +
+    pixTlv('60', 'SAO PAULO') +
+    pixTlv('62', pixTlv('05', '***')) +
+    '6304'
+  return base + pixCrc16(base)
+}
+
+export interface PixKeyOwner {
+  pixKey: string
+  pixKeyType: PixKeyType
+  name: string
+  cpfCnpj: string | null
+  bankName: string | null
+  ispb: string | null
+  personType: string | null
+}
+
+/**
+ * Consulta o titular da chave Pix no DICT (via decode do ASAAS).
+ * Lança erro quando a chave não existe ou não pode receber.
+ */
+export async function lookupAsaasPixKey(rawKey: string): Promise<PixKeyOwner> {
+  const type = detectPixKeyType(rawKey)
+  if (!type) throw new Error('Não foi possível localizar esta chave Pix. Confira os dados e tente novamente.')
+  const key = normalizePixKey(rawKey, type)
+
+  let decoded: any
+  try {
+    decoded = await asaasFetch('/pix/qrCodes/decode', {
+      method: 'POST',
+      body: JSON.stringify({ payload: staticPixPayload(key) }),
+    })
+  } catch {
+    throw new Error('Não foi possível localizar esta chave Pix. Confira os dados e tente novamente.')
+  }
+
+  const receiver = decoded?.receiver
+  if (!receiver?.name || decoded?.canBePaid === false) {
+    throw new Error('Não foi possível localizar esta chave Pix. Confira os dados e tente novamente.')
+  }
+
+  return {
+    pixKey: key,
+    pixKeyType: type,
+    name: String(receiver.name),
+    cpfCnpj: receiver.cpfCnpj ?? null,
+    bankName: receiver.ispbName ?? null,
+    ispb: receiver.ispb ?? null,
+    personType: receiver.personType ?? null,
+  }
+}
