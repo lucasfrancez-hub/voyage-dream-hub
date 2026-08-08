@@ -212,8 +212,8 @@ export function renderBoletoHtml(d: BoletoDocData): string {
 
   const abs = (u: string) =>
     typeof window !== "undefined" ? new URL(u, window.location.origin).toString() : u;
-  const logoUrl = abs(viaAirLogo.url);
-  const asaasLogoUrl = abs(asaasLogo.url);
+  const logoUrl = d.logos?.viaAir || abs(viaAirLogo.url);
+  const asaasLogoUrl = d.logos?.asaas || abs(asaasLogo.url);
 
   return `<!doctype html>
 <html lang="pt-BR"><head><meta charset="utf-8" />
