@@ -963,10 +963,21 @@ function Checkout() {
 
               {payment === "pix" && (
                 <div className="mt-6 pt-6 border-t border-border">
-                  <p className="text-xs text-muted-foreground">
-                    Ao confirmar, o QR Code Pix é gerado na hora. Assim que o pagamento for
-                    identificado, você é redirecionado automaticamente para a confirmação.
-                  </p>
+                  <button
+                    type="submit"
+                    disabled={submitting || success}
+                    className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-gradient-brand px-6 py-3 font-semibold text-primary-foreground shadow-[var(--shadow-glow)] hover:opacity-90 transition disabled:opacity-60"
+                  >
+                    {submitting ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" /> Gerando QR Code…
+                      </>
+                    ) : (
+                      <>
+                        <QrCode className="h-4 w-4" /> Pagar via Pix
+                      </>
+                    )}
+                  </button>
                 </div>
               )}
 
@@ -1080,8 +1091,9 @@ function Checkout() {
                     <Check className="h-4 w-4" /> Reserva enviada
                   </>
                 ) : payment === "pix" ? (
-                  <>Realizar pagamento</>
-
+                  <>
+                    <QrCode className="h-4 w-4" /> Pagar via Pix
+                  </>
                 ) : (
                   <>Fazer pedido</>
                 )}
