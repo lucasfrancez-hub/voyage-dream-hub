@@ -468,7 +468,7 @@ export async function abrirBoletoHtml(data: BoletoDocData, imprimir = false) {
     // Pop-up bloqueado: baixa o arquivo como fallback.
     const a = document.createElement("a");
     a.href = url;
-    a.download = `boleto-${data.documentoRef ?? "via-air"}.html`;
+    a.download = `${data.variant === "pix" ? "cobranca-pix" : "boleto"}-${data.documentoRef ?? "via-air"}.html`;
     document.body.appendChild(a);
     a.click();
     a.remove();
