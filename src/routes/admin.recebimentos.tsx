@@ -17,7 +17,9 @@ import {
 } from "@/components/ui/dialog";
 import {
   listarRecebimentos, criarRecebimento, sincronizarRecebimento, cancelarRecebimento,
+  segundaViaRecebimento,
 } from "@/lib/recebimentos.functions";
+
 import { searchPeople } from "@/lib/people.functions";
 import { confirmThen } from "@/lib/confirm";
 import { abrirBoletoHtml } from "@/lib/boleto-html";
@@ -315,7 +317,15 @@ function RecebimentosPage() {
           setDetalhe(row);
         }}
       />
-      <CobrancaDialog row={detalhe} onClose={() => setDetalhe(null)} />
+      <CobrancaDialog
+        row={detalhe}
+        onClose={() => setDetalhe(null)}
+        onUpdated={(row) => {
+          setDetalhe(row);
+          qc.invalidateQueries({ queryKey: ["asaas-recebimentos"] });
+        }}
+      />
+
     </div>
   );
 }
@@ -740,7 +750,46 @@ export { recebimentoParaBoleto };
 
 
 
-function CobrancaDialog({ row, onClose }: { row: any | null; onClose: () => void }) {
+function CobrancaDialog({
+  row,
+  onClose,
+  onUpdated,
+}: {
+  row: any | null;
+  onClose: () => void;
+  onUpdated?: (row: any) => void;
+}) {
+  const segundaVia = useServerFn(segundaViaRecebimento);
+  const [atualizando, setAtualizando] = useState(false);
+
+  const hojeISO = new Date().toISOString().slice(0, 10);
+  const vencido =
+    !!row &&
+    row.status !== "recebido" &&
+    row.status !== "cancelado" &&
+    row.status !== "estornado" &&
+    String(row.due_date ?? "") < hojeISO;
+
+  async function gerarSegundaVia() {
+    if (!row) return;
+    setAtualizando(true);
+    try {
+      const res: any = await segundaVia({ data: { id: row.id } });
+      onUpdated?.(res.row);
+      toast.success(
+        `Valor atualizado: multa ${formatBRL(res.multa)} + juros ${formatBRL(res.juros)} (${res.diasAtraso} dias).`,
+      );
+      if (!(await abrirBoletoHtml(recebimentoParaBoleto(res.row), true))) {
+        toast.error("Libere pop-ups para gerar o documento.");
+      }
+    } catch (e: any) {
+      toast.error(e?.message ?? "Falha ao gerar segunda via.");
+    } finally {
+      setAtualizando(false);
+    }
+  }
+
+
   function copy(text: string, msg: string) {
     navigator.clipboard.writeText(text);
     toast.success(msg);
@@ -794,6 +843,29 @@ function CobrancaDialog({ row, onClose }: { row: any | null; onClose: () => void
                 </Button>
               </div>
             )}
+
+            {vencido && (
+              <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 space-y-2">
+                <p className="text-[11px] text-amber-600 dark:text-amber-400">
+                  Cobrança vencida em{" "}
+                  {new Date(`${row.due_date}T12:00:00`).toLocaleDateString("pt-BR")}. Gere a
+                  segunda via com multa e juros atualizados direto na conta VIA AIR.
+                </p>
+                <Button
+                  className="w-full bg-amber-500 hover:bg-amber-500/90 text-white"
+                  disabled={atualizando}
+                  onClick={gerarSegundaVia}
+                >
+                  {atualizando ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                  )}
+                  Segunda via atualizada
+                </Button>
+              </div>
+            )}
+
 
             <Button
               className="w-full bg-brand-orange hover:bg-brand-orange/90"

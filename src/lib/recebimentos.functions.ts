@@ -244,3 +244,118 @@ export const cancelarRecebimento = createServerFn({ method: 'POST' })
       .eq('id', row.id)
     return { ok: true }
   })
+
+/**
+ * Segunda via atualizada: recalcula multa + juros de uma cobrança vencida,
+ * atualiza a cobrança no ASAAS (novo vencimento e valor) e regrava a linha
+ * digitável / QR Code Pix no banco.
+ */
+export const segundaViaRecebimento = createServerFn({ method: 'POST' })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z
+      .object({
+        id: z.string().uuid(),
+        novoVencimento: z
+          .string()
+          .regex(/^\d{4}-\d{2}-\d{2}$/)
+          .optional(),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context as any)
+    const { supabaseAdmin } = await import('@/integrations/supabase/client.server')
+    const { getAsaasPayment, updateAsaasPayment, getAsaasChargeArtifacts } = await import(
+      '@/lib/asaas.server'
+    )
+
+    const { data: row } = await supabaseAdmin
+      .from('asaas_recebimentos')
+      .select('*')
+      .eq('id', data.id)
+      .maybeSingle()
+    if (!row?.asaas_payment_id) throw new Error('Recebimento sem cobrança no ASAAS.')
+    if (row.status === 'recebido') throw new Error('Cobrança já recebida.')
+    if (row.status === 'cancelado') throw new Error('Cobrança cancelada.')
+
+    const pay = await getAsaasPayment(row.asaas_payment_id)
+
+    // Valor original da cobrança (sem encargos já aplicados em segundas vias anteriores).
+    const valorOriginal = Number(
+      (row.composicao as any)?.valor_original ?? row.value ?? pay?.value ?? 0,
+    )
+    const vencimentoOriginal = String(
+      (row.composicao as any)?.vencimento_original ?? row.due_date ?? pay?.dueDate ?? '',
+    )
+
+    const hoje = new Date()
+    const hojeISO = hoje.toISOString().slice(0, 10)
+    const novoVenc = data.novoVencimento ?? hojeISO
+
+    const msDia = 86_400_000
+    const diasAtraso = vencimentoOriginal
+      ? Math.max(
+          0,
+          Math.floor(
+            (new Date(`${novoVenc}T12:00:00`).getTime() -
+              new Date(`${vencimentoOriginal}T12:00:00`).getTime()) /
+              msDia,
+          ),
+        )
+      : 0
+
+    const multaPercent = Number(pay?.fine?.value ?? row.fine_percent ?? 0)
+    const jurosMesPercent = Number(pay?.interest?.value ?? row.interest_percent ?? 0)
+
+    const multa = diasAtraso > 0 ? (valorOriginal * multaPercent) / 100 : 0
+    const juros =
+      diasAtraso > 0 ? (valorOriginal * (jurosMesPercent / 30) * diasAtraso) / 100 : 0
+    const valorAtualizado = Number((valorOriginal + multa + juros).toFixed(2))
+
+    await updateAsaasPayment(row.asaas_payment_id, {
+      billingType: row.kind === 'pix' ? 'PIX' : 'BOLETO',
+      value: valorAtualizado,
+      dueDate: novoVenc,
+      description: row.description ?? undefined,
+    })
+
+    const art = await getAsaasChargeArtifacts(row.asaas_payment_id, row.kind !== 'pix')
+    const atualizada = await getAsaasPayment(row.asaas_payment_id).catch(() => pay)
+
+    const composicao = {
+      ...((row.composicao as any) ?? {}),
+      valor_original: valorOriginal,
+      vencimento_original: vencimentoOriginal,
+      encargos: { multa, juros, dias_atraso: diasAtraso, atualizado_em: new Date().toISOString() },
+    }
+
+    const { data: updated, error } = await supabaseAdmin
+      .from('asaas_recebimentos')
+      .update({
+        value: valorAtualizado,
+        due_date: novoVenc,
+        status: 'pendente',
+        composicao: composicao as any,
+        identification_field: art.identificationField ?? row.identification_field,
+        pix_payload: art.pixPayload ?? row.pix_payload,
+        pix_qr_image: art.pixEncodedImage
+          ? `data:image/png;base64,${art.pixEncodedImage}`
+          : row.pix_qr_image,
+        invoice_url: (atualizada as any)?.invoiceUrl ?? row.invoice_url,
+        bank_slip_url: (atualizada as any)?.bankSlipUrl ?? row.bank_slip_url,
+        raw_response: {
+          ...((row.raw_response as any) ?? {}),
+          payment: {
+            ...(atualizada ?? {}),
+            nossoNumero: art.nossoNumero ?? (row.raw_response as any)?.payment?.nossoNumero ?? null,
+          },
+        } as any,
+      })
+      .eq('id', row.id)
+      .select('*')
+      .single()
+    if (error) throw new Error(`Falha ao salvar segunda via: ${error.message}`)
+
+    return { row: updated, multa, juros, diasAtraso, valorOriginal, valorAtualizado }
+  })
