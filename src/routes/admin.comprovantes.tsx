@@ -220,15 +220,25 @@ function ComprovantesPage() {
                     <td className="px-6 py-4 text-right">
                       {c.receiptUrl ? (
                         <ComprovanteActions url={c.receiptUrl} compact={false} />
-                      ) : (
+                      ) : ["Concluído", "Recebido", "Confirmado", "Pago", "Recebido em dinheiro"].includes(
+                          String(c.status ?? ""),
+                        ) ? (
                         <ComprovanteActions
                           compact={false}
                           paymentId={c.kind === "payment" ? c.asaasId : null}
                           transferId={c.kind === "transfer" ? c.asaasId : null}
                           billId={c.kind === "bill" ? c.asaasId : null}
                         />
+                      ) : (
+                        <span
+                          className="text-xs text-muted-foreground"
+                          title={`Sem comprovante: movimentação com status "${c.status ?? "—"}".`}
+                        >
+                          —
+                        </span>
                       )}
                     </td>
+
                   </tr>
                 ))}
               </tbody>
