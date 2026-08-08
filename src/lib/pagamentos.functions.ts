@@ -519,6 +519,28 @@ export const gerarBoletoPedidoAdmin = createServerFn({ method: 'POST' })
         descricao: z.string().trim().max(500).nullable().optional(),
         multaPercent: z.number().min(0).max(100).nullable().optional(),
         jurosPercent: z.number().min(0).max(100).nullable().optional(),
+        endereco: z
+          .object({
+            cep: z.string().trim().nullable().optional(),
+            logradouro: z.string().trim().nullable().optional(),
+            numero: z.string().trim().nullable().optional(),
+            complemento: z.string().trim().nullable().optional(),
+            bairro: z.string().trim().nullable().optional(),
+            cidade: z.string().trim().nullable().optional(),
+            estado: z.string().trim().nullable().optional(),
+          })
+          .nullable()
+          .optional(),
+        composicao: z
+          .object({
+            servico: z.string().trim().max(200).nullable().optional(),
+            destino: z.string().trim().max(200).nullable().optional(),
+            periodoInicio: z.string().trim().nullable().optional(),
+            periodoFim: z.string().trim().nullable().optional(),
+            passageiros: z.string().trim().max(1000).nullable().optional(),
+          })
+          .nullable()
+          .optional(),
       })
       .parse(input),
   )
@@ -561,17 +583,39 @@ export const gerarBoletoPedidoAdmin = createServerFn({ method: 'POST' })
         agenciaCodigo: ((existing.raw_response as any)?.conta?.agenciaCodigo ?? null) as string | null,
         pixPayload: existing.pix_payload,
         pixQrImage: existing.pix_qr_image,
-        pagador: { nome: existing.customer_name, cpfCnpj: existing.customer_cpf_cnpj, email: existing.customer_email, telefone: existing.customer_phone },
+        pagador: {
+          nome: existing.customer_name,
+          cpfCnpj: existing.customer_cpf_cnpj,
+          email: existing.customer_email,
+          telefone: existing.customer_phone,
+          endereco: ((existing.composicao as any)?.endereco ?? null) as string | null,
+        },
+        composicao: {
+          servico: ((existing.composicao as any)?.servico ?? null) as string | null,
+          destino: ((existing.composicao as any)?.destino ?? null) as string | null,
+          periodo: ((existing.composicao as any)?.periodo ?? null) as string | null,
+          passageiro: ((existing.composicao as any)?.passageiro ?? null) as string | null,
+        },
+        multaPercent: (existing.fine_percent ?? null) as number | null,
+        jurosPercentMes: (existing.interest_percent ?? null) as number | null,
       }
     }
 
     const { ensureAsaasCustomer, createAsaasCharge } = await import('@/lib/asaas.server')
+    const end = data.endereco ?? null
     const customerId = await ensureAsaasCustomer({
       name: nome,
       cpfCnpj,
       email: data.email || order.email || undefined,
       phone: data.telefone || (order as any).phone || undefined,
       externalReference: order.id,
+      postalCode: end?.cep || undefined,
+      address: end?.logradouro || undefined,
+      addressNumber: end?.numero || undefined,
+      complement: end?.complemento || undefined,
+      province: end?.bairro || undefined,
+      city: end?.cidade || undefined,
+      state: end?.estado || undefined,
     } as any)
 
     const descricao =
@@ -584,8 +628,8 @@ export const gerarBoletoPedidoAdmin = createServerFn({ method: 'POST' })
       dueDate: data.vencimento,
       description: descricao,
       externalReference: order.id,
-      finePercent: data.multaPercent ?? 2,
-      interestPercent: data.jurosPercent ?? 1,
+      finePercent: data.multaPercent ?? null,
+      interestPercent: data.jurosPercent ?? null,
     })
 
     const { data: actor } = await supabaseAdmin
@@ -597,6 +641,24 @@ export const gerarBoletoPedidoAdmin = createServerFn({ method: 'POST' })
     const pixQrImage = charge.pixEncodedImage
       ? `data:image/png;base64,${charge.pixEncodedImage}`
       : null
+
+    const enderecoTexto =
+      [
+        [end?.logradouro, end?.numero].filter(Boolean).join(', '),
+        end?.complemento,
+        end?.bairro,
+        [end?.cidade, end?.estado].filter(Boolean).join('/'),
+        end?.cep ? `CEP ${end.cep}` : '',
+      ]
+        .filter((p) => p && String(p).trim())
+        .join(' - ') || null
+
+    const fmtData = (d?: string | null) =>
+      d ? new Date(`${d}T12:00:00`).toLocaleDateString('pt-BR') : ''
+    const periodoTexto =
+      [fmtData(data.composicao?.periodoInicio), fmtData(data.composicao?.periodoFim)]
+        .filter(Boolean)
+        .join(' a ') || null
 
     const { data: row, error } = await supabaseAdmin
       .from('asaas_recebimentos')
@@ -611,8 +673,15 @@ export const gerarBoletoPedidoAdmin = createServerFn({ method: 'POST' })
         due_date: data.vencimento,
         description: descricao,
         order_id: order.id,
-        fine_percent: data.multaPercent ?? 2,
-        interest_percent: data.jurosPercent ?? 1,
+        fine_percent: data.multaPercent ?? null,
+        interest_percent: data.jurosPercent ?? null,
+        composicao: {
+          servico: data.composicao?.servico ?? null,
+          destino: data.composicao?.destino ?? null,
+          periodo: periodoTexto,
+          passageiro: data.composicao?.passageiros ?? null,
+          endereco: enderecoTexto,
+        } as any,
         asaas_payment_id: charge.paymentId,
         asaas_customer_id: customerId,
         invoice_url: charge.invoiceUrl,
@@ -640,6 +709,20 @@ export const gerarBoletoPedidoAdmin = createServerFn({ method: 'POST' })
       agenciaCodigo: (charge.agenciaCodigo ?? null) as string | null,
       pixPayload: charge.pixPayload,
       pixQrImage,
-      pagador: { nome, cpfCnpj, email: data.email || order.email || null, telefone: data.telefone || (order as any).phone || null },
+      pagador: {
+        nome,
+        cpfCnpj,
+        email: data.email || order.email || null,
+        telefone: data.telefone || (order as any).phone || null,
+        endereco: enderecoTexto,
+      },
+      composicao: {
+        servico: data.composicao?.servico ?? null,
+        destino: data.composicao?.destino ?? null,
+        periodo: periodoTexto,
+        passageiro: data.composicao?.passageiros ?? null,
+      },
+      multaPercent: data.multaPercent ?? null,
+      jurosPercentMes: data.jurosPercent ?? null,
     }
   })
