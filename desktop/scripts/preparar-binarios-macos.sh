@@ -30,7 +30,9 @@ archs_de() { lipo -archs "$1" 2>/dev/null || true; }
 
 # Copia o binário garantindo fatia arm64 exclusiva.
 instalar() {
-  local nome="$1" origem="$2" archs
+  local nome="${1:?nome do binário não informado}"
+  local origem="${2:?origem do binário não informada}"
+  local archs=""
   archs="$(archs_de "$origem")"
   case " $archs " in *" arm64 "*) ;; *) return 1;; esac
   mkdir -p "$DEST"
@@ -45,7 +47,10 @@ instalar() {
 
 # ---- Fonte 1: pacotes npm dos instaladores oficiais (arm64 nativo) ----------
 tentar_npm() {
-  local nome="$1" pacote="$2" dir="$TMP/npm-$nome" tgz origem
+  local nome="${1:?nome do binário não informado}"
+  local pacote="${2:?pacote npm não informado}"
+  local dir="$TMP/npm-$nome"
+  local tgz="" origem=""
   echo "-- fonte npm: $pacote"
   mkdir -p "$dir"
   ( cd "$dir" && npm pack "$pacote" --silent >/dev/null 2>&1 ) || return 1
@@ -61,7 +66,10 @@ tentar_npm() {
 
 # ---- Fonte 2: zips públicos (osxexperts / evermeet) ------------------------
 tentar_zip() {
-  local nome="$1" url="$2" dir="$TMP/zip-$nome-$RANDOM" origem
+  local nome="${1:?nome do binário não informado}"
+  local url="${2:?url não informada}"
+  local dir="$TMP/zip-$nome-$RANDOM"
+  local origem=""
   echo "-- fonte zip: $url"
   mkdir -p "$dir"
   curl --fail --location --retry 3 --silent --show-error "$url" -o "$dir/pkg.zip" || return 1
@@ -74,7 +82,10 @@ tentar_zip() {
 }
 
 provisionar() {
-  local nome="$1" pacote="$2"; shift 2
+  local nome="${1:?nome do binário não informado}"
+  local pacote="${2:?pacote npm não informado}"
+  local url=""
+  shift 2
   echo "== Provisionando $nome (macOS arm64)"
   if tentar_npm "$nome" "$pacote"; then echo "   origem aceita: npm $pacote"; return 0; fi
   for url in "$@"; do
@@ -85,7 +96,8 @@ provisionar() {
 }
 
 validar() {
-  local nome="$1" bin="$DEST/$nome"
+  local nome="${1:?nome do binário não informado}"
+  local bin="$DEST/$nome"
   echo "-- Validando binário final: $nome"
   [ -f "$bin" ] || falhar "$bin não existe"
   diagnostico "$bin"
