@@ -1320,9 +1320,10 @@ export type Database = {
           mime: string | null
           name: string
           owner_id: string
-          project_id: string
+          project_id: string | null
           size_bytes: number | null
           storage_path: string
+          thumb_path: string | null
           width: number | null
         }
         Insert: {
@@ -1335,9 +1336,10 @@ export type Database = {
           mime?: string | null
           name: string
           owner_id: string
-          project_id: string
+          project_id?: string | null
           size_bytes?: number | null
           storage_path: string
+          thumb_path?: string | null
           width?: number | null
         }
         Update: {
@@ -1350,14 +1352,51 @@ export type Database = {
           mime?: string | null
           name?: string
           owner_id?: string
-          project_id?: string
+          project_id?: string | null
           size_bytes?: number | null
           storage_path?: string
+          thumb_path?: string | null
           width?: number | null
         }
         Relationships: [
           {
             foreignKeyName: "editair_assets_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "editair_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      editair_project_assets: {
+        Row: {
+          asset_id: string
+          created_at: string
+          owner_id: string
+          project_id: string
+        }
+        Insert: {
+          asset_id: string
+          created_at?: string
+          owner_id: string
+          project_id: string
+        }
+        Update: {
+          asset_id?: string
+          created_at?: string
+          owner_id?: string
+          project_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "editair_project_assets_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "editair_assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "editair_project_assets_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "editair_projects"

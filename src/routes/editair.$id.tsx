@@ -29,7 +29,6 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   excluirAssetEditair,
   obterProjetoEditair,
-  registrarAssetEditair,
   registrarEventoEditair,
   renomearAssetEditair,
   salvarEstadoEditair,
@@ -66,6 +65,7 @@ import {
 } from "@/lib/editair/audio";
 import { EditairEngine } from "@/lib/editair/engine";
 import { consumirHandoff } from "@/lib/editair/handoff";
+import { importarParaGaleria } from "@/lib/editair/gallery";
 import { Timeline, type AssetInfo } from "@/components/editair/Timeline";
 import { PlayerStage, type ElementoPalco } from "@/components/editair/PlayerStage";
 import { SourceDialog } from "@/components/editair/SourceDialog";
@@ -193,11 +193,13 @@ function EditorPage() {
           p.state && typeof p.state === "object" && "clips" in (p.state as object)
             ? (p.state as ProjectState)
             : estadoVazio(w, h, fps);
-        const estado = normalizarEstado(bruto, w, h, fps);
-        setState(estado);
+        let estado = normalizarEstado(bruto, w, h, fps);
         if (p.transcript && typeof p.transcript === "object" && "words" in (p.transcript as object)) {
           setTranscript(p.transcript as Transcript);
         }
+        setState(estado);
+
+
 
         const canvas = canvasRef.current;
         if (canvas) {
@@ -207,32 +209,88 @@ function EditorPage() {
           for (const a of res.assets) {
             const { data: url } = await supabase.storage
               .from("editair-media")
-              .createSignedUrl(String(a.storage_path), 60 * 60 * 6);
+              .createSignedUrl(String(a.storage_path), 60 * 60 * 8);
             if (!url?.signedUrl) continue;
-            await eng.carregar(String(a.id), url.signedUrl);
+            const kind = String(a.kind ?? "video");
+            await eng.carregar(String(a.id), url.signedUrl, kind);
             lista.push({
               id: String(a.id),
               nome: String(a.name),
-              kind: String(a.kind),
+              kind,
               durationMs: Number(a.duration_ms ?? 0),
               url: url.signedUrl,
             });
           }
           if (!vivo) return;
           setAssets(lista);
+
+          // projeto novo criado a partir da galeria: coloca as mídias na linha do tempo
+          if (!estado.clips.length && lista.length) {
+            const clips: EditairClip[] = [];
+            const fim: Record<string, number> = {};
+            for (const a of lista) {
+              const trilha = a.kind === "audio" ? "t-music" : "t-video";
+              const inicio = fim[trilha] ?? 0;
+              const dur = Math.max(1000, a.durationMs || (a.kind === "image" ? 5000 : 3000));
+              clips.push({
+                id: novoId(),
+                trackId: trilha,
+                kind: a.kind === "audio" ? "audio" : a.kind === "image" ? "image" : "video",
+                assetId: a.id,
+                start: inicio,
+                duration: dur,
+                sourceIn: 0,
+                volume: 1,
+                speed: 1,
+                transform: transformPadrao(),
+                label: a.nome.slice(0, 28),
+              });
+              fim[trilha] = inicio + dur;
+            }
+            estado = recalcularDuracao({ ...estado, clips });
+            const dim = res.assets.find((a) => Number(a.width) > 0 && Number(a.height) > 0);
+            if (dim) {
+              estado = { ...estado, width: Number(dim.width), height: Number(dim.height) };
+              eng.redimensionar(estado.width, estado.height);
+            }
+          }
+
+          setState(estado);
+          // primeiro frame já visível, sem esperar o Play
+          eng.sincronizar(estado, 0, false);
           eng.desenhar(estado, 0);
+
+
+          // deixa o áudio do primeiro vídeo pronto para a IA mesmo após recarregar a página
+          const principal = lista.find((a) => a.kind !== "image");
+          if (principal) {
+            void (async () => {
+              try {
+                const resp = await fetch(principal.url);
+                const blob = await resp.blob();
+                const buf = await decodificarAudio(blob);
+                if (vivo) audioBufferRef.current = buf;
+              } catch {
+                /* sem áudio decodificável */
+              }
+            })();
+          }
         }
 
         const primeiro = res.assets.find((a) => Number(a.width) > 0 && Number(a.height) > 0);
         if (primeiro) setDimsOriginais({ w: Number(primeiro.width), h: Number(primeiro.height) });
 
-        // veio da tela "Novo projeto": importa, analisa e monta o primeiro corte
+        // veio da galeria com instrução: monta o primeiro corte automaticamente
         const handoff = consumirHandoff(id);
-        if (handoff?.arquivos.length) {
+        if (handoff?.arquivos?.length) {
           autoRef.current = { instrucao: handoff.instrucao };
           setAutoEtapa("importar");
           void importar(handoff.arquivos);
+        } else if (handoff?.instrucao) {
+          autoRef.current = { instrucao: handoff.instrucao };
+          setAutoEtapa("planejar");
         }
+
       } catch (e) {
         toast.error(e instanceof Error ? e.message : "Falha ao abrir o projeto");
       } finally {
@@ -598,45 +656,21 @@ function EditorPage() {
     if (!arquivos?.length) return;
     setOcupado("Enviando mídia…");
     try {
-      const { data: sess } = await supabase.auth.getUser();
-      const uid = sess.user?.id;
-      if (!uid) throw new Error("Sessão expirada");
-
       const proximo: ProjectState = { ...state, clips: [...state.clips] };
       const eraVazio = proximo.clips.length === 0;
       let dims: { w: number; h: number } | null = null;
       const novosAssets: AssetItem[] = [];
       for (const arquivo of Array.from(arquivos)) {
-        const kind = arquivo.type.startsWith("audio") ? "audio" : arquivo.type.startsWith("image") ? "image" : "video";
-        const meta = kind === "image" ? { durationMs: 5000, width: 0, height: 0 } : await lerMetadados(arquivo);
-        if (!dims && meta.width > 0 && meta.height > 0) dims = { w: meta.width, h: meta.height };
-
-        const caminho = `${uid}/${id}/${novoId("a")}-${arquivo.name.replace(/[^\w.\-]/g, "_")}`;
-        const { error } = await supabase.storage.from("editair-media").upload(caminho, arquivo, {
-          contentType: arquivo.type || "video/mp4",
-          upsert: false,
+        // vai para a galeria permanente e fica vinculada a este projeto
+        const midia = await importarParaGaleria(arquivo, {
+          projectId: id,
+          aoProgredir: (msg) => setOcupado(msg),
         });
-        if (error) throw new Error(error.message);
+        const kind = midia.kind;
+        if (!dims && midia.width > 0 && midia.height > 0) dims = { w: midia.width, h: midia.height };
 
-        const asset = (await registrarAssetEditair({
-          data: {
-            projectId: id,
-            kind,
-            name: arquivo.name,
-            storagePath: caminho,
-            mime: arquivo.type || null,
-            sizeBytes: arquivo.size,
-            durationMs: meta.durationMs,
-            width: meta.width,
-            height: meta.height,
-          },
-        })) as unknown as { id: string };
-
-        const { data: url } = await supabase.storage.from("editair-media").createSignedUrl(caminho, 60 * 60 * 6);
-        if (url?.signedUrl) {
-          await engineRef.current?.carregar(asset.id, url.signedUrl);
-          novosAssets.push({ id: asset.id, nome: arquivo.name, kind, durationMs: meta.durationMs, url: url.signedUrl });
-        }
+        await engineRef.current?.carregar(midia.id, midia.url, kind);
+        novosAssets.push({ id: midia.id, nome: midia.nome, kind, durationMs: midia.durationMs, url: midia.url });
 
         const trilha = kind === "audio" ? "t-music" : "t-video";
         const fim = proximo.clips.filter((c) => c.trackId === trilha).reduce((m, c) => Math.max(m, c.start + c.duration), 0);
@@ -644,14 +678,14 @@ function EditorPage() {
           id: novoId(),
           trackId: trilha,
           kind: kind === "audio" ? "audio" : kind === "image" ? "image" : "video",
-          assetId: asset.id,
+          assetId: midia.id,
           start: fim,
-          duration: Math.max(1000, meta.durationMs),
+          duration: Math.max(1000, midia.durationMs),
           sourceIn: 0,
           volume: 1,
           speed: 1,
           transform: transformPadrao(),
-          label: arquivo.name.slice(0, 28),
+          label: midia.nome.slice(0, 28),
         });
 
         if (!audioBufferRef.current && kind !== "image") {
@@ -672,7 +706,7 @@ function EditorPage() {
         }
       }
       aplicar(proximo);
-      toast.success("Mídia importada");
+      toast.success("Mídia salva na galeria");
       if (autoRef.current) setAutoEtapa("planejar");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Falha ao importar");
@@ -681,6 +715,7 @@ function EditorPage() {
     } finally {
       setOcupado(null);
     }
+
 
   };
 

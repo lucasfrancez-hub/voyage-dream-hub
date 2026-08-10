@@ -40,6 +40,11 @@ export class EditairEngine {
   private streamDest: MediaStreamAudioDestinationNode | null = null;
   private master: GainNode | null = null;
   private midias = new Map<string, Midia>();
+  private imagens = new Map<string, HTMLImageElement>();
+  /** último quadro pedido — usado para repintar quando o vídeo termina de buscar */
+  private ultimo: { state: ProjectState; t: number } | null = null;
+  private tocandoAgora = false;
+
   private volumeMaster = 1;
   private mudo = false;
   /** escala física do canvas em relação ao tamanho lógico do projeto */
@@ -89,8 +94,22 @@ export class EditairEngine {
     return this.audioCtx;
   }
 
-  async carregar(assetId: string, url: string) {
-    if (this.midias.has(assetId)) return;
+  async carregar(assetId: string, url: string, kind = "video") {
+    if (this.midias.has(assetId) || this.imagens.has(assetId)) return;
+    if (kind === "image") {
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.src = url;
+      await new Promise<void>((resolve) => {
+        const ok = () => resolve();
+        img.onload = ok;
+        img.onerror = ok;
+        setTimeout(ok, 10000);
+      });
+      this.imagens.set(assetId, img);
+      this.redesenhar();
+      return;
+    }
     const el = document.createElement("video");
     el.src = url;
     el.crossOrigin = "anonymous";
@@ -103,7 +122,11 @@ export class EditairEngine {
       el.onerror = ok;
       setTimeout(ok, 10000);
     });
+    // o preview precisa repintar quando o vídeo termina de buscar o frame
+    el.addEventListener("seeked", () => this.redesenhar());
+    el.addEventListener("loadeddata", () => this.redesenhar());
     const ctx = this.garantirAudio();
+
     const src = ctx.createMediaElementSource(el);
     const hp = ctx.createBiquadFilter();
     hp.type = "highpass";
@@ -168,9 +191,16 @@ export class EditairEngine {
     return this.off;
   }
 
-  temMidia(assetId: string) {
-    return this.midias.has(assetId);
+  /** Repinta o último quadro pedido (usado quando uma mídia fica pronta). */
+  private redesenhar() {
+    if (this.tocandoAgora || !this.ultimo) return;
+    this.desenhar(this.ultimo.state, this.ultimo.t);
   }
+
+  temMidia(assetId: string) {
+    return this.midias.has(assetId) || this.imagens.has(assetId);
+  }
+
 
   elemento(assetId: string) {
     return this.midias.get(assetId)?.el ?? null;
@@ -236,8 +266,10 @@ export class EditairEngine {
   }
 
   sincronizar(state: ProjectState, t: number, tocando: boolean) {
+    this.tocandoAgora = tocando;
     const ativos = this.ativos(state, t);
     const usados = new Set<string>();
+
     for (const c of ativos) {
       if (!c.assetId) continue;
       const m = this.midias.get(c.assetId);
@@ -275,7 +307,9 @@ export class EditairEngine {
   /* ---------------- vídeo ---------------- */
 
   desenhar(state: ProjectState, t: number) {
+    this.ultimo = { state, t };
     const { ctx, width, height } = this;
+
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.fillStyle = "#000";
     ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
@@ -426,11 +460,15 @@ export class EditairEngine {
 
   private desenharVideo(c: EditairClip, t: number) {
     if (!c.assetId) return;
-    const m = this.midias.get(c.assetId);
-    if (!m || m.el.readyState < 2) return;
+    const img = this.imagens.get(c.assetId) ?? null;
+    const m = this.midias.get(c.assetId) ?? null;
+    const fonte: HTMLVideoElement | HTMLImageElement | null =
+      img && img.naturalWidth > 0 ? img : m && m.el.readyState >= 2 ? m.el : null;
+    if (!fonte) return;
     const { ctx, width, height } = this;
-    const vw = m.el.videoWidth || width;
-    const vh = m.el.videoHeight || height;
+    const vw = (fonte as HTMLVideoElement).videoWidth || (fonte as HTMLImageElement).naturalWidth || width;
+    const vh = (fonte as HTMLVideoElement).videoHeight || (fonte as HTMLImageElement).naturalHeight || height;
+
 
     // recorte (crop) no material de origem
     const rec = c.recorte ?? RECORTE_CHEIO;
@@ -513,13 +551,13 @@ export class EditairEngine {
       alvo.translate(width / 2 + x, height / 2 + y);
       if (rotation) alvo.rotate((rotation * Math.PI) / 180);
       if (c.flipH || c.flipV) alvo.scale(c.flipH ? -1 : 1, c.flipV ? -1 : 1);
-      alvo.drawImage(m.el, sx, sy, sw, sh, (-w * amp) / 2, (-h * amp) / 2, w * amp, h * amp);
+      alvo.drawImage(fonte, sx, sy, sw, sh, (-w * amp) / 2, (-h * amp) / 2, w * amp, h * amp);
       alvo.restore();
     };
 
     const fundo = c.fundo && c.fundo.modo !== "nenhum" ? c.fundo : null;
     const mascaraPessoa = fundo
-      ? this.seg?.mascara(c.id, m.el, t, {
+      ? this.seg?.mascara(c.id, fonte as HTMLVideoElement, t, {
           suavidade: fundo.suavidade,
           borda: fundo.borda,
           estabilidade: fundo.estabilidade,
@@ -553,7 +591,7 @@ export class EditairEngine {
         ctx.translate(width / 2 + x, height / 2 + y);
         if (rotation) ctx.rotate((rotation * Math.PI) / 180);
         const amp = 1.08;
-        ctx.drawImage(m.el, sx, sy, sw, sh, (-w * amp) / 2, (-h * amp) / 2, w * amp, h * amp);
+        ctx.drawImage(fonte, sx, sy, sw, sh, (-w * amp) / 2, (-h * amp) / 2, w * amp, h * amp);
         ctx.restore();
       }
       ctx.restore();
