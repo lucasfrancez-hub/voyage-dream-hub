@@ -157,6 +157,16 @@ export class EditairEngine {
     });
     const ctx = this.garantirAudio();
 
+    if (local) {
+      // Mídia local: o WebAudio silenciaria o elemento (sem CORS no protocolo próprio),
+      // então o áudio sai direto do <video> e o volume é controlado no elemento.
+      const gainLocal = ctx.createGain();
+      gainLocal.gain.value = 1;
+      this.midias.set(assetId, { el, gain: gainLocal, entrada: null, nativo: true, filtros: null });
+      this.redesenhar();
+      return;
+    }
+
     const src = ctx.createMediaElementSource(el);
     const hp = ctx.createBiquadFilter();
     hp.type = "highpass";
