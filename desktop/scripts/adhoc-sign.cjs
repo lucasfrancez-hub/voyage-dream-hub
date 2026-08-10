@@ -35,11 +35,11 @@ function machoFiles(appPath) {
   for (const f of walk(appPath)) {
     const base = path.basename(f);
     const ext = path.extname(f);
-    const dentroUnpacked = f.includes("app.asar.unpacked");
+    const dentroBin = f.includes(`${path.sep}Contents${path.sep}Resources${path.sep}bin${path.sep}`);
     if (
       ext === ".dylib" ||
       ext === ".node" ||
-      (dentroUnpacked && (base === "ffmpeg" || base === "ffprobe" || ext === ""))
+      (dentroBin && (base === "ffmpeg" || base === "ffprobe" || ext === ""))
     ) {
       try {
         if (sh("file", ["-b", f]).includes("Mach-O")) alvos.push(f);
@@ -51,49 +51,6 @@ function machoFiles(appPath) {
   return alvos;
 }
 
-/**
- * O pacote `ffprobe-static` traz os binários de TODAS as plataformas
- * (darwin/linux/win32). Sem poda, o bundle leva `bin/linux/x64/ffprobe` junto —
- * o que engorda o app e faz validação/uso pegarem o binário errado.
- * Aqui mantemos SOMENTE `bin/<platform>/<arch>` do build atual.
- */
-function podarFfprobe(appPath, platform, arch) {
-  const raiz = path.join(
-    appPath,
-    "Contents",
-    "Resources",
-    "app.asar.unpacked",
-    "node_modules",
-    "ffprobe-static",
-    "bin",
-  );
-  if (!fs.existsSync(raiz)) return null;
-
-  const alvoDir = path.join(raiz, platform, arch);
-  const alvo = path.join(alvoDir, platform === "win32" ? "ffprobe.exe" : "ffprobe");
-  if (!fs.existsSync(alvo)) {
-    throw new Error(
-      `[ffprobe] binário ${platform}/${arch} não encontrado em ${raiz}. ` +
-        `Conteúdo: ${fs.readdirSync(raiz).join(", ")}`,
-    );
-  }
-
-  for (const so of fs.readdirSync(raiz)) {
-    const dirSo = path.join(raiz, so);
-    if (!fs.statSync(dirSo).isDirectory()) continue;
-    if (so !== platform) {
-      fs.rmSync(dirSo, { recursive: true, force: true });
-      continue;
-    }
-    for (const a of fs.readdirSync(dirSo)) {
-      if (a !== arch) fs.rmSync(path.join(dirSo, a), { recursive: true, force: true });
-    }
-  }
-  fs.chmodSync(alvo, 0o755);
-  console.log(`[ffprobe] mantido apenas ${platform}/${arch}: ${alvo}`);
-  return alvo;
-}
-
 exports.default = async function afterPack(context) {
   if (context.electronPlatformName !== "darwin") return;
 
@@ -102,8 +59,12 @@ exports.default = async function afterPack(context) {
     `${context.packager.appInfo.productFilename}.app`,
   );
 
-  // Poda sempre (dev e release): o app só pode conter o ffprobe da plataforma alvo.
-  podarFfprobe(appPath, "darwin", context.arch === 1 ? "x64" : context.arch === 3 ? "arm64" : process.arch);
+  const recursosBin = path.join(appPath, "Contents", "Resources", "bin");
+  for (const nome of ["ffmpeg", "ffprobe"]) {
+    const alvo = path.join(recursosBin, nome);
+    if (!fs.existsSync(alvo)) throw new Error(`[sidecar] ausente no bundle: ${alvo}`);
+    fs.chmodSync(alvo, 0o755);
+  }
 
   if (process.env.EDITAIR_ADHOC !== "1") return;
   console.log(`[adhoc] assinando ${appPath}`);
