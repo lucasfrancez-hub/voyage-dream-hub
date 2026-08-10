@@ -461,7 +461,7 @@ function EditorPage() {
     setSelecionados([clip.id]);
   };
 
-  const importar = async (arquivos: FileList | null) => {
+  const importar = async (arquivos: FileList | File[] | null) => {
     if (!arquivos?.length) return;
     setOcupado("Enviando mídia…");
     try {
@@ -470,10 +470,14 @@ function EditorPage() {
       if (!uid) throw new Error("Sessão expirada");
 
       const proximo: ProjectState = { ...state, clips: [...state.clips] };
+      const eraVazio = proximo.clips.length === 0;
+      let dims: { w: number; h: number } | null = null;
       const novosAssets: AssetItem[] = [];
       for (const arquivo of Array.from(arquivos)) {
         const kind = arquivo.type.startsWith("audio") ? "audio" : arquivo.type.startsWith("image") ? "image" : "video";
         const meta = kind === "image" ? { durationMs: 5000, width: 0, height: 0 } : await lerMetadados(arquivo);
+        if (!dims && meta.width > 0 && meta.height > 0) dims = { w: meta.width, h: meta.height };
+
         const caminho = `${uid}/${id}/${novoId("a")}-${arquivo.name.replace(/[^\w.\-]/g, "_")}`;
         const { error } = await supabase.storage.from("editair-media").upload(caminho, arquivo, {
           contentType: arquivo.type || "video/mp4",
