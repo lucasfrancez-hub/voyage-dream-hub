@@ -62,3 +62,33 @@ Antes do primeiro release, preencher `owner`/`repo` em `desktop/package.json`
 Launchpad · 4. importar vídeo pelo Finder (drag-and-drop) · 5. thumbnail,
 waveform, proxy e preview funcionando · 6. fechar e reabrir → projeto no mesmo
 ponto (autosave) · 7. exportar vídeo localmente.
+
+## Build de desenvolvimento no macOS (sem Apple Developer)
+
+O build dev é assinado **ad-hoc** (`codesign --sign -`) pelo hook
+`scripts/adhoc-sign.cjs`, com `hardenedRuntime` desligado. Isso é obrigatório no
+Apple Silicon: sem assinatura válida o macOS acusa *"EditAir está danificado"*.
+O workflow valida o pacote antes de publicar o artefato:
+
+- `codesign --verify --deep --strict`
+- arquitetura arm64 do app e dos sidecars FFmpeg/FFprobe
+- presença, permissão `+x` e execução real (`-version`) dos binários
+- `hdiutil verify` + montagem do DMG e revalidação do `.app` de dentro da imagem
+
+### Primeira abertura (quarentena)
+
+O Gatekeeper marca qualquer arquivo baixado pelo navegador com o atributo
+`com.apple.quarantine`. Como ainda não há certificado Apple Developer, faça
+**apenas** isto — nada de desligar a segurança do sistema:
+
+1. Arraste o EditAir para `/Applications`.
+2. Botão direito no app → **Abrir** → **Abrir**.
+
+Se ainda assim aparecer "danificado", remova a quarentena **somente deste app**:
+
+```bash
+xattr -dr com.apple.quarantine /Applications/EditAir.app
+```
+
+Isso não altera nenhuma configuração global do macOS. Quando tivermos conta
+Apple Developer, o release assinado + notarizado dispensa esse passo.
