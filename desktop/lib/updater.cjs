@@ -15,6 +15,18 @@ function enviar(canal, payload) {
   if (janela && !janela.isDestroyed()) janela.webContents.send(canal, payload);
 }
 
+/* Traduz falhas comuns do GitHub Releases para linguagem clara. */
+function mensagemErro(err) {
+  const bruto = String(err?.message || err || "");
+  if (/404/.test(bruto) || /releases\.atom/i.test(bruto)) {
+    return "Nenhuma versão publicada encontrada no repositório de atualizações. Publique um Release (não rascunho) com a tag editair-v… e o repositório precisa estar público (ou configurar um token de acesso).";
+  }
+  if (/ENOTFOUND|EAI_AGAIN|ETIMEDOUT|network/i.test(bruto)) {
+    return "Sem conexão com o servidor de atualizações. Verifique a internet e tente novamente.";
+  }
+  return bruto;
+}
+
 function inicializar(win) {
   janela = win;
   const s = lerSettings();
@@ -22,6 +34,10 @@ function inicializar(win) {
   autoUpdater.autoInstallOnAppQuit = true;
   autoUpdater.allowPrerelease = s.updateChannel === "beta";
   autoUpdater.channel = s.updateChannel === "beta" ? "beta" : "latest";
+  // Token opcional: só necessário se o repositório de releases for privado.
+  const token = process.env.EDITAIR_GH_TOKEN || process.env.GH_TOKEN || null;
+  if (token) autoUpdater.addAuthHeader(`Bearer ${token}`);
+
 
   autoUpdater.on("checking-for-update", () => enviar("editair:update", { estado: "verificando" }));
   autoUpdater.on("update-available", (info) => {
