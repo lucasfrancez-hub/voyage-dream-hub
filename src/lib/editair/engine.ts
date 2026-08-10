@@ -17,7 +17,9 @@ import {
 type Midia = {
   el: HTMLVideoElement;
   gain: GainNode;
-  entrada: AudioNode;
+  entrada: AudioNode | null;
+  /** true = áudio sai direto do elemento (mídia local, sem CORS para o WebAudio) */
+  nativo?: boolean;
   filtros: {
     hp: BiquadFilterNode;
     comp: DynamicsCompressorNode;
