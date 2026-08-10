@@ -78,6 +78,7 @@ function EditairLayout() {
     <div className="min-h-screen bg-[#0B0B0D] text-white">
       <header className="flex h-14 items-center justify-between border-b border-white/10 px-4">
         <div className="flex items-center gap-3">
+          {!desktop && (
           <Link
             to="/admin/dashboard"
             className="flex h-8 w-8 items-center justify-center rounded-lg text-white/60 transition hover:bg-white/10 hover:text-white"
@@ -85,6 +86,7 @@ function EditairLayout() {
           >
             <ArrowLeft className="h-4 w-4" />
           </Link>
+          )}
           <Link to="/editair" className="flex items-center gap-2">
             <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#F26B1F]/15 text-[#F26B1F]">
               <Clapperboard className="h-4 w-4" />
