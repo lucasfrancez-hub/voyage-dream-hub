@@ -67,8 +67,9 @@ import {
 import { EditairEngine } from "@/lib/editair/engine";
 import { consumirHandoff } from "@/lib/editair/handoff";
 import { Timeline, type AssetInfo } from "@/components/editair/Timeline";
-import { PlayerStage } from "@/components/editair/PlayerStage";
+import { PlayerStage, type ElementoPalco } from "@/components/editair/PlayerStage";
 import { SourceDialog } from "@/components/editair/SourceDialog";
+import { Inspector } from "@/components/editair/Inspector";
 import { ToolPanel, type AssetItem, type Ferramenta, type MensagemIa } from "@/components/editair/ToolPanels";
 
 import {
@@ -484,6 +485,90 @@ function EditorPage() {
     const ks = (clipeAtual.keyframes ?? []).filter((k) => !(k.prop === prop && Math.abs(k.atMs - tl) < 30));
     patchClipe({ keyframes: [...ks, { prop, atMs: tl, value: valor }] });
     toast.success(`Keyframe de ${prop} em ${formatarTempo(playhead)}`);
+  };
+
+  /* ---------------- seleção direta no reprodutor ---------------- */
+  const elementosPalco = useMemo<ElementoPalco[]>(() => {
+    const ativos = state.clips.filter(
+      (c) => playhead >= c.start && playhead <= c.start + c.duration && c.kind !== "audio" && c.kind !== "caption",
+    );
+    return ativos.map((c) => {
+      const tr = c.transform;
+      let w = 1;
+      let h = 1;
+      if (c.kind === "text") {
+        const fs = c.textStyle?.fontSize ?? 64;
+        const txt = c.text ?? "";
+        w = Math.min(0.92, Math.max(0.15, (txt.length * fs * 0.52) / state.width));
+        h = Math.min(0.6, (fs * 1.6) / state.height);
+      }
+      return {
+        id: c.id,
+        kind: c.kind,
+        cx: 0.5 + tr.x / state.width,
+        cy: 0.5 + tr.y / state.height,
+        w: w * tr.scale,
+        h: h * tr.scale,
+        rotation: tr.rotation,
+        bloqueado: c.bloqueado,
+      };
+    });
+  }, [state.clips, state.width, state.height, playhead]);
+
+  const moverElemento = (cid: string, dx: number, dy: number) => {
+    const c = state.clips.find((x) => x.id === cid);
+    if (!c || c.bloqueado) return;
+    setState((s) => ({
+      ...s,
+      clips: s.clips.map((x) => (x.id === cid ? { ...x, transform: { ...x.transform, x: x.transform.x + dx, y: x.transform.y + dy } } : x)),
+    }));
+  };
+  const escalarElemento = (cid: string, fator: number) => {
+    setState((s) => ({
+      ...s,
+      clips: s.clips.map((x) =>
+        x.id === cid && !x.bloqueado
+          ? { ...x, transform: { ...x.transform, scale: Math.max(0.1, Math.min(6, x.transform.scale * fator)) } }
+          : x,
+      ),
+    }));
+  };
+  const girarElemento = (cid: string, graus: number) => {
+    setState((s) => ({
+      ...s,
+      clips: s.clips.map((x) =>
+        x.id === cid && !x.bloqueado ? { ...x, transform: { ...x.transform, rotation: x.transform.rotation + graus } } : x,
+      ),
+    }));
+  };
+
+  /** ordem de camada = ordem no array de clipes */
+  const moverCamada = (dir: "frente" | "tras") => {
+    const cid = clipeAtual?.id;
+    if (!cid) return;
+    const arr = [...state.clips];
+    const i = arr.findIndex((c) => c.id === cid);
+    const j = dir === "frente" ? i + 1 : i - 1;
+    if (i < 0 || j < 0 || j >= arr.length) return;
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+    aplicar({ ...state, clips: arr });
+  };
+
+  const desvincularAudio = () => {
+    if (!clipeAtual) return;
+    patchClipe({ semAudio: !clipeAtual.semAudio });
+    toast.success(clipeAtual.semAudio ? "Áudio vinculado novamente" : "Áudio desvinculado do vídeo");
+  };
+
+  const congelarFrame = () => {
+    if (!clipeAtual) return;
+    patchClipe({ congelado: !clipeAtual.congelado, speed: clipeAtual.congelado ? 1 : 0.01 });
+  };
+
+  const adicionarMarcador = () => {
+    const m = { id: novoId(), atMs: Math.round(playhead), cor: "#F26B1F" };
+    aplicar({ ...state, marcadores: [...(state.marcadores ?? []), m] });
+    toast.success("Marcador adicionado");
   };
 
   /* ---------------- mídia ---------------- */
@@ -1063,7 +1148,7 @@ function EditorPage() {
       </div>
 
       {/* corpo */}
-      <div className="grid min-h-0 grid-cols-[76px_340px_minmax(360px,1fr)] xl:grid-cols-[76px_360px_minmax(420px,1fr)]">
+      <div className="grid min-h-0 grid-cols-[76px_300px_minmax(320px,1fr)_282px] xl:grid-cols-[76px_340px_minmax(420px,1fr)_312px]">
         <aside className="flex flex-col gap-1 overflow-y-auto border-r border-white/10 bg-[#0f141a] p-1.5">
           {FERRAMENTAS.map((f) => (
             <button
@@ -1141,6 +1226,31 @@ function EditorPage() {
           onMudo={setMudo}
           onQualidade={setQualidade}
           onFormato={(w, h) => aplicar({ ...state, width: w, height: h })}
+          elementos={elementosPalco}
+          selecionadoId={selecionados[0] ?? null}
+          onSelecionar={(cid) => setSelecionados(cid ? [cid] : [])}
+          onMover={moverElemento}
+          onEscalar={escalarElemento}
+          onGirar={girarElemento}
+        />
+
+        <Inspector
+          state={state}
+          clip={clipeAtual}
+          assets={assetItens.map((a) => ({ id: a.id, nome: a.nome }))}
+          onPatchClip={(patch) => patchClipe(patch)}
+          onPatchState={(patch) => aplicar({ ...state, ...patch })}
+          onCaption={(patch) => aplicar({ ...state, captionStyle: { ...state.captionStyle, ...patch } })}
+          onKeyframe={criarKeyframe}
+          onDuplicar={duplicar}
+          onCamada={moverCamada}
+          onDesvincularAudio={desvincularAudio}
+          onExtrairAudio={() => {
+            setResultado(null);
+            setExportAberto(true);
+          }}
+          onNormalizar={() => void normalizar()}
+          onSepararAudio={separarAudio}
         />
       </div>
 
@@ -1153,6 +1263,9 @@ function EditorPage() {
           <BarraBtn onClick={duplicar} icone={<Copy className="h-3.5 w-3.5" />} texto="Duplicar" />
           <BarraBtn onClick={copiar} texto="Copiar" />
           <BarraBtn onClick={colar} texto="Colar" />
+          <BarraBtn onClick={congelarFrame} texto="Congelar" />
+          <BarraBtn onClick={desvincularAudio} texto="Desvincular áudio" />
+          <BarraBtn onClick={adicionarMarcador} texto="Marcador" />
           <button
             onClick={() => setSnapping((v) => !v)}
             className={`ml-1 flex items-center gap-1 rounded-md px-2 py-1 transition ${
