@@ -363,18 +363,45 @@ export class EditairEngine {
     void height;
 
     const ativos = this.ativos(state, t);
-    const ordem: Record<string, number> = { "t-video": 0, "t-broll": 1, "t-caption": 2, "t-text": 3 };
+    // Ordem de camadas genérica: a trilha mais alta na lista aparece por cima.
+    // Assim qualquer número de trilhas de vídeo (Vídeo 2, Vídeo 3, …) compõe corretamente.
+    const idx = new Map(state.tracks.map((tr, i) => [tr.id, i] as const));
+    const z = (id: string) => -(idx.get(id) ?? 99);
     const visuais = ativos
       .filter((c) => c.kind === "video" || c.kind === "image" || c.kind === "caption" || c.kind === "text")
-      .sort((a, b) => (ordem[a.trackId] ?? 5) - (ordem[b.trackId] ?? 5));
+      .sort((a, b) => z(a.trackId) - z(b.trackId));
 
+    let offline = false;
     for (const c of visuais) {
       const trilha = state.tracks.find((x) => x.id === c.trackId);
       if (trilha?.hidden) continue;
-      if (c.kind === "video" || c.kind === "image") this.desenharVideo(c, t);
-      else if (c.kind === "caption") this.desenharLegenda(c, c.captionStyle ?? state.captionStyle, t);
+      if (c.kind === "video" || c.kind === "image") {
+        if (c.assetId && this.falhas.has(c.assetId)) {
+          offline = true;
+          continue;
+        }
+        this.desenharVideo(c, t);
+      } else if (c.kind === "caption") this.desenharLegenda(c, c.captionStyle ?? state.captionStyle, t);
       else if (c.kind === "text") this.desenharTexto(c, t);
     }
+    if (offline) this.avisoOffline();
+  }
+
+  /** Placeholder visível em vez de tela preta quando o arquivo não abre. */
+  private avisoOffline() {
+    const { ctx, width, height } = this;
+    ctx.save();
+    ctx.fillStyle = "rgba(20,20,24,0.92)";
+    ctx.fillRect(0, 0, width, height);
+    ctx.fillStyle = "#F26B1F";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.font = `600 ${Math.round(Math.min(width, height) * 0.055)}px Inter, system-ui, sans-serif`;
+    ctx.fillText("Mídia offline", width / 2, height / 2 - Math.min(width, height) * 0.03);
+    ctx.fillStyle = "rgba(255,255,255,0.6)";
+    ctx.font = `400 ${Math.round(Math.min(width, height) * 0.033)}px Inter, system-ui, sans-serif`;
+    ctx.fillText("Localize o arquivo na Biblioteca", width / 2, height / 2 + Math.min(width, height) * 0.04);
+    ctx.restore();
   }
 
   private transicao(c: EditairClip, t: number) {
