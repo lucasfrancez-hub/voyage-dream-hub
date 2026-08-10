@@ -43,7 +43,10 @@ jobs:
             --config.mac.hardenedRuntime=false
       - name: Validar bundle (.app)
         working-directory: desktop
-        run: bash scripts/verificar-app.sh dist/mac-arm64/EditAir.app
+        run: |
+          echo "== conteúdo de dist/"
+          ls -lR dist | head -n 60
+          bash scripts/verificar-app.sh dist/mac-arm64/EditAir.app
       - name: Validar DMG (monta, verifica e testa o app de dentro da imagem)
         working-directory: desktop
         run: |
