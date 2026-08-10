@@ -2,37 +2,50 @@ import { createFileRoute, useParams } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
-  Loader2,
-  Play,
-  Pause,
-  Upload,
-  Wand2,
-  Scissors,
   Captions,
-  Undo2,
+  Clapperboard,
+  Copy,
+  Film,
+  Image as ImageIcon,
+  Layers,
+  Loader2,
+  Magnet,
+  Music,
   Redo2,
-  Download,
+  Save,
+  Scissors,
+  SlidersHorizontal,
+  Sparkles,
+  Sticker,
+  Trash2,
+  Type,
+  Undo2,
+  Wand2,
   ZoomIn,
   ZoomOut,
-  Save,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import {
+  excluirAssetEditair,
   obterProjetoEditair,
   registrarAssetEditair,
   registrarEventoEditair,
+  renomearAssetEditair,
   salvarEstadoEditair,
 } from "@/lib/editair/projects.functions";
 import { transcreverBlocoEditair } from "@/lib/editair/transcribe.functions";
 import { dirigirEdicaoEditair } from "@/lib/editair/director.functions";
 import {
   estadoVazio,
+  formatarTempo,
+  normalizarEstado,
   novoId,
   recalcularDuracao,
   transformPadrao,
-  formatarTempo,
+  TEXTO_PADRAO,
   type CaptionStyle,
   type EditairClip,
+  type KeyProp,
   type ProjectState,
   type Transcript,
 } from "@/lib/editair/types";
@@ -42,13 +55,20 @@ import {
   calcularEnvelope,
   decodificarAudio,
   detectarFala,
+  encodeWav,
   lerMetadados,
   paraWav16k,
-  reduzirWaveform,
 } from "@/lib/editair/audio";
 import { EditairEngine } from "@/lib/editair/engine";
-import { Timeline } from "@/components/editair/Timeline";
-import { AiChat, Inspector, TranscriptPanel, type MensagemIa } from "@/components/editair/Panels";
+import { Timeline, type AssetInfo } from "@/components/editair/Timeline";
+import { PlayerStage } from "@/components/editair/PlayerStage";
+import { ToolPanel, type AssetItem, type Ferramenta, type MensagemIa } from "@/components/editair/ToolPanels";
+import {
+  ExportDialog,
+  type ExportConfig,
+  type ProgressoExport,
+  type ResultadoExport,
+} from "@/components/editair/ExportDialog";
 import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/editair/$id")({
@@ -56,15 +76,19 @@ export const Route = createFileRoute("/editair/$id")({
   component: EditorPage,
 });
 
-const SUGESTOES = [
-  "Tira todas as pausas e silêncios",
-  "Coloca legenda em todo o vídeo",
-  "Deixa a legenda menor e mais em cima",
-  "Abaixa a música e sobe a minha voz",
-  "Dá um zoom em mim aqui",
+const FERRAMENTAS: { id: Ferramenta; nome: string; icone: React.ReactNode }[] = [
+  { id: "midia", nome: "Mídia", icone: <Film className="h-4 w-4" /> },
+  { id: "audio", nome: "Áudio", icone: <Music className="h-4 w-4" /> },
+  { id: "texto", nome: "Texto", icone: <Type className="h-4 w-4" /> },
+  { id: "stickers", nome: "Stickers", icone: <Sticker className="h-4 w-4" /> },
+  { id: "efeitos", nome: "Efeitos", icone: <Sparkles className="h-4 w-4" /> },
+  { id: "transicoes", nome: "Transições", icone: <Layers className="h-4 w-4" /> },
+  { id: "legendas", nome: "Legendas", icone: <Captions className="h-4 w-4" /> },
+  { id: "filtros", nome: "Filtros", icone: <ImageIcon className="h-4 w-4" /> },
+  { id: "ajuste", nome: "Ajuste", icone: <SlidersHorizontal className="h-4 w-4" /> },
+  { id: "modelos", nome: "Modelos", icone: <Clapperboard className="h-4 w-4" /> },
+  { id: "ia", nome: "IA", icone: <Wand2 className="h-4 w-4" /> },
 ];
-
-type Aba = "ia" | "texto" | "props";
 
 function EditorPage() {
   const { id } = useParams({ from: "/editair/$id" });
@@ -73,31 +97,50 @@ function EditorPage() {
   const audioBufferRef = useRef<AudioBuffer | null>(null);
   const rafRef = useRef<number | null>(null);
   const relogioRef = useRef<{ t0: number; ms0: number } | null>(null);
+  const cancelarExportRef = useRef(false);
+  const clipboardRef = useRef<EditairClip[]>([]);
 
   const [carregando, setCarregando] = useState(true);
-  const [projeto, setProjeto] = useState<{ id: string; name: string; width: number; height: number; fps: number } | null>(null);
+  const [projetoNome, setProjetoNome] = useState("");
   const [state, setState] = useState<ProjectState>(estadoVazio());
   const [transcript, setTranscript] = useState<Transcript | null>(null);
-  const [waveform, setWaveform] = useState<number[] | null>(null);
+  const [assets, setAssets] = useState<AssetItem[]>([]);
 
   const [playhead, setPlayhead] = useState(0);
   const [tocando, setTocando] = useState(false);
   const [zoom, setZoom] = useState(60);
-  const [clipeSel, setClipeSel] = useState<string | null>(null);
+  const [selecionados, setSelecionados] = useState<string[]>([]);
   const [selecao, setSelecao] = useState<{ fromMs: number; toMs: number } | null>(null);
-  const [aba, setAba] = useState<Aba>("ia");
+  const [ferramenta, setFerramenta] = useState<Ferramenta>("midia");
+  const [snapping, setSnapping] = useState(true);
+  const [volume, setVolume] = useState(1);
+  const [mudo, setMudo] = useState(false);
+  const [qualidade, setQualidade] = useState(1);
 
   const [mensagens, setMensagens] = useState<MensagemIa[]>([]);
   const [pensando, setPensando] = useState(false);
   const [ocupado, setOcupado] = useState<string | null>(null);
   const [salvando, setSalvando] = useState(false);
 
+  const [exportAberto, setExportAberto] = useState(false);
+  const [progresso, setProgresso] = useState<ProgressoExport>(null);
+  const [resultado, setResultado] = useState<ResultadoExport>(null);
+
   const historico = useRef<ProjectState[]>([]);
   const futuro = useRef<ProjectState[]>([]);
 
-  const clipeAtual = useMemo(() => state.clips.find((c) => c.id === clipeSel) ?? null, [state.clips, clipeSel]);
+  const clipeAtual = useMemo(
+    () => state.clips.find((c) => c.id === selecionados[0]) ?? null,
+    [state.clips, selecionados],
+  );
 
-  /* ---------- carregar projeto ---------- */
+  const assetsMap = useMemo(() => {
+    const m: Record<string, AssetInfo> = {};
+    for (const a of assets) m[a.id] = { url: a.url, durationMs: a.durationMs, kind: a.kind, name: a.nome };
+    return m;
+  }, [assets]);
+
+  /* ---------------- carregar projeto ---------------- */
   useEffect(() => {
     let vivo = true;
     (async () => {
@@ -108,32 +151,41 @@ function EditorPage() {
         };
         if (!vivo) return;
         const p = res.projeto;
-        setProjeto({
-          id: String(p.id),
-          name: String(p.name),
-          width: Number(p.width),
-          height: Number(p.height),
-          fps: Number(p.fps ?? 30),
-        });
-        const estado = p.state && typeof p.state === "object" && "clips" in (p.state as object)
-          ? (p.state as ProjectState)
-          : estadoVazio();
+        const w = Number(p.width) || 1080;
+        const h = Number(p.height) || 1920;
+        const fps = Number(p.fps ?? 30);
+        setProjetoNome(String(p.name));
+        const bruto =
+          p.state && typeof p.state === "object" && "clips" in (p.state as object)
+            ? (p.state as ProjectState)
+            : estadoVazio(w, h, fps);
+        const estado = normalizarEstado(bruto, w, h, fps);
         setState(estado);
         if (p.transcript && typeof p.transcript === "object" && "words" in (p.transcript as object)) {
           setTranscript(p.transcript as Transcript);
         }
 
-        // engine + mídias
         const canvas = canvasRef.current;
         if (canvas) {
-          const eng = new EditairEngine(canvas, Number(p.width), Number(p.height));
+          const eng = new EditairEngine(canvas, estado.width, estado.height);
           engineRef.current = eng;
+          const lista: AssetItem[] = [];
           for (const a of res.assets) {
             const { data: url } = await supabase.storage
               .from("editair-media")
               .createSignedUrl(String(a.storage_path), 60 * 60 * 6);
-            if (url?.signedUrl) await eng.carregar(String(a.id), url.signedUrl);
+            if (!url?.signedUrl) continue;
+            await eng.carregar(String(a.id), url.signedUrl);
+            lista.push({
+              id: String(a.id),
+              nome: String(a.name),
+              kind: String(a.kind),
+              durationMs: Number(a.duration_ms ?? 0),
+              url: url.signedUrl,
+            });
           }
+          if (!vivo) return;
+          setAssets(lista);
           eng.desenhar(estado, 0);
         }
       } catch (e) {
@@ -149,22 +201,22 @@ function EditorPage() {
     };
   }, [id]);
 
-  /* ---------- desenho ---------- */
-  const redesenhar = useCallback(
-    (s: ProjectState, t: number) => {
-      const eng = engineRef.current;
-      if (!eng) return;
-      eng.sincronizar(s, t, false);
-      eng.desenhar(s, t);
-    },
-    [],
-  );
+  /* ---------------- render ---------------- */
+  useEffect(() => {
+    const eng = engineRef.current;
+    if (!eng) return;
+    eng.redimensionar(state.width, state.height, qualidade);
+    if (!tocando) {
+      eng.sincronizar(state, playhead, false);
+      eng.desenhar(state, playhead);
+    }
+  }, [state, playhead, tocando, qualidade]);
 
   useEffect(() => {
-    if (!tocando) redesenhar(state, playhead);
-  }, [state, playhead, tocando, redesenhar]);
+    engineRef.current?.definirVolumeMaster(volume);
+    engineRef.current?.definirMudo(mudo);
+  }, [volume, mudo]);
 
-  /* ---------- playback ---------- */
   useEffect(() => {
     const eng = engineRef.current;
     if (!eng) return;
@@ -197,32 +249,32 @@ function EditorPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tocando, state]);
 
-  /* ---------- histórico + autosave ---------- */
+  /* ---------------- histórico ---------------- */
   const aplicar = useCallback((proximo: ProjectState) => {
     setState((atual) => {
       historico.current.push(atual);
-      if (historico.current.length > 60) historico.current.shift();
+      if (historico.current.length > 80) historico.current.shift();
       futuro.current = [];
       return recalcularDuracao(proximo);
     });
   }, []);
 
-  const desfazer = () => {
+  const desfazer = useCallback(() => {
     const anterior = historico.current.pop();
     if (!anterior) return;
     setState((atual) => {
       futuro.current.push(atual);
       return anterior;
     });
-  };
-  const refazer = () => {
+  }, []);
+  const refazer = useCallback(() => {
     const proximo = futuro.current.pop();
     if (!proximo) return;
     setState((atual) => {
       historico.current.push(atual);
       return proximo;
     });
-  };
+  }, []);
 
   const salvar = useCallback(
     async (silencioso = true) => {
@@ -247,7 +299,127 @@ function EditorPage() {
     return () => clearTimeout(t);
   }, [state, transcript, carregando, salvar]);
 
-  /* ---------- importar mídia ---------- */
+  /* ---------------- edição de clipes ---------------- */
+  const patchClipe = (patch: Partial<EditairClip>, alvoId?: string) => {
+    const cid = alvoId ?? clipeAtual?.id;
+    if (!cid) return;
+    aplicar({ ...state, clips: state.clips.map((c) => (c.id === cid ? { ...c, ...patch } : c)) });
+  };
+
+  const alterarClipTimeline = (cid: string, patch: Partial<EditairClip>, commit: boolean) => {
+    if (commit) {
+      setState((s) => recalcularDuracao({ ...s }));
+      return;
+    }
+    setState((s) => recalcularDuracao({ ...s, clips: s.clips.map((c) => (c.id === cid ? { ...c, ...patch } : c)) }));
+  };
+
+  const dividir = () => {
+    const alvos = selecionados.length ? selecionados : state.clips.filter((c) => playhead > c.start && playhead < c.start + c.duration).map((c) => c.id);
+    if (!alvos.length) return toast.error("Nada para dividir no playhead.");
+    let s = state;
+    for (const cid of alvos) {
+      s = aplicarOps(s, [{ op: "split_clip", clipId: cid, atMs: playhead }], transcript).state;
+    }
+    aplicar(s);
+  };
+
+  const excluirSelecionados = (ripple = false) => {
+    if (!selecionados.length) return;
+    let s = state;
+    for (const cid of selecionados) {
+      s = aplicarOps(s, [{ op: "delete_clip", clipId: cid }], transcript).state;
+    }
+    if (ripple) {
+      const trilhas = Array.from(new Set(state.clips.filter((c) => selecionados.includes(c.id)).map((c) => c.trackId)));
+      s = aplicarOps(s, trilhas.map(() => ({ op: "delete_range", fromMs: 0, toMs: 0 })) as EditairOp[], transcript).state;
+      // fecha buracos nas trilhas afetadas
+      for (const t of trilhas) {
+        const daTrilha = s.clips.filter((c) => c.trackId === t).sort((a, b) => a.start - b.start);
+        let cursor = 0;
+        const mapa = new Map<string, number>();
+        for (const c of daTrilha) {
+          mapa.set(c.id, cursor);
+          cursor += c.duration;
+        }
+        s = { ...s, clips: s.clips.map((c) => (mapa.has(c.id) ? { ...c, start: mapa.get(c.id)! } : c)) };
+      }
+    }
+    setSelecionados([]);
+    aplicar(s);
+  };
+
+  const duplicar = () => {
+    if (!selecionados.length) return;
+    const novos = state.clips
+      .filter((c) => selecionados.includes(c.id))
+      .map((c) => ({ ...c, id: novoId(), start: c.start + c.duration }));
+    aplicar({ ...state, clips: [...state.clips, ...novos] });
+    setSelecionados(novos.map((c) => c.id));
+  };
+
+  const copiar = () => {
+    clipboardRef.current = state.clips.filter((c) => selecionados.includes(c.id)).map((c) => ({ ...c }));
+    if (clipboardRef.current.length) toast.success(`${clipboardRef.current.length} clipe(s) copiado(s)`);
+  };
+  const colar = () => {
+    if (!clipboardRef.current.length) return;
+    const base = Math.min(...clipboardRef.current.map((c) => c.start));
+    const novos = clipboardRef.current.map((c) => ({ ...c, id: novoId(), start: playhead + (c.start - base) }));
+    aplicar({ ...state, clips: [...state.clips, ...novos] });
+    setSelecionados(novos.map((c) => c.id));
+  };
+
+  const apagarTrecho = (fromMs: number, toMs: number) => {
+    const { state: novo } = aplicarOps(state, [{ op: "delete_range", fromMs, toMs, ripple: true }], transcript);
+    aplicar(novo);
+    toast.success("Trecho removido");
+  };
+
+  const criarKeyframe = (prop: KeyProp) => {
+    if (!clipeAtual) return;
+    const tl = Math.round(playhead - clipeAtual.start);
+    if (tl < 0 || tl > clipeAtual.duration) return toast.error("Posicione o playhead sobre o clipe.");
+    const valor =
+      prop === "volume"
+        ? clipeAtual.volume
+        : prop === "scale"
+          ? clipeAtual.transform.scale
+          : prop === "opacity"
+            ? clipeAtual.transform.opacity
+            : prop === "rotation"
+              ? clipeAtual.transform.rotation
+              : prop === "x"
+                ? clipeAtual.transform.x
+                : clipeAtual.transform.y;
+    const ks = (clipeAtual.keyframes ?? []).filter((k) => !(k.prop === prop && Math.abs(k.atMs - tl) < 30));
+    patchClipe({ keyframes: [...ks, { prop, atMs: tl, value: valor }] });
+    toast.success(`Keyframe de ${prop} em ${formatarTempo(playhead)}`);
+  };
+
+  /* ---------------- mídia ---------------- */
+  const inserirAsset = (assetId: string) => {
+    const a = assets.find((x) => x.id === assetId);
+    if (!a) return;
+    const trilha = a.kind === "audio" ? "t-music" : "t-video";
+    const fim = state.clips.filter((c) => c.trackId === trilha).reduce((m, c) => Math.max(m, c.start + c.duration), 0);
+    const clip: EditairClip = {
+      id: novoId(),
+      trackId: trilha,
+      kind: a.kind === "audio" ? "audio" : a.kind === "image" ? "image" : "video",
+      assetId: a.id,
+      start: fim,
+      duration: Math.max(1000, a.durationMs || 5000),
+      sourceIn: 0,
+      volume: 1,
+      speed: 1,
+      transform: transformPadrao(),
+      label: a.nome.slice(0, 28),
+    };
+    aplicar({ ...state, clips: [...state.clips, clip] });
+    setSelecionados([clip.id]);
+  };
+
   const importar = async (arquivos: FileList | null) => {
     if (!arquivos?.length) return;
     setOcupado("Enviando mídia…");
@@ -256,9 +428,11 @@ function EditorPage() {
       const uid = sess.user?.id;
       if (!uid) throw new Error("Sessão expirada");
 
-      let proximo: ProjectState = { ...state, clips: [...state.clips] };
+      const proximo: ProjectState = { ...state, clips: [...state.clips] };
+      const novosAssets: AssetItem[] = [];
       for (const arquivo of Array.from(arquivos)) {
-        const meta = await lerMetadados(arquivo);
+        const kind = arquivo.type.startsWith("audio") ? "audio" : arquivo.type.startsWith("image") ? "image" : "video";
+        const meta = kind === "image" ? { durationMs: 5000, width: 0, height: 0 } : await lerMetadados(arquivo);
         const caminho = `${uid}/${id}/${novoId("a")}-${arquivo.name.replace(/[^\w.\-]/g, "_")}`;
         const { error } = await supabase.storage.from("editair-media").upload(caminho, arquivo, {
           contentType: arquivo.type || "video/mp4",
@@ -269,7 +443,7 @@ function EditorPage() {
         const asset = (await registrarAssetEditair({
           data: {
             projectId: id,
-            kind: arquivo.type.startsWith("audio") ? "audio" : "video",
+            kind,
             name: arquivo.name,
             storagePath: caminho,
             mime: arquivo.type || null,
@@ -281,14 +455,17 @@ function EditorPage() {
         })) as unknown as { id: string };
 
         const { data: url } = await supabase.storage.from("editair-media").createSignedUrl(caminho, 60 * 60 * 6);
-        if (url?.signedUrl) await engineRef.current?.carregar(asset.id, url.signedUrl);
+        if (url?.signedUrl) {
+          await engineRef.current?.carregar(asset.id, url.signedUrl);
+          novosAssets.push({ id: asset.id, nome: arquivo.name, kind, durationMs: meta.durationMs, url: url.signedUrl });
+        }
 
-        const trilha = arquivo.type.startsWith("audio") ? "t-music" : "t-video";
+        const trilha = kind === "audio" ? "t-music" : "t-video";
         const fim = proximo.clips.filter((c) => c.trackId === trilha).reduce((m, c) => Math.max(m, c.start + c.duration), 0);
         proximo.clips.push({
           id: novoId(),
           trackId: trilha,
-          kind: arquivo.type.startsWith("audio") ? "audio" : "video",
+          kind: kind === "audio" ? "audio" : kind === "image" ? "image" : "video",
           assetId: asset.id,
           start: fim,
           duration: Math.max(1000, meta.durationMs),
@@ -296,21 +473,18 @@ function EditorPage() {
           volume: 1,
           speed: 1,
           transform: transformPadrao(),
-          label: arquivo.name.slice(0, 24),
+          label: arquivo.name.slice(0, 28),
         });
 
-        // guarda o áudio decodificado do primeiro vídeo para análise
-        if (!audioBufferRef.current) {
+        if (!audioBufferRef.current && kind !== "image") {
           try {
-            const buf = await decodificarAudio(arquivo);
-            audioBufferRef.current = buf;
-            const env = calcularEnvelope(buf);
-            setWaveform(reduzirWaveform(env));
+            audioBufferRef.current = await decodificarAudio(arquivo);
           } catch {
-            /* arquivo sem áudio decodificável */
+            /* sem áudio decodificável */
           }
         }
       }
+      setAssets((a) => [...a, ...novosAssets]);
       aplicar(proximo);
       toast.success("Mídia importada");
     } catch (e) {
@@ -320,7 +494,66 @@ function EditorPage() {
     }
   };
 
-  /* ---------- analisar (transcrever) ---------- */
+  const renomearAsset = async (assetId: string, nome: string) => {
+    setAssets((a) => a.map((x) => (x.id === assetId ? { ...x, nome } : x)));
+    try {
+      await renomearAssetEditair({ data: { id: assetId, name: nome } });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha ao renomear");
+    }
+  };
+
+  const excluirAsset = async (assetId: string) => {
+    if (state.clips.some((c) => c.assetId === assetId)) {
+      return toast.error("Remova os clipes desta mídia da timeline antes de excluir.");
+    }
+    setAssets((a) => a.filter((x) => x.id !== assetId));
+    try {
+      await excluirAssetEditair({ data: { id: assetId } });
+      toast.success("Mídia removida do projeto");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha ao excluir");
+    }
+  };
+
+  /* ---------------- áudio ---------------- */
+  const separarAudio = () => {
+    if (!clipeAtual || clipeAtual.kind !== "video") return toast.error("Selecione um clipe de vídeo.");
+    const novo: EditairClip = {
+      ...clipeAtual,
+      id: novoId(),
+      trackId: "t-voice",
+      kind: "audio",
+      label: `áudio de ${clipeAtual.label ?? "vídeo"}`,
+    };
+    aplicar({
+      ...state,
+      clips: [...state.clips.map((c) => (c.id === clipeAtual.id ? { ...c, muted: true } : c)), novo],
+    });
+    toast.success("Áudio separado para a trilha Voz");
+  };
+
+  const normalizar = async () => {
+    if (!clipeAtual?.assetId) return toast.error("Selecione um clipe com áudio.");
+    const info = assetsMap[clipeAtual.assetId];
+    if (!info) return;
+    setOcupado("Analisando áudio…");
+    try {
+      const { obterPicos } = await import("@/lib/editair/media");
+      const picos = await obterPicos(info.url, info.url);
+      if (!picos?.length) throw new Error("Não consegui ler o áudio.");
+      const pico = Math.max(...picos);
+      const ganho = Math.min(2, 0.9 / Math.max(0.05, pico));
+      patchClipe({ volume: Number(ganho.toFixed(2)) });
+      toast.success(`Volume normalizado para ${Math.round(ganho * 100)}%`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha ao normalizar");
+    } finally {
+      setOcupado(null);
+    }
+  };
+
+  /* ---------------- IA / transcrição ---------------- */
   const analisar = async () => {
     const buf = audioBufferRef.current;
     if (!buf) {
@@ -350,9 +583,8 @@ function EditorPage() {
         }
       }
       if (atual.length) segmentos.push({ start: atual[0].start, end: atual[atual.length - 1].end, text: atual.map((x) => x.w).join(" ") });
-
       setTranscript({ words: palavras, segments: segmentos });
-      setAba("texto");
+      setFerramenta("legendas");
       toast.success(`${palavras.length} palavras transcritas`);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Falha na transcrição");
@@ -361,7 +593,6 @@ function EditorPage() {
     }
   };
 
-  /* ---------- cortar pausas ---------- */
   const cortarPausas = () => {
     const buf = audioBufferRef.current;
     if (!buf) return toast.error("Reimporte o vídeo nesta sessão para detectar as pausas.");
@@ -370,19 +601,11 @@ function EditorPage() {
     const env = calcularEnvelope(buf);
     const { regioes, pausas } = detectarFala(env);
     if (!regioes.length) return toast.error("Não encontrei fala no áudio.");
-
     const novos: EditairClip[] = [];
     let cursor = 0;
     for (const r of regioes) {
       const dur = r.end - r.start;
-      novos.push({
-        ...base,
-        id: novoId(),
-        start: cursor,
-        duration: dur,
-        sourceIn: Math.round(r.start),
-        label: `fala ${formatarTempo(r.start)}`,
-      });
+      novos.push({ ...base, id: novoId(), start: cursor, duration: dur, sourceIn: Math.round(r.start), label: `fala ${formatarTempo(r.start)}` });
       cursor += dur;
     }
     const restantes = state.clips.filter((c) => c.trackId !== "t-video" && c.trackId !== "t-caption");
@@ -391,16 +614,34 @@ function EditorPage() {
     toast.success(`${pausas.length} pausas removidas (−${formatarTempo(removido)})`);
   };
 
-  /* ---------- legendar ---------- */
   const legendar = () => {
-    if (!transcript?.words.length) return toast.error("Analise o áudio antes de legendar.");
+    if (!transcript?.words.length) return toast.error("Transcreva o áudio antes de legendar.");
     const legendas = gerarLegendas(state, transcript, "frase");
     const semLegenda = state.clips.filter((c) => c.trackId !== "t-caption");
     aplicar({ ...state, clips: [...semLegenda, ...legendas] });
     toast.success(`${legendas.length} legendas geradas`);
   };
 
-  /* ---------- IA ---------- */
+  const adicionarTexto = () => {
+    const clip: EditairClip = {
+      id: novoId(),
+      trackId: "t-text",
+      kind: "text",
+      start: Math.round(playhead),
+      duration: 3000,
+      sourceIn: 0,
+      volume: 0,
+      speed: 1,
+      transform: transformPadrao(),
+      text: "Seu texto aqui",
+      textStyle: { ...TEXTO_PADRAO },
+      label: "Texto",
+    };
+    aplicar({ ...state, clips: [...state.clips, clip] });
+    setSelecionados([clip.id]);
+    setFerramenta("texto");
+  };
+
   const conversar = async (texto: string) => {
     setMensagens((m) => [...m, { id: novoId("m"), autor: "usuario", texto }]);
     setPensando(true);
@@ -410,7 +651,7 @@ function EditorPage() {
           mensagem: texto,
           playheadMs: Math.round(playhead),
           selecao,
-          clipeSelecionadoId: clipeSel,
+          clipeSelecionadoId: selecionados[0] ?? null,
           duracaoMs: state.durationMs,
           clipes: state.clips.slice(0, 400).map((c) => ({
             id: c.id,
@@ -443,57 +684,70 @@ function EditorPage() {
     }
   };
 
-  /* ---------- edições manuais ---------- */
-  const patchClipe = (patch: Partial<EditairClip>) => {
-    if (!clipeAtual) return;
-    aplicar({ ...state, clips: state.clips.map((c) => (c.id === clipeAtual.id ? { ...c, ...patch } : c)) });
-  };
-  const patchLegenda = (patch: Partial<CaptionStyle>) =>
-    aplicar({ ...state, captionStyle: { ...state.captionStyle, ...patch } });
-
-  const dividir = () => {
-    if (!clipeAtual) return;
-    const { state: novo } = aplicarOps(state, [{ op: "split_clip", clipId: clipeAtual.id, atMs: playhead }], transcript);
-    aplicar(novo);
-  };
-  const excluirClipe = () => {
-    if (!clipeAtual) return;
-    const { state: novo } = aplicarOps(state, [{ op: "delete_clip", clipId: clipeAtual.id }], transcript);
-    setClipeSel(null);
-    aplicar(novo);
-  };
-  const apagarTrecho = (fromMs: number, toMs: number) => {
-    const { state: novo } = aplicarOps(state, [{ op: "delete_range", fromMs, toMs, ripple: true }], transcript);
-    aplicar(novo);
-    toast.success("Trecho removido");
-  };
-
-  /* ---------- exportar ---------- */
-  const exportar = async () => {
+  /* ---------------- exportação ---------------- */
+  const exportar = async (cfg: ExportConfig) => {
     const eng = engineRef.current;
-    if (!eng || !projeto || state.durationMs < 200) return toast.error("Nada para exportar.");
-    setOcupado("Exportando… não feche a aba");
+    if (!eng || state.durationMs < 200) {
+      toast.error("Nada para exportar.");
+      return;
+    }
+    cancelarExportRef.current = false;
+    setResultado(null);
+    setProgresso({ pct: 0, frame: 0, totalFrames: 0, etaS: 0 });
+    setTocando(false);
+
+    const estadoRender: ProjectState =
+      cfg.escopo === "audio" && cfg.mixagem !== "completo"
+        ? {
+            ...state,
+            tracks: state.tracks.map((t) =>
+              cfg.mixagem === "voz"
+                ? { ...t, muted: t.id === "t-music" ? true : t.muted }
+                : { ...t, muted: t.id === "t-music" ? false : true },
+            ),
+          }
+        : state;
+
     try {
-      const stream = eng.streamExport(projeto.fps);
-      const mime = MediaRecorder.isTypeSupported("video/mp4;codecs=avc1")
-        ? "video/mp4;codecs=avc1"
-        : "video/webm;codecs=vp9,opus";
-      const rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 8_000_000 });
+      if (cfg.escopo === "video") eng.redimensionar(state.width, state.height, cfg.altura / state.height);
+
+      const stream = cfg.escopo === "video" ? eng.streamExport(cfg.fps) : eng.streamAudio();
+      if (cfg.escopo === "video" && !cfg.comAudio) {
+        for (const t of stream.getAudioTracks()) stream.removeTrack(t);
+      }
+      const mimeGravacao =
+        cfg.escopo === "audio" && cfg.mime === "wav"
+          ? MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
+            ? "audio/webm;codecs=opus"
+            : "audio/mp4"
+          : cfg.mime;
+      const rec = new MediaRecorder(stream, {
+        mimeType: mimeGravacao,
+        videoBitsPerSecond: cfg.bitrate,
+        audioBitsPerSecond: cfg.audioBitrate * 1000,
+      });
       const partes: BlobPart[] = [];
       rec.ondataavailable = (e) => e.data.size && partes.push(e.data);
       const fim = new Promise<void>((r) => (rec.onstop = () => r()));
 
-      rec.start(500);
-      setPlayhead(0);
+      rec.start(400);
+      const totalFrames = Math.round((state.durationMs / 1000) * cfg.fps);
       const t0 = performance.now();
       await new Promise<void>((resolve) => {
         const passo = () => {
+          if (cancelarExportRef.current) return resolve();
           const t = performance.now() - t0;
           if (t >= state.durationMs) return resolve();
-          eng.sincronizar(state, t, true);
-          eng.desenhar(state, t);
+          eng.sincronizar(estadoRender, t, true);
+          if (cfg.escopo === "video") eng.desenhar(estadoRender, t);
           setPlayhead(t);
-          setOcupado(`Exportando… ${Math.round((t / state.durationMs) * 100)}%`);
+          const pct = (t / state.durationMs) * 100;
+          setProgresso({
+            pct,
+            frame: Math.round((t / 1000) * cfg.fps),
+            totalFrames: cfg.escopo === "video" ? totalFrames : 0,
+            etaS: ((state.durationMs - t) / 1000),
+          });
           requestAnimationFrame(passo);
         };
         requestAnimationFrame(passo);
@@ -501,20 +755,74 @@ function EditorPage() {
       rec.stop();
       await fim;
       eng.pausarTudo();
+      eng.redimensionar(state.width, state.height, qualidade);
 
-      const blob = new Blob(partes, { type: mime.split(";")[0] });
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
-      a.download = `${projeto.name.replace(/[^\w\-]+/g, "-").toLowerCase()}.${mime.includes("mp4") ? "mp4" : "webm"}`;
-      a.click();
-      setTimeout(() => URL.revokeObjectURL(a.href), 5000);
-      toast.success("Vídeo exportado");
+      if (cancelarExportRef.current) {
+        setProgresso(null);
+        toast.info("Exportação cancelada");
+        return;
+      }
+
+      let blob = new Blob(partes, { type: mimeGravacao.split(";")[0] });
+      let ext = cfg.formato;
+      if (cfg.escopo === "audio" && cfg.mime === "wav") {
+        setProgresso({ pct: 99, frame: 0, totalFrames: 0, etaS: 3 });
+        const buf = await decodificarAudio(blob);
+        blob = encodeWav(buf);
+        ext = "wav";
+      }
+      const nomeArquivo = `${cfg.nome.replace(/[^\w\-]+/g, "-").toLowerCase()}.${ext}`;
+      setProgresso(null);
+      setResultado({
+        url: URL.createObjectURL(blob),
+        nome: nomeArquivo,
+        bytes: blob.size,
+        largura: cfg.escopo === "video" ? cfg.largura : 0,
+        altura: cfg.escopo === "video" ? cfg.altura : 0,
+        fps: cfg.fps,
+        duracaoMs: state.durationMs,
+      });
+      toast.success("Exportação concluída");
     } catch (e) {
+      setProgresso(null);
+      eng.redimensionar(state.width, state.height, qualidade);
       toast.error(e instanceof Error ? e.message : "Falha ao exportar");
-    } finally {
-      setOcupado(null);
     }
   };
+
+  /* ---------------- atalhos ---------------- */
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const alvo = e.target as HTMLElement;
+      if (alvo && ["INPUT", "TEXTAREA", "SELECT"].includes(alvo.tagName)) return;
+      const frame = 1000 / (state.fps || 30);
+      if (e.code === "Space") {
+        e.preventDefault();
+        setTocando((v) => !v);
+      } else if (e.key === "ArrowLeft") {
+        setPlayhead((p) => Math.max(0, p - (e.shiftKey ? frame * 10 : frame)));
+      } else if (e.key === "ArrowRight") {
+        setPlayhead((p) => Math.min(state.durationMs, p + (e.shiftKey ? frame * 10 : frame)));
+      } else if (e.key === "s" && !e.metaKey && !e.ctrlKey) {
+        dividir();
+      } else if (e.key === "Delete" || e.key === "Backspace") {
+        excluirSelecionados(e.shiftKey);
+      } else if ((e.metaKey || e.ctrlKey) && e.key === "z") {
+        e.preventDefault();
+        if (e.shiftKey) refazer();
+        else desfazer();
+      } else if ((e.metaKey || e.ctrlKey) && e.key === "c") {
+        copiar();
+      } else if ((e.metaKey || e.ctrlKey) && e.key === "v") {
+        colar();
+      } else if ((e.metaKey || e.ctrlKey) && e.key === "d") {
+        e.preventDefault();
+        duplicar();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  });
 
   if (carregando) {
     return (
@@ -524,126 +832,185 @@ function EditorPage() {
     );
   }
 
-  const proporcao = projeto ? projeto.width / projeto.height : 9 / 16;
+  const assetItens: AssetItem[] = assets;
 
   return (
-    <div className="flex h-[calc(100vh-3.5rem)] flex-col">
-      {/* barra de ferramentas */}
-      <div className="flex flex-wrap items-center gap-2 border-b border-white/10 px-4 py-2">
-        <span className="mr-2 truncate text-sm font-medium">{projeto?.name}</span>
-        <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg bg-white/10 px-3 py-1.5 text-xs transition hover:bg-white/20">
-          <Upload className="h-3.5 w-3.5" /> Importar
-          <input type="file" accept="video/*,audio/*" multiple hidden onChange={(e) => void importar(e.target.files)} />
-        </label>
-        <Ferramenta onClick={() => void analisar()} icone={<Wand2 className="h-3.5 w-3.5" />} texto="Analisar" />
-        <Ferramenta onClick={cortarPausas} icone={<Scissors className="h-3.5 w-3.5" />} texto="Cortar pausas" />
-        <Ferramenta onClick={legendar} icone={<Captions className="h-3.5 w-3.5" />} texto="Legendar" />
-        <div className="mx-1 h-5 w-px bg-white/10" />
-        <Ferramenta onClick={desfazer} icone={<Undo2 className="h-3.5 w-3.5" />} texto="Desfazer" />
-        <Ferramenta onClick={refazer} icone={<Redo2 className="h-3.5 w-3.5" />} texto="Refazer" />
-        <div className="ml-auto flex items-center gap-2">
-          <Ferramenta onClick={() => void salvar(false)} icone={salvando ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />} texto="Salvar" />
-          <Button onClick={() => void exportar()} size="sm" className="h-8 bg-[#F26B1F] text-xs hover:bg-[#d95c14]">
-            <Download className="mr-1.5 h-3.5 w-3.5" /> Exportar
-          </Button>
-        </div>
+    <div className="grid h-[calc(100vh-3.5rem)] grid-rows-[46px_1fr_300px] bg-[#0c0f13]">
+      {/* topo */}
+      <div className="flex items-center gap-3 border-b border-white/10 bg-[#0d1116] px-3">
+        <span className="truncate text-sm font-semibold">{projetoNome}</span>
+        <span className="flex items-center gap-1.5 text-[11px] text-white/40">
+          <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+          {salvando ? "Salvando…" : "Salvo automaticamente"}
+        </span>
+        <div className="flex-1" />
+        <TopBtn onClick={desfazer} titulo="Desfazer">
+          <Undo2 className="h-4 w-4" />
+        </TopBtn>
+        <TopBtn onClick={refazer} titulo="Refazer">
+          <Redo2 className="h-4 w-4" />
+        </TopBtn>
+        <TopBtn onClick={() => void salvar(false)} titulo="Salvar agora">
+          {salvando ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+        </TopBtn>
+        <Button
+          size="sm"
+          className="h-8 bg-[#F26B1F] text-xs font-bold hover:bg-[#d95c14]"
+          onClick={() => {
+            setResultado(null);
+            setExportAberto(true);
+          }}
+        >
+          Exportar
+        </Button>
       </div>
 
-      <div className="flex min-h-0 flex-1">
-        {/* preview */}
-        <div className="flex min-w-0 flex-1 flex-col">
-          <div className="flex min-h-0 flex-1 items-center justify-center bg-black p-4">
-            <canvas
-              ref={canvasRef}
-              className="max-h-full max-w-full rounded-lg shadow-2xl"
-              style={{ aspectRatio: String(proporcao) }}
-            />
-          </div>
-          <div className="flex items-center gap-3 border-t border-white/10 px-4 py-2">
+      {/* corpo */}
+      <div className="grid min-h-0 grid-cols-[76px_340px_minmax(360px,1fr)] xl:grid-cols-[76px_360px_minmax(420px,1fr)]">
+        <aside className="flex flex-col gap-1 overflow-y-auto border-r border-white/10 bg-[#0f141a] p-1.5">
+          {FERRAMENTAS.map((f) => (
             <button
-              onClick={() => setTocando((v) => !v)}
-              className="flex h-9 w-9 items-center justify-center rounded-full bg-[#F26B1F] text-white transition hover:bg-[#d95c14]"
+              key={f.id}
+              onClick={() => setFerramenta(f.id)}
+              className={`flex flex-col items-center gap-1 rounded-lg px-1 py-2 text-[10px] transition ${
+                ferramenta === f.id ? "bg-[#F26B1F]/15 text-[#F26B1F]" : "text-white/55 hover:bg-white/5 hover:text-white"
+              }`}
             >
-              {tocando ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+              {f.icone}
+              {f.nome}
             </button>
-            <span className="font-mono text-xs text-white/60">
-              {formatarTempo(playhead, true)} / {formatarTempo(state.durationMs)}
-            </span>
-            <div className="ml-auto flex items-center gap-1">
-              <button onClick={() => setZoom((z) => Math.max(10, z / 1.4))} className="rounded p-1.5 text-white/50 hover:bg-white/10">
-                <ZoomOut className="h-4 w-4" />
-              </button>
-              <button onClick={() => setZoom((z) => Math.min(400, z * 1.4))} className="rounded p-1.5 text-white/50 hover:bg-white/10">
-                <ZoomIn className="h-4 w-4" />
-              </button>
-            </div>
-          </div>
-          <div className="h-[248px] shrink-0 border-t border-white/10">
-            <Timeline
-              state={state}
-              playheadMs={playhead}
-              zoom={zoom}
-              selectedClipId={clipeSel}
-              selecao={selecao}
-              waveform={waveform}
-              onSeek={setPlayhead}
-              onSelectClip={setClipeSel}
-              onSelecao={setSelecao}
-              onMoveClip={(cid, ms) =>
-                setState((s) => recalcularDuracao({ ...s, clips: s.clips.map((c) => (c.id === cid ? { ...c, start: ms } : c)) }))
-              }
-              onToggleTrack={(trackId, campo) =>
-                aplicar({
-                  ...state,
-                  tracks: state.tracks.map((t) => (t.id === trackId ? { ...t, [campo]: !t[campo] } : t)),
-                })
-              }
-            />
-          </div>
-        </div>
-
-        {/* painel direito */}
-        <aside className="flex w-[360px] shrink-0 flex-col border-l border-white/10 bg-[#111114]">
-          <div className="flex border-b border-white/10">
-            {([
-              ["ia", "IA"],
-              ["texto", "Texto"],
-              ["props", "Ajustes"],
-            ] as [Aba, string][]).map(([chave, rotulo]) => (
-              <button
-                key={chave}
-                onClick={() => setAba(chave)}
-                className={`flex-1 py-2.5 text-xs transition ${
-                  aba === chave ? "border-b-2 border-[#F26B1F] text-white" : "text-white/45 hover:text-white/80"
-                }`}
-              >
-                {rotulo}
-              </button>
-            ))}
-          </div>
-          <div className="min-h-0 flex-1">
-            {aba === "ia" ? (
-              <AiChat mensagens={mensagens} pensando={pensando} onEnviar={(t) => void conversar(t)} sugestoes={SUGESTOES} />
-            ) : aba === "texto" ? (
-              <TranscriptPanel
-                transcript={transcript}
-                playheadMs={playhead}
-                onSeek={setPlayhead}
-                onApagarTrecho={apagarTrecho}
-              />
-            ) : (
-              <Inspector
-                clip={clipeAtual}
-                captionStyle={state.captionStyle}
-                onClip={patchClipe}
-                onCaption={patchLegenda}
-                onDividir={dividir}
-                onExcluir={excluirClipe}
-              />
-            )}
-          </div>
+          ))}
         </aside>
+
+        <section className="min-h-0 overflow-hidden border-r border-white/10 bg-[#12171d]">
+          <ToolPanel
+            ferramenta={ferramenta}
+            state={state}
+            clip={clipeAtual}
+            assets={assetItens}
+            transcript={transcript}
+            mensagens={mensagens}
+            pensando={pensando}
+            playheadMs={playhead}
+            onImportar={(f) => void importar(f)}
+            onRenomearAsset={(aid, nome) => void renomearAsset(aid, nome)}
+            onExcluirAsset={(aid) => void excluirAsset(aid)}
+            onInserirAsset={inserirAsset}
+            onPatchClip={(patch) => patchClipe(patch)}
+            onPatchState={(patch) => aplicar({ ...state, ...patch })}
+            onCaption={(patch: Partial<CaptionStyle>) => aplicar({ ...state, captionStyle: { ...state.captionStyle, ...patch } })}
+            onAdicionarTexto={adicionarTexto}
+            onAnalisar={() => void analisar()}
+            onGerarLegendas={legendar}
+            onCortarPausas={cortarPausas}
+            onSepararAudio={separarAudio}
+            onNormalizar={() => void normalizar()}
+            onExtrairAudio={() => {
+              setResultado(null);
+              setExportAberto(true);
+            }}
+            onKeyframe={criarKeyframe}
+            onEnviarIa={(t) => void conversar(t)}
+            onSeek={setPlayhead}
+            onApagarTrecho={apagarTrecho}
+          />
+        </section>
+
+        <PlayerStage
+          canvasRef={canvasRef}
+          width={state.width}
+          height={state.height}
+          fps={state.fps}
+          playheadMs={playhead}
+          durationMs={state.durationMs}
+          tocando={tocando}
+          volume={volume}
+          mudo={mudo}
+          qualidade={qualidade}
+          onPlayPause={() => setTocando((v) => !v)}
+          onSeek={setPlayhead}
+          onFrame={(d) => setPlayhead((p) => Math.max(0, Math.min(state.durationMs, p + (d * 1000) / (state.fps || 30))))}
+          onVolume={setVolume}
+          onMudo={setMudo}
+          onQualidade={setQualidade}
+          onFormato={(w, h) => aplicar({ ...state, width: w, height: h })}
+        />
       </div>
+
+      {/* timeline */}
+      <div className="grid min-h-0 grid-rows-[42px_1fr] border-t border-white/10">
+        <div className="flex items-center gap-1.5 border-b border-white/10 bg-[#0d1116] px-3 text-[11px]">
+          <BarraBtn onClick={dividir} icone={<Scissors className="h-3.5 w-3.5" />} texto="Dividir" />
+          <BarraBtn onClick={() => excluirSelecionados(false)} icone={<Trash2 className="h-3.5 w-3.5" />} texto="Excluir" />
+          <BarraBtn onClick={() => excluirSelecionados(true)} icone={<Trash2 className="h-3.5 w-3.5" />} texto="Ripple delete" />
+          <BarraBtn onClick={duplicar} icone={<Copy className="h-3.5 w-3.5" />} texto="Duplicar" />
+          <BarraBtn onClick={copiar} texto="Copiar" />
+          <BarraBtn onClick={colar} texto="Colar" />
+          <button
+            onClick={() => setSnapping((v) => !v)}
+            className={`ml-1 flex items-center gap-1 rounded-md px-2 py-1 transition ${
+              snapping ? "bg-[#F26B1F]/20 text-[#F26B1F]" : "text-white/50 hover:bg-white/10"
+            }`}
+          >
+            <Magnet className="h-3.5 w-3.5" /> Snap
+          </button>
+          {selecao ? (
+            <button
+              onClick={() => {
+                apagarTrecho(selecao.fromMs, selecao.toMs);
+                setSelecao(null);
+              }}
+              className="rounded-md px-2 py-1 text-red-400 hover:bg-red-500/10"
+            >
+              Apagar intervalo {formatarTempo(selecao.fromMs)}–{formatarTempo(selecao.toMs)}
+            </button>
+          ) : null}
+          <div className="flex-1" />
+          <span className="text-white/35">{selecionados.length} selecionado(s)</span>
+          <button onClick={() => setZoom((z) => Math.max(8, z / 1.4))} className="rounded p-1 text-white/50 hover:bg-white/10">
+            <ZoomOut className="h-4 w-4" />
+          </button>
+          <button onClick={() => setZoom((z) => Math.min(600, z * 1.4))} className="rounded p-1 text-white/50 hover:bg-white/10">
+            <ZoomIn className="h-4 w-4" />
+          </button>
+        </div>
+        <Timeline
+          state={state}
+          playheadMs={playhead}
+          zoom={zoom}
+          selecionados={selecionados}
+          selecao={selecao}
+          assets={assetsMap}
+          snapping={snapping}
+          onSeek={(ms) => setPlayhead(Math.max(0, ms))}
+          onSelecionar={setSelecionados}
+          onSelecao={setSelecao}
+          onAlterarClip={alterarClipTimeline}
+          onToggleTrack={(trackId, campo) =>
+            aplicar({
+              ...state,
+              tracks: state.tracks.map((t) => (t.id === trackId ? { ...t, [campo]: !t[campo] } : t)),
+            })
+          }
+        />
+      </div>
+
+      <ExportDialog
+        aberto={exportAberto}
+        onFechar={() => setExportAberto(false)}
+        nomeProjeto={projetoNome}
+        largura={state.width}
+        altura={state.height}
+        fpsProjeto={state.fps}
+        duracaoMs={state.durationMs}
+        progresso={progresso}
+        resultado={resultado}
+        onExportar={(cfg) => void exportar(cfg)}
+        onCancelar={() => {
+          cancelarExportRef.current = true;
+        }}
+        onLimparResultado={() => setResultado(null)}
+      />
 
       {ocupado ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
@@ -657,11 +1024,23 @@ function EditorPage() {
   );
 }
 
-function Ferramenta({ onClick, icone, texto }: { onClick: () => void; icone: React.ReactNode; texto: string }) {
+function TopBtn({ children, onClick, titulo }: { children: React.ReactNode; onClick: () => void; titulo: string }) {
+  return (
+    <button
+      title={titulo}
+      onClick={onClick}
+      className="rounded-lg border border-white/10 bg-white/5 p-1.5 text-white/75 transition hover:bg-white/10 hover:text-white"
+    >
+      {children}
+    </button>
+  );
+}
+
+function BarraBtn({ onClick, icone, texto }: { onClick: () => void; icone?: React.ReactNode; texto: string }) {
   return (
     <button
       onClick={onClick}
-      className="inline-flex items-center gap-1.5 rounded-lg bg-white/[0.06] px-3 py-1.5 text-xs text-white/80 transition hover:bg-white/15 hover:text-white"
+      className="flex items-center gap-1 rounded-md px-2 py-1 text-white/70 transition hover:bg-white/10 hover:text-white"
     >
       {icone}
       {texto}

@@ -188,3 +188,36 @@ export function lerMetadados(arquivo: File): Promise<{ durationMs: number; width
     el.src = url;
   });
 }
+
+/** Codifica um AudioBuffer completo (estéreo, taxa original) em WAV PCM 16 bits. */
+export function encodeWav(audio: AudioBuffer): Blob {
+  const canais = Math.min(2, audio.numberOfChannels);
+  const n = audio.length;
+  const taxa = audio.sampleRate;
+  const dados = new DataView(new ArrayBuffer(44 + n * canais * 2));
+  const txt = (off: number, s: string) => {
+    for (let i = 0; i < s.length; i++) dados.setUint8(off + i, s.charCodeAt(i));
+  };
+  txt(0, "RIFF");
+  dados.setUint32(4, 36 + n * canais * 2, true);
+  txt(8, "WAVEfmt ");
+  dados.setUint32(16, 16, true);
+  dados.setUint16(20, 1, true);
+  dados.setUint16(22, canais, true);
+  dados.setUint32(24, taxa, true);
+  dados.setUint32(28, taxa * canais * 2, true);
+  dados.setUint16(32, canais * 2, true);
+  dados.setUint16(34, 16, true);
+  txt(36, "data");
+  dados.setUint32(40, n * canais * 2, true);
+  const buffers = Array.from({ length: canais }, (_, c) => audio.getChannelData(c));
+  let off = 44;
+  for (let i = 0; i < n; i++) {
+    for (let c = 0; c < canais; c++) {
+      const v = Math.max(-1, Math.min(1, buffers[c][i] ?? 0));
+      dados.setInt16(off, v < 0 ? v * 0x8000 : v * 0x7fff, true);
+      off += 2;
+    }
+  }
+  return new Blob([dados.buffer], { type: "audio/wav" });
+}

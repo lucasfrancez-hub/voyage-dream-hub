@@ -1,0 +1,909 @@
+import { useMemo, useState } from "react";
+import {
+  Diamond,
+  Loader2,
+  Plus,
+  Search,
+  Send,
+  Sparkles,
+  Trash2,
+  Upload,
+  Wand2,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Slider } from "@/components/ui/slider";
+import { Input } from "@/components/ui/input";
+import {
+  AJUSTES_NEUTROS,
+  EFEITOS,
+  FILTROS,
+  TEXTO_PADRAO,
+  TRANSICOES,
+  type Ajustes,
+  type CaptionStyle,
+  type EditairClip,
+  type KeyProp,
+  type ProjectState,
+  type TextStyle,
+  type Transcript,
+  formatarTempo,
+} from "@/lib/editair/types";
+
+export type Ferramenta =
+  | "midia"
+  | "audio"
+  | "texto"
+  | "stickers"
+  | "efeitos"
+  | "transicoes"
+  | "legendas"
+  | "filtros"
+  | "ajuste"
+  | "modelos"
+  | "ia";
+
+export type AssetItem = { id: string; nome: string; kind: string; durationMs: number; url: string };
+export type MensagemIa = { id: string; autor: "usuario" | "ia"; texto: string; ops?: number };
+
+export type ToolPanelProps = {
+  ferramenta: Ferramenta;
+  state: ProjectState;
+  clip: EditairClip | null;
+  assets: AssetItem[];
+  transcript: Transcript | null;
+  mensagens: MensagemIa[];
+  pensando: boolean;
+  playheadMs: number;
+  onImportar: (files: FileList | null) => void;
+  onRenomearAsset: (id: string, nome: string) => void;
+  onExcluirAsset: (id: string) => void;
+  onInserirAsset: (id: string) => void;
+  onPatchClip: (patch: Partial<EditairClip>) => void;
+  onPatchState: (patch: Partial<ProjectState>) => void;
+  onCaption: (patch: Partial<CaptionStyle>) => void;
+  onAdicionarTexto: () => void;
+  onAnalisar: () => void;
+  onGerarLegendas: () => void;
+  onCortarPausas: () => void;
+  onSepararAudio: () => void;
+  onNormalizar: () => void;
+  onExtrairAudio: () => void;
+  onKeyframe: (prop: KeyProp) => void;
+  onEnviarIa: (texto: string) => void;
+  onSeek: (ms: number) => void;
+  onApagarTrecho: (from: number, to: number) => void;
+};
+
+const SUGESTOES = [
+  "Tira todas as pausas e silêncios",
+  "Coloca legenda em todo o vídeo",
+  "Abaixa a música e sobe a minha voz",
+  "Dá um zoom em mim aqui",
+];
+
+export function ToolPanel(p: ToolPanelProps) {
+  switch (p.ferramenta) {
+    case "midia":
+      return <PainelMidia {...p} />;
+    case "audio":
+      return <PainelAudio {...p} />;
+    case "texto":
+      return <PainelTexto {...p} />;
+    case "efeitos":
+      return <PainelEfeitos {...p} />;
+    case "transicoes":
+      return <PainelTransicoes {...p} />;
+    case "legendas":
+      return <PainelLegendas {...p} />;
+    case "filtros":
+      return <PainelFiltros {...p} />;
+    case "ajuste":
+      return <PainelAjuste {...p} />;
+    case "ia":
+      return <PainelIa {...p} />;
+    case "stickers":
+      return (
+        <EmBreve
+          titulo="Stickers"
+          texto="Biblioteca de stickers animados e GIFs. Em breve — por enquanto use Texto para elementos gráficos."
+        />
+      );
+    default:
+      return (
+        <EmBreve
+          titulo="Modelos"
+          texto="Modelos prontos de Reels da VIA AIR (abertura, oferta, encerramento). Em breve."
+        />
+      );
+  }
+}
+
+/* ------------------------------- Mídia ------------------------------- */
+
+function PainelMidia({ assets, onImportar, onRenomearAsset, onExcluirAsset, onInserirAsset }: ToolPanelProps) {
+  const [busca, setBusca] = useState("");
+  const [categoria, setCategoria] = useState<"todos" | "video" | "image" | "audio">("todos");
+  const [ordem, setOrdem] = useState<"nome" | "duracao">("nome");
+
+  const lista = useMemo(() => {
+    let l = assets.filter((a) => a.nome.toLowerCase().includes(busca.toLowerCase()));
+    if (categoria !== "todos") l = l.filter((a) => a.kind === categoria);
+    return [...l].sort((a, b) => (ordem === "nome" ? a.nome.localeCompare(b.nome) : b.durationMs - a.durationMs));
+  }, [assets, busca, categoria, ordem]);
+
+  return (
+    <Painel titulo="Mídia">
+      <label
+        onDragOver={(e) => e.preventDefault()}
+        onDrop={(e) => {
+          e.preventDefault();
+          onImportar(e.dataTransfer.files);
+        }}
+        className="mb-3 flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-white/20 bg-[#1f8389]/15 py-3 text-xs font-semibold text-white transition hover:bg-[#1f8389]/25"
+      >
+        <Upload className="h-4 w-4" /> Importar mídia (ou arraste aqui)
+        <input type="file" accept="video/*,audio/*,image/*" multiple hidden onChange={(e) => onImportar(e.target.files)} />
+      </label>
+
+      <div className="mb-2 flex items-center gap-2">
+        <div className="relative flex-1">
+          <Search className="absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-white/30" />
+          <input
+            value={busca}
+            onChange={(e) => setBusca(e.target.value)}
+            placeholder="Pesquisar"
+            className="w-full rounded-lg border border-white/10 bg-white/5 py-1.5 pl-7 pr-2 text-[11px] outline-none"
+          />
+        </div>
+        <select
+          value={ordem}
+          onChange={(e) => setOrdem(e.target.value as "nome" | "duracao")}
+          className="rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-[11px] outline-none"
+        >
+          <option value="nome">Nome</option>
+          <option value="duracao">Duração</option>
+        </select>
+      </div>
+
+      <div className="mb-3 flex flex-wrap gap-1.5">
+        {(
+          [
+            ["todos", "Todos"],
+            ["video", "Vídeos"],
+            ["image", "Imagens"],
+            ["audio", "Áudios"],
+          ] as const
+        ).map(([v, l]) => (
+          <button
+            key={v}
+            onClick={() => setCategoria(v)}
+            className={`rounded-md border px-2.5 py-1 text-[11px] transition ${
+              categoria === v ? "border-[#F26B1F] bg-[#F26B1F]/15 text-white" : "border-white/10 text-white/60 hover:bg-white/5"
+            }`}
+          >
+            {l}
+          </button>
+        ))}
+      </div>
+
+      {lista.length === 0 ? (
+        <p className="text-[11px] text-white/35">Nenhuma mídia. Importe um vídeo para começar.</p>
+      ) : (
+        <div className="space-y-2">
+          {lista.map((a) => (
+            <div key={a.id} className="rounded-lg border border-white/10 bg-white/[0.03] p-2">
+              <div className="flex items-center gap-2">
+                <span className="truncate text-[11px]">{a.nome}</span>
+                <span className="ml-auto shrink-0 text-[10px] text-white/35">{formatarTempo(a.durationMs)}</span>
+              </div>
+              <div className="mt-1.5 flex gap-1">
+                <button
+                  onClick={() => onInserirAsset(a.id)}
+                  className="rounded border border-white/10 px-2 py-0.5 text-[10px] hover:bg-white/10"
+                >
+                  <Plus className="mr-0.5 inline h-3 w-3" />
+                  Inserir
+                </button>
+                <button
+                  onClick={() => {
+                    const n = window.prompt("Novo nome", a.nome);
+                    if (n && n.trim()) onRenomearAsset(a.id, n.trim());
+                  }}
+                  className="rounded border border-white/10 px-2 py-0.5 text-[10px] hover:bg-white/10"
+                >
+                  Renomear
+                </button>
+                <button
+                  onClick={() => onExcluirAsset(a.id)}
+                  className="ml-auto rounded border border-white/10 px-2 py-0.5 text-[10px] text-red-400 hover:bg-red-500/10"
+                >
+                  <Trash2 className="h-3 w-3" />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </Painel>
+  );
+}
+
+/* ------------------------------- Áudio ------------------------------- */
+
+function PainelAudio({ state, clip, onPatchClip, onPatchState, onSepararAudio, onNormalizar, onExtrairAudio, onKeyframe }: ToolPanelProps) {
+  return (
+    <Painel titulo="Áudio">
+      {clip ? (
+        <>
+          <Campo label={`Volume — ${Math.round(clip.volume * 100)}%`} keyProp="volume" onKeyframe={onKeyframe}>
+            <Slider value={[clip.volume * 100]} min={0} max={200} step={1} onValueChange={([v]) => onPatchClip({ volume: v / 100 })} />
+          </Campo>
+          <Campo label={`Fade in — ${clip.fadeInMs ?? 0} ms`}>
+            <Slider value={[clip.fadeInMs ?? 0]} min={0} max={4000} step={50} onValueChange={([v]) => onPatchClip({ fadeInMs: v })} />
+          </Campo>
+          <Campo label={`Fade out — ${clip.fadeOutMs ?? 0} ms`}>
+            <Slider value={[clip.fadeOutMs ?? 0]} min={0} max={4000} step={50} onValueChange={([v]) => onPatchClip({ fadeOutMs: v })} />
+          </Campo>
+          <Campo label={`Velocidade — ${clip.speed.toFixed(2)}x`}>
+            <Slider value={[clip.speed * 100]} min={50} max={300} step={5} onValueChange={([v]) => onPatchClip({ speed: v / 100 })} />
+          </Campo>
+          <label className="my-2 flex cursor-pointer items-center gap-2 text-xs text-white/70">
+            <input type="checkbox" checked={!!clip.muted} onChange={(e) => onPatchClip({ muted: e.target.checked })} className="accent-[#F26B1F]" />
+            Silenciar este clipe
+          </label>
+          <div className="flex flex-wrap gap-1.5 py-2">
+            <BotaoSec onClick={onNormalizar}>Normalizar</BotaoSec>
+            <BotaoSec onClick={onSepararAudio}>Separar áudio</BotaoSec>
+            <BotaoSec onClick={onExtrairAudio}>Extrair áudio</BotaoSec>
+          </div>
+        </>
+      ) : (
+        <p className="mb-3 text-[11px] text-white/35">Selecione um clipe para ajustar volume, fades e velocidade.</p>
+      )}
+
+      <div className="mt-3 space-y-2 border-t border-white/10 pt-3">
+        <p className="text-xs font-medium text-white/60">Processamento do projeto</p>
+        <label className="flex cursor-pointer items-center gap-2 text-xs text-white/70">
+          <input
+            type="checkbox"
+            checked={!!state.audioFx?.voz}
+            onChange={(e) => onPatchState({ audioFx: { voz: e.target.checked, ruido: !!state.audioFx?.ruido } })}
+            className="accent-[#F26B1F]"
+          />
+          Melhorar voz (compressor + corte de graves)
+        </label>
+        <label className="flex cursor-pointer items-center gap-2 text-xs text-white/70">
+          <input
+            type="checkbox"
+            checked={!!state.audioFx?.ruido}
+            onChange={(e) => onPatchState({ audioFx: { voz: !!state.audioFx?.voz, ruido: e.target.checked } })}
+            className="accent-[#F26B1F]"
+          />
+          Redução de ruído (filtro de graves)
+        </label>
+        <label className="flex cursor-pointer items-center gap-2 text-xs text-white/70">
+          <input
+            type="checkbox"
+            checked={!!state.ducking?.ativo}
+            onChange={(e) => onPatchState({ ducking: { ativo: e.target.checked, reducao: state.ducking?.reducao ?? 70 } })}
+            className="accent-[#F26B1F]"
+          />
+          Ducking — abaixar música na voz
+        </label>
+        {state.ducking?.ativo ? (
+          <Campo label={`Redução — ${state.ducking.reducao}%`}>
+            <Slider
+              value={[state.ducking.reducao]}
+              min={10}
+              max={95}
+              step={5}
+              onValueChange={([v]) => onPatchState({ ducking: { ativo: true, reducao: v } })}
+            />
+          </Campo>
+        ) : null}
+      </div>
+    </Painel>
+  );
+}
+
+/* ------------------------------- Texto ------------------------------- */
+
+function PainelTexto({ clip, onAdicionarTexto, onPatchClip, onKeyframe }: ToolPanelProps) {
+  const st: TextStyle = { ...TEXTO_PADRAO, ...(clip?.textStyle ?? {}) };
+  const patchStyle = (patch: Partial<TextStyle>) => onPatchClip({ textStyle: { ...st, ...patch } });
+  const eTexto = clip?.kind === "text";
+
+  return (
+    <Painel titulo="Texto">
+      <Button size="sm" className="mb-3 w-full bg-[#F26B1F] text-xs hover:bg-[#d95c14]" onClick={onAdicionarTexto}>
+        <Plus className="mr-1 h-3.5 w-3.5" /> Adicionar texto no playhead
+      </Button>
+      {!eTexto ? (
+        <p className="text-[11px] text-white/35">Selecione um clipe de texto na timeline para editar as propriedades.</p>
+      ) : (
+        <>
+          <Campo label="Conteúdo">
+            <textarea
+              value={clip?.text ?? ""}
+              onChange={(e) => onPatchClip({ text: e.target.value })}
+              rows={3}
+              className="w-full resize-none rounded-lg border border-white/10 bg-white/5 p-2 text-xs outline-none focus:border-[#F26B1F]/60"
+            />
+          </Campo>
+          <Campo label="Fonte">
+            <select
+              value={st.fontFamily}
+              onChange={(e) => patchStyle({ fontFamily: e.target.value })}
+              className="w-full rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-xs outline-none"
+            >
+              <option value="Inter, system-ui, sans-serif">Inter</option>
+              <option value="Georgia, serif">Georgia</option>
+              <option value="Impact, sans-serif">Impact</option>
+              <option value="'Courier New', monospace">Courier</option>
+              <option value="'Trebuchet MS', sans-serif">Trebuchet</option>
+            </select>
+          </Campo>
+          <Campo label={`Tamanho — ${st.fontSize}px`}>
+            <Slider value={[st.fontSize]} min={24} max={220} step={2} onValueChange={([v]) => patchStyle({ fontSize: v })} />
+          </Campo>
+          <Campo label={`Peso — ${st.weight}`}>
+            <Slider value={[st.weight]} min={300} max={900} step={100} onValueChange={([v]) => patchStyle({ weight: v })} />
+          </Campo>
+          <div className="grid grid-cols-2 gap-2">
+            <Campo label="Cor">
+              <input type="color" value={st.color} onChange={(e) => patchStyle({ color: e.target.value })} className="h-8 w-full rounded border border-white/10 bg-transparent" />
+            </Campo>
+            <Campo label="Contorno">
+              <input type="color" value={st.strokeColor} onChange={(e) => patchStyle({ strokeColor: e.target.value })} className="h-8 w-full rounded border border-white/10 bg-transparent" />
+            </Campo>
+          </div>
+          <Campo label={`Espessura do contorno — ${st.stroke}`}>
+            <Slider value={[st.stroke]} min={0} max={30} step={1} onValueChange={([v]) => patchStyle({ stroke: v })} />
+          </Campo>
+          <Campo label={`Sombra — ${st.shadow}`}>
+            <Slider value={[st.shadow]} min={0} max={40} step={1} onValueChange={([v]) => patchStyle({ shadow: v })} />
+          </Campo>
+          <Campo label="Alinhamento">
+            <div className="flex gap-1.5">
+              {(["left", "center", "right"] as const).map((a) => (
+                <button
+                  key={a}
+                  onClick={() => patchStyle({ align: a })}
+                  className={`flex-1 rounded border px-2 py-1 text-[11px] ${st.align === a ? "border-[#F26B1F] bg-[#F26B1F]/15" : "border-white/10 text-white/60"}`}
+                >
+                  {a === "left" ? "Esq." : a === "center" ? "Centro" : "Dir."}
+                </button>
+              ))}
+            </div>
+          </Campo>
+          <Campo label="Fundo">
+            <select
+              value={st.background}
+              onChange={(e) => patchStyle({ background: e.target.value as TextStyle["background"] })}
+              className="w-full rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-xs outline-none"
+            >
+              <option value="none">Sem fundo</option>
+              <option value="box">Caixa sólida</option>
+              <option value="soft">Caixa suave</option>
+            </select>
+          </Campo>
+          <Campo label="Animação">
+            <select
+              value={st.animacao}
+              onChange={(e) => patchStyle({ animacao: e.target.value as TextStyle["animacao"] })}
+              className="w-full rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-xs outline-none"
+            >
+              <option value="nenhuma">Nenhuma</option>
+              <option value="fade">Fade</option>
+              <option value="pop">Pop</option>
+              <option value="subir">Subir</option>
+              <option value="digitar">Digitar</option>
+            </select>
+          </Campo>
+          <TransformCampos clip={clip} onPatchClip={onPatchClip} onKeyframe={onKeyframe} />
+        </>
+      )}
+    </Painel>
+  );
+}
+
+/* ------------------------------ Efeitos ------------------------------ */
+
+function PainelEfeitos({ clip, onPatchClip }: ToolPanelProps) {
+  return (
+    <Painel titulo="Efeitos">
+      {!clip ? (
+        <p className="text-[11px] text-white/35">Selecione um clipe para aplicar um efeito.</p>
+      ) : (
+        <>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              onClick={() => onPatchClip({ efeito: undefined })}
+              className={`rounded-lg border px-2 py-3 text-[11px] ${!clip.efeito ? "border-[#F26B1F] bg-[#F26B1F]/15" : "border-white/10 hover:bg-white/5"}`}
+            >
+              Nenhum
+            </button>
+            {EFEITOS.map((e) => (
+              <button
+                key={e.id}
+                title={e.descricao}
+                onClick={() => onPatchClip({ efeito: { id: e.id, intensidade: clip.efeito?.intensidade ?? 50 } })}
+                className={`rounded-lg border px-2 py-3 text-[11px] ${
+                  clip.efeito?.id === e.id ? "border-[#F26B1F] bg-[#F26B1F]/15" : "border-white/10 hover:bg-white/5"
+                }`}
+              >
+                {e.nome}
+              </button>
+            ))}
+          </div>
+          {clip.efeito ? (
+            <div className="mt-3">
+              <Campo label={`Intensidade — ${clip.efeito.intensidade}%`}>
+                <Slider
+                  value={[clip.efeito.intensidade]}
+                  min={5}
+                  max={100}
+                  step={5}
+                  onValueChange={([v]) => onPatchClip({ efeito: { id: clip.efeito!.id, intensidade: v } })}
+                />
+              </Campo>
+            </div>
+          ) : null}
+          <div className="mt-4 rounded-lg border border-white/10 bg-white/[0.03] p-3 text-[11px] text-white/45">
+            Remover fundo e contorno da pessoa: <span className="text-white/70">em breve</span> — dependem de segmentação por IA no navegador.
+          </div>
+        </>
+      )}
+    </Painel>
+  );
+}
+
+/* ---------------------------- Transições ----------------------------- */
+
+function PainelTransicoes({ clip, onPatchClip }: ToolPanelProps) {
+  const dur = clip?.transicao?.durationMs ?? 500;
+  return (
+    <Painel titulo="Transições">
+      {!clip ? (
+        <p className="text-[11px] text-white/35">Selecione o clipe de destino — a transição é aplicada na entrada dele.</p>
+      ) : (
+        <>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              onClick={() => onPatchClip({ transicao: undefined })}
+              className={`rounded-lg border px-2 py-3 text-[11px] ${!clip.transicao ? "border-[#F26B1F] bg-[#F26B1F]/15" : "border-white/10 hover:bg-white/5"}`}
+            >
+              Nenhuma
+            </button>
+            {TRANSICOES.map((t) => (
+              <button
+                key={t.id}
+                onClick={() => onPatchClip({ transicao: { tipo: t.id, durationMs: dur } })}
+                className={`rounded-lg border px-2 py-3 text-[11px] ${
+                  clip.transicao?.tipo === t.id ? "border-[#F26B1F] bg-[#F26B1F]/15" : "border-white/10 hover:bg-white/5"
+                }`}
+              >
+                {t.nome}
+              </button>
+            ))}
+          </div>
+          {clip.transicao ? (
+            <div className="mt-3">
+              <Campo label={`Duração — ${dur} ms`}>
+                <Slider
+                  value={[dur]}
+                  min={100}
+                  max={2000}
+                  step={50}
+                  onValueChange={([v]) => onPatchClip({ transicao: { tipo: clip.transicao!.tipo, durationMs: v } })}
+                />
+              </Campo>
+            </div>
+          ) : null}
+        </>
+      )}
+    </Painel>
+  );
+}
+
+/* ----------------------------- Legendas ------------------------------ */
+
+function PainelLegendas({
+  state,
+  transcript,
+  onAnalisar,
+  onGerarLegendas,
+  onCaption,
+  onSeek,
+  onApagarTrecho,
+  playheadMs,
+}: ToolPanelProps) {
+  const cs = state.captionStyle;
+  const [sel, setSel] = useState<{ a: number; b: number } | null>(null);
+  const palavras = transcript?.words ?? [];
+  const intervalo = sel
+    ? { a: Math.min(sel.a, sel.b), b: Math.max(sel.a, sel.b) }
+    : null;
+
+  return (
+    <Painel titulo="Legendas">
+      <div className="mb-3 flex gap-2">
+        <BotaoSec onClick={onAnalisar}>Transcrever</BotaoSec>
+        <BotaoSec onClick={onGerarLegendas}>Gerar legendas</BotaoSec>
+      </div>
+
+      <Campo label={`Tamanho — ${cs.fontSize}px`}>
+        <Slider value={[cs.fontSize]} min={28} max={140} step={2} onValueChange={([v]) => onCaption({ fontSize: v })} />
+      </Campo>
+      <Campo label={`Altura na tela — ${Math.round(cs.y * 100)}%`}>
+        <Slider value={[cs.y * 100]} min={10} max={95} step={1} onValueChange={([v]) => onCaption({ y: v / 100 })} />
+      </Campo>
+      <Campo label="Fonte">
+        <select
+          value={cs.fontFamily}
+          onChange={(e) => onCaption({ fontFamily: e.target.value })}
+          className="w-full rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-xs outline-none"
+        >
+          <option value="Inter, system-ui, sans-serif">Inter</option>
+          <option value="Impact, sans-serif">Impact</option>
+          <option value="Georgia, serif">Georgia</option>
+          <option value="'Trebuchet MS', sans-serif">Trebuchet</option>
+        </select>
+      </Campo>
+      <div className="grid grid-cols-2 gap-2">
+        <Campo label="Cor">
+          <input type="color" value={cs.color} onChange={(e) => onCaption({ color: e.target.value })} className="h-8 w-full rounded border border-white/10 bg-transparent" />
+        </Campo>
+        <Campo label="Palavra ativa">
+          <input type="color" value={cs.activeColor} onChange={(e) => onCaption({ activeColor: e.target.value })} className="h-8 w-full rounded border border-white/10 bg-transparent" />
+        </Campo>
+      </div>
+      <Campo label="Animação">
+        <select
+          value={cs.animacao}
+          onChange={(e) => onCaption({ animacao: e.target.value as CaptionStyle["animacao"] })}
+          className="w-full rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-xs outline-none"
+        >
+          <option value="nenhuma">Nenhuma</option>
+          <option value="fade">Fade</option>
+          <option value="pop">Pop</option>
+          <option value="subir">Subir</option>
+        </select>
+      </Campo>
+      <label className="my-2 flex cursor-pointer items-center gap-2 text-xs text-white/70">
+        <input type="checkbox" checked={cs.karaoke} onChange={(e) => onCaption({ karaoke: e.target.checked })} className="accent-[#F26B1F]" />
+        Destaque palavra a palavra (karaokê)
+      </label>
+      <label className="mb-3 flex cursor-pointer items-center gap-2 text-xs text-white/70">
+        <input type="checkbox" checked={cs.uppercase} onChange={(e) => onCaption({ uppercase: e.target.checked })} className="accent-[#F26B1F]" />
+        MAIÚSCULAS
+      </label>
+
+      <div className="border-t border-white/10 pt-3">
+        <div className="mb-2 flex items-center justify-between">
+          <p className="text-xs font-medium text-white/60">Transcrição</p>
+          {intervalo && palavras.length ? (
+            <button
+              onClick={() => {
+                onApagarTrecho(palavras[intervalo.a].start, palavras[intervalo.b].end);
+                setSel(null);
+              }}
+              className="text-[11px] text-red-400 hover:underline"
+            >
+              apagar trecho
+            </button>
+          ) : null}
+        </div>
+        {palavras.length ? (
+          <div className="max-h-64 overflow-y-auto text-sm leading-7">
+            {palavras.map((w, i) => {
+              const ativa = playheadMs >= w.start && playheadMs < w.end;
+              const dentro = intervalo != null && i >= intervalo.a && i <= intervalo.b;
+              return (
+                <span
+                  key={`${i}-${w.start}`}
+                  onMouseDown={() => setSel({ a: i, b: i })}
+                  onMouseEnter={(e) => {
+                    if (e.buttons === 1) setSel((c) => (c ? { ...c, b: i } : { a: i, b: i }));
+                  }}
+                  onClick={() => onSeek(w.start)}
+                  className={`cursor-pointer rounded px-0.5 ${
+                    dentro ? "bg-red-500/30 text-white" : ativa ? "bg-[#F26B1F] text-white" : "text-white/70 hover:bg-white/10"
+                  }`}
+                >
+                  {w.w}{" "}
+                </span>
+              );
+            })}
+          </div>
+        ) : (
+          <p className="text-[11px] text-white/35">Clique em “Transcrever” para liberar a edição por texto.</p>
+        )}
+      </div>
+    </Painel>
+  );
+}
+
+/* ------------------------------ Filtros ------------------------------ */
+
+function PainelFiltros({ clip, onPatchClip }: ToolPanelProps) {
+  return (
+    <Painel titulo="Filtros">
+      {!clip || (clip.kind !== "video" && clip.kind !== "image") ? (
+        <p className="text-[11px] text-white/35">Selecione um clipe de vídeo ou imagem.</p>
+      ) : (
+        <>
+          <div className="grid grid-cols-3 gap-2">
+            {FILTROS.map((f) => (
+              <button
+                key={f.id}
+                onClick={() =>
+                  onPatchClip({ filtro: f.id === "nenhum" ? undefined : { id: f.id, intensidade: clip.filtro?.intensidade ?? 100 } })
+                }
+                className={`rounded-lg border px-1 py-3 text-[10px] ${
+                  (clip.filtro?.id ?? "nenhum") === f.id ? "border-[#F26B1F] bg-[#F26B1F]/15" : "border-white/10 hover:bg-white/5"
+                }`}
+              >
+                {f.nome}
+              </button>
+            ))}
+          </div>
+          {clip.filtro ? (
+            <div className="mt-3">
+              <Campo label={`Intensidade — ${clip.filtro.intensidade}%`}>
+                <Slider
+                  value={[clip.filtro.intensidade]}
+                  min={5}
+                  max={100}
+                  step={5}
+                  onValueChange={([v]) => onPatchClip({ filtro: { id: clip.filtro!.id, intensidade: v } })}
+                />
+              </Campo>
+            </div>
+          ) : null}
+        </>
+      )}
+    </Painel>
+  );
+}
+
+/* ------------------------------ Ajustes ------------------------------ */
+
+const CAMPOS_AJUSTE: { k: keyof Ajustes; l: string }[] = [
+  { k: "exposicao", l: "Exposição" },
+  { k: "brilho", l: "Brilho" },
+  { k: "contraste", l: "Contraste" },
+  { k: "saturacao", l: "Saturação" },
+  { k: "temperatura", l: "Temperatura" },
+  { k: "tint", l: "Tint" },
+  { k: "highlights", l: "Highlights" },
+  { k: "shadows", l: "Shadows" },
+  { k: "whites", l: "Whites" },
+  { k: "blacks", l: "Blacks" },
+];
+
+function PainelAjuste({ clip, onPatchClip, onKeyframe }: ToolPanelProps) {
+  const aj: Ajustes = { ...AJUSTES_NEUTROS, ...(clip?.ajustes ?? {}) };
+  return (
+    <Painel titulo="Ajuste">
+      {!clip ? (
+        <p className="text-[11px] text-white/35">Selecione um clipe.</p>
+      ) : (
+        <>
+          {CAMPOS_AJUSTE.map((c) => (
+            <Campo key={c.k} label={`${c.l} — ${aj[c.k]}`}>
+              <Slider
+                value={[aj[c.k]]}
+                min={-100}
+                max={100}
+                step={1}
+                onValueChange={([v]) => onPatchClip({ ajustes: { ...aj, [c.k]: v } })}
+              />
+            </Campo>
+          ))}
+          <Button size="sm" variant="ghost" className="mt-1 w-full text-xs" onClick={() => onPatchClip({ ajustes: { ...AJUSTES_NEUTROS } })}>
+            Redefinir ajustes
+          </Button>
+          <div className="mt-3 border-t border-white/10 pt-3">
+            <TransformCampos clip={clip} onPatchClip={onPatchClip} onKeyframe={onKeyframe} />
+          </div>
+        </>
+      )}
+    </Painel>
+  );
+}
+
+/* --------------------------------- IA -------------------------------- */
+
+function PainelIa({ mensagens, pensando, onEnviarIa, onCortarPausas, onGerarLegendas, onAnalisar }: ToolPanelProps) {
+  const [texto, setTexto] = useState("");
+  const enviar = () => {
+    const t = texto.trim();
+    if (!t || pensando) return;
+    setTexto("");
+    onEnviarIa(t);
+  };
+  return (
+    <div className="flex h-full min-h-0 flex-col">
+      <div className="flex items-center gap-2 border-b border-white/10 px-4 py-3">
+        <Sparkles className="h-4 w-4 text-[#F26B1F]" />
+        <span className="text-sm font-medium">EditAir IA</span>
+      </div>
+      <div className="flex flex-wrap gap-1.5 border-b border-white/10 p-3">
+        <BotaoSec onClick={onAnalisar}>
+          <Wand2 className="mr-1 inline h-3 w-3" /> Transcrever
+        </BotaoSec>
+        <BotaoSec onClick={onCortarPausas}>Cortar pausas</BotaoSec>
+        <BotaoSec onClick={onGerarLegendas}>Legendar</BotaoSec>
+      </div>
+      <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-4">
+        {mensagens.length === 0 ? (
+          <div className="space-y-2">
+            <p className="text-xs text-white/40">Fale como você falaria com um editor:</p>
+            {SUGESTOES.map((s) => (
+              <button
+                key={s}
+                onClick={() => onEnviarIa(s)}
+                className="block w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-left text-xs text-white/70 transition hover:border-[#F26B1F]/50 hover:text-white"
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+        ) : (
+          mensagens.map((m) => (
+            <div
+              key={m.id}
+              className={`max-w-[92%] rounded-2xl px-3 py-2 text-xs leading-relaxed ${
+                m.autor === "usuario" ? "ml-auto bg-[#F26B1F] text-white" : "bg-white/[0.06] text-white/80"
+              }`}
+            >
+              {m.texto}
+              {m.ops ? <span className="mt-1 block text-[10px] opacity-60">{m.ops} operação(ões) aplicada(s)</span> : null}
+            </div>
+          ))
+        )}
+        {pensando ? (
+          <div className="flex items-center gap-2 text-xs text-white/40">
+            <Loader2 className="h-3.5 w-3.5 animate-spin" /> pensando…
+          </div>
+        ) : null}
+      </div>
+      <div className="border-t border-white/10 p-3">
+        <div className="flex items-end gap-2">
+          <textarea
+            value={texto}
+            onChange={(e) => setTexto(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                enviar();
+              }
+            }}
+            rows={2}
+            placeholder="Ex.: abaixa a música e corta aqui"
+            className="min-h-[44px] flex-1 resize-none rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs outline-none placeholder:text-white/30 focus:border-[#F26B1F]/60"
+          />
+          <Button onClick={enviar} disabled={pensando} size="icon" className="h-10 w-10 shrink-0 bg-[#F26B1F] hover:bg-[#d95c14]">
+            <Send className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------ genéricos ---------------------------- */
+
+function TransformCampos({
+  clip,
+  onPatchClip,
+  onKeyframe,
+}: {
+  clip: EditairClip | null;
+  onPatchClip: (patch: Partial<EditairClip>) => void;
+  onKeyframe: (prop: KeyProp) => void;
+}) {
+  if (!clip) return null;
+  const t = clip.transform;
+  return (
+    <>
+      <Campo label={`Escala — ${Math.round(t.scale * 100)}%`} keyProp="scale" onKeyframe={onKeyframe}>
+        <Slider value={[t.scale * 100]} min={20} max={300} step={1} onValueChange={([v]) => onPatchClip({ transform: { ...t, scale: v / 100 } })} />
+      </Campo>
+      <div className="grid grid-cols-2 gap-2">
+        <Campo label="X" keyProp="x" onKeyframe={onKeyframe}>
+          <Input
+            type="number"
+            value={t.x}
+            onChange={(e) => onPatchClip({ transform: { ...t, x: Number(e.target.value) } })}
+            className="h-8 border-white/10 bg-white/5 text-xs"
+          />
+        </Campo>
+        <Campo label="Y" keyProp="y" onKeyframe={onKeyframe}>
+          <Input
+            type="number"
+            value={t.y}
+            onChange={(e) => onPatchClip({ transform: { ...t, y: Number(e.target.value) } })}
+            className="h-8 border-white/10 bg-white/5 text-xs"
+          />
+        </Campo>
+      </div>
+      <Campo label={`Rotação — ${t.rotation}°`} keyProp="rotation" onKeyframe={onKeyframe}>
+        <Slider value={[t.rotation]} min={-180} max={180} step={1} onValueChange={([v]) => onPatchClip({ transform: { ...t, rotation: v } })} />
+      </Campo>
+      <Campo label={`Opacidade — ${Math.round(t.opacity * 100)}%`} keyProp="opacity" onKeyframe={onKeyframe}>
+        <Slider value={[t.opacity * 100]} min={0} max={100} step={1} onValueChange={([v]) => onPatchClip({ transform: { ...t, opacity: v / 100 } })} />
+      </Campo>
+      {clip.keyframes?.length ? (
+        <div className="mb-3 flex items-center justify-between text-[11px] text-white/45">
+          <span>{clip.keyframes.length} keyframe(s)</span>
+          <button onClick={() => onPatchClip({ keyframes: [] })} className="text-red-400 hover:underline">
+            limpar
+          </button>
+        </div>
+      ) : null}
+    </>
+  );
+}
+
+function Painel({ titulo, children }: { titulo: string; children: React.ReactNode }) {
+  return (
+    <div className="flex h-full min-h-0 flex-col">
+      <div className="border-b border-white/10 px-4 py-3 text-sm font-semibold">{titulo}</div>
+      <div className="min-h-0 flex-1 overflow-y-auto p-4">{children}</div>
+    </div>
+  );
+}
+
+function Campo({
+  label,
+  children,
+  keyProp,
+  onKeyframe,
+}: {
+  label: string;
+  children: React.ReactNode;
+  keyProp?: KeyProp;
+  onKeyframe?: (p: KeyProp) => void;
+}) {
+  return (
+    <div className="mb-3">
+      <div className="mb-1.5 flex items-center justify-between">
+        <p className="text-[11px] text-white/45">{label}</p>
+        {keyProp && onKeyframe ? (
+          <button
+            onClick={() => onKeyframe(keyProp)}
+            title="Criar keyframe no playhead"
+            className="rounded p-0.5 text-white/35 transition hover:bg-white/10 hover:text-[#F26B1F]"
+          >
+            <Diamond className="h-3 w-3" />
+          </button>
+        ) : null}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function BotaoSec({ children, onClick }: { children: React.ReactNode; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className="rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5 text-[11px] text-white/80 transition hover:bg-white/10"
+    >
+      {children}
+    </button>
+  );
+}
+
+function EmBreve({ titulo, texto }: { titulo: string; texto: string }) {
+  return (
+    <Painel titulo={titulo}>
+      <div className="rounded-xl border border-dashed border-white/15 bg-white/[0.03] p-4 text-xs text-white/50">
+        <p className="mb-1 font-medium text-white/80">Em breve</p>
+        {texto}
+      </div>
+    </Painel>
+  );
+}
