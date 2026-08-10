@@ -3,8 +3,8 @@
 
 export type AssetLocal = {
   id: string;
-  nome: string;
-  kind: "video" | "audio" | "image";
+  name: string;
+  type: "video" | "audio" | "image";
   localPath: string;
   copiado: boolean;
   durationMs: number;
@@ -12,11 +12,14 @@ export type AssetLocal = {
   height: number;
   fps: number;
   sizeBytes: number;
+  videoCodec?: string | null;
+  audioCodec?: string | null;
   thumbPath: string | null;
   proxyPath: string | null;
-  existe: boolean;
-  criadoEm: string;
+  missing?: boolean;
+  importedAt: string;
 };
+
 
 export type SettingsDesktop = {
   cacheDir: string;
@@ -135,25 +138,27 @@ export function caminhosDeArquivos(lista: FileList | File[] | null): string[] {
 /** Converte um asset local no formato usado pela galeria da UI (sem upload). */
 export function assetLocalParaMidia(a: AssetLocal) {
   const api = pontoDesktop();
+  const existe = a.missing !== true;
   return {
     id: a.id,
-    nome: a.nome,
-    kind: a.kind,
-    durationMs: a.durationMs,
-    width: a.width,
-    height: a.height,
-    sizeBytes: a.sizeBytes,
+    nome: a.name,
+    kind: a.type,
+    durationMs: a.durationMs ?? 0,
+    width: a.width ?? 0,
+    height: a.height ?? 0,
+    sizeBytes: a.sizeBytes ?? 0,
     storagePath: a.localPath,
     thumbPath: a.thumbPath,
-    url: api ? api.urlLocal(a.proxyPath || a.localPath) : "",
+    url: api && existe ? api.urlLocal(a.proxyPath || a.localPath) : "",
     thumbUrl: a.thumbPath && api ? api.urlLocal(a.thumbPath) : null,
-    criadoEm: a.criadoEm,
+    criadoEm: a.importedAt ?? new Date().toISOString(),
     local: true as const,
     localPath: a.localPath,
-    existe: a.existe,
-    fps: a.fps,
+    existe,
+    fps: a.fps ?? 30,
   };
 }
+
 
 export function formatarBytes(bytes: number) {
   if (!bytes) return "0 B";
