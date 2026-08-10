@@ -2310,7 +2310,14 @@ function InstagramConversationView({
   const igRecorderRef = useRef<MediaRecorder | null>(null);
 
   const igAttach = useMutation({
-    mutationFn: async (file: File) => {
+    mutationFn: async (arquivo: File) => {
+      // Áudio em formato que o Instagram recusa (mp3, ogg, webm…) vira WAV aqui.
+      let file = arquivo;
+      if (file.type.startsWith("audio/") && !/(mp4|m4a|aac|wav)/i.test(`${file.type} ${file.name}`)) {
+        const { audioBlobToWav } = await import("@/lib/audio-to-wav");
+        const wav = await audioBlobToWav(file);
+        file = new File([wav], `${file.name.replace(/\.\w+$/, "")}.wav`, { type: "audio/wav" });
+      }
       const buf = new Uint8Array(await file.arrayBuffer());
       let bin = "";
       for (const b of buf) bin += String.fromCharCode(b);
