@@ -217,11 +217,23 @@ function EditorPage() {
           setAssets(lista);
           eng.desenhar(estado, 0);
         }
+
+        const primeiro = res.assets.find((a) => Number(a.width) > 0 && Number(a.height) > 0);
+        if (primeiro) setDimsOriginais({ w: Number(primeiro.width), h: Number(primeiro.height) });
+
+        // veio da tela "Novo projeto": importa, analisa e monta o primeiro corte
+        const handoff = consumirHandoff(id);
+        if (handoff?.arquivos.length) {
+          autoRef.current = { instrucao: handoff.instrucao };
+          setAutoEtapa("importar");
+          void importarAuto(handoff.arquivos);
+        }
       } catch (e) {
         toast.error(e instanceof Error ? e.message : "Falha ao abrir o projeto");
       } finally {
         if (vivo) setCarregando(false);
       }
+
     })();
     return () => {
       vivo = false;
