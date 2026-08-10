@@ -15,6 +15,7 @@ import {
   Save,
   Scissors,
   SlidersHorizontal,
+  Focus,
   Sparkles,
   Sticker,
   Trash2,
@@ -294,6 +295,28 @@ function EditorPage() {
   }, [tocando, state]);
 
   /* ---------------- histórico ---------------- */
+  // ativa a segmentação assim que algum clipe usa tratamento de fundo
+  useEffect(() => {
+    const fundos = state.clips.filter((c) => c.fundo && c.fundo.modo !== "nenhum");
+    if (!fundos.length) return;
+    const eng = engineRef.current;
+    if (!eng || eng.fundoPronto()) return;
+    const qualidade = fundos.some((c) => c.fundo?.qualidade === "alta") ? "alta" : "rapida";
+    let vivo = true;
+    setFundoCarregando(true);
+    void eng
+      .ativarFundo(qualidade)
+      .then((ok) => {
+        if (!vivo) return;
+        setFundoPronto(ok);
+        if (!ok) toast.error("Não consegui carregar a segmentação de fundo neste navegador.");
+      })
+      .finally(() => vivo && setFundoCarregando(false));
+    return () => {
+      vivo = false;
+    };
+  }, [state.clips]);
+
   const aplicar = useCallback((proximo: ProjectState) => {
     setState((atual) => {
       historico.current.push(atual);
