@@ -1112,6 +1112,16 @@ function EditorPage() {
           >
             <Magnet className="h-3.5 w-3.5" /> Snap
           </button>
+          <button
+            onClick={() => setRippleTrim((v) => !v)}
+            className={`flex items-center gap-1 rounded-md px-2 py-1 transition ${
+              rippleTrim ? "bg-[#F26B1F]/20 text-[#F26B1F]" : "text-white/50 hover:bg-white/10"
+            }`}
+            title="Ao aparar, aproxima automaticamente os clipes seguintes"
+          >
+            Ripple trim
+          </button>
+
           {selecao ? (
             <button
               onClick={() => {
