@@ -56,6 +56,7 @@ const SCHEMA = {
               "remove_captions",
               "mute_track",
               "delete_text_range",
+              "set_background",
             ],
           },
           clipId: { type: "string" },
@@ -81,6 +82,12 @@ const SCHEMA = {
           mode: { type: "string" },
           muted: { type: "boolean" },
           query: { type: "string" },
+          modo: { type: "string", enum: ["nenhum", "desfoque", "cor", "midia", "remover"] },
+          desfoque: { type: "number" },
+          suavidade: { type: "number" },
+          borda: { type: "number" },
+          estabilidade: { type: "number" },
+          contorno: { type: "boolean" },
         },
         required: ["op"],
       },
@@ -114,7 +121,11 @@ REGRAS
 - "legenda menor/maior" → add_caption_style com fontSize.
 - "tira as legendas" → remove_captions. "refaz as legendas" → rebuild_captions.
 - Volume é escala: 1 = 100%.
-- Se o pedido não for possível ainda (gerar vídeo, remover fundo, B-roll), NÃO invente operação: devolva ops vazio e explique em uma frase o que ainda não está disponível.
+- "desfoca o fundo" → set_background com modo "desfoque" e desfoque ~60 no clipe de vídeo sob o playhead (ou no clipe selecionado). "mais forte/menos" → ajuste desfoque (0-100).
+- "remove o fundo" / "recorta só eu" → set_background com modo "remover". "fundo preto/branco/colorido" → modo "cor" com cor em hex.
+- "volta o fundo original" → set_background com modo "nenhum".
+- Bordas serrilhadas → aumente suavidade; sobrou fundo na borda → borda negativa; cortou o cabelo → borda positiva; borda tremendo → estabilidade alta.
+- Se o pedido não for possível ainda (gerar vídeo, B-roll), NÃO invente operação: devolva ops vazio e explique em uma frase o que ainda não está disponível.
 - resposta: uma ou duas frases curtas, em português, dizendo o que você fez.`;
 }
 
