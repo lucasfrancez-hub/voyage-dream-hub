@@ -322,6 +322,35 @@ export function aplicarOps(
         }
         break;
       }
+      case "set_background": {
+        const alvos = op.clipId
+          ? s.clips.filter((c) => c.id === op.clipId)
+          : s.clips.filter((c) => c.kind === "video" || c.kind === "image");
+        if (!alvos.length) break;
+        const ids = new Set(alvos.map((c) => c.id));
+        s.clips = s.clips.map((c) => {
+          if (!ids.has(c.id)) return c;
+          const base: Fundo = { ...FUNDO_PADRAO, ...(c.fundo ?? {}) };
+          const fundo: Fundo = {
+            ...base,
+            modo: op.modo ?? (base.modo === "nenhum" ? "desfoque" : base.modo),
+            desfoque: op.desfoque != null ? clamp(op.desfoque, 0, 100) : base.desfoque,
+            suavidade: op.suavidade != null ? clamp(op.suavidade, 0, 100) : base.suavidade,
+            borda: op.borda != null ? clamp(op.borda, -100, 100) : base.borda,
+            cor: op.cor ?? base.cor,
+            assetId: op.assetId ?? base.assetId,
+            estabilidade: op.estabilidade != null ? clamp(op.estabilidade, 0, 100) : base.estabilidade,
+            qualidade: op.qualidade ?? base.qualidade,
+            contorno:
+              op.contorno != null
+                ? { ...(base.contorno ?? { cor: "#FFFFFF", largura: 4 }), ativo: op.contorno }
+                : base.contorno,
+          };
+          return { ...c, fundo: fundo.modo === "nenhum" ? undefined : fundo };
+        });
+        log.push(op.modo === "nenhum" ? "Fundo original restaurado" : "Fundo tratado");
+        break;
+      }
     }
   }
 
