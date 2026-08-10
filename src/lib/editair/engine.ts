@@ -3,6 +3,8 @@
 import type { SegmentadorFundo } from "./segmentation";
 import {
   AJUSTES_NEUTROS,
+  RECORTE_CHEIO,
+  type ChromaKey,
   type Ajustes,
   type CaptionStyle,
   type EditairClip,
@@ -16,7 +18,15 @@ type Midia = {
   el: HTMLVideoElement;
   gain: GainNode;
   entrada: AudioNode;
-  filtros: { hp: BiquadFilterNode; comp: DynamicsCompressorNode } | null;
+  filtros: {
+    hp: BiquadFilterNode;
+    comp: DynamicsCompressorNode;
+    low: BiquadFilterNode;
+    mid: BiquadFilterNode;
+    high: BiquadFilterNode;
+    pan: StereoPannerNode | null;
+    limiter: DynamicsCompressorNode;
+  } | null;
 };
 
 const clamp = (v: number, a: number, b: number) => Math.min(b, Math.max(a, v));
@@ -37,6 +47,7 @@ export class EditairEngine {
   /** segmentação de pessoa para tratamento de fundo */
   private seg: SegmentadorFundo | null = null;
   private off: HTMLCanvasElement | null = null;
+  private maskCanvas: HTMLCanvasElement | null = null;
 
   constructor(canvas: HTMLCanvasElement, width: number, height: number) {
     this.canvas = canvas;
@@ -100,13 +111,38 @@ export class EditairEngine {
     const comp = ctx.createDynamicsCompressor();
     comp.threshold.value = 0;
     comp.ratio.value = 1;
+    const low = ctx.createBiquadFilter();
+    low.type = "lowshelf";
+    low.frequency.value = 220;
+    const mid = ctx.createBiquadFilter();
+    mid.type = "peaking";
+    mid.frequency.value = 1400;
+    mid.Q.value = 1;
+    const high = ctx.createBiquadFilter();
+    high.type = "highshelf";
+    high.frequency.value = 5200;
+    const limiter = ctx.createDynamicsCompressor();
+    limiter.threshold.value = 0;
+    limiter.ratio.value = 1;
+    limiter.attack.value = 0.002;
+    limiter.release.value = 0.12;
+    const pan = typeof ctx.createStereoPanner === "function" ? ctx.createStereoPanner() : null;
     const gain = ctx.createGain();
     gain.gain.value = 1;
     src.connect(hp);
-    hp.connect(comp);
-    comp.connect(gain);
+    hp.connect(low);
+    low.connect(mid);
+    mid.connect(high);
+    high.connect(comp);
+    comp.connect(limiter);
+    if (pan) {
+      limiter.connect(pan);
+      pan.connect(gain);
+    } else {
+      limiter.connect(gain);
+    }
     if (this.master) gain.connect(this.master);
-    this.midias.set(assetId, { el, gain, entrada: src, filtros: { hp, comp } });
+    this.midias.set(assetId, { el, gain, entrada: src, filtros: { hp, comp, low, mid, high, pan, limiter } });
   }
 
   /** Carrega (uma vez) o modelo de segmentação usado no tratamento de fundo. */
@@ -179,7 +215,7 @@ export class EditairEngine {
     const trilha = state.tracks.find((x) => x.id === c.trackId);
     const temSolo = state.tracks.some((x) => x.solo);
     if (temSolo && !trilha?.solo) return 0;
-    if (c.muted || trilha?.muted) return 0;
+    if (c.muted || c.semAudio || trilha?.muted) return 0;
     let g = this.valor(c, "volume", t, c.volume);
     const tl = t - c.start;
     if (c.fadeInMs && tl < c.fadeInMs) g *= tl / c.fadeInMs;
@@ -214,9 +250,18 @@ export class EditairEngine {
       if (m.filtros) {
         const fx = state.audioFx ?? { voz: false, ruido: false };
         const vozLike = c.trackId === "t-voice" || c.trackId === "t-video";
-        m.filtros.hp.frequency.value = vozLike && (fx.voz || fx.ruido) ? (fx.ruido ? 160 : 100) : 20;
-        m.filtros.comp.threshold.value = vozLike && fx.voz ? -24 : 0;
-        m.filtros.comp.ratio.value = vozLike && fx.voz ? 4 : 1;
+        const voz = (vozLike && fx.voz) || !!c.isolarVoz;
+        const ruido = (vozLike && fx.ruido) || !!c.isolarVoz;
+        m.filtros.hp.frequency.value = voz || ruido ? (ruido ? 160 : 100) : 20;
+        m.filtros.comp.threshold.value = voz || c.compressor ? -24 : 0;
+        m.filtros.comp.ratio.value = voz || c.compressor ? 4 : 1;
+        m.filtros.limiter.threshold.value = c.limiter ? -2 : 0;
+        m.filtros.limiter.ratio.value = c.limiter ? 20 : 1;
+        const eq = c.eq;
+        m.filtros.low.gain.value = eq?.graves ?? 0;
+        m.filtros.mid.gain.value = (eq?.medios ?? 0) + (c.isolarVoz ? 4 : 0);
+        m.filtros.high.gain.value = eq?.agudos ?? 0;
+        if (m.filtros.pan) m.filtros.pan.pan.value = clamp(c.pan ?? 0, -1, 1);
       }
       if (tocando && m.el.paused) void m.el.play().catch(() => {});
       if (!tocando && !m.el.paused) m.el.pause();
@@ -261,6 +306,124 @@ export class EditairEngine {
     return { tipo: tr.tipo, p };
   }
 
+  /** Ajustes finais do clipe já com as ferramentas de "Aprimorar" aplicadas. */
+  private ajustesDoClip(c: EditairClip): Ajustes {
+    const base: Ajustes = { ...AJUSTES_NEUTROS, ...(c.ajustes ?? {}) };
+    const ap = c.aprimorar;
+    if (!ap) return base;
+    if (ap.qualidade) {
+      base.contraste += 8;
+      base.saturacao += 6;
+      base.whites += 4;
+    }
+    if (ap.nitidez) base.contraste += 12;
+    if (ap.luz) {
+      base.exposicao += 8;
+      base.shadows += 14;
+      base.highlights -= 8;
+    }
+    if (ap.cor) {
+      base.saturacao += 12;
+      base.temperatura += 4;
+    }
+    if (ap.rosto) {
+      base.brilho += 4;
+      base.saturacao += 4;
+    }
+    return base;
+  }
+
+  private mascaraForma(c: EditairClip): HTMLCanvasElement | null {
+    const mk = c.mascara;
+    if (!mk || mk.tipo === "nenhuma") return null;
+    const { width, height } = this;
+    if (!this.maskCanvas) this.maskCanvas = document.createElement("canvas");
+    const cv = this.maskCanvas;
+    if (cv.width !== width || cv.height !== height) {
+      cv.width = width;
+      cv.height = height;
+    }
+    const g = cv.getContext("2d");
+    if (!g) return null;
+    g.setTransform(1, 0, 0, 1, 0, 0);
+    g.clearRect(0, 0, width, height);
+    const feather = (clamp(mk.feather, 0, 100) / 100) * (Math.min(width, height) * 0.15);
+    g.filter = feather > 0.5 ? `blur(${feather.toFixed(1)}px)` : "none";
+    g.fillStyle = "#fff";
+    const cx = mk.x * width;
+    const cy = mk.y * height;
+    const mw = Math.max(4, mk.w * width);
+    const mh = Math.max(4, mk.h * height);
+    g.save();
+    g.translate(cx, cy);
+    g.rotate((mk.rotation * Math.PI) / 180);
+    if (mk.tipo === "retangulo") {
+      g.fillRect(-mw / 2, -mh / 2, mw, mh);
+    } else if (mk.tipo === "circulo") {
+      g.beginPath();
+      g.ellipse(0, 0, mw / 2, mh / 2, 0, 0, Math.PI * 2);
+      g.fill();
+    } else if (mk.tipo === "linear") {
+      const grad = g.createLinearGradient(0, -mh / 2, 0, mh / 2);
+      grad.addColorStop(0, "rgba(255,255,255,1)");
+      grad.addColorStop(1, "rgba(255,255,255,0)");
+      g.fillStyle = grad;
+      g.fillRect(-width, -mh / 2, width * 2, mh);
+      g.fillStyle = "#fff";
+      g.fillRect(-width, -height, width * 2, height - mh / 2);
+    } else if (mk.tipo === "espelho") {
+      g.fillRect(-width, -mh / 2, width * 2, mh);
+    }
+    g.restore();
+    g.filter = "none";
+
+    if (mk.inverter) {
+      g.globalCompositeOperation = "xor";
+      g.fillStyle = "#fff";
+      g.fillRect(0, 0, width, height);
+      g.globalCompositeOperation = "source-over";
+    }
+    return cv;
+  }
+
+  /** Chroma key aplicado por pixel na camada do clipe. */
+  private aplicarChroma(octx: CanvasRenderingContext2D, chroma: ChromaKey) {
+    const { width, height } = this;
+    const alvo = hexRgb(chroma.cor);
+    const tol = (clamp(chroma.tolerancia, 0, 100) / 100) * 160 + 10;
+    const suav = (clamp(chroma.suavidade, 0, 100) / 100) * 90 + 4;
+    const derrame = clamp(chroma.derrame, 0, 100) / 100;
+    let img: ImageData;
+    try {
+      img = octx.getImageData(0, 0, width, height);
+    } catch {
+      return;
+    }
+    const d = img.data;
+    for (let i = 0; i < d.length; i += 4) {
+      if (d[i + 3] === 0) continue;
+      const dist = Math.sqrt(
+        (d[i] - alvo.r) * (d[i] - alvo.r) + (d[i + 1] - alvo.g) * (d[i + 1] - alvo.g) + (d[i + 2] - alvo.b) * (d[i + 2] - alvo.b),
+      );
+      if (dist < tol) {
+        d[i + 3] = 0;
+      } else if (dist < tol + suav) {
+        d[i + 3] = Math.round(d[i + 3] * ((dist - tol) / suav));
+      }
+      // remove o "derrame" de verde/azul nas bordas
+      if (derrame > 0 && d[i + 3] > 0) {
+        const media = (d[i] + d[i + 2]) / 2;
+        if (alvo.g > alvo.r && alvo.g > alvo.b && d[i + 1] > media) {
+          d[i + 1] = d[i + 1] + (media - d[i + 1]) * derrame;
+        }
+        if (alvo.b > alvo.r && alvo.b > alvo.g && d[i + 2] > (d[i] + d[i + 1]) / 2) {
+          d[i + 2] = d[i + 2] + ((d[i] + d[i + 1]) / 2 - d[i + 2]) * derrame;
+        }
+      }
+    }
+    octx.putImageData(img, 0, 0);
+  }
+
   private desenharVideo(c: EditairClip, t: number) {
     if (!c.assetId) return;
     const m = this.midias.get(c.assetId);
@@ -268,6 +431,13 @@ export class EditairEngine {
     const { ctx, width, height } = this;
     const vw = m.el.videoWidth || width;
     const vh = m.el.videoHeight || height;
+
+    // recorte (crop) no material de origem
+    const rec = c.recorte ?? RECORTE_CHEIO;
+    const sw = Math.max(8, rec.w * vw);
+    const sh = Math.max(8, rec.h * vh);
+    const sx = clamp(rec.x, 0, 1) * vw;
+    const sy = clamp(rec.y, 0, 1) * vh;
 
     let scale = this.valor(c, "scale", t, c.transform.scale);
     let x = this.valor(c, "x", t, c.transform.x);
@@ -293,6 +463,26 @@ export class EditairEngine {
       }
     }
 
+    // animações de entrada / saída
+    const anim = c.animacao;
+    if (anim) {
+      const dur = Math.max(80, anim.duracaoMs || 500);
+      const tl = t - c.start;
+      const restante = c.start + c.duration - t;
+      const aplicarAnim = (tipo: string, p: number) => {
+        const q = clamp(p, 0, 1);
+        if (tipo === "fade") opacity *= q;
+        else if (tipo === "zoom") scale *= 0.72 + 0.28 * q;
+        else if (tipo === "slide-esq") x -= (1 - q) * width;
+        else if (tipo === "slide-dir") x += (1 - q) * width;
+        else if (tipo === "subir") y += (1 - q) * height * 0.35;
+        else if (tipo === "descer") y -= (1 - q) * height * 0.35;
+      };
+      if (anim.entrada && anim.entrada !== "nenhuma" && tl < dur) aplicarAnim(anim.entrada, tl / dur);
+      if (anim.saida && anim.saida !== "nenhuma" && restante < dur) aplicarAnim(anim.saida, restante / dur);
+      if (anim.kenBurns) scale *= 1 + (tl / Math.max(1, c.duration)) * 0.18;
+    }
+
     // transição de entrada
     const tr = this.transicao(c, t);
     if (tr) {
@@ -307,13 +497,28 @@ export class EditairEngine {
       }
     }
 
-    const escalaBase = Math.max(width / vw, height / vh);
+    const ap = c.aprimorar;
+    if (ap?.estabilizar) scale *= 1.05; // margem de segurança da estabilização
+    if (ap?.ruido) blurExtra += 0.7;
+
+    const escalaBase = Math.max(width / sw, height / sh);
     const escala = escalaBase * scale;
-    const w = vw * escala;
-    const h = vh * escala;
+    const w = sw * escala;
+    const h = sh * escala;
+    const filtro = filtroCss(this.ajustesDoClip(c), c.filtro, blurExtra);
+
+    const desenharMidia = (alvo: CanvasRenderingContext2D, amp = 1, comFiltro = true) => {
+      alvo.save();
+      if (comFiltro) alvo.filter = filtro;
+      alvo.translate(width / 2 + x, height / 2 + y);
+      if (rotation) alvo.rotate((rotation * Math.PI) / 180);
+      if (c.flipH || c.flipV) alvo.scale(c.flipH ? -1 : 1, c.flipV ? -1 : 1);
+      alvo.drawImage(m.el, sx, sy, sw, sh, (-w * amp) / 2, (-h * amp) / 2, w * amp, h * amp);
+      alvo.restore();
+    };
 
     const fundo = c.fundo && c.fundo.modo !== "nenhum" ? c.fundo : null;
-    const mascara = fundo
+    const mascaraPessoa = fundo
       ? this.seg?.mascara(c.id, m.el, t, {
           suavidade: fundo.suavidade,
           borda: fundo.borda,
@@ -321,74 +526,80 @@ export class EditairEngine {
           qualidade: fundo.qualidade,
         }) ?? null
       : null;
+    const forma = this.mascaraForma(c);
+    const chroma = c.chroma?.ativo ? c.chroma : null;
+    const blend = c.blend && c.blend !== "normal" ? (c.blend as GlobalCompositeOperation) : null;
+    const usarCamada = !!(mascaraPessoa || forma || chroma);
 
-    const posicionar = (alvo: CanvasRenderingContext2D) => {
-      alvo.translate(width / 2 + x, height / 2 + y);
-      if (rotation) alvo.rotate((rotation * Math.PI) / 180);
-    };
-
-    if (fundo && mascara) {
+    // 1) camada de fundo (quando há tratamento de fundo com segmentação)
+    if (fundo && mascaraPessoa && fundo.modo !== "remover") {
       const blurPct = clamp(this.valor(c, "fundoBlur", t, fundo.desfoque), 0, 100);
       const blurPx = (blurPct / 100) * (Math.min(width, height) * 0.06);
-
-      // 1) camada de fundo
-      if (fundo.modo !== "remover") {
+      ctx.save();
+      ctx.globalAlpha = clamp(opacity, 0, 1);
+      if (fundo.modo === "cor") {
+        ctx.fillStyle = fundo.cor || "#000";
+        ctx.fillRect(0, 0, width, height);
+      } else if (fundo.modo === "midia" && fundo.assetId && this.midias.get(fundo.assetId)) {
+        const bg = this.midias.get(fundo.assetId)!.el;
+        const bw = bg.videoWidth || width;
+        const bh = bg.videoHeight || height;
+        const eb = Math.max(width / bw, height / bh);
+        ctx.filter = blurPx > 0.3 ? `blur(${blurPx.toFixed(1)}px)` : "none";
+        ctx.drawImage(bg, width / 2 - (bw * eb) / 2, height / 2 - (bh * eb) / 2, bw * eb, bh * eb);
+      } else {
+        ctx.filter = `${filtro} blur(${Math.max(1, blurPx).toFixed(1)}px)`;
         ctx.save();
-        ctx.globalAlpha = clamp(opacity, 0, 1);
-        if (fundo.modo === "cor") {
-          ctx.fillStyle = fundo.cor || "#000";
-          ctx.fillRect(0, 0, width, height);
-        } else if (fundo.modo === "midia" && fundo.assetId && this.midias.get(fundo.assetId)) {
-          const bg = this.midias.get(fundo.assetId)!.el;
-          const bw = bg.videoWidth || width;
-          const bh = bg.videoHeight || height;
-          const eb = Math.max(width / bw, height / bh);
-          ctx.filter = blurPx > 0.3 ? `blur(${blurPx.toFixed(1)}px)` : "none";
-          ctx.drawImage(bg, width / 2 - (bw * eb) / 2, height / 2 - (bh * eb) / 2, bw * eb, bh * eb);
-        } else {
-          // desfoque do próprio vídeo, levemente ampliado para não mostrar bordas
-          ctx.filter = `${filtroCss(c.ajustes, c.filtro, blurExtra)} blur(${Math.max(1, blurPx).toFixed(1)}px)`;
-          posicionar(ctx);
-          const amp = 1.08;
-          ctx.drawImage(m.el, (-w * amp) / 2, (-h * amp) / 2, w * amp, h * amp);
-        }
+        ctx.translate(width / 2 + x, height / 2 + y);
+        if (rotation) ctx.rotate((rotation * Math.PI) / 180);
+        const amp = 1.08;
+        ctx.drawImage(m.el, sx, sy, sw, sh, (-w * amp) / 2, (-h * amp) / 2, w * amp, h * amp);
         ctx.restore();
       }
+      ctx.restore();
+    }
 
-      // 2) pessoa recortada
+    // 2) camada principal
+    if (usarCamada) {
       const off = this.offscreen();
-      const octx = off.getContext("2d");
-      if (octx) {
-        octx.setTransform(1, 0, 0, 1, 0, 0);
-        octx.clearRect(0, 0, width, height);
+      const octx = off.getContext("2d", { willReadFrequently: !!chroma });
+      if (!octx) return;
+      octx.setTransform(1, 0, 0, 1, 0, 0);
+      octx.clearRect(0, 0, width, height);
+      desenharMidia(octx);
+      if (chroma) this.aplicarChroma(octx, chroma);
+      if (mascaraPessoa) {
         octx.save();
-        octx.filter = filtroCss(c.ajustes, c.filtro, blurExtra);
-        posicionar(octx);
-        octx.drawImage(m.el, -w / 2, -h / 2, w, h);
-        octx.filter = "none";
         octx.globalCompositeOperation = "destination-in";
-        octx.drawImage(mascara, -w / 2, -h / 2, w, h);
+        octx.translate(width / 2 + x, height / 2 + y);
+        if (rotation) octx.rotate((rotation * Math.PI) / 180);
+        if (c.flipH || c.flipV) octx.scale(c.flipH ? -1 : 1, c.flipV ? -1 : 1);
+        octx.drawImage(mascaraPessoa, sx, sy, sw, sh, -w / 2, -h / 2, w, h);
         octx.restore();
-
-        if (fundo.contorno?.ativo) {
-          ctx.save();
-          ctx.globalAlpha = clamp(opacity, 0, 1) * 0.9;
-          ctx.filter = `blur(${Math.max(1, fundo.contorno.largura).toFixed(1)}px)`;
-          ctx.drawImage(off, 0, 0, width, height);
-          ctx.restore();
-        }
-
+      }
+      if (forma) {
+        octx.save();
+        octx.globalCompositeOperation = "destination-in";
+        octx.drawImage(forma, 0, 0, width, height);
+        octx.restore();
+      }
+      if (fundo?.contorno?.ativo && mascaraPessoa) {
         ctx.save();
-        ctx.globalAlpha = clamp(opacity, 0, 1);
+        ctx.globalAlpha = clamp(opacity, 0, 1) * 0.9;
+        ctx.filter = `blur(${Math.max(1, fundo.contorno.largura).toFixed(1)}px)`;
         ctx.drawImage(off, 0, 0, width, height);
         ctx.restore();
       }
+      ctx.save();
+      ctx.globalAlpha = clamp(opacity, 0, 1);
+      if (blend) ctx.globalCompositeOperation = blend;
+      ctx.drawImage(off, 0, 0, width, height);
+      ctx.restore();
     } else {
       ctx.save();
       ctx.globalAlpha = clamp(opacity, 0, 1);
-      ctx.filter = filtroCss(c.ajustes, c.filtro, blurExtra);
-      posicionar(ctx);
-      ctx.drawImage(m.el, -w / 2, -h / 2, w, h);
+      if (blend) ctx.globalCompositeOperation = blend;
+      desenharMidia(ctx);
       ctx.restore();
     }
 
@@ -660,4 +871,10 @@ function quebrarLinhas(ctx: CanvasRenderingContext2D, texto: string, max: number
   }
   if (atual) linhas.push(atual);
   return linhas;
+}
+
+function hexRgb(hex: string) {
+  const h = hex.replace("#", "");
+  const n = parseInt(h.length === 3 ? h.split("").map((c) => c + c).join("") : h, 16);
+  return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
 }
