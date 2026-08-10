@@ -339,7 +339,7 @@ function EditairHome() {
             className="border-white/10 bg-white/5"
           />
           <div className="mt-1 text-right text-[11px] text-white/40">
-            {instrucao.length.toLocaleString("pt-BR")} / 20.000 caracteres
+            {instrucao.length.toLocaleString("pt-BR")} / 100.000 caracteres
           </div>
           <div className="mt-3 flex flex-wrap items-center gap-2">
             <Button
