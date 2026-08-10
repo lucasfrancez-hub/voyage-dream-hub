@@ -164,6 +164,109 @@ export const EFEITOS: { id: EfeitoId; nome: string; descricao: string }[] = [
   { id: "vinheta", nome: "Vinheta", descricao: "Escurece as bordas" },
 ];
 
+/** Recorte (crop) em frações 0..1 do frame de origem. */
+export type Recorte = { x: number; y: number; w: number; h: number };
+export const RECORTE_CHEIO: Recorte = { x: 0, y: 0, w: 1, h: 1 };
+
+export const RECORTE_RATIOS: { id: string; nome: string; ratio: number | null }[] = [
+  { id: "livre", nome: "Livre", ratio: null },
+  { id: "9:16", nome: "9:16", ratio: 9 / 16 },
+  { id: "16:9", nome: "16:9", ratio: 16 / 9 },
+  { id: "1:1", nome: "1:1", ratio: 1 },
+  { id: "4:5", nome: "4:5", ratio: 4 / 5 },
+  { id: "4:3", nome: "4:3", ratio: 4 / 3 },
+];
+
+export type MascaraTipo = "nenhuma" | "retangulo" | "circulo" | "linear" | "espelho";
+export type Mascara = {
+  tipo: MascaraTipo;
+  /** centro em fração do quadro (0..1) */
+  x: number;
+  y: number;
+  /** tamanho em fração do quadro */
+  w: number;
+  h: number;
+  rotation: number;
+  /** suavidade da borda 0..100 */
+  feather: number;
+  inverter: boolean;
+};
+export const MASCARA_PADRAO: Mascara = {
+  tipo: "nenhuma",
+  x: 0.5,
+  y: 0.5,
+  w: 0.6,
+  h: 0.6,
+  rotation: 0,
+  feather: 20,
+  inverter: false,
+};
+
+export type BlendMode =
+  | "normal"
+  | "multiply"
+  | "screen"
+  | "overlay"
+  | "soft-light"
+  | "lighten"
+  | "darken"
+  | "difference";
+
+export const BLEND_MODES: { id: BlendMode; nome: string }[] = [
+  { id: "normal", nome: "Normal" },
+  { id: "multiply", nome: "Multiplicar" },
+  { id: "screen", nome: "Tela" },
+  { id: "overlay", nome: "Sobrepor" },
+  { id: "soft-light", nome: "Luz suave" },
+  { id: "lighten", nome: "Clarear" },
+  { id: "darken", nome: "Escurecer" },
+  { id: "difference", nome: "Diferença" },
+];
+
+/** Ferramentas de aprimoramento (cada uma aplica um tratamento real no render). */
+export type Aprimorar = {
+  qualidade: boolean;
+  ruido: boolean;
+  nitidez: boolean;
+  rosto: boolean;
+  luz: boolean;
+  estabilizar: boolean;
+  cor: boolean;
+};
+export const APRIMORAR_PADRAO: Aprimorar = {
+  qualidade: false,
+  ruido: false,
+  nitidez: false,
+  rosto: false,
+  luz: false,
+  estabilizar: false,
+  cor: false,
+};
+
+export type ChromaKey = { ativo: boolean; cor: string; tolerancia: number; suavidade: number; derrame: number };
+export const CHROMA_PADRAO: ChromaKey = { ativo: false, cor: "#00B140", tolerancia: 35, suavidade: 25, derrame: 40 };
+
+export type AnimacaoTipo = "nenhuma" | "fade" | "zoom" | "slide-esq" | "slide-dir" | "subir" | "descer";
+export type AnimacaoClip = {
+  entrada: AnimacaoTipo;
+  saida: AnimacaoTipo;
+  duracaoMs: number;
+  /** Ken Burns (zoom lento contínuo) */
+  kenBurns: boolean;
+  loop?: boolean;
+};
+export const ANIMACAO_PADRAO: AnimacaoClip = { entrada: "nenhuma", saida: "nenhuma", duracaoMs: 500, kenBurns: false };
+
+export const ANIMACOES: { id: AnimacaoTipo; nome: string }[] = [
+  { id: "nenhuma", nome: "Nenhuma" },
+  { id: "fade", nome: "Fade" },
+  { id: "zoom", nome: "Zoom" },
+  { id: "slide-esq", nome: "Entrar da esquerda" },
+  { id: "slide-dir", nome: "Entrar da direita" },
+  { id: "subir", nome: "Subir" },
+  { id: "descer", nome: "Descer" },
+];
+
 export type FundoModo = "nenhum" | "desfoque" | "cor" | "midia" | "remover";
 
 /** Tratamento automático de fundo (segmentação de pessoa). */
@@ -240,7 +343,32 @@ export type EditairClip = {
   keyframes?: Keyframe[];
   /** tratamento de fundo (desfoque/remoção) */
   fundo?: Fundo;
+  /** espelhamentos */
+  flipH?: boolean;
+  flipV?: boolean;
+  /** modo de mistura com as camadas abaixo */
+  blend?: BlendMode;
+  recorte?: Recorte;
+  mascara?: Mascara;
+  aprimorar?: Aprimorar;
+  chroma?: ChromaKey;
+  animacao?: AnimacaoClip;
+  /** clipe travado (não move nem apara) */
+  bloqueado?: boolean;
+  /** áudio desvinculado do vídeo */
+  semAudio?: boolean;
+  reverso?: boolean;
+  /** congelar frame: mostra sempre este ponto do source */
+  congelado?: boolean;
+  pan?: number; // -1 esquerda .. 1 direita
+  eq?: { graves: number; medios: number; agudos: number }; // dB -12..12
+  compressor?: boolean;
+  limiter?: boolean;
+  isolarVoz?: boolean;
 };
+
+/** Marcadores da timeline. */
+export type Marcador = { id: string; atMs: number; cor: string; nota?: string };
 
 export type ProjectState = {
   version: 1;
@@ -253,6 +381,7 @@ export type ProjectState = {
   fps: number;
   ducking?: { ativo: boolean; reducao: number };
   audioFx?: { voz: boolean; ruido: boolean };
+  marcadores?: Marcador[];
 };
 
 export type TranscriptWord = { w: string; start: number; end: number; assetId?: string };
@@ -298,6 +427,7 @@ export function estadoVazio(width = 1080, height = 1920, fps = 30): ProjectState
     fps,
     ducking: { ativo: false, reducao: 70 },
     audioFx: { voz: false, ruido: false },
+    marcadores: [],
   };
 }
 
@@ -311,6 +441,7 @@ export function normalizarEstado(bruto: ProjectState, width: number, height: num
     fps: bruto.fps || fps,
     captionStyle: { ...LEGENDA_PADRAO, ...(bruto.captionStyle ?? {}) },
     ducking: bruto.ducking ?? { ativo: false, reducao: 70 },
+    marcadores: bruto.marcadores ?? [],
     audioFx: bruto.audioFx ?? { voz: false, ruido: false },
     tracks: (bruto.tracks?.length ? bruto.tracks : TRILHAS_PADRAO).map((t) => ({ ...t })),
     clips: (bruto.clips ?? []).map((c) => ({ ...c })),
