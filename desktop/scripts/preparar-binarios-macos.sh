@@ -6,7 +6,7 @@ DEST="$ROOT/bin/darwin/arm64"
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 FFMPEG_URL="${EDITAIR_FFMPEG_URL:-https://evermeet.cx/ffmpeg/getrelease/zip}"
-FFPROBE_URL="${EDITAIR_FFPROBE_URL:-https://evermeet.cx/ffmpeg/ffprobe/getrelease/zip}"
+FFPROBE_URL="${EDITAIR_FFPROBE_URL:-https://evermeet.cx/ffmpeg/getrelease/ffprobe/zip}"
 
 diagnostico() {
   local p="$1"
