@@ -1380,6 +1380,16 @@ function EditorPage() {
           onAbrirSource={setSourceClipId}
           onRestaurarClip={restaurarClip}
           onSoltarArquivos={(arquivos, ms) => void importar(arquivos, ms)}
+          onNovaTrilhaVideo={() => {
+            // camadas de vídeo empilhadas: a nova entra acima (aparece por cima no preview)
+            const existentes = state.tracks.filter((t) => t.id.startsWith("t-video"));
+            const nova = {
+              id: `t-video-${existentes.length + 1}-${Math.random().toString(36).slice(2, 6)}`,
+              kind: "video" as const,
+              name: `Vídeo ${existentes.length + 1}`,
+            };
+            aplicar({ ...state, tracks: [nova, ...state.tracks] });
+          }}
           onAcaoClip={(cid, acao) => {
             const c = state.clips.find((x) => x.id === cid);
             if (!c) return;
