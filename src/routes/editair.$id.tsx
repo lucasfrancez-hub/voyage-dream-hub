@@ -64,9 +64,12 @@ import {
   paraWav16k,
 } from "@/lib/editair/audio";
 import { EditairEngine } from "@/lib/editair/engine";
+import { consumirHandoff } from "@/lib/editair/handoff";
 import { Timeline, type AssetInfo } from "@/components/editair/Timeline";
 import { PlayerStage } from "@/components/editair/PlayerStage";
+import { SourceDialog } from "@/components/editair/SourceDialog";
 import { ToolPanel, type AssetItem, type Ferramenta, type MensagemIa } from "@/components/editair/ToolPanels";
+
 import {
   ExportDialog,
   type ExportConfig,
@@ -133,6 +136,12 @@ function EditorPage() {
   const [progresso, setProgresso] = useState<ProgressoExport>(null);
   const [resultado, setResultado] = useState<ResultadoExport>(null);
 
+  const [rippleTrim, setRippleTrim] = useState(false);
+  const [sourceClipId, setSourceClipId] = useState<string | null>(null);
+  const [dimsOriginais, setDimsOriginais] = useState<{ w: number; h: number } | null>(null);
+  const [autoEtapa, setAutoEtapa] = useState<"importar" | "planejar" | "montar" | null>(null);
+  const autoRef = useRef<{ instrucao: string } | null>(null);
+
   const historico = useRef<ProjectState[]>([]);
   const futuro = useRef<ProjectState[]>([]);
 
@@ -146,6 +155,19 @@ function EditorPage() {
     for (const a of assets) m[a.id] = { url: a.url, durationMs: a.durationMs, kind: a.kind, name: a.nome };
     return m;
   }, [assets]);
+
+  /** Duração real de cada arquivo — base dos limites de trim não destrutivo. */
+  const duracoesFonte = useMemo(() => {
+    const m: Record<string, number> = {};
+    for (const a of assets) m[a.id] = a.durationMs;
+    return m;
+  }, [assets]);
+
+  const clipeSource = useMemo(
+    () => state.clips.find((c) => c.id === sourceClipId) ?? null,
+    [state.clips, sourceClipId],
+  );
+
 
   /* ---------------- carregar projeto ---------------- */
   useEffect(() => {
@@ -195,11 +217,23 @@ function EditorPage() {
           setAssets(lista);
           eng.desenhar(estado, 0);
         }
+
+        const primeiro = res.assets.find((a) => Number(a.width) > 0 && Number(a.height) > 0);
+        if (primeiro) setDimsOriginais({ w: Number(primeiro.width), h: Number(primeiro.height) });
+
+        // veio da tela "Novo projeto": importa, analisa e monta o primeiro corte
+        const handoff = consumirHandoff(id);
+        if (handoff?.arquivos.length) {
+          autoRef.current = { instrucao: handoff.instrucao };
+          setAutoEtapa("importar");
+          void importar(handoff.arquivos);
+        }
       } catch (e) {
         toast.error(e instanceof Error ? e.message : "Falha ao abrir o projeto");
       } finally {
         if (vivo) setCarregando(false);
       }
+
     })();
     return () => {
       vivo = false;
@@ -321,6 +355,28 @@ function EditorPage() {
     setState((s) => recalcularDuracao({ ...s, clips: s.clips.map((c) => (c.id === cid ? { ...c, ...patch } : c)) }));
   };
 
+  /** Alteração em lote (ripple trim mexe em vários clipes ao mesmo tempo). */
+  const alterarClipsTimeline = (patches: Record<string, Partial<EditairClip>>, commit: boolean) => {
+    if (commit) {
+      setState((s) => recalcularDuracao({ ...s }));
+      return;
+    }
+    setState((s) =>
+      recalcularDuracao({
+        ...s,
+        clips: s.clips.map((c) => (patches[c.id] ? { ...c, ...patches[c.id] } : c)),
+      }),
+    );
+  };
+
+
+  /** Devolve o clipe à duração integral do arquivo original (não destrutivo). */
+  const restaurarClip = (cid: string) => {
+    aplicar(aplicarOps(state, [{ op: "restore_clip", clipId: cid }], transcript, duracoesFonte).state);
+    toast.success("Duração original restaurada");
+  };
+
+
   const dividir = () => {
     const alvos = selecionados.length ? selecionados : state.clips.filter((c) => playhead > c.start && playhead < c.start + c.duration).map((c) => c.id);
     if (!alvos.length) return toast.error("Nada para dividir no playhead.");
@@ -427,7 +483,7 @@ function EditorPage() {
     setSelecionados([clip.id]);
   };
 
-  const importar = async (arquivos: FileList | null) => {
+  const importar = async (arquivos: FileList | File[] | null) => {
     if (!arquivos?.length) return;
     setOcupado("Enviando mídia…");
     try {
@@ -436,10 +492,14 @@ function EditorPage() {
       if (!uid) throw new Error("Sessão expirada");
 
       const proximo: ProjectState = { ...state, clips: [...state.clips] };
+      const eraVazio = proximo.clips.length === 0;
+      let dims: { w: number; h: number } | null = null;
       const novosAssets: AssetItem[] = [];
       for (const arquivo of Array.from(arquivos)) {
         const kind = arquivo.type.startsWith("audio") ? "audio" : arquivo.type.startsWith("image") ? "image" : "video";
         const meta = kind === "image" ? { durationMs: 5000, width: 0, height: 0 } : await lerMetadados(arquivo);
+        if (!dims && meta.width > 0 && meta.height > 0) dims = { w: meta.width, h: meta.height };
+
         const caminho = `${uid}/${id}/${novoId("a")}-${arquivo.name.replace(/[^\w.\-]/g, "_")}`;
         const { error } = await supabase.storage.from("editair-media").upload(caminho, arquivo, {
           contentType: arquivo.type || "video/mp4",
@@ -492,13 +552,25 @@ function EditorPage() {
         }
       }
       setAssets((a) => [...a, ...novosAssets]);
+      if (dims) {
+        setDimsOriginais(dims);
+        if (eraVazio) {
+          proximo.width = dims.w;
+          proximo.height = dims.h;
+          engineRef.current?.redimensionar(dims.w, dims.h);
+        }
+      }
       aplicar(proximo);
       toast.success("Mídia importada");
+      if (autoRef.current) setAutoEtapa("planejar");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Falha ao importar");
+      autoRef.current = null;
+      setAutoEtapa(null);
     } finally {
       setOcupado(null);
     }
+
   };
 
   const renomearAsset = async (assetId: string, nome: string) => {
@@ -763,6 +835,25 @@ function EditorPage() {
     toast.success(resumo);
   };
 
+  /* --------- fluxo automático vindo da tela "Novo projeto" --------- */
+  useEffect(() => {
+    if (autoEtapa !== "planejar" || pensando) return;
+    if (!state.clips.some((c) => c.trackId === "t-video" && c.assetId)) return;
+    setAutoEtapa("montar");
+    void planejar(autoRef.current?.instrucao ?? "");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoEtapa, state.clips]);
+
+  useEffect(() => {
+    if (autoEtapa !== "montar" || pensando || !plano) return;
+    setAutoEtapa(null);
+    autoRef.current = null;
+    aplicarPlano();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoEtapa, plano, pensando]);
+
+
+
 
   /* ---------------- exportação ---------------- */
   const exportar = async (cfg: ExportConfig) => {
@@ -1006,6 +1097,8 @@ function EditorPage() {
           canvasRef={canvasRef}
           width={state.width}
           height={state.height}
+          originalWidth={dimsOriginais?.w}
+          originalHeight={dimsOriginais?.h}
           fps={state.fps}
           playheadMs={playhead}
           durationMs={state.durationMs}
@@ -1040,6 +1133,16 @@ function EditorPage() {
           >
             <Magnet className="h-3.5 w-3.5" /> Snap
           </button>
+          <button
+            onClick={() => setRippleTrim((v) => !v)}
+            className={`flex items-center gap-1 rounded-md px-2 py-1 transition ${
+              rippleTrim ? "bg-[#F26B1F]/20 text-[#F26B1F]" : "text-white/50 hover:bg-white/10"
+            }`}
+            title="Ao aparar, aproxima automaticamente os clipes seguintes"
+          >
+            Ripple trim
+          </button>
+
           {selecao ? (
             <button
               onClick={() => {
@@ -1068,10 +1171,15 @@ function EditorPage() {
           selecao={selecao}
           assets={assetsMap}
           snapping={snapping}
+          rippleTrim={rippleTrim}
           onSeek={(ms) => setPlayhead(Math.max(0, ms))}
           onSelecionar={setSelecionados}
           onSelecao={setSelecao}
           onAlterarClip={alterarClipTimeline}
+          onAlterarClips={alterarClipsTimeline}
+          onAbrirSource={setSourceClipId}
+          onRestaurarClip={restaurarClip}
+
           onToggleTrack={(trackId, campo) =>
             aplicar({
               ...state,
@@ -1097,6 +1205,19 @@ function EditorPage() {
         }}
         onLimparResultado={() => setResultado(null)}
       />
+
+      <SourceDialog
+        aberto={!!clipeSource}
+        clip={clipeSource}
+        asset={clipeSource?.assetId ? (assetsMap[clipeSource.assetId] ?? null) : null}
+        onFechar={() => setSourceClipId(null)}
+        onRestaurar={() => {
+          if (clipeSource) restaurarClip(clipeSource.id);
+          setSourceClipId(null);
+        }}
+      />
+
+
 
       {ocupado ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">

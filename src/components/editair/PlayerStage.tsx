@@ -23,16 +23,18 @@ const SAFE: Record<Plataforma, { top: number; bottom: number; left: number; righ
 };
 
 const RATIOS: { id: string; label: string; w: number; h: number }[] = [
-  { id: "9:16", label: "9:16", w: 1080, h: 1920 },
-  { id: "16:9", label: "16:9", w: 1920, h: 1080 },
-  { id: "4:5", label: "4:5", w: 1080, h: 1350 },
-  { id: "1:1", label: "1:1", w: 1080, h: 1080 },
+  { id: "9:16", label: "9:16 — Reels / TikTok / Shorts", w: 1080, h: 1920 },
+  { id: "16:9", label: "16:9 — Horizontal", w: 1920, h: 1080 },
+  { id: "4:5", label: "4:5 — Instagram Feed", w: 1080, h: 1350 },
+  { id: "1:1", label: "1:1 — Quadrado", w: 1080, h: 1080 },
 ];
 
 type Props = {
   canvasRef: React.RefObject<HTMLCanvasElement | null>;
   width: number;
   height: number;
+  originalWidth?: number;
+  originalHeight?: number;
   fps: number;
   playheadMs: number;
   durationMs: number;
@@ -49,10 +51,13 @@ type Props = {
   onFormato: (w: number, h: number) => void;
 };
 
+
 export function PlayerStage({
   canvasRef,
   width,
   height,
+  originalWidth,
+  originalHeight,
   fps,
   playheadMs,
   durationMs,
@@ -76,7 +81,14 @@ export function PlayerStage({
   const [centro, setCentro] = useState(false);
   const [zoom, setZoom] = useState(1);
   const [fullscreen, setFullscreen] = useState(false);
+  const [personalizado, setPersonalizado] = useState(false);
   const ratioAtual = `${Math.round((width / height) * 100) / 100}`;
+
+  const temOriginal = !!originalWidth && !!originalHeight;
+  const ehOriginal = temOriginal && originalWidth === width && originalHeight === height;
+  const valorRatio = ehOriginal
+    ? "original"
+    : (RATIOS.find((r) => Math.abs(r.w / r.h - width / height) < 0.02)?.id ?? "custom");
 
   useEffect(() => {
     const h = () => setFullscreen(!!document.fullscreenElement);
@@ -112,14 +124,32 @@ export function PlayerStage({
           <option value="shorts">YouTube Shorts</option>
         </select>
         <select
-          value={RATIOS.find((r) => Math.abs(r.w / r.h - width / height) < 0.02)?.id ?? "custom"}
+          value={valorRatio}
           onChange={(e) => {
-            const r = RATIOS.find((x) => x.id === e.target.value);
-            if (r) onFormato(r.w, r.h);
+            const v = e.target.value;
+            if (v === "original" && temOriginal) {
+              setPersonalizado(false);
+              onFormato(originalWidth!, originalHeight!);
+              return;
+            }
+            if (v === "custom") {
+              setPersonalizado(true);
+              return;
+            }
+            const r = RATIOS.find((x) => x.id === v);
+            if (r) {
+              setPersonalizado(false);
+              onFormato(r.w, r.h);
+            }
           }}
           className="rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-[11px] outline-none"
           title="Proporção do projeto"
         >
+          {temOriginal ? (
+            <option value="original">
+              Original ({originalWidth}×{originalHeight})
+            </option>
+          ) : null}
           {RATIOS.map((r) => (
             <option key={r.id} value={r.id}>
               {r.label}
@@ -127,6 +157,28 @@ export function PlayerStage({
           ))}
           <option value="custom">Personalizado ({ratioAtual})</option>
         </select>
+        {personalizado || valorRatio === "custom" ? (
+          <span className="flex items-center gap-1 text-[11px] text-white/50">
+            <input
+              type="number"
+              value={width}
+              min={240}
+              max={4096}
+              onChange={(e) => onFormato(Math.max(240, Number(e.target.value) || 240), height)}
+              className="w-16 rounded border border-white/10 bg-white/5 px-1.5 py-1 outline-none"
+            />
+            ×
+            <input
+              type="number"
+              value={height}
+              min={240}
+              max={4096}
+              onChange={(e) => onFormato(width, Math.max(240, Number(e.target.value) || 240))}
+              className="w-16 rounded border border-white/10 bg-white/5 px-1.5 py-1 outline-none"
+            />
+          </span>
+        ) : null}
+
         <button
           onClick={() => void alternarTela()}
           className="rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-[11px] hover:bg-white/10"

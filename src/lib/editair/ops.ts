@@ -15,6 +15,8 @@ import {
 export type EditairOp =
   | { op: "split_clip"; clipId: string; atMs: number }
   | { op: "trim_clip"; clipId: string; startMs?: number; durationMs?: number }
+  | { op: "extend_clip"; clipId: string; direction: "left" | "right"; ms: number; ripple?: boolean }
+  | { op: "restore_clip"; clipId: string }
   | { op: "move_clip"; clipId: string; startMs: number; trackId?: string }
   | { op: "delete_clip"; clipId: string }
   | { op: "delete_range"; fromMs: number; toMs: number; ripple?: boolean }
@@ -30,11 +32,29 @@ export type EditairOp =
 
 export type OpResult = { state: ProjectState; log: string[] };
 
+/** Duração real de cada arquivo de origem (ms), por assetId. */
+export type SourceDurations = Record<string, number>;
+
 const clamp = (v: number, a: number, b: number) => Math.min(b, Math.max(a, v));
+
+/**
+ * Quanto o clipe ainda pode crescer para cada lado (em ms de timeline),
+ * respeitando os limites reais do arquivo de origem. Edição não destrutiva:
+ * o material aparado continua existindo no source.
+ */
+export function limitesDoClip(clip: EditairClip, sourceDurations?: SourceDurations) {
+  const dur = clip.assetId ? sourceDurations?.[clip.assetId] : undefined;
+  const speed = clip.speed || 1;
+  const esquerda = clip.assetId ? Math.max(0, clip.sourceIn / speed) : Infinity;
+  const usado = clip.sourceIn + clip.duration * speed;
+  const direita = dur && dur > 0 ? Math.max(0, (dur - usado) / speed) : Infinity;
+  return { esquerda, direita, sourceDuration: dur ?? null };
+}
 
 function ordenar(clips: EditairClip[]) {
   return [...clips].sort((a, b) => a.start - b.start);
 }
+
 
 /** Fecha buracos na trilha, mantendo a ordem (ripple). */
 export function fecharBuracos(state: ProjectState, trackIds: string[]): ProjectState {
@@ -51,7 +71,12 @@ export function fecharBuracos(state: ProjectState, trackIds: string[]): ProjectS
   return recalcularDuracao({ ...state, clips });
 }
 
-export function aplicarOps(state: ProjectState, ops: EditairOp[], transcript?: Transcript | null): OpResult {
+export function aplicarOps(
+  state: ProjectState,
+  ops: EditairOp[],
+  transcript?: Transcript | null,
+  sourceDurations?: SourceDurations,
+): OpResult {
   let s: ProjectState = { ...state, clips: [...state.clips], tracks: [...state.tracks] };
   const log: string[] = [];
 
@@ -78,19 +103,70 @@ export function aplicarOps(state: ProjectState, ops: EditairOp[], transcript?: T
       case "trim_clip": {
         s.clips = s.clips.map((c) => {
           if (c.id !== op.clipId) return c;
+          const lim = limitesDoClip(c, sourceDurations);
           const next = { ...c };
           if (op.startMs != null) {
-            const delta = op.startMs - c.start;
-            next.start = op.startMs;
+            // não deixa passar do começo real do arquivo nem "comer" o clipe todo
+            const delta = clamp(op.startMs - c.start, -lim.esquerda, c.duration - 100);
+            next.start = Math.max(0, c.start + delta);
             next.sourceIn = Math.max(0, c.sourceIn + delta * c.speed);
             next.duration = Math.max(100, c.duration - delta);
           }
-          if (op.durationMs != null) next.duration = Math.max(100, op.durationMs);
+          if (op.durationMs != null) {
+            const maxDur = next.duration + lim.direita;
+            next.duration = clamp(op.durationMs, 100, Number.isFinite(maxDur) ? maxDur : op.durationMs);
+          }
           return next;
         });
         log.push("Clipe ajustado");
         break;
       }
+      case "extend_clip": {
+        const c = s.clips.find((x) => x.id === op.clipId);
+        if (!c) break;
+        const lim = limitesDoClip(c, sourceDurations);
+        if (op.direction === "left") {
+          const ganho = Math.min(Math.abs(op.ms), lim.esquerda, c.start);
+          if (ganho <= 0) {
+            log.push("Não há mais material antes deste trecho");
+            break;
+          }
+          s.clips = s.clips.map((x) =>
+            x.id === c.id
+              ? { ...x, start: x.start - ganho, duration: x.duration + ganho, sourceIn: Math.max(0, x.sourceIn - ganho * x.speed) }
+              : x,
+          );
+          log.push(`Clipe estendido ${(ganho / 1000).toFixed(2)}s para a esquerda`);
+        } else {
+          const ganho = Math.min(Math.abs(op.ms), lim.direita);
+          if (ganho <= 0) {
+            log.push("Não há mais material depois deste trecho");
+            break;
+          }
+          const fimAntigo = c.start + c.duration;
+          s.clips = s.clips.map((x) => {
+            if (x.id === c.id) return { ...x, duration: x.duration + ganho };
+            if (op.ripple !== false && x.trackId === c.trackId && x.start >= fimAntigo)
+              return { ...x, start: x.start + ganho };
+            return x;
+          });
+          log.push(`Clipe estendido ${(ganho / 1000).toFixed(2)}s para a direita`);
+        }
+        break;
+      }
+      case "restore_clip": {
+        s.clips = s.clips.map((c) => {
+          if (c.id !== op.clipId) return c;
+          const dur = c.assetId ? sourceDurations?.[c.assetId] : undefined;
+          if (!dur) return c;
+          const speed = c.speed || 1;
+          const recuo = Math.min(c.sourceIn / speed, c.start);
+          return { ...c, start: c.start - recuo, sourceIn: 0, duration: Math.max(100, dur / speed) };
+        });
+        log.push("Duração original restaurada");
+        break;
+      }
+
       case "move_clip": {
         s.clips = s.clips.map((c) =>
           c.id === op.clipId
