@@ -202,17 +202,20 @@ function EditairHome() {
     }
   };
 
-  const excluirMidia = (m: MidiaGaleria) =>
+  const excluirMidia = (m: Midia) =>
     confirmThen(
       {
         title: "Excluir mídia",
-        description: `“${m.nome}” será removida da galeria. Projetos que usam esse arquivo perdem a mídia.`,
+        description: m.local
+          ? `“${m.nome}” sai da biblioteca do EditAir. O arquivo original no computador não é apagado.`
+          : `“${m.nome}” será removida da galeria. Projetos que usam esse arquivo perdem a mídia.`,
         confirmText: "Excluir",
         destructive: true,
       },
       async () => {
         try {
-          await excluirAssetEditair({ data: { id: m.id } });
+          if (desktop && m.local) await desktop.biblioteca.remover(m.id, false);
+          else await excluirAssetEditair({ data: { id: m.id } });
           setMidias((cur) => (cur ?? []).filter((x) => x.id !== m.id));
           setSelecao((s) => s.filter((x) => x !== m.id));
           toast.success("Mídia excluída");
@@ -227,7 +230,8 @@ function EditairHome() {
     const nome = novoNome.trim();
     if (!nome) return;
     try {
-      await renomearAssetEditair({ data: { id: renomeando.id, name: nome } });
+      if (desktop && renomeando.local) await desktop.biblioteca.renomear(renomeando.id, nome);
+      else await renomearAssetEditair({ data: { id: renomeando.id, name: nome } });
       setMidias((cur) => (cur ?? []).map((m) => (m.id === renomeando.id ? { ...m, nome } : m)));
       setRenomeando(null);
       toast.success("Nome atualizado");
