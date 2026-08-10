@@ -31,11 +31,29 @@ jobs:
         run: |
           BASE=$(node -p "require('./package.json').version")
           npm version "${BASE%%-*}-${{ inputs.canal }}.${{ github.run_number }}" --no-git-tag-version
-      - name: Gerar DMG (arm64, sem publicar)
+      - name: Gerar DMG (arm64, ad-hoc, sem publicar)
         working-directory: desktop
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: "false"
-        run: npx electron-builder --mac --arm64 --publish never
+          # ativa o hook scripts/adhoc-sign.cjs (assinatura ad-hoc obrigatória no Apple Silicon)
+          EDITAIR_ADHOC: "1"
+        run: |
+          npx electron-builder --mac --arm64 --publish never \
+            --config.mac.identity=null \
+            --config.mac.hardenedRuntime=false
+      - name: Validar bundle (.app)
+        working-directory: desktop
+        run: bash scripts/verificar-app.sh dist/mac-arm64/EditAir.app
+      - name: Validar DMG (monta, verifica e testa o app de dentro da imagem)
+        working-directory: desktop
+        run: |
+          DMG=$(ls dist/*.dmg | head -n1)
+          echo "DMG: $DMG"
+          hdiutil verify "$DMG"
+          MNT=$(mktemp -d)
+          hdiutil attach "$DMG" -nobrowse -readonly -mountpoint "$MNT"
+          bash scripts/verificar-app.sh "$MNT/EditAir.app"
+          hdiutil detach "$MNT"
       - uses: actions/upload-artifact@v4
         with:
           name: EditAir-${{ inputs.canal }}-dmg
