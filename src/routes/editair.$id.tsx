@@ -1150,10 +1150,15 @@ function EditorPage() {
           selecao={selecao}
           assets={assetsMap}
           snapping={snapping}
+          rippleTrim={rippleTrim}
           onSeek={(ms) => setPlayhead(Math.max(0, ms))}
           onSelecionar={setSelecionados}
           onSelecao={setSelecao}
           onAlterarClip={alterarClipTimeline}
+          onAlterarClips={alterarClipsTimeline}
+          onAbrirSource={setSourceClipId}
+          onRestaurarClip={restaurarClip}
+
           onToggleTrack={(trackId, campo) =>
             aplicar({
               ...state,
