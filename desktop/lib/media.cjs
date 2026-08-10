@@ -132,6 +132,8 @@ async function proxy(arquivo, meta, onProgress) {
     "-vf", "scale=-2:720",
     "-r", String(Math.min(meta?.fps || 30, 30)),
     "-c:v", encoder,
+    "-pix_fmt", "yuv420p",
+    "-tag:v", "avc1",
     "-b:v", "3M",
     "-c:a", "aac", "-b:a", "128k",
     "-movflags", "+faststart",

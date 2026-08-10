@@ -99,7 +99,19 @@ export class EditairEngine {
   }
 
   async carregar(assetId: string, url: string, kind = "video") {
-    if (this.midias.has(assetId) || this.imagens.has(assetId)) return;
+    if ((this.midias.has(assetId) || this.imagens.has(assetId)) && !this.falhas.has(assetId)) return;
+    // Relink ou uma nova URL de proxy deve substituir a tentativa que falhou.
+    const anterior = this.midias.get(assetId);
+    if (anterior) {
+      anterior.el.pause();
+      anterior.el.removeAttribute("src");
+      anterior.el.load();
+      try { anterior.entrada?.disconnect(); } catch { /* já desconectado */ }
+      try { anterior.gain.disconnect(); } catch { /* já desconectado */ }
+      this.midias.delete(assetId);
+    }
+    this.imagens.delete(assetId);
+    this.falhas.delete(assetId);
     // Arquivos locais do Desktop vêm pelo protocolo editair-media:// — pedir CORS
     // ("anonymous") faz o Chromium recusar a mídia e o preview fica preto.
     const local = url.startsWith("editair-media:") || url.startsWith("blob:") || url.startsWith("file:");
@@ -111,7 +123,12 @@ export class EditairEngine {
       if (!local) img.crossOrigin = "anonymous";
       img.src = url;
       await new Promise<void>((resolve) => {
-        const ok = () => resolve();
+        let terminou = false;
+        const ok = () => {
+          if (terminou) return;
+          terminou = true;
+          resolve();
+        };
         img.onload = () => {
           this.falhas.delete(assetId);
           ok();
@@ -121,7 +138,10 @@ export class EditairEngine {
           console.error(`[preview:error] imagem não carregou asset=${assetId}`);
           ok();
         };
-        setTimeout(ok, 10000);
+        setTimeout(() => {
+          if (!terminou && !img.complete) this.falhas.add(assetId);
+          ok();
+        }, 10000);
       });
       this.imagens.set(assetId, img);
       this.redesenhar();
@@ -135,7 +155,12 @@ export class EditairEngine {
     el.src = url;
     log("carregando");
     await new Promise<void>((resolve) => {
-      const ok = () => resolve();
+      let terminou = false;
+      const ok = () => {
+        if (terminou) return;
+        terminou = true;
+        resolve();
+      };
       el.onloadeddata = () => {
         this.falhas.delete(assetId);
         log("metadata loaded", { w: el.videoWidth, h: el.videoHeight, dur: el.duration });
@@ -146,8 +171,18 @@ export class EditairEngine {
         console.error(`[preview:error] mídia não carregou asset=${assetId}`, el.error?.message);
         ok();
       };
-      setTimeout(ok, 10000);
+      setTimeout(() => {
+        if (!terminou && el.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) {
+          this.falhas.add(assetId);
+          console.error(`[preview:error] tempo esgotado ao carregar asset=${assetId}`, {
+            networkState: el.networkState,
+            readyState: el.readyState,
+          });
+        }
+        ok();
+      }, 10000);
     });
+    el.load();
     // o preview precisa repintar quando o vídeo termina de buscar o frame
     el.addEventListener("seeked", () => this.redesenhar());
     el.addEventListener("loadeddata", () => this.redesenhar());
