@@ -31,9 +31,12 @@ jobs:
         run: |
           BASE=$(node -p "require('./package.json').version")
           npm version "${BASE%%-*}-${{ inputs.canal }}.${{ github.run_number }}" --no-git-tag-version
-      - name: Preparar e validar FFmpeg + FFprobe arm64
+      - name: Preparar FFmpeg/FFprobe arm64
         working-directory: desktop
         run: npm run prepare:mac-binaries
+      - name: Conferir sidecars antes do empacotamento
+        working-directory: desktop
+        run: bash scripts/verificar-sidecars.sh
       - name: Gerar DMG (arm64, ad-hoc, sem publicar)
         working-directory: desktop
         env:
@@ -84,10 +87,14 @@ jobs:
       - name: Instalar dependências
         working-directory: desktop
         run: npm install
-      - name: Preparar e validar FFmpeg + FFprobe arm64
+      - name: Preparar FFmpeg/FFprobe arm64
         if: runner.os == 'macOS'
         working-directory: desktop
         run: npm run prepare:mac-binaries
+      - name: Conferir sidecars antes do empacotamento
+        if: runner.os == 'macOS'
+        working-directory: desktop
+        run: bash scripts/verificar-sidecars.sh
       - name: Build + publicar release
         working-directory: desktop
         env:

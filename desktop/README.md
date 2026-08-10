@@ -94,3 +94,17 @@ xattr -dr com.apple.quarantine /Applications/EditAir.app
 
 Isso não altera nenhuma configuração global do macOS. Quando tivermos conta
 Apple Developer, o release assinado + notarizado dispensa esse passo.
+
+## FFmpeg/FFprobe (sidecars nativos)
+
+Os binários **não ficam no Git**. O build (local ou CI) provisiona sozinho:
+
+```bash
+cd desktop && npm run prepare:mac-binaries   # baixa e valida ffmpeg/ffprobe arm64
+bash scripts/verificar-sidecars.sh           # gate: file/lipo/execução antes do packaging
+```
+
+Fontes, em ordem: pacotes npm `@ffmpeg-installer/darwin-arm64` e
+`@ffprobe-installer/darwin-arm64`; fallback para osxexperts e evermeet.
+Só sobe para `desktop/bin/darwin/arm64/` o binário com `lipo -archs = arm64`
+que executa `-version` com sucesso; o log mostra origem, arquitetura e SHA256.
