@@ -43,6 +43,8 @@ export class EditairEngine {
   private master: GainNode | null = null;
   private midias = new Map<string, Midia>();
   private imagens = new Map<string, HTMLImageElement>();
+  /** assets que falharam ao carregar — desenhados como "Mídia offline" */
+  private falhas = new Set<string>();
   /** último quadro pedido — usado para repintar quando o vídeo termina de buscar */
   private ultimo: { state: ProjectState; t: number } | null = null;
   private tocandoAgora = false;
