@@ -1,4 +1,6 @@
 import {
+  FUNDO_PADRAO,
+  type Fundo,
   type EditairClip,
   type ProjectState,
   type Transcript,
@@ -28,7 +30,20 @@ export type EditairOp =
   | { op: "rebuild_captions"; mode?: "frase" | "palavra" }
   | { op: "remove_captions" }
   | { op: "mute_track"; trackId: string; muted: boolean }
-  | { op: "delete_text_range"; query: string };
+  | { op: "delete_text_range"; query: string }
+  | {
+      op: "set_background";
+      clipId?: string;
+      modo?: Fundo["modo"];
+      desfoque?: number;
+      suavidade?: number;
+      borda?: number;
+      cor?: string;
+      assetId?: string;
+      contorno?: boolean;
+      estabilidade?: number;
+      qualidade?: "rapida" | "alta";
+    };
 
 export type OpResult = { state: ProjectState; log: string[] };
 
