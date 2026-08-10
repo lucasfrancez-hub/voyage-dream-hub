@@ -1,16 +1,15 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Loader2, Plus, Trash2, Film } from "lucide-react";
+import { Loader2, Plus, Trash2, Film, UploadCloud, X } from "lucide-react";
 import {
   criarProjetoEditair,
   excluirProjetoEditair,
   listarProjetosEditair,
 } from "@/lib/editair/projects.functions";
-import { FORMATOS, type EditairFormat } from "@/lib/editair/types";
+import { guardarHandoff } from "@/lib/editair/handoff";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { confirmThen } from "@/lib/confirm";
 
@@ -33,10 +32,11 @@ function ProjetosPage() {
   const navigate = useNavigate();
   const [projetos, setProjetos] = useState<Projeto[] | null>(null);
   const [aberto, setAberto] = useState(false);
-  const [nome, setNome] = useState("");
+  const [arquivos, setArquivos] = useState<File[]>([]);
   const [instrucoes, setInstrucoes] = useState("");
-  const [formato, setFormato] = useState<Exclude<EditairFormat, "custom">>("vertical");
+  const [arrastando, setArrastando] = useState(false);
   const [criando, setCriando] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const carregar = async () => {
     try {
@@ -52,23 +52,30 @@ function ProjetosPage() {
     void carregar();
   }, []);
 
+  const adicionar = (lista: FileList | null) => {
+    if (!lista?.length) return;
+    setArquivos((a) => [...a, ...Array.from(lista)]);
+  };
+
   const criar = async () => {
-    if (!nome.trim()) return toast.error("Dê um nome ao projeto");
+    if (!arquivos.length) return toast.error("Adicione pelo menos um vídeo.");
     setCriando(true);
     try {
-      const f = FORMATOS[formato];
+      const nome = arquivos[0].name.replace(/\.[^.]+$/, "").slice(0, 100) || "Novo projeto";
       const { id } = await criarProjetoEditair({
         data: {
-          name: nome.trim(),
-          format: formato,
-          width: f.width,
-          height: f.height,
+          // formato é decidido depois, dentro do editor
+          name: nome,
+          format: "custom",
+          width: 1080,
+          height: 1920,
           fps: 30,
           instructions: instrucoes.trim() || null,
         },
       });
+      guardarHandoff(id, { arquivos, instrucao: instrucoes.trim() });
       setAberto(false);
-      setNome("");
+      setArquivos([]);
       setInstrucoes("");
       navigate({ to: "/editair/$id", params: { id } });
     } catch (e) {
@@ -97,7 +104,6 @@ function ProjetosPage() {
       },
     );
 
-  const formatos = useMemo(() => Object.entries(FORMATOS) as [Exclude<EditairFormat, "custom">, (typeof FORMATOS)["vertical"]][], []);
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-10">
