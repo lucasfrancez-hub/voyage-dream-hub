@@ -355,6 +355,28 @@ function EditorPage() {
     setState((s) => recalcularDuracao({ ...s, clips: s.clips.map((c) => (c.id === cid ? { ...c, ...patch } : c)) }));
   };
 
+  /** Alteração em lote (ripple trim mexe em vários clipes ao mesmo tempo). */
+  const alterarClipsTimeline = (patches: Array<{ id: string; patch: Partial<EditairClip> }>, commit: boolean) => {
+    if (commit) {
+      setState((s) => recalcularDuracao({ ...s }));
+      return;
+    }
+    const mapa = new Map(patches.map((p) => [p.id, p.patch]));
+    setState((s) =>
+      recalcularDuracao({
+        ...s,
+        clips: s.clips.map((c) => (mapa.has(c.id) ? { ...c, ...mapa.get(c.id)! } : c)),
+      }),
+    );
+  };
+
+  /** Devolve o clipe à duração integral do arquivo original (não destrutivo). */
+  const restaurarClip = (cid: string) => {
+    aplicar(aplicarOps(state, [{ op: "restore_clip", clipId: cid }], transcript, duracoesFonte).state);
+    toast.success("Duração original restaurada");
+  };
+
+
   const dividir = () => {
     const alvos = selecionados.length ? selecionados : state.clips.filter((c) => playhead > c.start && playhead < c.start + c.duration).map((c) => c.id);
     if (!alvos.length) return toast.error("Nada para dividir no playhead.");
