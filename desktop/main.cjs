@@ -19,7 +19,17 @@ let janela = null;
 
 // protocolo próprio para ler arquivos locais no <video>/<img> sem upload
 protocol.registerSchemesAsPrivileged([
-  { scheme: "editair-media", privileges: { standard: true, secure: true, supportFetchAPI: true, stream: true, bypassCSP: true } },
+  {
+    scheme: "editair-media",
+    privileges: {
+      standard: true,
+      secure: true,
+      supportFetchAPI: true,
+      stream: true,
+      bypassCSP: true,
+      corsEnabled: true,
+    },
+  },
 ]);
 
 function criarJanela() {
