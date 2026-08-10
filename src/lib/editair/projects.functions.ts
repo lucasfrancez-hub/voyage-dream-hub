@@ -167,6 +167,39 @@ export const registrarAssetEditair = createServerFn({ method: "POST" })
     return row;
   });
 
+export const renomearAssetEditair = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({ id: z.string().uuid(), name: z.string().min(1).max(200) }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    await garantirAcesso(supabase, userId);
+    const { error } = await supabase.from("editair_assets").update({ name: data.name }).eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const excluirAssetEditair = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    await garantirAcesso(supabase, userId);
+    const { data: row } = await supabase
+      .from("editair_assets")
+      .select("storage_path")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (row?.storage_path) {
+      await supabase.storage.from("editair-media").remove([row.storage_path]);
+    }
+    const { error } = await supabase.from("editair_assets").delete().eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+
 export const registrarEventoEditair = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) =>
