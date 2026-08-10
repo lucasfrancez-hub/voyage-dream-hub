@@ -96,7 +96,8 @@ provisionar() {
 }
 
 validar() {
-  local nome="$1" bin="$DEST/$nome"
+  local nome="${1:?nome do binário não informado}"
+  local bin="$DEST/$nome"
   echo "-- Validando binário final: $nome"
   [ -f "$bin" ] || falhar "$bin não existe"
   diagnostico "$bin"
