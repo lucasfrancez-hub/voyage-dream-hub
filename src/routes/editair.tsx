@@ -1,5 +1,5 @@
 import { createFileRoute, Link, Outlet, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { Loader2, Clapperboard, ArrowLeft, FolderOpen, Plus, Settings } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
