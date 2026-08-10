@@ -29,6 +29,7 @@ function criarJanela() {
     minWidth: 1100,
     minHeight: 700,
     backgroundColor: "#0B0B0D",
+    icon: path.join(__dirname, "assets", "icon.png"),
     titleBarStyle: process.platform === "darwin" ? "hiddenInset" : "default",
     webPreferences: {
       preload: path.join(__dirname, "preload.cjs"),
@@ -40,6 +41,12 @@ function criarJanela() {
   });
 
   janela.loadURL(URL_APP);
+  // sem internet: mostra tela própria com botão de tentar de novo (nunca tela branca)
+  janela.webContents.on("did-fail-load", (_e, code, _desc, url, isMain) => {
+    if (!isMain || code === -3) return;
+    if (url.startsWith("file://")) return;
+    janela.loadFile(path.join(__dirname, "offline.html"), { query: { url: URL_APP } });
+  });
   janela.webContents.setWindowOpenHandler(({ url }) => {
     shell.openExternal(url);
     return { action: "deny" };
@@ -51,6 +58,7 @@ function criarJanela() {
   const s = lerSettings();
   if (s.autoCheckUpdates && app.isPackaged) setTimeout(() => updater.verificar().catch(() => {}), 4000);
 }
+
 
 app.whenReady().then(() => {
   // serve arquivos locais em streaming (com Range) para o preview da timeline

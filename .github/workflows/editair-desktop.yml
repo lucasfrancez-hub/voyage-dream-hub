@@ -1,19 +1,56 @@
 name: EditAir Desktop
 
 on:
+  # release oficial: só quando existir a tag (etapa manual de release)
   push:
     tags: ["editair-v*"]
+  # build de teste (dev/beta): não publica nada, só gera artefato para baixar
   workflow_dispatch:
+    inputs:
+      canal:
+        description: "Canal do build de teste"
+        type: choice
+        default: dev
+        options: [dev, beta]
 
 jobs:
-  build:
+  teste:
+    name: Build de teste (sem publicar)
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Instalar dependências
+        working-directory: desktop
+        run: npm install
+      - name: Versão de teste
+        working-directory: desktop
+        run: |
+          BASE=$(node -p "require('./package.json').version")
+          npm version "${BASE%%-*}-${{ inputs.canal }}.${{ github.run_number }}" --no-git-tag-version
+      - name: Gerar DMG (arm64, sem publicar)
+        working-directory: desktop
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+        run: npx electron-builder --mac --arm64 --publish never
+      - uses: actions/upload-artifact@v4
+        with:
+          name: EditAir-${{ inputs.canal }}-dmg
+          path: desktop/dist/*.dmg
+
+  release:
+    name: Release (GitHub Releases + auto-update)
+    if: startsWith(github.ref, 'refs/tags/editair-v')
     strategy:
       matrix:
         include:
           - os: macos-14
-            script: build:mac
+            args: "--mac --arm64"
           - os: windows-latest
-            script: build:win
+            args: "--win --x64"
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -27,10 +64,10 @@ jobs:
         working-directory: desktop
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # macOS: assinatura + notarização (opcionais, mas recomendados)
+          # macOS: assinatura + notarização (opcionais enquanto não houver Apple Developer)
           CSC_LINK: ${{ secrets.MAC_CSC_LINK }}
           CSC_KEY_PASSWORD: ${{ secrets.MAC_CSC_KEY_PASSWORD }}
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-        run: npx electron-builder --publish always ${{ matrix.os == 'macos-14' && '--mac --arm64' || '--win --x64' }}
+        run: npx electron-builder ${{ matrix.args }} --publish always
