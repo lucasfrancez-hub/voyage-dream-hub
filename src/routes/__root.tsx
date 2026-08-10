@@ -157,6 +157,42 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
         { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" },
       ],
+      scripts: appIsolado
+        ? []
+        : [
+            {
+              type: "application/ld+json",
+              children: JSON.stringify({
+                "@context": "https://schema.org",
+                "@graph": [
+                  {
+                    "@type": "TravelAgency",
+                    "@id": "https://pedidos.viaair.tur.br/#organizacao",
+                    name: "VIA AIR",
+                    url: "https://pedidos.viaair.tur.br/",
+                    logo: "https://pedidos.viaair.tur.br/apple-touch-icon.png",
+                    description:
+                      "Via Air: passagens aéreas, pacotes, hotéis, cruzeiros e experiências personalizadas com atendimento humano.",
+                    areaServed: "BR",
+                    address: {
+                      "@type": "PostalAddress",
+                      addressLocality: "Paranavaí",
+                      addressRegion: "PR",
+                      addressCountry: "BR",
+                    },
+                  },
+                  {
+                    "@type": "WebSite",
+                    "@id": "https://pedidos.viaair.tur.br/#site",
+                    url: "https://pedidos.viaair.tur.br/",
+                    name: "VIA AIR",
+                    inLanguage: "pt-BR",
+                    publisher: { "@id": "https://pedidos.viaair.tur.br/#organizacao" },
+                  },
+                ],
+              }),
+            },
+          ],
     };
   },
 
