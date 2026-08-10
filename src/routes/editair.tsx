@@ -1,7 +1,7 @@
 import { createFileRoute, Link, Outlet, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
-import { Loader2, Clapperboard, ArrowLeft } from "lucide-react";
+import { Loader2, Clapperboard, ArrowLeft, FolderOpen, Plus, Settings } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/editair")({
@@ -79,13 +79,13 @@ function EditairLayout() {
       <header className="flex h-14 items-center justify-between border-b border-white/10 px-4">
         <div className="flex items-center gap-3">
           {!desktop && (
-          <Link
-            to="/admin/dashboard"
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-white/60 transition hover:bg-white/10 hover:text-white"
-            title="Voltar ao painel"
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </Link>
+            <Link
+              to="/admin/dashboard"
+              className="flex h-8 w-8 items-center justify-center rounded-lg text-white/60 transition hover:bg-white/10 hover:text-white"
+              title="Voltar ao painel"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Link>
           )}
           <Link to="/editair" className="flex items-center gap-2">
             <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#F26B1F]/15 text-[#F26B1F]">
@@ -95,6 +95,34 @@ function EditairLayout() {
               Edit<span className="text-[#F26B1F]">Air</span>
             </span>
           </Link>
+
+          {/* Menu interno do app: navega entre projetos e editor sem sair do EditAir */}
+          <nav className="ml-2 flex items-center gap-1">
+            <Link
+              to="/editair"
+              activeOptions={{ exact: true }}
+              activeProps={{ className: "bg-white/10 text-white" }}
+              inactiveProps={{ className: "text-white/60" }}
+              className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[12px] transition hover:bg-white/10 hover:text-white"
+            >
+              <FolderOpen className="h-3.5 w-3.5" /> Projetos
+            </Link>
+            <Link
+              to="/editair"
+              search={{ novo: 1 }}
+              className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[12px] text-white/60 transition hover:bg-white/10 hover:text-white"
+            >
+              <Plus className="h-3.5 w-3.5" /> Novo projeto
+            </Link>
+            {desktop ? (
+              <button
+                onClick={() => window.dispatchEvent(new CustomEvent("editair:abrir-configuracoes"))}
+                className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[12px] text-white/60 transition hover:bg-white/10 hover:text-white"
+              >
+                <Settings className="h-3.5 w-3.5" /> Ajustes
+              </button>
+            ) : null}
+          </nav>
         </div>
         <span className="text-[11px] uppercase tracking-widest text-white/30">VIA AIR</span>
       </header>
