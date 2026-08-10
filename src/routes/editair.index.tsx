@@ -16,7 +16,7 @@ import {
   Link2Off,
 } from "lucide-react";
 import {
-  abrirProjeto as abrirProjetoStore,
+
   criarProjeto,
   escolherMidiasLocais,
   excluirMidia as excluirMidiaStore,
