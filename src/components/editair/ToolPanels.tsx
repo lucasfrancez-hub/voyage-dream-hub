@@ -49,7 +49,15 @@ export type Ferramenta =
   | "modelos"
   | "ia";
 
-export type AssetItem = { id: string; nome: string; kind: string; durationMs: number; url: string };
+export type AssetItem = {
+  id: string;
+  nome: string;
+  kind: string;
+  durationMs: number;
+  url: string;
+  local?: boolean;
+  existe?: boolean;
+};
 export type MensagemIa = { id: string; autor: "usuario" | "ia"; texto: string; ops?: number };
 
 export type ToolPanelProps = {
@@ -70,6 +78,7 @@ export type ToolPanelProps = {
   onImportar: (files: FileList | null) => void;
   onRenomearAsset: (id: string, nome: string) => void;
   onExcluirAsset: (id: string) => void;
+  onRelinkAsset?: (id: string) => void;
   onInserirAsset: (id: string) => void;
   onPatchClip: (patch: Partial<EditairClip>) => void;
   onPatchState: (patch: Partial<ProjectState>) => void;
@@ -138,7 +147,7 @@ export function ToolPanel(p: ToolPanelProps) {
 
 /* ------------------------------- Mídia ------------------------------- */
 
-function PainelMidia({ assets, onImportar, onRenomearAsset, onExcluirAsset, onInserirAsset }: ToolPanelProps) {
+function PainelMidia({ assets, onImportar, onRenomearAsset, onExcluirAsset, onInserirAsset, onRelinkAsset }: ToolPanelProps) {
   const [busca, setBusca] = useState("");
   const [categoria, setCategoria] = useState<"todos" | "video" | "image" | "audio">("todos");
   const [ordem, setOrdem] = useState<"nome" | "duracao">("nome");
@@ -210,6 +219,14 @@ function PainelMidia({ assets, onImportar, onRenomearAsset, onExcluirAsset, onIn
         <div className="space-y-2">
           {lista.map((a) => (
             <div key={a.id} className="rounded-lg border border-white/10 bg-white/[0.03] p-2">
+              {a.existe === false ? (
+                <button
+                  onClick={() => onRelinkAsset?.(a.id)}
+                  className="mb-1.5 w-full rounded bg-red-600/80 px-2 py-1 text-[10px] font-medium text-white"
+                >
+                  Mídia offline — localizar arquivo
+                </button>
+              ) : null}
               <div className="flex items-center gap-2">
                 <span className="truncate text-[11px]">{a.nome}</span>
                 <span className="ml-auto shrink-0 text-[10px] text-white/35">{formatarTempo(a.durationMs)}</span>
