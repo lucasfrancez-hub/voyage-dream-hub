@@ -1237,6 +1237,7 @@ function EditorPage() {
             onImportar={(f) => void importar(f)}
             onRenomearAsset={(aid, nome) => void renomearAsset(aid, nome)}
             onExcluirAsset={(aid) => void excluirAsset(aid)}
+            onRelinkAsset={(aid) => void relinkAsset(aid)}
             onInserirAsset={inserirAsset}
             onPatchClip={(patch) => patchClipe(patch)}
             onPatchState={(patch) => aplicar({ ...state, ...patch })}
