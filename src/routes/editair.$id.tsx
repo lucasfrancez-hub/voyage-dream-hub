@@ -136,6 +136,12 @@ function EditorPage() {
   const [progresso, setProgresso] = useState<ProgressoExport>(null);
   const [resultado, setResultado] = useState<ResultadoExport>(null);
 
+  const [rippleTrim, setRippleTrim] = useState(false);
+  const [sourceClipId, setSourceClipId] = useState<string | null>(null);
+  const [dimsOriginais, setDimsOriginais] = useState<{ w: number; h: number } | null>(null);
+  const [autoEtapa, setAutoEtapa] = useState<"importar" | "planejar" | "montar" | null>(null);
+  const autoRef = useRef<{ instrucao: string } | null>(null);
+
   const historico = useRef<ProjectState[]>([]);
   const futuro = useRef<ProjectState[]>([]);
 
@@ -149,6 +155,19 @@ function EditorPage() {
     for (const a of assets) m[a.id] = { url: a.url, durationMs: a.durationMs, kind: a.kind, name: a.nome };
     return m;
   }, [assets]);
+
+  /** Duração real de cada arquivo — base dos limites de trim não destrutivo. */
+  const duracoesFonte = useMemo(() => {
+    const m: Record<string, number> = {};
+    for (const a of assets) m[a.id] = a.durationMs;
+    return m;
+  }, [assets]);
+
+  const clipeSource = useMemo(
+    () => state.clips.find((c) => c.id === sourceClipId) ?? null,
+    [state.clips, sourceClipId],
+  );
+
 
   /* ---------------- carregar projeto ---------------- */
   useEffect(() => {
