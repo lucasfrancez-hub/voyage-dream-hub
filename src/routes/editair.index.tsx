@@ -12,6 +12,8 @@ import {
   Sparkles,
   Plus,
   Clock,
+  Settings as SettingsIcon,
+  Link2Off,
 } from "lucide-react";
 import {
   criarProjetoEditair,
@@ -22,6 +24,8 @@ import {
   excluirAssetEditair,
 } from "@/lib/editair/projects.functions";
 import { hidratarMidias, importarParaGaleria, type MidiaGaleria } from "@/lib/editair/gallery";
+import { assetLocalParaMidia, caminhosDeArquivos, isDesktop, pontoDesktop } from "@/lib/editair/desktop";
+import { DesktopSettingsDialog } from "@/components/editair/DesktopSettingsDialog";
 import { guardarHandoff } from "@/lib/editair/handoff";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
