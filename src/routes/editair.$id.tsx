@@ -1206,6 +1206,19 @@ function EditorPage() {
         onLimparResultado={() => setResultado(null)}
       />
 
+      <SourceDialog
+        aberto={!!clipeSource}
+        clip={clipeSource}
+        asset={clipeSource?.assetId ? (assetsMap[clipeSource.assetId] ?? null) : null}
+        onFechar={() => setSourceClipId(null)}
+        onRestaurar={() => {
+          if (clipeSource) restaurarClip(clipeSource.id);
+          setSourceClipId(null);
+        }}
+      />
+
+
+
       {ocupado ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
           <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-[#131316] px-6 py-4 text-sm">
