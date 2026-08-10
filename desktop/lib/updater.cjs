@@ -67,7 +67,7 @@ function inicializar(win) {
   autoUpdater.on("error", (err) => {
     baixando = false;
     // Falha de update nunca pode inutilizar o app: apenas informa e segue.
-    enviar("editair:update", { estado: "erro", mensagem: String(err?.message || err) });
+    enviar("editair:update", { estado: "erro", mensagem: mensagemErro(err) });
   });
 }
 
@@ -79,7 +79,7 @@ async function verificar() {
       ? { estado: "verificado", versao: r.updateInfo.version, atual: app.getVersion() }
       : { estado: "atualizado", versao: app.getVersion() };
   } catch (e) {
-    return { estado: "erro", mensagem: String(e?.message || e) };
+    return { estado: "erro", mensagem: mensagemErro(e) };
   }
 }
 
