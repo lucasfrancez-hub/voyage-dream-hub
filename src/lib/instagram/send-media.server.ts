@@ -10,8 +10,12 @@
 
 export type IgMediaKind = "image" | "audio" | "video" | "file";
 
-/** Tipos de áudio que o Instagram aceita como anexo. */
-const AUDIO_OK = /(mpeg|mp3|mp4|m4a|aac|wav)/i;
+/**
+ * Tipos de áudio que o Instagram aceita como anexo de DM: aac, m4a, mp4 e wav.
+ * MP3 (audio/mpeg) NÃO entra nessa lista — a Meta recusa com o erro 2534080,
+ * mesmo o Messenger aceitando. Por isso o app grava/converte em WAV.
+ */
+const AUDIO_OK = /(^|[^\w])(mp4|m4a|aac|wav|x-wav|wave)([^\w]|$)/i;
 const VIDEO_OK = /(mp4|quicktime|mov)/i;
 
 export function instagramMediaKind(mime: string, filename = ""): IgMediaKind {

@@ -204,13 +204,13 @@ export const sendInstagramAttachment = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const bytes = Uint8Array.from(atob(data.file_base64), (c) => c.charCodeAt(0));
     const path = `instagram/${conv.id}/${Date.now()}-${data.filename.replace(/[^\w.-]/g, "_")}`;
+    // Bucket servido pela rota pública: a Meta baixa o anexo sozinha e engasga
+    // com URL assinada (query string com token), então usamos link limpo.
     const up = await supabaseAdmin.storage
-      .from("chat-media")
+      .from("broadcast-media")
       .upload(path, bytes, { contentType: data.mime, upsert: true });
     if (up.error) throw new Error(`Falha ao guardar a mídia: ${up.error.message}`);
-    const signed = await supabaseAdmin.storage.from("chat-media").createSignedUrl(path, 60 * 60 * 24 * 7);
-    const url = signed.data?.signedUrl;
-    if (!url) throw new Error("Não consegui gerar o link da mídia");
+    const url = `https://pedidos.viaair.tur.br/api/public/broadcast-media/${path}`;
 
     const tipo: "image" | "audio" | "video" | "file" = data.mime.startsWith("image/")
       ? "image"
