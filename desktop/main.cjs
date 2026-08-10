@@ -1,10 +1,9 @@
 /* EditAir Desktop — processo principal.
    Local-first: mídia e edição na máquina; só a IA vai para a internet. */
-const { app, BrowserWindow, ipcMain, dialog, shell, protocol, net, Menu } = require("electron");
+const { app, BrowserWindow, ipcMain, dialog, shell, protocol, Menu } = require("electron");
 const fs = require("node:fs");
 const path = require("node:path");
 const crypto = require("node:crypto");
-const { pathToFileURL } = require("node:url");
 const { Readable } = require("node:stream");
 
 const { dirs, lerSettings, salvarSettings, tamanhoDe, limparCache } = require("./lib/paths.cjs");

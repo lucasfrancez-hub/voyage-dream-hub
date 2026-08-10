@@ -153,6 +153,7 @@ export class EditairEngine {
     el.playsInline = true;
     el.muted = false;
     el.src = url;
+    el.load();
     log("carregando");
     await new Promise<void>((resolve) => {
       let terminou = false;
@@ -182,7 +183,6 @@ export class EditairEngine {
         ok();
       }, 10000);
     });
-    el.load();
     // o preview precisa repintar quando o vídeo termina de buscar o frame
     el.addEventListener("seeked", () => this.redesenhar());
     el.addEventListener("loadeddata", () => this.redesenhar());
