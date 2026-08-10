@@ -69,7 +69,7 @@ export function DesktopSettingsDialog({
 
   const limpar = () =>
     confirmThen(
-      { titulo: "Limpar cache?", descricao: "Miniaturas, waveforms e proxies serão recriados quando necessário." },
+      { title: "Limpar cache?", description: "Miniaturas, waveforms e proxies serão recriados quando necessário.", destructive: true },
       async () => {
         const r = await api.cache.limpar();
         setCache(r);
