@@ -45,7 +45,10 @@ instalar() {
 
 # ---- Fonte 1: pacotes npm dos instaladores oficiais (arm64 nativo) ----------
 tentar_npm() {
-  local nome="$1" pacote="$2" dir="$TMP/npm-$nome" tgz origem
+  local nome="${1:?nome do binário não informado}"
+  local pacote="${2:?pacote npm não informado}"
+  local dir="$TMP/npm-$nome"
+  local tgz="" origem=""
   echo "-- fonte npm: $pacote"
   mkdir -p "$dir"
   ( cd "$dir" && npm pack "$pacote" --silent >/dev/null 2>&1 ) || return 1
