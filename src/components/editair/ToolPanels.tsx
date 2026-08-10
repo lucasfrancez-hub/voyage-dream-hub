@@ -28,6 +28,9 @@ import {
   type Transcript,
   formatarTempo,
 } from "@/lib/editair/types";
+import type { PlanoEditorial } from "@/lib/editair/plan";
+import { PlanoEditorialPanel } from "./PlanoEditorialPanel";
+
 
 export type Ferramenta =
   | "midia"
@@ -54,6 +57,12 @@ export type ToolPanelProps = {
   mensagens: MensagemIa[];
   pensando: boolean;
   playheadMs: number;
+  plano: PlanoEditorial | null;
+  etapaIa: string;
+  onPlanejar: (objetivo: string) => void;
+  onAplicarPlano: () => void;
+  onAjustarPlano: (texto: string) => void;
+  onDescartarPlano: () => void;
   onImportar: (files: FileList | null) => void;
   onRenomearAsset: (id: string, nome: string) => void;
   onExcluirAsset: (id: string) => void;
@@ -73,6 +82,7 @@ export type ToolPanelProps = {
   onSeek: (ms: number) => void;
   onApagarTrecho: (from: number, to: number) => void;
 };
+
 
 const SUGESTOES = [
   "Tira todas as pausas e silêncios",
@@ -715,7 +725,21 @@ function PainelAjuste({ clip, onPatchClip, onKeyframe }: ToolPanelProps) {
 
 /* --------------------------------- IA -------------------------------- */
 
-function PainelIa({ mensagens, pensando, onEnviarIa, onCortarPausas, onGerarLegendas, onAnalisar }: ToolPanelProps) {
+function PainelIa({
+  mensagens,
+  pensando,
+  onEnviarIa,
+  onCortarPausas,
+  onGerarLegendas,
+  onAnalisar,
+  plano,
+  etapaIa,
+  onPlanejar,
+  onAplicarPlano,
+  onAjustarPlano,
+  onDescartarPlano,
+  onSeek,
+}: ToolPanelProps) {
   const [texto, setTexto] = useState("");
   const enviar = () => {
     const t = texto.trim();
@@ -737,6 +761,17 @@ function PainelIa({ mensagens, pensando, onEnviarIa, onCortarPausas, onGerarLege
         <BotaoSec onClick={onGerarLegendas}>Legendar</BotaoSec>
       </div>
       <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-4">
+        <PlanoEditorialPanel
+          plano={plano}
+          pensando={pensando}
+          etapa={etapaIa}
+          onPlanejar={onPlanejar}
+          onAplicar={onAplicarPlano}
+          onAjustar={onAjustarPlano}
+          onDescartar={onDescartarPlano}
+          onSeek={onSeek}
+        />
+
         {mensagens.length === 0 ? (
           <div className="space-y-2">
             <p className="text-xs text-white/40">Fale como você falaria com um editor:</p>

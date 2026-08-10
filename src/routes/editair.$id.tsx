@@ -35,6 +35,10 @@ import {
 } from "@/lib/editair/projects.functions";
 import { transcreverBlocoEditair } from "@/lib/editair/transcribe.functions";
 import { dirigirEdicaoEditair } from "@/lib/editair/director.functions";
+import { planejarEdicaoEditair } from "@/lib/editair/brain.functions";
+import { normalizarPlano, transcricaoParaPrompt } from "@/lib/editair/brain";
+import { analisarAudio, analisarVisual, resumirAnalise, type AnaliseTecnica } from "@/lib/editair/analysis";
+import { montarRoughCut, type PlanoEditorial } from "@/lib/editair/plan";
 import {
   estadoVazio,
   formatarTempo,
@@ -119,6 +123,9 @@ function EditorPage() {
 
   const [mensagens, setMensagens] = useState<MensagemIa[]>([]);
   const [pensando, setPensando] = useState(false);
+  const [plano, setPlano] = useState<PlanoEditorial | null>(null);
+  const [etapaIa, setEtapaIa] = useState("");
+  const [objetivoIa, setObjetivoIa] = useState("");
   const [ocupado, setOcupado] = useState<string | null>(null);
   const [salvando, setSalvando] = useState(false);
 
@@ -554,12 +561,13 @@ function EditorPage() {
   };
 
   /* ---------------- IA / transcrição ---------------- */
-  const analisar = async () => {
+  const analisar = async (): Promise<Transcript | null> => {
     const buf = audioBufferRef.current;
     if (!buf) {
       toast.error("Reimporte o vídeo nesta sessão para analisar o áudio.");
-      return;
+      return null;
     }
+
     setOcupado("Transcrevendo…");
     try {
       const total = buf.duration * 1000;
@@ -583,15 +591,19 @@ function EditorPage() {
         }
       }
       if (atual.length) segmentos.push({ start: atual[0].start, end: atual[atual.length - 1].end, text: atual.map((x) => x.w).join(" ") });
-      setTranscript({ words: palavras, segments: segmentos });
+      const t: Transcript = { words: palavras, segments: segmentos };
+      setTranscript(t);
       setFerramenta("legendas");
       toast.success(`${palavras.length} palavras transcritas`);
+      return t;
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Falha na transcrição");
+      return null;
     } finally {
       setOcupado(null);
     }
   };
+
 
   const cortarPausas = () => {
     const buf = audioBufferRef.current;
@@ -683,6 +695,74 @@ function EditorPage() {
       setPensando(false);
     }
   };
+
+  /* ------------- cérebro editorial: plano antes do corte ------------- */
+  const planejar = async (objetivo: string, ajuste = "") => {
+    const buf = audioBufferRef.current;
+    const base = state.clips.find((c) => c.trackId === "t-video" && c.assetId);
+    const asset = base?.assetId ? assets.find((a) => a.id === base.assetId) : null;
+    if (!buf || !base || !asset) {
+      toast.error("Importe o vídeo nesta sessão para o editor-chefe analisar o material.");
+      return;
+    }
+    setPensando(true);
+    setObjetivoIa(objetivo || objetivoIa);
+    const ratio = state.width / Math.max(1, state.height);
+    const formatoProjeto = ratio < 0.85 ? "vertical" : ratio > 1.2 ? "horizontal" : "quadrado";
+    try {
+      setEtapaIa("Ouvindo o áudio e medindo cada trecho…");
+      const audio = analisarAudio(buf);
+
+      setEtapaIa("Olhando a imagem: exposição, contraste, nitidez e enquadramento…");
+      let visual = null;
+      try {
+        visual = await analisarVisual(asset.url, asset.durationMs || audio.durationMs, state.width / state.height);
+      } catch {
+        visual = null;
+      }
+      const analise: AnaliseTecnica = { ...audio, visual };
+
+      setEtapaIa("Lendo o que foi dito…");
+      const t = transcript ?? (await analisar());
+
+      setEtapaIa("Pensando como editor: narrativa, tomadas e ritmo…");
+      const bruto = await planejarEdicaoEditair({
+        data: {
+          objetivo: objetivo || objetivoIa,
+          ajuste,
+          planoAnterior: ajuste && plano ? JSON.stringify({ estrategia: plano.estrategia, cortes: plano.cortes.slice(0, 120) }) : "",
+          formato: formatoProjeto,
+          duracaoMs: Math.round(audio.durationMs),
+          transcricao: transcricaoParaPrompt(t?.segments ?? []),
+          analise: JSON.stringify(resumirAnalise(analise)),
+        },
+      });
+      const novo = normalizarPlano(JSON.parse(bruto), audio.durationMs, formatoProjeto);
+      if (!novo.cortes.length) {
+        toast.error("O editor não conseguiu montar um plano com esse material.");
+        return;
+      }
+      setPlano(novo);
+      setMensagens((m) => [...m, { id: novoId("m"), autor: "ia", texto: novo.estrategia || novo.intencao }]);
+      void registrarEventoEditair({ data: { projectId: id, actor: "ia", message: novo.estrategia, ops: null } }).catch(() => {});
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha ao gerar o plano editorial");
+    } finally {
+      setEtapaIa("");
+      setPensando(false);
+    }
+  };
+
+  const aplicarPlano = () => {
+    if (!plano) return;
+    const base = state.clips.find((c) => c.trackId === "t-video" && c.assetId);
+    if (!base?.assetId) return toast.error("Importe o vídeo antes de montar.");
+    const { state: novo, resumo } = montarRoughCut(state, plano, base.assetId);
+    aplicar(novo);
+    setSelecionados([]);
+    toast.success(resumo);
+  };
+
 
   /* ---------------- exportação ---------------- */
   const exportar = async (cfg: ExportConfig) => {
@@ -911,6 +991,12 @@ function EditorPage() {
             }}
             onKeyframe={criarKeyframe}
             onEnviarIa={(t) => void conversar(t)}
+            plano={plano}
+            etapaIa={etapaIa}
+            onPlanejar={(o) => void planejar(o)}
+            onAplicarPlano={aplicarPlano}
+            onAjustarPlano={(t) => void planejar(objetivoIa, t)}
+            onDescartarPlano={() => setPlano(null)}
             onSeek={setPlayhead}
             onApagarTrecho={apagarTrecho}
           />
