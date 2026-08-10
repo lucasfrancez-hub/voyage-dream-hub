@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Eye, EyeOff, Lock, LockOpen, Volume2, VolumeX, Headphones } from "lucide-react";
+import { Eye, EyeOff, Lock, LockOpen, Volume2, VolumeX, Headphones, Plus } from "lucide-react";
 import type { EditairClip, EditairTrack, ProjectState } from "@/lib/editair/types";
 import { formatarTempo } from "@/lib/editair/types";
 import { limitesDoClip } from "@/lib/editair/ops";
@@ -36,6 +36,8 @@ type Props = {
   onAcaoClip?: (clipId: string, acao: "dividir" | "duplicar" | "excluir" | "bloquear" | "mudo" | "congelar" | "desvincular") => void;
   /** Arquivos arrastados do Finder/Explorer direto para a timeline. */
   onSoltarArquivos?: (arquivos: FileList, ms: number) => void;
+  /** Cria uma nova camada de vídeo acima das existentes (composição/PiP). */
+  onNovaTrilhaVideo?: () => void;
 };
 
 type Dica = { x: number; y: number; titulo: string; valor: string; delta: string } | null;
@@ -59,6 +61,7 @@ export function Timeline({
   onRestaurarClip,
   onAcaoClip,
   onSoltarArquivos,
+  onNovaTrilhaVideo,
 }: Props) {
   const areaRef = useRef<HTMLDivElement>(null);
   const pxPorMs = zoom / 1000;
@@ -207,6 +210,15 @@ export function Timeline({
           {state.tracks.map((t) => (
             <TrackLabel key={t.id} track={t} onToggle={onToggleTrack} />
           ))}
+          {onNovaTrilhaVideo ? (
+            <button
+              type="button"
+              onClick={onNovaTrilhaVideo}
+              className="flex w-full items-center gap-1.5 px-2 py-2 text-[11px] text-white/45 transition hover:bg-white/5 hover:text-white"
+            >
+              <Plus className="h-3.5 w-3.5" /> Nova camada de vídeo
+            </button>
+          ) : null}
         </div>
 
         {/* área rolável */}
@@ -523,7 +535,7 @@ function Clipe({
           onMenu(e.clientX, e.clientY);
         }}
         className={`absolute top-1.5 flex h-11 select-none items-center overflow-hidden rounded-lg border-2 text-[11px] text-white/90 shadow-[0_2px_8px_rgba(0,0,0,.45)] transition ${
-          CORES[clip.trackId] ?? "bg-white/20 border-white/20"
+          CORES[clip.trackId] ?? (clip.trackId.startsWith("t-video") ? CORES["t-video"] : "bg-white/20 border-white/20")
         } ${selecionado ? "border-[#F26B1F] ring-1 ring-[#F26B1F]/60" : "hover:brightness-110"} ${
           bloqueado || clip.bloqueado ? "cursor-not-allowed opacity-70" : "cursor-grab"
         }`}

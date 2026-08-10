@@ -17,7 +17,9 @@ import {
 type Midia = {
   el: HTMLVideoElement;
   gain: GainNode;
-  entrada: AudioNode;
+  entrada: AudioNode | null;
+  /** true = áudio sai direto do elemento (mídia local, sem CORS para o WebAudio) */
+  nativo?: boolean;
   filtros: {
     hp: BiquadFilterNode;
     comp: DynamicsCompressorNode;
@@ -41,6 +43,8 @@ export class EditairEngine {
   private master: GainNode | null = null;
   private midias = new Map<string, Midia>();
   private imagens = new Map<string, HTMLImageElement>();
+  /** assets que falharam ao carregar — desenhados como "Mídia offline" */
+  private falhas = new Set<string>();
   /** último quadro pedido — usado para repintar quando o vídeo termina de buscar */
   private ultimo: { state: ProjectState; t: number } | null = null;
   private tocandoAgora = false;
@@ -96,14 +100,27 @@ export class EditairEngine {
 
   async carregar(assetId: string, url: string, kind = "video") {
     if (this.midias.has(assetId) || this.imagens.has(assetId)) return;
+    // Arquivos locais do Desktop vêm pelo protocolo editair-media:// — pedir CORS
+    // ("anonymous") faz o Chromium recusar a mídia e o preview fica preto.
+    const local = url.startsWith("editair-media:") || url.startsWith("blob:") || url.startsWith("file:");
+    const log = (etapa: string, extra?: unknown) =>
+      console.log(`[preview] ${etapa} asset=${assetId} url=${url.slice(0, 80)}`, extra ?? "");
+
     if (kind === "image") {
       const img = new Image();
-      img.crossOrigin = "anonymous";
+      if (!local) img.crossOrigin = "anonymous";
       img.src = url;
       await new Promise<void>((resolve) => {
         const ok = () => resolve();
-        img.onload = ok;
-        img.onerror = ok;
+        img.onload = () => {
+          this.falhas.delete(assetId);
+          ok();
+        };
+        img.onerror = () => {
+          this.falhas.add(assetId);
+          console.error(`[preview:error] imagem não carregou asset=${assetId}`);
+          ok();
+        };
         setTimeout(ok, 10000);
       });
       this.imagens.set(assetId, img);
@@ -111,21 +128,44 @@ export class EditairEngine {
       return;
     }
     const el = document.createElement("video");
-    el.src = url;
-    el.crossOrigin = "anonymous";
+    if (!local) el.crossOrigin = "anonymous";
     el.preload = "auto";
     el.playsInline = true;
     el.muted = false;
+    el.src = url;
+    log("carregando");
     await new Promise<void>((resolve) => {
       const ok = () => resolve();
-      el.onloadeddata = ok;
-      el.onerror = ok;
+      el.onloadeddata = () => {
+        this.falhas.delete(assetId);
+        log("metadata loaded", { w: el.videoWidth, h: el.videoHeight, dur: el.duration });
+        ok();
+      };
+      el.onerror = () => {
+        this.falhas.add(assetId);
+        console.error(`[preview:error] mídia não carregou asset=${assetId}`, el.error?.message);
+        ok();
+      };
       setTimeout(ok, 10000);
     });
     // o preview precisa repintar quando o vídeo termina de buscar o frame
     el.addEventListener("seeked", () => this.redesenhar());
     el.addEventListener("loadeddata", () => this.redesenhar());
+    el.addEventListener("canplay", () => {
+      log("canplay");
+      this.redesenhar();
+    });
     const ctx = this.garantirAudio();
+
+    if (local) {
+      // Mídia local: o WebAudio silenciaria o elemento (sem CORS no protocolo próprio),
+      // então o áudio sai direto do <video> e o volume é controlado no elemento.
+      const gainLocal = ctx.createGain();
+      gainLocal.gain.value = 1;
+      this.midias.set(assetId, { el, gain: gainLocal, entrada: null, nativo: true, filtros: null });
+      this.redesenhar();
+      return;
+    }
 
     const src = ctx.createMediaElementSource(el);
     const hp = ctx.createBiquadFilter();
@@ -279,6 +319,11 @@ export class EditairEngine {
       if (Math.abs(m.el.currentTime - alvo) > 0.18) m.el.currentTime = Math.max(0, alvo);
       m.el.playbackRate = clamp(c.speed, 0.25, 4);
       m.gain.gain.value = this.ganhoDoClipe(state, c, t);
+      if (m.nativo) {
+        // mídia local: volume direto no elemento (não passa pelo WebAudio)
+        m.el.volume = clamp(m.gain.gain.value * this.volumeMaster, 0, 1);
+        m.el.muted = this.mudo;
+      }
       if (m.filtros) {
         const fx = state.audioFx ?? { voz: false, ruido: false };
         const vozLike = c.trackId === "t-voice" || c.trackId === "t-video";
@@ -318,18 +363,45 @@ export class EditairEngine {
     void height;
 
     const ativos = this.ativos(state, t);
-    const ordem: Record<string, number> = { "t-video": 0, "t-broll": 1, "t-caption": 2, "t-text": 3 };
+    // Ordem de camadas genérica: a trilha mais alta na lista aparece por cima.
+    // Assim qualquer número de trilhas de vídeo (Vídeo 2, Vídeo 3, …) compõe corretamente.
+    const idx = new Map(state.tracks.map((tr, i) => [tr.id, i] as const));
+    const z = (id: string) => -(idx.get(id) ?? 99);
     const visuais = ativos
       .filter((c) => c.kind === "video" || c.kind === "image" || c.kind === "caption" || c.kind === "text")
-      .sort((a, b) => (ordem[a.trackId] ?? 5) - (ordem[b.trackId] ?? 5));
+      .sort((a, b) => z(a.trackId) - z(b.trackId));
 
+    let offline = false;
     for (const c of visuais) {
       const trilha = state.tracks.find((x) => x.id === c.trackId);
       if (trilha?.hidden) continue;
-      if (c.kind === "video" || c.kind === "image") this.desenharVideo(c, t);
-      else if (c.kind === "caption") this.desenharLegenda(c, c.captionStyle ?? state.captionStyle, t);
+      if (c.kind === "video" || c.kind === "image") {
+        if (c.assetId && this.falhas.has(c.assetId)) {
+          offline = true;
+          continue;
+        }
+        this.desenharVideo(c, t);
+      } else if (c.kind === "caption") this.desenharLegenda(c, c.captionStyle ?? state.captionStyle, t);
       else if (c.kind === "text") this.desenharTexto(c, t);
     }
+    if (offline) this.avisoOffline();
+  }
+
+  /** Placeholder visível em vez de tela preta quando o arquivo não abre. */
+  private avisoOffline() {
+    const { ctx, width, height } = this;
+    ctx.save();
+    ctx.fillStyle = "rgba(20,20,24,0.92)";
+    ctx.fillRect(0, 0, width, height);
+    ctx.fillStyle = "#F26B1F";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.font = `600 ${Math.round(Math.min(width, height) * 0.055)}px Inter, system-ui, sans-serif`;
+    ctx.fillText("Mídia offline", width / 2, height / 2 - Math.min(width, height) * 0.03);
+    ctx.fillStyle = "rgba(255,255,255,0.6)";
+    ctx.font = `400 ${Math.round(Math.min(width, height) * 0.033)}px Inter, system-ui, sans-serif`;
+    ctx.fillText("Localize o arquivo na Biblioteca", width / 2, height / 2 + Math.min(width, height) * 0.04);
+    ctx.restore();
   }
 
   private transicao(c: EditairClip, t: number) {

@@ -1,5 +1,5 @@
 import { createFileRoute, Link, Outlet, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { Loader2, Clapperboard, ArrowLeft, FolderOpen, Plus, Settings } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -76,8 +76,15 @@ function EditairLayout() {
 
   return (
     <div className="min-h-screen bg-[#0B0B0D] text-white">
-      <header className="flex h-14 items-center justify-between border-b border-white/10 px-4">
-        <div className="flex items-center gap-3">
+      {/* no Desktop a barra serve de área de arraste da janela; os controles ficam clicáveis */}
+      <header
+        className="flex h-14 items-center justify-between border-b border-white/10 px-4"
+        style={desktop ? ({ WebkitAppRegion: "drag" } as CSSProperties) : undefined}
+      >
+        <div
+          className="flex items-center gap-3"
+          style={desktop ? ({ WebkitAppRegion: "no-drag" } as CSSProperties) : undefined}
+        >
           {!desktop && (
             <Link
               to="/admin/dashboard"
