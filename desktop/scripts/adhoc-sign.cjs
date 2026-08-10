@@ -64,6 +64,14 @@ exports.default = async function afterPack(context) {
     const alvo = path.join(recursosBin, nome);
     if (!fs.existsSync(alvo)) throw new Error(`[sidecar] ausente no bundle: ${alvo}`);
     fs.chmodSync(alvo, 0o755);
+    const tipo = sh("file", ["-b", alvo]);
+    const archs = sh("lipo", ["-archs", alvo]);
+    console.log(`[sidecar] ${nome}: file='${tipo}' lipo='${archs}' caminho='${alvo}'`);
+    if (archs !== "arm64" || !tipo.includes("Mach-O 64-bit executable arm64")) {
+      throw new Error(`[sidecar] ${nome} inválido: esperado Mach-O arm64 exclusivo; file='${tipo}', lipo='${archs}'`);
+    }
+    const versao = sh(alvo, ["-version"]).split("\n")[0];
+    console.log(`[sidecar] ${nome} executou antes do DMG: ${versao}`);
   }
 
   if (process.env.EDITAIR_ADHOC !== "1") return;
