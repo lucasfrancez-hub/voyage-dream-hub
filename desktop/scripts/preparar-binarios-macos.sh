@@ -66,7 +66,10 @@ tentar_npm() {
 
 # ---- Fonte 2: zips públicos (osxexperts / evermeet) ------------------------
 tentar_zip() {
-  local nome="$1" url="$2" dir="$TMP/zip-$nome-$RANDOM" origem
+  local nome="${1:?nome do binário não informado}"
+  local url="${2:?url não informada}"
+  local dir="$TMP/zip-$nome-$RANDOM"
+  local origem=""
   echo "-- fonte zip: $url"
   mkdir -p "$dir"
   curl --fail --location --retry 3 --silent --show-error "$url" -o "$dir/pkg.zip" || return 1
