@@ -106,11 +106,11 @@ export class SegmentadorFundo {
     // reaproveita a última máscara quando o frame não mudou
     if (frame === est.ultimoFrame && est.canvasMascara.width) return est.canvasMascara;
 
-    let resultado: { confidenceMasks?: Array<{ getAsFloat32Array(): Float32Array; width: number; height: number }> } | null =
-      null;
+    type Res = { confidenceMasks?: Array<{ getAsFloat32Array(): Float32Array; width: number; height: number }> };
+    let resultado: Res | null = null;
     try {
       this.ts += 33;
-      resultado = this.segmenter.segmentForVideo(video, this.ts) as unknown as typeof resultado;
+      resultado = this.segmenter.segmentForVideo(video, this.ts) as unknown as Res;
     } catch {
       return est.canvasMascara.width ? est.canvasMascara : null;
     }
