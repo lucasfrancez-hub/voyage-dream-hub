@@ -151,6 +151,54 @@ export const Route = createFileRoute("/pacotes/$slug/")({
         ...(img ? [{ name: "twitter:image", content: img }] : []),
       ],
       links: [{ rel: "canonical", href: url }],
+      scripts: [
+        {
+          type: "application/ld+json",
+          children: JSON.stringify({
+            "@context": "https://schema.org",
+            "@graph": [
+              {
+                "@type": "Product",
+                name: p.title,
+                description: desc,
+                ...(img ? { image: img } : {}),
+                brand: { "@type": "Brand", name: "VIA AIR" },
+                category: "Pacote de viagem",
+                url,
+                ...(p.price_per_person
+                  ? {
+                      offers: {
+                        "@type": "Offer",
+                        price: String(p.price_per_person),
+                        priceCurrency: "BRL",
+                        availability: "https://schema.org/InStock",
+                        url,
+                      },
+                    }
+                  : {}),
+              },
+              {
+                "@type": "BreadcrumbList",
+                itemListElement: [
+                  {
+                    "@type": "ListItem",
+                    position: 1,
+                    name: "Início",
+                    item: "https://pedidos.viaair.tur.br/",
+                  },
+                  {
+                    "@type": "ListItem",
+                    position: 2,
+                    name: "Pacotes",
+                    item: "https://pedidos.viaair.tur.br/pacotes",
+                  },
+                  { "@type": "ListItem", position: 3, name: p.title, item: url },
+                ],
+              },
+            ],
+          }),
+        },
+      ],
     };
   },
   component: PackageDetails,
