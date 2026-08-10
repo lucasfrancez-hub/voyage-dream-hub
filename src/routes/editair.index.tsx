@@ -87,6 +87,18 @@ function EditairHome() {
     void carregar();
   }, []);
 
+  // menu interno do app (cabeçalho): novo projeto e ajustes, sem sair do EditAir
+  useEffect(() => {
+    const novo = () => void importarLocal();
+    const ajustes = () => setConfig("armazenamento");
+    window.addEventListener("editair:novo-projeto", novo);
+    window.addEventListener("editair:ajustes", ajustes);
+    return () => {
+      window.removeEventListener("editair:novo-projeto", novo);
+      window.removeEventListener("editair:ajustes", ajustes);
+    };
+  }, []);
+
   // menu nativo: Configurações e Importar
   useEffect(() => {
     if (!desktop) return;
