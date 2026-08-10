@@ -12,6 +12,8 @@ import {
   Sparkles,
   Plus,
   Clock,
+  Settings as SettingsIcon,
+  Link2Off,
 } from "lucide-react";
 import {
   criarProjetoEditair,
@@ -22,6 +24,8 @@ import {
   excluirAssetEditair,
 } from "@/lib/editair/projects.functions";
 import { hidratarMidias, importarParaGaleria, type MidiaGaleria } from "@/lib/editair/gallery";
+import { assetLocalParaMidia, caminhosDeArquivos, isDesktop, pontoDesktop } from "@/lib/editair/desktop";
+import { DesktopSettingsDialog } from "@/components/editair/DesktopSettingsDialog";
 import { guardarHandoff } from "@/lib/editair/handoff";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -46,6 +50,8 @@ type Projeto = {
 
 type Filtro = "todas" | "video" | "image" | "audio";
 
+type Midia = MidiaGaleria & { local?: boolean; localPath?: string; existe?: boolean };
+
 function duracaoTexto(ms: number) {
   if (!ms) return "";
   const s = Math.round(ms / 1000);
@@ -54,20 +60,31 @@ function duracaoTexto(ms: number) {
 
 function EditairHome() {
   const navigate = useNavigate();
+  const desktop = pontoDesktop();
   const [projetos, setProjetos] = useState<Projeto[] | null>(null);
-  const [midias, setMidias] = useState<MidiaGaleria[] | null>(null);
+  const [midias, setMidias] = useState<Midia[] | null>(null);
   const [filtro, setFiltro] = useState<Filtro>("todas");
   const [arrastando, setArrastando] = useState(false);
   const [enviando, setEnviando] = useState<string | null>(null);
   const [selecao, setSelecao] = useState<string[]>([]);
   const [instrucao, setInstrucao] = useState("");
   const [abrindo, setAbrindo] = useState(false);
-  const [renomeando, setRenomeando] = useState<MidiaGaleria | null>(null);
+  const [renomeando, setRenomeando] = useState<Midia | null>(null);
   const [novoNome, setNovoNome] = useState("");
+  const [config, setConfig] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const carregar = async () => {
     try {
+      if (desktop) {
+        const [locais, rowsP] = await Promise.all([
+          desktop.biblioteca.listar(),
+          listarProjetosEditair().catch(() => []) as unknown as Promise<Projeto[]>,
+        ]);
+        setProjetos(rowsP ?? []);
+        setMidias(locais.map(assetLocalParaMidia) as Midia[]);
+        return;
+      }
       const [rowsP, rowsM] = await Promise.all([
         listarProjetosEditair() as unknown as Promise<Projeto[]>,
         listarMidiasEditair() as unknown as Promise<Array<Record<string, unknown>>>,
@@ -85,14 +102,63 @@ function EditairHome() {
     void carregar();
   }, []);
 
+  // menu nativo: Configurações e Importar
+  useEffect(() => {
+    if (!desktop) return;
+    const off1 = desktop.aoAbrirConfiguracoes((d) => setConfig(d?.aba || "armazenamento"));
+    const off2 = desktop.aoAcionarMenu((d) => {
+      if (d.acao === "importar") void importarLocal();
+    });
+    return () => {
+      off1();
+      off2();
+    };
+  }, [desktop]);
+
   const visiveis = useMemo(
     () => (midias ?? []).filter((m) => (filtro === "todas" ? true : m.kind === filtro)),
     [midias, filtro],
   );
 
+  /** Desktop: registra os arquivos onde eles estão, sem upload. */
+  const importarCaminhos = async (caminhos: string[]) => {
+    if (!desktop || !caminhos.length) return;
+    setEnviando(`Lendo ${caminhos.length} arquivo(s) localmente…`);
+    try {
+      const novos = await desktop.biblioteca.importar(caminhos);
+      const convertidos = novos.map(assetLocalParaMidia) as Midia[];
+      setMidias((cur) => [...convertidos, ...(cur ?? [])]);
+      setSelecao((s) => [...s, ...convertidos.map((m) => m.id)]);
+      toast.success(convertidos.length > 1 ? `${convertidos.length} mídias na biblioteca local` : "Mídia na biblioteca local");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha ao importar");
+    } finally {
+      setEnviando(null);
+    }
+  };
+
+  const importarLocal = async () => {
+    if (!desktop) return inputRef.current?.click();
+    const caminhos = await desktop.dialogo.escolherMidias();
+    await importarCaminhos(caminhos);
+  };
+
+  const relinkar = async (m: Midia) => {
+    if (!desktop) return;
+    const caminho = await desktop.dialogo.localizarArquivo(m.nome);
+    if (!caminho) return;
+    const atualizado = assetLocalParaMidia(await desktop.biblioteca.relinkar(m.id, caminho)) as Midia;
+    setMidias((cur) => (cur ?? []).map((x) => (x.id === m.id ? atualizado : x)));
+    toast.success("Mídia relinkada — sua edição continua intacta");
+  };
+
   const importar = async (lista: FileList | File[] | null) => {
     if (!lista?.length) return;
-    const novos: MidiaGaleria[] = [];
+    if (desktop) {
+      const caminhos = caminhosDeArquivos(lista);
+      if (caminhos.length) return importarCaminhos(caminhos);
+    }
+    const novos: Midia[] = [];
     try {
       for (const arquivo of Array.from(lista)) {
         const m = await importarParaGaleria(arquivo, { aoProgredir: setEnviando });
@@ -136,17 +202,20 @@ function EditairHome() {
     }
   };
 
-  const excluirMidia = (m: MidiaGaleria) =>
+  const excluirMidia = (m: Midia) =>
     confirmThen(
       {
         title: "Excluir mídia",
-        description: `“${m.nome}” será removida da galeria. Projetos que usam esse arquivo perdem a mídia.`,
+        description: m.local
+          ? `“${m.nome}” sai da biblioteca do EditAir. O arquivo original no computador não é apagado.`
+          : `“${m.nome}” será removida da galeria. Projetos que usam esse arquivo perdem a mídia.`,
         confirmText: "Excluir",
         destructive: true,
       },
       async () => {
         try {
-          await excluirAssetEditair({ data: { id: m.id } });
+          if (desktop && m.local) await desktop.biblioteca.remover(m.id, false);
+          else await excluirAssetEditair({ data: { id: m.id } });
           setMidias((cur) => (cur ?? []).filter((x) => x.id !== m.id));
           setSelecao((s) => s.filter((x) => x !== m.id));
           toast.success("Mídia excluída");
@@ -161,7 +230,8 @@ function EditairHome() {
     const nome = novoNome.trim();
     if (!nome) return;
     try {
-      await renomearAssetEditair({ data: { id: renomeando.id, name: nome } });
+      if (desktop && renomeando.local) await desktop.biblioteca.renomear(renomeando.id, nome);
+      else await renomearAssetEditair({ data: { id: renomeando.id, name: nome } });
       setMidias((cur) => (cur ?? []).map((m) => (m.id === renomeando.id ? { ...m, nome } : m)));
       setRenomeando(null);
       toast.success("Nome atualizado");
@@ -194,21 +264,33 @@ function EditairHome() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-10">
+      {desktop && (
+        <DesktopSettingsDialog aberto={!!config} abaInicial={config ?? "armazenamento"} aoFechar={() => setConfig(null)} />
+      )}
       <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">EditAir</h1>
           <p className="mt-1 text-sm text-white/50">
-            Importe suas mídias, use quantas vezes quiser e edite com a inteligência do EditAir.
+            {desktop
+              ? "Seus arquivos ficam no computador. A IA trabalha online; a edição e a exportação acontecem aqui."
+              : "Importe suas mídias, use quantas vezes quiser e edite com a inteligência do EditAir."}
           </p>
         </div>
-        <Button
-          onClick={() => inputRef.current?.click()}
-          disabled={!!enviando}
-          className="bg-[#F26B1F] text-white hover:bg-[#d95c14]"
-        >
-          {enviando ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <UploadCloud className="mr-1.5 h-4 w-4" />}
-          {enviando ?? "Importar mídia"}
-        </Button>
+        <div className="flex items-center gap-2">
+          {desktop && (
+            <Button variant="secondary" onClick={() => setConfig("armazenamento")}>
+              <SettingsIcon className="mr-1.5 h-4 w-4" /> Configurações
+            </Button>
+          )}
+          <Button
+            onClick={() => void importarLocal()}
+            disabled={!!enviando}
+            className="bg-[#F26B1F] text-white hover:bg-[#d95c14]"
+          >
+            {enviando ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <UploadCloud className="mr-1.5 h-4 w-4" />}
+            {enviando ?? "Importar mídia"}
+          </Button>
+        </div>
         <input
           ref={inputRef}
           type="file"
@@ -239,7 +321,11 @@ function EditairHome() {
       >
         <UploadCloud className="mx-auto mb-2 h-7 w-7 text-[#F26B1F]" />
         <p className="text-sm">Arraste vídeos, fotos ou áudios para cá</p>
-        <p className="mt-1 text-xs text-white/40">Tudo fica salvo na galeria e pode ser reaproveitado em vários projetos.</p>
+        <p className="mt-1 text-xs text-white/40">
+          {desktop
+            ? "Nada é enviado para a internet: o EditAir só referencia o arquivo no seu computador."
+            : "Tudo fica salvo na galeria e pode ser reaproveitado em vários projetos."}
+        </p>
       </div>
 
       {/* Galeria */}
@@ -290,6 +376,17 @@ function EditairHome() {
                     {duracaoTexto(m.durationMs)}
                   </span>
                 ) : null}
+                {m.local && m.existe === false && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      void relinkar(m);
+                    }}
+                    className="absolute inset-x-0 top-0 flex items-center justify-center gap-1.5 bg-red-600/85 py-1 text-[10px] font-medium text-white"
+                  >
+                    <Link2Off className="h-3 w-3" /> Mídia não encontrada — localizar
+                  </button>
+                )}
                 <div className="p-2">
                   <p className="truncate text-xs font-medium">{m.nome}</p>
                   <p className="text-[10px] text-white/35">{(m.sizeBytes / 1024 / 1024).toFixed(1)} MB</p>
