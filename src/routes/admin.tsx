@@ -504,7 +504,10 @@ function DashboardNav({ pathname }: { pathname: string }) {
         },
         {
           label: "Redes sociais",
-          items: [{ to: "/admin/redes-sociais", label: "Redes sociais" }],
+          items: [
+            { to: "/admin/redes-sociais", label: "Redes sociais" },
+            { to: "/editair", label: "EditAir — editor de vídeo" },
+          ],
         },
       ]}
 
