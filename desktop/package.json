@@ -48,9 +48,10 @@
     "publish": [
       {
         "provider": "github",
-        "owner": "REPLACE_OWNER",
-        "repo": "REPLACE_REPO",
-        "releaseType": "release"
+        "owner": "lucasfrancez-hub",
+        "repo": "editair",
+        "private": true,
+        "releaseType": "draft"
       }
     ],
     "mac": {
