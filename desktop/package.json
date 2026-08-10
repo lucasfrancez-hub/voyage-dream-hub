@@ -13,7 +13,8 @@
     "build:mac:x64": "electron-builder --mac --x64",
     "build:mac:universal": "electron-builder --mac --universal",
     "build:win": "electron-builder --win --x64",
-    "release:mac": "electron-builder --mac --arm64 --publish always"
+    "release:mac": "electron-builder --mac --arm64 --publish always",
+    "verify:mac": "bash scripts/verificar-app.sh dist/mac-arm64/EditAir.app"
   },
   "dependencies": {
     "electron-updater": "^6.3.9",
@@ -29,6 +30,7 @@
     "productName": "EditAir",
     "artifactName": "EditAir-${version}-${arch}.${ext}",
     "asar": true,
+    "afterPack": "scripts/adhoc-sign.cjs",
     "asarUnpack": [
       "node_modules/ffmpeg-static/**",
       "node_modules/ffprobe-static/**"
@@ -39,6 +41,7 @@
       "offline.html",
       "lib/**/*",
       "assets/**/*",
+      "scripts/**/*",
       "package.json"
     ],
     "directories": {
@@ -58,8 +61,18 @@
       "category": "public.app-category.video",
       "icon": "assets/icon.png",
       "target": [
-        { "target": "dmg", "arch": ["arm64"] },
-        { "target": "zip", "arch": ["arm64"] }
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "arm64"
+          ]
+        }
       ],
       "hardenedRuntime": true,
       "gatekeeperAssess": false,
@@ -82,16 +95,38 @@
       "background": "assets/dmg-background.png",
       "iconSize": 128,
       "iconTextSize": 13,
-      "window": { "width": 540, "height": 380 },
+      "window": {
+        "width": 540,
+        "height": 380
+      },
       "contents": [
-        { "x": 140, "y": 230, "type": "file" },
-        { "x": 400, "y": 230, "type": "link", "path": "/Applications" }
+        {
+          "x": 140,
+          "y": 230,
+          "type": "file"
+        },
+        {
+          "x": 400,
+          "y": 230,
+          "type": "link",
+          "path": "/Applications"
+        }
       ]
     },
     "win": {
       "icon": "assets/icon.png",
-      "target": [{ "target": "nsis", "arch": ["x64"] }]
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
     },
-    "nsis": { "oneClick": false, "allowToChangeInstallationDirectory": true }
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
   }
 }
