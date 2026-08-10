@@ -17,19 +17,23 @@ export const Route = createFileRoute("/editair")({
 
 function EditairLayout() {
   const navigate = useNavigate();
+  const desktop = typeof window !== "undefined" && !!window.editairDesktop;
   const [session, setSession] = useState<Session | null | undefined>(undefined);
   const [liberado, setLiberado] = useState<boolean | undefined>(undefined);
 
   useEffect(() => {
+    // Desktop: o editor é local-first e abre sem login. A nuvem só entra nas funções de IA.
+    if (desktop) return;
     const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => setSession(s));
     supabase.auth
       .getSession()
       .then(({ data }) => setSession(data.session ?? null))
       .catch(() => setSession(null));
     return () => sub.subscription.unsubscribe();
-  }, []);
+  }, [desktop]);
 
   useEffect(() => {
+    if (desktop) return;
     if (session === undefined) return;
     if (!session) {
       navigate({ to: "/auth" });
@@ -48,9 +52,9 @@ function EditairLayout() {
     return () => {
       cancelado = true;
     };
-  }, [session, navigate]);
+  }, [session, navigate, desktop]);
 
-  if (session === undefined || liberado === undefined) {
+  if (!desktop && (session === undefined || liberado === undefined)) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#0B0B0D]">
         <Loader2 className="h-6 w-6 animate-spin text-[#F26B1F]" />
@@ -58,7 +62,8 @@ function EditairLayout() {
     );
   }
 
-  if (!liberado) {
+  if (!desktop && !liberado) {
+
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-3 bg-[#0B0B0D] text-white/70">
         <p>Você não tem acesso ao EditAir.</p>
