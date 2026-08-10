@@ -27,12 +27,17 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import {
-  excluirAssetEditair,
-  obterProjetoEditair,
-  registrarEventoEditair,
-  renomearAssetEditair,
-  salvarEstadoEditair,
-} from "@/lib/editair/projects.functions";
+  abrirProjeto,
+  autosaveProjeto,
+  ehLocal,
+  excluirMidia,
+  importarMidias,
+  registrarEvento,
+  relinkarMidia,
+  renomearMidia,
+  salvarProjeto,
+  type MidiaEditair,
+} from "@/lib/editair/store";
 import { transcreverBlocoEditair } from "@/lib/editair/transcribe.functions";
 import { dirigirEdicaoEditair } from "@/lib/editair/director.functions";
 import { planejarEdicaoEditair } from "@/lib/editair/brain.functions";
@@ -65,7 +70,6 @@ import {
 } from "@/lib/editair/audio";
 import { EditairEngine } from "@/lib/editair/engine";
 import { consumirHandoff } from "@/lib/editair/handoff";
-import { importarParaGaleria } from "@/lib/editair/gallery";
 import { Timeline, type AssetInfo } from "@/components/editair/Timeline";
 import { PlayerStage, type ElementoPalco } from "@/components/editair/PlayerStage";
 import { SourceDialog } from "@/components/editair/SourceDialog";
@@ -115,6 +119,7 @@ function EditorPage() {
   const [state, setState] = useState<ProjectState>(estadoVazio());
   const [transcript, setTranscript] = useState<Transcript | null>(null);
   const [assets, setAssets] = useState<AssetItem[]>([]);
+  const [midias, setMidias] = useState<MidiaEditair[]>([]);
 
   const [playhead, setPlayhead] = useState(0);
   const [tocando, setTocando] = useState(false);
@@ -179,52 +184,38 @@ function EditorPage() {
     let vivo = true;
     (async () => {
       try {
-        const res = (await obterProjetoEditair({ data: { id } })) as unknown as {
-          projeto: Record<string, unknown>;
-          assets: Array<Record<string, unknown>>;
-        };
+        const res = await abrirProjeto(id);
         if (!vivo) return;
-        const p = res.projeto;
-        const w = Number(p.width) || 1080;
-        const h = Number(p.height) || 1920;
-        const fps = Number(p.fps ?? 30);
-        setProjetoNome(String(p.name));
-        const bruto =
-          p.state && typeof p.state === "object" && "clips" in (p.state as object)
-            ? (p.state as ProjectState)
-            : estadoVazio(w, h, fps);
-        let estado = normalizarEstado(bruto, w, h, fps);
-        if (p.transcript && typeof p.transcript === "object" && "words" in (p.transcript as object)) {
-          setTranscript(p.transcript as Transcript);
-        }
+        const w = res.width || 1080;
+        const h = res.height || 1920;
+        const fps = res.fps || 30;
+        setProjetoNome(res.name);
+        setMidias(res.midias);
+        let estado = normalizarEstado(res.state ?? estadoVazio(w, h, fps), w, h, fps);
+        if (res.transcript) setTranscript(res.transcript);
         setState(estado);
-
-
 
         const canvas = canvasRef.current;
         if (canvas) {
           const eng = new EditairEngine(canvas, estado.width, estado.height);
           engineRef.current = eng;
           const lista: AssetItem[] = [];
-          for (const a of res.assets) {
-            const { data: url } = await supabase.storage
-              .from("editair-media")
-              .createSignedUrl(String(a.storage_path), 60 * 60 * 8);
-            if (!url?.signedUrl) continue;
-            const kind = String(a.kind ?? "video");
-            await eng.carregar(String(a.id), url.signedUrl, kind);
+          for (const m of res.midias) {
+            if (m.url) await eng.carregar(m.id, m.url, m.kind).catch(() => null);
             lista.push({
-              id: String(a.id),
-              nome: String(a.name),
-              kind,
-              durationMs: Number(a.duration_ms ?? 0),
-              url: url.signedUrl,
+              id: m.id,
+              nome: m.nome,
+              kind: m.kind,
+              durationMs: m.durationMs,
+              url: m.url,
+              local: m.local,
+              existe: m.existe,
             });
           }
           if (!vivo) return;
           setAssets(lista);
 
-          // projeto novo criado a partir da galeria: coloca as mídias na linha do tempo
+          // projeto novo: as mídias escolhidas já entram na linha do tempo, prontas para tocar
           if (!estado.clips.length && lista.length) {
             const clips: EditairClip[] = [];
             const fim: Record<string, number> = {};
@@ -248,9 +239,9 @@ function EditorPage() {
               fim[trilha] = inicio + dur;
             }
             estado = recalcularDuracao({ ...estado, clips });
-            const dim = res.assets.find((a) => Number(a.width) > 0 && Number(a.height) > 0);
+            const dim = res.midias.find((m) => m.width > 0 && m.height > 0);
             if (dim) {
-              estado = { ...estado, width: Number(dim.width), height: Number(dim.height) };
+              estado = { ...estado, width: dim.width, height: dim.height };
               eng.redimensionar(estado.width, estado.height);
             }
           }
@@ -260,9 +251,8 @@ function EditorPage() {
           eng.sincronizar(estado, 0, false);
           eng.desenhar(estado, 0);
 
-
-          // deixa o áudio do primeiro vídeo pronto para a IA mesmo após recarregar a página
-          const principal = lista.find((a) => a.kind !== "image");
+          // deixa o áudio do primeiro vídeo pronto para a IA mesmo após recarregar
+          const principal = lista.find((a) => a.kind !== "image" && a.url);
           if (principal) {
             void (async () => {
               try {
@@ -277,8 +267,8 @@ function EditorPage() {
           }
         }
 
-        const primeiro = res.assets.find((a) => Number(a.width) > 0 && Number(a.height) > 0);
-        if (primeiro) setDimsOriginais({ w: Number(primeiro.width), h: Number(primeiro.height) });
+        const primeiro = res.midias.find((m) => m.width > 0 && m.height > 0);
+        if (primeiro) setDimsOriginais({ w: primeiro.width, h: primeiro.height });
 
         // veio da galeria com instrução: monta o primeiro corte automaticamente
         const handoff = consumirHandoff(id);
@@ -406,9 +396,7 @@ function EditorPage() {
     async (silencioso = true) => {
       setSalvando(true);
       try {
-        await salvarEstadoEditair({
-          data: { id, state: state as unknown, transcript: transcript as unknown, status: "editando" },
-        });
+        await salvarProjeto(id, { state, transcript, assetIds: assets.map((a) => a.id) });
         if (!silencioso) toast.success("Projeto salvo");
       } catch (e) {
         if (!silencioso) toast.error(e instanceof Error ? e.message : "Falha ao salvar");
@@ -416,14 +404,19 @@ function EditorPage() {
         setSalvando(false);
       }
     },
-    [id, state, transcript],
+    [id, state, transcript, assets],
   );
 
   useEffect(() => {
     if (carregando) return;
     const t = setTimeout(() => void salvar(true), 2500);
-    return () => clearTimeout(t);
-  }, [state, transcript, carregando, salvar]);
+    // autosave local contínuo: se o app cair, o projeto volta como estava
+    const a = setTimeout(() => void autosaveProjeto(id, state), 800);
+    return () => {
+      clearTimeout(t);
+      clearTimeout(a);
+    };
+  }, [state, transcript, carregando, salvar, id]);
 
   /* ---------------- edição de clipes ---------------- */
   const patchClipe = (patch: Partial<EditairClip>, alvoId?: string) => {
@@ -652,35 +645,45 @@ function EditorPage() {
     setSelecionados([clip.id]);
   };
 
-  const importar = async (arquivos: FileList | File[] | null) => {
-    if (!arquivos?.length) return;
-    setOcupado("Enviando mídia…");
+  const importar = async (arquivos: FileList | File[] | string[] | null, posicaoMs?: number) => {
+    if (!arquivos || (arquivos as { length: number }).length === 0) return;
+    setOcupado(ehLocal() ? "Importando mídia…" : "Enviando mídia…");
     try {
       const proximo: ProjectState = { ...state, clips: [...state.clips] };
       const eraVazio = proximo.clips.length === 0;
       let dims: { w: number; h: number } | null = null;
       const novosAssets: AssetItem[] = [];
-      for (const arquivo of Array.from(arquivos)) {
-        // vai para a galeria permanente e fica vinculada a este projeto
-        const midia = await importarParaGaleria(arquivo, {
-          projectId: id,
-          aoProgredir: (msg) => setOcupado(msg),
-        });
+
+      const novas = await importarMidias(arquivos, {
+        projectId: id,
+        aoProgredir: (p) => setOcupado(p.fase === "pronto" ? null : p.mensagem),
+      });
+
+      for (const midia of novas) {
         const kind = midia.kind;
         if (!dims && midia.width > 0 && midia.height > 0) dims = { w: midia.width, h: midia.height };
-
-        await engineRef.current?.carregar(midia.id, midia.url, kind);
-        novosAssets.push({ id: midia.id, nome: midia.nome, kind, durationMs: midia.durationMs, url: midia.url });
+        if (midia.url) await engineRef.current?.carregar(midia.id, midia.url, kind);
+        novosAssets.push({
+          id: midia.id,
+          nome: midia.nome,
+          kind,
+          durationMs: midia.durationMs,
+          url: midia.url,
+          local: midia.local,
+          existe: midia.existe,
+        });
 
         const trilha = kind === "audio" ? "t-music" : "t-video";
-        const fim = proximo.clips.filter((c) => c.trackId === trilha).reduce((m, c) => Math.max(m, c.start + c.duration), 0);
+        const fimTrilha = proximo.clips
+          .filter((c) => c.trackId === trilha)
+          .reduce((m, c) => Math.max(m, c.start + c.duration), 0);
         proximo.clips.push({
           id: novoId(),
           trackId: trilha,
           kind: kind === "audio" ? "audio" : kind === "image" ? "image" : "video",
           assetId: midia.id,
-          start: fim,
-          duration: Math.max(1000, midia.durationMs),
+          start: posicaoMs != null ? Math.max(0, Math.round(posicaoMs)) : fimTrilha,
+          duration: Math.max(1000, midia.durationMs || (kind === "image" ? 5000 : 3000)),
           sourceIn: 0,
           volume: 1,
           speed: 1,
@@ -688,15 +691,17 @@ function EditorPage() {
           label: midia.nome.slice(0, 28),
         });
 
-        if (!audioBufferRef.current && kind !== "image") {
+        if (!audioBufferRef.current && kind !== "image" && midia.url) {
           try {
-            audioBufferRef.current = await decodificarAudio(arquivo);
+            audioBufferRef.current = await decodificarAudio(await (await fetch(midia.url)).blob());
           } catch {
             /* sem áudio decodificável */
           }
         }
       }
-      setAssets((a) => [...a, ...novosAssets]);
+
+      setAssets((a) => [...a.filter((x) => !novosAssets.some((n) => n.id === x.id)), ...novosAssets]);
+      setMidias((m) => [...m.filter((x) => !novas.some((n) => n.id === x.id)), ...novas]);
       if (dims) {
         setDimsOriginais(dims);
         if (eraVazio) {
@@ -706,7 +711,7 @@ function EditorPage() {
         }
       }
       aplicar(proximo);
-      toast.success("Mídia salva na galeria");
+      toast.success(ehLocal() ? "Mídia adicionada (arquivo continua no seu computador)" : "Mídia salva na galeria");
       if (autoRef.current) setAutoEtapa("planejar");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Falha ao importar");
@@ -715,14 +720,30 @@ function EditorPage() {
     } finally {
       setOcupado(null);
     }
+  };
 
-
+  /** Arquivo movido no Finder: aponta o novo caminho e a timeline volta a funcionar. */
+  const relinkAsset = async (assetId: string) => {
+    const m = midias.find((x) => x.id === assetId);
+    if (!m) return;
+    const atualizado = await relinkarMidia(m);
+    if (!atualizado) return;
+    setMidias((cur) => cur.map((x) => (x.id === assetId ? atualizado : x)));
+    setAssets((cur) =>
+      cur.map((x) =>
+        x.id === assetId ? { ...x, url: atualizado.url, existe: true, durationMs: atualizado.durationMs } : x,
+      ),
+    );
+    if (atualizado.url) await engineRef.current?.carregar(assetId, atualizado.url, atualizado.kind).catch(() => null);
+    setState((cur) => recalcularDuracao({ ...cur }));
+    toast.success("Mídia relinkada — seus cortes continuam intactos");
   };
 
   const renomearAsset = async (assetId: string, nome: string) => {
     setAssets((a) => a.map((x) => (x.id === assetId ? { ...x, nome } : x)));
     try {
-      await renomearAssetEditair({ data: { id: assetId, name: nome } });
+      const m = midias.find((x) => x.id === assetId);
+      if (m) await renomearMidia(m, nome);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Falha ao renomear");
     }
@@ -734,7 +755,9 @@ function EditorPage() {
     }
     setAssets((a) => a.filter((x) => x.id !== assetId));
     try {
-      await excluirAssetEditair({ data: { id: assetId } });
+      const m = midias.find((x) => x.id === assetId);
+      if (m) await excluirMidia(m);
+      setMidias((cur) => cur.filter((x) => x.id !== assetId));
       toast.success("Mídia removida do projeto");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Falha ao excluir");
@@ -904,7 +927,7 @@ function EditorPage() {
         aplicar(novo);
       }
       setMensagens((m) => [...m, { id: novoId("m"), autor: "ia", texto: r.resposta, ops: ops.length }]);
-      void registrarEventoEditair({ data: { projectId: id, actor: "ia", message: r.resposta, ops: r.ops } }).catch(() => {});
+      void registrarEvento({ projectId: id, actor: "ia", message: r.resposta, ops: r.ops });
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Falha na IA";
       setMensagens((m) => [...m, { id: novoId("m"), autor: "ia", texto: msg }]);
@@ -962,7 +985,7 @@ function EditorPage() {
       }
       setPlano(novo);
       setMensagens((m) => [...m, { id: novoId("m"), autor: "ia", texto: novo.estrategia || novo.intencao }]);
-      void registrarEventoEditair({ data: { projectId: id, actor: "ia", message: novo.estrategia, ops: null } }).catch(() => {});
+      void registrarEvento({ projectId: id, actor: "ia", message: novo.estrategia, ops: null });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Falha ao gerar o plano editorial");
     } finally {
@@ -1355,6 +1378,7 @@ function EditorPage() {
           onAlterarClips={alterarClipsTimeline}
           onAbrirSource={setSourceClipId}
           onRestaurarClip={restaurarClip}
+          onSoltarArquivos={(arquivos, ms) => void importar(arquivos, ms)}
           onAcaoClip={(cid, acao) => {
             const c = state.clips.find((x) => x.id === cid);
             if (!c) return;
