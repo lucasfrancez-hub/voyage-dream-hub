@@ -194,6 +194,12 @@ function EditorPage() {
             ? (p.state as ProjectState)
             : estadoVazio(w, h, fps);
         let estado = normalizarEstado(bruto, w, h, fps);
+        if (p.transcript && typeof p.transcript === "object" && "words" in (p.transcript as object)) {
+          setTranscript(p.transcript as Transcript);
+        }
+        setState(estado);
+
+
 
         const canvas = canvasRef.current;
         if (canvas) {
