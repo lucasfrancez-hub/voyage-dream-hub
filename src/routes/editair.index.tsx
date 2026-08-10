@@ -332,9 +332,9 @@ function EditairHome() {
           </div>
           <Textarea
             value={instrucao}
-            onChange={(e) => setInstrucao(e.target.value.slice(0, 20000))}
+            onChange={(e) => setInstrucao(e.target.value.slice(0, 100000))}
             rows={2}
-            maxLength={20000}
+            maxLength={100000}
             placeholder="Ex.: tire as pausas e os erros, mantenha meu jeito natural de falar."
             className="border-white/10 bg-white/5"
           />
