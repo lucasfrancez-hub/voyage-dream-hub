@@ -13,6 +13,18 @@ import {
 } from "lucide-react";
 import { timecode } from "@/lib/editair/types";
 
+export type ElementoPalco = {
+  id: string;
+  kind: string;
+  /** retângulo em fração do frame (0..1), centro em cx/cy */
+  cx: number;
+  cy: number;
+  w: number;
+  h: number;
+  rotation: number;
+  bloqueado?: boolean;
+};
+
 export type Plataforma = "nenhuma" | "reels" | "tiktok" | "shorts";
 
 const SAFE: Record<Plataforma, { top: number; bottom: number; left: number; right: number }> = {
@@ -49,6 +61,13 @@ type Props = {
   onMudo: (m: boolean) => void;
   onQualidade: (q: number) => void;
   onFormato: (w: number, h: number) => void;
+  elementos?: ElementoPalco[];
+  selecionadoId?: string | null;
+  onSelecionar?: (id: string | null) => void;
+  /** deslocamento em px do frame do projeto */
+  onMover?: (id: string, dx: number, dy: number) => void;
+  onEscalar?: (id: string, fator: number) => void;
+  onGirar?: (id: string, graus: number) => void;
 };
 
 
@@ -72,6 +91,12 @@ export function PlayerStage({
   onMudo,
   onQualidade,
   onFormato,
+  elementos = [],
+  selecionadoId = null,
+  onSelecionar,
+  onMover,
+  onEscalar,
+  onGirar,
 }: Props) {
   const stageRef = useRef<HTMLDivElement>(null);
   const [plataforma, setPlataforma] = useState<Plataforma>("nenhuma");
@@ -82,6 +107,54 @@ export function PlayerStage({
   const [zoom, setZoom] = useState(1);
   const [fullscreen, setFullscreen] = useState(false);
   const [personalizado, setPersonalizado] = useState(false);
+  const [painel, setPainel] = useState(false);
+  const palcoRef = useRef<HTMLDivElement>(null);
+  const arrasto = useRef<{ modo: "mover" | "escala" | "giro"; id: string; x: number; y: number; base: ElementoPalco } | null>(null);
+
+  const sel = elementos.find((e) => e.id === selecionadoId) ?? null;
+
+  const paraFrame = (ev: { clientX: number; clientY: number }) => {
+    const r = palcoRef.current?.getBoundingClientRect();
+    if (!r) return { x: 0, y: 0 };
+    return { x: ((ev.clientX - r.left) / r.width) * width, y: ((ev.clientY - r.top) / r.height) * height };
+  };
+
+  const iniciar = (modo: "mover" | "escala" | "giro", el: ElementoPalco) => (ev: React.PointerEvent) => {
+    ev.stopPropagation();
+    if (el.bloqueado) return;
+    (ev.target as HTMLElement).setPointerCapture?.(ev.pointerId);
+    const pt = paraFrame(ev);
+    arrasto.current = { modo, id: el.id, x: pt.x, y: pt.y, base: el };
+  };
+
+  const mover = (ev: React.PointerEvent) => {
+    const a = arrasto.current;
+    if (!a) return;
+    const pt = paraFrame(ev);
+    const dx = pt.x - a.x;
+    const dy = pt.y - a.y;
+    if (a.modo === "mover") {
+      onMover?.(a.id, dx, dy);
+      arrasto.current = { ...a, x: pt.x, y: pt.y };
+    } else if (a.modo === "escala") {
+      const cx = a.base.cx * width;
+      const cy = a.base.cy * height;
+      const dAntes = Math.hypot(a.x - cx, a.y - cy) || 1;
+      const dAgora = Math.hypot(pt.x - cx, pt.y - cy) || 1;
+      onEscalar?.(a.id, dAgora / dAntes);
+      arrasto.current = { ...a, x: pt.x, y: pt.y };
+    } else {
+      const cx = a.base.cx * width;
+      const cy = a.base.cy * height;
+      const ang = (Math.atan2(pt.y - cy, pt.x - cx) - Math.atan2(a.y - cy, a.x - cx)) * (180 / Math.PI);
+      onGirar?.(a.id, ang);
+      arrasto.current = { ...a, x: pt.x, y: pt.y };
+    }
+  };
+
+  const soltar = () => {
+    arrasto.current = null;
+  };
   const ratioAtual = `${Math.round((width / height) * 100) / 100}`;
 
   const temOriginal = !!originalWidth && !!originalHeight;
@@ -179,6 +252,19 @@ export function PlayerStage({
           </span>
         ) : null}
 
+        <select
+          value={zoom}
+          onChange={(e) => setZoom(Number(e.target.value))}
+          className="rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-[11px] outline-none"
+          title="Zoom do reprodutor"
+        >
+          <option value={1}>Ajustar</option>
+          <option value={0.5}>50%</option>
+          <option value={0.75}>75%</option>
+          <option value={1.25}>125%</option>
+          <option value={1.5}>150%</option>
+          <option value={2}>200%</option>
+        </select>
         <button
           onClick={() => void alternarTela()}
           className="rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-[11px] hover:bg-white/10"
@@ -201,6 +287,65 @@ export function PlayerStage({
           }}
         >
           <canvas ref={canvasRef} className="block h-full w-full bg-black" />
+
+          {/* camada de seleção direta */}
+          <div
+            ref={palcoRef}
+            className="absolute inset-0"
+            onPointerDown={(e) => {
+              if (e.target === e.currentTarget) onSelecionar?.(null);
+            }}
+            onPointerMove={mover}
+            onPointerUp={soltar}
+            onPointerCancel={soltar}
+          >
+            {elementos.map((el) => {
+              const ativo = el.id === selecionadoId;
+              return (
+                <div
+                  key={el.id}
+                  onPointerDown={(e) => {
+                    onSelecionar?.(el.id);
+                    iniciar("mover", el)(e);
+                  }}
+                  className={`absolute ${el.bloqueado ? "cursor-not-allowed" : "cursor-move"} ${
+                    ativo ? "" : "hover:outline hover:outline-1 hover:outline-white/40"
+                  }`}
+                  style={{
+                    left: `${(el.cx - el.w / 2) * 100}%`,
+                    top: `${(el.cy - el.h / 2) * 100}%`,
+                    width: `${el.w * 100}%`,
+                    height: `${el.h * 100}%`,
+                    transform: el.rotation ? `rotate(${el.rotation}deg)` : undefined,
+                    outline: ativo ? "2px solid #F26B1F" : undefined,
+                  }}
+                >
+                  {ativo && !el.bloqueado ? (
+                    <>
+                      {[
+                        { c: "left-0 top-0", cur: "nwse-resize" },
+                        { c: "right-0 top-0", cur: "nesw-resize" },
+                        { c: "left-0 bottom-0", cur: "nesw-resize" },
+                        { c: "right-0 bottom-0", cur: "nwse-resize" },
+                      ].map((h) => (
+                        <span
+                          key={h.c}
+                          onPointerDown={iniciar("escala", el)}
+                          className={`absolute h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-[#F26B1F] bg-white ${h.c}`}
+                          style={{ cursor: h.cur, margin: 0, transform: "translate(-50%,-50%)" }}
+                        />
+                      ))}
+                      <span
+                        onPointerDown={iniciar("giro", el)}
+                        title="Girar"
+                        className="absolute left-1/2 top-0 h-3 w-3 -translate-x-1/2 -translate-y-6 cursor-grab rounded-full border-2 border-[#F26B1F] bg-white"
+                      />
+                    </>
+                  ) : null}
+                </div>
+              );
+            })}
+          </div>
 
           {safeArea ? (
             <div
@@ -228,7 +373,13 @@ export function PlayerStage({
         </div>
 
         {/* painel de visualização */}
-        <div className="absolute right-4 top-4 w-[212px] rounded-xl border border-white/10 bg-[#101519]/95 p-3 text-[11px] backdrop-blur">
+        <button
+          onClick={() => setPainel((v) => !v)}
+          className="absolute right-4 top-4 rounded-lg border border-white/10 bg-[#101519]/90 px-2 py-1 text-[11px] text-white/70 backdrop-blur hover:bg-white/10"
+        >
+          {painel ? "Fechar visualização" : "Visualização"}
+        </button>
+        <div hidden={!painel} className="absolute right-4 top-12 w-[212px] rounded-xl border border-white/10 bg-[#101519]/95 p-3 text-[11px] backdrop-blur">
           <p className="mb-2 font-semibold">Visualização</p>
           <Check label="Interface da plataforma" checked={mostrarUi} onChange={setMostrarUi} disabled={plataforma === "nenhuma"} />
           <Check label="Área segura" checked={safeArea} onChange={setSafeArea} />
