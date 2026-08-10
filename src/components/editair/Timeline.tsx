@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Eye, EyeOff, Lock, LockOpen, Volume2, VolumeX, Headphones } from "lucide-react";
 import type { EditairClip, EditairTrack, ProjectState } from "@/lib/editair/types";
 import { formatarTempo } from "@/lib/editair/types";
+import { limitesDoClip } from "@/lib/editair/ops";
 import { obterPicos, obterThumb } from "@/lib/editair/media";
 
 export type AssetInfo = { url: string; durationMs: number; kind: string; name: string };
@@ -23,12 +24,18 @@ type Props = {
   selecao: { fromMs: number; toMs: number } | null;
   assets: Record<string, AssetInfo>;
   snapping: boolean;
+  rippleTrim: boolean;
   onSeek: (ms: number) => void;
   onSelecionar: (ids: string[]) => void;
   onSelecao: (s: { fromMs: number; toMs: number } | null) => void;
   onAlterarClip: (id: string, patch: Partial<EditairClip>, commit: boolean) => void;
+  onAlterarClips: (patches: Record<string, Partial<EditairClip>>, commit: boolean) => void;
   onToggleTrack: (trackId: string, campo: "muted" | "hidden" | "locked" | "solo") => void;
+  onAbrirSource: (clipId: string) => void;
+  onRestaurarClip: (clipId: string) => void;
 };
+
+type Dica = { x: number; y: number; titulo: string; valor: string; delta: string } | null;
 
 export function Timeline({
   state,
@@ -38,15 +45,28 @@ export function Timeline({
   selecao,
   assets,
   snapping,
+  rippleTrim,
   onSeek,
   onSelecionar,
   onSelecao,
   onAlterarClip,
+  onAlterarClips,
   onToggleTrack,
+  onAbrirSource,
+  onRestaurarClip,
 }: Props) {
   const areaRef = useRef<HTMLDivElement>(null);
   const pxPorMs = zoom / 1000;
   const larguraTotal = Math.max(1200, (state.durationMs + 6000) * pxPorMs);
+  const [dica, setDica] = useState<Dica>(null);
+  const [arrastandoId, setArrastandoId] = useState<string | null>(null);
+  const [menu, setMenu] = useState<{ x: number; y: number; clipId: string } | null>(null);
+
+  const duracoes = useMemo(() => {
+    const m: Record<string, number> = {};
+    for (const [id, a] of Object.entries(assets)) m[id] = a.durationMs;
+    return m;
+  }, [assets]);
 
   const msDoEvento = useCallback(
     (clientX: number) => {
@@ -91,7 +111,7 @@ export function Timeline({
     return out;
   }, [zoom, state.durationMs]);
 
-  /* arrastar clipe / trim */
+  /* arrastar clipe / trim — sempre não destrutivo: mexe só em sourceIn/duração */
   const iniciarArraste = (
     e: React.PointerEvent,
     clip: EditairClip,
@@ -102,27 +122,70 @@ export function Timeline({
     e.stopPropagation();
     const inicioMs = msDoEvento(e.clientX);
     const base = { start: clip.start, duration: clip.duration, sourceIn: clip.sourceIn };
+    const lim = limitesDoClip(clip, duracoes);
+    const speed = clip.speed || 1;
+    const fimAntigo = base.start + base.duration;
+    const posteriores = state.clips.filter((c) => c.trackId === clip.trackId && c.start >= fimAntigo && c.id !== clip.id);
+    setArrastandoId(clip.id);
 
     const mover = (ev: PointerEvent) => {
       const delta = msDoEvento(ev.clientX) - inicioMs;
+
       if (modo === "mover") {
         onAlterarClip(clip.id, { start: Math.max(0, encaixar(base.start + delta)) }, false);
-      } else if (modo === "trim-in") {
-        const novoStart = Math.max(0, Math.min(base.start + base.duration - 100, encaixar(base.start + delta)));
-        const dif = novoStart - base.start;
-        onAlterarClip(
-          clip.id,
-          { start: novoStart, duration: base.duration - dif, sourceIn: Math.max(0, base.sourceIn + dif * clip.speed) },
-          false,
-        );
-      } else {
-        const fim = Math.max(base.start + 100, encaixar(base.start + base.duration + delta));
-        onAlterarClip(clip.id, { duration: fim - base.start }, false);
+        return;
       }
+
+      if (modo === "trim-in") {
+        // limite: não passa do início real do arquivo nem some com o clipe
+        const bruto = encaixar(base.start + delta) - base.start;
+        const dif = Math.max(-Math.min(lim.esquerda, base.start), Math.min(base.duration - 100, bruto));
+        const novoSourceIn = Math.max(0, base.sourceIn + dif * speed);
+        const patches: Record<string, Partial<EditairClip>> = {
+          [clip.id]: rippleTrim
+            ? { start: base.start, duration: base.duration - dif, sourceIn: novoSourceIn }
+            : { start: base.start + dif, duration: base.duration - dif, sourceIn: novoSourceIn },
+        };
+        if (rippleTrim) {
+          for (const c of posteriores) patches[c.id] = { start: Math.max(0, c.start - dif) };
+        }
+        onAlterarClips(patches, false);
+        onSeek(Math.max(0, (rippleTrim ? base.start : base.start + dif)));
+        setDica({
+          x: ev.clientX,
+          y: ev.clientY,
+          titulo: "Source In",
+          valor: formatarTempo(novoSourceIn, true),
+          delta: `${dif >= 0 ? "+" : "−"}${formatarTempo(Math.abs(dif), true)}`,
+        });
+        return;
+      }
+
+      // trim-out
+      const maxDur = Number.isFinite(lim.direita) ? base.duration + lim.direita : Infinity;
+      const bruto = encaixar(base.start + base.duration + delta) - base.start;
+      const novaDur = Math.max(100, Math.min(maxDur, bruto));
+      const dif = novaDur - base.duration;
+      const patches: Record<string, Partial<EditairClip>> = { [clip.id]: { duration: novaDur } };
+      if (rippleTrim) {
+        for (const c of posteriores) patches[c.id] = { start: Math.max(0, c.start + dif) };
+      }
+      onAlterarClips(patches, false);
+      onSeek(base.start + novaDur);
+      setDica({
+        x: ev.clientX,
+        y: ev.clientY,
+        titulo: "Source Out",
+        valor: formatarTempo(base.sourceIn + novaDur * speed, true),
+        delta: `${dif >= 0 ? "+" : "−"}${formatarTempo(Math.abs(dif), true)}`,
+      });
     };
+
     const soltar = () => {
       window.removeEventListener("pointermove", mover);
       window.removeEventListener("pointerup", soltar);
+      setDica(null);
+      setArrastandoId(null);
       onAlterarClip(clip.id, {}, true);
     };
     window.addEventListener("pointermove", mover);
@@ -130,7 +193,7 @@ export function Timeline({
   };
 
   return (
-    <div className="flex h-full min-h-0 flex-col bg-[#0d1116]">
+    <div className="relative flex h-full min-h-0 flex-col bg-[#0d1116]" onPointerDown={() => setMenu(null)}>
       <div className="flex min-h-0 flex-1">
         {/* cabeçalho das trilhas */}
         <div className="w-[150px] shrink-0 border-r border-white/10 bg-[#10151b]">
@@ -198,6 +261,7 @@ export function Timeline({
                       asset={c.assetId ? assets[c.assetId] : undefined}
                       pxPorMs={pxPorMs}
                       selecionado={selecionados.includes(c.id)}
+                      arrastando={arrastandoId === c.id}
                       bloqueado={!!t.locked}
                       onSelect={(aditivo) =>
                         onSelecionar(
@@ -209,6 +273,8 @@ export function Timeline({
                         )
                       }
                       onArrastar={iniciarArraste}
+                      onAbrirSource={() => onAbrirSource(c.id)}
+                      onMenu={(x, y) => setMenu({ x, y, clipId: c.id })}
                     />
                   ))}
               </div>
@@ -234,6 +300,44 @@ export function Timeline({
           </div>
         </div>
       </div>
+
+      {dica ? (
+        <div
+          className="pointer-events-none fixed z-[60] rounded-lg border border-white/15 bg-[#0f141a]/95 px-2.5 py-1.5 text-[11px] shadow-lg backdrop-blur"
+          style={{ left: dica.x + 14, top: dica.y - 44 }}
+        >
+          <p className="text-white/50">{dica.titulo}</p>
+          <p className="font-mono text-white">{dica.valor}</p>
+          <p className="font-mono text-[#F26B1F]">{dica.delta}</p>
+        </div>
+      ) : null}
+
+      {menu ? (
+        <div
+          className="fixed z-[60] w-56 overflow-hidden rounded-xl border border-white/10 bg-[#12171d] py-1 text-[12px] shadow-2xl"
+          style={{ left: menu.x, top: menu.y }}
+          onPointerDown={(e) => e.stopPropagation()}
+        >
+          <button
+            className="block w-full px-3 py-2 text-left hover:bg-white/10"
+            onClick={() => {
+              onRestaurarClip(menu.clipId);
+              setMenu(null);
+            }}
+          >
+            Restaurar duração original
+          </button>
+          <button
+            className="block w-full px-3 py-2 text-left hover:bg-white/10"
+            onClick={() => {
+              onAbrirSource(menu.clipId);
+              setMenu(null);
+            }}
+          >
+            Abrir material original
+          </button>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -288,67 +392,114 @@ function Clipe({
   asset,
   pxPorMs,
   selecionado,
+  arrastando,
   bloqueado,
   onSelect,
   onArrastar,
+  onAbrirSource,
+  onMenu,
 }: {
   clip: EditairClip;
   asset?: AssetInfo;
   pxPorMs: number;
   selecionado: boolean;
+  arrastando: boolean;
   bloqueado: boolean;
   onSelect: (aditivo: boolean) => void;
   onArrastar: (e: React.PointerEvent, clip: EditairClip, modo: "mover" | "trim-in" | "trim-out") => void;
+  onAbrirSource: () => void;
+  onMenu: (x: number, y: number) => void;
 }) {
   const largura = Math.max(8, clip.duration * pxPorMs);
   const visual = clip.kind === "video" || clip.kind === "image";
   const sonoro = clip.kind === "audio";
+  const speed = clip.speed || 1;
+  const dispEsq = asset ? Math.min(clip.sourceIn / speed, 60_000) : 0;
+  const dispDir = asset
+    ? Math.min(Math.max(0, (asset.durationMs - (clip.sourceIn + clip.duration * speed)) / speed), 60_000)
+    : 0;
+  const mostrarSobra = (selecionado || arrastando) && !!asset;
 
   return (
-    <div
-      onPointerDown={(e) => {
-        onSelect(e.shiftKey || e.metaKey || e.ctrlKey);
-        onArrastar(e, clip, "mover");
-      }}
-      className={`absolute top-1.5 flex h-11 select-none items-center overflow-hidden rounded-md border text-[11px] text-white/90 ${
-        CORES[clip.trackId] ?? "bg-white/20 border-white/20"
-      } ${selecionado ? "ring-2 ring-white" : ""} ${bloqueado ? "cursor-not-allowed opacity-70" : "cursor-grab"}`}
-      style={{ left: clip.start * pxPorMs, width: largura }}
-      title={clip.label ?? clip.text ?? clip.kind}
-    >
-      {visual && asset ? <Filmstrip clip={clip} asset={asset} largura={largura} /> : null}
-      {sonoro && asset ? <WaveClip clip={clip} asset={asset} largura={largura} /> : null}
-      {!visual && !sonoro ? (
-        <span className="truncate px-2">{clip.text ?? clip.label ?? clip.kind}</span>
-      ) : (
-        <span className="pointer-events-none absolute bottom-0 left-1 max-w-[90%] truncate rounded-sm bg-black/50 px-1 text-[9px]">
-          {clip.label ?? asset?.name ?? ""}
-        </span>
-      )}
-      {clip.transicao ? (
-        <span className="pointer-events-none absolute left-0 top-0 h-full w-3 bg-gradient-to-r from-white/60 to-transparent" />
+    <>
+      {mostrarSobra && dispEsq > 1 ? (
+        <div
+          className="pointer-events-none absolute top-1.5 h-11 rounded-l-md border border-dashed border-white/25 bg-[repeating-linear-gradient(45deg,rgba(255,255,255,.09)_0_6px,transparent_6px_12px)]"
+          style={{ left: (clip.start - dispEsq) * pxPorMs, width: dispEsq * pxPorMs }}
+          title="Material disponível no arquivo original"
+        />
       ) : null}
-      {!bloqueado ? (
-        <>
-          <div
-            onPointerDown={(e) => {
-              e.stopPropagation();
-              onSelect(false);
-              onArrastar(e, clip, "trim-in");
-            }}
-            className="absolute left-0 top-0 h-full w-2 cursor-ew-resize bg-white/0 hover:bg-white/40"
-          />
-          <div
-            onPointerDown={(e) => {
-              e.stopPropagation();
-              onSelect(false);
-              onArrastar(e, clip, "trim-out");
-            }}
-            className="absolute right-0 top-0 h-full w-2 cursor-ew-resize bg-white/0 hover:bg-white/40"
-          />
-        </>
+      {mostrarSobra && dispDir > 1 ? (
+        <div
+          className="pointer-events-none absolute top-1.5 h-11 rounded-r-md border border-dashed border-white/25 bg-[repeating-linear-gradient(45deg,rgba(255,255,255,.09)_0_6px,transparent_6px_12px)]"
+          style={{ left: (clip.start + clip.duration) * pxPorMs, width: dispDir * pxPorMs }}
+          title="Material disponível no arquivo original"
+        />
       ) : null}
-    </div>
+
+      <div
+        onPointerDown={(e) => {
+          if (e.button === 2) return;
+          onSelect(e.shiftKey || e.metaKey || e.ctrlKey);
+          onArrastar(e, clip, "mover");
+        }}
+        onDoubleClick={(e) => {
+          e.stopPropagation();
+          onAbrirSource();
+        }}
+        onContextMenu={(e) => {
+          e.preventDefault();
+          onSelect(false);
+          onMenu(e.clientX, e.clientY);
+        }}
+        className={`absolute top-1.5 flex h-11 select-none items-center overflow-hidden rounded-md border text-[11px] text-white/90 ${
+          CORES[clip.trackId] ?? "bg-white/20 border-white/20"
+        } ${selecionado ? "ring-2 ring-white" : ""} ${bloqueado ? "cursor-not-allowed opacity-70" : "cursor-grab"}`}
+        style={{ left: clip.start * pxPorMs, width: largura }}
+        title={clip.label ?? clip.text ?? clip.kind}
+      >
+        {visual && asset ? <Filmstrip clip={clip} asset={asset} largura={largura} /> : null}
+        {sonoro && asset ? <WaveClip clip={clip} asset={asset} largura={largura} /> : null}
+        {!visual && !sonoro ? (
+          <span className="truncate px-2">{clip.text ?? clip.label ?? clip.kind}</span>
+        ) : (
+          <span className="pointer-events-none absolute bottom-0 left-1 max-w-[90%] truncate rounded-sm bg-black/50 px-1 text-[9px]">
+            {clip.label ?? asset?.name ?? ""}
+          </span>
+        )}
+        {clip.transicao ? (
+          <span className="pointer-events-none absolute left-0 top-0 h-full w-3 bg-gradient-to-r from-white/60 to-transparent" />
+        ) : null}
+        {!bloqueado ? (
+          <>
+            <div
+              onPointerDown={(e) => {
+                e.stopPropagation();
+                onSelect(false);
+                onArrastar(e, clip, "trim-in");
+              }}
+              className={`absolute left-0 top-0 flex h-full w-2.5 cursor-ew-resize items-center justify-center transition ${
+                selecionado ? "bg-white/70" : "bg-white/0 hover:bg-white/40"
+              }`}
+            >
+              {selecionado ? <span className="h-5 w-px bg-black/50" /> : null}
+            </div>
+            <div
+              onPointerDown={(e) => {
+                e.stopPropagation();
+                onSelect(false);
+                onArrastar(e, clip, "trim-out");
+              }}
+              className={`absolute right-0 top-0 flex h-full w-2.5 cursor-ew-resize items-center justify-center transition ${
+                selecionado ? "bg-white/70" : "bg-white/0 hover:bg-white/40"
+              }`}
+            >
+              {selecionado ? <span className="h-5 w-px bg-black/50" /> : null}
+            </div>
+          </>
+        ) : null}
+      </div>
+    </>
   );
 }
 
