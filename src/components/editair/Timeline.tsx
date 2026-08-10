@@ -36,6 +36,8 @@ type Props = {
   onAcaoClip?: (clipId: string, acao: "dividir" | "duplicar" | "excluir" | "bloquear" | "mudo" | "congelar" | "desvincular") => void;
   /** Arquivos arrastados do Finder/Explorer direto para a timeline. */
   onSoltarArquivos?: (arquivos: FileList, ms: number) => void;
+  /** Cria uma nova camada de vídeo acima das existentes (composição/PiP). */
+  onNovaTrilhaVideo?: () => void;
 };
 
 type Dica = { x: number; y: number; titulo: string; valor: string; delta: string } | null;
