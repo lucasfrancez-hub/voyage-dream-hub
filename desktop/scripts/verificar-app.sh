@@ -17,10 +17,19 @@ lipo -archs "$EXEC" | grep -q arm64 || { echo "ERRO: app não é arm64"; exit 1;
 
 echo "-- sidecars FFmpeg/FFprobe"
 UNPACKED="$APP/Contents/Resources/app.asar.unpacked/node_modules"
+
+# ffprobe DEVE vir de bin/darwin/arm64 — qualquer outro diretório é erro de empacotamento
+FFPROBE="$UNPACKED/ffprobe-static/bin/darwin/arm64/ffprobe"
+if find "$UNPACKED/ffprobe-static/bin" -mindepth 1 -maxdepth 2 -type d 2>/dev/null | grep -vE "darwin(/arm64)?$" | grep -q .; then
+  echo "ERRO: bundle contém binários de ffprobe de outras plataformas:"
+  find "$UNPACKED/ffprobe-static/bin" -mindepth 1 -maxdepth 2 -type d
+  exit 1
+fi
+
 FFMPEG=$(find "$UNPACKED/ffmpeg-static" -name ffmpeg -type f | head -n1 || true)
-FFPROBE=$(find "$UNPACKED/ffprobe-static" -name ffprobe -type f | head -n1 || true)
 for BIN in "$FFMPEG" "$FFPROBE"; do
   test -n "$BIN" || { echo "ERRO: sidecar FFmpeg/FFprobe ausente"; exit 1; }
+  test -f "$BIN" || { echo "ERRO: $BIN não existe"; exit 1; }
   test -x "$BIN" || { echo "ERRO: $BIN sem permissão de execução"; exit 1; }
   echo "   $BIN -> $(lipo -archs "$BIN")"
   lipo -archs "$BIN" | grep -q arm64 || { echo "ERRO: $BIN não tem slice arm64"; exit 1; }
