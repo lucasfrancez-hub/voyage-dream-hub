@@ -15,6 +15,8 @@ import {
 export type EditairOp =
   | { op: "split_clip"; clipId: string; atMs: number }
   | { op: "trim_clip"; clipId: string; startMs?: number; durationMs?: number }
+  | { op: "extend_clip"; clipId: string; direction: "left" | "right"; ms: number; ripple?: boolean }
+  | { op: "restore_clip"; clipId: string }
   | { op: "move_clip"; clipId: string; startMs: number; trackId?: string }
   | { op: "delete_clip"; clipId: string }
   | { op: "delete_range"; fromMs: number; toMs: number; ripple?: boolean }
@@ -30,11 +32,29 @@ export type EditairOp =
 
 export type OpResult = { state: ProjectState; log: string[] };
 
+/** Duração real de cada arquivo de origem (ms), por assetId. */
+export type SourceDurations = Record<string, number>;
+
 const clamp = (v: number, a: number, b: number) => Math.min(b, Math.max(a, v));
+
+/**
+ * Quanto o clipe ainda pode crescer para cada lado (em ms de timeline),
+ * respeitando os limites reais do arquivo de origem. Edição não destrutiva:
+ * o material aparado continua existindo no source.
+ */
+export function limitesDoClip(clip: EditairClip, sourceDurations?: SourceDurations) {
+  const dur = clip.assetId ? sourceDurations?.[clip.assetId] : undefined;
+  const speed = clip.speed || 1;
+  const esquerda = clip.assetId ? Math.max(0, clip.sourceIn / speed) : Infinity;
+  const usado = clip.sourceIn + clip.duration * speed;
+  const direita = dur && dur > 0 ? Math.max(0, (dur - usado) / speed) : Infinity;
+  return { esquerda, direita, sourceDuration: dur ?? null };
+}
 
 function ordenar(clips: EditairClip[]) {
   return [...clips].sort((a, b) => a.start - b.start);
 }
+
 
 /** Fecha buracos na trilha, mantendo a ordem (ripple). */
 export function fecharBuracos(state: ProjectState, trackIds: string[]): ProjectState {
