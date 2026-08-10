@@ -43,6 +43,7 @@ import { Route as AdminContaBancariaRouteImport } from './routes/admin.conta-ban
 import { Route as AdminContasPagarRouteImport } from './routes/admin.contas-pagar'
 import { Route as AdminContasReceberRouteImport } from './routes/admin.contas-receber'
 import { Route as AdminDashboardRouteImport } from './routes/admin.dashboard'
+import { Route as AdminEditairRouteImport } from './routes/admin.editair'
 import { Route as AdminEncurtadorRouteImport } from './routes/admin.encurtador'
 import { Route as AdminExclusivosRouteImport } from './routes/admin.exclusivos'
 import { Route as AdminHoteisTesteRouteImport } from './routes/admin.hoteis-teste'
@@ -306,6 +307,11 @@ const AdminContasReceberRoute = AdminContasReceberRouteImport.update({
 const AdminDashboardRoute = AdminDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminEditairRoute = AdminEditairRouteImport.update({
+  id: '/editair',
+  path: '/editair',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminEncurtadorRoute = AdminEncurtadorRouteImport.update({
@@ -843,6 +849,7 @@ export interface FileRoutesByFullPath {
   '/admin/contas-pagar': typeof AdminContasPagarRoute
   '/admin/contas-receber': typeof AdminContasReceberRoute
   '/admin/dashboard': typeof AdminDashboardRoute
+  '/admin/editair': typeof AdminEditairRoute
   '/admin/encurtador': typeof AdminEncurtadorRoute
   '/admin/exclusivos': typeof AdminExclusivosRoute
   '/admin/hoteis-teste': typeof AdminHoteisTesteRoute
@@ -971,6 +978,7 @@ export interface FileRoutesByTo {
   '/admin/contas-pagar': typeof AdminContasPagarRoute
   '/admin/contas-receber': typeof AdminContasReceberRoute
   '/admin/dashboard': typeof AdminDashboardRoute
+  '/admin/editair': typeof AdminEditairRoute
   '/admin/encurtador': typeof AdminEncurtadorRoute
   '/admin/exclusivos': typeof AdminExclusivosRoute
   '/admin/hoteis-teste': typeof AdminHoteisTesteRoute
@@ -1102,6 +1110,7 @@ export interface FileRoutesById {
   '/admin/contas-pagar': typeof AdminContasPagarRoute
   '/admin/contas-receber': typeof AdminContasReceberRoute
   '/admin/dashboard': typeof AdminDashboardRoute
+  '/admin/editair': typeof AdminEditairRoute
   '/admin/encurtador': typeof AdminEncurtadorRoute
   '/admin/exclusivos': typeof AdminExclusivosRoute
   '/admin/hoteis-teste': typeof AdminHoteisTesteRoute
@@ -1234,6 +1243,7 @@ export interface FileRouteTypes {
     | '/admin/contas-pagar'
     | '/admin/contas-receber'
     | '/admin/dashboard'
+    | '/admin/editair'
     | '/admin/encurtador'
     | '/admin/exclusivos'
     | '/admin/hoteis-teste'
@@ -1362,6 +1372,7 @@ export interface FileRouteTypes {
     | '/admin/contas-pagar'
     | '/admin/contas-receber'
     | '/admin/dashboard'
+    | '/admin/editair'
     | '/admin/encurtador'
     | '/admin/exclusivos'
     | '/admin/hoteis-teste'
@@ -1492,6 +1503,7 @@ export interface FileRouteTypes {
     | '/admin/contas-pagar'
     | '/admin/contas-receber'
     | '/admin/dashboard'
+    | '/admin/editair'
     | '/admin/encurtador'
     | '/admin/exclusivos'
     | '/admin/hoteis-teste'
@@ -1901,6 +1913,13 @@ declare module '@tanstack/react-router' {
       path: '/dashboard'
       fullPath: '/admin/dashboard'
       preLoaderRoute: typeof AdminDashboardRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/editair': {
+      id: '/admin/editair'
+      path: '/editair'
+      fullPath: '/admin/editair'
+      preLoaderRoute: typeof AdminEditairRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/encurtador': {
@@ -2589,6 +2608,7 @@ interface AdminRouteChildren {
   AdminContasPagarRoute: typeof AdminContasPagarRoute
   AdminContasReceberRoute: typeof AdminContasReceberRoute
   AdminDashboardRoute: typeof AdminDashboardRoute
+  AdminEditairRoute: typeof AdminEditairRoute
   AdminEncurtadorRoute: typeof AdminEncurtadorRoute
   AdminExclusivosRoute: typeof AdminExclusivosRoute
   AdminHoteisTesteRoute: typeof AdminHoteisTesteRoute
@@ -2626,6 +2646,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminContasPagarRoute: AdminContasPagarRoute,
   AdminContasReceberRoute: AdminContasReceberRoute,
   AdminDashboardRoute: AdminDashboardRoute,
+  AdminEditairRoute: AdminEditairRoute,
   AdminEncurtadorRoute: AdminEncurtadorRoute,
   AdminExclusivosRoute: AdminExclusivosRoute,
   AdminHoteisTesteRoute: AdminHoteisTesteRoute,
