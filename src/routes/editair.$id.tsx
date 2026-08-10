@@ -835,6 +835,25 @@ function EditorPage() {
     toast.success(resumo);
   };
 
+  /* --------- fluxo automático vindo da tela "Novo projeto" --------- */
+  useEffect(() => {
+    if (autoEtapa !== "planejar" || pensando) return;
+    if (!state.clips.some((c) => c.trackId === "t-video" && c.assetId)) return;
+    setAutoEtapa("montar");
+    void planejar(autoRef.current?.instrucao ?? "");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoEtapa, state.clips]);
+
+  useEffect(() => {
+    if (autoEtapa !== "montar" || pensando || !plano) return;
+    setAutoEtapa(null);
+    autoRef.current = null;
+    aplicarPlano();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoEtapa, plano, pensando]);
+
+
+
 
   /* ---------------- exportação ---------------- */
   const exportar = async (cfg: ExportConfig) => {
