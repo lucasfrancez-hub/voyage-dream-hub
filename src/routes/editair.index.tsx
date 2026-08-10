@@ -16,15 +16,20 @@ import {
   Link2Off,
 } from "lucide-react";
 import {
-  criarProjetoEditair,
-  excluirProjetoEditair,
-  listarProjetosEditair,
-  listarMidiasEditair,
-  renomearAssetEditair,
-  excluirAssetEditair,
-} from "@/lib/editair/projects.functions";
-import { hidratarMidias, importarParaGaleria, type MidiaGaleria } from "@/lib/editair/gallery";
-import { assetLocalParaMidia, caminhosDeArquivos, isDesktop, pontoDesktop } from "@/lib/editair/desktop";
+  abrirProjeto as abrirProjetoStore,
+  criarProjeto,
+  escolherMidiasLocais,
+  excluirMidia as excluirMidiaStore,
+  excluirProjeto as excluirProjetoStore,
+  importarMidias,
+  listarBiblioteca,
+  listarProjetos,
+  relinkarMidia,
+  renomearMidia,
+  type MidiaEditair,
+  type ProjetoResumo,
+} from "@/lib/editair/store";
+import { pontoDesktop } from "@/lib/editair/desktop";
 import { DesktopSettingsDialog } from "@/components/editair/DesktopSettingsDialog";
 import { guardarHandoff } from "@/lib/editair/handoff";
 import { Button } from "@/components/ui/button";
@@ -38,19 +43,11 @@ export const Route = createFileRoute("/editair/")({
   component: EditairHome,
 });
 
-type Projeto = {
-  id: string;
-  name: string;
-  format: string;
-  width: number;
-  height: number;
-  status: string;
-  updated_at: string;
-};
+type Projeto = ProjetoResumo;
 
 type Filtro = "todas" | "video" | "image" | "audio";
 
-type Midia = MidiaGaleria & { local?: boolean; localPath?: string; existe?: boolean };
+type Midia = MidiaEditair;
 
 function duracaoTexto(ms: number) {
   if (!ms) return "";
@@ -76,21 +73,9 @@ function EditairHome() {
 
   const carregar = async () => {
     try {
-      if (desktop) {
-        const [locais, rowsP] = await Promise.all([
-          desktop.biblioteca.listar(),
-          listarProjetosEditair().catch(() => []) as unknown as Promise<Projeto[]>,
-        ]);
-        setProjetos(rowsP ?? []);
-        setMidias(locais.map(assetLocalParaMidia) as Midia[]);
-        return;
-      }
-      const [rowsP, rowsM] = await Promise.all([
-        listarProjetosEditair() as unknown as Promise<Projeto[]>,
-        listarMidiasEditair() as unknown as Promise<Array<Record<string, unknown>>>,
-      ]);
+      const [rowsP, rowsM] = await Promise.all([listarProjetos(), listarBiblioteca()]);
       setProjetos(rowsP);
-      setMidias(await hidratarMidias(rowsM));
+      setMidias(rowsM);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Falha ao carregar a galeria");
       setProjetos([]);
@@ -120,16 +105,21 @@ function EditairHome() {
     [midias, filtro],
   );
 
-  /** Desktop: registra os arquivos onde eles estão, sem upload. */
-  const importarCaminhos = async (caminhos: string[]) => {
-    if (!desktop || !caminhos.length) return;
-    setEnviando(`Lendo ${caminhos.length} arquivo(s) localmente…`);
+  /** Desktop: registra os arquivos onde eles estão, sem upload nenhum. */
+  const importar = async (entrada: FileList | File[] | string[] | null) => {
+    if (!entrada || (entrada as { length: number }).length === 0) return;
     try {
-      const novos = await desktop.biblioteca.importar(caminhos);
-      const convertidos = novos.map(assetLocalParaMidia) as Midia[];
-      setMidias((cur) => [...convertidos, ...(cur ?? [])]);
-      setSelecao((s) => [...s, ...convertidos.map((m) => m.id)]);
-      toast.success(convertidos.length > 1 ? `${convertidos.length} mídias na biblioteca local` : "Mídia na biblioteca local");
+      const novos = await importarMidias(entrada, {
+        aoProgredir: (p) => setEnviando(p.fase === "pronto" ? null : p.mensagem),
+      });
+      if (!novos.length) return;
+      setMidias((cur) => [...novos, ...(cur ?? []).filter((m) => !novos.some((n) => n.id === m.id))]);
+      setSelecao((sel) => Array.from(new Set([...sel, ...novos.map((m) => m.id)])));
+      toast.success(
+        novos.length > 1
+          ? `${novos.length} mídias na biblioteca${desktop ? " local" : ""}`
+          : `Mídia na biblioteca${desktop ? " local" : ""}`,
+      );
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Falha ao importar");
     } finally {
@@ -139,39 +129,14 @@ function EditairHome() {
 
   const importarLocal = async () => {
     if (!desktop) return inputRef.current?.click();
-    const caminhos = await desktop.dialogo.escolherMidias();
-    await importarCaminhos(caminhos);
+    await importar(await escolherMidiasLocais());
   };
 
   const relinkar = async (m: Midia) => {
-    if (!desktop) return;
-    const caminho = await desktop.dialogo.localizarArquivo(m.nome);
-    if (!caminho) return;
-    const atualizado = assetLocalParaMidia(await desktop.biblioteca.relinkar(m.id, caminho)) as Midia;
+    const atualizado = await relinkarMidia(m);
+    if (!atualizado) return;
     setMidias((cur) => (cur ?? []).map((x) => (x.id === m.id ? atualizado : x)));
     toast.success("Mídia relinkada — sua edição continua intacta");
-  };
-
-  const importar = async (lista: FileList | File[] | null) => {
-    if (!lista?.length) return;
-    if (desktop) {
-      const caminhos = caminhosDeArquivos(lista);
-      if (caminhos.length) return importarCaminhos(caminhos);
-    }
-    const novos: Midia[] = [];
-    try {
-      for (const arquivo of Array.from(lista)) {
-        const m = await importarParaGaleria(arquivo, { aoProgredir: setEnviando });
-        novos.push(m);
-        setMidias((cur) => [m, ...(cur ?? [])]);
-      }
-      setSelecao((s) => [...s, ...novos.map((m) => m.id)]);
-      toast.success(novos.length > 1 ? `${novos.length} mídias na galeria` : "Mídia salva na galeria");
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Falha ao importar");
-    } finally {
-      setEnviando(null);
-    }
   };
 
   const alternar = (id: string) =>
@@ -182,16 +147,13 @@ function EditairHome() {
     setAbrindo(true);
     try {
       const base = (midias ?? []).find((m) => m.id === ids[0]);
-      const { id } = await criarProjetoEditair({
-        data: {
-          name: (base?.nome ?? "Novo projeto").replace(/\.[^.]+$/, "").slice(0, 100) || "Novo projeto",
-          format: "custom",
-          width: base && base.width > 0 ? base.width : 1080,
-          height: base && base.height > 0 ? base.height : 1920,
-          fps: 30,
-          instructions: instrucao.trim() || null,
-          assetIds: ids,
-        },
+      const id = await criarProjeto({
+        name: (base?.nome ?? "Novo projeto").replace(/\.[^.]+$/, "").slice(0, 100) || "Novo projeto",
+        width: base && base.width > 0 ? base.width : 1080,
+        height: base && base.height > 0 ? base.height : 1920,
+        fps: base?.fps && base.fps > 0 ? Math.round(base.fps) : 30,
+        instructions: instrucao.trim() || null,
+        assetIds: ids,
       });
       if (instrucao.trim()) guardarHandoff(id, { instrucao: instrucao.trim() });
       navigate({ to: "/editair/$id", params: { id } });
@@ -214,8 +176,7 @@ function EditairHome() {
       },
       async () => {
         try {
-          if (desktop && m.local) await desktop.biblioteca.remover(m.id, false);
-          else await excluirAssetEditair({ data: { id: m.id } });
+          await excluirMidiaStore(m);
           setMidias((cur) => (cur ?? []).filter((x) => x.id !== m.id));
           setSelecao((s) => s.filter((x) => x !== m.id));
           toast.success("Mídia excluída");
@@ -230,8 +191,7 @@ function EditairHome() {
     const nome = novoNome.trim();
     if (!nome) return;
     try {
-      if (desktop && renomeando.local) await desktop.biblioteca.renomear(renomeando.id, nome);
-      else await renomearAssetEditair({ data: { id: renomeando.id, name: nome } });
+      await renomearMidia(renomeando, nome);
       setMidias((cur) => (cur ?? []).map((m) => (m.id === renomeando.id ? { ...m, nome } : m)));
       setRenomeando(null);
       toast.success("Nome atualizado");
@@ -250,7 +210,7 @@ function EditairHome() {
       },
       async () => {
         try {
-          await excluirProjetoEditair({ data: { id: p.id } });
+          await excluirProjetoStore(p.id);
           setProjetos((cur) => (cur ?? []).filter((x) => x.id !== p.id));
           toast.success("Projeto excluído");
         } catch (e) {
