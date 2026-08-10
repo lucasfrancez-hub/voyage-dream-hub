@@ -70,6 +70,25 @@ export function Timeline({
   const [arrastandoId, setArrastandoId] = useState<string | null>(null);
   const [menu, setMenu] = useState<{ x: number; y: number; clipId: string } | null>(null);
   const [soltando, setSoltando] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const [menuPos, setMenuPos] = useState({ x: 0, y: 0 });
+
+  // reposiciona o menu de contexto para nunca sair da tela (flip/clamp dinâmico)
+  useEffect(() => {
+    if (!menu) return;
+    const el = menuRef.current;
+    if (!el) return;
+    const margem = 8;
+    const r = el.getBoundingClientRect();
+    const maxX = window.innerWidth - r.width - margem;
+    const maxY = window.innerHeight - r.height - margem;
+    let x = menu.x;
+    let y = menu.y;
+    if (x > maxX) x = Math.max(margem, menu.x - r.width);
+    if (y > maxY) y = Math.max(margem, menu.y - r.height);
+    setMenuPos({ x: Math.min(Math.max(margem, x), Math.max(margem, maxX)), y: Math.min(Math.max(margem, y), Math.max(margem, maxY)) });
+  }, [menu]);
+
 
   const duracoes = useMemo(() => {
     const m: Record<string, number> = {};
