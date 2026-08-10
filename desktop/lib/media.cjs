@@ -11,8 +11,32 @@ function desempacotar(p) {
   return p ? p.replace("app.asar", "app.asar.unpacked") : p;
 }
 
+/** Resolve o ffprobe por plataforma/arquitetura (nunca herdar bin/linux/x64 num Mac). */
+function resolverFfprobe() {
+  const plat = process.platform;
+  const arch = process.arch;
+  const nome = plat === "win32" ? "ffprobe.exe" : "ffprobe";
+  const candidatos = [];
+  try {
+    const raiz = path.dirname(require.resolve("ffprobe-static/package.json"));
+    candidatos.push(path.join(raiz, "bin", plat, arch, nome));
+  } catch {
+    /* pacote ausente */
+  }
+  try {
+    candidatos.push(require("ffprobe-static").path);
+  } catch {
+    /* ignora */
+  }
+  for (const c of candidatos) {
+    const p = desempacotar(c);
+    if (p && fs.existsSync(p) && new RegExp(`${plat}[\\\\/]${arch}`).test(p)) return p;
+  }
+  return desempacotar(candidatos[0]) || null;
+}
+
 const FFMPEG = desempacotar(require("ffmpeg-static"));
-const FFPROBE = desempacotar(require("ffprobe-static").path);
+const FFPROBE = resolverFfprobe();
 
 function existeFfmpeg() {
   try {
