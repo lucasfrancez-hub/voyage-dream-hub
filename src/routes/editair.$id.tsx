@@ -226,7 +226,7 @@ function EditorPage() {
         if (handoff?.arquivos.length) {
           autoRef.current = { instrucao: handoff.instrucao };
           setAutoEtapa("importar");
-          void importarAuto(handoff.arquivos);
+          void importar(handoff.arquivos);
         }
       } catch (e) {
         toast.error(e instanceof Error ? e.message : "Falha ao abrir o projeto");
