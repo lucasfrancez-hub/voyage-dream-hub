@@ -26,11 +26,13 @@
     <div class="card">
       <h1>Sem conexão</h1>
       <p>O EditAir precisa de internet para carregar a interface e os recursos de IA. Sua biblioteca e seus projetos continuam salvos no seu Mac.</p>
-      <button onclick="location.reload()">Tentar novamente</button>
+      <button onclick="voltar()">Tentar novamente</button>
     </div>
     <script>
-      setInterval(() => { if (navigator.onLine) location.reload(); }, 5000);
-      window.addEventListener("online", () => location.reload());
+      const alvo = new URLSearchParams(location.search).get("url") || "https://pedidos.viaair.tur.br/editair";
+      function voltar() { location.href = alvo; }
+      setInterval(() => { if (navigator.onLine) voltar(); }, 5000);
+      window.addEventListener("online", voltar);
     </script>
   </body>
 </html>

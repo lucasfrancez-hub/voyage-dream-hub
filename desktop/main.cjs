@@ -45,9 +45,8 @@ function criarJanela() {
   janela.webContents.on("did-fail-load", (_e, code, _desc, url, isMain) => {
     if (!isMain || code === -3) return;
     if (url.startsWith("file://")) return;
-    janela.loadFile(path.join(__dirname, "offline.html"));
+    janela.loadFile(path.join(__dirname, "offline.html"), { query: { url: URL_APP } });
   });
-  ipcMain.removeHandler?.("app:retry-load");
   janela.webContents.setWindowOpenHandler(({ url }) => {
     shell.openExternal(url);
     return { action: "deny" };
