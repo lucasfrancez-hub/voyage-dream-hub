@@ -27,8 +27,32 @@ function comStatus(a) {
   return { ...a, missing: !existe };
 }
 
-function listar() {
-  return ler().assets.map(comStatus).sort((x, y) => String(y.importedAt).localeCompare(String(x.importedAt)));
+function codecPrecisaProxy(a) {
+  if (a.type !== "video") return false;
+  const codec = String(a.videoCodec || "").toLowerCase();
+  return !["h264", "av1", "vp8", "vp9"].includes(codec);
+}
+
+async function garantirProxyDePreview(a) {
+  if (!codecPrecisaProxy(a) || !a.localPath || !fs.existsSync(a.localPath)) return a;
+  if (a.proxyPath && fs.existsSync(a.proxyPath)) return a;
+  const p = await media.proxy(a.localPath, a).catch(() => null);
+  if (!p) return a;
+  const db = ler();
+  const salvo = db.assets.find((item) => item.id === a.id);
+  if (salvo) {
+    salvo.proxyPath = p;
+    gravar(db);
+  }
+  return { ...a, proxyPath: p };
+}
+
+async function listar() {
+  const assets = ler().assets;
+  // HEVC/ProRes e outros codecs comuns em iPhone/câmeras não são decodificados
+  // pelo Chromium. Antes de entregar a URL ao editor, garante H.264 local.
+  const preparados = await Promise.all(assets.map(garantirProxyDePreview));
+  return preparados.map(comStatus).sort((x, y) => String(y.importedAt).localeCompare(String(x.importedAt)));
 }
 
 function porId(id) {
@@ -81,18 +105,31 @@ async function importar(arquivoLocal, { copiar = false, gerarProxy = true, proxy
   gravar(db);
 
   if (gerarProxy && meta.kind === "video" && meta.height >= proxyAcimaDe) {
-    media
-      .proxy(destino, meta)
-      .then((p) => {
-        if (!p) return;
+    if (codecPrecisaProxy(asset)) {
+      const p = await media.proxy(destino, meta).catch(() => null);
+      if (p) {
+        asset.proxyPath = p;
         const atual = ler();
         const alvo = atual.assets.find((a) => a.id === asset.id);
         if (alvo) {
           alvo.proxyPath = p;
           gravar(atual);
         }
-      })
-      .catch(() => {});
+      }
+    } else {
+      media
+        .proxy(destino, meta)
+        .then((p) => {
+          if (!p) return;
+          const atual = ler();
+          const alvo = atual.assets.find((a) => a.id === asset.id);
+          if (alvo) {
+            alvo.proxyPath = p;
+            gravar(atual);
+          }
+        })
+        .catch(() => {});
+    }
   }
   return comStatus(asset);
 }
