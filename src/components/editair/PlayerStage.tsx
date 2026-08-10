@@ -23,16 +23,18 @@ const SAFE: Record<Plataforma, { top: number; bottom: number; left: number; righ
 };
 
 const RATIOS: { id: string; label: string; w: number; h: number }[] = [
-  { id: "9:16", label: "9:16", w: 1080, h: 1920 },
-  { id: "16:9", label: "16:9", w: 1920, h: 1080 },
-  { id: "4:5", label: "4:5", w: 1080, h: 1350 },
-  { id: "1:1", label: "1:1", w: 1080, h: 1080 },
+  { id: "9:16", label: "9:16 — Reels / TikTok / Shorts", w: 1080, h: 1920 },
+  { id: "16:9", label: "16:9 — Horizontal", w: 1920, h: 1080 },
+  { id: "4:5", label: "4:5 — Instagram Feed", w: 1080, h: 1350 },
+  { id: "1:1", label: "1:1 — Quadrado", w: 1080, h: 1080 },
 ];
 
 type Props = {
   canvasRef: React.RefObject<HTMLCanvasElement | null>;
   width: number;
   height: number;
+  originalWidth?: number;
+  originalHeight?: number;
   fps: number;
   playheadMs: number;
   durationMs: number;
@@ -48,6 +50,7 @@ type Props = {
   onQualidade: (q: number) => void;
   onFormato: (w: number, h: number) => void;
 };
+
 
 export function PlayerStage({
   canvasRef,
