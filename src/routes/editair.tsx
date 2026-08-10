@@ -79,11 +79,11 @@ function EditairLayout() {
       {/* no Desktop a barra serve de área de arraste da janela; os controles ficam clicáveis */}
       <header
         className="flex h-14 items-center justify-between border-b border-white/10 px-4"
-        style={desktop ? ({ WebkitAppRegion: "drag" } as React.CSSProperties) : undefined}
+        style={desktop ? ({ WebkitAppRegion: "drag" } as CSSProperties) : undefined}
       >
         <div
           className="flex items-center gap-3"
-          style={desktop ? ({ WebkitAppRegion: "no-drag" } as React.CSSProperties) : undefined}
+          style={desktop ? ({ WebkitAppRegion: "no-drag" } as CSSProperties) : undefined}
         >
           {!desktop && (
             <Link
