@@ -17,9 +17,12 @@ import {
   AJUSTES_NEUTROS,
   EFEITOS,
   FILTROS,
+  FUNDO_PADRAO,
+  FUNDO_PRESETS,
   TEXTO_PADRAO,
   TRANSICOES,
   type Ajustes,
+  type Fundo,
   type CaptionStyle,
   type EditairClip,
   type KeyProp,
@@ -42,6 +45,7 @@ export type Ferramenta =
   | "legendas"
   | "filtros"
   | "ajuste"
+  | "fundo"
   | "modelos"
   | "ia";
 
@@ -81,6 +85,8 @@ export type ToolPanelProps = {
   onEnviarIa: (texto: string) => void;
   onSeek: (ms: number) => void;
   onApagarTrecho: (from: number, to: number) => void;
+  fundoPronto?: boolean;
+  fundoCarregando?: boolean;
 };
 
 
@@ -109,6 +115,8 @@ export function ToolPanel(p: ToolPanelProps) {
       return <PainelFiltros {...p} />;
     case "ajuste":
       return <PainelAjuste {...p} />;
+    case "fundo":
+      return <PainelFundo {...p} />;
     case "ia":
       return <PainelIa {...p} />;
     case "stickers":
@@ -417,6 +425,171 @@ function PainelTexto({ clip, onAdicionarTexto, onPatchClip, onKeyframe }: ToolPa
   );
 }
 
+/* ------------------------------ Fundo ------------------------------ */
+
+const MODOS: { id: Fundo["modo"]; nome: string }[] = [
+  { id: "nenhum", nome: "Original" },
+  { id: "desfoque", nome: "Desfocar" },
+  { id: "cor", nome: "Cor sólida" },
+  { id: "midia", nome: "Mídia" },
+  { id: "remover", nome: "Remover" },
+];
+
+function PainelFundo({ clip, assets, onPatchClip, onKeyframe, fundoPronto, fundoCarregando }: ToolPanelProps) {
+  const f: Fundo = { ...FUNDO_PADRAO, ...(clip?.fundo ?? {}) };
+  const set = (patch: Partial<Fundo>) => {
+    const proximo: Fundo = { ...f, ...patch };
+    onPatchClip({ fundo: proximo.modo === "nenhum" ? undefined : proximo });
+  };
+
+  if (!clip || (clip.kind !== "video" && clip.kind !== "image")) {
+    return (
+      <Painel titulo="Fundo">
+        <p className="text-[11px] text-white/35">Selecione um clipe de vídeo para tratar o fundo.</p>
+      </Painel>
+    );
+  }
+
+  return (
+    <Painel titulo="Fundo">
+      <div className="grid grid-cols-2 gap-2">
+        {FUNDO_PRESETS.map((pr) => (
+          <button
+            key={pr.id}
+            onClick={() => set(pr.patch)}
+            className="rounded-lg border border-white/10 px-2 py-2.5 text-[11px] hover:bg-white/5"
+          >
+            {pr.nome}
+          </button>
+        ))}
+      </div>
+
+      <div className="mt-3 grid grid-cols-3 gap-2">
+        {MODOS.map((m) => (
+          <button
+            key={m.id}
+            onClick={() => set({ modo: m.id })}
+            className={`rounded-lg border px-2 py-2 text-[11px] ${
+              f.modo === m.id ? "border-[#F26B1F] bg-[#F26B1F]/15" : "border-white/10 hover:bg-white/5"
+            }`}
+          >
+            {m.nome}
+          </button>
+        ))}
+      </div>
+
+      {f.modo !== "nenhum" ? (
+        <div className="mt-3 space-y-1">
+          {f.modo === "desfoque" || f.modo === "midia" ? (
+            <Campo label={`Intensidade do desfoque — ${f.desfoque}%`}>
+              <div className="flex items-center gap-2">
+                <Slider value={[f.desfoque]} min={0} max={100} step={5} onValueChange={([v]) => set({ desfoque: v })} />
+                <button
+                  title="Keyframe no desfoque"
+                  onClick={() => onKeyframe("fundoBlur")}
+                  className="rounded border border-white/10 p-1 text-white/60 hover:bg-white/5"
+                >
+                  <Diamond className="h-3 w-3" />
+                </button>
+              </div>
+            </Campo>
+          ) : null}
+
+          {f.modo === "cor" ? (
+            <Campo label="Cor do fundo">
+              <input
+                type="color"
+                value={f.cor}
+                onChange={(e) => set({ cor: e.target.value })}
+                className="h-8 w-full rounded border border-white/10 bg-transparent"
+              />
+            </Campo>
+          ) : null}
+
+          {f.modo === "midia" ? (
+            <Campo label="Mídia de fundo">
+              <select
+                value={f.assetId ?? ""}
+                onChange={(e) => set({ assetId: e.target.value || undefined })}
+                className="w-full rounded-md border border-white/10 bg-black/40 px-2 py-1.5 text-xs"
+              >
+                <option value="">Selecione…</option>
+                {assets.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.nome}
+                  </option>
+                ))}
+              </select>
+            </Campo>
+          ) : null}
+
+          <Campo label={`Suavidade da borda — ${f.suavidade}%`}>
+            <Slider value={[f.suavidade]} min={0} max={100} step={5} onValueChange={([v]) => set({ suavidade: v })} />
+          </Campo>
+          <Campo label={`Expandir / contrair borda — ${f.borda}`}>
+            <Slider value={[f.borda]} min={-50} max={50} step={1} onValueChange={([v]) => set({ borda: v })} />
+          </Campo>
+          <Campo label={`Estabilidade da máscara — ${f.estabilidade}%`}>
+            <Slider
+              value={[f.estabilidade]}
+              min={0}
+              max={95}
+              step={5}
+              onValueChange={([v]) => set({ estabilidade: v })}
+            />
+          </Campo>
+
+          <Campo label="Qualidade">
+            <div className="grid grid-cols-2 gap-2">
+              {(["rapida", "alta"] as const).map((q) => (
+                <button
+                  key={q}
+                  onClick={() => set({ qualidade: q })}
+                  className={`rounded-lg border px-2 py-1.5 text-[11px] ${
+                    f.qualidade === q ? "border-[#F26B1F] bg-[#F26B1F]/15" : "border-white/10 hover:bg-white/5"
+                  }`}
+                >
+                  {q === "rapida" ? "Rápida (preview)" : "Alta (render)"}
+                </button>
+              ))}
+            </div>
+          </Campo>
+
+          <label className="mt-2 flex items-center gap-2 text-[11px] text-white/60">
+            <input
+              type="checkbox"
+              checked={!!f.contorno?.ativo}
+              onChange={(e) =>
+                set({ contorno: { cor: f.contorno?.cor ?? "#FFFFFF", largura: f.contorno?.largura ?? 4, ativo: e.target.checked } })
+              }
+            />
+            Contorno suave na pessoa
+          </label>
+          {f.contorno?.ativo ? (
+            <Campo label={`Largura do contorno — ${f.contorno.largura}px`}>
+              <Slider
+                value={[f.contorno.largura]}
+                min={1}
+                max={20}
+                step={1}
+                onValueChange={([v]) => set({ contorno: { ...f.contorno!, largura: v } })}
+              />
+            </Campo>
+          ) : null}
+
+          <p className="pt-2 text-[11px] text-white/40">
+            {fundoCarregando
+              ? "Carregando o modelo de segmentação…"
+              : fundoPronto
+                ? "Segmentação ativa — o áudio e o tempo do clipe não são alterados."
+                : "A segmentação inicia automaticamente ao aplicar o fundo."}
+          </p>
+        </div>
+      ) : null}
+    </Painel>
+  );
+}
+
 /* ------------------------------ Efeitos ------------------------------ */
 
 function PainelEfeitos({ clip, onPatchClip }: ToolPanelProps) {
@@ -459,9 +632,6 @@ function PainelEfeitos({ clip, onPatchClip }: ToolPanelProps) {
               </Campo>
             </div>
           ) : null}
-          <div className="mt-4 rounded-lg border border-white/10 bg-white/[0.03] p-3 text-[11px] text-white/45">
-            Remover fundo e contorno da pessoa: <span className="text-white/70">em breve</span> — dependem de segmentação por IA no navegador.
-          </div>
         </>
       )}
     </Painel>

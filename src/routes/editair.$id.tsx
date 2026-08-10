@@ -15,6 +15,7 @@ import {
   Save,
   Scissors,
   SlidersHorizontal,
+  Focus,
   Sparkles,
   Sticker,
   Trash2,
@@ -93,6 +94,7 @@ const FERRAMENTAS: { id: Ferramenta; nome: string; icone: React.ReactNode }[] = 
   { id: "legendas", nome: "Legendas", icone: <Captions className="h-4 w-4" /> },
   { id: "filtros", nome: "Filtros", icone: <ImageIcon className="h-4 w-4" /> },
   { id: "ajuste", nome: "Ajuste", icone: <SlidersHorizontal className="h-4 w-4" /> },
+  { id: "fundo", nome: "Fundo", icone: <Focus className="h-4 w-4" /> },
   { id: "modelos", nome: "Modelos", icone: <Clapperboard className="h-4 w-4" /> },
   { id: "ia", nome: "IA", icone: <Wand2 className="h-4 w-4" /> },
 ];
@@ -119,6 +121,8 @@ function EditorPage() {
   const [selecionados, setSelecionados] = useState<string[]>([]);
   const [selecao, setSelecao] = useState<{ fromMs: number; toMs: number } | null>(null);
   const [ferramenta, setFerramenta] = useState<Ferramenta>("midia");
+  const [fundoPronto, setFundoPronto] = useState(false);
+  const [fundoCarregando, setFundoCarregando] = useState(false);
   const [snapping, setSnapping] = useState(true);
   const [volume, setVolume] = useState(1);
   const [mudo, setMudo] = useState(false);
@@ -291,6 +295,28 @@ function EditorPage() {
   }, [tocando, state]);
 
   /* ---------------- histórico ---------------- */
+  // ativa a segmentação assim que algum clipe usa tratamento de fundo
+  useEffect(() => {
+    const fundos = state.clips.filter((c) => c.fundo && c.fundo.modo !== "nenhum");
+    if (!fundos.length) return;
+    const eng = engineRef.current;
+    if (!eng || eng.fundoPronto()) return;
+    const qualidade = fundos.some((c) => c.fundo?.qualidade === "alta") ? "alta" : "rapida";
+    let vivo = true;
+    setFundoCarregando(true);
+    void eng
+      .ativarFundo(qualidade)
+      .then((ok) => {
+        if (!vivo) return;
+        setFundoPronto(ok);
+        if (!ok) toast.error("Não consegui carregar a segmentação de fundo neste navegador.");
+      })
+      .finally(() => vivo && setFundoCarregando(false));
+    return () => {
+      vivo = false;
+    };
+  }, [state.clips]);
+
   const aplicar = useCallback((proximo: ProjectState) => {
     setState((atual) => {
       historico.current.push(atual);
@@ -1055,6 +1081,8 @@ function EditorPage() {
 
         <section className="min-h-0 overflow-hidden border-r border-white/10 bg-[#12171d]">
           <ToolPanel
+            fundoPronto={fundoPronto}
+            fundoCarregando={fundoCarregando}
             ferramenta={ferramenta}
             state={state}
             clip={clipeAtual}

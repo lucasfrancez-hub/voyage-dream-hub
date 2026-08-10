@@ -164,7 +164,47 @@ export const EFEITOS: { id: EfeitoId; nome: string; descricao: string }[] = [
   { id: "vinheta", nome: "Vinheta", descricao: "Escurece as bordas" },
 ];
 
-export type KeyProp = "x" | "y" | "scale" | "rotation" | "opacity" | "volume";
+export type FundoModo = "nenhum" | "desfoque" | "cor" | "midia" | "remover";
+
+/** Tratamento automático de fundo (segmentação de pessoa). */
+export type Fundo = {
+  modo: FundoModo;
+  /** intensidade do desfoque 0..100 */
+  desfoque: number;
+  /** suavidade da borda 0..100 */
+  suavidade: number;
+  /** expandir (+) ou contrair (-) a máscara -100..100 */
+  borda: number;
+  /** cor sólida (modo "cor") */
+  cor: string;
+  /** asset usado como fundo (modo "midia") */
+  assetId?: string;
+  contorno?: { ativo: boolean; cor: string; largura: number };
+  /** estabilidade temporal 0..100 */
+  estabilidade: number;
+  qualidade: "rapida" | "alta";
+};
+
+export const FUNDO_PADRAO: Fundo = {
+  modo: "nenhum",
+  desfoque: 60,
+  suavidade: 45,
+  borda: 0,
+  cor: "#0B0B0F",
+  estabilidade: 60,
+  qualidade: "rapida",
+  contorno: { ativo: false, cor: "#FFFFFF", largura: 4 },
+};
+
+export const FUNDO_PRESETS: { id: string; nome: string; patch: Partial<Fundo> }[] = [
+  { id: "leve", nome: "Desfoque leve", patch: { modo: "desfoque", desfoque: 35, suavidade: 40 } },
+  { id: "medio", nome: "Desfoque médio", patch: { modo: "desfoque", desfoque: 60, suavidade: 45 } },
+  { id: "cinema", nome: "Cinema", patch: { modo: "desfoque", desfoque: 85, suavidade: 55, borda: 4 } },
+  { id: "estudio", nome: "Estúdio", patch: { modo: "cor", cor: "#0B0B0F", suavidade: 50 } },
+  { id: "recorte", nome: "Recorte limpo", patch: { modo: "remover", suavidade: 30, borda: -4 } },
+];
+
+export type KeyProp = "x" | "y" | "scale" | "rotation" | "opacity" | "volume" | "fundoBlur";
 export type Keyframe = { prop: KeyProp; atMs: number; value: number };
 
 export type ClipKind = "video" | "audio" | "image" | "text" | "caption";
@@ -198,6 +238,8 @@ export type EditairClip = {
   fadeInMs?: number;
   fadeOutMs?: number;
   keyframes?: Keyframe[];
+  /** tratamento de fundo (desfoque/remoção) */
+  fundo?: Fundo;
 };
 
 export type ProjectState = {
