@@ -70,6 +70,25 @@ export function Timeline({
   const [arrastandoId, setArrastandoId] = useState<string | null>(null);
   const [menu, setMenu] = useState<{ x: number; y: number; clipId: string } | null>(null);
   const [soltando, setSoltando] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const [menuPos, setMenuPos] = useState({ x: 0, y: 0 });
+
+  // reposiciona o menu de contexto para nunca sair da tela (flip/clamp dinâmico)
+  useEffect(() => {
+    if (!menu) return;
+    const el = menuRef.current;
+    if (!el) return;
+    const margem = 8;
+    const r = el.getBoundingClientRect();
+    const maxX = window.innerWidth - r.width - margem;
+    const maxY = window.innerHeight - r.height - margem;
+    let x = menu.x;
+    let y = menu.y;
+    if (x > maxX) x = Math.max(margem, menu.x - r.width);
+    if (y > maxY) y = Math.max(margem, menu.y - r.height);
+    setMenuPos({ x: Math.min(Math.max(margem, x), Math.max(margem, maxX)), y: Math.min(Math.max(margem, y), Math.max(margem, maxY)) });
+  }, [menu]);
+
 
   const duracoes = useMemo(() => {
     const m: Record<string, number> = {};
@@ -313,7 +332,10 @@ export function Timeline({
                       }
                       onArrastar={iniciarArraste}
                       onAbrirSource={() => onAbrirSource(c.id)}
-                      onMenu={(x, y) => setMenu({ x, y, clipId: c.id })}
+                      onMenu={(x, y) => {
+                        setMenuPos({ x, y });
+                        setMenu({ x, y, clipId: c.id });
+                      }}
                     />
                   ))}
               </div>
@@ -366,10 +388,12 @@ export function Timeline({
 
       {menu ? (
         <div
-          className="fixed z-[60] w-56 overflow-hidden rounded-xl border border-white/10 bg-[#12171d] py-1 text-[12px] shadow-2xl"
-          style={{ left: menu.x, top: menu.y }}
+          ref={menuRef}
+          className="fixed z-[60] flex max-h-[calc(100vh-16px)] w-56 flex-col overflow-y-auto overscroll-contain rounded-xl border border-white/10 bg-[#12171d] py-1 text-[12px] shadow-2xl"
+          style={{ left: menuPos.x, top: menuPos.y }}
           onPointerDown={(e) => e.stopPropagation()}
         >
+
           <button
             className="block w-full px-3 py-2 text-left hover:bg-white/10"
             onClick={() => {
