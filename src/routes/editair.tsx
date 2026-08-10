@@ -107,16 +107,21 @@ function EditairLayout() {
             >
               <FolderOpen className="h-3.5 w-3.5" /> Projetos
             </Link>
-            <Link
-              to="/editair"
-              search={{ novo: 1 }}
+            <button
+              onClick={() => {
+                navigate({ to: "/editair" });
+                setTimeout(() => window.dispatchEvent(new CustomEvent("editair:novo-projeto")), 60);
+              }}
               className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[12px] text-white/60 transition hover:bg-white/10 hover:text-white"
             >
               <Plus className="h-3.5 w-3.5" /> Novo projeto
-            </Link>
+            </button>
             {desktop ? (
               <button
-                onClick={() => window.dispatchEvent(new CustomEvent("editair:abrir-configuracoes"))}
+                onClick={() => {
+                  navigate({ to: "/editair" });
+                  setTimeout(() => window.dispatchEvent(new CustomEvent("editair:ajustes")), 60);
+                }}
                 className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[12px] text-white/60 transition hover:bg-white/10 hover:text-white"
               >
                 <Settings className="h-3.5 w-3.5" /> Ajustes
