@@ -1320,6 +1320,19 @@ function EditorPage() {
           onAlterarClips={alterarClipsTimeline}
           onAbrirSource={setSourceClipId}
           onRestaurarClip={restaurarClip}
+          onAcaoClip={(cid, acao) => {
+            const c = state.clips.find((x) => x.id === cid);
+            if (!c) return;
+            setSelecionados([cid]);
+            if (acao === "dividir") aplicar(aplicarOps(state, [{ op: "split_clip", clipId: cid, atMs: playhead }], transcript).state);
+            else if (acao === "duplicar")
+              aplicar({ ...state, clips: [...state.clips, { ...c, id: novoId(), start: c.start + c.duration }] });
+            else if (acao === "excluir") aplicar(aplicarOps(state, [{ op: "delete_clip", clipId: cid }], transcript).state);
+            else if (acao === "bloquear") patchClipe({ bloqueado: !c.bloqueado }, cid);
+            else if (acao === "mudo") patchClipe({ muted: !c.muted }, cid);
+            else if (acao === "congelar") patchClipe({ congelado: !c.congelado, speed: c.congelado ? 1 : 0.01 }, cid);
+            else if (acao === "desvincular") patchClipe({ semAudio: !c.semAudio }, cid);
+          }}
 
           onToggleTrack={(trackId, campo) =>
             aplicar({
