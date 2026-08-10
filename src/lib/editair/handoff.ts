@@ -1,12 +1,13 @@
 /**
- * Ponte entre a tela "Novo projeto" e o editor.
- * Os arquivos escolhidos ficam em memória (não dá para serializar em rota)
- * e o editor consome assim que abre, disparando a edição automática.
+ * Ponte entre a galeria e o editor.
+ * Quando a mídia já foi salva na galeria, só a instrução viaja aqui;
+ * `arquivos` é usado apenas em fluxos que ainda enviam do zero.
  */
 export type EditairHandoff = {
-  arquivos: File[];
+  arquivos?: File[];
   instrucao: string;
 };
+
 
 const mapa = new Map<string, EditairHandoff>();
 
