@@ -62,12 +62,21 @@ function criarJanela() {
 
 app.whenReady().then(() => {
   // serve arquivos locais em streaming (com Range) para o preview da timeline
-  protocol.handle("editair-media", (request) => {
+  protocol.handle("editair-media", async (request) => {
     try {
       const u = new URL(request.url);
       const alvo = decodeURIComponent(u.searchParams.get("p") || "");
       if (!alvo || !fs.existsSync(alvo)) return new Response("not found", { status: 404 });
-      return net.fetch(pathToFileURL(alvo).toString(), { headers: request.headers, bypassCustomProtocolHandlers: true });
+      const resp = await net.fetch(pathToFileURL(alvo).toString(), {
+        headers: request.headers,
+        bypassCustomProtocolHandlers: true,
+      });
+      // CORS liberado: sem isso o canvas do preview fica "tainted" e a tela sai preta
+      const headers = new Headers(resp.headers);
+      headers.set("Access-Control-Allow-Origin", "*");
+      headers.set("Access-Control-Allow-Headers", "*");
+      headers.set("Access-Control-Expose-Headers", "Content-Length, Content-Range, Accept-Ranges");
+      return new Response(resp.body, { status: resp.status, statusText: resp.statusText, headers });
     } catch (e) {
       return new Response(String(e), { status: 500 });
     }
