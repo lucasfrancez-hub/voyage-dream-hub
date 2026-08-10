@@ -33,6 +33,7 @@ type Props = {
   onToggleTrack: (trackId: string, campo: "muted" | "hidden" | "locked" | "solo") => void;
   onAbrirSource: (clipId: string) => void;
   onRestaurarClip: (clipId: string) => void;
+  onAcaoClip?: (clipId: string, acao: "dividir" | "duplicar" | "excluir" | "bloquear" | "mudo" | "congelar" | "desvincular") => void;
 };
 
 type Dica = { x: number; y: number; titulo: string; valor: string; delta: string } | null;
@@ -54,6 +55,7 @@ export function Timeline({
   onToggleTrack,
   onAbrirSource,
   onRestaurarClip,
+  onAcaoClip,
 }: Props) {
   const areaRef = useRef<HTMLDivElement>(null);
   const pxPorMs = zoom / 1000;
@@ -336,6 +338,36 @@ export function Timeline({
           >
             Abrir material original
           </button>
+          <div className="my-1 h-px bg-white/10" />
+          {[
+            { id: "dividir", nome: "Dividir no playhead" },
+            { id: "duplicar", nome: "Duplicar" },
+            { id: "congelar", nome: "Congelar frame" },
+            { id: "desvincular", nome: "Desvincular áudio" },
+            { id: "mudo", nome: "Silenciar / reativar" },
+            { id: "bloquear", nome: "Bloquear / desbloquear" },
+          ].map((a) => (
+            <button
+              key={a.id}
+              className="block w-full px-3 py-2 text-left hover:bg-white/10"
+              onClick={() => {
+                onAcaoClip?.(menu.clipId, a.id as never);
+                setMenu(null);
+              }}
+            >
+              {a.nome}
+            </button>
+          ))}
+          <div className="my-1 h-px bg-white/10" />
+          <button
+            className="block w-full px-3 py-2 text-left text-red-400 hover:bg-red-500/10"
+            onClick={() => {
+              onAcaoClip?.(menu.clipId, "excluir");
+              setMenu(null);
+            }}
+          >
+            Excluir clipe
+          </button>
         </div>
       ) : null}
     </div>
@@ -452,9 +484,11 @@ function Clipe({
           onSelect(false);
           onMenu(e.clientX, e.clientY);
         }}
-        className={`absolute top-1.5 flex h-11 select-none items-center overflow-hidden rounded-md border text-[11px] text-white/90 ${
+        className={`absolute top-1.5 flex h-11 select-none items-center overflow-hidden rounded-lg border-2 text-[11px] text-white/90 shadow-[0_2px_8px_rgba(0,0,0,.45)] transition ${
           CORES[clip.trackId] ?? "bg-white/20 border-white/20"
-        } ${selecionado ? "ring-2 ring-white" : ""} ${bloqueado ? "cursor-not-allowed opacity-70" : "cursor-grab"}`}
+        } ${selecionado ? "border-[#F26B1F] ring-1 ring-[#F26B1F]/60" : "hover:brightness-110"} ${
+          bloqueado || clip.bloqueado ? "cursor-not-allowed opacity-70" : "cursor-grab"
+        }`}
         style={{ left: clip.start * pxPorMs, width: largura }}
         title={clip.label ?? clip.text ?? clip.kind}
       >
@@ -467,10 +501,16 @@ function Clipe({
             {clip.label ?? asset?.name ?? ""}
           </span>
         )}
+        <span className="pointer-events-none absolute right-1 top-0.5 rounded bg-black/55 px-1 text-[9px] font-mono text-white/80">
+          {(clip.duration / 1000).toFixed(1)}s
+        </span>
+        {clip.bloqueado ? (
+          <span className="pointer-events-none absolute left-1 top-0.5 rounded bg-black/55 px-1 text-[9px]">🔒</span>
+        ) : null}
         {clip.transicao ? (
           <span className="pointer-events-none absolute left-0 top-0 h-full w-3 bg-gradient-to-r from-white/60 to-transparent" />
         ) : null}
-        {!bloqueado ? (
+        {!bloqueado && !clip.bloqueado ? (
           <>
             <div
               onPointerDown={(e) => {
