@@ -264,21 +264,33 @@ function EditairHome() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-10">
+      {desktop && (
+        <DesktopSettingsDialog aberto={!!config} abaInicial={config ?? "armazenamento"} aoFechar={() => setConfig(null)} />
+      )}
       <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">EditAir</h1>
           <p className="mt-1 text-sm text-white/50">
-            Importe suas mídias, use quantas vezes quiser e edite com a inteligência do EditAir.
+            {desktop
+              ? "Seus arquivos ficam no computador. A IA trabalha online; a edição e a exportação acontecem aqui."
+              : "Importe suas mídias, use quantas vezes quiser e edite com a inteligência do EditAir."}
           </p>
         </div>
-        <Button
-          onClick={() => inputRef.current?.click()}
-          disabled={!!enviando}
-          className="bg-[#F26B1F] text-white hover:bg-[#d95c14]"
-        >
-          {enviando ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <UploadCloud className="mr-1.5 h-4 w-4" />}
-          {enviando ?? "Importar mídia"}
-        </Button>
+        <div className="flex items-center gap-2">
+          {desktop && (
+            <Button variant="secondary" onClick={() => setConfig("armazenamento")}>
+              <SettingsIcon className="mr-1.5 h-4 w-4" /> Configurações
+            </Button>
+          )}
+          <Button
+            onClick={() => void importarLocal()}
+            disabled={!!enviando}
+            className="bg-[#F26B1F] text-white hover:bg-[#d95c14]"
+          >
+            {enviando ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <UploadCloud className="mr-1.5 h-4 w-4" />}
+            {enviando ?? "Importar mídia"}
+          </Button>
+        </div>
         <input
           ref={inputRef}
           type="file"
@@ -309,7 +321,11 @@ function EditairHome() {
       >
         <UploadCloud className="mx-auto mb-2 h-7 w-7 text-[#F26B1F]" />
         <p className="text-sm">Arraste vídeos, fotos ou áudios para cá</p>
-        <p className="mt-1 text-xs text-white/40">Tudo fica salvo na galeria e pode ser reaproveitado em vários projetos.</p>
+        <p className="mt-1 text-xs text-white/40">
+          {desktop
+            ? "Nada é enviado para a internet: o EditAir só referencia o arquivo no seu computador."
+            : "Tudo fica salvo na galeria e pode ser reaproveitado em vários projetos."}
+        </p>
       </div>
 
       {/* Galeria */}
