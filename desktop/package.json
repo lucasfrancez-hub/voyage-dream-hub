@@ -48,8 +48,8 @@
         "provider": "github",
         "owner": "lucasfrancez-hub",
         "repo": "voyage-dream-hub",
-        "private": true,
-        "releaseType": "draft"
+        "private": false,
+        "releaseType": "release"
       }
     ],
     "mac": {
