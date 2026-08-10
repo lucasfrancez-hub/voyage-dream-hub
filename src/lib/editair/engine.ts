@@ -319,6 +319,11 @@ export class EditairEngine {
       if (Math.abs(m.el.currentTime - alvo) > 0.18) m.el.currentTime = Math.max(0, alvo);
       m.el.playbackRate = clamp(c.speed, 0.25, 4);
       m.gain.gain.value = this.ganhoDoClipe(state, c, t);
+      if (m.nativo) {
+        // mídia local: volume direto no elemento (não passa pelo WebAudio)
+        m.el.volume = clamp(m.gain.gain.value * this.volumeMaster, 0, 1);
+        m.el.muted = this.mudo;
+      }
       if (m.filtros) {
         const fx = state.audioFx ?? { voz: false, ruido: false };
         const vozLike = c.trackId === "t-voice" || c.trackId === "t-video";
