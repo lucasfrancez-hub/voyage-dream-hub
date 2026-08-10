@@ -376,6 +376,17 @@ function EditairHome() {
                     {duracaoTexto(m.durationMs)}
                   </span>
                 ) : null}
+                {m.local && m.existe === false && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      void relinkar(m);
+                    }}
+                    className="absolute inset-x-0 top-0 flex items-center justify-center gap-1.5 bg-red-600/85 py-1 text-[10px] font-medium text-white"
+                  >
+                    <Link2Off className="h-3 w-3" /> Mídia não encontrada — localizar
+                  </button>
+                )}
                 <div className="p-2">
                   <p className="truncate text-xs font-medium">{m.nome}</p>
                   <p className="text-[10px] text-white/35">{(m.sizeBytes / 1024 / 1024).toFixed(1)} MB</p>
