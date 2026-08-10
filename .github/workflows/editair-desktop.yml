@@ -31,6 +31,9 @@ jobs:
         run: |
           BASE=$(node -p "require('./package.json').version")
           npm version "${BASE%%-*}-${{ inputs.canal }}.${{ github.run_number }}" --no-git-tag-version
+      - name: Preparar e validar FFmpeg + FFprobe arm64
+        working-directory: desktop
+        run: npm run prepare:mac-binaries
       - name: Gerar DMG (arm64, ad-hoc, sem publicar)
         working-directory: desktop
         env:
@@ -81,6 +84,10 @@ jobs:
       - name: Instalar dependências
         working-directory: desktop
         run: npm install
+      - name: Preparar e validar FFmpeg + FFprobe arm64
+        if: runner.os == 'macOS'
+        working-directory: desktop
+        run: npm run prepare:mac-binaries
       - name: Build + publicar release
         working-directory: desktop
         env:

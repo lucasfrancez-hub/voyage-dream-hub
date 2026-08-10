@@ -10,8 +10,8 @@ computador; só a IA vai para a internet.
 3. Arrastar **EditAir → Applications**
 4. Ejetar o DMG e abrir o EditAir pelo Launchpad
 
-Nada de Terminal, Homebrew, Node, npm ou FFmpeg: o FFmpeg/FFprobe vão
-empacotados dentro do `.app` (`asarUnpack`).
+Nada de Terminal, Homebrew, Node, npm ou FFmpeg: o par FFmpeg/FFprobe arm64 vai
+empacotado explicitamente em `Contents/Resources/bin`.
 
 > Enquanto não houver conta Apple Developer, o build é **não assinado**. Na
 > primeira abertura o macOS mostra o aviso de app não verificado: botão direito
@@ -36,6 +36,7 @@ continuam intactos.
 ```bash
 cd desktop
 npm install
+npm run prepare:mac-binaries # baixa, extrai o slice arm64 e valida antes do build
 npm run build:mac        # DMG + ZIP arm64 (Apple Silicon) em desktop/dist
 npm run build:mac:x64    # opcional, Macs Intel
 npm run build:win        # instalador Windows
@@ -73,6 +74,7 @@ O workflow valida o pacote antes de publicar o artefato:
 - `codesign --verify --deep --strict`
 - arquitetura arm64 do app e dos sidecars FFmpeg/FFprobe
 - presença, permissão `+x` e execução real (`-version`) dos binários
+- validação prévia do par Evermeet (Mach-O arm64 exclusivo) antes de gerar o `.app`
 - `hdiutil verify` + montagem do DMG e revalidação do `.app` de dentro da imagem
 
 ### Primeira abertura (quarentena)
