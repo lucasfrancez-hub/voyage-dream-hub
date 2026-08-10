@@ -30,13 +30,6 @@
     "artifactName": "EditAir-${version}-${arch}.${ext}",
     "asar": true,
     "afterPack": "scripts/adhoc-sign.cjs",
-    "extraResources": [
-      {
-        "from": "bin/${os}/${arch}",
-        "to": "bin",
-        "filter": ["ffmpeg", "ffprobe", "ffmpeg.exe", "ffprobe.exe"]
-      }
-    ],
     "files": [
       "main.cjs",
       "preload.cjs",
@@ -62,6 +55,13 @@
     "mac": {
       "category": "public.app-category.video",
       "icon": "assets/icon.png",
+      "extraResources": [
+        {
+          "from": "bin/darwin/${arch}",
+          "to": "bin",
+          "filter": ["ffmpeg", "ffprobe"]
+        }
+      ],
       "target": [
         {
           "target": "dmg",
