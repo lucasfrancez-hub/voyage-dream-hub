@@ -1097,6 +1097,8 @@ function EditorPage() {
           canvasRef={canvasRef}
           width={state.width}
           height={state.height}
+          originalWidth={dimsOriginais?.w}
+          originalHeight={dimsOriginais?.h}
           fps={state.fps}
           playheadMs={playhead}
           durationMs={state.durationMs}
