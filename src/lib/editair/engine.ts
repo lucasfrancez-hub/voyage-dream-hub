@@ -31,6 +31,8 @@ export class EditairEngine {
   private midias = new Map<string, Midia>();
   private volumeMaster = 1;
   private mudo = false;
+  /** escala física do canvas em relação ao tamanho lógico do projeto */
+  private escala = 1;
 
   constructor(canvas: HTMLCanvasElement, width: number, height: number) {
     this.canvas = canvas;
@@ -43,12 +45,19 @@ export class EditairEngine {
     this.ctx = ctx;
   }
 
-  redimensionar(width: number, height: number) {
-    if (this.width === width && this.height === height) return;
+  redimensionar(width: number, height: number, escala = this.escala) {
+    const pw = Math.max(2, Math.round(width * escala));
+    const ph = Math.max(2, Math.round(height * escala));
+    if (this.width === width && this.height === height && this.canvas.width === pw) return;
     this.width = width;
     this.height = height;
-    this.canvas.width = width;
-    this.canvas.height = height;
+    this.escala = escala;
+    this.canvas.width = pw;
+    this.canvas.height = ph;
+  }
+
+  definirEscala(escala: number) {
+    this.redimensionar(this.width, this.height, escala);
   }
 
   private garantirAudio() {
@@ -195,11 +204,12 @@ export class EditairEngine {
 
   desenhar(state: ProjectState, t: number) {
     const { ctx, width, height } = this;
-    ctx.save();
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.fillStyle = "#000";
-    ctx.fillRect(0, 0, width, height);
-    ctx.restore();
+    ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+    ctx.setTransform(this.escala, 0, 0, this.escala, 0, 0);
+    void width;
+    void height;
 
     const ativos = this.ativos(state, t);
     const ordem: Record<string, number> = { "t-video": 0, "t-broll": 1, "t-caption": 2, "t-text": 3 };
