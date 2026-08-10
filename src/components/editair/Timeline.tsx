@@ -34,6 +34,8 @@ type Props = {
   onAbrirSource: (clipId: string) => void;
   onRestaurarClip: (clipId: string) => void;
   onAcaoClip?: (clipId: string, acao: "dividir" | "duplicar" | "excluir" | "bloquear" | "mudo" | "congelar" | "desvincular") => void;
+  /** Arquivos arrastados do Finder/Explorer direto para a timeline. */
+  onSoltarArquivos?: (arquivos: FileList, ms: number) => void;
 };
 
 type Dica = { x: number; y: number; titulo: string; valor: string; delta: string } | null;
@@ -56,6 +58,7 @@ export function Timeline({
   onAbrirSource,
   onRestaurarClip,
   onAcaoClip,
+  onSoltarArquivos,
 }: Props) {
   const areaRef = useRef<HTMLDivElement>(null);
   const pxPorMs = zoom / 1000;
@@ -63,6 +66,7 @@ export function Timeline({
   const [dica, setDica] = useState<Dica>(null);
   const [arrastandoId, setArrastandoId] = useState<string | null>(null);
   const [menu, setMenu] = useState<{ x: number; y: number; clipId: string } | null>(null);
+  const [soltando, setSoltando] = useState(false);
 
   const duracoes = useMemo(() => {
     const m: Record<string, number> = {};
@@ -206,7 +210,28 @@ export function Timeline({
         </div>
 
         {/* área rolável */}
-        <div ref={areaRef} className="relative min-h-0 flex-1 overflow-auto">
+        <div
+          ref={areaRef}
+          className={`relative min-h-0 flex-1 overflow-auto ${soltando ? "ring-2 ring-inset ring-[#F26B1F]" : ""}`}
+          onDragOver={
+            onSoltarArquivos
+              ? (e) => {
+                  e.preventDefault();
+                  setSoltando(true);
+                }
+              : undefined
+          }
+          onDragLeave={onSoltarArquivos ? () => setSoltando(false) : undefined}
+          onDrop={
+            onSoltarArquivos
+              ? (e) => {
+                  e.preventDefault();
+                  setSoltando(false);
+                  if (e.dataTransfer.files?.length) onSoltarArquivos(e.dataTransfer.files, msDoEvento(e.clientX));
+                }
+              : undefined
+          }
+        >
           <div style={{ width: larguraTotal }} className="relative">
             {/* régua */}
             <div
