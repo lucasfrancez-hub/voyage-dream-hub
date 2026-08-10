@@ -82,7 +82,10 @@ tentar_zip() {
 }
 
 provisionar() {
-  local nome="$1" pacote="$2"; shift 2
+  local nome="${1:?nome do binário não informado}"
+  local pacote="${2:?pacote npm não informado}"
+  local url=""
+  shift 2
   echo "== Provisionando $nome (macOS arm64)"
   if tentar_npm "$nome" "$pacote"; then echo "   origem aceita: npm $pacote"; return 0; fi
   for url in "$@"; do
