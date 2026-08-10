@@ -2344,9 +2344,10 @@ function InstagramConversationView({
       rec.onstop = async () => {
         stream.getTracks().forEach((t) => t.stop());
         try {
-          const { audioBlobToMp3 } = await import("@/lib/audio-to-mp3");
-          const mp3 = await audioBlobToMp3(new Blob(chunks, { type: rec.mimeType || "audio/webm" }));
-          await igAttach.mutateAsync(new File([mp3], `audio-${Date.now()}.mp3`, { type: "audio/mpeg" }));
+          // Instagram só aceita aac/m4a/mp4/wav em DM — MP3 é recusado (2534080).
+          const { audioBlobToWav } = await import("@/lib/audio-to-wav");
+          const wav = await audioBlobToWav(new Blob(chunks, { type: rec.mimeType || "audio/webm" }));
+          await igAttach.mutateAsync(new File([wav], `audio-${Date.now()}.wav`, { type: "audio/wav" }));
         } catch (err) {
           toast.error(err instanceof Error ? err.message : "Falha ao enviar o áudio");
         }
