@@ -356,19 +356,19 @@ function EditorPage() {
   };
 
   /** Alteração em lote (ripple trim mexe em vários clipes ao mesmo tempo). */
-  const alterarClipsTimeline = (patches: Array<{ id: string; patch: Partial<EditairClip> }>, commit: boolean) => {
+  const alterarClipsTimeline = (patches: Record<string, Partial<EditairClip>>, commit: boolean) => {
     if (commit) {
       setState((s) => recalcularDuracao({ ...s }));
       return;
     }
-    const mapa = new Map(patches.map((p) => [p.id, p.patch]));
     setState((s) =>
       recalcularDuracao({
         ...s,
-        clips: s.clips.map((c) => (mapa.has(c.id) ? { ...c, ...mapa.get(c.id)! } : c)),
+        clips: s.clips.map((c) => (patches[c.id] ? { ...c, ...patches[c.id] } : c)),
       }),
     );
   };
+
 
   /** Devolve o clipe à duração integral do arquivo original (não destrutivo). */
   const restaurarClip = (cid: string) => {
