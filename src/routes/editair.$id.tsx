@@ -64,9 +64,12 @@ import {
   paraWav16k,
 } from "@/lib/editair/audio";
 import { EditairEngine } from "@/lib/editair/engine";
+import { consumirHandoff } from "@/lib/editair/handoff";
 import { Timeline, type AssetInfo } from "@/components/editair/Timeline";
 import { PlayerStage } from "@/components/editair/PlayerStage";
+import { SourceDialog } from "@/components/editair/SourceDialog";
 import { ToolPanel, type AssetItem, type Ferramenta, type MensagemIa } from "@/components/editair/ToolPanels";
+
 import {
   ExportDialog,
   type ExportConfig,
