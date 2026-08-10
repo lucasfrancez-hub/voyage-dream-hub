@@ -30,7 +30,9 @@ archs_de() { lipo -archs "$1" 2>/dev/null || true; }
 
 # Copia o binário garantindo fatia arm64 exclusiva.
 instalar() {
-  local nome="$1" origem="$2" archs
+  local nome="${1:?nome do binário não informado}"
+  local origem="${2:?origem do binário não informada}"
+  local archs=""
   archs="$(archs_de "$origem")"
   case " $archs " in *" arm64 "*) ;; *) return 1;; esac
   mkdir -p "$DEST"
