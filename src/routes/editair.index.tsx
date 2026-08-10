@@ -50,6 +50,8 @@ type Projeto = {
 
 type Filtro = "todas" | "video" | "image" | "audio";
 
+type Midia = MidiaGaleria & { local?: boolean; localPath?: string; existe?: boolean };
+
 function duracaoTexto(ms: number) {
   if (!ms) return "";
   const s = Math.round(ms / 1000);
@@ -58,20 +60,31 @@ function duracaoTexto(ms: number) {
 
 function EditairHome() {
   const navigate = useNavigate();
+  const desktop = pontoDesktop();
   const [projetos, setProjetos] = useState<Projeto[] | null>(null);
-  const [midias, setMidias] = useState<MidiaGaleria[] | null>(null);
+  const [midias, setMidias] = useState<Midia[] | null>(null);
   const [filtro, setFiltro] = useState<Filtro>("todas");
   const [arrastando, setArrastando] = useState(false);
   const [enviando, setEnviando] = useState<string | null>(null);
   const [selecao, setSelecao] = useState<string[]>([]);
   const [instrucao, setInstrucao] = useState("");
   const [abrindo, setAbrindo] = useState(false);
-  const [renomeando, setRenomeando] = useState<MidiaGaleria | null>(null);
+  const [renomeando, setRenomeando] = useState<Midia | null>(null);
   const [novoNome, setNovoNome] = useState("");
+  const [config, setConfig] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const carregar = async () => {
     try {
+      if (desktop) {
+        const [locais, rowsP] = await Promise.all([
+          desktop.biblioteca.listar(),
+          listarProjetosEditair().catch(() => []) as unknown as Promise<Projeto[]>,
+        ]);
+        setProjetos(rowsP ?? []);
+        setMidias(locais.map(assetLocalParaMidia) as Midia[]);
+        return;
+      }
       const [rowsP, rowsM] = await Promise.all([
         listarProjetosEditair() as unknown as Promise<Projeto[]>,
         listarMidiasEditair() as unknown as Promise<Array<Record<string, unknown>>>,
@@ -89,14 +102,63 @@ function EditairHome() {
     void carregar();
   }, []);
 
+  // menu nativo: Configurações e Importar
+  useEffect(() => {
+    if (!desktop) return;
+    const off1 = desktop.aoAbrirConfiguracoes((d) => setConfig(d?.aba || "armazenamento"));
+    const off2 = desktop.aoAcionarMenu((d) => {
+      if (d.acao === "importar") void importarLocal();
+    });
+    return () => {
+      off1();
+      off2();
+    };
+  }, [desktop]);
+
   const visiveis = useMemo(
     () => (midias ?? []).filter((m) => (filtro === "todas" ? true : m.kind === filtro)),
     [midias, filtro],
   );
 
+  /** Desktop: registra os arquivos onde eles estão, sem upload. */
+  const importarCaminhos = async (caminhos: string[]) => {
+    if (!desktop || !caminhos.length) return;
+    setEnviando(`Lendo ${caminhos.length} arquivo(s) localmente…`);
+    try {
+      const novos = await desktop.biblioteca.importar(caminhos);
+      const convertidos = novos.map(assetLocalParaMidia) as Midia[];
+      setMidias((cur) => [...convertidos, ...(cur ?? [])]);
+      setSelecao((s) => [...s, ...convertidos.map((m) => m.id)]);
+      toast.success(convertidos.length > 1 ? `${convertidos.length} mídias na biblioteca local` : "Mídia na biblioteca local");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha ao importar");
+    } finally {
+      setEnviando(null);
+    }
+  };
+
+  const importarLocal = async () => {
+    if (!desktop) return inputRef.current?.click();
+    const caminhos = await desktop.dialogo.escolherMidias();
+    await importarCaminhos(caminhos);
+  };
+
+  const relinkar = async (m: Midia) => {
+    if (!desktop) return;
+    const caminho = await desktop.dialogo.localizarArquivo(m.nome);
+    if (!caminho) return;
+    const atualizado = assetLocalParaMidia(await desktop.biblioteca.relinkar(m.id, caminho)) as Midia;
+    setMidias((cur) => (cur ?? []).map((x) => (x.id === m.id ? atualizado : x)));
+    toast.success("Mídia relinkada — sua edição continua intacta");
+  };
+
   const importar = async (lista: FileList | File[] | null) => {
     if (!lista?.length) return;
-    const novos: MidiaGaleria[] = [];
+    if (desktop) {
+      const caminhos = caminhosDeArquivos(lista);
+      if (caminhos.length) return importarCaminhos(caminhos);
+    }
+    const novos: Midia[] = [];
     try {
       for (const arquivo of Array.from(lista)) {
         const m = await importarParaGaleria(arquivo, { aoProgredir: setEnviando });
