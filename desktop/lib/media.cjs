@@ -6,37 +6,18 @@ const crypto = require("node:crypto");
 const { spawn } = require("node:child_process");
 const { dirs, lerSettings } = require("./paths.cjs");
 
-function desempacotar(p) {
-  // dentro do .asar os binários ficam em app.asar.unpacked
-  return p ? p.replace("app.asar", "app.asar.unpacked") : p;
+/** Produção usa Contents/Resources/bin; desenvolvimento usa desktop/bin. */
+function resolverBinario(nome) {
+  const arquivo = process.platform === "win32" ? `${nome}.exe` : nome;
+  const candidatos = [
+    path.join(process.resourcesPath || "", "bin", arquivo),
+    path.join(__dirname, "..", "bin", process.platform, process.arch, arquivo),
+  ];
+  return candidatos.find((p) => p && fs.existsSync(p)) || candidatos[0];
 }
 
-/** Resolve o ffprobe por plataforma/arquitetura (nunca herdar bin/linux/x64 num Mac). */
-function resolverFfprobe() {
-  const plat = process.platform;
-  const arch = process.arch;
-  const nome = plat === "win32" ? "ffprobe.exe" : "ffprobe";
-  const candidatos = [];
-  try {
-    const raiz = path.dirname(require.resolve("ffprobe-static/package.json"));
-    candidatos.push(path.join(raiz, "bin", plat, arch, nome));
-  } catch {
-    /* pacote ausente */
-  }
-  try {
-    candidatos.push(require("ffprobe-static").path);
-  } catch {
-    /* ignora */
-  }
-  for (const c of candidatos) {
-    const p = desempacotar(c);
-    if (p && fs.existsSync(p) && new RegExp(`${plat}[\\\\/]${arch}`).test(p)) return p;
-  }
-  return desempacotar(candidatos[0]) || null;
-}
-
-const FFMPEG = desempacotar(require("ffmpeg-static"));
-const FFPROBE = resolverFfprobe();
+const FFMPEG = resolverBinario("ffmpeg");
+const FFPROBE = resolverBinario("ffprobe");
 
 function existeFfmpeg() {
   try {

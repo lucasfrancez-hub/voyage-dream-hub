@@ -14,12 +14,11 @@
     "build:mac:universal": "electron-builder --mac --universal",
     "build:win": "electron-builder --win --x64",
     "release:mac": "electron-builder --mac --arm64 --publish always",
+    "prepare:mac-binaries": "bash scripts/preparar-binarios-macos.sh",
     "verify:mac": "bash scripts/verificar-app.sh dist/mac-arm64/EditAir.app"
   },
   "dependencies": {
-    "electron-updater": "^6.3.9",
-    "ffmpeg-static": "^5.2.0",
-    "ffprobe-static": "^3.1.0"
+    "electron-updater": "^6.3.9"
   },
   "devDependencies": {
     "electron": "^32.2.0",
@@ -31,10 +30,6 @@
     "artifactName": "EditAir-${version}-${arch}.${ext}",
     "asar": true,
     "afterPack": "scripts/adhoc-sign.cjs",
-    "asarUnpack": [
-      "node_modules/ffmpeg-static/**",
-      "node_modules/ffprobe-static/**"
-    ],
     "files": [
       "main.cjs",
       "preload.cjs",
@@ -60,6 +55,13 @@
     "mac": {
       "category": "public.app-category.video",
       "icon": "assets/icon.png",
+      "extraResources": [
+        {
+          "from": "bin/darwin/${arch}",
+          "to": "bin",
+          "filter": ["ffmpeg", "ffprobe"]
+        }
+      ],
       "target": [
         {
           "target": "dmg",

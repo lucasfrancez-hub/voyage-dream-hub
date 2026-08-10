@@ -61,26 +61,11 @@ case "$ARCHS_EXEC" in
 esac
 
 echo "-- sidecars FFmpeg/FFprobe"
-UNPACKED="$APP/Contents/Resources/app.asar.unpacked/node_modules"
-[ -d "$UNPACKED" ] || falhar "app.asar.unpacked ausente (asarUnpack não aplicou)" "$APP/Contents/Resources"
-
-FFPROBE_BIN_DIR="$UNPACKED/ffprobe-static/bin"
-if [ -d "$FFPROBE_BIN_DIR" ]; then
-  echo "   -- árvore de ffprobe-static/bin"
-  find "$FFPROBE_BIN_DIR" -mindepth 1 -maxdepth 2 | sed 's/^/      /'
-  EXTRAS=$(find "$FFPROBE_BIN_DIR" -mindepth 1 -maxdepth 2 -type d | grep -vE "/bin/darwin$|/bin/darwin/arm64$" || true)
-  if [ -n "$EXTRAS" ]; then
-    echo "ERRO: bundle contém binários de ffprobe de outras plataformas:"
-    echo "$EXTRAS" | sed 's/^/      /'
-    exit 1
-  fi
-else
-  falhar "ffprobe-static não foi desempacotado" "$UNPACKED"
-fi
-
-FFPROBE="$FFPROBE_BIN_DIR/darwin/arm64/ffprobe"
-FFMPEG=$(find "$UNPACKED/ffmpeg-static" -name ffmpeg -type f 2>/dev/null | head -n1 || true)
-[ -n "$FFMPEG" ] || falhar "ffmpeg não encontrado no bundle" "$UNPACKED/ffmpeg-static"
+BIN_DIR="$APP/Contents/Resources/bin"
+[ -d "$BIN_DIR" ] || falhar "diretório explícito de sidecars ausente" "$APP/Contents/Resources"
+ls -la "$BIN_DIR" | sed 's/^/   /'
+FFMPEG="$BIN_DIR/ffmpeg"
+FFPROBE="$BIN_DIR/ffprobe"
 
 for BIN in "$FFMPEG" "$FFPROBE"; do
   echo "   -- checando $BIN"
@@ -88,10 +73,8 @@ for BIN in "$FFMPEG" "$FFPROBE"; do
   [ -x "$BIN" ] || falhar "sem permissão de execução: $BIN" "$BIN"
   A="$(arquiteturas "$BIN")"
   echo "      archs: '${A}'  file: $(file -b "$BIN" 2>&1)"
-  case "$A" in
-    *arm64*) : ;;
-    *) falhar "$BIN não tem slice arm64 (archs='${A}')" "$BIN" ;;
-  esac
+  [ "$A" = "arm64" ] || falhar "$BIN precisa ser exclusivamente arm64 (archs='${A}')" "$BIN"
+  file -b "$BIN" | grep -q "Mach-O 64-bit executable arm64" || falhar "file não confirmou Mach-O arm64" "$BIN"
   if ! "$BIN" -version >/dev/null 2>&1; then
     echo "      saída do teste de execução:"
     "$BIN" -version 2>&1 | head -n 5 | sed 's/^/         /' || true
