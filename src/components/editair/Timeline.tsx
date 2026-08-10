@@ -282,7 +282,20 @@ export function Timeline({
               </div>
             ))}
 
+            {/* marcadores */}
+            {(state.marcadores ?? []).map((m) => (
+              <div
+                key={m.id}
+                title={m.nota ?? "Marcador"}
+                className="pointer-events-none absolute top-0 z-20 h-full w-px"
+                style={{ left: m.atMs * pxPorMs, background: `${m.cor}66` }}
+              >
+                <span className="-ml-1 block h-2 w-2 rotate-45" style={{ background: m.cor }} />
+              </div>
+            ))}
+
             {/* playhead */}
+
             <div
               className="absolute top-0 z-30 h-full w-px cursor-ew-resize bg-white"
               style={{ left: playheadMs * pxPorMs }}
