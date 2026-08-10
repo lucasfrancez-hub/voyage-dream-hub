@@ -1,0 +1,120 @@
+import { createServerFn } from "@tanstack/react-start";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { z } from "zod";
+
+/**
+ * Transcrição com timestamps por palavra.
+ * O navegador envia blocos de áudio WAV 16 kHz mono; aqui pedimos ao modelo
+ * o alinhamento palavra a palavra (mesmo papel do WhisperX no EDVID).
+ */
+
+const Input = z.object({
+  audioBase64: z.string().min(100).max(20_000_000),
+  offsetMs: z.number().int().nonnegative().default(0),
+  idioma: z.string().max(10).default("pt"),
+});
+
+const SCHEMA = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    words: {
+      type: "array",
+      items: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          w: { type: "string" },
+          start: { type: "number" },
+          end: { type: "number" },
+        },
+        required: ["w", "start", "end"],
+      },
+    },
+  },
+  required: ["words"],
+} as const;
+
+const PROMPT = `Você é um alinhador de fala. Transcreva o áudio em português do Brasil e devolva CADA PALAVRA com seus tempos em SEGUNDOS relativos ao início deste áudio.
+
+REGRAS:
+- Uma entrada por palavra falada, na ordem exata.
+- start e end em segundos com 3 casas (ex.: 14.321).
+- Não invente palavras. Não inclua trechos silenciosos.
+- Mantenha pontuação junto da palavra quando existir (ex.: "assim." ).
+- Se o áudio não tiver fala, devolva words vazio.`;
+
+export type PalavraTranscrita = { w: string; start: number; end: number };
+
+export const transcreverBlocoEditair = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => Input.parse(input))
+  .handler(async ({ data }): Promise<{ words: PalavraTranscrita[] }> => {
+    const apiKey = process.env.LOVABLE_API_KEY;
+    if (!apiKey) throw new Error("LOVABLE_API_KEY ausente no servidor");
+
+    const body = {
+      model: "google/gemini-2.5-pro",
+      messages: [
+        { role: "system", content: PROMPT },
+        {
+          role: "user",
+          content: [
+            { type: "text", text: "Alinhe este áudio palavra a palavra." },
+            { type: "input_audio", input_audio: { data: data.audioBase64, format: "wav" } },
+          ],
+        },
+      ],
+      tools: [
+        {
+          type: "function",
+          function: {
+            name: "return_words",
+            description: "Devolve as palavras alinhadas.",
+            parameters: SCHEMA,
+          },
+        },
+      ],
+      tool_choice: { type: "function", function: { name: "return_words" } },
+    };
+
+    const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Lovable-API-Key": apiKey,
+        "X-Lovable-AIG-SDK": "custom-fetch",
+      },
+      body: JSON.stringify(body),
+    });
+
+    if (!res.ok) {
+      const txt = await res.text();
+      if (res.status === 429) throw new Error("Limite de uso da IA atingido. Tente em instantes.");
+      if (res.status === 402) throw new Error("Créditos da IA esgotados.");
+      throw new Error(`Falha na transcrição (${res.status}): ${txt.slice(0, 240)}`);
+    }
+
+    const json = (await res.json()) as {
+      choices?: Array<{ message?: { tool_calls?: Array<{ function?: { arguments?: string } }>; content?: string } }>;
+    };
+    const raw = json.choices?.[0]?.message?.tool_calls?.[0]?.function?.arguments ?? json.choices?.[0]?.message?.content ?? "{}";
+    let parsed: { words?: PalavraTranscrita[] } = {};
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      const m = raw.match(/\{[\s\S]*\}/);
+      parsed = m ? JSON.parse(m[0]) : {};
+    }
+
+    const words = (parsed.words ?? [])
+      .filter((w) => w && typeof w.w === "string" && Number.isFinite(w.start) && Number.isFinite(w.end))
+      .map((w) => ({
+        w: w.w.trim(),
+        start: Math.round(w.start * 1000) + data.offsetMs,
+        end: Math.round(w.end * 1000) + data.offsetMs,
+      }))
+      .filter((w) => w.w.length > 0 && w.end > w.start);
+
+    return { words };
+  });

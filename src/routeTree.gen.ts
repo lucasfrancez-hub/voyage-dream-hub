@@ -14,6 +14,7 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as ChatRouteImport } from './routes/chat'
 import { Route as CruzeirosRouteImport } from './routes/cruzeiros'
+import { Route as EditairRouteImport } from './routes/editair'
 import { Route as EmbedTesteRouteImport } from './routes/embed-teste'
 import { Route as ExclusaoDeDadosRouteImport } from './routes/exclusao-de-dados'
 import { Route as IngressosRouteImport } from './routes/ingressos'
@@ -75,6 +76,8 @@ import { Route as ChatNotificacoesRouteImport } from './routes/chat.notificacoes
 import { Route as ChatPastasRouteImport } from './routes/chat.pastas'
 import { Route as ChatProtocolosRouteImport } from './routes/chat.protocolos'
 import { Route as ChatSugestoesRouteImport } from './routes/chat.sugestoes'
+import { Route as EditairIndexRouteImport } from './routes/editair.index'
+import { Route as EditairIdRouteImport } from './routes/editair.$id'
 import { Route as EmailUnsubscribeRouteImport } from './routes/email/unsubscribe'
 import { Route as EmbedIngressosDestaqueRouteImport } from './routes/embed.ingressos-destaque'
 import { Route as EmbedMotorBuscaRouteImport } from './routes/embed.motor-busca'
@@ -158,6 +161,11 @@ const ChatRoute = ChatRouteImport.update({
 const CruzeirosRoute = CruzeirosRouteImport.update({
   id: '/cruzeiros',
   path: '/cruzeiros',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EditairRoute = EditairRouteImport.update({
+  id: '/editair',
+  path: '/editair',
   getParentRoute: () => rootRouteImport,
 } as any)
 const EmbedTesteRoute = EmbedTesteRouteImport.update({
@@ -464,6 +472,16 @@ const ChatSugestoesRoute = ChatSugestoesRouteImport.update({
   id: '/sugestoes',
   path: '/sugestoes',
   getParentRoute: () => ChatRoute,
+} as any)
+const EditairIndexRoute = EditairIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => EditairRoute,
+} as any)
+const EditairIdRoute = EditairIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => EditairRoute,
 } as any)
 const EmailUnsubscribeRoute = EmailUnsubscribeRouteImport.update({
   id: '/email/unsubscribe',
@@ -796,6 +814,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/chat': typeof ChatRouteWithChildren
   '/cruzeiros': typeof CruzeirosRoute
+  '/editair': typeof EditairRouteWithChildren
   '/embed-teste': typeof EmbedTesteRoute
   '/exclusao-de-dados': typeof ExclusaoDeDadosRoute
   '/ingressos': typeof IngressosRoute
@@ -857,6 +876,7 @@ export interface FileRoutesByFullPath {
   '/chat/pastas': typeof ChatPastasRoute
   '/chat/protocolos': typeof ChatProtocolosRoute
   '/chat/sugestoes': typeof ChatSugestoesRoute
+  '/editair/$id': typeof EditairIdRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/embed/ingressos-destaque': typeof EmbedIngressosDestaqueRoute
   '/embed/motor-busca': typeof EmbedMotorBuscaRoute
@@ -866,6 +886,7 @@ export interface FileRoutesByFullPath {
   '/pacotes/admin': typeof PacotesAdminRoute
   '/protocolo/$protocoloId': typeof ProtocoloProtocoloIdRoute
   '/w/$slug': typeof WSlugRoute
+  '/editair/': typeof EditairIndexRoute
   '/pacotes/': typeof PacotesIndexRoute
   '/admin/app/$token': typeof AdminAppTokenRoute
   '/admin/pedidos/$id': typeof AdminPedidosIdRoute
@@ -983,6 +1004,7 @@ export interface FileRoutesByTo {
   '/chat/pastas': typeof ChatPastasRoute
   '/chat/protocolos': typeof ChatProtocolosRoute
   '/chat/sugestoes': typeof ChatSugestoesRoute
+  '/editair/$id': typeof EditairIdRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/embed/ingressos-destaque': typeof EmbedIngressosDestaqueRoute
   '/embed/motor-busca': typeof EmbedMotorBuscaRoute
@@ -992,6 +1014,7 @@ export interface FileRoutesByTo {
   '/pacotes/admin': typeof PacotesAdminRoute
   '/protocolo/$protocoloId': typeof ProtocoloProtocoloIdRoute
   '/w/$slug': typeof WSlugRoute
+  '/editair': typeof EditairIndexRoute
   '/pacotes': typeof PacotesIndexRoute
   '/admin/app/$token': typeof AdminAppTokenRoute
   '/admin/pedidos/$id': typeof AdminPedidosIdRoute
@@ -1050,6 +1073,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/chat': typeof ChatRouteWithChildren
   '/cruzeiros': typeof CruzeirosRoute
+  '/editair': typeof EditairRouteWithChildren
   '/embed-teste': typeof EmbedTesteRoute
   '/exclusao-de-dados': typeof ExclusaoDeDadosRoute
   '/ingressos': typeof IngressosRoute
@@ -1111,6 +1135,7 @@ export interface FileRoutesById {
   '/chat/pastas': typeof ChatPastasRoute
   '/chat/protocolos': typeof ChatProtocolosRoute
   '/chat/sugestoes': typeof ChatSugestoesRoute
+  '/editair/$id': typeof EditairIdRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/embed/ingressos-destaque': typeof EmbedIngressosDestaqueRoute
   '/embed/motor-busca': typeof EmbedMotorBuscaRoute
@@ -1120,6 +1145,7 @@ export interface FileRoutesById {
   '/pacotes/admin': typeof PacotesAdminRoute
   '/protocolo/$protocoloId': typeof ProtocoloProtocoloIdRoute
   '/w/$slug': typeof WSlugRoute
+  '/editair/': typeof EditairIndexRoute
   '/pacotes/': typeof PacotesIndexRoute
   '/admin/app/$token': typeof AdminAppTokenRoute
   '/admin/pedidos/$id': typeof AdminPedidosIdRoute
@@ -1179,6 +1205,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/chat'
     | '/cruzeiros'
+    | '/editair'
     | '/embed-teste'
     | '/exclusao-de-dados'
     | '/ingressos'
@@ -1240,6 +1267,7 @@ export interface FileRouteTypes {
     | '/chat/pastas'
     | '/chat/protocolos'
     | '/chat/sugestoes'
+    | '/editair/$id'
     | '/email/unsubscribe'
     | '/embed/ingressos-destaque'
     | '/embed/motor-busca'
@@ -1249,6 +1277,7 @@ export interface FileRouteTypes {
     | '/pacotes/admin'
     | '/protocolo/$protocoloId'
     | '/w/$slug'
+    | '/editair/'
     | '/pacotes/'
     | '/admin/app/$token'
     | '/admin/pedidos/$id'
@@ -1366,6 +1395,7 @@ export interface FileRouteTypes {
     | '/chat/pastas'
     | '/chat/protocolos'
     | '/chat/sugestoes'
+    | '/editair/$id'
     | '/email/unsubscribe'
     | '/embed/ingressos-destaque'
     | '/embed/motor-busca'
@@ -1375,6 +1405,7 @@ export interface FileRouteTypes {
     | '/pacotes/admin'
     | '/protocolo/$protocoloId'
     | '/w/$slug'
+    | '/editair'
     | '/pacotes'
     | '/admin/app/$token'
     | '/admin/pedidos/$id'
@@ -1432,6 +1463,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/chat'
     | '/cruzeiros'
+    | '/editair'
     | '/embed-teste'
     | '/exclusao-de-dados'
     | '/ingressos'
@@ -1493,6 +1525,7 @@ export interface FileRouteTypes {
     | '/chat/pastas'
     | '/chat/protocolos'
     | '/chat/sugestoes'
+    | '/editair/$id'
     | '/email/unsubscribe'
     | '/embed/ingressos-destaque'
     | '/embed/motor-busca'
@@ -1502,6 +1535,7 @@ export interface FileRouteTypes {
     | '/pacotes/admin'
     | '/protocolo/$protocoloId'
     | '/w/$slug'
+    | '/editair/'
     | '/pacotes/'
     | '/admin/app/$token'
     | '/admin/pedidos/$id'
@@ -1560,6 +1594,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   ChatRoute: typeof ChatRouteWithChildren
   CruzeirosRoute: typeof CruzeirosRoute
+  EditairRoute: typeof EditairRouteWithChildren
   EmbedTesteRoute: typeof EmbedTesteRoute
   ExclusaoDeDadosRoute: typeof ExclusaoDeDadosRoute
   IngressosRoute: typeof IngressosRoute
@@ -1663,6 +1698,13 @@ declare module '@tanstack/react-router' {
       path: '/cruzeiros'
       fullPath: '/cruzeiros'
       preLoaderRoute: typeof CruzeirosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/editair': {
+      id: '/editair'
+      path: '/editair'
+      fullPath: '/editair'
+      preLoaderRoute: typeof EditairRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/embed-teste': {
@@ -2091,6 +2133,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/chat/sugestoes'
       preLoaderRoute: typeof ChatSugestoesRouteImport
       parentRoute: typeof ChatRoute
+    }
+    '/editair/': {
+      id: '/editair/'
+      path: '/'
+      fullPath: '/editair/'
+      preLoaderRoute: typeof EditairIndexRouteImport
+      parentRoute: typeof EditairRoute
+    }
+    '/editair/$id': {
+      id: '/editair/$id'
+      path: '/$id'
+      fullPath: '/editair/$id'
+      preLoaderRoute: typeof EditairIdRouteImport
+      parentRoute: typeof EditairRoute
     }
     '/email/unsubscribe': {
       id: '/email/unsubscribe'
@@ -2634,6 +2690,19 @@ const ChatRouteChildren: ChatRouteChildren = {
 
 const ChatRouteWithChildren = ChatRoute._addFileChildren(ChatRouteChildren)
 
+interface EditairRouteChildren {
+  EditairIdRoute: typeof EditairIdRoute
+  EditairIndexRoute: typeof EditairIndexRoute
+}
+
+const EditairRouteChildren: EditairRouteChildren = {
+  EditairIdRoute: EditairIdRoute,
+  EditairIndexRoute: EditairIndexRoute,
+}
+
+const EditairRouteWithChildren =
+  EditairRoute._addFileChildren(EditairRouteChildren)
+
 interface PacotesRouteChildren {
   PacotesAdminRoute: typeof PacotesAdminRoute
   PacotesIndexRoute: typeof PacotesIndexRoute
@@ -2657,6 +2726,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   ChatRoute: ChatRouteWithChildren,
   CruzeirosRoute: CruzeirosRoute,
+  EditairRoute: EditairRouteWithChildren,
   EmbedTesteRoute: EmbedTesteRoute,
   ExclusaoDeDadosRoute: ExclusaoDeDadosRoute,
   IngressosRoute: IngressosRoute,
@@ -2732,13 +2802,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

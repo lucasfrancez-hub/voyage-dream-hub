@@ -1271,6 +1271,151 @@ export type Database = {
         }
         Relationships: []
       }
+      editair_ai_events: {
+        Row: {
+          actor: string
+          created_at: string
+          id: string
+          message: string
+          ops: Json | null
+          owner_id: string
+          project_id: string
+        }
+        Insert: {
+          actor?: string
+          created_at?: string
+          id?: string
+          message: string
+          ops?: Json | null
+          owner_id: string
+          project_id: string
+        }
+        Update: {
+          actor?: string
+          created_at?: string
+          id?: string
+          message?: string
+          ops?: Json | null
+          owner_id?: string
+          project_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "editair_ai_events_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "editair_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      editair_assets: {
+        Row: {
+          created_at: string
+          duration_ms: number | null
+          height: number | null
+          id: string
+          kind: string
+          meta: Json
+          mime: string | null
+          name: string
+          owner_id: string
+          project_id: string
+          size_bytes: number | null
+          storage_path: string
+          width: number | null
+        }
+        Insert: {
+          created_at?: string
+          duration_ms?: number | null
+          height?: number | null
+          id?: string
+          kind?: string
+          meta?: Json
+          mime?: string | null
+          name: string
+          owner_id: string
+          project_id: string
+          size_bytes?: number | null
+          storage_path: string
+          width?: number | null
+        }
+        Update: {
+          created_at?: string
+          duration_ms?: number | null
+          height?: number | null
+          id?: string
+          kind?: string
+          meta?: Json
+          mime?: string | null
+          name?: string
+          owner_id?: string
+          project_id?: string
+          size_bytes?: number | null
+          storage_path?: string
+          width?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "editair_assets_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "editair_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      editair_projects: {
+        Row: {
+          created_at: string
+          format: string
+          fps: number
+          height: number
+          id: string
+          instructions: string | null
+          name: string
+          owner_id: string
+          state: Json
+          stats: Json | null
+          status: string
+          transcript: Json | null
+          updated_at: string
+          width: number
+        }
+        Insert: {
+          created_at?: string
+          format?: string
+          fps?: number
+          height?: number
+          id?: string
+          instructions?: string | null
+          name: string
+          owner_id: string
+          state?: Json
+          stats?: Json | null
+          status?: string
+          transcript?: Json | null
+          updated_at?: string
+          width?: number
+        }
+        Update: {
+          created_at?: string
+          format?: string
+          fps?: number
+          height?: number
+          id?: string
+          instructions?: string | null
+          name?: string
+          owner_id?: string
+          state?: Json
+          stats?: Json | null
+          status?: string
+          transcript?: Json | null
+          updated_at?: string
+          width?: number
+        }
+        Relationships: []
+      }
       email_send_log: {
         Row: {
           created_at: string
