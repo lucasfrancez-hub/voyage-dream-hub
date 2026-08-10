@@ -366,10 +366,12 @@ export function Timeline({
 
       {menu ? (
         <div
-          className="fixed z-[60] w-56 overflow-hidden rounded-xl border border-white/10 bg-[#12171d] py-1 text-[12px] shadow-2xl"
-          style={{ left: menu.x, top: menu.y }}
+          ref={menuRef}
+          className="fixed z-[60] flex max-h-[calc(100vh-16px)] w-56 flex-col overflow-y-auto overscroll-contain rounded-xl border border-white/10 bg-[#12171d] py-1 text-[12px] shadow-2xl"
+          style={{ left: menuPos.x, top: menuPos.y }}
           onPointerDown={(e) => e.stopPropagation()}
         >
+
           <button
             className="block w-full px-3 py-2 text-left hover:bg-white/10"
             onClick={() => {
