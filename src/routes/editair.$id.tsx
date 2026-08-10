@@ -530,13 +530,25 @@ function EditorPage() {
         }
       }
       setAssets((a) => [...a, ...novosAssets]);
+      if (dims) {
+        setDimsOriginais(dims);
+        if (eraVazio) {
+          proximo.width = dims.w;
+          proximo.height = dims.h;
+          engineRef.current?.redimensionar(dims.w, dims.h);
+        }
+      }
       aplicar(proximo);
       toast.success("Mídia importada");
+      if (autoRef.current) setAutoEtapa("planejar");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Falha ao importar");
+      autoRef.current = null;
+      setAutoEtapa(null);
     } finally {
       setOcupado(null);
     }
+
   };
 
   const renomearAsset = async (assetId: string, nome: string) => {
