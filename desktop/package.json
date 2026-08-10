@@ -11,6 +11,7 @@
     "dev": "EDITAIR_URL=http://localhost:8080/editair electron .",
     "build:mac": "electron-builder --mac --arm64",
     "build:mac:x64": "electron-builder --mac --x64",
+    "build:mac:universal": "electron-builder --mac --universal",
     "build:win": "electron-builder --win --x64",
     "release:mac": "electron-builder --mac --arm64 --publish always"
   },
@@ -24,7 +25,7 @@
     "electron-builder": "^25.1.8"
   },
   "build": {
-    "appId": "br.tur.viaair.editair",
+    "appId": "com.editair.desktop",
     "productName": "EditAir",
     "artifactName": "EditAir-${version}-${arch}.${ext}",
     "asar": true,
@@ -35,11 +36,15 @@
     "files": [
       "main.cjs",
       "preload.cjs",
+      "offline.html",
       "lib/**/*",
       "assets/**/*",
       "package.json"
     ],
-    "directories": { "output": "dist" },
+    "directories": {
+      "output": "dist",
+      "buildResources": "assets"
+    },
     "publish": [
       {
         "provider": "github",
@@ -50,15 +55,40 @@
     ],
     "mac": {
       "category": "public.app-category.video",
-      "target": [{ "target": "dmg", "arch": ["arm64"] }, { "target": "zip", "arch": ["arm64"] }],
+      "icon": "assets/icon.png",
+      "target": [
+        { "target": "dmg", "arch": ["arm64"] },
+        { "target": "zip", "arch": ["arm64"] }
+      ],
       "hardenedRuntime": true,
       "gatekeeperAssess": false,
       "entitlements": "assets/entitlements.mac.plist",
       "entitlementsInherit": "assets/entitlements.mac.plist",
-      "darkModeSupport": true
+      "darkModeSupport": true,
+      "extendInfo": {
+        "CFBundleName": "EditAir",
+        "CFBundleDisplayName": "EditAir",
+        "NSMicrophoneUsageDescription": "O EditAir usa o microfone apenas quando você grava narração.",
+        "NSCameraUsageDescription": "O EditAir usa a câmera apenas quando você grava vídeo dentro do app.",
+        "NSDocumentsFolderUsageDescription": "O EditAir acessa suas pastas para importar mídias locais.",
+        "NSDesktopFolderUsageDescription": "O EditAir acessa suas pastas para importar mídias locais.",
+        "NSDownloadsFolderUsageDescription": "O EditAir acessa suas pastas para importar mídias locais."
+      }
     },
-    "dmg": { "title": "EditAir ${version}" },
+    "dmg": {
+      "title": "EditAir ${version}",
+      "icon": "assets/icon.png",
+      "background": "assets/dmg-background.png",
+      "iconSize": 128,
+      "iconTextSize": 13,
+      "window": { "width": 540, "height": 380 },
+      "contents": [
+        { "x": 140, "y": 230, "type": "file" },
+        { "x": 400, "y": 230, "type": "link", "path": "/Applications" }
+      ]
+    },
     "win": {
+      "icon": "assets/icon.png",
       "target": [{ "target": "nsis", "arch": ["x64"] }]
     },
     "nsis": { "oneClick": false, "allowToChangeInstallationDirectory": true }
