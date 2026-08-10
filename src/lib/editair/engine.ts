@@ -1,5 +1,6 @@
 /* Motor de preview e render do EditAir: desenha a timeline num canvas e mixa o áudio.
    Só roda no navegador. Preview e exportação usam exatamente o mesmo caminho de render. */
+import type { SegmentadorFundo } from "./segmentation";
 import {
   AJUSTES_NEUTROS,
   type Ajustes,
@@ -33,6 +34,9 @@ export class EditairEngine {
   private mudo = false;
   /** escala física do canvas em relação ao tamanho lógico do projeto */
   private escala = 1;
+  /** segmentação de pessoa para tratamento de fundo */
+  private seg: SegmentadorFundo | null = null;
+  private off: HTMLCanvasElement | null = null;
 
   constructor(canvas: HTMLCanvasElement, width: number, height: number) {
     this.canvas = canvas;
@@ -103,6 +107,29 @@ export class EditairEngine {
     comp.connect(gain);
     if (this.master) gain.connect(this.master);
     this.midias.set(assetId, { el, gain, entrada: src, filtros: { hp, comp } });
+  }
+
+  /** Carrega (uma vez) o modelo de segmentação usado no tratamento de fundo. */
+  async ativarFundo(qualidade: "rapida" | "alta" = "rapida") {
+    if (!this.seg) {
+      const { SegmentadorFundo } = await import("./segmentation");
+      this.seg = new SegmentadorFundo();
+    }
+    await this.seg.carregar(qualidade);
+    return this.seg.pronto;
+  }
+
+  fundoPronto() {
+    return !!this.seg?.pronto;
+  }
+
+  private offscreen() {
+    if (!this.off) this.off = document.createElement("canvas");
+    if (this.off.width !== this.width || this.off.height !== this.height) {
+      this.off.width = this.width;
+      this.off.height = this.height;
+    }
+    return this.off;
   }
 
   temMidia(assetId: string) {
@@ -285,13 +312,85 @@ export class EditairEngine {
     const w = vw * escala;
     const h = vh * escala;
 
-    ctx.save();
-    ctx.globalAlpha = clamp(opacity, 0, 1);
-    ctx.filter = filtroCss(c.ajustes, c.filtro, blurExtra);
-    ctx.translate(width / 2 + x, height / 2 + y);
-    if (rotation) ctx.rotate((rotation * Math.PI) / 180);
-    ctx.drawImage(m.el, -w / 2, -h / 2, w, h);
-    ctx.restore();
+    const fundo = c.fundo && c.fundo.modo !== "nenhum" ? c.fundo : null;
+    const mascara = fundo
+      ? this.seg?.mascara(c.id, m.el, t, {
+          suavidade: fundo.suavidade,
+          borda: fundo.borda,
+          estabilidade: fundo.estabilidade,
+          qualidade: fundo.qualidade,
+        }) ?? null
+      : null;
+
+    const posicionar = (alvo: CanvasRenderingContext2D) => {
+      alvo.translate(width / 2 + x, height / 2 + y);
+      if (rotation) alvo.rotate((rotation * Math.PI) / 180);
+    };
+
+    if (fundo && mascara) {
+      const blurPct = clamp(this.valor(c, "fundoBlur", t, fundo.desfoque), 0, 100);
+      const blurPx = (blurPct / 100) * (Math.min(width, height) * 0.06);
+
+      // 1) camada de fundo
+      if (fundo.modo !== "remover") {
+        ctx.save();
+        ctx.globalAlpha = clamp(opacity, 0, 1);
+        if (fundo.modo === "cor") {
+          ctx.fillStyle = fundo.cor || "#000";
+          ctx.fillRect(0, 0, width, height);
+        } else if (fundo.modo === "midia" && fundo.assetId && this.midias.get(fundo.assetId)) {
+          const bg = this.midias.get(fundo.assetId)!.el;
+          const bw = bg.videoWidth || width;
+          const bh = bg.videoHeight || height;
+          const eb = Math.max(width / bw, height / bh);
+          ctx.filter = blurPx > 0.3 ? `blur(${blurPx.toFixed(1)}px)` : "none";
+          ctx.drawImage(bg, width / 2 - (bw * eb) / 2, height / 2 - (bh * eb) / 2, bw * eb, bh * eb);
+        } else {
+          // desfoque do próprio vídeo, levemente ampliado para não mostrar bordas
+          ctx.filter = `${filtroCss(c.ajustes, c.filtro, blurExtra)} blur(${Math.max(1, blurPx).toFixed(1)}px)`;
+          posicionar(ctx);
+          const amp = 1.08;
+          ctx.drawImage(m.el, (-w * amp) / 2, (-h * amp) / 2, w * amp, h * amp);
+        }
+        ctx.restore();
+      }
+
+      // 2) pessoa recortada
+      const off = this.offscreen();
+      const octx = off.getContext("2d");
+      if (octx) {
+        octx.setTransform(1, 0, 0, 1, 0, 0);
+        octx.clearRect(0, 0, width, height);
+        octx.save();
+        octx.filter = filtroCss(c.ajustes, c.filtro, blurExtra);
+        posicionar(octx);
+        octx.drawImage(m.el, -w / 2, -h / 2, w, h);
+        octx.filter = "none";
+        octx.globalCompositeOperation = "destination-in";
+        octx.drawImage(mascara, -w / 2, -h / 2, w, h);
+        octx.restore();
+
+        if (fundo.contorno?.ativo) {
+          ctx.save();
+          ctx.globalAlpha = clamp(opacity, 0, 1) * 0.9;
+          ctx.filter = `blur(${Math.max(1, fundo.contorno.largura).toFixed(1)}px)`;
+          ctx.drawImage(off, 0, 0, width, height);
+          ctx.restore();
+        }
+
+        ctx.save();
+        ctx.globalAlpha = clamp(opacity, 0, 1);
+        ctx.drawImage(off, 0, 0, width, height);
+        ctx.restore();
+      }
+    } else {
+      ctx.save();
+      ctx.globalAlpha = clamp(opacity, 0, 1);
+      ctx.filter = filtroCss(c.ajustes, c.filtro, blurExtra);
+      posicionar(ctx);
+      ctx.drawImage(m.el, -w / 2, -h / 2, w, h);
+      ctx.restore();
+    }
 
     if (c.efeito?.id === "vinheta") {
       const inten = (c.efeito.intensidade ?? 50) / 100;
@@ -462,6 +561,8 @@ export class EditairEngine {
   }
 
   destruir() {
+    this.seg?.destruir();
+    this.seg = null;
     this.pausarTudo();
     for (const [, m] of this.midias) m.el.src = "";
     this.midias.clear();
