@@ -41,7 +41,7 @@ export const criarProjetoEditair = createServerFn({ method: "POST" })
         height: z.number().int().min(240).max(4096).default(1920),
         fps: z.number().int().min(24).max(60).default(30),
         // Briefings longos são comuns aqui — 4 mil caracteres cortava o texto.
-        instructions: z.string().max(20000).optional().nullable(),
+        instructions: z.string().max(100000).optional().nullable(),
         assetIds: z.array(z.string().uuid()).max(30).optional(),
       })
       .parse(input ?? {}),

@@ -332,14 +332,14 @@ function EditairHome() {
           </div>
           <Textarea
             value={instrucao}
-            onChange={(e) => setInstrucao(e.target.value.slice(0, 20000))}
+            onChange={(e) => setInstrucao(e.target.value.slice(0, 100000))}
             rows={2}
-            maxLength={20000}
+            maxLength={100000}
             placeholder="Ex.: tire as pausas e os erros, mantenha meu jeito natural de falar."
             className="border-white/10 bg-white/5"
           />
           <div className="mt-1 text-right text-[11px] text-white/40">
-            {instrucao.length.toLocaleString("pt-BR")} / 20.000 caracteres
+            {instrucao.length.toLocaleString("pt-BR")} / 100.000 caracteres
           </div>
           <div className="mt-3 flex flex-wrap items-center gap-2">
             <Button
