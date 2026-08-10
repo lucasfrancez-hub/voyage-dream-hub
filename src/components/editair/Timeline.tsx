@@ -332,7 +332,10 @@ export function Timeline({
                       }
                       onArrastar={iniciarArraste}
                       onAbrirSource={() => onAbrirSource(c.id)}
-                      onMenu={(x, y) => setMenu({ x, y, clipId: c.id })}
+                      onMenu={(x, y) => {
+                        setMenuPos({ x, y });
+                        setMenu({ x, y, clipId: c.id });
+                      }}
                     />
                   ))}
               </div>
