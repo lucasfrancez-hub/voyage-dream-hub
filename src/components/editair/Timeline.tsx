@@ -19,7 +19,7 @@ import {
 import type { EditairClip, EditairTrack, ProjectState } from "@/lib/editair/types";
 import { formatarTempo } from "@/lib/editair/types";
 import { posicionarMenu, type DestinoCamada } from "@/lib/editair/layers";
-import { destinoDeClip, destinoPorY, passouLimiar } from "@/lib/editair/interacao";
+import { destinoDeClip, destinoPorY, intencaoVertical, passouLimiar } from "@/lib/editair/interacao";
 import { marcadoresEfeitos } from "@/lib/editair/efeitos";
 import { limitesDoClip } from "@/lib/editair/ops";
 import { obterPicos, obterThumb, picosEmCache } from "@/lib/editair/media";
@@ -284,31 +284,37 @@ export function Timeline({
   );
 
 
+  /** pontos de encaixe: playhead, marcadores e bordas dos clipes */
   const pontosSnap = useMemo(() => {
-    const p = [0, playheadMs];
+    const p: { ms: number; ids: string | null }[] = [{ ms: 0, ids: null }, { ms: playheadMs, ids: null }];
+    for (const m of state.marcadores ?? []) p.push({ ms: m.atMs, ids: null });
     for (const c of state.clips) {
-      p.push(c.start, c.start + c.duration);
+      p.push({ ms: c.start, ids: c.id }, { ms: c.start + c.duration, ids: c.id });
     }
     return p;
-  }, [state.clips, playheadMs]);
+  }, [state.clips, state.marcadores, playheadMs]);
 
+  /** Encaixa `ms` nos pontos próximos. `ignorar` = clipes em movimento (nunca
+      podem servir de referência para si mesmos, senão o clipe parece travado). */
   const encaixar = useCallback(
-    (ms: number) => {
-      if (!snapping) return ms;
-      const tol = 12 / pxPorMs;
+    (ms: number, ignorar?: Set<string>) => {
+      if (!snapping) return Math.max(0, Math.round(ms));
+      const tol = 10 / pxPorMs;
       let melhor = ms;
       let dist = tol;
       for (const p of pontosSnap) {
-        const d = Math.abs(p - ms);
+        if (p.ids && ignorar?.has(p.ids)) continue;
+        const d = Math.abs(p.ms - ms);
         if (d < dist) {
           dist = d;
-          melhor = p;
+          melhor = p.ms;
         }
       }
       return Math.max(0, Math.round(melhor));
     },
     [snapping, pontosSnap, pxPorMs],
   );
+
 
   /* Scrub do playhead: régua, linha e área vazia usam o MESMO caminho.
      Esc cancela e volta para o tempo em que o arraste começou. */
@@ -396,12 +402,14 @@ export function Timeline({
     let ativo = false;
     let ultimoStart = base.start;
     let ultimoDestino: DestinoSolto | null = null;
+    /* clipes em movimento: nunca servem de referência de snap para si mesmos */
+    const ignorarSnap = new Set<string>([clip.id, ...conjunto]);
 
     const aplicarMovimento = (ev: PointerEvent) => {
       const delta = msDoEvento(ev.clientX) - inicioMs;
 
       if (modo === "mover") {
-        ultimoStart = Math.max(0, encaixar(base.start + delta));
+        ultimoStart = Math.max(0, encaixar(base.start + delta, ignorarSnap));
         if (conjunto.length) {
           // move o grupo inteiro pelo mesmo delta (distâncias relativas preservadas)
           const patches = moverSelecao(state, conjunto, ultimoStart - base.start);
@@ -416,12 +424,16 @@ export function Timeline({
           return;
         }
         onAlterarClip(clip.id, { start: ultimoStart }, false);
-        // drag vertical → camada de destino (X = tempo, Y = camada, simultâneos)
-        ultimoDestino = destinoDeClip(
-          destinoDoY(ev.clientY),
-          clip.trackId,
-          (tid) => !!state.tracks.find((t) => t.id === tid)?.locked,
-        );
+        /* Só troca de camada quando o gesto é deliberadamente vertical: enquanto
+           o movimento for predominantemente horizontal, o clipe fica na trilha
+           de origem (arraste livre em X, sem criar camada). */
+        ultimoDestino = intencaoVertical(ev.clientY - y0)
+          ? destinoDeClip(
+              destinoDoY(ev.clientY),
+              clip.trackId,
+              (tid) => !!state.tracks.find((t) => t.id === tid)?.locked,
+            )
+          : null;
         setAlvo(ultimoDestino);
         const dest = ultimoDestino;
         setDica({
@@ -438,9 +450,10 @@ export function Timeline({
         return;
       }
 
+
       if (modo === "trim-in") {
         // limite: não passa do início real do arquivo nem some com o clipe
-        const bruto = encaixar(base.start + delta) - base.start;
+        const bruto = encaixar(base.start + delta, ignorarSnap) - base.start;
         const dif = Math.max(-Math.min(lim.esquerda, base.start), Math.min(base.duration - 100, bruto));
         const novoSourceIn = Math.max(0, base.sourceIn + dif * speed);
         const patches: Record<string, Partial<EditairClip>> = {
@@ -465,7 +478,7 @@ export function Timeline({
 
       // trim-out
       const maxDur = Number.isFinite(lim.direita) ? base.duration + lim.direita : Infinity;
-      const bruto = encaixar(base.start + base.duration + delta) - base.start;
+      const bruto = encaixar(base.start + base.duration + delta, ignorarSnap) - base.start;
       const novaDur = Math.max(100, Math.min(maxDur, bruto));
       const dif = novaDur - base.duration;
       const patches: Record<string, Partial<EditairClip>> = { [clip.id]: { duration: novaDur } };
@@ -854,13 +867,13 @@ export function Timeline({
               <div
                 key={m.id}
                 title={m.nota ? `${m.nota} — clique para ir, botão direito para editar` : "Marcador"}
-                className="absolute top-0 z-20 h-full w-px"
+                className="pointer-events-none absolute top-0 z-20 h-full w-px"
                 style={{ left: m.atMs * pxPorMs, background: `${m.cor}66` }}
               >
                 <button
                   type="button"
                   aria-label={m.nota ? `Marcador ${m.nota}` : "Marcador"}
-                  className="-ml-2 block h-4 w-4 cursor-pointer bg-transparent p-0"
+                  className="pointer-events-auto -ml-2 block h-4 w-4 cursor-pointer bg-transparent p-0"
                   onPointerDown={(e) => e.stopPropagation()}
                   onClick={(e) => {
                     e.stopPropagation();
