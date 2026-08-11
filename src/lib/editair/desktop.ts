@@ -104,7 +104,14 @@ type PonteDesktop = {
     iniciar(spec: Record<string, unknown>): Promise<{ id: string; destino: string }>;
     estado(id: string): Promise<Record<string, unknown> | null>;
     aoProgredir(cb: (d: Record<string, unknown>) => void): () => void;
+    quadros: {
+      iniciar(spec: Record<string, unknown>): Promise<{ id: string; destino: string }>;
+      quadro(id: string, quadro: ArrayBuffer | Uint8Array): Promise<{ frames: number }>;
+      finalizar(id: string): Promise<{ destino: string }>;
+      cancelar(id: string): Promise<boolean>;
+    };
   };
+
   update: {
     estado(): Promise<EstadoUpdate>;
     verificar(): Promise<EstadoUpdate>;
