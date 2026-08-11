@@ -1036,7 +1036,7 @@ export function Timeline({
             { id: "aparar" as const, nome: "Aparar até o playhead", bloqueia: true },
             { id: "duplicar" as const, nome: `Duplicar${sufixoN}`, bloqueia: true },
             { id: "copiar" as const, nome: `Copiar${sufixoN}`, bloqueia: false },
-            { id: "colar" as const, nome: "Colar no playhead", bloqueia: false, exige: temClipboard },
+            { id: "colar" as const, nome: "Colar (camada acima)", bloqueia: false, exige: temClipboard },
           ].map((a) => (
             <button
               key={a.id}
