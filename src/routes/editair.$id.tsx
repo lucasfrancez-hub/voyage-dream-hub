@@ -61,6 +61,18 @@ import {
 } from "@/lib/editair/types";
 import { aplicarOps, gerarLegendas, type EditairOp } from "@/lib/editair/ops";
 import {
+  acaoDeClip,
+  alternarTrack,
+  criarTrackEm,
+  excluirTrack,
+  moverClipCamada as moverClipCamada_,
+  novaCamadaJunto as novaCamadaJunto_,
+  reordenarTracks as reordenarTracks_,
+  soltarClipEm,
+  type DestinoCamada,
+  type ResultadoCamada,
+} from "@/lib/editair/layers";
+import {
   blobParaBase64,
   calcularEnvelope,
   decodificarAudio,
@@ -1494,7 +1506,7 @@ function EditorPage() {
           onSoltarArquivos={(arquivos, ms) => void importar(arquivos, ms)}
           onNovaTrilhaVideo={() => {
             // camadas de vídeo empilhadas: a nova entra acima (aparece por cima no preview)
-            aplicar(criarTrackEm(state, 0).estado);
+            aplicar(criarTrackEm(state, 0).state);
           }}
           onSoltarClip={soltarClip}
           onMoverCamada={moverClipCamada}
