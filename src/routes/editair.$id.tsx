@@ -70,6 +70,7 @@ import {
 } from "@/lib/editair/types";
 import { aplicarOps, gerarLegendas, type EditairOp } from "@/lib/editair/ops";
 import { aplicarTextoLegenda } from "@/lib/editair/texto-legenda";
+import { selecaoEditavel, selecionarTrack, selecionarTudo } from "@/lib/editair/selecao";
 import { aplicarVelocidade } from "@/lib/editair/velocidade";
 import {
   acaoDeClip,
@@ -663,20 +664,40 @@ function EditorPage() {
     toast.success("Modelo aplicado nesta legenda");
   };
 
+  /* Um gesto na timeline (arrastar, trim, mover 20 legendas de uma vez) entra no
+     histórico como UM passo: guardamos o estado de antes no primeiro movimento e
+     empurramos só no commit. */
+  const gestoTimeline = useRef<ProjectState | null>(null);
+  const iniciarGesto = () => {
+    if (!gestoTimeline.current) gestoTimeline.current = state;
+  };
+  const encerrarGesto = () => {
+    const antes = gestoTimeline.current;
+    gestoTimeline.current = null;
+    if (!antes) return;
+    historico.current.push(antes);
+    if (historico.current.length > 80) historico.current.shift();
+    futuro.current = [];
+  };
+
   const alterarClipTimeline = (cid: string, patch: Partial<EditairClip>, commit: boolean) => {
     if (commit) {
+      encerrarGesto();
       setState((s) => recalcularDuracao({ ...s }));
       return;
     }
+    iniciarGesto();
     setState((s) => recalcularDuracao({ ...s, clips: s.clips.map((c) => (c.id === cid ? { ...c, ...patch } : c)) }));
   };
 
   /** Alteração em lote (ripple trim mexe em vários clipes ao mesmo tempo). */
   const alterarClipsTimeline = (patches: Record<string, Partial<EditairClip>>, commit: boolean) => {
     if (commit) {
+      encerrarGesto();
       setState((s) => recalcularDuracao({ ...s }));
       return;
     }
+    iniciarGesto();
     setState((s) =>
       recalcularDuracao({
         ...s,
@@ -730,9 +751,10 @@ function EditorPage() {
   };
 
   const excluirSelecionados = (ripple = false) => {
-    if (!selecionados.length) return;
+    const alvos = selecaoEditavel(state, selecionados);
+    if (!alvos.length) return;
     let s = state;
-    for (const cid of selecionados) {
+    for (const cid of alvos) {
       s = aplicarOps(s, [{ op: "delete_clip", clipId: cid }], transcript).state;
     }
     if (ripple) {
@@ -766,6 +788,12 @@ function EditorPage() {
   const copiar = () => {
     clipboardRef.current = state.clips.filter((c) => selecionados.includes(c.id)).map((c) => ({ ...c }));
     if (clipboardRef.current.length) toast.success(`${clipboardRef.current.length} clipe(s) copiado(s)`);
+  };
+  /** Cmd+X: copia e remove o conjunto num único passo de histórico. */
+  const recortar = () => {
+    if (!selecionados.length) return;
+    copiar();
+    excluirSelecionados(false);
   };
   const colar = () => {
     if (!clipboardRef.current.length) return;
