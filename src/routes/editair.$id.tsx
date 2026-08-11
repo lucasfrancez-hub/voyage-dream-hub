@@ -553,7 +553,7 @@ function EditorPage() {
       };
       return {
         projeto: id,
-        assets: assetsRef.current.map((a) => {
+        assets: assets.map((a: AssetItem) => {
           const asset = a as AssetItem & { localPath?: string; existe?: boolean };
           return {
             assetId: asset.id,
