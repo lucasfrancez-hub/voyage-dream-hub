@@ -71,6 +71,7 @@ import {
   type Transcript,
 } from "@/lib/editair/types";
 import { aplicarOps, gerarLegendas, type EditairOp } from "@/lib/editair/ops";
+import { instanciarModelo } from "@/lib/editair/modelos";
 import { aplicarTextoLegenda } from "@/lib/editair/texto-legenda";
 import { selecaoEditavel, selecionarTrack, selecionarTudo } from "@/lib/editair/selecao";
 import { aplicarVelocidade } from "@/lib/editair/velocidade";
