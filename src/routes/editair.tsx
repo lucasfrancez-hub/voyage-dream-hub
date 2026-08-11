@@ -1,10 +1,11 @@
-import editairLogo from "@/assets/editair-logo.png.asset.json";
 import { createFileRoute, Link, Outlet, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState, type CSSProperties } from "react";
+import { useEffect, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
-import { Loader2, ArrowLeft, FolderOpen, Plus, Settings } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { EditairHeader } from "@/components/editair/EditairHeader";
 import { APP_BUILD_ID, APP_COMMIT_SHA } from "@/lib/app-version";
+
 
 export const Route = createFileRoute("/editair")({
   ssr: false,
