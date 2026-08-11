@@ -64,6 +64,9 @@ type Props = {
   snapping: boolean;
   rippleTrim: boolean;
   onSeek: (ms: number) => void;
+  /** início/fim de um scrub (régua, linha do playhead ou topo do clipe) */
+  onScrubInicio?: () => void;
+  onScrubFim?: () => void;
   onSelecionar: (ids: string[]) => void;
   onSelecao: (s: { fromMs: number; toMs: number } | null) => void;
   onAlterarClip: (id: string, patch: Partial<EditairClip>, commit: boolean) => void;
@@ -245,6 +248,8 @@ export function Timeline({
     (e: React.PointerEvent, opcoes: { seguir?: boolean; selecao?: boolean } = {}) => {
       const tempoInicial = playheadMs;
       const inicio = msDoEvento(e.clientX);
+      // suspende o playback internamente; retomamos no pointerup se estava tocando
+      onScrubInicio?.();
       if (opcoes.seguir !== false) onSeek(inicio);
       onSelecao(null);
       setArrastandoPlayhead(true);
@@ -265,6 +270,7 @@ export function Timeline({
         window.removeEventListener("pointercancel", encerrar);
         window.removeEventListener("keydown", tecla, true);
         setArrastandoPlayhead(false);
+        onScrubFim?.();
       };
       const tecla = (ev: KeyboardEvent) => {
         if (ev.key !== "Escape" || cancelado) return;
@@ -281,7 +287,7 @@ export function Timeline({
       window.addEventListener("pointercancel", encerrar);
       window.addEventListener("keydown", tecla, true);
     },
-    [msDoEvento, onSeek, onSelecao, playheadMs],
+    [msDoEvento, onSeek, onSelecao, playheadMs, onScrubInicio, onScrubFim],
   );
 
   const marcas = useMemo(() => {
