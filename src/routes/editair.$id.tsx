@@ -61,6 +61,18 @@ import {
 } from "@/lib/editair/types";
 import { aplicarOps, gerarLegendas, type EditairOp } from "@/lib/editair/ops";
 import {
+  acaoDeClip,
+  alternarTrack,
+  criarTrackEm,
+  excluirTrack,
+  moverClipCamada as moverClipCamada_,
+  novaCamadaJunto as novaCamadaJunto_,
+  reordenarTracks as reordenarTracks_,
+  soltarClipEm,
+  type DestinoCamada,
+  type ResultadoCamada,
+} from "@/lib/editair/layers";
+import {
   blobParaBase64,
   calcularEnvelope,
   decodificarAudio,
@@ -453,68 +465,24 @@ function EditorPage() {
 
 
   /* ---------------- camadas (tracks) ---------------- */
-  /** Insere uma camada de vídeo no índice pedido. Índice 0 = topo (aparece por cima). */
-  const criarTrackEm = (base: ProjectState, indice: number) => {
-    const n = base.tracks.filter((t) => t.kind === "video").length + 1;
-    const track = {
-      id: `t-video-${n}-${Math.random().toString(36).slice(2, 6)}`,
-      kind: "video" as const,
-      name: `Vídeo ${n}`,
-    };
-    const tracks = [...base.tracks];
-    tracks.splice(Math.max(0, Math.min(tracks.length, indice)), 0, track);
-    return { estado: { ...base, tracks }, trackId: track.id };
+  /** Toda a lógica de camadas vive em lib/editair/layers.ts (pura e testável). */
+  const usarResultado = (r: ResultadoCamada) => {
+    if (!r.ok) return toast.error(r.erro);
+    aplicar(r.state);
   };
 
-  const soltarClip = (
-    cid: string,
-    destino: { tipo: "track"; trackId: string } | { tipo: "nova"; indice: number },
-    startMs: number,
-  ) => {
-    const clip = state.clips.find((c) => c.id === cid);
-    if (!clip) return;
-    let base = state;
-    let trackId: string;
-    if (destino.tipo === "nova") {
-      const r = criarTrackEm(base, destino.indice);
-      base = r.estado;
-      trackId = r.trackId;
-    } else {
-      trackId = destino.trackId;
-      if (base.tracks.find((t) => t.id === trackId)?.locked) return toast.error("Camada bloqueada.");
-    }
-    aplicar({
-      ...base,
-      clips: base.clips.map((c) => (c.id === cid ? { ...c, trackId, start: Math.max(0, Math.round(startMs)) } : c)),
-    });
-  };
+  const soltarClip = (cid: string, destino: DestinoCamada, startMs: number) =>
+    usarResultado(soltarClipEm(state, cid, destino, startMs));
 
-  const moverClipCamada = (cid: string, direcao: -1 | 1) => {
-    const clip = state.clips.find((c) => c.id === cid);
-    if (!clip) return;
-    const i = state.tracks.findIndex((t) => t.id === clip.trackId);
-    const alvo = state.tracks[i + direcao];
-    if (!alvo) return toast.error("Não há camada nessa direção.");
-    if (alvo.locked) return toast.error("Camada bloqueada.");
-    aplicar({ ...state, clips: state.clips.map((c) => (c.id === cid ? { ...c, trackId: alvo.id } : c)) });
-  };
+  const moverClipCamada = (cid: string, direcao: -1 | 1) => usarResultado(moverClipCamada_(state, cid, direcao));
 
-  const novaCamadaJunto = (cid: string, direcao: -1 | 1) => {
-    const clip = state.clips.find((c) => c.id === cid);
-    if (!clip) return;
-    const i = state.tracks.findIndex((t) => t.id === clip.trackId);
-    const indice = direcao === -1 ? i : i + 1;
-    const { estado, trackId } = criarTrackEm(state, indice);
-    aplicar({ ...estado, clips: estado.clips.map((c) => (c.id === cid ? { ...c, trackId } : c)) });
-  };
+  const novaCamadaJunto = (cid: string, direcao: -1 | 1) => usarResultado(novaCamadaJunto_(state, cid, direcao));
 
   const reordenarTracks = (de: number, para: number) => {
-    const tracks = [...state.tracks];
-    const [t] = tracks.splice(de, 1);
-    if (!t) return;
-    tracks.splice(para, 0, t);
-    aplicar({ ...state, tracks });
+    const r = reordenarTracks_(state, de, para);
+    if (r.ok) aplicar(r.state);
   };
+
 
   /** Devolve o clipe à duração integral do arquivo original (não destrutivo). */
   const restaurarClip = (cid: string) => {
@@ -1538,7 +1506,7 @@ function EditorPage() {
           onSoltarArquivos={(arquivos, ms) => void importar(arquivos, ms)}
           onNovaTrilhaVideo={() => {
             // camadas de vídeo empilhadas: a nova entra acima (aparece por cima no preview)
-            aplicar(criarTrackEm(state, 0).estado);
+            aplicar(criarTrackEm(state, 0).state);
           }}
           onSoltarClip={soltarClip}
           onMoverCamada={moverClipCamada}
@@ -1547,10 +1515,7 @@ function EditorPage() {
           onRenomearTrack={(trackId, nome) =>
             aplicar({ ...state, tracks: state.tracks.map((t) => (t.id === trackId ? { ...t, name: nome } : t)) })
           }
-          onExcluirTrack={(trackId) => {
-            if (state.clips.some((c) => c.trackId === trackId)) return toast.error("A camada não está vazia.");
-            aplicar({ ...state, tracks: state.tracks.filter((t) => t.id !== trackId) });
-          }}
+          onExcluirTrack={(trackId) => usarResultado(excluirTrack(state, trackId))}
           onEditarComIa={(cid) => {
             setSelecionados([cid]);
             setIaClipId(cid);
@@ -1559,57 +1524,25 @@ function EditorPage() {
             const c = state.clips.find((x) => x.id === cid);
             if (!c) return;
             setSelecionados([cid]);
-            if (acao === "dividir") aplicar(aplicarOps(state, [{ op: "split_clip", clipId: cid, atMs: playhead }], transcript).state);
-            else if (acao === "aparar") {
-              if (playhead <= c.start || playhead >= c.start + c.duration) return toast.error("Posicione o playhead dentro do clipe.");
-              aplicar(
-                aplicarOps(state, [{ op: "trim_clip", clipId: cid, durationMs: Math.round(playhead - c.start) }], transcript)
-                  .state,
-              );
-            } else if (acao === "duplicar")
-              aplicar({ ...state, clips: [...state.clips, { ...c, id: novoId(), start: c.start + c.duration }] });
-            else if (acao === "copiar") {
+            if (acao === "copiar") {
               clipboardRef.current = [{ ...c }];
               toast.success("Clipe copiado");
-            } else if (acao === "excluir") aplicar(aplicarOps(state, [{ op: "delete_clip", clipId: cid }], transcript).state);
-            else if (acao === "ripple") {
-              const s = aplicarOps(state, [{ op: "delete_clip", clipId: cid }], transcript).state;
-              aplicar({
-                ...s,
-                clips: s.clips.map((x) =>
-                  x.trackId === c.trackId && x.start >= c.start + c.duration
-                    ? { ...x, start: Math.max(0, x.start - c.duration) }
-                    : x,
-                ),
-              });
-            } else if (acao === "extrair-audio") {
-              if (!c.assetId) return toast.error("Clipe sem mídia de origem.");
-              const trilhaVoz = state.tracks.find((t) => t.kind === "voice") ?? state.tracks.find((t) => t.kind === "music");
-              if (!trilhaVoz) return toast.error("Sem camada de áudio disponível.");
-              const audio: EditairClip = {
-                ...c,
-                id: novoId(),
-                trackId: trilhaVoz.id,
-                kind: "audio",
-                label: `Áudio · ${c.label ?? ""}`.trim(),
-              };
-              aplicar({
-                ...state,
-                clips: [...state.clips.map((x) => (x.id === cid ? { ...x, semAudio: true } : x)), audio],
-              });
-              toast.success("Áudio extraído para a camada de voz");
             } else if (acao === "bloquear") patchClipe({ bloqueado: !c.bloqueado }, cid);
             else if (acao === "mudo") patchClipe({ muted: !c.muted }, cid);
             else if (acao === "congelar") patchClipe({ congelado: !c.congelado, speed: c.congelado ? 1 : 0.01 }, cid);
             else if (acao === "desvincular") patchClipe({ semAudio: !c.semAudio }, cid);
+            else
+              usarResultado(
+                acaoDeClip(state, cid, acao as Parameters<typeof acaoDeClip>[2], {
+                  playheadMs: playhead,
+                  transcript,
+                  duracoesFonte,
+                }),
+              );
           }}
 
-          onToggleTrack={(trackId, campo) =>
-            aplicar({
-              ...state,
-              tracks: state.tracks.map((t) => (t.id === trackId ? { ...t, [campo]: !t[campo] } : t)),
-            })
-          }
+          onToggleTrack={(trackId, campo) => aplicar(alternarTrack(state, trackId, campo))}
+
         />
       </div>
 
