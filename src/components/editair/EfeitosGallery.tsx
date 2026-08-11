@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { Check, X } from "lucide-react";
+import { Check, Play, X } from "lucide-react";
+import { useVisivel } from "@/hooks/use-visivel";
 import { Slider } from "@/components/ui/slider";
 import {
   DELTA_NEUTRO,
@@ -16,6 +17,10 @@ import {
 
 type Props = {
   efeitos: EfeitosClip | undefined;
+  /** miniatura do clipe selecionado — usada como mídia demonstrativa nos cards */
+  poster?: string;
+  /** roda a demonstração do efeito no reprodutor, sobre o clipe real */
+  onDemonstrar?: () => void;
   /** aplica de verdade no clipe */
   onAplicar: (ef: EfeitosClip | undefined) => void;
   /** pré-visualização temporária no reprodutor (não confirmada) */
@@ -36,7 +41,17 @@ const EASINGS: { id: EasingId; nome: string }[] = [
 ];
 
 /** Miniatura leve: só anima no hover, usando a MESMA matemática da engine. */
-function MiniEfeito({ id, camada, ativo }: { id: string; camada: CamadaEfeito; ativo: boolean }) {
+function MiniEfeito({
+  id,
+  camada,
+  ativo,
+  poster,
+}: {
+  id: string;
+  camada: CamadaEfeito;
+  ativo: boolean;
+  poster?: string;
+}) {
   const alvo = useRef<HTMLDivElement>(null);
   const raf = useRef<number | null>(null);
 
@@ -80,10 +95,14 @@ function MiniEfeito({ id, camada, ativo }: { id: string; camada: CamadaEfeito; a
     <div className="relative h-14 w-full overflow-hidden rounded-lg bg-[#0d0d11]">
       <div
         ref={alvo}
-        className="absolute inset-1 rounded-md bg-[linear-gradient(135deg,#F26B1F,#8b3a10_60%,#1d4f55)] shadow-inner"
+        className="absolute inset-1 overflow-hidden rounded-md bg-[linear-gradient(135deg,#F26B1F,#8b3a10_60%,#1d4f55)] shadow-inner"
         style={{ willChange: "transform, opacity, filter" }}
       >
-        <div className="flex h-full items-center justify-center text-[9px] font-semibold text-white/80">VIA AIR</div>
+        {poster ? (
+          <img src={poster} alt="" draggable={false} className="h-full w-full object-cover" />
+        ) : (
+          <div className="flex h-full items-center justify-center text-[9px] font-semibold text-white/80">VIA AIR</div>
+        )}
       </div>
     </div>
   );
@@ -155,7 +174,49 @@ function Controles({
   );
 }
 
-export function EfeitosGallery({ efeitos, onAplicar, onPrevia }: Props) {
+function CardEfeito({
+  id,
+  nome,
+  descricao,
+  camada,
+  poster,
+  selecionado,
+  hover,
+  onHover,
+  onClick,
+}: {
+  id: string;
+  nome: string;
+  descricao: string;
+  camada: CamadaEfeito;
+  poster?: string;
+  selecionado: boolean;
+  hover: boolean;
+  onHover: (v: boolean) => void;
+  onClick: () => void;
+}) {
+  const { ref, visivel } = useVisivel<HTMLButtonElement>();
+  return (
+    <button
+      ref={ref}
+      title={descricao}
+      onMouseEnter={() => onHover(true)}
+      onMouseLeave={() => onHover(false)}
+      onClick={onClick}
+      className={`overflow-hidden rounded-xl border p-1.5 text-left transition ${
+        selecionado ? "border-[#F26B1F] bg-[#F26B1F]/15" : "border-white/10 bg-black/40 hover:border-white/25"
+      }`}
+    >
+      <MiniEfeito id={id} camada={camada} ativo={hover && visivel} poster={poster} />
+      <span className="mt-1 flex items-center gap-1 truncate text-[10px] text-white/70">
+        {selecionado ? <Play className="h-2.5 w-2.5 shrink-0 text-[#F26B1F]" /> : null}
+        {nome}
+      </span>
+    </button>
+  );
+}
+
+export function EfeitosGallery({ efeitos, poster, onAplicar, onPrevia, onDemonstrar }: Props) {
   const [camada, setCamada] = useState<CamadaEfeito>("entrada");
   const [hover, setHover] = useState<string | null>(null);
   const [previa, setPrevia] = useState<EfeitosClip | null>(null);
@@ -183,12 +244,14 @@ export function EfeitosGallery({ efeitos, onAplicar, onPrevia }: Props) {
       selecionado?.id === id ? { ...base, [camada]: undefined } : { ...base, [camada]: efeitoPadrao(id, camada) };
     setPrevia(proximo);
     onPrevia?.(proximo);
+    onDemonstrar?.();
   };
 
   const mudarParams = (v: EfeitoAplicado) => {
     const proximo = { ...(atual ?? {}), [camada]: v };
     setPrevia(proximo);
     onPrevia?.(proximo);
+    onDemonstrar?.();
   };
 
   const confirmar = () => {
@@ -227,7 +290,7 @@ export function EfeitosGallery({ efeitos, onAplicar, onPrevia }: Props) {
       </div>
 
       <p className="text-[10px] text-white/35">
-        Entrada, momento e saída coexistem. Passe o mouse para ver a demonstração; clique para pré-visualizar no reprodutor.
+        Entrada, momento e saída coexistem. Passe o mouse para ver a miniatura animada; clique para assistir no reprodutor, sobre o seu próprio clipe. Nada é renderizado agora — só na exportação.
       </p>
 
       <div className="grid grid-cols-2 gap-2">
@@ -245,19 +308,18 @@ export function EfeitosGallery({ efeitos, onAplicar, onPrevia }: Props) {
           Nenhum
         </button>
         {efeitosDaCamada(camada).map((e) => (
-          <button
+          <CardEfeito
             key={e.id}
-            title={e.descricao}
-            onMouseEnter={() => setHover(e.id)}
-            onMouseLeave={() => setHover((h) => (h === e.id ? null : h))}
+            id={e.id}
+            nome={e.nome}
+            descricao={e.descricao}
+            camada={camada}
+            poster={poster}
+            selecionado={selecionado?.id === e.id}
+            hover={hover === e.id}
+            onHover={(v) => setHover(v ? e.id : null)}
             onClick={() => escolher(e.id)}
-            className={`overflow-hidden rounded-xl border p-1.5 text-left ${
-              selecionado?.id === e.id ? "border-[#F26B1F] bg-[#F26B1F]/15" : "border-white/10 bg-black/40 hover:border-white/25"
-            }`}
-          >
-            <MiniEfeito id={e.id} camada={camada} ativo={hover === e.id} />
-            <span className="mt-1 block truncate text-[10px] text-white/70">{e.nome}</span>
-          </button>
+          />
         ))}
       </div>
 
