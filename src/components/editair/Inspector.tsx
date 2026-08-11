@@ -51,6 +51,8 @@ export type AcoesInspector = {
   onExtrairAudio: () => void;
   onNormalizar: () => void;
   onSepararAudio: () => void;
+  /** edição manual do texto da legenda (commit=true fecha um passo de Undo) */
+  onTextoLegenda?: (clipId: string, texto: string, commit: boolean) => void;
   /** roda a análise de recorte do clipe (segmentação) reportando progresso */
   onAnalisarFundo?: (onProgresso: (pct: number) => void, cancelado: () => boolean) => Promise<boolean>;
 };
@@ -914,19 +916,53 @@ function InspTexto(p: Props & { clip: EditairClip }) {
 
 /* ============================== LEGENDA ============================== */
 
-function InspLegenda({ clip, state, onPatchClip, onCaption }: Props & { clip: EditairClip }) {
+function InspLegenda({ clip, state, onPatchClip, onCaption, onTextoLegenda }: Props & { clip: EditairClip }) {
   const est: CaptionStyle = { ...LEGENDA_PADRAO, ...state.captionStyle, ...(clip.captionStyle ?? {}) };
   const set = (patch: Partial<CaptionStyle>) => onCaption(patch);
+  const escreverTexto = (texto: string, commit: boolean) =>
+    onTextoLegenda ? onTextoLegenda(clip.id, texto, commit) : onPatchClip({ text: texto });
   return (
     <div className="space-y-3">
       <Campo label="Texto da legenda">
         <textarea
+          data-testid="inspector-texto-legenda"
           value={clip.text ?? ""}
-          onChange={(e) => onPatchClip({ text: e.target.value })}
+          onChange={(e) => escreverTexto(e.target.value, false)}
+          onBlur={(e) => escreverTexto(e.target.value, true)}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") e.currentTarget.blur();
+          }}
           rows={2}
-          className="w-full resize-none rounded-md border border-white/10 bg-black/40 px-2 py-1.5 text-xs outline-none"
+          className="w-full resize-none rounded-md border border-white/10 bg-black/40 px-2 py-1.5 text-xs outline-none focus:border-[#F26B1F]/70"
         />
+        <p className="mt-1 text-[10px] text-white/35">
+          {clip.textoManual
+            ? "Texto corrigido à mão — regerar legendas não sobrescreve este bloco."
+            : "Editar aqui atualiza o preview na hora e protege o bloco de regeração."}
+        </p>
       </Campo>
+      <div className="grid grid-cols-2 gap-2">
+        <Campo label="Início (s)">
+          <input
+            type="number"
+            step={0.1}
+            value={(clip.start / 1000).toFixed(2)}
+            onChange={(e) => onPatchClip({ start: Math.max(0, Math.round(Number(e.target.value) * 1000)) })}
+            className="w-full rounded-md border border-white/10 bg-black/40 px-2 py-1.5 text-xs"
+          />
+        </Campo>
+        <Campo label="Fim (s)">
+          <input
+            type="number"
+            step={0.1}
+            value={((clip.start + clip.duration) / 1000).toFixed(2)}
+            onChange={(e) =>
+              onPatchClip({ duration: Math.max(200, Math.round(Number(e.target.value) * 1000 - clip.start)) })
+            }
+            className="w-full rounded-md border border-white/10 bg-black/40 px-2 py-1.5 text-xs"
+          />
+        </Campo>
+      </div>
       <Campo label="Fonte">
         <select
           value={est.fontFamily}
