@@ -98,9 +98,9 @@ function criarLegenda(texto: string, palavras: PalavraProjetada[], clipId: strin
 }
 
 /**
- * Monta as legendas já projetadas na timeline atual.
- * Legendas corrigidas à mão (`textoManual`) são preservadas: a geração
- * automática não gera bloco por cima delas nem reescreve o texto.
+ * Monta as legendas NOVAS, já projetadas na timeline atual.
+ * Legendas corrigidas à mão (`textoManual`) continuam no projeto e não são
+ * regeradas: nenhum bloco novo nasce por cima delas.
  */
 export function montarLegendas(
   state: ProjectState,
@@ -112,12 +112,12 @@ export function montarLegendas(
     manuais.some((m) => start < m.start + m.duration && fim > m.start);
 
   const janelas = janelasDaTimeline(state);
-  if (!janelas.length) return manuais;
+  if (!janelas.length) return [];
   const palavras = projetarPalavras(
     (transcript.words ?? []).filter((w) => w.end > w.start),
     janelas,
   ).filter((p) => p.end > p.start);
-  if (!palavras.length) return manuais;
+  if (!palavras.length) return [];
 
   const geradas =
     modo === "palavra"
@@ -131,7 +131,7 @@ export function montarLegendas(
           ),
         );
 
-  return [...manuais, ...geradas.filter((g) => !colide(g.start, g.start + g.duration))];
+  return geradas.filter((g) => !colide(g.start, g.start + g.duration));
 
 }
 
