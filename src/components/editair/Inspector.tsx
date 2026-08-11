@@ -920,11 +920,23 @@ function InspTexto(p: Props & { clip: EditairClip }) {
 
 /* ============================== LEGENDA ============================== */
 
-function InspLegenda({ clip, state, onPatchClip, onCaption, onTextoLegenda }: Props & { clip: EditairClip }) {
+function InspLegenda({
+  clip,
+  state,
+  onPatchClip,
+  onCaption,
+  onCaptionClip,
+  onAplicarLayoutLegendas,
+  onTextoLegenda,
+}: Props & { clip: EditairClip }) {
   const est: CaptionStyle = { ...LEGENDA_PADRAO, ...state.captionStyle, ...(clip.captionStyle ?? {}) };
-  const set = (patch: Partial<CaptionStyle>) => onCaption(patch);
+  // Editar sempre a legenda selecionada: mexer no padrão do projeto não tinha
+  // efeito visível quando o clipe já possuía estilo próprio.
+  const set = (patch: Partial<CaptionStyle>) =>
+    onCaptionClip ? onCaptionClip(clip.id, patch) : onCaption(patch);
   const escreverTexto = (texto: string, commit: boolean) =>
     onTextoLegenda ? onTextoLegenda(clip.id, texto, commit) : onPatchClip({ text: texto });
+
   return (
     <div className="space-y-3">
       <Campo label="Texto da legenda">
