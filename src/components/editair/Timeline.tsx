@@ -784,9 +784,14 @@ export function Timeline({
                             ? selecionados.includes(c.id)
                               ? selecionados.filter((x) => x !== c.id)
                               : [...selecionados, c.id]
-                            : [c.id],
+                            : // clicar num clipe que já faz parte de uma seleção múltipla
+                              // mantém o grupo (permite arrastar tudo junto)
+                              selecionados.includes(c.id)
+                              ? selecionados
+                              : [c.id],
                         )
                       }
+
                       onArrastar={iniciarArraste}
                       onAbrirSource={() => onAbrirSource(c.id)}
                       onEditarTexto={
