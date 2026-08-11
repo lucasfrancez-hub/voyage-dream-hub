@@ -41,6 +41,8 @@ import {
 import { transcreverBlocoEditair } from "@/lib/editair/transcribe.functions";
 import { dirigirEdicaoEditair } from "@/lib/editair/director.functions";
 import { AiEditDialog } from "@/components/editair/AiEditDialog";
+import { LoginNuvemDialog } from "@/components/editair/LoginNuvemDialog";
+import { temSessaoNuvem } from "@/lib/editair/nuvem";
 import { planejarEdicaoEditair } from "@/lib/editair/brain.functions";
 import { normalizarPlano, transcricaoParaPrompt } from "@/lib/editair/brain";
 import { analisarAudio, analisarVisual, resumirAnalise, type AnaliseTecnica } from "@/lib/editair/analysis";
@@ -156,6 +158,7 @@ function EditorPage() {
   const [etapaIa, setEtapaIa] = useState("");
   const [objetivoIa, setObjetivoIa] = useState("");
   const [iaClipId, setIaClipId] = useState<string | null>(null);
+  const [loginNuvem, setLoginNuvem] = useState(false);
   const [ocupado, setOcupado] = useState<string | null>(null);
   const [salvando, setSalvando] = useState(false);
 
@@ -925,7 +928,18 @@ function EditorPage() {
   };
 
   /* ---------------- IA / transcrição ---------------- */
+  /**
+   * O Desktop abre sem login (local-first). Toda função de nuvem exige sessão:
+   * sem ela o serverFn responde "Unauthorized: No authorization header provided".
+   */
+  const exigirNuvem = async (): Promise<boolean> => {
+    if (await temSessaoNuvem()) return true;
+    setLoginNuvem(true);
+    return false;
+  };
+
   const analisar = async (): Promise<Transcript | null> => {
+    if (!(await exigirNuvem())) return null;
     const buf = audioBufferRef.current;
     if (!buf) {
       toast.error("Reimporte o vídeo nesta sessão para analisar o áudio.");
@@ -1019,6 +1033,7 @@ function EditorPage() {
   };
 
   const conversar = async (texto: string) => {
+    if (!(await exigirNuvem())) return;
     setMensagens((m) => [...m, { id: novoId("m"), autor: "usuario", texto }]);
     setPensando(true);
     try {
@@ -1065,6 +1080,7 @@ function EditorPage() {
     const cid = iaClipId;
     const clip = cid ? state.clips.find((c) => c.id === cid) : null;
     if (!clip) return;
+    if (!(await exigirNuvem())) return;
     const trilha = state.tracks.find((t) => t.id === clip.trackId);
     const asset = clip.assetId ? assets.find((a) => a.id === clip.assetId) : null;
     const fim = clip.start + clip.duration;
@@ -1133,6 +1149,7 @@ function EditorPage() {
 
   /* ------------- cérebro editorial: plano antes do corte ------------- */
   const planejar = async (objetivo: string, ajuste = "") => {
+    if (!(await exigirNuvem())) return;
     const buf = audioBufferRef.current;
     const base = state.clips.find((c) => c.trackId === "t-video" && c.assetId);
     const asset = base?.assetId ? assets.find((a) => a.id === base.assetId) : null;
@@ -1622,6 +1639,15 @@ function EditorPage() {
 
         />
       </div>
+
+      <LoginNuvemDialog
+        aberto={loginNuvem}
+        onFechar={() => setLoginNuvem(false)}
+        onEntrou={() => {
+          setLoginNuvem(false);
+          toast.success("Conectado — agora é só repetir a instrução para a IA.");
+        }}
+      />
 
       <AiEditDialog
         aberto={!!iaClipId}
