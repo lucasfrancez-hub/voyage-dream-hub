@@ -63,8 +63,6 @@ import {
   transformPadrao,
   TEXTO_PADRAO,
   type TextStyle,
-} from "@/lib/editair/tipos";
-import { instanciarModelo } from "@/lib/editair/modelos";
 
   type CaptionStyle,
   type EditairClip,
