@@ -200,14 +200,19 @@ function EditorPage() {
   const playheadRef = useRef(0);
   playheadRef.current = playhead;
 
+  /** Tratamento da falha de mídia — no Desktop tenta gerar proxy compatível e recarrega. */
+  const aoFalharRef = useRef<(a: AssetBasico, erro?: unknown) => void>(() => {});
+  const proxyTentado = useRef(new Set<string>());
+
   const ponteRef = useRef<PonteAssets | null>(null);
   if (!ponteRef.current) {
     ponteRef.current = new PonteAssets(
       () => ({ state: stateRef.current, playhead: playheadRef.current }),
-      (a) => toast.error(`Não foi possível abrir esta mídia: ${a.nome}`),
+      (a, erro) => aoFalharRef.current(a, erro),
     );
   }
   const ponte = ponteRef.current;
+
 
   /** Carrega o asset na engine; se ela ainda não existir, guarda para depois. */
   const carregarNaEngine = useCallback(
