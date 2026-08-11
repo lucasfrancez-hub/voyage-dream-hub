@@ -392,7 +392,8 @@ describe("8. ações do menu de contexto", () => {
     ed.usar(novaCamadaJunto(ed.state, "A", -1)); // camada nova acima
     expect(ed.state.tracks.length).toBe(nTracks + 1);
     const novaAcima = ed.state.clips.find((c) => c.id === "A")!.trackId;
-    expect(ordemDeCamadas(ed.state).indexOf(novaAcima)).toBe(nTracks - 1);
+    const ordem = ordemDeCamadas(ed.state);
+    expect(ordem.indexOf(novaAcima)).toBe(ordem.indexOf("t-video") - 1); // fica logo acima da original
 
     ed.usar(novaCamadaJunto(ed.state, "A", 1)); // camada nova abaixo
     expect(ed.state.tracks.length).toBe(nTracks + 2);
