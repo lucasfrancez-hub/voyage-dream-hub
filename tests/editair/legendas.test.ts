@@ -182,3 +182,54 @@ describe("Edição posterior não deixa legenda órfã", () => {
     expect(ws.filter((w) => w.w === "p0")).toHaveLength(1);
   });
 });
+
+describe("projeção a partir do clip.start (auditoria 30s / sourceIn 5s / start 16s)", () => {
+  // asset de áudio de 30s, palavra original em 8s
+  const t30: Transcript = {
+    words: [{ w: "palavra", start: 8_000, end: 8_400, assetId: "aud30" }],
+    segments: [],
+  };
+  const audio = (speed: number) =>
+    clip({
+      id: "cAud",
+      kind: "audio",
+      trackId: "t-video",
+      assetId: "aud30",
+      sourceIn: 5_000,
+      duration: 10_000 / speed, // sourceOut = 15s
+      speed,
+      start: 16_000,
+    });
+
+  it("1x: palavra de 8s da fonte cai em 19s da timeline", () => {
+    const st = projeto([audio(1)]);
+    const [p] = projetarPalavras(t30.words, janelasDaTimeline(st));
+    expect(p.start).toBe(19_000);
+    const legs = montarLegendas(st, t30);
+    expect(legs).toHaveLength(1);
+    expect(legs[0].start).toBeGreaterThanOrEqual(18_900);
+    expect(legs[0].start).toBeLessThanOrEqual(19_000);
+    expect(legs[0].start).not.toBe(3_000);
+    expect(legs[0].start).not.toBe(8_000);
+  });
+
+  it("2x: a mesma palavra cai em 17,5s da timeline", () => {
+    const st = projeto([audio(2)]);
+    const [p] = projetarPalavras(t30.words, janelasDaTimeline(st));
+    expect(p.start).toBe(17_500);
+    const legs = montarLegendas(st, t30);
+    expect(legs[0].start).toBeGreaterThanOrEqual(17_400);
+    expect(legs[0].start).toBeLessThanOrEqual(17_500);
+  });
+
+  it("nada é ancorado em janela fixa de 10–20s: mover o clip move a legenda junto", () => {
+    const c = { ...audio(1), start: 40_000 };
+    const [p] = projetarPalavras(t30.words, janelasDaTimeline(projeto([c])));
+    expect(p.start).toBe(43_000);
+  });
+
+  it("palavra fora do trecho usado (sourceIn 5s → 15s) não vira legenda", () => {
+    const fora: Transcript = { words: [{ w: "cortada", start: 2_000, end: 2_500, assetId: "aud30" }], segments: [] };
+    expect(montarLegendas(projeto([audio(1)]), fora)).toHaveLength(0);
+  });
+});
