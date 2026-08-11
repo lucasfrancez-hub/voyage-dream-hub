@@ -367,6 +367,176 @@ export function aplicarOps(
         }
         break;
       }
+
+      /* ------------------- camadas / montagem profissional ------------------- */
+      case "create_track": {
+        const existente = s.tracks.find((t) => t.name.toLowerCase() === op.name.toLowerCase());
+        if (existente) {
+          if (op.ref) refs[op.ref] = existente.id;
+          break;
+        }
+        const nova: EditairTrack = { id: novoId(`t-${op.kind}`), kind: op.kind, name: op.name };
+        const alvo = resolverTrackId(op.acima);
+        const idx = alvo ? Math.max(0, s.tracks.findIndex((t) => t.id === alvo)) : 0;
+        const tracks = [...s.tracks];
+        tracks.splice(idx, 0, nova);
+        s = { ...s, tracks };
+        if (op.ref) refs[op.ref] = nova.id;
+        log.push(`Camada "${op.name}" criada`);
+        break;
+      }
+      case "rename_track": {
+        const tid = resolverTrackId(op.trackId);
+        if (!tid) break;
+        s = { ...s, tracks: s.tracks.map((t) => (t.id === tid ? { ...t, name: op.name } : t)) };
+        log.push(`Camada renomeada para "${op.name}"`);
+        break;
+      }
+      case "insert_clip": {
+        const tid = resolverTrackId(op.trackId) ?? garantirTrackId(s, "video", "Vídeo");
+        if (!s.tracks.some((t) => t.id === tid)) {
+          const r = criarTrack(s, "video", "Vídeo 2");
+          s = r.state;
+        }
+        const enq = enquadramentoInicial();
+        const clip: EditairClip = {
+          id: op.ref ? novoId("clip") : novoId(),
+          trackId: tid,
+          kind: (op.kind ?? (op.assetId ? "video" : "text")) as EditairClip["kind"],
+          assetId: op.assetId,
+          start: Math.max(0, Math.round(op.startMs)),
+          duration: Math.max(200, Math.round(op.durationMs)),
+          sourceIn: Math.max(0, Math.round(op.sourceInMs ?? 0)),
+          volume: 1,
+          speed: 1,
+          transform: enq.transform,
+          enquadramento: enq.enquadramento,
+          text: op.text,
+          label: op.label ?? op.text?.slice(0, 24),
+        };
+        s = { ...s, clips: [...s.clips, clip] };
+        if (op.ref) refs[op.ref] = clip.id;
+        log.push(`Clipe inserido em ${(clip.start / 1000).toFixed(1)}s`);
+        break;
+      }
+      case "ripple_delete": {
+        const c = s.clips.find((x) => x.id === op.clipId);
+        if (!c) break;
+        const gap = c.duration;
+        s = {
+          ...s,
+          clips: s.clips
+            .filter((x) => x.id !== c.id)
+            .map((x) => (x.trackId === c.trackId && x.start >= c.start ? { ...x, start: Math.max(0, x.start - gap) } : x)),
+        };
+        log.push("Clipe removido (fechando o buraco)");
+        break;
+      }
+      case "create_caption": {
+        const tid = resolverTrackId(op.trackId) ?? garantirTrackId(s, "caption", "Legendas");
+        if (!s.tracks.some((t) => t.id === tid)) s = criarTrack(s, "caption", "Legendas").state;
+        s = {
+          ...s,
+          clips: [
+            ...s.clips,
+            {
+              id: novoId("leg"),
+              trackId: tid,
+              kind: "caption",
+              start: Math.max(0, Math.round(op.startMs)),
+              duration: Math.max(300, Math.round(op.durationMs)),
+              sourceIn: 0,
+              volume: 1,
+              speed: 1,
+              transform: transformPadrao(),
+              text: op.text,
+              label: op.text.slice(0, 20),
+            },
+          ],
+        };
+        log.push("Legenda criada");
+        break;
+      }
+      case "update_caption": {
+        s = {
+          ...s,
+          clips: s.clips.map((c) =>
+            c.id === op.clipId
+              ? {
+                  ...c,
+                  text: op.text ?? c.text,
+                  label: (op.text ?? c.text ?? c.label ?? "").slice(0, 20),
+                  start: op.startMs != null ? Math.max(0, Math.round(op.startMs)) : c.start,
+                  duration: op.durationMs != null ? Math.max(200, Math.round(op.durationMs)) : c.duration,
+                }
+              : c,
+          ),
+        };
+        log.push("Legenda atualizada");
+        break;
+      }
+      case "add_animation": {
+        s = {
+          ...s,
+          clips: s.clips.map((c) =>
+            c.id === op.clipId
+              ? {
+                  ...c,
+                  animacao: {
+                    ...ANIMACAO_PADRAO,
+                    ...(c.animacao ?? {}),
+                    entrada: op.entrada ?? c.animacao?.entrada ?? "nenhuma",
+                    saida: op.saida ?? c.animacao?.saida ?? "nenhuma",
+                    duracaoMs: op.duracaoMs ?? c.animacao?.duracaoMs ?? 500,
+                  },
+                }
+              : c,
+          ),
+        };
+        log.push("Animação aplicada");
+        break;
+      }
+      case "add_effect": {
+        const camada = op.camada ?? "momento";
+        s = {
+          ...s,
+          clips: s.clips.map((c) => {
+            if (c.id !== op.clipId) return c;
+            const atual = c.efeitos ?? {};
+            return {
+              ...c,
+              efeitos: {
+                ...atual,
+                [camada]: {
+                  id: op.efeitoId,
+                  duracaoMs: camada === "momento" ? Math.max(400, c.duration) : 600,
+                  intensidade: op.intensidade ?? 100,
+                  easing: "suave" as const,
+                },
+              },
+            };
+          }),
+        };
+        log.push("Efeito aplicado");
+        break;
+      }
+      case "add_transition": {
+        s = {
+          ...s,
+          clips: s.clips.map((c) =>
+            c.id === op.clipId ? { ...c, transicao: { tipo: op.tipo, durationMs: op.durationMs ?? 400 } } : c,
+          ),
+        };
+        log.push("Transição adicionada");
+        break;
+      }
+      case "remove_silences": {
+        const r = removerSilencios(s, op, transcript);
+        s = r.state;
+        log.push(...r.log);
+        break;
+      }
+
       case "set_background": {
         const alvos = op.clipId
           ? s.clips.filter((c) => c.id === op.clipId)
