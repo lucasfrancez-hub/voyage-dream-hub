@@ -448,7 +448,7 @@ export type ProjectState = {
   assetsIniciaisAplicados?: boolean;
 };
 
-export type TranscriptWord = { w: string; start: number; end: number; assetId?: string };
+export type TranscriptWord = { w: string; start: number; end: number; assetId?: string; /** confiança do alinhamento (0-1), quando o serviço informa */ conf?: number };
 export type TranscriptSegment = { start: number; end: number; text: string; assetId?: string };
 export type Transcript = {
   words: TranscriptWord[];
