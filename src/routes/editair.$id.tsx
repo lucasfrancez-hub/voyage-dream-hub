@@ -1761,8 +1761,10 @@ function EditorPage() {
             </button>
           ))}
         </aside>
+      }
+      biblioteca={
+        <section className="h-full min-h-0 overflow-hidden border-r border-white/10 bg-[#12171d]">
 
-        <section className="min-h-0 overflow-hidden border-r border-white/10 bg-[#12171d]">
           <ToolPanel
             onDemonstrarClip={demonstrarClipe}
             fundoPronto={fundoPronto}
