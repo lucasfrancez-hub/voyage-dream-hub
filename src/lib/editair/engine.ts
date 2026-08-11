@@ -1147,7 +1147,13 @@ export class EditairEngine {
     const yBase = height * estilo.y - ((linhas.length - 1) * alturaLinha) / 2 + deslocY;
     const alinhamento = estilo.align ?? "center";
     const centroX =
-      alinhamento === "left" ? width * 0.07 + maxLargura / 2 : alinhamento === "right" ? width * 0.93 - maxLargura / 2 : width / 2;
+      typeof estilo.x === "number"
+        ? width * clamp(estilo.x, 0, 1)
+        : alinhamento === "left"
+          ? width * 0.07 + maxLargura / 2
+          : alinhamento === "right"
+            ? width * 0.93 - maxLargura / 2
+            : width / 2;
 
     // karaokê por ÍNDICE da palavra (não por texto): palavra repetida na mesma
     // frase não pode acender junto, e o destaque segue word.start → word.end
@@ -1155,10 +1161,23 @@ export class EditairEngine {
     const words = c.words ?? [];
     const idxAtiva = estilo.karaoke ? words.findIndex((w) => t >= w.start && t < w.end) : -1;
     const ultimaFalada = words.reduce((acc, w, i) => (t >= w.start ? i : acc), -1);
-    const limpar = (s: string) => s.replace(/[^\p{L}\p{N}]/gu, "");
+    // A comparação precisa ser insensível a caixa e acento: com `uppercase`
+    // ligado o texto desenhado é "OLÁ" e words[] guarda "olá" — sem normalizar,
+    // nenhuma palavra casava e o karaokê nunca acendia.
+    const limpar = (s: string) =>
+      s
+        .normalize("NFD")
+        .replace(/\p{M}/gu, "")
+        .toLowerCase()
+        .replace(/[^\p{L}\p{N}]/gu, "");
+    // Quando a quantidade de palavras desenhadas bate com words[], o índice
+    // posicional já é confiável (texto revisado à mão, pontuação, etc.).
+    const totalDesenhadas = linhas.join(" ").split(/\s+/).filter(Boolean).length;
+    const confiaIndice = totalDesenhadas === words.length;
     const modoPalavra = estilo.animacaoPalavra ?? "cor";
     // índice global da palavra desenhada, para casar com words[] na ordem
     let indicePalavra = -1;
+
 
     linhas.forEach((linha, i) => {
       const y = yBase + i * alturaLinha;
