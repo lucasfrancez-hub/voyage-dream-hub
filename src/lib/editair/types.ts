@@ -420,8 +420,12 @@ export type EditairClip = {
   /** áudio desvinculado do vídeo */
   semAudio?: boolean;
   reverso?: boolean;
+  /** áudio extraído: liga o clipe de vídeo ao clipe de áudio gerado a partir dele */
+  vinculoAudio?: string;
   /** congelar frame: mostra sempre este ponto do source */
   congelado?: boolean;
+  /** velocidade guardada antes do congelamento (restaurada ao descongelar) */
+  speedAntes?: number;
   pan?: number; // -1 esquerda .. 1 direita
   eq?: { graves: number; medios: number; agudos: number }; // dB -12..12
   compressor?: boolean;

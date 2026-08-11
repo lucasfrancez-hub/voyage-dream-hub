@@ -87,6 +87,17 @@ import {
   inserirAssetNaTimeline,
 } from "@/lib/editair/layers";
 import {
+  alternarCongelado,
+  atualizarMarcador,
+  clonarClips,
+  colarClips,
+  duplicarClips,
+  excluirMarcador,
+  extrairAudioDeClip,
+  idsEditaveis,
+  revincularAudio,
+} from "@/lib/editair/acoes";
+import {
   blobParaBase64,
   calcularEnvelope,
   decodificarAudio,
@@ -117,6 +128,8 @@ import {
   type ResultadoExport,
 } from "@/components/editair/ExportDialog";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 export const Route = createFileRoute("/editair/$id")({
   ssr: false,
@@ -147,6 +160,10 @@ function EditorPage() {
   const relogioRef = useRef<{ t0: number; ms0: number } | null>(null);
   const cancelarExportRef = useRef(false);
   const clipboardRef = useRef<EditairClip[]>([]);
+  /** só para a UI saber se "Colar" está habilitado */
+  const [nClipboard, setNClipboard] = useState(0);
+  /** marcador em renomeação (diálogo in-app, nunca window.prompt) */
+  const [renomeandoMarcador, setRenomeandoMarcador] = useState<{ id: string; nota: string } | null>(null);
 
   const [carregando, setCarregando] = useState(true);
   const [projetoNome, setProjetoNome] = useState("");
@@ -857,18 +874,23 @@ function EditorPage() {
     aplicar(s);
   };
 
-  const duplicar = () => {
-    if (!selecionados.length) return;
-    const novos = state.clips
-      .filter((c) => selecionados.includes(c.id))
-      .map((c) => ({ ...c, id: novoId(), start: c.start + c.duration }));
-    aplicar({ ...state, clips: [...state.clips, ...novos] });
-    setSelecionados(novos.map((c) => c.id));
+  /** Duplica a seleção inteira preservando as distâncias relativas (1 passo de undo). */
+  const duplicar = (ids: string[] = selecionados) => {
+    if (!ids.length) return;
+    const r = duplicarClips(state, ids);
+    if (!r.ok) return toast.error(r.erro ?? "Não foi possível duplicar.");
+    aplicar(r.state!);
+    setSelecionados(r.novosIds ?? []);
+    toast.success(`${r.novosIds?.length ?? 0} clipe(s) duplicado(s)`);
   };
 
-  const copiar = () => {
-    clipboardRef.current = state.clips.filter((c) => selecionados.includes(c.id)).map((c) => ({ ...c }));
-    if (clipboardRef.current.length) toast.success(`${clipboardRef.current.length} clipe(s) copiado(s)`);
+  const copiar = (ids: string[] = selecionados) => {
+    const alvo = state.clips.filter((c) => ids.includes(c.id));
+    if (!alvo.length) return;
+    // guarda cópias profundas: editar o projeto depois não altera o clipboard
+    clipboardRef.current = clonarClips(alvo).map((c, i) => ({ ...c, start: alvo[i].start }));
+    setNClipboard(alvo.length);
+    toast.success(`${alvo.length} clipe(s) copiado(s)`);
   };
   /** Cmd+X: copia e remove o conjunto num único passo de histórico. */
   const recortar = () => {
@@ -877,11 +899,11 @@ function EditorPage() {
     excluirSelecionados(false);
   };
   const colar = () => {
-    if (!clipboardRef.current.length) return;
-    const base = Math.min(...clipboardRef.current.map((c) => c.start));
-    const novos = clipboardRef.current.map((c) => ({ ...c, id: novoId(), start: playhead + (c.start - base) }));
-    aplicar({ ...state, clips: [...state.clips, ...novos] });
-    setSelecionados(novos.map((c) => c.id));
+    const r = colarClips(state, clipboardRef.current, playhead);
+    if (!r.ok) return toast.error(r.erro ?? "Nada para colar.");
+    aplicar(r.state!);
+    setSelecionados(r.novosIds ?? []);
+    toast.success(`${r.novosIds?.length ?? 0} clipe(s) colado(s)`);
   };
 
   const apagarTrecho = (fromMs: number, toMs: number) => {
@@ -2342,25 +2364,71 @@ function EditorPage() {
             setIaEscopo("clipe");
             setIaClipId(cid);
           }}
+          temClipboard={nClipboard > 0}
+          onAcaoMarcador={(mid, acao, valor) => {
+            const m = (state.marcadores ?? []).find((x) => x.id === mid);
+            if (!m) return;
+            if (acao === "cor" && valor) aplicar(atualizarMarcador(state, mid, { cor: valor }));
+            else if (acao === "renomear") setRenomeandoMarcador({ id: mid, nota: m.nota ?? "" });
+            else if (acao === "excluir")
+              void confirmarDialogo({
+                title: "Excluir marcador",
+                description: `Remover "${m.nota || "marcador"}" da timeline?`,
+                confirmText: "Excluir",
+                cancelText: "Cancelar",
+                destructive: true,
+              }).then((ok) => {
+                if (ok) aplicar(excluirMarcador(state, mid));
+              });
+          }}
           onAcaoClip={(cid, acao) => {
             const c = state.clips.find((x) => x.id === cid);
             if (!c) return;
-            setSelecionados([cid]);
-            if (acao === "copiar") {
-              clipboardRef.current = [{ ...c }];
-              toast.success("Clipe copiado");
-            } else if (acao === "bloquear") patchClipe({ bloqueado: !c.bloqueado }, cid);
-            else if (acao === "mudo") patchClipe({ muted: !c.muted }, cid);
-            else if (acao === "congelar") patchClipe({ congelado: !c.congelado, speed: c.congelado ? 1 : 0.01 }, cid);
-            else if (acao === "desvincular") patchClipe({ semAudio: !c.semAudio }, cid);
-            else
-              usarResultado(
-                acaoDeClip(state, cid, acao as Parameters<typeof acaoDeClip>[2], {
-                  playheadMs: playhead,
-                  transcript,
-                  duracoesFonte,
-                }),
-              );
+            // o menu age sobre a seleção quando o clipe clicado faz parte dela
+            const alvo = selecionados.includes(cid) ? selecionados : [cid];
+            if (!selecionados.includes(cid)) setSelecionados([cid]);
+
+            if (acao === "copiar") return copiar(alvo);
+            if (acao === "colar") return colar();
+            if (acao === "duplicar") return duplicar(alvo);
+            if (acao === "bloquear") {
+              const travar = !c.bloqueado;
+              return aplicar({
+                ...state,
+                clips: state.clips.map((x) => (alvo.includes(x.id) ? { ...x, bloqueado: travar } : x)),
+              });
+            }
+            if (acao === "congelar" || acao === "descongelar") {
+              const r = alternarCongelado(state, alvo, acao === "congelar");
+              return r.ok ? aplicar(r.state!) : toast.error(r.erro!);
+            }
+            if (acao === "mudo") {
+              const ids = idsEditaveis(state, alvo);
+              if (!ids.length) return toast.error("Clipe bloqueado.");
+              const mudo = !(c.muted || c.semAudio);
+              return aplicar({
+                ...state,
+                clips: state.clips.map((x) => (ids.includes(x.id) ? { ...x, muted: mudo } : x)),
+              });
+            }
+            if (acao === "extrair-audio") {
+              const r = extrairAudioDeClip(state, cid);
+              if (!r.ok) return toast.error(r.erro!);
+              aplicar(r.state!);
+              setSelecionados(r.novoId ? [r.novoId] : []);
+              return toast.success("Áudio extraído para uma faixa própria");
+            }
+            if (acao === "desvincular" || acao === "revincular") {
+              const r = revincularAudio(state, cid);
+              return r.ok ? aplicar(r.state!) : toast.error(r.erro!);
+            }
+            usarResultado(
+              acaoDeClip(state, cid, acao as Parameters<typeof acaoDeClip>[2], {
+                playheadMs: playhead,
+                transcript,
+                duracoesFonte,
+              }),
+            );
           }}
 
           onToggleTrack={(trackId, campo) => aplicar(alternarTrack(state, trackId, campo))}
@@ -2371,6 +2439,39 @@ function EditorPage() {
     />
 
 
+
+      <Dialog open={!!renomeandoMarcador} onOpenChange={(o) => !o && setRenomeandoMarcador(null)}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Renomear marcador</DialogTitle>
+          </DialogHeader>
+          <Input
+            autoFocus
+            value={renomeandoMarcador?.nota ?? ""}
+            placeholder="Nome do marcador"
+            onChange={(e) => setRenomeandoMarcador((m) => (m ? { ...m, nota: e.target.value } : m))}
+            onKeyDown={(e) => {
+              if (e.key !== "Enter" || !renomeandoMarcador) return;
+              aplicar(atualizarMarcador(state, renomeandoMarcador.id, { nota: renomeandoMarcador.nota.trim() }));
+              setRenomeandoMarcador(null);
+            }}
+          />
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setRenomeandoMarcador(null)}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={() => {
+                if (!renomeandoMarcador) return;
+                aplicar(atualizarMarcador(state, renomeandoMarcador.id, { nota: renomeandoMarcador.nota.trim() }));
+                setRenomeandoMarcador(null);
+              }}
+            >
+              Salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <LoginNuvemDialog
         aberto={loginNuvem}

@@ -591,10 +591,23 @@ export class EditairEngine {
     const ativos = this.ativos(state, t);
     const usados = new Set<string>();
 
+    // Um mesmo asset pode estar ativo em mais de um clipe ao mesmo tempo
+    // (ex.: vídeo com áudio extraído para outra faixa). Como só existe UM
+    // elemento de mídia por asset, o ganho é a soma limitada dos clipes ativos
+    // — senão o clipe processado por último zera o volume do outro.
+    const ganhoPorAsset = new Map<string, number>();
+    for (const c of ativos) {
+      if (!c.assetId) continue;
+      const g = this.ganhoDoClipe(state, c, t);
+      ganhoPorAsset.set(c.assetId, clamp((ganhoPorAsset.get(c.assetId) ?? 0) + g, 0, 2));
+    }
+
     for (const c of ativos) {
       if (!c.assetId) continue;
       const m = this.midias.get(c.assetId);
       if (!m) continue;
+      // o primeiro clipe ativo do asset comanda tempo/velocidade; os demais só somaram ganho
+      if (usados.has(c.assetId)) continue;
       usados.add(c.assetId);
       const alvo = (c.sourceIn + (t - c.start) * c.speed) / 1000;
       // Tocando: tolerância maior para não picotar o áudio. Parado/scrub: precisão
@@ -603,7 +616,7 @@ export class EditairEngine {
       if (Math.abs(m.el.currentTime - alvo) > tolerancia) m.el.currentTime = Math.max(0, alvo);
 
       m.el.playbackRate = clamp(c.speed, 0.25, 4);
-      m.gain.gain.value = this.ganhoDoClipe(state, c, t);
+      m.gain.gain.value = ganhoPorAsset.get(c.assetId) ?? this.ganhoDoClipe(state, c, t);
       if (m.nativo) {
         // mídia local: volume direto no elemento (não passa pelo WebAudio)
         m.el.volume = clamp(m.gain.gain.value * this.volumeMaster, 0, 1);
