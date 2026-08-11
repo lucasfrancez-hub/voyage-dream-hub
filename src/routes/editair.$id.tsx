@@ -1643,7 +1643,15 @@ function EditorPage() {
           onAbrirSource={setSourceClipId}
           onRestaurarClip={restaurarClip}
           onSoltarArquivos={(arquivos, ms) => void importar(arquivos, ms)}
-          onSoltarAsset={(assetId, ms, trackId) => inserirAsset(assetId, { startMs: ms, trackId })}
+          onSoltarAsset={(assetId: string, ms: number, destino?: DestinoSolto) => {
+            // drag da Biblioteca e botão "+ Inserir" terminam no mesmo serviço de inserção
+            if (destino?.tipo === "nova") {
+              const nova = criarTrackEm(state, destino.indice);
+              inserirAsset(assetId, { startMs: ms, trackId: nova.trackId }, nova.state);
+              return;
+            }
+            inserirAsset(assetId, { startMs: ms, trackId: destino?.trackId });
+          }}
           onNovaTrilhaVideo={() => {
             // camadas de vídeo empilhadas: a nova entra acima (aparece por cima no preview)
             aplicar(criarTrackEm(state, 0).state);
