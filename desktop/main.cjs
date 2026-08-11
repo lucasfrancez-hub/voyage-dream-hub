@@ -416,7 +416,7 @@ responder("render:quadros:iniciar", async (spec) => {
   job.bloqueio = bloqueio;
   jobsQuadros.set(id, job);
   renders.set(id, { destino, estado: "rodando" });
-  return { id, destino };
+  return { id, destino, encoder: job.encoder, hardware: job.hardware, preset: job.preset };
 });
 
 responder("render:quadros:quadro", async ({ id, quadro }) => {
@@ -425,6 +425,14 @@ responder("render:quadros:quadro", async ({ id, quadro }) => {
   const buf = Buffer.from(quadro);
   await rf.enviarQuadro(job, buf);
   return { frames: job.frames };
+});
+
+/* quadro idêntico ao anterior: o main reescreve o último buffer, sem IPC de 8 MB */
+responder("render:quadros:repetir", async ({ id, vezes }) => {
+  const job = jobsQuadros.get(id);
+  if (!job) throw new Error("Render não encontrado");
+  await rf.repetirQuadro(job, Math.max(1, Number(vezes) || 1));
+  return { frames: job.frames, repetidos: job.repetidos };
 });
 
 function encerrarJob(id, job) {

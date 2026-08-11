@@ -110,6 +110,7 @@ import {
 } from "@/lib/editair/audio";
 import { EditairEngine } from "@/lib/editair/engine";
 import { duracaoComposicao, planoDeAudio } from "@/lib/editair/composicao";
+import { EstimadorETA, metricasVazias, relatorioExport } from "@/lib/editair/export-metrics";
 import { aplicarAssetsIniciais, midiaParaAsset, PonteAssets, type AssetBasico } from "@/lib/editair/bootstrap";
 import { registrarDiag } from "@/lib/editair/diag";
 import { DiagnosticoClipesPanel } from "@/components/editair/DiagnosticoClipesPanel";
@@ -2000,7 +2001,9 @@ function EditorPage() {
   const idDoCodec = (mime: string) =>
     mime.includes("hvc1") ? "h265" : mime.includes("vp9") ? "vp9" : mime.includes("av01") ? "av1" : "h264";
 
-  /** Render final nativo (Desktop): quadro a quadro para o FFmpeg, sem depender de rAF. */
+  /** Render final nativo (Desktop): quadro a quadro para o FFmpeg, sem depender de rAF.
+   *  Pipeline: o quadro N+1 é renderizado enquanto o quadro N ainda está no IPC/encoder,
+   *  e quadros idênticos ao anterior são repetidos no processo principal (zero cópia). */
   const exportarDesktop = async (cfg: ExportConfig, eng: EditairEngine, estadoRender: ProjectState) => {
     const api = pontoDesktop();
     if (!api) throw new Error("Ponte desktop indisponível");
@@ -2013,15 +2016,18 @@ function EditorPage() {
     }
     setPastaExport(destino.replace(/[/\\][^/\\]+$/, ""));
 
+    const tPrep = performance.now();
     eng.redimensionar(state.width, state.height, cfg.altura / state.height);
     eng.prepararRenderQuadros();
     const W = eng.canvas.width;
     const H = eng.canvas.height;
 
+    const tAudio = performance.now();
     const audio = cfg.comAudio ? planoDeAudio(estadoRender, caminhosAssets, duracoesFonte) : [];
+    const audioMs = performance.now() - tAudio;
     const totalFrames = Math.max(1, Math.round((duracaoExport / 1000) * cfg.fps));
 
-    const { id } = await api.render.quadros.iniciar({
+    const inicio = await api.render.quadros.iniciar({
       destino,
       width: W,
       height: H,
@@ -2030,14 +2036,34 @@ function EditorPage() {
       formato: cfg.formato,
       codec: idDoCodec(cfg.mime),
       videoBitrate: cfg.bitrate,
+      preset: cfg.preset ?? "recomendado",
       audio,
       comAudio: cfg.comAudio && audio.length > 0,
     });
+    const id = inicio.id;
+
+    const m = metricasVazias({
+      duracaoMs: duracaoExport,
+      largura: W,
+      altura: H,
+      fps: cfg.fps,
+      totalFrames,
+      audioMs,
+      preparacaoMs: performance.now() - tPrep,
+      encoder: inicio.encoder,
+      aceleracao: inicio.hardware,
+      preset: inicio.preset ?? cfg.preset ?? "recomendado",
+    });
+    const eta = new EstimadorETA();
+    eta.iniciar();
 
     const t0 = performance.now();
+    let emVoo: Promise<unknown> | null = null;
+    let assinaturaAnterior = -1;
     try {
       for (let i = 0; i < totalFrames; i++) {
         if (cancelarExportRef.current) {
+          await emVoo?.catch(() => null);
           await api.render.quadros.cancelar(id);
           setProgresso(null);
           toast.info("Exportação cancelada");
@@ -2046,19 +2072,45 @@ function EditorPage() {
         const t = (i * 1000) / cfg.fps;
         await eng.renderizarQuadro(estadoRender, t);
         const px = eng.quadroRGBA();
-        await api.render.quadros.quadro(id, px);
-        const decorrido = performance.now() - t0;
-        const restantes = totalFrames - (i + 1);
+        const assinatura = EditairEngine.assinatura(px);
+
+        // espera o envio anterior só agora: ele rodou em paralelo ao render deste quadro
+        if (emVoo) {
+          const tEspera = performance.now();
+          await emVoo;
+          m.ipcMs += performance.now() - tEspera;
+        }
+        if (assinatura === assinaturaAnterior && i > 0) {
+          m.framesRepetidos += 1;
+          emVoo = api.render.quadros.repetir(id, 1);
+        } else {
+          m.bytesEnviados += px.byteLength;
+          emVoo = api.render.quadros.quadro(id, px);
+        }
+        assinaturaAnterior = assinatura;
+        m.framesEnviados += 1;
+
         setProgresso({
           pct: ((i + 1) / totalFrames) * 100,
           frame: i + 1,
           totalFrames,
-          etaS: (decorrido / (i + 1)) * restantes / 1000,
+          etaS: eta.frame(totalFrames - (i + 1)),
           fase: "Renderizando localmente…",
         });
       }
+      await emVoo;
+      emVoo = null;
       setProgresso({ pct: 99, frame: totalFrames, totalFrames, etaS: 0, fase: "Finalizando arquivo…" });
+      const tMux = performance.now();
       const fim = await api.render.quadros.finalizar(id);
+      m.muxMs = performance.now() - tMux;
+      m.totalMs = performance.now() - t0;
+      m.seekMs = eng.medicaoRender.seekMs;
+      m.desenhoMs = eng.medicaoRender.desenhoMs;
+      m.leituraMs = eng.medicaoRender.leituraMs;
+      m.seeks = eng.medicaoRender.seeks;
+      m.seeksEvitados = eng.medicaoRender.seeksEvitados;
+      console.info("[editair:export]\n" + relatorioExport(m));
       setProgresso(null);
       setResultado({
         caminho: fim.destino,
@@ -2068,9 +2120,12 @@ function EditorPage() {
         altura: H,
         fps: cfg.fps,
         duracaoMs: duracaoExport,
+        metricas: m,
+        relatorio: relatorioExport(m),
       });
       toast.success("Exportação concluída");
     } catch (e) {
+      await emVoo?.catch(() => null);
       await api.render.quadros.cancelar(id).catch(() => null);
       throw e;
     } finally {
@@ -2078,6 +2133,7 @@ function EditorPage() {
       eng.redimensionar(state.width, state.height, qualidade);
     }
   };
+
 
   const exportar = async (cfg: ExportConfig) => {
     const eng = engineRef.current;

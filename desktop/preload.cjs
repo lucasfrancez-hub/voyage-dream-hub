@@ -104,6 +104,7 @@ contextBridge.exposeInMainWorld("editairDesktop", {
     quadros: {
       iniciar: (spec) => chamar("render:quadros:iniciar", spec),
       quadro: (id, quadro) => chamar("render:quadros:quadro", { id, quadro }),
+      repetir: (id, vezes) => chamar("render:quadros:repetir", { id, vezes }),
       finalizar: (id) => chamar("render:quadros:finalizar", { id }),
       cancelar: (id) => chamar("render:quadros:cancelar", { id }),
     },
