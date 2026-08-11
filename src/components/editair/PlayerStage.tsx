@@ -125,8 +125,10 @@ export function PlayerStage({
   const [personalizado, setPersonalizado] = useState(false);
   const [painel, setPainel] = useState(false);
   const palcoRef = useRef<HTMLDivElement>(null);
+  const [hoverId, setHoverId] = useState<string | null>(null);
+  const [cursorAtual, setCursorAtual] = useState<string>("default");
   const arrasto = useRef<{
-    modo: "mover" | "escala" | "caixa" | "giro";
+    modo: ModoGesto;
     id: string;
     x: number;
     y: number;
@@ -137,22 +139,58 @@ export function PlayerStage({
 
   const paraFrame = (ev: { clientX: number; clientY: number }) => {
     const r = palcoRef.current?.getBoundingClientRect();
-    if (!r) return { x: 0, y: 0 };
+    if (!r || !r.width || !r.height) return { x: 0, y: 0 };
     return { x: ((ev.clientX - r.left) / r.width) * width, y: ((ev.clientY - r.top) / r.height) * height };
   };
 
-  const iniciar =
-    (modo: "mover" | "escala" | "caixa" | "giro", el: ElementoPalco) => (ev: React.PointerEvent) => {
-      ev.stopPropagation();
-      if (el.bloqueado) return;
-      (ev.target as HTMLElement).setPointerCapture?.(ev.pointerId);
-      const pt = paraFrame(ev);
-      arrasto.current = { modo, id: el.id, x: pt.x, y: pt.y, base: el };
+  /** ponto em fração do frame + tolerância dos handles (10 px de tela) */
+  const paraFracao = (ev: { clientX: number; clientY: number }) => {
+    const r = palcoRef.current?.getBoundingClientRect();
+    if (!r || !r.width || !r.height) return { p: { x: 0, y: 0 }, tol: { x: 0.02, y: 0.02 } };
+    return {
+      p: { x: (ev.clientX - r.left) / r.width, y: (ev.clientY - r.top) / r.height },
+      tol: { x: 10 / r.width, y: 10 / r.height },
     };
+  };
+
+  const cursorDe = (alvo: AlvoPalco | null) => {
+    if (!alvo) return "default";
+    const el = elementos.find((e) => e.id === alvo.id);
+    if (el?.bloqueado) return "not-allowed";
+    if (alvo.modo === "caixa") return "ew-resize";
+    if (alvo.modo === "escala") return alvo.canto === "ne" || alvo.canto === "sw" ? "nesw-resize" : "nwse-resize";
+    if (alvo.modo === "giro") return "grab";
+    return "move";
+  };
+
+  const aoPointerDown = (ev: React.PointerEvent) => {
+    const { p, tol } = paraFracao(ev);
+    const alvo = alvoNoPonto(elementos, p, selecionadoId, tol);
+    if (!alvo) {
+      onSelecionar?.(null);
+      return;
+    }
+    const el = elementos.find((e) => e.id === alvo.id)!;
+    onSelecionar?.(el.id);
+    if (el.bloqueado) return;
+    // trava o gesto nesta camada: o vídeo atrás nunca recebe o arraste
+    ev.preventDefault();
+    ev.stopPropagation();
+    palcoRef.current?.setPointerCapture?.(ev.pointerId);
+    const pt = paraFrame(ev);
+    arrasto.current = { modo: alvo.modo, id: el.id, x: pt.x, y: pt.y, base: el };
+  };
 
   const mover = (ev: React.PointerEvent) => {
     const a = arrasto.current;
-    if (!a) return;
+    if (!a) {
+      // hover: detecta a legenda sem precisar selecionar na timeline
+      const { p, tol } = paraFracao(ev);
+      const alvo = alvoNoPonto(elementos, p, selecionadoId, tol);
+      setHoverId(alvo && alvo.modo === "mover" ? alvo.id : (alvo?.id ?? null));
+      setCursorAtual(cursorDe(alvo));
+      return;
+    }
     const pt = paraFrame(ev);
     const dx = pt.x - a.x;
     const dy = pt.y - a.y;
@@ -183,10 +221,12 @@ export function PlayerStage({
     }
   };
 
-  const soltar = () => {
+  const soltar = (ev?: React.PointerEvent) => {
     if (arrasto.current) onFimGesto?.();
     arrasto.current = null;
+    if (ev) palcoRef.current?.releasePointerCapture?.(ev.pointerId);
   };
+
 
 
   const ratioAtual = `${Math.round((width / height) * 100) / 100}`;
