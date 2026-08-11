@@ -508,7 +508,11 @@ export class EditairEngine {
       if (!m) continue;
       usados.add(c.assetId);
       const alvo = (c.sourceIn + (t - c.start) * c.speed) / 1000;
-      if (Math.abs(m.el.currentTime - alvo) > 0.18) m.el.currentTime = Math.max(0, alvo);
+      // Tocando: tolerância maior para não picotar o áudio. Parado/scrub: precisão
+      // de ~1 quadro, senão o áudio fica num ponto e a imagem em outro.
+      const tolerancia = tocando ? 0.18 : 0.04;
+      if (Math.abs(m.el.currentTime - alvo) > tolerancia) m.el.currentTime = Math.max(0, alvo);
+
       m.el.playbackRate = clamp(c.speed, 0.25, 4);
       m.gain.gain.value = this.ganhoDoClipe(state, c, t);
       if (m.nativo) {
