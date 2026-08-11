@@ -153,14 +153,12 @@ function EditorPage() {
   const [tocando, setTocando] = useState(false);
   const demoRef = useRef<number | null>(null);
   const [zoom, setZoom] = useState(60);
-  /* altura da timeline (splitter vertical) — a área superior nunca some */
+  /* altura da timeline (splitter horizontal) — estado independente das larguras */
   const [alturaTimeline, setAlturaTimeline] = useState(300);
   useEffect(() => {
-    const ajustar = () => setAlturaTimeline((h) => alturaTimelineValida(h, window.innerHeight - 56 - 46));
-    ajustar();
-    window.addEventListener("resize", ajustar);
-    return () => window.removeEventListener("resize", ajustar);
+    setAlturaTimeline((h) => clampAlturaTimeline(h, alturaDistribuivel(window.innerHeight)));
   }, []);
+
   const [selecionados, setSelecionados] = useState<string[]>([]);
   const selecionadosRef = useRef<string[]>([]);
   selecionadosRef.current = selecionados;
