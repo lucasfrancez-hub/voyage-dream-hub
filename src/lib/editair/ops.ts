@@ -15,6 +15,7 @@ import {
   enquadramentoInicial,
 } from "./types";
 import { aplicarVelocidade } from "./velocidade";
+import { ajustarLegendasAoRemover, deslocarClip, montarLegendas } from "./legendas";
 
 /**
  * Operações estruturadas do EditAir.
@@ -265,10 +266,13 @@ export function aplicarOps(
             });
           }
         }
-        s.clips = novos;
+        // legendas do trecho removido somem; as seguintes acompanham o ripple
+        s.clips = ajustarLegendasAoRemover(novos, fromMs, toMs, { ripple: op.ripple !== false });
         if (op.ripple !== false) {
           const gap = toMs - fromMs;
-          s.clips = s.clips.map((c) => (c.start >= toMs ? { ...c, start: c.start - gap } : c));
+          s.clips = s.clips.map((c) =>
+            c.kind !== "caption" && c.kind !== "text" && c.start >= toMs ? deslocarClip(c, -gap) : c,
+          );
         }
         log.push(`Trecho removido (${((toMs - fromMs) / 1000).toFixed(1)}s)`);
         break;
@@ -424,11 +428,14 @@ export function aplicarOps(
         const c = s.clips.find((x) => x.id === op.clipId);
         if (!c) break;
         const gap = c.duration;
+        const restantes = s.clips
+          .filter((x) => x.id !== c.id)
+          .map((x) =>
+            x.trackId === c.trackId && x.start >= c.start ? deslocarClip(x, -gap) : x,
+          );
         s = {
           ...s,
-          clips: s.clips
-            .filter((x) => x.id !== c.id)
-            .map((x) => (x.trackId === c.trackId && x.start >= c.start ? { ...x, start: Math.max(0, x.start - gap) } : x)),
+          clips: ajustarLegendasAoRemover(restantes, c.start, c.start + gap, { clipIds: [c.id] }),
         };
         log.push("Clipe removido (fechando o buraco)");
         break;
