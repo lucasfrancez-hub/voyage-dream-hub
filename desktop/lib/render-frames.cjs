@@ -50,9 +50,36 @@ function filtrosDeAudio(audio) {
 const FILTRO_VIDEO = "[0:v]scale=trunc(iw/2)*2:trunc(ih/2)*2,format=yuv420p[vout]";
 
 
+/** Argumentos do encoder por preset.
+ *  rapido/recomendado → encoder por hardware (VideoToolbox no Mac) com bitrate
+ *  controlado; alta → software (x264/x265) com CRF, mais lento e mais fiel. */
+async function argsEncoder({ preset, formato, codec, bv, fps }) {
+  const alvoCodec = formato === "webm" ? "vp9" : codec;
+  const alta = preset === "alta";
+  const enc = alta && formato !== "webm" ? (codec === "h265" ? "libx265" : "libx264") : await melhorEncoder(alvoCodec);
+  const hw = /videotoolbox|nvenc|qsv|amf/.test(enc);
+  const args = ["-c:v", enc, "-pix_fmt", "yuv420p", "-r", String(fps)];
+
+  if (enc.includes("videotoolbox")) {
+    // VideoToolbox usa bitrate; prio_speed acelera o modo rápido sem perda visível
+    args.push("-b:v", bv, "-maxrate", bv, "-allow_sw", "1", "-realtime", preset === "rapido" ? "1" : "0");
+    if (codec !== "h265") args.push("-profile:v", "high");
+    if (preset === "rapido") args.push("-prio_speed", "1");
+  } else if (hw) {
+    args.push("-b:v", bv, "-maxrate", bv);
+  } else if (enc === "libx264" || enc === "libx265") {
+    const velocidade = preset === "rapido" ? "veryfast" : preset === "alta" ? "medium" : "faster";
+    const crf = preset === "alta" ? "18" : preset === "rapido" ? "23" : "20";
+    args.push("-preset", velocidade, "-crf", crf, "-threads", "0");
+  } else {
+    args.push("-b:v", bv, "-row-mt", "1", "-threads", "0");
+  }
+  return { args, encoder: enc, hardware: hw };
+}
+
 /**
  * Inicia um render por quadros.
- * spec: { destino, width, height, fps, totalFrames, formato, codec, videoBitrate, audio: [], comAudio }
+ * spec: { destino, width, height, fps, totalFrames, formato, codec, videoBitrate, preset, audio: [], comAudio }
  */
 async function iniciar(spec, onProgress) {
   const {
@@ -64,6 +91,7 @@ async function iniciar(spec, onProgress) {
     formato = "mp4",
     codec = "h264",
     videoBitrate,
+    preset = "recomendado",
     audio = [],
     comAudio = true,
   } = spec;
@@ -73,6 +101,8 @@ async function iniciar(spec, onProgress) {
 
   const args = [
     "-y",
+    "-hide_banner",
+    "-thread_queue_size", "512",
     "-f", "rawvideo",
     "-pix_fmt", "rgba",
     "-s", `${width}x${height}`,
@@ -87,16 +117,12 @@ async function iniciar(spec, onProgress) {
   if (fa) args.push("-map", "[aout]");
   else args.push("-an");
 
-
-  const bv =
+  const bruto =
     videoBitrate || (height >= 2160 ? "45M" : height >= 1440 ? "24M" : height >= 1080 ? "14M" : "8M");
+  const bv = typeof bruto === "number" ? `${Math.round(bruto / 1000)}k` : bruto;
 
-  args.push(
-    "-c:v", formato === "webm" ? await melhorEncoder("vp9") : await melhorEncoder(codec),
-    "-pix_fmt", "yuv420p",
-    "-b:v", typeof bv === "number" ? `${Math.round(bv / 1000)}k` : bv,
-    "-r", String(fps),
-  );
+  const enc = await argsEncoder({ preset, formato, codec, bv, fps });
+  args.push(...enc.args);
   if (usaAudio) args.push("-c:a", formato === "webm" ? "libopus" : "aac", "-b:a", "256k", "-shortest");
   if (formato === "mp4") args.push("-movflags", "+faststart");
   args.push(destino);
@@ -107,6 +133,11 @@ async function iniciar(spec, onProgress) {
     destino,
     totalFrames,
     frames: 0,
+    repetidos: 0,
+    ultimo: null,
+    encoder: enc.encoder,
+    hardware: enc.hardware,
+    preset,
     estado: "rodando",
     erro: "",
     log: "",
@@ -133,13 +164,25 @@ async function iniciar(spec, onProgress) {
 function enviarQuadro(job, buffer) {
   return new Promise((resolve, reject) => {
     if (job.estado !== "rodando") return resolve(false);
-    const ok = job.proc.stdin.write(buffer, (e) => (e ? reject(e) : null));
+    if (buffer) job.ultimo = buffer;
+    const buf = buffer || job.ultimo;
+    if (!buf) return resolve(false);
+    if (!buffer) job.repetidos += 1;
+    const ok = job.proc.stdin.write(buf, (e) => (e ? reject(e) : null));
     job.frames += 1;
     job.onProgress?.(job.frames, job.totalFrames);
     if (ok) resolve(true);
     else job.proc.stdin.once("drain", () => resolve(true));
   });
 }
+
+/** repete o último quadro já enviado (quadro idêntico): zero cópia por IPC */
+function repetirQuadro(job, vezes = 1) {
+  let p = Promise.resolve(true);
+  for (let i = 0; i < vezes; i++) p = p.then(() => enviarQuadro(job, null));
+  return p;
+}
+
 
 async function finalizar(job) {
   job.proc.stdin.end();
@@ -163,4 +206,4 @@ function cancelar(job) {
   }
 }
 
-module.exports = { jobs, iniciar, enviarQuadro, finalizar, cancelar, cadeiaAtempo, filtrosDeAudio };
+module.exports = { jobs, iniciar, enviarQuadro, repetirQuadro, finalizar, cancelar, cadeiaAtempo, filtrosDeAudio, argsEncoder };

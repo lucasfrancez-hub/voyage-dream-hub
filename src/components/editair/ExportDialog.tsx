@@ -3,8 +3,10 @@ import { X, Download, Loader2, CheckCircle2, Folder, FolderOpen, Play } from "lu
 import { Button } from "@/components/ui/button";
 import { formatarTempo } from "@/lib/editair/types";
 import { estimarBytes, formatarBytes } from "@/lib/editair/composicao";
+import type { MetricasExport } from "@/lib/editair/export-metrics";
 
 export type CodecOpcao = { id: string; nome: string; mime: string };
+export type PresetExport = "rapido" | "recomendado" | "alta";
 export type ExportConfig = {
   escopo: "video" | "audio";
   nome: string;
@@ -18,6 +20,8 @@ export type ExportConfig = {
   mixagem: "completo" | "voz" | "musica";
   audioBitrate: number;
   audioFormato: string;
+  /** velocidade x qualidade do encoder: rapido | recomendado | alta */
+  preset: PresetExport;
   /** caminho completo escolhido no diálogo nativo (Desktop) */
   destino?: string | null;
 };
@@ -38,6 +42,8 @@ export type ResultadoExport = {
   altura: number;
   fps: number;
   duracaoMs: number;
+  metricas?: MetricasExport;
+  relatorio?: string;
 } | null;
 
 function suportado(mime: string) {
@@ -60,11 +66,10 @@ const CODECS_AUDIO: CodecOpcao[] = [
   { id: "opus", nome: "WebM / Opus", mime: "audio/webm;codecs=opus" },
 ];
 
-const QUALIDADES = [
-  { id: "baixa", nome: "Baixa", fator: 0.04 },
-  { id: "recomendada", nome: "Recomendada", fator: 0.09 },
-  { id: "alta", nome: "Alta", fator: 0.15 },
-  { id: "maxima", nome: "Máxima", fator: 0.24 },
+const QUALIDADES: { id: PresetExport; nome: string; fator: number; dica: string }[] = [
+  { id: "rapido", nome: "Rápido", fator: 0.07, dica: "Encoder por hardware, bitrate enxuto — ideal para prévias e stories." },
+  { id: "recomendado", nome: "Recomendado", fator: 0.1, dica: "Hardware + bitrate cheio: qualidade ótima para Reels/YouTube com arquivo leve." },
+  { id: "alta", nome: "Alta qualidade", fator: 0.16, dica: "Encoder por software (CRF 18). Bem mais lento, para masterização." },
 ];
 
 export function ExportDialog({
@@ -110,7 +115,7 @@ export function ExportDialog({
   const [nome, setNome] = useState(nomeProjeto);
   const [alturaAlvo, setAlturaAlvo] = useState(1080);
   const [fps, setFps] = useState(fpsProjeto);
-  const [qualidade, setQualidade] = useState("alta");
+  const [qualidade, setQualidade] = useState<PresetExport>("recomendado");
   const [codec, setCodec] = useState<string>("");
   const [comAudio, setComAudio] = useState(true);
   const [avancado, setAvancado] = useState(false);
@@ -136,7 +141,8 @@ export function ExportDialog({
     return vertical ? { w: menor, h: maior } : { w: maior, h: menor };
   };
   const alvo = dims(alturaAlvo);
-  const fator = QUALIDADES.find((q) => q.id === qualidade)?.fator ?? 0.12;
+  const presetInfo = QUALIDADES.find((q) => q.id === qualidade) ?? QUALIDADES[1]!;
+  const fator = presetInfo.fator;
   const bitrate = bitrateManual ?? Math.round(alvo.w * alvo.h * fps * fator * 0.07);
   const bytesEstimados = estimarBytes({
     duracaoMs,
@@ -180,6 +186,7 @@ export function ExportDialog({
       mixagem,
       audioBitrate,
       audioFormato: audioCodec || audioEscolhido?.id || "opus",
+      preset: qualidade,
     });
 
   return (
@@ -238,6 +245,25 @@ export function ExportDialog({
                     <p className="mt-1 break-all text-[10px] text-white/40">{resultado.caminho}</p>
                   ) : null}
                 </div>
+                {resultado.metricas ? (
+                  <details className="rounded-xl border border-white/10 bg-white/[0.03] p-3 text-[11px] text-white/60">
+                    <summary className="cursor-pointer text-white/80">
+                      Desempenho: {(resultado.duracaoMs / 1000 / Math.max(0.001, resultado.metricas.totalMs / 1000)).toFixed(2)}× tempo real ·{" "}
+                      {(resultado.metricas.framesEnviados / Math.max(0.001, resultado.metricas.totalMs / 1000)).toFixed(0)} FPS ·{" "}
+                      {resultado.metricas.encoder}
+                      {resultado.metricas.aceleracao ? " (hardware)" : " (CPU)"}
+                    </summary>
+                    <pre className="mt-2 max-h-52 overflow-auto whitespace-pre-wrap text-[10px] leading-relaxed text-white/55">
+                      {resultado.relatorio}
+                    </pre>
+                    <button
+                      onClick={() => navigator.clipboard?.writeText(resultado.relatorio ?? "")}
+                      className="mt-2 text-[10px] text-[#F26B1F] hover:underline"
+                    >
+                      Copiar medição
+                    </button>
+                  </details>
+                ) : null}
                 <div className="flex flex-wrap gap-2">
                   {resultado.caminho ? (
                     <>
@@ -386,7 +412,7 @@ export function ExportDialog({
                       </Campo>
                     </div>
 
-                    <Campo label="Qualidade">
+                    <Campo label="Qualidade x velocidade">
                       <div className="flex gap-1.5">
                         {QUALIDADES.map((q) => (
                           <button
@@ -405,6 +431,7 @@ export function ExportDialog({
                           </button>
                         ))}
                       </div>
+                      <p className="mt-1.5 text-[10px] leading-snug text-white/40">{presetInfo.dica}</p>
                     </Campo>
 
                     <Campo label="Codec">

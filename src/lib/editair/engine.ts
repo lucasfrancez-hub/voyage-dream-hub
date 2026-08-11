@@ -1552,9 +1552,19 @@ export class EditairEngine {
 
   /* ------- render por quadros (Desktop): frame-accurate, sem rAF ------- */
 
+  /** contadores da exportação em curso (zerados em prepararRenderQuadros) */
+  medicaoRender = { seekMs: 0, desenhoMs: 0, leituraMs: 0, seeks: 0, seeksEvitados: 0 };
+  /** passo estimado entre quadros de cada mídia (s) — usado para não buscar duas
+      vezes o MESMO quadro de origem quando o FPS de export é maior que o da fonte */
+  private passoFonte = new Map<string, number>();
+  private bufferQuadro: Uint8Array | null = null;
+
   /** deixa todas as mídias paradas e mudas — usado no render final */
   prepararRenderQuadros() {
     this.definirMudo(true);
+    this.medicaoRender = { seekMs: 0, desenhoMs: 0, leituraMs: 0, seeks: 0, seeksEvitados: 0 };
+    this.passoFonte.clear();
+    this.bufferQuadro = null;
     for (const [, m] of this.midias) {
       m.el.pause();
       m.el.muted = true;
@@ -1563,14 +1573,31 @@ export class EditairEngine {
     }
   }
 
-  private buscarExato(el: HTMLVideoElement, alvoS: number) {
-    if (Math.abs(el.currentTime - alvoS) < 0.004 && el.readyState >= 2) return Promise.resolve();
+  private buscarExato(assetId: string, el: HTMLVideoElement, alvoS: number) {
+    const passo = this.passoFonte.get(assetId) ?? 0;
+    // tolerância = meio quadro da fonte: dentro disso o decoder devolveria
+    // exatamente o mesmo frame, então o seek seria trabalho jogado fora.
+    const tol = Math.max(0.004, passo * 0.5);
+    const atual = el.currentTime;
+    if (el.readyState >= 2 && alvoS >= atual - 0.0005 && alvoS - atual < tol) {
+      this.medicaoRender.seeksEvitados += 1;
+      return Promise.resolve();
+    }
+    const t0 = performance.now();
+    this.medicaoRender.seeks += 1;
     return new Promise<void>((resolve) => {
       let pronto = false;
       const fim = () => {
         if (pronto) return;
         pronto = true;
         el.removeEventListener("seeked", fim);
+        const delta = el.currentTime - atual;
+        // diferença positiva pequena entre quadros consecutivos ≈ duração do quadro da fonte
+        if (delta > 0.005 && delta < 0.2) {
+          const anterior = this.passoFonte.get(assetId);
+          this.passoFonte.set(assetId, anterior ? Math.min(anterior, delta) : delta);
+        }
+        this.medicaoRender.seekMs += performance.now() - t0;
         resolve();
       };
       el.addEventListener("seeked", fim, { once: true });
@@ -1591,18 +1618,36 @@ export class EditairEngine {
         const m = this.midias.get(c.assetId!);
         if (!m) return Promise.resolve();
         const alvo = ((c.sourceIn || 0) + (t - c.start) * clamp(c.speed || 1, 0.25, 4)) / 1000;
-        return this.buscarExato(m.el, alvo);
+        return this.buscarExato(c.assetId!, m.el, alvo);
       }),
     );
+    const t1 = performance.now();
     this.desenhar(state, t);
+    this.medicaoRender.desenhoMs += performance.now() - t1;
   }
 
   /** pixels RGBA do quadro atual, prontos para o FFmpeg */
   quadroRGBA(): Uint8Array {
     const { width, height } = this.canvas;
+    const t0 = performance.now();
     const dados = this.ctx.getImageData(0, 0, width, height).data;
-    return new Uint8Array(dados.buffer.slice(0));
+    const saida = new Uint8Array(dados.buffer.slice(0));
+    this.medicaoRender.leituraMs += performance.now() - t0;
+    return saida;
   }
+
+  /** assinatura barata do quadro atual — permite repetir o frame anterior no
+      FFmpeg sem pagar 8 MB de IPC quando nada mudou na tela */
+  static assinatura(px: Uint8Array): number {
+    const u32 = new Uint32Array(px.buffer, px.byteOffset, px.byteLength >> 2);
+    let h = 0x811c9dc5 ^ u32.length;
+    for (let i = 0; i < u32.length; i += 4) {
+      h = (h ^ u32[i]!) >>> 0;
+      h = Math.imul(h, 0x01000193) >>> 0;
+    }
+    return h >>> 0;
+  }
+
 
 
   streamAudio(): MediaStream {

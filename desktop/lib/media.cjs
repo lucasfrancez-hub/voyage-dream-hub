@@ -154,21 +154,43 @@ async function encodersDisponiveis() {
   return cacheEncoders;
 }
 
+/* Um encoder pode estar listado e mesmo assim não abrir (driver ausente,
+   GPU ocupada). Testamos uma vez, de verdade, antes de confiar nele. */
+const cacheTeste = new Map();
+async function encoderUtilizavel(nome) {
+  if (!nome) return false;
+  if (cacheTeste.has(nome)) return cacheTeste.get(nome);
+  let ok = false;
+  try {
+    await exec(FFMPEG, [
+      "-hide_banner", "-v", "error",
+      "-f", "lavfi", "-i", "color=black:s=64x64:r=30:d=0.2",
+      "-c:v", nome, "-frames:v", "3", "-f", "null", "-",
+    ], { timeoutMs: 20000 });
+    ok = true;
+  } catch {
+    ok = false;
+  }
+  cacheTeste.set(nome, ok);
+  return ok;
+}
+
 async function melhorEncoder(codec) {
   const s = lerSettings();
   const lista = await encodersDisponiveis();
   const tem = (n) => lista.includes(n);
+  const hw = async (n) => (tem(n) ? await encoderUtilizavel(n) : false);
   if (s.aceleracaoHardware) {
     if (codec === "h265") {
-      if (process.platform === "darwin" && tem("hevc_videotoolbox")) return "hevc_videotoolbox";
-      if (tem("hevc_nvenc")) return "hevc_nvenc";
-      if (tem("hevc_qsv")) return "hevc_qsv";
-      if (tem("hevc_amf")) return "hevc_amf";
+      if (process.platform === "darwin" && (await hw("hevc_videotoolbox"))) return "hevc_videotoolbox";
+      if (await hw("hevc_nvenc")) return "hevc_nvenc";
+      if (await hw("hevc_qsv")) return "hevc_qsv";
+      if (await hw("hevc_amf")) return "hevc_amf";
     } else if (codec === "h264") {
-      if (process.platform === "darwin" && tem("h264_videotoolbox")) return "h264_videotoolbox";
-      if (tem("h264_nvenc")) return "h264_nvenc";
-      if (tem("h264_qsv")) return "h264_qsv";
-      if (tem("h264_amf")) return "h264_amf";
+      if (process.platform === "darwin" && (await hw("h264_videotoolbox"))) return "h264_videotoolbox";
+      if (await hw("h264_nvenc")) return "h264_nvenc";
+      if (await hw("h264_qsv")) return "h264_qsv";
+      if (await hw("h264_amf")) return "h264_amf";
     }
   }
   if (codec === "h265") return "libx265";
@@ -263,6 +285,7 @@ async function renderEDL(spec, onProgress) {
 }
 
 module.exports = {
+  encoderUtilizavel,
   FFMPEG,
   FFPROBE,
   existeFfmpeg,
