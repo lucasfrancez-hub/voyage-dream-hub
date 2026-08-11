@@ -120,23 +120,29 @@ export function BoletoPaymentDialog({
   }, [modo, dataPagamento, leitura, entry]);
 
   const enviar = async () => {
-    if (!linha || !entry) return;
+    if (!linha) return;
+    const valorFinal = Number(leitura?.valor ?? entry?.amount ?? 0);
+    if (!valorFinal) {
+      toast.error("Não foi possível determinar o valor do boleto.");
+      return;
+    }
     setEnviando(true);
     try {
       const r = await criar({
         data: {
-          financialEntryId: entry.id,
+          financialEntryId: entry?.id ?? null,
           identificationField: linha,
-          value: Number(leitura?.valor ?? entry.amount),
-          dueDate: leitura?.vencimento ?? entry.due_date,
+          value: valorFinal,
+          dueDate: leitura?.vencimento ?? entry?.due_date ?? null,
           scheduleDate: modo === "agendar" ? (dataEfetiva || null) : null,
           scheduleTime: modo === "agendar" ? (horaPagamento || null) : null,
-          description: entry.description,
-          beneficiaryName: leitura?.beneficiario ?? entry.counterparty ?? null,
+          description: entry?.description ?? leitura?.beneficiario ?? "Pagamento de boleto",
+          beneficiaryName: leitura?.beneficiario ?? entry?.counterparty ?? null,
           boletoPath: path,
           confirmado: true as const,
         },
       });
+
       toast.success(r.status === "agendado" ? "Pagamento agendado no ASAAS" : "Pagamento enviado ao ASAAS");
       setRevisao(false);
       pagamentos.refetch();
