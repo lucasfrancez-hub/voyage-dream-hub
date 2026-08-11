@@ -1906,7 +1906,7 @@ function EditorPage() {
           className="h-8 gap-1.5 border-[#F26B1F]/40 bg-transparent text-xs text-[#F26B1F] hover:bg-[#F26B1F]/10 hover:text-[#F26B1F]"
           onClick={() => {
             setIaClipId(null);
-            setIaEscopo(clipeAtual ? "cena" : "projeto");
+            setIaEscopo("projeto");
             setIaPlano(null);
             setIaAberto(true);
           }}
@@ -2255,8 +2255,9 @@ function EditorPage() {
               }
             : { titulo: projetoNome, detalhe: iaEscopo === "cena" ? "Cena atual" : "Projeto inteiro" }
         }
-        escopoId={iaEscopo}
+        escopoId={iaClipId ? "clipe" : iaEscopo}
         podeClipe={!!iaClipId}
+        bloqueado={!!iaClipId}
         onEscopoId={setIaEscopo}
         processando={pensando}
         etapa={etapaIa}

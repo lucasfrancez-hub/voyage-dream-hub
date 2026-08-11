@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Check, Layers, Sparkles, X } from "lucide-react";
+import { Check, Layers, Lock, Sparkles, X } from "lucide-react";
 
 const SUGESTOES = [
   "Remover pausas",
@@ -26,6 +26,8 @@ type Props = {
   escopo: AiEditEscopo | null;
   escopoId: AiEscopoId;
   podeClipe: boolean;
+  /** trava o escopo no clipe (aberto pelo botão direito em cima do vídeo) */
+  bloqueado?: boolean;
   onEscopoId: (e: AiEscopoId) => void;
   processando: boolean;
   etapa: string;
@@ -48,6 +50,7 @@ export function AiEditDialog({
   escopo,
   escopoId,
   podeClipe,
+  bloqueado = false,
   onEscopoId,
   processando,
   etapa,
@@ -89,20 +92,27 @@ export function AiEditDialog({
         </div>
 
         {/* escopo explícito: a IA nunca mexe fora do que foi pedido */}
-        <div className="mb-3 flex gap-1 rounded-xl border border-white/10 bg-black/30 p-1">
-          {ESCOPOS.filter((e) => e.id !== "clipe" || podeClipe).map((e) => (
-            <button
-              key={e.id}
-              title={e.dica}
-              onClick={() => onEscopoId(e.id)}
-              className={`flex-1 rounded-lg px-2 py-1.5 text-[11.5px] transition ${
-                escopoId === e.id ? "bg-[#F26B1F] font-semibold text-white" : "text-white/60 hover:bg-white/10"
-              }`}
-            >
-              {e.label}
-            </button>
-          ))}
-        </div>
+        {bloqueado ? (
+          <div className="mb-3 flex items-center gap-1.5 rounded-xl border border-[#F26B1F]/30 bg-[#F26B1F]/10 px-3 py-2 text-[11.5px] text-white/70">
+            <Lock className="h-3.5 w-3.5 text-[#F26B1F]" />
+            A edição vale só para este clipe.
+          </div>
+        ) : (
+          <div className="mb-3 flex gap-1 rounded-xl border border-white/10 bg-black/30 p-1">
+            {ESCOPOS.filter((e) => e.id !== "clipe" || podeClipe).map((e) => (
+              <button
+                key={e.id}
+                title={e.dica}
+                onClick={() => onEscopoId(e.id)}
+                className={`flex-1 rounded-lg px-2 py-1.5 text-[11.5px] transition ${
+                  escopoId === e.id ? "bg-[#F26B1F] font-semibold text-white" : "text-white/60 hover:bg-white/10"
+                }`}
+              >
+                {e.label}
+              </button>
+            ))}
+          </div>
+        )}
 
         {plano ? (
           <div className="rounded-xl border border-[#F26B1F]/30 bg-[#F26B1F]/5 p-3">
