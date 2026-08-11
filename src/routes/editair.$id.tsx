@@ -83,7 +83,8 @@ import {
   paraWav16k,
 } from "@/lib/editair/audio";
 import { EditairEngine } from "@/lib/editair/engine";
-import { aplicarAssetsIniciais, midiaParaAsset, PonteAssets } from "@/lib/editair/bootstrap";
+import { aplicarAssetsIniciais, midiaParaAsset, PonteAssets, type AssetBasico } from "@/lib/editair/bootstrap";
+import { pontoDesktop } from "@/lib/editair/desktop";
 import { consumirHandoff } from "@/lib/editair/handoff";
 import { Timeline, type AssetInfo } from "@/components/editair/Timeline";
 import { PlayerStage, type ElementoPalco } from "@/components/editair/PlayerStage";
