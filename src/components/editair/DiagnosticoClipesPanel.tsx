@@ -14,34 +14,26 @@ export function DiagnosticoClipesPanel({ aoFechar }: { aoFechar: () => void }) {
   const [gravando, setGravando] = useState(false);
   const [resultado, setResultado] = useState<string>("");
 
+  const toggle = () => lerDiag("clipesTraco") as { tracando?: boolean; indisponivel?: boolean; resultado?: unknown };
+
   const iniciar = () => {
-    const d = lerDiag("clipesTraco") as { tracando?: boolean; indisponivel?: boolean; resultado?: unknown };
+    let d = toggle();
     if (d?.indisponivel) {
       toast.error("Preview ainda não está pronto — aguarde o projeto carregar.");
       return;
     }
-    if (d?.tracando) {
-      setGravando(true);
-      setResultado("");
-      toast.success("Diagnóstico iniciado — dê Play e passe pelo ponto com defeito.");
-      return;
-    }
-    // Estava ligado por outro caminho: desligou agora. Liga de novo, limpo.
-    const d2 = lerDiag("clipesTraco") as { tracando?: boolean };
-    setGravando(!!d2?.tracando);
+    // Se já estava ligado, a primeira chamada desligou: liga de novo, limpo.
+    if (!d?.tracando) d = toggle();
+    setGravando(!!d?.tracando);
     setResultado("");
-    if (d2?.tracando) toast.success("Diagnóstico iniciado — dê Play e passe pelo ponto com defeito.");
+    if (d?.tracando) toast.success("Diagnóstico iniciado — dê Play e passe pelo ponto com defeito.");
   };
 
   const parar = () => {
-    const d = lerDiag("clipesTraco") as { tracando?: boolean; resultado?: unknown };
-    if (d?.tracando) {
-      // ainda ligado (estava desligado antes) — desliga para coletar
-      const d2 = lerDiag("clipesTraco") as { resultado?: unknown };
-      setResultado(JSON.stringify({ traco: d2?.resultado ?? d2, snapshot: lerDiag("clipes") }, null, 2));
-    } else {
-      setResultado(JSON.stringify({ traco: d?.resultado ?? d, snapshot: lerDiag("clipes") }, null, 2));
-    }
+    let d = toggle();
+    // Se voltou "ligado", é porque estava desligado: desliga agora para coletar.
+    if (d?.tracando) d = toggle();
+    setResultado(JSON.stringify({ traco: d?.resultado ?? d, snapshot: lerDiag("clipes") }, null, 2));
     setGravando(false);
     toast.success("Diagnóstico parado — clique em Copiar resultado.");
   };
