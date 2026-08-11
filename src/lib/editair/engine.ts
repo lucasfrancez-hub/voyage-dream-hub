@@ -1,6 +1,7 @@
 /* Motor de preview e render do EditAir: desenha a timeline num canvas e mixa o áudio.
    Só roda no navegador. Preview e exportação usam exatamente o mesmo caminho de render. */
 import type { SegmentadorFundo } from "./segmentation";
+import { desenharContorno, normalizarContorno } from "./contorno";
 import { calcularEfeitos, temVinheta } from "./efeitos";
 import {
   AJUSTES_NEUTROS,
@@ -100,6 +101,9 @@ export class EditairEngine {
   private seg: SegmentadorFundo | null = null;
   private off: HTMLCanvasElement | null = null;
   private maskCanvas: HTMLCanvasElement | null = null;
+  /** canvases reaproveitados no desenho do contorno */
+  private cacheContorno: HTMLCanvasElement[] = [];
+
 
   constructor(canvas: HTMLCanvasElement, width: number, height: number) {
     this.canvas = canvas;
@@ -353,6 +357,34 @@ export class EditairEngine {
   fundoPronto() {
     return !!this.seg?.pronto;
   }
+
+  /**
+   * Analisa o intervalo do clipe e guarda as máscaras em cache (asset + frame +
+   * versão do modelo). Só roda a IA uma vez: reabrir o projeto ou mexer no
+   * contorno reaproveita o cache.
+   */
+  async analisarFundo(
+    c: EditairClip,
+    onProgresso?: (pct: number) => void,
+    cancelado?: () => boolean,
+  ) {
+    if (!c.assetId) return false;
+    const qualidade = c.fundo?.qualidade ?? "rapida";
+    await this.ativarFundo(qualidade);
+    const midia = this.midias.get(c.assetId);
+    if (!this.seg || !midia) {
+      onProgresso?.(100);
+      return false;
+    }
+    const fim = c.sourceIn + c.duration * (c.speed || 1);
+    return this.seg.precomputar(c.assetId, midia.el, c.sourceIn, fim, qualidade, onProgresso, cancelado);
+  }
+
+  /** Esquece o estado temporal da máscara de um clipe (ex.: clipe removido). */
+  esquecerMascara(clipId: string) {
+    this.seg?.esquecer(clipId);
+  }
+
 
   private offscreen() {
     if (!this.off) this.off = document.createElement("canvas");
@@ -799,12 +831,19 @@ export class EditairEngine {
     };
 
     const fundo = c.fundo && c.fundo.modo !== "nenhum" ? c.fundo : null;
+    const tempoSourceMs =
+      (fonte as HTMLVideoElement).currentTime != null
+        ? (fonte as HTMLVideoElement).currentTime * 1000
+        : c.sourceIn + (t - c.start);
     const mascaraPessoa = fundo
-      ? this.seg?.mascara(c.id, fonte as HTMLVideoElement, t, {
+      ? this.seg?.mascara(c.id, fonte, tempoSourceMs, {
           suavidade: fundo.suavidade,
           borda: fundo.borda,
           estabilidade: fundo.estabilidade,
           qualidade: fundo.qualidade,
+          halo: fundo.refino?.halo,
+          feather: fundo.refino?.feather,
+          assetId: c.assetId,
         }) ?? null
       : null;
     const forma = this.mascaraForma(c);
@@ -864,12 +903,14 @@ export class EditairEngine {
         octx.drawImage(forma, 0, 0, width, height);
         octx.restore();
       }
-      if (fundo?.contorno?.ativo && mascaraPessoa) {
-        ctx.save();
-        ctx.globalAlpha = clamp(opacity, 0, 1) * 0.9;
-        ctx.filter = `blur(${Math.max(1, fundo.contorno.largura).toFixed(1)}px)`;
-        ctx.drawImage(off, 0, 0, width, height);
-        ctx.restore();
+      // contorno: desenhado ATRÁS do recorte, a partir do próprio alpha da camada.
+      // Mesma função no preview e na exportação (renderizarQuadro usa este caminho).
+      const contorno = fundo && (mascaraPessoa || chroma) ? normalizarContorno(fundo.contorno) : null;
+      if (contorno && contorno.preset !== "nenhum") {
+        desenharContorno(ctx, off, width, height, contorno, {
+          alpha: clamp(opacity, 0, 1),
+          cache: this.cacheContorno,
+        });
       }
       ctx.save();
       ctx.globalAlpha = clamp(opacity, 0, 1);

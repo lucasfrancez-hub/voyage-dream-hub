@@ -16,6 +16,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { EfeitosGallery } from "@/components/editair/EfeitosGallery";
+import { RemoverFundoPanel } from "@/components/editair/RemoverFundoPanel";
 import {
   ANIMACOES,
   ANIMACAO_PADRAO,
@@ -50,6 +51,8 @@ export type AcoesInspector = {
   onExtrairAudio: () => void;
   onNormalizar: () => void;
   onSepararAudio: () => void;
+  /** roda a análise de recorte do clipe (segmentação) reportando progresso */
+  onAnalisarFundo?: (onProgresso: (pct: number) => void, cancelado: () => boolean) => Promise<boolean>;
 };
 
 type Props = AcoesInspector & {
@@ -227,6 +230,10 @@ function Basico(p: Props & { clip: EditairClip }) {
         <Linha label={`Opacidade — ${Math.round(tr.opacity * 100)}%`} kf={() => onKeyframe("opacity")}>
           <Slider value={[tr.opacity * 100]} min={0} max={100} step={1} onValueChange={([v]) => setTr({ opacity: v / 100 })} />
         </Linha>
+      </Secao>
+
+      <Secao titulo="Remover plano de fundo">
+        <RemoverFundoPanel clip={clip} onPatchClip={onPatchClip} onAnalisarFundo={p.onAnalisarFundo} />
       </Secao>
 
       <Secao titulo="Ferramentas rápidas">
