@@ -302,6 +302,78 @@ responder("render:iniciar", async (spec) => {
 
 responder("render:estado", async ({ id }) => renders.get(id) ?? null);
 
+/* --- render por quadros (background, mesmo motor do preview) --- */
+const rf = require("./lib/render-frames.cjs");
+const { powerSaveBlocker } = require("electron");
+const jobsQuadros = new Map();
+
+responder("render:quadros:iniciar", async (spec) => {
+  const id = crypto.randomUUID();
+  const destino =
+    spec.destino || path.join(dirs.renders(), `EditAir_${Date.now()}.${spec.formato || "mp4"}`);
+  updater.marcarExportacao(id);
+  const bloqueio = powerSaveBlocker.start("prevent-app-suspension");
+  const job = await rf.iniciar({ ...spec, destino }, (frames, total) => {
+    janela?.webContents.send("editair:render", {
+      id,
+      estado: "rodando",
+      frame: frames,
+      totalFrames: total,
+      percentual: total ? Math.min(99, Math.round((frames / total) * 100)) : null,
+    });
+  });
+  job.bloqueio = bloqueio;
+  jobsQuadros.set(id, job);
+  renders.set(id, { destino, estado: "rodando" });
+  return { id, destino };
+});
+
+responder("render:quadros:quadro", async ({ id, quadro }) => {
+  const job = jobsQuadros.get(id);
+  if (!job) throw new Error("Render não encontrado");
+  const buf = Buffer.from(quadro);
+  await rf.enviarQuadro(job, buf);
+  return { frames: job.frames };
+});
+
+function encerrarJob(id, job) {
+  try {
+    if (job.bloqueio != null) powerSaveBlocker.stop(job.bloqueio);
+  } catch {
+    /* ignora */
+  }
+  updater.encerrarExportacao(id);
+  jobsQuadros.delete(id);
+}
+
+responder("render:quadros:finalizar", async ({ id }) => {
+  const job = jobsQuadros.get(id);
+  if (!job) throw new Error("Render não encontrado");
+  try {
+    const destino = await rf.finalizar(job);
+    renders.set(id, { destino, estado: "concluido" });
+    janela?.webContents.send("editair:render", { id, estado: "concluido", percentual: 100, destino });
+    return { destino };
+  } catch (e) {
+    renders.set(id, { destino: job.destino, estado: "erro", erro: String(e.message || e) });
+    janela?.webContents.send("editair:render", { id, estado: "erro", mensagem: String(e.message || e) });
+    throw e;
+  } finally {
+    encerrarJob(id, job);
+  }
+});
+
+responder("render:quadros:cancelar", async ({ id }) => {
+  const job = jobsQuadros.get(id);
+  if (!job) return true;
+  rf.cancelar(job);
+  renders.set(id, { destino: job.destino, estado: "cancelado" });
+  encerrarJob(id, job);
+  janela?.webContents.send("editair:render", { id, estado: "cancelado" });
+  return true;
+});
+
+
 /* --- atualização --- */
 responder("update:estado", async () => updater.estado());
 responder("update:verificar", async () => updater.verificar());
