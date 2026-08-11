@@ -14,9 +14,11 @@ import {
 } from "lucide-react";
 import type { EditairClip, EditairTrack, ProjectState } from "@/lib/editair/types";
 import { formatarTempo } from "@/lib/editair/types";
-import { posicionarMenu } from "@/lib/editair/layers";
+import { posicionarMenu, type DestinoCamada } from "@/lib/editair/layers";
+import { destinoDeClip, destinoPorY, passouLimiar } from "@/lib/editair/interacao";
 import { limitesDoClip } from "@/lib/editair/ops";
 import { obterPicos, obterThumb } from "@/lib/editair/media";
+
 
 export type AssetInfo = { id?: string; url: string; durationMs: number; kind: string; name: string };
 
