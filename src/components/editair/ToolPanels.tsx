@@ -342,7 +342,7 @@ function PainelMidia({
 
       {menu ? (
         <MenuFlutuante x={menu.x} y={menu.y} onFechar={() => setMenu(null)}>
-          {[
+          {([
             { nome: "Abrir no editor", acao: () => onInserirAsset(menu.id) },
             { nome: "Adicionar à timeline", acao: () => onInserirAsset(menu.id) },
             onEditarComIaAsset ? { nome: "✨ Editar com IA", acao: () => onEditarComIaAsset(menu.id), destaque: true } : null,
@@ -354,7 +354,7 @@ function PainelMidia({
               : null,
             { nome: "Renomear", acao: () => setRenomeando(menu.id) },
             { nome: "Remover da Biblioteca", acao: () => onExcluirAsset(menu.id), perigo: true },
-          ]
+          ] as Array<{ nome: string; acao: () => void; destaque?: boolean; perigo?: boolean } | null>)
             .filter((i): i is { nome: string; acao: () => void; destaque?: boolean; perigo?: boolean } => !!i)
             .map((i) => (
               <button
