@@ -244,3 +244,80 @@ export function posicionarMenu(
   nx = Math.min(Math.max(margem, nx), Math.max(margem, vw - largura - margem));
   return { x: nx, y: ny };
 }
+
+/* ------------------------------------------------------------------ */
+/* Inserção de mídia na timeline (botão "+ Inserir" e arrastar/soltar) */
+/* ------------------------------------------------------------------ */
+
+export type AssetInserivel = {
+  id: string;
+  nome: string;
+  kind: string;
+  durationMs: number;
+};
+
+export type ResultadoInsercao =
+  | { ok: true; state: ProjectState; clip: EditairClip; criouTrack: boolean }
+  | { ok: false; erro: string };
+
+/** Escolhe a trilha destino, criando uma se o projeto não tiver nenhuma compatível. */
+function trilhaDestino(s: ProjectState, kind: string): { state: ProjectState; trackId: string; criou: boolean } {
+  const alvoKind = kind === "audio" ? "audio" : "video";
+  const preferida = alvoKind === "audio" ? "t-music" : "t-video";
+  const exata = s.tracks.find((t) => t.id === preferida && !t.locked);
+  if (exata) return { state: s, trackId: exata.id, criou: false };
+  const compat = s.tracks.find((t) => t.kind === alvoKind && !t.locked);
+  if (compat) return { state: s, trackId: compat.id, criou: false };
+  if (alvoKind === "audio") {
+    const nova: EditairTrack = { id: `t-music-${Math.random().toString(36).slice(2, 6)}`, kind: "audio", name: "Áudio" };
+    return { state: { ...s, tracks: [...s.tracks, nova] }, trackId: nova.id, criou: true };
+  }
+  const r = criarTrackEm(s, 0);
+  return { state: r.state, trackId: r.trackId, criou: true };
+}
+
+/**
+ * Insere um asset na timeline de forma garantida: nunca falha em silêncio.
+ * Se `trackId`/`startMs` vierem, respeita o destino do arrastar-e-soltar.
+ */
+export function inserirAssetNaTimeline(
+  s: ProjectState,
+  asset: AssetInserivel,
+  opcoes: { trackId?: string; startMs?: number } = {},
+): ResultadoInsercao {
+  if (!asset?.id) return { ok: false, erro: "Mídia inválida." };
+
+  let base = s;
+  let trackId = opcoes.trackId ?? "";
+  let criouTrack = false;
+  const pedida = trackId ? base.tracks.find((t) => t.id === trackId) : null;
+  if (pedida?.locked) return { ok: false, erro: "Camada bloqueada." };
+  if (!pedida) {
+    const d = trilhaDestino(base, asset.kind);
+    base = d.state;
+    trackId = d.trackId;
+    criouTrack = d.criou;
+  }
+
+  const fimDaTrilha = base.clips
+    .filter((c) => c.trackId === trackId)
+    .reduce((m, c) => Math.max(m, c.start + c.duration), 0);
+  const start = Math.max(0, Math.round(opcoes.startMs ?? fimDaTrilha));
+
+  const clip: EditairClip = {
+    id: novoId(),
+    trackId,
+    kind: asset.kind === "audio" ? "audio" : asset.kind === "image" ? "image" : "video",
+    assetId: asset.id,
+    start,
+    duration: Math.max(1000, asset.durationMs || (asset.kind === "image" ? 5000 : 5000)),
+    sourceIn: 0,
+    volume: 1,
+    speed: 1,
+    transform: { x: 0, y: 0, escala: 1, rotacao: 0, opacidade: 1 },
+    label: asset.nome.slice(0, 28),
+  };
+
+  const state = recalcularDuracao({ ...base, clips: [...base.clips, clip] });
+  return { ok: true, state, clip, criouTrack };
+}
