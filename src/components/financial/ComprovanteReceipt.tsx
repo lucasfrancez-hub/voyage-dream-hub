@@ -114,6 +114,8 @@ export function ComprovanteReceipt({
     instituicao: data?.instituicao ?? null,
   };
   const isIn = data?.direction === "in";
+  const isBoleto = data?.tipoDocumento === "boleto";
+
   const pagador: ReceiptParty =
     data?.pagador ?? (isIn ? counterparty : VIAAIR_PARTY);
   const recebedor: ReceiptParty =
