@@ -1239,7 +1239,7 @@ export class EditairEngine {
    * Reprodutor. Mede o texto com a mesma fonte do desenho, sem animações.
    */
   caixaLegenda(c: EditairClip, estilo: CaptionStyle): { cx: number; cy: number; w: number; h: number } | null {
-    const texto = estilo.uppercase ? (c.text ?? "").toUpperCase() : (c.text ?? "");
+    const texto = aplicarCaps(c.text ?? "", estilo.caps, estilo.uppercase);
     if (!texto) return null;
     const { ctx, width, height } = this;
     ctx.save();
@@ -1247,14 +1247,18 @@ export class EditairEngine {
     ctx.font = `${estilo.weight} ${fs}px ${estilo.fontFamily}`;
     const ctxAny = ctx as CanvasRenderingContext2D & { letterSpacing?: string };
     if ("letterSpacing" in ctxAny) ctxAny.letterSpacing = `${estilo.tracking ?? 0}px`;
-    const maxLargura = width * 0.86;
-    const linhas = quebrarLinhas(ctx, texto, maxLargura).slice(0, Math.max(1, estilo.maxLines ?? 2));
-    const larg = linhas.reduce((m, l) => Math.max(m, ctx.measureText(l).width), 0);
+    const fracLargura = clamp(estilo.boxWidth ?? 0.86, 0.1, 1);
+    const maxLargura = width * fracLargura;
+    const linhas = quebrarBalanceado(
+      (s) => ctx.measureText(s).width,
+      texto,
+      maxLargura,
+      Math.max(1, estilo.maxLines ?? 2),
+    );
     if ("letterSpacing" in ctxAny) ctxAny.letterSpacing = "0px";
     ctx.restore();
     const alturaLinha = fs * (estilo.lineHeight ?? 1.18);
-    const alturaTotal = linhas.length * alturaLinha + (estilo.paddingY ?? 6) * 2;
-    const largTotal = larg + (estilo.paddingX ?? 18) * 2;
+    const alturaTotal = Math.max(1, linhas.length) * alturaLinha + (estilo.paddingY ?? 6) * 2;
     const alinhamento = estilo.align ?? "center";
     const cx =
       typeof estilo.x === "number"
@@ -1264,7 +1268,9 @@ export class EditairEngine {
           : alinhamento === "right"
             ? (width * 0.93 - maxLargura / 2) / width
             : 0.5;
-    return { cx, cy: estilo.y, w: largTotal / width, h: alturaTotal / height };
+    // A caixa mostrada no Reprodutor é a caixa de texto (boxWidth), não a
+    // medida do texto: puxar os cantos altera só a quebra de linha.
+    return { cx, cy: estilo.y, w: fracLargura, h: alturaTotal / height };
   }
 
 
