@@ -1,11 +1,41 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Eye, EyeOff, Lock, LockOpen, Volume2, VolumeX, Headphones, Plus } from "lucide-react";
+import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
+import {
+  Eye,
+  EyeOff,
+  Lock,
+  LockOpen,
+  Volume2,
+  VolumeX,
+  Headphones,
+  Plus,
+  GripVertical,
+  Pencil,
+  Trash2,
+} from "lucide-react";
 import type { EditairClip, EditairTrack, ProjectState } from "@/lib/editair/types";
 import { formatarTempo } from "@/lib/editair/types";
 import { limitesDoClip } from "@/lib/editair/ops";
 import { obterPicos, obterThumb } from "@/lib/editair/media";
 
 export type AssetInfo = { id?: string; url: string; durationMs: number; kind: string; name: string };
+
+export type AcaoClip =
+  | "dividir"
+  | "duplicar"
+  | "excluir"
+  | "bloquear"
+  | "mudo"
+  | "congelar"
+  | "desvincular"
+  | "ripple"
+  | "copiar"
+  | "extrair-audio"
+  | "aparar";
+
+/** Destino de um clip solto na timeline. */
+export type DestinoSolto = { tipo: "track"; trackId: string } | { tipo: "nova"; indice: number };
+
+const ALTURA_TRILHA = 56; // h-14
 
 const CORES: Record<string, string> = {
   "t-text": "bg-violet-600/70 border-violet-300/40",
@@ -33,11 +63,21 @@ type Props = {
   onToggleTrack: (trackId: string, campo: "muted" | "hidden" | "locked" | "solo") => void;
   onAbrirSource: (clipId: string) => void;
   onRestaurarClip: (clipId: string) => void;
-  onAcaoClip?: (clipId: string, acao: "dividir" | "duplicar" | "excluir" | "bloquear" | "mudo" | "congelar" | "desvincular") => void;
+  onAcaoClip?: (clipId: string, acao: AcaoClip) => void;
   /** Arquivos arrastados do Finder/Explorer direto para a timeline. */
   onSoltarArquivos?: (arquivos: FileList, ms: number) => void;
   /** Cria uma nova camada de vídeo acima das existentes (composição/PiP). */
   onNovaTrilhaVideo?: () => void;
+  /** Clip solto após drag vertical: muda de camada (e de posição). */
+  onSoltarClip?: (clipId: string, destino: DestinoSolto, startMs: number) => void;
+  /** Move o clip uma camada acima (-1) ou abaixo (+1). */
+  onMoverCamada?: (clipId: string, direcao: -1 | 1) => void;
+  /** Cria uma camada nova acima (-1) ou abaixo (+1) do clip e move o clip para ela. */
+  onNovaCamadaJunto?: (clipId: string, direcao: -1 | 1) => void;
+  onReordenarTracks?: (de: number, para: number) => void;
+  onRenomearTrack?: (trackId: string, nome: string) => void;
+  onExcluirTrack?: (trackId: string) => void;
+  onEditarComIa?: (clipId: string) => void;
 };
 
 type Dica = { x: number; y: number; titulo: string; valor: string; delta: string } | null;
@@ -62,6 +102,13 @@ export function Timeline({
   onAcaoClip,
   onSoltarArquivos,
   onNovaTrilhaVideo,
+  onSoltarClip,
+  onMoverCamada,
+  onNovaCamadaJunto,
+  onReordenarTracks,
+  onRenomearTrack,
+  onExcluirTrack,
+  onEditarComIa,
 }: Props) {
   const areaRef = useRef<HTMLDivElement>(null);
   const pxPorMs = zoom / 1000;
@@ -71,24 +118,33 @@ export function Timeline({
   const [menu, setMenu] = useState<{ x: number; y: number; clipId: string } | null>(null);
   const [soltando, setSoltando] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
-  const [menuPos, setMenuPos] = useState({ x: 0, y: 0 });
+  const [menuPos, setMenuPos] = useState<{ x: number; y: number } | null>(null);
+  const [alvo, setAlvo] = useState<DestinoSolto | null>(null);
+  const [arrastandoTrack, setArrastandoTrack] = useState<number | null>(null);
+  const linhasRef = useRef<Record<string, HTMLDivElement | null>>({});
 
-  // reposiciona o menu de contexto para nunca sair da tela (flip/clamp dinâmico)
-  useEffect(() => {
-    if (!menu) return;
+  /* menu de contexto: collision detection (flip + shift) medindo o menu já renderizado */
+  useLayoutEffect(() => {
+    if (!menu) {
+      setMenuPos(null);
+      return;
+    }
     const el = menuRef.current;
     if (!el) return;
     const margem = 8;
     const r = el.getBoundingClientRect();
-    const maxX = window.innerWidth - r.width - margem;
-    const maxY = window.innerHeight - r.height - margem;
-    let x = menu.x;
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    // flip vertical quando não cabe abaixo do cursor
     let y = menu.y;
-    if (x > maxX) x = Math.max(margem, menu.x - r.width);
-    if (y > maxY) y = Math.max(margem, menu.y - r.height);
-    setMenuPos({ x: Math.min(Math.max(margem, x), Math.max(margem, maxX)), y: Math.min(Math.max(margem, y), Math.max(margem, maxY)) });
+    if (y + r.height + margem > vh) y = menu.y - r.height;
+    y = Math.min(Math.max(margem, y), Math.max(margem, vh - r.height - margem));
+    // shift horizontal
+    let x = menu.x;
+    if (x + r.width + margem > vw) x = menu.x - r.width;
+    x = Math.min(Math.max(margem, x), Math.max(margem, vw - r.width - margem));
+    setMenuPos({ x, y });
   }, [menu]);
-
 
   const duracoes = useMemo(() => {
     const m: Record<string, number> = {};
@@ -104,6 +160,29 @@ export function Timeline({
       return Math.max(0, Math.round((clientX - rect.left + el.scrollLeft) / pxPorMs));
     },
     [pxPorMs],
+  );
+
+  /** Descobre qual camada (ou zona de nova camada) está sob o cursor. */
+  const destinoDoY = useCallback(
+    (clientY: number): DestinoSolto | null => {
+      const ids = state.tracks.map((t) => t.id);
+      const rects = ids
+        .map((id) => {
+          const el = linhasRef.current[id];
+          return el ? ({ id, r: el.getBoundingClientRect() } as const) : null;
+        })
+        .filter((v): v is { id: string; r: DOMRect } => !!v);
+      if (!rects.length) return null;
+      const primeiro = rects[0];
+      const ultimo = rects[rects.length - 1];
+      if (clientY < primeiro.r.top) return { tipo: "nova", indice: 0 };
+      if (clientY > ultimo.r.bottom) return { tipo: "nova", indice: state.tracks.length };
+      for (const { id, r } of rects) {
+        if (clientY >= r.top && clientY <= r.bottom) return { tipo: "track", trackId: id };
+      }
+      return null;
+    },
+    [state.tracks],
   );
 
   const pontosSnap = useMemo(() => {
@@ -146,7 +225,7 @@ export function Timeline({
     modo: "mover" | "trim-in" | "trim-out",
   ) => {
     const trilha = state.tracks.find((t) => t.id === clip.trackId);
-    if (trilha?.locked) return;
+    if (trilha?.locked || clip.bloqueado) return;
     e.stopPropagation();
     const inicioMs = msDoEvento(e.clientX);
     const base = { start: clip.start, duration: clip.duration, sourceIn: clip.sourceIn };
@@ -155,12 +234,33 @@ export function Timeline({
     const fimAntigo = base.start + base.duration;
     const posteriores = state.clips.filter((c) => c.trackId === clip.trackId && c.start >= fimAntigo && c.id !== clip.id);
     setArrastandoId(clip.id);
+    let ultimoStart = base.start;
+    let ultimoDestino: DestinoSolto | null = null;
 
     const mover = (ev: PointerEvent) => {
       const delta = msDoEvento(ev.clientX) - inicioMs;
 
       if (modo === "mover") {
-        onAlterarClip(clip.id, { start: Math.max(0, encaixar(base.start + delta)) }, false);
+        ultimoStart = Math.max(0, encaixar(base.start + delta));
+        onAlterarClip(clip.id, { start: ultimoStart }, false);
+        // drag vertical → camada de destino
+        const d = destinoDoY(ev.clientY);
+        const mesma = d && d.tipo === "track" && d.trackId === clip.trackId;
+        const destinoTravado =
+          d && d.tipo === "track" && !!state.tracks.find((t) => t.id === d.trackId)?.locked;
+        ultimoDestino = !d || mesma || destinoTravado ? null : d;
+        setAlvo(ultimoDestino);
+        setDica({
+          x: ev.clientX,
+          y: ev.clientY,
+          titulo: ultimoDestino
+            ? ultimoDestino.tipo === "nova"
+              ? "Nova camada"
+              : state.tracks.find((t) => t.id === ultimoDestino?.trackId)?.name ?? "Camada"
+            : trilha?.name ?? "Camada",
+          valor: formatarTempo(ultimoStart, true),
+          delta: `${delta >= 0 ? "+" : "−"}${formatarTempo(Math.abs(delta), true)}`,
+        });
         return;
       }
 
@@ -214,20 +314,55 @@ export function Timeline({
       window.removeEventListener("pointerup", soltar);
       setDica(null);
       setArrastandoId(null);
+      setAlvo(null);
+      if (modo === "mover" && ultimoDestino && onSoltarClip) {
+        onSoltarClip(clip.id, ultimoDestino, ultimoStart);
+        return;
+      }
       onAlterarClip(clip.id, {}, true);
     };
     window.addEventListener("pointermove", mover);
     window.addEventListener("pointerup", soltar);
   };
 
+  const clipMenu = menu ? state.clips.find((c) => c.id === menu.clipId) ?? null : null;
+  const trilhaMenu = clipMenu ? state.tracks.find((t) => t.id === clipMenu.trackId) ?? null : null;
+  const idxTrilhaMenu = trilhaMenu ? state.tracks.findIndex((t) => t.id === trilhaMenu.id) : -1;
+
   return (
     <div className="relative flex h-full min-h-0 flex-col bg-[#0d1116]" onPointerDown={() => setMenu(null)}>
       <div className="flex min-h-0 flex-1">
         {/* cabeçalho das trilhas */}
-        <div className="w-[150px] shrink-0 border-r border-white/10 bg-[#10151b]">
-          <div className="h-7 border-b border-white/10" />
-          {state.tracks.map((t) => (
-            <TrackLabel key={t.id} track={t} onToggle={onToggleTrack} />
+        <div className="w-[170px] shrink-0 border-r border-white/10 bg-[#10151b]">
+          <div className="flex h-7 items-center justify-between border-b border-white/10 px-2">
+            <span className="text-[10px] uppercase tracking-wide text-white/30">Camadas</span>
+            {onNovaTrilhaVideo ? (
+              <button
+                type="button"
+                title="Nova camada de vídeo"
+                onClick={onNovaTrilhaVideo}
+                className="rounded p-0.5 text-white/45 transition hover:bg-white/10 hover:text-white"
+              >
+                <Plus className="h-3.5 w-3.5" />
+              </button>
+            ) : null}
+          </div>
+          {state.tracks.map((t, i) => (
+            <TrackLabel
+              key={t.id}
+              track={t}
+              indice={i}
+              vazia={!state.clips.some((c) => c.trackId === t.id)}
+              arrastandoIndice={arrastandoTrack}
+              onToggle={onToggleTrack}
+              onRenomear={onRenomearTrack}
+              onExcluir={onExcluirTrack}
+              onIniciarReorder={setArrastandoTrack}
+              onSoltarReorder={(para) => {
+                if (arrastandoTrack !== null && arrastandoTrack !== para) onReordenarTracks?.(arrastandoTrack, para);
+                setArrastandoTrack(null);
+              }}
+            />
           ))}
           {onNovaTrilhaVideo ? (
             <button
@@ -302,10 +437,23 @@ export function Timeline({
               />
             ) : null}
 
+            {/* zona de nova camada acima de tudo */}
+            {alvo?.tipo === "nova" && alvo.indice === 0 ? (
+              <div className="pointer-events-none flex h-6 items-center justify-center border-y border-dashed border-[#F26B1F] bg-[#F26B1F]/10 text-[10px] text-[#F26B1F]">
+                Nova camada acima
+              </div>
+            ) : null}
+
             {state.tracks.map((t) => (
               <div
                 key={t.id}
-                className="relative h-14 border-b border-white/5"
+                ref={(el) => {
+                  linhasRef.current[t.id] = el;
+                }}
+                className={`relative border-b border-white/5 ${
+                  alvo?.tipo === "track" && alvo.trackId === t.id ? "bg-[#F26B1F]/10 ring-1 ring-inset ring-[#F26B1F]/60" : ""
+                } ${t.hidden ? "opacity-50" : ""}`}
+                style={{ height: ALTURA_TRILHA }}
                 onPointerDown={(e) => {
                   if (e.target === e.currentTarget) onSelecionar([]);
                 }}
@@ -333,13 +481,20 @@ export function Timeline({
                       onArrastar={iniciarArraste}
                       onAbrirSource={() => onAbrirSource(c.id)}
                       onMenu={(x, y) => {
-                        setMenuPos({ x, y });
+                        setMenuPos(null);
                         setMenu({ x, y, clipId: c.id });
                       }}
                     />
                   ))}
               </div>
             ))}
+
+            {/* zona de nova camada abaixo de tudo */}
+            {alvo?.tipo === "nova" && alvo.indice === state.tracks.length ? (
+              <div className="pointer-events-none flex h-6 items-center justify-center border-y border-dashed border-[#F26B1F] bg-[#F26B1F]/10 text-[10px] text-[#F26B1F]">
+                Nova camada abaixo
+              </div>
+            ) : null}
 
             {/* marcadores */}
             {(state.marcadores ?? []).map((m) => (
@@ -386,14 +541,45 @@ export function Timeline({
         </div>
       ) : null}
 
-      {menu ? (
+      {menu && clipMenu ? (
         <div
           ref={menuRef}
-          className="fixed z-[60] flex max-h-[calc(100vh-16px)] w-56 flex-col overflow-y-auto overscroll-contain rounded-xl border border-white/10 bg-[#12171d] py-1 text-[12px] shadow-2xl"
-          style={{ left: menuPos.x, top: menuPos.y }}
+          className="fixed z-[60] flex max-h-[calc(100vh-16px)] w-60 flex-col overflow-y-auto overscroll-contain rounded-xl border border-white/10 bg-[#12171d] py-1 text-[12px] shadow-2xl"
+          style={{ left: menuPos?.x ?? menu.x, top: menuPos?.y ?? menu.y, visibility: menuPos ? "visible" : "hidden" }}
           onPointerDown={(e) => e.stopPropagation()}
         >
+          {onEditarComIa ? (
+            <>
+              <button
+                className="block w-full px-3 py-2 text-left font-medium text-[#F26B1F] hover:bg-[#F26B1F]/10"
+                onClick={() => {
+                  onEditarComIa(menu.clipId);
+                  setMenu(null);
+                }}
+              >
+                ✨ Editar com IA
+              </button>
+              <div className="my-1 h-px bg-white/10" />
+            </>
+          ) : null}
 
+          {[
+            { id: "dividir" as const, nome: "Dividir no playhead" },
+            { id: "aparar" as const, nome: "Aparar até o playhead" },
+            { id: "duplicar" as const, nome: "Duplicar" },
+            { id: "copiar" as const, nome: "Copiar" },
+          ].map((a) => (
+            <button
+              key={a.id}
+              className="block w-full px-3 py-2 text-left hover:bg-white/10"
+              onClick={() => {
+                onAcaoClip?.(menu.clipId, a.id);
+                setMenu(null);
+              }}
+            >
+              {a.nome}
+            </button>
+          ))}
           <button
             className="block w-full px-3 py-2 text-left hover:bg-white/10"
             onClick={() => {
@@ -412,27 +598,115 @@ export function Timeline({
           >
             Abrir material original
           </button>
+
+          {clipMenu.kind === "video" || clipMenu.kind === "audio" ? (
+            <>
+              <div className="my-1 h-px bg-white/10" />
+              <button
+                className="block w-full px-3 py-2 text-left hover:bg-white/10"
+                onClick={() => {
+                  onAcaoClip?.(menu.clipId, "desvincular");
+                  setMenu(null);
+                }}
+              >
+                Desvincular áudio
+              </button>
+              {clipMenu.kind === "video" ? (
+                <button
+                  className="block w-full px-3 py-2 text-left hover:bg-white/10"
+                  onClick={() => {
+                    onAcaoClip?.(menu.clipId, "extrair-audio");
+                    setMenu(null);
+                  }}
+                >
+                  Extrair áudio para nova faixa
+                </button>
+              ) : null}
+              <button
+                className="block w-full px-3 py-2 text-left hover:bg-white/10"
+                onClick={() => {
+                  onAcaoClip?.(menu.clipId, "mudo");
+                  setMenu(null);
+                }}
+              >
+                Silenciar / reativar
+              </button>
+            </>
+          ) : null}
+
+          {clipMenu.kind === "video" || clipMenu.kind === "image" ? (
+            <>
+              <div className="my-1 h-px bg-white/10" />
+              <button
+                disabled={idxTrilhaMenu <= 0}
+                className="block w-full px-3 py-2 text-left hover:bg-white/10 disabled:opacity-35"
+                onClick={() => {
+                  onMoverCamada?.(menu.clipId, -1);
+                  setMenu(null);
+                }}
+              >
+                Mover para camada acima
+              </button>
+              <button
+                disabled={idxTrilhaMenu < 0 || idxTrilhaMenu >= state.tracks.length - 1}
+                className="block w-full px-3 py-2 text-left hover:bg-white/10 disabled:opacity-35"
+                onClick={() => {
+                  onMoverCamada?.(menu.clipId, 1);
+                  setMenu(null);
+                }}
+              >
+                Mover para camada abaixo
+              </button>
+              <button
+                className="block w-full px-3 py-2 text-left hover:bg-white/10"
+                onClick={() => {
+                  onNovaCamadaJunto?.(menu.clipId, -1);
+                  setMenu(null);
+                }}
+              >
+                Criar nova camada acima
+              </button>
+              <button
+                className="block w-full px-3 py-2 text-left hover:bg-white/10"
+                onClick={() => {
+                  onNovaCamadaJunto?.(menu.clipId, 1);
+                  setMenu(null);
+                }}
+              >
+                Criar nova camada abaixo
+              </button>
+            </>
+          ) : null}
+
           <div className="my-1 h-px bg-white/10" />
-          {[
-            { id: "dividir", nome: "Dividir no playhead" },
-            { id: "duplicar", nome: "Duplicar" },
-            { id: "congelar", nome: "Congelar frame" },
-            { id: "desvincular", nome: "Desvincular áudio" },
-            { id: "mudo", nome: "Silenciar / reativar" },
-            { id: "bloquear", nome: "Bloquear / desbloquear" },
-          ].map((a) => (
-            <button
-              key={a.id}
-              className="block w-full px-3 py-2 text-left hover:bg-white/10"
-              onClick={() => {
-                onAcaoClip?.(menu.clipId, a.id as never);
-                setMenu(null);
-              }}
-            >
-              {a.nome}
-            </button>
-          ))}
+          <button
+            className="block w-full px-3 py-2 text-left hover:bg-white/10"
+            onClick={() => {
+              onAcaoClip?.(menu.clipId, "congelar");
+              setMenu(null);
+            }}
+          >
+            Congelar frame
+          </button>
+          <button
+            className="block w-full px-3 py-2 text-left hover:bg-white/10"
+            onClick={() => {
+              onAcaoClip?.(menu.clipId, "bloquear");
+              setMenu(null);
+            }}
+          >
+            Bloquear / desbloquear
+          </button>
           <div className="my-1 h-px bg-white/10" />
+          <button
+            className="block w-full px-3 py-2 text-left text-red-400 hover:bg-red-500/10"
+            onClick={() => {
+              onAcaoClip?.(menu.clipId, "ripple");
+              setMenu(null);
+            }}
+          >
+            Ripple delete (fecha o buraco)
+          </button>
           <button
             className="block w-full px-3 py-2 text-left text-red-400 hover:bg-red-500/10"
             onClick={() => {
@@ -450,16 +724,84 @@ export function Timeline({
 
 function TrackLabel({
   track,
+  indice,
+  vazia,
+  arrastandoIndice,
   onToggle,
+  onRenomear,
+  onExcluir,
+  onIniciarReorder,
+  onSoltarReorder,
 }: {
   track: EditairTrack;
+  indice: number;
+  vazia: boolean;
+  arrastandoIndice: number | null;
   onToggle: (id: string, campo: "muted" | "hidden" | "locked" | "solo") => void;
+  onRenomear?: (id: string, nome: string) => void;
+  onExcluir?: (id: string) => void;
+  onIniciarReorder: (indice: number) => void;
+  onSoltarReorder: (indice: number) => void;
 }) {
   const audio = track.kind === "voice" || track.kind === "music" || track.kind === "video";
+  const [editando, setEditando] = useState(false);
+  const [nome, setNome] = useState(track.name);
+  const [sobre, setSobre] = useState(false);
+
+  const salvar = () => {
+    setEditando(false);
+    const n = nome.trim();
+    if (n && n !== track.name) onRenomear?.(track.id, n);
+    else setNome(track.name);
+  };
+
   return (
-    <div className="flex h-14 items-center justify-between gap-1 border-b border-white/5 px-2.5 text-[11px] text-white/65">
-      <span className="truncate">{track.name}</span>
-      <div className="flex items-center gap-0.5">
+    <div
+      draggable={!!onRenomear || true}
+      onDragStart={() => onIniciarReorder(indice)}
+      onDragOver={(e) => {
+        e.preventDefault();
+        setSobre(true);
+      }}
+      onDragLeave={() => setSobre(false)}
+      onDrop={(e) => {
+        e.preventDefault();
+        setSobre(false);
+        onSoltarReorder(indice);
+      }}
+      onDragEnd={() => setSobre(false)}
+      style={{ height: ALTURA_TRILHA }}
+      className={`flex items-center justify-between gap-1 border-b border-white/5 px-1.5 text-[11px] text-white/65 ${
+        sobre && arrastandoIndice !== null && arrastandoIndice !== indice ? "bg-[#F26B1F]/15" : ""
+      }`}
+    >
+      <GripVertical className="h-3.5 w-3.5 shrink-0 cursor-grab text-white/25" />
+      {editando ? (
+        <input
+          autoFocus
+          value={nome}
+          onChange={(e) => setNome(e.target.value)}
+          onBlur={salvar}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") salvar();
+            if (e.key === "Escape") {
+              setNome(track.name);
+              setEditando(false);
+            }
+          }}
+          className="min-w-0 flex-1 rounded bg-black/40 px-1 py-0.5 text-[11px] text-white outline-none"
+        />
+      ) : (
+        <span className="min-w-0 flex-1 truncate" onDoubleClick={() => setEditando(true)} title={track.name}>
+          {track.name}
+        </span>
+      )}
+      <div className="flex shrink-0 items-center gap-0.5">
+        {onRenomear && !editando ? (
+          <IconBtn title="Renomear camada" onClick={() => setEditando(true)}>
+            <Pencil className="h-3 w-3" />
+          </IconBtn>
+        ) : null}
         <IconBtn title="Mostrar/ocultar" onClick={() => onToggle(track.id, "hidden")}>
           {track.hidden ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
         </IconBtn>
@@ -476,6 +818,11 @@ function TrackLabel({
         <IconBtn title="Bloquear" onClick={() => onToggle(track.id, "locked")}>
           {track.locked ? <Lock className="h-3.5 w-3.5 text-amber-400" /> : <LockOpen className="h-3.5 w-3.5" />}
         </IconBtn>
+        {vazia && onExcluir ? (
+          <IconBtn title="Excluir camada vazia" onClick={() => onExcluir(track.id)}>
+            <Trash2 className="h-3 w-3 text-red-400" />
+          </IconBtn>
+        ) : null}
       </div>
     </div>
   );
