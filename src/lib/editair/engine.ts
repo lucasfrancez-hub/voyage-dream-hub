@@ -45,6 +45,8 @@ export class EditairEngine {
   private imagens = new Map<string, HTMLImageElement>();
   /** assets que falharam ao carregar — desenhados como "Mídia offline" */
   private falhas = new Set<string>();
+  /** causa real da falha (código do <video>, MIME, estado da rede) por asset */
+  private detalhes = new Map<string, FalhaMidia>();
   /** último quadro pedido — usado para repintar quando o vídeo termina de buscar */
   private ultimo: { state: ProjectState; t: number } | null = null;
   private tocandoAgora = false;
