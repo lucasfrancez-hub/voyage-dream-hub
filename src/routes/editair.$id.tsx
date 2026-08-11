@@ -504,6 +504,33 @@ function EditorPage() {
     engineRef.current?.definirMudo(mudo);
   }, [volume, mudo]);
 
+  /* AUDITORIA DE ÁUDIO — console: editairAudioDiag() a qualquer momento.
+     Também dispara um dump automático 1,2 s depois de apertar Play. */
+  useEffect(() => {
+    const w = window as unknown as { editairAudioDiag?: () => unknown };
+    w.editairAudioDiag = () => {
+      const d = engineRef.current?.diagnosticoAudio(stateRef.current, playheadRef.current);
+      console.log("[audio:diag]", d);
+      return d;
+    };
+    return () => {
+      delete w.editairAudioDiag;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!tocando) return;
+    const id = window.setTimeout(() => {
+      console.log(
+        "[audio:diag] 1,2s após Play",
+        engineRef.current?.diagnosticoAudio(stateRef.current, playheadRef.current),
+      );
+    }, 1200);
+    return () => window.clearTimeout(id);
+  }, [tocando]);
+
+
+
   useEffect(() => {
     const eng = engineRef.current;
     if (!eng) return;
