@@ -594,10 +594,16 @@ export function Timeline({
           ) : null}
         </div>
 
-        {/* área rolável */}
+        {/* área rolável — único scroll container (X e Y) da timeline */}
         <div
           ref={areaRef}
-          className={`relative min-h-0 flex-1 overflow-auto ${soltando ? "ring-1 ring-inset ring-[#F26B1F]/50" : ""}`}
+          data-testid="timeline-viewport"
+          onScroll={(e) => {
+            const el = e.currentTarget;
+            if (headersRef.current) headersRef.current.style.transform = `translateY(${-el.scrollTop}px)`;
+          }}
+          className={`relative min-h-0 min-w-0 flex-1 overflow-x-auto overflow-y-auto ${soltando ? "ring-1 ring-inset ring-[#F26B1F]/50" : ""}`}
+
           onDragOver={
             onSoltarArquivos || onSoltarAsset
               ? (e) => {
