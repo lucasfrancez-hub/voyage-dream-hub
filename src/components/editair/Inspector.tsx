@@ -51,7 +51,6 @@ export type AcoesInspector = {
   onExtrairAudio: () => void;
   onNormalizar: () => void;
   onSepararAudio: () => void;
-  onSepararAudio: () => void;
   /** roda a análise de recorte do clipe (segmentação) reportando progresso */
   onAnalisarFundo?: (onProgresso: (pct: number) => void, cancelado: () => boolean) => Promise<boolean>;
 };
