@@ -161,9 +161,16 @@ function PagamentosPage() {
           <p className="text-sm text-muted-foreground">Pix de saída pela conta ASAAS e acompanhamento dos status.</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
-            <RefreshCw className={`h-4 w-4 mr-1.5 ${isFetching ? "animate-spin" : ""}`} /> Atualizar
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={doSyncTodos}
+            disabled={sincronizandoTudo || isFetching}
+          >
+            <RefreshCw className={`h-4 w-4 mr-1.5 ${sincronizandoTudo || isFetching ? "animate-spin" : ""}`} />
+            {sincronizandoTudo ? "Sincronizando..." : "Atualizar"}
           </Button>
+
           <Button size="sm" onClick={() => setNovoOpen(true)}>
             <Plus className="h-4 w-4 mr-1.5" /> Novo pagamento Pix
           </Button>
