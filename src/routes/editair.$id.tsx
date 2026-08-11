@@ -577,6 +577,50 @@ function EditorPage() {
   }, [id]);
 
 
+  /* AUDITORIA DE TROCA DE CLIPE VISUAL — Ajustes → Diagnóstico → "Auditar troca de clipe".
+     Só lê estado: qual clipe visual está ativo, sourceTime calculado, currentTime real
+     do <video>, se está em seek e o que foi efetivamente desenhado. Não muda o render. */
+  useEffect(() => {
+    return registrarDiag("clipes", () => {
+      const eng = engineRef.current;
+      if (!eng) return { indisponivel: true, motivo: "engine ainda não montada" };
+      const st = stateRef.current;
+      return {
+        projeto: id,
+        playhead: Math.round(playheadRef.current),
+        tocando: tocandoRef.current,
+        clipsDoProjeto: st.clips
+          .filter((c) => c.kind === "video" || c.kind === "image")
+          .map((c) => ({
+            clipId: c.id,
+            kind: c.kind,
+            assetId: c.assetId ?? null,
+            trackId: c.trackId,
+            start: c.start,
+            duration: c.duration,
+            sourceIn: c.sourceIn,
+            speed: c.speed,
+          })),
+        engine: eng.diagnosticoVisual(st, playheadRef.current),
+      };
+    });
+  }, [id]);
+
+  /* Liga/desliga o traço por quadro (histórico das trocas durante o play). */
+  useEffect(() => {
+    return registrarDiag("clipesTraco", () => {
+      const eng = engineRef.current;
+      if (!eng) return { indisponivel: true };
+      if (eng.tracandoVisual()) {
+        eng.pararTracoVisual();
+        return { tracando: false, resultado: eng.diagnosticoVisual(stateRef.current, playheadRef.current) };
+      }
+      eng.iniciarTracoVisual();
+      return { tracando: true, mensagem: "traço ligado — toque o vídeo e colete de novo para ver as trocas" };
+    });
+  }, [id]);
+
+
   /* TESTE A/B DE LEGENDAS — console: await editairABLegendas()
      Compara Gemini (tempo estimado) × Whisper local (tempo acústico) no MESMO áudio. */
   useEffect(() => {
