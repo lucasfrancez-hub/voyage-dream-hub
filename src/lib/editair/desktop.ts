@@ -107,7 +107,7 @@ type PonteDesktop = {
     quadros: {
       iniciar(spec: Record<string, unknown>): Promise<{ id: string; destino: string }>;
       quadro(id: string, quadro: ArrayBuffer | Uint8Array): Promise<{ frames: number }>;
-      finalizar(id: string): Promise<{ destino: string }>;
+      finalizar(id: string): Promise<{ destino: string; bytes?: number }>;
       cancelar(id: string): Promise<boolean>;
     };
   };
