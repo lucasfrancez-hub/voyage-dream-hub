@@ -453,68 +453,24 @@ function EditorPage() {
 
 
   /* ---------------- camadas (tracks) ---------------- */
-  /** Insere uma camada de vídeo no índice pedido. Índice 0 = topo (aparece por cima). */
-  const criarTrackEm = (base: ProjectState, indice: number) => {
-    const n = base.tracks.filter((t) => t.kind === "video").length + 1;
-    const track = {
-      id: `t-video-${n}-${Math.random().toString(36).slice(2, 6)}`,
-      kind: "video" as const,
-      name: `Vídeo ${n}`,
-    };
-    const tracks = [...base.tracks];
-    tracks.splice(Math.max(0, Math.min(tracks.length, indice)), 0, track);
-    return { estado: { ...base, tracks }, trackId: track.id };
+  /** Toda a lógica de camadas vive em lib/editair/layers.ts (pura e testável). */
+  const usarResultado = (r: ResultadoCamada) => {
+    if (!r.ok) return toast.error(r.erro);
+    aplicar(r.state);
   };
 
-  const soltarClip = (
-    cid: string,
-    destino: { tipo: "track"; trackId: string } | { tipo: "nova"; indice: number },
-    startMs: number,
-  ) => {
-    const clip = state.clips.find((c) => c.id === cid);
-    if (!clip) return;
-    let base = state;
-    let trackId: string;
-    if (destino.tipo === "nova") {
-      const r = criarTrackEm(base, destino.indice);
-      base = r.estado;
-      trackId = r.trackId;
-    } else {
-      trackId = destino.trackId;
-      if (base.tracks.find((t) => t.id === trackId)?.locked) return toast.error("Camada bloqueada.");
-    }
-    aplicar({
-      ...base,
-      clips: base.clips.map((c) => (c.id === cid ? { ...c, trackId, start: Math.max(0, Math.round(startMs)) } : c)),
-    });
-  };
+  const soltarClip = (cid: string, destino: DestinoCamada, startMs: number) =>
+    usarResultado(soltarClipEm(state, cid, destino, startMs));
 
-  const moverClipCamada = (cid: string, direcao: -1 | 1) => {
-    const clip = state.clips.find((c) => c.id === cid);
-    if (!clip) return;
-    const i = state.tracks.findIndex((t) => t.id === clip.trackId);
-    const alvo = state.tracks[i + direcao];
-    if (!alvo) return toast.error("Não há camada nessa direção.");
-    if (alvo.locked) return toast.error("Camada bloqueada.");
-    aplicar({ ...state, clips: state.clips.map((c) => (c.id === cid ? { ...c, trackId: alvo.id } : c)) });
-  };
+  const moverClipCamada = (cid: string, direcao: -1 | 1) => usarResultado(moverClipCamada_(state, cid, direcao));
 
-  const novaCamadaJunto = (cid: string, direcao: -1 | 1) => {
-    const clip = state.clips.find((c) => c.id === cid);
-    if (!clip) return;
-    const i = state.tracks.findIndex((t) => t.id === clip.trackId);
-    const indice = direcao === -1 ? i : i + 1;
-    const { estado, trackId } = criarTrackEm(state, indice);
-    aplicar({ ...estado, clips: estado.clips.map((c) => (c.id === cid ? { ...c, trackId } : c)) });
-  };
+  const novaCamadaJunto = (cid: string, direcao: -1 | 1) => usarResultado(novaCamadaJunto_(state, cid, direcao));
 
   const reordenarTracks = (de: number, para: number) => {
-    const tracks = [...state.tracks];
-    const [t] = tracks.splice(de, 1);
-    if (!t) return;
-    tracks.splice(para, 0, t);
-    aplicar({ ...state, tracks });
+    const r = reordenarTracks_(state, de, para);
+    if (r.ok) aplicar(r.state);
   };
+
 
   /** Devolve o clipe à duração integral do arquivo original (não destrutivo). */
   const restaurarClip = (cid: string) => {
