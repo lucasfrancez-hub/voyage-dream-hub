@@ -358,6 +358,34 @@ export class EditairEngine {
     return !!this.seg?.pronto;
   }
 
+  /**
+   * Analisa o intervalo do clipe e guarda as máscaras em cache (asset + frame +
+   * versão do modelo). Só roda a IA uma vez: reabrir o projeto ou mexer no
+   * contorno reaproveita o cache.
+   */
+  async analisarFundo(
+    c: EditairClip,
+    onProgresso?: (pct: number) => void,
+    cancelado?: () => boolean,
+  ) {
+    if (!c.assetId) return false;
+    const qualidade = c.fundo?.qualidade ?? "rapida";
+    await this.ativarFundo(qualidade);
+    const midia = this.midias.get(c.assetId);
+    if (!this.seg || !midia) {
+      onProgresso?.(100);
+      return false;
+    }
+    const fim = c.sourceIn + c.duration * (c.speed || 1);
+    return this.seg.precomputar(c.assetId, midia.el, c.sourceIn, fim, qualidade, onProgresso, cancelado);
+  }
+
+  /** Esquece o estado temporal da máscara de um clipe (ex.: clipe removido). */
+  esquecerMascara(clipId: string) {
+    this.seg?.esquecer(clipId);
+  }
+
+
   private offscreen() {
     if (!this.off) this.off = document.createElement("canvas");
     if (this.off.width !== this.width || this.off.height !== this.height) {
