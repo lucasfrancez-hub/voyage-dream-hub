@@ -807,51 +807,69 @@ function PainelEfeitos({ clip, assets, onPatchClip, onDemonstrarClip }: ToolPane
 
 /* ---------------------------- Transições ----------------------------- */
 
-function PainelTransicoes({ clip, onPatchClip }: ToolPanelProps) {
+function PainelTransicoes({ clip, assets, onPatchClip }: ToolPanelProps) {
   const dur = clip?.transicao?.durationMs ?? 500;
+  const poster = assets.find((a) => a.id === clip?.assetId)?.thumbUrl ?? null;
+
+  if (!clip) {
+    return (
+      <PainelShell titulo="Transições">
+        <Vazio>Selecione o clipe de destino — a transição é aplicada na entrada dele.</Vazio>
+      </PainelShell>
+    );
+  }
+
   return (
-    <Painel titulo="Transições">
-      {!clip ? (
-        <p className="text-[11px] text-white/35">Selecione o clipe de destino — a transição é aplicada na entrada dele.</p>
-      ) : (
-        <>
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              onClick={() => onPatchClip({ transicao: undefined })}
-              className={`rounded-lg border px-2 py-3 text-[11px] ${!clip.transicao ? "border-[#F26B1F] bg-[#F26B1F]/15" : "border-white/10 hover:bg-white/5"}`}
-            >
-              Nenhuma
-            </button>
-            {TRANSICOES.map((t) => (
-              <button
-                key={t.id}
-                onClick={() => onPatchClip({ transicao: { tipo: t.id, durationMs: dur } })}
-                className={`rounded-lg border px-2 py-3 text-[11px] ${
-                  clip.transicao?.tipo === t.id ? "border-[#F26B1F] bg-[#F26B1F]/15" : "border-white/10 hover:bg-white/5"
-                }`}
+    <PainelShell titulo="Transições" contagem={`${TRANSICOES.length} presets`}>
+      <EstilosPreview />
+      <p className="mb-2 text-[10px] text-white/35">Passe o mouse no card para ver a transição rodando.</p>
+      <Grade cols={2}>
+        <PresetCard
+          nome="Nenhuma"
+          ativo={!clip.transicao}
+          poster={poster}
+          onClick={() => onPatchClip({ transicao: undefined })}
+        />
+        {TRANSICOES.map((t) => (
+          <PresetCard
+            key={t.id}
+            nome={t.nome}
+            ativo={clip.transicao?.tipo === t.id}
+            poster={poster}
+            anim={t.id as PreviewAnim}
+            onClick={() => onPatchClip({ transicao: { tipo: t.id, durationMs: dur } })}
+          />
+        ))}
+      </Grade>
+
+      {clip.transicao ? (
+        <div className="mt-3">
+          <LinhaValor label="Duração" valor={`${dur} ms`}>
+            <Slider
+              value={[dur]}
+              min={100}
+              max={2000}
+              step={50}
+              onValueChange={([v]) => onPatchClip({ transicao: { tipo: clip.transicao!.tipo, durationMs: v } })}
+            />
+          </LinhaValor>
+          <div className="flex gap-1.5">
+            {[300, 500, 800, 1200].map((v) => (
+              <BotaoPill
+                key={v}
+                ativo={dur === v}
+                onClick={() => onPatchClip({ transicao: { tipo: clip.transicao!.tipo, durationMs: v } })}
               >
-                {t.nome}
-              </button>
+                {v} ms
+              </BotaoPill>
             ))}
           </div>
-          {clip.transicao ? (
-            <div className="mt-3">
-              <Campo label={`Duração — ${dur} ms`}>
-                <Slider
-                  value={[dur]}
-                  min={100}
-                  max={2000}
-                  step={50}
-                  onValueChange={([v]) => onPatchClip({ transicao: { tipo: clip.transicao!.tipo, durationMs: v } })}
-                />
-              </Campo>
-            </div>
-          ) : null}
-        </>
-      )}
-    </Painel>
+        </div>
+      ) : null}
+    </PainelShell>
   );
 }
+
 
 /* ----------------------------- Legendas ------------------------------ */
 
