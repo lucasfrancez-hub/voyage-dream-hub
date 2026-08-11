@@ -1096,7 +1096,8 @@ export class EditairEngine {
   }
 
   private desenharLegenda(c: EditairClip, estilo: CaptionStyle, t: number) {
-    const texto = estilo.uppercase ? (c.text ?? "").toUpperCase() : (c.text ?? "");
+    const texto = aplicarCaps(c.text ?? "", estilo.caps, estilo.uppercase);
+
     if (!texto) return;
     const { ctx, width, height } = this;
     ctx.save();
