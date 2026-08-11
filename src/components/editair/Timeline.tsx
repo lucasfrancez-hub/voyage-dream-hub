@@ -1292,6 +1292,44 @@ function Clipe({
         ) : null}
         <MarcadoresEfeitos clip={clip} largura={largura} />
         <StatusClipe clip={clip} />
+
+        {/* FAIXA DE SEEK — topo do clipe: clique/arraste posiciona o playhead (CapCut-like).
+            Fica abaixo das alças de trim (renderizadas depois) para não roubar o trim. */}
+        {!editandoTexto ? (
+          <div
+            data-testid="clip-seek-zone"
+            className="absolute inset-x-2.5 top-0 z-20 h-3.5 cursor-ew-resize"
+            title="Clique ou arraste para mover o playhead"
+            onPointerDown={(e) => {
+              if (e.button === 2) return;
+              e.stopPropagation();
+              onScrub(e);
+            }}
+            onDoubleClick={(e) => e.stopPropagation()}
+            onPointerMove={(e) => {
+              const r = e.currentTarget.getBoundingClientRect();
+              setSeekHover({ x: e.clientX - r.left, ms: msNoX(e.clientX) });
+            }}
+            onPointerLeave={() => setSeekHover(null)}
+          >
+            <span className="pointer-events-none absolute inset-0 bg-white/10 opacity-0 transition hover:opacity-100" />
+            {seekHover ? (
+              <>
+                <span
+                  className="pointer-events-none absolute top-0 h-3.5 w-px bg-white/80"
+                  style={{ left: seekHover.x }}
+                />
+                <span
+                  className="pointer-events-none absolute -top-4 rounded bg-black/80 px-1 font-mono text-[9px] text-white"
+                  style={{ left: Math.max(0, seekHover.x - 18) }}
+                >
+                  {formatarTempo(seekHover.ms, true)}
+                </span>
+              </>
+            ) : null}
+          </div>
+        ) : null}
+
         {!bloqueado && !clip.bloqueado ? (
           <>
             <div
