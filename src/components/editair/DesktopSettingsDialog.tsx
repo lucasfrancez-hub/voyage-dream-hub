@@ -8,6 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { confirmThen } from "@/lib/confirm";
+import { lerDiag } from "@/lib/editair/diag";
 import {
   formatarBytes,
   pontoDesktop,
@@ -174,6 +175,60 @@ export function DesktopSettingsDialog({
     };
     setDiag(JSON.stringify(dump, null, 2));
     toast.success("Diagnóstico capturado");
+  };
+
+  /* Diagnóstico da timeline (scroll, zoom, splitter) — vem do registro, não do console. */
+  const coletarTimeline = () => {
+    const d = lerDiag("timeline");
+    setDiag(JSON.stringify({ app: { versao: info?.versao }, timeline: d }, null, 2));
+    if ((d as { indisponivel?: boolean })?.indisponivel) toast.error("Abra um projeto no editor para diagnosticar a timeline.");
+    else toast.success("Diagnóstico da timeline capturado");
+  };
+
+  /* Auditoria de mídia: URL usada, estado do <video>, MediaError traduzido e resposta do
+     protocolo editair-media:// (arquivo inteiro, Range inicial, do meio e aberto). */
+  const coletarMidia = async () => {
+    const base = lerDiag("midia") as {
+      indisponivel?: boolean;
+      assets?: { assetId: string; nome: string; url: string; falhouNoPreview: boolean }[];
+    };
+    if (base?.indisponivel) {
+      toast.error("Abra um projeto no editor antes de auditar a mídia.");
+      return;
+    }
+    const sondar = async (url: string, headers?: Record<string, string>) => {
+      try {
+        const r = await fetch(url, { headers });
+        return {
+          status: r.status,
+          contentType: r.headers.get("content-type"),
+          contentLength: r.headers.get("content-length"),
+          acceptRanges: r.headers.get("accept-ranges"),
+          contentRange: r.headers.get("content-range"),
+        };
+      } catch (e) {
+        return { erro: e instanceof Error ? e.message : String(e) };
+      }
+    };
+    const alvos = (base?.assets ?? []).filter((a) => a.falhouNoPreview || (base?.assets ?? []).length <= 4);
+    const protocolo: Record<string, unknown> = {};
+    for (const a of alvos) {
+      if (!a.url) continue;
+      protocolo[`${a.nome} (${a.assetId})`] = {
+        inteiro: await sondar(a.url),
+        rangeInicial: await sondar(a.url, { Range: "bytes=0-1023" }),
+        rangeMeio: await sondar(a.url, { Range: "bytes=100000-101023" }),
+        rangeAberto: await sondar(a.url, { Range: "bytes=1024-" }),
+      };
+    }
+    let importacao: unknown = null;
+    try {
+      importacao = (await api.diagnostico?.importacao()) ?? null;
+    } catch (e) {
+      importacao = { erro: e instanceof Error ? e.message : String(e) };
+    }
+    setDiag(JSON.stringify({ app: { versao: info?.versao }, midia: base, protocolo, importacao }, null, 2));
+    toast.success("Auditoria de mídia capturada");
   };
 
   /* Auditoria de importação: onde cada mídia vive e se o áudio sobrevive ao proxy. */
@@ -395,6 +450,24 @@ export function DesktopSettingsDialog({
               </div>
 
             </div>
+
+            <div className="rounded-lg border border-white/10 p-4">
+              <div className="mb-1 flex items-center gap-2 text-white/60">
+                <Activity className="h-4 w-4" /> Timeline e mídia do preview
+              </div>
+              <p className="text-xs text-white/50">
+                Diagnóstico direto na interface — sem console. Abra o projeto no editor antes de coletar.
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Button size="sm" variant="secondary" onClick={coletarTimeline}>
+                  <Activity className="mr-1.5 h-4 w-4" /> Diagnóstico da timeline
+                </Button>
+                <Button size="sm" variant="secondary" onClick={() => void coletarMidia()}>
+                  <Activity className="mr-1.5 h-4 w-4" /> Auditar mídia do preview
+                </Button>
+              </div>
+            </div>
+
 
             <div className="rounded-lg border border-white/10 p-4">
               <div className="mb-1 flex items-center gap-2 text-white/60">

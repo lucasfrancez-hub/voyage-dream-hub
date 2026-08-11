@@ -24,6 +24,8 @@ import { marcadoresEfeitos } from "@/lib/editair/efeitos";
 import { limitesDoClip } from "@/lib/editair/ops";
 import { obterPicos, obterThumb, picosEmCache } from "@/lib/editair/media";
 import { executarJob } from "@/lib/editair/jobs";
+import { registrarDiag } from "@/lib/editair/diag";
+
 import { useJobsDoAlvo } from "@/hooks/use-editair-jobs";
 import { clipsNaCaixa, moverSelecao, tracksNaFaixa, unir } from "@/lib/editair/selecao";
 import {
@@ -333,8 +335,7 @@ export function Timeline({
 
   /* diagnóstico no Desktop (sem DevTools): window.editairTimelineDiag() */
   useEffect(() => {
-    const w = window as unknown as Record<string, unknown>;
-    w.editairTimelineDiag = () => {
+    return registrarDiag("timeline", () => {
       const el = areaRef.current;
       const regiao = document.querySelector('[data-testid="editair-timeline-region"]') as HTMLElement | null;
       return {
@@ -348,10 +349,7 @@ export function Timeline({
         zoom,
         scrollbarVisivel: !!document.querySelector('[data-testid="timeline-scrollbar-thumb"]'),
       };
-    };
-    return () => {
-      delete w.editairTimelineDiag;
-    };
+    });
   }, [panAtivo, zoom]);
 
 
