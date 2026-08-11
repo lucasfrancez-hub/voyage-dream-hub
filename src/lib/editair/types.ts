@@ -89,6 +89,8 @@ export const LEGENDA_PADRAO: CaptionStyle = {
   y: 0.78,
   x: 0.5,
   uppercase: true,
+  caps: "upper",
+  boxWidth: 0.86,
   fontFamily: "Inter, system-ui, sans-serif",
   karaoke: true,
   animacao: "pop",
