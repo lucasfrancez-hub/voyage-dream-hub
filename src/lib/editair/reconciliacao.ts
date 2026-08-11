@@ -170,10 +170,11 @@ export function reconciliar(alinhadas: PalavraAlinhada[], textoCorrigido: string
     const fonte = base.slice(i, ate_i);
     const novos = tokens.slice(j, ate_j);
     if (!fonte.length) {
-      // inserção pura de texto: cola no fim da última palavra emitida
+      // inserção: só aceita pontuação solta — palavra nova é reescrita, rejeita
       const ultimo = saida[saida.length - 1];
-      if (ultimo && novos.length) {
-        ultimo.w = `${ultimo.w} ${novos.join(" ")}`.trim();
+      const pontuacao = novos.filter(soPontuacao);
+      if (ultimo && pontuacao.length) {
+        ultimo.w = `${ultimo.w}${pontuacao.join("")}`.trim();
         alteradas++;
       }
       return;
@@ -183,12 +184,21 @@ export function reconciliar(alinhadas: PalavraAlinhada[], textoCorrigido: string
       saida.push(...fonte);
       return;
     }
-    const ini = fonte[0]!.start;
-    const fim = fonte[fonte.length - 1]!.end;
-    const repartido = repartir(ini, fim, novos);
-    alteradas += repartido.length;
-    saida.push(...repartido.map((p, k) => ({ ...p, conf: fonte[Math.min(k, fonte.length - 1)]!.conf })));
+    // FIDELIDADE: só troca quando é a MESMA palavra escrita de outro jeito.
+    const fiel =
+      fonte.length === novos.length && fonte.every((p, k) => variacaoPermitida(p.w, novos[k]!));
+    if (!fiel) {
+      saida.push(...fonte); // reescrita detectada -> mantém a fala original do Whisper
+      return;
+    }
+    saida.push(
+      ...fonte.map((p, k) => {
+        if (novos[k] !== p.w) alteradas++;
+        return { ...p, w: novos[k]! };
+      }),
+    );
   };
+
 
   for (const par of pares) {
     if (par.i > i || par.j > j) emitirBloco(par.i, par.j);
