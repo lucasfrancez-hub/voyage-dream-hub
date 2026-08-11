@@ -177,7 +177,8 @@ export const listarExtratoBancario = createServerFn({ method: 'POST' })
         Boolean(it.link) ||
         (it.transferId && byTransfer.has(it.transferId)) ||
         (it.paymentId && byPayment.has(it.paymentId))
-      it.origem = interno ? 'viaair' : 'asaas'
+      const externo = Boolean(it.transferId || it.paymentId || it.pixTransactionId)
+      it.origem = interno ? 'viaair' : externo ? 'asaas' : null
     }
 
     return {

@@ -55,15 +55,26 @@ function rangeFor(preset: Preset, custom: { start: string; finish: string }) {
   return custom;
 }
 
-function fmtDate(v: string | null) {
+/** Só data (sem inventar horário). */
+function fmtDay(v: string | null) {
   if (!v) return "—";
-  const d = new Date(v.length <= 10 ? `${v}T12:00:00-03:00` : v);
-  if (Number.isNaN(d.getTime())) return v;
-  return d.toLocaleString("pt-BR", {
-    timeZone: "America/Sao_Paulo",
-    day: "2-digit", month: "2-digit", year: "numeric",
-    hour: "2-digit", minute: "2-digit",
-  });
+  const [y, m, d] = String(v).slice(0, 10).split("-");
+  return y && m && d ? `${d}/${m}/${y}` : v;
+}
+
+/** Data + hora real (Brasília) quando o ASAAS informa o timestamp. */
+function fmtMovimento(i: { datetime?: string | null; date: string | null }) {
+  if (i.datetime) {
+    const d = new Date(i.datetime);
+    if (!Number.isNaN(d.getTime())) {
+      return d.toLocaleString("pt-BR", {
+        timeZone: "America/Sao_Paulo",
+        day: "2-digit", month: "2-digit", year: "numeric",
+        hour: "2-digit", minute: "2-digit", second: "2-digit",
+      });
+    }
+  }
+  return fmtDay(i.date);
 }
 
 const PAGE = 50;
@@ -326,7 +337,10 @@ function ContaBancariaPage() {
                       >
                         {typeLabel(i.type)}
                       </span>
-                      <p className="mt-1 text-xs text-muted-foreground">{fmtDate(i.createdAt || i.date)}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">{fmtMovimento(i)}</p>
+                      <p className="mt-0.5 text-[10px] uppercase tracking-wider text-muted-foreground/70">
+                        {i.origem === "viaair" ? "Origem: Via Air" : i.origem === "asaas" ? "Origem: Asaas" : ""}
+                      </p>
                     </td>
                     <td className="px-4 py-5 text-right">
                       <span
@@ -354,7 +368,7 @@ function ContaBancariaPage() {
                             chavePix: i.chavePix ?? null,
                             cpfCnpj: i.cpfCnpj ?? null,
                             tipo: i.operacao || asaasTypeLabel(i.type) || undefined,
-                            dataHora: i.date ? new Date(i.date).toLocaleString("pt-BR") : null,
+                            dataHora: fmtMovimento(i),
                             transacaoId: i.reference || i.id,
                             descricao: i.description,
                             concluido: true,
