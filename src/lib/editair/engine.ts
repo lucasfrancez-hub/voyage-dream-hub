@@ -1234,7 +1234,7 @@ export class EditairEngine {
     if (usarCamada) {
       const off = this.offscreen();
       const octx = off.getContext("2d", { willReadFrequently: !!chroma });
-      if (!octx) return;
+      if (!octx) return { fonte: tipoFonte, desenhou: false, motivo: "sem contexto 2d offscreen" };
       octx.setTransform(1, 0, 0, 1, 0, 0);
       octx.clearRect(0, 0, width, height);
       desenharMidia(octx);
