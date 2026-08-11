@@ -1320,7 +1320,7 @@ function Clipe({
                   style={{ left: seekHover.x }}
                 />
                 <span
-                  className="pointer-events-none absolute -top-4 rounded bg-black/80 px-1 font-mono text-[9px] text-white"
+                  className="pointer-events-none absolute top-4 rounded bg-black/80 px-1 font-mono text-[9px] text-white"
                   style={{ left: Math.max(0, seekHover.x - 18) }}
                 >
                   {formatarTempo(seekHover.ms, true)}
