@@ -47,7 +47,7 @@ export function DesktopSettingsDialog({
         toast.error("Esta versão do Desktop ainda não tem o alinhador local. Atualize o app.");
         return;
       }
-      setEstadoWhisper(e);
+      setEstadoWhisper({ binario: e.disponivel, modelo: e.modelo.id, modeloBaixado: e.modelo.presente });
       setDiag(JSON.stringify(e, null, 2));
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Falha ao ler o alinhador");
