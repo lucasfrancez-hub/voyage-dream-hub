@@ -402,12 +402,14 @@ export function Timeline({
     let ativo = false;
     let ultimoStart = base.start;
     let ultimoDestino: DestinoSolto | null = null;
+    /* clipes em movimento: nunca servem de referência de snap para si mesmos */
+    const ignorarSnap = new Set<string>([clip.id, ...conjunto]);
 
     const aplicarMovimento = (ev: PointerEvent) => {
       const delta = msDoEvento(ev.clientX) - inicioMs;
 
       if (modo === "mover") {
-        ultimoStart = Math.max(0, encaixar(base.start + delta));
+        ultimoStart = Math.max(0, encaixar(base.start + delta, ignorarSnap));
         if (conjunto.length) {
           // move o grupo inteiro pelo mesmo delta (distâncias relativas preservadas)
           const patches = moverSelecao(state, conjunto, ultimoStart - base.start);
@@ -422,12 +424,16 @@ export function Timeline({
           return;
         }
         onAlterarClip(clip.id, { start: ultimoStart }, false);
-        // drag vertical → camada de destino (X = tempo, Y = camada, simultâneos)
-        ultimoDestino = destinoDeClip(
-          destinoDoY(ev.clientY),
-          clip.trackId,
-          (tid) => !!state.tracks.find((t) => t.id === tid)?.locked,
-        );
+        /* Só troca de camada quando o gesto é deliberadamente vertical: enquanto
+           o movimento for predominantemente horizontal, o clipe fica na trilha
+           de origem (arraste livre em X, sem criar camada). */
+        ultimoDestino = intencaoVertical(ev.clientY - y0)
+          ? destinoDeClip(
+              destinoDoY(ev.clientY),
+              clip.trackId,
+              (tid) => !!state.tracks.find((t) => t.id === tid)?.locked,
+            )
+          : null;
         setAlvo(ultimoDestino);
         const dest = ultimoDestino;
         setDica({
@@ -443,6 +449,7 @@ export function Timeline({
         });
         return;
       }
+
 
       if (modo === "trim-in") {
         // limite: não passa do início real do arquivo nem some com o clipe
