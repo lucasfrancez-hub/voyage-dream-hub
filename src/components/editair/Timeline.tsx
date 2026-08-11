@@ -109,6 +109,8 @@ export function Timeline({
   snapping,
   rippleTrim,
   onSeek,
+  onScrubInicio,
+  onScrubFim,
   onSelecionar,
   onSelecao,
   onAlterarClip,
