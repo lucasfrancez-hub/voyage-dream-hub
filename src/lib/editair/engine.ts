@@ -419,6 +419,84 @@ export class EditairEngine {
     if (this.master) this.master.gain.value = m ? 0 : this.volumeMaster;
   }
 
+  /**
+   * AUDITORIA DE ÁUDIO — não altera comportamento. Retorna o estado real de
+   * cada elemento de mídia, a cadeia de ganho e se o Chromium chegou a
+   * decodificar bytes de áudio (prova objetiva de que existe faixa de áudio).
+   */
+  diagnosticoAudio(state?: ProjectState, t = 0) {
+    const ativos = state ? this.ativos(state, t) : [];
+    const midias = Array.from(this.midias.entries()).map(([assetId, m]) => {
+      const el = m.el as HTMLVideoElement & {
+        webkitAudioDecodedByteCount?: number;
+        webkitVideoDecodedByteCount?: number;
+        audioTracks?: { length: number };
+        mozHasAudio?: boolean;
+        captureStream?: () => MediaStream;
+      };
+      let faixasAudio: number | null = null;
+      try {
+        faixasAudio = el.captureStream ? el.captureStream().getAudioTracks().length : null;
+      } catch {
+        faixasAudio = null;
+      }
+      const clip = ativos.find((c) => c.assetId === assetId) ?? null;
+      const trilha = clip ? state?.tracks.find((x) => x.id === clip.trackId) ?? null : null;
+      return {
+        assetId,
+        src: el.currentSrc || el.src,
+        nativo: !!m.nativo,
+        paused: el.paused,
+        muted: el.muted,
+        volume: el.volume,
+        playbackRate: el.playbackRate,
+        preservesPitch: (el as unknown as { preservesPitch?: boolean }).preservesPitch ?? null,
+        currentTime: el.currentTime,
+        duration: el.duration,
+        readyState: el.readyState,
+        networkState: el.networkState,
+        erro: el.error ? { code: el.error.code, message: el.error.message } : null,
+        audioDecodedBytes: el.webkitAudioDecodedByteCount ?? null,
+        videoDecodedBytes: el.webkitVideoDecodedByteCount ?? null,
+        audioTracks: el.audioTracks?.length ?? null,
+        faixasAudioCaptureStream: faixasAudio,
+        gainNode: m.gain.gain.value,
+        viaWebAudio: !!m.entrada,
+        clip: clip
+          ? {
+              id: clip.id,
+              trackId: clip.trackId,
+              muted: !!clip.muted,
+              semAudio: !!clip.semAudio,
+              volume: clip.volume,
+              speed: clip.speed,
+              ganhoCalculado: state ? this.ganhoDoClipe(state, clip, t) : null,
+            }
+          : null,
+        trilha: trilha ? { id: trilha.id, muted: !!trilha.muted, solo: !!trilha.solo } : null,
+        ganhoFinalEsperado:
+          clip && state
+            ? clamp(this.ganhoDoClipe(state, clip, t) * (this.mudo ? 0 : this.volumeMaster), 0, 2)
+            : null,
+      };
+    });
+    return {
+      quando: new Date().toISOString(),
+      tocandoAgora: this.tocandoAgora,
+      audioBloqueado: this.audioBloqueado,
+      volumeMaster: this.volumeMaster,
+      mudoGlobal: this.mudo,
+      audioCtx: this.audioCtx
+        ? { state: this.audioCtx.state, sampleRate: this.audioCtx.sampleRate, masterGain: this.master?.gain.value ?? null }
+        : null,
+      tracksComSolo: state?.tracks.filter((x) => x.solo).map((x) => x.id) ?? [],
+      playheadMs: t,
+      midias,
+    };
+  }
+
+
+
   /** true quando o navegador bloqueou o play com áudio (autoplay policy). */
   audioBloqueado = false;
 
