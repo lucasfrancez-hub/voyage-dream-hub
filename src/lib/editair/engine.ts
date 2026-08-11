@@ -884,8 +884,9 @@ export class EditairEngine {
       ctx.restore();
     }
 
-    if (c.efeito?.id === "vinheta") {
-      const inten = (c.efeito.intensidade ?? 50) / 100;
+    const intenVinheta = c.efeito?.id === "vinheta" ? (c.efeito.intensidade ?? 50) / 100 : temVinheta(c.efeitos);
+    if (intenVinheta > 0) {
+      const inten = intenVinheta;
       const g = ctx.createRadialGradient(
         width / 2,
         height / 2,
