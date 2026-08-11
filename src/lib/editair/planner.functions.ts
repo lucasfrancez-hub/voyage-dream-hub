@@ -181,7 +181,7 @@ SAÍDA
 - "titulo": nome curto da operação (ex.: "Edição dinâmica com legendas").`;
 }
 
-export type OpBruta = Record<string, unknown>;
+export type OpBruta = Record<string, string | number | boolean | null | undefined>;
 export type GeracaoPedida = {
   ref: string;
   tipo: "imagem" | "video";
