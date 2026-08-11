@@ -5,6 +5,7 @@
 //     error logger plugins, and sandbox detection (port/host/strictPort).
 // You can pass additional config via defineConfig({ vite: { ... }, etc... }) if needed.
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
+import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 
@@ -22,7 +23,11 @@ function lerCommitSha() {
     if (!head.startsWith("ref: ")) return head;
     return fs.readFileSync(path.join(gitDir, head.slice(5)), "utf8").trim();
   } catch {
-    return "unknown";
+    try {
+      return execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).trim();
+    } catch {
+      return "unknown";
+    }
   }
 }
 
