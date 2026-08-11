@@ -112,7 +112,10 @@ export type ToolPanelProps = {
   onPatchState: (patch: Partial<ProjectState>) => void;
   onCaption: (patch: Partial<CaptionStyle>) => void;
   onAplicarModeloLegenda?: (estilo: CaptionStyle, escopo: "uma" | "todas") => void;
-  onAdicionarTexto: () => void;
+  onAdicionarTexto: (init?: { text?: string; style?: Partial<TextStyle>; label?: string }) => void;
+  onAplicarModelo?: (modelo: ModeloEditair) => void;
+  /** captura um frame do reprodutor para usar como capa de modelo */
+  onCapturarCapa?: () => string | null;
   onAnalisar: () => void;
   onGerarLegendas: () => void;
   onCortarPausas: () => void;
