@@ -231,6 +231,30 @@ export function DesktopSettingsDialog({
     toast.success("Auditoria de mídia capturada");
   };
 
+  /* Auditoria de troca de clipe visual: clipe ativo × sourceTime × frame desenhado. */
+  const coletarClipes = () => {
+    const d = lerDiag("clipes");
+    setDiag(JSON.stringify({ app: { versao: info?.versao }, clipes: d }, null, 2));
+    if ((d as { indisponivel?: boolean })?.indisponivel) toast.error("Abra um projeto no editor antes de auditar os clipes.");
+    else toast.success("Auditoria de clipes capturada");
+  };
+
+  /* Liga/desliga o traço por quadro (grava cada troca de clipe durante o play). */
+  const alternarTraco = () => {
+    const d = lerDiag("clipesTraco") as { tracando?: boolean; indisponivel?: boolean; resultado?: unknown };
+    if (d?.indisponivel) {
+      toast.error("Abra um projeto no editor antes de gravar o traço.");
+      return;
+    }
+    if (d?.tracando) {
+      toast.success("Traço ligado — toque o vídeo e clique de novo para ver as trocas");
+      setDiag(JSON.stringify({ traco: "ligado" }, null, 2));
+      return;
+    }
+    setDiag(JSON.stringify({ app: { versao: info?.versao }, traco: d?.resultado ?? d }, null, 2));
+    toast.success("Traço capturado");
+  };
+
   /* Auditoria de importação: onde cada mídia vive e se o áudio sobrevive ao proxy. */
   const auditarImportacao = async () => {
     try {
@@ -464,6 +488,12 @@ export function DesktopSettingsDialog({
                 </Button>
                 <Button size="sm" variant="secondary" onClick={() => void coletarMidia()}>
                   <Activity className="mr-1.5 h-4 w-4" /> Auditar mídia do preview
+                </Button>
+                <Button variant="outline" size="sm" onClick={coletarClipes}>
+                  <Activity className="mr-1.5 h-4 w-4" /> Auditar troca de clipe
+                </Button>
+                <Button variant="outline" size="sm" onClick={alternarTraco}>
+                  <Activity className="mr-1.5 h-4 w-4" /> Traço por quadro (liga/desliga)
                 </Button>
               </div>
             </div>
