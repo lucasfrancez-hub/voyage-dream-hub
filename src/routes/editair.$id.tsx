@@ -2367,12 +2367,14 @@ function EditorPage() {
             if (acao === "cor" && valor) aplicar(atualizarMarcador(state, mid, { cor: valor }));
             else if (acao === "renomear") setRenomeandoMarcador({ id: mid, nota: m.nota ?? "" });
             else if (acao === "excluir")
-              confirmarDialogo({
-                titulo: "Excluir marcador",
-                descricao: `Remover "${m.nota || "marcador"}" da timeline?`,
-                confirmar: "Excluir",
-                destrutivo: true,
-                aoConfirmar: () => aplicar(excluirMarcador(state, mid)),
+              void confirmarDialogo({
+                title: "Excluir marcador",
+                description: `Remover "${m.nota || "marcador"}" da timeline?`,
+                confirmText: "Excluir",
+                cancelText: "Cancelar",
+                destructive: true,
+              }).then((ok) => {
+                if (ok) aplicar(excluirMarcador(state, mid));
               });
           }}
           onAcaoClip={(cid, acao) => {
