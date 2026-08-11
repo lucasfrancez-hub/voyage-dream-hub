@@ -1,5 +1,7 @@
 import { novoId, transformPadrao, type EditairClip, type ProjectState, type Transcript, type TranscriptWord } from "./types";
 import { janelaFonte, limitarVelocidade } from "./velocidade";
+import { segmentarLegendas } from "./segmentacao";
+
 
 /**
  * Legendas do EditAir.
