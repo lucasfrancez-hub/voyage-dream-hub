@@ -229,6 +229,10 @@ function Basico(p: Props & { clip: EditairClip }) {
         </Linha>
       </Secao>
 
+      <Secao titulo="Remover plano de fundo">
+        <RemoverFundoPanel clip={clip} onPatchClip={onPatchClip} onAnalisarFundo={p.onAnalisarFundo} />
+      </Secao>
+
       <Secao titulo="Ferramentas rápidas">
         <div className="grid grid-cols-2 gap-2">
           <Acao
