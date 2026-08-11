@@ -874,9 +874,14 @@ function EditorPage() {
     aplicar(s);
   };
 
+  /* Handlers de UI podem chegar com o MouseEvent como 1º argumento
+     (onClick={copiar}); normalizamos para a seleção atual nesse caso. */
+  const idsAlvo = (ids?: unknown): string[] => (Array.isArray(ids) ? (ids as string[]) : selecionados);
+
   /** Duplica a seleção inteira preservando as distâncias relativas (1 passo de undo). */
-  const duplicar = (ids: string[] = selecionados) => {
-    if (!ids.length) return;
+  const duplicar = (idsArg?: unknown) => {
+    const ids = idsAlvo(idsArg);
+    if (!ids.length) return toast.error("Selecione um clipe para duplicar.");
     const r = duplicarClips(state, ids);
     if (!r.ok) return toast.error(r.erro ?? "Não foi possível duplicar.");
     aplicar(r.state!);
@@ -884,11 +889,12 @@ function EditorPage() {
     toast.success(`${r.novosIds?.length ?? 0} clipe(s) duplicado(s)`);
   };
 
-  const copiar = (ids: string[] = selecionados) => {
+  const copiar = (idsArg?: unknown) => {
+    const ids = idsAlvo(idsArg);
     const alvo = state.clips.filter((c) => ids.includes(c.id));
-    if (!alvo.length) return;
+    if (!alvo.length) return toast.error("Selecione um clipe para copiar.");
     // guarda cópias profundas: editar o projeto depois não altera o clipboard
-    clipboardRef.current = clonarClips(alvo).map((c, i) => ({ ...c, start: alvo[i].start }));
+    clipboardRef.current = clonarClips(alvo).map((c, i) => ({ ...c, start: alvo[i]!.start }));
     setNClipboard(alvo.length);
     toast.success(`${alvo.length} clipe(s) copiado(s)`);
   };
