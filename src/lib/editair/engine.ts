@@ -1207,7 +1207,7 @@ export class EditairEngine {
       palavras.forEach((p, idx) => {
         indicePalavra++;
         const casaTexto = limpar(words[indicePalavra]?.w ?? "") === limpar(p);
-        const iPal = casaTexto ? indicePalavra : -1;
+        const iPal = casaTexto || confiaIndice ? indicePalavra : -1;
         const destaque = idxAtiva >= 0 && iPal === idxAtiva;
         const px = x + larguras[idx] / 2 - espaco / 2;
         const alphaBase = ctx.globalAlpha;
