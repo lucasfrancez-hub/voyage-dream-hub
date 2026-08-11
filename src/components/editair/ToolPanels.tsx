@@ -144,21 +144,12 @@ export function ToolPanel(p: ToolPanelProps) {
     case "ia":
       return <PainelIa {...p} />;
     case "stickers":
-      return (
-        <EmBreve
-          titulo="Stickers"
-          texto="Biblioteca de stickers animados e GIFs. Em breve — por enquanto use Texto para elementos gráficos."
-        />
-      );
+      return <StickersPanel onInserir={(t, st, rot) => p.onAdicionarTexto({ text: t, style: st, label: rot })} />;
     default:
-      return (
-        <EmBreve
-          titulo="Modelos"
-          texto="Modelos prontos de Reels da VIA AIR (abertura, oferta, encerramento). Em breve."
-        />
-      );
+      return <ModelosPanel state={p.state} capa={p.onCapturarCapa} onAplicar={(m) => p.onAplicarModelo?.(m)} />;
   }
 }
+
 
 /* ------------------------------- Mídia ------------------------------- */
 
