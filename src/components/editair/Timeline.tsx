@@ -141,6 +141,29 @@ export function Timeline({
     setMenuPos(posicionarMenu(menu.x, menu.y, r.width, r.height, window.innerWidth, window.innerHeight));
   }, [menu]);
 
+  /* arrastar mídia da biblioteca: Esc / fim do drag limpam ghost, highlight e dica */
+  useEffect(() => {
+    if (!soltando) return;
+    const fim = () => {
+      setSoltando(false);
+      setAlvo(null);
+      setDica(null);
+    };
+    const aoTeclar = (e: KeyboardEvent) => {
+      if (e.key === "Escape") fim();
+    };
+    window.addEventListener("dragend", fim);
+    window.addEventListener("drop", fim);
+    window.addEventListener("keydown", aoTeclar, true);
+    return () => {
+      window.removeEventListener("dragend", fim);
+      window.removeEventListener("drop", fim);
+      window.removeEventListener("keydown", aoTeclar, true);
+    };
+  }, [soltando]);
+
+
+
   const duracoes = useMemo(() => {
     const m: Record<string, number> = {};
     for (const [id, a] of Object.entries(assets)) m[id] = a.durationMs;
