@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 /* Splitter horizontal: altura da timeline e larguras da área superior são estados independentes. */
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen, fireEvent } from "@testing-library/react";
 
 import { WorkspaceLayout } from "@/components/editair/WorkspaceLayout";
@@ -58,6 +58,10 @@ describe("layout do workspace — estados independentes", () => {
 });
 
 afterEach(cleanup);
+
+beforeEach(() => {
+  Object.defineProperty(window, "innerHeight", { value: 1200, configurable: true });
+});
 
 describe("WorkspaceLayout no DOM", () => {
   function montar(altura = 300, onAltura = vi.fn()) {
