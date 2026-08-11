@@ -15,6 +15,8 @@ const updater = require("./lib/updater.cjs");
 const URL_APP = process.env.EDITAIR_URL || "https://pedidos.viaair.tur.br/editair";
 const ORIGEM_APP = new URL(URL_APP).origin;
 
+const { responderMidia } = require("./lib/media-stream.cjs");
+
 let janela = null;
 
 // protocolo próprio para ler arquivos locais no <video>/<img> sem upload
@@ -74,60 +76,7 @@ app.whenReady().then(() => {
   // Serve arquivos locais com Range real. Vídeos MP4/MOV precisam de 206 para
   // buscar frames fora do início; encaminhar file:// pelo net.fetch não garante
   // esse comportamento em todas as versões/plataformas do Electron.
-  protocol.handle("editair-media", async (request) => {
-    try {
-      const u = new URL(request.url);
-      // URLSearchParams.get já decodifica o valor. Um segundo decode quebrava
-      // nomes válidos como "Vídeo 100%.mp4" com URI malformed.
-      const alvo = u.searchParams.get("p") || "";
-      if (!alvo || !fs.existsSync(alvo)) return new Response("not found", { status: 404 });
-      const stat = fs.statSync(alvo);
-      if (!stat.isFile()) return new Response("not found", { status: 404 });
-
-      const extensao = path.extname(alvo).toLowerCase();
-      const tipos = {
-        ".mp4": "video/mp4", ".m4v": "video/mp4", ".mov": "video/quicktime",
-        ".webm": "video/webm", ".mkv": "video/x-matroska", ".avi": "video/x-msvideo",
-        ".mp3": "audio/mpeg", ".m4a": "audio/mp4", ".aac": "audio/aac",
-        ".wav": "audio/wav", ".ogg": "audio/ogg",
-        ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png", ".webp": "image/webp",
-      };
-      const total = stat.size;
-      const range = request.headers.get("range");
-      let inicio = 0;
-      let fim = Math.max(0, total - 1);
-      let status = 200;
-      if (range) {
-        const match = /^bytes=(\d*)-(\d*)$/i.exec(range.trim());
-        if (!match) {
-          return new Response(null, { status: 416, headers: { "Content-Range": `bytes */${total}` } });
-        }
-        if (match[1]) inicio = Number(match[1]);
-        if (match[2]) fim = Math.min(fim, Number(match[2]));
-        if (!match[1] && match[2]) inicio = Math.max(0, total - Number(match[2]));
-        if (inicio > fim || inicio >= total) {
-          return new Response(null, { status: 416, headers: { "Content-Range": `bytes */${total}` } });
-        }
-        status = 206;
-      }
-
-      const headers = new Headers({
-        "Content-Type": tipos[extensao] || "application/octet-stream",
-        "Content-Length": String(fim - inicio + 1),
-        "Accept-Ranges": "bytes",
-        "Cache-Control": "no-store",
-      });
-      if (status === 206) headers.set("Content-Range", `bytes ${inicio}-${fim}/${total}`);
-      headers.set("Access-Control-Allow-Origin", "*");
-      headers.set("Access-Control-Allow-Headers", "*");
-      headers.set("Access-Control-Expose-Headers", "Content-Length, Content-Range, Accept-Ranges");
-      if (request.method === "HEAD") return new Response(null, { status, headers });
-      const corpo = Readable.toWeb(fs.createReadStream(alvo, { start: inicio, end: fim }));
-      return new Response(corpo, { status, headers });
-    } catch (e) {
-      return new Response(String(e), { status: 500 });
-    }
-  });
+  protocol.handle("editair-media", (request) => responderMidia(request));
 
   criarJanela();
   Menu.setApplicationMenu(Menu.buildFromTemplate(menuTemplate()));
