@@ -130,6 +130,16 @@ export function aplicarOps(
 ): OpResult {
   let s: ProjectState = { ...state, clips: [...state.clips], tracks: [...state.tracks] };
   const log: string[] = [];
+  /** apelidos criados pela IA ("legendas", "broll-1") → id real da trilha */
+  const refs: Record<string, string> = {};
+  const resolverTrackId = (valor: string | undefined): string | null => {
+    if (!valor) return null;
+    if (refs[valor]) return refs[valor];
+    const direto = s.tracks.find((t) => t.id === valor);
+    if (direto) return direto.id;
+    const porNome = s.tracks.find((t) => t.name.toLowerCase() === valor.toLowerCase());
+    return porNome?.id ?? null;
+  };
 
   for (const op of ops) {
     switch (op.op) {
