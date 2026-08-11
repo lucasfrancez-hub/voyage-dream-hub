@@ -707,11 +707,11 @@ export class EditairEngine {
     let scale = this.valor(c, "scale", t, c.transform.scale);
     let x = this.valor(c, "x", t, c.transform.x);
     let y = this.valor(c, "y", t, c.transform.y);
-    const rotation = this.valor(c, "rotation", t, c.transform.rotation);
+    let rotation = this.valor(c, "rotation", t, c.transform.rotation);
     let opacity = this.valor(c, "opacity", t, c.transform.opacity);
     let blurExtra = 0;
 
-    // efeitos
+    // efeitos (legado: um único efeito de momento)
     const ef = c.efeito;
     if (ef && ef.id !== "nenhum") {
       const inten = (ef.intensidade ?? 50) / 100;
@@ -726,6 +726,17 @@ export class EditairEngine {
       } else if (ef.id === "glitch") {
         x += (Math.random() - 0.5) * 18 * inten;
       }
+    }
+
+    // biblioteca nova: entrada + momento + saída coexistem
+    if (c.efeitos) {
+      const d = calcularEfeitos(c.efeitos, t - c.start, c.duration, { w: width, h: height });
+      x += d.dx;
+      y += d.dy;
+      scale *= d.escala;
+      rotation += d.rotacao;
+      opacity *= d.opacidade;
+      blurExtra += d.blur;
     }
 
     // animações de entrada / saída
