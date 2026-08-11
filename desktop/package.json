@@ -1,7 +1,7 @@
 {
   "name": "editair-desktop",
   "productName": "EditAir",
-  "version": "1.1.4",
+  "version": "1.2.0",
   "description": "EditAir — editor de vídeo local-first com IA online (VIA AIR)",
   "main": "main.cjs",
   "author": "VIA AIR",
