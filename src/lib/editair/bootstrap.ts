@@ -180,7 +180,7 @@ export class PonteAssets {
     }
     this.pendentes.delete(a.id);
     try {
-      await eng.carregar(a.id, a.url, a.kind);
+      await eng.carregar(a.id, a.url, a.kind, a.nome);
       const { state, playhead } = this.ctx();
       eng.desenhar(state, playhead);
       if (eng.falhou(a.id)) {
