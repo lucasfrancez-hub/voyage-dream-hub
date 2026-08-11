@@ -333,8 +333,7 @@ export function Timeline({
 
   /* diagnóstico no Desktop (sem DevTools): window.editairTimelineDiag() */
   useEffect(() => {
-    const w = window as unknown as Record<string, unknown>;
-    w.editairTimelineDiag = () => {
+    return registrarDiag("timeline", () => {
       const el = areaRef.current;
       const regiao = document.querySelector('[data-testid="editair-timeline-region"]') as HTMLElement | null;
       return {
@@ -348,10 +347,7 @@ export function Timeline({
         zoom,
         scrollbarVisivel: !!document.querySelector('[data-testid="timeline-scrollbar-thumb"]'),
       };
-    };
-    return () => {
-      delete w.editairTimelineDiag;
-    };
+    });
   }, [panAtivo, zoom]);
 
 
