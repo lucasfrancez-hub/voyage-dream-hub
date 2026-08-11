@@ -393,10 +393,11 @@ export function aplicarOps(
         break;
       }
       case "insert_clip": {
-        const tid = resolverTrackId(op.trackId) ?? garantirTrackId(s, "video", "Vídeo");
-        if (!s.tracks.some((t) => t.id === tid)) {
-          const r = criarTrack(s, "video", "Vídeo 2");
+        let tid = resolverTrackId(op.trackId);
+        if (!tid) {
+          const r = garantirTrack(s, "video", op.trackId || "Vídeo");
           s = r.state;
+          tid = r.trackId;
         }
         const enq = enquadramentoInicial();
         const clip: EditairClip = {
@@ -433,8 +434,12 @@ export function aplicarOps(
         break;
       }
       case "create_caption": {
-        const tid = resolverTrackId(op.trackId) ?? garantirTrackId(s, "caption", "Legendas");
-        if (!s.tracks.some((t) => t.id === tid)) s = criarTrack(s, "caption", "Legendas").state;
+        let tid = resolverTrackId(op.trackId);
+        if (!tid) {
+          const r = garantirTrack(s, "caption", "Legendas");
+          s = r.state;
+          tid = r.trackId;
+        }
         s = {
           ...s,
           clips: [
@@ -650,4 +655,105 @@ function criarLegenda(texto: string, start: number, duration: number, words: { w
     words,
     label: texto.slice(0, 20),
   };
+}
+
+
+/* -------------------------------------------------------------------------- */
+/*  Camadas: garantir que a trilha exista (a IA pode pedir camadas novas)      */
+/* -------------------------------------------------------------------------- */
+
+/** Devolve a trilha pedida (por nome ou tipo), criando-a no topo se faltar. */
+export function garantirTrack(
+  s: ProjectState,
+  kind: TrackKind,
+  name: string,
+): { state: ProjectState; trackId: string } {
+  const porNome = s.tracks.find((t) => t.name.toLowerCase() === name.toLowerCase());
+  if (porNome) return { state: s, trackId: porNome.id };
+  const porTipo = kind === "caption" || kind === "text" ? s.tracks.find((t) => t.kind === kind) : null;
+  if (porTipo) return { state: s, trackId: porTipo.id };
+  const nova: EditairTrack = { id: novoId(`t-${kind}`), kind, name };
+  // camadas visuais entram acima do vídeo principal; áudio vai para o fim
+  const idx = kind === "music" || kind === "voice" ? s.tracks.length : 0;
+  const tracks = [...s.tracks];
+  tracks.splice(idx, 0, nova);
+  return { state: { ...s, tracks }, trackId: nova.id };
+}
+
+/**
+ * Remove pausas DIVIDINDO fisicamente o clipe em vários blocos de fala.
+ * Cada bloco continua apontando para o mesmo arquivo original (não destrutivo):
+ * dá para mover, esticar, excluir e restaurar a duração de cada um.
+ */
+export function removerSilencios(
+  state: ProjectState,
+  op: { clipId?: string; minSilencioMs?: number; padMs?: number; falas?: { fromMs: number; toMs: number }[] },
+  transcript?: Transcript | null,
+): OpResult {
+  const log: string[] = [];
+  const alvo = op.clipId
+    ? state.clips.find((c) => c.id === op.clipId)
+    : state.clips.find((c) => c.kind === "video" && c.assetId);
+  if (!alvo) return { state, log: ["Nenhum clipe de fala encontrado"] };
+
+  const minSilencio = Math.max(150, op.minSilencioMs ?? 450);
+  const pad = Math.max(0, op.padMs ?? 90);
+  const fim = alvo.start + alvo.duration;
+
+  // 1) intervalos de fala: os que a IA mandou ou os derivados da transcrição
+  let falas = (op.falas ?? [])
+    .map((f) => ({ fromMs: Math.max(alvo.start, f.fromMs), toMs: Math.min(fim, f.toMs) }))
+    .filter((f) => f.toMs - f.fromMs > 120);
+
+  if (!falas.length) {
+    const palavras = (transcript?.words ?? []).filter((w) => w.end > alvo.start && w.start < fim);
+    if (!palavras.length) return { state, log: ["Sem transcrição para detectar as pausas"] };
+    let atual = { fromMs: palavras[0].start, toMs: palavras[0].end };
+    for (const w of palavras.slice(1)) {
+      if (w.start - atual.toMs >= minSilencio) {
+        falas.push(atual);
+        atual = { fromMs: w.start, toMs: w.end };
+      } else {
+        atual.toMs = w.end;
+      }
+    }
+    falas.push(atual);
+    falas = falas.map((f) => ({
+      fromMs: Math.max(alvo.start, f.fromMs - pad),
+      toMs: Math.min(fim, f.toMs + pad),
+    }));
+  }
+  if (falas.length < 2 && falas[0] && falas[0].toMs - falas[0].fromMs >= alvo.duration - 200) {
+    return { state, log: ["Não encontrei pausas relevantes neste clipe"] };
+  }
+
+  // 2) um clipe por bloco de fala, todos referenciando o mesmo arquivo
+  const outros = state.clips.filter((c) => c.id !== alvo.id);
+  const blocos: EditairClip[] = [];
+  let cursor = alvo.start;
+  falas
+    .sort((a, b) => a.fromMs - b.fromMs)
+    .forEach((f, i) => {
+      const dur = Math.max(120, Math.round(f.toMs - f.fromMs));
+      const offset = f.fromMs - alvo.start;
+      blocos.push({
+        ...alvo,
+        id: novoId(),
+        start: Math.round(cursor),
+        duration: dur,
+        sourceIn: Math.max(0, Math.round(alvo.sourceIn + offset * (alvo.speed || 1))),
+        label: `Fala ${i + 1}`,
+        words: alvo.words?.filter((w) => w.start >= f.fromMs && w.end <= f.toMs),
+      });
+      cursor += dur;
+    });
+
+  const removido = alvo.duration - blocos.reduce((m, b) => m + b.duration, 0);
+  const deslocamento = removido;
+  const ajustados = outros.map((c) =>
+    c.trackId === alvo.trackId && c.start >= fim ? { ...c, start: Math.max(0, c.start - deslocamento) } : c,
+  );
+
+  log.push(`${blocos.length} blocos de fala · ${(removido / 1000).toFixed(1)}s de pausa removidos`);
+  return { state: recalcularDuracao({ ...state, clips: [...ajustados, ...blocos] }), log };
 }
