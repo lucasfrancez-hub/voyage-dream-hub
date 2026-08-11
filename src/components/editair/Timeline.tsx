@@ -284,31 +284,37 @@ export function Timeline({
   );
 
 
+  /** pontos de encaixe: playhead, marcadores e bordas dos clipes */
   const pontosSnap = useMemo(() => {
-    const p = [0, playheadMs];
+    const p: { ms: number; ids: string | null }[] = [{ ms: 0, ids: null }, { ms: playheadMs, ids: null }];
+    for (const m of state.marcadores ?? []) p.push({ ms: m.atMs, ids: null });
     for (const c of state.clips) {
-      p.push(c.start, c.start + c.duration);
+      p.push({ ms: c.start, ids: c.id }, { ms: c.start + c.duration, ids: c.id });
     }
     return p;
-  }, [state.clips, playheadMs]);
+  }, [state.clips, state.marcadores, playheadMs]);
 
+  /** Encaixa `ms` nos pontos próximos. `ignorar` = clipes em movimento (nunca
+      podem servir de referência para si mesmos, senão o clipe parece travado). */
   const encaixar = useCallback(
-    (ms: number) => {
-      if (!snapping) return ms;
-      const tol = 12 / pxPorMs;
+    (ms: number, ignorar?: Set<string>) => {
+      if (!snapping) return Math.max(0, Math.round(ms));
+      const tol = 10 / pxPorMs;
       let melhor = ms;
       let dist = tol;
       for (const p of pontosSnap) {
-        const d = Math.abs(p - ms);
+        if (p.ids && ignorar?.has(p.ids)) continue;
+        const d = Math.abs(p.ms - ms);
         if (d < dist) {
           dist = d;
-          melhor = p;
+          melhor = p.ms;
         }
       }
       return Math.max(0, Math.round(melhor));
     },
     [snapping, pontosSnap, pxPorMs],
   );
+
 
   /* Scrub do playhead: régua, linha e área vazia usam o MESMO caminho.
      Esc cancela e volta para o tempo em que o arraste começou. */
