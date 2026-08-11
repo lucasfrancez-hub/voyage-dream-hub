@@ -33,6 +33,46 @@ type Midia = {
 
 const clamp = (v: number, a: number, b: number) => Math.min(b, Math.max(a, v));
 
+/** Tradução do MediaError.code para uma frase útil em português. */
+export function codigoMidia(codigo?: number | null) {
+  switch (codigo) {
+    case 1: return "carregamento abortado (MEDIA_ERR_ABORTED)";
+    case 2: return "falha de rede/protocolo (MEDIA_ERR_NETWORK)";
+    case 3: return "falha ao decodificar — codec não suportado (MEDIA_ERR_DECODE)";
+    case 4: return "formato ou codec não suportado (MEDIA_ERR_SRC_NOT_SUPPORTED)";
+    default: return "erro desconhecido ao abrir a mídia";
+  }
+}
+
+/** Causa real de uma mídia não abrir — usada nos logs e no aviso ao usuário. */
+export type FalhaMidia = {
+  assetId: string;
+  url: string;
+  kind: string;
+  evento: "error" | "timeout";
+  codigo: number | null;
+  mensagem: string;
+  networkState: number | null;
+  readyState: number | null;
+  mime?: string | null;
+  status?: number | null;
+};
+
+/** Pergunta ao protocolo/servidor qual status e MIME a URL realmente devolve. */
+async function sondarUrl(url: string): Promise<{ status: number | null; mime: string | null }> {
+  try {
+    const r = await fetch(url, { method: "HEAD" });
+    return { status: r.status, mime: r.headers.get("content-type") };
+  } catch {
+    try {
+      const r = await fetch(url, { headers: { Range: "bytes=0-1" } });
+      return { status: r.status, mime: r.headers.get("content-type") };
+    } catch {
+      return { status: null, mime: null };
+    }
+  }
+}
+
 export class EditairEngine {
   canvas: HTMLCanvasElement;
   width: number;
@@ -45,6 +85,8 @@ export class EditairEngine {
   private imagens = new Map<string, HTMLImageElement>();
   /** assets que falharam ao carregar — desenhados como "Mídia offline" */
   private falhas = new Set<string>();
+  /** causa real da falha (código do <video>, MIME, estado da rede) por asset */
+  private detalhes = new Map<string, FalhaMidia>();
   /** último quadro pedido — usado para repintar quando o vídeo termina de buscar */
   private ultimo: { state: ProjectState; t: number } | null = null;
   private tocandoAgora = false;
@@ -103,6 +145,20 @@ export class EditairEngine {
     return this.falhas.has(assetId);
   }
 
+  /** Causa real da falha — código do <video>, MIME e status do protocolo. */
+  erroDe(assetId: string): FalhaMidia | null {
+    return this.detalhes.get(assetId) ?? null;
+  }
+
+  private async registrarFalha(f: Omit<FalhaMidia, "mime" | "status">) {
+    this.falhas.add(f.assetId);
+    const sonda = await sondarUrl(f.url);
+    const completo: FalhaMidia = { ...f, mime: sonda.mime, status: sonda.status };
+    this.detalhes.set(f.assetId, completo);
+    console.error("[preview:error] mídia não abriu", completo);
+    return completo;
+  }
+
   async carregar(assetId: string, url: string, kind = "video") {
     if ((this.midias.has(assetId) || this.imagens.has(assetId)) && !this.falhas.has(assetId)) return;
     // Relink ou uma nova URL de proxy deve substituir a tentativa que falhou.
@@ -117,11 +173,12 @@ export class EditairEngine {
     }
     this.imagens.delete(assetId);
     this.falhas.delete(assetId);
+    this.detalhes.delete(assetId);
     // Arquivos locais do Desktop vêm pelo protocolo editair-media:// — pedir CORS
     // ("anonymous") faz o Chromium recusar a mídia e o preview fica preto.
     const local = url.startsWith("editair-media:") || url.startsWith("blob:") || url.startsWith("file:");
     const log = (etapa: string, extra?: unknown) =>
-      console.log(`[preview] ${etapa} asset=${assetId} url=${url.slice(0, 80)}`, extra ?? "");
+      console.log(`[preview] ${etapa} asset=${assetId} url=${url.slice(0, 120)}`, extra ?? "");
 
     if (kind === "image") {
       const img = new Image();
@@ -139,12 +196,31 @@ export class EditairEngine {
           ok();
         };
         img.onerror = () => {
-          this.falhas.add(assetId);
-          console.error(`[preview:error] imagem não carregou asset=${assetId}`);
+          void this.registrarFalha({
+            assetId,
+            url,
+            kind,
+            evento: "error",
+            codigo: null,
+            mensagem: "imagem não decodificada pelo Chromium",
+            networkState: null,
+            readyState: null,
+          });
           ok();
         };
         setTimeout(() => {
-          if (!terminou && !img.complete) this.falhas.add(assetId);
+          if (!terminou && !img.complete) {
+            void this.registrarFalha({
+              assetId,
+              url,
+              kind,
+              evento: "timeout",
+              codigo: null,
+              mensagem: "tempo esgotado ao carregar imagem",
+              networkState: null,
+              readyState: null,
+            });
+          }
           ok();
         }, 10000);
       });
@@ -159,7 +235,7 @@ export class EditairEngine {
     el.muted = false;
     el.src = url;
     el.load();
-    log("carregando");
+    log("carregando", { local, kind });
     await new Promise<void>((resolve) => {
       let terminou = false;
       const ok = () => {
@@ -167,23 +243,38 @@ export class EditairEngine {
         terminou = true;
         resolve();
       };
+      el.onloadedmetadata = () => log("loadedmetadata", { w: el.videoWidth, h: el.videoHeight, dur: el.duration });
       el.onloadeddata = () => {
         this.falhas.delete(assetId);
-        log("metadata loaded", { w: el.videoWidth, h: el.videoHeight, dur: el.duration });
+        this.detalhes.delete(assetId);
+        log("loadeddata", { w: el.videoWidth, h: el.videoHeight, dur: el.duration });
         ok();
       };
       el.onerror = () => {
-        this.falhas.add(assetId);
-        console.error(`[preview:error] mídia não carregou asset=${assetId}`, el.error?.message);
-        ok();
+        void this.registrarFalha({
+          assetId,
+          url,
+          kind,
+          evento: "error",
+          codigo: el.error?.code ?? null,
+          mensagem: el.error?.message || codigoMidia(el.error?.code),
+          networkState: el.networkState,
+          readyState: el.readyState,
+        }).then(ok);
       };
       setTimeout(() => {
         if (!terminou && el.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) {
-          this.falhas.add(assetId);
-          console.error(`[preview:error] tempo esgotado ao carregar asset=${assetId}`, {
+          void this.registrarFalha({
+            assetId,
+            url,
+            kind,
+            evento: "timeout",
+            codigo: el.error?.code ?? null,
+            mensagem: "tempo esgotado antes de HAVE_CURRENT_DATA",
             networkState: el.networkState,
             readyState: el.readyState,
-          });
+          }).then(ok);
+          return;
         }
         ok();
       }, 10000);

@@ -71,6 +71,7 @@ import {
   soltarClipEm,
   type DestinoCamada,
   type ResultadoCamada,
+  inserirAssetNaTimeline,
 } from "@/lib/editair/layers";
 import {
   blobParaBase64,
@@ -82,7 +83,8 @@ import {
   paraWav16k,
 } from "@/lib/editair/audio";
 import { EditairEngine } from "@/lib/editair/engine";
-import { aplicarAssetsIniciais, midiaParaAsset, PonteAssets } from "@/lib/editair/bootstrap";
+import { aplicarAssetsIniciais, midiaParaAsset, PonteAssets, type AssetBasico } from "@/lib/editair/bootstrap";
+import { pontoDesktop } from "@/lib/editair/desktop";
 import { consumirHandoff } from "@/lib/editair/handoff";
 import { Timeline, type AssetInfo } from "@/components/editair/Timeline";
 import { PlayerStage, type ElementoPalco } from "@/components/editair/PlayerStage";
@@ -199,14 +201,19 @@ function EditorPage() {
   const playheadRef = useRef(0);
   playheadRef.current = playhead;
 
+  /** Tratamento da falha de mídia — no Desktop tenta gerar proxy compatível e recarrega. */
+  const aoFalharRef = useRef<(a: AssetBasico, erro?: unknown) => void>(() => {});
+  const proxyTentado = useRef(new Set<string>());
+
   const ponteRef = useRef<PonteAssets | null>(null);
   if (!ponteRef.current) {
     ponteRef.current = new PonteAssets(
       () => ({ state: stateRef.current, playhead: playheadRef.current }),
-      (a) => toast.error(`Não foi possível abrir esta mídia: ${a.nome}`),
+      (a, erro) => aoFalharRef.current(a, erro),
     );
   }
   const ponte = ponteRef.current;
+
 
   /** Carrega o asset na engine; se ela ainda não existir, guarda para depois. */
   const carregarNaEngine = useCallback(
@@ -215,6 +222,41 @@ function EditorPage() {
     },
     [ponte],
   );
+
+  aoFalharRef.current = (a: AssetBasico, erro?: unknown) => {
+    const detalhe = (erro ?? null) as { codigo?: number | null; mensagem?: string; mime?: string | null; status?: number | null } | null;
+    console.error("[preview:error] asset não abriu", { asset: a, detalhe });
+
+    const api = pontoDesktop();
+    const caminho = a.localPath || null;
+    const jaTentou = proxyTentado.current.has(a.id);
+    const podeProxy = !!api && !!caminho && a.kind !== "image" && !jaTentou;
+
+    if (!podeProxy) {
+      const causa = detalhe?.mensagem ? ` (${detalhe.mensagem})` : "";
+      toast.error(`Não foi possível abrir "${a.nome}"${causa}`);
+      return;
+    }
+
+    proxyTentado.current.add(a.id);
+    toast.info(`Convertendo "${a.nome}" para um formato compatível…`);
+    void (async () => {
+      try {
+        const proxy = await api!.midia.proxy(caminho!);
+        if (!proxy) throw new Error("proxy não gerado");
+        const url = api!.urlLocal(proxy);
+        console.log("[preview] proxy gerado", { assetId: a.id, proxy, url });
+        setAssets((cur) => cur.map((x) => (x.id === a.id ? { ...x, url } : x)));
+        setMidias((cur) => cur.map((m) => (m.id === a.id ? { ...m, url } : m)));
+        const r = await ponte.carregar({ ...a, url });
+        if (r === "carregado") toast.success(`"${a.nome}" pronta para o preview`);
+      } catch (e) {
+        console.error("[preview:error] proxy falhou", e);
+        toast.error(`Não foi possível converter "${a.nome}". Verifique o codec do arquivo.`);
+      }
+    })();
+  };
+
 
   /* ---------------- 1A. bootstrap de DADOS (independe do canvas) ---------------- */
   useEffect(() => {
@@ -661,28 +703,35 @@ function EditorPage() {
   };
 
   /* ---------------- mídia ---------------- */
-  const inserirAsset = (assetId: string) => {
+  const inserirAsset = (assetId: string, destino?: { trackId?: string; startMs?: number }) => {
     const a = assets.find((x) => x.id === assetId);
-    if (!a) return;
-    const trilha = a.kind === "audio" ? "t-music" : "t-video";
-    const fim = state.clips.filter((c) => c.trackId === trilha).reduce((m, c) => Math.max(m, c.start + c.duration), 0);
-    const clip: EditairClip = {
-      id: novoId(),
-      trackId: trilha,
-      kind: a.kind === "audio" ? "audio" : a.kind === "image" ? "image" : "video",
-      assetId: a.id,
-      start: fim,
-      duration: Math.max(1000, a.durationMs || 5000),
-      sourceIn: 0,
-      volume: 1,
-      speed: 1,
-      transform: transformPadrao(),
-      label: a.nome.slice(0, 28),
-    };
-    aplicar({ ...state, clips: [...state.clips, clip] });
-    setSelecionados([clip.id]);
-    return clip.id;
+    if (!a) {
+      console.warn("[timeline] inserir: asset não encontrado", { assetId, ids: assets.map((x) => x.id) });
+      toast.error("Mídia não encontrada na biblioteca deste projeto.");
+      return;
+    }
+    const r = inserirAssetNaTimeline(state, a, destino ?? {});
+    if (!r.ok) {
+      console.warn("[timeline] inserir recusado", { assetId, erro: r.erro });
+      toast.error(r.erro);
+      return;
+    }
+    console.log("[timeline] clip inserido", {
+      assetId,
+      clipId: r.clip.id,
+      trackId: r.clip.trackId,
+      start: r.clip.start,
+      duration: r.clip.duration,
+      criouTrack: r.criouTrack,
+      totalClips: r.state.clips.length,
+    });
+    aplicar(r.state);
+    setSelecionados([r.clip.id]);
+    void carregarNaEngine(a);
+    toast.success(`"${a.nome}" na timeline`);
+    return r.clip.id;
   };
+
 
   const importar = async (arquivos: FileList | File[] | string[] | null, posicaoMs?: number) => {
     if (!arquivos || (arquivos as { length: number }).length === 0) return;
@@ -1504,6 +1553,7 @@ function EditorPage() {
           onAbrirSource={setSourceClipId}
           onRestaurarClip={restaurarClip}
           onSoltarArquivos={(arquivos, ms) => void importar(arquivos, ms)}
+          onSoltarAsset={(assetId, ms, trackId) => inserirAsset(assetId, { startMs: ms, trackId })}
           onNovaTrilhaVideo={() => {
             // camadas de vídeo empilhadas: a nova entra acima (aparece por cima no preview)
             aplicar(criarTrackEm(state, 0).state);

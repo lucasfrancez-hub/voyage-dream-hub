@@ -67,6 +67,8 @@ type Props = {
   onAcaoClip?: (clipId: string, acao: AcaoClip) => void;
   /** Arquivos arrastados do Finder/Explorer direto para a timeline. */
   onSoltarArquivos?: (arquivos: FileList, ms: number) => void;
+  /** arrastar uma mídia da biblioteca direto para a timeline */
+  onSoltarAsset?: (assetId: string, ms: number, trackId?: string) => void;
   /** Cria uma nova camada de vídeo acima das existentes (composição/PiP). */
   onNovaTrilhaVideo?: () => void;
   /** Clip solto após drag vertical: muda de camada (e de posição). */
@@ -102,6 +104,7 @@ export function Timeline({
   onRestaurarClip,
   onAcaoClip,
   onSoltarArquivos,
+  onSoltarAsset,
   onNovaTrilhaVideo,
   onSoltarClip,
   onMoverCamada,
@@ -371,20 +374,25 @@ export function Timeline({
           ref={areaRef}
           className={`relative min-h-0 flex-1 overflow-auto ${soltando ? "ring-2 ring-inset ring-[#F26B1F]" : ""}`}
           onDragOver={
-            onSoltarArquivos
+            onSoltarArquivos || onSoltarAsset
               ? (e) => {
                   e.preventDefault();
                   setSoltando(true);
                 }
               : undefined
           }
-          onDragLeave={onSoltarArquivos ? () => setSoltando(false) : undefined}
+          onDragLeave={onSoltarArquivos || onSoltarAsset ? () => setSoltando(false) : undefined}
           onDrop={
-            onSoltarArquivos
+            onSoltarArquivos || onSoltarAsset
               ? (e) => {
                   e.preventDefault();
                   setSoltando(false);
-                  if (e.dataTransfer.files?.length) onSoltarArquivos(e.dataTransfer.files, msDoEvento(e.clientX));
+                  const assetId = e.dataTransfer.getData("application/x-editair-asset");
+                  if (assetId && onSoltarAsset) {
+                    onSoltarAsset(assetId, msDoEvento(e.clientX));
+                    return;
+                  }
+                  if (e.dataTransfer.files?.length) onSoltarArquivos?.(e.dataTransfer.files, msDoEvento(e.clientX));
                 }
               : undefined
           }
