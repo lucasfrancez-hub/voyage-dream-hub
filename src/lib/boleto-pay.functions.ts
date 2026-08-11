@@ -162,7 +162,152 @@ export const lerBoleto = createServerFn({ method: 'POST' })
   })
 
 /* ------------------------------------------------------------------
+ * 1.b) Consulta do boleto ANTES de pagar (fluxo de banco)
+ * ------------------------------------------------------------------ */
+
+/** Procura pagamentos ativos do mesmo título (linha, barcode ou lançamento). */
+async function buscarDuplicidade(
+  supabaseAdmin: any,
+  linha: string,
+  barcode: string | null,
+  financialEntryId?: string | null,
+) {
+  const ativos = ['pendente', 'agendado', 'processando', 'pago']
+  const ors = [`identification_field.eq.${linha}`]
+  if (barcode && barcode !== linha) ors.push(`identification_field.eq.${barcode}`)
+  if (financialEntryId) ors.push(`financial_entry_id.eq.${financialEntryId}`)
+  const { data } = await supabaseAdmin
+    .from('asaas_bill_payments')
+    .select('id, status, value, scheduled_date, effective_date, asaas_bill_id, created_at')
+    .in('status', ativos)
+    .or(ors.join(','))
+    .order('created_at', { ascending: false })
+    .limit(1)
+  return (data && data[0]) || null
+}
+
+export const consultarBoleto = createServerFn({ method: 'POST' })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        code: z.string().min(20).max(80),
+        financialEntryId: z.string().uuid().nullable().optional(),
+      })
+      .parse(input ?? {}),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context as any)
+
+    const parsed = parseBoletoCode(data.code)
+    if (!parsed.valid || !parsed.linha) {
+      return {
+        ok: false as const,
+        podePagar: false,
+        erro: {
+          titulo: 'Código inválido',
+          mensagem: parsed.message ?? 'Não foi possível validar o código informado.',
+          codigo: 'formato_invalido',
+          tecnico: null,
+          orientacao: 'Confira a linha digitável ou o código de barras e digite novamente.',
+        } satisfies ErroBoleto,
+      }
+    }
+
+    const { supabaseAdmin } = await import('@/integrations/supabase/client.server')
+    const dup = await buscarDuplicidade(
+      supabaseAdmin,
+      parsed.linha,
+      parsed.barcode,
+      data.financialEntryId ?? null,
+    )
+    if (dup) {
+      return {
+        ok: false as const,
+        podePagar: false,
+        duplicidade: dup,
+        erro: {
+          titulo: 'Pagamento já existente para este boleto',
+          mensagem: `Já existe um pagamento ${
+            BILL_STATUS_LABEL[dup.status] ?? dup.status
+          } para este título em nosso sistema.`,
+          codigo: 'duplicidade',
+          tecnico: JSON.stringify(dup),
+          orientacao:
+            'Confirme o status do pagamento anterior na tela de Pagamentos. Cancele-o antes de criar outro.',
+        } satisfies ErroBoleto,
+      }
+    }
+
+    const { simulateAsaasBillSafe } = await import('@/lib/asaas.server')
+    const sim = await simulateAsaasBillSafe(parsed.linha)
+
+    if (!sim.ok) {
+      const cls = classificarErroBoleto(sim.description, sim.code)
+      return {
+        ok: false as const,
+        podePagar: false,
+        boleto: {
+          linhaDigitavel: parsed.linha,
+          codigoBarras: parsed.barcode,
+          valorOriginal: parsed.value,
+          vencimento: parsed.dueDate,
+        },
+        erro: {
+          titulo: cls.titulo,
+          mensagem: sim.description,
+          codigo: sim.code ?? (sim.status ? String(sim.status) : null),
+          tecnico: JSON.stringify(sim.raw ?? {}).slice(0, 2000),
+          orientacao:
+            'Verifique a situação do título com o beneficiário. Não é possível prosseguir com o pagamento.',
+        } satisfies ErroBoleto,
+      }
+    }
+
+    const s: any = sim.data ?? {}
+    const valorOriginal = Number(s.value ?? parsed.value ?? 0) || null
+    const valorFinal = Number(s.totalValue ?? s.value ?? parsed.value ?? 0) || null
+    const vencimento: string | null = s.dueDate ?? parsed.dueDate ?? null
+    // Valor só é editável quando o próprio provedor indicar título de valor aberto.
+    const valorEditavel = Boolean(
+      s.canChangeValue ?? (valorOriginal == null && (s.minimumValue != null || s.maximumValue != null)),
+    )
+
+    return {
+      ok: true as const,
+      podePagar: true,
+      boleto: {
+        tipo: parsed.kind,
+        linhaDigitavel: parsed.linha,
+        codigoBarras: s.barCode ?? parsed.barcode,
+        beneficiario: s.companyName ?? s.beneficiaryName ?? null,
+        documentoBeneficiario: s.cpfCnpj ?? s.beneficiaryCpfCnpj ?? null,
+        instituicao: s.bankName ?? s.bank?.name ?? null,
+        valorOriginal,
+        valorAtualizado: valorFinal,
+        valorFinal,
+        juros: s.interest ?? null,
+        multa: s.fine ?? null,
+        desconto: s.discount ?? null,
+        abatimento: s.deduction ?? s.rebate ?? null,
+        vencimento,
+        vencido: isBoletoVencido(vencimento),
+        descricao: s.description ?? s.additionalInformation ?? null,
+        valorEditavel,
+        valorMinimo: s.minimumValue ?? null,
+        valorMaximo: s.maximumValue ?? null,
+        dataMinimaPagamento: s.minimumPaymentDate ?? null,
+        dataMaximaPagamento: s.maximumPaymentDate ?? s.dueDateLimit ?? null,
+        podePagarComSaldo: s.canBePaidWithBalance ?? null,
+        hoje: todayBRT(),
+      },
+      raw: s,
+    }
+  })
+
+/* ------------------------------------------------------------------
  * 2) Criação/agendamento do pagamento
+
  * ------------------------------------------------------------------ */
 
 export const criarPagamentoBoleto = createServerFn({ method: 'POST' })
