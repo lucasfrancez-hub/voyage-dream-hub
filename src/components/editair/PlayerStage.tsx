@@ -77,6 +77,8 @@ type Props = {
   /** deslocamento em px do frame do projeto */
   onMover?: (id: string, dx: number, dy: number) => void;
   onEscalar?: (id: string, fator: number) => void;
+  /** nova largura da caixa de texto em fração do frame (0..1) */
+  onLarguraCaixa?: (id: string, largura: number) => void;
   onGirar?: (id: string, graus: number) => void;
   /** fim do gesto de arrastar/redimensionar (commit no histórico) */
   onFimGesto?: () => void;
