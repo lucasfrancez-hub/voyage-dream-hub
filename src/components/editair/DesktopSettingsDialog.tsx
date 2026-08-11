@@ -33,6 +33,70 @@ export function DesktopSettingsDialog({
   const [update, setUpdate] = useState<EstadoUpdate | null>(null);
   const [ocupado, setOcupado] = useState(false);
   const [diag, setDiag] = useState("");
+  const [estadoWhisper, setEstadoWhisper] = useState<{
+    binario: boolean;
+    modelo: string;
+    modeloBaixado: boolean;
+  } | null>(null);
+
+  /* ---- alinhador local de legendas (whisper.cpp) ---- */
+  const verEstadoWhisper = async () => {
+    try {
+      const e = await api?.transcricao?.estado();
+      if (!e) {
+        toast.error("Esta versão do Desktop ainda não tem o alinhador local. Atualize o app.");
+        return;
+      }
+      setEstadoWhisper(e);
+      setDiag(JSON.stringify(e, null, 2));
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha ao ler o alinhador");
+    }
+  };
+
+  const baixarModeloWhisper = async () => {
+    if (!api?.transcricao) {
+      toast.error("Alinhador local indisponível nesta versão.");
+      return;
+    }
+    setOcupado(true);
+    try {
+      await api.transcricao.baixarModelo();
+      toast.success("Modelo de fala pronto");
+      await verEstadoWhisper();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha ao baixar o modelo");
+    } finally {
+      setOcupado(false);
+    }
+  };
+
+  const limparCacheTranscricao = async () => {
+    try {
+      await api?.transcricao?.limparCache();
+      toast.success("Cache de transcrições limpo");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha ao limpar o cache");
+    }
+  };
+
+  const rodarAB = async () => {
+    const w = window as unknown as { editairABLegendas?: () => Promise<unknown> };
+    if (typeof w.editairABLegendas !== "function") {
+      toast.error("Abra um projeto com vídeo importado nesta sessão antes de rodar o A/B.");
+      return;
+    }
+    setOcupado(true);
+    try {
+      const r = await w.editairABLegendas();
+      setDiag(JSON.stringify(r, null, 2));
+      toast.success("Teste A/B concluído");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha no teste A/B");
+    } finally {
+      setOcupado(false);
+    }
+  };
 
   useEffect(() => setAba(abaInicial), [abaInicial, aberto]);
 
