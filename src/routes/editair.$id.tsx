@@ -143,6 +143,7 @@ function EditorPage() {
 
   const [playhead, setPlayhead] = useState(0);
   const [tocando, setTocando] = useState(false);
+  const demoRef = useRef<number | null>(null);
   const [zoom, setZoom] = useState(60);
   /* altura da timeline (splitter vertical) — a área superior nunca some */
   const [alturaTimeline, setAlturaTimeline] = useState(300);
@@ -1484,6 +1485,7 @@ function EditorPage() {
 
         <section className="min-h-0 overflow-hidden border-r border-white/10 bg-[#12171d]">
           <ToolPanel
+            onDemonstrarClip={demonstrarClipe}
             fundoPronto={fundoPronto}
             fundoCarregando={fundoCarregando}
             ferramenta={ferramenta}
