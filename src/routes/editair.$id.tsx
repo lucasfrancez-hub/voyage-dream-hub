@@ -537,6 +537,44 @@ function EditorPage() {
     };
   }, []);
 
+  /* AUDITORIA DE MÍDIA DO PREVIEW — Ajustes → Diagnóstico → Mídia (e window.editairMidiaDiag()).
+     Mostra, por asset, a URL usada, o estado real do <video> e a falha traduzida. */
+  useEffect(() => {
+    return registrarDiag("midia", () => {
+      const eng = engineRef.current;
+      const doPreview = eng?.diagnosticoMidias?.() ?? { midias: [], falhas: [] };
+      const caminhoDaUrl = (u?: string | null) => {
+        if (!u) return null;
+        try {
+          return decodeURIComponent(new URL(u).searchParams.get("p") || "") || null;
+        } catch {
+          return null;
+        }
+      };
+      return {
+        projeto: id,
+        assets: assetsRef.current.map((a) => {
+          const asset = a as AssetItem & { localPath?: string; existe?: boolean };
+          return {
+            assetId: asset.id,
+            nome: asset.nome,
+            kind: asset.kind,
+            url: asset.url,
+            arquivoDaUrl: caminhoDaUrl(asset.url),
+            localPath: asset.localPath ?? null,
+            existeNoDisco: asset.existe !== false,
+            extensao: (asset.nome.match(/\.[a-z0-9]+$/i)?.[0] ?? "").toLowerCase() || null,
+            clips: stateRef.current.clips.filter((c) => c.assetId === asset.id).map((c) => c.id),
+            falhouNoPreview: !!eng?.falhou?.(asset.id),
+            erro: eng?.erroDe?.(asset.id) ?? null,
+          };
+        }),
+        preview: doPreview,
+      };
+    });
+  }, [id]);
+
+
   /* TESTE A/B DE LEGENDAS — console: await editairABLegendas()
      Compara Gemini (tempo estimado) × Whisper local (tempo acústico) no MESMO áudio. */
   useEffect(() => {
