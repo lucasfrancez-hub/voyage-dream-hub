@@ -2000,7 +2000,11 @@ function EditorPage() {
           onToggleTrack={(trackId, campo) => aplicar(alternarTrack(state, trackId, campo))}
 
         />
-      </div>
+      </>
+      }
+    />
+
+
 
       <LoginNuvemDialog
         aberto={loginNuvem}
