@@ -156,9 +156,26 @@ function Basico(p: Props & { clip: EditairClip }) {
   const [uniforme, setUniforme] = useState(true);
   const setTr = (patch: Partial<typeof tr>) => onPatchClip({ transform: { ...tr, ...patch } });
 
+  const modo = clip.enquadramento ?? "preencher";
+
   return (
     <div className="space-y-4">
       <Secao titulo="Transformar">
+        <div className="flex gap-1 rounded-lg border border-white/10 p-1">
+          {(["fit", "preencher"] as const).map((m) => (
+            <button
+              key={m}
+              type="button"
+              onClick={() => onPatchClip({ enquadramento: m })}
+              className={`flex-1 rounded px-2 py-1 text-[11px] ${
+                modo === m ? "bg-[#F26B1F] text-black" : "text-white/60 hover:bg-white/10"
+              }`}
+            >
+              {m === "fit" ? "Ajustar (Fit)" : "Preencher"}
+            </button>
+          ))}
+        </div>
+
         <div className="grid grid-cols-2 gap-2">
           <Num label="Posição X" value={Math.round(tr.x)} onChange={(v) => setTr({ x: v })} kf={() => onKeyframe("x")} />
           <Num label="Posição Y" value={Math.round(tr.y)} onChange={(v) => setTr({ y: v })} kf={() => onKeyframe("y")} />
