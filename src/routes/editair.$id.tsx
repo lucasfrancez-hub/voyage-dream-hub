@@ -45,6 +45,8 @@ import { planejarOperacoesEditair, type PlanoIa } from "@/lib/editair/planner.fu
 import { validarOps, resumoDoPlano, planoGrande, executarGeracoes } from "@/lib/editair/ia-plano";
 import { LoginNuvemDialog } from "@/components/editair/LoginNuvemDialog";
 import { temSessaoNuvem } from "@/lib/editair/nuvem";
+import { definirHeaderProjeto, limparHeaderProjeto } from "@/lib/editair/header-state";
+
 import { planejarEdicaoEditair } from "@/lib/editair/brain.functions";
 import { normalizarPlano, transcricaoParaPrompt } from "@/lib/editair/brain";
 import { analisarAudio, analisarVisual, resumirAnalise, type AnaliseTecnica } from "@/lib/editair/analysis";
