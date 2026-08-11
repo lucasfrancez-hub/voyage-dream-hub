@@ -44,6 +44,7 @@ contextBridge.exposeInMainWorld("editairDesktop", {
   arquivo: {
     abrir: (caminho) => chamar("arquivo:abrir", { caminho }),
     revelar: (caminho) => chamar("arquivo:revelar", { caminho }),
+    salvarBytes: (nome, bytes) => chamar("arquivo:salvarBytes", { nome, bytes }),
   },
 
 

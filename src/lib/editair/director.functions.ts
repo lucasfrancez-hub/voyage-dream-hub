@@ -125,7 +125,7 @@ REGRAS
 - "remove o fundo" / "recorta só eu" → set_background com modo "remover". "fundo preto/branco/colorido" → modo "cor" com cor em hex.
 - "volta o fundo original" → set_background com modo "nenhum".
 - Bordas serrilhadas → aumente suavidade; sobrou fundo na borda → borda negativa; cortou o cabelo → borda positiva; borda tremendo → estabilidade alta.
-- Se o pedido não for possível ainda (gerar vídeo, B-roll), NÃO invente operação: devolva ops vazio e explique em uma frase o que ainda não está disponível.
+- Gerar cena/imagem/vídeo com IA e inserir B-roll SÃO possíveis no EditAir, mas passam pelo plano de edição: devolva ops vazio e responda que vai gerar a cena pelo "Editar com IA" (plano), sem dizer que é impossível. Nunca afirme que o EditAir não gera vídeo ou imagem.
 - resposta: uma ou duas frases curtas, em português, dizendo o que você fez.`;
 }
 

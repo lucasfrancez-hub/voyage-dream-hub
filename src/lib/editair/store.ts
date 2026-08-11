@@ -210,12 +210,28 @@ export async function importarMidias(
   if (!entrada || (Array.isArray(entrada) ? entrada.length === 0 : entrada.length === 0)) return [];
 
   if (api) {
-    const caminhos =
+    let caminhos =
       typeof (entrada as string[])[0] === "string"
         ? (entrada as string[])
         : caminhosDeArquivos(entrada as FileList | File[]);
+    /* mídia criada em memória (ex.: cena gerada pela IA) não tem caminho no disco:
+       grava os bytes no cache do app e importa esse arquivo como qualquer outra mídia */
+    if (!caminhos.length && typeof (entrada as string[])[0] !== "string" && api.arquivo.salvarBytes) {
+      opcoes.aoProgredir?.({ fase: "lendo", mensagem: "Salvando mídia gerada…" });
+      const arquivos = Array.from(entrada as FileList | File[]);
+      const salvos: string[] = [];
+      for (const f of arquivos) {
+        const bytes = new Uint8Array(await f.arrayBuffer());
+        salvos.push(await api.arquivo.salvarBytes(f.name || "midia.bin", bytes));
+      }
+      caminhos = salvos;
+    }
     if (!caminhos.length) {
-      throw new Error("Não consegui ler esses arquivos do disco. Use Importar mídia para escolhê-los.");
+      throw new Error(
+        api.arquivo.salvarBytes
+          ? "Não consegui ler esses arquivos do disco. Use Importar mídia para escolhê-los."
+          : "Esta versão do app não consegue salvar mídia gerada. Atualize o EditAir Desktop.",
+      );
     }
     opcoes.aoProgredir?.({
       fase: "lendo",
