@@ -129,7 +129,7 @@ export async function applyTransferStatus(opts: {
     }
   }
 
-  return { ok: true as const, status }
+  return { ok: true as const, status, statusAnterior, mudou: statusAnterior !== status }
 }
 
 /**
