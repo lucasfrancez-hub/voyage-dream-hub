@@ -4,7 +4,6 @@ const { app, BrowserWindow, ipcMain, dialog, shell, protocol, Menu } = require("
 const fs = require("node:fs");
 const path = require("node:path");
 const crypto = require("node:crypto");
-const { Readable } = require("node:stream");
 
 const { dirs, lerSettings, salvarSettings, tamanhoDe, limparCache } = require("./lib/paths.cjs");
 const media = require("./lib/media.cjs");
