@@ -184,7 +184,7 @@ export class PonteAssets {
       const { state, playhead } = this.ctx();
       eng.desenhar(state, playhead);
       if (eng.falhou(a.id)) {
-        this.aoFalhar?.(a);
+        this.aoFalhar?.(a, eng.erroDe?.(a.id));
         return "falhou";
       }
       return "carregado";
