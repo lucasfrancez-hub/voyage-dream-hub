@@ -773,6 +773,7 @@ function EditorPage() {
     };
     aplicar({ ...state, clips: [...state.clips, clip] });
     setSelecionados([clip.id]);
+    return clip.id;
   };
 
   const importar = async (arquivos: FileList | File[] | string[] | null, posicaoMs?: number) => {
@@ -1448,6 +1449,12 @@ function EditorPage() {
             onExcluirAsset={(aid) => void excluirAsset(aid)}
             onRelinkAsset={(aid) => void relinkAsset(aid)}
             onInserirAsset={inserirAsset}
+            onEditarComIaAsset={(aid) => {
+              const jaNaTimeline = state.clips.find((c) => c.assetId === aid);
+              const cid = jaNaTimeline?.id ?? inserirAsset(aid);
+              if (cid) setIaClipId(cid);
+            }}
+            onTranscreverAsset={() => void analisar()}
             onPatchClip={(patch) => patchClipe(patch)}
             onPatchState={(patch) => aplicar({ ...state, ...patch })}
             onCaption={(patch: Partial<CaptionStyle>) => aplicar({ ...state, captionStyle: { ...state.captionStyle, ...patch } })}
