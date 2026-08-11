@@ -1140,10 +1140,11 @@ export class EditairEngine {
     const ctxAny = ctx as CanvasRenderingContext2D & { letterSpacing?: string };
     if ("letterSpacing" in ctxAny) ctxAny.letterSpacing = `${espacamento}px`;
 
-    const maxLargura = width * 0.86;
-    const todas = quebrarLinhas(ctx, texto, maxLargura);
+    // A largura da caixa (ajustável pelos 4 cantos no Reprodutor) é o maxWidth
+    // real da legenda — mexer nela muda só a quebra, nunca o fontSize.
+    const maxLargura = width * clamp(estilo.boxWidth ?? 0.86, 0.1, 1);
     const maxLinhas = Math.max(1, estilo.maxLines ?? 2);
-    const linhas = todas.slice(0, maxLinhas);
+    const linhas = quebrarBalanceado((s) => ctx.measureText(s).width, texto, maxLargura, maxLinhas);
     const alturaLinha = fs * (estilo.lineHeight ?? 1.18);
     const yBase = height * estilo.y - ((linhas.length - 1) * alturaLinha) / 2 + deslocY;
     const alinhamento = estilo.align ?? "center";
