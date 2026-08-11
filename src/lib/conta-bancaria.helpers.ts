@@ -104,6 +104,9 @@ export function normalize(tx: any): ExtratoItem {
     formaPagamento: null,
     dueDate: null,
     paymentDate: null,
+    datetime: null,
+    datetimeSource: null,
+    origem: null,
   }
 }
 
