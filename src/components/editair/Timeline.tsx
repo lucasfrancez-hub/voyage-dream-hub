@@ -12,6 +12,9 @@ import {
   Pencil,
   Trash2,
   MousePointerSquareDashed,
+  ZoomIn,
+  ZoomOut,
+  Maximize2,
 } from "lucide-react";
 import type { EditairClip, EditairTrack, ProjectState } from "@/lib/editair/types";
 import { formatarTempo } from "@/lib/editair/types";
