@@ -1630,7 +1630,11 @@ function EditorPage() {
             onEditarComIaAsset={(aid) => {
               const jaNaTimeline = state.clips.find((c) => c.assetId === aid);
               const cid = jaNaTimeline?.id ?? inserirAsset(aid);
-              if (cid) setIaClipId(cid);
+              if (cid) {
+                setIaEscopo("clipe");
+                setIaEscopo("clipe");
+            setIaClipId(cid);
+              }
             }}
             onTranscreverAsset={() => void analisar()}
             onPatchClip={(patch) => patchClipe(patch)}
@@ -1823,6 +1827,7 @@ function EditorPage() {
           onExcluirTrack={(trackId) => usarResultado(excluirTrack(state, trackId))}
           onEditarComIa={(cid) => {
             setSelecionados([cid]);
+            setIaEscopo("clipe");
             setIaClipId(cid);
           }}
           onAcaoClip={(cid, acao) => {
