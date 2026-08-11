@@ -12,6 +12,7 @@ import {
   VolumeX,
 } from "lucide-react";
 import { timecode } from "@/lib/editair/types";
+import { alvoNoPonto, camadaDe, type AlvoPalco, type ModoGesto } from "@/lib/editair/palco-hit";
 
 export type ElementoPalco = {
   id: string;
@@ -30,9 +31,6 @@ export type ElementoPalco = {
   resize?: "escala" | "caixa";
 };
 
-/** Legenda e texto ficam na frente do vídeo no hit-test do Reprodutor. */
-const CAMADA: Record<string, number> = { caption: 30, text: 20 };
-const camadaDe = (kind: string) => CAMADA[kind] ?? 10;
 
 
 export type Plataforma = "nenhuma" | "reels" | "tiktok" | "shorts";
@@ -125,34 +123,74 @@ export function PlayerStage({
   const [personalizado, setPersonalizado] = useState(false);
   const [painel, setPainel] = useState(false);
   const palcoRef = useRef<HTMLDivElement>(null);
+  const [hoverId, setHoverId] = useState<string | null>(null);
+  const [cursorAtual, setCursorAtual] = useState<string>("default");
   const arrasto = useRef<{
-    modo: "mover" | "escala" | "caixa" | "giro";
+    modo: ModoGesto;
     id: string;
     x: number;
     y: number;
     base: ElementoPalco;
   } | null>(null);
 
-  const sel = elementos.find((e) => e.id === selecionadoId) ?? null;
+  
 
   const paraFrame = (ev: { clientX: number; clientY: number }) => {
     const r = palcoRef.current?.getBoundingClientRect();
-    if (!r) return { x: 0, y: 0 };
+    if (!r || !r.width || !r.height) return { x: 0, y: 0 };
     return { x: ((ev.clientX - r.left) / r.width) * width, y: ((ev.clientY - r.top) / r.height) * height };
   };
 
-  const iniciar =
-    (modo: "mover" | "escala" | "caixa" | "giro", el: ElementoPalco) => (ev: React.PointerEvent) => {
-      ev.stopPropagation();
-      if (el.bloqueado) return;
-      (ev.target as HTMLElement).setPointerCapture?.(ev.pointerId);
-      const pt = paraFrame(ev);
-      arrasto.current = { modo, id: el.id, x: pt.x, y: pt.y, base: el };
+  /** ponto em fração do frame + tolerância dos handles (10 px de tela) */
+  const paraFracao = (ev: { clientX: number; clientY: number }) => {
+    const r = palcoRef.current?.getBoundingClientRect();
+    if (!r || !r.width || !r.height) return { p: { x: 0, y: 0 }, tol: { x: 0.02, y: 0.02 } };
+    return {
+      p: { x: (ev.clientX - r.left) / r.width, y: (ev.clientY - r.top) / r.height },
+      tol: { x: 10 / r.width, y: 10 / r.height },
     };
+  };
+
+  const cursorDe = (alvo: AlvoPalco | null) => {
+    if (!alvo) return "default";
+    const el = elementos.find((e) => e.id === alvo.id);
+    if (el?.bloqueado) return "not-allowed";
+    if (alvo.modo === "caixa") return "ew-resize";
+    if (alvo.modo === "escala") return alvo.canto === "ne" || alvo.canto === "sw" ? "nesw-resize" : "nwse-resize";
+    if (alvo.modo === "giro") return "grab";
+    return "move";
+  };
+
+  const aoPointerDown = (ev: React.PointerEvent) => {
+    const { p, tol } = paraFracao(ev);
+    const alvo = alvoNoPonto(elementos, p, selecionadoId, tol);
+    if (!alvo) {
+      onSelecionar?.(null);
+      return;
+    }
+    const el = elementos.find((e) => e.id === alvo.id)!;
+    onSelecionar?.(el.id);
+    if (el.bloqueado) return;
+    // trava o gesto nesta camada: o vídeo atrás nunca recebe o arraste
+    ev.preventDefault();
+    ev.stopPropagation();
+    palcoRef.current?.setPointerCapture?.(ev.pointerId);
+    const pt = paraFrame(ev);
+    arrasto.current = { modo: alvo.modo, id: el.id, x: pt.x, y: pt.y, base: el };
+  };
 
   const mover = (ev: React.PointerEvent) => {
     const a = arrasto.current;
-    if (!a) return;
+    if (!a) {
+      // hover: detecta a legenda sem precisar selecionar na timeline
+      const { p, tol } = paraFracao(ev);
+      const alvo = alvoNoPonto(elementos, p, selecionadoId, tol);
+      const alvoEl = alvo ? elementos.find((e) => e.id === alvo.id) : null;
+      // contorno de hover só para legenda/texto: o vídeo ocupa o frame inteiro
+      setHoverId(alvoEl && (alvoEl.kind === "caption" || alvoEl.kind === "text") ? alvoEl.id : null);
+      setCursorAtual(cursorDe(alvo));
+      return;
+    }
     const pt = paraFrame(ev);
     const dx = pt.x - a.x;
     const dy = pt.y - a.y;
@@ -183,10 +221,12 @@ export function PlayerStage({
     }
   };
 
-  const soltar = () => {
+  const soltar = (ev?: React.PointerEvent) => {
     if (arrasto.current) onFimGesto?.();
     arrasto.current = null;
+    if (ev) palcoRef.current?.releasePointerCapture?.(ev.pointerId);
   };
+
 
 
   const ratioAtual = `${Math.round((width / height) * 100) / 100}`;
@@ -322,69 +362,62 @@ export function PlayerStage({
         >
           <canvas ref={canvasRef} className="block h-full w-full bg-black" />
 
-          {/* camada de seleção direta */}
+          {/* camada de seleção direta — um único alvo de ponteiro.
+              O hit-test é calculado (handles → legenda/texto → overlays → vídeo)
+              e o gesto fica preso nesta camada, então o vídeo de trás nunca
+              rouba um arraste que começou sobre a legenda. */}
           <div
             ref={palcoRef}
+            data-testid="palco-camada"
             className="absolute inset-0"
-            onPointerDown={(e) => {
-              if (e.target === e.currentTarget) onSelecionar?.(null);
-            }}
+            style={{ cursor: cursorAtual }}
+            onPointerDown={aoPointerDown}
             onPointerMove={mover}
             onPointerUp={soltar}
             onPointerCancel={soltar}
+            onPointerLeave={() => setHoverId(null)}
           >
-            {/* Ordem do hit-test: handles → legenda → outros overlays → vídeo.
-                Legenda/texto ganham z maior para o clique não cair no vídeo
-                que ocupa o frame inteiro atrás delas. */}
             {[...elementos]
               .sort((a, b) => camadaDe(a.kind) - camadaDe(b.kind))
               .map((el) => {
                 const ativo = el.id === selecionadoId;
+                const emHover = !ativo && el.id === hoverId;
                 const modoCaixa = (el.resize ?? "escala") === "caixa";
-                const texto = el.kind === "caption" || el.kind === "text";
                 return (
                   <div
                     key={el.id}
                     data-testid={`palco-el-${el.id}`}
                     data-kind={el.kind}
-                    onPointerDown={(e) => {
-                      onSelecionar?.(el.id);
-                      iniciar("mover", el)(e);
-                    }}
-                    className="absolute"
+                    className="pointer-events-none absolute"
                     style={{
                       left: `${(el.cx - el.w / 2) * 100}%`,
                       top: `${(el.cy - el.h / 2) * 100}%`,
                       width: `${el.w * 100}%`,
                       height: `${el.h * 100}%`,
                       transform: el.rotation ? `rotate(${el.rotation}deg)` : undefined,
-                      outline: ativo ? "2px solid #F26B1F" : undefined,
-                      cursor: el.bloqueado ? "not-allowed" : texto ? "text" : "move",
+                      outline: ativo
+                        ? "2px solid #F26B1F"
+                        : emHover
+                          ? "1px dashed rgba(242,107,31,.75)"
+                          : undefined,
                       zIndex: camadaDe(el.kind) + (ativo ? 5 : 0),
                     }}
                   >
                     {ativo && !el.bloqueado ? (
                       <>
-                        {[
-                          { c: "left-0 top-0", cur: modoCaixa ? "ew-resize" : "nwse-resize" },
-                          { c: "right-0 top-0", cur: modoCaixa ? "ew-resize" : "nesw-resize" },
-                          { c: "left-0 bottom-0", cur: modoCaixa ? "ew-resize" : "nesw-resize" },
-                          { c: "right-0 bottom-0", cur: modoCaixa ? "ew-resize" : "nwse-resize" },
-                        ].map((h) => (
+                        {["left-0 top-0", "right-0 top-0", "left-0 bottom-0", "right-0 bottom-0"].map((c) => (
                           <span
-                            key={h.c}
+                            key={c}
                             data-testid={`palco-handle-${el.id}`}
                             title={modoCaixa ? "Largura da caixa (não altera a fonte)" : "Redimensionar"}
-                            onPointerDown={iniciar(modoCaixa ? "caixa" : "escala", el)}
-                            className={`absolute h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-[#F26B1F] bg-white ${h.c}`}
-                            style={{ cursor: h.cur, margin: 0, transform: "translate(-50%,-50%)", zIndex: 60 }}
+                            className={`pointer-events-none absolute h-3 w-3 rounded-full border-2 border-[#F26B1F] bg-white ${c}`}
+                            style={{ transform: "translate(-50%,-50%)", margin: 0, zIndex: 60 }}
                           />
                         ))}
                         {modoCaixa ? null : (
                           <span
-                            onPointerDown={iniciar("giro", el)}
                             title="Girar"
-                            className="absolute left-1/2 top-0 h-3 w-3 -translate-x-1/2 -translate-y-6 cursor-grab rounded-full border-2 border-[#F26B1F] bg-white"
+                            className="pointer-events-none absolute left-1/2 top-0 h-3 w-3 -translate-x-1/2 -translate-y-6 rounded-full border-2 border-[#F26B1F] bg-white"
                           />
                         )}
                       </>
@@ -393,6 +426,7 @@ export function PlayerStage({
                 );
               })}
           </div>
+
 
           {safeArea ? (
             <div
