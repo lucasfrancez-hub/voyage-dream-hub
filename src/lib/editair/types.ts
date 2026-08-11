@@ -48,7 +48,12 @@ export type CaptionStyle = {
   y: number; // 0..1 posição vertical
   /** 0..1 posição horizontal do centro da legenda (padrão 0.5) */
   x?: number;
+  /** legado: equivale a caps: "upper" */
   uppercase: boolean;
+  /** capitalização puramente visual — não altera o texto da transcrição */
+  caps?: "original" | "upper" | "lower";
+  /** largura máxima da caixa de texto em fração do frame (0.2..1) */
+  boxWidth?: number;
   fontFamily: string;
   karaoke: boolean;
   animacao: AnimacaoLegenda;
