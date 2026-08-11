@@ -1861,7 +1861,7 @@ function EditorPage() {
       />
 
       <AiEditDialog
-        aberto={!!iaClipId}
+        aberto={!!iaClipId || iaAberto}
         escopo={
           iaClipId
             ? {
@@ -1871,13 +1871,26 @@ function EditorPage() {
                   return c ? `${formatarTempo(c.start)} → ${formatarTempo(c.start + c.duration)}` : undefined;
                 })(),
               }
-            : null
+            : { titulo: projetoNome, detalhe: iaEscopo === "cena" ? "Cena atual" : "Projeto inteiro" }
         }
+        escopoId={iaEscopo}
+        podeClipe={!!iaClipId}
+        onEscopoId={setIaEscopo}
         processando={pensando}
         etapa={etapaIa}
-        onFechar={() => setIaClipId(null)}
-        onExecutar={(instrucao) => void editarClipComIa(instrucao)}
+        etapas={iaEtapasFeitas}
+        plano={iaPlano ? { titulo: iaPlano.titulo, resposta: iaPlano.resposta, resumo: iaPlano.resumo } : null}
+        onFechar={() => {
+          if (pensando) return;
+          setIaClipId(null);
+          setIaAberto(false);
+          setIaPlano(null);
+        }}
+        onPlanejar={(instrucao) => void planejarEdicaoIa(instrucao)}
+        onAplicar={() => iaPlano && void aplicarPlanoIa(iaPlano)}
+        onDescartarPlano={() => setIaPlano(null)}
       />
+
 
 
       <ExportDialog
