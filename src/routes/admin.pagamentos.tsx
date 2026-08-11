@@ -15,7 +15,7 @@ import { ComprovanteReceipt } from "@/components/financial/ComprovanteReceipt";
 import { formatBRL } from "@/lib/format";
 import { PixPaymentDialog } from "@/components/financial/PixPaymentDialog";
 import {
-  listarPagamentosPix, detalharPagamentoPix, sincronizarPagamentoPix, cancelarPagamentoPix,
+  listarPagamentosPix, detalharPagamentoPix, sincronizarPagamentoPix, sincronizarTodosPagamentosPix, cancelarPagamentoPix,
 } from "@/lib/pagamentos.functions";
 import { confirmThen } from "@/lib/confirm";
 
