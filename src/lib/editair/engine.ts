@@ -766,7 +766,11 @@ export class EditairEngine {
     if (ap?.estabilizar) scale *= 1.05; // margem de segurança da estabilização
     if (ap?.ruido) blurExtra += 0.7;
 
-    const escalaBase = Math.max(width / sw, height / sh);
+    // "fit" (padrão de toda mídia nova) mantém o clipe inteiro dentro do canvas;
+    // "preencher" é o antigo comportamento de cobrir o quadro cortando as bordas.
+    const modo = c.enquadramento ?? "preencher";
+    const escalaBase =
+      modo === "fit" ? Math.min(width / sw, height / sh) : Math.max(width / sw, height / sh);
     const escala = escalaBase * scale;
     const w = sw * escala;
     const h = sh * escala;
