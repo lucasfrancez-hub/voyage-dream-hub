@@ -40,6 +40,7 @@ import {
 } from "@/lib/editair/store";
 import { transcreverBlocoEditair } from "@/lib/editair/transcribe.functions";
 import { dirigirEdicaoEditair } from "@/lib/editair/director.functions";
+import { AiEditDialog } from "@/components/editair/AiEditDialog";
 import { planejarEdicaoEditair } from "@/lib/editair/brain.functions";
 import { normalizarPlano, transcricaoParaPrompt } from "@/lib/editair/brain";
 import { analisarAudio, analisarVisual, resumirAnalise, type AnaliseTecnica } from "@/lib/editair/analysis";
@@ -139,6 +140,7 @@ function EditorPage() {
   const [plano, setPlano] = useState<PlanoEditorial | null>(null);
   const [etapaIa, setEtapaIa] = useState("");
   const [objetivoIa, setObjetivoIa] = useState("");
+  const [iaClipId, setIaClipId] = useState<string | null>(null);
   const [ocupado, setOcupado] = useState<string | null>(null);
   const [salvando, setSalvando] = useState(false);
 
@@ -1070,6 +1072,77 @@ function EditorPage() {
       toast.error(msg);
     } finally {
       setPensando(false);
+    }
+  };
+
+  /** Edição com IA no escopo de UM clipe: gera operações editáveis (undo disponível). */
+  const editarClipComIa = async (instrucao: string) => {
+    const cid = iaClipId;
+    const clip = cid ? state.clips.find((c) => c.id === cid) : null;
+    if (!clip) return;
+    const trilha = state.tracks.find((t) => t.id === clip.trackId);
+    const asset = clip.assetId ? assets.find((a) => a.id === clip.assetId) : null;
+    const fim = clip.start + clip.duration;
+    const trechoTranscricao = (transcript?.segments ?? [])
+      .filter((s) => s.end >= clip.start && s.start <= fim)
+      .map((s) => `[${Math.round(s.start)}-${Math.round(s.end)}] ${s.text}`)
+      .join("\n")
+      .slice(0, 12000);
+    const acima = state.tracks.slice(0, state.tracks.findIndex((t) => t.id === clip.trackId)).map((t) => t.name);
+    const abaixo = state.tracks.slice(state.tracks.findIndex((t) => t.id === clip.trackId) + 1).map((t) => t.name);
+    const ratio = state.width / state.height;
+    const contexto = [
+      `Escopo: SOMENTE o clipe ${clip.id} (${clip.kind}) na camada "${trilha?.name ?? clip.trackId}".`,
+      `Posição na timeline: ${Math.round(clip.start)}ms → ${Math.round(fim)}ms (duração ${Math.round(clip.duration)}ms).`,
+      `sourceIn: ${Math.round(clip.sourceIn)}ms · velocidade: ${clip.speed || 1} · volume: ${clip.volume ?? 1}.`,
+      asset ? `Mídia: ${asset.nome} (${asset.kind}, ${Math.round(asset.durationMs)}ms).` : "Mídia: não identificada.",
+      `Camadas acima: ${acima.join(", ") || "nenhuma"} · abaixo: ${abaixo.join(", ") || "nenhuma"}.`,
+      `Formato do projeto: ${ratio < 0.85 ? "vertical" : ratio > 1.2 ? "horizontal" : "quadrado"} (${state.width}x${state.height}).`,
+      trechoTranscricao ? `Transcrição do trecho:\n${trechoTranscricao}` : "Sem transcrição para o trecho.",
+      "Não altere outros clipes do projeto. Devolva operações de timeline editáveis.",
+      `Pedido do usuário: ${instrucao}`,
+    ].join("\n");
+
+    setPensando(true);
+    setEtapaIa("Analisando clipe…");
+    try {
+      setEtapaIa("Criando plano de edição…");
+      const r = await dirigirEdicaoEditair({
+        data: {
+          mensagem: contexto,
+          playheadMs: Math.round(playhead),
+          selecao: { fromMs: Math.round(clip.start), toMs: Math.round(fim) },
+          clipeSelecionadoId: clip.id,
+          duracaoMs: state.durationMs,
+          clipes: state.clips.slice(0, 400).map((c) => ({
+            id: c.id,
+            kind: c.kind,
+            trackId: c.trackId,
+            start: Math.round(c.start),
+            duration: Math.round(c.duration),
+            label: c.label ?? null,
+          })),
+          trilhas: state.tracks.map((t) => ({ id: t.id, name: t.name, kind: t.kind })),
+          transcricao: trechoTranscricao,
+        },
+      });
+      setEtapaIa("Aplicando alterações…");
+      const ops = ((r.ops ?? []) as unknown as EditairOp[]).filter(
+        (o) => !("clipId" in o) || !o.clipId || state.clips.some((c) => c.id === o.clipId),
+      );
+      if (ops.length) {
+        // checkpoint: aplicar() já empilha o estado anterior no histórico (Desfazer volta tudo)
+        const { state: novo } = aplicarOps(state, ops, transcript);
+        aplicar(novo);
+      }
+      setMensagens((m) => [...m, { id: novoId("m"), autor: "ia", texto: r.resposta, ops: ops.length }]);
+      toast.success(ops.length ? `${ops.length} alteração(ões) aplicada(s) — use Desfazer para reverter` : "Concluído");
+      setIaClipId(null);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha na edição com IA");
+    } finally {
+      setPensando(false);
+      setEtapaIa("");
     }
   };
 
