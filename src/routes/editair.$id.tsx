@@ -2,7 +2,7 @@ import { createFileRoute, useParams } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { CentralProcessos } from "@/components/editair/CentralProcessos";
-import { executarJob, jobEmAndamento } from "@/lib/editair/jobs";
+import { abrirJob, executarJob, jobEmAndamento } from "@/lib/editair/jobs";
 import { avisarConclusao } from "@/lib/editair/notificar";
 import {
   Captions,
@@ -185,7 +185,6 @@ function EditorPage() {
   const [iaPlano, setIaPlano] = useState<PlanoIa | null>(null);
   const [iaEtapasFeitas, setIaEtapasFeitas] = useState<string[]>([]);
   const [loginNuvem, setLoginNuvem] = useState(false);
-  const [ocupado, setOcupado] = useState<string | null>(null);
   const [salvando, setSalvando] = useState(false);
 
   const [exportAberto, setExportAberto] = useState(false);
@@ -871,7 +870,14 @@ function EditorPage() {
 
   const importar = async (arquivos: FileList | File[] | string[] | null, posicaoMs?: number) => {
     if (!arquivos || (arquivos as { length: number }).length === 0) return;
-    setOcupado(ehLocal() ? "Importando mídia…" : "Enviando mídia…");
+    const job = abrirJob({
+      projectId: id,
+      type: "importar-midia",
+      title: "Importando mídia",
+      stage: ehLocal() ? "Importando mídia…" : "Enviando mídia…",
+      cancellable: false,
+      resultado: "Mídia pronta",
+    });
     try {
       const proximo: ProjectState = { ...state, clips: [...state.clips] };
       const eraVazio = proximo.clips.length === 0;
@@ -880,7 +886,7 @@ function EditorPage() {
 
       const novas = await importarMidias(arquivos, {
         projectId: id,
-        aoProgredir: (p) => setOcupado(p.fase === "pronto" ? null : p.mensagem),
+        aoProgredir: (p) => job.etapa(p.fase === "pronto" ? "Finalizando…" : p.mensagem),
       });
 
       for (const midia of novas) {
@@ -940,11 +946,12 @@ function EditorPage() {
       toast.success(ehLocal() ? "Mídia adicionada (arquivo continua no seu computador)" : "Mídia salva na galeria");
       if (autoRef.current) setAutoEtapa("planejar");
     } catch (e) {
+      job.falhar(e);
       toast.error(e instanceof Error ? e.message : "Falha ao importar");
       autoRef.current = null;
       setAutoEtapa(null);
     } finally {
-      setOcupado(null);
+      job.fechar();
     }
   };
 
@@ -1017,7 +1024,15 @@ function EditorPage() {
     if (!clipeAtual?.assetId) return toast.error("Selecione um clipe com áudio.");
     const info = assetsMap[clipeAtual.assetId];
     if (!info) return;
-    setOcupado("Analisando áudio…");
+    const job = abrirJob({
+      projectId: id,
+      type: "analise-audio",
+      title: "Análise de áudio",
+      stage: "Analisando áudio…",
+      targetId: clipeAtual.id,
+      cancellable: false,
+      resultado: "Áudio analisado",
+    });
     try {
       const { obterPicos } = await import("@/lib/editair/media");
       const picos = await obterPicos(info.url, info.url);
@@ -1027,9 +1042,10 @@ function EditorPage() {
       patchClipe({ volume: Number(ganho.toFixed(2)) });
       toast.success(`Volume normalizado para ${Math.round(ganho * 100)}%`);
     } catch (e) {
+      job.falhar(e);
       toast.error(e instanceof Error ? e.message : "Falha ao normalizar");
     } finally {
-      setOcupado(null);
+      job.fechar();
     }
   };
 
@@ -1052,14 +1068,22 @@ function EditorPage() {
       return null;
     }
 
-    setOcupado("Transcrevendo…");
+    const job = abrirJob({
+      projectId: id,
+      type: "transcricao",
+      title: "Transcrição",
+      stage: "Analisando áudio…",
+      targetId: state.clips.find((c) => c.trackId === "t-video")?.id,
+      resultado: "Transcrição concluída",
+    });
     try {
       const total = buf.duration * 1000;
       const bloco = 60_000;
       const palavras: Transcript["words"] = [];
       for (let ini = 0; ini < total; ini += bloco) {
         const fim = Math.min(total, ini + bloco);
-        setOcupado(`Transcrevendo… ${Math.round((ini / total) * 100)}%`);
+        if (job.cancelado()) return null;
+        job.etapa("Transcrevendo fala…", (ini / total) * 100);
         const wav = paraWav16k(buf, ini, fim);
         const b64 = await blobParaBase64(wav);
         const r = await transcreverBlocoEditair({ data: { audioBase64: b64, offsetMs: Math.round(ini), idioma: "pt" } });
@@ -1075,16 +1099,19 @@ function EditorPage() {
         }
       }
       if (atual.length) segmentos.push({ start: atual[0].start, end: atual[atual.length - 1].end, text: atual.map((x) => x.w).join(" ") });
+      job.etapa("Criando blocos de legenda…", 95);
       const t: Transcript = { words: palavras, segments: segmentos };
       setTranscript(t);
       setFerramenta("legendas");
-      toast.success(`${palavras.length} palavras transcritas`);
+      job.concluir(`${palavras.length} palavras transcritas`);
+      avisarConclusao(`${palavras.length} palavras transcritas`);
       return t;
     } catch (e) {
+      job.falhar(e);
       toast.error(e instanceof Error ? e.message : "Falha na transcrição");
       return null;
     } finally {
-      setOcupado(null);
+      job.fechar();
     }
   };
 
