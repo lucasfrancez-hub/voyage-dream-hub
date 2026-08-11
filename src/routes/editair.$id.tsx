@@ -996,8 +996,8 @@ function EditorPage() {
   }, [state.clips, state.captionStyle, state.width, state.height, playhead]);
 
   /** Patch no estilo de UMA legenda (não mexe no padrão do projeto). */
-  const patchEstiloLegenda = (cid: string, patch: Partial<CaptionStyle>, commit = false) => {
-    if (commit) iniciarGesto();
+  const patchEstiloLegenda = (cid: string, patch: Partial<CaptionStyle>) => {
+    iniciarGesto();
     setState((s) => ({
       ...s,
       clips: s.clips.map((x) =>
