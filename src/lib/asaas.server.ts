@@ -391,6 +391,11 @@ export interface AsaasStatementParams {
   limit?: number
 }
 
+/** Transação Pix (contém a data/hora real: dateCreated / effectiveDate). */
+export async function getAsaasPixTransaction(pixTransactionId: string) {
+  return asaasFetch(`/pix/transactions/${encodeURIComponent(pixTransactionId)}`)
+}
+
 /** Extrato (financial transactions) da conta ASAAS. */
 export async function getAsaasStatement(params: AsaasStatementParams) {
   const q = new URLSearchParams({
