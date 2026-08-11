@@ -177,6 +177,34 @@ function EditorPage() {
   const [mensagens, setMensagens] = useState<MensagemIa[]>([]);
   const [pensando, setPensando] = useState(false);
   const [plano, setPlano] = useState<PlanoEditorial | null>(null);
+  const [etapaIa, setEtapaIa] = useState("");
+  const iaJobRef = useRef<ReturnType<typeof abrirJob> | null>(null);
+
+  /**
+   * Etapa da edição com IA: aparece no diálogo E na Central de Processamento,
+   * então fechar o diálogo não esconde nem cancela o trabalho.
+   */
+  const definirEtapaIa = (texto: string) => {
+    setEtapaIa(texto);
+    if (!texto) {
+      iaJobRef.current?.concluir("Edição com IA concluída");
+      iaJobRef.current?.fechar();
+      iaJobRef.current = null;
+      return;
+    }
+    if (!iaJobRef.current) {
+      iaJobRef.current = abrirJob({
+        projectId: id,
+        type: "editar-ia",
+        title: "Editar com IA",
+        stage: texto,
+        cancellable: false,
+        resultado: "Edição com IA concluída",
+      });
+    } else {
+      iaJobRef.current.etapa(texto);
+    }
+  };
 
   const [objetivoIa, setObjetivoIa] = useState("");
   const [iaClipId, setIaClipId] = useState<string | null>(null);
