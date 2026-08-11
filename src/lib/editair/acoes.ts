@@ -54,44 +54,109 @@ export function clonarClips(clips: EditairClip[], deslocamentoMs = 0): EditairCl
   });
 }
 
+const NOME_KIND: Record<EditairTrack["kind"], string> = {
+  text: "Texto",
+  caption: "Legendas",
+  broll: "B-roll",
+  video: "Vídeo",
+  voice: "Voz",
+  music: "Música",
+};
+
+/** Cria uma camada do mesmo tipo no índice pedido (0 = topo). */
+function criarCamada(s: ProjectState, kind: EditairTrack["kind"], indice: number): { state: ProjectState; track: EditairTrack } {
+  const n = s.tracks.filter((t) => t.kind === kind).length + 1;
+  const nova: EditairTrack = {
+    id: `t-${kind}-${n}-${Math.random().toString(36).slice(2, 6)}`,
+    kind,
+    name: `${NOME_KIND[kind]} ${n}`,
+  };
+  const tracks = [...s.tracks];
+  tracks.splice(Math.max(0, Math.min(tracks.length, indice)), 0, nova);
+  return { state: { ...s, tracks }, track: nova };
+}
+
+const conflita = (a: { start: number; duration: number }, b: { start: number; duration: number }) =>
+  a.start < b.start + b.duration && b.start < a.start + a.duration;
+
 /**
- * Duplica um ou vários clipes preservando as distâncias relativas: o bloco
- * inteiro é copiado logo após o fim da seleção.
+ * Copia clipes MANTENDO a posição temporal, porém numa camada acima da original.
+ * Reutiliza a camada de cima quando ela é do mesmo tipo, está livre no intervalo
+ * e destravada; caso contrário cria uma camada nova logo acima.
+ */
+export function copiarEmCamadaAcima(
+  s: ProjectState,
+  clips: EditairClip[],
+): ResultadoCamada & { novosIds?: string[] } {
+  if (!clips.length) return { ok: false, erro: "Nada para copiar." };
+  let base = s;
+  const novos: EditairClip[] = [];
+
+  // agrupa por camada de origem, de baixo para cima (índice maior primeiro)
+  const grupos = new Map<string, EditairClip[]>();
+  for (const c of clips) {
+    const tid = trilha(base, c.trackId) ? c.trackId : (base.tracks[0]?.id ?? c.trackId);
+    grupos.set(tid, [...(grupos.get(tid) ?? []), c]);
+  }
+  const ordenados = [...grupos.entries()].sort(
+    (a, b) => base.tracks.findIndex((t) => t.id === b[0]) - base.tracks.findIndex((t) => t.id === a[0]),
+  );
+
+  for (const [tid, grupo] of ordenados) {
+    const origem = trilha(base, tid);
+    if (!origem) continue;
+    const iOrigem = base.tracks.findIndex((t) => t.id === tid);
+    const acima = base.tracks[iOrigem - 1];
+    const clones = clonarClips(grupo, 0).map((c, k) => ({ ...c, start: grupo[k]!.start }));
+
+    const livre =
+      acima &&
+      acima.kind === origem.kind &&
+      !acima.locked &&
+      !base.clips.some((x) => x.trackId === acima.id && clones.some((n) => conflita(n, x))) &&
+      !novos.some((x) => x.trackId === acima.id && clones.some((n) => conflita(n, x)));
+
+    let destinoId: string;
+    if (livre && acima) {
+      destinoId = acima.id;
+    } else {
+      const r = criarCamada(base, origem.kind, iOrigem);
+      base = r.state;
+      destinoId = r.track.id;
+    }
+    novos.push(...clones.map((c) => ({ ...c, trackId: destinoId })));
+  }
+
+  if (!novos.length) return { ok: false, erro: "Não foi possível criar a cópia." };
+  return {
+    ok: true,
+    novosIds: novos.map((c) => c.id),
+    state: recalcularDuracao({ ...base, clips: [...base.clips, ...novos] }),
+  };
+}
+
+/**
+ * Duplica a seleção na MESMA posição temporal, numa camada imediatamente acima.
  */
 export function duplicarClips(s: ProjectState, ids: string[]): ResultadoCamada & { novosIds?: string[] } {
   const alvo = idsEditaveis(s, ids);
   if (!alvo.length) return { ok: false, erro: "Nada para duplicar (seleção vazia ou bloqueada)." };
-  const clips = s.clips.filter((c) => alvo.includes(c.id));
-  const inicio = Math.min(...clips.map((c) => c.start));
-  const fim = Math.max(...clips.map((c) => c.start + c.duration));
-  const novos = clonarClips(clips, fim - inicio);
-  return {
-    ok: true,
-    novosIds: novos.map((c) => c.id),
-    state: recalcularDuracao({ ...s, clips: [...s.clips, ...novos] }),
-  };
+  return copiarEmCamadaAcima(s, s.clips.filter((c) => alvo.includes(c.id)));
 }
 
-/** Cola o conteúdo do clipboard interno no playhead, mantendo as distâncias relativas. */
+/**
+ * Cola o clipboard interno preservando a posição temporal original e as
+ * distâncias entre os clipes, sempre numa camada nova/livre acima da original.
+ */
 export function colarClips(
   s: ProjectState,
   clipboard: EditairClip[],
-  playheadMs: number,
+  _playheadMs?: number,
 ): ResultadoCamada & { novosIds?: string[] } {
   if (!clipboard.length) return { ok: false, erro: "Nada copiado ainda." };
-  const base = Math.min(...clipboard.map((c) => c.start));
-  const destino = Math.max(0, Math.round(playheadMs));
-  const novos = clonarClips(clipboard, destino - base)
-    // colar numa camada que não existe mais cai na primeira camada compatível
-    .map((c) => (trilha(s, c.trackId) ? c : { ...c, trackId: s.tracks[0]?.id ?? c.trackId }))
-    .filter((c) => !trilha(s, c.trackId)?.locked);
-  if (!novos.length) return { ok: false, erro: "A camada de destino está bloqueada." };
-  return {
-    ok: true,
-    novosIds: novos.map((c) => c.id),
-    state: recalcularDuracao({ ...s, clips: [...s.clips, ...novos] }),
-  };
+  return copiarEmCamadaAcima(s, clipboard);
 }
+
 
 /**
  * Congela/descongela o(s) clipe(s). Ao congelar guardamos a velocidade
