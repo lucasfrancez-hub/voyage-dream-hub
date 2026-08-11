@@ -213,6 +213,17 @@ responder("arquivo:abrir", async ({ caminho }) => {
   return true;
 });
 
+/* Grava bytes vindos do renderer (ex.: mídia gerada por IA) num arquivo real
+   dentro do cache, para que possa ser importado na Biblioteca como qualquer mídia. */
+responder("arquivo:salvarBytes", async ({ nome = "midia.bin", bytes }) => {
+  const pasta = path.join(dirs.cache(), "gerados");
+  fs.mkdirSync(pasta, { recursive: true });
+  const seguro = String(nome).replace(/[^\w.\-]+/g, "_").slice(-80) || "midia.bin";
+  const destino = path.join(pasta, `${Date.now()}-${crypto.randomUUID().slice(0, 8)}-${seguro}`);
+  fs.writeFileSync(destino, Buffer.from(bytes));
+  return destino;
+});
+
 responder("arquivo:revelar", async ({ caminho }) => {
   shell.showItemInFolder(caminho);
   return true;
