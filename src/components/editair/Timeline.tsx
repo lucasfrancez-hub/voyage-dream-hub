@@ -1024,6 +1024,7 @@ function Clipe({
         {clip.transicao ? (
           <span className="pointer-events-none absolute left-0 top-0 h-full w-3 bg-gradient-to-r from-white/60 to-transparent" />
         ) : null}
+        <MarcadoresEfeitos clip={clip} largura={largura} />
         {!bloqueado && !clip.bloqueado ? (
           <>
             <div
