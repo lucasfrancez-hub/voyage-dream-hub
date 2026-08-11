@@ -331,7 +331,7 @@ function DetalheDialog({ id, onClose }: { id: string | null; onClose: () => void
         cpfCnpj: t.cpf_cnpj ?? null,
         tipo: "Transferência Pix",
         dataHora: new Date(t.effective_date ?? t.created_at).toLocaleString("pt-BR"),
-        transacaoId: e2eDoRaw(t.raw_response) ?? t.asaas_transfer_id ?? null,
+        transacaoId: t.end_to_end_identifier ?? e2eDoRaw(t.raw_response) ?? t.asaas_transfer_id ?? null,
         descricao: t.description ?? null,
         status: meta?.label ?? t.status,
         concluido: t.status === "concluido",
