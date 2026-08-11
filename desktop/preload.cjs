@@ -51,6 +51,7 @@ contextBridge.exposeInMainWorld("editairDesktop", {
   diagnostico: {
     salvarTexto: (nome, texto) => chamar("diagnostico:salvarTexto", { nome, texto }),
     devTools: () => chamar("app:devTools"),
+    importacao: () => chamar("diagnostico:importacao"),
   },
 
   biblioteca: {
