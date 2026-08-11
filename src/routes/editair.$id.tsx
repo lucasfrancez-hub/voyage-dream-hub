@@ -96,7 +96,9 @@ import { aplicarAssetsIniciais, midiaParaAsset, PonteAssets, type AssetBasico } 
 import { pontoDesktop } from "@/lib/editair/desktop";
 import { consumirHandoff } from "@/lib/editair/handoff";
 import { Timeline, type AssetInfo, type DestinoSolto } from "@/components/editair/Timeline";
-import { alturaTimelineValida, MIN_AREA_SUPERIOR } from "@/lib/editair/interacao";
+import { WorkspaceLayout } from "@/components/editair/WorkspaceLayout";
+import { alturaDistribuivel, clampAlturaTimeline } from "@/lib/editair/layout-workspace";
+
 import { PlayerStage, type ElementoPalco } from "@/components/editair/PlayerStage";
 import { SourceDialog } from "@/components/editair/SourceDialog";
 import { Inspector } from "@/components/editair/Inspector";
@@ -151,14 +153,12 @@ function EditorPage() {
   const [tocando, setTocando] = useState(false);
   const demoRef = useRef<number | null>(null);
   const [zoom, setZoom] = useState(60);
-  /* altura da timeline (splitter vertical) — a área superior nunca some */
+  /* altura da timeline (splitter horizontal) — estado independente das larguras */
   const [alturaTimeline, setAlturaTimeline] = useState(300);
   useEffect(() => {
-    const ajustar = () => setAlturaTimeline((h) => alturaTimelineValida(h, window.innerHeight - 56 - 46));
-    ajustar();
-    window.addEventListener("resize", ajustar);
-    return () => window.removeEventListener("resize", ajustar);
+    setAlturaTimeline((h) => clampAlturaTimeline(h, alturaDistribuivel(window.innerHeight)));
   }, []);
+
   const [selecionados, setSelecionados] = useState<string[]>([]);
   const selecionadosRef = useRef<string[]>([]);
   selecionadosRef.current = selecionados;
@@ -1701,13 +1701,13 @@ function EditorPage() {
   const assetItens: AssetItem[] = assets;
 
   return (
-    <div
-      className="grid h-[calc(100vh-3.5rem)] bg-[#0c0f13]"
-      style={{ gridTemplateRows: `46px minmax(${MIN_AREA_SUPERIOR}px, 1fr) 6px ${alturaTimeline}px` }}
-      data-testid="editair-layout"
-    >
-      {/* topo */}
-      <div className="flex items-center gap-3 border-b border-white/10 bg-[#0d1116] px-3">
+    <>
+    <WorkspaceLayout
+      alturaTimeline={alturaTimeline}
+      onAlturaTimeline={setAlturaTimeline}
+      topbar={
+      <div className="flex h-full items-center gap-3 border-b border-white/10 bg-[#0d1116] px-3">
+
         <div className="flex-1" />
 
         <TopBtn onClick={desfazer} titulo="Desfazer">
@@ -1744,10 +1744,10 @@ function EditorPage() {
           Exportar
         </Button>
       </div>
+      }
+      rail={
+        <aside className="flex h-full flex-col gap-1 overflow-y-auto border-r border-white/10 bg-[#0f141a] p-1.5">
 
-      {/* corpo */}
-      <div className="grid min-h-0 grid-cols-[76px_300px_minmax(320px,1fr)_282px] xl:grid-cols-[76px_340px_minmax(420px,1fr)_312px]">
-        <aside className="flex flex-col gap-1 overflow-y-auto border-r border-white/10 bg-[#0f141a] p-1.5">
           {FERRAMENTAS.map((f) => (
             <button
               key={f.id}
@@ -1761,8 +1761,10 @@ function EditorPage() {
             </button>
           ))}
         </aside>
+      }
+      biblioteca={
+        <section className="h-full min-h-0 overflow-hidden border-r border-white/10 bg-[#12171d]">
 
-        <section className="min-h-0 overflow-hidden border-r border-white/10 bg-[#12171d]">
           <ToolPanel
             onDemonstrarClip={demonstrarClipe}
             fundoPronto={fundoPronto}
@@ -1816,8 +1818,10 @@ function EditorPage() {
             onApagarTrecho={apagarTrecho}
           />
         </section>
-
+      }
+      player={
         <PlayerStage
+
           canvasRef={canvasRef}
           width={state.width}
           height={state.height}
@@ -1844,8 +1848,10 @@ function EditorPage() {
           onEscalar={escalarElemento}
           onGirar={girarElemento}
         />
-
+      }
+      inspector={
         <Inspector
+
           state={state}
           clip={clipeAtual}
           assets={assetItens.map((a) => ({ id: a.id, nome: a.nome }))}
@@ -1869,36 +1875,11 @@ function EditorPage() {
             return eng.analisarFundo(c, onProgresso, cancelado);
           }}
         />
-      </div>
-
-      {/* splitter vertical: só redistribui altura entre área superior e timeline */}
-      <div
-        role="separator"
-        aria-orientation="horizontal"
-        aria-label="Redimensionar timeline"
-        data-testid="editair-splitter"
-        onPointerDown={(e) => {
-          e.preventDefault();
-          const y0 = e.clientY;
-          const h0 = alturaTimeline;
-          const mover = (ev: PointerEvent) =>
-            setAlturaTimeline(alturaTimelineValida(h0 + (y0 - ev.clientY), window.innerHeight - 56 - 46));
-          const soltar = () => {
-            window.removeEventListener("pointermove", mover);
-            window.removeEventListener("pointerup", soltar);
-          };
-          window.addEventListener("pointermove", mover);
-          window.addEventListener("pointerup", soltar);
-        }}
-        className="group flex cursor-row-resize items-center justify-center bg-white/5 transition hover:bg-[#F26B1F]/40"
-      >
-        <span className="h-0.5 w-16 rounded-full bg-white/20 group-hover:bg-[#F26B1F]" />
-      </div>
-
-      {/* timeline */}
-      <div className="grid min-h-0 grid-rows-[42px_1fr] border-t border-white/10">
-
+      }
+      timeline={
+      <>
         <div className="flex items-center gap-1.5 border-b border-white/10 bg-[#0d1116] px-3 text-[11px]">
+
           <BarraBtn onClick={dividir} icone={<Scissors className="h-3.5 w-3.5" />} texto="Dividir" />
           <BarraBtn onClick={() => excluirSelecionados(false)} icone={<Trash2 className="h-3.5 w-3.5" />} texto="Excluir" />
           <BarraBtn onClick={() => excluirSelecionados(true)} icone={<Trash2 className="h-3.5 w-3.5" />} texto="Ripple delete" />
@@ -2019,7 +2000,11 @@ function EditorPage() {
           onToggleTrack={(trackId, campo) => aplicar(alternarTrack(state, trackId, campo))}
 
         />
-      </div>
+      </>
+      }
+    />
+
+
 
       <LoginNuvemDialog
         aberto={loginNuvem}
@@ -2110,7 +2095,8 @@ function EditorPage() {
           </div>
         </div>
       ) : null}
-    </div>
+    </>
+
   );
 }
 
