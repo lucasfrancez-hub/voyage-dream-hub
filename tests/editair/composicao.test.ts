@@ -20,6 +20,7 @@ const clip = (p: Partial<EditairClip>): EditairClip =>
     volume: 1,
     speed: 1,
     transform: { x: 0, y: 0, scale: 1, rotation: 0, opacity: 1 },
+    ...p,
   }) as EditairClip;
 
 const projeto = (clips: EditairClip[]): ProjectState =>
