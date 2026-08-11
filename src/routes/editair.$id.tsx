@@ -306,6 +306,37 @@ function EditorPage() {
   stateRef.current = state;
   const playheadRef = useRef(0);
   playheadRef.current = playhead;
+  const tocandoRef = useRef(false);
+  tocandoRef.current = tocando;
+
+  /* -------- seek central: régua, playhead, topo do clipe e player --------
+     Reposiciona o relógio de reprodução para que arrastar durante o play
+     leve áudio e imagem juntos para o novo ponto. */
+  const buscar = useCallback((ms: number) => {
+    const alvo = Math.max(0, Math.min(stateRef.current.durationMs, ms));
+    setPlayhead(alvo);
+    playheadRef.current = alvo;
+    if (relogioRef.current) relogioRef.current = { t0: performance.now(), ms0: alvo };
+    const eng = engineRef.current;
+    if (eng) {
+      eng.sincronizar(stateRef.current, alvo, tocandoRef.current);
+      eng.desenhar(stateRef.current, alvo);
+    }
+  }, []);
+
+  /* Scrub: suspende o playback internamente e retoma ao soltar. */
+  const scrubRef = useRef<{ tocava: boolean } | null>(null);
+  const iniciarScrubGlobal = useCallback(() => {
+    if (scrubRef.current) return;
+    scrubRef.current = { tocava: tocandoRef.current };
+    if (tocandoRef.current) setTocando(false);
+  }, []);
+  const encerrarScrubGlobal = useCallback(() => {
+    const s = scrubRef.current;
+    scrubRef.current = null;
+    if (s?.tocava) setTocando(true);
+  }, []);
+
 
   /** Tratamento da falha de mídia — no Desktop tenta gerar proxy compatível e recarrega. */
   const aoFalharRef = useRef<(a: AssetBasico, erro?: unknown) => void>(() => {});
