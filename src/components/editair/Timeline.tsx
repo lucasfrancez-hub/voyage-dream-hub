@@ -546,9 +546,10 @@ export function Timeline({
 
   return (
     <div className="relative flex h-full min-h-0 flex-col bg-[#0d1116]" onPointerDown={() => setMenu(null)}>
-      <div className="flex min-h-0 flex-1">
-        {/* cabeçalho das trilhas */}
-        <div className="w-[170px] shrink-0 border-r border-white/10 bg-[#10151b]">
+      <div className="flex min-h-0 min-w-0 flex-1 overflow-hidden">
+        {/* cabeçalho das trilhas — fixo à esquerda, acompanha só o scroll vertical */}
+        <div ref={headersRef} className="w-[170px] shrink-0 overflow-hidden border-r border-white/10 bg-[#10151b]">
+
           <div className="flex h-7 items-center justify-between border-b border-white/10 px-2">
             <span className="text-[10px] uppercase tracking-wide text-white/30">Camadas</span>
             {onNovaTrilhaVideo ? (
