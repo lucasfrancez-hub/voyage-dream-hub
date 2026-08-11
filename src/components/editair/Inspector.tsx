@@ -63,7 +63,7 @@ export function Inspector(p: Props) {
   const { clip } = p;
 
   return (
-    <aside className="flex min-h-0 w-full flex-col border-l border-white/10 bg-[#12171d]">
+    <aside className="flex h-full min-h-0 w-full flex-col border-l border-white/10 bg-[#12171d]" data-testid="inspector">
       <div className="flex h-[46px] shrink-0 items-center gap-2 border-b border-white/10 px-3">
         <strong className="text-[13px]">Inspector</strong>
         <span className="truncate text-[11px] text-white/35">{clip ? rotulo(clip) : "Nada selecionado"}</span>
