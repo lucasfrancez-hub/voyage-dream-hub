@@ -68,6 +68,8 @@ type Props = {
   onMover?: (id: string, dx: number, dy: number) => void;
   onEscalar?: (id: string, fator: number) => void;
   onGirar?: (id: string, graus: number) => void;
+  /** fim do gesto de arrastar/redimensionar (commit no histórico) */
+  onFimGesto?: () => void;
 };
 
 
