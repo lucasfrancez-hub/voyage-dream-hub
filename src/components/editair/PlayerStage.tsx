@@ -333,52 +333,65 @@ export function PlayerStage({
             onPointerUp={soltar}
             onPointerCancel={soltar}
           >
-            {elementos.map((el) => {
-              const ativo = el.id === selecionadoId;
-              return (
-                <div
-                  key={el.id}
-                  onPointerDown={(e) => {
-                    onSelecionar?.(el.id);
-                    iniciar("mover", el)(e);
-                  }}
-                  className={`absolute ${el.bloqueado ? "cursor-not-allowed" : "cursor-move"} ${
-                    ativo ? "" : "hover:outline hover:outline-1 hover:outline-white/40"
-                  }`}
-                  style={{
-                    left: `${(el.cx - el.w / 2) * 100}%`,
-                    top: `${(el.cy - el.h / 2) * 100}%`,
-                    width: `${el.w * 100}%`,
-                    height: `${el.h * 100}%`,
-                    transform: el.rotation ? `rotate(${el.rotation}deg)` : undefined,
-                    outline: ativo ? "2px solid #F26B1F" : undefined,
-                  }}
-                >
-                  {ativo && !el.bloqueado ? (
-                    <>
-                      {[
-                        { c: "left-0 top-0", cur: "nwse-resize" },
-                        { c: "right-0 top-0", cur: "nesw-resize" },
-                        { c: "left-0 bottom-0", cur: "nesw-resize" },
-                        { c: "right-0 bottom-0", cur: "nwse-resize" },
-                      ].map((h) => (
-                        <span
-                          key={h.c}
-                          onPointerDown={iniciar("escala", el)}
-                          className={`absolute h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-[#F26B1F] bg-white ${h.c}`}
-                          style={{ cursor: h.cur, margin: 0, transform: "translate(-50%,-50%)" }}
-                        />
-                      ))}
-                      <span
-                        onPointerDown={iniciar("giro", el)}
-                        title="Girar"
-                        className="absolute left-1/2 top-0 h-3 w-3 -translate-x-1/2 -translate-y-6 cursor-grab rounded-full border-2 border-[#F26B1F] bg-white"
-                      />
-                    </>
-                  ) : null}
-                </div>
-              );
-            })}
+            {/* Ordem do hit-test: handles → legenda → outros overlays → vídeo.
+                Legenda/texto ganham z maior para o clique não cair no vídeo
+                que ocupa o frame inteiro atrás delas. */}
+            {[...elementos]
+              .sort((a, b) => camadaDe(a.kind) - camadaDe(b.kind))
+              .map((el) => {
+                const ativo = el.id === selecionadoId;
+                const modoCaixa = (el.resize ?? "escala") === "caixa";
+                return (
+                  <div
+                    key={el.id}
+                    data-testid={`palco-el-${el.id}`}
+                    data-kind={el.kind}
+                    onPointerDown={(e) => {
+                      onSelecionar?.(el.id);
+                      iniciar("mover", el)(e);
+                    }}
+                    className={`absolute ${el.bloqueado ? "cursor-not-allowed" : "cursor-move"} ${
+                      ativo ? "" : "hover:outline hover:outline-1 hover:outline-white/40"
+                    }`}
+                    style={{
+                      left: `${(el.cx - el.w / 2) * 100}%`,
+                      top: `${(el.cy - el.h / 2) * 100}%`,
+                      width: `${el.w * 100}%`,
+                      height: `${el.h * 100}%`,
+                      transform: el.rotation ? `rotate(${el.rotation}deg)` : undefined,
+                      outline: ativo ? "2px solid #F26B1F" : undefined,
+                      zIndex: camadaDe(el.kind) + (ativo ? 5 : 0),
+                    }}
+                  >
+                    {ativo && !el.bloqueado ? (
+                      <>
+                        {[
+                          { c: "left-0 top-0", cur: modoCaixa ? "ew-resize" : "nwse-resize" },
+                          { c: "right-0 top-0", cur: modoCaixa ? "ew-resize" : "nesw-resize" },
+                          { c: "left-0 bottom-0", cur: modoCaixa ? "ew-resize" : "nesw-resize" },
+                          { c: "right-0 bottom-0", cur: modoCaixa ? "ew-resize" : "nwse-resize" },
+                        ].map((h) => (
+                          <span
+                            key={h.c}
+                            data-testid={`palco-handle-${el.id}`}
+                            title={modoCaixa ? "Largura da caixa (não altera a fonte)" : "Redimensionar"}
+                            onPointerDown={iniciar(modoCaixa ? "caixa" : "escala", el)}
+                            className={`absolute h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-[#F26B1F] bg-white ${h.c}`}
+                            style={{ cursor: h.cur, margin: 0, transform: "translate(-50%,-50%)", zIndex: 60 }}
+                          />
+                        ))}
+                        {modoCaixa ? null : (
+                          <span
+                            onPointerDown={iniciar("giro", el)}
+                            title="Girar"
+                            className="absolute left-1/2 top-0 h-3 w-3 -translate-x-1/2 -translate-y-6 cursor-grab rounded-full border-2 border-[#F26B1F] bg-white"
+                          />
+                        )}
+                      </>
+                    ) : null}
+                  </div>
+                );
+              })}
           </div>
 
           {safeArea ? (
