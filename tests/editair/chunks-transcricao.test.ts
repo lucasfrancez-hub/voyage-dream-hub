@@ -128,11 +128,20 @@ describe("chunk de 10s é só processamento, nunca timing de legenda", () => {
       const fronteira = naTimeline(CHUNK, speed, 16_000);
       for (const p of proj) expect(p.start).not.toBe(fronteira);
 
-      // e a frase continua inteira em qualquer velocidade
+      // e a frase continua inteira em qualquer velocidade (em velocidades altas
+      // ela pode até se juntar à fala anterior — o que nunca acontece é quebrar no 10s)
       const legs = montarLegendas(st, t);
-      const frase = legs.find((l) => l.text.includes("Maringá"));
-      expect(frase?.text).toContain("esse voo sai de Maringá");
-      expect(frase!.start).toBeCloseTo(naTimeline(9_400, speed, 16_000) - 60, -1);
+      const frase = legs.find((l) => l.text.includes("Maringá"))!;
+      expect(frase.text).toContain("esse voo sai de Maringá");
+      // o bloco começa nas próprias palavras (com o leadIn visual), não na fronteira
+      const primeira = frase.words![0]!;
+      expect(frase.start).toBeGreaterThanOrEqual(primeira.start - 60);
+      expect(frase.start).toBeLessThanOrEqual(primeira.start);
+      for (const l of legs) {
+        expect(l.start).not.toBe(fronteira);
+        expect(l.start + l.duration).not.toBe(fronteira);
+      }
+
     });
   }
 });
