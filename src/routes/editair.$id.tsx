@@ -1862,6 +1862,12 @@ function EditorPage() {
           }}
           onNormalizar={() => void normalizar()}
           onSepararAudio={separarAudio}
+          onAnalisarFundo={async (onProgresso, cancelado) => {
+            const eng = engineRef.current;
+            const c = clipeAtual;
+            if (!eng || !c) return false;
+            return eng.analisarFundo(c, onProgresso, cancelado);
+          }}
         />
       </div>
 
