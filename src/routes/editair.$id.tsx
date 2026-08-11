@@ -1744,10 +1744,10 @@ function EditorPage() {
           Exportar
         </Button>
       </div>
+      }
+      rail={
+        <aside className="flex h-full flex-col gap-1 overflow-y-auto border-r border-white/10 bg-[#0f141a] p-1.5">
 
-      {/* corpo */}
-      <div className="grid min-h-0 grid-cols-[76px_300px_minmax(320px,1fr)_282px] xl:grid-cols-[76px_340px_minmax(420px,1fr)_312px]">
-        <aside className="flex flex-col gap-1 overflow-y-auto border-r border-white/10 bg-[#0f141a] p-1.5">
           {FERRAMENTAS.map((f) => (
             <button
               key={f.id}
