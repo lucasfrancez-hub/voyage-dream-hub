@@ -6,6 +6,7 @@ import { calcularEfeitos, temVinheta } from "./efeitos";
 import { aplicarCaps, casarIndicePalavra, quebrarBalanceado } from "./legenda-layout";
 import {
   AJUSTES_NEUTROS,
+  LEGENDA_PADRAO,
   RECORTE_CHEIO,
   type ChromaKey,
   type Ajustes,
