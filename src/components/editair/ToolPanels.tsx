@@ -17,6 +17,7 @@ import {
 import { obterThumb } from "@/lib/editair/media";
 import { Button } from "@/components/ui/button";
 import { CaptionTemplates } from "@/components/editair/CaptionTemplates";
+import { EfeitosGallery } from "@/components/editair/EfeitosGallery";
 import { Slider } from "@/components/ui/slider";
 import { Input } from "@/components/ui/input";
 import {
