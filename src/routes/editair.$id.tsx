@@ -1848,8 +1848,10 @@ function EditorPage() {
           onEscalar={escalarElemento}
           onGirar={girarElemento}
         />
-
+      }
+      inspector={
         <Inspector
+
           state={state}
           clip={clipeAtual}
           assets={assetItens.map((a) => ({ id: a.id, nome: a.nome }))}
