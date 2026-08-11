@@ -872,6 +872,58 @@ export function Timeline({
         />
       ) : null}
 
+      {/* controle de zoom — pertence ao viewport: não rola com o conteúdo */}
+      {onZoom ? (
+        <div
+          data-testid="timeline-zoom"
+          className="absolute bottom-3.5 right-3.5 z-[56] flex items-center gap-1.5 rounded-full border border-white/10 bg-[#12171d]/95 px-2 py-1 shadow-[0_4px_16px_rgba(0,0,0,.5)] backdrop-blur"
+          onPointerDown={(e) => e.stopPropagation()}
+        >
+          <button
+            type="button"
+            title="Ajustar à janela"
+            aria-label="Ajustar à janela"
+            onClick={ajustarAJanela}
+            className="rounded-full p-1 text-white/45 transition hover:bg-white/10 hover:text-white"
+          >
+            <Maximize2 className="h-3.5 w-3.5" />
+          </button>
+          <span className="h-4 w-px bg-white/10" />
+          <button
+            type="button"
+            title="Diminuir zoom"
+            aria-label="Diminuir zoom"
+            onClick={() => aplicarZoom(zoom / 1.4)}
+            className="rounded-full p-1 text-white/50 transition hover:bg-white/10 hover:text-white"
+          >
+            <ZoomOut className="h-3.5 w-3.5" />
+          </button>
+          <input
+            type="range"
+            min={0}
+            max={100}
+            step={1}
+            aria-label="Zoom da timeline"
+            value={Math.round(((Math.log(zoom) - Math.log(ZOOM_MIN)) / (Math.log(ZOOM_MAX) - Math.log(ZOOM_MIN))) * 100)}
+            onChange={(e) => {
+              const p = Number(e.target.value) / 100;
+              aplicarZoom(Math.exp(Math.log(ZOOM_MIN) + p * (Math.log(ZOOM_MAX) - Math.log(ZOOM_MIN))));
+            }}
+            className="h-1 w-24 cursor-pointer appearance-none rounded-full bg-white/15 accent-[#F26B1F]"
+          />
+          <button
+            type="button"
+            title="Aumentar zoom"
+            aria-label="Aumentar zoom"
+            onClick={() => aplicarZoom(zoom * 1.4)}
+            className="rounded-full p-1 text-white/50 transition hover:bg-white/10 hover:text-white"
+          >
+            <ZoomIn className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      ) : null}
+
+
       {selecionados.length > 1 ? (
         <div className="pointer-events-none absolute bottom-2 left-1/2 z-[55] -translate-x-1/2 rounded-full border border-[#F26B1F]/50 bg-[#0f141a]/95 px-3 py-1 text-[11px] text-white/80 shadow-lg">
           {selecionados.length} clipes selecionados
