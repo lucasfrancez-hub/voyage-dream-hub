@@ -222,6 +222,41 @@ function EditorPage() {
     [ponte],
   );
 
+  aoFalharRef.current = (a: AssetBasico, erro?: unknown) => {
+    const detalhe = (erro ?? null) as { codigo?: number | null; mensagem?: string; mime?: string | null; status?: number | null } | null;
+    console.error("[preview:error] asset não abriu", { asset: a, detalhe });
+
+    const api = pontoDesktop();
+    const caminho = a.localPath || null;
+    const jaTentou = proxyTentado.current.has(a.id);
+    const podeProxy = !!api && !!caminho && a.kind !== "image" && !jaTentou;
+
+    if (!podeProxy) {
+      const causa = detalhe?.mensagem ? ` (${detalhe.mensagem})` : "";
+      toast.error(`Não foi possível abrir "${a.nome}"${causa}`);
+      return;
+    }
+
+    proxyTentado.current.add(a.id);
+    toast.info(`Convertendo "${a.nome}" para um formato compatível…`);
+    void (async () => {
+      try {
+        const proxy = await api!.midia.proxy(caminho!);
+        if (!proxy) throw new Error("proxy não gerado");
+        const url = api!.urlLocal(proxy);
+        console.log("[preview] proxy gerado", { assetId: a.id, proxy, url });
+        setAssets((cur) => cur.map((x) => (x.id === a.id ? { ...x, url } : x)));
+        setMidias((cur) => cur.map((m) => (m.id === a.id ? { ...m, url } : m)));
+        const r = await ponte.carregar({ ...a, url });
+        if (r === "carregado") toast.success(`"${a.nome}" pronta para o preview`);
+      } catch (e) {
+        console.error("[preview:error] proxy falhou", e);
+        toast.error(`Não foi possível converter "${a.nome}". Verifique o codec do arquivo.`);
+      }
+    })();
+  };
+
+
   /* ---------------- 1A. bootstrap de DADOS (independe do canvas) ---------------- */
   useEffect(() => {
     let vivo = true;
