@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import type { EditairClip, EditairTrack, ProjectState } from "@/lib/editair/types";
 import { formatarTempo } from "@/lib/editair/types";
+import { posicionarMenu } from "@/lib/editair/layers";
 import { limitesDoClip } from "@/lib/editair/ops";
 import { obterPicos, obterThumb } from "@/lib/editair/media";
 
@@ -131,19 +132,8 @@ export function Timeline({
     }
     const el = menuRef.current;
     if (!el) return;
-    const margem = 8;
     const r = el.getBoundingClientRect();
-    const vw = window.innerWidth;
-    const vh = window.innerHeight;
-    // flip vertical quando não cabe abaixo do cursor
-    let y = menu.y;
-    if (y + r.height + margem > vh) y = menu.y - r.height;
-    y = Math.min(Math.max(margem, y), Math.max(margem, vh - r.height - margem));
-    // shift horizontal
-    let x = menu.x;
-    if (x + r.width + margem > vw) x = menu.x - r.width;
-    x = Math.min(Math.max(margem, x), Math.max(margem, vw - r.width - margem));
-    setMenuPos({ x, y });
+    setMenuPos(posicionarMenu(menu.x, menu.y, r.width, r.height, window.innerWidth, window.innerHeight));
   }, [menu]);
 
   const duracoes = useMemo(() => {
