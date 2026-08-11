@@ -2581,7 +2581,8 @@ function TopBtn({ children, onClick, titulo }: { children: React.ReactNode; onCl
 function BarraBtn({ onClick, icone, texto }: { onClick: () => void; icone?: React.ReactNode; texto: string }) {
   return (
     <button
-      onClick={onClick}
+      /* nunca repassar o MouseEvent para a ação */
+      onClick={() => onClick()}
       className="flex items-center gap-1 rounded-md px-2 py-1 text-white/70 transition hover:bg-white/10 hover:text-white"
     >
       {icone}
