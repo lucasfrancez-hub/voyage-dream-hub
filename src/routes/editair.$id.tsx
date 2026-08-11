@@ -62,6 +62,8 @@ import {
   limparTracksVazias,
   transformPadrao,
   TEXTO_PADRAO,
+  type TextStyle,
+
   type CaptionStyle,
   type EditairClip,
   type KeyProp,
@@ -69,6 +71,7 @@ import {
   type Transcript,
 } from "@/lib/editair/types";
 import { aplicarOps, gerarLegendas, type EditairOp } from "@/lib/editair/ops";
+import { instanciarModelo } from "@/lib/editair/modelos";
 import { aplicarTextoLegenda } from "@/lib/editair/texto-legenda";
 import { selecaoEditavel, selecionarTrack, selecionarTudo } from "@/lib/editair/selecao";
 import { aplicarVelocidade } from "@/lib/editair/velocidade";
@@ -1227,7 +1230,7 @@ function EditorPage() {
     toast.success(`${legendas.length} legendas geradas`);
   };
 
-  const adicionarTexto = () => {
+  const adicionarTexto = (init?: { text?: string; style?: Partial<TextStyle>; label?: string }) => {
     const clip: EditairClip = {
       id: novoId(),
       trackId: "t-text",
@@ -1238,14 +1241,15 @@ function EditorPage() {
       volume: 0,
       speed: 1,
       transform: transformPadrao(),
-      text: "Seu texto aqui",
-      textStyle: { ...TEXTO_PADRAO },
-      label: "Texto",
+      text: init?.text ?? "Seu texto aqui",
+      textStyle: { ...TEXTO_PADRAO, ...(init?.style ?? {}) },
+      label: init?.label ?? "Texto",
     };
     aplicar({ ...state, clips: [...state.clips, clip] });
     setSelecionados([clip.id]);
-    setFerramenta("texto");
+    if (!init) setFerramenta("texto");
   };
+
 
   const conversar = async (texto: string) => {
     if (!(await exigirNuvem())) return;
@@ -1918,6 +1922,20 @@ function EditorPage() {
             onCaption={(patch: Partial<CaptionStyle>) => aplicar({ ...state, captionStyle: { ...state.captionStyle, ...patch } })}
             onAplicarModeloLegenda={aplicarModeloLegenda}
             onAdicionarTexto={adicionarTexto}
+            onCapturarCapa={() => {
+              try {
+                return canvasRef.current?.toDataURL("image/jpeg", 0.5) ?? null;
+              } catch {
+                return null;
+              }
+            }}
+            onAplicarModelo={(m) => {
+              const clips = instanciarModelo(m, Math.round(playhead), () => novoId());
+              if (!clips.length) return toast.error("Modelo vazio.");
+              aplicar({ ...state, clips: [...state.clips, ...clips], captionStyle: m.captionStyle ?? state.captionStyle });
+              setSelecionados(clips.map((c) => c.id));
+              toast.success(`Modelo “${m.nome}” aplicado`);
+            }}
             onAnalisar={() => void analisar()}
             onGerarLegendas={legendar}
             onCortarPausas={cortarPausas}

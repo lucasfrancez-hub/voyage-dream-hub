@@ -40,6 +40,22 @@ import {
 } from "@/lib/editair/types";
 import type { PlanoEditorial } from "@/lib/editair/plan";
 import { PlanoEditorialPanel } from "./PlanoEditorialPanel";
+import { StickersPanel } from "./StickersPanel";
+import { ModelosPanel } from "./ModelosPanel";
+import type { ModeloEditair } from "@/lib/editair/modelos";
+import { filtroCss } from "@/lib/editair/engine";
+import {
+  PainelShell,
+  Chips,
+  Grade,
+  Secao,
+  LinhaValor,
+  PresetCard,
+  BotaoPill,
+  Vazio,
+  EstilosPreview,
+  type PreviewAnim,
+} from "./panel-kit";
 
 
 export type Ferramenta =
@@ -96,7 +112,10 @@ export type ToolPanelProps = {
   onPatchState: (patch: Partial<ProjectState>) => void;
   onCaption: (patch: Partial<CaptionStyle>) => void;
   onAplicarModeloLegenda?: (estilo: CaptionStyle, escopo: "uma" | "todas") => void;
-  onAdicionarTexto: () => void;
+  onAdicionarTexto: (init?: { text?: string; style?: Partial<TextStyle>; label?: string }) => void;
+  onAplicarModelo?: (modelo: ModeloEditair) => void;
+  /** captura um frame do reprodutor para usar como capa de modelo */
+  onCapturarCapa?: () => string | null;
   onAnalisar: () => void;
   onGerarLegendas: () => void;
   onCortarPausas: () => void;
@@ -144,21 +163,12 @@ export function ToolPanel(p: ToolPanelProps) {
     case "ia":
       return <PainelIa {...p} />;
     case "stickers":
-      return (
-        <EmBreve
-          titulo="Stickers"
-          texto="Biblioteca de stickers animados e GIFs. Em breve — por enquanto use Texto para elementos gráficos."
-        />
-      );
+      return <StickersPanel onInserir={(t, st, rot) => p.onAdicionarTexto({ text: t, style: st, label: rot })} />;
     default:
-      return (
-        <EmBreve
-          titulo="Modelos"
-          texto="Modelos prontos de Reels da VIA AIR (abertura, oferta, encerramento). Em breve."
-        />
-      );
+      return <ModelosPanel state={p.state} capa={p.onCapturarCapa} onAplicar={(m) => p.onAplicarModelo?.(m)} />;
   }
 }
+
 
 /* ------------------------------- Mídia ------------------------------- */
 
@@ -516,7 +526,7 @@ function PainelTexto({ clip, onAdicionarTexto, onPatchClip, onKeyframe }: ToolPa
 
   return (
     <Painel titulo="Texto">
-      <Button size="sm" className="mb-3 w-full bg-[#F26B1F] text-xs hover:bg-[#d95c14]" onClick={onAdicionarTexto}>
+      <Button size="sm" className="mb-3 w-full bg-[#F26B1F] text-xs hover:bg-[#d95c14]" onClick={() => onAdicionarTexto()}>
         <Plus className="mr-1 h-3.5 w-3.5" /> Adicionar texto no playhead
       </Button>
       {!eTexto ? (
@@ -625,153 +635,151 @@ function PainelFundo({ clip, assets, onPatchClip, onKeyframe, fundoPronto, fundo
     onPatchClip({ fundo: proximo.modo === "nenhum" ? undefined : proximo });
   };
 
+  const poster = assets.find((a) => a.id === clip?.assetId)?.thumbUrl ?? null;
+
   if (!clip || (clip.kind !== "video" && clip.kind !== "image")) {
     return (
-      <Painel titulo="Fundo">
-        <p className="text-[11px] text-white/35">Selecione um clipe de vídeo para tratar o fundo.</p>
-      </Painel>
+      <PainelShell titulo="Fundo">
+        <Vazio>Selecione um clipe de vídeo para tratar o fundo.</Vazio>
+      </PainelShell>
     );
   }
 
   return (
-    <Painel titulo="Fundo">
-      <div className="grid grid-cols-2 gap-2">
+    <PainelShell titulo="Fundo" contagem={f.modo === "nenhum" ? "original" : MODOS.find((m) => m.id === f.modo)?.nome}>
+      <Grade cols={2}>
         {FUNDO_PRESETS.map((pr) => (
-          <button
+          <PresetCard
             key={pr.id}
+            nome={pr.nome}
+            poster={poster}
+            filtro={pr.patch.desfoque ? `blur(${Math.round((pr.patch.desfoque / 100) * 6)}px)` : undefined}
             onClick={() => set(pr.patch)}
-            className="rounded-lg border border-white/10 px-2 py-2.5 text-[11px] hover:bg-white/5"
-          >
-            {pr.nome}
-          </button>
+          />
         ))}
-      </div>
+      </Grade>
 
-      <div className="mt-3 grid grid-cols-3 gap-2">
-        {MODOS.map((m) => (
-          <button
-            key={m.id}
-            onClick={() => set({ modo: m.id })}
-            className={`rounded-lg border px-2 py-2 text-[11px] ${
-              f.modo === m.id ? "border-[#F26B1F] bg-[#F26B1F]/15" : "border-white/10 hover:bg-white/5"
-            }`}
-          >
-            {m.nome}
-          </button>
-        ))}
+      <div className="mt-3">
+        <Chips itens={MODOS.map((m) => ({ id: m.id, nome: m.nome }))} valor={f.modo} onChange={(v) => set({ modo: v })} />
       </div>
 
       {f.modo !== "nenhum" ? (
-        <div className="mt-3 space-y-1">
-          {f.modo === "desfoque" || f.modo === "midia" ? (
-            <Campo label={`Intensidade do desfoque — ${f.desfoque}%`}>
-              <div className="flex items-center gap-2">
-                <Slider value={[f.desfoque]} min={0} max={100} step={5} onValueChange={([v]) => set({ desfoque: v })} />
-                <button
-                  title="Keyframe no desfoque"
-                  onClick={() => onKeyframe("fundoBlur")}
-                  className="rounded border border-white/10 p-1 text-white/60 hover:bg-white/5"
-                >
-                  <Diamond className="h-3 w-3" />
-                </button>
-              </div>
-            </Campo>
-          ) : null}
-
-          {f.modo === "cor" ? (
-            <Campo label="Cor do fundo">
-              <input
-                type="color"
-                value={f.cor}
-                onChange={(e) => set({ cor: e.target.value })}
-                className="h-8 w-full rounded border border-white/10 bg-transparent"
-              />
-            </Campo>
-          ) : null}
-
-          {f.modo === "midia" ? (
-            <Campo label="Mídia de fundo">
-              <select
-                value={f.assetId ?? ""}
-                onChange={(e) => set({ assetId: e.target.value || undefined })}
-                className="w-full rounded-md border border-white/10 bg-black/40 px-2 py-1.5 text-xs"
+        <>
+          <Secao titulo="Aparência">
+            {f.modo === "desfoque" || f.modo === "midia" ? (
+              <LinhaValor
+                label="Desfoque"
+                valor={`${f.desfoque}%`}
+                acao={
+                  <button
+                    title="Keyframe no desfoque"
+                    onClick={() => onKeyframe("fundoBlur")}
+                    className="rounded p-0.5 text-white/40 transition hover:bg-white/10 hover:text-[#F26B1F]"
+                  >
+                    <Diamond className="h-3 w-3" />
+                  </button>
+                }
               >
-                <option value="">Selecione…</option>
-                {assets.map((a) => (
-                  <option key={a.id} value={a.id}>
-                    {a.nome}
-                  </option>
-                ))}
-              </select>
-            </Campo>
-          ) : null}
+                <Slider value={[f.desfoque]} min={0} max={100} step={5} onValueChange={([v]) => set({ desfoque: v })} />
+              </LinhaValor>
+            ) : null}
 
-          <Campo label={`Suavidade da borda — ${f.suavidade}%`}>
-            <Slider value={[f.suavidade]} min={0} max={100} step={5} onValueChange={([v]) => set({ suavidade: v })} />
-          </Campo>
-          <Campo label={`Expandir / contrair borda — ${f.borda}`}>
-            <Slider value={[f.borda]} min={-50} max={50} step={1} onValueChange={([v]) => set({ borda: v })} />
-          </Campo>
-          <Campo label={`Estabilidade da máscara — ${f.estabilidade}%`}>
-            <Slider
-              value={[f.estabilidade]}
-              min={0}
-              max={95}
-              step={5}
-              onValueChange={([v]) => set({ estabilidade: v })}
-            />
-          </Campo>
+            {f.modo === "cor" ? (
+              <LinhaValor label="Cor do fundo" valor={f.cor.toUpperCase()}>
+                <input
+                  type="color"
+                  value={f.cor}
+                  onChange={(e) => set({ cor: e.target.value })}
+                  className="h-8 w-full cursor-pointer rounded-lg border border-white/10 bg-transparent"
+                />
+              </LinhaValor>
+            ) : null}
 
-          <Campo label="Qualidade">
-            <div className="grid grid-cols-2 gap-2">
-              {(["rapida", "alta"] as const).map((q) => (
-                <button
-                  key={q}
-                  onClick={() => set({ qualidade: q })}
-                  className={`rounded-lg border px-2 py-1.5 text-[11px] ${
-                    f.qualidade === q ? "border-[#F26B1F] bg-[#F26B1F]/15" : "border-white/10 hover:bg-white/5"
-                  }`}
+            {f.modo === "midia" ? (
+              <LinhaValor label="Mídia de fundo">
+                <select
+                  value={f.assetId ?? ""}
+                  onChange={(e) => set({ assetId: e.target.value || undefined })}
+                  className="w-full rounded-lg border border-white/10 bg-black/40 px-2 py-1.5 text-xs outline-none"
                 >
+                  <option value="">Selecione…</option>
+                  {assets.map((a) => (
+                    <option key={a.id} value={a.id}>
+                      {a.nome}
+                    </option>
+                  ))}
+                </select>
+              </LinhaValor>
+            ) : null}
+          </Secao>
+
+          <Secao titulo="Recorte">
+            <LinhaValor label="Suavidade da borda" valor={`${f.suavidade}%`}>
+              <Slider value={[f.suavidade]} min={0} max={100} step={5} onValueChange={([v]) => set({ suavidade: v })} />
+            </LinhaValor>
+            <LinhaValor label="Expandir / contrair" valor={`${f.borda > 0 ? "+" : ""}${f.borda}`}>
+              <Slider value={[f.borda]} min={-50} max={50} step={1} onValueChange={([v]) => set({ borda: v })} />
+            </LinhaValor>
+            <LinhaValor label="Estabilidade da máscara" valor={`${f.estabilidade}%`}>
+              <Slider value={[f.estabilidade]} min={0} max={95} step={5} onValueChange={([v]) => set({ estabilidade: v })} />
+            </LinhaValor>
+            <div className="flex gap-1.5">
+              {(["rapida", "alta"] as const).map((q) => (
+                <BotaoPill key={q} ativo={f.qualidade === q} onClick={() => set({ qualidade: q })} className="flex-1">
                   {q === "rapida" ? "Rápida (preview)" : "Alta (render)"}
-                </button>
+                </BotaoPill>
               ))}
             </div>
-          </Campo>
+          </Secao>
 
-          <label className="mt-2 flex items-center gap-2 text-[11px] text-white/60">
-            <input
-              type="checkbox"
-              checked={!!f.contorno?.ativo}
-              onChange={(e) =>
-                set({ contorno: { cor: f.contorno?.cor ?? "#FFFFFF", largura: f.contorno?.largura ?? 4, ativo: e.target.checked } })
-              }
-            />
-            Contorno suave na pessoa
-          </label>
-          {f.contorno?.ativo ? (
-            <Campo label={`Largura do contorno — ${f.contorno.largura}px`}>
-              <Slider
-                value={[f.contorno.largura]}
-                min={1}
-                max={20}
-                step={1}
-                onValueChange={([v]) => set({ contorno: { ...f.contorno!, largura: v } })}
+          <Secao titulo="Contorno" aberta={!!f.contorno?.ativo}>
+            <label className="flex cursor-pointer items-center gap-2 text-[11px] text-white/60">
+              <input
+                type="checkbox"
+                className="accent-[#F26B1F]"
+                checked={!!f.contorno?.ativo}
+                onChange={(e) =>
+                  set({ contorno: { cor: f.contorno?.cor ?? "#FFFFFF", largura: f.contorno?.largura ?? 4, ativo: e.target.checked } })
+                }
               />
-            </Campo>
-          ) : null}
+              Contorno suave na pessoa
+            </label>
+            {f.contorno?.ativo ? (
+              <>
+                <LinhaValor label="Largura" valor={`${f.contorno.largura}px`}>
+                  <Slider
+                    value={[f.contorno.largura]}
+                    min={1}
+                    max={20}
+                    step={1}
+                    onValueChange={([v]) => set({ contorno: { ...f.contorno!, largura: v } })}
+                  />
+                </LinhaValor>
+                <LinhaValor label="Cor do contorno" valor={(f.contorno.cor ?? "#FFFFFF").toUpperCase()}>
+                  <input
+                    type="color"
+                    value={f.contorno.cor ?? "#FFFFFF"}
+                    onChange={(e) => set({ contorno: { ...f.contorno!, cor: e.target.value } })}
+                    className="h-8 w-full cursor-pointer rounded-lg border border-white/10 bg-transparent"
+                  />
+                </LinhaValor>
+              </>
+            ) : null}
+          </Secao>
 
-          <p className="pt-2 text-[11px] text-white/40">
+          <p className="px-1 pt-1 text-[10px] leading-relaxed text-white/35">
             {fundoCarregando
               ? "Carregando o modelo de segmentação…"
               : fundoPronto
                 ? "Segmentação ativa — o áudio e o tempo do clipe não são alterados."
                 : "A segmentação inicia automaticamente ao aplicar o fundo."}
           </p>
-        </div>
+        </>
       ) : null}
-    </Painel>
+    </PainelShell>
   );
 }
+
 
 /* ------------------------------ Efeitos ------------------------------ */
 
@@ -797,51 +805,69 @@ function PainelEfeitos({ clip, assets, onPatchClip, onDemonstrarClip }: ToolPane
 
 /* ---------------------------- Transições ----------------------------- */
 
-function PainelTransicoes({ clip, onPatchClip }: ToolPanelProps) {
+function PainelTransicoes({ clip, assets, onPatchClip }: ToolPanelProps) {
   const dur = clip?.transicao?.durationMs ?? 500;
+  const poster = assets.find((a) => a.id === clip?.assetId)?.thumbUrl ?? null;
+
+  if (!clip) {
+    return (
+      <PainelShell titulo="Transições">
+        <Vazio>Selecione o clipe de destino — a transição é aplicada na entrada dele.</Vazio>
+      </PainelShell>
+    );
+  }
+
   return (
-    <Painel titulo="Transições">
-      {!clip ? (
-        <p className="text-[11px] text-white/35">Selecione o clipe de destino — a transição é aplicada na entrada dele.</p>
-      ) : (
-        <>
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              onClick={() => onPatchClip({ transicao: undefined })}
-              className={`rounded-lg border px-2 py-3 text-[11px] ${!clip.transicao ? "border-[#F26B1F] bg-[#F26B1F]/15" : "border-white/10 hover:bg-white/5"}`}
-            >
-              Nenhuma
-            </button>
-            {TRANSICOES.map((t) => (
-              <button
-                key={t.id}
-                onClick={() => onPatchClip({ transicao: { tipo: t.id, durationMs: dur } })}
-                className={`rounded-lg border px-2 py-3 text-[11px] ${
-                  clip.transicao?.tipo === t.id ? "border-[#F26B1F] bg-[#F26B1F]/15" : "border-white/10 hover:bg-white/5"
-                }`}
+    <PainelShell titulo="Transições" contagem={`${TRANSICOES.length} presets`}>
+      <EstilosPreview />
+      <p className="mb-2 text-[10px] text-white/35">Passe o mouse no card para ver a transição rodando.</p>
+      <Grade cols={2}>
+        <PresetCard
+          nome="Nenhuma"
+          ativo={!clip.transicao}
+          poster={poster}
+          onClick={() => onPatchClip({ transicao: undefined })}
+        />
+        {TRANSICOES.map((t) => (
+          <PresetCard
+            key={t.id}
+            nome={t.nome}
+            ativo={clip.transicao?.tipo === t.id}
+            poster={poster}
+            anim={t.id as PreviewAnim}
+            onClick={() => onPatchClip({ transicao: { tipo: t.id, durationMs: dur } })}
+          />
+        ))}
+      </Grade>
+
+      {clip.transicao ? (
+        <div className="mt-3">
+          <LinhaValor label="Duração" valor={`${dur} ms`}>
+            <Slider
+              value={[dur]}
+              min={100}
+              max={2000}
+              step={50}
+              onValueChange={([v]) => onPatchClip({ transicao: { tipo: clip.transicao!.tipo, durationMs: v } })}
+            />
+          </LinhaValor>
+          <div className="flex gap-1.5">
+            {[300, 500, 800, 1200].map((v) => (
+              <BotaoPill
+                key={v}
+                ativo={dur === v}
+                onClick={() => onPatchClip({ transicao: { tipo: clip.transicao!.tipo, durationMs: v } })}
               >
-                {t.nome}
-              </button>
+                {v} ms
+              </BotaoPill>
             ))}
           </div>
-          {clip.transicao ? (
-            <div className="mt-3">
-              <Campo label={`Duração — ${dur} ms`}>
-                <Slider
-                  value={[dur]}
-                  min={100}
-                  max={2000}
-                  step={50}
-                  onValueChange={([v]) => onPatchClip({ transicao: { tipo: clip.transicao!.tipo, durationMs: v } })}
-                />
-              </Campo>
-            </div>
-          ) : null}
-        </>
-      )}
-    </Painel>
+        </div>
+      ) : null}
+    </PainelShell>
   );
 }
+
 
 /* ----------------------------- Legendas ------------------------------ */
 
@@ -973,46 +999,53 @@ function PainelLegendas({
 
 /* ------------------------------ Filtros ------------------------------ */
 
-function PainelFiltros({ clip, onPatchClip }: ToolPanelProps) {
+function PainelFiltros({ clip, assets, onPatchClip }: ToolPanelProps) {
+  const poster = assets.find((a) => a.id === clip?.assetId)?.thumbUrl ?? null;
+  const atual = clip?.filtro?.id ?? "nenhum";
+  const intensidade = clip?.filtro?.intensidade ?? 100;
+
+  if (!clip || (clip.kind !== "video" && clip.kind !== "image")) {
+    return (
+      <PainelShell titulo="Filtros">
+        <Vazio>Selecione um clipe de vídeo ou imagem para aplicar um filtro.</Vazio>
+      </PainelShell>
+    );
+  }
+
   return (
-    <Painel titulo="Filtros">
-      {!clip || (clip.kind !== "video" && clip.kind !== "image") ? (
-        <p className="text-[11px] text-white/35">Selecione um clipe de vídeo ou imagem.</p>
-      ) : (
-        <>
-          <div className="grid grid-cols-3 gap-2">
-            {FILTROS.map((f) => (
-              <button
-                key={f.id}
-                onClick={() =>
-                  onPatchClip({ filtro: f.id === "nenhum" ? undefined : { id: f.id, intensidade: clip.filtro?.intensidade ?? 100 } })
-                }
-                className={`rounded-lg border px-1 py-3 text-[10px] ${
-                  (clip.filtro?.id ?? "nenhum") === f.id ? "border-[#F26B1F] bg-[#F26B1F]/15" : "border-white/10 hover:bg-white/5"
-                }`}
-              >
-                {f.nome}
-              </button>
-            ))}
-          </div>
-          {clip.filtro ? (
-            <div className="mt-3">
-              <Campo label={`Intensidade — ${clip.filtro.intensidade}%`}>
-                <Slider
-                  value={[clip.filtro.intensidade]}
-                  min={5}
-                  max={100}
-                  step={5}
-                  onValueChange={([v]) => onPatchClip({ filtro: { id: clip.filtro!.id, intensidade: v } })}
-                />
-              </Campo>
-            </div>
-          ) : null}
-        </>
-      )}
-    </Painel>
+    <PainelShell titulo="Filtros" contagem={`${FILTROS.length - 1} presets`}>
+      <Grade cols={2}>
+        {FILTROS.map((f) => (
+          <PresetCard
+            key={f.id}
+            nome={f.nome}
+            ativo={atual === f.id}
+            poster={poster}
+            filtro={filtroCss(clip.ajustes, f.id === "nenhum" ? undefined : { id: f.id, intensidade })}
+            onClick={() =>
+              onPatchClip({ filtro: f.id === "nenhum" ? undefined : { id: f.id, intensidade } })
+            }
+          />
+        ))}
+      </Grade>
+
+      {clip.filtro ? (
+        <div className="mt-3">
+          <LinhaValor label="Intensidade" valor={`${clip.filtro.intensidade}%`}>
+            <Slider
+              value={[clip.filtro.intensidade]}
+              min={5}
+              max={100}
+              step={5}
+              onValueChange={([v]) => onPatchClip({ filtro: { id: clip.filtro!.id, intensidade: v } })}
+            />
+          </LinhaValor>
+        </div>
+      ) : null}
+    </PainelShell>
   );
 }
+
 
 /* ------------------------------ Ajustes ------------------------------ */
 
@@ -1029,36 +1062,67 @@ const CAMPOS_AJUSTE: { k: keyof Ajustes; l: string }[] = [
   { k: "blacks", l: "Blacks" },
 ];
 
-function PainelAjuste({ clip, onPatchClip, onKeyframe }: ToolPanelProps) {
+const GRUPOS_AJUSTE: { titulo: string; campos: (keyof Ajustes)[] }[] = [
+  { titulo: "Luz", campos: ["exposicao", "brilho", "contraste", "highlights", "shadows", "whites", "blacks"] },
+  { titulo: "Cor", campos: ["saturacao", "temperatura", "tint"] },
+];
+
+function PainelAjuste({ clip, assets, onPatchClip, onKeyframe }: ToolPanelProps) {
   const aj: Ajustes = { ...AJUSTES_NEUTROS, ...(clip?.ajustes ?? {}) };
+  const poster = assets.find((a) => a.id === clip?.assetId)?.thumbUrl ?? null;
+  const alterado = CAMPOS_AJUSTE.some((c) => aj[c.k] !== 0);
+
+  if (!clip) {
+    return (
+      <PainelShell titulo="Ajuste">
+        <Vazio>Selecione um clipe na timeline para ajustar luz e cor.</Vazio>
+      </PainelShell>
+    );
+  }
+
   return (
-    <Painel titulo="Ajuste">
-      {!clip ? (
-        <p className="text-[11px] text-white/35">Selecione um clipe.</p>
-      ) : (
-        <>
-          {CAMPOS_AJUSTE.map((c) => (
-            <Campo key={c.k} label={`${c.l} — ${aj[c.k]}`}>
-              <Slider
-                value={[aj[c.k]]}
-                min={-100}
-                max={100}
-                step={1}
-                onValueChange={([v]) => onPatchClip({ ajustes: { ...aj, [c.k]: v } })}
-              />
-            </Campo>
-          ))}
-          <Button size="sm" variant="ghost" className="mt-1 w-full text-xs" onClick={() => onPatchClip({ ajustes: { ...AJUSTES_NEUTROS } })}>
-            Redefinir ajustes
-          </Button>
-          <div className="mt-3 border-t border-white/10 pt-3">
-            <TransformCampos clip={clip} onPatchClip={onPatchClip} onKeyframe={onKeyframe} />
-          </div>
-        </>
-      )}
-    </Painel>
+    <PainelShell
+      titulo="Ajuste"
+      contagem={alterado ? "editado" : "neutro"}
+      acoes={<BotaoPill onClick={() => onPatchClip({ ajustes: { ...AJUSTES_NEUTROS } })}>Redefinir</BotaoPill>}
+    >
+      <div className="mb-3 overflow-hidden rounded-xl border border-white/[0.08] bg-black/40">
+        <div className="relative aspect-video">
+          {poster ? (
+            <img src={poster} alt="" style={{ filter: filtroCss(aj, clip.filtro) }} className="h-full w-full object-cover" />
+          ) : (
+            <div style={{ filter: filtroCss(aj, clip.filtro) }} className="h-full w-full bg-[linear-gradient(135deg,#5a3a24,#8a5330_45%,#2c2118)]" />
+          )}
+          <span className="absolute bottom-1.5 left-1.5 rounded bg-black/70 px-1.5 py-0.5 text-[9px] text-white/70">prévia</span>
+        </div>
+      </div>
+
+      {GRUPOS_AJUSTE.map((g) => (
+        <Secao key={g.titulo} titulo={g.titulo}>
+          {g.campos.map((k) => {
+            const label = CAMPOS_AJUSTE.find((c) => c.k === k)?.l ?? k;
+            return (
+              <LinhaValor key={k} label={label} valor={`${aj[k] > 0 ? "+" : ""}${aj[k]}`}>
+                <Slider
+                  value={[aj[k]]}
+                  min={-100}
+                  max={100}
+                  step={1}
+                  onValueChange={([v]) => onPatchClip({ ajustes: { ...aj, [k]: v } })}
+                />
+              </LinhaValor>
+            );
+          })}
+        </Secao>
+      ))}
+
+      <Secao titulo="Transformar" aberta={false}>
+        <TransformCampos clip={clip} onPatchClip={onPatchClip} onKeyframe={onKeyframe} />
+      </Secao>
+    </PainelShell>
   );
 }
+
 
 /* --------------------------------- IA -------------------------------- */
 
@@ -1220,13 +1284,9 @@ function TransformCampos({
 }
 
 function Painel({ titulo, children }: { titulo: string; children: React.ReactNode }) {
-  return (
-    <div className="flex h-full min-h-0 flex-col">
-      <div className="border-b border-white/10 px-4 py-3 text-sm font-semibold">{titulo}</div>
-      <div className="min-h-0 flex-1 overflow-y-auto p-4">{children}</div>
-    </div>
-  );
+  return <PainelShell titulo={titulo}>{children}</PainelShell>;
 }
+
 
 function Campo({
   label,
