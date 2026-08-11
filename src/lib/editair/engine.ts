@@ -50,6 +50,8 @@ export function codigoMidia(codigo?: number | null) {
 /** Causa real de uma mídia não abrir — usada nos logs e no aviso ao usuário. */
 export type FalhaMidia = {
   assetId: string;
+  /** nome do arquivo — vem do asset, para o log ser legível */
+  nome?: string;
   url: string;
   kind: string;
   evento: "error" | "timeout";
@@ -257,6 +259,7 @@ export class EditairEngine {
         img.onerror = () => {
           void this.registrarFalha({
             assetId,
+            nome,
             url,
             kind,
             evento: "error",
@@ -312,6 +315,7 @@ export class EditairEngine {
       el.onerror = () => {
         void this.registrarFalha({
           assetId,
+          nome,
           url,
           kind,
           evento: "error",
@@ -325,6 +329,7 @@ export class EditairEngine {
         if (!terminou && el.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) {
           void this.registrarFalha({
             assetId,
+            nome,
             url,
             kind,
             evento: "timeout",
