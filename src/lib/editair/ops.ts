@@ -32,6 +32,35 @@ export type EditairOp =
   | { op: "remove_captions" }
   | { op: "mute_track"; trackId: string; muted: boolean }
   | { op: "delete_text_range"; query: string }
+  /* --- camadas e montagem (edição profissional em camadas) --- */
+  | { op: "create_track"; ref?: string; kind: TrackKind; name: string; acima?: string }
+  | { op: "rename_track"; trackId: string; name: string }
+  | {
+      op: "insert_clip";
+      ref?: string;
+      trackId: string;
+      assetId?: string;
+      kind?: "video" | "image" | "audio" | "text";
+      startMs: number;
+      durationMs: number;
+      sourceInMs?: number;
+      label?: string;
+      text?: string;
+    }
+  | { op: "ripple_delete"; clipId: string }
+  | { op: "create_caption"; text: string; startMs: number; durationMs: number; trackId?: string }
+  | { op: "update_caption"; clipId: string; text?: string; startMs?: number; durationMs?: number }
+  | { op: "add_animation"; clipId: string; entrada?: AnimacaoTipo; saida?: AnimacaoTipo; duracaoMs?: number }
+  | { op: "add_effect"; clipId: string; efeitoId: string; camada?: "entrada" | "momento" | "saida"; intensidade?: number }
+  | { op: "add_transition"; clipId: string; tipo: TransicaoTipo; durationMs?: number }
+  | {
+      op: "remove_silences";
+      clipId?: string;
+      minSilencioMs?: number;
+      padMs?: number;
+      /** trechos de fala (ms na timeline). Se ausente, usa a transcrição. */
+      falas?: { fromMs: number; toMs: number }[];
+    }
   | {
       op: "set_background";
       clipId?: string;
