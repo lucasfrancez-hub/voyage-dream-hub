@@ -331,6 +331,31 @@ export function Timeline({
     return () => el.removeEventListener("wheel", aoRolar);
   }, []);
 
+  /* diagnóstico no Desktop (sem DevTools): window.editairTimelineDiag() */
+  useEffect(() => {
+    const w = window as unknown as Record<string, unknown>;
+    w.editairTimelineDiag = () => {
+      const el = areaRef.current;
+      const regiao = document.querySelector('[data-testid="editair-timeline-region"]') as HTMLElement | null;
+      return {
+        scrollLeft: el?.scrollLeft ?? null,
+        scrollWidth: el?.scrollWidth ?? null,
+        clientWidth: el?.clientWidth ?? null,
+        maxScroll: el ? el.scrollWidth - el.clientWidth : null,
+        alturaTimeline: regiao?.getBoundingClientRect().height ?? null,
+        espacoPressionado: espacoRef.current,
+        panAtivo,
+        zoom,
+        scrollbarVisivel: !!document.querySelector('[data-testid="timeline-scrollbar-thumb"]'),
+      };
+    };
+    return () => {
+      delete w.editairTimelineDiag;
+    };
+  }, [panAtivo, zoom]);
+
+
+
   const [dica, setDica] = useState<Dica>(null);
   const [arrastandoId, setArrastandoId] = useState<string | null>(null);
   const [menu, setMenu] = useState<{ x: number; y: number; clipId: string } | null>(null);
