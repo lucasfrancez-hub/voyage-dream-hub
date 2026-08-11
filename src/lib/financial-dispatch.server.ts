@@ -33,7 +33,29 @@ export function isoToBrtTime(iso?: string | null): string | null {
 async function dispararTransferencia(row: any) {
   const { supabaseAdmin } = await import('@/integrations/supabase/client.server')
   const { createAsaasPixTransfer } = await import('@/lib/asaas.server')
-  const { mapAsaasTransferStatus } = await import('@/lib/pagamentos.helpers')
+  const mapAsaasTransferStatus = (raw: string | null | undefined) => {
+    switch (String(raw || '').toUpperCase()) {
+      case 'SCHEDULED':
+        return 'agendado'
+      case 'PENDING':
+      case 'AWAITING_CRITICAL_ACTION_AUTHORIZATION':
+        return 'pendente'
+      case 'BANK_PROCESSING':
+      case 'IN_BANK_PROCESSING':
+        return 'processando'
+      case 'DONE':
+        return 'concluido'
+      case 'FAILED':
+        return 'falhou'
+      case 'CANCELLED':
+      case 'CANCELED':
+        return 'cancelado'
+      case 'BLOCKED':
+        return 'bloqueado'
+      default:
+        return 'pendente'
+    }
+  }
 
   try {
     const res: any = await createAsaasPixTransfer({
