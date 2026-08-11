@@ -384,7 +384,10 @@ export type EditairClip = {
   captionStyle?: CaptionStyle;
   /** palavras da legenda (tempos absolutos da timeline, em ms) */
   words?: { w: string; start: number; end: number }[];
+  /** legenda/texto vinculado ao clipe de mídia que originou a fala */
+  linkClipId?: string;
   label?: string;
+
   ajustes?: Ajustes;
   filtro?: { id: FiltroId; intensidade: number };
   efeito?: { id: EfeitoId; intensidade: number };

@@ -15,6 +15,7 @@ import {
   enquadramentoInicial,
 } from "./types";
 import { aplicarVelocidade } from "./velocidade";
+import { ajustarLegendasAoRemover, deslocarClip, montarLegendas } from "./legendas";
 
 /**
  * Operações estruturadas do EditAir.
@@ -245,7 +246,10 @@ export function aplicarOps(
       case "delete_range": {
         const { fromMs, toMs } = op;
         const novos: EditairClip[] = [];
+        // legendas/textos são tratados à parte: não se aparam, acompanham a edição
+        const legendas = s.clips.filter((c) => c.kind === "caption" || c.kind === "text");
         for (const c of s.clips) {
+          if (c.kind === "caption" || c.kind === "text") continue;
           const fim = c.start + c.duration;
           if (fim <= fromMs || c.start >= toMs) {
             novos.push(c);
@@ -265,14 +269,17 @@ export function aplicarOps(
             });
           }
         }
-        s.clips = novos;
-        if (op.ripple !== false) {
-          const gap = toMs - fromMs;
-          s.clips = s.clips.map((c) => (c.start >= toMs ? { ...c, start: c.start - gap } : c));
-        }
+        const ripple = op.ripple !== false;
+        const gap = toMs - fromMs;
+        s.clips = [
+          ...(ripple ? novos.map((c) => (c.start >= toMs ? deslocarClip(c, -gap) : c)) : novos),
+          // legendas do trecho removido somem; as seguintes acompanham o ripple
+          ...ajustarLegendasAoRemover(legendas, fromMs, toMs, { ripple }),
+        ];
         log.push(`Trecho removido (${((toMs - fromMs) / 1000).toFixed(1)}s)`);
         break;
       }
+
       case "set_volume": {
         s.clips = s.clips.map((c) => {
           const alvo = op.clipId ? c.id === op.clipId : op.trackId ? c.trackId === op.trackId : false;
@@ -424,11 +431,14 @@ export function aplicarOps(
         const c = s.clips.find((x) => x.id === op.clipId);
         if (!c) break;
         const gap = c.duration;
+        const restantes = s.clips
+          .filter((x) => x.id !== c.id)
+          .map((x) =>
+            x.trackId === c.trackId && x.start >= c.start ? deslocarClip(x, -gap) : x,
+          );
         s = {
           ...s,
-          clips: s.clips
-            .filter((x) => x.id !== c.id)
-            .map((x) => (x.trackId === c.trackId && x.start >= c.start ? { ...x, start: Math.max(0, x.start - gap) } : x)),
+          clips: ajustarLegendasAoRemover(restantes, c.start, c.start + gap, { clipIds: [c.id] }),
         };
         log.push("Clipe removido (fechando o buraco)");
         break;
@@ -604,58 +614,18 @@ export function acharTrechoNaTranscricao(transcript: Transcript | null | undefin
   return { start: palavras[melhor.i].start, end: palavras[fimIdx].end };
 }
 
-/** Monta clipes de legenda agrupando palavras em frases curtas. */
+/**
+ * Monta clipes de legenda a partir da timeline atual.
+ * A projeção fonte → timeline vive em legendas.ts (fonte única).
+ */
 export function gerarLegendas(
   state: ProjectState,
   transcript: Transcript,
   modo: "frase" | "palavra" = "frase",
 ): EditairClip[] {
-  const clips: EditairClip[] = [];
-  const palavras = transcript.words.filter((w) => w.end > w.start);
-  if (!palavras.length) return clips;
-
-  if (modo === "palavra") {
-    for (const w of palavras) {
-      clips.push(criarLegenda(w.w, w.start, w.end - w.start, [{ ...w }]));
-    }
-    return clips;
-  }
-
-  let bloco: typeof palavras = [];
-  const empurrar = () => {
-    if (!bloco.length) return;
-    const texto = bloco.map((w) => w.w).join(" ");
-    clips.push(criarLegenda(texto, bloco[0].start, bloco[bloco.length - 1].end - bloco[0].start, bloco.map((w) => ({ ...w }))));
-    bloco = [];
-  };
-
-  for (const w of palavras) {
-    bloco.push(w);
-    const texto = bloco.map((x) => x.w).join(" ");
-    const anterior = bloco[bloco.length - 2];
-    const pausa = anterior ? w.start - anterior.end : 0;
-    if (texto.length >= 34 || bloco.length >= 7 || pausa > 420 || /[.!?]$/.test(w.w)) empurrar();
-  }
-  empurrar();
-  return clips;
+  return montarLegendas(state, transcript, modo);
 }
 
-function criarLegenda(texto: string, start: number, duration: number, words: { w: string; start: number; end: number }[]): EditairClip {
-  return {
-    id: novoId("leg"),
-    trackId: "t-caption",
-    kind: "caption",
-    start,
-    duration: Math.max(300, duration),
-    sourceIn: 0,
-    volume: 1,
-    speed: 1,
-    transform: transformPadrao(),
-    text: texto,
-    words,
-    label: texto.slice(0, 20),
-  };
-}
 
 
 /* -------------------------------------------------------------------------- */
