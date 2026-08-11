@@ -46,6 +46,10 @@ function filtrosDeAudio(audio) {
   return filtros.join(";");
 }
 
+/** vídeo vindo do pipe: garante dimensões pares e pixel format compatível */
+const FILTRO_VIDEO = "[0:v]scale=trunc(iw/2)*2:trunc(ih/2)*2,format=yuv420p[vout]";
+
+
 /**
  * Inicia um render por quadros.
  * spec: { destino, width, height, fps, totalFrames, formato, codec, videoBitrate, audio: [], comAudio }
