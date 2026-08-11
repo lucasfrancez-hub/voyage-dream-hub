@@ -2326,6 +2326,7 @@ function EditorPage() {
           onSelecionar={(cid) => setSelecionados(cid ? [cid] : [])}
           onMover={moverElemento}
           onEscalar={escalarElemento}
+          onLarguraCaixa={larguraCaixaLegenda}
           onGirar={girarElemento}
           onFimGesto={encerrarGesto}
         />
