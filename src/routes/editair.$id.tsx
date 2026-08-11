@@ -561,6 +561,13 @@ function EditorPage() {
     };
   }, [state, transcript, carregando, salvar, id]);
 
+  /* publica nome/status no header global (único header do EditAir) */
+  useEffect(() => {
+    definirHeaderProjeto({ nome: projetoNome || null, status: salvando ? "salvando" : "salvo" });
+  }, [projetoNome, salvando]);
+  useEffect(() => () => limparHeaderProjeto(), []);
+
+
   /* ---------------- edição de clipes ---------------- */
   const patchClipe = (patch: Partial<EditairClip>, alvoId?: string) => {
     const cid = alvoId ?? clipeAtual?.id;
