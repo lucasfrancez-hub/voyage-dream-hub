@@ -228,6 +228,36 @@ function PagamentosPage() {
       },
     );
 
+  const doSyncBoleto = async (id: string) => {
+    try {
+      await sincronizarBoleto({ data: { id } });
+      await qc.invalidateQueries({ queryKey: ["asaas-bill-payments"] });
+      toast.success("Status do boleto atualizado");
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
+  };
+
+  const doCancelBoleto = (id: string) =>
+    confirmThen(
+      {
+        title: "Cancelar pagamento de boleto?",
+        description: "O pagamento será cancelado no ASAAS, se ainda não tiver sido executado.",
+        confirmText: "Cancelar pagamento",
+      },
+      async () => {
+        try {
+          await cancelarBoleto({ data: { id } });
+          toast.success("Pagamento de boleto cancelado");
+          qc.invalidateQueries({ queryKey: ["asaas-bill-payments"] });
+        } catch (e) {
+          toast.error((e as Error).message);
+        }
+      },
+    );
+
+
+
   return (
     <div className="mx-auto max-w-7xl px-4 md:px-6 py-6 space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
