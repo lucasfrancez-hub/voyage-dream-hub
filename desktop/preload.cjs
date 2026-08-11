@@ -85,7 +85,14 @@ contextBridge.exposeInMainWorld("editairDesktop", {
     iniciar: (spec) => chamar("render:iniciar", spec),
     estado: (id) => chamar("render:estado", { id }),
     aoProgredir: ouvintes("editair:render"),
+    quadros: {
+      iniciar: (spec) => chamar("render:quadros:iniciar", spec),
+      quadro: (id, quadro) => chamar("render:quadros:quadro", { id, quadro }),
+      finalizar: (id) => chamar("render:quadros:finalizar", { id }),
+      cancelar: (id) => chamar("render:quadros:cancelar", { id }),
+    },
   },
+
 
   update: {
     estado: () => chamar("update:estado"),
