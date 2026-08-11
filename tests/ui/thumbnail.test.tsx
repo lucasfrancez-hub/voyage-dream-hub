@@ -66,6 +66,7 @@ describe("4. thumbnail na biblioteca", () => {
 
   it("mídia offline: não tenta gerar thumb e mostra o aviso de offline", async () => {
     const media = await import("@/lib/editair/media");
+    vi.mocked(media.obterThumb).mockClear();
     montar([{ ...base, thumbUrl: null, existe: false, local: true }]);
     await waitFor(() => expect(screen.getAllByText(/offline/i).length).toBeGreaterThan(0));
     expect(media.obterThumb).not.toHaveBeenCalledWith("a1", expect.anything(), expect.anything(), expect.anything());
