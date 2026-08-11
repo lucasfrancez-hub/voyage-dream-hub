@@ -33,6 +33,17 @@ type Midia = {
 
 const clamp = (v: number, a: number, b: number) => Math.min(b, Math.max(a, v));
 
+/** Tradução do MediaError.code para uma frase útil em português. */
+export function codigoMidia(codigo?: number | null) {
+  switch (codigo) {
+    case 1: return "carregamento abortado (MEDIA_ERR_ABORTED)";
+    case 2: return "falha de rede/protocolo (MEDIA_ERR_NETWORK)";
+    case 3: return "falha ao decodificar — codec não suportado (MEDIA_ERR_DECODE)";
+    case 4: return "formato ou codec não suportado (MEDIA_ERR_SRC_NOT_SUPPORTED)";
+    default: return "erro desconhecido ao abrir a mídia";
+  }
+}
+
 /** Causa real de uma mídia não abrir — usada nos logs e no aviso ao usuário. */
 export type FalhaMidia = {
   assetId: string;
