@@ -14,6 +14,7 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as ChatRouteImport } from './routes/chat'
 import { Route as CruzeirosRouteImport } from './routes/cruzeiros'
+import { Route as DevComprovantePreviewRouteImport } from './routes/dev-comprovante-preview'
 import { Route as EditairRouteImport } from './routes/editair'
 import { Route as EmbedTesteRouteImport } from './routes/embed-teste'
 import { Route as ExclusaoDeDadosRouteImport } from './routes/exclusao-de-dados'
@@ -163,6 +164,11 @@ const ChatRoute = ChatRouteImport.update({
 const CruzeirosRoute = CruzeirosRouteImport.update({
   id: '/cruzeiros',
   path: '/cruzeiros',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DevComprovantePreviewRoute = DevComprovantePreviewRouteImport.update({
+  id: '/dev-comprovante-preview',
+  path: '/dev-comprovante-preview',
   getParentRoute: () => rootRouteImport,
 } as any)
 const EditairRoute = EditairRouteImport.update({
@@ -827,6 +833,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/chat': typeof ChatRouteWithChildren
   '/cruzeiros': typeof CruzeirosRoute
+  '/dev-comprovante-preview': typeof DevComprovantePreviewRoute
   '/editair': typeof EditairRouteWithChildren
   '/embed-teste': typeof EmbedTesteRoute
   '/exclusao-de-dados': typeof ExclusaoDeDadosRoute
@@ -959,6 +966,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/chat': typeof ChatRouteWithChildren
   '/cruzeiros': typeof CruzeirosRoute
+  '/dev-comprovante-preview': typeof DevComprovantePreviewRoute
   '/embed-teste': typeof EmbedTesteRoute
   '/exclusao-de-dados': typeof ExclusaoDeDadosRoute
   '/ingressos': typeof IngressosRoute
@@ -1090,6 +1098,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/chat': typeof ChatRouteWithChildren
   '/cruzeiros': typeof CruzeirosRoute
+  '/dev-comprovante-preview': typeof DevComprovantePreviewRoute
   '/editair': typeof EditairRouteWithChildren
   '/embed-teste': typeof EmbedTesteRoute
   '/exclusao-de-dados': typeof ExclusaoDeDadosRoute
@@ -1224,6 +1233,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/chat'
     | '/cruzeiros'
+    | '/dev-comprovante-preview'
     | '/editair'
     | '/embed-teste'
     | '/exclusao-de-dados'
@@ -1356,6 +1366,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/chat'
     | '/cruzeiros'
+    | '/dev-comprovante-preview'
     | '/embed-teste'
     | '/exclusao-de-dados'
     | '/ingressos'
@@ -1486,6 +1497,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/chat'
     | '/cruzeiros'
+    | '/dev-comprovante-preview'
     | '/editair'
     | '/embed-teste'
     | '/exclusao-de-dados'
@@ -1619,6 +1631,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   ChatRoute: typeof ChatRouteWithChildren
   CruzeirosRoute: typeof CruzeirosRoute
+  DevComprovantePreviewRoute: typeof DevComprovantePreviewRoute
   EditairRoute: typeof EditairRouteWithChildren
   EmbedTesteRoute: typeof EmbedTesteRoute
   ExclusaoDeDadosRoute: typeof ExclusaoDeDadosRoute
@@ -1724,6 +1737,13 @@ declare module '@tanstack/react-router' {
       path: '/cruzeiros'
       fullPath: '/cruzeiros'
       preLoaderRoute: typeof CruzeirosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dev-comprovante-preview': {
+      id: '/dev-comprovante-preview'
+      path: '/dev-comprovante-preview'
+      fullPath: '/dev-comprovante-preview'
+      preLoaderRoute: typeof DevComprovantePreviewRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/editair': {
@@ -2768,6 +2788,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   ChatRoute: ChatRouteWithChildren,
   CruzeirosRoute: CruzeirosRoute,
+  DevComprovantePreviewRoute: DevComprovantePreviewRoute,
   EditairRoute: EditairRouteWithChildren,
   EmbedTesteRoute: EmbedTesteRoute,
   ExclusaoDeDadosRoute: ExclusaoDeDadosRoute,
@@ -2846,3 +2867,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
