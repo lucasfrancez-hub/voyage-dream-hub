@@ -1,5 +1,7 @@
 import { novoId, transformPadrao, type EditairClip, type ProjectState, type Transcript, type TranscriptWord } from "./types";
 import { janelaFonte, limitarVelocidade } from "./velocidade";
+import { segmentarLegendas } from "./segmentacao";
+
 
 /**
  * Legendas do EditAir.
@@ -111,26 +113,16 @@ export function montarLegendas(
 
   if (modo === "palavra") return palavras.map((p) => criarLegenda(p.w, [p], p.clipId));
 
-  const clips: EditairClip[] = [];
-  let bloco: PalavraProjetada[] = [];
-  const empurrar = () => {
-    if (!bloco.length) return;
-    clips.push(criarLegenda(bloco.map((p) => p.w).join(" "), bloco, bloco[0]!.clipId));
-    bloco = [];
-  };
-
-  for (const p of palavras) {
-    const anterior = bloco[bloco.length - 1];
-    // nunca juntar fala de clipes diferentes no mesmo bloco: são cortes distintos
-    if (anterior && anterior.clipId !== p.clipId) empurrar();
-    bloco.push(p);
-    const texto = bloco.map((x) => x.w).join(" ");
-    const pausa = anterior && anterior.clipId === p.clipId ? p.start - anterior.end : 0;
-    if (texto.length >= 34 || bloco.length >= 7 || pausa > 420 || /[.!?]$/.test(p.w)) empurrar();
-  }
-  empurrar();
-  return clips;
+  // agrupamento pela fala (pontuação → pausa → sentido → limite visual)
+  return segmentarLegendas(palavras).map((bloco) =>
+    criarLegenda(
+      bloco.map((p) => p.w).join(" "),
+      bloco as PalavraProjetada[],
+      (bloco[0] as PalavraProjetada).clipId,
+    ),
+  );
 }
+
 
 /** Move um clipe (e as palavras da legenda, que usam tempo de timeline). */
 export function deslocarClip(c: EditairClip, delta: number): EditairClip {
