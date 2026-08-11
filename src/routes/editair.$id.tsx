@@ -1582,6 +1582,20 @@ function EditorPage() {
         </TopBtn>
         <Button
           size="sm"
+          variant="outline"
+          className="h-8 gap-1.5 border-[#F26B1F]/40 bg-transparent text-xs text-[#F26B1F] hover:bg-[#F26B1F]/10 hover:text-[#F26B1F]"
+          onClick={() => {
+            setIaClipId(null);
+            setIaEscopo(clipeAtual ? "cena" : "projeto");
+            setIaPlano(null);
+            setIaAberto(true);
+          }}
+        >
+          <Sparkles className="h-3.5 w-3.5" />
+          Editar com IA
+        </Button>
+        <Button
+          size="sm"
           className="h-8 bg-[#F26B1F] text-xs font-bold hover:bg-[#d95c14]"
           onClick={() => {
             setResultado(null);
