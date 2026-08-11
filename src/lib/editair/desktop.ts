@@ -69,6 +69,8 @@ type PonteDesktop = {
   arquivo: {
     abrir(caminho: string): Promise<boolean>;
     revelar(caminho: string): Promise<boolean>;
+    /** grava bytes (ex.: mídia gerada por IA) num arquivo real e devolve o caminho */
+    salvarBytes?(nome: string, bytes: Uint8Array): Promise<string>;
   };
 
   biblioteca: {
