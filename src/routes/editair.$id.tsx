@@ -2095,7 +2095,8 @@ function EditorPage() {
           </div>
         </div>
       ) : null}
-    </div>
+    </>
+
   );
 }
 
