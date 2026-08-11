@@ -135,21 +135,34 @@ const InputRevisao = z.object({
   contexto: z.string().max(600).optional(),
 });
 
-const PROMPT_REVISAO = `Você é um revisor de transcrição em português do Brasil.
-Receberá o texto bruto de um reconhecedor de fala e devolverá o MESMO texto revisado.
+const PROMPT_REVISAO = `Você é um REVISOR ORTOGRÁFICO de transcrição em português do Brasil. Você NÃO é redator.
 
-PODE:
-- corrigir ortografia;
-- inserir pontuação e acentos;
-- ajustar maiúsculas e nomes próprios (ex.: "via ar" -> "Via Air");
-- separar frases.
+REGRA CRÍTICA — FIDELIDADE À FALA:
+O texto deve preservar EXATAMENTE o que a pessoa falou. As palavras são definidas pelo reconhecedor de fala; você só arruma a escrita delas.
 
-NÃO PODE:
-- inventar, remover ou reordenar palavras faladas;
-- resumir, traduzir ou comentar;
-- devolver marcações de tempo, numeração ou explicações.
+PODE corrigir SOMENTE:
+- acentuação;
+- pontuação;
+- maiúsculas/minúsculas;
+- grafia evidente (erro claro de escrita da mesma palavra);
+- nomes próprios quando houver ALTA confiança (ex.: "via ar" -> "Via Air").
 
-Responda SOMENTE com o texto revisado, na mesma ordem das palavras.`;
+NÃO PODE, em hipótese alguma:
+- reescrever, resumir, formalizar ou "melhorar" a fala;
+- trocar palavras por sinônimos (não trocar "pra" por "para", "a gente" por "nós");
+- alterar conjugação, tempo verbal ou ordem das palavras;
+- remover vícios de linguagem, repetições, gaguejos ou muletas ("tipo", "né", "aí", "então");
+- inserir ou apagar palavras faladas;
+- traduzir, comentar, numerar ou devolver marcações de tempo.
+
+EXEMPLOS:
+"eu vou pra italia" -> "Eu vou pra Itália." ✅
+"eu vou pra italia" -> "Eu irei para a Itália." ❌
+"a gente vai viajar amanhã" -> "A gente vai viajar amanhã." ✅
+"a gente vai viajar amanhã" -> "Nós viajaremos amanhã." ❌
+
+Na dúvida sobre qualquer correção, MANTENHA o texto original.
+Responda SOMENTE com o texto revisado, com a mesma quantidade e ordem de palavras.`;
 
 export const revisarTextoEditair = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
