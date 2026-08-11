@@ -2025,14 +2025,23 @@ function EditorPage() {
         largura={state.width}
         altura={state.height}
         fpsProjeto={state.fps}
-        duracaoMs={state.durationMs}
+        duracaoMs={duracaoExport}
         progresso={progresso}
         resultado={resultado}
+        desktop={!!pontoDesktop()}
+        capaUrl={capaExport}
+        pastaDestino={pastaExport}
+        onEscolherPasta={async () => {
+          const p = await pontoDesktop()?.dialogo.escolherPasta();
+          if (p) setPastaExport(p);
+        }}
         onExportar={(cfg) => void exportar(cfg)}
         onCancelar={() => {
           cancelarExportRef.current = true;
         }}
         onLimparResultado={() => setResultado(null)}
+        onAbrirArquivo={(c) => void pontoDesktop()?.arquivo.abrir(c).catch(() => toast.error("Não foi possível abrir o arquivo"))}
+        onRevelarArquivo={(c) => void pontoDesktop()?.arquivo.revelar(c)}
       />
 
       <SourceDialog
