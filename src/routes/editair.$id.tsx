@@ -88,6 +88,7 @@ import {
   paraWav16k,
 } from "@/lib/editair/audio";
 import { EditairEngine } from "@/lib/editair/engine";
+import { duracaoComposicao, planoDeAudio } from "@/lib/editair/composicao";
 import { aplicarAssetsIniciais, midiaParaAsset, PonteAssets, type AssetBasico } from "@/lib/editair/bootstrap";
 import { pontoDesktop } from "@/lib/editair/desktop";
 import { consumirHandoff } from "@/lib/editair/handoff";
@@ -182,6 +183,8 @@ function EditorPage() {
   const [exportAberto, setExportAberto] = useState(false);
   const [progresso, setProgresso] = useState<ProgressoExport>(null);
   const [resultado, setResultado] = useState<ResultadoExport>(null);
+  const [pastaExport, setPastaExport] = useState<string | null>(null);
+  const [capaExport, setCapaExport] = useState<string | null>(null);
 
   const [rippleTrim, setRippleTrim] = useState(false);
   const [sourceClipId, setSourceClipId] = useState<string | null>(null);
