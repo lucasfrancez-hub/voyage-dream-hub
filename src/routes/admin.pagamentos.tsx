@@ -55,6 +55,7 @@ function PagamentosPage() {
   const qc = useQueryClient();
   const listar = useServerFn(listarPagamentosPix);
   const sincronizar = useServerFn(sincronizarPagamentoPix);
+  const sincronizarTodos = useServerFn(sincronizarTodosPagamentosPix);
   const cancelar = useServerFn(cancelarPagamentoPix);
 
   const [novoOpen, setNovoOpen] = useState(false);
@@ -62,6 +63,8 @@ function PagamentosPage() {
   const [detalheId, setDetalheId] = useState<string | null>(null);
   const [filter, setFilter] = useState<string>("todos");
   const [search, setSearch] = useState("");
+  const [sincronizandoTudo, setSincronizandoTudo] = useState(false);
+
 
   const { data, isLoading, refetch, isFetching } = useQuery({
     queryKey: ["asaas-transfers"],
