@@ -737,7 +737,10 @@ export function Timeline({
                         setMenuPos(null);
                         setMenu({ x, y, clipId: c.id });
                       }}
+                      onScrub={(e) => iniciarScrub(e)}
+                      msNoX={msDoEvento}
                     />
+
                   ))}
               </div>
             ))}
