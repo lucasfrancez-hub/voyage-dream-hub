@@ -55,16 +55,39 @@ export function WorkspaceLayout({
     return () => window.removeEventListener("resize", ajustar);
   }, [alturaTimeline, disponivel, onAlturaTimeline]);
 
-  const iniciarArrasto = (clientY: number) => {
+  /* Arrasto do splitter.
+     No Electron/macOS listeners de window podem perder pointermove quando o
+     ponteiro passa por cima de iframes/canvas/áreas com captura própria; por
+     isso capturamos o ponteiro no próprio elemento e ouvimos nele. */
+  const iniciarArrasto = (e: React.PointerEvent<HTMLDivElement>) => {
     if (arrastando.current) return;
     arrastando.current = true;
-    const y0 = clientY;
+    const alvo = e.currentTarget;
+    const ponteiro = e.pointerId;
+    try {
+      alvo.setPointerCapture(ponteiro);
+    } catch {
+      /* navegador sem captura: os listeners de window abaixo cobrem */
+    }
+    const y0 = e.clientY;
     const h0 = alturaTimeline;
     const mover = (ev: PointerEvent) => onAlturaTimeline(clampAlturaTimeline(h0 + (y0 - ev.clientY), disponivel()));
     const encerrar = () => {
+      if (!arrastando.current) return;
       arrastando.current = false;
+      try {
+        if (alvo.hasPointerCapture?.(ponteiro)) alvo.releasePointerCapture(ponteiro);
+      } catch {
+        /* já liberado */
+      }
+      alvo.removeEventListener("pointermove", mover);
+      alvo.removeEventListener("pointerup", encerrar);
+      alvo.removeEventListener("pointercancel", encerrar);
+      alvo.removeEventListener("lostpointercapture", encerrar);
       window.removeEventListener("pointermove", mover);
       window.removeEventListener("pointerup", encerrar);
+      window.removeEventListener("pointercancel", encerrar);
+      window.removeEventListener("blur", encerrar);
       window.removeEventListener("keydown", cancelar);
       document.body.style.userSelect = "";
       document.body.style.cursor = "";
@@ -76,10 +99,17 @@ export function WorkspaceLayout({
     };
     document.body.style.userSelect = "none";
     document.body.style.cursor = "row-resize";
+    alvo.addEventListener("pointermove", mover);
+    alvo.addEventListener("pointerup", encerrar);
+    alvo.addEventListener("pointercancel", encerrar);
+    alvo.addEventListener("lostpointercapture", encerrar);
     window.addEventListener("pointermove", mover);
     window.addEventListener("pointerup", encerrar);
+    window.addEventListener("pointercancel", encerrar);
+    window.addEventListener("blur", encerrar);
     window.addEventListener("keydown", cancelar);
   };
+
 
   return (
     <div
@@ -113,21 +143,29 @@ export function WorkspaceLayout({
         </div>
       </div>
 
-      {/* SPLITTER — pertence à divisão superior ↔ timeline */}
+      {/* SPLITTER — visual de 6px, área de toque de 18px (Fitts / Electron) */}
       <div
-        role="separator"
-        aria-orientation="horizontal"
-        aria-label="Redimensionar timeline"
-        data-testid="editair-splitter"
         style={{ height: ALTURA_SPLITTER }}
-        onPointerDown={(e) => {
-          e.preventDefault();
-          iniciarArrasto(e.clientY);
-        }}
-        className="group flex cursor-row-resize items-center justify-center bg-white/5 transition hover:bg-[#F26B1F]/40"
+        className="group relative z-40 flex items-center justify-center bg-white/5 transition hover:bg-[#F26B1F]/40"
       >
-        <span className="h-0.5 w-16 rounded-full bg-white/20 group-hover:bg-[#F26B1F]" />
+        <span className="pointer-events-none h-0.5 w-16 rounded-full bg-white/20 group-hover:bg-[#F26B1F]" />
+        <div
+          role="separator"
+          aria-orientation="horizontal"
+          aria-label="Redimensionar timeline"
+          data-testid="editair-splitter"
+          onPointerDown={(e) => {
+            if (e.button !== 0) return;
+            e.preventDefault();
+            e.stopPropagation();
+            iniciarArrasto(e);
+          }}
+          onDoubleClick={() => onAlturaTimeline(clampAlturaTimeline(320, disponivel()))}
+          style={{ touchAction: "none" }}
+          className="absolute inset-x-0 -top-1.5 -bottom-1.5 cursor-row-resize"
+        />
       </div>
+
 
       {/* TIMELINE */}
       <div className="grid min-h-0 min-w-0 grid-rows-[42px_1fr] overflow-hidden border-t border-white/10" data-testid="editair-timeline-region">

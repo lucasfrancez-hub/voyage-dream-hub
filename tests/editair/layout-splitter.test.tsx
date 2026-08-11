@@ -126,4 +126,36 @@ describe("WorkspaceLayout no DOM", () => {
     fireEvent.keyDown(window, { key: "Escape" });
     expect(onAltura).toHaveBeenLastCalledWith(300);
   });
+
+  it("a área de toque do splitter é maior que o traço visual de 6px", () => {
+    montar(300);
+    const sp = screen.getByTestId("editair-splitter");
+    // overlay ocupa 6px do traço + 6px acima + 6px abaixo
+    expect(sp.className).toContain("-top-1.5");
+    expect(sp.className).toContain("-bottom-1.5");
+    expect(sp.className).toContain("cursor-row-resize");
+  });
+
+  it("o arrasto também escuta no próprio elemento (Electron perde pointermove de window)", () => {
+    const onAltura = vi.fn();
+    montar(300, onAltura);
+    const sp = screen.getByTestId("editair-splitter");
+    fireEvent.pointerDown(sp, { clientY: 800 });
+    fireEvent(sp, Object.assign(new Event("pointermove", { bubbles: false }), { clientY: 750 }));
+    expect(onAltura).toHaveBeenLastCalledWith(350);
+    fireEvent(sp, new Event("pointerup"));
+    // encerrado: movimentos posteriores não alteram mais nada
+    onAltura.mockClear();
+    fireEvent(window, Object.assign(new Event("pointermove"), { clientY: 400 }));
+    expect(onAltura).not.toHaveBeenCalled();
+  });
+
+  it("botão direito no splitter não inicia arrasto", () => {
+    const onAltura = vi.fn();
+    montar(300, onAltura);
+    fireEvent.pointerDown(screen.getByTestId("editair-splitter"), { clientY: 800, button: 2 });
+    fireEvent(window, Object.assign(new Event("pointermove"), { clientY: 600 }));
+    expect(onAltura).not.toHaveBeenCalled();
+  });
 });
+

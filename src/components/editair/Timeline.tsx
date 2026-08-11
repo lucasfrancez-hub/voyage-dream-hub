@@ -26,6 +26,15 @@ import { obterPicos, obterThumb, picosEmCache } from "@/lib/editair/media";
 import { executarJob } from "@/lib/editair/jobs";
 import { useJobsDoAlvo } from "@/hooks/use-editair-jobs";
 import { clipsNaCaixa, moverSelecao, tracksNaFaixa, unir } from "@/lib/editair/selecao";
+import {
+  classificarGesto,
+  interpretarRoda,
+  metricaScrollbar,
+  panScrollLeft,
+  panScrollTop,
+  scrollDoCliqueNaTrilha,
+  scrollDoPolegar,
+} from "@/lib/editair/pan-timeline";
 
 
 export type AssetInfo = { id?: string; url: string; durationMs: number; kind: string; name: string };
@@ -201,6 +210,151 @@ export function Timeline({
     ancoraRef.current = { ms: 0, px: 0 };
     onZoom(Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, (larg * 1000) / dur)));
   }, [onZoom, state.durationMs]);
+
+  /* ------------------------------------------------------------------
+     NAVEGAÇÃO HORIZONTAL (Electron/macOS)
+     O runtime do Electron não entrega scrollbar overlay confiável nem wheel
+     horizontal previsível, então roda, pan com Espaço/botão do meio e a
+     scrollbar são todos explícitos aqui. ------------------------------ */
+  const [espaco, setEspaco] = useState(false);
+  const [panAtivo, setPanAtivo] = useState(false);
+  const espacoRef = useRef(false);
+  const [metricas, setMetricas] = useState({ scrollLeft: 0, scrollWidth: 1, clientWidth: 1 });
+
+  const medir = useCallback(() => {
+    const el = areaRef.current;
+    if (!el) return;
+    setMetricas({ scrollLeft: el.scrollLeft, scrollWidth: el.scrollWidth, clientWidth: el.clientWidth });
+  }, []);
+
+  useEffect(() => {
+    medir();
+    const el = areaRef.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(() => medir());
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [medir, larguraTotal, state.tracks.length]);
+
+  /** Espaço segurado = modo mão (desativa drag de clipe enquanto durar). */
+  useEffect(() => {
+    const editando = (alvo: EventTarget | null) => {
+      const el = alvo as HTMLElement | null;
+      if (!el || !el.tagName) return false;
+      return ["INPUT", "TEXTAREA", "SELECT"].includes(el.tagName) || el.isContentEditable;
+    };
+    const baixo = (e: KeyboardEvent) => {
+      if (e.code !== "Space" || e.repeat || editando(e.target)) return;
+      espacoRef.current = true;
+      setEspaco(true);
+    };
+    const cima = (e: KeyboardEvent) => {
+      if (e.code !== "Space") return;
+      espacoRef.current = false;
+      setEspaco(false);
+    };
+    const soltarTudo = () => {
+      espacoRef.current = false;
+      setEspaco(false);
+    };
+    window.addEventListener("keydown", baixo);
+    window.addEventListener("keyup", cima);
+    window.addEventListener("blur", soltarTudo);
+    return () => {
+      window.removeEventListener("keydown", baixo);
+      window.removeEventListener("keyup", cima);
+      window.removeEventListener("blur", soltarTudo);
+    };
+  }, []);
+
+  /** Pan por arraste (Espaço + botão esquerdo, ou botão do meio). */
+  const iniciarPan = useCallback(
+    (e: React.PointerEvent | PointerEvent) => {
+      const el = areaRef.current;
+      if (!el) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const x0 = e.clientX;
+      const y0 = e.clientY;
+      const sx = el.scrollLeft;
+      const sy = el.scrollTop;
+      setPanAtivo(true);
+      const mover = (ev: PointerEvent) => {
+        el.scrollLeft = panScrollLeft(sx, ev.clientX - x0, el.scrollWidth - el.clientWidth);
+        el.scrollTop = panScrollTop(sy, ev.clientY - y0, el.scrollHeight - el.clientHeight);
+        medir();
+      };
+      const fim = () => {
+        setPanAtivo(false);
+        window.removeEventListener("pointermove", mover);
+        window.removeEventListener("pointerup", fim);
+        window.removeEventListener("pointercancel", fim);
+        window.removeEventListener("blur", fim);
+      };
+      window.addEventListener("pointermove", mover);
+      window.addEventListener("pointerup", fim);
+      window.addEventListener("pointercancel", fim);
+      window.addEventListener("blur", fim);
+    },
+    [medir],
+  );
+
+  /* roda/trackpad: listener nativo NÃO passivo (React usa passivo e o
+     preventDefault seria ignorado, deixando a janela inteira rolar) */
+  const rodaRef = useRef<(e: WheelEvent) => void>(() => {});
+  rodaRef.current = (e: WheelEvent) => {
+    const el = areaRef.current;
+    if (!el) return;
+    const acao = interpretarRoda(e, zoom, { min: ZOOM_MIN, max: ZOOM_MAX });
+    if (acao.tipo === "zoom") {
+      e.preventDefault();
+      if (!onZoom) return;
+      const rect = el.getBoundingClientRect();
+      const px = e.clientX - rect.left;
+      const msSobCursor = (el.scrollLeft + px) / pxPorMs;
+      ancoraRef.current = { ms: msSobCursor, px };
+      onZoom(acao.zoom);
+      return;
+    }
+    if (acao.tipo === "horizontal") {
+      e.preventDefault();
+      el.scrollLeft = panScrollLeft(el.scrollLeft, -acao.dx, el.scrollWidth - el.clientWidth);
+      medir();
+    }
+  };
+
+  useEffect(() => {
+    const el = areaRef.current;
+    if (!el) return;
+    const aoRolar = (e: WheelEvent) => rodaRef.current(e);
+    el.addEventListener("wheel", aoRolar, { passive: false });
+    return () => el.removeEventListener("wheel", aoRolar);
+  }, []);
+
+  /* diagnóstico no Desktop (sem DevTools): window.editairTimelineDiag() */
+  useEffect(() => {
+    const w = window as unknown as Record<string, unknown>;
+    w.editairTimelineDiag = () => {
+      const el = areaRef.current;
+      const regiao = document.querySelector('[data-testid="editair-timeline-region"]') as HTMLElement | null;
+      return {
+        scrollLeft: el?.scrollLeft ?? null,
+        scrollWidth: el?.scrollWidth ?? null,
+        clientWidth: el?.clientWidth ?? null,
+        maxScroll: el ? el.scrollWidth - el.clientWidth : null,
+        alturaTimeline: regiao?.getBoundingClientRect().height ?? null,
+        espacoPressionado: espacoRef.current,
+        panAtivo,
+        zoom,
+        scrollbarVisivel: !!document.querySelector('[data-testid="timeline-scrollbar-thumb"]'),
+      };
+    };
+    return () => {
+      delete w.editairTimelineDiag;
+    };
+  }, [panAtivo, zoom]);
+
+
 
   const [dica, setDica] = useState<Dica>(null);
   const [arrastandoId, setArrastandoId] = useState<string | null>(null);
@@ -708,8 +862,20 @@ export function Timeline({
           onScroll={(e) => {
             const el = e.currentTarget;
             if (headersRef.current) headersRef.current.style.transform = `translateY(${-el.scrollTop}px)`;
+            medir();
           }}
-          className={`relative min-h-0 min-w-0 flex-1 overflow-x-auto overflow-y-auto ${soltando ? "ring-1 ring-inset ring-[#F26B1F]/50" : ""}`}
+          /* captura: o pan precisa vencer clip/scrub/marquee antes deles */
+          onPointerDownCapture={(e) => {
+            const gesto = classificarGesto({ button: e.button, espacoPressionado: espacoRef.current });
+            if (gesto === "pan") iniciarPan(e);
+          }}
+          onContextMenuCapture={(e) => {
+            if (panAtivo) e.preventDefault();
+          }}
+          style={{ cursor: panAtivo ? "grabbing" : espaco ? "grab" : undefined }}
+          className={`relative min-h-0 min-w-0 flex-1 overflow-x-auto overflow-y-auto ${soltando ? "ring-1 ring-inset ring-[#F26B1F]/50" : ""} ${espaco ? "[&_*]:!cursor-grab" : ""}`}
+
+
 
           onDragOver={
             onSoltarArquivos || onSoltarAsset
@@ -925,6 +1091,20 @@ export function Timeline({
         </div>
       </div>
 
+      {/* scrollbar horizontal própria — sempre visível (macOS/Electron esconde a nativa) */}
+      <ScrollbarTimeline
+        metricas={metricas}
+        offsetEsquerda={170}
+        onScroll={(x) => {
+          const el = areaRef.current;
+          if (!el) return;
+          el.scrollLeft = x;
+          medir();
+        }}
+      />
+
+
+
       {/* retângulo de seleção múltipla */}
       {caixa ? (
         <div
@@ -943,7 +1123,7 @@ export function Timeline({
       {onZoom ? (
         <div
           data-testid="timeline-zoom"
-          className="absolute bottom-3.5 right-3.5 z-[56] flex items-center gap-1.5 rounded-full border border-white/10 bg-[#12171d]/95 px-2 py-1 shadow-[0_4px_16px_rgba(0,0,0,.5)] backdrop-blur"
+          className="absolute bottom-[22px] right-3.5 z-[56] flex items-center gap-1.5 rounded-full border border-white/10 bg-[#12171d]/95 px-2 py-1 shadow-[0_4px_16px_rgba(0,0,0,.5)] backdrop-blur"
           onPointerDown={(e) => e.stopPropagation()}
         >
           <button
@@ -1251,6 +1431,83 @@ export function Timeline({
 
 /** paleta usada no menu de contexto do marcador */
 const CORES_MARCADOR = ["#F26B1F", "#22c55e", "#38bdf8", "#e879f9", "#facc15"];
+
+/** Scrollbar horizontal desenhada por nós: no macOS/Electron a nativa some. */
+function ScrollbarTimeline({
+  metricas,
+  offsetEsquerda,
+  onScroll,
+}: {
+  metricas: { scrollLeft: number; scrollWidth: number; clientWidth: number };
+  offsetEsquerda: number;
+  onScroll: (scrollLeft: number) => void;
+}) {
+  const trilhaRef = useRef<HTMLDivElement>(null);
+  const [trilhaPx, setTrilhaPx] = useState(0);
+
+  useEffect(() => {
+    const el = trilhaRef.current;
+    if (!el) return;
+    const medir = () => setTrilhaPx(el.clientWidth);
+    medir();
+    if (typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(medir);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  const m = metricaScrollbar(metricas.scrollLeft, metricas.scrollWidth, metricas.clientWidth, trilhaPx);
+
+  const arrastarPolegar = (e: React.PointerEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const x0 = e.clientX;
+    const inicio = m.x;
+    const mover = (ev: PointerEvent) =>
+      onScroll(scrollDoPolegar(inicio + (ev.clientX - x0), m, metricas.scrollWidth, metricas.clientWidth));
+    const fim = () => {
+      window.removeEventListener("pointermove", mover);
+      window.removeEventListener("pointerup", fim);
+      window.removeEventListener("pointercancel", fim);
+    };
+    window.addEventListener("pointermove", mover);
+    window.addEventListener("pointerup", fim);
+    window.addEventListener("pointercancel", fim);
+  };
+
+  return (
+    <div
+      data-testid="timeline-scrollbar"
+      className="flex h-[14px] shrink-0 items-center border-t border-white/5 bg-[#0b0f14]"
+      style={{ paddingLeft: offsetEsquerda }}
+      onPointerDown={(e) => e.stopPropagation()}
+    >
+      <div
+        ref={trilhaRef}
+        className="relative mx-1.5 h-[8px] flex-1 rounded-full bg-white/[0.06]"
+        onPointerDown={(e) => {
+          if (!m.visivel || e.target !== e.currentTarget) return;
+          const rect = e.currentTarget.getBoundingClientRect();
+          onScroll(scrollDoCliqueNaTrilha(e.clientX - rect.left, m, metricas.scrollWidth, metricas.clientWidth));
+        }}
+      >
+        {m.visivel ? (
+          <div
+            role="scrollbar"
+            aria-label="Rolagem horizontal da timeline"
+            aria-orientation="horizontal"
+            aria-controls="timeline-viewport"
+            aria-valuenow={Math.round(metricas.scrollLeft)}
+            data-testid="timeline-scrollbar-thumb"
+            onPointerDown={arrastarPolegar}
+            className="absolute top-0 h-full cursor-grab rounded-full bg-white/25 transition-colors hover:bg-[#F26B1F]/80 active:cursor-grabbing"
+            style={{ width: m.largura, transform: `translateX(${m.x}px)` }}
+          />
+        ) : null}
+      </div>
+    </div>
+  );
+}
 
 function TrackLabel({
   track,
