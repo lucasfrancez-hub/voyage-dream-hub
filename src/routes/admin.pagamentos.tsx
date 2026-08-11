@@ -51,17 +51,47 @@ const ORIGIN_LABEL: Record<string, string> = {
   outro: "Outro",
 };
 
+/** Status próprios do pagamento de boleto (ASAAS Pague Contas). */
+const BOLETO_STATUS_META: Record<string, { label: string; cls: string; bucket: string }> = {
+  agendado: { label: "Agendado", cls: "bg-sky-500/15 text-sky-400", bucket: "agendado" },
+  pendente: { label: "Aguardando pagamento", cls: "bg-amber-500/15 text-amber-400", bucket: "pendente" },
+  processando: { label: "Em processamento", cls: "bg-indigo-500/15 text-indigo-400", bucket: "processando" },
+  pago: { label: "Pago", cls: "bg-emerald-500/15 text-emerald-400", bucket: "concluido" },
+  falhou: { label: "Falhou", cls: "bg-red-500/15 text-red-400", bucket: "falhou" },
+  cancelado: { label: "Cancelado", cls: "bg-muted text-muted-foreground", bucket: "cancelado" },
+};
+
+type UnifiedRow = {
+  kind: "pix" | "boleto";
+  id: string;
+  bucket: string;
+  statusLabel: string;
+  statusCls: string;
+  nome: string;
+  sub: string;
+  valor: number;
+  createdAt: string;
+  scheduledDate: string | null;
+  raw: any;
+};
+
 function PagamentosPage() {
   const qc = useQueryClient();
   const listar = useServerFn(listarPagamentosPix);
+  const listarBoletos = useServerFn(listarPagamentosBoleto);
   const sincronizar = useServerFn(sincronizarPagamentoPix);
   const sincronizarTodos = useServerFn(sincronizarTodosPagamentosPix);
+  const sincronizarBoleto = useServerFn(sincronizarPagamentoBoleto);
   const cancelar = useServerFn(cancelarPagamentoPix);
+  const cancelarBoleto = useServerFn(cancelarPagamentoBoleto);
 
   const [novoOpen, setNovoOpen] = useState(false);
+  const [novoBoletoOpen, setNovoBoletoOpen] = useState(false);
   const [reciboRow, setReciboRow] = useState<any | null>(null);
+  const [reciboBoleto, setReciboBoleto] = useState<any | null>(null);
   const [detalheId, setDetalheId] = useState<string | null>(null);
   const [filter, setFilter] = useState<string>("todos");
+  const [tipoFilter, setTipoFilter] = useState<"todos" | "pix" | "boleto">("todos");
   const [search, setSearch] = useState("");
   const [sincronizandoTudo, setSincronizandoTudo] = useState(false);
 
@@ -72,29 +102,74 @@ function PagamentosPage() {
     refetchInterval: 30_000,
   });
 
-  const rows = data ?? [];
-  const agendados = rows.filter((r) => r.status === "agendado");
+  const boletosQ = useQuery({
+    queryKey: ["asaas-bill-payments"],
+    queryFn: async () => (await listarBoletos({ data: {} })) as any[],
+    refetchInterval: 30_000,
+  });
+
+  const rows: UnifiedRow[] = useMemo(() => {
+    const pix = (data ?? []).map((r): UnifiedRow => {
+      const meta = STATUS_META[r.status];
+      return {
+        kind: "pix",
+        id: r.id,
+        bucket: r.status,
+        statusLabel: meta?.label ?? r.status,
+        statusCls: meta?.cls ?? "bg-muted",
+        nome: r.favored_name ?? "—",
+        sub: `${r.pix_key ?? "—"} · ${ORIGIN_LABEL[r.origin] ?? r.origin}`,
+        valor: Number(r.value),
+        createdAt: r.created_at,
+        scheduledDate: r.scheduled_date ?? null,
+        raw: r,
+      };
+    });
+    const boletos = (boletosQ.data ?? []).map((b): UnifiedRow => {
+      const meta = BOLETO_STATUS_META[b.status];
+      return {
+        kind: "boleto",
+        id: b.id,
+        bucket: meta?.bucket ?? b.status,
+        statusLabel: meta?.label ?? b.status,
+        statusCls: meta?.cls ?? "bg-muted",
+        nome: b.beneficiary_name ?? b.description ?? "Boleto",
+        sub: `${b.identification_field ? formatLinha(b.identification_field) : "—"}`,
+        valor: Number(b.value),
+        createdAt: b.created_at,
+        scheduledDate: b.scheduled_date ?? null,
+        raw: b,
+      };
+    });
+    return [...pix, ...boletos].sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    );
+  }, [data, boletosQ.data]);
+
+  const agendados = rows.filter((r) => r.bucket === "agendado");
 
   const filtered = useMemo(() => {
     let list = rows;
-    if (filter !== "todos") list = list.filter((r) => r.status === filter);
+    if (tipoFilter !== "todos") list = list.filter((r) => r.kind === tipoFilter);
+    if (filter !== "todos") list = list.filter((r) => r.bucket === filter);
     if (search.trim()) {
       const s = search.toLowerCase();
       list = list.filter(
         (r) =>
-          String(r.favored_name ?? "").toLowerCase().includes(s) ||
-          String(r.pix_key ?? "").toLowerCase().includes(s) ||
-          String(r.description ?? "").toLowerCase().includes(s),
+          r.nome.toLowerCase().includes(s) ||
+          r.sub.toLowerCase().includes(s) ||
+          String(r.raw?.description ?? "").toLowerCase().includes(s),
       );
     }
     return list;
-  }, [rows, filter, search]);
+  }, [rows, filter, tipoFilter, search]);
 
   const totals = useMemo(() => {
     const acc: Record<string, number> = {};
-    for (const r of rows) acc[r.status] = (acc[r.status] ?? 0) + 1;
+    for (const r of rows) acc[r.bucket] = (acc[r.bucket] ?? 0) + 1;
     return acc;
   }, [rows]);
+
 
   const doSync = async (id: string) => {
     try {
