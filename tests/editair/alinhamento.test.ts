@@ -125,8 +125,8 @@ describe("C/D/E — agrupamento antigo × novo", () => {
       "Pra quem não me conhece,",
       "eu sou o Lucas.",
       "Eu sou engenheiro civil,",
-      "e o mais engraçado é que",
-      "hoje eu tenho uma agência de viagens.",
+      "e o mais engraçado é que hoje",
+      "eu tenho uma agência de viagens.",
     ]);
   });
 
@@ -227,7 +227,7 @@ describe("pausas acústicas e velocidade", () => {
   });
 
   it("thresholds são configuráveis (não são número mágico escondido)", () => {
-    const fala = [p("eu", 0, 200), p("quero", 900, 1200)];
+    const fala = [p("viajei", 0, 200), p("ontem", 900, 1200)];
     expect(unidadesDeFala(fala, { ...LIMITES_PADRAO, pausaFrase: 2000 })).toHaveLength(1);
     expect(unidadesDeFala(fala, { ...LIMITES_PADRAO, pausaFrase: 300 })).toHaveLength(2);
   });
