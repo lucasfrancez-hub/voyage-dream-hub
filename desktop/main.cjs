@@ -190,10 +190,31 @@ responder("dialogo:localizarArquivo", async ({ nome }) => {
   return r.canceled ? null : r.filePaths[0];
 });
 
-responder("dialogo:salvarComo", async ({ nomeSugerido = "video_final.mp4" }) => {
-  const r = await dialog.showSaveDialog(janela, { defaultPath: path.join(app.getPath("movies"), nomeSugerido) });
-  return r.canceled ? null : r.filePath;
+responder("dialogo:salvarComo", async ({ nomeSugerido = "video_final.mp4", pasta } = {}) => {
+  const s = lerSettings();
+  const base = pasta || s.ultimaPastaExport || app.getPath("movies");
+  const r = await dialog.showSaveDialog(janela, { defaultPath: path.join(base, nomeSugerido) });
+  if (r.canceled || !r.filePath) return null;
+  salvarSettings({ ultimaPastaExport: path.dirname(r.filePath) });
+  return r.filePath;
 });
+
+responder("dialogo:pastaExport", async () => {
+  const s = lerSettings();
+  return s.ultimaPastaExport || app.getPath("movies");
+});
+
+responder("arquivo:abrir", async ({ caminho }) => {
+  const erro = await shell.openPath(caminho);
+  if (erro) throw new Error(erro);
+  return true;
+});
+
+responder("arquivo:revelar", async ({ caminho }) => {
+  shell.showItemInFolder(caminho);
+  return true;
+});
+
 
 responder("biblioteca:listar", async () => library.listar());
 responder("biblioteca:importar", async ({ caminhos = [], copiar }) => {
