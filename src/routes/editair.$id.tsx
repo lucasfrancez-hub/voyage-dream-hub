@@ -407,9 +407,15 @@ function EditorPage() {
       const t = rel.ms0 + (performance.now() - rel.t0);
       if (t >= state.durationMs) {
         setTocando(false);
-        setPlayhead(state.durationMs);
+        // Para no último quadro visível (e não 1ms depois do fim), senão o
+        // preview fica preto ao terminar — sensação de "a imagem sumiu".
+        const fim = Math.max(0, state.durationMs - 1);
+        setPlayhead(fim);
+        eng.sincronizar(state, fim, false);
+        eng.desenhar(state, fim);
         return;
       }
+
       setPlayhead(t);
       eng.sincronizar(state, t, true);
       eng.desenhar(state, t);
