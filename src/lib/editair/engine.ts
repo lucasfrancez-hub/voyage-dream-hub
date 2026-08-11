@@ -427,9 +427,20 @@ export class EditairEngine {
    * Sem isso o Chromium rejeita `el.play()` com NotAllowedError: o canvas
    * continua desenhando quadros (o vídeo "roda") mas nenhum áudio sai.
    */
-  liberarAudio() {
+  liberarAudio(state?: ProjectState, t?: number) {
     const ctx = this.garantirAudio();
     if (ctx.state === "suspended") void ctx.resume().catch(() => {});
+
+    // Quando o Play fornece o estado atual, a sincronização e o el.play()
+    // acontecem ainda dentro do mesmo gesto do usuário. Antes, o elemento era
+    // iniciado só para "desbloquear" e podia ser pausado pela Promise antes do
+    // effect do React marcar o preview como tocando; a nova tentativa então já
+    // ocorria fora do clique e o Chromium/Electron mantinha o áudio silencioso.
+    if (state && typeof t === "number") {
+      this.sincronizar(state, t, true);
+      return;
+    }
+
     for (const [, m] of this.midias) {
       if (!m.el.paused) continue;
       const p = m.el.play();
