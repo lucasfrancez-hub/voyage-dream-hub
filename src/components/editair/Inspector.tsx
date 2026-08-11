@@ -990,8 +990,110 @@ function InspLegenda({
           <option value="Georgia, serif">Georgia</option>
         </select>
       </Campo>
-      <Linha label={`Tamanho — ${est.fontSize}px`}>
-        <Slider value={[est.fontSize]} min={24} max={160} step={2} onValueChange={([v]) => set({ fontSize: v })} />
+      <Campo label="Tamanho da fonte">
+        <div className="flex items-center gap-2">
+          <Slider
+            value={[est.fontSize]}
+            min={12}
+            max={220}
+            step={1}
+            onValueChange={([v]) => set({ fontSize: v })}
+            className="flex-1"
+          />
+          <button
+            onClick={() => set({ fontSize: Math.max(12, est.fontSize - 2) })}
+            className="h-7 w-7 rounded-md border border-white/10 bg-white/5 text-xs hover:bg-white/10"
+            title="Diminuir fonte"
+          >
+            −
+          </button>
+          <input
+            data-testid="legenda-fontsize"
+            type="number"
+            min={12}
+            max={400}
+            value={est.fontSize}
+            onChange={(e) => set({ fontSize: Math.min(400, Math.max(12, Number(e.target.value) || 12)) })}
+            className="w-16 rounded-md border border-white/10 bg-black/40 px-2 py-1 text-xs"
+          />
+          <button
+            onClick={() => set({ fontSize: Math.min(400, est.fontSize + 2) })}
+            className="h-7 w-7 rounded-md border border-white/10 bg-white/5 text-xs hover:bg-white/10"
+            title="Aumentar fonte"
+          >
+            +
+          </button>
+        </div>
+        <p className="mt-1 text-[10px] text-white/35">
+          Independente da caixa: puxar os cantos no Reprodutor muda só a quebra de linha.
+        </p>
+      </Campo>
+      <Campo label={`Espaçamento entre letras — ${est.tracking ?? 0}px`}>
+        <div className="flex items-center gap-2">
+          <Slider
+            value={[est.tracking ?? 0]}
+            min={-5}
+            max={20}
+            step={0.5}
+            onValueChange={([v]) => set({ tracking: v })}
+            className="flex-1"
+          />
+          <input
+            data-testid="legenda-tracking"
+            type="number"
+            step={0.5}
+            min={-5}
+            max={20}
+            value={est.tracking ?? 0}
+            onChange={(e) => set({ tracking: Math.min(20, Math.max(-5, Number(e.target.value) || 0)) })}
+            className="w-16 rounded-md border border-white/10 bg-black/40 px-2 py-1 text-xs"
+          />
+        </div>
+      </Campo>
+      <Campo label="Capitalização">
+        <div className="flex gap-1" data-testid="legenda-caps">
+          {(
+            [
+              { id: "original", nome: "Original" },
+              { id: "upper", nome: "MAIÚSCULAS" },
+              { id: "lower", nome: "minúsculas" },
+            ] as const
+          ).map((o) => {
+            const atual = est.caps ?? (est.uppercase ? "upper" : "original");
+            return (
+              <button
+                key={o.id}
+                onClick={() => set({ caps: o.id, uppercase: o.id === "upper" })}
+                className={`flex-1 rounded-md border px-2 py-1 text-[11px] transition ${
+                  atual === o.id
+                    ? "border-[#F26B1F]/60 bg-[#F26B1F]/20 text-[#F26B1F]"
+                    : "border-white/10 bg-white/5 text-white/60 hover:bg-white/10"
+                }`}
+              >
+                {o.nome}
+              </button>
+            );
+          })}
+        </div>
+        <p className="mt-1 text-[10px] text-white/35">Só visual — o texto da transcrição não muda.</p>
+      </Campo>
+      <Linha label={`Largura da caixa — ${(((est.boxWidth ?? 0.86)) * 100).toFixed(0)}%`}>
+        <Slider
+          value={[(est.boxWidth ?? 0.86) * 100]}
+          min={20}
+          max={100}
+          step={1}
+          onValueChange={([v]) => set({ boxWidth: v / 100 })}
+        />
+      </Linha>
+      <Linha label={`Máximo de linhas — ${est.maxLines ?? 2}`}>
+        <Slider
+          value={[est.maxLines ?? 2]}
+          min={1}
+          max={3}
+          step={1}
+          onValueChange={([v]) => set({ maxLines: v })}
+        />
       </Linha>
       <div className="grid grid-cols-2 gap-2">
         <Campo label="Cor">
