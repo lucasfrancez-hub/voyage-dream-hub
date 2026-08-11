@@ -2304,6 +2304,7 @@ function EditorPage() {
           onMover={moverElemento}
           onEscalar={escalarElemento}
           onGirar={girarElemento}
+          onFimGesto={encerrarGesto}
         />
       }
       inspector={
