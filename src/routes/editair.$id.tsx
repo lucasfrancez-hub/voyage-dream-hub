@@ -1431,7 +1431,11 @@ function EditorPage() {
   const assetItens: AssetItem[] = assets;
 
   return (
-    <div className="grid h-[calc(100vh-3.5rem)] grid-rows-[46px_1fr_300px] bg-[#0c0f13]">
+    <div
+      className="grid h-[calc(100vh-3.5rem)] bg-[#0c0f13]"
+      style={{ gridTemplateRows: `46px minmax(${MIN_AREA_SUPERIOR}px, 1fr) 6px ${alturaTimeline}px` }}
+      data-testid="editair-layout"
+    >
       {/* topo */}
       <div className="flex items-center gap-3 border-b border-white/10 bg-[#0d1116] px-3">
         <span className="truncate text-sm font-semibold">{projetoNome}</span>
