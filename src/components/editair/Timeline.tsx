@@ -980,6 +980,14 @@ function TrackLabel({
   const [editando, setEditando] = useState(false);
   const [nome, setNome] = useState(track.name);
   const [sobre, setSobre] = useState(false);
+  const [menuTrack, setMenuTrack] = useState<{ x: number; y: number } | null>(null);
+
+  useEffect(() => {
+    if (!menuTrack) return;
+    const fechar = () => setMenuTrack(null);
+    window.addEventListener("pointerdown", fechar);
+    return () => window.removeEventListener("pointerdown", fechar);
+  }, [menuTrack]);
 
   const salvar = () => {
     setEditando(false);
@@ -1003,11 +1011,36 @@ function TrackLabel({
         onSoltarReorder(indice);
       }}
       onDragEnd={() => setSobre(false)}
+      onContextMenu={(e) => {
+        if (!onSelecionarTudo) return;
+        e.preventDefault();
+        setMenuTrack({ x: e.clientX, y: e.clientY });
+      }}
       style={{ height: ALTURA_TRILHA }}
       className={`flex items-center justify-between gap-1 border-b border-white/5 px-1.5 text-[11px] text-white/65 ${
         sobre && arrastandoIndice !== null && arrastandoIndice !== indice ? "bg-[#F26B1F]/15" : ""
       }`}
     >
+      {menuTrack ? (
+        <div
+          className="fixed z-50 min-w-[200px] rounded-lg border border-white/10 bg-[#151b22] py-1 text-[12px] text-white/85 shadow-xl"
+          style={{ left: menuTrack.x, top: menuTrack.y }}
+          onPointerDown={(e) => e.stopPropagation()}
+        >
+          <button
+            type="button"
+            disabled={!!track.locked}
+            onClick={() => {
+              onSelecionarTudo?.(track.id);
+              setMenuTrack(null);
+            }}
+            className="flex w-full items-center gap-2 px-3 py-1.5 text-left transition hover:bg-white/10 disabled:opacity-40"
+          >
+            <MousePointerSquareDashed className="h-3.5 w-3.5" />
+            {track.locked ? "Camada bloqueada" : "Selecionar todos nesta camada"}
+          </button>
+        </div>
+      ) : null}
       <GripVertical className="h-3.5 w-3.5 shrink-0 cursor-grab text-white/25" />
       {editando ? (
         <input
