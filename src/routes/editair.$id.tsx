@@ -774,14 +774,18 @@ function EditorPage() {
   };
 
   /* ---------------- mídia ---------------- */
-  const inserirAsset = (assetId: string, destino?: { trackId?: string; startMs?: number }) => {
+  const inserirAsset = (
+    assetId: string,
+    destino?: { trackId?: string; startMs?: number },
+    baseState?: ProjectState,
+  ) => {
     const a = assets.find((x) => x.id === assetId);
     if (!a) {
       console.warn("[timeline] inserir: asset não encontrado", { assetId, ids: assets.map((x) => x.id) });
       toast.error("Mídia não encontrada na biblioteca deste projeto.");
       return;
     }
-    const r = inserirAssetNaTimeline(state, a, destino ?? {});
+    const r = inserirAssetNaTimeline(baseState ?? state, a, destino ?? {});
     if (!r.ok) {
       console.warn("[timeline] inserir recusado", { assetId, erro: r.erro });
       toast.error(r.erro);
