@@ -1920,6 +1920,20 @@ function EditorPage() {
             onCaption={(patch: Partial<CaptionStyle>) => aplicar({ ...state, captionStyle: { ...state.captionStyle, ...patch } })}
             onAplicarModeloLegenda={aplicarModeloLegenda}
             onAdicionarTexto={adicionarTexto}
+            onCapturarCapa={() => {
+              try {
+                return canvasRef.current?.toDataURL("image/jpeg", 0.5) ?? null;
+              } catch {
+                return null;
+              }
+            }}
+            onAplicarModelo={(m) => {
+              const clips = instanciarModelo(m, Math.round(playhead), () => novoId());
+              if (!clips.length) return toast.error("Modelo vazio.");
+              aplicar({ ...state, clips: [...state.clips, ...clips], captionStyle: m.captionStyle ?? state.captionStyle });
+              setSelecionados(clips.map((c) => c.id));
+              toast.success(`Modelo “${m.nome}” aplicado`);
+            }}
             onAnalisar={() => void analisar()}
             onGerarLegendas={legendar}
             onCortarPausas={cortarPausas}
