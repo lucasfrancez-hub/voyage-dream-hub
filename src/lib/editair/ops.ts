@@ -1,12 +1,18 @@
 import {
   FUNDO_PADRAO,
+  ANIMACAO_PADRAO,
+  type AnimacaoTipo,
+  type TrackKind,
+  type TransicaoTipo,
   type Fundo,
   type EditairClip,
+  type EditairTrack,
   type ProjectState,
   type Transcript,
   novoId,
   recalcularDuracao,
   transformPadrao,
+  enquadramentoInicial,
 } from "./types";
 import { aplicarVelocidade } from "./velocidade";
 
