@@ -297,7 +297,9 @@ export function inserirAssetNaTimeline(
   let criouTrack = false;
   const pedida = trackId ? base.tracks.find((t) => t.id === trackId) : null;
   if (pedida?.locked) return { ok: false, erro: "Camada bloqueada." };
-  if (!pedida) {
+  /* camada pedida ainda não existe (ex.: Legendas/B-roll): ela nasce junto com o clipe */
+  if (!pedida && trackId) criouTrack = true;
+  if (!pedida && !trackId) {
     const d = trilhaDestino(base, asset.kind);
     base = d.state;
     trackId = d.trackId;
