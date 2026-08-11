@@ -787,6 +787,8 @@ export class EditairEngine {
 
     let offline = false;
     let desenhou = 0;
+    const linhas: RegistroVisual["clipes"] = [];
+    const usouTempo = new Set<string>();
     for (const c of visuais) {
       const trilha = state.tracks.find((x) => x.id === c.trackId);
       if (trilha?.hidden) continue;
@@ -797,10 +799,12 @@ export class EditairEngine {
           const temImagem = !!c.assetId && !!this.imagens.get(c.assetId)?.naturalWidth;
           if (c.assetId && this.falhas.has(c.assetId) && !temImagem) {
             offline = true;
+            if (this.tracando) linhas.push(this.linhaAuditoria(c, t, { fonte: "nenhuma", desenhou: false, motivo: "asset marcado como offline" }, usouTempo));
             continue;
           }
-          this.desenharVideo(c, t);
-          desenhou++;
+          const r = this.desenharVideo(c, t);
+          if (this.tracando) linhas.push(this.linhaAuditoria(c, t, r, usouTempo));
+          if (r.desenhou) desenhou++;
         } else if (c.kind === "caption") {
           this.desenharLegenda(c, c.captionStyle ?? state.captionStyle, t);
           desenhou++;
@@ -816,6 +820,102 @@ export class EditairEngine {
     // O aviso é opaco: só aparece quando não há nada desenhado, para não cobrir
     // imagens/vídeos válidos em outras trilhas.
     if (offline && desenhou === 0) this.avisoOffline();
+
+    if (this.tracando) {
+      const ids = linhas.map((l) => l.clipId);
+      const trocou = ids.join("|") !== this.ativosAnteriores.join("|");
+      if (trocou || this.traco.length === 0) {
+        this.traco.push({
+          timelineTime: Math.round(t),
+          trocaDeClipe: trocou,
+          clipesAnteriores: this.ativosAnteriores,
+          clipes: linhas,
+        });
+        if (this.traco.length > 400) this.traco.shift();
+      }
+      this.ativosAnteriores = ids;
+    }
+  }
+
+  /* ---------------- auditoria visual ---------------- */
+
+  private linhaAuditoria(
+    c: EditairClip,
+    t: number,
+    r: { fonte: "image" | "video" | "nenhuma"; desenhou: boolean; motivo?: string },
+    usouTempo: Set<string>,
+  ): RegistroVisual["clipes"][number] {
+    const sourceTime = c.sourceIn + (t - c.start) * (c.speed || 1);
+    const el = c.assetId ? this.midias.get(c.assetId)?.el ?? null : null;
+    const comanda = !!c.assetId && !usouTempo.has(c.assetId);
+    if (c.assetId) usouTempo.add(c.assetId);
+    return {
+      clipId: c.id,
+      kind: c.kind,
+      assetId: c.assetId ?? null,
+      start: c.start,
+      duration: c.duration,
+      sourceIn: c.sourceIn,
+      sourceOut: c.sourceIn + c.duration * (c.speed || 1),
+      speed: c.speed || 1,
+      sourceTime: Math.round(sourceTime),
+      fonte: r.fonte,
+      desenhou: r.desenhou,
+      motivo: r.motivo,
+      comandaTempo: comanda,
+      ...(el
+        ? {
+            mediaCurrentTime: Number(el.currentTime.toFixed(3)),
+            mediaSourceTime: Math.round(el.currentTime * 1000),
+            deltaMs: Math.round(el.currentTime * 1000 - sourceTime),
+            seeking: el.seeking,
+            readyState: el.readyState,
+            networkState: el.networkState,
+          }
+        : {}),
+    };
+  }
+
+  /** Liga o traço da auditoria visual (limpa o histórico anterior). */
+  iniciarTracoVisual() {
+    this.traco = [];
+    this.ativosAnteriores = [];
+    this.tracando = true;
+  }
+
+  pararTracoVisual() {
+    this.tracando = false;
+  }
+
+  tracandoVisual() {
+    return this.tracando;
+  }
+
+  /** Fotografia do estado visual agora + histórico de trocas de clipe. */
+  diagnosticoVisual(state?: ProjectState, t = 0) {
+    const usados = new Set<string>();
+    const agora = state
+      ? this.ativos(state, t)
+          .filter((c) => c.kind === "video" || c.kind === "image")
+          .map((c) => {
+            const img = c.assetId ? this.imagens.get(c.assetId) ?? null : null;
+            const m = c.assetId ? this.midias.get(c.assetId) ?? null : null;
+            const fonte: "image" | "video" | "nenhuma" =
+              img && img.naturalWidth > 0 ? "image" : m && m.el.readyState >= 2 ? "video" : "nenhuma";
+            return this.linhaAuditoria(c, t, { fonte, desenhou: fonte !== "nenhuma" }, usados);
+          })
+      : [];
+    return {
+      timelineTime: Math.round(t),
+      tocando: this.tocandoAgora,
+      clipesVisuaisAgora: agora,
+      // um mesmo asset em vários clipes ativos: só o primeiro comanda currentTime
+      assetsCompartilhados: agora
+        .filter((l) => l.assetId && !l.comandaTempo)
+        .map((l) => ({ clipId: l.clipId, assetId: l.assetId })),
+      tracando: this.tracando,
+      trocas: this.traco,
+    };
   }
 
 
