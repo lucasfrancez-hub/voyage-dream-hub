@@ -1167,8 +1167,9 @@ function EditorPage() {
   const legendar = () => {
     if (!transcript?.words.length) return toast.error("Transcreva o áudio antes de legendar.");
     const legendas = gerarLegendas(state, transcript, "frase");
-    const semLegenda = state.clips.filter((c) => c.trackId !== "t-caption");
-    aplicar({ ...state, clips: [...semLegenda, ...legendas] });
+    // legendas corrigidas à mão permanecem intactas
+    const manter = state.clips.filter((c) => c.trackId !== "t-caption" || c.textoManual);
+    aplicar({ ...state, clips: [...manter, ...legendas] });
     toast.success(`${legendas.length} legendas geradas`);
   };
 
