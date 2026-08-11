@@ -16,6 +16,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { EfeitosGallery } from "@/components/editair/EfeitosGallery";
+import { RemoverFundoPanel } from "@/components/editair/RemoverFundoPanel";
 import {
   ANIMACOES,
   ANIMACAO_PADRAO,
