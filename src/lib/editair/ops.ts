@@ -1,12 +1,18 @@
 import {
   FUNDO_PADRAO,
+  ANIMACAO_PADRAO,
+  type AnimacaoTipo,
+  type TrackKind,
+  type TransicaoTipo,
   type Fundo,
   type EditairClip,
+  type EditairTrack,
   type ProjectState,
   type Transcript,
   novoId,
   recalcularDuracao,
   transformPadrao,
+  enquadramentoInicial,
 } from "./types";
 import { aplicarVelocidade } from "./velocidade";
 
@@ -32,6 +38,35 @@ export type EditairOp =
   | { op: "remove_captions" }
   | { op: "mute_track"; trackId: string; muted: boolean }
   | { op: "delete_text_range"; query: string }
+  /* --- camadas e montagem (edição profissional em camadas) --- */
+  | { op: "create_track"; ref?: string; kind: TrackKind; name: string; acima?: string }
+  | { op: "rename_track"; trackId: string; name: string }
+  | {
+      op: "insert_clip";
+      ref?: string;
+      trackId: string;
+      assetId?: string;
+      kind?: "video" | "image" | "audio" | "text";
+      startMs: number;
+      durationMs: number;
+      sourceInMs?: number;
+      label?: string;
+      text?: string;
+    }
+  | { op: "ripple_delete"; clipId: string }
+  | { op: "create_caption"; text: string; startMs: number; durationMs: number; trackId?: string }
+  | { op: "update_caption"; clipId: string; text?: string; startMs?: number; durationMs?: number }
+  | { op: "add_animation"; clipId: string; entrada?: AnimacaoTipo; saida?: AnimacaoTipo; duracaoMs?: number }
+  | { op: "add_effect"; clipId: string; efeitoId: string; camada?: "entrada" | "momento" | "saida"; intensidade?: number }
+  | { op: "add_transition"; clipId: string; tipo: TransicaoTipo; durationMs?: number }
+  | {
+      op: "remove_silences";
+      clipId?: string;
+      minSilencioMs?: number;
+      padMs?: number;
+      /** trechos de fala (ms na timeline). Se ausente, usa a transcrição. */
+      falas?: { fromMs: number; toMs: number }[];
+    }
   | {
       op: "set_background";
       clipId?: string;
@@ -95,6 +130,16 @@ export function aplicarOps(
 ): OpResult {
   let s: ProjectState = { ...state, clips: [...state.clips], tracks: [...state.tracks] };
   const log: string[] = [];
+  /** apelidos criados pela IA ("legendas", "broll-1") → id real da trilha */
+  const refs: Record<string, string> = {};
+  const resolverTrackId = (valor: string | undefined): string | null => {
+    if (!valor) return null;
+    if (refs[valor]) return refs[valor];
+    const direto = s.tracks.find((t) => t.id === valor);
+    if (direto) return direto.id;
+    const porNome = s.tracks.find((t) => t.name.toLowerCase() === valor.toLowerCase());
+    return porNome?.id ?? null;
+  };
 
   for (const op of ops) {
     switch (op.op) {
@@ -322,6 +367,181 @@ export function aplicarOps(
         }
         break;
       }
+
+      /* ------------------- camadas / montagem profissional ------------------- */
+      case "create_track": {
+        const existente = s.tracks.find((t) => t.name.toLowerCase() === op.name.toLowerCase());
+        if (existente) {
+          if (op.ref) refs[op.ref] = existente.id;
+          break;
+        }
+        const nova: EditairTrack = { id: novoId(`t-${op.kind}`), kind: op.kind, name: op.name };
+        const alvo = resolverTrackId(op.acima);
+        const idx = alvo ? Math.max(0, s.tracks.findIndex((t) => t.id === alvo)) : 0;
+        const tracks = [...s.tracks];
+        tracks.splice(idx, 0, nova);
+        s = { ...s, tracks };
+        if (op.ref) refs[op.ref] = nova.id;
+        log.push(`Camada "${op.name}" criada`);
+        break;
+      }
+      case "rename_track": {
+        const tid = resolverTrackId(op.trackId);
+        if (!tid) break;
+        s = { ...s, tracks: s.tracks.map((t) => (t.id === tid ? { ...t, name: op.name } : t)) };
+        log.push(`Camada renomeada para "${op.name}"`);
+        break;
+      }
+      case "insert_clip": {
+        let tid = resolverTrackId(op.trackId);
+        if (!tid) {
+          const r = garantirTrack(s, "video", op.trackId || "Vídeo");
+          s = r.state;
+          tid = r.trackId;
+        }
+        const enq = enquadramentoInicial();
+        const clip: EditairClip = {
+          id: op.ref ? novoId("clip") : novoId(),
+          trackId: tid,
+          kind: (op.kind ?? (op.assetId ? "video" : "text")) as EditairClip["kind"],
+          assetId: op.assetId,
+          start: Math.max(0, Math.round(op.startMs)),
+          duration: Math.max(200, Math.round(op.durationMs)),
+          sourceIn: Math.max(0, Math.round(op.sourceInMs ?? 0)),
+          volume: 1,
+          speed: 1,
+          transform: enq.transform,
+          enquadramento: enq.enquadramento,
+          text: op.text,
+          label: op.label ?? op.text?.slice(0, 24),
+        };
+        s = { ...s, clips: [...s.clips, clip] };
+        if (op.ref) refs[op.ref] = clip.id;
+        log.push(`Clipe inserido em ${(clip.start / 1000).toFixed(1)}s`);
+        break;
+      }
+      case "ripple_delete": {
+        const c = s.clips.find((x) => x.id === op.clipId);
+        if (!c) break;
+        const gap = c.duration;
+        s = {
+          ...s,
+          clips: s.clips
+            .filter((x) => x.id !== c.id)
+            .map((x) => (x.trackId === c.trackId && x.start >= c.start ? { ...x, start: Math.max(0, x.start - gap) } : x)),
+        };
+        log.push("Clipe removido (fechando o buraco)");
+        break;
+      }
+      case "create_caption": {
+        let tid = resolverTrackId(op.trackId);
+        if (!tid) {
+          const r = garantirTrack(s, "caption", "Legendas");
+          s = r.state;
+          tid = r.trackId;
+        }
+        s = {
+          ...s,
+          clips: [
+            ...s.clips,
+            {
+              id: novoId("leg"),
+              trackId: tid,
+              kind: "caption",
+              start: Math.max(0, Math.round(op.startMs)),
+              duration: Math.max(300, Math.round(op.durationMs)),
+              sourceIn: 0,
+              volume: 1,
+              speed: 1,
+              transform: transformPadrao(),
+              text: op.text,
+              label: op.text.slice(0, 20),
+            },
+          ],
+        };
+        log.push("Legenda criada");
+        break;
+      }
+      case "update_caption": {
+        s = {
+          ...s,
+          clips: s.clips.map((c) =>
+            c.id === op.clipId
+              ? {
+                  ...c,
+                  text: op.text ?? c.text,
+                  label: (op.text ?? c.text ?? c.label ?? "").slice(0, 20),
+                  start: op.startMs != null ? Math.max(0, Math.round(op.startMs)) : c.start,
+                  duration: op.durationMs != null ? Math.max(200, Math.round(op.durationMs)) : c.duration,
+                }
+              : c,
+          ),
+        };
+        log.push("Legenda atualizada");
+        break;
+      }
+      case "add_animation": {
+        s = {
+          ...s,
+          clips: s.clips.map((c) =>
+            c.id === op.clipId
+              ? {
+                  ...c,
+                  animacao: {
+                    ...ANIMACAO_PADRAO,
+                    ...(c.animacao ?? {}),
+                    entrada: op.entrada ?? c.animacao?.entrada ?? "nenhuma",
+                    saida: op.saida ?? c.animacao?.saida ?? "nenhuma",
+                    duracaoMs: op.duracaoMs ?? c.animacao?.duracaoMs ?? 500,
+                  },
+                }
+              : c,
+          ),
+        };
+        log.push("Animação aplicada");
+        break;
+      }
+      case "add_effect": {
+        const camada = op.camada ?? "momento";
+        s = {
+          ...s,
+          clips: s.clips.map((c) => {
+            if (c.id !== op.clipId) return c;
+            const atual = c.efeitos ?? {};
+            return {
+              ...c,
+              efeitos: {
+                ...atual,
+                [camada]: {
+                  id: op.efeitoId,
+                  duracaoMs: camada === "momento" ? Math.max(400, c.duration) : 600,
+                  intensidade: op.intensidade ?? 100,
+                  easing: "suave" as const,
+                },
+              },
+            };
+          }),
+        };
+        log.push("Efeito aplicado");
+        break;
+      }
+      case "add_transition": {
+        s = {
+          ...s,
+          clips: s.clips.map((c) =>
+            c.id === op.clipId ? { ...c, transicao: { tipo: op.tipo, durationMs: op.durationMs ?? 400 } } : c,
+          ),
+        };
+        log.push("Transição adicionada");
+        break;
+      }
+      case "remove_silences": {
+        const r = removerSilencios(s, op, transcript);
+        s = r.state;
+        log.push(...r.log);
+        break;
+      }
+
       case "set_background": {
         const alvos = op.clipId
           ? s.clips.filter((c) => c.id === op.clipId)
@@ -435,4 +655,105 @@ function criarLegenda(texto: string, start: number, duration: number, words: { w
     words,
     label: texto.slice(0, 20),
   };
+}
+
+
+/* -------------------------------------------------------------------------- */
+/*  Camadas: garantir que a trilha exista (a IA pode pedir camadas novas)      */
+/* -------------------------------------------------------------------------- */
+
+/** Devolve a trilha pedida (por nome ou tipo), criando-a no topo se faltar. */
+export function garantirTrack(
+  s: ProjectState,
+  kind: TrackKind,
+  name: string,
+): { state: ProjectState; trackId: string } {
+  const porNome = s.tracks.find((t) => t.name.toLowerCase() === name.toLowerCase());
+  if (porNome) return { state: s, trackId: porNome.id };
+  const porTipo = kind === "caption" || kind === "text" ? s.tracks.find((t) => t.kind === kind) : null;
+  if (porTipo) return { state: s, trackId: porTipo.id };
+  const nova: EditairTrack = { id: novoId(`t-${kind}`), kind, name };
+  // camadas visuais entram acima do vídeo principal; áudio vai para o fim
+  const idx = kind === "music" || kind === "voice" ? s.tracks.length : 0;
+  const tracks = [...s.tracks];
+  tracks.splice(idx, 0, nova);
+  return { state: { ...s, tracks }, trackId: nova.id };
+}
+
+/**
+ * Remove pausas DIVIDINDO fisicamente o clipe em vários blocos de fala.
+ * Cada bloco continua apontando para o mesmo arquivo original (não destrutivo):
+ * dá para mover, esticar, excluir e restaurar a duração de cada um.
+ */
+export function removerSilencios(
+  state: ProjectState,
+  op: { clipId?: string; minSilencioMs?: number; padMs?: number; falas?: { fromMs: number; toMs: number }[] },
+  transcript?: Transcript | null,
+): OpResult {
+  const log: string[] = [];
+  const alvo = op.clipId
+    ? state.clips.find((c) => c.id === op.clipId)
+    : state.clips.find((c) => c.kind === "video" && c.assetId);
+  if (!alvo) return { state, log: ["Nenhum clipe de fala encontrado"] };
+
+  const minSilencio = Math.max(150, op.minSilencioMs ?? 450);
+  const pad = Math.max(0, op.padMs ?? 90);
+  const fim = alvo.start + alvo.duration;
+
+  // 1) intervalos de fala: os que a IA mandou ou os derivados da transcrição
+  let falas = (op.falas ?? [])
+    .map((f) => ({ fromMs: Math.max(alvo.start, f.fromMs), toMs: Math.min(fim, f.toMs) }))
+    .filter((f) => f.toMs - f.fromMs > 120);
+
+  if (!falas.length) {
+    const palavras = (transcript?.words ?? []).filter((w) => w.end > alvo.start && w.start < fim);
+    if (!palavras.length) return { state, log: ["Sem transcrição para detectar as pausas"] };
+    let atual = { fromMs: palavras[0].start, toMs: palavras[0].end };
+    for (const w of palavras.slice(1)) {
+      if (w.start - atual.toMs >= minSilencio) {
+        falas.push(atual);
+        atual = { fromMs: w.start, toMs: w.end };
+      } else {
+        atual.toMs = w.end;
+      }
+    }
+    falas.push(atual);
+    falas = falas.map((f) => ({
+      fromMs: Math.max(alvo.start, f.fromMs - pad),
+      toMs: Math.min(fim, f.toMs + pad),
+    }));
+  }
+  if (falas.length < 2 && falas[0] && falas[0].toMs - falas[0].fromMs >= alvo.duration - 200) {
+    return { state, log: ["Não encontrei pausas relevantes neste clipe"] };
+  }
+
+  // 2) um clipe por bloco de fala, todos referenciando o mesmo arquivo
+  const outros = state.clips.filter((c) => c.id !== alvo.id);
+  const blocos: EditairClip[] = [];
+  let cursor = alvo.start;
+  falas
+    .sort((a, b) => a.fromMs - b.fromMs)
+    .forEach((f, i) => {
+      const dur = Math.max(120, Math.round(f.toMs - f.fromMs));
+      const offset = f.fromMs - alvo.start;
+      blocos.push({
+        ...alvo,
+        id: novoId(),
+        start: Math.round(cursor),
+        duration: dur,
+        sourceIn: Math.max(0, Math.round(alvo.sourceIn + offset * (alvo.speed || 1))),
+        label: `Fala ${i + 1}`,
+        words: alvo.words?.filter((w) => w.start >= f.fromMs && w.end <= f.toMs),
+      });
+      cursor += dur;
+    });
+
+  const removido = alvo.duration - blocos.reduce((m, b) => m + b.duration, 0);
+  const deslocamento = removido;
+  const ajustados = outros.map((c) =>
+    c.trackId === alvo.trackId && c.start >= fim ? { ...c, start: Math.max(0, c.start - deslocamento) } : c,
+  );
+
+  log.push(`${blocos.length} blocos de fala · ${(removido / 1000).toFixed(1)}s de pausa removidos`);
+  return { state: recalcularDuracao({ ...state, clips: [...ajustados, ...blocos] }), log };
 }
