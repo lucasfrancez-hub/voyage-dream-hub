@@ -373,7 +373,19 @@ function DetalheDialog({ id, onClose }: { id: string | null; onClose: () => void
                   v={t.scheduled_date ?? t.effective_date ?? new Date(t.created_at).toLocaleDateString("pt-BR")}
                 />
                 <Line k="Descrição" v={t.description || "—"} />
+                {t.asaas_status && <Line k="Status no ASAAS" v={t.asaas_status} />}
                 {t.fail_reason && <Line k="Falha" v={t.fail_reason} />}
+                {t.refusal_reason && <Line k="Motivo da recusa" v={t.refusal_reason} />}
+                {(t.end_to_end_identifier || e2eDoRaw(t.raw_response)) && (
+                  <Line k="Identificador Pix (E2E)" v={t.end_to_end_identifier || e2eDoRaw(t.raw_response)} />
+                )}
+                {t.last_event && (
+                  <Line
+                    k="Último evento"
+                    v={`${t.last_event}${t.last_event_at ? ` · ${new Date(t.last_event_at).toLocaleString("pt-BR")}` : ""}`}
+                  />
+                )}
+
               </div>
 
               <div className="pt-4 border-t border-border/60 space-y-3">
