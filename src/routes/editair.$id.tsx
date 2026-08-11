@@ -55,6 +55,7 @@ import {
   normalizarEstado,
   novoId,
   recalcularDuracao,
+  limparTracksVazias,
   transformPadrao,
   TEXTO_PADRAO,
   type CaptionStyle,
@@ -157,6 +158,8 @@ function EditorPage() {
     return () => window.removeEventListener("resize", ajustar);
   }, []);
   const [selecionados, setSelecionados] = useState<string[]>([]);
+  const selecionadosRef = useRef<string[]>([]);
+  selecionadosRef.current = selecionados;
   const [selecao, setSelecao] = useState<{ fromMs: number; toMs: number } | null>(null);
   const [ferramenta, setFerramenta] = useState<Ferramenta>("midia");
   const [fundoPronto, setFundoPronto] = useState(false);
@@ -497,12 +500,21 @@ function EditorPage() {
     };
   }, [state.clips]);
 
+  /* camadas criadas à mão (ainda vazias) e a camada do clipe selecionado não são
+     varridas pela limpeza automática — o resto some quando fica sem conteúdo. */
+  const tracksProtegidas = useRef<Set<string>>(new Set());
+  const protegerTrack = useCallback((trackId?: string | null) => {
+    if (trackId) tracksProtegidas.current.add(trackId);
+  }, []);
+
   const aplicar = useCallback((proximo: ProjectState) => {
     setState((atual) => {
       historico.current.push(atual);
       if (historico.current.length > 80) historico.current.shift();
       futuro.current = [];
-      return recalcularDuracao(proximo);
+      const base = recalcularDuracao(proximo);
+      const selecionadas = base.clips.filter((c) => selecionadosRef.current.includes(c.id)).map((c) => c.trackId);
+      return limparTracksVazias(base, [...tracksProtegidas.current, ...selecionadas]);
     });
   }, []);
 
@@ -622,7 +634,11 @@ function EditorPage() {
 
   const moverClipCamada = (cid: string, direcao: -1 | 1) => usarResultado(moverClipCamada_(state, cid, direcao));
 
-  const novaCamadaJunto = (cid: string, direcao: -1 | 1) => usarResultado(novaCamadaJunto_(state, cid, direcao));
+  const novaCamadaJunto = (cid: string, direcao: -1 | 1) => {
+    const r = novaCamadaJunto_(state, cid, direcao);
+    if (r.ok) protegerTrack(r.trackId);
+    usarResultado(r);
+  };
 
   const reordenarTracks = (de: number, para: number) => {
     const r = reordenarTracks_(state, de, para);
@@ -1940,6 +1956,7 @@ function EditorPage() {
             // drag da Biblioteca e botão "+ Inserir" terminam no mesmo serviço de inserção
             if (destino?.tipo === "nova") {
               const nova = criarTrackEm(state, destino.indice);
+              protegerTrack(nova.trackId);
               inserirAsset(assetId, { startMs: ms, trackId: nova.trackId }, nova.state);
               return;
             }
@@ -1947,7 +1964,9 @@ function EditorPage() {
           }}
           onNovaTrilhaVideo={() => {
             // camadas de vídeo empilhadas: a nova entra acima (aparece por cima no preview)
-            aplicar(criarTrackEm(state, 0).state);
+            const nova = criarTrackEm(state, 0);
+            protegerTrack(nova.trackId);
+            aplicar(nova.state);
           }}
           onSoltarClip={soltarClip}
           onMoverCamada={moverClipCamada}
@@ -1956,7 +1975,10 @@ function EditorPage() {
           onRenomearTrack={(trackId, nome) =>
             aplicar({ ...state, tracks: state.tracks.map((t) => (t.id === trackId ? { ...t, name: nome } : t)) })
           }
-          onExcluirTrack={(trackId) => usarResultado(excluirTrack(state, trackId))}
+          onExcluirTrack={(trackId) => {
+            tracksProtegidas.current.delete(trackId);
+            usarResultado(excluirTrack(state, trackId));
+          }}
           onEditarComIa={(cid) => {
             setSelecionados([cid]);
             setIaEscopo("clipe");

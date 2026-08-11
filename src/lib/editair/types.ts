@@ -451,14 +451,88 @@ export type EditairAsset = {
   created_at: string;
 };
 
-export const TRILHAS_PADRAO: EditairTrack[] = [
-  { id: "t-text", kind: "text", name: "Texto" },
-  { id: "t-caption", kind: "caption", name: "Legendas" },
-  { id: "t-broll", kind: "broll", name: "B-roll" },
-  { id: "t-video", kind: "video", name: "Vídeo" },
-  { id: "t-voice", kind: "voice", name: "Voz" },
-  { id: "t-music", kind: "music", name: "Música" },
-];
+/** Modelo das camadas conhecidas: usado só quando alguma realmente passa a ter conteúdo. */
+export const MODELOS_TRILHA: Record<string, { kind: TrackKind; name: string; ordem: number }> = {
+  "t-text": { kind: "text", name: "Texto", ordem: 0 },
+  "t-caption": { kind: "caption", name: "Legendas", ordem: 1 },
+  "t-broll": { kind: "broll", name: "B-roll", ordem: 2 },
+  "t-ia": { kind: "video", name: "IA Gerada", ordem: 3 },
+  "t-video": { kind: "video", name: "Vídeo", ordem: 4 },
+  "t-voice": { kind: "voice", name: "Voz", ordem: 5 },
+  "t-music": { kind: "music", name: "Música", ordem: 6 },
+};
+
+/** Camada essencial: projeto novo começa só com ela; as demais nascem com o conteúdo. */
+export const TRILHA_ESSENCIAL = "t-video";
+
+/** Mínimo de um projeto novo — nada de camadas vazias reservando espaço na timeline. */
+export const TRILHAS_PADRAO: EditairTrack[] = [{ id: "t-video", kind: "video", name: "Vídeo" }];
+
+const ordemDaTrilha = (id: string) => MODELOS_TRILHA[id]?.ordem ?? 4;
+
+function modeloDe(id: string): EditairTrack {
+  const m = MODELOS_TRILHA[id];
+  if (m) return { id, kind: m.kind, name: m.name };
+  const kind: TrackKind = id.startsWith("t-music")
+    ? "music"
+    : id.startsWith("t-voice")
+      ? "voice"
+      : id.startsWith("t-caption")
+        ? "caption"
+        : id.startsWith("t-text")
+          ? "text"
+          : id.startsWith("t-broll")
+            ? "broll"
+            : "video";
+  return { id, kind, name: MODELOS_TRILHA[`t-${kind}`]?.name ?? "Camada" };
+}
+
+/** Nome único e legível ("Vídeo 2", "Vídeo 3"...). */
+function nomeUnico(base: string, usados: Set<string>) {
+  if (!usados.has(base)) return base;
+  let i = 2;
+  while (usados.has(`${base} ${i}`)) i += 1;
+  return `${base} ${i}`;
+}
+
+/**
+ * Garante que exista uma camada para cada clipe do projeto — e só para eles.
+ * É assim que a timeline cresce sozinha (legenda, B-roll, IA, texto...)
+ * sem precisar reservar camadas vazias de antemão.
+ */
+export function sincronizarTracks(state: ProjectState): ProjectState {
+  const existentes = new Set(state.tracks.map((t) => t.id));
+  const faltando = [...new Set(state.clips.map((c) => c.trackId))].filter((id) => id && !existentes.has(id));
+  if (!faltando.length) return state;
+
+  const nomes = new Set(state.tracks.map((t) => t.name));
+  let tracks = [...state.tracks];
+  for (const id of faltando.sort((a, b) => ordemDaTrilha(a) - ordemDaTrilha(b))) {
+    const modelo = modeloDe(id);
+    const nova: EditairTrack = { ...modelo, name: nomeUnico(modelo.name, nomes) };
+    nomes.add(nova.name);
+    const o = ordemDaTrilha(id);
+    let idx = tracks.findIndex((t) => ordemDaTrilha(t.id) > o);
+    if (idx < 0) idx = tracks.length;
+    tracks = [...tracks.slice(0, idx), nova, ...tracks.slice(idx)];
+  }
+  return { ...state, tracks };
+}
+
+/**
+ * Remove camadas que ficaram vazias (mantendo a essencial e as protegidas —
+ * por exemplo, a que acabou de ser criada ou está selecionada).
+ */
+export function limparTracksVazias(state: ProjectState, manter: string[] = []): ProjectState {
+  const comConteudo = new Set(state.clips.map((c) => c.trackId));
+  const protegidas = new Set(manter);
+  const tracks = state.tracks.filter(
+    (t) => comConteudo.has(t.id) || protegidas.has(t.id) || t.id === TRILHA_ESSENCIAL,
+  );
+  if (!tracks.length) return { ...state, tracks: TRILHAS_PADRAO.map((t) => ({ ...t })) };
+  if (tracks.length === state.tracks.length) return state;
+  return { ...state, tracks };
+}
 
 export function estadoVazio(width = 1080, height = 1920, fps = 30): ProjectState {
   return {
@@ -478,7 +552,7 @@ export function estadoVazio(width = 1080, height = 1920, fps = 30): ProjectState
 
 /** Completa estados salvos em versões anteriores. */
 export function normalizarEstado(bruto: ProjectState, width: number, height: number, fps: number): ProjectState {
-  return {
+  const base: ProjectState = {
     ...estadoVazio(width, height, fps),
     ...bruto,
     width: bruto.width || width,
@@ -491,6 +565,9 @@ export function normalizarEstado(bruto: ProjectState, width: number, height: num
     tracks: (bruto.tracks?.length ? bruto.tracks : TRILHAS_PADRAO).map((t) => ({ ...t })),
     clips: (bruto.clips ?? []).map((c) => ({ ...c })),
   };
+  /* reabrir o projeto mostra exatamente as camadas salvas (nunca recria vazias),
+     apenas completando as que algum clipe referencia. */
+  return sincronizarTracks(base);
 }
 
 export type Enquadramento = "fit" | "preencher";
@@ -515,7 +592,7 @@ export function novoId(prefixo = "c") {
 
 export function recalcularDuracao(state: ProjectState): ProjectState {
   const fim = state.clips.reduce((m, c) => Math.max(m, c.start + c.duration), 0);
-  return { ...state, durationMs: fim };
+  return sincronizarTracks({ ...state, durationMs: fim });
 }
 
 export function formatarTempo(ms: number, comMs = false) {
