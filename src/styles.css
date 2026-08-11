@@ -292,3 +292,9 @@ body:has([data-chat-root]),
     -webkit-print-color-adjust: exact;
   }
 }
+
+/* Barra indeterminada da Central de Processamento do EditAir */
+@keyframes editair-indeterminado {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(300%); }
+}

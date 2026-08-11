@@ -18,7 +18,9 @@ import { posicionarMenu, type DestinoCamada } from "@/lib/editair/layers";
 import { destinoDeClip, destinoPorY, passouLimiar } from "@/lib/editair/interacao";
 import { marcadoresEfeitos } from "@/lib/editair/efeitos";
 import { limitesDoClip } from "@/lib/editair/ops";
-import { obterPicos, obterThumb } from "@/lib/editair/media";
+import { obterPicos, obterThumb, picosEmCache } from "@/lib/editair/media";
+import { executarJob } from "@/lib/editair/jobs";
+import { useJobsDoAlvo } from "@/hooks/use-editair-jobs";
 
 
 export type AssetInfo = { id?: string; url: string; durationMs: number; kind: string; name: string };
@@ -1051,6 +1053,9 @@ function Clipe({
         title={clip.label ?? clip.text ?? clip.kind}
       >
         {visual && asset ? <Filmstrip clip={clip} asset={asset} largura={largura} /> : null}
+        {clip.kind === "video" && asset ? (
+          <WaveClip clip={clip} asset={asset} largura={largura} sobreposta />
+        ) : null}
         {sonoro && asset ? <WaveClip clip={clip} asset={asset} largura={largura} /> : null}
         {!visual && !sonoro ? (
           <span className="truncate px-2">{clip.text ?? clip.label ?? clip.kind}</span>
@@ -1069,6 +1074,7 @@ function Clipe({
           <span className="pointer-events-none absolute left-0 top-0 h-full w-3 bg-gradient-to-r from-white/60 to-transparent" />
         ) : null}
         <MarcadoresEfeitos clip={clip} largura={largura} />
+        <StatusClipe clip={clip} />
         {!bloqueado && !clip.bloqueado ? (
           <>
             <div
@@ -1139,34 +1145,133 @@ function Filmstrip({ clip, asset, largura }: { clip: EditairClip; asset: AssetIn
   );
 }
 
-function WaveClip({ clip, asset, largura }: { clip: EditairClip; asset: AssetInfo; largura: number }) {
+/**
+ * Forma de onda do clipe. Respeita zoom (largura), trim (sourceIn), split
+ * (duration) e velocidade. Nunca bloqueia: o clipe aparece na hora e a
+ * waveform surge quando os picos ficam prontos, em segundo plano.
+ */
+function WaveClip({
+  clip,
+  asset,
+  largura,
+  sobreposta = false,
+  projectId,
+}: {
+  clip: EditairClip;
+  asset: AssetInfo;
+  largura: number;
+  /** desenhada por cima dos thumbnails de vídeo, na faixa inferior */
+  sobreposta?: boolean;
+  projectId?: string;
+}) {
   const [picos, setPicos] = useState<number[] | null>(null);
   useEffect(() => {
     let vivo = true;
-    void obterPicos(asset.id || asset.url, asset.url).then((p) => vivo && setPicos(p));
+    const chave = asset.id || asset.url;
+    const emCache = picosEmCache(chave);
+    if (emCache) {
+      setPicos(emCache);
+      return;
+    }
+    const { promessa } = executarJob(
+      {
+        projectId: projectId || "editair",
+        type: "waveform",
+        title: "Forma de onda",
+        stage: "Gerando forma de onda…",
+        targetId: clip.id,
+        cancellable: false,
+        resultado: "Forma de onda pronta",
+      },
+      async () => obterPicos(chave, asset.url),
+    );
+    void promessa.then((r) => {
+      if (vivo && r.ok) setPicos(r.valor);
+    });
     return () => {
       vivo = false;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [asset.id, asset.url]);
 
-  if (!picos?.length) return <div className="h-full w-full bg-black/20" />;
+  const altura = sobreposta ? 16 : 44;
+  if (!picos?.length) {
+    return sobreposta ? null : <div className="h-full w-full bg-black/20" />;
+  }
   const total = asset.durationMs || 1;
   const ini = Math.floor((clip.sourceIn / total) * picos.length);
   const fim = Math.ceil(((clip.sourceIn + clip.duration * clip.speed) / total) * picos.length);
   const fatia = picos.slice(Math.max(0, ini), Math.max(ini + 1, fim));
   const barras = Math.max(4, Math.min(400, Math.floor(largura / 3)));
   const passo = fatia.length / barras;
+  const meio = altura / 2;
+  const escala = altura * 0.82;
 
   return (
-    <svg className="h-full w-full" width={largura} height={44} preserveAspectRatio="none">
+    <svg
+      className={sobreposta ? "pointer-events-none absolute inset-x-0 bottom-0 w-full" : "h-full w-full"}
+      width={largura}
+      height={altura}
+      preserveAspectRatio="none"
+    >
+      {sobreposta ? <rect x={0} y={0} width={largura} height={altura} fill="rgba(0,0,0,.45)" /> : null}
       {Array.from({ length: barras }, (_, i) => {
         const v = fatia[Math.floor(i * passo)] ?? 0;
-        const h = Math.max(2, v * 36);
-        return <rect key={i} x={i * 3} y={22 - h / 2} width={2} height={h} fill="#66e0d2" opacity={0.85} />;
+        const h = Math.max(1.5, v * escala);
+        return <rect key={i} x={i * 3} y={meio - h / 2} width={2} height={h} fill="#66e0d2" opacity={0.85} />;
       })}
     </svg>
   );
 }
+
+/**
+ * Progresso da operação que pertence a ESTE clipe, integrado ao topo dele:
+ * texto de etapa + barra fina. Não muda posição nem duração do clipe e não
+ * bloqueia o editor.
+ */
+function StatusClipe({ clip }: { clip: EditairClip }) {
+  const jobs = useJobsDoAlvo(clip.id);
+  const ativo = jobs.find((j) => j.status === "running" || j.status === "queued");
+  const recente = jobs.find((j) => j.status === "completed" || j.status === "failed");
+  const job = ativo ?? recente;
+  if (!job) return null;
+
+  if (!ativo && job.status === "completed") {
+    return (
+      <span className="pointer-events-none absolute inset-x-0 top-0 truncate bg-emerald-600/80 px-1 text-[9px] text-white">
+        ✓ {job.resultado || `${job.title} concluído`}
+      </span>
+    );
+  }
+  if (!ativo && job.status === "failed") {
+    return (
+      <span className="pointer-events-none absolute inset-x-0 top-0 truncate bg-amber-600/80 px-1 text-[9px] text-white">
+        ⚠ {job.error || `Falha em ${job.title}`}
+      </span>
+    );
+  }
+
+  const rotulo = job.stage || job.title;
+  return (
+    <div className="pointer-events-none absolute inset-x-0 top-0" data-testid={`status-clipe-${clip.id}`}>
+      <div className="flex items-center gap-1 bg-black/70 px-1 py-[1px] text-[9px] text-white/90">
+        <span className="inline-block h-2 w-2 shrink-0 animate-spin rounded-full border border-white/30 border-t-[#F26B1F]" />
+        <span className="truncate">
+          {rotulo}
+          {job.progress != null ? ` ${job.progress}%` : ""}
+        </span>
+      </div>
+      <div className="h-[3px] w-full bg-white/10">
+        {job.progress == null ? (
+          <div className="h-full w-1/3 animate-[editair-indeterminado_1.2s_ease-in-out_infinite] bg-[#F26B1F]" />
+        ) : (
+          <div className="h-full bg-[#F26B1F] transition-all" style={{ width: `${job.progress}%` }} />
+        )}
+      </div>
+    </div>
+  );
+}
+
 
 /** Faixas visuais de entrada / momento / saída no próprio clipe. */
 function MarcadoresEfeitos({ clip, largura }: { clip: EditairClip; largura: number }) {

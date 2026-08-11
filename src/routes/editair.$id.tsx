@@ -1,6 +1,8 @@
 import { createFileRoute, useParams } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
+import { abrirJob, executarJob, jobEmAndamento } from "@/lib/editair/jobs";
+import { avisarConclusao } from "@/lib/editair/notificar";
 import {
   Captions,
   Clapperboard,
@@ -175,6 +177,34 @@ function EditorPage() {
   const [pensando, setPensando] = useState(false);
   const [plano, setPlano] = useState<PlanoEditorial | null>(null);
   const [etapaIa, setEtapaIa] = useState("");
+  const iaJobRef = useRef<ReturnType<typeof abrirJob> | null>(null);
+
+  /**
+   * Etapa da edição com IA: aparece no diálogo E na Central de Processamento,
+   * então fechar o diálogo não esconde nem cancela o trabalho.
+   */
+  const definirEtapaIa = (texto: string) => {
+    setEtapaIa(texto);
+    if (!texto) {
+      iaJobRef.current?.concluir("Edição com IA concluída");
+      iaJobRef.current?.fechar();
+      iaJobRef.current = null;
+      return;
+    }
+    if (!iaJobRef.current) {
+      iaJobRef.current = abrirJob({
+        projectId: id,
+        type: "editar-ia",
+        title: "Editar com IA",
+        stage: texto,
+        cancellable: false,
+        resultado: "Edição com IA concluída",
+      });
+    } else {
+      iaJobRef.current.etapa(texto);
+    }
+  };
+
   const [objetivoIa, setObjetivoIa] = useState("");
   const [iaClipId, setIaClipId] = useState<string | null>(null);
   const [iaAberto, setIaAberto] = useState(false);
@@ -182,7 +212,6 @@ function EditorPage() {
   const [iaPlano, setIaPlano] = useState<PlanoIa | null>(null);
   const [iaEtapasFeitas, setIaEtapasFeitas] = useState<string[]>([]);
   const [loginNuvem, setLoginNuvem] = useState(false);
-  const [ocupado, setOcupado] = useState<string | null>(null);
   const [salvando, setSalvando] = useState(false);
 
   const [exportAberto, setExportAberto] = useState(false);
@@ -868,7 +897,14 @@ function EditorPage() {
 
   const importar = async (arquivos: FileList | File[] | string[] | null, posicaoMs?: number) => {
     if (!arquivos || (arquivos as { length: number }).length === 0) return;
-    setOcupado(ehLocal() ? "Importando mídia…" : "Enviando mídia…");
+    const job = abrirJob({
+      projectId: id,
+      type: "importar-midia",
+      title: "Importando mídia",
+      stage: ehLocal() ? "Importando mídia…" : "Enviando mídia…",
+      cancellable: false,
+      resultado: "Mídia pronta",
+    });
     try {
       const proximo: ProjectState = { ...state, clips: [...state.clips] };
       const eraVazio = proximo.clips.length === 0;
@@ -877,7 +913,7 @@ function EditorPage() {
 
       const novas = await importarMidias(arquivos, {
         projectId: id,
-        aoProgredir: (p) => setOcupado(p.fase === "pronto" ? null : p.mensagem),
+        aoProgredir: (p) => job.etapa(p.fase === "pronto" ? "Finalizando…" : p.mensagem),
       });
 
       for (const midia of novas) {
@@ -937,11 +973,12 @@ function EditorPage() {
       toast.success(ehLocal() ? "Mídia adicionada (arquivo continua no seu computador)" : "Mídia salva na galeria");
       if (autoRef.current) setAutoEtapa("planejar");
     } catch (e) {
+      job.falhar(e);
       toast.error(e instanceof Error ? e.message : "Falha ao importar");
       autoRef.current = null;
       setAutoEtapa(null);
     } finally {
-      setOcupado(null);
+      job.fechar();
     }
   };
 
@@ -1014,7 +1051,15 @@ function EditorPage() {
     if (!clipeAtual?.assetId) return toast.error("Selecione um clipe com áudio.");
     const info = assetsMap[clipeAtual.assetId];
     if (!info) return;
-    setOcupado("Analisando áudio…");
+    const job = abrirJob({
+      projectId: id,
+      type: "analise-audio",
+      title: "Análise de áudio",
+      stage: "Analisando áudio…",
+      targetId: clipeAtual.id,
+      cancellable: false,
+      resultado: "Áudio analisado",
+    });
     try {
       const { obterPicos } = await import("@/lib/editair/media");
       const picos = await obterPicos(info.url, info.url);
@@ -1024,9 +1069,10 @@ function EditorPage() {
       patchClipe({ volume: Number(ganho.toFixed(2)) });
       toast.success(`Volume normalizado para ${Math.round(ganho * 100)}%`);
     } catch (e) {
+      job.falhar(e);
       toast.error(e instanceof Error ? e.message : "Falha ao normalizar");
     } finally {
-      setOcupado(null);
+      job.fechar();
     }
   };
 
@@ -1049,14 +1095,22 @@ function EditorPage() {
       return null;
     }
 
-    setOcupado("Transcrevendo…");
+    const job = abrirJob({
+      projectId: id,
+      type: "transcricao",
+      title: "Transcrição",
+      stage: "Analisando áudio…",
+      targetId: state.clips.find((c) => c.trackId === "t-video")?.id,
+      resultado: "Transcrição concluída",
+    });
     try {
       const total = buf.duration * 1000;
       const bloco = 60_000;
       const palavras: Transcript["words"] = [];
       for (let ini = 0; ini < total; ini += bloco) {
         const fim = Math.min(total, ini + bloco);
-        setOcupado(`Transcrevendo… ${Math.round((ini / total) * 100)}%`);
+        if (job.cancelado()) return null;
+        job.etapa("Transcrevendo fala…", (ini / total) * 100);
         const wav = paraWav16k(buf, ini, fim);
         const b64 = await blobParaBase64(wav);
         const r = await transcreverBlocoEditair({ data: { audioBase64: b64, offsetMs: Math.round(ini), idioma: "pt" } });
@@ -1072,16 +1126,19 @@ function EditorPage() {
         }
       }
       if (atual.length) segmentos.push({ start: atual[0].start, end: atual[atual.length - 1].end, text: atual.map((x) => x.w).join(" ") });
+      job.etapa("Criando blocos de legenda…", 95);
       const t: Transcript = { words: palavras, segments: segmentos };
       setTranscript(t);
       setFerramenta("legendas");
-      toast.success(`${palavras.length} palavras transcritas`);
+      job.concluir(`${palavras.length} palavras transcritas`);
+      avisarConclusao(`${palavras.length} palavras transcritas`);
       return t;
     } catch (e) {
+      job.falhar(e);
       toast.error(e instanceof Error ? e.message : "Falha na transcrição");
       return null;
     } finally {
-      setOcupado(null);
+      job.fechar();
     }
   };
 
@@ -1216,9 +1273,9 @@ function EditorPage() {
 
     setPensando(true);
     setIaEtapasFeitas([]);
-    setEtapaIa("Analisando a fala e o material…");
+    definirEtapaIa("Analisando a fala e o material…");
     try {
-      setEtapaIa("Planejando cortes, camadas e legendas…");
+      definirEtapaIa("Planejando cortes, camadas e legendas…");
       const p = await planejarOperacoesEditair({
         data: {
           escopo: iaEscopo,
@@ -1254,7 +1311,7 @@ function EditorPage() {
       toast.error(e instanceof Error ? e.message : "Falha ao planejar a edição");
     } finally {
       setPensando(false);
-      setEtapaIa("");
+      definirEtapaIa("");
     }
   };
 
@@ -1272,15 +1329,15 @@ function EditorPage() {
 
       // 1. gerações de IA viram ARQUIVOS na Biblioteca (assets normais e editáveis)
       if (p.geracoes.length) {
-        setEtapaIa(`Gerando ${p.geracoes.length} cena(s) com IA…`);
+        definirEtapaIa(`Gerando ${p.geracoes.length} cena(s) com IA…`);
         const prontas = await executarGeracoes(p.geracoes, {
           vertical: state.width < state.height,
-          aoProgredir: (m) => setEtapaIa(m),
+          aoProgredir: (m) => definirEtapaIa(m),
         });
         if (prontas.length) {
           const novas = await importarMidias(
             prontas.map((g) => g.arquivo),
-            { projectId: id, aoProgredir: (pr) => setEtapaIa(pr.mensagem) },
+            { projectId: id, aoProgredir: (pr) => definirEtapaIa(pr.mensagem) },
           );
           const novosAssets: AssetItem[] = [];
           for (const midia of novas) {
@@ -1326,7 +1383,7 @@ function EditorPage() {
         return;
       }
 
-      setEtapaIa("Organizando camadas e aplicando a edição…");
+      definirEtapaIa("Organizando camadas e aplicando a edição…");
       // checkpoint único: aplicar() empilha o estado anterior — um Desfazer reverte tudo
       const { state: novo } = aplicarOps(base, ops, transcript, duracoesFonte);
       base = novo;
@@ -1341,7 +1398,7 @@ function EditorPage() {
       toast.error(e instanceof Error ? e.message : "Falha ao aplicar a edição");
     } finally {
       setPensando(false);
-      setEtapaIa("");
+      definirEtapaIa("");
       setIaEtapasFeitas([]);
     }
   };
@@ -1362,10 +1419,10 @@ function EditorPage() {
     const ratio = state.width / Math.max(1, state.height);
     const formatoProjeto = ratio < 0.85 ? "vertical" : ratio > 1.2 ? "horizontal" : "quadrado";
     try {
-      setEtapaIa("Ouvindo o áudio e medindo cada trecho…");
+      definirEtapaIa("Ouvindo o áudio e medindo cada trecho…");
       const audio = analisarAudio(buf);
 
-      setEtapaIa("Olhando a imagem: exposição, contraste, nitidez e enquadramento…");
+      definirEtapaIa("Olhando a imagem: exposição, contraste, nitidez e enquadramento…");
       let visual = null;
       try {
         visual = await analisarVisual(asset.url, asset.durationMs || audio.durationMs, state.width / state.height);
@@ -1374,10 +1431,10 @@ function EditorPage() {
       }
       const analise: AnaliseTecnica = { ...audio, visual };
 
-      setEtapaIa("Lendo o que foi dito…");
+      definirEtapaIa("Lendo o que foi dito…");
       const t = transcript ?? (await analisar());
 
-      setEtapaIa("Pensando como editor: narrativa, tomadas e ritmo…");
+      definirEtapaIa("Pensando como editor: narrativa, tomadas e ritmo…");
       const bruto = await planejarEdicaoEditair({
         data: {
           objetivo: objetivo || objetivoIa,
@@ -1400,7 +1457,7 @@ function EditorPage() {
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Falha ao gerar o plano editorial");
     } finally {
-      setEtapaIa("");
+      definirEtapaIa("");
       setPensando(false);
     }
   };
@@ -1872,7 +1929,29 @@ function EditorPage() {
             const eng = engineRef.current;
             const c = clipeAtual;
             if (!eng || !c) return false;
-            return eng.analisarFundo(c, onProgresso, cancelado);
+            if (jobEmAndamento("remover-fundo", c.id)) return false;
+            const { promessa } = executarJob(
+              {
+                projectId: id,
+                type: "remover-fundo",
+                title: "Recorte automático",
+                stage: "Aplicando recorte automático…",
+                targetId: c.id,
+                resultado: "Recorte automático aplicado",
+              },
+              async (ctl) =>
+                eng.analisarFundo(
+                  c,
+                  (pct) => {
+                    onProgresso(pct);
+                    ctl.progresso(pct);
+                  },
+                  () => cancelado() || ctl.cancelado(),
+                ),
+            );
+            const r = await promessa;
+            if (r.ok && r.valor) avisarConclusao("Recorte automático aplicado");
+            return r.ok ? r.valor : false;
           }}
         />
       }
@@ -2087,14 +2166,6 @@ function EditorPage() {
 
 
 
-      {ocupado ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
-          <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-[#131316] px-6 py-4 text-sm">
-            <Loader2 className="h-4 w-4 animate-spin text-[#F26B1F]" />
-            {ocupado}
-          </div>
-        </div>
-      ) : null}
     </>
 
   );

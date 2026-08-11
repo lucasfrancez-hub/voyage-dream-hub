@@ -5,6 +5,7 @@ import { Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { EditairHeader } from "@/components/editair/EditairHeader";
 import { APP_BUILD_ID, APP_COMMIT_SHA } from "@/lib/app-version";
+import { CentralProcessos } from "@/components/editair/CentralProcessos";
 
 
 export const Route = createFileRoute("/editair")({
@@ -86,6 +87,8 @@ function EditairLayout() {
       {/* header global único do EditAir (também é a área de arraste no Desktop) */}
       <EditairHeader desktop={desktop} />
       <Outlet />
+      {/* processos continuam visíveis mesmo ao voltar para Projetos */}
+      <CentralProcessos />
     </div>
   );
 }
