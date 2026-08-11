@@ -1518,23 +1518,67 @@ function EditorPage() {
           onSoltarArquivos={(arquivos, ms) => void importar(arquivos, ms)}
           onNovaTrilhaVideo={() => {
             // camadas de vídeo empilhadas: a nova entra acima (aparece por cima no preview)
-            const existentes = state.tracks.filter((t) => t.id.startsWith("t-video"));
-            const nova = {
-              id: `t-video-${existentes.length + 1}-${Math.random().toString(36).slice(2, 6)}`,
-              kind: "video" as const,
-              name: `Vídeo ${existentes.length + 1}`,
-            };
-            aplicar({ ...state, tracks: [nova, ...state.tracks] });
+            aplicar(criarTrackEm(state, 0).estado);
+          }}
+          onSoltarClip={soltarClip}
+          onMoverCamada={moverClipCamada}
+          onNovaCamadaJunto={novaCamadaJunto}
+          onReordenarTracks={reordenarTracks}
+          onRenomearTrack={(trackId, nome) =>
+            aplicar({ ...state, tracks: state.tracks.map((t) => (t.id === trackId ? { ...t, name: nome } : t)) })
+          }
+          onExcluirTrack={(trackId) => {
+            if (state.clips.some((c) => c.trackId === trackId)) return toast.error("A camada não está vazia.");
+            aplicar({ ...state, tracks: state.tracks.filter((t) => t.id !== trackId) });
+          }}
+          onEditarComIa={(cid) => {
+            setSelecionados([cid]);
+            setIaClipId(cid);
           }}
           onAcaoClip={(cid, acao) => {
             const c = state.clips.find((x) => x.id === cid);
             if (!c) return;
             setSelecionados([cid]);
             if (acao === "dividir") aplicar(aplicarOps(state, [{ op: "split_clip", clipId: cid, atMs: playhead }], transcript).state);
-            else if (acao === "duplicar")
+            else if (acao === "aparar") {
+              if (playhead <= c.start || playhead >= c.start + c.duration) return toast.error("Posicione o playhead dentro do clipe.");
+              aplicar(
+                aplicarOps(state, [{ op: "trim_clip", clipId: cid, durationMs: Math.round(playhead - c.start) }], transcript)
+                  .state,
+              );
+            } else if (acao === "duplicar")
               aplicar({ ...state, clips: [...state.clips, { ...c, id: novoId(), start: c.start + c.duration }] });
-            else if (acao === "excluir") aplicar(aplicarOps(state, [{ op: "delete_clip", clipId: cid }], transcript).state);
-            else if (acao === "bloquear") patchClipe({ bloqueado: !c.bloqueado }, cid);
+            else if (acao === "copiar") {
+              clipboardRef.current = [{ ...c }];
+              toast.success("Clipe copiado");
+            } else if (acao === "excluir") aplicar(aplicarOps(state, [{ op: "delete_clip", clipId: cid }], transcript).state);
+            else if (acao === "ripple") {
+              const s = aplicarOps(state, [{ op: "delete_clip", clipId: cid }], transcript).state;
+              aplicar({
+                ...s,
+                clips: s.clips.map((x) =>
+                  x.trackId === c.trackId && x.start >= c.start + c.duration
+                    ? { ...x, start: Math.max(0, x.start - c.duration) }
+                    : x,
+                ),
+              });
+            } else if (acao === "extrair-audio") {
+              if (!c.assetId) return toast.error("Clipe sem mídia de origem.");
+              const trilhaVoz = state.tracks.find((t) => t.kind === "voice") ?? state.tracks.find((t) => t.kind === "music");
+              if (!trilhaVoz) return toast.error("Sem camada de áudio disponível.");
+              const audio: EditairClip = {
+                ...c,
+                id: novoId(),
+                trackId: trilhaVoz.id,
+                kind: "audio",
+                label: `Áudio · ${c.label ?? ""}`.trim(),
+              };
+              aplicar({
+                ...state,
+                clips: [...state.clips.map((x) => (x.id === cid ? { ...x, semAudio: true } : x)), audio],
+              });
+              toast.success("Áudio extraído para a camada de voz");
+            } else if (acao === "bloquear") patchClipe({ bloqueado: !c.bloqueado }, cid);
             else if (acao === "mudo") patchClipe({ muted: !c.muted }, cid);
             else if (acao === "congelar") patchClipe({ congelado: !c.congelado, speed: c.congelado ? 1 : 0.01 }, cid);
             else if (acao === "desvincular") patchClipe({ semAudio: !c.semAudio }, cid);
@@ -1548,6 +1592,26 @@ function EditorPage() {
           }
         />
       </div>
+
+      <AiEditDialog
+        aberto={!!iaClipId}
+        escopo={
+          iaClipId
+            ? {
+                titulo: state.clips.find((c) => c.id === iaClipId)?.label ?? "Clipe selecionado",
+                detalhe: (() => {
+                  const c = state.clips.find((x) => x.id === iaClipId);
+                  return c ? `${formatarTempo(c.start)} → ${formatarTempo(c.start + c.duration)}` : undefined;
+                })(),
+              }
+            : null
+        }
+        processando={pensando}
+        etapa={etapaIa}
+        onFechar={() => setIaClipId(null)}
+        onExecutar={(instrucao) => void editarClipComIa(instrucao)}
+      />
+
 
       <ExportDialog
         aberto={exportAberto}
