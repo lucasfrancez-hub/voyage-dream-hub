@@ -110,6 +110,8 @@ import {
 import { EditairEngine } from "@/lib/editair/engine";
 import { duracaoComposicao, planoDeAudio } from "@/lib/editair/composicao";
 import { aplicarAssetsIniciais, midiaParaAsset, PonteAssets, type AssetBasico } from "@/lib/editair/bootstrap";
+import { registrarDiag } from "@/lib/editair/diag";
+
 import { confirm as confirmarDialogo } from "@/lib/confirm";
 import { pontoDesktop } from "@/lib/editair/desktop";
 import { consumirHandoff } from "@/lib/editair/handoff";
