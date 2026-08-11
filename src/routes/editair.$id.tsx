@@ -2318,6 +2318,11 @@ function EditorPage() {
 
           onPatchState={(patch) => aplicar({ ...state, ...patch })}
           onCaption={(patch) => aplicar({ ...state, captionStyle: { ...state.captionStyle, ...patch } })}
+          onCaptionClip={(cid, patch) => {
+            patchEstiloLegenda(cid, patch);
+            encerrarGesto();
+          }}
+          onAplicarLayoutLegendas={aplicarLayoutLegendas}
           onKeyframe={criarKeyframe}
           onDuplicar={duplicar}
           onCamada={moverCamada}
