@@ -1067,6 +1067,51 @@ function InspLegenda({
   );
 }
 
+type EscopoLayout = "todas" | "preset" | "esta";
+
+/** Copia só posição/tamanho para outras legendas — texto e timing ficam intactos. */
+function AplicarLayoutLegenda({
+  onAplicar,
+  habilitado,
+}: {
+  onAplicar: (escopo: EscopoLayout) => void;
+  habilitado: boolean;
+}) {
+  const [escopo, setEscopo] = useState<EscopoLayout>("todas");
+  const opcoes: { id: EscopoLayout; nome: string }[] = [
+    { id: "todas", nome: "Todas as legendas" },
+    { id: "preset", nome: "Apenas este preset" },
+    { id: "esta", nome: "Apenas esta legenda" },
+  ];
+  return (
+    <div className="space-y-1.5 rounded-lg border border-white/10 bg-black/25 p-2">
+      <p className="text-[10px] uppercase tracking-wide text-white/40">Aplicar posição e tamanho a</p>
+      {opcoes.map((o) => (
+        <label key={o.id} className="flex cursor-pointer items-center gap-2 text-[11px] text-white/70">
+          <input
+            type="radio"
+            name="escopo-layout-legenda"
+            checked={escopo === o.id}
+            onChange={() => setEscopo(o.id)}
+            className="accent-[#F26B1F]"
+          />
+          {o.nome}
+        </label>
+      ))}
+      <button
+        disabled={!habilitado}
+        onClick={() => onAplicar(escopo)}
+        className="mt-1 w-full rounded-md border border-[#F26B1F]/50 bg-[#F26B1F]/15 px-2 py-1.5 text-[11px] text-[#F26B1F] transition hover:bg-[#F26B1F]/25 disabled:opacity-40"
+      >
+        Aplicar posição e tamanho em todas
+      </button>
+      <p className="text-[10px] text-white/30">Não altera texto nem tempos.</p>
+    </div>
+  );
+}
+
+
+
 /* ============================== primitivos ============================== */
 
 function Abas({
