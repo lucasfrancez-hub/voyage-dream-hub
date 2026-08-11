@@ -231,3 +231,15 @@ describe("mover clip entre camadas", () => {
     expect(r.ok).toBe(false);
   });
 });
+
+describe("intenção vertical do arraste", () => {
+  it("arraste horizontal mantém a camada", () => {
+    expect(intencaoVertical(0)).toBe(false);
+    expect(intencaoVertical(6)).toBe(false);
+    expect(intencaoVertical(-17)).toBe(false);
+  });
+  it("arraste vertical deliberado troca de camada", () => {
+    expect(intencaoVertical(18)).toBe(true);
+    expect(intencaoVertical(-40)).toBe(true);
+  });
+});

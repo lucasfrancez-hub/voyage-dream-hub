@@ -36,6 +36,17 @@ export function alturaAreaSuperior(alturaTimeline: number, alturaDisponivel: num
 
 /* --------------------------- destino vertical ------------------------------ */
 
+/** Deslocamento vertical (px) necessário para o gesto virar "mudar de camada". */
+export const LIMIAR_VERTICAL_PX = 18;
+
+/**
+ * O arraste é deliberadamente vertical? Enquanto for predominantemente
+ * horizontal, o clipe permanece na própria camada (só muda `start`).
+ */
+export function intencaoVertical(dy: number, limiar = LIMIAR_VERTICAL_PX): boolean {
+  return Math.abs(dy) >= limiar;
+}
+
 export type FaixaTrack = { id: string; top: number; bottom: number };
 
 /** Camada (ou zona de nova camada) sob o cursor, a partir dos retângulos das trilhas. */
