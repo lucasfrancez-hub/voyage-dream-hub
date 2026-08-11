@@ -1553,6 +1553,7 @@ function EditorPage() {
           onAbrirSource={setSourceClipId}
           onRestaurarClip={restaurarClip}
           onSoltarArquivos={(arquivos, ms) => void importar(arquivos, ms)}
+          onSoltarAsset={(assetId, ms, trackId) => inserirAsset(assetId, { startMs: ms, trackId })}
           onNovaTrilhaVideo={() => {
             // camadas de vídeo empilhadas: a nova entra acima (aparece por cima no preview)
             aplicar(criarTrackEm(state, 0).state);
