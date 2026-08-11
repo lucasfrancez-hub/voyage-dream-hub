@@ -27,12 +27,17 @@ function clip(id: string, trackId: string, start: number, duration = 500): Edita
 
 function projeto(): ProjectState {
   const base = estadoVazio();
+  const tracks = [
+    { id: "t-video", name: "Vídeo 1", kind: "video" as const },
+    { id: "t-caption", name: "Legendas", kind: "caption" as const },
+    { id: "t-music", name: "Música", kind: "music" as const },
+  ];
   const clips = [
     clip("v1", "t-video", 0, 2000),
     clip("v2", "t-video", 3000, 1000),
     ...Array.from({ length: 24 }, (_, i) => clip(`leg${i}`, "t-caption", i * 500, 480)),
   ];
-  return { ...base, clips };
+  return { ...base, tracks: tracks as ProjectState["tracks"], clips };
 }
 
 const faixas = [
