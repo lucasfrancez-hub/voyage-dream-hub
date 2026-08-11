@@ -349,6 +349,8 @@ export type EditairClip = {
   /** modo de mistura com as camadas abaixo */
   blend?: BlendMode;
   recorte?: Recorte;
+  /** enquadramento inicial da mídia no palco: "fit" cabe inteira, "preencher" corta as bordas */
+  enquadramento?: Enquadramento;
   mascara?: Mascara;
   aprimorar?: Aprimorar;
   chroma?: ChromaKey;
