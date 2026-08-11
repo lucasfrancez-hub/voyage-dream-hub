@@ -15,6 +15,7 @@ import {
   novoId,
   recalcularDuracao,
   transformPadrao,
+  enquadramentoInicial,
   type EditairClip,
   type ProjectState,
 } from "./types";
