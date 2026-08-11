@@ -322,9 +322,7 @@ function PagamentosPage() {
         </div>
       )}
 
-          </div>
-        </div>
-      )}
+
 
       {/* Busca */}
       <div className="relative max-w-sm">
