@@ -340,29 +340,54 @@ export function PlayerStage({
               .sort((a, b) => camadaDe(a.kind) - camadaDe(b.kind))
               .map((el) => {
                 const ativo = el.id === selecionadoId;
+                const emHover = !ativo && el.id === hoverId;
                 const modoCaixa = (el.resize ?? "escala") === "caixa";
+                const texto = el.kind === "caption" || el.kind === "text";
                 return (
                   <div
                     key={el.id}
                     data-testid={`palco-el-${el.id}`}
                     data-kind={el.kind}
+                    data-hover={emHover ? "1" : undefined}
+                    onPointerEnter={() => !arrasto.current && setHoverId(el.id)}
+                    onPointerLeave={() => setHoverId((h) => (h === el.id ? null : h))}
                     onPointerDown={(e) => {
                       onSelecionar?.(el.id);
                       iniciar("mover", el)(e);
                     }}
-                    className={`absolute ${el.bloqueado ? "cursor-not-allowed" : "cursor-move"} ${
-                      ativo ? "" : "hover:outline hover:outline-1 hover:outline-white/40"
-                    }`}
+                    className="absolute transition-[background-color] duration-100"
                     style={{
                       left: `${(el.cx - el.w / 2) * 100}%`,
                       top: `${(el.cy - el.h / 2) * 100}%`,
                       width: `${el.w * 100}%`,
                       height: `${el.h * 100}%`,
                       transform: el.rotation ? `rotate(${el.rotation}deg)` : undefined,
-                      outline: ativo ? "2px solid #F26B1F" : undefined,
-                      zIndex: camadaDe(el.kind) + (ativo ? 5 : 0),
+                      // hover leve (tracejado) → seleção firme (laranja sólido)
+                      outline: ativo
+                        ? "2px solid #F26B1F"
+                        : emHover
+                          ? `1px dashed ${texto ? "rgba(242,107,31,.85)" : "rgba(255,255,255,.5)"}`
+                          : undefined,
+                      background: emHover && texto ? "rgba(242,107,31,.10)" : undefined,
+                      cursor: el.bloqueado ? "not-allowed" : texto ? "text" : "move",
+                      zIndex: camadaDe(el.kind) + (ativo ? 5 : emHover ? 3 : 0),
                     }}
                   >
+                    {emHover && texto && !el.bloqueado ? (
+                      <>
+                        {/* cantos fantasma: antecipa onde ficarão os handles */}
+                        {["left-0 top-0", "right-0 top-0", "left-0 bottom-0", "right-0 bottom-0"].map((c) => (
+                          <span
+                            key={c}
+                            className={`pointer-events-none absolute h-2 w-2 rounded-full bg-[#F26B1F]/60 ${c}`}
+                            style={{ transform: "translate(-50%,-50%)" }}
+                          />
+                        ))}
+                        <span className="pointer-events-none absolute -top-6 left-1/2 -translate-x-1/2 whitespace-nowrap rounded bg-black/80 px-1.5 py-0.5 text-[10px] text-white/85">
+                          Clique para editar
+                        </span>
+                      </>
+                    ) : null}
                     {ativo && !el.bloqueado ? (
                       <>
                         {[
