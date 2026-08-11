@@ -983,46 +983,53 @@ function PainelLegendas({
 
 /* ------------------------------ Filtros ------------------------------ */
 
-function PainelFiltros({ clip, onPatchClip }: ToolPanelProps) {
+function PainelFiltros({ clip, assets, onPatchClip }: ToolPanelProps) {
+  const poster = assets.find((a) => a.id === clip?.assetId)?.thumbUrl ?? null;
+  const atual = clip?.filtro?.id ?? "nenhum";
+  const intensidade = clip?.filtro?.intensidade ?? 100;
+
+  if (!clip || (clip.kind !== "video" && clip.kind !== "image")) {
+    return (
+      <PainelShell titulo="Filtros">
+        <Vazio>Selecione um clipe de vídeo ou imagem para aplicar um filtro.</Vazio>
+      </PainelShell>
+    );
+  }
+
   return (
-    <Painel titulo="Filtros">
-      {!clip || (clip.kind !== "video" && clip.kind !== "image") ? (
-        <p className="text-[11px] text-white/35">Selecione um clipe de vídeo ou imagem.</p>
-      ) : (
-        <>
-          <div className="grid grid-cols-3 gap-2">
-            {FILTROS.map((f) => (
-              <button
-                key={f.id}
-                onClick={() =>
-                  onPatchClip({ filtro: f.id === "nenhum" ? undefined : { id: f.id, intensidade: clip.filtro?.intensidade ?? 100 } })
-                }
-                className={`rounded-lg border px-1 py-3 text-[10px] ${
-                  (clip.filtro?.id ?? "nenhum") === f.id ? "border-[#F26B1F] bg-[#F26B1F]/15" : "border-white/10 hover:bg-white/5"
-                }`}
-              >
-                {f.nome}
-              </button>
-            ))}
-          </div>
-          {clip.filtro ? (
-            <div className="mt-3">
-              <Campo label={`Intensidade — ${clip.filtro.intensidade}%`}>
-                <Slider
-                  value={[clip.filtro.intensidade]}
-                  min={5}
-                  max={100}
-                  step={5}
-                  onValueChange={([v]) => onPatchClip({ filtro: { id: clip.filtro!.id, intensidade: v } })}
-                />
-              </Campo>
-            </div>
-          ) : null}
-        </>
-      )}
-    </Painel>
+    <PainelShell titulo="Filtros" contagem={`${FILTROS.length - 1} presets`}>
+      <Grade cols={2}>
+        {FILTROS.map((f) => (
+          <PresetCard
+            key={f.id}
+            nome={f.nome}
+            ativo={atual === f.id}
+            poster={poster}
+            filtro={filtroCss(clip.ajustes, f.id === "nenhum" ? undefined : { id: f.id, intensidade })}
+            onClick={() =>
+              onPatchClip({ filtro: f.id === "nenhum" ? undefined : { id: f.id, intensidade } })
+            }
+          />
+        ))}
+      </Grade>
+
+      {clip.filtro ? (
+        <div className="mt-3">
+          <LinhaValor label="Intensidade" valor={`${clip.filtro.intensidade}%`}>
+            <Slider
+              value={[clip.filtro.intensidade]}
+              min={5}
+              max={100}
+              step={5}
+              onValueChange={([v]) => onPatchClip({ filtro: { id: clip.filtro!.id, intensidade: v } })}
+            />
+          </LinhaValor>
+        </div>
+      ) : null}
+    </PainelShell>
   );
 }
+
 
 /* ------------------------------ Ajustes ------------------------------ */
 
