@@ -143,6 +143,7 @@ function EditorPage() {
 
   const [playhead, setPlayhead] = useState(0);
   const [tocando, setTocando] = useState(false);
+  const demoRef = useRef<number | null>(null);
   const [zoom, setZoom] = useState(60);
   /* altura da timeline (splitter vertical) — a área superior nunca some */
   const [alturaTimeline, setAlturaTimeline] = useState(300);
@@ -209,6 +210,29 @@ function EditorPage() {
     ultimoClipeRef.current = equivalente ?? null;
     return equivalente ?? null;
   }, [state.clips, selecionados]);
+
+  /**
+   * Demonstração instantânea: leva o playhead pro início do clipe e toca um
+   * trecho curto. Nada é renderizado — o preview usa as próprias propriedades
+   * do clipe (animações/efeitos/legendas). O arquivo só sai na Exportação.
+   */
+  const demonstrarClipe = useCallback(() => {
+    const c = clipeAtual;
+    if (!c) return;
+    if (demoRef.current) window.clearTimeout(demoRef.current);
+    setPlayhead(c.start);
+    setTocando(true);
+    const dur = Math.min(c.duration, 3000);
+    demoRef.current = window.setTimeout(() => {
+      setTocando(false);
+      setPlayhead(c.start);
+      demoRef.current = null;
+    }, dur);
+  }, [clipeAtual]);
+
+  useEffect(() => () => {
+    if (demoRef.current) window.clearTimeout(demoRef.current);
+  }, []);
 
 
   const assetsMap = useMemo(() => {
@@ -1484,6 +1508,7 @@ function EditorPage() {
 
         <section className="min-h-0 overflow-hidden border-r border-white/10 bg-[#12171d]">
           <ToolPanel
+            onDemonstrarClip={demonstrarClipe}
             fundoPronto={fundoPronto}
             fundoCarregando={fundoCarregando}
             ferramenta={ferramenta}

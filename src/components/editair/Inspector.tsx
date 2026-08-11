@@ -114,7 +114,7 @@ function InspVisual(p: Props & { clip: EditairClip }) {
     ...(imagem ? [] : [{ id: "audio" as const, nome: "Áudio" }]),
     { id: "velocidade", nome: "Velocidade" },
     { id: "animacao", nome: "Animação" },
-    { id: "efeitos", nome: "Efeitos" },
+    { id: "efeitos", nome: "Entrada / Saída" },
     { id: "rastreamento", nome: "Rastreamento" },
     { id: "ajuste", nome: "Ajuste" },
   ];
@@ -739,7 +739,7 @@ function InspTexto(p: Props & { clip: EditairClip }) {
         itens={[
           { id: "basico", nome: "Básico" },
           { id: "estilo", nome: "Estilo" },
-          { id: "efeitos", nome: "Efeitos" },
+          { id: "efeitos", nome: "Entrada / Saída" },
           { id: "animacao", nome: "Animação" },
         ]}
         valor={aba}

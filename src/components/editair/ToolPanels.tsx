@@ -106,6 +106,8 @@ export type ToolPanelProps = {
   onKeyframe: (prop: KeyProp) => void;
   onEnviarIa: (texto: string) => void;
   onSeek: (ms: number) => void;
+  /** roda uma demonstração do clipe atual no reprodutor (sem render) */
+  onDemonstrarClip?: () => void;
   onApagarTrecho: (from: number, to: number) => void;
   fundoPronto?: boolean;
   fundoCarregando?: boolean;
@@ -773,15 +775,18 @@ function PainelFundo({ clip, assets, onPatchClip, onKeyframe, fundoPronto, fundo
 
 /* ------------------------------ Efeitos ------------------------------ */
 
-function PainelEfeitos({ clip, onPatchClip }: ToolPanelProps) {
+function PainelEfeitos({ clip, assets, onPatchClip, onDemonstrarClip }: ToolPanelProps) {
+  const poster = assets.find((a) => a.id === clip?.assetId)?.thumbUrl ?? undefined;
   return (
-    <Painel titulo="Efeitos">
+    <Painel titulo="Animação e efeitos">
       {!clip ? (
         <p className="text-[11px] text-white/35">Selecione um clipe para aplicar um efeito.</p>
       ) : (
         <EfeitosGallery
           key={clip.id}
           efeitos={clip.efeitos}
+          poster={poster}
+          onDemonstrar={onDemonstrarClip}
           onPrevia={(ef) => onPatchClip({ efeitos: ef })}
           onAplicar={(ef) => onPatchClip({ efeitos: ef, efeito: undefined })}
         />
