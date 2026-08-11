@@ -806,7 +806,9 @@ export class EditairEngine {
           if (this.tracando) linhas.push(this.linhaAuditoria(c, t, r, usouTempo));
           if (r.desenhou) desenhou++;
         } else if (c.kind === "caption") {
-          this.desenharLegenda(c, c.captionStyle ?? state.captionStyle, t);
+          // estilo efetivo: padrão → projeto → clipe (o mesmo do Inspector),
+          // para boxWidth/maxLines nunca sumirem em projeto antigo
+          this.desenharLegenda(c, { ...LEGENDA_PADRAO, ...state.captionStyle, ...(c.captionStyle ?? {}) }, t);
           desenhou++;
         } else if (c.kind === "text") {
           this.desenharTexto(c, t);
