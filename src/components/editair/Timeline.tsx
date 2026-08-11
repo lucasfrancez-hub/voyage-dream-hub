@@ -143,6 +143,49 @@ export function Timeline({
 
   const pxPorMs = zoom / 1000;
   const larguraTotal = Math.max(1200, (state.durationMs + 6000) * pxPorMs);
+
+  /* ---- zoom horizontal (px por segundo) — controle fixo no viewport ----
+     A âncora guarda um tempo e sua posição em pixels dentro do viewport; depois
+     que o novo zoom é aplicado, o scrollLeft é recalculado para manter o mesmo
+     ponto visual (playhead > clip selecionado > centro atual). */
+  const ancoraRef = useRef<{ ms: number; px: number } | null>(null);
+  useLayoutEffect(() => {
+    const a = ancoraRef.current;
+    const el = areaRef.current;
+    ancoraRef.current = null;
+    if (!a || !el) return;
+    el.scrollLeft = Math.max(0, a.ms * (zoom / 1000) - a.px);
+  }, [zoom]);
+
+  const aplicarZoom = useCallback(
+    (novo: number) => {
+      if (!onZoom) return;
+      const z = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, novo));
+      const el = areaRef.current;
+      if (el) {
+        const larg = el.clientWidth;
+        const inicioMs = el.scrollLeft / pxPorMs;
+        const fimMs = (el.scrollLeft + larg) / pxPorMs;
+        const sel = selecionados.length ? state.clips.find((c) => c.id === selecionados[0]) : null;
+        let alvoMs = inicioMs + (fimMs - inicioMs) / 2;
+        if (playheadMs >= inicioMs && playheadMs <= fimMs) alvoMs = playheadMs;
+        else if (sel && sel.start <= fimMs && sel.start + sel.duration >= inicioMs) alvoMs = sel.start;
+        ancoraRef.current = { ms: alvoMs, px: alvoMs * pxPorMs - el.scrollLeft };
+      }
+      onZoom(z);
+    },
+    [onZoom, pxPorMs, playheadMs, selecionados, state.clips],
+  );
+
+  const ajustarAJanela = useCallback(() => {
+    if (!onZoom) return;
+    const el = areaRef.current;
+    const dur = Math.max(1000, state.durationMs);
+    const larg = (el?.clientWidth ?? 900) - 32;
+    ancoraRef.current = { ms: 0, px: 0 };
+    onZoom(Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, (larg * 1000) / dur)));
+  }, [onZoom, state.durationMs]);
+
   const [dica, setDica] = useState<Dica>(null);
   const [arrastandoId, setArrastandoId] = useState<string | null>(null);
   const [menu, setMenu] = useState<{ x: number; y: number; clipId: string } | null>(null);
