@@ -204,8 +204,10 @@ export function acaoDeClip(
     }
     case "extrair-audio": {
       if (!c.assetId) return { ok: false, erro: "Clipe sem mídia de origem." };
-      const destino = s.tracks.find((t) => t.kind === "voice") ?? s.tracks.find((t) => t.kind === "music");
-      if (!destino) return { ok: false, erro: "Sem camada de áudio disponível." };
+      /* a camada de voz nasce sob demanda — a timeline só mostra o que existe */
+      const existente = s.tracks.find((t) => t.kind === "voice") ?? s.tracks.find((t) => t.kind === "music");
+      const destino: EditairTrack = existente ?? { id: "t-voice", kind: "voice", name: "Voz" };
+      const tracks = existente ? s.tracks : [...s.tracks, destino];
       const audio: EditairClip = {
         ...c,
         id: novoId(),
@@ -217,6 +219,7 @@ export function acaoDeClip(
         ok: true,
         state: {
           ...s,
+          tracks,
           clips: [...s.clips.map((x) => (x.id === cid ? { ...x, semAudio: true } : x)), audio],
         },
       };
@@ -271,7 +274,7 @@ function trilhaDestino(s: ProjectState, kind: string): { state: ProjectState; tr
   const compat = s.tracks.find((t) => t.kind === alvoKind && !t.locked);
   if (compat) return { state: s, trackId: compat.id, criou: false };
   if (alvoKind === "music") {
-    const nova: EditairTrack = { id: `t-music-${Math.random().toString(36).slice(2, 6)}`, kind: "music", name: "Música" };
+    const nova: EditairTrack = { id: "t-music", kind: "music", name: "Música" };
     return { state: { ...s, tracks: [...s.tracks, nova] }, trackId: nova.id, criou: true };
   }
   const r = criarTrackEm(s, 0);
