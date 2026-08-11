@@ -45,6 +45,8 @@ import { planejarOperacoesEditair, type PlanoIa } from "@/lib/editair/planner.fu
 import { validarOps, resumoDoPlano, planoGrande, executarGeracoes } from "@/lib/editair/ia-plano";
 import { LoginNuvemDialog } from "@/components/editair/LoginNuvemDialog";
 import { temSessaoNuvem } from "@/lib/editair/nuvem";
+import { definirHeaderProjeto, limparHeaderProjeto } from "@/lib/editair/header-state";
+
 import { planejarEdicaoEditair } from "@/lib/editair/brain.functions";
 import { normalizarPlano, transcricaoParaPrompt } from "@/lib/editair/brain";
 import { analisarAudio, analisarVisual, resumirAnalise, type AnaliseTecnica } from "@/lib/editair/analysis";
@@ -560,6 +562,13 @@ function EditorPage() {
       clearTimeout(a);
     };
   }, [state, transcript, carregando, salvar, id]);
+
+  /* publica nome/status no header global (único header do EditAir) */
+  useEffect(() => {
+    definirHeaderProjeto({ nome: projetoNome || null, status: salvando ? "salvando" : "salvo" });
+  }, [projetoNome, salvando]);
+  useEffect(() => () => limparHeaderProjeto(), []);
+
 
   /* ---------------- edição de clipes ---------------- */
   const patchClipe = (patch: Partial<EditairClip>, alvoId?: string) => {
@@ -1699,12 +1708,8 @@ function EditorPage() {
     >
       {/* topo */}
       <div className="flex items-center gap-3 border-b border-white/10 bg-[#0d1116] px-3">
-        <span className="truncate text-sm font-semibold">{projetoNome}</span>
-        <span className="flex items-center gap-1.5 text-[11px] text-white/40">
-          <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-          {salvando ? "Salvando…" : "Salvo automaticamente"}
-        </span>
         <div className="flex-1" />
+
         <TopBtn onClick={desfazer} titulo="Desfazer">
           <Undo2 className="h-4 w-4" />
         </TopBtn>
