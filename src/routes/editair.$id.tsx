@@ -940,11 +940,37 @@ function EditorPage() {
   };
 
   /* ---------------- seleção direta no reprodutor ---------------- */
+  /** Estilo efetivo da legenda (padrão → projeto → clipe). */
+  const estiloDaLegenda = (c: EditairClip): CaptionStyle => ({
+    ...LEGENDA_PADRAO,
+    ...state.captionStyle,
+    ...(c.captionStyle ?? {}),
+  });
+
   const elementosPalco = useMemo<ElementoPalco[]>(() => {
     const ativos = state.clips.filter(
-      (c) => playhead >= c.start && playhead <= c.start + c.duration && c.kind !== "audio" && c.kind !== "caption",
+      (c) => playhead >= c.start && playhead <= c.start + c.duration && c.kind !== "audio",
     );
-    return ativos.map((c) => {
+    const saida: ElementoPalco[] = [];
+    for (const c of ativos) {
+      if (c.kind === "caption") {
+        // A caixa vem da medição real do texto na engine: arrastar/redimensionar
+        // no Reprodutor precisa bater exatamente com o que está desenhado.
+        const est: CaptionStyle = { ...LEGENDA_PADRAO, ...state.captionStyle, ...(c.captionStyle ?? {}) };
+        const caixa = engineRef.current?.caixaLegenda(c, est);
+        if (!caixa) continue;
+        saida.push({
+          id: c.id,
+          kind: "caption",
+          cx: caixa.cx,
+          cy: caixa.cy,
+          w: Math.max(0.05, caixa.w),
+          h: Math.max(0.03, caixa.h),
+          rotation: 0,
+          bloqueado: c.bloqueado,
+        });
+        continue;
+      }
       const tr = c.transform;
       let w = 1;
       let h = 1;
@@ -954,7 +980,7 @@ function EditorPage() {
         w = Math.min(0.92, Math.max(0.15, (txt.length * fs * 0.52) / state.width));
         h = Math.min(0.6, (fs * 1.6) / state.height);
       }
-      return {
+      saida.push({
         id: c.id,
         kind: c.kind,
         cx: 0.5 + tr.x / state.width,
@@ -963,19 +989,81 @@ function EditorPage() {
         h: h * tr.scale,
         rotation: tr.rotation,
         bloqueado: c.bloqueado,
-      };
+      });
+    }
+    return saida;
+  }, [state.clips, state.captionStyle, state.width, state.height, playhead]);
+
+  /** Patch no estilo de UMA legenda (não mexe no padrão do projeto). */
+  const patchEstiloLegenda = (cid: string, patch: Partial<CaptionStyle>, commit = false) => {
+    if (commit) iniciarGesto();
+    setState((s) => ({
+      ...s,
+      clips: s.clips.map((x) =>
+        x.id === cid && x.kind === "caption"
+          ? { ...x, captionStyle: { ...LEGENDA_PADRAO, ...s.captionStyle, ...(x.captionStyle ?? {}), ...patch } }
+          : x,
+      ),
+    }));
+  };
+
+  /** Copia posição/tamanho de uma legenda para as demais. */
+  const aplicarLayoutLegendas = (cid: string, escopo: "todas" | "preset" | "esta") => {
+    const base = state.clips.find((c) => c.id === cid);
+    if (!base || base.kind !== "caption") return;
+    const est = estiloDaLegenda(base);
+    const layout: Partial<CaptionStyle> = {
+      x: est.x ?? 0.5,
+      y: est.y,
+      fontSize: est.fontSize,
+      escala: est.escala ?? 1,
+      align: est.align,
+      maxLines: est.maxLines,
+      lineHeight: est.lineHeight,
+    };
+    if (escopo === "esta") {
+      aplicar({ ...state, clips: state.clips.map((c) => (c.id === cid ? { ...c, captionStyle: { ...est } } : c)) });
+      toast.success("Posição e tamanho salvos nesta legenda");
+      return;
+    }
+    const alvoPreset = est.presetId;
+    aplicar({
+      ...state,
+      captionStyle: escopo === "todas" ? { ...state.captionStyle, ...layout } : state.captionStyle,
+      clips: state.clips.map((c) => {
+        if (c.kind !== "caption") return c;
+        const atual = { ...LEGENDA_PADRAO, ...state.captionStyle, ...(c.captionStyle ?? {}) };
+        if (escopo === "preset" && atual.presetId !== alvoPreset) return c;
+        return { ...c, captionStyle: { ...atual, ...layout } };
+      }),
     });
-  }, [state.clips, state.width, state.height, playhead]);
+    toast.success(escopo === "todas" ? "Aplicado em todas as legendas" : "Aplicado nas legendas deste preset");
+  };
 
   const moverElemento = (cid: string, dx: number, dy: number) => {
     const c = state.clips.find((x) => x.id === cid);
     if (!c || c.bloqueado) return;
+    if (c.kind === "caption") {
+      const est = estiloDaLegenda(c);
+      patchEstiloLegenda(cid, {
+        x: Math.min(1, Math.max(0, (est.x ?? 0.5) + dx / state.width)),
+        y: Math.min(1, Math.max(0, est.y + dy / state.height)),
+      });
+      return;
+    }
     setState((s) => ({
       ...s,
       clips: s.clips.map((x) => (x.id === cid ? { ...x, transform: { ...x.transform, x: x.transform.x + dx, y: x.transform.y + dy } } : x)),
     }));
   };
   const escalarElemento = (cid: string, fator: number) => {
+    const alvo = state.clips.find((x) => x.id === cid);
+    if (alvo?.kind === "caption") {
+      if (alvo.bloqueado) return;
+      const est = estiloDaLegenda(alvo);
+      patchEstiloLegenda(cid, { fontSize: Math.round(Math.max(12, Math.min(400, est.fontSize * fator))) });
+      return;
+    }
     setState((s) => ({
       ...s,
       clips: s.clips.map((x) =>
@@ -993,6 +1081,7 @@ function EditorPage() {
       ),
     }));
   };
+
 
   /** ordem de camada = ordem no array de clipes */
   const moverCamada = (dir: "frente" | "tras") => {
