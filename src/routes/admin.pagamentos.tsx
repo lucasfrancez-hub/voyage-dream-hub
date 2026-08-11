@@ -344,43 +344,65 @@ function PagamentosPage() {
         ) : (
           <div className="divide-y divide-border">
             {filtered.map((r) => {
-              const meta = STATUS_META[r.status] ?? { label: r.status, cls: "bg-muted" };
-              const cancelable = ["agendado", "pendente"].includes(r.status);
+              const cancelable =
+                r.kind === "pix"
+                  ? ["agendado", "pendente"].includes(r.raw.status)
+                  : ["agendado", "pendente", "processando"].includes(r.raw.status);
+              const abrir = () =>
+                r.kind === "pix" ? setDetalheId(r.id) : setReciboBoleto(r.raw);
               return (
-                <div key={r.id} className="flex flex-wrap items-center gap-3 px-4 py-3 hover:bg-muted/30">
-                  <button onClick={() => setDetalheId(r.id)} className="min-w-0 flex-1 text-left">
-                    <div className="font-medium truncate">{r.favored_name}</div>
+                <div key={`${r.kind}-${r.id}`} className="flex flex-wrap items-center gap-3 px-4 py-3 hover:bg-muted/30">
+                  <button onClick={abrir} className="min-w-0 flex-1 text-left">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <TipoBadge kind={r.kind} />
+                      <span className="font-medium truncate">{r.nome}</span>
+                    </div>
                     <div className="text-xs text-muted-foreground truncate">
-                      {r.pix_key} · {ORIGIN_LABEL[r.origin] ?? r.origin} ·{" "}
-                      {new Date(r.created_at).toLocaleString("pt-BR")}
+                      {r.sub} · {new Date(r.createdAt).toLocaleString("pt-BR")}
                     </div>
                   </button>
-                  <span className={`px-2 py-0.5 rounded-full text-[11px] font-semibold ${meta.cls}`}>{meta.label}</span>
-                  <span className="font-semibold tabular-nums w-28 text-right">{formatBRL(Number(r.value))}</span>
+                  <span className={`px-2 py-0.5 rounded-full text-[11px] font-semibold ${r.statusCls}`}>
+                    {r.statusLabel}
+                  </span>
+                  <span className="font-semibold tabular-nums w-28 text-right">{formatBRL(r.valor)}</span>
                   <div className="flex gap-1">
-                    <Button
-                      size="icon"
-                      variant="outline"
-                      title="Detalhes e auditoria"
-                      className="rounded-full h-9 w-9 border-border/60"
-                      onClick={() => setDetalheId(r.id)}
-                    >
-                      <Eye className="h-4 w-4" />
-                    </Button>
+                    {r.kind === "pix" && (
+                      <Button
+                        size="icon"
+                        variant="outline"
+                        title="Detalhes e auditoria"
+                        className="rounded-full h-9 w-9 border-border/60"
+                        onClick={() => setDetalheId(r.id)}
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                    )}
                     <Button
                       size="icon"
                       variant="outline"
                       title="Ver comprovante"
                       className="rounded-full h-9 w-9 border-border/60"
-                      onClick={() => setReciboRow(r)}
+                      onClick={() => (r.kind === "pix" ? setReciboRow(r.raw) : setReciboBoleto(r.raw))}
                     >
                       <Receipt className="h-4 w-4" />
                     </Button>
-                    <Button size="icon" variant="ghost" className="rounded-full h-9 w-9" title="Sincronizar status" onClick={() => doSync(r.id)}>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="rounded-full h-9 w-9"
+                      title="Sincronizar status"
+                      onClick={() => (r.kind === "pix" ? doSync(r.id) : doSyncBoleto(r.id))}
+                    >
                       <RefreshCw className="h-4 w-4" />
                     </Button>
                     {cancelable && (
-                      <Button size="icon" variant="ghost" className="rounded-full h-9 w-9" title="Cancelar" onClick={() => doCancel(r.id)}>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="rounded-full h-9 w-9"
+                        title="Cancelar"
+                        onClick={() => (r.kind === "pix" ? doCancel(r.id) : doCancelBoleto(r.id))}
+                      >
                         <Ban className="h-4 w-4 text-red-500" />
                       </Button>
                     )}
@@ -388,6 +410,7 @@ function PagamentosPage() {
                 </div>
               );
             })}
+
           </div>
         )}
       </div>
