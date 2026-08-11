@@ -1,7 +1,7 @@
 /* Configurações do EditAir Desktop: armazenamento, importação e atualizações reais. */
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Download, FolderOpen, HardDrive, Loader2, RefreshCw, RotateCw, Trash2 } from "lucide-react";
+import { Activity, ClipboardCopy, Download, FileDown, FolderOpen, HardDrive, Loader2, RefreshCw, RotateCw, Terminal, Trash2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -32,6 +32,7 @@ export function DesktopSettingsDialog({
   const [cache, setCache] = useState<{ bytes: number; caminho: string } | null>(null);
   const [update, setUpdate] = useState<EstadoUpdate | null>(null);
   const [ocupado, setOcupado] = useState(false);
+  const [diag, setDiag] = useState("");
 
   useEffect(() => setAba(abaInicial), [abaInicial, aberto]);
 
@@ -92,7 +93,47 @@ export function DesktopSettingsDialog({
     { id: "armazenamento", rotulo: "Armazenamento" },
     { id: "importacao", rotulo: "Importação" },
     { id: "atualizacoes", rotulo: "Sobre e atualizações" },
+    { id: "diagnostico", rotulo: "Diagnóstico" },
   ];
+
+  /* Diagnóstico de áudio: apenas leitura do estado real do preview. */
+  const coletarDiagnostico = () => {
+    const w = window as unknown as { editairAudioDiag?: () => unknown };
+    if (typeof w.editairAudioDiag !== "function") {
+      toast.error("Abra um projeto no editor e toque o vídeo antes de diagnosticar.");
+      return;
+    }
+    const dump = {
+      app: { versao: info?.versao, plataforma: info?.plataforma, arquitetura: info?.arquitetura },
+      userAgent: navigator.userAgent,
+      audio: w.editairAudioDiag(),
+    };
+    setDiag(JSON.stringify(dump, null, 2));
+    toast.success("Diagnóstico capturado");
+  };
+
+  const copiarDiagnostico = async () => {
+    try {
+      await navigator.clipboard.writeText(diag);
+      toast.success("Diagnóstico copiado");
+    } catch {
+      toast.error("Não consegui copiar — selecione o texto e use Cmd+C.");
+    }
+  };
+
+  const salvarDiagnostico = async () => {
+    try {
+      const caminho = await api.diagnostico?.salvarTexto("EditAir-audio-diag.txt", diag);
+      if (caminho) {
+        toast.success("Salvo em Downloads");
+        void api.arquivo.revelar(caminho);
+      } else {
+        toast.error("Esta versão do Desktop ainda não salva o arquivo. Use Copiar diagnóstico.");
+      }
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha ao salvar o diagnóstico");
+    }
+  };
 
   return (
     <Dialog open={aberto} onOpenChange={(v) => !v && aoFechar()}>
@@ -244,6 +285,39 @@ export function DesktopSettingsDialog({
                 </div>
               </div>
             )}
+          </div>
+        )}
+        {aba === "diagnostico" && (
+          <div className="space-y-3 text-sm">
+            <div className="rounded-lg border border-white/10 p-4">
+              <div className="mb-1 flex items-center gap-2 text-white/60">
+                <Activity className="h-4 w-4" /> Diagnóstico de áudio do preview
+              </div>
+              <p className="text-xs text-white/50">
+                Deixe o vídeo tocando no editor e clique abaixo. Nada é alterado no áudio — é só leitura.
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Button size="sm" onClick={coletarDiagnostico}>
+                  <Activity className="mr-1.5 h-4 w-4" /> Diagnosticar áudio do preview
+                </Button>
+                <Button size="sm" variant="secondary" disabled={!diag} onClick={() => void copiarDiagnostico()}>
+                  <ClipboardCopy className="mr-1.5 h-4 w-4" /> Copiar diagnóstico
+                </Button>
+                <Button size="sm" variant="secondary" disabled={!diag} onClick={() => void salvarDiagnostico()}>
+                  <FileDown className="mr-1.5 h-4 w-4" /> Salvar em arquivo
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => void api.diagnostico?.devTools()}>
+                  <Terminal className="mr-1.5 h-4 w-4" /> Abrir DevTools
+                </Button>
+              </div>
+            </div>
+            <textarea
+              readOnly
+              value={diag}
+              placeholder="O resultado aparece aqui e pode ser copiado."
+              onFocus={(e) => e.currentTarget.select()}
+              className="h-64 w-full resize-none rounded-lg border border-white/10 bg-black/40 p-3 font-mono text-[11px] text-white/80 outline-none"
+            />
           </div>
         )}
       </DialogContent>

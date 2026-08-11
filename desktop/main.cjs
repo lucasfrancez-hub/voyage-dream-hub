@@ -226,6 +226,22 @@ responder("arquivo:salvarBytes", async ({ nome = "midia.bin", bytes }) => {
   return destino;
 });
 
+responder("diagnostico:salvarTexto", async ({ nome = "EditAir-audio-diag.txt", texto = "" }) => {
+  const pasta = app.getPath("downloads");
+  const seguro = String(nome).replace(/[^\w.\-]+/g, "_").slice(-80) || "EditAir-audio-diag.txt";
+  const destino = path.join(pasta, seguro);
+  fs.writeFileSync(destino, String(texto), "utf8");
+  return destino;
+});
+
+responder("app:devTools", async () => {
+  const wc = janela?.webContents;
+  if (!wc) return false;
+  if (wc.isDevToolsOpened()) wc.closeDevTools();
+  else wc.openDevTools({ mode: "detach" });
+  return true;
+});
+
 responder("arquivo:revelar", async ({ caminho }) => {
   shell.showItemInFolder(caminho);
   return true;
