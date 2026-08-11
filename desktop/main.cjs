@@ -354,9 +354,15 @@ responder("render:quadros:finalizar", async ({ id }) => {
   if (!job) throw new Error("Render não encontrado");
   try {
     const destino = await rf.finalizar(job);
-    renders.set(id, { destino, estado: "concluido" });
-    janela?.webContents.send("editair:render", { id, estado: "concluido", percentual: 100, destino });
-    return { destino };
+    let bytes = 0;
+    try {
+      bytes = fs.statSync(destino).size;
+    } catch {
+      /* ignora */
+    }
+    renders.set(id, { destino, bytes, estado: "concluido" });
+    janela?.webContents.send("editair:render", { id, estado: "concluido", percentual: 100, destino, bytes });
+    return { destino, bytes };
   } catch (e) {
     renders.set(id, { destino: job.destino, estado: "erro", erro: String(e.message || e) });
     janela?.webContents.send("editair:render", { id, estado: "erro", mensagem: String(e.message || e) });
