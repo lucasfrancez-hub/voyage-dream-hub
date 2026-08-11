@@ -101,6 +101,9 @@ export class EditairEngine {
   private seg: SegmentadorFundo | null = null;
   private off: HTMLCanvasElement | null = null;
   private maskCanvas: HTMLCanvasElement | null = null;
+  /** canvases reaproveitados no desenho do contorno */
+  private cacheContorno: HTMLCanvasElement[] = [];
+
 
   constructor(canvas: HTMLCanvasElement, width: number, height: number) {
     this.canvas = canvas;
