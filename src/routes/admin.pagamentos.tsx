@@ -115,7 +115,7 @@ function PagamentosPage() {
     setSincronizandoTudo(true);
     const t = toast.loading("Sincronizando com ASAAS...");
     try {
-      const r: any = await sincronizarTodos({ data: {} });
+      const r: any = await sincronizarTodos();
       await qc.invalidateQueries({ queryKey: ["asaas-transfers"] });
       await qc.invalidateQueries({ queryKey: ["asaas-transfer"] });
       await refetch();
