@@ -71,6 +71,7 @@ import {
   soltarClipEm,
   type DestinoCamada,
   type ResultadoCamada,
+  inserirAssetNaTimeline,
 } from "@/lib/editair/layers";
 import {
   blobParaBase64,

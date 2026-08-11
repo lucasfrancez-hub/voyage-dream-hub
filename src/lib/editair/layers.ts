@@ -5,6 +5,7 @@ import {
   transformPadrao,
   type EditairClip,
   type EditairTrack,
+  type TrackKind,
   type ProjectState,
   type Transcript,
 } from "./types";
@@ -263,14 +264,14 @@ export type ResultadoInsercao =
 
 /** Escolhe a trilha destino, criando uma se o projeto não tiver nenhuma compatível. */
 function trilhaDestino(s: ProjectState, kind: string): { state: ProjectState; trackId: string; criou: boolean } {
-  const alvoKind = kind === "audio" ? "audio" : "video";
-  const preferida = alvoKind === "audio" ? "t-music" : "t-video";
+  const alvoKind: TrackKind = kind === "audio" ? "music" : "video";
+  const preferida = alvoKind === "music" ? "t-music" : "t-video";
   const exata = s.tracks.find((t) => t.id === preferida && !t.locked);
   if (exata) return { state: s, trackId: exata.id, criou: false };
   const compat = s.tracks.find((t) => t.kind === alvoKind && !t.locked);
   if (compat) return { state: s, trackId: compat.id, criou: false };
-  if (alvoKind === "audio") {
-    const nova: EditairTrack = { id: `t-music-${Math.random().toString(36).slice(2, 6)}`, kind: "audio", name: "Áudio" };
+  if (alvoKind === "music") {
+    const nova: EditairTrack = { id: `t-music-${Math.random().toString(36).slice(2, 6)}`, kind: "music", name: "Música" };
     return { state: { ...s, tracks: [...s.tracks, nova] }, trackId: nova.id, criou: true };
   }
   const r = criarTrackEm(s, 0);
