@@ -10,6 +10,7 @@ export interface ExtratoItem {
   reference: string | null
   paymentId: string | null
   transferId: string | null
+  pixTransactionId: string | null
   link: { kind: 'pedido' | 'pagamento'; id: string; label: string } | null
   receiptUrl: string | null
   /** Contraparte e dados completos do comprovante (quando disponíveis). */
@@ -93,6 +94,7 @@ export function normalize(tx: any): ExtratoItem {
       tx?.paymentId ?? tx?.transferId ?? tx?.externalReference ?? tx?.id ?? null,
     paymentId: tx?.paymentId ?? tx?.payment?.id ?? null,
     transferId: tx?.transferId ?? tx?.transfer?.id ?? null,
+    pixTransactionId: tx?.pixTransactionId ?? tx?.pixTransaction?.id ?? null,
     link: null,
     receiptUrl: null,
     counterparty: null,
