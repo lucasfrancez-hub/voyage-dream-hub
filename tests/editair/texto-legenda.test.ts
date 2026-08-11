@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { aplicarOps, gerarLegendas } from "@/lib/editair/ops";
 import { aplicarTextoLegenda } from "@/lib/editair/texto-legenda";
-import { estadoInicial, type EditairClip, type ProjectState, type Transcript } from "@/lib/editair/types";
+import { estadoVazio, type EditairClip, type ProjectState, type Transcript } from "@/lib/editair/types";
 
 const palavras = [
   ["Pra", 0, 180], ["quem", 190, 360], ["não", 370, 520], ["me", 530, 640], ["conhece,", 650, 1080],
@@ -14,7 +14,7 @@ const transcript: Transcript = {
 } as Transcript;
 
 function projeto(): ProjectState {
-  const base = estadoInicial();
+  const base = estadoVazio();
   const clip: EditairClip = {
     id: "v1",
     trackId: "t-video",
