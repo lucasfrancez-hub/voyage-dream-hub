@@ -5,7 +5,7 @@
 import {
   novoId,
   recalcularDuracao,
-  transformPadrao,
+  enquadramentoInicial,
   type EditairClip,
   type ProjectState,
 } from "./types";
@@ -81,7 +81,7 @@ export function clipDeAsset(a: AssetBasico, start: number, trackId = trilhaDeAss
     sourceIn: 0,
     volume: 1,
     speed: 1,
-    transform: transformPadrao(),
+    ...enquadramentoInicial(),
     label: a.nome.slice(0, 28),
   };
 }

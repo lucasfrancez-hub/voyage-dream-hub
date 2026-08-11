@@ -172,10 +172,31 @@ function EditorPage() {
   const historico = useRef<ProjectState[]>([]);
   const futuro = useRef<ProjectState[]>([]);
 
-  const clipeAtual = useMemo(
-    () => state.clips.find((c) => c.id === selecionados[0]) ?? null,
-    [state.clips, selecionados],
-  );
+  // A seleção é estado de interface: não depende de playback nem de a mídia ter
+  // carregado. Se o id sumir (id regerado por uma operação), reencontra o mesmo
+  // clipe pela trilha/posição para o Inspector nunca "piscar" para vazio.
+  const ultimoClipeRef = useRef<EditairClip | null>(null);
+  const clipeAtual = useMemo(() => {
+    const id = selecionados[0];
+    if (!id) {
+      ultimoClipeRef.current = null;
+      return null;
+    }
+    const achado = state.clips.find((c) => c.id === id);
+    if (achado) {
+      ultimoClipeRef.current = achado;
+      return achado;
+    }
+    const anterior = ultimoClipeRef.current;
+    const equivalente = anterior
+      ? state.clips.find(
+          (c) => c.trackId === anterior.trackId && c.start === anterior.start && c.assetId === anterior.assetId,
+        )
+      : null;
+    ultimoClipeRef.current = equivalente ?? null;
+    return equivalente ?? null;
+  }, [state.clips, selecionados]);
+
 
   const assetsMap = useMemo(() => {
     const m: Record<string, AssetInfo> = {};
@@ -386,9 +407,15 @@ function EditorPage() {
       const t = rel.ms0 + (performance.now() - rel.t0);
       if (t >= state.durationMs) {
         setTocando(false);
-        setPlayhead(state.durationMs);
+        // Para no último quadro visível (e não 1ms depois do fim), senão o
+        // preview fica preto ao terminar — sensação de "a imagem sumiu".
+        const fim = Math.max(0, state.durationMs - 1);
+        setPlayhead(fim);
+        eng.sincronizar(state, fim, false);
+        eng.desenhar(state, fim);
         return;
       }
+
       setPlayhead(t);
       eng.sincronizar(state, t, true);
       eng.desenhar(state, t);

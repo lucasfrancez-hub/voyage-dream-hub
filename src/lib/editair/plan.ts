@@ -15,6 +15,7 @@ import {
   novoId,
   recalcularDuracao,
   transformPadrao,
+  enquadramentoInicial,
   type EditairClip,
   type ProjectState,
 } from "./types";
@@ -171,7 +172,7 @@ export function montarRoughCut(
       sourceIn: corte.sourceInMs,
       volume,
       speed: 1,
-      transform: transformPadrao(),
+      ...enquadramentoInicial(),
       fadeInMs: i === 0 ? 0 : 40,
       fadeOutMs: i === cortes.length - 1 ? 0 : 40,
       label: corte.rotulo?.slice(0, 30) ?? corte.bloco?.slice(0, 30) ?? `tomada ${i + 1}`,

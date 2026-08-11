@@ -2,7 +2,7 @@ import { aplicarOps, type SourceDurations } from "./ops";
 import {
   novoId,
   recalcularDuracao,
-  transformPadrao,
+  enquadramentoInicial,
   type EditairClip,
   type EditairTrack,
   type TrackKind,
@@ -316,7 +316,7 @@ export function inserirAssetNaTimeline(
     sourceIn: 0,
     volume: 1,
     speed: 1,
-    transform: transformPadrao(),
+    ...enquadramentoInicial(),
     label: asset.nome.slice(0, 28),
   };
 

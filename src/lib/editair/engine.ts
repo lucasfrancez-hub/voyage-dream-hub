@@ -486,11 +486,17 @@ export class EditairEngine {
     this.ultimo = { state, t };
     const { ctx, width, height } = this;
 
+    // A escala é derivada do canvas real a cada quadro: se algum fluxo (export,
+    // troca de formato/qualidade) deixou this.escala defasada, o desenho saía
+    // ampliado e "empurrado" para fora do canvas (para a direita/baixo).
+    const esc = this.canvas.width > 0 && width > 0 ? this.canvas.width / width : this.escala;
+    const escala = Number.isFinite(esc) && esc > 0 ? esc : 1;
+    this.escala = escala;
+
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.fillStyle = "#000";
     ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-    ctx.setTransform(this.escala, 0, 0, this.escala, 0, 0);
-    void width;
+    ctx.setTransform(escala, 0, 0, escala, 0, 0);
     void height;
 
     const ativos = this.ativos(state, t);
@@ -503,20 +509,38 @@ export class EditairEngine {
       .sort((a, b) => z(a.trackId) - z(b.trackId));
 
     let offline = false;
+    let desenhou = 0;
     for (const c of visuais) {
       const trilha = state.tracks.find((x) => x.id === c.trackId);
       if (trilha?.hidden) continue;
-      if (c.kind === "video" || c.kind === "image") {
-        if (c.assetId && this.falhas.has(c.assetId)) {
-          offline = true;
-          continue;
+      try {
+        if (c.kind === "video" || c.kind === "image") {
+          // Imagem já decodificada nunca é tratada como offline, mesmo que uma
+          // tentativa anterior de carregamento tenha falhado.
+          const temImagem = !!c.assetId && !!this.imagens.get(c.assetId)?.naturalWidth;
+          if (c.assetId && this.falhas.has(c.assetId) && !temImagem) {
+            offline = true;
+            continue;
+          }
+          this.desenharVideo(c, t);
+          desenhou++;
+        } else if (c.kind === "caption") {
+          this.desenharLegenda(c, c.captionStyle ?? state.captionStyle, t);
+          desenhou++;
+        } else if (c.kind === "text") {
+          this.desenharTexto(c, t);
+          desenhou++;
         }
-        this.desenharVideo(c, t);
-      } else if (c.kind === "caption") this.desenharLegenda(c, c.captionStyle ?? state.captionStyle, t);
-      else if (c.kind === "text") this.desenharTexto(c, t);
+      } catch (e) {
+        // Um clipe com problema não pode apagar o quadro inteiro (tela preta no Play).
+        console.error("[preview:error] falha ao desenhar clipe", { clipId: c.id, kind: c.kind, erro: e });
+      }
     }
-    if (offline) this.avisoOffline();
+    // O aviso é opaco: só aparece quando não há nada desenhado, para não cobrir
+    // imagens/vídeos válidos em outras trilhas.
+    if (offline && desenhou === 0) this.avisoOffline();
   }
+
 
   /** Placeholder visível em vez de tela preta quando o arquivo não abre. */
   private avisoOffline() {
@@ -742,7 +766,11 @@ export class EditairEngine {
     if (ap?.estabilizar) scale *= 1.05; // margem de segurança da estabilização
     if (ap?.ruido) blurExtra += 0.7;
 
-    const escalaBase = Math.max(width / sw, height / sh);
+    // "fit" (padrão de toda mídia nova) mantém o clipe inteiro dentro do canvas;
+    // "preencher" é o antigo comportamento de cobrir o quadro cortando as bordas.
+    const modo = c.enquadramento ?? "preencher";
+    const escalaBase =
+      modo === "fit" ? Math.min(width / sw, height / sh) : Math.max(width / sw, height / sh);
     const escala = escalaBase * scale;
     const w = sw * escala;
     const h = sh * escala;
