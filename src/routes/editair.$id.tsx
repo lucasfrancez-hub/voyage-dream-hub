@@ -188,6 +188,7 @@ function EditorPage() {
   /** Carrega o asset na engine; se ela ainda não existir, guarda para depois. */
   const carregarNaEngine = useCallback(async (a: AssetItem) => {
     if (!a.url) {
+      pendentesRef.current.delete(a.id);
       console.warn(`[media] asset sem url assetId=${a.id}`);
       return;
     }
@@ -200,7 +201,10 @@ function EditorPage() {
     pendentesRef.current.delete(a.id);
     try {
       await eng.carregar(a.id, a.url, a.kind);
-      eng.desenhar(stateRef.current, 0);
+      if (eng.falhou(a.id)) {
+        toast.error(`Não foi possível abrir esta mídia: ${a.nome}`);
+      }
+      eng.desenhar(stateRef.current, playheadRef.current);
     } catch (e) {
       console.error(`[preview:error] falha ao carregar asset=${a.id}`, e);
       toast.error(`Não foi possível abrir esta mídia: ${a.nome}`);

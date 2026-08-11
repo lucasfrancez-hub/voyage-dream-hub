@@ -98,6 +98,11 @@ export class EditairEngine {
     return this.audioCtx;
   }
 
+  /** true quando o asset não pôde ser decodificado (arquivo movido, URL expirada…). */
+  falhou(assetId: string) {
+    return this.falhas.has(assetId);
+  }
+
   async carregar(assetId: string, url: string, kind = "video") {
     if ((this.midias.has(assetId) || this.imagens.has(assetId)) && !this.falhas.has(assetId)) return;
     // Relink ou uma nova URL de proxy deve substituir a tentativa que falhou.
