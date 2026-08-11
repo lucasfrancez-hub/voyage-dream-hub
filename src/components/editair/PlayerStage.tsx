@@ -144,7 +144,9 @@ export function PlayerStage({
       const cy = a.base.cy * height;
       const dAntes = Math.hypot(a.x - cx, a.y - cy) || 1;
       const dAgora = Math.hypot(pt.x - cx, pt.y - cy) || 1;
-      onEscalar?.(a.id, dAgora / dAntes);
+      // Proporção mantida sempre; com Shift o ajuste fica fino (metade da variação).
+      const bruto = dAgora / dAntes;
+      onEscalar?.(a.id, ev.shiftKey ? 1 + (bruto - 1) / 2 : bruto);
       arrasto.current = { ...a, x: pt.x, y: pt.y };
     } else {
       const cx = a.base.cx * width;
@@ -156,8 +158,10 @@ export function PlayerStage({
   };
 
   const soltar = () => {
+    if (arrasto.current) onFimGesto?.();
     arrasto.current = null;
   };
+
   const ratioAtual = `${Math.round((width / height) * 100) / 100}`;
 
   const temOriginal = !!originalWidth && !!originalHeight;
