@@ -1,7 +1,7 @@
 {
   "name": "editair-desktop",
   "productName": "EditAir",
-  "version": "1.0.3",
+  "version": "1.1.0",
   "description": "EditAir — editor de vídeo local-first com IA online (VIA AIR)",
   "main": "main.cjs",
   "author": "VIA AIR",
@@ -14,7 +14,8 @@
     "build:mac:universal": "electron-builder --mac --universal",
     "build:win": "electron-builder --win --x64",
     "release:mac": "electron-builder --mac --arm64 --publish always",
-    "prepare:mac-binaries": "bash scripts/preparar-binarios-macos.sh",
+    "prepare:mac-binaries": "bash scripts/preparar-binarios-macos.sh && bash scripts/preparar-whisper-macos.sh",
+    "prepare:whisper": "bash scripts/preparar-whisper-macos.sh",
     "verify:mac": "bash scripts/verificar-app.sh dist/mac-arm64/EditAir.app"
   },
   "dependencies": {
@@ -59,7 +60,7 @@
         {
           "from": "bin/darwin/${arch}",
           "to": "bin",
-          "filter": ["ffmpeg", "ffprobe"]
+          "filter": ["ffmpeg", "ffprobe", "whisper-cli"]
         }
       ],
       "target": [

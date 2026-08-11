@@ -53,6 +53,33 @@ export type EstadoUpdate = {
   obrigatoria?: boolean;
 };
 
+export type EstadoTranscricaoLocal = {
+  disponivel: boolean;
+  binario: string;
+  versaoPipeline: string;
+  modelo: { id: string; arquivo: string; caminho: string; presente: boolean; bytes: number; bytesAprox: number };
+  cacheDir: string;
+};
+
+export type ResultadoAlinhamentoLocal = {
+  words: Array<{ w: string; start: number; end: number; conf?: number }>;
+  fonte: "whisper-local";
+  modelo: string;
+  versaoPipeline: string;
+  idioma: string;
+  msDecorridos: number;
+  cache: boolean;
+};
+
+export type ProgressoTranscricao = {
+  jobId?: string | null;
+  etapa: "modelo" | "audio" | "transcrever" | "alinhar" | "cache";
+  percentual?: number;
+  recebido?: number;
+  total?: number;
+};
+
+
 type PonteDesktop = {
   disponivel: true;
   info(): Promise<InfoDesktop>;
@@ -79,6 +106,9 @@ type PonteDesktop = {
     importacao(): Promise<unknown>;
   };
 
+
+
+
   biblioteca: {
     listar(): Promise<AssetLocal[]>;
     importar(caminhos: string[], opcoes?: { copiar?: boolean }): Promise<AssetLocal[]>;
@@ -93,6 +123,21 @@ type PonteDesktop = {
     waveform(caminho: string, pontos?: number): Promise<number[]>;
     proxy(caminho: string): Promise<string | null>;
     extrairTrecho(caminho: string, inicioMs: number, fimMs: number, somenteAudio?: boolean): Promise<string>;
+  };
+  /** alinhador acústico local (whisper.cpp) — fonte oficial dos timestamps */
+  transcricao?: {
+    estado(): Promise<EstadoTranscricaoLocal>;
+    baixarModelo(): Promise<EstadoTranscricaoLocal["modelo"]>;
+    local(opcoes: {
+      caminho: string;
+      idioma?: string;
+      inicioMs?: number;
+      fimMs?: number | null;
+      ignorarCache?: boolean;
+      jobId?: string | null;
+    }): Promise<ResultadoAlinhamentoLocal>;
+    limparCache(): Promise<{ removidos: number }>;
+    aoProgredir(cb: (e: ProgressoTranscricao) => void): () => void;
   };
   projeto: {
     listar(): Promise<Array<Record<string, unknown>>>;

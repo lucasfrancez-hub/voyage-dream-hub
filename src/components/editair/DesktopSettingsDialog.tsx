@@ -33,6 +33,70 @@ export function DesktopSettingsDialog({
   const [update, setUpdate] = useState<EstadoUpdate | null>(null);
   const [ocupado, setOcupado] = useState(false);
   const [diag, setDiag] = useState("");
+  const [estadoWhisper, setEstadoWhisper] = useState<{
+    binario: boolean;
+    modelo: string;
+    modeloBaixado: boolean;
+  } | null>(null);
+
+  /* ---- alinhador local de legendas (whisper.cpp) ---- */
+  const verEstadoWhisper = async () => {
+    try {
+      const e = await api?.transcricao?.estado();
+      if (!e) {
+        toast.error("Esta versão do Desktop ainda não tem o alinhador local. Atualize o app.");
+        return;
+      }
+      setEstadoWhisper({ binario: e.disponivel, modelo: e.modelo.id, modeloBaixado: e.modelo.presente });
+      setDiag(JSON.stringify(e, null, 2));
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha ao ler o alinhador");
+    }
+  };
+
+  const baixarModeloWhisper = async () => {
+    if (!api?.transcricao) {
+      toast.error("Alinhador local indisponível nesta versão.");
+      return;
+    }
+    setOcupado(true);
+    try {
+      await api.transcricao.baixarModelo();
+      toast.success("Modelo de fala pronto");
+      await verEstadoWhisper();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha ao baixar o modelo");
+    } finally {
+      setOcupado(false);
+    }
+  };
+
+  const limparCacheTranscricao = async () => {
+    try {
+      await api?.transcricao?.limparCache();
+      toast.success("Cache de transcrições limpo");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha ao limpar o cache");
+    }
+  };
+
+  const rodarAB = async () => {
+    const w = window as unknown as { editairABLegendas?: () => Promise<unknown> };
+    if (typeof w.editairABLegendas !== "function") {
+      toast.error("Abra um projeto com vídeo importado nesta sessão antes de rodar o A/B.");
+      return;
+    }
+    setOcupado(true);
+    try {
+      const r = await w.editairABLegendas();
+      setDiag(JSON.stringify(r, null, 2));
+      toast.success("Teste A/B concluído");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha no teste A/B");
+    } finally {
+      setOcupado(false);
+    }
+  };
 
   useEffect(() => setAba(abaInicial), [abaInicial, aberto]);
 
@@ -331,6 +395,44 @@ export function DesktopSettingsDialog({
               </div>
 
             </div>
+
+            <div className="rounded-lg border border-white/10 p-4">
+              <div className="mb-1 flex items-center gap-2 text-white/60">
+                <Activity className="h-4 w-4" /> Legendas — alinhador local (whisper.cpp)
+              </div>
+              <p className="text-xs text-white/50">
+                Os tempos das palavras vêm do alinhador acústico local. O modelo é baixado uma única vez
+                e fica salvo fora do cache.
+              </p>
+              {estadoWhisper && (
+                <p className="mt-2 text-xs text-white/70">
+                  Binário: {estadoWhisper.binario ? "ok" : "ausente"} · Modelo:{" "}
+                  {estadoWhisper.modeloBaixado
+                    ? `${estadoWhisper.modelo} pronto`
+                    : `${estadoWhisper.modelo} não baixado`}
+                </p>
+              )}
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Button size="sm" variant="secondary" onClick={() => void verEstadoWhisper()}>
+                  Ver estado do alinhador
+                </Button>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  disabled={ocupado}
+                  onClick={() => void baixarModeloWhisper()}
+                >
+                  Baixar / verificar modelo
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => void limparCacheTranscricao()}>
+                  Limpar cache de transcrições
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => void rodarAB()}>
+                  Rodar teste A/B de legendas
+                </Button>
+              </div>
+            </div>
+
             <textarea
               readOnly
               value={diag}

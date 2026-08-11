@@ -122,3 +122,68 @@ export const transcreverBlocoEditair = createServerFn({ method: "POST" })
 
     return { words };
   });
+
+/* ------------------------------------------------------------------ *
+ * REVISOR DE TEXTO — NÃO devolve tempo.
+ * Os timestamps são exclusivamente do alinhador acústico local.
+ * Aqui o modelo só corrige ortografia, pontuação, maiúsculas e nomes próprios.
+ * ------------------------------------------------------------------ */
+
+const InputRevisao = z.object({
+  texto: z.string().min(1).max(60_000),
+  idioma: z.string().max(10).default("pt"),
+  contexto: z.string().max(600).optional(),
+});
+
+const PROMPT_REVISAO = `Você é um revisor de transcrição em português do Brasil.
+Receberá o texto bruto de um reconhecedor de fala e devolverá o MESMO texto revisado.
+
+PODE:
+- corrigir ortografia;
+- inserir pontuação e acentos;
+- ajustar maiúsculas e nomes próprios (ex.: "via ar" -> "Via Air");
+- separar frases.
+
+NÃO PODE:
+- inventar, remover ou reordenar palavras faladas;
+- resumir, traduzir ou comentar;
+- devolver marcações de tempo, numeração ou explicações.
+
+Responda SOMENTE com o texto revisado, na mesma ordem das palavras.`;
+
+export const revisarTextoEditair = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => InputRevisao.parse(input))
+  .handler(async ({ data }): Promise<{ texto: string }> => {
+    const apiKey = process.env.LOVABLE_API_KEY;
+    if (!apiKey) throw new Error("LOVABLE_API_KEY ausente no servidor");
+
+    const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Lovable-API-Key": apiKey,
+        "X-Lovable-AIG-SDK": "custom-fetch",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash",
+        messages: [
+          { role: "system", content: PROMPT_REVISAO },
+          {
+            role: "user",
+            content: `${data.contexto ? `Contexto do vídeo: ${data.contexto}\n\n` : ""}Texto bruto:\n${data.texto}`,
+          },
+        ],
+      }),
+    });
+
+    if (!res.ok) {
+      const txt = await res.text();
+      if (res.status === 429) throw new Error("Limite de uso da IA atingido.");
+      if (res.status === 402) throw new Error("Créditos da IA esgotados.");
+      throw new Error(`Falha na revisão de texto (${res.status}): ${txt.slice(0, 200)}`);
+    }
+    const json = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
+    const texto = (json.choices?.[0]?.message?.content ?? "").trim();
+    return { texto: texto || data.texto };
+  });

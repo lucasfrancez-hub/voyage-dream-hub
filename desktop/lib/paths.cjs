@@ -55,6 +55,8 @@ const dirs = {
   proxies: () => garantir(path.join(cacheRaiz(), "proxies")),
   transcripts: () => garantir(path.join(cacheRaiz(), "transcripts")),
   renders: () => garantir(path.join(cacheRaiz(), "renders")),
+  /** modelos de IA local (whisper.cpp) — ficam FORA do cache: apagar cache não baixa de novo */
+  modelos: () => garantir(path.join(raiz(), "Modelos")),
 };
 
 function tamanhoDe(dir) {

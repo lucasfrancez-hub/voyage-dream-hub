@@ -332,6 +332,22 @@ responder("projeto:autosave", async ({ id, estado }) => projects.autosave(id, es
 responder("projeto:descartarRecuperacao", async ({ id }) => projects.descartarRecuperacao(id));
 responder("projeto:excluir", async ({ id }) => projects.excluir(id));
 
+/* --- transcrição/alinhamento LOCAL (whisper.cpp) --- */
+const whisper = require("./lib/whisper.cjs");
+
+const emitirTranscricao = (dados) => janela?.webContents.send("editair:transcricao", dados);
+
+responder("transcricao:estado", async () => whisper.estado());
+responder("transcricao:baixarModelo", async () => {
+  const modelo = await whisper.baixarModelo((p) => emitirTranscricao({ etapa: "modelo", ...p }));
+  emitirTranscricao({ etapa: "modelo", percentual: 100 });
+  return modelo;
+});
+responder("transcricao:local", async ({ caminho, idioma = "pt", inicioMs = 0, fimMs = null, ignorarCache = false, jobId = null }) =>
+  whisper.transcrever({ caminho, idioma, inicioMs, fimMs, ignorarCache }, (p) => emitirTranscricao({ jobId, ...p })),
+);
+responder("transcricao:limparCache", async () => whisper.limparCacheTranscricoes());
+
 /* --- cache --- */
 responder("cache:tamanho", async () => ({ bytes: tamanhoDe(dirs.cache()), caminho: dirs.cache() }));
 responder("cache:limpar", async () => ({ bytes: limparCache(), caminho: dirs.cache() }));

@@ -72,6 +72,15 @@ contextBridge.exposeInMainWorld("editairDesktop", {
       chamar("midia:extrairTrecho", { caminho, inicioMs, fimMs, somenteAudio }),
   },
 
+  transcricao: {
+    estado: () => chamar("transcricao:estado"),
+    baixarModelo: () => chamar("transcricao:baixarModelo"),
+    local: (opcoes) => chamar("transcricao:local", opcoes),
+    limparCache: () => chamar("transcricao:limparCache"),
+    aoProgredir: ouvintes("editair:transcricao"),
+  },
+
+
   projeto: {
     listar: () => chamar("projeto:listar"),
     criar: (dados) => chamar("projeto:criar", dados),
