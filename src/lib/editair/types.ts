@@ -46,6 +46,8 @@ export type CaptionStyle = {
   background: "none" | "box" | "soft";
   weight: number;
   y: number; // 0..1 posição vertical
+  /** 0..1 posição horizontal do centro da legenda (padrão 0.5) */
+  x?: number;
   uppercase: boolean;
   fontFamily: string;
   karaoke: boolean;
@@ -80,6 +82,7 @@ export const LEGENDA_PADRAO: CaptionStyle = {
   background: "none",
   weight: 800,
   y: 0.78,
+  x: 0.5,
   uppercase: true,
   fontFamily: "Inter, system-ui, sans-serif",
   karaoke: true,

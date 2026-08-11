@@ -44,6 +44,10 @@ export type AcoesInspector = {
   onPatchClip: (patch: Partial<EditairClip>) => void;
   onPatchState: (patch: Partial<ProjectState>) => void;
   onCaption: (patch: Partial<CaptionStyle>) => void;
+  /** patch no estilo de UMA legenda (não altera o padrão do projeto) */
+  onCaptionClip?: (clipId: string, patch: Partial<CaptionStyle>) => void;
+  /** copia posição/tamanho da legenda atual para as demais */
+  onAplicarLayoutLegendas?: (clipId: string, escopo: "todas" | "preset" | "esta") => void;
   onKeyframe: (prop: KeyProp) => void;
   onDuplicar: () => void;
   onCamada: (dir: "frente" | "tras") => void;
@@ -916,11 +920,23 @@ function InspTexto(p: Props & { clip: EditairClip }) {
 
 /* ============================== LEGENDA ============================== */
 
-function InspLegenda({ clip, state, onPatchClip, onCaption, onTextoLegenda }: Props & { clip: EditairClip }) {
+function InspLegenda({
+  clip,
+  state,
+  onPatchClip,
+  onCaption,
+  onCaptionClip,
+  onAplicarLayoutLegendas,
+  onTextoLegenda,
+}: Props & { clip: EditairClip }) {
   const est: CaptionStyle = { ...LEGENDA_PADRAO, ...state.captionStyle, ...(clip.captionStyle ?? {}) };
-  const set = (patch: Partial<CaptionStyle>) => onCaption(patch);
+  // Editar sempre a legenda selecionada: mexer no padrão do projeto não tinha
+  // efeito visível quando o clipe já possuía estilo próprio.
+  const set = (patch: Partial<CaptionStyle>) =>
+    onCaptionClip ? onCaptionClip(clip.id, patch) : onCaption(patch);
   const escreverTexto = (texto: string, commit: boolean) =>
     onTextoLegenda ? onTextoLegenda(clip.id, texto, commit) : onPatchClip({ text: texto });
+
   return (
     <div className="space-y-3">
       <Campo label="Texto da legenda">
@@ -996,8 +1012,25 @@ function InspLegenda({ clip, state, onPatchClip, onCaption, onTextoLegenda }: Pr
         </Campo>
       </div>
       <Linha label={`Posição vertical — ${(est.y * 100).toFixed(0)}%`}>
-        <Slider value={[est.y * 100]} min={10} max={95} step={1} onValueChange={([v]) => set({ y: v / 100 })} />
+        <Slider value={[est.y * 100]} min={2} max={98} step={1} onValueChange={([v]) => set({ y: v / 100 })} />
       </Linha>
+      <Linha label={`Posição horizontal — ${(((est.x ?? 0.5)) * 100).toFixed(0)}%`}>
+        <Slider
+          value={[(est.x ?? 0.5) * 100]}
+          min={2}
+          max={98}
+          step={1}
+          onValueChange={([v]) => set({ x: v / 100 })}
+        />
+      </Linha>
+      <p className="text-[10px] text-white/35">
+        Dica: arraste a legenda direto no Reprodutor e use os cantos para redimensionar (Shift = ajuste fino).
+      </p>
+      <AplicarLayoutLegenda
+        onAplicar={(escopo) => onAplicarLayoutLegendas?.(clip.id, escopo)}
+        habilitado={!!onAplicarLayoutLegendas}
+      />
+
       <Linha label={`Contorno — ${est.stroke}`}>
         <Slider value={[est.stroke]} min={0} max={24} step={1} onValueChange={([v]) => set({ stroke: v })} />
       </Linha>
@@ -1033,6 +1066,51 @@ function InspLegenda({ clip, state, onPatchClip, onCaption, onTextoLegenda }: Pr
     </div>
   );
 }
+
+type EscopoLayout = "todas" | "preset" | "esta";
+
+/** Copia só posição/tamanho para outras legendas — texto e timing ficam intactos. */
+function AplicarLayoutLegenda({
+  onAplicar,
+  habilitado,
+}: {
+  onAplicar: (escopo: EscopoLayout) => void;
+  habilitado: boolean;
+}) {
+  const [escopo, setEscopo] = useState<EscopoLayout>("todas");
+  const opcoes: { id: EscopoLayout; nome: string }[] = [
+    { id: "todas", nome: "Todas as legendas" },
+    { id: "preset", nome: "Apenas este preset" },
+    { id: "esta", nome: "Apenas esta legenda" },
+  ];
+  return (
+    <div className="space-y-1.5 rounded-lg border border-white/10 bg-black/25 p-2">
+      <p className="text-[10px] uppercase tracking-wide text-white/40">Aplicar posição e tamanho a</p>
+      {opcoes.map((o) => (
+        <label key={o.id} className="flex cursor-pointer items-center gap-2 text-[11px] text-white/70">
+          <input
+            type="radio"
+            name="escopo-layout-legenda"
+            checked={escopo === o.id}
+            onChange={() => setEscopo(o.id)}
+            className="accent-[#F26B1F]"
+          />
+          {o.nome}
+        </label>
+      ))}
+      <button
+        disabled={!habilitado}
+        onClick={() => onAplicar(escopo)}
+        className="mt-1 w-full rounded-md border border-[#F26B1F]/50 bg-[#F26B1F]/15 px-2 py-1.5 text-[11px] text-[#F26B1F] transition hover:bg-[#F26B1F]/25 disabled:opacity-40"
+      >
+        Aplicar posição e tamanho em todas
+      </button>
+      <p className="text-[10px] text-white/30">Não altera texto nem tempos.</p>
+    </div>
+  );
+}
+
+
 
 /* ============================== primitivos ============================== */
 

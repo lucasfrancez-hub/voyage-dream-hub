@@ -1147,7 +1147,13 @@ export class EditairEngine {
     const yBase = height * estilo.y - ((linhas.length - 1) * alturaLinha) / 2 + deslocY;
     const alinhamento = estilo.align ?? "center";
     const centroX =
-      alinhamento === "left" ? width * 0.07 + maxLargura / 2 : alinhamento === "right" ? width * 0.93 - maxLargura / 2 : width / 2;
+      typeof estilo.x === "number"
+        ? width * clamp(estilo.x, 0, 1)
+        : alinhamento === "left"
+          ? width * 0.07 + maxLargura / 2
+          : alinhamento === "right"
+            ? width * 0.93 - maxLargura / 2
+            : width / 2;
 
     // karaokê por ÍNDICE da palavra (não por texto): palavra repetida na mesma
     // frase não pode acender junto, e o destaque segue word.start → word.end
@@ -1155,10 +1161,23 @@ export class EditairEngine {
     const words = c.words ?? [];
     const idxAtiva = estilo.karaoke ? words.findIndex((w) => t >= w.start && t < w.end) : -1;
     const ultimaFalada = words.reduce((acc, w, i) => (t >= w.start ? i : acc), -1);
-    const limpar = (s: string) => s.replace(/[^\p{L}\p{N}]/gu, "");
+    // A comparação precisa ser insensível a caixa e acento: com `uppercase`
+    // ligado o texto desenhado é "OLÁ" e words[] guarda "olá" — sem normalizar,
+    // nenhuma palavra casava e o karaokê nunca acendia.
+    const limpar = (s: string) =>
+      s
+        .normalize("NFD")
+        .replace(/\p{M}/gu, "")
+        .toLowerCase()
+        .replace(/[^\p{L}\p{N}]/gu, "");
+    // Quando a quantidade de palavras desenhadas bate com words[], o índice
+    // posicional já é confiável (texto revisado à mão, pontuação, etc.).
+    const totalDesenhadas = linhas.join(" ").split(/\s+/).filter(Boolean).length;
+    const confiaIndice = totalDesenhadas === words.length;
     const modoPalavra = estilo.animacaoPalavra ?? "cor";
     // índice global da palavra desenhada, para casar com words[] na ordem
     let indicePalavra = -1;
+
 
     linhas.forEach((linha, i) => {
       const y = yBase + i * alturaLinha;
@@ -1188,7 +1207,7 @@ export class EditairEngine {
       palavras.forEach((p, idx) => {
         indicePalavra++;
         const casaTexto = limpar(words[indicePalavra]?.w ?? "") === limpar(p);
-        const iPal = casaTexto ? indicePalavra : -1;
+        const iPal = casaTexto || confiaIndice ? indicePalavra : -1;
         const destaque = idxAtiva >= 0 && iPal === idxAtiva;
         const px = x + larguras[idx] / 2 - espaco / 2;
         const alphaBase = ctx.globalAlpha;
@@ -1221,6 +1240,41 @@ export class EditairEngine {
     if ("letterSpacing" in ctxAny) ctxAny.letterSpacing = "0px";
     ctx.restore();
   }
+
+  /**
+   * Caixa da legenda no frame (frações 0..1), usada pela seleção direta no
+   * Reprodutor. Mede o texto com a mesma fonte do desenho, sem animações.
+   */
+  caixaLegenda(c: EditairClip, estilo: CaptionStyle): { cx: number; cy: number; w: number; h: number } | null {
+    const texto = estilo.uppercase ? (c.text ?? "").toUpperCase() : (c.text ?? "");
+    if (!texto) return null;
+    const { ctx, width, height } = this;
+    ctx.save();
+    const fs = estilo.fontSize * (estilo.escala ?? 1);
+    ctx.font = `${estilo.weight} ${fs}px ${estilo.fontFamily}`;
+    const ctxAny = ctx as CanvasRenderingContext2D & { letterSpacing?: string };
+    if ("letterSpacing" in ctxAny) ctxAny.letterSpacing = `${estilo.tracking ?? 0}px`;
+    const maxLargura = width * 0.86;
+    const linhas = quebrarLinhas(ctx, texto, maxLargura).slice(0, Math.max(1, estilo.maxLines ?? 2));
+    const larg = linhas.reduce((m, l) => Math.max(m, ctx.measureText(l).width), 0);
+    if ("letterSpacing" in ctxAny) ctxAny.letterSpacing = "0px";
+    ctx.restore();
+    const alturaLinha = fs * (estilo.lineHeight ?? 1.18);
+    const alturaTotal = linhas.length * alturaLinha + (estilo.paddingY ?? 6) * 2;
+    const largTotal = larg + (estilo.paddingX ?? 18) * 2;
+    const alinhamento = estilo.align ?? "center";
+    const cx =
+      typeof estilo.x === "number"
+        ? clamp(estilo.x, 0, 1)
+        : alinhamento === "left"
+          ? (width * 0.07 + maxLargura / 2) / width
+          : alinhamento === "right"
+            ? (width * 0.93 - maxLargura / 2) / width
+            : 0.5;
+    return { cx, cy: estilo.y, w: largTotal / width, h: alturaTotal / height };
+  }
+
+
 
 
   private desenharTexto(c: EditairClip, t: number) {
