@@ -233,9 +233,9 @@ function PagamentosPage() {
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl font-display font-bold">Pagamentos</h1>
-          <p className="text-sm text-muted-foreground">Pix de saída pela conta ASAAS e acompanhamento dos status.</p>
+          <p className="text-sm text-muted-foreground">Pix e boletos de saída pela conta ASAAS e acompanhamento dos status.</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button
             variant="outline"
             size="sm"
@@ -249,7 +249,31 @@ function PagamentosPage() {
           <Button size="sm" onClick={() => setNovoOpen(true)}>
             <Plus className="h-4 w-4 mr-1.5" /> Novo pagamento Pix
           </Button>
+          <Button size="sm" variant="secondary" onClick={() => setNovoBoletoOpen(true)}>
+            <Plus className="h-4 w-4 mr-1.5" /> Novo pagamento boleto
+          </Button>
         </div>
+      </div>
+
+      {/* Tipo */}
+      <div className="flex gap-2">
+        {([
+          { k: "todos", label: "Todos" },
+          { k: "pix", label: "Pix" },
+          { k: "boleto", label: "Boleto" },
+        ] as const).map((t) => (
+          <button
+            key={t.k}
+            onClick={() => setTipoFilter(t.k)}
+            className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition ${
+              tipoFilter === t.k
+                ? "border-brand-orange text-brand-orange bg-brand-orange/10"
+                : "border-border text-muted-foreground hover:border-brand-orange/40"
+            }`}
+          >
+            {t.label}
+          </button>
+        ))}
       </div>
 
       {/* Status */}
@@ -277,22 +301,27 @@ function PagamentosPage() {
           <div className="divide-y divide-border">
             {agendados.map((r) => (
               <button
-                key={r.id}
-                onClick={() => setDetalheId(r.id)}
+                key={`${r.kind}-${r.id}`}
+                onClick={() => (r.kind === "pix" ? setDetalheId(r.id) : setReciboBoleto(r.raw))}
                 className="w-full text-left grid grid-cols-[90px_1fr_auto] items-center gap-3 px-4 py-3 hover:bg-muted/30"
               >
                 <span className="text-sm font-semibold">
-                  {r.scheduled_date ? new Date(r.scheduled_date + "T00:00:00").toLocaleDateString("pt-BR") : "—"}
+                  {r.scheduledDate ? new Date(r.scheduledDate + "T00:00:00").toLocaleDateString("pt-BR") : "—"}
                 </span>
                 <span className="min-w-0">
-                  <span className="block font-medium truncate">{r.favored_name}</span>
-                  <span className="block text-xs text-muted-foreground truncate">
-                    {r.pix_key} · {ORIGIN_LABEL[r.origin] ?? r.origin}
+                  <span className="flex items-center gap-2">
+                    <TipoBadge kind={r.kind} />
+                    <span className="font-medium truncate">{r.nome}</span>
                   </span>
+                  <span className="block text-xs text-muted-foreground truncate">{r.sub}</span>
                 </span>
-                <span className="font-semibold tabular-nums">{formatBRL(Number(r.value))}</span>
+                <span className="font-semibold tabular-nums">{formatBRL(r.valor)}</span>
               </button>
             ))}
+          </div>
+        </div>
+      )}
+
           </div>
         </div>
       )}
