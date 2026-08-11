@@ -296,9 +296,75 @@ export const sincronizarPagamentoPix = createServerFn({ method: 'POST' })
     const status = mapAsaasTransferStatus(res?.status)
 
     const { applyTransferStatus } = await import('@/lib/asaas-transfer.server')
-    await applyTransferStatus({ transferId: row.id, status, raw: res, event: 'MANUAL_SYNC' })
-    return { status }
+    const r = await applyTransferStatus({
+      transferId: row.id,
+      status,
+      raw: res,
+      event: 'MANUAL_SYNC',
+      ip: clientIp(),
+      actorUserId: context.userId,
+      message: `Sincronização manual: ${row.status ?? '—'} → ${status} (ASAAS: ${res?.status ?? '—'})`,
+    })
+    return { status, statusAnterior: row.status, mudou: (r as any)?.mudou ?? false }
   })
+
+/**
+ * Sincronização real de TODOS os pagamentos ainda não finalizados.
+ * Somente GET /v3/transfers/{id} — nunca cria nem reenvia Pix.
+ */
+export const sincronizarTodosPagamentosPix = createServerFn({ method: 'POST' })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context as any)
+    const { supabaseAdmin } = await import('@/integrations/supabase/client.server')
+    const { data: rows, error } = await supabaseAdmin
+      .from('asaas_transfers')
+      .select('id, status, asaas_transfer_id')
+      .not('asaas_transfer_id', 'is', null)
+      .not('status', 'in', '(concluido,cancelado,falhou)')
+      .order('created_at', { ascending: false })
+      .limit(200)
+    if (error) throw new Error(error.message)
+
+    const pendentes = rows ?? []
+    if (!pendentes.length) return { verificados: 0, atualizados: 0, erros: 0, mudancas: [] as any[] }
+
+    const { getAsaasTransfer } = await import('@/lib/asaas.server')
+    const { applyTransferStatus } = await import('@/lib/asaas-transfer.server')
+    const ip = clientIp()
+
+    let atualizados = 0
+    let erros = 0
+    const mudancas: Array<{ id: string; de: string | null; para: string }> = []
+
+    // Sequencial de propósito: evita rajada contra a API do ASAAS.
+    for (const row of pendentes) {
+      try {
+        const res = await getAsaasTransfer(row.asaas_transfer_id as string)
+        const status = mapAsaasTransferStatus(res?.status)
+        if (status === row.status) continue
+        const r = await applyTransferStatus({
+          transferId: row.id,
+          status,
+          raw: res,
+          event: 'MANUAL_SYNC',
+          ip,
+          actorUserId: context.userId,
+          message: `Sincronização manual: ${row.status ?? '—'} → ${status} (ASAAS: ${res?.status ?? '—'})`,
+        })
+        if ((r as any)?.mudou) {
+          atualizados++
+          mudancas.push({ id: row.id, de: row.status, para: status })
+        }
+      } catch (e) {
+        erros++
+        console.error('[sync-transfers]', row.id, (e as Error).message)
+      }
+    }
+
+    return { verificados: pendentes.length, atualizados, erros, mudancas }
+  })
+
 
 /** Cancela um pagamento ainda não executado (quando o ASAAS permitir). */
 export const cancelarPagamentoPix = createServerFn({ method: 'POST' })

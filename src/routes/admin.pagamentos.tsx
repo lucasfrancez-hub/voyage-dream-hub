@@ -15,7 +15,7 @@ import { ComprovanteReceipt } from "@/components/financial/ComprovanteReceipt";
 import { formatBRL } from "@/lib/format";
 import { PixPaymentDialog } from "@/components/financial/PixPaymentDialog";
 import {
-  listarPagamentosPix, detalharPagamentoPix, sincronizarPagamentoPix, cancelarPagamentoPix,
+  listarPagamentosPix, detalharPagamentoPix, sincronizarPagamentoPix, sincronizarTodosPagamentosPix, cancelarPagamentoPix,
 } from "@/lib/pagamentos.functions";
 import { confirmThen } from "@/lib/confirm";
 
@@ -55,6 +55,7 @@ function PagamentosPage() {
   const qc = useQueryClient();
   const listar = useServerFn(listarPagamentosPix);
   const sincronizar = useServerFn(sincronizarPagamentoPix);
+  const sincronizarTodos = useServerFn(sincronizarTodosPagamentosPix);
   const cancelar = useServerFn(cancelarPagamentoPix);
 
   const [novoOpen, setNovoOpen] = useState(false);
@@ -62,6 +63,8 @@ function PagamentosPage() {
   const [detalheId, setDetalheId] = useState<string | null>(null);
   const [filter, setFilter] = useState<string>("todos");
   const [search, setSearch] = useState("");
+  const [sincronizandoTudo, setSincronizandoTudo] = useState(false);
+
 
   const { data, isLoading, refetch, isFetching } = useQuery({
     queryKey: ["asaas-transfers"],
@@ -95,13 +98,42 @@ function PagamentosPage() {
 
   const doSync = async (id: string) => {
     try {
-      await sincronizar({ data: { id } });
-      toast.success("Status sincronizado");
-      qc.invalidateQueries({ queryKey: ["asaas-transfers"] });
+      const r: any = await sincronizar({ data: { id } });
+      await qc.invalidateQueries({ queryKey: ["asaas-transfers"] });
+      await qc.invalidateQueries({ queryKey: ["asaas-transfer", id] });
+      toast.success(
+        r?.mudou ? `Status atualizado: ${STATUS_META[r.status]?.label ?? r.status}` : "Status já estava atualizado",
+      );
     } catch (e) {
       toast.error((e as Error).message);
     }
   };
+
+  /** Sincronização real com o ASAAS (somente GET) + atualização da lista. */
+  const doSyncTodos = async () => {
+    if (sincronizandoTudo) return;
+    setSincronizandoTudo(true);
+    const t = toast.loading("Sincronizando com ASAAS...");
+    try {
+      const r: any = await sincronizarTodos();
+      await qc.invalidateQueries({ queryKey: ["asaas-transfers"] });
+      await qc.invalidateQueries({ queryKey: ["asaas-transfer"] });
+      await refetch();
+      const msg =
+        r?.atualizados > 0
+          ? `${r.atualizados} pagamento${r.atualizados > 1 ? "s" : ""} atualizado${r.atualizados > 1 ? "s" : ""}`
+          : "Todos os pagamentos já estão atualizados.";
+      toast.success(msg, {
+        id: t,
+        description: r?.erros ? `${r.erros} consulta(s) falharam no ASAAS.` : undefined,
+      });
+    } catch (e) {
+      toast.error((e as Error).message, { id: t });
+    } finally {
+      setSincronizandoTudo(false);
+    }
+  };
+
 
   const doCancel = (id: string) =>
     confirmThen(
@@ -129,9 +161,16 @@ function PagamentosPage() {
           <p className="text-sm text-muted-foreground">Pix de saída pela conta ASAAS e acompanhamento dos status.</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
-            <RefreshCw className={`h-4 w-4 mr-1.5 ${isFetching ? "animate-spin" : ""}`} /> Atualizar
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={doSyncTodos}
+            disabled={sincronizandoTudo || isFetching}
+          >
+            <RefreshCw className={`h-4 w-4 mr-1.5 ${sincronizandoTudo || isFetching ? "animate-spin" : ""}`} />
+            {sincronizandoTudo ? "Sincronizando..." : "Atualizar"}
           </Button>
+
           <Button size="sm" onClick={() => setNovoOpen(true)}>
             <Plus className="h-4 w-4 mr-1.5" /> Novo pagamento Pix
           </Button>
