@@ -63,6 +63,7 @@ export type AssetItem = {
   thumbUrl?: string | null;
   local?: boolean;
   existe?: boolean;
+  localPath?: string | null;
 };
 export type MensagemIa = { id: string; autor: "usuario" | "ia"; texto: string; ops?: number };
 
@@ -273,6 +274,12 @@ function PainelMidia({
           {lista.map((a) => (
             <div
               key={a.id}
+              draggable
+              onDragStart={(e) => {
+                e.dataTransfer.setData("application/x-editair-asset", a.id);
+                e.dataTransfer.setData("text/plain", a.id);
+                e.dataTransfer.effectAllowed = "copy";
+              }}
               onContextMenu={(e) => {
                 e.preventDefault();
                 setMenu({ x: e.clientX, y: e.clientY, id: a.id });
