@@ -2041,7 +2041,7 @@ function EditorPage() {
       }
       timeline={
       <>
-        <div className="flex items-center gap-1.5 border-b border-white/10 bg-[#0d1116] px-3 text-[11px]">
+        <div className="flex min-w-0 items-center gap-1.5 overflow-x-auto border-b border-white/10 bg-[#0d1116] px-3 text-[11px]">
 
           <BarraBtn onClick={dividir} icone={<Scissors className="h-3.5 w-3.5" />} texto="Dividir" />
           <BarraBtn onClick={() => excluirSelecionados(false)} icone={<Trash2 className="h-3.5 w-3.5" />} texto="Excluir" />
