@@ -1356,9 +1356,10 @@ function EditorPage() {
    * de forma não destrutiva e com um único Desfazer.
    */
   const planejarEdicaoIa = async (instrucao: string) => {
+    const iaEscopoEfetivo: AiEscopoId = iaClipId ? "clipe" : iaEscopo;
     if (!(await exigirNuvem())) return;
-    const clip = iaEscopo === "clipe" && iaClipId ? state.clips.find((c) => c.id === iaClipId) : null;
-    if (iaEscopo === "clipe" && !clip) {
+    const clip = iaEscopoEfetivo === "clipe" && iaClipId ? state.clips.find((c) => c.id === iaClipId) : null;
+    if (iaEscopoEfetivo === "clipe" && !clip) {
       toast.error("Selecione um clipe para editar.");
       return;
     }
@@ -1367,7 +1368,7 @@ function EditorPage() {
     const janela =
       clip != null
         ? { de: clip.start, ate: clip.start + clip.duration }
-        : iaEscopo === "cena"
+        : iaEscopoEfetivo === "cena"
           ? { de: Math.max(0, playhead - 30000), ate: playhead + 30000 }
           : { de: 0, ate: state.durationMs };
 
@@ -1380,7 +1381,7 @@ function EditorPage() {
     const contexto = [
       clip
         ? `Clipe alvo: ${clip.id} (${clip.kind}) na camada "${state.tracks.find((t) => t.id === clip.trackId)?.name ?? clip.trackId}", ${Math.round(clip.start)}ms → ${Math.round(clip.start + clip.duration)}ms, sourceIn ${Math.round(clip.sourceIn)}ms, velocidade ${clip.speed || 1}.`
-        : iaEscopo === "cena"
+        : iaEscopoEfetivo === "cena"
           ? `Cena atual: ${Math.round(janela.de)}ms → ${Math.round(janela.ate)}ms (playhead em ${Math.round(playhead)}ms).`
           : "Projeto inteiro.",
       `Formato: ${ratio < 0.85 ? "vertical" : ratio > 1.2 ? "horizontal" : "quadrado"} (${state.width}x${state.height}).`,
@@ -1393,7 +1394,7 @@ function EditorPage() {
       definirEtapaIa("Planejando cortes, camadas e legendas…");
       const p = await planejarOperacoesEditair({
         data: {
-          escopo: iaEscopo,
+          escopo: iaEscopoEfetivo,
           instrucao,
           contexto,
           duracaoMs: Math.round(state.durationMs),
@@ -1439,7 +1440,7 @@ function EditorPage() {
       setIaEtapasFeitas([...feitas]);
     };
     try {
-      let ops = validarOps(p.ops, state, iaEscopo === "clipe" ? iaClipId : null);
+      let ops = validarOps(p.ops, state, iaEscopoEfetivo === "clipe" ? iaClipId : null);
       let base = state;
 
       // 1. gerações de IA viram ARQUIVOS na Biblioteca (assets normais e editáveis)
