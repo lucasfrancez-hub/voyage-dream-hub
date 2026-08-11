@@ -382,6 +382,8 @@ export type ProjectState = {
   ducking?: { ativo: boolean; reducao: number };
   audioFx?: { voz: boolean; ruido: boolean };
   marcadores?: Marcador[];
+  /** já inserimos automaticamente as mídias iniciais deste projeto (não repetir) */
+  assetsIniciaisAplicados?: boolean;
 };
 
 export type TranscriptWord = { w: string; start: number; end: number; assetId?: string };
