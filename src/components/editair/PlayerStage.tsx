@@ -125,6 +125,8 @@ export function PlayerStage({
   const [personalizado, setPersonalizado] = useState(false);
   const [painel, setPainel] = useState(false);
   const palcoRef = useRef<HTMLDivElement>(null);
+  /** Elemento sob o mouse — hover não seleciona, só sinaliza que é editável. */
+  const [hoverId, setHoverId] = useState<string | null>(null);
   const arrasto = useRef<{
     modo: "mover" | "escala" | "caixa" | "giro";
     id: string;
