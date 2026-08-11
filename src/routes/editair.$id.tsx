@@ -2119,17 +2119,12 @@ function EditorPage() {
           ) : null}
           <div className="flex-1" />
           <span className="text-white/35">{selecionados.length} selecionado(s)</span>
-          <button onClick={() => setZoom((z) => Math.max(8, z / 1.4))} className="rounded p-1 text-white/50 hover:bg-white/10">
-            <ZoomOut className="h-4 w-4" />
-          </button>
-          <button onClick={() => setZoom((z) => Math.min(600, z * 1.4))} className="rounded p-1 text-white/50 hover:bg-white/10">
-            <ZoomIn className="h-4 w-4" />
-          </button>
         </div>
         <Timeline
           state={state}
           playheadMs={playhead}
           zoom={zoom}
+          onZoom={setZoom}
           selecionados={selecionados}
           selecao={selecao}
           assets={assetsMap}
