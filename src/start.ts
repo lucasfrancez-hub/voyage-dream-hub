@@ -10,6 +10,11 @@ const errorMiddleware = createMiddleware().server(async ({ next }) => {
     if (error != null && typeof error === "object" && "statusCode" in error) {
       throw error;
     }
+    // Respostas HTTP (ex.: 401 do requireSupabaseAuth) devem chegar ao cliente
+    // como estão — envolvê-las na página de erro 500 esconde a causa real.
+    if (error instanceof Response) {
+      throw error;
+    }
     console.error(error);
     return new Response(renderErrorPage(), {
       status: 500,
