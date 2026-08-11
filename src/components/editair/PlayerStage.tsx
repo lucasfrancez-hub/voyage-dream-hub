@@ -137,6 +137,12 @@ export function PlayerStage({
 
   const sel = elementos.find((e) => e.id === selecionadoId) ?? null;
 
+  // A legenda visível muda com o playhead: o hover não pode ficar preso
+  // em um elemento que saiu do frame atual.
+  useEffect(() => {
+    if (hoverId && !elementos.some((e) => e.id === hoverId)) setHoverId(null);
+  }, [elementos, hoverId]);
+
   const paraFrame = (ev: { clientX: number; clientY: number }) => {
     const r = palcoRef.current?.getBoundingClientRect();
     if (!r) return { x: 0, y: 0 };
