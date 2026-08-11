@@ -40,6 +40,7 @@ import {
 } from "@/lib/editair/store";
 import { transcreverBlocoEditair } from "@/lib/editair/transcribe.functions";
 import { dirigirEdicaoEditair } from "@/lib/editair/director.functions";
+import { AiEditDialog } from "@/components/editair/AiEditDialog";
 import { planejarEdicaoEditair } from "@/lib/editair/brain.functions";
 import { normalizarPlano, transcricaoParaPrompt } from "@/lib/editair/brain";
 import { analisarAudio, analisarVisual, resumirAnalise, type AnaliseTecnica } from "@/lib/editair/analysis";
@@ -139,6 +140,7 @@ function EditorPage() {
   const [plano, setPlano] = useState<PlanoEditorial | null>(null);
   const [etapaIa, setEtapaIa] = useState("");
   const [objetivoIa, setObjetivoIa] = useState("");
+  const [iaClipId, setIaClipId] = useState<string | null>(null);
   const [ocupado, setOcupado] = useState<string | null>(null);
   const [salvando, setSalvando] = useState(false);
 
@@ -510,11 +512,77 @@ function EditorPage() {
   };
 
 
+  /* ---------------- camadas (tracks) ---------------- */
+  /** Insere uma camada de vídeo no índice pedido. Índice 0 = topo (aparece por cima). */
+  const criarTrackEm = (base: ProjectState, indice: number) => {
+    const n = base.tracks.filter((t) => t.kind === "video").length + 1;
+    const track = {
+      id: `t-video-${n}-${Math.random().toString(36).slice(2, 6)}`,
+      kind: "video" as const,
+      name: `Vídeo ${n}`,
+    };
+    const tracks = [...base.tracks];
+    tracks.splice(Math.max(0, Math.min(tracks.length, indice)), 0, track);
+    return { estado: { ...base, tracks }, trackId: track.id };
+  };
+
+  const soltarClip = (
+    cid: string,
+    destino: { tipo: "track"; trackId: string } | { tipo: "nova"; indice: number },
+    startMs: number,
+  ) => {
+    const clip = state.clips.find((c) => c.id === cid);
+    if (!clip) return;
+    let base = state;
+    let trackId: string;
+    if (destino.tipo === "nova") {
+      const r = criarTrackEm(base, destino.indice);
+      base = r.estado;
+      trackId = r.trackId;
+    } else {
+      trackId = destino.trackId;
+      if (base.tracks.find((t) => t.id === trackId)?.locked) return toast.error("Camada bloqueada.");
+    }
+    aplicar({
+      ...base,
+      clips: base.clips.map((c) => (c.id === cid ? { ...c, trackId, start: Math.max(0, Math.round(startMs)) } : c)),
+    });
+  };
+
+  const moverClipCamada = (cid: string, direcao: -1 | 1) => {
+    const clip = state.clips.find((c) => c.id === cid);
+    if (!clip) return;
+    const i = state.tracks.findIndex((t) => t.id === clip.trackId);
+    const alvo = state.tracks[i + direcao];
+    if (!alvo) return toast.error("Não há camada nessa direção.");
+    if (alvo.locked) return toast.error("Camada bloqueada.");
+    aplicar({ ...state, clips: state.clips.map((c) => (c.id === cid ? { ...c, trackId: alvo.id } : c)) });
+  };
+
+  const novaCamadaJunto = (cid: string, direcao: -1 | 1) => {
+    const clip = state.clips.find((c) => c.id === cid);
+    if (!clip) return;
+    const i = state.tracks.findIndex((t) => t.id === clip.trackId);
+    const indice = direcao === -1 ? i : i + 1;
+    const { estado, trackId } = criarTrackEm(state, indice);
+    aplicar({ ...estado, clips: estado.clips.map((c) => (c.id === cid ? { ...c, trackId } : c)) });
+  };
+
+  const reordenarTracks = (de: number, para: number) => {
+    const tracks = [...state.tracks];
+    const [t] = tracks.splice(de, 1);
+    if (!t) return;
+    tracks.splice(para, 0, t);
+    aplicar({ ...state, tracks });
+  };
+
   /** Devolve o clipe à duração integral do arquivo original (não destrutivo). */
   const restaurarClip = (cid: string) => {
     aplicar(aplicarOps(state, [{ op: "restore_clip", clipId: cid }], transcript, duracoesFonte).state);
     toast.success("Duração original restaurada");
   };
+
+
 
 
   const dividir = () => {
@@ -705,6 +773,7 @@ function EditorPage() {
     };
     aplicar({ ...state, clips: [...state.clips, clip] });
     setSelecionados([clip.id]);
+    return clip.id;
   };
 
   const importar = async (arquivos: FileList | File[] | string[] | null, posicaoMs?: number) => {
@@ -1004,6 +1073,77 @@ function EditorPage() {
       toast.error(msg);
     } finally {
       setPensando(false);
+    }
+  };
+
+  /** Edição com IA no escopo de UM clipe: gera operações editáveis (undo disponível). */
+  const editarClipComIa = async (instrucao: string) => {
+    const cid = iaClipId;
+    const clip = cid ? state.clips.find((c) => c.id === cid) : null;
+    if (!clip) return;
+    const trilha = state.tracks.find((t) => t.id === clip.trackId);
+    const asset = clip.assetId ? assets.find((a) => a.id === clip.assetId) : null;
+    const fim = clip.start + clip.duration;
+    const trechoTranscricao = (transcript?.segments ?? [])
+      .filter((s) => s.end >= clip.start && s.start <= fim)
+      .map((s) => `[${Math.round(s.start)}-${Math.round(s.end)}] ${s.text}`)
+      .join("\n")
+      .slice(0, 12000);
+    const acima = state.tracks.slice(0, state.tracks.findIndex((t) => t.id === clip.trackId)).map((t) => t.name);
+    const abaixo = state.tracks.slice(state.tracks.findIndex((t) => t.id === clip.trackId) + 1).map((t) => t.name);
+    const ratio = state.width / state.height;
+    const contexto = [
+      `Escopo: SOMENTE o clipe ${clip.id} (${clip.kind}) na camada "${trilha?.name ?? clip.trackId}".`,
+      `Posição na timeline: ${Math.round(clip.start)}ms → ${Math.round(fim)}ms (duração ${Math.round(clip.duration)}ms).`,
+      `sourceIn: ${Math.round(clip.sourceIn)}ms · velocidade: ${clip.speed || 1} · volume: ${clip.volume ?? 1}.`,
+      asset ? `Mídia: ${asset.nome} (${asset.kind}, ${Math.round(asset.durationMs)}ms).` : "Mídia: não identificada.",
+      `Camadas acima: ${acima.join(", ") || "nenhuma"} · abaixo: ${abaixo.join(", ") || "nenhuma"}.`,
+      `Formato do projeto: ${ratio < 0.85 ? "vertical" : ratio > 1.2 ? "horizontal" : "quadrado"} (${state.width}x${state.height}).`,
+      trechoTranscricao ? `Transcrição do trecho:\n${trechoTranscricao}` : "Sem transcrição para o trecho.",
+      "Não altere outros clipes do projeto. Devolva operações de timeline editáveis.",
+      `Pedido do usuário: ${instrucao}`,
+    ].join("\n");
+
+    setPensando(true);
+    setEtapaIa("Analisando clipe…");
+    try {
+      setEtapaIa("Criando plano de edição…");
+      const r = await dirigirEdicaoEditair({
+        data: {
+          mensagem: contexto,
+          playheadMs: Math.round(playhead),
+          selecao: { fromMs: Math.round(clip.start), toMs: Math.round(fim) },
+          clipeSelecionadoId: clip.id,
+          duracaoMs: state.durationMs,
+          clipes: state.clips.slice(0, 400).map((c) => ({
+            id: c.id,
+            kind: c.kind,
+            trackId: c.trackId,
+            start: Math.round(c.start),
+            duration: Math.round(c.duration),
+            label: c.label ?? null,
+          })),
+          trilhas: state.tracks.map((t) => ({ id: t.id, name: t.name, kind: t.kind })),
+          transcricao: trechoTranscricao,
+        },
+      });
+      setEtapaIa("Aplicando alterações…");
+      const ops = ((r.ops ?? []) as unknown as EditairOp[]).filter(
+        (o) => !("clipId" in o) || !o.clipId || state.clips.some((c) => c.id === o.clipId),
+      );
+      if (ops.length) {
+        // checkpoint: aplicar() já empilha o estado anterior no histórico (Desfazer volta tudo)
+        const { state: novo } = aplicarOps(state, ops, transcript);
+        aplicar(novo);
+      }
+      setMensagens((m) => [...m, { id: novoId("m"), autor: "ia", texto: r.resposta, ops: ops.length }]);
+      toast.success(ops.length ? `${ops.length} alteração(ões) aplicada(s) — use Desfazer para reverter` : "Concluído");
+      setIaClipId(null);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha na edição com IA");
+    } finally {
+      setPensando(false);
+      setEtapaIa("");
     }
   };
 
@@ -1309,6 +1449,12 @@ function EditorPage() {
             onExcluirAsset={(aid) => void excluirAsset(aid)}
             onRelinkAsset={(aid) => void relinkAsset(aid)}
             onInserirAsset={inserirAsset}
+            onEditarComIaAsset={(aid) => {
+              const jaNaTimeline = state.clips.find((c) => c.assetId === aid);
+              const cid = jaNaTimeline?.id ?? inserirAsset(aid);
+              if (cid) setIaClipId(cid);
+            }}
+            onTranscreverAsset={() => void analisar()}
             onPatchClip={(patch) => patchClipe(patch)}
             onPatchState={(patch) => aplicar({ ...state, ...patch })}
             onCaption={(patch: Partial<CaptionStyle>) => aplicar({ ...state, captionStyle: { ...state.captionStyle, ...patch } })}
@@ -1452,23 +1598,67 @@ function EditorPage() {
           onSoltarArquivos={(arquivos, ms) => void importar(arquivos, ms)}
           onNovaTrilhaVideo={() => {
             // camadas de vídeo empilhadas: a nova entra acima (aparece por cima no preview)
-            const existentes = state.tracks.filter((t) => t.id.startsWith("t-video"));
-            const nova = {
-              id: `t-video-${existentes.length + 1}-${Math.random().toString(36).slice(2, 6)}`,
-              kind: "video" as const,
-              name: `Vídeo ${existentes.length + 1}`,
-            };
-            aplicar({ ...state, tracks: [nova, ...state.tracks] });
+            aplicar(criarTrackEm(state, 0).estado);
+          }}
+          onSoltarClip={soltarClip}
+          onMoverCamada={moverClipCamada}
+          onNovaCamadaJunto={novaCamadaJunto}
+          onReordenarTracks={reordenarTracks}
+          onRenomearTrack={(trackId, nome) =>
+            aplicar({ ...state, tracks: state.tracks.map((t) => (t.id === trackId ? { ...t, name: nome } : t)) })
+          }
+          onExcluirTrack={(trackId) => {
+            if (state.clips.some((c) => c.trackId === trackId)) return toast.error("A camada não está vazia.");
+            aplicar({ ...state, tracks: state.tracks.filter((t) => t.id !== trackId) });
+          }}
+          onEditarComIa={(cid) => {
+            setSelecionados([cid]);
+            setIaClipId(cid);
           }}
           onAcaoClip={(cid, acao) => {
             const c = state.clips.find((x) => x.id === cid);
             if (!c) return;
             setSelecionados([cid]);
             if (acao === "dividir") aplicar(aplicarOps(state, [{ op: "split_clip", clipId: cid, atMs: playhead }], transcript).state);
-            else if (acao === "duplicar")
+            else if (acao === "aparar") {
+              if (playhead <= c.start || playhead >= c.start + c.duration) return toast.error("Posicione o playhead dentro do clipe.");
+              aplicar(
+                aplicarOps(state, [{ op: "trim_clip", clipId: cid, durationMs: Math.round(playhead - c.start) }], transcript)
+                  .state,
+              );
+            } else if (acao === "duplicar")
               aplicar({ ...state, clips: [...state.clips, { ...c, id: novoId(), start: c.start + c.duration }] });
-            else if (acao === "excluir") aplicar(aplicarOps(state, [{ op: "delete_clip", clipId: cid }], transcript).state);
-            else if (acao === "bloquear") patchClipe({ bloqueado: !c.bloqueado }, cid);
+            else if (acao === "copiar") {
+              clipboardRef.current = [{ ...c }];
+              toast.success("Clipe copiado");
+            } else if (acao === "excluir") aplicar(aplicarOps(state, [{ op: "delete_clip", clipId: cid }], transcript).state);
+            else if (acao === "ripple") {
+              const s = aplicarOps(state, [{ op: "delete_clip", clipId: cid }], transcript).state;
+              aplicar({
+                ...s,
+                clips: s.clips.map((x) =>
+                  x.trackId === c.trackId && x.start >= c.start + c.duration
+                    ? { ...x, start: Math.max(0, x.start - c.duration) }
+                    : x,
+                ),
+              });
+            } else if (acao === "extrair-audio") {
+              if (!c.assetId) return toast.error("Clipe sem mídia de origem.");
+              const trilhaVoz = state.tracks.find((t) => t.kind === "voice") ?? state.tracks.find((t) => t.kind === "music");
+              if (!trilhaVoz) return toast.error("Sem camada de áudio disponível.");
+              const audio: EditairClip = {
+                ...c,
+                id: novoId(),
+                trackId: trilhaVoz.id,
+                kind: "audio",
+                label: `Áudio · ${c.label ?? ""}`.trim(),
+              };
+              aplicar({
+                ...state,
+                clips: [...state.clips.map((x) => (x.id === cid ? { ...x, semAudio: true } : x)), audio],
+              });
+              toast.success("Áudio extraído para a camada de voz");
+            } else if (acao === "bloquear") patchClipe({ bloqueado: !c.bloqueado }, cid);
             else if (acao === "mudo") patchClipe({ muted: !c.muted }, cid);
             else if (acao === "congelar") patchClipe({ congelado: !c.congelado, speed: c.congelado ? 1 : 0.01 }, cid);
             else if (acao === "desvincular") patchClipe({ semAudio: !c.semAudio }, cid);
@@ -1482,6 +1672,26 @@ function EditorPage() {
           }
         />
       </div>
+
+      <AiEditDialog
+        aberto={!!iaClipId}
+        escopo={
+          iaClipId
+            ? {
+                titulo: state.clips.find((c) => c.id === iaClipId)?.label ?? "Clipe selecionado",
+                detalhe: (() => {
+                  const c = state.clips.find((x) => x.id === iaClipId);
+                  return c ? `${formatarTempo(c.start)} → ${formatarTempo(c.start + c.duration)}` : undefined;
+                })(),
+              }
+            : null
+        }
+        processando={pensando}
+        etapa={etapaIa}
+        onFechar={() => setIaClipId(null)}
+        onExecutar={(instrucao) => void editarClipComIa(instrucao)}
+      />
+
 
       <ExportDialog
         aberto={exportAberto}

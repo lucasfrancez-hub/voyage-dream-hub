@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   Diamond,
   Film,
@@ -84,6 +84,9 @@ export type ToolPanelProps = {
   onRenomearAsset: (id: string, nome: string) => void;
   onExcluirAsset: (id: string) => void;
   onRelinkAsset?: (id: string) => void;
+  onEditarComIaAsset?: (id: string) => void;
+  onTranscreverAsset?: (id: string) => void;
+  onRevelarAsset?: (id: string) => void;
   onInserirAsset: (id: string) => void;
   onPatchClip: (patch: Partial<EditairClip>) => void;
   onPatchState: (patch: Partial<ProjectState>) => void;
@@ -183,8 +186,21 @@ function MiniaturaAsset({ asset }: { asset: AssetItem }) {
   );
 }
 
-function PainelMidia({ assets, onImportar, onRenomearAsset, onExcluirAsset, onInserirAsset, onRelinkAsset }: ToolPanelProps) {
+function PainelMidia({
+  assets,
+  onImportar,
+  onRenomearAsset,
+  onExcluirAsset,
+  onInserirAsset,
+  onRelinkAsset,
+  onEditarComIaAsset,
+  onTranscreverAsset,
+  onRevelarAsset,
+  onExtrairAudio,
+}: ToolPanelProps) {
   const [busca, setBusca] = useState("");
+  const [menu, setMenu] = useState<{ x: number; y: number; id: string } | null>(null);
+  const [renomeando, setRenomeando] = useState<string | null>(null);
   const [categoria, setCategoria] = useState<"todos" | "video" | "image" | "audio">("todos");
   const [ordem, setOrdem] = useState<"nome" | "duracao">("nome");
 
@@ -254,7 +270,14 @@ function PainelMidia({ assets, onImportar, onRenomearAsset, onExcluirAsset, onIn
       ) : (
         <div className="space-y-2">
           {lista.map((a) => (
-            <div key={a.id} className="rounded-lg border border-white/10 bg-white/[0.03] p-2">
+            <div
+              key={a.id}
+              onContextMenu={(e) => {
+                e.preventDefault();
+                setMenu({ x: e.clientX, y: e.clientY, id: a.id });
+              }}
+              className="rounded-lg border border-white/10 bg-white/[0.03] p-2"
+            >
               {a.existe === false ? (
                 <button
                   onClick={() => onRelinkAsset?.(a.id)}
@@ -266,7 +289,24 @@ function PainelMidia({ assets, onImportar, onRenomearAsset, onExcluirAsset, onIn
               <div className="flex items-center gap-2">
                 <MiniaturaAsset asset={a} />
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-[11px]">{a.nome}</p>
+                  {renomeando === a.id ? (
+                    <input
+                      autoFocus
+                      defaultValue={a.nome}
+                      onBlur={(e) => {
+                        const n = e.target.value.trim();
+                        if (n && n !== a.nome) onRenomearAsset(a.id, n);
+                        setRenomeando(null);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") e.currentTarget.blur();
+                        if (e.key === "Escape") setRenomeando(null);
+                      }}
+                      className="w-full rounded bg-black/40 px-1 py-0.5 text-[11px] text-white outline-none"
+                    />
+                  ) : (
+                    <p className="truncate text-[11px]">{a.nome}</p>
+                  )}
                   <p className="text-[10px] uppercase text-white/35">
                     {a.kind === "video" ? "Vídeo" : a.kind === "audio" ? "Áudio" : "Imagem"}
                     {a.existe === false ? " · offline" : ""}
@@ -283,10 +323,7 @@ function PainelMidia({ assets, onImportar, onRenomearAsset, onExcluirAsset, onIn
                   Inserir
                 </button>
                 <button
-                  onClick={() => {
-                    const n = window.prompt("Novo nome", a.nome);
-                    if (n && n.trim()) onRenomearAsset(a.id, n.trim());
-                  }}
+                  onClick={() => setRenomeando(a.id)}
                   className="rounded border border-white/10 px-2 py-0.5 text-[10px] hover:bg-white/10"
                 >
                   Renomear
@@ -302,7 +339,88 @@ function PainelMidia({ assets, onImportar, onRenomearAsset, onExcluirAsset, onIn
           ))}
         </div>
       )}
+
+      {menu ? (
+        <MenuFlutuante x={menu.x} y={menu.y} onFechar={() => setMenu(null)}>
+          {([
+            { nome: "Abrir no editor", acao: () => onInserirAsset(menu.id) },
+            { nome: "Adicionar à timeline", acao: () => onInserirAsset(menu.id) },
+            onEditarComIaAsset ? { nome: "✨ Editar com IA", acao: () => onEditarComIaAsset(menu.id), destaque: true } : null,
+            onTranscreverAsset ? { nome: "Transcrever", acao: () => onTranscreverAsset(menu.id) } : null,
+            { nome: "Extrair áudio", acao: () => onExtrairAudio() },
+            onRevelarAsset ? { nome: "Mostrar no Finder", acao: () => onRevelarAsset(menu.id) } : null,
+            assets.find((a) => a.id === menu.id)?.existe === false && onRelinkAsset
+              ? { nome: "Relinkar arquivo", acao: () => onRelinkAsset(menu.id) }
+              : null,
+            { nome: "Renomear", acao: () => setRenomeando(menu.id) },
+            { nome: "Remover da Biblioteca", acao: () => onExcluirAsset(menu.id), perigo: true },
+          ] as Array<{ nome: string; acao: () => void; destaque?: boolean; perigo?: boolean } | null>)
+            .filter((i): i is { nome: string; acao: () => void; destaque?: boolean; perigo?: boolean } => !!i)
+            .map((i) => (
+              <button
+                key={i.nome}
+                onClick={() => {
+                  i.acao();
+                  setMenu(null);
+                }}
+                className={`block w-full px-3 py-2 text-left hover:bg-white/10 ${
+                  i.destaque ? "font-medium text-[#F26B1F]" : i.perigo ? "text-red-400 hover:bg-red-500/10" : ""
+                }`}
+              >
+                {i.nome}
+              </button>
+            ))}
+        </MenuFlutuante>
+      ) : null}
     </Painel>
+  );
+}
+
+/** Menu flutuante com collision detection (flip/shift) para nunca sair da viewport. */
+function MenuFlutuante({
+  x,
+  y,
+  onFechar,
+  children,
+}: {
+  x: number;
+  y: number;
+  onFechar: () => void;
+  children: React.ReactNode;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
+
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const m = 8;
+    const r = el.getBoundingClientRect();
+    let px = x;
+    let py = y;
+    if (py + r.height + m > window.innerHeight) py = y - r.height;
+    if (px + r.width + m > window.innerWidth) px = x - r.width;
+    setPos({
+      x: Math.min(Math.max(m, px), Math.max(m, window.innerWidth - r.width - m)),
+      y: Math.min(Math.max(m, py), Math.max(m, window.innerHeight - r.height - m)),
+    });
+  }, [x, y]);
+
+  useEffect(() => {
+    const fechar = () => onFechar();
+    window.addEventListener("pointerdown", fechar);
+    return () => window.removeEventListener("pointerdown", fechar);
+  }, [onFechar]);
+
+  return (
+    <div
+      ref={ref}
+      onPointerDown={(e) => e.stopPropagation()}
+      style={{ left: pos?.x ?? x, top: pos?.y ?? y, visibility: pos ? "visible" : "hidden" }}
+      className="fixed z-[70] flex max-h-[calc(100vh-16px)] w-56 flex-col overflow-y-auto overscroll-contain rounded-xl border border-white/10 bg-[#12171d] py-1 text-[12px] shadow-2xl"
+    >
+      {children}
+    </div>
   );
 }
 
