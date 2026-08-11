@@ -1039,36 +1039,67 @@ const CAMPOS_AJUSTE: { k: keyof Ajustes; l: string }[] = [
   { k: "blacks", l: "Blacks" },
 ];
 
-function PainelAjuste({ clip, onPatchClip, onKeyframe }: ToolPanelProps) {
+const GRUPOS_AJUSTE: { titulo: string; campos: (keyof Ajustes)[] }[] = [
+  { titulo: "Luz", campos: ["exposicao", "brilho", "contraste", "highlights", "shadows", "whites", "blacks"] },
+  { titulo: "Cor", campos: ["saturacao", "temperatura", "tint"] },
+];
+
+function PainelAjuste({ clip, assets, onPatchClip, onKeyframe }: ToolPanelProps) {
   const aj: Ajustes = { ...AJUSTES_NEUTROS, ...(clip?.ajustes ?? {}) };
+  const poster = assets.find((a) => a.id === clip?.assetId)?.thumbUrl ?? null;
+  const alterado = CAMPOS_AJUSTE.some((c) => aj[c.k] !== 0);
+
+  if (!clip) {
+    return (
+      <PainelShell titulo="Ajuste">
+        <Vazio>Selecione um clipe na timeline para ajustar luz e cor.</Vazio>
+      </PainelShell>
+    );
+  }
+
   return (
-    <Painel titulo="Ajuste">
-      {!clip ? (
-        <p className="text-[11px] text-white/35">Selecione um clipe.</p>
-      ) : (
-        <>
-          {CAMPOS_AJUSTE.map((c) => (
-            <Campo key={c.k} label={`${c.l} — ${aj[c.k]}`}>
-              <Slider
-                value={[aj[c.k]]}
-                min={-100}
-                max={100}
-                step={1}
-                onValueChange={([v]) => onPatchClip({ ajustes: { ...aj, [c.k]: v } })}
-              />
-            </Campo>
-          ))}
-          <Button size="sm" variant="ghost" className="mt-1 w-full text-xs" onClick={() => onPatchClip({ ajustes: { ...AJUSTES_NEUTROS } })}>
-            Redefinir ajustes
-          </Button>
-          <div className="mt-3 border-t border-white/10 pt-3">
-            <TransformCampos clip={clip} onPatchClip={onPatchClip} onKeyframe={onKeyframe} />
-          </div>
-        </>
-      )}
-    </Painel>
+    <PainelShell
+      titulo="Ajuste"
+      contagem={alterado ? "editado" : "neutro"}
+      acoes={<BotaoPill onClick={() => onPatchClip({ ajustes: { ...AJUSTES_NEUTROS } })}>Redefinir</BotaoPill>}
+    >
+      <div className="mb-3 overflow-hidden rounded-xl border border-white/[0.08] bg-black/40">
+        <div className="relative aspect-video">
+          {poster ? (
+            <img src={poster} alt="" style={{ filter: filtroCss(aj, clip.filtro) }} className="h-full w-full object-cover" />
+          ) : (
+            <div style={{ filter: filtroCss(aj, clip.filtro) }} className="h-full w-full bg-[linear-gradient(135deg,#5a3a24,#8a5330_45%,#2c2118)]" />
+          )}
+          <span className="absolute bottom-1.5 left-1.5 rounded bg-black/70 px-1.5 py-0.5 text-[9px] text-white/70">prévia</span>
+        </div>
+      </div>
+
+      {GRUPOS_AJUSTE.map((g) => (
+        <Secao key={g.titulo} titulo={g.titulo}>
+          {g.campos.map((k) => {
+            const label = CAMPOS_AJUSTE.find((c) => c.k === k)?.l ?? k;
+            return (
+              <LinhaValor key={k} label={label} valor={`${aj[k] > 0 ? "+" : ""}${aj[k]}`}>
+                <Slider
+                  value={[aj[k]]}
+                  min={-100}
+                  max={100}
+                  step={1}
+                  onValueChange={([v]) => onPatchClip({ ajustes: { ...aj, [k]: v } })}
+                />
+              </LinhaValor>
+            );
+          })}
+        </Secao>
+      ))}
+
+      <Secao titulo="Transformar" aberta={false}>
+        <TransformCampos clip={clip} onPatchClip={onPatchClip} onKeyframe={onKeyframe} />
+      </Secao>
+    </PainelShell>
   );
 }
+
 
 /* --------------------------------- IA -------------------------------- */
 
