@@ -129,8 +129,6 @@ describe("WorkspaceLayout no DOM", () => {
 
   it("a área de toque do splitter é maior que o traço visual de 6px", () => {
     montar(300);
-    const alvo = screen.getByTestId("editura-splitter-fallback", { exact: false }) ?? null;
-    void alvo;
     const sp = screen.getByTestId("editair-splitter");
     // overlay ocupa 6px do traço + 6px acima + 6px abaixo
     expect(sp.className).toContain("-top-1.5");
