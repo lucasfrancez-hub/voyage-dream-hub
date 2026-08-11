@@ -40,7 +40,7 @@ export type MidiaBasica = {
 
 /** Só o que o pipeline precisa da engine — permite instrumentar/mockar nos testes. */
 export type EngineMinima = {
-  carregar(assetId: string, url: string, kind: string): Promise<void>;
+  carregar(assetId: string, url: string, kind: string, nome?: string): Promise<void>;
   falhou(assetId: string): boolean;
   desenhar(state: ProjectState, t: number): void;
   sincronizar(state: ProjectState, t: number, tocando: boolean): void;
