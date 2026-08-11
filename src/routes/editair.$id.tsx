@@ -1,7 +1,6 @@
 import { createFileRoute, useParams } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import { CentralProcessos } from "@/components/editair/CentralProcessos";
 import { abrirJob, executarJob, jobEmAndamento } from "@/lib/editair/jobs";
 import { avisarConclusao } from "@/lib/editair/notificar";
 import {
@@ -2167,7 +2166,6 @@ function EditorPage() {
 
 
 
-      <CentralProcessos projectId={id} />
     </>
 
   );
