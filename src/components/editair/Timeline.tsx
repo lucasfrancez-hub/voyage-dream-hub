@@ -36,7 +36,7 @@ export type AcaoClip =
   | "aparar";
 
 /** Destino de um clip solto na timeline. */
-export type DestinoSolto = { tipo: "track"; trackId: string } | { tipo: "nova"; indice: number };
+export type DestinoSolto = DestinoCamada;
 
 const ALTURA_TRILHA = 56; // h-14
 
@@ -69,8 +69,8 @@ type Props = {
   onAcaoClip?: (clipId: string, acao: AcaoClip) => void;
   /** Arquivos arrastados do Finder/Explorer direto para a timeline. */
   onSoltarArquivos?: (arquivos: FileList, ms: number) => void;
-  /** arrastar uma mídia da biblioteca direto para a timeline */
-  onSoltarAsset?: (assetId: string, ms: number, trackId?: string) => void;
+  /** arrastar uma mídia da biblioteca direto para a timeline (track existente ou nova camada) */
+  onSoltarAsset?: (assetId: string, ms: number, destino?: DestinoSolto) => void;
   /** Cria uma nova camada de vídeo acima das existentes (composição/PiP). */
   onNovaTrilhaVideo?: () => void;
   /** Clip solto após drag vertical: muda de camada (e de posição). */
@@ -160,25 +160,19 @@ export function Timeline({
   /** Descobre qual camada (ou zona de nova camada) está sob o cursor. */
   const destinoDoY = useCallback(
     (clientY: number): DestinoSolto | null => {
-      const ids = state.tracks.map((t) => t.id);
-      const rects = ids
-        .map((id) => {
-          const el = linhasRef.current[id];
-          return el ? ({ id, r: el.getBoundingClientRect() } as const) : null;
+      const faixas = state.tracks
+        .map((t) => {
+          const el = linhasRef.current[t.id];
+          if (!el) return null;
+          const r = el.getBoundingClientRect();
+          return { id: t.id, top: r.top, bottom: r.bottom };
         })
-        .filter((v): v is { id: string; r: DOMRect } => !!v);
-      if (!rects.length) return null;
-      const primeiro = rects[0];
-      const ultimo = rects[rects.length - 1];
-      if (clientY < primeiro.r.top) return { tipo: "nova", indice: 0 };
-      if (clientY > ultimo.r.bottom) return { tipo: "nova", indice: state.tracks.length };
-      for (const { id, r } of rects) {
-        if (clientY >= r.top && clientY <= r.bottom) return { tipo: "track", trackId: id };
-      }
-      return null;
+        .filter((v): v is { id: string; top: number; bottom: number } => !!v);
+      return destinoPorY(clientY, faixas);
     },
     [state.tracks],
   );
+
 
   const pontosSnap = useMemo(() => {
     const p = [0, playheadMs];
