@@ -78,6 +78,34 @@ async function sondarUrl(url: string): Promise<{ status: number | null; mime: st
   }
 }
 
+/** Uma linha da auditoria visual do preview. */
+export type RegistroVisual = {
+  timelineTime: number;
+  trocaDeClipe: boolean;
+  clipesAnteriores: string[];
+  clipes: {
+    clipId: string;
+    kind: string;
+    assetId: string | null;
+    start: number;
+    duration: number;
+    sourceIn: number;
+    sourceOut: number | null;
+    speed: number;
+    sourceTime: number;
+    fonte: "image" | "video" | "nenhuma";
+    desenhou: boolean;
+    motivo?: string;
+    mediaCurrentTime?: number;
+    mediaSourceTime?: number;
+    deltaMs?: number;
+    seeking?: boolean;
+    readyState?: number;
+    networkState?: number;
+    comandaTempo?: boolean;
+  }[];
+};
+
 export class EditairEngine {
   canvas: HTMLCanvasElement;
   width: number;
@@ -94,6 +122,11 @@ export class EditairEngine {
   private detalhes = new Map<string, FalhaMidia>();
   /** último quadro pedido — usado para repintar quando o vídeo termina de buscar */
   private ultimo: { state: ProjectState; t: number } | null = null;
+  /* AUDITORIA VISUAL (não altera render): grava, por quadro, qual clipe visual
+     está ativo, o sourceTime calculado e o que o canvas realmente desenhou. */
+  private tracando = false;
+  private traco: RegistroVisual[] = [];
+  private ativosAnteriores: string[] = [];
   private tocandoAgora = false;
 
   private volumeMaster = 1;
@@ -929,13 +962,20 @@ export class EditairEngine {
     octx.putImageData(img, 0, 0);
   }
 
-  private desenharVideo(c: EditairClip, t: number) {
-    if (!c.assetId) return;
+  private desenharVideo(c: EditairClip, t: number): { fonte: "image" | "video" | "nenhuma"; desenhou: boolean; motivo?: string } {
+    if (!c.assetId) return { fonte: "nenhuma", desenhou: false, motivo: "clipe sem assetId" };
     const img = this.imagens.get(c.assetId) ?? null;
     const m = this.midias.get(c.assetId) ?? null;
     const fonte: HTMLVideoElement | HTMLImageElement | null =
       img && img.naturalWidth > 0 ? img : m && m.el.readyState >= 2 ? m.el : null;
-    if (!fonte) return;
+    const tipoFonte: "image" | "video" | "nenhuma" = fonte ? (fonte === img ? "image" : "video") : "nenhuma";
+    if (!fonte) {
+      return {
+        fonte: "nenhuma",
+        desenhou: false,
+        motivo: !m && !img ? "asset não carregado na engine" : `readyState=${m?.el.readyState ?? "-"} (<2)`,
+      };
+    }
     const { ctx, width, height } = this;
     const vw = (fonte as HTMLVideoElement).videoWidth || (fonte as HTMLImageElement).naturalWidth || width;
     const vh = (fonte as HTMLVideoElement).videoHeight || (fonte as HTMLImageElement).naturalHeight || height;
@@ -1154,6 +1194,7 @@ export class EditairEngine {
       ctx.fillRect(0, 0, width, height);
       ctx.restore();
     }
+    return { fonte: tipoFonte, desenhou: true };
   }
 
   private desenharLegenda(c: EditairClip, estilo: CaptionStyle, t: number) {
