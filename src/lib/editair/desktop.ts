@@ -78,6 +78,32 @@ type PonteDesktop = {
     devTools(): Promise<boolean>;
     importacao(): Promise<unknown>;
   };
+export type EstadoTranscricaoLocal = {
+  disponivel: boolean;
+  binario: string;
+  versaoPipeline: string;
+  modelo: { id: string; arquivo: string; caminho: string; presente: boolean; bytes: number; bytesAprox: number };
+  cacheDir: string;
+};
+
+export type ResultadoAlinhamentoLocal = {
+  words: Array<{ w: string; start: number; end: number; conf?: number }>;
+  fonte: "whisper-local";
+  modelo: string;
+  versaoPipeline: string;
+  idioma: string;
+  msDecorridos: number;
+  cache: boolean;
+};
+
+export type ProgressoTranscricao = {
+  jobId?: string | null;
+  etapa: "modelo" | "audio" | "transcrever" | "alinhar" | "cache";
+  percentual?: number;
+  recebido?: number;
+  total?: number;
+};
+
 
   biblioteca: {
     listar(): Promise<AssetLocal[]>;
