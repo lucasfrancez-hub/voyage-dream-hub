@@ -26,6 +26,7 @@ export function CaptionTemplates({ atual, onAplicar, temSelecao }: Props) {
   const [meus, setMeus] = useState<ModeloLegenda[]>(() => lerMeusModelos());
   const [selecionado, setSelecionado] = useState<string | null>(atual.presetId ?? null);
   const [filtro, setFiltro] = useState<"todos" | "favoritos" | "meus">("todos");
+  const [nomeNovo, setNomeNovo] = useState("");
 
   const lista = useMemo(() => {
     const base = [...meus, ...MODELOS_LEGENDA];
@@ -128,16 +129,23 @@ export function CaptionTemplates({ atual, onAplicar, temSelecao }: Props) {
         })}
       </div>
 
-      <button
-        onClick={() => {
-          const nome = window.prompt ? null : null;
-          void nome;
-          setMeus(salvarMeuModelo(`VIA AIR ${meus.length + 1}`, atual));
-        }}
-        className="mt-2 w-full rounded-lg border border-dashed border-white/15 py-1.5 text-[10px] text-white/60 hover:bg-white/5"
-      >
-        Salvar estilo atual como meu modelo
-      </button>
+      <div className="mt-2 flex gap-1">
+        <input
+          value={nomeNovo}
+          onChange={(e) => setNomeNovo(e.target.value)}
+          placeholder="Nome do meu modelo"
+          className="flex-1 rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-[10px] outline-none placeholder:text-white/30"
+        />
+        <button
+          onClick={() => {
+            setMeus(salvarMeuModelo(nomeNovo || `Meu modelo ${meus.length + 1}`, atual));
+            setNomeNovo("");
+          }}
+          className="rounded-lg border border-dashed border-white/15 px-2 py-1.5 text-[10px] text-white/70 hover:bg-white/5"
+        >
+          Salvar estilo atual
+        </button>
+      </div>
     </div>
   );
 }
