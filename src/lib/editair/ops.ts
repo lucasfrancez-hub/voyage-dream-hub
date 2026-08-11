@@ -604,58 +604,18 @@ export function acharTrechoNaTranscricao(transcript: Transcript | null | undefin
   return { start: palavras[melhor.i].start, end: palavras[fimIdx].end };
 }
 
-/** Monta clipes de legenda agrupando palavras em frases curtas. */
+/**
+ * Monta clipes de legenda a partir da timeline atual.
+ * A projeção fonte → timeline vive em legendas.ts (fonte única).
+ */
 export function gerarLegendas(
   state: ProjectState,
   transcript: Transcript,
   modo: "frase" | "palavra" = "frase",
 ): EditairClip[] {
-  const clips: EditairClip[] = [];
-  const palavras = transcript.words.filter((w) => w.end > w.start);
-  if (!palavras.length) return clips;
-
-  if (modo === "palavra") {
-    for (const w of palavras) {
-      clips.push(criarLegenda(w.w, w.start, w.end - w.start, [{ ...w }]));
-    }
-    return clips;
-  }
-
-  let bloco: typeof palavras = [];
-  const empurrar = () => {
-    if (!bloco.length) return;
-    const texto = bloco.map((w) => w.w).join(" ");
-    clips.push(criarLegenda(texto, bloco[0].start, bloco[bloco.length - 1].end - bloco[0].start, bloco.map((w) => ({ ...w }))));
-    bloco = [];
-  };
-
-  for (const w of palavras) {
-    bloco.push(w);
-    const texto = bloco.map((x) => x.w).join(" ");
-    const anterior = bloco[bloco.length - 2];
-    const pausa = anterior ? w.start - anterior.end : 0;
-    if (texto.length >= 34 || bloco.length >= 7 || pausa > 420 || /[.!?]$/.test(w.w)) empurrar();
-  }
-  empurrar();
-  return clips;
+  return montarLegendas(state, transcript, modo);
 }
 
-function criarLegenda(texto: string, start: number, duration: number, words: { w: string; start: number; end: number }[]): EditairClip {
-  return {
-    id: novoId("leg"),
-    trackId: "t-caption",
-    kind: "caption",
-    start,
-    duration: Math.max(300, duration),
-    sourceIn: 0,
-    volume: 1,
-    speed: 1,
-    transform: transformPadrao(),
-    text: texto,
-    words,
-    label: texto.slice(0, 20),
-  };
-}
 
 
 /* -------------------------------------------------------------------------- */
