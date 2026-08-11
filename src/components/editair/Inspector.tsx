@@ -1162,9 +1162,19 @@ function InspLegenda({
       <Toggle ativo={est.karaoke} onClick={() => set({ karaoke: !est.karaoke })}>
         Destacar palavra ativa (karaokê)
       </Toggle>
-      <Toggle ativo={est.uppercase} onClick={() => set({ uppercase: !est.uppercase })}>
-        Tudo em maiúsculas
-      </Toggle>
+      <Campo label="Modo da palavra ativa">
+        <select
+          value={est.animacaoPalavra ?? "cor"}
+          onChange={(e) => set({ animacaoPalavra: e.target.value as CaptionStyle["animacaoPalavra"] })}
+          className="w-full rounded-md border border-white/10 bg-black/40 px-2 py-1.5 text-xs"
+        >
+          <option value="cor">Trocar de cor</option>
+          <option value="pop">Cor + pop</option>
+          <option value="brilho">Cor + brilho</option>
+          <option value="progressiva">Progressiva</option>
+          <option value="nenhuma">Nenhuma</option>
+        </select>
+      </Campo>
     </div>
   );
 }
