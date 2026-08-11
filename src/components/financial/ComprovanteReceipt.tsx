@@ -238,37 +238,120 @@ export function ComprovanteReceipt({
                   </p>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4 bg-muted/20 rounded-2xl p-4 border border-border">
-                  <Field
-                    label="Data do pagamento"
-                    value={formatDate(data.dataPagamento ?? data.dataHora)}
-                  />
-                  <div className="text-right">
-                    <Field
-                      label="Forma de pagamento"
-                      value={data.formaPagamento || data.tipo || "Pix"}
-                    />
-                  </div>
-                  {data.chavePix ? (
-                    <div className="col-span-2">
-                      <Field label="Chave Pix" value={data.chavePix} />
+                {isBoleto ? (
+                  <div className="bg-muted/20 rounded-2xl p-4 border border-border space-y-3">
+                    <div className="grid grid-cols-2 gap-4">
+                      <Field
+                        label="Data e hora"
+                        value={formatDate(data.dataPagamento ?? data.dataHora)}
+                      />
+                      <div className="text-right">
+                        <Field label="Vencimento" value={formatDate(data.dataVencimento)} />
+                      </div>
                     </div>
-                  ) : null}
-                </div>
+
+                    {(data.valorOriginal != null ||
+                      data.juros != null ||
+                      data.multa != null ||
+                      data.desconto != null) && (
+                      <div className="grid grid-cols-2 gap-4 border-t border-border pt-3">
+                        {data.valorOriginal != null ? (
+                          <Field label="Valor original" value={formatBRL(Number(data.valorOriginal))} />
+                        ) : null}
+                        {data.juros != null ? (
+                          <div className={data.valorOriginal != null ? "text-right" : ""}>
+                            <Field label="Juros" value={formatBRL(Number(data.juros))} />
+                          </div>
+                        ) : null}
+                        {data.multa != null ? (
+                          <Field label="Multa" value={formatBRL(Number(data.multa))} />
+                        ) : null}
+                        {data.desconto != null ? (
+                          <div className={data.multa != null ? "text-right" : ""}>
+                            <Field label="Desconto" value={formatBRL(Number(data.desconto))} />
+                          </div>
+                        ) : null}
+                      </div>
+                    )}
+
+                    {data.linhaDigitavel ? (
+                      <div className="border-t border-border pt-3">
+                        <Field label="Linha digitável" value={data.linhaDigitavel} />
+                      </div>
+                    ) : null}
+
+                    {data.codigoBarras ? (
+                      <div className="border-t border-border pt-3">
+                        <Field label="Código de barras" value={data.codigoBarras} />
+                      </div>
+                    ) : null}
+
+                    {data.descricao ? (
+                      <div className="border-t border-border pt-3">
+                        <Field label="Descrição" value={data.descricao} />
+                      </div>
+                    ) : null}
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 gap-4 bg-muted/20 rounded-2xl p-4 border border-border">
+                    <Field
+                      label="Data do pagamento"
+                      value={formatDate(data.dataPagamento ?? data.dataHora)}
+                    />
+                    <div className="text-right">
+                      <Field
+                        label="Forma de pagamento"
+                        value={data.formaPagamento || data.tipo || "Pix"}
+                      />
+                    </div>
+                    {data.chavePix ? (
+                      <div className="col-span-2">
+                        <Field label="Chave Pix" value={data.chavePix} />
+                      </div>
+                    ) : null}
+                  </div>
+                )}
 
                 <div className="space-y-4">
                   <PartyBlock title="Pagador" party={pagador} />
                   <div className="h-px w-full bg-border" />
-                  <PartyBlock title="Recebedor" party={recebedor} />
+                  <PartyBlock title={isBoleto ? "Beneficiário" : "Recebedor"} party={recebedor} />
                 </div>
 
                 <div className="pt-4 border-t border-border">
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold mb-1.5">
-                    ID da transação
-                  </p>
-                  <p className="text-[10px] font-mono text-muted-foreground break-all leading-snug">
-                    {data.transacaoId || "—"}
-                  </p>
+                  {data.transacaoId ? (
+                    <>
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold mb-1.5">
+                        {isBoleto ? "Identificador da operação" : "Identificador da transação"}
+                      </p>
+                      <p className="text-[10px] font-mono text-muted-foreground break-all leading-snug">
+                        {data.transacaoId}
+                      </p>
+                    </>
+                  ) : null}
+
+                  {isBoleto && data.autenticacao ? (
+                    <div className="mt-3">
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold mb-1.5">
+                        Autenticação
+                      </p>
+                      <p className="text-[10px] font-mono text-muted-foreground break-all leading-snug">
+                        {data.autenticacao}
+                      </p>
+                    </div>
+                  ) : null}
+
+                  {isBoleto && data.referenciaInterna ? (
+                    <div className="mt-3">
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold mb-1.5">
+                        Referência interna VIA AIR
+                      </p>
+                      <p className="text-[10px] font-mono text-muted-foreground break-all leading-snug">
+                        {data.referenciaInterna}
+                      </p>
+                    </div>
+                  ) : null}
+
 
                   <div className="mt-5 flex flex-col items-center gap-1 opacity-60">
                     <div className="flex items-center gap-2">
