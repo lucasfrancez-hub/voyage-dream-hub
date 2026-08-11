@@ -163,6 +163,7 @@ export const criarPagamentoBoleto = createServerFn({ method: 'POST' })
         value: z.number().positive(),
         dueDate: z.string().nullable().optional(),
         scheduleDate: z.string().nullable().optional(),
+        scheduleTime: z.string().regex(/^\d{2}:\d{2}$/).nullable().optional(),
         description: z.string().max(300).nullable().optional(),
         beneficiaryName: z.string().max(200).nullable().optional(),
         beneficiaryDocument: z.string().max(40).nullable().optional(),
