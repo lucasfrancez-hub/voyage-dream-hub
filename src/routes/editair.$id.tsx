@@ -616,6 +616,31 @@ function EditorPage() {
     aplicar({ ...state, clips: state.clips.map((c) => (c.id === cid ? { ...c, ...patch } : c)) });
   };
 
+  /* --- edição manual do texto da legenda (conteúdo ≠ timing ≠ estilo) ---
+     Digitar atualiza o preview na hora; o Undo trata a edição inteira como
+     UM passo só (o histórico guarda o estado de antes de começar a digitar). */
+  const edicaoTexto = useRef<{ id: string; antes: ProjectState } | null>(null);
+  const editarTextoLegenda = (cid: string, texto: string, commit = false) => {
+    if (!edicaoTexto.current || edicaoTexto.current.id !== cid) {
+      edicaoTexto.current = { id: cid, antes: state };
+    }
+    setState((s) => ({
+      ...s,
+      clips: s.clips.map((c) => (c.id === cid ? { ...c, ...aplicarTextoLegenda(c, texto) } : c)),
+    }));
+    if (commit) {
+      const antes = edicaoTexto.current?.antes;
+      edicaoTexto.current = null;
+      if (antes) {
+        historico.current.push(antes);
+        if (historico.current.length > 80) historico.current.shift();
+        futuro.current = [];
+      }
+    }
+  };
+
+
+
   /** Aplica um modelo de legenda numa legenda só ou em todas. */
   const aplicarModeloLegenda = (estilo: CaptionStyle, escopo: "uma" | "todas") => {
     if (escopo === "todas") {
