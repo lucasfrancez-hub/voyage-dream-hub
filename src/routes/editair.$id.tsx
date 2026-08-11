@@ -1,6 +1,9 @@
 import { createFileRoute, useParams } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
+import { CentralProcessos } from "@/components/editair/CentralProcessos";
+import { executarJob, jobEmAndamento } from "@/lib/editair/jobs";
+import { avisarConclusao } from "@/lib/editair/notificar";
 import {
   Captions,
   Clapperboard,
@@ -2087,14 +2090,7 @@ function EditorPage() {
 
 
 
-      {ocupado ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
-          <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-[#131316] px-6 py-4 text-sm">
-            <Loader2 className="h-4 w-4 animate-spin text-[#F26B1F]" />
-            {ocupado}
-          </div>
-        </div>
-      ) : null}
+      <CentralProcessos projectId={id} />
     </>
 
   );
