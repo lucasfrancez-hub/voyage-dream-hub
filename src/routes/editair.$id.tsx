@@ -2360,25 +2360,69 @@ function EditorPage() {
             setIaEscopo("clipe");
             setIaClipId(cid);
           }}
+          temClipboard={nClipboard > 0}
+          onAcaoMarcador={(mid, acao, valor) => {
+            const m = (state.marcadores ?? []).find((x) => x.id === mid);
+            if (!m) return;
+            if (acao === "cor" && valor) aplicar(atualizarMarcador(state, mid, { cor: valor }));
+            else if (acao === "renomear") setRenomeandoMarcador({ id: mid, nota: m.nota ?? "" });
+            else if (acao === "excluir")
+              confirmarDialogo({
+                titulo: "Excluir marcador",
+                descricao: `Remover "${m.nota || "marcador"}" da timeline?`,
+                confirmar: "Excluir",
+                destrutivo: true,
+                aoConfirmar: () => aplicar(excluirMarcador(state, mid)),
+              });
+          }}
           onAcaoClip={(cid, acao) => {
             const c = state.clips.find((x) => x.id === cid);
             if (!c) return;
-            setSelecionados([cid]);
-            if (acao === "copiar") {
-              clipboardRef.current = [{ ...c }];
-              toast.success("Clipe copiado");
-            } else if (acao === "bloquear") patchClipe({ bloqueado: !c.bloqueado }, cid);
-            else if (acao === "mudo") patchClipe({ muted: !c.muted }, cid);
-            else if (acao === "congelar") patchClipe({ congelado: !c.congelado, speed: c.congelado ? 1 : 0.01 }, cid);
-            else if (acao === "desvincular") patchClipe({ semAudio: !c.semAudio }, cid);
-            else
-              usarResultado(
-                acaoDeClip(state, cid, acao as Parameters<typeof acaoDeClip>[2], {
-                  playheadMs: playhead,
-                  transcript,
-                  duracoesFonte,
-                }),
-              );
+            // o menu age sobre a seleção quando o clipe clicado faz parte dela
+            const alvo = selecionados.includes(cid) ? selecionados : [cid];
+            if (!selecionados.includes(cid)) setSelecionados([cid]);
+
+            if (acao === "copiar") return copiar(alvo);
+            if (acao === "colar") return colar();
+            if (acao === "duplicar") return duplicar(alvo);
+            if (acao === "bloquear") {
+              const travar = !c.bloqueado;
+              return aplicar({
+                ...state,
+                clips: state.clips.map((x) => (alvo.includes(x.id) ? { ...x, bloqueado: travar } : x)),
+              });
+            }
+            if (acao === "congelar" || acao === "descongelar") {
+              const r = alternarCongelado(state, alvo, acao === "congelar");
+              return r.ok ? aplicar(r.state!) : toast.error(r.erro!);
+            }
+            if (acao === "mudo") {
+              const ids = idsEditaveis(state, alvo);
+              if (!ids.length) return toast.error("Clipe bloqueado.");
+              const mudo = !(c.muted || c.semAudio);
+              return aplicar({
+                ...state,
+                clips: state.clips.map((x) => (ids.includes(x.id) ? { ...x, muted: mudo } : x)),
+              });
+            }
+            if (acao === "extrair-audio") {
+              const r = extrairAudioDeClip(state, cid);
+              if (!r.ok) return toast.error(r.erro!);
+              aplicar(r.state!);
+              setSelecionados(r.novoId ? [r.novoId] : []);
+              return toast.success("Áudio extraído para uma faixa própria");
+            }
+            if (acao === "desvincular" || acao === "revincular") {
+              const r = revincularAudio(state, cid);
+              return r.ok ? aplicar(r.state!) : toast.error(r.erro!);
+            }
+            usarResultado(
+              acaoDeClip(state, cid, acao as Parameters<typeof acaoDeClip>[2], {
+                playheadMs: playhead,
+                transcript,
+                duracoesFonte,
+              }),
+            );
           }}
 
           onToggleTrack={(trackId, campo) => aplicar(alternarTrack(state, trackId, campo))}
