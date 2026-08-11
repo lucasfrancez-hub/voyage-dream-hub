@@ -1206,6 +1206,9 @@ function Clipe({
     ? Math.min(Math.max(0, (asset.durationMs - (clip.sourceIn + clip.duration * speed)) / speed), 60_000)
     : 0;
   const mostrarSobra = (selecionado || arrastando) && !!asset;
+  /** posição do cursor dentro da faixa de seek (px relativos ao clipe) + timecode */
+  const [seekHover, setSeekHover] = useState<{ x: number; ms: number } | null>(null);
+
 
   return (
     <>
