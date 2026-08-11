@@ -25,13 +25,16 @@ export type LimitesLegenda = {
   maxDuracao: number;
   /** pausa que já indica fim de unidade de fala (ms) */
   pausaFrase: number;
+  /** pausa mínima após vírgula/;/: para fechar a unidade ali (ms) */
+  pausaVirgula: number;
 };
 
 export const LIMITES_PADRAO: LimitesLegenda = {
-  maxChars: 42,
+  maxChars: 46,
   maxPalavras: 9,
   maxDuracao: 4200,
   pausaFrase: 600,
+  pausaVirgula: 150,
 };
 
 const FIM_DE_FRASE = /[.!?…]+["'”’)\]]?$/;
@@ -42,6 +45,12 @@ const CONECTIVOS = new Set([
   "e", "mas", "porém", "entretanto", "ou", "porque", "pois", "que", "então",
   "aí", "daí", "quando", "enquanto", "embora", "se", "como", "logo", "portanto",
   "só", "também", "já", "depois", "antes", "para", "pra", "além",
+]);
+
+/** palavras fracas para terminar um bloco (artigos, preposições, verbo de ligação) */
+const FRACOS = new Set([
+  "o", "a", "os", "as", "um", "uma", "de", "da", "do", "das", "dos", "em", "no", "na",
+  "por", "com", "pra", "para", "que", "e", "é", "ao", "à", "meu", "minha", "seu", "sua",
 ]);
 
 const limpar = (w: string) =>
@@ -75,6 +84,11 @@ export function unidadesDeFala(palavras: PalavraTempo[], lim = LIMITES_PADRAO): 
     }
     atual.push(p);
     if (FIM_DE_FRASE.test(p.w)) fechar();
+    else if (PONTUACAO_MEDIA.test(p.w)) {
+      // vírgula seguida de respiro já é fronteira natural de unidade
+      const prox = palavras[palavras.indexOf(p) + 1];
+      if (prox && prox.start - p.end >= lim.pausaVirgula) fechar();
+    }
   }
   fechar();
   return unidades;
@@ -101,6 +115,7 @@ function melhorQuebra(ws: PalavraTempo[], lim: LimitesLegenda): number {
     const pausa = proxima.start - anterior.end;
     nota += Math.min(pausa / 90, 5); // pausa natural
     if (CONECTIVOS.has(limpar(proxima.w))) nota += 3; // nova unidade de sentido
+    if (FRACOS.has(limpar(anterior.w))) nota -= 4; // não deixar artigo/preposição pendurado
     if (chars(esq) <= lim.maxChars && esq.length <= lim.maxPalavras) nota += 2;
     if (chars(dir) <= lim.maxChars && dir.length <= lim.maxPalavras) nota += 2;
     // desempate: evita metades muito desiguais
