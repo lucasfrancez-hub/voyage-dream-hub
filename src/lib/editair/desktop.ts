@@ -63,8 +63,14 @@ type PonteDesktop = {
     escolherMidias(): Promise<string[]>;
     escolherPasta(): Promise<string | null>;
     localizarArquivo(nome?: string): Promise<string | null>;
-    salvarComo(nomeSugerido?: string): Promise<string | null>;
+    salvarComo(nomeSugerido?: string, pasta?: string): Promise<string | null>;
+    pastaExport(): Promise<string>;
   };
+  arquivo: {
+    abrir(caminho: string): Promise<boolean>;
+    revelar(caminho: string): Promise<boolean>;
+  };
+
   biblioteca: {
     listar(): Promise<AssetLocal[]>;
     importar(caminhos: string[], opcoes?: { copiar?: boolean }): Promise<AssetLocal[]>;
