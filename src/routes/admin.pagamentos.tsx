@@ -14,10 +14,36 @@ import {
 import { ComprovanteReceipt } from "@/components/financial/ComprovanteReceipt";
 import { formatBRL } from "@/lib/format";
 import { PixPaymentDialog } from "@/components/financial/PixPaymentDialog";
+import { BoletoPaymentDialog } from "@/components/financial/BoletoPaymentDialog";
 import {
   listarPagamentosPix, detalharPagamentoPix, sincronizarPagamentoPix, sincronizarTodosPagamentosPix, cancelarPagamentoPix,
 } from "@/lib/pagamentos.functions";
+import {
+  listarPagamentosBoleto, sincronizarPagamentoBoleto, cancelarPagamentoBoleto,
+} from "@/lib/boleto-pay.functions";
+import { formatarLinhaDigitavel } from "@/lib/boleto-html";
 import { confirmThen } from "@/lib/confirm";
+
+/** Selo visual do tipo de operação na listagem. */
+function TipoBadge({ kind }: { kind: "pix" | "boleto" }) {
+  return (
+    <span
+      className={`shrink-0 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${
+        kind === "pix"
+          ? "bg-brand-orange/15 text-brand-orange"
+          : "bg-sky-500/15 text-sky-400"
+      }`}
+    >
+      {kind === "pix" ? "Pix" : "Boleto"}
+    </span>
+  );
+}
+
+function formatLinha(v?: string | null) {
+  if (!v) return "—";
+  return formatarLinhaDigitavel(v) || v;
+}
+
 
 export const Route = createFileRoute("/admin/pagamentos")({
   component: PagamentosPage,
