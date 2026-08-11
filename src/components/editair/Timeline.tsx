@@ -250,14 +250,15 @@ export function Timeline({
           d && d.tipo === "track" && !!state.tracks.find((t) => t.id === d.trackId)?.locked;
         ultimoDestino = !d || mesma || destinoTravado ? null : d;
         setAlvo(ultimoDestino);
+        const dest = ultimoDestino;
         setDica({
           x: ev.clientX,
           y: ev.clientY,
-          titulo: ultimoDestino
-            ? ultimoDestino.tipo === "nova"
+          titulo: !dest
+            ? trilha?.name ?? "Camada"
+            : dest.tipo === "nova"
               ? "Nova camada"
-              : state.tracks.find((t) => t.id === ultimoDestino?.trackId)?.name ?? "Camada"
-            : trilha?.name ?? "Camada",
+              : state.tracks.find((t) => t.id === dest.trackId)?.name ?? "Camada",
           valor: formatarTempo(ultimoStart, true),
           delta: `${delta >= 0 ? "+" : "−"}${formatarTempo(Math.abs(delta), true)}`,
         });
