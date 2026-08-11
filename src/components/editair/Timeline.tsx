@@ -21,6 +21,7 @@ import { limitesDoClip } from "@/lib/editair/ops";
 import { obterPicos, obterThumb, picosEmCache } from "@/lib/editair/media";
 import { executarJob } from "@/lib/editair/jobs";
 import { useJobsDoAlvo } from "@/hooks/use-editair-jobs";
+import { clipsNaCaixa, moverSelecao, tracksNaFaixa, unir } from "@/lib/editair/selecao";
 
 
 export type AssetInfo = { id?: string; url: string; durationMs: number; kind: string; name: string };
