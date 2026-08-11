@@ -33,6 +33,10 @@ export type Transform = {
   opacity: number; // 0..1
 };
 
+export type AnimacaoLegenda = "nenhuma" | "pop" | "subir" | "fade" | "escala" | "deslizar";
+export type AnimacaoSaidaLegenda = "nenhuma" | "fade" | "descer" | "encolher";
+export type AnimacaoPalavra = "nenhuma" | "cor" | "pop" | "brilho" | "progressiva";
+
 export type CaptionStyle = {
   fontSize: number;
   color: string;
@@ -45,7 +49,26 @@ export type CaptionStyle = {
   uppercase: boolean;
   fontFamily: string;
   karaoke: boolean;
-  animacao: "nenhuma" | "pop" | "subir" | "fade";
+  animacao: AnimacaoLegenda;
+  /* --- controles avançados (opcionais, com padrão) --- */
+  backgroundColor?: string;
+  shadow?: number;
+  shadowColor?: string;
+  paddingX?: number;
+  paddingY?: number;
+  radius?: number;
+  align?: "left" | "center" | "right";
+  maxLines?: number;
+  /** palavras por bloco de legenda (usado ao gerar/refazer legendas) */
+  wordsPerBlock?: number;
+  animacaoSaida?: AnimacaoSaidaLegenda;
+  animacaoPalavra?: AnimacaoPalavra;
+  escala?: number; // multiplicador geral
+  destaqueEscala?: number; // escala da palavra ativa
+  tracking?: number; // px entre letras
+  lineHeight?: number; // multiplicador
+  /** id do modelo aplicado (só informativo) */
+  presetId?: string;
 };
 
 export const LEGENDA_PADRAO: CaptionStyle = {
@@ -61,7 +84,23 @@ export const LEGENDA_PADRAO: CaptionStyle = {
   fontFamily: "Inter, system-ui, sans-serif",
   karaoke: true,
   animacao: "pop",
+  backgroundColor: "#000000",
+  shadow: 0,
+  shadowColor: "#000000",
+  paddingX: 18,
+  paddingY: 6,
+  radius: 14,
+  align: "center",
+  maxLines: 2,
+  wordsPerBlock: 5,
+  animacaoSaida: "nenhuma",
+  animacaoPalavra: "cor",
+  escala: 1,
+  destaqueEscala: 1,
+  tracking: 0,
+  lineHeight: 1.18,
 };
+
 
 export type TextStyle = {
   fontFamily: string;

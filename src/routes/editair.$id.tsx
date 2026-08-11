@@ -62,6 +62,7 @@ import {
   type Transcript,
 } from "@/lib/editair/types";
 import { aplicarOps, gerarLegendas, type EditairOp } from "@/lib/editair/ops";
+import { aplicarVelocidade } from "@/lib/editair/velocidade";
 import {
   acaoDeClip,
   alternarTrack,
@@ -510,7 +511,38 @@ function EditorPage() {
   const patchClipe = (patch: Partial<EditairClip>, alvoId?: string) => {
     const cid = alvoId ?? clipeAtual?.id;
     if (!cid) return;
+    // velocidade muda a duração real na timeline (e arrasta legendas/clipes seguintes)
+    if (patch.speed !== undefined && patch.congelado === undefined) {
+      const { speed, ...resto } = patch;
+      let novo = aplicarVelocidade(state, cid, speed);
+      if (Object.keys(resto).length) {
+        novo = { ...novo, clips: novo.clips.map((c) => (c.id === cid ? { ...c, ...resto } : c)) };
+      }
+      aplicar(novo);
+      return;
+    }
     aplicar({ ...state, clips: state.clips.map((c) => (c.id === cid ? { ...c, ...patch } : c)) });
+  };
+
+  /** Aplica um modelo de legenda numa legenda só ou em todas. */
+  const aplicarModeloLegenda = (estilo: CaptionStyle, escopo: "uma" | "todas") => {
+    if (escopo === "todas") {
+      aplicar({
+        ...state,
+        captionStyle: estilo,
+        clips: state.clips.map((c) => (c.kind === "caption" ? { ...c, captionStyle: estilo } : c)),
+      });
+      toast.success("Modelo aplicado em todas as legendas");
+      return;
+    }
+    const cid = clipeAtual?.kind === "caption" ? clipeAtual.id : null;
+    if (!cid) {
+      aplicar({ ...state, captionStyle: estilo });
+      toast.success("Modelo aplicado como padrão das legendas");
+      return;
+    }
+    aplicar({ ...state, clips: state.clips.map((c) => (c.id === cid ? { ...c, captionStyle: estilo } : c)) });
+    toast.success("Modelo aplicado nesta legenda");
   };
 
   const alterarClipTimeline = (cid: string, patch: Partial<EditairClip>, commit: boolean) => {
@@ -1459,6 +1491,7 @@ function EditorPage() {
             onPatchClip={(patch) => patchClipe(patch)}
             onPatchState={(patch) => aplicar({ ...state, ...patch })}
             onCaption={(patch: Partial<CaptionStyle>) => aplicar({ ...state, captionStyle: { ...state.captionStyle, ...patch } })}
+            onAplicarModeloLegenda={aplicarModeloLegenda}
             onAdicionarTexto={adicionarTexto}
             onAnalisar={() => void analisar()}
             onGerarLegendas={legendar}

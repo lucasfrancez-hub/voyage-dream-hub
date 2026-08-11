@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { obterThumb } from "@/lib/editair/media";
 import { Button } from "@/components/ui/button";
+import { CaptionTemplates } from "@/components/editair/CaptionTemplates";
 import { Slider } from "@/components/ui/slider";
 import { Input } from "@/components/ui/input";
 import {
@@ -93,6 +94,7 @@ export type ToolPanelProps = {
   onPatchClip: (patch: Partial<EditairClip>) => void;
   onPatchState: (patch: Partial<ProjectState>) => void;
   onCaption: (patch: Partial<CaptionStyle>) => void;
+  onAplicarModeloLegenda?: (estilo: CaptionStyle, escopo: "uma" | "todas") => void;
   onAdicionarTexto: () => void;
   onAnalisar: () => void;
   onGerarLegendas: () => void;
@@ -868,6 +870,8 @@ function PainelTransicoes({ clip, onPatchClip }: ToolPanelProps) {
 
 function PainelLegendas({
   state,
+  clip,
+  onAplicarModeloLegenda,
   transcript,
   onAnalisar,
   onGerarLegendas,
@@ -889,6 +893,14 @@ function PainelLegendas({
         <BotaoSec onClick={onAnalisar}>Transcrever</BotaoSec>
         <BotaoSec onClick={onGerarLegendas}>Gerar legendas</BotaoSec>
       </div>
+
+      <CaptionTemplates
+        atual={{ ...cs, ...(clip?.kind === "caption" ? clip.captionStyle ?? {} : {}) }}
+        temSelecao={clip?.kind === "caption"}
+        onAplicar={(estilo, escopo) =>
+          onAplicarModeloLegenda ? onAplicarModeloLegenda(estilo, escopo) : onCaption(estilo)
+        }
+      />
 
       <Campo label={`Tamanho — ${cs.fontSize}px`}>
         <Slider value={[cs.fontSize]} min={28} max={140} step={2} onValueChange={([v]) => onCaption({ fontSize: v })} />

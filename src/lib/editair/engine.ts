@@ -899,8 +899,9 @@ export class EditairEngine {
 
     let alpha = 1;
     let deslocY = 0;
-    let escala = 1;
+    let escala = estilo.escala ?? 1;
     const tl = t - c.start;
+    const restante = c.start + c.duration - t;
     if (estilo.animacao === "fade") alpha = clamp(tl / 180, 0, 1);
     else if (estilo.animacao === "subir") {
       const p = clamp(tl / 220, 0, 1);
@@ -908,53 +909,112 @@ export class EditairEngine {
       alpha = p;
     } else if (estilo.animacao === "pop") {
       const p = clamp(tl / 200, 0, 1);
-      escala = 0.86 + 0.14 * p;
+      escala *= 0.86 + 0.14 * p;
+      alpha = p;
+    } else if (estilo.animacao === "escala") {
+      const p = clamp(tl / 260, 0, 1);
+      escala *= 0.7 + 0.3 * p;
+      alpha = clamp(tl / 140, 0, 1);
+    } else if (estilo.animacao === "deslizar") {
+      const p = clamp(tl / 240, 0, 1);
+      deslocY = (1 - p) * -30;
       alpha = p;
     }
-    ctx.globalAlpha = alpha;
+    // saída
+    if (estilo.animacaoSaida === "fade") alpha *= clamp(restante / 200, 0, 1);
+    else if (estilo.animacaoSaida === "descer") deslocY += (1 - clamp(restante / 240, 0, 1)) * 40;
+    else if (estilo.animacaoSaida === "encolher") escala *= 0.85 + 0.15 * clamp(restante / 240, 0, 1);
+    ctx.globalAlpha = clamp(alpha, 0, 1);
 
     const fs = estilo.fontSize * escala;
-    ctx.font = `${estilo.weight} ${fs}px ${estilo.fontFamily}`;
+    const fonte = (peso: number, tamanho: number) => `${peso} ${tamanho}px ${estilo.fontFamily}`;
+    ctx.font = fonte(estilo.weight, fs);
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
+    const espacamento = estilo.tracking ?? 0;
+    const ctxAny = ctx as CanvasRenderingContext2D & { letterSpacing?: string };
+    if ("letterSpacing" in ctxAny) ctxAny.letterSpacing = `${espacamento}px`;
 
     const maxLargura = width * 0.86;
-    const linhas = quebrarLinhas(ctx, texto, maxLargura);
-    const alturaLinha = fs * 1.18;
+    const todas = quebrarLinhas(ctx, texto, maxLargura);
+    const maxLinhas = Math.max(1, estilo.maxLines ?? 2);
+    const linhas = todas.slice(0, maxLinhas);
+    const alturaLinha = fs * (estilo.lineHeight ?? 1.18);
     const yBase = height * estilo.y - ((linhas.length - 1) * alturaLinha) / 2 + deslocY;
+    const alinhamento = estilo.align ?? "center";
+    const centroX =
+      alinhamento === "left" ? width * 0.07 + maxLargura / 2 : alinhamento === "right" ? width * 0.93 - maxLargura / 2 : width / 2;
 
     const ativa = estilo.karaoke ? c.words?.find((w) => t >= w.start && t < w.end)?.w : null;
     const ativaNorm = ativa ? (estilo.uppercase ? ativa.toUpperCase() : ativa) : null;
     const limpar = (s: string) => s.replace(/[^\p{L}\p{N}]/gu, "");
+    const modoPalavra = estilo.animacaoPalavra ?? "cor";
+    // "progressiva": palavras já faladas ficam visíveis, as futuras esperam
+    const faladas = new Set<string>();
+    if (modoPalavra === "progressiva") {
+      (c.words ?? []).forEach((w) => {
+        if (t >= w.start) faladas.add(limpar(estilo.uppercase ? w.w.toUpperCase() : w.w));
+      });
+    }
 
     linhas.forEach((linha, i) => {
       const y = yBase + i * alturaLinha;
       if (estilo.background !== "none") {
-        const larg = ctx.measureText(linha).width + 36;
-        ctx.fillStyle = estilo.background === "box" ? "rgba(0,0,0,0.75)" : "rgba(0,0,0,0.4)";
-        ctx.fillRect(width / 2 - larg / 2, y - alturaLinha / 2 - 6, larg, alturaLinha + 12);
+        const padX = estilo.paddingX ?? 18;
+        const padY = estilo.paddingY ?? 6;
+        const larg = ctx.measureText(linha).width + padX * 2;
+        const raio = estilo.radius ?? 14;
+        ctx.fillStyle =
+          estilo.backgroundColor ?? (estilo.background === "box" ? "rgba(0,0,0,0.75)" : "rgba(0,0,0,0.4)");
+        const bx = centroX - larg / 2;
+        const by = y - alturaLinha / 2 - padY;
+        const bh = alturaLinha + padY * 2;
+        if (typeof (ctx as CanvasRenderingContext2D).roundRect === "function") {
+          ctx.beginPath();
+          (ctx as CanvasRenderingContext2D).roundRect(bx, by, larg, bh, raio);
+          ctx.fill();
+        } else {
+          ctx.fillRect(bx, by, larg, bh);
+        }
       }
       const palavras = linha.split(" ");
       const espaco = ctx.measureText(" ").width;
       const larguras = palavras.map((p) => ctx.measureText(`${p} `).width);
       const total = larguras.reduce((a, b) => a + b, 0) - espaco;
-      let x = width / 2 - total / 2;
+      let x = centroX - total / 2;
       palavras.forEach((p, idx) => {
         const destaque = ativaNorm != null && limpar(p) === limpar(ativaNorm);
         const px = x + larguras[idx] / 2 - espaco / 2;
+        const alphaBase = ctx.globalAlpha;
+        if (modoPalavra === "progressiva" && !faladas.has(limpar(p)) && !destaque) ctx.globalAlpha = alphaBase * 0.25;
+        if (destaque && (modoPalavra === "pop" || modoPalavra === "brilho")) {
+          ctx.font = fonte(estilo.weight, fs * (estilo.destaqueEscala ?? 1.1));
+        }
+        if (destaque && modoPalavra === "brilho") {
+          ctx.shadowColor = estilo.activeColor;
+          ctx.shadowBlur = 28;
+        } else if (estilo.shadow) {
+          ctx.shadowColor = estilo.shadowColor ?? "rgba(0,0,0,0.65)";
+          ctx.shadowBlur = estilo.shadow;
+        }
         if (estilo.stroke > 0) {
           ctx.lineWidth = estilo.stroke;
           ctx.strokeStyle = estilo.strokeColor;
           ctx.lineJoin = "round";
           ctx.strokeText(p, px, y);
         }
-        ctx.fillStyle = destaque ? estilo.activeColor : estilo.color;
+        ctx.fillStyle = destaque && modoPalavra !== "nenhuma" ? estilo.activeColor : estilo.color;
         ctx.fillText(p, px, y);
+        ctx.shadowBlur = 0;
+        ctx.globalAlpha = alphaBase;
+        ctx.font = fonte(estilo.weight, fs);
         x += larguras[idx];
       });
     });
+    if ("letterSpacing" in ctxAny) ctxAny.letterSpacing = "0px";
     ctx.restore();
   }
+
 
   private desenharTexto(c: EditairClip, t: number) {
     const { ctx, width, height } = this;
