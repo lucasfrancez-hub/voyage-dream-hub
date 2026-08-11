@@ -325,7 +325,11 @@ export function DesktopSettingsDialog({
                 <Button size="sm" variant="ghost" onClick={() => void api.diagnostico?.devTools()}>
                   <Terminal className="mr-1.5 h-4 w-4" /> Abrir DevTools
                 </Button>
+                <Button size="sm" variant="secondary" onClick={() => void auditarImportacao()}>
+                  <FileDown className="mr-1.5 h-4 w-4" /> Auditar importação (local × proxy)
+                </Button>
               </div>
+
             </div>
             <textarea
               readOnly
