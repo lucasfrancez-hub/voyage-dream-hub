@@ -1811,6 +1811,7 @@ function EditorPage() {
       const frame = 1000 / (state.fps || 30);
       if (e.code === "Space") {
         e.preventDefault();
+        if (!tocandoRef.current) engineRef.current?.liberarAudio();
         setTocando((v) => !v);
       } else if (e.key === "ArrowLeft") {
         setPlayhead((p) => Math.max(0, p - (e.shiftKey ? frame * 10 : frame)));
@@ -2004,8 +2005,12 @@ function EditorPage() {
           volume={volume}
           mudo={mudo}
           qualidade={qualidade}
-          onPlayPause={() => setTocando((v) => !v)}
-          onSeek={setPlayhead}
+          onPlayPause={() => {
+            // liberar o áudio precisa acontecer DENTRO do gesto do usuário
+            if (!tocando) engineRef.current?.liberarAudio();
+            setTocando((v) => !v);
+          }}
+          onSeek={buscar}
           onFrame={(d) => setPlayhead((p) => Math.max(0, Math.min(state.durationMs, p + (d * 1000) / (state.fps || 30))))}
           onVolume={setVolume}
           onMudo={setMudo}
@@ -2130,7 +2135,9 @@ function EditorPage() {
           assets={assetsMap}
           snapping={snapping}
           rippleTrim={rippleTrim}
-          onSeek={(ms) => setPlayhead(Math.max(0, ms))}
+          onSeek={buscar}
+          onScrubInicio={iniciarScrubGlobal}
+          onScrubFim={encerrarScrubGlobal}
           onSelecionar={setSelecionados}
           onSelecao={setSelecao}
           onAlterarClip={alterarClipTimeline}
