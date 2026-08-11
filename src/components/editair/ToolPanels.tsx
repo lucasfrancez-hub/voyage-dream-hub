@@ -1284,13 +1284,9 @@ function TransformCampos({
 }
 
 function Painel({ titulo, children }: { titulo: string; children: React.ReactNode }) {
-  return (
-    <div className="flex h-full min-h-0 flex-col">
-      <div className="border-b border-white/10 px-4 py-3 text-sm font-semibold">{titulo}</div>
-      <div className="min-h-0 flex-1 overflow-y-auto p-4">{children}</div>
-    </div>
-  );
+  return <PainelShell titulo={titulo}>{children}</PainelShell>;
 }
+
 
 function Campo({
   label,
