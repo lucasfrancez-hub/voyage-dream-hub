@@ -526,7 +526,7 @@ function PainelTexto({ clip, onAdicionarTexto, onPatchClip, onKeyframe }: ToolPa
 
   return (
     <Painel titulo="Texto">
-      <Button size="sm" className="mb-3 w-full bg-[#F26B1F] text-xs hover:bg-[#d95c14]" onClick={onAdicionarTexto}>
+      <Button size="sm" className="mb-3 w-full bg-[#F26B1F] text-xs hover:bg-[#d95c14]" onClick={() => onAdicionarTexto()}>
         <Plus className="mr-1 h-3.5 w-3.5" /> Adicionar texto no playhead
       </Button>
       {!eTexto ? (
