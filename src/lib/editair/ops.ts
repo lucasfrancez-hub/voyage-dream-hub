@@ -8,6 +8,7 @@ import {
   recalcularDuracao,
   transformPadrao,
 } from "./types";
+import { aplicarVelocidade } from "./velocidade";
 
 /**
  * Operações estruturadas do EditAir.
@@ -24,7 +25,7 @@ export type EditairOp =
   | { op: "delete_range"; fromMs: number; toMs: number; ripple?: boolean }
   | { op: "set_volume"; clipId?: string; trackId?: string; volume: number }
   | { op: "set_transform"; clipId: string; scale?: number; x?: number; y?: number; opacity?: number; rotation?: number }
-  | { op: "set_speed"; clipId: string; speed: number }
+  | { op: "set_speed"; clipId: string; speed: number; ripple?: boolean }
   | { op: "add_text"; text: string; startMs: number; durationMs: number }
   | { op: "add_caption_style"; fontSize?: number; y?: number; color?: string; activeColor?: string; uppercase?: boolean }
   | { op: "rebuild_captions"; mode?: "frase" | "palavra" }
@@ -255,9 +256,8 @@ export function aplicarOps(
         break;
       }
       case "set_speed": {
-        s.clips = s.clips.map((c) =>
-          c.id === op.clipId ? { ...c, speed: clamp(op.speed, 0.25, 4) } : c,
-        );
+        // a duração visual do clipe passa a refletir a velocidade real
+        s = aplicarVelocidade(s, op.clipId, op.speed, { ripple: op.ripple ?? true });
         log.push(`Velocidade ${op.speed}x`);
         break;
       }
