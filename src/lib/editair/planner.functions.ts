@@ -15,7 +15,7 @@ import { z } from "zod";
 
 const Input = z.object({
   escopo: z.enum(["clipe", "cena", "projeto"]),
-  instrucao: z.string().min(1).max(2000),
+  instrucao: z.string().min(1).max(40000),
   contexto: z.string().max(8000).default(""),
   duracaoMs: z.number().nonnegative(),
   playheadMs: z.number().nonnegative().default(0),

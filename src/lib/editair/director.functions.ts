@@ -18,7 +18,7 @@ const ClipeResumo = z.object({
 });
 
 const Input = z.object({
-  mensagem: z.string().min(1).max(2000),
+  mensagem: z.string().min(1).max(40000),
   playheadMs: z.number().nonnegative(),
   selecao: z.object({ fromMs: z.number(), toMs: z.number() }).nullable().optional(),
   clipeSelecionadoId: z.string().nullable().optional(),
