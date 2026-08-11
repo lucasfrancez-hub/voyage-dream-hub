@@ -227,7 +227,11 @@ export async function importarMidias(
       caminhos = salvos;
     }
     if (!caminhos.length) {
-      throw new Error("Não consegui ler esses arquivos do disco. Use Importar mídia para escolhê-los.");
+      throw new Error(
+        api.arquivo.salvarBytes
+          ? "Não consegui ler esses arquivos do disco. Use Importar mídia para escolhê-los."
+          : "Esta versão do app não consegue salvar mídia gerada. Atualize o EditAir Desktop.",
+      );
     }
     opcoes.aoProgredir?.({
       fase: "lendo",
