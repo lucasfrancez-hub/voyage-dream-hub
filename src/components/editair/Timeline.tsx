@@ -550,8 +550,7 @@ export function Timeline({
     <div className="relative flex h-full min-h-0 flex-col bg-[#0d1116]" onPointerDown={() => setMenu(null)}>
       <div className="flex min-h-0 min-w-0 flex-1 overflow-hidden">
         {/* cabeçalho das trilhas — fixo à esquerda, acompanha só o scroll vertical */}
-        <div ref={headersRef} className="w-[170px] shrink-0 overflow-hidden border-r border-white/10 bg-[#10151b]">
-
+        <div className="w-[170px] shrink-0 overflow-hidden border-r border-white/10 bg-[#10151b]">
           <div className="flex h-7 items-center justify-between border-b border-white/10 px-2">
             <span className="text-[10px] uppercase tracking-wide text-white/30">Camadas</span>
             {onNovaTrilhaVideo ? (
@@ -565,34 +564,37 @@ export function Timeline({
               </button>
             ) : null}
           </div>
-          {state.tracks.map((t, i) => (
-            <TrackLabel
-              key={t.id}
-              track={t}
-              indice={i}
-              vazia={!state.clips.some((c) => c.trackId === t.id)}
-              arrastandoIndice={arrastandoTrack}
-              onToggle={onToggleTrack}
-              onRenomear={onRenomearTrack}
-              onExcluir={onExcluirTrack}
-              onSelecionarTudo={onSelecionarTrack}
-              onIniciarReorder={setArrastandoTrack}
-              onSoltarReorder={(para) => {
-                if (arrastandoTrack !== null && arrastandoTrack !== para) onReordenarTracks?.(arrastandoTrack, para);
-                setArrastandoTrack(null);
-              }}
-            />
-          ))}
-          {onNovaTrilhaVideo ? (
-            <button
-              type="button"
-              onClick={onNovaTrilhaVideo}
-              className="flex w-full items-center gap-1.5 px-2 py-2 text-[11px] text-white/45 transition hover:bg-white/5 hover:text-white"
-            >
-              <Plus className="h-3.5 w-3.5" /> Nova camada de vídeo
-            </button>
-          ) : null}
+          <div ref={headersRef} className="will-change-transform">
+            {state.tracks.map((t, i) => (
+              <TrackLabel
+                key={t.id}
+                track={t}
+                indice={i}
+                vazia={!state.clips.some((c) => c.trackId === t.id)}
+                arrastandoIndice={arrastandoTrack}
+                onToggle={onToggleTrack}
+                onRenomear={onRenomearTrack}
+                onExcluir={onExcluirTrack}
+                onSelecionarTudo={onSelecionarTrack}
+                onIniciarReorder={setArrastandoTrack}
+                onSoltarReorder={(para) => {
+                  if (arrastandoTrack !== null && arrastandoTrack !== para) onReordenarTracks?.(arrastandoTrack, para);
+                  setArrastandoTrack(null);
+                }}
+              />
+            ))}
+            {onNovaTrilhaVideo ? (
+              <button
+                type="button"
+                onClick={onNovaTrilhaVideo}
+                className="flex w-full items-center gap-1.5 px-2 py-2 text-[11px] text-white/45 transition hover:bg-white/5 hover:text-white"
+              >
+                <Plus className="h-3.5 w-3.5" /> Nova camada de vídeo
+              </button>
+            ) : null}
+          </div>
         </div>
+
 
         {/* área rolável — único scroll container (X e Y) da timeline */}
         <div
