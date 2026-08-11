@@ -1941,6 +1941,8 @@ function EditorPage() {
           clip={clipeAtual}
           assets={assetItens.map((a) => ({ id: a.id, nome: a.nome }))}
           onPatchClip={(patch) => patchClipe(patch)}
+          onTextoLegenda={editarTextoLegenda}
+
           onPatchState={(patch) => aplicar({ ...state, ...patch })}
           onCaption={(patch) => aplicar({ ...state, captionStyle: { ...state.captionStyle, ...patch } })}
           onKeyframe={criarKeyframe}
