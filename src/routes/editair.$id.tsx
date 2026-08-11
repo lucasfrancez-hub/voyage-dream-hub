@@ -969,6 +969,7 @@ function EditorPage() {
           h: Math.max(0.03, caixa.h),
           rotation: 0,
           bloqueado: c.bloqueado,
+          resize: "caixa",
         });
         continue;
       }
