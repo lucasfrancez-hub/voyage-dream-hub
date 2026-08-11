@@ -19,6 +19,42 @@ const normalizar = (s: string) =>
     .replace(/[\u0300-\u036f]/g, "")
     .replace(/[^\p{L}\p{N}]/gu, "");
 
+/** Distância de edição simples (usada só em palavras curtas/médias). */
+function levenshtein(a: string, b: string): number {
+  if (a === b) return 0;
+  const m = a.length;
+  const n = b.length;
+  if (!m || !n) return m || n;
+  let prev = Array.from({ length: n + 1 }, (_, j) => j);
+  for (let i = 1; i <= m; i++) {
+    const cur = [i];
+    for (let j = 1; j <= n; j++) {
+      cur[j] = Math.min(prev[j]! + 1, cur[j - 1]! + 1, prev[j - 1]! + (a[i - 1] === b[j - 1] ? 0 : 1));
+    }
+    prev = cur;
+  }
+  return prev[n]!;
+}
+
+/**
+ * FIDELIDADE À FALA: o revisor só pode mexer em acento/pontuação/caixa e em
+ * erro evidente de grafia da MESMA palavra. Troca de palavra ("pra" -> "para",
+ * "a gente" -> "nós") ou reescrita é rejeitada.
+ */
+function variacaoPermitida(original: string, novo: string): boolean {
+  const a = normalizar(original);
+  const b = normalizar(novo);
+  if (a === b) return true; // só mudou acento, caixa ou pontuação
+  if (!a || !b) return false;
+  // grafia evidente: palavras longas, diferença mínima e mesmo início
+  if (Math.min(a.length, b.length) >= 5 && a[0] === b[0] && levenshtein(a, b) <= 1) return true;
+  return false;
+}
+
+/** Token sem letras nem números (pontuação solta) pode ser inserido. */
+const soPontuacao = (t: string) => normalizar(t).length === 0;
+
+
 /** Divide o texto corrigido em tokens visíveis (mantendo pontuação colada). */
 export function tokenizar(texto: string): string[] {
   return texto
@@ -134,10 +170,11 @@ export function reconciliar(alinhadas: PalavraAlinhada[], textoCorrigido: string
     const fonte = base.slice(i, ate_i);
     const novos = tokens.slice(j, ate_j);
     if (!fonte.length) {
-      // inserção pura de texto: cola no fim da última palavra emitida
+      // inserção: só aceita pontuação solta — palavra nova é reescrita, rejeita
       const ultimo = saida[saida.length - 1];
-      if (ultimo && novos.length) {
-        ultimo.w = `${ultimo.w} ${novos.join(" ")}`.trim();
+      const pontuacao = novos.filter(soPontuacao);
+      if (ultimo && pontuacao.length) {
+        ultimo.w = `${ultimo.w}${pontuacao.join("")}`.trim();
         alteradas++;
       }
       return;
@@ -147,12 +184,21 @@ export function reconciliar(alinhadas: PalavraAlinhada[], textoCorrigido: string
       saida.push(...fonte);
       return;
     }
-    const ini = fonte[0]!.start;
-    const fim = fonte[fonte.length - 1]!.end;
-    const repartido = repartir(ini, fim, novos);
-    alteradas += repartido.length;
-    saida.push(...repartido.map((p, k) => ({ ...p, conf: fonte[Math.min(k, fonte.length - 1)]!.conf })));
+    // FIDELIDADE: só troca quando é a MESMA palavra escrita de outro jeito.
+    const fiel =
+      fonte.length === novos.length && fonte.every((p, k) => variacaoPermitida(p.w, novos[k]!));
+    if (!fiel) {
+      saida.push(...fonte); // reescrita detectada -> mantém a fala original do Whisper
+      return;
+    }
+    saida.push(
+      ...fonte.map((p, k) => {
+        if (novos[k] !== p.w) alteradas++;
+        return { ...p, w: novos[k]! };
+      }),
+    );
   };
+
 
   for (const par of pares) {
     if (par.i > i || par.j > j) emitirBloco(par.i, par.j);
