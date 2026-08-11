@@ -535,6 +535,10 @@ export function Timeline({
     const trilha = state.tracks.find((t) => t.id === clip.trackId);
     if (trilha?.locked || clip.bloqueado) return;
     e.stopPropagation();
+    /* impede o drag-and-drop nativo (imagens do filmstrip) e a seleção de texto,
+       que disparavam pointercancel e matavam o arraste do clipe */
+    e.preventDefault();
+
     const x0 = e.clientX;
     const y0 = e.clientY;
     const inicioMs = msDoEvento(e.clientX);
