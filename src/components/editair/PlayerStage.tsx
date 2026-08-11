@@ -99,6 +99,7 @@ export function PlayerStage({
   onMover,
   onEscalar,
   onGirar,
+  onFimGesto,
 }: Props) {
   const stageRef = useRef<HTMLDivElement>(null);
   const [plataforma, setPlataforma] = useState<Plataforma>("nenhuma");
