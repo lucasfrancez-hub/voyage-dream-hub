@@ -89,7 +89,8 @@ import { EditairEngine } from "@/lib/editair/engine";
 import { aplicarAssetsIniciais, midiaParaAsset, PonteAssets, type AssetBasico } from "@/lib/editair/bootstrap";
 import { pontoDesktop } from "@/lib/editair/desktop";
 import { consumirHandoff } from "@/lib/editair/handoff";
-import { Timeline, type AssetInfo } from "@/components/editair/Timeline";
+import { Timeline, type AssetInfo, type DestinoSolto } from "@/components/editair/Timeline";
+import { alturaTimelineValida } from "@/lib/editair/interacao";
 import { PlayerStage, type ElementoPalco } from "@/components/editair/PlayerStage";
 import { SourceDialog } from "@/components/editair/SourceDialog";
 import { Inspector } from "@/components/editair/Inspector";
@@ -143,6 +144,14 @@ function EditorPage() {
   const [playhead, setPlayhead] = useState(0);
   const [tocando, setTocando] = useState(false);
   const [zoom, setZoom] = useState(60);
+  /* altura da timeline (splitter vertical) — a área superior nunca some */
+  const [alturaTimeline, setAlturaTimeline] = useState(300);
+  useEffect(() => {
+    const ajustar = () => setAlturaTimeline((h) => alturaTimelineValida(h, window.innerHeight - 56 - 46));
+    ajustar();
+    window.addEventListener("resize", ajustar);
+    return () => window.removeEventListener("resize", ajustar);
+  }, []);
   const [selecionados, setSelecionados] = useState<string[]>([]);
   const [selecao, setSelecao] = useState<{ fromMs: number; toMs: number } | null>(null);
   const [ferramenta, setFerramenta] = useState<Ferramenta>("midia");
