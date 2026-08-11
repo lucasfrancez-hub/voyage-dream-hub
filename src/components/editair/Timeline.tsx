@@ -48,6 +48,10 @@ export type DestinoSolto = DestinoCamada;
 
 const ALTURA_TRILHA = 56; // h-14
 
+/** limites do zoom horizontal da timeline (px por segundo) */
+export const ZOOM_MIN = 4;
+export const ZOOM_MAX = 600;
+
 const CORES: Record<string, string> = {
   "t-text": "bg-violet-600/70 border-violet-300/40",
   "t-caption": "bg-amber-600/70 border-amber-300/40",
