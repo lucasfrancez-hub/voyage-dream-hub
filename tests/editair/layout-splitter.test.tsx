@@ -1,5 +1,8 @@
-import { describe, expect, it, vi } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+// @vitest-environment jsdom
+/* Splitter horizontal: altura da timeline e larguras da área superior são estados independentes. */
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { cleanup, render, screen, fireEvent } from "@testing-library/react";
+
 import { WorkspaceLayout } from "@/components/editair/WorkspaceLayout";
 import {
   ALTURA_SPLITTER,
