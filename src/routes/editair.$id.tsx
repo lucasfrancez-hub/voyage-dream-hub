@@ -1440,7 +1440,7 @@ function EditorPage() {
       setIaEtapasFeitas([...feitas]);
     };
     try {
-      let ops = validarOps(p.ops, state, iaEscopoEfetivo === "clipe" ? iaClipId : null);
+      let ops = validarOps(p.ops, state, iaClipId ? iaClipId : null);
       let base = state;
 
       // 1. gerações de IA viram ARQUIVOS na Biblioteca (assets normais e editáveis)
