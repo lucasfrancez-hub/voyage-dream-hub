@@ -58,6 +58,8 @@ type Props = {
   state: ProjectState;
   playheadMs: number;
   zoom: number; // px por segundo
+  /** altera o zoom (px por segundo) — controle fixo no canto da timeline */
+  onZoom?: (zoom: number) => void;
   selecionados: string[];
   selecao: { fromMs: number; toMs: number } | null;
   assets: Record<string, AssetInfo>;
