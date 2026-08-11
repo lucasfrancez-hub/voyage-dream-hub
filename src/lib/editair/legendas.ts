@@ -97,12 +97,20 @@ function criarLegenda(texto: string, palavras: PalavraProjetada[], clipId: strin
   };
 }
 
-/** Monta as legendas já projetadas na timeline atual. */
+/**
+ * Monta as legendas NOVAS, já projetadas na timeline atual.
+ * Legendas corrigidas à mão (`textoManual`) continuam no projeto e não são
+ * regeradas: nenhum bloco novo nasce por cima delas.
+ */
 export function montarLegendas(
   state: ProjectState,
   transcript: Transcript,
   modo: "frase" | "palavra" = "frase",
 ): EditairClip[] {
+  const manuais = state.clips.filter((c) => c.kind === "caption" && c.textoManual);
+  const colide = (start: number, fim: number) =>
+    manuais.some((m) => start < m.start + m.duration && fim > m.start);
+
   const janelas = janelasDaTimeline(state);
   if (!janelas.length) return [];
   const palavras = projetarPalavras(
@@ -111,16 +119,20 @@ export function montarLegendas(
   ).filter((p) => p.end > p.start);
   if (!palavras.length) return [];
 
-  if (modo === "palavra") return palavras.map((p) => criarLegenda(p.w, [p], p.clipId));
+  const geradas =
+    modo === "palavra"
+      ? palavras.map((p) => criarLegenda(p.w, [p], p.clipId))
+      : // agrupamento pela fala (pontuação → pausa → sentido → limite visual)
+        segmentarLegendas(palavras).map((bloco) =>
+          criarLegenda(
+            bloco.map((p) => p.w).join(" "),
+            bloco as PalavraProjetada[],
+            (bloco[0] as PalavraProjetada).clipId,
+          ),
+        );
 
-  // agrupamento pela fala (pontuação → pausa → sentido → limite visual)
-  return segmentarLegendas(palavras).map((bloco) =>
-    criarLegenda(
-      bloco.map((p) => p.w).join(" "),
-      bloco as PalavraProjetada[],
-      (bloco[0] as PalavraProjetada).clipId,
-    ),
-  );
+  return geradas.filter((g) => !colide(g.start, g.start + g.duration));
+
 }
 
 

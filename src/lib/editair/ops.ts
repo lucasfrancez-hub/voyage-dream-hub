@@ -16,6 +16,7 @@ import {
 } from "./types";
 import { aplicarVelocidade } from "./velocidade";
 import { ajustarLegendasAoRemover, deslocarClip, montarLegendas } from "./legendas";
+import { aplicarTextoLegenda } from "./texto-legenda";
 
 /**
  * Operações estruturadas do EditAir.
@@ -351,7 +352,8 @@ export function aplicarOps(
         break;
       }
       case "rebuild_captions": {
-        s = { ...s, clips: s.clips.filter((c) => c.kind !== "caption") };
+        // legendas corrigidas à mão sobrevivem à regeração
+        s = { ...s, clips: s.clips.filter((c) => c.kind !== "caption" || c.textoManual) };
         if (transcript?.words?.length) {
           s = { ...s, clips: [...s.clips, ...gerarLegendas(s, transcript, op.mode ?? "frase")] };
           log.push("Legendas regeradas");
@@ -475,21 +477,22 @@ export function aplicarOps(
       case "update_caption": {
         s = {
           ...s,
-          clips: s.clips.map((c) =>
-            c.id === op.clipId
-              ? {
-                  ...c,
-                  text: op.text ?? c.text,
-                  label: (op.text ?? c.text ?? c.label ?? "").slice(0, 20),
-                  start: op.startMs != null ? Math.max(0, Math.round(op.startMs)) : c.start,
-                  duration: op.durationMs != null ? Math.max(200, Math.round(op.durationMs)) : c.duration,
-                }
-              : c,
-          ),
+          clips: s.clips.map((c) => {
+            if (c.id !== op.clipId) return c;
+            // conteúdo, timing e estilo são independentes
+            const conteudo = op.text != null ? aplicarTextoLegenda(c, op.text) : {};
+            return {
+              ...c,
+              ...conteudo,
+              start: op.startMs != null ? Math.max(0, Math.round(op.startMs)) : c.start,
+              duration: op.durationMs != null ? Math.max(200, Math.round(op.durationMs)) : c.duration,
+            };
+          }),
         };
         log.push("Legenda atualizada");
         break;
       }
+
       case "add_animation": {
         s = {
           ...s,

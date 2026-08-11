@@ -386,6 +386,9 @@ export type EditairClip = {
   words?: { w: string; start: number; end: number }[];
   /** legenda/texto vinculado ao clipe de mídia que originou a fala */
   linkClipId?: string;
+  /** legenda corrigida à mão: a geração automática não sobrescreve mais */
+  textoManual?: boolean;
+
   label?: string;
 
   ajustes?: Ajustes;
