@@ -656,7 +656,7 @@ export function Timeline({
               : undefined
           }
         >
-          <div style={{ width: larguraTotal }} className="relative">
+          <div style={{ width: larguraTotal, minWidth: "100%" }} className="relative" data-testid="timeline-content">
             {/* régua */}
             <div
               title="Clique ou arraste para mover o tempo (Alt/Shift = selecionar intervalo)"
