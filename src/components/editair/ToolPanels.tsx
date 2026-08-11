@@ -17,6 +17,7 @@ import {
 import { obterThumb } from "@/lib/editair/media";
 import { Button } from "@/components/ui/button";
 import { CaptionTemplates } from "@/components/editair/CaptionTemplates";
+import { EfeitosGallery } from "@/components/editair/EfeitosGallery";
 import { Slider } from "@/components/ui/slider";
 import { Input } from "@/components/ui/input";
 import {
@@ -778,41 +779,12 @@ function PainelEfeitos({ clip, onPatchClip }: ToolPanelProps) {
       {!clip ? (
         <p className="text-[11px] text-white/35">Selecione um clipe para aplicar um efeito.</p>
       ) : (
-        <>
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              onClick={() => onPatchClip({ efeito: undefined })}
-              className={`rounded-lg border px-2 py-3 text-[11px] ${!clip.efeito ? "border-[#F26B1F] bg-[#F26B1F]/15" : "border-white/10 hover:bg-white/5"}`}
-            >
-              Nenhum
-            </button>
-            {EFEITOS.map((e) => (
-              <button
-                key={e.id}
-                title={e.descricao}
-                onClick={() => onPatchClip({ efeito: { id: e.id, intensidade: clip.efeito?.intensidade ?? 50 } })}
-                className={`rounded-lg border px-2 py-3 text-[11px] ${
-                  clip.efeito?.id === e.id ? "border-[#F26B1F] bg-[#F26B1F]/15" : "border-white/10 hover:bg-white/5"
-                }`}
-              >
-                {e.nome}
-              </button>
-            ))}
-          </div>
-          {clip.efeito ? (
-            <div className="mt-3">
-              <Campo label={`Intensidade — ${clip.efeito.intensidade}%`}>
-                <Slider
-                  value={[clip.efeito.intensidade]}
-                  min={5}
-                  max={100}
-                  step={5}
-                  onValueChange={([v]) => onPatchClip({ efeito: { id: clip.efeito!.id, intensidade: v } })}
-                />
-              </Campo>
-            </div>
-          ) : null}
-        </>
+        <EfeitosGallery
+          key={clip.id}
+          efeitos={clip.efeitos}
+          onPrevia={(ef) => onPatchClip({ efeitos: ef })}
+          onAplicar={(ef) => onPatchClip({ efeitos: ef, efeito: undefined })}
+        />
       )}
     </Painel>
   );

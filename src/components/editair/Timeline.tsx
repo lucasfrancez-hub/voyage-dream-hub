@@ -16,6 +16,7 @@ import type { EditairClip, EditairTrack, ProjectState } from "@/lib/editair/type
 import { formatarTempo } from "@/lib/editair/types";
 import { posicionarMenu, type DestinoCamada } from "@/lib/editair/layers";
 import { destinoDeClip, destinoPorY, passouLimiar } from "@/lib/editair/interacao";
+import { marcadoresEfeitos } from "@/lib/editair/efeitos";
 import { limitesDoClip } from "@/lib/editair/ops";
 import { obterPicos, obterThumb } from "@/lib/editair/media";
 
@@ -1024,6 +1025,7 @@ function Clipe({
         {clip.transicao ? (
           <span className="pointer-events-none absolute left-0 top-0 h-full w-3 bg-gradient-to-r from-white/60 to-transparent" />
         ) : null}
+        <MarcadoresEfeitos clip={clip} largura={largura} />
         {!bloqueado && !clip.bloqueado ? (
           <>
             <div
@@ -1120,5 +1122,36 @@ function WaveClip({ clip, asset, largura }: { clip: EditairClip; asset: AssetInf
         return <rect key={i} x={i * 3} y={22 - h / 2} width={2} height={h} fill="#66e0d2" opacity={0.85} />;
       })}
     </svg>
+  );
+}
+
+/** Faixas visuais de entrada / momento / saída no próprio clipe. */
+function MarcadoresEfeitos({ clip, largura }: { clip: EditairClip; largura: number }) {
+  const { entradaMs, saidaMs, temMomento } = marcadoresEfeitos(clip.efeitos, clip.duration);
+  if (!entradaMs && !saidaMs && !temMomento) return null;
+  const px = (ms: number) => Math.max(6, (ms / Math.max(1, clip.duration)) * largura);
+  return (
+    <div className="pointer-events-none absolute inset-x-0 top-0 h-full">
+      {entradaMs ? (
+        <span
+          title={`Entrada: ${clip.efeitos?.entrada?.id}`}
+          className="absolute left-0 top-0 h-full bg-gradient-to-r from-[#F26B1F]/70 to-transparent"
+          style={{ width: px(entradaMs) }}
+        />
+      ) : null}
+      {saidaMs ? (
+        <span
+          title={`Saída: ${clip.efeitos?.saida?.id}`}
+          className="absolute right-0 top-0 h-full bg-gradient-to-l from-[#37E1FF]/70 to-transparent"
+          style={{ width: px(saidaMs) }}
+        />
+      ) : null}
+      {temMomento ? (
+        <span
+          title={`Momento: ${clip.efeitos?.momento?.id}`}
+          className="absolute inset-x-0 top-0 h-[3px] bg-[repeating-linear-gradient(90deg,rgba(255,255,255,.75)_0_6px,transparent_6px_12px)]"
+        />
+      ) : null}
+    </div>
   );
 }

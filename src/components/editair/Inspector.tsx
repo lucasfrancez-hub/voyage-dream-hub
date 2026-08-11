@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
+import { EfeitosGallery } from "@/components/editair/EfeitosGallery";
 import {
   ANIMACOES,
   ANIMACAO_PADRAO,
@@ -99,7 +100,7 @@ function rotulo(c: EditairClip) {
 
 /* ============================== VÍDEO / IMAGEM ============================== */
 
-type AbaTopo = "video" | "audio" | "velocidade" | "animacao" | "rastreamento" | "ajuste";
+type AbaTopo = "video" | "audio" | "velocidade" | "animacao" | "efeitos" | "rastreamento" | "ajuste";
 type AbaVideo = "basico" | "recorte" | "mascara" | "aprimorar";
 
 function InspVisual(p: Props & { clip: EditairClip }) {
@@ -113,6 +114,7 @@ function InspVisual(p: Props & { clip: EditairClip }) {
     ...(imagem ? [] : [{ id: "audio" as const, nome: "Áudio" }]),
     { id: "velocidade", nome: "Velocidade" },
     { id: "animacao", nome: "Animação" },
+    { id: "efeitos", nome: "Efeitos" },
     { id: "rastreamento", nome: "Rastreamento" },
     { id: "ajuste", nome: "Ajuste" },
   ];
@@ -144,6 +146,14 @@ function InspVisual(p: Props & { clip: EditairClip }) {
       {aba === "audio" ? <PainelAudioClip {...p} clip={clip} /> : null}
       {aba === "velocidade" ? <PainelVelocidade {...p} clip={clip} /> : null}
       {aba === "animacao" ? <PainelAnimacao {...p} clip={clip} /> : null}
+      {aba === "efeitos" ? (
+        <EfeitosGallery
+          key={clip.id}
+          efeitos={clip.efeitos}
+          onPrevia={(ef) => p.onPatchClip({ efeitos: ef })}
+          onAplicar={(ef) => p.onPatchClip({ efeitos: ef, efeito: undefined })}
+        />
+      ) : null}
       {aba === "rastreamento" ? <PainelRastreamento {...p} clip={clip} /> : null}
       {aba === "ajuste" ? <PainelAjustes {...p} clip={clip} /> : null}
     </div>

@@ -375,6 +375,8 @@ export type EditairClip = {
   ajustes?: Ajustes;
   filtro?: { id: FiltroId; intensidade: number };
   efeito?: { id: EfeitoId; intensidade: number };
+  /** biblioteca nova: entrada + momento + saída coexistindo */
+  efeitos?: import("./efeitos").EfeitosClip;
   /** transição de entrada, aplicada entre este clipe e o anterior */
   transicao?: { tipo: TransicaoTipo; durationMs: number };
   fadeInMs?: number;
