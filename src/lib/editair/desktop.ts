@@ -76,6 +76,7 @@ type PonteDesktop = {
   diagnostico?: {
     salvarTexto(nome: string, texto: string): Promise<string>;
     devTools(): Promise<boolean>;
+    importacao(): Promise<unknown>;
   };
 
   biblioteca: {
