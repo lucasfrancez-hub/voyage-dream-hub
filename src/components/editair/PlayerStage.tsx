@@ -125,7 +125,13 @@ export function PlayerStage({
   const [personalizado, setPersonalizado] = useState(false);
   const [painel, setPainel] = useState(false);
   const palcoRef = useRef<HTMLDivElement>(null);
-  const arrasto = useRef<{ modo: "mover" | "escala" | "giro"; id: string; x: number; y: number; base: ElementoPalco } | null>(null);
+  const arrasto = useRef<{
+    modo: "mover" | "escala" | "caixa" | "giro";
+    id: string;
+    x: number;
+    y: number;
+    base: ElementoPalco;
+  } | null>(null);
 
   const sel = elementos.find((e) => e.id === selecionadoId) ?? null;
 
@@ -135,13 +141,14 @@ export function PlayerStage({
     return { x: ((ev.clientX - r.left) / r.width) * width, y: ((ev.clientY - r.top) / r.height) * height };
   };
 
-  const iniciar = (modo: "mover" | "escala" | "giro", el: ElementoPalco) => (ev: React.PointerEvent) => {
-    ev.stopPropagation();
-    if (el.bloqueado) return;
-    (ev.target as HTMLElement).setPointerCapture?.(ev.pointerId);
-    const pt = paraFrame(ev);
-    arrasto.current = { modo, id: el.id, x: pt.x, y: pt.y, base: el };
-  };
+  const iniciar =
+    (modo: "mover" | "escala" | "caixa" | "giro", el: ElementoPalco) => (ev: React.PointerEvent) => {
+      ev.stopPropagation();
+      if (el.bloqueado) return;
+      (ev.target as HTMLElement).setPointerCapture?.(ev.pointerId);
+      const pt = paraFrame(ev);
+      arrasto.current = { modo, id: el.id, x: pt.x, y: pt.y, base: el };
+    };
 
   const mover = (ev: React.PointerEvent) => {
     const a = arrasto.current;
@@ -152,6 +159,12 @@ export function PlayerStage({
     if (a.modo === "mover") {
       onMover?.(a.id, dx, dy);
       arrasto.current = { ...a, x: pt.x, y: pt.y };
+    } else if (a.modo === "caixa") {
+      // Só largura da caixa de texto: a distância horizontal do cursor até o
+      // centro vira a meia-largura. O fontSize NÃO muda aqui.
+      const cx = a.base.cx * width;
+      const larguraFrac = Math.min(1, Math.max(0.1, (Math.abs(pt.x - cx) * 2) / width));
+      onLarguraCaixa?.(a.id, larguraFrac);
     } else if (a.modo === "escala") {
       const cx = a.base.cx * width;
       const cy = a.base.cy * height;
@@ -174,6 +187,7 @@ export function PlayerStage({
     if (arrasto.current) onFimGesto?.();
     arrasto.current = null;
   };
+
 
   const ratioAtual = `${Math.round((width / height) * 100) / 100}`;
 
