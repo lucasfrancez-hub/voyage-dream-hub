@@ -519,6 +519,27 @@ function EditorPage() {
     };
   }, []);
 
+  /* TESTE A/B DE LEGENDAS — console: await editairABLegendas()
+     Compara Gemini (tempo estimado) × Whisper local (tempo acústico) no MESMO áudio. */
+  useEffect(() => {
+    const w = window as unknown as { editairABLegendas?: () => Promise<unknown> };
+    w.editairABLegendas = async () => {
+      const buf = audioBufferRef.current;
+      if (!buf) throw new Error("Reimporte o vídeo nesta sessão para rodar o A/B.");
+      const { executarAB } = await import("@/lib/editair/ab-legendas");
+      const caminho =
+        (assetsRef.current.find((a) => a.kind !== "image" && !!(a as { localPath?: string }).localPath) as
+          | { localPath?: string }
+          | undefined)?.localPath ?? null;
+      const r = await executarAB({ buf, caminhoLocal: caminho });
+      console.log("[EditAir] A/B legendas", r);
+      return r;
+    };
+    return () => {
+      delete w.editairABLegendas;
+    };
+  }, []);
+
   useEffect(() => {
     if (!tocando) return;
     const id = window.setTimeout(() => {
