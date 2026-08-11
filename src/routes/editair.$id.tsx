@@ -55,6 +55,7 @@ import {
   normalizarEstado,
   novoId,
   recalcularDuracao,
+  limparTracksVazias,
   transformPadrao,
   TEXTO_PADRAO,
   type CaptionStyle,
