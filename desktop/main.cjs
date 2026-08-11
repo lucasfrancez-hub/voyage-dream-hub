@@ -48,6 +48,9 @@ function criarJanela() {
       nodeIntegration: false,
       sandbox: false,
       webSecurity: true,
+      // export roda em background: a janela não pode ser estrangulada nem em segundo plano
+      backgroundThrottling: false,
+
     },
   });
 
