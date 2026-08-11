@@ -128,6 +128,8 @@ export function Timeline({
   onEditarComIa,
 }: Props) {
   const areaRef = useRef<HTMLDivElement>(null);
+  const headersRef = useRef<HTMLDivElement>(null);
+
   const pxPorMs = zoom / 1000;
   const larguraTotal = Math.max(1200, (state.durationMs + 6000) * pxPorMs);
   const [dica, setDica] = useState<Dica>(null);
@@ -545,10 +547,10 @@ export function Timeline({
   const idxTrilhaMenu = trilhaMenu ? state.tracks.findIndex((t) => t.id === trilhaMenu.id) : -1;
 
   return (
-    <div className="relative flex h-full min-h-0 flex-col bg-[#0d1116]" onPointerDown={() => setMenu(null)}>
-      <div className="flex min-h-0 flex-1">
-        {/* cabeçalho das trilhas */}
-        <div className="w-[170px] shrink-0 border-r border-white/10 bg-[#10151b]">
+    <div className="relative flex h-full min-h-0 min-w-0 flex-col overflow-hidden bg-[#0d1116]" onPointerDown={() => setMenu(null)}>
+      <div className="flex min-h-0 min-w-0 flex-1 overflow-hidden">
+        {/* cabeçalho das trilhas — fixo à esquerda, acompanha só o scroll vertical */}
+        <div className="w-[170px] shrink-0 overflow-hidden border-r border-white/10 bg-[#10151b]">
           <div className="flex h-7 items-center justify-between border-b border-white/10 px-2">
             <span className="text-[10px] uppercase tracking-wide text-white/30">Camadas</span>
             {onNovaTrilhaVideo ? (
@@ -562,39 +564,48 @@ export function Timeline({
               </button>
             ) : null}
           </div>
-          {state.tracks.map((t, i) => (
-            <TrackLabel
-              key={t.id}
-              track={t}
-              indice={i}
-              vazia={!state.clips.some((c) => c.trackId === t.id)}
-              arrastandoIndice={arrastandoTrack}
-              onToggle={onToggleTrack}
-              onRenomear={onRenomearTrack}
-              onExcluir={onExcluirTrack}
-              onSelecionarTudo={onSelecionarTrack}
-              onIniciarReorder={setArrastandoTrack}
-              onSoltarReorder={(para) => {
-                if (arrastandoTrack !== null && arrastandoTrack !== para) onReordenarTracks?.(arrastandoTrack, para);
-                setArrastandoTrack(null);
-              }}
-            />
-          ))}
-          {onNovaTrilhaVideo ? (
-            <button
-              type="button"
-              onClick={onNovaTrilhaVideo}
-              className="flex w-full items-center gap-1.5 px-2 py-2 text-[11px] text-white/45 transition hover:bg-white/5 hover:text-white"
-            >
-              <Plus className="h-3.5 w-3.5" /> Nova camada de vídeo
-            </button>
-          ) : null}
+          <div ref={headersRef} className="will-change-transform">
+            {state.tracks.map((t, i) => (
+              <TrackLabel
+                key={t.id}
+                track={t}
+                indice={i}
+                vazia={!state.clips.some((c) => c.trackId === t.id)}
+                arrastandoIndice={arrastandoTrack}
+                onToggle={onToggleTrack}
+                onRenomear={onRenomearTrack}
+                onExcluir={onExcluirTrack}
+                onSelecionarTudo={onSelecionarTrack}
+                onIniciarReorder={setArrastandoTrack}
+                onSoltarReorder={(para) => {
+                  if (arrastandoTrack !== null && arrastandoTrack !== para) onReordenarTracks?.(arrastandoTrack, para);
+                  setArrastandoTrack(null);
+                }}
+              />
+            ))}
+            {onNovaTrilhaVideo ? (
+              <button
+                type="button"
+                onClick={onNovaTrilhaVideo}
+                className="flex w-full items-center gap-1.5 px-2 py-2 text-[11px] text-white/45 transition hover:bg-white/5 hover:text-white"
+              >
+                <Plus className="h-3.5 w-3.5" /> Nova camada de vídeo
+              </button>
+            ) : null}
+          </div>
         </div>
 
-        {/* área rolável */}
+
+        {/* área rolável — único scroll container (X e Y) da timeline */}
         <div
           ref={areaRef}
-          className={`relative min-h-0 flex-1 overflow-auto ${soltando ? "ring-1 ring-inset ring-[#F26B1F]/50" : ""}`}
+          data-testid="timeline-viewport"
+          onScroll={(e) => {
+            const el = e.currentTarget;
+            if (headersRef.current) headersRef.current.style.transform = `translateY(${-el.scrollTop}px)`;
+          }}
+          className={`relative min-h-0 min-w-0 flex-1 overflow-x-auto overflow-y-auto ${soltando ? "ring-1 ring-inset ring-[#F26B1F]/50" : ""}`}
+
           onDragOver={
             onSoltarArquivos || onSoltarAsset
               ? (e) => {
@@ -645,7 +656,7 @@ export function Timeline({
               : undefined
           }
         >
-          <div style={{ width: larguraTotal }} className="relative">
+          <div style={{ width: larguraTotal, minWidth: "100%" }} className="relative" data-testid="timeline-content">
             {/* régua */}
             <div
               title="Clique ou arraste para mover o tempo (Alt/Shift = selecionar intervalo)"
