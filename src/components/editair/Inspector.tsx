@@ -1012,8 +1012,25 @@ function InspLegenda({
         </Campo>
       </div>
       <Linha label={`Posição vertical — ${(est.y * 100).toFixed(0)}%`}>
-        <Slider value={[est.y * 100]} min={10} max={95} step={1} onValueChange={([v]) => set({ y: v / 100 })} />
+        <Slider value={[est.y * 100]} min={2} max={98} step={1} onValueChange={([v]) => set({ y: v / 100 })} />
       </Linha>
+      <Linha label={`Posição horizontal — ${(((est.x ?? 0.5)) * 100).toFixed(0)}%`}>
+        <Slider
+          value={[(est.x ?? 0.5) * 100]}
+          min={2}
+          max={98}
+          step={1}
+          onValueChange={([v]) => set({ x: v / 100 })}
+        />
+      </Linha>
+      <p className="text-[10px] text-white/35">
+        Dica: arraste a legenda direto no Reprodutor e use os cantos para redimensionar (Shift = ajuste fino).
+      </p>
+      <AplicarLayoutLegenda
+        onAplicar={(escopo) => onAplicarLayoutLegendas?.(clip.id, escopo)}
+        habilitado={!!onAplicarLayoutLegendas}
+      />
+
       <Linha label={`Contorno — ${est.stroke}`}>
         <Slider value={[est.stroke]} min={0} max={24} step={1} onValueChange={([v]) => set({ stroke: v })} />
       </Linha>
