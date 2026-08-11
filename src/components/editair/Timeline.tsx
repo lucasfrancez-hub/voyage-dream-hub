@@ -11,6 +11,7 @@ import {
   GripVertical,
   Pencil,
   Trash2,
+  MousePointerSquareDashed,
 } from "lucide-react";
 import type { EditairClip, EditairTrack, ProjectState } from "@/lib/editair/types";
 import { formatarTempo } from "@/lib/editair/types";
@@ -308,8 +309,12 @@ export function Timeline({
     const fimAntigo = base.start + base.duration;
     const posteriores = state.clips.filter((c) => c.trackId === clip.trackId && c.start >= fimAntigo && c.id !== clip.id);
     /* snapshot para restaurar em caso de cancelamento */
+    /* conjunto arrastado: se o clip faz parte de uma seleção múltipla, todos vão
+       juntos mantendo as distâncias relativas (a seleção continua sendo só UI) */
+    const conjunto = modo === "mover" && selecionados.length > 1 && selecionados.includes(clip.id) ? selecionados : [];
     const originais: Record<string, Partial<EditairClip>> = { [clip.id]: { ...base } };
     for (const c of posteriores) originais[c.id] = { start: c.start };
+    for (const c of state.clips) if (conjunto.includes(c.id)) originais[c.id] = { start: c.start };
 
     let ativo = false;
     let ultimoStart = base.start;
@@ -320,6 +325,19 @@ export function Timeline({
 
       if (modo === "mover") {
         ultimoStart = Math.max(0, encaixar(base.start + delta));
+        if (conjunto.length) {
+          // move o grupo inteiro pelo mesmo delta (distâncias relativas preservadas)
+          const patches = moverSelecao(state, conjunto, ultimoStart - base.start);
+          onAlterarClips(patches, false);
+          setDica({
+            x: ev.clientX,
+            y: ev.clientY,
+            titulo: `${conjunto.length} clipes`,
+            valor: formatarTempo(ultimoStart, true),
+            delta: `${delta >= 0 ? "+" : "−"}${formatarTempo(Math.abs(delta), true)}`,
+          });
+          return;
+        }
         onAlterarClip(clip.id, { start: ultimoStart }, false);
         // drag vertical → camada de destino (X = tempo, Y = camada, simultâneos)
         ultimoDestino = destinoDeClip(
@@ -422,6 +440,10 @@ export function Timeline({
       ativo = false;
       limpar();
       if (!estavaAtivo) return; // clique sem movimento: apenas seleciona
+      if (conjunto.length) {
+        onAlterarClips({}, true);
+        return;
+      }
       if (modo === "mover" && ultimoDestino && onSoltarClip) {
         onSoltarClip(clip.id, ultimoDestino, ultimoStart);
         return;
