@@ -29,6 +29,8 @@ export async function applyTransferStatus(opts: {
   event: string
   ip?: string | null
   campos?: CamposTransfer | null
+  message?: string | null
+  actorUserId?: string | null
 }) {
   const { supabaseAdmin } = await import('@/integrations/supabase/client.server')
   const { transferId, status, raw, event } = opts
@@ -40,6 +42,8 @@ export async function applyTransferStatus(opts: {
     .eq('id', transferId)
     .maybeSingle()
   if (!row) return { ok: false as const, reason: 'not_found' }
+
+  const statusAnterior = (row.status ?? null) as TransferStatus | null
 
   // Webhooks do ASAAS chegam fora de ordem: nunca regredir um estado final.
   const manterStatus = !deveAtualizarStatus(row.status, status)
@@ -59,6 +63,9 @@ export async function applyTransferStatus(opts: {
       last_event: event,
       last_event_at: new Date().toISOString(),
       raw_response: raw ?? row.raw_response,
+      ...(statusFinal === 'concluido' || statusFinal === 'falhou' || statusFinal === 'cancelado'
+        ? { dispatch_pending: false }
+        : {}),
     } as any)
     .eq('id', transferId)
 
@@ -68,12 +75,15 @@ export async function applyTransferStatus(opts: {
     asaas_transfer_id: row.asaas_transfer_id,
     event,
     status: statusFinal,
-    message: campos?.failReason ?? campos?.refusalReason ?? null,
+    message: opts.message ?? campos?.failReason ?? campos?.refusalReason ?? null,
+    actor_user_id: opts.actorUserId ?? null,
     ip: opts.ip ?? null,
     payload: raw ?? null,
   })
 
-  if (manterStatus) return { ok: true as const, status: statusFinal, ignoradoRetroativo: true }
+  if (manterStatus)
+    return { ok: true as const, status: statusFinal, statusAnterior, ignoradoRetroativo: true, mudou: false }
+
 
 
   // Baixa no Contas a pagar apenas quando o Pix foi efetivamente concluído.
