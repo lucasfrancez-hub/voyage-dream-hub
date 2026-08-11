@@ -169,6 +169,10 @@ function EditorPage() {
   const [etapaIa, setEtapaIa] = useState("");
   const [objetivoIa, setObjetivoIa] = useState("");
   const [iaClipId, setIaClipId] = useState<string | null>(null);
+  const [iaAberto, setIaAberto] = useState(false);
+  const [iaEscopo, setIaEscopo] = useState<AiEscopoId>("clipe");
+  const [iaPlano, setIaPlano] = useState<PlanoIa | null>(null);
+  const [iaEtapasFeitas, setIaEtapasFeitas] = useState<string[]>([]);
   const [loginNuvem, setLoginNuvem] = useState(false);
   const [ocupado, setOcupado] = useState<string | null>(null);
   const [salvando, setSalvando] = useState(false);
