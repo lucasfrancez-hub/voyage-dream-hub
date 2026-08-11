@@ -758,7 +758,7 @@ function EditorPage() {
       s = aplicarOps(s, [{ op: "delete_clip", clipId: cid }], transcript).state;
     }
     if (ripple) {
-      const trilhas = Array.from(new Set(state.clips.filter((c) => selecionados.includes(c.id)).map((c) => c.trackId)));
+      const trilhas = Array.from(new Set(state.clips.filter((c) => alvos.includes(c.id)).map((c) => c.trackId)));
       s = aplicarOps(s, trilhas.map(() => ({ op: "delete_range", fromMs: 0, toMs: 0 })) as EditairOp[], transcript).state;
       // fecha buracos nas trilhas afetadas
       for (const t of trilhas) {
@@ -1789,8 +1789,16 @@ function EditorPage() {
         e.preventDefault();
         if (e.shiftKey) refazer();
         else desfazer();
+      } else if ((e.metaKey || e.ctrlKey) && e.key === "a") {
+        e.preventDefault();
+        setSelecionados(selecionarTudo(state));
+      } else if (e.key === "Escape") {
+        setSelecionados([]);
       } else if ((e.metaKey || e.ctrlKey) && e.key === "c") {
         copiar();
+      } else if ((e.metaKey || e.ctrlKey) && e.key === "x") {
+        e.preventDefault();
+        recortar();
       } else if ((e.metaKey || e.ctrlKey) && e.key === "v") {
         colar();
       } else if ((e.metaKey || e.ctrlKey) && e.key === "d") {
@@ -2079,6 +2087,11 @@ function EditorPage() {
           onAlterarClip={alterarClipTimeline}
           onAlterarClips={alterarClipsTimeline}
           onAbrirSource={setSourceClipId}
+          onSelecionarTrack={(trackId) => {
+            const ids = selecionarTrack(state, trackId);
+            setSelecionados(ids);
+            if (!ids.length) toast.info("Nada para selecionar nesta camada.");
+          }}
           onEditarTextoLegenda={editarTextoLegenda}
           onRestaurarClip={restaurarClip}
           onSoltarArquivos={(arquivos, ms) => void importar(arquivos, ms)}
