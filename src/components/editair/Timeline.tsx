@@ -1981,7 +1981,7 @@ function WaveClip({
 
   return (
     <svg
-      className={sobreposta ? "pointer-events-none absolute inset-x-0 bottom-0 w-full" : "h-full w-full"}
+      className={sobreposta ? "pointer-events-none absolute inset-x-0 bottom-0 w-full" : "pointer-events-none h-full w-full"}
       width={largura}
       height={altura}
       preserveAspectRatio="none"
