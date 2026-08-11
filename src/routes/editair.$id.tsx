@@ -177,7 +177,7 @@ function EditorPage() {
   const [mensagens, setMensagens] = useState<MensagemIa[]>([]);
   const [pensando, setPensando] = useState(false);
   const [plano, setPlano] = useState<PlanoEditorial | null>(null);
-  const [etapaIa, setEtapaIa] = useState("");
+
   const [objetivoIa, setObjetivoIa] = useState("");
   const [iaClipId, setIaClipId] = useState<string | null>(null);
   const [iaAberto, setIaAberto] = useState(false);
@@ -1246,9 +1246,9 @@ function EditorPage() {
 
     setPensando(true);
     setIaEtapasFeitas([]);
-    setEtapaIa("Analisando a fala e o material…");
+    definirEtapaIa("Analisando a fala e o material…");
     try {
-      setEtapaIa("Planejando cortes, camadas e legendas…");
+      definirEtapaIa("Planejando cortes, camadas e legendas…");
       const p = await planejarOperacoesEditair({
         data: {
           escopo: iaEscopo,
@@ -1284,7 +1284,7 @@ function EditorPage() {
       toast.error(e instanceof Error ? e.message : "Falha ao planejar a edição");
     } finally {
       setPensando(false);
-      setEtapaIa("");
+      definirEtapaIa("");
     }
   };
 
@@ -1302,15 +1302,15 @@ function EditorPage() {
 
       // 1. gerações de IA viram ARQUIVOS na Biblioteca (assets normais e editáveis)
       if (p.geracoes.length) {
-        setEtapaIa(`Gerando ${p.geracoes.length} cena(s) com IA…`);
+        definirEtapaIa(`Gerando ${p.geracoes.length} cena(s) com IA…`);
         const prontas = await executarGeracoes(p.geracoes, {
           vertical: state.width < state.height,
-          aoProgredir: (m) => setEtapaIa(m),
+          aoProgredir: (m) => definirEtapaIa(m),
         });
         if (prontas.length) {
           const novas = await importarMidias(
             prontas.map((g) => g.arquivo),
-            { projectId: id, aoProgredir: (pr) => setEtapaIa(pr.mensagem) },
+            { projectId: id, aoProgredir: (pr) => definirEtapaIa(pr.mensagem) },
           );
           const novosAssets: AssetItem[] = [];
           for (const midia of novas) {
@@ -1356,7 +1356,7 @@ function EditorPage() {
         return;
       }
 
-      setEtapaIa("Organizando camadas e aplicando a edição…");
+      definirEtapaIa("Organizando camadas e aplicando a edição…");
       // checkpoint único: aplicar() empilha o estado anterior — um Desfazer reverte tudo
       const { state: novo } = aplicarOps(base, ops, transcript, duracoesFonte);
       base = novo;
@@ -1371,7 +1371,7 @@ function EditorPage() {
       toast.error(e instanceof Error ? e.message : "Falha ao aplicar a edição");
     } finally {
       setPensando(false);
-      setEtapaIa("");
+      definirEtapaIa("");
       setIaEtapasFeitas([]);
     }
   };
@@ -1392,10 +1392,10 @@ function EditorPage() {
     const ratio = state.width / Math.max(1, state.height);
     const formatoProjeto = ratio < 0.85 ? "vertical" : ratio > 1.2 ? "horizontal" : "quadrado";
     try {
-      setEtapaIa("Ouvindo o áudio e medindo cada trecho…");
+      definirEtapaIa("Ouvindo o áudio e medindo cada trecho…");
       const audio = analisarAudio(buf);
 
-      setEtapaIa("Olhando a imagem: exposição, contraste, nitidez e enquadramento…");
+      definirEtapaIa("Olhando a imagem: exposição, contraste, nitidez e enquadramento…");
       let visual = null;
       try {
         visual = await analisarVisual(asset.url, asset.durationMs || audio.durationMs, state.width / state.height);
@@ -1404,10 +1404,10 @@ function EditorPage() {
       }
       const analise: AnaliseTecnica = { ...audio, visual };
 
-      setEtapaIa("Lendo o que foi dito…");
+      definirEtapaIa("Lendo o que foi dito…");
       const t = transcript ?? (await analisar());
 
-      setEtapaIa("Pensando como editor: narrativa, tomadas e ritmo…");
+      definirEtapaIa("Pensando como editor: narrativa, tomadas e ritmo…");
       const bruto = await planejarEdicaoEditair({
         data: {
           objetivo: objetivo || objetivoIa,
@@ -1430,7 +1430,7 @@ function EditorPage() {
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Falha ao gerar o plano editorial");
     } finally {
-      setEtapaIa("");
+      definirEtapaIa("");
       setPensando(false);
     }
   };
@@ -1902,7 +1902,29 @@ function EditorPage() {
             const eng = engineRef.current;
             const c = clipeAtual;
             if (!eng || !c) return false;
-            return eng.analisarFundo(c, onProgresso, cancelado);
+            if (jobEmAndamento("remover-fundo", c.id)) return false;
+            const { promessa } = executarJob(
+              {
+                projectId: id,
+                type: "remover-fundo",
+                title: "Recorte automático",
+                stage: "Aplicando recorte automático…",
+                targetId: c.id,
+                resultado: "Recorte automático aplicado",
+              },
+              async (ctl) =>
+                eng.analisarFundo(
+                  c,
+                  (pct) => {
+                    onProgresso(pct);
+                    ctl.progresso(pct);
+                  },
+                  () => cancelado() || ctl.cancelado(),
+                ),
+            );
+            const r = await promessa;
+            if (r.ok && r.valor) avisarConclusao("Recorte automático aplicado");
+            return r.ok ? r.valor : false;
           }}
         />
       }
