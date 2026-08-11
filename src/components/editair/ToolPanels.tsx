@@ -1,6 +1,9 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Diamond,
+  Film,
+  Image as ImageIcon,
+  Music,
   Loader2,
   Plus,
   Search,
@@ -10,6 +13,7 @@ import {
   Upload,
   Wand2,
 } from "lucide-react";
+import { obterThumb } from "@/lib/editair/media";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Input } from "@/components/ui/input";

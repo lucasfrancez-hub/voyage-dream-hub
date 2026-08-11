@@ -62,7 +62,8 @@ export async function obterThumb(assetId: string, url: string, ms: number, largu
       const data = c.toDataURL("image/jpeg", 0.6);
       thumbCache.set(chave, data);
       return data;
-    } catch {
+    } catch (e) {
+      console.error(`[thumbnail:error] asset=${assetId}`, e);
       return null;
     }
   });
