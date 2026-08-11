@@ -661,28 +661,35 @@ function EditorPage() {
   };
 
   /* ---------------- mídia ---------------- */
-  const inserirAsset = (assetId: string) => {
+  const inserirAsset = (assetId: string, destino?: { trackId?: string; startMs?: number }) => {
     const a = assets.find((x) => x.id === assetId);
-    if (!a) return;
-    const trilha = a.kind === "audio" ? "t-music" : "t-video";
-    const fim = state.clips.filter((c) => c.trackId === trilha).reduce((m, c) => Math.max(m, c.start + c.duration), 0);
-    const clip: EditairClip = {
-      id: novoId(),
-      trackId: trilha,
-      kind: a.kind === "audio" ? "audio" : a.kind === "image" ? "image" : "video",
-      assetId: a.id,
-      start: fim,
-      duration: Math.max(1000, a.durationMs || 5000),
-      sourceIn: 0,
-      volume: 1,
-      speed: 1,
-      transform: transformPadrao(),
-      label: a.nome.slice(0, 28),
-    };
-    aplicar({ ...state, clips: [...state.clips, clip] });
-    setSelecionados([clip.id]);
-    return clip.id;
+    if (!a) {
+      console.warn("[timeline] inserir: asset não encontrado", { assetId, ids: assets.map((x) => x.id) });
+      toast.error("Mídia não encontrada na biblioteca deste projeto.");
+      return;
+    }
+    const r = inserirAssetNaTimeline(state, a, destino ?? {});
+    if (!r.ok) {
+      console.warn("[timeline] inserir recusado", { assetId, erro: r.erro });
+      toast.error(r.erro);
+      return;
+    }
+    console.log("[timeline] clip inserido", {
+      assetId,
+      clipId: r.clip.id,
+      trackId: r.clip.trackId,
+      start: r.clip.start,
+      duration: r.clip.duration,
+      criouTrack: r.criouTrack,
+      totalClips: r.state.clips.length,
+    });
+    aplicar(r.state);
+    setSelecionados([r.clip.id]);
+    void carregarNaEngine(a);
+    toast.success(`"${a.nome}" na timeline`);
+    return r.clip.id;
   };
+
 
   const importar = async (arquivos: FileList | File[] | string[] | null, posicaoMs?: number) => {
     if (!arquivos || (arquivos as { length: number }).length === 0) return;
