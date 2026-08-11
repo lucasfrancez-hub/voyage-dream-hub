@@ -224,6 +224,52 @@ export function Timeline({
     [snapping, pontosSnap, pxPorMs],
   );
 
+  /* Scrub do playhead: régua, linha e área vazia usam o MESMO caminho.
+     Esc cancela e volta para o tempo em que o arraste começou. */
+  const [arrastandoPlayhead, setArrastandoPlayhead] = useState(false);
+  const iniciarScrub = useCallback(
+    (e: React.PointerEvent, opcoes: { seguir?: boolean; selecao?: boolean } = {}) => {
+      const tempoInicial = playheadMs;
+      const inicio = msDoEvento(e.clientX);
+      if (opcoes.seguir !== false) onSeek(inicio);
+      onSelecao(null);
+      setArrastandoPlayhead(true);
+      let cancelado = false;
+
+      const mover = (ev: PointerEvent) => {
+        const atual = msDoEvento(ev.clientX);
+        // seleção de intervalo só com Alt/Shift — arrastar puro é sempre scrub
+        if (opcoes.selecao && (ev.altKey || ev.shiftKey) && Math.abs(atual - inicio) > 24) {
+          onSelecao({ fromMs: Math.min(inicio, atual), toMs: Math.max(inicio, atual) });
+          return;
+        }
+        onSeek(atual);
+      };
+      const encerrar = () => {
+        window.removeEventListener("pointermove", mover);
+        window.removeEventListener("pointerup", encerrar);
+        window.removeEventListener("pointercancel", encerrar);
+        window.removeEventListener("keydown", tecla, true);
+        setArrastandoPlayhead(false);
+      };
+      const tecla = (ev: KeyboardEvent) => {
+        if (ev.key !== "Escape" || cancelado) return;
+        cancelado = true;
+        ev.preventDefault();
+        ev.stopPropagation();
+        onSeek(tempoInicial);
+        onSelecao(null);
+        encerrar();
+      };
+
+      window.addEventListener("pointermove", mover);
+      window.addEventListener("pointerup", encerrar);
+      window.addEventListener("pointercancel", encerrar);
+      window.addEventListener("keydown", tecla, true);
+    },
+    [msDoEvento, onSeek, onSelecao, playheadMs],
+  );
+
   const marcas = useMemo(() => {
     const passo = zoom > 160 ? 1000 : zoom > 90 ? 2000 : zoom > 40 ? 5000 : zoom > 18 ? 10000 : 30000;
     const out: number[] = [];
@@ -494,26 +540,9 @@ export function Timeline({
           <div style={{ width: larguraTotal }} className="relative">
             {/* régua */}
             <div
-              className="sticky top-0 z-20 h-7 cursor-pointer border-b border-white/10 bg-[#0f141a]"
-              onPointerDown={(e) => {
-                const inicio = msDoEvento(e.clientX);
-                onSeek(inicio);
-                onSelecao(null);
-                const mover = (ev: PointerEvent) => {
-                  const atual = msDoEvento(ev.clientX);
-                  if (Math.abs(atual - inicio) > 60) {
-                    onSelecao({ fromMs: Math.min(inicio, atual), toMs: Math.max(inicio, atual) });
-                  } else {
-                    onSeek(atual);
-                  }
-                };
-                const soltar = () => {
-                  window.removeEventListener("pointermove", mover);
-                  window.removeEventListener("pointerup", soltar);
-                };
-                window.addEventListener("pointermove", mover);
-                window.addEventListener("pointerup", soltar);
-              }}
+              title="Clique ou arraste para mover o tempo (Alt/Shift = selecionar intervalo)"
+              className="sticky top-0 z-20 h-7 cursor-ew-resize border-b border-white/10 bg-[#0f141a]"
+              onPointerDown={(e) => iniciarScrub(e, { selecao: true })}
             >
               {marcas.map((t) => (
                 <div key={t} className="absolute top-0 h-full" style={{ left: t * pxPorMs }}>
@@ -548,7 +577,10 @@ export function Timeline({
                 } ${t.hidden ? "opacity-50" : ""}`}
                 style={{ height: ALTURA_TRILHA }}
                 onPointerDown={(e) => {
-                  if (e.target === e.currentTarget) onSelecionar([]);
+                  if (e.target !== e.currentTarget) return;
+                  onSelecionar([]);
+                  // espaço vazio: Shift/Alt + clique faz scrub sem selecionar clipes
+                  if (e.shiftKey || e.altKey) iniciarScrub(e);
                 }}
               >
                 {state.clips
@@ -603,21 +635,32 @@ export function Timeline({
 
             {/* playhead */}
 
+            {/* área de pegada larga (16px) com linha visual fina de 2px no centro */}
             <div
-              className="absolute top-0 z-30 h-full w-px cursor-ew-resize bg-white"
+              role="slider"
+              aria-label="Linha do tempo"
+              aria-valuenow={Math.round(playheadMs)}
+              tabIndex={-1}
+              className="group absolute top-0 z-30 h-full w-4 -translate-x-1/2 cursor-ew-resize"
               style={{ left: playheadMs * pxPorMs }}
               onPointerDown={(e) => {
                 e.stopPropagation();
-                const mover = (ev: PointerEvent) => onSeek(msDoEvento(ev.clientX));
-                const soltar = () => {
-                  window.removeEventListener("pointermove", mover);
-                  window.removeEventListener("pointerup", soltar);
-                };
-                window.addEventListener("pointermove", mover);
-                window.addEventListener("pointerup", soltar);
+                iniciarScrub(e, { seguir: false });
               }}
             >
-              <div className="-ml-[5px] h-2.5 w-2.5 rounded-b bg-white" />
+              <div
+                className={`pointer-events-none absolute inset-y-0 left-1/2 w-0.5 -translate-x-1/2 rounded-full transition-colors ${
+                  arrastandoPlayhead ? "bg-[#F26B1F]" : "bg-white group-hover:bg-[#F26B1F]"
+                }`}
+              />
+              {/* cabeça: cresce no hover e durante o arraste */}
+              <div
+                className={`pointer-events-none absolute left-1/2 top-0 -translate-x-1/2 rounded-b shadow transition-all ${
+                  arrastandoPlayhead
+                    ? "h-4 w-4 bg-[#F26B1F]"
+                    : "h-2.5 w-2.5 bg-white group-hover:h-4 group-hover:w-4 group-hover:bg-[#F26B1F]"
+                }`}
+              />
             </div>
           </div>
         </div>
