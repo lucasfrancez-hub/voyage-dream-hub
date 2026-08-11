@@ -250,3 +250,47 @@ export function _resetarJobs() {
   snapshot = [];
   for (const o of ouvintes) o();
 }
+
+/**
+ * Variante imperativa: para fluxos já escritos com try/catch/finally.
+ * Devolve o controle e as funções de desfecho.
+ */
+export function abrirJob(opcoes: OpcoesJob): ControleJob & {
+  concluir: (resultado?: string) => void;
+  falhar: (erro: unknown) => void;
+  fechar: () => void;
+} {
+  let resolver!: () => void;
+  const espera = new Promise<void>((r) => {
+    resolver = r;
+  });
+  let estado: "aberto" | "fechado" = "aberto";
+  let controle!: ControleJob;
+  const { id } = executarJob(opcoes, async (ctl) => {
+    controle = ctl;
+    await espera;
+    const job = jobs.get(ctl.id);
+    if (job?.error) throw new Error(job.error);
+  });
+  // executarJob invoca o trabalho de forma síncrona até o primeiro await
+  return {
+    ...controle,
+    concluir: (resultado) => {
+      if (estado === "fechado") return;
+      estado = "fechado";
+      if (resultado) patch(id, { resultado });
+      resolver();
+    },
+    falhar: (erro) => {
+      if (estado === "fechado") return;
+      estado = "fechado";
+      patch(id, { error: erro instanceof Error ? erro.message : String(erro) });
+      resolver();
+    },
+    fechar: () => {
+      if (estado === "fechado") return;
+      estado = "fechado";
+      resolver();
+    },
+  };
+}
