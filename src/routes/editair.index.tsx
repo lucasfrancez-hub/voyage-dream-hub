@@ -1,3 +1,4 @@
+import editairLogo from "@/assets/editair-logo.png.asset.json";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -241,7 +242,7 @@ function EditairHome() {
       )}
       <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">EditAir</h1>
+          <img src={editairLogo.url} alt="EditAir" className="h-12 w-auto" />
           <p className="mt-1 text-sm text-white/50">
             {desktop
               ? "Seus arquivos ficam no computador. A IA trabalha online; a edição e a exportação acontecem aqui."

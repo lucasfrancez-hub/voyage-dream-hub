@@ -1,7 +1,8 @@
+import editairLogo from "@/assets/editair-logo.png.asset.json";
 import { createFileRoute, Link, Outlet, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState, type CSSProperties } from "react";
 import type { Session } from "@supabase/supabase-js";
-import { Loader2, Clapperboard, ArrowLeft, FolderOpen, Plus, Settings } from "lucide-react";
+import { Loader2, ArrowLeft, FolderOpen, Plus, Settings } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/editair")({
@@ -94,13 +95,8 @@ function EditairLayout() {
               <ArrowLeft className="h-4 w-4" />
             </Link>
           )}
-          <Link to="/editair" className="flex items-center gap-2">
-            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#F26B1F]/15 text-[#F26B1F]">
-              <Clapperboard className="h-4 w-4" />
-            </span>
-            <span className="text-sm font-semibold tracking-tight">
-              Edit<span className="text-[#F26B1F]">Air</span>
-            </span>
+          <Link to="/editair" className="flex items-center gap-2" title="EditAir">
+            <img src={editairLogo.url} alt="EditAir" className="h-7 w-auto" />
           </Link>
 
           {/* Menu interno do app: navega entre projetos e editor sem sair do EditAir */}
