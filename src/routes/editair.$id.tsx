@@ -158,6 +158,7 @@ function EditorPage() {
   const [etapaIa, setEtapaIa] = useState("");
   const [objetivoIa, setObjetivoIa] = useState("");
   const [iaClipId, setIaClipId] = useState<string | null>(null);
+  const [loginNuvem, setLoginNuvem] = useState(false);
   const [ocupado, setOcupado] = useState<string | null>(null);
   const [salvando, setSalvando] = useState(false);
 
@@ -1148,6 +1149,7 @@ function EditorPage() {
 
   /* ------------- cérebro editorial: plano antes do corte ------------- */
   const planejar = async (objetivo: string, ajuste = "") => {
+    if (!(await exigirNuvem())) return;
     const buf = audioBufferRef.current;
     const base = state.clips.find((c) => c.trackId === "t-video" && c.assetId);
     const asset = base?.assetId ? assets.find((a) => a.id === base.assetId) : null;
@@ -1637,6 +1639,15 @@ function EditorPage() {
 
         />
       </div>
+
+      <LoginNuvemDialog
+        aberto={loginNuvem}
+        onFechar={() => setLoginNuvem(false)}
+        onEntrou={() => {
+          setLoginNuvem(false);
+          toast.success("Conectado — agora é só repetir a instrução para a IA.");
+        }}
+      />
 
       <AiEditDialog
         aberto={!!iaClipId}
