@@ -23,7 +23,17 @@ export type ElementoPalco = {
   h: number;
   rotation: number;
   bloqueado?: boolean;
+  /**
+   * "caixa" = arrastar os cantos muda só a largura da caixa de texto
+   * (quebra de linha); "escala" = redimensiona o elemento.
+   */
+  resize?: "escala" | "caixa";
 };
+
+/** Legenda e texto ficam na frente do vídeo no hit-test do Reprodutor. */
+const CAMADA: Record<string, number> = { caption: 30, text: 20 };
+const camadaDe = (kind: string) => CAMADA[kind] ?? 10;
+
 
 export type Plataforma = "nenhuma" | "reels" | "tiktok" | "shorts";
 
@@ -67,6 +77,8 @@ type Props = {
   /** deslocamento em px do frame do projeto */
   onMover?: (id: string, dx: number, dy: number) => void;
   onEscalar?: (id: string, fator: number) => void;
+  /** nova largura da caixa de texto em fração do frame (0..1) */
+  onLarguraCaixa?: (id: string, largura: number) => void;
   onGirar?: (id: string, graus: number) => void;
   /** fim do gesto de arrastar/redimensionar (commit no histórico) */
   onFimGesto?: () => void;
@@ -98,6 +110,7 @@ export function PlayerStage({
   onSelecionar,
   onMover,
   onEscalar,
+  onLarguraCaixa,
   onGirar,
   onFimGesto,
 }: Props) {
@@ -112,7 +125,13 @@ export function PlayerStage({
   const [personalizado, setPersonalizado] = useState(false);
   const [painel, setPainel] = useState(false);
   const palcoRef = useRef<HTMLDivElement>(null);
-  const arrasto = useRef<{ modo: "mover" | "escala" | "giro"; id: string; x: number; y: number; base: ElementoPalco } | null>(null);
+  const arrasto = useRef<{
+    modo: "mover" | "escala" | "caixa" | "giro";
+    id: string;
+    x: number;
+    y: number;
+    base: ElementoPalco;
+  } | null>(null);
 
   const sel = elementos.find((e) => e.id === selecionadoId) ?? null;
 
@@ -122,13 +141,14 @@ export function PlayerStage({
     return { x: ((ev.clientX - r.left) / r.width) * width, y: ((ev.clientY - r.top) / r.height) * height };
   };
 
-  const iniciar = (modo: "mover" | "escala" | "giro", el: ElementoPalco) => (ev: React.PointerEvent) => {
-    ev.stopPropagation();
-    if (el.bloqueado) return;
-    (ev.target as HTMLElement).setPointerCapture?.(ev.pointerId);
-    const pt = paraFrame(ev);
-    arrasto.current = { modo, id: el.id, x: pt.x, y: pt.y, base: el };
-  };
+  const iniciar =
+    (modo: "mover" | "escala" | "caixa" | "giro", el: ElementoPalco) => (ev: React.PointerEvent) => {
+      ev.stopPropagation();
+      if (el.bloqueado) return;
+      (ev.target as HTMLElement).setPointerCapture?.(ev.pointerId);
+      const pt = paraFrame(ev);
+      arrasto.current = { modo, id: el.id, x: pt.x, y: pt.y, base: el };
+    };
 
   const mover = (ev: React.PointerEvent) => {
     const a = arrasto.current;
@@ -139,6 +159,12 @@ export function PlayerStage({
     if (a.modo === "mover") {
       onMover?.(a.id, dx, dy);
       arrasto.current = { ...a, x: pt.x, y: pt.y };
+    } else if (a.modo === "caixa") {
+      // Só largura da caixa de texto: a distância horizontal do cursor até o
+      // centro vira a meia-largura. O fontSize NÃO muda aqui.
+      const cx = a.base.cx * width;
+      const larguraFrac = Math.min(1, Math.max(0.1, (Math.abs(pt.x - cx) * 2) / width));
+      onLarguraCaixa?.(a.id, larguraFrac);
     } else if (a.modo === "escala") {
       const cx = a.base.cx * width;
       const cy = a.base.cy * height;
@@ -161,6 +187,7 @@ export function PlayerStage({
     if (arrasto.current) onFimGesto?.();
     arrasto.current = null;
   };
+
 
   const ratioAtual = `${Math.round((width / height) * 100) / 100}`;
 
@@ -306,52 +333,65 @@ export function PlayerStage({
             onPointerUp={soltar}
             onPointerCancel={soltar}
           >
-            {elementos.map((el) => {
-              const ativo = el.id === selecionadoId;
-              return (
-                <div
-                  key={el.id}
-                  onPointerDown={(e) => {
-                    onSelecionar?.(el.id);
-                    iniciar("mover", el)(e);
-                  }}
-                  className={`absolute ${el.bloqueado ? "cursor-not-allowed" : "cursor-move"} ${
-                    ativo ? "" : "hover:outline hover:outline-1 hover:outline-white/40"
-                  }`}
-                  style={{
-                    left: `${(el.cx - el.w / 2) * 100}%`,
-                    top: `${(el.cy - el.h / 2) * 100}%`,
-                    width: `${el.w * 100}%`,
-                    height: `${el.h * 100}%`,
-                    transform: el.rotation ? `rotate(${el.rotation}deg)` : undefined,
-                    outline: ativo ? "2px solid #F26B1F" : undefined,
-                  }}
-                >
-                  {ativo && !el.bloqueado ? (
-                    <>
-                      {[
-                        { c: "left-0 top-0", cur: "nwse-resize" },
-                        { c: "right-0 top-0", cur: "nesw-resize" },
-                        { c: "left-0 bottom-0", cur: "nesw-resize" },
-                        { c: "right-0 bottom-0", cur: "nwse-resize" },
-                      ].map((h) => (
-                        <span
-                          key={h.c}
-                          onPointerDown={iniciar("escala", el)}
-                          className={`absolute h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-[#F26B1F] bg-white ${h.c}`}
-                          style={{ cursor: h.cur, margin: 0, transform: "translate(-50%,-50%)" }}
-                        />
-                      ))}
-                      <span
-                        onPointerDown={iniciar("giro", el)}
-                        title="Girar"
-                        className="absolute left-1/2 top-0 h-3 w-3 -translate-x-1/2 -translate-y-6 cursor-grab rounded-full border-2 border-[#F26B1F] bg-white"
-                      />
-                    </>
-                  ) : null}
-                </div>
-              );
-            })}
+            {/* Ordem do hit-test: handles → legenda → outros overlays → vídeo.
+                Legenda/texto ganham z maior para o clique não cair no vídeo
+                que ocupa o frame inteiro atrás delas. */}
+            {[...elementos]
+              .sort((a, b) => camadaDe(a.kind) - camadaDe(b.kind))
+              .map((el) => {
+                const ativo = el.id === selecionadoId;
+                const modoCaixa = (el.resize ?? "escala") === "caixa";
+                return (
+                  <div
+                    key={el.id}
+                    data-testid={`palco-el-${el.id}`}
+                    data-kind={el.kind}
+                    onPointerDown={(e) => {
+                      onSelecionar?.(el.id);
+                      iniciar("mover", el)(e);
+                    }}
+                    className={`absolute ${el.bloqueado ? "cursor-not-allowed" : "cursor-move"} ${
+                      ativo ? "" : "hover:outline hover:outline-1 hover:outline-white/40"
+                    }`}
+                    style={{
+                      left: `${(el.cx - el.w / 2) * 100}%`,
+                      top: `${(el.cy - el.h / 2) * 100}%`,
+                      width: `${el.w * 100}%`,
+                      height: `${el.h * 100}%`,
+                      transform: el.rotation ? `rotate(${el.rotation}deg)` : undefined,
+                      outline: ativo ? "2px solid #F26B1F" : undefined,
+                      zIndex: camadaDe(el.kind) + (ativo ? 5 : 0),
+                    }}
+                  >
+                    {ativo && !el.bloqueado ? (
+                      <>
+                        {[
+                          { c: "left-0 top-0", cur: modoCaixa ? "ew-resize" : "nwse-resize" },
+                          { c: "right-0 top-0", cur: modoCaixa ? "ew-resize" : "nesw-resize" },
+                          { c: "left-0 bottom-0", cur: modoCaixa ? "ew-resize" : "nesw-resize" },
+                          { c: "right-0 bottom-0", cur: modoCaixa ? "ew-resize" : "nwse-resize" },
+                        ].map((h) => (
+                          <span
+                            key={h.c}
+                            data-testid={`palco-handle-${el.id}`}
+                            title={modoCaixa ? "Largura da caixa (não altera a fonte)" : "Redimensionar"}
+                            onPointerDown={iniciar(modoCaixa ? "caixa" : "escala", el)}
+                            className={`absolute h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-[#F26B1F] bg-white ${h.c}`}
+                            style={{ cursor: h.cur, margin: 0, transform: "translate(-50%,-50%)", zIndex: 60 }}
+                          />
+                        ))}
+                        {modoCaixa ? null : (
+                          <span
+                            onPointerDown={iniciar("giro", el)}
+                            title="Girar"
+                            className="absolute left-1/2 top-0 h-3 w-3 -translate-x-1/2 -translate-y-6 cursor-grab rounded-full border-2 border-[#F26B1F] bg-white"
+                          />
+                        )}
+                      </>
+                    ) : null}
+                  </div>
+                );
+              })}
           </div>
 
           {safeArea ? (

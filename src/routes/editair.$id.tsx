@@ -969,6 +969,7 @@ function EditorPage() {
           h: Math.max(0.03, caixa.h),
           rotation: 0,
           bloqueado: c.bloqueado,
+          resize: "caixa",
         });
         continue;
       }
@@ -1008,7 +1009,14 @@ function EditorPage() {
     }));
   };
 
-  /** Copia posição/tamanho de uma legenda para as demais. */
+  /** Largura da caixa de texto (0..1) — muda só a quebra, nunca a fonte. */
+  const larguraCaixaLegenda = (cid: string, largura: number) => {
+    const c = state.clips.find((x) => x.id === cid);
+    if (!c || c.kind !== "caption" || c.bloqueado) return;
+    patchEstiloLegenda(cid, { boxWidth: Math.min(1, Math.max(0.1, largura)) });
+  };
+
+  /** Copia o estilo visual de uma legenda para as demais (texto/tempo intactos). */
   const aplicarLayoutLegendas = (cid: string, escopo: "todas" | "preset" | "esta") => {
     const base = state.clips.find((c) => c.id === cid);
     if (!base || base.kind !== "caption") return;
@@ -1018,13 +1026,28 @@ function EditorPage() {
       y: est.y,
       fontSize: est.fontSize,
       escala: est.escala ?? 1,
+      boxWidth: est.boxWidth ?? 0.86,
+      tracking: est.tracking ?? 0,
+      caps: est.caps ?? (est.uppercase ? "upper" : "original"),
+      uppercase: est.uppercase,
+      color: est.color,
+      activeColor: est.activeColor,
+      stroke: est.stroke,
+      strokeColor: est.strokeColor,
+      karaoke: est.karaoke,
+      animacaoPalavra: est.animacaoPalavra,
+      destaqueEscala: est.destaqueEscala,
+      background: est.background,
+      backgroundColor: est.backgroundColor,
       align: est.align,
       maxLines: est.maxLines,
       lineHeight: est.lineHeight,
+      fontFamily: est.fontFamily,
+      weight: est.weight,
     };
     if (escopo === "esta") {
       aplicar({ ...state, clips: state.clips.map((c) => (c.id === cid ? { ...c, captionStyle: { ...est } } : c)) });
-      toast.success("Posição e tamanho salvos nesta legenda");
+      toast.success("Estilo salvo nesta legenda");
       return;
     }
     const alvoPreset = est.presetId;
@@ -2303,6 +2326,7 @@ function EditorPage() {
           onSelecionar={(cid) => setSelecionados(cid ? [cid] : [])}
           onMover={moverElemento}
           onEscalar={escalarElemento}
+          onLarguraCaixa={larguraCaixaLegenda}
           onGirar={girarElemento}
           onFimGesto={encerrarGesto}
         />

@@ -603,7 +603,12 @@ export function cssDoModelo(s: CaptionStyle): CSSProperties {
     fontFamily: s.fontFamily,
     fontWeight: s.weight,
     color: s.color,
-    textTransform: s.uppercase ? "uppercase" : "none",
+    textTransform:
+      (s.caps ?? (s.uppercase ? "upper" : "original")) === "upper"
+        ? "uppercase"
+        : (s.caps ?? "original") === "lower"
+          ? "lowercase"
+          : "none",
     letterSpacing: `${(s.tracking ?? 0) / 4}px`,
     lineHeight: s.lineHeight ?? 1.18,
     textAlign: s.align ?? "center",
