@@ -419,6 +419,34 @@ export class EditairEngine {
     if (this.master) this.master.gain.value = m ? 0 : this.volumeMaster;
   }
 
+  /** true quando o navegador bloqueou o play com áudio (autoplay policy). */
+  audioBloqueado = false;
+
+  /**
+   * Precisa ser chamado DENTRO do gesto do usuário (clique em Play / Espaço).
+   * Sem isso o Chromium rejeita `el.play()` com NotAllowedError: o canvas
+   * continua desenhando quadros (o vídeo "roda") mas nenhum áudio sai.
+   */
+  liberarAudio() {
+    const ctx = this.garantirAudio();
+    if (ctx.state === "suspended") void ctx.resume().catch(() => {});
+    for (const [, m] of this.midias) {
+      if (!m.el.paused) continue;
+      const p = m.el.play();
+      if (p && typeof p.then === "function") {
+        void p
+          .then(() => {
+            this.audioBloqueado = false;
+            if (!this.tocandoAgora) m.el.pause();
+          })
+          .catch(() => {
+            this.audioBloqueado = true;
+          });
+      }
+    }
+  }
+
+
   private ativos(state: ProjectState, t: number) {
     return state.clips.filter((c) => t >= c.start && t < c.start + c.duration);
   }
@@ -480,7 +508,11 @@ export class EditairEngine {
       if (!m) continue;
       usados.add(c.assetId);
       const alvo = (c.sourceIn + (t - c.start) * c.speed) / 1000;
-      if (Math.abs(m.el.currentTime - alvo) > 0.18) m.el.currentTime = Math.max(0, alvo);
+      // Tocando: tolerância maior para não picotar o áudio. Parado/scrub: precisão
+      // de ~1 quadro, senão o áudio fica num ponto e a imagem em outro.
+      const tolerancia = tocando ? 0.18 : 0.04;
+      if (Math.abs(m.el.currentTime - alvo) > tolerancia) m.el.currentTime = Math.max(0, alvo);
+
       m.el.playbackRate = clamp(c.speed, 0.25, 4);
       m.gain.gain.value = this.ganhoDoClipe(state, c, t);
       if (m.nativo) {
@@ -504,8 +536,24 @@ export class EditairEngine {
         m.filtros.high.gain.value = eq?.agudos ?? 0;
         if (m.filtros.pan) m.filtros.pan.pan.value = clamp(c.pan ?? 0, -1, 1);
       }
-      if (tocando && m.el.paused) void m.el.play().catch(() => {});
+      if (tocando && m.el.paused) {
+        const p = m.el.play();
+        if (p && typeof p.then === "function") {
+          void p
+            .then(() => {
+              this.audioBloqueado = false;
+            })
+            .catch((err: unknown) => {
+              const nome = (err as { name?: string })?.name;
+              if (nome === "NotAllowedError" && !this.audioBloqueado) {
+                this.audioBloqueado = true;
+                console.warn("[preview] áudio bloqueado pelo navegador — clique em Play novamente");
+              }
+            });
+        }
+      }
       if (!tocando && !m.el.paused) m.el.pause();
+
     }
     for (const [id, m] of this.midias) {
       if (!usados.has(id) && !m.el.paused) m.el.pause();
