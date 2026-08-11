@@ -610,6 +610,11 @@ export function Timeline({
                       }
                       onArrastar={iniciarArraste}
                       onAbrirSource={() => onAbrirSource(c.id)}
+                      onEditarTexto={
+                        onEditarTextoLegenda
+                          ? (texto, commit) => onEditarTextoLegenda(c.id, texto, commit)
+                          : undefined
+                      }
                       onMenu={(x, y) => {
                         setMenuPos(null);
                         setMenu({ x, y, clipId: c.id });

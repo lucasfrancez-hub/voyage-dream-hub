@@ -2048,6 +2048,7 @@ function EditorPage() {
           onAlterarClip={alterarClipTimeline}
           onAlterarClips={alterarClipsTimeline}
           onAbrirSource={setSourceClipId}
+          onEditarTextoLegenda={editarTextoLegenda}
           onRestaurarClip={restaurarClip}
           onSoltarArquivos={(arquivos, ms) => void importar(arquivos, ms)}
           onSoltarAsset={(assetId: string, ms: number, destino?: DestinoSolto) => {
