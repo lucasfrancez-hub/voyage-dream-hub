@@ -211,6 +211,29 @@ function EditorPage() {
     return equivalente ?? null;
   }, [state.clips, selecionados]);
 
+  /**
+   * Demonstração instantânea: leva o playhead pro início do clipe e toca um
+   * trecho curto. Nada é renderizado — o preview usa as próprias propriedades
+   * do clipe (animações/efeitos/legendas). O arquivo só sai na Exportação.
+   */
+  const demonstrarClipe = useCallback(() => {
+    const c = clipeAtual;
+    if (!c) return;
+    if (demoRef.current) window.clearTimeout(demoRef.current);
+    setPlayhead(c.start);
+    setTocando(true);
+    const dur = Math.min(c.duration, 3000);
+    demoRef.current = window.setTimeout(() => {
+      setTocando(false);
+      setPlayhead(c.start);
+      demoRef.current = null;
+    }, dur);
+  }, [clipeAtual]);
+
+  useEffect(() => () => {
+    if (demoRef.current) window.clearTimeout(demoRef.current);
+  }, []);
+
 
   const assetsMap = useMemo(() => {
     const m: Record<string, AssetInfo> = {};
