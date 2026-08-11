@@ -37,8 +37,15 @@ contextBridge.exposeInMainWorld("editairDesktop", {
     escolherMidias: () => chamar("dialogo:escolherMidias"),
     escolherPasta: () => chamar("dialogo:escolherPasta"),
     localizarArquivo: (nome) => chamar("dialogo:localizarArquivo", { nome }),
-    salvarComo: (nomeSugerido) => chamar("dialogo:salvarComo", { nomeSugerido }),
+    salvarComo: (nomeSugerido, pasta) => chamar("dialogo:salvarComo", { nomeSugerido, pasta }),
+    pastaExport: () => chamar("dialogo:pastaExport"),
   },
+
+  arquivo: {
+    abrir: (caminho) => chamar("arquivo:abrir", { caminho }),
+    revelar: (caminho) => chamar("arquivo:revelar", { caminho }),
+  },
+
 
   biblioteca: {
     listar: () => chamar("biblioteca:listar"),
