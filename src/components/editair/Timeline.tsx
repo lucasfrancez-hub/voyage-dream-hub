@@ -1482,13 +1482,20 @@ function Clipe({
 }
 
 function Filmstrip({ clip, asset, largura }: { clip: EditairClip; asset: AssetInfo; largura: number }) {
-  const passo = 72;
-  const qtd = Math.max(1, Math.min(60, Math.ceil(largura / passo)));
+  const passoIdeal = 72;
+  const larguraSegura = Math.max(1, largura);
+  // nunca deixa buraco: a quantidade cobre a largura toda e cada quadro estica
+  // proporcionalmente quando o clipe é maior que o limite de miniaturas.
+  const qtd = Math.max(1, Math.min(60, Math.ceil(larguraSegura / passoIdeal)));
+  const passo = larguraSegura / qtd;
   const [imgs, setImgs] = useState<(string | null)[]>([]);
 
   useEffect(() => {
     let vivo = true;
-    const alvos = Array.from({ length: qtd }, (_, i) => clip.sourceIn + (i * passo * clip.speed) / (largura / clip.duration));
+    const alvos = Array.from(
+      { length: qtd },
+      (_, i) => clip.sourceIn + ((i + 0.5) * (clip.duration * clip.speed)) / qtd,
+    );
     setImgs(Array(qtd).fill(null));
     (async () => {
       for (let i = 0; i < alvos.length; i++) {
@@ -1508,7 +1515,7 @@ function Filmstrip({ clip, asset, largura }: { clip: EditairClip; asset: AssetIn
   }, [asset.url, qtd, clip.sourceIn, clip.speed, clip.duration]);
 
   return (
-    <div className="flex h-full w-full">
+    <div className="absolute inset-0 flex h-full w-full">
       {imgs.map((src, i) => (
         <div key={i} className="h-full shrink-0 border-r border-black/40" style={{ width: passo }}>
           {src ? <img src={src} alt="" className="h-full w-full object-cover" /> : <div className="h-full w-full bg-black/30" />}
@@ -1517,6 +1524,7 @@ function Filmstrip({ clip, asset, largura }: { clip: EditairClip; asset: AssetIn
     </div>
   );
 }
+
 
 /**
  * Forma de onda do clipe. Respeita zoom (largura), trim (sourceIn), split
