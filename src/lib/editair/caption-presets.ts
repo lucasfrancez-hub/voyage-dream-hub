@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import { LEGENDA_PADRAO, type CaptionStyle } from "./types";
 
 /**
@@ -381,7 +382,7 @@ export function apagarMeuModelo(id: string) {
 }
 
 /** CSS equivalente ao preset — usado nos mini-previews da galeria. */
-export function cssDoModelo(s: CaptionStyle): React.CSSProperties {
+export function cssDoModelo(s: CaptionStyle): CSSProperties {
   const sombra = s.shadow ? `0 0 ${s.shadow}px ${s.shadowColor ?? "rgba(0,0,0,.6)"}` : undefined;
   const contorno = s.stroke ? `${Math.max(1, s.stroke / 6)}px ${s.strokeColor}` : undefined;
   return {
@@ -399,5 +400,5 @@ export function cssDoModelo(s: CaptionStyle): React.CSSProperties {
       s.background === "none" ? "transparent" : s.backgroundColor ?? (s.background === "box" ? "rgba(0,0,0,.78)" : "rgba(0,0,0,.45)"),
     padding: s.background === "none" ? 0 : `${(s.paddingY ?? 6) / 2}px ${(s.paddingX ?? 18) / 2}px`,
     borderRadius: s.background === "none" ? 0 : (s.radius ?? 14) / 2,
-  } as React.CSSProperties;
+  } as CSSProperties;
 }
