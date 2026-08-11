@@ -28,6 +28,7 @@ import { Route as PoliticaDePrivacidadeRouteImport } from './routes/politica-de-
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as TermosDeUsoRouteImport } from './routes/termos-de-uso'
+import { Route as TmpPaineisRouteImport } from './routes/tmp-paineis'
 import { Route as UnsubscribeRouteImport } from './routes/unsubscribe'
 import { Route as ValidacaoRouteImport } from './routes/validacao'
 import { Route as VoarRouteImport } from './routes/voar'
@@ -232,6 +233,11 @@ const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
 const TermosDeUsoRoute = TermosDeUsoRouteImport.update({
   id: '/termos-de-uso',
   path: '/termos-de-uso',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TmpPaineisRoute = TmpPaineisRouteImport.update({
+  id: '/tmp-paineis',
+  path: '/tmp-paineis',
   getParentRoute: () => rootRouteImport,
 } as any)
 const UnsubscribeRoute = UnsubscribeRouteImport.update({
@@ -834,6 +840,7 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/termos-de-uso': typeof TermosDeUsoRoute
+  '/tmp-paineis': typeof TmpPaineisRoute
   '/unsubscribe': typeof UnsubscribeRoute
   '/validacao': typeof ValidacaoRoute
   '/voar': typeof VoarRoute
@@ -963,6 +970,7 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/termos-de-uso': typeof TermosDeUsoRoute
+  '/tmp-paineis': typeof TmpPaineisRoute
   '/unsubscribe': typeof UnsubscribeRoute
   '/validacao': typeof ValidacaoRoute
   '/voar': typeof VoarRoute
@@ -1095,6 +1103,7 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/termos-de-uso': typeof TermosDeUsoRoute
+  '/tmp-paineis': typeof TmpPaineisRoute
   '/unsubscribe': typeof UnsubscribeRoute
   '/validacao': typeof ValidacaoRoute
   '/voar': typeof VoarRoute
@@ -1228,6 +1237,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/sitemap.xml'
     | '/termos-de-uso'
+    | '/tmp-paineis'
     | '/unsubscribe'
     | '/validacao'
     | '/voar'
@@ -1357,6 +1367,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/sitemap.xml'
     | '/termos-de-uso'
+    | '/tmp-paineis'
     | '/unsubscribe'
     | '/validacao'
     | '/voar'
@@ -1488,6 +1499,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/sitemap.xml'
     | '/termos-de-uso'
+    | '/tmp-paineis'
     | '/unsubscribe'
     | '/validacao'
     | '/voar'
@@ -1620,6 +1632,7 @@ export interface RootRouteChildren {
   ResetPasswordRoute: typeof ResetPasswordRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TermosDeUsoRoute: typeof TermosDeUsoRoute
+  TmpPaineisRoute: typeof TmpPaineisRoute
   UnsubscribeRoute: typeof UnsubscribeRoute
   ValidacaoRoute: typeof ValidacaoRoute
   VoarRoute: typeof VoarRoute
@@ -1808,6 +1821,13 @@ declare module '@tanstack/react-router' {
       path: '/termos-de-uso'
       fullPath: '/termos-de-uso'
       preLoaderRoute: typeof TermosDeUsoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/tmp-paineis': {
+      id: '/tmp-paineis'
+      path: '/tmp-paineis'
+      fullPath: '/tmp-paineis'
+      preLoaderRoute: typeof TmpPaineisRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/unsubscribe': {
@@ -2761,6 +2781,7 @@ const rootRouteChildren: RootRouteChildren = {
   ResetPasswordRoute: ResetPasswordRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   TermosDeUsoRoute: TermosDeUsoRoute,
+  TmpPaineisRoute: TmpPaineisRoute,
   UnsubscribeRoute: UnsubscribeRoute,
   ValidacaoRoute: ValidacaoRoute,
   VoarRoute: VoarRoute,
@@ -2823,3 +2844,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
