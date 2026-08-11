@@ -246,7 +246,10 @@ export function aplicarOps(
       case "delete_range": {
         const { fromMs, toMs } = op;
         const novos: EditairClip[] = [];
+        // legendas/textos são tratados à parte: não se aparam, acompanham a edição
+        const legendas = s.clips.filter((c) => c.kind === "caption" || c.kind === "text");
         for (const c of s.clips) {
+          if (c.kind === "caption" || c.kind === "text") continue;
           const fim = c.start + c.duration;
           if (fim <= fromMs || c.start >= toMs) {
             novos.push(c);
@@ -266,17 +269,17 @@ export function aplicarOps(
             });
           }
         }
-        // legendas do trecho removido somem; as seguintes acompanham o ripple
-        s.clips = ajustarLegendasAoRemover(novos, fromMs, toMs, { ripple: op.ripple !== false });
-        if (op.ripple !== false) {
-          const gap = toMs - fromMs;
-          s.clips = s.clips.map((c) =>
-            c.kind !== "caption" && c.kind !== "text" && c.start >= toMs ? deslocarClip(c, -gap) : c,
-          );
-        }
+        const ripple = op.ripple !== false;
+        const gap = toMs - fromMs;
+        s.clips = [
+          ...(ripple ? novos.map((c) => (c.start >= toMs ? deslocarClip(c, -gap) : c)) : novos),
+          // legendas do trecho removido somem; as seguintes acompanham o ripple
+          ...ajustarLegendasAoRemover(legendas, fromMs, toMs, { ripple }),
+        ];
         log.push(`Trecho removido (${((toMs - fromMs) / 1000).toFixed(1)}s)`);
         break;
       }
+
       case "set_volume": {
         s.clips = s.clips.map((c) => {
           const alvo = op.clipId ? c.id === op.clipId : op.trackId ? c.trackId === op.trackId : false;
