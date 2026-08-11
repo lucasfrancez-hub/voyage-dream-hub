@@ -24,6 +24,8 @@ import { marcadoresEfeitos } from "@/lib/editair/efeitos";
 import { limitesDoClip } from "@/lib/editair/ops";
 import { obterPicos, obterThumb, picosEmCache } from "@/lib/editair/media";
 import { executarJob } from "@/lib/editair/jobs";
+import { registrarDiag } from "@/lib/editair/diag";
+
 import { useJobsDoAlvo } from "@/hooks/use-editair-jobs";
 import { clipsNaCaixa, moverSelecao, tracksNaFaixa, unir } from "@/lib/editair/selecao";
 import {
