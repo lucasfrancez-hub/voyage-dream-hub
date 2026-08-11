@@ -16,6 +16,7 @@ import {
 } from "./types";
 import { aplicarVelocidade } from "./velocidade";
 import { ajustarLegendasAoRemover, deslocarClip, montarLegendas } from "./legendas";
+import { aplicarTextoLegenda } from "./texto-legenda";
 
 /**
  * Operações estruturadas do EditAir.
@@ -351,7 +352,8 @@ export function aplicarOps(
         break;
       }
       case "rebuild_captions": {
-        s = { ...s, clips: s.clips.filter((c) => c.kind !== "caption") };
+        // legendas corrigidas à mão sobrevivem à regeração
+        s = { ...s, clips: s.clips.filter((c) => c.kind !== "caption" || c.textoManual) };
         if (transcript?.words?.length) {
           s = { ...s, clips: [...s.clips, ...gerarLegendas(s, transcript, op.mode ?? "frase")] };
           log.push("Legendas regeradas");
