@@ -1102,6 +1102,61 @@ export class EditairEngine {
     return stream;
   }
 
+  /* ------- render por quadros (Desktop): frame-accurate, sem rAF ------- */
+
+  /** deixa todas as mídias paradas e mudas — usado no render final */
+  prepararRenderQuadros() {
+    this.definirMudo(true);
+    for (const [, m] of this.midias) {
+      m.el.pause();
+      m.el.muted = true;
+      m.el.volume = 0;
+      m.el.playbackRate = 1;
+    }
+  }
+
+  private buscarExato(el: HTMLVideoElement, alvoS: number) {
+    if (Math.abs(el.currentTime - alvoS) < 0.004 && el.readyState >= 2) return Promise.resolve();
+    return new Promise<void>((resolve) => {
+      let pronto = false;
+      const fim = () => {
+        if (pronto) return;
+        pronto = true;
+        el.removeEventListener("seeked", fim);
+        resolve();
+      };
+      el.addEventListener("seeked", fim, { once: true });
+      window.setTimeout(fim, 2000);
+      try {
+        el.currentTime = Math.max(0, alvoS);
+      } catch {
+        fim();
+      }
+    });
+  }
+
+  /** posiciona cada mídia no quadro exato e desenha (assíncrono, determinístico) */
+  async renderizarQuadro(state: ProjectState, t: number) {
+    const ativos = this.ativos(state, t).filter((c) => c.assetId);
+    await Promise.all(
+      ativos.map((c) => {
+        const m = this.midias.get(c.assetId!);
+        if (!m) return Promise.resolve();
+        const alvo = ((c.sourceIn || 0) + (t - c.start) * clamp(c.speed || 1, 0.25, 4)) / 1000;
+        return this.buscarExato(m.el, alvo);
+      }),
+    );
+    this.desenhar(state, t);
+  }
+
+  /** pixels RGBA do quadro atual, prontos para o FFmpeg */
+  quadroRGBA(): Uint8Array {
+    const { width, height } = this.canvas;
+    const dados = this.ctx.getImageData(0, 0, width, height).data;
+    return new Uint8Array(dados.buffer.slice(0));
+  }
+
+
   streamAudio(): MediaStream {
     this.garantirAudio();
     const s = new MediaStream();

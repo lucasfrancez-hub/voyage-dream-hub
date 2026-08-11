@@ -48,6 +48,9 @@ function criarJanela() {
       nodeIntegration: false,
       sandbox: false,
       webSecurity: true,
+      // export roda em background: a janela não pode ser estrangulada nem em segundo plano
+      backgroundThrottling: false,
+
     },
   });
 
@@ -190,10 +193,31 @@ responder("dialogo:localizarArquivo", async ({ nome }) => {
   return r.canceled ? null : r.filePaths[0];
 });
 
-responder("dialogo:salvarComo", async ({ nomeSugerido = "video_final.mp4" }) => {
-  const r = await dialog.showSaveDialog(janela, { defaultPath: path.join(app.getPath("movies"), nomeSugerido) });
-  return r.canceled ? null : r.filePath;
+responder("dialogo:salvarComo", async ({ nomeSugerido = "video_final.mp4", pasta } = {}) => {
+  const s = lerSettings();
+  const base = pasta || s.ultimaPastaExport || app.getPath("movies");
+  const r = await dialog.showSaveDialog(janela, { defaultPath: path.join(base, nomeSugerido) });
+  if (r.canceled || !r.filePath) return null;
+  salvarSettings({ ultimaPastaExport: path.dirname(r.filePath) });
+  return r.filePath;
 });
+
+responder("dialogo:pastaExport", async () => {
+  const s = lerSettings();
+  return s.ultimaPastaExport || app.getPath("movies");
+});
+
+responder("arquivo:abrir", async ({ caminho }) => {
+  const erro = await shell.openPath(caminho);
+  if (erro) throw new Error(erro);
+  return true;
+});
+
+responder("arquivo:revelar", async ({ caminho }) => {
+  shell.showItemInFolder(caminho);
+  return true;
+});
+
 
 responder("biblioteca:listar", async () => library.listar());
 responder("biblioteca:importar", async ({ caminhos = [], copiar }) => {
@@ -280,6 +304,84 @@ responder("render:iniciar", async (spec) => {
 });
 
 responder("render:estado", async ({ id }) => renders.get(id) ?? null);
+
+/* --- render por quadros (background, mesmo motor do preview) --- */
+const rf = require("./lib/render-frames.cjs");
+const { powerSaveBlocker } = require("electron");
+const jobsQuadros = new Map();
+
+responder("render:quadros:iniciar", async (spec) => {
+  const id = crypto.randomUUID();
+  const destino =
+    spec.destino || path.join(dirs.renders(), `EditAir_${Date.now()}.${spec.formato || "mp4"}`);
+  updater.marcarExportacao(id);
+  const bloqueio = powerSaveBlocker.start("prevent-app-suspension");
+  const job = await rf.iniciar({ ...spec, destino }, (frames, total) => {
+    janela?.webContents.send("editair:render", {
+      id,
+      estado: "rodando",
+      frame: frames,
+      totalFrames: total,
+      percentual: total ? Math.min(99, Math.round((frames / total) * 100)) : null,
+    });
+  });
+  job.bloqueio = bloqueio;
+  jobsQuadros.set(id, job);
+  renders.set(id, { destino, estado: "rodando" });
+  return { id, destino };
+});
+
+responder("render:quadros:quadro", async ({ id, quadro }) => {
+  const job = jobsQuadros.get(id);
+  if (!job) throw new Error("Render não encontrado");
+  const buf = Buffer.from(quadro);
+  await rf.enviarQuadro(job, buf);
+  return { frames: job.frames };
+});
+
+function encerrarJob(id, job) {
+  try {
+    if (job.bloqueio != null) powerSaveBlocker.stop(job.bloqueio);
+  } catch {
+    /* ignora */
+  }
+  updater.encerrarExportacao(id);
+  jobsQuadros.delete(id);
+}
+
+responder("render:quadros:finalizar", async ({ id }) => {
+  const job = jobsQuadros.get(id);
+  if (!job) throw new Error("Render não encontrado");
+  try {
+    const destino = await rf.finalizar(job);
+    let bytes = 0;
+    try {
+      bytes = fs.statSync(destino).size;
+    } catch {
+      /* ignora */
+    }
+    renders.set(id, { destino, bytes, estado: "concluido" });
+    janela?.webContents.send("editair:render", { id, estado: "concluido", percentual: 100, destino, bytes });
+    return { destino, bytes };
+  } catch (e) {
+    renders.set(id, { destino: job.destino, estado: "erro", erro: String(e.message || e) });
+    janela?.webContents.send("editair:render", { id, estado: "erro", mensagem: String(e.message || e) });
+    throw e;
+  } finally {
+    encerrarJob(id, job);
+  }
+});
+
+responder("render:quadros:cancelar", async ({ id }) => {
+  const job = jobsQuadros.get(id);
+  if (!job) return true;
+  rf.cancelar(job);
+  renders.set(id, { destino: job.destino, estado: "cancelado" });
+  encerrarJob(id, job);
+  janela?.webContents.send("editair:render", { id, estado: "cancelado" });
+  return true;
+});
+
 
 /* --- atualização --- */
 responder("update:estado", async () => updater.estado());

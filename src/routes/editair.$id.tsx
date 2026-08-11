@@ -88,6 +88,7 @@ import {
   paraWav16k,
 } from "@/lib/editair/audio";
 import { EditairEngine } from "@/lib/editair/engine";
+import { duracaoComposicao, planoDeAudio } from "@/lib/editair/composicao";
 import { aplicarAssetsIniciais, midiaParaAsset, PonteAssets, type AssetBasico } from "@/lib/editair/bootstrap";
 import { pontoDesktop } from "@/lib/editair/desktop";
 import { consumirHandoff } from "@/lib/editair/handoff";
@@ -182,6 +183,8 @@ function EditorPage() {
   const [exportAberto, setExportAberto] = useState(false);
   const [progresso, setProgresso] = useState<ProgressoExport>(null);
   const [resultado, setResultado] = useState<ResultadoExport>(null);
+  const [pastaExport, setPastaExport] = useState<string | null>(null);
+  const [capaExport, setCapaExport] = useState<string | null>(null);
 
   const [rippleTrim, setRippleTrim] = useState(false);
   const [sourceClipId, setSourceClipId] = useState<string | null>(null);
@@ -1408,15 +1411,119 @@ function EditorPage() {
 
 
   /* ---------------- exportação ---------------- */
+
+  /** duração REAL da composição (fim do último clipe) — nunca a duração do arquivo importado */
+  const duracaoExport = useMemo(() => duracaoComposicao(state, duracoesFonte), [state, duracoesFonte]);
+
+  const caminhosAssets = useMemo(() => {
+    const m: Record<string, string | undefined> = {};
+    for (const a of assets) m[a.id] = (a as { localPath?: string }).localPath;
+    return m;
+  }, [assets]);
+
+  useEffect(() => {
+    if (!exportAberto) return;
+    try {
+      setCapaExport(engineRef.current?.canvas.toDataURL("image/jpeg", 0.7) ?? null);
+    } catch {
+      setCapaExport(null);
+    }
+    const api = pontoDesktop();
+    if (api && !pastaExport) void api.dialogo.pastaExport().then(setPastaExport).catch(() => null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [exportAberto]);
+
+  const idDoCodec = (mime: string) =>
+    mime.includes("hvc1") ? "h265" : mime.includes("vp9") ? "vp9" : mime.includes("av01") ? "av1" : "h264";
+
+  /** Render final nativo (Desktop): quadro a quadro para o FFmpeg, sem depender de rAF. */
+  const exportarDesktop = async (cfg: ExportConfig, eng: EditairEngine, estadoRender: ProjectState) => {
+    const api = pontoDesktop();
+    if (!api) throw new Error("Ponte desktop indisponível");
+
+    const nomeArquivo = `${cfg.nome.replace(/[^\w\- ]+/g, "-").trim()}.${cfg.formato}`;
+    const destino = await api.dialogo.salvarComo(nomeArquivo, pastaExport ?? undefined);
+    if (!destino) {
+      setProgresso(null);
+      return;
+    }
+    setPastaExport(destino.replace(/[/\\][^/\\]+$/, ""));
+
+    eng.redimensionar(state.width, state.height, cfg.altura / state.height);
+    eng.prepararRenderQuadros();
+    const W = eng.canvas.width;
+    const H = eng.canvas.height;
+
+    const audio = cfg.comAudio ? planoDeAudio(estadoRender, caminhosAssets, duracoesFonte) : [];
+    const totalFrames = Math.max(1, Math.round((duracaoExport / 1000) * cfg.fps));
+
+    const { id } = await api.render.quadros.iniciar({
+      destino,
+      width: W,
+      height: H,
+      fps: cfg.fps,
+      totalFrames,
+      formato: cfg.formato,
+      codec: idDoCodec(cfg.mime),
+      videoBitrate: cfg.bitrate,
+      audio,
+      comAudio: cfg.comAudio && audio.length > 0,
+    });
+
+    const t0 = performance.now();
+    try {
+      for (let i = 0; i < totalFrames; i++) {
+        if (cancelarExportRef.current) {
+          await api.render.quadros.cancelar(id);
+          setProgresso(null);
+          toast.info("Exportação cancelada");
+          return;
+        }
+        const t = (i * 1000) / cfg.fps;
+        await eng.renderizarQuadro(estadoRender, t);
+        const px = eng.quadroRGBA();
+        await api.render.quadros.quadro(id, px);
+        const decorrido = performance.now() - t0;
+        const restantes = totalFrames - (i + 1);
+        setProgresso({
+          pct: ((i + 1) / totalFrames) * 100,
+          frame: i + 1,
+          totalFrames,
+          etaS: (decorrido / (i + 1)) * restantes / 1000,
+          fase: "Renderizando localmente…",
+        });
+      }
+      setProgresso({ pct: 99, frame: totalFrames, totalFrames, etaS: 0, fase: "Finalizando arquivo…" });
+      const fim = await api.render.quadros.finalizar(id);
+      setProgresso(null);
+      setResultado({
+        caminho: fim.destino,
+        nome: nomeArquivo,
+        bytes: fim.bytes ?? 0,
+        largura: W,
+        altura: H,
+        fps: cfg.fps,
+        duracaoMs: duracaoExport,
+      });
+      toast.success("Exportação concluída");
+    } catch (e) {
+      await api.render.quadros.cancelar(id).catch(() => null);
+      throw e;
+    } finally {
+      eng.definirMudo(false);
+      eng.redimensionar(state.width, state.height, qualidade);
+    }
+  };
+
   const exportar = async (cfg: ExportConfig) => {
     const eng = engineRef.current;
-    if (!eng || state.durationMs < 200) {
+    if (!eng || duracaoExport < 200) {
       toast.error("Nada para exportar.");
       return;
     }
     cancelarExportRef.current = false;
     setResultado(null);
-    setProgresso({ pct: 0, frame: 0, totalFrames: 0, etaS: 0 });
+    setProgresso({ pct: 0, frame: 0, totalFrames: 0, etaS: 0, fase: "Preparando…" });
     setTocando(false);
 
     const estadoRender: ProjectState =
@@ -1432,7 +1539,14 @@ function EditorPage() {
         : state;
 
     try {
+      if (cfg.escopo === "video" && pontoDesktop()) {
+        await exportarDesktop(cfg, eng, estadoRender);
+        return;
+      }
+
       if (cfg.escopo === "video") eng.redimensionar(state.width, state.height, cfg.altura / state.height);
+      // nada de som acelerado durante o render: o áudio do arquivo final vem do mix, não das caixas
+      if (cfg.escopo === "video") eng.definirMudo(true);
 
       const stream = cfg.escopo === "video" ? eng.streamExport(cfg.fps) : eng.streamAudio();
       if (cfg.escopo === "video" && !cfg.comAudio) {
@@ -1454,22 +1568,23 @@ function EditorPage() {
       const fim = new Promise<void>((r) => (rec.onstop = () => r()));
 
       rec.start(400);
-      const totalFrames = Math.round((state.durationMs / 1000) * cfg.fps);
+      const totalFrames = Math.round((duracaoExport / 1000) * cfg.fps);
       const t0 = performance.now();
       await new Promise<void>((resolve) => {
         const passo = () => {
           if (cancelarExportRef.current) return resolve();
           const t = performance.now() - t0;
-          if (t >= state.durationMs) return resolve();
+          if (t >= duracaoExport) return resolve();
           eng.sincronizar(estadoRender, t, true);
           if (cfg.escopo === "video") eng.desenhar(estadoRender, t);
           setPlayhead(t);
-          const pct = (t / state.durationMs) * 100;
+          const pct = (t / duracaoExport) * 100;
           setProgresso({
             pct,
             frame: Math.round((t / 1000) * cfg.fps),
             totalFrames: cfg.escopo === "video" ? totalFrames : 0,
-            etaS: ((state.durationMs - t) / 1000),
+            etaS: (duracaoExport - t) / 1000,
+            fase: "Exportando…",
           });
           requestAnimationFrame(passo);
         };
@@ -1478,6 +1593,7 @@ function EditorPage() {
       rec.stop();
       await fim;
       eng.pausarTudo();
+      eng.definirMudo(false);
       eng.redimensionar(state.width, state.height, qualidade);
 
       if (cancelarExportRef.current) {
@@ -1489,7 +1605,7 @@ function EditorPage() {
       let blob = new Blob(partes, { type: mimeGravacao.split(";")[0] });
       let ext = cfg.formato;
       if (cfg.escopo === "audio" && cfg.mime === "wav") {
-        setProgresso({ pct: 99, frame: 0, totalFrames: 0, etaS: 3 });
+        setProgresso({ pct: 99, frame: 0, totalFrames: 0, etaS: 3, fase: "Convertendo áudio…" });
         const buf = await decodificarAudio(blob);
         blob = encodeWav(buf);
         ext = "wav";
@@ -1503,15 +1619,17 @@ function EditorPage() {
         largura: cfg.escopo === "video" ? cfg.largura : 0,
         altura: cfg.escopo === "video" ? cfg.altura : 0,
         fps: cfg.fps,
-        duracaoMs: state.durationMs,
+        duracaoMs: duracaoExport,
       });
       toast.success("Exportação concluída");
     } catch (e) {
       setProgresso(null);
+      eng.definirMudo(false);
       eng.redimensionar(state.width, state.height, qualidade);
       toast.error(e instanceof Error ? e.message : "Falha ao exportar");
     }
   };
+
 
   /* ---------------- atalhos ---------------- */
   useEffect(() => {
@@ -1919,14 +2037,23 @@ function EditorPage() {
         largura={state.width}
         altura={state.height}
         fpsProjeto={state.fps}
-        duracaoMs={state.durationMs}
+        duracaoMs={duracaoExport}
         progresso={progresso}
         resultado={resultado}
+        desktop={!!pontoDesktop()}
+        capaUrl={capaExport}
+        pastaDestino={pastaExport}
+        onEscolherPasta={async () => {
+          const p = await pontoDesktop()?.dialogo.escolherPasta();
+          if (p) setPastaExport(p);
+        }}
         onExportar={(cfg) => void exportar(cfg)}
         onCancelar={() => {
           cancelarExportRef.current = true;
         }}
         onLimparResultado={() => setResultado(null)}
+        onAbrirArquivo={(c) => void pontoDesktop()?.arquivo.abrir(c).catch(() => toast.error("Não foi possível abrir o arquivo"))}
+        onRevelarArquivo={(c) => void pontoDesktop()?.arquivo.revelar(c)}
       />
 
       <SourceDialog

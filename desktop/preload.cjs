@@ -37,8 +37,15 @@ contextBridge.exposeInMainWorld("editairDesktop", {
     escolherMidias: () => chamar("dialogo:escolherMidias"),
     escolherPasta: () => chamar("dialogo:escolherPasta"),
     localizarArquivo: (nome) => chamar("dialogo:localizarArquivo", { nome }),
-    salvarComo: (nomeSugerido) => chamar("dialogo:salvarComo", { nomeSugerido }),
+    salvarComo: (nomeSugerido, pasta) => chamar("dialogo:salvarComo", { nomeSugerido, pasta }),
+    pastaExport: () => chamar("dialogo:pastaExport"),
   },
+
+  arquivo: {
+    abrir: (caminho) => chamar("arquivo:abrir", { caminho }),
+    revelar: (caminho) => chamar("arquivo:revelar", { caminho }),
+  },
+
 
   biblioteca: {
     listar: () => chamar("biblioteca:listar"),
@@ -78,7 +85,14 @@ contextBridge.exposeInMainWorld("editairDesktop", {
     iniciar: (spec) => chamar("render:iniciar", spec),
     estado: (id) => chamar("render:estado", { id }),
     aoProgredir: ouvintes("editair:render"),
+    quadros: {
+      iniciar: (spec) => chamar("render:quadros:iniciar", spec),
+      quadro: (id, quadro) => chamar("render:quadros:quadro", { id, quadro }),
+      finalizar: (id) => chamar("render:quadros:finalizar", { id }),
+      cancelar: (id) => chamar("render:quadros:cancelar", { id }),
+    },
   },
+
 
   update: {
     estado: () => chamar("update:estado"),

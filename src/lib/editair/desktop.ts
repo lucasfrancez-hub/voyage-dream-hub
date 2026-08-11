@@ -63,8 +63,14 @@ type PonteDesktop = {
     escolherMidias(): Promise<string[]>;
     escolherPasta(): Promise<string | null>;
     localizarArquivo(nome?: string): Promise<string | null>;
-    salvarComo(nomeSugerido?: string): Promise<string | null>;
+    salvarComo(nomeSugerido?: string, pasta?: string): Promise<string | null>;
+    pastaExport(): Promise<string>;
   };
+  arquivo: {
+    abrir(caminho: string): Promise<boolean>;
+    revelar(caminho: string): Promise<boolean>;
+  };
+
   biblioteca: {
     listar(): Promise<AssetLocal[]>;
     importar(caminhos: string[], opcoes?: { copiar?: boolean }): Promise<AssetLocal[]>;
@@ -98,7 +104,14 @@ type PonteDesktop = {
     iniciar(spec: Record<string, unknown>): Promise<{ id: string; destino: string }>;
     estado(id: string): Promise<Record<string, unknown> | null>;
     aoProgredir(cb: (d: Record<string, unknown>) => void): () => void;
+    quadros: {
+      iniciar(spec: Record<string, unknown>): Promise<{ id: string; destino: string }>;
+      quadro(id: string, quadro: ArrayBuffer | Uint8Array): Promise<{ frames: number }>;
+      finalizar(id: string): Promise<{ destino: string; bytes?: number }>;
+      cancelar(id: string): Promise<boolean>;
+    };
   };
+
   update: {
     estado(): Promise<EstadoUpdate>;
     verificar(): Promise<EstadoUpdate>;
