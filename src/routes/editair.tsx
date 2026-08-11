@@ -4,6 +4,7 @@ import { useEffect, useState, type CSSProperties } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { Loader2, ArrowLeft, FolderOpen, Plus, Settings } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { APP_BUILD_ID, APP_COMMIT_SHA } from "@/lib/app-version";
 
 export const Route = createFileRoute("/editair")({
   ssr: false,
@@ -21,6 +22,10 @@ function EditairLayout() {
   const desktop = typeof window !== "undefined" && !!window.editairDesktop;
   const [session, setSession] = useState<Session | null | undefined>(undefined);
   const [liberado, setLiberado] = useState<boolean | undefined>(undefined);
+
+  useEffect(() => {
+    console.info(`[EditAir] UI build ${APP_COMMIT_SHA} (${APP_BUILD_ID})`);
+  }, []);
 
   useEffect(() => {
     // Desktop: o editor é local-first e abre sem login. A nuvem só entra nas funções de IA.
@@ -132,7 +137,12 @@ function EditairLayout() {
             ) : null}
           </nav>
         </div>
-        <span className="text-[11px] uppercase tracking-widest text-white/30">VIA AIR</span>
+        <div className="flex items-center gap-3">
+          <span className="text-[10px] text-white/35" title={`Build ${APP_BUILD_ID}`}>
+            EditAir UI build {APP_COMMIT_SHA.slice(0, 12)}
+          </span>
+          <span className="text-[11px] uppercase tracking-widest text-white/30">VIA AIR</span>
+        </div>
       </header>
       <Outlet />
     </div>

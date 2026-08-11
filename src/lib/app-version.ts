@@ -14,10 +14,15 @@
 declare global {
   // eslint-disable-next-line no-var
   var __APP_BUILD_ID__: string | undefined;
+  // eslint-disable-next-line no-var
+  var __APP_COMMIT_SHA__: string | undefined;
 }
 
 export const APP_BUILD_ID: string =
   typeof __APP_BUILD_ID__ === "string" && __APP_BUILD_ID__ ? __APP_BUILD_ID__ : "dev";
+
+export const APP_COMMIT_SHA: string =
+  typeof __APP_COMMIT_SHA__ === "string" && __APP_COMMIT_SHA__ ? __APP_COMMIT_SHA__ : "unknown";
 
 /** Intervalo mínimo entre consultas quando o app segue aberto. */
 const INTERVALO_MS = 3 * 60 * 1000;

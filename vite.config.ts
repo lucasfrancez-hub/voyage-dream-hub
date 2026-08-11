@@ -13,6 +13,21 @@ import path from "node:path";
 // aplicativos antigos abertos no celular depois de um novo deploy.
 const BUILD_ID = new Date().toISOString();
 
+function lerCommitSha() {
+  const recebido = process.env.GITHUB_SHA || process.env.COMMIT_SHA || process.env.VERCEL_GIT_COMMIT_SHA;
+  if (recebido) return recebido;
+  try {
+    const gitDir = path.resolve(process.cwd(), ".git");
+    const head = fs.readFileSync(path.join(gitDir, "HEAD"), "utf8").trim();
+    if (!head.startsWith("ref: ")) return head;
+    return fs.readFileSync(path.join(gitDir, head.slice(5)), "utf8").trim();
+  } catch {
+    return "unknown";
+  }
+}
+
+const COMMIT_SHA = lerCommitSha();
+
 function escreverVersionJson() {
   try {
     const dir = path.resolve(process.cwd(), "public");
@@ -37,6 +52,7 @@ export default defineConfig({
   vite: {
     define: {
       __APP_BUILD_ID__: JSON.stringify(BUILD_ID),
+      __APP_COMMIT_SHA__: JSON.stringify(COMMIT_SHA),
     },
     plugins: [
       {
