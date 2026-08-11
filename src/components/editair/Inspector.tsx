@@ -1215,9 +1215,12 @@ function AplicarLayoutLegenda({
         onClick={() => onAplicar(escopo)}
         className="mt-1 w-full rounded-md border border-[#F26B1F]/50 bg-[#F26B1F]/15 px-2 py-1.5 text-[11px] text-[#F26B1F] transition hover:bg-[#F26B1F]/25 disabled:opacity-40"
       >
-        Aplicar posição e tamanho em todas
+        Aplicar estilo em todas as legendas
       </button>
-      <p className="text-[10px] text-white/30">Não altera texto nem tempos.</p>
+      <p className="text-[10px] text-white/30">
+        Propaga posição, fonte, largura da caixa, espaçamento, capitalização, cor, contorno e karaokê. Não altera
+        texto nem tempos.
+      </p>
     </div>
   );
 }
