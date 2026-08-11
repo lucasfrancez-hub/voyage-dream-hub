@@ -133,7 +133,7 @@ export function PlayerStage({
     base: ElementoPalco;
   } | null>(null);
 
-  const sel = elementos.find((e) => e.id === selecionadoId) ?? null;
+  
 
   const paraFrame = (ev: { clientX: number; clientY: number }) => {
     const r = palcoRef.current?.getBoundingClientRect();
