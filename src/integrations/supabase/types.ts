@@ -463,10 +463,12 @@ export type Database = {
       }
       asaas_transfers: {
         Row: {
+          asaas_status: string | null
           asaas_transfer_id: string | null
           authorized: boolean
           authorized_at: string | null
           bank_name: string | null
+          confirmed_date: string | null
           cpf_cnpj: string | null
           created_at: string
           created_by: string | null
@@ -475,17 +477,21 @@ export type Database = {
           description: string | null
           dispatch_pending: boolean
           effective_date: string | null
+          end_to_end_identifier: string | null
           fail_reason: string | null
           favored_name: string
           financial_entry_id: string | null
           id: string
           idempotency_key: string
+          last_event: string | null
+          last_event_at: string | null
           order_id: string | null
           origin: string
           pix_key: string
           pix_key_type: string | null
           raw_response: Json | null
           receipt_url: string | null
+          refusal_reason: string | null
           scheduled_at: string | null
           scheduled_date: string | null
           status: string
@@ -493,10 +499,12 @@ export type Database = {
           value: number
         }
         Insert: {
+          asaas_status?: string | null
           asaas_transfer_id?: string | null
           authorized?: boolean
           authorized_at?: string | null
           bank_name?: string | null
+          confirmed_date?: string | null
           cpf_cnpj?: string | null
           created_at?: string
           created_by?: string | null
@@ -505,17 +513,21 @@ export type Database = {
           description?: string | null
           dispatch_pending?: boolean
           effective_date?: string | null
+          end_to_end_identifier?: string | null
           fail_reason?: string | null
           favored_name: string
           financial_entry_id?: string | null
           id?: string
           idempotency_key: string
+          last_event?: string | null
+          last_event_at?: string | null
           order_id?: string | null
           origin?: string
           pix_key: string
           pix_key_type?: string | null
           raw_response?: Json | null
           receipt_url?: string | null
+          refusal_reason?: string | null
           scheduled_at?: string | null
           scheduled_date?: string | null
           status?: string
@@ -523,10 +535,12 @@ export type Database = {
           value: number
         }
         Update: {
+          asaas_status?: string | null
           asaas_transfer_id?: string | null
           authorized?: boolean
           authorized_at?: string | null
           bank_name?: string | null
+          confirmed_date?: string | null
           cpf_cnpj?: string | null
           created_at?: string
           created_by?: string | null
@@ -535,17 +549,21 @@ export type Database = {
           description?: string | null
           dispatch_pending?: boolean
           effective_date?: string | null
+          end_to_end_identifier?: string | null
           fail_reason?: string | null
           favored_name?: string
           financial_entry_id?: string | null
           id?: string
           idempotency_key?: string
+          last_event?: string | null
+          last_event_at?: string | null
           order_id?: string | null
           origin?: string
           pix_key?: string
           pix_key_type?: string | null
           raw_response?: Json | null
           receipt_url?: string | null
+          refusal_reason?: string | null
           scheduled_at?: string | null
           scheduled_date?: string | null
           status?: string

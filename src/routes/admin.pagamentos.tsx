@@ -35,13 +35,14 @@ export const Route = createFileRoute("/admin/pagamentos")({
 
 const STATUS_META: Record<string, { label: string; cls: string }> = {
   agendado: { label: "Agendado", cls: "bg-sky-500/15 text-sky-400" },
-  pendente: { label: "Pendente", cls: "bg-amber-500/15 text-amber-400" },
-  processando: { label: "Em processamento", cls: "bg-indigo-500/15 text-indigo-400" },
+  pendente: { label: "Aguardando processamento", cls: "bg-amber-500/15 text-amber-400" },
+  processando: { label: "Em processamento bancário", cls: "bg-indigo-500/15 text-indigo-400" },
   concluido: { label: "Concluído", cls: "bg-emerald-500/15 text-emerald-400" },
   falhou: { label: "Falhou", cls: "bg-red-500/15 text-red-400" },
   cancelado: { label: "Cancelado", cls: "bg-muted text-muted-foreground" },
   bloqueado: { label: "Bloqueado", cls: "bg-orange-500/15 text-orange-400" },
 };
+
 
 const ORIGIN_LABEL: Record<string, string> = {
   contas_pagar: "Contas a pagar",
@@ -330,7 +331,7 @@ function DetalheDialog({ id, onClose }: { id: string | null; onClose: () => void
         cpfCnpj: t.cpf_cnpj ?? null,
         tipo: "Transferência Pix",
         dataHora: new Date(t.effective_date ?? t.created_at).toLocaleString("pt-BR"),
-        transacaoId: e2eDoRaw(t.raw_response) ?? t.asaas_transfer_id ?? null,
+        transacaoId: t.end_to_end_identifier ?? e2eDoRaw(t.raw_response) ?? t.asaas_transfer_id ?? null,
         descricao: t.description ?? null,
         status: meta?.label ?? t.status,
         concluido: t.status === "concluido",
@@ -372,7 +373,19 @@ function DetalheDialog({ id, onClose }: { id: string | null; onClose: () => void
                   v={t.scheduled_date ?? t.effective_date ?? new Date(t.created_at).toLocaleDateString("pt-BR")}
                 />
                 <Line k="Descrição" v={t.description || "—"} />
+                {t.asaas_status && <Line k="Status no ASAAS" v={t.asaas_status} />}
                 {t.fail_reason && <Line k="Falha" v={t.fail_reason} />}
+                {t.refusal_reason && <Line k="Motivo da recusa" v={t.refusal_reason} />}
+                {(t.end_to_end_identifier || e2eDoRaw(t.raw_response)) && (
+                  <Line k="Identificador Pix (E2E)" v={t.end_to_end_identifier || e2eDoRaw(t.raw_response)} />
+                )}
+                {t.last_event && (
+                  <Line
+                    k="Último evento"
+                    v={`${t.last_event}${t.last_event_at ? ` · ${new Date(t.last_event_at).toLocaleString("pt-BR")}` : ""}`}
+                  />
+                )}
+
               </div>
 
               <div className="pt-4 border-t border-border/60 space-y-3">

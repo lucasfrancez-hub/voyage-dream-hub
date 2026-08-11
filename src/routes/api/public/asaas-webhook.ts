@@ -30,6 +30,26 @@ export const Route = createFileRoute('/api/public/asaas-webhook')({
 
         const event: string = body?.event || ''
 
+        // ----- Ciclo de vida das transferências Pix (TRANSFER_*) -----
+        // Apenas observabilidade/sincronização: nunca cria ou redispara Pix.
+        // A autorização continua exclusiva do asaas-transfer-webhook.ts.
+        const { isTransferEvent } = await import('@/lib/asaas-transfer-events')
+        if (isTransferEvent(event) || body?.transfer?.id) {
+          try {
+            const ip =
+              request.headers.get('cf-connecting-ip') ||
+              (request.headers.get('x-forwarded-for') || '').split(',')[0]?.trim() ||
+              null
+            const { registrarEventoTransferencia } = await import('@/lib/asaas-transfer.server')
+            const res = await registrarEventoTransferencia(body, ip)
+            return Response.json({ ok: true, event, transfer: res })
+          } catch (e) {
+            console.error('[asaas-webhook] transfer error', (e as Error).message)
+            return Response.json({ ok: true, error: 'transfer handling failed' })
+          }
+        }
+
+
         // ----- Pague Contas (boletos) -----
         const bill = body?.bill
         if (event.startsWith('BILL_') || bill?.id) {
