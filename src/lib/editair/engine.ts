@@ -799,12 +799,19 @@ export class EditairEngine {
     };
 
     const fundo = c.fundo && c.fundo.modo !== "nenhum" ? c.fundo : null;
+    const tempoSourceMs =
+      (fonte as HTMLVideoElement).currentTime != null
+        ? (fonte as HTMLVideoElement).currentTime * 1000
+        : c.sourceIn + (t - c.start);
     const mascaraPessoa = fundo
-      ? this.seg?.mascara(c.id, fonte as HTMLVideoElement, t, {
+      ? this.seg?.mascara(c.id, fonte, tempoSourceMs, {
           suavidade: fundo.suavidade,
           borda: fundo.borda,
           estabilidade: fundo.estabilidade,
           qualidade: fundo.qualidade,
+          halo: fundo.refino?.halo,
+          feather: fundo.refino?.feather,
+          assetId: c.assetId,
         }) ?? null
       : null;
     const forma = this.mascaraForma(c);
@@ -864,12 +871,14 @@ export class EditairEngine {
         octx.drawImage(forma, 0, 0, width, height);
         octx.restore();
       }
-      if (fundo?.contorno?.ativo && mascaraPessoa) {
-        ctx.save();
-        ctx.globalAlpha = clamp(opacity, 0, 1) * 0.9;
-        ctx.filter = `blur(${Math.max(1, fundo.contorno.largura).toFixed(1)}px)`;
-        ctx.drawImage(off, 0, 0, width, height);
-        ctx.restore();
+      // contorno: desenhado ATRÁS do recorte, a partir do próprio alpha da camada.
+      // Mesma função no preview e na exportação (renderizarQuadro usa este caminho).
+      const contorno = fundo && (mascaraPessoa || chroma) ? normalizarContorno(fundo.contorno) : null;
+      if (contorno && contorno.preset !== "nenhum") {
+        desenharContorno(ctx, off, width, height, contorno, {
+          alpha: clamp(opacity, 0, 1),
+          cache: this.cacheContorno,
+        });
       }
       ctx.save();
       ctx.globalAlpha = clamp(opacity, 0, 1);
