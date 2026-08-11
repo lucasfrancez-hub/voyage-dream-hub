@@ -82,8 +82,11 @@ async function iniciar(spec, onProgress) {
   for (const a of audio) args.push("-i", a.path);
 
   const fa = usaAudio ? filtrosDeAudio(audio) : null;
-  if (fa) args.push("-filter_complex", fa, "-map", "0:v", "-map", "[aout]");
-  else args.push("-map", "0:v", "-an");
+  args.push("-filter_complex", fa ? `${FILTRO_VIDEO};${fa}` : FILTRO_VIDEO);
+  args.push("-map", "[vout]");
+  if (fa) args.push("-map", "[aout]");
+  else args.push("-an");
+
 
   const bv =
     videoBitrate || (height >= 2160 ? "45M" : height >= 1440 ? "24M" : height >= 1080 ? "14M" : "8M");
