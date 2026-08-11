@@ -5,6 +5,7 @@ import { useServerFn } from "@tanstack/react-start";
 import {
   Loader2, RefreshCw, Search, ArrowDownLeft, ArrowUpRight, ExternalLink, AlertTriangle, Wallet,
 } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { formatBRL } from "@/lib/format";
@@ -121,7 +122,10 @@ function ContaBancariaPage() {
         hasMore = res.hasMore;
         if (!hasMore) break;
       }
-      return { items: all, hasMore };
+      // Deduplicação pelo id único da movimentação no ASAAS (ftn_...).
+      const seen = new Set<string>();
+      const items = all.filter((i) => (seen.has(i.id) ? false : (seen.add(i.id), true)));
+      return { items, hasMore };
     },
     retry: false,
   });
@@ -135,10 +139,23 @@ function ContaBancariaPage() {
     });
   }, [extrato.data, dir, busca]);
 
-  const refreshAll = () => {
+  const refreshAll = async () => {
     setPages(1);
-    resumo.refetch();
-    extrato.refetch();
+    const antes = extrato.data?.items.length ?? 0;
+    const t = toast.loading("Sincronizando com o Asaas…");
+    try {
+      const [, ext] = await Promise.all([resumo.refetch(), extrato.refetch()]);
+      const depois = ext.data?.items.length ?? 0;
+      const novas = Math.max(0, depois - antes);
+      toast.success(
+        novas > 0
+          ? `${novas} nova(s) movimentação(ões) importada(s) do Asaas.`
+          : "Extrato e saldo já estão atualizados.",
+        { id: t },
+      );
+    } catch {
+      toast.error("Não foi possível sincronizar com o Asaas.", { id: t });
+    }
   };
 
   const erro = resumo.error || extrato.error;
