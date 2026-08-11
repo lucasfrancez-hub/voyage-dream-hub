@@ -27,16 +27,35 @@ function comStatus(a) {
   return { ...a, missing: !existe };
 }
 
+const VIDEO_OK = ["h264", "avc1", "av1", "vp8", "vp9"];
+const AUDIO_OK = ["aac", "mp3", "opus", "vorbis", "flac", "pcm_s16le", ""];
+const CONTAINER_OK = [".mp4", ".m4v", ".webm", ".ogv", ".m4a", ".mp3", ".wav"];
+
+/** Motivo pelo qual o Chromium não conseguiria tocar o arquivo direto (ou null). */
+function motivoProxy(a) {
+  if (a.type !== "video") return null;
+  const v = String(a.videoCodec || "").toLowerCase();
+  const au = String(a.audioCodec || "").toLowerCase();
+  const ext = String(require("path").extname(a.localPath || "")).toLowerCase();
+  if (v && !VIDEO_OK.includes(v)) return `codec de vídeo ${v}`;
+  if (au && !AUDIO_OK.includes(au)) return `codec de áudio ${au}`;
+  // .mov/.mkv/.avi só tocam de forma confiável depois de remux para MP4.
+  if (ext && !CONTAINER_OK.includes(ext)) return `container ${ext}`;
+  return null;
+}
+
 function codecPrecisaProxy(a) {
-  if (a.type !== "video") return false;
-  const codec = String(a.videoCodec || "").toLowerCase();
-  return !["h264", "av1", "vp8", "vp9"].includes(codec);
+  return !!motivoProxy(a);
 }
 
 async function garantirProxyDePreview(a) {
   if (!codecPrecisaProxy(a) || !a.localPath || !fs.existsSync(a.localPath)) return a;
   if (a.proxyPath && fs.existsSync(a.proxyPath)) return a;
-  const p = await media.proxy(a.localPath, a).catch(() => null);
+  console.log("[library] gerando proxy de preview", a.name, "motivo:", motivoProxy(a));
+  const p = await media.proxy(a.localPath, a).catch((e) => {
+    console.error("[library:proxy:error]", a.name, e && e.message ? e.message : e);
+    return null;
+  });
   if (!p) return a;
   const db = ler();
   const salvo = db.assets.find((item) => item.id === a.id);
