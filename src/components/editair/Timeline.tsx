@@ -1000,7 +1000,8 @@ function Clipe({
         className={`absolute top-1.5 flex h-11 select-none items-center overflow-hidden rounded-lg border-2 text-[11px] text-white/90 shadow-[0_2px_8px_rgba(0,0,0,.45)] transition ${
           CORES[clip.trackId] ?? (clip.trackId.startsWith("t-video") ? CORES["t-video"] : "bg-white/20 border-white/20")
         } ${selecionado ? "border-[#F26B1F] ring-1 ring-[#F26B1F]/60" : "hover:brightness-110"} ${
-          bloqueado || clip.bloqueado ? "cursor-not-allowed opacity-70" : "cursor-grab"
+          bloqueado || clip.bloqueado ? "cursor-not-allowed opacity-70" : arrastando ? "cursor-grabbing" : "cursor-grab"
+        } ${arrastando ? "opacity-70 ring-2 ring-white/40" : ""
         }`}
         style={{ left: clip.start * pxPorMs, width: largura }}
         title={clip.label ?? clip.text ?? clip.kind}
