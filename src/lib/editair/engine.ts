@@ -1,6 +1,7 @@
 /* Motor de preview e render do EditAir: desenha a timeline num canvas e mixa o áudio.
    Só roda no navegador. Preview e exportação usam exatamente o mesmo caminho de render. */
 import type { SegmentadorFundo } from "./segmentation";
+import { desenharContorno, normalizarContorno } from "./contorno";
 import { calcularEfeitos, temVinheta } from "./efeitos";
 import {
   AJUSTES_NEUTROS,
