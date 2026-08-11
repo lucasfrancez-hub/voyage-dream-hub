@@ -6,14 +6,27 @@ import { LEGENDA_PADRAO, type CaptionStyle } from "./types";
  * São apenas DADOS: nenhum modelo tem lógica própria — a engine e o preview
  * leem os mesmos campos de CaptionStyle para qualquer preset.
  */
-export type CategoriaLegenda = "destaque" | "dinamicos" | "minimalistas" | "social" | "profissionais";
+export type CategoriaLegenda =
+  | "populares"
+  | "classico"
+  | "novo"
+  | "palavra"
+  | "brilho"
+  | "basico"
+  | "estetico"
+  | "monolinha"
+  | "multilinha";
 
 export const CATEGORIAS_LEGENDA: { id: CategoriaLegenda; nome: string }[] = [
-  { id: "destaque", nome: "Destaque" },
-  { id: "dinamicos", nome: "Dinâmicos" },
-  { id: "minimalistas", nome: "Minimalistas" },
-  { id: "social", nome: "Social" },
-  { id: "profissionais", nome: "Profissionais" },
+  { id: "populares", nome: "Populares" },
+  { id: "classico", nome: "Clássico" },
+  { id: "novo", nome: "Novo" },
+  { id: "palavra", nome: "Palavra" },
+  { id: "brilho", nome: "Brilho" },
+  { id: "basico", nome: "Básico" },
+  { id: "estetico", nome: "Estético" },
+  { id: "monolinha", nome: "Monolinha" },
+  { id: "multilinha", nome: "Multilinha" },
 ];
 
 export type ModeloLegenda = {
@@ -28,23 +41,36 @@ export type ModeloLegenda = {
 export const FRASE_DEMO = "Sua viagem começa aqui";
 
 const CATEGORIA_POR_ID: Record<string, CategoriaLegenda> = {
-  clean: "minimalistas",
-  destaque: "destaque",
-  pop: "destaque",
-  minimal: "minimalistas",
-  box: "profissionais",
-  karaoke: "dinamicos",
-  impact: "destaque",
-  podcast: "profissionais",
-  news: "profissionais",
-  doodle: "social",
-  neon: "social",
-  dynamic: "dinamicos",
+  clean: "populares",
+  destaque: "populares",
+  pop: "populares",
+  impact: "classico",
+  news: "classico",
+  podcast: "classico",
+  sunset: "novo",
+  "gradiente-box": "novo",
+  bubble: "novo",
+  karaoke: "palavra",
+  wordbox: "palavra",
+  dynamic: "palavra",
+  neon: "brilho",
+  "glow-soft": "brilho",
+  retro: "brilho",
+  minimal: "basico",
+  "bold-yellow": "basico",
+  "serif-editorial": "estetico",
+  whisper: "estetico",
+  doodle: "estetico",
+  mono: "monolinha",
+  "lower-third": "monolinha",
+  tiktokish: "monolinha",
+  stack: "multilinha",
+  box: "multilinha",
 };
 
 /** Categoria efetiva do modelo (modelos salvos caem em "Meus modelos"). */
 export function categoriaDoModelo(m: ModeloLegenda): CategoriaLegenda {
-  return m.categoria ?? CATEGORIA_POR_ID[m.id] ?? "destaque";
+  return m.categoria ?? CATEGORIA_POR_ID[m.id] ?? "populares";
 }
 
 export const MODELOS_LEGENDA: ModeloLegenda[] = [
@@ -359,7 +385,6 @@ export const MODELOS_LEGENDA: ModeloLegenda[] = [
     nome: "Sunset",
     descricao: "Laranja VIA AIR com contorno escuro.",
     animado: true,
-    categoria: "destaque",
     style: {
       fontFamily: "Inter, system-ui, sans-serif", weight: 900, fontSize: 76, uppercase: true,
       color: "#FFE9D6", activeColor: "#F26B1F", stroke: 12, strokeColor: "#1A0C04", shadow: 8,
@@ -372,7 +397,6 @@ export const MODELOS_LEGENDA: ModeloLegenda[] = [
     nome: "Amarelo bold",
     descricao: "Amarelo forte, alto contraste.",
     animado: true,
-    categoria: "destaque",
     style: {
       fontFamily: "Inter, system-ui, sans-serif", weight: 900, fontSize: 78, uppercase: true,
       color: "#FFD400", activeColor: "#FFFFFF", stroke: 12, strokeColor: "#111111", shadow: 0,
@@ -385,7 +409,6 @@ export const MODELOS_LEGENDA: ModeloLegenda[] = [
     nome: "Palavra em caixa",
     descricao: "Palavra atual dentro de caixa colorida.",
     animado: true,
-    categoria: "dinamicos",
     style: {
       fontFamily: "Inter, system-ui, sans-serif", weight: 900, fontSize: 66, uppercase: true,
       color: "#FFFFFF", activeColor: "#111111", stroke: 0, shadow: 0,
@@ -398,7 +421,6 @@ export const MODELOS_LEGENDA: ModeloLegenda[] = [
     nome: "Vertical Social",
     descricao: "Uma linha por vez, ritmo rápido.",
     animado: true,
-    categoria: "social",
     style: {
       fontFamily: "Inter, system-ui, sans-serif", weight: 900, fontSize: 72, uppercase: false,
       color: "#FFFFFF", activeColor: "#39E27D", stroke: 10, strokeColor: "#04140B", shadow: 0,
@@ -411,7 +433,6 @@ export const MODELOS_LEGENDA: ModeloLegenda[] = [
     nome: "Bubble",
     descricao: "Caixa clara com texto escuro.",
     animado: false,
-    categoria: "social",
     style: {
       fontFamily: "Inter, system-ui, sans-serif", weight: 800, fontSize: 54, uppercase: false,
       color: "#141418", activeColor: "#F26B1F", stroke: 0, shadow: 0,
@@ -424,7 +445,6 @@ export const MODELOS_LEGENDA: ModeloLegenda[] = [
     nome: "Mono",
     descricao: "Monoespaçada, ar técnico.",
     animado: false,
-    categoria: "minimalistas",
     style: {
       fontFamily: "'JetBrains Mono', ui-monospace, monospace", weight: 600, fontSize: 44, uppercase: false,
       color: "#EDEDED", activeColor: "#37E1FF", stroke: 0, shadow: 10,
@@ -437,7 +457,6 @@ export const MODELOS_LEGENDA: ModeloLegenda[] = [
     nome: "Editorial",
     descricao: "Serifada elegante, tom revista.",
     animado: false,
-    categoria: "profissionais",
     style: {
       fontFamily: "Georgia, 'Times New Roman', serif", weight: 700, fontSize: 56, uppercase: false,
       color: "#FFFFFF", activeColor: "#F5D9B8", stroke: 0, shadow: 16,
@@ -450,7 +469,6 @@ export const MODELOS_LEGENDA: ModeloLegenda[] = [
     nome: "Lower third",
     descricao: "Faixa inferior corporativa.",
     animado: true,
-    categoria: "profissionais",
     style: {
       fontFamily: "Inter, system-ui, sans-serif", weight: 700, fontSize: 44, uppercase: true,
       color: "#FFFFFF", activeColor: "#F26B1F", stroke: 0, shadow: 0,
@@ -464,7 +482,6 @@ export const MODELOS_LEGENDA: ModeloLegenda[] = [
     nome: "Glow suave",
     descricao: "Brilho quente ao redor do texto.",
     animado: true,
-    categoria: "social",
     style: {
       fontFamily: "Inter, system-ui, sans-serif", weight: 800, fontSize: 62, uppercase: false,
       color: "#FFFFFF", activeColor: "#FFB35C", stroke: 0, shadow: 30, shadowColor: "#F26B1F",
@@ -477,7 +494,6 @@ export const MODELOS_LEGENDA: ModeloLegenda[] = [
     nome: "Stack",
     descricao: "Poucas palavras, letras enormes.",
     animado: true,
-    categoria: "dinamicos",
     style: {
       fontFamily: "Impact, 'Arial Black', sans-serif", weight: 900, fontSize: 104, uppercase: true,
       color: "#FFFFFF", activeColor: "#FFD400", stroke: 14, strokeColor: "#000000", shadow: 0,
@@ -490,7 +506,6 @@ export const MODELOS_LEGENDA: ModeloLegenda[] = [
     nome: "Whisper",
     descricao: "Discreta, quase invisível.",
     animado: false,
-    categoria: "minimalistas",
     style: {
       fontFamily: "Inter, system-ui, sans-serif", weight: 400, fontSize: 38, uppercase: false,
       color: "rgba(255,255,255,0.85)", activeColor: "#FFFFFF", stroke: 0, shadow: 8,
@@ -503,7 +518,6 @@ export const MODELOS_LEGENDA: ModeloLegenda[] = [
     nome: "Retrô",
     descricao: "Creme com contorno marrom.",
     animado: true,
-    categoria: "social",
     style: {
       fontFamily: "'Trebuchet MS', system-ui, sans-serif", weight: 900, fontSize: 68, uppercase: true,
       color: "#FFF1D0", activeColor: "#FF7A45", stroke: 12, strokeColor: "#4A2612", shadow: 6,
@@ -516,7 +530,6 @@ export const MODELOS_LEGENDA: ModeloLegenda[] = [
     nome: "Faixa VIA",
     descricao: "Caixa laranja translúcida, palavra branca.",
     animado: true,
-    categoria: "destaque",
     style: {
       fontFamily: "Inter, system-ui, sans-serif", weight: 800, fontSize: 58, uppercase: false,
       color: "#FFFFFF", activeColor: "#FFE2CB", stroke: 0, shadow: 0,
