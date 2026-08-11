@@ -62,6 +62,7 @@ import {
   TEXTO_PADRAO,
   type TextStyle,
 
+  LEGENDA_PADRAO,
   type CaptionStyle,
   type EditairClip,
   type KeyProp,
