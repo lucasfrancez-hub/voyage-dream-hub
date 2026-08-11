@@ -87,6 +87,17 @@ import {
   inserirAssetNaTimeline,
 } from "@/lib/editair/layers";
 import {
+  alternarCongelado,
+  atualizarMarcador,
+  clonarClips,
+  colarClips,
+  duplicarClips,
+  excluirMarcador,
+  extrairAudioDeClip,
+  idsEditaveis,
+  revincularAudio,
+} from "@/lib/editair/acoes";
+import {
   blobParaBase64,
   calcularEnvelope,
   decodificarAudio,
@@ -147,6 +158,8 @@ function EditorPage() {
   const relogioRef = useRef<{ t0: number; ms0: number } | null>(null);
   const cancelarExportRef = useRef(false);
   const clipboardRef = useRef<EditairClip[]>([]);
+  /** só para a UI saber se "Colar" está habilitado */
+  const [nClipboard, setNClipboard] = useState(0);
 
   const [carregando, setCarregando] = useState(true);
   const [projetoNome, setProjetoNome] = useState("");
@@ -857,18 +870,23 @@ function EditorPage() {
     aplicar(s);
   };
 
-  const duplicar = () => {
-    if (!selecionados.length) return;
-    const novos = state.clips
-      .filter((c) => selecionados.includes(c.id))
-      .map((c) => ({ ...c, id: novoId(), start: c.start + c.duration }));
-    aplicar({ ...state, clips: [...state.clips, ...novos] });
-    setSelecionados(novos.map((c) => c.id));
+  /** Duplica a seleção inteira preservando as distâncias relativas (1 passo de undo). */
+  const duplicar = (ids: string[] = selecionados) => {
+    if (!ids.length) return;
+    const r = duplicarClips(state, ids);
+    if (!r.ok) return toast.error(r.erro ?? "Não foi possível duplicar.");
+    aplicar(r.state!);
+    setSelecionados(r.novosIds ?? []);
+    toast.success(`${r.novosIds?.length ?? 0} clipe(s) duplicado(s)`);
   };
 
-  const copiar = () => {
-    clipboardRef.current = state.clips.filter((c) => selecionados.includes(c.id)).map((c) => ({ ...c }));
-    if (clipboardRef.current.length) toast.success(`${clipboardRef.current.length} clipe(s) copiado(s)`);
+  const copiar = (ids: string[] = selecionados) => {
+    const alvo = state.clips.filter((c) => ids.includes(c.id));
+    if (!alvo.length) return;
+    // guarda cópias profundas: editar o projeto depois não altera o clipboard
+    clipboardRef.current = clonarClips(alvo).map((c, i) => ({ ...c, start: alvo[i].start }));
+    setNClipboard(alvo.length);
+    toast.success(`${alvo.length} clipe(s) copiado(s)`);
   };
   /** Cmd+X: copia e remove o conjunto num único passo de histórico. */
   const recortar = () => {
@@ -877,11 +895,11 @@ function EditorPage() {
     excluirSelecionados(false);
   };
   const colar = () => {
-    if (!clipboardRef.current.length) return;
-    const base = Math.min(...clipboardRef.current.map((c) => c.start));
-    const novos = clipboardRef.current.map((c) => ({ ...c, id: novoId(), start: playhead + (c.start - base) }));
-    aplicar({ ...state, clips: [...state.clips, ...novos] });
-    setSelecionados(novos.map((c) => c.id));
+    const r = colarClips(state, clipboardRef.current, playhead);
+    if (!r.ok) return toast.error(r.erro ?? "Nada para colar.");
+    aplicar(r.state!);
+    setSelecionados(r.novosIds ?? []);
+    toast.success(`${r.novosIds?.length ?? 0} clipe(s) colado(s)`);
   };
 
   const apagarTrecho = (fromMs: number, toMs: number) => {

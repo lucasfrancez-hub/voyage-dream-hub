@@ -37,11 +37,17 @@ export type AcaoClip =
   | "bloquear"
   | "mudo"
   | "congelar"
+  | "descongelar"
   | "desvincular"
+  | "revincular"
   | "ripple"
   | "copiar"
+  | "colar"
   | "extrair-audio"
   | "aparar";
+
+/** Ações do menu de contexto de um marcador da timeline. */
+export type AcaoMarcador = "renomear" | "cor" | "excluir";
 
 /** Destino de um clip solto na timeline. */
 export type DestinoSolto = DestinoCamada;
@@ -104,6 +110,10 @@ type Props = {
   onRenomearTrack?: (trackId: string, nome: string) => void;
   onExcluirTrack?: (trackId: string) => void;
   onEditarComIa?: (clipId: string) => void;
+  /** há clipes no clipboard interno (habilita "Colar" no menu) */
+  temClipboard?: boolean;
+  /** ações do menu de contexto de um marcador */
+  onAcaoMarcador?: (id: string, acao: AcaoMarcador, valor?: string) => void;
 };
 
 type Dica = { x: number; y: number; titulo: string; valor: string; delta: string } | null;
@@ -141,6 +151,8 @@ export function Timeline({
   onRenomearTrack,
   onExcluirTrack,
   onEditarComIa,
+  temClipboard,
+  onAcaoMarcador,
 }: Props) {
   const areaRef = useRef<HTMLDivElement>(null);
   const headersRef = useRef<HTMLDivElement>(null);
@@ -193,6 +205,8 @@ export function Timeline({
   const [dica, setDica] = useState<Dica>(null);
   const [arrastandoId, setArrastandoId] = useState<string | null>(null);
   const [menu, setMenu] = useState<{ x: number; y: number; clipId: string } | null>(null);
+  /** menu de contexto de um marcador da régua */
+  const [menuMarcador, setMenuMarcador] = useState<{ x: number; y: number; id: string } | null>(null);
   const [soltando, setSoltando] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const [menuPos, setMenuPos] = useState<{ x: number; y: number } | null>(null);
@@ -606,9 +620,26 @@ export function Timeline({
   const clipMenu = menu ? state.clips.find((c) => c.id === menu.clipId) ?? null : null;
   const trilhaMenu = clipMenu ? state.tracks.find((t) => t.id === clipMenu.trackId) ?? null : null;
   const idxTrilhaMenu = trilhaMenu ? state.tracks.findIndex((t) => t.id === trilhaMenu.id) : -1;
+  /** quantos clipes a ação vai afetar (o menu age sobre a seleção quando o clipe faz parte dela) */
+  const nAfetados = menu && selecionados.includes(menu.clipId) ? selecionados.length : 1;
+  const sufixoN = nAfetados > 1 ? ` (${nAfetados})` : "";
+  /** clipe travado (ou camada bloqueada): só sobram ações não destrutivas */
+  const travadoMenu = !!clipMenu?.bloqueado || !!trilhaMenu?.locked;
+  /** o áudio deste clipe já foi extraído para outra faixa? */
+  const audioSeparadoMenu = !!(
+    clipMenu?.vinculoAudio &&
+    state.clips.some((c) => c.id !== clipMenu.id && c.vinculoAudio === clipMenu.vinculoAudio)
+  );
+  const marcadorMenu = menuMarcador
+    ? (state.marcadores ?? []).find((m) => m.id === menuMarcador.id) ?? null
+    : null;
 
   return (
-    <div className="relative flex h-full min-h-0 min-w-0 flex-col overflow-hidden bg-[#0d1116]" onPointerDown={() => setMenu(null)}>
+    <div className="relative flex h-full min-h-0 min-w-0 flex-col overflow-hidden bg-[#0d1116]" onPointerDown={() => {
+        setMenu(null);
+        setMenuMarcador(null);
+      }}
+    >
       <div className="flex min-h-0 min-w-0 flex-1 overflow-hidden">
         {/* cabeçalho das trilhas — fixo à esquerda, acompanha só o scroll vertical */}
         <div className="w-[170px] shrink-0 overflow-hidden border-r border-white/10 bg-[#10151b]">
@@ -818,17 +849,35 @@ export function Timeline({
               </div>
             ) : null}
 
-            {/* marcadores */}
+            {/* marcadores: clique leva o playhead, botão direito abre o menu do marcador */}
             {(state.marcadores ?? []).map((m) => (
               <div
                 key={m.id}
-                title={m.nota ?? "Marcador"}
-                className="pointer-events-none absolute top-0 z-20 h-full w-px"
+                title={m.nota ? `${m.nota} — clique para ir, botão direito para editar` : "Marcador"}
+                className="absolute top-0 z-20 h-full w-px"
                 style={{ left: m.atMs * pxPorMs, background: `${m.cor}66` }}
               >
-                <span className="-ml-1 block h-2 w-2 rotate-45" style={{ background: m.cor }} />
+                <button
+                  type="button"
+                  aria-label={m.nota ? `Marcador ${m.nota}` : "Marcador"}
+                  className="-ml-2 block h-4 w-4 cursor-pointer bg-transparent p-0"
+                  onPointerDown={(e) => e.stopPropagation()}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onSeek(m.atMs);
+                  }}
+                  onContextMenu={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setMenu(null);
+                    setMenuMarcador({ x: e.clientX, y: e.clientY, id: m.id });
+                  }}
+                >
+                  <span className="ml-1 block h-2 w-2 rotate-45" style={{ background: m.cor }} />
+                </button>
               </div>
             ))}
+
 
             {/* playhead */}
 
@@ -970,14 +1019,16 @@ export function Timeline({
           ) : null}
 
           {[
-            { id: "dividir" as const, nome: "Dividir no playhead" },
-            { id: "aparar" as const, nome: "Aparar até o playhead" },
-            { id: "duplicar" as const, nome: "Duplicar" },
-            { id: "copiar" as const, nome: "Copiar" },
+            { id: "dividir" as const, nome: "Dividir no playhead", bloqueia: true },
+            { id: "aparar" as const, nome: "Aparar até o playhead", bloqueia: true },
+            { id: "duplicar" as const, nome: `Duplicar${sufixoN}`, bloqueia: true },
+            { id: "copiar" as const, nome: `Copiar${sufixoN}`, bloqueia: false },
+            { id: "colar" as const, nome: "Colar no playhead", bloqueia: false, exige: temClipboard },
           ].map((a) => (
             <button
               key={a.id}
-              className="block w-full px-3 py-2 text-left hover:bg-white/10"
+              disabled={(a.bloqueia && travadoMenu) || a.exige === false}
+              className="block w-full px-3 py-2 text-left hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-35"
               onClick={() => {
                 onAcaoClip?.(menu.clipId, a.id);
                 setMenu(null);
@@ -1008,34 +1059,40 @@ export function Timeline({
           {clipMenu.kind === "video" || clipMenu.kind === "audio" ? (
             <>
               <div className="my-1 h-px bg-white/10" />
-              <button
-                className="block w-full px-3 py-2 text-left hover:bg-white/10"
-                onClick={() => {
-                  onAcaoClip?.(menu.clipId, "desvincular");
-                  setMenu(null);
-                }}
-              >
-                Desvincular áudio
-              </button>
               {clipMenu.kind === "video" ? (
-                <button
-                  className="block w-full px-3 py-2 text-left hover:bg-white/10"
-                  onClick={() => {
-                    onAcaoClip?.(menu.clipId, "extrair-audio");
-                    setMenu(null);
-                  }}
-                >
-                  Extrair áudio para nova faixa
-                </button>
+                audioSeparadoMenu ? (
+                  <button
+                    disabled={travadoMenu}
+                    className="block w-full px-3 py-2 text-left hover:bg-white/10 disabled:opacity-35"
+                    onClick={() => {
+                      onAcaoClip?.(menu.clipId, "revincular");
+                      setMenu(null);
+                    }}
+                  >
+                    Revincular áudio ao vídeo
+                  </button>
+                ) : (
+                  <button
+                    disabled={travadoMenu}
+                    className="block w-full px-3 py-2 text-left hover:bg-white/10 disabled:opacity-35"
+                    onClick={() => {
+                      onAcaoClip?.(menu.clipId, "extrair-audio");
+                      setMenu(null);
+                    }}
+                  >
+                    Extrair áudio para nova faixa
+                  </button>
+                )
               ) : null}
               <button
-                className="block w-full px-3 py-2 text-left hover:bg-white/10"
+                disabled={travadoMenu}
+                className="block w-full px-3 py-2 text-left hover:bg-white/10 disabled:opacity-35"
                 onClick={() => {
                   onAcaoClip?.(menu.clipId, "mudo");
                   setMenu(null);
                 }}
               >
-                Silenciar / reativar
+                {clipMenu.muted || clipMenu.semAudio ? `Reativar áudio${sufixoN}` : `Silenciar${sufixoN}`}
               </button>
             </>
           ) : null}
@@ -1085,15 +1142,18 @@ export function Timeline({
           ) : null}
 
           <div className="my-1 h-px bg-white/10" />
-          <button
-            className="block w-full px-3 py-2 text-left hover:bg-white/10"
-            onClick={() => {
-              onAcaoClip?.(menu.clipId, "congelar");
-              setMenu(null);
-            }}
-          >
-            Congelar frame
-          </button>
+          {clipMenu.kind === "video" || clipMenu.kind === "image" ? (
+            <button
+              disabled={travadoMenu}
+              className="block w-full px-3 py-2 text-left hover:bg-white/10 disabled:opacity-35"
+              onClick={() => {
+                onAcaoClip?.(menu.clipId, clipMenu.congelado ? "descongelar" : "congelar");
+                setMenu(null);
+              }}
+            >
+              {clipMenu.congelado ? `Descongelar${sufixoN}` : `Congelar frame${sufixoN}`}
+            </button>
+          ) : null}
           <button
             className="block w-full px-3 py-2 text-left hover:bg-white/10"
             onClick={() => {
@@ -1101,11 +1161,12 @@ export function Timeline({
               setMenu(null);
             }}
           >
-            Bloquear / desbloquear
+            {clipMenu.bloqueado ? "Desbloquear clipe" : "Bloquear clipe"}
           </button>
           <div className="my-1 h-px bg-white/10" />
           <button
-            className="block w-full px-3 py-2 text-left text-red-400 hover:bg-red-500/10"
+            disabled={travadoMenu}
+            className="block w-full px-3 py-2 text-left text-red-400 hover:bg-red-500/10 disabled:opacity-35"
             onClick={() => {
               onAcaoClip?.(menu.clipId, "ripple");
               setMenu(null);
@@ -1114,19 +1175,69 @@ export function Timeline({
             Ripple delete (fecha o buraco)
           </button>
           <button
-            className="block w-full px-3 py-2 text-left text-red-400 hover:bg-red-500/10"
+            disabled={travadoMenu}
+            className="block w-full px-3 py-2 text-left text-red-400 hover:bg-red-500/10 disabled:opacity-35"
             onClick={() => {
               onAcaoClip?.(menu.clipId, "excluir");
               setMenu(null);
             }}
           >
-            Excluir clipe
+            {`Excluir clipe${sufixoN}`}
+          </button>
+        </div>
+      ) : null}
+
+      {menuMarcador && marcadorMenu ? (
+        <div
+          className="fixed z-[60] w-56 rounded-xl border border-white/10 bg-[#12171d] py-1 text-[12px] shadow-2xl"
+          style={{ left: menuMarcador.x, top: menuMarcador.y }}
+          onPointerDown={(e) => e.stopPropagation()}
+        >
+          <div className="px-3 py-1.5 text-[11px] text-white/45">
+            {marcadorMenu.nota || "Marcador"} · {(marcadorMenu.atMs / 1000).toFixed(2)}s
+          </div>
+          <button
+            className="block w-full px-3 py-2 text-left hover:bg-white/10"
+            onClick={() => {
+              onAcaoMarcador?.(marcadorMenu.id, "renomear");
+              setMenuMarcador(null);
+            }}
+          >
+            Renomear marcador
+          </button>
+          <div className="flex items-center gap-2 px-3 py-2">
+            <span className="text-white/60">Cor</span>
+            {CORES_MARCADOR.map((cor) => (
+              <button
+                key={cor}
+                aria-label={`Cor ${cor}`}
+                className="h-4 w-4 rounded-full border border-white/25"
+                style={{ background: cor, outline: marcadorMenu.cor === cor ? "2px solid #fff" : "none" }}
+                onClick={() => {
+                  onAcaoMarcador?.(marcadorMenu.id, "cor", cor);
+                  setMenuMarcador(null);
+                }}
+              />
+            ))}
+          </div>
+          <div className="my-1 h-px bg-white/10" />
+          <button
+            className="block w-full px-3 py-2 text-left text-red-400 hover:bg-red-500/10"
+            onClick={() => {
+              onAcaoMarcador?.(marcadorMenu.id, "excluir");
+              setMenuMarcador(null);
+            }}
+          >
+            Excluir marcador
           </button>
         </div>
       ) : null}
     </div>
   );
 }
+
+/** paleta usada no menu de contexto do marcador */
+const CORES_MARCADOR = ["#F26B1F", "#22c55e", "#38bdf8", "#e879f9", "#facc15"];
 
 function TrackLabel({
   track,
