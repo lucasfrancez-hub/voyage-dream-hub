@@ -352,7 +352,7 @@ export function PlayerStage({
                     data-kind={el.kind}
                     data-hover={emHover ? "1" : undefined}
                     onPointerEnter={() => !arrasto.current && setHoverId(el.id)}
-                    onPointerLeave={() => setHoverId((h) => (h === el.id ? null : h))}
+                    onPointerLeave={() => setHoverId((h: string | null) => (h === el.id ? null : h))}
                     onPointerDown={(e) => {
                       onSelecionar?.(el.id);
                       iniciar("mover", el)(e);
