@@ -44,6 +44,10 @@ export type AcoesInspector = {
   onPatchClip: (patch: Partial<EditairClip>) => void;
   onPatchState: (patch: Partial<ProjectState>) => void;
   onCaption: (patch: Partial<CaptionStyle>) => void;
+  /** patch no estilo de UMA legenda (não altera o padrão do projeto) */
+  onCaptionClip?: (clipId: string, patch: Partial<CaptionStyle>) => void;
+  /** copia posição/tamanho da legenda atual para as demais */
+  onAplicarLayoutLegendas?: (clipId: string, escopo: "todas" | "preset" | "esta") => void;
   onKeyframe: (prop: KeyProp) => void;
   onDuplicar: () => void;
   onCamada: (dir: "frente" | "tras") => void;
