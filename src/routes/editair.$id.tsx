@@ -182,6 +182,8 @@ function EditorPage() {
   const pendentesRef = useRef<Map<string, AssetItem>>(new Map());
   const stateRef = useRef<ProjectState>(state);
   stateRef.current = state;
+  const playheadRef = useRef(0);
+  playheadRef.current = playhead;
 
   /** Carrega o asset na engine; se ela ainda não existir, guarda para depois. */
   const carregarNaEngine = useCallback(async (a: AssetItem) => {
@@ -718,16 +720,18 @@ function EditorPage() {
       for (const midia of novas) {
         const kind = midia.kind;
         if (!dims && midia.width > 0 && midia.height > 0) dims = { w: midia.width, h: midia.height };
-        if (midia.url) await engineRef.current?.carregar(midia.id, midia.url, kind);
-        novosAssets.push({
+        const novoAsset: AssetItem = {
           id: midia.id,
           nome: midia.nome,
           kind,
           durationMs: midia.durationMs,
           url: midia.url,
+          thumbUrl: midia.thumbUrl ?? null,
           local: midia.local,
           existe: midia.existe,
-        });
+        };
+        await carregarNaEngine(novoAsset);
+        novosAssets.push(novoAsset);
 
         const trilha = kind === "audio" ? "t-music" : "t-video";
         const fimTrilha = proximo.clips
@@ -750,8 +754,8 @@ function EditorPage() {
         if (!audioBufferRef.current && kind !== "image" && midia.url) {
           try {
             audioBufferRef.current = await decodificarAudio(await (await fetch(midia.url)).blob());
-          } catch {
-            /* sem áudio decodificável */
+          } catch (e) {
+            console.warn(`[media] áudio não decodificável asset=${midia.id}`, e);
           }
         }
       }
@@ -785,12 +789,18 @@ function EditorPage() {
     const atualizado = await relinkarMidia(m);
     if (!atualizado) return;
     setMidias((cur) => cur.map((x) => (x.id === assetId ? atualizado : x)));
-    setAssets((cur) =>
-      cur.map((x) =>
-        x.id === assetId ? { ...x, url: atualizado.url, existe: true, durationMs: atualizado.durationMs } : x,
-      ),
-    );
-    if (atualizado.url) await engineRef.current?.carregar(assetId, atualizado.url, atualizado.kind).catch(() => null);
+    const novo: AssetItem = {
+      id: assetId,
+      nome: atualizado.nome,
+      kind: atualizado.kind,
+      durationMs: atualizado.durationMs,
+      url: atualizado.url,
+      thumbUrl: atualizado.thumbUrl ?? null,
+      local: atualizado.local,
+      existe: true,
+    };
+    setAssets((cur) => cur.map((x) => (x.id === assetId ? { ...x, ...novo } : x)));
+    await carregarNaEngine(novo);
     setState((cur) => recalcularDuracao({ ...cur }));
     toast.success("Mídia relinkada — seus cortes continuam intactos");
   };
