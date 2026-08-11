@@ -70,6 +70,7 @@ import {
 } from "@/lib/editair/types";
 import { aplicarOps, gerarLegendas, type EditairOp } from "@/lib/editair/ops";
 import { aplicarTextoLegenda } from "@/lib/editair/texto-legenda";
+import { selecaoEditavel, selecionarTrack, selecionarTudo } from "@/lib/editair/selecao";
 import { aplicarVelocidade } from "@/lib/editair/velocidade";
 import {
   acaoDeClip,
@@ -663,20 +664,40 @@ function EditorPage() {
     toast.success("Modelo aplicado nesta legenda");
   };
 
+  /* Um gesto na timeline (arrastar, trim, mover 20 legendas de uma vez) entra no
+     histórico como UM passo: guardamos o estado de antes no primeiro movimento e
+     empurramos só no commit. */
+  const gestoTimeline = useRef<ProjectState | null>(null);
+  const iniciarGesto = () => {
+    if (!gestoTimeline.current) gestoTimeline.current = state;
+  };
+  const encerrarGesto = () => {
+    const antes = gestoTimeline.current;
+    gestoTimeline.current = null;
+    if (!antes) return;
+    historico.current.push(antes);
+    if (historico.current.length > 80) historico.current.shift();
+    futuro.current = [];
+  };
+
   const alterarClipTimeline = (cid: string, patch: Partial<EditairClip>, commit: boolean) => {
     if (commit) {
+      encerrarGesto();
       setState((s) => recalcularDuracao({ ...s }));
       return;
     }
+    iniciarGesto();
     setState((s) => recalcularDuracao({ ...s, clips: s.clips.map((c) => (c.id === cid ? { ...c, ...patch } : c)) }));
   };
 
   /** Alteração em lote (ripple trim mexe em vários clipes ao mesmo tempo). */
   const alterarClipsTimeline = (patches: Record<string, Partial<EditairClip>>, commit: boolean) => {
     if (commit) {
+      encerrarGesto();
       setState((s) => recalcularDuracao({ ...s }));
       return;
     }
+    iniciarGesto();
     setState((s) =>
       recalcularDuracao({
         ...s,
@@ -730,13 +751,14 @@ function EditorPage() {
   };
 
   const excluirSelecionados = (ripple = false) => {
-    if (!selecionados.length) return;
+    const alvos = selecaoEditavel(state, selecionados);
+    if (!alvos.length) return;
     let s = state;
-    for (const cid of selecionados) {
+    for (const cid of alvos) {
       s = aplicarOps(s, [{ op: "delete_clip", clipId: cid }], transcript).state;
     }
     if (ripple) {
-      const trilhas = Array.from(new Set(state.clips.filter((c) => selecionados.includes(c.id)).map((c) => c.trackId)));
+      const trilhas = Array.from(new Set(state.clips.filter((c) => alvos.includes(c.id)).map((c) => c.trackId)));
       s = aplicarOps(s, trilhas.map(() => ({ op: "delete_range", fromMs: 0, toMs: 0 })) as EditairOp[], transcript).state;
       // fecha buracos nas trilhas afetadas
       for (const t of trilhas) {
@@ -766,6 +788,12 @@ function EditorPage() {
   const copiar = () => {
     clipboardRef.current = state.clips.filter((c) => selecionados.includes(c.id)).map((c) => ({ ...c }));
     if (clipboardRef.current.length) toast.success(`${clipboardRef.current.length} clipe(s) copiado(s)`);
+  };
+  /** Cmd+X: copia e remove o conjunto num único passo de histórico. */
+  const recortar = () => {
+    if (!selecionados.length) return;
+    copiar();
+    excluirSelecionados(false);
   };
   const colar = () => {
     if (!clipboardRef.current.length) return;
@@ -1761,8 +1789,16 @@ function EditorPage() {
         e.preventDefault();
         if (e.shiftKey) refazer();
         else desfazer();
+      } else if ((e.metaKey || e.ctrlKey) && e.key === "a") {
+        e.preventDefault();
+        setSelecionados(selecionarTudo(state));
+      } else if (e.key === "Escape") {
+        setSelecionados([]);
       } else if ((e.metaKey || e.ctrlKey) && e.key === "c") {
         copiar();
+      } else if ((e.metaKey || e.ctrlKey) && e.key === "x") {
+        e.preventDefault();
+        recortar();
       } else if ((e.metaKey || e.ctrlKey) && e.key === "v") {
         colar();
       } else if ((e.metaKey || e.ctrlKey) && e.key === "d") {
@@ -2051,6 +2087,11 @@ function EditorPage() {
           onAlterarClip={alterarClipTimeline}
           onAlterarClips={alterarClipsTimeline}
           onAbrirSource={setSourceClipId}
+          onSelecionarTrack={(trackId) => {
+            const ids = selecionarTrack(state, trackId);
+            setSelecionados(ids);
+            if (!ids.length) toast.info("Nada para selecionar nesta camada.");
+          }}
           onEditarTextoLegenda={editarTextoLegenda}
           onRestaurarClip={restaurarClip}
           onSoltarArquivos={(arquivos, ms) => void importar(arquivos, ms)}

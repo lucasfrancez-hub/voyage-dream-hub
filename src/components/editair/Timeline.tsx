@@ -11,6 +11,7 @@ import {
   GripVertical,
   Pencil,
   Trash2,
+  MousePointerSquareDashed,
 } from "lucide-react";
 import type { EditairClip, EditairTrack, ProjectState } from "@/lib/editair/types";
 import { formatarTempo } from "@/lib/editair/types";
@@ -21,6 +22,7 @@ import { limitesDoClip } from "@/lib/editair/ops";
 import { obterPicos, obterThumb, picosEmCache } from "@/lib/editair/media";
 import { executarJob } from "@/lib/editair/jobs";
 import { useJobsDoAlvo } from "@/hooks/use-editair-jobs";
+import { clipsNaCaixa, moverSelecao, tracksNaFaixa, unir } from "@/lib/editair/selecao";
 
 
 export type AssetInfo = { id?: string; url: string; durationMs: number; kind: string; name: string };
@@ -68,6 +70,8 @@ type Props = {
   onAlterarClips: (patches: Record<string, Partial<EditairClip>>, commit: boolean) => void;
   onToggleTrack: (trackId: string, campo: "muted" | "hidden" | "locked" | "solo") => void;
   onAbrirSource: (clipId: string) => void;
+  /** "Selecionar todos nesta camada" (menu do cabeçalho da track) */
+  onSelecionarTrack?: (trackId: string) => void;
   /** duplo clique numa legenda: edição rápida do texto na própria timeline */
   onEditarTextoLegenda?: (clipId: string, texto: string, commit: boolean) => void;
   onRestaurarClip: (clipId: string) => void;
@@ -108,6 +112,7 @@ export function Timeline({
   onAlterarClips,
   onToggleTrack,
   onAbrirSource,
+  onSelecionarTrack,
   onEditarTextoLegenda,
   onRestaurarClip,
   onAcaoClip,
@@ -133,6 +138,8 @@ export function Timeline({
   const [menuPos, setMenuPos] = useState<{ x: number; y: number } | null>(null);
   const [alvo, setAlvo] = useState<DestinoSolto | null>(null);
   const [arrastandoTrack, setArrastandoTrack] = useState<number | null>(null);
+  /** retângulo de seleção (marquee) em coordenadas de tela */
+  const [caixa, setCaixa] = useState<{ x1: number; y1: number; x2: number; y2: number } | null>(null);
   const linhasRef = useRef<Record<string, HTMLDivElement | null>>({});
 
   /* menu de contexto: collision detection (flip + shift) medindo o menu já renderizado */
@@ -302,8 +309,12 @@ export function Timeline({
     const fimAntigo = base.start + base.duration;
     const posteriores = state.clips.filter((c) => c.trackId === clip.trackId && c.start >= fimAntigo && c.id !== clip.id);
     /* snapshot para restaurar em caso de cancelamento */
+    /* conjunto arrastado: se o clip faz parte de uma seleção múltipla, todos vão
+       juntos mantendo as distâncias relativas (a seleção continua sendo só UI) */
+    const conjunto = modo === "mover" && selecionados.length > 1 && selecionados.includes(clip.id) ? selecionados : [];
     const originais: Record<string, Partial<EditairClip>> = { [clip.id]: { ...base } };
     for (const c of posteriores) originais[c.id] = { start: c.start };
+    for (const c of state.clips) if (conjunto.includes(c.id)) originais[c.id] = { start: c.start };
 
     let ativo = false;
     let ultimoStart = base.start;
@@ -314,6 +325,19 @@ export function Timeline({
 
       if (modo === "mover") {
         ultimoStart = Math.max(0, encaixar(base.start + delta));
+        if (conjunto.length) {
+          // move o grupo inteiro pelo mesmo delta (distâncias relativas preservadas)
+          const patches = moverSelecao(state, conjunto, ultimoStart - base.start);
+          onAlterarClips(patches, false);
+          setDica({
+            x: ev.clientX,
+            y: ev.clientY,
+            titulo: `${conjunto.length} clipes`,
+            valor: formatarTempo(ultimoStart, true),
+            delta: `${delta >= 0 ? "+" : "−"}${formatarTempo(Math.abs(delta), true)}`,
+          });
+          return;
+        }
         onAlterarClip(clip.id, { start: ultimoStart }, false);
         // drag vertical → camada de destino (X = tempo, Y = camada, simultâneos)
         ultimoDestino = destinoDeClip(
@@ -416,6 +440,10 @@ export function Timeline({
       ativo = false;
       limpar();
       if (!estavaAtivo) return; // clique sem movimento: apenas seleciona
+      if (conjunto.length) {
+        onAlterarClips({}, true);
+        return;
+      }
       if (modo === "mover" && ultimoDestino && onSoltarClip) {
         onSoltarClip(clip.id, ultimoDestino, ultimoStart);
         return;
@@ -437,6 +465,80 @@ export function Timeline({
     window.addEventListener("keydown", aoTeclar, true);
   };
 
+
+  /* Seleção múltipla por área (padrão CapCut): clicar no vazio e arrastar desenha
+     um retângulo; todo clip tocado por ele entra na seleção, atravessando camadas.
+     Shift = soma à seleção atual. Esc cancela. Clique sem arrastar limpa. */
+  const iniciarCaixa = (e: React.PointerEvent) => {
+    const x0 = e.clientX;
+    const y0 = e.clientY;
+    const aditivo = e.shiftKey || e.metaKey || e.ctrlKey;
+    const anterior = aditivo ? [...selecionados] : [];
+    let ativo = false;
+
+    const faixas = () =>
+      state.tracks
+        .map((t) => {
+          const el = linhasRef.current[t.id];
+          if (!el) return null;
+          const r = el.getBoundingClientRect();
+          return { id: t.id, top: r.top, bottom: r.bottom };
+        })
+        .filter((v): v is { id: string; top: number; bottom: number } => !!v);
+
+    const calcular = (ev: PointerEvent) => {
+      const ids = clipsNaCaixa(state, {
+        fromMs: msDoEvento(x0),
+        toMs: msDoEvento(ev.clientX),
+        trackIds: tracksNaFaixa(faixas(), y0, ev.clientY),
+      });
+      onSelecionar(aditivo ? unir(anterior, ids) : ids);
+    };
+
+    const limpar = () => {
+      window.removeEventListener("pointermove", mover);
+      window.removeEventListener("pointerup", soltar);
+      window.removeEventListener("pointercancel", cancelar);
+      window.removeEventListener("keydown", aoTeclar, true);
+      setCaixa(null);
+    };
+
+    function cancelar() {
+      const estava = ativo;
+      ativo = false;
+      limpar();
+      if (estava) onSelecionar(anterior);
+    }
+
+    function mover(ev: PointerEvent) {
+      if (!ativo) {
+        if (!passouLimiar(ev.clientX - x0, ev.clientY - y0)) return;
+        ativo = true;
+      }
+      setCaixa({ x1: x0, y1: y0, x2: ev.clientX, y2: ev.clientY });
+      calcular(ev);
+    }
+
+    function soltar() {
+      const estava = ativo;
+      ativo = false;
+      limpar();
+      // clique seco no vazio limpa a seleção; ao soltar depois de arrastar, mantém
+      if (!estava) onSelecionar([]);
+    }
+
+    function aoTeclar(ev: KeyboardEvent) {
+      if (ev.key !== "Escape") return;
+      ev.preventDefault();
+      ev.stopPropagation();
+      cancelar();
+    }
+
+    window.addEventListener("pointermove", mover);
+    window.addEventListener("pointerup", soltar);
+    window.addEventListener("pointercancel", cancelar);
+    window.addEventListener("keydown", aoTeclar, true);
+  };
 
   const clipMenu = menu ? state.clips.find((c) => c.id === menu.clipId) ?? null : null;
   const trilhaMenu = clipMenu ? state.tracks.find((t) => t.id === clipMenu.trackId) ?? null : null;
@@ -470,6 +572,7 @@ export function Timeline({
               onToggle={onToggleTrack}
               onRenomear={onRenomearTrack}
               onExcluir={onExcluirTrack}
+              onSelecionarTudo={onSelecionarTrack}
               onIniciarReorder={setArrastandoTrack}
               onSoltarReorder={(para) => {
                 if (arrastandoTrack !== null && arrastandoTrack !== para) onReordenarTracks?.(arrastandoTrack, para);
@@ -583,9 +686,13 @@ export function Timeline({
                 style={{ height: ALTURA_TRILHA }}
                 onPointerDown={(e) => {
                   if (e.target !== e.currentTarget) return;
-                  onSelecionar([]);
-                  // espaço vazio: Shift/Alt + clique faz scrub sem selecionar clipes
-                  if (e.shiftKey || e.altKey) iniciarScrub(e);
+                  // Alt + arrasto no vazio = scrub do playhead; o resto desenha o retângulo
+                  if (e.altKey) {
+                    onSelecionar([]);
+                    iniciarScrub(e);
+                    return;
+                  }
+                  iniciarCaixa(e);
                 }}
               >
                 {state.clips
@@ -676,7 +783,28 @@ export function Timeline({
         </div>
       </div>
 
+      {/* retângulo de seleção múltipla */}
+      {caixa ? (
+        <div
+          data-testid="timeline-marquee"
+          className="pointer-events-none fixed z-[55] rounded-sm border border-[#F26B1F] bg-[#F26B1F]/15"
+          style={{
+            left: Math.min(caixa.x1, caixa.x2),
+            top: Math.min(caixa.y1, caixa.y2),
+            width: Math.abs(caixa.x2 - caixa.x1),
+            height: Math.abs(caixa.y2 - caixa.y1),
+          }}
+        />
+      ) : null}
+
+      {selecionados.length > 1 ? (
+        <div className="pointer-events-none absolute bottom-2 left-1/2 z-[55] -translate-x-1/2 rounded-full border border-[#F26B1F]/50 bg-[#0f141a]/95 px-3 py-1 text-[11px] text-white/80 shadow-lg">
+          {selecionados.length} clipes selecionados
+        </div>
+      ) : null}
+
       {dica ? (
+
         <div
           className="pointer-events-none fixed z-[60] rounded-lg border border-white/15 bg-[#0f141a]/95 px-2.5 py-1.5 text-[11px] shadow-lg backdrop-blur"
           style={{ left: dica.x + 14, top: dica.y - 44 }}
@@ -876,6 +1004,7 @@ function TrackLabel({
   onToggle,
   onRenomear,
   onExcluir,
+  onSelecionarTudo,
   onIniciarReorder,
   onSoltarReorder,
 }: {
@@ -886,6 +1015,7 @@ function TrackLabel({
   onToggle: (id: string, campo: "muted" | "hidden" | "locked" | "solo") => void;
   onRenomear?: (id: string, nome: string) => void;
   onExcluir?: (id: string) => void;
+  onSelecionarTudo?: (id: string) => void;
   onIniciarReorder: (indice: number) => void;
   onSoltarReorder: (indice: number) => void;
 }) {
@@ -893,6 +1023,14 @@ function TrackLabel({
   const [editando, setEditando] = useState(false);
   const [nome, setNome] = useState(track.name);
   const [sobre, setSobre] = useState(false);
+  const [menuTrack, setMenuTrack] = useState<{ x: number; y: number } | null>(null);
+
+  useEffect(() => {
+    if (!menuTrack) return;
+    const fechar = () => setMenuTrack(null);
+    window.addEventListener("pointerdown", fechar);
+    return () => window.removeEventListener("pointerdown", fechar);
+  }, [menuTrack]);
 
   const salvar = () => {
     setEditando(false);
@@ -916,11 +1054,36 @@ function TrackLabel({
         onSoltarReorder(indice);
       }}
       onDragEnd={() => setSobre(false)}
+      onContextMenu={(e) => {
+        if (!onSelecionarTudo) return;
+        e.preventDefault();
+        setMenuTrack({ x: e.clientX, y: e.clientY });
+      }}
       style={{ height: ALTURA_TRILHA }}
       className={`flex items-center justify-between gap-1 border-b border-white/5 px-1.5 text-[11px] text-white/65 ${
         sobre && arrastandoIndice !== null && arrastandoIndice !== indice ? "bg-[#F26B1F]/15" : ""
       }`}
     >
+      {menuTrack ? (
+        <div
+          className="fixed z-50 min-w-[200px] rounded-lg border border-white/10 bg-[#151b22] py-1 text-[12px] text-white/85 shadow-xl"
+          style={{ left: menuTrack.x, top: menuTrack.y }}
+          onPointerDown={(e) => e.stopPropagation()}
+        >
+          <button
+            type="button"
+            disabled={!!track.locked}
+            onClick={() => {
+              onSelecionarTudo?.(track.id);
+              setMenuTrack(null);
+            }}
+            className="flex w-full items-center gap-2 px-3 py-1.5 text-left transition hover:bg-white/10 disabled:opacity-40"
+          >
+            <MousePointerSquareDashed className="h-3.5 w-3.5" />
+            {track.locked ? "Camada bloqueada" : "Selecionar todos nesta camada"}
+          </button>
+        </div>
+      ) : null}
       <GripVertical className="h-3.5 w-3.5 shrink-0 cursor-grab text-white/25" />
       {editando ? (
         <input
