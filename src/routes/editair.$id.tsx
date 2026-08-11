@@ -1993,14 +1993,15 @@ function EditorPage() {
     return m;
   }, [assets]);
 
-  /** dimensões reais dos arquivos: sem elas não dá para garantir que "fit" é identidade */
-  const dimensoesAssets = useMemo(() => {
+  /** dimensões reais dos arquivos (lidas do motor): sem elas não dá para
+   *  garantir que o enquadramento "fit" é identidade e o corte pode ir direto. */
+  const dimensoesAssets = () => {
+    const eng = engineRef.current;
     const m: Record<string, { width: number; height: number } | undefined> = {};
-    for (const a of assets) {
-      if (a.width && a.height) m[a.id] = { width: a.width, height: a.height };
-    }
+    if (!eng) return m;
+    for (const a of assets) m[a.id] = eng.dimensoesFonte(a.id) ?? undefined;
     return m;
-  }, [assets]);
+  };
 
   useEffect(() => {
     if (!exportAberto) return;
@@ -2195,7 +2196,7 @@ function EditorPage() {
       width: state.width,
       height: state.height,
       caminhos: caminhosAssets,
-      dimensoes: dimensoesAssets,
+      dimensoes: dimensoesAssets(),
     });
     if (api.render.plano && valeCaminhoRapido(segmentos)) {
       await exportarHibrido({
