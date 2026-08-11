@@ -12,6 +12,7 @@ import {
   VolumeX,
 } from "lucide-react";
 import { timecode } from "@/lib/editair/types";
+import { alvoNoPonto, camadaDe, type AlvoPalco, type ModoGesto } from "@/lib/editair/palco-hit";
 
 export type ElementoPalco = {
   id: string;
@@ -30,9 +31,6 @@ export type ElementoPalco = {
   resize?: "escala" | "caixa";
 };
 
-/** Legenda e texto ficam na frente do vídeo no hit-test do Reprodutor. */
-const CAMADA: Record<string, number> = { caption: 30, text: 20 };
-const camadaDe = (kind: string) => CAMADA[kind] ?? 10;
 
 
 export type Plataforma = "nenhuma" | "reels" | "tiktok" | "shorts";
