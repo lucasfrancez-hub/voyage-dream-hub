@@ -33,6 +33,35 @@ type Midia = {
 
 const clamp = (v: number, a: number, b: number) => Math.min(b, Math.max(a, v));
 
+/** Causa real de uma mídia não abrir — usada nos logs e no aviso ao usuário. */
+export type FalhaMidia = {
+  assetId: string;
+  url: string;
+  kind: string;
+  evento: "error" | "timeout";
+  codigo: number | null;
+  mensagem: string;
+  networkState: number | null;
+  readyState: number | null;
+  mime?: string | null;
+  status?: number | null;
+};
+
+/** Pergunta ao protocolo/servidor qual status e MIME a URL realmente devolve. */
+async function sondarUrl(url: string): Promise<{ status: number | null; mime: string | null }> {
+  try {
+    const r = await fetch(url, { method: "HEAD" });
+    return { status: r.status, mime: r.headers.get("content-type") };
+  } catch {
+    try {
+      const r = await fetch(url, { headers: { Range: "bytes=0-1" } });
+      return { status: r.status, mime: r.headers.get("content-type") };
+    } catch {
+      return { status: null, mime: null };
+    }
+  }
+}
+
 export class EditairEngine {
   canvas: HTMLCanvasElement;
   width: number;
