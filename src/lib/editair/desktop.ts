@@ -73,6 +73,11 @@ type PonteDesktop = {
     salvarBytes?(nome: string, bytes: Uint8Array): Promise<string>;
   };
 
+  diagnostico?: {
+    salvarTexto(nome: string, texto: string): Promise<string>;
+    devTools(): Promise<boolean>;
+  };
+
   biblioteca: {
     listar(): Promise<AssetLocal[]>;
     importar(caminhos: string[], opcoes?: { copiar?: boolean }): Promise<AssetLocal[]>;

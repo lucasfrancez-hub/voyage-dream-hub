@@ -48,6 +48,11 @@ contextBridge.exposeInMainWorld("editairDesktop", {
   },
 
 
+  diagnostico: {
+    salvarTexto: (nome, texto) => chamar("diagnostico:salvarTexto", { nome, texto }),
+    devTools: () => chamar("app:devTools"),
+  },
+
   biblioteca: {
     listar: () => chamar("biblioteca:listar"),
     importar: (caminhos, opcoes = {}) => chamar("biblioteca:importar", { caminhos, ...opcoes }),
