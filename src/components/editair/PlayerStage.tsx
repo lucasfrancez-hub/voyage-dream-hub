@@ -185,7 +185,9 @@ export function PlayerStage({
       // hover: detecta a legenda sem precisar selecionar na timeline
       const { p, tol } = paraFracao(ev);
       const alvo = alvoNoPonto(elementos, p, selecionadoId, tol);
-      setHoverId(alvo && alvo.modo === "mover" ? alvo.id : (alvo?.id ?? null));
+      const alvoEl = alvo ? elementos.find((e) => e.id === alvo.id) : null;
+      // contorno de hover só para legenda/texto: o vídeo ocupa o frame inteiro
+      setHoverId(alvoEl && (alvoEl.kind === "caption" || alvoEl.kind === "text") ? alvoEl.id : null);
       setCursorAtual(cursorDe(alvo));
       return;
     }
