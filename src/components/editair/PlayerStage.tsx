@@ -322,69 +322,62 @@ export function PlayerStage({
         >
           <canvas ref={canvasRef} className="block h-full w-full bg-black" />
 
-          {/* camada de seleção direta */}
+          {/* camada de seleção direta — um único alvo de ponteiro.
+              O hit-test é calculado (handles → legenda/texto → overlays → vídeo)
+              e o gesto fica preso nesta camada, então o vídeo de trás nunca
+              rouba um arraste que começou sobre a legenda. */}
           <div
             ref={palcoRef}
+            data-testid="palco-camada"
             className="absolute inset-0"
-            onPointerDown={(e) => {
-              if (e.target === e.currentTarget) onSelecionar?.(null);
-            }}
+            style={{ cursor: cursorAtual }}
+            onPointerDown={aoPointerDown}
             onPointerMove={mover}
             onPointerUp={soltar}
             onPointerCancel={soltar}
+            onPointerLeave={() => setHoverId(null)}
           >
-            {/* Ordem do hit-test: handles → legenda → outros overlays → vídeo.
-                Legenda/texto ganham z maior para o clique não cair no vídeo
-                que ocupa o frame inteiro atrás delas. */}
             {[...elementos]
               .sort((a, b) => camadaDe(a.kind) - camadaDe(b.kind))
               .map((el) => {
                 const ativo = el.id === selecionadoId;
+                const emHover = !ativo && el.id === hoverId;
                 const modoCaixa = (el.resize ?? "escala") === "caixa";
-                const texto = el.kind === "caption" || el.kind === "text";
                 return (
                   <div
                     key={el.id}
                     data-testid={`palco-el-${el.id}`}
                     data-kind={el.kind}
-                    onPointerDown={(e) => {
-                      onSelecionar?.(el.id);
-                      iniciar("mover", el)(e);
-                    }}
-                    className="absolute"
+                    className="pointer-events-none absolute"
                     style={{
                       left: `${(el.cx - el.w / 2) * 100}%`,
                       top: `${(el.cy - el.h / 2) * 100}%`,
                       width: `${el.w * 100}%`,
                       height: `${el.h * 100}%`,
                       transform: el.rotation ? `rotate(${el.rotation}deg)` : undefined,
-                      outline: ativo ? "2px solid #F26B1F" : undefined,
-                      cursor: el.bloqueado ? "not-allowed" : texto ? "text" : "move",
+                      outline: ativo
+                        ? "2px solid #F26B1F"
+                        : emHover
+                          ? "1px dashed rgba(242,107,31,.75)"
+                          : undefined,
                       zIndex: camadaDe(el.kind) + (ativo ? 5 : 0),
                     }}
                   >
                     {ativo && !el.bloqueado ? (
                       <>
-                        {[
-                          { c: "left-0 top-0", cur: modoCaixa ? "ew-resize" : "nwse-resize" },
-                          { c: "right-0 top-0", cur: modoCaixa ? "ew-resize" : "nesw-resize" },
-                          { c: "left-0 bottom-0", cur: modoCaixa ? "ew-resize" : "nesw-resize" },
-                          { c: "right-0 bottom-0", cur: modoCaixa ? "ew-resize" : "nwse-resize" },
-                        ].map((h) => (
+                        {["left-0 top-0", "right-0 top-0", "left-0 bottom-0", "right-0 bottom-0"].map((c) => (
                           <span
-                            key={h.c}
+                            key={c}
                             data-testid={`palco-handle-${el.id}`}
                             title={modoCaixa ? "Largura da caixa (não altera a fonte)" : "Redimensionar"}
-                            onPointerDown={iniciar(modoCaixa ? "caixa" : "escala", el)}
-                            className={`absolute h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-[#F26B1F] bg-white ${h.c}`}
-                            style={{ cursor: h.cur, margin: 0, transform: "translate(-50%,-50%)", zIndex: 60 }}
+                            className={`pointer-events-none absolute h-3 w-3 rounded-full border-2 border-[#F26B1F] bg-white ${c}`}
+                            style={{ transform: "translate(-50%,-50%)", margin: 0, zIndex: 60 }}
                           />
                         ))}
                         {modoCaixa ? null : (
                           <span
-                            onPointerDown={iniciar("giro", el)}
                             title="Girar"
-                            className="absolute left-1/2 top-0 h-3 w-3 -translate-x-1/2 -translate-y-6 cursor-grab rounded-full border-2 border-[#F26B1F] bg-white"
+                            className="pointer-events-none absolute left-1/2 top-0 h-3 w-3 -translate-x-1/2 -translate-y-6 rounded-full border-2 border-[#F26B1F] bg-white"
                           />
                         )}
                       </>
@@ -393,6 +386,7 @@ export function PlayerStage({
                 );
               })}
           </div>
+
 
           {safeArea ? (
             <div
