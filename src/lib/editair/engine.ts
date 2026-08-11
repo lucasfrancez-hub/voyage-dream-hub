@@ -156,17 +156,70 @@ export class EditairEngine {
     return this.detalhes.get(assetId) ?? null;
   }
 
+  /** Todas as falhas conhecidas — usado pela aba Ajustes → Diagnóstico. */
+  falhasConhecidas(): FalhaMidia[] {
+    return Array.from(this.detalhes.values());
+  }
+
+  /** Estado real de cada mídia aberta no preview (readyState, codec-ok, tamanho…). */
+  diagnosticoMidias() {
+    const linhas: Record<string, unknown>[] = [];
+    for (const [assetId, m] of this.midias) {
+      const el = m.el;
+      linhas.push({
+        assetId,
+        tipo: "video/audio",
+        currentSrc: el.currentSrc,
+        readyState: el.readyState,
+        networkState: el.networkState,
+        duration: el.duration,
+        videoWidth: el.videoWidth,
+        videoHeight: el.videoHeight,
+        paused: el.paused,
+        muted: el.muted,
+        volume: el.volume,
+        erro: el.error ? { code: el.error.code, traduzido: codigoMidia(el.error.code), message: el.error.message } : null,
+        audioNativo: !!m.nativo,
+      });
+    }
+    for (const [assetId, img] of this.imagens) {
+      linhas.push({ assetId, tipo: "image", currentSrc: img.src, complete: img.complete, w: img.naturalWidth, h: img.naturalHeight });
+    }
+    return { midias: linhas, falhas: this.falhasConhecidas() };
+  }
+
   private async registrarFalha(f: Omit<FalhaMidia, "mime" | "status">) {
     this.falhas.add(f.assetId);
     const sonda = await sondarUrl(f.url);
     const completo: FalhaMidia = { ...f, mime: sonda.mime, status: sonda.status };
     this.detalhes.set(f.assetId, completo);
-    console.error("[preview:error] mídia não abriu", completo);
+    // Log legível no Desktop (sem precisar expandir "Object" no console).
+    const caminho = (() => {
+      try { return decodeURIComponent(new URL(f.url).searchParams.get("p") || ""); } catch { return ""; }
+    })();
+    console.error(
+      [
+        "[preview:error] mídia não abriu",
+        `nome: ${f.nome ?? "(desconhecido)"}`,
+        `assetId: ${f.assetId}`,
+        `kind: ${f.kind}`,
+        `etapa: ${f.evento}`,
+        `url: ${f.url}`,
+        `arquivo: ${caminho || "(url remota)"}`,
+        `extensão: ${(caminho.match(/\.[a-z0-9]+$/i)?.[0] ?? "").toLowerCase() || "?"}`,
+        `MediaError: ${f.codigo != null ? `${f.codigo} — ${codigoMidia(f.codigo)}` : "nenhum (sem evento error)"}`,
+        `mensagem: ${f.mensagem}`,
+        `readyState: ${f.readyState}`,
+        `networkState: ${f.networkState}`,
+        `protocolo: status=${sonda.status ?? "?"} mime=${sonda.mime ?? "?"}`,
+      ].join("\n"),
+    );
     return completo;
   }
 
-  async carregar(assetId: string, url: string, kind = "video") {
+  async carregar(assetId: string, url: string, kind = "video", nome?: string) {
     if ((this.midias.has(assetId) || this.imagens.has(assetId)) && !this.falhas.has(assetId)) return;
+
     // Relink ou uma nova URL de proxy deve substituir a tentativa que falhou.
     const anterior = this.midias.get(assetId);
     if (anterior) {
