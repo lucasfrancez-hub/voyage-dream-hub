@@ -123,6 +123,7 @@ import { Route as ApiPublicHooksCalendarPushRouteImport } from './routes/api/pub
 import { Route as ApiPublicHooksCheckFlightChangesRouteImport } from './routes/api/public/hooks/check-flight-changes'
 import { Route as ApiPublicHooksCloseInactiveProtocolsRouteImport } from './routes/api/public/hooks/close-inactive-protocols'
 import { Route as ApiPublicHooksDispatchAiDebouncedRouteImport } from './routes/api/public/hooks/dispatch-ai-debounced'
+import { Route as ApiPublicHooksFinancialScheduleDispatchRouteImport } from './routes/api/public/hooks/financial-schedule-dispatch'
 import { Route as ApiPublicHooksFlightCardsContinueRouteImport } from './routes/api/public/hooks/flight-cards-continue'
 import { Route as ApiPublicHooksFlightQuoteWatchdogRouteImport } from './routes/api/public/hooks/flight-quote-watchdog'
 import { Route as ApiPublicHooksInstagramBackfillRouteImport } from './routes/api/public/hooks/instagram-backfill'
@@ -725,6 +726,12 @@ const ApiPublicHooksDispatchAiDebouncedRoute =
     path: '/api/public/hooks/dispatch-ai-debounced',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicHooksFinancialScheduleDispatchRoute =
+  ApiPublicHooksFinancialScheduleDispatchRouteImport.update({
+    id: '/api/public/hooks/financial-schedule-dispatch',
+    path: '/api/public/hooks/financial-schedule-dispatch',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicHooksFlightCardsContinueRoute =
   ApiPublicHooksFlightCardsContinueRouteImport.update({
     id: '/api/public/hooks/flight-cards-continue',
@@ -929,6 +936,7 @@ export interface FileRoutesByFullPath {
   '/api/public/hooks/check-flight-changes': typeof ApiPublicHooksCheckFlightChangesRoute
   '/api/public/hooks/close-inactive-protocols': typeof ApiPublicHooksCloseInactiveProtocolsRoute
   '/api/public/hooks/dispatch-ai-debounced': typeof ApiPublicHooksDispatchAiDebouncedRoute
+  '/api/public/hooks/financial-schedule-dispatch': typeof ApiPublicHooksFinancialScheduleDispatchRoute
   '/api/public/hooks/flight-cards-continue': typeof ApiPublicHooksFlightCardsContinueRoute
   '/api/public/hooks/flight-quote-watchdog': typeof ApiPublicHooksFlightQuoteWatchdogRoute
   '/api/public/hooks/instagram-backfill': typeof ApiPublicHooksInstagramBackfillRoute
@@ -1058,6 +1066,7 @@ export interface FileRoutesByTo {
   '/api/public/hooks/check-flight-changes': typeof ApiPublicHooksCheckFlightChangesRoute
   '/api/public/hooks/close-inactive-protocols': typeof ApiPublicHooksCloseInactiveProtocolsRoute
   '/api/public/hooks/dispatch-ai-debounced': typeof ApiPublicHooksDispatchAiDebouncedRoute
+  '/api/public/hooks/financial-schedule-dispatch': typeof ApiPublicHooksFinancialScheduleDispatchRoute
   '/api/public/hooks/flight-cards-continue': typeof ApiPublicHooksFlightCardsContinueRoute
   '/api/public/hooks/flight-quote-watchdog': typeof ApiPublicHooksFlightQuoteWatchdogRoute
   '/api/public/hooks/instagram-backfill': typeof ApiPublicHooksInstagramBackfillRoute
@@ -1190,6 +1199,7 @@ export interface FileRoutesById {
   '/api/public/hooks/check-flight-changes': typeof ApiPublicHooksCheckFlightChangesRoute
   '/api/public/hooks/close-inactive-protocols': typeof ApiPublicHooksCloseInactiveProtocolsRoute
   '/api/public/hooks/dispatch-ai-debounced': typeof ApiPublicHooksDispatchAiDebouncedRoute
+  '/api/public/hooks/financial-schedule-dispatch': typeof ApiPublicHooksFinancialScheduleDispatchRoute
   '/api/public/hooks/flight-cards-continue': typeof ApiPublicHooksFlightCardsContinueRoute
   '/api/public/hooks/flight-quote-watchdog': typeof ApiPublicHooksFlightQuoteWatchdogRoute
   '/api/public/hooks/instagram-backfill': typeof ApiPublicHooksInstagramBackfillRoute
@@ -1323,6 +1333,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/check-flight-changes'
     | '/api/public/hooks/close-inactive-protocols'
     | '/api/public/hooks/dispatch-ai-debounced'
+    | '/api/public/hooks/financial-schedule-dispatch'
     | '/api/public/hooks/flight-cards-continue'
     | '/api/public/hooks/flight-quote-watchdog'
     | '/api/public/hooks/instagram-backfill'
@@ -1452,6 +1463,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/check-flight-changes'
     | '/api/public/hooks/close-inactive-protocols'
     | '/api/public/hooks/dispatch-ai-debounced'
+    | '/api/public/hooks/financial-schedule-dispatch'
     | '/api/public/hooks/flight-cards-continue'
     | '/api/public/hooks/flight-quote-watchdog'
     | '/api/public/hooks/instagram-backfill'
@@ -1583,6 +1595,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/check-flight-changes'
     | '/api/public/hooks/close-inactive-protocols'
     | '/api/public/hooks/dispatch-ai-debounced'
+    | '/api/public/hooks/financial-schedule-dispatch'
     | '/api/public/hooks/flight-cards-continue'
     | '/api/public/hooks/flight-quote-watchdog'
     | '/api/public/hooks/instagram-backfill'
@@ -1658,6 +1671,7 @@ export interface RootRouteChildren {
   ApiPublicHooksCheckFlightChangesRoute: typeof ApiPublicHooksCheckFlightChangesRoute
   ApiPublicHooksCloseInactiveProtocolsRoute: typeof ApiPublicHooksCloseInactiveProtocolsRoute
   ApiPublicHooksDispatchAiDebouncedRoute: typeof ApiPublicHooksDispatchAiDebouncedRoute
+  ApiPublicHooksFinancialScheduleDispatchRoute: typeof ApiPublicHooksFinancialScheduleDispatchRoute
   ApiPublicHooksFlightCardsContinueRoute: typeof ApiPublicHooksFlightCardsContinueRoute
   ApiPublicHooksFlightQuoteWatchdogRoute: typeof ApiPublicHooksFlightQuoteWatchdogRoute
   ApiPublicHooksInstagramBackfillRoute: typeof ApiPublicHooksInstagramBackfillRoute
@@ -2475,6 +2489,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksDispatchAiDebouncedRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/financial-schedule-dispatch': {
+      id: '/api/public/hooks/financial-schedule-dispatch'
+      path: '/api/public/hooks/financial-schedule-dispatch'
+      fullPath: '/api/public/hooks/financial-schedule-dispatch'
+      preLoaderRoute: typeof ApiPublicHooksFinancialScheduleDispatchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/flight-cards-continue': {
       id: '/api/public/hooks/flight-cards-continue'
       path: '/api/public/hooks/flight-cards-continue'
@@ -2801,6 +2822,8 @@ const rootRouteChildren: RootRouteChildren = {
     ApiPublicHooksCloseInactiveProtocolsRoute,
   ApiPublicHooksDispatchAiDebouncedRoute:
     ApiPublicHooksDispatchAiDebouncedRoute,
+  ApiPublicHooksFinancialScheduleDispatchRoute:
+    ApiPublicHooksFinancialScheduleDispatchRoute,
   ApiPublicHooksFlightCardsContinueRoute:
     ApiPublicHooksFlightCardsContinueRoute,
   ApiPublicHooksFlightQuoteWatchdogRoute:
@@ -2823,13 +2846,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

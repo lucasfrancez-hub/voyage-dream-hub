@@ -135,6 +135,11 @@ export const criarPagamentoPix = createServerFn({ method: 'POST' })
           .regex(/^\d{4}-\d{2}-\d{2}$/)
           .nullable()
           .optional(),
+        scheduleTime: z
+          .string()
+          .regex(/^\d{2}:\d{2}$/)
+          .nullable()
+          .optional(),
         origin: z.enum(['contas_pagar', 'avulso', 'pedido', 'outro']).default('avulso'),
         financialEntryId: z.string().uuid().nullable().optional(),
         orderId: z.string().uuid().nullable().optional(),
