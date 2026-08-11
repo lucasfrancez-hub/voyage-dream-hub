@@ -39,7 +39,20 @@ export type ReceiptData = {
   recebedor?: ReceiptParty | null;
   /** URL do comprovante oficial (ASAAS) — quando presente, "Salvar PDF" abre este arquivo */
   pdfUrl?: string | null;
+  /** ---- Campos exclusivos de comprovante de BOLETO ---- */
+  tipoDocumento?: "pix" | "boleto";
+  linhaDigitavel?: string | null;
+  codigoBarras?: string | null;
+  valorOriginal?: number | null;
+  juros?: number | null;
+  multa?: number | null;
+  desconto?: number | null;
+  /** Autenticação / identificador retornado pelo ASAAS ou banco */
+  autenticacao?: string | null;
+  /** Referência interna VIA AIR (nunca substitui o identificador oficial) */
+  referenciaInterna?: string | null;
 };
+
 
 /** Dados fiscais fixos da conta VIA AIR no ASAAS. */
 const VIAAIR_PARTY: ReceiptParty = {
