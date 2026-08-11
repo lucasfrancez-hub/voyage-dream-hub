@@ -69,6 +69,7 @@ import {
   type Transcript,
 } from "@/lib/editair/types";
 import { aplicarOps, gerarLegendas, type EditairOp } from "@/lib/editair/ops";
+import { aplicarTextoLegenda } from "@/lib/editair/texto-legenda";
 import { aplicarVelocidade } from "@/lib/editair/velocidade";
 import {
   acaoDeClip,
