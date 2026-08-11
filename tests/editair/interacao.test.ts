@@ -8,6 +8,7 @@ import {
   destinoCompativel,
   destinoDeClip,
   destinoPorY,
+  intencaoVertical,
   passouLimiar,
   trilhaAlvoDoAsset,
 } from "@/lib/editair/interacao";
