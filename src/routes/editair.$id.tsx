@@ -528,7 +528,7 @@ function EditorPage() {
       if (!buf) throw new Error("Reimporte o vídeo nesta sessão para rodar o A/B.");
       const { executarAB } = await import("@/lib/editair/ab-legendas");
       const caminho =
-        (assetsRef.current.find((a) => a.kind !== "image" && !!(a as { localPath?: string }).localPath) as
+        (assets.find((a: AssetItem) => a.kind !== "image" && !!(a as { localPath?: string }).localPath) as
           | { localPath?: string }
           | undefined)?.localPath ?? null;
       const r = await executarAB({ buf, caminhoLocal: caminho });
@@ -538,7 +538,7 @@ function EditorPage() {
     return () => {
       delete w.editairABLegendas;
     };
-  }, []);
+  }, [assets]);
 
   useEffect(() => {
     if (!tocando) return;
