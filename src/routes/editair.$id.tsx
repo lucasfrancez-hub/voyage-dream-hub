@@ -98,6 +98,7 @@ import {
 import { EditairEngine } from "@/lib/editair/engine";
 import { duracaoComposicao, planoDeAudio } from "@/lib/editair/composicao";
 import { aplicarAssetsIniciais, midiaParaAsset, PonteAssets, type AssetBasico } from "@/lib/editair/bootstrap";
+import { confirm as confirmarDialogo } from "@/lib/confirm";
 import { pontoDesktop } from "@/lib/editair/desktop";
 import { consumirHandoff } from "@/lib/editair/handoff";
 import { Timeline, type AssetInfo, type DestinoSolto } from "@/components/editair/Timeline";
@@ -1278,7 +1279,7 @@ function EditorPage() {
           // nunca cair silenciosamente para timestamps estimados
           const seguir =
             !!buf &&
-            (await confirmar({
+            (await confirmarDialogo({
               title: "Alinhador local indisponível",
               description: `${msg}\n\nPosso tentar a transcrição em nuvem, mas os tempos dela são estimados pelo modelo e podem sair fora de sincronia. Deseja continuar assim?`,
               confirmText: "Usar nuvem mesmo assim",
