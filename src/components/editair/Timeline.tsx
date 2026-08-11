@@ -105,6 +105,7 @@ export function Timeline({
   state,
   playheadMs,
   zoom,
+  onZoom,
   selecionados,
   selecao,
   assets,
