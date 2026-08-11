@@ -174,12 +174,19 @@ export const criarPagamentoPix = createServerFn({ method: 'POST' })
     const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(
       new Date(),
     )
-    const scheduled = data.scheduleDate && data.scheduleDate > today ? data.scheduleDate : null
+    const scheduled = data.scheduleDate && data.scheduleDate >= today ? data.scheduleDate : null
+
+    // Agendamento com HORA: o ASAAS só aceita data, então seguramos aqui e o
+    // cron dispara no horário exato (America/Sao_Paulo).
+    const { brtToIso } = await import('@/lib/financial-dispatch.server')
+    const scheduledAt =
+      scheduled && data.scheduleTime ? brtToIso(scheduled, data.scheduleTime) : null
+    const segurarLocal = !!scheduledAt && new Date(scheduledAt).getTime() > Date.now()
 
     const { data: row, error: insErr } = await supabaseAdmin
       .from('asaas_transfers')
       .insert({
-        status: scheduled ? 'agendado' : 'pendente',
+        status: scheduled || segurarLocal ? 'agendado' : 'pendente',
         idempotency_key: data.idempotencyKey,
         favored_name: owner.name,
         pix_key: owner.pixKey,
@@ -188,7 +195,9 @@ export const criarPagamentoPix = createServerFn({ method: 'POST' })
         bank_name: owner.bankName ?? null,
         value: data.value,
         description: data.description ?? null,
-        scheduled_date: scheduled,
+        scheduled_date: segurarLocal ? scheduled : data.scheduleDate && data.scheduleDate > today ? data.scheduleDate : null,
+        scheduled_at: segurarLocal ? scheduledAt : null,
+        dispatch_pending: segurarLocal,
         origin: data.origin,
         financial_entry_id: data.financialEntryId ?? null,
         order_id: data.orderId ?? null,
@@ -207,8 +216,11 @@ export const criarPagamentoPix = createServerFn({ method: 'POST' })
       actor_user_id: context.userId,
       actor_name: actorName,
       ip,
-      payload: { value: data.value, pixKey: data.pixKey, origin: data.origin },
+      payload: { value: data.value, pixKey: data.pixKey, origin: data.origin, scheduledAt },
     })
+
+    // Agendado com hora: não envia agora — o cron envia no horário.
+    if (segurarLocal) return { transfer: row, duplicated: false, agendadoLocal: true }
 
     try {
       const { createAsaasPixTransfer } = await import('@/lib/asaas.server')
