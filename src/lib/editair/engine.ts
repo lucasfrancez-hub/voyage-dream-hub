@@ -536,8 +536,24 @@ export class EditairEngine {
         m.filtros.high.gain.value = eq?.agudos ?? 0;
         if (m.filtros.pan) m.filtros.pan.pan.value = clamp(c.pan ?? 0, -1, 1);
       }
-      if (tocando && m.el.paused) void m.el.play().catch(() => {});
+      if (tocando && m.el.paused) {
+        const p = m.el.play();
+        if (p && typeof p.then === "function") {
+          void p
+            .then(() => {
+              this.audioBloqueado = false;
+            })
+            .catch((err: unknown) => {
+              const nome = (err as { name?: string })?.name;
+              if (nome === "NotAllowedError" && !this.audioBloqueado) {
+                this.audioBloqueado = true;
+                console.warn("[preview] áudio bloqueado pelo navegador — clique em Play novamente");
+              }
+            });
+        }
+      }
       if (!tocando && !m.el.paused) m.el.pause();
+
     }
     for (const [id, m] of this.midias) {
       if (!usados.has(id) && !m.el.paused) m.el.pause();
