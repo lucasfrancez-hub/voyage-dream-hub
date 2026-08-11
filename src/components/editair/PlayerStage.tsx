@@ -110,6 +110,7 @@ export function PlayerStage({
   onSelecionar,
   onMover,
   onEscalar,
+  onLarguraCaixa,
   onGirar,
   onFimGesto,
 }: Props) {
