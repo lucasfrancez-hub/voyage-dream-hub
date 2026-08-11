@@ -164,6 +164,23 @@ type PonteDesktop = {
       finalizar(id: string): Promise<{ destino: string; bytes?: number }>;
       cancelar(id: string): Promise<boolean>;
     };
+    /** exportação híbrida: FFmpeg corta os trechos simples, o canvas só compõe o resto */
+    plano?: {
+      iniciar(spec: Record<string, unknown>): Promise<{
+        id: string;
+        destino: string;
+        encoder?: string;
+        hardware?: boolean;
+        preset?: string;
+        framesTotais?: number;
+      }>;
+      compostoIniciar(id: string, indice: number): Promise<{ frames: number }>;
+      quadro(id: string, quadro: ArrayBuffer | Uint8Array): Promise<boolean>;
+      repetir(id: string, vezes?: number): Promise<boolean>;
+      compostoFinalizar(id: string): Promise<boolean>;
+      finalizar(id: string): Promise<{ destino: string; bytes?: number; diretoMs?: number }>;
+      cancelar(id: string): Promise<boolean>;
+    };
   };
 
   update: {

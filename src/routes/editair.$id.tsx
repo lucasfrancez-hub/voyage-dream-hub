@@ -111,6 +111,13 @@ import {
 import { EditairEngine } from "@/lib/editair/engine";
 import { duracaoComposicao, planoDeAudio } from "@/lib/editair/composicao";
 import { EstimadorETA, metricasVazias, relatorioExport } from "@/lib/editair/export-metrics";
+import {
+  fracaoDireta,
+  framesCompostos,
+  planejarExport,
+  valeCaminhoRapido,
+  type Segmento,
+} from "@/lib/editair/export-plan";
 import { aplicarAssetsIniciais, midiaParaAsset, PonteAssets, type AssetBasico } from "@/lib/editair/bootstrap";
 import { registrarDiag } from "@/lib/editair/diag";
 import { DiagnosticoClipesPanel } from "@/components/editair/DiagnosticoClipesPanel";
@@ -1986,6 +1993,15 @@ function EditorPage() {
     return m;
   }, [assets]);
 
+  /** dimensões reais dos arquivos: sem elas não dá para garantir que "fit" é identidade */
+  const dimensoesAssets = useMemo(() => {
+    const m: Record<string, { width: number; height: number } | undefined> = {};
+    for (const a of assets) {
+      if (a.width && a.height) m[a.id] = { width: a.width, height: a.height };
+    }
+    return m;
+  }, [assets]);
+
   useEffect(() => {
     if (!exportAberto) return;
     try {
@@ -2000,6 +2016,150 @@ function EditorPage() {
 
   const idDoCodec = (mime: string) =>
     mime.includes("hvc1") ? "h265" : mime.includes("vp9") ? "vp9" : mime.includes("av01") ? "av1" : "h264";
+
+  /** Exportação híbrida (Desktop): FFmpeg corta os trechos simples em paralelo
+   *  enquanto o compositor só desenha os trechos que realmente precisam. */
+  const exportarHibrido = async (p: {
+    cfg: ExportConfig;
+    eng: EditairEngine;
+    estadoRender: ProjectState;
+    api: { render: { plano: NonNullable<ReturnType<typeof pontoDesktop>>["render"]["plano"] } };
+    segmentos: Segmento[];
+    destino: string;
+    nomeArquivo: string;
+    W: number;
+    H: number;
+    audio: unknown[];
+    audioMs: number;
+    totalFrames: number;
+    preparacaoMs: number;
+  }) => {
+    const { cfg, eng, estadoRender, segmentos, destino, nomeArquivo, W, H, audio } = p;
+    const plano = p.api.render.plano!;
+    const inicio = await plano.iniciar({
+      destino,
+      width: W,
+      height: H,
+      fps: cfg.fps,
+      formato: cfg.formato,
+      codec: idDoCodec(cfg.mime),
+      videoBitrate: cfg.bitrate,
+      preset: cfg.preset ?? "recomendado",
+      audio,
+      comAudio: cfg.comAudio && audio.length > 0,
+      segmentos,
+    });
+    const id = inicio.id;
+
+    const compostos = framesCompostos(segmentos, cfg.fps);
+    const m = metricasVazias({
+      duracaoMs: duracaoExport,
+      largura: W,
+      altura: H,
+      fps: cfg.fps,
+      totalFrames: p.totalFrames,
+      audioMs: p.audioMs,
+      preparacaoMs: p.preparacaoMs,
+      encoder: inicio.encoder,
+      aceleracao: inicio.hardware,
+      preset: inicio.preset ?? cfg.preset ?? "recomendado",
+      segmentosDiretos: segmentos.filter((s) => s.tipo === "direto").length,
+      segmentosCompostos: segmentos.filter((s) => s.tipo === "composto").length,
+      framesDiretos: Math.max(0, p.totalFrames - compostos),
+      fracaoDireta: fracaoDireta(segmentos),
+    });
+    const eta = new EstimadorETA();
+    eta.iniciar();
+
+    const t0 = performance.now();
+    let feitos = 0;
+    let emVoo: Promise<unknown> | null = null;
+    try {
+      for (let idx = 0; idx < segmentos.length; idx++) {
+        const seg = segmentos[idx]!;
+        if (seg.tipo !== "composto") continue;
+        const { frames } = await plano.compostoIniciar(id, idx);
+        let assinaturaAnterior = -1;
+        for (let f = 0; f < frames; f++) {
+          if (cancelarExportRef.current) {
+            await emVoo?.catch(() => null);
+            await plano.cancelar(id);
+            setProgresso(null);
+            toast.info("Exportação cancelada");
+            return;
+          }
+          const t = seg.startMs + (f * 1000) / cfg.fps;
+          await eng.renderizarQuadro(estadoRender, t);
+          const px = eng.quadroRGBA();
+          const assinatura = EditairEngine.assinatura(px);
+          if (emVoo) {
+            const tEspera = performance.now();
+            await emVoo;
+            m.ipcMs += performance.now() - tEspera;
+          }
+          if (assinatura === assinaturaAnterior && f > 0) {
+            m.framesRepetidos += 1;
+            emVoo = plano.repetir(id, 1);
+          } else {
+            m.bytesEnviados += px.byteLength;
+            emVoo = plano.quadro(id, px);
+          }
+          assinaturaAnterior = assinatura;
+          m.framesEnviados += 1;
+          feitos += 1;
+          setProgresso({
+            pct: compostos ? (feitos / compostos) * 95 : 95,
+            frame: feitos,
+            totalFrames: compostos,
+            etaS: eta.frame(compostos - feitos),
+            fase: "Compondo legendas e sobreposições…",
+          });
+        }
+        await emVoo;
+        emVoo = null;
+        await plano.compostoFinalizar(id);
+      }
+
+      setProgresso({
+        pct: 97,
+        frame: compostos,
+        totalFrames: compostos,
+        etaS: 0,
+        fase: "Juntando trechos e mixando o áudio…",
+      });
+      const tMux = performance.now();
+      const fim = await plano.finalizar(id);
+      m.muxMs = performance.now() - tMux;
+      m.diretoMs = fim.diretoMs ?? 0;
+      m.totalMs = performance.now() - t0;
+      m.seekMs = eng.medicaoRender.seekMs;
+      m.desenhoMs = eng.medicaoRender.desenhoMs;
+      m.leituraMs = eng.medicaoRender.leituraMs;
+      m.seeks = eng.medicaoRender.seeks;
+      m.seeksEvitados = eng.medicaoRender.seeksEvitados;
+      console.info("[editair:export]\n" + relatorioExport(m));
+      setProgresso(null);
+      setResultado({
+        caminho: fim.destino,
+        nome: nomeArquivo,
+        bytes: fim.bytes ?? 0,
+        largura: W,
+        altura: H,
+        fps: cfg.fps,
+        duracaoMs: duracaoExport,
+        metricas: m,
+        relatorio: relatorioExport(m),
+      });
+      toast.success("Exportação concluída");
+    } catch (e) {
+      await emVoo?.catch(() => null);
+      await plano.cancelar(id).catch(() => null);
+      throw e;
+    } finally {
+      eng.definirMudo(false);
+      eng.redimensionar(state.width, state.height, qualidade);
+    }
+  };
 
   /** Render final nativo (Desktop): quadro a quadro para o FFmpeg, sem depender de rAF.
    *  Pipeline: o quadro N+1 é renderizado enquanto o quadro N ainda está no IPC/encoder,
@@ -2026,6 +2186,35 @@ function EditorPage() {
     const audio = cfg.comAudio ? planoDeAudio(estadoRender, caminhosAssets, duracoesFonte) : [];
     const audioMs = performance.now() - tAudio;
     const totalFrames = Math.max(1, Math.round((duracaoExport / 1000) * cfg.fps));
+
+    /* Caminho rápido: trechos de corte puro vão direto ao FFmpeg (decode/encode
+       por hardware) e só o resto passa pelo canvas. Em 4K é o que evita pagar
+       8x mais pixels por quadro em material que nem precisa ser composto. */
+    const segmentos = planejarExport(estadoRender, {
+      duracaoMs: duracaoExport,
+      width: state.width,
+      height: state.height,
+      caminhos: caminhosAssets,
+      dimensoes: dimensoesAssets,
+    });
+    if (api.render.plano && valeCaminhoRapido(segmentos)) {
+      await exportarHibrido({
+        cfg,
+        eng,
+        estadoRender,
+        api: api as NonNullable<typeof api> & { render: { plano: NonNullable<typeof api.render.plano> } },
+        segmentos,
+        destino,
+        nomeArquivo,
+        W,
+        H,
+        audio,
+        audioMs,
+        totalFrames,
+        preparacaoMs: performance.now() - tPrep,
+      });
+      return;
+    }
 
     const inicio = await api.render.quadros.iniciar({
       destino,

@@ -31,6 +31,13 @@ export type MetricasExport = {
   framesEnviados: number;
   framesRepetidos: number;
   bytesEnviados: number;
+
+  /* exportação híbrida (caminho rápido no FFmpeg) */
+  segmentosDiretos: number;
+  segmentosCompostos: number;
+  framesDiretos: number;
+  diretoMs: number;
+  fracaoDireta: number;
 };
 
 export function metricasVazias(base: Partial<MetricasExport> = {}): MetricasExport {
@@ -54,6 +61,11 @@ export function metricasVazias(base: Partial<MetricasExport> = {}): MetricasExpo
     framesEnviados: 0,
     framesRepetidos: 0,
     bytesEnviados: 0,
+    segmentosDiretos: 0,
+    segmentosCompostos: 0,
+    framesDiretos: 0,
+    diretoMs: 0,
+    fracaoDireta: 0,
     ...base,
   };
 }
@@ -91,6 +103,12 @@ export function relatorioExport(m: MetricasExport): string {
     `bytes transferidos por IPC: ${(m.bytesEnviados / 1024 / 1024 / 1024).toFixed(2)} GB`,
     `encoder: ${m.encoder ?? "?"} · aceleração por hardware: ${m.aceleracao ? "SIM" : "NÃO"}`,
     `preset: ${m.preset ?? "-"}`,
+    "",
+    "CAMINHO RÁPIDO (FFmpeg direto, sem passar pelo canvas)",
+    `trechos diretos: ${m.segmentosDiretos} · trechos compostos: ${m.segmentosCompostos}`,
+    `duração pelo caminho rápido: ${Math.round(m.fracaoDireta * 100)}%`,
+    `frames que não passaram pelo canvas: ${m.framesDiretos}`,
+    `tempo dos cortes diretos (em paralelo): ${s(m.diretoMs)}`,
   ];
   return linhas.join("\n");
 }

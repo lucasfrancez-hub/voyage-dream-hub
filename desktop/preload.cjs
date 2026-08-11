@@ -108,6 +108,16 @@ contextBridge.exposeInMainWorld("editairDesktop", {
       finalizar: (id) => chamar("render:quadros:finalizar", { id }),
       cancelar: (id) => chamar("render:quadros:cancelar", { id }),
     },
+    /* exportação híbrida: FFmpeg corta os trechos simples; o canvas só compõe o resto */
+    plano: {
+      iniciar: (spec) => chamar("render:plano:iniciar", spec),
+      compostoIniciar: (id, indice) => chamar("render:plano:compostoIniciar", { id, indice }),
+      quadro: (id, quadro) => chamar("render:plano:quadro", { id, quadro }),
+      repetir: (id, vezes) => chamar("render:plano:repetir", { id, vezes }),
+      compostoFinalizar: (id) => chamar("render:plano:compostoFinalizar", { id }),
+      finalizar: (id) => chamar("render:plano:finalizar", { id }),
+      cancelar: (id) => chamar("render:plano:cancelar", { id }),
+    },
   },
 
 

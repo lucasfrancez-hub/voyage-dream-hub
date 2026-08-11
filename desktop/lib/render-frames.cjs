@@ -94,6 +94,10 @@ async function iniciar(spec, onProgress) {
     preset = "recomendado",
     audio = [],
     comAudio = true,
+    /** encoder já resolvido (exportação híbrida: todos os pedaços iguais) */
+    argsEncoderProntos = null,
+    /** GOP fixo — necessário quando o pedaço será concatenado sem recodificar */
+    gop = 0,
   } = spec;
 
   fs.mkdirSync(path.dirname(destino), { recursive: true });
@@ -121,11 +125,13 @@ async function iniciar(spec, onProgress) {
     videoBitrate || (height >= 2160 ? "45M" : height >= 1440 ? "24M" : height >= 1080 ? "14M" : "8M");
   const bv = typeof bruto === "number" ? `${Math.round(bruto / 1000)}k` : bruto;
 
-  const enc = await argsEncoder({ preset, formato, codec, bv, fps });
+  const enc = argsEncoderProntos || (await argsEncoder({ preset, formato, codec, bv, fps }));
   args.push(...enc.args);
+  if (gop) args.push("-g", String(Math.max(1, Math.round(gop))));
   if (usaAudio) args.push("-c:a", formato === "webm" ? "libopus" : "aac", "-b:a", "256k", "-shortest");
   if (formato === "mp4") args.push("-movflags", "+faststart");
   args.push(destino);
+
 
   const proc = spawn(FFMPEG, args, { stdio: ["pipe", "ignore", "pipe"] });
   const job = {

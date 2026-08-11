@@ -468,6 +468,102 @@ responder("render:quadros:finalizar", async ({ id }) => {
   }
 });
 
+/* --- exportação híbrida: cortes diretos no FFmpeg + composição só onde precisa --- */
+const rs = require("./lib/render-segmentos.cjs");
+const jobsPlano = new Map();
+
+responder("render:plano:iniciar", async (spec) => {
+  const id = crypto.randomUUID();
+  const destino = spec.destino || path.join(dirs.renders(), `EditAir_${Date.now()}.${spec.formato || "mp4"}`);
+  updater.marcarExportacao(id);
+  const bloqueio = powerSaveBlocker.start("prevent-app-suspension");
+  const job = await rs.iniciarPlano({ ...spec, destino }, (frames, total) => {
+    janela?.webContents.send("editair:render", {
+      id,
+      estado: "rodando",
+      frame: frames,
+      totalFrames: total,
+      percentual: total ? Math.min(99, Math.round((frames / total) * 100)) : null,
+    });
+  });
+  job.bloqueio = bloqueio;
+  jobsPlano.set(id, job);
+  renders.set(id, { destino, estado: "rodando" });
+  return {
+    id,
+    destino,
+    encoder: job.encoder,
+    hardware: job.hardware,
+    preset: job.preset,
+    framesTotais: job.framesTotais,
+  };
+});
+
+const planoDe = (id) => {
+  const job = jobsPlano.get(id);
+  if (!job) throw new Error("Exportação não encontrada");
+  return job;
+};
+
+responder("render:plano:compostoIniciar", async ({ id, indice }) => rs.abrirComposto(planoDe(id), indice));
+
+responder("render:plano:quadro", async ({ id, quadro }) => {
+  await rs.quadroComposto(planoDe(id), Buffer.from(quadro));
+  return true;
+});
+
+responder("render:plano:repetir", async ({ id, vezes }) => {
+  await rs.repetirComposto(planoDe(id), Math.max(1, Number(vezes) || 1));
+  return true;
+});
+
+responder("render:plano:compostoFinalizar", async ({ id }) => {
+  await rs.fecharComposto(planoDe(id));
+  return true;
+});
+
+function encerrarPlano(id, job) {
+  try {
+    if (job.bloqueio != null) powerSaveBlocker.stop(job.bloqueio);
+  } catch {
+    /* ignora */
+  }
+  updater.encerrarExportacao(id);
+  jobsPlano.delete(id);
+}
+
+responder("render:plano:finalizar", async ({ id }) => {
+  const job = planoDe(id);
+  try {
+    const destino = await rs.finalizarPlano(job);
+    let bytes = 0;
+    try {
+      bytes = fs.statSync(destino).size;
+    } catch {
+      /* ignora */
+    }
+    renders.set(id, { destino, bytes, estado: "concluido" });
+    janela?.webContents.send("editair:render", { id, estado: "concluido", percentual: 100, destino, bytes });
+    return { destino, bytes, diretoMs: job.diretoMs };
+  } catch (e) {
+    renders.set(id, { destino: job.destino, estado: "erro", erro: String(e.message || e) });
+    janela?.webContents.send("editair:render", { id, estado: "erro", mensagem: String(e.message || e) });
+    throw e;
+  } finally {
+    encerrarPlano(id, job);
+  }
+});
+
+responder("render:plano:cancelar", async ({ id }) => {
+  const job = jobsPlano.get(id);
+  if (!job) return true;
+  rs.cancelarPlano(job);
+  renders.set(id, { destino: job.destino, estado: "cancelado" });
+  encerrarPlano(id, job);
+  janela?.webContents.send("editair:render", { id, estado: "cancelado" });
+  return true;
+});
+
 responder("render:quadros:cancelar", async ({ id }) => {
   const job = jobsQuadros.get(id);
   if (!job) return true;

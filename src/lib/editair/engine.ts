@@ -1065,6 +1065,17 @@ export class EditairEngine {
     octx.putImageData(img, 0, 0);
   }
 
+  /** Dimensões reais do arquivo já carregado (usadas pelo planejador de exportação). */
+  dimensoesFonte(assetId: string): { width: number; height: number } | null {
+    const img = this.imagens.get(assetId);
+    if (img?.naturalWidth) return { width: img.naturalWidth, height: img.naturalHeight };
+    const m = this.midias.get(assetId);
+    const el = m?.el as HTMLVideoElement | undefined;
+    if (el?.videoWidth) return { width: el.videoWidth, height: el.videoHeight };
+    return null;
+  }
+
+
   private desenharVideo(c: EditairClip, t: number): { fonte: "image" | "video" | "nenhuma"; desenhou: boolean; motivo?: string } {
     if (!c.assetId) return { fonte: "nenhuma", desenhou: false, motivo: "clipe sem assetId" };
     const img = this.imagens.get(c.assetId) ?? null;
