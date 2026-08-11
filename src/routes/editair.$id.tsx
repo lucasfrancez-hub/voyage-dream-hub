@@ -1818,8 +1818,10 @@ function EditorPage() {
             onApagarTrecho={apagarTrecho}
           />
         </section>
-
+      }
+      player={
         <PlayerStage
+
           canvasRef={canvasRef}
           width={state.width}
           height={state.height}
