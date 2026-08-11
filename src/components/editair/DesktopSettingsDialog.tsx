@@ -112,6 +112,22 @@ export function DesktopSettingsDialog({
     toast.success("Diagnóstico capturado");
   };
 
+  /* Auditoria de importação: onde cada mídia vive e se o áudio sobrevive ao proxy. */
+  const auditarImportacao = async () => {
+    try {
+      const r = await api.diagnostico?.importacao();
+      if (!r) {
+        toast.error("Esta versão do Desktop ainda não tem a auditoria. Atualize o app.");
+        return;
+      }
+      setDiag(JSON.stringify(r, null, 2));
+      toast.success("Auditoria de importação capturada");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha ao auditar a importação");
+    }
+  };
+
+
   const copiarDiagnostico = async () => {
     try {
       await navigator.clipboard.writeText(diag);
