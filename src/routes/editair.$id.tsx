@@ -90,7 +90,7 @@ import { aplicarAssetsIniciais, midiaParaAsset, PonteAssets, type AssetBasico } 
 import { pontoDesktop } from "@/lib/editair/desktop";
 import { consumirHandoff } from "@/lib/editair/handoff";
 import { Timeline, type AssetInfo, type DestinoSolto } from "@/components/editair/Timeline";
-import { alturaTimelineValida } from "@/lib/editair/interacao";
+import { alturaTimelineValida, MIN_AREA_SUPERIOR } from "@/lib/editair/interacao";
 import { PlayerStage, type ElementoPalco } from "@/components/editair/PlayerStage";
 import { SourceDialog } from "@/components/editair/SourceDialog";
 import { Inspector } from "@/components/editair/Inspector";
@@ -1580,8 +1580,33 @@ function EditorPage() {
         />
       </div>
 
+      {/* splitter vertical: só redistribui altura entre área superior e timeline */}
+      <div
+        role="separator"
+        aria-orientation="horizontal"
+        aria-label="Redimensionar timeline"
+        data-testid="editair-splitter"
+        onPointerDown={(e) => {
+          e.preventDefault();
+          const y0 = e.clientY;
+          const h0 = alturaTimeline;
+          const mover = (ev: PointerEvent) =>
+            setAlturaTimeline(alturaTimelineValida(h0 + (y0 - ev.clientY), window.innerHeight - 56 - 46));
+          const soltar = () => {
+            window.removeEventListener("pointermove", mover);
+            window.removeEventListener("pointerup", soltar);
+          };
+          window.addEventListener("pointermove", mover);
+          window.addEventListener("pointerup", soltar);
+        }}
+        className="group flex cursor-row-resize items-center justify-center bg-white/5 transition hover:bg-[#F26B1F]/40"
+      >
+        <span className="h-0.5 w-16 rounded-full bg-white/20 group-hover:bg-[#F26B1F]" />
+      </div>
+
       {/* timeline */}
       <div className="grid min-h-0 grid-rows-[42px_1fr] border-t border-white/10">
+
         <div className="flex items-center gap-1.5 border-b border-white/10 bg-[#0d1116] px-3 text-[11px]">
           <BarraBtn onClick={dividir} icone={<Scissors className="h-3.5 w-3.5" />} texto="Dividir" />
           <BarraBtn onClick={() => excluirSelecionados(false)} icone={<Trash2 className="h-3.5 w-3.5" />} texto="Excluir" />
