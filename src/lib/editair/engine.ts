@@ -274,9 +274,11 @@ export class EditairEngine {
           if (!terminou && !img.complete) {
             void this.registrarFalha({
               assetId,
+              nome,
               url,
               kind,
               evento: "timeout",
+
               codigo: null,
               mensagem: "tempo esgotado ao carregar imagem",
               networkState: null,
