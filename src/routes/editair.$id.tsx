@@ -1148,10 +1148,6 @@ function EditorPage() {
     }
   };
 
-  /** Edição com IA no escopo de UM clipe: gera operações editáveis (undo disponível). */
-  const editarClipComIa = async (instrucao: string) => {
-    const cid = iaClipId;
-    const clip = cid ? state.clips.find((c) => c.id === cid) : null;
   /**
    * Edição com IA em duas fases: a IA devolve um PLANO tipado (nada é aplicado),
    * o usuário aprova e só então o EditAir executa tudo de uma vez — em camadas,
