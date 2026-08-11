@@ -398,6 +398,24 @@ export function DesktopSettingsDialog({
 
             <div className="rounded-lg border border-white/10 p-4">
               <div className="mb-1 flex items-center gap-2 text-white/60">
+                <Activity className="h-4 w-4" /> Timeline e mídia do preview
+              </div>
+              <p className="text-xs text-white/50">
+                Diagnóstico direto na interface — sem console. Abra o projeto no editor antes de coletar.
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Button size="sm" variant="secondary" onClick={coletarTimeline}>
+                  <Activity className="mr-1.5 h-4 w-4" /> Diagnóstico da timeline
+                </Button>
+                <Button size="sm" variant="secondary" onClick={() => void coletarMidia()}>
+                  <Activity className="mr-1.5 h-4 w-4" /> Auditar mídia do preview
+                </Button>
+              </div>
+            </div>
+
+
+            <div className="rounded-lg border border-white/10 p-4">
+              <div className="mb-1 flex items-center gap-2 text-white/60">
                 <Activity className="h-4 w-4" /> Legendas — alinhador local (whisper.cpp)
               </div>
               <p className="text-xs text-white/50">
