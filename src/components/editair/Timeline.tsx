@@ -1172,6 +1172,8 @@ function Clipe({
   onAbrirSource,
   onEditarTexto,
   onMenu,
+  onScrub,
+  msNoX,
 }: {
   clip: EditairClip;
   asset?: AssetInfo;
@@ -1184,7 +1186,12 @@ function Clipe({
   onAbrirSource: () => void;
   onEditarTexto?: (texto: string, commit: boolean) => void;
   onMenu: (x: number, y: number) => void;
+  /** clique/arraste na faixa superior do clipe = scrub do playhead (mesmo caminho da régua) */
+  onScrub: (e: React.PointerEvent) => void;
+  /** converte clientX em ms usando o sistema central (rect + scrollLeft) */
+  msNoX: (clientX: number) => number;
 }) {
+
   const largura = Math.max(8, clip.duration * pxPorMs);
   const editavel = (clip.kind === "caption" || clip.kind === "text") && !!onEditarTexto;
   const [editandoTexto, setEditandoTexto] = useState(false);
