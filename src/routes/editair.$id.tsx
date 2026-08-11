@@ -1047,7 +1047,7 @@ function EditorPage() {
     };
     if (escopo === "esta") {
       aplicar({ ...state, clips: state.clips.map((c) => (c.id === cid ? { ...c, captionStyle: { ...est } } : c)) });
-      toast.success("Posição e tamanho salvos nesta legenda");
+      toast.success("Estilo salvo nesta legenda");
       return;
     }
     const alvoPreset = est.presetId;
