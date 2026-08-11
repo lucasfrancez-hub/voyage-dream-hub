@@ -14,10 +14,36 @@ import {
 import { ComprovanteReceipt } from "@/components/financial/ComprovanteReceipt";
 import { formatBRL } from "@/lib/format";
 import { PixPaymentDialog } from "@/components/financial/PixPaymentDialog";
+import { BoletoPaymentDialog } from "@/components/financial/BoletoPaymentDialog";
 import {
   listarPagamentosPix, detalharPagamentoPix, sincronizarPagamentoPix, sincronizarTodosPagamentosPix, cancelarPagamentoPix,
 } from "@/lib/pagamentos.functions";
+import {
+  listarPagamentosBoleto, sincronizarPagamentoBoleto, cancelarPagamentoBoleto,
+} from "@/lib/boleto-pay.functions";
+import { formatarLinhaDigitavel } from "@/lib/boleto-html";
 import { confirmThen } from "@/lib/confirm";
+
+/** Selo visual do tipo de operação na listagem. */
+function TipoBadge({ kind }: { kind: "pix" | "boleto" }) {
+  return (
+    <span
+      className={`shrink-0 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${
+        kind === "pix"
+          ? "bg-brand-orange/15 text-brand-orange"
+          : "bg-sky-500/15 text-sky-400"
+      }`}
+    >
+      {kind === "pix" ? "Pix" : "Boleto"}
+    </span>
+  );
+}
+
+function formatLinha(v?: string | null) {
+  if (!v) return "—";
+  return formatarLinhaDigitavel(v) || v;
+}
+
 
 export const Route = createFileRoute("/admin/pagamentos")({
   component: PagamentosPage,
@@ -51,17 +77,47 @@ const ORIGIN_LABEL: Record<string, string> = {
   outro: "Outro",
 };
 
+/** Status próprios do pagamento de boleto (ASAAS Pague Contas). */
+const BOLETO_STATUS_META: Record<string, { label: string; cls: string; bucket: string }> = {
+  agendado: { label: "Agendado", cls: "bg-sky-500/15 text-sky-400", bucket: "agendado" },
+  pendente: { label: "Aguardando pagamento", cls: "bg-amber-500/15 text-amber-400", bucket: "pendente" },
+  processando: { label: "Em processamento", cls: "bg-indigo-500/15 text-indigo-400", bucket: "processando" },
+  pago: { label: "Pago", cls: "bg-emerald-500/15 text-emerald-400", bucket: "concluido" },
+  falhou: { label: "Falhou", cls: "bg-red-500/15 text-red-400", bucket: "falhou" },
+  cancelado: { label: "Cancelado", cls: "bg-muted text-muted-foreground", bucket: "cancelado" },
+};
+
+type UnifiedRow = {
+  kind: "pix" | "boleto";
+  id: string;
+  bucket: string;
+  statusLabel: string;
+  statusCls: string;
+  nome: string;
+  sub: string;
+  valor: number;
+  createdAt: string;
+  scheduledDate: string | null;
+  raw: any;
+};
+
 function PagamentosPage() {
   const qc = useQueryClient();
   const listar = useServerFn(listarPagamentosPix);
+  const listarBoletos = useServerFn(listarPagamentosBoleto);
   const sincronizar = useServerFn(sincronizarPagamentoPix);
   const sincronizarTodos = useServerFn(sincronizarTodosPagamentosPix);
+  const sincronizarBoleto = useServerFn(sincronizarPagamentoBoleto);
   const cancelar = useServerFn(cancelarPagamentoPix);
+  const cancelarBoleto = useServerFn(cancelarPagamentoBoleto);
 
   const [novoOpen, setNovoOpen] = useState(false);
+  const [novoBoletoOpen, setNovoBoletoOpen] = useState(false);
   const [reciboRow, setReciboRow] = useState<any | null>(null);
+  const [reciboBoleto, setReciboBoleto] = useState<any | null>(null);
   const [detalheId, setDetalheId] = useState<string | null>(null);
   const [filter, setFilter] = useState<string>("todos");
+  const [tipoFilter, setTipoFilter] = useState<"todos" | "pix" | "boleto">("todos");
   const [search, setSearch] = useState("");
   const [sincronizandoTudo, setSincronizandoTudo] = useState(false);
 
@@ -72,29 +128,74 @@ function PagamentosPage() {
     refetchInterval: 30_000,
   });
 
-  const rows = data ?? [];
-  const agendados = rows.filter((r) => r.status === "agendado");
+  const boletosQ = useQuery({
+    queryKey: ["asaas-bill-payments"],
+    queryFn: async () => (await listarBoletos({ data: {} })) as any[],
+    refetchInterval: 30_000,
+  });
+
+  const rows: UnifiedRow[] = useMemo(() => {
+    const pix = (data ?? []).map((r): UnifiedRow => {
+      const meta = STATUS_META[r.status];
+      return {
+        kind: "pix",
+        id: r.id,
+        bucket: r.status,
+        statusLabel: meta?.label ?? r.status,
+        statusCls: meta?.cls ?? "bg-muted",
+        nome: r.favored_name ?? "—",
+        sub: `${r.pix_key ?? "—"} · ${ORIGIN_LABEL[r.origin] ?? r.origin}`,
+        valor: Number(r.value),
+        createdAt: r.created_at,
+        scheduledDate: r.scheduled_date ?? null,
+        raw: r,
+      };
+    });
+    const boletos = (boletosQ.data ?? []).map((b): UnifiedRow => {
+      const meta = BOLETO_STATUS_META[b.status];
+      return {
+        kind: "boleto",
+        id: b.id,
+        bucket: meta?.bucket ?? b.status,
+        statusLabel: meta?.label ?? b.status,
+        statusCls: meta?.cls ?? "bg-muted",
+        nome: b.beneficiary_name ?? b.description ?? "Boleto",
+        sub: `${b.identification_field ? formatLinha(b.identification_field) : "—"}`,
+        valor: Number(b.value),
+        createdAt: b.created_at,
+        scheduledDate: b.scheduled_date ?? null,
+        raw: b,
+      };
+    });
+    return [...pix, ...boletos].sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    );
+  }, [data, boletosQ.data]);
+
+  const agendados = rows.filter((r) => r.bucket === "agendado");
 
   const filtered = useMemo(() => {
     let list = rows;
-    if (filter !== "todos") list = list.filter((r) => r.status === filter);
+    if (tipoFilter !== "todos") list = list.filter((r) => r.kind === tipoFilter);
+    if (filter !== "todos") list = list.filter((r) => r.bucket === filter);
     if (search.trim()) {
       const s = search.toLowerCase();
       list = list.filter(
         (r) =>
-          String(r.favored_name ?? "").toLowerCase().includes(s) ||
-          String(r.pix_key ?? "").toLowerCase().includes(s) ||
-          String(r.description ?? "").toLowerCase().includes(s),
+          r.nome.toLowerCase().includes(s) ||
+          r.sub.toLowerCase().includes(s) ||
+          String(r.raw?.description ?? "").toLowerCase().includes(s),
       );
     }
     return list;
-  }, [rows, filter, search]);
+  }, [rows, filter, tipoFilter, search]);
 
   const totals = useMemo(() => {
     const acc: Record<string, number> = {};
-    for (const r of rows) acc[r.status] = (acc[r.status] ?? 0) + 1;
+    for (const r of rows) acc[r.bucket] = (acc[r.bucket] ?? 0) + 1;
     return acc;
   }, [rows]);
+
 
   const doSync = async (id: string) => {
     try {
@@ -153,14 +254,44 @@ function PagamentosPage() {
       },
     );
 
+  const doSyncBoleto = async (id: string) => {
+    try {
+      await sincronizarBoleto({ data: { id } });
+      await qc.invalidateQueries({ queryKey: ["asaas-bill-payments"] });
+      toast.success("Status do boleto atualizado");
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
+  };
+
+  const doCancelBoleto = (id: string) =>
+    confirmThen(
+      {
+        title: "Cancelar pagamento de boleto?",
+        description: "O pagamento será cancelado no ASAAS, se ainda não tiver sido executado.",
+        confirmText: "Cancelar pagamento",
+      },
+      async () => {
+        try {
+          await cancelarBoleto({ data: { id } });
+          toast.success("Pagamento de boleto cancelado");
+          qc.invalidateQueries({ queryKey: ["asaas-bill-payments"] });
+        } catch (e) {
+          toast.error((e as Error).message);
+        }
+      },
+    );
+
+
+
   return (
     <div className="mx-auto max-w-7xl px-4 md:px-6 py-6 space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl font-display font-bold">Pagamentos</h1>
-          <p className="text-sm text-muted-foreground">Pix de saída pela conta ASAAS e acompanhamento dos status.</p>
+          <p className="text-sm text-muted-foreground">Pix e boletos de saída pela conta ASAAS e acompanhamento dos status.</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button
             variant="outline"
             size="sm"
@@ -174,7 +305,31 @@ function PagamentosPage() {
           <Button size="sm" onClick={() => setNovoOpen(true)}>
             <Plus className="h-4 w-4 mr-1.5" /> Novo pagamento Pix
           </Button>
+          <Button size="sm" variant="secondary" onClick={() => setNovoBoletoOpen(true)}>
+            <Plus className="h-4 w-4 mr-1.5" /> Novo pagamento boleto
+          </Button>
         </div>
+      </div>
+
+      {/* Tipo */}
+      <div className="flex gap-2">
+        {([
+          { k: "todos", label: "Todos" },
+          { k: "pix", label: "Pix" },
+          { k: "boleto", label: "Boleto" },
+        ] as const).map((t) => (
+          <button
+            key={t.k}
+            onClick={() => setTipoFilter(t.k)}
+            className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition ${
+              tipoFilter === t.k
+                ? "border-brand-orange text-brand-orange bg-brand-orange/10"
+                : "border-border text-muted-foreground hover:border-brand-orange/40"
+            }`}
+          >
+            {t.label}
+          </button>
+        ))}
       </div>
 
       {/* Status */}
@@ -202,25 +357,28 @@ function PagamentosPage() {
           <div className="divide-y divide-border">
             {agendados.map((r) => (
               <button
-                key={r.id}
-                onClick={() => setDetalheId(r.id)}
+                key={`${r.kind}-${r.id}`}
+                onClick={() => (r.kind === "pix" ? setDetalheId(r.id) : setReciboBoleto(r.raw))}
                 className="w-full text-left grid grid-cols-[90px_1fr_auto] items-center gap-3 px-4 py-3 hover:bg-muted/30"
               >
                 <span className="text-sm font-semibold">
-                  {r.scheduled_date ? new Date(r.scheduled_date + "T00:00:00").toLocaleDateString("pt-BR") : "—"}
+                  {r.scheduledDate ? new Date(r.scheduledDate + "T00:00:00").toLocaleDateString("pt-BR") : "—"}
                 </span>
                 <span className="min-w-0">
-                  <span className="block font-medium truncate">{r.favored_name}</span>
-                  <span className="block text-xs text-muted-foreground truncate">
-                    {r.pix_key} · {ORIGIN_LABEL[r.origin] ?? r.origin}
+                  <span className="flex items-center gap-2">
+                    <TipoBadge kind={r.kind} />
+                    <span className="font-medium truncate">{r.nome}</span>
                   </span>
+                  <span className="block text-xs text-muted-foreground truncate">{r.sub}</span>
                 </span>
-                <span className="font-semibold tabular-nums">{formatBRL(Number(r.value))}</span>
+                <span className="font-semibold tabular-nums">{formatBRL(r.valor)}</span>
               </button>
             ))}
           </div>
         </div>
       )}
+
+
 
       {/* Busca */}
       <div className="relative max-w-sm">
@@ -242,43 +400,65 @@ function PagamentosPage() {
         ) : (
           <div className="divide-y divide-border">
             {filtered.map((r) => {
-              const meta = STATUS_META[r.status] ?? { label: r.status, cls: "bg-muted" };
-              const cancelable = ["agendado", "pendente"].includes(r.status);
+              const cancelable =
+                r.kind === "pix"
+                  ? ["agendado", "pendente"].includes(r.raw.status)
+                  : ["agendado", "pendente", "processando"].includes(r.raw.status);
+              const abrir = () =>
+                r.kind === "pix" ? setDetalheId(r.id) : setReciboBoleto(r.raw);
               return (
-                <div key={r.id} className="flex flex-wrap items-center gap-3 px-4 py-3 hover:bg-muted/30">
-                  <button onClick={() => setDetalheId(r.id)} className="min-w-0 flex-1 text-left">
-                    <div className="font-medium truncate">{r.favored_name}</div>
+                <div key={`${r.kind}-${r.id}`} className="flex flex-wrap items-center gap-3 px-4 py-3 hover:bg-muted/30">
+                  <button onClick={abrir} className="min-w-0 flex-1 text-left">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <TipoBadge kind={r.kind} />
+                      <span className="font-medium truncate">{r.nome}</span>
+                    </div>
                     <div className="text-xs text-muted-foreground truncate">
-                      {r.pix_key} · {ORIGIN_LABEL[r.origin] ?? r.origin} ·{" "}
-                      {new Date(r.created_at).toLocaleString("pt-BR")}
+                      {r.sub} · {new Date(r.createdAt).toLocaleString("pt-BR")}
                     </div>
                   </button>
-                  <span className={`px-2 py-0.5 rounded-full text-[11px] font-semibold ${meta.cls}`}>{meta.label}</span>
-                  <span className="font-semibold tabular-nums w-28 text-right">{formatBRL(Number(r.value))}</span>
+                  <span className={`px-2 py-0.5 rounded-full text-[11px] font-semibold ${r.statusCls}`}>
+                    {r.statusLabel}
+                  </span>
+                  <span className="font-semibold tabular-nums w-28 text-right">{formatBRL(r.valor)}</span>
                   <div className="flex gap-1">
-                    <Button
-                      size="icon"
-                      variant="outline"
-                      title="Detalhes e auditoria"
-                      className="rounded-full h-9 w-9 border-border/60"
-                      onClick={() => setDetalheId(r.id)}
-                    >
-                      <Eye className="h-4 w-4" />
-                    </Button>
+                    {r.kind === "pix" && (
+                      <Button
+                        size="icon"
+                        variant="outline"
+                        title="Detalhes e auditoria"
+                        className="rounded-full h-9 w-9 border-border/60"
+                        onClick={() => setDetalheId(r.id)}
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                    )}
                     <Button
                       size="icon"
                       variant="outline"
                       title="Ver comprovante"
                       className="rounded-full h-9 w-9 border-border/60"
-                      onClick={() => setReciboRow(r)}
+                      onClick={() => (r.kind === "pix" ? setReciboRow(r.raw) : setReciboBoleto(r.raw))}
                     >
                       <Receipt className="h-4 w-4" />
                     </Button>
-                    <Button size="icon" variant="ghost" className="rounded-full h-9 w-9" title="Sincronizar status" onClick={() => doSync(r.id)}>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="rounded-full h-9 w-9"
+                      title="Sincronizar status"
+                      onClick={() => (r.kind === "pix" ? doSync(r.id) : doSyncBoleto(r.id))}
+                    >
                       <RefreshCw className="h-4 w-4" />
                     </Button>
                     {cancelable && (
-                      <Button size="icon" variant="ghost" className="rounded-full h-9 w-9" title="Cancelar" onClick={() => doCancel(r.id)}>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="rounded-full h-9 w-9"
+                        title="Cancelar"
+                        onClick={() => (r.kind === "pix" ? doCancel(r.id) : doCancelBoleto(r.id))}
+                      >
                         <Ban className="h-4 w-4 text-red-500" />
                       </Button>
                     )}
@@ -286,6 +466,7 @@ function PagamentosPage() {
                 </div>
               );
             })}
+
           </div>
         )}
       </div>
@@ -296,7 +477,52 @@ function PagamentosPage() {
         initial={{ origin: "avulso" }}
         onDone={() => qc.invalidateQueries({ queryKey: ["asaas-transfers"] })}
       />
+      <BoletoPaymentDialog
+        open={novoBoletoOpen}
+        onOpenChange={setNovoBoletoOpen}
+        entry={null}
+        onDone={() => qc.invalidateQueries({ queryKey: ["asaas-bill-payments"] })}
+      />
       <DetalheDialog id={detalheId} onClose={() => setDetalheId(null)} />
+      <ComprovanteReceipt
+        open={!!reciboBoleto}
+        onOpenChange={(v) => !v && setReciboBoleto(null)}
+        data={
+          reciboBoleto
+            ? {
+                tipoDocumento: "boleto" as const,
+                valor: Number(reciboBoleto.value),
+                favorecido: reciboBoleto.beneficiary_name ?? "—",
+                cpfCnpj: reciboBoleto.beneficiary_document ?? null,
+                instituicao: reciboBoleto.raw_response?.bankName ?? reciboBoleto.raw_simulation?.bankName ?? null,
+                tipo: "Pagamento de boleto",
+                formaPagamento: "Boleto",
+                dataPagamento: reciboBoleto.effective_date ?? reciboBoleto.scheduled_date ?? reciboBoleto.created_at,
+                dataVencimento: reciboBoleto.due_date ?? null,
+                linhaDigitavel: reciboBoleto.identification_field
+                  ? formatLinha(reciboBoleto.identification_field)
+                  : null,
+                valorOriginal:
+                  reciboBoleto.raw_simulation?.value != null
+                    ? Number(reciboBoleto.raw_simulation.value)
+                    : null,
+                juros: reciboBoleto.interest != null ? Number(reciboBoleto.interest) : null,
+                multa: reciboBoleto.fine != null ? Number(reciboBoleto.fine) : null,
+                desconto: reciboBoleto.discount != null ? Number(reciboBoleto.discount) : null,
+                descricao: reciboBoleto.description ?? null,
+                transacaoId: reciboBoleto.asaas_bill_id ?? null,
+                autenticacao:
+                  reciboBoleto.raw_response?.transactionReceiptUrl ??
+                  reciboBoleto.raw_response?.authenticationCode ??
+                  null,
+                referenciaInterna: reciboBoleto.external_reference ?? null,
+                status: BOLETO_STATUS_META[reciboBoleto.status]?.label ?? reciboBoleto.status,
+                concluido: reciboBoleto.status === "pago",
+              }
+            : null
+        }
+      />
+
       <ComprovanteReceipt
         open={!!reciboRow}
         onOpenChange={(v) => !v && setReciboRow(null)}
