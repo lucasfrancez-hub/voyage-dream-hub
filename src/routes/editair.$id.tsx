@@ -96,7 +96,9 @@ import { aplicarAssetsIniciais, midiaParaAsset, PonteAssets, type AssetBasico } 
 import { pontoDesktop } from "@/lib/editair/desktop";
 import { consumirHandoff } from "@/lib/editair/handoff";
 import { Timeline, type AssetInfo, type DestinoSolto } from "@/components/editair/Timeline";
-import { alturaTimelineValida, MIN_AREA_SUPERIOR } from "@/lib/editair/interacao";
+import { WorkspaceLayout } from "@/components/editair/WorkspaceLayout";
+import { alturaDistribuivel, clampAlturaTimeline } from "@/lib/editair/layout-workspace";
+
 import { PlayerStage, type ElementoPalco } from "@/components/editair/PlayerStage";
 import { SourceDialog } from "@/components/editair/SourceDialog";
 import { Inspector } from "@/components/editair/Inspector";
