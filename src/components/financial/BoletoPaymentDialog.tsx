@@ -62,13 +62,14 @@ export function BoletoPaymentDialog({
   const [linhaManual, setLinhaManual] = useState("");
   const [modo, setModo] = useState<"agendar" | "agora">("agendar");
   const [dataPagamento, setDataPagamento] = useState("");
+  const [horaPagamento, setHoraPagamento] = useState("09:00");
   const [revisao, setRevisao] = useState(false);
 
   useEffect(() => {
     if (!open) return;
     setPath(entry?.boleto_path ?? null);
     setLeitura(null); setConfirmado(false); setLinhaManual("");
-    setModo("agendar"); setDataPagamento(""); setRevisao(false);
+    setModo("agendar"); setDataPagamento(""); setHoraPagamento("09:00"); setRevisao(false);
   }, [open, entry?.id, entry?.boleto_path]);
 
   const pagamentos = useQuery({
@@ -129,6 +130,7 @@ export function BoletoPaymentDialog({
           value: Number(leitura?.valor ?? entry.amount),
           dueDate: leitura?.vencimento ?? entry.due_date,
           scheduleDate: modo === "agendar" ? (dataEfetiva || null) : null,
+          scheduleTime: modo === "agendar" ? (horaPagamento || null) : null,
           description: entry.description,
           beneficiaryName: leitura?.beneficiario ?? entry.counterparty ?? null,
           boletoPath: path,
@@ -193,7 +195,7 @@ export function BoletoPaymentDialog({
               <p className="break-all"><span className="text-muted-foreground">Linha digitável:</span> {linha}</p>
               <p><span className="text-muted-foreground">Valor:</span> {formatBRL(Number(leitura?.valor ?? entry?.amount ?? 0))}</p>
               <p><span className="text-muted-foreground">Vencimento:</span> {fmtDate(leitura?.vencimento ?? entry?.due_date)}</p>
-              <p><span className="text-muted-foreground">Data efetiva do pagamento:</span> {fmtDate(dataEfetiva)}</p>
+              <p><span className="text-muted-foreground">Data efetiva do pagamento:</span> {fmtDate(dataEfetiva)}{modo === "agendar" && horaPagamento ? ` às ${horaPagamento}` : ""}</p>
               <p><span className="text-muted-foreground">Conta utilizada:</span> ASAAS</p>
             </div>
             <p className="text-xs text-muted-foreground">
@@ -285,10 +287,20 @@ export function BoletoPaymentDialog({
                   </Button>
                 </div>
                 {modo === "agendar" && (
-                  <div>
-                    <Label>Pagamento programado para</Label>
-                    <Input type="date" value={dataPagamento} min={leitura?.hoje}
-                      onChange={(e) => setDataPagamento(e.target.value)} />
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <Label>Pagamento programado para</Label>
+                      <Input type="date" value={dataPagamento} min={leitura?.hoje}
+                        onChange={(e) => setDataPagamento(e.target.value)} />
+                    </div>
+                    <div>
+                      <Label>Hora do disparo</Label>
+                      <Input type="time" step={300} value={horaPagamento}
+                        onChange={(e) => setHoraPagamento(e.target.value)} />
+                      <p className="mt-1 text-[11px] text-muted-foreground">
+                        Enviado ao ASAAS nesse horário (Brasília).
+                      </p>
+                    </div>
                   </div>
                 )}
               </div>

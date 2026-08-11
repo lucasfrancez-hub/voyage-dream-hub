@@ -200,6 +200,7 @@ export type Database = {
           created_ip: string | null
           description: string | null
           discount: number | null
+          dispatch_pending: boolean
           due_date: string | null
           effective_date: string | null
           external_reference: string | null
@@ -213,6 +214,7 @@ export type Database = {
           paid_value: number | null
           raw_response: Json | null
           raw_simulation: Json | null
+          scheduled_at: string | null
           scheduled_date: string | null
           status: string
           updated_at: string
@@ -230,6 +232,7 @@ export type Database = {
           created_ip?: string | null
           description?: string | null
           discount?: number | null
+          dispatch_pending?: boolean
           due_date?: string | null
           effective_date?: string | null
           external_reference?: string | null
@@ -243,6 +246,7 @@ export type Database = {
           paid_value?: number | null
           raw_response?: Json | null
           raw_simulation?: Json | null
+          scheduled_at?: string | null
           scheduled_date?: string | null
           status?: string
           updated_at?: string
@@ -260,6 +264,7 @@ export type Database = {
           created_ip?: string | null
           description?: string | null
           discount?: number | null
+          dispatch_pending?: boolean
           due_date?: string | null
           effective_date?: string | null
           external_reference?: string | null
@@ -273,6 +278,7 @@ export type Database = {
           paid_value?: number | null
           raw_response?: Json | null
           raw_simulation?: Json | null
+          scheduled_at?: string | null
           scheduled_date?: string | null
           status?: string
           updated_at?: string
@@ -467,6 +473,7 @@ export type Database = {
           created_by_name: string | null
           created_ip: string | null
           description: string | null
+          dispatch_pending: boolean
           effective_date: string | null
           fail_reason: string | null
           favored_name: string
@@ -479,6 +486,7 @@ export type Database = {
           pix_key_type: string | null
           raw_response: Json | null
           receipt_url: string | null
+          scheduled_at: string | null
           scheduled_date: string | null
           status: string
           updated_at: string
@@ -495,6 +503,7 @@ export type Database = {
           created_by_name?: string | null
           created_ip?: string | null
           description?: string | null
+          dispatch_pending?: boolean
           effective_date?: string | null
           fail_reason?: string | null
           favored_name: string
@@ -507,6 +516,7 @@ export type Database = {
           pix_key_type?: string | null
           raw_response?: Json | null
           receipt_url?: string | null
+          scheduled_at?: string | null
           scheduled_date?: string | null
           status?: string
           updated_at?: string
@@ -523,6 +533,7 @@ export type Database = {
           created_by_name?: string | null
           created_ip?: string | null
           description?: string | null
+          dispatch_pending?: boolean
           effective_date?: string | null
           fail_reason?: string | null
           favored_name?: string
@@ -535,6 +546,7 @@ export type Database = {
           pix_key_type?: string | null
           raw_response?: Json | null
           receipt_url?: string | null
+          scheduled_at?: string | null
           scheduled_date?: string | null
           status?: string
           updated_at?: string

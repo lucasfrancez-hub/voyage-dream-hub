@@ -89,6 +89,7 @@ export function PixPaymentDialog({
   const [description, setDescription] = useState("");
   const [mode, setMode] = useState<"agora" | "agendar">("agora");
   const [date, setDate] = useState(todayBR());
+  const [time, setTime] = useState("09:00");
   const [saveKey, setSaveKey] = useState(true);
   const idemRef = useRef<string>("");
 
@@ -106,6 +107,7 @@ export function PixPaymentDialog({
     const d = initial?.date ?? todayBR();
     setDate(d);
     setMode(d > todayBR() ? "agendar" : "agora");
+    setTime("09:00");
     // Preenche a chave do fornecedor, quando cadastrada
     if (initial?.supplierName && !initial?.pixKey) {
       buscarChave({ data: { supplierName: initial.supplierName } })
@@ -159,6 +161,7 @@ export function PixPaymentDialog({
           value: numericValue,
           description: description.trim() || null,
           scheduleDate: mode === "agendar" ? date : null,
+          scheduleTime: mode === "agendar" ? (time || null) : null,
           origin: initial?.origin ?? "avulso",
           financialEntryId: initial?.financialEntryId ?? null,
           orderId: initial?.orderId ?? null,
@@ -262,10 +265,19 @@ export function PixPaymentDialog({
                 </Select>
               </div>
               {mode === "agendar" && (
-                <div>
-                  <Label>Data do pagamento</Label>
-                  <Input type="date" value={date} min={todayBR()} onChange={(e) => setDate(e.target.value)} />
-                </div>
+                <>
+                  <div>
+                    <Label>Data do pagamento</Label>
+                    <Input type="date" value={date} min={todayBR()} onChange={(e) => setDate(e.target.value)} />
+                  </div>
+                  <div>
+                    <Label>Hora do disparo</Label>
+                    <Input type="time" value={time} onChange={(e) => setTime(e.target.value)} step={300} />
+                    <p className="mt-1 text-[11px] text-muted-foreground">
+                      O pagamento é enviado ao ASAAS nesse horário (Brasília).
+                    </p>
+                  </div>
+                </>
               )}
               <div className="col-span-2">
                 <Label>Descrição</Label>
@@ -291,7 +303,13 @@ export function PixPaymentDialog({
             <Row label="CPF/CNPJ" value={maskDoc(owner.cpfCnpj)} />
             <Row label="Instituição" value={owner.bankName || "—"} />
             <Row label="Chave Pix" value={owner.pixKey} />
-            <Row label="Data" value={new Date(effectiveDate + "T00:00:00").toLocaleDateString("pt-BR")} />
+            <Row
+              label="Data"
+              value={
+                new Date(effectiveDate + "T00:00:00").toLocaleDateString("pt-BR") +
+                (mode === "agendar" && time ? ` às ${time}` : "")
+              }
+            />
             <Row label="Descrição" value={description || "—"} />
             <div className="flex items-start gap-2 pt-2 text-xs text-muted-foreground">
               <ShieldCheck className="h-4 w-4 mt-0.5 text-emerald-500 shrink-0" />

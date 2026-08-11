@@ -163,6 +163,7 @@ export const criarPagamentoBoleto = createServerFn({ method: 'POST' })
         value: z.number().positive(),
         dueDate: z.string().nullable().optional(),
         scheduleDate: z.string().nullable().optional(),
+        scheduleTime: z.string().regex(/^\d{2}:\d{2}$/).nullable().optional(),
         description: z.string().max(300).nullable().optional(),
         beneficiaryName: z.string().max(200).nullable().optional(),
         beneficiaryDocument: z.string().max(40).nullable().optional(),
@@ -213,12 +214,18 @@ export const criarPagamentoBoleto = createServerFn({ method: 'POST' })
 
     const venc = (sim?.dueDate as string | undefined) || data.dueDate || null
     let schedule = data.scheduleDate || null
-    if (schedule && schedule <= todayBRT()) schedule = null
+    // Agendamento com HORA: o ASAAS só aceita data, então seguramos localmente
+    // e o cron dispara no horário exato (America/Sao_Paulo).
+    const { brtToIso } = await import('@/lib/financial-dispatch.server')
+    const scheduledAt =
+      schedule && data.scheduleTime ? brtToIso(schedule, data.scheduleTime) : null
+    const segurarLocal = !!scheduledAt && new Date(scheduledAt!).getTime() > Date.now()
+    if (schedule && schedule <= todayBRT() && !segurarLocal) schedule = null
     if (schedule && isBoletoVencido(venc)) {
       throw new Error('Este boleto está vencido. O pagamento não pode ser agendado para uma data futura.')
     }
 
-    const idem = `bill:${linha}:${schedule ?? 'now'}`
+    const idem = `bill:${linha}:${scheduledAt ?? schedule ?? 'now'}`
     const externalRef = data.financialEntryId ? `entry:${data.financialEntryId}` : idem
 
     const { data: row, error: insErr } = await supabaseAdmin
@@ -234,7 +241,9 @@ export const criarPagamentoBoleto = createServerFn({ method: 'POST' })
         fine: sim?.fine ?? null,
         due_date: venc,
         scheduled_date: schedule,
-        status: 'pendente',
+        scheduled_at: segurarLocal ? scheduledAt : null,
+        dispatch_pending: segurarLocal,
+        status: segurarLocal ? 'agendado' : 'pendente',
         boleto_path: data.boletoPath ?? null,
         description: data.description ?? null,
         external_reference: externalRef,
@@ -247,6 +256,29 @@ export const criarPagamentoBoleto = createServerFn({ method: 'POST' })
       .select('*')
       .single()
     if (insErr) throw new Error(insErr.message)
+
+    if (segurarLocal) {
+      await supabaseAdmin.from('asaas_bill_payment_events').insert({
+        bill_payment_id: row.id,
+        event: 'agendado',
+        status: 'agendado',
+        actor_user_id: context.userId,
+        ip: ip(),
+        payload: { scheduledAt } as any,
+      })
+      if (data.financialEntryId) {
+        await supabaseAdmin
+          .from('financial_entries')
+          .update({
+            bill_payment_status: 'agendado',
+            boleto_line: linha,
+            boleto_beneficiary: row.beneficiary_name,
+            payment_method: 'Boleto (ASAAS)',
+          })
+          .eq('id', data.financialEntryId)
+      }
+      return { id: row.id, asaasBillId: null, status: 'agendado', scheduledDate: schedule }
+    }
 
     try {
       const bill = await createAsaasBill({
@@ -372,7 +404,7 @@ export const cancelarPagamentoBoleto = createServerFn({ method: 'POST' })
 
     await supabaseAdmin
       .from('asaas_bill_payments')
-      .update({ status: 'cancelado' })
+      .update({ status: 'cancelado', dispatch_pending: false })
       .eq('id', row.id)
     await supabaseAdmin.from('asaas_bill_payment_events').insert({
       bill_payment_id: row.id,
