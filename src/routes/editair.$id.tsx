@@ -1550,7 +1550,6 @@ function EditorPage() {
           onPatchClip={(patch) => patchClipe(patch)}
           onPatchState={(patch) => aplicar({ ...state, ...patch })}
           onCaption={(patch) => aplicar({ ...state, captionStyle: { ...state.captionStyle, ...patch } })}
-          onAplicarModeloLegenda={aplicarModeloLegenda}
           onKeyframe={criarKeyframe}
           onDuplicar={duplicar}
           onCamada={moverCamada}
