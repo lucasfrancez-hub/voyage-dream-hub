@@ -95,13 +95,42 @@ function PagamentosPage() {
 
   const doSync = async (id: string) => {
     try {
-      await sincronizar({ data: { id } });
-      toast.success("Status sincronizado");
-      qc.invalidateQueries({ queryKey: ["asaas-transfers"] });
+      const r: any = await sincronizar({ data: { id } });
+      await qc.invalidateQueries({ queryKey: ["asaas-transfers"] });
+      await qc.invalidateQueries({ queryKey: ["asaas-transfer", id] });
+      toast.success(
+        r?.mudou ? `Status atualizado: ${STATUS_META[r.status]?.label ?? r.status}` : "Status já estava atualizado",
+      );
     } catch (e) {
       toast.error((e as Error).message);
     }
   };
+
+  /** Sincronização real com o ASAAS (somente GET) + atualização da lista. */
+  const doSyncTodos = async () => {
+    if (sincronizandoTudo) return;
+    setSincronizandoTudo(true);
+    const t = toast.loading("Sincronizando com ASAAS...");
+    try {
+      const r: any = await sincronizarTodos({ data: {} });
+      await qc.invalidateQueries({ queryKey: ["asaas-transfers"] });
+      await qc.invalidateQueries({ queryKey: ["asaas-transfer"] });
+      await refetch();
+      const msg =
+        r?.atualizados > 0
+          ? `${r.atualizados} pagamento${r.atualizados > 1 ? "s" : ""} atualizado${r.atualizados > 1 ? "s" : ""}`
+          : "Todos os pagamentos já estão atualizados.";
+      toast.success(msg, {
+        id: t,
+        description: r?.erros ? `${r.erros} consulta(s) falharam no ASAAS.` : undefined,
+      });
+    } catch (e) {
+      toast.error((e as Error).message, { id: t });
+    } finally {
+      setSincronizandoTudo(false);
+    }
+  };
+
 
   const doCancel = (id: string) =>
     confirmThen(
