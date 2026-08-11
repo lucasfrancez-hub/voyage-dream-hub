@@ -635,153 +635,151 @@ function PainelFundo({ clip, assets, onPatchClip, onKeyframe, fundoPronto, fundo
     onPatchClip({ fundo: proximo.modo === "nenhum" ? undefined : proximo });
   };
 
+  const poster = assets.find((a) => a.id === clip?.assetId)?.thumbUrl ?? null;
+
   if (!clip || (clip.kind !== "video" && clip.kind !== "image")) {
     return (
-      <Painel titulo="Fundo">
-        <p className="text-[11px] text-white/35">Selecione um clipe de vídeo para tratar o fundo.</p>
-      </Painel>
+      <PainelShell titulo="Fundo">
+        <Vazio>Selecione um clipe de vídeo para tratar o fundo.</Vazio>
+      </PainelShell>
     );
   }
 
   return (
-    <Painel titulo="Fundo">
-      <div className="grid grid-cols-2 gap-2">
+    <PainelShell titulo="Fundo" contagem={f.modo === "nenhum" ? "original" : MODOS.find((m) => m.id === f.modo)?.nome}>
+      <Grade cols={2}>
         {FUNDO_PRESETS.map((pr) => (
-          <button
+          <PresetCard
             key={pr.id}
+            nome={pr.nome}
+            poster={poster}
+            filtro={pr.patch.desfoque ? `blur(${Math.round((pr.patch.desfoque / 100) * 6)}px)` : undefined}
             onClick={() => set(pr.patch)}
-            className="rounded-lg border border-white/10 px-2 py-2.5 text-[11px] hover:bg-white/5"
-          >
-            {pr.nome}
-          </button>
+          />
         ))}
-      </div>
+      </Grade>
 
-      <div className="mt-3 grid grid-cols-3 gap-2">
-        {MODOS.map((m) => (
-          <button
-            key={m.id}
-            onClick={() => set({ modo: m.id })}
-            className={`rounded-lg border px-2 py-2 text-[11px] ${
-              f.modo === m.id ? "border-[#F26B1F] bg-[#F26B1F]/15" : "border-white/10 hover:bg-white/5"
-            }`}
-          >
-            {m.nome}
-          </button>
-        ))}
+      <div className="mt-3">
+        <Chips itens={MODOS.map((m) => ({ id: m.id, nome: m.nome }))} valor={f.modo} onChange={(v) => set({ modo: v })} />
       </div>
 
       {f.modo !== "nenhum" ? (
-        <div className="mt-3 space-y-1">
-          {f.modo === "desfoque" || f.modo === "midia" ? (
-            <Campo label={`Intensidade do desfoque — ${f.desfoque}%`}>
-              <div className="flex items-center gap-2">
-                <Slider value={[f.desfoque]} min={0} max={100} step={5} onValueChange={([v]) => set({ desfoque: v })} />
-                <button
-                  title="Keyframe no desfoque"
-                  onClick={() => onKeyframe("fundoBlur")}
-                  className="rounded border border-white/10 p-1 text-white/60 hover:bg-white/5"
-                >
-                  <Diamond className="h-3 w-3" />
-                </button>
-              </div>
-            </Campo>
-          ) : null}
-
-          {f.modo === "cor" ? (
-            <Campo label="Cor do fundo">
-              <input
-                type="color"
-                value={f.cor}
-                onChange={(e) => set({ cor: e.target.value })}
-                className="h-8 w-full rounded border border-white/10 bg-transparent"
-              />
-            </Campo>
-          ) : null}
-
-          {f.modo === "midia" ? (
-            <Campo label="Mídia de fundo">
-              <select
-                value={f.assetId ?? ""}
-                onChange={(e) => set({ assetId: e.target.value || undefined })}
-                className="w-full rounded-md border border-white/10 bg-black/40 px-2 py-1.5 text-xs"
+        <>
+          <Secao titulo="Aparência">
+            {f.modo === "desfoque" || f.modo === "midia" ? (
+              <LinhaValor
+                label="Desfoque"
+                valor={`${f.desfoque}%`}
+                acao={
+                  <button
+                    title="Keyframe no desfoque"
+                    onClick={() => onKeyframe("fundoBlur")}
+                    className="rounded p-0.5 text-white/40 transition hover:bg-white/10 hover:text-[#F26B1F]"
+                  >
+                    <Diamond className="h-3 w-3" />
+                  </button>
+                }
               >
-                <option value="">Selecione…</option>
-                {assets.map((a) => (
-                  <option key={a.id} value={a.id}>
-                    {a.nome}
-                  </option>
-                ))}
-              </select>
-            </Campo>
-          ) : null}
+                <Slider value={[f.desfoque]} min={0} max={100} step={5} onValueChange={([v]) => set({ desfoque: v })} />
+              </LinhaValor>
+            ) : null}
 
-          <Campo label={`Suavidade da borda — ${f.suavidade}%`}>
-            <Slider value={[f.suavidade]} min={0} max={100} step={5} onValueChange={([v]) => set({ suavidade: v })} />
-          </Campo>
-          <Campo label={`Expandir / contrair borda — ${f.borda}`}>
-            <Slider value={[f.borda]} min={-50} max={50} step={1} onValueChange={([v]) => set({ borda: v })} />
-          </Campo>
-          <Campo label={`Estabilidade da máscara — ${f.estabilidade}%`}>
-            <Slider
-              value={[f.estabilidade]}
-              min={0}
-              max={95}
-              step={5}
-              onValueChange={([v]) => set({ estabilidade: v })}
-            />
-          </Campo>
+            {f.modo === "cor" ? (
+              <LinhaValor label="Cor do fundo" valor={f.cor.toUpperCase()}>
+                <input
+                  type="color"
+                  value={f.cor}
+                  onChange={(e) => set({ cor: e.target.value })}
+                  className="h-8 w-full cursor-pointer rounded-lg border border-white/10 bg-transparent"
+                />
+              </LinhaValor>
+            ) : null}
 
-          <Campo label="Qualidade">
-            <div className="grid grid-cols-2 gap-2">
-              {(["rapida", "alta"] as const).map((q) => (
-                <button
-                  key={q}
-                  onClick={() => set({ qualidade: q })}
-                  className={`rounded-lg border px-2 py-1.5 text-[11px] ${
-                    f.qualidade === q ? "border-[#F26B1F] bg-[#F26B1F]/15" : "border-white/10 hover:bg-white/5"
-                  }`}
+            {f.modo === "midia" ? (
+              <LinhaValor label="Mídia de fundo">
+                <select
+                  value={f.assetId ?? ""}
+                  onChange={(e) => set({ assetId: e.target.value || undefined })}
+                  className="w-full rounded-lg border border-white/10 bg-black/40 px-2 py-1.5 text-xs outline-none"
                 >
+                  <option value="">Selecione…</option>
+                  {assets.map((a) => (
+                    <option key={a.id} value={a.id}>
+                      {a.nome}
+                    </option>
+                  ))}
+                </select>
+              </LinhaValor>
+            ) : null}
+          </Secao>
+
+          <Secao titulo="Recorte">
+            <LinhaValor label="Suavidade da borda" valor={`${f.suavidade}%`}>
+              <Slider value={[f.suavidade]} min={0} max={100} step={5} onValueChange={([v]) => set({ suavidade: v })} />
+            </LinhaValor>
+            <LinhaValor label="Expandir / contrair" valor={`${f.borda > 0 ? "+" : ""}${f.borda}`}>
+              <Slider value={[f.borda]} min={-50} max={50} step={1} onValueChange={([v]) => set({ borda: v })} />
+            </LinhaValor>
+            <LinhaValor label="Estabilidade da máscara" valor={`${f.estabilidade}%`}>
+              <Slider value={[f.estabilidade]} min={0} max={95} step={5} onValueChange={([v]) => set({ estabilidade: v })} />
+            </LinhaValor>
+            <div className="flex gap-1.5">
+              {(["rapida", "alta"] as const).map((q) => (
+                <BotaoPill key={q} ativo={f.qualidade === q} onClick={() => set({ qualidade: q })} className="flex-1">
                   {q === "rapida" ? "Rápida (preview)" : "Alta (render)"}
-                </button>
+                </BotaoPill>
               ))}
             </div>
-          </Campo>
+          </Secao>
 
-          <label className="mt-2 flex items-center gap-2 text-[11px] text-white/60">
-            <input
-              type="checkbox"
-              checked={!!f.contorno?.ativo}
-              onChange={(e) =>
-                set({ contorno: { cor: f.contorno?.cor ?? "#FFFFFF", largura: f.contorno?.largura ?? 4, ativo: e.target.checked } })
-              }
-            />
-            Contorno suave na pessoa
-          </label>
-          {f.contorno?.ativo ? (
-            <Campo label={`Largura do contorno — ${f.contorno.largura}px`}>
-              <Slider
-                value={[f.contorno.largura]}
-                min={1}
-                max={20}
-                step={1}
-                onValueChange={([v]) => set({ contorno: { ...f.contorno!, largura: v } })}
+          <Secao titulo="Contorno" aberta={!!f.contorno?.ativo}>
+            <label className="flex cursor-pointer items-center gap-2 text-[11px] text-white/60">
+              <input
+                type="checkbox"
+                className="accent-[#F26B1F]"
+                checked={!!f.contorno?.ativo}
+                onChange={(e) =>
+                  set({ contorno: { cor: f.contorno?.cor ?? "#FFFFFF", largura: f.contorno?.largura ?? 4, ativo: e.target.checked } })
+                }
               />
-            </Campo>
-          ) : null}
+              Contorno suave na pessoa
+            </label>
+            {f.contorno?.ativo ? (
+              <>
+                <LinhaValor label="Largura" valor={`${f.contorno.largura}px`}>
+                  <Slider
+                    value={[f.contorno.largura]}
+                    min={1}
+                    max={20}
+                    step={1}
+                    onValueChange={([v]) => set({ contorno: { ...f.contorno!, largura: v } })}
+                  />
+                </LinhaValor>
+                <LinhaValor label="Cor do contorno" valor={(f.contorno.cor ?? "#FFFFFF").toUpperCase()}>
+                  <input
+                    type="color"
+                    value={f.contorno.cor ?? "#FFFFFF"}
+                    onChange={(e) => set({ contorno: { ...f.contorno!, cor: e.target.value } })}
+                    className="h-8 w-full cursor-pointer rounded-lg border border-white/10 bg-transparent"
+                  />
+                </LinhaValor>
+              </>
+            ) : null}
+          </Secao>
 
-          <p className="pt-2 text-[11px] text-white/40">
+          <p className="px-1 pt-1 text-[10px] leading-relaxed text-white/35">
             {fundoCarregando
               ? "Carregando o modelo de segmentação…"
               : fundoPronto
                 ? "Segmentação ativa — o áudio e o tempo do clipe não são alterados."
                 : "A segmentação inicia automaticamente ao aplicar o fundo."}
           </p>
-        </div>
+        </>
       ) : null}
-    </Painel>
+    </PainelShell>
   );
 }
+
 
 /* ------------------------------ Efeitos ------------------------------ */
 
