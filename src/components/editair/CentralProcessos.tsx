@@ -73,7 +73,7 @@ export function CentralProcessos({ projectId }: { projectId?: string }) {
           : principal.resultado || `${principal.title} concluído`;
 
   return (
-    <div className="pointer-events-auto absolute bottom-3 right-3 z-30 w-[280px]" data-testid="central-processos">
+    <div className="pointer-events-auto fixed bottom-4 right-4 z-40 w-[280px]" data-testid="central-processos">
       {aberto ? (
         <div className="mb-1 max-h-64 overflow-auto rounded-xl border border-white/10 bg-[#14161a]/95 shadow-2xl backdrop-blur">
           <div className="border-b border-white/10 px-3 py-1.5 text-[11px] uppercase tracking-wide text-white/40">
