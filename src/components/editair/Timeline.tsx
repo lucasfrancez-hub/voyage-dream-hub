@@ -783,7 +783,28 @@ export function Timeline({
         </div>
       </div>
 
+      {/* retângulo de seleção múltipla */}
+      {caixa ? (
+        <div
+          data-testid="timeline-marquee"
+          className="pointer-events-none fixed z-[55] rounded-sm border border-[#F26B1F] bg-[#F26B1F]/15"
+          style={{
+            left: Math.min(caixa.x1, caixa.x2),
+            top: Math.min(caixa.y1, caixa.y2),
+            width: Math.abs(caixa.x2 - caixa.x1),
+            height: Math.abs(caixa.y2 - caixa.y1),
+          }}
+        />
+      ) : null}
+
+      {selecionados.length > 1 ? (
+        <div className="pointer-events-none absolute bottom-2 left-1/2 z-[55] -translate-x-1/2 rounded-full border border-[#F26B1F]/50 bg-[#0f141a]/95 px-3 py-1 text-[11px] text-white/80 shadow-lg">
+          {selecionados.length} clipes selecionados
+        </div>
+      ) : null}
+
       {dica ? (
+
         <div
           className="pointer-events-none fixed z-[60] rounded-lg border border-white/15 bg-[#0f141a]/95 px-2.5 py-1.5 text-[11px] shadow-lg backdrop-blur"
           style={{ left: dica.x + 14, top: dica.y - 44 }}
