@@ -24,8 +24,6 @@ import {
   Type,
   Undo2,
   Wand2,
-  ZoomIn,
-  ZoomOut,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import {
