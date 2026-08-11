@@ -6,15 +6,46 @@ import { LEGENDA_PADRAO, type CaptionStyle } from "./types";
  * São apenas DADOS: nenhum modelo tem lógica própria — a engine e o preview
  * leem os mesmos campos de CaptionStyle para qualquer preset.
  */
+export type CategoriaLegenda = "destaque" | "dinamicos" | "minimalistas" | "social" | "profissionais";
+
+export const CATEGORIAS_LEGENDA: { id: CategoriaLegenda; nome: string }[] = [
+  { id: "destaque", nome: "Destaque" },
+  { id: "dinamicos", nome: "Dinâmicos" },
+  { id: "minimalistas", nome: "Minimalistas" },
+  { id: "social", nome: "Social" },
+  { id: "profissionais", nome: "Profissionais" },
+];
+
 export type ModeloLegenda = {
   id: string;
   nome: string;
   descricao: string;
   animado: boolean;
+  categoria?: CategoriaLegenda;
   style: Partial<CaptionStyle>;
 };
 
 export const FRASE_DEMO = "Sua viagem começa aqui";
+
+const CATEGORIA_POR_ID: Record<string, CategoriaLegenda> = {
+  clean: "minimalistas",
+  destaque: "destaque",
+  pop: "destaque",
+  minimal: "minimalistas",
+  box: "profissionais",
+  karaoke: "dinamicos",
+  impact: "destaque",
+  podcast: "profissionais",
+  news: "profissionais",
+  doodle: "social",
+  neon: "social",
+  dynamic: "dinamicos",
+};
+
+/** Categoria efetiva do modelo (modelos salvos caem em "Meus modelos"). */
+export function categoriaDoModelo(m: ModeloLegenda): CategoriaLegenda {
+  return m.categoria ?? CATEGORIA_POR_ID[m.id] ?? "destaque";
+}
 
 export const MODELOS_LEGENDA: ModeloLegenda[] = [
   {
