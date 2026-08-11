@@ -68,6 +68,8 @@ type Props = {
   onAlterarClips: (patches: Record<string, Partial<EditairClip>>, commit: boolean) => void;
   onToggleTrack: (trackId: string, campo: "muted" | "hidden" | "locked" | "solo") => void;
   onAbrirSource: (clipId: string) => void;
+  /** duplo clique numa legenda: edição rápida do texto na própria timeline */
+  onEditarTextoLegenda?: (clipId: string, texto: string, commit: boolean) => void;
   onRestaurarClip: (clipId: string) => void;
   onAcaoClip?: (clipId: string, acao: AcaoClip) => void;
   /** Arquivos arrastados do Finder/Explorer direto para a timeline. */
@@ -106,6 +108,7 @@ export function Timeline({
   onAlterarClips,
   onToggleTrack,
   onAbrirSource,
+  onEditarTextoLegenda,
   onRestaurarClip,
   onAcaoClip,
   onSoltarArquivos,
@@ -988,6 +991,7 @@ function Clipe({
   onSelect,
   onArrastar,
   onAbrirSource,
+  onEditarTexto,
   onMenu,
 }: {
   clip: EditairClip;
@@ -999,9 +1003,12 @@ function Clipe({
   onSelect: (aditivo: boolean) => void;
   onArrastar: (e: React.PointerEvent, clip: EditairClip, modo: "mover" | "trim-in" | "trim-out") => void;
   onAbrirSource: () => void;
+  onEditarTexto?: (texto: string, commit: boolean) => void;
   onMenu: (x: number, y: number) => void;
 }) {
   const largura = Math.max(8, clip.duration * pxPorMs);
+  const editavel = (clip.kind === "caption" || clip.kind === "text") && !!onEditarTexto;
+  const [editandoTexto, setEditandoTexto] = useState(false);
   const visual = clip.kind === "video" || clip.kind === "image";
   const sonoro = clip.kind === "audio";
   const speed = clip.speed || 1;
@@ -1036,7 +1043,8 @@ function Clipe({
         }}
         onDoubleClick={(e) => {
           e.stopPropagation();
-          onAbrirSource();
+          if (editavel) setEditandoTexto(true);
+          else onAbrirSource();
         }}
         onContextMenu={(e) => {
           e.preventDefault();
@@ -1057,7 +1065,24 @@ function Clipe({
           <WaveClip clip={clip} asset={asset} largura={largura} sobreposta />
         ) : null}
         {sonoro && asset ? <WaveClip clip={clip} asset={asset} largura={largura} /> : null}
-        {!visual && !sonoro ? (
+        {editandoTexto ? (
+          <input
+            autoFocus
+            data-testid="timeline-editar-legenda"
+            defaultValue={clip.text ?? ""}
+            onPointerDown={(e) => e.stopPropagation()}
+            onChange={(e) => onEditarTexto?.(e.target.value, false)}
+            onBlur={(e) => {
+              onEditarTexto?.(e.target.value, true);
+              setEditandoTexto(false);
+            }}
+            onKeyDown={(e) => {
+              e.stopPropagation();
+              if (e.key === "Enter" || e.key === "Escape") e.currentTarget.blur();
+            }}
+            className="mx-1 w-full rounded border border-[#F26B1F] bg-black/80 px-1 py-0.5 text-[11px] outline-none"
+          />
+        ) : !visual && !sonoro ? (
           <span className="truncate px-2">{clip.text ?? clip.label ?? clip.kind}</span>
         ) : (
           <span className="pointer-events-none absolute bottom-0 left-1 max-w-[90%] truncate rounded-sm bg-black/50 px-1 text-[9px]">
