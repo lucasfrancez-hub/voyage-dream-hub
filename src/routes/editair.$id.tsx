@@ -62,6 +62,7 @@ import {
   limparTracksVazias,
   transformPadrao,
   TEXTO_PADRAO,
+  type TextStyle,
   type CaptionStyle,
   type EditairClip,
   type KeyProp,
