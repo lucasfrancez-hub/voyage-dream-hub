@@ -404,7 +404,7 @@ export const cancelarPagamentoBoleto = createServerFn({ method: 'POST' })
 
     await supabaseAdmin
       .from('asaas_bill_payments')
-      .update({ status: 'cancelado' })
+      .update({ status: 'cancelado', dispatch_pending: false })
       .eq('id', row.id)
     await supabaseAdmin.from('asaas_bill_payment_events').insert({
       bill_payment_id: row.id,

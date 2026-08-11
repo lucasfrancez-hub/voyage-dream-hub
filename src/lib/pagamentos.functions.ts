@@ -319,7 +319,10 @@ export const cancelarPagamentoPix = createServerFn({ method: 'POST' })
       const { cancelAsaasTransfer } = await import('@/lib/asaas.server')
       await cancelAsaasTransfer(row.asaas_transfer_id)
     }
-    await supabaseAdmin.from('asaas_transfers').update({ status: 'cancelado' }).eq('id', row.id)
+    await supabaseAdmin
+      .from('asaas_transfers')
+      .update({ status: 'cancelado', dispatch_pending: false })
+      .eq('id', row.id)
     await supabaseAdmin.from('asaas_transfer_events').insert({
       transfer_id: row.id,
       asaas_transfer_id: row.asaas_transfer_id,
