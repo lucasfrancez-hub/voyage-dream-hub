@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { abrirJob, executarJob, jobEmAndamento } from "@/lib/editair/jobs";
 import { avisarConclusao } from "@/lib/editair/notificar";
 import {
+  Activity,
   Captions,
   Clapperboard,
   Copy,
@@ -111,6 +112,7 @@ import { EditairEngine } from "@/lib/editair/engine";
 import { duracaoComposicao, planoDeAudio } from "@/lib/editair/composicao";
 import { aplicarAssetsIniciais, midiaParaAsset, PonteAssets, type AssetBasico } from "@/lib/editair/bootstrap";
 import { registrarDiag } from "@/lib/editair/diag";
+import { DiagnosticoClipesPanel } from "@/components/editair/DiagnosticoClipesPanel";
 
 import { confirm as confirmarDialogo } from "@/lib/confirm";
 import { pontoDesktop } from "@/lib/editair/desktop";
@@ -239,6 +241,7 @@ function EditorPage() {
   const [salvando, setSalvando] = useState(false);
 
   const [exportAberto, setExportAberto] = useState(false);
+  const [diagAberto, setDiagAberto] = useState(false);
   const [progresso, setProgresso] = useState<ProgressoExport>(null);
   const [resultado, setResultado] = useState<ResultadoExport>(null);
   const [pastaExport, setPastaExport] = useState<string | null>(null);
@@ -2255,6 +2258,9 @@ function EditorPage() {
 
         <div className="flex-1" />
 
+        <TopBtn onClick={() => setDiagAberto((v) => !v)} titulo="Diagnóstico de clipes">
+          <Activity className="h-4 w-4" />
+        </TopBtn>
         <TopBtn onClick={desfazer} titulo="Desfazer">
           <Undo2 className="h-4 w-4" />
         </TopBtn>
@@ -2763,7 +2769,7 @@ function EditorPage() {
         }}
       />
 
-
+      {diagAberto && <DiagnosticoClipesPanel aoFechar={() => setDiagAberto(false)} />}
 
     </>
 
