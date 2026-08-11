@@ -128,6 +128,8 @@ import {
   type ResultadoExport,
 } from "@/components/editair/ExportDialog";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 export const Route = createFileRoute("/editair/$id")({
   ssr: false,
@@ -160,6 +162,8 @@ function EditorPage() {
   const clipboardRef = useRef<EditairClip[]>([]);
   /** só para a UI saber se "Colar" está habilitado */
   const [nClipboard, setNClipboard] = useState(0);
+  /** marcador em renomeação (diálogo in-app, nunca window.prompt) */
+  const [renomeandoMarcador, setRenomeandoMarcador] = useState<{ id: string; nota: string } | null>(null);
 
   const [carregando, setCarregando] = useState(true);
   const [projetoNome, setProjetoNome] = useState("");
@@ -2435,6 +2439,39 @@ function EditorPage() {
     />
 
 
+
+      <Dialog open={!!renomeandoMarcador} onOpenChange={(o) => !o && setRenomeandoMarcador(null)}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Renomear marcador</DialogTitle>
+          </DialogHeader>
+          <Input
+            autoFocus
+            value={renomeandoMarcador?.nota ?? ""}
+            placeholder="Nome do marcador"
+            onChange={(e) => setRenomeandoMarcador((m) => (m ? { ...m, nota: e.target.value } : m))}
+            onKeyDown={(e) => {
+              if (e.key !== "Enter" || !renomeandoMarcador) return;
+              aplicar(atualizarMarcador(state, renomeandoMarcador.id, { nota: renomeandoMarcador.nota.trim() }));
+              setRenomeandoMarcador(null);
+            }}
+          />
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setRenomeandoMarcador(null)}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={() => {
+                if (!renomeandoMarcador) return;
+                aplicar(atualizarMarcador(state, renomeandoMarcador.id, { nota: renomeandoMarcador.nota.trim() }));
+                setRenomeandoMarcador(null);
+              }}
+            >
+              Salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <LoginNuvemDialog
         aberto={loginNuvem}
