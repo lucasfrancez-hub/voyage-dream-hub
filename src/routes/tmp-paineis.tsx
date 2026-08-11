@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { ToolPanel, type ToolPanelProps } from "@/components/editair/ToolPanels";
 import { estadoVazio, novoId, transformPadrao, type EditairClip } from "@/lib/editair/types";
 
-export const Route = createFileRoute("/_tmp-paineis")({ component: Tmp });
+export const Route = createFileRoute("/tmp-paineis")({ component: Tmp });
 
 function Tmp() {
   const base = estadoVazio();
