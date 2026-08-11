@@ -5,7 +5,7 @@ import { formatarTempo } from "@/lib/editair/types";
 import { limitesDoClip } from "@/lib/editair/ops";
 import { obterPicos, obterThumb } from "@/lib/editair/media";
 
-export type AssetInfo = { url: string; durationMs: number; kind: string; name: string };
+export type AssetInfo = { id?: string; url: string; durationMs: number; kind: string; name: string };
 
 const CORES: Record<string, string> = {
   "t-text": "bg-violet-600/70 border-violet-300/40",
@@ -628,7 +628,7 @@ function Filmstrip({ clip, asset, largura }: { clip: EditairClip; asset: AssetIn
     setImgs(Array(qtd).fill(null));
     (async () => {
       for (let i = 0; i < alvos.length; i++) {
-        const src = await obterThumb(asset.url, asset.url, alvos[i], 72);
+        const src = await obterThumb(asset.id || asset.url, asset.url, alvos[i], 72);
         if (!vivo) return;
         setImgs((atual) => {
           const c = [...atual];
@@ -658,11 +658,11 @@ function WaveClip({ clip, asset, largura }: { clip: EditairClip; asset: AssetInf
   const [picos, setPicos] = useState<number[] | null>(null);
   useEffect(() => {
     let vivo = true;
-    void obterPicos(asset.url, asset.url).then((p) => vivo && setPicos(p));
+    void obterPicos(asset.id || asset.url, asset.url).then((p) => vivo && setPicos(p));
     return () => {
       vivo = false;
     };
-  }, [asset.url]);
+  }, [asset.id, asset.url]);
 
   if (!picos?.length) return <div className="h-full w-full bg-black/20" />;
   const total = asset.durationMs || 1;

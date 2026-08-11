@@ -162,7 +162,7 @@ function EditorPage() {
 
   const assetsMap = useMemo(() => {
     const m: Record<string, AssetInfo> = {};
-    for (const a of assets) m[a.id] = { url: a.url, durationMs: a.durationMs, kind: a.kind, name: a.nome };
+    for (const a of assets) m[a.id] = { id: a.id, url: a.url, durationMs: a.durationMs, kind: a.kind, name: a.nome };
     return m;
   }, [assets]);
 
@@ -178,8 +178,54 @@ function EditorPage() {
     [state.clips, sourceClipId],
   );
 
+  /* -------- ponte assets ↔ engine (fila de pendentes) -------- */
+  const pendentesRef = useRef<Map<string, AssetItem>>(new Map());
+  const stateRef = useRef<ProjectState>(state);
+  stateRef.current = state;
+  const playheadRef = useRef(0);
+  playheadRef.current = playhead;
 
-  /* ---------------- carregar projeto ---------------- */
+  /** Carrega o asset na engine; se ela ainda não existir, guarda para depois. */
+  const carregarNaEngine = useCallback(async (a: AssetItem) => {
+    if (!a.url) {
+      pendentesRef.current.delete(a.id);
+      console.warn(`[media] asset sem url assetId=${a.id}`);
+      return;
+    }
+    const eng = engineRef.current;
+    if (!eng) {
+      pendentesRef.current.set(a.id, a);
+      console.log(`[engine] asset ${a.id} aguardando engine`);
+      return;
+    }
+    pendentesRef.current.delete(a.id);
+    try {
+      await eng.carregar(a.id, a.url, a.kind);
+      if (eng.falhou(a.id)) {
+        toast.error(`Não foi possível abrir esta mídia: ${a.nome}`);
+      }
+      eng.desenhar(stateRef.current, playheadRef.current);
+    } catch (e) {
+      console.error(`[preview:error] falha ao carregar asset=${a.id}`, e);
+      toast.error(`Não foi possível abrir esta mídia: ${a.nome}`);
+    }
+  }, []);
+
+  const midiaParaAsset = useCallback(
+    (m: MidiaEditair): AssetItem => ({
+      id: m.id,
+      nome: m.nome,
+      kind: m.kind,
+      durationMs: m.durationMs,
+      url: m.url,
+      thumbUrl: m.thumbUrl ?? null,
+      local: m.local,
+      existe: m.existe,
+    }),
+    [],
+  );
+
+  /* ---------------- 1A. bootstrap de DADOS (independe do canvas) ---------------- */
   useEffect(() => {
     let vivo = true;
     (async () => {
@@ -191,84 +237,63 @@ function EditorPage() {
         const fps = res.fps || 30;
         setProjetoNome(res.name);
         setMidias(res.midias);
-        let estado = normalizarEstado(res.state ?? estadoVazio(w, h, fps), w, h, fps);
         if (res.transcript) setTranscript(res.transcript);
-        setState(estado);
 
-        const canvas = canvasRef.current;
-        if (canvas) {
-          const eng = new EditairEngine(canvas, estado.width, estado.height);
-          engineRef.current = eng;
-          const lista: AssetItem[] = [];
-          for (const m of res.midias) {
-            if (m.url) await eng.carregar(m.id, m.url, m.kind).catch(() => null);
-            lista.push({
-              id: m.id,
-              nome: m.nome,
-              kind: m.kind,
-              durationMs: m.durationMs,
-              url: m.url,
-              local: m.local,
-              existe: m.existe,
+        let estado = normalizarEstado(res.state ?? estadoVazio(w, h, fps), w, h, fps);
+        const lista: AssetItem[] = res.midias.map(midiaParaAsset);
+        setAssets(lista);
+        for (const a of lista) pendentesRef.current.set(a.id, a);
+
+        // Projeto novo criado a partir da Galeria: as mídias entram uma única vez
+        // na timeline. A flag impede recriar clipes que o usuário apagou de propósito.
+        const jaAplicado = estado.assetsIniciaisAplicados === true || estado.clips.length > 0;
+        if (!jaAplicado && lista.length) {
+          const clips: EditairClip[] = [];
+          const fim: Record<string, number> = {};
+          for (const a of lista) {
+            const trilha = a.kind === "audio" ? "t-music" : "t-video";
+            const inicio = fim[trilha] ?? 0;
+            const dur = Math.max(1000, a.durationMs || (a.kind === "image" ? 5000 : 3000));
+            clips.push({
+              id: novoId(),
+              trackId: trilha,
+              kind: a.kind === "audio" ? "audio" : a.kind === "image" ? "image" : "video",
+              assetId: a.id,
+              start: inicio,
+              duration: dur,
+              sourceIn: 0,
+              volume: 1,
+              speed: 1,
+              transform: transformPadrao(),
+              label: a.nome.slice(0, 28),
             });
+            fim[trilha] = inicio + dur;
           }
-          if (!vivo) return;
-          setAssets(lista);
-
-          // projeto novo: as mídias escolhidas já entram na linha do tempo, prontas para tocar
-          if (!estado.clips.length && lista.length) {
-            const clips: EditairClip[] = [];
-            const fim: Record<string, number> = {};
-            for (const a of lista) {
-              const trilha = a.kind === "audio" ? "t-music" : "t-video";
-              const inicio = fim[trilha] ?? 0;
-              const dur = Math.max(1000, a.durationMs || (a.kind === "image" ? 5000 : 3000));
-              clips.push({
-                id: novoId(),
-                trackId: trilha,
-                kind: a.kind === "audio" ? "audio" : a.kind === "image" ? "image" : "video",
-                assetId: a.id,
-                start: inicio,
-                duration: dur,
-                sourceIn: 0,
-                volume: 1,
-                speed: 1,
-                transform: transformPadrao(),
-                label: a.nome.slice(0, 28),
-              });
-              fim[trilha] = inicio + dur;
-            }
-            estado = recalcularDuracao({ ...estado, clips });
-            const dim = res.midias.find((m) => m.width > 0 && m.height > 0);
-            if (dim) {
-              estado = { ...estado, width: dim.width, height: dim.height };
-              eng.redimensionar(estado.width, estado.height);
-            }
-          }
-
-          setState(estado);
-          // primeiro frame já visível, sem esperar o Play
-          eng.sincronizar(estado, 0, false);
-          eng.desenhar(estado, 0);
-
-          // deixa o áudio do primeiro vídeo pronto para a IA mesmo após recarregar
-          const principal = lista.find((a) => a.kind !== "image" && a.url);
-          if (principal) {
-            void (async () => {
-              try {
-                const resp = await fetch(principal.url);
-                const blob = await resp.blob();
-                const buf = await decodificarAudio(blob);
-                if (vivo) audioBufferRef.current = buf;
-              } catch {
-                /* sem áudio decodificável */
-              }
-            })();
-          }
+          estado = recalcularDuracao({ ...estado, clips, assetsIniciaisAplicados: true });
+          const dim = res.midias.find((m) => m.width > 0 && m.height > 0);
+          if (dim) estado = { ...estado, width: dim.width, height: dim.height };
+          console.log(`[timeline] ${clips.length} clipe(s) inicial(is) criado(s)`);
+        } else if (!estado.assetsIniciaisAplicados) {
+          estado = { ...estado, assetsIniciaisAplicados: true };
         }
+        setState(estado);
 
         const primeiro = res.midias.find((m) => m.width > 0 && m.height > 0);
         if (primeiro) setDimsOriginais({ w: primeiro.width, h: primeiro.height });
+
+        // deixa o áudio do primeiro vídeo pronto para a IA mesmo após recarregar
+        const principal = lista.find((a) => a.kind !== "image" && a.url);
+        if (principal) {
+          void (async () => {
+            try {
+              const resp = await fetch(principal.url);
+              const buf = await decodificarAudio(await resp.blob());
+              if (vivo) audioBufferRef.current = buf;
+            } catch (e) {
+              console.warn(`[media] áudio não decodificável asset=${principal.id}`, e);
+            }
+          })();
+        }
 
         // veio da galeria com instrução: monta o primeiro corte automaticamente
         const handoff = consumirHandoff(id);
@@ -280,20 +305,57 @@ function EditorPage() {
           autoRef.current = { instrucao: handoff.instrucao };
           setAutoEtapa("planejar");
         }
-
       } catch (e) {
+        console.error("[media] falha ao abrir projeto", e);
         toast.error(e instanceof Error ? e.message : "Falha ao abrir o projeto");
       } finally {
         if (vivo) setCarregando(false);
       }
-
     })();
     return () => {
       vivo = false;
       engineRef.current?.destruir();
       engineRef.current = null;
+      pendentesRef.current.clear();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
+
+  /* ---------------- 1B. bootstrap VISUAL (só depois do canvas montar) ------------- */
+  useEffect(() => {
+    if (carregando) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    let vivo = true;
+
+    if (!engineRef.current) {
+      engineRef.current = new EditairEngine(canvas, stateRef.current.width, stateRef.current.height);
+      engineRef.current.definirVolumeMaster(volume);
+      engineRef.current.definirMudo(mudo);
+      console.log("[engine] criada");
+    }
+    const eng = engineRef.current;
+    eng.redimensionar(stateRef.current.width, stateRef.current.height, qualidade);
+
+    void (async () => {
+      // carrega tudo o que ainda não foi para a engine (bootstrap, import, drag&drop, relink)
+      const fila = assets.filter((a) => a.url && (pendentesRef.current.has(a.id) || a.existe !== false));
+      for (const a of fila) {
+        if (!vivo) return;
+        await carregarNaEngine(a);
+      }
+      if (!vivo) return;
+      // primeiro frame visível sem apertar Play
+      eng.sincronizar(stateRef.current, playheadRef.current, false);
+      eng.desenhar(stateRef.current, playheadRef.current);
+    })();
+
+    return () => {
+      vivo = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [carregando, assets, carregarNaEngine]);
+
 
   /* ---------------- render ---------------- */
   useEffect(() => {
@@ -662,16 +724,18 @@ function EditorPage() {
       for (const midia of novas) {
         const kind = midia.kind;
         if (!dims && midia.width > 0 && midia.height > 0) dims = { w: midia.width, h: midia.height };
-        if (midia.url) await engineRef.current?.carregar(midia.id, midia.url, kind);
-        novosAssets.push({
+        const novoAsset: AssetItem = {
           id: midia.id,
           nome: midia.nome,
           kind,
           durationMs: midia.durationMs,
           url: midia.url,
+          thumbUrl: midia.thumbUrl ?? null,
           local: midia.local,
           existe: midia.existe,
-        });
+        };
+        await carregarNaEngine(novoAsset);
+        novosAssets.push(novoAsset);
 
         const trilha = kind === "audio" ? "t-music" : "t-video";
         const fimTrilha = proximo.clips
@@ -694,8 +758,8 @@ function EditorPage() {
         if (!audioBufferRef.current && kind !== "image" && midia.url) {
           try {
             audioBufferRef.current = await decodificarAudio(await (await fetch(midia.url)).blob());
-          } catch {
-            /* sem áudio decodificável */
+          } catch (e) {
+            console.warn(`[media] áudio não decodificável asset=${midia.id}`, e);
           }
         }
       }
@@ -729,12 +793,18 @@ function EditorPage() {
     const atualizado = await relinkarMidia(m);
     if (!atualizado) return;
     setMidias((cur) => cur.map((x) => (x.id === assetId ? atualizado : x)));
-    setAssets((cur) =>
-      cur.map((x) =>
-        x.id === assetId ? { ...x, url: atualizado.url, existe: true, durationMs: atualizado.durationMs } : x,
-      ),
-    );
-    if (atualizado.url) await engineRef.current?.carregar(assetId, atualizado.url, atualizado.kind).catch(() => null);
+    const novo: AssetItem = {
+      id: assetId,
+      nome: atualizado.nome,
+      kind: atualizado.kind,
+      durationMs: atualizado.durationMs,
+      url: atualizado.url,
+      thumbUrl: atualizado.thumbUrl ?? null,
+      local: atualizado.local,
+      existe: true,
+    };
+    setAssets((cur) => cur.map((x) => (x.id === assetId ? { ...x, ...novo } : x)));
+    await carregarNaEngine(novo);
     setState((cur) => recalcularDuracao({ ...cur }));
     toast.success("Mídia relinkada — seus cortes continuam intactos");
   };

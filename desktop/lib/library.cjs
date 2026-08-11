@@ -62,6 +62,11 @@ function porId(id) {
 
 /** Importa um arquivo local. Por padrão apenas referencia; pode copiar para a Biblioteca. */
 async function importar(arquivoLocal, { copiar = false, gerarProxy = true, proxyAcimaDe = 1440 } = {}) {
+  if (!media.existeFfmpeg()) {
+    throw new Error(
+      "Os componentes de vídeo (FFmpeg/FFprobe) não foram encontrados nesta instalação. Reinstale o EditAir Desktop.",
+    );
+  }
   if (!fs.existsSync(arquivoLocal)) throw new Error(`Arquivo não encontrado: ${arquivoLocal}`);
   const db = ler();
   const jaTem = db.assets.find((a) => a.localPath === arquivoLocal);
@@ -79,7 +84,8 @@ async function importar(arquivoLocal, { copiar = false, gerarProxy = true, proxy
   let thumb = null;
   try {
     thumb = meta.kind === "audio" ? null : await media.thumbnail(destino, meta);
-  } catch {
+  } catch (e) {
+    console.error("[thumbnail:error]", destino, e && e.message ? e.message : e);
     thumb = null;
   }
 

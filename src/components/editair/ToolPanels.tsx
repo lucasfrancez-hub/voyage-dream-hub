@@ -1,6 +1,9 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Diamond,
+  Film,
+  Image as ImageIcon,
+  Music,
   Loader2,
   Plus,
   Search,
@@ -10,6 +13,7 @@ import {
   Upload,
   Wand2,
 } from "lucide-react";
+import { obterThumb } from "@/lib/editair/media";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Input } from "@/components/ui/input";
@@ -55,6 +59,7 @@ export type AssetItem = {
   kind: string;
   durationMs: number;
   url: string;
+  thumbUrl?: string | null;
   local?: boolean;
   existe?: boolean;
 };
@@ -147,6 +152,37 @@ export function ToolPanel(p: ToolPanelProps) {
 
 /* ------------------------------- Mídia ------------------------------- */
 
+function MiniaturaAsset({ asset }: { asset: AssetItem }) {
+  const [src, setSrc] = useState<string | null>(asset.thumbUrl ?? null);
+  const [erro, setErro] = useState(false);
+
+  useEffect(() => {
+    let vivo = true;
+    setSrc(asset.thumbUrl ?? null);
+    setErro(false);
+    if (asset.thumbUrl || asset.kind === "audio" || asset.existe === false || !asset.url) return;
+    void obterThumb(asset.id, asset.url, 0, 96).then((d) => {
+      if (!vivo) return;
+      if (d) setSrc(d);
+      else setErro(true);
+    });
+    return () => {
+      vivo = false;
+    };
+  }, [asset.id, asset.url, asset.thumbUrl, asset.kind, asset.existe]);
+
+  const Icone = asset.kind === "audio" ? Music : asset.kind === "image" ? ImageIcon : Film;
+  return (
+    <div className="flex h-10 w-16 shrink-0 items-center justify-center overflow-hidden rounded border border-white/10 bg-black/40">
+      {src && !erro ? (
+        <img src={src} alt="" className="h-full w-full object-cover" onError={() => setErro(true)} />
+      ) : (
+        <Icone className="h-4 w-4 text-white/40" />
+      )}
+    </div>
+  );
+}
+
 function PainelMidia({ assets, onImportar, onRenomearAsset, onExcluirAsset, onInserirAsset, onRelinkAsset }: ToolPanelProps) {
   const [busca, setBusca] = useState("");
   const [categoria, setCategoria] = useState<"todos" | "video" | "image" | "audio">("todos");
@@ -228,7 +264,14 @@ function PainelMidia({ assets, onImportar, onRenomearAsset, onExcluirAsset, onIn
                 </button>
               ) : null}
               <div className="flex items-center gap-2">
-                <span className="truncate text-[11px]">{a.nome}</span>
+                <MiniaturaAsset asset={a} />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-[11px]">{a.nome}</p>
+                  <p className="text-[10px] uppercase text-white/35">
+                    {a.kind === "video" ? "Vídeo" : a.kind === "audio" ? "Áudio" : "Imagem"}
+                    {a.existe === false ? " · offline" : ""}
+                  </p>
+                </div>
                 <span className="ml-auto shrink-0 text-[10px] text-white/35">{formatarTempo(a.durationMs)}</span>
               </div>
               <div className="mt-1.5 flex gap-1">

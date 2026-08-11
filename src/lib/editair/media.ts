@@ -11,7 +11,8 @@ function pegarVideo(assetId: string, url: string) {
   if (!el) {
     el = document.createElement("video");
     el.src = url;
-    el.crossOrigin = "anonymous";
+    // arquivos locais do Desktop (editair-media://) recusam CORS explícito
+    if (!/^(editair-media:|blob:|file:)/.test(url)) el.crossOrigin = "anonymous";
     el.muted = true;
     el.preload = "metadata";
     el.playsInline = true;
@@ -62,7 +63,8 @@ export async function obterThumb(assetId: string, url: string, ms: number, largu
       const data = c.toDataURL("image/jpeg", 0.6);
       thumbCache.set(chave, data);
       return data;
-    } catch {
+    } catch (e) {
+      console.error(`[thumbnail:error] asset=${assetId}`, e);
       return null;
     }
   });
@@ -101,7 +103,8 @@ export async function obterPicos(assetId: string, url: string, pontos = 900): Pr
       const norm = out.map((v) => v / pico);
       picosCache.set(assetId, norm);
       return norm;
-    } catch {
+    } catch (e) {
+      console.warn(`[thumbnail] sem forma de onda asset=${assetId}`, e);
       return null;
     } finally {
       picosPend.delete(assetId);
