@@ -4,37 +4,22 @@
  *
  * REGRA CRÍTICA: a baixa no financeiro só acontece em `concluido`
  * (TRANSFER_DONE). TRANSFER_CREATED / TRANSFER_PENDING nunca dão baixa.
+ * Nenhum evento recria ou redispara transferência — retentativa é sempre
+ * ação explícita do usuário.
  */
 
-export type TransferStatus =
-  | 'agendado'
-  | 'pendente'
-  | 'processando'
-  | 'concluido'
-  | 'falhou'
-  | 'cancelado'
-  | 'bloqueado'
+import {
+  deveAtualizarStatus,
+  extrairCamposTransfer,
+  statusFromTransferEvent,
+  type CamposTransfer,
+  type TransferStatus,
+} from '@/lib/asaas-transfer-events'
+
+export type { TransferStatus }
 
 export function statusFromEvent(event: string): TransferStatus | null {
-  switch (String(event || '').toUpperCase()) {
-    case 'TRANSFER_CREATED':
-      return 'pendente'
-    case 'TRANSFER_PENDING':
-      return 'pendente'
-    case 'TRANSFER_IN_BANK_PROCESSING':
-      return 'processando'
-    case 'TRANSFER_DONE':
-      return 'concluido'
-    case 'TRANSFER_FAILED':
-      return 'falhou'
-    case 'TRANSFER_CANCELLED':
-    case 'TRANSFER_CANCELED':
-      return 'cancelado'
-    case 'TRANSFER_BLOCKED':
-      return 'bloqueado'
-    default:
-      return null
-  }
+  return statusFromTransferEvent(event)
 }
 
 export async function applyTransferStatus(opts: {
@@ -43,9 +28,11 @@ export async function applyTransferStatus(opts: {
   raw?: any
   event: string
   ip?: string | null
+  campos?: CamposTransfer | null
 }) {
   const { supabaseAdmin } = await import('@/integrations/supabase/client.server')
   const { transferId, status, raw, event } = opts
+  const campos = opts.campos ?? (raw ? extrairCamposTransfer({ transfer: raw }) : null)
 
   const { data: row } = await supabaseAdmin
     .from('asaas_transfers')
@@ -54,25 +41,40 @@ export async function applyTransferStatus(opts: {
     .maybeSingle()
   if (!row) return { ok: false as const, reason: 'not_found' }
 
+  // Webhooks do ASAAS chegam fora de ordem: nunca regredir um estado final.
+  const manterStatus = !deveAtualizarStatus(row.status, status)
+  const statusFinal = manterStatus ? (row.status as TransferStatus) : status
+
   await supabaseAdmin
     .from('asaas_transfers')
     .update({
-      status,
-      effective_date: raw?.effectiveDate ?? row.effective_date,
-      receipt_url: raw?.transactionReceiptUrl ?? row.receipt_url,
-      fail_reason: raw?.failReason ?? row.fail_reason,
+      status: statusFinal,
+      asaas_status: campos?.asaasStatus ?? (row as any).asaas_status,
+      effective_date: campos?.effectiveDate ?? row.effective_date,
+      confirmed_date: campos?.confirmedDate ?? (row as any).confirmed_date,
+      end_to_end_identifier: campos?.endToEndIdentifier ?? (row as any).end_to_end_identifier,
+      receipt_url: campos?.receiptUrl ?? row.receipt_url,
+      fail_reason: campos?.failReason ?? row.fail_reason,
+      refusal_reason: campos?.refusalReason ?? (row as any).refusal_reason,
+      last_event: event,
+      last_event_at: new Date().toISOString(),
       raw_response: raw ?? row.raw_response,
-    })
+    } as any)
     .eq('id', transferId)
 
+  // Histórico: sempre insere, nunca sobrescreve eventos anteriores.
   await supabaseAdmin.from('asaas_transfer_events').insert({
     transfer_id: transferId,
     asaas_transfer_id: row.asaas_transfer_id,
     event,
-    status,
+    status: statusFinal,
+    message: campos?.failReason ?? campos?.refusalReason ?? null,
     ip: opts.ip ?? null,
     payload: raw ?? null,
   })
+
+  if (manterStatus) return { ok: true as const, status: statusFinal, ignoradoRetroativo: true }
+
 
   // Baixa no Contas a pagar apenas quando o Pix foi efetivamente concluído.
   if (status === 'concluido' && row.financial_entry_id) {
