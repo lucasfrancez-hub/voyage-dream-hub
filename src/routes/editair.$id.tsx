@@ -89,7 +89,8 @@ import { EditairEngine } from "@/lib/editair/engine";
 import { aplicarAssetsIniciais, midiaParaAsset, PonteAssets, type AssetBasico } from "@/lib/editair/bootstrap";
 import { pontoDesktop } from "@/lib/editair/desktop";
 import { consumirHandoff } from "@/lib/editair/handoff";
-import { Timeline, type AssetInfo } from "@/components/editair/Timeline";
+import { Timeline, type AssetInfo, type DestinoSolto } from "@/components/editair/Timeline";
+import { alturaTimelineValida, MIN_AREA_SUPERIOR } from "@/lib/editair/interacao";
 import { PlayerStage, type ElementoPalco } from "@/components/editair/PlayerStage";
 import { SourceDialog } from "@/components/editair/SourceDialog";
 import { Inspector } from "@/components/editair/Inspector";
@@ -143,6 +144,14 @@ function EditorPage() {
   const [playhead, setPlayhead] = useState(0);
   const [tocando, setTocando] = useState(false);
   const [zoom, setZoom] = useState(60);
+  /* altura da timeline (splitter vertical) — a área superior nunca some */
+  const [alturaTimeline, setAlturaTimeline] = useState(300);
+  useEffect(() => {
+    const ajustar = () => setAlturaTimeline((h) => alturaTimelineValida(h, window.innerHeight - 56 - 46));
+    ajustar();
+    window.addEventListener("resize", ajustar);
+    return () => window.removeEventListener("resize", ajustar);
+  }, []);
   const [selecionados, setSelecionados] = useState<string[]>([]);
   const [selecao, setSelecao] = useState<{ fromMs: number; toMs: number } | null>(null);
   const [ferramenta, setFerramenta] = useState<Ferramenta>("midia");
@@ -765,14 +774,18 @@ function EditorPage() {
   };
 
   /* ---------------- mídia ---------------- */
-  const inserirAsset = (assetId: string, destino?: { trackId?: string; startMs?: number }) => {
+  const inserirAsset = (
+    assetId: string,
+    destino?: { trackId?: string; startMs?: number },
+    baseState?: ProjectState,
+  ) => {
     const a = assets.find((x) => x.id === assetId);
     if (!a) {
       console.warn("[timeline] inserir: asset não encontrado", { assetId, ids: assets.map((x) => x.id) });
       toast.error("Mídia não encontrada na biblioteca deste projeto.");
       return;
     }
-    const r = inserirAssetNaTimeline(state, a, destino ?? {});
+    const r = inserirAssetNaTimeline(baseState ?? state, a, destino ?? {});
     if (!r.ok) {
       console.warn("[timeline] inserir recusado", { assetId, erro: r.erro });
       toast.error(r.erro);
@@ -1418,7 +1431,11 @@ function EditorPage() {
   const assetItens: AssetItem[] = assets;
 
   return (
-    <div className="grid h-[calc(100vh-3.5rem)] grid-rows-[46px_1fr_300px] bg-[#0c0f13]">
+    <div
+      className="grid h-[calc(100vh-3.5rem)] bg-[#0c0f13]"
+      style={{ gridTemplateRows: `46px minmax(${MIN_AREA_SUPERIOR}px, 1fr) 6px ${alturaTimeline}px` }}
+      data-testid="editair-layout"
+    >
       {/* topo */}
       <div className="flex items-center gap-3 border-b border-white/10 bg-[#0d1116] px-3">
         <span className="truncate text-sm font-semibold">{projetoNome}</span>
@@ -1563,8 +1580,33 @@ function EditorPage() {
         />
       </div>
 
+      {/* splitter vertical: só redistribui altura entre área superior e timeline */}
+      <div
+        role="separator"
+        aria-orientation="horizontal"
+        aria-label="Redimensionar timeline"
+        data-testid="editair-splitter"
+        onPointerDown={(e) => {
+          e.preventDefault();
+          const y0 = e.clientY;
+          const h0 = alturaTimeline;
+          const mover = (ev: PointerEvent) =>
+            setAlturaTimeline(alturaTimelineValida(h0 + (y0 - ev.clientY), window.innerHeight - 56 - 46));
+          const soltar = () => {
+            window.removeEventListener("pointermove", mover);
+            window.removeEventListener("pointerup", soltar);
+          };
+          window.addEventListener("pointermove", mover);
+          window.addEventListener("pointerup", soltar);
+        }}
+        className="group flex cursor-row-resize items-center justify-center bg-white/5 transition hover:bg-[#F26B1F]/40"
+      >
+        <span className="h-0.5 w-16 rounded-full bg-white/20 group-hover:bg-[#F26B1F]" />
+      </div>
+
       {/* timeline */}
       <div className="grid min-h-0 grid-rows-[42px_1fr] border-t border-white/10">
+
         <div className="flex items-center gap-1.5 border-b border-white/10 bg-[#0d1116] px-3 text-[11px]">
           <BarraBtn onClick={dividir} icone={<Scissors className="h-3.5 w-3.5" />} texto="Dividir" />
           <BarraBtn onClick={() => excluirSelecionados(false)} icone={<Trash2 className="h-3.5 w-3.5" />} texto="Excluir" />
@@ -1630,7 +1672,15 @@ function EditorPage() {
           onAbrirSource={setSourceClipId}
           onRestaurarClip={restaurarClip}
           onSoltarArquivos={(arquivos, ms) => void importar(arquivos, ms)}
-          onSoltarAsset={(assetId, ms, trackId) => inserirAsset(assetId, { startMs: ms, trackId })}
+          onSoltarAsset={(assetId: string, ms: number, destino?: DestinoSolto) => {
+            // drag da Biblioteca e botão "+ Inserir" terminam no mesmo serviço de inserção
+            if (destino?.tipo === "nova") {
+              const nova = criarTrackEm(state, destino.indice);
+              inserirAsset(assetId, { startMs: ms, trackId: nova.trackId }, nova.state);
+              return;
+            }
+            inserirAsset(assetId, { startMs: ms, trackId: destino?.trackId });
+          }}
           onNovaTrilhaVideo={() => {
             // camadas de vídeo empilhadas: a nova entra acima (aparece por cima no preview)
             aplicar(criarTrackEm(state, 0).state);

@@ -14,9 +14,11 @@ import {
 } from "lucide-react";
 import type { EditairClip, EditairTrack, ProjectState } from "@/lib/editair/types";
 import { formatarTempo } from "@/lib/editair/types";
-import { posicionarMenu } from "@/lib/editair/layers";
+import { posicionarMenu, type DestinoCamada } from "@/lib/editair/layers";
+import { destinoDeClip, destinoPorY, passouLimiar } from "@/lib/editair/interacao";
 import { limitesDoClip } from "@/lib/editair/ops";
 import { obterPicos, obterThumb } from "@/lib/editair/media";
+
 
 export type AssetInfo = { id?: string; url: string; durationMs: number; kind: string; name: string };
 
@@ -34,7 +36,7 @@ export type AcaoClip =
   | "aparar";
 
 /** Destino de um clip solto na timeline. */
-export type DestinoSolto = { tipo: "track"; trackId: string } | { tipo: "nova"; indice: number };
+export type DestinoSolto = DestinoCamada;
 
 const ALTURA_TRILHA = 56; // h-14
 
@@ -67,8 +69,8 @@ type Props = {
   onAcaoClip?: (clipId: string, acao: AcaoClip) => void;
   /** Arquivos arrastados do Finder/Explorer direto para a timeline. */
   onSoltarArquivos?: (arquivos: FileList, ms: number) => void;
-  /** arrastar uma mídia da biblioteca direto para a timeline */
-  onSoltarAsset?: (assetId: string, ms: number, trackId?: string) => void;
+  /** arrastar uma mídia da biblioteca direto para a timeline (track existente ou nova camada) */
+  onSoltarAsset?: (assetId: string, ms: number, destino?: DestinoSolto) => void;
   /** Cria uma nova camada de vídeo acima das existentes (composição/PiP). */
   onNovaTrilhaVideo?: () => void;
   /** Clip solto após drag vertical: muda de camada (e de posição). */
@@ -139,6 +141,29 @@ export function Timeline({
     setMenuPos(posicionarMenu(menu.x, menu.y, r.width, r.height, window.innerWidth, window.innerHeight));
   }, [menu]);
 
+  /* arrastar mídia da biblioteca: Esc / fim do drag limpam ghost, highlight e dica */
+  useEffect(() => {
+    if (!soltando) return;
+    const fim = () => {
+      setSoltando(false);
+      setAlvo(null);
+      setDica(null);
+    };
+    const aoTeclar = (e: KeyboardEvent) => {
+      if (e.key === "Escape") fim();
+    };
+    window.addEventListener("dragend", fim);
+    window.addEventListener("drop", fim);
+    window.addEventListener("keydown", aoTeclar, true);
+    return () => {
+      window.removeEventListener("dragend", fim);
+      window.removeEventListener("drop", fim);
+      window.removeEventListener("keydown", aoTeclar, true);
+    };
+  }, [soltando]);
+
+
+
   const duracoes = useMemo(() => {
     const m: Record<string, number> = {};
     for (const [id, a] of Object.entries(assets)) m[id] = a.durationMs;
@@ -158,25 +183,19 @@ export function Timeline({
   /** Descobre qual camada (ou zona de nova camada) está sob o cursor. */
   const destinoDoY = useCallback(
     (clientY: number): DestinoSolto | null => {
-      const ids = state.tracks.map((t) => t.id);
-      const rects = ids
-        .map((id) => {
-          const el = linhasRef.current[id];
-          return el ? ({ id, r: el.getBoundingClientRect() } as const) : null;
+      const faixas = state.tracks
+        .map((t) => {
+          const el = linhasRef.current[t.id];
+          if (!el) return null;
+          const r = el.getBoundingClientRect();
+          return { id: t.id, top: r.top, bottom: r.bottom };
         })
-        .filter((v): v is { id: string; r: DOMRect } => !!v);
-      if (!rects.length) return null;
-      const primeiro = rects[0];
-      const ultimo = rects[rects.length - 1];
-      if (clientY < primeiro.r.top) return { tipo: "nova", indice: 0 };
-      if (clientY > ultimo.r.bottom) return { tipo: "nova", indice: state.tracks.length };
-      for (const { id, r } of rects) {
-        if (clientY >= r.top && clientY <= r.bottom) return { tipo: "track", trackId: id };
-      }
-      return null;
+        .filter((v): v is { id: string; top: number; bottom: number } => !!v);
+      return destinoPorY(clientY, faixas);
     },
     [state.tracks],
   );
+
 
   const pontosSnap = useMemo(() => {
     const p = [0, playheadMs];
@@ -211,7 +230,9 @@ export function Timeline({
     return out;
   }, [zoom, state.durationMs]);
 
-  /* arrastar clipe / trim — sempre não destrutivo: mexe só em sourceIn/duração */
+  /* arrastar clipe / trim — sempre não destrutivo: mexe só em sourceIn/duração.
+     Drag direto: mousedown + ~4px de movimento já move o clip (sem "modo mover"),
+     Esc / pointercancel / perda de foco cancelam e restauram o estado original. */
   const iniciarArraste = (
     e: React.PointerEvent,
     clip: EditairClip,
@@ -220,28 +241,34 @@ export function Timeline({
     const trilha = state.tracks.find((t) => t.id === clip.trackId);
     if (trilha?.locked || clip.bloqueado) return;
     e.stopPropagation();
+    const x0 = e.clientX;
+    const y0 = e.clientY;
     const inicioMs = msDoEvento(e.clientX);
     const base = { start: clip.start, duration: clip.duration, sourceIn: clip.sourceIn };
     const lim = limitesDoClip(clip, duracoes);
     const speed = clip.speed || 1;
     const fimAntigo = base.start + base.duration;
     const posteriores = state.clips.filter((c) => c.trackId === clip.trackId && c.start >= fimAntigo && c.id !== clip.id);
-    setArrastandoId(clip.id);
+    /* snapshot para restaurar em caso de cancelamento */
+    const originais: Record<string, Partial<EditairClip>> = { [clip.id]: { ...base } };
+    for (const c of posteriores) originais[c.id] = { start: c.start };
+
+    let ativo = false;
     let ultimoStart = base.start;
     let ultimoDestino: DestinoSolto | null = null;
 
-    const mover = (ev: PointerEvent) => {
+    const aplicarMovimento = (ev: PointerEvent) => {
       const delta = msDoEvento(ev.clientX) - inicioMs;
 
       if (modo === "mover") {
         ultimoStart = Math.max(0, encaixar(base.start + delta));
         onAlterarClip(clip.id, { start: ultimoStart }, false);
-        // drag vertical → camada de destino
-        const d = destinoDoY(ev.clientY);
-        const mesma = d && d.tipo === "track" && d.trackId === clip.trackId;
-        const destinoTravado =
-          d && d.tipo === "track" && !!state.tracks.find((t) => t.id === d.trackId)?.locked;
-        ultimoDestino = !d || mesma || destinoTravado ? null : d;
+        // drag vertical → camada de destino (X = tempo, Y = camada, simultâneos)
+        ultimoDestino = destinoDeClip(
+          destinoDoY(ev.clientY),
+          clip.trackId,
+          (tid) => !!state.tracks.find((t) => t.id === tid)?.locked,
+        );
         setAlvo(ultimoDestino);
         const dest = ultimoDestino;
         setDica({
@@ -272,7 +299,7 @@ export function Timeline({
           for (const c of posteriores) patches[c.id] = { start: Math.max(0, c.start - dif) };
         }
         onAlterarClips(patches, false);
-        onSeek(Math.max(0, (rippleTrim ? base.start : base.start + dif)));
+        onSeek(Math.max(0, rippleTrim ? base.start : base.start + dif));
         setDica({
           x: ev.clientX,
           y: ev.clientY,
@@ -303,21 +330,61 @@ export function Timeline({
       });
     };
 
-    const soltar = () => {
+    const limpar = () => {
       window.removeEventListener("pointermove", mover);
       window.removeEventListener("pointerup", soltar);
+      window.removeEventListener("pointercancel", cancelar);
+      window.removeEventListener("blur", cancelar);
+      window.removeEventListener("keydown", aoTeclar, true);
       setDica(null);
       setArrastandoId(null);
       setAlvo(null);
+    };
+
+    function cancelar() {
+      const estavaAtivo = ativo;
+      ativo = false;
+      limpar();
+      // restaura start/duration/sourceIn e a posição dos clipes deslocados por ripple,
+      // sem commit → nada entra no histórico
+      if (estavaAtivo) onAlterarClips(originais, false);
+    }
+
+    function mover(ev: PointerEvent) {
+      if (!ativo) {
+        if (!passouLimiar(ev.clientX - x0, ev.clientY - y0)) return;
+        ativo = true;
+        setArrastandoId(clip.id);
+      }
+      aplicarMovimento(ev);
+    }
+
+    function soltar() {
+      const estavaAtivo = ativo;
+      ativo = false;
+      limpar();
+      if (!estavaAtivo) return; // clique sem movimento: apenas seleciona
       if (modo === "mover" && ultimoDestino && onSoltarClip) {
         onSoltarClip(clip.id, ultimoDestino, ultimoStart);
         return;
       }
       onAlterarClip(clip.id, {}, true);
-    };
+    }
+
+    function aoTeclar(ev: KeyboardEvent) {
+      if (ev.key !== "Escape") return;
+      ev.preventDefault();
+      ev.stopPropagation();
+      cancelar();
+    }
+
     window.addEventListener("pointermove", mover);
     window.addEventListener("pointerup", soltar);
+    window.addEventListener("pointercancel", cancelar);
+    window.addEventListener("blur", cancelar);
+    window.addEventListener("keydown", aoTeclar, true);
   };
+
 
   const clipMenu = menu ? state.clips.find((c) => c.id === menu.clipId) ?? null : null;
   const trilhaMenu = clipMenu ? state.tracks.find((t) => t.id === clipMenu.trackId) ?? null : null;
@@ -372,24 +439,50 @@ export function Timeline({
         {/* área rolável */}
         <div
           ref={areaRef}
-          className={`relative min-h-0 flex-1 overflow-auto ${soltando ? "ring-2 ring-inset ring-[#F26B1F]" : ""}`}
+          className={`relative min-h-0 flex-1 overflow-auto ${soltando ? "ring-1 ring-inset ring-[#F26B1F]/50" : ""}`}
           onDragOver={
             onSoltarArquivos || onSoltarAsset
               ? (e) => {
                   e.preventDefault();
+                  e.dataTransfer.dropEffect = "copy";
                   setSoltando(true);
+                  // destaque da camada sob o cursor + posição temporal do drop
+                  const d = destinoDoY(e.clientY);
+                  setAlvo(d);
+                  const ms = msDoEvento(e.clientX);
+                  setDica({
+                    x: e.clientX,
+                    y: e.clientY,
+                    titulo:
+                      !d || d.tipo === "nova"
+                        ? "Nova camada"
+                        : state.tracks.find((t) => t.id === d.trackId)?.name ?? "Camada",
+                    valor: formatarTempo(ms, true),
+                    delta: "Soltar para inserir",
+                  });
                 }
               : undefined
           }
-          onDragLeave={onSoltarArquivos || onSoltarAsset ? () => setSoltando(false) : undefined}
+          onDragLeave={
+            onSoltarArquivos || onSoltarAsset
+              ? () => {
+                  setSoltando(false);
+                  setAlvo(null);
+                  setDica(null);
+                }
+              : undefined
+          }
           onDrop={
             onSoltarArquivos || onSoltarAsset
               ? (e) => {
                   e.preventDefault();
+                  const destino = destinoDoY(e.clientY) ?? undefined;
                   setSoltando(false);
+                  setAlvo(null);
+                  setDica(null);
                   const assetId = e.dataTransfer.getData("application/x-editair-asset");
                   if (assetId && onSoltarAsset) {
-                    onSoltarAsset(assetId, msDoEvento(e.clientX));
+                    onSoltarAsset(assetId, msDoEvento(e.clientX), destino);
                     return;
                   }
                   if (e.dataTransfer.files?.length) onSoltarArquivos?.(e.dataTransfer.files, msDoEvento(e.clientX));
@@ -907,7 +1000,8 @@ function Clipe({
         className={`absolute top-1.5 flex h-11 select-none items-center overflow-hidden rounded-lg border-2 text-[11px] text-white/90 shadow-[0_2px_8px_rgba(0,0,0,.45)] transition ${
           CORES[clip.trackId] ?? (clip.trackId.startsWith("t-video") ? CORES["t-video"] : "bg-white/20 border-white/20")
         } ${selecionado ? "border-[#F26B1F] ring-1 ring-[#F26B1F]/60" : "hover:brightness-110"} ${
-          bloqueado || clip.bloqueado ? "cursor-not-allowed opacity-70" : "cursor-grab"
+          bloqueado || clip.bloqueado ? "cursor-not-allowed opacity-70" : arrastando ? "cursor-grabbing" : "cursor-grab"
+        } ${arrastando ? "opacity-70 ring-2 ring-white/40" : ""
         }`}
         style={{ left: clip.start * pxPorMs, width: largura }}
         title={clip.label ?? clip.text ?? clip.kind}
