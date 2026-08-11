@@ -2,6 +2,7 @@ import { aplicarOps, type SourceDurations } from "./ops";
 import {
   novoId,
   recalcularDuracao,
+  transformPadrao,
   type EditairClip,
   type EditairTrack,
   type ProjectState,
@@ -314,7 +315,7 @@ export function inserirAssetNaTimeline(
     sourceIn: 0,
     volume: 1,
     speed: 1,
-    transform: { x: 0, y: 0, escala: 1, rotacao: 0, opacidade: 1 },
+    transform: transformPadrao(),
     label: asset.nome.slice(0, 28),
   };
 
