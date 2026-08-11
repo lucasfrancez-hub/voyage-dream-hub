@@ -1164,19 +1164,9 @@ export class EditairEngine {
     const words = c.words ?? [];
     const idxAtiva = estilo.karaoke ? words.findIndex((w) => t >= w.start && t < w.end) : -1;
     const ultimaFalada = words.reduce((acc, w, i) => (t >= w.start ? i : acc), -1);
-    // A comparação precisa ser insensível a caixa e acento: com `uppercase`
-    // ligado o texto desenhado é "OLÁ" e words[] guarda "olá" — sem normalizar,
-    // nenhuma palavra casava e o karaokê nunca acendia.
-    const limpar = (s: string) =>
-      s
-        .normalize("NFD")
-        .replace(/\p{M}/gu, "")
-        .toLowerCase()
-        .replace(/[^\p{L}\p{N}]/gu, "");
-    // Quando a quantidade de palavras desenhadas bate com words[], o índice
-    // posicional já é confiável (texto revisado à mão, pontuação, etc.).
-    const totalDesenhadas = linhas.join(" ").split(/\s+/).filter(Boolean).length;
-    const confiaIndice = totalDesenhadas === words.length;
+    // A comparação é insensível a caixa/acento (com caps "upper" desenhamos
+    // "OLÁ" e words[] guarda "olá") e ressincroniza olhando vizinhos, para
+    // texto revisado à mão não desligar o karaokê.
     const modoPalavra = estilo.animacaoPalavra ?? "cor";
     // índice global da palavra desenhada, para casar com words[] na ordem
     let indicePalavra = -1;
