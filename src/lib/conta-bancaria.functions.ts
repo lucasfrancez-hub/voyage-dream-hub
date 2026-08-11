@@ -1,7 +1,7 @@
 import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
 import { requireSupabaseAuth } from '@/integrations/supabase/auth-middleware'
-import { assertAdmin, monthRange, normalize } from './conta-bancaria.helpers'
+import { assertAdmin, brtToIso, monthRange, normalize } from './conta-bancaria.helpers'
 import type { ExtratoItem } from './conta-bancaria.helpers'
 
 /** Saldo atual + entradas/saídas do mês corrente. */
@@ -141,6 +141,44 @@ export const listarExtratoBancario = createServerFn({ method: 'POST' })
           label: 'Abrir pagamento',
         }
       }
+    }
+
+    // Data/hora real: o endpoint /financialTransactions só devolve `date`
+    // (YYYY-MM-DD). O horário vem da transação Pix / transferência.
+    for (const it of items) {
+      const withTime = brtToIso(it.paymentDate) ?? brtToIso(it.date)
+      if (withTime) {
+        it.datetime = withTime
+        it.datetimeSource = 'comprovante.paymentDate'
+      }
+    }
+
+    const semHora = items.filter((i) => !i.datetime && i.pixTransactionId).slice(0, 40)
+    if (semHora.length) {
+      const { getAsaasPixTransaction } = await import('@/lib/asaas.server')
+      await Promise.all(
+        semHora.map(async (it) => {
+          const px = await getAsaasPixTransaction(it.pixTransactionId!).catch(() => null)
+          if (!px) return
+          const iso = brtToIso(px.effectiveDate) ?? brtToIso(px.dateCreated)
+          if (iso) {
+            it.datetime = iso
+            it.datetimeSource = px.effectiveDate
+              ? 'pixTransaction.effectiveDate'
+              : 'pixTransaction.dateCreated'
+          }
+        }),
+      )
+    }
+
+    // Origem: só quando há evidência objetiva de vínculo interno.
+    for (const it of items) {
+      const interno =
+        Boolean(it.link) ||
+        (it.transferId && byTransfer.has(it.transferId)) ||
+        (it.paymentId && byPayment.has(it.paymentId))
+      const externo = Boolean(it.transferId || it.paymentId || it.pixTransactionId)
+      it.origem = interno ? 'viaair' : externo ? 'asaas' : null
     }
 
     return {

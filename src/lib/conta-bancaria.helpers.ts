@@ -10,6 +10,7 @@ export interface ExtratoItem {
   reference: string | null
   paymentId: string | null
   transferId: string | null
+  pixTransactionId: string | null
   link: { kind: 'pedido' | 'pagamento'; id: string; label: string } | null
   receiptUrl: string | null
   /** Contraparte e dados completos do comprovante (quando disponíveis). */
@@ -22,7 +23,29 @@ export interface ExtratoItem {
   formaPagamento: string | null
   dueDate: string | null
   paymentDate: string | null
+  /**
+   * Data/hora real da movimentação em ISO com fuso de Brasília (-03:00).
+   * `null` quando a API do ASAAS não expõe horário para o lançamento.
+   */
+  datetime: string | null
+  /** De onde veio o timestamp (transfer.effectiveDate, pix.dateCreated, etc). */
+  datetimeSource: string | null
+  /** Origem da movimentação, apenas quando há evidência objetiva. */
+  origem: 'viaair' | 'asaas' | null
 }
+
+/**
+ * Converte "YYYY-MM-DD HH:mm:ss" (horário local de Brasília, formato ASAAS)
+ * em ISO com offset -03:00. Retorna null se não houver horário.
+ */
+export function brtToIso(v: unknown): string | null {
+  const s = String(v ?? '').trim()
+  if (!s) return null
+  const m = s.match(/^(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2})(:\d{2})?/)
+  if (!m) return null
+  return `${m[1]}T${m[2]}${m[3] ?? ':00'}-03:00`
+}
+
 
 export async function assertAdmin(context: { supabase: any; userId: string }) {
   const { data: isAdmin, error } = await context.supabase.rpc('has_role', {
@@ -71,6 +94,7 @@ export function normalize(tx: any): ExtratoItem {
       tx?.paymentId ?? tx?.transferId ?? tx?.externalReference ?? tx?.id ?? null,
     paymentId: tx?.paymentId ?? tx?.payment?.id ?? null,
     transferId: tx?.transferId ?? tx?.transfer?.id ?? null,
+    pixTransactionId: tx?.pixTransactionId ?? tx?.pixTransaction?.id ?? null,
     link: null,
     receiptUrl: null,
     counterparty: null,
@@ -82,6 +106,9 @@ export function normalize(tx: any): ExtratoItem {
     formaPagamento: null,
     dueDate: null,
     paymentDate: null,
+    datetime: null,
+    datetimeSource: null,
+    origem: null,
   }
 }
 
