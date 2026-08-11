@@ -57,6 +57,8 @@ describe("layout do workspace — estados independentes", () => {
   });
 });
 
+afterEach(cleanup);
+
 describe("WorkspaceLayout no DOM", () => {
   function montar(altura = 300, onAltura = vi.fn()) {
     const r = render(
