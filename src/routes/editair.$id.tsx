@@ -1421,6 +1421,18 @@ function EditorPage() {
     return m;
   }, [assets]);
 
+  useEffect(() => {
+    if (!exportAberto) return;
+    try {
+      setCapaExport(engineRef.current?.canvas.toDataURL("image/jpeg", 0.7) ?? null);
+    } catch {
+      setCapaExport(null);
+    }
+    const api = pontoDesktop();
+    if (api && !pastaExport) void api.dialogo.pastaExport().then(setPastaExport).catch(() => null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [exportAberto]);
+
   const idDoCodec = (mime: string) =>
     mime.includes("hvc1") ? "h265" : mime.includes("vp9") ? "vp9" : mime.includes("av01") ? "av1" : "h264";
 
