@@ -308,6 +308,16 @@ export const ANIMACOES: { id: AnimacaoTipo; nome: string }[] = [
 
 export type FundoModo = "nenhum" | "desfoque" | "cor" | "midia" | "remover";
 
+/** Refinamento do recorte (bordas, cabelo, halo do fundo antigo). */
+export type RefinoRecorte = {
+  /** feather extra da borda 0..100 */
+  feather: number;
+  /** reduzir halo (resquício do fundo antigo) 0..100 */
+  halo: number;
+};
+
+export const REFINO_PADRAO: RefinoRecorte = { feather: 0, halo: 20 };
+
 /** Tratamento automático de fundo (segmentação de pessoa). */
 export type Fundo = {
   modo: FundoModo;
@@ -321,7 +331,9 @@ export type Fundo = {
   cor: string;
   /** asset usado como fundo (modo "midia") */
   assetId?: string;
-  contorno?: { ativo: boolean; cor: string; largura: number };
+  /** contorno visual desenhado atrás do recorte */
+  contorno?: Partial<import("./contorno").Contorno> & { ativo?: boolean; cor: string; largura: number };
+  refino?: RefinoRecorte;
   /** estabilidade temporal 0..100 */
   estabilidade: number;
   qualidade: "rapida" | "alta";
@@ -335,7 +347,8 @@ export const FUNDO_PADRAO: Fundo = {
   cor: "#0B0B0F",
   estabilidade: 60,
   qualidade: "rapida",
-  contorno: { ativo: false, cor: "#FFFFFF", largura: 4 },
+  refino: { ...REFINO_PADRAO },
+  contorno: { preset: "nenhum", ativo: false, cor: "#FFFFFF", largura: 10 },
 };
 
 export const FUNDO_PRESETS: { id: string; nome: string; patch: Partial<Fundo> }[] = [
