@@ -419,6 +419,34 @@ export class EditairEngine {
     if (this.master) this.master.gain.value = m ? 0 : this.volumeMaster;
   }
 
+  /** true quando o navegador bloqueou o play com áudio (autoplay policy). */
+  audioBloqueado = false;
+
+  /**
+   * Precisa ser chamado DENTRO do gesto do usuário (clique em Play / Espaço).
+   * Sem isso o Chromium rejeita `el.play()` com NotAllowedError: o canvas
+   * continua desenhando quadros (o vídeo "roda") mas nenhum áudio sai.
+   */
+  liberarAudio() {
+    const ctx = this.garantirAudio();
+    if (ctx.state === "suspended") void ctx.resume().catch(() => {});
+    for (const [, m] of this.midias) {
+      if (!m.el.paused) continue;
+      const p = m.el.play();
+      if (p && typeof p.then === "function") {
+        void p
+          .then(() => {
+            this.audioBloqueado = false;
+            if (!this.tocandoAgora) m.el.pause();
+          })
+          .catch(() => {
+            this.audioBloqueado = true;
+          });
+      }
+    }
+  }
+
+
   private ativos(state: ProjectState, t: number) {
     return state.clips.filter((c) => t >= c.start && t < c.start + c.duration);
   }
