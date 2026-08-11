@@ -7,9 +7,21 @@ import {
   mapBillStatus,
   onlyDigits,
   parseBoletoLine,
+  parseBoletoCode,
+  classificarErroBoleto,
+  BILL_STATUS_LABEL,
   todayBRT,
   isBoletoVencido,
 } from './boleto-pay.helpers'
+
+export type ErroBoleto = {
+  titulo: string
+  mensagem: string
+  codigo: string | null
+  tecnico: string | null
+  orientacao: string | null
+}
+
 
 function ip() {
   try {
