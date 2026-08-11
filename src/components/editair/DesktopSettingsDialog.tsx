@@ -331,6 +331,44 @@ export function DesktopSettingsDialog({
               </div>
 
             </div>
+
+            <div className="rounded-lg border border-white/10 p-4">
+              <div className="mb-1 flex items-center gap-2 text-white/60">
+                <Activity className="h-4 w-4" /> Legendas — alinhador local (whisper.cpp)
+              </div>
+              <p className="text-xs text-white/50">
+                Os tempos das palavras vêm do alinhador acústico local. O modelo é baixado uma única vez
+                e fica salvo fora do cache.
+              </p>
+              {estadoWhisper && (
+                <p className="mt-2 text-xs text-white/70">
+                  Binário: {estadoWhisper.binario ? "ok" : "ausente"} · Modelo:{" "}
+                  {estadoWhisper.modeloBaixado
+                    ? `${estadoWhisper.modelo} pronto`
+                    : `${estadoWhisper.modelo} não baixado`}
+                </p>
+              )}
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Button size="sm" variant="secondary" onClick={() => void verEstadoWhisper()}>
+                  Ver estado do alinhador
+                </Button>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  disabled={ocupado}
+                  onClick={() => void baixarModeloWhisper()}
+                >
+                  Baixar / verificar modelo
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => void limparCacheTranscricao()}>
+                  Limpar cache de transcrições
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => void rodarAB()}>
+                  Rodar teste A/B de legendas
+                </Button>
+              </div>
+            </div>
+
             <textarea
               readOnly
               value={diag}
