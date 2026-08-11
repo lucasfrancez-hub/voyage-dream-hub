@@ -241,6 +241,7 @@ function EditorPage() {
   const [salvando, setSalvando] = useState(false);
 
   const [exportAberto, setExportAberto] = useState(false);
+  const [diagAberto, setDiagAberto] = useState(false);
   const [progresso, setProgresso] = useState<ProgressoExport>(null);
   const [resultado, setResultado] = useState<ResultadoExport>(null);
   const [pastaExport, setPastaExport] = useState<string | null>(null);
