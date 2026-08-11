@@ -128,6 +128,8 @@ export function Timeline({
   onEditarComIa,
 }: Props) {
   const areaRef = useRef<HTMLDivElement>(null);
+  const headersRef = useRef<HTMLDivElement>(null);
+
   const pxPorMs = zoom / 1000;
   const larguraTotal = Math.max(1200, (state.durationMs + 6000) * pxPorMs);
   const [dica, setDica] = useState<Dica>(null);
