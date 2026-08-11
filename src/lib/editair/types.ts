@@ -452,9 +452,21 @@ export function normalizarEstado(bruto: ProjectState, width: number, height: num
   };
 }
 
+export type Enquadramento = "fit" | "preencher";
+
 export function transformPadrao(): Transform {
   return { x: 0, y: 0, scale: 1, rotation: 0, opacity: 1 };
 }
+
+/**
+ * Enquadramento inicial ÚNICO de toda mídia nova (vídeo ou imagem):
+ * centralizada, aspect ratio preservado, modo Fit, rotação 0 e opacidade 1.
+ * Todos os fluxos de inserção devem usar esta função — nunca montar transform à mão.
+ */
+export function enquadramentoInicial(): { transform: Transform; enquadramento: Enquadramento } {
+  return { transform: transformPadrao(), enquadramento: "fit" };
+}
+
 
 export function novoId(prefixo = "c") {
   return `${prefixo}-${Math.random().toString(36).slice(2, 10)}`;
