@@ -477,7 +477,52 @@ function PagamentosPage() {
         initial={{ origin: "avulso" }}
         onDone={() => qc.invalidateQueries({ queryKey: ["asaas-transfers"] })}
       />
+      <BoletoPaymentDialog
+        open={novoBoletoOpen}
+        onOpenChange={setNovoBoletoOpen}
+        entry={null}
+        onDone={() => qc.invalidateQueries({ queryKey: ["asaas-bill-payments"] })}
+      />
       <DetalheDialog id={detalheId} onClose={() => setDetalheId(null)} />
+      <ComprovanteReceipt
+        open={!!reciboBoleto}
+        onOpenChange={(v) => !v && setReciboBoleto(null)}
+        data={
+          reciboBoleto
+            ? {
+                tipoDocumento: "boleto" as const,
+                valor: Number(reciboBoleto.value),
+                favorecido: reciboBoleto.beneficiary_name ?? "—",
+                cpfCnpj: reciboBoleto.beneficiary_document ?? null,
+                instituicao: reciboBoleto.raw_response?.bankName ?? reciboBoleto.raw_simulation?.bankName ?? null,
+                tipo: "Pagamento de boleto",
+                formaPagamento: "Boleto",
+                dataPagamento: reciboBoleto.effective_date ?? reciboBoleto.scheduled_date ?? reciboBoleto.created_at,
+                dataVencimento: reciboBoleto.due_date ?? null,
+                linhaDigitavel: reciboBoleto.identification_field
+                  ? formatLinha(reciboBoleto.identification_field)
+                  : null,
+                valorOriginal:
+                  reciboBoleto.raw_simulation?.value != null
+                    ? Number(reciboBoleto.raw_simulation.value)
+                    : null,
+                juros: reciboBoleto.interest != null ? Number(reciboBoleto.interest) : null,
+                multa: reciboBoleto.fine != null ? Number(reciboBoleto.fine) : null,
+                desconto: reciboBoleto.discount != null ? Number(reciboBoleto.discount) : null,
+                descricao: reciboBoleto.description ?? null,
+                transacaoId: reciboBoleto.asaas_bill_id ?? null,
+                autenticacao:
+                  reciboBoleto.raw_response?.transactionReceiptUrl ??
+                  reciboBoleto.raw_response?.authenticationCode ??
+                  null,
+                referenciaInterna: reciboBoleto.external_reference ?? null,
+                status: BOLETO_STATUS_META[reciboBoleto.status]?.label ?? reciboBoleto.status,
+                concluido: reciboBoleto.status === "pago",
+              }
+            : null
+        }
+      />
+
       <ComprovanteReceipt
         open={!!reciboRow}
         onOpenChange={(v) => !v && setReciboRow(null)}
