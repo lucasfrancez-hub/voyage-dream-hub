@@ -1,12 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { ToolPanel, type ToolPanelProps } from "@/components/editair/ToolPanels";
-import { estadoVazio, novoId, transformPadrao } from "@/lib/editair/tipos";
-import type { EditairClip } from "@/lib/editair/types";
+import { estadoVazio, novoId, transformPadrao, type EditairClip } from "@/lib/editair/types";
 
 export const Route = createFileRoute("/_tmp-paineis")({ component: Tmp });
 
 function Tmp() {
-  const base = estadoVazio("tmp");
+  const base = estadoVazio();
   const clip: EditairClip = {
     id: novoId(),
     trackId: base.tracks[0]?.id ?? "t-v1",
