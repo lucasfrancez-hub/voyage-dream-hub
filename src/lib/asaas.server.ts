@@ -465,6 +465,92 @@ export async function cancelAsaasBill(billId: string) {
   return asaasFetch(`/bill/${encodeURIComponent(billId)}/cancel`, { method: 'POST' })
 }
 
+/* ---- Chamadas "safe": devolvem o erro estruturado do ASAAS em vez de lançar ---- */
+
+export type AsaasCallResult<T> =
+  | { ok: true; data: T; status: number }
+  | {
+      ok: false
+      status: number
+      code: string | null
+      description: string
+      errors: Array<{ code?: string; description?: string }>
+      raw: any
+    }
+
+async function asaasCall<T>(path: string, init?: RequestInit): Promise<AsaasCallResult<T>> {
+  const key = process.env['ASAAS_API_KEY']
+  if (!key) {
+    return {
+      ok: false,
+      status: 0,
+      code: 'no_api_key',
+      description: 'Integração bancária não configurada (ASAAS_API_KEY ausente).',
+      errors: [],
+      raw: null,
+    }
+  }
+  let res: Response
+  try {
+    res = await fetch(`${baseUrl()}${path}`, {
+      ...init,
+      headers: {
+        'Content-Type': 'application/json',
+        access_token: key,
+        'User-Agent': 'VIA AIR',
+        ...(init?.headers as Record<string, string> | undefined),
+      },
+    })
+  } catch (e) {
+    return {
+      ok: false,
+      status: 0,
+      code: 'network_error',
+      description: `Falha de comunicação com o banco: ${(e as Error).message}`,
+      errors: [],
+      raw: null,
+    }
+  }
+  const body = await res.json().catch(() => ({}))
+  if (!res.ok) {
+    const errors: Array<{ code?: string; description?: string }> = Array.isArray(body?.errors)
+      ? body.errors
+      : []
+    return {
+      ok: false,
+      status: res.status,
+      code: errors[0]?.code ?? null,
+      description:
+        errors.map((e) => e.description).filter(Boolean).join(' | ') ||
+        body?.message ||
+        `Erro ${res.status} retornado pelo banco.`,
+      errors,
+      raw: body,
+    }
+  }
+  return { ok: true, data: body as T, status: res.status }
+}
+
+/** Simulação do boleto sem lançar exceção — usada na consulta antes de pagar. */
+export function simulateAsaasBillSafe(identificationField: string) {
+  return asaasCall<BillSimulationResult>('/bill/simulate', {
+    method: 'POST',
+    body: JSON.stringify({ identificationField }),
+  })
+}
+
+/** Criação do pagamento sem lançar exceção — permite exibir o motivo real da recusa. */
+export function createAsaasBillSafe(input: CreateBillInput) {
+  const body: Record<string, any> = { identificationField: input.identificationField }
+  if (input.scheduleDate) body['scheduleDate'] = input.scheduleDate
+  if (input.description) body['description'] = input.description
+  if (input.value != null) body['value'] = input.value
+  if (input.dueDate) body['dueDate'] = input.dueDate
+  if (input.externalReference) body['externalReference'] = input.externalReference
+  return asaasCall<any>('/bill', { method: 'POST', body: JSON.stringify(body) })
+}
+
+
 /* ============================================================
  * CONSULTA DE CHAVE PIX (DICT)
  * ============================================================ */
