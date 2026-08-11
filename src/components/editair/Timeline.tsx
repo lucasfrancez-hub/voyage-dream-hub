@@ -535,6 +535,10 @@ export function Timeline({
     const trilha = state.tracks.find((t) => t.id === clip.trackId);
     if (trilha?.locked || clip.bloqueado) return;
     e.stopPropagation();
+    /* impede o drag-and-drop nativo (imagens do filmstrip) e a seleção de texto,
+       que disparavam pointercancel e matavam o arraste do clipe */
+    e.preventDefault();
+
     const x0 = e.clientX;
     const y0 = e.clientY;
     const inicioMs = msDoEvento(e.clientX);
@@ -1894,12 +1898,20 @@ function Filmstrip({ clip, asset, largura }: { clip: EditairClip; asset: AssetIn
   }, [asset.url, qtd, clip.sourceIn, clip.speed, clip.duration]);
 
   return (
-    <div className="absolute inset-0 flex h-full w-full">
+    /* pointer-events-none: as miniaturas são decorativas. Com <img> "arrastável"
+       nativo o gesto virava drag-and-drop do navegador → pointercancel → o
+       arraste do clipe era cancelado (bug: vídeo/imagem não moviam). */
+    <div className="pointer-events-none absolute inset-0 flex h-full w-full select-none">
       {imgs.map((src, i) => (
         <div key={i} className="h-full shrink-0 border-r border-black/40" style={{ width: passo }}>
-          {src ? <img src={src} alt="" className="h-full w-full object-cover" /> : <div className="h-full w-full bg-black/30" />}
+          {src ? (
+            <img src={src} alt="" draggable={false} data-testid="filmstrip-thumb" className="pointer-events-none h-full w-full select-none object-cover" />
+          ) : (
+            <div className="h-full w-full bg-black/30" />
+          )}
         </div>
       ))}
+
     </div>
   );
 }
@@ -1969,7 +1981,7 @@ function WaveClip({
 
   return (
     <svg
-      className={sobreposta ? "pointer-events-none absolute inset-x-0 bottom-0 w-full" : "h-full w-full"}
+      className={sobreposta ? "pointer-events-none absolute inset-x-0 bottom-0 w-full" : "pointer-events-none h-full w-full"}
       width={largura}
       height={altura}
       preserveAspectRatio="none"
