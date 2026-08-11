@@ -23,7 +23,17 @@ export type ElementoPalco = {
   h: number;
   rotation: number;
   bloqueado?: boolean;
+  /**
+   * "caixa" = arrastar os cantos muda só a largura da caixa de texto
+   * (quebra de linha); "escala" = redimensiona o elemento.
+   */
+  resize?: "escala" | "caixa";
 };
+
+/** Legenda e texto ficam na frente do vídeo no hit-test do Reprodutor. */
+const CAMADA: Record<string, number> = { caption: 30, text: 20 };
+const camadaDe = (kind: string) => CAMADA[kind] ?? 10;
+
 
 export type Plataforma = "nenhuma" | "reels" | "tiktok" | "shorts";
 
