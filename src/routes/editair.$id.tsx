@@ -70,6 +70,7 @@ import {
   paraWav16k,
 } from "@/lib/editair/audio";
 import { EditairEngine } from "@/lib/editair/engine";
+import { aplicarAssetsIniciais, midiaParaAsset, PonteAssets } from "@/lib/editair/bootstrap";
 import { consumirHandoff } from "@/lib/editair/handoff";
 import { Timeline, type AssetInfo } from "@/components/editair/Timeline";
 import { PlayerStage, type ElementoPalco } from "@/components/editair/PlayerStage";
@@ -181,50 +182,26 @@ function EditorPage() {
   );
 
   /* -------- ponte assets ↔ engine (fila de pendentes) -------- */
-  const pendentesRef = useRef<Map<string, AssetItem>>(new Map());
   const stateRef = useRef<ProjectState>(state);
   stateRef.current = state;
   const playheadRef = useRef(0);
   playheadRef.current = playhead;
 
-  /** Carrega o asset na engine; se ela ainda não existir, guarda para depois. */
-  const carregarNaEngine = useCallback(async (a: AssetItem) => {
-    if (!a.url) {
-      pendentesRef.current.delete(a.id);
-      console.warn(`[media] asset sem url assetId=${a.id}`);
-      return;
-    }
-    const eng = engineRef.current;
-    if (!eng) {
-      pendentesRef.current.set(a.id, a);
-      console.log(`[engine] asset ${a.id} aguardando engine`);
-      return;
-    }
-    pendentesRef.current.delete(a.id);
-    try {
-      await eng.carregar(a.id, a.url, a.kind);
-      if (eng.falhou(a.id)) {
-        toast.error(`Não foi possível abrir esta mídia: ${a.nome}`);
-      }
-      eng.desenhar(stateRef.current, playheadRef.current);
-    } catch (e) {
-      console.error(`[preview:error] falha ao carregar asset=${a.id}`, e);
-      toast.error(`Não foi possível abrir esta mídia: ${a.nome}`);
-    }
-  }, []);
+  const ponteRef = useRef<PonteAssets | null>(null);
+  if (!ponteRef.current) {
+    ponteRef.current = new PonteAssets(
+      () => ({ state: stateRef.current, playhead: playheadRef.current }),
+      (a) => toast.error(`Não foi possível abrir esta mídia: ${a.nome}`),
+    );
+  }
+  const ponte = ponteRef.current;
 
-  const midiaParaAsset = useCallback(
-    (m: MidiaEditair): AssetItem => ({
-      id: m.id,
-      nome: m.nome,
-      kind: m.kind,
-      durationMs: m.durationMs,
-      url: m.url,
-      thumbUrl: m.thumbUrl ?? null,
-      local: m.local,
-      existe: m.existe,
-    }),
-    [],
+  /** Carrega o asset na engine; se ela ainda não existir, guarda para depois. */
+  const carregarNaEngine = useCallback(
+    async (a: AssetItem) => {
+      await ponte.carregar(a);
+    },
+    [ponte],
   );
 
   /* ---------------- 1A. bootstrap de DADOS (independe do canvas) ---------------- */
@@ -244,40 +221,11 @@ function EditorPage() {
         let estado = normalizarEstado(res.state ?? estadoVazio(w, h, fps), w, h, fps);
         const lista: AssetItem[] = res.midias.map(midiaParaAsset);
         setAssets(lista);
-        for (const a of lista) pendentesRef.current.set(a.id, a);
+        ponte.enfileirar(lista);
 
         // Projeto novo criado a partir da Galeria: as mídias entram uma única vez
         // na timeline. A flag impede recriar clipes que o usuário apagou de propósito.
-        const jaAplicado = estado.assetsIniciaisAplicados === true || estado.clips.length > 0;
-        if (!jaAplicado && lista.length) {
-          const clips: EditairClip[] = [];
-          const fim: Record<string, number> = {};
-          for (const a of lista) {
-            const trilha = a.kind === "audio" ? "t-music" : "t-video";
-            const inicio = fim[trilha] ?? 0;
-            const dur = Math.max(1000, a.durationMs || (a.kind === "image" ? 5000 : 3000));
-            clips.push({
-              id: novoId(),
-              trackId: trilha,
-              kind: a.kind === "audio" ? "audio" : a.kind === "image" ? "image" : "video",
-              assetId: a.id,
-              start: inicio,
-              duration: dur,
-              sourceIn: 0,
-              volume: 1,
-              speed: 1,
-              transform: transformPadrao(),
-              label: a.nome.slice(0, 28),
-            });
-            fim[trilha] = inicio + dur;
-          }
-          estado = recalcularDuracao({ ...estado, clips, assetsIniciaisAplicados: true });
-          const dim = res.midias.find((m) => m.width > 0 && m.height > 0);
-          if (dim) estado = { ...estado, width: dim.width, height: dim.height };
-          console.log(`[timeline] ${clips.length} clipe(s) inicial(is) criado(s)`);
-        } else if (!estado.assetsIniciaisAplicados) {
-          estado = { ...estado, assetsIniciaisAplicados: true };
-        }
+        estado = aplicarAssetsIniciais(estado, lista, res.midias);
         setState(estado);
 
         const primeiro = res.midias.find((m) => m.width > 0 && m.height > 0);
@@ -318,7 +266,7 @@ function EditorPage() {
       vivo = false;
       engineRef.current?.destruir();
       engineRef.current = null;
-      pendentesRef.current.clear();
+      ponte.limpar();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
@@ -337,20 +285,12 @@ function EditorPage() {
       console.log("[engine] criada");
     }
     const eng = engineRef.current;
+    ponte.definirEngine(eng);
     eng.redimensionar(stateRef.current.width, stateRef.current.height, qualidade);
 
-    void (async () => {
-      // carrega tudo o que ainda não foi para a engine (bootstrap, import, drag&drop, relink)
-      const fila = assets.filter((a) => a.url && (pendentesRef.current.has(a.id) || a.existe !== false));
-      for (const a of fila) {
-        if (!vivo) return;
-        await carregarNaEngine(a);
-      }
-      if (!vivo) return;
-      // primeiro frame visível sem apertar Play
-      eng.sincronizar(stateRef.current, playheadRef.current, false);
-      eng.desenhar(stateRef.current, playheadRef.current);
-    })();
+    // carrega tudo o que ainda não foi para a engine (bootstrap, import, drag&drop, relink)
+    // e pinta o primeiro frame sem precisar apertar Play
+    void ponte.drenar(assets, () => vivo);
 
     return () => {
       vivo = false;
