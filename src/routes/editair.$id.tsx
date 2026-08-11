@@ -1152,42 +1152,54 @@ function EditorPage() {
   const editarClipComIa = async (instrucao: string) => {
     const cid = iaClipId;
     const clip = cid ? state.clips.find((c) => c.id === cid) : null;
-    if (!clip) return;
+  /**
+   * Edição com IA em duas fases: a IA devolve um PLANO tipado (nada é aplicado),
+   * o usuário aprova e só então o EditAir executa tudo de uma vez — em camadas,
+   * de forma não destrutiva e com um único Desfazer.
+   */
+  const planejarEdicaoIa = async (instrucao: string) => {
     if (!(await exigirNuvem())) return;
-    const trilha = state.tracks.find((t) => t.id === clip.trackId);
-    const asset = clip.assetId ? assets.find((a) => a.id === clip.assetId) : null;
-    const fim = clip.start + clip.duration;
+    const clip = iaEscopo === "clipe" && iaClipId ? state.clips.find((c) => c.id === iaClipId) : null;
+    if (iaEscopo === "clipe" && !clip) {
+      toast.error("Selecione um clipe para editar.");
+      return;
+    }
+
+    const ratio = state.width / state.height;
+    const janela =
+      clip != null
+        ? { de: clip.start, ate: clip.start + clip.duration }
+        : iaEscopo === "cena"
+          ? { de: Math.max(0, playhead - 30000), ate: playhead + 30000 }
+          : { de: 0, ate: state.durationMs };
+
     const trechoTranscricao = (transcript?.segments ?? [])
-      .filter((s) => s.end >= clip.start && s.start <= fim)
+      .filter((s) => s.end >= janela.de && s.start <= janela.ate)
       .map((s) => `[${Math.round(s.start)}-${Math.round(s.end)}] ${s.text}`)
       .join("\n")
-      .slice(0, 12000);
-    const acima = state.tracks.slice(0, state.tracks.findIndex((t) => t.id === clip.trackId)).map((t) => t.name);
-    const abaixo = state.tracks.slice(state.tracks.findIndex((t) => t.id === clip.trackId) + 1).map((t) => t.name);
-    const ratio = state.width / state.height;
+      .slice(0, 30000);
+
     const contexto = [
-      `Escopo: SOMENTE o clipe ${clip.id} (${clip.kind}) na camada "${trilha?.name ?? clip.trackId}".`,
-      `Posição na timeline: ${Math.round(clip.start)}ms → ${Math.round(fim)}ms (duração ${Math.round(clip.duration)}ms).`,
-      `sourceIn: ${Math.round(clip.sourceIn)}ms · velocidade: ${clip.speed || 1} · volume: ${clip.volume ?? 1}.`,
-      asset ? `Mídia: ${asset.nome} (${asset.kind}, ${Math.round(asset.durationMs)}ms).` : "Mídia: não identificada.",
-      `Camadas acima: ${acima.join(", ") || "nenhuma"} · abaixo: ${abaixo.join(", ") || "nenhuma"}.`,
-      `Formato do projeto: ${ratio < 0.85 ? "vertical" : ratio > 1.2 ? "horizontal" : "quadrado"} (${state.width}x${state.height}).`,
-      trechoTranscricao ? `Transcrição do trecho:\n${trechoTranscricao}` : "Sem transcrição para o trecho.",
-      "Não altere outros clipes do projeto. Devolva operações de timeline editáveis.",
-      `Pedido do usuário: ${instrucao}`,
+      clip
+        ? `Clipe alvo: ${clip.id} (${clip.kind}) na camada "${state.tracks.find((t) => t.id === clip.trackId)?.name ?? clip.trackId}", ${Math.round(clip.start)}ms → ${Math.round(clip.start + clip.duration)}ms, sourceIn ${Math.round(clip.sourceIn)}ms, velocidade ${clip.speed || 1}.`
+        : iaEscopo === "cena"
+          ? `Cena atual: ${Math.round(janela.de)}ms → ${Math.round(janela.ate)}ms (playhead em ${Math.round(playhead)}ms).`
+          : "Projeto inteiro.",
+      `Formato: ${ratio < 0.85 ? "vertical" : ratio > 1.2 ? "horizontal" : "quadrado"} (${state.width}x${state.height}).`,
     ].join("\n");
 
     setPensando(true);
-    setEtapaIa("Analisando clipe…");
+    setIaEtapasFeitas([]);
+    setEtapaIa("Analisando a fala e o material…");
     try {
-      setEtapaIa("Criando plano de edição…");
-      const r = await dirigirEdicaoEditair({
+      setEtapaIa("Planejando cortes, camadas e legendas…");
+      const p = await planejarOperacoesEditair({
         data: {
-          mensagem: contexto,
+          escopo: iaEscopo,
+          instrucao,
+          contexto,
+          duracaoMs: Math.round(state.durationMs),
           playheadMs: Math.round(playhead),
-          selecao: { fromMs: Math.round(clip.start), toMs: Math.round(fim) },
-          clipeSelecionadoId: clip.id,
-          duracaoMs: state.durationMs,
           clipes: state.clips.slice(0, 400).map((c) => ({
             id: c.id,
             kind: c.kind,
@@ -1197,30 +1209,119 @@ function EditorPage() {
             label: c.label ?? null,
           })),
           trilhas: state.tracks.map((t) => ({ id: t.id, name: t.name, kind: t.kind })),
+          midias: assets.slice(0, 120).map((a) => ({
+            id: a.id,
+            nome: a.nome,
+            kind: a.kind,
+            durationMs: Math.round(a.durationMs),
+          })),
           transcricao: trechoTranscricao,
         },
       });
-      setEtapaIa("Aplicando alterações…");
-      const ops = ((r.ops ?? []) as unknown as EditairOp[]).filter(
-        (o) => !("clipId" in o) || !o.clipId || state.clips.some((c) => c.id === o.clipId),
-      );
-      if (ops.length) {
-        // checkpoint: aplicar() já empilha o estado anterior no histórico (Desfazer volta tudo)
-        const { state: novo } = aplicarOps(state, ops, transcript);
-        aplicar(novo);
+      const pronto: PlanoIa = { ...p, resumo: resumoDoPlano(p) };
+      if (!planoGrande(pronto)) {
+        await aplicarPlanoIa(pronto);
+        return;
       }
-      setMensagens((m) => [...m, { id: novoId("m"), autor: "ia", texto: r.resposta, ops: ops.length }]);
-      toast.success(ops.length ? `${ops.length} alteração(ões) aplicada(s) — use Desfazer para reverter` : "Concluído");
-      setIaClipId(null);
+      setIaPlano(pronto);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Falha na edição com IA");
+      toast.error(e instanceof Error ? e.message : "Falha ao planejar a edição");
     } finally {
       setPensando(false);
       setEtapaIa("");
     }
   };
 
+  /** Aplica o plano aprovado: gera mídias, cria camadas e executa as operações. */
+  const aplicarPlanoIa = async (p: PlanoIa) => {
+    setPensando(true);
+    const feitas: string[] = [];
+    const marcar = (t: string) => {
+      feitas.push(t);
+      setIaEtapasFeitas([...feitas]);
+    };
+    try {
+      let ops = validarOps(p.ops, state, iaEscopo === "clipe" ? iaClipId : null);
+      let base = state;
+
+      // 1. gerações de IA viram ARQUIVOS na Biblioteca (assets normais e editáveis)
+      if (p.geracoes.length) {
+        setEtapaIa(`Gerando ${p.geracoes.length} cena(s) com IA…`);
+        const prontas = await executarGeracoes(p.geracoes, {
+          vertical: state.width < state.height,
+          aoProgredir: (m) => setEtapaIa(m),
+        });
+        if (prontas.length) {
+          const novas = await importarMidias(
+            prontas.map((g) => g.arquivo),
+            { projectId: id, aoProgredir: (pr) => setEtapaIa(pr.mensagem) },
+          );
+          const novosAssets: AssetItem[] = [];
+          for (const midia of novas) {
+            const asset: AssetItem = {
+              id: midia.id,
+              nome: midia.nome,
+              kind: midia.kind,
+              durationMs: midia.durationMs,
+              url: midia.url,
+              thumbUrl: midia.thumbUrl ?? null,
+              local: midia.local,
+              existe: midia.existe,
+            };
+            await carregarNaEngine(asset);
+            novosAssets.push(asset);
+          }
+          setAssets((a) => [...a.filter((x) => !novosAssets.some((n) => n.id === x.id)), ...novosAssets]);
+          setMidias((m) => [...m.filter((x) => !novas.some((n) => n.id === x.id)), ...novas]);
+
+          // cada cena gerada entra na camada "IA Gerada" como clipe editável
+          const camada: EditairOp[] = [
+            { op: "create_track", ref: "ia-gerada", kind: "broll", name: "IA Gerada" } as EditairOp,
+          ];
+          const insercoes = prontas.map((g, i) => {
+            const midia = novas[i];
+            return {
+              op: "insert_clip",
+              trackId: "ia-gerada",
+              assetId: midia?.id,
+              kind: g.arquivo.type.startsWith("image") ? "image" : "video",
+              startMs: Math.round(g.pedido.startMs),
+              durationMs: Math.round(g.pedido.durationMs || midia?.durationMs || 4000),
+              label: "Cena IA",
+            } as EditairOp;
+          });
+          ops = [...camada, ...insercoes, ...ops];
+          marcar(`${prontas.length} cena(s) gerada(s) e adicionada(s) à Biblioteca`);
+        }
+      }
+
+      if (!ops.length) {
+        toast.info("Nada aplicável no plano.");
+        return;
+      }
+
+      setEtapaIa("Organizando camadas e aplicando a edição…");
+      // checkpoint único: aplicar() empilha o estado anterior — um Desfazer reverte tudo
+      const { state: novo } = aplicarOps(base, ops, transcript, duracoesFonte);
+      base = novo;
+      aplicar(novo);
+      marcar("Edição aplicada na timeline");
+      setMensagens((m) => [...m, { id: novoId("m"), autor: "ia", texto: p.resposta, ops: ops.length }]);
+      toast.success(`${ops.length} operação(ões) aplicada(s) — use Desfazer para reverter tudo`);
+      setIaPlano(null);
+      setIaAberto(false);
+      setIaClipId(null);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha ao aplicar a edição");
+    } finally {
+      setPensando(false);
+      setEtapaIa("");
+      setIaEtapasFeitas([]);
+    }
+  };
+
   /* ------------- cérebro editorial: plano antes do corte ------------- */
+
   const planejar = async (objetivo: string, ajuste = "") => {
     if (!(await exigirNuvem())) return;
     const buf = audioBufferRef.current;
