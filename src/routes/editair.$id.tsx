@@ -1877,8 +1877,7 @@ function EditorPage() {
             }}
             onTranscreverAsset={() => void analisar()}
             onPatchClip={(patch) => patchClipe(patch)}
-          onTextoLegenda={editarTextoLegenda}
-            onTextoLegenda={editarTextoLegenda}
+
             onPatchState={(patch) => aplicar({ ...state, ...patch })}
             onCaption={(patch: Partial<CaptionStyle>) => aplicar({ ...state, captionStyle: { ...state.captionStyle, ...patch } })}
             onAplicarModeloLegenda={aplicarModeloLegenda}
