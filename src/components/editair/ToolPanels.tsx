@@ -1,3 +1,4 @@
+import { posicionarMenu } from "@/lib/editair/layers";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   Diamond,
@@ -394,16 +395,8 @@ function MenuFlutuante({
   useLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
-    const m = 8;
     const r = el.getBoundingClientRect();
-    let px = x;
-    let py = y;
-    if (py + r.height + m > window.innerHeight) py = y - r.height;
-    if (px + r.width + m > window.innerWidth) px = x - r.width;
-    setPos({
-      x: Math.min(Math.max(m, px), Math.max(m, window.innerWidth - r.width - m)),
-      y: Math.min(Math.max(m, py), Math.max(m, window.innerHeight - r.height - m)),
-    });
+    setPos(posicionarMenu(x, y, r.width, r.height, window.innerWidth, window.innerHeight));
   }, [x, y]);
 
   useEffect(() => {
