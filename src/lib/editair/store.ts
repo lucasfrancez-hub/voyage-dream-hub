@@ -210,28 +210,29 @@ export async function importarMidias(
   if (!entrada || (Array.isArray(entrada) ? entrada.length === 0 : entrada.length === 0)) return [];
 
   if (api) {
-    let caminhos =
-      typeof (entrada as string[])[0] === "string"
-        ? (entrada as string[])
-        : caminhosDeArquivos(entrada as FileList | File[]);
-    /* mídia criada em memória (ex.: cena gerada pela IA) não tem caminho no disco:
-       grava os bytes no cache do app e importa esse arquivo como qualquer outra mídia */
-    if (!caminhos.length && typeof (entrada as string[])[0] !== "string" && api.arquivo.salvarBytes) {
-      opcoes.aoProgredir?.({ fase: "lendo", mensagem: "Salvando mídia gerada…" });
+    const entradaPorCaminho = typeof (entrada as string[])[0] === "string";
+    let caminhos = entradaPorCaminho ? (entrada as string[]) : [];
+    /* Arquivos do Finder têm caminho real. Mídias geradas pela IA existem só em
+       memória e precisam ser persistidas antes de entrar na Biblioteca. */
+    if (!entradaPorCaminho) {
       const arquivos = Array.from(entrada as FileList | File[]);
-      const salvos: string[] = [];
-      for (const f of arquivos) {
-        const bytes = new Uint8Array(await f.arrayBuffer());
-        salvos.push(await api.arquivo.salvarBytes(f.name || "midia.bin", bytes));
+      const caminhosReais = caminhosDeArquivos(arquivos);
+      caminhos = [...caminhosReais];
+      const arquivosEmMemoria = arquivos.filter((_, indice) => !caminhosReais[indice]);
+      if (arquivosEmMemoria.length && !api.arquivo.salvarBytes) {
+        throw new Error("Atualize o EditAir Desktop para salvar automaticamente as mídias geradas pela IA.");
       }
-      caminhos = salvos;
+      opcoes.aoProgredir?.({ fase: "lendo", mensagem: "Salvando mídia gerada…" });
+      for (const f of arquivosEmMemoria) {
+        const bytes = new Uint8Array(await f.arrayBuffer());
+        if (!bytes.byteLength) throw new Error(`A mídia ${f.name || "gerada"} está vazia.`);
+        const caminho = await api.arquivo.salvarBytes?.(f.name || "midia.bin", bytes);
+        if (!caminho) throw new Error(`Não foi possível salvar ${f.name || "a mídia gerada"} na Biblioteca.`);
+        caminhos.push(caminho);
+      }
     }
     if (!caminhos.length) {
-      throw new Error(
-        api.arquivo.salvarBytes
-          ? "Não consegui ler esses arquivos do disco. Use Importar mídia para escolhê-los."
-          : "Esta versão do app não consegue salvar mídia gerada. Atualize o EditAir Desktop.",
-      );
+      throw new Error("Não foi possível salvar a mídia na Biblioteca do EditAir.");
     }
     opcoes.aoProgredir?.({
       fase: "lendo",
