@@ -234,6 +234,49 @@ responder("diagnostico:salvarTexto", async ({ nome = "EditAir-audio-diag.txt", t
   return destino;
 });
 
+responder("diagnostico:importacao", async () => {
+  // AUDITORIA (somente leitura): onde cada mídia está e se o áudio sobrevive ao proxy.
+  let db = { assets: [] };
+  try {
+    db = JSON.parse(fs.readFileSync(path.join(dirs.raiz(), "library.json"), "utf8"));
+  } catch {
+    db = { assets: [] };
+  }
+  const assets = Array.isArray(db.assets) ? db.assets.slice(-12) : [];
+  const linhas = [];
+  for (const a of assets) {
+    const info = {
+      id: a.id,
+      nome: a.name,
+      copiadoParaBiblioteca: !!a.copiado,
+      originalPath: a.localPath,
+      originalExiste: a.localPath ? fs.existsSync(a.localPath) : false,
+      proxyPath: a.proxyPath || null,
+      proxyExiste: a.proxyPath ? fs.existsSync(a.proxyPath) : false,
+      thumbPath: a.thumbPath || null,
+      urlDoPreview: (a.proxyPath || a.localPath) ? `editair-media://arquivo?p=${encodeURIComponent(a.proxyPath || a.localPath)}` : null,
+      original: null,
+      proxy: null,
+    };
+    try {
+      if (info.originalExiste) info.original = await media.probe(a.localPath);
+    } catch (e) {
+      info.original = { erro: String((e && e.message) || e) };
+    }
+    try {
+      if (info.proxyExiste) info.proxy = await media.probe(a.proxyPath);
+    } catch (e) {
+      info.proxy = { erro: String((e && e.message) || e) };
+    }
+    linhas.push(info);
+  }
+  return {
+    pastas: { raiz: dirs.raiz(), biblioteca: dirs.biblioteca(), cache: dirs.cache(), proxies: dirs.proxies() },
+    settings: lerSettings(),
+    assets: linhas,
+  };
+});
+
 responder("app:devTools", async () => {
   const wc = janela?.webContents;
   if (!wc) return false;
