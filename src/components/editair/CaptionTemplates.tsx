@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Heart, Trash2 } from "lucide-react";
+import { Heart, RotateCcw, Trash2 } from "lucide-react";
 import {
   CATEGORIAS_LEGENDA,
   FRASE_DEMO,
@@ -27,9 +27,28 @@ type Filtro = "todos" | "favoritos" | "meus" | (typeof CATEGORIAS_LEGENDA)[numbe
 
 const PALAVRAS = FRASE_DEMO.split(" ");
 
+/** Só anima o que está visível na tela (performance com dezenas de cards). */
+function useVisivel<T extends HTMLElement>() {
+  const ref = useRef<T>(null);
+  const [visivel, setVisivel] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || typeof IntersectionObserver === "undefined") {
+      setVisivel(true);
+      return;
+    }
+    const io = new IntersectionObserver((entradas) => setVisivel(entradas.some((e) => e.isIntersecting)), {
+      rootMargin: "120px",
+    });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+  return { ref, visivel };
+}
+
 /**
  * Miniatura real do preset: usa o MESMO objeto de estilo que a engine usa
- * para desenhar a legenda no vídeo. Animação só roda no hover (performance).
+ * para desenhar a legenda no vídeo. Card parado = estático; hover = animado.
  */
 function MiniPreview({ estilo, ativoHover }: { estilo: CaptionStyle; ativoHover: boolean }) {
   const [idx, setIdx] = useState(-1);
@@ -97,13 +116,89 @@ function MiniPreview({ estilo, ativoHover }: { estilo: CaptionStyle; ativoHover:
   );
 }
 
+function Card({
+  modelo,
+  estilo,
+  ativo,
+  favorito,
+  onAplicar,
+  onFavoritar,
+  onExcluir,
+  temSelecao,
+}: {
+  modelo: ModeloLegenda;
+  estilo: CaptionStyle;
+  ativo: boolean;
+  favorito: boolean;
+  onAplicar: (escopo: "uma" | "todas") => void;
+  onFavoritar: () => void;
+  onExcluir?: () => void;
+  temSelecao: boolean;
+}) {
+  const [hover, setHover] = useState(false);
+  const { ref, visivel } = useVisivel<HTMLDivElement>();
+
+  return (
+    <div
+      ref={ref}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      className={`group relative overflow-hidden rounded-xl border p-2 transition ${
+        ativo ? "border-[#F26B1F] bg-[#F26B1F]/10" : "border-white/10 bg-black/40 hover:border-white/25"
+      }`}
+    >
+      <button onClick={() => onAplicar("uma")} title={`${modelo.nome} — ${modelo.descricao}`} className="block w-full">
+        <MiniPreview estilo={estilo} ativoHover={hover && visivel} />
+      </button>
+
+      <div className="mt-1.5 flex items-center justify-between gap-1">
+        <span className="truncate text-[10px] text-white/70" title={modelo.descricao}>
+          {modelo.nome}
+        </span>
+        <div className="flex items-center gap-1">
+          {onExcluir ? (
+            <button onClick={onExcluir} title="Excluir modelo" className="text-white/40 hover:text-red-400">
+              <Trash2 className="h-3 w-3" />
+            </button>
+          ) : null}
+          <button
+            onClick={onFavoritar}
+            title="Favoritar"
+            className={favorito ? "text-[#F26B1F]" : "text-white/35 hover:text-white/70"}
+          >
+            <Heart className="h-3 w-3" fill={favorito ? "currentColor" : "none"} />
+          </button>
+        </div>
+      </div>
+
+      <div className="mt-1 flex gap-1">
+        <button
+          onClick={() => onAplicar("uma")}
+          disabled={!temSelecao}
+          className="flex-1 rounded-md bg-white/5 py-1 text-[9px] text-white/70 hover:bg-white/10 disabled:opacity-40"
+        >
+          Nesta legenda
+        </button>
+        <button
+          onClick={() => onAplicar("todas")}
+          className="flex-1 rounded-md bg-white/5 py-1 text-[9px] text-white/70 hover:bg-white/10"
+        >
+          Em todas
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export function CaptionTemplates({ atual, onAplicar, temSelecao }: Props) {
   const [favoritos, setFavoritos] = useState<string[]>(() => lerFavoritos());
   const [meus, setMeus] = useState<ModeloLegenda[]>(() => lerMeusModelos());
   const [selecionado, setSelecionado] = useState<string | null>(atual.presetId ?? null);
   const [filtro, setFiltro] = useState<Filtro>("todos");
-  const [hover, setHover] = useState<string | null>(null);
   const [nomeNovo, setNomeNovo] = useState("");
+  /** estilo anterior ao início da experimentação (Esc volta pra ele) */
+  const original = useRef<{ estilo: CaptionStyle; escopo: "uma" | "todas" } | null>(null);
+  const [experimentando, setExperimentando] = useState(false);
 
   const lista = useMemo(() => {
     const base = [...meus, ...MODELOS_LEGENDA];
@@ -114,14 +209,34 @@ export function CaptionTemplates({ atual, onAplicar, temSelecao }: Props) {
   }, [meus, favoritos, filtro]);
 
   const aplicar = (m: ModeloLegenda, escopo: "uma" | "todas") => {
+    if (!original.current) original.current = { estilo: atual, escopo };
     setSelecionado(m.id);
+    setExperimentando(true);
     onAplicar(estiloDoModelo(m, atual), escopo);
   };
 
-  const abas: { id: Filtro; nome: string }[] = [
+  const desfazer = () => {
+    const o = original.current;
+    if (!o) return;
+    onAplicar(o.estilo, o.escopo);
+    setSelecionado(o.estilo.presetId ?? null);
+    original.current = null;
+    setExperimentando(false);
+  };
+
+  useEffect(() => {
+    if (!experimentando) return;
+    const aoTeclar = (e: KeyboardEvent) => {
+      if (e.key === "Escape") desfazer();
+    };
+    window.addEventListener("keydown", aoTeclar, true);
+    return () => window.removeEventListener("keydown", aoTeclar, true);
+  });
+
+  const categorias: { id: Filtro; nome: string }[] = [
     { id: "todos", nome: "Todos" },
-    ...CATEGORIAS_LEGENDA.map((c) => ({ id: c.id as Filtro, nome: c.nome })),
     { id: "favoritos", nome: "Favoritos" },
+    ...CATEGORIAS_LEGENDA.map((c) => ({ id: c.id as Filtro, nome: c.nome })),
     { id: "meus", nome: "Meus modelos" },
   ];
 
@@ -129,86 +244,57 @@ export function CaptionTemplates({ atual, onAplicar, temSelecao }: Props) {
     <div className="mb-4">
       <div className="mb-2 flex items-center justify-between">
         <span className="text-[11px] font-semibold uppercase tracking-wide text-white/60">Modelos</span>
-        <span className="text-[10px] text-white/35">{lista.length} estilos</span>
+        <div className="flex items-center gap-2">
+          {experimentando ? (
+            <button
+              onClick={desfazer}
+              className="flex items-center gap-1 rounded-full bg-white/5 px-2 py-0.5 text-[9px] text-white/60 hover:bg-white/10"
+            >
+              <RotateCcw className="h-3 w-3" /> Voltar (Esc)
+            </button>
+          ) : null}
+          <span className="text-[10px] text-white/35">{lista.length} estilos</span>
+        </div>
       </div>
 
-      <div className="-mx-1 mb-2 flex gap-1 overflow-x-auto px-1 pb-1">
-        {abas.map((f) => (
-          <button
-            key={f.id}
-            onClick={() => setFiltro(f.id)}
-            className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] ${
-              filtro === f.id ? "bg-[#F26B1F] text-white" : "bg-white/5 text-white/60 hover:bg-white/10"
-            }`}
-          >
-            {f.nome}
-          </button>
-        ))}
-      </div>
-
-      <div className="grid grid-cols-2 gap-2">
-        {lista.map((m) => {
-          const estilo = estiloDoModelo(m, atual);
-          const ativo = selecionado === m.id;
-          return (
-            <div
-              key={m.id}
-              onMouseEnter={() => setHover(m.id)}
-              onMouseLeave={() => setHover((h) => (h === m.id ? null : h))}
-              className={`group relative overflow-hidden rounded-xl border p-2 ${
-                ativo ? "border-[#F26B1F] bg-[#F26B1F]/10" : "border-white/10 bg-black/40 hover:border-white/25"
+      <div className="flex gap-2">
+        {/* categorias — coluna lateral */}
+        <div className="w-[86px] shrink-0 space-y-0.5 overflow-y-auto pr-1" style={{ maxHeight: 420 }}>
+          {categorias.map((c) => (
+            <button
+              key={c.id}
+              onClick={() => setFiltro(c.id)}
+              className={`block w-full truncate rounded-md px-2 py-1.5 text-left text-[10px] transition ${
+                filtro === c.id ? "bg-[#F26B1F]/15 font-semibold text-[#F26B1F]" : "text-white/55 hover:bg-white/5"
               }`}
             >
-              <button
-                onClick={() => aplicar(m, "uma")}
-                title={`${m.nome} — ${m.descricao}`}
-                className="block w-full"
-              >
-                <MiniPreview estilo={estilo} ativoHover={hover === m.id} />
-              </button>
+              {c.nome}
+            </button>
+          ))}
+        </div>
 
-              <div className="mt-1.5 flex items-center justify-between gap-1">
-                <span className="truncate text-[10px] text-white/70" title={m.descricao}>
-                  {m.nome}
-                </span>
-                <div className="flex items-center gap-1">
-                  {m.id.startsWith("meu-") && (
-                    <button
-                      onClick={() => setMeus(apagarMeuModelo(m.id))}
-                      title="Excluir modelo"
-                      className="text-white/40 hover:text-red-400"
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </button>
-                  )}
-                  <button
-                    onClick={() => setFavoritos(alternarFavorito(m.id))}
-                    title="Favoritar"
-                    className={favoritos.includes(m.id) ? "text-[#F26B1F]" : "text-white/35 hover:text-white/70"}
-                  >
-                    <Heart className="h-3 w-3" fill={favoritos.includes(m.id) ? "currentColor" : "none"} />
-                  </button>
-                </div>
-              </div>
-
-              <div className="mt-1 flex gap-1">
-                <button
-                  onClick={() => aplicar(m, "uma")}
-                  disabled={!temSelecao}
-                  className="flex-1 rounded-md bg-white/5 py-1 text-[9px] text-white/70 hover:bg-white/10 disabled:opacity-40"
-                >
-                  Nesta legenda
-                </button>
-                <button
-                  onClick={() => aplicar(m, "todas")}
-                  className="flex-1 rounded-md bg-white/5 py-1 text-[9px] text-white/70 hover:bg-white/10"
-                >
-                  Em todas
-                </button>
-              </div>
+        {/* grade de cards */}
+        <div className="min-w-0 flex-1 overflow-y-auto pr-0.5" style={{ maxHeight: 420 }}>
+          {lista.length === 0 ? (
+            <p className="py-6 text-center text-[10px] text-white/35">Nenhum modelo nesta categoria ainda.</p>
+          ) : (
+            <div className="grid grid-cols-2 gap-2">
+              {lista.map((m) => (
+                <Card
+                  key={m.id}
+                  modelo={m}
+                  estilo={estiloDoModelo(m, atual)}
+                  ativo={selecionado === m.id}
+                  favorito={favoritos.includes(m.id)}
+                  temSelecao={temSelecao}
+                  onAplicar={(escopo) => aplicar(m, escopo)}
+                  onFavoritar={() => setFavoritos(alternarFavorito(m.id))}
+                  onExcluir={m.id.startsWith("meu-") ? () => setMeus(apagarMeuModelo(m.id)) : undefined}
+                />
+              ))}
             </div>
-          );
-        })}
+          )}
+        </div>
       </div>
 
       <div className="mt-2 flex gap-1">
