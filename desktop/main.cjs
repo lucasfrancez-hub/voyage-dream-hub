@@ -213,14 +213,16 @@ responder("arquivo:abrir", async ({ caminho }) => {
   return true;
 });
 
-/* Grava bytes vindos do renderer (ex.: mídia gerada por IA) num arquivo real
-   dentro do cache, para que possa ser importado na Biblioteca como qualquer mídia. */
+/* Grava bytes vindos do renderer (ex.: mídia gerada por IA) num arquivo real.
+   Gerados ficam na Biblioteca permanente — nunca no cache, que pode ser limpo. */
 responder("arquivo:salvarBytes", async ({ nome = "midia.bin", bytes }) => {
-  const pasta = path.join(dirs.cache(), "gerados");
+  const pasta = path.join(dirs.biblioteca(), "gerados");
   fs.mkdirSync(pasta, { recursive: true });
   const seguro = String(nome).replace(/[^\w.\-]+/g, "_").slice(-80) || "midia.bin";
   const destino = path.join(pasta, `${Date.now()}-${crypto.randomUUID().slice(0, 8)}-${seguro}`);
-  fs.writeFileSync(destino, Buffer.from(bytes));
+  const conteudo = bytes instanceof Uint8Array ? bytes : new Uint8Array(Object.values(bytes || {}));
+  if (!conteudo.byteLength) throw new Error("A mídia gerada chegou vazia e não pôde ser salva.");
+  fs.writeFileSync(destino, Buffer.from(conteudo));
   return destino;
 });
 

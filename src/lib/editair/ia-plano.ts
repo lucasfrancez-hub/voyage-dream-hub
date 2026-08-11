@@ -137,9 +137,14 @@ export async function executarGeracoes(
           if (st.status === "failed") throw new Error(st.erro || "A geração de vídeo falhou.");
           opcoes.aoProgredir?.(`Gerando cena ${i + 1} de ${geracoes.length}… ${st.progresso || 0}%`);
         }
+        if (!prontas.some((p) => p.pedido === g)) {
+          throw new Error("A geração do vídeo excedeu o tempo de espera. Tente novamente em instantes.");
+        }
       }
     } catch (e) {
-      opcoes.aoProgredir?.(e instanceof Error ? e.message : "Falha ao gerar a cena");
+      const mensagem = e instanceof Error ? e.message : "Falha ao gerar a cena";
+      opcoes.aoProgredir?.(mensagem);
+      throw new Error(mensagem);
     }
   }
   return prontas;
