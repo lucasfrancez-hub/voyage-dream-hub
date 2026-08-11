@@ -1197,7 +1197,7 @@ function AplicarLayoutLegenda({
   ];
   return (
     <div className="space-y-1.5 rounded-lg border border-white/10 bg-black/25 p-2">
-      <p className="text-[10px] uppercase tracking-wide text-white/40">Aplicar posição e tamanho a</p>
+      <p className="text-[10px] uppercase tracking-wide text-white/40">Aplicar estilo da legenda a</p>
       {opcoes.map((o) => (
         <label key={o.id} className="flex cursor-pointer items-center gap-2 text-[11px] text-white/70">
           <input
