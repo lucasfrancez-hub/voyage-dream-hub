@@ -1200,10 +1200,44 @@ function EditorPage() {
     return false;
   };
 
+  /** caminho local do arquivo de mídia principal (Desktop) — fonte do alinhador */
+  const caminhoMidiaPrincipal = (): string | null => {
+    const comCaminho = assets.find(
+      (a) => a.kind !== "image" && !!(a as { localPath?: string }).localPath,
+    ) as (AssetItem & { localPath?: string }) | undefined;
+    return comCaminho?.localPath ?? null;
+  };
+
+  /** Alinhamento ACÚSTICO local (whisper.cpp). Timestamps nunca vêm de LLM. */
+  const alinharLocal = async (
+    caminho: string,
+    job: ReturnType<typeof abrirJob>,
+  ): Promise<{ words: Transcript["words"]; modelo: string; ms: number; cache: boolean } | null> => {
+    const api = pontoDesktop();
+    if (!api?.transcricao) return null;
+    const desinscrever = api.transcricao.aoProgredir((p) => {
+      if (p.etapa === "modelo") {
+        const pct = p.percentual ?? 0;
+        job.etapa(`Baixando modelo de fala… ${pct}%`, Math.min(20, pct / 5));
+      } else if (p.etapa === "audio") job.etapa("Preparando áudio…", 22);
+      else if (p.etapa === "transcrever") job.etapa("Transcrevendo localmente…", 25 + (p.percentual ?? 0) * 0.5);
+      else if (p.etapa === "alinhar") job.etapa("Alinhando palavras…", 78);
+      else if (p.etapa === "cache") job.etapa("Reaproveitando transcrição em cache…", 78);
+    });
+    try {
+      const r = await api.transcricao.local({ caminho, idioma: "pt", jobId: job.id });
+      return { words: r.words, modelo: r.modelo, ms: r.msDecorridos, cache: r.cache };
+    } finally {
+      desinscrever();
+    }
+  };
+
   const analisar = async (): Promise<Transcript | null> => {
-    if (!(await exigirNuvem())) return null;
     const buf = audioBufferRef.current;
-    if (!buf) {
+    const api = pontoDesktop();
+    const caminho = api?.transcricao ? caminhoMidiaPrincipal() : null;
+    if (!caminho && !(await exigirNuvem())) return null;
+    if (!caminho && !buf) {
       toast.error("Reimporte o vídeo nesta sessão para analisar o áudio.");
       return null;
     }
@@ -1212,58 +1246,121 @@ function EditorPage() {
       projectId: id,
       type: "transcricao",
       title: "Transcrição",
-      stage: "Analisando áudio…",
+      stage: "Preparando áudio…",
       targetId: state.clips.find((c) => c.trackId === "t-video")?.id,
       resultado: "Transcrição concluída",
     });
     try {
-      const total = buf.duration * 1000;
-      const bloco = 60_000;
-      const palavras: Transcript["words"] = [];
-      // auditoria: guarda de qual bloco cada palavra veio, para provar offset
+      const total = buf ? buf.duration * 1000 : 0;
+      let palavras: Transcript["words"] = [];
+      // auditoria: de qual bloco cada palavra veio (prova de offset)
       const auditadas: import("@/lib/editair/auditoria-timing").PalavraAuditada[] = [];
-      for (let ini = 0; ini < total; ini += bloco) {
-        const fim = Math.min(total, ini + bloco);
-        if (job.cancelado()) return null;
-        job.etapa("Transcrevendo fala…", (ini / total) * 100);
-        const wav = paraWav16k(buf, ini, fim);
-        const b64 = await blobParaBase64(wav);
-        const r = await transcreverBlocoEditair({ data: { audioBase64: b64, offsetMs: Math.round(ini), idioma: "pt" } });
-        palavras.push(...r.words);
-        for (const w of r.words) auditadas.push({ ...w, chunkIni: Math.round(ini), chunkFim: Math.round(fim) });
-      }
-      // valida o relógio ANTES de virar legenda: resultado impossível é rejeitado
-      const { validarTiming } = await import("@/lib/editair/auditoria-timing");
-      const { calcularEnvelope: envAud, detectarFala: falaAud } = await import("@/lib/editair/audio");
-      const { regioes } = falaAud(envAud(buf));
-      const validacao = validarTiming(
-        auditadas,
-        regioes.map((r) => ({ inicio: r.start, fim: r.end })),
-        total,
-      );
-      console.info("[EditAir] auditoria de timing", validacao);
-      if (!validacao.valida) {
-        job.falhar(new Error(validacao.motivos.join("; ")));
-        toast.error(`Transcrição rejeitada: ${validacao.motivos[0]}`);
-        return null;
-      }
-      const segmentos: Transcript["segments"] = [];
-      let atual: typeof palavras = [];
-      for (const w of palavras) {
-        atual.push(w);
-        if (/[.!?]$/.test(w.w) || atual.length >= 14) {
-          segmentos.push({ start: atual[0].start, end: atual[atual.length - 1].end, text: atual.map((x) => x.w).join(" ") });
-          atual = [];
+      let fonte: "whisper-local" | "gemini" = "gemini";
+      let modeloUsado = "google/gemini-2.5-pro";
+      let msAlinhador = 0;
+      let veioDoCache = false;
+
+      /* ---------- 1) fonte oficial de tempo: alinhador local ---------- */
+      if (caminho) {
+        try {
+          const r = await alinharLocal(caminho, job);
+          if (r?.words.length) {
+            palavras = r.words;
+            fonte = "whisper-local";
+            modeloUsado = r.modelo;
+            msAlinhador = r.ms;
+            veioDoCache = r.cache;
+            for (const w of r.words) auditadas.push({ ...w, chunkIni: 0, chunkFim: Math.max(total, w.end + 1) });
+          }
+        } catch (e) {
+          const msg = e instanceof Error ? e.message : String(e);
+          console.error("[EditAir] alinhador local falhou", e);
+          // nunca cair silenciosamente para timestamps estimados
+          const seguir =
+            !!buf &&
+            (await confirmar({
+              title: "Alinhador local indisponível",
+              description: `${msg}\n\nPosso tentar a transcrição em nuvem, mas os tempos dela são estimados pelo modelo e podem sair fora de sincronia. Deseja continuar assim?`,
+              confirmText: "Usar nuvem mesmo assim",
+              cancelText: "Cancelar",
+            }));
+          if (!seguir) {
+            job.falhar(new Error(msg));
+            toast.error(`Transcrição local falhou: ${msg}`);
+            return null;
+          }
+          if (!(await exigirNuvem())) {
+            job.fechar();
+            return null;
+          }
         }
       }
-      if (atual.length) segmentos.push({ start: atual[0].start, end: atual[atual.length - 1].end, text: atual.map((x) => x.w).join(" ") });
-      job.etapa("Criando blocos de legenda…", 95);
-      const t: Transcript = { words: palavras, segments: segmentos };
+
+      /* ---------- 1b) fallback em nuvem (tempo estimado, sinalizado) ---------- */
+      if (!palavras.length) {
+        if (!buf) throw new Error("Áudio indisponível nesta sessão");
+        const bloco = 60_000;
+        for (let ini = 0; ini < total; ini += bloco) {
+          const fim = Math.min(total, ini + bloco);
+          if (job.cancelado()) return null;
+          job.etapa("Transcrevendo na nuvem…", (ini / total) * 60);
+          const b64 = await blobParaBase64(paraWav16k(buf, ini, fim));
+          const r = await transcreverBlocoEditair({ data: { audioBase64: b64, offsetMs: Math.round(ini), idioma: "pt" } });
+          palavras.push(...r.words);
+          for (const w of r.words) auditadas.push({ ...w, chunkIni: Math.round(ini), chunkFim: Math.round(fim) });
+        }
+      }
+
+      /* ---------- 2) validação temporal antes de virar legenda ---------- */
+      if (buf) {
+        const { validarTiming } = await import("@/lib/editair/auditoria-timing");
+        const { calcularEnvelope: envAud, detectarFala: falaAud } = await import("@/lib/editair/audio");
+        const { regioes } = falaAud(envAud(buf));
+        const validacao = validarTiming(
+          auditadas,
+          regioes.map((r) => ({ inicio: r.start, fim: r.end })),
+          total,
+        );
+        console.info("[EditAir] auditoria de timing", { fonte, modelo: modeloUsado, ...validacao });
+        if (!validacao.valida) {
+          job.falhar(new Error(validacao.motivos.join("; ")));
+          toast.error(`Transcrição rejeitada: ${validacao.motivos[0]}`);
+          return null;
+        }
+      }
+
+      /* ---------- 3) revisão de TEXTO (sem tocar no tempo) ---------- */
+      const { reconciliar, segmentarFrases } = await import("@/lib/editair/reconciliacao");
+      if (fonte === "whisper-local" && palavras.length && (await temSessaoNuvem())) {
+        job.etapa("Corrigindo texto…", 88);
+        try {
+          const { revisarTextoEditair } = await import("@/lib/editair/transcribe.functions");
+          const bruto = palavras.map((p) => p.w).join(" ");
+          const { texto } = await revisarTextoEditair({ data: { texto: bruto.slice(0, 60_000), idioma: "pt" } });
+          const rec = reconciliar(palavras, texto);
+          if (!rec.descartado) palavras = rec.palavras;
+          console.info("[EditAir] reconciliação texto×tempo", {
+            alteradas: rec.alteradas,
+            descartado: rec.descartado,
+          });
+        } catch (e) {
+          console.warn("[EditAir] revisão de texto ignorada", e);
+        }
+      }
+
+      /* ---------- 4) legendas ---------- */
+      job.etapa("Criando legendas…", 95);
+      const t: Transcript = { words: palavras, segments: segmentarFrases(palavras) };
 
       setTranscript(t);
       setFerramenta("legendas");
-      job.concluir(`${palavras.length} palavras transcritas`);
-      avisarConclusao(`${palavras.length} palavras transcritas`);
+      const detalhe =
+        fonte === "whisper-local"
+          ? `${palavras.length} palavras alinhadas localmente (${modeloUsado}${veioDoCache ? ", cache" : `, ${(msAlinhador / 1000).toFixed(1)}s`})`
+          : `${palavras.length} palavras transcritas na nuvem (tempo estimado)`;
+      job.concluir(detalhe);
+      avisarConclusao(detalhe);
+      if (fonte !== "whisper-local") toast.warning("Tempos estimados pela nuvem — no Desktop o alinhamento é acústico.");
       return t;
     } catch (e) {
       job.falhar(e);
