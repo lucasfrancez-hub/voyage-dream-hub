@@ -94,6 +94,21 @@ type PonteDesktop = {
     proxy(caminho: string): Promise<string | null>;
     extrairTrecho(caminho: string, inicioMs: number, fimMs: number, somenteAudio?: boolean): Promise<string>;
   };
+  /** alinhador acústico local (whisper.cpp) — fonte oficial dos timestamps */
+  transcricao?: {
+    estado(): Promise<EstadoTranscricaoLocal>;
+    baixarModelo(): Promise<EstadoTranscricaoLocal["modelo"]>;
+    local(opcoes: {
+      caminho: string;
+      idioma?: string;
+      inicioMs?: number;
+      fimMs?: number | null;
+      ignorarCache?: boolean;
+      jobId?: string | null;
+    }): Promise<ResultadoAlinhamentoLocal>;
+    limparCache(): Promise<{ removidos: number }>;
+    aoProgredir(cb: (e: ProgressoTranscricao) => void): () => void;
+  };
   projeto: {
     listar(): Promise<Array<Record<string, unknown>>>;
     criar(dados: Record<string, unknown>): Promise<Record<string, unknown>>;
