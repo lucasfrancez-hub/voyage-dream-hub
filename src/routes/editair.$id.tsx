@@ -1220,6 +1220,8 @@ function EditorPage() {
       const total = buf.duration * 1000;
       const bloco = 60_000;
       const palavras: Transcript["words"] = [];
+      // auditoria: guarda de qual bloco cada palavra veio, para provar offset
+      const auditadas: import("@/lib/editair/auditoria-timing").PalavraAuditada[] = [];
       for (let ini = 0; ini < total; ini += bloco) {
         const fim = Math.min(total, ini + bloco);
         if (job.cancelado()) return null;
@@ -1228,6 +1230,22 @@ function EditorPage() {
         const b64 = await blobParaBase64(wav);
         const r = await transcreverBlocoEditair({ data: { audioBase64: b64, offsetMs: Math.round(ini), idioma: "pt" } });
         palavras.push(...r.words);
+        for (const w of r.words) auditadas.push({ ...w, chunkIni: Math.round(ini), chunkFim: Math.round(fim) });
+      }
+      // valida o relógio ANTES de virar legenda: resultado impossível é rejeitado
+      const { validarTiming } = await import("@/lib/editair/auditoria-timing");
+      const { calcularEnvelope: envAud, detectarFala: falaAud } = await import("@/lib/editair/audio");
+      const { regioes } = falaAud(envAud(buf));
+      const validacao = validarTiming(
+        auditadas,
+        regioes.map((r) => ({ inicio: r.start, fim: r.end })),
+        total,
+      );
+      console.info("[EditAir] auditoria de timing", validacao);
+      if (!validacao.valida) {
+        job.falhar(new Error(validacao.motivos.join("; ")));
+        toast.error(`Transcrição rejeitada: ${validacao.motivos[0]}`);
+        return null;
       }
       const segmentos: Transcript["segments"] = [];
       let atual: typeof palavras = [];
@@ -1241,6 +1259,7 @@ function EditorPage() {
       if (atual.length) segmentos.push({ start: atual[0].start, end: atual[atual.length - 1].end, text: atual.map((x) => x.w).join(" ") });
       job.etapa("Criando blocos de legenda…", 95);
       const t: Transcript = { words: palavras, segments: segmentos };
+
       setTranscript(t);
       setFerramenta("legendas");
       job.concluir(`${palavras.length} palavras transcritas`);
