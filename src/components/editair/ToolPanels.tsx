@@ -40,6 +40,22 @@ import {
 } from "@/lib/editair/types";
 import type { PlanoEditorial } from "@/lib/editair/plan";
 import { PlanoEditorialPanel } from "./PlanoEditorialPanel";
+import { StickersPanel } from "./StickersPanel";
+import { ModelosPanel } from "./ModelosPanel";
+import type { ModeloEditair } from "@/lib/editair/modelos";
+import { filtroCss } from "@/lib/editair/engine";
+import {
+  PainelShell,
+  Chips,
+  Grade,
+  Secao,
+  LinhaValor,
+  PresetCard,
+  BotaoPill,
+  Vazio,
+  EstilosPreview,
+  type PreviewAnim,
+} from "./panel-kit";
 
 
 export type Ferramenta =
