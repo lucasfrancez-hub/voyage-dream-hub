@@ -18,7 +18,9 @@ import { posicionarMenu, type DestinoCamada } from "@/lib/editair/layers";
 import { destinoDeClip, destinoPorY, passouLimiar } from "@/lib/editair/interacao";
 import { marcadoresEfeitos } from "@/lib/editair/efeitos";
 import { limitesDoClip } from "@/lib/editair/ops";
-import { obterPicos, obterThumb } from "@/lib/editair/media";
+import { obterPicos, obterThumb, picosEmCache } from "@/lib/editair/media";
+import { executarJob } from "@/lib/editair/jobs";
+import { useJobsDoAlvo } from "@/hooks/use-editair-jobs";
 
 
 export type AssetInfo = { id?: string; url: string; durationMs: number; kind: string; name: string };
@@ -1051,6 +1053,9 @@ function Clipe({
         title={clip.label ?? clip.text ?? clip.kind}
       >
         {visual && asset ? <Filmstrip clip={clip} asset={asset} largura={largura} /> : null}
+        {clip.kind === "video" && asset ? (
+          <WaveClip clip={clip} asset={asset} largura={largura} sobreposta />
+        ) : null}
         {sonoro && asset ? <WaveClip clip={clip} asset={asset} largura={largura} /> : null}
         {!visual && !sonoro ? (
           <span className="truncate px-2">{clip.text ?? clip.label ?? clip.kind}</span>
@@ -1069,6 +1074,7 @@ function Clipe({
           <span className="pointer-events-none absolute left-0 top-0 h-full w-3 bg-gradient-to-r from-white/60 to-transparent" />
         ) : null}
         <MarcadoresEfeitos clip={clip} largura={largura} />
+        <StatusClipe clip={clip} />
         {!bloqueado && !clip.bloqueado ? (
           <>
             <div

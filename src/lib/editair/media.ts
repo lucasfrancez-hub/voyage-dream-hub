@@ -114,6 +114,11 @@ export async function obterPicos(assetId: string, url: string, pontos = 900): Pr
   return p;
 }
 
+/** Picos já calculados (evita abrir job para algo instantâneo). */
+export function picosEmCache(assetId: string): number[] | null {
+  return picosCache.get(assetId) ?? null;
+}
+
 export function limparCacheMidia() {
   thumbCache.clear();
   for (const [, el] of videoPool) el.src = "";
