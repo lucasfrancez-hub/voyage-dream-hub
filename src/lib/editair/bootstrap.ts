@@ -19,6 +19,8 @@ export type AssetBasico = {
   thumbUrl?: string | null;
   local?: boolean;
   existe?: boolean;
+  /** caminho no disco (somente Desktop) — usado para gerar proxy quando o codec falha */
+  localPath?: string | null;
 };
 
 /** Forma mínima de uma mídia vinda do store (nuvem ou disco local). */
@@ -33,6 +35,7 @@ export type MidiaBasica = {
   existe?: boolean;
   width?: number;
   height?: number;
+  localPath?: string | null;
 };
 
 /** Só o que o pipeline precisa da engine — permite instrumentar/mockar nos testes. */
@@ -41,6 +44,7 @@ export type EngineMinima = {
   falhou(assetId: string): boolean;
   desenhar(state: ProjectState, t: number): void;
   sincronizar(state: ProjectState, t: number, tocando: boolean): void;
+  erroDe?(assetId: string): unknown;
 };
 
 /** Web (https://…) e Desktop (editair-media://…) produzem a MESMA estrutura. */
@@ -54,6 +58,7 @@ export function midiaParaAsset(m: MidiaBasica): AssetBasico {
     thumbUrl: m.thumbUrl ?? null,
     local: m.local,
     existe: m.existe,
+    localPath: m.localPath ?? null,
   };
 }
 
