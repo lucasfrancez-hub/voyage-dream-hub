@@ -39,7 +39,17 @@ function escreverVersionJson() {
     fs.mkdirSync(dir, { recursive: true });
     fs.writeFileSync(
       path.join(dir, "version.json"),
-      `${JSON.stringify({ version: BUILD_ID }, null, 2)}\n`,
+      `${JSON.stringify(
+        {
+          version: BUILD_ID,
+          appVersion: "1.0.1",
+          commit: COMMIT_SHA.slice(0, 7),
+          commitFull: COMMIT_SHA,
+          builtAt: BUILD_ID,
+        },
+        null,
+        2,
+      )}\n`,
     );
   } catch {
     /* build segue mesmo sem conseguir escrever */
