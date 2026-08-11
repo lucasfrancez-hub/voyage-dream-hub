@@ -3,6 +3,7 @@
 import type { SegmentadorFundo } from "./segmentation";
 import { desenharContorno, normalizarContorno } from "./contorno";
 import { calcularEfeitos, temVinheta } from "./efeitos";
+import { aplicarCaps, casarIndicePalavra, quebrarBalanceado } from "./legenda-layout";
 import {
   AJUSTES_NEUTROS,
   RECORTE_CHEIO,
