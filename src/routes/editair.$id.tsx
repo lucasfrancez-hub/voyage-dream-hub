@@ -40,7 +40,9 @@ import {
 } from "@/lib/editair/store";
 import { transcreverBlocoEditair } from "@/lib/editair/transcribe.functions";
 import { dirigirEdicaoEditair } from "@/lib/editair/director.functions";
-import { AiEditDialog } from "@/components/editair/AiEditDialog";
+import { AiEditDialog, type AiEscopoId } from "@/components/editair/AiEditDialog";
+import { planejarOperacoesEditair, type PlanoIa } from "@/lib/editair/planner.functions";
+import { validarOps, resumoDoPlano, planoGrande, executarGeracoes } from "@/lib/editair/ia-plano";
 import { LoginNuvemDialog } from "@/components/editair/LoginNuvemDialog";
 import { temSessaoNuvem } from "@/lib/editair/nuvem";
 import { planejarEdicaoEditair } from "@/lib/editair/brain.functions";
