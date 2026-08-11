@@ -64,7 +64,7 @@ describe("destino vertical", () => {
   const f = faixas(3);
   it("aponta a track sob o cursor", () => {
     expect(destinoPorY(120, f)).toEqual({ tipo: "track", trackId: "t0" });
-    expect(destinoPorY(230, f)).toEqual({ tipo: "track", trackId: "t1" });
+    expect(destinoPorY(180, f)).toEqual({ tipo: "track", trackId: "t1" });
   });
   it("acima da primeira track oferece nova camada", () => {
     expect(destinoPorY(10, f)).toEqual({ tipo: "nova", indice: 0 });
