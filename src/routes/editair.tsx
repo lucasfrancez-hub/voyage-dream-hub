@@ -82,69 +82,10 @@ function EditairLayout() {
 
   return (
     <div className="min-h-screen bg-[#0B0B0D] text-white">
-      {/* no Desktop a barra serve de área de arraste da janela; os controles ficam clicáveis */}
-      <header
-        className="flex h-14 items-center justify-between border-b border-white/10 px-4"
-        style={desktop ? ({ WebkitAppRegion: "drag" } as CSSProperties) : undefined}
-      >
-        <div
-          className="flex items-center gap-3"
-          style={desktop ? ({ WebkitAppRegion: "no-drag" } as CSSProperties) : undefined}
-        >
-          {!desktop && (
-            <Link
-              to="/admin/dashboard"
-              className="flex h-8 w-8 items-center justify-center rounded-lg text-white/60 transition hover:bg-white/10 hover:text-white"
-              title="Voltar ao painel"
-            >
-              <ArrowLeft className="h-4 w-4" />
-            </Link>
-          )}
-          <Link to="/editair" className="flex items-center gap-2" title="EditAir">
-            <img src={editairLogo.url} alt="EditAir" className="h-7 w-auto" />
-          </Link>
-
-          {/* Menu interno do app: navega entre projetos e editor sem sair do EditAir */}
-          <nav className="ml-2 flex items-center gap-1">
-            <Link
-              to="/editair"
-              activeOptions={{ exact: true }}
-              activeProps={{ className: "bg-white/10 text-white" }}
-              inactiveProps={{ className: "text-white/60" }}
-              className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[12px] transition hover:bg-white/10 hover:text-white"
-            >
-              <FolderOpen className="h-3.5 w-3.5" /> Projetos
-            </Link>
-            <button
-              onClick={() => {
-                navigate({ to: "/editair" });
-                setTimeout(() => window.dispatchEvent(new CustomEvent("editair:novo-projeto")), 60);
-              }}
-              className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[12px] text-white/60 transition hover:bg-white/10 hover:text-white"
-            >
-              <Plus className="h-3.5 w-3.5" /> Novo projeto
-            </button>
-            {desktop ? (
-              <button
-                onClick={() => {
-                  navigate({ to: "/editair" });
-                  setTimeout(() => window.dispatchEvent(new CustomEvent("editair:ajustes")), 60);
-                }}
-                className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[12px] text-white/60 transition hover:bg-white/10 hover:text-white"
-              >
-                <Settings className="h-3.5 w-3.5" /> Ajustes
-              </button>
-            ) : null}
-          </nav>
-        </div>
-        <div className="flex items-center gap-3">
-          <span className="text-[10px] text-white/35" title={`Build ${APP_BUILD_ID}`}>
-            EditAir UI build {APP_COMMIT_SHA.slice(0, 12)}
-          </span>
-          <span className="text-[11px] uppercase tracking-widest text-white/30">VIA AIR</span>
-        </div>
-      </header>
+      {/* header global único do EditAir (também é a área de arraste no Desktop) */}
+      <EditairHeader desktop={desktop} />
       <Outlet />
     </div>
   );
 }
+
