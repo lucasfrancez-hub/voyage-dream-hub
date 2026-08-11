@@ -1701,13 +1701,13 @@ function EditorPage() {
   const assetItens: AssetItem[] = assets;
 
   return (
-    <div
-      className="grid h-[calc(100vh-3.5rem)] bg-[#0c0f13]"
-      style={{ gridTemplateRows: `46px minmax(${MIN_AREA_SUPERIOR}px, 1fr) 6px ${alturaTimeline}px` }}
-      data-testid="editair-layout"
-    >
-      {/* topo */}
-      <div className="flex items-center gap-3 border-b border-white/10 bg-[#0d1116] px-3">
+    <>
+    <WorkspaceLayout
+      alturaTimeline={alturaTimeline}
+      onAlturaTimeline={setAlturaTimeline}
+      topbar={
+      <div className="flex h-full items-center gap-3 border-b border-white/10 bg-[#0d1116] px-3">
+
         <div className="flex-1" />
 
         <TopBtn onClick={desfazer} titulo="Desfazer">
