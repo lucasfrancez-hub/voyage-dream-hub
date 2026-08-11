@@ -121,3 +121,83 @@ export async function applyTransferStatus(opts: {
 
   return { ok: true as const, status }
 }
+
+/**
+ * Localiza a transferência interna a partir do payload do ASAAS.
+ * Correlaciona por `externalReference` (nosso uuid) e, em seguida, pelo
+ * `transferId` do ASAAS.
+ */
+export async function resolverTransferencia(campos: CamposTransfer) {
+  const { supabaseAdmin } = await import('@/integrations/supabase/client.server')
+
+  if (campos.externalReference) {
+    const { data } = await supabaseAdmin
+      .from('asaas_transfers')
+      .select('id')
+      .eq('id', campos.externalReference)
+      .maybeSingle()
+    if (data?.id) return data.id as string
+  }
+  if (campos.asaasTransferId) {
+    const { data } = await supabaseAdmin
+      .from('asaas_transfers')
+      .select('id')
+      .eq('asaas_transfer_id', campos.asaasTransferId)
+      .maybeSingle()
+    if (data?.id) return data.id as string
+  }
+  return null
+}
+
+/**
+ * Registra um evento de ciclo de vida TRANSFER_* recebido no webhook.
+ * Somente observabilidade + sincronização: nunca cria nem redispara Pix.
+ */
+export async function registrarEventoTransferencia(body: any, ip?: string | null) {
+  const event = String(body?.event || '').toUpperCase()
+  const campos = extrairCamposTransfer(body)
+  const status = statusFromTransferEvent(event)
+
+  const transferId = await resolverTransferencia(campos)
+
+  // Sem correspondência interna: guarda o evento órfão para não perder o rastro.
+  if (!transferId) {
+    const { supabaseAdmin } = await import('@/integrations/supabase/client.server')
+    await supabaseAdmin.from('asaas_transfer_events').insert({
+      transfer_id: null,
+      asaas_transfer_id: campos.asaasTransferId,
+      event,
+      status: status ?? null,
+      message: 'Evento sem transferência interna correspondente.',
+      ip: ip ?? null,
+      payload: body ?? null,
+    })
+    return { ok: true as const, matched: false as const, event }
+  }
+
+  if (!status) {
+    const { supabaseAdmin } = await import('@/integrations/supabase/client.server')
+    await supabaseAdmin.from('asaas_transfer_events').insert({
+      transfer_id: transferId,
+      asaas_transfer_id: campos.asaasTransferId,
+      event,
+      status: null,
+      message: 'Evento TRANSFER_* não mapeado — registrado apenas para auditoria.',
+      ip: ip ?? null,
+      payload: body ?? null,
+    })
+    return { ok: true as const, matched: true as const, event, status: null }
+  }
+
+  const res = await applyTransferStatus({
+    transferId,
+    status,
+    raw: body?.transfer ?? body,
+    event,
+    ip: ip ?? null,
+    campos,
+  })
+
+  return { ok: true as const, matched: true as const, event, status, resultado: res }
+}
+
