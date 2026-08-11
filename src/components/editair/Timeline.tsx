@@ -207,7 +207,9 @@ export function Timeline({
     return out;
   }, [zoom, state.durationMs]);
 
-  /* arrastar clipe / trim — sempre não destrutivo: mexe só em sourceIn/duração */
+  /* arrastar clipe / trim — sempre não destrutivo: mexe só em sourceIn/duração.
+     Drag direto: mousedown + ~4px de movimento já move o clip (sem "modo mover"),
+     Esc / pointercancel / perda de foco cancelam e restauram o estado original. */
   const iniciarArraste = (
     e: React.PointerEvent,
     clip: EditairClip,
@@ -216,28 +218,34 @@ export function Timeline({
     const trilha = state.tracks.find((t) => t.id === clip.trackId);
     if (trilha?.locked || clip.bloqueado) return;
     e.stopPropagation();
+    const x0 = e.clientX;
+    const y0 = e.clientY;
     const inicioMs = msDoEvento(e.clientX);
     const base = { start: clip.start, duration: clip.duration, sourceIn: clip.sourceIn };
     const lim = limitesDoClip(clip, duracoes);
     const speed = clip.speed || 1;
     const fimAntigo = base.start + base.duration;
     const posteriores = state.clips.filter((c) => c.trackId === clip.trackId && c.start >= fimAntigo && c.id !== clip.id);
-    setArrastandoId(clip.id);
+    /* snapshot para restaurar em caso de cancelamento */
+    const originais: Record<string, Partial<EditairClip>> = { [clip.id]: { ...base } };
+    for (const c of posteriores) originais[c.id] = { start: c.start };
+
+    let ativo = false;
     let ultimoStart = base.start;
     let ultimoDestino: DestinoSolto | null = null;
 
-    const mover = (ev: PointerEvent) => {
+    const aplicarMovimento = (ev: PointerEvent) => {
       const delta = msDoEvento(ev.clientX) - inicioMs;
 
       if (modo === "mover") {
         ultimoStart = Math.max(0, encaixar(base.start + delta));
         onAlterarClip(clip.id, { start: ultimoStart }, false);
-        // drag vertical → camada de destino
-        const d = destinoDoY(ev.clientY);
-        const mesma = d && d.tipo === "track" && d.trackId === clip.trackId;
-        const destinoTravado =
-          d && d.tipo === "track" && !!state.tracks.find((t) => t.id === d.trackId)?.locked;
-        ultimoDestino = !d || mesma || destinoTravado ? null : d;
+        // drag vertical → camada de destino (X = tempo, Y = camada, simultâneos)
+        ultimoDestino = destinoDeClip(
+          destinoDoY(ev.clientY),
+          clip.trackId,
+          (tid) => !!state.tracks.find((t) => t.id === tid)?.locked,
+        );
         setAlvo(ultimoDestino);
         const dest = ultimoDestino;
         setDica({
@@ -268,7 +276,7 @@ export function Timeline({
           for (const c of posteriores) patches[c.id] = { start: Math.max(0, c.start - dif) };
         }
         onAlterarClips(patches, false);
-        onSeek(Math.max(0, (rippleTrim ? base.start : base.start + dif)));
+        onSeek(Math.max(0, rippleTrim ? base.start : base.start + dif));
         setDica({
           x: ev.clientX,
           y: ev.clientY,
@@ -299,21 +307,61 @@ export function Timeline({
       });
     };
 
-    const soltar = () => {
+    const limpar = () => {
       window.removeEventListener("pointermove", mover);
       window.removeEventListener("pointerup", soltar);
+      window.removeEventListener("pointercancel", cancelar);
+      window.removeEventListener("blur", cancelar);
+      window.removeEventListener("keydown", aoTeclar, true);
       setDica(null);
       setArrastandoId(null);
       setAlvo(null);
+    };
+
+    function cancelar() {
+      const estavaAtivo = ativo;
+      ativo = false;
+      limpar();
+      // restaura start/duration/sourceIn e a posição dos clipes deslocados por ripple,
+      // sem commit → nada entra no histórico
+      if (estavaAtivo) onAlterarClips(originais, false);
+    }
+
+    function mover(ev: PointerEvent) {
+      if (!ativo) {
+        if (!passouLimiar(ev.clientX - x0, ev.clientY - y0)) return;
+        ativo = true;
+        setArrastandoId(clip.id);
+      }
+      aplicarMovimento(ev);
+    }
+
+    function soltar() {
+      const estavaAtivo = ativo;
+      ativo = false;
+      limpar();
+      if (!estavaAtivo) return; // clique sem movimento: apenas seleciona
       if (modo === "mover" && ultimoDestino && onSoltarClip) {
         onSoltarClip(clip.id, ultimoDestino, ultimoStart);
         return;
       }
       onAlterarClip(clip.id, {}, true);
-    };
+    }
+
+    function aoTeclar(ev: KeyboardEvent) {
+      if (ev.key !== "Escape") return;
+      ev.preventDefault();
+      ev.stopPropagation();
+      cancelar();
+    }
+
     window.addEventListener("pointermove", mover);
     window.addEventListener("pointerup", soltar);
+    window.addEventListener("pointercancel", cancelar);
+    window.addEventListener("blur", cancelar);
+    window.addEventListener("keydown", aoTeclar, true);
   };
+
 
   const clipMenu = menu ? state.clips.find((c) => c.id === menu.clipId) ?? null : null;
   const trilhaMenu = clipMenu ? state.tracks.find((t) => t.id === clipMenu.trackId) ?? null : null;
