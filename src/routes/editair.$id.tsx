@@ -547,7 +547,7 @@ function EditorPage() {
     });
   };
 
-  const moverCamada = (cid: string, direcao: -1 | 1) => {
+  const moverClipCamada = (cid: string, direcao: -1 | 1) => {
     const clip = state.clips.find((c) => c.id === cid);
     if (!clip) return;
     const i = state.tracks.findIndex((t) => t.id === clip.trackId);
