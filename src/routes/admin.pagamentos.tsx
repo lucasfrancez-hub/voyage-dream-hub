@@ -35,13 +35,14 @@ export const Route = createFileRoute("/admin/pagamentos")({
 
 const STATUS_META: Record<string, { label: string; cls: string }> = {
   agendado: { label: "Agendado", cls: "bg-sky-500/15 text-sky-400" },
-  pendente: { label: "Pendente", cls: "bg-amber-500/15 text-amber-400" },
-  processando: { label: "Em processamento", cls: "bg-indigo-500/15 text-indigo-400" },
+  pendente: { label: "Aguardando processamento", cls: "bg-amber-500/15 text-amber-400" },
+  processando: { label: "Em processamento bancário", cls: "bg-indigo-500/15 text-indigo-400" },
   concluido: { label: "Concluído", cls: "bg-emerald-500/15 text-emerald-400" },
   falhou: { label: "Falhou", cls: "bg-red-500/15 text-red-400" },
   cancelado: { label: "Cancelado", cls: "bg-muted text-muted-foreground" },
   bloqueado: { label: "Bloqueado", cls: "bg-orange-500/15 text-orange-400" },
 };
+
 
 const ORIGIN_LABEL: Record<string, string> = {
   contas_pagar: "Contas a pagar",
