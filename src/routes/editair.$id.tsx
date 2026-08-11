@@ -1809,7 +1809,7 @@ function EditorPage() {
       const frame = 1000 / (state.fps || 30);
       if (e.code === "Space") {
         e.preventDefault();
-        if (!tocandoRef.current) engineRef.current?.liberarAudio();
+        if (!tocandoRef.current) engineRef.current?.liberarAudio(stateRef.current, playheadRef.current);
         setTocando((v) => !v);
       } else if (e.key === "ArrowLeft") {
         setPlayhead((p) => Math.max(0, p - (e.shiftKey ? frame * 10 : frame)));
@@ -2004,8 +2004,8 @@ function EditorPage() {
           mudo={mudo}
           qualidade={qualidade}
           onPlayPause={() => {
-            // liberar o áudio precisa acontecer DENTRO do gesto do usuário
-            if (!tocando) engineRef.current?.liberarAudio();
+            // sincronizar + play precisam acontecer DENTRO do mesmo gesto
+            if (!tocando) engineRef.current?.liberarAudio(stateRef.current, playheadRef.current);
             setTocando((v) => !v);
           }}
           onSeek={buscar}
