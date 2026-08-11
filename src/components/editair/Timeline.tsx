@@ -547,7 +547,7 @@ export function Timeline({
   const idxTrilhaMenu = trilhaMenu ? state.tracks.findIndex((t) => t.id === trilhaMenu.id) : -1;
 
   return (
-    <div className="relative flex h-full min-h-0 flex-col bg-[#0d1116]" onPointerDown={() => setMenu(null)}>
+    <div className="relative flex h-full min-h-0 min-w-0 flex-col overflow-hidden bg-[#0d1116]" onPointerDown={() => setMenu(null)}>
       <div className="flex min-h-0 min-w-0 flex-1 overflow-hidden">
         {/* cabeçalho das trilhas — fixo à esquerda, acompanha só o scroll vertical */}
         <div className="w-[170px] shrink-0 overflow-hidden border-r border-white/10 bg-[#10151b]">
