@@ -1227,7 +1227,7 @@ function EditorPage() {
     toast.success(`${legendas.length} legendas geradas`);
   };
 
-  const adicionarTexto = () => {
+  const adicionarTexto = (init?: { text?: string; style?: Partial<TextStyle>; label?: string }) => {
     const clip: EditairClip = {
       id: novoId(),
       trackId: "t-text",
@@ -1238,14 +1238,15 @@ function EditorPage() {
       volume: 0,
       speed: 1,
       transform: transformPadrao(),
-      text: "Seu texto aqui",
-      textStyle: { ...TEXTO_PADRAO },
-      label: "Texto",
+      text: init?.text ?? "Seu texto aqui",
+      textStyle: { ...TEXTO_PADRAO, ...(init?.style ?? {}) },
+      label: init?.label ?? "Texto",
     };
     aplicar({ ...state, clips: [...state.clips, clip] });
     setSelecionados([clip.id]);
-    setFerramenta("texto");
+    if (!init) setFerramenta("texto");
   };
+
 
   const conversar = async (texto: string) => {
     if (!(await exigirNuvem())) return;
