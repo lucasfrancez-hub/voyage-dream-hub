@@ -416,24 +416,50 @@ export function Timeline({
         {/* área rolável */}
         <div
           ref={areaRef}
-          className={`relative min-h-0 flex-1 overflow-auto ${soltando ? "ring-2 ring-inset ring-[#F26B1F]" : ""}`}
+          className={`relative min-h-0 flex-1 overflow-auto ${soltando ? "ring-1 ring-inset ring-[#F26B1F]/50" : ""}`}
           onDragOver={
             onSoltarArquivos || onSoltarAsset
               ? (e) => {
                   e.preventDefault();
+                  e.dataTransfer.dropEffect = "copy";
                   setSoltando(true);
+                  // destaque da camada sob o cursor + posição temporal do drop
+                  const d = destinoDoY(e.clientY);
+                  setAlvo(d);
+                  const ms = msDoEvento(e.clientX);
+                  setDica({
+                    x: e.clientX,
+                    y: e.clientY,
+                    titulo:
+                      !d || d.tipo === "nova"
+                        ? "Nova camada"
+                        : state.tracks.find((t) => t.id === d.trackId)?.name ?? "Camada",
+                    valor: formatarTempo(ms, true),
+                    delta: "Soltar para inserir",
+                  });
                 }
               : undefined
           }
-          onDragLeave={onSoltarArquivos || onSoltarAsset ? () => setSoltando(false) : undefined}
+          onDragLeave={
+            onSoltarArquivos || onSoltarAsset
+              ? () => {
+                  setSoltando(false);
+                  setAlvo(null);
+                  setDica(null);
+                }
+              : undefined
+          }
           onDrop={
             onSoltarArquivos || onSoltarAsset
               ? (e) => {
                   e.preventDefault();
+                  const destino = destinoDoY(e.clientY) ?? undefined;
                   setSoltando(false);
+                  setAlvo(null);
+                  setDica(null);
                   const assetId = e.dataTransfer.getData("application/x-editair-asset");
                   if (assetId && onSoltarAsset) {
-                    onSoltarAsset(assetId, msDoEvento(e.clientX));
+                    onSoltarAsset(assetId, msDoEvento(e.clientX), destino);
                     return;
                   }
                   if (e.dataTransfer.files?.length) onSoltarArquivos?.(e.dataTransfer.files, msDoEvento(e.clientX));
