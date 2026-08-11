@@ -172,10 +172,31 @@ function EditorPage() {
   const historico = useRef<ProjectState[]>([]);
   const futuro = useRef<ProjectState[]>([]);
 
-  const clipeAtual = useMemo(
-    () => state.clips.find((c) => c.id === selecionados[0]) ?? null,
-    [state.clips, selecionados],
-  );
+  // A seleção é estado de interface: não depende de playback nem de a mídia ter
+  // carregado. Se o id sumir (id regerado por uma operação), reencontra o mesmo
+  // clipe pela trilha/posição para o Inspector nunca "piscar" para vazio.
+  const ultimoClipeRef = useRef<EditairClip | null>(null);
+  const clipeAtual = useMemo(() => {
+    const id = selecionados[0];
+    if (!id) {
+      ultimoClipeRef.current = null;
+      return null;
+    }
+    const achado = state.clips.find((c) => c.id === id);
+    if (achado) {
+      ultimoClipeRef.current = achado;
+      return achado;
+    }
+    const anterior = ultimoClipeRef.current;
+    const equivalente = anterior
+      ? state.clips.find(
+          (c) => c.trackId === anterior.trackId && c.start === anterior.start && c.assetId === anterior.assetId,
+        )
+      : null;
+    ultimoClipeRef.current = equivalente ?? null;
+    return equivalente ?? null;
+  }, [state.clips, selecionados]);
+
 
   const assetsMap = useMemo(() => {
     const m: Record<string, AssetInfo> = {};
