@@ -1,6 +1,7 @@
 import { novoId, transformPadrao, type EditairClip, type ProjectState, type Transcript, type TranscriptWord } from "./types";
 import { janelaFonte, limitarVelocidade } from "./velocidade";
-import { segmentarLegendas } from "./segmentacao";
+import { aplicarPadding, LIMITES_PADRAO, segmentarLegendas } from "./segmentacao";
+import { auditarPalavras, normalizarPalavras } from "./alinhamento";
 
 
 /**
@@ -77,15 +78,20 @@ export function projetarPalavras(words: TranscriptWord[], janelas: JanelaClipe[]
   return saida.sort((a, b) => a.start - b.start || a.end - b.end);
 }
 
-function criarLegenda(texto: string, palavras: PalavraProjetada[], clipId: string): EditairClip {
-  const start = palavras[0]!.start;
-  const fim = palavras[palavras.length - 1]!.end;
+function criarLegenda(
+  texto: string,
+  palavras: PalavraProjetada[],
+  clipId: string,
+  intervalo?: { start: number; end: number },
+): EditairClip {
+  const start = intervalo?.start ?? palavras[0]!.start;
+  const fim = intervalo?.end ?? palavras[palavras.length - 1]!.end;
   return {
     id: novoId("leg"),
     trackId: "t-caption",
     kind: "caption",
     start: Math.max(0, Math.round(start)),
-    duration: Math.max(300, Math.round(fim - start)),
+    duration: Math.max(200, Math.round(fim - start)),
     sourceIn: 0,
     volume: 1,
     speed: 1,
@@ -113,23 +119,30 @@ export function montarLegendas(
 
   const janelas = janelasDaTimeline(state);
   if (!janelas.length) return [];
+  // saneia o alinhamento bruto (ordem/sobreposição) antes de projetar
   const palavras = projetarPalavras(
-    (transcript.words ?? []).filter((w) => w.end > w.start),
+    normalizarPalavras(transcript.words ?? []) as TranscriptWord[],
     janelas,
   ).filter((p) => p.end > p.start);
   if (!palavras.length) return [];
 
-  const geradas =
-    modo === "palavra"
-      ? palavras.map((p) => criarLegenda(p.w, [p], p.clipId))
-      : // agrupamento pela fala (pontuação → pausa → sentido → limite visual)
-        segmentarLegendas(palavras).map((bloco) =>
-          criarLegenda(
-            bloco.map((p) => p.w).join(" "),
-            bloco as PalavraProjetada[],
-            (bloco[0] as PalavraProjetada).clipId,
-          ),
-        );
+  let geradas: EditairClip[];
+  if (modo === "palavra") {
+    geradas = palavras.map((p) => criarLegenda(p.w, [p], p.clipId));
+  } else {
+    // agrupamento pela fala (pontuação → pausa → sentido → limite visual)
+    const blocos = segmentarLegendas(palavras, LIMITES_PADRAO);
+    // padding visual conservador, sem invadir o bloco vizinho
+    const intervalos = aplicarPadding(blocos, LIMITES_PADRAO);
+    geradas = blocos.map((bloco, i) =>
+      criarLegenda(
+        bloco.map((p) => p.w).join(" "),
+        bloco as PalavraProjetada[],
+        (bloco[0] as PalavraProjetada).clipId,
+        intervalos[i],
+      ),
+    );
+  }
 
   return geradas.filter((g) => !colide(g.start, g.start + g.duration));
 

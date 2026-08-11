@@ -999,17 +999,16 @@ export class EditairEngine {
     const centroX =
       alinhamento === "left" ? width * 0.07 + maxLargura / 2 : alinhamento === "right" ? width * 0.93 - maxLargura / 2 : width / 2;
 
-    const ativa = estilo.karaoke ? c.words?.find((w) => t >= w.start && t < w.end)?.w : null;
-    const ativaNorm = ativa ? (estilo.uppercase ? ativa.toUpperCase() : ativa) : null;
+    // karaokê por ÍNDICE da palavra (não por texto): palavra repetida na mesma
+    // frase não pode acender junto, e o destaque segue word.start → word.end
+    // sem interpolação artificial.
+    const words = c.words ?? [];
+    const idxAtiva = estilo.karaoke ? words.findIndex((w) => t >= w.start && t < w.end) : -1;
+    const ultimaFalada = words.reduce((acc, w, i) => (t >= w.start ? i : acc), -1);
     const limpar = (s: string) => s.replace(/[^\p{L}\p{N}]/gu, "");
     const modoPalavra = estilo.animacaoPalavra ?? "cor";
-    // "progressiva": palavras já faladas ficam visíveis, as futuras esperam
-    const faladas = new Set<string>();
-    if (modoPalavra === "progressiva") {
-      (c.words ?? []).forEach((w) => {
-        if (t >= w.start) faladas.add(limpar(estilo.uppercase ? w.w.toUpperCase() : w.w));
-      });
-    }
+    // índice global da palavra desenhada, para casar com words[] na ordem
+    let indicePalavra = -1;
 
     linhas.forEach((linha, i) => {
       const y = yBase + i * alturaLinha;
@@ -1037,10 +1036,14 @@ export class EditairEngine {
       const total = larguras.reduce((a, b) => a + b, 0) - espaco;
       let x = centroX - total / 2;
       palavras.forEach((p, idx) => {
-        const destaque = ativaNorm != null && limpar(p) === limpar(ativaNorm);
+        indicePalavra++;
+        const casaTexto = limpar(words[indicePalavra]?.w ?? "") === limpar(p);
+        const iPal = casaTexto ? indicePalavra : -1;
+        const destaque = idxAtiva >= 0 && iPal === idxAtiva;
         const px = x + larguras[idx] / 2 - espaco / 2;
         const alphaBase = ctx.globalAlpha;
-        if (modoPalavra === "progressiva" && !faladas.has(limpar(p)) && !destaque) ctx.globalAlpha = alphaBase * 0.25;
+        const jaFalada = iPal >= 0 ? iPal <= ultimaFalada : true;
+        if (modoPalavra === "progressiva" && !jaFalada && !destaque) ctx.globalAlpha = alphaBase * 0.25;
         if (destaque && (modoPalavra === "pop" || modoPalavra === "brilho")) {
           ctx.font = fonte(estilo.weight, fs * (estilo.destaqueEscala ?? 1.1));
         }

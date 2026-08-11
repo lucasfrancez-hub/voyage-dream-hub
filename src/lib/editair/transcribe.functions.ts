@@ -27,8 +27,9 @@ const SCHEMA = {
           w: { type: "string" },
           start: { type: "number" },
           end: { type: "number" },
+          conf: { type: "number" },
         },
-        required: ["w", "start", "end"],
+        required: ["w", "start", "end", "conf"],
       },
     },
   },
@@ -42,9 +43,11 @@ REGRAS:
 - start e end em segundos com 3 casas (ex.: 14.321).
 - Não invente palavras. Não inclua trechos silenciosos.
 - Mantenha pontuação junto da palavra quando existir (ex.: "assim." ).
+- conf: sua confiança no alinhamento daquela palavra, de 0 a 1.
+- Os tempos devem ser o instante REAL em que a palavra é ouvida, sem arredondar para décimos.
 - Se o áudio não tiver fala, devolva words vazio.`;
 
-export type PalavraTranscrita = { w: string; start: number; end: number };
+export type PalavraTranscrita = { w: string; start: number; end: number; conf?: number };
 
 export const transcreverBlocoEditair = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -113,6 +116,7 @@ export const transcreverBlocoEditair = createServerFn({ method: "POST" })
         w: w.w.trim(),
         start: Math.round(w.start * 1000) + data.offsetMs,
         end: Math.round(w.end * 1000) + data.offsetMs,
+        ...(typeof w.conf === "number" ? { conf: w.conf } : {}),
       }))
       .filter((w) => w.w.length > 0 && w.end > w.start);
 
