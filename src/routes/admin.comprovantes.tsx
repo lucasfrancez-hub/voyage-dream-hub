@@ -258,7 +258,43 @@ function ComprovantesPage() {
               {f.label}
             </button>
           ))}
+
+          <span className="mx-1 h-4 w-px bg-border/60" />
+
+          {([
+            { id: "todos", label: "Todos os bancos" },
+            { id: "asaas", label: "ASAAS" },
+            { id: "externo", label: "Outros bancos" },
+          ] as const).map((o) => (
+            <button
+              key={o.id}
+              type="button"
+              onClick={() => { setOrigem(o.id); if (o.id === "asaas") setBanco("todos"); }}
+              className={
+                "rounded-full border px-3 py-1 text-xs font-medium transition-colors " +
+                (origem === o.id
+                  ? "border-primary/50 bg-primary/15 text-primary"
+                  : "border-border/60 bg-background/40 text-muted-foreground hover:text-foreground")
+              }
+            >
+              {o.label}
+            </button>
+          ))}
+
+          {origem !== "asaas" && bancos.length > 0 && (
+            <select
+              value={banco}
+              onChange={(e) => setBanco(e.target.value)}
+              className="rounded-full border border-border/60 bg-background/40 px-3 py-1 text-xs text-foreground"
+            >
+              <option value="todos">Banco: todos</option>
+              {bancos.map((b) => (
+                <option key={b} value={b}>{b}</option>
+              ))}
+            </select>
+          )}
         </div>
+
 
         {preset === "custom" && (
           <div className="flex flex-wrap items-center gap-2 border-b border-border/60 p-4 text-sm">
