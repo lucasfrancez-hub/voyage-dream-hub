@@ -427,6 +427,8 @@ export async function explorarHandler({ data }: { data: ExplorarInput }): Promis
   if (data.categoryId) params.set("category_id", String(data.categoryId));
   if (data.toIata) params.set("to_iata_code", data.toIata.toUpperCase());
   if (data.month) params.set("month", data.month);
+  if (!data.fromIata && data.originIata) params.set("from_iata_code", data.originIata.toUpperCase());
+
 
   const url = data.fromIata
     ? `${TWD}/itinerary_prices/${data.fromIata.toUpperCase()}/${(data.toIata ?? "").toUpperCase()}?${params.toString()}`
