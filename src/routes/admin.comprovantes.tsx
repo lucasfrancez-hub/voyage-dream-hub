@@ -338,35 +338,41 @@ function ComprovantesPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/40">
-                {filtrado.map((c) => (
-                  <tr key={c.id} className="transition-colors hover:bg-foreground/[0.03]">
+                {filtrado.map((row) => {
+                  const c = row.asaas;
+                  return (
+                  <tr key={row.key} className="transition-colors hover:bg-foreground/[0.03]">
                     <td className="px-6 py-4">
-                      <p className="text-sm font-medium">{c.favored || "—"}</p>
-                      <p className="mt-1 text-xs text-muted-foreground">{fmtDate(c.date)}</p>
+                      <p className="text-sm font-medium">{row.favored || "—"}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">{fmtDate(row.date)}</p>
                       <p className="mt-0.5 truncate font-mono text-[11px] text-muted-foreground">
-                        {c.reference || c.asaasId}
+                        {row.reference || "—"}
                       </p>
                     </td>
                     <td className="px-6 py-4">
                       <span
                         className={
                           "inline-block rounded-full border px-2.5 py-0.5 text-[11px] font-medium " +
-                          (c.direction === "in"
+                          (row.direction === "in"
                             ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-400"
                             : "border-red-500/40 bg-red-500/10 text-red-400")
                         }
                       >
-                        {c.operation}
+                        {row.operation}
                       </span>
-                      <p className="mt-1 text-xs text-muted-foreground">{c.status || "—"}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {row.status || "—"} · {row.banco}
+                      </p>
                     </td>
                     <td className="px-6 py-4 text-right text-sm font-bold">
-                      {formatBRL(c.value)}
+                      {formatBRL(row.value)}
                     </td>
                     <td className="px-6 py-4 text-right">
-                      {c.receiptUrl ? (
+                      {row.src === "externo" && row.externo ? (
+                        <ExternalReceiptButton pagamento={row.externo} compact={false} />
+                      ) : c && (c.receiptUrl || ["Concluído", "Recebido", "Confirmado", "Pago", "Recebido em dinheiro"].includes(String(c.status ?? ""))) ? (
                         <ComprovanteActions
-                          url={c.receiptUrl}
+                          url={c.receiptUrl ?? undefined}
                           compact={false}
                           paymentId={c.kind === "payment" ? c.asaasId : null}
                           transferId={c.kind === "transfer" ? c.asaasId : null}
@@ -391,47 +397,18 @@ function ComprovantesPage() {
                             pdfUrl: c.receiptUrl ?? null,
                           }}
                         />
-                      ) : ["Concluído", "Recebido", "Confirmado", "Pago", "Recebido em dinheiro"].includes(
-                          String(c.status ?? ""),
-                        ) ? (
-                        <ComprovanteActions
-                          compact={false}
-                          paymentId={c.kind === "payment" ? c.asaasId : null}
-                          transferId={c.kind === "transfer" ? c.asaasId : null}
-                          billId={c.kind === "bill" ? c.asaasId : null}
-                          receipt={{
-                            valor: Math.abs(Number(c.value ?? 0)),
-                            favorecido: c.favored || "—",
-                            favorecidoLabel: c.counterpartyLabel,
-                            direction: c.direction,
-                            instituicao: c.instituicao ?? null,
-                            chavePix: c.chavePix ?? null,
-                            cpfCnpj: c.cpfCnpj ?? null,
-                            descricao: c.descricao ?? null,
-                            tipo: c.operation,
-                            dataHora: fmtDate(c.date),
-                            transacaoId: c.endToEndId || c.reference || c.asaasId,
-                            status: c.status ?? undefined,
-                            concluido: true,
-                            formaPagamento: c.formaPagamento ?? null,
-                            dataVencimento: c.dueDate ?? null,
-                            dataPagamento: c.paymentDate ?? c.date ?? null,
-                            pdfUrl: c.receiptUrl ?? null,
-                          }}
-                        />
-
                       ) : (
                         <span
                           className="text-xs text-muted-foreground"
-                          title={`Sem comprovante: movimentação com status "${c.status ?? "—"}".`}
+                          title={`Sem comprovante: movimentação com status "${row.status ?? "—"}".`}
                         >
                           —
                         </span>
                       )}
                     </td>
-
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>
