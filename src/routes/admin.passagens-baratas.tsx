@@ -259,17 +259,18 @@ function PassagensBaratasPage() {
               onClick={() => go({ label: c.name, categoryId: c.id })}
               className="group flex cursor-pointer items-center gap-4 rounded-2xl border border-border/50 bg-card p-4 text-left transition-all duration-300 hover:border-primary/40 hover:bg-muted/40"
             >
-              {c.image && (
-                <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl">
-                  <img
-                    src={c.image}
-                    alt={c.name}
-                    loading="lazy"
-                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-background/50 to-transparent" />
-                </div>
-              )}
+              <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl">
+                <img
+                  src={imagemRegiao(c.name)}
+                  alt={c.name}
+                  loading="lazy"
+                  width={640}
+                  height={640}
+                  className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-background/50 to-transparent" />
+              </div>
+
               <div className="min-w-0 flex-1">
                 <h3 className="text-lg font-bold leading-tight">{c.name}</h3>
                 <p className="mt-1 truncate text-xs text-muted-foreground">{c.description}</p>
