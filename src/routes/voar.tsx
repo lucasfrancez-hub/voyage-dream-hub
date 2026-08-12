@@ -5,6 +5,7 @@
  * operadora registrando um pedido pendente no admin.
  */
 import { createFileRoute } from "@tanstack/react-router";
+import { useQueryClient } from "@tanstack/react-query";
 import { Plane, ShieldCheck, Headset, CreditCard, ChevronRight, BedDouble } from "lucide-react";
 import { VoosPage, CITY_CODES } from "./admin.voos-teste";
 import { onerFlightSearchPublic } from "@/lib/onertravel-public.functions";
