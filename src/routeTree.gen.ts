@@ -56,6 +56,7 @@ import { Route as AdminMelhoresDestinosRouteImport } from './routes/admin.melhor
 import { Route as AdminNotasFiscaisRouteImport } from './routes/admin.notas-fiscais'
 import { Route as AdminPacotesRouteImport } from './routes/admin.pacotes'
 import { Route as AdminPagamentosRouteImport } from './routes/admin.pagamentos'
+import { Route as AdminPassagensBaratasRouteImport } from './routes/admin.passagens-baratas'
 import { Route as AdminPessoasRouteImport } from './routes/admin.pessoas'
 import { Route as AdminRecebimentosRouteImport } from './routes/admin.recebimentos'
 import { Route as AdminRedesSociaisRouteImport } from './routes/admin.redes-sociais'
@@ -374,6 +375,11 @@ const AdminPacotesRoute = AdminPacotesRouteImport.update({
 const AdminPagamentosRoute = AdminPagamentosRouteImport.update({
   id: '/pagamentos',
   path: '/pagamentos',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminPassagensBaratasRoute = AdminPassagensBaratasRouteImport.update({
+  id: '/passagens-baratas',
+  path: '/passagens-baratas',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminPessoasRoute = AdminPessoasRouteImport.update({
@@ -875,6 +881,7 @@ export interface FileRoutesByFullPath {
   '/admin/notas-fiscais': typeof AdminNotasFiscaisRoute
   '/admin/pacotes': typeof AdminPacotesRoute
   '/admin/pagamentos': typeof AdminPagamentosRoute
+  '/admin/passagens-baratas': typeof AdminPassagensBaratasRoute
   '/admin/pessoas': typeof AdminPessoasRouteWithChildren
   '/admin/recebimentos': typeof AdminRecebimentosRoute
   '/admin/redes-sociais': typeof AdminRedesSociaisRoute
@@ -1006,6 +1013,7 @@ export interface FileRoutesByTo {
   '/admin/notas-fiscais': typeof AdminNotasFiscaisRoute
   '/admin/pacotes': typeof AdminPacotesRoute
   '/admin/pagamentos': typeof AdminPagamentosRoute
+  '/admin/passagens-baratas': typeof AdminPassagensBaratasRoute
   '/admin/pessoas': typeof AdminPessoasRouteWithChildren
   '/admin/recebimentos': typeof AdminRecebimentosRoute
   '/admin/redes-sociais': typeof AdminRedesSociaisRoute
@@ -1140,6 +1148,7 @@ export interface FileRoutesById {
   '/admin/notas-fiscais': typeof AdminNotasFiscaisRoute
   '/admin/pacotes': typeof AdminPacotesRoute
   '/admin/pagamentos': typeof AdminPagamentosRoute
+  '/admin/passagens-baratas': typeof AdminPassagensBaratasRoute
   '/admin/pessoas': typeof AdminPessoasRouteWithChildren
   '/admin/recebimentos': typeof AdminRecebimentosRoute
   '/admin/redes-sociais': typeof AdminRedesSociaisRoute
@@ -1275,6 +1284,7 @@ export interface FileRouteTypes {
     | '/admin/notas-fiscais'
     | '/admin/pacotes'
     | '/admin/pagamentos'
+    | '/admin/passagens-baratas'
     | '/admin/pessoas'
     | '/admin/recebimentos'
     | '/admin/redes-sociais'
@@ -1406,6 +1416,7 @@ export interface FileRouteTypes {
     | '/admin/notas-fiscais'
     | '/admin/pacotes'
     | '/admin/pagamentos'
+    | '/admin/passagens-baratas'
     | '/admin/pessoas'
     | '/admin/recebimentos'
     | '/admin/redes-sociais'
@@ -1539,6 +1550,7 @@ export interface FileRouteTypes {
     | '/admin/notas-fiscais'
     | '/admin/pacotes'
     | '/admin/pagamentos'
+    | '/admin/passagens-baratas'
     | '/admin/pessoas'
     | '/admin/recebimentos'
     | '/admin/redes-sociais'
@@ -2030,6 +2042,13 @@ declare module '@tanstack/react-router' {
       path: '/pagamentos'
       fullPath: '/admin/pagamentos'
       preLoaderRoute: typeof AdminPagamentosRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/passagens-baratas': {
+      id: '/admin/passagens-baratas'
+      path: '/passagens-baratas'
+      fullPath: '/admin/passagens-baratas'
+      preLoaderRoute: typeof AdminPassagensBaratasRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/pessoas': {
@@ -2661,6 +2680,7 @@ interface AdminRouteChildren {
   AdminNotasFiscaisRoute: typeof AdminNotasFiscaisRoute
   AdminPacotesRoute: typeof AdminPacotesRoute
   AdminPagamentosRoute: typeof AdminPagamentosRoute
+  AdminPassagensBaratasRoute: typeof AdminPassagensBaratasRoute
   AdminPessoasRoute: typeof AdminPessoasRouteWithChildren
   AdminRecebimentosRoute: typeof AdminRecebimentosRoute
   AdminRedesSociaisRoute: typeof AdminRedesSociaisRoute
@@ -2700,6 +2720,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminNotasFiscaisRoute: AdminNotasFiscaisRoute,
   AdminPacotesRoute: AdminPacotesRoute,
   AdminPagamentosRoute: AdminPagamentosRoute,
+  AdminPassagensBaratasRoute: AdminPassagensBaratasRoute,
   AdminPessoasRoute: AdminPessoasRouteWithChildren,
   AdminRecebimentosRoute: AdminRecebimentosRoute,
   AdminRedesSociaisRoute: AdminRedesSociaisRoute,

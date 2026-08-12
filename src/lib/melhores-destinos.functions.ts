@@ -5,6 +5,8 @@ import {
   listarPromocoesHandler,
   datasDaRotaInput,
   datasDaRotaHandler,
+  explorarInput,
+  explorarHandler,
 } from "@/lib/melhores-destinos.server";
 
 export const listarPromocoesMd = createServerFn({ method: "POST" })
@@ -16,3 +18,8 @@ export const datasDaRotaMd = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data) => datasDaRotaInput.parse(data))
   .handler(datasDaRotaHandler);
+
+export const explorarPassagensMd = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data) => explorarInput.parse(data))
+  .handler(explorarHandler);

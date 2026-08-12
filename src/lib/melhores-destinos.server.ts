@@ -333,3 +333,185 @@ export async function datasDaRotaHandler({
     dates,
   };
 }
+
+/* --------------------- explorar (regiões → destinos) --------------------- */
+
+const TWD = `${API}/api/v1/twd/web`;
+
+export type MdCategory = {
+  id: number;
+  name: string;
+  description: string | null;
+  image: string | null;
+  price: number | null;
+  foundAt: string | null;
+};
+
+export type MdCity = {
+  toName: string;
+  toIata: string | null;
+  fromName: string | null;
+  fromIata: string | null;
+  price: number | null;
+  viaairUrl: string | null;
+};
+
+export type MdExplore = {
+  level: "categories" | "cities" | "origins" | "prices";
+  title: string;
+  parentCategoryId: number | null;
+  categories: MdCategory[];
+  cities: MdCity[];
+  months: MdMonthDates[];
+  dates: MdDate[];
+};
+
+function categoryIdFromLink(link?: string | null): number | null {
+  const m = /category_id=(\d+)/.exec(String(link ?? ""));
+  return m ? Number(m[1]) : null;
+}
+
+function iataFromLink(link?: string | null, which: "to" | "from" = "to"): string | null {
+  const url = String(link ?? "");
+  const q = new RegExp(`${which}_iata_code=([A-Z]{3})`, "i").exec(url);
+  if (q) return q[1].toUpperCase();
+  const it = /itinerary_prices\/([A-Z]{3})\/([A-Z]{3})/i.exec(url);
+  if (it) return (which === "from" ? it[1] : it[2]).toUpperCase();
+  return null;
+}
+
+export const explorarInput = z.object({
+  categoryId: z.number().int().positive().optional(),
+  toIata: z.string().length(3).optional(),
+  fromIata: z.string().length(3).optional(),
+  month: z.string().max(10).optional(),
+  base: z.string().max(200).optional(),
+});
+export type ExplorarInput = z.infer<typeof explorarInput>;
+
+type RawTwd = {
+  to_name?: string | null;
+  to_city_name?: string | null;
+  from_city_name?: string | null;
+  from_iata_code?: string | null;
+  to_iata_code?: string | null;
+  parent_category_link?: string | null;
+  categories?: Array<{
+    name?: string;
+    description?: string | null;
+    image?: string | null;
+    cheapest_itinerary_price?: number | null;
+    cheapest_itinerary_price_found_at?: string | null;
+    link?: string;
+  }>;
+  cities?: Array<{
+    to_city_name?: string;
+    from_city_name?: string | null;
+    total_price?: number | null;
+    link?: string;
+  }>;
+  months?: RawDates["months"];
+};
+
+export async function explorarHandler({ data }: { data: ExplorarInput }): Promise<MdExplore> {
+  const base = (data.base ?? "").replace(/\/$/, "");
+  const params = new URLSearchParams();
+  if (data.categoryId) params.set("category_id", String(data.categoryId));
+  if (data.toIata) params.set("to_iata_code", data.toIata.toUpperCase());
+  if (data.month) params.set("month", data.month);
+
+  const url = data.fromIata
+    ? `${TWD}/itinerary_prices/${data.fromIata.toUpperCase()}/${(data.toIata ?? "").toUpperCase()}?${params.toString()}`
+    : `${TWD}/categories${params.toString() ? `?${params}` : ""}`;
+
+  const json = await getJson<RawTwd>(url);
+  const parentCategoryId = categoryIdFromLink(json.parent_category_link);
+
+  const out: MdExplore = {
+    level: "categories",
+    title: json.to_city_name
+      ? `${json.from_city_name ? `${json.from_city_name} → ` : ""}${json.to_city_name}`
+      : (json.to_name ?? "Passagens aéreas baratas"),
+    parentCategoryId,
+    categories: [],
+    cities: [],
+    months: [],
+    dates: [],
+  };
+
+  if (json.categories?.length) {
+    out.level = "categories";
+    out.categories = json.categories
+      .map((c) => ({
+        id: categoryIdFromLink(c.link) ?? 0,
+        name: decodeEntities(String(c.name ?? "")),
+        description: c.description ? decodeEntities(c.description) : null,
+        image: c.image ?? null,
+        price: typeof c.cheapest_itinerary_price === "number" ? c.cheapest_itinerary_price : null,
+        foundAt: c.cheapest_itinerary_price_found_at ?? null,
+      }))
+      .filter((c) => c.id > 0);
+    return out;
+  }
+
+  if (json.cities?.length) {
+    const origins = json.cities.some((c) => c.from_city_name);
+    out.level = origins ? "origins" : "cities";
+    out.cities = json.cities.map((c) => {
+      const to = iataFromLink(c.link, "to");
+      const from = iataFromLink(c.link, "from");
+      return {
+        toName: decodeEntities(String(c.to_city_name ?? "")),
+        toIata: to,
+        fromName: c.from_city_name ? decodeEntities(c.from_city_name) : null,
+        fromIata: from,
+        price: typeof c.total_price === "number" ? c.total_price : null,
+        viaairUrl: from && to ? `${base}/voar?o=${from}&d=${to}&m=aereo` : null,
+      };
+    });
+    return out;
+  }
+
+  if (json.months?.length) {
+    out.level = "prices";
+    const from = String(json.from_iata_code ?? data.fromIata ?? "").toUpperCase();
+    const to = String(json.to_iata_code ?? data.toIata ?? "").toUpperCase();
+    const seen = new Set<string>();
+    for (const m of json.months) {
+      out.months.push({
+        label: `${m.month ?? ""}/${m.year ?? ""}`.replace(/\/$/, ""),
+        price: typeof m.price === "number" ? m.price : null,
+        cheapest: !!m.cheapest,
+      });
+      for (const d of m.dates ?? []) {
+        const partnerUrl = String(d.link ?? "");
+        const { depart, ret } = isoFromPartnerUrl(partnerUrl);
+        if (!depart) continue;
+        const k = `${depart}|${ret}|${d.price}`;
+        if (seen.has(k)) continue;
+        seen.add(k);
+        out.dates.push({
+          departDate: depart,
+          returnDate: ret,
+          departLabel: String(d.departure ?? depart),
+          returnLabel: d.arrival ? String(d.arrival) : null,
+          weekdayOut: d.departure_txt ?? null,
+          weekdayIn: d.arrival_txt ?? null,
+          nights: typeof d.stay === "number" ? d.stay : null,
+          baggage: baggageLabel(d.luggage_type),
+          airline: d.airline_code ?? null,
+          airlineLogo: d.airline_icon_url ?? null,
+          price: Number(d.price ?? 0),
+          currency: String(d.price_currency ?? "R$"),
+          partner: d.provider_name ?? null,
+          partnerUrl,
+          viaairUrl: viaairFlightUrl(from, to, depart, ret, base),
+        });
+      }
+    }
+    out.dates.sort((a, b) => a.price - b.price);
+    return out;
+  }
+
+  return out;
+}
