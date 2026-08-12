@@ -461,6 +461,22 @@ export function PassagensBaratasExplorer({
               <button
                 key={`${c.fromIata ?? ""}-${c.toIata ?? i}`}
                 className="group flex w-full items-center justify-between gap-3 border-b border-white/5 px-6 py-4 text-left transition-all hover:bg-white/[0.03]"
+                onMouseEnter={() =>
+                  prefetch(
+                    data.level === "cities"
+                      ? {
+                          label: c.toName,
+                          categoryId: current.categoryId,
+                          toIata: c.toIata ?? undefined,
+                        }
+                      : {
+                          label: `${c.fromName} → ${c.toName}`,
+                          categoryId: current.categoryId,
+                          toIata: c.toIata ?? current.toIata,
+                          fromIata: c.fromIata ?? undefined,
+                        },
+                  )
+                }
                 onClick={() =>
                   data.level === "cities"
                     ? go({
@@ -476,6 +492,7 @@ export function PassagensBaratasExplorer({
                       })
                 }
               >
+
                 <div className="flex min-w-0 flex-col">
                   <span className="truncate font-semibold text-foreground transition-colors group-hover:text-primary">
                     {c.fromName ? `${c.fromName} → ${c.toName}` : c.toName}
