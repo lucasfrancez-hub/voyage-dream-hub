@@ -2339,7 +2339,7 @@ export function VoosPage({
                     variant="outline"
                     className="w-full"
                     disabled={moreMut.isPending || mut.isPending}
-                    onClick={() => moreMut.mutate()}
+                    onClick={() => moreMut.mutate({})}
                   >
                     {moreMut.isPending ? (
                       <>
