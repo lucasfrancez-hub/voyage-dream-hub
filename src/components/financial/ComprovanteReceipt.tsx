@@ -250,8 +250,8 @@ export function ComprovanteReceipt({
 
 
                 {isBoleto ? (
-                  <div className="space-y-4">
-                    <div className="flex items-stretch justify-between gap-2 rounded-xl border border-border bg-muted/10 px-3 py-2">
+                  <div className="space-y-2.5">
+                    <div className="flex items-stretch justify-between gap-1.5 rounded-lg border border-border bg-muted/10 px-2 py-1.5">
                       <MiniValue label="Valor original" value={formatBRL(Number(data.valorOriginal ?? data.valor ?? 0))} />
                       <div className="w-px bg-border" />
                       <MiniValue label="Juros" value={formatBRL(Number(data.juros ?? 0))} />
@@ -261,20 +261,20 @@ export function ComprovanteReceipt({
                       <MiniValue label="Desconto" value={formatBRL(Number(data.desconto ?? 0))} />
                     </div>
 
-                    <div className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-border bg-border">
-                      <div className="bg-card p-3">
+                    <div className="grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-border bg-border">
+                      <div className="bg-card p-2">
                         <Field
                           label="Data do pagamento"
                           value={formatDate(data.dataPagamento ?? data.dataHora)}
                         />
                       </div>
-                      <div className="bg-card p-3">
+                      <div className="bg-card p-2">
                         <Field label="Vencimento" value={formatDate(data.dataVencimento)} />
                       </div>
                     </div>
 
                     {(data.codigoBarras || data.linhaDigitavel) ? (
-                      <div className="rounded-xl border border-border bg-muted/10 p-3">
+                      <div className="rounded-lg border border-border bg-muted/10 p-2">
                         <Field
                           label="Código de barras"
                           value={(data.codigoBarras || data.linhaDigitavel) as string}
@@ -283,14 +283,14 @@ export function ComprovanteReceipt({
                     ) : null}
 
                     {data.descricao ? (
-                      <div className="rounded-xl border border-border bg-muted/10 p-3">
+                      <div className="rounded-lg border border-border bg-muted/10 p-2">
                         <Field label="Descrição" value={data.descricao} />
                       </div>
                     ) : null}
                   </div>
 
                 ) : (
-                  <div className="grid grid-cols-2 gap-4 bg-muted/20 rounded-2xl p-4 border border-border">
+                  <div className="grid grid-cols-2 gap-2.5 bg-muted/20 rounded-lg p-2.5 border border-border">
                     <Field
                       label="Data do pagamento"
                       value={formatDate(data.dataPagamento ?? data.dataHora)}
@@ -309,11 +309,12 @@ export function ComprovanteReceipt({
                   </div>
                 )}
 
-                <div className="space-y-4">
+                <div className="space-y-2.5">
                   <PartyBlock title="Pagador" party={pagador} />
                   <div className="h-px w-full bg-border" />
                   <PartyBlock title={isBoleto ? "Beneficiário" : "Recebedor"} party={recebedor} />
                 </div>
+
 
                 <div className="pt-4 border-t border-border">
                   {data.transacaoId ? (
