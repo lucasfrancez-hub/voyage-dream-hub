@@ -12,6 +12,9 @@ import {
   BILL_STATUS_LABEL,
   todayBRT,
   isBoletoVencido,
+  isStatusAtivo,
+  buildIdempotencyKey,
+  resolverValorPagamento,
 } from './boleto-pay.helpers'
 
 export type ErroBoleto = {
@@ -325,6 +328,8 @@ export const criarPagamentoBoleto = createServerFn({ method: 'POST' })
         beneficiaryName: z.string().max(200).nullable().optional(),
         beneficiaryDocument: z.string().max(40).nullable().optional(),
         boletoPath: z.string().max(400).nullable().optional(),
+        /** Identificador da tentativa gerado no clique — bloqueia duplo clique/refresh. */
+        clientRequestId: z.string().uuid(),
         confirmado: z.literal(true),
       })
       .parse(input ?? {}),
@@ -335,6 +340,23 @@ export const criarPagamentoBoleto = createServerFn({ method: 'POST' })
     const { simulateAsaasBillSafe, createAsaasBillSafe } = await import('@/lib/asaas.server')
 
     const erro = (e: ErroBoleto) => ({ ok: false as const, erro: e })
+
+    // ---- Idempotência: mesma tentativa (duplo clique, refresh, retry) ----
+    const { data: jaCriado } = await supabaseAdmin
+      .from('asaas_bill_payments')
+      .select('id, status, asaas_bill_id, scheduled_date')
+      .eq('client_request_id', data.clientRequestId)
+      .maybeSingle()
+    if (jaCriado) {
+      return {
+        ok: true as const,
+        id: jaCriado.id,
+        asaasBillId: jaCriado.asaas_bill_id,
+        status: jaCriado.status,
+        scheduledDate: jaCriado.scheduled_date,
+        reaproveitado: true as const,
+      }
+    }
 
     const parsed = parseBoletoCode(data.identificationField)
     if (!parsed.valid || !parsed.linha) {
@@ -377,16 +399,23 @@ export const criarPagamentoBoleto = createServerFn({ method: 'POST' })
     // O valor pago é sempre o do provedor — o frontend não pode alterá-lo.
     const valorAsaas = Number(sim?.value ?? sim?.totalValue ?? 0) || null
     const valorEditavel = Boolean(sim?.canChangeValue)
-    if (valorAsaas && !valorEditavel && Math.abs(valorAsaas - data.value) > 0.01) {
+    const resolvido = resolverValorPagamento({
+      valorProvedor: valorAsaas,
+      valorInformado: data.value,
+      valorEditavel,
+      minimo: sim?.minimumValue ?? null,
+      maximo: sim?.maximumValue ?? null,
+    })
+    if (!resolvido.ok) {
       return erro({
         titulo: 'Valor divergente',
-        mensagem: `O valor deste boleto é ${valorAsaas.toFixed(2)} e não pode ser alterado (informado ${data.value.toFixed(2)}).`,
+        mensagem: `O valor deste boleto é ${resolvido.valorProvedor.toFixed(2)} e não pode ser alterado (informado ${resolvido.valorInformado.toFixed(2)}).`,
         codigo: 'valor_divergente',
-        tecnico: JSON.stringify({ valorAsaas, valorInformado: data.value }),
+        tecnico: JSON.stringify(resolvido),
         orientacao: 'Refaça a consulta do boleto para atualizar os valores.',
       })
     }
-    const valorFinal = valorEditavel ? data.value : (valorAsaas ?? data.value)
+    const valorFinal = resolvido.valor
 
     const venc = (sim?.dueDate as string | undefined) || data.dueDate || null
     let schedule = data.scheduleDate || null
