@@ -256,41 +256,29 @@ export function ComprovanteReceipt({
                       </div>
                     </div>
 
-                    {(data.valorOriginal != null ||
-                      data.juros != null ||
-                      data.multa != null ||
-                      data.desconto != null) && (
-                      <div className="grid grid-cols-2 gap-4 border-t border-border pt-3">
-                        {data.valorOriginal != null ? (
-                          <Field label="Valor original" value={formatBRL(Number(data.valorOriginal))} />
-                        ) : null}
-                        {data.juros != null ? (
-                          <div className={data.valorOriginal != null ? "text-right" : ""}>
-                            <Field label="Juros" value={formatBRL(Number(data.juros))} />
-                          </div>
-                        ) : null}
-                        {data.multa != null ? (
-                          <Field label="Multa" value={formatBRL(Number(data.multa))} />
-                        ) : null}
-                        {data.desconto != null ? (
-                          <div className={data.multa != null ? "text-right" : ""}>
-                            <Field label="Desconto" value={formatBRL(Number(data.desconto))} />
-                          </div>
-                        ) : null}
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-3 border-t border-border pt-3">
+                      <Field
+                        label="Valor original"
+                        value={formatBRL(Number(data.valorOriginal ?? data.valor ?? 0))}
+                      />
+                      <div className="text-right">
+                        <Field label="Desconto" value={formatBRL(Number(data.desconto ?? 0))} />
                       </div>
-                    )}
+                      <Field label="Juros" value={formatBRL(Number(data.juros ?? 0))} />
+                      <div className="text-right">
+                        <Field label="Multa" value={formatBRL(Number(data.multa ?? 0))} />
+                      </div>
+                    </div>
 
-                    {data.linhaDigitavel ? (
+                    {(data.codigoBarras || data.linhaDigitavel) ? (
                       <div className="border-t border-border pt-3">
-                        <Field label="Linha digitável" value={data.linhaDigitavel} />
+                        <Field
+                          label="Código de barras"
+                          value={(data.codigoBarras || data.linhaDigitavel) as string}
+                        />
                       </div>
                     ) : null}
 
-                    {data.codigoBarras ? (
-                      <div className="border-t border-border pt-3">
-                        <Field label="Código de barras" value={data.codigoBarras} />
-                      </div>
-                    ) : null}
 
                     {data.descricao ? (
                       <div className="border-t border-border pt-3">
