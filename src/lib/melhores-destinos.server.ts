@@ -390,9 +390,11 @@ export const explorarInput = z.object({
   categoryId: z.number().int().positive().optional(),
   toIata: z.string().min(3).max(4).optional(),
   fromIata: z.string().min(3).max(4).optional(),
+  originIata: z.string().min(3).max(4).optional(),
   month: z.string().max(10).optional(),
   base: z.string().max(200).optional(),
 });
+
 export type ExplorarInput = z.infer<typeof explorarInput>;
 
 type RawTwd = {
