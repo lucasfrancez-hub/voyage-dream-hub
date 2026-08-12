@@ -11,6 +11,8 @@ export interface ExtratoItem {
   paymentId: string | null
   transferId: string | null
   pixTransactionId: string | null
+  /** Pagamento de boleto/conta (inclusive feito direto no app do banco). */
+  billId: string | null
   link: { kind: 'pedido' | 'pagamento'; id: string; label: string } | null
   receiptUrl: string | null
   /** Contraparte e dados completos do comprovante (quando disponíveis). */
@@ -91,10 +93,16 @@ export function normalize(tx: any): ExtratoItem {
     value,
     balance: tx?.balance != null ? Number(tx.balance) : null,
     reference:
-      tx?.paymentId ?? tx?.transferId ?? tx?.externalReference ?? tx?.id ?? null,
+      tx?.paymentId ??
+      tx?.transferId ??
+      tx?.billId ??
+      tx?.externalReference ??
+      tx?.id ??
+      null,
     paymentId: tx?.paymentId ?? tx?.payment?.id ?? null,
     transferId: tx?.transferId ?? tx?.transfer?.id ?? null,
     pixTransactionId: tx?.pixTransactionId ?? tx?.pixTransaction?.id ?? null,
+    billId: tx?.billId ?? tx?.bill?.id ?? tx?.billPaymentId ?? null,
     link: null,
     receiptUrl: null,
     counterparty: null,

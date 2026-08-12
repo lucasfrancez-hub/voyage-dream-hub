@@ -74,6 +74,7 @@ export const listarExtratoBancario = createServerFn({ method: 'POST' })
 
     const paymentIds = [...new Set(items.map((i) => i.paymentId).filter(Boolean))] as string[]
     const transferIds = [...new Set(items.map((i) => i.transferId).filter(Boolean))] as string[]
+    const billIds = [...new Set(items.map((i) => i.billId).filter(Boolean))] as string[]
 
     const [cobrancas, transfers] = await Promise.all([
       paymentIds.length
