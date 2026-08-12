@@ -196,42 +196,49 @@ function PassagensBaratasPage() {
       ) : null}
 
 
-      {/* Preços do trecho: gráfico de meses + melhores datas */}
+      {/* Preços do trecho: gráfico de meses + tabela comparativa + motor */}
       {data && (data.months.length > 0 || data.dates.length > 0) ? (
-        <div className="space-y-4">
-          <Card className="relative overflow-hidden border-primary/20 p-5">
-            <div className="absolute inset-0 bg-gradient-to-br from-primary/15 via-transparent to-transparent" />
-            <div className="relative flex flex-wrap items-end justify-between gap-4">
-              <div>
-                <div className="text-xs uppercase tracking-wide text-muted-foreground">
-                  Ida + volta • melhores preços encontrados
-                </div>
-                <div className="text-2xl font-bold tracking-tight">{data.title}</div>
-                <div className="mt-1 text-xs text-muted-foreground">
-                  {data.dates.length} datas disponíveis
-                </div>
+        <div className="space-y-5">
+          <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+            <div>
+              <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
+                Ida + volta • melhores preços encontrados
               </div>
-              {cheapest && (
-                <div className="text-right">
-                  <div className="text-[11px] uppercase text-muted-foreground">A partir de</div>
-                  <div className="text-4xl font-black leading-none text-primary">
-                    {brl(cheapest.price)}
-                  </div>
-                  <div className="mt-1 text-xs text-muted-foreground">
-                    {cheapest.departLabel}
-                    {cheapest.returnLabel ? ` — ${cheapest.returnLabel}` : ""}
-                  </div>
-                </div>
-              )}
+              <h2 className="mt-1 text-3xl font-extrabold tracking-tight">{data.title}</h2>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {data.dates.length} datas disponíveis
+              </p>
             </div>
-          </Card>
+            {cheapest && (
+              <Card className="border-primary/30 bg-card/80 px-5 py-3 shadow-xl">
+                <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                  Melhor tarifa detectada
+                </div>
+                <div className="flex items-baseline gap-1 text-3xl font-black text-primary">
+                  {brl(cheapest.price)}
+                </div>
+                <div className="text-[10px] text-muted-foreground">
+                  {cheapest.departLabel}
+                  {cheapest.returnLabel ? ` — ${cheapest.returnLabel}` : ""}
+                </div>
+              </Card>
+            )}
+          </div>
 
           {data.months.length > 0 && (
-            <Card className="p-4">
-              <div className="mb-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                Preço ao longo dos meses
+            <Card className="rounded-2xl p-6">
+              <div className="mb-7 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-primary" />
+                  <h3 className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+                    Histórico de preços
+                  </h3>
+                </div>
+                <span className="rounded bg-muted px-2 py-1 text-[10px] text-muted-foreground">
+                  Clique no mês para filtrar
+                </span>
               </div>
-              <div className="flex items-end gap-2 overflow-x-auto pb-1">
+              <div className="flex h-32 items-end justify-between gap-3">
                 {data.months.map((m) => {
                   const value = m.price ?? 0;
                   const height = maxMonth ? Math.max(14, Math.round((value / maxMonth) * 100)) : 14;
@@ -240,28 +247,30 @@ function PassagensBaratasPage() {
                     <button
                       key={m.label}
                       onClick={() => selectMonth(m.label)}
-                      className="group flex min-w-14 flex-1 flex-col items-center gap-1"
+                      className="group flex min-w-12 flex-1 flex-col items-center gap-3"
                       title={m.price ? brl(m.price) : "Sem preço"}
                     >
                       <span
-                        className={`text-[11px] font-semibold ${
-                          m.cheapest ? "text-primary" : "text-muted-foreground"
+                        className={`text-[10px] ${
+                          active || m.cheapest
+                            ? "font-black text-primary"
+                            : "text-muted-foreground group-hover:text-foreground"
                         }`}
                       >
                         {m.price ? brl(m.price) : "—"}
                       </span>
                       <span
                         style={{ height: `${height}px` }}
-                        className={`w-full rounded-t-md transition-all group-hover:opacity-90 ${
+                        className={`w-full rounded-t-md transition-all ${
                           active
-                            ? "bg-primary"
-                            : m.cheapest
-                              ? "bg-primary/70"
-                              : "bg-muted-foreground/25"
+                            ? "bg-gradient-to-t from-primary to-primary/60 shadow-[0_0_20px_hsl(var(--primary)/0.35)]"
+                            : "bg-muted group-hover:bg-muted-foreground/40"
                         }`}
                       />
                       <span
-                        className={`text-[11px] ${active ? "font-bold" : "text-muted-foreground"}`}
+                        className={`text-[10px] font-semibold uppercase ${
+                          active ? "text-foreground" : "text-muted-foreground"
+                        }`}
                       >
                         {m.label}
                       </span>
@@ -270,79 +279,155 @@ function PassagensBaratasPage() {
                 })}
               </div>
               {q.isFetching && (
-                <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+                <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
                   <Loader2 className="h-3 w-3 animate-spin" /> atualizando datas...
                 </div>
               )}
             </Card>
           )}
 
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-            {data.dates.map((o, i) => (
-              <Card
-                key={`${o.departDate}-${o.returnDate}-${o.price}`}
-                className={`group relative overflow-hidden p-4 transition hover:-translate-y-0.5 hover:shadow-lg ${
-                  i === 0 ? "border-primary/50 ring-1 ring-primary/30" : ""
-                }`}
-              >
-                {i === 0 && (
-                  <Badge className="absolute right-3 top-3">Melhor preço</Badge>
-                )}
-                <div className="flex items-center gap-2">
-                  {o.airlineLogo ? (
-                    <img src={o.airlineLogo} alt={o.airline ?? "Companhia"} className="h-5" />
-                  ) : (
-                    <span className="text-xs font-semibold">{o.airline ?? "—"}</span>
-                  )}
-                  <span className="text-xs text-muted-foreground">{o.partner}</span>
-                </div>
+          {data.dates.length > 0 && (
+            <Card className="overflow-hidden rounded-2xl shadow-2xl">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left">
+                  <thead>
+                    <tr className="border-b bg-muted/40 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                      <th className="px-6 py-4">Companhia</th>
+                      <th className="px-6 py-4">Ida</th>
+                      <th className="px-6 py-4">Volta</th>
+                      <th className="px-6 py-4">Duração</th>
+                      <th className="px-6 py-4 text-center">Bagagem</th>
+                      <th className="px-6 py-4">Preço final</th>
+                      <th className="px-6 py-4" />
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y">
+                    {data.dates.map((o, i) => (
+                      <tr
+                        key={`${o.departDate}-${o.returnDate}-${o.price}`}
+                        className="transition-colors hover:bg-muted/40"
+                      >
+                        <td className="px-6 py-5">
+                          <div className="flex items-center gap-3">
+                            {o.airlineLogo ? (
+                              <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-white p-1.5">
+                                <img
+                                  src={o.airlineLogo}
+                                  alt={o.airline ?? "Companhia"}
+                                  className="max-h-full max-w-full"
+                                />
+                              </span>
+                            ) : null}
+                            <div>
+                              <div className="text-xs font-bold">{o.airline ?? "—"}</div>
+                              <div className="text-[9px] uppercase tracking-tight text-muted-foreground">
+                                {o.partner ?? ""}
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-5">
+                          <div className="text-sm font-bold">{o.departLabel}</div>
+                          <div className="text-[10px] text-muted-foreground">{o.weekdayOut}</div>
+                        </td>
+                        <td className="px-6 py-5">
+                          <div className="text-sm font-bold">{o.returnLabel ?? "—"}</div>
+                          <div className="text-[10px] text-muted-foreground">{o.weekdayIn}</div>
+                        </td>
+                        <td className="px-6 py-5">
+                          {o.nights ? (
+                            <Badge variant="secondary" className="rounded-full text-[10px]">
+                              {o.nights} dias
+                            </Badge>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">—</span>
+                          )}
+                        </td>
+                        <td className="px-6 py-5 text-center">
+                          <span className="text-[10px] font-medium text-muted-foreground">
+                            {o.baggage ?? "—"}
+                          </span>
+                        </td>
+                        <td className="px-6 py-5">
+                          <div
+                            className={`text-xl font-black ${i === 0 ? "text-primary" : ""}`}
+                          >
+                            {brl(o.price)}
+                          </div>
+                          {i === 0 && (
+                            <div className="text-[9px] font-bold uppercase tracking-tight text-primary">
+                              Tarifa mínima
+                            </div>
+                          )}
+                        </td>
+                        <td className="px-6 py-5 text-right">
+                          <Button size="sm" variant={i === 0 ? "default" : "secondary"} asChild>
+                            <a href={o.viaairUrl} target="_blank" rel="noreferrer">
+                              Ver voos <ExternalLink className="ml-1 h-3.5 w-3.5" />
+                            </a>
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </Card>
+          )}
 
-                <div className="mt-3 flex items-center gap-3">
-                  <div>
-                    <div className="text-lg font-semibold leading-tight">{o.departLabel}</div>
-                    <div className="text-[11px] text-muted-foreground">{o.weekdayOut}</div>
-                  </div>
-                  <div className="flex-1 border-t border-dashed" />
-                  <Plane className="h-4 w-4 rotate-90 text-primary" />
-                  <div className="flex-1 border-t border-dashed" />
-                  <div className="text-right">
-                    <div className="text-lg font-semibold leading-tight">{o.returnLabel ?? "—"}</div>
-                    <div className="text-[11px] text-muted-foreground">{o.weekdayIn}</div>
-                  </div>
-                </div>
-
-                <div className="mt-3 flex flex-wrap gap-1.5">
-                  {o.nights ? <Badge variant="secondary">{o.nights} dias</Badge> : null}
-                  {o.baggage ? (
-                    <Badge variant={/despachada/i.test(o.baggage) ? "default" : "outline"}>
-                      {o.baggage}
-                    </Badge>
-                  ) : null}
-                </div>
-
-                <div className="mt-4 flex items-end justify-between gap-2">
-                  <div>
-                    <div className="text-[10px] uppercase text-muted-foreground">Ida + volta</div>
-                    <div className="text-2xl font-black leading-none text-primary">
-                      {brl(o.price)}
-                    </div>
-                  </div>
-                  <div className="flex gap-1">
-                    <Button size="sm" variant="secondary" onClick={() => copy(o.viaairUrl)}>
-                      <Copy className="h-3.5 w-3.5" />
-                    </Button>
-                    <Button size="sm" asChild>
-                      <a href={o.viaairUrl} target="_blank" rel="noreferrer">
-                        Ver voos <ExternalLink className="ml-1 h-3.5 w-3.5" />
-                      </a>
-                    </Button>
-                  </div>
-                </div>
-              </Card>
-            ))}
-          </div>
+          {/* Motor de busca — pesquise outras datas */}
+          <Card className="rounded-2xl p-6">
+            <div className="mb-5 flex items-center gap-3">
+              <span className="h-6 w-1.5 rounded-full bg-primary" />
+              <h3 className="text-sm font-black uppercase tracking-[0.15em]">
+                Pesquise outras datas
+              </h3>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+              <Field label="Origem">
+                <input
+                  value={motor.origem}
+                  onChange={(e) => setMotor((m) => ({ ...m, origem: e.target.value.toUpperCase() }))}
+                  placeholder="PFB"
+                  className="w-full bg-transparent text-sm font-bold outline-none"
+                />
+              </Field>
+              <Field label="Destino">
+                <input
+                  value={motor.destino}
+                  onChange={(e) =>
+                    setMotor((m) => ({ ...m, destino: e.target.value.toUpperCase() }))
+                  }
+                  placeholder="SAO"
+                  className="w-full bg-transparent text-sm font-bold outline-none"
+                />
+              </Field>
+              <Field label="Ida">
+                <input
+                  type="date"
+                  value={motor.ida}
+                  onChange={(e) => setMotor((m) => ({ ...m, ida: e.target.value }))}
+                  className="w-full bg-transparent text-sm font-bold outline-none"
+                />
+              </Field>
+              <Field label="Volta">
+                <input
+                  type="date"
+                  value={motor.volta}
+                  onChange={(e) => setMotor((m) => ({ ...m, volta: e.target.value }))}
+                  className="w-full bg-transparent text-sm font-bold outline-none"
+                />
+              </Field>
+              <div className="flex items-end">
+                <Button className="h-11 w-full font-black uppercase tracking-[0.2em]" onClick={pesquisar}>
+                  <Search className="mr-2 h-4 w-4" /> Pesquisar
+                </Button>
+              </div>
+            </div>
+          </Card>
         </div>
       ) : null}
+
 
       {data && !q.isFetching && !data.categories.length && !data.cities.length && !data.dates.length && (
         <Card className="p-6 text-sm text-muted-foreground">
