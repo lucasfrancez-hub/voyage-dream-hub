@@ -195,26 +195,51 @@ export function PixPaymentDialog({
   };
 
   const ownerCard = owner && (
-    <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-4 space-y-2 text-sm">
-      <div className="flex items-center gap-2 text-emerald-500 text-xs font-semibold uppercase tracking-wider">
-        <CheckCircle2 className="h-4 w-4" /> Chave validada
+    <div className="relative">
+      <div className="absolute -inset-0.5 rounded-[2rem] bg-gradient-to-tr from-primary/20 to-emerald-500/20 opacity-30 blur" />
+      <div className="relative space-y-4 rounded-[2rem] border border-white/10 bg-card/60 p-6">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1">
+            <CheckCircle2 className="h-3 w-3 text-emerald-500" />
+            <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-500">Chave validada</span>
+          </div>
+          <span className="truncate text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
+            {owner.bankName || "—"}
+          </span>
+        </div>
+
+        <div>
+          <span className="mb-1 block text-[11px] uppercase tracking-wider text-muted-foreground">Favorecido</span>
+          <h3 className="text-lg font-semibold leading-snug break-words">{owner.name}</h3>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4 border-t border-white/5 pt-3">
+          <div>
+            <span className="mb-0.5 block text-[10px] uppercase tracking-wider text-muted-foreground">CPF/CNPJ</span>
+            <span className="text-sm font-medium tabular-nums">{maskDoc(owner.cpfCnpj)}</span>
+          </div>
+          <div className="text-right">
+            <span className="mb-0.5 block text-[10px] uppercase tracking-wider text-muted-foreground">
+              Chave Pix · {KEY_TYPE_LABEL[owner.pixKeyType] ?? owner.pixKeyType}
+            </span>
+            <span className="break-all text-sm font-medium tabular-nums">{owner.pixKey}</span>
+          </div>
+        </div>
       </div>
-      <Row label="Favorecido" value={owner.name} />
-      <Row label="CPF/CNPJ" value={maskDoc(owner.cpfCnpj)} />
-      <Row label="Instituição" value={owner.bankName || "—"} />
-      <Row label="Tipo da chave" value={KEY_TYPE_LABEL[owner.pixKeyType] ?? owner.pixKeyType} />
-      <Row label="Chave Pix" value={owner.pixKey} />
     </div>
   );
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
-        <DialogHeader>
-          <DialogTitle>
+      <DialogContent
+        overlayClassName="bg-black/80 backdrop-blur-xl"
+        className="max-w-[520px] max-h-[92vh] overflow-y-auto rounded-[2.5rem] border-white/10 bg-card/70 p-0 backdrop-blur-2xl shadow-[0_32px_64px_-16px_rgba(0,0,0,0.55)]"
+      >
+        <DialogHeader className="px-8 pb-5 pt-9 text-left sm:px-10">
+          <DialogTitle className="text-2xl font-semibold tracking-tight">
             {step === "confirm" ? "Confirmar Pix" : "Novo pagamento Pix"}
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="text-sm">
             {step === "chave"
               ? "Informe a chave Pix do favorecido. Buscamos o titular automaticamente."
               : step === "dados"
@@ -223,134 +248,184 @@ export function PixPaymentDialog({
           </DialogDescription>
         </DialogHeader>
 
-        {step === "chave" && (
-          <div className="space-y-3">
-            <div>
-              <Label>Chave Pix</Label>
-              <Input
-                value={pixKey}
-                onChange={(e) => { setPixKey(e.target.value); setLookupError(null); }}
-                onKeyDown={(e) => { if (e.key === "Enter") doLookup(); }}
-                placeholder="CPF, CNPJ, e-mail, telefone ou chave aleatória"
-                autoFocus
-              />
-              <p className="text-xs text-muted-foreground mt-1">
-                O tipo da chave é detectado automaticamente.
-              </p>
-            </div>
-            {lookupError && (
-              <div className="rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-400">
-                {lookupError}
-              </div>
-            )}
-          </div>
-        )}
-
-        {step === "dados" && (
-          <div className="space-y-3">
-            {ownerCard}
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label>Valor (R$)</Label>
-                <Input value={value} onChange={(e) => setValue(e.target.value)} inputMode="decimal" placeholder="0,00" autoFocus />
-              </div>
-              <div>
-                <Label>Quando</Label>
-                <Select value={mode} onValueChange={(v) => setMode(v as any)}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="agora">Pagar agora</SelectItem>
-                    <SelectItem value="agendar">Agendar</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              {mode === "agendar" && (
-                <>
-                  <div>
-                    <Label>Data do pagamento</Label>
-                    <Input type="date" value={date} min={todayBR()} onChange={(e) => setDate(e.target.value)} />
-                  </div>
-                  <div>
-                    <Label>Hora do disparo</Label>
-                    <Input type="time" value={time} onChange={(e) => setTime(e.target.value)} step={300} />
-                    <p className="mt-1 text-[11px] text-muted-foreground">
-                      O pagamento é enviado ao ASAAS nesse horário (Brasília).
-                    </p>
-                  </div>
-                </>
-              )}
-              <div className="col-span-2">
-                <Label>Descrição</Label>
-                <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} />
-              </div>
-            </div>
-            {initial?.supplierName && (
-              <label className="flex items-center gap-2 text-xs text-muted-foreground">
-                <input type="checkbox" checked={saveKey} onChange={(e) => setSaveKey(e.target.checked)} />
-                Salvar esta chave Pix para {initial.supplierName}
-              </label>
-            )}
-          </div>
-        )}
-
-        {step === "confirm" && owner && (
-          <div className="rounded-xl border border-border bg-muted/30 p-4 space-y-2 text-sm">
-            <div className="text-center pb-2">
-              <div className="text-xs uppercase tracking-wider text-muted-foreground">Você está enviando</div>
-              <div className="text-3xl font-bold text-brand-orange">{formatBRL(numericValue)}</div>
-            </div>
-            <Row label="Para" value={owner.name} />
-            <Row label="CPF/CNPJ" value={maskDoc(owner.cpfCnpj)} />
-            <Row label="Instituição" value={owner.bankName || "—"} />
-            <Row label="Chave Pix" value={owner.pixKey} />
-            <Row
-              label="Data"
-              value={
-                new Date(effectiveDate + "T00:00:00").toLocaleDateString("pt-BR") +
-                (mode === "agendar" && time ? ` às ${time}` : "")
-              }
-            />
-            <Row label="Descrição" value={description || "—"} />
-            <div className="flex items-start gap-2 pt-2 text-xs text-muted-foreground">
-              <ShieldCheck className="h-4 w-4 mt-0.5 text-emerald-500 shrink-0" />
-              A baixa financeira só acontece quando o ASAAS confirmar a transferência (TRANSFER_DONE).
-            </div>
-            <div className="flex items-start gap-2 text-xs text-muted-foreground">
-              <Building2 className="h-4 w-4 mt-0.5 shrink-0" />
-              Os dados do titular vêm da consulta da chave Pix e são revalidados no envio.
-            </div>
-          </div>
-        )}
-
-        <DialogFooter>
-          {step === "dados" && (
-            <Button variant="ghost" onClick={() => setStep("chave")} disabled={sending}>
-              <ArrowLeft className="h-4 w-4 mr-1.5" /> Trocar chave
-            </Button>
-          )}
-          {step === "confirm" && (
-            <Button variant="ghost" onClick={() => setStep("dados")} disabled={sending}>
-              <ArrowLeft className="h-4 w-4 mr-1.5" /> Voltar
-            </Button>
-          )}
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={sending || looking}>Cancelar</Button>
+        <div className="space-y-8 px-8 pb-9 sm:px-10">
           {step === "chave" && (
-            <Button onClick={doLookup} disabled={looking}>
-              {looking ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <Search className="h-4 w-4 mr-1.5" />}
-              Continuar
-            </Button>
+            <div className="space-y-3">
+              <div className="space-y-2">
+                <Label className="ml-1 text-xs font-medium text-muted-foreground">Chave Pix</Label>
+                <Input
+                  value={pixKey}
+                  onChange={(e) => { setPixKey(e.target.value); setLookupError(null); }}
+                  onKeyDown={(e) => { if (e.key === "Enter") doLookup(); }}
+                  placeholder="CPF, CNPJ, e-mail, telefone ou chave aleatória"
+                  autoFocus
+                  className="h-auto rounded-2xl border-white/10 bg-muted/30 px-4 py-4 text-base"
+                />
+                <p className="ml-1 text-xs text-muted-foreground">O tipo da chave é detectado automaticamente.</p>
+              </div>
+              {lookupError && (
+                <div className="rounded-2xl border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+                  {lookupError}
+                </div>
+              )}
+            </div>
           )}
-          {step === "dados" && <Button onClick={goConfirm}>Revisar</Button>}
-          {step === "confirm" && (
-            <Button onClick={send} disabled={sending}>
-              {sending && <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />} Confirmar Pix
-            </Button>
+
+          {step === "dados" && (
+            <div className="space-y-8">
+              {ownerCard}
+
+              <div className="grid grid-cols-12 gap-5">
+                <div className="col-span-12 space-y-2 sm:col-span-7">
+                  <Label className="ml-1 text-xs font-medium text-muted-foreground">Valor (R$)</Label>
+                  <div className="relative">
+                    <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-sm font-medium text-muted-foreground">
+                      R$
+                    </span>
+                    <Input
+                      value={value}
+                      onChange={(e) => setValue(e.target.value)}
+                      inputMode="decimal"
+                      placeholder="0,00"
+                      autoFocus
+                      className="h-auto rounded-2xl border-white/10 bg-muted/30 py-4 pl-11 pr-4 text-xl font-semibold"
+                    />
+                  </div>
+                </div>
+
+                <div className="col-span-12 space-y-2 sm:col-span-5">
+                  <Label className="ml-1 text-xs font-medium text-muted-foreground">Quando</Label>
+                  <Select value={mode} onValueChange={(v) => setMode(v as any)}>
+                    <SelectTrigger className="h-auto rounded-2xl border-white/10 bg-muted/30 px-4 py-[1.15rem] text-sm font-medium">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="agora">Pagar agora</SelectItem>
+                      <SelectItem value="agendar">Agendar</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {mode === "agendar" && (
+                  <>
+                    <div className="col-span-12 space-y-2 sm:col-span-7">
+                      <Label className="ml-1 text-xs font-medium text-muted-foreground">Data do pagamento</Label>
+                      <Input type="date" value={date} min={todayBR()} onChange={(e) => setDate(e.target.value)}
+                        className="h-auto rounded-2xl border-white/10 bg-muted/30 px-4 py-3.5" />
+                    </div>
+                    <div className="col-span-12 space-y-2 sm:col-span-5">
+                      <Label className="ml-1 text-xs font-medium text-muted-foreground">Hora do disparo</Label>
+                      <Input type="time" value={time} onChange={(e) => setTime(e.target.value)} step={300}
+                        className="h-auto rounded-2xl border-white/10 bg-muted/30 px-4 py-3.5" />
+                      <p className="ml-1 text-[11px] text-muted-foreground">Horário de Brasília.</p>
+                    </div>
+                  </>
+                )}
+
+                <div className="col-span-12 space-y-2">
+                  <Label className="ml-1 text-xs font-medium text-muted-foreground">
+                    Descrição <span className="text-muted-foreground/60">(opcional)</span>
+                  </Label>
+                  <Textarea
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    rows={2}
+                    placeholder="Ex: Pagamento de serviços…"
+                    className="resize-none rounded-2xl border-white/10 bg-muted/30 px-4 py-3 text-sm"
+                  />
+                </div>
+              </div>
+
+              {initial?.supplierName && (
+                <label className="ml-1 flex items-center gap-2 text-xs text-muted-foreground">
+                  <input type="checkbox" checked={saveKey} onChange={(e) => setSaveKey(e.target.checked)} />
+                  Salvar esta chave Pix para {initial.supplierName}
+                </label>
+              )}
+            </div>
           )}
-        </DialogFooter>
+
+          {step === "confirm" && owner && (
+            <div className="relative">
+              <div className="absolute -inset-0.5 rounded-[2rem] bg-gradient-to-tr from-primary/20 to-emerald-500/20 opacity-30 blur" />
+              <div className="relative space-y-3 rounded-[2rem] border border-white/10 bg-card/60 p-6 text-sm">
+                <div className="pb-2 text-center">
+                  <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Você está enviando</div>
+                  <div className="text-4xl font-bold tracking-tight text-brand-orange">{formatBRL(numericValue)}</div>
+                </div>
+                <div className="space-y-2 border-t border-white/5 pt-3">
+                  <Row label="Para" value={owner.name} />
+                  <Row label="CPF/CNPJ" value={maskDoc(owner.cpfCnpj)} />
+                  <Row label="Instituição" value={owner.bankName || "—"} />
+                  <Row label="Chave Pix" value={owner.pixKey} />
+                  <Row
+                    label="Data"
+                    value={
+                      new Date(effectiveDate + "T00:00:00").toLocaleDateString("pt-BR") +
+                      (mode === "agendar" && time ? ` às ${time}` : "")
+                    }
+                  />
+                  <Row label="Descrição" value={description || "—"} />
+                </div>
+                <div className="flex items-start gap-2 border-t border-white/5 pt-3 text-xs text-muted-foreground">
+                  <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
+                  A baixa financeira só acontece quando o ASAAS confirmar a transferência (TRANSFER_DONE).
+                </div>
+                <div className="flex items-start gap-2 text-xs text-muted-foreground">
+                  <Building2 className="mt-0.5 h-4 w-4 shrink-0" />
+                  Os dados do titular vêm da consulta da chave Pix e são revalidados no envio.
+                </div>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter className="flex-row items-center justify-between gap-3 pt-2 sm:justify-between">
+            <div>
+              {step === "dados" && (
+                <button type="button" disabled={sending} onClick={() => setStep("chave")}
+                  className="flex items-center gap-2 px-1 text-sm font-medium text-muted-foreground transition hover:text-foreground">
+                  <ArrowLeft className="h-4 w-4" /> Trocar chave
+                </button>
+              )}
+              {step === "confirm" && (
+                <button type="button" disabled={sending} onClick={() => setStep("dados")}
+                  className="flex items-center gap-2 px-1 text-sm font-medium text-muted-foreground transition hover:text-foreground">
+                  <ArrowLeft className="h-4 w-4" /> Voltar
+                </button>
+              )}
+            </div>
+
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => onOpenChange(false)}
+                disabled={sending || looking}
+                className="rounded-2xl px-5 py-3 text-sm font-semibold text-muted-foreground transition hover:bg-muted/40 hover:text-foreground"
+              >
+                Cancelar
+              </button>
+              {step === "chave" && (
+                <Button onClick={doLookup} disabled={looking} className="h-auto rounded-2xl px-8 py-3 font-bold">
+                  {looking ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Search className="mr-1.5 h-4 w-4" />}
+                  Continuar
+                </Button>
+              )}
+              {step === "dados" && (
+                <Button onClick={goConfirm} className="h-auto rounded-2xl px-10 py-3 font-bold">Revisar</Button>
+              )}
+              {step === "confirm" && (
+                <Button onClick={send} disabled={sending} className="h-auto rounded-2xl px-8 py-3 font-bold">
+                  {sending && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />} Confirmar Pix
+                </Button>
+              )}
+            </div>
+          </DialogFooter>
+        </div>
       </DialogContent>
     </Dialog>
   );
 }
+
 
 function Row({ label, value, strong }: { label: string; value: string; strong?: boolean }) {
   return (
