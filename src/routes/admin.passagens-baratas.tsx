@@ -327,11 +327,8 @@ function PassagensBaratasPage() {
       </nav>
 
 
-      {q.isLoading && (
-        <Card className="flex items-center gap-2 p-6 text-sm text-muted-foreground">
-          <Loader2 className="h-4 w-4 animate-spin" /> Buscando os preços mais baratos...
-        </Card>
-      )}
+      {q.isLoading && <LoadingSkeleton />}
+
       {q.isError && <Card className="p-6 text-sm text-destructive">{(q.error as Error).message}</Card>}
 
       {/* Regiões / países */}
