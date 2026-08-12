@@ -54,7 +54,13 @@ import {
 import { createPublicFlightLead } from "@/lib/public-lead.functions";
 import { DateRangeField } from "@/components/search/DateRangeField";
 import { SearchSkeleton } from "@/components/search/SearchSkeleton";
-import { installmentLabel, maxInstallments } from "@/lib/flight-installments";
+import { installmentLabel } from "@/lib/flight-installments";
+import {
+  AVISO_MAIOR_PARCELAMENTO,
+  AVISO_VALIDADE_TARIFA,
+  extendedText,
+  getAirfarePaymentConditions,
+} from "@/lib/airfare-conditions";
 import {
   onerCreateFlightCart,
   onerFlightSearch,
