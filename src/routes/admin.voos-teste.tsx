@@ -1692,6 +1692,14 @@ export type FlightPreset = {
   infants: number;
 };
 
+/** União de voos (sem duplicar) usada só para manter a lista de companhias dos filtros. */
+function mergePool(prev: OnerFlight[], next: OnerFlight[]): OnerFlight[] {
+  const map = new Map(prev.map((f) => [flightSignature(f), f]));
+  for (const f of next) if (!map.has(flightSignature(f))) map.set(flightSignature(f), f);
+  return [...map.values()];
+}
+
+
 export function VoosPage({
   header,
   hideForm,
@@ -1731,6 +1739,7 @@ export function VoosPage({
   });
   const [pendingRun, setPendingRun] = useState(0);
 
+
   const [result, setResult] = useState<OnerSearchResult | null>(null);
   const [selectedOut, setSelectedOut] = useState<string | null>(null);
   const [selectedIn, setSelectedIn] = useState<string | null>(null);
@@ -1744,6 +1753,9 @@ export function VoosPage({
   const [isRoundTrip, setIsRoundTrip] = useState(false);
   /** companhias da primeira busca (sem filtro), para os chips não sumirem */
   const [airlinePool, setAirlinePool] = useState<OnerFlight[]>([]);
+  /** ondas extras disparadas em segundo plano para trazer todas as companhias */
+  const [autoWaves, setAutoWaves] = useState(0);
+
 
   const paxData = () => ({
     departureIata: form.departureIata.trim().toUpperCase(),
@@ -1786,11 +1798,15 @@ export function VoosPage({
         setInFilters(EMPTY_FILTERS);
         setIsRoundTrip(!!form.returnDate);
         setAirlinePool(r.outbound.flights);
+        setAutoWaves(2);
         if (!r.outbound.flights.length) toast.warning("Nenhum voo retornado para esses parâmetros");
         else toast.success(`${r.outbound.flights.length} voos encontrados`);
-      } else if (!r.outbound.flights.length) {
-        toast.warning("Nenhum voo com esses filtros");
+      } else {
+        // Buscas filtradas não podem encolher a lista de companhias dos chips.
+        setAirlinePool((prev) => mergePool(prev, r.outbound.flights));
+        if (!r.outbound.flights.length) toast.warning("Nenhum voo com esses filtros");
       }
+
     },
     onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Erro na busca"),
   });
@@ -1800,21 +1816,24 @@ export function VoosPage({
   // consulta com a MESMA busca costuma trazer opções (e tarifas menores) que
   // ainda não tinham chegado. Os voos novos são somados aos já exibidos.
   const moreMut = useMutation({
-    mutationFn: () =>
+    mutationFn: (opts: { silent?: boolean }) =>
       search({
         data: {
           ...paxData(),
           returnDate: form.returnDate || null,
           searchKey: result?.searchKey ?? null,
-          filters: toOperatorFilters(outFilters),
+          // As ondas automáticas rodam SEM filtro: é assim que companhias que
+          // chegam atrasadas (ex.: Copa) entram na lista de chips.
+          filters: toOperatorFilters(opts.silent ? EMPTY_FILTERS : outFilters),
         },
       }),
-    onSuccess: (raw) => {
+    onSuccess: (raw, vars) => {
       const r = normalizeSearchResult(raw);
       if (!r) {
-        toast.info("A operadora não respondeu agora, tente de novo em instantes");
+        if (!vars.silent) toast.info("A operadora não respondeu agora, tente de novo em instantes");
         return;
       }
+      setAirlinePool((prev) => mergePool(prev, r.outbound.flights));
       setResult((prev) => {
         if (!prev) return r;
         const map = new Map(prev.outbound.flights.map((f) => [flightSignature(f), f]));
@@ -1827,10 +1846,11 @@ export function VoosPage({
 
         }
         const flights = [...map.values()].sort((a, b) => a.price.total - b.price.total);
-        toast[novos ? "success" : "info"](
-          novos ? `+${novos} voos encontrados` : "Nenhuma opção nova por enquanto",
-        );
-        setAirlinePool(flights);
+        if (!vars.silent) {
+          toast[novos ? "success" : "info"](
+            novos ? `+${novos} voos encontrados` : "Nenhuma opção nova por enquanto",
+          );
+        }
         return {
           ...prev,
           outbound: {
@@ -1842,9 +1862,24 @@ export function VoosPage({
         };
       });
     },
-    onError: (e: unknown) =>
-      toast.error(e instanceof Error ? e.message : "Erro ao carregar mais voos"),
+    onError: (e: unknown, vars) => {
+      if (!vars.silent) toast.error(e instanceof Error ? e.message : "Erro ao carregar mais voos");
+    },
   });
+
+  // Ondas automáticas em segundo plano: a operadora libera fornecedores aos
+  // poucos, então repetimos a mesma busca para completar a lista de companhias.
+  useEffect(() => {
+    if (autoWaves <= 0 || !result?.searchKey) return;
+    if (mut.isPending || moreMut.isPending) return;
+    const t = setTimeout(() => {
+      setAutoWaves((n) => Math.max(0, n - 1));
+      moreMut.mutate({ silent: true });
+    }, 2000);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoWaves, result?.searchKey, mut.isPending, moreMut.isPending]);
+
 
   const inboundMut = useMutation({
     // A operadora combina ida + volta POR TARIFA (fornecedor). Se a tarifa mais
@@ -2224,7 +2259,7 @@ export function VoosPage({
         {result && (
           <div className={`grid gap-6 ${showSummary ? "" : "lg:grid-cols-[280px_1fr]"}`}>
             {!showSummary && (
-              <aside className="space-y-4 lg:sticky lg:top-4 lg:self-start">
+              <aside className="space-y-4 lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:self-start lg:overflow-y-auto lg:overscroll-contain lg:pr-1">
                 {!inboundPhase ? (
                   <FiltersPanel
                     title={isRoundTrip ? "Filtros da ida" : "Filtros"}
@@ -2304,7 +2339,7 @@ export function VoosPage({
                     variant="outline"
                     className="w-full"
                     disabled={moreMut.isPending || mut.isPending}
-                    onClick={() => moreMut.mutate()}
+                    onClick={() => moreMut.mutate({})}
                   >
                     {moreMut.isPending ? (
                       <>
