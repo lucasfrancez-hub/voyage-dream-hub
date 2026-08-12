@@ -8,6 +8,9 @@ import { Input } from "@/components/ui/input";
 import { formatBRL } from "@/lib/format";
 import { listarComprovantes } from "@/lib/comprovantes.functions";
 import { ComprovanteActions } from "@/components/financial/ComprovanteActions";
+import { ExternalReceiptButton } from "@/components/financial/ExternalReceiptButton";
+import { listarPagamentosExternos } from "@/lib/pagamentos-externos.functions";
+import { bancoSlug, formaLabel, type PagamentoExterno } from "@/lib/pagamentos-externos.helpers";
 
 export const Route = createFileRoute("/admin/comprovantes")({
   component: ComprovantesPage,
@@ -63,6 +66,7 @@ function fmtDate(v: string | null) {
 
 function ComprovantesPage() {
   const listarFn = useServerFn(listarComprovantes);
+  const listarExternosFn = useServerFn(listarPagamentosExternos);
 
   const [preset, setPreset] = useState<Preset>("mes");
   const [custom, setCustom] = useState(() => {
@@ -71,6 +75,8 @@ function ComprovantesPage() {
   });
   const [busca, setBusca] = useState("");
   const [fluxo, setFluxo] = useState<"todos" | "in" | "out">("todos");
+  const [origem, setOrigem] = useState<"todos" | "asaas" | "externo">("todos");
+  const [banco, setBanco] = useState<string>("todos");
 
   const range = useMemo(() => rangeFor(preset, custom), [preset, custom]);
 
@@ -81,17 +87,86 @@ function ComprovantesPage() {
     refetchOnMount: "always",
   });
 
+  const externosQ = useQuery({
+    queryKey: ["comprovantes-externos", range.start, range.finish],
+    queryFn: () => listarExternosFn({ data: { startDate: range.start, finishDate: range.finish } }),
+    retry: false,
+    refetchOnMount: "always",
+  });
+
+  const externos = useMemo(
+    () => ((externosQ.data?.items ?? []) as unknown as PagamentoExterno[]),
+    [externosQ.data],
+  );
+
+  const bancos = useMemo(() => {
+    const set = new Set<string>();
+    for (const p of externos) set.add(bancoSlug(p.banco_nome));
+    return Array.from(set).sort();
+  }, [externos]);
+
+  const unificado = useMemo(() => {
+    type Row = {
+      key: string;
+      src: "asaas" | "externo";
+      banco: string;
+      date: string | null;
+      favored: string | null;
+      operation: string;
+      status: string | null;
+      value: number;
+      direction: "in" | "out";
+      reference: string | null;
+      asaas?: any;
+      externo?: PagamentoExterno;
+    };
+    const rows: Row[] = [];
+    for (const c of q.data?.items ?? []) {
+      rows.push({
+        key: c.id,
+        src: "asaas",
+        banco: "ASAAS",
+        date: c.date,
+        favored: c.favored,
+        operation: c.operation,
+        status: c.status,
+        value: c.value,
+        direction: c.direction,
+        reference: c.reference || c.asaasId,
+        asaas: c,
+      });
+    }
+    for (const p of externos) {
+      rows.push({
+        key: `externo:${p.id}`,
+        src: "externo",
+        banco: bancoSlug(p.banco_nome),
+        date: p.data_pagamento,
+        favored: p.beneficiario_nome,
+        operation: `${formaLabel(p.forma_pagamento)} pago`,
+        status: "Pago",
+        value: Number(p.valor ?? 0),
+        direction: "out",
+        reference: p.autenticacao,
+        externo: p,
+      });
+    }
+    return rows.sort((a, z) => String(z.date ?? "").localeCompare(String(a.date ?? "")));
+  }, [q.data, externos]);
+
   const filtrado = useMemo(() => {
     const s = busca.trim().toLowerCase();
-    const base = q.data?.items ?? [];
-    const items = fluxo === "todos" ? base : base.filter((i) => i.direction === fluxo);
+    let items = unificado;
+    if (fluxo !== "todos") items = items.filter((i) => i.direction === fluxo);
+    if (origem !== "todos") items = items.filter((i) => i.src === origem);
+    if (banco !== "todos") items = items.filter((i) => i.banco === banco);
     if (!s) return items;
     return items.filter((i) =>
-      `${i.favored ?? ""} ${i.operation} ${i.status ?? ""} ${i.reference ?? ""} ${i.asaasId} ${formatBRL(i.value)} ${i.value}`
+      `${i.favored ?? ""} ${i.operation} ${i.status ?? ""} ${i.reference ?? ""} ${i.banco} ${formatBRL(i.value)} ${i.value}`
         .toLowerCase()
         .includes(s),
     );
-  }, [q.data, busca, fluxo]);
+  }, [unificado, busca, fluxo, origem, banco]);
 
   return (
     <div className="mx-auto w-full max-w-7xl space-y-8 px-3 py-6 sm:px-6 md:py-8">
