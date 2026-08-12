@@ -349,60 +349,88 @@ export function BoletoPaymentDialog({
     );
   }
 
+  const beneficiarioNome =
+    boleto?.beneficiario ?? boleto?.instituicao ?? entry?.counterparty ?? "Beneficiário não informado";
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>
+      <DialogContent
+        overlayClassName="bg-black/80 backdrop-blur-xl"
+        className="max-w-md max-h-[92vh] overflow-y-auto rounded-3xl border-white/10 bg-card/80 p-0 backdrop-blur-2xl shadow-[0_32px_64px_-16px_rgba(0,0,0,0.55)]"
+      >
+        <DialogHeader className="px-6 pb-4 pt-7 text-left">
+          <DialogTitle className="text-xl font-bold tracking-tight">
             {etapa === "conferencia" ? "Você está pagando" : "Pagar boleto"}
           </DialogTitle>
+          <p className="text-xs font-medium text-muted-foreground">
+            {etapa === "conferencia"
+              ? "Confira os dados antes de confirmar"
+              : "Verifique os detalhes antes de confirmar"}
+          </p>
         </DialogHeader>
 
         {etapa === "codigo" ? (
-          <div className="space-y-4">
-            <div>
-              <Label>Linha digitável ou código de barras</Label>
-              <Input
-                autoFocus
-                value={maskLinha(codigo)}
-                onChange={(e) => { setCodigo(e.target.value.replace(/\D+/g, "")); setBoleto(null); setErro(null); }}
-                onPaste={(e) => {
-                  // Aceita colagem com pontos, espaços, quebras de linha ou texto junto.
-                  const bruto = e.clipboardData.getData("text") ?? "";
-                  const d = bruto.replace(/\D+/g, "");
-                  if (!d) return;
-                  e.preventDefault();
-                  setBoleto(null);
-                  setErro(null);
-                  setCodigo(d);
-                  const p = parseBoletoCode(d);
-                  if (p.valid) void consultarCodigo(d);
-                }}
-                placeholder="00000.00000 00000.000000 00000.000000 0 00000000000000"
-                inputMode="numeric"
-                className="font-mono"
-              />
-              <p className="mt-1 text-[11px] text-muted-foreground">
+          <div className="space-y-5 px-6 pb-6">
+            <div className="space-y-2">
+              <div className="flex items-end justify-between px-1">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                  Código de barras
+                </span>
+                {codigo.length > 0 && (
+                  <span
+                    className={
+                      formato.valid
+                        ? "rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-500"
+                        : "rounded-full border border-amber-500/20 bg-amber-500/10 px-2 py-0.5 text-[10px] font-bold text-amber-500"
+                    }
+                  >
+                    {formato.valid ? "VÁLIDO" : "INCOMPLETO"}
+                  </span>
+                )}
+              </div>
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  autoFocus
+                  value={maskLinha(codigo)}
+                  onChange={(e) => { setCodigo(e.target.value.replace(/\D+/g, "")); setBoleto(null); setErro(null); }}
+                  onPaste={(e) => {
+                    const bruto = e.clipboardData.getData("text") ?? "";
+                    const d = bruto.replace(/\D+/g, "");
+                    if (!d) return;
+                    e.preventDefault();
+                    setBoleto(null);
+                    setErro(null);
+                    setCodigo(d);
+                    const p = parseBoletoCode(d);
+                    if (p.valid) void consultarCodigo(d);
+                  }}
+                  placeholder="00000.00000 00000.000000 00000.000000 0 00000000000000"
+                  inputMode="numeric"
+                  className="h-auto rounded-2xl border-border/60 bg-muted/40 py-4 pl-11 pr-4 font-mono text-[13px]"
+                />
+              </div>
+              <p className="px-1 text-[11px] text-muted-foreground">
                 {codigo.length === 0
                   ? "Digite ou cole o código do boleto (47/48 dígitos) ou o código de barras (44)."
                   : formato.valid
-                    ? `${formato.kind === "arrecadacao" ? "Conta de consumo/tributo" : "Boleto bancário"} válido — código de barras ${formato.barcode}.`
+                    ? `${formato.kind === "arrecadacao" ? "Conta de consumo/tributo" : "Boleto bancário"} válido.`
                     : formato.message}
               </p>
             </div>
 
             <div className="flex items-center gap-2">
               <Button
-                className="gap-2"
+                className="h-11 flex-1 gap-2 rounded-2xl font-bold"
                 disabled={!codigoCompleto || consultando}
                 onClick={() => consultarCodigo()}
               >
                 {consultando ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
                 Consultar boleto
               </Button>
-              <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-dashed px-3 py-2 text-xs text-muted-foreground hover:bg-muted/40">
+              <label className="flex h-11 cursor-pointer items-center gap-2 rounded-2xl border border-border/60 bg-muted/40 px-4 text-xs font-semibold text-muted-foreground transition hover:bg-muted">
                 {lendo ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-                {lendo ? "Lendo…" : "Ler de um arquivo"}
+                {lendo ? "Lendo…" : "Arquivo"}
                 <input type="file" accept="application/pdf,image/*" className="hidden"
                   onChange={(e) => { const f = e.target.files?.[0]; if (f) anexar(f); }} />
               </label>
@@ -411,86 +439,156 @@ export function BoletoPaymentDialog({
             {erro && <ErroPanel erro={erro} />}
 
             {boleto && (
-              <div className="space-y-3">
-                <div className="rounded-xl border p-3 divide-y divide-border">
-                  <p className="flex items-center gap-1.5 pb-2 text-sm font-semibold text-emerald-500">
-                    <ShieldCheck className="h-4 w-4" /> Boleto disponível para pagamento
-                  </p>
-                  <Linha label="Beneficiário" value={boleto.beneficiario ?? "—"} />
-                  {boleto.documentoBeneficiario && <Linha label="CPF/CNPJ" value={boleto.documentoBeneficiario} />}
-                  {boleto.instituicao && <Linha label="Instituição" value={boleto.instituicao} />}
-                  <Linha label="Vencimento" value={fmtDate(boleto.vencimento)} />
-                  {boleto.valorOriginal != null && <Linha label="Valor original" value={formatBRL(boleto.valorOriginal)} />}
-                  {boleto.juros != null && boleto.juros > 0 && <Linha label="Juros" value={formatBRL(boleto.juros)} />}
-                  {boleto.multa != null && boleto.multa > 0 && <Linha label="Multa" value={formatBRL(boleto.multa)} />}
-                  {boleto.desconto != null && boleto.desconto > 0 && <Linha label="Desconto" value={formatBRL(boleto.desconto)} />}
-                  {boleto.abatimento != null && boleto.abatimento > 0 && <Linha label="Abatimento" value={formatBRL(boleto.abatimento)} />}
-                  <Linha label="Valor a pagar" value={<span className="text-base">{formatBRL(valorAPagar)}</span>} />
-                  {boleto.dataMinimaPagamento && <Linha label="Pagável a partir de" value={fmtDate(boleto.dataMinimaPagamento)} />}
-                  {boleto.dataMaximaPagamento && <Linha label="Data limite" value={fmtDate(boleto.dataMaximaPagamento)} />}
-                  {boleto.descricao && <Linha label="Informações" value={boleto.descricao} />}
+              <div className="space-y-4">
+                <div className="space-y-5 rounded-3xl border border-white/5 bg-gradient-to-b from-muted/40 to-muted/10 p-5">
+                  <div className="flex items-start gap-4">
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-primary/20 bg-primary/10 text-primary">
+                      <Landmark className="h-6 w-6" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                        Beneficiário
+                      </p>
+                      <p className="text-base font-bold leading-tight break-words">{beneficiarioNome}</p>
+                      {boleto.documentoBeneficiario && (
+                        <p className="mt-0.5 text-xs text-muted-foreground">{boleto.documentoBeneficiario}</p>
+                      )}
+                      {boleto.instituicao && boleto.instituicao !== beneficiarioNome && (
+                        <p className="text-xs text-muted-foreground">{boleto.instituicao}</p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="space-y-2.5">
+                    {boleto.valorOriginal != null && (
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">Valor original</span>
+                        <span className="font-medium">{formatBRL(boleto.valorOriginal)}</span>
+                      </div>
+                    )}
+                    {boleto.multa != null && boleto.multa > 0 && (
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">Multa</span>
+                        <span className="font-medium text-amber-500">+ {formatBRL(boleto.multa)}</span>
+                      </div>
+                    )}
+                    {boleto.juros != null && boleto.juros > 0 && (
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">Juros</span>
+                        <span className="font-medium text-amber-500">+ {formatBRL(boleto.juros)}</span>
+                      </div>
+                    )}
+                    {boleto.desconto != null && boleto.desconto > 0 && (
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">Desconto</span>
+                        <span className="font-medium text-emerald-500">− {formatBRL(boleto.desconto)}</span>
+                      </div>
+                    )}
+                    {boleto.abatimento != null && boleto.abatimento > 0 && (
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">Abatimento</span>
+                        <span className="font-medium text-emerald-500">− {formatBRL(boleto.abatimento)}</span>
+                      </div>
+                    )}
+
+                    <div className="mt-3 flex items-end justify-between border-t border-white/5 pt-3">
+                      <div>
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                          Total a pagar
+                        </p>
+                        <p className="text-3xl font-bold tracking-tight">{formatBRL(valorAPagar)}</p>
+                      </div>
+                      <p className="pb-1 text-[10px] text-muted-foreground">
+                        {boleto.vencido ? "Venceu em " : "Vence em "}{fmtDate(boleto.vencimento)}
+                      </p>
+                    </div>
+                  </div>
+
+                  {(boleto.dataMaximaPagamento || boleto.descricao) && (
+                    <div className="space-y-1 border-t border-white/5 pt-3 text-[11px] text-muted-foreground">
+                      {boleto.dataMaximaPagamento && <p>Data limite: {fmtDate(boleto.dataMaximaPagamento)}</p>}
+                      {boleto.descricao && <p className="break-words">{boleto.descricao}</p>}
+                    </div>
+                  )}
                 </div>
 
                 {boleto.vencido && (
-                  <p className="flex items-start gap-1.5 rounded-lg bg-amber-500/10 p-2 text-xs text-amber-500">
-                    <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                    Boleto vencido — o provedor aceitou o pagamento com os encargos acima. Só é possível pagar hoje.
-                  </p>
+                  <div className="flex gap-3 rounded-2xl border border-amber-500/10 bg-amber-500/5 p-4">
+                    <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
+                    <p className="text-xs leading-relaxed text-amber-500/80">
+                      Este boleto está <span className="font-bold text-amber-500">vencido</span>. Os encargos foram
+                      calculados pelo banco emissor e o pagamento só pode ser feito hoje.
+                    </p>
+                  </div>
                 )}
 
-                <div>
-                  <Label>Valor {boleto.valorEditavel ? "(alterável neste título)" : "(definido pelo boleto)"}</Label>
-                  <Input
-                    value={boleto.valorEditavel ? valorEditado : String(boleto.valorFinal ?? boleto.valorOriginal ?? "")}
-                    readOnly={!boleto.valorEditavel}
-                    disabled={!boleto.valorEditavel}
-                    onChange={(e) => setValorEditado(e.target.value)}
-                    inputMode="decimal"
-                  />
-                </div>
+                {boleto.valorEditavel && (
+                  <div className="space-y-1.5">
+                    <Label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                      Valor (alterável neste título)
+                    </Label>
+                    <Input
+                      value={valorEditado}
+                      onChange={(e) => setValorEditado(e.target.value)}
+                      inputMode="decimal"
+                      className="h-12 rounded-2xl border-border/60 bg-muted/40 text-base font-semibold"
+                    />
+                  </div>
+                )}
 
-                <div className="flex gap-2">
-                  <Button size="sm" variant={modo === "agora" ? "default" : "outline"} onClick={() => setModo("agora")}>
-                    Pagar agora
-                  </Button>
+                <div className="grid grid-cols-2 gap-3">
                   <Button
-                    size="sm"
-                    variant={modo === "agendar" ? "default" : "outline"}
+                    variant={modo === "agendar" ? "default" : "secondary"}
                     disabled={boleto.vencido}
                     onClick={() => setModo("agendar")}
-                    className="gap-1.5"
+                    className="h-12 gap-2 rounded-2xl font-bold"
                   >
                     <CalendarClock className="h-4 w-4" /> Agendar
+                  </Button>
+                  <Button
+                    variant={modo === "agora" ? "default" : "secondary"}
+                    onClick={() => setModo("agora")}
+                    className="h-12 rounded-2xl font-bold"
+                  >
+                    Pagar agora
                   </Button>
                 </div>
 
                 {modo === "agendar" && (
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <Label>Data</Label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <Label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Data</Label>
                       <Input
                         type="date"
                         value={dataPagamento}
                         min={boleto.dataMinimaPagamento ?? boleto.hoje}
                         max={boleto.dataMaximaPagamento ?? undefined}
                         onChange={(e) => setDataPagamento(e.target.value)}
+                        className="h-11 rounded-2xl border-border/60 bg-muted/40"
                       />
                     </div>
-                    <div>
-                      <Label>Hora</Label>
+                    <div className="space-y-1.5">
+                      <Label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Hora</Label>
                       <Input type="time" step={300} value={horaPagamento}
-                        onChange={(e) => setHoraPagamento(e.target.value)} />
-                      <p className="mt-1 text-[11px] text-muted-foreground">Disparo no horário de Brasília.</p>
+                        onChange={(e) => setHoraPagamento(e.target.value)}
+                        className="h-11 rounded-2xl border-border/60 bg-muted/40" />
+                      <p className="text-[10px] text-muted-foreground">Horário de Brasília.</p>
                     </div>
                   </div>
                 )}
               </div>
             )}
 
-            <DialogFooter>
-              <Button variant="outline" onClick={() => onOpenChange(false)}>Fechar</Button>
+            <DialogFooter className="mt-2 flex-row items-center justify-between gap-3 border-t border-white/5 pt-4 sm:justify-between">
+              <button
+                type="button"
+                className="text-xs font-bold uppercase tracking-widest text-muted-foreground transition hover:text-foreground"
+                onClick={() => onOpenChange(false)}
+              >
+                Cancelar
+              </button>
               <Button
-                className="gap-1.5"
+                className="h-11 gap-1.5 rounded-full px-6 font-bold"
                 disabled={!boleto || valorAPagar <= 0 || (modo === "agendar" && !dataPagamento)}
                 onClick={() => setEtapa("conferencia")}
               >
@@ -499,32 +597,58 @@ export function BoletoPaymentDialog({
             </DialogFooter>
           </div>
         ) : (
-          <div className="space-y-3">
-            <div className="rounded-xl border p-4">
-              <p className="text-xs text-muted-foreground">Valor</p>
-              <p className="text-2xl font-bold">{formatBRL(valorAPagar)}</p>
-              <div className="mt-2 divide-y divide-border">
-                <Linha label="Beneficiário" value={boleto?.beneficiario ?? entry?.counterparty ?? "—"} />
-                <Linha label="CPF/CNPJ" value={boleto?.documentoBeneficiario ?? "—"} />
-                <Linha label="Vencimento" value={fmtDate(boleto?.vencimento)} />
-                <Linha
-                  label="Data do pagamento"
-                  value={`${fmtDate(dataEfetiva)}${modo === "agendar" ? ` às ${horaPagamento}` : ""}`}
-                />
-                <Linha label="Linha digitável" value={<span className="font-mono text-xs">{maskLinha(boleto?.linhaDigitavel ?? "")}</span>} />
+          <div className="space-y-4 px-6 pb-6">
+            <div className="space-y-5 rounded-3xl border border-white/5 bg-gradient-to-b from-muted/40 to-muted/10 p-5">
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Valor</p>
+                <p className="text-4xl font-bold tracking-tight">{formatBRL(valorAPagar)}</p>
+              </div>
+              <div className="flex items-start gap-4 border-t border-white/5 pt-4">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-primary/20 bg-primary/10 text-primary">
+                  <Landmark className="h-5 w-5" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Beneficiário</p>
+                  <p className="text-base font-bold leading-tight break-words">{beneficiarioNome}</p>
+                  {boleto?.documentoBeneficiario && (
+                    <p className="text-xs text-muted-foreground">{boleto.documentoBeneficiario}</p>
+                  )}
+                </div>
+              </div>
+              <div className="space-y-2.5 border-t border-white/5 pt-4 text-sm">
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Vencimento</span>
+                  <span className="font-medium">{fmtDate(boleto?.vencimento)}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Data do pagamento</span>
+                  <span className="font-medium">
+                    {fmtDate(dataEfetiva)}{modo === "agendar" ? ` às ${horaPagamento}` : ""}
+                  </span>
+                </div>
+                <div className="border-t border-white/5 pt-2.5">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Linha digitável</p>
+                  <p className="break-all font-mono text-[11px]">{maskLinha(boleto?.linhaDigitavel ?? "")}</p>
+                </div>
               </div>
             </div>
 
             {erro && <ErroPanel erro={erro} />}
 
-            <p className="text-[11px] text-muted-foreground">
+            <p className="text-[11px] leading-relaxed text-muted-foreground">
               Em finais de semana e feriados o processamento ocorre no próximo dia útil. O comprovante
               definitivo só é gerado após a confirmação do pagamento.
             </p>
 
-            <DialogFooter>
-              <Button variant="outline" onClick={() => { setErro(null); setEtapa("codigo"); }}>Voltar</Button>
-              <Button onClick={enviar} disabled={enviando}>
+            <DialogFooter className="flex-row items-center justify-between gap-3 border-t border-white/5 pt-4 sm:justify-between">
+              <button
+                type="button"
+                className="text-xs font-bold uppercase tracking-widest text-muted-foreground transition hover:text-foreground"
+                onClick={() => { setErro(null); setEtapa("codigo"); }}
+              >
+                Voltar
+              </button>
+              <Button onClick={enviar} disabled={enviando} className="h-11 rounded-full px-6 font-bold">
                 {enviando && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
                 Confirmar pagamento
               </Button>
@@ -535,3 +659,4 @@ export function BoletoPaymentDialog({
     </Dialog>
   );
 }
+
