@@ -23,6 +23,9 @@ import {
   sincronizarTodosPagamentosBoleto,
 } from "@/lib/boleto-pay.functions";
 import { formatarLinhaDigitavel } from "@/lib/boleto-html";
+import { listarPagamentosExternos } from "@/lib/pagamentos-externos.functions";
+import { bancoSlug, formaLabel, type PagamentoExterno } from "@/lib/pagamentos-externos.helpers";
+import { ExternalReceiptButton } from "@/components/financial/ExternalReceiptButton";
 import { confirmThen } from "@/lib/confirm";
 
 /** Selo visual do tipo de operação na listagem. */
@@ -200,6 +203,12 @@ function PagamentosPage() {
       (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
     );
   }, [data, boletosQ.data, externosQ.data]);
+
+  const bancosDisponiveis = useMemo(() => {
+    const set = new Set<string>();
+    for (const r of rows) if (r.kind === "externo") set.add(r.banco);
+    return Array.from(set).sort();
+  }, [rows]);
 
   const agendados = rows.filter((r) => r.bucket === "agendado");
 
