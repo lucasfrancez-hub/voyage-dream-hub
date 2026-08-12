@@ -326,7 +326,6 @@ function PassagensBaratasPage() {
           </div>
         </div>
       ) : null}
-      ) : null}
 
       {data && !q.isFetching && !data.categories.length && !data.cities.length && !data.dates.length && (
         <Card className="p-6 text-sm text-muted-foreground">
