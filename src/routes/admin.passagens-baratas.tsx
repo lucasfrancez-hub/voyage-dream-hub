@@ -129,6 +129,7 @@ export function PassagensBaratasExplorer({
   onFiltroChange,
   className,
   linkVoos,
+  hideTrail,
 }: {
   trail?: Step[];
   onTrailChange?: (t: Step[]) => void;
@@ -137,6 +138,8 @@ export function PassagensBaratasExplorer({
   className?: string;
   /** Monta o link de "Ver voos"/"Pesquisar" (padrão: motor Comprar Viagem). */
   linkVoos?: (p: { origem: string; destino: string; ida: string; volta: string }) => string;
+  /** Esconde o passo a passo (usado no embed do WordPress). */
+  hideTrail?: boolean;
 } = {}) {
 
   const explorar = useServerFn(explorarPassagensMd);
