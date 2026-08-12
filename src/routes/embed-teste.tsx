@@ -49,6 +49,32 @@ function EmbedTestePage() {
     } catch {}
   }
 
+  const baratasUrl = `${origin}/embed/passagens-baratas`;
+  const baratasSnippet = `<iframe
+  id="viaair-passagens-baratas"
+  src="${baratasUrl}"
+  style="width:100%;max-width:1320px;height:900px;border:0;display:block;margin:0 auto;background:transparent;"
+  loading="lazy"
+  referrerpolicy="no-referrer-when-downgrade"
+  title="Passagens aéreas baratas VIA AIR"
+></iframe>
+<script>
+  window.addEventListener("message", function (e) {
+    if (!e.data || e.data.type !== "viaair:embed-height") return;
+    var f = document.getElementById("viaair-passagens-baratas");
+    if (f && e.data.height) f.style.height = e.data.height + "px";
+  });
+</script>`;
+
+  const [copiedBaratas, setCopiedBaratas] = useState(false);
+  async function copyBaratas() {
+    try {
+      await navigator.clipboard.writeText(baratasSnippet);
+      setCopiedBaratas(true);
+      setTimeout(() => setCopiedBaratas(false), 1800);
+    } catch {}
+  }
+
   const [copied, setCopied] = useState(false);
   async function copy() {
     try {
