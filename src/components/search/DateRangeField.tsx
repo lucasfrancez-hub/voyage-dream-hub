@@ -289,7 +289,7 @@ export function DateRangeField({
 
       <PopoverContent
         align="start"
-        className="w-[min(20rem,calc(100vw-2rem))] rounded-2xl border-border/60 bg-popover/95 p-0 shadow-2xl backdrop-blur-xl sm:w-[38rem]"
+        className="w-[min(20rem,calc(100vw-2rem))] rounded-2xl border-border/60 bg-popover/95 p-0 shadow-2xl backdrop-blur-xl"
       >
         {panel(false)}
       </PopoverContent>
