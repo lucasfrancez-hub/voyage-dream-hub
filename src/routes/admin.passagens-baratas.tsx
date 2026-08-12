@@ -576,10 +576,9 @@ function PassagensBaratasPage() {
                           )}
                         </td>
                         <td className="px-6 py-5 text-center">
-                          <span className="text-[10px] font-medium text-muted-foreground">
-                            {o.baggage ?? "—"}
-                          </span>
+                          <BaggageBlocks label={o.baggage} />
                         </td>
+
                         <td className="px-6 py-5">
                           <div
                             className={`text-xl font-black ${i === 0 ? "text-primary" : ""}`}
