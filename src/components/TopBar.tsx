@@ -80,7 +80,7 @@ export function TopBar({
                   onClick={() => setOpen(false)}
                   className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-foreground hover:bg-brand-orange/10 hover:text-brand-orange transition"
                 >
-                  <Plane className="h-4 w-4" /> Passagens aéreas
+                  <Plane className="h-4 w-4" /> Passagens
                 </Link>
                 <Link
                   to="/ingressos"
@@ -134,7 +134,7 @@ export function TopBar({
 
         <nav className="hidden lg:flex items-center gap-6">
           <Link to="/voar" className="inline-flex items-center gap-1.5 text-sm font-semibold text-foreground hover:text-brand-orange transition-colors">
-            <Plane className="h-3.5 w-3.5" /> Passagens aéreas
+            <Plane className="h-3.5 w-3.5" /> Passagens
           </Link>
           <Link to="/ingressos" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-brand-orange transition-colors">
             <Ticket className="h-3.5 w-3.5" /> Ingressos
