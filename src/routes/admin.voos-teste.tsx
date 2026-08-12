@@ -2087,7 +2087,9 @@ export function VoosPage({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [inSig]);
 
-  const refiltering = mut.isPending && !!result;
+  // Busca NOVA (sem searchKey) x reaplicação de filtros na mesma busca.
+  const novaBusca = mut.isPending && !mut.variables?.searchKey;
+  const refiltering = mut.isPending && !!result && !novaBusca;
   const outFlights = result ? applyFilters(result.outbound.flights, outFilters) : [];
   const inFlights = inbound ? applyFilters(inbound.flights, inFilters) : [];
   const outFlightRaw = findByAnyKey(result?.outbound.flights ?? [], selectedOut);
@@ -2317,7 +2319,9 @@ export function VoosPage({
       )}
 
       <main className={`mx-auto max-w-7xl px-4 ${publicMode && !result && !mut.isPending && !emptySlot ? "py-0" : "py-6"}`}>
-        {mut.isPending && !result && <SearchSkeleton />}
+        {/* Busca nova sempre mostra o esqueleto de carregamento, mesmo com
+            resultados antigos na tela — senão parece que travou. */}
+        {novaBusca && <SearchSkeleton />}
 
         {!result && !mut.isPending && emptySlot ? (
           <div data-empty-slot>{emptySlot}</div>
@@ -2334,7 +2338,7 @@ export function VoosPage({
         )}
 
 
-        {result && (
+        {result && !novaBusca && (
           <div className={`grid gap-6 ${showSummary ? "" : "lg:grid-cols-[280px_1fr]"}`}>
             {!showSummary && (
               <aside className="space-y-4 lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:self-start lg:overflow-y-auto lg:overscroll-contain lg:pr-1">
