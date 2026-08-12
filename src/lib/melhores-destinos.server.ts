@@ -43,10 +43,16 @@ const JSON_TTL = 15 * 60 * 1000;
 async function getJson<T>(url: string): Promise<T> {
   const hit = jsonCache.get(url);
   if (hit && Date.now() - hit.at < JSON_TTL) return hit.value as T;
-  const value = (await (await get(url)).json()) as T;
-  if (jsonCache.size > 300) jsonCache.clear();
-  jsonCache.set(url, { at: Date.now(), value });
-  return value;
+  try {
+    const value = (await (await get(url)).json()) as T;
+    if (jsonCache.size > 300) jsonCache.clear();
+    jsonCache.set(url, { at: Date.now(), value });
+    return value;
+  } catch (e) {
+    // Nunca deixa a tela sem tarifa: serve o último resultado bom, mesmo vencido.
+    if (hit) return hit.value as T;
+    throw e;
+  }
 }
 
 
