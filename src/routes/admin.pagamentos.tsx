@@ -20,6 +20,7 @@ import {
 } from "@/lib/pagamentos.functions";
 import {
   listarPagamentosBoleto, sincronizarPagamentoBoleto, cancelarPagamentoBoleto,
+  sincronizarTodosPagamentosBoleto,
 } from "@/lib/boleto-pay.functions";
 import { formatarLinhaDigitavel } from "@/lib/boleto-html";
 import { confirmThen } from "@/lib/confirm";
@@ -107,6 +108,7 @@ function PagamentosPage() {
   const listarBoletos = useServerFn(listarPagamentosBoleto);
   const sincronizar = useServerFn(sincronizarPagamentoPix);
   const sincronizarTodos = useServerFn(sincronizarTodosPagamentosPix);
+  const sincronizarTodosBoletos = useServerFn(sincronizarTodosPagamentosBoleto);
   const sincronizarBoleto = useServerFn(sincronizarPagamentoBoleto);
   const cancelar = useServerFn(cancelarPagamentoPix);
   const cancelarBoleto = useServerFn(cancelarPagamentoBoleto);
@@ -216,18 +218,29 @@ function PagamentosPage() {
     setSincronizandoTudo(true);
     const t = toast.loading("Sincronizando com ASAAS...");
     try {
-      const r: any = await sincronizarTodos();
+      // Pix e boletos: consulta real no ASAAS (somente GET), nunca reenvio.
+      const [rPix, rBol] = await Promise.all([
+        sincronizarTodos().catch((e: any) => ({ erro: e?.message })),
+        sincronizarTodosBoletos().catch((e: any) => ({ erro: e?.message })),
+      ]);
+      const r: any = rPix ?? {};
+      const b: any = rBol ?? {};
       await qc.invalidateQueries({ queryKey: ["asaas-transfers"] });
       await qc.invalidateQueries({ queryKey: ["asaas-transfer"] });
+      await qc.invalidateQueries({ queryKey: ["boleto-pagamentos"] });
       await refetch();
+      const total = (r?.atualizados ?? 0) + (b?.atualizados ?? 0);
       const msg =
-        r?.atualizados > 0
-          ? `${r.atualizados} pagamento${r.atualizados > 1 ? "s" : ""} atualizado${r.atualizados > 1 ? "s" : ""}`
+        total > 0
+          ? `${total} pagamento${total > 1 ? "s" : ""} atualizado${total > 1 ? "s" : ""}`
           : "Todos os pagamentos já estão atualizados.";
-      toast.success(msg, {
-        id: t,
-        description: r?.erros ? `${r.erros} consulta(s) falharam no ASAAS.` : undefined,
-      });
+      const detalhes = [
+        b?.reconciliados ? `${b.reconciliados} boleto(s) reconciliado(s) pela referência.` : null,
+        (r?.erros ?? 0) + (b?.erros ?? 0)
+          ? `${(r?.erros ?? 0) + (b?.erros ?? 0)} consulta(s) falharam no ASAAS.`
+          : null,
+      ].filter(Boolean).join(" ");
+      toast.success(msg, { id: t, description: detalhes || undefined });
     } catch (e) {
       toast.error((e as Error).message, { id: t });
     } finally {
