@@ -355,11 +355,12 @@ function PagamentosPage() {
       </div>
 
       {/* Tipo */}
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
         {([
           { k: "todos", label: "Todos" },
           { k: "pix", label: "Pix" },
           { k: "boleto", label: "Boleto" },
+          { k: "externo", label: "Outros bancos" },
         ] as const).map((t) => (
           <button
             key={t.k}
@@ -373,7 +374,23 @@ function PagamentosPage() {
             {t.label}
           </button>
         ))}
+
+        <span className="mx-1 h-6 w-px bg-border" />
+
+        <select
+          value={bancoFilter}
+          onChange={(e) => setBancoFilter(e.target.value)}
+          className="rounded-full border border-border bg-background px-3 py-1.5 text-xs font-semibold text-muted-foreground"
+        >
+          <option value="todos">Banco: todos</option>
+          <option value="asaas">ASAAS</option>
+          <option value="externo">Outros bancos</option>
+          {bancosDisponiveis.map((b) => (
+            <option key={b} value={b}>{b}</option>
+          ))}
+        </select>
       </div>
+
 
       {/* Status */}
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-2">
