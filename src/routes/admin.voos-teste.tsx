@@ -1701,11 +1701,14 @@ export function VoosPage({
   publicMode = false,
   externalSearch = false,
   emptySlot,
+  presetFetch,
 }: {
   header?: React.ReactNode;
   hideForm?: boolean;
   preset?: FlightPreset;
   runToken?: number;
+  /** Busca do preset já iniciada no carregamento da rota (evita esperar a hidratação). */
+  presetFetch?: () => Promise<unknown>;
   onComboSelect?: (pick: ComboPick) => void;
   /** Motor aberto ao cliente final (sem login). */
   publicMode?: boolean;
