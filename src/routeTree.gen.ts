@@ -108,6 +108,7 @@ import { Route as ApiPublicImportAereoRouteImport } from './routes/api/public/im
 import { Route as ApiPublicInstagramWebhookRouteImport } from './routes/api/public/instagram-webhook'
 import { Route as ApiPublicItauPixWebhookRouteImport } from './routes/api/public/itau-pix-webhook'
 import { Route as ApiPublicNfseAtendenetTestRouteImport } from './routes/api/public/nfse-atendenet-test'
+import { Route as ApiPublicPromoCardRouteImport } from './routes/api/public/promo-card'
 import { Route as ApiPublicTestFlightAlertRouteImport } from './routes/api/public/test-flight-alert'
 import { Route as ApiPublicWaDiagRouteImport } from './routes/api/public/wa-diag'
 import { Route as ApiPublicWhatsappWebhookRouteImport } from './routes/api/public/whatsapp-webhook'
@@ -644,6 +645,11 @@ const ApiPublicNfseAtendenetTestRoute =
     path: '/api/public/nfse-atendenet-test',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicPromoCardRoute = ApiPublicPromoCardRouteImport.update({
+  id: '/api/public/promo-card',
+  path: '/api/public/promo-card',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicTestFlightAlertRoute =
   ApiPublicTestFlightAlertRouteImport.update({
     id: '/api/public/test-flight-alert',
@@ -951,6 +957,7 @@ export interface FileRoutesByFullPath {
   '/api/public/instagram-webhook': typeof ApiPublicInstagramWebhookRoute
   '/api/public/itau-pix-webhook': typeof ApiPublicItauPixWebhookRoute
   '/api/public/nfse-atendenet-test': typeof ApiPublicNfseAtendenetTestRoute
+  '/api/public/promo-card': typeof ApiPublicPromoCardRoute
   '/api/public/test-flight-alert': typeof ApiPublicTestFlightAlertRoute
   '/api/public/wa-diag': typeof ApiPublicWaDiagRoute
   '/api/public/whatsapp-webhook': typeof ApiPublicWhatsappWebhookRoute
@@ -1086,6 +1093,7 @@ export interface FileRoutesByTo {
   '/api/public/instagram-webhook': typeof ApiPublicInstagramWebhookRoute
   '/api/public/itau-pix-webhook': typeof ApiPublicItauPixWebhookRoute
   '/api/public/nfse-atendenet-test': typeof ApiPublicNfseAtendenetTestRoute
+  '/api/public/promo-card': typeof ApiPublicPromoCardRoute
   '/api/public/test-flight-alert': typeof ApiPublicTestFlightAlertRoute
   '/api/public/wa-diag': typeof ApiPublicWaDiagRoute
   '/api/public/whatsapp-webhook': typeof ApiPublicWhatsappWebhookRoute
@@ -1224,6 +1232,7 @@ export interface FileRoutesById {
   '/api/public/instagram-webhook': typeof ApiPublicInstagramWebhookRoute
   '/api/public/itau-pix-webhook': typeof ApiPublicItauPixWebhookRoute
   '/api/public/nfse-atendenet-test': typeof ApiPublicNfseAtendenetTestRoute
+  '/api/public/promo-card': typeof ApiPublicPromoCardRoute
   '/api/public/test-flight-alert': typeof ApiPublicTestFlightAlertRoute
   '/api/public/wa-diag': typeof ApiPublicWaDiagRoute
   '/api/public/whatsapp-webhook': typeof ApiPublicWhatsappWebhookRoute
@@ -1363,6 +1372,7 @@ export interface FileRouteTypes {
     | '/api/public/instagram-webhook'
     | '/api/public/itau-pix-webhook'
     | '/api/public/nfse-atendenet-test'
+    | '/api/public/promo-card'
     | '/api/public/test-flight-alert'
     | '/api/public/wa-diag'
     | '/api/public/whatsapp-webhook'
@@ -1498,6 +1508,7 @@ export interface FileRouteTypes {
     | '/api/public/instagram-webhook'
     | '/api/public/itau-pix-webhook'
     | '/api/public/nfse-atendenet-test'
+    | '/api/public/promo-card'
     | '/api/public/test-flight-alert'
     | '/api/public/wa-diag'
     | '/api/public/whatsapp-webhook'
@@ -1635,6 +1646,7 @@ export interface FileRouteTypes {
     | '/api/public/instagram-webhook'
     | '/api/public/itau-pix-webhook'
     | '/api/public/nfse-atendenet-test'
+    | '/api/public/promo-card'
     | '/api/public/test-flight-alert'
     | '/api/public/wa-diag'
     | '/api/public/whatsapp-webhook'
@@ -1717,6 +1729,7 @@ export interface RootRouteChildren {
   ApiPublicInstagramWebhookRoute: typeof ApiPublicInstagramWebhookRoute
   ApiPublicItauPixWebhookRoute: typeof ApiPublicItauPixWebhookRoute
   ApiPublicNfseAtendenetTestRoute: typeof ApiPublicNfseAtendenetTestRoute
+  ApiPublicPromoCardRoute: typeof ApiPublicPromoCardRoute
   ApiPublicTestFlightAlertRoute: typeof ApiPublicTestFlightAlertRoute
   ApiPublicWaDiagRoute: typeof ApiPublicWaDiagRoute
   ApiPublicWhatsappWebhookRoute: typeof ApiPublicWhatsappWebhookRoute
@@ -2447,6 +2460,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicNfseAtendenetTestRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/promo-card': {
+      id: '/api/public/promo-card'
+      path: '/api/public/promo-card'
+      fullPath: '/api/public/promo-card'
+      preLoaderRoute: typeof ApiPublicPromoCardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/test-flight-alert': {
       id: '/api/public/test-flight-alert'
       path: '/api/public/test-flight-alert'
@@ -2909,6 +2929,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicInstagramWebhookRoute: ApiPublicInstagramWebhookRoute,
   ApiPublicItauPixWebhookRoute: ApiPublicItauPixWebhookRoute,
   ApiPublicNfseAtendenetTestRoute: ApiPublicNfseAtendenetTestRoute,
+  ApiPublicPromoCardRoute: ApiPublicPromoCardRoute,
   ApiPublicTestFlightAlertRoute: ApiPublicTestFlightAlertRoute,
   ApiPublicWaDiagRoute: ApiPublicWaDiagRoute,
   ApiPublicWhatsappWebhookRoute: ApiPublicWhatsappWebhookRoute,
