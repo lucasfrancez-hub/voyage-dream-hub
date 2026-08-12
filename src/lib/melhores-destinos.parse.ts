@@ -325,8 +325,10 @@ export function parseMelhoresDestinos(html: string, sourceUrl: string, base = ""
       airlineLogo: logo,
       departDate: depart,
       returnDate: ret,
-      departLabel: (outText.replace(weekdayOut ?? "", "").trim() || outText).trim(),
-      returnLabel: inText ? (inText.replace(weekdayIn ?? "", "").trim() || inText).trim() : null,
+      departLabel: padData((outText.replace(weekdayOut ?? "", "").trim() || outText).trim()),
+      returnLabel: inText
+        ? padData((inText.replace(weekdayIn ?? "", "").trim() || inText).trim())
+        : null,
       weekdayOut,
       weekdayIn,
       nights: Number(/(\d+)\s*(dias|dia)/i.exec(stripTags(permCell))?.[1] ?? "") || null,
