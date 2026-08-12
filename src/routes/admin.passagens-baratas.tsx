@@ -32,6 +32,13 @@ export const Route = createFileRoute("/admin/passagens-baratas")({
   component: PassagensBaratasPage,
 });
 
+function PassagensBaratasPage() {
+  return <PassagensBaratasExplorer />;
+}
+
+export type MdStep = Step;
+export type MdFiltro = { iata: string | null; label: string; month: string };
+
 const brl = (n: number) =>
   n.toLocaleString("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 0 });
 
@@ -111,17 +118,45 @@ function LoadingSkeleton() {
 }
 
 
-function PassagensBaratasPage() {
+/**
+ * Explorador de passagens baratas. Pode ser usado solto (estado interno) ou
+ * controlado por quem chama — é assim que a página pública guarda tudo na URL.
+ */
+export function PassagensBaratasExplorer({
+  trail: trailProp,
+  onTrailChange,
+  filtro: filtroProp,
+  onFiltroChange,
+  className,
+}: {
+  trail?: Step[];
+  onTrailChange?: (t: Step[]) => void;
+  filtro?: MdFiltro;
+  onFiltroChange?: (f: MdFiltro) => void;
+  className?: string;
+} = {}) {
   const explorar = useServerFn(explorarPassagensMd);
   const buscarOrigens = useServerFn(buscarOrigensMd);
-  const [trail, setTrail] = useState<Step[]>([{ label: "Passagens baratas" }]);
+  const [trailState, setTrailState] = useState<Step[]>([{ label: "Passagens baratas" }]);
+  const trail = trailProp ?? trailState;
+  const setTrail = (updater: Step[] | ((t: Step[]) => Step[])) => {
+    const next = typeof updater === "function" ? updater(trail) : updater;
+    if (onTrailChange) onTrailChange(next);
+    else setTrailState(next);
+  };
 
   // Filtros globais (origem e mês), iguais aos do site de referência.
-  const [filtro, setFiltro] = useState<{ iata: string | null; label: string; month: string }>({
+  const [filtroState, setFiltroState] = useState<MdFiltro>({
     iata: null,
     label: "",
     month: "",
   });
+  const filtro = filtroProp ?? filtroState;
+  const setFiltro = (updater: MdFiltro | ((f: MdFiltro) => MdFiltro)) => {
+    const next = typeof updater === "function" ? updater(filtro) : updater;
+    if (onFiltroChange) onFiltroChange(next);
+    else setFiltroState(next);
+  };
   const [buscaOrigem, setBuscaOrigem] = useState("");
 
   const sugestoes = useQuery({
@@ -214,7 +249,7 @@ function PassagensBaratasPage() {
 
 
   return (
-    <div className="mx-auto w-full max-w-5xl space-y-5 p-4 md:p-6">
+    <div className={className ?? "mx-auto w-full max-w-5xl space-y-5 p-4 md:p-6"}>
       <header className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight">
