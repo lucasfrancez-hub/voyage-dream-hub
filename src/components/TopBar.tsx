@@ -17,6 +17,13 @@ type TopBarProps = {
 
 const SITE_URL = "https://viaair.tur.br";
 
+const APP_NAV_ITEMS = [
+  { label: "Passagens", href: "/voar", icon: Plane },
+  { label: "Ingressos", href: "/ingressos", icon: Ticket },
+  { label: "Passeios", href: "/passeios", icon: Compass },
+  { label: "Pacotes", href: "/pacotes", icon: PackageIcon },
+];
+
 const NAV_ITEMS: { label: string; href: string }[] = [
   { label: "Página inicial", href: SITE_URL },
   { label: "Sobre", href: `${SITE_URL}/#sobre` },
