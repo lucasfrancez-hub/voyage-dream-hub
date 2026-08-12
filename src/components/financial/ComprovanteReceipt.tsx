@@ -211,7 +211,7 @@ export function ComprovanteReceipt({
         className="w-[320px] max-w-[92vw] max-h-[86vh] overflow-y-auto p-0 border-0 bg-transparent shadow-none print-receipt-wrapper"
       >
         {loading || !data ? (
-          <div className="rounded-3xl bg-card p-16 flex justify-center">
+          <div className="rounded-2xl bg-card p-10 flex justify-center">
             <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
           </div>
         ) : (
