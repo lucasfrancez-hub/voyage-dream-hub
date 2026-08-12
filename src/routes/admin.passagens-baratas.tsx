@@ -471,8 +471,10 @@ export function PassagensBaratasExplorer({
                   <span className="text-xl font-bold text-primary">{brl(c.price)}</span>
                 </div>
               )}
-            </button>
-          ))}
+            </Tag>
+            );
+          })}
+
         </div>
 
       ) : null}
