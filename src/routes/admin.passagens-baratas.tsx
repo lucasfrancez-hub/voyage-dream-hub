@@ -12,8 +12,10 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { explorarPassagensMd } from "@/lib/melhores-destinos.functions";
+import { explorarPassagensMd, buscarOrigensMd } from "@/lib/melhores-destinos.functions";
 import { viaairFlightUrl, nomeCompanhia } from "@/lib/melhores-destinos.parse";
+import { imagemRegiao } from "@/lib/regiao-imagens";
+
 
 export const Route = createFileRoute("/admin/passagens-baratas")({
   component: PassagensBaratasPage,
