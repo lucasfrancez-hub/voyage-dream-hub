@@ -6,6 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { VoosPage, NewOrderFromFlightsDialog } from "./admin.voos-teste";
+import type { FlightPreset } from "./admin.voos-teste";
+import type { HotelPreset } from "./admin.hoteis-teste";
 import type { ComboPick } from "@/lib/combo-selection";
 import { useServerFn } from "@tanstack/react-start";
 import {
@@ -438,10 +440,19 @@ export function SearchEngine({
           publicMode={publicMode}
           externalSearch={embedMode}
           emptySlot={emptySlot}
+          preset={flightPresetProp}
+          runToken={flightPresetProp ? (presetRunToken ?? 1) : undefined}
+          presetFetch={flightPresetProp ? presetFetch : undefined}
         />
       )}
       {mode === "hotel" && (
-        <HoteisPage header={hero} publicMode={publicMode} externalSearch={embedMode} />
+        <HoteisPage
+          header={hero}
+          publicMode={publicMode}
+          externalSearch={embedMode}
+          preset={hotelPresetProp}
+          runToken={hotelPresetProp ? (presetRunToken ?? 1) : undefined}
+        />
       )}
 
       {mode === "carro" && <CarrosPage header={hero} embedMode={embedMode} />}
