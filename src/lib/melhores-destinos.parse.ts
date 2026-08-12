@@ -137,6 +137,56 @@ export function viaairRouteUrl(origin: string, destination: string, nomes?: {
 }
 
 
+/** Converte código IATA/slug da cia no nome comercial (JJ → LATAM). */
+export function nomeCompanhia(code: string | null | undefined): string | null {
+  if (!code) return null;
+  const key = String(code).trim().toUpperCase();
+  const map: Record<string, string> = {
+    JJ: "LATAM",
+    LA: "LATAM",
+    LATAM: "LATAM",
+    G3: "GOL",
+    GOL: "GOL",
+    AD: "Azul",
+    AZUL: "Azul",
+    O6: "Avianca",
+    AV: "Avianca",
+    "2Z": "Voepass",
+    "9R": "Voepass",
+    VOEPASS: "Voepass",
+    TP: "TAP Air Portugal",
+    TAP: "TAP Air Portugal",
+    AF: "Air France",
+    KL: "KLM",
+    LH: "Lufthansa",
+    IB: "Iberia",
+    UX: "Air Europa",
+    AA: "American Airlines",
+    UA: "United",
+    DL: "Delta",
+    CM: "Copa Airlines",
+    AR: "Aerolíneas Argentinas",
+    AM: "Aeroméxico",
+    EK: "Emirates",
+    QR: "Qatar Airways",
+    TK: "Turkish Airlines",
+    ET: "Ethiopian Airlines",
+    AC: "Air Canada",
+    BA: "British Airways",
+    AZ: "ITA Airways",
+    ITA: "ITA Airways",
+    SQ: "Singapore Airlines",
+    JL: "Japan Airlines",
+    NH: "ANA",
+    H2: "SKY Airline",
+    JA: "JetSmart",
+    "4C": "LATAM Colômbia",
+  };
+  if (map[key]) return map[key];
+  return key.charAt(0) + key.slice(1).toLowerCase();
+}
+
+
 function partnerFromUrl(url: string): string | null {
   try {
     const host = new URL(url).hostname.replace(/^www\./, "");
