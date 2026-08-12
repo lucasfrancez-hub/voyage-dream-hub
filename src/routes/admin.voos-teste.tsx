@@ -1720,8 +1720,9 @@ export function VoosPage({
   const search = useServerFn(publicMode ? onerFlightSearchPublic : onerFlightSearch);
   const searchInbound = useServerFn(publicMode ? onerInboundSearchPublic : onerInboundSearch);
   const [form, setForm] = useState({
-    departureIata: "CWB",
-    arrivalIata: "GRU",
+    departureIata: "",
+    arrivalIata: "",
+
     departureDate: "",
     returnDate: "",
     adults: 1,
@@ -2073,33 +2074,48 @@ export function VoosPage({
           {!hideForm && (
             <div className="rounded-[32px] border border-border/50 bg-card/60 p-6 shadow-2xl backdrop-blur-xl md:p-8">
               <div className="grid grid-cols-12 items-end gap-4">
-                <div className="col-span-12 space-y-2 md:col-span-3">
-                  <Label className="flex items-center gap-2 px-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                    <MapPin className="h-3 w-3 text-primary" /> Origem
-                  </Label>
-                  <AirportAutocomplete
-                    value={form.departureIata}
-                    publicMode={publicMode}
-                    isDeparture
-                    placeholder="Cidade ou IATA (ex.: Curitiba / CWB)"
-                    className="h-12 rounded-xl border-border/40 bg-muted/40 px-4 text-base font-semibold uppercase transition-all focus-visible:ring-2 focus-visible:ring-primary/50"
-                    onSelect={(iata) => setForm({ ...form, departureIata: iata })}
-                  />
+                <div className="relative col-span-12 grid grid-cols-2 gap-4 md:col-span-6">
+                  <div className="space-y-2">
+                    <Label className="flex items-center gap-2 px-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                      <MapPin className="h-3 w-3 text-primary" /> Origem
+                    </Label>
+                    <AirportAutocomplete
+                      value={form.departureIata}
+                      publicMode={publicMode}
+                      isDeparture
+                      placeholder="De onde sairemos?"
+                      className="h-12 rounded-xl border-border/40 bg-muted/40 px-4 text-base font-semibold uppercase transition-all focus-visible:ring-2 focus-visible:ring-primary/50"
+                      onSelect={(iata) => setForm({ ...form, departureIata: iata })}
+                    />
+                  </div>
+
+                  <button
+                    type="button"
+                    aria-label="Inverter origem e destino"
+                    title="Inverter origem e destino"
+                    onClick={() =>
+                      setForm({ ...form, departureIata: form.arrivalIata, arrivalIata: form.departureIata })
+                    }
+                    className="absolute left-1/2 top-[calc(50%+0.6rem)] z-10 grid h-9 w-9 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border border-border/60 bg-card text-muted-foreground shadow-lg transition hover:text-primary active:scale-95"
+                  >
+                    <ArrowLeftRight className="h-4 w-4" />
+                  </button>
+
+                  <div className="space-y-2">
+                    <Label className="flex items-center gap-2 px-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                      <ArrowLeftRight className="h-3 w-3 text-primary" /> Destino
+                    </Label>
+                    <AirportAutocomplete
+                      value={form.arrivalIata}
+                      publicMode={publicMode}
+                      isDeparture={false}
+                      placeholder="Para onde vamos?"
+                      className="h-12 rounded-xl border-border/40 bg-muted/40 px-4 text-base font-semibold uppercase transition-all focus-visible:ring-2 focus-visible:ring-primary/50"
+                      onSelect={(iata) => setForm({ ...form, arrivalIata: iata })}
+                    />
+                  </div>
                 </div>
 
-                <div className="col-span-12 space-y-2 md:col-span-3">
-                  <Label className="flex items-center gap-2 px-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                    <ArrowLeftRight className="h-3 w-3 text-primary" /> Destino
-                  </Label>
-                  <AirportAutocomplete
-                    value={form.arrivalIata}
-                    publicMode={publicMode}
-                    isDeparture={false}
-                    placeholder="Cidade ou IATA (ex.: São Paulo / GRU)"
-                    className="h-12 rounded-xl border-border/40 bg-muted/40 px-4 text-base font-semibold uppercase transition-all focus-visible:ring-2 focus-visible:ring-primary/50"
-                    onSelect={(iata) => setForm({ ...form, arrivalIata: iata })}
-                  />
-                </div>
 
                 <div className="col-span-12 space-y-2 md:col-span-4">
                   <Label className="flex items-center gap-2 px-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
