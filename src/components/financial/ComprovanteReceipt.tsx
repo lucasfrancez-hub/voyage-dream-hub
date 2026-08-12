@@ -208,7 +208,7 @@ export function ComprovanteReceipt({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="max-w-[400px] p-0 border-0 bg-transparent shadow-none print-receipt-wrapper"
+        className="w-[320px] max-w-[92vw] max-h-[86vh] overflow-y-auto p-0 border-0 bg-transparent shadow-none print-receipt-wrapper"
       >
         {loading || !data ? (
           <div className="rounded-3xl bg-card p-16 flex justify-center">
