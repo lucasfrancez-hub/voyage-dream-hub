@@ -452,19 +452,27 @@ export async function createFlightCart(data: CartData) {
   listQuery.set("isRoundTrip", String(data.isRoundTrip));
   listQuery.set("source", "f");
   const loc = `https://www.comprarviagem.com.br/viaair/flight-list?${listQuery.toString()}`;
-  const body = JSON.stringify({
-    flight: {
-      searchKey: data.searchKey,
-      fareId: data.outboundFareId,
-      fareId2: data.inboundFareId ?? null,
-      outboundItineraryId: data.outboundItineraryId,
-      inboundItineraryId: data.inboundItineraryId ?? null,
-      teenagerCount: 0,
-    },
-    searchBookingKey: null,
-    affiliateTag: null,
-    eventId: null,
-  });
+  // Tarifa combinada (comum em internacional e em cia brasileira com voo
+  // internacional): ida e volta compartilham a MESMA fareId. Nesse caso a
+  // operadora estoura 500 se mandarmos fareId2 repetido — tem que ir null.
+  const sameFare = !!data.inboundFareId && data.inboundFareId === data.outboundFareId;
+  const buildBody = (fareId2: string | null) =>
+    JSON.stringify({
+      flight: {
+        searchKey: data.searchKey,
+        fareId: data.outboundFareId,
+        fareId2,
+        outboundItineraryId: data.outboundItineraryId,
+        inboundItineraryId: data.inboundItineraryId ?? null,
+        teenagerCount: 0,
+      },
+      searchBookingKey: null,
+      affiliateTag: null,
+      eventId: null,
+    });
+  let body = buildBody(sameFare ? null : (data.inboundFareId ?? null));
+  let triedWithoutFare2 = sameFare || !data.inboundFareId;
+
 
   let cartId = "";
   let lastStatus = 0;
