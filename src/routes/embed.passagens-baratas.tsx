@@ -55,7 +55,7 @@ function EmbedPassagensBaratas() {
       <PassagensBaratasExplorer
         hideTrail
         linkVoos={({ origem, destino, ida, volta }) => {
-          const p = new URLSearchParams({ origem, destino, ida });
+          const p = new URLSearchParams({ o: origem, d: destino, ida });
           if (volta) p.set("volta", volta);
           return `${PUBLIC_SITE_URL}/voar?${p.toString()}`;
         }}
