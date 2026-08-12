@@ -396,6 +396,7 @@ function ProdutosNav({ pathname }: { pathname: string }) {
   const active =
     pathname.startsWith("/admin/pacotes") ||
     pathname.startsWith("/admin/buscar") ||
+    pathname.startsWith("/admin/promocoes-aereo") ||
     pathname.startsWith("/admin/voos-teste") ||
     pathname.startsWith("/admin/hoteis-teste") ||
     pathname.startsWith("/admin/carros");
