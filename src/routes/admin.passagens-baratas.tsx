@@ -487,41 +487,32 @@ export function PassagensBaratasExplorer({
             <span className="text-right">Ida + volta a partir de</span>
           </div>
           <div className="flex flex-col">
-            {data.cities.map((c, i) => (
-              <button
+            {data.cities.map((c, i) => {
+              const step: Step =
+                data.level === "cities"
+                  ? {
+                      label: c.toName,
+                      categoryId: current.categoryId,
+                      toIata: c.toIata ?? undefined,
+                    }
+                  : {
+                      label: `${c.fromName} → ${c.toName}`,
+                      categoryId: current.categoryId,
+                      toIata: c.toIata ?? current.toIata,
+                      fromIata: c.fromIata ?? undefined,
+                    };
+              const href = hrefPasso(step);
+              const Tag: any = href ? "a" : "button";
+              return (
+              <Tag
                 key={`${c.fromIata ?? ""}-${c.toIata ?? i}`}
                 className="group flex w-full items-center justify-between gap-3 border-b border-white/5 px-6 py-4 text-left transition-all hover:bg-white/[0.03]"
-                onMouseEnter={() =>
-                  prefetch(
-                    data.level === "cities"
-                      ? {
-                          label: c.toName,
-                          categoryId: current.categoryId,
-                          toIata: c.toIata ?? undefined,
-                        }
-                      : {
-                          label: `${c.fromName} → ${c.toName}`,
-                          categoryId: current.categoryId,
-                          toIata: c.toIata ?? current.toIata,
-                          fromIata: c.fromIata ?? undefined,
-                        },
-                  )
-                }
-                onClick={() =>
-                  data.level === "cities"
-                    ? go({
-                        label: c.toName,
-                        categoryId: current.categoryId,
-                        toIata: c.toIata ?? undefined,
-                      })
-                    : go({
-                        label: `${c.fromName} → ${c.toName}`,
-                        categoryId: current.categoryId,
-                        toIata: c.toIata ?? current.toIata,
-                        fromIata: c.fromIata ?? undefined,
-                      })
-                }
+                onMouseEnter={() => prefetch(step)}
+                {...(href
+                  ? { href, target: "_blank", rel: "noopener noreferrer" }
+                  : { onClick: () => go(step) })}
               >
+
 
                 <div className="flex min-w-0 flex-col">
                   <span className="truncate font-semibold text-foreground transition-colors group-hover:text-primary">
