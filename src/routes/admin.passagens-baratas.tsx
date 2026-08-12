@@ -12,8 +12,10 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { explorarPassagensMd } from "@/lib/melhores-destinos.functions";
+import { explorarPassagensMd, buscarOrigensMd } from "@/lib/melhores-destinos.functions";
 import { viaairFlightUrl, nomeCompanhia } from "@/lib/melhores-destinos.parse";
+import { imagemRegiao } from "@/lib/regiao-imagens";
+
 
 export const Route = createFileRoute("/admin/passagens-baratas")({
   component: PassagensBaratasPage,
@@ -44,14 +46,30 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
 
 function PassagensBaratasPage() {
   const explorar = useServerFn(explorarPassagensMd);
+  const buscarOrigens = useServerFn(buscarOrigensMd);
   const [trail, setTrail] = useState<Step[]>([{ label: "Passagens baratas" }]);
+
+  // Filtros globais (origem e mês), iguais aos do site de referência.
+  const [filtro, setFiltro] = useState<{ iata: string | null; label: string; month: string }>({
+    iata: null,
+    label: "",
+    month: "",
+  });
+  const [buscaOrigem, setBuscaOrigem] = useState("");
+
+  const sugestoes = useQuery({
+    queryKey: ["md-origens", buscaOrigem],
+    enabled: buscaOrigem.trim().length >= 2,
+    queryFn: () => buscarOrigens({ data: { q: buscaOrigem.trim() } }),
+    staleTime: 10 * 60 * 1000,
+  });
 
   const origin =
     typeof window !== "undefined" ? window.location.origin : "https://pedidos.viaair.tur.br";
   const current = trail[trail.length - 1];
 
   const q = useQuery({
-    queryKey: ["md-explorar", current],
+    queryKey: ["md-explorar", current, filtro.iata, filtro.month],
     queryFn: () =>
       explorar({
         data: {
@@ -59,11 +77,13 @@ function PassagensBaratasPage() {
           ...(current.categoryId ? { categoryId: current.categoryId } : {}),
           ...(current.toIata ? { toIata: current.toIata } : {}),
           ...(current.fromIata ? { fromIata: current.fromIata } : {}),
-          ...(current.month ? { month: current.month } : {}),
+          ...(filtro.iata ? { originIata: filtro.iata } : {}),
+          ...(current.month || filtro.month ? { month: current.month || filtro.month } : {}),
         },
       }),
     staleTime: 5 * 60 * 1000,
   });
+
 
   const go = (step: Step) => setTrail((t) => [...t, step]);
   const backTo = (i: number) => setTrail((t) => t.slice(0, i + 1));
@@ -113,6 +133,18 @@ function PassagensBaratasPage() {
     });
   };
 
+  // Próximos 12 meses para o filtro global.
+  const hoje = new Date();
+  const mesesFiltro = Array.from({ length: 12 }, (_, i) => {
+    const d = new Date(hoje.getFullYear(), hoje.getMonth() + i, 1);
+    return {
+      value: `${d.getFullYear()}-${d.getMonth() + 1}`,
+      label: `${MESES[d.getMonth()]}/${d.getFullYear()}`,
+    };
+  });
+
+
+
   return (
     <div className="mx-auto w-full max-w-5xl space-y-5 p-4 md:p-6">
       <header className="flex flex-wrap items-end justify-between gap-3">
@@ -129,6 +161,69 @@ function PassagensBaratasPage() {
           Atualizar
         </Button>
       </header>
+
+      {/* Filtros de origem e mês */}
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div className="relative">
+          <Field label="Origem">
+            <input
+              className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+              placeholder="Digite a origem"
+              value={filtro.iata ? filtro.label : buscaOrigem}
+              onChange={(e) => {
+                setBuscaOrigem(e.target.value);
+                setFiltro((f) => ({ ...f, iata: null, label: "" }));
+              }}
+            />
+          </Field>
+          {filtro.iata && (
+            <button
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground hover:text-foreground"
+              onClick={() => {
+                setFiltro((f) => ({ ...f, iata: null, label: "" }));
+                setBuscaOrigem("");
+              }}
+            >
+              limpar
+            </button>
+          )}
+          {!filtro.iata && buscaOrigem.trim().length >= 2 && sugestoes.data?.length ? (
+            <div className="absolute z-20 mt-1 w-full overflow-hidden rounded-xl border bg-popover shadow-xl">
+              {sugestoes.data.map((o) => (
+                <button
+                  key={o.iata}
+                  className="flex w-full items-center justify-between px-3 py-2 text-left text-sm hover:bg-muted"
+                  onClick={() => {
+                    setFiltro((f) => ({ ...f, iata: o.iata, label: `${o.cidade} (${o.iata})` }));
+                    setBuscaOrigem("");
+                  }}
+                >
+                  <span className="truncate">
+                    {o.cidade} <span className="text-muted-foreground">· {o.pais}</span>
+                  </span>
+                  <span className="ml-2 font-mono text-xs text-primary">{o.iata}</span>
+                </button>
+              ))}
+            </div>
+          ) : null}
+        </div>
+
+        <Field label="Mês">
+          <select
+            className="w-full bg-transparent text-sm outline-none"
+            value={filtro.month}
+            onChange={(e) => setFiltro((f) => ({ ...f, month: e.target.value }))}
+          >
+            <option value="">Qualquer mês</option>
+            {mesesFiltro.map((m) => (
+              <option key={m.value} value={m.value}>
+                {m.label}
+              </option>
+            ))}
+          </select>
+        </Field>
+      </div>
+
 
       <nav className="flex flex-wrap items-center gap-1 text-sm">
         {trail.map((s, i) => (
@@ -164,17 +259,18 @@ function PassagensBaratasPage() {
               onClick={() => go({ label: c.name, categoryId: c.id })}
               className="group flex cursor-pointer items-center gap-4 rounded-2xl border border-border/50 bg-card p-4 text-left transition-all duration-300 hover:border-primary/40 hover:bg-muted/40"
             >
-              {c.image && (
-                <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl">
-                  <img
-                    src={c.image}
-                    alt={c.name}
-                    loading="lazy"
-                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-background/50 to-transparent" />
-                </div>
-              )}
+              <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl">
+                <img
+                  src={imagemRegiao(c.name)}
+                  alt={c.name}
+                  loading="lazy"
+                  width={640}
+                  height={640}
+                  className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-background/50 to-transparent" />
+              </div>
+
               <div className="min-w-0 flex-1">
                 <h3 className="text-lg font-bold leading-tight">{c.name}</h3>
                 <p className="mt-1 truncate text-xs text-muted-foreground">{c.description}</p>

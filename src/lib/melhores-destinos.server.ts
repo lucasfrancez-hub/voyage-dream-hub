@@ -390,9 +390,11 @@ export const explorarInput = z.object({
   categoryId: z.number().int().positive().optional(),
   toIata: z.string().min(3).max(4).optional(),
   fromIata: z.string().min(3).max(4).optional(),
+  originIata: z.string().min(3).max(4).optional(),
   month: z.string().max(10).optional(),
   base: z.string().max(200).optional(),
 });
+
 export type ExplorarInput = z.infer<typeof explorarInput>;
 
 type RawTwd = {
@@ -425,6 +427,8 @@ export async function explorarHandler({ data }: { data: ExplorarInput }): Promis
   if (data.categoryId) params.set("category_id", String(data.categoryId));
   if (data.toIata) params.set("to_iata_code", data.toIata.toUpperCase());
   if (data.month) params.set("month", data.month);
+  if (!data.fromIata && data.originIata) params.set("from_iata_code", data.originIata.toUpperCase());
+
 
   const url = data.fromIata
     ? `${TWD}/itinerary_prices/${data.fromIata.toUpperCase()}/${(data.toIata ?? "").toUpperCase()}?${params.toString()}`
@@ -529,4 +533,39 @@ export async function explorarHandler({ data }: { data: ExplorarInput }): Promis
   }
 
   return out;
+}
+
+/* --------------------- busca de origens (autocomplete) --------------------- */
+
+export const buscarOrigensInput = z.object({ q: z.string().min(2).max(60) });
+export type BuscarOrigensInput = z.infer<typeof buscarOrigensInput>;
+export type OrigemSugerida = { iata: string; cidade: string; pais: string };
+
+const semAcentos = (s: string) =>
+  s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+
+export async function buscarOrigensHandler({
+  data,
+}: {
+  data: BuscarOrigensInput;
+}): Promise<OrigemSugerida[]> {
+  const { default: cidades } = await import("@/lib/iata-cities.json");
+  const mapa = cidades as Record<string, { c: string; co: string }>;
+  const termo = semAcentos(data.q);
+  const out: OrigemSugerida[] = [];
+
+  for (const [iata, info] of Object.entries(mapa)) {
+    const cidade = semAcentos(info.c);
+    const hit = iata.toLowerCase() === termo || cidade.startsWith(termo);
+    if (!hit) continue;
+    out.push({ iata, cidade: info.c, pais: info.co });
+    if (out.length > 200) break;
+  }
+
+  out.sort((a, b) => {
+    const brA = a.pais === "Brasil" ? 0 : 1;
+    const brB = b.pais === "Brasil" ? 0 : 1;
+    return brA - brB || a.cidade.localeCompare(b.cidade, "pt-BR");
+  });
+  return out.slice(0, 8);
 }
