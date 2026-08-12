@@ -215,23 +215,20 @@ function PassagensBaratasPage() {
 
   return (
     <div className="mx-auto w-full max-w-5xl space-y-5 p-4 md:p-6">
-      <header className="flex flex-wrap items-end justify-between gap-3">
+      <header className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight">
             <Plane className="h-6 w-6 text-primary" /> Passagens aéreas baratas
           </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Escolha a região, o país e o destino. Cada preço abre direto no nosso motor.
+          <p className="mt-1 text-sm font-semibold text-primary">
+            Veja as passagens que encontramos nas últimas 24 horas
           </p>
         </div>
-        <Button variant="secondary" onClick={() => q.refetch()} disabled={q.isFetching}>
-          <RefreshCw className={`mr-2 h-4 w-4 ${q.isFetching ? "animate-spin" : ""}`} />
-          Atualizar
-        </Button>
-      </header>
 
-      {/* Filtros de origem e mês */}
-      <div className="grid gap-3 sm:grid-cols-2">
+        {/* Filtros de origem e mês — ao lado do título */}
+        <div className="flex items-stretch gap-3 lg:w-auto">
+          <div className="grid flex-1 gap-3 sm:grid-cols-2 lg:w-[440px] lg:flex-none">
+
         <div className="relative">
           <Field label="Origem">
             <input
@@ -290,7 +287,19 @@ function PassagensBaratasPage() {
             ))}
           </select>
         </Field>
-      </div>
+          </div>
+          <Button
+            variant="secondary"
+            size="icon"
+            className="h-auto self-stretch px-4"
+            onClick={() => q.refetch()}
+            disabled={q.isFetching}
+            aria-label="Atualizar"
+          >
+            <RefreshCw className={`h-4 w-4 ${q.isFetching ? "animate-spin" : ""}`} />
+          </Button>
+        </div>
+      </header>
 
 
       {/* Trilha de navegação — setas encadeadas na identidade VIA AIR */}
