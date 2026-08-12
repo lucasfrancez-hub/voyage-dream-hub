@@ -54,7 +54,13 @@ import {
 import { createPublicFlightLead } from "@/lib/public-lead.functions";
 import { DateRangeField } from "@/components/search/DateRangeField";
 import { SearchSkeleton } from "@/components/search/SearchSkeleton";
-import { installmentLabel, maxInstallments } from "@/lib/flight-installments";
+import { installmentLabel } from "@/lib/flight-installments";
+import {
+  AVISO_MAIOR_PARCELAMENTO,
+  AVISO_VALIDADE_TARIFA,
+  extendedText,
+  getAirfarePaymentConditions,
+} from "@/lib/airfare-conditions";
 import {
   onerCreateFlightCart,
   onerFlightSearch,
@@ -988,7 +994,11 @@ function FlightCard({
   const withBag = flightHasBaggage(f);
   const [open, setOpen] = useState(false);
   const interactive = !readOnly && !!onSelect;
-  const n = maxInstallments(airlineOf(f));
+  const cardCond = getAirfarePaymentConditions({
+    total: f.price.total ?? 0,
+    passengers: f.price.passengerCount || 1,
+    airline: airlineOf(f),
+  });
   return (
     <div
       className={`group relative overflow-hidden rounded-2xl border bg-card/80 backdrop-blur transition ${
@@ -1124,7 +1134,11 @@ function FlightCard({
                 {fmtMoney(f.price.total)}
               </div>
               <div className="mt-1 text-[9px] font-bold uppercase text-primary">
-                Em até {n}x de {fmtMoney(f.price.total / n)}
+                {cardCond.payment.pixOnly
+                  ? "Somente Pix"
+                  : cardCond.interestFree.available
+                    ? `${cardCond.interestFree.installments}x de ${fmtMoney(cardCond.interestFree.installmentValue)} sem juros`
+                    : `À vista ${fmtMoney(cardCond.total)}`}
               </div>
             </div>
           </div>
@@ -1295,7 +1309,14 @@ function SummaryCard({
   const taxes = taxesOf(out) + (inb ? taxesOf(inb) : 0);
   const total = out.price.total + (inb?.price.total ?? 0);
   const pax = out.price.passengerCount || 1;
-  const n = Math.min(maxInstallments(airlineOf(out)), inb ? maxInstallments(airlineOf(inb)) : 99);
+  // Condições comerciais: fonte única (regra da cia + parcela mínima).
+  // Com ida/volta de cias diferentes, vale a condição mais restritiva.
+  const condOut = getAirfarePaymentConditions({ total, passengers: pax, airline: airlineOf(out) });
+  const condIn = inb
+    ? getAirfarePaymentConditions({ total, passengers: pax, airline: airlineOf(inb) })
+    : null;
+  const cond =
+    condIn && condIn.interestFree.installments < condOut.interestFree.installments ? condIn : condOut;
   const [orderOpen, setOrderOpen] = useState(false);
   const [cartUrl, setCartUrl] = useState<string | null>(null);
   const createCart = useServerFn(publicMode ? onerCreateFlightCartPublic : onerCreateFlightCart);
@@ -1426,12 +1447,30 @@ function SummaryCard({
                       {fmtMoney(total)}
                     </div>
                     <div className="mt-1 text-[11px] font-semibold uppercase tracking-tight text-primary">
-                      Em até {n}x de {fmtMoney(total / n)} sem juros
+                      {cond.payment.pixOnly
+                        ? "Pagamento somente via Pix"
+                        : cond.interestFree.available
+                          ? `${cond.interestFree.installments}x de ${fmtMoney(cond.interestFree.installmentValue)} sem juros`
+                          : `À vista ${fmtMoney(total)}`}
                     </div>
+                    {cond.payment.upToThreeCards ? (
+                      <div className="mt-0.5 text-[10px] font-medium text-muted-foreground">
+                        Pix ou cartão de crédito • em até 3 cartões
+                      </div>
+                    ) : null}
+                    {extendedText(cond) ? (
+                      <div className="mt-1 text-[10px] font-medium text-muted-foreground">
+                        Precisa de mais parcelas? {extendedText(cond)} •{" "}
+                        <span className="opacity-80">{AVISO_MAIOR_PARCELAMENTO}</span>
+                      </div>
+                    ) : null}
                   </div>
                   <span className="mb-1 text-[10px] font-medium text-muted-foreground">
                     {fmtMoney(total / pax)} / passageiro
                   </span>
+                </div>
+                <div className="mt-2 text-[9px] font-medium uppercase tracking-wide text-muted-foreground/80">
+                  {AVISO_VALIDADE_TARIFA}
                 </div>
               </div>
             </div>
