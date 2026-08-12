@@ -162,6 +162,69 @@ function PassagensBaratasPage() {
         </Button>
       </header>
 
+      {/* Filtros de origem e mês */}
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div className="relative">
+          <Field label="Origem">
+            <input
+              className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+              placeholder="Digite a origem"
+              value={filtro.iata ? filtro.label : buscaOrigem}
+              onChange={(e) => {
+                setBuscaOrigem(e.target.value);
+                setFiltro((f) => ({ ...f, iata: null, label: "" }));
+              }}
+            />
+          </Field>
+          {filtro.iata && (
+            <button
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground hover:text-foreground"
+              onClick={() => {
+                setFiltro((f) => ({ ...f, iata: null, label: "" }));
+                setBuscaOrigem("");
+              }}
+            >
+              limpar
+            </button>
+          )}
+          {!filtro.iata && buscaOrigem.trim().length >= 2 && sugestoes.data?.length ? (
+            <div className="absolute z-20 mt-1 w-full overflow-hidden rounded-xl border bg-popover shadow-xl">
+              {sugestoes.data.map((o) => (
+                <button
+                  key={o.iata}
+                  className="flex w-full items-center justify-between px-3 py-2 text-left text-sm hover:bg-muted"
+                  onClick={() => {
+                    setFiltro((f) => ({ ...f, iata: o.iata, label: `${o.cidade} (${o.iata})` }));
+                    setBuscaOrigem("");
+                  }}
+                >
+                  <span className="truncate">
+                    {o.cidade} <span className="text-muted-foreground">· {o.pais}</span>
+                  </span>
+                  <span className="ml-2 font-mono text-xs text-primary">{o.iata}</span>
+                </button>
+              ))}
+            </div>
+          ) : null}
+        </div>
+
+        <Field label="Mês">
+          <select
+            className="w-full bg-transparent text-sm outline-none"
+            value={filtro.month}
+            onChange={(e) => setFiltro((f) => ({ ...f, month: e.target.value }))}
+          >
+            <option value="">Qualquer mês</option>
+            {mesesFiltro.map((m) => (
+              <option key={m.value} value={m.value}>
+                {m.label}
+              </option>
+            ))}
+          </select>
+        </Field>
+      </div>
+
+
       <nav className="flex flex-wrap items-center gap-1 text-sm">
         {trail.map((s, i) => (
           <span key={`${s.label}-${i}`} className="flex items-center gap-1">
