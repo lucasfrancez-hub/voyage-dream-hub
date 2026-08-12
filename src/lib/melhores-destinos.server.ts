@@ -20,25 +20,35 @@ const UA =
 
 async function get(url: string): Promise<Response> {
   let last: unknown = null;
-  for (let i = 0; i < 3; i++) {
+  for (let i = 0; i < 2; i++) {
     try {
       const res = await fetch(url, {
         headers: { "user-agent": UA, accept: "*/*", referer: `${SITE}/` },
-        signal: AbortSignal.timeout(20000),
+        signal: AbortSignal.timeout(8000),
       });
       if (res.ok) return res;
       last = new Error(`Melhores Destinos respondeu ${res.status}`);
     } catch (e) {
       last = e;
     }
-    await new Promise((r) => setTimeout(r, 600 * (i + 1)));
+    await new Promise((r) => setTimeout(r, 300));
   }
   throw last instanceof Error ? last : new Error("Falha ao consultar Melhores Destinos");
 }
 
+/** Cache em memória: os preços são coletados a cada 24h, não precisa refazer. */
+const jsonCache = new Map<string, { at: number; value: unknown }>();
+const JSON_TTL = 15 * 60 * 1000;
+
 async function getJson<T>(url: string): Promise<T> {
-  return (await (await get(url)).json()) as T;
+  const hit = jsonCache.get(url);
+  if (hit && Date.now() - hit.at < JSON_TTL) return hit.value as T;
+  const value = (await (await get(url)).json()) as T;
+  if (jsonCache.size > 300) jsonCache.clear();
+  jsonCache.set(url, { at: Date.now(), value });
+  return value;
 }
+
 
 function decodeEntities(text: string): string {
   return text
