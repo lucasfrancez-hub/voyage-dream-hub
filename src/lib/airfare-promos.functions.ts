@@ -165,7 +165,7 @@ export const refreshAirfarePromotion = createServerFn({ method: "POST" })
         origin_city: promo.origin_city,
         destination_iata: promo.destination_iata,
         destination_city: promo.destination_city,
-        scope: promo.scope,
+        scope: promo.scope as "nacional" | "internacional",
         priority: 0,
       },
       departureDate: promo.departure_date,
@@ -185,7 +185,7 @@ export const refreshAirfarePromotion = createServerFn({ method: "POST" })
     const { error: upErr } = await context.supabase
       .from("airfare_promotions")
       .update({
-        ...row,
+        ...(row as never as Record<string, unknown>),
         signature: promo.signature,
         status: promo.status,
         cart_url: mudou ? null : promo.cart_url,

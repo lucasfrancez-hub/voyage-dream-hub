@@ -135,7 +135,7 @@ export function buildPromotionRow(args: {
     price_per_passenger: Number((total / passengers).toFixed(2)),
     interest_free_installments: cond.interestFree.installments,
     interest_free_installment_value: Number(cond.interestFree.installmentValue.toFixed(2)),
-    airline_rule: cond.airlineRule as unknown as Record<string, unknown>,
+    airline_rule: JSON.parse(JSON.stringify(cond.airlineRule)) as unknown,
     extended_max_installments: q12?.installments ?? null,
     extended_installment_value_12x: q12 ? Number(q12.installmentValue.toFixed(2)) : null,
     extended_markup_12x: q12 ? Number(q12.markupPercent.toFixed(4)) : null,
