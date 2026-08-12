@@ -1245,6 +1245,15 @@ function SummaryLeg({ label, f }: { label: string; f: OnerFlight }) {
   );
 }
 
+/** Chaves novas do MESMO voo depois de refazer a busca (tarifa expirada). */
+export type FreshFares = {
+  searchKey: string;
+  outboundFareId: string;
+  outboundItineraryId: string;
+  inboundFareId: string | null;
+  inboundItineraryId: string | null;
+};
+
 type CartContext = {
   departureIata: string;
   arrivalIata: string;
