@@ -23,6 +23,7 @@ const brl = (n: number) =>
 
 type Step = {
   label: string;
+  baseLabel?: string;
   categoryId?: number;
   toIata?: string;
   fromIata?: string;
