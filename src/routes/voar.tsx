@@ -206,19 +206,14 @@ function VoarPublicPage() {
           emptySlot={
             <div className="mx-auto w-full max-w-5xl px-4 py-2">
               <div className="overflow-hidden rounded-3xl border border-border/60 bg-card/90 shadow-2xl backdrop-blur-xl">
-                <div className="flex items-center gap-2 border-b border-border/40 bg-muted/40 px-4 py-2.5">
-                  <div className="flex gap-1.5">
-                    <span className="h-2.5 w-2.5 rounded-full bg-red-400/80" />
-                    <span className="h-2.5 w-2.5 rounded-full bg-amber-400/80" />
-                    <span className="h-2.5 w-2.5 rounded-full bg-emerald-400/80" />
-                  </div>
-                  <span className="ml-2 text-xs font-medium text-muted-foreground">
-                    Passagens aéreas baratas
-                  </span>
-                </div>
                 <div className="p-3 md:p-5">
                   <PassagensBaratasExplorer
                     className="w-full space-y-4"
+                    linkVoos={({ origem, destino, ida, volta }) => {
+                      const p = new URLSearchParams({ o: origem, d: destino, ida });
+                      if (volta) p.set("volta", volta);
+                      return `/voar?${p.toString()}`;
+                    }}
                     trail={decodeTrail(s.p)}
                     onTrailChange={(t) =>
                       navigate({
@@ -241,6 +236,7 @@ function VoarPublicPage() {
                     }
                   />
                 </div>
+
               </div>
             </div>
           }

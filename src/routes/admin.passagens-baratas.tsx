@@ -128,13 +128,17 @@ export function PassagensBaratasExplorer({
   filtro: filtroProp,
   onFiltroChange,
   className,
+  linkVoos,
 }: {
   trail?: Step[];
   onTrailChange?: (t: Step[]) => void;
   filtro?: MdFiltro;
   onFiltroChange?: (f: MdFiltro) => void;
   className?: string;
+  /** Monta o link de "Ver voos"/"Pesquisar" (padrão: motor Comprar Viagem). */
+  linkVoos?: (p: { origem: string; destino: string; ida: string; volta: string }) => string;
 } = {}) {
+
   const explorar = useServerFn(explorarPassagensMd);
   const buscarOrigens = useServerFn(buscarOrigensMd);
   const [trailState, setTrailState] = useState<Step[]>([{ label: "Passagens baratas" }]);
@@ -207,17 +211,22 @@ export function PassagensBaratasExplorer({
     });
   }, [data, current.fromIata, current.toIata]);
 
+  const montarLink = (p: { origem: string; destino: string; ida: string; volta: string }) =>
+    linkVoos
+      ? linkVoos(p)
+      : viaairFlightUrl(p.origem, p.destino, p.ida, p.volta || null, "", {
+          originName: null,
+          destinationName: null,
+        });
+
   const pesquisar = () => {
     if (!motor.origem || !motor.destino || !motor.ida) {
       toast.error("Informe origem, destino e data de ida");
       return;
     }
-    const url = viaairFlightUrl(motor.origem, motor.destino, motor.ida, motor.volta || null, "", {
-      originName: null,
-      destinationName: null,
-    });
-    window.open(url, "_blank", "noopener");
+    window.open(montarLink(motor), "_blank", "noopener");
   };
+
 
 
   const MESES = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
@@ -650,7 +659,22 @@ export function PassagensBaratasExplorer({
                         </td>
                         <td className="px-6 py-5 text-right">
                           <Button size="sm" variant={i === 0 ? "default" : "secondary"} asChild>
-                            <a href={o.viaairUrl} target="_blank" rel="noreferrer">
+                            <a
+                              href={
+                                current.fromIata && current.toIata
+                                  ? montarLink({
+                                      origem: current.fromIata,
+                                      destino: current.toIata,
+                                      ida: o.departDate,
+                                      volta: o.returnDate ?? "",
+                                    })
+                                  : o.viaairUrl
+                              }
+
+                              target="_blank"
+                              rel="noreferrer"
+                            >
+
                               Ver voos <ExternalLink className="ml-1 h-3.5 w-3.5" />
                             </a>
                           </Button>
