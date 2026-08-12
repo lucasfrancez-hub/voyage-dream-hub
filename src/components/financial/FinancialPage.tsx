@@ -49,6 +49,9 @@ type Entry = {
   attachment_path?: string | null;
   attachment_name?: string | null;
 };
+type Category = { id: string; kind: string; name: string };
+
+
 
 function today() { return new Date().toISOString().slice(0, 10); }
 
