@@ -988,7 +988,11 @@ function FlightCard({
   const withBag = flightHasBaggage(f);
   const [open, setOpen] = useState(false);
   const interactive = !readOnly && !!onSelect;
-  const n = maxInstallments(airlineOf(f));
+  const cardCond = getAirfarePaymentConditions({
+    total: f.price.total ?? 0,
+    passengers: f.price.passengerCount || 1,
+    airline: airlineOf(f),
+  });
   return (
     <div
       className={`group relative overflow-hidden rounded-2xl border bg-card/80 backdrop-blur transition ${
