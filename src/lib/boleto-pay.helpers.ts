@@ -95,14 +95,14 @@ function mod10(block: string) {
 }
 
 function mod11Barcode(block43: string) {
-  const weights = [4, 3, 2, 9, 8, 7, 6, 5]
+  const weights = [2, 3, 4, 5, 6, 7, 8, 9]
   let sum = 0
   for (let i = block43.length - 1, w = 0; i >= 0; i--, w++) {
     sum += Number(block43[i]) * (weights[w % 8] as number)
   }
   const rest = sum % 11
   const dv = 11 - rest
-  return dv === 0 || dv === 1 || dv > 9 ? 1 : dv
+  return dv === 0 || dv === 10 || dv === 11 ? 1 : dv
 }
 
 function mod11Arrecadacao(block: string) {
