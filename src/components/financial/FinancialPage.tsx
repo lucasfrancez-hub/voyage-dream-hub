@@ -379,6 +379,22 @@ export function FinancialPage({ kind }: { kind: Kind }) {
                     )}
                     {kind === "payable" && e.status !== "paid" && (
                       <>
+                        {(() => {
+                          const m = (e.payment_method ?? "").toLowerCase();
+                          const temBoleto = !!(e.boleto_line ?? "").replace(/\D+/g, "");
+                          const temPix = !!(e.pix_key ?? "").trim();
+                          if (!(m === "boleto" && temBoleto) && !(m === "pix" && temPix)) return null;
+                          return (
+                            <Button
+                              size="sm"
+                              className="h-8 rounded-full bg-brand-orange text-white hover:bg-brand-orange/90 px-3 text-xs font-semibold"
+                              onClick={() => (m === "boleto" ? setBoletoEntry(e) : setPixEntry(e))}
+                              title="Pagar agora (sem esperar o agendamento)"
+                            >
+                              Pagar agora
+                            </Button>
+                          );
+                        })()}
                         <Button size="icon" variant="ghost" title="Pagar via Pix" onClick={() => setPixEntry(e)}>
                           <QrCode className="h-4 w-4 text-brand-orange" />
                         </Button>
@@ -390,6 +406,7 @@ export function FinancialPage({ kind }: { kind: Kind }) {
                         </Button>
                       </>
                     )}
+
 
                     <Button size="icon" variant="ghost" onClick={() => toggleStatus.mutate(e)} title={e.status === "paid" ? "Marcar como pendente" : "Marcar como pago"}>
                       {e.status === "paid" ? <X className="h-4 w-4" /> : <Check className="h-4 w-4 text-emerald-500" />}
@@ -417,6 +434,7 @@ export function FinancialPage({ kind }: { kind: Kind }) {
           origin: "contas_pagar",
           financialEntryId: pixEntry?.id ?? null,
           favoredName: pixEntry?.counterparty ?? "",
+          pixKey: pixEntry?.pix_key ?? undefined,
           value: pixEntry ? Number(pixEntry.amount) : undefined,
           description: pixEntry?.description ?? "",
           date: pixEntry?.due_date ?? null,
