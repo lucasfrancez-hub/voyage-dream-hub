@@ -1816,21 +1816,24 @@ export function VoosPage({
   // consulta com a MESMA busca costuma trazer opções (e tarifas menores) que
   // ainda não tinham chegado. Os voos novos são somados aos já exibidos.
   const moreMut = useMutation({
-    mutationFn: () =>
+    mutationFn: (opts: { silent?: boolean }) =>
       search({
         data: {
           ...paxData(),
           returnDate: form.returnDate || null,
           searchKey: result?.searchKey ?? null,
-          filters: toOperatorFilters(outFilters),
+          // As ondas automáticas rodam SEM filtro: é assim que companhias que
+          // chegam atrasadas (ex.: Copa) entram na lista de chips.
+          filters: toOperatorFilters(opts.silent ? EMPTY_FILTERS : outFilters),
         },
       }),
-    onSuccess: (raw) => {
+    onSuccess: (raw, vars) => {
       const r = normalizeSearchResult(raw);
       if (!r) {
-        toast.info("A operadora não respondeu agora, tente de novo em instantes");
+        if (!vars.silent) toast.info("A operadora não respondeu agora, tente de novo em instantes");
         return;
       }
+      setAirlinePool((prev) => mergePool(prev, r.outbound.flights));
       setResult((prev) => {
         if (!prev) return r;
         const map = new Map(prev.outbound.flights.map((f) => [flightSignature(f), f]));
@@ -1843,10 +1846,11 @@ export function VoosPage({
 
         }
         const flights = [...map.values()].sort((a, b) => a.price.total - b.price.total);
-        toast[novos ? "success" : "info"](
-          novos ? `+${novos} voos encontrados` : "Nenhuma opção nova por enquanto",
-        );
-        setAirlinePool(flights);
+        if (!vars.silent) {
+          toast[novos ? "success" : "info"](
+            novos ? `+${novos} voos encontrados` : "Nenhuma opção nova por enquanto",
+          );
+        }
         return {
           ...prev,
           outbound: {
@@ -1858,9 +1862,24 @@ export function VoosPage({
         };
       });
     },
-    onError: (e: unknown) =>
-      toast.error(e instanceof Error ? e.message : "Erro ao carregar mais voos"),
+    onError: (e: unknown, vars) => {
+      if (!vars.silent) toast.error(e instanceof Error ? e.message : "Erro ao carregar mais voos");
+    },
   });
+
+  // Ondas automáticas em segundo plano: a operadora libera fornecedores aos
+  // poucos, então repetimos a mesma busca para completar a lista de companhias.
+  useEffect(() => {
+    if (autoWaves <= 0 || !result?.searchKey) return;
+    if (mut.isPending || moreMut.isPending) return;
+    const t = setTimeout(() => {
+      setAutoWaves((n) => Math.max(0, n - 1));
+      moreMut.mutate({ silent: true });
+    }, 2000);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoWaves, result?.searchKey, mut.isPending, moreMut.isPending]);
+
 
   const inboundMut = useMutation({
     // A operadora combina ida + volta POR TARIFA (fornecedor). Se a tarifa mais
