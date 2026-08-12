@@ -52,7 +52,7 @@ export async function renderPromoCardAsset(
   format: PromoCardFormat,
 ): Promise<{ url: string; filename: string; width: number; height: number }> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const bytes = await shot(promoCardPreviewUrl(data, format));
+  const bytes = await shot(promoCardPreviewUrl(data, format), format);
   if (bytes.byteLength < 1000) throw new Error("Captura vazia da arte");
   const filename = `${format}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.png`;
   const path = `promo-cards/${filename}`;
