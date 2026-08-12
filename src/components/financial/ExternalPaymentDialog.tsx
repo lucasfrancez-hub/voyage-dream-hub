@@ -160,7 +160,7 @@ export function ExternalPaymentDialog({
           documentoPath: path,
           rawExtracao: raw,
           darBaixa: true,
-っ        },
+        },
       });
       toast.success(entry ? "Pagamento registrado e conta baixada." : "Pagamento externo registrado.");
       onOpenChange(false);
