@@ -444,7 +444,20 @@ export async function explorarHandler({ data }: { data: ExplorarInput }): Promis
     ? `${TWD}/itinerary_prices/${data.fromIata.toUpperCase()}/${(data.toIata ?? "").toUpperCase()}?${params.toString()}`
     : `${TWD}/categories${params.toString() ? `?${params}` : ""}`;
 
-  const json = await getJson<RawTwd>(url);
+  let json: RawTwd;
+  try {
+    json = await getJson<RawTwd>(url);
+  } catch (e) {
+    // Filtro de origem às vezes derruba o endpoint: tenta de novo sem ele.
+    if (!data.fromIata && data.originIata) {
+      params.delete("from_iata_code");
+      json = await getJson<RawTwd>(
+        `${TWD}/categories${params.toString() ? `?${params}` : ""}`,
+      );
+    } else {
+      throw e;
+    }
+  }
   const parentCategoryId = categoryIdFromLink(json.parent_category_link);
 
   const out: MdExplore = {
