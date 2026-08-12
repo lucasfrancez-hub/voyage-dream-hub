@@ -1367,6 +1367,14 @@ function SummaryCard({
     }).catch((e) => console.error("[public-lead] falha ao registrar pedido pendente", e));
   }
 
+  // Trocou de voo/tarifa? O carrinho anterior não vale mais — senão o cliente
+  // abriria na operadora o carrinho antigo (mesmo preço do voo anterior).
+  const selKey = `${out.key}|${inb?.key ?? "-"}|${searchKey ?? ""}`;
+  useEffect(() => {
+    setCartUrl(null);
+    leadDone.current = false;
+  }, [selKey]);
+
   // Motor público: já prepara o carrinho enquanto o cliente lê o resumo, para o
   // botão virar um link normal (sem pop-up bloqueado dentro do iframe do site).
   useEffect(() => {
@@ -1374,7 +1382,7 @@ function SummaryCard({
     if (cartUrl || cartMut.isPending) return;
     cartMut.mutate();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [publicMode, open, searchKey]);
+  }, [publicMode, open, searchKey, selKey]);
 
   return (
     <>
