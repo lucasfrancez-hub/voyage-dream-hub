@@ -137,18 +137,14 @@ export function TopBar({
         </div>
 
         <nav className="hidden lg:flex items-center gap-6">
-          <Link to="/voar" className="inline-flex items-center gap-1.5 text-sm font-semibold text-foreground hover:text-brand-orange transition-colors">
-            <Plane className="h-3.5 w-3.5" /> Passagens
-          </Link>
-          <Link to="/ingressos" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-brand-orange transition-colors">
-            <Ticket className="h-3.5 w-3.5" /> Ingressos
-          </Link>
-          <Link to="/passeios" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-brand-orange transition-colors">
-            <Compass className="h-3.5 w-3.5" /> Passeios
-          </Link>
-          <Link to="/pacotes" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-brand-orange transition-colors">
-            <PackageIcon className="h-3.5 w-3.5" /> Pacotes
-          </Link>
+          {APP_NAV_ITEMS.map((item) => {
+            const Icon = item.icon;
+            return (
+              <Link key={item.href} to={item.href} className={desktopNavClass(item.href)}>
+                <Icon className="h-3.5 w-3.5" /> {item.label}
+              </Link>
+            );
+          })}
           {NAV_ITEMS.map((item) => (
             <a
               key={item.label}
