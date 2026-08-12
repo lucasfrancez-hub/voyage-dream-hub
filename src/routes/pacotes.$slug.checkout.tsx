@@ -527,11 +527,14 @@ function Checkout() {
           setPixInfo(cob);
         } catch (err) {
           console.error("[checkout] pix cobrança falhou", err);
+          setPixError(true);
           toast.warning(
-            "Pedido registrado! Nossa equipe vai enviar o QR Pix por e-mail em instantes.",
+            "Não foi possível gerar o QR Code agora. Nossa equipe vai enviar o Pix por e-mail em instantes.",
           );
         }
       }
+
+
 
 
 
