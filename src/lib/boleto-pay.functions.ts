@@ -299,7 +299,7 @@ export const consultarBoleto = createServerFn({ method: 'POST' })
           s.assignorName ??
           s.payeeName ??
           s.recipientName ??
-          extrairBeneficiarioProfundo(sim.raw ?? s).nome ??
+          extrairBeneficiarioProfundo(s).nome ??
           s.softDescriptor ??
           s.bankName ??
           s.bank?.name ??
@@ -312,7 +312,7 @@ export const consultarBoleto = createServerFn({ method: 'POST' })
           s.beneficiary?.cpfCnpj ??
           s.payee?.cpfCnpj ??
           s.assignorDocument ??
-          extrairBeneficiarioProfundo(sim.raw ?? s).documento ??
+          extrairBeneficiarioProfundo(s).documento ??
           null,
         instituicao:
           s.bankName ?? s.bank?.name ?? beneficiarioPeloCodigo(s.barCode ?? parsed.barcode) ?? null,
