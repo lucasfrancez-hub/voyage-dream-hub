@@ -342,18 +342,38 @@ export const criarPagamentoBoleto = createServerFn({ method: 'POST' })
     const erro = (e: ErroBoleto) => ({ ok: false as const, erro: e })
 
     // ---- Idempotência: mesma tentativa (duplo clique, refresh, retry) ----
-    const { data: jaCriado } = await supabaseAdmin
-      .from('asaas_bill_payments')
-      .select('id, status, asaas_bill_id, scheduled_date')
-      .eq('client_request_id', data.clientRequestId)
-      .maybeSingle()
-    if (jaCriado) {
+    const { criarRegistroIdempotente } = await import('./boleto-pay.idempotency')
+    const repo = {
+      buscarPorClientRequestId: async (id: string) =>
+        (
+          await supabaseAdmin
+            .from('asaas_bill_payments')
+            .select('*')
+            .eq('client_request_id', id)
+            .maybeSingle()
+        ).data,
+      buscarPorIdempotencyKey: async (key: string) =>
+        (
+          await supabaseAdmin
+            .from('asaas_bill_payments')
+            .select('*')
+            .eq('idempotency_key', key)
+            .maybeSingle()
+        ).data,
+      inserir: async (r: Record<string, any>) => {
+        const res = await supabaseAdmin.from('asaas_bill_payments').insert(r as any).select('*').single()
+        if (res.error) throw res.error
+        return res.data
+      },
+    }
+    const reaproveitado = await repo.buscarPorClientRequestId(data.clientRequestId)
+    if (reaproveitado) {
       return {
         ok: true as const,
-        id: jaCriado.id,
-        asaasBillId: jaCriado.asaas_bill_id,
-        status: jaCriado.status,
-        scheduledDate: jaCriado.scheduled_date,
+        id: reaproveitado.id,
+        asaasBillId: reaproveitado.asaas_bill_id,
+        status: reaproveitado.status,
+        scheduledDate: reaproveitado.scheduled_date,
         reaproveitado: true as const,
       }
     }
@@ -475,10 +495,7 @@ export const criarPagamentoBoleto = createServerFn({ method: 'POST' })
     const idem = buildIdempotencyKey(linha, quando)
     const externalRef = `bill:${data.clientRequestId}`
 
-    const insertRow = (idempotencyKey: string) =>
-      supabaseAdmin
-        .from('asaas_bill_payments')
-        .insert({
+    const montarRow = (idempotencyKey: string) => ({
         financial_entry_id: data.financialEntryId ?? null,
         identification_field: linha,
         beneficiary_name: data.beneficiaryName ?? (sim?.companyName as string | undefined) ?? null,
@@ -502,42 +519,26 @@ export const criarPagamentoBoleto = createServerFn({ method: 'POST' })
         created_by: context.userId,
         created_by_name: (context as any).claims?.email ?? null,
         created_ip: ip(),
-      } as any)
-        .select('*')
-        .single()
+      })
 
-    // O índice único de idempotency_key é a trava real contra duplo clique:
-    // se já existir pagamento ATIVO com a mesma chave, não criamos outro.
-    let row: any = null
-    let insErr: any = null
-    for (let tentativa = 0; tentativa < 5; tentativa++) {
-      const key = buildIdempotencyKey(linha, quando, tentativa)
-      const r = await insertRow(key)
-      if (!r.error) {
-        row = r.data
-        insErr = null
-        break
+    const reg = await criarRegistroIdempotente(repo, {
+      clientRequestId: data.clientRequestId,
+      linha,
+      quando,
+      montarRow,
+    })
+    if (reg.tipo === 'reaproveitado') {
+      return {
+        ok: true as const,
+        id: reg.row.id,
+        asaasBillId: reg.row.asaas_bill_id ?? null,
+        status: reg.row.status,
+        scheduledDate: reg.row.scheduled_date ?? null,
+        reaproveitado: true as const,
       }
-      insErr = r.error
-      if (String(r.error.code) !== '23505') break
-      const { data: existente } = await supabaseAdmin
-        .from('asaas_bill_payments')
-        .select('id, status, asaas_bill_id, scheduled_date')
-        .eq('idempotency_key', key)
-        .maybeSingle()
-      if (existente && isStatusAtivo(existente.status)) {
-        return {
-          ok: true as const,
-          id: existente.id,
-          asaasBillId: existente.asaas_bill_id,
-          status: existente.status,
-          scheduledDate: existente.scheduled_date,
-          reaproveitado: true as const,
-        }
-      }
-      // Tentativa anterior cancelada/falhou: pode criar nova com sufixo.
     }
-    if (!row) throw new Error(insErr?.message ?? 'Falha ao registrar o pagamento.')
+    const row: any = reg.row
+
 
     if (segurarLocal) {
       await supabaseAdmin.from('asaas_bill_payment_events').insert({
