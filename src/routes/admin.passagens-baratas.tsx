@@ -287,7 +287,19 @@ function PassagensBaratasPage() {
             ))}
           </select>
         </Field>
-      </div>
+          </div>
+          <Button
+            variant="secondary"
+            size="icon"
+            className="h-auto self-stretch px-4"
+            onClick={() => q.refetch()}
+            disabled={q.isFetching}
+            aria-label="Atualizar"
+          >
+            <RefreshCw className={`h-4 w-4 ${q.isFetching ? "animate-spin" : ""}`} />
+          </Button>
+        </div>
+      </header>
 
 
       {/* Trilha de navegação — setas encadeadas na identidade VIA AIR */}
