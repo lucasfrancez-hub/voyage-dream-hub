@@ -366,6 +366,18 @@ export function BoletoPaymentDialog({
                 autoFocus
                 value={maskLinha(codigo)}
                 onChange={(e) => { setCodigo(e.target.value.replace(/\D+/g, "")); setBoleto(null); setErro(null); }}
+                onPaste={(e) => {
+                  // Aceita colagem com pontos, espaços, quebras de linha ou texto junto.
+                  const bruto = e.clipboardData.getData("text") ?? "";
+                  const d = bruto.replace(/\D+/g, "");
+                  if (!d) return;
+                  e.preventDefault();
+                  setBoleto(null);
+                  setErro(null);
+                  setCodigo(d);
+                  const p = parseBoletoCode(d);
+                  if (p.valid) void consultarCodigo(d);
+                }}
                 placeholder="00000.00000 00000.000000 00000.000000 0 00000000000000"
                 inputMode="numeric"
                 className="font-mono"
@@ -374,7 +386,7 @@ export function BoletoPaymentDialog({
                 {codigo.length === 0
                   ? "Digite ou cole o código do boleto (47/48 dígitos) ou o código de barras (44)."
                   : formato.valid
-                    ? `${formato.kind === "arrecadacao" ? "Conta de consumo/tributo" : "Boleto bancário"} válido.`
+                    ? `${formato.kind === "arrecadacao" ? "Conta de consumo/tributo" : "Boleto bancário"} válido — código de barras ${formato.barcode}.`
                     : formato.message}
               </p>
             </div>

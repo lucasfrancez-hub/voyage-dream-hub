@@ -243,7 +243,10 @@ export const consultarBoleto = createServerFn({ method: 'POST' })
     }
 
     const { simulateAsaasBillSafe } = await import('@/lib/asaas.server')
-    const sim = await simulateAsaasBillSafe(parsed.linha)
+    const sim = await simulateAsaasBillSafe({
+      barCode: parsed.barcode,
+      identificationField: parsed.linha,
+    })
 
     if (!sim.ok) {
       const cls = classificarErroBoleto(sim.description, sim.code)
@@ -403,7 +406,10 @@ export const criarPagamentoBoleto = createServerFn({ method: 'POST' })
     }
 
     // Revalidação obrigatória no provedor antes de pagar
-    const simRes = await simulateAsaasBillSafe(linha)
+    const simRes = await simulateAsaasBillSafe({
+      barCode: parsed.barcode,
+      identificationField: linha,
+    })
     if (!simRes.ok) {
       const cls = classificarErroBoleto(simRes.description, simRes.code)
       return erro({
@@ -570,6 +576,7 @@ export const criarPagamentoBoleto = createServerFn({ method: 'POST' })
     }
 
     const billRes = await createAsaasBillSafe({
+      barCode: parsed.barcode,
       identificationField: linha,
       scheduleDate: schedule,
       description: data.description ?? null,

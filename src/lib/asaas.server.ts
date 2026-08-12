@@ -531,17 +531,45 @@ async function asaasCall<T>(path: string, init?: RequestInit): Promise<AsaasCall
   return { ok: true, data: body as T, status: res.status }
 }
 
-/** Simulação do boleto sem lançar exceção — usada na consulta antes de pagar. */
-export function simulateAsaasBillSafe(identificationField: string) {
-  return asaasCall<BillSimulationResult>('/bill/simulate', {
-    method: 'POST',
-    body: JSON.stringify({ identificationField }),
-  })
+/**
+ * Simulação do boleto sem lançar exceção — usada na consulta antes de pagar.
+ *
+ * O código de barras é sempre a fonte primária: é o dado que o banco lê. A
+ * linha digitável só é usada como alternativa quando o código de barras é
+ * recusado (ou não pôde ser derivado).
+ */
+export async function simulateAsaasBillSafe(
+  input: string | { barCode?: string | null; identificationField?: string | null },
+) {
+  const arg = typeof input === 'string' ? { identificationField: input } : input
+  const tentativas: Record<string, string>[] = []
+  if (arg.barCode) tentativas.push({ barCode: arg.barCode })
+  if (arg.identificationField) tentativas.push({ identificationField: arg.identificationField })
+  if (!tentativas.length) tentativas.push({ identificationField: '' })
+
+  let ultima!: Awaited<ReturnType<typeof asaasCall<BillSimulationResult>>>
+  for (const body of tentativas) {
+    ultima = await asaasCall<BillSimulationResult>('/bill/simulate', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    })
+    if (ultima.ok) return ultima
+    // Só vale tentar a outra representação quando a recusa é de formato/leitura.
+    const t = (ultima.description || '').toLowerCase()
+    const formato =
+      ultima.status === 400 &&
+      /inválid|invalid|não foi possível|nao foi possivel|código de barras|codigo de barras|linha digitável|linha digitavel|not found|não encontrad|nao encontrad/.test(t)
+    if (!formato) return ultima
+  }
+  return ultima
 }
 
 /** Criação do pagamento sem lançar exceção — permite exibir o motivo real da recusa. */
-export function createAsaasBillSafe(input: CreateBillInput) {
-  const body: Record<string, any> = { identificationField: input.identificationField }
+export function createAsaasBillSafe(input: CreateBillInput & { barCode?: string | null }) {
+  // Prioridade: código de barras; linha digitável apenas como alternativa.
+  const body: Record<string, any> = input.barCode
+    ? { barCode: input.barCode }
+    : { identificationField: input.identificationField }
   if (input.scheduleDate) body['scheduleDate'] = input.scheduleDate
   if (input.description) body['description'] = input.description
   if (input.value != null) body['value'] = input.value
