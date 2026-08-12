@@ -1,5 +1,5 @@
-import { Link } from "@tanstack/react-router";
-import { ArrowLeft, Compass, MessageCircle, Ticket, Ship, Package as PackageIcon, Menu, Plane } from "lucide-react";
+import { Link, useRouter } from "@tanstack/react-router";
+import { ArrowLeft, Compass, MessageCircle, Ticket, Package as PackageIcon, Menu, Plane } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import viaAirLogo from "@/assets/viaair-logo.png.asset.json";
 import { WHATSAPP_PHONE } from "@/lib/checkout-config";
@@ -17,6 +17,13 @@ type TopBarProps = {
 
 const SITE_URL = "https://viaair.tur.br";
 
+const APP_NAV_ITEMS = [
+  { label: "Passagens", href: "/voar", icon: Plane },
+  { label: "Ingressos", href: "/ingressos", icon: Ticket },
+  { label: "Passeios", href: "/passeios", icon: Compass },
+  { label: "Pacotes", href: "/pacotes", icon: PackageIcon },
+];
+
 const NAV_ITEMS: { label: string; href: string }[] = [
   { label: "Página inicial", href: SITE_URL },
   { label: "Sobre", href: `${SITE_URL}/#sobre` },
@@ -32,7 +39,19 @@ export function TopBar({
   transparent = false,
 }: TopBarProps) {
   const [open, setOpen] = useState(false);
+  const { state } = useRouter();
+  const pathname = state.location.pathname;
   const waUrl = `https://wa.me/${WHATSAPP_PHONE}?text=${encodeURIComponent(whatsappMessage)}`;
+
+  const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
+  const desktopNavClass = (href: string) =>
+    isActive(href)
+      ? "inline-flex items-center gap-1.5 text-sm font-semibold text-brand-orange transition-colors"
+      : "inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-brand-orange transition-colors";
+  const mobileNavClass = (href: string) =>
+    isActive(href)
+      ? "flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-brand-orange bg-brand-orange/10 transition"
+      : "flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-foreground hover:bg-brand-orange/10 hover:text-brand-orange transition";
 
   const backEl = backTo ? (
     <Link
@@ -75,34 +94,19 @@ export function TopBar({
                 </SheetTitle>
               </SheetHeader>
               <nav className="flex flex-col p-3">
-                <Link
-                  to="/voar"
-                  onClick={() => setOpen(false)}
-                  className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-foreground hover:bg-brand-orange/10 hover:text-brand-orange transition"
-                >
-                  <Plane className="h-4 w-4" /> Passagens
-                </Link>
-                <Link
-                  to="/ingressos"
-                  onClick={() => setOpen(false)}
-                  className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-foreground hover:bg-brand-orange/10 hover:text-brand-orange transition"
-                >
-                  <Ticket className="h-4 w-4" /> Ingressos
-                </Link>
-                <Link
-                  to="/passeios"
-                  onClick={() => setOpen(false)}
-                  className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-foreground hover:bg-brand-orange/10 hover:text-brand-orange transition"
-                >
-                  <Compass className="h-4 w-4" /> Passeios
-                </Link>
-                <Link
-                  to="/pacotes"
-                  onClick={() => setOpen(false)}
-                  className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-foreground hover:bg-brand-orange/10 hover:text-brand-orange transition"
-                >
-                  <PackageIcon className="h-4 w-4" /> Pacotes
-                </Link>
+                {APP_NAV_ITEMS.map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <Link
+                      key={item.href}
+                      to={item.href}
+                      onClick={() => setOpen(false)}
+                      className={mobileNavClass(item.href)}
+                    >
+                      <Icon className="h-4 w-4" /> {item.label}
+                    </Link>
+                  );
+                })}
                 <div className="my-2 h-px bg-border/60" />
                 {NAV_ITEMS.map((item) => (
                   <a
@@ -133,18 +137,14 @@ export function TopBar({
         </div>
 
         <nav className="hidden lg:flex items-center gap-6">
-          <Link to="/voar" className="inline-flex items-center gap-1.5 text-sm font-semibold text-foreground hover:text-brand-orange transition-colors">
-            <Plane className="h-3.5 w-3.5" /> Passagens
-          </Link>
-          <Link to="/ingressos" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-brand-orange transition-colors">
-            <Ticket className="h-3.5 w-3.5" /> Ingressos
-          </Link>
-          <Link to="/passeios" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-brand-orange transition-colors">
-            <Compass className="h-3.5 w-3.5" /> Passeios
-          </Link>
-          <Link to="/pacotes" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-brand-orange transition-colors">
-            <PackageIcon className="h-3.5 w-3.5" /> Pacotes
-          </Link>
+          {APP_NAV_ITEMS.map((item) => {
+            const Icon = item.icon;
+            return (
+              <Link key={item.href} to={item.href} className={desktopNavClass(item.href)}>
+                <Icon className="h-3.5 w-3.5" /> {item.label}
+              </Link>
+            );
+          })}
           {NAV_ITEMS.map((item) => (
             <a
               key={item.label}
