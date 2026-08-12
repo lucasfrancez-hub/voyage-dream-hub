@@ -1275,6 +1275,7 @@ function SummaryCard({
   onOpenChange,
   onComboSelect,
   publicMode = false,
+  refreshFares,
 }: {
   out: OnerFlight;
   inb: OnerFlight | null;
@@ -1285,6 +1286,8 @@ function SummaryCard({
   onComboSelect?: (pick: ComboPick) => void;
   /** Motor público: "Comprar agora" registra o pedido pendente e manda direto pro carrinho. */
   publicMode?: boolean;
+  /** Refaz a busca e devolve chaves novas do mesmo voo quando a tarifa expira. */
+  refreshFares?: (out: OnerFlight, inb: OnerFlight | null) => Promise<FreshFares | null>;
 }) {
 
 
