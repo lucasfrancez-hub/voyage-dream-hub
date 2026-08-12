@@ -34,7 +34,8 @@ linear-gradient(135deg,#0b3850,#0c2740 52%,#081820)}
 .veil{position:absolute;inset:0;z-index:1;background:
 linear-gradient(180deg,rgba(2,17,28,.16),rgba(2,17,28,.60) 48%,rgba(4,14,18,.98)),
 radial-gradient(circle at 80% 12%,rgba(255,134,27,.18),transparent 24%)}
-.frame > *:not(.photo):not(.veil){position:relative;z-index:2}
+.frame > *:not(.photo):not(.veil):not(.price-box){position:relative;z-index:2}
+.price-box{z-index:3}
 .brand{display:flex;align-items:flex-start;justify-content:space-between}
 .logo{font-size:34px;letter-spacing:2px}.logo b{font-weight:800}.logo .air{color:var(--orange)}
 .logo-slot{width:220px;height:74px;display:flex;align-items:center;justify-content:flex-start;padding:0}
