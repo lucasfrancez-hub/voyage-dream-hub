@@ -26,6 +26,11 @@ export function PixQrOverlay({
           expiraEm={expiraEm}
           variant="minimal"
         />
+        <div className="mt-4 rounded-2xl border border-border bg-card p-4 text-center shadow-lg">
+          <p className="text-sm text-muted-foreground">
+            O QR Code também foi enviado para o seu e-mail.
+          </p>
+        </div>
         <div className="mt-4 flex items-center justify-center gap-2 text-xs text-muted-foreground">
           <Loader2 className="h-3 w-3 animate-spin" />
           Aguardando confirmação do pagamento…
