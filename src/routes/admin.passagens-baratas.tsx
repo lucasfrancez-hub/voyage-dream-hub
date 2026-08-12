@@ -215,6 +215,9 @@ export function PassagensBaratasExplorer({
       staleTime: 30 * 60 * 1000,
     });
 
+  const hrefPasso = (step: Step) =>
+    linkPasso ? linkPasso([...trail, step]) : undefined;
+
   const go = (step: Step) => {
     const next = [...trail, step];
     if (linkPasso) {
@@ -224,6 +227,7 @@ export function PassagensBaratasExplorer({
     }
     setTrail(next);
   };
+
   const backTo = (i: number) => setTrail((t) => t.slice(0, i + 1));
 
 
