@@ -7,7 +7,18 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { ChevronRight, ExternalLink, Loader2, Plane, RefreshCw, Search } from "lucide-react";
+import {
+  Backpack,
+  Briefcase,
+  ChevronRight,
+  Clock,
+  ExternalLink,
+  Loader2,
+  Luggage,
+  Plane,
+  RefreshCw,
+  Search,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -43,6 +54,62 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
     </label>
   );
 }
+
+/** Blocos de bagagem (item pessoal / mão / despachada) no estilo do comparador. */
+function BaggageBlocks({ label }: { label: string | null }) {
+  const t = (label ?? "").toLowerCase();
+  const despachada = /despach|checked|23kg|bagagem inclu/.test(t);
+  const mao = despachada || /mão|mao|carry|hand|10kg/.test(t);
+  const pessoal = true;
+  const itens: { icon: typeof Briefcase; on: boolean; title: string }[] = [
+    { icon: Backpack, on: pessoal, title: "Item pessoal" },
+    { icon: Briefcase, on: mao, title: "Bagagem de mão" },
+    { icon: Luggage, on: despachada, title: "Bagagem despachada" },
+  ];
+  return (
+    <div className="flex flex-col items-center gap-1">
+      <div className="flex items-center justify-center gap-1">
+        {itens.map(({ icon: Icon, on, title }) => (
+          <span
+            key={title}
+            title={title}
+            className={`flex h-7 w-7 items-center justify-center rounded-md border transition-colors ${
+              on
+                ? "border-primary/40 bg-primary/15 text-primary"
+                : "border-border/60 bg-muted/40 text-muted-foreground/40"
+            }`}
+          >
+            <Icon className="h-3.5 w-3.5" />
+          </span>
+        ))}
+      </div>
+      <span className="text-[9px] font-medium uppercase tracking-wide text-muted-foreground">
+        {despachada ? "Com despachada" : mao ? "Bagagem de mão" : "Item pessoal"}
+      </span>
+    </div>
+  );
+}
+
+/** Placeholder de carregamento — cache de até 24h, sem cara de busca ao vivo. */
+function LoadingSkeleton() {
+  return (
+    <Card className="overflow-hidden rounded-2xl p-6">
+      <div className="mb-4 flex items-center gap-2 text-sm font-semibold">
+        <Clock className="h-4 w-4 text-primary" />
+        Preços coletados nas últimas 24 horas
+        <span className="text-xs font-normal text-muted-foreground">
+          · abrindo tarifas salvas
+        </span>
+      </div>
+      <div className="space-y-2">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <div key={i} className="h-11 animate-pulse rounded-xl bg-muted/50" />
+        ))}
+      </div>
+    </Card>
+  );
+}
+
 
 function PassagensBaratasPage() {
   const explorar = useServerFn(explorarPassagensMd);
@@ -260,11 +327,8 @@ function PassagensBaratasPage() {
       </nav>
 
 
-      {q.isLoading && (
-        <Card className="flex items-center gap-2 p-6 text-sm text-muted-foreground">
-          <Loader2 className="h-4 w-4 animate-spin" /> Buscando os preços mais baratos...
-        </Card>
-      )}
+      {q.isLoading && <LoadingSkeleton />}
+
       {q.isError && <Card className="p-6 text-sm text-destructive">{(q.error as Error).message}</Card>}
 
       {/* Regiões / países */}
@@ -450,7 +514,7 @@ function PassagensBaratasPage() {
               </div>
               {q.isFetching && (
                 <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
-                  <Loader2 className="h-3 w-3 animate-spin" /> atualizando datas...
+                  <Loader2 className="h-3 w-3 animate-spin" /> carregando tarifas salvas...
                 </div>
               )}
             </Card>
@@ -512,10 +576,9 @@ function PassagensBaratasPage() {
                           )}
                         </td>
                         <td className="px-6 py-5 text-center">
-                          <span className="text-[10px] font-medium text-muted-foreground">
-                            {o.baggage ?? "—"}
-                          </span>
+                          <BaggageBlocks label={o.baggage} />
                         </td>
+
                         <td className="px-6 py-5">
                           <div
                             className={`text-xl font-black ${i === 0 ? "text-primary" : ""}`}
