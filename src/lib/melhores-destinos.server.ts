@@ -43,10 +43,16 @@ const JSON_TTL = 15 * 60 * 1000;
 async function getJson<T>(url: string): Promise<T> {
   const hit = jsonCache.get(url);
   if (hit && Date.now() - hit.at < JSON_TTL) return hit.value as T;
-  const value = (await (await get(url)).json()) as T;
-  if (jsonCache.size > 300) jsonCache.clear();
-  jsonCache.set(url, { at: Date.now(), value });
-  return value;
+  try {
+    const value = (await (await get(url)).json()) as T;
+    if (jsonCache.size > 300) jsonCache.clear();
+    jsonCache.set(url, { at: Date.now(), value });
+    return value;
+  } catch (e) {
+    // Nunca deixa a tela sem tarifa: serve o último resultado bom, mesmo vencido.
+    if (hit) return hit.value as T;
+    throw e;
+  }
 }
 
 
@@ -441,7 +447,34 @@ type RawTwd = {
   months?: RawDates["months"];
 };
 
+/** Último resultado bom por consulta — a tela nunca fica sem tarifas. */
+const ultimoBom = new Map<string, MdExplore>();
+
 export async function explorarHandler({ data }: { data: ExplorarInput }): Promise<MdExplore> {
+  const chave = JSON.stringify(data);
+  try {
+    const out = await explorarInterno({ data });
+    ultimoBom.set(chave, out);
+    if (ultimoBom.size > 200) {
+      const first = ultimoBom.keys().next().value;
+      if (first) ultimoBom.delete(first);
+    }
+    return out;
+  } catch (e) {
+    const cache = ultimoBom.get(chave);
+    if (cache) return cache;
+    // Último recurso: lista geral de regiões (sem filtros).
+    try {
+      const base = await explorarInterno({ data: { base: data.base } });
+      if (base.categories.length) return base;
+    } catch {
+      /* ignora */
+    }
+    throw e;
+  }
+}
+
+async function explorarInterno({ data }: { data: ExplorarInput }): Promise<MdExplore> {
   const base = (data.base ?? "").replace(/\/$/, "");
   const params = new URLSearchParams();
   if (data.categoryId) params.set("category_id", String(data.categoryId));
