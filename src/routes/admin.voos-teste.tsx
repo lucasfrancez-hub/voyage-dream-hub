@@ -1307,19 +1307,27 @@ function SummaryCard({
   // Gera o carrinho oficial do Comprar Viagem (agência VIA AIR na URL),
   // para o cliente concluir o pagamento no ambiente da operadora.
   const cartMut = useMutation({
-    mutationFn: () =>
-      createCart({
-        data: {
-          searchKey: searchKey ?? "",
-          outboundFareId: out.key,
-          outboundItineraryId: out.journey.key,
-          inboundFareId: inb?.key ?? null,
-          inboundItineraryId: inb?.journey.key ?? null,
-          isRoundTrip: !!inb,
-          ...ctx,
-
-        },
-      }),
+    mutationFn: async () => {
+      const base = {
+        searchKey: searchKey ?? "",
+        outboundFareId: out.key,
+        outboundItineraryId: out.journey.key,
+        inboundFareId: inb?.key ?? null,
+        inboundItineraryId: inb?.journey.key ?? null,
+        isRoundTrip: !!inb,
+        ...ctx,
+      };
+      try {
+        return await createCart({ data: base });
+      } catch (err) {
+        // Tarifa expirada é o caso comum: refazemos a busca por baixo dos panos
+        // e tentamos de novo com as chaves novas do MESMO voo.
+        if (!refreshFares) throw err;
+        const fresh = await refreshFares(out, inb);
+        if (!fresh) throw err;
+        return await createCart({ data: { ...base, ...fresh } });
+      }
+    },
     onSuccess: (r) => {
       setCartUrl(r.url);
       if (!publicMode) window.open(r.url, "_blank", "noopener");
