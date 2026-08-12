@@ -1295,7 +1295,14 @@ function SummaryCard({
   const taxes = taxesOf(out) + (inb ? taxesOf(inb) : 0);
   const total = out.price.total + (inb?.price.total ?? 0);
   const pax = out.price.passengerCount || 1;
-  const n = Math.min(maxInstallments(airlineOf(out)), inb ? maxInstallments(airlineOf(inb)) : 99);
+  // Condições comerciais: fonte única (regra da cia + parcela mínima).
+  // Com ida/volta de cias diferentes, vale a condição mais restritiva.
+  const condOut = getAirfarePaymentConditions({ total, passengers: pax, airline: airlineOf(out) });
+  const condIn = inb
+    ? getAirfarePaymentConditions({ total, passengers: pax, airline: airlineOf(inb) })
+    : null;
+  const cond =
+    condIn && condIn.interestFree.installments < condOut.interestFree.installments ? condIn : condOut;
   const [orderOpen, setOrderOpen] = useState(false);
   const [cartUrl, setCartUrl] = useState<string | null>(null);
   const createCart = useServerFn(publicMode ? onerCreateFlightCartPublic : onerCreateFlightCart);
