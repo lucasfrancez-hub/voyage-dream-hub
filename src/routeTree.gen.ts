@@ -58,6 +58,7 @@ import { Route as AdminPacotesRouteImport } from './routes/admin.pacotes'
 import { Route as AdminPagamentosRouteImport } from './routes/admin.pagamentos'
 import { Route as AdminPassagensBaratasRouteImport } from './routes/admin.passagens-baratas'
 import { Route as AdminPessoasRouteImport } from './routes/admin.pessoas'
+import { Route as AdminPromocoesAereoRouteImport } from './routes/admin.promocoes-aereo'
 import { Route as AdminRecebimentosRouteImport } from './routes/admin.recebimentos'
 import { Route as AdminRedesSociaisRouteImport } from './routes/admin.redes-sociais'
 import { Route as AdminSegurancaRouteImport } from './routes/admin.seguranca'
@@ -119,6 +120,7 @@ import { Route as ApiPublicAgendaManifestTokenRouteImport } from './routes/api/p
 import { Route as ApiPublicBoletoIdRouteImport } from './routes/api/public/boleto.$id'
 import { Route as ApiPublicBpIdRouteImport } from './routes/api/public/bp.$id'
 import { Route as ApiPublicBroadcastMediaSplatRouteImport } from './routes/api/public/broadcast-media.$'
+import { Route as ApiPublicHooksAirfarePromosRouteImport } from './routes/api/public/hooks/airfare-promos'
 import { Route as ApiPublicHooksAutoSuggestionsRouteImport } from './routes/api/public/hooks/auto-suggestions'
 import { Route as ApiPublicHooksBroadcastDispatchRouteImport } from './routes/api/public/hooks/broadcast-dispatch'
 import { Route as ApiPublicHooksCalendarJobsRouteImport } from './routes/api/public/hooks/calendar-jobs'
@@ -386,6 +388,11 @@ const AdminPassagensBaratasRoute = AdminPassagensBaratasRouteImport.update({
 const AdminPessoasRoute = AdminPessoasRouteImport.update({
   id: '/pessoas',
   path: '/pessoas',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminPromocoesAereoRoute = AdminPromocoesAereoRouteImport.update({
+  id: '/promocoes-aereo',
+  path: '/promocoes-aereo',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminRecebimentosRoute = AdminRecebimentosRouteImport.update({
@@ -702,6 +709,12 @@ const ApiPublicBroadcastMediaSplatRoute =
     path: '/api/public/broadcast-media/$',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicHooksAirfarePromosRoute =
+  ApiPublicHooksAirfarePromosRouteImport.update({
+    id: '/api/public/hooks/airfare-promos',
+    path: '/api/public/hooks/airfare-promos',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicHooksAutoSuggestionsRoute =
   ApiPublicHooksAutoSuggestionsRouteImport.update({
     id: '/api/public/hooks/auto-suggestions',
@@ -889,6 +902,7 @@ export interface FileRoutesByFullPath {
   '/admin/pagamentos': typeof AdminPagamentosRoute
   '/admin/passagens-baratas': typeof AdminPassagensBaratasRoute
   '/admin/pessoas': typeof AdminPessoasRouteWithChildren
+  '/admin/promocoes-aereo': typeof AdminPromocoesAereoRoute
   '/admin/recebimentos': typeof AdminRecebimentosRoute
   '/admin/redes-sociais': typeof AdminRedesSociaisRoute
   '/admin/seguranca': typeof AdminSegurancaRoute
@@ -950,6 +964,7 @@ export interface FileRoutesByFullPath {
   '/api/public/boleto/$id': typeof ApiPublicBoletoIdRoute
   '/api/public/bp/$id': typeof ApiPublicBpIdRoute
   '/api/public/broadcast-media/$': typeof ApiPublicBroadcastMediaSplatRoute
+  '/api/public/hooks/airfare-promos': typeof ApiPublicHooksAirfarePromosRoute
   '/api/public/hooks/auto-suggestions': typeof ApiPublicHooksAutoSuggestionsRoute
   '/api/public/hooks/broadcast-dispatch': typeof ApiPublicHooksBroadcastDispatchRoute
   '/api/public/hooks/calendar-jobs': typeof ApiPublicHooksCalendarJobsRoute
@@ -1022,6 +1037,7 @@ export interface FileRoutesByTo {
   '/admin/pagamentos': typeof AdminPagamentosRoute
   '/admin/passagens-baratas': typeof AdminPassagensBaratasRoute
   '/admin/pessoas': typeof AdminPessoasRouteWithChildren
+  '/admin/promocoes-aereo': typeof AdminPromocoesAereoRoute
   '/admin/recebimentos': typeof AdminRecebimentosRoute
   '/admin/redes-sociais': typeof AdminRedesSociaisRoute
   '/admin/seguranca': typeof AdminSegurancaRoute
@@ -1083,6 +1099,7 @@ export interface FileRoutesByTo {
   '/api/public/boleto/$id': typeof ApiPublicBoletoIdRoute
   '/api/public/bp/$id': typeof ApiPublicBpIdRoute
   '/api/public/broadcast-media/$': typeof ApiPublicBroadcastMediaSplatRoute
+  '/api/public/hooks/airfare-promos': typeof ApiPublicHooksAirfarePromosRoute
   '/api/public/hooks/auto-suggestions': typeof ApiPublicHooksAutoSuggestionsRoute
   '/api/public/hooks/broadcast-dispatch': typeof ApiPublicHooksBroadcastDispatchRoute
   '/api/public/hooks/calendar-jobs': typeof ApiPublicHooksCalendarJobsRoute
@@ -1158,6 +1175,7 @@ export interface FileRoutesById {
   '/admin/pagamentos': typeof AdminPagamentosRoute
   '/admin/passagens-baratas': typeof AdminPassagensBaratasRoute
   '/admin/pessoas': typeof AdminPessoasRouteWithChildren
+  '/admin/promocoes-aereo': typeof AdminPromocoesAereoRoute
   '/admin/recebimentos': typeof AdminRecebimentosRoute
   '/admin/redes-sociais': typeof AdminRedesSociaisRoute
   '/admin/seguranca': typeof AdminSegurancaRoute
@@ -1219,6 +1237,7 @@ export interface FileRoutesById {
   '/api/public/boleto/$id': typeof ApiPublicBoletoIdRoute
   '/api/public/bp/$id': typeof ApiPublicBpIdRoute
   '/api/public/broadcast-media/$': typeof ApiPublicBroadcastMediaSplatRoute
+  '/api/public/hooks/airfare-promos': typeof ApiPublicHooksAirfarePromosRoute
   '/api/public/hooks/auto-suggestions': typeof ApiPublicHooksAutoSuggestionsRoute
   '/api/public/hooks/broadcast-dispatch': typeof ApiPublicHooksBroadcastDispatchRoute
   '/api/public/hooks/calendar-jobs': typeof ApiPublicHooksCalendarJobsRoute
@@ -1295,6 +1314,7 @@ export interface FileRouteTypes {
     | '/admin/pagamentos'
     | '/admin/passagens-baratas'
     | '/admin/pessoas'
+    | '/admin/promocoes-aereo'
     | '/admin/recebimentos'
     | '/admin/redes-sociais'
     | '/admin/seguranca'
@@ -1356,6 +1376,7 @@ export interface FileRouteTypes {
     | '/api/public/boleto/$id'
     | '/api/public/bp/$id'
     | '/api/public/broadcast-media/$'
+    | '/api/public/hooks/airfare-promos'
     | '/api/public/hooks/auto-suggestions'
     | '/api/public/hooks/broadcast-dispatch'
     | '/api/public/hooks/calendar-jobs'
@@ -1428,6 +1449,7 @@ export interface FileRouteTypes {
     | '/admin/pagamentos'
     | '/admin/passagens-baratas'
     | '/admin/pessoas'
+    | '/admin/promocoes-aereo'
     | '/admin/recebimentos'
     | '/admin/redes-sociais'
     | '/admin/seguranca'
@@ -1489,6 +1511,7 @@ export interface FileRouteTypes {
     | '/api/public/boleto/$id'
     | '/api/public/bp/$id'
     | '/api/public/broadcast-media/$'
+    | '/api/public/hooks/airfare-promos'
     | '/api/public/hooks/auto-suggestions'
     | '/api/public/hooks/broadcast-dispatch'
     | '/api/public/hooks/calendar-jobs'
@@ -1563,6 +1586,7 @@ export interface FileRouteTypes {
     | '/admin/pagamentos'
     | '/admin/passagens-baratas'
     | '/admin/pessoas'
+    | '/admin/promocoes-aereo'
     | '/admin/recebimentos'
     | '/admin/redes-sociais'
     | '/admin/seguranca'
@@ -1624,6 +1648,7 @@ export interface FileRouteTypes {
     | '/api/public/boleto/$id'
     | '/api/public/bp/$id'
     | '/api/public/broadcast-media/$'
+    | '/api/public/hooks/airfare-promos'
     | '/api/public/hooks/auto-suggestions'
     | '/api/public/hooks/broadcast-dispatch'
     | '/api/public/hooks/calendar-jobs'
@@ -1701,6 +1726,7 @@ export interface RootRouteChildren {
   ApiPublicBoletoIdRoute: typeof ApiPublicBoletoIdRoute
   ApiPublicBpIdRoute: typeof ApiPublicBpIdRoute
   ApiPublicBroadcastMediaSplatRoute: typeof ApiPublicBroadcastMediaSplatRoute
+  ApiPublicHooksAirfarePromosRoute: typeof ApiPublicHooksAirfarePromosRoute
   ApiPublicHooksAutoSuggestionsRoute: typeof ApiPublicHooksAutoSuggestionsRoute
   ApiPublicHooksBroadcastDispatchRoute: typeof ApiPublicHooksBroadcastDispatchRoute
   ApiPublicHooksCalendarJobsRoute: typeof ApiPublicHooksCalendarJobsRoute
@@ -2069,6 +2095,13 @@ declare module '@tanstack/react-router' {
       path: '/pessoas'
       fullPath: '/admin/pessoas'
       preLoaderRoute: typeof AdminPessoasRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/promocoes-aereo': {
+      id: '/admin/promocoes-aereo'
+      path: '/promocoes-aereo'
+      fullPath: '/admin/promocoes-aereo'
+      preLoaderRoute: typeof AdminPromocoesAereoRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/recebimentos': {
@@ -2498,6 +2531,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicBroadcastMediaSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/airfare-promos': {
+      id: '/api/public/hooks/airfare-promos'
+      path: '/api/public/hooks/airfare-promos'
+      fullPath: '/api/public/hooks/airfare-promos'
+      preLoaderRoute: typeof ApiPublicHooksAirfarePromosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/auto-suggestions': {
       id: '/api/public/hooks/auto-suggestions'
       path: '/api/public/hooks/auto-suggestions'
@@ -2702,6 +2742,7 @@ interface AdminRouteChildren {
   AdminPagamentosRoute: typeof AdminPagamentosRoute
   AdminPassagensBaratasRoute: typeof AdminPassagensBaratasRoute
   AdminPessoasRoute: typeof AdminPessoasRouteWithChildren
+  AdminPromocoesAereoRoute: typeof AdminPromocoesAereoRoute
   AdminRecebimentosRoute: typeof AdminRecebimentosRoute
   AdminRedesSociaisRoute: typeof AdminRedesSociaisRoute
   AdminSegurancaRoute: typeof AdminSegurancaRoute
@@ -2742,6 +2783,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminPagamentosRoute: AdminPagamentosRoute,
   AdminPassagensBaratasRoute: AdminPassagensBaratasRoute,
   AdminPessoasRoute: AdminPessoasRouteWithChildren,
+  AdminPromocoesAereoRoute: AdminPromocoesAereoRoute,
   AdminRecebimentosRoute: AdminRecebimentosRoute,
   AdminRedesSociaisRoute: AdminRedesSociaisRoute,
   AdminSegurancaRoute: AdminSegurancaRoute,
@@ -2876,6 +2918,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicBoletoIdRoute: ApiPublicBoletoIdRoute,
   ApiPublicBpIdRoute: ApiPublicBpIdRoute,
   ApiPublicBroadcastMediaSplatRoute: ApiPublicBroadcastMediaSplatRoute,
+  ApiPublicHooksAirfarePromosRoute: ApiPublicHooksAirfarePromosRoute,
   ApiPublicHooksAutoSuggestionsRoute: ApiPublicHooksAutoSuggestionsRoute,
   ApiPublicHooksBroadcastDispatchRoute: ApiPublicHooksBroadcastDispatchRoute,
   ApiPublicHooksCalendarJobsRoute: ApiPublicHooksCalendarJobsRoute,

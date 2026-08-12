@@ -89,6 +89,204 @@ export type Database = {
         }
         Relationships: []
       }
+      airfare_installment_markups: {
+        Row: {
+          active: boolean
+          installments: number
+          markup_percent: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          active?: boolean
+          installments: number
+          markup_percent: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          active?: boolean
+          installments?: number
+          markup_percent?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      airfare_promo_routes: {
+        Row: {
+          active: boolean
+          created_at: string
+          destination_city: string | null
+          destination_iata: string
+          id: string
+          origin_city: string | null
+          origin_iata: string
+          priority: number
+          scope: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          destination_city?: string | null
+          destination_iata: string
+          id?: string
+          origin_city?: string | null
+          origin_iata: string
+          priority?: number
+          scope?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          destination_city?: string | null
+          destination_iata?: string
+          id?: string
+          origin_city?: string | null
+          origin_iata?: string
+          priority?: number
+          scope?: string
+        }
+        Relationships: []
+      }
+      airfare_promotions: {
+        Row: {
+          airline_iata: string | null
+          airline_logo: string | null
+          airline_name: string | null
+          airline_rule: Json | null
+          cabin_class: string | null
+          cart_url: string | null
+          created_at: string
+          departure_date: string
+          destination_city: string | null
+          destination_iata: string
+          extended_installment_value_12x: number | null
+          extended_markup_12x: number | null
+          extended_max_installments: number | null
+          extended_options: Json
+          extended_total_12x: number | null
+          fare_price: number
+          fare_status: string
+          has_checked_baggage: boolean
+          id: string
+          inbound_fare_id: string | null
+          inbound_itinerary_id: string | null
+          interest_free_installment_value: number
+          interest_free_installments: number
+          is_round_trip: boolean
+          last_checked_at: string
+          origin_city: string | null
+          origin_iata: string
+          outbound_fare_id: string | null
+          outbound_itinerary_id: string | null
+          passengers: number
+          price_per_passenger: number
+          quoted_at: string
+          raw: Json | null
+          return_date: string | null
+          scope: string
+          search_key: string | null
+          short_url: string | null
+          signature: string
+          status: string
+          stops: number
+          taxes: number
+          total_price: number
+          updated_at: string
+        }
+        Insert: {
+          airline_iata?: string | null
+          airline_logo?: string | null
+          airline_name?: string | null
+          airline_rule?: Json | null
+          cabin_class?: string | null
+          cart_url?: string | null
+          created_at?: string
+          departure_date: string
+          destination_city?: string | null
+          destination_iata: string
+          extended_installment_value_12x?: number | null
+          extended_markup_12x?: number | null
+          extended_max_installments?: number | null
+          extended_options?: Json
+          extended_total_12x?: number | null
+          fare_price?: number
+          fare_status?: string
+          has_checked_baggage?: boolean
+          id?: string
+          inbound_fare_id?: string | null
+          inbound_itinerary_id?: string | null
+          interest_free_installment_value?: number
+          interest_free_installments?: number
+          is_round_trip?: boolean
+          last_checked_at?: string
+          origin_city?: string | null
+          origin_iata: string
+          outbound_fare_id?: string | null
+          outbound_itinerary_id?: string | null
+          passengers?: number
+          price_per_passenger: number
+          quoted_at?: string
+          raw?: Json | null
+          return_date?: string | null
+          scope?: string
+          search_key?: string | null
+          short_url?: string | null
+          signature: string
+          status?: string
+          stops?: number
+          taxes?: number
+          total_price: number
+          updated_at?: string
+        }
+        Update: {
+          airline_iata?: string | null
+          airline_logo?: string | null
+          airline_name?: string | null
+          airline_rule?: Json | null
+          cabin_class?: string | null
+          cart_url?: string | null
+          created_at?: string
+          departure_date?: string
+          destination_city?: string | null
+          destination_iata?: string
+          extended_installment_value_12x?: number | null
+          extended_markup_12x?: number | null
+          extended_max_installments?: number | null
+          extended_options?: Json
+          extended_total_12x?: number | null
+          fare_price?: number
+          fare_status?: string
+          has_checked_baggage?: boolean
+          id?: string
+          inbound_fare_id?: string | null
+          inbound_itinerary_id?: string | null
+          interest_free_installment_value?: number
+          interest_free_installments?: number
+          is_round_trip?: boolean
+          last_checked_at?: string
+          origin_city?: string | null
+          origin_iata?: string
+          outbound_fare_id?: string | null
+          outbound_itinerary_id?: string | null
+          passengers?: number
+          price_per_passenger?: number
+          quoted_at?: string
+          raw?: Json | null
+          return_date?: string | null
+          scope?: string
+          search_key?: string | null
+          short_url?: string | null
+          signature?: string
+          status?: string
+          stops?: number
+          taxes?: number
+          total_price?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       airline_baggage_rules: {
         Row: {
           airline_code: string

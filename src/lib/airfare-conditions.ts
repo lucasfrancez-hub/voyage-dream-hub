@@ -165,3 +165,64 @@ export const AVISO_MAIOR_PARCELAMENTO =
 
 export const AVISO_VALIDADE_TARIFA =
   "Valor válido para compra hoje • sujeito à disponibilidade e atualização tarifária";
+
+/* ── Parcelamento estendido com markup ──────────────────────────────────
+   O checkout não expõe as parcelas via API, então o acréscimo de cada
+   modalidade vem da tabela `airfare_installment_markups` (editável no
+   Command Center). NUNCA usar total ÷ n. */
+
+/** Markup por quantidade de parcelas, em PERCENTUAL (ex.: 6.08 = 6,08%). */
+export type MarkupTable = Record<number, number>;
+
+/** Tabela inicial validada no checkout (fallback quando o banco não responde). */
+export const DEFAULT_EXTENDED_MARKUPS: MarkupTable = {
+  5: 6.08,
+  6: 7.12,
+  7: 8.16,
+  8: 9.21,
+  9: 10.26,
+  10: 11.33,
+  11: 12.39,
+  12: 19.98,
+};
+
+export type ExtendedInstallmentQuote = {
+  installments: number;
+  markupPercent: number;
+  total: number;
+  installmentValue: number;
+};
+
+/**
+ * Valores reais de cada modalidade de maior parcelamento:
+ * total = original × (1 + markup) ; parcela = total ÷ parcelas.
+ */
+export function buildExtendedQuotes(
+  original: number,
+  markups: MarkupTable = DEFAULT_EXTENDED_MARKUPS,
+  minInstallments = 2,
+): ExtendedInstallmentQuote[] {
+  if (!Number.isFinite(original) || original <= 0) return [];
+  return Object.entries(markups)
+    .map(([k, percent]) => ({ n: Number(k), percent: Number(percent) }))
+    .filter((o) => Number.isFinite(o.n) && o.n > minInstallments && Number.isFinite(o.percent))
+    .sort((a, b) => a.n - b.n)
+    .map(({ n, percent }) => {
+      const total = original * (1 + percent / 100);
+      return {
+        installments: n,
+        markupPercent: percent,
+        total,
+        installmentValue: total / n,
+      };
+    });
+}
+
+/** Converte as cotações com markup no formato aceito por `getAirfarePaymentConditions`. */
+export function quotesToExtendedOptions(quotes: ExtendedInstallmentQuote[]): ExtendedOption[] {
+  return quotes.map((q) => ({
+    installments: q.installments,
+    installmentValue: q.installmentValue,
+    total: q.total,
+  }));
+}
