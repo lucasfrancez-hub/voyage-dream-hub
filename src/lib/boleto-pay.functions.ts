@@ -16,6 +16,7 @@ import {
   buildIdempotencyKey,
   resolverValorPagamento,
   extrairBeneficiarioProfundo,
+  extrairVencimentoProfundo,
   beneficiarioPeloCodigo,
 } from './boleto-pay.helpers'
 
@@ -221,6 +222,15 @@ export const consultarBoleto = createServerFn({ method: 'POST' })
     }
 
     const { supabaseAdmin } = await import('@/integrations/supabase/client.server')
+    let vencimentoLancamento: string | null = null
+    if (data.financialEntryId) {
+      const { data: lancamento } = await supabaseAdmin
+        .from('financial_entries')
+        .select('due_date')
+        .eq('id', data.financialEntryId)
+        .maybeSingle()
+      vencimentoLancamento = lancamento?.due_date ?? null
+    }
     const dup = await buscarDuplicidade(
       supabaseAdmin,
       parsed.linha,
@@ -276,7 +286,14 @@ export const consultarBoleto = createServerFn({ method: 'POST' })
     const s: any = sim.data ?? {}
     const valorOriginal = Number(s.value ?? parsed.value ?? 0) || null
     const valorFinal = Number(s.totalValue ?? s.value ?? parsed.value ?? 0) || null
-    const vencimento: string | null = s.dueDate ?? parsed.dueDate ?? null
+    const vencimento: string | null =
+      s.dueDate ??
+      s.expirationDate ??
+      s.expiryDate ??
+      extrairVencimentoProfundo(s) ??
+      parsed.dueDate ??
+      vencimentoLancamento ??
+      null
     // Valor só é editável quando o próprio provedor indicar título de valor aberto.
     const valorEditavel = Boolean(
       s.canChangeValue ?? (valorOriginal == null && (s.minimumValue != null || s.maximumValue != null)),

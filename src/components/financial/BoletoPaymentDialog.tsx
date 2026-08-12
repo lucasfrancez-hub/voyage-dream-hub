@@ -427,11 +427,11 @@ export function BoletoPaymentDialog({
 
             <div className="flex items-center gap-2">
               <Button
-                className="h-11 flex-1 gap-2 rounded-2xl font-bold"
+                className="h-9 flex-1 gap-1.5 rounded-xl px-3 text-xs font-bold"
                 disabled={!codigoCompleto || consultando}
                 onClick={() => consultarCodigo()}
               >
-                {consultando ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                {consultando ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Search className="h-3.5 w-3.5" />}
                 Consultar boleto
               </Button>
               <label className="flex h-11 cursor-pointer items-center gap-2 rounded-2xl border border-border/60 bg-muted/40 px-4 text-xs font-semibold text-muted-foreground transition hover:bg-muted">
@@ -547,14 +547,14 @@ export function BoletoPaymentDialog({
                     variant={modo === "agendar" ? "default" : "secondary"}
                     disabled={boleto.vencido}
                     onClick={() => setModo("agendar")}
-                    className="h-12 gap-2 rounded-2xl font-bold"
+                    className="h-9 gap-1.5 rounded-xl text-xs font-bold"
                   >
-                    <CalendarClock className="h-4 w-4" /> Agendar
+                    <CalendarClock className="h-3.5 w-3.5" /> Agendar
                   </Button>
                   <Button
                     variant={modo === "agora" ? "default" : "secondary"}
                     onClick={() => setModo("agora")}
-                    className="h-12 rounded-2xl font-bold"
+                    className="h-9 rounded-xl text-xs font-bold"
                   >
                     Pagar agora
                   </Button>
@@ -594,11 +594,11 @@ export function BoletoPaymentDialog({
                 Cancelar
               </button>
               <Button
-                className="h-11 gap-1.5 rounded-full px-6 font-bold"
+                className="h-9 gap-1 rounded-full px-4 text-xs font-bold"
                 disabled={!boleto || valorAPagar <= 0 || (modo === "agendar" && !dataPagamento)}
                 onClick={() => setEtapa("conferencia")}
               >
-                Continuar <ChevronRight className="h-4 w-4" />
+                Continuar <ChevronRight className="h-3.5 w-3.5" />
               </Button>
             </DialogFooter>
           </div>
