@@ -5,7 +5,7 @@
  */
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState, type ReactNode } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
   Backpack,
@@ -174,26 +174,37 @@ export function PassagensBaratasExplorer({
     typeof window !== "undefined" ? window.location.origin : "https://pedidos.viaair.tur.br";
   const current = trail[trail.length - 1];
 
-  const q = useQuery({
-    queryKey: ["md-explorar", current, filtro.iata, filtro.month],
-    queryFn: () =>
-      explorar({
-        data: {
-          base: origin,
-          ...(current.categoryId ? { categoryId: current.categoryId } : {}),
-          ...(current.toIata ? { toIata: current.toIata } : {}),
-          ...(current.fromIata ? { fromIata: current.fromIata } : {}),
-          ...(filtro.iata ? { originIata: filtro.iata } : {}),
-          ...(current.month || filtro.month ? { month: current.month || filtro.month } : {}),
-        },
-      }),
-    staleTime: 5 * 60 * 1000,
-    retry: 2,
+  const paramsDe = (step: Step) => ({
+    base: origin,
+    ...(step.categoryId ? { categoryId: step.categoryId } : {}),
+    ...(step.toIata ? { toIata: step.toIata } : {}),
+    ...(step.fromIata ? { fromIata: step.fromIata } : {}),
+    ...(filtro.iata ? { originIata: filtro.iata } : {}),
+    ...(step.month || filtro.month ? { month: step.month || filtro.month } : {}),
   });
 
+  const q = useQuery({
+    queryKey: ["md-explorar", current, filtro.iata, filtro.month],
+    queryFn: () => explorar({ data: paramsDe(current) }),
+    staleTime: 30 * 60 * 1000,
+    gcTime: 60 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    placeholderData: keepPreviousData,
+    retry: 1,
+  });
+
+  const queryClient = useQueryClient();
+  /** Pré-carrega o próximo nível assim que o mouse passa por cima. */
+  const prefetch = (step: Step) =>
+    queryClient.prefetchQuery({
+      queryKey: ["md-explorar", step, filtro.iata, filtro.month],
+      queryFn: () => explorar({ data: paramsDe(step) }),
+      staleTime: 30 * 60 * 1000,
+    });
 
   const go = (step: Step) => setTrail((t) => [...t, step]);
   const backTo = (i: number) => setTrail((t) => t.slice(0, i + 1));
+
 
   const data = q.data;
   const cheapest = data?.dates[0] ?? null;
@@ -404,6 +415,7 @@ export function PassagensBaratasExplorer({
             <button
               key={c.id}
               onClick={() => go({ label: c.name, categoryId: c.id })}
+              onMouseEnter={() => prefetch({ label: c.name, categoryId: c.id })}
               className="group flex cursor-pointer items-center gap-4 rounded-2xl border border-border/50 bg-card p-4 text-left transition-all duration-300 hover:border-primary/40 hover:bg-muted/40"
             >
               <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl">
@@ -449,6 +461,22 @@ export function PassagensBaratasExplorer({
               <button
                 key={`${c.fromIata ?? ""}-${c.toIata ?? i}`}
                 className="group flex w-full items-center justify-between gap-3 border-b border-white/5 px-6 py-4 text-left transition-all hover:bg-white/[0.03]"
+                onMouseEnter={() =>
+                  prefetch(
+                    data.level === "cities"
+                      ? {
+                          label: c.toName,
+                          categoryId: current.categoryId,
+                          toIata: c.toIata ?? undefined,
+                        }
+                      : {
+                          label: `${c.fromName} → ${c.toName}`,
+                          categoryId: current.categoryId,
+                          toIata: c.toIata ?? current.toIata,
+                          fromIata: c.fromIata ?? undefined,
+                        },
+                  )
+                }
                 onClick={() =>
                   data.level === "cities"
                     ? go({
@@ -464,6 +492,7 @@ export function PassagensBaratasExplorer({
                       })
                 }
               >
+
                 <div className="flex min-w-0 flex-col">
                   <span className="truncate font-semibold text-foreground transition-colors group-hover:text-primary">
                     {c.fromName ? `${c.fromName} → ${c.toName}` : c.toName}
