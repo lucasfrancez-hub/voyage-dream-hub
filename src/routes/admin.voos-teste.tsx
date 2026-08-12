@@ -2008,7 +2008,7 @@ export function VoosPage({
         return {
           searchKey: r.searchKey,
           outboundFareId: novoOut.key,
-          outboundItineraryId: novoOut.journey.key,
+          outboundItineraryId: novoOut.journey.key ?? "",
           inboundFareId: null,
           inboundItineraryId: null,
         };
@@ -2028,9 +2028,9 @@ export function VoosPage({
       return {
         searchKey: r.searchKey,
         outboundFareId: novoOut.key,
-        outboundItineraryId: novoOut.journey.key,
+        outboundItineraryId: novoOut.journey.key ?? "",
         inboundFareId: novoIn.key,
-        inboundItineraryId: novoIn.journey.key,
+        inboundItineraryId: novoIn.journey.key ?? null,
       };
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
