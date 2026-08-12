@@ -1,5 +1,5 @@
 import { Link, useRouter } from "@tanstack/react-router";
-import { ArrowLeft, Compass, MessageCircle, Ticket, Ship, Package as PackageIcon, Menu, Plane } from "lucide-react";
+import { ArrowLeft, Compass, MessageCircle, Ticket, Package as PackageIcon, Menu, Plane } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import viaAirLogo from "@/assets/viaair-logo.png.asset.json";
 import { WHATSAPP_PHONE } from "@/lib/checkout-config";
