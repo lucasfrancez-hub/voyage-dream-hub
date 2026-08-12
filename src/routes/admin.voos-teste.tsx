@@ -1700,6 +1700,7 @@ export function VoosPage({
   onComboSelect,
   publicMode = false,
   externalSearch = false,
+  emptySlot,
 }: {
   header?: React.ReactNode;
   hideForm?: boolean;
@@ -1710,6 +1711,8 @@ export function VoosPage({
   publicMode?: boolean;
   /** Envia a busca do iframe para /voar em uma nova aba usando submit nativo. */
   externalSearch?: boolean;
+  /** Conteúdo mostrado abaixo do motor enquanto não há resultados. */
+  emptySlot?: React.ReactNode;
 } = {}) {
   const search = useServerFn(publicMode ? onerFlightSearchPublic : onerFlightSearch);
   const searchInbound = useServerFn(publicMode ? onerInboundSearchPublic : onerInboundSearch);
@@ -2179,10 +2182,14 @@ export function VoosPage({
       </header>
       )}
 
-      <main className={`mx-auto max-w-7xl px-4 ${publicMode && !result && !mut.isPending ? "py-0" : "py-6"}`}>
+      <main className={`mx-auto max-w-7xl px-4 ${publicMode && !result && !mut.isPending && !emptySlot ? "py-0" : "py-6"}`}>
         {mut.isPending && !result && <SearchSkeleton />}
 
-        {!publicMode && !result && !mut.isPending && (
+        {!result && !mut.isPending && emptySlot ? (
+          <div data-empty-slot>{emptySlot}</div>
+        ) : null}
+
+        {!publicMode && !emptySlot && !result && !mut.isPending && (
           <div data-empty-state className="rounded-2xl border border-dashed border-border p-12 text-center">
             <Plane className="mx-auto mb-3 h-6 w-6 text-muted-foreground" />
             <p className="text-sm text-muted-foreground">

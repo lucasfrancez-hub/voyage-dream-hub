@@ -266,8 +266,11 @@ export function SearchEngine({
   publicMode = false,
   embedMode = false,
   initialMode = "aereo",
+  emptySlot,
 }: {
   publicMode?: boolean;
+  /** Conteúdo abaixo do motor aéreo enquanto não há resultados. */
+  emptySlot?: React.ReactNode;
   /** No widget, a pesquisa segue por navegação nativa para /voar em outra aba. */
   embedMode?: boolean;
   initialMode?: Mode;
@@ -420,7 +423,12 @@ export function SearchEngine({
     >
       {!embedMode && <div className="voar-glow" aria-hidden />}
       {mode === "aereo" && (
-        <VoosPage header={hero} publicMode={publicMode} externalSearch={embedMode} />
+        <VoosPage
+          header={hero}
+          publicMode={publicMode}
+          externalSearch={embedMode}
+          emptySlot={emptySlot}
+        />
       )}
       {mode === "hotel" && (
         <HoteisPage header={hero} publicMode={publicMode} externalSearch={embedMode} />

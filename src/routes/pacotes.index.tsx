@@ -614,7 +614,7 @@ function PacotesList() {
         </div>
 
         {!isLoading && totalPages > 1 && (
-          <div className="mt-8 flex items-center justify-center gap-2">
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-2">
             <Button
               variant="outline"
               size="sm"
@@ -623,20 +623,36 @@ function PacotesList() {
             >
               Anterior
             </Button>
-            {Array.from({ length: totalPages }).map((_, i) => {
-              const n = i + 1;
-              return (
-                <Button
-                  key={n}
-                  variant={n === currentPage ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setPage(n)}
-                  className={n === currentPage ? "bg-brand-orange hover:bg-brand-orange/90" : ""}
-                >
-                  {n}
-                </Button>
+            {(() => {
+              // Janela deslizante: 1 … (atual-2 … atual+2) … última
+              const win = 2;
+              const pages: (number | "gap")[] = [];
+              for (let n = 1; n <= totalPages; n++) {
+                const near = Math.abs(n - currentPage) <= win;
+                if (n === 1 || n === totalPages || near) pages.push(n);
+                else if (pages[pages.length - 1] !== "gap") pages.push("gap");
+              }
+              return pages.map((n, i) =>
+                n === "gap" ? (
+                  <span
+                    key={`gap-${i}`}
+                    className="px-1 text-sm text-muted-foreground select-none"
+                  >
+                    …
+                  </span>
+                ) : (
+                  <Button
+                    key={n}
+                    variant={n === currentPage ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setPage(n)}
+                    className={n === currentPage ? "bg-brand-orange hover:bg-brand-orange/90" : ""}
+                  >
+                    {n}
+                  </Button>
+                ),
               );
-            })}
+            })()}
             <Button
               variant="outline"
               size="sm"
