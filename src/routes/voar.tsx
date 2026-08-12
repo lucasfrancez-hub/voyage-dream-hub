@@ -273,6 +273,8 @@ function VoarPublicPage() {
                     trail={decodeTrail(s.p)}
                     onTrailChange={(t) =>
                       navigate({
+                        resetScroll: false,
+                        replace: true,
                         search: (prev) => ({
                           ...prev,
                           p: t.length > 1 ? encodeTrail(t) : undefined,
@@ -282,6 +284,8 @@ function VoarPublicPage() {
                     filtro={{ iata: s.fo ?? null, label: s.fol ?? "", month: s.fm ?? "" }}
                     onFiltroChange={(f: MdFiltro) =>
                       navigate({
+                        resetScroll: false,
+                        replace: true,
                         search: (prev) => ({
                           ...prev,
                           fo: f.iata ?? undefined,
