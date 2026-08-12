@@ -478,7 +478,7 @@ export async function createFlightCart(data: CartData) {
   let lastStatus = 0;
   let lastMessage = "";
   // A operadora costuma devolver 5xx/timeout esporádico; tentamos 3x com backoff.
-  for (let attempt = 0; attempt < 3; attempt++) {
+  for (let attempt = 0; attempt < 4; attempt++) {
     if (attempt > 0) await new Promise((r) => setTimeout(r, 700 * attempt));
     let res: Response;
     try {
@@ -499,9 +499,17 @@ export async function createFlightCart(data: CartData) {
     }
     if (res.ok && cartId) break;
     cartId = "";
+    // Falhou com fareId2? Refaz sem ele: em tarifa combinada a operadora
+    // rejeita a segunda tarifa e devolve 500 genérico.
+    if (!triedWithoutFare2) {
+      triedWithoutFare2 = true;
+      body = buildBody(null);
+      continue;
+    }
     // 4xx = tarifa realmente expirada/invalidada: não adianta repetir.
     if (res.status >= 400 && res.status < 500) break;
   }
+
 
   if (!cartId) {
     console.error("[onertravel] falha ao criar carrinho aéreo", {
