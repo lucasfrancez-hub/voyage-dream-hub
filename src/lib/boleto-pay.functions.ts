@@ -15,7 +15,10 @@ import {
   isStatusAtivo,
   buildIdempotencyKey,
   resolverValorPagamento,
+  extrairBeneficiarioProfundo,
+  beneficiarioPeloCodigo,
 } from './boleto-pay.helpers'
+
 
 export type ErroBoleto = {
   titulo: string
@@ -296,9 +299,11 @@ export const consultarBoleto = createServerFn({ method: 'POST' })
           s.assignorName ??
           s.payeeName ??
           s.recipientName ??
+          extrairBeneficiarioProfundo(s).nome ??
           s.softDescriptor ??
           s.bankName ??
           s.bank?.name ??
+          beneficiarioPeloCodigo(s.barCode ?? parsed.barcode ?? parsed.linha) ??
           null,
         documentoBeneficiario:
           s.cpfCnpj ??
@@ -307,8 +312,11 @@ export const consultarBoleto = createServerFn({ method: 'POST' })
           s.beneficiary?.cpfCnpj ??
           s.payee?.cpfCnpj ??
           s.assignorDocument ??
+          extrairBeneficiarioProfundo(s).documento ??
           null,
-        instituicao: s.bankName ?? s.bank?.name ?? null,
+        instituicao:
+          s.bankName ?? s.bank?.name ?? beneficiarioPeloCodigo(s.barCode ?? parsed.barcode) ?? null,
+
 
         valorOriginal,
         valorAtualizado: valorFinal,
