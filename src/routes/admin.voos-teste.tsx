@@ -1692,6 +1692,14 @@ export type FlightPreset = {
   infants: number;
 };
 
+/** União de voos (sem duplicar) usada só para manter a lista de companhias dos filtros. */
+function mergePool(prev: OnerFlight[], next: OnerFlight[]): OnerFlight[] {
+  const map = new Map(prev.map((f) => [flightSignature(f), f]));
+  for (const f of next) if (!map.has(flightSignature(f))) map.set(flightSignature(f), f);
+  return [...map.values()];
+}
+
+
 export function VoosPage({
   header,
   hideForm,
