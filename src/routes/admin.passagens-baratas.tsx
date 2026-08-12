@@ -174,26 +174,37 @@ export function PassagensBaratasExplorer({
     typeof window !== "undefined" ? window.location.origin : "https://pedidos.viaair.tur.br";
   const current = trail[trail.length - 1];
 
-  const q = useQuery({
-    queryKey: ["md-explorar", current, filtro.iata, filtro.month],
-    queryFn: () =>
-      explorar({
-        data: {
-          base: origin,
-          ...(current.categoryId ? { categoryId: current.categoryId } : {}),
-          ...(current.toIata ? { toIata: current.toIata } : {}),
-          ...(current.fromIata ? { fromIata: current.fromIata } : {}),
-          ...(filtro.iata ? { originIata: filtro.iata } : {}),
-          ...(current.month || filtro.month ? { month: current.month || filtro.month } : {}),
-        },
-      }),
-    staleTime: 5 * 60 * 1000,
-    retry: 2,
+  const paramsDe = (step: Step) => ({
+    base: origin,
+    ...(step.categoryId ? { categoryId: step.categoryId } : {}),
+    ...(step.toIata ? { toIata: step.toIata } : {}),
+    ...(step.fromIata ? { fromIata: step.fromIata } : {}),
+    ...(filtro.iata ? { originIata: filtro.iata } : {}),
+    ...(step.month || filtro.month ? { month: step.month || filtro.month } : {}),
   });
 
+  const q = useQuery({
+    queryKey: ["md-explorar", current, filtro.iata, filtro.month],
+    queryFn: () => explorar({ data: paramsDe(current) }),
+    staleTime: 30 * 60 * 1000,
+    gcTime: 60 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    placeholderData: keepPreviousData,
+    retry: 1,
+  });
+
+  const queryClient = useQueryClient();
+  /** Pré-carrega o próximo nível assim que o mouse passa por cima. */
+  const prefetch = (step: Step) =>
+    queryClient.prefetchQuery({
+      queryKey: ["md-explorar", step, filtro.iata, filtro.month],
+      queryFn: () => explorar({ data: paramsDe(step) }),
+      staleTime: 30 * 60 * 1000,
+    });
 
   const go = (step: Step) => setTrail((t) => [...t, step]);
   const backTo = (i: number) => setTrail((t) => t.slice(0, i + 1));
+
 
   const data = q.data;
   const cheapest = data?.dates[0] ?? null;
