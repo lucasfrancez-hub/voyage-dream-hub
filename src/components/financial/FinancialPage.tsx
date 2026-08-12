@@ -22,6 +22,10 @@ import { ComprovanteEntryButton } from "@/components/financial/ComprovanteEntryB
 import { ExternalPaymentDialog } from "@/components/financial/ExternalPaymentDialog";
 import { ExternalReceiptButton } from "@/components/financial/ExternalReceiptButton";
 import type { PagamentoExterno } from "@/lib/pagamentos-externos.helpers";
+import { useServerFn } from "@tanstack/react-start";
+import { criarPagamentoBoleto } from "@/lib/boleto-pay.functions";
+import { criarPagamentoPix } from "@/lib/pagamentos.functions";
+import { getBoletoDocumentUrl } from "@/lib/cofre.functions";
 
 
 type Kind = "payable" | "receivable";
@@ -45,8 +49,13 @@ type Entry = {
   boleto_beneficiary?: string | null;
   cost_center?: string | null;
   bill_payment_status?: string | null;
+  pix_key?: string | null;
+  attachment_path?: string | null;
+  attachment_name?: string | null;
 };
 type Category = { id: string; kind: string; name: string };
+
+
 
 function today() { return new Date().toISOString().slice(0, 10); }
 
@@ -445,6 +454,19 @@ export function FinancialPage({ kind }: { kind: Kind }) {
   );
 }
 
+const METODOS = [
+  { v: "pix", label: "Pix" },
+  { v: "boleto", label: "Boleto" },
+  { v: "cartao", label: "Cartão" },
+  { v: "transferencia", label: "Transferência / TED" },
+  { v: "dinheiro", label: "Dinheiro" },
+  { v: "outro", label: "Outro" },
+] as const;
+
+function onlyDigits(v: string) {
+  return v.replace(/\D+/g, "");
+}
+
 function EntryDialog({
   open, onOpenChange, kind, editing, categories, onSaved,
 }: {
@@ -457,6 +479,14 @@ function EntryDialog({
 }) {
   const [form, setForm] = useState<Partial<Entry>>({});
   const [saving, setSaving] = useState(false);
+  const [programar, setProgramar] = useState(false);
+  const [scheduleDate, setScheduleDate] = useState<string>("");
+  const [scheduleTime, setScheduleTime] = useState<string>("12:00");
+  const [uploading, setUploading] = useState(false);
+
+  const criarBoleto = useServerFn(criarPagamentoBoleto);
+  const criarPix = useServerFn(criarPagamentoPix);
+  const abrirAnexo = useServerFn(getBoletoDocumentUrl);
 
   const { data: peopleOptions } = useQuery({
     queryKey: ["financial-people-options"],
@@ -476,7 +506,6 @@ function EntryDialog({
     enabled: open,
   });
 
-
   useEffect(() => {
     if (!open) return;
     setForm(
@@ -486,14 +515,62 @@ function EntryDialog({
         amount: 0,
         description: "",
         due_date: today(),
+        payment_method: kind === "payable" ? "boleto" : "pix",
       },
     );
+    setProgramar(false);
+    setScheduleDate(editing?.due_date ?? today());
+    setScheduleTime("12:00");
   }, [open, editing, kind]);
 
+  const metodo = (form.payment_method ?? "").toLowerCase();
+  const isBoleto = metodo === "boleto";
+  const isPix = metodo === "pix";
+  const podeProgramar =
+    kind === "payable" && (form.status ?? "pending") === "pending" && (isBoleto || isPix);
+
+  const codigoLimpo = onlyDigits(form.boleto_line ?? "");
+
+  const uploadAnexo = async (file: File) => {
+    setUploading(true);
+    try {
+      const ext = file.name.split(".").pop()?.toLowerCase() || "pdf";
+      const path = `financeiro/${crypto.randomUUID()}.${ext}`;
+      const { error } = await supabase.storage.from("boleto-documents").upload(path, file, {
+        contentType: file.type || undefined,
+        upsert: false,
+      });
+      if (error) throw error;
+      setForm((f) => ({ ...f, attachment_path: path, attachment_name: file.name }));
+      toast.success("Fatura anexada");
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const verAnexo = async () => {
+    if (!form.attachment_path) return;
+    try {
+      const r = (await abrirAnexo({ data: { path: form.attachment_path } })) as { url: string };
+      window.open(r.url, "_blank", "noopener");
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
+  };
 
   const save = async () => {
     if (!form.description || !form.amount) {
       toast.error("Descrição e valor são obrigatórios");
+      return;
+    }
+    if (programar && isBoleto && codigoLimpo.length !== 44 && codigoLimpo.length !== 47) {
+      toast.error("Informe o código de barras (44) ou a linha digitável (47) do boleto.");
+      return;
+    }
+    if (programar && isPix && (form.pix_key ?? "").trim().length < 3) {
+      toast.error("Informe a chave Pix do fornecedor.");
       return;
     }
     setSaving(true);
@@ -509,16 +586,67 @@ function EntryDialog({
         counterparty: form.counterparty ?? null,
         payment_method: form.payment_method ?? null,
         notes: form.notes ?? null,
+        boleto_line: isBoleto ? (codigoLimpo || null) : null,
+        boleto_beneficiary: form.boleto_beneficiary ?? form.counterparty ?? null,
+        pix_key: isPix ? (form.pix_key ?? null) : null,
+        attachment_path: form.attachment_path ?? null,
+        attachment_name: form.attachment_name ?? null,
       };
+
+      let entryId = editing?.id ?? null;
       if (editing) {
         const { error } = await supabase.from("financial_entries").update(payload).eq("id", editing.id);
         if (error) throw error;
         toast.success("Lançamento atualizado");
       } else {
-        const { error } = await supabase.from("financial_entries").insert(payload);
+        const { data, error } = await supabase
+          .from("financial_entries")
+          .insert(payload)
+          .select("id")
+          .single();
         if (error) throw error;
+        entryId = (data as { id: string }).id;
         toast.success("Lançamento criado");
       }
+
+      if (programar && podeProgramar) {
+        const quando = scheduleDate || form.due_date || today();
+        if (isBoleto) {
+          const r = (await criarBoleto({
+            data: {
+              financialEntryId: entryId,
+              identificationField: codigoLimpo,
+              value: Number(form.amount),
+              dueDate: form.due_date ?? null,
+              scheduleDate: quando,
+              scheduleTime,
+              description: form.description,
+              beneficiaryName: form.boleto_beneficiary ?? form.counterparty ?? null,
+              boletoPath: form.attachment_path ?? null,
+              clientRequestId: crypto.randomUUID(),
+              confirmado: true as const,
+            },
+          })) as { ok?: boolean; erro?: { mensagem?: string } };
+          if (r?.ok === false) throw new Error(r.erro?.mensagem ?? "Não foi possível agendar o boleto.");
+          toast.success(`Boleto agendado para ${quando.split("-").reverse().join("/")} às ${scheduleTime}`);
+        } else {
+          await criarPix({
+            data: {
+              idempotencyKey: `entry-${entryId}-${quando}-${scheduleTime}`,
+              favoredName: form.counterparty ?? null,
+              pixKey: (form.pix_key ?? "").trim(),
+              value: Number(form.amount),
+              description: form.description,
+              scheduleDate: quando,
+              scheduleTime,
+              origin: "contas_pagar" as const,
+              financialEntryId: entryId,
+            },
+          });
+          toast.success(`Pix agendado para ${quando.split("-").reverse().join("/")} às ${scheduleTime}`);
+        }
+      }
+
       onSaved();
       onOpenChange(false);
     } catch (e) {
@@ -530,7 +658,10 @@ function EntryDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      <DialogContent
+        className="max-w-xl max-h-[90vh] overflow-y-auto rounded-3xl border-white/10 bg-background/60 backdrop-blur-2xl"
+        overlayClassName="bg-background/70 backdrop-blur-xl"
+      >
         <DialogHeader>
           <DialogTitle>{editing ? "Editar lançamento" : "Novo lançamento"}</DialogTitle>
         </DialogHeader>
@@ -546,7 +677,14 @@ function EntryDialog({
             </div>
             <div>
               <Label>Vencimento</Label>
-              <Input type="date" value={form.due_date ?? ""} onChange={(e) => setForm({ ...form, due_date: e.target.value })} />
+              <Input
+                type="date"
+                value={form.due_date ?? ""}
+                onChange={(e) => {
+                  setForm({ ...form, due_date: e.target.value });
+                  setScheduleDate(e.target.value);
+                }}
+              />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
@@ -573,7 +711,6 @@ function EntryDialog({
                 ))}
               </datalist>
             </div>
-
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -588,10 +725,131 @@ function EntryDialog({
               </Select>
             </div>
             <div>
-              <Label>Método</Label>
-              <Input value={form.payment_method ?? ""} onChange={(e) => setForm({ ...form, payment_method: e.target.value })} placeholder="Pix, boleto, cartão..." />
+              <Label>Forma de pagamento</Label>
+              <Select
+                value={metodo || undefined}
+                onValueChange={(v) => setForm({ ...form, payment_method: v })}
+              >
+                <SelectTrigger><SelectValue placeholder="Selecionar..." /></SelectTrigger>
+                <SelectContent>
+                  {METODOS.map((m) => <SelectItem key={m.v} value={m.v}>{m.label}</SelectItem>)}
+                </SelectContent>
+              </Select>
             </div>
           </div>
+
+          {isBoleto && (
+            <div className="rounded-2xl border border-white/10 bg-muted/20 p-3 space-y-3">
+              <div>
+                <Label>Código de barras ou linha digitável</Label>
+                <Input
+                  value={form.boleto_line ?? ""}
+                  onChange={(e) => setForm({ ...form, boleto_line: e.target.value })}
+                  onPaste={(ev) => {
+                    ev.preventDefault();
+                    const txt = ev.clipboardData.getData("text");
+                    setForm((f) => ({ ...f, boleto_line: onlyDigits(txt) }));
+                  }}
+                  placeholder="Cole com pontos ou espaços — limpamos automaticamente"
+                  className="font-mono text-sm"
+                />
+                <p className="text-[11px] text-muted-foreground mt-1">
+                  {codigoLimpo.length > 0
+                    ? `${codigoLimpo.length} dígitos ${codigoLimpo.length === 44 ? "(código de barras)" : codigoLimpo.length === 47 ? "(linha digitável)" : "— esperado 44 ou 47"}`
+                    : "Aceita 44 (código de barras) ou 47 dígitos (linha digitável)."}
+                </p>
+              </div>
+              <div>
+                <Label>Beneficiário</Label>
+                <Input
+                  value={form.boleto_beneficiary ?? ""}
+                  onChange={(e) => setForm({ ...form, boleto_beneficiary: e.target.value })}
+                  placeholder="Quem recebe o boleto"
+                />
+              </div>
+            </div>
+          )}
+
+          {isPix && (
+            <div className="rounded-2xl border border-white/10 bg-muted/20 p-3">
+              <Label>Chave Pix do fornecedor</Label>
+              <Input
+                value={form.pix_key ?? ""}
+                onChange={(e) => setForm({ ...form, pix_key: e.target.value })}
+                placeholder="CPF/CNPJ, e-mail, telefone ou aleatória"
+              />
+            </div>
+          )}
+
+          {podeProgramar && (
+            <div className="rounded-2xl border border-primary/30 bg-primary/5 p-3 space-y-3">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <div className="text-sm font-semibold">Deseja programar o pagamento?</div>
+                  <div className="text-[11px] text-muted-foreground">
+                    Agendamos automaticamente para a data de vencimento.
+                  </div>
+                </div>
+                <div className="inline-flex rounded-lg border border-border p-0.5 bg-muted/30">
+                  {[
+                    { v: true, label: "Sim" },
+                    { v: false, label: "Não" },
+                  ].map((o) => (
+                    <button
+                      key={String(o.v)}
+                      type="button"
+                      onClick={() => setProgramar(o.v)}
+                      className={`px-3 py-1 text-xs rounded-md transition ${
+                        programar === o.v ? "bg-brand-orange text-white font-semibold" : "text-muted-foreground"
+                      }`}
+                    >
+                      {o.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {programar && (
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label>Data do agendamento</Label>
+                    <Input type="date" value={scheduleDate} onChange={(e) => setScheduleDate(e.target.value)} />
+                  </div>
+                  <div>
+                    <Label>Hora</Label>
+                    <Input type="time" value={scheduleTime} onChange={(e) => setScheduleTime(e.target.value)} />
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          <div className="rounded-2xl border border-white/10 bg-muted/20 p-3">
+            <Label>Fatura / documento</Label>
+            <div className="flex items-center gap-2 mt-1">
+              <Input
+                type="file"
+                accept="application/pdf,image/*"
+                disabled={uploading}
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) void uploadAnexo(f);
+                }}
+                className="text-xs"
+              />
+              {uploading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+            </div>
+            {form.attachment_path && (
+              <button
+                type="button"
+                onClick={verAnexo}
+                className="mt-2 inline-flex items-center gap-1.5 text-xs text-brand-orange hover:underline"
+              >
+                <FileText className="h-3.5 w-3.5" />
+                {form.attachment_name ?? "Abrir arquivo"}
+              </button>
+            )}
+          </div>
+
           {form.status === "paid" && (
             <div>
               <Label>Data do pagamento</Label>
@@ -605,9 +863,9 @@ function EntryDialog({
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button onClick={save} disabled={saving}>
+          <Button onClick={save} disabled={saving || uploading}>
             {saving && <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />}
-            Salvar
+            {programar ? "Salvar e agendar" : "Salvar"}
           </Button>
         </DialogFooter>
       </DialogContent>

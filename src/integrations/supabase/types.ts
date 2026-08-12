@@ -1605,6 +1605,8 @@ export type Database = {
       financial_entries: {
         Row: {
           amount: number
+          attachment_name: string | null
+          attachment_path: string | null
           auto_generated: boolean
           bill_payment_status: string | null
           boleto_beneficiary: string | null
@@ -1623,11 +1625,14 @@ export type Database = {
           order_id: string | null
           paid_date: string | null
           payment_method: string | null
+          pix_key: string | null
           status: string
           updated_at: string
         }
         Insert: {
           amount?: number
+          attachment_name?: string | null
+          attachment_path?: string | null
           auto_generated?: boolean
           bill_payment_status?: string | null
           boleto_beneficiary?: string | null
@@ -1646,11 +1651,14 @@ export type Database = {
           order_id?: string | null
           paid_date?: string | null
           payment_method?: string | null
+          pix_key?: string | null
           status?: string
           updated_at?: string
         }
         Update: {
           amount?: number
+          attachment_name?: string | null
+          attachment_path?: string | null
           auto_generated?: boolean
           bill_payment_status?: string | null
           boleto_beneficiary?: string | null
@@ -1669,6 +1677,7 @@ export type Database = {
           order_id?: string | null
           paid_date?: string | null
           payment_method?: string | null
+          pix_key?: string | null
           status?: string
           updated_at?: string
         }
