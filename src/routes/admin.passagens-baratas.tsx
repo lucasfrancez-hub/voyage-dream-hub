@@ -23,6 +23,7 @@ const brl = (n: number) =>
 
 type Step = {
   label: string;
+  baseLabel?: string;
   categoryId?: number;
   toIata?: string;
   fromIata?: string;
@@ -62,6 +63,24 @@ function PassagensBaratasPage() {
     );
 
   const data = q.data;
+  const cheapest = data?.dates[0] ?? null;
+  const maxMonth = Math.max(0, ...(data?.months.map((m) => m.price ?? 0) ?? [0]));
+
+  const MESES = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+  const monthParam = (label: string): string | null => {
+    const [mes, ano] = label.split("/");
+    const idx = MESES.indexOf(mes) + 1;
+    return idx && ano ? `${ano}-${idx}` : null;
+  };
+  const selectMonth = (label: string) => {
+    const month = monthParam(label);
+    if (!month) return;
+    setTrail((t) => {
+      const last = t[t.length - 1];
+      const base = last.baseLabel ?? last.label;
+      return [...t.slice(0, -1), { ...last, baseLabel: base, label: `${base} · ${label}`, month }];
+    });
+  };
 
   return (
     <div className="mx-auto w-full max-w-5xl space-y-5 p-4 md:p-6">
@@ -179,85 +198,152 @@ function PassagensBaratasPage() {
         </Card>
       ) : null}
 
-      {/* Meses + datas */}
-      {data?.months.length ? (
-        <div className="flex flex-wrap gap-2">
-          {data.months.map((m) => (
-            <Button
-              key={m.label}
-              size="sm"
-              variant={current.month && m.label ? "outline" : m.cheapest ? "default" : "secondary"}
-              onClick={() => {
-                const [mes, ano] = m.label.split("/");
-                const idx =
-                  ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"].indexOf(
-                    mes,
-                  ) + 1;
-                if (!idx || !ano) return;
-                setTrail((t) => [
-                  ...t.slice(0, -1),
-                  { ...t[t.length - 1], label: `${current.label} · ${m.label}`, month: `${ano}-${idx}` },
-                ]);
-              }}
-            >
-              {m.label} {m.price ? `• ${brl(m.price)}` : ""}
-            </Button>
-          ))}
-        </div>
-      ) : null}
+      {/* Preços do trecho: gráfico de meses + melhores datas */}
+      {data && (data.months.length > 0 || data.dates.length > 0) ? (
+        <div className="space-y-4">
+          <Card className="relative overflow-hidden border-primary/20 p-5">
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/15 via-transparent to-transparent" />
+            <div className="relative flex flex-wrap items-end justify-between gap-4">
+              <div>
+                <div className="text-xs uppercase tracking-wide text-muted-foreground">
+                  Ida + volta • melhores preços encontrados
+                </div>
+                <div className="text-2xl font-bold tracking-tight">{data.title}</div>
+                <div className="mt-1 text-xs text-muted-foreground">
+                  {data.dates.length} datas disponíveis
+                </div>
+              </div>
+              {cheapest && (
+                <div className="text-right">
+                  <div className="text-[11px] uppercase text-muted-foreground">A partir de</div>
+                  <div className="text-4xl font-black leading-none text-primary">
+                    {brl(cheapest.price)}
+                  </div>
+                  <div className="mt-1 text-xs text-muted-foreground">
+                    {cheapest.departLabel}
+                    {cheapest.returnLabel ? ` — ${cheapest.returnLabel}` : ""}
+                  </div>
+                </div>
+              )}
+            </div>
+          </Card>
 
-      {data?.dates.length ? (
-        <Card className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-muted/50 text-xs uppercase text-muted-foreground">
-              <tr>
-                <th className="p-3 text-left">CIA</th>
-                <th className="p-3 text-left">Ida</th>
-                <th className="p-3 text-left">Volta</th>
-                <th className="p-3 text-left">Perm.</th>
-                <th className="p-3 text-left">Bagagem</th>
-                <th className="p-3 text-right">Preço</th>
-                <th className="p-3 text-right">Nosso link</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.dates.map((o) => (
-                <tr key={`${o.departDate}-${o.returnDate}-${o.price}`} className="border-t">
-                  <td className="p-3">
-                    {o.airlineLogo ? (
-                      <img src={o.airlineLogo} alt={o.airline ?? "Companhia"} className="h-5" />
-                    ) : (
-                      (o.airline ?? "—")
-                    )}
-                  </td>
-                  <td className="p-3">
-                    {o.departLabel}
-                    <span className="block text-xs text-muted-foreground">{o.weekdayOut}</span>
-                  </td>
-                  <td className="p-3">
-                    {o.returnLabel ?? "—"}
-                    <span className="block text-xs text-muted-foreground">{o.weekdayIn}</span>
-                  </td>
-                  <td className="p-3">{o.nights ? `${o.nights} dias` : "—"}</td>
-                  <td className="p-3 text-xs">{o.baggage ?? "—"}</td>
-                  <td className="p-3 text-right font-semibold">{brl(o.price)}</td>
-                  <td className="p-3 text-right">
-                    <div className="flex justify-end gap-1">
-                      <Button size="sm" variant="secondary" onClick={() => copy(o.viaairUrl)}>
-                        <Copy className="h-3.5 w-3.5" />
-                      </Button>
-                      <Button size="sm" asChild>
-                        <a href={o.viaairUrl} target="_blank" rel="noreferrer">
-                          Ver voos <ExternalLink className="ml-1 h-3.5 w-3.5" />
-                        </a>
-                      </Button>
+          {data.months.length > 0 && (
+            <Card className="p-4">
+              <div className="mb-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                Preço ao longo dos meses
+              </div>
+              <div className="flex items-end gap-2 overflow-x-auto pb-1">
+                {data.months.map((m) => {
+                  const value = m.price ?? 0;
+                  const height = maxMonth ? Math.max(14, Math.round((value / maxMonth) * 100)) : 14;
+                  const active = current.month === monthParam(m.label);
+                  return (
+                    <button
+                      key={m.label}
+                      onClick={() => selectMonth(m.label)}
+                      className="group flex min-w-14 flex-1 flex-col items-center gap-1"
+                      title={m.price ? brl(m.price) : "Sem preço"}
+                    >
+                      <span
+                        className={`text-[11px] font-semibold ${
+                          m.cheapest ? "text-primary" : "text-muted-foreground"
+                        }`}
+                      >
+                        {m.price ? brl(m.price) : "—"}
+                      </span>
+                      <span
+                        style={{ height: `${height}px` }}
+                        className={`w-full rounded-t-md transition-all group-hover:opacity-90 ${
+                          active
+                            ? "bg-primary"
+                            : m.cheapest
+                              ? "bg-primary/70"
+                              : "bg-muted-foreground/25"
+                        }`}
+                      />
+                      <span
+                        className={`text-[11px] ${active ? "font-bold" : "text-muted-foreground"}`}
+                      >
+                        {m.label}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+              {q.isFetching && (
+                <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+                  <Loader2 className="h-3 w-3 animate-spin" /> atualizando datas...
+                </div>
+              )}
+            </Card>
+          )}
+
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            {data.dates.map((o, i) => (
+              <Card
+                key={`${o.departDate}-${o.returnDate}-${o.price}`}
+                className={`group relative overflow-hidden p-4 transition hover:-translate-y-0.5 hover:shadow-lg ${
+                  i === 0 ? "border-primary/50 ring-1 ring-primary/30" : ""
+                }`}
+              >
+                {i === 0 && (
+                  <Badge className="absolute right-3 top-3">Melhor preço</Badge>
+                )}
+                <div className="flex items-center gap-2">
+                  {o.airlineLogo ? (
+                    <img src={o.airlineLogo} alt={o.airline ?? "Companhia"} className="h-5" />
+                  ) : (
+                    <span className="text-xs font-semibold">{o.airline ?? "—"}</span>
+                  )}
+                  <span className="text-xs text-muted-foreground">{o.partner}</span>
+                </div>
+
+                <div className="mt-3 flex items-center gap-3">
+                  <div>
+                    <div className="text-lg font-semibold leading-tight">{o.departLabel}</div>
+                    <div className="text-[11px] text-muted-foreground">{o.weekdayOut}</div>
+                  </div>
+                  <div className="flex-1 border-t border-dashed" />
+                  <Plane className="h-4 w-4 rotate-90 text-primary" />
+                  <div className="flex-1 border-t border-dashed" />
+                  <div className="text-right">
+                    <div className="text-lg font-semibold leading-tight">{o.returnLabel ?? "—"}</div>
+                    <div className="text-[11px] text-muted-foreground">{o.weekdayIn}</div>
+                  </div>
+                </div>
+
+                <div className="mt-3 flex flex-wrap gap-1.5">
+                  {o.nights ? <Badge variant="secondary">{o.nights} dias</Badge> : null}
+                  {o.baggage ? (
+                    <Badge variant={/despachada/i.test(o.baggage) ? "default" : "outline"}>
+                      {o.baggage}
+                    </Badge>
+                  ) : null}
+                </div>
+
+                <div className="mt-4 flex items-end justify-between gap-2">
+                  <div>
+                    <div className="text-[10px] uppercase text-muted-foreground">Ida + volta</div>
+                    <div className="text-2xl font-black leading-none text-primary">
+                      {brl(o.price)}
                     </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </Card>
+                  </div>
+                  <div className="flex gap-1">
+                    <Button size="sm" variant="secondary" onClick={() => copy(o.viaairUrl)}>
+                      <Copy className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button size="sm" asChild>
+                      <a href={o.viaairUrl} target="_blank" rel="noreferrer">
+                        Ver voos <ExternalLink className="ml-1 h-3.5 w-3.5" />
+                      </a>
+                    </Button>
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+        </div>
       ) : null}
 
       {data && !q.isFetching && !data.categories.length && !data.cities.length && !data.dates.length && (
