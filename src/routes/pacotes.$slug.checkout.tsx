@@ -131,6 +131,7 @@ function Checkout() {
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [pixInfo, setPixInfo] = useState<{ txid: string; qrCode: string; expiraEm: string; valor: number } | null>(null);
+  const [pixError, setPixError] = useState(false);
   const [pixPaid, setPixPaid] = useState(false);
   const criarPix = useServerFn(criarPixCobranca);
   const consultarPix = useServerFn(consultarPixCobranca);
@@ -527,11 +528,14 @@ function Checkout() {
           setPixInfo(cob);
         } catch (err) {
           console.error("[checkout] pix cobrança falhou", err);
+          setPixError(true);
           toast.warning(
-            "Pedido registrado! Nossa equipe vai enviar o QR Pix por e-mail em instantes.",
+            "Não foi possível gerar o QR Code agora. Nossa equipe vai enviar o Pix por e-mail em instantes.",
           );
         }
       }
+
+
 
 
 
@@ -1141,13 +1145,23 @@ function Checkout() {
           onClose={() => navigate({ to: "/pacotes" })}
         />
       )}
-      {success && payment === "pix" && !pixInfo && (
+      {success && payment === "pix" && !pixInfo && !pixError && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-background/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="w-full max-w-sm rounded-3xl border border-border bg-card p-8 text-center shadow-2xl">
+            <Loader2 className="mx-auto h-10 w-10 animate-spin text-brand-orange" />
+            <h2 className="mt-5 font-display text-xl font-bold text-foreground">Gerando seu QR Code Pix</h2>
+            <p className="mt-2 text-sm text-muted-foreground">Só mais alguns segundos…</p>
+          </div>
+        </div>
+      )}
+      {success && payment === "pix" && !pixInfo && pixError && (
         <SuccessOverlay
           title="Pedido registrado!"
-          message="Nossa equipe vai enviar o QR Pix por e-mail em instantes."
+          message="Não foi possível gerar o QR Code agora. Nossa equipe vai enviar o Pix por e-mail em instantes."
           onClose={() => navigate({ to: "/pacotes" })}
         />
       )}
+
 
       <ContactFooter whatsappMessage={`Olá! Preciso de ajuda para finalizar minha reserva.`} />
     </div>
