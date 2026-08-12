@@ -495,53 +495,25 @@ export const criarPagamentoBoleto = createServerFn({ method: 'POST' })
           })
           .eq('id', data.financialEntryId)
       }
-      return { id: row.id, asaasBillId: null, status: 'agendado', scheduledDate: schedule }
+      return {
+        ok: true as const,
+        id: row.id,
+        asaasBillId: null as string | null,
+        status: 'agendado',
+        scheduledDate: schedule,
+      }
     }
 
-    try {
-      const bill = await createAsaasBill({
-        identificationField: linha,
-        scheduleDate: schedule,
-        description: data.description ?? null,
-        externalReference: externalRef,
-      })
-      const status = mapBillStatus(bill?.status)
-      await supabaseAdmin
-        .from('asaas_bill_payments')
-        .update({
-          asaas_bill_id: bill?.id ?? null,
-          status,
-          scheduled_date: bill?.scheduleDate ?? schedule,
-          effective_date: bill?.paymentDate ?? null,
-          raw_response: bill as any,
-        })
-        .eq('id', row.id)
+    const billRes = await createAsaasBillSafe({
+      identificationField: linha,
+      scheduleDate: schedule,
+      description: data.description ?? null,
+      externalReference: externalRef,
+    })
 
-      await supabaseAdmin.from('asaas_bill_payment_events').insert({
-        bill_payment_id: row.id,
-        asaas_bill_id: bill?.id ?? null,
-        event: schedule ? 'agendado' : 'enviado',
-        status,
-        actor_user_id: context.userId,
-        ip: ip(),
-        payload: bill as any,
-      })
-
-      if (data.financialEntryId) {
-        await supabaseAdmin
-          .from('financial_entries')
-          .update({
-            bill_payment_status: status,
-            boleto_line: linha,
-            boleto_beneficiary: row.beneficiary_name,
-            payment_method: 'Boleto (ASAAS)',
-          })
-          .eq('id', data.financialEntryId)
-      }
-
-      return { id: row.id, asaasBillId: bill?.id ?? null, status, scheduledDate: bill?.scheduleDate ?? schedule }
-    } catch (e) {
-      const msg = (e as Error).message
+    if (!billRes.ok) {
+      const cls = classificarErroBoleto(billRes.description, billRes.code)
+      const msg = billRes.description
       await supabaseAdmin
         .from('asaas_bill_payments')
         .update({ status: 'falhou', fail_reason: msg })
@@ -553,9 +525,66 @@ export const criarPagamentoBoleto = createServerFn({ method: 'POST' })
         message: msg,
         actor_user_id: context.userId,
         ip: ip(),
+        payload: billRes.raw as any,
       })
-      throw new Error(msg)
+      if (data.financialEntryId) {
+        await supabaseAdmin
+          .from('financial_entries')
+          .update({ bill_payment_status: 'falhou' })
+          .eq('id', data.financialEntryId)
+      }
+      return erro({
+        titulo: cls.titulo === 'Consulta recusada' ? 'Pagamento não autorizado' : cls.titulo,
+        mensagem: msg,
+        codigo: billRes.code ?? String(billRes.status || ''),
+        tecnico: JSON.stringify(billRes.raw ?? {}).slice(0, 2000),
+        orientacao: 'O pagamento foi registrado como falhou. Nenhum valor foi debitado.',
+      })
     }
+
+    const bill: any = billRes.data ?? {}
+    const status = mapBillStatus(bill?.status)
+    await supabaseAdmin
+      .from('asaas_bill_payments')
+      .update({
+        asaas_bill_id: bill?.id ?? null,
+        status,
+        scheduled_date: bill?.scheduleDate ?? schedule,
+        effective_date: bill?.paymentDate ?? null,
+        raw_response: bill as any,
+      })
+      .eq('id', row.id)
+
+    await supabaseAdmin.from('asaas_bill_payment_events').insert({
+      bill_payment_id: row.id,
+      asaas_bill_id: bill?.id ?? null,
+      event: schedule ? 'agendado' : 'enviado',
+      status,
+      actor_user_id: context.userId,
+      ip: ip(),
+      payload: bill as any,
+    })
+
+    if (data.financialEntryId) {
+      await supabaseAdmin
+        .from('financial_entries')
+        .update({
+          bill_payment_status: status,
+          boleto_line: linha,
+          boleto_beneficiary: row.beneficiary_name,
+          payment_method: 'Boleto (ASAAS)',
+        })
+        .eq('id', data.financialEntryId)
+    }
+
+    return {
+      ok: true as const,
+      id: row.id,
+      asaasBillId: (bill?.id ?? null) as string | null,
+      status,
+      scheduledDate: bill?.scheduleDate ?? schedule,
+    }
+
   })
 
 /* ------------------------------------------------------------------
