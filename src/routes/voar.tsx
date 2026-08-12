@@ -10,6 +10,11 @@ import { VoosPage } from "./admin.voos-teste";
 import { HoteisPage } from "./admin.hoteis-teste";
 
 import { SearchEngine, type Mode } from "./admin.buscar";
+import {
+  PassagensBaratasExplorer,
+  type MdStep,
+  type MdFiltro,
+} from "./admin.passagens-baratas";
 import { PaymentMethodsBar } from "@/components/flights/PaymentMethodsBar";
 import { ContactFooter } from "@/components/ContactFooter";
 
@@ -34,7 +39,54 @@ type VoarSearch = {
   ci?: string;
   co?: string;
   rm?: number;
+  /** Trilha do explorador de passagens baratas (estado por URL). */
+  p?: string;
+  /** Filtro global do explorador: origem (IATA), rótulo e mês. */
+  fo?: string;
+  fol?: string;
+  fm?: string;
 };
+
+const SEP = "|";
+const FSEP = "~";
+
+function encodeTrail(trail: MdStep[]): string {
+  return trail
+    .map((s) =>
+      [
+        s.label,
+        s.baseLabel ?? "",
+        s.categoryId ?? "",
+        s.toIata ?? "",
+        s.fromIata ?? "",
+        s.month ?? "",
+      ]
+        .map((v) => String(v).replace(/[|~]/g, " "))
+        .join(FSEP),
+    )
+    .join(SEP);
+}
+
+function decodeTrail(raw?: string): MdStep[] {
+  const base: MdStep[] = [{ label: "Passagens baratas" }];
+  if (!raw) return base;
+  const steps = raw
+    .split(SEP)
+    .map((chunk) => {
+      const [label, baseLabel, categoryId, toIata, fromIata, month] = chunk.split(FSEP);
+      if (!label) return null;
+      return {
+        label,
+        ...(baseLabel ? { baseLabel } : {}),
+        ...(categoryId ? { categoryId: Number(categoryId) } : {}),
+        ...(toIata ? { toIata } : {}),
+        ...(fromIata ? { fromIata } : {}),
+        ...(month ? { month } : {}),
+      } as MdStep;
+    })
+    .filter(Boolean) as MdStep[];
+  return steps.length ? steps : base;
+}
 
 const MODES: Mode[] = ["aereo", "hotel", "carro", "combo", "exclusivo", "seguro"];
 
@@ -58,6 +110,10 @@ export const Route = createFileRoute("/voar")({
     ci: typeof search.ci === "string" ? search.ci.slice(0, 10) : undefined,
     co: typeof search.co === "string" ? search.co.slice(0, 10) : undefined,
     rm: Number(search.rm) > 0 ? Math.min(5, Number(search.rm)) : undefined,
+    p: typeof search.p === "string" ? search.p.slice(0, 600) : undefined,
+    fo: typeof search.fo === "string" ? search.fo.toUpperCase().slice(0, 3) : undefined,
+    fol: typeof search.fol === "string" ? search.fol.slice(0, 60) : undefined,
+    fm: typeof search.fm === "string" ? search.fm.slice(0, 7) : undefined,
   }),
 
   head: () => ({
@@ -82,6 +138,7 @@ export const Route = createFileRoute("/voar")({
 
 function VoarPublicPage() {
   const s = Route.useSearch();
+  const navigate = Route.useNavigate();
   const hasPreset = !!(s.o && s.d && s.ida);
   const hasHotelPreset = s.m === "hotel" && !!(s.hd && s.ci && s.co);
 
@@ -143,7 +200,35 @@ function VoarPublicPage() {
           runToken={1}
         />
       ) : (
-        <SearchEngine publicMode initialMode={s.m ?? "aereo"} />
+        <SearchEngine
+          publicMode
+          initialMode={s.m ?? "aereo"}
+          emptySlot={
+            <PassagensBaratasExplorer
+              className="w-full space-y-5 pb-10"
+              trail={decodeTrail(s.p)}
+              onTrailChange={(t) =>
+                navigate({
+                  search: (prev) => ({
+                    ...prev,
+                    p: t.length > 1 ? encodeTrail(t) : undefined,
+                  }),
+                })
+              }
+              filtro={{ iata: s.fo ?? null, label: s.fol ?? "", month: s.fm ?? "" }}
+              onFiltroChange={(f: MdFiltro) =>
+                navigate({
+                  search: (prev) => ({
+                    ...prev,
+                    fo: f.iata ?? undefined,
+                    fol: f.label || undefined,
+                    fm: f.month || undefined,
+                  }),
+                })
+              }
+            />
+          }
+        />
       )}
 
 
