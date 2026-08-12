@@ -30,7 +30,6 @@ function EmbedMotorBusca() {
         /* painéis flutuantes sempre por cima e nunca cortados */
         [data-radix-popper-content-wrapper],.viaair-floating-layer{z-index:2147483000 !important;}
         .embed-search-page .h-screen,.embed-search-page .min-h-screen{height:auto !important;min-height:0 !important;}
-        .embed-search-page .overflow-y-auto,.embed-search-page .overflow-auto{overflow:visible !important;}
 
         [style*="brand-blue"]{background:none !important;opacity:0 !important;}
         header{background:transparent !important;overflow:visible !important;}

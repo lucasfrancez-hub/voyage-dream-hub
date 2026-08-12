@@ -77,7 +77,18 @@ function sendOverlay(height: number): void {
   window.parent?.postMessage({ type: OVERLAY_MESSAGE_TYPE, height: value }, "*");
 }
 
-let floatingObserver: ResizeObserver | null = null;
+type FloatingOwner = object;
+type FloatingEntry = {
+  element: HTMLElement;
+  extraSpace: number;
+  observer: ResizeObserver | null;
+};
+
+// Cada painel mantém seu próprio observer. Antes havia um único observer global:
+// abrir um autocomplete desconectava o calendário e fechar qualquer painel zerava
+// o overlay dos demais.
+const floatingEntries = new Map<FloatingOwner, FloatingEntry>();
+const DEFAULT_FLOATING_OWNER: FloatingOwner = {};
 
 /** Função única: mede e envia a altura real, com re-checagens após o render. */
 export function updateEmbedHeight(extraSpace = 0): void {
@@ -97,40 +108,46 @@ function measureFloating(element: HTMLElement, extraSpace: number): number {
   return window.scrollY + rect.bottom + extraSpace;
 }
 
-/**
- * Painel flutuante aberto: em vez de aumentar a altura do motor, pedimos ao
- * script do widget uma camada sobreposta (overlay) do tamanho necessário.
- */
+function applyFloatingState(): void {
+  let overlay = 0;
+  floatingEntries.forEach(({ element, extraSpace }) => {
+    if (!element.isConnected) return;
+    overlay = Math.max(overlay, measureFloating(element, extraSpace));
+  });
+  sendOverlay(overlay > 0 ? Math.max(getContentHeight(), overlay) : 0);
+  sendHeight(getContentHeight());
+}
+
+/** Registra/atualiza um painel flutuante sem interferir nos demais. */
 export function resizeEmbedForFloatingElement(
   element: HTMLElement | null,
   extraSpace = EXTRA_BOTTOM_SPACE,
+  owner: FloatingOwner = DEFAULT_FLOATING_OWNER,
 ): void {
   if (typeof window === "undefined") return;
   if (!element) {
-    resetEmbedHeight();
+    resetEmbedHeight(owner);
     return;
   }
-  const apply = () => {
-    sendOverlay(Math.max(getContentHeight(), measureFloating(element, extraSpace)));
-    sendHeight(getContentHeight());
-  };
-  window.requestAnimationFrame(apply);
-  window.setTimeout(apply, 50);
-  window.setTimeout(apply, 150);
 
-  // Recalcula sozinho quando o painel muda de tamanho (troca de mês, mais
-  // sugestões na lista, 1 ou 2 meses no desktop, etc.).
-  floatingObserver?.disconnect();
+  const previous = floatingEntries.get(owner);
+  previous?.observer?.disconnect();
+
+  let observer: ResizeObserver | null = null;
   if (typeof ResizeObserver !== "undefined") {
-    floatingObserver = new ResizeObserver(() => apply());
-    floatingObserver.observe(element);
+    observer = new ResizeObserver(() => window.requestAnimationFrame(applyFloatingState));
+    observer.observe(element);
   }
+  floatingEntries.set(owner, { element, extraSpace, observer });
+  window.requestAnimationFrame(applyFloatingState);
 }
 
-export function resetEmbedHeight(): void {
-  floatingObserver?.disconnect();
-  floatingObserver = null;
-  sendOverlay(0);
+/** Remove somente o painel do chamador; o overlay zera apenas quando o último fecha. */
+export function resetEmbedHeight(owner: FloatingOwner = DEFAULT_FLOATING_OWNER): void {
+  const entry = floatingEntries.get(owner);
+  entry?.observer?.disconnect();
+  floatingEntries.delete(owner);
+  applyFloatingState();
   updateEmbedHeight();
 }
 

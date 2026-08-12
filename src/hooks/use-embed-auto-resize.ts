@@ -13,15 +13,16 @@ export function useEmbedAutoResize() {
     resizeObserver.observe(document.documentElement);
     if (document.body) resizeObserver.observe(document.body);
 
+    // Alterações de atributos do DayPicker (hover/selected/focus) não mudam a
+    // altura base e antes geravam uma tempestade de mensagens para o WordPress.
+    // Observamos somente mudanças estruturais; ResizeObserver cobre dimensões.
     const mutationObserver = new MutationObserver(updateHeight);
     mutationObserver.observe(document.body, {
       childList: true,
       subtree: true,
-      attributes: true,
     });
 
     window.addEventListener("resize", updateHeight);
-    const interval = window.setInterval(updateHeight, 1000);
 
     // O script do widget pede o fechamento dos painéis (troca de aba, rotação
     // da tela). Simulamos Esc — todos os popovers/calendários fecham com ele.
@@ -39,7 +40,6 @@ export function useEmbedAutoResize() {
       mutationObserver.disconnect();
       window.removeEventListener("resize", updateHeight);
       window.removeEventListener("message", onParentMessage);
-      window.clearInterval(interval);
     };
   }, []);
 }
