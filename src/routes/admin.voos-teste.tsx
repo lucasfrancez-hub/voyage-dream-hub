@@ -1700,6 +1700,7 @@ export function VoosPage({
   onComboSelect,
   publicMode = false,
   externalSearch = false,
+  emptySlot,
 }: {
   header?: React.ReactNode;
   hideForm?: boolean;
@@ -1710,6 +1711,8 @@ export function VoosPage({
   publicMode?: boolean;
   /** Envia a busca do iframe para /voar em uma nova aba usando submit nativo. */
   externalSearch?: boolean;
+  /** Conteúdo mostrado abaixo do motor enquanto não há resultados. */
+  emptySlot?: React.ReactNode;
 } = {}) {
   const search = useServerFn(publicMode ? onerFlightSearchPublic : onerFlightSearch);
   const searchInbound = useServerFn(publicMode ? onerInboundSearchPublic : onerInboundSearch);
