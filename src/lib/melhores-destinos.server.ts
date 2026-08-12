@@ -19,11 +19,21 @@ const UA =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126 Safari/537.36";
 
 async function get(url: string): Promise<Response> {
-  const res = await fetch(url, {
-    headers: { "user-agent": UA, accept: "*/*", referer: `${SITE}/` },
-  });
-  if (!res.ok) throw new Error(`Melhores Destinos respondeu ${res.status} em ${url}`);
-  return res;
+  let last: unknown = null;
+  for (let i = 0; i < 3; i++) {
+    try {
+      const res = await fetch(url, {
+        headers: { "user-agent": UA, accept: "*/*", referer: `${SITE}/` },
+        signal: AbortSignal.timeout(20000),
+      });
+      if (res.ok) return res;
+      last = new Error(`Melhores Destinos respondeu ${res.status}`);
+    } catch (e) {
+      last = e;
+    }
+    await new Promise((r) => setTimeout(r, 600 * (i + 1)));
+  }
+  throw last instanceof Error ? last : new Error("Falha ao consultar Melhores Destinos");
 }
 
 async function getJson<T>(url: string): Promise<T> {
