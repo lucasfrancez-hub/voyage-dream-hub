@@ -111,7 +111,7 @@ function fmtDate(d: { year: number; month: number; day: number }) {
   return `${String(d.day).padStart(2, "0")}/${String(d.month).padStart(2, "0")}`;
 }
 /** Códigos multi-aeroporto: buscam todos os aeroportos da cidade na operadora. */
-const CITY_CODES = new Set([
+export const CITY_CODES = new Set([
   "SAO",
   "RIO",
   "BHZ",
