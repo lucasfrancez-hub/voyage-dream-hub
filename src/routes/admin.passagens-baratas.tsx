@@ -7,7 +7,18 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { ChevronRight, ExternalLink, Loader2, Plane, RefreshCw, Search } from "lucide-react";
+import {
+  Backpack,
+  Briefcase,
+  ChevronRight,
+  Clock,
+  ExternalLink,
+  Loader2,
+  Luggage,
+  Plane,
+  RefreshCw,
+  Search,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
