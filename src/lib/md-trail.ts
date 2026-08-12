@@ -44,3 +44,23 @@ export function decodeTrail(raw?: string): MdStep[] {
     .filter(Boolean) as MdStep[];
   return steps.length ? steps : base;
 }
+
+/**
+ * Abre um link a partir de dentro do embed. Dentro de um iframe (WordPress) o
+ * window.open costuma ser bloqueado; nesse caso pedimos para a página que
+ * hospeda o iframe abrir a URL (o snippet escuta viaair:embed-navigate).
+ */
+export function abrirLinkExterno(url: string) {
+  if (typeof window === "undefined") return;
+  let aberto: Window | null = null;
+  try {
+    aberto = window.open(url, "_blank", "noopener");
+  } catch {
+    aberto = null;
+  }
+  if (aberto) return;
+  try {
+    window.parent?.postMessage({ type: "viaair:embed-navigate", url }, "*");
+    window.parent?.postMessage({ type: "VIAAIR_EMBED_NAVIGATE", url }, "*");
+  } catch {}
+}

@@ -60,9 +60,15 @@ function EmbedTestePage() {
 ></iframe>
 <script>
   window.addEventListener("message", function (e) {
-    if (!e.data || e.data.type !== "viaair:embed-height") return;
-    var f = document.getElementById("viaair-passagens-baratas");
-    if (f && e.data.height) f.style.height = e.data.height + "px";
+    if (!e.data) return;
+    if (e.data.type === "viaair:embed-height") {
+      var f = document.getElementById("viaair-passagens-baratas");
+      if (f && e.data.height) f.style.height = e.data.height + "px";
+      return;
+    }
+    if ((e.data.type === "viaair:embed-navigate" || e.data.type === "VIAAIR_EMBED_NAVIGATE") && e.data.url) {
+      window.open(e.data.url, "_blank", "noopener");
+    }
   });
 </script>`;
 

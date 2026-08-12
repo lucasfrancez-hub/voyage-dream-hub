@@ -3,6 +3,7 @@
  * região → país → destino → origem → datas, tudo automático e com o link
  * do nosso motor (Comprar Viagem) no lugar do parceiro.
  */
+import { abrirLinkExterno } from "@/lib/md-trail";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState, type ReactNode } from "react";
 import { useQuery, useQueryClient, keepPreviousData } from "@tanstack/react-query";
@@ -218,7 +219,7 @@ export function PassagensBaratasExplorer({
     const next = [...trail, step];
     if (linkPasso) {
       const url = linkPasso(next);
-      if (typeof window !== "undefined") window.open(url, "_blank", "noopener");
+      abrirLinkExterno(url);
       return;
     }
     setTrail(next);
@@ -255,7 +256,7 @@ export function PassagensBaratasExplorer({
       toast.error("Informe origem, destino e data de ida");
       return;
     }
-    window.open(montarLink(motor), "_blank", "noopener");
+    abrirLinkExterno(montarLink(motor));
   };
 
 
