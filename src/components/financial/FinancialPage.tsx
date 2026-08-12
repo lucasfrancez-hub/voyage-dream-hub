@@ -12,13 +12,16 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Loader2, Plus, Download, FileText, Check, X, Search, AlertCircle, CalendarClock, TrendingDown, TrendingUp, Trash2, Pencil, QrCode } from "lucide-react";
+import { Loader2, Plus, Download, FileText, Check, X, Search, AlertCircle, CalendarClock, TrendingDown, TrendingUp, Trash2, Pencil, QrCode, Landmark } from "lucide-react";
 import jsPDF from "jspdf";
 import { toast } from "sonner";
 import { Link } from "@tanstack/react-router";
 import { PixPaymentDialog } from "@/components/financial/PixPaymentDialog";
 import { BoletoPaymentDialog } from "@/components/financial/BoletoPaymentDialog";
 import { ComprovanteEntryButton } from "@/components/financial/ComprovanteEntryButton";
+import { ExternalPaymentDialog } from "@/components/financial/ExternalPaymentDialog";
+import { ExternalReceiptButton } from "@/components/financial/ExternalReceiptButton";
+import type { PagamentoExterno } from "@/lib/pagamentos-externos.helpers";
 
 
 type Kind = "payable" | "receivable";
@@ -60,6 +63,8 @@ export function FinancialPage({ kind }: { kind: Kind }) {
   const [editing, setEditing] = useState<Entry | null>(null);
   const [pixEntry, setPixEntry] = useState<Entry | null>(null);
   const [boletoEntry, setBoletoEntry] = useState<Entry | null>(null);
+  const [externoEntry, setExternoEntry] = useState<Entry | null>(null);
+  const [externoAvulso, setExternoAvulso] = useState(false);
 
   const { data: entries, isLoading } = useQuery({
     queryKey: ["financial", kind],
@@ -72,6 +77,24 @@ export function FinancialPage({ kind }: { kind: Kind }) {
         .limit(2000);
       if (error) throw error;
       return data as unknown as Entry[];
+    },
+  });
+
+  const { data: externos } = useQuery({
+    queryKey: ["pagamentos-externos-map"],
+    enabled: kind === "payable",
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("pagamentos_externos")
+        .select("*")
+        .order("data_pagamento", { ascending: false })
+        .limit(1000);
+      if (error) throw error;
+      const map = new Map<string, PagamentoExterno>();
+      for (const row of (data ?? []) as unknown as PagamentoExterno[]) {
+        if (row.financial_entry_id && !map.has(row.financial_entry_id)) map.set(row.financial_entry_id, row);
+      }
+      return map;
     },
   });
 
@@ -234,6 +257,11 @@ export function FinancialPage({ kind }: { kind: Kind }) {
           <Button variant="outline" size="sm" onClick={exportPDF}>
             <FileText className="h-4 w-4 mr-1.5" /> PDF
           </Button>
+          {kind === "payable" && (
+            <Button variant="outline" size="sm" onClick={() => setExternoAvulso(true)}>
+              <Landmark className="h-4 w-4 mr-1.5" /> Pagamento em outro banco
+            </Button>
+          )}
           <Button size="sm" onClick={() => { setEditing(null); setDialogOpen(true); }}>
             <Plus className="h-4 w-4 mr-1.5" /> Novo lançamento
           </Button>
@@ -337,6 +365,9 @@ export function FinancialPage({ kind }: { kind: Kind }) {
                   </div>
                   <div className="flex gap-1">
                     {e.status === "paid" && <ComprovanteEntryButton entryId={e.id} />}
+                    {e.status === "paid" && externos?.get(e.id) && (
+                      <ExternalReceiptButton pagamento={externos.get(e.id)!} />
+                    )}
                     {kind === "payable" && e.status !== "paid" && (
                       <>
                         <Button size="icon" variant="ghost" title="Pagar via Pix" onClick={() => setPixEntry(e)}>
@@ -344,6 +375,9 @@ export function FinancialPage({ kind }: { kind: Kind }) {
                         </Button>
                         <Button size="icon" variant="ghost" title="Pagar boleto via ASAAS" onClick={() => setBoletoEntry(e)}>
                           <FileText className="h-4 w-4 text-brand-orange" />
+                        </Button>
+                        <Button size="icon" variant="ghost" title="Baixa com comprovante de outro banco" onClick={() => setExternoEntry(e)}>
+                          <Landmark className="h-4 w-4 text-brand-orange" />
                         </Button>
                       </>
                     )}
@@ -387,6 +421,16 @@ export function FinancialPage({ kind }: { kind: Kind }) {
         onOpenChange={(v) => { if (!v) setBoletoEntry(null); }}
         entry={boletoEntry}
         onDone={() => qc.invalidateQueries({ queryKey: ["financial", kind] })}
+      />
+
+      <ExternalPaymentDialog
+        open={!!externoEntry || externoAvulso}
+        onOpenChange={(v) => { if (!v) { setExternoEntry(null); setExternoAvulso(false); } }}
+        entry={externoEntry}
+        onDone={() => {
+          qc.invalidateQueries({ queryKey: ["financial", kind] });
+          qc.invalidateQueries({ queryKey: ["pagamentos-externos-map"] });
+        }}
       />
 
       <EntryDialog
