@@ -267,6 +267,10 @@ export function SearchEngine({
   embedMode = false,
   initialMode = "aereo",
   emptySlot,
+  flightPreset: flightPresetProp,
+  hotelPreset: hotelPresetProp,
+  presetRunToken,
+  presetFetch,
 }: {
   publicMode?: boolean;
   /** Conteúdo abaixo do motor aéreo enquanto não há resultados. */
@@ -274,6 +278,12 @@ export function SearchEngine({
   /** No widget, a pesquisa segue por navegação nativa para /voar em outra aba. */
   embedMode?: boolean;
   initialMode?: Mode;
+  /** Busca aérea já preenchida (veio da URL) — mantém as abas do motor visíveis. */
+  flightPreset?: FlightPreset;
+  /** Busca de hospedagem já preenchida (veio da URL). */
+  hotelPreset?: HotelPreset;
+  presetRunToken?: number;
+  presetFetch?: () => Promise<unknown>;
 } = {}) {
   const [mode, setMode] = useState<Mode>(initialMode);
 
