@@ -361,6 +361,15 @@ export function PassagensBaratasExplorer({
 
 
       {/* Trilha de navegação — setas encadeadas na identidade VIA AIR */}
+      {hideTrail ? (
+        trail.length > 1 ? (
+          <div>
+            <Button variant="secondary" size="sm" onClick={() => backTo(trail.length - 2)}>
+              ← Voltar
+            </Button>
+          </div>
+        ) : null
+      ) : (
       <nav
         aria-label="Trilha de navegação"
         className="flex flex-wrap items-center gap-1 rounded-2xl border border-border/50 bg-card/60 p-1.5 backdrop-blur"
@@ -393,6 +402,7 @@ export function PassagensBaratasExplorer({
           );
         })}
       </nav>
+      )}
 
 
       {(q.isLoading || (q.isError && !data)) && <LoadingSkeleton />}
