@@ -551,6 +551,21 @@ export function createAsaasBillSafe(input: CreateBillInput) {
 }
 
 
+/** Busca pagamentos de boleto pela nossa referência externa (reconciliação). */
+export async function findAsaasBillsByExternalReference(externalReference: string) {
+  const r = await asaasCall<{ data?: any[] }>(
+    `/bill?externalReference=${encodeURIComponent(externalReference)}&limit=20`,
+    { method: 'GET' },
+  )
+  if (!r.ok) return { ok: false as const, bills: [] as any[], error: r.description }
+  return { ok: true as const, bills: (r.data?.data ?? []) as any[], error: null }
+}
+
+/** GET /bill/{id} sem lançar exceção. */
+export function getAsaasBillSafe(billId: string) {
+  return asaasCall<any>(`/bill/${encodeURIComponent(billId)}`, { method: 'GET' })
+}
+
 /* ============================================================
  * CONSULTA DE CHAVE PIX (DICT)
  * ============================================================ */
