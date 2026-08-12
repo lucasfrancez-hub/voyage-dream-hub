@@ -256,41 +256,29 @@ export function ComprovanteReceipt({
                       </div>
                     </div>
 
-                    {(data.valorOriginal != null ||
-                      data.juros != null ||
-                      data.multa != null ||
-                      data.desconto != null) && (
-                      <div className="grid grid-cols-2 gap-4 border-t border-border pt-3">
-                        {data.valorOriginal != null ? (
-                          <Field label="Valor original" value={formatBRL(Number(data.valorOriginal))} />
-                        ) : null}
-                        {data.juros != null ? (
-                          <div className={data.valorOriginal != null ? "text-right" : ""}>
-                            <Field label="Juros" value={formatBRL(Number(data.juros))} />
-                          </div>
-                        ) : null}
-                        {data.multa != null ? (
-                          <Field label="Multa" value={formatBRL(Number(data.multa))} />
-                        ) : null}
-                        {data.desconto != null ? (
-                          <div className={data.multa != null ? "text-right" : ""}>
-                            <Field label="Desconto" value={formatBRL(Number(data.desconto))} />
-                          </div>
-                        ) : null}
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-3 border-t border-border pt-3">
+                      <Field
+                        label="Valor original"
+                        value={formatBRL(Number(data.valorOriginal ?? data.valor ?? 0))}
+                      />
+                      <div className="text-right">
+                        <Field label="Desconto" value={formatBRL(Number(data.desconto ?? 0))} />
                       </div>
-                    )}
+                      <Field label="Juros" value={formatBRL(Number(data.juros ?? 0))} />
+                      <div className="text-right">
+                        <Field label="Multa" value={formatBRL(Number(data.multa ?? 0))} />
+                      </div>
+                    </div>
 
-                    {data.linhaDigitavel ? (
+                    {(data.codigoBarras || data.linhaDigitavel) ? (
                       <div className="border-t border-border pt-3">
-                        <Field label="Linha digitável" value={data.linhaDigitavel} />
+                        <Field
+                          label="Código de barras"
+                          value={(data.codigoBarras || data.linhaDigitavel) as string}
+                        />
                       </div>
                     ) : null}
 
-                    {data.codigoBarras ? (
-                      <div className="border-t border-border pt-3">
-                        <Field label="Código de barras" value={data.codigoBarras} />
-                      </div>
-                    ) : null}
 
                     {data.descricao ? (
                       <div className="border-t border-border pt-3">
@@ -336,7 +324,9 @@ export function ComprovanteReceipt({
                     </>
                   ) : null}
 
-                  {isBoleto && data.autenticacao ? (
+                  {isBoleto &&
+                  data.autenticacao &&
+                  data.autenticacao !== data.transacaoId ? (
                     <div className="mt-3">
                       <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold mb-1.5">
                         Autenticação
@@ -347,19 +337,7 @@ export function ComprovanteReceipt({
                     </div>
                   ) : null}
 
-                  {isBoleto && data.referenciaInterna ? (
-                    <div className="mt-3">
-                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold mb-1.5">
-                        Referência interna VIA AIR
-                      </p>
-                      <p className="text-[10px] font-mono text-muted-foreground break-all leading-snug">
-                        {data.referenciaInterna}
-                      </p>
-                    </div>
-                  ) : null}
-
-
-                  <div className="mt-5 flex flex-col items-center gap-1 opacity-60">
+                  <div className="mt-5 flex flex-col items-center gap-1.5">
                     <div className="flex items-center gap-2">
                       <span className="text-[9px] text-muted-foreground uppercase font-medium tracking-widest">
                         Processado por
@@ -371,16 +349,10 @@ export function ComprovanteReceipt({
                           className="h-4 max-w-[92px] object-contain grayscale opacity-80"
                         />
                       ) : (
-                        <span className="flex items-center gap-1.5">
-                          <span className="flex h-4 w-4 items-center justify-center rounded-[4px] bg-muted-foreground/25 text-[8px] font-black text-foreground/70">
-                            {(data.processadoPor ?? "ASAAS").trim().charAt(0).toUpperCase()}
-                          </span>
-                          <span className="text-[11px] font-bold text-foreground tracking-widest">
-                            {(data.processadoPor ?? "ASAAS").toUpperCase()}
-                          </span>
-                        </span>
+                        <BankMark nome={data.processadoPor ?? "ASAAS"} />
                       )}
                     </div>
+
                     <span className="text-[9px] text-muted-foreground text-center leading-tight">
                       Documento gerado pelo sistema VIA AIR para simples conferência.
                     </span>
@@ -457,3 +429,42 @@ function Field({ label, value, clamp }: { label: string; value: string; clamp?: 
 }
 
 export default ComprovanteReceipt;
+
+const BANK_BRANDS: Record<string, { label: string; color: string; sigla: string }> = {
+  bradesco: { label: "BRADESCO", color: "#CC092F", sigla: "B" },
+  itau: { label: "ITAÚ", color: "#EC7000", sigla: "I" },
+  "banco do brasil": { label: "BANCO DO BRASIL", color: "#FCFF04", sigla: "BB" },
+  caixa: { label: "CAIXA", color: "#0070AF", sigla: "C" },
+  santander: { label: "SANTANDER", color: "#EC0000", sigla: "S" },
+  nubank: { label: "NUBANK", color: "#820AD1", sigla: "N" },
+  inter: { label: "INTER", color: "#FF7A00", sigla: "I" },
+  sicredi: { label: "SICREDI", color: "#3FA110", sigla: "S" },
+  sicoob: { label: "SICOOB", color: "#003641", sigla: "S" },
+  asaas: { label: "ASAAS", color: "#1E90FF", sigla: "A" },
+};
+
+function BankMark({ nome }: { nome: string }) {
+  const key = nome
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim();
+  const match = Object.keys(BANK_BRANDS).find((k) => key.includes(k.replace(/[\u0300-\u036f]/g, "")));
+  const brand = match
+    ? BANK_BRANDS[match]
+    : { label: nome.toUpperCase(), color: "#8A8A8A", sigla: nome.trim().charAt(0).toUpperCase() };
+
+  return (
+    <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted/30 px-2 py-0.5">
+      <span
+        className="flex h-4 min-w-4 items-center justify-center rounded-[4px] px-1 text-[8px] font-black text-white"
+        style={{ backgroundColor: brand.color }}
+      >
+        {brand.sigla}
+      </span>
+      <span className="text-[10px] font-bold tracking-widest text-foreground/80">
+        {brand.label}
+      </span>
+    </span>
+  );
+}
