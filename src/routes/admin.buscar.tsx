@@ -6,6 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { VoosPage, NewOrderFromFlightsDialog } from "./admin.voos-teste";
+import type { FlightPreset } from "./admin.voos-teste";
+import type { HotelPreset } from "./admin.hoteis-teste";
 import type { ComboPick } from "@/lib/combo-selection";
 import { useServerFn } from "@tanstack/react-start";
 import {
@@ -267,6 +269,10 @@ export function SearchEngine({
   embedMode = false,
   initialMode = "aereo",
   emptySlot,
+  flightPreset: flightPresetProp,
+  hotelPreset: hotelPresetProp,
+  presetRunToken,
+  presetFetch,
 }: {
   publicMode?: boolean;
   /** Conteúdo abaixo do motor aéreo enquanto não há resultados. */
@@ -274,6 +280,12 @@ export function SearchEngine({
   /** No widget, a pesquisa segue por navegação nativa para /voar em outra aba. */
   embedMode?: boolean;
   initialMode?: Mode;
+  /** Busca aérea já preenchida (veio da URL) — mantém as abas do motor visíveis. */
+  flightPreset?: FlightPreset;
+  /** Busca de hospedagem já preenchida (veio da URL). */
+  hotelPreset?: HotelPreset;
+  presetRunToken?: number;
+  presetFetch?: () => Promise<unknown>;
 } = {}) {
   const [mode, setMode] = useState<Mode>(initialMode);
 
@@ -428,10 +440,19 @@ export function SearchEngine({
           publicMode={publicMode}
           externalSearch={embedMode}
           emptySlot={emptySlot}
+          preset={flightPresetProp}
+          runToken={flightPresetProp ? (presetRunToken ?? 1) : undefined}
+          presetFetch={flightPresetProp ? presetFetch : undefined}
         />
       )}
       {mode === "hotel" && (
-        <HoteisPage header={hero} publicMode={publicMode} externalSearch={embedMode} />
+        <HoteisPage
+          header={hero}
+          publicMode={publicMode}
+          externalSearch={embedMode}
+          preset={hotelPresetProp}
+          runToken={hotelPresetProp ? (presetRunToken ?? 1) : undefined}
+        />
       )}
 
       {mode === "carro" && <CarrosPage header={hero} embedMode={embedMode} />}

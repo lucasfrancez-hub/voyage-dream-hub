@@ -6,10 +6,9 @@
  */
 import { createFileRoute } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { Plane, ShieldCheck, Headset, CreditCard, ChevronRight, BedDouble } from "lucide-react";
-import { VoosPage, CITY_CODES } from "./admin.voos-teste";
+import { ShieldCheck, Headset, CreditCard, ChevronRight } from "lucide-react";
+import { CITY_CODES } from "./admin.voos-teste";
 import { onerFlightSearchPublic } from "@/lib/onertravel-public.functions";
-import { HoteisPage } from "./admin.hoteis-teste";
 
 import { SearchEngine, type Mode } from "./admin.buscar";
 import {
@@ -169,53 +168,39 @@ function VoarPublicPage() {
         backLabel="Voltar ao site"
         whatsappMessage="Olá! Estou pesquisando passagens aéreas no site da Via Air."
       />
-      {hasHotelPreset ? (
-        <HoteisPage
+      {hasHotelPreset || hasPreset ? (
+        <SearchEngine
           publicMode
-          header={
-            <div>
-              <h1 className="flex items-center gap-2 text-3xl font-bold tracking-tight">
-                <BedDouble className="h-7 w-7 text-primary" /> Hospedagem VIA AIR
-              </h1>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Tarifas em tempo real e reserva com atendimento humano.
-              </p>
-            </div>
+          initialMode={hasHotelPreset ? "hotel" : "aereo"}
+          flightPreset={
+            hasPreset
+              ? {
+                  departureIata: s.o!,
+                  arrivalIata: s.d!,
+                  departureDate: s.ida!,
+                  returnDate: s.volta ?? "",
+                  adults: s.ad ?? 1,
+                  children: s.ch ?? 0,
+                  infants: s.inf ?? 0,
+                }
+              : undefined
           }
-          preset={{
-            destination: s.hd!,
-            checkIn: s.ci!,
-            checkOut: s.co!,
-            adults: s.ad ?? 2,
-            children: s.ch ?? 0,
-            rooms: s.rm ?? 1,
-          }}
-          runToken={1}
-        />
-      ) : hasPreset ? (
-        <VoosPage
-          publicMode
-          header={
-            <div>
-              <h1 className="flex items-center gap-2 text-3xl font-bold tracking-tight">
-                <Plane className="h-7 w-7 text-primary" /> Passagens aéreas VIA AIR
-              </h1>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Todas as companhias, tarifas em tempo real e compra segura.
-              </p>
-            </div>
+          hotelPreset={
+            hasHotelPreset
+              ? {
+                  destination: s.hd!,
+                  checkIn: s.ci!,
+                  checkOut: s.co!,
+                  adults: s.ad ?? 2,
+                  children: s.ch ?? 0,
+                  rooms: s.rm ?? 1,
+                }
+              : undefined
           }
-          preset={{
-            departureIata: s.o!,
-            arrivalIata: s.d!,
-            departureDate: s.ida!,
-            returnDate: s.volta ?? "",
-            adults: s.ad ?? 1,
-            children: s.ch ?? 0,
-            infants: s.inf ?? 0,
-          }}
-          runToken={1}
-          presetFetch={() => queryClient.ensureQueryData(presetSearchOptions(deps))}
+          presetRunToken={1}
+          presetFetch={
+            hasPreset ? () => queryClient.ensureQueryData(presetSearchOptions(deps)) : undefined
+          }
         />
       ) : (
         <SearchEngine
