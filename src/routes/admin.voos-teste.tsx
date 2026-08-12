@@ -1128,7 +1128,11 @@ function FlightCard({
                 {fmtMoney(f.price.total)}
               </div>
               <div className="mt-1 text-[9px] font-bold uppercase text-primary">
-                Em até {n}x de {fmtMoney(f.price.total / n)}
+                {cardCond.payment.pixOnly
+                  ? "Somente Pix"
+                  : cardCond.interestFree.available
+                    ? `${cardCond.interestFree.installments}x de ${fmtMoney(cardCond.interestFree.installmentValue)} sem juros`
+                    : `À vista ${fmtMoney(cardCond.total)}`}
               </div>
             </div>
           </div>
