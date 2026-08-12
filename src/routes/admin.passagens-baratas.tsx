@@ -46,14 +46,30 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
 
 function PassagensBaratasPage() {
   const explorar = useServerFn(explorarPassagensMd);
+  const buscarOrigens = useServerFn(buscarOrigensMd);
   const [trail, setTrail] = useState<Step[]>([{ label: "Passagens baratas" }]);
+
+  // Filtros globais (origem e mês), iguais aos do site de referência.
+  const [filtro, setFiltro] = useState<{ iata: string | null; label: string; month: string }>({
+    iata: null,
+    label: "",
+    month: "",
+  });
+  const [buscaOrigem, setBuscaOrigem] = useState("");
+
+  const sugestoes = useQuery({
+    queryKey: ["md-origens", buscaOrigem],
+    enabled: buscaOrigem.trim().length >= 2,
+    queryFn: () => buscarOrigens({ data: { q: buscaOrigem.trim() } }),
+    staleTime: 10 * 60 * 1000,
+  });
 
   const origin =
     typeof window !== "undefined" ? window.location.origin : "https://pedidos.viaair.tur.br";
   const current = trail[trail.length - 1];
 
   const q = useQuery({
-    queryKey: ["md-explorar", current],
+    queryKey: ["md-explorar", current, filtro.iata, filtro.month],
     queryFn: () =>
       explorar({
         data: {
@@ -61,11 +77,13 @@ function PassagensBaratasPage() {
           ...(current.categoryId ? { categoryId: current.categoryId } : {}),
           ...(current.toIata ? { toIata: current.toIata } : {}),
           ...(current.fromIata ? { fromIata: current.fromIata } : {}),
-          ...(current.month ? { month: current.month } : {}),
+          ...(filtro.iata ? { originIata: filtro.iata } : {}),
+          ...(current.month || filtro.month ? { month: current.month || filtro.month } : {}),
         },
       }),
     staleTime: 5 * 60 * 1000,
   });
+
 
   const go = (step: Step) => setTrail((t) => [...t, step]);
   const backTo = (i: number) => setTrail((t) => t.slice(0, i + 1));
