@@ -196,16 +196,16 @@ function PassagensBaratasPage() {
 
       {/* Destinos ou origens (tabela igual à do Melhores Destinos) */}
       {data?.cities.length ? (
-        <Card className="overflow-hidden">
-          <div className="grid grid-cols-[1fr_auto] gap-3 bg-primary px-4 py-2.5 text-xs font-semibold uppercase tracking-wide text-primary-foreground">
+        <Card className="overflow-hidden border-white/5 shadow-2xl">
+          <div className="flex items-center justify-between bg-primary px-6 py-4 text-[11px] font-bold uppercase tracking-widest text-primary-foreground">
             <span>{data.level === "origins" ? "Origem → Destino" : "Destino"}</span>
             <span className="text-right">Ida + volta a partir de</span>
           </div>
-          <div className="divide-y">
+          <div className="flex flex-col">
             {data.cities.map((c, i) => (
               <button
                 key={`${c.fromIata ?? ""}-${c.toIata ?? i}`}
-                className="grid w-full grid-cols-[1fr_auto] items-center gap-3 px-4 py-2.5 text-left transition hover:bg-muted/60"
+                className="group flex w-full items-center justify-between gap-3 border-b border-white/5 px-6 py-4 text-left transition-all hover:bg-white/[0.03]"
                 onClick={() =>
                   data.level === "cities"
                     ? go({
@@ -221,16 +221,35 @@ function PassagensBaratasPage() {
                       })
                 }
               >
-                <span className="min-w-0 truncate text-sm">
-                  {c.fromName ? `${c.fromName} → ${c.toName}` : c.toName}
-                </span>
-                <span className="whitespace-nowrap text-sm font-bold">
-                  {c.price != null ? brl(c.price) : "—"}
-                </span>
+                <div className="flex min-w-0 flex-col">
+                  <span className="truncate font-semibold text-foreground transition-colors group-hover:text-primary">
+                    {c.fromName ? `${c.fromName} → ${c.toName}` : c.toName}
+                  </span>
+                  <span className="truncate text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                    {[c.fromIata, c.toIata].filter(Boolean).join(" → ") || "Principais aeroportos"}
+                  </span>
+                </div>
+                <div className="flex shrink-0 items-center gap-4">
+                  <span className="whitespace-nowrap text-lg font-bold text-foreground">
+                    {c.price != null ? (
+                      <>
+                        <span className="mr-1 text-sm font-medium text-primary">R$</span>
+                        {brl(c.price).replace(/^R\$\s*/, "")}
+                      </>
+                    ) : (
+                      "—"
+                    )}
+                  </span>
+                  <ChevronRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-1 group-hover:text-primary" />
+                </div>
               </button>
             ))}
+            <div className="bg-black/10 p-4 text-center text-[11px] font-medium uppercase tracking-tight text-muted-foreground">
+              Visualizando os destinos mais econômicos{current.label ? ` para ${current.label}` : ""}
+            </div>
           </div>
         </Card>
+
       ) : null}
 
 
