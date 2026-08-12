@@ -49,6 +49,7 @@ export function ExternalReceiptButton({
         desconto: p.desconto,
         autenticacao: p.autenticacao,
         referenciaInterna: p.id,
+        processadoPor: p.banco_nome,
         pagador: {
           nome: p.pagador_nome || "VIA AIR",
           cpfCnpj: p.pagador_documento || VIAAIR_DOC,
