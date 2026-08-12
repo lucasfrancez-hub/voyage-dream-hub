@@ -261,7 +261,7 @@ export function DateRangeField({
                   left: pos.left,
                   width: 296,
                 }}
-                className="z-[100] max-w-[calc(100vw-16px)] overflow-x-auto overflow-y-visible rounded-2xl border border-border/60 bg-popover shadow-2xl"
+                className="z-[100] box-border flex max-w-[calc(100vw-16px)] flex-col overflow-visible rounded-2xl border border-border/60 bg-popover shadow-2xl"
 
               >
                 {panel(true)}
@@ -289,7 +289,7 @@ export function DateRangeField({
 
       <PopoverContent
         align="start"
-        className="w-auto rounded-2xl border-border/60 bg-popover/95 p-0 shadow-2xl backdrop-blur-xl"
+        className="w-[min(20rem,calc(100vw-2rem))] rounded-2xl border-border/60 bg-popover/95 p-0 shadow-2xl backdrop-blur-xl sm:w-[38rem]"
       >
         {panel(false)}
       </PopoverContent>
