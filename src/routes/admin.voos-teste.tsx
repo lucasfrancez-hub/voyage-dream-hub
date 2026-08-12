@@ -2,7 +2,7 @@ import type { ComboPick } from "@/lib/combo-selection";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { createOrder } from "@/lib/orders.functions";
 import {
@@ -1245,6 +1245,15 @@ function SummaryLeg({ label, f }: { label: string; f: OnerFlight }) {
   );
 }
 
+/** Chaves novas do MESMO voo depois de refazer a busca (tarifa expirada). */
+export type FreshFares = {
+  searchKey: string;
+  outboundFareId: string;
+  outboundItineraryId: string;
+  inboundFareId: string | null;
+  inboundItineraryId: string | null;
+};
+
 type CartContext = {
   departureIata: string;
   arrivalIata: string;
@@ -1266,6 +1275,7 @@ function SummaryCard({
   onOpenChange,
   onComboSelect,
   publicMode = false,
+  refreshFares,
 }: {
   out: OnerFlight;
   inb: OnerFlight | null;
@@ -1276,6 +1286,8 @@ function SummaryCard({
   onComboSelect?: (pick: ComboPick) => void;
   /** Motor público: "Comprar agora" registra o pedido pendente e manda direto pro carrinho. */
   publicMode?: boolean;
+  /** Refaz a busca e devolve chaves novas do mesmo voo quando a tarifa expira. */
+  refreshFares?: (out: OnerFlight, inb: OnerFlight | null) => Promise<FreshFares | null>;
 }) {
 
 
@@ -1295,19 +1307,27 @@ function SummaryCard({
   // Gera o carrinho oficial do Comprar Viagem (agência VIA AIR na URL),
   // para o cliente concluir o pagamento no ambiente da operadora.
   const cartMut = useMutation({
-    mutationFn: () =>
-      createCart({
-        data: {
-          searchKey: searchKey ?? "",
-          outboundFareId: out.key,
-          outboundItineraryId: out.journey.key,
-          inboundFareId: inb?.key ?? null,
-          inboundItineraryId: inb?.journey.key ?? null,
-          isRoundTrip: !!inb,
-          ...ctx,
-
-        },
-      }),
+    mutationFn: async () => {
+      const base = {
+        searchKey: searchKey ?? "",
+        outboundFareId: out.key,
+        outboundItineraryId: out.journey.key,
+        inboundFareId: inb?.key ?? null,
+        inboundItineraryId: inb?.journey.key ?? null,
+        isRoundTrip: !!inb,
+        ...ctx,
+      };
+      try {
+        return await createCart({ data: base });
+      } catch (err) {
+        // Tarifa expirada é o caso comum: refazemos a busca por baixo dos panos
+        // e tentamos de novo com as chaves novas do MESMO voo.
+        if (!refreshFares) throw err;
+        const fresh = await refreshFares(out, inb);
+        if (!fresh) throw err;
+        return await createCart({ data: { ...base, ...fresh } });
+      }
+    },
     onSuccess: (r) => {
       setCartUrl(r.url);
       if (!publicMode) window.open(r.url, "_blank", "noopener");
@@ -1967,6 +1987,56 @@ export function VoosPage({
       toast.error(e instanceof Error ? e.message : "Erro ao carregar mais voltas"),
   });
 
+  // Tarifa expirada no carrinho: refaz a busca do zero (sem filtro) e devolve as
+  // chaves novas do MESMO voo escolhido — o cliente não precisa pesquisar de novo.
+  const refreshFares = useCallback(
+    async (outSel: OnerFlight, inbSel: OnerFlight | null): Promise<FreshFares | null> => {
+      const raw = await search({
+        data: {
+          ...paxData(),
+          returnDate: form.returnDate || null,
+          searchKey: null,
+          filters: toOperatorFilters(EMPTY_FILTERS),
+        },
+      });
+      const r = normalizeSearchResult(raw);
+      if (!r?.searchKey) return null;
+      const alvoOut = flightSignature(outSel);
+      const novoOut = r.outbound.flights.find((f) => flightSignature(f) === alvoOut);
+      if (!novoOut) return null;
+      if (!inbSel) {
+        return {
+          searchKey: r.searchKey,
+          outboundFareId: novoOut.key,
+          outboundItineraryId: novoOut.journey.key ?? "",
+          inboundFareId: null,
+          inboundItineraryId: null,
+        };
+      }
+      const rawIn = await searchInbound({
+        data: {
+          ...paxData(),
+          returnDate: form.returnDate,
+          searchKey: r.searchKey,
+          flightKey: novoOut.key,
+          filters: toOperatorFilters(EMPTY_FILTERS),
+        },
+      });
+      const alvoIn = flightSignature(inbSel);
+      const novoIn = normalizeLeg(rawIn).flights.find((f) => flightSignature(f) === alvoIn);
+      if (!novoIn) return null;
+      return {
+        searchKey: r.searchKey,
+        outboundFareId: novoOut.key,
+        outboundItineraryId: novoOut.journey.key ?? "",
+        inboundFareId: novoIn.key,
+        inboundItineraryId: novoIn.journey.key ?? null,
+      };
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [form],
+  );
+
   function pickOutbound(key: string) {
     setSelectedOut(key);
     setSelectedIn(null);
@@ -2437,6 +2507,7 @@ export function VoosPage({
                     onOpenChange={setSummaryOpen}
                     onComboSelect={onComboSelect}
                     publicMode={publicMode}
+                    refreshFares={refreshFares}
                   />
                 </>
               )}
