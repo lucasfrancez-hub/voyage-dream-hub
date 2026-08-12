@@ -157,34 +157,41 @@ function PassagensBaratasPage() {
 
       {/* Regiões / países */}
       {data?.categories.length ? (
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid gap-4 md:grid-cols-2">
           {data.categories.map((c) => (
             <button
               key={c.id}
               onClick={() => go({ label: c.name, categoryId: c.id })}
-              className="flex items-center gap-3 rounded-xl border bg-card p-3 text-left transition hover:border-primary hover:shadow-sm"
+              className="group flex cursor-pointer items-center gap-4 rounded-2xl border border-border/50 bg-card p-4 text-left transition-all duration-300 hover:border-primary/40 hover:bg-muted/40"
             >
               {c.image && (
-                <img
-                  src={c.image}
-                  alt={c.name}
-                  loading="lazy"
-                  className="h-16 w-20 shrink-0 rounded-lg object-cover"
-                />
+                <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl">
+                  <img
+                    src={c.image}
+                    alt={c.name}
+                    loading="lazy"
+                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-background/50 to-transparent" />
+                </div>
               )}
               <div className="min-w-0 flex-1">
-                <div className="font-semibold">{c.name}</div>
-                <div className="line-clamp-1 text-xs text-muted-foreground">{c.description}</div>
+                <h3 className="text-lg font-bold leading-tight">{c.name}</h3>
+                <p className="mt-1 truncate text-xs text-muted-foreground">{c.description}</p>
               </div>
               {c.price != null && (
                 <div className="shrink-0 text-right">
-                  <div className="text-[10px] uppercase text-muted-foreground">Ida + volta</div>
-                  <div className="font-bold text-primary">{brl(c.price)}</div>
+                  <span className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                    Ida + volta
+                  </span>
+                  <span className="block text-[10px] text-muted-foreground">a partir de</span>
+                  <span className="text-xl font-bold text-primary">{brl(c.price)}</span>
                 </div>
               )}
             </button>
           ))}
         </div>
+
       ) : null}
 
       {/* Destinos ou origens (tabela igual à do Melhores Destinos) */}
