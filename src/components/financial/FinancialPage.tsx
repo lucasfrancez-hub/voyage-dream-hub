@@ -45,8 +45,10 @@ type Entry = {
   boleto_beneficiary?: string | null;
   cost_center?: string | null;
   bill_payment_status?: string | null;
+  pix_key?: string | null;
+  attachment_path?: string | null;
+  attachment_name?: string | null;
 };
-type Category = { id: string; kind: string; name: string };
 
 function today() { return new Date().toISOString().slice(0, 10); }
 
