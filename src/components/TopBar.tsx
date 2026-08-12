@@ -39,7 +39,19 @@ export function TopBar({
   transparent = false,
 }: TopBarProps) {
   const [open, setOpen] = useState(false);
+  const { state } = useRouter();
+  const pathname = state.location.pathname;
   const waUrl = `https://wa.me/${WHATSAPP_PHONE}?text=${encodeURIComponent(whatsappMessage)}`;
+
+  const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
+  const desktopNavClass = (href: string) =>
+    isActive(href)
+      ? "inline-flex items-center gap-1.5 text-sm font-semibold text-brand-orange transition-colors"
+      : "inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-brand-orange transition-colors";
+  const mobileNavClass = (href: string) =>
+    isActive(href)
+      ? "flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-brand-orange bg-brand-orange/10 transition"
+      : "flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-foreground hover:bg-brand-orange/10 hover:text-brand-orange transition";
 
   const backEl = backTo ? (
     <Link
