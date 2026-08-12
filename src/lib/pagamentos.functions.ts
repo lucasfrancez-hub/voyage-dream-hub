@@ -106,7 +106,7 @@ export const detalharPagamentoPix = createServerFn({ method: 'POST' })
 /** Consulta o titular de uma chave Pix (DICT) antes de criar a transferência. */
 export const consultarChavePix = createServerFn({ method: 'POST' })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input) => z.object({ pixKey: z.string().trim().min(3).max(200) }).parse(input))
+  .inputValidator((input) => z.object({ pixKey: z.string().trim().min(3).max(1500) }).parse(input))
   .handler(async ({ data, context }) => {
     await assertAdmin(context as any)
     const { lookupAsaasPixKey } = await import('@/lib/asaas.server')
@@ -125,7 +125,7 @@ export const criarPagamentoPix = createServerFn({ method: 'POST' })
       .object({
         idempotencyKey: z.string().min(8).max(120),
         favoredName: z.string().trim().max(150).nullable().optional(),
-        pixKey: z.string().trim().min(3).max(200),
+        pixKey: z.string().trim().min(3).max(1500),
         pixKeyType: z.enum(['CPF', 'CNPJ', 'EMAIL', 'PHONE', 'EVP']).nullable().optional(),
         cpfCnpj: z.string().trim().max(20).nullable().optional(),
         value: z.number().positive().max(1_000_000),
@@ -422,7 +422,7 @@ export const salvarChavePixFornecedor = createServerFn({ method: 'POST' })
       .object({
         supplierName: z.string().trim().min(1).max(200),
         favoredName: z.string().trim().max(150).nullable().optional(),
-        pixKey: z.string().trim().min(3).max(200),
+        pixKey: z.string().trim().min(3).max(1500),
         pixKeyType: z.string().trim().max(20).nullable().optional(),
         cpfCnpj: z.string().trim().max(20).nullable().optional(),
       })
