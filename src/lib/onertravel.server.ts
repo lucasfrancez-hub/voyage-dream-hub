@@ -452,35 +452,61 @@ export async function createFlightCart(data: CartData) {
   listQuery.set("isRoundTrip", String(data.isRoundTrip));
   listQuery.set("source", "f");
   const loc = `https://www.comprarviagem.com.br/viaair/flight-list?${listQuery.toString()}`;
-  const res = await fetch(`${API}/api/booking`, {
-    method: "POST",
-    headers: headers(loc),
-    body: JSON.stringify({
-      flight: {
-        searchKey: data.searchKey,
-        fareId: data.outboundFareId,
-        fareId2: data.inboundFareId ?? null,
-        outboundItineraryId: data.outboundItineraryId,
-        inboundItineraryId: data.inboundItineraryId ?? null,
-        teenagerCount: 0,
-      },
-      searchBookingKey: null,
-      affiliateTag: null,
-      eventId: null,
-    }),
+  const body = JSON.stringify({
+    flight: {
+      searchKey: data.searchKey,
+      fareId: data.outboundFareId,
+      fareId2: data.inboundFareId ?? null,
+      outboundItineraryId: data.outboundItineraryId,
+      inboundItineraryId: data.inboundItineraryId ?? null,
+      teenagerCount: 0,
+    },
+    searchBookingKey: null,
+    affiliateTag: null,
+    eventId: null,
   });
-  const text = await res.text();
+
   let cartId = "";
-  try {
-    cartId = (JSON.parse(text) as { data?: string }).data ?? "";
-  } catch {
+  let lastStatus = 0;
+  let lastMessage = "";
+  // A operadora costuma devolver 5xx/timeout esporádico; tentamos 3x com backoff.
+  for (let attempt = 0; attempt < 3; attempt++) {
+    if (attempt > 0) await new Promise((r) => setTimeout(r, 700 * attempt));
+    let res: Response;
+    try {
+      res = await fetch(`${API}/api/booking`, { method: "POST", headers: headers(loc), body });
+    } catch (err) {
+      lastMessage = err instanceof Error ? err.message : String(err);
+      continue;
+    }
+    lastStatus = res.status;
+    const text = await res.text();
+    try {
+      const parsed = JSON.parse(text) as { data?: string; message?: string; errors?: unknown };
+      cartId = parsed.data ?? "";
+      if (!cartId && parsed.message) lastMessage = parsed.message;
+    } catch {
+      cartId = "";
+      if (text) lastMessage = text.slice(0, 200);
+    }
+    if (res.ok && cartId) break;
     cartId = "";
+    // 4xx = tarifa realmente expirada/invalidada: não adianta repetir.
+    if (res.status >= 400 && res.status < 500) break;
   }
-  if (!res.ok || !cartId) {
+
+  if (!cartId) {
+    console.error("[onertravel] falha ao criar carrinho aéreo", {
+      status: lastStatus,
+      message: lastMessage,
+      searchKey: data.searchKey,
+    });
+    const detalhe = lastMessage ? ` Detalhe da operadora: ${lastMessage}` : "";
     throw new Error(
-      "A operadora não gerou o carrinho (tarifa pode ter expirado). Refaça a busca e tente de novo.",
+      `A operadora não gerou o carrinho (tarifa pode ter expirado, HTTP ${lastStatus}). Refaça a busca e tente de novo.${detalhe}`,
     );
   }
+
   const cartQuery = new URLSearchParams({ newCartId: cartId, source: "f" });
   cartQuery.set("isRoundTrip", String(data.isRoundTrip));
   ctx.forEach((v, k) => cartQuery.set(k, v));
