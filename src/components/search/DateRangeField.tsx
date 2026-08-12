@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { CalendarDays, ArrowRight, X } from "lucide-react";
 import { format, parse, isValid } from "date-fns";
@@ -42,7 +42,14 @@ export function DateRangeField({
   const [embedded, setEmbedded] = useState(false);
   const anchorRef = useRef<HTMLDivElement>(null);
   const calendarRef = useRef<HTMLDivElement>(null);
+  const embedResizeOwner = useRef({});
   const [pos, setPos] = useState({ top: 0, left: 0, width: 0 });
+  const today = useMemo(() => {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }, []);
+  const disabledDates = useMemo(() => ({ before: today }), [today]);
 
   useEffect(() => {
     try {
@@ -56,7 +63,7 @@ export function DateRangeField({
   useEffect(() => {
     if (!embedded) return;
     if (!open) {
-      resetEmbedHeight();
+      resetEmbedHeight(embedResizeOwner.current);
       return;
     }
     const update = () => {
@@ -72,29 +79,21 @@ export function DateRangeField({
         width: rect.width,
       });
     };
-    update();
-    const raf = window.requestAnimationFrame(update);
-    const t = window.setTimeout(() => {
+    // A largura do calendário agora é determinística; uma única medição após o
+    // commit basta. O ResizeObserver do utilitário acompanha mudanças reais.
+    const raf = window.requestAnimationFrame(() => {
       update();
-      resizeEmbedForFloatingElement(calendarRef.current, 32);
-    }, 40);
-    const t2 = window.setTimeout(() => {
-      update();
-      resizeEmbedForFloatingElement(calendarRef.current, 32);
-    }, 220);
+      resizeEmbedForFloatingElement(calendarRef.current, 32, embedResizeOwner.current);
+    });
 
     window.addEventListener("resize", update);
     window.addEventListener("scroll", update, true);
     return () => {
-      window.clearTimeout(t);
-      window.clearTimeout(t2);
       window.cancelAnimationFrame(raf);
       window.removeEventListener("resize", update);
       window.removeEventListener("scroll", update, true);
     };
-
-
-  }, [open, embedded, focus]);
+  }, [open, embedded]);
 
   const from = fromISO(departureDate);
   const to = fromISO(returnDate);
@@ -202,11 +201,12 @@ export function DateRangeField({
           mode="range"
           locale={ptBR}
           numberOfMonths={compact ? 1 : 2}
-          defaultMonth={from ?? new Date()}
+          defaultMonth={from ?? today}
+          fixedWeeks
           selected={{ from, to }}
           onSelect={handleSelect}
-          disabled={{ before: new Date() }}
-          className={cn("pointer-events-auto p-3")}
+          disabled={disabledDates}
+          className="pointer-events-auto"
         />
       </div>
 
@@ -259,9 +259,9 @@ export function DateRangeField({
                   position: "absolute",
                   top: pos.top,
                   left: pos.left,
-                  width: "max-content",
+                  width: 296,
                 }}
-                className="z-[100] max-w-[calc(100vw-16px)] overflow-hidden rounded-2xl border border-border/60 bg-popover shadow-2xl"
+                className="z-[100] max-w-[calc(100vw-16px)] overflow-x-auto overflow-y-visible rounded-2xl border border-border/60 bg-popover shadow-2xl"
 
               >
                 {panel(true)}

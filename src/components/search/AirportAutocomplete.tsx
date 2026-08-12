@@ -44,6 +44,7 @@ export function AirportAutocomplete({
   const [highlight, setHighlight] = useState(0);
   const boxRef = useRef<HTMLDivElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const embedResizeOwner = useRef({});
   const typingRef = useRef(false);
   const [pos, setPos] = useState({ top: 0, left: 0, width: 0 });
 
@@ -74,7 +75,7 @@ export function AirportAutocomplete({
   // e fazer o iframe do widget crescer pra não cortar as opções.
   useEffect(() => {
     if (!open) {
-      resetEmbedHeight();
+      resetEmbedHeight(embedResizeOwner.current);
       return;
     }
     const update = () => {
@@ -108,7 +109,7 @@ export function AirportAutocomplete({
 
   useEffect(() => {
     if (!open) return;
-    const t = window.setTimeout(() => resizeEmbedForFloatingElement(dropdownRef.current, 24), 40);
+    const t = window.setTimeout(() => resizeEmbedForFloatingElement(dropdownRef.current, 24, embedResizeOwner.current), 40);
     return () => window.clearTimeout(t);
   }, [open, options, pos.top]);
 
@@ -117,7 +118,7 @@ export function AirportAutocomplete({
     onSelect(a.iata.toUpperCase());
     setText(a.iata.toUpperCase());
     setOpen(false);
-    resetEmbedHeight();
+    resetEmbedHeight(embedResizeOwner.current);
   }
 
 

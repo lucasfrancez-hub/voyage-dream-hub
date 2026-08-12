@@ -35,6 +35,7 @@ export function DestinationAutocomplete({
   const [highlight, setHighlight] = useState(0);
   const boxRef = useRef<HTMLDivElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const embedResizeOwner = useRef({});
   const [pos, setPos] = useState({ top: 0, left: 0, width: 0 });
 
   useEffect(() => {
@@ -59,7 +60,7 @@ export function DestinationAutocomplete({
   // Lista em portal: acompanha a posição do campo e cresce o iframe do widget.
   useEffect(() => {
     if (!open) {
-      resetEmbedHeight();
+      resetEmbedHeight(embedResizeOwner.current);
       return;
     }
     const update = () => {
@@ -92,7 +93,7 @@ export function DestinationAutocomplete({
 
   useEffect(() => {
     if (!open) return;
-    const t = window.setTimeout(() => resizeEmbedForFloatingElement(dropdownRef.current, 24), 40);
+    const t = window.setTimeout(() => resizeEmbedForFloatingElement(dropdownRef.current, 24, embedResizeOwner.current), 40);
     return () => window.clearTimeout(t);
   }, [open, options, pos.top]);
 
@@ -100,7 +101,7 @@ export function DestinationAutocomplete({
     onSelect(p);
     setText(p.name);
     setOpen(false);
-    resetEmbedHeight();
+    resetEmbedHeight(embedResizeOwner.current);
   }
 
   return (
