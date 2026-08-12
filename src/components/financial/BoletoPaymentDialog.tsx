@@ -362,10 +362,10 @@ export function BoletoPaymentDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         overlayClassName="bg-black/80 backdrop-blur-xl"
-        className="max-w-md max-h-[92vh] overflow-y-auto rounded-3xl border-white/10 bg-card/80 p-0 backdrop-blur-2xl shadow-[0_32px_64px_-16px_rgba(0,0,0,0.55)]"
+        className="max-w-[380px] max-h-[86vh] overflow-y-auto rounded-2xl border-white/10 bg-card/80 p-0 backdrop-blur-2xl shadow-[0_32px_64px_-16px_rgba(0,0,0,0.55)]"
       >
-        <DialogHeader className="px-6 pb-4 pt-7 text-left">
-          <DialogTitle className="text-xl font-bold tracking-tight">
+        <DialogHeader className="px-5 pb-3 pt-5 text-left">
+          <DialogTitle className="text-base font-bold tracking-tight">
             {etapa === "conferencia" ? "Você está pagando" : "Pagar boleto"}
           </DialogTitle>
           <p className="text-xs font-medium text-muted-foreground">
@@ -376,7 +376,7 @@ export function BoletoPaymentDialog({
         </DialogHeader>
 
         {etapa === "codigo" ? (
-          <div className="space-y-5 px-6 pb-6">
+          <div className="space-y-4 px-5 pb-5">
             <div className="space-y-2">
               <div className="flex items-end justify-between px-1">
                 <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
@@ -455,7 +455,7 @@ export function BoletoPaymentDialog({
                       <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
                         Beneficiário
                       </p>
-                      <p className="text-base font-bold leading-tight break-words">{beneficiarioNome}</p>
+                      <p className="text-sm font-bold leading-tight break-words">{beneficiarioNome}</p>
                       {boleto.documentoBeneficiario && (
                         <p className="mt-0.5 text-xs text-muted-foreground">{boleto.documentoBeneficiario}</p>
                       )}
@@ -502,7 +502,7 @@ export function BoletoPaymentDialog({
                         <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
                           Total a pagar
                         </p>
-                        <p className="text-3xl font-bold tracking-tight">{formatBRL(valorAPagar)}</p>
+                        <p className="text-2xl font-bold tracking-tight">{formatBRL(valorAPagar)}</p>
                       </div>
                       <p className="pb-1 text-[10px] text-muted-foreground">
                         {boleto.vencido ? "Venceu em " : "Vence em "}{fmtDate(boleto.vencimento)}
@@ -607,7 +607,7 @@ export function BoletoPaymentDialog({
             <div className="space-y-5 rounded-3xl border border-white/5 bg-gradient-to-b from-muted/40 to-muted/10 p-5">
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Valor</p>
-                <p className="text-4xl font-bold tracking-tight">{formatBRL(valorAPagar)}</p>
+                <p className="text-3xl font-bold tracking-tight">{formatBRL(valorAPagar)}</p>
               </div>
               <div className="flex items-start gap-4 border-t border-white/5 pt-4">
                 <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-primary/20 bg-primary/10 text-primary">
@@ -615,7 +615,7 @@ export function BoletoPaymentDialog({
                 </div>
                 <div className="min-w-0">
                   <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Beneficiário</p>
-                  <p className="text-base font-bold leading-tight break-words">{beneficiarioNome}</p>
+                  <p className="text-sm font-bold leading-tight break-words">{beneficiarioNome}</p>
                   {boleto?.documentoBeneficiario && (
                     <p className="text-xs text-muted-foreground">{boleto.documentoBeneficiario}</p>
                   )}
