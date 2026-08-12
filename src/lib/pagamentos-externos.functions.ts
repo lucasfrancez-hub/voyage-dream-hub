@@ -2,17 +2,11 @@ import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
 import { requireSupabaseAuth } from '@/integrations/supabase/auth-middleware'
 import { assertAdmin } from './boleto-pay.helpers'
-
-const BUCKET = 'comprovantes-externos'
-
-const num = (v: unknown): number | null => {
-  if (v == null || v === '') return null
-  if (typeof v === 'number') return Number.isFinite(v) ? v : null
-  const s = String(v).replace(/[^\d,.-]/g, '')
-  const normalized = s.includes(',') ? s.replace(/\./g, '').replace(',', '.') : s
-  const n = Number(normalized)
-  return Number.isFinite(n) ? n : null
-}
+import {
+  COMPROVANTES_BUCKET as BUCKET,
+  parseValor as num,
+  registroExternoSchema,
+} from './pagamentos-externos.helpers'
 
 /** Lê um comprovante bancário externo (PDF/imagem) e extrai os dados com IA. */
 export const lerComprovanteExterno = createServerFn({ method: 'POST' })
@@ -112,35 +106,10 @@ export const lerComprovanteExterno = createServerFn({ method: 'POST' })
     return { path, extracao, erro: null as string | null }
   })
 
-const registroSchema = z.object({
-  financialEntryId: z.string().uuid().nullable().optional(),
-  bancoNome: z.string().min(2).max(120),
-  bancoCodigo: z.string().max(10).nullable().optional(),
-  formaPagamento: z.string().max(20).default('boleto'),
-  valor: z.number().positive(),
-  valorOriginal: z.number().nullable().optional(),
-  juros: z.number().nullable().optional(),
-  multa: z.number().nullable().optional(),
-  desconto: z.number().nullable().optional(),
-  dataPagamento: z.string().min(8),
-  dataVencimento: z.string().nullable().optional(),
-  beneficiarioNome: z.string().max(200).nullable().optional(),
-  beneficiarioDocumento: z.string().max(20).nullable().optional(),
-  pagadorNome: z.string().max(200).nullable().optional(),
-  pagadorDocumento: z.string().max(20).nullable().optional(),
-  contaDebito: z.string().max(120).nullable().optional(),
-  descricao: z.string().max(400).nullable().optional(),
-  autenticacao: z.string().max(200).nullable().optional(),
-  linhaDigitavel: z.string().max(60).nullable().optional(),
-  documentoPath: z.string().max(400).nullable().optional(),
-  rawExtracao: z.any().optional(),
-  darBaixa: z.boolean().default(true),
-})
-
 /** Registra um pagamento feito fora do ASAAS e (opcionalmente) dá baixa no lançamento. */
 export const registrarPagamentoExterno = createServerFn({ method: 'POST' })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) => registroSchema.parse(input))
+  .inputValidator((input: unknown) => registroExternoSchema.parse(input))
   .handler(async ({ data, context }) => {
     await assertAdmin(context as any)
     const ctx = context as any
