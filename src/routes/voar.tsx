@@ -152,6 +152,22 @@ export const Route = createFileRoute("/voar")({
     fm: typeof search.fm === "string" ? search.fm.slice(0, 7) : undefined,
   }),
 
+  loaderDeps: ({ search }) => ({
+    o: search.o ?? "",
+    d: search.d ?? "",
+    ida: search.ida ?? "",
+    volta: search.volta ?? "",
+    ad: search.ad ?? 1,
+    ch: search.ch ?? 0,
+    inf: search.inf ?? 0,
+  }),
+  // Dispara a busca do preset já no load da rota: quando o motor hidrata,
+  // a resposta da operadora normalmente já chegou (ou está a caminho).
+  loader: ({ deps, context }) => {
+    if (!deps.o || !deps.d || !deps.ida) return;
+    context.queryClient.prefetchQuery(presetSearchOptions(deps));
+  },
+
   head: () => ({
     meta: [
       { title: "Passagens aéreas em tempo real | VIA AIR" },
