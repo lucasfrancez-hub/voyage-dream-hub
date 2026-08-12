@@ -44,6 +44,62 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
   );
 }
 
+/** Blocos de bagagem (item pessoal / mão / despachada) no estilo do comparador. */
+function BaggageBlocks({ label }: { label: string | null }) {
+  const t = (label ?? "").toLowerCase();
+  const despachada = /despach|checked|23kg|bagagem inclu/.test(t);
+  const mao = despachada || /mão|mao|carry|hand|10kg/.test(t);
+  const pessoal = true;
+  const itens: { icon: typeof Briefcase; on: boolean; title: string }[] = [
+    { icon: Backpack, on: pessoal, title: "Item pessoal" },
+    { icon: Briefcase, on: mao, title: "Bagagem de mão" },
+    { icon: Luggage, on: despachada, title: "Bagagem despachada" },
+  ];
+  return (
+    <div className="flex flex-col items-center gap-1">
+      <div className="flex items-center justify-center gap-1">
+        {itens.map(({ icon: Icon, on, title }) => (
+          <span
+            key={title}
+            title={title}
+            className={`flex h-7 w-7 items-center justify-center rounded-md border transition-colors ${
+              on
+                ? "border-primary/40 bg-primary/15 text-primary"
+                : "border-border/60 bg-muted/40 text-muted-foreground/40"
+            }`}
+          >
+            <Icon className="h-3.5 w-3.5" />
+          </span>
+        ))}
+      </div>
+      <span className="text-[9px] font-medium uppercase tracking-wide text-muted-foreground">
+        {despachada ? "Com despachada" : mao ? "Bagagem de mão" : "Item pessoal"}
+      </span>
+    </div>
+  );
+}
+
+/** Placeholder de carregamento — cache de até 24h, sem cara de busca ao vivo. */
+function LoadingSkeleton() {
+  return (
+    <Card className="overflow-hidden rounded-2xl p-6">
+      <div className="mb-4 flex items-center gap-2 text-sm font-semibold">
+        <Clock className="h-4 w-4 text-primary" />
+        Preços coletados nas últimas 24 horas
+        <span className="text-xs font-normal text-muted-foreground">
+          · abrindo tarifas salvas
+        </span>
+      </div>
+      <div className="space-y-2">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <div key={i} className="h-11 animate-pulse rounded-xl bg-muted/50" />
+        ))}
+      </div>
+    </Card>
+  );
+}
+
+
 function PassagensBaratasPage() {
   const explorar = useServerFn(explorarPassagensMd);
   const buscarOrigens = useServerFn(buscarOrigensMd);
