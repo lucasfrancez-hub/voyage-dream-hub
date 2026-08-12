@@ -253,6 +253,7 @@ function VoarPublicPage() {
             infants: s.inf ?? 0,
           }}
           runToken={1}
+          presetFetch={() => queryClient.ensureQueryData(presetSearchOptions(deps))}
         />
       ) : (
         <SearchEngine
