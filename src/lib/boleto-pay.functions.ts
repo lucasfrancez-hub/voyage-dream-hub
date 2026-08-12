@@ -406,7 +406,10 @@ export const criarPagamentoBoleto = createServerFn({ method: 'POST' })
     }
 
     // Revalidação obrigatória no provedor antes de pagar
-    const simRes = await simulateAsaasBillSafe(linha)
+    const simRes = await simulateAsaasBillSafe({
+      barCode: parsed.barcode,
+      identificationField: linha,
+    })
     if (!simRes.ok) {
       const cls = classificarErroBoleto(simRes.description, simRes.code)
       return erro({
