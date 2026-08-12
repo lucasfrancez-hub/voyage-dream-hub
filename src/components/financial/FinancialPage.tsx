@@ -434,6 +434,7 @@ export function FinancialPage({ kind }: { kind: Kind }) {
           origin: "contas_pagar",
           financialEntryId: pixEntry?.id ?? null,
           favoredName: pixEntry?.counterparty ?? "",
+          pixKey: pixEntry?.pix_key ?? undefined,
           value: pixEntry ? Number(pixEntry.amount) : undefined,
           description: pixEntry?.description ?? "",
           date: pixEntry?.due_date ?? null,
