@@ -1987,6 +1987,56 @@ export function VoosPage({
       toast.error(e instanceof Error ? e.message : "Erro ao carregar mais voltas"),
   });
 
+  // Tarifa expirada no carrinho: refaz a busca do zero (sem filtro) e devolve as
+  // chaves novas do MESMO voo escolhido — o cliente não precisa pesquisar de novo.
+  const refreshFares = useCallback(
+    async (outSel: OnerFlight, inbSel: OnerFlight | null): Promise<FreshFares | null> => {
+      const raw = await search({
+        data: {
+          ...paxData(),
+          returnDate: form.returnDate || null,
+          searchKey: null,
+          filters: toOperatorFilters(EMPTY_FILTERS),
+        },
+      });
+      const r = normalizeSearchResult(raw);
+      if (!r?.searchKey) return null;
+      const alvoOut = flightSignature(outSel);
+      const novoOut = r.outbound.flights.find((f) => flightSignature(f) === alvoOut);
+      if (!novoOut) return null;
+      if (!inbSel) {
+        return {
+          searchKey: r.searchKey,
+          outboundFareId: novoOut.key,
+          outboundItineraryId: novoOut.journey.key,
+          inboundFareId: null,
+          inboundItineraryId: null,
+        };
+      }
+      const rawIn = await searchInbound({
+        data: {
+          ...paxData(),
+          returnDate: form.returnDate,
+          searchKey: r.searchKey,
+          flightKey: novoOut.key,
+          filters: toOperatorFilters(EMPTY_FILTERS),
+        },
+      });
+      const alvoIn = flightSignature(inbSel);
+      const novoIn = normalizeLeg(rawIn).flights.find((f) => flightSignature(f) === alvoIn);
+      if (!novoIn) return null;
+      return {
+        searchKey: r.searchKey,
+        outboundFareId: novoOut.key,
+        outboundItineraryId: novoOut.journey.key,
+        inboundFareId: novoIn.key,
+        inboundItineraryId: novoIn.journey.key,
+      };
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [form],
+  );
+
   function pickOutbound(key: string) {
     setSelectedOut(key);
     setSelectedIn(null);
