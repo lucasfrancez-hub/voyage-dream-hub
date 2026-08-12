@@ -395,21 +395,7 @@ export function PassagensBaratasExplorer({
       </nav>
 
 
-      {q.isLoading && <LoadingSkeleton />}
-
-      {q.isError && (
-        <Card className="flex flex-col items-start gap-3 p-6 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <p className="text-sm font-semibold">Não consegui carregar as tarifas agora</p>
-            <p className="text-xs text-muted-foreground">
-              A base de preços das últimas 24 horas está indisponível no momento.
-            </p>
-          </div>
-          <Button size="sm" variant="secondary" onClick={() => q.refetch()}>
-            <RefreshCw className="mr-1.5 h-3.5 w-3.5" /> Tentar novamente
-          </Button>
-        </Card>
-      )}
+      {(q.isLoading || (q.isError && !data)) && <LoadingSkeleton />}
 
       {/* Regiões / países */}
       {data?.categories.length ? (
