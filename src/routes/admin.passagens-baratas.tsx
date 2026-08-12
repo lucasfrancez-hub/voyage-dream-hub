@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { explorarPassagensMd } from "@/lib/melhores-destinos.functions";
-import { viaairFlightUrl } from "@/lib/melhores-destinos.parse";
+import { viaairFlightUrl, nomeCompanhia } from "@/lib/melhores-destinos.parse";
 
 export const Route = createFileRoute("/admin/passagens-baratas")({
   component: PassagensBaratasPage,
