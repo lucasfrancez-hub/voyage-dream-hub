@@ -7,9 +7,21 @@ import {
   mapBillStatus,
   onlyDigits,
   parseBoletoLine,
+  parseBoletoCode,
+  classificarErroBoleto,
+  BILL_STATUS_LABEL,
   todayBRT,
   isBoletoVencido,
 } from './boleto-pay.helpers'
+
+export type ErroBoleto = {
+  titulo: string
+  mensagem: string
+  codigo: string | null
+  tecnico: string | null
+  orientacao: string | null
+}
+
 
 function ip() {
   try {
@@ -150,7 +162,152 @@ export const lerBoleto = createServerFn({ method: 'POST' })
   })
 
 /* ------------------------------------------------------------------
+ * 1.b) Consulta do boleto ANTES de pagar (fluxo de banco)
+ * ------------------------------------------------------------------ */
+
+/** Procura pagamentos ativos do mesmo título (linha, barcode ou lançamento). */
+async function buscarDuplicidade(
+  supabaseAdmin: any,
+  linha: string,
+  barcode: string | null,
+  financialEntryId?: string | null,
+) {
+  const ativos = ['pendente', 'agendado', 'processando', 'pago']
+  const ors = [`identification_field.eq.${linha}`]
+  if (barcode && barcode !== linha) ors.push(`identification_field.eq.${barcode}`)
+  if (financialEntryId) ors.push(`financial_entry_id.eq.${financialEntryId}`)
+  const { data } = await supabaseAdmin
+    .from('asaas_bill_payments')
+    .select('id, status, value, scheduled_date, effective_date, asaas_bill_id, created_at')
+    .in('status', ativos)
+    .or(ors.join(','))
+    .order('created_at', { ascending: false })
+    .limit(1)
+  return (data && data[0]) || null
+}
+
+export const consultarBoleto = createServerFn({ method: 'POST' })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        code: z.string().min(20).max(80),
+        financialEntryId: z.string().uuid().nullable().optional(),
+      })
+      .parse(input ?? {}),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context as any)
+
+    const parsed = parseBoletoCode(data.code)
+    if (!parsed.valid || !parsed.linha) {
+      return {
+        ok: false as const,
+        podePagar: false,
+        erro: {
+          titulo: 'Código inválido',
+          mensagem: parsed.message ?? 'Não foi possível validar o código informado.',
+          codigo: 'formato_invalido',
+          tecnico: null,
+          orientacao: 'Confira a linha digitável ou o código de barras e digite novamente.',
+        } satisfies ErroBoleto,
+      }
+    }
+
+    const { supabaseAdmin } = await import('@/integrations/supabase/client.server')
+    const dup = await buscarDuplicidade(
+      supabaseAdmin,
+      parsed.linha,
+      parsed.barcode,
+      data.financialEntryId ?? null,
+    )
+    if (dup) {
+      return {
+        ok: false as const,
+        podePagar: false,
+        duplicidade: dup,
+        erro: {
+          titulo: 'Pagamento já existente para este boleto',
+          mensagem: `Já existe um pagamento ${
+            BILL_STATUS_LABEL[dup.status] ?? dup.status
+          } para este título em nosso sistema.`,
+          codigo: 'duplicidade',
+          tecnico: JSON.stringify(dup),
+          orientacao:
+            'Confirme o status do pagamento anterior na tela de Pagamentos. Cancele-o antes de criar outro.',
+        } satisfies ErroBoleto,
+      }
+    }
+
+    const { simulateAsaasBillSafe } = await import('@/lib/asaas.server')
+    const sim = await simulateAsaasBillSafe(parsed.linha)
+
+    if (!sim.ok) {
+      const cls = classificarErroBoleto(sim.description, sim.code)
+      return {
+        ok: false as const,
+        podePagar: false,
+        boleto: {
+          linhaDigitavel: parsed.linha,
+          codigoBarras: parsed.barcode,
+          valorOriginal: parsed.value,
+          vencimento: parsed.dueDate,
+        },
+        erro: {
+          titulo: cls.titulo,
+          mensagem: sim.description,
+          codigo: sim.code ?? (sim.status ? String(sim.status) : null),
+          tecnico: JSON.stringify(sim.raw ?? {}).slice(0, 2000),
+          orientacao:
+            'Verifique a situação do título com o beneficiário. Não é possível prosseguir com o pagamento.',
+        } satisfies ErroBoleto,
+      }
+    }
+
+    const s: any = sim.data ?? {}
+    const valorOriginal = Number(s.value ?? parsed.value ?? 0) || null
+    const valorFinal = Number(s.totalValue ?? s.value ?? parsed.value ?? 0) || null
+    const vencimento: string | null = s.dueDate ?? parsed.dueDate ?? null
+    // Valor só é editável quando o próprio provedor indicar título de valor aberto.
+    const valorEditavel = Boolean(
+      s.canChangeValue ?? (valorOriginal == null && (s.minimumValue != null || s.maximumValue != null)),
+    )
+
+    return {
+      ok: true as const,
+      podePagar: true,
+      boleto: {
+        tipo: parsed.kind,
+        linhaDigitavel: parsed.linha,
+        codigoBarras: s.barCode ?? parsed.barcode,
+        beneficiario: s.companyName ?? s.beneficiaryName ?? null,
+        documentoBeneficiario: s.cpfCnpj ?? s.beneficiaryCpfCnpj ?? null,
+        instituicao: s.bankName ?? s.bank?.name ?? null,
+        valorOriginal,
+        valorAtualizado: valorFinal,
+        valorFinal,
+        juros: s.interest ?? null,
+        multa: s.fine ?? null,
+        desconto: s.discount ?? null,
+        abatimento: s.deduction ?? s.rebate ?? null,
+        vencimento,
+        vencido: isBoletoVencido(vencimento),
+        descricao: s.description ?? s.additionalInformation ?? null,
+        valorEditavel,
+        valorMinimo: s.minimumValue ?? null,
+        valorMaximo: s.maximumValue ?? null,
+        dataMinimaPagamento: s.minimumPaymentDate ?? null,
+        dataMaximaPagamento: s.maximumPaymentDate ?? s.dueDateLimit ?? null,
+        podePagarComSaldo: s.canBePaidWithBalance ?? null,
+        hoje: todayBRT(),
+      },
+      raw: s,
+    }
+  })
+
+/* ------------------------------------------------------------------
  * 2) Criação/agendamento do pagamento
+
  * ------------------------------------------------------------------ */
 
 export const criarPagamentoBoleto = createServerFn({ method: 'POST' })
@@ -175,54 +332,114 @@ export const criarPagamentoBoleto = createServerFn({ method: 'POST' })
   .handler(async ({ data, context }) => {
     await assertAdmin(context as any)
     const { supabaseAdmin } = await import('@/integrations/supabase/client.server')
-    const {
-      simulateAsaasBill,
-      createAsaasBill,
-    } = await import('@/lib/asaas.server')
+    const { simulateAsaasBillSafe, createAsaasBillSafe } = await import('@/lib/asaas.server')
 
-    const linha = onlyDigits(data.identificationField)
+    const erro = (e: ErroBoleto) => ({ ok: false as const, erro: e })
 
-    // 6) sem duplicidade: bloqueia se já existe pagamento ativo p/ o boleto ou lançamento
-    const ativos = ['pendente', 'agendado', 'processando', 'pago']
-    const { data: existentes } = await supabaseAdmin
-      .from('asaas_bill_payments')
-      .select('id, status, scheduled_date, asaas_bill_id')
-      .in('status', ativos)
-      .or(
-        [
-          `identification_field.eq.${linha}`,
-          data.financialEntryId ? `financial_entry_id.eq.${data.financialEntryId}` : '',
-        ]
-          .filter(Boolean)
-          .join(','),
-      )
-      .limit(1)
-    if (existentes && existentes.length > 0) {
-      throw new Error(
-        'Já existe um pagamento ativo para este boleto/lançamento. Cancele o pagamento atual antes de criar outro.',
-      )
+    const parsed = parseBoletoCode(data.identificationField)
+    if (!parsed.valid || !parsed.linha) {
+      return erro({
+        titulo: 'Código inválido',
+        mensagem: parsed.message ?? 'Código de barras inválido.',
+        codigo: 'formato_invalido',
+        tecnico: null,
+        orientacao: 'Confira o código e tente novamente.',
+      })
+    }
+    const linha = parsed.linha
+
+    // Duplicidade: mesma linha, mesmo código de barras ou mesmo lançamento
+    const dup = await buscarDuplicidade(supabaseAdmin, linha, parsed.barcode, data.financialEntryId)
+    if (dup) {
+      return erro({
+        titulo: 'Pagamento já existente para este boleto',
+        mensagem: `Já existe um pagamento ${BILL_STATUS_LABEL[dup.status] ?? dup.status} para este título.`,
+        codigo: 'duplicidade',
+        tecnico: JSON.stringify(dup),
+        orientacao: 'Confirme o status do pagamento anterior antes de tentar novamente.',
+      })
     }
 
-    // 3) sempre revalidar no ASAAS antes de pagar
-    const sim = await simulateAsaasBill(linha)
+    // Revalidação obrigatória no provedor antes de pagar
+    const simRes = await simulateAsaasBillSafe(linha)
+    if (!simRes.ok) {
+      const cls = classificarErroBoleto(simRes.description, simRes.code)
+      return erro({
+        titulo: cls.titulo,
+        mensagem: simRes.description,
+        codigo: simRes.code ?? String(simRes.status || ''),
+        tecnico: JSON.stringify(simRes.raw ?? {}).slice(0, 2000),
+        orientacao: 'Verifique a situação do título com o beneficiário.',
+      })
+    }
+    const sim: any = simRes.data ?? {}
+
+    // O valor pago é sempre o do provedor — o frontend não pode alterá-lo.
     const valorAsaas = Number(sim?.value ?? sim?.totalValue ?? 0) || null
-    if (valorAsaas && Math.abs(valorAsaas - data.value) > 0.01) {
-      throw new Error(
-        `Divergência de valor: informado R$ ${data.value.toFixed(2)} × boleto R$ ${valorAsaas.toFixed(2)}.`,
-      )
+    const valorEditavel = Boolean(sim?.canChangeValue)
+    if (valorAsaas && !valorEditavel && Math.abs(valorAsaas - data.value) > 0.01) {
+      return erro({
+        titulo: 'Valor divergente',
+        mensagem: `O valor deste boleto é ${valorAsaas.toFixed(2)} e não pode ser alterado (informado ${data.value.toFixed(2)}).`,
+        codigo: 'valor_divergente',
+        tecnico: JSON.stringify({ valorAsaas, valorInformado: data.value }),
+        orientacao: 'Refaça a consulta do boleto para atualizar os valores.',
+      })
     }
+    const valorFinal = valorEditavel ? data.value : (valorAsaas ?? data.value)
 
     const venc = (sim?.dueDate as string | undefined) || data.dueDate || null
     let schedule = data.scheduleDate || null
+    const hoje = todayBRT()
+
+    // Validação da data escolhida
+    if (schedule) {
+      if (schedule < hoje) {
+        return erro({
+          titulo: 'Data de pagamento inválida',
+          mensagem: `Não é possível agendar para uma data passada (${schedule}).`,
+          codigo: 'data_passada',
+          tecnico: null,
+          orientacao: 'Escolha hoje ou uma data futura.',
+        })
+      }
+      const dMin: string | null = sim?.minimumPaymentDate ?? null
+      const dMax: string | null = sim?.maximumPaymentDate ?? sim?.dueDateLimit ?? null
+      if (dMin && schedule < dMin) {
+        return erro({
+          titulo: 'Pagamento não permitido para esta data',
+          mensagem: `Este título só pode ser pago a partir de ${dMin}.`,
+          codigo: 'data_minima',
+          tecnico: JSON.stringify({ dMin, schedule }),
+          orientacao: 'Ajuste a data do pagamento.',
+        })
+      }
+      if (dMax && schedule > dMax) {
+        return erro({
+          titulo: 'Pagamento não permitido para esta data',
+          mensagem: `Data limite para pagamento: ${dMax}.`,
+          codigo: 'data_maxima',
+          tecnico: JSON.stringify({ dMax, schedule }),
+          orientacao: 'Ajuste a data do pagamento.',
+        })
+      }
+    }
+
     // Agendamento com HORA: o ASAAS só aceita data, então seguramos localmente
     // e o cron dispara no horário exato (America/Sao_Paulo).
     const { brtToIso } = await import('@/lib/financial-dispatch.server')
     const scheduledAt =
       schedule && data.scheduleTime ? brtToIso(schedule, data.scheduleTime) : null
     const segurarLocal = !!scheduledAt && new Date(scheduledAt!).getTime() > Date.now()
-    if (schedule && schedule <= todayBRT() && !segurarLocal) schedule = null
+    if (schedule && schedule <= hoje && !segurarLocal) schedule = null
     if (schedule && isBoletoVencido(venc)) {
-      throw new Error('Este boleto está vencido. O pagamento não pode ser agendado para uma data futura.')
+      return erro({
+        titulo: 'Data de pagamento inválida',
+        mensagem: 'Este boleto está vencido — o pagamento não pode ser agendado para uma data futura.',
+        codigo: 'vencido_agendamento',
+        tecnico: JSON.stringify({ venc, schedule }),
+        orientacao: 'Escolha "Pagar agora" para liquidar o título hoje.',
+      })
     }
 
     const idem = `bill:${linha}:${scheduledAt ?? schedule ?? 'now'}`
@@ -234,8 +451,9 @@ export const criarPagamentoBoleto = createServerFn({ method: 'POST' })
         financial_entry_id: data.financialEntryId ?? null,
         identification_field: linha,
         beneficiary_name: data.beneficiaryName ?? (sim?.companyName as string | undefined) ?? null,
-        beneficiary_document: data.beneficiaryDocument ?? null,
-        value: data.value,
+        beneficiary_document: data.beneficiaryDocument ?? sim?.cpfCnpj ?? null,
+        value: valorFinal,
+
         discount: sim?.discount ?? null,
         interest: sim?.interest ?? null,
         fine: sim?.fine ?? null,
@@ -277,53 +495,25 @@ export const criarPagamentoBoleto = createServerFn({ method: 'POST' })
           })
           .eq('id', data.financialEntryId)
       }
-      return { id: row.id, asaasBillId: null, status: 'agendado', scheduledDate: schedule }
+      return {
+        ok: true as const,
+        id: row.id,
+        asaasBillId: null as string | null,
+        status: 'agendado',
+        scheduledDate: schedule,
+      }
     }
 
-    try {
-      const bill = await createAsaasBill({
-        identificationField: linha,
-        scheduleDate: schedule,
-        description: data.description ?? null,
-        externalReference: externalRef,
-      })
-      const status = mapBillStatus(bill?.status)
-      await supabaseAdmin
-        .from('asaas_bill_payments')
-        .update({
-          asaas_bill_id: bill?.id ?? null,
-          status,
-          scheduled_date: bill?.scheduleDate ?? schedule,
-          effective_date: bill?.paymentDate ?? null,
-          raw_response: bill as any,
-        })
-        .eq('id', row.id)
+    const billRes = await createAsaasBillSafe({
+      identificationField: linha,
+      scheduleDate: schedule,
+      description: data.description ?? null,
+      externalReference: externalRef,
+    })
 
-      await supabaseAdmin.from('asaas_bill_payment_events').insert({
-        bill_payment_id: row.id,
-        asaas_bill_id: bill?.id ?? null,
-        event: schedule ? 'agendado' : 'enviado',
-        status,
-        actor_user_id: context.userId,
-        ip: ip(),
-        payload: bill as any,
-      })
-
-      if (data.financialEntryId) {
-        await supabaseAdmin
-          .from('financial_entries')
-          .update({
-            bill_payment_status: status,
-            boleto_line: linha,
-            boleto_beneficiary: row.beneficiary_name,
-            payment_method: 'Boleto (ASAAS)',
-          })
-          .eq('id', data.financialEntryId)
-      }
-
-      return { id: row.id, asaasBillId: bill?.id ?? null, status, scheduledDate: bill?.scheduleDate ?? schedule }
-    } catch (e) {
-      const msg = (e as Error).message
+    if (!billRes.ok) {
+      const cls = classificarErroBoleto(billRes.description, billRes.code)
+      const msg = billRes.description
       await supabaseAdmin
         .from('asaas_bill_payments')
         .update({ status: 'falhou', fail_reason: msg })
@@ -335,9 +525,66 @@ export const criarPagamentoBoleto = createServerFn({ method: 'POST' })
         message: msg,
         actor_user_id: context.userId,
         ip: ip(),
+        payload: billRes.raw as any,
       })
-      throw new Error(msg)
+      if (data.financialEntryId) {
+        await supabaseAdmin
+          .from('financial_entries')
+          .update({ bill_payment_status: 'falhou' })
+          .eq('id', data.financialEntryId)
+      }
+      return erro({
+        titulo: cls.titulo === 'Consulta recusada' ? 'Pagamento não autorizado' : cls.titulo,
+        mensagem: msg,
+        codigo: billRes.code ?? String(billRes.status || ''),
+        tecnico: JSON.stringify(billRes.raw ?? {}).slice(0, 2000),
+        orientacao: 'O pagamento foi registrado como falhou. Nenhum valor foi debitado.',
+      })
     }
+
+    const bill: any = billRes.data ?? {}
+    const status = mapBillStatus(bill?.status)
+    await supabaseAdmin
+      .from('asaas_bill_payments')
+      .update({
+        asaas_bill_id: bill?.id ?? null,
+        status,
+        scheduled_date: bill?.scheduleDate ?? schedule,
+        effective_date: bill?.paymentDate ?? null,
+        raw_response: bill as any,
+      })
+      .eq('id', row.id)
+
+    await supabaseAdmin.from('asaas_bill_payment_events').insert({
+      bill_payment_id: row.id,
+      asaas_bill_id: bill?.id ?? null,
+      event: schedule ? 'agendado' : 'enviado',
+      status,
+      actor_user_id: context.userId,
+      ip: ip(),
+      payload: bill as any,
+    })
+
+    if (data.financialEntryId) {
+      await supabaseAdmin
+        .from('financial_entries')
+        .update({
+          bill_payment_status: status,
+          boleto_line: linha,
+          boleto_beneficiary: row.beneficiary_name,
+          payment_method: 'Boleto (ASAAS)',
+        })
+        .eq('id', data.financialEntryId)
+    }
+
+    return {
+      ok: true as const,
+      id: row.id,
+      asaasBillId: (bill?.id ?? null) as string | null,
+      status,
+      scheduledDate: bill?.scheduleDate ?? schedule,
+    }
+
   })
 
 /* ------------------------------------------------------------------
