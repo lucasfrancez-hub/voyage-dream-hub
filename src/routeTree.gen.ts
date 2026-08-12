@@ -85,6 +85,7 @@ import { Route as EmailUnsubscribeRouteImport } from './routes/email/unsubscribe
 import { Route as EmbedIngressosDestaqueRouteImport } from './routes/embed.ingressos-destaque'
 import { Route as EmbedMotorBuscaRouteImport } from './routes/embed.motor-busca'
 import { Route as EmbedPacotesDestaqueRouteImport } from './routes/embed.pacotes-destaque'
+import { Route as EmbedPassagensBaratasRouteImport } from './routes/embed.passagens-baratas'
 import { Route as LSlugRouteImport } from './routes/l.$slug'
 import { Route as OrcamentoTokenRouteImport } from './routes/orcamento.$token'
 import { Route as PacotesIndexRouteImport } from './routes/pacotes.index'
@@ -522,6 +523,11 @@ const EmbedPacotesDestaqueRoute = EmbedPacotesDestaqueRouteImport.update({
   path: '/embed/pacotes-destaque',
   getParentRoute: () => rootRouteImport,
 } as any)
+const EmbedPassagensBaratasRoute = EmbedPassagensBaratasRouteImport.update({
+  id: '/embed/passagens-baratas',
+  path: '/embed/passagens-baratas',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LSlugRoute = LSlugRouteImport.update({
   id: '/l/$slug',
   path: '/l/$slug',
@@ -909,6 +915,7 @@ export interface FileRoutesByFullPath {
   '/embed/ingressos-destaque': typeof EmbedIngressosDestaqueRoute
   '/embed/motor-busca': typeof EmbedMotorBuscaRoute
   '/embed/pacotes-destaque': typeof EmbedPacotesDestaqueRoute
+  '/embed/passagens-baratas': typeof EmbedPassagensBaratasRoute
   '/l/$slug': typeof LSlugRoute
   '/orcamento/$token': typeof OrcamentoTokenRoute
   '/pacotes/admin': typeof PacotesAdminRoute
@@ -1041,6 +1048,7 @@ export interface FileRoutesByTo {
   '/embed/ingressos-destaque': typeof EmbedIngressosDestaqueRoute
   '/embed/motor-busca': typeof EmbedMotorBuscaRoute
   '/embed/pacotes-destaque': typeof EmbedPacotesDestaqueRoute
+  '/embed/passagens-baratas': typeof EmbedPassagensBaratasRoute
   '/l/$slug': typeof LSlugRoute
   '/orcamento/$token': typeof OrcamentoTokenRoute
   '/pacotes/admin': typeof PacotesAdminRoute
@@ -1176,6 +1184,7 @@ export interface FileRoutesById {
   '/embed/ingressos-destaque': typeof EmbedIngressosDestaqueRoute
   '/embed/motor-busca': typeof EmbedMotorBuscaRoute
   '/embed/pacotes-destaque': typeof EmbedPacotesDestaqueRoute
+  '/embed/passagens-baratas': typeof EmbedPassagensBaratasRoute
   '/l/$slug': typeof LSlugRoute
   '/orcamento/$token': typeof OrcamentoTokenRoute
   '/pacotes/admin': typeof PacotesAdminRoute
@@ -1312,6 +1321,7 @@ export interface FileRouteTypes {
     | '/embed/ingressos-destaque'
     | '/embed/motor-busca'
     | '/embed/pacotes-destaque'
+    | '/embed/passagens-baratas'
     | '/l/$slug'
     | '/orcamento/$token'
     | '/pacotes/admin'
@@ -1444,6 +1454,7 @@ export interface FileRouteTypes {
     | '/embed/ingressos-destaque'
     | '/embed/motor-busca'
     | '/embed/pacotes-destaque'
+    | '/embed/passagens-baratas'
     | '/l/$slug'
     | '/orcamento/$token'
     | '/pacotes/admin'
@@ -1578,6 +1589,7 @@ export interface FileRouteTypes {
     | '/embed/ingressos-destaque'
     | '/embed/motor-busca'
     | '/embed/pacotes-destaque'
+    | '/embed/passagens-baratas'
     | '/l/$slug'
     | '/orcamento/$token'
     | '/pacotes/admin'
@@ -1665,6 +1677,7 @@ export interface RootRouteChildren {
   EmbedIngressosDestaqueRoute: typeof EmbedIngressosDestaqueRoute
   EmbedMotorBuscaRoute: typeof EmbedMotorBuscaRoute
   EmbedPacotesDestaqueRoute: typeof EmbedPacotesDestaqueRoute
+  EmbedPassagensBaratasRoute: typeof EmbedPassagensBaratasRoute
   LSlugRoute: typeof LSlugRoute
   OrcamentoTokenRoute: typeof OrcamentoTokenRoute
   ProtocoloProtocoloIdRoute: typeof ProtocoloProtocoloIdRoute
@@ -2245,6 +2258,13 @@ declare module '@tanstack/react-router' {
       path: '/embed/pacotes-destaque'
       fullPath: '/embed/pacotes-destaque'
       preLoaderRoute: typeof EmbedPacotesDestaqueRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/embed/passagens-baratas': {
+      id: '/embed/passagens-baratas'
+      path: '/embed/passagens-baratas'
+      fullPath: '/embed/passagens-baratas'
+      preLoaderRoute: typeof EmbedPassagensBaratasRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/l/$slug': {
@@ -2832,6 +2852,7 @@ const rootRouteChildren: RootRouteChildren = {
   EmbedIngressosDestaqueRoute: EmbedIngressosDestaqueRoute,
   EmbedMotorBuscaRoute: EmbedMotorBuscaRoute,
   EmbedPacotesDestaqueRoute: EmbedPacotesDestaqueRoute,
+  EmbedPassagensBaratasRoute: EmbedPassagensBaratasRoute,
   LSlugRoute: LSlugRoute,
   OrcamentoTokenRoute: OrcamentoTokenRoute,
   ProtocoloProtocoloIdRoute: ProtocoloProtocoloIdRoute,
