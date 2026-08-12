@@ -211,17 +211,22 @@ export function PassagensBaratasExplorer({
     });
   }, [data, current.fromIata, current.toIata]);
 
+  const montarLink = (p: { origem: string; destino: string; ida: string; volta: string }) =>
+    linkVoos
+      ? linkVoos(p)
+      : viaairFlightUrl(p.origem, p.destino, p.ida, p.volta || null, "", {
+          originName: null,
+          destinationName: null,
+        });
+
   const pesquisar = () => {
     if (!motor.origem || !motor.destino || !motor.ida) {
       toast.error("Informe origem, destino e data de ida");
       return;
     }
-    const url = viaairFlightUrl(motor.origem, motor.destino, motor.ida, motor.volta || null, "", {
-      originName: null,
-      destinationName: null,
-    });
-    window.open(url, "_blank", "noopener");
+    window.open(montarLink(motor), "_blank", "noopener");
   };
+
 
 
   const MESES = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
