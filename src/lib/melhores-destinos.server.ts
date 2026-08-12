@@ -10,7 +10,7 @@
  * link do parceiro (CVC, ViajaNet...).
  */
 import { z } from "zod";
-import { viaairFlightUrl } from "@/lib/melhores-destinos.parse";
+import { viaairFlightUrl, viaairRouteUrl } from "@/lib/melhores-destinos.parse";
 
 const SITE = "https://www.melhoresdestinos.com.br";
 const API = "https://passagensaereas.melhoresdestinos.com.br";
@@ -141,7 +141,10 @@ async function routesForKey(key: string, base: string) {
       destinationName: String(r.to_city_name ?? r.to_city_codes),
       price: Number(r.total_price ?? 0),
       currency: String(r.total_price_currency_display ?? "R$"),
-      viaairUrl: `${base}/voar?o=${r.from_city_code}&d=${r.to_city_codes}&m=aereo`,
+      viaairUrl: viaairRouteUrl(String(r.from_city_code), String(r.to_city_codes), {
+        originName: r.from_city_name ?? null,
+        destinationName: r.to_city_name ?? null,
+      }),
     }))
     .sort((a, b) => a.price - b.price);
   return { routes, updatedAt: data.data_hora ?? null };
@@ -266,8 +269,8 @@ function baggageLabel(type?: string | null): string | null {
 
 export const datasDaRotaInput = z.object({
   key: z.string().min(4).max(64),
-  from: z.string().length(3),
-  to: z.string().length(3),
+  from: z.string().min(3).max(4),
+  to: z.string().min(3).max(4),
   base: z.string().max(200).optional(),
 });
 export type DatasDaRotaInput = z.infer<typeof datasDaRotaInput>;
@@ -316,7 +319,10 @@ export async function datasDaRotaHandler({
         currency: String(d.price_currency ?? "R$"),
         partner: d.provider_name ?? null,
         partnerUrl,
-        viaairUrl: viaairFlightUrl(from, to, depart, ret, base),
+        viaairUrl: viaairFlightUrl(from, to, depart, ret, base, {
+          originName: json.from_city_name ?? null,
+          destinationName: json.to_city_name ?? null,
+        }),
       });
     }
   }
@@ -382,8 +388,8 @@ function iataFromLink(link?: string | null, which: "to" | "from" = "to"): string
 
 export const explorarInput = z.object({
   categoryId: z.number().int().positive().optional(),
-  toIata: z.string().length(3).optional(),
-  fromIata: z.string().length(3).optional(),
+  toIata: z.string().min(3).max(4).optional(),
+  fromIata: z.string().min(3).max(4).optional(),
   month: z.string().max(10).optional(),
   base: z.string().max(200).optional(),
 });
@@ -466,7 +472,13 @@ export async function explorarHandler({ data }: { data: ExplorarInput }): Promis
         fromName: c.from_city_name ? decodeEntities(c.from_city_name) : null,
         fromIata: from,
         price: typeof c.total_price === "number" ? c.total_price : null,
-        viaairUrl: from && to ? `${base}/voar?o=${from}&d=${to}&m=aereo` : null,
+        viaairUrl:
+          from && to
+            ? viaairRouteUrl(from, to, {
+                originName: c.from_city_name ?? null,
+                destinationName: c.to_city_name ?? null,
+              })
+            : null,
       };
     });
     return out;
@@ -505,7 +517,10 @@ export async function explorarHandler({ data }: { data: ExplorarInput }): Promis
           currency: String(d.price_currency ?? "R$"),
           partner: d.provider_name ?? null,
           partnerUrl,
-          viaairUrl: viaairFlightUrl(from, to, depart, ret, base),
+          viaairUrl: viaairFlightUrl(from, to, depart, ret, base, {
+            originName: json.from_city_name ?? null,
+            destinationName: json.to_city_name ?? null,
+          }),
         });
       }
     }
