@@ -1553,8 +1553,13 @@ function SummaryCard({
                   ) : (
                     <ShoppingCart className="h-4 w-4" />
                   )}
-                  Comprar agora
+                  {buyingPublic || cartMut.isPending
+                    ? "Gerando carrinho..."
+                    : cartMut.isError
+                      ? "Tentar novamente"
+                      : "Comprar agora"}
                 </Button>
+
               )
             ) : (
             <>
