@@ -200,7 +200,7 @@ export function DateRangeField({
         <Calendar
           mode="range"
           locale={ptBR}
-          numberOfMonths={compact ? 1 : 2}
+          numberOfMonths={1}
           defaultMonth={from ?? today}
           fixedWeeks
           selected={{ from, to }}
