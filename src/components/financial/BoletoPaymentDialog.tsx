@@ -114,7 +114,7 @@ export function BoletoPaymentDialog({
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
-  entry: { id: string; description: string; amount: number; due_date: string | null; counterparty: string | null; boleto_path?: string | null } | null;
+  entry: { id: string; description: string; amount: number; due_date: string | null; counterparty: string | null; boleto_path?: string | null; boleto_line?: string | null } | null;
   onDone?: () => void;
 }) {
   const upload = useServerFn(uploadBoletoDocument);
