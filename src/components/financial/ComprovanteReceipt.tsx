@@ -316,13 +316,13 @@ export function ComprovanteReceipt({
                 </div>
 
 
-                <div className="pt-4 border-t border-border">
+                <div className="pt-2.5 border-t border-border">
                   {data.transacaoId ? (
                     <>
-                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold mb-1.5">
+                      <p className="text-[8px] text-muted-foreground uppercase tracking-wider font-semibold mb-1">
                         {isBoleto ? "Identificador da operação" : "Identificador da transação"}
                       </p>
-                      <p className="text-[10px] font-mono text-muted-foreground break-all leading-snug">
+                      <p className="text-[9px] font-mono text-muted-foreground break-all leading-snug">
                         {data.transacaoId}
                       </p>
                     </>
@@ -331,17 +331,18 @@ export function ComprovanteReceipt({
                   {isBoleto &&
                   data.autenticacao &&
                   data.autenticacao !== data.transacaoId ? (
-                    <div className="mt-3">
-                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold mb-1.5">
+                    <div className="mt-2">
+                      <p className="text-[8px] text-muted-foreground uppercase tracking-wider font-semibold mb-1">
                         Autenticação
                       </p>
-                      <p className="text-[10px] font-mono text-muted-foreground break-all leading-snug">
+                      <p className="text-[9px] font-mono text-muted-foreground break-all leading-snug">
                         {data.autenticacao}
                       </p>
                     </div>
                   ) : null}
 
-                  <div className="mt-5 flex flex-col items-center gap-2 text-center">
+                  <div className="mt-3 flex flex-col items-center gap-1.5 text-center">
+
                     <div className="flex flex-col items-center gap-1.5">
                       <span className="text-[9px] text-muted-foreground uppercase font-semibold tracking-[0.2em]">
                         Pagamento processado por
