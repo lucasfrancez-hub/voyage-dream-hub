@@ -59,18 +59,83 @@ function moneyToNumber(text: string): number {
   return Number.isFinite(n) ? n : 0;
 }
 
-/** Monta o link do motor público da VIA AIR. */
+/** Cidades com mais de um aeroporto: o motor precisa do aeroporto principal. */
+const CIDADES_MULTI: Record<string, { iata: string; airport: string; city: string }> = {
+  SAO: {
+    iata: "GRU",
+    airport: "Guarulhos - Governador André Franco Montoro International Airport",
+    city: "São Paulo",
+  },
+  RIO: { iata: "GIG", airport: "Galeão - Antonio Carlos Jobim International Airport", city: "Rio de Janeiro" },
+  BHZ: { iata: "CNF", airport: "Tancredo Neves International Airport", city: "Belo Horizonte" },
+  BUE: { iata: "EZE", airport: "Ministro Pistarini International Airport", city: "Buenos Aires" },
+  NYC: { iata: "JFK", airport: "John F Kennedy International Airport", city: "Nova York" },
+  LON: { iata: "LHR", airport: "Heathrow Airport", city: "Londres" },
+  PAR: { iata: "CDG", airport: "Charles de Gaulle Airport", city: "Paris" },
+  MIL: { iata: "MXP", airport: "Malpensa Airport", city: "Milão" },
+  ROM: { iata: "FCO", airport: "Fiumicino Airport", city: "Roma" },
+  WAS: { iata: "IAD", airport: "Dulles International Airport", city: "Washington" },
+  CHI: { iata: "ORD", airport: "O'Hare International Airport", city: "Chicago" },
+  TYO: { iata: "NRT", airport: "Narita International Airport", city: "Tóquio" },
+};
+
+const CV_BASE = "https://www.comprarviagem.com.br/viaair/flight-list";
+
+function ponta(code: string, nome?: string | null) {
+  const iata = String(code ?? "").toUpperCase();
+  const multi = CIDADES_MULTI[iata];
+  const city = (nome ?? multi?.city ?? iata).trim();
+  const finalIata = multi?.iata ?? iata;
+  const name = multi ? `${city} - (${multi.iata} - ${multi.airport})` : `${city} - (${iata})`;
+  return { iata: finalIata, city, name };
+}
+
+const isoZ = (d: string) => `${d}T00:00:00.000Z`;
+
+/** Monta o link do motor público da VIA AIR (Comprar Viagem) já filtrado. */
 export function viaairFlightUrl(
   origin: string,
   destination: string,
   depart: string,
   ret: string | null,
-  base = "",
+  _base = "",
+  nomes?: { originName?: string | null; destinationName?: string | null; adults?: number },
 ): string {
-  const p = new URLSearchParams({ o: origin, d: destination, ida: depart, m: "aereo" });
-  if (ret) p.set("volta", ret);
-  return `${base}/voar?${p.toString()}`;
+  const from = ponta(origin, nomes?.originName);
+  const to = ponta(destination, nomes?.destinationName);
+  const p = new URLSearchParams({
+    departureDate: isoZ(depart),
+    ...(ret ? { returnDate: isoZ(ret) } : {}),
+    isRoundTrip: ret ? "true" : "false",
+    adultsCount: String(nomes?.adults ?? 1),
+    teenagerCount: "0",
+    infantCount: "0",
+    childCount: "0",
+    departureIata: from.iata,
+    arrivalIata: to.iata,
+    departureName: from.name,
+    arrivalName: to.name,
+    isDepartureIataCity: "false",
+    departureCity: from.city,
+    isArrivalIataCity: "false",
+    arrivalCity: to.city,
+    source: "f",
+    refresh: String(Date.now()),
+  });
+  return `${CV_BASE}?${p.toString()}`;
 }
+
+/** Busca sem datas (só o trecho) no motor da VIA AIR. */
+export function viaairRouteUrl(origin: string, destination: string, nomes?: {
+  originName?: string | null;
+  destinationName?: string | null;
+}): string {
+  const hoje = new Date();
+  const ida = new Date(hoje.getTime() + 30 * 86400000).toISOString().slice(0, 10);
+  const volta = new Date(hoje.getTime() + 37 * 86400000).toISOString().slice(0, 10);
+  return viaairFlightUrl(origin, destination, ida, volta, "", nomes);
+}
+
 
 function partnerFromUrl(url: string): string | null {
   try {

@@ -156,13 +156,18 @@ function PassagensBaratasPage() {
         </div>
       ) : null}
 
-      {/* Destinos ou origens */}
+      {/* Destinos ou origens (tabela igual à do Melhores Destinos) */}
       {data?.cities.length ? (
-        <Card className="divide-y overflow-hidden">
-          {data.cities.map((c, i) => (
-            <div key={`${c.fromIata ?? ""}-${c.toIata ?? i}`} className="flex items-center gap-3 p-3">
+        <Card className="overflow-hidden">
+          <div className="grid grid-cols-[1fr_auto] gap-3 bg-primary px-4 py-2.5 text-xs font-semibold uppercase tracking-wide text-primary-foreground">
+            <span>{data.level === "origins" ? "Origem → Destino" : "Destino"}</span>
+            <span className="text-right">Ida + volta a partir de</span>
+          </div>
+          <div className="divide-y">
+            {data.cities.map((c, i) => (
               <button
-                className="min-w-0 flex-1 text-left"
+                key={`${c.fromIata ?? ""}-${c.toIata ?? i}`}
+                className="grid w-full grid-cols-[1fr_auto] items-center gap-3 px-4 py-2.5 text-left transition hover:bg-muted/60"
                 onClick={() =>
                   data.level === "cities"
                     ? go({
@@ -178,25 +183,18 @@ function PassagensBaratasPage() {
                       })
                 }
               >
-                <div className="font-medium">
+                <span className="min-w-0 truncate text-sm">
                   {c.fromName ? `${c.fromName} → ${c.toName}` : c.toName}
-                </div>
-                <div className="text-xs text-muted-foreground">
-                  {data.level === "cities" ? "Ver origens" : "Ver datas"}
-                </div>
+                </span>
+                <span className="whitespace-nowrap text-sm font-bold">
+                  {c.price != null ? brl(c.price) : "—"}
+                </span>
               </button>
-              {c.price != null && <div className="font-semibold">{brl(c.price)}</div>}
-              {c.viaairUrl && (
-                <Button size="sm" asChild>
-                  <a href={c.viaairUrl} target="_blank" rel="noreferrer">
-                    Ver voos
-                  </a>
-                </Button>
-              )}
-            </div>
-          ))}
+            ))}
+          </div>
         </Card>
       ) : null}
+
 
       {/* Preços do trecho: gráfico de meses + melhores datas */}
       {data && (data.months.length > 0 || data.dates.length > 0) ? (
