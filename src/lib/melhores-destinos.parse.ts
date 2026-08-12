@@ -49,6 +49,13 @@ function decode(html: string): string {
     .replace(/&gt;/g, ">");
 }
 
+/** Normaliza datas curtas: "12/9" -> "12/09", "1/9" -> "01/09" */
+function padData(label: string): string {
+  return label.replace(/\b(\d{1,2})\/(\d{1,2})\b/g, (_m, d: string, m: string) =>
+    `${d.padStart(2, "0")}/${m.padStart(2, "0")}`,
+  );
+}
+
 function stripTags(html: string): string {
   return decode(html.replace(/<[^>]+>/g, " ")).replace(/\s+/g, " ").trim();
 }
@@ -325,8 +332,10 @@ export function parseMelhoresDestinos(html: string, sourceUrl: string, base = ""
       airlineLogo: logo,
       departDate: depart,
       returnDate: ret,
-      departLabel: (outText.replace(weekdayOut ?? "", "").trim() || outText).trim(),
-      returnLabel: inText ? (inText.replace(weekdayIn ?? "", "").trim() || inText).trim() : null,
+      departLabel: padData((outText.replace(weekdayOut ?? "", "").trim() || outText).trim()),
+      returnLabel: inText
+        ? padData((inText.replace(weekdayIn ?? "", "").trim() || inText).trim())
+        : null,
       weekdayOut,
       weekdayIn,
       nights: Number(/(\d+)\s*(dias|dia)/i.exec(stripTags(permCell))?.[1] ?? "") || null,
