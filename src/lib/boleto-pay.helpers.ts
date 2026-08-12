@@ -254,3 +254,96 @@ export function classificarErroBoleto(description: string, code?: string | null)
   }
   return { titulo: code ? `Consulta recusada (${code})` : 'Consulta recusada', bloqueia: true }
 }
+
+/* ==================================================================
+ * Regras puras de pagamento (cobertas por testes de regressão)
+ * ================================================================== */
+
+/** Status que ocupam o título: enquanto existir um destes, não se cria outro. */
+export const STATUS_ATIVOS = ['pendente', 'agendado', 'processando', 'pago'] as const
+
+export function isStatusAtivo(status?: string | null) {
+  return (STATUS_ATIVOS as readonly string[]).includes(String(status ?? ''))
+}
+
+/** Só pagamento efetivamente liquidado libera comprovante. */
+export function podeEmitirComprovante(status?: string | null) {
+  return String(status ?? '') === 'pago'
+}
+
+/** Cabeçalho do comprovante conforme o estado real do pagamento. */
+export function tituloComprovanteBoleto(status?: string | null) {
+  switch (String(status ?? '')) {
+    case 'pago':
+      return 'Comprovante de pagamento'
+    case 'agendado':
+      return 'Agendamento de pagamento'
+    case 'processando':
+      return 'Pagamento em processamento'
+    case 'pendente':
+      return 'Pagamento em andamento'
+    case 'cancelado':
+      return 'Pagamento cancelado'
+    case 'falhou':
+      return 'Pagamento não efetivado'
+    default:
+      return 'Pagamento'
+  }
+}
+
+/**
+ * Chave determinística do pagamento. Não usa timestamp: duplo clique,
+ * refresh e reenvio produzem exatamente a mesma chave e o índice único
+ * do banco impede o segundo pagamento.
+ */
+export function buildIdempotencyKey(
+  linha: string,
+  quando: string | null,
+  tentativa = 0,
+) {
+  const base = `bill:${onlyDigits(linha)}:${quando ?? 'now'}`
+  return tentativa > 0 ? `${base}#${tentativa}` : base
+}
+
+export type ValorResolvido =
+  | { ok: true; valor: number }
+  | { ok: false; valorProvedor: number; valorInformado: number }
+
+/**
+ * O valor pago é sempre o do provedor. O frontend só influencia quando o
+ * próprio título permite valor aberto (canChangeValue).
+ */
+export function resolverValorPagamento(args: {
+  valorProvedor: number | null
+  valorInformado: number
+  valorEditavel: boolean
+  minimo?: number | null
+  maximo?: number | null
+}): ValorResolvido {
+  const { valorProvedor, valorInformado, valorEditavel } = args
+  if (!valorEditavel) {
+    if (valorProvedor == null) return { ok: true, valor: valorInformado }
+    if (Math.abs(valorProvedor - valorInformado) > 0.01) {
+      return { ok: false, valorProvedor, valorInformado }
+    }
+    return { ok: true, valor: valorProvedor }
+  }
+  if (args.minimo != null && valorInformado < args.minimo - 0.001) {
+    return { ok: false, valorProvedor: args.minimo, valorInformado }
+  }
+  if (args.maximo != null && valorInformado > args.maximo + 0.001) {
+    return { ok: false, valorProvedor: args.maximo, valorInformado }
+  }
+  return { ok: true, valor: valorInformado }
+}
+
+/**
+ * Decide o que fazer quando o POST /bill não retorna resposta confiável
+ * (timeout, conexão perdida). Nunca reenviar às cegas.
+ */
+export function decidirAposFalhaDeRede(reconciliado: { encontrado: boolean; status?: string | null }) {
+  if (reconciliado.encontrado) {
+    return { acao: 'sincronizar' as const, reenviar: false, status: reconciliado.status ?? 'processando' }
+  }
+  return { acao: 'reconciliar_depois' as const, reenviar: false, status: 'processando' }
+}
