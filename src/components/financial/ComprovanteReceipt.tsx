@@ -208,10 +208,10 @@ export function ComprovanteReceipt({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="max-w-[400px] p-0 border-0 bg-transparent shadow-none print-receipt-wrapper"
+        className="w-[320px] max-w-[92vw] max-h-[86vh] overflow-y-auto p-0 border-0 bg-transparent shadow-none print-receipt-wrapper"
       >
         {loading || !data ? (
-          <div className="rounded-3xl bg-card p-16 flex justify-center">
+          <div className="rounded-2xl bg-card p-10 flex justify-center">
             <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
           </div>
         ) : (
@@ -219,27 +219,27 @@ export function ComprovanteReceipt({
             <div
               ref={cardRef}
               id="comprovante-print"
-              className="print-receipt relative overflow-hidden rounded-3xl bg-card border border-border shadow-[0_24px_48px_-16px_rgba(0,0,0,0.6)]"
+              className="print-receipt relative overflow-hidden rounded-2xl bg-card border border-border shadow-[0_16px_32px_-16px_rgba(0,0,0,0.6)]"
             >
 
-              <div className="h-1.5 w-full bg-brand-orange" />
+              <div className="h-1 w-full bg-brand-orange" />
 
-              <div className="relative p-6 flex flex-col gap-5">
-                <div className="flex flex-col items-center gap-2.5">
+              <div className="relative p-4 flex flex-col gap-3">
+                <div className="flex flex-col items-center gap-1.5">
                   <img
                     src={viaairLogo.url}
                     alt="VIA AIR"
-                    className="h-12 w-auto object-contain"
+                    className="h-8 w-auto object-contain"
                   />
-                  <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground mt-1">
+                  <p className="text-[8px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
                     {isBoleto ? "Valor total pago" : "Valor"}
                   </p>
-                  <h1 className="text-3xl font-bold tracking-tight text-foreground tabular-nums">
+                  <h1 className="text-xl font-bold tracking-tight text-foreground tabular-nums">
                     {formatBRL(data.valor)}
                   </h1>
 
-                  <p className="text-emerald-400 text-[11px] font-medium bg-emerald-400/10 px-3 py-1 rounded-full flex items-center gap-1.5">
-                    <CheckCircle2 className="h-3 w-3" />
+                  <p className="text-emerald-400 text-[9px] font-medium bg-emerald-400/10 px-2 py-0.5 rounded-full flex items-center gap-1">
+                    <CheckCircle2 className="h-2.5 w-2.5" />
                     {data.concluido === false
                       ? (data.status ?? "Em processamento")
                       : data.direction === "in"
@@ -248,9 +248,10 @@ export function ComprovanteReceipt({
                   </p>
                 </div>
 
+
                 {isBoleto ? (
-                  <div className="space-y-4">
-                    <div className="flex items-stretch justify-between gap-2 rounded-xl border border-border bg-muted/10 px-3 py-2">
+                  <div className="space-y-2.5">
+                    <div className="flex items-stretch justify-between gap-1.5 rounded-lg border border-border bg-muted/10 px-2 py-1.5">
                       <MiniValue label="Valor original" value={formatBRL(Number(data.valorOriginal ?? data.valor ?? 0))} />
                       <div className="w-px bg-border" />
                       <MiniValue label="Juros" value={formatBRL(Number(data.juros ?? 0))} />
@@ -260,20 +261,20 @@ export function ComprovanteReceipt({
                       <MiniValue label="Desconto" value={formatBRL(Number(data.desconto ?? 0))} />
                     </div>
 
-                    <div className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-border bg-border">
-                      <div className="bg-card p-3">
+                    <div className="grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-border bg-border">
+                      <div className="bg-card p-2">
                         <Field
                           label="Data do pagamento"
                           value={formatDate(data.dataPagamento ?? data.dataHora)}
                         />
                       </div>
-                      <div className="bg-card p-3">
+                      <div className="bg-card p-2">
                         <Field label="Vencimento" value={formatDate(data.dataVencimento)} />
                       </div>
                     </div>
 
                     {(data.codigoBarras || data.linhaDigitavel) ? (
-                      <div className="rounded-xl border border-border bg-muted/10 p-3">
+                      <div className="rounded-lg border border-border bg-muted/10 p-2">
                         <Field
                           label="Código de barras"
                           value={(data.codigoBarras || data.linhaDigitavel) as string}
@@ -282,14 +283,14 @@ export function ComprovanteReceipt({
                     ) : null}
 
                     {data.descricao ? (
-                      <div className="rounded-xl border border-border bg-muted/10 p-3">
+                      <div className="rounded-lg border border-border bg-muted/10 p-2">
                         <Field label="Descrição" value={data.descricao} />
                       </div>
                     ) : null}
                   </div>
 
                 ) : (
-                  <div className="grid grid-cols-2 gap-4 bg-muted/20 rounded-2xl p-4 border border-border">
+                  <div className="grid grid-cols-2 gap-2.5 bg-muted/20 rounded-lg p-2.5 border border-border">
                     <Field
                       label="Data do pagamento"
                       value={formatDate(data.dataPagamento ?? data.dataHora)}
@@ -308,19 +309,20 @@ export function ComprovanteReceipt({
                   </div>
                 )}
 
-                <div className="space-y-4">
+                <div className="space-y-2.5">
                   <PartyBlock title="Pagador" party={pagador} />
                   <div className="h-px w-full bg-border" />
                   <PartyBlock title={isBoleto ? "Beneficiário" : "Recebedor"} party={recebedor} />
                 </div>
 
-                <div className="pt-4 border-t border-border">
+
+                <div className="pt-2.5 border-t border-border">
                   {data.transacaoId ? (
                     <>
-                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold mb-1.5">
+                      <p className="text-[8px] text-muted-foreground uppercase tracking-wider font-semibold mb-1">
                         {isBoleto ? "Identificador da operação" : "Identificador da transação"}
                       </p>
-                      <p className="text-[10px] font-mono text-muted-foreground break-all leading-snug">
+                      <p className="text-[9px] font-mono text-muted-foreground break-all leading-snug">
                         {data.transacaoId}
                       </p>
                     </>
@@ -329,17 +331,18 @@ export function ComprovanteReceipt({
                   {isBoleto &&
                   data.autenticacao &&
                   data.autenticacao !== data.transacaoId ? (
-                    <div className="mt-3">
-                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold mb-1.5">
+                    <div className="mt-2">
+                      <p className="text-[8px] text-muted-foreground uppercase tracking-wider font-semibold mb-1">
                         Autenticação
                       </p>
-                      <p className="text-[10px] font-mono text-muted-foreground break-all leading-snug">
+                      <p className="text-[9px] font-mono text-muted-foreground break-all leading-snug">
                         {data.autenticacao}
                       </p>
                     </div>
                   ) : null}
 
-                  <div className="mt-5 flex flex-col items-center gap-2 text-center">
+                  <div className="mt-3 flex flex-col items-center gap-1.5 text-center">
+
                     <div className="flex flex-col items-center gap-1.5">
                       <span className="text-[9px] text-muted-foreground uppercase font-semibold tracking-[0.2em]">
                         Pagamento processado por
