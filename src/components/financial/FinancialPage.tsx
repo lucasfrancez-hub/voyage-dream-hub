@@ -790,14 +790,20 @@ function EntryDialog({
 
           {isPix && (
             <div className="rounded-2xl border border-white/10 bg-muted/20 p-3">
-              <Label>Chave Pix do fornecedor</Label>
-              <Input
+              <Label>Chave Pix ou Pix copia e cola</Label>
+              <Textarea
+                rows={2}
                 value={form.pix_key ?? ""}
-                onChange={(e) => setForm({ ...form, pix_key: e.target.value })}
-                placeholder="CPF/CNPJ, e-mail, telefone ou aleatória"
+                onChange={(e) => setForm({ ...form, pix_key: e.target.value.trim() })}
+                placeholder="CPF/CNPJ, e-mail, telefone, aleatória ou Pix copia e cola"
+                className="resize-none font-mono text-xs"
               />
+              <p className="mt-1 text-[11px] text-muted-foreground">
+                Pode colar o código copia e cola completo — identificamos o beneficiário automaticamente.
+              </p>
             </div>
           )}
+
 
           {podeProgramar && (
             <div className="rounded-2xl border border-primary/30 bg-primary/5 p-3 space-y-3">

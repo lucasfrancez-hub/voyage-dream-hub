@@ -667,39 +667,89 @@ export interface PixKeyOwner {
   personType: string | null
 }
 
+/** Verdadeiro quando o texto é um BR Code (Pix copia e cola). */
+export function isPixBrCode(raw: string): boolean {
+  const s = String(raw || '').trim()
+  return s.length >= 40 && (/^0002\d{2}/.test(s) || s.toLowerCase().includes('br.gov.bcb.pix'))
+}
+
+/** Extrai a chave (tag 26 → subtag 01) de um BR Code estático, quando existir. */
+export function chavePixDoBrCode(payload: string): string | null {
+  const s = String(payload || '').trim()
+  const parse = (str: string) => {
+    const out: Record<string, string> = {}
+    let i = 0
+    while (i + 4 <= str.length) {
+      const id = str.slice(i, i + 2)
+      const len = Number(str.slice(i + 2, i + 4))
+      if (!Number.isFinite(len)) break
+      out[id] = str.slice(i + 4, i + 4 + len)
+      i += 4 + len
+    }
+    return out
+  }
+  const root = parse(s)
+  for (const id of ['26', '27', '28', '29', '30', '31']) {
+    const tpl = root[id]
+    if (!tpl || !tpl.toLowerCase().includes('br.gov.bcb.pix')) continue
+    const sub = parse(tpl)
+    if (sub['01']) return sub['01'].trim()
+  }
+  return null
+}
+
 /**
  * Consulta o titular da chave Pix no DICT (via decode do ASAAS).
+ * Aceita chave (CPF/CNPJ, e-mail, telefone, aleatória) ou Pix copia e cola.
  * Lança erro quando a chave não existe ou não pode receber.
  */
 export async function lookupAsaasPixKey(rawKey: string): Promise<PixKeyOwner> {
-  const type = detectPixKeyType(rawKey)
-  if (!type) throw new Error('Não foi possível localizar esta chave Pix. Confira os dados e tente novamente.')
-  const key = normalizePixKey(rawKey, type)
+  const entrada = String(rawKey || '').trim()
+  const brCode = isPixBrCode(entrada)
+  const chaveDoCode = brCode ? chavePixDoBrCode(entrada) : null
+  const base = chaveDoCode ?? entrada
+  const type = detectPixKeyType(base)
+  if (!type && !brCode) {
+    throw new Error('Não foi possível localizar esta chave Pix. Confira os dados e tente novamente.')
+  }
+  const key = type ? normalizePixKey(base, type) : base
 
   let decoded: any
   try {
     decoded = await asaasFetch('/pix/qrCodes/decode', {
       method: 'POST',
-      body: JSON.stringify({ payload: staticPixPayload(key) }),
+      body: JSON.stringify({ payload: brCode ? entrada : staticPixPayload(key) }),
     })
   } catch {
-    throw new Error('Não foi possível localizar esta chave Pix. Confira os dados e tente novamente.')
+    throw new Error(
+      brCode
+        ? 'Não foi possível ler este Pix copia e cola. Confira o código e tente novamente.'
+        : 'Não foi possível localizar esta chave Pix. Confira os dados e tente novamente.',
+    )
   }
+
 
   const receiver = decoded?.receiver
   if (!receiver?.name || decoded?.canBePaid === false) {
     throw new Error('Não foi possível localizar esta chave Pix. Confira os dados e tente novamente.')
   }
 
+  const chaveFinal = String(decoded?.pix?.addressKey ?? decoded?.addressKey ?? key)
+  const tipoFinal = type ?? detectPixKeyType(chaveFinal)
+  if (!tipoFinal) {
+    throw new Error('Não foi possível identificar a chave Pix deste código. Use a chave do fornecedor.')
+  }
+
   return {
-    pixKey: key,
-    pixKeyType: type,
+    pixKey: type ? key : normalizePixKey(chaveFinal, tipoFinal),
+    pixKeyType: tipoFinal,
     name: String(receiver.name),
     cpfCnpj: receiver.cpfCnpj ?? null,
     bankName: receiver.ispbName ?? null,
     ispb: receiver.ispb ?? null,
     personType: receiver.personType ?? null,
   }
+
 }
 
 /* ============================================================

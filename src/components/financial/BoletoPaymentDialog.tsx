@@ -546,11 +546,16 @@ export function BoletoPaymentDialog({
                   <Button
                     variant={modo === "agendar" ? "default" : "secondary"}
                     disabled={boleto.vencido}
-                    onClick={() => setModo("agendar")}
+                    onClick={() => {
+                      setModo("agendar");
+                      // Agenda sempre para a data de vencimento do título
+                      setDataPagamento(boleto.vencimento ?? boleto.hoje);
+                    }}
                     className="h-9 gap-1.5 rounded-xl text-xs font-bold"
                   >
                     <CalendarClock className="h-3.5 w-3.5" /> Agendar
                   </Button>
+
                   <Button
                     variant={modo === "agora" ? "default" : "secondary"}
                     onClick={() => setModo("agora")}

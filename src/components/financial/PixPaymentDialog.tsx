@@ -295,7 +295,18 @@ export function PixPaymentDialog({
 
                 <div className="col-span-12 space-y-2 sm:col-span-5">
                   <Label className="ml-1 text-xs font-medium text-muted-foreground">Quando</Label>
-                  <Select value={mode} onValueChange={(v) => setMode(v as any)}>
+                  <Select
+                    value={mode}
+                    onValueChange={(v) => {
+                      setMode(v as any);
+                      // Agendar sempre na data de vencimento do lançamento
+                      if (v === "agendar") {
+                        const venc = initial?.date ?? todayBR();
+                        setDate(venc > todayBR() ? venc : todayBR());
+                      }
+                    }}
+                  >
+
                     <SelectTrigger className="h-auto rounded-2xl border-white/10 bg-muted/30 px-4 py-[1.15rem] text-sm font-medium">
                       <SelectValue />
                     </SelectTrigger>
