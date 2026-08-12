@@ -429,3 +429,42 @@ function Field({ label, value, clamp }: { label: string; value: string; clamp?: 
 }
 
 export default ComprovanteReceipt;
+
+const BANK_BRANDS: Record<string, { label: string; color: string; sigla: string }> = {
+  bradesco: { label: "BRADESCO", color: "#CC092F", sigla: "B" },
+  itau: { label: "ITAÚ", color: "#EC7000", sigla: "I" },
+  "banco do brasil": { label: "BANCO DO BRASIL", color: "#FCFF04", sigla: "BB" },
+  caixa: { label: "CAIXA", color: "#0070AF", sigla: "C" },
+  santander: { label: "SANTANDER", color: "#EC0000", sigla: "S" },
+  nubank: { label: "NUBANK", color: "#820AD1", sigla: "N" },
+  inter: { label: "INTER", color: "#FF7A00", sigla: "I" },
+  sicredi: { label: "SICREDI", color: "#3FA110", sigla: "S" },
+  sicoob: { label: "SICOOB", color: "#003641", sigla: "S" },
+  asaas: { label: "ASAAS", color: "#1E90FF", sigla: "A" },
+};
+
+function BankMark({ nome }: { nome: string }) {
+  const key = nome
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim();
+  const match = Object.keys(BANK_BRANDS).find((k) => key.includes(k.replace(/[\u0300-\u036f]/g, "")));
+  const brand = match
+    ? BANK_BRANDS[match]
+    : { label: nome.toUpperCase(), color: "#8A8A8A", sigla: nome.trim().charAt(0).toUpperCase() };
+
+  return (
+    <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted/30 px-2 py-0.5">
+      <span
+        className="flex h-4 min-w-4 items-center justify-center rounded-[4px] px-1 text-[8px] font-black text-white"
+        style={{ backgroundColor: brand.color }}
+      >
+        {brand.sigla}
+      </span>
+      <span className="text-[10px] font-bold tracking-widest text-foreground/80">
+        {brand.label}
+      </span>
+    </span>
+  );
+}
