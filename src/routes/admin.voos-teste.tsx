@@ -1720,8 +1720,9 @@ export function VoosPage({
   const search = useServerFn(publicMode ? onerFlightSearchPublic : onerFlightSearch);
   const searchInbound = useServerFn(publicMode ? onerInboundSearchPublic : onerInboundSearch);
   const [form, setForm] = useState({
-    departureIata: "CWB",
-    arrivalIata: "GRU",
+    departureIata: "",
+    arrivalIata: "",
+
     departureDate: "",
     returnDate: "",
     adults: 1,
