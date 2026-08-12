@@ -128,13 +128,17 @@ export function PassagensBaratasExplorer({
   filtro: filtroProp,
   onFiltroChange,
   className,
+  linkVoos,
 }: {
   trail?: Step[];
   onTrailChange?: (t: Step[]) => void;
   filtro?: MdFiltro;
   onFiltroChange?: (f: MdFiltro) => void;
   className?: string;
+  /** Monta o link de "Ver voos"/"Pesquisar" (padrão: motor Comprar Viagem). */
+  linkVoos?: (p: { origem: string; destino: string; ida: string; volta: string }) => string;
 } = {}) {
+
   const explorar = useServerFn(explorarPassagensMd);
   const buscarOrigens = useServerFn(buscarOrigensMd);
   const [trailState, setTrailState] = useState<Step[]>([{ label: "Passagens baratas" }]);
