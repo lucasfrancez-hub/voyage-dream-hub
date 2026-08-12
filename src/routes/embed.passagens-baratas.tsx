@@ -5,7 +5,8 @@
  */
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect } from "react";
-import { PassagensBaratasExplorer } from "@/routes/admin.passagens-baratas";
+import { PassagensBaratasExplorer, type MdStep } from "@/routes/admin.passagens-baratas";
+import { encodeTrail } from "@/lib/md-trail";
 
 const PUBLIC_SITE_URL = "https://pedidos.viaair.tur.br";
 
@@ -54,6 +55,11 @@ function EmbedPassagensBaratas() {
       <style>{`html,body,#root{background:transparent !important;margin:0;padding:0;}`}</style>
       <PassagensBaratasExplorer
         hideTrail
+        linkPasso={(t: MdStep[]) =>
+          `${PUBLIC_SITE_URL}/voar?${new URLSearchParams({
+            p: encodeTrail(t),
+          }).toString()}`
+        }
         linkVoos={({ origem, destino, ida, volta }) => {
           const p = new URLSearchParams({ o: origem, d: destino, ida });
           if (volta) p.set("volta", volta);

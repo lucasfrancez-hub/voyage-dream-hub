@@ -130,6 +130,7 @@ export function PassagensBaratasExplorer({
   className,
   linkVoos,
   hideTrail,
+  linkPasso,
 }: {
   trail?: Step[];
   onTrailChange?: (t: Step[]) => void;
@@ -140,6 +141,11 @@ export function PassagensBaratasExplorer({
   linkVoos?: (p: { origem: string; destino: string; ida: string; volta: string }) => string;
   /** Esconde o passo a passo (usado no embed do WordPress). */
   hideTrail?: boolean;
+  /**
+   * Quando definido, cada avanço de passo abre esta URL (nova aba) em vez de
+   * navegar dentro do próprio bloco — usado no embed do WordPress.
+   */
+  linkPasso?: (trail: Step[]) => string;
 } = {}) {
 
   const explorar = useServerFn(explorarPassagensMd);
@@ -208,7 +214,15 @@ export function PassagensBaratasExplorer({
       staleTime: 30 * 60 * 1000,
     });
 
-  const go = (step: Step) => setTrail((t) => [...t, step]);
+  const go = (step: Step) => {
+    const next = [...trail, step];
+    if (linkPasso) {
+      const url = linkPasso(next);
+      if (typeof window !== "undefined") window.open(url, "_blank", "noopener");
+      return;
+    }
+    setTrail(next);
+  };
   const backTo = (i: number) => setTrail((t) => t.slice(0, i + 1));
 
 
