@@ -25,6 +25,7 @@ import {
   setPromotionStatus,
 } from "@/lib/airfare-promos.functions";
 import { promoInstagramText, promoWhatsappText, type PromoRow } from "@/lib/airfare-promo-text";
+import { PromoArtDialog } from "@/components/promo/PromoArtDialog";
 
 export const Route = createFileRoute("/admin/promocoes-aereo")({
   head: () => ({
@@ -65,12 +66,14 @@ function PromoCard({
   onRefresh,
   onLink,
   onStatus,
+  onArt,
   busy,
 }: {
   promo: PromoRow & { id: string; status: string; fare_status: string; last_checked_at: string };
   onRefresh: () => void;
   onLink: () => void;
   onStatus: (s: string) => void;
+  onArt: () => void;
   busy: boolean;
 }) {
   const semJuros =
@@ -166,11 +169,10 @@ function PromoCard({
         </button>
         <button
           type="button"
-          disabled
-          title="Aguardando os HTMLs aprovados dos cards"
-          className="inline-flex items-center gap-1.5 rounded-lg border border-dashed border-border/70 px-2.5 py-1.5 text-[11px] font-semibold text-muted-foreground/70"
+          onClick={onArt}
+          className="inline-flex items-center gap-1.5 rounded-lg bg-brand-orange px-2.5 py-1.5 text-[11px] font-bold text-white hover:opacity-90"
         >
-          <ImageIcon className="h-3.5 w-3.5" /> Gerar arte (Feed / Story)
+          <ImageIcon className="h-3.5 w-3.5" /> Gerar arte
         </button>
 
         <select
@@ -261,6 +263,7 @@ function PromocoesAereoPage() {
   const [baggage, setBaggage] = useState(false);
   const [sort, setSort] = useState("preco");
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [artPromo, setArtPromo] = useState<(PromoRow & { id: string }) | null>(null);
 
   const filtros = useMemo(
     () => ({ origin, destination, airline, scope, status: promoStatus, baggage, sort }),
@@ -392,6 +395,7 @@ function PromocoesAereoPage() {
                 key={promo.id}
                 promo={promo}
                 busy={busyId === promo.id}
+                onArt={() => setArtPromo(promo)}
                 onRefresh={() =>
                   acao(promo.id, () => refreshOne({ data: { id: promo.id } }), "Tarifa reconsultada")
                 }
@@ -425,9 +429,11 @@ function PromocoesAereoPage() {
         <MarkupsPanel />
       </div>
 
+      {artPromo ? <PromoArtDialog promo={artPromo} onClose={() => setArtPromo(null)} /> : null}
+
       <p className="mt-4 flex items-center gap-1.5 text-[11px] text-muted-foreground">
-        <Copy className="h-3.5 w-3.5" /> Os cards Feed e Story serão conectados a estes mesmos dados assim que
-        os HTMLs aprovados chegarem.
+        <Copy className="h-3.5 w-3.5" /> Feed (1080×1350) e Story (1080×1920) usam o mesmo objeto de dados da
+        oferta — edite os campos no preview antes de gerar.
       </p>
     </div>
   );
