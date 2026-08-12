@@ -471,12 +471,14 @@ export const criarPagamentoBoleto = createServerFn({ method: 'POST' })
       })
     }
 
-    const idem = `bill:${linha}:${scheduledAt ?? schedule ?? 'now'}`
-    const externalRef = data.financialEntryId ? `entry:${data.financialEntryId}` : idem
+    const quando = scheduledAt ?? schedule ?? 'now'
+    const idem = buildIdempotencyKey(linha, quando)
+    const externalRef = `bill:${data.clientRequestId}`
 
-    const { data: row, error: insErr } = await supabaseAdmin
-      .from('asaas_bill_payments')
-      .insert({
+    const insertRow = (idempotencyKey: string) =>
+      supabaseAdmin
+        .from('asaas_bill_payments')
+        .insert({
         financial_entry_id: data.financialEntryId ?? null,
         identification_field: linha,
         beneficiary_name: data.beneficiaryName ?? (sim?.companyName as string | undefined) ?? null,
@@ -494,15 +496,48 @@ export const criarPagamentoBoleto = createServerFn({ method: 'POST' })
         boleto_path: data.boletoPath ?? null,
         description: data.description ?? null,
         external_reference: externalRef,
-        idempotency_key: `${idem}:${Date.now()}`,
+        idempotency_key: idempotencyKey,
+        client_request_id: data.clientRequestId,
         raw_simulation: sim as any,
         created_by: context.userId,
         created_by_name: (context as any).claims?.email ?? null,
         created_ip: ip(),
-      })
-      .select('*')
-      .single()
-    if (insErr) throw new Error(insErr.message)
+      } as any)
+        .select('*')
+        .single()
+
+    // O índice único de idempotency_key é a trava real contra duplo clique:
+    // se já existir pagamento ATIVO com a mesma chave, não criamos outro.
+    let row: any = null
+    let insErr: any = null
+    for (let tentativa = 0; tentativa < 5; tentativa++) {
+      const key = buildIdempotencyKey(linha, quando, tentativa)
+      const r = await insertRow(key)
+      if (!r.error) {
+        row = r.data
+        insErr = null
+        break
+      }
+      insErr = r.error
+      if (String(r.error.code) !== '23505') break
+      const { data: existente } = await supabaseAdmin
+        .from('asaas_bill_payments')
+        .select('id, status, asaas_bill_id, scheduled_date')
+        .eq('idempotency_key', key)
+        .maybeSingle()
+      if (existente && isStatusAtivo(existente.status)) {
+        return {
+          ok: true as const,
+          id: existente.id,
+          asaasBillId: existente.asaas_bill_id,
+          status: existente.status,
+          scheduledDate: existente.scheduled_date,
+          reaproveitado: true as const,
+        }
+      }
+      // Tentativa anterior cancelada/falhou: pode criar nova com sufixo.
+    }
+    if (!row) throw new Error(insErr?.message ?? 'Falha ao registrar o pagamento.')
 
     if (segurarLocal) {
       await supabaseAdmin.from('asaas_bill_payment_events').insert({
@@ -539,6 +574,72 @@ export const criarPagamentoBoleto = createServerFn({ method: 'POST' })
       description: data.description ?? null,
       externalReference: externalRef,
     })
+
+    // ---- Resposta perdida / timeout: NUNCA reenviar às cegas ----
+    if (!billRes.ok && (billRes.code === 'network_error' || billRes.status === 0 || billRes.status >= 500)) {
+      const { findAsaasBillsByExternalReference } = await import('@/lib/asaas.server')
+      const rec = await findAsaasBillsByExternalReference(externalRef)
+      const achado = rec.ok ? rec.bills[0] : null
+      if (achado) {
+        const st = mapBillStatus(achado?.status)
+        await supabaseAdmin
+          .from('asaas_bill_payments')
+          .update({
+            asaas_bill_id: achado?.id ?? null,
+            status: st,
+            scheduled_date: achado?.scheduleDate ?? schedule,
+            effective_date: achado?.paymentDate ?? null,
+            raw_response: achado as any,
+            needs_reconciliation: false,
+            reconciled_at: new Date().toISOString(),
+          } as any)
+          .eq('id', row.id)
+        await supabaseAdmin.from('asaas_bill_payment_events').insert({
+          bill_payment_id: row.id,
+          asaas_bill_id: achado?.id ?? null,
+          event: 'reconciliado',
+          status: st,
+          message: 'Resposta perdida no envio; pagamento localizado no banco pela referência.',
+          actor_user_id: context.userId,
+          ip: ip(),
+          payload: achado as any,
+        })
+        return {
+          ok: true as const,
+          id: row.id,
+          asaasBillId: (achado?.id ?? null) as string | null,
+          status: st,
+          scheduledDate: achado?.scheduleDate ?? schedule,
+          reconciliado: true as const,
+        }
+      }
+      await supabaseAdmin
+        .from('asaas_bill_payments')
+        .update({
+          status: 'processando',
+          needs_reconciliation: true,
+          fail_reason: billRes.description,
+        } as any)
+        .eq('id', row.id)
+      await supabaseAdmin.from('asaas_bill_payment_events').insert({
+        bill_payment_id: row.id,
+        event: 'sem_resposta',
+        status: 'processando',
+        message: `Sem confirmação do banco: ${billRes.description}. Nenhum reenvio automático foi feito.`,
+        actor_user_id: context.userId,
+        ip: ip(),
+        payload: billRes.raw as any,
+      })
+      return erro({
+        titulo: 'Sem confirmação do banco',
+        mensagem:
+          'Não recebemos a confirmação do banco para este envio. O pagamento ficou em verificação e NÃO foi reenviado.',
+        codigo: billRes.code ?? 'sem_resposta',
+        tecnico: billRes.description,
+        orientacao:
+          'Use o botão Atualizar na tela de Pagamentos em alguns minutos: o sistema consulta o banco pela referência e confirma se o pagamento existe antes de qualquer nova tentativa.',
+      })
+    }
 
     if (!billRes.ok) {
       const cls = classificarErroBoleto(billRes.description, billRes.code)
