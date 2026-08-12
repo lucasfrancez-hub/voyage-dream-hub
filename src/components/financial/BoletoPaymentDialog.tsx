@@ -603,7 +603,7 @@ export function BoletoPaymentDialog({
             </DialogFooter>
           </div>
         ) : (
-          <div className="space-y-4 px-6 pb-6">
+          <div className="space-y-3.5 px-5 pb-5">
             <div className="space-y-5 rounded-3xl border border-white/5 bg-gradient-to-b from-muted/40 to-muted/10 p-5">
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Valor</p>
