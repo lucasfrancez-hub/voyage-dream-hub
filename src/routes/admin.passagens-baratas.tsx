@@ -514,7 +514,7 @@ function PassagensBaratasPage() {
               </div>
               {q.isFetching && (
                 <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
-                  <Loader2 className="h-3 w-3 animate-spin" /> atualizando datas...
+                  <Loader2 className="h-3 w-3 animate-spin" /> carregando tarifas salvas...
                 </div>
               )}
             </Card>
