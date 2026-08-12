@@ -190,7 +190,10 @@ export function PassagensBaratasExplorer({
     gcTime: 60 * 60 * 1000,
     refetchOnWindowFocus: false,
     placeholderData: keepPreviousData,
-    retry: 1,
+    retry: 5,
+    retryDelay: (i) => Math.min(1000 * 2 ** i, 8000),
+    // Se ainda assim falhar, continua tentando em silêncio (sem tela de erro).
+    refetchInterval: (query) => (query.state.status === "error" ? 5000 : false),
   });
 
   const queryClient = useQueryClient();
