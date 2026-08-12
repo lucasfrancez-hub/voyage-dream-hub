@@ -194,6 +194,7 @@ export type Database = {
           beneficiary_document: string | null
           beneficiary_name: string | null
           boleto_path: string | null
+          client_request_id: string | null
           created_at: string
           created_by: string | null
           created_by_name: string | null
@@ -211,9 +212,11 @@ export type Database = {
           idempotency_key: string
           identification_field: string
           interest: number | null
+          needs_reconciliation: boolean
           paid_value: number | null
           raw_response: Json | null
           raw_simulation: Json | null
+          reconciled_at: string | null
           scheduled_at: string | null
           scheduled_date: string | null
           status: string
@@ -226,6 +229,7 @@ export type Database = {
           beneficiary_document?: string | null
           beneficiary_name?: string | null
           boleto_path?: string | null
+          client_request_id?: string | null
           created_at?: string
           created_by?: string | null
           created_by_name?: string | null
@@ -243,9 +247,11 @@ export type Database = {
           idempotency_key: string
           identification_field: string
           interest?: number | null
+          needs_reconciliation?: boolean
           paid_value?: number | null
           raw_response?: Json | null
           raw_simulation?: Json | null
+          reconciled_at?: string | null
           scheduled_at?: string | null
           scheduled_date?: string | null
           status?: string
@@ -258,6 +264,7 @@ export type Database = {
           beneficiary_document?: string | null
           beneficiary_name?: string | null
           boleto_path?: string | null
+          client_request_id?: string | null
           created_at?: string
           created_by?: string | null
           created_by_name?: string | null
@@ -275,9 +282,11 @@ export type Database = {
           idempotency_key?: string
           identification_field?: string
           interest?: number | null
+          needs_reconciliation?: boolean
           paid_value?: number | null
           raw_response?: Json | null
           raw_simulation?: Json | null
+          reconciled_at?: string | null
           scheduled_at?: string | null
           scheduled_date?: string | null
           status?: string
