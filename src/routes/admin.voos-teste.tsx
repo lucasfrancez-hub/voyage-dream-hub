@@ -1786,11 +1786,15 @@ export function VoosPage({
         setInFilters(EMPTY_FILTERS);
         setIsRoundTrip(!!form.returnDate);
         setAirlinePool(r.outbound.flights);
+        setAutoWaves(2);
         if (!r.outbound.flights.length) toast.warning("Nenhum voo retornado para esses parâmetros");
         else toast.success(`${r.outbound.flights.length} voos encontrados`);
-      } else if (!r.outbound.flights.length) {
-        toast.warning("Nenhum voo com esses filtros");
+      } else {
+        // Buscas filtradas não podem encolher a lista de companhias dos chips.
+        setAirlinePool((prev) => mergePool(prev, r.outbound.flights));
+        if (!r.outbound.flights.length) toast.warning("Nenhum voo com esses filtros");
       }
+
     },
     onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Erro na busca"),
   });
