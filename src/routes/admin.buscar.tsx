@@ -145,8 +145,9 @@ type ComboForm = {
 };
 
 const COMBO_INITIAL: ComboForm = {
-  departureIata: "CWB",
-  arrivalIata: "GRU",
+  departureIata: "",
+  arrivalIata: "",
+
   destinationCity: "",
   departureDate: "",
   returnDate: "",
