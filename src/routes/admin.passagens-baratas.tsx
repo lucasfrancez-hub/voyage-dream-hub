@@ -415,6 +415,7 @@ export function PassagensBaratasExplorer({
             <button
               key={c.id}
               onClick={() => go({ label: c.name, categoryId: c.id })}
+              onMouseEnter={() => prefetch({ label: c.name, categoryId: c.id })}
               className="group flex cursor-pointer items-center gap-4 rounded-2xl border border-border/50 bg-card p-4 text-left transition-all duration-300 hover:border-primary/40 hover:bg-muted/40"
             >
               <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl">
