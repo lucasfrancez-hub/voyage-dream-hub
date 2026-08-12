@@ -2498,6 +2498,9 @@ export function VoosPage({
                     </Button>
                   </div>
                   <SummaryCard
+                    // Cada combinação de voos gera um carrinho novo na operadora:
+                    // sem a key, o link/preço do carrinho anterior ficava preso no estado.
+                    key={`${outFlight!.key}|${inFlight?.key ?? "-"}`}
                     out={outFlight!}
                     inb={inFlight}
                     searchKey={result?.searchKey ?? null}
