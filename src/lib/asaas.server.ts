@@ -734,15 +734,22 @@ export async function lookupAsaasPixKey(rawKey: string): Promise<PixKeyOwner> {
     throw new Error('Não foi possível localizar esta chave Pix. Confira os dados e tente novamente.')
   }
 
+  const chaveFinal = String(decoded?.pix?.addressKey ?? decoded?.addressKey ?? key)
+  const tipoFinal = type ?? detectPixKeyType(chaveFinal)
+  if (!tipoFinal) {
+    throw new Error('Não foi possível identificar a chave Pix deste código. Use a chave do fornecedor.')
+  }
+
   return {
-    pixKey: key,
-    pixKeyType: type,
+    pixKey: type ? key : normalizePixKey(chaveFinal, tipoFinal),
+    pixKeyType: tipoFinal,
     name: String(receiver.name),
     cpfCnpj: receiver.cpfCnpj ?? null,
     bankName: receiver.ispbName ?? null,
     ispb: receiver.ispb ?? null,
     personType: receiver.personType ?? null,
   }
+
 }
 
 /* ============================================================
