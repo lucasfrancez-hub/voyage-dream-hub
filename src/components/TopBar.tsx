@@ -94,34 +94,19 @@ export function TopBar({
                 </SheetTitle>
               </SheetHeader>
               <nav className="flex flex-col p-3">
-                <Link
-                  to="/voar"
-                  onClick={() => setOpen(false)}
-                  className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-foreground hover:bg-brand-orange/10 hover:text-brand-orange transition"
-                >
-                  <Plane className="h-4 w-4" /> Passagens
-                </Link>
-                <Link
-                  to="/ingressos"
-                  onClick={() => setOpen(false)}
-                  className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-foreground hover:bg-brand-orange/10 hover:text-brand-orange transition"
-                >
-                  <Ticket className="h-4 w-4" /> Ingressos
-                </Link>
-                <Link
-                  to="/passeios"
-                  onClick={() => setOpen(false)}
-                  className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-foreground hover:bg-brand-orange/10 hover:text-brand-orange transition"
-                >
-                  <Compass className="h-4 w-4" /> Passeios
-                </Link>
-                <Link
-                  to="/pacotes"
-                  onClick={() => setOpen(false)}
-                  className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-foreground hover:bg-brand-orange/10 hover:text-brand-orange transition"
-                >
-                  <PackageIcon className="h-4 w-4" /> Pacotes
-                </Link>
+                {APP_NAV_ITEMS.map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <Link
+                      key={item.href}
+                      to={item.href}
+                      onClick={() => setOpen(false)}
+                      className={mobileNavClass(item.href)}
+                    >
+                      <Icon className="h-4 w-4" /> {item.label}
+                    </Link>
+                  );
+                })}
                 <div className="my-2 h-px bg-border/60" />
                 {NAV_ITEMS.map((item) => (
                   <a
