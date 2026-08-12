@@ -4,15 +4,16 @@
  * do nosso motor (Comprar Viagem) no lugar do parceiro.
  */
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { ChevronRight, Copy, ExternalLink, Loader2, Plane, RefreshCw } from "lucide-react";
+import { ChevronRight, ExternalLink, Loader2, Plane, RefreshCw, Search } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { explorarPassagensMd } from "@/lib/melhores-destinos.functions";
+import { viaairFlightUrl } from "@/lib/melhores-destinos.parse";
 
 export const Route = createFileRoute("/admin/passagens-baratas")({
   component: PassagensBaratasPage,
@@ -29,6 +30,17 @@ type Step = {
   fromIata?: string;
   month?: string;
 };
+
+function Field({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <label className="block rounded-xl border bg-background px-3 py-2 focus-within:border-primary">
+      <span className="block text-[9px] font-black uppercase tracking-widest text-primary">
+        {label}
+      </span>
+      {children}
+    </label>
+  );
+}
 
 function PassagensBaratasPage() {
   const explorar = useServerFn(explorarPassagensMd);
@@ -56,15 +68,34 @@ function PassagensBaratasPage() {
   const go = (step: Step) => setTrail((t) => [...t, step]);
   const backTo = (i: number) => setTrail((t) => t.slice(0, i + 1));
 
-  const copy = (text: string) =>
-    navigator.clipboard.writeText(text).then(
-      () => toast.success("Link copiado"),
-      () => toast.error("Não consegui copiar"),
-    );
-
   const data = q.data;
   const cheapest = data?.dates[0] ?? null;
   const maxMonth = Math.max(0, ...(data?.months.map((m) => m.price ?? 0) ?? [0]));
+
+  const [motor, setMotor] = useState({ origem: "", destino: "", ida: "", volta: "" });
+
+  useEffect(() => {
+    if (!data?.dates.length) return;
+    setMotor({
+      origem: current.fromIata ?? "",
+      destino: current.toIata ?? "",
+      ida: data.dates[0].departDate,
+      volta: data.dates[0].returnDate ?? "",
+    });
+  }, [data, current.fromIata, current.toIata]);
+
+  const pesquisar = () => {
+    if (!motor.origem || !motor.destino || !motor.ida) {
+      toast.error("Informe origem, destino e data de ida");
+      return;
+    }
+    const url = viaairFlightUrl(motor.origem, motor.destino, motor.ida, motor.volta || null, "", {
+      originName: null,
+      destinationName: null,
+    });
+    window.open(url, "_blank", "noopener");
+  };
+
 
   const MESES = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
   const monthParam = (label: string): string | null => {
