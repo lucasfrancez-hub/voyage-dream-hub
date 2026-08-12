@@ -231,9 +231,13 @@ export function ComprovanteReceipt({
                     alt="VIA AIR"
                     className="h-12 w-auto object-contain"
                   />
-                  <h1 className="text-3xl font-bold tracking-tight text-foreground tabular-nums mt-1">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground mt-1">
+                    {isBoleto ? "Valor total pago" : "Valor"}
+                  </p>
+                  <h1 className="text-3xl font-bold tracking-tight text-foreground tabular-nums">
                     {formatBRL(data.valor)}
                   </h1>
+
                   <p className="text-emerald-400 text-[11px] font-medium bg-emerald-400/10 px-3 py-1 rounded-full flex items-center gap-1.5">
                     <CheckCircle2 className="h-3 w-3" />
                     {data.concluido === false
@@ -245,33 +249,31 @@ export function ComprovanteReceipt({
                 </div>
 
                 {isBoleto ? (
-                  <div className="bg-muted/20 rounded-2xl p-4 border border-border space-y-3">
-                    <div className="grid grid-cols-2 gap-4">
-                      <Field
-                        label="Data e hora"
-                        value={formatDate(data.dataPagamento ?? data.dataHora)}
-                      />
-                      <div className="text-right">
+                  <div className="space-y-4">
+                    <div className="flex items-stretch justify-between gap-2 rounded-xl border border-border bg-muted/10 px-3 py-2">
+                      <MiniValue label="Valor original" value={formatBRL(Number(data.valorOriginal ?? data.valor ?? 0))} />
+                      <div className="w-px bg-border" />
+                      <MiniValue label="Juros" value={formatBRL(Number(data.juros ?? 0))} />
+                      <div className="w-px bg-border" />
+                      <MiniValue label="Multa" value={formatBRL(Number(data.multa ?? 0))} />
+                      <div className="w-px bg-border" />
+                      <MiniValue label="Desconto" value={formatBRL(Number(data.desconto ?? 0))} />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-border bg-border">
+                      <div className="bg-card p-3">
+                        <Field
+                          label="Data do pagamento"
+                          value={formatDate(data.dataPagamento ?? data.dataHora)}
+                        />
+                      </div>
+                      <div className="bg-card p-3">
                         <Field label="Vencimento" value={formatDate(data.dataVencimento)} />
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-x-4 gap-y-3 border-t border-border pt-3">
-                      <Field
-                        label="Valor original"
-                        value={formatBRL(Number(data.valorOriginal ?? data.valor ?? 0))}
-                      />
-                      <div className="text-right">
-                        <Field label="Desconto" value={formatBRL(Number(data.desconto ?? 0))} />
-                      </div>
-                      <Field label="Juros" value={formatBRL(Number(data.juros ?? 0))} />
-                      <div className="text-right">
-                        <Field label="Multa" value={formatBRL(Number(data.multa ?? 0))} />
-                      </div>
-                    </div>
-
                     {(data.codigoBarras || data.linhaDigitavel) ? (
-                      <div className="border-t border-border pt-3">
+                      <div className="rounded-xl border border-border bg-muted/10 p-3">
                         <Field
                           label="Código de barras"
                           value={(data.codigoBarras || data.linhaDigitavel) as string}
@@ -279,13 +281,13 @@ export function ComprovanteReceipt({
                       </div>
                     ) : null}
 
-
                     {data.descricao ? (
-                      <div className="border-t border-border pt-3">
+                      <div className="rounded-xl border border-border bg-muted/10 p-3">
                         <Field label="Descrição" value={data.descricao} />
                       </div>
                     ) : null}
                   </div>
+
                 ) : (
                   <div className="grid grid-cols-2 gap-4 bg-muted/20 rounded-2xl p-4 border border-border">
                     <Field
@@ -337,10 +339,10 @@ export function ComprovanteReceipt({
                     </div>
                   ) : null}
 
-                  <div className="mt-5 flex flex-col items-center gap-1.5">
-                    <div className="flex items-center gap-2">
-                      <span className="text-[9px] text-muted-foreground uppercase font-medium tracking-widest">
-                        Processado por
+                  <div className="mt-5 flex flex-col items-center gap-2 text-center">
+                    <div className="flex flex-col items-center gap-1.5">
+                      <span className="text-[9px] text-muted-foreground uppercase font-semibold tracking-[0.2em]">
+                        Pagamento processado por
                       </span>
                       {data.processadoPorLogoUrl ? (
                         <img
@@ -357,6 +359,7 @@ export function ComprovanteReceipt({
                       Documento gerado pelo sistema VIA AIR para simples conferência.
                     </span>
                   </div>
+
                 </div>
               </div>
             </div>
@@ -415,7 +418,17 @@ function PartyBlock({ title, party }: { title: string; party: ReceiptParty }) {
 }
 
 
+function MiniValue({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="min-w-0 flex-1 text-center">
+      <p className="text-[8px] font-bold uppercase tracking-wider text-muted-foreground">{label}</p>
+      <p className="text-[10px] font-medium text-foreground tabular-nums">{value}</p>
+    </div>
+  );
+}
+
 function Field({ label, value, clamp }: { label: string; value: string; clamp?: boolean }) {
+
   return (
     <div className="min-w-0">
       <span className="text-[9px] text-muted-foreground uppercase tracking-widest">{label}</span>
