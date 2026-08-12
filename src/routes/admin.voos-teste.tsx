@@ -1433,12 +1433,30 @@ function SummaryCard({
                       {fmtMoney(total)}
                     </div>
                     <div className="mt-1 text-[11px] font-semibold uppercase tracking-tight text-primary">
-                      Em até {n}x de {fmtMoney(total / n)} sem juros
+                      {cond.payment.pixOnly
+                        ? "Pagamento somente via Pix"
+                        : cond.interestFree.available
+                          ? `${cond.interestFree.installments}x de ${fmtMoney(cond.interestFree.installmentValue)} sem juros`
+                          : `À vista ${fmtMoney(total)}`}
                     </div>
+                    {cond.payment.upToThreeCards ? (
+                      <div className="mt-0.5 text-[10px] font-medium text-muted-foreground">
+                        Pix ou cartão de crédito • em até 3 cartões
+                      </div>
+                    ) : null}
+                    {extendedText(cond) ? (
+                      <div className="mt-1 text-[10px] font-medium text-muted-foreground">
+                        Precisa de mais parcelas? {extendedText(cond)} •{" "}
+                        <span className="opacity-80">{AVISO_MAIOR_PARCELAMENTO}</span>
+                      </div>
+                    ) : null}
                   </div>
                   <span className="mb-1 text-[10px] font-medium text-muted-foreground">
                     {fmtMoney(total / pax)} / passageiro
                   </span>
+                </div>
+                <div className="mt-2 text-[9px] font-medium uppercase tracking-wide text-muted-foreground/80">
+                  {AVISO_VALIDADE_TARIFA}
                 </div>
               </div>
             </div>
