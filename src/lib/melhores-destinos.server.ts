@@ -447,7 +447,34 @@ type RawTwd = {
   months?: RawDates["months"];
 };
 
+/** Último resultado bom por consulta — a tela nunca fica sem tarifas. */
+const ultimoBom = new Map<string, MdExplore>();
+
 export async function explorarHandler({ data }: { data: ExplorarInput }): Promise<MdExplore> {
+  const chave = JSON.stringify(data);
+  try {
+    const out = await explorarInterno({ data });
+    ultimoBom.set(chave, out);
+    if (ultimoBom.size > 200) {
+      const first = ultimoBom.keys().next().value;
+      if (first) ultimoBom.delete(first);
+    }
+    return out;
+  } catch (e) {
+    const cache = ultimoBom.get(chave);
+    if (cache) return cache;
+    // Último recurso: lista geral de regiões (sem filtros).
+    try {
+      const base = await explorarInterno({ data: { base: data.base } });
+      if (base.categories.length) return base;
+    } catch {
+      /* ignora */
+    }
+    throw e;
+  }
+}
+
+async function explorarInterno({ data }: { data: ExplorarInput }): Promise<MdExplore> {
   const base = (data.base ?? "").replace(/\/$/, "");
   const params = new URLSearchParams();
   if (data.categoryId) params.set("category_id", String(data.categoryId));
