@@ -661,15 +661,16 @@ export function PassagensBaratasExplorer({
                           <Button size="sm" variant={i === 0 ? "default" : "secondary"} asChild>
                             <a
                               href={
-                                data?.fromIata && data?.toIata
+                                current.fromIata && current.toIata
                                   ? montarLink({
-                                      origem: data.fromIata,
-                                      destino: data.toIata,
+                                      origem: current.fromIata,
+                                      destino: current.toIata,
                                       ida: o.departDate,
                                       volta: o.returnDate ?? "",
                                     })
                                   : o.viaairUrl
                               }
+
                               target="_blank"
                               rel="noreferrer"
                             >
