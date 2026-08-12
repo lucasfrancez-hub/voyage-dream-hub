@@ -344,17 +344,15 @@ function PassagensBaratasPage() {
                               <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-white p-1.5">
                                 <img
                                   src={o.airlineLogo}
-                                  alt={o.airline ?? "Companhia"}
+                                  alt={nomeCompanhia(o.airline) ?? "Companhia"}
                                   className="max-h-full max-w-full"
                                 />
                               </span>
                             ) : null}
-                            <div>
-                              <div className="text-xs font-bold">{o.airline ?? "—"}</div>
-                              <div className="text-[9px] uppercase tracking-tight text-muted-foreground">
-                                {o.partner ?? ""}
-                              </div>
+                            <div className="text-xs font-bold">
+                              {nomeCompanhia(o.airline) ?? "—"}
                             </div>
+
                           </div>
                         </td>
                         <td className="px-6 py-5">
