@@ -215,6 +215,9 @@ export function PassagensBaratasExplorer({
       staleTime: 30 * 60 * 1000,
     });
 
+  const hrefPasso = (step: Step) =>
+    linkPasso ? linkPasso([...trail, step]) : undefined;
+
   const go = (step: Step) => {
     const next = [...trail, step];
     if (linkPasso) {
@@ -224,6 +227,7 @@ export function PassagensBaratasExplorer({
     }
     setTrail(next);
   };
+
   const backTo = (i: number) => setTrail((t) => t.slice(0, i + 1));
 
 
@@ -428,13 +432,20 @@ export function PassagensBaratasExplorer({
       {/* Regiões / países */}
       {data?.categories.length ? (
         <div className="grid gap-4 md:grid-cols-2">
-          {data.categories.map((c) => (
-            <button
+          {data.categories.map((c) => {
+            const step: Step = { label: c.name, categoryId: c.id };
+            const href = hrefPasso(step);
+            const Tag: any = href ? "a" : "button";
+            return (
+            <Tag
               key={c.id}
-              onClick={() => go({ label: c.name, categoryId: c.id })}
-              onMouseEnter={() => prefetch({ label: c.name, categoryId: c.id })}
+              {...(href
+                ? { href, target: "_blank", rel: "noopener noreferrer" }
+                : { onClick: () => go(step) })}
+              onMouseEnter={() => prefetch(step)}
               className="group flex cursor-pointer items-center gap-4 rounded-2xl border border-border/50 bg-card p-4 text-left transition-all duration-300 hover:border-primary/40 hover:bg-muted/40"
             >
+
               <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl">
                 <img
                   src={imagemRegiao(c.name)}
@@ -460,8 +471,10 @@ export function PassagensBaratasExplorer({
                   <span className="text-xl font-bold text-primary">{brl(c.price)}</span>
                 </div>
               )}
-            </button>
-          ))}
+            </Tag>
+            );
+          })}
+
         </div>
 
       ) : null}
@@ -474,41 +487,32 @@ export function PassagensBaratasExplorer({
             <span className="text-right">Ida + volta a partir de</span>
           </div>
           <div className="flex flex-col">
-            {data.cities.map((c, i) => (
-              <button
+            {data.cities.map((c, i) => {
+              const step: Step =
+                data.level === "cities"
+                  ? {
+                      label: c.toName,
+                      categoryId: current.categoryId,
+                      toIata: c.toIata ?? undefined,
+                    }
+                  : {
+                      label: `${c.fromName} → ${c.toName}`,
+                      categoryId: current.categoryId,
+                      toIata: c.toIata ?? current.toIata,
+                      fromIata: c.fromIata ?? undefined,
+                    };
+              const href = hrefPasso(step);
+              const Tag: any = href ? "a" : "button";
+              return (
+              <Tag
                 key={`${c.fromIata ?? ""}-${c.toIata ?? i}`}
                 className="group flex w-full items-center justify-between gap-3 border-b border-white/5 px-6 py-4 text-left transition-all hover:bg-white/[0.03]"
-                onMouseEnter={() =>
-                  prefetch(
-                    data.level === "cities"
-                      ? {
-                          label: c.toName,
-                          categoryId: current.categoryId,
-                          toIata: c.toIata ?? undefined,
-                        }
-                      : {
-                          label: `${c.fromName} → ${c.toName}`,
-                          categoryId: current.categoryId,
-                          toIata: c.toIata ?? current.toIata,
-                          fromIata: c.fromIata ?? undefined,
-                        },
-                  )
-                }
-                onClick={() =>
-                  data.level === "cities"
-                    ? go({
-                        label: c.toName,
-                        categoryId: current.categoryId,
-                        toIata: c.toIata ?? undefined,
-                      })
-                    : go({
-                        label: `${c.fromName} → ${c.toName}`,
-                        categoryId: current.categoryId,
-                        toIata: c.toIata ?? current.toIata,
-                        fromIata: c.fromIata ?? undefined,
-                      })
-                }
+                onMouseEnter={() => prefetch(step)}
+                {...(href
+                  ? { href, target: "_blank", rel: "noopener noreferrer" }
+                  : { onClick: () => go(step) })}
               >
+
 
                 <div className="flex min-w-0 flex-col">
                   <span className="truncate font-semibold text-foreground transition-colors group-hover:text-primary">
@@ -531,8 +535,10 @@ export function PassagensBaratasExplorer({
                   </span>
                   <ChevronRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-1 group-hover:text-primary" />
                 </div>
-              </button>
-            ))}
+              </Tag>
+              );
+            })}
+
             <div className="bg-black/10 p-4 text-center text-[11px] font-medium uppercase tracking-tight text-muted-foreground">
               Visualizando os destinos mais econômicos{current.label ? ` para ${current.label}` : ""}
             </div>
