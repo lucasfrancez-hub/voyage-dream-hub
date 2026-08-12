@@ -6,10 +6,9 @@
  */
 import { createFileRoute } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { Plane, ShieldCheck, Headset, CreditCard, ChevronRight, BedDouble } from "lucide-react";
-import { VoosPage, CITY_CODES } from "./admin.voos-teste";
+import { ShieldCheck, Headset, CreditCard, ChevronRight } from "lucide-react";
+import { CITY_CODES } from "./admin.voos-teste";
 import { onerFlightSearchPublic } from "@/lib/onertravel-public.functions";
-import { HoteisPage } from "./admin.hoteis-teste";
 
 import { SearchEngine, type Mode } from "./admin.buscar";
 import {
