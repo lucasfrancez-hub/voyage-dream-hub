@@ -1762,13 +1762,13 @@ export function VoosPage({
       opts.usePreset && presetFetch
         ? presetFetch()
         : search({
-        data: {
-          ...paxData(),
-          returnDate: form.returnDate || null,
-          searchKey: opts.searchKey ?? null,
-          filters: toOperatorFilters(opts.filters),
-        },
-      }),
+            data: {
+              ...paxData(),
+              returnDate: form.returnDate || null,
+              searchKey: opts.searchKey ?? null,
+              filters: toOperatorFilters(opts.filters),
+            },
+          }),
     onSuccess: (raw, vars) => {
       const r = normalizeSearchResult(raw);
       if (!r) {
