@@ -171,7 +171,7 @@ function ComboForm({
   return (
     <div className="rounded-[32px] border border-border/50 bg-card/60 p-6 shadow-2xl backdrop-blur-xl">
       <div className="grid gap-3 lg:grid-cols-[1fr_1.2fr_auto]">
-        <div className="grid grid-cols-2 gap-3">
+        <div className="relative grid grid-cols-2 gap-3">
           <div className="space-y-1">
             <Label className="flex items-center gap-1 text-[11px] uppercase tracking-wide text-muted-foreground">
               <MapPin className="h-3 w-3" /> Origem
@@ -181,9 +181,20 @@ function ComboForm({
               maxLength={3}
               value={form.departureIata}
               onChange={(e) => setForm({ ...form, departureIata: e.target.value.toUpperCase() })}
-              placeholder="CWB"
+              placeholder="De onde sairemos?"
             />
           </div>
+          <button
+            type="button"
+            aria-label="Inverter origem e destino"
+            title="Inverter origem e destino"
+            onClick={() =>
+              setForm({ ...form, departureIata: form.arrivalIata, arrivalIata: form.departureIata })
+            }
+            className="absolute left-1/2 top-[calc(50%+0.5rem)] z-10 grid h-8 w-8 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border border-border/60 bg-card text-muted-foreground shadow-lg transition hover:text-primary active:scale-95"
+          >
+            <ArrowLeftRight className="h-3.5 w-3.5" />
+          </button>
           <div className="space-y-1">
             <Label className="flex items-center gap-1 text-[11px] uppercase tracking-wide text-muted-foreground">
               <ArrowLeftRight className="h-3 w-3" /> Destino
@@ -193,10 +204,11 @@ function ComboForm({
               maxLength={3}
               value={form.arrivalIata}
               onChange={(e) => setForm({ ...form, arrivalIata: e.target.value.toUpperCase() })}
-              placeholder="GRU"
+              placeholder="Para onde vamos?"
             />
           </div>
         </div>
+
 
         <div className="space-y-1">
           <Label className="flex items-center gap-1 text-[11px] uppercase tracking-wide text-muted-foreground">
