@@ -62,6 +62,24 @@ function PassagensBaratasPage() {
     );
 
   const data = q.data;
+  const cheapest = data?.dates[0] ?? null;
+  const maxMonth = Math.max(0, ...(data?.months.map((m) => m.price ?? 0) ?? [0]));
+
+  const MESES = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+  const monthParam = (label: string): string | null => {
+    const [mes, ano] = label.split("/");
+    const idx = MESES.indexOf(mes) + 1;
+    return idx && ano ? `${ano}-${idx}` : null;
+  };
+  const selectMonth = (label: string) => {
+    const month = monthParam(label);
+    if (!month) return;
+    setTrail((t) => {
+      const last = t[t.length - 1];
+      const base = last.baseLabel ?? last.label;
+      return [...t.slice(0, -1), { ...last, baseLabel: base, label: `${base} · ${label}`, month }];
+    });
+  };
 
   return (
     <div className="mx-auto w-full max-w-5xl space-y-5 p-4 md:p-6">
