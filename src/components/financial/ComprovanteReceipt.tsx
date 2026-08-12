@@ -219,27 +219,27 @@ export function ComprovanteReceipt({
             <div
               ref={cardRef}
               id="comprovante-print"
-              className="print-receipt relative overflow-hidden rounded-3xl bg-card border border-border shadow-[0_24px_48px_-16px_rgba(0,0,0,0.6)]"
+              className="print-receipt relative overflow-hidden rounded-2xl bg-card border border-border shadow-[0_16px_32px_-16px_rgba(0,0,0,0.6)]"
             >
 
-              <div className="h-1.5 w-full bg-brand-orange" />
+              <div className="h-1 w-full bg-brand-orange" />
 
-              <div className="relative p-6 flex flex-col gap-5">
-                <div className="flex flex-col items-center gap-2.5">
+              <div className="relative p-4 flex flex-col gap-3">
+                <div className="flex flex-col items-center gap-1.5">
                   <img
                     src={viaairLogo.url}
                     alt="VIA AIR"
-                    className="h-12 w-auto object-contain"
+                    className="h-8 w-auto object-contain"
                   />
-                  <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground mt-1">
+                  <p className="text-[8px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
                     {isBoleto ? "Valor total pago" : "Valor"}
                   </p>
-                  <h1 className="text-3xl font-bold tracking-tight text-foreground tabular-nums">
+                  <h1 className="text-xl font-bold tracking-tight text-foreground tabular-nums">
                     {formatBRL(data.valor)}
                   </h1>
 
-                  <p className="text-emerald-400 text-[11px] font-medium bg-emerald-400/10 px-3 py-1 rounded-full flex items-center gap-1.5">
-                    <CheckCircle2 className="h-3 w-3" />
+                  <p className="text-emerald-400 text-[9px] font-medium bg-emerald-400/10 px-2 py-0.5 rounded-full flex items-center gap-1">
+                    <CheckCircle2 className="h-2.5 w-2.5" />
                     {data.concluido === false
                       ? (data.status ?? "Em processamento")
                       : data.direction === "in"
@@ -247,6 +247,7 @@ export function ComprovanteReceipt({
                         : "Pagamento realizado"}
                   </p>
                 </div>
+
 
                 {isBoleto ? (
                   <div className="space-y-4">
