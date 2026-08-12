@@ -286,9 +286,30 @@ export const consultarBoleto = createServerFn({ method: 'POST' })
         tipo: parsed.kind,
         linhaDigitavel: parsed.linha,
         codigoBarras: s.barCode ?? parsed.barcode,
-        beneficiario: s.companyName ?? s.beneficiaryName ?? null,
-        documentoBeneficiario: s.cpfCnpj ?? s.beneficiaryCpfCnpj ?? null,
+        beneficiario:
+          s.companyName ??
+          s.beneficiaryName ??
+          s.recipient?.name ??
+          s.beneficiary?.name ??
+          s.payee?.name ??
+          s.assignor ??
+          s.assignorName ??
+          s.payeeName ??
+          s.recipientName ??
+          s.softDescriptor ??
+          s.bankName ??
+          s.bank?.name ??
+          null,
+        documentoBeneficiario:
+          s.cpfCnpj ??
+          s.beneficiaryCpfCnpj ??
+          s.recipient?.cpfCnpj ??
+          s.beneficiary?.cpfCnpj ??
+          s.payee?.cpfCnpj ??
+          s.assignorDocument ??
+          null,
         instituicao: s.bankName ?? s.bank?.name ?? null,
+
         valorOriginal,
         valorAtualizado: valorFinal,
         valorFinal,
