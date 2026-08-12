@@ -2319,7 +2319,9 @@ export function VoosPage({
       )}
 
       <main className={`mx-auto max-w-7xl px-4 ${publicMode && !result && !mut.isPending && !emptySlot ? "py-0" : "py-6"}`}>
-        {mut.isPending && !result && <SearchSkeleton />}
+        {/* Busca nova sempre mostra o esqueleto de carregamento, mesmo com
+            resultados antigos na tela — senão parece que travou. */}
+        {novaBusca && <SearchSkeleton />}
 
         {!result && !mut.isPending && emptySlot ? (
           <div data-empty-slot>{emptySlot}</div>
