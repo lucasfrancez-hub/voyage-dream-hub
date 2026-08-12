@@ -535,8 +535,10 @@ export function PassagensBaratasExplorer({
                   </span>
                   <ChevronRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-1 group-hover:text-primary" />
                 </div>
-              </button>
-            ))}
+              </Tag>
+              );
+            })}
+
             <div className="bg-black/10 p-4 text-center text-[11px] font-medium uppercase tracking-tight text-muted-foreground">
               Visualizando os destinos mais econômicos{current.label ? ` para ${current.label}` : ""}
             </div>
