@@ -1,11 +1,18 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import {
-  melhoresDestinosInput,
-  scrapeMelhoresDestinosHandler,
+  listarPromocoesInput,
+  listarPromocoesHandler,
+  datasDaRotaInput,
+  datasDaRotaHandler,
 } from "@/lib/melhores-destinos.server";
 
-export const scrapeMelhoresDestinos = createServerFn({ method: "POST" })
+export const listarPromocoesMd = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data) => melhoresDestinosInput.parse(data))
-  .handler(scrapeMelhoresDestinosHandler);
+  .inputValidator((data) => listarPromocoesInput.parse(data))
+  .handler(listarPromocoesHandler);
+
+export const datasDaRotaMd = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data) => datasDaRotaInput.parse(data))
+  .handler(datasDaRotaHandler);
