@@ -23,19 +23,24 @@ import {
   sincronizarTodosPagamentosBoleto,
 } from "@/lib/boleto-pay.functions";
 import { formatarLinhaDigitavel } from "@/lib/boleto-html";
+import { listarPagamentosExternos } from "@/lib/pagamentos-externos.functions";
+import { bancoSlug, formaLabel, type PagamentoExterno } from "@/lib/pagamentos-externos.helpers";
+import { ExternalReceiptButton } from "@/components/financial/ExternalReceiptButton";
 import { confirmThen } from "@/lib/confirm";
 
 /** Selo visual do tipo de operação na listagem. */
-function TipoBadge({ kind }: { kind: "pix" | "boleto" }) {
+function TipoBadge({ kind, label }: { kind: "pix" | "boleto" | "externo"; label?: string }) {
   return (
     <span
       className={`shrink-0 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${
         kind === "pix"
           ? "bg-brand-orange/15 text-brand-orange"
-          : "bg-sky-500/15 text-sky-400"
+          : kind === "boleto"
+            ? "bg-sky-500/15 text-sky-400"
+            : "bg-violet-500/15 text-violet-400"
       }`}
     >
-      {kind === "pix" ? "Pix" : "Boleto"}
+      {label ?? (kind === "pix" ? "Pix" : kind === "boleto" ? "Boleto" : "Externo")}
     </span>
   );
 }
@@ -89,7 +94,8 @@ const BOLETO_STATUS_META: Record<string, { label: string; cls: string; bucket: s
 };
 
 type UnifiedRow = {
-  kind: "pix" | "boleto";
+  kind: "pix" | "boleto" | "externo";
+  banco: string;
   id: string;
   bucket: string;
   statusLabel: string;
@@ -106,6 +112,7 @@ function PagamentosPage() {
   const qc = useQueryClient();
   const listar = useServerFn(listarPagamentosPix);
   const listarBoletos = useServerFn(listarPagamentosBoleto);
+  const listarExternos = useServerFn(listarPagamentosExternos);
   const sincronizar = useServerFn(sincronizarPagamentoPix);
   const sincronizarTodos = useServerFn(sincronizarTodosPagamentosPix);
   const sincronizarTodosBoletos = useServerFn(sincronizarTodosPagamentosBoleto);
@@ -119,7 +126,8 @@ function PagamentosPage() {
   const [reciboBoleto, setReciboBoleto] = useState<any | null>(null);
   const [detalheId, setDetalheId] = useState<string | null>(null);
   const [filter, setFilter] = useState<string>("todos");
-  const [tipoFilter, setTipoFilter] = useState<"todos" | "pix" | "boleto">("todos");
+  const [tipoFilter, setTipoFilter] = useState<"todos" | "pix" | "boleto" | "externo">("todos");
+  const [bancoFilter, setBancoFilter] = useState<string>("todos");
   const [search, setSearch] = useState("");
   const [sincronizandoTudo, setSincronizandoTudo] = useState(false);
 
@@ -128,6 +136,12 @@ function PagamentosPage() {
     queryKey: ["asaas-transfers"],
     queryFn: async () => (await listar({ data: {} })) as any[],
     refetchInterval: 30_000,
+  });
+
+  const externosQ = useQuery({
+    queryKey: ["pagamentos-externos-list"],
+    queryFn: async () => (await listarExternos({ data: {} })) as any,
+    refetchInterval: 60_000,
   });
 
   const boletosQ = useQuery({
@@ -141,6 +155,7 @@ function PagamentosPage() {
       const meta = STATUS_META[r.status];
       return {
         kind: "pix",
+        banco: "ASAAS",
         id: r.id,
         bucket: r.status,
         statusLabel: meta?.label ?? r.status,
@@ -157,6 +172,7 @@ function PagamentosPage() {
       const meta = BOLETO_STATUS_META[b.status];
       return {
         kind: "boleto",
+        banco: "ASAAS",
         id: b.id,
         bucket: meta?.bucket ?? b.status,
         statusLabel: meta?.label ?? b.status,
@@ -169,10 +185,30 @@ function PagamentosPage() {
         raw: b,
       };
     });
-    return [...pix, ...boletos].sort(
+    const externos = (((externosQ.data?.items ?? []) as PagamentoExterno[])).map((p): UnifiedRow => ({
+      kind: "externo",
+      banco: bancoSlug(p.banco_nome),
+      id: p.id,
+      bucket: "concluido",
+      statusLabel: "Pago",
+      statusCls: "bg-emerald-500/15 text-emerald-400",
+      nome: p.beneficiario_nome ?? p.descricao ?? "Pagamento externo",
+      sub: `${formaLabel(p.forma_pagamento)} · ${bancoSlug(p.banco_nome)}`,
+      valor: Number(p.valor ?? 0),
+      createdAt: p.data_pagamento ?? p.created_at,
+      scheduledDate: null,
+      raw: p,
+    }));
+    return [...pix, ...boletos, ...externos].sort(
       (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
     );
-  }, [data, boletosQ.data]);
+  }, [data, boletosQ.data, externosQ.data]);
+
+  const bancosDisponiveis = useMemo(() => {
+    const set = new Set<string>();
+    for (const r of rows) if (r.kind === "externo") set.add(r.banco);
+    return Array.from(set).sort();
+  }, [rows]);
 
   const agendados = rows.filter((r) => r.bucket === "agendado");
 
@@ -180,6 +216,9 @@ function PagamentosPage() {
     let list = rows;
     if (tipoFilter !== "todos") list = list.filter((r) => r.kind === tipoFilter);
     if (filter !== "todos") list = list.filter((r) => r.bucket === filter);
+    if (bancoFilter === "asaas") list = list.filter((r) => r.banco === "ASAAS");
+    else if (bancoFilter === "externo") list = list.filter((r) => r.kind === "externo");
+    else if (bancoFilter !== "todos") list = list.filter((r) => r.banco === bancoFilter);
     if (search.trim()) {
       const s = search.toLowerCase();
       list = list.filter(
@@ -190,7 +229,7 @@ function PagamentosPage() {
       );
     }
     return list;
-  }, [rows, filter, tipoFilter, search]);
+  }, [rows, filter, tipoFilter, bancoFilter, search]);
 
   const totals = useMemo(() => {
     const acc: Record<string, number> = {};
@@ -325,11 +364,12 @@ function PagamentosPage() {
       </div>
 
       {/* Tipo */}
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
         {([
           { k: "todos", label: "Todos" },
           { k: "pix", label: "Pix" },
           { k: "boleto", label: "Boleto" },
+          { k: "externo", label: "Outros bancos" },
         ] as const).map((t) => (
           <button
             key={t.k}
@@ -343,7 +383,23 @@ function PagamentosPage() {
             {t.label}
           </button>
         ))}
+
+        <span className="mx-1 h-6 w-px bg-border" />
+
+        <select
+          value={bancoFilter}
+          onChange={(e) => setBancoFilter(e.target.value)}
+          className="rounded-full border border-border bg-background px-3 py-1.5 text-xs font-semibold text-muted-foreground"
+        >
+          <option value="todos">Banco: todos</option>
+          <option value="asaas">ASAAS</option>
+          <option value="externo">Outros bancos</option>
+          {bancosDisponiveis.map((b) => (
+            <option key={b} value={b}>{b}</option>
+          ))}
+        </select>
       </div>
+
 
       {/* Status */}
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-2">
@@ -414,16 +470,18 @@ function PagamentosPage() {
           <div className="divide-y divide-border">
             {filtered.map((r) => {
               const cancelable =
-                r.kind === "pix"
+                r.kind === "externo"
+                  ? false
+                  : r.kind === "pix"
                   ? ["agendado", "pendente"].includes(r.raw.status)
                   : ["agendado", "pendente", "processando"].includes(r.raw.status);
               const abrir = () =>
-                r.kind === "pix" ? setDetalheId(r.id) : setReciboBoleto(r.raw);
+                r.kind === "pix" ? setDetalheId(r.id) : r.kind === "boleto" ? setReciboBoleto(r.raw) : undefined;
               return (
                 <div key={`${r.kind}-${r.id}`} className="flex flex-wrap items-center gap-3 px-4 py-3 hover:bg-muted/30">
                   <button onClick={abrir} className="min-w-0 flex-1 text-left">
                     <div className="flex items-center gap-2 min-w-0">
-                      <TipoBadge kind={r.kind} />
+                      <TipoBadge kind={r.kind} label={r.kind === "externo" ? r.banco : undefined} />
                       <span className="font-medium truncate">{r.nome}</span>
                     </div>
                     <div className="text-xs text-muted-foreground truncate">
@@ -446,24 +504,30 @@ function PagamentosPage() {
                         <Eye className="h-4 w-4" />
                       </Button>
                     )}
-                    <Button
-                      size="icon"
-                      variant="outline"
-                      title="Ver comprovante"
-                      className="rounded-full h-9 w-9 border-border/60"
-                      onClick={() => (r.kind === "pix" ? setReciboRow(r.raw) : setReciboBoleto(r.raw))}
-                    >
-                      <Receipt className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="rounded-full h-9 w-9"
-                      title="Sincronizar status"
-                      onClick={() => (r.kind === "pix" ? doSync(r.id) : doSyncBoleto(r.id))}
-                    >
-                      <RefreshCw className="h-4 w-4" />
-                    </Button>
+                    {r.kind === "externo" ? (
+                      <ExternalReceiptButton pagamento={r.raw as PagamentoExterno} />
+                    ) : (
+                      <>
+                        <Button
+                          size="icon"
+                          variant="outline"
+                          title="Ver comprovante"
+                          className="rounded-full h-9 w-9 border-border/60"
+                          onClick={() => (r.kind === "pix" ? setReciboRow(r.raw) : setReciboBoleto(r.raw))}
+                        >
+                          <Receipt className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="rounded-full h-9 w-9"
+                          title="Sincronizar status"
+                          onClick={() => (r.kind === "pix" ? doSync(r.id) : doSyncBoleto(r.id))}
+                        >
+                          <RefreshCw className="h-4 w-4" />
+                        </Button>
+                      </>
+                    )}
                     {cancelable && (
                       <Button
                         size="icon"

@@ -8,6 +8,9 @@ import { Input } from "@/components/ui/input";
 import { formatBRL } from "@/lib/format";
 import { listarComprovantes } from "@/lib/comprovantes.functions";
 import { ComprovanteActions } from "@/components/financial/ComprovanteActions";
+import { ExternalReceiptButton } from "@/components/financial/ExternalReceiptButton";
+import { listarPagamentosExternos } from "@/lib/pagamentos-externos.functions";
+import { bancoSlug, formaLabel, type PagamentoExterno } from "@/lib/pagamentos-externos.helpers";
 
 export const Route = createFileRoute("/admin/comprovantes")({
   component: ComprovantesPage,
@@ -63,6 +66,7 @@ function fmtDate(v: string | null) {
 
 function ComprovantesPage() {
   const listarFn = useServerFn(listarComprovantes);
+  const listarExternosFn = useServerFn(listarPagamentosExternos);
 
   const [preset, setPreset] = useState<Preset>("mes");
   const [custom, setCustom] = useState(() => {
@@ -71,6 +75,8 @@ function ComprovantesPage() {
   });
   const [busca, setBusca] = useState("");
   const [fluxo, setFluxo] = useState<"todos" | "in" | "out">("todos");
+  const [origem, setOrigem] = useState<"todos" | "asaas" | "externo">("todos");
+  const [banco, setBanco] = useState<string>("todos");
 
   const range = useMemo(() => rangeFor(preset, custom), [preset, custom]);
 
@@ -81,17 +87,86 @@ function ComprovantesPage() {
     refetchOnMount: "always",
   });
 
+  const externosQ = useQuery({
+    queryKey: ["comprovantes-externos", range.start, range.finish],
+    queryFn: () => listarExternosFn({ data: { startDate: range.start, finishDate: range.finish } }),
+    retry: false,
+    refetchOnMount: "always",
+  });
+
+  const externos = useMemo(
+    () => ((externosQ.data?.items ?? []) as unknown as PagamentoExterno[]),
+    [externosQ.data],
+  );
+
+  const bancos = useMemo(() => {
+    const set = new Set<string>();
+    for (const p of externos) set.add(bancoSlug(p.banco_nome));
+    return Array.from(set).sort();
+  }, [externos]);
+
+  const unificado = useMemo(() => {
+    type Row = {
+      key: string;
+      src: "asaas" | "externo";
+      banco: string;
+      date: string | null;
+      favored: string | null;
+      operation: string;
+      status: string | null;
+      value: number;
+      direction: "in" | "out";
+      reference: string | null;
+      asaas?: any;
+      externo?: PagamentoExterno;
+    };
+    const rows: Row[] = [];
+    for (const c of q.data?.items ?? []) {
+      rows.push({
+        key: c.id,
+        src: "asaas",
+        banco: "ASAAS",
+        date: c.date,
+        favored: c.favored,
+        operation: c.operation,
+        status: c.status,
+        value: c.value,
+        direction: c.direction,
+        reference: c.reference || c.asaasId,
+        asaas: c,
+      });
+    }
+    for (const p of externos) {
+      rows.push({
+        key: `externo:${p.id}`,
+        src: "externo",
+        banco: bancoSlug(p.banco_nome),
+        date: p.data_pagamento,
+        favored: p.beneficiario_nome,
+        operation: `${formaLabel(p.forma_pagamento)} pago`,
+        status: "Pago",
+        value: Number(p.valor ?? 0),
+        direction: "out",
+        reference: p.autenticacao,
+        externo: p,
+      });
+    }
+    return rows.sort((a, z) => String(z.date ?? "").localeCompare(String(a.date ?? "")));
+  }, [q.data, externos]);
+
   const filtrado = useMemo(() => {
     const s = busca.trim().toLowerCase();
-    const base = q.data?.items ?? [];
-    const items = fluxo === "todos" ? base : base.filter((i) => i.direction === fluxo);
+    let items = unificado;
+    if (fluxo !== "todos") items = items.filter((i) => i.direction === fluxo);
+    if (origem !== "todos") items = items.filter((i) => i.src === origem);
+    if (banco !== "todos") items = items.filter((i) => i.banco === banco);
     if (!s) return items;
     return items.filter((i) =>
-      `${i.favored ?? ""} ${i.operation} ${i.status ?? ""} ${i.reference ?? ""} ${i.asaasId} ${formatBRL(i.value)} ${i.value}`
+      `${i.favored ?? ""} ${i.operation} ${i.status ?? ""} ${i.reference ?? ""} ${i.banco} ${formatBRL(i.value)} ${i.value}`
         .toLowerCase()
         .includes(s),
     );
-  }, [q.data, busca, fluxo]);
+  }, [unificado, busca, fluxo, origem, banco]);
 
   return (
     <div className="mx-auto w-full max-w-7xl space-y-8 px-3 py-6 sm:px-6 md:py-8">
@@ -183,7 +258,43 @@ function ComprovantesPage() {
               {f.label}
             </button>
           ))}
+
+          <span className="mx-1 h-4 w-px bg-border/60" />
+
+          {([
+            { id: "todos", label: "Todos os bancos" },
+            { id: "asaas", label: "ASAAS" },
+            { id: "externo", label: "Outros bancos" },
+          ] as const).map((o) => (
+            <button
+              key={o.id}
+              type="button"
+              onClick={() => { setOrigem(o.id); if (o.id === "asaas") setBanco("todos"); }}
+              className={
+                "rounded-full border px-3 py-1 text-xs font-medium transition-colors " +
+                (origem === o.id
+                  ? "border-primary/50 bg-primary/15 text-primary"
+                  : "border-border/60 bg-background/40 text-muted-foreground hover:text-foreground")
+              }
+            >
+              {o.label}
+            </button>
+          ))}
+
+          {origem !== "asaas" && bancos.length > 0 && (
+            <select
+              value={banco}
+              onChange={(e) => setBanco(e.target.value)}
+              className="rounded-full border border-border/60 bg-background/40 px-3 py-1 text-xs text-foreground"
+            >
+              <option value="todos">Banco: todos</option>
+              {bancos.map((b) => (
+                <option key={b} value={b}>{b}</option>
+              ))}
+            </select>
+          )}
         </div>
+
 
         {preset === "custom" && (
           <div className="flex flex-wrap items-center gap-2 border-b border-border/60 p-4 text-sm">
@@ -227,35 +338,41 @@ function ComprovantesPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/40">
-                {filtrado.map((c) => (
-                  <tr key={c.id} className="transition-colors hover:bg-foreground/[0.03]">
+                {filtrado.map((row) => {
+                  const c = row.asaas;
+                  return (
+                  <tr key={row.key} className="transition-colors hover:bg-foreground/[0.03]">
                     <td className="px-6 py-4">
-                      <p className="text-sm font-medium">{c.favored || "—"}</p>
-                      <p className="mt-1 text-xs text-muted-foreground">{fmtDate(c.date)}</p>
+                      <p className="text-sm font-medium">{row.favored || "—"}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">{fmtDate(row.date)}</p>
                       <p className="mt-0.5 truncate font-mono text-[11px] text-muted-foreground">
-                        {c.reference || c.asaasId}
+                        {row.reference || "—"}
                       </p>
                     </td>
                     <td className="px-6 py-4">
                       <span
                         className={
                           "inline-block rounded-full border px-2.5 py-0.5 text-[11px] font-medium " +
-                          (c.direction === "in"
+                          (row.direction === "in"
                             ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-400"
                             : "border-red-500/40 bg-red-500/10 text-red-400")
                         }
                       >
-                        {c.operation}
+                        {row.operation}
                       </span>
-                      <p className="mt-1 text-xs text-muted-foreground">{c.status || "—"}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {row.status || "—"} · {row.banco}
+                      </p>
                     </td>
                     <td className="px-6 py-4 text-right text-sm font-bold">
-                      {formatBRL(c.value)}
+                      {formatBRL(row.value)}
                     </td>
                     <td className="px-6 py-4 text-right">
-                      {c.receiptUrl ? (
+                      {row.src === "externo" && row.externo ? (
+                        <ExternalReceiptButton pagamento={row.externo} compact={false} />
+                      ) : c && (c.receiptUrl || ["Concluído", "Recebido", "Confirmado", "Pago", "Recebido em dinheiro"].includes(String(c.status ?? ""))) ? (
                         <ComprovanteActions
-                          url={c.receiptUrl}
+                          url={c.receiptUrl ?? undefined}
                           compact={false}
                           paymentId={c.kind === "payment" ? c.asaasId : null}
                           transferId={c.kind === "transfer" ? c.asaasId : null}
@@ -280,47 +397,18 @@ function ComprovantesPage() {
                             pdfUrl: c.receiptUrl ?? null,
                           }}
                         />
-                      ) : ["Concluído", "Recebido", "Confirmado", "Pago", "Recebido em dinheiro"].includes(
-                          String(c.status ?? ""),
-                        ) ? (
-                        <ComprovanteActions
-                          compact={false}
-                          paymentId={c.kind === "payment" ? c.asaasId : null}
-                          transferId={c.kind === "transfer" ? c.asaasId : null}
-                          billId={c.kind === "bill" ? c.asaasId : null}
-                          receipt={{
-                            valor: Math.abs(Number(c.value ?? 0)),
-                            favorecido: c.favored || "—",
-                            favorecidoLabel: c.counterpartyLabel,
-                            direction: c.direction,
-                            instituicao: c.instituicao ?? null,
-                            chavePix: c.chavePix ?? null,
-                            cpfCnpj: c.cpfCnpj ?? null,
-                            descricao: c.descricao ?? null,
-                            tipo: c.operation,
-                            dataHora: fmtDate(c.date),
-                            transacaoId: c.endToEndId || c.reference || c.asaasId,
-                            status: c.status ?? undefined,
-                            concluido: true,
-                            formaPagamento: c.formaPagamento ?? null,
-                            dataVencimento: c.dueDate ?? null,
-                            dataPagamento: c.paymentDate ?? c.date ?? null,
-                            pdfUrl: c.receiptUrl ?? null,
-                          }}
-                        />
-
                       ) : (
                         <span
                           className="text-xs text-muted-foreground"
-                          title={`Sem comprovante: movimentação com status "${c.status ?? "—"}".`}
+                          title={`Sem comprovante: movimentação com status "${row.status ?? "—"}".`}
                         >
                           —
                         </span>
                       )}
                     </td>
-
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>
