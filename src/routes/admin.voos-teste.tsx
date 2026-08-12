@@ -2087,7 +2087,9 @@ export function VoosPage({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [inSig]);
 
-  const refiltering = mut.isPending && !!result;
+  // Busca NOVA (sem searchKey) x reaplicação de filtros na mesma busca.
+  const novaBusca = mut.isPending && !mut.variables?.searchKey;
+  const refiltering = mut.isPending && !!result && !novaBusca;
   const outFlights = result ? applyFilters(result.outbound.flights, outFilters) : [];
   const inFlights = inbound ? applyFilters(inbound.flights, inFilters) : [];
   const outFlightRaw = findByAnyKey(result?.outbound.flights ?? [], selectedOut);
