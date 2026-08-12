@@ -447,6 +447,7 @@ function CartaoNav({ pathname }: { pathname: string }) {
           items: [
             { to: "/admin/cofre", label: "Cofre" },
             { to: "/admin/encurtador", label: "Encurtador de URL" },
+            { to: "/admin/melhores-destinos", label: "Melhores Destinos" },
           ],
         },
       ]}

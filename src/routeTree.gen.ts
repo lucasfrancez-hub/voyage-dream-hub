@@ -52,6 +52,7 @@ import { Route as AdminInstalarExtensaoRouteImport } from './routes/admin.instal
 import { Route as AdminLinkBoletoRouteImport } from './routes/admin.link-boleto'
 import { Route as AdminLinkCartaoSimplesRouteImport } from './routes/admin.link-cartao-simples'
 import { Route as AdminLinkPagamentoRouteImport } from './routes/admin.link-pagamento'
+import { Route as AdminMelhoresDestinosRouteImport } from './routes/admin.melhores-destinos'
 import { Route as AdminNotasFiscaisRouteImport } from './routes/admin.notas-fiscais'
 import { Route as AdminPacotesRouteImport } from './routes/admin.pacotes'
 import { Route as AdminPagamentosRouteImport } from './routes/admin.pagamentos'
@@ -353,6 +354,11 @@ const AdminLinkCartaoSimplesRoute = AdminLinkCartaoSimplesRouteImport.update({
 const AdminLinkPagamentoRoute = AdminLinkPagamentoRouteImport.update({
   id: '/link-pagamento',
   path: '/link-pagamento',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminMelhoresDestinosRoute = AdminMelhoresDestinosRouteImport.update({
+  id: '/melhores-destinos',
+  path: '/melhores-destinos',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminNotasFiscaisRoute = AdminNotasFiscaisRouteImport.update({
@@ -865,6 +871,7 @@ export interface FileRoutesByFullPath {
   '/admin/link-boleto': typeof AdminLinkBoletoRoute
   '/admin/link-cartao-simples': typeof AdminLinkCartaoSimplesRoute
   '/admin/link-pagamento': typeof AdminLinkPagamentoRoute
+  '/admin/melhores-destinos': typeof AdminMelhoresDestinosRoute
   '/admin/notas-fiscais': typeof AdminNotasFiscaisRoute
   '/admin/pacotes': typeof AdminPacotesRoute
   '/admin/pagamentos': typeof AdminPagamentosRoute
@@ -995,6 +1002,7 @@ export interface FileRoutesByTo {
   '/admin/link-boleto': typeof AdminLinkBoletoRoute
   '/admin/link-cartao-simples': typeof AdminLinkCartaoSimplesRoute
   '/admin/link-pagamento': typeof AdminLinkPagamentoRoute
+  '/admin/melhores-destinos': typeof AdminMelhoresDestinosRoute
   '/admin/notas-fiscais': typeof AdminNotasFiscaisRoute
   '/admin/pacotes': typeof AdminPacotesRoute
   '/admin/pagamentos': typeof AdminPagamentosRoute
@@ -1128,6 +1136,7 @@ export interface FileRoutesById {
   '/admin/link-boleto': typeof AdminLinkBoletoRoute
   '/admin/link-cartao-simples': typeof AdminLinkCartaoSimplesRoute
   '/admin/link-pagamento': typeof AdminLinkPagamentoRoute
+  '/admin/melhores-destinos': typeof AdminMelhoresDestinosRoute
   '/admin/notas-fiscais': typeof AdminNotasFiscaisRoute
   '/admin/pacotes': typeof AdminPacotesRoute
   '/admin/pagamentos': typeof AdminPagamentosRoute
@@ -1262,6 +1271,7 @@ export interface FileRouteTypes {
     | '/admin/link-boleto'
     | '/admin/link-cartao-simples'
     | '/admin/link-pagamento'
+    | '/admin/melhores-destinos'
     | '/admin/notas-fiscais'
     | '/admin/pacotes'
     | '/admin/pagamentos'
@@ -1392,6 +1402,7 @@ export interface FileRouteTypes {
     | '/admin/link-boleto'
     | '/admin/link-cartao-simples'
     | '/admin/link-pagamento'
+    | '/admin/melhores-destinos'
     | '/admin/notas-fiscais'
     | '/admin/pacotes'
     | '/admin/pagamentos'
@@ -1524,6 +1535,7 @@ export interface FileRouteTypes {
     | '/admin/link-boleto'
     | '/admin/link-cartao-simples'
     | '/admin/link-pagamento'
+    | '/admin/melhores-destinos'
     | '/admin/notas-fiscais'
     | '/admin/pacotes'
     | '/admin/pagamentos'
@@ -1990,6 +2002,13 @@ declare module '@tanstack/react-router' {
       path: '/link-pagamento'
       fullPath: '/admin/link-pagamento'
       preLoaderRoute: typeof AdminLinkPagamentoRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/melhores-destinos': {
+      id: '/admin/melhores-destinos'
+      path: '/melhores-destinos'
+      fullPath: '/admin/melhores-destinos'
+      preLoaderRoute: typeof AdminMelhoresDestinosRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/notas-fiscais': {
@@ -2638,6 +2657,7 @@ interface AdminRouteChildren {
   AdminLinkBoletoRoute: typeof AdminLinkBoletoRoute
   AdminLinkCartaoSimplesRoute: typeof AdminLinkCartaoSimplesRoute
   AdminLinkPagamentoRoute: typeof AdminLinkPagamentoRoute
+  AdminMelhoresDestinosRoute: typeof AdminMelhoresDestinosRoute
   AdminNotasFiscaisRoute: typeof AdminNotasFiscaisRoute
   AdminPacotesRoute: typeof AdminPacotesRoute
   AdminPagamentosRoute: typeof AdminPagamentosRoute
@@ -2676,6 +2696,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminLinkBoletoRoute: AdminLinkBoletoRoute,
   AdminLinkCartaoSimplesRoute: AdminLinkCartaoSimplesRoute,
   AdminLinkPagamentoRoute: AdminLinkPagamentoRoute,
+  AdminMelhoresDestinosRoute: AdminMelhoresDestinosRoute,
   AdminNotasFiscaisRoute: AdminNotasFiscaisRoute,
   AdminPacotesRoute: AdminPacotesRoute,
   AdminPagamentosRoute: AdminPagamentosRoute,
@@ -2846,3 +2867,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
