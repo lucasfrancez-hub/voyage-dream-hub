@@ -1744,6 +1744,9 @@ export function VoosPage({
   const [isRoundTrip, setIsRoundTrip] = useState(false);
   /** companhias da primeira busca (sem filtro), para os chips não sumirem */
   const [airlinePool, setAirlinePool] = useState<OnerFlight[]>([]);
+  /** ondas extras disparadas em segundo plano para trazer todas as companhias */
+  const [autoWaves, setAutoWaves] = useState(0);
+
 
   const paxData = () => ({
     departureIata: form.departureIata.trim().toUpperCase(),
