@@ -659,7 +659,21 @@ export function PassagensBaratasExplorer({
                         </td>
                         <td className="px-6 py-5 text-right">
                           <Button size="sm" variant={i === 0 ? "default" : "secondary"} asChild>
-                            <a href={o.viaairUrl} target="_blank" rel="noreferrer">
+                            <a
+                              href={
+                                data?.fromIata && data?.toIata
+                                  ? montarLink({
+                                      origem: data.fromIata,
+                                      destino: data.toIata,
+                                      ida: o.departDate,
+                                      volta: o.returnDate ?? "",
+                                    })
+                                  : o.viaairUrl
+                              }
+                              target="_blank"
+                              rel="noreferrer"
+                            >
+
                               Ver voos <ExternalLink className="ml-1 h-3.5 w-3.5" />
                             </a>
                           </Button>
