@@ -22,6 +22,10 @@ import { ComprovanteEntryButton } from "@/components/financial/ComprovanteEntryB
 import { ExternalPaymentDialog } from "@/components/financial/ExternalPaymentDialog";
 import { ExternalReceiptButton } from "@/components/financial/ExternalReceiptButton";
 import type { PagamentoExterno } from "@/lib/pagamentos-externos.helpers";
+import { useServerFn } from "@tanstack/react-start";
+import { criarPagamentoBoleto } from "@/lib/boleto-pay.functions";
+import { criarPagamentoPix } from "@/lib/pagamentos.functions";
+import { getBoletoDocumentUrl } from "@/lib/cofre.functions";
 
 
 type Kind = "payable" | "receivable";
