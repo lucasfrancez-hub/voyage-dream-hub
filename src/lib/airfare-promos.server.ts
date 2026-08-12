@@ -202,9 +202,8 @@ export async function quoteRoute(args: {
         searchKey: res.searchKey,
         flightKey: out.key,
       } as never);
-      inb = [...(back.inbound?.flights ?? back.outbound?.flights ?? [])].sort(
-        (a, b) => a.price.total - b.price.total,
-      )[0] ?? null;
+      inb =
+        [...(back.flights ?? [])].sort((a, b) => a.price.total - b.price.total)[0] ?? null;
     } catch {
       inb = null;
     }
@@ -217,7 +216,7 @@ export async function quoteRoute(args: {
     inb,
     departureDate,
     returnDate: inb ? returnDate : null,
-    markups,
+    markups: args.markups,
   });
 }
 
