@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -136,12 +136,16 @@ export function BoletoPaymentDialog({
   const [dataPagamento, setDataPagamento] = useState("");
   const [horaPagamento, setHoraPagamento] = useState("09:00");
   const [etapa, setEtapa] = useState<"codigo" | "conferencia">("codigo");
+  /** Trava síncrona contra duplo clique + id da tentativa (idempotência no backend). */
+  const enviandoRef = useRef(false);
+  const requestIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!open) return;
     setPath(entry?.boleto_path ?? null);
     setCodigo(""); setBoleto(null); setErro(null); setValorEditado("");
     setModo("agora"); setDataPagamento(""); setHoraPagamento("09:00"); setEtapa("codigo");
+    enviandoRef.current = false; requestIdRef.current = null;
   }, [open, entry?.id, entry?.boleto_path]);
 
   const pagamentos = useQuery({
@@ -233,6 +237,9 @@ export function BoletoPaymentDialog({
 
   const enviar = async () => {
     if (!boleto) return;
+    if (enviandoRef.current) return; // duplo clique: ignora a segunda chamada
+    enviandoRef.current = true;
+    if (!requestIdRef.current) requestIdRef.current = crypto.randomUUID();
     setEnviando(true);
     setErro(null);
     try {
@@ -248,12 +255,22 @@ export function BoletoPaymentDialog({
           beneficiaryName: boleto.beneficiario ?? entry?.counterparty ?? null,
           beneficiaryDocument: boleto.documentoBeneficiario,
           boletoPath: path,
+          clientRequestId: requestIdRef.current!,
           confirmado: true as const,
         },
       });
       if (!r.ok) {
         setErro(r.erro as ErroBoleto);
         setEtapa("conferencia");
+        // Nova tentativa recebe novo identificador (a anterior ficou registrada).
+        requestIdRef.current = null;
+        return;
+      }
+      if (r.reaproveitado) {
+        toast.info("Este pagamento já havia sido criado — nenhum pagamento duplicado foi gerado.");
+        pagamentos.refetch();
+        onDone?.();
+        onOpenChange(false);
         return;
       }
       toast.success(
@@ -275,6 +292,7 @@ export function BoletoPaymentDialog({
       });
     } finally {
       setEnviando(false);
+      enviandoRef.current = false;
     }
   };
 

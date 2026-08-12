@@ -74,6 +74,7 @@ export const listarExtratoBancario = createServerFn({ method: 'POST' })
 
     const paymentIds = [...new Set(items.map((i) => i.paymentId).filter(Boolean))] as string[]
     const transferIds = [...new Set(items.map((i) => i.transferId).filter(Boolean))] as string[]
+    const billIds = [...new Set(items.map((i) => i.billId).filter(Boolean))] as string[]
 
     const [cobrancas, transfers] = await Promise.all([
       paymentIds.length
@@ -97,6 +98,18 @@ export const listarExtratoBancario = createServerFn({ method: 'POST' })
     const byTransfer = new Map<string, any>()
     for (const t of (transfers as any).data ?? []) {
       if (t.asaas_transfer_id) byTransfer.set(t.asaas_transfer_id, t)
+    }
+
+    // Pagamentos de boleto criados por nós (os feitos direto no ASAAS não terão par).
+    const byBill = new Map<string, any>()
+    if (billIds.length) {
+      const { data: bills } = await supabaseAdmin
+        .from('asaas_bill_payments')
+        .select('id, asaas_bill_id, beneficiary_name, status')
+        .in('asaas_bill_id', billIds)
+      for (const b of bills ?? []) {
+        if (b.asaas_bill_id) byBill.set(b.asaas_bill_id, b)
+      }
     }
 
     // Comprovantes ao vivo (ASAAS) para o mesmo período.
@@ -140,7 +153,39 @@ export const listarExtratoBancario = createServerFn({ method: 'POST' })
           id: byTransfer.get(it.transferId).id,
           label: 'Abrir pagamento',
         }
+      } else if (it.billId && byBill.has(it.billId)) {
+        it.link = { kind: 'pagamento', id: byBill.get(it.billId).id, label: 'Abrir pagamento' }
       }
+      if (!it.counterparty && it.billId && byBill.has(it.billId)) {
+        it.counterparty = byBill.get(it.billId).beneficiary_name ?? null
+      }
+      if (!it.operacao && it.billId) it.operacao = 'Pagamento de boleto'
+    }
+
+    // Boletos pagos direto no app do ASAAS: sem par interno, mas a movimentação
+    // precisa aparecer com beneficiário e horário reais.
+    const boletosSemDados = items
+      .filter((i) => i.billId && (!i.counterparty || !i.datetime))
+      .slice(0, 30)
+    if (boletosSemDados.length) {
+      const { getAsaasBillSafe } = await import('@/lib/asaas.server')
+      await Promise.all(
+        boletosSemDados.map(async (it) => {
+          const r = await getAsaasBillSafe(it.billId!)
+          if (!r.ok) return
+          const b: any = r.data ?? {}
+          it.counterparty =
+            it.counterparty ?? b.companyName ?? b.beneficiaryName ?? b.description ?? null
+          it.cpfCnpj = it.cpfCnpj ?? b.cpfCnpj ?? null
+          it.dueDate = it.dueDate ?? b.dueDate ?? null
+          it.paymentDate = it.paymentDate ?? b.paymentDate ?? null
+          const iso = brtToIso(b.paymentDate) ?? brtToIso(b.dateCreated)
+          if (iso && !it.datetime) {
+            it.datetime = iso
+            it.datetimeSource = b.paymentDate ? 'bill.paymentDate' : 'bill.dateCreated'
+          }
+        }),
+      )
     }
 
     // Data/hora real: o endpoint /financialTransactions só devolve `date`
@@ -176,8 +221,9 @@ export const listarExtratoBancario = createServerFn({ method: 'POST' })
       const interno =
         Boolean(it.link) ||
         (it.transferId && byTransfer.has(it.transferId)) ||
-        (it.paymentId && byPayment.has(it.paymentId))
-      const externo = Boolean(it.transferId || it.paymentId || it.pixTransactionId)
+        (it.paymentId && byPayment.has(it.paymentId)) ||
+        (it.billId && byBill.has(it.billId))
+      const externo = Boolean(it.transferId || it.paymentId || it.pixTransactionId || it.billId)
       it.origem = interno ? 'viaair' : externo ? 'asaas' : null
     }
 

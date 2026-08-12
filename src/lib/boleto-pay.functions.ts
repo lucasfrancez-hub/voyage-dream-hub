@@ -12,6 +12,9 @@ import {
   BILL_STATUS_LABEL,
   todayBRT,
   isBoletoVencido,
+  isStatusAtivo,
+  buildIdempotencyKey,
+  resolverValorPagamento,
 } from './boleto-pay.helpers'
 
 export type ErroBoleto = {
@@ -325,6 +328,8 @@ export const criarPagamentoBoleto = createServerFn({ method: 'POST' })
         beneficiaryName: z.string().max(200).nullable().optional(),
         beneficiaryDocument: z.string().max(40).nullable().optional(),
         boletoPath: z.string().max(400).nullable().optional(),
+        /** Identificador da tentativa gerado no clique — bloqueia duplo clique/refresh. */
+        clientRequestId: z.string().uuid(),
         confirmado: z.literal(true),
       })
       .parse(input ?? {}),
@@ -335,6 +340,43 @@ export const criarPagamentoBoleto = createServerFn({ method: 'POST' })
     const { simulateAsaasBillSafe, createAsaasBillSafe } = await import('@/lib/asaas.server')
 
     const erro = (e: ErroBoleto) => ({ ok: false as const, erro: e })
+
+    // ---- Idempotência: mesma tentativa (duplo clique, refresh, retry) ----
+    const { criarRegistroIdempotente } = await import('./boleto-pay.idempotency')
+    const repo = {
+      buscarPorClientRequestId: async (id: string) =>
+        (
+          await supabaseAdmin
+            .from('asaas_bill_payments')
+            .select('*')
+            .eq('client_request_id', id)
+            .maybeSingle()
+        ).data,
+      buscarPorIdempotencyKey: async (key: string) =>
+        (
+          await supabaseAdmin
+            .from('asaas_bill_payments')
+            .select('*')
+            .eq('idempotency_key', key)
+            .maybeSingle()
+        ).data,
+      inserir: async (r: Record<string, any>) => {
+        const res = await supabaseAdmin.from('asaas_bill_payments').insert(r as any).select('*').single()
+        if (res.error) throw res.error
+        return res.data
+      },
+    }
+    const reaproveitado = await repo.buscarPorClientRequestId(data.clientRequestId)
+    if (reaproveitado) {
+      return {
+        ok: true as const,
+        id: reaproveitado.id,
+        asaasBillId: reaproveitado.asaas_bill_id,
+        status: reaproveitado.status,
+        scheduledDate: reaproveitado.scheduled_date,
+        reaproveitado: true as const,
+      }
+    }
 
     const parsed = parseBoletoCode(data.identificationField)
     if (!parsed.valid || !parsed.linha) {
@@ -377,16 +419,23 @@ export const criarPagamentoBoleto = createServerFn({ method: 'POST' })
     // O valor pago é sempre o do provedor — o frontend não pode alterá-lo.
     const valorAsaas = Number(sim?.value ?? sim?.totalValue ?? 0) || null
     const valorEditavel = Boolean(sim?.canChangeValue)
-    if (valorAsaas && !valorEditavel && Math.abs(valorAsaas - data.value) > 0.01) {
+    const resolvido = resolverValorPagamento({
+      valorProvedor: valorAsaas,
+      valorInformado: data.value,
+      valorEditavel,
+      minimo: sim?.minimumValue ?? null,
+      maximo: sim?.maximumValue ?? null,
+    })
+    if (!resolvido.ok) {
       return erro({
         titulo: 'Valor divergente',
-        mensagem: `O valor deste boleto é ${valorAsaas.toFixed(2)} e não pode ser alterado (informado ${data.value.toFixed(2)}).`,
+        mensagem: `O valor deste boleto é ${resolvido.valorProvedor.toFixed(2)} e não pode ser alterado (informado ${resolvido.valorInformado.toFixed(2)}).`,
         codigo: 'valor_divergente',
-        tecnico: JSON.stringify({ valorAsaas, valorInformado: data.value }),
+        tecnico: JSON.stringify(resolvido),
         orientacao: 'Refaça a consulta do boleto para atualizar os valores.',
       })
     }
-    const valorFinal = valorEditavel ? data.value : (valorAsaas ?? data.value)
+    const valorFinal = resolvido.valor
 
     const venc = (sim?.dueDate as string | undefined) || data.dueDate || null
     let schedule = data.scheduleDate || null
@@ -442,12 +491,11 @@ export const criarPagamentoBoleto = createServerFn({ method: 'POST' })
       })
     }
 
-    const idem = `bill:${linha}:${scheduledAt ?? schedule ?? 'now'}`
-    const externalRef = data.financialEntryId ? `entry:${data.financialEntryId}` : idem
+    const quando = scheduledAt ?? schedule ?? 'now'
+    const idem = buildIdempotencyKey(linha, quando)
+    const externalRef = `bill:${data.clientRequestId}`
 
-    const { data: row, error: insErr } = await supabaseAdmin
-      .from('asaas_bill_payments')
-      .insert({
+    const montarRow = (idempotencyKey: string) => ({
         financial_entry_id: data.financialEntryId ?? null,
         identification_field: linha,
         beneficiary_name: data.beneficiaryName ?? (sim?.companyName as string | undefined) ?? null,
@@ -465,15 +513,32 @@ export const criarPagamentoBoleto = createServerFn({ method: 'POST' })
         boleto_path: data.boletoPath ?? null,
         description: data.description ?? null,
         external_reference: externalRef,
-        idempotency_key: `${idem}:${Date.now()}`,
+        idempotency_key: idempotencyKey,
+        client_request_id: data.clientRequestId,
         raw_simulation: sim as any,
         created_by: context.userId,
         created_by_name: (context as any).claims?.email ?? null,
         created_ip: ip(),
       })
-      .select('*')
-      .single()
-    if (insErr) throw new Error(insErr.message)
+
+    const reg = await criarRegistroIdempotente(repo, {
+      clientRequestId: data.clientRequestId,
+      linha,
+      quando,
+      montarRow,
+    })
+    if (reg.tipo === 'reaproveitado') {
+      return {
+        ok: true as const,
+        id: reg.row.id,
+        asaasBillId: reg.row.asaas_bill_id ?? null,
+        status: reg.row.status,
+        scheduledDate: reg.row.scheduled_date ?? null,
+        reaproveitado: true as const,
+      }
+    }
+    const row: any = reg.row
+
 
     if (segurarLocal) {
       await supabaseAdmin.from('asaas_bill_payment_events').insert({
@@ -510,6 +575,72 @@ export const criarPagamentoBoleto = createServerFn({ method: 'POST' })
       description: data.description ?? null,
       externalReference: externalRef,
     })
+
+    // ---- Resposta perdida / timeout: NUNCA reenviar às cegas ----
+    if (!billRes.ok && (billRes.code === 'network_error' || billRes.status === 0 || billRes.status >= 500)) {
+      const { findAsaasBillsByExternalReference } = await import('@/lib/asaas.server')
+      const rec = await findAsaasBillsByExternalReference(externalRef)
+      const achado = rec.ok ? rec.bills[0] : null
+      if (achado) {
+        const st = mapBillStatus(achado?.status)
+        await supabaseAdmin
+          .from('asaas_bill_payments')
+          .update({
+            asaas_bill_id: achado?.id ?? null,
+            status: st,
+            scheduled_date: achado?.scheduleDate ?? schedule,
+            effective_date: achado?.paymentDate ?? null,
+            raw_response: achado as any,
+            needs_reconciliation: false,
+            reconciled_at: new Date().toISOString(),
+          } as any)
+          .eq('id', row.id)
+        await supabaseAdmin.from('asaas_bill_payment_events').insert({
+          bill_payment_id: row.id,
+          asaas_bill_id: achado?.id ?? null,
+          event: 'reconciliado',
+          status: st,
+          message: 'Resposta perdida no envio; pagamento localizado no banco pela referência.',
+          actor_user_id: context.userId,
+          ip: ip(),
+          payload: achado as any,
+        })
+        return {
+          ok: true as const,
+          id: row.id,
+          asaasBillId: (achado?.id ?? null) as string | null,
+          status: st,
+          scheduledDate: achado?.scheduleDate ?? schedule,
+          reconciliado: true as const,
+        }
+      }
+      await supabaseAdmin
+        .from('asaas_bill_payments')
+        .update({
+          status: 'processando',
+          needs_reconciliation: true,
+          fail_reason: billRes.description,
+        } as any)
+        .eq('id', row.id)
+      await supabaseAdmin.from('asaas_bill_payment_events').insert({
+        bill_payment_id: row.id,
+        event: 'sem_resposta',
+        status: 'processando',
+        message: `Sem confirmação do banco: ${billRes.description}. Nenhum reenvio automático foi feito.`,
+        actor_user_id: context.userId,
+        ip: ip(),
+        payload: billRes.raw as any,
+      })
+      return erro({
+        titulo: 'Sem confirmação do banco',
+        mensagem:
+          'Não recebemos a confirmação do banco para este envio. O pagamento ficou em verificação e NÃO foi reenviado.',
+        codigo: billRes.code ?? 'sem_resposta',
+        tecnico: billRes.description,
+        orientacao:
+          'Use o botão Atualizar na tela de Pagamentos em alguns minutos: o sistema consulta o banco pela referência e confirma se o pagamento existe antes de qualquer nova tentativa.',
+      })
+    }
 
     if (!billRes.ok) {
       const cls = classificarErroBoleto(billRes.description, billRes.code)
@@ -668,4 +799,86 @@ export const cancelarPagamentoBoleto = createServerFn({ method: 'POST' })
         .eq('id', row.financial_entry_id)
     }
     return { ok: true }
+  })
+
+/**
+ * Fallback dos webhooks: consulta no ASAAS todos os boletos ainda não
+ * finalizados e atualiza o status real (agendado → processando → pago).
+ * Também reconcilia envios sem resposta, pela referência externa —
+ * nunca cria nem reenvia pagamento.
+ */
+export const sincronizarTodosPagamentosBoleto = createServerFn({ method: 'POST' })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context as any)
+    const { supabaseAdmin } = await import('@/integrations/supabase/client.server')
+    const { getAsaasBillSafe, findAsaasBillsByExternalReference } = await import('@/lib/asaas.server')
+    const { aplicarStatusBoleto } = await import('@/lib/boleto-pay.server')
+
+    const { data: rows, error } = await supabaseAdmin
+      .from('asaas_bill_payments')
+      .select('id, status, asaas_bill_id, external_reference, scheduled_date, dispatch_pending')
+      .in('status', ['pendente', 'agendado', 'processando'])
+      .order('created_at', { ascending: false })
+      .limit(200)
+    if (error) throw new Error(error.message)
+
+    const pendentes = rows ?? []
+    let atualizados = 0
+    let reconciliados = 0
+    let erros = 0
+    const mudancas: Array<{ id: string; de: string | null; para: string }> = []
+
+    for (const row of pendentes) {
+      try {
+        let billId = row.asaas_bill_id as string | null
+
+        // Envio sem confirmação: descobrir se o pagamento existe no banco.
+        if (!billId && row.external_reference) {
+          if (row.dispatch_pending) continue // agendamento local ainda não enviado
+          const rec = await findAsaasBillsByExternalReference(row.external_reference)
+          const achado = rec.ok ? rec.bills[0] : null
+          if (!achado) continue
+          billId = achado.id
+          await supabaseAdmin
+            .from('asaas_bill_payments')
+            .update({
+              asaas_bill_id: billId,
+              needs_reconciliation: false,
+              reconciled_at: new Date().toISOString(),
+            } as any)
+            .eq('id', row.id)
+          reconciliados++
+        }
+        if (!billId) continue
+
+        const res = await getAsaasBillSafe(billId)
+        if (!res.ok) {
+          erros++
+          continue
+        }
+        const bill: any = res.data
+        const status = mapBillStatus(bill?.status)
+        if (status === row.status) continue
+
+        await aplicarStatusBoleto(row.id, bill)
+        await supabaseAdmin.from('asaas_bill_payment_events').insert({
+          bill_payment_id: row.id,
+          asaas_bill_id: billId,
+          event: 'MANUAL_SYNC',
+          status,
+          message: `Sincronização manual: ${row.status ?? '—'} → ${status} (ASAAS: ${bill?.status ?? '—'})`,
+          actor_user_id: context.userId,
+          ip: ip(),
+          payload: bill as any,
+        })
+        atualizados++
+        mudancas.push({ id: row.id, de: row.status, para: status })
+      } catch (e) {
+        erros++
+        console.error('[sync-bills]', row.id, (e as Error).message)
+      }
+    }
+
+    return { verificados: pendentes.length, atualizados, reconciliados, erros, mudancas }
   })
