@@ -2041,7 +2041,7 @@ export function VoosPage({
     if (!pendingRun) return;
     if (canSearch) {
       setPendingRun(0);
-      mut.mutate({ searchKey: null, filters: EMPTY_FILTERS });
+      mut.mutate({ searchKey: null, filters: EMPTY_FILTERS, usePreset: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pendingRun, canSearch]);
