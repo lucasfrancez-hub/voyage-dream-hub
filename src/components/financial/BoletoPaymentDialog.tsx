@@ -144,10 +144,15 @@ export function BoletoPaymentDialog({
   useEffect(() => {
     if (!open) return;
     setPath(entry?.boleto_path ?? null);
-    setCodigo(""); setBoleto(null); setErro(null); setValorEditado("");
+    const salvo = (entry?.boleto_line ?? "").replace(/\D+/g, "");
+    setCodigo(salvo); setBoleto(null); setErro(null); setValorEditado("");
     setModo("agora"); setDataPagamento(""); setHoraPagamento("09:00"); setEtapa("codigo");
     enviandoRef.current = false; requestIdRef.current = null;
-  }, [open, entry?.id, entry?.boleto_path]);
+    if (salvo.length === 44 || salvo.length === 47) {
+      void consultarCodigo(salvo);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, entry?.id, entry?.boleto_path, entry?.boleto_line]);
 
   const pagamentos = useQuery({
     queryKey: ["boleto-pagamentos", entry?.id],
