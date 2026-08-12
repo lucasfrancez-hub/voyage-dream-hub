@@ -2507,6 +2507,7 @@ export function VoosPage({
                     onOpenChange={setSummaryOpen}
                     onComboSelect={onComboSelect}
                     publicMode={publicMode}
+                    refreshFares={refreshFares}
                   />
                 </>
               )}
