@@ -347,3 +347,61 @@ export function decidirAposFalhaDeRede(reconciliado: { encontrado: boolean; stat
   }
   return { acao: 'reconciliar_depois' as const, reenviar: false, status: 'processando' }
 }
+
+/** Varre o payload do provedor procurando qualquer campo com nome do beneficiário. */
+export function extrairBeneficiarioProfundo(raw: unknown): { nome: string | null; documento: string | null } {
+  const NAME_KEYS = /(company|benefici|assignor|payee|recipient|creditor|cedente|sacador|merchant|holder|soft)/i
+  const DOC_KEYS = /(cpfcnpj|cnpj|cpf|document|documento)/i
+  let nome: string | null = null
+  let documento: string | null = null
+  const seen = new Set<unknown>()
+
+  const walk = (node: unknown) => {
+    if (!node || typeof node !== 'object' || seen.has(node)) return
+    seen.add(node)
+    for (const [k, v] of Object.entries(node as Record<string, unknown>)) {
+      if (v && typeof v === 'object') {
+        if (NAME_KEYS.test(k)) {
+          const inner = v as Record<string, unknown>
+          const n = inner.name ?? inner.nome ?? inner.razaoSocial
+          if (!nome && typeof n === 'string' && n.trim()) nome = n.trim()
+          const d = inner.cpfCnpj ?? inner.document ?? inner.documento
+          if (!documento && typeof d === 'string' && d.trim()) documento = d.trim()
+        }
+        walk(v)
+        continue
+      }
+      if (typeof v !== 'string' || !v.trim()) continue
+      if (!nome && NAME_KEYS.test(k) && !DOC_KEYS.test(k) && /[a-zA-ZÀ-ÿ]{3}/.test(v)) nome = v.trim()
+      if (!documento && DOC_KEYS.test(k) && v.replace(/\D/g, '').length >= 11) documento = v.trim()
+    }
+  }
+  walk(raw)
+  return { nome, documento }
+}
+
+const SEGMENTO_ARRECADACAO: Record<string, string> = {
+  '1': 'Concessionária de saneamento',
+  '2': 'Concessionária de energia elétrica / gás',
+  '3': 'Concessionária de telecomunicações',
+  '4': 'Órgão governamental',
+  '5': 'Carnês / tributos',
+  '6': 'Empresa privada (convênio)',
+  '7': 'Multas de trânsito',
+  '9': 'Uso exclusivo do banco',
+}
+
+/** Último recurso: identifica o tipo do emissor a partir do próprio código de barras. */
+export function beneficiarioPeloCodigo(codigo?: string | null): string | null {
+  const d = onlyDigits(codigo ?? '')
+  if (!d) return null
+  if (d.startsWith('8')) return SEGMENTO_ARRECADACAO[d[1] ?? ''] ?? 'Conta de consumo / tributo'
+  const banco = d.slice(0, 3)
+  const BANCOS: Record<string, string> = {
+    '001': 'Banco do Brasil', '033': 'Santander', '104': 'Caixa Econômica Federal',
+    '237': 'Bradesco', '341': 'Itaú Unibanco', '041': 'Banrisul', '077': 'Banco Inter',
+    '260': 'Nu Pagamentos', '336': 'C6 Bank', '748': 'Sicredi', '756': 'Sicoob',
+    '422': 'Banco Safra', '070': 'BRB', '208': 'BTG Pactual', '655': 'Votorantim',
+  }
+  return BANCOS[banco] ? `Título registrado no ${BANCOS[banco]}` : null
+}
