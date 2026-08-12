@@ -190,6 +190,8 @@ export const Route = createFileRoute("/voar")({
 
 function VoarPublicPage() {
   const s = Route.useSearch();
+  const deps = Route.useLoaderDeps();
+  const queryClient = useQueryClient();
   const navigate = Route.useNavigate();
   const hasPreset = !!(s.o && s.d && s.ida);
   const hasHotelPreset = s.m === "hotel" && !!(s.hd && s.ci && s.co);
