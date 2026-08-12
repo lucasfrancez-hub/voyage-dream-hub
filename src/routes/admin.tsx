@@ -410,6 +410,7 @@ function ProdutosNav({ pathname }: { pathname: string }) {
         {
           items: [
             { to: "/admin/pacotes", label: "Command Center" },
+            { to: "/admin/promocoes-aereo", label: "Promoções de Aéreo" },
             { to: "/admin/buscar", label: "Motor de busca" },
           ],
         },
