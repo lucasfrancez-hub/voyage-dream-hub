@@ -51,9 +51,7 @@ export function parseBoletoLine(line: string): { dueDate: string | null; value: 
   const centavos = Number(d.slice(37, 47))
   let dueDate: string | null = null
   if (fator > 0) {
-    const base = Date.UTC(1997, 9, 7) // 07/10/1997
-    const dt = new Date(base + fator * 86400000)
-    dueDate = dt.toISOString().slice(0, 10)
+    dueDate = fatorToDate(fator)
   }
   return { dueDate, value: centavos > 0 ? centavos / 100 : null }
 }
@@ -120,8 +118,10 @@ function mod11Arrecadacao(block: string) {
 
 function fatorToDate(fator: number): string | null {
   if (!fator) return null
-  const base = Date.UTC(1997, 9, 7)
-  return new Date(base + fator * 86400000).toISOString().slice(0, 10)
+  // Em 22/02/2025 a FEBRABAN reiniciou o fator em 1000. Valores do ciclo
+  // atual não podem continuar sendo interpretados pela base de 1997.
+  const resetBase = Date.UTC(2025, 1, 22)
+  return new Date(resetBase + (fator - 1000) * 86400000).toISOString().slice(0, 10)
 }
 
 function bancarioBarcodeToLinha(bc: string) {
@@ -378,6 +378,37 @@ export function extrairBeneficiarioProfundo(raw: unknown): { nome: string | null
   }
   walk(raw)
   return { nome, documento }
+}
+
+/** Procura o vencimento mesmo quando o provedor o aninha ou usa outro nome. */
+export function extrairVencimentoProfundo(raw: unknown): string | null {
+  const DATE_KEYS = /(due.?date|expiration|expiry|vencimento|data.?vencimento)/i
+  const seen = new Set<unknown>()
+  let found: string | null = null
+
+  const normalize = (value: unknown) => {
+    if (typeof value !== 'string') return null
+    const iso = value.match(/^(\d{4})-(\d{2})-(\d{2})/)
+    if (iso) return `${iso[1]}-${iso[2]}-${iso[3]}`
+    const br = value.match(/^(\d{2})\/(\d{2})\/(\d{4})/)
+    return br ? `${br[3]}-${br[2]}-${br[1]}` : null
+  }
+
+  const walk = (node: unknown) => {
+    if (found || !node || typeof node !== 'object' || seen.has(node)) return
+    seen.add(node)
+    for (const [key, value] of Object.entries(node as Record<string, unknown>)) {
+      if (DATE_KEYS.test(key)) {
+        found = normalize(value)
+        if (found) return
+      }
+      if (value && typeof value === 'object') walk(value)
+      if (found) return
+    }
+  }
+
+  walk(raw)
+  return found
 }
 
 const SEGMENTO_ARRECADACAO: Record<string, string> = {
