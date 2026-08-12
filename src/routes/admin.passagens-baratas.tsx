@@ -133,6 +133,18 @@ function PassagensBaratasPage() {
     });
   };
 
+  // Próximos 12 meses para o filtro global.
+  const hoje = new Date();
+  const mesesFiltro = Array.from({ length: 12 }, (_, i) => {
+    const d = new Date(hoje.getFullYear(), hoje.getMonth() + i, 1);
+    return {
+      value: `${d.getFullYear()}-${d.getMonth() + 1}`,
+      label: `${MESES[d.getMonth()]}/${d.getFullYear()}`,
+    };
+  });
+
+
+
   return (
     <div className="mx-auto w-full max-w-5xl space-y-5 p-4 md:p-6">
       <header className="flex flex-wrap items-end justify-between gap-3">
