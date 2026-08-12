@@ -3640,6 +3640,101 @@ export type Database = {
         }
         Relationships: []
       }
+      pagamentos_externos: {
+        Row: {
+          autenticacao: string | null
+          banco_codigo: string | null
+          banco_nome: string
+          beneficiario_documento: string | null
+          beneficiario_nome: string | null
+          conta_debito: string | null
+          created_at: string
+          created_by: string | null
+          created_by_name: string | null
+          data_pagamento: string
+          data_vencimento: string | null
+          desconto: number | null
+          descricao: string | null
+          documento_path: string | null
+          financial_entry_id: string | null
+          forma_pagamento: string
+          id: string
+          juros: number | null
+          linha_digitavel: string | null
+          multa: number | null
+          pagador_documento: string | null
+          pagador_nome: string | null
+          raw_extracao: Json | null
+          updated_at: string
+          valor: number
+          valor_original: number | null
+        }
+        Insert: {
+          autenticacao?: string | null
+          banco_codigo?: string | null
+          banco_nome: string
+          beneficiario_documento?: string | null
+          beneficiario_nome?: string | null
+          conta_debito?: string | null
+          created_at?: string
+          created_by?: string | null
+          created_by_name?: string | null
+          data_pagamento?: string
+          data_vencimento?: string | null
+          desconto?: number | null
+          descricao?: string | null
+          documento_path?: string | null
+          financial_entry_id?: string | null
+          forma_pagamento?: string
+          id?: string
+          juros?: number | null
+          linha_digitavel?: string | null
+          multa?: number | null
+          pagador_documento?: string | null
+          pagador_nome?: string | null
+          raw_extracao?: Json | null
+          updated_at?: string
+          valor?: number
+          valor_original?: number | null
+        }
+        Update: {
+          autenticacao?: string | null
+          banco_codigo?: string | null
+          banco_nome?: string
+          beneficiario_documento?: string | null
+          beneficiario_nome?: string | null
+          conta_debito?: string | null
+          created_at?: string
+          created_by?: string | null
+          created_by_name?: string | null
+          data_pagamento?: string
+          data_vencimento?: string | null
+          desconto?: number | null
+          descricao?: string | null
+          documento_path?: string | null
+          financial_entry_id?: string | null
+          forma_pagamento?: string
+          id?: string
+          juros?: number | null
+          linha_digitavel?: string | null
+          multa?: number | null
+          pagador_documento?: string | null
+          pagador_nome?: string | null
+          raw_extracao?: Json | null
+          updated_at?: string
+          valor?: number
+          valor_original?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pagamentos_externos_financial_entry_id_fkey"
+            columns: ["financial_entry_id"]
+            isOneToOne: false
+            referencedRelation: "financial_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       partner_agencies: {
         Row: {
           agency_cnpj: string | null
