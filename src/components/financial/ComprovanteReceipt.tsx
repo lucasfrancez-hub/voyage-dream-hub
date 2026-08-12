@@ -39,6 +39,10 @@ export type ReceiptData = {
   recebedor?: ReceiptParty | null;
   /** URL do comprovante oficial (ASAAS) — quando presente, "Salvar PDF" abre este arquivo */
   pdfUrl?: string | null;
+  /** Instituição que processou o pagamento (rodapé "Processado por"). Padrão: ASAAS */
+  processadoPor?: string | null;
+  /** Logo da instituição no rodapé — exibida em escala de cinza */
+  processadoPorLogoUrl?: string | null;
   /** ---- Campos exclusivos de comprovante de BOLETO ---- */
   tipoDocumento?: "pix" | "boleto";
   linhaDigitavel?: string | null;
@@ -360,7 +364,22 @@ export function ComprovanteReceipt({
                       <span className="text-[9px] text-muted-foreground uppercase font-medium tracking-widest">
                         Processado por
                       </span>
-                      <span className="text-[11px] font-bold text-foreground tracking-widest">ASAAS</span>
+                      {data.processadoPorLogoUrl ? (
+                        <img
+                          src={data.processadoPorLogoUrl}
+                          alt={data.processadoPor ?? "Instituição"}
+                          className="h-4 max-w-[92px] object-contain grayscale opacity-80"
+                        />
+                      ) : (
+                        <span className="flex items-center gap-1.5">
+                          <span className="flex h-4 w-4 items-center justify-center rounded-[4px] bg-muted-foreground/25 text-[8px] font-black text-foreground/70">
+                            {(data.processadoPor ?? "ASAAS").trim().charAt(0).toUpperCase()}
+                          </span>
+                          <span className="text-[11px] font-bold text-foreground tracking-widest">
+                            {(data.processadoPor ?? "ASAAS").toUpperCase()}
+                          </span>
+                        </span>
+                      )}
                     </div>
                     <span className="text-[9px] text-muted-foreground text-center leading-tight">
                       Documento gerado pelo sistema VIA AIR para simples conferência.
