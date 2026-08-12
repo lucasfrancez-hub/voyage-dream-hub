@@ -91,6 +91,41 @@ function decodeTrail(raw?: string): MdStep[] {
 
 const MODES: Mode[] = ["aereo", "hotel", "carro", "combo", "exclusivo", "seguro"];
 
+type PresetDeps = {
+  o: string;
+  d: string;
+  ida: string;
+  volta: string;
+  ad: number;
+  ch: number;
+  inf: number;
+};
+
+/** Busca do preset iniciada já no load da rota (não espera a hidratação do motor). */
+function presetSearchOptions(p: PresetDeps) {
+  return {
+    queryKey: ["voar-preset", p] as const,
+    queryFn: () =>
+      onerFlightSearchPublic({
+        data: {
+          departureIata: p.o,
+          arrivalIata: p.d,
+          departureDate: p.ida,
+          returnDate: p.volta || null,
+          adults: p.ad,
+          children: p.ch,
+          infants: p.inf,
+          pageSize: 50,
+          searchKey: null,
+          departureIsCity: CITY_CODES.has(p.o),
+          arrivalIsCity: CITY_CODES.has(p.d),
+        },
+      }),
+    staleTime: 5 * 60_000,
+    gcTime: 10 * 60_000,
+  };
+}
+
 
 export const Route = createFileRoute("/voar")({
   validateSearch: (search: Record<string, unknown>): VoarSearch => ({
