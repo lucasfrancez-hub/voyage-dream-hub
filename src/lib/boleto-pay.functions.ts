@@ -799,3 +799,85 @@ export const cancelarPagamentoBoleto = createServerFn({ method: 'POST' })
     }
     return { ok: true }
   })
+
+/**
+ * Fallback dos webhooks: consulta no ASAAS todos os boletos ainda não
+ * finalizados e atualiza o status real (agendado → processando → pago).
+ * Também reconcilia envios sem resposta, pela referência externa —
+ * nunca cria nem reenvia pagamento.
+ */
+export const sincronizarTodosPagamentosBoleto = createServerFn({ method: 'POST' })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context as any)
+    const { supabaseAdmin } = await import('@/integrations/supabase/client.server')
+    const { getAsaasBillSafe, findAsaasBillsByExternalReference } = await import('@/lib/asaas.server')
+    const { aplicarStatusBoleto } = await import('@/lib/boleto-pay.server')
+
+    const { data: rows, error } = await supabaseAdmin
+      .from('asaas_bill_payments')
+      .select('id, status, asaas_bill_id, external_reference, scheduled_date, dispatch_pending')
+      .in('status', ['pendente', 'agendado', 'processando'])
+      .order('created_at', { ascending: false })
+      .limit(200)
+    if (error) throw new Error(error.message)
+
+    const pendentes = rows ?? []
+    let atualizados = 0
+    let reconciliados = 0
+    let erros = 0
+    const mudancas: Array<{ id: string; de: string | null; para: string }> = []
+
+    for (const row of pendentes) {
+      try {
+        let billId = row.asaas_bill_id as string | null
+
+        // Envio sem confirmação: descobrir se o pagamento existe no banco.
+        if (!billId && row.external_reference) {
+          if (row.dispatch_pending) continue // agendamento local ainda não enviado
+          const rec = await findAsaasBillsByExternalReference(row.external_reference)
+          const achado = rec.ok ? rec.bills[0] : null
+          if (!achado) continue
+          billId = achado.id
+          await supabaseAdmin
+            .from('asaas_bill_payments')
+            .update({
+              asaas_bill_id: billId,
+              needs_reconciliation: false,
+              reconciled_at: new Date().toISOString(),
+            } as any)
+            .eq('id', row.id)
+          reconciliados++
+        }
+        if (!billId) continue
+
+        const res = await getAsaasBillSafe(billId)
+        if (!res.ok) {
+          erros++
+          continue
+        }
+        const bill: any = res.data
+        const status = mapBillStatus(bill?.status)
+        if (status === row.status) continue
+
+        await aplicarStatusBoleto(row.id, bill)
+        await supabaseAdmin.from('asaas_bill_payment_events').insert({
+          bill_payment_id: row.id,
+          asaas_bill_id: billId,
+          event: 'MANUAL_SYNC',
+          status,
+          message: `Sincronização manual: ${row.status ?? '—'} → ${status} (ASAAS: ${bill?.status ?? '—'})`,
+          actor_user_id: context.userId,
+          ip: ip(),
+          payload: bill as any,
+        })
+        atualizados++
+        mudancas.push({ id: row.id, de: row.status, para: status })
+      } catch (e) {
+        erros++
+        console.error('[sync-bills]', row.id, (e as Error).message)
+      }
+    }
+
+    return { verificados: pendentes.length, atualizados, reconciliados, erros, mudancas }
+  })
