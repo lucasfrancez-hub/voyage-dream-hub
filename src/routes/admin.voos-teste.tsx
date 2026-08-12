@@ -1758,8 +1758,10 @@ export function VoosPage({
   });
 
   const mut = useMutation({
-    mutationFn: (opts: { searchKey?: string | null; filters: Filters }) =>
-      search({
+    mutationFn: (opts: { searchKey?: string | null; filters: Filters; usePreset?: boolean }) =>
+      opts.usePreset && presetFetch
+        ? presetFetch()
+        : search({
         data: {
           ...paxData(),
           returnDate: form.returnDate || null,
