@@ -452,25 +452,33 @@ export async function createFlightCart(data: CartData) {
   listQuery.set("isRoundTrip", String(data.isRoundTrip));
   listQuery.set("source", "f");
   const loc = `https://www.comprarviagem.com.br/viaair/flight-list?${listQuery.toString()}`;
-  const body = JSON.stringify({
-    flight: {
-      searchKey: data.searchKey,
-      fareId: data.outboundFareId,
-      fareId2: data.inboundFareId ?? null,
-      outboundItineraryId: data.outboundItineraryId,
-      inboundItineraryId: data.inboundItineraryId ?? null,
-      teenagerCount: 0,
-    },
-    searchBookingKey: null,
-    affiliateTag: null,
-    eventId: null,
-  });
+  // Tarifa combinada (comum em internacional e em cia brasileira com voo
+  // internacional): ida e volta compartilham a MESMA fareId. Nesse caso a
+  // operadora estoura 500 se mandarmos fareId2 repetido — tem que ir null.
+  const sameFare = !!data.inboundFareId && data.inboundFareId === data.outboundFareId;
+  const buildBody = (fareId2: string | null) =>
+    JSON.stringify({
+      flight: {
+        searchKey: data.searchKey,
+        fareId: data.outboundFareId,
+        fareId2,
+        outboundItineraryId: data.outboundItineraryId,
+        inboundItineraryId: data.inboundItineraryId ?? null,
+        teenagerCount: 0,
+      },
+      searchBookingKey: null,
+      affiliateTag: null,
+      eventId: null,
+    });
+  let body = buildBody(sameFare ? null : (data.inboundFareId ?? null));
+  let triedWithoutFare2 = sameFare || !data.inboundFareId;
+
 
   let cartId = "";
   let lastStatus = 0;
   let lastMessage = "";
   // A operadora costuma devolver 5xx/timeout esporádico; tentamos 3x com backoff.
-  for (let attempt = 0; attempt < 3; attempt++) {
+  for (let attempt = 0; attempt < 4; attempt++) {
     if (attempt > 0) await new Promise((r) => setTimeout(r, 700 * attempt));
     let res: Response;
     try {
@@ -491,9 +499,17 @@ export async function createFlightCart(data: CartData) {
     }
     if (res.ok && cartId) break;
     cartId = "";
+    // Falhou com fareId2? Refaz sem ele: em tarifa combinada a operadora
+    // rejeita a segunda tarifa e devolve 500 genérico.
+    if (!triedWithoutFare2) {
+      triedWithoutFare2 = true;
+      body = buildBody(null);
+      continue;
+    }
     // 4xx = tarifa realmente expirada/invalidada: não adianta repetir.
     if (res.status >= 400 && res.status < 500) break;
   }
+
 
   if (!cartId) {
     console.error("[onertravel] falha ao criar carrinho aéreo", {
