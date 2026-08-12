@@ -225,23 +225,40 @@ function PassagensBaratasPage() {
       </div>
 
 
-      <nav className="flex flex-wrap items-center gap-1 text-sm">
-        {trail.map((s, i) => (
-          <span key={`${s.label}-${i}`} className="flex items-center gap-1">
-            {i > 0 && <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />}
+      {/* Trilha de navegação — setas encadeadas na identidade VIA AIR */}
+      <nav
+        aria-label="Trilha de navegação"
+        className="flex flex-wrap items-center gap-1 rounded-2xl border border-border/50 bg-card/60 p-1.5 backdrop-blur"
+      >
+        {trail.map((s, i) => {
+          const isLast = i === trail.length - 1;
+          const isFirst = i === 0;
+          return (
             <button
-              className={
-                i === trail.length - 1
-                  ? "font-semibold"
-                  : "text-muted-foreground underline-offset-2 hover:underline"
-              }
+              key={`${s.label}-${i}`}
               onClick={() => backTo(i)}
+              title={s.label}
+              style={{
+                clipPath: isFirst
+                  ? "polygon(0 0, calc(100% - 12px) 0, 100% 50%, calc(100% - 12px) 100%, 0 100%)"
+                  : "polygon(0 0, calc(100% - 12px) 0, 100% 50%, calc(100% - 12px) 100%, 0 100%, 12px 50%)",
+                marginLeft: isFirst ? 0 : -10,
+              }}
+              className={`relative flex items-center gap-1.5 py-2 pr-6 text-sm font-semibold transition-colors ${
+                isFirst ? "pl-4" : "pl-6"
+              } ${
+                isLast
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-muted/70 text-muted-foreground hover:bg-muted hover:text-foreground"
+              }`}
             >
-              {s.label}
+              {isFirst && <Plane className="h-3.5 w-3.5 shrink-0" />}
+              <span className="max-w-[42vw] truncate sm:max-w-none">{s.label}</span>
             </button>
-          </span>
-        ))}
+          );
+        })}
       </nav>
+
 
       {q.isLoading && (
         <Card className="flex items-center gap-2 p-6 text-sm text-muted-foreground">
