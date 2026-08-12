@@ -2259,7 +2259,7 @@ export function VoosPage({
         {result && (
           <div className={`grid gap-6 ${showSummary ? "" : "lg:grid-cols-[280px_1fr]"}`}>
             {!showSummary && (
-              <aside className="space-y-4 lg:sticky lg:top-4 lg:self-start">
+              <aside className="space-y-4 lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:self-start lg:overflow-y-auto lg:overscroll-contain lg:pr-1">
                 {!inboundPhase ? (
                   <FiltersPanel
                     title={isRoundTrip ? "Filtros da ida" : "Filtros"}
