@@ -148,6 +148,44 @@ function EmbedTestePage() {
             pendente em /admin/pedidos.
           </p>
         </div>
+
+        <div className="mt-12 rounded-2xl border border-white/10 bg-[#0a1622] p-4">
+          <div className="mb-3 text-xs uppercase tracking-widest text-white/40">
+            Widget de passagens aéreas baratas (sem passo a passo)
+          </div>
+          <iframe
+            src="/embed/passagens-baratas"
+            style={{
+              width: "100%",
+              maxWidth: 1320,
+              height: 900,
+              border: 0,
+              display: "block",
+              margin: "0 auto",
+            }}
+            title="Passagens aéreas baratas VIA AIR"
+          />
+          <div className="mt-4 flex items-center justify-between">
+            <div className="text-xs uppercase tracking-widest text-white/40">
+              Código para colar no WordPress
+            </div>
+            <button
+              type="button"
+              onClick={copyBaratas}
+              className="rounded-full bg-brand-orange px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-white hover:brightness-110"
+            >
+              {copiedBaratas ? "Copiado!" : "Copiar"}
+            </button>
+          </div>
+          <pre className="mt-2 overflow-x-auto rounded-lg bg-black/60 p-4 text-xs leading-relaxed text-white/85">
+            <code>{baratasSnippet}</code>
+          </pre>
+          <p className="mt-3 text-xs text-white/50">
+            O snippet já ajusta a altura sozinho conforme o conteúdo. Os filtros
+            de origem e mês ficam dentro do widget e "Ver voos" abre o motor
+            VIA AIR em nova aba.
+          </p>
+        </div>
       </div>
     </div>
   );
