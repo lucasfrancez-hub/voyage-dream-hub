@@ -324,7 +324,9 @@ export function ComprovanteReceipt({
                     </>
                   ) : null}
 
-                  {isBoleto && data.autenticacao ? (
+                  {isBoleto &&
+                  data.autenticacao &&
+                  data.autenticacao !== data.transacaoId ? (
                     <div className="mt-3">
                       <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold mb-1.5">
                         Autenticação
@@ -335,19 +337,7 @@ export function ComprovanteReceipt({
                     </div>
                   ) : null}
 
-                  {isBoleto && data.referenciaInterna ? (
-                    <div className="mt-3">
-                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold mb-1.5">
-                        Referência interna VIA AIR
-                      </p>
-                      <p className="text-[10px] font-mono text-muted-foreground break-all leading-snug">
-                        {data.referenciaInterna}
-                      </p>
-                    </div>
-                  ) : null}
-
-
-                  <div className="mt-5 flex flex-col items-center gap-1 opacity-60">
+                  <div className="mt-5 flex flex-col items-center gap-1.5">
                     <div className="flex items-center gap-2">
                       <span className="text-[9px] text-muted-foreground uppercase font-medium tracking-widest">
                         Processado por
@@ -359,16 +349,10 @@ export function ComprovanteReceipt({
                           className="h-4 max-w-[92px] object-contain grayscale opacity-80"
                         />
                       ) : (
-                        <span className="flex items-center gap-1.5">
-                          <span className="flex h-4 w-4 items-center justify-center rounded-[4px] bg-muted-foreground/25 text-[8px] font-black text-foreground/70">
-                            {(data.processadoPor ?? "ASAAS").trim().charAt(0).toUpperCase()}
-                          </span>
-                          <span className="text-[11px] font-bold text-foreground tracking-widest">
-                            {(data.processadoPor ?? "ASAAS").toUpperCase()}
-                          </span>
-                        </span>
+                        <BankMark nome={data.processadoPor ?? "ASAAS"} />
                       )}
                     </div>
+
                     <span className="text-[9px] text-muted-foreground text-center leading-tight">
                       Documento gerado pelo sistema VIA AIR para simples conferência.
                     </span>
