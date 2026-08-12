@@ -111,7 +111,7 @@ function fmtDate(d: { year: number; month: number; day: number }) {
   return `${String(d.day).padStart(2, "0")}/${String(d.month).padStart(2, "0")}`;
 }
 /** Códigos multi-aeroporto: buscam todos os aeroportos da cidade na operadora. */
-const CITY_CODES = new Set([
+export const CITY_CODES = new Set([
   "SAO",
   "RIO",
   "BHZ",
@@ -1701,11 +1701,14 @@ export function VoosPage({
   publicMode = false,
   externalSearch = false,
   emptySlot,
+  presetFetch,
 }: {
   header?: React.ReactNode;
   hideForm?: boolean;
   preset?: FlightPreset;
   runToken?: number;
+  /** Busca do preset já iniciada no carregamento da rota (evita esperar a hidratação). */
+  presetFetch?: () => Promise<unknown>;
   onComboSelect?: (pick: ComboPick) => void;
   /** Motor aberto ao cliente final (sem login). */
   publicMode?: boolean;
@@ -1755,15 +1758,17 @@ export function VoosPage({
   });
 
   const mut = useMutation({
-    mutationFn: (opts: { searchKey?: string | null; filters: Filters }) =>
-      search({
-        data: {
-          ...paxData(),
-          returnDate: form.returnDate || null,
-          searchKey: opts.searchKey ?? null,
-          filters: toOperatorFilters(opts.filters),
-        },
-      }),
+    mutationFn: (opts: { searchKey?: string | null; filters: Filters; usePreset?: boolean }) =>
+      opts.usePreset && presetFetch
+        ? presetFetch()
+        : search({
+            data: {
+              ...paxData(),
+              returnDate: form.returnDate || null,
+              searchKey: opts.searchKey ?? null,
+              filters: toOperatorFilters(opts.filters),
+            },
+          }),
     onSuccess: (raw, vars) => {
       const r = normalizeSearchResult(raw);
       if (!r) {
@@ -2036,7 +2041,7 @@ export function VoosPage({
     if (!pendingRun) return;
     if (canSearch) {
       setPendingRun(0);
-      mut.mutate({ searchKey: null, filters: EMPTY_FILTERS });
+      mut.mutate({ searchKey: null, filters: EMPTY_FILTERS, usePreset: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pendingRun, canSearch]);

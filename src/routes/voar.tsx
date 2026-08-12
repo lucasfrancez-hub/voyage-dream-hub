@@ -5,8 +5,10 @@
  * operadora registrando um pedido pendente no admin.
  */
 import { createFileRoute } from "@tanstack/react-router";
+import { useQueryClient } from "@tanstack/react-query";
 import { Plane, ShieldCheck, Headset, CreditCard, ChevronRight, BedDouble } from "lucide-react";
-import { VoosPage } from "./admin.voos-teste";
+import { VoosPage, CITY_CODES } from "./admin.voos-teste";
+import { onerFlightSearchPublic } from "@/lib/onertravel-public.functions";
 import { HoteisPage } from "./admin.hoteis-teste";
 
 import { SearchEngine, type Mode } from "./admin.buscar";
@@ -90,6 +92,41 @@ function decodeTrail(raw?: string): MdStep[] {
 
 const MODES: Mode[] = ["aereo", "hotel", "carro", "combo", "exclusivo", "seguro"];
 
+type PresetDeps = {
+  o: string;
+  d: string;
+  ida: string;
+  volta: string;
+  ad: number;
+  ch: number;
+  inf: number;
+};
+
+/** Busca do preset iniciada já no load da rota (não espera a hidratação do motor). */
+function presetSearchOptions(p: PresetDeps) {
+  return {
+    queryKey: ["voar-preset", p] as const,
+    queryFn: () =>
+      onerFlightSearchPublic({
+        data: {
+          departureIata: p.o,
+          arrivalIata: p.d,
+          departureDate: p.ida,
+          returnDate: p.volta || null,
+          adults: p.ad,
+          children: p.ch,
+          infants: p.inf,
+          pageSize: 50,
+          searchKey: null,
+          departureIsCity: CITY_CODES.has(p.o),
+          arrivalIsCity: CITY_CODES.has(p.d),
+        },
+      }),
+    staleTime: 5 * 60_000,
+    gcTime: 10 * 60_000,
+  };
+}
+
 
 export const Route = createFileRoute("/voar")({
   validateSearch: (search: Record<string, unknown>): VoarSearch => ({
@@ -116,6 +153,22 @@ export const Route = createFileRoute("/voar")({
     fm: typeof search.fm === "string" ? search.fm.slice(0, 7) : undefined,
   }),
 
+  loaderDeps: ({ search }) => ({
+    o: search.o ?? "",
+    d: search.d ?? "",
+    ida: search.ida ?? "",
+    volta: search.volta ?? "",
+    ad: search.ad ?? 1,
+    ch: search.ch ?? 0,
+    inf: search.inf ?? 0,
+  }),
+  // Dispara a busca do preset já no load da rota: quando o motor hidrata,
+  // a resposta da operadora normalmente já chegou (ou está a caminho).
+  loader: ({ deps, context }) => {
+    if (!deps.o || !deps.d || !deps.ida) return;
+    context.queryClient.prefetchQuery(presetSearchOptions(deps));
+  },
+
   head: () => ({
     meta: [
       { title: "Passagens aéreas em tempo real | VIA AIR" },
@@ -138,6 +191,8 @@ export const Route = createFileRoute("/voar")({
 
 function VoarPublicPage() {
   const s = Route.useSearch();
+  const deps = Route.useLoaderDeps();
+  const queryClient = useQueryClient();
   const navigate = Route.useNavigate();
   const hasPreset = !!(s.o && s.d && s.ida);
   const hasHotelPreset = s.m === "hotel" && !!(s.hd && s.ci && s.co);
@@ -198,6 +253,7 @@ function VoarPublicPage() {
             infants: s.inf ?? 0,
           }}
           runToken={1}
+          presetFetch={() => queryClient.ensureQueryData(presetSearchOptions(deps))}
         />
       ) : (
         <SearchEngine
