@@ -226,3 +226,18 @@ export function quotesToExtendedOptions(quotes: ExtendedInstallmentQuote[]): Ext
     total: q.total,
   }));
 }
+
+/**
+ * Texto do maior parcelamento (padrão 12x) já com o markup aplicado.
+ * Ex.: "ou 12x de R$ 1.234,56".
+ */
+export function maxInstallmentText(
+  total: number,
+  installments = 12,
+  markups: MarkupTable = DEFAULT_EXTENDED_MARKUPS,
+): string | null {
+  const q = buildExtendedQuotes(total, markups).find((x) => x.installments === installments);
+  if (!q) return null;
+  return `ou ${q.installments}x de ${brl(q.installmentValue)}`;
+}
+

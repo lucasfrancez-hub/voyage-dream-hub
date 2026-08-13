@@ -48,6 +48,7 @@ import {
   AVISO_VALIDADE_TARIFA,
   extendedText,
   getAirfarePaymentConditions,
+  maxInstallmentText,
 } from "@/lib/airfare-conditions";
 import { onerCreateFlightCart, onerFlightSearch } from "@/lib/onertravel.functions";
 import {
@@ -80,6 +81,16 @@ export type FlightUi = {
   taxesOf: (f: OnerFlight) => number;
   normalizeSearchResult: (raw: unknown) => OnerSearchResult | null;
   findByAnyKey: (list: OnerFlight[], key: string | null | undefined) => OnerFlight | null;
+  FiltersPanel: React.ComponentType<{
+    title: string;
+    flights: OnerFlight[];
+    filters: any;
+    onChange: (f: any) => void;
+    loading?: boolean;
+    priceRange?: { minPrice: number; maxPrice: number } | null;
+  }>;
+  EMPTY_FILTERS: any;
+  applyFilters: (list: OnerFlight[], f: any) => OnerFlight[];
   cityCodes: Set<string>;
   BriefcaseIcon: React.ComponentType<{ className?: string }>;
   LuggageIcon: React.ComponentType<{ className?: string }>;
@@ -107,8 +118,8 @@ export function MultiTrechoToggle({
           : "border-border/60 bg-background/40 text-muted-foreground hover:border-primary/50 hover:text-foreground"
       }`}
     >
-      {active ? <Check className="h-4 w-4" /> : <ArrowLeftRight className="h-4 w-4" />}
-      {active ? "Multi-trecho ativo" : "Multi-trecho"}
+      {active ? <RotateCcw className="h-4 w-4" /> : <ArrowLeftRight className="h-4 w-4" />}
+      {active ? "Ida e volta" : "Multi-trecho"}
     </button>
   );
 }
@@ -172,24 +183,21 @@ export function MultiCityForm({
   );
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center gap-3">
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-center gap-2">
         <MultiTrechoToggle active onToggle={onCancel} />
-        <p className="text-xs text-muted-foreground">
-          Monte sua viagem com vários trechos. Cada trecho é pesquisado e comprado separadamente.
-        </p>
       </div>
 
-      <div className="space-y-3">
+      <div className="space-y-2">
         {segments.map((s, i) => {
           const erro = errors[s.id];
           const minDate = i > 0 ? segments[i - 1]?.date || undefined : undefined;
           return (
             <div
               key={s.id}
-              className="rounded-2xl border border-border/50 bg-background/30 p-4 md:p-5"
+              className="rounded-2xl border border-border/50 bg-background/30 p-3"
             >
-              <div className="mb-3 flex items-center justify-between gap-2">
+              <div className="mb-2 flex items-center justify-between gap-2">
                 <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary">
                   Trecho {i + 1}
                 </span>
@@ -205,7 +213,7 @@ export function MultiCityForm({
                 )}
               </div>
 
-              <div className="grid gap-3 md:grid-cols-[1fr_auto_1fr_1fr]">
+              <div className="grid gap-2 md:grid-cols-[1fr_auto_1fr_1fr]">
                 <div className="space-y-1.5">
                   <Label className="flex items-center gap-2 px-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
                     <MapPin className="h-3 w-3 text-primary" /> Origem
@@ -282,7 +290,7 @@ export function MultiCityForm({
         type="button"
         onClick={addSegment}
         disabled={segments.length >= MAX_SEGMENTS}
-        className="flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-border/70 py-3 text-sm font-semibold text-primary transition hover:border-primary/60 disabled:cursor-not-allowed disabled:opacity-40"
+        className="flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-border/70 py-2.5 text-sm font-semibold text-primary transition hover:border-primary/60 disabled:cursor-not-allowed disabled:opacity-40"
       >
         <Plus className="h-4 w-4" /> Adicionar trecho
       </button>
@@ -301,6 +309,31 @@ export function MultiCityForm({
       )}
     </div>
   );
+}
+
+/** Filtro local do multi-trecho (não há reconsulta na operadora por trecho). */
+function refineLocal(list: OnerFlight[], f: any, ui: FlightUi): OnerFlight[] {
+  let out = ui.applyFilters(list, f);
+  if (f?.onlyBaggage) out = out.filter((fl) => flightHasBaggage(fl));
+  if (f?.airlines?.length) {
+    out = out.filter((fl) => {
+      const a = ui.airlineOf(fl);
+      return !!a?.iata && f.airlines.includes(a.iata);
+    });
+  }
+  const min = Number(String(f?.minPrice ?? "").replace(",", "."));
+  const max = Number(String(f?.maxPrice ?? "").replace(",", "."));
+  if (f?.minPrice && Number.isFinite(min)) out = out.filter((fl) => fl.price.total >= min);
+  if (f?.maxPrice && Number.isFinite(max)) out = out.filter((fl) => fl.price.total <= max);
+  const dep = f?.dep as [number, number] | undefined;
+  if (dep && (dep[0] !== 0 || dep[1] !== 1440)) {
+    out = out.filter((fl) => {
+      const t = fl.journey.departure.time;
+      const m = t.hour * 60 + t.minute;
+      return m >= dep[0] && m <= dep[1];
+    });
+  }
+  return out;
 }
 
 // -------------------------------------------------------------- resultados
@@ -331,6 +364,7 @@ export function MultiCityResults({
   const [active, setActive] = useState(0);
   const [finalOpen, setFinalOpen] = useState(false);
   const [purchased, setPurchased] = useState<Record<string, boolean>>({});
+  const [filters, setFilters] = useState<Record<number, any>>({});
   const runRef = useRef(0);
 
   const paxFor = (s: MultiSegmentInput) => ({
@@ -352,6 +386,7 @@ export function MultiCityResults({
     if (!runToken || !segments.length) return;
     const run = ++runRef.current;
     setPurchased({});
+    setFilters({});
     setFinalOpen(false);
     setActive(0);
     setSegs(
@@ -458,7 +493,9 @@ export function MultiCityResults({
 
   const carregando = segs.some((s) => s.status === "loading" || s.status === "idle");
   const atual = segs[active];
-  const flights = atual?.result?.outbound.flights ?? [];
+  const todosVoos = atual?.result?.outbound.flights ?? [];
+  const filtroAtual = filters[active] ?? ui.EMPTY_FILTERS;
+  const flights = todosVoos.length ? refineLocal(todosVoos, filtroAtual, ui) : todosVoos;
   const cheapest = flights.length ? Math.min(...flights.map((f) => f.price.total)) : null;
 
   return (
@@ -536,6 +573,16 @@ export function MultiCityResults({
       </div>
 
       {atual && (
+        <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
+          <aside className="space-y-4 lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:self-start lg:overflow-y-auto lg:overscroll-contain lg:pr-1">
+            <ui.FiltersPanel
+              title={`Filtros • Trecho ${active + 1}`}
+              flights={todosVoos}
+              filters={filtroAtual}
+              onChange={(f) => setFilters((prev) => ({ ...prev, [active]: f }))}
+              priceRange={atual.result?.outbound.priceRange ?? null}
+            />
+          </aside>
         <section className="space-y-3">
           <div className="flex flex-wrap items-baseline justify-between gap-2">
             <h2 className="text-lg font-semibold">
@@ -579,7 +626,15 @@ export function MultiCityResults({
               </Button>
             </div>
           )}
+
+          {atual.status === "done" && !flights.length && (
+            <NoResults
+              title="Nenhuma opção com esses filtros."
+              hint="Ajuste os filtros deste trecho para ver mais voos."
+            />
+          )}
         </section>
+        </div>
       )}
 
       {todosSelecionados && !carregando && (
@@ -962,9 +1017,15 @@ function TrechoCard({
                 ? `${cond.interestFree.installments}x de ${ui.fmtMoney(cond.interestFree.installmentValue)} sem juros`
                 : `À vista ${ui.fmtMoney(f.price.total)}`}
           </div>
+          {!cond.payment.pixOnly && maxInstallmentText(f.price.total) ? (
+            <div className="text-[10px] text-muted-foreground">
+              {maxInstallmentText(f.price.total)}
+            </div>
+          ) : null}
           {extendedText(cond) ? (
             <div className="text-[10px] text-muted-foreground">{extendedText(cond)}</div>
           ) : null}
+
         </div>
 
         <Button
