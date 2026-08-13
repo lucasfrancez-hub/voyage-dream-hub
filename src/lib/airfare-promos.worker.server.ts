@@ -461,14 +461,35 @@ export async function processPendingCandidates(args: {
   };
 
   let processadasAgora = 0;
+  let cancelada = false;
+
+  /** Cancelamento cooperativo: consultado ANTES de reivindicar cada candidata. */
+  const cancelamentoPedido = async () => {
+    try {
+      const { data } = await client
+        .from("airfare_promo_runs")
+        .select("status")
+        .eq("id", runId)
+        .maybeSingle();
+      const st = (data as { status?: string } | null)?.status;
+      return !st || st !== "running";
+    } catch {
+      return false;
+    }
+  };
 
   const worker = async () => {
     while (Date.now() < deadline) {
+      if (cancelada || (await cancelamentoPedido())) {
+        cancelada = true;
+        return;
+      }
       const cand = await claimNext();
       if (!cand) return;
       let label = "";
       try {
-        label = await processar(cand);
+        // nenhuma consulta ao motor pode prender a coleta indefinidamente
+        label = await withTimeout(processar(cand), CANDIDATE_TIMEOUT_MS, "candidata");
       } catch (err) {
         counters.error_count++;
         label = `${cand.origin_iata}→${cand.destination_iata}`;
