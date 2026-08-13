@@ -3107,6 +3107,27 @@ export type Database = {
         }
         Relationships: []
       }
+      md_response_cache: {
+        Row: {
+          fetched_at: string
+          payload: Json
+          url: string
+          url_hash: string
+        }
+        Insert: {
+          fetched_at?: string
+          payload: Json
+          url: string
+          url_hash: string
+        }
+        Update: {
+          fetched_at?: string
+          payload?: Json
+          url?: string
+          url_hash?: string
+        }
+        Relationships: []
+      }
       monde_sync_state: {
         Row: {
           error: string | null
