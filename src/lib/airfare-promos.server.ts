@@ -96,6 +96,25 @@ export function buildPromotionRow(args: {
   const air = airlineOf(out);
   const airIn = inb ? airlineOf(inb) : null;
 
+  // Código metropolitano (SAO/RIO...) é cidade, não aeroporto: gravamos o
+  // aeroporto realmente encontrado na pesquisa (CGH, GRU, SDU, GIG...).
+  const segOut = out.journey?.segments ?? [];
+  const partida = out.journey?.departure ?? segOut[0]?.departure;
+  const chegada = out.journey?.destination ?? segOut[segOut.length - 1]?.destination;
+  const originIata = isMetroCode(route.origin_iata)
+    ? (partida?.iata?.toUpperCase() ?? route.origin_iata)
+    : route.origin_iata;
+  const destinationIata = isMetroCode(route.destination_iata)
+    ? (chegada?.iata?.toUpperCase() ?? route.destination_iata)
+    : route.destination_iata;
+  const originCity = resolveCity(route.origin_iata, route.origin_city ?? partida?.city).name;
+  const destinationCity = resolveCity(
+    route.destination_iata,
+    route.destination_city ?? chegada?.city,
+  ).name;
+  const originAirport = isMetroCode(route.origin_iata) ? (partida?.name ?? null) : null;
+  const destinationAirport = isMetroCode(route.destination_iata) ? (chegada?.name ?? null) : null;
+
   const quotes = buildExtendedQuotes(total, markups);
   const extendedOptions = quotesToExtendedOptions(quotes);
 
