@@ -776,8 +776,9 @@ async function archivePromotions(
     const k = r.cycle_day ?? null;
     porDia.set(k, [...(porDia.get(k) ?? []), r.id]);
   }
+  let ok = 0;
   for (const [dia, ids] of porDia) {
-    await client
+    const { error } = await client
       .from("airfare_promotions")
       .update({
         archived_at: now,
