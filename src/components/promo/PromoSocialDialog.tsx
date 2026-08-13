@@ -390,7 +390,9 @@ export function PromoSocialDialog({
               titulo="Texto para WhatsApp"
               valor={textoWa}
               onChange={setTextoWa}
-              onRegerar={() => promo && setTextoWa(promoWhatsappText(promo))}
+              onRegerar={() =>
+                promo && setTextoWa(promoWhatsappText({ ...promo, short_url: shortUrl ?? promo.short_url ?? null }))
+              }
               onCopiar={() => copiar(textoWa)}
             />
             <div className="space-y-2 rounded-xl border border-border bg-muted/20 p-3">
@@ -447,7 +449,9 @@ export function PromoSocialDialog({
               titulo="Legenda do Instagram"
               valor={textoIg}
               onChange={setTextoIg}
-              onRegerar={() => promo && setTextoIg(promoInstagramText(promo))}
+              onRegerar={() =>
+                promo && setTextoIg(promoInstagramText({ ...promo, short_url: shortUrl ?? promo.short_url ?? null }))
+              }
               onCopiar={() => copiar(textoIg)}
             />
           </div>
