@@ -638,16 +638,44 @@ export async function finalizePromoRun(
 }
 
 /**
+ * Encerra de fato uma execução cancelada (libera a trava global).
+ * Nada do que já foi validado é apagado.
+ */
+export async function finalizeCancelledRun(runId: string) {
+  const client = await db();
+  const now = new Date().toISOString();
+  await client
+    .from("airfare_promo_candidates")
+    .update({ status: "cancelled", processed_at: now })
+    .eq("run_id", runId)
+    .in("status", ["pending", "processing"]);
+  await client
+    .from("airfare_promo_runs")
+    .update({
+      status: "cancelada",
+      phase: "cancelada",
+      cancelled_at: now,
+      finished_at: now,
+      updated_at: now,
+    })
+    .eq("id", runId);
+  return { cancelled: true as const, at: now };
+}
+
+/** Descoberta parada por mais que isso é retomada pelo worker. */
+const DISCOVERY_STALE_MS = 4 * 60 * 1000;
+
+/**
  * Retoma qualquer execução em andamento (chamado pelo cron a cada minuto).
- * Se a execução estiver parada há muito tempo sem candidatas pendentes,
- * é encerrada para não travar a próxima coleta.
+ * Também retoma a DESCOBERTA quando a invocação que a iniciou morreu,
+ * e conclui execuções com cancelamento pedido.
  */
 export async function resumeActiveRun(budgetMs = WORKER_BUDGET_MS) {
   const client = await db();
   const { data: run } = await client
     .from("airfare_promo_runs")
-    .select("id,phase,updated_at")
-    .eq("status", "running")
+    .select("id,phase,status,updated_at")
+    .in("status", ["running", "cancel_requested"])
     .order("started_at", { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -663,10 +691,28 @@ export async function resumeActiveRun(budgetMs = WORKER_BUDGET_MS) {
   const pendentes = Number(count ?? 0);
   const parada = Date.now() - new Date(run.updated_at).getTime();
 
+  if (run.status === "cancel_requested") {
+    if (pendentes === 0 || parada > CLAIM_STALE_MS) {
+      await finalizeCancelledRun(run.id);
+      return { resumed: false as const, reason: "cancelada" };
+    }
+    return { resumed: false as const, reason: "cancelando" };
+  }
+
   if (pendentes === 0) {
-    // fase de descoberta ainda rodando: não interferir
-    if (run.phase === "descobrindo" && parada < RUN_STALE_MS) {
-      return { resumed: false as const, reason: "descobrindo" };
+    if (run.phase === "descobrindo") {
+      // a descoberta ainda está viva (heartbeat recente): não interferir
+      if (parada < DISCOVERY_STALE_MS) {
+        return { resumed: false as const, reason: "descobrindo" };
+      }
+      // a invocação que fazia a descoberta morreu: refazer aqui, no backend
+      const { collectAirfarePromotions } = await import("@/lib/airfare-promos.server");
+      const res = await collectAirfarePromotions({ runId: run.id, budgetMs });
+      return { resumed: true as const, runId: run.id, reason: "descoberta_retomada", ...res };
+    }
+    if (parada < RUN_STALE_MS && run.phase === "validando") {
+      // lote em andamento em outra invocação
+      if (parada < 90_000) return { resumed: false as const, reason: "validando" };
     }
     await finalizePromoRun(run.id);
     return { resumed: false as const, reason: "finalizada" };
