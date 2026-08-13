@@ -34,11 +34,11 @@ export const Route = createFileRoute("/api/public/analytics-collect")({
           const { isRotaInterna } = await import("@/lib/analytics/public-scope");
           if (isRotaInterna(e.path)) return new Response("ignored", { status: 202 });
 
-          const { parseUserAgent, geoFromHeaders, hostDoReferrer } = await import(
+          const { parseUserAgent, geoFromRequest, hostDoReferrer } = await import(
             "@/lib/analytics/ua.server"
           );
           const ua = parseUserAgent(request.headers.get("user-agent"));
-          const geo = geoFromHeaders(request.headers);
+          const geo = geoFromRequest(request);
 
           const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
           await supabaseAdmin.from("site_events").insert({
