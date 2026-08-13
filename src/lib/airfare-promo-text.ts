@@ -37,6 +37,8 @@ export type PromoRow = {
   extended_options?: unknown;
   short_url?: string | null;
   cart_url?: string | null;
+  quoted_at?: string | null;
+  last_checked_at?: string | null;
 };
 
 const brl = (v: number | string | null | undefined) =>
