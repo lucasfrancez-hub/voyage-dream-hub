@@ -1004,14 +1004,20 @@ function PromocoesAereoPage() {
                     </span>
                   </div>
                   <div className="mt-1 flex flex-wrap gap-x-2 gap-y-0.5 text-muted-foreground">
-                    <span>MD: {m.discovered}</span>
-                    <span>Dedup: {m.deduped}</span>
-                    <span>Selecionadas: {m.selected}</span>
+                    <span>Radar: {m.discovered}</span>
+                    <span>Elegíveis: {m.eligible ?? "—"}</span>
+                    {m.excluded ? <span>Excluídas: {m.excluded}</span> : null}
+                    <span className="font-bold text-foreground">
+                      Selecionadas: {m.selected}
+                    </span>
+                    <span>Nac.: {m.selected_nacional ?? 0}</span>
+                    <span>Int.: {m.selected_internacional ?? 0}</span>
                     <span>Validadas: {m.validated}</span>
                     <span>Com tarifa: {m.with_price}</span>
                     <span>Sem tarifa: {m.no_result}</span>
                     {m.errors ? <span className="text-destructive">Erros: {m.errors}</span> : null}
                   </div>
+
                 </div>
               ))}
             </div>
