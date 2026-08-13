@@ -244,6 +244,7 @@ export function PromoSocialDialog({
               payload: { kind: "whatsapp", destino_ids: ids, texto, imagem_url: url },
             },
           });
+          await marcarStatus(promoId, "agendado");
           return `Agendado para ${quando.toLocaleString("pt-BR")}`;
         },
       });
@@ -305,6 +306,7 @@ export function PromoSocialDialog({
               },
             },
           });
+          await marcarStatus(promoId, "agendado");
           return `Agendado para ${quando.toLocaleString("pt-BR")}`;
         },
       });

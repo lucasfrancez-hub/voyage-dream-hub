@@ -1210,6 +1210,7 @@ function PromocoesAereoPage() {
             <option value="todos">Todos os status</option>
             <option value="novo">Novo</option>
             <option value="selecionado">Selecionado</option>
+            <option value="agendado">Agendado</option>
             <option value="publicado">Publicado</option>
             <option value="descartado">Descartado</option>
           </select>
