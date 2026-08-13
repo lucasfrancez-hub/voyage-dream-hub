@@ -396,6 +396,34 @@ export const savePromoOpportunity = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+/**
+ * CURADORIA MANUAL — "Salvar" dentro do Passagens Baratas (uso administrativo).
+ * O preço do explorador é só referência: cota o motor VIA AIR na hora e só
+ * então grava/atualiza a promoção (sem duplicar, pela mesma signature).
+ */
+export const salvarOportunidadePassagensBaratas = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z
+      .object({
+        origin: z.string().trim().length(3),
+        destination: z.string().trim().length(3),
+        departureDate: z.string().trim().min(8).max(10),
+        returnDate: z.string().trim().max(10).optional().nullable(),
+        referencePrice: z.number().positive().optional().nullable(),
+        originCity: z.string().trim().max(80).optional().nullable(),
+        destinationCity: z.string().trim().max(80).optional().nullable(),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { saveManualOpportunity } = await import("@/lib/airfare-promos.manual.server");
+    return await saveManualOpportunity(data);
+  });
+
+
+
 
 /** Reconsulta UMA promoção no motor e atualiza preço/condições. */
 export const refreshAirfarePromotion = createServerFn({ method: "POST" })
