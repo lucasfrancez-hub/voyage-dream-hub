@@ -96,6 +96,34 @@ export function PromoSocialDialog({
     if (open) setAba(initialChannel);
   }, [open, initialChannel]);
 
+  /* Agendamentos já criados para esta promoção */
+  const listarAgendadosFn = useServerFn(listarPublicacoesAgendadas);
+  const cancelarAgendadoFn = useServerFn(cancelarPublicacaoAgendada);
+  const { data: agendados = [] } = useQuery({
+    queryKey: ["social-scheduled-posts"],
+    queryFn: () => listarAgendadosFn(),
+    enabled: open,
+  });
+  const agendamentosDaPromo = useMemo<AgendamentoSocial[]>(() => {
+    if (!promo) return [];
+    return agruparAgendamentosPorPromo(agendados as unknown as AgendamentoSocial[]).get(promo.id) ?? [];
+  }, [agendados, promo]);
+  const nomesDestinos = useMemo(
+    () => new Map(destinos.map((d) => [d.id, d.nome ?? "destino"])),
+    [destinos],
+  );
+
+  async function cancelarAgendamento(id: string) {
+    try {
+      await cancelarAgendadoFn({ data: { id } });
+      void queryClient.invalidateQueries({ queryKey: ["social-scheduled-posts"] });
+      void queryClient.invalidateQueries({ queryKey: ["airfare-promos"] });
+      toast.success("Agendamento cancelado");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Não foi possível cancelar");
+    }
+  }
+
   /** Atualiza o status da promoção e recarrega a lista. */
   async function marcarStatus(id: string, novo: "publicado" | "agendado") {
     try {
