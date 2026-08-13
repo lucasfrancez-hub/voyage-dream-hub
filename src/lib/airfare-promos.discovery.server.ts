@@ -367,24 +367,15 @@ async function discoverFromInternalData(opts?: DiscoverOptions): Promise<Discove
     }
   });
 
-  // Tudo que entrou no pool até aqui veio do Melhores Destinos (ao vivo ou do
-  // cache compartilhado com o Passagens Baratas).
+  // Tudo que entrou no pool veio dos dados internos do Passagens Baratas.
   radarLeads = [...pool.values()].reduce((acc, m) => acc + m.size, 0);
-  const fonteViva = mdRadarAvailable();
   const radarAvailable = radarLeads > 0;
   progresso(
     radarAvailable
-      ? fonteViva
-        ? `Curadoria em andamento — ${radarLeads} oportunidades descobertas`
-        : `Fonte bloqueada — curadoria com ${radarLeads} oportunidades já coletadas`
-      : "Radar indisponível e sem dados coletados — promoções anteriores preservadas",
+      ? `Curadoria em andamento — ${radarLeads} oportunidades internas`
+      : "Sem novas oportunidades no Passagens Baratas — promoções anteriores preservadas",
   );
 
-  // ------------------------------------------------------------------
-  // 1c) COBERTURA MÍNIMA — complemento CONTROLADO. Só entra se o radar
-  //     respondeu AO VIVO nesta execução; com a fonte bloqueada a coleta
-  //     não é preenchida artificialmente com sementes.
-  // ------------------------------------------------------------------
   // Sem dados internos recentes: nada de sementes/fallback artificial.
   const fallbackCount = 0;
   if (!radarLeads) {
