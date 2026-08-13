@@ -39,6 +39,8 @@ import {
 import { promoInstagramText, promoWhatsappText, type PromoRow } from "@/lib/airfare-promo-text";
 import { PromoArtDialog } from "@/components/promo/PromoArtDialog";
 import { scopeOfRoute } from "@/lib/br-airports";
+import { isOriginAllowedForScope } from "@/lib/airfare-promos.config";
+
 
 
 export const Route = createFileRoute("/admin/promocoes-aereo")({
