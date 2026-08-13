@@ -189,13 +189,25 @@ export const getAirfarePromoRun = createServerFn({ method: "GET" })
     const { data, error } = await context.supabase
       .from("airfare_promo_runs")
       .select(
-        "id,status,phase,trigger,total,discovered,discovered_raw,deduped,origin_metrics,processed,validated,saved,no_result,new_count,updated_count,expired_count,error_count,last_label,error_message,started_at,finished_at,updated_at",
+        "id,status,phase,trigger,total,discovered,discovered_raw,deduped,origin_metrics,processed,validated,saved,no_result,new_count,updated_count,expired_count,error_count,last_label,error_message,started_at,finished_at,updated_at,cancel_requested_at,cancelled_at",
       )
       .order("started_at", { ascending: false })
       .limit(1)
       .maybeSingle();
     if (error) throw new Error(error.message);
     return data ?? null;
+  });
+
+/**
+ * Cancelamento COOPERATIVO da coleta ativa (running → cancel_requested →
+ * cancelada). Não apaga nada do que já foi validado.
+ */
+export const cancelAirfarePromoCollection = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context);
+    const { requestPromoRunCancel } = await import("@/lib/airfare-promos.server");
+    return await requestPromoRunCancel();
   });
 
 /**
