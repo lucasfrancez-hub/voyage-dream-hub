@@ -45,6 +45,24 @@ export class MdUnavailableError extends Error {
 export type MdPriority = "interactive" | "background";
 export type MdCancel = () => boolean | Promise<boolean>;
 
+/* ----------------------------------------------------------------
+ * MODO "SOMENTE DADOS INTERNOS"
+ * ----------------------------------------------------------------
+ * Promoções de Aéreo NÃO consulta mais o Melhores Destinos diretamente:
+ * lê apenas o que a camada do Passagens Baratas já coletou e persistiu.
+ * Dentro de `mdInternalOnly(...)` nenhuma requisição sai para a fonte;
+ * sem dado interno recente a consulta falha com MdUnavailableError.
+ * ---------------------------------------------------------------- */
+export const MD_INTERNAL_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+const internalOnlyStore = new AsyncLocalStorage<{ maxAgeMs: number }>();
+
+export function mdInternalOnly<T>(fn: () => Promise<T>, opts?: { maxAgeMs?: number }): Promise<T> {
+  return internalOnlyStore.run({ maxAgeMs: opts?.maxAgeMs ?? MD_INTERNAL_MAX_AGE_MS }, fn);
+}
+export function mdInternalOnlyContext() {
+  return internalOnlyStore.getStore() ?? null;
+}
+
 export type MdFetchOptions = {
   ttlMs?: number;
   timeoutMs?: number;
