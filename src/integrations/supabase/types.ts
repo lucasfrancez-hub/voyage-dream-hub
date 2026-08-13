@@ -324,6 +324,7 @@ export type Database = {
           radar_errors: number | null
           radar_note: string | null
           saved: number
+          source_metrics: Json
           started_at: string
           status: string
           total: number
@@ -354,6 +355,7 @@ export type Database = {
           radar_errors?: number | null
           radar_note?: string | null
           saved?: number
+          source_metrics?: Json
           started_at?: string
           status?: string
           total?: number
@@ -384,6 +386,7 @@ export type Database = {
           radar_errors?: number | null
           radar_note?: string | null
           saved?: number
+          source_metrics?: Json
           started_at?: string
           status?: string
           total?: number
