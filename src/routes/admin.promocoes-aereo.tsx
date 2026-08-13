@@ -466,7 +466,15 @@ function PromoCard({
           <IconBtn title="Copiar link" onClick={onLink} disabled={busy}>
             <Link2 className="h-4 w-4" />
           </IconBtn>
-          <IconBtn title="Revalidar tarifa no motor" onClick={onRefresh} disabled={busy} className="ml-auto">
+          <IconBtn
+            title="Excluir promoção"
+            onClick={onDelete}
+            disabled={busy}
+            className="ml-auto hover:border-rose-500/50 hover:text-rose-500"
+          >
+            <Trash2 className="h-4 w-4" />
+          </IconBtn>
+          <IconBtn title="Revalidar tarifa no motor" onClick={onRefresh} disabled={busy}>
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
           </IconBtn>
         </div>
