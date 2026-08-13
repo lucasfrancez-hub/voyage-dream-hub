@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
   BadgePercent,
-  Baggage,
+  Luggage,
   CalendarDays,
   ChevronDown,
   Clock,
@@ -187,7 +187,7 @@ function PromoCard({
           {promo.airline_name ?? promo.airline_iata ?? "—"}
         </span>
         <span className="inline-flex items-center gap-1.5">
-          <Baggage className="h-3.5 w-3.5" />
+          <Luggage className="h-3.5 w-3.5" />
           {promo.has_checked_baggage ? "Bagagem despachada" : "Só bagagem de mão"}
         </span>
         <span>{promo.stops === 0 ? "Voo direto" : `${promo.stops} parada(s)`}</span>
