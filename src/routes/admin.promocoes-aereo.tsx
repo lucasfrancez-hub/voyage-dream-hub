@@ -482,18 +482,19 @@ function PesquisaManual({
     has_checked_baggage: boolean;
   };
 
+  if (!aberto) return null;
+
   return (
-    <div className="rounded-2xl border border-border/60 bg-card/50">
-      <button
-        type="button"
-        onClick={() => setAberto((v) => !v)}
-        className="flex w-full items-center gap-2 px-4 py-3 text-left text-xs font-black uppercase tracking-widest"
-      >
+    <div className="mt-3 rounded-2xl border border-brand-orange/40 bg-card/60">
+      <div className="flex w-full items-center gap-2 px-4 py-3 text-xs font-black uppercase tracking-widest">
         <Search className="h-4 w-4 text-brand-orange" /> Pesquisar novas oportunidades
-        <ChevronDown className={`ml-auto h-4 w-4 transition ${aberto ? "rotate-180" : ""}`} />
-      </button>
+        <button type="button" onClick={onFechar} className="ml-auto rounded-lg p-1 hover:bg-foreground/5">
+          <X className="h-4 w-4" />
+        </button>
+      </div>
       {aberto ? (
         <div className="border-t border-border/50 p-4">
+
           <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-6">
             <input
               value={origin}
