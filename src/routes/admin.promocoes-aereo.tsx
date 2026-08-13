@@ -636,6 +636,21 @@ function PromocoesAereoPage() {
     phase: string | null;
     total: number;
     discovered: number | null;
+    discovered_raw: number | null;
+    deduped: number | null;
+    origin_metrics:
+      | Array<{
+          origin: string;
+          discovered: number;
+          deduped: number;
+          selected: number;
+          validated: number;
+          with_price: number;
+          no_result: number;
+          errors: number;
+          avg_seconds: number | null;
+        }>
+      | null;
     processed: number;
     validated: number | null;
     saved: number;
@@ -707,7 +722,9 @@ function PromocoesAereoPage() {
             )}
           </div>
           <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
-            <span>Encontradas no radar: {info.discovered ?? 0}</span>
+            <span>Encontradas no radar: {info.discovered_raw ?? info.discovered ?? 0}</span>
+            <span>Após deduplicação: {info.deduped ?? 0}</span>
+            <span>Selecionadas: {info.total ?? 0}</span>
             <span>Confirmadas: {info.validated ?? 0}</span>
             <span>Novas: {info.new_count ?? 0}</span>
             <span>Atualizadas: {info.updated_count ?? 0}</span>
@@ -719,6 +736,32 @@ function PromocoesAereoPage() {
             {info.last_label ? ` • Última oportunidade processada: ${info.last_label}` : ""}
           </p>
 
+          {info.origin_metrics?.length ? (
+            <div className="mt-3 grid gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
+              {info.origin_metrics.map((m) => (
+                <div
+                  key={m.origin}
+                  className="rounded-xl border border-border/60 bg-card/60 px-3 py-2 text-[11px]"
+                >
+                  <div className="flex items-center justify-between font-black tracking-wide">
+                    <span>{m.origin}</span>
+                    <span className="text-muted-foreground">
+                      {m.avg_seconds != null ? `${m.avg_seconds}s/oportunidade` : "—"}
+                    </span>
+                  </div>
+                  <div className="mt-1 flex flex-wrap gap-x-2 gap-y-0.5 text-muted-foreground">
+                    <span>MD: {m.discovered}</span>
+                    <span>Dedup: {m.deduped}</span>
+                    <span>Selecionadas: {m.selected}</span>
+                    <span>Validadas: {m.validated}</span>
+                    <span>Com tarifa: {m.with_price}</span>
+                    <span>Sem tarifa: {m.no_result}</span>
+                    {m.errors ? <span className="text-destructive">Erros: {m.errors}</span> : null}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : null}
         </div>
       ) : null}
 
