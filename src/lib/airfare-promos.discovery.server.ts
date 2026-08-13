@@ -267,5 +267,87 @@ export async function discoverCandidates(opts?: {
     }
   }
 
-  return [...mapa.values()].sort((a, b) => a.priority - b.priority).slice(0, maxCandidates);
+  // ------------------------------------------------------------------
+  // SELEÇÃO: agrupa por origem, deduplica e escolhe até N por origem.
+  // A leitura da fonte acima NÃO foi limitada — o corte acontece só aqui.
+  // ------------------------------------------------------------------
+  const dedupadas = [...mapa.values()];
+  const porOrigem = new Map<string, PromoCandidate[]>();
+  for (const c of dedupadas) {
+    const lista = porOrigem.get(c.origin_iata) ?? [];
+    lista.push(c);
+    porOrigem.set(c.origin_iata, lista);
+  }
+
+  const brutasPorOrigem = new Map<string, number>();
+  for (const c of dedupadas) {
+    brutasPorOrigem.set(c.origin_iata, (brutasPorOrigem.get(c.origin_iata) ?? 0) + 1);
+  }
+
+  /** Mais interessante = menor preço de referência; sem preço vai para o fim. */
+  const porAtratividade = (a: PromoCandidate, b: PromoCandidate) => {
+    const pa = a.reference_price ?? Number.POSITIVE_INFINITY;
+    const pb = b.reference_price ?? Number.POSITIVE_INFINITY;
+    if (pa !== pb) return pa - pb;
+    if (a.priority !== b.priority) return a.priority - b.priority;
+    return a.departure_date.localeCompare(b.departure_date);
+  };
+
+  const selecionadas: PromoCandidate[] = [];
+  const metrics: OriginMetrics[] = [];
+
+  // origens prioritárias primeiro; extras só se configurado
+  const origens = [...porOrigem.keys()].sort((a, b) => {
+    const pa = isPriorityOrigin(a) ? 0 : 1;
+    const pb = isPriorityOrigin(b) ? 0 : 1;
+    return pa - pb || a.localeCompare(b);
+  });
+
+  let extrasUsadas = 0;
+  for (const origem of origens) {
+    const prioritaria = isPriorityOrigin(origem);
+    if (!prioritaria) {
+      if (extrasUsadas >= MAX_EXTRA_ORIGINS) continue;
+      extrasUsadas++;
+    }
+    const limite = maxOpportunitiesForOrigin(origem);
+    const lista = (porOrigem.get(origem) ?? []).slice().sort(porAtratividade);
+
+    // 1ª passada: melhor oportunidade de cada destino (evita repetir destino)
+    const escolhidas: PromoCandidate[] = [];
+    const destinosUsados = new Set<string>();
+    for (const c of lista) {
+      if (escolhidas.length >= limite) break;
+      if (destinosUsados.has(c.destination_iata)) continue;
+      destinosUsados.add(c.destination_iata);
+      escolhidas.push(c);
+    }
+    // 2ª passada: completa com as demais datas mais baratas (só se houver)
+    for (const c of lista) {
+      if (escolhidas.length >= limite) break;
+      if (escolhidas.includes(c)) continue;
+      escolhidas.push(c);
+    }
+
+    selecionadas.push(...escolhidas);
+    metrics.push({
+      origin: origem,
+      discovered: brutasPorOrigem.get(origem) ?? 0,
+      deduped: lista.length,
+      selected: escolhidas.length,
+      validated: 0,
+      with_price: 0,
+      no_result: 0,
+      errors: 0,
+      avg_seconds: null,
+    });
+  }
+
+  return {
+    candidates: selecionadas.sort((a, b) => a.priority - b.priority),
+    discoveredTotal: brutas,
+    dedupedTotal: dedupadas.length,
+    metrics,
+  };
+
 }
