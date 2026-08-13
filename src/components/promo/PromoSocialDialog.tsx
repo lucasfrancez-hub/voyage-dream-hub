@@ -295,6 +295,26 @@ export function PromoSocialDialog({
           ))}
         </div>
 
+        {/* Status do link da oferta */}
+        <div
+          className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-[11px] font-semibold ${
+            linkStatus === "ready"
+              ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-500"
+              : linkStatus === "error"
+                ? "border-destructive/30 bg-destructive/10 text-destructive"
+                : "border-border bg-muted/30 text-muted-foreground"
+          }`}
+        >
+          {linkStatus === "loading" && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+          {linkStatus === "loading"
+            ? "Gerando link da oferta..."
+            : linkStatus === "ready"
+              ? "Oferta pronta para compartilhar"
+              : linkStatus === "error"
+                ? "Não foi possível gerar o link da oferta"
+                : ""}
+        </div>
+
         {/* Preview da arte */}
         <div className="flex items-start gap-3 rounded-xl border border-border bg-muted/20 p-3">
           <div
