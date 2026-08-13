@@ -14,6 +14,12 @@ function contar<T extends string>(rows: Row[], campo: T, limite = 12) {
     .slice(0, limite);
 }
 
+/** Rótulos legíveis para geolocalização ausente. */
+function rotuloGeo(v: unknown) {
+  const s = typeof v === "string" ? v.trim() : "";
+  return s || "Não identificado";
+}
+
 function classificarOrigem(r: Row) {
   if (r.short_slug) return `Link curto (/l/${r.short_slug})`;
   if (r.utm_source) return `Campanha: ${r.utm_source}`;
@@ -39,7 +45,17 @@ export async function carregarMetricasSite(dias: number) {
   if (error) throw new Error(error.message);
   const { isRotaInterna } = await import("./public-scope");
   // relatórios consideram apenas o tráfego público do site
-  const rows = ((data ?? []) as Row[]).filter((r) => !isRotaInterna(r.path));
+  const { isHostInterno } = await import("./public-scope");
+  const { nomeDoPais, nomeDaRegiao } = await import("./ua.server");
+  const rows = ((data ?? []) as Row[])
+    // ignora rotas internas e tráfego vindo do ambiente de teste/preview
+    .filter((r) => !isRotaInterna(r.path) && !isHostInterno(r.referrer_host))
+    .map((r): Row => ({
+      ...r,
+      country: rotuloGeo(nomeDoPais(r.country)),
+      region: rotuloGeo(nomeDaRegiao(r.region, r.country)),
+      city: rotuloGeo(r.city),
+    }));
 
   const pageviews = rows.filter((r) => r.event_type === "pageview");
   const cliques = rows.filter((r) => r.event_type === "click");
@@ -132,7 +148,13 @@ export async function carregarMetricasLinks(dias: number) {
   if (e1) throw new Error(e1.message);
   if (e2) throw new Error(e2.message);
 
-  const rows = (cliques ?? []) as Row[];
+  const { nomeDoPais, nomeDaRegiao } = await import("./ua.server");
+  const rows = ((cliques ?? []) as Row[]).map((r): Row => ({
+    ...r,
+    country: rotuloGeo(nomeDoPais(r.country)),
+    region: rotuloGeo(nomeDaRegiao(r.region, r.country)),
+    city: rotuloGeo(r.city),
+  }));
   const porSlug = new Map<string, number>();
   for (const r of rows) porSlug.set(r.slug, (porSlug.get(r.slug) ?? 0) + 1);
 

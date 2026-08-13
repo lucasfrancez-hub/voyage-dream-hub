@@ -35,12 +35,12 @@ export const Route = createFileRoute("/l/$slug")({
 
         // métricas detalhadas do clique (região, dispositivo, origem)
         try {
-          const { parseUserAgent, geoFromHeaders, hostDoReferrer } = await import(
+          const { parseUserAgent, geoFromRequest, hostDoReferrer } = await import(
             "@/lib/analytics/ua.server"
           );
           const userAgent = request.headers.get("user-agent");
           const ua = parseUserAgent(userAgent);
-          const geo = geoFromHeaders(request.headers);
+          const geo = geoFromRequest(request);
           const referrer = request.headers.get("referer");
           void supabaseAdmin.from("short_link_clicks").insert({
             slug,

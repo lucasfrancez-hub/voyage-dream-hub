@@ -15,6 +15,21 @@ export const ROTAS_INTERNAS = [
   "/conta",
 ] as const;
 
+/** Domínios de teste/preview — nunca contam como tráfego real. */
+export const HOSTS_INTERNOS = [
+  "lovableproject.com",
+  "lovable.app",
+  "lovable.dev",
+  "localhost",
+  "127.0.0.1",
+] as const;
+
+export function isHostInterno(host?: string | null): boolean {
+  if (!host) return false;
+  const h = host.toLowerCase().replace(/^www\./, "").split(":")[0];
+  return HOSTS_INTERNOS.some((d) => h === d || h.endsWith(`.${d}`));
+}
+
 export function isRotaInterna(path?: string | null): boolean {
   if (!path) return false;
   const p = path.toLowerCase();
@@ -37,5 +52,6 @@ export function isUsuarioLogado(): boolean {
 
 /** Deve ignorar este evento? */
 export function ignorarEvento(path?: string | null): boolean {
+  if (typeof window !== "undefined" && isHostInterno(window.location.hostname)) return true;
   return isRotaInterna(path) || isUsuarioLogado();
 }
