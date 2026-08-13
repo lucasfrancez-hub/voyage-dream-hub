@@ -116,6 +116,7 @@ export type Database = {
       airfare_promo_candidates: {
         Row: {
           attempts: number
+          claimed_at: string | null
           created_at: string
           departure_date: string
           destination_city: string | null
@@ -145,6 +146,7 @@ export type Database = {
         }
         Insert: {
           attempts?: number
+          claimed_at?: string | null
           created_at?: string
           departure_date: string
           destination_city?: string | null
@@ -174,6 +176,7 @@ export type Database = {
         }
         Update: {
           attempts?: number
+          claimed_at?: string | null
           created_at?: string
           departure_date?: string
           destination_city?: string | null

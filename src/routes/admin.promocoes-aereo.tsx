@@ -607,16 +607,25 @@ function PromocoesAereoPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rodando]);
 
+  const desde = (iso?: string | null) =>
+    iso
+      ? new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })
+      : null;
+
   const coletar = useMutation({
     mutationFn: () => collect({ data: {} }),
     onSuccess: (r) => {
       const res = r as { started: boolean; reason?: string };
       if (res.started) toast.success("Coleta iniciada. Pode fechar a página — ela continua rodando.");
-      else toast.warning(res.reason ?? "Já existe uma coleta em andamento.");
+      else {
+        const h = desde((run as { started_at?: string } | null)?.started_at);
+        toast.warning(h ? `Atualização em andamento desde ${h}.` : (res.reason ?? "Já existe uma coleta em andamento."));
+      }
       qc.invalidateQueries({ queryKey: ["airfare-promo-run"] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
+
 
   const acao = async (id: string, fn: () => Promise<unknown>, msg: string) => {
     setBusyId(id);
@@ -709,10 +718,12 @@ function PromocoesAereoPage() {
                   : "Validando no motor VIA AIR…"}
             </span>
             <span className="text-muted-foreground">
+              {desde(info.started_at) ? `Em andamento desde ${desde(info.started_at)} • ` : ""}
               {info.total > 0
                 ? `${info.processed} de ${info.total} oportunidades verificadas`
                 : "Preparando as oportunidades…"}
             </span>
+
           </div>
           <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-border/60">
             {pct === null ? (
