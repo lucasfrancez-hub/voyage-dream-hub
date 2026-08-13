@@ -129,6 +129,7 @@ export function PromoSocialDialog({
     try {
       await setStatusFn({ data: { id, status: novo } });
       void queryClient.invalidateQueries({ queryKey: ["airfare-promos"] });
+      void queryClient.invalidateQueries({ queryKey: ["social-scheduled-posts"] });
     } catch {
       /* status é secundário ao envio */
     }
