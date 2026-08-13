@@ -37,13 +37,18 @@ const TTL = 15 * 60 * 1000;
  * Todas as chamadas do radar passam por esta fila: intervalo mínimo entre
  * requisições + espera progressiva quando a fonte pede calma.
  */
-const MIN_GAP_MS = 400;
+const MIN_GAP_MS = 900;
 let ultimaChamada = 0;
+/** Quando a fonte responde 503/429, todo o radar respeita este descanso. */
+let bloqueadoAte = 0;
 let corrente: Promise<unknown> = Promise.resolve();
 
 function enfileirar<T>(fn: () => Promise<T>): Promise<T> {
   const proxima = corrente.then(async () => {
-    const espera = MIN_GAP_MS - (Date.now() - ultimaChamada);
+    const espera = Math.max(
+      MIN_GAP_MS - (Date.now() - ultimaChamada),
+      bloqueadoAte - Date.now(),
+    );
     if (espera > 0) await new Promise((r) => setTimeout(r, espera));
     try {
       return await fn();
@@ -76,7 +81,7 @@ async function getJson<T>(url: string): Promise<T> {
       last = new Error(`Melhores Destinos respondeu ${res.status}`);
       // 429/503 = rajada: espera mais antes de tentar de novo
       if (res.status === 429 || res.status >= 500) {
-        await new Promise((r) => setTimeout(r, 2500 * (i + 1)));
+        bloqueadoAte = Date.now() + 6000 * (i + 1);
         continue;
       }
     } catch (e) {
