@@ -120,6 +120,8 @@ export const mdMetrics = {
   cacheMisses: 0,
   coalesced: 0,
   staleServed: 0,
+  internalOnlyHits: 0,
+  internalOnlyMisses: 0,
   ok: 0,
   status403: 0,
   status429: 0,
