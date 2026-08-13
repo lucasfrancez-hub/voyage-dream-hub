@@ -158,8 +158,11 @@ function VoarPublicPage() {
   const deps = Route.useLoaderDeps();
   const queryClient = useQueryClient();
   const navigate = Route.useNavigate();
-  const hasPreset = !!(s.o && s.d && s.ida);
-  const hasHotelPreset = s.m === "hotel" && !!(s.hd && s.ci && s.co);
+  const multiPreset = decodeSegments(s.ms);
+  const hasMulti = multiPreset.length >= 2;
+  const hasPreset = !hasMulti && !!(s.o && s.d && s.ida);
+  const hasHotelPreset = !hasMulti && s.m === "hotel" && !!(s.hd && s.ci && s.co);
+
 
   return (
     <div className="voar-shell min-h-screen bg-background">
