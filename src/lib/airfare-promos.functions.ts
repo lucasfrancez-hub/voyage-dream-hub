@@ -182,7 +182,9 @@ export const getAirfarePromoRun = createServerFn({ method: "GET" })
     await assertAdmin(context);
     const { data, error } = await context.supabase
       .from("airfare_promo_runs")
-      .select("id,status,trigger,total,processed,saved,error_count,last_label,error_message,started_at,finished_at,updated_at")
+      .select(
+        "id,status,phase,trigger,total,discovered,processed,validated,saved,no_result,new_count,updated_count,expired_count,error_count,last_label,error_message,started_at,finished_at,updated_at",
+      )
       .order("started_at", { ascending: false })
       .limit(1)
       .maybeSingle();
