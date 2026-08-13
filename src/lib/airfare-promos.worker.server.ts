@@ -10,7 +10,13 @@
  * credencial de servidor (service role).
  */
 import type { OriginMetrics } from "@/lib/airfare-promos.config";
-import { buildPromotionRow, loadMarkups, quoteRoute } from "@/lib/airfare-promos.server";
+import {
+  buildPromotionRow,
+  CANDIDATE_TIMEOUT_MS,
+  loadMarkups,
+  quoteRoute,
+  withTimeout,
+} from "@/lib/airfare-promos.server";
 import type { MarkupTable } from "@/lib/airfare-conditions";
 
 type AnyClient = { from: (t: string) => any };
