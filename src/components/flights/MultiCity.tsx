@@ -1017,9 +1017,15 @@ function TrechoCard({
                 ? `${cond.interestFree.installments}x de ${ui.fmtMoney(cond.interestFree.installmentValue)} sem juros`
                 : `À vista ${ui.fmtMoney(f.price.total)}`}
           </div>
+          {!cond.payment.pixOnly && maxInstallmentText(f.price.total) ? (
+            <div className="text-[10px] text-muted-foreground">
+              {maxInstallmentText(f.price.total)}
+            </div>
+          ) : null}
           {extendedText(cond) ? (
             <div className="text-[10px] text-muted-foreground">{extendedText(cond)}</div>
           ) : null}
+
         </div>
 
         <Button
