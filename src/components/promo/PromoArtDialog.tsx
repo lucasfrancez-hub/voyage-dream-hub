@@ -381,134 +381,220 @@ export function PromoArtDialog({
 
             {/* Campos editáveis */}
             {editando ? (
-            <div className="max-h-[80vh] space-y-4 overflow-y-auto border-l border-border/50 bg-card/60 p-5">
+              <div className="flex max-h-[80vh] flex-col border-l border-border/50 bg-card/60">
+                <div className="flex-1 space-y-7 overflow-y-auto p-6">
+                  <Section title="Informações da rota">
+                    <div className="grid grid-cols-12 gap-3">
+                      <Field
+                        className="col-span-8"
+                        label="Destino principal"
+                        value={card.destination}
+                        onChange={(v) => set("destination", v.toUpperCase())}
+                      />
+                      <Field
+                        className="col-span-4"
+                        label="IATA destino"
+                        value={card.destinationIata}
+                        onChange={(v) => set("destinationIata", v.toUpperCase())}
+                      />
+                      <Field
+                        className="col-span-6"
+                        label="Cidade origem"
+                        value={card.origin}
+                        onChange={(v) => set("origin", v)}
+                      />
+                      <Field
+                        className="col-span-6"
+                        label="Cidade destino"
+                        value={card.destinationCity}
+                        onChange={(v) => set("destinationCity", v)}
+                      />
+                      <Field
+                        className="col-span-4"
+                        label="IATA origem"
+                        value={card.originIata}
+                        onChange={(v) => set("originIata", v.toUpperCase())}
+                      />
+                      <label className="col-span-8 block">
+                        <span className={labelCls}>Tipo de voo</span>
+                        <select
+                          value={card.tripType}
+                          onChange={(e) => set("tripType", e.target.value as PromoCardData["tripType"])}
+                          className={inputCls}
+                        >
+                          <option value="ida-e-volta">Ida e volta</option>
+                          <option value="somente-ida">Somente ida</option>
+                        </select>
+                      </label>
+                    </div>
+                  </Section>
 
-              <div className="grid gap-2 sm:grid-cols-3">
-                <Field label="Destino (grande)" value={card.destination} onChange={(v) => set("destination", v.toUpperCase())} />
-                <Field label="Cidade origem" value={card.origin} onChange={(v) => set("origin", v)} />
-                <Field label="Cidade destino" value={card.destinationCity} onChange={(v) => set("destinationCity", v)} />
-                <Field label="IATA origem" value={card.originIata} onChange={(v) => set("originIata", v.toUpperCase())} />
-                <Field label="IATA destino" value={card.destinationIata} onChange={(v) => set("destinationIata", v.toUpperCase())} />
-                <label className="block">
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Tipo</span>
-                  <select
-                    value={card.tripType}
-                    onChange={(e) => set("tripType", e.target.value as PromoCardData["tripType"])}
-                    className="mt-1 w-full rounded-lg border border-border/60 bg-transparent px-2.5 py-1.5 text-sm"
-                  >
-                    <option value="ida-e-volta">Ida e volta</option>
-                    <option value="somente-ida">Somente ida</option>
-                  </select>
-                </label>
-                <Field label="Ida" value={card.departureDate} onChange={(v) => set("departureDate", v)} />
-                <Field label="Volta" value={card.returnDate ?? ""} onChange={(v) => set("returnDate", v || null)} />
-                <Field label="Companhia" value={card.airline} onChange={(v) => set("airline", v)} />
-                <Field label="IATA companhia" value={card.airlineIata ?? ""} onChange={(v) => set("airlineIata", v || null)} />
-                <Field label="Logo companhia (URL)" value={card.airlineLogo ?? ""} onChange={(v) => set("airlineLogo", v || null)} />
-                <Field label="Bagagem" value={card.baggage} onChange={(v) => set("baggage", v)} />
-                <label className="block">
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                    Logo da Via Air
-                  </span>
-                  <select
-                    value={card.logoVariant ?? "color"}
-                    onChange={(e) => set("logoVariant", e.target.value as PromoLogoVariant)}
-                    className="mt-1 w-full rounded-lg border border-border/60 bg-transparent px-2.5 py-1.5 text-sm"
-                  >
-                    <option value="color">Colorida</option>
-                    <option value="white">Branca</option>
-                    <option value="black">Preta</option>
-                  </select>
-                </label>
-                <Field
-                  label="Tarifa encontrada em"
-                  type="date"
-                  value={(card.fareFoundAt ?? "").slice(0, 10)}
-                  onChange={(v) => set("fareFoundAt", v || null)}
-                />
-                <Field label="Valor total" type="number" value={card.totalPrice} onChange={(v) => set("totalPrice", Number(v))} />
-                <Field
-                  label="Parcelas sem juros"
-                  type="number"
-                  value={card.interestFreeInstallments}
-                  onChange={(v) => set("interestFreeInstallments", Math.max(1, Number(v)))}
-                />
-                <Field
-                  label="Valor parcela sem juros"
-                  type="number"
-                  value={card.interestFreeInstallmentValue}
-                  onChange={(v) => set("interestFreeInstallmentValue", Number(v))}
-                />
-                <Field
-                  label="Maior parcelamento"
-                  type="number"
-                  value={card.extendedInstallments ?? ""}
-                  onChange={(v) => set("extendedInstallments", v ? Number(v) : null)}
-                />
-                <Field
-                  label="Valor parcela maior prazo"
-                  type="number"
-                  value={card.extendedInstallmentValue ?? ""}
-                  onChange={(v) => set("extendedInstallmentValue", v ? Number(v) : null)}
-                />
-                <label className="flex items-end gap-2 pb-1 text-xs font-semibold text-muted-foreground">
-                  <input
-                    type="checkbox"
-                    checked={card.pixOnly}
-                    onChange={(e) => set("pixOnly", e.target.checked)}
-                  />
-                  Somente Pix / à vista
-                </label>
-              </div>
+                  <Section title="Detalhes da viagem">
+                    <div className="grid grid-cols-2 gap-3">
+                      <Field label="Data de ida" value={card.departureDate} onChange={(v) => set("departureDate", v)} />
+                      <Field
+                        label="Data de volta"
+                        value={card.returnDate ?? ""}
+                        onChange={(v) => set("returnDate", v || null)}
+                      />
+                      <Field
+                        className="col-span-2"
+                        label="Companhia aérea"
+                        value={card.airline}
+                        onChange={(v) => set("airline", v)}
+                      />
+                      <Field
+                        label="IATA companhia"
+                        value={card.airlineIata ?? ""}
+                        onChange={(v) => set("airlineIata", v || null)}
+                      />
+                      <Field label="Bagagem" value={card.baggage} onChange={(v) => set("baggage", v)} />
+                      <Field
+                        className="col-span-2"
+                        label="Logo da companhia (URL)"
+                        value={card.airlineLogo ?? ""}
+                        onChange={(v) => set("airlineLogo", v || null)}
+                      />
+                    </div>
+                  </Section>
 
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                    Fotografia do destino
-                  </span>
+                  <Section title="Preços e tarifas">
+                    <div className="grid grid-cols-2 gap-3">
+                      <Field
+                        label="Tarifa encontrada em"
+                        type="date"
+                        value={(card.fareFoundAt ?? "").slice(0, 10)}
+                        onChange={(v) => set("fareFoundAt", v || null)}
+                      />
+                      <label className="flex items-end pb-2">
+                        <span className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
+                          <input
+                            type="checkbox"
+                            checked={card.pixOnly}
+                            onChange={(e) => set("pixOnly", e.target.checked)}
+                            className="h-4 w-4 accent-[var(--brand-orange,#F26B1F)]"
+                          />
+                          Somente Pix / à vista
+                        </span>
+                      </label>
+                      <div className="col-span-2 grid grid-cols-2 gap-3 rounded-xl border border-brand-orange/20 bg-brand-orange/5 p-4">
+                        <Field
+                          className="col-span-2"
+                          label="Valor total"
+                          type="number"
+                          value={card.totalPrice}
+                          onChange={(v) => set("totalPrice", Number(v))}
+                        />
+                        <Field
+                          label="Parcelas sem juros"
+                          type="number"
+                          value={card.interestFreeInstallments}
+                          onChange={(v) => set("interestFreeInstallments", Math.max(1, Number(v)))}
+                        />
+                        <Field
+                          label="Valor da parcela"
+                          type="number"
+                          value={card.interestFreeInstallmentValue}
+                          onChange={(v) => set("interestFreeInstallmentValue", Number(v))}
+                        />
+                        <Field
+                          label="Maior parcelamento"
+                          type="number"
+                          value={card.extendedInstallments ?? ""}
+                          onChange={(v) => set("extendedInstallments", v ? Number(v) : null)}
+                        />
+                        <Field
+                          label="Parcela maior prazo"
+                          type="number"
+                          value={card.extendedInstallmentValue ?? ""}
+                          onChange={(v) => set("extendedInstallmentValue", v ? Number(v) : null)}
+                        />
+                      </div>
+                    </div>
+                  </Section>
+
+                  <Section title="Galeria e identidade">
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className={labelCls}>Fotografia do destino</span>
+                        <button
+                          type="button"
+                          onClick={() => buscarFotos.mutate(card.destinationCity)}
+                          disabled={buscarFotos.isPending}
+                          className="inline-flex items-center gap-1.5 rounded-full border border-border/60 px-3 py-1 text-[10px] font-bold uppercase tracking-wide hover:bg-foreground/5"
+                        >
+                          {buscarFotos.isPending ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            <RefreshCw className="h-3 w-3" />
+                          )}
+                          Buscar fotos reais
+                        </button>
+                      </div>
+                      <div className="grid grid-cols-4 gap-2">
+                        {fotos.map((f) => (
+                          <button
+                            key={f.url}
+                            type="button"
+                            onClick={() => set("destinationImage", f.url)}
+                            title={f.author}
+                            className={`overflow-hidden rounded-lg border-2 transition ${
+                              card.destinationImage === f.url
+                                ? "border-brand-orange"
+                                : "border-transparent opacity-70 hover:opacity-100"
+                            }`}
+                          >
+                            <img src={f.thumb || f.url} alt={f.author} className="aspect-square w-full object-cover" />
+                          </button>
+                        ))}
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <Field
+                          className="col-span-2"
+                          label="URL da foto"
+                          value={card.destinationImage ?? ""}
+                          onChange={(v) => set("destinationImage", v || null)}
+                        />
+                        <Field
+                          label="Enquadramento"
+                          value={card.imagePosition ?? "50% 45%"}
+                          onChange={(v) => set("imagePosition", v)}
+                        />
+                        <label className="block">
+                          <span className={labelCls}>Logo da Via Air</span>
+                          <select
+                            value={card.logoVariant ?? "color"}
+                            onChange={(e) => set("logoVariant", e.target.value as PromoLogoVariant)}
+                            className={inputCls}
+                          >
+                            <option value="color">Colorida</option>
+                            <option value="white">Branca</option>
+                            <option value="black">Preta</option>
+                          </select>
+                        </label>
+                      </div>
+                    </div>
+                  </Section>
+                </div>
+
+                <div className="flex items-center justify-end gap-3 border-t border-border/50 bg-card/80 p-4">
                   <button
                     type="button"
-                    onClick={() => buscarFotos.mutate(card.destinationCity)}
-                    disabled={buscarFotos.isPending}
-                    className="inline-flex items-center gap-1 rounded-md border border-border/60 px-2 py-1 text-[10px] font-bold hover:bg-foreground/5"
+                    onClick={() => (onDone ? onDone() : setEditando(false))}
+                    className="text-xs font-medium text-muted-foreground transition hover:text-foreground"
                   >
-                    {buscarFotos.isPending ? (
-                      <Loader2 className="h-3 w-3 animate-spin" />
-                    ) : (
-                      <RefreshCw className="h-3 w-3" />
-                    )}
-                    Buscar fotos reais
+                    Fechar edição
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => (onDone ? onDone() : setEditando(false))}
+                    className="inline-flex items-center gap-2 rounded-lg bg-brand-orange px-5 py-2 text-xs font-bold text-white shadow-lg transition hover:brightness-110"
+                  >
+                    <Check className="h-4 w-4" />
+                    {onDone ? "OK, voltar para divulgar" : "OK"}
                   </button>
                 </div>
-                <div className="mt-2 grid grid-cols-6 gap-2">
-                  {fotos.map((f) => (
-                    <button
-                      key={f.url}
-                      type="button"
-                      onClick={() => set("destinationImage", f.url)}
-                      title={f.author}
-                      className={`overflow-hidden rounded-lg border ${
-                        card.destinationImage === f.url ? "border-brand-orange" : "border-border/50"
-                      }`}
-                    >
-                      <img src={f.thumb || f.url} alt={f.author} className="h-16 w-full object-cover" />
-                    </button>
-                  ))}
-                </div>
-                <div className="mt-2 grid gap-2 sm:grid-cols-2">
-                  <Field
-                    label="URL da foto"
-                    value={card.destinationImage ?? ""}
-                    onChange={(v) => set("destinationImage", v || null)}
-                  />
-                  <Field
-                    label="Enquadramento (object-position)"
-                    value={card.imagePosition ?? "50% 45%"}
-                    onChange={(v) => set("imagePosition", v)}
-                  />
-                </div>
               </div>
-            </div>
             ) : null}
 
           </div>
