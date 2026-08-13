@@ -544,8 +544,9 @@ export function PassagensBaratasExplorer({
         </div>
 
         {/* Filtros de origem e mês — ao lado do título */}
-        <div className="flex items-stretch gap-3 lg:w-auto">
-          <div className="grid flex-1 gap-3 sm:grid-cols-2 lg:w-[440px] lg:flex-none">
+        <div className="flex w-full items-stretch gap-2 sm:gap-3 lg:w-auto">
+          <div className="grid min-w-0 flex-1 gap-2 sm:grid-cols-2 sm:gap-3 lg:w-[440px] lg:flex-none">
+
 
         <div className="relative">
           <Field label="Origem">
