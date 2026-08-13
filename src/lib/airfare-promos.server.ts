@@ -216,8 +216,9 @@ export async function quoteRoute(args: {
     children: 0,
     infants: 0,
     pageSize: 20,
-    departureIsCity: false,
-    arrivalIsCity: false,
+    // SAO/RIO... são cidades: o motor precisa varrer todos os aeroportos.
+    departureIsCity: isMetroCode(route.origin_iata),
+    arrivalIsCity: isMetroCode(route.destination_iata),
     filters: {
       containsDispatchBaggage: false,
       maxStops: 2,
