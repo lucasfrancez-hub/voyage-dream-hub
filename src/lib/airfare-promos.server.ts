@@ -453,6 +453,11 @@ export async function collectAirfarePromotions(opts?: {
 
   await touch({ phase: "descobrindo", total: 0, processed: 0, saved: 0 });
 
+  // heartbeat: enquanto o radar roda, a execução continua "viva" para o worker
+  const batimento = setInterval(() => {
+    void touch({ phase: "descobrindo" });
+  }, 20_000);
+
   // 1) RADAR: oportunidades do Melhores Destinos (descoberta ilimitada,
   //    seleção de até N por origem — ver airfare-promos.config.ts)
   const descoberta = await discoverCandidates({ maxCandidates: opts?.maxCandidates ?? 600 });
