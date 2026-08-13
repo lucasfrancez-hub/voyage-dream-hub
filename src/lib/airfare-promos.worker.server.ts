@@ -222,6 +222,28 @@ export async function processPendingCandidates(args: {
 
   const markups: MarkupTable = await loadMarkups(client);
 
+  /**
+   * A primeira coleta do dia (06:00) é a LINHA DE BASE: nada é marcado como
+   * nova/alterada. Só a partir da segunda coleta (12:00) o Command Center
+   * destaca o que mudou em relação ao estado gerado antes, no mesmo dia.
+   */
+  const hoje = curationDay();
+  const primeiraColetaDoDia = await (async () => {
+    try {
+      const { data } = await client
+        .from("airfare_promo_runs")
+        .select("id,started_at")
+        .gte("started_at", `${hoje}T03:00:00Z`)
+        .order("started_at", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      return !data || (data as { id: string }).id === runId;
+    } catch {
+      return false;
+    }
+  })();
+
+
   /** Reserva atomicamente a próxima candidata pendente (evita duplo trabalho). */
   const claimNext = async (): Promise<CandidateRow | null> => {
     for (let tentativa = 0; tentativa < 5; tentativa++) {
