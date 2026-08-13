@@ -868,6 +868,10 @@ function PromocoesAereoPage() {
     discovered: number | null;
     discovered_raw: number | null;
     deduped: number | null;
+    radar_available?: boolean | null;
+    radar_errors?: number | null;
+    fallback_count?: number | null;
+    radar_note?: string | null;
     origin_metrics:
       | Array<{
           origin: string;
