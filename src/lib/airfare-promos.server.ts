@@ -112,8 +112,6 @@ export function buildPromotionRow(args: {
     route.destination_iata,
     route.destination_city ?? chegada?.city,
   ).name;
-  const originAirport = isMetroCode(route.origin_iata) ? (partida?.name ?? null) : null;
-  const destinationAirport = isMetroCode(route.destination_iata) ? (chegada?.name ?? null) : null;
 
   const quotes = buildExtendedQuotes(total, markups);
   const extendedOptions = quotesToExtendedOptions(quotes);
