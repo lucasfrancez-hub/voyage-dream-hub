@@ -297,6 +297,7 @@ function PromoCard({
   busy,
 }: {
   promo: Promo;
+  agendamentos?: AgendamentoSocial[];
   onRefresh: () => void;
   onLink: () => void;
   onStatus: (s: string) => void;
