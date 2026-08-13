@@ -386,6 +386,10 @@ export type Database = {
           cabin_class: string | null
           cart_url: string | null
           created_at: string
+          cycle_changed_fields: string[]
+          cycle_day: string | null
+          cycle_state: string
+          cycle_state_at: string | null
           departure_date: string
           destination_city: string | null
           destination_iata: string
@@ -443,6 +447,10 @@ export type Database = {
           cabin_class?: string | null
           cart_url?: string | null
           created_at?: string
+          cycle_changed_fields?: string[]
+          cycle_day?: string | null
+          cycle_state?: string
+          cycle_state_at?: string | null
           departure_date: string
           destination_city?: string | null
           destination_iata: string
@@ -500,6 +508,10 @@ export type Database = {
           cabin_class?: string | null
           cart_url?: string | null
           created_at?: string
+          cycle_changed_fields?: string[]
+          cycle_day?: string | null
+          cycle_state?: string
+          cycle_state_at?: string | null
           departure_date?: string
           destination_city?: string | null
           destination_iata?: string

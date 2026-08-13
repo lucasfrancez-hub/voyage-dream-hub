@@ -56,6 +56,58 @@ function opportunityKey(p: { origin_iata: string; destination_iata: string; depa
   return `${p.origin_iata}|${p.destination_iata}|${p.departure_date}`.toUpperCase();
 }
 
+/** Dia da curadoria (America/Sao_Paulo) — a comparação NOVA/ALTERADA é sempre do mesmo dia. */
+export function curationDay(d = new Date()): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo" }).format(d);
+}
+
+export type CycleState = "new" | "changed" | "unchanged";
+
+type ComparableFare = {
+  total_price: number | string;
+  airline_iata: string | null;
+  outbound_fare_id: string | null;
+  inbound_fare_id?: string | null;
+  outbound_itinerary_id?: string | null;
+  inbound_itinerary_id?: string | null;
+  stops?: number | null;
+  has_checked_baggage?: boolean | null;
+  interest_free_installments?: number | null;
+  interest_free_installment_value?: number | string | null;
+};
+
+/**
+ * Alterações comerciais relevantes entre a promoção que já estava na curadoria
+ * do dia e a tarifa revalidada agora. Retorna os campos que mudaram.
+ */
+export function diffFare(antes: ComparableFare, agora: ComparableFare): string[] {
+  const campos: string[] = [];
+  const num = (v: unknown) => (v == null ? null : Number(Number(v).toFixed(2)));
+
+  if (num(antes.total_price) !== num(agora.total_price)) campos.push("price");
+  if ((antes.airline_iata ?? null) !== (agora.airline_iata ?? null)) campos.push("airline");
+  if (
+    (antes.outbound_fare_id ?? null) !== (agora.outbound_fare_id ?? null) ||
+    (antes.inbound_fare_id ?? null) !== (agora.inbound_fare_id ?? null)
+  )
+    campos.push("fare_id");
+  if (
+    (antes.outbound_itinerary_id ?? null) !== (agora.outbound_itinerary_id ?? null) ||
+    (antes.inbound_itinerary_id ?? null) !== (agora.inbound_itinerary_id ?? null)
+  )
+    campos.push("flight");
+  if ((antes.stops ?? null) !== (agora.stops ?? null)) campos.push("connection");
+  if (!!antes.has_checked_baggage !== !!agora.has_checked_baggage) campos.push("baggage");
+  if (
+    (antes.interest_free_installments ?? null) !== (agora.interest_free_installments ?? null) ||
+    num(antes.interest_free_installment_value) !== num(agora.interest_free_installment_value)
+  )
+    campos.push("installment");
+
+  return campos;
+}
+
+
 async function db(): Promise<AnyClient> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   return supabaseAdmin as unknown as AnyClient;
@@ -170,6 +222,28 @@ export async function processPendingCandidates(args: {
 
   const markups: MarkupTable = await loadMarkups(client);
 
+  /**
+   * A primeira coleta do dia (06:00) é a LINHA DE BASE: nada é marcado como
+   * nova/alterada. Só a partir da segunda coleta (12:00) o Command Center
+   * destaca o que mudou em relação ao estado gerado antes, no mesmo dia.
+   */
+  const hoje = curationDay();
+  const primeiraColetaDoDia = await (async () => {
+    try {
+      const { data } = await client
+        .from("airfare_promo_runs")
+        .select("id,started_at")
+        .gte("started_at", `${hoje}T03:00:00Z`)
+        .order("started_at", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      return !data || (data as { id: string }).id === runId;
+    } catch {
+      return false;
+    }
+  })();
+
+
   /** Reserva atomicamente a próxima candidata pendente (evita duplo trabalho). */
   const claimNext = async (): Promise<CandidateRow | null> => {
     for (let tentativa = 0; tentativa < 5; tentativa++) {
@@ -272,18 +346,47 @@ export async function processPendingCandidates(args: {
 
     const { data: anterior } = await client
       .from("airfare_promotions")
-      .select("id,total_price,airline_iata,outbound_fare_id,cart_url,short_url,status")
+      .select(
+        "id,total_price,airline_iata,outbound_fare_id,inbound_fare_id,outbound_itinerary_id,inbound_itinerary_id,stops,has_checked_baggage,interest_free_installments,interest_free_installment_value,cart_url,short_url,status,cycle_day,cycle_state,cycle_changed_fields,cycle_state_at",
+      )
       .eq("signature", row.signature)
       .maybeSingle();
 
-    const mudou =
-      !!anterior &&
-      (Number(anterior.total_price) !== viaair ||
-        anterior.airline_iata !== row.airline_iata ||
-        anterior.outbound_fare_id !== row.outbound_fare_id);
+    const camposMudados = anterior ? diffFare(anterior as never, row as never) : [];
+    const mudou = camposMudados.length > 0;
+
+    /** NOVA > ALTERADA > NORMAL, sempre comparando dentro do mesmo dia. */
+    const jaEstavaNoCicloDeHoje = !!anterior && (anterior as { cycle_day?: string | null }).cycle_day === hoje;
+    let cycleState: CycleState;
+    let cycleFields: string[] = [];
+    if (primeiraColetaDoDia) {
+      cycleState = "unchanged"; // linha de base do dia
+    } else if (!jaEstavaNoCicloDeHoje) {
+      cycleState = "new";
+    } else if (mudou) {
+      cycleState = "changed";
+      cycleFields = camposMudados;
+    } else {
+      // já revalidada hoje e igual: preserva um destaque anterior do mesmo dia
+      const estadoAtual = (anterior as { cycle_state?: string }).cycle_state as CycleState | undefined;
+      cycleState = estadoAtual === "new" || estadoAtual === "changed" ? estadoAtual : "unchanged";
+      cycleFields = (((anterior as { cycle_changed_fields?: string[] }).cycle_changed_fields ?? []) as string[]).slice();
+    }
+
+    const manteveEstado =
+      jaEstavaNoCicloDeHoje && !mudou && cycleState !== "unchanged"
+        ? ((anterior as { cycle_state_at?: string | null }).cycle_state_at ?? new Date().toISOString())
+        : new Date().toISOString();
 
     // promoção revalidada volta para a curadoria ativa do dia
-    const payload: Record<string, unknown> = { ...enriquecida, archived_at: null };
+    const payload: Record<string, unknown> = {
+      ...enriquecida,
+      archived_at: null,
+      cycle_day: hoje,
+      cycle_state: cycleState,
+      cycle_changed_fields: cycleFields,
+      cycle_state_at: cycleState === "unchanged" ? null : manteveEstado,
+    };
     if (anterior) {
       payload.status = anterior.status;
       if (mudou) {
@@ -311,6 +414,7 @@ export async function processPendingCandidates(args: {
       });
       return label;
     }
+
 
     counters.validated++;
     counters.saved++;
@@ -558,7 +662,15 @@ export async function closeDailyCuration() {
   if (ids.length) {
     await client
       .from("airfare_promotions")
-      .update({ archived_at: now, fare_status: "ciclo_encerrado" })
+      .update({
+        archived_at: now,
+        fare_status: "ciclo_encerrado",
+        cycle_state: "unchanged",
+        cycle_changed_fields: [],
+        cycle_state_at: null,
+        cycle_day: null,
+      })
+
       .in("id", ids);
   }
 
