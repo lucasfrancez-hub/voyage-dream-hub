@@ -300,7 +300,9 @@ export type Database = {
       }
       airfare_promo_runs: {
         Row: {
+          deduped: number
           discovered: number
+          discovered_raw: number
           error_count: number
           error_message: string | null
           expired_count: number
@@ -309,6 +311,7 @@ export type Database = {
           last_label: string | null
           new_count: number
           no_result: number
+          origin_metrics: Json
           phase: string | null
           processed: number
           saved: number
@@ -321,7 +324,9 @@ export type Database = {
           validated: number
         }
         Insert: {
+          deduped?: number
           discovered?: number
+          discovered_raw?: number
           error_count?: number
           error_message?: string | null
           expired_count?: number
@@ -330,6 +335,7 @@ export type Database = {
           last_label?: string | null
           new_count?: number
           no_result?: number
+          origin_metrics?: Json
           phase?: string | null
           processed?: number
           saved?: number
@@ -342,7 +348,9 @@ export type Database = {
           validated?: number
         }
         Update: {
+          deduped?: number
           discovered?: number
+          discovered_raw?: number
           error_count?: number
           error_message?: string | null
           expired_count?: number
@@ -351,6 +359,7 @@ export type Database = {
           last_label?: string | null
           new_count?: number
           no_result?: number
+          origin_metrics?: Json
           phase?: string | null
           processed?: number
           saved?: number
