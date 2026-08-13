@@ -90,7 +90,7 @@ export function PromoSocialDialog({
   async function marcarPublicado(id: string) {
     try {
       await setStatusFn({ data: { id, status: "publicado" } });
-      void queryClient.invalidateQueries({ queryKey: ["airfare-promotions"] });
+      void queryClient.invalidateQueries({ queryKey: ["airfare-promos"] });
     } catch {
       /* status é secundário ao envio */
     }
