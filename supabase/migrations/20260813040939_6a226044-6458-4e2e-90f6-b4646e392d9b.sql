@@ -1,0 +1,1 @@
+ALTER TABLE public.airfare_promo_runs ADD COLUMN IF NOT EXISTS source_metrics jsonb NOT NULL DEFAULT '{}'::jsonb;
