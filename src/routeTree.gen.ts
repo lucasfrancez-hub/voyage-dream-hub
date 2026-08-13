@@ -53,6 +53,7 @@ import { Route as AdminLinkBoletoRouteImport } from './routes/admin.link-boleto'
 import { Route as AdminLinkCartaoSimplesRouteImport } from './routes/admin.link-cartao-simples'
 import { Route as AdminLinkPagamentoRouteImport } from './routes/admin.link-pagamento'
 import { Route as AdminMelhoresDestinosRouteImport } from './routes/admin.melhores-destinos'
+import { Route as AdminMetricasRouteImport } from './routes/admin.metricas'
 import { Route as AdminNotasFiscaisRouteImport } from './routes/admin.notas-fiscais'
 import { Route as AdminPacotesRouteImport } from './routes/admin.pacotes'
 import { Route as AdminPagamentosRouteImport } from './routes/admin.pagamentos'
@@ -99,6 +100,7 @@ import { Route as AdminPedidosIdRouteImport } from './routes/admin.pedidos.$id'
 import { Route as AdminPedidosTerceirosRouteImport } from './routes/admin.pedidos.terceiros'
 import { Route as AdminPessoasIdRouteImport } from './routes/admin.pessoas.$id'
 import { Route as ApiChatCamilaRouteImport } from './routes/api/chat.camila'
+import { Route as ApiPublicAnalyticsCollectRouteImport } from './routes/api/public/analytics-collect'
 import { Route as ApiPublicAsaasTransferWebhookRouteImport } from './routes/api/public/asaas-transfer-webhook'
 import { Route as ApiPublicAsaasWebhookRouteImport } from './routes/api/public/asaas-webhook'
 import { Route as ApiPublicClicksignWebhookRouteImport } from './routes/api/public/clicksign-webhook'
@@ -367,6 +369,11 @@ const AdminMelhoresDestinosRoute = AdminMelhoresDestinosRouteImport.update({
   path: '/melhores-destinos',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminMetricasRoute = AdminMetricasRouteImport.update({
+  id: '/metricas',
+  path: '/metricas',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminNotasFiscaisRoute = AdminNotasFiscaisRouteImport.update({
   id: '/notas-fiscais',
   path: '/notas-fiscais',
@@ -597,6 +604,12 @@ const ApiChatCamilaRoute = ApiChatCamilaRouteImport.update({
   path: '/api/chat/camila',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicAnalyticsCollectRoute =
+  ApiPublicAnalyticsCollectRouteImport.update({
+    id: '/api/public/analytics-collect',
+    path: '/api/public/analytics-collect',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicAsaasTransferWebhookRoute =
   ApiPublicAsaasTransferWebhookRouteImport.update({
     id: '/api/public/asaas-transfer-webhook',
@@ -910,6 +923,7 @@ export interface FileRoutesByFullPath {
   '/admin/link-cartao-simples': typeof AdminLinkCartaoSimplesRoute
   '/admin/link-pagamento': typeof AdminLinkPagamentoRoute
   '/admin/melhores-destinos': typeof AdminMelhoresDestinosRoute
+  '/admin/metricas': typeof AdminMetricasRoute
   '/admin/notas-fiscais': typeof AdminNotasFiscaisRoute
   '/admin/pacotes': typeof AdminPacotesRoute
   '/admin/pagamentos': typeof AdminPagamentosRoute
@@ -955,6 +969,7 @@ export interface FileRoutesByFullPath {
   '/admin/pedidos/terceiros': typeof AdminPedidosTerceirosRoute
   '/admin/pessoas/$id': typeof AdminPessoasIdRoute
   '/api/chat/camila': typeof ApiChatCamilaRoute
+  '/api/public/analytics-collect': typeof ApiPublicAnalyticsCollectRoute
   '/api/public/asaas-transfer-webhook': typeof ApiPublicAsaasTransferWebhookRoute
   '/api/public/asaas-webhook': typeof ApiPublicAsaasWebhookRoute
   '/api/public/clicksign-webhook': typeof ApiPublicClicksignWebhookRoute
@@ -1047,6 +1062,7 @@ export interface FileRoutesByTo {
   '/admin/link-cartao-simples': typeof AdminLinkCartaoSimplesRoute
   '/admin/link-pagamento': typeof AdminLinkPagamentoRoute
   '/admin/melhores-destinos': typeof AdminMelhoresDestinosRoute
+  '/admin/metricas': typeof AdminMetricasRoute
   '/admin/notas-fiscais': typeof AdminNotasFiscaisRoute
   '/admin/pacotes': typeof AdminPacotesRoute
   '/admin/pagamentos': typeof AdminPagamentosRoute
@@ -1092,6 +1108,7 @@ export interface FileRoutesByTo {
   '/admin/pedidos/terceiros': typeof AdminPedidosTerceirosRoute
   '/admin/pessoas/$id': typeof AdminPessoasIdRoute
   '/api/chat/camila': typeof ApiChatCamilaRoute
+  '/api/public/analytics-collect': typeof ApiPublicAnalyticsCollectRoute
   '/api/public/asaas-transfer-webhook': typeof ApiPublicAsaasTransferWebhookRoute
   '/api/public/asaas-webhook': typeof ApiPublicAsaasWebhookRoute
   '/api/public/clicksign-webhook': typeof ApiPublicClicksignWebhookRoute
@@ -1187,6 +1204,7 @@ export interface FileRoutesById {
   '/admin/link-cartao-simples': typeof AdminLinkCartaoSimplesRoute
   '/admin/link-pagamento': typeof AdminLinkPagamentoRoute
   '/admin/melhores-destinos': typeof AdminMelhoresDestinosRoute
+  '/admin/metricas': typeof AdminMetricasRoute
   '/admin/notas-fiscais': typeof AdminNotasFiscaisRoute
   '/admin/pacotes': typeof AdminPacotesRoute
   '/admin/pagamentos': typeof AdminPagamentosRoute
@@ -1232,6 +1250,7 @@ export interface FileRoutesById {
   '/admin/pedidos/terceiros': typeof AdminPedidosTerceirosRoute
   '/admin/pessoas/$id': typeof AdminPessoasIdRoute
   '/api/chat/camila': typeof ApiChatCamilaRoute
+  '/api/public/analytics-collect': typeof ApiPublicAnalyticsCollectRoute
   '/api/public/asaas-transfer-webhook': typeof ApiPublicAsaasTransferWebhookRoute
   '/api/public/asaas-webhook': typeof ApiPublicAsaasWebhookRoute
   '/api/public/clicksign-webhook': typeof ApiPublicClicksignWebhookRoute
@@ -1328,6 +1347,7 @@ export interface FileRouteTypes {
     | '/admin/link-cartao-simples'
     | '/admin/link-pagamento'
     | '/admin/melhores-destinos'
+    | '/admin/metricas'
     | '/admin/notas-fiscais'
     | '/admin/pacotes'
     | '/admin/pagamentos'
@@ -1373,6 +1393,7 @@ export interface FileRouteTypes {
     | '/admin/pedidos/terceiros'
     | '/admin/pessoas/$id'
     | '/api/chat/camila'
+    | '/api/public/analytics-collect'
     | '/api/public/asaas-transfer-webhook'
     | '/api/public/asaas-webhook'
     | '/api/public/clicksign-webhook'
@@ -1465,6 +1486,7 @@ export interface FileRouteTypes {
     | '/admin/link-cartao-simples'
     | '/admin/link-pagamento'
     | '/admin/melhores-destinos'
+    | '/admin/metricas'
     | '/admin/notas-fiscais'
     | '/admin/pacotes'
     | '/admin/pagamentos'
@@ -1510,6 +1532,7 @@ export interface FileRouteTypes {
     | '/admin/pedidos/terceiros'
     | '/admin/pessoas/$id'
     | '/api/chat/camila'
+    | '/api/public/analytics-collect'
     | '/api/public/asaas-transfer-webhook'
     | '/api/public/asaas-webhook'
     | '/api/public/clicksign-webhook'
@@ -1604,6 +1627,7 @@ export interface FileRouteTypes {
     | '/admin/link-cartao-simples'
     | '/admin/link-pagamento'
     | '/admin/melhores-destinos'
+    | '/admin/metricas'
     | '/admin/notas-fiscais'
     | '/admin/pacotes'
     | '/admin/pagamentos'
@@ -1649,6 +1673,7 @@ export interface FileRouteTypes {
     | '/admin/pedidos/terceiros'
     | '/admin/pessoas/$id'
     | '/api/chat/camila'
+    | '/api/public/analytics-collect'
     | '/api/public/asaas-transfer-webhook'
     | '/api/public/asaas-webhook'
     | '/api/public/clicksign-webhook'
@@ -1733,6 +1758,7 @@ export interface RootRouteChildren {
   ProtocoloProtocoloIdRoute: typeof ProtocoloProtocoloIdRoute
   WSlugRoute: typeof WSlugRoute
   ApiChatCamilaRoute: typeof ApiChatCamilaRoute
+  ApiPublicAnalyticsCollectRoute: typeof ApiPublicAnalyticsCollectRoute
   ApiPublicAsaasTransferWebhookRoute: typeof ApiPublicAsaasTransferWebhookRoute
   ApiPublicAsaasWebhookRoute: typeof ApiPublicAsaasWebhookRoute
   ApiPublicClicksignWebhookRoute: typeof ApiPublicClicksignWebhookRoute
@@ -2089,6 +2115,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminMelhoresDestinosRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/metricas': {
+      id: '/admin/metricas'
+      path: '/metricas'
+      fullPath: '/admin/metricas'
+      preLoaderRoute: typeof AdminMetricasRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/notas-fiscais': {
       id: '/admin/notas-fiscais'
       path: '/notas-fiscais'
@@ -2409,6 +2442,13 @@ declare module '@tanstack/react-router' {
       path: '/api/chat/camila'
       fullPath: '/api/chat/camila'
       preLoaderRoute: typeof ApiChatCamilaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/analytics-collect': {
+      id: '/api/public/analytics-collect'
+      path: '/api/public/analytics-collect'
+      fullPath: '/api/public/analytics-collect'
+      preLoaderRoute: typeof ApiPublicAnalyticsCollectRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/asaas-transfer-webhook': {
@@ -2778,6 +2818,7 @@ interface AdminRouteChildren {
   AdminLinkCartaoSimplesRoute: typeof AdminLinkCartaoSimplesRoute
   AdminLinkPagamentoRoute: typeof AdminLinkPagamentoRoute
   AdminMelhoresDestinosRoute: typeof AdminMelhoresDestinosRoute
+  AdminMetricasRoute: typeof AdminMetricasRoute
   AdminNotasFiscaisRoute: typeof AdminNotasFiscaisRoute
   AdminPacotesRoute: typeof AdminPacotesRoute
   AdminPagamentosRoute: typeof AdminPagamentosRoute
@@ -2819,6 +2860,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminLinkCartaoSimplesRoute: AdminLinkCartaoSimplesRoute,
   AdminLinkPagamentoRoute: AdminLinkPagamentoRoute,
   AdminMelhoresDestinosRoute: AdminMelhoresDestinosRoute,
+  AdminMetricasRoute: AdminMetricasRoute,
   AdminNotasFiscaisRoute: AdminNotasFiscaisRoute,
   AdminPacotesRoute: AdminPacotesRoute,
   AdminPagamentosRoute: AdminPagamentosRoute,
@@ -2941,6 +2983,7 @@ const rootRouteChildren: RootRouteChildren = {
   ProtocoloProtocoloIdRoute: ProtocoloProtocoloIdRoute,
   WSlugRoute: WSlugRoute,
   ApiChatCamilaRoute: ApiChatCamilaRoute,
+  ApiPublicAnalyticsCollectRoute: ApiPublicAnalyticsCollectRoute,
   ApiPublicAsaasTransferWebhookRoute: ApiPublicAsaasTransferWebhookRoute,
   ApiPublicAsaasWebhookRoute: ApiPublicAsaasWebhookRoute,
   ApiPublicClicksignWebhookRoute: ApiPublicClicksignWebhookRoute,

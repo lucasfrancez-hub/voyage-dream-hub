@@ -6,8 +6,9 @@ import {
   useRouter,
   HeadContent,
   Scripts,
+  useRouterState,
 } from "@tanstack/react-router";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
@@ -228,6 +229,23 @@ function RootComponent() {
   useEffect(() => instalarHandshakeVersao(), []);
   // App abriu bem: tira os parâmetros técnicos da URL e zera o contador.
   useEffect(() => limparMarcasDeRecuperacao(), []);
+
+  // Métricas de uso (anônimas): visitas, navegação, cliques e tempo.
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const analyticsPronto = useRef(false);
+  useEffect(() => {
+    let limpar: (() => void) | undefined;
+    void import("@/lib/analytics/track").then(({ instalarAnalytics }) => {
+      limpar = instalarAnalytics();
+      analyticsPronto.current = true;
+    });
+    return () => limpar?.();
+  }, []);
+  useEffect(() => {
+    if (!analyticsPronto.current) return;
+    void import("@/lib/analytics/track").then(({ registrarPageview }) => registrarPageview());
+  }, [pathname]);
+
 
 
 

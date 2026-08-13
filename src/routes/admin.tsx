@@ -2,7 +2,7 @@ import { createFileRoute, Link, Outlet, useNavigate, useRouterState } from "@tan
 import { useEffect, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { Loader2, LogOut, Package, ClipboardList, Home, Link2, Settings, Users, ChevronDown, LayoutDashboard, Contact, Smartphone,
-  Puzzle, MessageCircle, Sun, Moon } from "lucide-react";
+  Puzzle, MessageCircle, Sun, Moon, BarChart3 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -546,6 +546,7 @@ function SegurancaNav({ pathname, showUsuarios }: { pathname: string; showUsuari
     pathname.startsWith("/admin/seguranca") ||
     pathname.startsWith("/admin/instalar-extensao") ||
     pathname.startsWith("/admin/app-celular") ||
+    pathname.startsWith("/admin/metricas") ||
     pathname.startsWith("/admin/checkin-treino") ||
     (showUsuarios && pathname.startsWith("/admin/usuarios"));
 
@@ -562,6 +563,7 @@ function SegurancaNav({ pathname, showUsuarios }: { pathname: string; showUsuari
           accent: true,
           items: [
             { to: "/admin/seguranca", label: "Segurança" },
+            { to: "/admin/metricas", label: "Métricas", icon: BarChart3 },
             { to: "/admin/instalar-extensao", label: "Instalar extensão", icon: Puzzle },
             { to: "/admin/app-celular", label: "App no celular", icon: Smartphone },
           ],

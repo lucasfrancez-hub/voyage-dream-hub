@@ -5,7 +5,7 @@
  */
 import { cityLabel } from "@/lib/iata-lookup";
 import { useEffect, useMemo, useState } from "react";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
   ChevronLeft,
@@ -28,6 +28,7 @@ import {
   buildPromoCard,
   listDestinationPhotos,
   renderPromoCard,
+  savePromoCardOverrides,
 } from "@/lib/promo-card.functions";
 import { listInstagramAccounts, publishInstagramFromUrl } from "@/lib/instagram/queries.functions";
 import type { PromoCardData, PromoCardFormat, PromoLogoVariant } from "@/lib/promo-card/card-data";
@@ -134,6 +135,30 @@ export function PromoArtDialog({
 
   const set = <K extends keyof PromoCardData>(k: K, v: PromoCardData[K]) =>
     setCard((c) => (c ? { ...c, [k]: v } : c));
+
+  // Persiste as alterações da arte para que a divulgação use a versão editada.
+  const qc = useQueryClient();
+  const salvarOverrides = useServerFn(savePromoCardOverrides);
+  const [salvando, setSalvando] = useState(false);
+
+  async function confirmarEdicao() {
+    if (card) {
+      setSalvando(true);
+      try {
+        await salvarOverrides({ data: { id: promo.id, card } });
+        qc.setQueryData(["promo-card", promo.id], (old: any) =>
+          old ? { ...old, card, editado: true } : old,
+        );
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : "Não foi possível salvar a arte");
+        setSalvando(false);
+        return;
+      }
+      setSalvando(false);
+    }
+    if (onDone) onDone();
+    else setEditando(false);
+  }
 
   const previewUrl = card ? `/api/public/promo-card?f=${format}&d=${encode(card)}` : "";
   const size = SIZES[format];
@@ -286,7 +311,7 @@ export function PromoArtDialog({
                   {editando && onDone ? (
                     <button
                       type="button"
-                      onClick={onDone}
+                      onClick={confirmarEdicao}
                       className="inline-flex items-center gap-2 rounded-full bg-brand-orange px-5 py-2.5 text-[10px] font-bold text-white shadow-xl transition hover:brightness-110"
                     >
                       <Check className="h-3.5 w-3.5" />
@@ -588,10 +613,11 @@ export function PromoArtDialog({
                   </button>
                   <button
                     type="button"
-                    onClick={() => (onDone ? onDone() : setEditando(false))}
-                    className="inline-flex items-center gap-2 rounded-lg bg-brand-orange px-5 py-2 text-xs font-bold text-white shadow-lg transition hover:brightness-110"
+                    disabled={salvando}
+                    onClick={confirmarEdicao}
+                    className="inline-flex items-center gap-2 rounded-lg bg-brand-orange px-5 py-2 text-xs font-bold text-white shadow-lg transition hover:brightness-110 disabled:opacity-60"
                   >
-                    <Check className="h-4 w-4" />
+                    {salvando ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
                     {onDone ? "OK, voltar para divulgar" : "OK"}
                   </button>
                 </div>
