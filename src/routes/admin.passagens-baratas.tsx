@@ -305,10 +305,10 @@ function StageBanner({
     <Card className="flex items-center gap-3 rounded-2xl border-primary/20 bg-primary/[0.06] px-5 py-4">
       <Loader2 className="h-4 w-4 shrink-0 animate-spin text-primary" />
       <div className="min-w-0">
-        <div className="truncate text-sm font-bold">
+        <div className="text-sm font-bold">
           {lento ? "Ainda verificando o histórico das últimas 24 horas..." : titulo}
         </div>
-        <div className="truncate text-xs text-muted-foreground">{sub}</div>
+        <div className="text-xs text-muted-foreground">{sub}</div>
       </div>
     </Card>
   );
@@ -660,7 +660,7 @@ export function PassagensBaratasExplorer({
               }`}
             >
               {isFirst && <Plane className="h-3.5 w-3.5 shrink-0" />}
-              <span className="max-w-[42vw] truncate sm:max-w-none">{s.label}</span>
+              <span className="sm:max-w-none">{s.label}</span>
             </button>
           );
         })}
@@ -723,8 +723,8 @@ export function PassagensBaratasExplorer({
 
               <div className="flex min-w-0 flex-1 flex-col gap-1 sm:flex-row sm:items-center sm:gap-4">
                 <div className="min-w-0 flex-1">
-                  <h3 className="truncate text-base font-bold leading-tight sm:text-lg">{c.name}</h3>
-                  <p className="mt-0.5 truncate text-xs text-muted-foreground">{c.description}</p>
+                  <h3 className="text-base font-bold leading-tight sm:text-lg">{c.name}</h3>
+                  <p className="mt-0.5 text-xs leading-snug text-muted-foreground">{c.description}</p>
                 </div>
                 {c.price != null && (
                   <div className="shrink-0 sm:text-right">
@@ -782,10 +782,10 @@ export function PassagensBaratasExplorer({
 
 
                 <div className="flex min-w-0 flex-col">
-                  <span className="truncate font-semibold text-foreground transition-colors group-hover:text-primary">
+                  <span className="font-semibold leading-snug text-foreground transition-colors group-hover:text-primary">
                     {c.fromName ? `${c.fromName} → ${c.toName}` : c.toName}
                   </span>
-                  <span className="truncate text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                  <span className="text-[10px] font-medium uppercase leading-snug tracking-wide text-muted-foreground">
                     {[c.fromIata, c.toIata].filter(Boolean).join(" → ") || "Principais aeroportos"}
                   </span>
                 </div>
@@ -963,13 +963,13 @@ export function PassagensBaratasExplorer({
                       )}
                       <div className="min-w-0">
                         <div className="text-sm font-bold leading-tight">{o.departLabel}</div>
-                        <div className="truncate text-[10px] uppercase text-muted-foreground">
+                        <div className="text-[10px] uppercase text-muted-foreground">
                           {o.weekdayOut}
                         </div>
                       </div>
                       <div className="min-w-0">
                         <div className="text-sm font-bold leading-tight">{o.returnLabel ?? "—"}</div>
-                        <div className="truncate text-[10px] uppercase text-muted-foreground">
+                        <div className="text-[10px] uppercase text-muted-foreground">
                           {o.weekdayIn}
                         </div>
                       </div>
