@@ -162,7 +162,7 @@ export async function radarByOrigin(
     const subs = (json.categories ?? [])
       .map((c) => categoryIdFromLink(c.link))
       .filter((id): id is number => !!id);
-    await mapLimit(subs, 2, (id) => visit(id, depth + 1));
+    await mapLimit(subs, 1, (id) => visit(id, depth + 1));
   };
 
   await visit(null, 0);
@@ -194,13 +194,18 @@ function datesFromLink(link?: string | null): { depart: string | null; ret: stri
 }
 
 /** Datas reais mais baratas de uma rota (usadas só para as candidatas escolhidas). */
-export async function cheapestDatesForLead(lead: DestinationLead, count = 1): Promise<LeadDate[]> {
+export async function cheapestDatesForLead(
+  lead: DestinationLead,
+  count = 1,
+  cancel?: MdCancel,
+): Promise<LeadDate[]> {
   const params = new URLSearchParams();
   if (lead.category_id) params.set("category_id", String(lead.category_id));
   const json = await getJson<RawDates>(
     `${TWD}/itinerary_prices/${lead.origin_iata}/${lead.destination_iata}${
       params.toString() ? `?${params}` : ""
     }`,
+    cancel,
   );
 
   const hoje = isoToday();
