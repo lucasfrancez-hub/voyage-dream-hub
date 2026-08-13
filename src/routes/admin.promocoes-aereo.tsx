@@ -54,6 +54,10 @@ type Promo = PromoRow & {
   status: string;
   fare_status: string;
   last_checked_at: string;
+  reference_source?: string | null;
+  reference_price?: number | null;
+  price_difference?: number | null;
+  price_difference_percent?: number | null;
 };
 
 const brl = (v: number | string | null | undefined) =>
