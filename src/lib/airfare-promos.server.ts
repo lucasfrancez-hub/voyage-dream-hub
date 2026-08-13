@@ -460,7 +460,17 @@ export async function collectAirfarePromotions(opts?: {
 
   // 1) RADAR: oportunidades do Melhores Destinos (descoberta ilimitada,
   //    seleção de até N por origem — ver airfare-promos.config.ts)
-  const descoberta = await discoverCandidates({ maxCandidates: opts?.maxCandidates ?? 600 });
+  let descoberta: Awaited<ReturnType<typeof discoverCandidates>>;
+  try {
+    descoberta = await discoverCandidates({ maxCandidates: opts?.maxCandidates ?? 600 });
+  } finally {
+    clearInterval(batimento);
+  }
+  await touch({
+    phase: "curadoria",
+    discovered_raw: descoberta.discoveredTotal,
+    deduped: descoberta.dedupedTotal,
+  });
   const candidatas = descoberta.candidates;
   const metricasPorOrigem = new Map<string, Metrics>(
     descoberta.metrics.map((m) => [m.origin, { ...m }]),
