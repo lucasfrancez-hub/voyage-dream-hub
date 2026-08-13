@@ -876,19 +876,34 @@ function PromocoesAereoPage() {
           <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
             <span className="inline-flex items-center gap-2 font-bold text-brand-orange">
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              {info.phase === "descobrindo"
-                ? "Procurando oportunidades…"
-                : info.phase === "expirando"
-                  ? "Conferindo ofertas que saíram do ar…"
-                  : "Validando no motor VIA AIR…"}
+              {cancelando
+                ? "Cancelando atualização…"
+                : info.phase === "descobrindo"
+                  ? "Buscando novas oportunidades no radar…"
+                  : info.phase === "curadoria"
+                    ? "Curadoria concluída — preparando candidatas…"
+                    : info.phase === "expirando"
+                      ? "Conferindo ofertas que saíram do ar…"
+                      : info.total > 0
+                        ? `Validando ${Math.min(info.processed + 1, info.total)} de ${info.total} no motor VIA AIR…`
+                        : "Preparando as oportunidades…"}
             </span>
-            <span className="text-muted-foreground">
-              {desde(info.started_at) ? `Em andamento desde ${desde(info.started_at)} • ` : ""}
-              {info.total > 0
-                ? `${info.processed} de ${info.total} oportunidades verificadas`
-                : "Preparando as oportunidades…"}
+            <span className="flex items-center gap-2 text-muted-foreground">
+              <span>
+                {desde(info.started_at) ? `Em andamento desde ${desde(info.started_at)} • ` : ""}
+                {info.total > 0
+                  ? `${info.processed} de ${info.total} oportunidades verificadas`
+                  : "Preparando as oportunidades…"}
+              </span>
+              <button
+                type="button"
+                onClick={() => cancelar.mutate()}
+                disabled={cancelar.isPending || cancelando}
+                className="rounded-lg border border-destructive/50 px-2 py-1 text-[11px] font-bold text-destructive disabled:opacity-60"
+              >
+                {cancelando ? "Cancelando…" : "Cancelar atualização"}
+              </button>
             </span>
-
           </div>
           <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-border/60">
             {pct === null ? (
