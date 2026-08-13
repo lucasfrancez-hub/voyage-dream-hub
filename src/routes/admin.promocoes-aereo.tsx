@@ -38,6 +38,8 @@ import {
 } from "@/lib/airfare-promos.functions";
 import { promoInstagramText, promoWhatsappText, type PromoRow } from "@/lib/airfare-promo-text";
 import { PromoArtDialog } from "@/components/promo/PromoArtDialog";
+import { scopeOfRoute } from "@/lib/br-airports";
+
 
 export const Route = createFileRoute("/admin/promocoes-aereo")({
   head: () => ({
@@ -596,6 +598,8 @@ function PromocoesAereoPage() {
   const [aba, setAba] = useState<"nacional" | "internacional">("nacional");
   const [atalho, setAtalho] = useState(0);
   const [filtrosAbertos, setFiltrosAbertos] = useState(false);
+  const [pesquisaAberta, setPesquisaAberta] = useState(false);
+
   const [destination, setDestination] = useState("");
   const [airline, setAirline] = useState("");
   const [promoStatus, setPromoStatus] = useState("todos");
@@ -996,11 +1000,11 @@ function PromocoesAereoPage() {
         </div>
       </section>
 
-      {/* Pesquisa manual + configurações */}
+      {/* Configurações */}
       <div className="mt-8 space-y-3">
-        <PesquisaManual onSalvo={() => qc.invalidateQueries({ queryKey: ["airfare-promos"] })} />
         <MarkupsPanel />
       </div>
+
 
       {artPromo ? <PromoArtDialog promo={artPromo} onClose={() => setArtPromo(null)} /> : null}
     </div>
