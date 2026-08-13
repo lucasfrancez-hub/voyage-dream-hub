@@ -795,7 +795,7 @@ export function PassagensBaratasExplorer({
 
 
       {/* Preços do trecho: gráfico de meses + tabela comparativa + motor */}
-      {data && (data.months.length > 0 || data.dates.length > 0) ? (
+      {!carregando && data && (data.months.length > 0 || data.dates.length > 0) ? (
         <div className="space-y-5">
           <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
             <div>
