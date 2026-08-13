@@ -1084,7 +1084,19 @@ function PromocoesAereoPage() {
         >
           <Search className="h-4 w-4" /> Pesquisar novas oportunidades
         </button>
+        <button
+          type="button"
+          onClick={() => setArquivadosAberto(true)}
+          className="inline-flex items-center gap-2 rounded-xl border border-border/60 px-4 py-2 text-xs font-black uppercase tracking-widest text-muted-foreground transition hover:border-brand-orange/40 hover:text-foreground"
+        >
+          🗑 Arquivados
+          <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] tabular-nums text-foreground">
+            {arquivados?.total ?? 0}
+          </span>
+        </button>
       </div>
+
+      <ArquivadosDialog aberto={arquivadosAberto} onFechar={() => setArquivadosAberto(false)} />
 
       <PesquisaManual
         aberto={pesquisaAberta}
