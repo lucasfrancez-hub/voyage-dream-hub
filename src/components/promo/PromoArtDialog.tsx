@@ -411,6 +411,8 @@ export function PromoArtDialog({ promo, onClose }: { promo: PromoRow & { id: str
                 </div>
               </div>
             </div>
+            ) : null}
+
           </div>
         )}
       </div>
