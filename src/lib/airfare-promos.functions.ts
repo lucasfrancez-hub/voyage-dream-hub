@@ -37,8 +37,18 @@ export const listAirfarePromotions = createServerFn({ method: "GET" })
     await assertAdmin(context);
     let q = context.supabase.from("airfare_promotions").select(PROMO_COLUMNS).limit(300);
 
-    // curadoria ATIVA do dia (o ciclo encerrado à meia-noite vira histórico)
-    if (!data.includeArchived) q = q.is("archived_at", null);
+    // curadoria ATIVA do dia (o ciclo encerrado à meia-noite vira histórico).
+    // Proteção extra: mesmo se o cron das 00:00 falhar, promoção de dia
+    // anterior nunca aparece como ativa.
+    if (!data.includeArchived) {
+      const hoje = new Intl.DateTimeFormat("en-CA", {
+        timeZone: "America/Sao_Paulo",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+      }).format(new Date());
+      q = q.is("archived_at", null).eq("cycle_day", hoje);
+    }
 
     if (data.origin) q = q.ilike("origin_iata", `%${data.origin}%`);
     if (data.destination) q = q.ilike("destination_iata", `%${data.destination}%`);
