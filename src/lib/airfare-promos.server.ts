@@ -159,6 +159,28 @@ export function buildPromotionRow(args: {
   return row;
 }
 
+/** Timeout duro por chamada ao motor (nenhuma consulta prende a coleta). */
+export const ENGINE_CALL_TIMEOUT_MS = 60_000;
+
+/** Timeout total por candidata (ida + volta + gravação). */
+export const CANDIDATE_TIMEOUT_MS = 100_000;
+
+export function withTimeout<T>(p: Promise<T>, ms: number, label: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const t = setTimeout(() => reject(new Error(`timeout:${label}:${ms}ms`)), ms);
+    p.then(
+      (v) => {
+        clearTimeout(t);
+        resolve(v);
+      },
+      (e) => {
+        clearTimeout(t);
+        reject(e);
+      },
+    );
+  });
+}
+
 /** Pesquisa uma rota/data e devolve a melhor oportunidade (ou null). */
 export async function quoteRoute(args: {
   route: PromoRoute;
