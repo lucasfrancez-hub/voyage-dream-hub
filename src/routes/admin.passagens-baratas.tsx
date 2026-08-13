@@ -937,88 +937,136 @@ export function PassagensBaratasExplorer({
             </Card>
           )}
 
-          {/* Mobile: lista enxuta — cia, ida, volta, bagagem e preço (sem duração) */}
+          {/* Mobile: cartões organizados — cia, ida/volta, duração, bagagem, preço e CTA */}
           {data.dates.length > 0 && (
-            <Card className="overflow-hidden rounded-2xl md:hidden">
-              <div className="grid grid-cols-[24px_1fr_1fr_84px] items-center gap-2 border-b bg-muted/40 px-3 py-2 text-[9px] font-bold uppercase tracking-widest text-muted-foreground">
-                <span>Cia</span>
-                <span>Ida</span>
-                <span>Volta</span>
-                <span className="text-right">Preço</span>
-              </div>
-              <div className="divide-y">
-                {data.dates.map((o, i) => (
-                  <div key={`m-${o.departDate}-${o.returnDate}-${o.price}`} className="px-3 py-3">
-                    <div className="grid grid-cols-[24px_1fr_1fr_84px] items-center gap-2">
-                      {o.airlineLogo ? (
-                        <span className="flex h-6 w-6 items-center justify-center rounded bg-white p-0.5">
-                          <img
-                            src={o.airlineLogo}
-                            alt={nomeCompanhia(o.airline) ?? "Companhia"}
-                            className="max-h-full max-w-full"
-                          />
+            <div className="space-y-3 md:hidden">
+              {data.dates.map((o) => {
+                const bagLabel = (o.baggage ?? "").toLowerCase();
+                const despachada = /despach|checked|23kg|bagagem inclu/.test(bagLabel);
+                const mao = despachada || /mão|mao|carry|hand|10kg/.test(bagLabel);
+                const href =
+                  current.fromIata && current.toIata
+                    ? montarLink({
+                        origem: current.fromIata,
+                        destino: current.toIata,
+                        ida: o.departDate,
+                        volta: o.returnDate ?? "",
+                      })
+                    : o.viaairUrl;
+                return (
+                  <Card
+                    key={`m-${o.departDate}-${o.returnDate}-${o.price}`}
+                    className="overflow-hidden rounded-xl"
+                  >
+                    {/* Companhia + duração */}
+                    <div className="flex items-center justify-between gap-2 px-4 pb-2 pt-4">
+                      <div className="flex min-w-0 items-center gap-3">
+                        {o.airlineLogo ? (
+                          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-white p-1">
+                            <img
+                              src={o.airlineLogo}
+                              alt={nomeCompanhia(o.airline) ?? "Companhia"}
+                              className="max-h-full max-w-full"
+                            />
+                          </span>
+                        ) : null}
+                        <span className="text-sm font-semibold leading-snug tracking-wide">
+                          {nomeCompanhia(o.airline) ?? o.airline ?? "Companhia"}
                         </span>
-                      ) : (
-                        <span className="h-6 w-6" />
-                      )}
+                      </div>
+                      {o.nights ? (
+                        <span className="flex shrink-0 items-center gap-1 rounded-md bg-muted px-2 py-1 text-[11px] font-medium text-muted-foreground">
+                          <Clock className="h-3.5 w-3.5" />
+                          {o.nights} dias
+                        </span>
+                      ) : null}
+                    </div>
+
+                    {/* Ida / Volta */}
+                    <div className="flex items-center justify-between gap-2 px-4 py-3">
                       <div className="min-w-0">
-                        <div className="text-sm font-bold leading-tight">{o.departLabel}</div>
+                        <div className="text-[10px] font-bold uppercase tracking-tighter text-muted-foreground">
+                          Ida
+                        </div>
+                        <div className="text-lg font-bold leading-tight">{o.departLabel}</div>
                         <div className="text-[10px] uppercase text-muted-foreground">
                           {o.weekdayOut}
                         </div>
                       </div>
-                      <div className="min-w-0">
-                        <div className="text-sm font-bold leading-tight">{o.returnLabel ?? "—"}</div>
+                      <div className="flex flex-1 items-center px-2">
+                        <div className="relative h-px w-full bg-border">
+                          <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-card px-2">
+                            <Plane className="h-4 w-4 rotate-90 text-primary" />
+                          </span>
+                        </div>
+                      </div>
+                      <div className="min-w-0 text-right">
+                        <div className="text-[10px] font-bold uppercase tracking-tighter text-muted-foreground">
+                          Volta
+                        </div>
+                        <div className="text-lg font-bold leading-tight">
+                          {o.returnLabel ?? "—"}
+                        </div>
                         <div className="text-[10px] uppercase text-muted-foreground">
                           {o.weekdayIn}
                         </div>
                       </div>
-                      <a
-                        href={
-                          current.fromIata && current.toIata
-                            ? montarLink({
-                                origem: current.fromIata,
-                                destino: current.toIata,
-                                ida: o.departDate,
-                                volta: o.returnDate ?? "",
-                              })
-                            : o.viaairUrl
-                        }
-                        target="_blank"
-                        rel="noreferrer"
-                        className={`rounded-lg px-2 py-2 text-center text-sm font-black leading-tight ${
-                          i === 0
-                            ? "bg-primary text-primary-foreground"
-                            : "bg-muted text-foreground"
-                        }`}
-                      >
-                        {brl(o.price)}
-                      </a>
                     </div>
-                    <div className="mt-2 flex items-center justify-between gap-2 pl-8">
-                      <div className="flex min-w-0 items-center gap-2">
-                        <BaggageBlocks label={o.baggage} />
-                        {o.nights ? (
-                          <Badge variant="secondary" className="shrink-0 rounded-full text-[10px]">
-                            {o.nights} dias
-                          </Badge>
-                        ) : null}
-                      </div>
-                      {admin && current.fromIata && current.toIata ? (
-                        <SalvarPromocaoButton
-                          origem={current.fromIata}
-                          destino={current.toIata}
-                          ida={o.departDate}
-                          volta={o.returnDate ?? null}
-                          referencia={o.price ?? null}
+
+                    {/* Bagagem */}
+                    <div className="flex items-center gap-4 border-t px-4 py-2">
+                      <div className={`flex items-center gap-1.5 ${mao ? "" : "opacity-40"}`}>
+                        <Briefcase
+                          className={`h-4 w-4 ${mao ? "text-primary" : "text-muted-foreground"}`}
                         />
-                      ) : null}
+                        <span className="text-[11px] text-muted-foreground">
+                          {mao ? "Mão inclusa" : "Sem bagagem de mão"}
+                        </span>
+                      </div>
+                      <div className={`flex items-center gap-1.5 ${despachada ? "" : "opacity-40"}`}>
+                        <Luggage
+                          className={`h-4 w-4 ${despachada ? "text-primary" : "text-muted-foreground"}`}
+                        />
+                        <span className="text-[11px] text-muted-foreground">Despachada</span>
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            </Card>
+
+                    {/* Preço + CTA */}
+                    <div className="flex items-center justify-between gap-3 border-t bg-muted/30 p-4">
+                      <div className="min-w-0">
+                        <span className="block text-[10px] font-bold uppercase leading-none text-muted-foreground">
+                          Total por pessoa
+                        </span>
+                        <span className="mt-1 block text-2xl font-black leading-none text-foreground">
+                          {brl(o.price)}
+                        </span>
+                      </div>
+                      <div className="flex shrink-0 items-center gap-2">
+                        {admin && current.fromIata && current.toIata ? (
+                          <SalvarPromocaoButton
+                            origem={current.fromIata}
+                            destino={current.toIata}
+                            ida={o.departDate}
+                            volta={o.returnDate ?? null}
+                            referencia={o.price ?? null}
+                          />
+                        ) : null}
+                        <a
+                          href={href}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center rounded-lg bg-primary px-5 py-2.5 text-sm font-bold text-primary-foreground shadow-lg transition-colors hover:bg-primary/90"
+                        >
+                          Ver voos
+                        </a>
+                      </div>
+                    </div>
+                  </Card>
+                );
+              })}
+            </div>
           )}
+
 
           {data.dates.length > 0 && (
             <Card className="hidden overflow-hidden rounded-2xl shadow-2xl md:block">
