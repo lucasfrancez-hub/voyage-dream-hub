@@ -710,27 +710,41 @@ export function PassagensBaratasExplorer({
                           )}
                         </td>
                         <td className="px-6 py-5 text-right">
-                          <Button size="sm" variant={i === 0 ? "default" : "secondary"} asChild>
-                            <a
-                              href={
-                                current.fromIata && current.toIata
-                                  ? montarLink({
-                                      origem: current.fromIata,
-                                      destino: current.toIata,
-                                      ida: o.departDate,
-                                      volta: o.returnDate ?? "",
-                                    })
-                                  : o.viaairUrl
-                              }
+                          <div className="flex items-center justify-end gap-2">
+                            <Button size="sm" variant={i === 0 ? "default" : "secondary"} asChild>
+                              <a
+                                href={
+                                  current.fromIata && current.toIata
+                                    ? montarLink({
+                                        origem: current.fromIata,
+                                        destino: current.toIata,
+                                        ida: o.departDate,
+                                        volta: o.returnDate ?? "",
+                                      })
+                                    : o.viaairUrl
+                                }
 
-                              target="_blank"
-                              rel="noreferrer"
-                            >
+                                target="_blank"
+                                rel="noreferrer"
+                              >
 
-                              Ver voos <ExternalLink className="ml-1 h-3.5 w-3.5" />
-                            </a>
-                          </Button>
+                                Ver voos <ExternalLink className="ml-1 h-3.5 w-3.5" />
+                              </a>
+                            </Button>
+                            {admin && current.fromIata && current.toIata ? (
+                              <SalvarPromocaoButton
+                                origem={current.fromIata}
+                                destino={current.toIata}
+                                ida={o.departDate}
+                                volta={o.returnDate ?? null}
+                                referencia={o.price ?? null}
+                                origemCidade={current.fromCity ?? null}
+                                destinoCidade={current.toCity ?? null}
+                              />
+                            ) : null}
+                          </div>
                         </td>
+
                       </tr>
                     ))}
                   </tbody>
