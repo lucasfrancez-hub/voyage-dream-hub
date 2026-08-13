@@ -136,10 +136,13 @@ function proximoIntervalo(priority: MdPriority) {
 function enfileirar<T>(priority: MdPriority, cancel: MdCancel | undefined, fn: () => Promise<T>): Promise<T> {
   const proxima = fila.then(async () => {
     await checarCancelamento(cancel);
-    const alvo = Math.max(
-      ultimaChamada + proximoIntervalo(priority) - Date.now(),
-      bloqueadoAte - Date.now(),
-    );
+    // O backoff longo é para o radar (background). A tela não pode ficar
+    // minutos parada: para consultas interativas o descanso é limitado.
+    const descanso =
+      priority === "interactive"
+        ? Math.min(bloqueadoAte - Date.now(), 5_000)
+        : bloqueadoAte - Date.now();
+    const alvo = Math.max(ultimaChamada + proximoIntervalo(priority) - Date.now(), descanso);
     if (alvo > 0) {
       mdMetrics.gaps++;
       mdMetrics.waitedMs += alvo;
@@ -160,6 +163,7 @@ function registrarFalha(status: number | null, msg: string) {
   falhasConsecutivas++;
   mdMetrics.lastError = msg;
   mdMetrics.lastErrorAt = new Date().toISOString();
+  console.warn("[md-source] falha", msg, `(consecutivas: ${falhasConsecutivas + 1})`);
   if (status === 403) mdMetrics.status403++;
   else if (status === 429) mdMetrics.status429++;
   else if (status && status >= 500) mdMetrics.status5xx++;
@@ -188,7 +192,10 @@ async function chamada(url: string, opts: MdFetchOptions): Promise<unknown> {
   for (let tentativa = 0; tentativa < 3; tentativa++) {
     if (tentativa > 0) mdMetrics.retries++;
     await checarCancelamento(opts.cancel);
-    if (!mdRadarAvailable()) throw new MdUnavailableError();
+    // Só o radar (background) respeita o "fora do ar": a tela sempre tenta.
+    if ((opts.priority ?? "background") === "background" && !mdRadarAvailable()) {
+      throw new MdUnavailableError();
+    }
     try {
       const res = await enfileirar(opts.priority ?? "background", opts.cancel, () =>
         fetch(url, {
@@ -214,7 +221,7 @@ async function chamada(url: string, opts: MdFetchOptions): Promise<unknown> {
       ultimo = e;
       registrarFalha(null, e instanceof Error ? e.message : String(e));
     }
-    if (!mdRadarAvailable()) break;
+    if ((opts.priority ?? "background") === "background" && !mdRadarAvailable()) break;
   }
   throw ultimo instanceof Error ? ultimo : new Error("Falha ao consultar Melhores Destinos");
 }
