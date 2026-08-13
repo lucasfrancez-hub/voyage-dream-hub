@@ -32,16 +32,41 @@ export function normalizeIata(code: string): string {
 const cache = new Map<string, { at: number; value: unknown }>();
 const TTL = 15 * 60 * 1000;
 
+/**
+ * O Melhores Destinos devolve 503 quando recebe uma rajada de consultas.
+ * Todas as chamadas do radar passam por esta fila: intervalo mínimo entre
+ * requisições + espera progressiva quando a fonte pede calma.
+ */
+const MIN_GAP_MS = 400;
+let ultimaChamada = 0;
+let corrente: Promise<unknown> = Promise.resolve();
+
+function enfileirar<T>(fn: () => Promise<T>): Promise<T> {
+  const proxima = corrente.then(async () => {
+    const espera = MIN_GAP_MS - (Date.now() - ultimaChamada);
+    if (espera > 0) await new Promise((r) => setTimeout(r, espera));
+    try {
+      return await fn();
+    } finally {
+      ultimaChamada = Date.now();
+    }
+  });
+  corrente = proxima.catch(() => undefined);
+  return proxima as Promise<T>;
+}
+
 async function getJson<T>(url: string): Promise<T> {
   const hit = cache.get(url);
   if (hit && Date.now() - hit.at < TTL) return hit.value as T;
   let last: unknown = null;
-  for (let i = 0; i < 3; i++) {
+  for (let i = 0; i < 4; i++) {
     try {
-      const res = await fetch(url, {
-        headers: { "user-agent": UA, accept: "*/*", referer: "https://www.melhoresdestinos.com.br/" },
-        signal: AbortSignal.timeout(12000),
-      });
+      const res = await enfileirar(() =>
+        fetch(url, {
+          headers: { "user-agent": UA, accept: "*/*", referer: "https://www.melhoresdestinos.com.br/" },
+          signal: AbortSignal.timeout(12000),
+        }),
+      );
       if (res.ok) {
         const value = (await res.json()) as T;
         if (cache.size > 400) cache.clear();
@@ -49,14 +74,20 @@ async function getJson<T>(url: string): Promise<T> {
         return value;
       }
       last = new Error(`Melhores Destinos respondeu ${res.status}`);
+      // 429/503 = rajada: espera mais antes de tentar de novo
+      if (res.status === 429 || res.status >= 500) {
+        await new Promise((r) => setTimeout(r, 2500 * (i + 1)));
+        continue;
+      }
     } catch (e) {
       last = e;
     }
-    await new Promise((r) => setTimeout(r, 500 * (i + 1)));
+    await new Promise((r) => setTimeout(r, 600 * (i + 1)));
   }
   if (hit) return hit.value as T;
   throw last instanceof Error ? last : new Error("Falha no radar do Melhores Destinos");
 }
+
 
 type RawCategories = {
   from_city_name?: string | null;
