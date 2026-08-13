@@ -203,7 +203,6 @@ async function chamada(url: string, opts: MdFetchOptions): Promise<unknown> {
             "user-agent": UA,
             accept: "application/json, text/plain, */*",
             "accept-language": "pt-BR,pt;q=0.9,en;q=0.8",
-            origin: SITE,
             referer: `${SITE}/`,
             ...(opts.headers ?? {}),
           },
