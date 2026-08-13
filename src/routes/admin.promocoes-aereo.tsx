@@ -18,6 +18,7 @@ import {
   MessageCircle,
   Plane,
   RefreshCw,
+  Trash2,
   Search,
   SlidersHorizontal,
   Sparkles,
@@ -37,8 +38,10 @@ import {
   saveInstallmentMarkup,
   explorePromoOpportunities,
   setPromotionStatus,
+  deletePromotion,
   countArchivedPromotions,
 } from "@/lib/airfare-promos.functions";
+import { confirmThen } from "@/lib/confirm";
 import { ArquivadosDialog } from "@/components/promocoes/ArquivadosDialog";
 import { promoInstagramText, promoWhatsappText, type PromoRow } from "@/lib/airfare-promo-text";
 import { PromoArtDialog } from "@/components/promo/PromoArtDialog";
@@ -209,6 +212,37 @@ const ATALHOS_INTERNACIONAL: Atalho[] = [
   { label: "Curitiba", iatas: ["CWB"] },
 ];
 
+const STATUS_OPCOES = [
+  { value: "novo", label: "Novo" },
+  { value: "selecionado", label: "Selecionado" },
+  { value: "agendado", label: "Agendado" },
+  { value: "publicado", label: "Publicado" },
+  { value: "descartado", label: "Descartado" },
+] as const;
+
+const STATUS_STYLE: Record<string, { badge: string; card: string }> = {
+  novo: {
+    badge: "border-sky-500/40 bg-sky-500/10 text-sky-400",
+    card: "border-sky-500/50 shadow-[0_0_22px_-10px_rgba(56,189,248,0.5)] hover:border-sky-400",
+  },
+  selecionado: {
+    badge: "border-brand-orange/40 bg-brand-orange/10 text-brand-orange",
+    card: "border-brand-orange/60 shadow-[0_0_22px_-10px_rgba(242,107,31,0.5)] hover:border-brand-orange",
+  },
+  agendado: {
+    badge: "border-violet-500/40 bg-violet-500/10 text-violet-400",
+    card: "border-violet-500/55 shadow-[0_0_22px_-10px_rgba(139,92,246,0.5)] hover:border-violet-400",
+  },
+  publicado: {
+    badge: "border-emerald-500/40 bg-emerald-500/10 text-emerald-400",
+    card: "border-emerald-500/55 shadow-[0_0_22px_-10px_rgba(16,185,129,0.5)] hover:border-emerald-400",
+  },
+  descartado: {
+    badge: "border-rose-500/30 bg-rose-500/10 text-rose-400/80",
+    card: "border-rose-500/35 opacity-80 hover:border-rose-500/60",
+  },
+};
+
 /* ------------------------------------------------------------------ */
 /* Botão de ação circular (só ícone)                                   */
 /* ------------------------------------------------------------------ */
@@ -258,6 +292,7 @@ function PromoCard({
   onStatus,
   onArt,
   onSocial,
+  onDelete,
   busy,
 }: {
   promo: Promo;
@@ -266,6 +301,7 @@ function PromoCard({
   onStatus: (s: string) => void;
   onArt: () => void;
   onSocial: (canal: "whatsapp" | "instagram") => void;
+  onDelete: () => void;
   busy: boolean;
 }) {
   const semJuros =
@@ -285,12 +321,8 @@ function PromoCard({
     .map((c) => CAMPO_LABEL[c] ?? c)
     .join(" + ");
 
-  const contorno =
-    ciclo === "new"
-      ? "border-emerald-500/70 shadow-[0_0_0_1px_rgba(16,185,129,0.25),0_0_22px_-8px_rgba(16,185,129,0.55)] hover:border-emerald-400"
-      : ciclo === "changed"
-        ? "border-brand-orange/70 shadow-[0_0_0_1px_rgba(242,107,31,0.25),0_0_22px_-8px_rgba(242,107,31,0.55)] hover:border-brand-orange"
-        : "border-border/60 hover:border-brand-orange/50";
+  const estilo = STATUS_STYLE[promo.status] ?? STATUS_STYLE.novo;
+  const contorno = `${estilo.card} ${ciclo === "changed" ? "ring-1 ring-brand-orange/25" : ""}`;
 
   return (
     <article
@@ -312,18 +344,13 @@ function PromoCard({
           <select
             value={promo.status}
             onChange={(e) => onStatus(e.target.value)}
-            className={`shrink-0 rounded-md border px-2 py-1 text-[10px] font-bold uppercase tracking-wider ${
-              promo.status === "publicado"
-                ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
-                : promo.status === "descartado"
-                  ? "border-border/60 bg-muted text-muted-foreground"
-                  : "border-brand-orange/30 bg-brand-orange/10 text-brand-orange"
-            }`}
+            className={`shrink-0 rounded-md border px-2 py-1 text-[10px] font-bold uppercase tracking-wider ${estilo.badge}`}
           >
-            <option value="novo">Novo</option>
-            <option value="selecionado">Selecionado</option>
-            <option value="publicado">Publicado</option>
-            <option value="descartado">Descartado</option>
+            {STATUS_OPCOES.map((s) => (
+              <option key={s.value} value={s.value}>
+                {s.label}
+              </option>
+            ))}
           </select>
         </div>
 
@@ -466,7 +493,15 @@ function PromoCard({
           <IconBtn title="Copiar link" onClick={onLink} disabled={busy}>
             <Link2 className="h-4 w-4" />
           </IconBtn>
-          <IconBtn title="Revalidar tarifa no motor" onClick={onRefresh} disabled={busy} className="ml-auto">
+          <IconBtn
+            title="Excluir promoção"
+            onClick={onDelete}
+            disabled={busy}
+            className="ml-auto hover:border-rose-500/50 hover:text-rose-500"
+          >
+            <Trash2 className="h-4 w-4" />
+          </IconBtn>
+          <IconBtn title="Revalidar tarifa no motor" onClick={onRefresh} disabled={busy}>
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
           </IconBtn>
         </div>
@@ -746,6 +781,7 @@ function PromocoesAereoPage() {
   const refreshOne = useServerFn(refreshAirfarePromotion);
   const genLink = useServerFn(generatePromotionLink);
   const status = useServerFn(setPromotionStatus);
+  const excluir = useServerFn(deletePromotion);
 
   const [aba, setAba] = useState<"nacional" | "internacional">("nacional");
   const [atalho, setAtalho] = useState(0);
@@ -1174,6 +1210,7 @@ function PromocoesAereoPage() {
             <option value="todos">Todos os status</option>
             <option value="novo">Novo</option>
             <option value="selecionado">Selecionado</option>
+            <option value="agendado">Agendado</option>
             <option value="publicado">Publicado</option>
             <option value="descartado">Descartado</option>
           </select>
@@ -1245,6 +1282,17 @@ function PromocoesAereoPage() {
                     promo.id,
                     () => status({ data: { id: promo.id, status: s as never } }),
                     "Status atualizado",
+                  )
+                }
+                onDelete={() =>
+                  confirmThen(
+                    {
+                      title: "Excluir promoção",
+                      description: `Remover definitivamente ${promo.origin_iata} → ${promo.destination_iata}? Essa ação não pode ser desfeita.`,
+                      confirmText: "Excluir",
+                      destructive: true,
+                    },
+                    () => acao(promo.id, () => excluir({ data: { id: promo.id } }), "Promoção excluída"),
                   )
                 }
               />

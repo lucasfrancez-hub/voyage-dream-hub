@@ -86,15 +86,17 @@ export function PromoSocialDialog({
     if (open) setAba(initialChannel);
   }, [open, initialChannel]);
 
-  /** Marca a promoção como publicada e atualiza a lista. */
-  async function marcarPublicado(id: string) {
+  /** Atualiza o status da promoção e recarrega a lista. */
+  async function marcarStatus(id: string, novo: "publicado" | "agendado") {
     try {
-      await setStatusFn({ data: { id, status: "publicado" } });
+      await setStatusFn({ data: { id, status: novo } });
       void queryClient.invalidateQueries({ queryKey: ["airfare-promos"] });
     } catch {
       /* status é secundário ao envio */
     }
   }
+
+  const marcarPublicado = (id: string) => marcarStatus(id, "publicado");
 
 
   /** Garante cart_url + short_url ANTES de montar o texto. */
@@ -242,6 +244,7 @@ export function PromoSocialDialog({
               payload: { kind: "whatsapp", destino_ids: ids, texto, imagem_url: url },
             },
           });
+          await marcarStatus(promoId, "agendado");
           return `Agendado para ${quando.toLocaleString("pt-BR")}`;
         },
       });
@@ -303,6 +306,7 @@ export function PromoSocialDialog({
               },
             },
           });
+          await marcarStatus(promoId, "agendado");
           return `Agendado para ${quando.toLocaleString("pt-BR")}`;
         },
       });
