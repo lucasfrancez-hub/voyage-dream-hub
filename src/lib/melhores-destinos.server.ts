@@ -357,6 +357,10 @@ export async function mdFetchJson<T>(url: string, opts: MdFetchOptions = {}): Pr
 
 async function get(url: string): Promise<Response> {
   // HTML (feed de promoções): mesma fila/ritmo, sem cache JSON.
+  if (mdInternalOnlyContext()) {
+    mdMetrics.internalOnlyMisses++;
+    throw new MdUnavailableError("Consulta externa bloqueada: modo somente dados internos");
+  }
   return enfileirar("interactive", undefined, async () => {
     const res = await fetch(url, {
       headers: { "user-agent": UA, accept: "*/*", referer: `${SITE}/` },
