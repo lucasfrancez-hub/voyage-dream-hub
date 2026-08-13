@@ -68,9 +68,9 @@ export const listarPublicacoesAgendadas = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { data, error } = await context.supabase
       .from("social_scheduled_posts")
-      .select("id, channel, scheduled_at, status, label, promo_id, error, published_at")
+      .select("id, channel, scheduled_at, status, label, promo_id, error, published_at, payload")
       .order("scheduled_at", { ascending: true })
-      .limit(100);
+      .limit(200);
     if (error) throw new Error(error.message);
     return data ?? [];
   });
