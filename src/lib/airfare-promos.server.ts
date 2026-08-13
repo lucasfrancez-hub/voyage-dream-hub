@@ -270,41 +270,75 @@ export async function failPromoRun(runId: string, message: string) {
     .eq("id", runId);
 }
 
+type CandidateRow = {
+  id: string;
+  signature: string;
+  scope: "nacional" | "internacional";
+  origin_iata: string;
+  origin_city: string | null;
+  destination_iata: string;
+  destination_city: string | null;
+  departure_date: string;
+  return_date: string | null;
+  reference_source: string | null;
+  reference_price: number | null;
+  reference_origin: string | null;
+  reference_destination: string | null;
+  reference_departure_date: string | null;
+  reference_return_date: string | null;
+  reference_collected_at: string | null;
+};
+
+const RETRY_DELAYS_MS = [1500, 5000];
+
+function sleep(ms: number) {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
+/** Chave da oportunidade (sem companhia) — usada no ciclo de vida/expiração. */
+function opportunityKey(p: { origin_iata: string; destination_iata: string; departure_date: string }) {
+  return `${p.origin_iata}|${p.destination_iata}|${p.departure_date}`.toUpperCase();
+}
+
 /**
- * Roda a coleta: percorre as rotas ativas (por prioridade) e faz upsert das
- * promoções encontradas. Usado pelo cron das 06:00 e 12:00 (BRT) e pelo
- * botão "Atualizar agora" do Command Center.
+ * Coleta completa:
+ *   Melhores Destinos (radar) → candidatas normalizadas → fila →
+ *   pool de 3 validações no motor VIA AIR → gravação imediata →
+ *   comparativo MD × VIA AIR → expiração das ofertas que sumiram.
  *
- * Quando recebe `runId`, publica progresso real em `airfare_promo_runs`
- * (total, processadas, salvas, última oportunidade) — nada é estimado.
+ * O preço publicado é SEMPRE o do motor VIA AIR; o preço do Melhores
+ * Destinos fica guardado apenas como referência interna.
  */
 export async function collectAirfarePromotions(opts?: {
-  routeIds?: string[];
-  maxRoutes?: number;
-  offsets?: number[];
   runId?: string;
+  maxCandidates?: number;
+  concurrency?: number;
+  /** compatibilidade com chamadas antigas (limite de sementes monitoradas) */
+  maxRoutes?: number;
+  routeIds?: string[];
+  offsets?: number[];
 }) {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { discoverCandidates, candidateSignature, fallbackDatePairs } = await import(
+    "@/lib/airfare-promos.discovery.server"
+  );
   const db = supabaseAdmin as unknown as AnyClient;
   const markups = await loadMarkups(db);
-
-  let q = db
-    .from("airfare_promo_routes")
-    .select("id,origin_iata,origin_city,destination_iata,destination_city,scope,priority")
-    .eq("active", true)
-    .order("priority", { ascending: true });
-  if (opts?.routeIds?.length) q = q.in("id", opts.routeIds);
-
-  const { data: routes, error } = await q;
-  if (error) throw new Error(error.message);
-
-  const list = (routes ?? []).slice(0, opts?.maxRoutes ?? 12) as PromoRoute[];
-  const pairs = defaultDatePairs(opts?.offsets);
-
-  let saved = 0;
-  let processed = 0;
-  const errors: string[] = [];
   const runId = opts?.runId;
+  const concurrency = Math.min(Math.max(opts?.concurrency ?? 3, 1), 4);
+  const startedAt = new Date().toISOString();
+
+  const counters = {
+    discovered: 0,
+    processed: 0,
+    validated: 0,
+    saved: 0,
+    no_result: 0,
+    error_count: 0,
+    new_count: 0,
+    updated_count: 0,
+    expired_count: 0,
+  };
 
   const touch = async (patch: Record<string, unknown>) => {
     if (!runId) return;
@@ -318,48 +352,336 @@ export async function collectAirfarePromotions(opts?: {
     }
   };
 
-  await touch({ total: list.length * pairs.length, processed: 0, saved: 0 });
+  await touch({ phase: "descobrindo", total: 0, processed: 0, saved: 0 });
 
+  // 1) RADAR: oportunidades do Melhores Destinos
+  const candidatas = await discoverCandidates({ maxCandidates: opts?.maxCandidates ?? 120 });
+  const porAssinatura = new Map(candidatas.map((c) => [c.signature, c]));
+
+  // 2) FALLBACK: rotas monitoradas manualmente (complementares, nunca a fonte única)
   try {
-    for (const route of list) {
-      for (const pair of pairs) {
-        const label = `${route.destination_city ?? route.destination_iata} (${route.origin_iata}→${route.destination_iata})`;
-        try {
-          const row = await quoteRoute({
-            route,
-            departureDate: pair.departureDate,
-            returnDate: pair.returnDate,
-            markups,
-          });
-          if (row) {
-            const { error: upErr } = await db
-              .from("airfare_promotions")
-              .upsert(row, { onConflict: "signature" });
-            if (upErr) errors.push(`${route.origin_iata}-${route.destination_iata}: ${upErr.message}`);
-            else saved++;
-          }
-        } catch (err) {
-          errors.push(
-            `${route.origin_iata}-${route.destination_iata}: ${err instanceof Error ? err.message : String(err)}`,
-          );
-        }
-        processed++;
-        await touch({ processed, saved, error_count: errors.length, last_label: label });
+    let q = db
+      .from("airfare_promo_routes")
+      .select("id,origin_iata,origin_city,destination_iata,destination_city,scope,priority")
+      .eq("active", true)
+      .order("priority", { ascending: true });
+    if (opts?.routeIds?.length) q = q.in("id", opts.routeIds);
+    const { data: rotas } = await q;
+    for (const r of ((rotas ?? []) as PromoRoute[]).slice(0, opts?.maxRoutes ?? 14)) {
+      for (const par of fallbackDatePairs(opts?.offsets)) {
+        const sig = candidateSignature({
+          origin_iata: r.origin_iata,
+          destination_iata: r.destination_iata,
+          departure_date: par.departureDate,
+          return_date: par.returnDate,
+        });
+        if (porAssinatura.has(sig)) continue;
+        porAssinatura.set(sig, {
+          signature: sig,
+          scope: r.scope,
+          origin_iata: r.origin_iata,
+          origin_city: r.origin_city,
+          destination_iata: r.destination_iata,
+          destination_city: r.destination_city,
+          departure_date: par.departureDate,
+          return_date: par.returnDate,
+          priority: 200 + (r.priority ?? 0),
+          reference_source: "rota_monitorada",
+          reference_price: null,
+          reference_origin: r.origin_iata,
+          reference_destination: r.destination_iata,
+          reference_departure_date: null,
+          reference_return_date: null,
+          reference_collected_at: new Date().toISOString(),
+        });
       }
     }
+  } catch {
+    /* sementes são complementares */
+  }
+
+  const fila = [...porAssinatura.values()].sort((a, b) => a.priority - b.priority);
+  counters.discovered = fila.length;
+
+  // 3) grava a fila (status pending) e recupera os ids
+  let queued: CandidateRow[] = [];
+  if (runId && fila.length) {
+    const { data } = await db
+      .from("airfare_promo_candidates")
+      .upsert(
+        fila.map((c) => ({ ...c, run_id: runId, status: "pending" })),
+        { onConflict: "run_id,signature" },
+      )
+      .select(
+        "id,signature,scope,origin_iata,origin_city,destination_iata,destination_city,departure_date,return_date,reference_source,reference_price,reference_origin,reference_destination,reference_departure_date,reference_return_date,reference_collected_at",
+      );
+    queued = (data ?? []) as CandidateRow[];
+  }
+  if (!queued.length) {
+    queued = fila.map((c, i) => ({ ...c, id: `mem-${i}` })) as unknown as CandidateRow[];
+  }
+
+  await touch({
+    phase: "validando",
+    total: queued.length,
+    discovered: counters.discovered,
+    processed: 0,
+    saved: 0,
+  });
+
+  const setCandidato = async (id: string, patch: Record<string, unknown>) => {
+    if (!runId || id.startsWith("mem-")) return;
+    try {
+      await db.from("airfare_promo_candidates").update(patch).eq("id", id);
+    } catch {
+      /* best-effort */
+    }
+  };
+
+  const assinaturasValidadas = new Set<string>();
+  const oportunidadesTocadas = new Set<string>();
+
+  const processar = async (cand: CandidateRow) => {
+    const label = `${cand.destination_city ?? cand.destination_iata} (${cand.origin_iata}→${cand.destination_iata})`;
+    await setCandidato(cand.id, { status: "processing" });
+
+    let row: ReturnType<typeof buildPromotionRow> | null = null;
+    let ultimoErro: unknown = null;
+
+    for (let tentativa = 0; tentativa <= RETRY_DELAYS_MS.length; tentativa++) {
+      try {
+        row = await quoteRoute({
+          route: {
+            id: cand.id,
+            origin_iata: cand.origin_iata,
+            origin_city: cand.origin_city,
+            destination_iata: cand.destination_iata,
+            destination_city: cand.destination_city,
+            scope: cand.scope,
+            priority: 0,
+          },
+          departureDate: cand.departure_date,
+          returnDate: cand.return_date,
+          markups,
+        });
+        ultimoErro = null;
+        break;
+      } catch (err) {
+        ultimoErro = err;
+        row = null;
+        if (tentativa < RETRY_DELAYS_MS.length) await sleep(RETRY_DELAYS_MS[tentativa]!);
+      }
+    }
+
+    if (ultimoErro) {
+      counters.error_count++;
+      await setCandidato(cand.id, {
+        status: "error",
+        attempts: RETRY_DELAYS_MS.length + 1,
+        last_error: (ultimoErro instanceof Error ? ultimoErro.message : String(ultimoErro)).slice(0, 400),
+        last_error_step: "motor_viaair",
+        last_error_at: new Date().toISOString(),
+        processed_at: new Date().toISOString(),
+      });
+      return label;
+    }
+
+    if (!row) {
+      counters.no_result++;
+      await setCandidato(cand.id, { status: "no_result", processed_at: new Date().toISOString() });
+      return label;
+    }
+
+    const viaair = Number(row.total_price);
+    const ref = cand.reference_price != null ? Number(cand.reference_price) : null;
+
+    const enriquecida = {
+      ...row,
+      reference_source: cand.reference_source,
+      reference_price: ref,
+      reference_origin: cand.reference_origin,
+      reference_destination: cand.reference_destination,
+      reference_departure_date: cand.reference_departure_date,
+      reference_return_date: cand.reference_return_date,
+      reference_collected_at: cand.reference_collected_at,
+      price_difference: ref != null ? Number((viaair - ref).toFixed(2)) : null,
+      price_difference_percent: ref ? Number((((viaair - ref) / ref) * 100).toFixed(2)) : null,
+      last_run_id: runId ?? null,
+      unavailable_at: null,
+      fare_status: "valida" as const,
+    };
+
+    // estado anterior (histórico + invalidação de link)
+    const { data: anterior } = await db
+      .from("airfare_promotions")
+      .select("id,total_price,airline_iata,outbound_fare_id,cart_url,short_url,status")
+      .eq("signature", row.signature)
+      .maybeSingle();
+
+    const mudou =
+      !!anterior &&
+      (Number(anterior.total_price) !== viaair ||
+        anterior.airline_iata !== row.airline_iata ||
+        anterior.outbound_fare_id !== row.outbound_fare_id);
+
+    const payload: Record<string, unknown> = { ...enriquecida };
+    if (anterior) {
+      payload.status = anterior.status;
+      if (mudou) {
+        payload.cart_url = null;
+        payload.short_url = null;
+      }
+    }
+
+    const { data: salvo, error: upErr } = await db
+      .from("airfare_promotions")
+      .upsert(payload, { onConflict: "signature" })
+      .select("id")
+      .maybeSingle();
+
+    if (upErr) {
+      counters.error_count++;
+      await setCandidato(cand.id, {
+        status: "error",
+        last_error: upErr.message.slice(0, 400),
+        last_error_step: "gravacao",
+        last_error_at: new Date().toISOString(),
+        processed_at: new Date().toISOString(),
+      });
+      return label;
+    }
+
+    counters.validated++;
+    counters.saved++;
+    if (anterior) counters.updated_count++;
+    else counters.new_count++;
+    assinaturasValidadas.add(row.signature);
+    oportunidadesTocadas.add(opportunityKey(row));
+
+    if (salvo?.id && (!anterior || mudou)) {
+      try {
+        await db.from("airfare_promo_price_history").insert({
+          promotion_id: salvo.id,
+          old_price: anterior ? Number(anterior.total_price) : null,
+          new_price: viaair,
+          reference_price: ref,
+          reason: !anterior ? "nova" : Number(anterior.total_price) === viaair ? "nova_tarifa" : viaair < Number(anterior.total_price) ? "preco_caiu" : "preco_subiu",
+          source: "coleta",
+          run_id: runId ?? null,
+        });
+      } catch {
+        /* histórico é best-effort */
+      }
+    }
+
+    await setCandidato(cand.id, {
+      status: "validated",
+      promotion_id: salvo?.id ?? null,
+      processed_at: new Date().toISOString(),
+    });
+
+    return `${label} — R$ ${viaair.toFixed(2).replace(".", ",")}`;
+  };
+
+  // 4) pool com concorrência controlada (3 simultâneas)
+  let cursor = 0;
+  const worker = async () => {
+    while (cursor < queued.length) {
+      const cand = queued[cursor++]!;
+      let label = "";
+      try {
+        label = await processar(cand);
+      } catch (err) {
+        counters.error_count++;
+        label = `${cand.origin_iata}→${cand.destination_iata}`;
+        await setCandidato(cand.id, {
+          status: "error",
+          last_error: (err instanceof Error ? err.message : String(err)).slice(0, 400),
+          last_error_step: "worker",
+          last_error_at: new Date().toISOString(),
+        });
+      }
+      counters.processed++;
+      await touch({
+        processed: counters.processed,
+        saved: counters.saved,
+        validated: counters.validated,
+        no_result: counters.no_result,
+        error_count: counters.error_count,
+        new_count: counters.new_count,
+        updated_count: counters.updated_count,
+        last_label: label,
+      });
+    }
+  };
+
+  try {
+    await Promise.all(Array.from({ length: concurrency }, () => worker()));
   } catch (err) {
     if (runId) await failPromoRun(runId, err instanceof Error ? err.message : String(err));
     throw err;
   }
 
+  // 5) ciclo de vida: oportunidade revalidada, mas oferta antiga (ex.: outra
+  // companhia) não reencontrada → marca como indisponível, sem apagar.
+  await touch({ phase: "expirando" });
+  for (const chave of oportunidadesTocadas) {
+    const [origem, destino, ida] = chave.split("|");
+    try {
+      const { data: antigas } = await db
+        .from("airfare_promotions")
+        .select("id,signature,total_price")
+        .eq("origin_iata", origem)
+        .eq("destination_iata", destino)
+        .eq("departure_date", ida)
+        .eq("fare_status", "valida");
+      for (const p of (antigas ?? []) as Array<{ id: string; signature: string; total_price: number }>) {
+        if (assinaturasValidadas.has(p.signature)) continue;
+        await db
+          .from("airfare_promotions")
+          .update({
+            fare_status: "indisponivel",
+            unavailable_at: new Date().toISOString(),
+            last_checked_at: new Date().toISOString(),
+            cart_url: null,
+            short_url: null,
+          })
+          .eq("id", p.id);
+        counters.expired_count++;
+        try {
+          await db.from("airfare_promo_price_history").insert({
+            promotion_id: p.id,
+            old_price: p.total_price,
+            new_price: null,
+            reason: "indisponivel",
+            source: "coleta",
+            run_id: runId ?? null,
+          });
+        } catch {
+          /* best-effort */
+        }
+      }
+    } catch {
+      /* expiração é best-effort */
+    }
+  }
+
   await touch({
     status: "done",
-    processed,
-    saved,
-    error_count: errors.length,
+    phase: "concluida",
+    discovered: counters.discovered,
+    processed: counters.processed,
+    saved: counters.saved,
+    validated: counters.validated,
+    no_result: counters.no_result,
+    error_count: counters.error_count,
+    new_count: counters.new_count,
+    updated_count: counters.updated_count,
+    expired_count: counters.expired_count,
     finished_at: new Date().toISOString(),
   });
 
-  return { routes: list.length, saved, errors };
+  return { startedAt, ...counters };
 }
+
 
