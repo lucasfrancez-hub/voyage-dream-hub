@@ -662,8 +662,9 @@ export async function finalizeCancelledRun(runId: string) {
   return { cancelled: true as const, at: now };
 }
 
-/** Descoberta parada por mais que isso é retomada pelo worker. */
-const DISCOVERY_STALE_MS = 4 * 60 * 1000;
+/** Descoberta parada por mais que isso é retomada pelo worker (heartbeat = 20s). */
+const DISCOVERY_STALE_MS = 90 * 1000;
+
 
 /**
  * Retoma qualquer execução em andamento (chamado pelo cron a cada minuto).
