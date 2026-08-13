@@ -62,6 +62,9 @@ export function PromoSocialDialog({
   const listDestinosFn = useServerFn(listDestinos);
   const enviarWaFn = useServerFn(enviarPacoteWhatsapp);
   const proxy = useServerFn(fetchProxiedImage);
+  const agendarFn = useServerFn(agendarPublicacaoSocial);
+  const setStatusFn = useServerFn(setPromotionStatus);
+  const queryClient = useQueryClient();
 
   const [aba, setAba] = useState<Aba>(initialChannel);
   const [format, setFormat] = useState<PromoCardFormat>("feed");
@@ -73,11 +76,26 @@ export function PromoSocialDialog({
   const [busy, setBusy] = useState<string | null>(null);
   const [shortUrl, setShortUrl] = useState<string | null>(null);
   const [linkStatus, setLinkStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
+  const [quandoWa, setQuandoWa] = useState<"agora" | "agendar">("agora");
+  const [quandoIg, setQuandoIg] = useState<"agora" | "agendar">("agora");
+  const [dataWa, setDataWa] = useState("");
+  const [dataIg, setDataIg] = useState("");
   const genLinkFn = useServerFn(generatePromotionLink);
 
   useEffect(() => {
     if (open) setAba(initialChannel);
   }, [open, initialChannel]);
+
+  /** Marca a promoção como publicada e atualiza a lista. */
+  async function marcarPublicado(id: string) {
+    try {
+      await setStatusFn({ data: { id, status: "publicado" } });
+      void queryClient.invalidateQueries({ queryKey: ["airfare-promotions"] });
+    } catch {
+      /* status é secundário ao envio */
+    }
+  }
+
 
   /** Garante cart_url + short_url ANTES de montar o texto. */
   useEffect(() => {
