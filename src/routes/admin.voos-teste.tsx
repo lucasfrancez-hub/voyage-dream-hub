@@ -177,7 +177,7 @@ function fmtDur(min: number) {
  * partida são reaplicados NA OPERADORA (nova consulta com a mesma searchKey).
  * O horário de chegada não existe na API — esse filtramos aqui.
  */
-type Filters = {
+export type Filters = {
   onlyBaggage: boolean;
   maxStops: number;
   airlines: string[];
@@ -193,7 +193,7 @@ type Filters = {
 
 const FULL_DAY: [number, number] = [0, 1440];
 
-const EMPTY_FILTERS: Filters = {
+export const EMPTY_FILTERS: Filters = {
   onlyBaggage: false,
   maxStops: 2,
   airlines: [],
@@ -303,7 +303,7 @@ function isSameFlight(f: OnerFlight, key: string | null): boolean {
 
 /** Refinamentos locais que a API não representa corretamente. */
 
-function applyFilters(list: OnerFlight[], f: Filters) {
+export function applyFilters(list: OnerFlight[], f: Filters) {
   return list.filter((fl) => {
     if (f.maxStops < 2 && fl.journey.numberOfStops > f.maxStops) return false;
     const depIata = depPlaceOf(fl)?.iata;
@@ -408,7 +408,7 @@ function TimeRange({
   );
 }
 
-function FiltersPanel({
+export function FiltersPanel({
   title,
   flights,
   filters,
@@ -1908,6 +1908,9 @@ export function VoosPage({
       taxesOf,
       normalizeSearchResult,
       findByAnyKey,
+      FiltersPanel,
+      EMPTY_FILTERS,
+      applyFilters,
       cityCodes: CITY_CODES,
       BriefcaseIcon: BriefcaseBusiness,
       LuggageIcon: Luggage,
