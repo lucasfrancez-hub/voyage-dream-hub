@@ -125,7 +125,13 @@ export const setPromotionStatus = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
-/** Roda a coleta automática sob demanda (mesma rotina do cron 09h/15h). */
+const HOOK_URL = "https://pedidos.viaair.tur.br/api/public/hooks/airfare-promos";
+
+/**
+ * Dispara a coleta em SEGUNDO PLANO (não depende da página ficar aberta).
+ * Cria a execução (trava global — nunca duas coletas simultâneas) e delega
+ * o trabalho ao endpoint público, que atualiza o progresso real.
+ */
 export const runAirfarePromoCollection = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) =>
@@ -136,9 +142,93 @@ export const runAirfarePromoCollection = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     await assertAdmin(context);
-    const { collectAirfarePromotions } = await import("@/lib/airfare-promos.server");
-    return await collectAirfarePromotions({ routeIds: data.routeIds, maxRoutes: data.maxRoutes });
+    const { startPromoRun } = await import("@/lib/airfare-promos.server");
+    const run = await startPromoRun("manual");
+    if (!run) return { started: false as const, reason: "Já existe uma coleta em andamento." };
+
+    const payload = JSON.stringify({ runId: run.id, maxRoutes: data.maxRoutes ?? 14 });
+    // dispara e não espera concluir: o endpoint roda como invocação própria
+    const disparo = fetch(HOOK_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: payload,
+    }).catch(() => null);
+    await Promise.race([disparo, new Promise((r) => setTimeout(r, 1500))]);
+
+    return { started: true as const, runId: run.id };
   });
+
+/** Estado da coleta (progresso real; nada é estimado). */
+export const getAirfarePromoRun = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context);
+    const { data, error } = await context.supabase
+      .from("airfare_promo_runs")
+      .select("id,status,trigger,total,processed,saved,error_count,last_label,error_message,started_at,finished_at,updated_at")
+      .order("started_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    return data ?? null;
+  });
+
+/**
+ * Pesquisa manual de uma oportunidade no NOSSO motor, sem gravar nada.
+ * Devolve a mesma estrutura das promoções (preço/parcelamento já calculados).
+ */
+export const searchPromoOpportunity = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z
+      .object({
+        origin: z.string().trim().min(3).max(3),
+        destination: z.string().trim().min(3).max(3),
+        departureDate: z.string().min(10).max(10),
+        returnDate: z.string().min(10).max(10).optional().nullable(),
+        scope: z.enum(["nacional", "internacional"]).default("nacional"),
+        adults: z.number().int().min(1).max(9).default(1),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { loadMarkups, quoteRoute } = await import("@/lib/airfare-promos.server");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const markups = await loadMarkups(supabaseAdmin as never);
+
+    const row = await quoteRoute({
+      route: {
+        id: "manual",
+        origin_iata: data.origin.toUpperCase(),
+        origin_city: null,
+        destination_iata: data.destination.toUpperCase(),
+        destination_city: null,
+        scope: data.scope,
+        priority: 0,
+      },
+      departureDate: data.departureDate,
+      returnDate: data.returnDate ?? null,
+      markups,
+      adults: data.adults,
+    });
+    if (!row) throw new Error("Nenhuma tarifa encontrada no motor para esse trecho/data.");
+    return row;
+  });
+
+/** Salva um resultado da pesquisa manual como promoção da curadoria. */
+export const savePromoOpportunity = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => z.object({ row: z.record(z.string(), z.unknown()) }).parse(input))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { error } = await context.supabase
+      .from("airfare_promotions")
+      .upsert({ ...data.row, status: "novo" }, { onConflict: "signature" });
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
 
 /** Reconsulta UMA promoção no motor e atualiza preço/condições. */
 export const refreshAirfarePromotion = createServerFn({ method: "POST" })
