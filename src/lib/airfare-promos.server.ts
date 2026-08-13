@@ -529,7 +529,7 @@ export async function collectAirfarePromotions(opts?: {
         });
         if (porAssinatura.has(sig)) continue;
         const jaNaOrigem = [...porAssinatura.values()].filter(
-          (c) => c.origin_iata === r.origin_iata,
+          (c) => c.origin_iata === r.origin_iata && c.scope === r.scope,
         ).length;
         if (jaNaOrigem >= maxOpportunitiesForOrigin(r.origin_iata)) continue;
         porAssinatura.set(sig, {

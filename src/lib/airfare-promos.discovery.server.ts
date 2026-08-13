@@ -13,6 +13,7 @@ import { scopeOfRoute } from "@/lib/br-airports";
 import {
 
   MAX_EXTRA_ORIGINS,
+  PRIORITY_ORIGINS,
 
   isPriorityOrigin,
   isOriginAllowedForScope,
@@ -107,19 +108,41 @@ export type DiscoveryResult = {
   discoveredTotal: number;
   /** Total após deduplicação, antes do limite por origem. */
   dedupedTotal: number;
-  /** Métricas por origem (descobertas / dedup / selecionadas). */
+  /** Métricas por origem (radar / dedup / elegíveis / selecionadas). */
   metrics: OriginMetrics[];
   /** Auditoria da curadoria (o que entrou, o que foi excluído e por quê). */
   decisions?: CurationDecision<PromoCandidate>[];
+};
+
+/** Oportunidade em nível de DESTINO, antes de escolher as datas. */
+type Lead = {
+  origin_iata: string;
+  origin_city: string | null;
+  destination_iata: string;
+  destination_city: string | null;
+  scope: "nacional" | "internacional";
+  reference_price: number | null;
+  category_id: number | null;
+  reference_source: string;
+  /** datas já conhecidas (vindas do feed de promoções) */
+  dates: Array<{ departDate: string; returnDate: string | null; price: number | null }>;
+  /** campos exigidos pela curadoria */
+  signature: string;
+  departure_date: string;
+  return_date: string | null;
 };
 
 /**
  * Descobre oportunidades no Melhores Destinos e devolve candidatas
  * normalizadas e deduplicadas (uma validação por oportunidade).
  *
- * A DESCOBERTA NÃO É LIMITADA: lemos tudo o que a fonte oferece.
- * O limite (`max_opportunities_per_origin`) só decide quantas dessas
- * oportunidades entram na fila mais cara de validação no motor VIA AIR.
+ * FUNIL (o corte só acontece no fim):
+ *  1. RADAR: feed de promoções + varredura de TODAS as categorias por origem
+ *     (nacionais e internacionais) — sem limite.
+ *  2. DEDUP por origem+destino (mantém a referência mais barata).
+ *  3. CURADORIA por escopo: exclusões, apelo turístico, diversidade e cotas.
+ *  4. Só as escolhidas (até N nacionais + N internacionais por origem)
+ *     buscam datas reais e entram na fila cara do motor VIA AIR.
  */
 export async function discoverCandidates(opts?: {
   pages?: number;
@@ -127,23 +150,53 @@ export async function discoverCandidates(opts?: {
   /** teto de segurança da leitura bruta (não é o limite por origem) */
   maxCandidates?: number;
 }): Promise<DiscoveryResult> {
-  const datesPerRoute = opts?.datesPerRoute ?? 2;
-  const maxCandidates = opts?.maxCandidates ?? 600;
+  const { radarByOrigin, cheapestDatesForLead, normalizeIata, mapLimit } = await import(
+    "@/lib/airfare-promos.radar.server"
+  );
   const collectedAt = new Date().toISOString();
-  const mapa = new Map<string, PromoCandidate>();
+  const datesPerRoute = Math.max(1, opts?.datesPerRoute ?? 1);
+
+  /** pool[origem][destino] */
+  const pool = new Map<string, Map<string, Lead>>();
   let brutas = 0;
 
-
-  const add = (c: PromoCandidate) => {
+  const addLead = (lead: Omit<Lead, "signature" | "departure_date" | "return_date">) => {
     brutas++;
-    const atual = mapa.get(c.signature);
-    // mesma oportunidade repetida na fonte: mantém a referência mais barata/recente
-    if (!atual || (c.reference_price ?? Infinity) < (atual.reference_price ?? Infinity)) {
-      mapa.set(c.signature, { ...c, priority: Math.min(c.priority, atual?.priority ?? c.priority) });
+    if (!isOriginAllowedForScope(lead.origin_iata, lead.scope)) return;
+    const porOrigem = pool.get(lead.origin_iata) ?? new Map<string, Lead>();
+    const atual = porOrigem.get(lead.destination_iata);
+    const primeira = lead.dates[0];
+    const novo: Lead = {
+      ...lead,
+      signature: `${lead.origin_iata}|${lead.destination_iata}`,
+      departure_date: primeira?.departDate ?? "",
+      return_date: primeira?.returnDate ?? null,
+    };
+    if (!atual) {
+      porOrigem.set(lead.destination_iata, novo);
+    } else {
+      // mesma rota vinda das duas fontes: fica a referência mais barata e
+      // aproveita as datas já conhecidas.
+      const melhorPreco =
+        (novo.reference_price ?? Infinity) < (atual.reference_price ?? Infinity)
+          ? novo.reference_price
+          : atual.reference_price;
+      atual.reference_price = melhorPreco;
+      atual.category_id = atual.category_id ?? novo.category_id;
+      atual.destination_city = atual.destination_city ?? novo.destination_city;
+      atual.origin_city = atual.origin_city ?? novo.origin_city;
+      if (novo.dates.length && !atual.dates.length) {
+        atual.dates = novo.dates;
+        atual.departure_date = novo.departure_date;
+        atual.return_date = novo.return_date;
+      }
     }
+    pool.set(lead.origin_iata, porOrigem);
   };
 
-
+  // ------------------------------------------------------------------
+  // 1a) RADAR — feed de promoções do Melhores Destinos (já traz datas)
+  // ------------------------------------------------------------------
   let promos: Awaited<ReturnType<typeof listarPromocoesHandler>>["promos"] = [];
   try {
     const res = await listarPromocoesHandler({ data: { pages: opts?.pages ?? 3 } });
@@ -155,183 +208,137 @@ export async function discoverCandidates(opts?: {
   for (const promo of promos) {
     if (!promo.key) continue;
     for (const rota of promo.routes) {
-      if (mapa.size >= maxCandidates) break;
-      const origin = rota.originCode.toUpperCase();
-      const destination = rota.destinationCode.toUpperCase();
+      const origin = normalizeIata(rota.originCode);
+      const destination = normalizeIata(rota.destinationCode);
       if (origin.length !== 3 || destination.length !== 3 || origin === destination) continue;
+      const scope = scopeOf(origin, destination);
+      if (!isOriginAllowedForScope(origin, scope)) continue;
 
-      let datas: Awaited<ReturnType<typeof datasDaRotaHandler>>["dates"] = [];
+      let datas: Array<{ departDate: string; returnDate: string | null; price: number | null }> = [];
       try {
         const det = await datasDaRotaHandler({
-          data: { key: promo.key, from: origin, to: destination },
+          data: { key: promo.key, from: rota.originCode.toUpperCase(), to: rota.destinationCode.toUpperCase() },
         });
-        datas = det.dates.filter((d) => isFuture(d.departDate)).slice(0, datesPerRoute);
+        datas = det.dates
+          .filter((d) => isFuture(d.departDate))
+          .slice(0, datesPerRoute)
+          .map((d) => ({ departDate: d.departDate, returnDate: d.returnDate, price: d.price || null }));
       } catch {
         datas = [];
       }
 
-      const scope = scopeOf(origin, destination);
-      // Origem precisa pertencer ao escopo: Brasília só internacional,
-      // Maringá/Londrina/Cascavel/Foz só nacional.
-      if (!isOriginAllowedForScope(origin, scope)) continue;
-      const prioridade = 10;
-
-
-      if (datas.length === 0) {
-        // sem datas próprias na fonte: cai no fallback +45/+75 (1 data)
-        const [p1] = fallbackDatePairs([45]);
-        if (!p1) continue;
-        add({
-          signature: candidateSignature({
-            origin_iata: origin,
-            destination_iata: destination,
-            departure_date: p1.departureDate,
-            return_date: p1.returnDate,
-          }),
-          scope,
-          origin_iata: origin,
-          origin_city: rota.originName ?? null,
-          destination_iata: destination,
-          destination_city: rota.destinationName ?? null,
-          departure_date: p1.departureDate,
-          return_date: p1.returnDate,
-          priority: prioridade,
-          reference_source: "melhores_destinos",
-          reference_price: rota.price || null,
-          reference_origin: origin,
-          reference_destination: destination,
-          reference_departure_date: null,
-          reference_return_date: null,
-          reference_collected_at: collectedAt,
-        });
-        continue;
-      }
-
-      for (const d of datas) {
-        add({
-          signature: candidateSignature({
-            origin_iata: origin,
-            destination_iata: destination,
-            departure_date: d.departDate,
-            return_date: d.returnDate,
-          }),
-          scope,
-          origin_iata: origin,
-          origin_city: rota.originName ?? null,
-          destination_iata: destination,
-          destination_city: rota.destinationName ?? null,
-          departure_date: d.departDate,
-          return_date: d.returnDate,
-          priority: prioridade,
-          reference_source: "melhores_destinos",
-          reference_price: d.price || rota.price || null,
-          reference_origin: origin,
-          reference_destination: destination,
-          reference_departure_date: d.departDate,
-          reference_return_date: d.returnDate,
-          reference_collected_at: collectedAt,
-        });
-      }
-    }
-  }
-
-  // garante cobertura das origens prioritárias (MGF, LDB, CWB, CAC, IGU, GRU, GIG, BSB)
-  const origensCobertas = new Set([...mapa.values()].map((c) => c.origin_iata));
-  for (const seed of PRIORITY_SEEDS) {
-    if (origensCobertas.has(seed.origin) && mapa.size >= 8) continue;
-    for (const par of fallbackDatePairs([45, 75])) {
-      add({
-        signature: candidateSignature({
-          origin_iata: seed.origin,
-          destination_iata: seed.destination,
-          departure_date: par.departureDate,
-          return_date: par.returnDate,
-        }),
-        scope: seed.scope,
-        origin_iata: seed.origin,
-        origin_city: seed.originCity,
-        destination_iata: seed.destination,
-        destination_city: seed.destinationCity,
-        departure_date: par.departureDate,
-        return_date: par.returnDate,
-        priority: 20,
-        reference_source: "origem_prioritaria",
-        reference_price: null,
-        reference_origin: seed.origin,
-        reference_destination: seed.destination,
-        reference_departure_date: null,
-        reference_return_date: null,
-        reference_collected_at: collectedAt,
+      addLead({
+        origin_iata: origin,
+        origin_city: rota.originName ?? null,
+        destination_iata: destination,
+        destination_city: rota.destinationName ?? null,
+        scope,
+        reference_price: datas[0]?.price ?? rota.price ?? null,
+        category_id: null,
+        reference_source: "melhores_destinos",
+        dates: datas,
       });
     }
   }
 
   // ------------------------------------------------------------------
-  // SELEÇÃO: agrupa por origem, deduplica e escolhe até N por origem.
-  // A leitura da fonte acima NÃO foi limitada — o corte acontece só aqui.
+  // 1b) RADAR POR ORIGEM — varre todas as categorias/destinos monitorados
+  //     de cada origem prioritária (é isso que dava só 2 candidatas para
+  //     MGF/LDB/CAC/IGU quando dependíamos apenas do feed).
   // ------------------------------------------------------------------
-  const dedupadas = [...mapa.values()];
-  const porOrigem = new Map<string, PromoCandidate[]>();
-  for (const c of dedupadas) {
-    const lista = porOrigem.get(c.origin_iata) ?? [];
-    lista.push(c);
-    porOrigem.set(c.origin_iata, lista);
+  await mapLimit(PRIORITY_ORIGINS, 3, async (origem: string) => {
+    let leads: Awaited<ReturnType<typeof radarByOrigin>> = [];
+    try {
+      leads = await radarByOrigin(origem);
+    } catch {
+      leads = [];
+    }
+    for (const l of leads) {
+      addLead({
+        origin_iata: l.origin_iata,
+        origin_city: l.origin_city,
+        destination_iata: l.destination_iata,
+        destination_city: l.destination_city,
+        scope: l.scope,
+        reference_price: l.reference_price,
+        category_id: l.category_id,
+        reference_source: "md_radar_origem",
+        dates: [],
+      });
+    }
+  });
+
+  // ------------------------------------------------------------------
+  // 1c) COBERTURA MÍNIMA — origem sem nenhum resultado no radar
+  // ------------------------------------------------------------------
+  for (const seed of PRIORITY_SEEDS) {
+    if ((pool.get(seed.origin)?.size ?? 0) > 0) continue;
+    addLead({
+      origin_iata: seed.origin,
+      origin_city: seed.originCity,
+      destination_iata: seed.destination,
+      destination_city: seed.destinationCity,
+      scope: seed.scope,
+      reference_price: null,
+      category_id: null,
+      reference_source: "origem_prioritaria",
+      dates: [],
+    });
   }
 
-  const brutasPorOrigem = new Map<string, number>();
-  for (const c of dedupadas) {
-    brutasPorOrigem.set(c.origin_iata, (brutasPorOrigem.get(c.origin_iata) ?? 0) + 1);
-  }
-
-  const selecionadas: PromoCandidate[] = [];
+  // ------------------------------------------------------------------
+  // 2/3) CURADORIA POR ESCOPO — o corte de N por origem acontece aqui,
+  //      depois de percorrer TODAS as oportunidades descobertas.
+  // ------------------------------------------------------------------
   const metrics: OriginMetrics[] = [];
   const auditoria: CurationDecision<PromoCandidate>[] = [];
+  const escolhidasPorOrigem: Array<{ origem: string; leads: Lead[]; scope: "nacional" | "internacional" }> = [];
 
-  // origens prioritárias primeiro; extras só se configurado
-  const origens = [...porOrigem.keys()].sort((a, b) => {
+  const origens = [...pool.keys()].sort((a, b) => {
     const pa = isPriorityOrigin(a) ? 0 : 1;
     const pb = isPriorityOrigin(b) ? 0 : 1;
     return pa - pb || a.localeCompare(b);
   });
 
   let extrasUsadas = 0;
+  let dedupTotal = 0;
   for (const origem of origens) {
     const prioritaria = isPriorityOrigin(origem);
     if (!prioritaria) {
       if (extrasUsadas >= MAX_EXTRA_ORIGINS) continue;
       extrasUsadas++;
     }
+    const lista = [...(pool.get(origem)?.values() ?? [])];
+    dedupTotal += lista.length;
     const limite = maxOpportunitiesForOrigin(origem);
-    const lista = porOrigem.get(origem) ?? [];
 
-    // CURADORIA COMERCIAL: exclusões, apelo turístico, diversidade e
-    // distribuição regional. O corte de 10 acontece só aqui, depois de
-    // percorrer TODAS as oportunidades descobertas para a origem.
-    const nacionais = lista.filter((c) => c.scope === "nacional");
-    const internacionais = lista.filter((c) => c.scope === "internacional");
-
-    let escolhidas: PromoCandidate[] = [];
     let elegiveis = 0;
     let excluidas = 0;
+    let selNacional = 0;
+    let selInternacional = 0;
 
-    for (const grupo of [nacionais, internacionais]) {
+    for (const scope of ["nacional", "internacional"] as const) {
+      if (!isOriginAllowedForScope(origem, scope)) continue;
+      const grupo = lista.filter((l) => l.scope === scope);
       if (!grupo.length) continue;
-      const res = curateOrigin(origem, grupo, limite - escolhidas.length);
-      escolhidas = escolhidas.concat(res.selected);
+      // limite por ORIGEM e por ESCOPO (10 nacionais + 10 internacionais)
+      const res = curateOrigin(origem, grupo, limite);
       elegiveis += res.eligible;
       excluidas += res.excluded;
-      auditoria.push(...res.decisions);
-      if (escolhidas.length >= limite) break;
+      if (scope === "nacional") selNacional += res.selected.length;
+      else selInternacional += res.selected.length;
+      escolhidasPorOrigem.push({ origem, leads: res.selected, scope });
     }
 
-    selecionadas.push(...escolhidas);
     metrics.push({
       origin: origem,
-      discovered: brutasPorOrigem.get(origem) ?? 0,
+      discovered: lista.length,
       deduped: lista.length,
       eligible: elegiveis,
       excluded: excluidas,
-      selected: escolhidas.length,
+      selected: selNacional + selInternacional,
+      selected_nacional: selNacional,
+      selected_internacional: selInternacional,
       validated: 0,
       with_price: 0,
       no_result: 0,
@@ -340,13 +347,78 @@ export async function discoverCandidates(opts?: {
     });
   }
 
+  // ------------------------------------------------------------------
+  // 4) DATAS REAIS — só para as escolhidas (consulta cara, feita por último)
+  // ------------------------------------------------------------------
+  const selecionadas: PromoCandidate[] = [];
+  const todosLeads = escolhidasPorOrigem.flatMap((g) => g.leads);
+
+  await mapLimit(todosLeads, 5, async (lead: Lead) => {
+    let datas = lead.dates;
+    if (!datas.length) {
+      try {
+        const res = await cheapestDatesForLead(
+          {
+            origin_iata: lead.origin_iata,
+            origin_city: lead.origin_city,
+            destination_iata: lead.destination_iata,
+            destination_city: lead.destination_city,
+            scope: lead.scope,
+            reference_price: lead.reference_price,
+            category_id: lead.category_id,
+          },
+          datesPerRoute,
+        );
+        datas = res.map((d) => ({ departDate: d.departDate, returnDate: d.returnDate, price: d.price }));
+      } catch {
+        datas = [];
+      }
+    }
+    if (!datas.length) {
+      const [p1] = fallbackDatePairs([45]);
+      if (!p1) return;
+      datas = [{ departDate: p1.departureDate, returnDate: p1.returnDate, price: null }];
+    }
+
+    for (const d of datas.slice(0, datesPerRoute)) {
+      selecionadas.push({
+        signature: candidateSignature({
+          origin_iata: lead.origin_iata,
+          destination_iata: lead.destination_iata,
+          departure_date: d.departDate,
+          return_date: d.returnDate,
+        }),
+        scope: lead.scope,
+        origin_iata: lead.origin_iata,
+        origin_city: lead.origin_city,
+        destination_iata: lead.destination_iata,
+        destination_city: lead.destination_city,
+        departure_date: d.departDate,
+        return_date: d.returnDate,
+        priority: lead.scope === "nacional" ? 10 : 20,
+        reference_source: lead.reference_source,
+        reference_price: d.price ?? lead.reference_price,
+        reference_origin: lead.origin_iata,
+        reference_destination: lead.destination_iata,
+        reference_departure_date: d.departDate,
+        reference_return_date: d.returnDate,
+        reference_collected_at: collectedAt,
+      });
+    }
+  });
+
+  // dedup final por assinatura (origem|destino|datas)
+  const finais = new Map<string, PromoCandidate>();
+  for (const c of selecionadas) if (!finais.has(c.signature)) finais.set(c.signature, c);
+  const lista = [...finais.values()].slice(0, opts?.maxCandidates ?? 600);
+
   return {
-    candidates: selecionadas.sort((a, b) => a.priority - b.priority),
+    candidates: lista.sort((a, b) => a.priority - b.priority),
     discoveredTotal: brutas,
-    dedupedTotal: dedupadas.length,
+    dedupedTotal: dedupTotal,
     metrics,
     decisions: auditoria,
   };
-
 }
+
 

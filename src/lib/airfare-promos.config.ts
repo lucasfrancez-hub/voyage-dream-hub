@@ -5,7 +5,7 @@
  * pelo código: para mudar o volume por origem basta editar aqui.
  */
 
-/** Limite padrão de oportunidades validadas no motor VIA AIR por origem/ciclo. */
+/** Limite de oportunidades por origem E POR ESCOPO (nacional / internacional). */
 export const MAX_OPPORTUNITIES_PER_ORIGIN = 10;
 
 /**
@@ -14,13 +14,19 @@ export const MAX_OPPORTUNITIES_PER_ORIGIN = 10;
  */
 export const MAX_OPPORTUNITIES_BY_ORIGIN: Record<string, number> = {};
 
-/** Origens nacionais prioritárias. */
+/** Origens da curadoria NACIONAL. */
 export const PRIORITY_ORIGINS_NACIONAL = ["MGF", "LDB", "CWB", "CAC", "IGU"] as const;
 
-/** Origens internacionais (hubs) prioritárias. */
-export const PRIORITY_ORIGINS_HUB = ["GRU", "GIG", "SDU", "BSB", "CWB"] as const;
+/**
+ * Origens da curadoria INTERNACIONAL: as regionais TAMBÉM participam
+ * (Maringá, Londrina, Cascavel e Foz podem ter boa oportunidade internacional)
+ * somadas aos hubs GRU/SAO, GIG/RIO, BSB e CWB.
+ */
+export const PRIORITY_ORIGINS_HUB = [
+  "MGF", "LDB", "CWB", "CAC", "IGU", "GRU", "GIG", "BSB",
+] as const;
 
-/** União das duas listas, já deduplicada (CWB participa das duas). */
+/** União das duas listas, já deduplicada. */
 export const PRIORITY_ORIGINS = [
   ...new Set<string>([...PRIORITY_ORIGINS_NACIONAL, ...PRIORITY_ORIGINS_HUB]),
 ];
@@ -42,10 +48,9 @@ export function isPriorityOrigin(origin: string): boolean {
 
 /**
  * Regra do comercial: cada escopo tem suas próprias origens.
- * - NACIONAL: só o Paraná/região (MGF, LDB, CWB, CAC, IGU).
- * - INTERNACIONAL: só os hubs (GRU, GIG, BSB, CWB).
- * Ou seja: Brasília nunca aparece em voos nacionais, e Maringá/Londrina/
- * Cascavel/Foz nunca aparecem em internacionais.
+ * - NACIONAL: Paraná/região (MGF, LDB, CWB, CAC, IGU).
+ * - INTERNACIONAL: as regionais + hubs (GRU, GIG, BSB).
+ * Brasília nunca aparece em voos nacionais.
  */
 export function isOriginAllowedForScope(
   origin: string,
@@ -58,6 +63,7 @@ export function isOriginAllowedForScope(
       : (PRIORITY_ORIGINS_HUB as readonly string[]);
   return lista.includes(iata);
 }
+
 
 
 // ---------------------------------------------------------------------------
@@ -201,6 +207,7 @@ export function isDestinationAllowedNacional(iata: string): boolean {
 /** Métricas por origem registradas em cada ciclo. */
 export type OriginMetrics = {
   origin: string;
+  /** brutas encontradas no radar (feed + varredura por origem) */
   discovered: number;
   deduped: number;
   /** elegíveis após blacklist/regras de curadoria */
@@ -208,10 +215,14 @@ export type OriginMetrics = {
   /** descartados pelas exclusões/regras */
   excluded?: number;
   selected: number;
+  /** selecionadas por escopo (para saber se os dois universos foram pesquisados) */
+  selected_nacional?: number;
+  selected_internacional?: number;
   validated: number;
   with_price: number;
   no_result: number;
   errors: number;
   avg_seconds: number | null;
 };
+
 
