@@ -452,15 +452,16 @@ export async function createFlightCart(data: CartData) {
   listQuery.set("isRoundTrip", String(data.isRoundTrip));
   listQuery.set("source", "f");
   const loc = `https://www.comprarviagem.com.br/viaair/flight-list?${listQuery.toString()}`;
-  // Tarifa combinada (comum em internacional e em cia brasileira com voo
-  // internacional): ida e volta compartilham a MESMA fareId. Nesse caso a
-  // operadora estoura 500 se mandarmos fareId2 repetido — tem que ir null.
+  // Tarifa combinada/fechada (comum em internacional): ida e volta compartilham
+  // a MESMA tarifa. A operadora estoura 500 se mandarmos fareId2 repetido — e em
+  // parte dos casos a tarifa válida é a da VOLTA (inbound). Montamos uma lista de
+  // tentativas em ordem e vamos testando até o carrinho ser criado.
   const sameFare = !!data.inboundFareId && data.inboundFareId === data.outboundFareId;
-  const buildBody = (fareId2: string | null) =>
+  const buildBody = (fareId: string, fareId2: string | null) =>
     JSON.stringify({
       flight: {
         searchKey: data.searchKey,
-        fareId: data.outboundFareId,
+        fareId,
         fareId2,
         outboundItineraryId: data.outboundItineraryId,
         inboundItineraryId: data.inboundItineraryId ?? null,
@@ -470,15 +471,31 @@ export async function createFlightCart(data: CartData) {
       affiliateTag: null,
       eventId: null,
     });
-  let body = buildBody(sameFare ? null : (data.inboundFareId ?? null));
-  let triedWithoutFare2 = sameFare || !data.inboundFareId;
+
+  const out = data.outboundFareId;
+  const inb = data.inboundFareId ?? null;
+  const candidates: string[] = [];
+  if (!data.isRoundTrip || !inb) {
+    candidates.push(buildBody(out, null));
+  } else if (sameFare) {
+    // Tarifa fechada: uma única tarifa cobre ida + volta.
+    candidates.push(buildBody(out, null));
+  } else {
+    candidates.push(buildBody(out, inb));
+    // Fallbacks para tarifa fechada mal sinalizada: só a volta, depois só a ida.
+    candidates.push(buildBody(inb, null));
+    candidates.push(buildBody(out, null));
+  }
+  let candidateIndex = 0;
+  let body = candidates[0]!;
+
 
 
   let cartId = "";
   let lastStatus = 0;
   let lastMessage = "";
   // A operadora costuma devolver 5xx/timeout esporádico; tentamos 3x com backoff.
-  for (let attempt = 0; attempt < 4; attempt++) {
+  for (let attempt = 0; attempt < 4 + candidates.length; attempt++) {
     if (attempt > 0) await new Promise((r) => setTimeout(r, 700 * attempt));
     let res: Response;
     try {
@@ -499,11 +516,11 @@ export async function createFlightCart(data: CartData) {
     }
     if (res.ok && cartId) break;
     cartId = "";
-    // Falhou com fareId2? Refaz sem ele: em tarifa combinada a operadora
-    // rejeita a segunda tarifa e devolve 500 genérico.
-    if (!triedWithoutFare2) {
-      triedWithoutFare2 = true;
-      body = buildBody(null);
+    // Ainda há combinação de tarifa para testar (tarifa fechada: só a volta,
+    // depois só a ida)? Tenta a próxima antes de desistir.
+    if (candidateIndex < candidates.length - 1) {
+      candidateIndex += 1;
+      body = candidates[candidateIndex]!;
       continue;
     }
     // 4xx = tarifa realmente expirada/invalidada: não adianta repetir.
