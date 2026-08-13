@@ -636,12 +636,16 @@ function PromocoesAereoPage() {
     const iatas = atalhos[atalho]?.iatas ?? [];
     const rows = data as unknown as Promo[];
     // Guarda de escopo: rota 100% brasileira nunca aparece em Internacionais
-    // (e vice-versa), mesmo que o registro antigo tenha vindo com scope errado.
+    // (e vice-versa) e a origem precisa pertencer ao escopo (BSB só internacional,
+    // MGF/LDB/CAC/IGU só nacional).
     const doEscopo = rows.filter(
-      (p) => scopeOfRoute(p.origin_iata, p.destination_iata) === aba,
+      (p) =>
+        scopeOfRoute(p.origin_iata, p.destination_iata) === aba &&
+        isOriginAllowedForScope(p.origin_iata, aba),
     );
     return iatas.length ? doEscopo.filter((p) => iatas.includes(p.origin_iata)) : doEscopo;
   }, [data, atalho, atalhos, aba]);
+
 
 
   const { data: run } = useQuery({
