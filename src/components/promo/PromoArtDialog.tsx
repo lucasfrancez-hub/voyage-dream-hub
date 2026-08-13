@@ -7,14 +7,19 @@ import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
+  ChevronLeft,
+  ChevronRight,
+  Download,
   Image as ImageIcon,
   Instagram,
+  Link as LinkIcon,
   Loader2,
   MessageCircle,
   Pencil,
   RefreshCw,
   X,
 } from "lucide-react";
+
 
 import { toast } from "sonner";
 import {
