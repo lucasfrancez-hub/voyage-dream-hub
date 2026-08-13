@@ -31,6 +31,8 @@ export const Route = createFileRoute("/api/public/analytics-collect")({
           const parsed = eventoSchema.safeParse(body);
           if (!parsed.success) return new Response("ignored", { status: 202 });
           const e = parsed.data;
+          const { isRotaInterna } = await import("@/lib/analytics/public-scope");
+          if (isRotaInterna(e.path)) return new Response("ignored", { status: 202 });
 
           const { parseUserAgent, geoFromHeaders, hostDoReferrer } = await import(
             "@/lib/analytics/ua.server"

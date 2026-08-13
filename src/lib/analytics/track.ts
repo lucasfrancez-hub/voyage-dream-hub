@@ -4,6 +4,8 @@
  * /api/public/analytics-collect.
  */
 
+import { ignorarEvento } from "./public-scope";
+
 const ENDPOINT = "/api/public/analytics-collect";
 const SESSION_KEY = "viaair:analytics:session";
 const VISITOR_KEY = "viaair:analytics:visitor";
@@ -83,6 +85,8 @@ let instalado = false;
 
 function enviar(evento: EventoBase, comBeacon = false) {
   if (typeof window === "undefined") return;
+  // só tráfego público: ignora área interna e usuários logados
+  if (ignorarEvento(evento.path ?? window.location.pathname)) return;
   const s = sessao();
   const body = JSON.stringify({
     session_id: s.id,

@@ -37,7 +37,9 @@ export async function carregarMetricasSite(dias: number) {
     .order("created_at", { ascending: false })
     .limit(50000);
   if (error) throw new Error(error.message);
-  const rows = (data ?? []) as Row[];
+  const { isRotaInterna } = await import("./public-scope");
+  // relatórios consideram apenas o tráfego público do site
+  const rows = ((data ?? []) as Row[]).filter((r) => !isRotaInterna(r.path));
 
   const pageviews = rows.filter((r) => r.event_type === "pageview");
   const cliques = rows.filter((r) => r.event_type === "click");
