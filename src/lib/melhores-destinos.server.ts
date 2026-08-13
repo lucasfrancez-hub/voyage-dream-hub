@@ -53,6 +53,8 @@ export type MdFetchOptions = {
   headers?: Record<string, string>;
   /** aceita servir cache vencido quando a fonte falha (padrão: true) */
   allowStale?: boolean;
+  /** não vai à fonte: responde só com o que já está salvo/cacheado */
+  cacheOnly?: boolean;
 };
 
 /** Intervalo entre chamadas REAIS à fonte, por prioridade. */
