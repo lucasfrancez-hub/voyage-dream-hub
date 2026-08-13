@@ -36,7 +36,9 @@ import {
   saveInstallmentMarkup,
   explorePromoOpportunities,
   setPromotionStatus,
+  countArchivedPromotions,
 } from "@/lib/airfare-promos.functions";
+import { ArquivadosDialog } from "@/components/promocoes/ArquivadosDialog";
 import { promoInstagramText, promoWhatsappText, type PromoRow } from "@/lib/airfare-promo-text";
 import { PromoArtDialog } from "@/components/promo/PromoArtDialog";
 import { PromoSocialDialog } from "@/components/promo/PromoSocialDialog";
