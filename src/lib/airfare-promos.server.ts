@@ -523,6 +523,7 @@ export async function collectAirfarePromotions(opts?: {
     deduped: descoberta.dedupedTotal,
     radar_available: descoberta.radarAvailable,
     radar_errors: descoberta.radarErrors,
+    source_metrics: descoberta.sourceMetrics ?? {},
     radar_note: descoberta.radarAvailable
       ? `Curadoria concluída — ${descoberta.radarLeads} oportunidades descobertas`
       : "Radar temporariamente indisponível — promoções anteriores preservadas",
