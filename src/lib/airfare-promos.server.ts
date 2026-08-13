@@ -451,26 +451,85 @@ export async function collectAirfarePromotions(opts?: {
     }
   };
 
-  await touch({ phase: "descobrindo", total: 0, processed: 0, saved: 0 });
+  await touch({ phase: "descobrindo", total: 0, processed: 0, saved: 0, radar_note: "Consultando radar de oportunidades..." });
+
+  // cancelamento cooperativo: checado inclusive durante espera/backoff do radar
+  let ultimaChecagem = 0;
+  let cancelPedido = false;
+  const pediuCancelamento = async () => {
+    if (!runId || cancelPedido) return cancelPedido;
+    if (Date.now() - ultimaChecagem < 4000) return cancelPedido;
+    ultimaChecagem = Date.now();
+    try {
+      const { data } = await db
+        .from("airfare_promo_runs")
+        .select("status")
+        .eq("id", runId)
+        .maybeSingle();
+      cancelPedido = (data as { status?: string } | null)?.status === "cancel_requested";
+    } catch {
+      /* checagem best-effort */
+    }
+    return cancelPedido;
+  };
+
+  let notaRadar = "Consultando radar de oportunidades...";
 
   // heartbeat: enquanto o radar roda, a execução continua "viva" para o worker
   const batimento = setInterval(() => {
-    void touch({ phase: "descobrindo" });
+    void touch({ phase: "descobrindo", radar_note: notaRadar });
   }, 20_000);
 
   // 1) RADAR: oportunidades do Melhores Destinos (descoberta ilimitada,
   //    seleção de até N por origem — ver airfare-promos.config.ts)
   let descoberta: Awaited<ReturnType<typeof discoverCandidates>>;
   try {
-    descoberta = await discoverCandidates({ maxCandidates: opts?.maxCandidates ?? 600 });
+    descoberta = await discoverCandidates({
+      maxCandidates: opts?.maxCandidates ?? 600,
+      cancel: pediuCancelamento,
+      onProgress: (msg) => {
+        notaRadar = msg;
+      },
+    });
   } finally {
     clearInterval(batimento);
+  }
+
+  if (descoberta.cancelled || (await pediuCancelamento())) {
+    const agora = new Date().toISOString();
+    await touch({
+      status: "cancelada",
+      phase: "cancelada",
+      cancelled_at: agora,
+      finished_at: agora,
+      radar_note: "Cancelada durante a consulta ao radar.",
+      radar_available: descoberta.radarAvailable,
+      radar_errors: descoberta.radarErrors,
+    });
+    return {
+      startedAt,
+      ...counters,
+      total: 0,
+      processed: 0,
+      remaining: 0,
+      finished: true,
+      cancelled: true,
+      origin_metrics: [] as OriginMetrics[],
+    };
   }
   await touch({
     phase: "curadoria",
     discovered_raw: descoberta.discoveredTotal,
     deduped: descoberta.dedupedTotal,
+    radar_available: descoberta.radarAvailable,
+    radar_errors: descoberta.radarErrors,
+    radar_note: descoberta.radarAvailable
+      ? `Curadoria concluída — ${descoberta.radarLeads} oportunidades descobertas`
+      : "Radar temporariamente indisponível — promoções anteriores preservadas",
   });
+  if (descoberta.sourceMetrics) {
+    console.info("[md-source] métricas da coleta", descoberta.sourceMetrics);
+  }
   const candidatas = descoberta.candidates;
   const metricasPorOrigem = new Map<string, Metrics>(
     descoberta.metrics.map((m) => [m.origin, { ...m }]),

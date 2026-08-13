@@ -160,6 +160,10 @@ export type DiscoveryResult = {
   radarLeads: number;
   /** Candidatas geradas por fallback (sementes de cobertura). */
   fallbackCount: number;
+  /** Métricas da camada compartilhada de acesso ao Melhores Destinos. */
+  sourceMetrics?: Record<string, unknown>;
+  /** A descoberta foi interrompida por pedido de cancelamento. */
+  cancelled?: boolean;
 };
 
 /** Oportunidade em nível de DESTINO, antes de escolher as datas. */
@@ -197,10 +201,25 @@ export async function discoverCandidates(opts?: {
   datesPerRoute?: number;
   /** teto de segurança da leitura bruta (não é o limite por origem) */
   maxCandidates?: number;
+  /** cancelamento cooperativo: checado inclusive durante espera/backoff */
+  cancel?: () => boolean | Promise<boolean>;
+  /** progresso real para a UI */
+  onProgress?: (msg: string) => void;
+  /** orçamento de tempo da etapa de radar (o ritmo é 15–30s por chamada) */
+  radarBudgetMs?: number;
 }): Promise<DiscoveryResult> {
-  const { radarByOrigin, cheapestDatesForLead, normalizeIata, mapLimit } = await import(
-    "@/lib/airfare-promos.radar.server"
+  const { radarByOrigin, cheapestDatesForLead, normalizeIata, mapLimit, MdCancelledError } =
+    await import("@/lib/airfare-promos.radar.server");
+  const { mdSourceMetrics, resetMdSourceMetrics, mdRadarAvailable } = await import(
+    "@/lib/melhores-destinos.server"
   );
+  const cancel = opts?.cancel;
+  const progresso = opts?.onProgress ?? (() => {});
+  let cancelada = false;
+  const radarDeadline = Date.now() + (opts?.radarBudgetMs ?? 20 * 60_000);
+  const semTempo = () => Date.now() >= radarDeadline;
+  resetMdSourceMetrics();
+  progresso("Consultando radar de oportunidades...");
   const collectedAt = new Date().toISOString();
   const datesPerRoute = Math.max(1, opts?.datesPerRoute ?? 1);
 
@@ -297,11 +316,21 @@ export async function discoverCandidates(opts?: {
   //     de cada origem prioritária (é isso que dava só 2 candidatas para
   //     MGF/LDB/CAC/IGU quando dependíamos apenas do feed).
   // ------------------------------------------------------------------
-  await mapLimit(PRIORITY_ORIGINS, 3, async (origem: string) => {
+  await mapLimit(PRIORITY_ORIGINS, 1, async (origem: string) => {
+    if (cancelada || semTempo()) return;
     let leads: Awaited<ReturnType<typeof radarByOrigin>> = [];
+    if (!mdRadarAvailable()) {
+      radarErrors++;
+      return;
+    }
+    progresso(`Consultando radar de oportunidades — ${origem}...`);
     try {
-      leads = await radarByOrigin(origem);
-    } catch {
+      leads = await radarByOrigin(origem, { cancel });
+    } catch (e) {
+      if (e instanceof MdCancelledError) {
+        cancelada = true;
+        return;
+      }
       leads = [];
       radarErrors++;
     }
@@ -322,7 +351,12 @@ export async function discoverCandidates(opts?: {
 
   // Tudo que entrou no pool até aqui veio do Melhores Destinos.
   radarLeads = [...pool.values()].reduce((acc, m) => acc + m.size, 0);
-  const radarAvailable = radarLeads > 0;
+  const radarAvailable = radarLeads > 0 && mdRadarAvailable();
+  progresso(
+    radarAvailable
+      ? `Curadoria em andamento — ${radarLeads} oportunidades descobertas`
+      : "Radar temporariamente indisponível — promoções anteriores preservadas",
+  );
 
   // ------------------------------------------------------------------
   // 1c) COBERTURA MÍNIMA — complemento CONTROLADO. Só entra se o radar
@@ -417,9 +451,11 @@ export async function discoverCandidates(opts?: {
   const selecionadas: PromoCandidate[] = [];
   const todosLeads = escolhidasPorOrigem.flatMap((g) => g.leads);
 
-  await mapLimit(todosLeads, 5, async (lead: Lead) => {
+  progresso(`Buscando datas reais de ${todosLeads.length} oportunidades selecionadas...`);
+  await mapLimit(todosLeads, 1, async (lead: Lead) => {
+    if (cancelada) return;
     let datas = lead.dates;
-    if (!datas.length) {
+    if (!datas.length && !semTempo() && mdRadarAvailable()) {
       try {
         const res = await cheapestDatesForLead(
           {
@@ -432,9 +468,14 @@ export async function discoverCandidates(opts?: {
             category_id: lead.category_id,
           },
           datesPerRoute,
+          cancel,
         );
         datas = res.map((d) => ({ departDate: d.departDate, returnDate: d.returnDate, price: d.price }));
-      } catch {
+      } catch (e) {
+        if (e instanceof MdCancelledError) {
+          cancelada = true;
+          return;
+        }
         datas = [];
       }
     }
@@ -493,6 +534,8 @@ export async function discoverCandidates(opts?: {
     radarErrors,
     radarLeads,
     fallbackCount: lista.filter((c) => c.reference_source === "fallback").length,
+    sourceMetrics: mdSourceMetrics(),
+    cancelled: cancelada,
   };
 }
 

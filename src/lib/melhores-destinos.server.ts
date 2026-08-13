@@ -18,42 +18,299 @@ const API = "https://passagensaereas.melhoresdestinos.com.br";
 const UA =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126 Safari/537.36";
 
-async function get(url: string): Promise<Response> {
-  let last: unknown = null;
-  for (let i = 0; i < 2; i++) {
-    try {
-      const res = await fetch(url, {
-        headers: { "user-agent": UA, accept: "*/*", referer: `${SITE}/` },
-        signal: AbortSignal.timeout(8000),
-      });
-      if (res.ok) return res;
-      last = new Error(`Melhores Destinos respondeu ${res.status}`);
-    } catch (e) {
-      last = e;
-    }
-    await new Promise((r) => setTimeout(r, 300));
+/* ================================================================
+ * CAMADA COMPARTILHADA DE ACESSO AO MELHORES DESTINOS
+ * ----------------------------------------------------------------
+ * Única porta de saída para o MD (Passagens Baratas + Promoções de Aéreo):
+ *   cache → coalescência → fila (concorrência 1) → rate limiter → backoff.
+ * O preço obtido aqui é sempre REFERÊNCIA. O preço comercial das Promoções
+ * continua vindo exclusivamente do motor VIA AIR.
+ * ================================================================ */
+
+export class MdCancelledError extends Error {
+  constructor() {
+    super("Consulta ao Melhores Destinos cancelada");
+    this.name = "MdCancelledError";
   }
-  throw last instanceof Error ? last : new Error("Falha ao consultar Melhores Destinos");
+}
+export class MdUnavailableError extends Error {
+  constructor(msg = "Melhores Destinos temporariamente indisponível") {
+    super(msg);
+    this.name = "MdUnavailableError";
+  }
 }
 
-/** Cache em memória: os preços são coletados a cada 24h, não precisa refazer. */
+export type MdPriority = "interactive" | "background";
+export type MdCancel = () => boolean | Promise<boolean>;
+
+export type MdFetchOptions = {
+  ttlMs?: number;
+  timeoutMs?: number;
+  /** "background" (radar/cron) respeita 15–30s; "interactive" atende a tela. */
+  priority?: MdPriority;
+  cancel?: MdCancel;
+  headers?: Record<string, string>;
+  /** aceita servir cache vencido quando a fonte falha (padrão: true) */
+  allowStale?: boolean;
+};
+
+/** Intervalo entre chamadas REAIS à fonte, por prioridade. */
+const GAP_MS: Record<MdPriority, [number, number]> = {
+  background: [15_000, 30_000],
+  interactive: [1_200, 2_500],
+};
+
+/** Somente para testes automatizados do ritmo/backoff. */
+export function configureMdRateLimit(cfg: {
+  background?: [number, number];
+  interactive?: [number, number];
+  backoffSteps?: number[];
+  unavailableCooldownMs?: number;
+}) {
+  if (cfg.background) GAP_MS.background = cfg.background;
+  if (cfg.interactive) GAP_MS.interactive = cfg.interactive;
+  if (cfg.backoffSteps) BACKOFF_STEPS_MS.splice(0, BACKOFF_STEPS_MS.length, ...cfg.backoffSteps);
+  if (cfg.unavailableCooldownMs != null) cooldownMs = cfg.unavailableCooldownMs;
+  jsonCache.clear();
+  falhasConsecutivas = 0;
+  bloqueadoAte = 0;
+  indisponivelAte = 0;
+  ultimaChamada = 0;
+  mdMetrics.radarAvailable = true;
+}
+const BACKOFF_STEPS_MS: number[] = [30_000, 60_000, 120_000];
+const MAX_CONSECUTIVE_FAILURES = 3;
+/** Enquanto a fonte estiver marcada como fora, nem entra na fila. */
+let cooldownMs = 10 * 60_000;
+const DEFAULT_TTL = 15 * 60 * 1000;
+
 const jsonCache = new Map<string, { at: number; value: unknown }>();
-const JSON_TTL = 15 * 60 * 1000;
+const inflight = new Map<string, Promise<unknown>>();
+
+export const mdMetrics = {
+  requests: 0,
+  externalCalls: 0,
+  cacheHits: 0,
+  cacheMisses: 0,
+  coalesced: 0,
+  staleServed: 0,
+  ok: 0,
+  status403: 0,
+  status429: 0,
+  status5xx: 0,
+  otherErrors: 0,
+  retries: 0,
+  backoffs: 0,
+  waitedMs: 0,
+  gaps: 0,
+  radarAvailable: true,
+  lastError: null as string | null,
+  lastErrorAt: null as string | null,
+};
+
+export function mdSourceMetrics() {
+  return {
+    ...mdMetrics,
+    avgGapMs: mdMetrics.gaps ? Math.round(mdMetrics.waitedMs / mdMetrics.gaps) : 0,
+    cacheSize: jsonCache.size,
+  };
+}
+export function resetMdSourceMetrics() {
+  Object.assign(mdMetrics, {
+    requests: 0, externalCalls: 0, cacheHits: 0, cacheMisses: 0, coalesced: 0,
+    staleServed: 0, ok: 0, status403: 0, status429: 0, status5xx: 0, otherErrors: 0,
+    retries: 0, backoffs: 0, waitedMs: 0, gaps: 0, lastError: null, lastErrorAt: null,
+  });
+}
+export function mdRadarAvailable() {
+  // Passado o descanso, a fonte volta a ser tentada (meia-abertura):
+  // sem isso ela só voltaria com um sucesso que nunca seria tentado.
+  if (Date.now() >= indisponivelAte) {
+    if (!mdMetrics.radarAvailable) mdMetrics.radarAvailable = true;
+    return true;
+  }
+  return mdMetrics.radarAvailable;
+}
+
+let fila: Promise<unknown> = Promise.resolve();
+let ultimaChamada = 0;
+let falhasConsecutivas = 0;
+let bloqueadoAte = 0;
+let indisponivelAte = 0;
+
+async function checarCancelamento(cancel?: MdCancel) {
+  if (cancel && (await cancel())) throw new MdCancelledError();
+}
+
+/** Espera cooperativa: dá para cancelar no meio dos 15–30s / do backoff. */
+async function esperar(ms: number, cancel?: MdCancel) {
+  const fim = Date.now() + ms;
+  while (Date.now() < fim) {
+    await checarCancelamento(cancel);
+    await new Promise((r) => setTimeout(r, Math.min(500, fim - Date.now())));
+  }
+  await checarCancelamento(cancel);
+}
+
+function proximoIntervalo(priority: MdPriority) {
+  const [min, max] = GAP_MS[priority];
+  return Math.round(min + Math.random() * (max - min));
+}
+
+/** Fila única por processo: uma chamada por vez, com ritmo controlado. */
+function enfileirar<T>(priority: MdPriority, cancel: MdCancel | undefined, fn: () => Promise<T>): Promise<T> {
+  const proxima = fila.then(async () => {
+    await checarCancelamento(cancel);
+    // O backoff longo é para o radar (background). A tela não pode ficar
+    // minutos parada: para consultas interativas o descanso é limitado.
+    const descanso =
+      priority === "interactive"
+        ? Math.min(bloqueadoAte - Date.now(), 5_000)
+        : bloqueadoAte - Date.now();
+    const alvo = Math.max(ultimaChamada + proximoIntervalo(priority) - Date.now(), descanso);
+    if (alvo > 0) {
+      mdMetrics.gaps++;
+      mdMetrics.waitedMs += alvo;
+      await esperar(alvo, cancel);
+    }
+    try {
+      mdMetrics.externalCalls++;
+      return await fn();
+    } finally {
+      ultimaChamada = Date.now();
+    }
+  });
+  fila = proxima.catch(() => undefined);
+  return proxima as Promise<T>;
+}
+
+function registrarFalha(status: number | null, msg: string) {
+  falhasConsecutivas++;
+  mdMetrics.lastError = msg;
+  mdMetrics.lastErrorAt = new Date().toISOString();
+  console.warn("[md-source] falha", msg, `(consecutivas: ${falhasConsecutivas + 1})`);
+  if (status === 403) mdMetrics.status403++;
+  else if (status === 429) mdMetrics.status429++;
+  else if (status && status >= 500) mdMetrics.status5xx++;
+  else mdMetrics.otherErrors++;
+  const passo = BACKOFF_STEPS_MS[Math.min(falhasConsecutivas, BACKOFF_STEPS_MS.length) - 1]!;
+  bloqueadoAte = Date.now() + passo;
+  mdMetrics.backoffs++;
+  if (falhasConsecutivas >= MAX_CONSECUTIVE_FAILURES) {
+    mdMetrics.radarAvailable = false;
+    indisponivelAte = Date.now() + cooldownMs;
+  }
+}
+
+function registrarSucesso() {
+  falhasConsecutivas = 0;
+  bloqueadoAte = 0;
+  indisponivelAte = 0;
+  mdMetrics.ok++;
+  mdMetrics.radarAvailable = true;
+}
+
+/** Uma requisição real (com retries limitados) — já dentro da fila. */
+async function chamada(url: string, opts: MdFetchOptions): Promise<unknown> {
+  const timeoutMs = opts.timeoutMs ?? 12_000;
+  let ultimo: unknown = null;
+  for (let tentativa = 0; tentativa < 3; tentativa++) {
+    if (tentativa > 0) mdMetrics.retries++;
+    await checarCancelamento(opts.cancel);
+    // Só o radar (background) respeita o "fora do ar": a tela sempre tenta.
+    if ((opts.priority ?? "background") === "background" && !mdRadarAvailable()) {
+      throw new MdUnavailableError();
+    }
+    try {
+      const res = await enfileirar(opts.priority ?? "background", opts.cancel, () =>
+        fetch(url, {
+          headers: {
+            "user-agent": UA,
+            accept: "application/json, text/plain, */*",
+            "accept-language": "pt-BR,pt;q=0.9,en;q=0.8",
+            referer: `${SITE}/`,
+            ...(opts.headers ?? {}),
+          },
+          signal: AbortSignal.timeout(timeoutMs),
+        }),
+      );
+      if (res.ok) {
+        registrarSucesso();
+        return await res.json();
+      }
+      ultimo = new Error(`Melhores Destinos respondeu ${res.status}`);
+      registrarFalha(res.status, `HTTP ${res.status} — ${url}`);
+    } catch (e) {
+      if (e instanceof MdCancelledError || e instanceof MdUnavailableError) throw e;
+      ultimo = e;
+      registrarFalha(null, e instanceof Error ? e.message : String(e));
+    }
+    if ((opts.priority ?? "background") === "background" && !mdRadarAvailable()) break;
+  }
+  throw ultimo instanceof Error ? ultimo : new Error("Falha ao consultar Melhores Destinos");
+}
+
+/**
+ * Porta única de consulta ao MD: cache válido → coalescência → fila.
+ */
+export async function mdFetchJson<T>(url: string, opts: MdFetchOptions = {}): Promise<T> {
+  mdMetrics.requests++;
+  const ttl = opts.ttlMs ?? DEFAULT_TTL;
+  const hit = jsonCache.get(url);
+  if (hit && Date.now() - hit.at < ttl) {
+    mdMetrics.cacheHits++;
+    return hit.value as T;
+  }
+  mdMetrics.cacheMisses++;
+
+  const emVoo = inflight.get(url);
+  if (emVoo) {
+    mdMetrics.coalesced++;
+    return emVoo as Promise<T>;
+  }
+
+  const p = (async () => {
+    try {
+      const value = await chamada(url, opts);
+      if (jsonCache.size > 500) jsonCache.clear();
+      jsonCache.set(url, { at: Date.now(), value });
+      return value;
+    } catch (e) {
+      if (e instanceof MdCancelledError) throw e;
+      // Nunca deixa a tela sem tarifa: serve o último resultado bom, mesmo vencido.
+      if (hit && opts.allowStale !== false) {
+        mdMetrics.staleServed++;
+        return hit.value as T;
+      }
+      throw e;
+    } finally {
+      inflight.delete(url);
+    }
+  })();
+  inflight.set(url, p);
+  return p as Promise<T>;
+}
+
+async function get(url: string): Promise<Response> {
+  // HTML (feed de promoções): mesma fila/ritmo, sem cache JSON.
+  return enfileirar("interactive", undefined, async () => {
+    const res = await fetch(url, {
+      headers: { "user-agent": UA, accept: "*/*", referer: `${SITE}/` },
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (!res.ok) {
+      registrarFalha(res.status, `HTTP ${res.status}`);
+      throw new Error(`Melhores Destinos respondeu ${res.status}`);
+    }
+    registrarSucesso();
+    return res;
+  });
+}
 
 async function getJson<T>(url: string): Promise<T> {
-  const hit = jsonCache.get(url);
-  if (hit && Date.now() - hit.at < JSON_TTL) return hit.value as T;
-  try {
-    const value = (await (await get(url)).json()) as T;
-    if (jsonCache.size > 300) jsonCache.clear();
-    jsonCache.set(url, { at: Date.now(), value });
-    return value;
-  } catch (e) {
-    // Nunca deixa a tela sem tarifa: serve o último resultado bom, mesmo vencido.
-    if (hit) return hit.value as T;
-    throw e;
-  }
+  return mdFetchJson<T>(url, { priority: "interactive", timeoutMs: 10_000 });
 }
+
 
 
 function decodeEntities(text: string): string {

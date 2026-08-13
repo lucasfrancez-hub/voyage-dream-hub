@@ -11,11 +11,15 @@
  * O preço comercial continua vindo obrigatoriamente do motor VIA AIR.
  */
 import { scopeOfRoute } from "@/lib/br-airports";
+import {
+  mdFetchJson,
+  mdRadarAvailable,
+  MdCancelledError,
+  type MdCancel,
+} from "@/lib/melhores-destinos.server";
 
 const API = "https://passagensaereas.melhoresdestinos.com.br";
 const TWD = `${API}/api/v1/twd/web`;
-const UA =
-  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126 Safari/537.36";
 
 /** Códigos de cidade do Melhores Destinos → aeroporto usado pelo motor. */
 export const METRO_TO_AIRPORT: Record<string, string> = {
@@ -29,76 +33,16 @@ export function normalizeIata(code: string): string {
   return METRO_TO_AIRPORT[c] ?? c;
 }
 
-const cache = new Map<string, { at: number; value: unknown }>();
-const TTL = 15 * 60 * 1000;
+export { mdRadarAvailable, MdCancelledError };
 
 /**
- * O Melhores Destinos devolve 503 quando recebe uma rajada de consultas.
- * Todas as chamadas do radar passam por esta fila: intervalo mínimo entre
- * requisições + espera progressiva quando a fonte pede calma.
+ * Adaptador fino: toda ida ao Melhores Destinos passa pela camada
+ * compartilhada (cache, coalescência, fila única, ritmo 15–30s e backoff).
  */
-const MIN_GAP_MS = 900;
-let ultimaChamada = 0;
-/** Quando a fonte responde 503/429, todo o radar respeita este descanso. */
-let bloqueadoAte = 0;
-let corrente: Promise<unknown> = Promise.resolve();
-
-function enfileirar<T>(fn: () => Promise<T>): Promise<T> {
-  const proxima = corrente.then(async () => {
-    const espera = Math.max(
-      MIN_GAP_MS - (Date.now() - ultimaChamada),
-      bloqueadoAte - Date.now(),
-    );
-    if (espera > 0) await new Promise((r) => setTimeout(r, espera));
-    try {
-      return await fn();
-    } finally {
-      ultimaChamada = Date.now();
-    }
-  });
-  corrente = proxima.catch(() => undefined);
-  return proxima as Promise<T>;
+async function getJson<T>(url: string, cancel?: MdCancel): Promise<T> {
+  return mdFetchJson<T>(url, { priority: "background", cancel });
 }
 
-async function getJson<T>(url: string): Promise<T> {
-  const hit = cache.get(url);
-  if (hit && Date.now() - hit.at < TTL) return hit.value as T;
-  let last: unknown = null;
-  for (let i = 0; i < 4; i++) {
-    try {
-      const res = await enfileirar(() =>
-        fetch(url, {
-          headers: {
-            "user-agent": UA,
-            accept: "application/json, text/plain, */*",
-            "accept-language": "pt-BR,pt;q=0.9,en;q=0.8",
-            origin: "https://www.melhoresdestinos.com.br",
-            referer: "https://www.melhoresdestinos.com.br/",
-          },
-          signal: AbortSignal.timeout(12000),
-        }),
-      );
-      if (res.ok) {
-        const value = (await res.json()) as T;
-        if (cache.size > 400) cache.clear();
-        cache.set(url, { at: Date.now(), value });
-        return value;
-      }
-      last = new Error(`Melhores Destinos respondeu ${res.status}`);
-      // 403/429/5xx = rajada ou bloqueio temporário: descansa antes de tentar de novo
-      if (res.status === 403 || res.status === 429 || res.status >= 500) {
-        bloqueadoAte = Date.now() + 6000 * (i + 1);
-        continue;
-      }
-    } catch (e) {
-      last = e;
-    }
-    await new Promise((r) => setTimeout(r, 600 * (i + 1)));
-  }
-  if (hit) return hit.value as T;
-  console.warn("[md-radar] falha após retries", url, last instanceof Error ? last.message : last);
-  throw last instanceof Error ? last : new Error("Falha no radar do Melhores Destinos");
-}
 
 
 type RawCategories = {
@@ -163,9 +107,13 @@ async function mapLimit<T, R>(items: T[], limit: number, fn: (item: T) => Promis
  * Varre TODAS as categorias (e subcategorias) do Melhores Destinos filtradas
  * pela origem e devolve todos os destinos monitorados com preço de referência.
  */
-export async function radarByOrigin(origin: string, opts?: { maxDepth?: number }): Promise<DestinationLead[]> {
+export async function radarByOrigin(
+  origin: string,
+  opts?: { maxDepth?: number; cancel?: MdCancel },
+): Promise<DestinationLead[]> {
   const from = origin.trim().toUpperCase();
   const maxDepth = opts?.maxDepth ?? 2;
+  const cancel = opts?.cancel;
   const leads = new Map<string, DestinationLead>();
   let originCity: string | null = null;
 
@@ -174,17 +122,21 @@ export async function radarByOrigin(origin: string, opts?: { maxDepth?: number }
   const visit = async (categoryId: number | null, depth: number): Promise<void> => {
     const chave = `${categoryId ?? "root"}`;
     if (visitadas.has(chave) || depth > maxDepth) return;
+    if (cancel && (await cancel())) throw new MdCancelledError();
+    if (!mdRadarAvailable()) return;
     visitadas.add(chave);
 
     const params = new URLSearchParams({ from_iata_code: from });
     if (categoryId) params.set("category_id", String(categoryId));
     let json: RawCategories;
     try {
-      json = await getJson<RawCategories>(`${TWD}/categories?${params.toString()}`);
-    } catch {
+      json = await getJson<RawCategories>(`${TWD}/categories?${params.toString()}`, cancel);
+    } catch (e) {
+      if (e instanceof MdCancelledError) throw e;
       // uma categoria que não respondeu não pode derrubar a origem inteira
       return;
     }
+
     originCity = originCity ?? json.from_city_name ?? null;
 
     for (const city of json.cities ?? []) {
@@ -210,7 +162,7 @@ export async function radarByOrigin(origin: string, opts?: { maxDepth?: number }
     const subs = (json.categories ?? [])
       .map((c) => categoryIdFromLink(c.link))
       .filter((id): id is number => !!id);
-    await mapLimit(subs, 2, (id) => visit(id, depth + 1));
+    await mapLimit(subs, 1, (id) => visit(id, depth + 1));
   };
 
   await visit(null, 0);
@@ -242,13 +194,18 @@ function datesFromLink(link?: string | null): { depart: string | null; ret: stri
 }
 
 /** Datas reais mais baratas de uma rota (usadas só para as candidatas escolhidas). */
-export async function cheapestDatesForLead(lead: DestinationLead, count = 1): Promise<LeadDate[]> {
+export async function cheapestDatesForLead(
+  lead: DestinationLead,
+  count = 1,
+  cancel?: MdCancel,
+): Promise<LeadDate[]> {
   const params = new URLSearchParams();
   if (lead.category_id) params.set("category_id", String(lead.category_id));
   const json = await getJson<RawDates>(
     `${TWD}/itinerary_prices/${lead.origin_iata}/${lead.destination_iata}${
       params.toString() ? `?${params}` : ""
     }`,
+    cancel,
   );
 
   const hoje = isoToday();
