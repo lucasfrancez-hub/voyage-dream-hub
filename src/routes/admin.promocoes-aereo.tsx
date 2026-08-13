@@ -977,7 +977,7 @@ function PromocoesAereoPage() {
               {cancelando
                 ? "Cancelando atualização…"
                 : info.phase === "descobrindo"
-                  ? "Buscando novas oportunidades no radar…"
+                  ? (info.radar_note ?? "Buscando novas oportunidades no radar…")
                   : info.phase === "curadoria"
                     ? "Curadoria concluída — preparando candidatas…"
                     : info.phase === "expirando"
