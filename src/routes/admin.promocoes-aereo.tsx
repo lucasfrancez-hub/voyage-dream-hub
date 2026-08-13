@@ -659,12 +659,17 @@ function PromocoesAereoPage() {
         <div className="mt-4 rounded-2xl border border-brand-orange/40 bg-brand-orange/5 p-3">
           <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
             <span className="inline-flex items-center gap-2 font-bold text-brand-orange">
-              <Loader2 className="h-3.5 w-3.5 animate-spin" /> Atualizando promoções…
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              {info.phase === "descobrindo"
+                ? "Procurando oportunidades…"
+                : info.phase === "expirando"
+                  ? "Conferindo ofertas que saíram do ar…"
+                  : "Validando no motor VIA AIR…"}
             </span>
             <span className="text-muted-foreground">
               {info.total > 0
                 ? `${info.processed} de ${info.total} oportunidades verificadas`
-                : "Preparando as rotas…"}
+                : "Preparando as oportunidades…"}
             </span>
           </div>
           <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-border/60">
@@ -674,10 +679,19 @@ function PromocoesAereoPage() {
               <div className="h-full rounded-full bg-brand-orange transition-all" style={{ width: `${pct}%` }} />
             )}
           </div>
+          <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
+            <span>Encontradas no radar: {info.discovered ?? 0}</span>
+            <span>Confirmadas: {info.validated ?? 0}</span>
+            <span>Novas: {info.new_count ?? 0}</span>
+            <span>Atualizadas: {info.updated_count ?? 0}</span>
+            <span>Sem tarifa: {info.no_result ?? 0}</span>
+            {info.error_count ? <span className="text-destructive">Falhas: {info.error_count}</span> : null}
+          </div>
           <p className="mt-2 text-[11px] text-muted-foreground">
             Iniciada às {horaBR(info.started_at).split(", ")[1] ?? "—"}
             {info.last_label ? ` • Última oportunidade processada: ${info.last_label}` : ""}
           </p>
+
         </div>
       ) : null}
 
