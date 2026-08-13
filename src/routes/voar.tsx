@@ -46,9 +46,12 @@ type VoarSearch = {
   fo?: string;
   fol?: string;
   fm?: string;
+  /** Viagem multi-trecho: CWB-GRU-2026-09-01_GRU-REC-2026-09-05 */
+  ms?: string;
 };
 
 import { encodeTrail, decodeTrail } from "@/lib/md-trail";
+import { decodeSegments } from "@/lib/multicity";
 
 
 const MODES: Mode[] = ["aereo", "hotel", "carro", "combo", "exclusivo", "seguro"];
@@ -112,6 +115,7 @@ export const Route = createFileRoute("/voar")({
     fo: typeof search.fo === "string" ? search.fo.toUpperCase().slice(0, 3) : undefined,
     fol: typeof search.fol === "string" ? search.fol.slice(0, 60) : undefined,
     fm: typeof search.fm === "string" ? search.fm.slice(0, 7) : undefined,
+    ms: typeof search.ms === "string" ? search.ms.slice(0, 300) : undefined,
   }),
 
   loaderDeps: ({ search }) => ({
@@ -155,8 +159,11 @@ function VoarPublicPage() {
   const deps = Route.useLoaderDeps();
   const queryClient = useQueryClient();
   const navigate = Route.useNavigate();
-  const hasPreset = !!(s.o && s.d && s.ida);
-  const hasHotelPreset = s.m === "hotel" && !!(s.hd && s.ci && s.co);
+  const multiPreset = decodeSegments(s.ms) ?? [];
+  const hasMulti = multiPreset.length >= 2;
+  const hasPreset = !hasMulti && !!(s.o && s.d && s.ida);
+  const hasHotelPreset = !hasMulti && s.m === "hotel" && !!(s.hd && s.ci && s.co);
+
 
   return (
     <div className="voar-shell min-h-screen bg-background">
@@ -168,10 +175,11 @@ function VoarPublicPage() {
         backLabel="Voltar ao site"
         whatsappMessage="Olá! Estou pesquisando passagens aéreas no site da Via Air."
       />
-      {hasHotelPreset || hasPreset ? (
+      {hasMulti || hasHotelPreset || hasPreset ? (
         <SearchEngine
           publicMode
           initialMode={hasHotelPreset ? "hotel" : "aereo"}
+          multiPreset={hasMulti ? multiPreset : undefined}
           flightPreset={
             hasPreset
               ? {

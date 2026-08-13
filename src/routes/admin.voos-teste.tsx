@@ -82,6 +82,14 @@ import {
   type OnerSearchResult,
   type OnerLegResult,
 } from "@/lib/onertravel.types";
+import {
+  MultiCityForm,
+  MultiCityResults,
+  MultiTrechoToggle,
+  type FlightUi,
+} from "@/components/flights/MultiCity";
+import { initialSegments, type MultiSegmentInput } from "@/lib/multicity";
+
 
 
 export const Route = createFileRoute("/admin/voos-teste")({
@@ -107,13 +115,13 @@ export const Route = createFileRoute("/admin/voos-teste")({
 
 // ---------------------------------------------------------------- utils
 
-function fmtMoney(v: number) {
+export function fmtMoney(v: number) {
   return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
-function fmtTime(t: { hour: number; minute: number }) {
+export function fmtTime(t: { hour: number; minute: number }) {
   return `${String(t.hour).padStart(2, "0")}:${String(t.minute).padStart(2, "0")}`;
 }
-function fmtDate(d: { year: number; month: number; day: number }) {
+export function fmtDate(d: { year: number; month: number; day: number }) {
   return `${String(d.day).padStart(2, "0")}/${String(d.month).padStart(2, "0")}`;
 }
 /** Códigos multi-aeroporto: buscam todos os aeroportos da cidade na operadora. */
@@ -138,7 +146,7 @@ export const CITY_CODES = new Set([
   "YMQ",
   "BER",
 ]);
-function taxesOf(f: OnerFlight) {
+export function taxesOf(f: OnerFlight) {
   // A operadora já devolve total = price + tax (o serviceTax está embutido em tax).
   // Somar serviceTax de novo inflava as taxas exibidas.
   const total = f.price.total ?? 0;
@@ -146,7 +154,7 @@ function taxesOf(f: OnerFlight) {
   const tax = f.price.tax ?? 0;
   return total && fare ? Math.max(total - fare, 0) : tax;
 }
-function airlineOf(f: OnerFlight) {
+export function airlineOf(f: OnerFlight) {
   return f.journey.marketingAirline ?? f.journey.segments[0]?.marketingAirline ?? null;
 }
 /** minutos absolutos de um ponto (data + hora), para calcular conexões */
@@ -210,7 +218,7 @@ function normalizeLeg(leg: unknown): OnerLegResult {
   };
 }
 
-function normalizeSearchResult(raw: unknown): OnerSearchResult | null {
+export function normalizeSearchResult(raw: unknown): OnerSearchResult | null {
   if (!raw || typeof raw !== "object") return null;
   const r = raw as Partial<OnerSearchResult>;
   return {
@@ -283,7 +291,7 @@ function mergeFares(prev: OnerFlight | undefined, next: OnerFlight): OnerFlight 
 
 
 
-function findByAnyKey(list: OnerFlight[], key: string | null | undefined): OnerFlight | null {
+export function findByAnyKey(list: OnerFlight[], key: string | null | undefined): OnerFlight | null {
   if (!key) return null;
   return list.find((f) => f.key === key || (f.fareOptions ?? []).some((o) => o.key === key)) ?? null;
 }
@@ -661,7 +669,7 @@ function FiltersPanel({
 // ---------------------------------------------------------------- card
 
 /** Detalhamento de trechos e tempo de conexão — trilho vertical de precisão. */
-function SegmentsDetail({ f }: { f: OnerFlight }) {
+export function SegmentsDetail({ f }: { f: OnerFlight }) {
   const segs = f.journey.segments;
   return (
     <div className="mt-3 space-y-0 rounded-xl border border-border/60 bg-background/50 p-5">
@@ -808,7 +816,7 @@ function SelectedLegBar({
   );
 }
 
-function BagChip({
+export function BagChip({
   icon: Icon,
   kicker,
   value,
@@ -974,7 +982,7 @@ function FareOptionsDialog({
   );
 }
 
-function FlightCard({
+export function FlightCard({
 
   f,
   selected,
@@ -1768,6 +1776,60 @@ function mergePool(prev: OnerFlight[], next: OnerFlight[]): OnerFlight[] {
   return [...map.values()];
 }
 
+type PaxForm = {
+  departureIata: string;
+  arrivalIata: string;
+  departureDate: string;
+  returnDate: string;
+  adults: number;
+  children: number;
+  infants: number;
+};
+
+/** Linha de passageiros — compartilhada pelo modo normal e pelo Multi-trecho. */
+function PaxRow({
+  form,
+  setForm,
+  extra,
+}: {
+  form: PaxForm;
+  setForm: React.Dispatch<React.SetStateAction<PaxForm>>;
+  extra?: React.ReactNode;
+}) {
+  const paxTotal = Number(form.adults) + Number(form.children) + Number(form.infants);
+  return (
+    <div className="flex flex-col items-start gap-6 md:flex-row md:items-center md:justify-between">
+      <div className="flex flex-wrap items-center gap-6">
+        <span className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+          <Users className="h-5 w-5" /> {paxTotal} passageiro(s)
+        </span>
+        <div className="flex items-center gap-4">
+          {[
+            { k: "adults" as const, l: "Adultos", min: 1 },
+            { k: "children" as const, l: "Crianças", min: 0 },
+            { k: "infants" as const, l: "Bebês", min: 0 },
+          ].map((p) => (
+            <div key={p.k} className="flex flex-col">
+              <span className="mb-1 text-[9px] font-bold uppercase tracking-wider text-muted-foreground">
+                {p.l}
+              </span>
+              <Input
+                className="h-8 w-16 rounded-lg border-border/50 bg-muted/40 px-2 text-center"
+                type="number"
+                min={p.min}
+                max={9}
+                value={form[p.k]}
+                onChange={(e) => setForm((f) => ({ ...f, [p.k]: Number(e.target.value) }))}
+              />
+            </div>
+          ))}
+        </div>
+      </div>
+      {extra}
+    </div>
+  );
+}
+
 
 export function VoosPage({
   header,
@@ -1779,6 +1841,7 @@ export function VoosPage({
   externalSearch = false,
   emptySlot,
   presetFetch,
+  multiPreset,
 }: {
   header?: React.ReactNode;
   hideForm?: boolean;
@@ -1793,10 +1856,12 @@ export function VoosPage({
   externalSearch?: boolean;
   /** Conteúdo mostrado abaixo do motor enquanto não há resultados. */
   emptySlot?: React.ReactNode;
+  /** Viagem multi-trecho vinda da URL (widget → /voar). */
+  multiPreset?: MultiSegmentInput[];
 } = {}) {
   const search = useServerFn(publicMode ? onerFlightSearchPublic : onerFlightSearch);
   const searchInbound = useServerFn(publicMode ? onerInboundSearchPublic : onerInboundSearch);
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<PaxForm>({
     departureIata: "",
     arrivalIata: "",
 
@@ -1807,6 +1872,48 @@ export function VoosPage({
     infants: 0,
   });
   const [pendingRun, setPendingRun] = useState(0);
+
+  // ---- Multi-trecho (camada aditiva; o modo normal segue idêntico) ----
+  const [multiOn, setMultiOn] = useState(!!multiPreset?.length);
+  const [multiSegments, setMultiSegments] = useState<MultiSegmentInput[]>(
+    multiPreset?.length ? multiPreset : [],
+  );
+  /** Trechos congelados no momento da busca + token de execução. */
+  const [multiRun, setMultiRun] = useState<{ token: number; segments: MultiSegmentInput[] }>({
+    token: 0,
+    segments: [],
+  });
+  function runMulti() {
+    setMultiRun((r) => ({ token: r.token + 1, segments: multiSegments }));
+  }
+  // Multi-trecho vindo da URL já dispara a pesquisa.
+  useEffect(() => {
+    if (multiPreset?.length) {
+      setMultiOn(true);
+      setMultiSegments(multiPreset);
+      setMultiRun({ token: 1, segments: multiPreset });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const flightUi = useMemo<FlightUi>(
+    () => ({
+      FlightCard,
+      SegmentsDetail,
+      BagChip,
+      fmtMoney,
+      fmtTime,
+      fmtDate,
+      airlineOf,
+      taxesOf,
+      normalizeSearchResult,
+      findByAnyKey,
+      cityCodes: CITY_CODES,
+      BriefcaseIcon: BriefcaseBusiness,
+      LuggageIcon: Luggage,
+    }),
+    [],
+  );
 
 
   const [result, setResult] = useState<OnerSearchResult | null>(null);
@@ -2227,7 +2334,26 @@ export function VoosPage({
             )}
           </div>
 
-          {!hideForm && (
+          {multiOn ? (
+            <div className="rounded-[32px] border border-border/50 bg-card/60 p-6 shadow-2xl backdrop-blur-xl md:p-8">
+              <MultiCityForm
+                segments={multiSegments}
+                onChange={setMultiSegments}
+                onSearch={runMulti}
+                onCancel={() => setMultiOn(false)}
+                publicMode={publicMode}
+                externalSearch={externalSearch}
+                pax={{
+                  adults: Number(form.adults),
+                  children: Number(form.children),
+                  infants: Number(form.infants),
+                }}
+              />
+              <div className="mt-4 border-t border-border/40 pt-6">
+                <PaxRow form={form} setForm={setForm} />
+              </div>
+            </div>
+          ) : (
             <div className="rounded-[32px] border border-border/50 bg-card/60 p-6 shadow-2xl backdrop-blur-xl md:p-8">
               <div className="grid grid-cols-12 items-end gap-4">
                 <div className="relative col-span-12 grid grid-cols-2 gap-4 md:col-span-6">
@@ -2324,33 +2450,28 @@ export function VoosPage({
                   )}
                 </div>
 
-                <div className="col-span-12 mt-2 flex flex-col items-start gap-6 border-t border-border/40 pt-6 md:flex-row md:items-center md:justify-between">
-                  <div className="flex flex-wrap items-center gap-6">
-                    <span className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                      <Users className="h-5 w-5" /> {paxTotal} passageiro(s)
-                    </span>
-                    <div className="flex items-center gap-4">
-                      {[
-                        { k: "adults" as const, l: "Adultos", min: 1 },
-                        { k: "children" as const, l: "Crianças", min: 0 },
-                        { k: "infants" as const, l: "Bebês", min: 0 },
-                      ].map((p) => (
-                        <div key={p.k} className="flex flex-col">
-                          <span className="mb-1 text-[9px] font-bold uppercase tracking-wider text-muted-foreground">
-                            {p.l}
-                          </span>
-                          <Input
-                            className="h-8 w-16 rounded-lg border-border/50 bg-muted/40 px-2 text-center"
-                            type="number"
-                            min={p.min}
-                            max={9}
-                            value={form[p.k]}
-                            onChange={(e) => setForm({ ...form, [p.k]: Number(e.target.value) })}
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+                <div className="col-span-12 mt-2 border-t border-border/40 pt-6">
+                  <PaxRow
+                    form={form}
+                    setForm={setForm}
+                    extra={
+                      <MultiTrechoToggle
+                        active={false}
+                        onToggle={() => {
+                          setMultiSegments((prev) =>
+                            prev.length
+                              ? prev
+                              : initialSegments({
+                                  origin: form.departureIata,
+                                  destination: form.arrivalIata,
+                                  date: form.departureDate,
+                                }),
+                          );
+                          setMultiOn(true);
+                        }}
+                      />
+                    }
+                  />
                 </div>
               </div>
             </div>
@@ -2360,15 +2481,30 @@ export function VoosPage({
       )}
 
       <main className={`mx-auto max-w-7xl px-4 ${publicMode && !result && !mut.isPending && !emptySlot ? "py-0" : "py-6"}`}>
+        {/* Multi-trecho: camada própria de resultados (uma pesquisa por trecho). */}
+        {multiOn && multiRun.token > 0 && (
+          <MultiCityResults
+            segments={multiRun.segments}
+            pax={{
+              adults: Number(form.adults),
+              children: Number(form.children),
+              infants: Number(form.infants),
+            }}
+            runToken={multiRun.token}
+            publicMode={publicMode}
+            ui={flightUi}
+          />
+        )}
+
         {/* Busca nova sempre mostra o esqueleto de carregamento, mesmo com
             resultados antigos na tela — senão parece que travou. */}
-        {novaBusca && <SearchSkeleton />}
+        {!multiOn && novaBusca && <SearchSkeleton />}
 
-        {!result && !mut.isPending && emptySlot ? (
+        {!multiOn && !result && !mut.isPending && emptySlot ? (
           <div data-empty-slot>{emptySlot}</div>
         ) : null}
 
-        {!publicMode && !emptySlot && !result && !mut.isPending && (
+        {!multiOn && !publicMode && !emptySlot && !result && !mut.isPending && (
           <div data-empty-state className="rounded-2xl border border-dashed border-border p-12 text-center">
             <Plane className="mx-auto mb-3 h-6 w-6 text-muted-foreground" />
             <p className="text-sm text-muted-foreground">
@@ -2379,7 +2515,7 @@ export function VoosPage({
         )}
 
 
-        {result && !novaBusca && (
+        {!multiOn && result && !novaBusca && (
           <div className={`grid gap-6 ${showSummary ? "" : "lg:grid-cols-[280px_1fr]"}`}>
             {!showSummary && (
               <aside className="space-y-4 lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:self-start lg:overflow-y-auto lg:overscroll-contain lg:pr-1">
