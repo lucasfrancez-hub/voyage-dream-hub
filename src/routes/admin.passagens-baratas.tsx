@@ -726,7 +726,7 @@ export function PassagensBaratasExplorer({
       ) : null}
 
       {/* Destinos ou origens (tabela igual à do Melhores Destinos) */}
-      {data?.cities.length ? (
+      {!carregando && data?.cities.length ? (
         <Card className="overflow-hidden border-white/5 shadow-2xl">
           <div className="flex items-center justify-between bg-primary px-6 py-4 text-[11px] font-bold uppercase tracking-widest text-primary-foreground">
             <span>{data.level === "origins" ? "Origem → Destino" : "Destino"}</span>
