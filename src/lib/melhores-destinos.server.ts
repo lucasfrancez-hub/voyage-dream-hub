@@ -9,6 +9,7 @@
  * Cada oferta sai com o link do nosso motor (Comprar Viagem) no lugar do
  * link do parceiro (CVC, ViajaNet...).
  */
+import { AsyncLocalStorage } from "node:async_hooks";
 import { z } from "zod";
 import { viaairFlightUrl, viaairRouteUrl } from "@/lib/melhores-destinos.parse";
 import { readMdCache, writeMdCache } from "@/lib/md-cache.server";
@@ -43,6 +44,24 @@ export class MdUnavailableError extends Error {
 
 export type MdPriority = "interactive" | "background";
 export type MdCancel = () => boolean | Promise<boolean>;
+
+/* ----------------------------------------------------------------
+ * MODO "SOMENTE DADOS INTERNOS"
+ * ----------------------------------------------------------------
+ * Promoções de Aéreo NÃO consulta mais o Melhores Destinos diretamente:
+ * lê apenas o que a camada do Passagens Baratas já coletou e persistiu.
+ * Dentro de `mdInternalOnly(...)` nenhuma requisição sai para a fonte;
+ * sem dado interno recente a consulta falha com MdUnavailableError.
+ * ---------------------------------------------------------------- */
+export const MD_INTERNAL_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+const internalOnlyStore = new AsyncLocalStorage<{ maxAgeMs: number }>();
+
+export function mdInternalOnly<T>(fn: () => Promise<T>, opts?: { maxAgeMs?: number }): Promise<T> {
+  return internalOnlyStore.run({ maxAgeMs: opts?.maxAgeMs ?? MD_INTERNAL_MAX_AGE_MS }, fn);
+}
+export function mdInternalOnlyContext() {
+  return internalOnlyStore.getStore() ?? null;
+}
 
 export type MdFetchOptions = {
   ttlMs?: number;
@@ -101,6 +120,8 @@ export const mdMetrics = {
   cacheMisses: 0,
   coalesced: 0,
   staleServed: 0,
+  internalOnlyHits: 0,
+  internalOnlyMisses: 0,
   ok: 0,
   status403: 0,
   status429: 0,
@@ -125,7 +146,8 @@ export function mdSourceMetrics() {
 export function resetMdSourceMetrics() {
   Object.assign(mdMetrics, {
     requests: 0, externalCalls: 0, cacheHits: 0, dbCacheHits: 0, cacheMisses: 0, coalesced: 0,
-    staleServed: 0, ok: 0, status403: 0, status429: 0, status5xx: 0, otherErrors: 0,
+    staleServed: 0, internalOnlyHits: 0, internalOnlyMisses: 0,
+    ok: 0, status403: 0, status429: 0, status5xx: 0, otherErrors: 0,
     retries: 0, backoffs: 0, waitedMs: 0, gaps: 0, lastError: null, lastErrorAt: null,
   });
 }
@@ -267,6 +289,8 @@ async function chamada(url: string, opts: MdFetchOptions): Promise<unknown> {
  */
 export async function mdFetchJson<T>(url: string, opts: MdFetchOptions = {}): Promise<T> {
   mdMetrics.requests++;
+  const interno = mdInternalOnlyContext();
+  const recente = (at: number) => !interno || Date.now() - at < interno.maxAgeMs;
   const ttl = opts.ttlMs ?? DEFAULT_TTL;
   const hit = jsonCache.get(url);
   if (hit && Date.now() - hit.at < ttl) {
@@ -292,14 +316,20 @@ export async function mdFetchJson<T>(url: string, opts: MdFetchOptions = {}): Pr
       }
 
       const background = (opts.priority ?? "background") === "background";
-      const fonteFora = opts.cacheOnly === true || (background && !mdRadarAvailable());
+      const fonteFora = !!interno || opts.cacheOnly === true || (background && !mdRadarAvailable());
       if (fonteFora) {
         const base = hit ?? salvo;
-        if (base && opts.allowStale !== false) {
+        if (base && opts.allowStale !== false && recente(base.at)) {
           mdMetrics.staleServed++;
+          if (interno) mdMetrics.internalOnlyHits++;
           return base.value;
         }
-        throw new MdUnavailableError();
+        if (interno) mdMetrics.internalOnlyMisses++;
+        throw new MdUnavailableError(
+          interno
+            ? "Sem oportunidades recentes coletadas pelo Passagens Baratas"
+            : undefined,
+        );
       }
 
       const value = await chamada(url, opts);
@@ -311,7 +341,7 @@ export async function mdFetchJson<T>(url: string, opts: MdFetchOptions = {}): Pr
       if (e instanceof MdCancelledError) throw e;
       // Nunca deixa a tela sem tarifa: serve o último resultado bom, mesmo vencido.
       const base = hit ?? salvo;
-      if (base && opts.allowStale !== false) {
+      if (base && opts.allowStale !== false && recente(base.at)) {
         mdMetrics.staleServed++;
         return base.value;
       }
@@ -327,6 +357,10 @@ export async function mdFetchJson<T>(url: string, opts: MdFetchOptions = {}): Pr
 
 async function get(url: string): Promise<Response> {
   // HTML (feed de promoções): mesma fila/ritmo, sem cache JSON.
+  if (mdInternalOnlyContext()) {
+    mdMetrics.internalOnlyMisses++;
+    throw new MdUnavailableError("Consulta externa bloqueada: modo somente dados internos");
+  }
   return enfileirar("interactive", undefined, async () => {
     const res = await fetch(url, {
       headers: { "user-agent": UA, accept: "*/*", referer: `${SITE}/` },
