@@ -177,25 +177,130 @@ function BaggageBlocks({ label }: { label: string | null }) {
   );
 }
 
-/** Placeholder de carregamento — cache de até 24h, sem cara de busca ao vivo. */
-function LoadingSkeleton() {
-  return (
-    <Card className="overflow-hidden rounded-2xl p-6">
-      <div className="mb-4 flex items-center gap-2 text-sm font-semibold">
-        <Clock className="h-4 w-4 text-primary" />
-        Preços coletados nas últimas 24 horas
-        <span className="text-xs font-normal text-muted-foreground">
-          · abrindo tarifas salvas
-        </span>
-      </div>
-      <div className="space-y-2">
-        {Array.from({ length: 5 }).map((_, i) => (
-          <div key={i} className="h-11 animate-pulse rounded-xl bg-muted/50" />
+/** Que tipo de conteúdo o próximo passo vai mostrar (para o texto e o esqueleto certos). */
+type StageKind = "categories" | "cities" | "routes" | "fares";
+
+function stageKindOf(step: Step): StageKind {
+  if (step.fromIata && step.toIata) return "fares";
+  if (step.toIata) return "routes";
+  if (step.categoryId) return "cities";
+  return "categories";
+}
+
+/** Mensagem real da etapa — nunca um "carregando..." genérico. */
+function stageMessage(step: Step): { titulo: string; sub: string } {
+  const nome = step.baseLabel ?? step.label;
+  switch (stageKindOf(step)) {
+    case "cities":
+      return { titulo: `Buscando destinos em ${nome}...`, sub: "Consultando as melhores tarifas disponíveis" };
+    case "routes":
+      return { titulo: `Buscando rotas para ${nome}...`, sub: "Procurando as origens com melhor preço" };
+    case "fares":
+      return { titulo: `Carregando tarifas para ${nome}...`, sub: "Histórico de preços, datas e companhias" };
+    default:
+      return { titulo: "Carregando categorias...", sub: "Preparando os destinos mais econômicos" };
+  }
+}
+
+const Bloco = ({ className }: { className: string }) => (
+  <div className={`animate-pulse rounded-xl bg-muted/50 ${className}`} />
+);
+
+/** Esqueleto com o formato do conteúdo que vai aparecer (a página não "pula"). */
+function StageSkeleton({ kind }: { kind: StageKind }) {
+  if (kind === "categories") {
+    return (
+      <div className="grid gap-4 md:grid-cols-2">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <div key={i} className="flex items-center gap-4 rounded-2xl border border-border/50 bg-card p-4">
+            <Bloco className="h-24 w-24 shrink-0" />
+            <div className="flex-1 space-y-2">
+              <Bloco className="h-4 w-1/2" />
+              <Bloco className="h-3 w-3/4" />
+            </div>
+            <Bloco className="h-7 w-20 shrink-0" />
+          </div>
         ))}
+      </div>
+    );
+  }
+
+  if (kind === "cities" || kind === "routes") {
+    return (
+      <Card className="overflow-hidden border-white/5 shadow-2xl">
+        <div className="flex items-center justify-between bg-primary px-6 py-4 text-[11px] font-bold uppercase tracking-widest text-primary-foreground">
+          <span>{kind === "routes" ? "Origem → Destino" : "Destino"}</span>
+          <span className="text-right">Ida + volta a partir de</span>
+        </div>
+        <div className="flex flex-col">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} className="flex items-center justify-between gap-3 border-b border-white/5 px-6 py-4">
+              <div className="min-w-0 flex-1 space-y-2">
+                <Bloco className="h-4 w-2/5" />
+                <Bloco className="h-2.5 w-24" />
+              </div>
+              <Bloco className="h-6 w-24 shrink-0" />
+            </div>
+          ))}
+        </div>
+      </Card>
+    );
+  }
+
+  return (
+    <div className="space-y-5">
+      <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+        <div className="space-y-2">
+          <Bloco className="h-2.5 w-48" />
+          <Bloco className="h-8 w-72" />
+        </div>
+        <Bloco className="h-20 w-56" />
+      </div>
+      <Card className="rounded-2xl p-6">
+        <Bloco className="mb-7 h-3 w-40" />
+        <div className="flex h-32 items-end justify-between gap-3">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <Bloco key={i} className="w-full" />
+          ))}
+        </div>
+      </Card>
+      <Card className="overflow-hidden rounded-2xl shadow-2xl">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <div key={i} className="flex items-center gap-6 border-b px-6 py-5">
+            <Bloco className="h-9 w-9 shrink-0" />
+            <Bloco className="h-4 flex-1" />
+            <Bloco className="h-7 w-24 shrink-0" />
+            <Bloco className="h-8 w-24 shrink-0" />
+          </div>
+        ))}
+      </Card>
+    </div>
+  );
+}
+
+/** Faixa de etapa: diz exatamente o que está sendo buscado agora. */
+function StageBanner({
+  titulo,
+  sub,
+  lento,
+}: {
+  titulo: string;
+  sub: string;
+  lento: boolean;
+}) {
+  return (
+    <Card className="flex items-center gap-3 rounded-2xl border-primary/20 bg-primary/[0.06] px-5 py-4">
+      <Loader2 className="h-4 w-4 shrink-0 animate-spin text-primary" />
+      <div className="min-w-0">
+        <div className="truncate text-sm font-bold">
+          {lento ? "Ainda buscando as melhores opções..." : titulo}
+        </div>
+        <div className="truncate text-xs text-muted-foreground">{sub}</div>
       </div>
     </Card>
   );
 }
+
 
 
 /**
