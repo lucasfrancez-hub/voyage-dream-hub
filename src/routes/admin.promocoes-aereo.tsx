@@ -1280,6 +1280,17 @@ function PromocoesAereoPage() {
                     "Status atualizado",
                   )
                 }
+                onDelete={() =>
+                  confirmThen(
+                    {
+                      title: "Excluir promoção",
+                      description: `Remover definitivamente ${promo.origin_iata} → ${promo.destination_iata}? Essa ação não pode ser desfeita.`,
+                      confirmText: "Excluir",
+                      destructive: true,
+                    },
+                    () => acao(promo.id, () => excluir({ data: { id: promo.id } }), "Promoção excluída"),
+                  )
+                }
               />
             ))
           )}
