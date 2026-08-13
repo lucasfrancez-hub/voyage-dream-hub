@@ -137,12 +137,14 @@ const STORY_CSS = `
 .route-glass{padding:24px 30px}
 .route-city{font-size:56px}.route-city .arrow{font-size:34px}
 .route-iata{font-size:34px}
-.details{margin-top:44px;gap:14px}
-.detail-row{min-height:80px;padding:18px 24px}
-.detail-row .label{font-size:25px}
-.detail-row .value{font-size:32px}
-.airline-logo{width:56px;height:56px}.airline-logo img{width:46px;height:46px}
-.airline-iata{font-size:21px}
+.details{--ds:1;margin-top:calc(44px * var(--ds));gap:calc(14px * var(--ds));width:100%}
+.detail-row{min-height:calc(80px * var(--ds));padding:calc(18px * var(--ds)) calc(24px * var(--ds));gap:calc(16px * var(--ds))}
+.detail-row .label{font-size:calc(25px * var(--ds))}
+.detail-row .value{font-size:calc(32px * var(--ds))}
+.detail-row.row-baggage .value{white-space:normal;line-height:1.15}
+.airline-logo{width:calc(56px * var(--ds));height:calc(56px * var(--ds))}.airline-logo img{width:calc(46px * var(--ds));height:calc(46px * var(--ds))}
+.airline-iata{font-size:calc(21px * var(--ds))}
+
 .price-box{left:58px;right:58px;bottom:96px;padding:40px 42px}
 .price-top{font-size:28px}
 .main-subtitle{font-size:29px}
