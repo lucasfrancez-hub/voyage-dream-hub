@@ -72,11 +72,42 @@ export function PromoSocialDialog({
     if (open) setAba(initialChannel);
   }, [open, initialChannel]);
 
+  /** Garante cart_url + short_url ANTES de montar o texto. */
+  useEffect(() => {
+    if (!open || !promo) {
+      setLinkStatus("idle");
+      return;
+    }
+    if (promo.short_url) {
+      setShortUrl(promo.short_url);
+      setLinkStatus("ready");
+      return;
+    }
+    let vivo = true;
+    setShortUrl(null);
+    setLinkStatus("loading");
+    genLinkFn({ data: { id: promo.id } })
+      .then((r) => {
+        if (!vivo) return;
+        const u = (r as { short_url?: string | null; cart_url?: string | null }) ?? {};
+        setShortUrl(u.short_url ?? u.cart_url ?? null);
+        setLinkStatus("ready");
+      })
+      .catch(() => {
+        if (!vivo) return;
+        setLinkStatus("error");
+      });
+    return () => {
+      vivo = false;
+    };
+  }, [open, promo, genLinkFn]);
+
   useEffect(() => {
     if (!open || !promo) return;
-    setTextoWa(promoWhatsappText(promo));
-    setTextoIg(promoInstagramText(promo));
-  }, [open, promo]);
+    const comLink = { ...promo, short_url: shortUrl ?? promo.short_url ?? null };
+    setTextoWa(promoWhatsappText(comLink));
+    setTextoIg(promoInstagramText(comLink));
+  }, [open, promo, shortUrl]);
 
   useEffect(() => {
     if (!open) return;
