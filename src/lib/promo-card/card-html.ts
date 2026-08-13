@@ -266,12 +266,28 @@ const AUTOFIT = `
     }
     fit();
   };
-  fit();
-  window.addEventListener('load',fit);
-  window.addEventListener('resize',fit);
-  if(document.fonts&&document.fonts.ready){document.fonts.ready.then(fit);}
+  // Garante que a faixa de detalhes (inclusive Bagagem) nunca fique escondida
+  // atrás do bloco de preço: encolhe os campos até caber com folga.
+  function fitDetails(){
+    var details=document.querySelector('.details');
+    var price=document.querySelector('.price-box');
+    if(!details||!price) return;
+    var gap=20;
+    for(var ds=1; ds>=0.58; ds-=0.03){
+      details.style.setProperty('--ds', String(ds));
+      var d=details.getBoundingClientRect();
+      var p=price.getBoundingClientRect();
+      if(d.bottom<=p.top-gap) break;
+    }
+  }
+  function fitAll(){ fit(); fitDetails(); }
+  fitAll();
+  window.addEventListener('load',fitAll);
+  window.addEventListener('resize',fitAll);
+  if(document.fonts&&document.fonts.ready){document.fonts.ready.then(fitAll);}
 })();
 </script>`;
+
 
 
 function precoBloco(d: PromoCardData): { melhor: string; prazo: string } {
