@@ -254,34 +254,104 @@ export async function quoteRoute(args: {
 /** Considera travada/abandonada uma execução parada há mais de 45 minutos. */
 const RUN_STALE_MS = 45 * 60 * 1000;
 
-/** Cria a execução (trava global). Devolve null se já existe uma ativa. */
-export async function startPromoRun(trigger: "manual" | "cron"): Promise<{ id: string } | null> {
+/** Status considerados "execução viva". */
+export const ACTIVE_RUN_STATUSES = ["running", "cancel_requested"] as const;
+
+/**
+ * CANCELAMENTO COOPERATIVO — running → cancel_requested → cancelada.
+ * Nada é apagado: o que já foi validado permanece na curadoria.
+ */
+export async function requestPromoRunCancel(runId?: string) {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const db = supabaseAdmin as unknown as AnyClient;
+  const now = new Date().toISOString();
+
+  let alvo = runId;
+  if (!alvo) {
+    const { data } = await db
+      .from("airfare_promo_runs")
+      .select("id")
+      .in("status", ACTIVE_RUN_STATUSES as unknown as string[])
+      .order("started_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    alvo = (data as { id?: string } | null)?.id;
+  }
+  if (!alvo) return { cancelled: false as const, reason: "sem_coleta_ativa" };
+
+  await db
+    .from("airfare_promo_runs")
+    .update({ status: "cancel_requested", cancel_requested_at: now, updated_at: now })
+    .eq("id", alvo)
+    .in("status", ACTIVE_RUN_STATUSES as unknown as string[]);
+
+  // candidatas ainda na fila são encerradas de imediato (as em processamento
+  // terminam com segurança e o worker para antes de pegar novas)
+  await db
+    .from("airfare_promo_candidates")
+    .update({ status: "cancelled", processed_at: now })
+    .eq("run_id", alvo)
+    .eq("status", "pending");
+
+  const { count } = await db
+    .from("airfare_promo_candidates")
+    .select("id", { count: "exact", head: true })
+    .eq("run_id", alvo)
+    .eq("status", "processing");
+
+  if (!Number(count ?? 0)) {
+    const { finalizeCancelledRun } = await import("@/lib/airfare-promos.worker.server");
+    await finalizeCancelledRun(alvo);
+  }
+
+  return { cancelled: true as const, runId: alvo };
+}
+
+/**
+ * Cria a execução (trava global). Devolve null se já existe uma ativa.
+ * `force` (botão "Atualizar agora") encerra corretamente a run anterior
+ * antes de começar uma rodada COMPLETA e nova.
+ */
+export async function startPromoRun(
+  trigger: "manual" | "cron",
+  opts?: { force?: boolean },
+): Promise<{ id: string } | null> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const db = supabaseAdmin as unknown as AnyClient;
 
-  const { data: active } = await db
+  const { data: ativas } = await db
     .from("airfare_promo_runs")
-    .select("id,updated_at")
-    .eq("status", "running")
-    .maybeSingle();
+    .select("id,updated_at,status")
+    .in("status", ACTIVE_RUN_STATUSES as unknown as string[])
+    .order("started_at", { ascending: false });
 
-  if (active) {
+  for (const active of (ativas ?? []) as Array<{ id: string; updated_at: string }>) {
     const idle = Date.now() - new Date(active.updated_at).getTime();
-    if (idle < RUN_STALE_MS) return null;
+    if (!opts?.force && idle < RUN_STALE_MS) return null;
+    const now = new Date().toISOString();
     await db
       .from("airfare_promo_runs")
       .update({
-        status: "error",
-        error_message: "Execução interrompida (sem atualização)",
-        finished_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
+        status: "cancelada",
+        phase: "cancelada",
+        cancelled_at: now,
+        error_message: opts?.force
+          ? "Encerrada por nova atualização manual"
+          : "Execução interrompida (sem atualização)",
+        finished_at: now,
+        updated_at: now,
       })
       .eq("id", active.id);
+    await db
+      .from("airfare_promo_candidates")
+      .update({ status: "cancelled", processed_at: now })
+      .eq("run_id", active.id)
+      .in("status", ["pending", "processing"]);
   }
 
   const { data, error } = await db
     .from("airfare_promo_runs")
-    .insert({ status: "running", trigger })
+    .insert({ status: "running", trigger, phase: "descobrindo" })
     .select("id")
     .maybeSingle();
   if (error || !data) return null;
