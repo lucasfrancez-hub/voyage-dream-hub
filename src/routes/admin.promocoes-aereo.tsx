@@ -66,7 +66,23 @@ type Promo = PromoRow & {
   reference_collected_at?: string | null;
   price_difference?: number | null;
   price_difference_percent?: number | null;
+  cycle_state?: string | null;
+  cycle_changed_fields?: string[] | null;
+  cycle_state_at?: string | null;
+  cycle_day?: string | null;
 };
+
+/** Rótulos dos campos alterados entre a coleta das 06h e a das 12h. */
+const CAMPO_LABEL: Record<string, string> = {
+  price: "preço",
+  airline: "companhia",
+  fare_id: "tarifa",
+  flight: "voo",
+  connection: "conexão",
+  baggage: "bagagem",
+  installment: "parcelamento",
+};
+
 
 const brl = (v: number | string | null | undefined) =>
   Number(v ?? 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
