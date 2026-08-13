@@ -5,6 +5,14 @@
  * campos via `promoCardData`.
  */
 import { AVISO_MAIOR_PARCELAMENTO, AVISO_VALIDADE_TARIFA } from "@/lib/airfare-conditions";
+import { dataTarifaPorExtenso } from "@/lib/promo-card/card-html";
+
+/** Títulos comerciais (padrão: Oferta Relâmpago). */
+export const PROMO_TITULOS = [
+  "⚡ OFERTA RELÂMPAGO VIA AIR",
+  "✈️ PROMOÇÃO AÉREA VIA AIR",
+  "🔥 TARIFA ENCONTRADA HOJE",
+] as const;
 
 export type PromoRow = {
   origin_iata: string;
