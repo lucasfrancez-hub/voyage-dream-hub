@@ -85,8 +85,8 @@ async function getJson<T>(url: string): Promise<T> {
         return value;
       }
       last = new Error(`Melhores Destinos respondeu ${res.status}`);
-      // 429/503 = rajada: espera mais antes de tentar de novo
-      if (res.status === 429 || res.status >= 500) {
+      // 403/429/5xx = rajada ou bloqueio temporário: descansa antes de tentar de novo
+      if (res.status === 403 || res.status === 429 || res.status >= 500) {
         bloqueadoAte = Date.now() + 6000 * (i + 1);
         continue;
       }
