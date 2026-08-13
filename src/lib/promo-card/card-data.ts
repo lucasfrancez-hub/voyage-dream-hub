@@ -88,7 +88,7 @@ export function promoToCardData(row: Record<string, unknown>): PromoCardData {
       (row.last_checked_at as string | null) ??
       (row.reference_collected_at as string | null) ??
       null,
-    categoria: "Passagens aéreas",
+    categoria: "PASSAGEM AÉREA",
     destination: destCity.toUpperCase(),
     origin: String(row.origin_city ?? row.origin_iata ?? ""),
     destinationCity: destCity,
