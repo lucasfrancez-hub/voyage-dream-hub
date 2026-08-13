@@ -33,6 +33,31 @@ export const Route = createFileRoute("/l/$slug")({
           })
           .eq("slug", slug);
 
+        // métricas detalhadas do clique (região, dispositivo, origem)
+        try {
+          const { parseUserAgent, geoFromHeaders, hostDoReferrer } = await import(
+            "@/lib/analytics/ua.server"
+          );
+          const userAgent = request.headers.get("user-agent");
+          const ua = parseUserAgent(userAgent);
+          const geo = geoFromHeaders(request.headers);
+          const referrer = request.headers.get("referer");
+          void supabaseAdmin.from("short_link_clicks").insert({
+            slug,
+            referrer,
+            referrer_host: hostDoReferrer(referrer),
+            country: geo.country,
+            region: geo.region,
+            city: geo.city,
+            device: ua.device,
+            browser: ua.browser,
+            os: ua.os,
+            user_agent: userAgent?.slice(0, 400) ?? null,
+          });
+        } catch {
+          /* métricas nunca bloqueiam o redirect */
+        }
+
         return new Response(null, {
           status: 302,
           headers: {
