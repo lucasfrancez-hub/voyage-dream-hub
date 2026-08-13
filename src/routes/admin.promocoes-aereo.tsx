@@ -38,6 +38,7 @@ import {
 } from "@/lib/airfare-promos.functions";
 import { promoInstagramText, promoWhatsappText, type PromoRow } from "@/lib/airfare-promo-text";
 import { PromoArtDialog } from "@/components/promo/PromoArtDialog";
+import { PromoSocialDialog } from "@/components/promo/PromoSocialDialog";
 import { scopeOfRoute } from "@/lib/br-airports";
 import { isOriginAllowedForScope } from "@/lib/airfare-promos.config";
 
@@ -238,6 +239,7 @@ function PromoCard({
   onLink,
   onStatus,
   onArt,
+  onSocial,
   busy,
 }: {
   promo: Promo;
@@ -245,6 +247,7 @@ function PromoCard({
   onLink: () => void;
   onStatus: (s: string) => void;
   onArt: () => void;
+  onSocial: (canal: "whatsapp" | "instagram") => void;
   busy: boolean;
 }) {
   const semJuros =
@@ -385,15 +388,15 @@ function PromoCard({
         </span>
         <div className="flex items-center gap-1.5">
           <IconBtn
-            title="Copiar texto do WhatsApp"
-            onClick={() => copiar(promoWhatsappText(promo), "Texto do WhatsApp copiado")}
+            title="Divulgar no WhatsApp"
+            onClick={() => onSocial("whatsapp")}
             className="hover:border-emerald-500/50 hover:text-emerald-500"
           >
             <MessageCircle className="h-4 w-4" />
           </IconBtn>
           <IconBtn
-            title="Copiar legenda do Instagram"
-            onClick={() => copiar(promoInstagramText(promo), "Legenda do Instagram copiada")}
+            title="Divulgar no Instagram"
+            onClick={() => onSocial("instagram")}
             className="hover:border-pink-500/50 hover:text-pink-500"
           >
             <Instagram className="h-4 w-4" />
@@ -697,6 +700,8 @@ function PromocoesAereoPage() {
   const [sort, setSort] = useState("preco");
   const [busyId, setBusyId] = useState<string | null>(null);
   const [artPromo, setArtPromo] = useState<(PromoRow & { id: string }) | null>(null);
+  const [socialPromo, setSocialPromo] = useState<(PromoRow & { id: string }) | null>(null);
+  const [socialCanal, setSocialCanal] = useState<"whatsapp" | "instagram">("whatsapp");
 
   useEffect(() => setAtalho(0), [aba]);
 
@@ -1064,6 +1069,10 @@ function PromocoesAereoPage() {
                 promo={promo}
                 busy={busyId === promo.id}
                 onArt={() => setArtPromo(promo)}
+                onSocial={(canal) => {
+                  setSocialCanal(canal);
+                  setSocialPromo(promo);
+                }}
                 onRefresh={() =>
                   acao(promo.id, () => refreshOne({ data: { id: promo.id } }), "Tarifa reconsultada")
                 }
@@ -1100,6 +1109,14 @@ function PromocoesAereoPage() {
 
 
       {artPromo ? <PromoArtDialog promo={artPromo} onClose={() => setArtPromo(null)} /> : null}
+
+      <PromoSocialDialog
+        promo={socialPromo}
+        open={!!socialPromo}
+        onOpenChange={(v) => !v && setSocialPromo(null)}
+        initialChannel={socialCanal}
+        onEditArt={() => socialPromo && setArtPromo(socialPromo)}
+      />
     </div>
   );
 }
