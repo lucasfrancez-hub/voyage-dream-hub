@@ -56,45 +56,54 @@ function Card({
   return (
     <div className="rounded-2xl border border-border bg-card p-4">
       <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-        <span className="text-brand-orange">{icon}</span>
+        <span className="text-muted-foreground">{icon}</span>
         {label}
       </div>
-      <div className="mt-2 font-display text-2xl font-bold">{value}</div>
-      {hint && <div className="mt-0.5 text-[11px] text-muted-foreground">{hint}</div>}
+      <div className="mt-3 font-display text-2xl font-bold sm:text-3xl">{value}</div>
+      {hint && <div className="mt-1 text-[11px] leading-snug text-muted-foreground">{hint}</div>}
     </div>
   );
 }
 
 function Lista({
   titulo,
+  descricao,
   itens,
   icone,
 }: {
   titulo: string;
+  descricao?: string;
   itens: Array<{ label: string; total: number }>;
   icone?: React.ReactNode;
 }) {
   const max = Math.max(1, ...itens.map((i) => i.total));
+  const soma = itens.reduce((a, i) => a + i.total, 0) || 1;
   return (
-    <section className="rounded-2xl border border-border bg-card">
-      <div className="flex items-center gap-2 border-b border-border px-4 py-3 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
-        {icone}
-        {titulo}
+    <section className="overflow-hidden rounded-2xl border border-border bg-card">
+      <div className="border-b border-border bg-muted/30 px-4 py-3">
+        <h3 className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-foreground">
+          {icone}
+          {titulo}
+        </h3>
+        {descricao && <p className="mt-0.5 text-[11px] text-muted-foreground">{descricao}</p>}
       </div>
       {itens.length === 0 ? (
         <div className="p-4 text-sm text-muted-foreground">Sem dados no período.</div>
       ) : (
-        <ul className="divide-y divide-border">
+        <ul className="divide-y divide-border/60">
           {itens.map((i) => (
-            <li key={i.label} className="px-4 py-2.5">
-              <div className="flex items-center justify-between gap-3 text-sm">
-                <span className="min-w-0 break-words">{i.label}</span>
-                <span className="shrink-0 font-semibold text-brand-orange">{i.total}</span>
+            <li key={i.label} className="px-4 py-3">
+              <div className="flex items-start justify-between gap-3 text-sm">
+                <span className="min-w-0 break-words text-foreground">{i.label}</span>
+                <span className="shrink-0 text-right text-xs font-semibold text-muted-foreground">
+                  {Math.round((i.total / soma) * 100)}%
+                  <span className="ml-1.5 font-normal">({i.total})</span>
+                </span>
               </div>
-              <div className="mt-1.5 h-1.5 rounded-full bg-muted">
+              <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted">
                 <div
-                  className="h-1.5 rounded-full bg-brand-orange/70"
-                  style={{ width: `${(i.total / max) * 100}%` }}
+                  className="h-full rounded-full bg-brand-orange"
+                  style={{ width: `${Math.max(3, (i.total / max) * 100)}%` }}
                 />
               </div>
             </li>
@@ -138,16 +147,16 @@ function MetricasPage() {
             Visitas, navegação, cliques, região, tempo de permanência e desempenho dos links curtos.
           </p>
         </div>
-        <div className="ml-auto flex flex-wrap gap-1.5">
+        <div className="ml-auto flex w-full gap-1 rounded-lg border border-border bg-muted/30 p-1 sm:w-auto">
           {PERIODOS.map((p) => (
             <button
               key={p.dias}
               type="button"
               onClick={() => setDias(p.dias)}
-              className={`rounded-full border px-3 py-1.5 text-xs transition ${
+              className={`flex-1 rounded-md px-3 py-1.5 text-xs font-medium transition sm:flex-none ${
                 dias === p.dias
-                  ? "border-brand-orange bg-brand-orange/10 text-brand-orange"
-                  : "border-border hover:border-brand-orange/60"
+                  ? "bg-brand-orange text-white shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
               }`}
             >
               {p.label}
@@ -155,6 +164,10 @@ function MetricasPage() {
           ))}
         </div>
       </div>
+      <p className="mt-3 rounded-xl border border-border bg-muted/20 px-4 py-2.5 text-[11px] text-muted-foreground">
+        Considera apenas o tráfego público do site. Acessos internos (admin, chat, usuários logados)
+        e o ambiente de teste/preview são ignorados.
+      </p>
 
       <div className="mt-5 inline-flex rounded-full border border-border bg-muted/40 p-1">
         {(["site", "links"] as const).map((k) => (
@@ -178,18 +191,23 @@ function MetricasPage() {
           <div className="mt-6 text-sm text-red-500">{(site.error as Error).message}</div>
         ) : s ? (
           <div className="mt-6 space-y-5">
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              <Card icon={<Users className="h-4 w-4" />} label="Visitantes" value={s.resumo.visitantes} hint={`${s.resumo.sessoes} sessões`} />
-              <Card icon={<ArrowRightLeft className="h-4 w-4" />} label="Navegaram" value={s.resumo.navegaram} hint={`${s.resumo.rejeicao}% viram só 1 página`} />
-              <Card icon={<MousePointerClick className="h-4 w-4" />} label="Cliques" value={s.resumo.cliques} hint={`${s.resumo.pageviews} páginas vistas`} />
-              <Card icon={<Timer className="h-4 w-4" />} label="Tempo médio" value={duracao(s.resumo.tempoMedioMs)} hint={`${s.resumo.diretoPct}% entraram direto pelo link`} />
+            <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
+              <Card icon={<Users className="h-4 w-4" />} label="Visitantes" value={s.resumo.visitantes} hint={`Pessoas únicas que acessaram o site (${s.resumo.sessoes} sessões)`} />
+              <Card icon={<ArrowRightLeft className="h-4 w-4" />} label="Engajamento" value={s.resumo.navegaram} hint={`Navegaram em mais de uma página · ${s.resumo.rejeicao}% viram só 1`} />
+              <Card icon={<MousePointerClick className="h-4 w-4" />} label="Cliques" value={s.resumo.cliques} hint={`Interações em botões e links · ${s.resumo.pageviews} páginas vistas`} />
+              <Card icon={<Timer className="h-4 w-4" />} label="Tempo médio" value={duracao(s.resumo.tempoMedioMs)} hint={`Duração média de cada visita · ${s.resumo.diretoPct}% entraram direto pelo link`} />
             </div>
 
             <section className="rounded-2xl border border-border bg-card p-4">
-              <div className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
-                Visitas por dia
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h3 className="text-[11px] font-bold uppercase tracking-widest text-foreground">
+                  Visitas por dia
+                </h3>
+                <span className="text-[11px] text-muted-foreground">
+                  Cada barra é o total de sessões do dia
+                </span>
               </div>
-              <div className="mt-3 flex items-end gap-1.5 overflow-x-auto pb-1">
+              <div className="mt-4 flex items-end gap-1.5 overflow-x-auto pb-1">
                 {s.serie.length === 0 && (
                   <span className="text-sm text-muted-foreground">Sem dados ainda.</span>
                 )}
@@ -210,17 +228,17 @@ function MetricasPage() {
             </section>
 
             <div className="grid gap-4 lg:grid-cols-2">
-              <Lista titulo="Como chegaram (origem)" itens={s.origens} icone={<Globe2 className="h-3.5 w-3.5" />} />
-              <Lista titulo="Páginas de entrada" itens={s.entradasPagina} />
-              <Lista titulo="Páginas mais vistas" itens={s.paginas} />
-              <Lista titulo="Mais clicado" itens={s.cliquesTop} icone={<MousePointerClick className="h-3.5 w-3.5" />} />
-              <Lista titulo="Estados / regiões" itens={s.regioes} />
-              <Lista titulo="Cidades" itens={s.cidades} />
-              <Lista titulo="Países" itens={s.paises} />
-              <Lista titulo="Dispositivos" itens={s.dispositivos} icone={<Smartphone className="h-3.5 w-3.5" />} />
-              <Lista titulo="Navegadores" itens={s.navegadores} />
-              <Lista titulo="Sistemas" itens={s.sistemas} />
-              <Lista titulo="Campanhas (utm)" itens={s.campanhas} />
+              <Lista titulo="Como chegaram (origem)" descricao="De onde veio o acesso: link direto, busca, redes ou link curto." itens={s.origens} icone={<Globe2 className="h-3.5 w-3.5" />} />
+              <Lista titulo="Páginas de entrada" descricao="Primeira página aberta em cada visita." itens={s.entradasPagina} />
+              <Lista titulo="Páginas mais vistas" descricao="Total de visualizações por página." itens={s.paginas} />
+              <Lista titulo="Mais clicado" descricao="Botões e links mais acionados." itens={s.cliquesTop} icone={<MousePointerClick className="h-3.5 w-3.5" />} />
+              <Lista titulo="Estados / regiões" descricao="Estado aproximado de quem acessou." itens={s.regioes} />
+              <Lista titulo="Cidades" descricao="Cidade aproximada de quem acessou." itens={s.cidades} />
+              <Lista titulo="Países" descricao="País de origem do acesso." itens={s.paises} />
+              <Lista titulo="Dispositivos" descricao="Celular, tablet ou computador." itens={s.dispositivos} icone={<Smartphone className="h-3.5 w-3.5" />} />
+              <Lista titulo="Navegadores" descricao="Navegador utilizado no acesso." itens={s.navegadores} />
+              <Lista titulo="Sistemas" descricao="Sistema operacional do visitante." itens={s.sistemas} />
+              <Lista titulo="Campanhas (UTM)" descricao="Acessos marcados com parâmetros de campanha." itens={s.campanhas} />
             </div>
           </div>
         ) : null
@@ -285,10 +303,10 @@ function MetricasPage() {
           </section>
 
           <div className="grid gap-4 lg:grid-cols-2">
-            <Lista titulo="De onde vieram os cliques" itens={l.origens} icone={<Globe2 className="h-3.5 w-3.5" />} />
-            <Lista titulo="Estados / regiões" itens={l.regioes} />
-            <Lista titulo="Cidades" itens={l.cidades} />
-            <Lista titulo="Dispositivos" itens={l.dispositivos} icone={<Smartphone className="h-3.5 w-3.5" />} />
+            <Lista titulo="De onde vieram os cliques" descricao="Aplicativo ou site em que o link foi aberto." itens={l.origens} icone={<Globe2 className="h-3.5 w-3.5" />} />
+            <Lista titulo="Estados / regiões" descricao="Estado aproximado de quem clicou." itens={l.regioes} />
+            <Lista titulo="Cidades" descricao="Cidade aproximada de quem clicou." itens={l.cidades} />
+            <Lista titulo="Dispositivos" descricao="Celular, tablet ou computador." itens={l.dispositivos} icone={<Smartphone className="h-3.5 w-3.5" />} />
           </div>
         </div>
       ) : null}
