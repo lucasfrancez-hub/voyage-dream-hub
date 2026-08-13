@@ -643,3 +643,45 @@ function ListaDestinos({
     </div>
   );
 }
+
+/** Escolha entre publicar imediatamente ou agendar data/hora. */
+function QuandoPublicar({
+  modo,
+  setModo,
+  data,
+  setData,
+  cor,
+}: {
+  modo: "agora" | "agendar";
+  setModo: (v: "agora" | "agendar") => void;
+  data: string;
+  setData: (v: string) => void;
+  cor: string;
+}) {
+  return (
+    <div className="space-y-2 rounded-lg border border-border bg-background/50 p-2.5">
+      <p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">Quando publicar</p>
+      <div className="flex gap-1.5">
+        {(["agora", "agendar"] as const).map((m) => (
+          <button
+            key={m}
+            type="button"
+            onClick={() => setModo(m)}
+            style={modo === m ? { borderColor: cor, color: cor, backgroundColor: `${cor}1a` } : undefined}
+            className="rounded-lg border border-border px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-muted-foreground transition-colors hover:text-foreground"
+          >
+            {m === "agora" ? "Publicar agora" : "Agendar"}
+          </button>
+        ))}
+      </div>
+      {modo === "agendar" && (
+        <input
+          type="datetime-local"
+          value={data}
+          onChange={(e) => setData(e.target.value)}
+          className="w-full rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs text-foreground outline-none focus:border-brand-orange"
+        />
+      )}
+    </div>
+  );
+}
