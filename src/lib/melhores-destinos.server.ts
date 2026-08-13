@@ -9,6 +9,7 @@
  * Cada oferta sai com o link do nosso motor (Comprar Viagem) no lugar do
  * link do parceiro (CVC, ViajaNet...).
  */
+import { AsyncLocalStorage } from "node:async_hooks";
 import { z } from "zod";
 import { viaairFlightUrl, viaairRouteUrl } from "@/lib/melhores-destinos.parse";
 import { readMdCache, writeMdCache } from "@/lib/md-cache.server";
