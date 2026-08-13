@@ -50,7 +50,7 @@ export async function carregarMetricasSite(dias: number) {
   const rows = ((data ?? []) as Row[])
     // ignora rotas internas e tráfego vindo do ambiente de teste/preview
     .filter((r) => !isRotaInterna(r.path) && !isHostInterno(r.referrer_host))
-    .map((r) => ({
+    .map((r): Row => ({
       ...r,
       country: rotuloGeo(nomeDoPais(r.country)),
       region: rotuloGeo(nomeDaRegiao(r.region, r.country)),
@@ -149,7 +149,7 @@ export async function carregarMetricasLinks(dias: number) {
   if (e2) throw new Error(e2.message);
 
   const { nomeDoPais, nomeDaRegiao } = await import("./ua.server");
-  const rows = ((cliques ?? []) as Row[]).map((r) => ({
+  const rows = ((cliques ?? []) as Row[]).map((r): Row => ({
     ...r,
     country: rotuloGeo(nomeDoPais(r.country)),
     region: rotuloGeo(nomeDaRegiao(r.region, r.country)),
