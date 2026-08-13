@@ -84,7 +84,7 @@ radial-gradient(circle at 80% 12%,rgba(255,134,27,.18),transparent 24%)}
 svg{display:block;width:100%;height:100%}
 .kicker{font-size:18px;letter-spacing:3px;text-transform:uppercase;color:var(--orange);font-weight:800}
 .category-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-.category-badge{display:inline-flex;align-items:center;padding:8px 14px;border-radius:10px;background:#ff861b;color:#fff;font-size:15px;font-weight:950;letter-spacing:1.5px;box-shadow:0 8px 20px rgba(0,0,0,.16)}
+.category-badge{display:inline-flex;align-items:center;padding:8px 14px;border-radius:10px;background:rgba(255,134,27,.24);border:1px solid rgba(255,163,84,.40);color:#ffd9b8;font-size:15px;font-weight:950;letter-spacing:1.5px;backdrop-filter:blur(12px) saturate(120%);-webkit-backdrop-filter:blur(12px) saturate(120%);box-shadow:0 8px 20px rgba(0,0,0,.14)}
 .found-badge{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border-radius:10px;background:rgba(41,163,91,.20);border:1px solid rgba(74,222,128,.40);color:#dffbea;font-size:14px;font-weight:850;backdrop-filter:blur(12px) saturate(125%);-webkit-backdrop-filter:blur(12px) saturate(125%);box-shadow:inset 0 1px 0 rgba(255,255,255,.04),0 8px 20px rgba(0,0,0,.14)}
 .found-dot{width:8px;height:8px;border-radius:50%;background:#35d07f;box-shadow:0 0 10px rgba(53,208,127,.75)}
 .route-glass{display:inline-flex;flex-direction:column;gap:8px;margin-top:18px;padding:17px 22px;border-radius:18px;background:rgba(5,28,38,.34);border:1px solid rgba(255,255,255,.26);backdrop-filter:blur(28px) saturate(150%);-webkit-backdrop-filter:blur(28px) saturate(150%);box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 12px 32px rgba(0,0,0,.28);max-width:100%}
@@ -104,7 +104,7 @@ svg{display:block;width:100%;height:100%}
 .airline-logo{width:46px;height:46px;border-radius:12px;background:#fff;display:grid;place-items:center;box-shadow:0 8px 20px rgba(0,0,0,.18);overflow:hidden;flex:none}
 .airline-logo img{width:38px;height:38px;object-fit:contain}
 .airline-iata{font-size:12px;color:var(--muted);font-weight:800;letter-spacing:1px}
-.price-box{position:absolute;background:linear-gradient(135deg,rgba(255,110,26,.34) 0%,rgba(214,45,18,.30) 46%,rgba(122,20,12,.34) 74%,rgba(10,20,26,.46) 100%);border:1px solid rgba(255,150,70,.40);border-radius:28px;backdrop-filter:blur(34px) saturate(160%);-webkit-backdrop-filter:blur(34px) saturate(160%);box-shadow:0 22px 55px rgba(0,0,0,.45),0 0 0 1px rgba(255,134,27,.14),inset 0 1px 0 rgba(255,214,180,.20);overflow:hidden}
+.price-box{position:absolute;background:rgba(96,44,18,.42);border:1px solid rgba(255,163,84,.28);border-radius:28px;backdrop-filter:blur(34px) saturate(140%);-webkit-backdrop-filter:blur(34px) saturate(140%);box-shadow:0 22px 55px rgba(0,0,0,.42),inset 0 1px 0 rgba(255,214,180,.12);overflow:hidden}
 .price-top{color:#dbe3e7;text-transform:uppercase;letter-spacing:2.5px;font-size:16px;font-weight:900}
 .installments{display:flex;align-items:baseline;gap:8px;margin-top:6px;flex-wrap:wrap}
 .main-subtitle{font-size:17px;color:#e2eaee;margin-top:8px;margin-bottom:2px}
@@ -112,7 +112,7 @@ svg{display:block;width:100%;height:100%}
 .installments .de{font-size:19px;font-weight:800;color:#d7e1e6;margin-left:1px}
 .installments .currency{font-size:34px;font-weight:900;color:var(--orange)}
 .interest-free{font-size:16px;font-weight:800;color:#e4ecef;margin-left:8px;margin-bottom:10px;white-space:nowrap}
-.original-total{display:inline-flex;align-items:center;gap:9px;margin-top:12px;padding:7px 10px;border-radius:999px;background:linear-gradient(180deg,rgba(255,134,27,.28),rgba(255,134,27,.13));border:1px solid rgba(255,134,27,.55);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+.original-total{display:inline-flex;align-items:center;gap:9px;margin-top:12px;padding:7px 10px;border-radius:999px;background:rgba(255,134,27,.16);border:1px solid rgba(255,163,84,.34);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
 .original-total-label{font-size:12px;text-transform:uppercase;letter-spacing:1px;color:#ffd2aa;font-weight:800}
 .original-total-value{font-size:20px;color:#ff9a3d;font-weight:950}
 .installments .value{font-weight:950;color:var(--orange);letter-spacing:-2px}
@@ -131,32 +131,33 @@ const STORY_CSS = `
 .frame{width:1080px;height:1920px;padding:62px 58px}
 .logo-slot{width:520px;height:230px}
 .hero{margin-top:72px}.destination{font-size:158px;margin:34px 0 30px}
-.category-badge{font-size:19px;padding:11px 18px}
-.found-badge{font-size:18px;padding:11px 16px}
-.route-glass{padding:22px 28px}
+.category-badge{font-size:26px;padding:14px 22px;letter-spacing:2px}
+.found-badge{font-size:25px;padding:14px 20px}
+.found-dot{width:12px;height:12px}
+.route-glass{padding:24px 30px}
 .route-city{font-size:56px}.route-city .arrow{font-size:34px}
-.route-iata{font-size:26px}
+.route-iata{font-size:34px}
 .details{margin-top:44px;gap:14px}
-.detail-row{min-height:76px;padding:16px 22px}
-.detail-row .label{font-size:18px}
+.detail-row{min-height:80px;padding:18px 24px}
+.detail-row .label{font-size:25px}
 .detail-row .value{font-size:32px}
 .airline-logo{width:56px;height:56px}.airline-logo img{width:46px;height:46px}
-.airline-iata{font-size:15px}
+.airline-iata{font-size:21px}
 .price-box{left:58px;right:58px;bottom:96px;padding:40px 42px}
-.price-top{font-size:20px}
-.main-subtitle{font-size:21px}
+.price-top{font-size:28px}
+.main-subtitle{font-size:29px}
 .installments .value{font-size:104px}
 .installments .n{font-size:42px}.installments .de{font-size:23px}.installments .currency{font-size:42px}
-.interest-free{font-size:20px}
-.original-total-label{font-size:15px}.original-total-value{font-size:25px}
-.more-installments{margin-top:22px;border-left:0;border-top:1px solid rgba(255,134,27,.35);padding:22px 0 0}
-.more-installments .headline{font-size:24px;margin-bottom:6px}
-.more-installments .twelve-label{font-size:18px}
+.interest-free{font-size:27px}
+.original-total-label{font-size:21px}.original-total-value{font-size:25px}
+.more-installments{margin-top:22px;border-left:0;border-top:1px solid rgba(255,134,27,.28);padding:22px 0 0}
+.more-installments .headline{font-size:32px;margin-bottom:8px}
+.more-installments .twelve-label{font-size:25px}
 .more-installments .twelve-price .n{font-size:32px}
 .more-installments .twelve-price .currency{font-size:28px}
 .more-installments .twelve-price .value{font-size:56px}
-.more-installments .discount{font-size:20px;max-width:880px}
-.note{font-size:19px}
+.more-installments .discount{font-size:26px;max-width:900px}
+.note{font-size:25px;line-height:1.5}
 .cards-seal{width:170px;height:170px}.offer-seal{width:170px;height:170px}
 `;
 

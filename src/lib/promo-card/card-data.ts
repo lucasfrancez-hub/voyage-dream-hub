@@ -82,7 +82,7 @@ export function promoToCardData(row: Record<string, unknown>): PromoCardData {
   return {
     destinationImage: (row.destination_image as string | null) ?? null,
     imagePosition: "50% 45%",
-    logoVariant: "color",
+    logoVariant: "white",
     fareFoundAt:
       (row.quoted_at as string | null) ??
       (row.last_checked_at as string | null) ??
