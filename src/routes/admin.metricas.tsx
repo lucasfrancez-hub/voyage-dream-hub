@@ -236,10 +236,16 @@ function MetricasPage() {
             <Card icon={<Globe2 className="h-4 w-4" />} label="Regiões alcançadas" value={l.regioes.length} />
           </div>
 
+          <p className="rounded-xl border border-border bg-muted/30 px-4 py-3 text-xs text-muted-foreground">
+            O detalhamento de cliques (data, região, dispositivo) começa a ser registrado a partir da ativação das métricas.
+            Links criados antes disso não têm histórico retroativo — a coluna “Total” mostra o acumulado desde a criação do link.
+          </p>
+
           <section className="rounded-2xl border border-border bg-card">
             <div className="border-b border-border px-4 py-3 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
               Desempenho por link
             </div>
+
             {l.links.length === 0 ? (
               <div className="p-4 text-sm text-muted-foreground">Nenhum link criado ainda.</div>
             ) : (
