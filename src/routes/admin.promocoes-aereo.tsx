@@ -424,15 +424,25 @@ function MarkupsPanel() {
 /* Pesquisa manual                                                     */
 /* ------------------------------------------------------------------ */
 
-function PesquisaManual({ onSalvo }: { onSalvo: () => void }) {
+function PesquisaManual({
+  aberto,
+  onFechar,
+  scopeInicial,
+  onSalvo,
+}: {
+  aberto: boolean;
+  onFechar: () => void;
+  scopeInicial: "nacional" | "internacional";
+  onSalvo: () => void;
+}) {
   const buscar = useServerFn(searchPromoOpportunity);
   const salvar = useServerFn(savePromoOpportunity);
-  const [aberto, setAberto] = useState(false);
   const [origin, setOrigin] = useState("");
   const [destination, setDestination] = useState("");
   const [ida, setIda] = useState("");
   const [volta, setVolta] = useState("");
-  const [scope, setScope] = useState<"nacional" | "internacional">("nacional");
+  const [scope, setScope] = useState<"nacional" | "internacional">(scopeInicial);
+
   const [resultado, setResultado] = useState<Record<string, unknown> | null>(null);
 
   const mut = useMutation({
