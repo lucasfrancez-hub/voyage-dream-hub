@@ -583,7 +583,7 @@ export function PassagensBaratasExplorer({
                     setBuscaOrigem("");
                   }}
                 >
-                  <span className="truncate">
+                  <span className="min-w-0 leading-snug">
                     {o.cidade} <span className="text-muted-foreground">· {o.pais}</span>
                   </span>
                   <span className="ml-2 font-mono text-xs text-primary">{o.iata}</span>
