@@ -14,6 +14,7 @@ import {
   quotesToExtendedOptions,
   type MarkupTable,
 } from "@/lib/airfare-conditions";
+import type { OriginMetrics } from "@/lib/airfare-promos.config";
 import { searchFlights, searchInboundFlights } from "@/lib/onertravel.server";
 import { flightHasBaggage, type OnerFlight } from "@/lib/onertravel.types";
 
@@ -322,9 +323,7 @@ export async function collectAirfarePromotions(opts?: {
   const { discoverCandidates, candidateSignature, fallbackDatePairs } = await import(
     "@/lib/airfare-promos.discovery.server"
   );
-  const { PROMO_VALIDATION_CONCURRENCY, type OriginMetrics } = await import(
-    "@/lib/airfare-promos.config"
-  );
+  const { PROMO_VALIDATION_CONCURRENCY } = await import("@/lib/airfare-promos.config");
   type Metrics = OriginMetrics;
   const db = supabaseAdmin as unknown as AnyClient;
   const markups = await loadMarkups(db);
