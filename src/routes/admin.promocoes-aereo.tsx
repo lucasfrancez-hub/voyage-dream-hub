@@ -1068,6 +1068,10 @@ function PromocoesAereoPage() {
                 promo={promo}
                 busy={busyId === promo.id}
                 onArt={() => setArtPromo(promo)}
+                onSocial={(canal) => {
+                  setSocialCanal(canal);
+                  setSocialPromo(promo);
+                }}
                 onRefresh={() =>
                   acao(promo.id, () => refreshOne({ data: { id: promo.id } }), "Tarifa reconsultada")
                 }
