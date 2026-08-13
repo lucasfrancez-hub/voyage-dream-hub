@@ -135,7 +135,13 @@ export async function radarByOrigin(origin: string, opts?: { maxDepth?: number }
 
     const params = new URLSearchParams({ from_iata_code: from });
     if (categoryId) params.set("category_id", String(categoryId));
-    const json = await getJson<RawCategories>(`${TWD}/categories?${params.toString()}`);
+    let json: RawCategories;
+    try {
+      json = await getJson<RawCategories>(`${TWD}/categories?${params.toString()}`);
+    } catch {
+      // uma categoria que não respondeu não pode derrubar a origem inteira
+      return;
+    }
     originCity = originCity ?? json.from_city_name ?? null;
 
     for (const city of json.cities ?? []) {
