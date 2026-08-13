@@ -13,6 +13,7 @@ import { scopeOfRoute } from "@/lib/br-airports";
 import {
 
   MAX_EXTRA_ORIGINS,
+  PRIORITY_ORIGINS,
 
   isPriorityOrigin,
   isOriginAllowedForScope,
