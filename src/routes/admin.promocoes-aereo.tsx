@@ -799,13 +799,16 @@ function PromocoesAereoPage() {
     // Guarda de escopo: rota 100% brasileira nunca aparece em Internacionais
     // (e vice-versa) e a origem precisa pertencer ao escopo (BSB só internacional,
     // MGF/LDB/CAC/IGU só nacional).
-    const doEscopo = rows.filter(
-      (p) =>
-        scopeOfRoute(p.origin_iata, p.destination_iata) === aba &&
-        isOriginAllowedForScope(p.origin_iata, aba),
-    );
+    // Exceção: promoção salva manualmente no Passagens Baratas foi escolhida
+    // por uma pessoa — não pode ser escondida pela lista de origens do radar.
+    const doEscopo = rows.filter((p) => {
+      if (scopeOfRoute(p.origin_iata, p.destination_iata) !== aba) return false;
+      if (p.reference_source === "passagens_baratas") return true;
+      return isOriginAllowedForScope(p.origin_iata, aba);
+    });
     return iatas.length ? doEscopo.filter((p) => iatas.includes(p.origin_iata)) : doEscopo;
   }, [data, atalho, atalhos, aba]);
+
 
 
 
