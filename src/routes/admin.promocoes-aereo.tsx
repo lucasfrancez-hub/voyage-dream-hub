@@ -606,9 +606,17 @@ function PromocoesAereoPage() {
 
   const info = run as null | {
     status: string;
+    phase: string | null;
     total: number;
+    discovered: number | null;
     processed: number;
+    validated: number | null;
     saved: number;
+    no_result: number | null;
+    new_count: number | null;
+    updated_count: number | null;
+    expired_count: number | null;
+    error_count: number | null;
     last_label: string | null;
     started_at: string;
     finished_at: string | null;
