@@ -46,6 +46,8 @@ type VoarSearch = {
   fo?: string;
   fol?: string;
   fm?: string;
+  /** Viagem multi-trecho: CWB-GRU-2026-09-01_GRU-REC-2026-09-05 */
+  ms?: string;
 };
 
 import { encodeTrail, decodeTrail } from "@/lib/md-trail";
