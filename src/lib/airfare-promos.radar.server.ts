@@ -107,9 +107,13 @@ async function mapLimit<T, R>(items: T[], limit: number, fn: (item: T) => Promis
  * Varre TODAS as categorias (e subcategorias) do Melhores Destinos filtradas
  * pela origem e devolve todos os destinos monitorados com preço de referência.
  */
-export async function radarByOrigin(origin: string, opts?: { maxDepth?: number }): Promise<DestinationLead[]> {
+export async function radarByOrigin(
+  origin: string,
+  opts?: { maxDepth?: number; cancel?: MdCancel },
+): Promise<DestinationLead[]> {
   const from = origin.trim().toUpperCase();
   const maxDepth = opts?.maxDepth ?? 2;
+  const cancel = opts?.cancel;
   const leads = new Map<string, DestinationLead>();
   let originCity: string | null = null;
 
@@ -118,17 +122,21 @@ export async function radarByOrigin(origin: string, opts?: { maxDepth?: number }
   const visit = async (categoryId: number | null, depth: number): Promise<void> => {
     const chave = `${categoryId ?? "root"}`;
     if (visitadas.has(chave) || depth > maxDepth) return;
+    if (cancel && (await cancel())) throw new MdCancelledError();
+    if (!mdRadarAvailable()) return;
     visitadas.add(chave);
 
     const params = new URLSearchParams({ from_iata_code: from });
     if (categoryId) params.set("category_id", String(categoryId));
     let json: RawCategories;
     try {
-      json = await getJson<RawCategories>(`${TWD}/categories?${params.toString()}`);
-    } catch {
+      json = await getJson<RawCategories>(`${TWD}/categories?${params.toString()}`, cancel);
+    } catch (e) {
+      if (e instanceof MdCancelledError) throw e;
       // uma categoria que não respondeu não pode derrubar a origem inteira
       return;
     }
+
     originCity = originCity ?? json.from_city_name ?? null;
 
     for (const city of json.cities ?? []) {
