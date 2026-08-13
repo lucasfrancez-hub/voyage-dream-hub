@@ -322,10 +322,17 @@ export async function collectAirfarePromotions(opts?: {
   const { discoverCandidates, candidateSignature, fallbackDatePairs } = await import(
     "@/lib/airfare-promos.discovery.server"
   );
+  const { PROMO_VALIDATION_CONCURRENCY, type OriginMetrics } = await import(
+    "@/lib/airfare-promos.config"
+  );
+  type Metrics = OriginMetrics;
   const db = supabaseAdmin as unknown as AnyClient;
   const markups = await loadMarkups(db);
   const runId = opts?.runId;
-  const concurrency = Math.min(Math.max(opts?.concurrency ?? 3, 1), 4);
+  const concurrency = Math.min(
+    Math.max(opts?.concurrency ?? PROMO_VALIDATION_CONCURRENCY, 1),
+    4,
+  );
   const startedAt = new Date().toISOString();
 
   const counters = {
@@ -354,9 +361,16 @@ export async function collectAirfarePromotions(opts?: {
 
   await touch({ phase: "descobrindo", total: 0, processed: 0, saved: 0 });
 
-  // 1) RADAR: oportunidades do Melhores Destinos
-  const candidatas = await discoverCandidates({ maxCandidates: opts?.maxCandidates ?? 120 });
+  // 1) RADAR: oportunidades do Melhores Destinos (descoberta ilimitada,
+  //    seleção de até N por origem — ver airfare-promos.config.ts)
+  const descoberta = await discoverCandidates({ maxCandidates: opts?.maxCandidates ?? 600 });
+  const candidatas = descoberta.candidates;
+  const metricasPorOrigem = new Map<string, Metrics>(
+    descoberta.metrics.map((m) => [m.origin, { ...m }]),
+  );
+  const temposPorOrigem = new Map<string, number[]>();
   const porAssinatura = new Map(candidatas.map((c) => [c.signature, c]));
+
 
   // 2) FALLBACK: rotas monitoradas manualmente (complementares, nunca a fonte única)
   try {
