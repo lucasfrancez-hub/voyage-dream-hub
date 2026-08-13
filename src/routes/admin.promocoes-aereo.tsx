@@ -217,11 +217,29 @@ function PromoCard({
             ou até {promo.extended_max_installments}x de {brl(promo.extended_installment_value_12x)}
           </div>
         ) : null}
+        {promo.reference_price ? (
+          <div className="mt-2 border-t border-border/50 pt-2 text-[10px] leading-relaxed text-muted-foreground">
+            <span className="font-semibold uppercase tracking-wide">Referência interna</span> · radar{" "}
+            {brl(promo.reference_price)}
+            {promo.price_difference_percent != null ? (
+              <span
+                className={`ml-1 font-bold ${
+                  promo.price_difference_percent <= 0 ? "text-emerald-500" : "text-amber-500"
+                }`}
+              >
+                {promo.price_difference_percent <= 0 ? "▼" : "▲"}{" "}
+                {Math.abs(promo.price_difference_percent).toFixed(1).replace(".", ",")}% no motor VIA AIR
+              </span>
+            ) : null}
+            <div className="opacity-70">Nunca publicado — só o preço VIA AIR vai para o cliente.</div>
+          </div>
+        ) : null}
       </div>
 
       <p className="mt-2 inline-flex items-center gap-1.5 text-[10px] text-muted-foreground">
         <Clock className="h-3 w-3" /> Última validação: {validadoEm(promo.last_checked_at)}
       </p>
+
 
       <div className="mt-3 flex flex-wrap items-center gap-1.5 border-t border-border/50 pt-3">
         <button
