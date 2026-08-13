@@ -699,6 +699,8 @@ function PromocoesAereoPage() {
   const [sort, setSort] = useState("preco");
   const [busyId, setBusyId] = useState<string | null>(null);
   const [artPromo, setArtPromo] = useState<(PromoRow & { id: string }) | null>(null);
+  const [socialPromo, setSocialPromo] = useState<(PromoRow & { id: string }) | null>(null);
+  const [socialCanal, setSocialCanal] = useState<"whatsapp" | "instagram">("whatsapp");
 
   useEffect(() => setAtalho(0), [aba]);
 
