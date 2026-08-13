@@ -6,7 +6,16 @@
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Image as ImageIcon, Instagram, Loader2, MessageCircle, RefreshCw, X } from "lucide-react";
+import {
+  Image as ImageIcon,
+  Instagram,
+  Loader2,
+  MessageCircle,
+  Pencil,
+  RefreshCw,
+  X,
+} from "lucide-react";
+
 import { toast } from "sonner";
 import {
   buildPromoCard,
@@ -63,6 +72,8 @@ export function PromoArtDialog({ promo, onClose }: { promo: PromoRow & { id: str
   const [fotos, setFotos] = useState<Array<{ url: string; thumb: string; author: string }>>([]);
   const [format, setFormat] = useState<PromoCardFormat>("feed");
   const [arte, setArte] = useState<Record<PromoCardFormat, string | null>>({ feed: null, story: null });
+  const [editando, setEditando] = useState(false);
+
 
   const inicial = useQuery({
     queryKey: ["promo-card", promo.id],
