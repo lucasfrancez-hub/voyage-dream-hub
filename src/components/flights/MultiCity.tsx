@@ -48,6 +48,7 @@ import {
   AVISO_VALIDADE_TARIFA,
   extendedText,
   getAirfarePaymentConditions,
+  maxInstallmentText,
 } from "@/lib/airfare-conditions";
 import { onerCreateFlightCart, onerFlightSearch } from "@/lib/onertravel.functions";
 import {
@@ -80,6 +81,16 @@ export type FlightUi = {
   taxesOf: (f: OnerFlight) => number;
   normalizeSearchResult: (raw: unknown) => OnerSearchResult | null;
   findByAnyKey: (list: OnerFlight[], key: string | null | undefined) => OnerFlight | null;
+  FiltersPanel: React.ComponentType<{
+    title: string;
+    flights: OnerFlight[];
+    filters: any;
+    onChange: (f: any) => void;
+    loading?: boolean;
+    priceRange?: { minPrice: number; maxPrice: number } | null;
+  }>;
+  EMPTY_FILTERS: any;
+  applyFilters: (list: OnerFlight[], f: any) => OnerFlight[];
   cityCodes: Set<string>;
   BriefcaseIcon: React.ComponentType<{ className?: string }>;
   LuggageIcon: React.ComponentType<{ className?: string }>;
@@ -107,8 +118,8 @@ export function MultiTrechoToggle({
           : "border-border/60 bg-background/40 text-muted-foreground hover:border-primary/50 hover:text-foreground"
       }`}
     >
-      {active ? <Check className="h-4 w-4" /> : <ArrowLeftRight className="h-4 w-4" />}
-      {active ? "Multi-trecho ativo" : "Multi-trecho"}
+      {active ? <RotateCcw className="h-4 w-4" /> : <ArrowLeftRight className="h-4 w-4" />}
+      {active ? "Ida e volta" : "Multi-trecho"}
     </button>
   );
 }
@@ -172,24 +183,21 @@ export function MultiCityForm({
   );
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center gap-3">
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-center gap-2">
         <MultiTrechoToggle active onToggle={onCancel} />
-        <p className="text-xs text-muted-foreground">
-          Monte sua viagem com vários trechos. Cada trecho é pesquisado e comprado separadamente.
-        </p>
       </div>
 
-      <div className="space-y-3">
+      <div className="space-y-2">
         {segments.map((s, i) => {
           const erro = errors[s.id];
           const minDate = i > 0 ? segments[i - 1]?.date || undefined : undefined;
           return (
             <div
               key={s.id}
-              className="rounded-2xl border border-border/50 bg-background/30 p-4 md:p-5"
+              className="rounded-2xl border border-border/50 bg-background/30 p-3"
             >
-              <div className="mb-3 flex items-center justify-between gap-2">
+              <div className="mb-2 flex items-center justify-between gap-2">
                 <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary">
                   Trecho {i + 1}
                 </span>
@@ -205,7 +213,7 @@ export function MultiCityForm({
                 )}
               </div>
 
-              <div className="grid gap-3 md:grid-cols-[1fr_auto_1fr_1fr]">
+              <div className="grid gap-2 md:grid-cols-[1fr_auto_1fr_1fr]">
                 <div className="space-y-1.5">
                   <Label className="flex items-center gap-2 px-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
                     <MapPin className="h-3 w-3 text-primary" /> Origem
@@ -282,7 +290,7 @@ export function MultiCityForm({
         type="button"
         onClick={addSegment}
         disabled={segments.length >= MAX_SEGMENTS}
-        className="flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-border/70 py-3 text-sm font-semibold text-primary transition hover:border-primary/60 disabled:cursor-not-allowed disabled:opacity-40"
+        className="flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-border/70 py-2.5 text-sm font-semibold text-primary transition hover:border-primary/60 disabled:cursor-not-allowed disabled:opacity-40"
       >
         <Plus className="h-4 w-4" /> Adicionar trecho
       </button>
