@@ -383,7 +383,24 @@ function PromoCard({
             </span>
           </div>
         ) : null}
+
+        {agendamentos.length ? (
+          <div className="mt-3 space-y-1.5 rounded-xl border border-violet-500/30 bg-violet-500/10 p-3">
+            {agendamentos.map((a) => (
+              <div key={a.id} className="flex items-start gap-2 text-[11px] leading-snug">
+                <CalendarClock className="mt-[1px] h-3.5 w-3.5 shrink-0 text-violet-400" />
+                <span className="min-w-0">
+                  <span className="font-semibold text-violet-300">
+                    Agendado para {agendamentoQuando(a.scheduled_at)}
+                  </span>
+                  <span className="block truncate text-muted-foreground">{agendamentoCanal(a)}</span>
+                </span>
+              </div>
+            ))}
+          </div>
+        ) : null}
       </div>
+
 
       {/* Informações do voo */}
       <div className="flex flex-col gap-3 px-5 pb-5">
