@@ -85,8 +85,13 @@ function SalvarPromocaoButton({
           ? ` (referência ${brl(r.referencePrice ?? 0)} · ${r.difference >= 0 ? "+" : ""}${brl(r.difference)})`
           : "";
       toast.success(
-        `${r.created ? "Promoção salva" : "Promoção existente atualizada"}: ${brl(r.totalPrice)}${dif}`,
+        `${r.created ? "Promoção salva" : "Promoção existente atualizada"}: ${r.originCity} → ${r.destinationCity} • ${brl(r.totalPrice)}${dif}`,
       );
+      if (r.unresolvedCities.length) {
+        toast.warning(
+          `Cidade não reconhecida para ${r.unresolvedCities.join(", ")} — confira o nome antes de divulgar.`,
+        );
+      }
     } catch (e) {
       setEstado("idle");
       toast.error(e instanceof Error ? e.message : "Falha ao salvar promoção");
