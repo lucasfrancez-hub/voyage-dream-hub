@@ -114,6 +114,7 @@ export const Route = createFileRoute("/voar")({
     fo: typeof search.fo === "string" ? search.fo.toUpperCase().slice(0, 3) : undefined,
     fol: typeof search.fol === "string" ? search.fol.slice(0, 60) : undefined,
     fm: typeof search.fm === "string" ? search.fm.slice(0, 7) : undefined,
+    ms: typeof search.ms === "string" ? search.ms.slice(0, 300) : undefined,
   }),
 
   loaderDeps: ({ search }) => ({
