@@ -26,6 +26,7 @@ import {
 import { toast } from "sonner";
 import {
   generatePromotionLink,
+  cancelAirfarePromoCollection,
   getAirfarePromoRun,
   listAirfarePromotions,
   listInstallmentMarkups,
@@ -683,6 +684,7 @@ function PromocoesAereoPage() {
   const list = useServerFn(listAirfarePromotions);
   const collect = useServerFn(runAirfarePromoCollection);
   const runStatus = useServerFn(getAirfarePromoRun);
+  const cancelColeta = useServerFn(cancelAirfarePromoCollection);
   const refreshOne = useServerFn(refreshAirfarePromotion);
   const genLink = useServerFn(generatePromotionLink);
   const status = useServerFn(setPromotionStatus);
