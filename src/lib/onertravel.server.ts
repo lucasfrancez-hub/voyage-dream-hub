@@ -426,6 +426,8 @@ export const cartInput = z.object({
   infants: z.number().int().min(0).max(9).default(0),
   departureIsCity: z.boolean().default(false),
   arrivalIsCity: z.boolean().default(false),
+  /** Tarifa fechada (promoções internacionais): tentar primeiro só a VOLTA. */
+  preferInboundFare: z.boolean().default(false),
 });
 
 type CartData = z.infer<typeof cartInput>;
@@ -479,6 +481,11 @@ export async function createFlightCart(data: CartData) {
     candidates.push(buildBody(out, null));
   } else if (sameFare) {
     // Tarifa fechada: uma única tarifa cobre ida + volta.
+    candidates.push(buildBody(out, null));
+  } else if (data.preferInboundFare) {
+    // Tarifa fechada de ida e volta: a operadora só aceita a tarifa da VOLTA.
+    candidates.push(buildBody(inb, null));
+    candidates.push(buildBody(out, inb));
     candidates.push(buildBody(out, null));
   } else {
     candidates.push(buildBody(out, inb));
