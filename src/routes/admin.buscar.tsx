@@ -456,6 +456,7 @@ export function SearchEngine({
           preset={flightPresetProp}
           runToken={flightPresetProp ? (presetRunToken ?? 1) : undefined}
           presetFetch={flightPresetProp ? presetFetch : undefined}
+          multiPreset={multiPreset}
         />
       )}
       {mode === "hotel" && (
