@@ -311,7 +311,7 @@ export function PromoArtDialog({
                   {editando && onDone ? (
                     <button
                       type="button"
-                      onClick={onDone}
+                      onClick={confirmarEdicao}
                       className="inline-flex items-center gap-2 rounded-full bg-brand-orange px-5 py-2.5 text-[10px] font-bold text-white shadow-xl transition hover:brightness-110"
                     >
                       <Check className="h-3.5 w-3.5" />
