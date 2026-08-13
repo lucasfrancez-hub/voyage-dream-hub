@@ -1776,6 +1776,60 @@ function mergePool(prev: OnerFlight[], next: OnerFlight[]): OnerFlight[] {
   return [...map.values()];
 }
 
+type PaxForm = {
+  departureIata: string;
+  arrivalIata: string;
+  departureDate: string;
+  returnDate: string;
+  adults: number;
+  children: number;
+  infants: number;
+};
+
+/** Linha de passageiros — compartilhada pelo modo normal e pelo Multi-trecho. */
+function PaxRow({
+  form,
+  setForm,
+  extra,
+}: {
+  form: PaxForm;
+  setForm: React.Dispatch<React.SetStateAction<PaxForm>>;
+  extra?: React.ReactNode;
+}) {
+  const paxTotal = Number(form.adults) + Number(form.children) + Number(form.infants);
+  return (
+    <div className="flex flex-col items-start gap-6 md:flex-row md:items-center md:justify-between">
+      <div className="flex flex-wrap items-center gap-6">
+        <span className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+          <Users className="h-5 w-5" /> {paxTotal} passageiro(s)
+        </span>
+        <div className="flex items-center gap-4">
+          {[
+            { k: "adults" as const, l: "Adultos", min: 1 },
+            { k: "children" as const, l: "Crianças", min: 0 },
+            { k: "infants" as const, l: "Bebês", min: 0 },
+          ].map((p) => (
+            <div key={p.k} className="flex flex-col">
+              <span className="mb-1 text-[9px] font-bold uppercase tracking-wider text-muted-foreground">
+                {p.l}
+              </span>
+              <Input
+                className="h-8 w-16 rounded-lg border-border/50 bg-muted/40 px-2 text-center"
+                type="number"
+                min={p.min}
+                max={9}
+                value={form[p.k]}
+                onChange={(e) => setForm((f) => ({ ...f, [p.k]: Number(e.target.value) }))}
+              />
+            </div>
+          ))}
+        </div>
+      </div>
+      {extra}
+    </div>
+  );
+}
+
 
 export function VoosPage({
   header,
