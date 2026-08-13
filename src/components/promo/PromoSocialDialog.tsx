@@ -483,6 +483,13 @@ export function PromoSocialDialog({
               </p>
               <ListaDestinos titulo="Canais" Icon={Radio} itens={canais} sel={selecionados} onToggle={toggleDestino} />
               <ListaDestinos titulo="Grupos" Icon={Users} itens={grupos} sel={selecionados} onToggle={toggleDestino} />
+              <QuandoPublicar
+                modo={quandoWa}
+                setModo={setQuandoWa}
+                data={dataWa}
+                setData={setDataWa}
+                cor="#25D366"
+              />
               <div className="flex justify-end">
                 <button
                   type="button"
@@ -490,9 +497,11 @@ export function PromoSocialDialog({
                   disabled={busy !== null || selecionados.size === 0 || linkStatus === "loading"}
                   className="inline-flex items-center gap-2 rounded-lg bg-[#25D366] px-3 py-2 text-[11px] font-bold uppercase tracking-wide text-white transition-opacity hover:opacity-90 disabled:opacity-50"
                 >
-                  <Send className="h-3.5 w-3.5" /> Enviar agora
+                  {quandoWa === "agendar" ? <CalendarClock className="h-3.5 w-3.5" /> : <Send className="h-3.5 w-3.5" />}
+                  {quandoWa === "agendar" ? "Agendar envio" : "Enviar agora"}
                 </button>
               </div>
+
             </div>
           </div>
         )}
