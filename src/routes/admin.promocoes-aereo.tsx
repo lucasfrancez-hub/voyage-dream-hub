@@ -1294,6 +1294,7 @@ function PromocoesAereoPage() {
                 key={promo.id}
                 promo={promo}
                 busy={busyId === promo.id}
+                agendamentos={agendaPorPromo.get(promo.id) ?? []}
                 onArt={() => setArtPromo(promo)}
                 onSocial={(canal) => {
                   setSocialCanal(canal);
