@@ -144,42 +144,66 @@ export function PromoArtDialog({ promo, onClose }: { promo: PromoRow & { id: str
   });
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-background/70 p-4 backdrop-blur-2xl">
-      <div className="my-6 w-full max-w-6xl rounded-3xl border border-border/70 bg-card/90 p-5 shadow-2xl">
-        <div className="flex items-center justify-between">
-          <h2 className="flex items-center gap-2 text-lg font-black tracking-tight">
-            <ImageIcon className="h-5 w-5 text-brand-orange" /> Gerar arte —{" "}
-            {promo.origin_iata} → {promo.destination_iata}
-          </h2>
-          <button type="button" onClick={onClose} className="rounded-lg p-2 hover:bg-foreground/5">
-            <X className="h-4 w-4" />
+    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-background/80 p-4 backdrop-blur-2xl">
+      <div className="my-6 w-full max-w-6xl overflow-hidden rounded-3xl border border-border/70 bg-card/95 shadow-2xl">
+        {/* Cabeçalho */}
+        <div className="flex items-center justify-between border-b border-border/50 px-6 py-4">
+          <div className="flex items-center gap-3">
+            <span className="rounded-xl bg-brand-orange/10 p-2.5">
+              <ImageIcon className="h-5 w-5 text-brand-orange" />
+            </span>
+            <div>
+              <h2 className="text-lg font-black uppercase tracking-tight">Gerar arte de promoção</h2>
+              <p className="text-[11px] text-muted-foreground">
+                {promo.origin_city ?? promo.origin_iata} → {promo.destination_city ?? promo.destination_iata} •{" "}
+                {promo.origin_iata}–{promo.destination_iata}
+              </p>
+            </div>
+          </div>
+          <button type="button" onClick={onClose} className="rounded-full p-2 hover:bg-foreground/5">
+            <X className="h-5 w-5 text-muted-foreground" />
           </button>
         </div>
 
         {!card ? (
-          <p className="py-16 text-center text-sm text-muted-foreground">
+          <p className="py-24 text-center text-sm text-muted-foreground">
             <Loader2 className="mx-auto mb-2 h-5 w-5 animate-spin" /> Montando o card…
           </p>
         ) : (
-          <div className="mt-4 grid gap-5 lg:grid-cols-[420px_1fr]">
-            {/* Preview */}
-            <div>
-              <div className="mb-2 inline-flex rounded-xl border border-border/70 p-1">
-                {(["feed", "story"] as PromoCardFormat[]).map((f) => (
-                  <button
-                    key={f}
-                    type="button"
-                    onClick={() => setFormat(f)}
-                    className={`rounded-lg px-3 py-1.5 text-xs font-bold uppercase tracking-widest ${
-                      format === f ? "bg-brand-orange text-white" : "text-muted-foreground"
-                    }`}
-                  >
-                    {f === "feed" ? "Feed 4:5" : "Story 9:16"}
-                  </button>
-                ))}
+          <div className={`grid ${editando ? "lg:grid-cols-[1fr_400px]" : "grid-cols-1"}`}>
+            {/* Palco do preview */}
+            <div className="flex flex-col items-center gap-6 bg-background/60 p-8">
+              <div className="flex w-full max-w-[460px] items-center justify-between gap-3">
+                <div className="flex rounded-xl border border-border/60 bg-card/60 p-1">
+                  {(["feed", "story"] as PromoCardFormat[]).map((f) => (
+                    <button
+                      key={f}
+                      type="button"
+                      onClick={() => setFormat(f)}
+                      className={`rounded-lg px-4 py-2 text-[10px] font-black uppercase tracking-widest transition ${
+                        format === f ? "bg-brand-orange text-white shadow-lg shadow-brand-orange/20" : "text-muted-foreground"
+                      }`}
+                    >
+                      {f === "feed" ? "Feed 4:5" : "Story 9:16"}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setEditando((v) => !v)}
+                  className={`inline-flex items-center gap-2 rounded-xl border px-4 py-2 text-[10px] font-black uppercase tracking-widest transition ${
+                    editando
+                      ? "border-brand-orange bg-brand-orange/10 text-brand-orange"
+                      : "border-border/60 hover:bg-foreground/5"
+                  }`}
+                >
+                  <Pencil className="h-3.5 w-3.5 text-brand-orange" />
+                  {editando ? "Fechar edição" : "Alterar"}
+                </button>
               </div>
+
               <div
-                className="overflow-hidden rounded-2xl border border-border/70 bg-black"
+                className="overflow-hidden rounded-2xl border border-border/60 bg-black shadow-[0_40px_100px_rgba(0,0,0,0.5)]"
                 style={{ width: size.w * scale, height: size.h * scale }}
               >
                 <iframe
@@ -196,6 +220,7 @@ export function PromoArtDialog({ promo, onClose }: { promo: PromoRow & { id: str
                   }}
                 />
               </div>
+
 
               <div className="mt-3 flex flex-wrap gap-2">
                 <button
