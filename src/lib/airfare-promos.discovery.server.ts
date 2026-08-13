@@ -152,6 +152,14 @@ export type DiscoveryResult = {
   metrics: OriginMetrics[];
   /** Auditoria da curadoria (o que entrou, o que foi excluído e por quê). */
   decisions?: CurationDecision<PromoCandidate>[];
+  /** O radar do Melhores Destinos respondeu nesta execução? */
+  radarAvailable: boolean;
+  /** Quantas consultas ao radar falharam (503/timeout). */
+  radarErrors: number;
+  /** Oportunidades vindas efetivamente do Melhores Destinos. */
+  radarLeads: number;
+  /** Candidatas geradas por fallback (sementes de cobertura). */
+  fallbackCount: number;
 };
 
 /** Oportunidade em nível de DESTINO, antes de escolher as datas. */
