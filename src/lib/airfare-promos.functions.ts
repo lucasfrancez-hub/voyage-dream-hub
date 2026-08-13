@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { getRequest } from "@tanstack/react-start/server";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 async function assertAdmin(ctx: { supabase: any; userId: string }) {
@@ -125,7 +126,18 @@ export const setPromotionStatus = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
-const HOOK_URL = "https://pedidos.viaair.tur.br/api/public/hooks/airfare-promos";
+const HOOK_PATH = "/api/public/hooks/airfare-promos";
+
+/** Endpoint executor no MESMO ambiente (preview/produção) que recebeu a chamada. */
+function hookUrl(): string {
+  try {
+    const origem = new URL(getRequest().url).origin;
+    if (origem) return `${origem}${HOOK_PATH}`;
+  } catch {
+    /* fallback abaixo */
+  }
+  return `https://pedidos.viaair.tur.br${HOOK_PATH}`;
+}
 
 /**
  * Dispara a coleta em SEGUNDO PLANO (não depende da página ficar aberta).
@@ -148,7 +160,7 @@ export const runAirfarePromoCollection = createServerFn({ method: "POST" })
 
     const payload = JSON.stringify({ runId: run.id, maxRoutes: data.maxRoutes ?? 14 });
     // dispara e não espera concluir: o endpoint roda como invocação própria
-    const disparo = fetch(HOOK_URL, {
+    const disparo = fetch(hookUrl(), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: payload,
