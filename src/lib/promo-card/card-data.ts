@@ -2,6 +2,7 @@
  * Objeto ÚNICO de dados que alimenta os dois cards aprovados
  * (Feed 4:5 e Story 9:16). Feed e Story nunca têm dados diferentes.
  */
+import { cityLabel } from "@/lib/iata-lookup";
 
 export type PromoCardFormat = "feed" | "story";
 
@@ -74,7 +75,8 @@ export function bagagemLabel(row: {
 /** Monta o objeto do card a partir de uma linha de `airfare_promotions`. */
 export function promoToCardData(row: Record<string, unknown>): PromoCardData {
   const roundTrip = Boolean(row.is_round_trip) && Boolean(row.return_date);
-  const destCity = String(row.destination_city ?? row.destination_iata ?? "");
+  const destCity = cityLabel(row.destination_iata as string, row.destination_city as string | null);
+  const origCity = cityLabel(row.origin_iata as string, row.origin_city as string | null);
   const semJuros = Math.max(1, Number(row.interest_free_installments ?? 1));
   const extN = row.extended_max_installments ? Number(row.extended_max_installments) : null;
   const extV = row.extended_installment_value_12x ? num(row.extended_installment_value_12x) : null;
@@ -90,7 +92,7 @@ export function promoToCardData(row: Record<string, unknown>): PromoCardData {
       null,
     categoria: "PASSAGEM AÉREA",
     destination: destCity.toUpperCase(),
-    origin: String(row.origin_city ?? row.origin_iata ?? ""),
+    origin: origCity,
     destinationCity: destCity,
     originIata: String(row.origin_iata ?? ""),
     destinationIata: String(row.destination_iata ?? ""),

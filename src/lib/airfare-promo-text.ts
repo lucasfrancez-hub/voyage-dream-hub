@@ -4,6 +4,7 @@
  * os cards visuais (Feed/Story) virão dos HTMLs aprovados e usarão os mesmos
  * campos via `promoCardData`.
  */
+import { cityLabel } from "@/lib/iata-lookup";
 import { AVISO_MAIOR_PARCELAMENTO, AVISO_VALIDADE_TARIFA } from "@/lib/airfare-conditions";
 import { dataTarifaPorExtenso } from "@/lib/promo-card/card-html";
 
@@ -53,8 +54,8 @@ const dataBR = (iso?: string | null) => {
 /** Objeto único que alimentará Feed, Story, WhatsApp e Instagram. */
 export function promoCardData(p: PromoRow) {
   return {
-    origem: p.origin_city ? `${p.origin_city} (${p.origin_iata})` : p.origin_iata,
-    destino: p.destination_city ? `${p.destination_city} (${p.destination_iata})` : p.destination_iata,
+    origem: `${cityLabel(p.origin_iata, p.origin_city)} (${p.origin_iata})`,
+    destino: `${cityLabel(p.destination_iata, p.destination_city)} (${p.destination_iata})`,
     companhia: p.airline_name ?? p.airline_iata ?? "—",
     logo: p.airline_logo,
     ida: dataBR(p.departure_date),
