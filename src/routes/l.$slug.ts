@@ -58,10 +58,20 @@ export const Route = createFileRoute("/l/$slug")({
           /* métricas nunca bloqueiam o redirect */
         }
 
+        // marca a origem do acesso (?s=slug) para casar clique → navegação
+        let destino = data.target_url;
+        try {
+          const u = new URL(destino);
+          if (!u.searchParams.has("s")) u.searchParams.set("s", slug);
+          destino = u.toString();
+        } catch {
+          /* mantém a URL original */
+        }
+
         return new Response(null, {
           status: 302,
           headers: {
-            location: data.target_url,
+            location: destino,
             "cache-control": "no-store",
             "x-robots-tag": "noindex, nofollow",
             "referrer-policy": "no-referrer",
