@@ -748,7 +748,7 @@ export function PassagensBaratasExplorer({
       {/* Destinos ou origens (tabela igual à do Melhores Destinos) */}
       {!carregando && data?.cities.length ? (
         <Card className="overflow-hidden border-white/5 shadow-2xl">
-          <div className="flex items-center justify-between bg-primary px-6 py-4 text-[11px] font-bold uppercase tracking-widest text-primary-foreground">
+          <div className="flex items-center justify-between bg-primary px-4 py-3 sm:px-6 sm:py-4 text-[11px] font-bold uppercase tracking-widest text-primary-foreground">
             <span>{data.level === "origins" ? "Origem → Destino" : "Destino"}</span>
             <span className="text-right">Ida + volta a partir de</span>
           </div>
@@ -772,7 +772,7 @@ export function PassagensBaratasExplorer({
               return (
               <Tag
                 key={`${c.fromIata ?? ""}-${c.toIata ?? i}`}
-                className="group flex w-full items-center justify-between gap-3 border-b border-white/5 px-6 py-4 text-left transition-all hover:bg-white/[0.03]"
+                className="group flex w-full items-center justify-between gap-3 border-b border-white/5 px-4 py-3 sm:px-6 sm:py-4 text-left transition-all hover:bg-white/[0.03]"
                 onMouseEnter={() => prefetch(step)}
                 {...(href
                   ? { href, target: "_blank", rel: "noopener noreferrer" }
@@ -822,7 +822,7 @@ export function PassagensBaratasExplorer({
               <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
                 Ida + volta • melhores preços encontrados
               </div>
-              <h2 className="mt-1 text-3xl font-extrabold tracking-tight">{data.title}</h2>
+              <h2 className="mt-1 text-2xl sm:text-3xl font-extrabold tracking-tight">{data.title}</h2>
               <p className="mt-1 text-xs text-muted-foreground">
                 {data.dates.length} datas disponíveis
               </p>
