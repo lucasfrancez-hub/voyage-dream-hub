@@ -161,6 +161,10 @@ export function PromoSocialDialog({
   }
 
   async function copiar(texto: string) {
+    if (linkStatus === "loading") {
+      toast.info("Gerando link da oferta...");
+      return;
+    }
     try {
       await navigator.clipboard.writeText(texto);
       toast.success("Texto copiado!");
@@ -399,7 +403,7 @@ export function PromoSocialDialog({
                 <button
                   type="button"
                   onClick={enviarWhatsapp}
-                  disabled={busy !== null || selecionados.size === 0}
+                  disabled={busy !== null || selecionados.size === 0 || linkStatus === "loading"}
                   className="inline-flex items-center gap-2 rounded-lg bg-[#25D366] px-3 py-2 text-[11px] font-bold uppercase tracking-wide text-white transition-opacity hover:opacity-90 disabled:opacity-50"
                 >
                   <Send className="h-3.5 w-3.5" /> Enviar agora
@@ -432,7 +436,7 @@ export function PromoSocialDialog({
                 <button
                   type="button"
                   onClick={publicarInstagram}
-                  disabled={busy !== null || !card}
+                  disabled={busy !== null || !card || linkStatus === "loading"}
                   className="inline-flex items-center gap-2 rounded-lg bg-[#E1306C] px-3 py-2 text-[11px] font-bold uppercase tracking-wide text-white transition-opacity hover:opacity-90 disabled:opacity-50"
                 >
                   <Send className="h-3.5 w-3.5" /> Publicar agora
