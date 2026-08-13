@@ -60,6 +60,7 @@ import {
   AVISO_VALIDADE_TARIFA,
   extendedText,
   getAirfarePaymentConditions,
+  maxInstallmentText,
 } from "@/lib/airfare-conditions";
 import {
   onerCreateFlightCart,
@@ -1148,6 +1149,11 @@ export function FlightCard({
                     ? `${cardCond.interestFree.installments}x de ${fmtMoney(cardCond.interestFree.installmentValue)} sem juros`
                     : `À vista ${fmtMoney(cardCond.total)}`}
               </div>
+              {!cardCond.payment.pixOnly && maxInstallmentText(f.price.total) ? (
+                <div className="mt-0.5 text-[10px] font-medium text-muted-foreground">
+                  {maxInstallmentText(f.price.total)}
+                </div>
+              ) : null}
             </div>
           </div>
 
@@ -1461,6 +1467,11 @@ function SummaryCard({
                           ? `${cond.interestFree.installments}x de ${fmtMoney(cond.interestFree.installmentValue)} sem juros`
                           : `À vista ${fmtMoney(total)}`}
                     </div>
+                    {!cond.payment.pixOnly && maxInstallmentText(total) ? (
+                      <div className="mt-0.5 text-[11px] font-semibold text-muted-foreground">
+                        {maxInstallmentText(total)}
+                      </div>
+                    ) : null}
                     {cond.payment.upToThreeCards ? (
                       <div className="mt-0.5 text-[10px] font-medium text-muted-foreground">
                         Pix ou cartão de crédito • em até 3 cartões
