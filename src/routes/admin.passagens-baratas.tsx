@@ -845,7 +845,7 @@ export function PassagensBaratasExplorer({
 
           {data.months.length > 0 && (
             <Card className="rounded-2xl p-4 sm:p-6">
-              <div className="mb-6 flex items-center justify-between gap-2 sm:mb-7">
+              <div className="mb-4 flex items-center justify-between gap-2 sm:mb-7">
                 <div className="flex min-w-0 items-center gap-2">
                   <span className="h-1.5 w-1.5 shrink-0 animate-pulse rounded-full bg-primary" />
                   <h3 className="truncate text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
@@ -856,7 +856,38 @@ export function PassagensBaratasExplorer({
                   Clique no mês para filtrar
                 </span>
               </div>
-              <div className="-mx-1 flex h-32 items-end gap-2 overflow-x-auto px-1 pb-1 sm:justify-between sm:gap-3">
+
+              {/* Mobile: grade de meses (igual ao app do Melhores Destinos) */}
+              <div className="grid grid-cols-3 gap-2 md:hidden">
+                {data.months.map((m) => {
+                  const active = current.month === monthParam(m.label);
+                  return (
+                    <button
+                      key={`g-${m.label}`}
+                      onClick={() => selectMonth(m.label)}
+                      className={`rounded-xl border px-2 py-2 text-center transition-colors ${
+                        active
+                          ? "border-primary bg-primary/15"
+                          : "border-border/60 bg-muted/30 hover:bg-muted/60"
+                      }`}
+                    >
+                      <div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                        {m.label}
+                      </div>
+                      <div
+                        className={`text-sm font-black ${
+                          active || m.cheapest ? "text-primary" : "text-foreground"
+                        }`}
+                      >
+                        {m.price ? brl(m.price) : "—"}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Desktop: gráfico de barras */}
+              <div className="hidden h-32 items-end justify-between gap-3 md:flex">
                 {data.months.map((m) => {
                   const value = m.price ?? 0;
                   const height = maxMonth ? Math.max(14, Math.round((value / maxMonth) * 100)) : 14;
@@ -865,7 +896,7 @@ export function PassagensBaratasExplorer({
                     <button
                       key={m.label}
                       onClick={() => selectMonth(m.label)}
-                      className="group flex w-14 shrink-0 flex-col items-center gap-3 sm:w-auto sm:min-w-12 sm:flex-1"
+                      className="group flex min-w-12 flex-1 flex-col items-center gap-3"
                       title={m.price ? brl(m.price) : "Sem preço"}
                     >
 
@@ -905,69 +936,42 @@ export function PassagensBaratasExplorer({
             </Card>
           )}
 
-          {/* Mobile: cada opção de voo vira um cartão (a tabela não cabe na tela) */}
+          {/* Mobile: lista enxuta — cia, ida, volta, bagagem e preço (sem duração) */}
           {data.dates.length > 0 && (
-            <div className="space-y-3 md:hidden">
-              {data.dates.map((o, i) => (
-                <Card
-                  key={`m-${o.departDate}-${o.returnDate}-${o.price}`}
-                  className={`rounded-2xl p-4 ${i === 0 ? "border-primary/40" : ""}`}
-                >
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex min-w-0 items-center gap-2">
+            <Card className="overflow-hidden rounded-2xl md:hidden">
+              <div className="grid grid-cols-[24px_1fr_1fr_84px] items-center gap-2 border-b bg-muted/40 px-3 py-2 text-[9px] font-bold uppercase tracking-widest text-muted-foreground">
+                <span>Cia</span>
+                <span>Ida</span>
+                <span>Volta</span>
+                <span className="text-right">Preço</span>
+              </div>
+              <div className="divide-y">
+                {data.dates.map((o, i) => (
+                  <div key={`m-${o.departDate}-${o.returnDate}-${o.price}`} className="px-3 py-3">
+                    <div className="grid grid-cols-[24px_1fr_1fr_84px] items-center gap-2">
                       {o.airlineLogo ? (
-                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white p-1">
+                        <span className="flex h-6 w-6 items-center justify-center rounded bg-white p-0.5">
                           <img
                             src={o.airlineLogo}
                             alt={nomeCompanhia(o.airline) ?? "Companhia"}
                             className="max-h-full max-w-full"
                           />
                         </span>
-                      ) : null}
-                      <span className="truncate text-xs font-bold">
-                        {nomeCompanhia(o.airline) ?? "—"}
-                      </span>
-                    </div>
-                    <div className="shrink-0 text-right">
-                      <div className={`text-lg font-black ${i === 0 ? "text-primary" : ""}`}>
-                        {brl(o.price)}
-                      </div>
-                      {i === 0 && (
-                        <div className="text-[9px] font-bold uppercase tracking-tight text-primary">
-                          Tarifa mínima
-                        </div>
+                      ) : (
+                        <span className="h-6 w-6" />
                       )}
-                    </div>
-                  </div>
-
-                  <div className="mt-3 grid grid-cols-2 gap-3">
-                    <div className="min-w-0">
-                      <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                        Ida
+                      <div className="min-w-0">
+                        <div className="text-sm font-bold leading-tight">{o.departLabel}</div>
+                        <div className="truncate text-[10px] uppercase text-muted-foreground">
+                          {o.weekdayOut}
+                        </div>
                       </div>
-                      <div className="text-sm font-bold">{o.departLabel}</div>
-                      <div className="text-[10px] text-muted-foreground">{o.weekdayOut}</div>
-                    </div>
-                    <div className="min-w-0">
-                      <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                        Volta
+                      <div className="min-w-0">
+                        <div className="text-sm font-bold leading-tight">{o.returnLabel ?? "—"}</div>
+                        <div className="truncate text-[10px] uppercase text-muted-foreground">
+                          {o.weekdayIn}
+                        </div>
                       </div>
-                      <div className="text-sm font-bold">{o.returnLabel ?? "—"}</div>
-                      <div className="text-[10px] text-muted-foreground">{o.weekdayIn}</div>
-                    </div>
-                  </div>
-
-                  <div className="mt-3 flex flex-wrap items-center gap-2">
-                    {o.nights ? (
-                      <Badge variant="secondary" className="rounded-full text-[10px]">
-                        {o.nights} dias
-                      </Badge>
-                    ) : null}
-                    <BaggageBlocks label={o.baggage} />
-                  </div>
-
-                  <div className="mt-4 flex items-center gap-2">
-                    <Button size="sm" className="flex-1" variant={i === 0 ? "default" : "secondary"} asChild>
                       <a
                         href={
                           current.fromIata && current.toIata
@@ -981,22 +985,32 @@ export function PassagensBaratasExplorer({
                         }
                         target="_blank"
                         rel="noreferrer"
+                        className={`rounded-lg px-2 py-2 text-center text-sm font-black leading-tight ${
+                          i === 0
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-muted text-foreground"
+                        }`}
                       >
-                        Ver voos <ExternalLink className="ml-1 h-3.5 w-3.5" />
+                        {brl(o.price)}
                       </a>
-                    </Button>
-                    {admin && current.fromIata && current.toIata ? (
-                      <SalvarPromocaoButton
-                        origem={current.fromIata}
-                        destino={current.toIata}
-                        ida={o.departDate}
-                        volta={o.returnDate ?? null}
-                        referencia={o.price ?? null}
-                      />
-                    ) : null}
+                    </div>
+                    <div className="mt-2 flex items-center justify-between gap-2 pl-8">
+                      <BaggageBlocks label={o.baggage} />
+                      {admin && current.fromIata && current.toIata ? (
+                        <SalvarPromocaoButton
+                          origem={current.fromIata}
+                          destino={current.toIata}
+                          ida={o.departDate}
+                          volta={o.returnDate ?? null}
+                          referencia={o.price ?? null}
+                        />
+                      ) : null}
+                    </div>
                   </div>
-                </Card>
-              ))}
+                ))}
+              </div>
+            </Card>
+
             </div>
           )}
 
