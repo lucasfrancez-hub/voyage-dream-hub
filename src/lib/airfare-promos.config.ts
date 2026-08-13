@@ -207,6 +207,7 @@ export function isDestinationAllowedNacional(iata: string): boolean {
 /** Métricas por origem registradas em cada ciclo. */
 export type OriginMetrics = {
   origin: string;
+  /** brutas encontradas no radar (feed + varredura por origem) */
   discovered: number;
   deduped: number;
   /** elegíveis após blacklist/regras de curadoria */
@@ -214,10 +215,14 @@ export type OriginMetrics = {
   /** descartados pelas exclusões/regras */
   excluded?: number;
   selected: number;
+  /** selecionadas por escopo (para saber se os dois universos foram pesquisados) */
+  selected_nacional?: number;
+  selected_internacional?: number;
   validated: number;
   with_price: number;
   no_result: number;
   errors: number;
   avg_seconds: number | null;
 };
+
 
