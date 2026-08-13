@@ -73,6 +73,81 @@ export const listAirfarePromotions = createServerFn({ method: "GET" })
     return rows ?? [];
   });
 
+/**
+ * ARQUIVADOS — histórico dos últimos 30 dias (somente consulta).
+ * Nunca alimenta a curadoria ativa nem gera divulgação sem nova validação.
+ */
+export const listArchivedPromotions = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z
+      .object({
+        origin: z.string().trim().max(60).optional().nullable(),
+        destination: z.string().trim().max(60).optional().nullable(),
+        airline: z.string().trim().max(60).optional().nullable(),
+        scope: z.string().trim().max(20).optional().nullable(),
+        day: z.string().trim().max(10).optional().nullable(),
+        page: z.number().int().min(0).max(200).optional().nullable(),
+        pageSize: z.number().int().min(10).max(200).optional().nullable(),
+      })
+      .partial()
+      .parse(input ?? {}),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const size = data.pageSize ?? 50;
+    const page = data.page ?? 0;
+    const limite = new Date(Date.now() - 30 * 86400_000).toISOString();
+
+    let q = context.supabase
+      .from("airfare_promotions")
+      .select(ARCHIVE_COLUMNS, { count: "exact" })
+      .not("archived_at", "is", null)
+      .gte("archived_at", limite);
+
+    if (data.origin) q = q.ilike("origin_iata", `%${data.origin}%`);
+    if (data.destination) q = q.ilike("destination_iata", `%${data.destination}%`);
+    if (data.airline) q = q.ilike("airline_name", `%${data.airline}%`);
+    if (data.scope && data.scope !== "todos") q = q.eq("scope", data.scope);
+    if (data.day) q = q.eq("archived_cycle_day", data.day);
+
+    const { data: rows, count, error } = await q
+      .order("archived_at", { ascending: false })
+      .range(page * size, page * size + size - 1);
+    if (error) throw new Error(error.message);
+    return { rows: rows ?? [], total: count ?? 0, page, pageSize: size };
+  });
+
+/** Contador do botão 🗑 Arquivados (registros dentro da retenção). */
+export const countArchivedPromotions = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context);
+    const limite = new Date(Date.now() - 30 * 86400_000).toISOString();
+    const { count, error } = await context.supabase
+      .from("airfare_promotions")
+      .select("id", { count: "exact", head: true })
+      .not("archived_at", "is", null)
+      .gte("archived_at", limite);
+    if (error) throw new Error(error.message);
+    return { total: count ?? 0 };
+  });
+
+/** Histórico de preço de UMA promoção arquivada. */
+export const promotionPriceHistory = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => z.object({ id: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { data: rows, error } = await context.supabase
+      .from("airfare_promo_price_history")
+      .select("*")
+      .eq("promotion_id", data.id)
+      .order("created_at", { ascending: true });
+    if (error) throw new Error(error.message);
+    return rows ?? [];
+  });
+
 export const listPromoRoutes = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
