@@ -136,12 +136,14 @@ export async function discoverCandidates(opts?: {
 
 
   const add = (c: PromoCandidate) => {
+    brutas++;
     const atual = mapa.get(c.signature);
     // mesma oportunidade repetida na fonte: mantém a referência mais barata/recente
     if (!atual || (c.reference_price ?? Infinity) < (atual.reference_price ?? Infinity)) {
       mapa.set(c.signature, { ...c, priority: Math.min(c.priority, atual?.priority ?? c.priority) });
     }
   };
+
 
   let promos: Awaited<ReturnType<typeof listarPromocoesHandler>>["promos"] = [];
   try {
