@@ -1213,7 +1213,17 @@ function PromocoesAereoPage() {
       </div>
 
 
-      {artPromo ? <PromoArtDialog promo={artPromo} onClose={() => setArtPromo(null)} /> : null}
+      {artPromo ? (
+        <PromoArtDialog
+          promo={artPromo}
+          onClose={() => setArtPromo(null)}
+          onDivulgar={(canal) => {
+            setSocialCanal(canal);
+            setSocialPromo(artPromo);
+            setArtPromo(null);
+          }}
+        />
+      ) : null}
 
       <PromoSocialDialog
         promo={socialPromo}

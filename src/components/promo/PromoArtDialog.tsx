@@ -66,7 +66,15 @@ function Field({
   );
 }
 
-export function PromoArtDialog({ promo, onClose }: { promo: PromoRow & { id: string }; onClose: () => void }) {
+export function PromoArtDialog({
+  promo,
+  onClose,
+  onDivulgar,
+}: {
+  promo: PromoRow & { id: string };
+  onClose: () => void;
+  onDivulgar?: (canal: "whatsapp" | "instagram") => void;
+}) {
   const build = useServerFn(buildPromoCard);
   const photos = useServerFn(listDestinationPhotos);
   const render = useServerFn(renderPromoCard);
@@ -268,12 +276,12 @@ export function PromoArtDialog({ promo, onClose }: { promo: PromoRow & { id: str
                 <div className="flex items-center justify-center gap-5">
                   <button
                     type="button"
-                    title="Enviar no WhatsApp"
-                    onClick={() => whatsapp.mutate()}
+                    title="Divulgar no WhatsApp"
+                    onClick={() => (onDivulgar ? onDivulgar("whatsapp") : whatsapp.mutate())}
                     disabled={whatsapp.isPending}
                     className="flex h-14 w-14 items-center justify-center rounded-full border border-[#25D366]/20 bg-[#25D366]/10 text-[#25D366] shadow-lg transition hover:scale-110 hover:bg-[#25D366] hover:text-white active:scale-95 disabled:opacity-60"
                   >
-                    {whatsapp.isPending ? (
+                    {whatsapp.isPending && !onDivulgar ? (
                       <Loader2 className="h-6 w-6 animate-spin" />
                     ) : (
                       <MessageCircle className="h-6 w-6" />
@@ -281,17 +289,18 @@ export function PromoArtDialog({ promo, onClose }: { promo: PromoRow & { id: str
                   </button>
                   <button
                     type="button"
-                    title="Publicar no Instagram"
-                    onClick={() => publicar.mutate()}
+                    title="Divulgar no Instagram"
+                    onClick={() => (onDivulgar ? onDivulgar("instagram") : publicar.mutate())}
                     disabled={publicar.isPending}
                     className="flex h-14 w-14 items-center justify-center rounded-full border border-[#E1306C]/20 bg-[#E1306C]/10 text-[#E1306C] shadow-lg transition hover:scale-110 hover:bg-[#E1306C] hover:text-white active:scale-95 disabled:opacity-60"
                   >
-                    {publicar.isPending ? (
+                    {publicar.isPending && !onDivulgar ? (
                       <Loader2 className="h-6 w-6 animate-spin" />
                     ) : (
                       <Instagram className="h-6 w-6" />
                     )}
                   </button>
+
                   <button
                     type="button"
                     title="Copiar link da arte"
