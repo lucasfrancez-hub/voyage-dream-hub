@@ -4,7 +4,38 @@
  * por variáveis. NÃO redesenhar.
  */
 import viaairLogo from "@/assets/viaair-logo.png.asset.json";
-import type { PromoCardData, PromoCardFormat } from "./card-data";
+import viaairLogoWhite from "@/assets/viaair-logo-white.png.asset.json";
+import viaairLogoBlack from "@/assets/viaair-logo-black.png.asset.json";
+import type { PromoCardData, PromoCardFormat, PromoLogoVariant } from "./card-data";
+
+/** Arquivos oficiais das três versões da logo (sem filtros CSS). */
+export const VIAAIR_LOGOS: Record<PromoLogoVariant, string> = {
+  color: viaairLogo.url,
+  white: viaairLogoWhite.url,
+  black: viaairLogoBlack.url,
+};
+
+const MESES_PT = [
+  "janeiro","fevereiro","março","abril","maio","junho",
+  "julho","agosto","setembro","outubro","novembro","dezembro",
+];
+
+/** "12 de agosto de 2026" a partir da data real de coleta da tarifa. */
+export function dataTarifaPorExtenso(iso?: string | null): string | null {
+  if (!iso) return null;
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(iso));
+  let y: number, mo: number, da: number;
+  if (m) {
+    y = Number(m[1]); mo = Number(m[2]); da = Number(m[3]);
+  } else {
+    const dt = new Date(iso);
+    if (Number.isNaN(dt.getTime())) return null;
+    y = dt.getUTCFullYear(); mo = dt.getUTCMonth() + 1; da = dt.getUTCDate();
+  }
+  const nome = MESES_PT[mo - 1];
+  if (!nome) return null;
+  return `${da} de ${nome} de ${y}`;
+}
 
 const esc = (s: unknown) =>
   String(s ?? "")
@@ -44,46 +75,51 @@ radial-gradient(circle at 80% 12%,rgba(255,134,27,.18),transparent 24%)}
 .cards-seal{width:146px;height:146px;filter:drop-shadow(0 12px 24px rgba(0,0,0,.32))}
 .offer-seal{width:146px;height:146px;filter:drop-shadow(0 10px 22px rgba(0,0,0,.30))}
 svg{display:block;width:100%;height:100%}
-.kicker{font-size:15px;letter-spacing:2.8px;text-transform:uppercase;color:var(--orange);font-weight:800}
-.destination{font-weight:950;line-height:.95;text-transform:uppercase;letter-spacing:-2px;white-space:nowrap;overflow:hidden}
-.route-city{display:flex;align-items:center;gap:14px;font-size:34px;font-weight:900;color:#fff;max-width:100%}
+.kicker{font-size:18px;letter-spacing:3px;text-transform:uppercase;color:var(--orange);font-weight:800}
+.category-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.category-badge{display:inline-flex;align-items:center;padding:8px 14px;border-radius:10px;background:#ff861b;color:#fff;font-size:14px;font-weight:950;letter-spacing:1.5px;box-shadow:0 8px 20px rgba(0,0,0,.16)}
+.found-badge{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border-radius:10px;background:rgba(41,163,91,.20);border:1px solid rgba(74,222,128,.40);color:#dffbea;font-size:13px;font-weight:850;backdrop-filter:blur(12px) saturate(125%);-webkit-backdrop-filter:blur(12px) saturate(125%);box-shadow:inset 0 1px 0 rgba(255,255,255,.04),0 8px 20px rgba(0,0,0,.14)}
+.found-dot{width:8px;height:8px;border-radius:50%;background:#35d07f;box-shadow:0 0 10px rgba(53,208,127,.75)}
+.route-glass{display:inline-flex;flex-direction:column;gap:5px;margin-top:18px;padding:14px 18px;border-radius:16px;background:rgba(5,28,38,.48);border:1px solid rgba(255,255,255,.15);backdrop-filter:blur(16px) saturate(125%);-webkit-backdrop-filter:blur(16px) saturate(125%);box-shadow:inset 0 1px 0 rgba(255,255,255,.05),0 10px 28px rgba(0,0,0,.20);max-width:100%}
+.destination{font-weight:950;line-height:.95;text-transform:uppercase;letter-spacing:-2px;white-space:nowrap;overflow:hidden;color:var(--orange);text-shadow:0 6px 24px rgba(0,0,0,.22)}
+.route-city{display:flex;align-items:center;gap:14px;font-size:42px;font-weight:900;color:#fff;max-width:100%}
 .route-city span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .route-city .arrow{color:var(--orange);font-size:28px;flex:none}
-.route-iata{font-size:15px;color:var(--muted);margin-top:6px;letter-spacing:1.2px}
+.route-iata{font-size:18px;color:var(--muted);margin-top:6px;letter-spacing:1.2px}
 .status-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px;max-width:940px}
 .live,.validity{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border-radius:999px;border:1px solid rgba(255,255,255,.10);font-size:13px}
 .live{background:rgba(255,255,255,.06);color:#dce8ee}
 .live:before{content:"";width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 12px rgba(46,212,122,.7)}
 .validity{background:rgba(255,134,27,.07);border-color:rgba(255,134,27,.22);color:#ffd4ae}
 .details{display:flex;flex-direction:column;gap:7px;align-items:flex-start}
-.detail-row{display:inline-flex;align-items:center;gap:16px;background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:9px 14px;min-height:50px;max-width:100%}
-.detail-row .label{color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:1px;flex:none}
-.detail-row .value{font-size:18px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.detail-row{display:inline-flex;align-items:center;gap:16px;background:rgba(4,26,36,.56);border:1px solid rgba(255,255,255,.16);border-radius:15px;backdrop-filter:blur(16px) saturate(125%);-webkit-backdrop-filter:blur(16px) saturate(125%);box-shadow:inset 0 1px 0 rgba(255,255,255,.05),0 8px 24px rgba(0,0,0,.18);padding:9px 14px;min-height:50px;max-width:100%}
+.detail-row .label{color:var(--muted);font-size:13px;text-transform:uppercase;letter-spacing:1px;flex:none}
+.detail-row .value{font-size:23px;font-weight:850;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .airline{display:flex;align-items:center;gap:10px}
 .airline-logo{width:38px;height:38px;border-radius:10px;background:#fff;display:grid;place-items:center;box-shadow:0 8px 20px rgba(0,0,0,.18);overflow:hidden;flex:none}
 .airline-logo img{width:32px;height:32px;object-fit:contain}
 .airline-iata{font-size:12px;color:var(--muted);font-weight:800;letter-spacing:1px}
-.price-box{background:linear-gradient(180deg,rgba(27,22,19,.97),rgba(15,15,15,.98));border:1px solid rgba(255,255,255,.11);border-radius:24px;box-shadow:0 18px 40px rgba(0,0,0,.26)}
-.price-top{color:#c8d0d5;text-transform:uppercase;letter-spacing:2.5px;font-size:12px;font-weight:800}
+.price-box{background:linear-gradient(180deg,rgba(23,19,17,.78),rgba(10,12,13,.80));border:1px solid rgba(255,255,255,.14);backdrop-filter:blur(22px) saturate(125%);-webkit-backdrop-filter:blur(22px) saturate(125%);border-radius:24px;box-shadow:0 18px 40px rgba(0,0,0,.26)}
+.price-top{color:#dbe3e7;text-transform:uppercase;letter-spacing:2.5px;font-size:14px;font-weight:900}
 .installments{display:flex;align-items:baseline;gap:8px;margin-top:6px;flex-wrap:wrap}
-.main-subtitle{font-size:12px;color:#d6e1e6;margin-top:8px;margin-bottom:2px}
+.main-subtitle{font-size:15px;color:#e2eaee;margin-top:8px;margin-bottom:2px}
 .installments .n{font-size:28px;font-weight:950;letter-spacing:.1px}
 .installments .de{font-size:16px;font-weight:800;color:#d7e1e6;margin-left:1px}
 .installments .currency{font-size:29px;font-weight:900;color:var(--orange)}
-.interest-free{font-size:12px;font-weight:800;color:#dbe4e8;margin-left:8px;margin-bottom:10px;white-space:nowrap}
-.original-total{display:inline-flex;align-items:center;gap:9px;margin-top:12px;padding:7px 10px;border-radius:999px;background:linear-gradient(180deg,rgba(255,134,27,.20),rgba(255,134,27,.10));border:1px solid rgba(255,134,27,.42)}
-.original-total-label{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#ffd2aa;font-weight:800}
-.original-total-value{font-size:14px;color:#ff9a3d;font-weight:950}
+.interest-free{font-size:14px;font-weight:800;color:#e4ecef;margin-left:8px;margin-bottom:10px;white-space:nowrap}
+.original-total{display:inline-flex;align-items:center;gap:9px;margin-top:12px;padding:7px 10px;border-radius:999px;background:linear-gradient(180deg,rgba(255,134,27,.28),rgba(255,134,27,.13));border:1px solid rgba(255,134,27,.55);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+.original-total-label{font-size:13px;text-transform:uppercase;letter-spacing:1px;color:#ffd2aa;font-weight:800}
+.original-total-value{font-size:17px;color:#ff9a3d;font-weight:950}
 .installments .value{font-weight:950;color:var(--orange);letter-spacing:-2px}
-.more-installments{border-left:1px solid rgba(255,134,27,.35);padding-left:26px}
-.more-installments .headline{font-size:15px;color:#fff;font-weight:900;margin-bottom:7px}
-.more-installments .twelve-label{font-size:12px;color:#d6e1e6;margin-bottom:3px}
+.more-installments{border-left:1px solid rgba(255,134,27,.42);padding-left:30px}
+.more-installments .headline{font-size:17px;color:#fff;font-weight:900;margin-bottom:7px}
+.more-installments .twelve-label{font-size:14px;color:#d6e1e6;margin-bottom:3px}
 .more-installments .twelve-price{display:flex;align-items:baseline;gap:6px;margin-bottom:6px}
 .more-installments .twelve-price .n{font-size:22px;font-weight:900}
 .more-installments .twelve-price .currency{font-size:20px;font-weight:900;color:var(--orange)}
 .more-installments .twelve-price .value{font-size:36px;font-weight:950;color:var(--orange);letter-spacing:-1px}
-.more-installments .discount{font-size:13px;line-height:1.45;color:#ffd1a8;font-weight:800}
-.note{font-size:11px;color:#aebcc4;line-height:1.5}
+.more-installments .discount{font-size:15px;line-height:1.45;color:#ffd1a8;font-weight:800}
+.note{font-size:14px;color:#cbd5da;line-height:1.55}
 `;
 
 const STORY_CSS = `
@@ -94,23 +130,22 @@ const STORY_CSS = `
 .price-box{position:absolute;left:58px;right:58px;bottom:96px;padding:34px 36px}
 .installments .value{font-size:94px}
 .more-installments{margin-top:18px;border-left:0;border-top:1px solid rgba(255,134,27,.35);padding:16px 0 0}
-.more-installments .headline{font-size:11px;margin-bottom:4px}
-.more-installments .twelve-label{font-size:11px}
+.more-installments .headline{font-size:15px;margin-bottom:4px}
+.more-installments .twelve-label{font-size:14px}
 .more-installments .twelve-price .n{font-size:20px}
 .more-installments .twelve-price .currency{font-size:18px}
 .more-installments .twelve-price .value{font-size:42px}
-.more-installments .discount{font-size:13px;max-width:780px}
+.more-installments .discount{font-size:15px;max-width:780px}
 .cards-seal{width:150px;height:150px}.offer-seal{width:150px;height:150px}
 `;
 
 const FEED_CSS = `
-.original-total-value{font-size:15px}
 .frame{width:1080px;height:1350px;padding:54px 58px}
-.hero{margin-top:46px}.destination{font-size:108px;margin:12px 0 24px}
+.hero{margin-top:46px}.destination{font-size:124px;margin:12px 0 24px}
 .details{margin-top:28px}
 .price-box{position:absolute;left:58px;right:58px;bottom:88px;padding:30px 32px}
 .installments .value{font-size:76px}
-.price-layout{display:grid;grid-template-columns:1fr .82fr;gap:34px;align-items:end}
+.price-layout{display:grid;grid-template-columns:1.05fr .95fr;gap:38px;align-items:center}
 .price-layout.pix-only{grid-template-columns:1fr}
 `;
 
