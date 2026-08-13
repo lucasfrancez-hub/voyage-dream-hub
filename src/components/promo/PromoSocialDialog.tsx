@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/dialog";
 import { WhatsAppIcon } from "@/components/packages/PackageSocialDialog";
 import { buildPromoCard, renderPromoCard } from "@/lib/promo-card.functions";
+import { generatePromotionLink } from "@/lib/airfare-promos.functions";
 import { listInstagramAccounts, publishInstagramFromUrl } from "@/lib/instagram/queries.functions";
 import { listDestinos, enviarPacoteWhatsapp } from "@/lib/broadcast/broadcast.functions";
 import { fetchProxiedImage } from "@/lib/image-proxy.functions";
@@ -90,7 +91,7 @@ export function PromoSocialDialog({
     setShortUrl(null);
     setLinkStatus("loading");
     genLinkFn({ data: { id: promo.id } })
-      .then((r) => {
+      .then((r: unknown) => {
         if (!vivo) return;
         const u = (r as { short_url?: string | null; cart_url?: string | null }) ?? {};
         setShortUrl(u.short_url ?? u.cart_url ?? null);
