@@ -252,8 +252,49 @@ function PromoCard({
       ? `até ${promo.interest_free_installments}x de ${brl(promo.interest_free_installment_value)} sem juros`
       : "pagamento à vista";
 
+  const ciclo = promo.cycle_state === "new" || promo.cycle_state === "changed" ? promo.cycle_state : null;
+  const horaCiclo = promo.cycle_state_at
+    ? new Date(promo.cycle_state_at).toLocaleTimeString("pt-BR", {
+        timeZone: "America/Sao_Paulo",
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+    : null;
+  const camposCiclo = (promo.cycle_changed_fields ?? [])
+    .map((c) => CAMPO_LABEL[c] ?? c)
+    .join(" + ");
+
+  const contorno =
+    ciclo === "new"
+      ? "border-emerald-500/70 shadow-[0_0_0_1px_rgba(16,185,129,0.25),0_0_22px_-8px_rgba(16,185,129,0.55)] hover:border-emerald-400"
+      : ciclo === "changed"
+        ? "border-brand-orange/70 shadow-[0_0_0_1px_rgba(242,107,31,0.25),0_0_22px_-8px_rgba(242,107,31,0.55)] hover:border-brand-orange"
+        : "border-border/60 hover:border-brand-orange/50";
+
   return (
-    <article className="group relative overflow-hidden rounded-2xl border border-border/60 bg-gradient-to-b from-card/90 to-card/60 p-4 shadow-sm backdrop-blur transition hover:border-brand-orange/50">
+    <article
+      className={`group relative overflow-hidden rounded-2xl border bg-gradient-to-b from-card/90 to-card/60 p-4 shadow-sm backdrop-blur transition ${contorno}`}
+    >
+      {ciclo ? (
+        <div className="mb-2 flex items-center gap-2">
+          <span
+            className={`rounded-full px-2 py-0.5 text-[9px] font-black uppercase tracking-widest ${
+              ciclo === "new"
+                ? "bg-emerald-500/15 text-emerald-400"
+                : "bg-brand-orange/15 text-brand-orange"
+            }`}
+          >
+            {ciclo === "new" ? "Nova" : "Alterada"}
+          </span>
+          <span className="truncate text-[10px] text-muted-foreground">
+            {ciclo === "new"
+              ? horaCiclo
+                ? `encontrada às ${horaCiclo}`
+                : "nesta coleta"
+              : `${horaCiclo ? `alterada às ${horaCiclo}` : "alterada"}${camposCiclo ? ` · ${camposCiclo}` : ""}`}
+          </span>
+        </div>
+      ) : null}
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <h3 className="truncate text-lg font-black leading-tight tracking-tight">
@@ -264,6 +305,7 @@ function PromoCard({
             {promo.origin_iata} → {promo.destination_iata}
           </p>
         </div>
+
         <select
           value={promo.status}
           onChange={(e) => onStatus(e.target.value)}
