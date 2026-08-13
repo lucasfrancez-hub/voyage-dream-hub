@@ -718,10 +718,12 @@ function PromocoesAereoPage() {
                   : "Validando no motor VIA AIR…"}
             </span>
             <span className="text-muted-foreground">
+              {desde(info.started_at) ? `Em andamento desde ${desde(info.started_at)} • ` : ""}
               {info.total > 0
                 ? `${info.processed} de ${info.total} oportunidades verificadas`
                 : "Preparando as oportunidades…"}
             </span>
+
           </div>
           <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-border/60">
             {pct === null ? (
