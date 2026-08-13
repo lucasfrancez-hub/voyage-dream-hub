@@ -22,7 +22,11 @@ import {
   type OriginMetrics,
 } from "@/lib/airfare-promos.config";
 import { curateOrigin, type CurationDecision } from "@/lib/airfare-promos.curation";
-import { datasDaRotaHandler, listarPromocoesHandler } from "@/lib/melhores-destinos.server";
+import {
+  datasDaRotaHandler,
+  listarPromocoesHandler,
+  mdInternalOnly,
+} from "@/lib/melhores-destinos.server";
 
 export type PromoCandidate = {
   signature: string;
@@ -196,7 +200,7 @@ type Lead = {
  *  4. Só as escolhidas (até N nacionais + N internacionais por origem)
  *     buscam datas reais e entram na fila cara do motor VIA AIR.
  */
-export async function discoverCandidates(opts?: {
+type DiscoverOptions = {
   pages?: number;
   datesPerRoute?: number;
   /** teto de segurança da leitura bruta (não é o limite por origem) */
@@ -207,7 +211,19 @@ export async function discoverCandidates(opts?: {
   onProgress?: (msg: string) => void;
   /** orçamento de tempo da etapa de radar (o ritmo é 15–30s por chamada) */
   radarBudgetMs?: number;
-}): Promise<DiscoveryResult> {
+};
+
+/**
+ * Promoções de Aéreo NÃO acessa o Melhores Destinos diretamente: toda leitura
+ * abaixo passa pelo modo "somente dados internos" — apenas o que a camada do
+ * Passagens Baratas já coletou e persistiu. Sem dados recentes, a coleta
+ * apenas informa que não há novas oportunidades (sem fallback artificial).
+ */
+export async function discoverCandidates(opts?: DiscoverOptions): Promise<DiscoveryResult> {
+  return mdInternalOnly(() => discoverFromInternalData(opts));
+}
+
+async function discoverFromInternalData(opts?: DiscoverOptions): Promise<DiscoveryResult> {
   const { radarByOrigin, cheapestDatesForLead, normalizeIata, mapLimit, MdCancelledError } =
     await import("@/lib/airfare-promos.radar.server");
   const { mdSourceMetrics, resetMdSourceMetrics, mdRadarAvailable } = await import(
@@ -369,25 +385,22 @@ export async function discoverCandidates(opts?: {
   //     respondeu AO VIVO nesta execução; com a fonte bloqueada a coleta
   //     não é preenchida artificialmente com sementes.
   // ------------------------------------------------------------------
-  let fallbackCount = 0;
-  const MAX_FALLBACK_SEEDS = Math.min(4, Math.floor(radarLeads * 0.15));
-  if (radarAvailable && fonteViva) {
-    for (const seed of PRIORITY_SEEDS) {
-      if (fallbackCount >= MAX_FALLBACK_SEEDS) break;
-      if ((pool.get(seed.origin)?.size ?? 0) > 0) continue;
-      fallbackCount++;
-      addLead({
-        origin_iata: seed.origin,
-        origin_city: seed.originCity,
-        destination_iata: seed.destination,
-        destination_city: seed.destinationCity,
-        scope: seed.scope,
-        reference_price: null,
-        category_id: null,
-        reference_source: "fallback",
-        dates: [],
-      });
-    }
+  // Sem dados internos recentes: nada de sementes/fallback artificial.
+  const fallbackCount = 0;
+  if (!radarLeads) {
+    return {
+      candidates: [],
+      discoveredTotal: brutas,
+      dedupedTotal: 0,
+      metrics: [],
+      decisions: [],
+      radarAvailable: false,
+      radarErrors,
+      radarLeads: 0,
+      fallbackCount: 0,
+      sourceMetrics: mdSourceMetrics(),
+      cancelled: cancelada,
+    };
   }
 
   // ------------------------------------------------------------------
@@ -485,16 +498,9 @@ export async function discoverCandidates(opts?: {
         datas = [];
       }
     }
-    let datasSaoFallback = false;
-    if (!datas.length) {
-      datasSaoFallback = true;
-      const pares = diversifiedDatePairs(
-        `${lead.origin_iata}${lead.destination_iata}`,
-        Math.max(1, datesPerRoute),
-      );
-      datas = pares.map((p) => ({ departDate: p.departureDate, returnDate: p.returnDate, price: null }));
-      if (!datas.length) return;
-    }
+    // Sem datas reais vindas dos dados internos a oportunidade é descartada:
+    // não inventamos datas de fallback.
+    if (!datas.length) return;
 
     for (const d of datas.slice(0, datesPerRoute)) {
       selecionadas.push({
@@ -512,14 +518,13 @@ export async function discoverCandidates(opts?: {
         departure_date: d.departDate,
         return_date: d.returnDate,
         priority: lead.scope === "nacional" ? 10 : 20,
-        reference_source:
-          datasSaoFallback && lead.reference_price == null ? "fallback" : lead.reference_source,
+        reference_source: lead.reference_source,
         reference_price: d.price ?? lead.reference_price,
         reference_origin: lead.origin_iata,
         reference_destination: lead.destination_iata,
         // datas de referência só existem quando vieram mesmo do MD
-        reference_departure_date: datasSaoFallback ? null : d.departDate,
-        reference_return_date: datasSaoFallback ? null : d.returnDate,
+        reference_departure_date: d.departDate,
+        reference_return_date: d.returnDate,
         reference_collected_at: collectedAt,
       });
     }
@@ -539,7 +544,7 @@ export async function discoverCandidates(opts?: {
     radarAvailable,
     radarErrors,
     radarLeads,
-    fallbackCount: lista.filter((c) => c.reference_source === "fallback").length,
+    fallbackCount,
     sourceMetrics: mdSourceMetrics(),
     cancelled: cancelada,
   };
