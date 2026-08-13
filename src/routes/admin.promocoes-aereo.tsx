@@ -387,15 +387,15 @@ function PromoCard({
         </span>
         <div className="flex items-center gap-1.5">
           <IconBtn
-            title="Copiar texto do WhatsApp"
-            onClick={() => copiar(promoWhatsappText(promo), "Texto do WhatsApp copiado")}
+            title="Divulgar no WhatsApp"
+            onClick={() => onSocial("whatsapp")}
             className="hover:border-emerald-500/50 hover:text-emerald-500"
           >
             <MessageCircle className="h-4 w-4" />
           </IconBtn>
           <IconBtn
-            title="Copiar legenda do Instagram"
-            onClick={() => copiar(promoInstagramText(promo), "Legenda do Instagram copiada")}
+            title="Divulgar no Instagram"
+            onClick={() => onSocial("instagram")}
             className="hover:border-pink-500/50 hover:text-pink-500"
           >
             <Instagram className="h-4 w-4" />
