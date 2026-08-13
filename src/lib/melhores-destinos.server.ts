@@ -59,10 +59,29 @@ const GAP_MS: Record<MdPriority, [number, number]> = {
   background: [15_000, 30_000],
   interactive: [1_200, 2_500],
 };
-const BACKOFF_STEPS_MS = [30_000, 60_000, 120_000];
+
+/** Somente para testes automatizados do ritmo/backoff. */
+export function configureMdRateLimit(cfg: {
+  background?: [number, number];
+  interactive?: [number, number];
+  backoffSteps?: number[];
+  unavailableCooldownMs?: number;
+}) {
+  if (cfg.background) GAP_MS.background = cfg.background;
+  if (cfg.interactive) GAP_MS.interactive = cfg.interactive;
+  if (cfg.backoffSteps) BACKOFF_STEPS_MS.splice(0, BACKOFF_STEPS_MS.length, ...cfg.backoffSteps);
+  if (cfg.unavailableCooldownMs != null) cooldownMs = cfg.unavailableCooldownMs;
+  jsonCache.clear();
+  falhasConsecutivas = 0;
+  bloqueadoAte = 0;
+  indisponivelAte = 0;
+  ultimaChamada = 0;
+  mdMetrics.radarAvailable = true;
+}
+const BACKOFF_STEPS_MS: number[] = [30_000, 60_000, 120_000];
 const MAX_CONSECUTIVE_FAILURES = 3;
 /** Enquanto a fonte estiver marcada como fora, nem entra na fila. */
-const UNAVAILABLE_COOLDOWN_MS = 10 * 60_000;
+let cooldownMs = 10 * 60_000;
 const DEFAULT_TTL = 15 * 60 * 1000;
 
 const jsonCache = new Map<string, { at: number; value: unknown }>();
@@ -173,7 +192,7 @@ function registrarFalha(status: number | null, msg: string) {
   mdMetrics.backoffs++;
   if (falhasConsecutivas >= MAX_CONSECUTIVE_FAILURES) {
     mdMetrics.radarAvailable = false;
-    indisponivelAte = Date.now() + UNAVAILABLE_COOLDOWN_MS;
+    indisponivelAte = Date.now() + cooldownMs;
   }
 }
 
