@@ -407,6 +407,7 @@ export type Database = {
           archived_cycle_day: string | null
           archived_reason: string | null
           cabin_class: string | null
+          card_overrides: Json | null
           cart_url: string | null
           created_at: string
           cycle_changed_fields: string[]
@@ -470,6 +471,7 @@ export type Database = {
           archived_cycle_day?: string | null
           archived_reason?: string | null
           cabin_class?: string | null
+          card_overrides?: Json | null
           cart_url?: string | null
           created_at?: string
           cycle_changed_fields?: string[]
@@ -533,6 +535,7 @@ export type Database = {
           archived_cycle_day?: string | null
           archived_reason?: string | null
           cabin_class?: string | null
+          card_overrides?: Json | null
           cart_url?: string | null
           created_at?: string
           cycle_changed_fields?: string[]
@@ -5022,6 +5025,51 @@ export type Database = {
           },
         ]
       }
+      short_link_clicks: {
+        Row: {
+          browser: string | null
+          city: string | null
+          country: string | null
+          created_at: string
+          device: string | null
+          id: string
+          os: string | null
+          referrer: string | null
+          referrer_host: string | null
+          region: string | null
+          slug: string
+          user_agent: string | null
+        }
+        Insert: {
+          browser?: string | null
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          device?: string | null
+          id?: string
+          os?: string | null
+          referrer?: string | null
+          referrer_host?: string | null
+          region?: string | null
+          slug: string
+          user_agent?: string | null
+        }
+        Update: {
+          browser?: string | null
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          device?: string | null
+          id?: string
+          os?: string | null
+          referrer?: string | null
+          referrer_host?: string | null
+          region?: string | null
+          slug?: string
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
       short_links: {
         Row: {
           click_count: number
@@ -5049,6 +5097,84 @@ export type Database = {
           last_click_at?: string | null
           slug?: string
           target_url?: string
+        }
+        Relationships: []
+      }
+      site_events: {
+        Row: {
+          browser: string | null
+          city: string | null
+          country: string | null
+          created_at: string
+          device: string | null
+          duration_ms: number | null
+          entry: boolean
+          event_type: string
+          id: string
+          meta: Json | null
+          os: string | null
+          path: string | null
+          referrer: string | null
+          referrer_host: string | null
+          region: string | null
+          session_id: string
+          short_slug: string | null
+          target_label: string | null
+          title: string | null
+          utm_campaign: string | null
+          utm_medium: string | null
+          utm_source: string | null
+          visitor_id: string | null
+        }
+        Insert: {
+          browser?: string | null
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          device?: string | null
+          duration_ms?: number | null
+          entry?: boolean
+          event_type: string
+          id?: string
+          meta?: Json | null
+          os?: string | null
+          path?: string | null
+          referrer?: string | null
+          referrer_host?: string | null
+          region?: string | null
+          session_id: string
+          short_slug?: string | null
+          target_label?: string | null
+          title?: string | null
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          visitor_id?: string | null
+        }
+        Update: {
+          browser?: string | null
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          device?: string | null
+          duration_ms?: number | null
+          entry?: boolean
+          event_type?: string
+          id?: string
+          meta?: Json | null
+          os?: string | null
+          path?: string | null
+          referrer?: string | null
+          referrer_host?: string | null
+          region?: string | null
+          session_id?: string
+          short_slug?: string | null
+          target_label?: string | null
+          title?: string | null
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          visitor_id?: string | null
         }
         Relationships: []
       }
