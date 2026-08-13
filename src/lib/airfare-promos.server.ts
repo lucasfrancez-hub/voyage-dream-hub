@@ -220,20 +220,75 @@ export async function quoteRoute(args: {
   });
 }
 
+/** Considera travada/abandonada uma execução parada há mais de 45 minutos. */
+const RUN_STALE_MS = 45 * 60 * 1000;
+
+/** Cria a execução (trava global). Devolve null se já existe uma ativa. */
+export async function startPromoRun(trigger: "manual" | "cron"): Promise<{ id: string } | null> {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const db = supabaseAdmin as unknown as AnyClient;
+
+  const { data: active } = await db
+    .from("airfare_promo_runs")
+    .select("id,updated_at")
+    .eq("status", "running")
+    .maybeSingle();
+
+  if (active) {
+    const idle = Date.now() - new Date(active.updated_at).getTime();
+    if (idle < RUN_STALE_MS) return null;
+    await db
+      .from("airfare_promo_runs")
+      .update({
+        status: "error",
+        error_message: "Execução interrompida (sem atualização)",
+        finished_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", active.id);
+  }
+
+  const { data, error } = await db
+    .from("airfare_promo_runs")
+    .insert({ status: "running", trigger })
+    .select("id")
+    .maybeSingle();
+  if (error || !data) return null;
+  return { id: data.id as string };
+}
+
+export async function failPromoRun(runId: string, message: string) {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  await (supabaseAdmin as unknown as AnyClient)
+    .from("airfare_promo_runs")
+    .update({
+      status: "error",
+      error_message: message.slice(0, 500),
+      finished_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", runId);
+}
+
 /**
  * Roda a coleta: percorre as rotas ativas (por prioridade) e faz upsert das
- * promoções encontradas. Usado pelo cron das 09:00 e 15:00 (BRT) e pelo
+ * promoções encontradas. Usado pelo cron das 06:00 e 12:00 (BRT) e pelo
  * botão "Atualizar agora" do Command Center.
+ *
+ * Quando recebe `runId`, publica progresso real em `airfare_promo_runs`
+ * (total, processadas, salvas, última oportunidade) — nada é estimado.
  */
 export async function collectAirfarePromotions(opts?: {
   routeIds?: string[];
   maxRoutes?: number;
   offsets?: number[];
+  runId?: string;
 }) {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const markups = await loadMarkups(supabaseAdmin as unknown as AnyClient);
+  const db = supabaseAdmin as unknown as AnyClient;
+  const markups = await loadMarkups(db);
 
-  let q = (supabaseAdmin as unknown as AnyClient)
+  let q = db
     .from("airfare_promo_routes")
     .select("id,origin_iata,origin_city,destination_iata,destination_city,scope,priority")
     .eq("active", true)
@@ -247,30 +302,64 @@ export async function collectAirfarePromotions(opts?: {
   const pairs = defaultDatePairs(opts?.offsets);
 
   let saved = 0;
+  let processed = 0;
   const errors: string[] = [];
+  const runId = opts?.runId;
 
-  for (const route of list) {
-    for (const pair of pairs) {
-      try {
-        const row = await quoteRoute({
-          route,
-          departureDate: pair.departureDate,
-          returnDate: pair.returnDate,
-          markups,
-        });
-        if (!row) continue;
-        const { error: upErr } = await (supabaseAdmin as unknown as AnyClient)
-          .from("airfare_promotions")
-          .upsert(row, { onConflict: "signature" });
-        if (upErr) errors.push(`${route.origin_iata}-${route.destination_iata}: ${upErr.message}`);
-        else saved++;
-      } catch (err) {
-        errors.push(
-          `${route.origin_iata}-${route.destination_iata}: ${err instanceof Error ? err.message : String(err)}`,
-        );
+  const touch = async (patch: Record<string, unknown>) => {
+    if (!runId) return;
+    try {
+      await db
+        .from("airfare_promo_runs")
+        .update({ ...patch, updated_at: new Date().toISOString() })
+        .eq("id", runId);
+    } catch {
+      /* progresso é best-effort */
+    }
+  };
+
+  await touch({ total: list.length * pairs.length, processed: 0, saved: 0 });
+
+  try {
+    for (const route of list) {
+      for (const pair of pairs) {
+        const label = `${route.destination_city ?? route.destination_iata} (${route.origin_iata}→${route.destination_iata})`;
+        try {
+          const row = await quoteRoute({
+            route,
+            departureDate: pair.departureDate,
+            returnDate: pair.returnDate,
+            markups,
+          });
+          if (row) {
+            const { error: upErr } = await db
+              .from("airfare_promotions")
+              .upsert(row, { onConflict: "signature" });
+            if (upErr) errors.push(`${route.origin_iata}-${route.destination_iata}: ${upErr.message}`);
+            else saved++;
+          }
+        } catch (err) {
+          errors.push(
+            `${route.origin_iata}-${route.destination_iata}: ${err instanceof Error ? err.message : String(err)}`,
+          );
+        }
+        processed++;
+        await touch({ processed, saved, error_count: errors.length, last_label: label });
       }
     }
+  } catch (err) {
+    if (runId) await failPromoRun(runId, err instanceof Error ? err.message : String(err));
+    throw err;
   }
+
+  await touch({
+    status: "done",
+    processed,
+    saved,
+    error_count: errors.length,
+    finished_at: new Date().toISOString(),
+  });
 
   return { routes: list.length, saved, errors };
 }
+

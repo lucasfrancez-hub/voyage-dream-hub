@@ -149,6 +149,51 @@ export type Database = {
         }
         Relationships: []
       }
+      airfare_promo_runs: {
+        Row: {
+          error_count: number
+          error_message: string | null
+          finished_at: string | null
+          id: string
+          last_label: string | null
+          processed: number
+          saved: number
+          started_at: string
+          status: string
+          total: number
+          trigger: string
+          updated_at: string
+        }
+        Insert: {
+          error_count?: number
+          error_message?: string | null
+          finished_at?: string | null
+          id?: string
+          last_label?: string | null
+          processed?: number
+          saved?: number
+          started_at?: string
+          status?: string
+          total?: number
+          trigger?: string
+          updated_at?: string
+        }
+        Update: {
+          error_count?: number
+          error_message?: string | null
+          finished_at?: string | null
+          id?: string
+          last_label?: string | null
+          processed?: number
+          saved?: number
+          started_at?: string
+          status?: string
+          total?: number
+          trigger?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       airfare_promotions: {
         Row: {
           airline_iata: string | null
