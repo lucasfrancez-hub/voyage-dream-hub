@@ -38,8 +38,10 @@ import {
   saveInstallmentMarkup,
   explorePromoOpportunities,
   setPromotionStatus,
+  deletePromotion,
   countArchivedPromotions,
 } from "@/lib/airfare-promos.functions";
+import { confirmThen } from "@/lib/confirm";
 import { ArquivadosDialog } from "@/components/promocoes/ArquivadosDialog";
 import { promoInstagramText, promoWhatsappText, type PromoRow } from "@/lib/airfare-promo-text";
 import { PromoArtDialog } from "@/components/promo/PromoArtDialog";
