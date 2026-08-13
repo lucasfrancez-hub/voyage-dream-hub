@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { VoosPage, NewOrderFromFlightsDialog } from "./admin.voos-teste";
+import type { MultiSegmentInput } from "@/lib/multicity";
 import type { FlightPreset } from "./admin.voos-teste";
 import type { HotelPreset } from "./admin.hoteis-teste";
 import type { ComboPick } from "@/lib/combo-selection";
