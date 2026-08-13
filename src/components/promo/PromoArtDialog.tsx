@@ -70,10 +70,16 @@ export function PromoArtDialog({
   promo,
   onClose,
   onDivulgar,
+  startEditing,
+  onDone,
 }: {
   promo: PromoRow & { id: string };
   onClose: () => void;
   onDivulgar?: (canal: "whatsapp" | "instagram") => void;
+  /** abre já no modo de edição */
+  startEditing?: boolean;
+  /** ao confirmar a edição, volta para a tela de divulgação */
+  onDone?: () => void;
 }) {
   const build = useServerFn(buildPromoCard);
   const photos = useServerFn(listDestinationPhotos);
