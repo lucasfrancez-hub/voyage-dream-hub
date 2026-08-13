@@ -123,7 +123,13 @@ export function resetMdSourceMetrics() {
   });
 }
 export function mdRadarAvailable() {
-  return mdMetrics.radarAvailable && Date.now() >= indisponivelAte;
+  // Passado o descanso, a fonte volta a ser tentada (meia-abertura):
+  // sem isso ela só voltaria com um sucesso que nunca seria tentado.
+  if (Date.now() >= indisponivelAte) {
+    if (!mdMetrics.radarAvailable) mdMetrics.radarAvailable = true;
+    return true;
+  }
+  return mdMetrics.radarAvailable;
 }
 
 let fila: Promise<unknown> = Promise.resolve();
