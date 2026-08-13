@@ -290,17 +290,6 @@ type CandidateRow = {
   reference_collected_at: string | null;
 };
 
-const RETRY_DELAYS_MS = [1500, 5000];
-
-function sleep(ms: number) {
-  return new Promise((r) => setTimeout(r, ms));
-}
-
-/** Chave da oportunidade (sem companhia) — usada no ciclo de vida/expiração. */
-function opportunityKey(p: { origin_iata: string; destination_iata: string; departure_date: string }) {
-  return `${p.origin_iata}|${p.destination_iata}|${p.departure_date}`.toUpperCase();
-}
-
 /**
  * Coleta completa:
  *   Melhores Destinos (radar) → candidatas normalizadas → fila →
@@ -318,6 +307,8 @@ export async function collectAirfarePromotions(opts?: {
   maxRoutes?: number;
   routeIds?: string[];
   offsets?: number[];
+  /** orçamento de tempo por invocação (retomável) */
+  budgetMs?: number;
 }) {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const { discoverCandidates, candidateSignature, fallbackDatePairs } = await import(
