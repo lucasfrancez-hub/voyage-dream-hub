@@ -10,7 +10,17 @@
  * no orquestrador (triagem, runner e tool de transferência).
  */
 
-import { normalizarTexto } from "./triage.server";
+/** Mesma normalização da triagem (sem acento, minúsculo, letras repetidas). */
+function normalizarTexto(s: string): string {
+  return (s ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/(.)\1{2,}/g, "$1")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 
 /** Serviços que, sozinhos ou combinados com aéreo, tiram o caso da Central. */
 const RX_OUTRO_PRODUTO =
