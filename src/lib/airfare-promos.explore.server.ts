@@ -70,7 +70,7 @@ export async function buildExploreQueue(input: ExploreInput): Promise<PromoCandi
 }
 
 /** Cota cada candidata no motor VIA AIR e devolve as tarifas encontradas. */
-export async function exploreOpportunities(input: ExploreInput): Promise<Row[]> {
+export async function exploreOpportunities(input: ExploreInput): Promise<Array<Record<string, string | number | boolean | null | object>>> {
   const fila = await buildExploreQueue(input);
   if (!fila.length) return [];
 
@@ -108,5 +108,5 @@ export async function exploreOpportunities(input: ExploreInput): Promise<Row[]> 
     }
   }
 
-  return JSON.parse(JSON.stringify(rows)) as Row[];
+  return JSON.parse(JSON.stringify(rows)) as Array<Record<string, string | number | boolean | null | object>>;
 }
