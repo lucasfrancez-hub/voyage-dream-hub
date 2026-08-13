@@ -84,7 +84,7 @@ radial-gradient(circle at 80% 12%,rgba(255,134,27,.18),transparent 24%)}
 svg{display:block;width:100%;height:100%}
 .kicker{font-size:18px;letter-spacing:3px;text-transform:uppercase;color:var(--orange);font-weight:800}
 .category-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-.category-badge{display:inline-flex;align-items:center;padding:8px 14px;border-radius:10px;background:#ff861b;color:#fff;font-size:15px;font-weight:950;letter-spacing:1.5px;box-shadow:0 8px 20px rgba(0,0,0,.16)}
+.category-badge{display:inline-flex;align-items:center;padding:8px 14px;border-radius:10px;background:rgba(255,134,27,.24);border:1px solid rgba(255,163,84,.40);color:#ffd9b8;font-size:15px;font-weight:950;letter-spacing:1.5px;backdrop-filter:blur(12px) saturate(120%);-webkit-backdrop-filter:blur(12px) saturate(120%);box-shadow:0 8px 20px rgba(0,0,0,.14)}
 .found-badge{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border-radius:10px;background:rgba(41,163,91,.20);border:1px solid rgba(74,222,128,.40);color:#dffbea;font-size:14px;font-weight:850;backdrop-filter:blur(12px) saturate(125%);-webkit-backdrop-filter:blur(12px) saturate(125%);box-shadow:inset 0 1px 0 rgba(255,255,255,.04),0 8px 20px rgba(0,0,0,.14)}
 .found-dot{width:8px;height:8px;border-radius:50%;background:#35d07f;box-shadow:0 0 10px rgba(53,208,127,.75)}
 .route-glass{display:inline-flex;flex-direction:column;gap:8px;margin-top:18px;padding:17px 22px;border-radius:18px;background:rgba(5,28,38,.34);border:1px solid rgba(255,255,255,.26);backdrop-filter:blur(28px) saturate(150%);-webkit-backdrop-filter:blur(28px) saturate(150%);box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 12px 32px rgba(0,0,0,.28);max-width:100%}
