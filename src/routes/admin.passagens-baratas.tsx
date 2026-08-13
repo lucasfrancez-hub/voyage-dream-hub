@@ -1010,8 +1010,6 @@ export function PassagensBaratasExplorer({
                 ))}
               </div>
             </Card>
-
-            </div>
           )}
 
           {data.dates.length > 0 && (
