@@ -484,13 +484,14 @@ export function PassagensBaratasExplorer({
     });
   }, [data, current.fromIata, current.toIata]);
 
-  const montarLink = (p: { origem: string; destino: string; ida: string; volta: string }) =>
-    linkVoos
-      ? linkVoos(p)
-      : viaairFlightUrl(p.origem, p.destino, p.ida, p.volta || null, "", {
-          originName: null,
-          destinationName: null,
-        });
+  // Portal interno: "Ver voos" abre o NOSSO motor (/voar), nunca o site da
+  // operadora. Os embeds públicos continuam podendo sobrescrever via linkVoos.
+  const montarLink = (p: { origem: string; destino: string; ida: string; volta: string }) => {
+    if (linkVoos) return linkVoos(p);
+    const q = new URLSearchParams({ o: p.origem, d: p.destino, ida: p.ida });
+    if (p.volta) q.set("volta", p.volta);
+    return `/voar?${q.toString()}`;
+  };
 
   const pesquisar = () => {
     if (!motor.origem || !motor.destino || !motor.ida) {
