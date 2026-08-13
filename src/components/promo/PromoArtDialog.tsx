@@ -66,7 +66,15 @@ function Field({
   );
 }
 
-export function PromoArtDialog({ promo, onClose }: { promo: PromoRow & { id: string }; onClose: () => void }) {
+export function PromoArtDialog({
+  promo,
+  onClose,
+  onDivulgar,
+}: {
+  promo: PromoRow & { id: string };
+  onClose: () => void;
+  onDivulgar?: (canal: "whatsapp" | "instagram") => void;
+}) {
   const build = useServerFn(buildPromoCard);
   const photos = useServerFn(listDestinationPhotos);
   const render = useServerFn(renderPromoCard);
