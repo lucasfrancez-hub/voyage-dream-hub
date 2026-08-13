@@ -346,18 +346,47 @@ export async function processPendingCandidates(args: {
 
     const { data: anterior } = await client
       .from("airfare_promotions")
-      .select("id,total_price,airline_iata,outbound_fare_id,cart_url,short_url,status")
+      .select(
+        "id,total_price,airline_iata,outbound_fare_id,inbound_fare_id,outbound_itinerary_id,inbound_itinerary_id,stops,has_checked_baggage,interest_free_installments,interest_free_installment_value,cart_url,short_url,status,cycle_day,cycle_state,cycle_changed_fields,cycle_state_at",
+      )
       .eq("signature", row.signature)
       .maybeSingle();
 
-    const mudou =
-      !!anterior &&
-      (Number(anterior.total_price) !== viaair ||
-        anterior.airline_iata !== row.airline_iata ||
-        anterior.outbound_fare_id !== row.outbound_fare_id);
+    const camposMudados = anterior ? diffFare(anterior as never, row as never) : [];
+    const mudou = camposMudados.length > 0;
+
+    /** NOVA > ALTERADA > NORMAL, sempre comparando dentro do mesmo dia. */
+    const jaEstavaNoCicloDeHoje = !!anterior && (anterior as { cycle_day?: string | null }).cycle_day === hoje;
+    let cycleState: CycleState;
+    let cycleFields: string[] = [];
+    if (primeiraColetaDoDia) {
+      cycleState = "unchanged"; // linha de base do dia
+    } else if (!jaEstavaNoCicloDeHoje) {
+      cycleState = "new";
+    } else if (mudou) {
+      cycleState = "changed";
+      cycleFields = camposMudados;
+    } else {
+      // já revalidada hoje e igual: preserva um destaque anterior do mesmo dia
+      const estadoAtual = (anterior as { cycle_state?: string }).cycle_state as CycleState | undefined;
+      cycleState = estadoAtual === "new" || estadoAtual === "changed" ? estadoAtual : "unchanged";
+      cycleFields = (((anterior as { cycle_changed_fields?: string[] }).cycle_changed_fields ?? []) as string[]).slice();
+    }
+
+    const manteveEstado =
+      jaEstavaNoCicloDeHoje && !mudou && cycleState !== "unchanged"
+        ? ((anterior as { cycle_state_at?: string | null }).cycle_state_at ?? new Date().toISOString())
+        : new Date().toISOString();
 
     // promoção revalidada volta para a curadoria ativa do dia
-    const payload: Record<string, unknown> = { ...enriquecida, archived_at: null };
+    const payload: Record<string, unknown> = {
+      ...enriquecida,
+      archived_at: null,
+      cycle_day: hoje,
+      cycle_state: cycleState,
+      cycle_changed_fields: cycleFields,
+      cycle_state_at: cycleState === "unchanged" ? null : manteveEstado,
+    };
     if (anterior) {
       payload.status = anterior.status;
       if (mudou) {
@@ -385,6 +414,7 @@ export async function processPendingCandidates(args: {
       });
       return label;
     }
+
 
     counters.validated++;
     counters.saved++;
