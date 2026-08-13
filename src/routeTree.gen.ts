@@ -99,6 +99,7 @@ import { Route as AdminPedidosIdRouteImport } from './routes/admin.pedidos.$id'
 import { Route as AdminPedidosTerceirosRouteImport } from './routes/admin.pedidos.terceiros'
 import { Route as AdminPessoasIdRouteImport } from './routes/admin.pessoas.$id'
 import { Route as ApiChatCamilaRouteImport } from './routes/api/chat.camila'
+import { Route as ApiPublicAnalyticsCollectRouteImport } from './routes/api/public/analytics-collect'
 import { Route as ApiPublicAsaasTransferWebhookRouteImport } from './routes/api/public/asaas-transfer-webhook'
 import { Route as ApiPublicAsaasWebhookRouteImport } from './routes/api/public/asaas-webhook'
 import { Route as ApiPublicClicksignWebhookRouteImport } from './routes/api/public/clicksign-webhook'
@@ -597,6 +598,12 @@ const ApiChatCamilaRoute = ApiChatCamilaRouteImport.update({
   path: '/api/chat/camila',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicAnalyticsCollectRoute =
+  ApiPublicAnalyticsCollectRouteImport.update({
+    id: '/api/public/analytics-collect',
+    path: '/api/public/analytics-collect',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicAsaasTransferWebhookRoute =
   ApiPublicAsaasTransferWebhookRouteImport.update({
     id: '/api/public/asaas-transfer-webhook',
@@ -955,6 +962,7 @@ export interface FileRoutesByFullPath {
   '/admin/pedidos/terceiros': typeof AdminPedidosTerceirosRoute
   '/admin/pessoas/$id': typeof AdminPessoasIdRoute
   '/api/chat/camila': typeof ApiChatCamilaRoute
+  '/api/public/analytics-collect': typeof ApiPublicAnalyticsCollectRoute
   '/api/public/asaas-transfer-webhook': typeof ApiPublicAsaasTransferWebhookRoute
   '/api/public/asaas-webhook': typeof ApiPublicAsaasWebhookRoute
   '/api/public/clicksign-webhook': typeof ApiPublicClicksignWebhookRoute
@@ -1092,6 +1100,7 @@ export interface FileRoutesByTo {
   '/admin/pedidos/terceiros': typeof AdminPedidosTerceirosRoute
   '/admin/pessoas/$id': typeof AdminPessoasIdRoute
   '/api/chat/camila': typeof ApiChatCamilaRoute
+  '/api/public/analytics-collect': typeof ApiPublicAnalyticsCollectRoute
   '/api/public/asaas-transfer-webhook': typeof ApiPublicAsaasTransferWebhookRoute
   '/api/public/asaas-webhook': typeof ApiPublicAsaasWebhookRoute
   '/api/public/clicksign-webhook': typeof ApiPublicClicksignWebhookRoute
@@ -1232,6 +1241,7 @@ export interface FileRoutesById {
   '/admin/pedidos/terceiros': typeof AdminPedidosTerceirosRoute
   '/admin/pessoas/$id': typeof AdminPessoasIdRoute
   '/api/chat/camila': typeof ApiChatCamilaRoute
+  '/api/public/analytics-collect': typeof ApiPublicAnalyticsCollectRoute
   '/api/public/asaas-transfer-webhook': typeof ApiPublicAsaasTransferWebhookRoute
   '/api/public/asaas-webhook': typeof ApiPublicAsaasWebhookRoute
   '/api/public/clicksign-webhook': typeof ApiPublicClicksignWebhookRoute
@@ -1373,6 +1383,7 @@ export interface FileRouteTypes {
     | '/admin/pedidos/terceiros'
     | '/admin/pessoas/$id'
     | '/api/chat/camila'
+    | '/api/public/analytics-collect'
     | '/api/public/asaas-transfer-webhook'
     | '/api/public/asaas-webhook'
     | '/api/public/clicksign-webhook'
@@ -1510,6 +1521,7 @@ export interface FileRouteTypes {
     | '/admin/pedidos/terceiros'
     | '/admin/pessoas/$id'
     | '/api/chat/camila'
+    | '/api/public/analytics-collect'
     | '/api/public/asaas-transfer-webhook'
     | '/api/public/asaas-webhook'
     | '/api/public/clicksign-webhook'
@@ -1649,6 +1661,7 @@ export interface FileRouteTypes {
     | '/admin/pedidos/terceiros'
     | '/admin/pessoas/$id'
     | '/api/chat/camila'
+    | '/api/public/analytics-collect'
     | '/api/public/asaas-transfer-webhook'
     | '/api/public/asaas-webhook'
     | '/api/public/clicksign-webhook'
@@ -1733,6 +1746,7 @@ export interface RootRouteChildren {
   ProtocoloProtocoloIdRoute: typeof ProtocoloProtocoloIdRoute
   WSlugRoute: typeof WSlugRoute
   ApiChatCamilaRoute: typeof ApiChatCamilaRoute
+  ApiPublicAnalyticsCollectRoute: typeof ApiPublicAnalyticsCollectRoute
   ApiPublicAsaasTransferWebhookRoute: typeof ApiPublicAsaasTransferWebhookRoute
   ApiPublicAsaasWebhookRoute: typeof ApiPublicAsaasWebhookRoute
   ApiPublicClicksignWebhookRoute: typeof ApiPublicClicksignWebhookRoute
@@ -2411,6 +2425,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiChatCamilaRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/analytics-collect': {
+      id: '/api/public/analytics-collect'
+      path: '/api/public/analytics-collect'
+      fullPath: '/api/public/analytics-collect'
+      preLoaderRoute: typeof ApiPublicAnalyticsCollectRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/asaas-transfer-webhook': {
       id: '/api/public/asaas-transfer-webhook'
       path: '/api/public/asaas-transfer-webhook'
@@ -2941,6 +2962,7 @@ const rootRouteChildren: RootRouteChildren = {
   ProtocoloProtocoloIdRoute: ProtocoloProtocoloIdRoute,
   WSlugRoute: WSlugRoute,
   ApiChatCamilaRoute: ApiChatCamilaRoute,
+  ApiPublicAnalyticsCollectRoute: ApiPublicAnalyticsCollectRoute,
   ApiPublicAsaasTransferWebhookRoute: ApiPublicAsaasTransferWebhookRoute,
   ApiPublicAsaasWebhookRoute: ApiPublicAsaasWebhookRoute,
   ApiPublicClicksignWebhookRoute: ApiPublicClicksignWebhookRoute,

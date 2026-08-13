@@ -19,7 +19,7 @@ const eventoSchema = z.object({
   short_slug: z.string().max(60).nullish(),
   duration_ms: z.number().int().min(0).max(24 * 60 * 60 * 1000).nullish(),
   target_label: z.string().max(160).nullish(),
-  meta: z.record(z.unknown()).nullish(),
+  meta: z.record(z.string(), z.unknown()).nullish(),
 });
 
 export const Route = createFileRoute("/api/public/analytics-collect")({
@@ -60,7 +60,7 @@ export const Route = createFileRoute("/api/public/analytics-collect")({
             os: ua.os,
             duration_ms: e.duration_ms ?? null,
             target_label: e.target_label ?? null,
-            meta: e.meta ?? null,
+            meta: (e.meta ?? null) as never,
           });
 
           return new Response("ok", { status: 202, headers: { "cache-control": "no-store" } });
