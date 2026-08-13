@@ -3,6 +3,7 @@
  * abas WhatsApp / Instagram, texto editável, preview da arte e botão para
  * alterar a arte (foto, logo, campos) abrindo o editor.
  */
+import { cityLabel } from "@/lib/iata-lookup";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -277,7 +278,7 @@ export function PromoSocialDialog({
           </DialogTitle>
           <DialogDescription className="truncate">
             {promo
-              ? `${promo.origin_city ?? promo.origin_iata} → ${promo.destination_city ?? promo.destination_iata}`
+              ? `${cityLabel(promo.origin_iata, promo.origin_city)} → ${cityLabel(promo.destination_iata, promo.destination_city)}`
               : ""}
           </DialogDescription>
         </DialogHeader>

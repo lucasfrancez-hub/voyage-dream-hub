@@ -8,6 +8,7 @@
  * mesmo pipeline das automáticas (revalidação, histórico, links, arte).
  */
 import { scopeOfRoute } from "@/lib/br-airports";
+import { resolveCity } from "@/lib/iata-lookup";
 import { curationDayBRT, diffFare } from "@/lib/airfare-promos.worker.server";
 
 export type ManualOpportunityInput = {
@@ -31,6 +32,10 @@ export type ManualOpportunityResult =
       referencePrice: number | null;
       difference: number | null;
       differencePercent: number | null;
+      originCity: string;
+      destinationCity: string;
+      /** códigos que não puderam ser resolvidos para nome comercial */
+      unresolvedCities: string[];
     };
 
 export async function saveManualOpportunity(
@@ -40,6 +45,15 @@ export async function saveManualOpportunity(
   const destination = input.destination.trim().toUpperCase();
   const returnDate = input.returnDate?.trim() || null;
   const ref = input.referencePrice != null ? Number(input.referencePrice) : null;
+
+  // Normalização ANTES de cotar: IATA é código técnico, o nome comercial da
+  // cidade é o que alimenta card, WhatsApp, arte e busca de imagem.
+  const orig = resolveCity(origin, input.originCity);
+  const dest = resolveCity(destination, input.destinationCity);
+  const unresolvedCities = [
+    ...(orig.resolved ? [] : [orig.iata]),
+    ...(dest.resolved ? [] : [dest.iata]),
+  ];
 
   const { loadMarkups, quoteRoute } = await import("@/lib/airfare-promos.server");
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -54,9 +68,9 @@ export async function saveManualOpportunity(
       route: {
         id: "passagens-baratas",
         origin_iata: origin,
-        origin_city: input.originCity ?? null,
+        origin_city: orig.resolved ? orig.name : null,
         destination_iata: destination,
-        destination_city: input.destinationCity ?? null,
+        destination_city: dest.resolved ? dest.name : null,
         scope: scopeOfRoute(origin, destination),
         priority: 0,
       },
@@ -159,5 +173,8 @@ export async function saveManualOpportunity(
     referencePrice: ref,
     difference: ref != null ? Number((viaair - ref).toFixed(2)) : null,
     differencePercent: ref ? Number((((viaair - ref) / ref) * 100).toFixed(2)) : null,
+    originCity: orig.name,
+    destinationCity: dest.name,
+    unresolvedCities,
   };
 }

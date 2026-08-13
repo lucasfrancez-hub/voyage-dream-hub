@@ -15,6 +15,7 @@ import {
   type MarkupTable,
 } from "@/lib/airfare-conditions";
 import type { OriginMetrics } from "@/lib/airfare-promos.config";
+import { resolveCity } from "@/lib/iata-lookup";
 import { searchFlights, searchInboundFlights } from "@/lib/onertravel.server";
 import { flightHasBaggage, type OnerFlight } from "@/lib/onertravel.types";
 
@@ -117,9 +118,9 @@ export function buildPromotionRow(args: {
     }),
     scope: route.scope,
     origin_iata: route.origin_iata,
-    origin_city: route.origin_city,
+    origin_city: resolveCity(route.origin_iata, route.origin_city).name,
     destination_iata: route.destination_iata,
-    destination_city: route.destination_city,
+    destination_city: resolveCity(route.destination_iata, route.destination_city).name,
     airline_iata: air?.iata ?? null,
     airline_name: air?.name ?? null,
     airline_logo: air?.pathLogo ?? null,
