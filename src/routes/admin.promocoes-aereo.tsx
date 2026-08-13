@@ -38,6 +38,7 @@ import {
 } from "@/lib/airfare-promos.functions";
 import { promoInstagramText, promoWhatsappText, type PromoRow } from "@/lib/airfare-promo-text";
 import { PromoArtDialog } from "@/components/promo/PromoArtDialog";
+import { PromoSocialDialog } from "@/components/promo/PromoSocialDialog";
 import { scopeOfRoute } from "@/lib/br-airports";
 import { isOriginAllowedForScope } from "@/lib/airfare-promos.config";
 
