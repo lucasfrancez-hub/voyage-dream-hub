@@ -91,7 +91,7 @@ export function PromoArtDialog({
   const [fotos, setFotos] = useState<Array<{ url: string; thumb: string; author: string }>>([]);
   const [format, setFormat] = useState<PromoCardFormat>("feed");
   const [arte, setArte] = useState<Record<PromoCardFormat, string | null>>({ feed: null, story: null });
-  const [editando, setEditando] = useState(false);
+  const [editando, setEditando] = useState(!!startEditing);
 
 
   const inicial = useQuery({
