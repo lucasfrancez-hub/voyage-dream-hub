@@ -1216,11 +1216,25 @@ function PromocoesAereoPage() {
       {artPromo ? (
         <PromoArtDialog
           promo={artPromo}
-          onClose={() => setArtPromo(null)}
+          startEditing={artEditando}
+          onClose={() => {
+            setArtPromo(null);
+            setArtEditando(false);
+          }}
+          onDone={
+            artEditando
+              ? () => {
+                  setSocialPromo(artPromo);
+                  setArtPromo(null);
+                  setArtEditando(false);
+                }
+              : undefined
+          }
           onDivulgar={(canal) => {
             setSocialCanal(canal);
             setSocialPromo(artPromo);
             setArtPromo(null);
+            setArtEditando(false);
           }}
         />
       ) : null}
@@ -1230,7 +1244,11 @@ function PromocoesAereoPage() {
         open={!!socialPromo}
         onOpenChange={(v) => !v && setSocialPromo(null)}
         initialChannel={socialCanal}
-        onEditArt={() => socialPromo && setArtPromo(socialPromo)}
+        onEditArt={() => {
+          if (!socialPromo) return;
+          setArtEditando(true);
+          setArtPromo(socialPromo);
+        }}
       />
     </div>
   );
