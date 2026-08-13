@@ -18,6 +18,7 @@ import {
   MessageCircle,
   Plane,
   RefreshCw,
+  Trash2,
   Search,
   SlidersHorizontal,
   Sparkles,
