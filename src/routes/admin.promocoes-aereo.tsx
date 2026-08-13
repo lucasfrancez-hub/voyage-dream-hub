@@ -209,6 +209,37 @@ const ATALHOS_INTERNACIONAL: Atalho[] = [
   { label: "Curitiba", iatas: ["CWB"] },
 ];
 
+const STATUS_OPCOES = [
+  { value: "novo", label: "Novo" },
+  { value: "selecionado", label: "Selecionado" },
+  { value: "agendado", label: "Agendado" },
+  { value: "publicado", label: "Publicado" },
+  { value: "descartado", label: "Descartado" },
+] as const;
+
+const STATUS_STYLE: Record<string, { badge: string; card: string }> = {
+  novo: {
+    badge: "border-sky-500/40 bg-sky-500/10 text-sky-400",
+    card: "border-sky-500/50 shadow-[0_0_22px_-10px_rgba(56,189,248,0.5)] hover:border-sky-400",
+  },
+  selecionado: {
+    badge: "border-brand-orange/40 bg-brand-orange/10 text-brand-orange",
+    card: "border-brand-orange/60 shadow-[0_0_22px_-10px_rgba(242,107,31,0.5)] hover:border-brand-orange",
+  },
+  agendado: {
+    badge: "border-violet-500/40 bg-violet-500/10 text-violet-400",
+    card: "border-violet-500/55 shadow-[0_0_22px_-10px_rgba(139,92,246,0.5)] hover:border-violet-400",
+  },
+  publicado: {
+    badge: "border-emerald-500/40 bg-emerald-500/10 text-emerald-400",
+    card: "border-emerald-500/55 shadow-[0_0_22px_-10px_rgba(16,185,129,0.5)] hover:border-emerald-400",
+  },
+  descartado: {
+    badge: "border-rose-500/30 bg-rose-500/10 text-rose-400/80",
+    card: "border-rose-500/35 opacity-80 hover:border-rose-500/60",
+  },
+};
+
 /* ------------------------------------------------------------------ */
 /* Botão de ação circular (só ícone)                                   */
 /* ------------------------------------------------------------------ */
