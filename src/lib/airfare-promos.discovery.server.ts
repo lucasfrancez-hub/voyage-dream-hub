@@ -465,12 +465,14 @@ export async function discoverCandidates(opts?: {
         departure_date: d.departDate,
         return_date: d.returnDate,
         priority: lead.scope === "nacional" ? 10 : 20,
-        reference_source: lead.reference_source,
+        reference_source:
+          datasSaoFallback && lead.reference_price == null ? "fallback" : lead.reference_source,
         reference_price: d.price ?? lead.reference_price,
         reference_origin: lead.origin_iata,
         reference_destination: lead.destination_iata,
-        reference_departure_date: d.departDate,
-        reference_return_date: d.returnDate,
+        // datas de referência só existem quando vieram mesmo do MD
+        reference_departure_date: datasSaoFallback ? null : d.departDate,
+        reference_return_date: datasSaoFallback ? null : d.returnDate,
         reference_collected_at: collectedAt,
       });
     }
@@ -487,6 +489,10 @@ export async function discoverCandidates(opts?: {
     dedupedTotal: dedupTotal,
     metrics,
     decisions: auditoria,
+    radarAvailable,
+    radarErrors,
+    radarLeads,
+    fallbackCount: lista.filter((c) => c.reference_source === "fallback").length,
   };
 }
 
