@@ -52,11 +52,31 @@ export const buildPromoCard = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     if (!row) throw new Error("Promoção não encontrada");
 
-    const card = promoToCardData(row as Record<string, unknown>);
+    const base = promoToCardData(row as Record<string, unknown>);
+    const overrides = ((row as Record<string, unknown>).card_overrides ?? null) as
+      | Partial<PromoCardData>
+      | null;
+
+    const card: PromoCardData = { ...base, ...(overrides ?? {}) };
     const { searchDestinationPhotos } = await import("@/lib/promo-card/photos.server");
     const fotos = await searchDestinationPhotos(card.destinationCity).catch(() => []);
-    if (fotos[0]) card.destinationImage = fotos[0].url;
-    return { card, fotos };
+    // só sugere foto automática quando o admin ainda não escolheu uma
+    if (!overrides?.destinationImage && fotos[0]) card.destinationImage = fotos[0].url;
+    return { card, fotos, editado: !!overrides };
+  });
+
+/** Salva as edições manuais da arte para que a divulgação use a versão alterada. */
+export const savePromoCardOverrides = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ id: z.string().uuid(), card: cardDataSchema }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { error } = await context.supabase
+      .from("airfare_promotions")
+      .update({ card_overrides: data.card })
+      .eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
   });
 
 /** Busca alternativas de fotografia real do destino. */
