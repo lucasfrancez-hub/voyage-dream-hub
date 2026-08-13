@@ -112,7 +112,7 @@ svg{display:block;width:100%;height:100%}
 .installments .de{font-size:19px;font-weight:800;color:#d7e1e6;margin-left:1px}
 .installments .currency{font-size:34px;font-weight:900;color:var(--orange)}
 .interest-free{font-size:16px;font-weight:800;color:#e4ecef;margin-left:8px;margin-bottom:10px;white-space:nowrap}
-.original-total{display:inline-flex;align-items:center;gap:9px;margin-top:12px;padding:7px 10px;border-radius:999px;background:linear-gradient(180deg,rgba(255,134,27,.28),rgba(255,134,27,.13));border:1px solid rgba(255,134,27,.55);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+.original-total{display:inline-flex;align-items:center;gap:9px;margin-top:12px;padding:7px 10px;border-radius:999px;background:rgba(255,134,27,.16);border:1px solid rgba(255,163,84,.34);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
 .original-total-label{font-size:12px;text-transform:uppercase;letter-spacing:1px;color:#ffd2aa;font-weight:800}
 .original-total-value{font-size:20px;color:#ff9a3d;font-weight:950}
 .installments .value{font-weight:950;color:var(--orange);letter-spacing:-2px}
