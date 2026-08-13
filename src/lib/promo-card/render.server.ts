@@ -55,7 +55,8 @@ async function shot(
 ): Promise<Uint8Array> {
   const { renderPromoCardHtml } = await import("./card-html");
   const { width, height } = CARD_SIZES[format];
-  const viewport = { width, height, deviceScaleFactor: 1 };
+  // 2x = texto nítido (o PNG sai em 2160x2700 / 2160x3840 e é reduzido nas redes)
+  const viewport = { width, height, deviceScaleFactor: 2 };
   const options = { type: "png" as const, captureBeyondViewport: false };
   const html = renderPromoCardHtml(data, format, PUBLIC_BASE);
 
