@@ -746,10 +746,16 @@ function PromocoesAereoPage() {
     queryKey: ["airfare-promo-run"],
     queryFn: () => runStatus(),
     refetchInterval: (q) =>
-      (q.state.data as { status?: string } | null)?.status === "running" ? 5000 : 60000,
+      ["running", "cancel_requested"].includes(
+        (q.state.data as { status?: string } | null)?.status ?? "",
+      )
+        ? 5000
+        : 60000,
   });
 
-  const rodando = (run as { status?: string } | null)?.status === "running";
+  const runStatusValue = (run as { status?: string } | null)?.status ?? "";
+  const cancelando = runStatusValue === "cancel_requested";
+  const rodando = runStatusValue === "running" || cancelando;
 
   useEffect(() => {
     if (!rodando && run) qc.invalidateQueries({ queryKey: ["airfare-promos"] });
