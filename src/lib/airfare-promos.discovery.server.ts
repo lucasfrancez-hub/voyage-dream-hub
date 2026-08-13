@@ -85,7 +85,47 @@ function iso(d: Date) {
   return d.toISOString().slice(0, 10);
 }
 
-/** Datas de fallback (só para sementes/rotas monitoradas). */
+/**
+ * Datas de fallback DIVERSIFICADAS (só para sementes/rotas monitoradas).
+ *
+ * Nada de +45/+75 com 7 noites fixas para todo mundo: cada rota recebe
+ * janelas diferentes (a partir de um hash estável da própria rota), variando
+ * mês de saída, dia da semana e duração da viagem. Assim os cards de fallback
+ * não se concentram sempre nos mesmos dois períodos.
+ */
+function hashKey(key: string): number {
+  let h = 2166136261;
+  for (let i = 0; i < key.length; i++) {
+    h ^= key.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return Math.abs(h);
+}
+
+const FALLBACK_WINDOWS = [32, 48, 61, 74, 88, 103, 117, 132, 146, 161, 178, 195];
+const FALLBACK_NIGHTS = [4, 5, 6, 7, 8, 9, 10, 12, 14];
+
+export function diversifiedDatePairs(
+  key: string,
+  count = 2,
+): Array<{ departureDate: string; returnDate: string }> {
+  const h = hashKey(key);
+  const base = new Date();
+  const pares: Array<{ departureDate: string; returnDate: string }> = [];
+  for (let i = 0; i < Math.max(1, count); i++) {
+    const janela = FALLBACK_WINDOWS[(h + i * 5) % FALLBACK_WINDOWS.length] ?? 45;
+    const jitter = ((h >> (i + 1)) % 11) - 5; // ±5 dias
+    const noites = FALLBACK_NIGHTS[(h + i * 3) % FALLBACK_NIGHTS.length] ?? 7;
+    const out = new Date(base);
+    out.setDate(out.getDate() + Math.max(21, janela + jitter));
+    const back = new Date(out);
+    back.setDate(back.getDate() + noites);
+    pares.push({ departureDate: iso(out), returnDate: iso(back) });
+  }
+  return pares;
+}
+
+/** @deprecated use diversifiedDatePairs — mantido para compatibilidade. */
 export function fallbackDatePairs(offsets = [45, 75]) {
   const base = new Date();
   return offsets.map((off) => {
@@ -112,6 +152,14 @@ export type DiscoveryResult = {
   metrics: OriginMetrics[];
   /** Auditoria da curadoria (o que entrou, o que foi excluído e por quê). */
   decisions?: CurationDecision<PromoCandidate>[];
+  /** O radar do Melhores Destinos respondeu nesta execução? */
+  radarAvailable: boolean;
+  /** Quantas consultas ao radar falharam (503/timeout). */
+  radarErrors: number;
+  /** Oportunidades vindas efetivamente do Melhores Destinos. */
+  radarLeads: number;
+  /** Candidatas geradas por fallback (sementes de cobertura). */
+  fallbackCount: number;
 };
 
 /** Oportunidade em nível de DESTINO, antes de escolher as datas. */
@@ -197,12 +245,15 @@ export async function discoverCandidates(opts?: {
   // ------------------------------------------------------------------
   // 1a) RADAR — feed de promoções do Melhores Destinos (já traz datas)
   // ------------------------------------------------------------------
+  let radarErrors = 0;
+  let radarLeads = 0;
   let promos: Awaited<ReturnType<typeof listarPromocoesHandler>>["promos"] = [];
   try {
     const res = await listarPromocoesHandler({ data: { pages: opts?.pages ?? 3 } });
     promos = res.promos;
   } catch {
     promos = [];
+    radarErrors++;
   }
 
   for (const promo of promos) {
@@ -252,6 +303,7 @@ export async function discoverCandidates(opts?: {
       leads = await radarByOrigin(origem);
     } catch {
       leads = [];
+      radarErrors++;
     }
     for (const l of leads) {
       addLead({
@@ -268,22 +320,34 @@ export async function discoverCandidates(opts?: {
     }
   });
 
+  // Tudo que entrou no pool até aqui veio do Melhores Destinos.
+  radarLeads = [...pool.values()].reduce((acc, m) => acc + m.size, 0);
+  const radarAvailable = radarLeads > 0;
+
   // ------------------------------------------------------------------
-  // 1c) COBERTURA MÍNIMA — origem sem nenhum resultado no radar
+  // 1c) COBERTURA MÍNIMA — complemento CONTROLADO. Só entra se o radar
+  //     respondeu nesta execução; se o MD estiver fora do ar, a coleta não
+  //     é preenchida artificialmente com sementes.
   // ------------------------------------------------------------------
-  for (const seed of PRIORITY_SEEDS) {
-    if ((pool.get(seed.origin)?.size ?? 0) > 0) continue;
-    addLead({
-      origin_iata: seed.origin,
-      origin_city: seed.originCity,
-      destination_iata: seed.destination,
-      destination_city: seed.destinationCity,
-      scope: seed.scope,
-      reference_price: null,
-      category_id: null,
-      reference_source: "origem_prioritaria",
-      dates: [],
-    });
+  let fallbackCount = 0;
+  const MAX_FALLBACK_SEEDS = Math.min(4, Math.floor(radarLeads * 0.15));
+  if (radarAvailable) {
+    for (const seed of PRIORITY_SEEDS) {
+      if (fallbackCount >= MAX_FALLBACK_SEEDS) break;
+      if ((pool.get(seed.origin)?.size ?? 0) > 0) continue;
+      fallbackCount++;
+      addLead({
+        origin_iata: seed.origin,
+        origin_city: seed.originCity,
+        destination_iata: seed.destination,
+        destination_city: seed.destinationCity,
+        scope: seed.scope,
+        reference_price: null,
+        category_id: null,
+        reference_source: "fallback",
+        dates: [],
+      });
+    }
   }
 
   // ------------------------------------------------------------------
@@ -374,10 +438,15 @@ export async function discoverCandidates(opts?: {
         datas = [];
       }
     }
+    let datasSaoFallback = false;
     if (!datas.length) {
-      const [p1] = fallbackDatePairs([45]);
-      if (!p1) return;
-      datas = [{ departDate: p1.departureDate, returnDate: p1.returnDate, price: null }];
+      datasSaoFallback = true;
+      const pares = diversifiedDatePairs(
+        `${lead.origin_iata}${lead.destination_iata}`,
+        Math.max(1, datesPerRoute),
+      );
+      datas = pares.map((p) => ({ departDate: p.departureDate, returnDate: p.returnDate, price: null }));
+      if (!datas.length) return;
     }
 
     for (const d of datas.slice(0, datesPerRoute)) {
@@ -396,12 +465,14 @@ export async function discoverCandidates(opts?: {
         departure_date: d.departDate,
         return_date: d.returnDate,
         priority: lead.scope === "nacional" ? 10 : 20,
-        reference_source: lead.reference_source,
+        reference_source:
+          datasSaoFallback && lead.reference_price == null ? "fallback" : lead.reference_source,
         reference_price: d.price ?? lead.reference_price,
         reference_origin: lead.origin_iata,
         reference_destination: lead.destination_iata,
-        reference_departure_date: d.departDate,
-        reference_return_date: d.returnDate,
+        // datas de referência só existem quando vieram mesmo do MD
+        reference_departure_date: datasSaoFallback ? null : d.departDate,
+        reference_return_date: datasSaoFallback ? null : d.returnDate,
         reference_collected_at: collectedAt,
       });
     }
@@ -418,6 +489,10 @@ export async function discoverCandidates(opts?: {
     dedupedTotal: dedupTotal,
     metrics,
     decisions: auditoria,
+    radarAvailable,
+    radarErrors,
+    radarLeads,
+    fallbackCount: lista.filter((c) => c.reference_source === "fallback").length,
   };
 }
 

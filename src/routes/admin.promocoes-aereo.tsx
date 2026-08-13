@@ -868,6 +868,10 @@ function PromocoesAereoPage() {
     discovered: number | null;
     discovered_raw: number | null;
     deduped: number | null;
+    radar_available?: boolean | null;
+    radar_errors?: number | null;
+    fallback_count?: number | null;
+    radar_note?: string | null;
     origin_metrics:
       | Array<{
           origin: string;
@@ -936,6 +940,22 @@ function PromocoesAereoPage() {
       {!rodando && info?.status === "cancelada" && info.cancelled_at ? (
         <p className="mt-3 rounded-xl border border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
           Atualização cancelada às {desde(info.cancelled_at)} — o que já havia sido validado foi mantido.
+        </p>
+      ) : null}
+
+      {/* Radar do Melhores Destinos indisponível nesta execução */}
+      {info && info.radar_available === false ? (
+        <p className="mt-3 rounded-xl border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-600 dark:text-amber-400">
+          Radar Melhores Destinos temporariamente indisponível nesta execução
+          {info.radar_errors ? ` (${info.radar_errors} tentativas sem resposta)` : ""} — nenhuma
+          oportunidade nova foi descoberta e as promoções válidas da coleta anterior foram
+          preservadas.
+        </p>
+      ) : null}
+      {info && info.radar_available !== false && (info.fallback_count ?? 0) > 0 ? (
+        <p className="mt-3 rounded-xl border border-border bg-muted/40 px-3 py-2 text-[11px] text-muted-foreground">
+          {info.fallback_count} oportunidade(s) desta execução vieram de complemento interno (sem
+          referência do Melhores Destinos).
         </p>
       ) : null}
 

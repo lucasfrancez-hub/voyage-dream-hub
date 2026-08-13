@@ -411,7 +411,7 @@ export async function collectAirfarePromotions(opts?: {
   budgetMs?: number;
 }) {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const { discoverCandidates, candidateSignature, fallbackDatePairs } = await import(
+  const { discoverCandidates, candidateSignature } = await import(
     "@/lib/airfare-promos.discovery.server"
   );
   const { PROMO_VALIDATION_CONCURRENCY, maxOpportunitiesForOrigin } = await import(
@@ -510,51 +510,78 @@ export async function collectAirfarePromotions(opts?: {
 
 
 
-  // 2) FALLBACK: rotas monitoradas manualmente (complementares, nunca a fonte única)
-  try {
-    let q = db
-      .from("airfare_promo_routes")
-      .select("id,origin_iata,origin_city,destination_iata,destination_city,scope,priority")
-      .eq("active", true)
-      .order("priority", { ascending: true });
-    if (opts?.routeIds?.length) q = q.in("id", opts.routeIds);
-    const { data: rotas } = await q;
-    for (const r of ((rotas ?? []) as PromoRoute[]).slice(0, opts?.maxRoutes ?? 14)) {
-      for (const par of fallbackDatePairs(opts?.offsets)) {
-        const sig = candidateSignature({
-          origin_iata: r.origin_iata,
-          destination_iata: r.destination_iata,
-          departure_date: par.departureDate,
-          return_date: par.returnDate,
-        });
-        if (porAssinatura.has(sig)) continue;
-        const jaNaOrigem = [...porAssinatura.values()].filter(
-          (c) => c.origin_iata === r.origin_iata && c.scope === r.scope,
-        ).length;
-        if (jaNaOrigem >= maxOpportunitiesForOrigin(r.origin_iata)) continue;
-        porAssinatura.set(sig, {
-          signature: sig,
-          scope: r.scope,
-          origin_iata: r.origin_iata,
-          origin_city: r.origin_city,
-          destination_iata: r.destination_iata,
-          destination_city: r.destination_city,
-          departure_date: par.departureDate,
-          return_date: par.returnDate,
-          priority: 200 + (r.priority ?? 0),
-          reference_source: "rota_monitorada",
-          reference_price: null,
-          reference_origin: r.origin_iata,
-          reference_destination: r.destination_iata,
-          reference_departure_date: null,
-          reference_return_date: null,
-          reference_collected_at: new Date().toISOString(),
-        });
+  // 2) FALLBACK: rotas monitoradas manualmente.
+  //    Regra: complemento CONTROLADO, nunca a fonte principal.
+  //    - Se o radar do Melhores Destinos não respondeu (503 persistente), o
+  //      fallback NÃO roda: as promoções válidas da coleta anterior são
+  //      preservadas e a run fica marcada como "radar indisponível".
+  //    - Se respondeu, o fallback só pode complementar até 20% da fila
+  //      (teto de 12 candidatas) e usa datas diversificadas por rota.
+  const radarIndisponivel = !descoberta.radarAvailable;
+  let fallbackAdicionadas = descoberta.fallbackCount;
+  const tetoFallback = radarIndisponivel
+    ? 0
+    : Math.max(0, Math.min(12, Math.round(candidatas.length * 0.2)) - fallbackAdicionadas);
+
+  if (tetoFallback > 0) {
+    try {
+      let q = db
+        .from("airfare_promo_routes")
+        .select("id,origin_iata,origin_city,destination_iata,destination_city,scope,priority")
+        .eq("active", true)
+        .order("priority", { ascending: true });
+      if (opts?.routeIds?.length) q = q.in("id", opts.routeIds);
+      const { data: rotas } = await q;
+      const { diversifiedDatePairs } = await import("@/lib/airfare-promos.discovery.server");
+      for (const r of ((rotas ?? []) as PromoRoute[]).slice(0, opts?.maxRoutes ?? 14)) {
+        if (fallbackAdicionadas - descoberta.fallbackCount >= tetoFallback) break;
+        for (const par of diversifiedDatePairs(`${r.origin_iata}${r.destination_iata}`, 1)) {
+          if (fallbackAdicionadas - descoberta.fallbackCount >= tetoFallback) break;
+          const sig = candidateSignature({
+            origin_iata: r.origin_iata,
+            destination_iata: r.destination_iata,
+            departure_date: par.departureDate,
+            return_date: par.returnDate,
+          });
+          if (porAssinatura.has(sig)) continue;
+          const jaNaOrigem = [...porAssinatura.values()].filter(
+            (c) => c.origin_iata === r.origin_iata && c.scope === r.scope,
+          ).length;
+          if (jaNaOrigem >= maxOpportunitiesForOrigin(r.origin_iata)) continue;
+          fallbackAdicionadas++;
+          porAssinatura.set(sig, {
+            signature: sig,
+            scope: r.scope,
+            origin_iata: r.origin_iata,
+            origin_city: r.origin_city,
+            destination_iata: r.destination_iata,
+            destination_city: r.destination_city,
+            departure_date: par.departureDate,
+            return_date: par.returnDate,
+            priority: 200 + (r.priority ?? 0),
+            reference_source: "fallback",
+            reference_price: null,
+            reference_origin: r.origin_iata,
+            reference_destination: r.destination_iata,
+            reference_departure_date: null,
+            reference_return_date: null,
+            reference_collected_at: new Date().toISOString(),
+          });
+        }
       }
+    } catch {
+      /* sementes são complementares */
     }
-  } catch {
-    /* sementes são complementares */
   }
+
+  await touch({
+    radar_available: descoberta.radarAvailable,
+    radar_errors: descoberta.radarErrors,
+    fallback_count: fallbackAdicionadas,
+    radar_note: radarIndisponivel
+      ? "Radar Melhores Destinos temporariamente indisponível (503). Nenhuma oportunidade nova foi descoberta; as promoções válidas da coleta anterior foram preservadas."
+      : null,
+  });
 
   const fila = [...porAssinatura.values()].sort((a, b) => a.priority - b.priority);
   counters.discovered = fila.length;

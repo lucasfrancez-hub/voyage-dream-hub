@@ -68,7 +68,13 @@ async function getJson<T>(url: string): Promise<T> {
     try {
       const res = await enfileirar(() =>
         fetch(url, {
-          headers: { "user-agent": UA, accept: "*/*", referer: "https://www.melhoresdestinos.com.br/" },
+          headers: {
+            "user-agent": UA,
+            accept: "application/json, text/plain, */*",
+            "accept-language": "pt-BR,pt;q=0.9,en;q=0.8",
+            origin: "https://www.melhoresdestinos.com.br",
+            referer: "https://www.melhoresdestinos.com.br/",
+          },
           signal: AbortSignal.timeout(12000),
         }),
       );
@@ -79,8 +85,8 @@ async function getJson<T>(url: string): Promise<T> {
         return value;
       }
       last = new Error(`Melhores Destinos respondeu ${res.status}`);
-      // 429/503 = rajada: espera mais antes de tentar de novo
-      if (res.status === 429 || res.status >= 500) {
+      // 403/429/5xx = rajada ou bloqueio temporário: descansa antes de tentar de novo
+      if (res.status === 403 || res.status === 429 || res.status >= 500) {
         bloqueadoAte = Date.now() + 6000 * (i + 1);
         continue;
       }
@@ -90,6 +96,7 @@ async function getJson<T>(url: string): Promise<T> {
     await new Promise((r) => setTimeout(r, 600 * (i + 1)));
   }
   if (hit) return hit.value as T;
+  console.warn("[md-radar] falha após retries", url, last instanceof Error ? last.message : last);
   throw last instanceof Error ? last : new Error("Falha no radar do Melhores Destinos");
 }
 

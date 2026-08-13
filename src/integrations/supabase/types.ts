@@ -311,6 +311,7 @@ export type Database = {
           error_count: number
           error_message: string | null
           expired_count: number
+          fallback_count: number | null
           finished_at: string | null
           id: string
           last_label: string | null
@@ -319,6 +320,9 @@ export type Database = {
           origin_metrics: Json
           phase: string | null
           processed: number
+          radar_available: boolean | null
+          radar_errors: number | null
+          radar_note: string | null
           saved: number
           started_at: string
           status: string
@@ -337,6 +341,7 @@ export type Database = {
           error_count?: number
           error_message?: string | null
           expired_count?: number
+          fallback_count?: number | null
           finished_at?: string | null
           id?: string
           last_label?: string | null
@@ -345,6 +350,9 @@ export type Database = {
           origin_metrics?: Json
           phase?: string | null
           processed?: number
+          radar_available?: boolean | null
+          radar_errors?: number | null
+          radar_note?: string | null
           saved?: number
           started_at?: string
           status?: string
@@ -363,6 +371,7 @@ export type Database = {
           error_count?: number
           error_message?: string | null
           expired_count?: number
+          fallback_count?: number | null
           finished_at?: string | null
           id?: string
           last_label?: string | null
@@ -371,6 +380,9 @@ export type Database = {
           origin_metrics?: Json
           phase?: string | null
           processed?: number
+          radar_available?: boolean | null
+          radar_errors?: number | null
+          radar_note?: string | null
           saved?: number
           started_at?: string
           status?: string
