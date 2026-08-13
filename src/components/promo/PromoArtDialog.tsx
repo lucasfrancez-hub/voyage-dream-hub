@@ -266,14 +266,25 @@ export function PromoArtDialog({
                 </span>
 
                 <div className="absolute bottom-6 left-1/2 z-20 -translate-x-1/2">
-                  <button
-                    type="button"
-                    onClick={() => setEditando((v) => !v)}
-                    className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/70 px-5 py-2.5 text-[10px] font-bold text-white shadow-xl backdrop-blur-xl transition hover:bg-black"
-                  >
-                    <Pencil className="h-3.5 w-3.5 text-brand-orange" />
-                    {editando ? "FECHAR EDIÇÃO" : "ALTERAR ARTE"}
-                  </button>
+                  {editando && onDone ? (
+                    <button
+                      type="button"
+                      onClick={onDone}
+                      className="inline-flex items-center gap-2 rounded-full bg-brand-orange px-5 py-2.5 text-[10px] font-bold text-white shadow-xl transition hover:brightness-110"
+                    >
+                      <Check className="h-3.5 w-3.5" />
+                      OK — VOLTAR PARA DIVULGAR
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setEditando((v) => !v)}
+                      className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/70 px-5 py-2.5 text-[10px] font-bold text-white shadow-xl backdrop-blur-xl transition hover:bg-black"
+                    >
+                      <Pencil className="h-3.5 w-3.5 text-brand-orange" />
+                      {editando ? "FECHAR EDIÇÃO" : "ALTERAR ARTE"}
+                    </button>
+                  )}
                 </div>
               </div>
 
