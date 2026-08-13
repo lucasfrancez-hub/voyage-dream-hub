@@ -781,6 +781,14 @@ function PromocoesAereoPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const cancelar = useMutation({
+    mutationFn: () => cancelColeta({ data: {} }),
+    onSuccess: () => {
+      toast.success("Cancelamento solicitado. O que já foi validado continua salvo.");
+      qc.invalidateQueries({ queryKey: ["airfare-promo-run"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
 
   const acao = async (id: string, fn: () => Promise<unknown>, msg: string) => {
     setBusyId(id);
