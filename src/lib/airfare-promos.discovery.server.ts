@@ -85,7 +85,47 @@ function iso(d: Date) {
   return d.toISOString().slice(0, 10);
 }
 
-/** Datas de fallback (só para sementes/rotas monitoradas). */
+/**
+ * Datas de fallback DIVERSIFICADAS (só para sementes/rotas monitoradas).
+ *
+ * Nada de +45/+75 com 7 noites fixas para todo mundo: cada rota recebe
+ * janelas diferentes (a partir de um hash estável da própria rota), variando
+ * mês de saída, dia da semana e duração da viagem. Assim os cards de fallback
+ * não se concentram sempre nos mesmos dois períodos.
+ */
+function hashKey(key: string): number {
+  let h = 2166136261;
+  for (let i = 0; i < key.length; i++) {
+    h ^= key.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return Math.abs(h);
+}
+
+const FALLBACK_WINDOWS = [32, 48, 61, 74, 88, 103, 117, 132, 146, 161, 178, 195];
+const FALLBACK_NIGHTS = [4, 5, 6, 7, 8, 9, 10, 12, 14];
+
+export function diversifiedDatePairs(
+  key: string,
+  count = 2,
+): Array<{ departureDate: string; returnDate: string }> {
+  const h = hashKey(key);
+  const base = new Date();
+  const pares: Array<{ departureDate: string; returnDate: string }> = [];
+  for (let i = 0; i < Math.max(1, count); i++) {
+    const janela = FALLBACK_WINDOWS[(h + i * 5) % FALLBACK_WINDOWS.length] ?? 45;
+    const jitter = ((h >> (i + 1)) % 11) - 5; // ±5 dias
+    const noites = FALLBACK_NIGHTS[(h + i * 3) % FALLBACK_NIGHTS.length] ?? 7;
+    const out = new Date(base);
+    out.setDate(out.getDate() + Math.max(21, janela + jitter));
+    const back = new Date(out);
+    back.setDate(back.getDate() + noites);
+    pares.push({ departureDate: iso(out), returnDate: iso(back) });
+  }
+  return pares;
+}
+
+/** @deprecated use diversifiedDatePairs — mantido para compatibilidade. */
 export function fallbackDatePairs(offsets = [45, 75]) {
   const base = new Date();
   return offsets.map((off) => {
