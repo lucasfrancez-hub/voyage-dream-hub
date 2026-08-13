@@ -14,7 +14,7 @@ import {
   renderPromoCard,
 } from "@/lib/promo-card.functions";
 import { listInstagramAccounts, publishInstagramFromUrl } from "@/lib/instagram/queries.functions";
-import type { PromoCardData, PromoCardFormat } from "@/lib/promo-card/card-data";
+import type { PromoCardData, PromoCardFormat, PromoLogoVariant } from "@/lib/promo-card/card-data";
 import { promoInstagramText, promoWhatsappText, type PromoRow } from "@/lib/airfare-promo-text";
 
 function encode(data: PromoCardData) {
@@ -271,6 +271,26 @@ export function PromoArtDialog({ promo, onClose }: { promo: PromoRow & { id: str
                 <Field label="IATA companhia" value={card.airlineIata ?? ""} onChange={(v) => set("airlineIata", v || null)} />
                 <Field label="Logo companhia (URL)" value={card.airlineLogo ?? ""} onChange={(v) => set("airlineLogo", v || null)} />
                 <Field label="Bagagem" value={card.baggage} onChange={(v) => set("baggage", v)} />
+                <label className="block">
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                    Logo da Via Air
+                  </span>
+                  <select
+                    value={card.logoVariant ?? "color"}
+                    onChange={(e) => set("logoVariant", e.target.value as PromoLogoVariant)}
+                    className="mt-1 w-full rounded-lg border border-border/60 bg-transparent px-2.5 py-1.5 text-sm"
+                  >
+                    <option value="color">Colorida</option>
+                    <option value="white">Branca</option>
+                    <option value="black">Preta</option>
+                  </select>
+                </label>
+                <Field
+                  label="Tarifa encontrada em"
+                  type="date"
+                  value={(card.fareFoundAt ?? "").slice(0, 10)}
+                  onChange={(v) => set("fareFoundAt", v || null)}
+                />
                 <Field label="Valor total" type="number" value={card.totalPrice} onChange={(v) => set("totalPrice", Number(v))} />
                 <Field
                   label="Parcelas sem juros"

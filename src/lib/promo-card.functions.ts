@@ -12,6 +12,8 @@ async function assertAdmin(ctx: { supabase: any; userId: string }) {
 const cardDataSchema = z.object({
   destinationImage: z.string().url().nullable(),
   imagePosition: z.string().max(30).optional(),
+  logoVariant: z.enum(["color", "white", "black"]).optional(),
+  fareFoundAt: z.string().max(40).nullable().optional(),
   categoria: z.string().max(60),
   destination: z.string().max(60),
   origin: z.string().max(60),

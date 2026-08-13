@@ -5,7 +5,13 @@
 
 export type PromoCardFormat = "feed" | "story";
 
+export type PromoLogoVariant = "color" | "white" | "black";
+
 export type PromoCardData = {
+  /** Versão da logo VIA AIR escolhida manualmente no editor. */
+  logoVariant?: PromoLogoVariant;
+  /** Data ISO em que a tarifa foi efetivamente coletada/validada. */
+  fareFoundAt?: string | null;
   /** Fotografia real do destino (URL absoluta). */
   destinationImage: string | null;
   /** Enquadramento do object-fit: cover (ex.: "50% 40%"). */
@@ -76,14 +82,20 @@ export function promoToCardData(row: Record<string, unknown>): PromoCardData {
   return {
     destinationImage: (row.destination_image as string | null) ?? null,
     imagePosition: "50% 45%",
-    categoria: "Passagens aéreas",
+    logoVariant: "color",
+    fareFoundAt:
+      (row.quoted_at as string | null) ??
+      (row.last_checked_at as string | null) ??
+      (row.reference_collected_at as string | null) ??
+      null,
+    categoria: "PASSAGEM AÉREA",
     destination: destCity.toUpperCase(),
     origin: String(row.origin_city ?? row.origin_iata ?? ""),
     destinationCity: destCity,
     originIata: String(row.origin_iata ?? ""),
     destinationIata: String(row.destination_iata ?? ""),
     tripType: roundTrip ? "ida-e-volta" : "somente-ida",
-    statusLabel: "Tarifa encontrada agora",
+    statusLabel: "Tarifa encontrada hoje",
     validityLabel: "Valor válido para compra hoje • sujeito à disponibilidade e atualização tarifária",
     departureDate: MESES_ISO(row.departure_date as string) ?? "",
     returnDate: roundTrip ? MESES_ISO(row.return_date as string) : null,
