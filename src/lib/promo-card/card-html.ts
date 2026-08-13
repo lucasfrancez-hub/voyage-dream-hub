@@ -54,13 +54,20 @@ const brl = (n: number) => Number(n || 0).toLocaleString("pt-BR", { minimumFract
 const brlFull = (n: number) =>
   Number(n || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
+/** Regra de cor do destino: última palavra laranja, anteriores brancas. */
+export function destinationParts(name: string): { prefix: string; last: string } {
+  const words = String(name ?? "").trim().split(/\s+/).filter(Boolean);
+  if (words.length <= 1) return { prefix: "", last: words[0] ?? "" };
+  return { prefix: words.slice(0, -1).join(" "), last: words[words.length - 1]! };
+}
+
+/** CSS aprovado v24 (Feed/Story). Não redesenhar. */
 const BASE_CSS = `
 *{box-sizing:border-box}
 html,body{margin:0;background:#07141b;font-family:Arial,Helvetica,sans-serif;color:#f7fbff}
 :root{--orange:#ff861b;--orange2:#ff9f3f;--muted:#a7b7c0;--line:rgba(255,255,255,.11);--panel:rgba(5,28,38,.86);--green:#2ed47a;--blue:#2f7fb5}
 body{display:grid;place-items:center;min-height:100vh;padding:0}
-.frame{position:relative;overflow:hidden;background:
-linear-gradient(135deg,#0b3850,#0c2740 52%,#081820)}
+.frame{position:relative;overflow:hidden;background:linear-gradient(135deg,#0b3850,#0c2740 52%,#081820)}
 .photo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0}
 .veil{position:absolute;inset:0;z-index:1;background:
 linear-gradient(180deg,rgba(2,17,28,.16),rgba(2,17,28,.60) 48%,rgba(4,14,18,.98)),
@@ -68,70 +75,68 @@ radial-gradient(circle at 80% 12%,rgba(255,134,27,.18),transparent 24%)}
 .frame > *:not(.photo):not(.veil):not(.price-box){position:relative;z-index:2}
 .price-box{z-index:3}
 .brand{display:flex;align-items:flex-start;justify-content:space-between}
-.logo{font-size:34px;letter-spacing:2px}.logo b{font-weight:800}.logo .air{color:var(--orange)}
-.logo-slot{width:220px;height:74px;display:flex;align-items:center;justify-content:flex-start;padding:0}
+.logo-slot{width:280px;height:118px;display:flex;align-items:center;justify-content:flex-start;padding:0}
 .logo-slot img{display:block;max-width:100%;max-height:100%;width:auto;height:auto;object-fit:contain}
+.logo-placeholder{font-size:12px;letter-spacing:2px;font-weight:800;color:rgba(255,255,255,.48)}
 .seal-wrap{display:flex;align-items:center;gap:16px}
 .cards-seal{width:146px;height:146px;filter:drop-shadow(0 12px 24px rgba(0,0,0,.32))}
 .offer-seal{width:146px;height:146px;filter:drop-shadow(0 10px 22px rgba(0,0,0,.30))}
 svg{display:block;width:100%;height:100%}
 .kicker{font-size:18px;letter-spacing:3px;text-transform:uppercase;color:var(--orange);font-weight:800}
 .category-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-.category-badge{display:inline-flex;align-items:center;padding:8px 14px;border-radius:10px;background:#ff861b;color:#fff;font-size:14px;font-weight:950;letter-spacing:1.5px;box-shadow:0 8px 20px rgba(0,0,0,.16)}
-.found-badge{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border-radius:10px;background:rgba(41,163,91,.20);border:1px solid rgba(74,222,128,.40);color:#dffbea;font-size:13px;font-weight:850;backdrop-filter:blur(12px) saturate(125%);-webkit-backdrop-filter:blur(12px) saturate(125%);box-shadow:inset 0 1px 0 rgba(255,255,255,.04),0 8px 20px rgba(0,0,0,.14)}
+.category-badge{display:inline-flex;align-items:center;padding:8px 14px;border-radius:10px;background:#ff861b;color:#fff;font-size:15px;font-weight:950;letter-spacing:1.5px;box-shadow:0 8px 20px rgba(0,0,0,.16)}
+.found-badge{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border-radius:10px;background:rgba(41,163,91,.20);border:1px solid rgba(74,222,128,.40);color:#dffbea;font-size:14px;font-weight:850;backdrop-filter:blur(12px) saturate(125%);-webkit-backdrop-filter:blur(12px) saturate(125%);box-shadow:inset 0 1px 0 rgba(255,255,255,.04),0 8px 20px rgba(0,0,0,.14)}
 .found-dot{width:8px;height:8px;border-radius:50%;background:#35d07f;box-shadow:0 0 10px rgba(53,208,127,.75)}
-.route-glass{display:inline-flex;flex-direction:column;gap:5px;margin-top:18px;padding:14px 18px;border-radius:16px;background:rgba(5,28,38,.48);border:1px solid rgba(255,255,255,.15);backdrop-filter:blur(16px) saturate(125%);-webkit-backdrop-filter:blur(16px) saturate(125%);box-shadow:inset 0 1px 0 rgba(255,255,255,.05),0 10px 28px rgba(0,0,0,.20);max-width:100%}
-.destination{font-weight:950;line-height:.95;text-transform:uppercase;letter-spacing:-2px;white-space:nowrap;overflow:hidden;color:var(--orange);text-shadow:0 6px 24px rgba(0,0,0,.22)}
-.route-city{display:flex;align-items:center;gap:14px;font-size:42px;font-weight:900;color:#fff;max-width:100%}
-.route-city span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.route-glass{display:inline-flex;flex-direction:column;gap:8px;margin-top:18px;padding:17px 22px;border-radius:18px;background:rgba(5,28,38,.58);border:1px solid rgba(255,255,255,.20);backdrop-filter:blur(20px) saturate(135%);-webkit-backdrop-filter:blur(20px) saturate(135%);box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 12px 32px rgba(0,0,0,.28);max-width:100%}
+.destination{font-weight:950;line-height:.90;text-transform:uppercase;letter-spacing:-2px;margin-bottom:24px;text-shadow:0 10px 28px rgba(0,0,0,.48),0 3px 6px rgba(0,0,0,.35)}
+.destination-one-line{display:flex;flex-direction:row;align-items:baseline;gap:.20em;white-space:nowrap;max-width:calc(100% - 48px);width:max-content;padding-right:8px;transform-origin:left center}
+.destination-one-line .dest-prefix{color:#fff}
+.destination-one-line .dest-highlight{color:var(--orange)}
+.route-city{display:flex;align-items:center;gap:14px;font-size:46px;font-weight:950;color:#fff;max-width:100%}
+.route-city span{white-space:nowrap}
 .route-city .arrow{color:var(--orange);font-size:28px;flex:none}
-.route-iata{font-size:18px;color:var(--muted);margin-top:6px;letter-spacing:1.2px}
-.status-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px;max-width:940px}
-.live,.validity{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border-radius:999px;border:1px solid rgba(255,255,255,.10);font-size:13px}
-.live{background:rgba(255,255,255,.06);color:#dce8ee}
-.live:before{content:"";width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 12px rgba(46,212,122,.7)}
-.validity{background:rgba(255,134,27,.07);border-color:rgba(255,134,27,.22);color:#ffd4ae}
-.details{display:flex;flex-direction:column;gap:7px;align-items:flex-start}
-.detail-row{display:inline-flex;align-items:center;gap:16px;background:rgba(4,26,36,.56);border:1px solid rgba(255,255,255,.16);border-radius:15px;backdrop-filter:blur(16px) saturate(125%);-webkit-backdrop-filter:blur(16px) saturate(125%);box-shadow:inset 0 1px 0 rgba(255,255,255,.05),0 8px 24px rgba(0,0,0,.18);padding:9px 14px;min-height:50px;max-width:100%}
-.detail-row .label{color:var(--muted);font-size:13px;text-transform:uppercase;letter-spacing:1px;flex:none}
-.detail-row .value{font-size:23px;font-weight:850;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.route-iata{font-size:21px;color:#c9d5db;margin-top:4px;letter-spacing:1.2px}
+.details{margin-top:38px;display:flex;flex-direction:column;align-items:flex-start;gap:12px}
+.detail-row{display:flex;align-items:center;gap:16px;background:rgba(4,26,36,.56);border:1px solid rgba(255,255,255,.16);border-radius:15px;padding:13px 18px;min-height:62px;max-width:100%;backdrop-filter:blur(16px) saturate(125%);-webkit-backdrop-filter:blur(16px) saturate(125%);box-shadow:inset 0 1px 0 rgba(255,255,255,.05),0 8px 24px rgba(0,0,0,.18)}
+.detail-row .label{color:#b9c7ce;font-size:14px;text-transform:uppercase;letter-spacing:1px;flex:none}
+.detail-row .value{font-size:26px;font-weight:900;white-space:nowrap}
 .airline{display:flex;align-items:center;gap:10px}
-.airline-logo{width:38px;height:38px;border-radius:10px;background:#fff;display:grid;place-items:center;box-shadow:0 8px 20px rgba(0,0,0,.18);overflow:hidden;flex:none}
-.airline-logo img{width:32px;height:32px;object-fit:contain}
+.airline-logo{width:46px;height:46px;border-radius:12px;background:#fff;display:grid;place-items:center;box-shadow:0 8px 20px rgba(0,0,0,.18);overflow:hidden;flex:none}
+.airline-logo img{width:38px;height:38px;object-fit:contain}
 .airline-iata{font-size:12px;color:var(--muted);font-weight:800;letter-spacing:1px}
-.price-box{background:linear-gradient(180deg,rgba(23,19,17,.78),rgba(10,12,13,.80));border:1px solid rgba(255,255,255,.14);backdrop-filter:blur(22px) saturate(125%);-webkit-backdrop-filter:blur(22px) saturate(125%);border-radius:24px;box-shadow:0 18px 40px rgba(0,0,0,.26)}
-.price-top{color:#dbe3e7;text-transform:uppercase;letter-spacing:2.5px;font-size:14px;font-weight:900}
+.price-box{position:absolute;background:rgba(10,12,13,.76);border:1px solid rgba(255,255,255,.16);border-radius:28px;backdrop-filter:blur(24px) saturate(125%);-webkit-backdrop-filter:blur(24px) saturate(125%);box-shadow:0 22px 55px rgba(0,0,0,.42),inset 0 1px 0 rgba(255,255,255,.08);overflow:hidden}
+.price-top{color:#dbe3e7;text-transform:uppercase;letter-spacing:2.5px;font-size:16px;font-weight:900}
 .installments{display:flex;align-items:baseline;gap:8px;margin-top:6px;flex-wrap:wrap}
-.main-subtitle{font-size:15px;color:#e2eaee;margin-top:8px;margin-bottom:2px}
-.installments .n{font-size:28px;font-weight:950;letter-spacing:.1px}
-.installments .de{font-size:16px;font-weight:800;color:#d7e1e6;margin-left:1px}
-.installments .currency{font-size:29px;font-weight:900;color:var(--orange)}
-.interest-free{font-size:14px;font-weight:800;color:#e4ecef;margin-left:8px;margin-bottom:10px;white-space:nowrap}
+.main-subtitle{font-size:17px;color:#e2eaee;margin-top:8px;margin-bottom:2px}
+.installments .n{font-size:34px;font-weight:950;letter-spacing:.1px}
+.installments .de{font-size:19px;font-weight:800;color:#d7e1e6;margin-left:1px}
+.installments .currency{font-size:34px;font-weight:900;color:var(--orange)}
+.interest-free{font-size:16px;font-weight:800;color:#e4ecef;margin-left:8px;margin-bottom:10px;white-space:nowrap}
 .original-total{display:inline-flex;align-items:center;gap:9px;margin-top:12px;padding:7px 10px;border-radius:999px;background:linear-gradient(180deg,rgba(255,134,27,.28),rgba(255,134,27,.13));border:1px solid rgba(255,134,27,.55);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
-.original-total-label{font-size:13px;text-transform:uppercase;letter-spacing:1px;color:#ffd2aa;font-weight:800}
-.original-total-value{font-size:17px;color:#ff9a3d;font-weight:950}
+.original-total-label{font-size:12px;text-transform:uppercase;letter-spacing:1px;color:#ffd2aa;font-weight:800}
+.original-total-value{font-size:20px;color:#ff9a3d;font-weight:950}
 .installments .value{font-weight:950;color:var(--orange);letter-spacing:-2px}
-.more-installments{border-left:1px solid rgba(255,134,27,.42);padding-left:30px}
-.more-installments .headline{font-size:17px;color:#fff;font-weight:900;margin-bottom:7px}
-.more-installments .twelve-label{font-size:14px;color:#d6e1e6;margin-bottom:3px}
+.more-installments{border-left:1px solid rgba(255,134,27,.42);padding-left:30px;position:relative;z-index:1}
+.more-installments .headline{font-size:20px;color:#fff;font-weight:900;margin-bottom:7px}
+.more-installments .twelve-label{font-size:16px;color:#d6e1e6;margin-bottom:3px}
 .more-installments .twelve-price{display:flex;align-items:baseline;gap:6px;margin-bottom:6px}
-.more-installments .twelve-price .n{font-size:22px;font-weight:900}
-.more-installments .twelve-price .currency{font-size:20px;font-weight:900;color:var(--orange)}
-.more-installments .twelve-price .value{font-size:36px;font-weight:950;color:var(--orange);letter-spacing:-1px}
-.more-installments .discount{font-size:15px;line-height:1.45;color:#ffd1a8;font-weight:800}
-.note{font-size:14px;color:#cbd5da;line-height:1.55}
+.more-installments .twelve-price .n{font-size:28px;font-weight:900}
+.more-installments .twelve-price .currency{font-size:24px;font-weight:900;color:var(--orange)}
+.more-installments .twelve-price .value{font-size:48px;font-weight:950;color:var(--orange);letter-spacing:-1px}
+.more-installments .discount{font-size:17px;line-height:1.45;color:#ffd1a8;font-weight:800}
+.note{font-size:16px;color:#cbd5da;line-height:1.55}
 `;
 
 const STORY_CSS = `
 .frame{width:1080px;height:1920px;padding:62px 58px}
-.hero{margin-top:72px}.destination{font-size:128px;margin:12px 0 26px}
+.hero{margin-top:72px}.destination{font-size:154px;margin:12px 0 26px}
 .details{margin-top:40px}
-.detail-row{min-height:56px;padding:10px 15px}.detail-row .value{font-size:20px}
-.price-box{position:absolute;left:58px;right:58px;bottom:96px;padding:34px 36px}
+.detail-row{min-height:56px;padding:10px 15px}.detail-row .value{font-size:22px}
+.price-box{left:58px;right:58px;bottom:96px;padding:34px 36px}
 .installments .value{font-size:94px}
 .more-installments{margin-top:18px;border-left:0;border-top:1px solid rgba(255,134,27,.35);padding:16px 0 0}
 .more-installments .headline{font-size:15px;margin-bottom:4px}
-.more-installments .twelve-label{font-size:14px}
+.more-installments .twelve-label{font-size:11px}
 .more-installments .twelve-price .n{font-size:20px}
 .more-installments .twelve-price .currency{font-size:18px}
 .more-installments .twelve-price .value{font-size:42px}
@@ -141,13 +146,15 @@ const STORY_CSS = `
 
 const FEED_CSS = `
 .frame{width:1080px;height:1350px;padding:54px 58px}
-.hero{margin-top:46px}.destination{font-size:124px;margin:12px 0 24px}
+.hero{margin-top:46px}.destination{font-size:136px;margin:12px 0 24px}
 .details{margin-top:28px}
-.price-box{position:absolute;left:58px;right:58px;bottom:88px;padding:30px 32px}
+.price-box{left:58px;right:58px;bottom:88px;padding:30px 32px}
 .installments .value{font-size:76px}
 .price-layout{display:grid;grid-template-columns:1.05fr .95fr;gap:38px;align-items:center}
 .price-layout.pix-only{grid-template-columns:1fr}
+.price-layout.pix-only .more-installments{display:none}
 `;
+
 
 const SEALS = `
 <div class="seal-wrap">
@@ -204,19 +211,48 @@ const SEALS = `
 </div>`;
 
 /** Ajuste automático do destino grande: reduz até caber, sem cortar. */
+/** Auto-fit do destino (v24): uma linha, sem cortar, com 48px de respiro. */
 const AUTOFIT = `
 <script>
 (function(){
-  var el=document.querySelector('.destination');
-  if(!el) return;
-  var frame=document.querySelector('.frame');
-  var max=frame.clientWidth-(parseFloat(getComputedStyle(frame).paddingLeft)+parseFloat(getComputedStyle(frame).paddingRight));
-  var size=parseFloat(getComputedStyle(el).fontSize);
-  var min=size*0.42;
-  while(el.scrollWidth>max&&size>min){size-=2;el.style.fontSize=size+'px';}
-  document.documentElement.setAttribute('data-ready','1');
+  function fit(){
+    var el=document.querySelector('.destination-one-line');
+    if(!el) return;
+    el.style.transform='none';
+    el.style.marginBottom='';
+    var parent=el.parentElement; if(!parent) return;
+    var cs=getComputedStyle(parent);
+    var safetyRight=48;
+    var available=parent.clientWidth-parseFloat(cs.paddingLeft||0)-parseFloat(cs.paddingRight||0)-safetyRight;
+    var needed=el.scrollWidth;
+    if(needed>available&&available>0){
+      var scale=Math.max(0.50,Math.min(1,available/needed));
+      el.style.transform='scale('+scale+')';
+      el.style.marginBottom=(-(el.offsetHeight*(1-scale)))+'px';
+    }
+    document.documentElement.setAttribute('data-ready','1');
+  }
+  window.ViaAirCard=window.ViaAirCard||{};
+  window.ViaAirCard.setDestination=function(name){
+    var el=document.querySelector('.destination-one-line');
+    if(!el) return;
+    var words=String(name||'').trim().split(/\\s+/).filter(Boolean);
+    if(!words.length) return;
+    if(words.length===1){
+      el.innerHTML='<span class="dest-highlight">'+words[0]+'</span>';
+    }else{
+      el.innerHTML='<span class="dest-prefix">'+words.slice(0,-1).join(' ')+'</span>'+
+                   '<span class="dest-highlight">'+words[words.length-1]+'</span>';
+    }
+    fit();
+  };
+  fit();
+  window.addEventListener('load',fit);
+  window.addEventListener('resize',fit);
+  if(document.fonts&&document.fonts.ready){document.fonts.ready.then(fit);}
 })();
 </script>`;
+
 
 function precoBloco(d: PromoCardData): { melhor: string; prazo: string } {
   const melhor = d.pixOnly
@@ -290,7 +326,11 @@ ${foto ? `<img class="photo" src="${esc(foto)}" alt="${esc(d.destinationCity)}" 
     <div class="category-badge">${esc(d.categoria || "PASSAGEM AÉREA")}</div>
     <div class="found-badge"><span class="found-dot"></span>${esc(d.statusLabel || "Tarifa encontrada hoje")}</div>
   </div>
-  <h1 class="destination">${esc(d.destination)}</h1>
+  <h1 class="destination destination-one-line" data-full-destination="${esc(d.destination)}">${
+    destinationParts(d.destination).prefix
+      ? `<span class="dest-prefix">${esc(destinationParts(d.destination).prefix)}</span>`
+      : ""
+  }<span class="dest-highlight">${esc(destinationParts(d.destination).last)}</span></h1>
   <div class="route-glass">
     <div class="route-city"><span>${esc(d.origin)}</span><span class="arrow">→</span><span>${esc(d.destinationCity)}</span></div>
     <div class="route-iata">${esc(d.originIata)} → ${esc(d.destinationIata)} • ${tipo}</div>
