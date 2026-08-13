@@ -52,5 +52,6 @@ export function isUsuarioLogado(): boolean {
 
 /** Deve ignorar este evento? */
 export function ignorarEvento(path?: string | null): boolean {
+  if (typeof window !== "undefined" && isHostInterno(window.location.hostname)) return true;
   return isRotaInterna(path) || isUsuarioLogado();
 }
