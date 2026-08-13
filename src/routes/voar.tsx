@@ -175,10 +175,11 @@ function VoarPublicPage() {
         backLabel="Voltar ao site"
         whatsappMessage="Olá! Estou pesquisando passagens aéreas no site da Via Air."
       />
-      {hasHotelPreset || hasPreset ? (
+      {hasMulti || hasHotelPreset || hasPreset ? (
         <SearchEngine
           publicMode
           initialMode={hasHotelPreset ? "hotel" : "aereo"}
+          multiPreset={hasMulti ? multiPreset : undefined}
           flightPreset={
             hasPreset
               ? {
