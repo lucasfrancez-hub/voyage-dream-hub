@@ -32,6 +32,10 @@ export type ManualOpportunityResult =
       referencePrice: number | null;
       difference: number | null;
       differencePercent: number | null;
+      originCity: string;
+      destinationCity: string;
+      /** códigos que não puderam ser resolvidos para nome comercial */
+      unresolvedCities: string[];
     };
 
 export async function saveManualOpportunity(
