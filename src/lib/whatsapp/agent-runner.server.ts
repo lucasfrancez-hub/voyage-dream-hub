@@ -580,6 +580,7 @@ export async function runAgent(input: {
      Do lado do Consultor que recebe, entra a orientação de se apresentar e
      entender o pacote do zero (sem herdar destino/datas/pax do voo). */
   let pacoteBlock = "";
+  let escopoBlock = "";
   {
     const { data: ultimaIn } = await supabaseAdmin
       .from("wa_messages")
@@ -594,9 +595,38 @@ export async function runAgent(input: {
       .filter(Boolean)
       .join("\n");
 
+    const { contemProdutoCombinado, ehDuvidaAntesDeColeta, duvidaSemConteudo } = await import(
+      "./escopo-produto"
+    );
+
+    // ENTENDER ANTES DE COLETAR — vale pra todos os agentes.
+    if (duvidaSemConteudo(textoPacote)) {
+      escopoBlock +=
+        `\n\n# ❓ O CLIENTE DISSE QUE TEM UMA DÚVIDA — DESCUBRA QUAL É\n` +
+        `Ele ainda NÃO disse qual é a dúvida. Sua única próxima mensagem é perguntar qual é a dúvida ` +
+        `(ex.: "Claro! Pode me falar, qual é a sua dúvida?").\n` +
+        `🚫 PROIBIDO nesta resposta: perguntar destino, origem, datas, passageiros, hotel, orçamento ou qualquer dado de cotação.`;
+    } else if (ehDuvidaAntesDeColeta(textoPacote)) {
+      escopoBlock +=
+        `\n\n# ❓ DÚVIDA DO CLIENTE TEM PRIORIDADE\n` +
+        `A mensagem contém uma DÚVIDA (pagamento, boleto, parcelamento, regras, documentação, bagagem...).\n` +
+        `Ordem obrigatória: (1) responda a dúvida com base nas regras comerciais REAIS da VIA AIR — nunca invente nem generalize regra; ` +
+        `(2) registre o que ele já informou; (3) só então, se fizer sentido, faça UMA pergunta de continuidade.\n` +
+        `🚫 Proibido ignorar a pergunta para continuar um roteiro fixo de coleta.`;
+    }
+
+    if (contemProdutoCombinado(textoPacote) && !centralAgent) {
+      escopoBlock +=
+        `\n\n# 🧭 ESCOPO: ESTE CASO É COMERCIAL (fica com você)\n` +
+        `O cliente quer pacote, aéreo + hotel, hospedagem ou outro serviço combinado. ` +
+        `É PROIBIDO chamar transferir_para_central: Paula e Bruno atendem SOMENTE passagem aérea avulsa.\n` +
+        `Continue você mesmo, reaproveitando tudo o que ele já informou (destino, datas, passageiros, origem) e pergunte só o que falta.`;
+    }
+
     if (centralAgent) {
       const { detectarInteressePacote } = await import("./pacote-intent");
-      if (detectarInteressePacote(textoPacote)) {
+      if (detectarInteressePacote(textoPacote) || contemProdutoCombinado(textoPacote)) {
+
         pacoteBlock =
           `\n\n# 📦 O CLIENTE PEDIU PACOTE — TRANSFIRA AGORA\n` +
           `Você é do aéreo. Chame a tool transferir_para_consultores NESTA resposta e envie APENAS: ` +
