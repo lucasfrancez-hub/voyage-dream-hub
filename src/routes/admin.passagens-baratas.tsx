@@ -405,6 +405,10 @@ export function PassagensBaratasExplorer({
   const hrefPasso = (step: Step) =>
     linkPasso ? linkPasso([...trail, step]) : undefined;
 
+  // Passo clicado: pinta o carregamento na hora (sem esperar a rede) e
+  // bloqueia cliques repetidos no mesmo nível.
+  const [pendente, setPendente] = useState<Step | null>(null);
+
   const go = (step: Step) => {
     const next = [...trail, step];
     if (linkPasso) {
@@ -412,15 +416,48 @@ export function PassagensBaratasExplorer({
       abrirLinkExterno(url);
       return;
     }
+    if (pendente) return; // evita clique duplo / navegação concorrente
+    setPendente(step);
     setTrail(next);
   };
 
-  const backTo = (i: number) => setTrail((t) => t.slice(0, i + 1));
+  const backTo = (i: number) => {
+    // Voltar é sempre permitido: descarta a etapa que estava carregando.
+    setPendente(null);
+    setTrail((t) => t.slice(0, i + 1));
+  };
 
 
   const data = q.data;
   const cheapest = data?.dates[0] ?? null;
   const maxMonth = Math.max(0, ...(data?.months.map((m) => m.price ?? 0) ?? [0]));
+
+  // Só é "carregando" quando existe trabalho real: cache pronto renderiza direto.
+  const buscando = q.isFetching && (q.isPlaceholderData || !data);
+  const carregando = !!pendente || buscando;
+  const etapa = stageMessage(pendente ?? current);
+
+  useEffect(() => {
+    if (!q.isFetching) setPendente(null);
+  }, [q.isFetching, current]);
+
+  // Mensagem muda depois de alguns segundos; nunca esqueleto infinito.
+  const [lento, setLento] = useState(false);
+  const [estourou, setEstourou] = useState(false);
+  useEffect(() => {
+    if (!carregando) {
+      setLento(false);
+      setEstourou(false);
+      return;
+    }
+    const a = setTimeout(() => setLento(true), 4000);
+    const b = setTimeout(() => setEstourou(true), 30000);
+    return () => {
+      clearTimeout(a);
+      clearTimeout(b);
+    };
+  }, [carregando, current]);
+
 
   const [motor, setMotor] = useState({ origem: "", destino: "", ida: "", volta: "" });
 
