@@ -4,7 +4,7 @@ import {
   podeIrParaCentral,
   ehDuvidaAntesDeColeta,
   duvidaSemConteudo,
-} from "../escopo-produto";
+} from "@/lib/whatsapp/escopo-produto";
 
 describe("trava de escopo — só aéreo vai para Paula/Bruno", () => {
   const somenteAereo = [
