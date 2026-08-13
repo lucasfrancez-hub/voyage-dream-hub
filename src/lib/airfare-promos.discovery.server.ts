@@ -103,19 +103,37 @@ function isFuture(dateIso: string) {
   return dateIso >= iso(new Date());
 }
 
+export type DiscoveryResult = {
+  /** Candidatas já deduplicadas E limitadas por origem (fila de validação). */
+  candidates: PromoCandidate[];
+  /** Total bruto descoberto na fonte, antes do limite por origem. */
+  discoveredTotal: number;
+  /** Total após deduplicação, antes do limite por origem. */
+  dedupedTotal: number;
+  /** Métricas por origem (descobertas / dedup / selecionadas). */
+  metrics: OriginMetrics[];
+};
+
 /**
  * Descobre oportunidades no Melhores Destinos e devolve candidatas
  * normalizadas e deduplicadas (uma validação por oportunidade).
+ *
+ * A DESCOBERTA NÃO É LIMITADA: lemos tudo o que a fonte oferece.
+ * O limite (`max_opportunities_per_origin`) só decide quantas dessas
+ * oportunidades entram na fila mais cara de validação no motor VIA AIR.
  */
 export async function discoverCandidates(opts?: {
   pages?: number;
   datesPerRoute?: number;
+  /** teto de segurança da leitura bruta (não é o limite por origem) */
   maxCandidates?: number;
-}): Promise<PromoCandidate[]> {
+}): Promise<DiscoveryResult> {
   const datesPerRoute = opts?.datesPerRoute ?? 2;
-  const maxCandidates = opts?.maxCandidates ?? 120;
+  const maxCandidates = opts?.maxCandidates ?? 600;
   const collectedAt = new Date().toISOString();
   const mapa = new Map<string, PromoCandidate>();
+  let brutas = 0;
+
 
   const add = (c: PromoCandidate) => {
     const atual = mapa.get(c.signature);
