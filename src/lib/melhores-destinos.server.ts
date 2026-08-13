@@ -215,7 +215,7 @@ async function chamada(url: string, opts: MdFetchOptions): Promise<unknown> {
         return await res.json();
       }
       ultimo = new Error(`Melhores Destinos respondeu ${res.status}`);
-      registrarFalha(res.status, `HTTP ${res.status}`);
+      registrarFalha(res.status, `HTTP ${res.status} — ${url}`);
     } catch (e) {
       if (e instanceof MdCancelledError || e instanceof MdUnavailableError) throw e;
       ultimo = e;
