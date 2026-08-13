@@ -9,6 +9,14 @@
  * Reaproveita o mesmo serviço já usado pela tela "Passagens Baratas"
  * (`melhores-destinos.server.ts`) — não existe segunda implementação.
  */
+import {
+  MAX_EXTRA_ORIGINS,
+  PRIORITY_ORIGINS_HUB,
+  PRIORITY_ORIGINS_NACIONAL,
+  isPriorityOrigin,
+  maxOpportunitiesForOrigin,
+  type OriginMetrics,
+} from "@/lib/airfare-promos.config";
 import { datasDaRotaHandler, listarPromocoesHandler } from "@/lib/melhores-destinos.server";
 
 export type PromoCandidate = {
@@ -30,9 +38,9 @@ export type PromoCandidate = {
   reference_collected_at: string;
 };
 
-/** Origens que precisam estar sempre representadas na curadoria. */
-export const PRIORITY_ORIGINS_NACIONAL = ["MGF", "LDB", "CWB", "CAC", "IGU"] as const;
-export const PRIORITY_ORIGINS_HUB = ["GRU", "GIG", "BSB", "CWB"] as const;
+/** Origens que precisam estar sempre representadas na curadoria (config central). */
+export { PRIORITY_ORIGINS_NACIONAL, PRIORITY_ORIGINS_HUB } from "@/lib/airfare-promos.config";
+
 
 /** Sementes usadas só para garantir cobertura das origens prioritárias. */
 export const PRIORITY_SEEDS: Array<{
@@ -95,27 +103,47 @@ function isFuture(dateIso: string) {
   return dateIso >= iso(new Date());
 }
 
+export type DiscoveryResult = {
+  /** Candidatas já deduplicadas E limitadas por origem (fila de validação). */
+  candidates: PromoCandidate[];
+  /** Total bruto descoberto na fonte, antes do limite por origem. */
+  discoveredTotal: number;
+  /** Total após deduplicação, antes do limite por origem. */
+  dedupedTotal: number;
+  /** Métricas por origem (descobertas / dedup / selecionadas). */
+  metrics: OriginMetrics[];
+};
+
 /**
  * Descobre oportunidades no Melhores Destinos e devolve candidatas
  * normalizadas e deduplicadas (uma validação por oportunidade).
+ *
+ * A DESCOBERTA NÃO É LIMITADA: lemos tudo o que a fonte oferece.
+ * O limite (`max_opportunities_per_origin`) só decide quantas dessas
+ * oportunidades entram na fila mais cara de validação no motor VIA AIR.
  */
 export async function discoverCandidates(opts?: {
   pages?: number;
   datesPerRoute?: number;
+  /** teto de segurança da leitura bruta (não é o limite por origem) */
   maxCandidates?: number;
-}): Promise<PromoCandidate[]> {
+}): Promise<DiscoveryResult> {
   const datesPerRoute = opts?.datesPerRoute ?? 2;
-  const maxCandidates = opts?.maxCandidates ?? 120;
+  const maxCandidates = opts?.maxCandidates ?? 600;
   const collectedAt = new Date().toISOString();
   const mapa = new Map<string, PromoCandidate>();
+  let brutas = 0;
+
 
   const add = (c: PromoCandidate) => {
+    brutas++;
     const atual = mapa.get(c.signature);
     // mesma oportunidade repetida na fonte: mantém a referência mais barata/recente
     if (!atual || (c.reference_price ?? Infinity) < (atual.reference_price ?? Infinity)) {
       mapa.set(c.signature, { ...c, priority: Math.min(c.priority, atual?.priority ?? c.priority) });
     }
   };
+
 
   let promos: Awaited<ReturnType<typeof listarPromocoesHandler>>["promos"] = [];
   try {
@@ -239,5 +267,87 @@ export async function discoverCandidates(opts?: {
     }
   }
 
-  return [...mapa.values()].sort((a, b) => a.priority - b.priority).slice(0, maxCandidates);
+  // ------------------------------------------------------------------
+  // SELEÇÃO: agrupa por origem, deduplica e escolhe até N por origem.
+  // A leitura da fonte acima NÃO foi limitada — o corte acontece só aqui.
+  // ------------------------------------------------------------------
+  const dedupadas = [...mapa.values()];
+  const porOrigem = new Map<string, PromoCandidate[]>();
+  for (const c of dedupadas) {
+    const lista = porOrigem.get(c.origin_iata) ?? [];
+    lista.push(c);
+    porOrigem.set(c.origin_iata, lista);
+  }
+
+  const brutasPorOrigem = new Map<string, number>();
+  for (const c of dedupadas) {
+    brutasPorOrigem.set(c.origin_iata, (brutasPorOrigem.get(c.origin_iata) ?? 0) + 1);
+  }
+
+  /** Mais interessante = menor preço de referência; sem preço vai para o fim. */
+  const porAtratividade = (a: PromoCandidate, b: PromoCandidate) => {
+    const pa = a.reference_price ?? Number.POSITIVE_INFINITY;
+    const pb = b.reference_price ?? Number.POSITIVE_INFINITY;
+    if (pa !== pb) return pa - pb;
+    if (a.priority !== b.priority) return a.priority - b.priority;
+    return a.departure_date.localeCompare(b.departure_date);
+  };
+
+  const selecionadas: PromoCandidate[] = [];
+  const metrics: OriginMetrics[] = [];
+
+  // origens prioritárias primeiro; extras só se configurado
+  const origens = [...porOrigem.keys()].sort((a, b) => {
+    const pa = isPriorityOrigin(a) ? 0 : 1;
+    const pb = isPriorityOrigin(b) ? 0 : 1;
+    return pa - pb || a.localeCompare(b);
+  });
+
+  let extrasUsadas = 0;
+  for (const origem of origens) {
+    const prioritaria = isPriorityOrigin(origem);
+    if (!prioritaria) {
+      if (extrasUsadas >= MAX_EXTRA_ORIGINS) continue;
+      extrasUsadas++;
+    }
+    const limite = maxOpportunitiesForOrigin(origem);
+    const lista = (porOrigem.get(origem) ?? []).slice().sort(porAtratividade);
+
+    // 1ª passada: melhor oportunidade de cada destino (evita repetir destino)
+    const escolhidas: PromoCandidate[] = [];
+    const destinosUsados = new Set<string>();
+    for (const c of lista) {
+      if (escolhidas.length >= limite) break;
+      if (destinosUsados.has(c.destination_iata)) continue;
+      destinosUsados.add(c.destination_iata);
+      escolhidas.push(c);
+    }
+    // 2ª passada: completa com as demais datas mais baratas (só se houver)
+    for (const c of lista) {
+      if (escolhidas.length >= limite) break;
+      if (escolhidas.includes(c)) continue;
+      escolhidas.push(c);
+    }
+
+    selecionadas.push(...escolhidas);
+    metrics.push({
+      origin: origem,
+      discovered: brutasPorOrigem.get(origem) ?? 0,
+      deduped: lista.length,
+      selected: escolhidas.length,
+      validated: 0,
+      with_price: 0,
+      no_result: 0,
+      errors: 0,
+      avg_seconds: null,
+    });
+  }
+
+  return {
+    candidates: selecionadas.sort((a, b) => a.priority - b.priority),
+    discoveredTotal: brutas,
+    dedupedTotal: dedupadas.length,
+    metrics,
+  };
+
 }

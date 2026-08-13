@@ -183,7 +183,7 @@ export const getAirfarePromoRun = createServerFn({ method: "GET" })
     const { data, error } = await context.supabase
       .from("airfare_promo_runs")
       .select(
-        "id,status,phase,trigger,total,discovered,processed,validated,saved,no_result,new_count,updated_count,expired_count,error_count,last_label,error_message,started_at,finished_at,updated_at",
+        "id,status,phase,trigger,total,discovered,discovered_raw,deduped,origin_metrics,processed,validated,saved,no_result,new_count,updated_count,expired_count,error_count,last_label,error_message,started_at,finished_at,updated_at",
       )
       .order("started_at", { ascending: false })
       .limit(1)

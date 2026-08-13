@@ -14,6 +14,7 @@ import {
   quotesToExtendedOptions,
   type MarkupTable,
 } from "@/lib/airfare-conditions";
+import type { OriginMetrics } from "@/lib/airfare-promos.config";
 import { searchFlights, searchInboundFlights } from "@/lib/onertravel.server";
 import { flightHasBaggage, type OnerFlight } from "@/lib/onertravel.types";
 
@@ -322,10 +323,17 @@ export async function collectAirfarePromotions(opts?: {
   const { discoverCandidates, candidateSignature, fallbackDatePairs } = await import(
     "@/lib/airfare-promos.discovery.server"
   );
+  const { PROMO_VALIDATION_CONCURRENCY, maxOpportunitiesForOrigin } = await import(
+    "@/lib/airfare-promos.config"
+  );
+  type Metrics = OriginMetrics;
   const db = supabaseAdmin as unknown as AnyClient;
   const markups = await loadMarkups(db);
   const runId = opts?.runId;
-  const concurrency = Math.min(Math.max(opts?.concurrency ?? 3, 1), 4);
+  const concurrency = Math.min(
+    Math.max(opts?.concurrency ?? PROMO_VALIDATION_CONCURRENCY, 1),
+    4,
+  );
   const startedAt = new Date().toISOString();
 
   const counters = {
@@ -354,9 +362,47 @@ export async function collectAirfarePromotions(opts?: {
 
   await touch({ phase: "descobrindo", total: 0, processed: 0, saved: 0 });
 
-  // 1) RADAR: oportunidades do Melhores Destinos
-  const candidatas = await discoverCandidates({ maxCandidates: opts?.maxCandidates ?? 120 });
+  // 1) RADAR: oportunidades do Melhores Destinos (descoberta ilimitada,
+  //    seleção de até N por origem — ver airfare-promos.config.ts)
+  const descoberta = await discoverCandidates({ maxCandidates: opts?.maxCandidates ?? 600 });
+  const candidatas = descoberta.candidates;
+  const metricasPorOrigem = new Map<string, Metrics>(
+    descoberta.metrics.map((m) => [m.origin, { ...m }]),
+  );
+  const temposPorOrigem = new Map<string, number[]>();
   const porAssinatura = new Map(candidatas.map((c) => [c.signature, c]));
+
+  const metricaDe = (origem: string): Metrics => {
+    let m = metricasPorOrigem.get(origem);
+    if (!m) {
+      m = {
+        origin: origem,
+        discovered: 0,
+        deduped: 0,
+        selected: 0,
+        validated: 0,
+        with_price: 0,
+        no_result: 0,
+        errors: 0,
+        avg_seconds: null,
+      };
+      metricasPorOrigem.set(origem, m);
+    }
+    return m;
+  };
+
+  const registrarTempo = (origem: string, ms: number) => {
+    const lista = temposPorOrigem.get(origem) ?? [];
+    lista.push(ms);
+    temposPorOrigem.set(origem, lista);
+    const m = metricaDe(origem);
+    m.avg_seconds = Number((lista.reduce((a, b) => a + b, 0) / lista.length / 1000).toFixed(1));
+  };
+
+  const metricasSnapshot = () =>
+    [...metricasPorOrigem.values()].sort((a, b) => a.origin.localeCompare(b.origin));
+
+
 
   // 2) FALLBACK: rotas monitoradas manualmente (complementares, nunca a fonte única)
   try {
@@ -376,6 +422,10 @@ export async function collectAirfarePromotions(opts?: {
           return_date: par.returnDate,
         });
         if (porAssinatura.has(sig)) continue;
+        const jaNaOrigem = [...porAssinatura.values()].filter(
+          (c) => c.origin_iata === r.origin_iata,
+        ).length;
+        if (jaNaOrigem >= maxOpportunitiesForOrigin(r.origin_iata)) continue;
         porAssinatura.set(sig, {
           signature: sig,
           scope: r.scope,
@@ -425,6 +475,9 @@ export async function collectAirfarePromotions(opts?: {
     phase: "validando",
     total: queued.length,
     discovered: counters.discovered,
+    discovered_raw: descoberta.discoveredTotal,
+    deduped: descoberta.dedupedTotal,
+    origin_metrics: metricasSnapshot(),
     processed: 0,
     saved: 0,
   });
@@ -442,6 +495,9 @@ export async function collectAirfarePromotions(opts?: {
   const oportunidadesTocadas = new Set<string>();
 
   const processar = async (cand: CandidateRow) => {
+    const iniciouEm = Date.now();
+    const metrica = metricaDe(cand.origin_iata);
+    metrica.validated++;
     const label = `${cand.destination_city ?? cand.destination_iata} (${cand.origin_iata}→${cand.destination_iata})`;
     await setCandidato(cand.id, { status: "processing" });
 
@@ -475,6 +531,8 @@ export async function collectAirfarePromotions(opts?: {
 
     if (ultimoErro) {
       counters.error_count++;
+      metrica.errors++;
+      registrarTempo(cand.origin_iata, Date.now() - iniciouEm);
       await setCandidato(cand.id, {
         status: "error",
         attempts: RETRY_DELAYS_MS.length + 1,
@@ -488,6 +546,8 @@ export async function collectAirfarePromotions(opts?: {
 
     if (!row) {
       counters.no_result++;
+      metrica.no_result++;
+      registrarTempo(cand.origin_iata, Date.now() - iniciouEm);
       await setCandidato(cand.id, { status: "no_result", processed_at: new Date().toISOString() });
       return label;
     }
@@ -541,6 +601,8 @@ export async function collectAirfarePromotions(opts?: {
 
     if (upErr) {
       counters.error_count++;
+      metrica.errors++;
+      registrarTempo(cand.origin_iata, Date.now() - iniciouEm);
       await setCandidato(cand.id, {
         status: "error",
         last_error: upErr.message.slice(0, 400),
@@ -553,6 +615,8 @@ export async function collectAirfarePromotions(opts?: {
 
     counters.validated++;
     counters.saved++;
+    metrica.with_price++;
+    registrarTempo(cand.origin_iata, Date.now() - iniciouEm);
     if (anterior) counters.updated_count++;
     else counters.new_count++;
     assinaturasValidadas.add(row.signature);
@@ -611,6 +675,7 @@ export async function collectAirfarePromotions(opts?: {
         new_count: counters.new_count,
         updated_count: counters.updated_count,
         last_label: label,
+        origin_metrics: metricasSnapshot(),
       });
     }
   };
@@ -678,10 +743,12 @@ export async function collectAirfarePromotions(opts?: {
     new_count: counters.new_count,
     updated_count: counters.updated_count,
     expired_count: counters.expired_count,
+    origin_metrics: metricasSnapshot(),
+    deduped: descoberta.dedupedTotal,
     finished_at: new Date().toISOString(),
   });
 
-  return { startedAt, ...counters };
+  return { startedAt, ...counters, origin_metrics: metricasSnapshot() };
 }
 
 
