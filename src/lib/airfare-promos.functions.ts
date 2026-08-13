@@ -219,6 +219,21 @@ export const setPromotionStatus = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+export const deletePromotion = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => z.object({ id: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { error } = await context.supabase
+      .from("airfare_promotions")
+      .delete()
+      .eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+
+
 const HOOK_PATH = "/api/public/hooks/airfare-promos";
 
 /** Endpoint executor no MESMO ambiente (preview/produção) que recebeu a chamada. */
