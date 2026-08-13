@@ -8,6 +8,7 @@
  * mesmo pipeline das automáticas (revalidação, histórico, links, arte).
  */
 import { scopeOfRoute } from "@/lib/br-airports";
+import { resolveCity } from "@/lib/iata-lookup";
 import { curationDayBRT, diffFare } from "@/lib/airfare-promos.worker.server";
 
 export type ManualOpportunityInput = {
