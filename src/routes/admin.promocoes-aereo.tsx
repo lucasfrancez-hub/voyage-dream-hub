@@ -823,27 +823,48 @@ function PromocoesAereoPage() {
         </div>
       ) : null}
 
-      {/* Abas Nacional / Internacional */}
-      <div className="mt-5 inline-flex rounded-xl border border-border/60 bg-card/50 p-1">
+      {/* Abas Nacional / Internacional + pesquisa manual */}
+      <div className="mt-5 flex flex-wrap items-center gap-2">
+        <div className="inline-flex rounded-xl border border-border/60 bg-card/50 p-1">
+          <button
+            type="button"
+            onClick={() => setAba("nacional")}
+            className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-black uppercase tracking-wide transition ${
+              aba === "nacional" ? "bg-brand-orange text-white" : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            🇧🇷 Nacionais
+          </button>
+          <button
+            type="button"
+            onClick={() => setAba("internacional")}
+            className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-black uppercase tracking-wide transition ${
+              aba === "internacional" ? "bg-brand-orange text-white" : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <Globe2 className="h-4 w-4" /> Internacionais
+          </button>
+        </div>
         <button
           type="button"
-          onClick={() => setAba("nacional")}
-          className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-black uppercase tracking-wide transition ${
-            aba === "nacional" ? "bg-brand-orange text-white" : "text-muted-foreground hover:text-foreground"
+          onClick={() => setPesquisaAberta((v) => !v)}
+          className={`inline-flex items-center gap-2 rounded-xl border px-4 py-2 text-xs font-black uppercase tracking-widest transition ${
+            pesquisaAberta
+              ? "border-brand-orange bg-brand-orange/10 text-brand-orange"
+              : "border-brand-orange/40 text-brand-orange hover:bg-brand-orange/5"
           }`}
         >
-          🇧🇷 Nacionais
-        </button>
-        <button
-          type="button"
-          onClick={() => setAba("internacional")}
-          className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-black uppercase tracking-wide transition ${
-            aba === "internacional" ? "bg-brand-orange text-white" : "text-muted-foreground hover:text-foreground"
-          }`}
-        >
-          <Globe2 className="h-4 w-4" /> Internacionais
+          <Search className="h-4 w-4" /> Pesquisar novas oportunidades
         </button>
       </div>
+
+      <PesquisaManual
+        aberto={pesquisaAberta}
+        onFechar={() => setPesquisaAberta(false)}
+        scopeInicial={aba}
+        onSalvo={() => qc.invalidateQueries({ queryKey: ["airfare-promos"] })}
+      />
+
 
       {/* Atalhos de origem */}
       <div className="mt-3 flex flex-wrap gap-2">
