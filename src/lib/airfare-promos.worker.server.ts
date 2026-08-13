@@ -520,6 +520,12 @@ export async function processPendingCandidates(args: {
 
   await Promise.all(Array.from({ length: concurrency }, () => worker()));
 
+  if (cancelada) {
+    await touch({ ...counters, origin_metrics: metricasSnapshot() });
+    await finalizeCancelledRun(runId);
+    return { processed: processadasAgora, remaining: 0, finished: true };
+  }
+
   const { count: pendentes } = await client
     .from("airfare_promo_candidates")
     .select("id", { count: "exact", head: true })
