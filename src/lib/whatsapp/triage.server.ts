@@ -303,10 +303,18 @@ export async function routeAereoParaCentral(
   conv: WaConversation,
   texto: string,
 ): Promise<TriageResult> {
+  // TRAVA FINAL: nenhuma composição de produto entra na Central.
+  const { podeIrParaCentral } = await import("./escopo-produto");
+  if (!podeIrParaCentral(texto)) {
+    console.log(`[triagem] transferência à Central bloqueada (produto combinado) — conversa ${conv.id}`);
+    return null;
+  }
+
   // A heurística dura já confirmou um pedido aéreo explícito. O classificador
   // serve apenas para extrair os campos; ele não pode rebaixar a intenção e
   // mandar a conversa de volta para pacote por uma classificação instável.
   const c = await classificar(texto);
+
 
   const linhas = ["✈️ Cotação de passagem aérea (pedido de aéreo identificado na triagem)"];
   // ORIGEM: só entra no briefing quando o CLIENTE disse a cidade de embarque.
