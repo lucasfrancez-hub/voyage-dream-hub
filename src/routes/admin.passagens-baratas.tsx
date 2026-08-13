@@ -30,6 +30,7 @@ import { explorarPassagensMdPublic as explorarPassagensMd, buscarOrigensMdPublic
 import { viaairFlightUrl, nomeCompanhia } from "@/lib/melhores-destinos.parse";
 import { imagemRegiao } from "@/lib/regiao-imagens";
 import { salvarOportunidadePassagensBaratas } from "@/lib/airfare-promos.functions";
+import { enqueuePublish } from "@/lib/publish-queue";
 
 
 export const Route = createFileRoute("/admin/passagens-baratas")({
