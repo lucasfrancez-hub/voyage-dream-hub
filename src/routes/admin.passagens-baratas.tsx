@@ -534,18 +534,19 @@ export function PassagensBaratasExplorer({
   return (
     <div className={className ?? "mx-auto w-full max-w-5xl space-y-5 p-4 md:p-6"}>
       <header className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        <div>
-          <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight">
-            <Plane className="h-6 w-6 text-primary" /> Passagens aéreas baratas
+        <div className="min-w-0">
+          <h1 className="flex flex-wrap items-center gap-2 text-xl font-bold tracking-tight sm:text-2xl">
+            <Plane className="h-5 w-5 shrink-0 text-primary sm:h-6 sm:w-6" /> Passagens aéreas baratas
           </h1>
-          <p className="mt-1 text-sm font-semibold text-primary">
+          <p className="mt-1 text-xs font-semibold text-primary sm:text-sm">
             Veja as passagens que encontramos nas últimas 24 horas
           </p>
         </div>
 
         {/* Filtros de origem e mês — ao lado do título */}
         <div className="flex w-full items-stretch gap-2 sm:gap-3 lg:w-auto">
-          <div className="grid min-w-0 flex-1 gap-2 sm:grid-cols-2 sm:gap-3 lg:w-[440px] lg:flex-none">
+          <div className="grid min-w-0 flex-1 grid-cols-2 gap-2 sm:gap-3 lg:w-[440px] lg:flex-none">
+
 
 
         <div className="relative">
@@ -995,7 +996,14 @@ export function PassagensBaratasExplorer({
                       </a>
                     </div>
                     <div className="mt-2 flex items-center justify-between gap-2 pl-8">
-                      <BaggageBlocks label={o.baggage} />
+                      <div className="flex min-w-0 items-center gap-2">
+                        <BaggageBlocks label={o.baggage} />
+                        {o.nights ? (
+                          <Badge variant="secondary" className="shrink-0 rounded-full text-[10px]">
+                            {o.nights} dias
+                          </Badge>
+                        ) : null}
+                      </div>
                       {admin && current.fromIata && current.toIata ? (
                         <SalvarPromocaoButton
                           origem={current.fromIata}
