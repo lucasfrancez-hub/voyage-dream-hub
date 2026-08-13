@@ -75,8 +75,8 @@ radial-gradient(circle at 80% 12%,rgba(255,134,27,.18),transparent 24%)}
 .frame > *:not(.photo):not(.veil):not(.price-box){position:relative;z-index:2}
 .price-box{z-index:3}
 .brand{display:flex;align-items:flex-start;justify-content:space-between}
-.logo-slot{width:280px;height:118px;display:flex;align-items:center;justify-content:flex-start;padding:0}
-.logo-slot img{display:block;max-width:100%;max-height:100%;width:auto;height:auto;object-fit:contain}
+.logo-slot{width:440px;height:190px;display:flex;align-items:center;justify-content:flex-start;padding:0}
+.logo-slot img{display:block;max-width:100%;max-height:100%;width:auto;height:auto;object-fit:contain;filter:drop-shadow(0 6px 18px rgba(0,0,0,.35))}
 .logo-placeholder{font-size:12px;letter-spacing:2px;font-weight:800;color:rgba(255,255,255,.48)}
 .seal-wrap{display:flex;align-items:center;gap:16px}
 .cards-seal{width:146px;height:146px;filter:drop-shadow(0 12px 24px rgba(0,0,0,.32))}
@@ -129,6 +129,7 @@ svg{display:block;width:100%;height:100%}
 
 const STORY_CSS = `
 .frame{width:1080px;height:1920px;padding:62px 58px}
+.logo-slot{width:520px;height:230px}
 .hero{margin-top:72px}.destination{font-size:154px;margin:12px 0 26px}
 .details{margin-top:40px}
 .detail-row{min-height:56px;padding:10px 15px}.detail-row .value{font-size:22px}
