@@ -123,7 +123,8 @@ export async function radarByOrigin(
     const chave = `${categoryId ?? "root"}`;
     if (visitadas.has(chave) || depth > maxDepth) return;
     if (cancel && (await cancel())) throw new MdCancelledError();
-    if (!mdRadarAvailable()) return;
+    // Fonte bloqueada não interrompe a varredura: a camada compartilhada
+    // responde com o que já está salvo/cacheado (sem novas tentativas).
     visitadas.add(chave);
 
     const params = new URLSearchParams({ from_iata_code: from });
