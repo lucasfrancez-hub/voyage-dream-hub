@@ -113,6 +113,155 @@ export type Database = {
         }
         Relationships: []
       }
+      airfare_promo_candidates: {
+        Row: {
+          attempts: number
+          created_at: string
+          departure_date: string
+          destination_city: string | null
+          destination_iata: string
+          id: string
+          last_error: string | null
+          last_error_at: string | null
+          last_error_step: string | null
+          origin_city: string | null
+          origin_iata: string
+          priority: number
+          processed_at: string | null
+          promotion_id: string | null
+          reference_collected_at: string | null
+          reference_departure_date: string | null
+          reference_destination: string | null
+          reference_origin: string | null
+          reference_price: number | null
+          reference_return_date: string | null
+          reference_source: string
+          return_date: string | null
+          run_id: string | null
+          scope: string
+          signature: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          attempts?: number
+          created_at?: string
+          departure_date: string
+          destination_city?: string | null
+          destination_iata: string
+          id?: string
+          last_error?: string | null
+          last_error_at?: string | null
+          last_error_step?: string | null
+          origin_city?: string | null
+          origin_iata: string
+          priority?: number
+          processed_at?: string | null
+          promotion_id?: string | null
+          reference_collected_at?: string | null
+          reference_departure_date?: string | null
+          reference_destination?: string | null
+          reference_origin?: string | null
+          reference_price?: number | null
+          reference_return_date?: string | null
+          reference_source?: string
+          return_date?: string | null
+          run_id?: string | null
+          scope?: string
+          signature: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          attempts?: number
+          created_at?: string
+          departure_date?: string
+          destination_city?: string | null
+          destination_iata?: string
+          id?: string
+          last_error?: string | null
+          last_error_at?: string | null
+          last_error_step?: string | null
+          origin_city?: string | null
+          origin_iata?: string
+          priority?: number
+          processed_at?: string | null
+          promotion_id?: string | null
+          reference_collected_at?: string | null
+          reference_departure_date?: string | null
+          reference_destination?: string | null
+          reference_origin?: string | null
+          reference_price?: number | null
+          reference_return_date?: string | null
+          reference_source?: string
+          return_date?: string | null
+          run_id?: string | null
+          scope?: string
+          signature?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "airfare_promo_candidates_promotion_id_fkey"
+            columns: ["promotion_id"]
+            isOneToOne: false
+            referencedRelation: "airfare_promotions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "airfare_promo_candidates_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "airfare_promo_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      airfare_promo_price_history: {
+        Row: {
+          created_at: string
+          id: string
+          new_price: number | null
+          old_price: number | null
+          promotion_id: string
+          reason: string
+          reference_price: number | null
+          run_id: string | null
+          source: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          new_price?: number | null
+          old_price?: number | null
+          promotion_id: string
+          reason?: string
+          reference_price?: number | null
+          run_id?: string | null
+          source?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          new_price?: number | null
+          old_price?: number | null
+          promotion_id?: string
+          reason?: string
+          reference_price?: number | null
+          run_id?: string | null
+          source?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "airfare_promo_price_history_promotion_id_fkey"
+            columns: ["promotion_id"]
+            isOneToOne: false
+            referencedRelation: "airfare_promotions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       airfare_promo_routes: {
         Row: {
           active: boolean
@@ -151,11 +300,16 @@ export type Database = {
       }
       airfare_promo_runs: {
         Row: {
+          discovered: number
           error_count: number
           error_message: string | null
+          expired_count: number
           finished_at: string | null
           id: string
           last_label: string | null
+          new_count: number
+          no_result: number
+          phase: string | null
           processed: number
           saved: number
           started_at: string
@@ -163,13 +317,20 @@ export type Database = {
           total: number
           trigger: string
           updated_at: string
+          updated_count: number
+          validated: number
         }
         Insert: {
+          discovered?: number
           error_count?: number
           error_message?: string | null
+          expired_count?: number
           finished_at?: string | null
           id?: string
           last_label?: string | null
+          new_count?: number
+          no_result?: number
+          phase?: string | null
           processed?: number
           saved?: number
           started_at?: string
@@ -177,13 +338,20 @@ export type Database = {
           total?: number
           trigger?: string
           updated_at?: string
+          updated_count?: number
+          validated?: number
         }
         Update: {
+          discovered?: number
           error_count?: number
           error_message?: string | null
+          expired_count?: number
           finished_at?: string | null
           id?: string
           last_label?: string | null
+          new_count?: number
+          no_result?: number
+          phase?: string | null
           processed?: number
           saved?: number
           started_at?: string
@@ -191,6 +359,8 @@ export type Database = {
           total?: number
           trigger?: string
           updated_at?: string
+          updated_count?: number
+          validated?: number
         }
         Relationships: []
       }
@@ -221,14 +391,24 @@ export type Database = {
           interest_free_installments: number
           is_round_trip: boolean
           last_checked_at: string
+          last_run_id: string | null
           origin_city: string | null
           origin_iata: string
           outbound_fare_id: string | null
           outbound_itinerary_id: string | null
           passengers: number
+          price_difference: number | null
+          price_difference_percent: number | null
           price_per_passenger: number
           quoted_at: string
           raw: Json | null
+          reference_collected_at: string | null
+          reference_departure_date: string | null
+          reference_destination: string | null
+          reference_origin: string | null
+          reference_price: number | null
+          reference_return_date: string | null
+          reference_source: string | null
           return_date: string | null
           scope: string
           search_key: string | null
@@ -238,6 +418,7 @@ export type Database = {
           stops: number
           taxes: number
           total_price: number
+          unavailable_at: string | null
           updated_at: string
         }
         Insert: {
@@ -266,14 +447,24 @@ export type Database = {
           interest_free_installments?: number
           is_round_trip?: boolean
           last_checked_at?: string
+          last_run_id?: string | null
           origin_city?: string | null
           origin_iata: string
           outbound_fare_id?: string | null
           outbound_itinerary_id?: string | null
           passengers?: number
+          price_difference?: number | null
+          price_difference_percent?: number | null
           price_per_passenger: number
           quoted_at?: string
           raw?: Json | null
+          reference_collected_at?: string | null
+          reference_departure_date?: string | null
+          reference_destination?: string | null
+          reference_origin?: string | null
+          reference_price?: number | null
+          reference_return_date?: string | null
+          reference_source?: string | null
           return_date?: string | null
           scope?: string
           search_key?: string | null
@@ -283,6 +474,7 @@ export type Database = {
           stops?: number
           taxes?: number
           total_price: number
+          unavailable_at?: string | null
           updated_at?: string
         }
         Update: {
@@ -311,14 +503,24 @@ export type Database = {
           interest_free_installments?: number
           is_round_trip?: boolean
           last_checked_at?: string
+          last_run_id?: string | null
           origin_city?: string | null
           origin_iata?: string
           outbound_fare_id?: string | null
           outbound_itinerary_id?: string | null
           passengers?: number
+          price_difference?: number | null
+          price_difference_percent?: number | null
           price_per_passenger?: number
           quoted_at?: string
           raw?: Json | null
+          reference_collected_at?: string | null
+          reference_departure_date?: string | null
+          reference_destination?: string | null
+          reference_origin?: string | null
+          reference_price?: number | null
+          reference_return_date?: string | null
+          reference_source?: string | null
           return_date?: string | null
           scope?: string
           search_key?: string | null
@@ -328,6 +530,7 @@ export type Database = {
           stops?: number
           taxes?: number
           total_price?: number
+          unavailable_at?: string | null
           updated_at?: string
         }
         Relationships: []

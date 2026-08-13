@@ -54,6 +54,10 @@ type Promo = PromoRow & {
   status: string;
   fare_status: string;
   last_checked_at: string;
+  reference_source?: string | null;
+  reference_price?: number | null;
+  price_difference?: number | null;
+  price_difference_percent?: number | null;
 };
 
 const brl = (v: number | string | null | undefined) =>
@@ -213,11 +217,29 @@ function PromoCard({
             ou até {promo.extended_max_installments}x de {brl(promo.extended_installment_value_12x)}
           </div>
         ) : null}
+        {promo.reference_price ? (
+          <div className="mt-2 border-t border-border/50 pt-2 text-[10px] leading-relaxed text-muted-foreground">
+            <span className="font-semibold uppercase tracking-wide">Referência interna</span> · radar{" "}
+            {brl(promo.reference_price)}
+            {promo.price_difference_percent != null ? (
+              <span
+                className={`ml-1 font-bold ${
+                  promo.price_difference_percent <= 0 ? "text-emerald-500" : "text-amber-500"
+                }`}
+              >
+                {promo.price_difference_percent <= 0 ? "▼" : "▲"}{" "}
+                {Math.abs(promo.price_difference_percent).toFixed(1).replace(".", ",")}% no motor VIA AIR
+              </span>
+            ) : null}
+            <div className="opacity-70">Nunca publicado — só o preço VIA AIR vai para o cliente.</div>
+          </div>
+        ) : null}
       </div>
 
       <p className="mt-2 inline-flex items-center gap-1.5 text-[10px] text-muted-foreground">
         <Clock className="h-3 w-3" /> Última validação: {validadoEm(promo.last_checked_at)}
       </p>
+
 
       <div className="mt-3 flex flex-wrap items-center gap-1.5 border-t border-border/50 pt-3">
         <button
@@ -584,9 +606,17 @@ function PromocoesAereoPage() {
 
   const info = run as null | {
     status: string;
+    phase: string | null;
     total: number;
+    discovered: number | null;
     processed: number;
+    validated: number | null;
     saved: number;
+    no_result: number | null;
+    new_count: number | null;
+    updated_count: number | null;
+    expired_count: number | null;
+    error_count: number | null;
     last_label: string | null;
     started_at: string;
     finished_at: string | null;
@@ -629,12 +659,17 @@ function PromocoesAereoPage() {
         <div className="mt-4 rounded-2xl border border-brand-orange/40 bg-brand-orange/5 p-3">
           <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
             <span className="inline-flex items-center gap-2 font-bold text-brand-orange">
-              <Loader2 className="h-3.5 w-3.5 animate-spin" /> Atualizando promoções…
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              {info.phase === "descobrindo"
+                ? "Procurando oportunidades…"
+                : info.phase === "expirando"
+                  ? "Conferindo ofertas que saíram do ar…"
+                  : "Validando no motor VIA AIR…"}
             </span>
             <span className="text-muted-foreground">
               {info.total > 0
                 ? `${info.processed} de ${info.total} oportunidades verificadas`
-                : "Preparando as rotas…"}
+                : "Preparando as oportunidades…"}
             </span>
           </div>
           <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-border/60">
@@ -644,10 +679,19 @@ function PromocoesAereoPage() {
               <div className="h-full rounded-full bg-brand-orange transition-all" style={{ width: `${pct}%` }} />
             )}
           </div>
+          <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
+            <span>Encontradas no radar: {info.discovered ?? 0}</span>
+            <span>Confirmadas: {info.validated ?? 0}</span>
+            <span>Novas: {info.new_count ?? 0}</span>
+            <span>Atualizadas: {info.updated_count ?? 0}</span>
+            <span>Sem tarifa: {info.no_result ?? 0}</span>
+            {info.error_count ? <span className="text-destructive">Falhas: {info.error_count}</span> : null}
+          </div>
           <p className="mt-2 text-[11px] text-muted-foreground">
             Iniciada às {horaBR(info.started_at).split(", ")[1] ?? "—"}
             {info.last_label ? ` • Última oportunidade processada: ${info.last_label}` : ""}
           </p>
+
         </div>
       ) : null}
 
