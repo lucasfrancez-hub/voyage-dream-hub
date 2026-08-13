@@ -236,27 +236,41 @@ export async function quoteRoute(args: {
     ENGINE_CALL_TIMEOUT_MS,
     "ida",
   );
-  const out = [...(res.outbound?.flights ?? [])].sort((a, b) => a.price.total - b.price.total)[0];
+  const candidatas = [...(res.outbound?.flights ?? [])].sort(
+    (a, b) => a.price.total - b.price.total,
+  );
+  let out = candidatas[0];
   if (!out) return null;
 
   let inb: OnerFlight | null = null;
   if (returnDate) {
-    try {
-      const back = await withTimeout(
-        searchInboundFlights({
-          ...base,
-          returnDate,
-          searchKey: res.searchKey,
-          flightKey: out.key,
-        } as never),
-        ENGINE_CALL_TIMEOUT_MS,
-        "volta",
-      );
-      inb =
-        [...(back.flights ?? [])].sort((a, b) => a.price.total - b.price.total)[0] ?? null;
-    } catch {
-      inb = null;
+    // Ida e volta: uma tarifa de ida pode não ter combinação de volta.
+    // Tenta as 3 mais baratas antes de desistir — nunca gravamos só a ida
+    // quando a oportunidade foi descoberta como ida e volta.
+    for (const cand of candidatas.slice(0, 3)) {
+      try {
+        const back = await withTimeout(
+          searchInboundFlights({
+            ...base,
+            returnDate,
+            searchKey: res.searchKey,
+            flightKey: cand.key,
+          } as never),
+          ENGINE_CALL_TIMEOUT_MS,
+          "volta",
+        );
+        const melhor =
+          [...(back.flights ?? [])].sort((a, b) => a.price.total - b.price.total)[0] ?? null;
+        if (melhor) {
+          out = cand;
+          inb = melhor;
+          break;
+        }
+      } catch {
+        /* tenta a próxima candidata */
+      }
     }
+    if (!inb) return null;
   }
 
   return buildPromotionRow({
