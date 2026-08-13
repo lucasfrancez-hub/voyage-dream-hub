@@ -82,30 +82,39 @@ export function promoCardData(p: PromoRow) {
           }
         : null,
     avisoMaisPrazo: AVISO_MAIOR_PARCELAMENTO,
-    avisoValidade: AVISO_VALIDADE_TARIFA,
+    avisoValidade: avisoValidadeTarifa(p),
     link: p.short_url ?? p.cart_url ?? null,
   };
 }
 
-export function promoWhatsappText(p: PromoRow): string {
+/** Rodapé com a data real da consulta (mesma regra dos cards). */
+export function avisoValidadeTarifa(p: PromoRow): string {
+  const data = dataTarifaPorExtenso(p.quoted_at ?? p.last_checked_at ?? null);
+  return data
+    ? `Tarifa encontrada em ${data}. Válida para o dia da compra e sujeita à disponibilidade e atualização tarifária até a emissão.`
+    : AVISO_VALIDADE_TARIFA;
+}
+
+export function promoWhatsappText(p: PromoRow, titulo: string = PROMO_TITULOS[0]): string {
   const d = promoCardData(p);
   const linhas = [
+    `*${titulo}*`,
+    "",
     `✈️ *${d.origem} → ${d.destino}*`,
     "",
     `${d.tipo} • ${d.companhia}`,
     d.volta ? `📅 ${d.ida} a ${d.volta}` : `📅 ${d.ida}`,
     `${d.paradas} • ${d.bagagem}`,
     "",
-    `💰 *${d.totalFmt}* (${d.passageiros} passageiro(s))`,
-    `Por passageiro: ${d.porPassageiroFmt}`,
+    `💰 *${d.porPassageiroFmt}* por passageiro`,
     "",
     `*Melhor condição:* ${d.semJuros.texto}`,
   ];
   if (d.maisPrazo) {
     linhas.push(`*Precisa de mais prazo?* até ${d.maisPrazo.texto}`, `_${d.avisoMaisPrazo}_`);
   }
+  if (d.link) linhas.push("", "👉 *Confira e reserve:*", d.link);
   linhas.push("", d.avisoValidade);
-  if (d.link) linhas.push("", `👉 ${d.link}`);
   return linhas.join("\n");
 }
 
