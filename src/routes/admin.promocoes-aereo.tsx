@@ -943,6 +943,22 @@ function PromocoesAereoPage() {
         </p>
       ) : null}
 
+      {/* Radar do Melhores Destinos indisponível nesta execução */}
+      {info && info.radar_available === false ? (
+        <p className="mt-3 rounded-xl border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-600 dark:text-amber-400">
+          Radar Melhores Destinos temporariamente indisponível nesta execução
+          {info.radar_errors ? ` (${info.radar_errors} tentativas sem resposta)` : ""} — nenhuma
+          oportunidade nova foi descoberta e as promoções válidas da coleta anterior foram
+          preservadas.
+        </p>
+      ) : null}
+      {info && info.radar_available !== false && (info.fallback_count ?? 0) > 0 ? (
+        <p className="mt-3 rounded-xl border border-border bg-muted/40 px-3 py-2 text-[11px] text-muted-foreground">
+          {info.fallback_count} oportunidade(s) desta execução vieram de complemento interno (sem
+          referência do Melhores Destinos).
+        </p>
+      ) : null}
+
       {/* Status da coleta */}
       {rodando && info ? (
         <div className="mt-4 rounded-2xl border border-brand-orange/40 bg-brand-orange/5 p-3">
