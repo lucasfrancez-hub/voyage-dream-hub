@@ -1841,6 +1841,7 @@ export function VoosPage({
   externalSearch = false,
   emptySlot,
   presetFetch,
+  multiPreset,
 }: {
   header?: React.ReactNode;
   hideForm?: boolean;
@@ -1855,10 +1856,12 @@ export function VoosPage({
   externalSearch?: boolean;
   /** Conteúdo mostrado abaixo do motor enquanto não há resultados. */
   emptySlot?: React.ReactNode;
+  /** Viagem multi-trecho vinda da URL (widget → /voar). */
+  multiPreset?: MultiSegmentInput[];
 } = {}) {
   const search = useServerFn(publicMode ? onerFlightSearchPublic : onerFlightSearch);
   const searchInbound = useServerFn(publicMode ? onerInboundSearchPublic : onerInboundSearch);
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<PaxForm>({
     departureIata: "",
     arrivalIata: "",
 
@@ -1869,6 +1872,48 @@ export function VoosPage({
     infants: 0,
   });
   const [pendingRun, setPendingRun] = useState(0);
+
+  // ---- Multi-trecho (camada aditiva; o modo normal segue idêntico) ----
+  const [multiOn, setMultiOn] = useState(!!multiPreset?.length);
+  const [multiSegments, setMultiSegments] = useState<MultiSegmentInput[]>(
+    multiPreset?.length ? multiPreset : [],
+  );
+  /** Trechos congelados no momento da busca + token de execução. */
+  const [multiRun, setMultiRun] = useState<{ token: number; segments: MultiSegmentInput[] }>({
+    token: 0,
+    segments: [],
+  });
+  function runMulti() {
+    setMultiRun((r) => ({ token: r.token + 1, segments: multiSegments }));
+  }
+  // Multi-trecho vindo da URL já dispara a pesquisa.
+  useEffect(() => {
+    if (multiPreset?.length) {
+      setMultiOn(true);
+      setMultiSegments(multiPreset);
+      setMultiRun({ token: 1, segments: multiPreset });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const flightUi = useMemo<FlightUi>(
+    () => ({
+      FlightCard,
+      SegmentsDetail,
+      BagChip,
+      fmtMoney,
+      fmtTime,
+      fmtDate,
+      airlineOf,
+      taxesOf,
+      normalizeSearchResult,
+      findByAnyKey,
+      cityCodes: CITY_CODES,
+      BriefcaseIcon: BriefcaseBusiness,
+      LuggageIcon: Luggage,
+    }),
+    [],
+  );
 
 
   const [result, setResult] = useState<OnerSearchResult | null>(null);
