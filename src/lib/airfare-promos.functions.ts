@@ -15,6 +15,18 @@ async function assertAdmin(ctx: { supabase: any; userId: string }) {
 const PROMO_COLUMNS =
   "id,signature,scope,status,fare_status,origin_iata,origin_city,destination_iata,destination_city,airline_iata,airline_name,airline_logo,departure_date,return_date,is_round_trip,stops,has_checked_baggage,cabin_class,passengers,fare_price,taxes,total_price,price_per_passenger,interest_free_installments,interest_free_installment_value,airline_rule,extended_max_installments,extended_installment_value_12x,extended_markup_12x,extended_total_12x,extended_options,search_key,outbound_fare_id,outbound_itinerary_id,inbound_fare_id,inbound_itinerary_id,cart_url,short_url,quoted_at,last_checked_at,reference_source,reference_price,reference_collected_at,price_difference,price_difference_percent,unavailable_at,cycle_state,cycle_changed_fields,cycle_state_at,cycle_day";
 
+const ARCHIVE_COLUMNS = `${PROMO_COLUMNS},archived_at,archived_reason,archived_cycle_day,created_at`;
+
+/** Dia da curadoria no fuso de Brasília (YYYY-MM-DD). */
+function hojeBRT(): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Sao_Paulo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+}
+
 export const listAirfarePromotions = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) =>
@@ -37,8 +49,10 @@ export const listAirfarePromotions = createServerFn({ method: "GET" })
     await assertAdmin(context);
     let q = context.supabase.from("airfare_promotions").select(PROMO_COLUMNS).limit(300);
 
-    // curadoria ATIVA do dia (o ciclo encerrado à meia-noite vira histórico)
-    if (!data.includeArchived) q = q.is("archived_at", null);
+    // curadoria ATIVA do dia (o ciclo encerrado à meia-noite vira histórico).
+    // Proteção extra: mesmo se o cron das 00:00 falhar, promoção de dia
+    // anterior nunca aparece como ativa.
+    if (!data.includeArchived) q = q.is("archived_at", null).eq("cycle_day", hojeBRT());
 
     if (data.origin) q = q.ilike("origin_iata", `%${data.origin}%`);
     if (data.destination) q = q.ilike("destination_iata", `%${data.destination}%`);
@@ -55,6 +69,81 @@ export const listAirfarePromotions = createServerFn({ method: "GET" })
     else q = q.order("quoted_at", { ascending: false });
 
     const { data: rows, error } = await q;
+    if (error) throw new Error(error.message);
+    return rows ?? [];
+  });
+
+/**
+ * ARQUIVADOS — histórico dos últimos 30 dias (somente consulta).
+ * Nunca alimenta a curadoria ativa nem gera divulgação sem nova validação.
+ */
+export const listArchivedPromotions = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z
+      .object({
+        origin: z.string().trim().max(60).optional().nullable(),
+        destination: z.string().trim().max(60).optional().nullable(),
+        airline: z.string().trim().max(60).optional().nullable(),
+        scope: z.string().trim().max(20).optional().nullable(),
+        day: z.string().trim().max(10).optional().nullable(),
+        page: z.number().int().min(0).max(200).optional().nullable(),
+        pageSize: z.number().int().min(10).max(200).optional().nullable(),
+      })
+      .partial()
+      .parse(input ?? {}),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const size = data.pageSize ?? 50;
+    const page = data.page ?? 0;
+    const limite = new Date(Date.now() - 30 * 86400_000).toISOString();
+
+    let q = context.supabase
+      .from("airfare_promotions")
+      .select(ARCHIVE_COLUMNS, { count: "exact" })
+      .not("archived_at", "is", null)
+      .gte("archived_at", limite);
+
+    if (data.origin) q = q.ilike("origin_iata", `%${data.origin}%`);
+    if (data.destination) q = q.ilike("destination_iata", `%${data.destination}%`);
+    if (data.airline) q = q.ilike("airline_name", `%${data.airline}%`);
+    if (data.scope && data.scope !== "todos") q = q.eq("scope", data.scope);
+    if (data.day) q = q.eq("archived_cycle_day", data.day);
+
+    const { data: rows, count, error } = await q
+      .order("archived_at", { ascending: false })
+      .range(page * size, page * size + size - 1);
+    if (error) throw new Error(error.message);
+    return { rows: rows ?? [], total: count ?? 0, page, pageSize: size };
+  });
+
+/** Contador do botão 🗑 Arquivados (registros dentro da retenção). */
+export const countArchivedPromotions = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context);
+    const limite = new Date(Date.now() - 30 * 86400_000).toISOString();
+    const { count, error } = await context.supabase
+      .from("airfare_promotions")
+      .select("id", { count: "exact", head: true })
+      .not("archived_at", "is", null)
+      .gte("archived_at", limite);
+    if (error) throw new Error(error.message);
+    return { total: count ?? 0 };
+  });
+
+/** Histórico de preço de UMA promoção arquivada. */
+export const promotionPriceHistory = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => z.object({ id: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { data: rows, error } = await context.supabase
+      .from("airfare_promo_price_history")
+      .select("*")
+      .eq("promotion_id", data.id)
+      .order("created_at", { ascending: true });
     if (error) throw new Error(error.message);
     return rows ?? [];
   });
@@ -291,7 +380,18 @@ export const savePromoOpportunity = createServerFn({ method: "POST" })
     await assertAdmin(context);
     const { error } = await context.supabase
       .from("airfare_promotions")
-      .upsert({ ...data.row, status: "novo" } as never, { onConflict: "signature" });
+      .upsert(
+        {
+          ...data.row,
+          status: "novo",
+          // entra na curadoria ATIVA do dia corrente
+          cycle_day: hojeBRT(),
+          archived_at: null,
+          archived_reason: null,
+          archived_cycle_day: null,
+        } as never,
+        { onConflict: "signature" },
+      );
     if (error) throw new Error(error.message);
     return { ok: true };
   });

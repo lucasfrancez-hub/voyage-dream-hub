@@ -733,26 +733,7 @@ export async function closeDailyCuration() {
   const client = await db();
   const now = new Date().toISOString();
 
-  const { data: ativas } = await client
-    .from("airfare_promotions")
-    .select("id")
-    .is("archived_at", null);
-
-  const ids = ((ativas ?? []) as Array<{ id: string }>).map((r) => r.id);
-  if (ids.length) {
-    await client
-      .from("airfare_promotions")
-      .update({
-        archived_at: now,
-        fare_status: "ciclo_encerrado",
-        cycle_state: "unchanged",
-        cycle_changed_fields: [],
-        cycle_state_at: null,
-        cycle_day: null,
-      })
-
-      .in("id", ids);
-  }
+  const arquivadas = await archivePromotions(client, now, "ciclo_encerrado", null);
 
   // encerra qualquer execução travada para o próximo ciclo começar limpo
   await client
@@ -760,5 +741,188 @@ export async function closeDailyCuration() {
     .update({ status: "cancelada", finished_at: now, updated_at: now })
     .eq("status", "running");
 
-  return { archived: ids.length, at: now };
+  return { archived: arquivadas, at: now };
+}
+
+/** Dia da curadoria (fuso de Brasília) no formato YYYY-MM-DD. */
+export function curationDayBRT(d: Date = new Date()): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Sao_Paulo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(d);
+}
+
+/** Arquiva promoções ativas (todas, ou só as anteriores a `beforeDay`). */
+async function archivePromotions(
+  client: AnyClient,
+  now: string,
+  reason: string,
+  beforeDay: string | null,
+): Promise<number> {
+  let sel = client
+    .from("airfare_promotions")
+    .select("id,cycle_day,quoted_at,created_at")
+    .is("archived_at", null);
+  if (beforeDay) sel = sel.or(`cycle_day.is.null,cycle_day.lt.${beforeDay}`);
+  const { data } = await sel;
+  const rows = (data ?? []) as Array<{
+    id: string;
+    cycle_day: string | null;
+    quoted_at: string | null;
+    created_at: string | null;
+  }>;
+  if (!rows.length) return 0;
+
+  // agrupa por dia de curadoria para preservar a data original no histórico
+  // (sem cycle_day, usa a data da cotação como referência do ciclo)
+  const porDia = new Map<string | null, string[]>();
+  for (const r of rows) {
+    const base = r.quoted_at ?? r.created_at;
+    const k = r.cycle_day ?? (base ? curationDayBRT(new Date(base)) : null);
+    porDia.set(k, [...(porDia.get(k) ?? []), r.id]);
+  }
+  let ok = 0;
+  for (const [dia, ids] of porDia) {
+    const { error } = await client
+      .from("airfare_promotions")
+      .update({
+        archived_at: now,
+        archived_reason: reason,
+        archived_cycle_day: dia,
+        fare_status: "expirada",
+        cycle_state: "unchanged",
+        cycle_changed_fields: [],
+        cycle_state_at: null,
+        cycle_day: null,
+      })
+      .in("id", ids);
+    if (error) console.error("[promos] falha ao arquivar lote", dia, error.message);
+    else ok += ids.length;
+  }
+  return ok;
+}
+
+/**
+ * SANEAMENTO (também usado retroativamente): qualquer promoção ativa que
+ * pertença a um dia anterior vai para os Arquivados. Serve de rede de
+ * segurança caso o cron das 00:00 falhe.
+ */
+export async function archiveStalePromotions(reason = "ciclo_anterior") {
+  const client = await db();
+  const now = new Date().toISOString();
+  const hoje = curationDayBRT();
+  const archived = await archivePromotions(client, now, reason, hoje);
+  return { archived, day: hoje, at: now };
+}
+
+/** Retenção do histórico de arquivados, em dias. */
+export const ARCHIVE_RETENTION_DAYS = 30;
+
+/**
+ * LIMPEZA AUTOMÁTICA (job diário): remove definitivamente o que passou dos
+ * 30 dias de retenção. O histórico de preço cai por CASCADE; as candidatas
+ * ficam com `promotion_id` nulo (SET NULL) e são removidas quando antigas.
+ * Execuções antigas só são apagadas se nenhuma promoção viva depender delas.
+ */
+export async function cleanupArchivedPromotions() {
+  const client = await db();
+  const limite = new Date(Date.now() - ARCHIVE_RETENTION_DAYS * 86400_000).toISOString();
+
+  const { data: velhas } = await client
+    .from("airfare_promotions")
+    .select("id")
+    .not("archived_at", "is", null)
+    .lt("archived_at", limite);
+  const ids = ((velhas ?? []) as Array<{ id: string }>).map((r) => r.id);
+
+  let deleted = 0;
+  for (let i = 0; i < ids.length; i += 100) {
+    const lote = ids.slice(i, i + 100);
+    const { error } = await client.from("airfare_promotions").delete().in("id", lote);
+    if (!error) deleted += lote.length;
+  }
+
+  // candidatas antigas que não pertencem mais a nenhuma promoção viva
+  const { data: candRemovidas } = await client
+    .from("airfare_promo_candidates")
+    .delete()
+    .lt("created_at", limite)
+    .is("promotion_id", null)
+    .select("id");
+  const candidatesDeleted = ((candRemovidas ?? []) as Array<{ id: string }>).length;
+
+  // execuções antigas já finalizadas e sem promoção viva apontando para elas
+  const { data: vivas } = await client
+    .from("airfare_promotions")
+    .select("last_run_id")
+    .not("last_run_id", "is", null);
+  const emUso = new Set(
+    ((vivas ?? []) as Array<{ last_run_id: string | null }>)
+      .map((r) => r.last_run_id)
+      .filter(Boolean) as string[],
+  );
+  const { data: runsVelhas } = await client
+    .from("airfare_promo_runs")
+    .select("id")
+    .not("finished_at", "is", null)
+    .lt("finished_at", limite);
+  const runIds = ((runsVelhas ?? []) as Array<{ id: string }>)
+    .map((r) => r.id)
+    .filter((id) => !emUso.has(id));
+  let runsDeleted = 0;
+  for (let i = 0; i < runIds.length; i += 100) {
+    const lote = runIds.slice(i, i + 100);
+    const { error } = await client.from("airfare_promo_runs").delete().in("id", lote);
+    if (!error) runsDeleted += lote.length;
+  }
+
+  const { count: retidas } = await client
+    .from("airfare_promotions")
+    .select("id", { count: "exact", head: true })
+    .not("archived_at", "is", null);
+
+  return {
+    deleted,
+    candidatesDeleted,
+    runsDeleted,
+    retained: retidas ?? 0,
+    retentionDays: ARCHIVE_RETENTION_DAYS,
+    cutoff: limite,
+  };
+}
+
+/**
+ * ROTINA RETROATIVA: arquiva o que ficou ativo de dias anteriores e aplica a
+ * limpeza dos 30 dias na base já existente. Devolve as métricas do saneamento.
+ */
+export async function sanitizeArchiveCycle() {
+  const client = await db();
+  const hoje = curationDayBRT();
+
+  const { count: antesAtivasAntigas } = await client
+    .from("airfare_promotions")
+    .select("id", { count: "exact", head: true })
+    .is("archived_at", null)
+    .or(`cycle_day.is.null,cycle_day.lt.${hoje}`);
+
+  const arquivamento = await archiveStalePromotions("saneamento_retroativo");
+  const limpeza = await cleanupArchivedPromotions();
+
+  const { count: ativas } = await client
+    .from("airfare_promotions")
+    .select("id", { count: "exact", head: true })
+    .is("archived_at", null);
+
+  return {
+    day: hoje,
+    activeStaleFound: antesAtivasAntigas ?? 0,
+    archivedNow: arquivamento.archived,
+    archivedKept: limpeza.retained,
+    archivedDeleted: limpeza.deleted,
+    candidatesDeleted: limpeza.candidatesDeleted,
+    runsDeleted: limpeza.runsDeleted,
+    activeAfter: ativas ?? 0,
+  };
 }

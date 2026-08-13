@@ -36,7 +36,9 @@ import {
   saveInstallmentMarkup,
   explorePromoOpportunities,
   setPromotionStatus,
+  countArchivedPromotions,
 } from "@/lib/airfare-promos.functions";
+import { ArquivadosDialog } from "@/components/promocoes/ArquivadosDialog";
 import { promoInstagramText, promoWhatsappText, type PromoRow } from "@/lib/airfare-promo-text";
 import { PromoArtDialog } from "@/components/promo/PromoArtDialog";
 import { PromoSocialDialog } from "@/components/promo/PromoSocialDialog";
@@ -748,6 +750,13 @@ function PromocoesAereoPage() {
   const [atalho, setAtalho] = useState(0);
   const [filtrosAbertos, setFiltrosAbertos] = useState(false);
   const [pesquisaAberta, setPesquisaAberta] = useState(false);
+  const [arquivadosAberto, setArquivadosAberto] = useState(false);
+  const contarArquivados = useServerFn(countArchivedPromotions);
+  const { data: arquivados } = useQuery({
+    queryKey: ["airfare-arquivados-count"],
+    queryFn: () => contarArquivados(),
+    refetchInterval: 5 * 60_000,
+  });
 
   const [destination, setDestination] = useState("");
   const [airline, setAirline] = useState("");
@@ -1084,7 +1093,19 @@ function PromocoesAereoPage() {
         >
           <Search className="h-4 w-4" /> Pesquisar novas oportunidades
         </button>
+        <button
+          type="button"
+          onClick={() => setArquivadosAberto(true)}
+          className="inline-flex items-center gap-2 rounded-xl border border-border/60 px-4 py-2 text-xs font-black uppercase tracking-widest text-muted-foreground transition hover:border-brand-orange/40 hover:text-foreground"
+        >
+          🗑 Arquivados
+          <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] tabular-nums text-foreground">
+            {arquivados?.total ?? 0}
+          </span>
+        </button>
       </div>
+
+      <ArquivadosDialog aberto={arquivadosAberto} onFechar={() => setArquivadosAberto(false)} />
 
       <PesquisaManual
         aberto={pesquisaAberta}
