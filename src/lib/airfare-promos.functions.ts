@@ -398,9 +398,28 @@ export const generatePromotionLink = createServerFn({ method: "POST" })
       cart = await montarCarrinho();
     } catch (e) {
       // tarifa expirada: refaz a pesquisa no motor e tenta uma única vez mais
-      const { refreshPromotionQuote } = await import("@/lib/airfare-promos.server");
-      const atualizada = await refreshPromotionQuote(promo.id).catch(() => null);
+      const { loadMarkups, quoteRoute } = await import("@/lib/airfare-promos.server");
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const markups = await loadMarkups(supabaseAdmin as never);
+      const atualizada = (await quoteRoute({
+        route: {
+          id: promo.id,
+          origin_iata: promo.origin_iata,
+          origin_city: promo.origin_city,
+          destination_iata: promo.destination_iata,
+          destination_city: promo.destination_city,
+          scope: promo.scope as "nacional" | "internacional",
+          priority: 0,
+        },
+        departureDate: promo.departure_date,
+        returnDate: promo.return_date,
+        markups,
+      }).catch(() => null)) as null | Record<string, string | null>;
       if (!atualizada) throw e;
+      await context.supabase
+        .from("airfare_promotions")
+        .update({ ...(atualizada as never as Record<string, unknown>), fare_status: "valida" })
+        .eq("id", promo.id);
       promo.search_key = atualizada.search_key ?? promo.search_key;
       promo.outbound_fare_id = atualizada.outbound_fare_id ?? promo.outbound_fare_id;
       promo.outbound_itinerary_id =
