@@ -67,6 +67,9 @@ export function PromoSocialDialog({
   const [destinos, setDestinos] = useState<Destino[]>([]);
   const [selecionados, setSelecionados] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState<string | null>(null);
+  const [shortUrl, setShortUrl] = useState<string | null>(null);
+  const [linkStatus, setLinkStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
+  const genLinkFn = useServerFn(generatePromotionLink);
 
   useEffect(() => {
     if (open) setAba(initialChannel);
