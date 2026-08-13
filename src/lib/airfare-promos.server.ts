@@ -323,7 +323,9 @@ export async function collectAirfarePromotions(opts?: {
   const { discoverCandidates, candidateSignature, fallbackDatePairs } = await import(
     "@/lib/airfare-promos.discovery.server"
   );
-  const { PROMO_VALIDATION_CONCURRENCY } = await import("@/lib/airfare-promos.config");
+  const { PROMO_VALIDATION_CONCURRENCY, maxOpportunitiesForOrigin } = await import(
+    "@/lib/airfare-promos.config"
+  );
   type Metrics = OriginMetrics;
   const db = supabaseAdmin as unknown as AnyClient;
   const markups = await loadMarkups(db);
@@ -420,6 +422,10 @@ export async function collectAirfarePromotions(opts?: {
           return_date: par.returnDate,
         });
         if (porAssinatura.has(sig)) continue;
+        const jaNaOrigem = [...porAssinatura.values()].filter(
+          (c) => c.origin_iata === r.origin_iata,
+        ).length;
+        if (jaNaOrigem >= maxOpportunitiesForOrigin(r.origin_iata)) continue;
         porAssinatura.set(sig, {
           signature: sig,
           scope: r.scope,
