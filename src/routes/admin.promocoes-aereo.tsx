@@ -1,3 +1,4 @@
+import { cityLabel } from "@/lib/iata-lookup";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -300,8 +301,8 @@ function PromoCard({
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <h3 className="truncate text-xl font-bold leading-tight tracking-tight text-foreground">
-              {promo.origin_city ?? promo.origin_iata} <span className="text-brand-orange">→</span>{" "}
-              {promo.destination_city ?? promo.destination_iata}
+              {cityLabel(promo.origin_iata, promo.origin_city)} <span className="text-brand-orange">→</span>{" "}
+              {cityLabel(promo.destination_iata, promo.destination_city)}
             </h3>
             <p className="mt-1 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
               {promo.origin_iata} <span className="mx-1 opacity-50">•</span> {promo.destination_iata}
@@ -701,7 +702,7 @@ function PesquisaManual({
                 >
                   <div>
                     <p className="text-sm font-black">
-                      {r.origin_iata} → {r.destination_city ?? r.destination_iata} • {r.airline_name ?? "—"}
+                      {cityLabel(r.origin_iata, null)} → {cityLabel(r.destination_iata, r.destination_city)} • {r.airline_name ?? "—"}
                     </p>
                     <p className="text-[11px] text-muted-foreground">
                       {dataBR(r.departure_date)}
