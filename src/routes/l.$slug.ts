@@ -4,7 +4,7 @@ import { createFileRoute } from "@tanstack/react-router";
 export const Route = createFileRoute("/l/$slug")({
   server: {
     handlers: {
-      GET: async ({ params }) => {
+      GET: async ({ params, request }) => {
         const slug = String(params.slug || "").toLowerCase();
         if (!/^[a-z0-9-]{1,60}$/.test(slug)) {
           return new Response("Link inválido", { status: 404 });
