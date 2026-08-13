@@ -757,6 +757,7 @@ function PromocoesAereoPage() {
   const [sort, setSort] = useState("preco");
   const [busyId, setBusyId] = useState<string | null>(null);
   const [artPromo, setArtPromo] = useState<(PromoRow & { id: string }) | null>(null);
+  const [artEditando, setArtEditando] = useState(false);
   const [socialPromo, setSocialPromo] = useState<(PromoRow & { id: string }) | null>(null);
   const [socialCanal, setSocialCanal] = useState<"whatsapp" | "instagram">("whatsapp");
 
@@ -1216,11 +1217,25 @@ function PromocoesAereoPage() {
       {artPromo ? (
         <PromoArtDialog
           promo={artPromo}
-          onClose={() => setArtPromo(null)}
+          startEditing={artEditando}
+          onClose={() => {
+            setArtPromo(null);
+            setArtEditando(false);
+          }}
+          onDone={
+            artEditando
+              ? () => {
+                  setSocialPromo(artPromo);
+                  setArtPromo(null);
+                  setArtEditando(false);
+                }
+              : undefined
+          }
           onDivulgar={(canal) => {
             setSocialCanal(canal);
             setSocialPromo(artPromo);
             setArtPromo(null);
+            setArtEditando(false);
           }}
         />
       ) : null}
@@ -1230,7 +1245,11 @@ function PromocoesAereoPage() {
         open={!!socialPromo}
         onOpenChange={(v) => !v && setSocialPromo(null)}
         initialChannel={socialCanal}
-        onEditArt={() => socialPromo && setArtPromo(socialPromo)}
+        onEditArt={() => {
+          if (!socialPromo) return;
+          setArtEditando(true);
+          setArtPromo(socialPromo);
+        }}
       />
     </div>
   );
