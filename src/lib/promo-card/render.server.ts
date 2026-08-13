@@ -110,6 +110,7 @@ export async function renderPromoCardAsset(
   return {
     url: `${PUBLIC_BASE}/api/public/broadcast-media/${path}`,
     filename,
-    ...CARD_SIZES[format],
+    width: CARD_SIZES[format].width * 2,
+    height: CARD_SIZES[format].height * 2,
   };
 }
