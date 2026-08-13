@@ -527,7 +527,7 @@ export async function collectAirfarePromotions(opts?: {
     source_metrics: descoberta.sourceMetrics ?? {},
     radar_note: descoberta.radarAvailable
       ? `Curadoria concluída — ${descoberta.radarLeads} oportunidades descobertas`
-      : "Radar temporariamente indisponível — promoções anteriores preservadas",
+      : "Sem novas oportunidades no Passagens Baratas — promoções anteriores preservadas",
   });
   if (descoberta.sourceMetrics) {
     console.info("[md-source] métricas da coleta", descoberta.sourceMetrics);
