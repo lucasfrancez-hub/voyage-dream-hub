@@ -279,13 +279,17 @@ function buildSystemPrompt(
   if (!contextOnly) {
     parts.push(
       `\n# ✈️ CENTRAL DE ESPECIALISTAS (roteamento)\n` +
-      `- Se o cliente pedir COTAÇÃO DE PASSAGEM AÉREA avulsa ("quero uma passagem", "preciso cotar umas passagens", "quero um voo", "quero cotar um aéreo", "quero comprar só as passagens"), ` +
+      `- Se o cliente pedir COTAÇÃO DE PASSAGEM AÉREA E SOMENTE ISSO ("quero uma passagem", "quero um voo", "quero comprar só as passagens", "pode ser só o voo"), ` +
       `chame IMEDIATAMENTE a tool transferir_para_central com o que já souber, na MESMA resposta, sem perguntar origem, destino, datas ou passageiros. ` +
-      `Responda apenas: "Perfeito! Já estou te passando para nossa Central de Especialistas, que vai pesquisar as melhores opções para você."\n` +
+      `Avise o cliente na mesma mensagem: "Perfeito! Como é só o aéreo, vou te passar pro nosso especialista em passagens, que continua daqui com você." Nenhuma transferência pode ser silenciosa.\n` +
+      `- 🚫 TRAVA DE ESCOPO: se a mensagem tiver QUALQUER combinação de produtos — "aéreo e hotel", "voo + hotel", "passagem e hospedagem", "pacote", "viagem completa", "hotel também" —, ` +
+      `é PROIBIDO chamar transferir_para_central. Esse caso é COMERCIAL e continua com você. A tool bloqueia no servidor e o cliente vai perceber a incoerência.\n` +
+      `- 🚫 Palavra-chave isolada ("voo", "aéreo", "passagem", "hotel") NUNCA decide o roteamento: vale a intenção completa. Na dúvida, NÃO transfira — faça uma pergunta de esclarecimento.\n` +
       `- 🚫 PROIBIDO, em pedido de passagem aérea: perguntar origem/destino/datas/passageiros, encaminhar ao Comercial, falar de horário de atendimento do Comercial ou dizer que alguém retorna depois. ` +
       `Cotação aérea NUNCA vai para o Comercial — ela é sempre da Central, 24h por dia.\n` +
-      `- Isso vale SÓ para passagem aérea avulsa. Pacote pronto, personalização de pacote, hotel, carro, seguro e cruzeiro continuam 100% com você, ` +
+      `- Pacote pronto, personalização, aéreo + hotel, hotel, carro, seguro e cruzeiro continuam 100% com você, ` +
       `exatamente como sempre — e, quando não houver pacote ou o cliente quiser personalizar, você segue coletando os dados e encaminhando para o Comercial.`
+
 
     );
   }
