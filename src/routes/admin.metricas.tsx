@@ -191,18 +191,23 @@ function MetricasPage() {
           <div className="mt-6 text-sm text-red-500">{(site.error as Error).message}</div>
         ) : s ? (
           <div className="mt-6 space-y-5">
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              <Card icon={<Users className="h-4 w-4" />} label="Visitantes" value={s.resumo.visitantes} hint={`${s.resumo.sessoes} sessões`} />
-              <Card icon={<ArrowRightLeft className="h-4 w-4" />} label="Navegaram" value={s.resumo.navegaram} hint={`${s.resumo.rejeicao}% viram só 1 página`} />
-              <Card icon={<MousePointerClick className="h-4 w-4" />} label="Cliques" value={s.resumo.cliques} hint={`${s.resumo.pageviews} páginas vistas`} />
-              <Card icon={<Timer className="h-4 w-4" />} label="Tempo médio" value={duracao(s.resumo.tempoMedioMs)} hint={`${s.resumo.diretoPct}% entraram direto pelo link`} />
+            <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
+              <Card icon={<Users className="h-4 w-4" />} label="Visitantes" value={s.resumo.visitantes} hint={`Pessoas únicas que acessaram o site (${s.resumo.sessoes} sessões)`} />
+              <Card icon={<ArrowRightLeft className="h-4 w-4" />} label="Engajamento" value={s.resumo.navegaram} hint={`Navegaram em mais de uma página · ${s.resumo.rejeicao}% viram só 1`} />
+              <Card icon={<MousePointerClick className="h-4 w-4" />} label="Cliques" value={s.resumo.cliques} hint={`Interações em botões e links · ${s.resumo.pageviews} páginas vistas`} />
+              <Card icon={<Timer className="h-4 w-4" />} label="Tempo médio" value={duracao(s.resumo.tempoMedioMs)} hint={`Duração média de cada visita · ${s.resumo.diretoPct}% entraram direto pelo link`} />
             </div>
 
             <section className="rounded-2xl border border-border bg-card p-4">
-              <div className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
-                Visitas por dia
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h3 className="text-[11px] font-bold uppercase tracking-widest text-foreground">
+                  Visitas por dia
+                </h3>
+                <span className="text-[11px] text-muted-foreground">
+                  Cada barra é o total de sessões do dia
+                </span>
               </div>
-              <div className="mt-3 flex items-end gap-1.5 overflow-x-auto pb-1">
+              <div className="mt-4 flex items-end gap-1.5 overflow-x-auto pb-1">
                 {s.serie.length === 0 && (
                   <span className="text-sm text-muted-foreground">Sem dados ainda.</span>
                 )}
