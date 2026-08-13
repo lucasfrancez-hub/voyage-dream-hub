@@ -34,6 +34,23 @@ export const Route = createFileRoute("/api/public/hooks/airfare-promos")({
             return Response.json({ ok: true, ...res, ts: new Date().toISOString() });
           }
 
+          // limpeza diária dos arquivados com mais de 30 dias
+          if (body.trigger === "cleanup") {
+            const { cleanupArchivedPromotions, archiveStalePromotions } = await import(
+              "@/lib/airfare-promos.worker.server"
+            );
+            const arq = await archiveStalePromotions();
+            const res = await cleanupArchivedPromotions();
+            return Response.json({ ok: true, archived: arq.archived, ...res, ts: new Date().toISOString() });
+          }
+
+          // saneamento retroativo completo (arquiva antigas + limpa 30 dias)
+          if (body.trigger === "sanitize") {
+            const { sanitizeArchiveCycle } = await import("@/lib/airfare-promos.worker.server");
+            const res = await sanitizeArchiveCycle();
+            return Response.json({ ok: true, ...res, ts: new Date().toISOString() });
+          }
+
           // modo worker: apenas retoma o que estiver pendente
           if (body.resume) {
             const { resumeActiveRun } = await import("@/lib/airfare-promos.worker.server");
