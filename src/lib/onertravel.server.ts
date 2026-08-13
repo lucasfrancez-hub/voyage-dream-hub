@@ -452,15 +452,16 @@ export async function createFlightCart(data: CartData) {
   listQuery.set("isRoundTrip", String(data.isRoundTrip));
   listQuery.set("source", "f");
   const loc = `https://www.comprarviagem.com.br/viaair/flight-list?${listQuery.toString()}`;
-  // Tarifa combinada (comum em internacional e em cia brasileira com voo
-  // internacional): ida e volta compartilham a MESMA fareId. Nesse caso a
-  // operadora estoura 500 se mandarmos fareId2 repetido — tem que ir null.
+  // Tarifa combinada/fechada (comum em internacional): ida e volta compartilham
+  // a MESMA tarifa. A operadora estoura 500 se mandarmos fareId2 repetido — e em
+  // parte dos casos a tarifa válida é a da VOLTA (inbound). Montamos uma lista de
+  // tentativas em ordem e vamos testando até o carrinho ser criado.
   const sameFare = !!data.inboundFareId && data.inboundFareId === data.outboundFareId;
-  const buildBody = (fareId2: string | null) =>
+  const buildBody = (fareId: string, fareId2: string | null) =>
     JSON.stringify({
       flight: {
         searchKey: data.searchKey,
-        fareId: data.outboundFareId,
+        fareId,
         fareId2,
         outboundItineraryId: data.outboundItineraryId,
         inboundItineraryId: data.inboundItineraryId ?? null,
@@ -470,8 +471,24 @@ export async function createFlightCart(data: CartData) {
       affiliateTag: null,
       eventId: null,
     });
-  let body = buildBody(sameFare ? null : (data.inboundFareId ?? null));
-  let triedWithoutFare2 = sameFare || !data.inboundFareId;
+
+  const out = data.outboundFareId;
+  const inb = data.inboundFareId ?? null;
+  const candidates: string[] = [];
+  if (!data.isRoundTrip || !inb) {
+    candidates.push(buildBody(out, null));
+  } else if (sameFare) {
+    // Tarifa fechada: uma única tarifa cobre ida + volta.
+    candidates.push(buildBody(out, null));
+  } else {
+    candidates.push(buildBody(out, inb));
+    // Fallbacks para tarifa fechada mal sinalizada: só a volta, depois só a ida.
+    candidates.push(buildBody(inb, null));
+    candidates.push(buildBody(out, null));
+  }
+  let candidateIndex = 0;
+  let body = candidates[0]!;
+
 
 
   let cartId = "";
