@@ -286,6 +286,8 @@ async function chamada(url: string, opts: MdFetchOptions): Promise<unknown> {
  */
 export async function mdFetchJson<T>(url: string, opts: MdFetchOptions = {}): Promise<T> {
   mdMetrics.requests++;
+  const interno = mdInternalOnlyContext();
+  const recente = (at: number) => !interno || Date.now() - at < interno.maxAgeMs;
   const ttl = opts.ttlMs ?? DEFAULT_TTL;
   const hit = jsonCache.get(url);
   if (hit && Date.now() - hit.at < ttl) {
@@ -311,14 +313,20 @@ export async function mdFetchJson<T>(url: string, opts: MdFetchOptions = {}): Pr
       }
 
       const background = (opts.priority ?? "background") === "background";
-      const fonteFora = opts.cacheOnly === true || (background && !mdRadarAvailable());
+      const fonteFora = !!interno || opts.cacheOnly === true || (background && !mdRadarAvailable());
       if (fonteFora) {
         const base = hit ?? salvo;
-        if (base && opts.allowStale !== false) {
+        if (base && opts.allowStale !== false && recente(base.at)) {
           mdMetrics.staleServed++;
+          if (interno) mdMetrics.internalOnlyHits++;
           return base.value;
         }
-        throw new MdUnavailableError();
+        if (interno) mdMetrics.internalOnlyMisses++;
+        throw new MdUnavailableError(
+          interno
+            ? "Sem oportunidades recentes coletadas pelo Passagens Baratas"
+            : undefined,
+        );
       }
 
       const value = await chamada(url, opts);
@@ -330,7 +338,7 @@ export async function mdFetchJson<T>(url: string, opts: MdFetchOptions = {}): Pr
       if (e instanceof MdCancelledError) throw e;
       // Nunca deixa a tela sem tarifa: serve o último resultado bom, mesmo vencido.
       const base = hit ?? salvo;
-      if (base && opts.allowStale !== false) {
+      if (base && opts.allowStale !== false && recente(base.at)) {
         mdMetrics.staleServed++;
         return base.value;
       }
