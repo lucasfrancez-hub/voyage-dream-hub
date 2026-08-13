@@ -2227,7 +2227,26 @@ export function VoosPage({
             )}
           </div>
 
-          {!hideForm && (
+          {multiOn ? (
+            <div className="rounded-[32px] border border-border/50 bg-card/60 p-6 shadow-2xl backdrop-blur-xl md:p-8">
+              <MultiCityForm
+                segments={multiSegments}
+                onChange={setMultiSegments}
+                onSearch={runMulti}
+                onCancel={() => setMultiOn(false)}
+                publicMode={publicMode}
+                externalSearch={externalSearch}
+                pax={{
+                  adults: Number(form.adults),
+                  children: Number(form.children),
+                  infants: Number(form.infants),
+                }}
+              />
+              <div className="mt-4 border-t border-border/40 pt-6">
+                <PaxRow form={form} setForm={setForm} />
+              </div>
+            </div>
+          ) : (
             <div className="rounded-[32px] border border-border/50 bg-card/60 p-6 shadow-2xl backdrop-blur-xl md:p-8">
               <div className="grid grid-cols-12 items-end gap-4">
                 <div className="relative col-span-12 grid grid-cols-2 gap-4 md:col-span-6">
