@@ -268,56 +268,46 @@ function PromoCard({
       </p>
 
 
-      <div className="mt-3 flex flex-wrap items-center gap-1.5 border-t border-border/50 pt-3">
-        <button
-          type="button"
-          onClick={() => copiar(promoWhatsappText(promo), "Texto do WhatsApp copiado")}
-          className="inline-flex items-center gap-1.5 rounded-lg border border-border/70 px-2.5 py-1.5 text-[11px] font-semibold hover:bg-foreground/5"
-        >
-          <MessageCircle className="h-3.5 w-3.5" /> WhatsApp
-        </button>
-        <button
-          type="button"
-          onClick={() => copiar(promoInstagramText(promo), "Legenda do Instagram copiada")}
-          className="inline-flex items-center gap-1.5 rounded-lg border border-border/70 px-2.5 py-1.5 text-[11px] font-semibold hover:bg-foreground/5"
-        >
-          <Instagram className="h-3.5 w-3.5" /> Instagram
-        </button>
-        <button
-          type="button"
-          onClick={onArt}
-          className="inline-flex items-center gap-1.5 rounded-lg bg-brand-orange px-2.5 py-1.5 text-[11px] font-bold text-white hover:opacity-90"
-        >
-          <ImageIcon className="h-3.5 w-3.5" /> Gerar arte
-        </button>
-        {promo.short_url || promo.cart_url ? (
-          <a
-            href={promo.short_url ?? promo.cart_url ?? "#"}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex items-center gap-1.5 rounded-lg border border-border/70 px-2.5 py-1.5 text-[11px] font-semibold hover:bg-foreground/5"
+      <div className="mt-3 flex items-center justify-between gap-2 border-t border-border/50 pt-3">
+        <span className="text-[10px] text-muted-foreground">
+          {promo.short_url || promo.cart_url ? (
+            <a
+              href={promo.short_url ?? promo.cart_url ?? "#"}
+              target="_blank"
+              rel="noreferrer"
+              className="font-semibold text-brand-orange hover:underline"
+            >
+              Abrir oferta
+            </a>
+          ) : null}
+        </span>
+        <div className="flex items-center gap-1.5">
+          <IconBtn
+            title="Copiar texto do WhatsApp"
+            onClick={() => copiar(promoWhatsappText(promo), "Texto do WhatsApp copiado")}
+            className="hover:border-emerald-500/50 hover:text-emerald-500"
           >
-            <ExternalLink className="h-3.5 w-3.5" /> Abrir oferta
-          </a>
-        ) : null}
-        <button
-          type="button"
-          onClick={onLink}
-          disabled={busy}
-          className="inline-flex items-center gap-1.5 rounded-lg border border-border/70 px-2.5 py-1.5 text-[11px] font-semibold hover:bg-foreground/5 disabled:opacity-50"
-        >
-          <Link2 className="h-3.5 w-3.5" /> Copiar link
-        </button>
-        <button
-          type="button"
-          onClick={onRefresh}
-          disabled={busy}
-          className="inline-flex items-center gap-1.5 rounded-lg border border-border/70 px-2.5 py-1.5 text-[11px] font-semibold hover:bg-foreground/5 disabled:opacity-50"
-          title="Revalidar tarifa no motor"
-        >
-          {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
-        </button>
+            <MessageCircle className="h-4 w-4" />
+          </IconBtn>
+          <IconBtn
+            title="Copiar legenda do Instagram"
+            onClick={() => copiar(promoInstagramText(promo), "Legenda do Instagram copiada")}
+            className="hover:border-pink-500/50 hover:text-pink-500"
+          >
+            <Instagram className="h-4 w-4" />
+          </IconBtn>
+          <IconBtn title="Gerar arte" onClick={onArt} primary>
+            <ImageIcon className="h-4 w-4" />
+          </IconBtn>
+          <IconBtn title="Copiar link" onClick={onLink} disabled={busy}>
+            <Link2 className="h-4 w-4" />
+          </IconBtn>
+          <IconBtn title="Revalidar tarifa no motor" onClick={onRefresh} disabled={busy}>
+            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+          </IconBtn>
+        </div>
       </div>
+
     </article>
   );
 }
