@@ -46,6 +46,13 @@ import { ArquivadosDialog } from "@/components/promocoes/ArquivadosDialog";
 import { promoInstagramText, promoWhatsappText, type PromoRow } from "@/lib/airfare-promo-text";
 import { PromoArtDialog } from "@/components/promo/PromoArtDialog";
 import { PromoSocialDialog } from "@/components/promo/PromoSocialDialog";
+import { listarPublicacoesAgendadas } from "@/lib/social-schedule.functions";
+import {
+  agendamentoCanal,
+  agendamentoQuando,
+  agruparAgendamentosPorPromo,
+  type AgendamentoSocial,
+} from "@/lib/social-schedule-format";
 import { scopeOfRoute } from "@/lib/br-airports";
 import { isOriginAllowedForScope } from "@/lib/airfare-promos.config";
 
