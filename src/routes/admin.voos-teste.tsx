@@ -107,13 +107,13 @@ export const Route = createFileRoute("/admin/voos-teste")({
 
 // ---------------------------------------------------------------- utils
 
-function fmtMoney(v: number) {
+export function fmtMoney(v: number) {
   return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
-function fmtTime(t: { hour: number; minute: number }) {
+export function fmtTime(t: { hour: number; minute: number }) {
   return `${String(t.hour).padStart(2, "0")}:${String(t.minute).padStart(2, "0")}`;
 }
-function fmtDate(d: { year: number; month: number; day: number }) {
+export function fmtDate(d: { year: number; month: number; day: number }) {
   return `${String(d.day).padStart(2, "0")}/${String(d.month).padStart(2, "0")}`;
 }
 /** Códigos multi-aeroporto: buscam todos os aeroportos da cidade na operadora. */
@@ -138,7 +138,7 @@ export const CITY_CODES = new Set([
   "YMQ",
   "BER",
 ]);
-function taxesOf(f: OnerFlight) {
+export function taxesOf(f: OnerFlight) {
   // A operadora já devolve total = price + tax (o serviceTax está embutido em tax).
   // Somar serviceTax de novo inflava as taxas exibidas.
   const total = f.price.total ?? 0;
@@ -146,7 +146,7 @@ function taxesOf(f: OnerFlight) {
   const tax = f.price.tax ?? 0;
   return total && fare ? Math.max(total - fare, 0) : tax;
 }
-function airlineOf(f: OnerFlight) {
+export function airlineOf(f: OnerFlight) {
   return f.journey.marketingAirline ?? f.journey.segments[0]?.marketingAirline ?? null;
 }
 /** minutos absolutos de um ponto (data + hora), para calcular conexões */
@@ -210,7 +210,7 @@ function normalizeLeg(leg: unknown): OnerLegResult {
   };
 }
 
-function normalizeSearchResult(raw: unknown): OnerSearchResult | null {
+export function normalizeSearchResult(raw: unknown): OnerSearchResult | null {
   if (!raw || typeof raw !== "object") return null;
   const r = raw as Partial<OnerSearchResult>;
   return {
@@ -283,7 +283,7 @@ function mergeFares(prev: OnerFlight | undefined, next: OnerFlight): OnerFlight 
 
 
 
-function findByAnyKey(list: OnerFlight[], key: string | null | undefined): OnerFlight | null {
+export function findByAnyKey(list: OnerFlight[], key: string | null | undefined): OnerFlight | null {
   if (!key) return null;
   return list.find((f) => f.key === key || (f.fareOptions ?? []).some((o) => o.key === key)) ?? null;
 }
@@ -661,7 +661,7 @@ function FiltersPanel({
 // ---------------------------------------------------------------- card
 
 /** Detalhamento de trechos e tempo de conexão — trilho vertical de precisão. */
-function SegmentsDetail({ f }: { f: OnerFlight }) {
+export function SegmentsDetail({ f }: { f: OnerFlight }) {
   const segs = f.journey.segments;
   return (
     <div className="mt-3 space-y-0 rounded-xl border border-border/60 bg-background/50 p-5">
@@ -808,7 +808,7 @@ function SelectedLegBar({
   );
 }
 
-function BagChip({
+export function BagChip({
   icon: Icon,
   kicker,
   value,
@@ -974,7 +974,7 @@ function FareOptionsDialog({
   );
 }
 
-function FlightCard({
+export function FlightCard({
 
   f,
   selected,
