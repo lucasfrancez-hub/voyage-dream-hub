@@ -529,8 +529,27 @@ export async function runAgent(input: {
       .filter(Boolean)
       .reverse()
       .join("\n");
-    if (textoRecente && heuristicaAereo(textoRecente)) {
-      const forcado = await routeAereoParaCentral(conv, textoRecente).catch((err) => {
+    const { podeIrParaCentral } = await import("./escopo-produto");
+    if (textoRecente && heuristicaAereo(textoRecente) && podeIrParaCentral(textoRecente)) {
+      // HANDOFF COM CONTEXTO: o briefing é extraído de TODAS as mensagens do
+      // cliente neste protocolo, não só das últimas — assim o especialista
+      // recebe origem, destino, datas e passageiros já informados e não
+      // repete perguntas já respondidas.
+      const { data: todasIn } = await supabaseAdmin
+        .from("wa_messages")
+        .select("content")
+        .eq("conversation_id", conv.id)
+        .eq("direction", "inbound")
+        .eq("protocolo_id", protocolo.id)
+        .order("created_at", { ascending: true })
+        .limit(20);
+      const textoProtocolo =
+        ((todasIn ?? []) as Array<{ content: string | null }>)
+          .map((m) => (m.content ?? "").trim())
+          .filter(Boolean)
+          .join("\n") || textoRecente;
+
+      const forcado = await routeAereoParaCentral(conv, textoProtocolo).catch((err) => {
         console.error("[agent] roteamento aéreo forçado falhou:", err);
         return null;
       });
@@ -541,6 +560,7 @@ export async function runAgent(input: {
         console.log(`[agent] pedido aéreo redirecionado à Central (${forcado.slug}) fora da triagem inicial`);
       }
     }
+
   }
 
   let centralAgent = centralSlug
