@@ -11,6 +11,7 @@
  */
 import { z } from "zod";
 import { viaairFlightUrl, viaairRouteUrl } from "@/lib/melhores-destinos.parse";
+import { readMdCache, writeMdCache } from "@/lib/md-cache.server";
 
 const SITE = "https://www.melhoresdestinos.com.br";
 const API = "https://passagensaereas.melhoresdestinos.com.br";
