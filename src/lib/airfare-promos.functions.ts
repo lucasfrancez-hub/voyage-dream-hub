@@ -380,7 +380,18 @@ export const savePromoOpportunity = createServerFn({ method: "POST" })
     await assertAdmin(context);
     const { error } = await context.supabase
       .from("airfare_promotions")
-      .upsert({ ...data.row, status: "novo" } as never, { onConflict: "signature" });
+      .upsert(
+        {
+          ...data.row,
+          status: "novo",
+          // entra na curadoria ATIVA do dia corrente
+          cycle_day: hojeBRT(),
+          archived_at: null,
+          archived_reason: null,
+          archived_cycle_day: null,
+        } as never,
+        { onConflict: "signature" },
+      );
     if (error) throw new Error(error.message);
     return { ok: true };
   });
