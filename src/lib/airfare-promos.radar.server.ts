@@ -68,7 +68,13 @@ async function getJson<T>(url: string): Promise<T> {
     try {
       const res = await enfileirar(() =>
         fetch(url, {
-          headers: { "user-agent": UA, accept: "*/*", referer: "https://www.melhoresdestinos.com.br/" },
+          headers: {
+            "user-agent": UA,
+            accept: "application/json, text/plain, */*",
+            "accept-language": "pt-BR,pt;q=0.9,en;q=0.8",
+            origin: "https://www.melhoresdestinos.com.br",
+            referer: "https://www.melhoresdestinos.com.br/",
+          },
           signal: AbortSignal.timeout(12000),
         }),
       );
