@@ -872,7 +872,11 @@ function PromocoesAereoPage() {
           origin: string;
           discovered: number;
           deduped: number;
+          eligible?: number;
+          excluded?: number;
           selected: number;
+          selected_nacional?: number;
+          selected_internacional?: number;
           validated: number;
           with_price: number;
           no_result: number;
@@ -880,6 +884,7 @@ function PromocoesAereoPage() {
           avg_seconds: number | null;
         }>
       | null;
+
     processed: number;
     validated: number | null;
     saved: number;
