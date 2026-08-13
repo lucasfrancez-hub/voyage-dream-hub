@@ -51,6 +51,7 @@ type VoarSearch = {
 };
 
 import { encodeTrail, decodeTrail } from "@/lib/md-trail";
+import { decodeSegments } from "@/lib/multicity";
 
 
 const MODES: Mode[] = ["aereo", "hotel", "carro", "combo", "exclusivo", "seguro"];
