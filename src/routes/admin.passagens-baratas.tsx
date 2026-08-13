@@ -844,19 +844,19 @@ export function PassagensBaratasExplorer({
           </div>
 
           {data.months.length > 0 && (
-            <Card className="rounded-2xl p-6">
-              <div className="mb-7 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-primary" />
-                  <h3 className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+            <Card className="rounded-2xl p-4 sm:p-6">
+              <div className="mb-6 flex items-center justify-between gap-2 sm:mb-7">
+                <div className="flex min-w-0 items-center gap-2">
+                  <span className="h-1.5 w-1.5 shrink-0 animate-pulse rounded-full bg-primary" />
+                  <h3 className="truncate text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
                     Histórico de preços
                   </h3>
                 </div>
-                <span className="rounded bg-muted px-2 py-1 text-[10px] text-muted-foreground">
+                <span className="hidden shrink-0 rounded bg-muted px-2 py-1 text-[10px] text-muted-foreground sm:inline">
                   Clique no mês para filtrar
                 </span>
               </div>
-              <div className="flex h-32 items-end justify-between gap-3">
+              <div className="-mx-1 flex h-32 items-end gap-2 overflow-x-auto px-1 pb-1 sm:justify-between sm:gap-3">
                 {data.months.map((m) => {
                   const value = m.price ?? 0;
                   const height = maxMonth ? Math.max(14, Math.round((value / maxMonth) * 100)) : 14;
@@ -865,9 +865,10 @@ export function PassagensBaratasExplorer({
                     <button
                       key={m.label}
                       onClick={() => selectMonth(m.label)}
-                      className="group flex min-w-12 flex-1 flex-col items-center gap-3"
+                      className="group flex w-14 shrink-0 flex-col items-center gap-3 sm:w-auto sm:min-w-12 sm:flex-1"
                       title={m.price ? brl(m.price) : "Sem preço"}
                     >
+
                       <span
                         className={`text-[10px] ${
                           active || m.cheapest
