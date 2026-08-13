@@ -193,8 +193,8 @@ export function instalarAnalytics() {
   document.addEventListener("visibilitychange", onHidden);
   window.addEventListener("pagehide", onHidden);
 
-  instalado = true;
   registrarPageview();
+  instalado = true;
 
   return () => {
     document.removeEventListener("click", onClick, { capture: true } as EventListenerOptions);
