@@ -9,6 +9,14 @@
  * Reaproveita o mesmo serviço já usado pela tela "Passagens Baratas"
  * (`melhores-destinos.server.ts`) — não existe segunda implementação.
  */
+import {
+  MAX_EXTRA_ORIGINS,
+  PRIORITY_ORIGINS_HUB,
+  PRIORITY_ORIGINS_NACIONAL,
+  isPriorityOrigin,
+  maxOpportunitiesForOrigin,
+  type OriginMetrics,
+} from "@/lib/airfare-promos.config";
 import { datasDaRotaHandler, listarPromocoesHandler } from "@/lib/melhores-destinos.server";
 
 export type PromoCandidate = {
