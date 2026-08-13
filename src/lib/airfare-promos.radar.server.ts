@@ -90,6 +90,7 @@ async function getJson<T>(url: string): Promise<T> {
     await new Promise((r) => setTimeout(r, 600 * (i + 1)));
   }
   if (hit) return hit.value as T;
+  console.warn("[md-radar] falha após retries", url, last instanceof Error ? last.message : last);
   throw last instanceof Error ? last : new Error("Falha no radar do Melhores Destinos");
 }
 
