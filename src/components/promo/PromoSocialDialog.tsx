@@ -216,10 +216,39 @@ export function PromoSocialDialog({
     if (!promo) return;
     if (selecionados.size === 0) return toast.error("Escolha ao menos um canal ou grupo");
     if (!textoWa.trim()) return toast.error("Escreva o texto antes de enviar");
+    if (quandoWa === "agendar" && !dataWa) return toast.error("Escolha a data e a hora do agendamento");
     const ids = [...selecionados];
     const texto = textoWa.trim();
     const nomes = destinos.filter((d) => selecionados.has(d.id)).map((d) => d.nome ?? "destino");
     const titulo = `${promo.origin_iata} → ${promo.destination_iata}`;
+    const promoId = promo.id;
+    const cardSnapshot = card;
+
+    if (quandoWa === "agendar") {
+      const quando = new Date(dataWa);
+      enqueuePublish({
+        channel: "whatsapp",
+        label: `Agendar WhatsApp — ${titulo}`,
+        detail: nomes.join(", "),
+        run: async () => {
+          if (!cardSnapshot) throw new Error("Card ainda carregando");
+          const { url } = (await render({ data: { card: cardSnapshot, format: "feed" } })) as { url: string };
+          await agendarFn({
+            data: {
+              channel: "whatsapp",
+              scheduled_at: quando.toISOString(),
+              label: `WhatsApp — ${titulo}`,
+              promo_id: promoId,
+              payload: { kind: "whatsapp", destino_ids: ids, texto, imagem_url: url },
+            },
+          });
+          return `Agendado para ${quando.toLocaleString("pt-BR")}`;
+        },
+      });
+      toast.success("Agendamento enviado para a fila");
+      onOpenChange(false);
+      return;
+    }
 
     enqueuePublish({
       channel: "whatsapp",
@@ -228,6 +257,7 @@ export function PromoSocialDialog({
       run: async () => {
         const imagem = await arteBase64("feed");
         const res = await enviarWaFn({ data: { destino_ids: ids, texto, imagem_base64: imagem } });
+        if (res.enviados > 0) await marcarPublicado(promoId);
         if (res.falhas.length) {
           return `Enviado para ${res.enviados}. Falhou em: ${res.falhas.map((f) => f.nome).join(", ")}`;
         }
@@ -242,10 +272,44 @@ export function PromoSocialDialog({
     if (!promo) return;
     if (!contaViaAir) return toast.error("Nenhuma conta do Instagram conectada");
     if (!card) return toast.error("Aguarde o card carregar");
+    if (quandoIg === "agendar" && !dataIg) return toast.error("Escolha a data e a hora do agendamento");
     const caption = comLegenda && format === "feed" ? textoIg.trim() : undefined;
     const f = format;
     const titulo = `${promo.origin_iata} → ${promo.destination_iata}`;
     const cardSnapshot = card;
+    const promoId = promo.id;
+    const contaId = contaViaAir.id;
+    const mediaType = f === "story" ? ("story_image" as const) : ("feed_image" as const);
+
+    if (quandoIg === "agendar") {
+      const quando = new Date(dataIg);
+      enqueuePublish({
+        channel: "instagram",
+        label: `Agendar Instagram ${f === "feed" ? "Feed" : "Story"} — ${titulo}`,
+        run: async () => {
+          const { url } = (await render({ data: { card: cardSnapshot, format: f } })) as { url: string };
+          await agendarFn({
+            data: {
+              channel: "instagram",
+              scheduled_at: quando.toISOString(),
+              label: `Instagram ${f === "feed" ? "Feed" : "Story"} — ${titulo}`,
+              promo_id: promoId,
+              payload: {
+                kind: "instagram",
+                account_id: contaId,
+                media_type: mediaType,
+                media_url: url,
+                caption: caption ?? null,
+              },
+            },
+          });
+          return `Agendado para ${quando.toLocaleString("pt-BR")}`;
+        },
+      });
+      toast.success("Agendamento enviado para a fila");
+      onOpenChange(false);
+      return;
+    }
 
     enqueuePublish({
       channel: "instagram",
@@ -253,19 +317,16 @@ export function PromoSocialDialog({
       run: async () => {
         const { url } = (await render({ data: { card: cardSnapshot, format: f } })) as { url: string };
         await publish({
-          data: {
-            account_id: contaViaAir.id,
-            media_type: f === "story" ? "story_image" : "feed_image",
-            media_url: url,
-            caption,
-          },
+          data: { account_id: contaId, media_type: mediaType, media_url: url, caption },
         });
+        await marcarPublicado(promoId);
         return "Publicado";
       },
     });
     toast.success("Adicionado à fila de publicação");
     onOpenChange(false);
   }
+
 
   const abas: { key: Aba; label: string; icon: React.ReactNode; active: string }[] = [
     {
