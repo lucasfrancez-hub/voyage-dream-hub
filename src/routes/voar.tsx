@@ -158,7 +158,7 @@ function VoarPublicPage() {
   const deps = Route.useLoaderDeps();
   const queryClient = useQueryClient();
   const navigate = Route.useNavigate();
-  const multiPreset = decodeSegments(s.ms);
+  const multiPreset = decodeSegments(s.ms) ?? [];
   const hasMulti = multiPreset.length >= 2;
   const hasPreset = !hasMulti && !!(s.o && s.d && s.ida);
   const hasHotelPreset = !hasMulti && s.m === "hotel" && !!(s.hd && s.ci && s.co);
