@@ -56,45 +56,54 @@ function Card({
   return (
     <div className="rounded-2xl border border-border bg-card p-4">
       <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-        <span className="text-brand-orange">{icon}</span>
+        <span className="text-muted-foreground">{icon}</span>
         {label}
       </div>
-      <div className="mt-2 font-display text-2xl font-bold">{value}</div>
-      {hint && <div className="mt-0.5 text-[11px] text-muted-foreground">{hint}</div>}
+      <div className="mt-3 font-display text-2xl font-bold sm:text-3xl">{value}</div>
+      {hint && <div className="mt-1 text-[11px] leading-snug text-muted-foreground">{hint}</div>}
     </div>
   );
 }
 
 function Lista({
   titulo,
+  descricao,
   itens,
   icone,
 }: {
   titulo: string;
+  descricao?: string;
   itens: Array<{ label: string; total: number }>;
   icone?: React.ReactNode;
 }) {
   const max = Math.max(1, ...itens.map((i) => i.total));
+  const soma = itens.reduce((a, i) => a + i.total, 0) || 1;
   return (
-    <section className="rounded-2xl border border-border bg-card">
-      <div className="flex items-center gap-2 border-b border-border px-4 py-3 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
-        {icone}
-        {titulo}
+    <section className="overflow-hidden rounded-2xl border border-border bg-card">
+      <div className="border-b border-border bg-muted/30 px-4 py-3">
+        <h3 className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-foreground">
+          {icone}
+          {titulo}
+        </h3>
+        {descricao && <p className="mt-0.5 text-[11px] text-muted-foreground">{descricao}</p>}
       </div>
       {itens.length === 0 ? (
         <div className="p-4 text-sm text-muted-foreground">Sem dados no período.</div>
       ) : (
-        <ul className="divide-y divide-border">
+        <ul className="divide-y divide-border/60">
           {itens.map((i) => (
-            <li key={i.label} className="px-4 py-2.5">
-              <div className="flex items-center justify-between gap-3 text-sm">
-                <span className="min-w-0 break-words">{i.label}</span>
-                <span className="shrink-0 font-semibold text-brand-orange">{i.total}</span>
+            <li key={i.label} className="px-4 py-3">
+              <div className="flex items-start justify-between gap-3 text-sm">
+                <span className="min-w-0 break-words text-foreground">{i.label}</span>
+                <span className="shrink-0 text-right text-xs font-semibold text-muted-foreground">
+                  {Math.round((i.total / soma) * 100)}%
+                  <span className="ml-1.5 font-normal">({i.total})</span>
+                </span>
               </div>
-              <div className="mt-1.5 h-1.5 rounded-full bg-muted">
+              <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted">
                 <div
-                  className="h-1.5 rounded-full bg-brand-orange/70"
-                  style={{ width: `${(i.total / max) * 100}%` }}
+                  className="h-full rounded-full bg-brand-orange"
+                  style={{ width: `${Math.max(3, (i.total / max) * 100)}%` }}
                 />
               </div>
             </li>
