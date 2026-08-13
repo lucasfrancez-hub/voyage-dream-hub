@@ -662,7 +662,15 @@ export async function closeDailyCuration() {
   if (ids.length) {
     await client
       .from("airfare_promotions")
-      .update({ archived_at: now, fare_status: "ciclo_encerrado" })
+      .update({
+        archived_at: now,
+        fare_status: "ciclo_encerrado",
+        cycle_state: "unchanged",
+        cycle_changed_fields: [],
+        cycle_state_at: null,
+        cycle_day: null,
+      })
+
       .in("id", ids);
   }
 
