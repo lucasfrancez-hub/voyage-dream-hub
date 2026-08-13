@@ -79,7 +79,7 @@ export type MdFetchOptions = {
 /** Intervalo entre chamadas REAIS à fonte, por prioridade. */
 const GAP_MS: Record<MdPriority, [number, number]> = {
   background: [15_000, 30_000],
-  interactive: [1_200, 2_500],
+  interactive: [250, 700],
 };
 
 /** Somente para testes automatizados do ritmo/backoff. */
@@ -194,7 +194,7 @@ function enfileirar<T>(priority: MdPriority, cancel: MdCancel | undefined, fn: (
     // minutos parada: para consultas interativas o descanso é limitado.
     const descanso =
       priority === "interactive"
-        ? Math.min(bloqueadoAte - Date.now(), 5_000)
+        ? Math.min(bloqueadoAte - Date.now(), 1_500)
         : bloqueadoAte - Date.now();
     const alvo = Math.max(ultimaChamada + proximoIntervalo(priority) - Date.now(), descanso);
     if (alvo > 0) {
@@ -242,8 +242,10 @@ function registrarSucesso() {
 /** Uma requisição real (com retries limitados) — já dentro da fila. */
 async function chamada(url: string, opts: MdFetchOptions): Promise<unknown> {
   const timeoutMs = opts.timeoutMs ?? 12_000;
+  // A tela não pode ficar presa em retentativas: interativo tenta menos vezes.
+  const maxTentativas = (opts.priority ?? "background") === "interactive" ? 2 : 3;
   let ultimo: unknown = null;
-  for (let tentativa = 0; tentativa < 3; tentativa++) {
+  for (let tentativa = 0; tentativa < maxTentativas; tentativa++) {
     if (tentativa > 0) mdMetrics.retries++;
     await checarCancelamento(opts.cancel);
     // Só o radar (background) respeita o "fora do ar": a tela sempre tenta.
