@@ -588,10 +588,11 @@ export function PromoArtDialog({
                   </button>
                   <button
                     type="button"
-                    onClick={() => (onDone ? onDone() : setEditando(false))}
-                    className="inline-flex items-center gap-2 rounded-lg bg-brand-orange px-5 py-2 text-xs font-bold text-white shadow-lg transition hover:brightness-110"
+                    disabled={salvando}
+                    onClick={confirmarEdicao}
+                    className="inline-flex items-center gap-2 rounded-lg bg-brand-orange px-5 py-2 text-xs font-bold text-white shadow-lg transition hover:brightness-110 disabled:opacity-60"
                   >
-                    <Check className="h-4 w-4" />
+                    {salvando ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
                     {onDone ? "OK, voltar para divulgar" : "OK"}
                   </button>
                 </div>
