@@ -2481,15 +2481,30 @@ export function VoosPage({
       )}
 
       <main className={`mx-auto max-w-7xl px-4 ${publicMode && !result && !mut.isPending && !emptySlot ? "py-0" : "py-6"}`}>
+        {/* Multi-trecho: camada própria de resultados (uma pesquisa por trecho). */}
+        {multiOn && multiRun.token > 0 && (
+          <MultiCityResults
+            segments={multiRun.segments}
+            pax={{
+              adults: Number(form.adults),
+              children: Number(form.children),
+              infants: Number(form.infants),
+            }}
+            runToken={multiRun.token}
+            publicMode={publicMode}
+            ui={flightUi}
+          />
+        )}
+
         {/* Busca nova sempre mostra o esqueleto de carregamento, mesmo com
             resultados antigos na tela — senão parece que travou. */}
-        {novaBusca && <SearchSkeleton />}
+        {!multiOn && novaBusca && <SearchSkeleton />}
 
-        {!result && !mut.isPending && emptySlot ? (
+        {!multiOn && !result && !mut.isPending && emptySlot ? (
           <div data-empty-slot>{emptySlot}</div>
         ) : null}
 
-        {!publicMode && !emptySlot && !result && !mut.isPending && (
+        {!multiOn && !publicMode && !emptySlot && !result && !mut.isPending && (
           <div data-empty-state className="rounded-2xl border border-dashed border-border p-12 text-center">
             <Plane className="mx-auto mb-3 h-6 w-6 text-muted-foreground" />
             <p className="text-sm text-muted-foreground">
@@ -2500,7 +2515,7 @@ export function VoosPage({
         )}
 
 
-        {result && !novaBusca && (
+        {!multiOn && result && !novaBusca && (
           <div className={`grid gap-6 ${showSummary ? "" : "lg:grid-cols-[280px_1fr]"}`}>
             {!showSummary && (
               <aside className="space-y-4 lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:self-start lg:overflow-y-auto lg:overscroll-contain lg:pr-1">
