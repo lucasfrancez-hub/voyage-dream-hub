@@ -286,6 +286,7 @@ export function SearchEngine({
   hotelPreset: hotelPresetProp,
   presetRunToken,
   presetFetch,
+  multiPreset,
 }: {
   publicMode?: boolean;
   /** Conteúdo abaixo do motor aéreo enquanto não há resultados. */
@@ -299,6 +300,8 @@ export function SearchEngine({
   hotelPreset?: HotelPreset;
   presetRunToken?: number;
   presetFetch?: () => Promise<unknown>;
+  /** Viagem multi-trecho vinda da URL (?ms=...). */
+  multiPreset?: MultiSegmentInput[];
 } = {}) {
   const [mode, setMode] = useState<Mode>(initialMode);
 
