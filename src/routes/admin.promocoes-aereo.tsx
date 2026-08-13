@@ -33,7 +33,7 @@ import {
   runAirfarePromoCollection,
   savePromoOpportunity,
   saveInstallmentMarkup,
-  searchPromoOpportunity,
+  explorePromoOpportunities,
   setPromotionStatus,
 } from "@/lib/airfare-promos.functions";
 import { promoInstagramText, promoWhatsappText, type PromoRow } from "@/lib/airfare-promo-text";
