@@ -748,6 +748,13 @@ function PromocoesAereoPage() {
   const [atalho, setAtalho] = useState(0);
   const [filtrosAbertos, setFiltrosAbertos] = useState(false);
   const [pesquisaAberta, setPesquisaAberta] = useState(false);
+  const [arquivadosAberto, setArquivadosAberto] = useState(false);
+  const contarArquivados = useServerFn(countArchivedPromotions);
+  const { data: arquivados } = useQuery({
+    queryKey: ["airfare-arquivados-count"],
+    queryFn: () => contarArquivados(),
+    refetchInterval: 5 * 60_000,
+  });
 
   const [destination, setDestination] = useState("");
   const [airline, setAirline] = useState("");
