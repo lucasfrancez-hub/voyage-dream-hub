@@ -33,7 +33,7 @@ import {
   runAirfarePromoCollection,
   savePromoOpportunity,
   saveInstallmentMarkup,
-  searchPromoOpportunity,
+  explorePromoOpportunities,
   setPromotionStatus,
 } from "@/lib/airfare-promos.functions";
 import { promoInstagramText, promoWhatsappText, type PromoRow } from "@/lib/airfare-promo-text";
@@ -499,7 +499,7 @@ function PesquisaManual({
   scopeInicial: "nacional" | "internacional";
   onSalvo: () => void;
 }) {
-  const buscar = useServerFn(searchPromoOpportunity);
+  const buscar = useServerFn(explorePromoOpportunities);
   const salvar = useServerFn(savePromoOpportunity);
   const [origin, setOrigin] = useState("");
   const [destination, setDestination] = useState("");
@@ -507,37 +507,12 @@ function PesquisaManual({
   const [volta, setVolta] = useState("");
   const [scope, setScope] = useState<"nacional" | "internacional">(scopeInicial);
 
-  const [resultado, setResultado] = useState<Record<string, unknown> | null>(null);
-
-  const mut = useMutation({
-    mutationFn: () =>
-      buscar({
-        data: {
-          origin: origin.toUpperCase(),
-          destination: destination.toUpperCase(),
-          departureDate: ida,
-          returnDate: volta || null,
-          scope,
-          adults: 1,
-        },
-      }),
-    onSuccess: (r) => setResultado(r as Record<string, unknown>),
-    onError: (e: Error) => toast.error(e.message),
-  });
-
-  const salvarMut = useMutation({
-    mutationFn: () => salvar({ data: { row: resultado as Record<string, unknown> } }),
-    onSuccess: () => {
-      toast.success("Oportunidade adicionada à curadoria");
-      setResultado(null);
-      onSalvo();
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
-
-  const r = resultado as null | {
+  type Resultado = {
     origin_iata: string;
     destination_iata: string;
+    destination_city?: string | null;
+    departure_date: string;
+    return_date?: string | null;
     airline_name: string | null;
     total_price: number;
     price_per_passenger: number;
@@ -545,6 +520,42 @@ function PesquisaManual({
     interest_free_installment_value: number;
     has_checked_baggage: boolean;
   };
+  const [resultados, setResultados] = useState<Resultado[]>([]);
+  const [salvos, setSalvos] = useState<string[]>([]);
+
+  const podePesquisar = origin.length === 3 || destination.length === 3;
+
+  const mut = useMutation({
+    mutationFn: () =>
+      buscar({
+        data: {
+          origin: origin || null,
+          destination: destination || null,
+          departureDate: ida || null,
+          returnDate: volta || null,
+          scope,
+          adults: 1,
+          limit: 6,
+        },
+      }),
+    onSuccess: (r) => {
+      const rows = ((r as { rows?: unknown[] }).rows ?? []) as Resultado[];
+      setResultados(rows);
+      setSalvos([]);
+      if (!rows.length) toast.info("Nenhuma tarifa encontrada para esses filtros. Tente outra data ou destino.");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const salvarMut = useMutation({
+    mutationFn: (row: Resultado) => salvar({ data: { row: row as unknown as Record<string, unknown> } }),
+    onSuccess: (_d, row) => {
+      toast.success("Oportunidade adicionada à curadoria");
+      setSalvos((s) => [...s, `${row.origin_iata}${row.destination_iata}${row.departure_date}`]);
+      onSalvo();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
 
   if (!aberto) return null;
 
@@ -556,91 +567,109 @@ function PesquisaManual({
           <X className="h-4 w-4" />
         </button>
       </div>
-      {aberto ? (
-        <div className="border-t border-border/50 p-4">
+      <div className="border-t border-border/50 p-4">
+        <p className="mb-2 text-[11px] text-muted-foreground">
+          Só a origem já basta — ex.: <strong className="text-foreground">MGF</strong>. Os demais campos são
+          opcionais e apenas afinam a busca.
+        </p>
 
-          <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-6">
-            <input
-              value={origin}
-              onChange={(e) => setOrigin(e.target.value.toUpperCase().slice(0, 3))}
-              placeholder="Origem (MGF)"
-              className="rounded-lg border border-border/60 bg-transparent px-3 py-2 text-sm"
-            />
-            <input
-              value={destination}
-              onChange={(e) => setDestination(e.target.value.toUpperCase().slice(0, 3))}
-              placeholder="Destino (GRU)"
-              className="rounded-lg border border-border/60 bg-transparent px-3 py-2 text-sm"
-            />
-            <input
-              type="date"
-              value={ida}
-              onChange={(e) => setIda(e.target.value)}
-              className="rounded-lg border border-border/60 bg-transparent px-3 py-2 text-sm"
-            />
-            <input
-              type="date"
-              value={volta}
-              onChange={(e) => setVolta(e.target.value)}
-              className="rounded-lg border border-border/60 bg-transparent px-3 py-2 text-sm"
-            />
-            <select
-              value={scope}
-              onChange={(e) => setScope(e.target.value as "nacional" | "internacional")}
-              className="rounded-lg border border-border/60 bg-transparent px-3 py-2 text-sm"
-            >
-              <option value="nacional">Nacional</option>
-              <option value="internacional">Internacional</option>
-            </select>
-            <button
-              type="button"
-              disabled={mut.isPending || origin.length !== 3 || destination.length !== 3 || !ida}
-              onClick={() => mut.mutate()}
-              className="inline-flex items-center justify-center gap-2 rounded-lg bg-brand-orange px-3 py-2 text-sm font-bold text-white disabled:opacity-50"
-            >
-              {mut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-              Pesquisar
-            </button>
-          </div>
-
-          {mut.isPending ? (
-            <p className="mt-3 text-xs text-muted-foreground">Consultando o motor VIA AIR…</p>
-          ) : null}
-
-          {r ? (
-            <div className="mt-4">
-              <h3 className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">
-                Resultados da pesquisa
-              </h3>
-              <div className="mt-2 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/60 bg-background/40 p-3">
-                <div>
-                  <p className="text-sm font-black">
-                    {r.origin_iata} → {r.destination_iata} • {r.airline_name ?? "—"}
-                  </p>
-                  <p className="text-[11px] text-muted-foreground">
-                    {brl(r.price_per_passenger)} por passageiro • total {brl(r.total_price)} •{" "}
-                    {r.has_checked_baggage ? "com bagagem" : "só bagagem de mão"}
-                  </p>
-                  <p className="text-[11px] font-bold text-brand-orange">
-                    até {r.interest_free_installments}x de {brl(r.interest_free_installment_value)} sem juros
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => salvarMut.mutate()}
-                  disabled={salvarMut.isPending}
-                  className="rounded-lg bg-brand-orange px-3 py-2 text-xs font-bold text-white disabled:opacity-50"
-                >
-                  {salvarMut.isPending ? "Salvando…" : "Transformar em promoção"}
-                </button>
-              </div>
-            </div>
-          ) : null}
+        <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-6">
+          <input
+            value={origin}
+            onChange={(e) => setOrigin(e.target.value.toUpperCase().slice(0, 3))}
+            placeholder="Origem (MGF)"
+            className="rounded-lg border border-border/60 bg-transparent px-3 py-2 text-sm"
+          />
+          <input
+            value={destination}
+            onChange={(e) => setDestination(e.target.value.toUpperCase().slice(0, 3))}
+            placeholder="Destino (opcional)"
+            className="rounded-lg border border-border/60 bg-transparent px-3 py-2 text-sm"
+          />
+          <input
+            type="date"
+            value={ida}
+            onChange={(e) => setIda(e.target.value)}
+            title="Ida (opcional)"
+            className="rounded-lg border border-border/60 bg-transparent px-3 py-2 text-sm"
+          />
+          <input
+            type="date"
+            value={volta}
+            onChange={(e) => setVolta(e.target.value)}
+            title="Volta (opcional)"
+            className="rounded-lg border border-border/60 bg-transparent px-3 py-2 text-sm"
+          />
+          <select
+            value={scope}
+            onChange={(e) => setScope(e.target.value as "nacional" | "internacional")}
+            className="rounded-lg border border-border/60 bg-transparent px-3 py-2 text-sm"
+          >
+            <option value="nacional">Nacional</option>
+            <option value="internacional">Internacional</option>
+          </select>
+          <button
+            type="button"
+            disabled={mut.isPending || !podePesquisar}
+            onClick={() => mut.mutate()}
+            className="inline-flex items-center justify-center gap-2 rounded-lg bg-brand-orange px-3 py-2 text-sm font-bold text-white disabled:opacity-50"
+          >
+            {mut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+            Pesquisar
+          </button>
         </div>
-      ) : null}
+
+        {mut.isPending ? (
+          <p className="mt-3 text-xs text-muted-foreground">
+            Descobrindo oportunidades e validando no motor VIA AIR…
+          </p>
+        ) : null}
+
+        {resultados.length ? (
+          <div className="mt-4 space-y-2">
+            <h3 className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">
+              Resultados da pesquisa ({resultados.length})
+            </h3>
+            {resultados.map((r) => {
+              const chave = `${r.origin_iata}${r.destination_iata}${r.departure_date}`;
+              const jaSalvo = salvos.includes(chave);
+              return (
+                <div
+                  key={chave}
+                  className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/60 bg-background/40 p-3"
+                >
+                  <div>
+                    <p className="text-sm font-black">
+                      {r.origin_iata} → {r.destination_city ?? r.destination_iata} • {r.airline_name ?? "—"}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground">
+                      {dataBR(r.departure_date)}
+                      {r.return_date ? ` – ${dataBR(r.return_date)}` : ""} • {brl(r.price_per_passenger)} por
+                      passageiro • total {brl(r.total_price)} •{" "}
+                      {r.has_checked_baggage ? "com bagagem" : "só bagagem de mão"}
+                    </p>
+                    <p className="text-[11px] font-bold text-brand-orange">
+                      até {r.interest_free_installments}x de {brl(r.interest_free_installment_value)} sem juros
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => salvarMut.mutate(r)}
+                    disabled={salvarMut.isPending || jaSalvo}
+                    className="rounded-lg bg-brand-orange px-3 py-2 text-xs font-bold text-white disabled:opacity-50"
+                  >
+                    {jaSalvo ? "Na curadoria" : salvarMut.isPending ? "Salvando…" : "Transformar em promoção"}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        ) : null}
+      </div>
     </div>
   );
 }
+
 
 /* ------------------------------------------------------------------ */
 /* Página                                                              */

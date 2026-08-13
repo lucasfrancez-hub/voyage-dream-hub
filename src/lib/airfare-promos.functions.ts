@@ -239,6 +239,36 @@ export const searchPromoOpportunity = createServerFn({ method: "POST" })
     return JSON.parse(JSON.stringify(row)) as Record<string, string | number | boolean | null | object>;
   });
 
+/**
+ * Pesquisa manual flexível: nenhum campo é obrigatório além de origem OU destino.
+ * Só com "MGF" já dá para pesquisar — o radar descobre os destinos e o motor valida.
+ */
+export const explorePromoOpportunities = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z
+      .object({
+        origin: z.string().trim().max(3).optional().nullable(),
+        destination: z.string().trim().max(3).optional().nullable(),
+        departureDate: z.string().max(10).optional().nullable(),
+        returnDate: z.string().max(10).optional().nullable(),
+        scope: z.enum(["nacional", "internacional"]).optional().nullable(),
+        adults: z.number().int().min(1).max(9).default(1),
+        limit: z.number().int().min(1).max(12).default(6),
+      })
+      .refine((v) => !!(v.origin?.trim() || v.destination?.trim()), {
+        message: "Informe pelo menos a origem ou o destino.",
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { exploreOpportunities } = await import("@/lib/airfare-promos.explore.server");
+    return { rows: await exploreOpportunities(data) };
+  });
+
+
+
 /** Salva um resultado da pesquisa manual como promoção da curadoria. */
 export const savePromoOpportunity = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
