@@ -555,5 +555,5 @@ export const generatePromotionLink = createServerFn({ method: "POST" })
       .eq("id", data.id);
     if (upErr) throw new Error(upErr.message);
 
-    return { cart_url: cart.url, short_url: short };
+    return { cart_url: cart.url, short_url: short, reused: false };
   });
