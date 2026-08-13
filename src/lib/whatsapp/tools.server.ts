@@ -877,7 +877,48 @@ export function buildCamilaTools(conversation: WaConversation) {
         observacoes: z.string().nullable().describe("Preferências já ditas: horário, companhia, bagagem, orçamento"),
       }),
       execute: async (input) => {
+        // ── TRAVA DE ESCOPO (não depende do LLM) ────────────────────────
+        // Se o cliente falou de hotel, pacote ou qualquer outro serviço nas
+        // últimas mensagens, a transferência é BLOQUEADA e o atendimento
+        // continua com o consultor (Comercial).
+        {
+          const { contemProdutoCombinado } = await import("./escopo-produto");
+          const { data: ultimas } = await supabaseAdmin
+            .from("wa_messages")
+            .select("content")
+            .eq("conversation_id", conversation.id)
+            .eq("direction", "inbound")
+            .order("created_at", { ascending: false })
+            .limit(4);
+          const textoCliente = ((ultimas ?? []) as Array<{ content: string | null }>)
+            .map((m) => (m.content ?? "").trim())
+            .filter(Boolean)
+            .join("\n");
+          const combinado =
+            contemProdutoCombinado(textoCliente) ||
+            contemProdutoCombinado(`${input.observacoes ?? ""} ${input.destino ?? ""}`);
+          if (combinado) {
+            console.log(
+              JSON.stringify({
+                event: "transferencia_central_bloqueada",
+                conversation_id: conversation.id,
+                motivo: "produto_combinado",
+              }),
+            );
+            return {
+              ok: false,
+              motivo: "produto_combinado",
+              instrucao:
+                "TRANSFERÊNCIA BLOQUEADA: o cliente quer pacote / aéreo + hotel / outro serviço combinado. " +
+                "Isso é COMERCIAL e continua com VOCÊ. Não fale em transferência, não cite Central nem especialista. " +
+                "Siga o atendimento normalmente, reaproveitando tudo o que ele já informou (destino, datas, passageiros, origem) " +
+                "e pergunte apenas o dado que ainda falta.",
+            };
+          }
+        }
+
         const linhas: string[] = ["✈️ Cotação de passagem aérea (encaminhado à Central de Especialistas)"];
+
         if (input.origem) linhas.push(`📍 Origem: ${input.origem}`);
         if (input.destino) linhas.push(`📍 Destino: ${input.destino}`);
         if (input.data_ida) linhas.push(`📅 Ida: ${input.data_ida}`);

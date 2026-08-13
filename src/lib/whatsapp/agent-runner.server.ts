@@ -279,13 +279,17 @@ function buildSystemPrompt(
   if (!contextOnly) {
     parts.push(
       `\n# ✈️ CENTRAL DE ESPECIALISTAS (roteamento)\n` +
-      `- Se o cliente pedir COTAÇÃO DE PASSAGEM AÉREA avulsa ("quero uma passagem", "preciso cotar umas passagens", "quero um voo", "quero cotar um aéreo", "quero comprar só as passagens"), ` +
+      `- Se o cliente pedir COTAÇÃO DE PASSAGEM AÉREA E SOMENTE ISSO ("quero uma passagem", "quero um voo", "quero comprar só as passagens", "pode ser só o voo"), ` +
       `chame IMEDIATAMENTE a tool transferir_para_central com o que já souber, na MESMA resposta, sem perguntar origem, destino, datas ou passageiros. ` +
-      `Responda apenas: "Perfeito! Já estou te passando para nossa Central de Especialistas, que vai pesquisar as melhores opções para você."\n` +
+      `Avise o cliente na mesma mensagem: "Perfeito! Como é só o aéreo, vou te passar pro nosso especialista em passagens, que continua daqui com você." Nenhuma transferência pode ser silenciosa.\n` +
+      `- 🚫 TRAVA DE ESCOPO: se a mensagem tiver QUALQUER combinação de produtos — "aéreo e hotel", "voo + hotel", "passagem e hospedagem", "pacote", "viagem completa", "hotel também" —, ` +
+      `é PROIBIDO chamar transferir_para_central. Esse caso é COMERCIAL e continua com você. A tool bloqueia no servidor e o cliente vai perceber a incoerência.\n` +
+      `- 🚫 Palavra-chave isolada ("voo", "aéreo", "passagem", "hotel") NUNCA decide o roteamento: vale a intenção completa. Na dúvida, NÃO transfira — faça uma pergunta de esclarecimento.\n` +
       `- 🚫 PROIBIDO, em pedido de passagem aérea: perguntar origem/destino/datas/passageiros, encaminhar ao Comercial, falar de horário de atendimento do Comercial ou dizer que alguém retorna depois. ` +
       `Cotação aérea NUNCA vai para o Comercial — ela é sempre da Central, 24h por dia.\n` +
-      `- Isso vale SÓ para passagem aérea avulsa. Pacote pronto, personalização de pacote, hotel, carro, seguro e cruzeiro continuam 100% com você, ` +
+      `- Pacote pronto, personalização, aéreo + hotel, hotel, carro, seguro e cruzeiro continuam 100% com você, ` +
       `exatamente como sempre — e, quando não houver pacote ou o cliente quiser personalizar, você segue coletando os dados e encaminhando para o Comercial.`
+
 
     );
   }
@@ -529,8 +533,27 @@ export async function runAgent(input: {
       .filter(Boolean)
       .reverse()
       .join("\n");
-    if (textoRecente && heuristicaAereo(textoRecente)) {
-      const forcado = await routeAereoParaCentral(conv, textoRecente).catch((err) => {
+    const { podeIrParaCentral } = await import("./escopo-produto");
+    if (textoRecente && heuristicaAereo(textoRecente) && podeIrParaCentral(textoRecente)) {
+      // HANDOFF COM CONTEXTO: o briefing é extraído de TODAS as mensagens do
+      // cliente neste protocolo, não só das últimas — assim o especialista
+      // recebe origem, destino, datas e passageiros já informados e não
+      // repete perguntas já respondidas.
+      const { data: todasIn } = await supabaseAdmin
+        .from("wa_messages")
+        .select("content")
+        .eq("conversation_id", conv.id)
+        .eq("direction", "inbound")
+        .eq("protocolo_id", protocolo.id)
+        .order("created_at", { ascending: true })
+        .limit(20);
+      const textoProtocolo =
+        ((todasIn ?? []) as Array<{ content: string | null }>)
+          .map((m) => (m.content ?? "").trim())
+          .filter(Boolean)
+          .join("\n") || textoRecente;
+
+      const forcado = await routeAereoParaCentral(conv, textoProtocolo).catch((err) => {
         console.error("[agent] roteamento aéreo forçado falhou:", err);
         return null;
       });
@@ -541,6 +564,7 @@ export async function runAgent(input: {
         console.log(`[agent] pedido aéreo redirecionado à Central (${forcado.slug}) fora da triagem inicial`);
       }
     }
+
   }
 
   let centralAgent = centralSlug
@@ -580,6 +604,7 @@ export async function runAgent(input: {
      Do lado do Consultor que recebe, entra a orientação de se apresentar e
      entender o pacote do zero (sem herdar destino/datas/pax do voo). */
   let pacoteBlock = "";
+  let escopoBlock = "";
   {
     const { data: ultimaIn } = await supabaseAdmin
       .from("wa_messages")
@@ -594,9 +619,38 @@ export async function runAgent(input: {
       .filter(Boolean)
       .join("\n");
 
+    const { contemProdutoCombinado, ehDuvidaAntesDeColeta, duvidaSemConteudo } = await import(
+      "./escopo-produto"
+    );
+
+    // ENTENDER ANTES DE COLETAR — vale pra todos os agentes.
+    if (duvidaSemConteudo(textoPacote)) {
+      escopoBlock +=
+        `\n\n# ❓ O CLIENTE DISSE QUE TEM UMA DÚVIDA — DESCUBRA QUAL É\n` +
+        `Ele ainda NÃO disse qual é a dúvida. Sua única próxima mensagem é perguntar qual é a dúvida ` +
+        `(ex.: "Claro! Pode me falar, qual é a sua dúvida?").\n` +
+        `🚫 PROIBIDO nesta resposta: perguntar destino, origem, datas, passageiros, hotel, orçamento ou qualquer dado de cotação.`;
+    } else if (ehDuvidaAntesDeColeta(textoPacote)) {
+      escopoBlock +=
+        `\n\n# ❓ DÚVIDA DO CLIENTE TEM PRIORIDADE\n` +
+        `A mensagem contém uma DÚVIDA (pagamento, boleto, parcelamento, regras, documentação, bagagem...).\n` +
+        `Ordem obrigatória: (1) responda a dúvida com base nas regras comerciais REAIS da VIA AIR — nunca invente nem generalize regra; ` +
+        `(2) registre o que ele já informou; (3) só então, se fizer sentido, faça UMA pergunta de continuidade.\n` +
+        `🚫 Proibido ignorar a pergunta para continuar um roteiro fixo de coleta.`;
+    }
+
+    if (contemProdutoCombinado(textoPacote) && !centralAgent) {
+      escopoBlock +=
+        `\n\n# 🧭 ESCOPO: ESTE CASO É COMERCIAL (fica com você)\n` +
+        `O cliente quer pacote, aéreo + hotel, hospedagem ou outro serviço combinado. ` +
+        `É PROIBIDO chamar transferir_para_central: Paula e Bruno atendem SOMENTE passagem aérea avulsa.\n` +
+        `Continue você mesmo, reaproveitando tudo o que ele já informou (destino, datas, passageiros, origem) e pergunte só o que falta.`;
+    }
+
     if (centralAgent) {
       const { detectarInteressePacote } = await import("./pacote-intent");
-      if (detectarInteressePacote(textoPacote)) {
+      if (detectarInteressePacote(textoPacote) || contemProdutoCombinado(textoPacote)) {
+
         pacoteBlock =
           `\n\n# 📦 O CLIENTE PEDIU PACOTE — TRANSFIRA AGORA\n` +
           `Você é do aéreo. Chame a tool transferir_para_consultores NESTA resposta e envie APENAS: ` +
@@ -1118,7 +1172,9 @@ export async function runAgent(input: {
       imagemBlock +
       quoteBlock +
       pacoteBlock +
+      escopoBlock +
       flightBlock;
+
 
 
 

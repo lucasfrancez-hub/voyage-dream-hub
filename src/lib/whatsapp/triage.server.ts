@@ -264,10 +264,19 @@ export async function triageFirstMessage(conv: WaConversation): Promise<TriageRe
   // valem como gatilho oficial. Se o mapa aponta o texto pro Setor Aéreo, a
   // conversa vai pra Central mesmo que a heurística fixa não tenha reconhecido.
   const { rotearPeloFluxo } = await import("./flow.server");
+  const { podeIrParaCentral } = await import("./escopo-produto");
   const rota = await rotearPeloFluxo(texto).catch(() => null);
   if (rota) {
     console.log(`[triagem] fluxo: "${rota.titulo}" → ${rota.setor} (gatilhos: ${rota.matched.join(", ")})`);
   }
+
+  // TRAVA DE ESCOPO: pacote, hotel, aéreo + hotel ou qualquer serviço extra
+  // NUNCA vai pra Paula/Bruno — nem por palavra-chave do mapa de fluxos.
+  if (!podeIrParaCentral(texto)) {
+    console.log(`[triagem] produto combinado detectado — segue com o consultor (conversa ${conv.id})`);
+    return null;
+  }
+
   if (rota?.setor === "aereo") return routeAereoParaCentral(conv, texto);
   // Mapa mandou pra Consultoria/Comercial: não é aéreo, sai da triagem.
   if (rota) return null;
@@ -279,6 +288,7 @@ export async function triageFirstMessage(conv: WaConversation): Promise<TriageRe
   return routeAereoParaCentral(conv, texto);
 
 }
+
 
 /**
  * ROTEAMENTO ÚNICO PARA A CENTRAL.
@@ -293,10 +303,18 @@ export async function routeAereoParaCentral(
   conv: WaConversation,
   texto: string,
 ): Promise<TriageResult> {
+  // TRAVA FINAL: nenhuma composição de produto entra na Central.
+  const { podeIrParaCentral } = await import("./escopo-produto");
+  if (!podeIrParaCentral(texto)) {
+    console.log(`[triagem] transferência à Central bloqueada (produto combinado) — conversa ${conv.id}`);
+    return null;
+  }
+
   // A heurística dura já confirmou um pedido aéreo explícito. O classificador
   // serve apenas para extrair os campos; ele não pode rebaixar a intenção e
   // mandar a conversa de volta para pacote por uma classificação instável.
   const c = await classificar(texto);
+
 
   const linhas = ["✈️ Cotação de passagem aérea (pedido de aéreo identificado na triagem)"];
   // ORIGEM: só entra no briefing quando o CLIENTE disse a cidade de embarque.
