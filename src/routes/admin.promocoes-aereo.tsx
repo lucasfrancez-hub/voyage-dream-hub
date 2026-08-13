@@ -54,8 +54,10 @@ type Promo = PromoRow & {
   status: string;
   fare_status: string;
   last_checked_at: string;
+  quoted_at?: string | null;
   reference_source?: string | null;
   reference_price?: number | null;
+  reference_collected_at?: string | null;
   price_difference?: number | null;
   price_difference_percent?: number | null;
 };
@@ -84,6 +86,45 @@ function validadoEm(iso?: string | null) {
   const dia = fmt({ dateStyle: "short" });
   const hora = fmt({ hour: "2-digit", minute: "2-digit" });
   return dia === hoje ? `hoje às ${hora}` : `${dia} às ${hora}`;
+}
+
+
+/**
+ * Comparativo administrativo: preço de referência do Melhores Destinos x preço
+ * validado no motor VIA AIR. Serve só para auditoria da curadoria — a referência
+ * NUNCA vai para feed, story, WhatsApp, Instagram, arte ou página pública.
+ *
+ * diferença = preço MD − preço VIA AIR  (positivo = estamos abaixo da referência)
+ */
+function ComparativoReferencia({ promo }: { promo: Promo }) {
+  const ref = promo.reference_price != null ? Number(promo.reference_price) : null;
+  if (!ref || ref <= 0) return null;
+
+  const viaair = Number(promo.total_price ?? 0);
+  const diff = ref - viaair;
+  const pct = (diff / ref) * 100;
+  const igual = Math.abs(diff) < 0.5 || Math.abs(pct) < 0.5;
+  const abaixo = diff > 0;
+
+  return (
+    <div className="mt-2 border-t border-border/50 pt-2 text-[10px] leading-relaxed text-muted-foreground">
+      <div>Referência Melhores Destinos: {brl(ref)}</div>
+      {igual ? (
+        <div className="font-bold text-muted-foreground">Mesmo valor da referência</div>
+      ) : (
+        <div className={`font-bold ${abaixo ? "text-emerald-500" : "text-amber-500"}`}>
+          {abaixo ? "↓" : "↑"} {brl(Math.abs(diff))} • {Math.abs(pct).toFixed(1).replace(".", ",")}%{" "}
+          {abaixo ? "abaixo" : "acima"} da referência
+        </div>
+      )}
+      {promo.reference_collected_at ? (
+        <div className="opacity-70">Referência MD coletada: {horaBR(promo.reference_collected_at)}</div>
+      ) : null}
+      <div className="opacity-70">
+        Preço VIA AIR validado: {horaBR(promo.quoted_at ?? promo.last_checked_at)}
+      </div>
+    </div>
+  );
 }
 
 /** Próxima coleta automática (06:00 e 12:00 BRT). */
@@ -207,6 +248,7 @@ function PromoCard({
       </div>
 
       <div className="mt-3 rounded-xl border border-border/50 bg-background/40 p-3">
+        <div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Preço VIA AIR</div>
         <div className="text-2xl font-black leading-none tracking-tight">{brl(promo.price_per_passenger)}</div>
         <div className="mt-1 text-[11px] text-muted-foreground">
           por passageiro • total {brl(promo.total_price)}
@@ -217,24 +259,9 @@ function PromoCard({
             ou até {promo.extended_max_installments}x de {brl(promo.extended_installment_value_12x)}
           </div>
         ) : null}
-        {promo.reference_price ? (
-          <div className="mt-2 border-t border-border/50 pt-2 text-[10px] leading-relaxed text-muted-foreground">
-            <span className="font-semibold uppercase tracking-wide">Referência interna</span> · radar{" "}
-            {brl(promo.reference_price)}
-            {promo.price_difference_percent != null ? (
-              <span
-                className={`ml-1 font-bold ${
-                  promo.price_difference_percent <= 0 ? "text-emerald-500" : "text-amber-500"
-                }`}
-              >
-                {promo.price_difference_percent <= 0 ? "▼" : "▲"}{" "}
-                {Math.abs(promo.price_difference_percent).toFixed(1).replace(".", ",")}% no motor VIA AIR
-              </span>
-            ) : null}
-            <div className="opacity-70">Nunca publicado — só o preço VIA AIR vai para o cliente.</div>
-          </div>
-        ) : null}
+        <ComparativoReferencia promo={promo} />
       </div>
+
 
       <p className="mt-2 inline-flex items-center gap-1.5 text-[10px] text-muted-foreground">
         <Clock className="h-3 w-3" /> Última validação: {validadoEm(promo.last_checked_at)}
