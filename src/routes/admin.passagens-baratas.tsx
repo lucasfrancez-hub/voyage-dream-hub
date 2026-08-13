@@ -197,13 +197,25 @@ function stageMessage(step: Step): { titulo: string; sub: string } {
   const nome = step.baseLabel ?? step.label;
   switch (stageKindOf(step)) {
     case "cities":
-      return { titulo: `Buscando destinos em ${nome}...`, sub: "Consultando as melhores tarifas disponíveis" };
+      return {
+        titulo: `Verificando o histórico das últimas 24 horas em ${nome}...`,
+        sub: "Reunindo os destinos com melhor preço registrado",
+      };
     case "routes":
-      return { titulo: `Buscando rotas para ${nome}...`, sub: "Procurando as origens com melhor preço" };
+      return {
+        titulo: `Verificando o histórico das últimas 24 horas para ${nome}...`,
+        sub: "Comparando as origens com melhor preço registrado",
+      };
     case "fares":
-      return { titulo: `Carregando tarifas para ${nome}...`, sub: "Histórico de preços, datas e companhias" };
+      return {
+        titulo: `Verificando o histórico das últimas 24 horas: ${nome}...`,
+        sub: "Reunindo preços, datas e companhias registrados",
+      };
     default:
-      return { titulo: "Carregando categorias...", sub: "Preparando os destinos mais econômicos" };
+      return {
+        titulo: "Verificando o histórico das últimas 24 horas...",
+        sub: "Reunindo os destinos mais econômicos do período",
+      };
   }
 }
 
@@ -298,7 +310,7 @@ function StageBanner({
       <Loader2 className="h-4 w-4 shrink-0 animate-spin text-primary" />
       <div className="min-w-0">
         <div className="truncate text-sm font-bold">
-          {lento ? "Ainda buscando as melhores opções..." : titulo}
+          {lento ? "Ainda verificando o histórico das últimas 24 horas..." : titulo}
         </div>
         <div className="truncate text-xs text-muted-foreground">{sub}</div>
       </div>
