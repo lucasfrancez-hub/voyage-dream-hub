@@ -226,7 +226,7 @@ export async function discoverCandidates(opts?: DiscoverOptions): Promise<Discov
 async function discoverFromInternalData(opts?: DiscoverOptions): Promise<DiscoveryResult> {
   const { radarByOrigin, cheapestDatesForLead, normalizeIata, mapLimit, MdCancelledError } =
     await import("@/lib/airfare-promos.radar.server");
-  const { mdSourceMetrics, resetMdSourceMetrics, mdRadarAvailable } = await import(
+  const { mdSourceMetrics, resetMdSourceMetrics } = await import(
     "@/lib/melhores-destinos.server"
   );
   const cancel = opts?.cancel;
@@ -235,7 +235,7 @@ async function discoverFromInternalData(opts?: DiscoverOptions): Promise<Discove
   const radarDeadline = Date.now() + (opts?.radarBudgetMs ?? 20 * 60_000);
   const semTempo = () => Date.now() >= radarDeadline;
   resetMdSourceMetrics();
-  progresso("Consultando radar de oportunidades...");
+  progresso("Lendo oportunidades coletadas pelo Passagens Baratas...");
   const collectedAt = new Date().toISOString();
   const datesPerRoute = Math.max(1, opts?.datesPerRoute ?? 1);
 
@@ -335,13 +335,7 @@ async function discoverFromInternalData(opts?: DiscoverOptions): Promise<Discove
   await mapLimit(PRIORITY_ORIGINS, 1, async (origem: string) => {
     if (cancelada || semTempo()) return;
     let leads: Awaited<ReturnType<typeof radarByOrigin>> = [];
-    const fonteViva = mdRadarAvailable();
-    if (!fonteViva) radarErrors++;
-    progresso(
-      fonteViva
-        ? `Consultando radar de oportunidades — ${origem}...`
-        : `Fonte bloqueada — usando dados já coletados (${origem})...`,
-    );
+    progresso(`Lendo oportunidades já coletadas — ${origem}...`);
     try {
       leads = await radarByOrigin(origem, { cancel });
     } catch (e) {
@@ -465,7 +459,7 @@ async function discoverFromInternalData(opts?: DiscoverOptions): Promise<Discove
   await mapLimit(todosLeads, 1, async (lead: Lead) => {
     if (cancelada) return;
     let datas = lead.dates;
-    if (!datas.length && !semTempo() && mdRadarAvailable()) {
+    if (!datas.length && !semTempo()) {
       try {
         const res = await cheapestDatesForLead(
           {
