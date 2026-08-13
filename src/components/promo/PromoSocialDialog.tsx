@@ -5,9 +5,9 @@
  */
 import { cityLabel } from "@/lib/iata-lookup";
 import { useEffect, useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Copy, Instagram, Loader2, Pencil, Radio, RefreshCw, Send, Users, Wand2 } from "lucide-react";
+import { CalendarClock, Copy, Instagram, Loader2, Pencil, Radio, RefreshCw, Send, Users, Wand2 } from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -19,13 +19,15 @@ import {
 } from "@/components/ui/dialog";
 import { WhatsAppIcon } from "@/components/packages/PackageSocialDialog";
 import { buildPromoCard, renderPromoCard } from "@/lib/promo-card.functions";
-import { generatePromotionLink } from "@/lib/airfare-promos.functions";
+import { generatePromotionLink, setPromotionStatus } from "@/lib/airfare-promos.functions";
+import { agendarPublicacaoSocial } from "@/lib/social-schedule.functions";
 import { listInstagramAccounts, publishInstagramFromUrl } from "@/lib/instagram/queries.functions";
 import { listDestinos, enviarPacoteWhatsapp } from "@/lib/broadcast/broadcast.functions";
 import { fetchProxiedImage } from "@/lib/image-proxy.functions";
 import { enqueuePublish } from "@/lib/publish-queue";
 import { promoInstagramText, promoWhatsappText, type PromoRow } from "@/lib/airfare-promo-text";
 import type { PromoCardData, PromoCardFormat } from "@/lib/promo-card/card-data";
+
 
 type Aba = "whatsapp" | "instagram";
 type Destino = { id: string; nome: string | null; tipo: string; ativo?: boolean | null };
