@@ -362,7 +362,7 @@ ${foto ? `<img class="photo" src="${esc(foto)}" alt="${esc(d.destinationCity)}" 
       <span class="airline-logo">${ciaLogo ? `<img src="${esc(ciaLogo)}" alt="${esc(d.airline)}"/>` : `<span class="airline-iata">${esc(d.airlineIata ?? "")}</span>`}</span>
       <span>${esc(d.airline)}</span>${d.airlineIata ? `<span class="airline-iata">${esc(d.airlineIata)}</span>` : ""}
     </span></div>
-    <div class="detail-row"><span class="label">Bagagem</span><span class="value">${esc(d.baggage)}</span></div>
+    <div class="detail-row row-baggage"><span class="label">Bagagem</span><span class="value">${esc(d.baggage)}</span></div>
   </div>
 </section>
 
