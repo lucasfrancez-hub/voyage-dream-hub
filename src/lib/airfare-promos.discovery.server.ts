@@ -319,11 +319,13 @@ export async function discoverCandidates(opts?: {
   await mapLimit(PRIORITY_ORIGINS, 1, async (origem: string) => {
     if (cancelada || semTempo()) return;
     let leads: Awaited<ReturnType<typeof radarByOrigin>> = [];
-    if (!mdRadarAvailable()) {
-      radarErrors++;
-      return;
-    }
-    progresso(`Consultando radar de oportunidades — ${origem}...`);
+    const fonteViva = mdRadarAvailable();
+    if (!fonteViva) radarErrors++;
+    progresso(
+      fonteViva
+        ? `Consultando radar de oportunidades — ${origem}...`
+        : `Fonte bloqueada — usando dados já coletados (${origem})...`,
+    );
     try {
       leads = await radarByOrigin(origem, { cancel });
     } catch (e) {
