@@ -211,19 +211,48 @@ const SEALS = `
 </div>`;
 
 /** Ajuste automático do destino grande: reduz até caber, sem cortar. */
+/** Auto-fit do destino (v24): uma linha, sem cortar, com 48px de respiro. */
 const AUTOFIT = `
 <script>
 (function(){
-  var el=document.querySelector('.destination');
-  if(!el) return;
-  var frame=document.querySelector('.frame');
-  var max=frame.clientWidth-(parseFloat(getComputedStyle(frame).paddingLeft)+parseFloat(getComputedStyle(frame).paddingRight));
-  var size=parseFloat(getComputedStyle(el).fontSize);
-  var min=size*0.42;
-  while(el.scrollWidth>max&&size>min){size-=2;el.style.fontSize=size+'px';}
-  document.documentElement.setAttribute('data-ready','1');
+  function fit(){
+    var el=document.querySelector('.destination-one-line');
+    if(!el) return;
+    el.style.transform='none';
+    el.style.marginBottom='';
+    var parent=el.parentElement; if(!parent) return;
+    var cs=getComputedStyle(parent);
+    var safetyRight=48;
+    var available=parent.clientWidth-parseFloat(cs.paddingLeft||0)-parseFloat(cs.paddingRight||0)-safetyRight;
+    var needed=el.scrollWidth;
+    if(needed>available&&available>0){
+      var scale=Math.max(0.50,Math.min(1,available/needed));
+      el.style.transform='scale('+scale+')';
+      el.style.marginBottom=(-(el.offsetHeight*(1-scale)))+'px';
+    }
+    document.documentElement.setAttribute('data-ready','1');
+  }
+  window.ViaAirCard=window.ViaAirCard||{};
+  window.ViaAirCard.setDestination=function(name){
+    var el=document.querySelector('.destination-one-line');
+    if(!el) return;
+    var words=String(name||'').trim().split(/\\s+/).filter(Boolean);
+    if(!words.length) return;
+    if(words.length===1){
+      el.innerHTML='<span class="dest-highlight">'+words[0]+'</span>';
+    }else{
+      el.innerHTML='<span class="dest-prefix">'+words.slice(0,-1).join(' ')+'</span>'+
+                   '<span class="dest-highlight">'+words[words.length-1]+'</span>';
+    }
+    fit();
+  };
+  fit();
+  window.addEventListener('load',fit);
+  window.addEventListener('resize',fit);
+  if(document.fonts&&document.fonts.ready){document.fonts.ready.then(fit);}
 })();
 </script>`;
+
 
 function precoBloco(d: PromoCardData): { melhor: string; prazo: string } {
   const melhor = d.pixOnly
