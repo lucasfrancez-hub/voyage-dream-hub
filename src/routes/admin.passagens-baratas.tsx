@@ -705,10 +705,10 @@ export function PassagensBaratasExplorer({
                 ? { href, target: "_blank", rel: "noopener noreferrer" }
                 : { onClick: () => go(step) })}
               onMouseEnter={() => prefetch(step)}
-              className="group flex cursor-pointer items-center gap-4 rounded-2xl border border-border/50 bg-card p-4 text-left transition-all duration-300 hover:border-primary/40 hover:bg-muted/40"
+              className="group grid cursor-pointer grid-cols-[auto_minmax(0,1fr)] items-center gap-3 rounded-2xl border border-border/50 bg-card p-3 text-left transition-all duration-300 hover:border-primary/40 hover:bg-muted/40 sm:gap-4 sm:p-4"
             >
 
-              <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl">
+              <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl sm:h-24 sm:w-24">
                 <img
                   src={imagemRegiao(c.name)}
                   alt={c.name}
@@ -720,19 +720,23 @@ export function PassagensBaratasExplorer({
                 <div className="absolute inset-0 bg-gradient-to-t from-background/50 to-transparent" />
               </div>
 
-              <div className="min-w-0 flex-1">
-                <h3 className="text-lg font-bold leading-tight">{c.name}</h3>
-                <p className="mt-1 truncate text-xs text-muted-foreground">{c.description}</p>
-              </div>
-              {c.price != null && (
-                <div className="shrink-0 text-right">
-                  <span className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                    Ida + volta
-                  </span>
-                  <span className="block text-[10px] text-muted-foreground">a partir de</span>
-                  <span className="text-xl font-bold text-primary">{brl(c.price)}</span>
+              <div className="flex min-w-0 flex-1 flex-col gap-1 sm:flex-row sm:items-center sm:gap-4">
+                <div className="min-w-0 flex-1">
+                  <h3 className="truncate text-base font-bold leading-tight sm:text-lg">{c.name}</h3>
+                  <p className="mt-0.5 truncate text-xs text-muted-foreground">{c.description}</p>
                 </div>
-              )}
+                {c.price != null && (
+                  <div className="shrink-0 sm:text-right">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                      Ida + volta a partir de{" "}
+                    </span>
+                    <span className="whitespace-nowrap text-lg font-bold text-primary sm:block sm:text-xl">
+                      {brl(c.price)}
+                    </span>
+                  </div>
+                )}
+              </div>
+
             </Tag>
             );
           })}
