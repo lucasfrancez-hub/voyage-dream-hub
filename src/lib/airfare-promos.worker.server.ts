@@ -791,8 +791,10 @@ async function archivePromotions(
         cycle_day: null,
       })
       .in("id", ids);
+    if (error) console.error("[promos] falha ao arquivar lote", dia, error.message);
+    else ok += ids.length;
   }
-  return rows.length;
+  return ok;
 }
 
 /**
