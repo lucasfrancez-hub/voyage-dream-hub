@@ -5052,6 +5052,51 @@ export type Database = {
         }
         Relationships: []
       }
+      social_scheduled_posts: {
+        Row: {
+          channel: string
+          created_at: string
+          created_by: string | null
+          error: string | null
+          id: string
+          label: string | null
+          payload: Json
+          promo_id: string | null
+          published_at: string | null
+          scheduled_at: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          channel: string
+          created_at?: string
+          created_by?: string | null
+          error?: string | null
+          id?: string
+          label?: string | null
+          payload?: Json
+          promo_id?: string | null
+          published_at?: string | null
+          scheduled_at: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          channel?: string
+          created_at?: string
+          created_by?: string | null
+          error?: string | null
+          id?: string
+          label?: string | null
+          payload?: Json
+          promo_id?: string | null
+          published_at?: string | null
+          scheduled_at?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       supplier_pix_keys: {
         Row: {
           cpf_cnpj: string | null

@@ -138,6 +138,7 @@ import { Route as ApiPublicHooksInstagramDmQueueRouteImport } from './routes/api
 import { Route as ApiPublicHooksInstagramHealthRouteImport } from './routes/api/public/hooks/instagram-health'
 import { Route as ApiPublicHooksKeepWindowAliveRouteImport } from './routes/api/public/hooks/keep-window-alive'
 import { Route as ApiPublicHooksRunCheckinsRouteImport } from './routes/api/public/hooks/run-checkins'
+import { Route as ApiPublicHooksSocialScheduleDispatchRouteImport } from './routes/api/public/hooks/social-schedule-dispatch'
 import { Route as ApiPublicHooksSyncCalendarsRouteImport } from './routes/api/public/hooks/sync-calendars'
 import { Route as ApiPublicPackageHotelPhotoSplatRouteImport } from './routes/api/public/package-hotel-photo.$'
 import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
@@ -817,6 +818,12 @@ const ApiPublicHooksRunCheckinsRoute =
     path: '/api/public/hooks/run-checkins',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicHooksSocialScheduleDispatchRoute =
+  ApiPublicHooksSocialScheduleDispatchRouteImport.update({
+    id: '/api/public/hooks/social-schedule-dispatch',
+    path: '/api/public/hooks/social-schedule-dispatch',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicHooksSyncCalendarsRoute =
   ApiPublicHooksSyncCalendarsRouteImport.update({
     id: '/api/public/hooks/sync-calendars',
@@ -988,6 +995,7 @@ export interface FileRoutesByFullPath {
   '/api/public/hooks/instagram-health': typeof ApiPublicHooksInstagramHealthRoute
   '/api/public/hooks/keep-window-alive': typeof ApiPublicHooksKeepWindowAliveRoute
   '/api/public/hooks/run-checkins': typeof ApiPublicHooksRunCheckinsRoute
+  '/api/public/hooks/social-schedule-dispatch': typeof ApiPublicHooksSocialScheduleDispatchRoute
   '/api/public/hooks/sync-calendars': typeof ApiPublicHooksSyncCalendarsRoute
   '/api/public/package-hotel-photo/$': typeof ApiPublicPackageHotelPhotoSplatRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
@@ -1124,6 +1132,7 @@ export interface FileRoutesByTo {
   '/api/public/hooks/instagram-health': typeof ApiPublicHooksInstagramHealthRoute
   '/api/public/hooks/keep-window-alive': typeof ApiPublicHooksKeepWindowAliveRoute
   '/api/public/hooks/run-checkins': typeof ApiPublicHooksRunCheckinsRoute
+  '/api/public/hooks/social-schedule-dispatch': typeof ApiPublicHooksSocialScheduleDispatchRoute
   '/api/public/hooks/sync-calendars': typeof ApiPublicHooksSyncCalendarsRoute
   '/api/public/package-hotel-photo/$': typeof ApiPublicPackageHotelPhotoSplatRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
@@ -1263,6 +1272,7 @@ export interface FileRoutesById {
   '/api/public/hooks/instagram-health': typeof ApiPublicHooksInstagramHealthRoute
   '/api/public/hooks/keep-window-alive': typeof ApiPublicHooksKeepWindowAliveRoute
   '/api/public/hooks/run-checkins': typeof ApiPublicHooksRunCheckinsRoute
+  '/api/public/hooks/social-schedule-dispatch': typeof ApiPublicHooksSocialScheduleDispatchRoute
   '/api/public/hooks/sync-calendars': typeof ApiPublicHooksSyncCalendarsRoute
   '/api/public/package-hotel-photo/$': typeof ApiPublicPackageHotelPhotoSplatRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
@@ -1403,6 +1413,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/instagram-health'
     | '/api/public/hooks/keep-window-alive'
     | '/api/public/hooks/run-checkins'
+    | '/api/public/hooks/social-schedule-dispatch'
     | '/api/public/hooks/sync-calendars'
     | '/api/public/package-hotel-photo/$'
     | '/lovable/email/auth/preview'
@@ -1539,6 +1550,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/instagram-health'
     | '/api/public/hooks/keep-window-alive'
     | '/api/public/hooks/run-checkins'
+    | '/api/public/hooks/social-schedule-dispatch'
     | '/api/public/hooks/sync-calendars'
     | '/api/public/package-hotel-photo/$'
     | '/lovable/email/auth/preview'
@@ -1677,6 +1689,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/instagram-health'
     | '/api/public/hooks/keep-window-alive'
     | '/api/public/hooks/run-checkins'
+    | '/api/public/hooks/social-schedule-dispatch'
     | '/api/public/hooks/sync-calendars'
     | '/api/public/package-hotel-photo/$'
     | '/lovable/email/auth/preview'
@@ -1756,6 +1769,7 @@ export interface RootRouteChildren {
   ApiPublicHooksInstagramHealthRoute: typeof ApiPublicHooksInstagramHealthRoute
   ApiPublicHooksKeepWindowAliveRoute: typeof ApiPublicHooksKeepWindowAliveRoute
   ApiPublicHooksRunCheckinsRoute: typeof ApiPublicHooksRunCheckinsRoute
+  ApiPublicHooksSocialScheduleDispatchRoute: typeof ApiPublicHooksSocialScheduleDispatchRoute
   ApiPublicHooksSyncCalendarsRoute: typeof ApiPublicHooksSyncCalendarsRoute
   ApiPublicPackageHotelPhotoSplatRoute: typeof ApiPublicPackageHotelPhotoSplatRoute
   LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
@@ -2670,6 +2684,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksRunCheckinsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/social-schedule-dispatch': {
+      id: '/api/public/hooks/social-schedule-dispatch'
+      path: '/api/public/hooks/social-schedule-dispatch'
+      fullPath: '/api/public/hooks/social-schedule-dispatch'
+      preLoaderRoute: typeof ApiPublicHooksSocialScheduleDispatchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/sync-calendars': {
       id: '/api/public/hooks/sync-calendars'
       path: '/api/public/hooks/sync-calendars'
@@ -2962,6 +2983,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicHooksInstagramHealthRoute: ApiPublicHooksInstagramHealthRoute,
   ApiPublicHooksKeepWindowAliveRoute: ApiPublicHooksKeepWindowAliveRoute,
   ApiPublicHooksRunCheckinsRoute: ApiPublicHooksRunCheckinsRoute,
+  ApiPublicHooksSocialScheduleDispatchRoute:
+    ApiPublicHooksSocialScheduleDispatchRoute,
   ApiPublicHooksSyncCalendarsRoute: ApiPublicHooksSyncCalendarsRoute,
   ApiPublicPackageHotelPhotoSplatRoute: ApiPublicPackageHotelPhotoSplatRoute,
   LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,

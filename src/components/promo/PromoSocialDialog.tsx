@@ -5,9 +5,9 @@
  */
 import { cityLabel } from "@/lib/iata-lookup";
 import { useEffect, useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Copy, Instagram, Loader2, Pencil, Radio, RefreshCw, Send, Users, Wand2 } from "lucide-react";
+import { CalendarClock, Copy, Instagram, Loader2, Pencil, Radio, RefreshCw, Send, Users, Wand2 } from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -19,13 +19,15 @@ import {
 } from "@/components/ui/dialog";
 import { WhatsAppIcon } from "@/components/packages/PackageSocialDialog";
 import { buildPromoCard, renderPromoCard } from "@/lib/promo-card.functions";
-import { generatePromotionLink } from "@/lib/airfare-promos.functions";
+import { generatePromotionLink, setPromotionStatus } from "@/lib/airfare-promos.functions";
+import { agendarPublicacaoSocial } from "@/lib/social-schedule.functions";
 import { listInstagramAccounts, publishInstagramFromUrl } from "@/lib/instagram/queries.functions";
 import { listDestinos, enviarPacoteWhatsapp } from "@/lib/broadcast/broadcast.functions";
 import { fetchProxiedImage } from "@/lib/image-proxy.functions";
 import { enqueuePublish } from "@/lib/publish-queue";
 import { promoInstagramText, promoWhatsappText, type PromoRow } from "@/lib/airfare-promo-text";
 import type { PromoCardData, PromoCardFormat } from "@/lib/promo-card/card-data";
+
 
 type Aba = "whatsapp" | "instagram";
 type Destino = { id: string; nome: string | null; tipo: string; ativo?: boolean | null };
@@ -60,6 +62,9 @@ export function PromoSocialDialog({
   const listDestinosFn = useServerFn(listDestinos);
   const enviarWaFn = useServerFn(enviarPacoteWhatsapp);
   const proxy = useServerFn(fetchProxiedImage);
+  const agendarFn = useServerFn(agendarPublicacaoSocial);
+  const setStatusFn = useServerFn(setPromotionStatus);
+  const queryClient = useQueryClient();
 
   const [aba, setAba] = useState<Aba>(initialChannel);
   const [format, setFormat] = useState<PromoCardFormat>("feed");
@@ -71,11 +76,26 @@ export function PromoSocialDialog({
   const [busy, setBusy] = useState<string | null>(null);
   const [shortUrl, setShortUrl] = useState<string | null>(null);
   const [linkStatus, setLinkStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
+  const [quandoWa, setQuandoWa] = useState<"agora" | "agendar">("agora");
+  const [quandoIg, setQuandoIg] = useState<"agora" | "agendar">("agora");
+  const [dataWa, setDataWa] = useState("");
+  const [dataIg, setDataIg] = useState("");
   const genLinkFn = useServerFn(generatePromotionLink);
 
   useEffect(() => {
     if (open) setAba(initialChannel);
   }, [open, initialChannel]);
+
+  /** Marca a promoção como publicada e atualiza a lista. */
+  async function marcarPublicado(id: string) {
+    try {
+      await setStatusFn({ data: { id, status: "publicado" } });
+      void queryClient.invalidateQueries({ queryKey: ["airfare-promos"] });
+    } catch {
+      /* status é secundário ao envio */
+    }
+  }
+
 
   /** Garante cart_url + short_url ANTES de montar o texto. */
   useEffect(() => {
@@ -196,10 +216,39 @@ export function PromoSocialDialog({
     if (!promo) return;
     if (selecionados.size === 0) return toast.error("Escolha ao menos um canal ou grupo");
     if (!textoWa.trim()) return toast.error("Escreva o texto antes de enviar");
+    if (quandoWa === "agendar" && !dataWa) return toast.error("Escolha a data e a hora do agendamento");
     const ids = [...selecionados];
     const texto = textoWa.trim();
     const nomes = destinos.filter((d) => selecionados.has(d.id)).map((d) => d.nome ?? "destino");
     const titulo = `${promo.origin_iata} → ${promo.destination_iata}`;
+    const promoId = promo.id;
+    const cardSnapshot = card;
+
+    if (quandoWa === "agendar") {
+      const quando = new Date(dataWa);
+      enqueuePublish({
+        channel: "whatsapp",
+        label: `Agendar WhatsApp — ${titulo}`,
+        detail: nomes.join(", "),
+        run: async () => {
+          if (!cardSnapshot) throw new Error("Card ainda carregando");
+          const { url } = (await render({ data: { card: cardSnapshot, format: "feed" } })) as { url: string };
+          await agendarFn({
+            data: {
+              channel: "whatsapp",
+              scheduled_at: quando.toISOString(),
+              label: `WhatsApp — ${titulo}`,
+              promo_id: promoId,
+              payload: { kind: "whatsapp", destino_ids: ids, texto, imagem_url: url },
+            },
+          });
+          return `Agendado para ${quando.toLocaleString("pt-BR")}`;
+        },
+      });
+      toast.success("Agendamento enviado para a fila");
+      onOpenChange(false);
+      return;
+    }
 
     enqueuePublish({
       channel: "whatsapp",
@@ -208,6 +257,7 @@ export function PromoSocialDialog({
       run: async () => {
         const imagem = await arteBase64("feed");
         const res = await enviarWaFn({ data: { destino_ids: ids, texto, imagem_base64: imagem } });
+        if (res.enviados > 0) await marcarPublicado(promoId);
         if (res.falhas.length) {
           return `Enviado para ${res.enviados}. Falhou em: ${res.falhas.map((f) => f.nome).join(", ")}`;
         }
@@ -222,10 +272,44 @@ export function PromoSocialDialog({
     if (!promo) return;
     if (!contaViaAir) return toast.error("Nenhuma conta do Instagram conectada");
     if (!card) return toast.error("Aguarde o card carregar");
+    if (quandoIg === "agendar" && !dataIg) return toast.error("Escolha a data e a hora do agendamento");
     const caption = comLegenda && format === "feed" ? textoIg.trim() : undefined;
     const f = format;
     const titulo = `${promo.origin_iata} → ${promo.destination_iata}`;
     const cardSnapshot = card;
+    const promoId = promo.id;
+    const contaId = contaViaAir.id;
+    const mediaType = f === "story" ? ("story_image" as const) : ("feed_image" as const);
+
+    if (quandoIg === "agendar") {
+      const quando = new Date(dataIg);
+      enqueuePublish({
+        channel: "instagram",
+        label: `Agendar Instagram ${f === "feed" ? "Feed" : "Story"} — ${titulo}`,
+        run: async () => {
+          const { url } = (await render({ data: { card: cardSnapshot, format: f } })) as { url: string };
+          await agendarFn({
+            data: {
+              channel: "instagram",
+              scheduled_at: quando.toISOString(),
+              label: `Instagram ${f === "feed" ? "Feed" : "Story"} — ${titulo}`,
+              promo_id: promoId,
+              payload: {
+                kind: "instagram",
+                account_id: contaId,
+                media_type: mediaType,
+                media_url: url,
+                caption: caption ?? null,
+              },
+            },
+          });
+          return `Agendado para ${quando.toLocaleString("pt-BR")}`;
+        },
+      });
+      toast.success("Agendamento enviado para a fila");
+      onOpenChange(false);
+      return;
+    }
 
     enqueuePublish({
       channel: "instagram",
@@ -233,19 +317,16 @@ export function PromoSocialDialog({
       run: async () => {
         const { url } = (await render({ data: { card: cardSnapshot, format: f } })) as { url: string };
         await publish({
-          data: {
-            account_id: contaViaAir.id,
-            media_type: f === "story" ? "story_image" : "feed_image",
-            media_url: url,
-            caption,
-          },
+          data: { account_id: contaId, media_type: mediaType, media_url: url, caption },
         });
+        await marcarPublicado(promoId);
         return "Publicado";
       },
     });
     toast.success("Adicionado à fila de publicação");
     onOpenChange(false);
   }
+
 
   const abas: { key: Aba; label: string; icon: React.ReactNode; active: string }[] = [
     {
@@ -402,6 +483,13 @@ export function PromoSocialDialog({
               </p>
               <ListaDestinos titulo="Canais" Icon={Radio} itens={canais} sel={selecionados} onToggle={toggleDestino} />
               <ListaDestinos titulo="Grupos" Icon={Users} itens={grupos} sel={selecionados} onToggle={toggleDestino} />
+              <QuandoPublicar
+                modo={quandoWa}
+                setModo={setQuandoWa}
+                data={dataWa}
+                setData={setDataWa}
+                cor="#25D366"
+              />
               <div className="flex justify-end">
                 <button
                   type="button"
@@ -409,9 +497,11 @@ export function PromoSocialDialog({
                   disabled={busy !== null || selecionados.size === 0 || linkStatus === "loading"}
                   className="inline-flex items-center gap-2 rounded-lg bg-[#25D366] px-3 py-2 text-[11px] font-bold uppercase tracking-wide text-white transition-opacity hover:opacity-90 disabled:opacity-50"
                 >
-                  <Send className="h-3.5 w-3.5" /> Enviar agora
+                  {quandoWa === "agendar" ? <CalendarClock className="h-3.5 w-3.5" /> : <Send className="h-3.5 w-3.5" />}
+                  {quandoWa === "agendar" ? "Agendar envio" : "Enviar agora"}
                 </button>
               </div>
+
             </div>
           </div>
         )}
@@ -435,6 +525,7 @@ export function PromoSocialDialog({
                   <span className="text-[10px] text-muted-foreground">(story vai sempre sem legenda)</span>
                 )}
               </label>
+              <QuandoPublicar modo={quandoIg} setModo={setQuandoIg} data={dataIg} setData={setDataIg} cor="#E1306C" />
               <div className="flex justify-end">
                 <button
                   type="button"
@@ -442,9 +533,13 @@ export function PromoSocialDialog({
                   disabled={busy !== null || !card || linkStatus === "loading"}
                   className="inline-flex items-center gap-2 rounded-lg bg-[#E1306C] px-3 py-2 text-[11px] font-bold uppercase tracking-wide text-white transition-opacity hover:opacity-90 disabled:opacity-50"
                 >
-                  <Send className="h-3.5 w-3.5" /> Publicar agora
+                  {quandoIg === "agendar" ? <CalendarClock className="h-3.5 w-3.5" /> : <Send className="h-3.5 w-3.5" />}
+                  {quandoIg === "agendar"
+                    ? `Agendar ${format === "story" ? "story" : "feed"}`
+                    : `Publicar ${format === "story" ? "story" : "feed"} agora`}
                 </button>
               </div>
+
             </div>
             <TextoBloco
               titulo="Legenda do Instagram"
@@ -545,6 +640,48 @@ function ListaDestinos({
           );
         })}
       </div>
+    </div>
+  );
+}
+
+/** Escolha entre publicar imediatamente ou agendar data/hora. */
+function QuandoPublicar({
+  modo,
+  setModo,
+  data,
+  setData,
+  cor,
+}: {
+  modo: "agora" | "agendar";
+  setModo: (v: "agora" | "agendar") => void;
+  data: string;
+  setData: (v: string) => void;
+  cor: string;
+}) {
+  return (
+    <div className="space-y-2 rounded-lg border border-border bg-background/50 p-2.5">
+      <p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">Quando publicar</p>
+      <div className="flex gap-1.5">
+        {(["agora", "agendar"] as const).map((m) => (
+          <button
+            key={m}
+            type="button"
+            onClick={() => setModo(m)}
+            style={modo === m ? { borderColor: cor, color: cor, backgroundColor: `${cor}1a` } : undefined}
+            className="rounded-lg border border-border px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-muted-foreground transition-colors hover:text-foreground"
+          >
+            {m === "agora" ? "Publicar agora" : "Agendar"}
+          </button>
+        ))}
+      </div>
+      {modo === "agendar" && (
+        <input
+          type="datetime-local"
+          value={data}
+          onChange={(e) => setData(e.target.value)}
+          className="w-full rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs text-foreground outline-none focus:border-brand-orange"
+        />
+      )}
     </div>
   );
 }
