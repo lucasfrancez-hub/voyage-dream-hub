@@ -87,8 +87,8 @@ svg{display:block;width:100%;height:100%}
 .category-badge{display:inline-flex;align-items:center;padding:8px 14px;border-radius:10px;background:#ff861b;color:#fff;font-size:15px;font-weight:950;letter-spacing:1.5px;box-shadow:0 8px 20px rgba(0,0,0,.16)}
 .found-badge{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border-radius:10px;background:rgba(41,163,91,.20);border:1px solid rgba(74,222,128,.40);color:#dffbea;font-size:14px;font-weight:850;backdrop-filter:blur(12px) saturate(125%);-webkit-backdrop-filter:blur(12px) saturate(125%);box-shadow:inset 0 1px 0 rgba(255,255,255,.04),0 8px 20px rgba(0,0,0,.14)}
 .found-dot{width:8px;height:8px;border-radius:50%;background:#35d07f;box-shadow:0 0 10px rgba(53,208,127,.75)}
-.route-glass{display:inline-flex;flex-direction:column;gap:8px;margin-top:18px;padding:17px 22px;border-radius:18px;background:rgba(5,28,38,.58);border:1px solid rgba(255,255,255,.20);backdrop-filter:blur(20px) saturate(135%);-webkit-backdrop-filter:blur(20px) saturate(135%);box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 12px 32px rgba(0,0,0,.28);max-width:100%}
-.destination{font-weight:950;line-height:.90;text-transform:uppercase;letter-spacing:-2px;margin-bottom:24px;text-shadow:0 10px 28px rgba(0,0,0,.48),0 3px 6px rgba(0,0,0,.35)}
+.route-glass{display:inline-flex;flex-direction:column;gap:8px;margin-top:18px;padding:17px 22px;border-radius:18px;background:rgba(5,28,38,.34);border:1px solid rgba(255,255,255,.26);backdrop-filter:blur(28px) saturate(150%);-webkit-backdrop-filter:blur(28px) saturate(150%);box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 12px 32px rgba(0,0,0,.28);max-width:100%}
+.destination{font-weight:950;line-height:1.0;padding-top:.06em;text-transform:uppercase;letter-spacing:-2px;margin-bottom:24px;text-shadow:0 10px 28px rgba(0,0,0,.48),0 3px 6px rgba(0,0,0,.35)}
 .destination-one-line{display:flex;flex-direction:row;align-items:baseline;gap:.20em;white-space:nowrap;max-width:calc(100% - 48px);width:max-content;padding-right:8px;transform-origin:left center}
 .destination-one-line .dest-prefix{color:#fff}
 .destination-one-line .dest-highlight{color:var(--orange)}
@@ -97,14 +97,14 @@ svg{display:block;width:100%;height:100%}
 .route-city .arrow{color:var(--orange);font-size:28px;flex:none}
 .route-iata{font-size:21px;color:#c9d5db;margin-top:4px;letter-spacing:1.2px}
 .details{margin-top:38px;display:flex;flex-direction:column;align-items:flex-start;gap:12px}
-.detail-row{display:flex;align-items:center;gap:16px;background:rgba(4,26,36,.56);border:1px solid rgba(255,255,255,.16);border-radius:15px;padding:13px 18px;min-height:62px;max-width:100%;backdrop-filter:blur(16px) saturate(125%);-webkit-backdrop-filter:blur(16px) saturate(125%);box-shadow:inset 0 1px 0 rgba(255,255,255,.05),0 8px 24px rgba(0,0,0,.18)}
+.detail-row{display:flex;align-items:center;gap:16px;background:rgba(4,26,36,.32);border:1px solid rgba(255,255,255,.24);border-radius:15px;padding:13px 18px;min-height:62px;max-width:100%;backdrop-filter:blur(26px) saturate(150%);-webkit-backdrop-filter:blur(26px) saturate(150%);box-shadow:inset 0 1px 0 rgba(255,255,255,.05),0 8px 24px rgba(0,0,0,.18)}
 .detail-row .label{color:#b9c7ce;font-size:14px;text-transform:uppercase;letter-spacing:1px;flex:none}
 .detail-row .value{font-size:26px;font-weight:900;white-space:nowrap}
 .airline{display:flex;align-items:center;gap:10px}
 .airline-logo{width:46px;height:46px;border-radius:12px;background:#fff;display:grid;place-items:center;box-shadow:0 8px 20px rgba(0,0,0,.18);overflow:hidden;flex:none}
 .airline-logo img{width:38px;height:38px;object-fit:contain}
 .airline-iata{font-size:12px;color:var(--muted);font-weight:800;letter-spacing:1px}
-.price-box{position:absolute;background:rgba(10,12,13,.76);border:1px solid rgba(255,255,255,.16);border-radius:28px;backdrop-filter:blur(24px) saturate(125%);-webkit-backdrop-filter:blur(24px) saturate(125%);box-shadow:0 22px 55px rgba(0,0,0,.42),inset 0 1px 0 rgba(255,255,255,.08);overflow:hidden}
+.price-box{position:absolute;background:rgba(8,18,24,.42);border:1px solid rgba(255,255,255,.24);border-radius:28px;backdrop-filter:blur(34px) saturate(150%);-webkit-backdrop-filter:blur(34px) saturate(150%);box-shadow:0 22px 55px rgba(0,0,0,.42),inset 0 1px 0 rgba(255,255,255,.08);overflow:hidden}
 .price-top{color:#dbe3e7;text-transform:uppercase;letter-spacing:2.5px;font-size:16px;font-weight:900}
 .installments{display:flex;align-items:baseline;gap:8px;margin-top:6px;flex-wrap:wrap}
 .main-subtitle{font-size:17px;color:#e2eaee;margin-top:8px;margin-bottom:2px}
@@ -130,7 +130,7 @@ svg{display:block;width:100%;height:100%}
 const STORY_CSS = `
 .frame{width:1080px;height:1920px;padding:62px 58px}
 .logo-slot{width:520px;height:230px}
-.hero{margin-top:72px}.destination{font-size:154px;margin:12px 0 26px}
+.hero{margin-top:72px}.destination{font-size:154px;margin:34px 0 26px}
 .details{margin-top:40px}
 .detail-row{min-height:56px;padding:10px 15px}.detail-row .value{font-size:22px}
 .price-box{left:58px;right:58px;bottom:96px;padding:34px 36px}
@@ -147,7 +147,7 @@ const STORY_CSS = `
 
 const FEED_CSS = `
 .frame{width:1080px;height:1350px;padding:54px 58px}
-.hero{margin-top:46px}.destination{font-size:136px;margin:12px 0 24px}
+.hero{margin-top:46px}.destination{font-size:136px;margin:30px 0 24px}
 .details{margin-top:28px}
 .price-box{left:58px;right:58px;bottom:88px;padding:30px 32px}
 .installments .value{font-size:76px}
