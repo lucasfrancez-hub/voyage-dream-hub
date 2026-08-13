@@ -213,7 +213,7 @@ export const searchPromoOpportunity = createServerFn({ method: "POST" })
       adults: data.adults,
     });
     if (!row) throw new Error("Nenhuma tarifa encontrada no motor para esse trecho/data.");
-    return row;
+    return JSON.parse(JSON.stringify(row)) as Record<string, string | number | boolean | null | object>;
   });
 
 /** Salva um resultado da pesquisa manual como promoção da curadoria. */
@@ -224,7 +224,7 @@ export const savePromoOpportunity = createServerFn({ method: "POST" })
     await assertAdmin(context);
     const { error } = await context.supabase
       .from("airfare_promotions")
-      .upsert({ ...data.row, status: "novo" }, { onConflict: "signature" });
+      .upsert({ ...data.row, status: "novo" } as never, { onConflict: "signature" });
     if (error) throw new Error(error.message);
     return { ok: true };
   });
