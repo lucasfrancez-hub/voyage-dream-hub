@@ -9,7 +9,9 @@
  * Reaproveita o mesmo serviço já usado pela tela "Passagens Baratas"
  * (`melhores-destinos.server.ts`) — não existe segunda implementação.
  */
+import { scopeOfRoute } from "@/lib/br-airports";
 import {
+
   MAX_EXTRA_ORIGINS,
   PRIORITY_ORIGINS_HUB,
   PRIORITY_ORIGINS_NACIONAL,
