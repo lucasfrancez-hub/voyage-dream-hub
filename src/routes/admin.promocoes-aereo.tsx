@@ -631,8 +631,14 @@ function PromocoesAereoPage() {
   const promos = useMemo(() => {
     const iatas = atalhos[atalho]?.iatas ?? [];
     const rows = data as unknown as Promo[];
-    return iatas.length ? rows.filter((p) => iatas.includes(p.origin_iata)) : rows;
-  }, [data, atalho, atalhos]);
+    // Guarda de escopo: rota 100% brasileira nunca aparece em Internacionais
+    // (e vice-versa), mesmo que o registro antigo tenha vindo com scope errado.
+    const doEscopo = rows.filter(
+      (p) => scopeOfRoute(p.origin_iata, p.destination_iata) === aba,
+    );
+    return iatas.length ? doEscopo.filter((p) => iatas.includes(p.origin_iata)) : doEscopo;
+  }, [data, atalho, atalhos, aba]);
+
 
   const { data: run } = useQuery({
     queryKey: ["airfare-promo-run"],
