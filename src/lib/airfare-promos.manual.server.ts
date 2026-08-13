@@ -173,5 +173,8 @@ export async function saveManualOpportunity(
     referencePrice: ref,
     difference: ref != null ? Number((viaair - ref).toFixed(2)) : null,
     differencePercent: ref ? Number((((viaair - ref) / ref) * 100).toFixed(2)) : null,
+    originCity: orig.name,
+    destinationCity: dest.name,
+    unresolvedCities,
   };
 }
