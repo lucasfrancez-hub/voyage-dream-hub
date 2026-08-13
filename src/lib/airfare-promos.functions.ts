@@ -205,7 +205,7 @@ export const setPromotionStatus = createServerFn({ method: "POST" })
     z
       .object({
         id: z.string().uuid(),
-        status: z.enum(["novo", "selecionado", "publicado", "descartado"]),
+        status: z.enum(["novo", "selecionado", "agendado", "publicado", "descartado"]),
       })
       .parse(input),
   )
