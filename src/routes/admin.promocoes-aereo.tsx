@@ -20,7 +20,9 @@ import {
   Search,
   SlidersHorizontal,
   Sparkles,
+  X,
 } from "lucide-react";
+
 import { toast } from "sonner";
 import {
   generatePromotionLink,
