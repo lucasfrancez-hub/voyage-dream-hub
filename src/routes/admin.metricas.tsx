@@ -147,16 +147,16 @@ function MetricasPage() {
             Visitas, navegação, cliques, região, tempo de permanência e desempenho dos links curtos.
           </p>
         </div>
-        <div className="ml-auto flex flex-wrap gap-1.5">
+        <div className="ml-auto flex w-full gap-1 rounded-lg border border-border bg-muted/30 p-1 sm:w-auto">
           {PERIODOS.map((p) => (
             <button
               key={p.dias}
               type="button"
               onClick={() => setDias(p.dias)}
-              className={`rounded-full border px-3 py-1.5 text-xs transition ${
+              className={`flex-1 rounded-md px-3 py-1.5 text-xs font-medium transition sm:flex-none ${
                 dias === p.dias
-                  ? "border-brand-orange bg-brand-orange/10 text-brand-orange"
-                  : "border-border hover:border-brand-orange/60"
+                  ? "bg-brand-orange text-white shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
               }`}
             >
               {p.label}
@@ -164,6 +164,10 @@ function MetricasPage() {
           ))}
         </div>
       </div>
+      <p className="mt-3 rounded-xl border border-border bg-muted/20 px-4 py-2.5 text-[11px] text-muted-foreground">
+        Considera apenas o tráfego público do site. Acessos internos (admin, chat, usuários logados)
+        e o ambiente de teste/preview são ignorados.
+      </p>
 
       <div className="mt-5 inline-flex rounded-full border border-border bg-muted/40 p-1">
         {(["site", "links"] as const).map((k) => (
