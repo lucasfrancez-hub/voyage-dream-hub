@@ -763,17 +763,24 @@ async function archivePromotions(
 ): Promise<number> {
   let sel = client
     .from("airfare_promotions")
-    .select("id,cycle_day")
+    .select("id,cycle_day,quoted_at,created_at")
     .is("archived_at", null);
   if (beforeDay) sel = sel.or(`cycle_day.is.null,cycle_day.lt.${beforeDay}`);
   const { data } = await sel;
-  const rows = (data ?? []) as Array<{ id: string; cycle_day: string | null }>;
+  const rows = (data ?? []) as Array<{
+    id: string;
+    cycle_day: string | null;
+    quoted_at: string | null;
+    created_at: string | null;
+  }>;
   if (!rows.length) return 0;
 
   // agrupa por dia de curadoria para preservar a data original no histórico
+  // (sem cycle_day, usa a data da cotação como referência do ciclo)
   const porDia = new Map<string | null, string[]>();
   for (const r of rows) {
-    const k = r.cycle_day ?? null;
+    const base = r.quoted_at ?? r.created_at;
+    const k = r.cycle_day ?? (base ? curationDayBRT(new Date(base)) : null);
     porDia.set(k, [...(porDia.get(k) ?? []), r.id]);
   }
   let ok = 0;
