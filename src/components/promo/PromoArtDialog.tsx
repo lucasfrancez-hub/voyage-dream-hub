@@ -7,14 +7,19 @@ import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
+  ChevronLeft,
+  ChevronRight,
+  Download,
   Image as ImageIcon,
   Instagram,
+  Link as LinkIcon,
   Loader2,
   MessageCircle,
   Pencil,
   RefreshCw,
   X,
 } from "lucide-react";
+
 
 import { toast } from "sonner";
 import {
@@ -154,20 +159,40 @@ export function PromoArtDialog({ promo, onClose }: { promo: PromoRow & { id: str
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const outroFormato: PromoCardFormat = format === "feed" ? "story" : "feed";
+  const copiarLink = async () => {
+    let url = arte[format];
+    if (!url) {
+      try {
+        url = ((await render({ data: { card: card!, format } })) as { url: string }).url;
+        setArte((a) => ({ ...a, [format]: url }));
+      } catch (e) {
+        toast.error((e as Error).message);
+        return;
+      }
+    }
+    await navigator.clipboard.writeText(url!);
+    toast.success("Link da arte copiado");
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-background/80 p-4 backdrop-blur-2xl">
-      <div className="my-6 w-full max-w-6xl overflow-hidden rounded-3xl border border-border/70 bg-card/95 shadow-2xl">
+      <div
+        className={`my-6 w-full overflow-hidden rounded-[32px] border border-border/70 bg-card/95 shadow-2xl ${
+          editando ? "max-w-5xl" : "max-w-[420px]"
+        }`}
+      >
         {/* Cabeçalho */}
         <div className="flex items-center justify-between border-b border-border/50 px-6 py-4">
           <div className="flex items-center gap-3">
-            <span className="rounded-xl bg-brand-orange/10 p-2.5">
-              <ImageIcon className="h-5 w-5 text-brand-orange" />
+            <span className="rounded-lg bg-brand-orange/15 p-2">
+              <ImageIcon className="h-4 w-4 text-brand-orange" />
             </span>
-            <div>
-              <h2 className="text-lg font-black uppercase tracking-tight">Gerar arte de promoção</h2>
-              <p className="text-[11px] text-muted-foreground">
-                {promo.origin_city ?? promo.origin_iata} → {promo.destination_city ?? promo.destination_iata} •{" "}
-                {promo.origin_iata}–{promo.destination_iata}
+            <div className="leading-tight">
+              <h2 className="text-[11px] font-black uppercase tracking-[0.1em]">Gerar arte</h2>
+              <p className="text-[10px] text-muted-foreground">
+                {promo.origin_iata} → {promo.destination_iata} •{" "}
+                {promo.destination_city ?? promo.destination_iata}
               </p>
             </div>
           </div>
@@ -182,104 +207,135 @@ export function PromoArtDialog({ promo, onClose }: { promo: PromoRow & { id: str
           </p>
         ) : (
           <div className={`grid ${editando ? "lg:grid-cols-[1fr_400px]" : "grid-cols-1"}`}>
-            {/* Palco do preview */}
-            <div className="flex flex-col items-center gap-6 bg-background/60 p-8">
-              <div className="flex w-full max-w-[460px] items-center justify-between gap-3">
-                <div className="flex rounded-xl border border-border/60 bg-card/60 p-1">
-                  {(["feed", "story"] as PromoCardFormat[]).map((f) => (
-                    <button
-                      key={f}
-                      type="button"
-                      onClick={() => setFormat(f)}
-                      className={`rounded-lg px-4 py-2 text-[10px] font-black uppercase tracking-widest transition ${
-                        format === f ? "bg-brand-orange text-white shadow-lg shadow-brand-orange/20" : "text-muted-foreground"
-                      }`}
-                    >
-                      {f === "feed" ? "Feed 4:5" : "Story 9:16"}
-                    </button>
-                  ))}
+            {/* Palco do preview — retângulo justo */}
+            <div className="flex flex-col">
+              <div className="group relative w-full bg-black">
+                <div
+                  className="relative mx-auto overflow-hidden"
+                  style={{ width: size.w * scale, height: size.h * scale }}
+                >
+                  <iframe
+                    key={previewUrl}
+                    src={previewUrl}
+                    title="Preview do card"
+                    scrolling="no"
+                    style={{
+                      width: size.w,
+                      height: size.h,
+                      border: 0,
+                      transform: `scale(${scale})`,
+                      transformOrigin: "top left",
+                    }}
+                  />
                 </div>
+
+                {/* Setinhas discretas para alternar formato */}
                 <button
                   type="button"
-                  onClick={() => setEditando((v) => !v)}
-                  className={`inline-flex items-center gap-2 rounded-xl border px-4 py-2 text-[10px] font-black uppercase tracking-widest transition ${
-                    editando
-                      ? "border-brand-orange bg-brand-orange/10 text-brand-orange"
-                      : "border-border/60 hover:bg-foreground/5"
-                  }`}
+                  onClick={() => setFormat(outroFormato)}
+                  title={outroFormato === "feed" ? "Feed 4:5" : "Story 9:16"}
+                  className="absolute left-4 top-1/2 z-20 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full border border-white/10 bg-black/40 text-white opacity-0 backdrop-blur-md transition group-hover:opacity-100 hover:bg-black/60"
                 >
-                  <Pencil className="h-3.5 w-3.5 text-brand-orange" />
-                  {editando ? "Fechar edição" : "Alterar"}
+                  <ChevronLeft className="h-4 w-4" />
                 </button>
+                <button
+                  type="button"
+                  onClick={() => setFormat(outroFormato)}
+                  title={outroFormato === "feed" ? "Feed 4:5" : "Story 9:16"}
+                  className="absolute right-4 top-1/2 z-20 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full border border-white/10 bg-black/40 text-white opacity-0 backdrop-blur-md transition group-hover:opacity-100 hover:bg-black/60"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+
+                <span className="absolute left-6 top-6 z-20 rounded-full bg-brand-orange px-3 py-1 text-[9px] font-black tracking-widest text-white">
+                  {format === "feed" ? "FEED 4:5" : "STORY 9:16"}
+                </span>
+
+                <div className="absolute bottom-6 left-1/2 z-20 -translate-x-1/2">
+                  <button
+                    type="button"
+                    onClick={() => setEditando((v) => !v)}
+                    className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/70 px-5 py-2.5 text-[10px] font-bold text-white shadow-xl backdrop-blur-xl transition hover:bg-black"
+                  >
+                    <Pencil className="h-3.5 w-3.5 text-brand-orange" />
+                    {editando ? "FECHAR EDIÇÃO" : "ALTERAR ARTE"}
+                  </button>
+                </div>
               </div>
 
-              <div
-                className="overflow-hidden rounded-2xl border border-border/60 bg-black shadow-[0_40px_100px_rgba(0,0,0,0.5)]"
-                style={{ width: size.w * scale, height: size.h * scale }}
-              >
-                <iframe
-                  key={previewUrl}
-                  src={previewUrl}
-                  title="Preview do card"
-                  scrolling="no"
-                  style={{
-                    width: size.w,
-                    height: size.h,
-                    border: 0,
-                    transform: `scale(${scale})`,
-                    transformOrigin: "top left",
-                  }}
-                />
-              </div>
+              {/* Ações — só ícones redondos */}
+              <div className="flex flex-col items-center gap-5 px-8 py-7">
+                <div className="flex items-center justify-center gap-5">
+                  <button
+                    type="button"
+                    title="Enviar no WhatsApp"
+                    onClick={() => whatsapp.mutate()}
+                    disabled={whatsapp.isPending}
+                    className="flex h-14 w-14 items-center justify-center rounded-full border border-[#25D366]/20 bg-[#25D366]/10 text-[#25D366] shadow-lg transition hover:scale-110 hover:bg-[#25D366] hover:text-white active:scale-95 disabled:opacity-60"
+                  >
+                    {whatsapp.isPending ? (
+                      <Loader2 className="h-6 w-6 animate-spin" />
+                    ) : (
+                      <MessageCircle className="h-6 w-6" />
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    title="Publicar no Instagram"
+                    onClick={() => publicar.mutate()}
+                    disabled={publicar.isPending}
+                    className="flex h-14 w-14 items-center justify-center rounded-full border border-[#E1306C]/20 bg-[#E1306C]/10 text-[#E1306C] shadow-lg transition hover:scale-110 hover:bg-[#E1306C] hover:text-white active:scale-95 disabled:opacity-60"
+                  >
+                    {publicar.isPending ? (
+                      <Loader2 className="h-6 w-6 animate-spin" />
+                    ) : (
+                      <Instagram className="h-6 w-6" />
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    title="Copiar link da arte"
+                    onClick={copiarLink}
+                    className="flex h-14 w-14 items-center justify-center rounded-full border border-border/60 bg-foreground/5 text-muted-foreground shadow-lg transition hover:scale-110 hover:bg-foreground/10 hover:text-foreground active:scale-95"
+                  >
+                    <LinkIcon className="h-5 w-5" />
+                  </button>
+                  <button
+                    type="button"
+                    title={`Gerar e baixar ${format === "feed" ? "Feed 1080×1350" : "Story 1080×1920"}`}
+                    onClick={() => gerar.mutate(format)}
+                    disabled={gerar.isPending}
+                    className="flex h-14 w-14 items-center justify-center rounded-full bg-brand-orange text-white shadow-[0_0_20px_rgba(242,107,31,0.4)] transition hover:scale-110 hover:brightness-110 active:scale-95 disabled:opacity-60"
+                  >
+                    {gerar.isPending ? (
+                      <Loader2 className="h-6 w-6 animate-spin" />
+                    ) : (
+                      <Download className="h-6 w-6" />
+                    )}
+                  </button>
+                </div>
 
-              <div className="flex w-full max-w-[520px] flex-wrap items-center justify-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => gerar.mutate("feed")}
-                  disabled={gerar.isPending}
-                  className="inline-flex items-center gap-2 rounded-full border border-border/70 px-4 py-2 text-xs font-bold hover:bg-foreground/5 disabled:opacity-50"
-                >
-                  {gerar.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImageIcon className="h-4 w-4" />}
-                  Gerar Feed
-                </button>
-                <button
-                  type="button"
-                  onClick={() => gerar.mutate("story")}
-                  disabled={gerar.isPending}
-                  className="inline-flex items-center gap-2 rounded-full border border-border/70 px-4 py-2 text-xs font-bold hover:bg-foreground/5 disabled:opacity-50"
-                >
-                  <ImageIcon className="h-4 w-4" /> Gerar Story
-                </button>
-                <button
-                  type="button"
-                  onClick={() => publicar.mutate()}
-                  disabled={publicar.isPending}
-                  className="inline-flex items-center gap-2 rounded-full bg-brand-orange px-4 py-2 text-xs font-bold text-white shadow-lg shadow-brand-orange/20 disabled:opacity-60"
-                >
-                  {publicar.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Instagram className="h-4 w-4" />}
-                  Publicar Instagram
-                </button>
-                <button
-                  type="button"
-                  onClick={() => whatsapp.mutate()}
-                  disabled={whatsapp.isPending}
-                  className="inline-flex items-center gap-2 rounded-full border border-border/70 px-4 py-2 text-xs font-bold hover:bg-foreground/5 disabled:opacity-50"
-                >
-                  {whatsapp.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <MessageCircle className="h-4 w-4" />}
-                  Enviar WhatsApp
-                </button>
+                {arte[format] ? (
+                  <a
+                    href={arte[format]!}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary underline"
+                  >
+                    Abrir PNG {format === "feed" ? "1080×1350" : "1080×1920"}
+                  </a>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <span className="h-1 w-1 rounded-full bg-brand-orange/50" />
+                    <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
+                      Publicação instantânea
+                    </span>
+                    <span className="h-1 w-1 rounded-full bg-brand-orange/50" />
+                  </div>
+                )}
               </div>
-              {arte[format] ? (
-                <a
-                  href={arte[format]!}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-[11px] font-semibold text-primary underline"
-                >
-                  Abrir PNG {format === "feed" ? "1080×1350" : "1080×1920"}
-                </a>
-              ) : null}
             </div>
+
 
             {/* Campos editáveis */}
             {editando ? (
