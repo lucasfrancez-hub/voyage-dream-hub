@@ -11,8 +11,8 @@ export function PublishQueueButton() {
     <Popover>
       <PopoverTrigger
         className="relative inline-flex h-8 w-8 items-center justify-center rounded-full border border-border text-muted-foreground transition-colors hover:border-brand-orange hover:text-brand-orange"
-        title="Fila de publicação"
-        aria-label="Fila de publicação"
+        title="Fila"
+        aria-label="Fila"
       >
         {ativos > 0 ? <Loader2 className="h-3.5 w-3.5 animate-spin text-brand-orange" /> : <ListChecks className="h-3.5 w-3.5" />}
         {(ativos > 0 || erros > 0) && (
@@ -27,7 +27,7 @@ export function PublishQueueButton() {
       </PopoverTrigger>
       <PopoverContent align="end" className="w-80 p-0">
         <div className="flex items-center justify-between border-b border-border px-3 py-2">
-          <span className="text-sm font-medium">Fila de publicação</span>
+          <span className="text-sm font-medium">Fila</span>
           {jobs.some((j) => j.status === "done" || j.status === "error") && (
             <button
               type="button"
@@ -41,7 +41,7 @@ export function PublishQueueButton() {
         <div className="max-h-80 overflow-y-auto p-2">
           {jobs.length === 0 ? (
             <p className="px-2 py-6 text-center text-xs text-muted-foreground">
-              Nada na fila. Ao clicar em enviar/publicar, o item aparece aqui com o progresso.
+              Nada na fila. Ao salvar, enviar ou publicar, o item aparece aqui com o progresso.
             </p>
           ) : (
             <ul className="space-y-1">
@@ -59,7 +59,7 @@ export function PublishQueueButton() {
                       {job.status === "error"
                         ? job.error
                         : job.status === "running"
-                          ? "Publicando…"
+                          ? (job.detail ?? (job.channel === "promocao" ? "Processando…" : "Publicando…"))
                           : job.status === "queued"
                             ? "Na fila"
                             : (job.detail ?? "Concluído")}

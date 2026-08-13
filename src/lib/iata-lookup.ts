@@ -45,6 +45,15 @@ const METRO_CITIES: Record<string, { c: string; co?: string }> = {
   SPU: { c: "Split", co: "Croácia" },
 };
 
+/**
+ * Código metropolitano (SAO, RIO...) — representa a cidade, não o aeroporto.
+ * A pesquisa precisa marcar `isCity` e depois gravar o aeroporto real.
+ */
+export function isMetroCode(code: string | null | undefined): boolean {
+  const k = (code ?? "").trim().toUpperCase();
+  return k.length === 3 && k in METRO_CITIES;
+}
+
 export type ResolvedCity = {
   /** Nome comercial da cidade (ou o próprio código quando desconhecido). */
   name: string;

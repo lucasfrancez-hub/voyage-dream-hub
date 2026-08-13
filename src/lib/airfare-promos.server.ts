@@ -15,7 +15,7 @@ import {
   type MarkupTable,
 } from "@/lib/airfare-conditions";
 import type { OriginMetrics } from "@/lib/airfare-promos.config";
-import { resolveCity } from "@/lib/iata-lookup";
+import { isMetroCode, resolveCity } from "@/lib/iata-lookup";
 import { searchFlights, searchInboundFlights } from "@/lib/onertravel.server";
 import { flightHasBaggage, type OnerFlight } from "@/lib/onertravel.types";
 
@@ -96,6 +96,23 @@ export function buildPromotionRow(args: {
   const air = airlineOf(out);
   const airIn = inb ? airlineOf(inb) : null;
 
+  // Código metropolitano (SAO/RIO...) é cidade, não aeroporto: gravamos o
+  // aeroporto realmente encontrado na pesquisa (CGH, GRU, SDU, GIG...).
+  const segOut = out.journey?.segments ?? [];
+  const partida = out.journey?.departure ?? segOut[0]?.departure;
+  const chegada = out.journey?.destination ?? segOut[segOut.length - 1]?.destination;
+  const originIata = isMetroCode(route.origin_iata)
+    ? (partida?.iata?.toUpperCase() ?? route.origin_iata)
+    : route.origin_iata;
+  const destinationIata = isMetroCode(route.destination_iata)
+    ? (chegada?.iata?.toUpperCase() ?? route.destination_iata)
+    : route.destination_iata;
+  const originCity = resolveCity(route.origin_iata, route.origin_city ?? partida?.city).name;
+  const destinationCity = resolveCity(
+    route.destination_iata,
+    route.destination_city ?? chegada?.city,
+  ).name;
+
   const quotes = buildExtendedQuotes(total, markups);
   const extendedOptions = quotesToExtendedOptions(quotes);
 
@@ -110,17 +127,17 @@ export function buildPromotionRow(args: {
 
   const row = {
     signature: promoSignature({
-      origin_iata: route.origin_iata,
-      destination_iata: route.destination_iata,
+      origin_iata: originIata,
+      destination_iata: destinationIata,
       departure_date: args.departureDate,
       return_date: args.returnDate,
       airline_iata: air?.iata ?? null,
     }),
     scope: route.scope,
-    origin_iata: route.origin_iata,
-    origin_city: resolveCity(route.origin_iata, route.origin_city).name,
-    destination_iata: route.destination_iata,
-    destination_city: resolveCity(route.destination_iata, route.destination_city).name,
+    origin_iata: originIata,
+    origin_city: originCity,
+    destination_iata: destinationIata,
+    destination_city: destinationCity,
     airline_iata: air?.iata ?? null,
     airline_name: air?.name ?? null,
     airline_logo: air?.pathLogo ?? null,
@@ -199,8 +216,9 @@ export async function quoteRoute(args: {
     children: 0,
     infants: 0,
     pageSize: 20,
-    departureIsCity: false,
-    arrivalIsCity: false,
+    // SAO/RIO... são cidades: o motor precisa varrer todos os aeroportos.
+    departureIsCity: isMetroCode(route.origin_iata),
+    arrivalIsCity: isMetroCode(route.destination_iata),
     filters: {
       containsDispatchBaggage: false,
       maxStops: 2,

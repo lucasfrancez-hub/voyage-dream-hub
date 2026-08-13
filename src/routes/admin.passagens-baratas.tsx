@@ -30,6 +30,7 @@ import { explorarPassagensMdPublic as explorarPassagensMd, buscarOrigensMdPublic
 import { viaairFlightUrl, nomeCompanhia } from "@/lib/melhores-destinos.parse";
 import { imagemRegiao } from "@/lib/regiao-imagens";
 import { salvarOportunidadePassagensBaratas } from "@/lib/airfare-promos.functions";
+import { enqueuePublish } from "@/lib/publish-queue";
 
 
 export const Route = createFileRoute("/admin/passagens-baratas")({
@@ -59,64 +60,59 @@ function SalvarPromocaoButton({
   referencia: number | null;
 }) {
   const salvar = useServerFn(salvarOportunidadePassagensBaratas);
-  const [estado, setEstado] = useState<"idle" | "loading" | "saved">("idle");
+  const [estado, setEstado] = useState<"idle" | "queued">("idle");
 
-  const onClick = async () => {
+  // Não prende a tela: a cotação no motor roda na Fila, em segundo plano.
+  const onClick = () => {
     if (estado !== "idle") return;
-    setEstado("loading");
-    try {
-      const r = await salvar({
-        data: {
-          origin: origem,
-          destination: destino,
-          departureDate: ida,
-          returnDate: volta,
-          referencePrice: referencia ?? null,
-        },
-      });
-      if (!r.ok) {
-        setEstado("idle");
-        toast.error("Tarifa não encontrada no motor VIA AIR");
-        return;
-      }
-      setEstado("saved");
-      const dif =
-        r.difference != null
-          ? ` (referência ${brl(r.referencePrice ?? 0)} · ${r.difference >= 0 ? "+" : ""}${brl(r.difference)})`
-          : "";
-      toast.success(
-        `${r.created ? "Promoção salva" : "Promoção existente atualizada"}: ${r.originCity} → ${r.destinationCity} • ${brl(r.totalPrice)}${dif}`,
-      );
-      if (r.unresolvedCities.length) {
-        toast.warning(
-          `Cidade não reconhecida para ${r.unresolvedCities.join(", ")} — confira o nome antes de divulgar.`,
+    setEstado("queued");
+    enqueuePublish({
+      label: `Salvar promoção ${origem} → ${destino}`,
+      channel: "promocao",
+      detail: "Cotando no motor VIA AIR…",
+      run: async () => {
+        const r = await salvar({
+          data: {
+            origin: origem,
+            destination: destino,
+            departureDate: ida,
+            returnDate: volta,
+            referencePrice: referencia ?? null,
+          },
+        });
+        if (!r.ok) {
+          toast.error(`Tarifa não encontrada no motor VIA AIR: ${origem} → ${destino}`);
+          throw new Error("Tarifa não encontrada no motor VIA AIR");
+        }
+        const dif =
+          r.difference != null
+            ? ` (referência ${brl(r.referencePrice ?? 0)} · ${r.difference >= 0 ? "+" : ""}${brl(r.difference)})`
+            : "";
+        toast.success(
+          `${r.created ? "Promoção salva" : "Promoção existente atualizada"}: ${r.originCity} → ${r.destinationCity} • ${brl(r.totalPrice)}${dif}`,
         );
-      }
-    } catch (e) {
-      setEstado("idle");
-      toast.error(e instanceof Error ? e.message : "Falha ao salvar promoção");
-    }
+        if (r.unresolvedCities.length) {
+          toast.warning(
+            `Cidade não reconhecida para ${r.unresolvedCities.join(", ")} — confira o nome antes de divulgar.`,
+          );
+        }
+        return `${r.originCity} → ${r.destinationCity} • ${brl(r.totalPrice)}`;
+      },
+    });
+    toast.info("Enviado para a Fila — pode continuar navegando.");
   };
 
-  if (estado === "saved") {
+  if (estado === "queued") {
     return (
       <Button size="sm" variant="outline" disabled className="text-emerald-600">
-        <Check className="mr-1 h-3.5 w-3.5" /> Salvo
+        <Check className="mr-1 h-3.5 w-3.5" /> Na fila
       </Button>
     );
   }
 
   return (
-    <Button size="sm" variant="outline" onClick={onClick} disabled={estado === "loading"}>
-      {estado === "loading" ? (
-        <>
-          <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" /> Verificando no motor VIA AIR...
-        </>
-      ) : (
-        <>
-          <BookmarkPlus className="mr-1 h-3.5 w-3.5" /> Salvar
-        </>
-      )}
+    <Button size="sm" variant="outline" onClick={onClick}>
+      <BookmarkPlus className="mr-1 h-3.5 w-3.5" /> Salvar
     </Button>
   );
 }

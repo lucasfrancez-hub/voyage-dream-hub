@@ -6,7 +6,7 @@ export type PublishJob = {
   id: string;
   label: string;
   /** canal de destino, só para exibição */
-  channel: "whatsapp" | "instagram";
+  channel: "whatsapp" | "instagram" | "promocao";
   status: PublishJobStatus;
   detail?: string;
   error?: string;
