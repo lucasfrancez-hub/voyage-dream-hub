@@ -258,6 +258,7 @@ function PromoCard({
   onStatus,
   onArt,
   onSocial,
+  onDelete,
   busy,
 }: {
   promo: Promo;
@@ -266,6 +267,7 @@ function PromoCard({
   onStatus: (s: string) => void;
   onArt: () => void;
   onSocial: (canal: "whatsapp" | "instagram") => void;
+  onDelete: () => void;
   busy: boolean;
 }) {
   const semJuros =
