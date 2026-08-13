@@ -370,6 +370,37 @@ export async function collectAirfarePromotions(opts?: {
   const temposPorOrigem = new Map<string, number[]>();
   const porAssinatura = new Map(candidatas.map((c) => [c.signature, c]));
 
+  const metricaDe = (origem: string): Metrics => {
+    let m = metricasPorOrigem.get(origem);
+    if (!m) {
+      m = {
+        origin: origem,
+        discovered: 0,
+        deduped: 0,
+        selected: 0,
+        validated: 0,
+        with_price: 0,
+        no_result: 0,
+        errors: 0,
+        avg_seconds: null,
+      };
+      metricasPorOrigem.set(origem, m);
+    }
+    return m;
+  };
+
+  const registrarTempo = (origem: string, ms: number) => {
+    const lista = temposPorOrigem.get(origem) ?? [];
+    lista.push(ms);
+    temposPorOrigem.set(origem, lista);
+    const m = metricaDe(origem);
+    m.avg_seconds = Number((lista.reduce((a, b) => a + b, 0) / lista.length / 1000).toFixed(1));
+  };
+
+  const metricasSnapshot = () =>
+    [...metricasPorOrigem.values()].sort((a, b) => a.origin.localeCompare(b.origin));
+
+
 
   // 2) FALLBACK: rotas monitoradas manualmente (complementares, nunca a fonte única)
   try {
@@ -453,36 +484,6 @@ export async function collectAirfarePromotions(opts?: {
       /* best-effort */
     }
   };
-
-  const metricaDe = (origem: string): Metrics => {
-    let m = metricasPorOrigem.get(origem);
-    if (!m) {
-      m = {
-        origin: origem,
-        discovered: 0,
-        deduped: 0,
-        selected: 0,
-        validated: 0,
-        with_price: 0,
-        no_result: 0,
-        errors: 0,
-        avg_seconds: null,
-      };
-      metricasPorOrigem.set(origem, m);
-    }
-    return m;
-  };
-
-  const registrarTempo = (origem: string, ms: number) => {
-    const lista = temposPorOrigem.get(origem) ?? [];
-    lista.push(ms);
-    temposPorOrigem.set(origem, lista);
-    const m = metricaDe(origem);
-    m.avg_seconds = Number((lista.reduce((a, b) => a + b, 0) / lista.length / 1000).toFixed(1));
-  };
-
-  const metricasSnapshot = () =>
-    [...metricasPorOrigem.values()].sort((a, b) => a.origin.localeCompare(b.origin));
 
   const assinaturasValidadas = new Set<string>();
   const oportunidadesTocadas = new Set<string>();
