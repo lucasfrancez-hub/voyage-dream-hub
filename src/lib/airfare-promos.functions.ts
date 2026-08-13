@@ -159,8 +159,10 @@ export const runAirfarePromoCollection = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertAdmin(context);
     const { startPromoRun } = await import("@/lib/airfare-promos.server");
-    const run = await startPromoRun("manual");
-    if (!run) return { started: false as const, reason: "Já existe uma coleta em andamento." };
+    // "Atualizar agora" = rodada COMPLETA e nova: encerra corretamente
+    // qualquer run anterior (inclusive travada) antes de começar.
+    const run = await startPromoRun("manual", { force: true });
+    if (!run) return { started: false as const, reason: "Não foi possível iniciar a coleta." };
 
     const payload = JSON.stringify({ runId: run.id, maxRoutes: data.maxRoutes ?? 14 });
     const url = hookUrl();
