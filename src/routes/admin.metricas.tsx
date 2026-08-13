@@ -228,17 +228,17 @@ function MetricasPage() {
             </section>
 
             <div className="grid gap-4 lg:grid-cols-2">
-              <Lista titulo="Como chegaram (origem)" itens={s.origens} icone={<Globe2 className="h-3.5 w-3.5" />} />
-              <Lista titulo="Páginas de entrada" itens={s.entradasPagina} />
-              <Lista titulo="Páginas mais vistas" itens={s.paginas} />
-              <Lista titulo="Mais clicado" itens={s.cliquesTop} icone={<MousePointerClick className="h-3.5 w-3.5" />} />
-              <Lista titulo="Estados / regiões" itens={s.regioes} />
-              <Lista titulo="Cidades" itens={s.cidades} />
-              <Lista titulo="Países" itens={s.paises} />
-              <Lista titulo="Dispositivos" itens={s.dispositivos} icone={<Smartphone className="h-3.5 w-3.5" />} />
-              <Lista titulo="Navegadores" itens={s.navegadores} />
-              <Lista titulo="Sistemas" itens={s.sistemas} />
-              <Lista titulo="Campanhas (utm)" itens={s.campanhas} />
+              <Lista titulo="Como chegaram (origem)" descricao="De onde veio o acesso: link direto, busca, redes ou link curto." itens={s.origens} icone={<Globe2 className="h-3.5 w-3.5" />} />
+              <Lista titulo="Páginas de entrada" descricao="Primeira página aberta em cada visita." itens={s.entradasPagina} />
+              <Lista titulo="Páginas mais vistas" descricao="Total de visualizações por página." itens={s.paginas} />
+              <Lista titulo="Mais clicado" descricao="Botões e links mais acionados." itens={s.cliquesTop} icone={<MousePointerClick className="h-3.5 w-3.5" />} />
+              <Lista titulo="Estados / regiões" descricao="Estado aproximado de quem acessou." itens={s.regioes} />
+              <Lista titulo="Cidades" descricao="Cidade aproximada de quem acessou." itens={s.cidades} />
+              <Lista titulo="Países" descricao="País de origem do acesso." itens={s.paises} />
+              <Lista titulo="Dispositivos" descricao="Celular, tablet ou computador." itens={s.dispositivos} icone={<Smartphone className="h-3.5 w-3.5" />} />
+              <Lista titulo="Navegadores" descricao="Navegador utilizado no acesso." itens={s.navegadores} />
+              <Lista titulo="Sistemas" descricao="Sistema operacional do visitante." itens={s.sistemas} />
+              <Lista titulo="Campanhas (UTM)" descricao="Acessos marcados com parâmetros de campanha." itens={s.campanhas} />
             </div>
           </div>
         ) : null
