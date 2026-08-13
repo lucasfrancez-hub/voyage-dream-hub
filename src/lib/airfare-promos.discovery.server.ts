@@ -351,23 +351,27 @@ export async function discoverCandidates(opts?: {
     }
   });
 
-  // Tudo que entrou no pool até aqui veio do Melhores Destinos.
+  // Tudo que entrou no pool até aqui veio do Melhores Destinos (ao vivo ou do
+  // cache compartilhado com o Passagens Baratas).
   radarLeads = [...pool.values()].reduce((acc, m) => acc + m.size, 0);
-  const radarAvailable = radarLeads > 0 && mdRadarAvailable();
+  const fonteViva = mdRadarAvailable();
+  const radarAvailable = radarLeads > 0;
   progresso(
     radarAvailable
-      ? `Curadoria em andamento — ${radarLeads} oportunidades descobertas`
-      : "Radar temporariamente indisponível — promoções anteriores preservadas",
+      ? fonteViva
+        ? `Curadoria em andamento — ${radarLeads} oportunidades descobertas`
+        : `Fonte bloqueada — curadoria com ${radarLeads} oportunidades já coletadas`
+      : "Radar indisponível e sem dados coletados — promoções anteriores preservadas",
   );
 
   // ------------------------------------------------------------------
   // 1c) COBERTURA MÍNIMA — complemento CONTROLADO. Só entra se o radar
-  //     respondeu nesta execução; se o MD estiver fora do ar, a coleta não
-  //     é preenchida artificialmente com sementes.
+  //     respondeu AO VIVO nesta execução; com a fonte bloqueada a coleta
+  //     não é preenchida artificialmente com sementes.
   // ------------------------------------------------------------------
   let fallbackCount = 0;
   const MAX_FALLBACK_SEEDS = Math.min(4, Math.floor(radarLeads * 0.15));
-  if (radarAvailable) {
+  if (radarAvailable && fonteViva) {
     for (const seed of PRIORITY_SEEDS) {
       if (fallbackCount >= MAX_FALLBACK_SEEDS) break;
       if ((pool.get(seed.origin)?.size ?? 0) > 0) continue;
