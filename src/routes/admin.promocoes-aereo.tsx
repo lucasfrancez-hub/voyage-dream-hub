@@ -873,6 +873,17 @@ function PromocoesAereoPage() {
     return iatas.length ? doEscopo.filter((p) => iatas.includes(p.origin_iata)) : doEscopo;
   }, [data, atalho, atalhos, aba]);
 
+  const listarAgendados = useServerFn(listarPublicacoesAgendadas);
+  const { data: agendados = [] } = useQuery({
+    queryKey: ["social-scheduled-posts"],
+    queryFn: () => listarAgendados(),
+    refetchInterval: 60_000,
+  });
+  const agendaPorPromo = useMemo(
+    () => agruparAgendamentosPorPromo(agendados as unknown as AgendamentoSocial[]),
+    [agendados],
+  );
+
 
 
 
