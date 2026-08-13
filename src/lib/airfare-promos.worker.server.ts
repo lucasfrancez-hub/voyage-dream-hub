@@ -56,6 +56,58 @@ function opportunityKey(p: { origin_iata: string; destination_iata: string; depa
   return `${p.origin_iata}|${p.destination_iata}|${p.departure_date}`.toUpperCase();
 }
 
+/** Dia da curadoria (America/Sao_Paulo) — a comparação NOVA/ALTERADA é sempre do mesmo dia. */
+export function curationDay(d = new Date()): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo" }).format(d);
+}
+
+export type CycleState = "new" | "changed" | "unchanged";
+
+type ComparableFare = {
+  total_price: number | string;
+  airline_iata: string | null;
+  outbound_fare_id: string | null;
+  inbound_fare_id?: string | null;
+  outbound_itinerary_id?: string | null;
+  inbound_itinerary_id?: string | null;
+  stops?: number | null;
+  has_checked_baggage?: boolean | null;
+  interest_free_installments?: number | null;
+  interest_free_installment_value?: number | string | null;
+};
+
+/**
+ * Alterações comerciais relevantes entre a promoção que já estava na curadoria
+ * do dia e a tarifa revalidada agora. Retorna os campos que mudaram.
+ */
+export function diffFare(antes: ComparableFare, agora: ComparableFare): string[] {
+  const campos: string[] = [];
+  const num = (v: unknown) => (v == null ? null : Number(Number(v).toFixed(2)));
+
+  if (num(antes.total_price) !== num(agora.total_price)) campos.push("price");
+  if ((antes.airline_iata ?? null) !== (agora.airline_iata ?? null)) campos.push("airline");
+  if (
+    (antes.outbound_fare_id ?? null) !== (agora.outbound_fare_id ?? null) ||
+    (antes.inbound_fare_id ?? null) !== (agora.inbound_fare_id ?? null)
+  )
+    campos.push("fare_id");
+  if (
+    (antes.outbound_itinerary_id ?? null) !== (agora.outbound_itinerary_id ?? null) ||
+    (antes.inbound_itinerary_id ?? null) !== (agora.inbound_itinerary_id ?? null)
+  )
+    campos.push("flight");
+  if ((antes.stops ?? null) !== (agora.stops ?? null)) campos.push("connection");
+  if (!!antes.has_checked_baggage !== !!agora.has_checked_baggage) campos.push("baggage");
+  if (
+    (antes.interest_free_installments ?? null) !== (agora.interest_free_installments ?? null) ||
+    num(antes.interest_free_installment_value) !== num(agora.interest_free_installment_value)
+  )
+    campos.push("installment");
+
+  return campos;
+}
+
+
 async function db(): Promise<AnyClient> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   return supabaseAdmin as unknown as AnyClient;
