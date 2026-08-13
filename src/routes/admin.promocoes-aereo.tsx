@@ -131,25 +131,39 @@ function ComparativoReferencia({ promo }: { promo: Promo }) {
   const abaixo = diff > 0;
 
   return (
-    <div className="mt-2 border-t border-border/50 pt-2 text-[10px] leading-relaxed text-muted-foreground">
-      <div>Referência Melhores Destinos: {brl(ref)}</div>
+    <div className="rounded-lg border border-border/60 bg-muted/20 p-3">
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <span className="text-[11px] font-bold uppercase tracking-tight text-muted-foreground">
+          Ref. Melhores Destinos
+        </span>
+        <span className="text-xs font-bold text-foreground">{brl(ref)}</span>
+      </div>
       {igual ? (
-        <div className="font-bold text-muted-foreground">Mesmo valor da referência</div>
+        <div className="text-xs font-bold text-muted-foreground">Mesmo valor da referência</div>
       ) : (
-        <div className={`font-bold ${abaixo ? "text-emerald-500" : "text-amber-500"}`}>
-          {abaixo ? "↓" : "↑"} {brl(Math.abs(diff))} • {Math.abs(pct).toFixed(1).replace(".", ",")}%{" "}
-          {abaixo ? "abaixo" : "acima"} da referência
+        <div className="flex items-center gap-2">
+          <span className={`text-xs font-bold ${abaixo ? "text-emerald-500" : "text-amber-500"}`}>
+            {abaixo ? "−" : "+"} {brl(Math.abs(diff))}
+          </span>
+          <span
+            className={`rounded px-1.5 py-0.5 text-[10px] font-bold ${
+              abaixo ? "bg-emerald-500/10 text-emerald-500" : "bg-amber-500/10 text-amber-500"
+            }`}
+          >
+            {Math.abs(pct).toFixed(1).replace(".", ",")}% {abaixo ? "ABAIXO" : "ACIMA"}
+          </span>
         </div>
       )}
-      {promo.reference_collected_at ? (
-        <div className="opacity-70">Referência MD coletada: {horaBR(promo.reference_collected_at)}</div>
-      ) : null}
-      <div className="opacity-70">
-        Preço VIA AIR validado: {horaBR(promo.quoted_at ?? promo.last_checked_at)}
+      <div className="mt-2 grid grid-cols-2 gap-2 text-[9px] font-medium uppercase text-muted-foreground/80">
+        <div>{promo.reference_collected_at ? `Ref. coletada: ${horaBR(promo.reference_collected_at)}` : ""}</div>
+        <div className="text-right italic">
+          Validado: {horaBR(promo.quoted_at ?? promo.last_checked_at)}
+        </div>
       </div>
     </div>
   );
 }
+
 
 /** Próxima coleta automática (06:00 e 12:00 BRT). */
 function proximaColeta() {
