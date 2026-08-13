@@ -42,28 +42,43 @@ const SIZES: Record<PromoCardFormat, { w: number; h: number }> = {
   story: { w: 1080, h: 1920 },
 };
 
+const inputCls =
+  "mt-1.5 w-full rounded-lg border border-border/60 bg-background/60 px-3 py-2 text-sm text-foreground outline-none transition focus:border-brand-orange/70 focus:ring-2 focus:ring-brand-orange/20";
+const labelCls = "block text-[11px] font-medium text-muted-foreground";
+
 function Field({
   label,
   value,
   onChange,
   type = "text",
+  className = "",
 }: {
   label: string;
   value: string | number;
   onChange: (v: string) => void;
   type?: string;
+  className?: string;
 }) {
   return (
-    <label className="block">
-      <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{label}</span>
+    <label className={`block ${className}`}>
+      <span className={labelCls}>{label}</span>
       <input
         type={type}
         step="0.01"
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="mt-1 w-full rounded-lg border border-border/60 bg-transparent px-2.5 py-1.5 text-sm"
+        className={inputCls}
       />
     </label>
+  );
+}
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <section className="space-y-3">
+      <h3 className="text-[10px] font-black uppercase tracking-[0.18em] text-muted-foreground/80">{title}</h3>
+      {children}
+    </section>
   );
 }
 
