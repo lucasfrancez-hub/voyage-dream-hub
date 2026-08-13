@@ -15,6 +15,7 @@ import {
   Instagram,
   Link2,
   Loader2,
+  CalendarClock,
   MessageCircle,
   Plane,
   RefreshCw,
@@ -46,6 +47,13 @@ import { ArquivadosDialog } from "@/components/promocoes/ArquivadosDialog";
 import { promoInstagramText, promoWhatsappText, type PromoRow } from "@/lib/airfare-promo-text";
 import { PromoArtDialog } from "@/components/promo/PromoArtDialog";
 import { PromoSocialDialog } from "@/components/promo/PromoSocialDialog";
+import { listarPublicacoesAgendadas } from "@/lib/social-schedule.functions";
+import {
+  agendamentoCanal,
+  agendamentoQuando,
+  agruparAgendamentosPorPromo,
+  type AgendamentoSocial,
+} from "@/lib/social-schedule-format";
 import { scopeOfRoute } from "@/lib/br-airports";
 import { isOriginAllowedForScope } from "@/lib/airfare-promos.config";
 
@@ -287,6 +295,7 @@ function IconBtn({
 
 function PromoCard({
   promo,
+  agendamentos = [],
   onRefresh,
   onLink,
   onStatus,
@@ -296,6 +305,7 @@ function PromoCard({
   busy,
 }: {
   promo: Promo;
+  agendamentos?: AgendamentoSocial[];
   onRefresh: () => void;
   onLink: () => void;
   onStatus: (s: string) => void;
@@ -374,7 +384,24 @@ function PromoCard({
             </span>
           </div>
         ) : null}
+
+        {agendamentos.length ? (
+          <div className="mt-3 space-y-1.5 rounded-xl border border-violet-500/30 bg-violet-500/10 p-3">
+            {agendamentos.map((a) => (
+              <div key={a.id} className="flex items-start gap-2 text-[11px] leading-snug">
+                <CalendarClock className="mt-[1px] h-3.5 w-3.5 shrink-0 text-violet-400" />
+                <span className="min-w-0">
+                  <span className="font-semibold text-violet-300">
+                    Agendado para {agendamentoQuando(a.scheduled_at)}
+                  </span>
+                  <span className="block truncate text-muted-foreground">{agendamentoCanal(a)}</span>
+                </span>
+              </div>
+            ))}
+          </div>
+        ) : null}
       </div>
+
 
       {/* Informações do voo */}
       <div className="flex flex-col gap-3 px-5 pb-5">
@@ -846,6 +873,17 @@ function PromocoesAereoPage() {
     return iatas.length ? doEscopo.filter((p) => iatas.includes(p.origin_iata)) : doEscopo;
   }, [data, atalho, atalhos, aba]);
 
+  const listarAgendados = useServerFn(listarPublicacoesAgendadas);
+  const { data: agendados = [] } = useQuery({
+    queryKey: ["social-scheduled-posts"],
+    queryFn: () => listarAgendados(),
+    refetchInterval: 60_000,
+  });
+  const agendaPorPromo = useMemo(
+    () => agruparAgendamentosPorPromo(agendados as unknown as AgendamentoSocial[]),
+    [agendados],
+  );
+
 
 
 
@@ -1256,6 +1294,7 @@ function PromocoesAereoPage() {
                 key={promo.id}
                 promo={promo}
                 busy={busyId === promo.id}
+                agendamentos={agendaPorPromo.get(promo.id) ?? []}
                 onArt={() => setArtPromo(promo)}
                 onSocial={(canal) => {
                   setSocialCanal(canal);

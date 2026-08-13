@@ -20,7 +20,17 @@ import {
 import { WhatsAppIcon } from "@/components/packages/PackageSocialDialog";
 import { buildPromoCard, renderPromoCard } from "@/lib/promo-card.functions";
 import { generatePromotionLink, setPromotionStatus } from "@/lib/airfare-promos.functions";
-import { agendarPublicacaoSocial } from "@/lib/social-schedule.functions";
+import {
+  agendarPublicacaoSocial,
+  cancelarPublicacaoAgendada,
+  listarPublicacoesAgendadas,
+} from "@/lib/social-schedule.functions";
+import {
+  agendamentoCanal,
+  agendamentoQuando,
+  agruparAgendamentosPorPromo,
+  type AgendamentoSocial,
+} from "@/lib/social-schedule-format";
 import { listInstagramAccounts, publishInstagramFromUrl } from "@/lib/instagram/queries.functions";
 import { listDestinos, enviarPacoteWhatsapp } from "@/lib/broadcast/broadcast.functions";
 import { fetchProxiedImage } from "@/lib/image-proxy.functions";
@@ -86,11 +96,40 @@ export function PromoSocialDialog({
     if (open) setAba(initialChannel);
   }, [open, initialChannel]);
 
+  /* Agendamentos já criados para esta promoção */
+  const listarAgendadosFn = useServerFn(listarPublicacoesAgendadas);
+  const cancelarAgendadoFn = useServerFn(cancelarPublicacaoAgendada);
+  const { data: agendados = [] } = useQuery({
+    queryKey: ["social-scheduled-posts"],
+    queryFn: () => listarAgendadosFn(),
+    enabled: open,
+  });
+  const agendamentosDaPromo = useMemo<AgendamentoSocial[]>(() => {
+    if (!promo) return [];
+    return agruparAgendamentosPorPromo(agendados as unknown as AgendamentoSocial[]).get(promo.id) ?? [];
+  }, [agendados, promo]);
+  const nomesDestinos = useMemo(
+    () => new Map(destinos.map((d) => [d.id, d.nome ?? "destino"])),
+    [destinos],
+  );
+
+  async function cancelarAgendamento(id: string) {
+    try {
+      await cancelarAgendadoFn({ data: { id } });
+      void queryClient.invalidateQueries({ queryKey: ["social-scheduled-posts"] });
+      void queryClient.invalidateQueries({ queryKey: ["airfare-promos"] });
+      toast.success("Agendamento cancelado");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Não foi possível cancelar");
+    }
+  }
+
   /** Atualiza o status da promoção e recarrega a lista. */
   async function marcarStatus(id: string, novo: "publicado" | "agendado") {
     try {
       await setStatusFn({ data: { id, status: novo } });
       void queryClient.invalidateQueries({ queryKey: ["airfare-promos"] });
+      void queryClient.invalidateQueries({ queryKey: ["social-scheduled-posts"] });
     } catch {
       /* status é secundário ao envio */
     }
@@ -384,6 +423,37 @@ export function PromoSocialDialog({
             </button>
           ))}
         </div>
+
+        {/* Agendamentos já criados para esta promoção */}
+        {agendamentosDaPromo.length ? (
+          <div className="space-y-2 rounded-xl border border-violet-500/30 bg-violet-500/10 p-3">
+            <p className="text-[10px] font-black uppercase tracking-widest text-violet-300">
+              Agendamentos ativos
+            </p>
+            {agendamentosDaPromo.map((a) => (
+              <div key={a.id} className="flex items-start justify-between gap-2 text-[11px]">
+                <span className="flex min-w-0 items-start gap-2">
+                  <CalendarClock className="mt-[1px] h-3.5 w-3.5 shrink-0 text-violet-400" />
+                  <span className="min-w-0">
+                    <span className="block font-semibold text-violet-200">
+                      Agendado para {agendamentoQuando(a.scheduled_at)}
+                    </span>
+                    <span className="block truncate text-muted-foreground">
+                      {agendamentoCanal(a, nomesDestinos)}
+                    </span>
+                  </span>
+                </span>
+                <button
+                  type="button"
+                  onClick={() => cancelarAgendamento(a.id)}
+                  className="shrink-0 rounded-md border border-border/60 px-2 py-0.5 text-[10px] font-bold uppercase text-muted-foreground transition hover:text-destructive"
+                >
+                  Cancelar
+                </button>
+              </div>
+            ))}
+          </div>
+        ) : null}
 
         {/* Status do link da oferta */}
         <div
