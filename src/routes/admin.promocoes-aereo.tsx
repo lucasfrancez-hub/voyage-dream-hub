@@ -88,6 +88,45 @@ function validadoEm(iso?: string | null) {
   return dia === hoje ? `hoje às ${hora}` : `${dia} às ${hora}`;
 }
 
+
+/**
+ * Comparativo administrativo: preço de referência do Melhores Destinos x preço
+ * validado no motor VIA AIR. Serve só para auditoria da curadoria — a referência
+ * NUNCA vai para feed, story, WhatsApp, Instagram, arte ou página pública.
+ *
+ * diferença = preço MD − preço VIA AIR  (positivo = estamos abaixo da referência)
+ */
+function ComparativoReferencia({ promo }: { promo: Promo }) {
+  const ref = promo.reference_price != null ? Number(promo.reference_price) : null;
+  if (!ref || ref <= 0) return null;
+
+  const viaair = Number(promo.total_price ?? 0);
+  const diff = ref - viaair;
+  const pct = (diff / ref) * 100;
+  const igual = Math.abs(diff) < 0.5 || Math.abs(pct) < 0.5;
+  const abaixo = diff > 0;
+
+  return (
+    <div className="mt-2 border-t border-border/50 pt-2 text-[10px] leading-relaxed text-muted-foreground">
+      <div>Referência Melhores Destinos: {brl(ref)}</div>
+      {igual ? (
+        <div className="font-bold text-muted-foreground">Mesmo valor da referência</div>
+      ) : (
+        <div className={`font-bold ${abaixo ? "text-emerald-500" : "text-amber-500"}`}>
+          {abaixo ? "↓" : "↑"} {brl(Math.abs(diff))} • {Math.abs(pct).toFixed(1).replace(".", ",")}%{" "}
+          {abaixo ? "abaixo" : "acima"} da referência
+        </div>
+      )}
+      {promo.reference_collected_at ? (
+        <div className="opacity-70">Referência MD coletada: {horaBR(promo.reference_collected_at)}</div>
+      ) : null}
+      <div className="opacity-70">
+        Preço VIA AIR validado: {horaBR(promo.quoted_at ?? promo.last_checked_at)}
+      </div>
+    </div>
+  );
+}
+
 /** Próxima coleta automática (06:00 e 12:00 BRT). */
 function proximaColeta() {
   const agoraBRT = new Date(new Date().toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));
