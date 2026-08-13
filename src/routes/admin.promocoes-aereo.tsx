@@ -26,6 +26,7 @@ import {
 import { toast } from "sonner";
 import {
   generatePromotionLink,
+  cancelAirfarePromoCollection,
   getAirfarePromoRun,
   listAirfarePromotions,
   listInstallmentMarkups,
@@ -683,6 +684,7 @@ function PromocoesAereoPage() {
   const list = useServerFn(listAirfarePromotions);
   const collect = useServerFn(runAirfarePromoCollection);
   const runStatus = useServerFn(getAirfarePromoRun);
+  const cancelColeta = useServerFn(cancelAirfarePromoCollection);
   const refreshOne = useServerFn(refreshAirfarePromotion);
   const genLink = useServerFn(generatePromotionLink);
   const status = useServerFn(setPromotionStatus);
@@ -746,10 +748,16 @@ function PromocoesAereoPage() {
     queryKey: ["airfare-promo-run"],
     queryFn: () => runStatus(),
     refetchInterval: (q) =>
-      (q.state.data as { status?: string } | null)?.status === "running" ? 5000 : 60000,
+      ["running", "cancel_requested"].includes(
+        (q.state.data as { status?: string } | null)?.status ?? "",
+      )
+        ? 5000
+        : 60000,
   });
 
-  const rodando = (run as { status?: string } | null)?.status === "running";
+  const runStatusValue = (run as { status?: string } | null)?.status ?? "";
+  const cancelando = runStatusValue === "cancel_requested";
+  const rodando = runStatusValue === "running" || cancelando;
 
   useEffect(() => {
     if (!rodando && run) qc.invalidateQueries({ queryKey: ["airfare-promos"] });
@@ -775,6 +783,14 @@ function PromocoesAereoPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const cancelar = useMutation({
+    mutationFn: () => cancelColeta(),
+    onSuccess: () => {
+      toast.success("Cancelamento solicitado. O que já foi validado continua salvo.");
+      qc.invalidateQueries({ queryKey: ["airfare-promo-run"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
 
   const acao = async (id: string, fn: () => Promise<unknown>, msg: string) => {
     setBusyId(id);
@@ -820,6 +836,7 @@ function PromocoesAereoPage() {
     last_label: string | null;
     started_at: string;
     finished_at: string | null;
+    cancelled_at?: string | null;
   };
   const pct = info && info.total > 0 ? Math.min(100, Math.round((info.processed / info.total) * 100)) : null;
 
@@ -854,25 +871,47 @@ function PromocoesAereoPage() {
         </button>
       </header>
 
+      {/* Atualização cancelada */}
+      {!rodando && info?.status === "cancelada" && info.cancelled_at ? (
+        <p className="mt-3 rounded-xl border border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+          Atualização cancelada às {desde(info.cancelled_at)} — o que já havia sido validado foi mantido.
+        </p>
+      ) : null}
+
       {/* Status da coleta */}
       {rodando && info ? (
         <div className="mt-4 rounded-2xl border border-brand-orange/40 bg-brand-orange/5 p-3">
           <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
             <span className="inline-flex items-center gap-2 font-bold text-brand-orange">
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              {info.phase === "descobrindo"
-                ? "Procurando oportunidades…"
-                : info.phase === "expirando"
-                  ? "Conferindo ofertas que saíram do ar…"
-                  : "Validando no motor VIA AIR…"}
+              {cancelando
+                ? "Cancelando atualização…"
+                : info.phase === "descobrindo"
+                  ? "Buscando novas oportunidades no radar…"
+                  : info.phase === "curadoria"
+                    ? "Curadoria concluída — preparando candidatas…"
+                    : info.phase === "expirando"
+                      ? "Conferindo ofertas que saíram do ar…"
+                      : info.total > 0
+                        ? `Validando ${Math.min(info.processed + 1, info.total)} de ${info.total} no motor VIA AIR…`
+                        : "Preparando as oportunidades…"}
             </span>
-            <span className="text-muted-foreground">
-              {desde(info.started_at) ? `Em andamento desde ${desde(info.started_at)} • ` : ""}
-              {info.total > 0
-                ? `${info.processed} de ${info.total} oportunidades verificadas`
-                : "Preparando as oportunidades…"}
+            <span className="flex items-center gap-2 text-muted-foreground">
+              <span>
+                {desde(info.started_at) ? `Em andamento desde ${desde(info.started_at)} • ` : ""}
+                {info.total > 0
+                  ? `${info.processed} de ${info.total} oportunidades verificadas`
+                  : "Preparando as oportunidades…"}
+              </span>
+              <button
+                type="button"
+                onClick={() => cancelar.mutate()}
+                disabled={cancelar.isPending || cancelando}
+                className="rounded-lg border border-destructive/50 px-2 py-1 text-[11px] font-bold text-destructive disabled:opacity-60"
+              >
+                {cancelando ? "Cancelando…" : "Cancelar atualização"}
+              </button>
             </span>
-
           </div>
           <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-border/60">
             {pct === null ? (

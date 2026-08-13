@@ -10,7 +10,13 @@
  * credencial de servidor (service role).
  */
 import type { OriginMetrics } from "@/lib/airfare-promos.config";
-import { buildPromotionRow, loadMarkups, quoteRoute } from "@/lib/airfare-promos.server";
+import {
+  buildPromotionRow,
+  CANDIDATE_TIMEOUT_MS,
+  loadMarkups,
+  quoteRoute,
+  withTimeout,
+} from "@/lib/airfare-promos.server";
 import type { MarkupTable } from "@/lib/airfare-conditions";
 
 type AnyClient = { from: (t: string) => any };
@@ -455,14 +461,35 @@ export async function processPendingCandidates(args: {
   };
 
   let processadasAgora = 0;
+  let cancelada = false;
+
+  /** Cancelamento cooperativo: consultado ANTES de reivindicar cada candidata. */
+  const cancelamentoPedido = async () => {
+    try {
+      const { data } = await client
+        .from("airfare_promo_runs")
+        .select("status")
+        .eq("id", runId)
+        .maybeSingle();
+      const st = (data as { status?: string } | null)?.status;
+      return !st || st !== "running";
+    } catch {
+      return false;
+    }
+  };
 
   const worker = async () => {
     while (Date.now() < deadline) {
+      if (cancelada || (await cancelamentoPedido())) {
+        cancelada = true;
+        return;
+      }
       const cand = await claimNext();
       if (!cand) return;
       let label = "";
       try {
-        label = await processar(cand);
+        // nenhuma consulta ao motor pode prender a coleta indefinidamente
+        label = await withTimeout(processar(cand), CANDIDATE_TIMEOUT_MS, "candidata");
       } catch (err) {
         counters.error_count++;
         label = `${cand.origin_iata}→${cand.destination_iata}`;
@@ -492,6 +519,12 @@ export async function processPendingCandidates(args: {
   };
 
   await Promise.all(Array.from({ length: concurrency }, () => worker()));
+
+  if (cancelada) {
+    await touch({ ...counters, origin_metrics: metricasSnapshot() });
+    await finalizeCancelledRun(runId);
+    return { processed: processadasAgora, remaining: 0, finished: true };
+  }
 
   const { count: pendentes } = await client
     .from("airfare_promo_candidates")
@@ -605,16 +638,44 @@ export async function finalizePromoRun(
 }
 
 /**
+ * Encerra de fato uma execução cancelada (libera a trava global).
+ * Nada do que já foi validado é apagado.
+ */
+export async function finalizeCancelledRun(runId: string) {
+  const client = await db();
+  const now = new Date().toISOString();
+  await client
+    .from("airfare_promo_candidates")
+    .update({ status: "cancelled", processed_at: now })
+    .eq("run_id", runId)
+    .in("status", ["pending", "processing"]);
+  await client
+    .from("airfare_promo_runs")
+    .update({
+      status: "cancelada",
+      phase: "cancelada",
+      cancelled_at: now,
+      finished_at: now,
+      updated_at: now,
+    })
+    .eq("id", runId);
+  return { cancelled: true as const, at: now };
+}
+
+/** Descoberta parada por mais que isso é retomada pelo worker. */
+const DISCOVERY_STALE_MS = 4 * 60 * 1000;
+
+/**
  * Retoma qualquer execução em andamento (chamado pelo cron a cada minuto).
- * Se a execução estiver parada há muito tempo sem candidatas pendentes,
- * é encerrada para não travar a próxima coleta.
+ * Também retoma a DESCOBERTA quando a invocação que a iniciou morreu,
+ * e conclui execuções com cancelamento pedido.
  */
 export async function resumeActiveRun(budgetMs = WORKER_BUDGET_MS) {
   const client = await db();
   const { data: run } = await client
     .from("airfare_promo_runs")
-    .select("id,phase,updated_at")
-    .eq("status", "running")
+    .select("id,phase,status,updated_at")
+    .in("status", ["running", "cancel_requested"])
     .order("started_at", { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -630,10 +691,28 @@ export async function resumeActiveRun(budgetMs = WORKER_BUDGET_MS) {
   const pendentes = Number(count ?? 0);
   const parada = Date.now() - new Date(run.updated_at).getTime();
 
+  if (run.status === "cancel_requested") {
+    if (pendentes === 0 || parada > CLAIM_STALE_MS) {
+      await finalizeCancelledRun(run.id);
+      return { resumed: false as const, reason: "cancelada" };
+    }
+    return { resumed: false as const, reason: "cancelando" };
+  }
+
   if (pendentes === 0) {
-    // fase de descoberta ainda rodando: não interferir
-    if (run.phase === "descobrindo" && parada < RUN_STALE_MS) {
-      return { resumed: false as const, reason: "descobrindo" };
+    if (run.phase === "descobrindo") {
+      // a descoberta ainda está viva (heartbeat recente): não interferir
+      if (parada < DISCOVERY_STALE_MS) {
+        return { resumed: false as const, reason: "descobrindo" };
+      }
+      // a invocação que fazia a descoberta morreu: refazer aqui, no backend
+      const { collectAirfarePromotions } = await import("@/lib/airfare-promos.server");
+      const res = await collectAirfarePromotions({ runId: run.id, budgetMs });
+      return { resumed: true as const, runId: run.id, reason: "descoberta_retomada", ...res };
+    }
+    if (parada < RUN_STALE_MS && run.phase === "validando") {
+      // lote em andamento em outra invocação
+      if (parada < 90_000) return { resumed: false as const, reason: "validando" };
     }
     await finalizePromoRun(run.id);
     return { resumed: false as const, reason: "finalizada" };

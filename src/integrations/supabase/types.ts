@@ -303,6 +303,8 @@ export type Database = {
       }
       airfare_promo_runs: {
         Row: {
+          cancel_requested_at: string | null
+          cancelled_at: string | null
           deduped: number
           discovered: number
           discovered_raw: number
@@ -327,6 +329,8 @@ export type Database = {
           validated: number
         }
         Insert: {
+          cancel_requested_at?: string | null
+          cancelled_at?: string | null
           deduped?: number
           discovered?: number
           discovered_raw?: number
@@ -351,6 +355,8 @@ export type Database = {
           validated?: number
         }
         Update: {
+          cancel_requested_at?: string | null
+          cancelled_at?: string | null
           deduped?: number
           discovered?: number
           discovered_raw?: number

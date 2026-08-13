@@ -159,6 +159,28 @@ export function buildPromotionRow(args: {
   return row;
 }
 
+/** Timeout duro por chamada ao motor (nenhuma consulta prende a coleta). */
+export const ENGINE_CALL_TIMEOUT_MS = 60_000;
+
+/** Timeout total por candidata (ida + volta + gravação). */
+export const CANDIDATE_TIMEOUT_MS = 100_000;
+
+export function withTimeout<T>(p: Promise<T>, ms: number, label: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const t = setTimeout(() => reject(new Error(`timeout:${label}:${ms}ms`)), ms);
+    p.then(
+      (v) => {
+        clearTimeout(t);
+        resolve(v);
+      },
+      (e) => {
+        clearTimeout(t);
+        reject(e);
+      },
+    );
+  });
+}
+
 /** Pesquisa uma rota/data e devolve a melhor oportunidade (ou null). */
 export async function quoteRoute(args: {
   route: PromoRoute;
@@ -190,19 +212,27 @@ export async function quoteRoute(args: {
     },
   };
 
-  const res = await searchFlights({ ...base, returnDate } as never);
+  const res = await withTimeout(
+    searchFlights({ ...base, returnDate } as never),
+    ENGINE_CALL_TIMEOUT_MS,
+    "ida",
+  );
   const out = [...(res.outbound?.flights ?? [])].sort((a, b) => a.price.total - b.price.total)[0];
   if (!out) return null;
 
   let inb: OnerFlight | null = null;
   if (returnDate) {
     try {
-      const back = await searchInboundFlights({
-        ...base,
-        returnDate,
-        searchKey: res.searchKey,
-        flightKey: out.key,
-      } as never);
+      const back = await withTimeout(
+        searchInboundFlights({
+          ...base,
+          returnDate,
+          searchKey: res.searchKey,
+          flightKey: out.key,
+        } as never),
+        ENGINE_CALL_TIMEOUT_MS,
+        "volta",
+      );
       inb =
         [...(back.flights ?? [])].sort((a, b) => a.price.total - b.price.total)[0] ?? null;
     } catch {
@@ -224,34 +254,104 @@ export async function quoteRoute(args: {
 /** Considera travada/abandonada uma execução parada há mais de 45 minutos. */
 const RUN_STALE_MS = 45 * 60 * 1000;
 
-/** Cria a execução (trava global). Devolve null se já existe uma ativa. */
-export async function startPromoRun(trigger: "manual" | "cron"): Promise<{ id: string } | null> {
+/** Status considerados "execução viva". */
+export const ACTIVE_RUN_STATUSES = ["running", "cancel_requested"] as const;
+
+/**
+ * CANCELAMENTO COOPERATIVO — running → cancel_requested → cancelada.
+ * Nada é apagado: o que já foi validado permanece na curadoria.
+ */
+export async function requestPromoRunCancel(runId?: string) {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const db = supabaseAdmin as unknown as AnyClient;
+  const now = new Date().toISOString();
+
+  let alvo = runId;
+  if (!alvo) {
+    const { data } = await db
+      .from("airfare_promo_runs")
+      .select("id")
+      .in("status", ACTIVE_RUN_STATUSES as unknown as string[])
+      .order("started_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    alvo = (data as { id?: string } | null)?.id;
+  }
+  if (!alvo) return { cancelled: false as const, reason: "sem_coleta_ativa" };
+
+  await db
+    .from("airfare_promo_runs")
+    .update({ status: "cancel_requested", cancel_requested_at: now, updated_at: now })
+    .eq("id", alvo)
+    .in("status", ACTIVE_RUN_STATUSES as unknown as string[]);
+
+  // candidatas ainda na fila são encerradas de imediato (as em processamento
+  // terminam com segurança e o worker para antes de pegar novas)
+  await db
+    .from("airfare_promo_candidates")
+    .update({ status: "cancelled", processed_at: now })
+    .eq("run_id", alvo)
+    .eq("status", "pending");
+
+  const { count } = await db
+    .from("airfare_promo_candidates")
+    .select("id", { count: "exact", head: true })
+    .eq("run_id", alvo)
+    .eq("status", "processing");
+
+  if (!Number(count ?? 0)) {
+    const { finalizeCancelledRun } = await import("@/lib/airfare-promos.worker.server");
+    await finalizeCancelledRun(alvo);
+  }
+
+  return { cancelled: true as const, runId: alvo };
+}
+
+/**
+ * Cria a execução (trava global). Devolve null se já existe uma ativa.
+ * `force` (botão "Atualizar agora") encerra corretamente a run anterior
+ * antes de começar uma rodada COMPLETA e nova.
+ */
+export async function startPromoRun(
+  trigger: "manual" | "cron",
+  opts?: { force?: boolean },
+): Promise<{ id: string } | null> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const db = supabaseAdmin as unknown as AnyClient;
 
-  const { data: active } = await db
+  const { data: ativas } = await db
     .from("airfare_promo_runs")
-    .select("id,updated_at")
-    .eq("status", "running")
-    .maybeSingle();
+    .select("id,updated_at,status")
+    .in("status", ACTIVE_RUN_STATUSES as unknown as string[])
+    .order("started_at", { ascending: false });
 
-  if (active) {
+  for (const active of (ativas ?? []) as Array<{ id: string; updated_at: string }>) {
     const idle = Date.now() - new Date(active.updated_at).getTime();
-    if (idle < RUN_STALE_MS) return null;
+    if (!opts?.force && idle < RUN_STALE_MS) return null;
+    const now = new Date().toISOString();
     await db
       .from("airfare_promo_runs")
       .update({
-        status: "error",
-        error_message: "Execução interrompida (sem atualização)",
-        finished_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
+        status: "cancelada",
+        phase: "cancelada",
+        cancelled_at: now,
+        error_message: opts?.force
+          ? "Encerrada por nova atualização manual"
+          : "Execução interrompida (sem atualização)",
+        finished_at: now,
+        updated_at: now,
       })
       .eq("id", active.id);
+    await db
+      .from("airfare_promo_candidates")
+      .update({ status: "cancelled", processed_at: now })
+      .eq("run_id", active.id)
+      .in("status", ["pending", "processing"]);
   }
 
   const { data, error } = await db
     .from("airfare_promo_runs")
-    .insert({ status: "running", trigger })
+    .insert({ status: "running", trigger, phase: "descobrindo" })
     .select("id")
     .maybeSingle();
   if (error || !data) return null;
@@ -353,9 +453,24 @@ export async function collectAirfarePromotions(opts?: {
 
   await touch({ phase: "descobrindo", total: 0, processed: 0, saved: 0 });
 
+  // heartbeat: enquanto o radar roda, a execução continua "viva" para o worker
+  const batimento = setInterval(() => {
+    void touch({ phase: "descobrindo" });
+  }, 20_000);
+
   // 1) RADAR: oportunidades do Melhores Destinos (descoberta ilimitada,
   //    seleção de até N por origem — ver airfare-promos.config.ts)
-  const descoberta = await discoverCandidates({ maxCandidates: opts?.maxCandidates ?? 600 });
+  let descoberta: Awaited<ReturnType<typeof discoverCandidates>>;
+  try {
+    descoberta = await discoverCandidates({ maxCandidates: opts?.maxCandidates ?? 600 });
+  } finally {
+    clearInterval(batimento);
+  }
+  await touch({
+    phase: "curadoria",
+    discovered_raw: descoberta.discoveredTotal,
+    deduped: descoberta.dedupedTotal,
+  });
   const candidatas = descoberta.candidates;
   const metricasPorOrigem = new Map<string, Metrics>(
     descoberta.metrics.map((m) => [m.origin, { ...m }]),
