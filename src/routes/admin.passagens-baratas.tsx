@@ -905,9 +905,105 @@ export function PassagensBaratasExplorer({
             </Card>
           )}
 
+          {/* Mobile: cada opção de voo vira um cartão (a tabela não cabe na tela) */}
           {data.dates.length > 0 && (
-            <Card className="overflow-hidden rounded-2xl shadow-2xl">
+            <div className="space-y-3 md:hidden">
+              {data.dates.map((o, i) => (
+                <Card
+                  key={`m-${o.departDate}-${o.returnDate}-${o.price}`}
+                  className={`rounded-2xl p-4 ${i === 0 ? "border-primary/40" : ""}`}
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex min-w-0 items-center gap-2">
+                      {o.airlineLogo ? (
+                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white p-1">
+                          <img
+                            src={o.airlineLogo}
+                            alt={nomeCompanhia(o.airline) ?? "Companhia"}
+                            className="max-h-full max-w-full"
+                          />
+                        </span>
+                      ) : null}
+                      <span className="truncate text-xs font-bold">
+                        {nomeCompanhia(o.airline) ?? "—"}
+                      </span>
+                    </div>
+                    <div className="shrink-0 text-right">
+                      <div className={`text-lg font-black ${i === 0 ? "text-primary" : ""}`}>
+                        {brl(o.price)}
+                      </div>
+                      {i === 0 && (
+                        <div className="text-[9px] font-bold uppercase tracking-tight text-primary">
+                          Tarifa mínima
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="mt-3 grid grid-cols-2 gap-3">
+                    <div className="min-w-0">
+                      <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                        Ida
+                      </div>
+                      <div className="text-sm font-bold">{o.departLabel}</div>
+                      <div className="text-[10px] text-muted-foreground">{o.weekdayOut}</div>
+                    </div>
+                    <div className="min-w-0">
+                      <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                        Volta
+                      </div>
+                      <div className="text-sm font-bold">{o.returnLabel ?? "—"}</div>
+                      <div className="text-[10px] text-muted-foreground">{o.weekdayIn}</div>
+                    </div>
+                  </div>
+
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                    {o.nights ? (
+                      <Badge variant="secondary" className="rounded-full text-[10px]">
+                        {o.nights} dias
+                      </Badge>
+                    ) : null}
+                    <BaggageBlocks label={o.baggage} />
+                  </div>
+
+                  <div className="mt-4 flex items-center gap-2">
+                    <Button size="sm" className="flex-1" variant={i === 0 ? "default" : "secondary"} asChild>
+                      <a
+                        href={
+                          current.fromIata && current.toIata
+                            ? montarLink({
+                                origem: current.fromIata,
+                                destino: current.toIata,
+                                ida: o.departDate,
+                                volta: o.returnDate ?? "",
+                              })
+                            : o.viaairUrl
+                        }
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        Ver voos <ExternalLink className="ml-1 h-3.5 w-3.5" />
+                      </a>
+                    </Button>
+                    {admin && current.fromIata && current.toIata ? (
+                      <SalvarPromocaoButton
+                        origem={current.fromIata}
+                        destino={current.toIata}
+                        ida={o.departDate}
+                        volta={o.returnDate ?? null}
+                        referencia={o.price ?? null}
+                      />
+                    ) : null}
+                  </div>
+                </Card>
+              ))}
+            </div>
+          )}
+
+          {data.dates.length > 0 && (
+            <Card className="hidden overflow-hidden rounded-2xl shadow-2xl md:block">
               <div className="overflow-x-auto">
+
                 <table className="w-full text-left">
                   <thead>
                     <tr className="border-b bg-muted/40 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
