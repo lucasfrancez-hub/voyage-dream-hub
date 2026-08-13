@@ -15,6 +15,7 @@ import {
   type MarkupTable,
 } from "@/lib/airfare-conditions";
 import type { OriginMetrics } from "@/lib/airfare-promos.config";
+import { resolveCity } from "@/lib/iata-lookup";
 import { searchFlights, searchInboundFlights } from "@/lib/onertravel.server";
 import { flightHasBaggage, type OnerFlight } from "@/lib/onertravel.types";
 
