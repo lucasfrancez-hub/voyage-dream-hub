@@ -651,10 +651,32 @@ export function PassagensBaratasExplorer({
       )}
 
 
-      {(q.isLoading || (q.isError && !data)) && <LoadingSkeleton />}
+      {carregando && !estourou ? (
+        <div className="space-y-4">
+          <StageBanner titulo={etapa.titulo} sub={etapa.sub} lento={lento} />
+          <StageSkeleton kind={stageKindOf(pendente ?? current)} />
+        </div>
+      ) : null}
+
+      {(estourou || (q.isError && !data)) && (
+        <Card className="flex flex-col items-center gap-3 rounded-2xl p-8 text-center">
+          <Clock className="h-5 w-5 text-muted-foreground" />
+          <div className="text-sm font-semibold">Não conseguimos carregar agora.</div>
+          <Button
+            onClick={() => {
+              setEstourou(false);
+              setLento(false);
+              void q.refetch();
+            }}
+          >
+            <RefreshCw className="mr-2 h-4 w-4" /> Tentar novamente
+          </Button>
+        </Card>
+      )}
 
       {/* Regiões / países */}
-      {data?.categories.length ? (
+      {!carregando && data?.categories.length ? (
+
         <div className="grid gap-4 md:grid-cols-2">
           {data.categories.map((c) => {
             const step: Step = { label: c.name, categoryId: c.id };
