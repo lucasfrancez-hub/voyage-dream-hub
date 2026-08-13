@@ -251,7 +251,12 @@ async function chamada(url: string, opts: MdFetchOptions): Promise<unknown> {
 }
 
 /**
- * Porta única de consulta ao MD: cache válido → coalescência → fila.
+ * Porta única de consulta ao MD:
+ *   memória → cache persistente (banco) → coalescência → fila → fonte.
+ *
+ * Quando a fonte está bloqueada (403/429 em sequência) NÃO insistimos: usamos
+ * o que já foi salvo pela própria tela Passagens Baratas. Sem dado salvo,
+ * a consulta falha de forma honesta (nada é inventado).
  */
 export async function mdFetchJson<T>(url: string, opts: MdFetchOptions = {}): Promise<T> {
   mdMetrics.requests++;
@@ -270,17 +275,38 @@ export async function mdFetchJson<T>(url: string, opts: MdFetchOptions = {}): Pr
   }
 
   const p = (async () => {
+    let salvo: { value: unknown; at: number } | null = null;
     try {
+      salvo = await readMdCache(url);
+      if (salvo && Date.now() - salvo.at < ttl) {
+        mdMetrics.dbCacheHits++;
+        jsonCache.set(url, salvo);
+        return salvo.value;
+      }
+
+      const background = (opts.priority ?? "background") === "background";
+      const fonteFora = opts.cacheOnly === true || (background && !mdRadarAvailable());
+      if (fonteFora) {
+        const base = hit ?? salvo;
+        if (base && opts.allowStale !== false) {
+          mdMetrics.staleServed++;
+          return base.value;
+        }
+        throw new MdUnavailableError();
+      }
+
       const value = await chamada(url, opts);
       if (jsonCache.size > 500) jsonCache.clear();
       jsonCache.set(url, { at: Date.now(), value });
+      void writeMdCache(url, value);
       return value;
     } catch (e) {
       if (e instanceof MdCancelledError) throw e;
       // Nunca deixa a tela sem tarifa: serve o último resultado bom, mesmo vencido.
-      if (hit && opts.allowStale !== false) {
+      const base = hit ?? salvo;
+      if (base && opts.allowStale !== false) {
         mdMetrics.staleServed++;
-        return hit.value as T;
+        return base.value;
       }
       throw e;
     } finally {
@@ -290,6 +316,7 @@ export async function mdFetchJson<T>(url: string, opts: MdFetchOptions = {}): Pr
   inflight.set(url, p);
   return p as Promise<T>;
 }
+
 
 async function get(url: string): Promise<Response> {
   // HTML (feed de promoções): mesma fila/ritmo, sem cache JSON.
