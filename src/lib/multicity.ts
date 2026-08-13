@@ -53,8 +53,10 @@ export function validateSegments(segments: MultiSegmentInput[]): Record<string, 
   let prevDate = "";
   segments.forEach((s, i) => {
     if (!isSegmentComplete(s)) {
-      errors[s.id] = "Informe origem, destino e data.";
+      // Trecho incompleto bloqueia a busca, mas sem texto na tela (UI compacta).
+      errors[s.id] = "";
     } else if (s.origin.trim().toUpperCase() === s.destination.trim().toUpperCase()) {
+
       errors[s.id] = "Origem e destino não podem ser iguais.";
     } else if (prevDate && s.date < prevDate) {
       errors[s.id] = `A data do Trecho ${i + 1} não pode ser anterior à do Trecho ${i}.`;
