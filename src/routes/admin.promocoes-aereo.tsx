@@ -207,6 +207,7 @@ function PromoCard({
       </div>
 
       <div className="mt-3 rounded-xl border border-border/50 bg-background/40 p-3">
+        <div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Preço VIA AIR</div>
         <div className="text-2xl font-black leading-none tracking-tight">{brl(promo.price_per_passenger)}</div>
         <div className="mt-1 text-[11px] text-muted-foreground">
           por passageiro • total {brl(promo.total_price)}
@@ -217,24 +218,9 @@ function PromoCard({
             ou até {promo.extended_max_installments}x de {brl(promo.extended_installment_value_12x)}
           </div>
         ) : null}
-        {promo.reference_price ? (
-          <div className="mt-2 border-t border-border/50 pt-2 text-[10px] leading-relaxed text-muted-foreground">
-            <span className="font-semibold uppercase tracking-wide">Referência interna</span> · radar{" "}
-            {brl(promo.reference_price)}
-            {promo.price_difference_percent != null ? (
-              <span
-                className={`ml-1 font-bold ${
-                  promo.price_difference_percent <= 0 ? "text-emerald-500" : "text-amber-500"
-                }`}
-              >
-                {promo.price_difference_percent <= 0 ? "▼" : "▲"}{" "}
-                {Math.abs(promo.price_difference_percent).toFixed(1).replace(".", ",")}% no motor VIA AIR
-              </span>
-            ) : null}
-            <div className="opacity-70">Nunca publicado — só o preço VIA AIR vai para o cliente.</div>
-          </div>
-        ) : null}
+        <ComparativoReferencia promo={promo} />
       </div>
+
 
       <p className="mt-2 inline-flex items-center gap-1.5 text-[10px] text-muted-foreground">
         <Clock className="h-3 w-3" /> Última validação: {validadoEm(promo.last_checked_at)}
