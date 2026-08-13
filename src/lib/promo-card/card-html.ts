@@ -129,6 +129,7 @@ svg{display:block;width:100%;height:100%}
 
 const STORY_CSS = `
 .frame{width:1080px;height:1920px;padding:62px 58px}
+.logo-slot{width:520px;height:230px}
 .hero{margin-top:72px}.destination{font-size:154px;margin:12px 0 26px}
 .details{margin-top:40px}
 .detail-row{min-height:56px;padding:10px 15px}.detail-row .value{font-size:22px}
