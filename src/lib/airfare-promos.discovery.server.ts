@@ -167,11 +167,11 @@ export async function discoverCandidates(opts?: {
       }
 
       const scope = scopeOf(origin, destination);
-      const prioridade =
-        (PRIORITY_ORIGINS_NACIONAL as readonly string[]).includes(origin) ||
-        (PRIORITY_ORIGINS_HUB as readonly string[]).includes(origin)
-          ? 10
-          : 100;
+      // Origem precisa pertencer ao escopo: Brasília só internacional,
+      // Maringá/Londrina/Cascavel/Foz só nacional.
+      if (!isOriginAllowedForScope(origin, scope)) continue;
+      const prioridade = 10;
+
 
       if (datas.length === 0) {
         // sem datas próprias na fonte: cai no fallback +45/+75 (1 data)
