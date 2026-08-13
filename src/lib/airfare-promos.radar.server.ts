@@ -36,11 +36,11 @@ async function getJson<T>(url: string): Promise<T> {
   const hit = cache.get(url);
   if (hit && Date.now() - hit.at < TTL) return hit.value as T;
   let last: unknown = null;
-  for (let i = 0; i < 2; i++) {
+  for (let i = 0; i < 3; i++) {
     try {
       const res = await fetch(url, {
         headers: { "user-agent": UA, accept: "*/*", referer: "https://www.melhoresdestinos.com.br/" },
-        signal: AbortSignal.timeout(9000),
+        signal: AbortSignal.timeout(12000),
       });
       if (res.ok) {
         const value = (await res.json()) as T;
@@ -52,7 +52,7 @@ async function getJson<T>(url: string): Promise<T> {
     } catch (e) {
       last = e;
     }
-    await new Promise((r) => setTimeout(r, 250));
+    await new Promise((r) => setTimeout(r, 500 * (i + 1)));
   }
   if (hit) return hit.value as T;
   throw last instanceof Error ? last : new Error("Falha no radar do Melhores Destinos");
@@ -167,7 +167,7 @@ export async function radarByOrigin(origin: string, opts?: { maxDepth?: number }
     const subs = (json.categories ?? [])
       .map((c) => categoryIdFromLink(c.link))
       .filter((id): id is number => !!id);
-    await mapLimit(subs, 4, (id) => visit(id, depth + 1));
+    await mapLimit(subs, 2, (id) => visit(id, depth + 1));
   };
 
   await visit(null, 0);
