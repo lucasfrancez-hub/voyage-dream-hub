@@ -10,6 +10,8 @@ import { useQuery, useQueryClient, keepPreviousData } from "@tanstack/react-quer
 import { useServerFn } from "@tanstack/react-start";
 import {
   Backpack,
+  BookmarkPlus,
+  Check,
   Briefcase,
   ChevronRight,
   Clock,
@@ -27,6 +29,7 @@ import { Badge } from "@/components/ui/badge";
 import { explorarPassagensMdPublic as explorarPassagensMd, buscarOrigensMdPublic as buscarOrigensMd } from "@/lib/melhores-destinos.public.functions";
 import { viaairFlightUrl, nomeCompanhia } from "@/lib/melhores-destinos.parse";
 import { imagemRegiao } from "@/lib/regiao-imagens";
+import { salvarOportunidadePassagensBaratas } from "@/lib/airfare-promos.functions";
 
 
 export const Route = createFileRoute("/admin/passagens-baratas")({
@@ -34,7 +37,83 @@ export const Route = createFileRoute("/admin/passagens-baratas")({
 });
 
 function PassagensBaratasPage() {
-  return <PassagensBaratasExplorer />;
+  return <PassagensBaratasExplorer admin />;
+}
+
+/**
+ * Curadoria manual: envia a oportunidade para o motor VIA AIR e só grava a
+ * promoção se o motor devolver tarifa. O preço do Passagens Baratas é apenas
+ * referência. Existe somente na ferramenta administrativa.
+ */
+function SalvarPromocaoButton({
+  origem,
+  destino,
+  ida,
+  volta,
+  referencia,
+}: {
+  origem: string;
+  destino: string;
+  ida: string;
+  volta: string | null;
+  referencia: number | null;
+}) {
+  const salvar = useServerFn(salvarOportunidadePassagensBaratas);
+  const [estado, setEstado] = useState<"idle" | "loading" | "saved">("idle");
+
+  const onClick = async () => {
+    if (estado !== "idle") return;
+    setEstado("loading");
+    try {
+      const r = await salvar({
+        data: {
+          origin: origem,
+          destination: destino,
+          departureDate: ida,
+          returnDate: volta,
+          referencePrice: referencia ?? null,
+        },
+      });
+      if (!r.ok) {
+        setEstado("idle");
+        toast.error("Tarifa não encontrada no motor VIA AIR");
+        return;
+      }
+      setEstado("saved");
+      const dif =
+        r.difference != null
+          ? ` (referência ${brl(r.referencePrice ?? 0)} · ${r.difference >= 0 ? "+" : ""}${brl(r.difference)})`
+          : "";
+      toast.success(
+        `${r.created ? "Promoção salva" : "Promoção existente atualizada"}: ${brl(r.totalPrice)}${dif}`,
+      );
+    } catch (e) {
+      setEstado("idle");
+      toast.error(e instanceof Error ? e.message : "Falha ao salvar promoção");
+    }
+  };
+
+  if (estado === "saved") {
+    return (
+      <Button size="sm" variant="outline" disabled className="text-emerald-600">
+        <Check className="mr-1 h-3.5 w-3.5" /> Salvo
+      </Button>
+    );
+  }
+
+  return (
+    <Button size="sm" variant="outline" onClick={onClick} disabled={estado === "loading"}>
+      {estado === "loading" ? (
+        <>
+          <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" /> Verificando no motor VIA AIR...
+        </>
+      ) : (
+        <>
+          <BookmarkPlus className="mr-1 h-3.5 w-3.5" /> Salvar
+        </>
+      )}
+    </Button>
+  );
 }
 
 export type MdStep = Step;
@@ -132,6 +211,7 @@ export function PassagensBaratasExplorer({
   linkVoos,
   hideTrail,
   linkPasso,
+  admin,
 }: {
   trail?: Step[];
   onTrailChange?: (t: Step[]) => void;
@@ -147,6 +227,8 @@ export function PassagensBaratasExplorer({
    * navegar dentro do próprio bloco — usado no embed do WordPress.
    */
   linkPasso?: (trail: Step[]) => string;
+  /** Habilita as ações internas de curadoria (somente ambiente administrativo). */
+  admin?: boolean;
 } = {}) {
 
   const explorar = useServerFn(explorarPassagensMd);
@@ -710,27 +792,39 @@ export function PassagensBaratasExplorer({
                           )}
                         </td>
                         <td className="px-6 py-5 text-right">
-                          <Button size="sm" variant={i === 0 ? "default" : "secondary"} asChild>
-                            <a
-                              href={
-                                current.fromIata && current.toIata
-                                  ? montarLink({
-                                      origem: current.fromIata,
-                                      destino: current.toIata,
-                                      ida: o.departDate,
-                                      volta: o.returnDate ?? "",
-                                    })
-                                  : o.viaairUrl
-                              }
+                          <div className="flex items-center justify-end gap-2">
+                            <Button size="sm" variant={i === 0 ? "default" : "secondary"} asChild>
+                              <a
+                                href={
+                                  current.fromIata && current.toIata
+                                    ? montarLink({
+                                        origem: current.fromIata,
+                                        destino: current.toIata,
+                                        ida: o.departDate,
+                                        volta: o.returnDate ?? "",
+                                      })
+                                    : o.viaairUrl
+                                }
 
-                              target="_blank"
-                              rel="noreferrer"
-                            >
+                                target="_blank"
+                                rel="noreferrer"
+                              >
 
-                              Ver voos <ExternalLink className="ml-1 h-3.5 w-3.5" />
-                            </a>
-                          </Button>
+                                Ver voos <ExternalLink className="ml-1 h-3.5 w-3.5" />
+                              </a>
+                            </Button>
+                            {admin && current.fromIata && current.toIata ? (
+                              <SalvarPromocaoButton
+                                origem={current.fromIata}
+                                destino={current.toIata}
+                                ida={o.departDate}
+                                volta={o.returnDate ?? null}
+                                referencia={o.price ?? null}
+                              />
+                            ) : null}
+                          </div>
                         </td>
+
                       </tr>
                     ))}
                   </tbody>
