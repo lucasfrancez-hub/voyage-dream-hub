@@ -411,7 +411,7 @@ export async function collectAirfarePromotions(opts?: {
   budgetMs?: number;
 }) {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const { discoverCandidates, candidateSignature, fallbackDatePairs } = await import(
+  const { discoverCandidates, candidateSignature } = await import(
     "@/lib/airfare-promos.discovery.server"
   );
   const { PROMO_VALIDATION_CONCURRENCY, maxOpportunitiesForOrigin } = await import(
