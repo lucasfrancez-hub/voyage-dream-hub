@@ -310,7 +310,7 @@ function StageBanner({
       <Loader2 className="h-4 w-4 shrink-0 animate-spin text-primary" />
       <div className="min-w-0">
         <div className="truncate text-sm font-bold">
-          {lento ? "Ainda buscando as melhores opções..." : titulo}
+          {lento ? "Ainda verificando o histórico das últimas 24 horas..." : titulo}
         </div>
         <div className="truncate text-xs text-muted-foreground">{sub}</div>
       </div>
