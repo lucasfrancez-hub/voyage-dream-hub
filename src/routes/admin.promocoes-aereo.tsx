@@ -20,7 +20,9 @@ import {
   Search,
   SlidersHorizontal,
   Sparkles,
+  X,
 } from "lucide-react";
+
 import { toast } from "sonner";
 import {
   generatePromotionLink,
@@ -36,6 +38,8 @@ import {
 } from "@/lib/airfare-promos.functions";
 import { promoInstagramText, promoWhatsappText, type PromoRow } from "@/lib/airfare-promo-text";
 import { PromoArtDialog } from "@/components/promo/PromoArtDialog";
+import { scopeOfRoute } from "@/lib/br-airports";
+
 
 export const Route = createFileRoute("/admin/promocoes-aereo")({
   head: () => ({
@@ -169,8 +173,46 @@ const ATALHOS_INTERNACIONAL: Atalho[] = [
 ];
 
 /* ------------------------------------------------------------------ */
+/* Botão de ação circular (só ícone)                                   */
+/* ------------------------------------------------------------------ */
+
+function IconBtn({
+  children,
+  title,
+  onClick,
+  disabled,
+  primary,
+  className = "",
+}: {
+  children: React.ReactNode;
+  title: string;
+  onClick: () => void;
+  disabled?: boolean;
+  primary?: boolean;
+  className?: string;
+}) {
+  return (
+    <button
+      type="button"
+      title={title}
+      aria-label={title}
+      onClick={onClick}
+      disabled={disabled}
+      className={`inline-flex h-9 w-9 items-center justify-center rounded-full transition disabled:opacity-50 ${
+        primary
+          ? "bg-brand-orange text-white shadow-lg shadow-brand-orange/20 hover:brightness-110"
+          : "border border-border/70 bg-background/40 text-muted-foreground hover:text-foreground"
+      } ${className}`}
+    >
+      {children}
+    </button>
+  );
+}
+
+/* ------------------------------------------------------------------ */
 /* Card da curadoria                                                   */
 /* ------------------------------------------------------------------ */
+
 
 function PromoCard({
   promo,
@@ -268,56 +310,46 @@ function PromoCard({
       </p>
 
 
-      <div className="mt-3 flex flex-wrap items-center gap-1.5 border-t border-border/50 pt-3">
-        <button
-          type="button"
-          onClick={() => copiar(promoWhatsappText(promo), "Texto do WhatsApp copiado")}
-          className="inline-flex items-center gap-1.5 rounded-lg border border-border/70 px-2.5 py-1.5 text-[11px] font-semibold hover:bg-foreground/5"
-        >
-          <MessageCircle className="h-3.5 w-3.5" /> WhatsApp
-        </button>
-        <button
-          type="button"
-          onClick={() => copiar(promoInstagramText(promo), "Legenda do Instagram copiada")}
-          className="inline-flex items-center gap-1.5 rounded-lg border border-border/70 px-2.5 py-1.5 text-[11px] font-semibold hover:bg-foreground/5"
-        >
-          <Instagram className="h-3.5 w-3.5" /> Instagram
-        </button>
-        <button
-          type="button"
-          onClick={onArt}
-          className="inline-flex items-center gap-1.5 rounded-lg bg-brand-orange px-2.5 py-1.5 text-[11px] font-bold text-white hover:opacity-90"
-        >
-          <ImageIcon className="h-3.5 w-3.5" /> Gerar arte
-        </button>
-        {promo.short_url || promo.cart_url ? (
-          <a
-            href={promo.short_url ?? promo.cart_url ?? "#"}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex items-center gap-1.5 rounded-lg border border-border/70 px-2.5 py-1.5 text-[11px] font-semibold hover:bg-foreground/5"
+      <div className="mt-3 flex items-center justify-between gap-2 border-t border-border/50 pt-3">
+        <span className="text-[10px] text-muted-foreground">
+          {promo.short_url || promo.cart_url ? (
+            <a
+              href={promo.short_url ?? promo.cart_url ?? "#"}
+              target="_blank"
+              rel="noreferrer"
+              className="font-semibold text-brand-orange hover:underline"
+            >
+              Abrir oferta
+            </a>
+          ) : null}
+        </span>
+        <div className="flex items-center gap-1.5">
+          <IconBtn
+            title="Copiar texto do WhatsApp"
+            onClick={() => copiar(promoWhatsappText(promo), "Texto do WhatsApp copiado")}
+            className="hover:border-emerald-500/50 hover:text-emerald-500"
           >
-            <ExternalLink className="h-3.5 w-3.5" /> Abrir oferta
-          </a>
-        ) : null}
-        <button
-          type="button"
-          onClick={onLink}
-          disabled={busy}
-          className="inline-flex items-center gap-1.5 rounded-lg border border-border/70 px-2.5 py-1.5 text-[11px] font-semibold hover:bg-foreground/5 disabled:opacity-50"
-        >
-          <Link2 className="h-3.5 w-3.5" /> Copiar link
-        </button>
-        <button
-          type="button"
-          onClick={onRefresh}
-          disabled={busy}
-          className="inline-flex items-center gap-1.5 rounded-lg border border-border/70 px-2.5 py-1.5 text-[11px] font-semibold hover:bg-foreground/5 disabled:opacity-50"
-          title="Revalidar tarifa no motor"
-        >
-          {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
-        </button>
+            <MessageCircle className="h-4 w-4" />
+          </IconBtn>
+          <IconBtn
+            title="Copiar legenda do Instagram"
+            onClick={() => copiar(promoInstagramText(promo), "Legenda do Instagram copiada")}
+            className="hover:border-pink-500/50 hover:text-pink-500"
+          >
+            <Instagram className="h-4 w-4" />
+          </IconBtn>
+          <IconBtn title="Gerar arte" onClick={onArt} primary>
+            <ImageIcon className="h-4 w-4" />
+          </IconBtn>
+          <IconBtn title="Copiar link" onClick={onLink} disabled={busy}>
+            <Link2 className="h-4 w-4" />
+          </IconBtn>
+          <IconBtn title="Revalidar tarifa no motor" onClick={onRefresh} disabled={busy}>
+            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+          </IconBtn>
+        </div>
       </div>
+
     </article>
   );
 }
@@ -396,15 +428,25 @@ function MarkupsPanel() {
 /* Pesquisa manual                                                     */
 /* ------------------------------------------------------------------ */
 
-function PesquisaManual({ onSalvo }: { onSalvo: () => void }) {
+function PesquisaManual({
+  aberto,
+  onFechar,
+  scopeInicial,
+  onSalvo,
+}: {
+  aberto: boolean;
+  onFechar: () => void;
+  scopeInicial: "nacional" | "internacional";
+  onSalvo: () => void;
+}) {
   const buscar = useServerFn(searchPromoOpportunity);
   const salvar = useServerFn(savePromoOpportunity);
-  const [aberto, setAberto] = useState(false);
   const [origin, setOrigin] = useState("");
   const [destination, setDestination] = useState("");
   const [ida, setIda] = useState("");
   const [volta, setVolta] = useState("");
-  const [scope, setScope] = useState<"nacional" | "internacional">("nacional");
+  const [scope, setScope] = useState<"nacional" | "internacional">(scopeInicial);
+
   const [resultado, setResultado] = useState<Record<string, unknown> | null>(null);
 
   const mut = useMutation({
@@ -444,18 +486,19 @@ function PesquisaManual({ onSalvo }: { onSalvo: () => void }) {
     has_checked_baggage: boolean;
   };
 
+  if (!aberto) return null;
+
   return (
-    <div className="rounded-2xl border border-border/60 bg-card/50">
-      <button
-        type="button"
-        onClick={() => setAberto((v) => !v)}
-        className="flex w-full items-center gap-2 px-4 py-3 text-left text-xs font-black uppercase tracking-widest"
-      >
+    <div className="mt-3 rounded-2xl border border-brand-orange/40 bg-card/60">
+      <div className="flex w-full items-center gap-2 px-4 py-3 text-xs font-black uppercase tracking-widest">
         <Search className="h-4 w-4 text-brand-orange" /> Pesquisar novas oportunidades
-        <ChevronDown className={`ml-auto h-4 w-4 transition ${aberto ? "rotate-180" : ""}`} />
-      </button>
+        <button type="button" onClick={onFechar} className="ml-auto rounded-lg p-1 hover:bg-foreground/5">
+          <X className="h-4 w-4" />
+        </button>
+      </div>
       {aberto ? (
         <div className="border-t border-border/50 p-4">
+
           <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-6">
             <input
               value={origin}
@@ -555,6 +598,8 @@ function PromocoesAereoPage() {
   const [aba, setAba] = useState<"nacional" | "internacional">("nacional");
   const [atalho, setAtalho] = useState(0);
   const [filtrosAbertos, setFiltrosAbertos] = useState(false);
+  const [pesquisaAberta, setPesquisaAberta] = useState(false);
+
   const [destination, setDestination] = useState("");
   const [airline, setAirline] = useState("");
   const [promoStatus, setPromoStatus] = useState("todos");
@@ -590,8 +635,14 @@ function PromocoesAereoPage() {
   const promos = useMemo(() => {
     const iatas = atalhos[atalho]?.iatas ?? [];
     const rows = data as unknown as Promo[];
-    return iatas.length ? rows.filter((p) => iatas.includes(p.origin_iata)) : rows;
-  }, [data, atalho, atalhos]);
+    // Guarda de escopo: rota 100% brasileira nunca aparece em Internacionais
+    // (e vice-versa), mesmo que o registro antigo tenha vindo com scope errado.
+    const doEscopo = rows.filter(
+      (p) => scopeOfRoute(p.origin_iata, p.destination_iata) === aba,
+    );
+    return iatas.length ? doEscopo.filter((p) => iatas.includes(p.origin_iata)) : doEscopo;
+  }, [data, atalho, atalhos, aba]);
+
 
   const { data: run } = useQuery({
     queryKey: ["airfare-promo-run"],
@@ -776,27 +827,48 @@ function PromocoesAereoPage() {
         </div>
       ) : null}
 
-      {/* Abas Nacional / Internacional */}
-      <div className="mt-5 inline-flex rounded-xl border border-border/60 bg-card/50 p-1">
+      {/* Abas Nacional / Internacional + pesquisa manual */}
+      <div className="mt-5 flex flex-wrap items-center gap-2">
+        <div className="inline-flex rounded-xl border border-border/60 bg-card/50 p-1">
+          <button
+            type="button"
+            onClick={() => setAba("nacional")}
+            className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-black uppercase tracking-wide transition ${
+              aba === "nacional" ? "bg-brand-orange text-white" : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            🇧🇷 Nacionais
+          </button>
+          <button
+            type="button"
+            onClick={() => setAba("internacional")}
+            className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-black uppercase tracking-wide transition ${
+              aba === "internacional" ? "bg-brand-orange text-white" : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <Globe2 className="h-4 w-4" /> Internacionais
+          </button>
+        </div>
         <button
           type="button"
-          onClick={() => setAba("nacional")}
-          className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-black uppercase tracking-wide transition ${
-            aba === "nacional" ? "bg-brand-orange text-white" : "text-muted-foreground hover:text-foreground"
+          onClick={() => setPesquisaAberta((v) => !v)}
+          className={`inline-flex items-center gap-2 rounded-xl border px-4 py-2 text-xs font-black uppercase tracking-widest transition ${
+            pesquisaAberta
+              ? "border-brand-orange bg-brand-orange/10 text-brand-orange"
+              : "border-brand-orange/40 text-brand-orange hover:bg-brand-orange/5"
           }`}
         >
-          🇧🇷 Nacionais
-        </button>
-        <button
-          type="button"
-          onClick={() => setAba("internacional")}
-          className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-black uppercase tracking-wide transition ${
-            aba === "internacional" ? "bg-brand-orange text-white" : "text-muted-foreground hover:text-foreground"
-          }`}
-        >
-          <Globe2 className="h-4 w-4" /> Internacionais
+          <Search className="h-4 w-4" /> Pesquisar novas oportunidades
         </button>
       </div>
+
+      <PesquisaManual
+        aberto={pesquisaAberta}
+        onFechar={() => setPesquisaAberta(false)}
+        scopeInicial={aba}
+        onSalvo={() => qc.invalidateQueries({ queryKey: ["airfare-promos"] })}
+      />
+
 
       {/* Atalhos de origem */}
       <div className="mt-3 flex flex-wrap gap-2">
@@ -928,11 +1000,11 @@ function PromocoesAereoPage() {
         </div>
       </section>
 
-      {/* Pesquisa manual + configurações */}
+      {/* Configurações */}
       <div className="mt-8 space-y-3">
-        <PesquisaManual onSalvo={() => qc.invalidateQueries({ queryKey: ["airfare-promos"] })} />
         <MarkupsPanel />
       </div>
+
 
       {artPromo ? <PromoArtDialog promo={artPromo} onClose={() => setArtPromo(null)} /> : null}
     </div>

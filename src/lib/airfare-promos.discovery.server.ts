@@ -9,7 +9,9 @@
  * Reaproveita o mesmo serviço já usado pela tela "Passagens Baratas"
  * (`melhores-destinos.server.ts`) — não existe segunda implementação.
  */
+import { scopeOfRoute } from "@/lib/br-airports";
 import {
+
   MAX_EXTRA_ORIGINS,
   PRIORITY_ORIGINS_HUB,
   PRIORITY_ORIGINS_NACIONAL,
@@ -61,17 +63,10 @@ export const PRIORITY_SEEDS: Array<{
   { origin: "CWB", originCity: "Curitiba", destination: "SCL", destinationCity: "Santiago", scope: "internacional" },
 ];
 
-const BR_IATA = new Set([
-  "GRU","CGH","VCP","GIG","SDU","BSB","CNF","PLU","CWB","POA","FLN","SSA","REC","FOR","NAT","MCZ",
-  "AJU","THE","SLZ","BEL","MAO","MGF","LDB","CGB","CGR","GYN","VIX","IGU","NVT","JPA","PMW","MCP",
-  "PVH","RBR","BVB","STM","CAC","JOI","XAP","UDI","RAO","SJP","PPB","MII","IOS","JJD","PNZ","IMP",
-]);
-
 export function scopeOf(origin: string, destination: string): "nacional" | "internacional" {
-  return BR_IATA.has(origin.toUpperCase()) && BR_IATA.has(destination.toUpperCase())
-    ? "nacional"
-    : "internacional";
+  return scopeOfRoute(origin, destination);
 }
+
 
 /** Assinatura da OPORTUNIDADE (sem companhia) — usada para deduplicar a fila. */
 export function candidateSignature(p: {
