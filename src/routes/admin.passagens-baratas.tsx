@@ -544,8 +544,9 @@ export function PassagensBaratasExplorer({
         </div>
 
         {/* Filtros de origem e mês — ao lado do título */}
-        <div className="flex items-stretch gap-3 lg:w-auto">
-          <div className="grid flex-1 gap-3 sm:grid-cols-2 lg:w-[440px] lg:flex-none">
+        <div className="flex w-full items-stretch gap-2 sm:gap-3 lg:w-auto">
+          <div className="grid min-w-0 flex-1 gap-2 sm:grid-cols-2 sm:gap-3 lg:w-[440px] lg:flex-none">
+
 
         <div className="relative">
           <Field label="Origem">
@@ -609,13 +610,14 @@ export function PassagensBaratasExplorer({
           <Button
             variant="secondary"
             size="icon"
-            className="h-auto self-stretch px-4"
+            className="h-auto w-11 shrink-0 self-stretch px-0 sm:px-4"
             onClick={() => q.refetch()}
             disabled={q.isFetching}
             aria-label="Atualizar"
           >
             <RefreshCw className={`h-4 w-4 ${q.isFetching ? "animate-spin" : ""}`} />
           </Button>
+
         </div>
       </header>
 
@@ -703,10 +705,10 @@ export function PassagensBaratasExplorer({
                 ? { href, target: "_blank", rel: "noopener noreferrer" }
                 : { onClick: () => go(step) })}
               onMouseEnter={() => prefetch(step)}
-              className="group flex cursor-pointer items-center gap-4 rounded-2xl border border-border/50 bg-card p-4 text-left transition-all duration-300 hover:border-primary/40 hover:bg-muted/40"
+              className="group grid cursor-pointer grid-cols-[auto_minmax(0,1fr)] items-center gap-3 rounded-2xl border border-border/50 bg-card p-3 text-left transition-all duration-300 hover:border-primary/40 hover:bg-muted/40 sm:gap-4 sm:p-4"
             >
 
-              <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl">
+              <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl sm:h-24 sm:w-24">
                 <img
                   src={imagemRegiao(c.name)}
                   alt={c.name}
@@ -718,19 +720,23 @@ export function PassagensBaratasExplorer({
                 <div className="absolute inset-0 bg-gradient-to-t from-background/50 to-transparent" />
               </div>
 
-              <div className="min-w-0 flex-1">
-                <h3 className="text-lg font-bold leading-tight">{c.name}</h3>
-                <p className="mt-1 truncate text-xs text-muted-foreground">{c.description}</p>
-              </div>
-              {c.price != null && (
-                <div className="shrink-0 text-right">
-                  <span className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                    Ida + volta
-                  </span>
-                  <span className="block text-[10px] text-muted-foreground">a partir de</span>
-                  <span className="text-xl font-bold text-primary">{brl(c.price)}</span>
+              <div className="flex min-w-0 flex-1 flex-col gap-1 sm:flex-row sm:items-center sm:gap-4">
+                <div className="min-w-0 flex-1">
+                  <h3 className="truncate text-base font-bold leading-tight sm:text-lg">{c.name}</h3>
+                  <p className="mt-0.5 truncate text-xs text-muted-foreground">{c.description}</p>
                 </div>
-              )}
+                {c.price != null && (
+                  <div className="shrink-0 sm:text-right">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                      Ida + volta a partir de{" "}
+                    </span>
+                    <span className="whitespace-nowrap text-lg font-bold text-primary sm:block sm:text-xl">
+                      {brl(c.price)}
+                    </span>
+                  </div>
+                )}
+              </div>
+
             </Tag>
             );
           })}
@@ -742,7 +748,7 @@ export function PassagensBaratasExplorer({
       {/* Destinos ou origens (tabela igual à do Melhores Destinos) */}
       {!carregando && data?.cities.length ? (
         <Card className="overflow-hidden border-white/5 shadow-2xl">
-          <div className="flex items-center justify-between bg-primary px-6 py-4 text-[11px] font-bold uppercase tracking-widest text-primary-foreground">
+          <div className="flex items-center justify-between bg-primary px-4 py-3 sm:px-6 sm:py-4 text-[11px] font-bold uppercase tracking-widest text-primary-foreground">
             <span>{data.level === "origins" ? "Origem → Destino" : "Destino"}</span>
             <span className="text-right">Ida + volta a partir de</span>
           </div>
@@ -766,7 +772,7 @@ export function PassagensBaratasExplorer({
               return (
               <Tag
                 key={`${c.fromIata ?? ""}-${c.toIata ?? i}`}
-                className="group flex w-full items-center justify-between gap-3 border-b border-white/5 px-6 py-4 text-left transition-all hover:bg-white/[0.03]"
+                className="group flex w-full items-center justify-between gap-3 border-b border-white/5 px-4 py-3 sm:px-6 sm:py-4 text-left transition-all hover:bg-white/[0.03]"
                 onMouseEnter={() => prefetch(step)}
                 {...(href
                   ? { href, target: "_blank", rel: "noopener noreferrer" }
@@ -816,7 +822,7 @@ export function PassagensBaratasExplorer({
               <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
                 Ida + volta • melhores preços encontrados
               </div>
-              <h2 className="mt-1 text-3xl font-extrabold tracking-tight">{data.title}</h2>
+              <h2 className="mt-1 text-2xl sm:text-3xl font-extrabold tracking-tight">{data.title}</h2>
               <p className="mt-1 text-xs text-muted-foreground">
                 {data.dates.length} datas disponíveis
               </p>
@@ -838,19 +844,19 @@ export function PassagensBaratasExplorer({
           </div>
 
           {data.months.length > 0 && (
-            <Card className="rounded-2xl p-6">
-              <div className="mb-7 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-primary" />
-                  <h3 className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+            <Card className="rounded-2xl p-4 sm:p-6">
+              <div className="mb-6 flex items-center justify-between gap-2 sm:mb-7">
+                <div className="flex min-w-0 items-center gap-2">
+                  <span className="h-1.5 w-1.5 shrink-0 animate-pulse rounded-full bg-primary" />
+                  <h3 className="truncate text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
                     Histórico de preços
                   </h3>
                 </div>
-                <span className="rounded bg-muted px-2 py-1 text-[10px] text-muted-foreground">
+                <span className="hidden shrink-0 rounded bg-muted px-2 py-1 text-[10px] text-muted-foreground sm:inline">
                   Clique no mês para filtrar
                 </span>
               </div>
-              <div className="flex h-32 items-end justify-between gap-3">
+              <div className="-mx-1 flex h-32 items-end gap-2 overflow-x-auto px-1 pb-1 sm:justify-between sm:gap-3">
                 {data.months.map((m) => {
                   const value = m.price ?? 0;
                   const height = maxMonth ? Math.max(14, Math.round((value / maxMonth) * 100)) : 14;
@@ -859,9 +865,10 @@ export function PassagensBaratasExplorer({
                     <button
                       key={m.label}
                       onClick={() => selectMonth(m.label)}
-                      className="group flex min-w-12 flex-1 flex-col items-center gap-3"
+                      className="group flex w-14 shrink-0 flex-col items-center gap-3 sm:w-auto sm:min-w-12 sm:flex-1"
                       title={m.price ? brl(m.price) : "Sem preço"}
                     >
+
                       <span
                         className={`text-[10px] ${
                           active || m.cheapest
@@ -898,9 +905,105 @@ export function PassagensBaratasExplorer({
             </Card>
           )}
 
+          {/* Mobile: cada opção de voo vira um cartão (a tabela não cabe na tela) */}
           {data.dates.length > 0 && (
-            <Card className="overflow-hidden rounded-2xl shadow-2xl">
+            <div className="space-y-3 md:hidden">
+              {data.dates.map((o, i) => (
+                <Card
+                  key={`m-${o.departDate}-${o.returnDate}-${o.price}`}
+                  className={`rounded-2xl p-4 ${i === 0 ? "border-primary/40" : ""}`}
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex min-w-0 items-center gap-2">
+                      {o.airlineLogo ? (
+                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white p-1">
+                          <img
+                            src={o.airlineLogo}
+                            alt={nomeCompanhia(o.airline) ?? "Companhia"}
+                            className="max-h-full max-w-full"
+                          />
+                        </span>
+                      ) : null}
+                      <span className="truncate text-xs font-bold">
+                        {nomeCompanhia(o.airline) ?? "—"}
+                      </span>
+                    </div>
+                    <div className="shrink-0 text-right">
+                      <div className={`text-lg font-black ${i === 0 ? "text-primary" : ""}`}>
+                        {brl(o.price)}
+                      </div>
+                      {i === 0 && (
+                        <div className="text-[9px] font-bold uppercase tracking-tight text-primary">
+                          Tarifa mínima
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="mt-3 grid grid-cols-2 gap-3">
+                    <div className="min-w-0">
+                      <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                        Ida
+                      </div>
+                      <div className="text-sm font-bold">{o.departLabel}</div>
+                      <div className="text-[10px] text-muted-foreground">{o.weekdayOut}</div>
+                    </div>
+                    <div className="min-w-0">
+                      <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                        Volta
+                      </div>
+                      <div className="text-sm font-bold">{o.returnLabel ?? "—"}</div>
+                      <div className="text-[10px] text-muted-foreground">{o.weekdayIn}</div>
+                    </div>
+                  </div>
+
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                    {o.nights ? (
+                      <Badge variant="secondary" className="rounded-full text-[10px]">
+                        {o.nights} dias
+                      </Badge>
+                    ) : null}
+                    <BaggageBlocks label={o.baggage} />
+                  </div>
+
+                  <div className="mt-4 flex items-center gap-2">
+                    <Button size="sm" className="flex-1" variant={i === 0 ? "default" : "secondary"} asChild>
+                      <a
+                        href={
+                          current.fromIata && current.toIata
+                            ? montarLink({
+                                origem: current.fromIata,
+                                destino: current.toIata,
+                                ida: o.departDate,
+                                volta: o.returnDate ?? "",
+                              })
+                            : o.viaairUrl
+                        }
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        Ver voos <ExternalLink className="ml-1 h-3.5 w-3.5" />
+                      </a>
+                    </Button>
+                    {admin && current.fromIata && current.toIata ? (
+                      <SalvarPromocaoButton
+                        origem={current.fromIata}
+                        destino={current.toIata}
+                        ida={o.departDate}
+                        volta={o.returnDate ?? null}
+                        referencia={o.price ?? null}
+                      />
+                    ) : null}
+                  </div>
+                </Card>
+              ))}
+            </div>
+          )}
+
+          {data.dates.length > 0 && (
+            <Card className="hidden overflow-hidden rounded-2xl shadow-2xl md:block">
               <div className="overflow-x-auto">
+
                 <table className="w-full text-left">
                   <thead>
                     <tr className="border-b bg-muted/40 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
