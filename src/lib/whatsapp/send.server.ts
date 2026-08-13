@@ -93,7 +93,7 @@ async function metaSendText(
     to: normalizePhone(to),
     ...(replyId ? { context: { message_id: replyId } } : {}),
     type: "text",
-    text: { preview_url: true, body: body.slice(0, 4090) },
+    text: { preview_url: false, body: body.slice(0, 4090) },
   };
   for (let attempt = 1; attempt <= 3; attempt++) {
     try {
