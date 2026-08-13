@@ -784,7 +784,7 @@ function PromocoesAereoPage() {
   });
 
   const cancelar = useMutation({
-    mutationFn: () => cancelColeta({ data: {} }),
+    mutationFn: () => cancelColeta(),
     onSuccess: () => {
       toast.success("Cancelamento solicitado. O que já foi validado continua salvo.");
       qc.invalidateQueries({ queryKey: ["airfare-promo-run"] });
