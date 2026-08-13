@@ -135,6 +135,30 @@ export function PromoArtDialog({
   const set = <K extends keyof PromoCardData>(k: K, v: PromoCardData[K]) =>
     setCard((c) => (c ? { ...c, [k]: v } : c));
 
+  // Persiste as alterações da arte para que a divulgação use a versão editada.
+  const qc = useQueryClient();
+  const salvarOverrides = useServerFn(savePromoCardOverrides);
+  const [salvando, setSalvando] = useState(false);
+
+  async function confirmarEdicao() {
+    if (card) {
+      setSalvando(true);
+      try {
+        await salvarOverrides({ data: { id: promo.id, card } });
+        qc.setQueryData(["promo-card", promo.id], (old: any) =>
+          old ? { ...old, card, editado: true } : old,
+        );
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : "Não foi possível salvar a arte");
+        setSalvando(false);
+        return;
+      }
+      setSalvando(false);
+    }
+    if (onDone) onDone();
+    else setEditando(false);
+  }
+
   const previewUrl = card ? `/api/public/promo-card?f=${format}&d=${encode(card)}` : "";
   const size = SIZES[format];
   const scale = format === "feed" ? 380 / size.w : 320 / size.w;
