@@ -159,15 +159,20 @@ export const runAirfarePromoCollection = createServerFn({ method: "POST" })
     if (!run) return { started: false as const, reason: "Já existe uma coleta em andamento." };
 
     const payload = JSON.stringify({ runId: run.id, maxRoutes: data.maxRoutes ?? 14 });
+    const url = hookUrl();
     // dispara e não espera concluir: o endpoint roda como invocação própria
-    const disparo = fetch(hookUrl(), {
+    const disparo = fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: payload,
-    }).catch(() => null);
+    }).catch((e) => {
+      console.error("[airfare-promos] falha ao disparar coleta", url, e);
+      return null;
+    });
     await Promise.race([disparo, new Promise((r) => setTimeout(r, 1500))]);
 
     return { started: true as const, runId: run.id };
+
   });
 
 /** Estado da coleta (progresso real; nada é estimado). */
