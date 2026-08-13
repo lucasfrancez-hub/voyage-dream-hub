@@ -995,7 +995,14 @@ export function PassagensBaratasExplorer({
                       </a>
                     </div>
                     <div className="mt-2 flex items-center justify-between gap-2 pl-8">
-                      <BaggageBlocks label={o.baggage} />
+                      <div className="flex min-w-0 items-center gap-2">
+                        <BaggageBlocks label={o.baggage} />
+                        {o.nights ? (
+                          <Badge variant="secondary" className="shrink-0 rounded-full text-[10px]">
+                            {o.nights} dias
+                          </Badge>
+                        ) : null}
+                      </div>
                       {admin && current.fromIata && current.toIata ? (
                         <SalvarPromocaoButton
                           origem={current.fromIata}
