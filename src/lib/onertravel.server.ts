@@ -516,11 +516,11 @@ export async function createFlightCart(data: CartData) {
     }
     if (res.ok && cartId) break;
     cartId = "";
-    // Falhou com fareId2? Refaz sem ele: em tarifa combinada a operadora
-    // rejeita a segunda tarifa e devolve 500 genérico.
-    if (!triedWithoutFare2) {
-      triedWithoutFare2 = true;
-      body = buildBody(null);
+    // Ainda há combinação de tarifa para testar (tarifa fechada: só a volta,
+    // depois só a ida)? Tenta a próxima antes de desistir.
+    if (candidateIndex < candidates.length - 1) {
+      candidateIndex += 1;
+      body = candidates[candidateIndex]!;
       continue;
     }
     // 4xx = tarifa realmente expirada/invalidada: não adianta repetir.
