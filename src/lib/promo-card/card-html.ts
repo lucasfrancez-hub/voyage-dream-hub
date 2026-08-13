@@ -104,7 +104,7 @@ svg{display:block;width:100%;height:100%}
 .airline-logo{width:46px;height:46px;border-radius:12px;background:#fff;display:grid;place-items:center;box-shadow:0 8px 20px rgba(0,0,0,.18);overflow:hidden;flex:none}
 .airline-logo img{width:38px;height:38px;object-fit:contain}
 .airline-iata{font-size:12px;color:var(--muted);font-weight:800;letter-spacing:1px}
-.price-box{position:absolute;background:rgba(8,18,24,.42);border:1px solid rgba(255,255,255,.24);border-radius:28px;backdrop-filter:blur(34px) saturate(150%);-webkit-backdrop-filter:blur(34px) saturate(150%);box-shadow:0 22px 55px rgba(0,0,0,.42),inset 0 1px 0 rgba(255,255,255,.08);overflow:hidden}
+.price-box{position:absolute;background:linear-gradient(135deg,rgba(255,110,26,.34) 0%,rgba(214,45,18,.30) 46%,rgba(122,20,12,.34) 74%,rgba(10,20,26,.46) 100%);border:1px solid rgba(255,150,70,.40);border-radius:28px;backdrop-filter:blur(34px) saturate(160%);-webkit-backdrop-filter:blur(34px) saturate(160%);box-shadow:0 22px 55px rgba(0,0,0,.45),0 0 0 1px rgba(255,134,27,.14),inset 0 1px 0 rgba(255,214,180,.20);overflow:hidden}
 .price-top{color:#dbe3e7;text-transform:uppercase;letter-spacing:2.5px;font-size:16px;font-weight:900}
 .installments{display:flex;align-items:baseline;gap:8px;margin-top:6px;flex-wrap:wrap}
 .main-subtitle{font-size:17px;color:#e2eaee;margin-top:8px;margin-bottom:2px}
