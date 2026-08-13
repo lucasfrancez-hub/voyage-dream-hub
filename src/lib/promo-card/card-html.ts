@@ -255,21 +255,23 @@ export function renderPromoCardHtml(
   const { melhor, prazo } = precoBloco(d);
   const tipo = d.tripType === "ida-e-volta" ? "ida e volta" : "somente ida";
   const periodo = d.returnDate ? `${d.departureDate} → ${d.returnDate}` : d.departureDate;
-  const logo = abs(base, viaairLogo.url);
+  const logo = abs(base, VIAAIR_LOGOS[d.logoVariant ?? "color"] ?? viaairLogo.url);
+  const dataTarifa = dataTarifaPorExtenso(d.fareFoundAt);
+  const nota = `Parcelamento sem juros conforme regra vigente da companhia aérea.${dataTarifa ? ` Tarifa encontrada em ${dataTarifa}.` : ""} Válida para o dia da compra e sujeita à disponibilidade e atualização tarifária até a emissão.`;
   const ciaLogo = abs(base, d.airlineLogo);
   const foto = d.destinationImage ? abs(base, d.destinationImage) : "";
 
   const precoSection =
     format === "story"
       ? `<section class="price-box">${melhor}${prazo}
-           <div class="note" style="margin-top:16px">Parcelamento sem juros conforme regra vigente da companhia aérea. Valores sujeitos à disponibilidade e atualização tarifária até a emissão.</div>
+           <div class="note" style="margin-top:16px">${esc(nota)}</div>
          </section>`
       : `<section class="price-box">
            <div class="price-layout${prazo ? "" : " pix-only"}">
              <div>${melhor}</div>
              ${prazo}
            </div>
-           <div class="note" style="margin-top:16px">Parcelamento sem juros conforme regra vigente da companhia aérea. Valores sujeitos à disponibilidade e atualização tarifária até a emissão.</div>
+           <div class="note" style="margin-top:16px">${esc(nota)}</div>
          </section>`;
 
   return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">
@@ -284,13 +286,14 @@ ${foto ? `<img class="photo" src="${esc(foto)}" alt="${esc(d.destinationCity)}" 
 </div>
 
 <section class="hero">
-  <div class="kicker">${esc(d.categoria)}</div>
+  <div class="category-row">
+    <div class="category-badge">${esc(d.categoria || "PASSAGEM AÉREA")}</div>
+    <div class="found-badge"><span class="found-dot"></span>${esc(d.statusLabel || "Tarifa encontrada hoje")}</div>
+  </div>
   <h1 class="destination">${esc(d.destination)}</h1>
-  <div class="route-city"><span>${esc(d.origin)}</span><span class="arrow">→</span><span>${esc(d.destinationCity)}</span></div>
-  <div class="route-iata">${esc(d.originIata)} → ${esc(d.destinationIata)} • ${tipo}</div>
-  <div class="status-row">
-    <div class="live">${esc(d.statusLabel)}</div>
-    <div class="validity">${esc(d.validityLabel)}</div>
+  <div class="route-glass">
+    <div class="route-city"><span>${esc(d.origin)}</span><span class="arrow">→</span><span>${esc(d.destinationCity)}</span></div>
+    <div class="route-iata">${esc(d.originIata)} → ${esc(d.destinationIata)} • ${tipo}</div>
   </div>
 
   <div class="details">
