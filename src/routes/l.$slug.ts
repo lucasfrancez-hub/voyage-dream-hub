@@ -24,14 +24,22 @@ export const Route = createFileRoute("/l/$slug")({
           });
         }
 
-        // best-effort click tracking (não bloqueia o redirect)
-        void supabaseAdmin
-          .from("short_links")
-          .update({
-            click_count: (data.click_count ?? 0) + 1,
-            last_click_at: new Date().toISOString(),
-          })
-          .eq("slug", slug);
+        // click tracking — precisa ser aguardado: as queries do supabase-js só
+        // executam quando "thenadas", e no runtime serverless nada roda depois
+        // que a resposta é devolvida.
+        const tarefas: Promise<unknown>[] = [];
+
+        tarefas.push(
+          Promise.resolve(
+            supabaseAdmin
+              .from("short_links")
+              .update({
+                click_count: (data.click_count ?? 0) + 1,
+                last_click_at: new Date().toISOString(),
+              })
+              .eq("slug", slug),
+          ),
+        );
 
         // métricas detalhadas do clique (região, dispositivo, origem)
         try {
@@ -42,21 +50,32 @@ export const Route = createFileRoute("/l/$slug")({
           const ua = parseUserAgent(userAgent);
           const geo = geoFromRequest(request);
           const referrer = request.headers.get("referer");
-          void supabaseAdmin.from("short_link_clicks").insert({
-            slug,
-            referrer,
-            referrer_host: hostDoReferrer(referrer),
-            country: geo.country,
-            region: geo.region,
-            city: geo.city,
-            device: ua.device,
-            browser: ua.browser,
-            os: ua.os,
-            user_agent: userAgent?.slice(0, 400) ?? null,
-          });
+          tarefas.push(
+            Promise.resolve(
+              supabaseAdmin.from("short_link_clicks").insert({
+                slug,
+                referrer,
+                referrer_host: hostDoReferrer(referrer),
+                country: geo.country,
+                region: geo.region,
+                city: geo.city,
+                device: ua.device,
+                browser: ua.browser,
+                os: ua.os,
+                user_agent: userAgent?.slice(0, 400) ?? null,
+              }),
+            ),
+          );
         } catch {
           /* métricas nunca bloqueiam o redirect */
         }
+
+        // no máximo ~1.5s: métrica nunca segura o usuário
+        await Promise.race([
+          Promise.allSettled(tarefas),
+          new Promise((r) => setTimeout(r, 1500)),
+        ]);
+
 
         // marca a origem do acesso (?s=slug) para casar clique → navegação
         let destino = data.target_url;
