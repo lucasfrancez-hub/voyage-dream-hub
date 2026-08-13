@@ -836,6 +836,7 @@ function PromocoesAereoPage() {
     last_label: string | null;
     started_at: string;
     finished_at: string | null;
+    cancelled_at?: string | null;
   };
   const pct = info && info.total > 0 ? Math.min(100, Math.round((info.processed / info.total) * 100)) : null;
 
@@ -869,6 +870,13 @@ function PromocoesAereoPage() {
           {rodando ? "Atualizando promoções…" : "Atualizar agora"}
         </button>
       </header>
+
+      {/* Atualização cancelada */}
+      {!rodando && info?.status === "cancelada" && info.cancelled_at ? (
+        <p className="mt-3 rounded-xl border border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+          Atualização cancelada às {desde(info.cancelled_at)} — o que já havia sido validado foi mantido.
+        </p>
+      ) : null}
 
       {/* Status da coleta */}
       {rodando && info ? (
