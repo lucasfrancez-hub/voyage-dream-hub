@@ -207,9 +207,19 @@ export function PromoSocialDialog({
     onOpenChange(false);
   }
 
-  const abas: { key: Aba; label: string; icon: React.ReactNode }[] = [
-    { key: "whatsapp", label: "WhatsApp", icon: <WhatsAppIcon className="h-3.5 w-3.5" /> },
-    { key: "instagram", label: "Instagram", icon: <Instagram className="h-3.5 w-3.5" /> },
+  const abas: { key: Aba; label: string; icon: React.ReactNode; active: string }[] = [
+    {
+      key: "whatsapp",
+      label: "WhatsApp",
+      icon: <WhatsAppIcon className="h-3.5 w-3.5 text-[#25D366]" />,
+      active: "bg-background text-[#25D366] shadow-sm",
+    },
+    {
+      key: "instagram",
+      label: "Instagram",
+      icon: <Instagram className="h-3.5 w-3.5 text-[#A335EE]" />,
+      active: "bg-background text-[#A335EE] shadow-sm",
+    },
   ];
 
   return (
