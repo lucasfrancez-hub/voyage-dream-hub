@@ -457,7 +457,9 @@ export const refreshAirfarePromotion = createServerFn({ method: "POST" })
 /** Cria o carrinho na operadora e o link curto Via Air da promoção. */
 export const generatePromotionLink = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input) => z.object({ id: z.string().uuid() }).parse(input))
+  .inputValidator((input) =>
+    z.object({ id: z.string().uuid(), force: z.boolean().optional() }).parse(input),
+  )
   .handler(async ({ data, context }) => {
     await assertAdmin(context);
     const { data: promo, error } = await context.supabase
@@ -467,6 +469,10 @@ export const generatePromotionLink = createServerFn({ method: "POST" })
       .maybeSingle();
     if (error) throw new Error(error.message);
     if (!promo) throw new Error("Promoção não encontrada");
+    // Reaproveita o link já válido (a atualização de tarifa zera cart_url/short_url).
+    if (!data.force && promo.cart_url && promo.short_url) {
+      return { cart_url: promo.cart_url, short_url: promo.short_url, reused: true };
+    }
     if (!promo.search_key || !promo.outbound_fare_id || !promo.outbound_itinerary_id) {
       throw new Error("Tarifa sem chaves de busca. Atualize a promoção antes de gerar o link.");
     }
@@ -549,5 +555,5 @@ export const generatePromotionLink = createServerFn({ method: "POST" })
       .eq("id", data.id);
     if (upErr) throw new Error(upErr.message);
 
-    return { cart_url: cart.url, short_url: short };
+    return { cart_url: cart.url, short_url: short, reused: false };
   });

@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/dialog";
 import { WhatsAppIcon } from "@/components/packages/PackageSocialDialog";
 import { buildPromoCard, renderPromoCard } from "@/lib/promo-card.functions";
+import { generatePromotionLink } from "@/lib/airfare-promos.functions";
 import { listInstagramAccounts, publishInstagramFromUrl } from "@/lib/instagram/queries.functions";
 import { listDestinos, enviarPacoteWhatsapp } from "@/lib/broadcast/broadcast.functions";
 import { fetchProxiedImage } from "@/lib/image-proxy.functions";
@@ -67,16 +68,50 @@ export function PromoSocialDialog({
   const [destinos, setDestinos] = useState<Destino[]>([]);
   const [selecionados, setSelecionados] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState<string | null>(null);
+  const [shortUrl, setShortUrl] = useState<string | null>(null);
+  const [linkStatus, setLinkStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
+  const genLinkFn = useServerFn(generatePromotionLink);
 
   useEffect(() => {
     if (open) setAba(initialChannel);
   }, [open, initialChannel]);
 
+  /** Garante cart_url + short_url ANTES de montar o texto. */
+  useEffect(() => {
+    if (!open || !promo) {
+      setLinkStatus("idle");
+      return;
+    }
+    if (promo.short_url) {
+      setShortUrl(promo.short_url);
+      setLinkStatus("ready");
+      return;
+    }
+    let vivo = true;
+    setShortUrl(null);
+    setLinkStatus("loading");
+    genLinkFn({ data: { id: promo.id } })
+      .then((r: unknown) => {
+        if (!vivo) return;
+        const u = (r as { short_url?: string | null; cart_url?: string | null }) ?? {};
+        setShortUrl(u.short_url ?? u.cart_url ?? null);
+        setLinkStatus("ready");
+      })
+      .catch(() => {
+        if (!vivo) return;
+        setLinkStatus("error");
+      });
+    return () => {
+      vivo = false;
+    };
+  }, [open, promo, genLinkFn]);
+
   useEffect(() => {
     if (!open || !promo) return;
-    setTextoWa(promoWhatsappText(promo));
-    setTextoIg(promoInstagramText(promo));
-  }, [open, promo]);
+    const comLink = { ...promo, short_url: shortUrl ?? promo.short_url ?? null };
+    setTextoWa(promoWhatsappText(comLink));
+    setTextoIg(promoInstagramText(comLink));
+  }, [open, promo, shortUrl]);
 
   useEffect(() => {
     if (!open) return;
@@ -126,6 +161,10 @@ export function PromoSocialDialog({
   }
 
   async function copiar(texto: string) {
+    if (linkStatus === "loading") {
+      toast.info("Gerando link da oferta...");
+      return;
+    }
     try {
       await navigator.clipboard.writeText(texto);
       toast.success("Texto copiado!");
@@ -260,6 +299,26 @@ export function PromoSocialDialog({
           ))}
         </div>
 
+        {/* Status do link da oferta */}
+        <div
+          className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-[11px] font-semibold ${
+            linkStatus === "ready"
+              ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-500"
+              : linkStatus === "error"
+                ? "border-destructive/30 bg-destructive/10 text-destructive"
+                : "border-border bg-muted/30 text-muted-foreground"
+          }`}
+        >
+          {linkStatus === "loading" && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+          {linkStatus === "loading"
+            ? "Gerando link da oferta..."
+            : linkStatus === "ready"
+              ? "Oferta pronta para compartilhar"
+              : linkStatus === "error"
+                ? "Não foi possível gerar o link da oferta"
+                : ""}
+        </div>
+
         {/* Preview da arte */}
         <div className="flex items-start gap-3 rounded-xl border border-border bg-muted/20 p-3">
           <div
@@ -331,7 +390,9 @@ export function PromoSocialDialog({
               titulo="Texto para WhatsApp"
               valor={textoWa}
               onChange={setTextoWa}
-              onRegerar={() => promo && setTextoWa(promoWhatsappText(promo))}
+              onRegerar={() =>
+                promo && setTextoWa(promoWhatsappText({ ...promo, short_url: shortUrl ?? promo.short_url ?? null }))
+              }
               onCopiar={() => copiar(textoWa)}
             />
             <div className="space-y-2 rounded-xl border border-border bg-muted/20 p-3">
@@ -344,7 +405,7 @@ export function PromoSocialDialog({
                 <button
                   type="button"
                   onClick={enviarWhatsapp}
-                  disabled={busy !== null || selecionados.size === 0}
+                  disabled={busy !== null || selecionados.size === 0 || linkStatus === "loading"}
                   className="inline-flex items-center gap-2 rounded-lg bg-[#25D366] px-3 py-2 text-[11px] font-bold uppercase tracking-wide text-white transition-opacity hover:opacity-90 disabled:opacity-50"
                 >
                   <Send className="h-3.5 w-3.5" /> Enviar agora
@@ -377,7 +438,7 @@ export function PromoSocialDialog({
                 <button
                   type="button"
                   onClick={publicarInstagram}
-                  disabled={busy !== null || !card}
+                  disabled={busy !== null || !card || linkStatus === "loading"}
                   className="inline-flex items-center gap-2 rounded-lg bg-[#E1306C] px-3 py-2 text-[11px] font-bold uppercase tracking-wide text-white transition-opacity hover:opacity-90 disabled:opacity-50"
                 >
                   <Send className="h-3.5 w-3.5" /> Publicar agora
@@ -388,7 +449,9 @@ export function PromoSocialDialog({
               titulo="Legenda do Instagram"
               valor={textoIg}
               onChange={setTextoIg}
-              onRegerar={() => promo && setTextoIg(promoInstagramText(promo))}
+              onRegerar={() =>
+                promo && setTextoIg(promoInstagramText({ ...promo, short_url: shortUrl ?? promo.short_url ?? null }))
+              }
               onCopiar={() => copiar(textoIg)}
             />
           </div>
