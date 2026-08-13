@@ -263,7 +263,7 @@ export async function sendBroadcastBlock(
   }
 
   if (bloco.tipo === "text") {
-    return call("/send/text", { text: (bloco.texto ?? "").slice(0, 4090), linkPreview: true });
+    return call("/send/text", { text: (bloco.texto ?? "").slice(0, 4090), linkPreview: false });
   }
   if (bloco.tipo === "buttons") {
     return call("/send/buttons", {
