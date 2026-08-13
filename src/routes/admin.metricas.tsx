@@ -303,10 +303,10 @@ function MetricasPage() {
           </section>
 
           <div className="grid gap-4 lg:grid-cols-2">
-            <Lista titulo="De onde vieram os cliques" itens={l.origens} icone={<Globe2 className="h-3.5 w-3.5" />} />
-            <Lista titulo="Estados / regiões" itens={l.regioes} />
-            <Lista titulo="Cidades" itens={l.cidades} />
-            <Lista titulo="Dispositivos" itens={l.dispositivos} icone={<Smartphone className="h-3.5 w-3.5" />} />
+            <Lista titulo="De onde vieram os cliques" descricao="Aplicativo ou site em que o link foi aberto." itens={l.origens} icone={<Globe2 className="h-3.5 w-3.5" />} />
+            <Lista titulo="Estados / regiões" descricao="Estado aproximado de quem clicou." itens={l.regioes} />
+            <Lista titulo="Cidades" descricao="Cidade aproximada de quem clicou." itens={l.cidades} />
+            <Lista titulo="Dispositivos" descricao="Celular, tablet ou computador." itens={l.dispositivos} icone={<Smartphone className="h-3.5 w-3.5" />} />
           </div>
         </div>
       ) : null}
