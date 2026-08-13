@@ -20,6 +20,7 @@ import {
   maxOpportunitiesForOrigin,
   type OriginMetrics,
 } from "@/lib/airfare-promos.config";
+import { curateOrigin, type CurationDecision } from "@/lib/airfare-promos.curation";
 import { datasDaRotaHandler, listarPromocoesHandler } from "@/lib/melhores-destinos.server";
 
 export type PromoCandidate = {
@@ -108,6 +109,8 @@ export type DiscoveryResult = {
   dedupedTotal: number;
   /** Métricas por origem (descobertas / dedup / selecionadas). */
   metrics: OriginMetrics[];
+  /** Auditoria da curadoria (o que entrou, o que foi excluído e por quê). */
+  decisions?: CurationDecision<PromoCandidate>[];
 };
 
 /**
@@ -280,17 +283,9 @@ export async function discoverCandidates(opts?: {
     brutasPorOrigem.set(c.origin_iata, (brutasPorOrigem.get(c.origin_iata) ?? 0) + 1);
   }
 
-  /** Mais interessante = menor preço de referência; sem preço vai para o fim. */
-  const porAtratividade = (a: PromoCandidate, b: PromoCandidate) => {
-    const pa = a.reference_price ?? Number.POSITIVE_INFINITY;
-    const pb = b.reference_price ?? Number.POSITIVE_INFINITY;
-    if (pa !== pb) return pa - pb;
-    if (a.priority !== b.priority) return a.priority - b.priority;
-    return a.departure_date.localeCompare(b.departure_date);
-  };
-
   const selecionadas: PromoCandidate[] = [];
   const metrics: OriginMetrics[] = [];
+  const auditoria: CurationDecision<PromoCandidate>[] = [];
 
   // origens prioritárias primeiro; extras só se configurado
   const origens = [...porOrigem.keys()].sort((a, b) => {
@@ -307,22 +302,26 @@ export async function discoverCandidates(opts?: {
       extrasUsadas++;
     }
     const limite = maxOpportunitiesForOrigin(origem);
-    const lista = (porOrigem.get(origem) ?? []).slice().sort(porAtratividade);
+    const lista = porOrigem.get(origem) ?? [];
 
-    // 1ª passada: melhor oportunidade de cada destino (evita repetir destino)
-    const escolhidas: PromoCandidate[] = [];
-    const destinosUsados = new Set<string>();
-    for (const c of lista) {
+    // CURADORIA COMERCIAL: exclusões, apelo turístico, diversidade e
+    // distribuição regional. O corte de 10 acontece só aqui, depois de
+    // percorrer TODAS as oportunidades descobertas para a origem.
+    const nacionais = lista.filter((c) => c.scope === "nacional");
+    const internacionais = lista.filter((c) => c.scope === "internacional");
+
+    let escolhidas: PromoCandidate[] = [];
+    let elegiveis = 0;
+    let excluidas = 0;
+
+    for (const grupo of [nacionais, internacionais]) {
+      if (!grupo.length) continue;
+      const res = curateOrigin(origem, grupo, limite - escolhidas.length);
+      escolhidas = escolhidas.concat(res.selected);
+      elegiveis += res.eligible;
+      excluidas += res.excluded;
+      auditoria.push(...res.decisions);
       if (escolhidas.length >= limite) break;
-      if (destinosUsados.has(c.destination_iata)) continue;
-      destinosUsados.add(c.destination_iata);
-      escolhidas.push(c);
-    }
-    // 2ª passada: completa com as demais datas mais baratas (só se houver)
-    for (const c of lista) {
-      if (escolhidas.length >= limite) break;
-      if (escolhidas.includes(c)) continue;
-      escolhidas.push(c);
     }
 
     selecionadas.push(...escolhidas);
@@ -330,6 +329,8 @@ export async function discoverCandidates(opts?: {
       origin: origem,
       discovered: brutasPorOrigem.get(origem) ?? 0,
       deduped: lista.length,
+      eligible: elegiveis,
+      excluded: excluidas,
       selected: escolhidas.length,
       validated: 0,
       with_price: 0,
@@ -344,6 +345,8 @@ export async function discoverCandidates(opts?: {
     discoveredTotal: brutas,
     dedupedTotal: dedupadas.length,
     metrics,
+    decisions: auditoria,
   };
 
 }
+

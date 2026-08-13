@@ -27,6 +27,13 @@ export const Route = createFileRoute("/api/public/hooks/airfare-promos")({
             maxRoutes?: number;
           };
 
+          // 00:00 BRT: encerra o ciclo diário (zera a curadoria ativa)
+          if (body.trigger === "midnight") {
+            const { closeDailyCuration } = await import("@/lib/airfare-promos.worker.server");
+            const res = await closeDailyCuration();
+            return Response.json({ ok: true, ...res, ts: new Date().toISOString() });
+          }
+
           // modo worker: apenas retoma o que estiver pendente
           if (body.resume) {
             const { resumeActiveRun } = await import("@/lib/airfare-promos.worker.server");

@@ -28,6 +28,7 @@ export const listAirfarePromotions = createServerFn({ method: "GET" })
         baggage: z.boolean().optional().nullable(),
         maxPrice: z.number().optional().nullable(),
         sort: z.string().trim().max(30).optional().nullable(),
+        includeArchived: z.boolean().optional().nullable(),
       })
       .partial()
       .parse(input ?? {}),
@@ -35,6 +36,9 @@ export const listAirfarePromotions = createServerFn({ method: "GET" })
   .handler(async ({ data, context }) => {
     await assertAdmin(context);
     let q = context.supabase.from("airfare_promotions").select(PROMO_COLUMNS).limit(300);
+
+    // curadoria ATIVA do dia (o ciclo encerrado à meia-noite vira histórico)
+    if (!data.includeArchived) q = q.is("archived_at", null);
 
     if (data.origin) q = q.ilike("origin_iata", `%${data.origin}%`);
     if (data.destination) q = q.ilike("destination_iata", `%${data.destination}%`);

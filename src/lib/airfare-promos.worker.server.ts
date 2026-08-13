@@ -282,7 +282,8 @@ export async function processPendingCandidates(args: {
         anterior.airline_iata !== row.airline_iata ||
         anterior.outbound_fare_id !== row.outbound_fare_id);
 
-    const payload: Record<string, unknown> = { ...enriquecida };
+    // promoção revalidada volta para a curadoria ativa do dia
+    const payload: Record<string, unknown> = { ...enriquecida, archived_at: null };
     if (anterior) {
       payload.status = anterior.status;
       if (mudou) {
@@ -536,4 +537,36 @@ export async function resumeActiveRun(budgetMs = WORKER_BUDGET_MS) {
 
   const res = await processPendingCandidates({ runId: run.id, budgetMs });
   return { resumed: true as const, runId: run.id, ...res };
+}
+
+/**
+ * REGRA DA MEIA-NOITE (00:00 BRT) — zera a curadoria ativa.
+ *
+ * As promoções do dia são arquivadas (histórico preservado: nada é apagado)
+ * e a tela volta a ZERO até a coleta das 06:00. Roda 100% no backend.
+ */
+export async function closeDailyCuration() {
+  const client = await db();
+  const now = new Date().toISOString();
+
+  const { data: ativas } = await client
+    .from("airfare_promotions")
+    .select("id")
+    .is("archived_at", null);
+
+  const ids = ((ativas ?? []) as Array<{ id: string }>).map((r) => r.id);
+  if (ids.length) {
+    await client
+      .from("airfare_promotions")
+      .update({ archived_at: now, fare_status: "ciclo_encerrado" })
+      .in("id", ids);
+  }
+
+  // encerra qualquer execução travada para o próximo ciclo começar limpo
+  await client
+    .from("airfare_promo_runs")
+    .update({ status: "cancelada", finished_at: now, updated_at: now })
+    .eq("status", "running");
+
+  return { archived: ids.length, at: now };
 }

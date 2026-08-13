@@ -382,6 +382,7 @@ export type Database = {
           airline_logo: string | null
           airline_name: string | null
           airline_rule: Json | null
+          archived_at: string | null
           cabin_class: string | null
           cart_url: string | null
           created_at: string
@@ -438,6 +439,7 @@ export type Database = {
           airline_logo?: string | null
           airline_name?: string | null
           airline_rule?: Json | null
+          archived_at?: string | null
           cabin_class?: string | null
           cart_url?: string | null
           created_at?: string
@@ -494,6 +496,7 @@ export type Database = {
           airline_logo?: string | null
           airline_name?: string | null
           airline_rule?: Json | null
+          archived_at?: string | null
           cabin_class?: string | null
           cart_url?: string | null
           created_at?: string
