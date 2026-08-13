@@ -146,7 +146,8 @@ export function mdSourceMetrics() {
 export function resetMdSourceMetrics() {
   Object.assign(mdMetrics, {
     requests: 0, externalCalls: 0, cacheHits: 0, dbCacheHits: 0, cacheMisses: 0, coalesced: 0,
-    staleServed: 0, ok: 0, status403: 0, status429: 0, status5xx: 0, otherErrors: 0,
+    staleServed: 0, internalOnlyHits: 0, internalOnlyMisses: 0,
+    ok: 0, status403: 0, status429: 0, status5xx: 0, otherErrors: 0,
     retries: 0, backoffs: 0, waitedMs: 0, gaps: 0, lastError: null, lastErrorAt: null,
   });
 }
