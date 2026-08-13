@@ -30,9 +30,9 @@ export type PromoCandidate = {
   reference_collected_at: string;
 };
 
-/** Origens que precisam estar sempre representadas na curadoria. */
-export const PRIORITY_ORIGINS_NACIONAL = ["MGF", "LDB", "CWB", "CAC", "IGU"] as const;
-export const PRIORITY_ORIGINS_HUB = ["GRU", "GIG", "BSB", "CWB"] as const;
+/** Origens que precisam estar sempre representadas na curadoria (config central). */
+export { PRIORITY_ORIGINS_NACIONAL, PRIORITY_ORIGINS_HUB } from "@/lib/airfare-promos.config";
+
 
 /** Sementes usadas só para garantir cobertura das origens prioritárias. */
 export const PRIORITY_SEEDS: Array<{
