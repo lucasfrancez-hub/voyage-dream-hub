@@ -1108,6 +1108,17 @@ function PromocoesAereoPage() {
 
 
       {artPromo ? <PromoArtDialog promo={artPromo} onClose={() => setArtPromo(null)} /> : null}
+
+      <PromoSocialDialog
+        promo={socialPromo}
+        open={!!socialPromo}
+        onOpenChange={(v) => !v && setSocialPromo(null)}
+        initialChannel={socialCanal}
+        onEditArt={() => socialPromo && setArtPromo(socialPromo)}
+      />
+    </div>
+  );
+}
     </div>
   );
 }
