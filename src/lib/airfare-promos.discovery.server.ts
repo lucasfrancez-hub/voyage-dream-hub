@@ -245,12 +245,15 @@ export async function discoverCandidates(opts?: {
   // ------------------------------------------------------------------
   // 1a) RADAR — feed de promoções do Melhores Destinos (já traz datas)
   // ------------------------------------------------------------------
+  let radarErrors = 0;
+  let radarLeads = 0;
   let promos: Awaited<ReturnType<typeof listarPromocoesHandler>>["promos"] = [];
   try {
     const res = await listarPromocoesHandler({ data: { pages: opts?.pages ?? 3 } });
     promos = res.promos;
   } catch {
     promos = [];
+    radarErrors++;
   }
 
   for (const promo of promos) {
