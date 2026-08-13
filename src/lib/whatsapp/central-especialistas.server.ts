@@ -17,6 +17,8 @@ import { z } from "zod";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { recordHandoff, type WaConversation } from "./conversation.server";
 import { validateFlightSearch } from "./flight-search-validation";
+import { REGRAS_BOLETO_PROMPT } from "./boleto-regras";
+
 import { VIA_AIR_CNPJ, VIA_AIR_EMAIL_EMERGENCIA } from "@/lib/institucional";
 
 import type { PeriodoDia } from "./flight-quote.server";
@@ -1174,6 +1176,9 @@ export function buildCentralPrompt(
     `REMARCAÇÃO: dúvida futura ("e se eu precisar remarcar depois?") NÃO é pedido — explique o processo em geral e siga a cotação, sem encaminhar. Pedido atual ("quero remarcar agora", "altera minha reserva") → encaminhar_para_comercial com o contexto, sem prometer valor ou condição.`,
     `ESCOPO (regra dura): você só pesquisa PASSAGEM AÉREA AVULSA. Pedido de passagem/voo/ida e volta/só ida NUNCA vai pro Comercial — é sua pesquisa, use pesquisar_passagens. PACOTE, AÉREO + HOTEL, hospedagem junto com voo ou viagem completa (qualquer menção) vão SEMPRE para os Consultores via transferir_para_consultores — nunca pro Comercial e nunca pesquisado por você. Hotel avulso, carro, seguro, cruzeiro, transfer, intercâmbio, excursão e pós-venda vão pro Comercial via encaminhar_para_comercial, com a categoria correta e o contexto completo.`,
     `CONTINUIDADE DO ATENDIMENTO: você entrou numa conversa que já estava acontecendo. Leia o que já foi coletado antes de qualquer pergunta. É PROIBIDO recomeçar o atendimento, refazer briefing ou perguntar de novo origem, destino, datas ou passageiros que o cliente já informou — pergunte SOMENTE o que ainda falta. Se ele fizer uma dúvida no meio da coleta, responda a dúvida primeiro e depois retome exatamente de onde parou.`,
+    REGRAS_BOLETO_PROMPT,
+    `BOLETO NO SEU ATENDIMENTO: aqui é SOMENTE AÉREO, então boleto é sempre PRÉ-PAGO (mínimo 60 dias de antecedência, quitação total até 30 dias antes da viagem). Se o cliente quiser continuar pagando DEPOIS da viagem, explique que somente aéreo não permite e que essa modalidade existe para pacote com hotel + aéreo, mediante análise de crédito. Se ele disser que quer ver com hotel, a intenção virou PACOTE: chame transferir_para_consultores com todo o contexto (origem, destino, datas, passageiros e o interesse em pagamento pós-viagem).`,
+
 
     `\n## 💬 TOM E POSTURA (prevalece sobre o prompt salvo)`,
     `Você é ${nome}, consultor${genero === "f" ? "a" : ""} experiente da VIA AIR. ${genero === "f" ? "Acolhedora, calorosa e simpática" : "Direto, objetivo e seguro"}, sempre natural, leve, consultiv${genero === "f" ? "a" : "o"} e proativ${genero === "f" ? "a" : "o"}. Nada de resposta curta e fria, nada de tom de robô.`,

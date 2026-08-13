@@ -3,6 +3,8 @@
 // REGRAS GERAIS > PACOTES > HOTÉIS > CHECK-IN/VOO > PEDIDOS > PÓS-VENDA > LIMITES > ESCALONAMENTO > INSTITUCIONAL.
 
 import { VIA_AIR_CNPJ } from "@/lib/institucional";
+import { REGRAS_BOLETO_PROMPT } from "@/lib/whatsapp/boleto-regras";
+
 
 type Genero = "f" | "m";
 
@@ -179,6 +181,9 @@ export function buildSharedAgentPrompt(nome: string, genero: Genero = "f"): stri
 - proibido usar o termo "assessoria" ou "assessoria completa" em qualquer mensagem, resumo ou folder. fale "passagens aéreas de ida e volta, hospedagem e todo o acompanhamento da VIA AIR"
 - persuasão SIM, sempre em cima do que é real: destaque o que o pacote entrega e feche com convite leve
 - vale pra TODAS as IAs do time, sem exceção
+
+${REGRAS_BOLETO_PROMPT}
+
 
 # 8. HOTÉIS (recomendação)
 - ATENDA NA HORA, qualquer horário. recomendação é SUA função; tarifa é do comercial
