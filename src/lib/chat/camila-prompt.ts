@@ -3,6 +3,8 @@
 // REGRAS GERAIS > PACOTES > HOTÉIS > CHECK-IN/VOO > PEDIDOS > PÓS-VENDA > LIMITES > ESCALONAMENTO > INSTITUCIONAL.
 
 import { VIA_AIR_CNPJ } from "@/lib/institucional";
+import { REGRAS_BOLETO_PROMPT } from "@/lib/whatsapp/boleto-regras";
+
 
 type Genero = "f" | "m";
 
