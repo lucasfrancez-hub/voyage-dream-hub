@@ -46,6 +46,15 @@ export async function saveManualOpportunity(
   const returnDate = input.returnDate?.trim() || null;
   const ref = input.referencePrice != null ? Number(input.referencePrice) : null;
 
+  // Normalização ANTES de cotar: IATA é código técnico, o nome comercial da
+  // cidade é o que alimenta card, WhatsApp, arte e busca de imagem.
+  const orig = resolveCity(origin, input.originCity);
+  const dest = resolveCity(destination, input.destinationCity);
+  const unresolvedCities = [
+    ...(orig.resolved ? [] : [orig.iata]),
+    ...(dest.resolved ? [] : [dest.iata]),
+  ];
+
   const { loadMarkups, quoteRoute } = await import("@/lib/airfare-promos.server");
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const client = supabaseAdmin as never as {
@@ -59,9 +68,9 @@ export async function saveManualOpportunity(
       route: {
         id: "passagens-baratas",
         origin_iata: origin,
-        origin_city: input.originCity ?? null,
+        origin_city: orig.resolved ? orig.name : null,
         destination_iata: destination,
-        destination_city: input.destinationCity ?? null,
+        destination_city: dest.resolved ? dest.name : null,
         scope: scopeOfRoute(origin, destination),
         priority: 0,
       },
