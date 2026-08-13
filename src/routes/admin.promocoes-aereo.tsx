@@ -131,25 +131,39 @@ function ComparativoReferencia({ promo }: { promo: Promo }) {
   const abaixo = diff > 0;
 
   return (
-    <div className="mt-2 border-t border-border/50 pt-2 text-[10px] leading-relaxed text-muted-foreground">
-      <div>Referência Melhores Destinos: {brl(ref)}</div>
+    <div className="rounded-lg border border-border/60 bg-muted/20 p-3">
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <span className="text-[11px] font-bold uppercase tracking-tight text-muted-foreground">
+          Ref. Melhores Destinos
+        </span>
+        <span className="text-xs font-bold text-foreground">{brl(ref)}</span>
+      </div>
       {igual ? (
-        <div className="font-bold text-muted-foreground">Mesmo valor da referência</div>
+        <div className="text-xs font-bold text-muted-foreground">Mesmo valor da referência</div>
       ) : (
-        <div className={`font-bold ${abaixo ? "text-emerald-500" : "text-amber-500"}`}>
-          {abaixo ? "↓" : "↑"} {brl(Math.abs(diff))} • {Math.abs(pct).toFixed(1).replace(".", ",")}%{" "}
-          {abaixo ? "abaixo" : "acima"} da referência
+        <div className="flex items-center gap-2">
+          <span className={`text-xs font-bold ${abaixo ? "text-emerald-500" : "text-amber-500"}`}>
+            {abaixo ? "−" : "+"} {brl(Math.abs(diff))}
+          </span>
+          <span
+            className={`rounded px-1.5 py-0.5 text-[10px] font-bold ${
+              abaixo ? "bg-emerald-500/10 text-emerald-500" : "bg-amber-500/10 text-amber-500"
+            }`}
+          >
+            {Math.abs(pct).toFixed(1).replace(".", ",")}% {abaixo ? "ABAIXO" : "ACIMA"}
+          </span>
         </div>
       )}
-      {promo.reference_collected_at ? (
-        <div className="opacity-70">Referência MD coletada: {horaBR(promo.reference_collected_at)}</div>
-      ) : null}
-      <div className="opacity-70">
-        Preço VIA AIR validado: {horaBR(promo.quoted_at ?? promo.last_checked_at)}
+      <div className="mt-2 grid grid-cols-2 gap-2 text-[9px] font-medium uppercase text-muted-foreground/80">
+        <div>{promo.reference_collected_at ? `Ref. coletada: ${horaBR(promo.reference_collected_at)}` : ""}</div>
+        <div className="text-right italic">
+          Validado: {horaBR(promo.quoted_at ?? promo.last_checked_at)}
+        </div>
       </div>
     </div>
   );
 }
+
 
 /** Próxima coleta automática (06:00 e 12:00 BRT). */
 function proximaColeta() {
@@ -277,117 +291,158 @@ function PromoCard({
 
   return (
     <article
-      className={`group relative overflow-hidden rounded-2xl border bg-gradient-to-b from-card/90 to-card/60 p-4 shadow-sm backdrop-blur transition ${contorno}`}
+      className={`group relative flex flex-col overflow-hidden rounded-2xl border bg-card/80 shadow-xl backdrop-blur transition ${contorno}`}
     >
-      {ciclo ? (
-        <div className="mb-2 flex items-center gap-2">
-          <span
-            className={`rounded-full px-2 py-0.5 text-[9px] font-black uppercase tracking-widest ${
-              ciclo === "new"
-                ? "bg-emerald-500/15 text-emerald-400"
-                : "bg-brand-orange/15 text-brand-orange"
+      {/* Cabeçalho: rota + status */}
+      <div className="p-5 pb-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h3 className="truncate text-xl font-bold leading-tight tracking-tight text-foreground">
+              {promo.origin_city ?? promo.origin_iata} <span className="text-brand-orange">→</span>{" "}
+              {promo.destination_city ?? promo.destination_iata}
+            </h3>
+            <p className="mt-1 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+              {promo.origin_iata} <span className="mx-1 opacity-50">•</span> {promo.destination_iata}
+            </p>
+          </div>
+
+          <select
+            value={promo.status}
+            onChange={(e) => onStatus(e.target.value)}
+            className={`shrink-0 rounded-md border px-2 py-1 text-[10px] font-bold uppercase tracking-wider ${
+              promo.status === "publicado"
+                ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
+                : promo.status === "descartado"
+                  ? "border-border/60 bg-muted text-muted-foreground"
+                  : "border-brand-orange/30 bg-brand-orange/10 text-brand-orange"
             }`}
           >
-            {ciclo === "new" ? "Nova" : "Alterada"}
-          </span>
-          <span className="truncate text-[10px] text-muted-foreground">
-            {ciclo === "new"
-              ? horaCiclo
-                ? `encontrada às ${horaCiclo}`
-                : "nesta coleta"
-              : `${horaCiclo ? `alterada às ${horaCiclo}` : "alterada"}${camposCiclo ? ` · ${camposCiclo}` : ""}`}
-          </span>
-        </div>
-      ) : null}
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <h3 className="truncate text-lg font-black leading-tight tracking-tight">
-            {promo.origin_city ?? promo.origin_iata} <span className="text-brand-orange">→</span>{" "}
-            {promo.destination_city ?? promo.destination_iata}
-          </h3>
-          <p className="mt-0.5 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
-            {promo.origin_iata} → {promo.destination_iata}
-          </p>
+            <option value="novo">Novo</option>
+            <option value="selecionado">Selecionado</option>
+            <option value="publicado">Publicado</option>
+            <option value="descartado">Descartado</option>
+          </select>
         </div>
 
-        <select
-          value={promo.status}
-          onChange={(e) => onStatus(e.target.value)}
-          className={`shrink-0 rounded-full border-0 px-2 py-1 text-[10px] font-bold uppercase tracking-widest ${
-            promo.status === "publicado"
-              ? "bg-emerald-500/15 text-emerald-400"
-              : promo.status === "descartado"
-                ? "bg-muted text-muted-foreground"
-                : "bg-brand-orange/15 text-brand-orange"
-          }`}
-        >
-          <option value="novo">Novo</option>
-          <option value="selecionado">Selecionado</option>
-          <option value="publicado">Publicado</option>
-          <option value="descartado">Descartado</option>
-        </select>
-
-      </div>
-
-      <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[11px] text-muted-foreground">
-        <span className="inline-flex items-center gap-1.5">
-          <CalendarDays className="h-3.5 w-3.5" />
-          {dataBR(promo.departure_date)}
-          {promo.return_date ? ` – ${dataBR(promo.return_date)}` : ""}
-        </span>
-        <span className="inline-flex items-center gap-1.5">
-          {promo.airline_logo ? (
-            <img src={promo.airline_logo} alt={promo.airline_name ?? ""} className="h-4 w-auto rounded-sm" />
-          ) : (
-            <Plane className="h-3.5 w-3.5" />
-          )}
-          {promo.airline_name ?? promo.airline_iata ?? "—"}
-        </span>
-        <span className="inline-flex items-center gap-1.5">
-          <Luggage className="h-3.5 w-3.5" />
-          {promo.has_checked_baggage ? "Bagagem despachada" : "Só bagagem de mão"}
-        </span>
-        <span>{promo.stops === 0 ? "Voo direto" : `${promo.stops} parada(s)`}</span>
-        {promo.fare_status !== "valida" ? (
-          <span className="font-bold uppercase text-destructive">{promo.fare_status}</span>
-        ) : null}
-      </div>
-
-      <div className="mt-3 rounded-xl border border-border/50 bg-background/40 p-3">
-        <div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Preço VIA AIR</div>
-        <div className="text-2xl font-black leading-none tracking-tight">{brl(promo.price_per_passenger)}</div>
-        <div className="mt-1 text-[11px] text-muted-foreground">
-          por passageiro • total {brl(promo.total_price)}
-        </div>
-        <div className="mt-1.5 text-xs font-bold text-brand-orange">{semJuros}</div>
-        {promo.extended_max_installments && promo.extended_installment_value_12x ? (
-          <div className="text-[11px] text-muted-foreground">
-            ou até {promo.extended_max_installments}x de {brl(promo.extended_installment_value_12x)}
+        {ciclo ? (
+          <div className="mt-3 flex items-center gap-2">
+            <span
+              className={`rounded px-2 py-0.5 text-[9px] font-black uppercase tracking-widest ${
+                ciclo === "new"
+                  ? "bg-emerald-500/15 text-emerald-400"
+                  : "bg-brand-orange/15 text-brand-orange"
+              }`}
+            >
+              {ciclo === "new" ? "Nova" : "Alterada"}
+            </span>
+            <span className="truncate text-[10px] text-muted-foreground">
+              {ciclo === "new"
+                ? horaCiclo
+                  ? `encontrada às ${horaCiclo}`
+                  : "nesta coleta"
+                : `${horaCiclo ? `alterada às ${horaCiclo}` : "alterada"}${camposCiclo ? ` · ${camposCiclo}` : ""}`}
+            </span>
           </div>
         ) : null}
+      </div>
+
+      {/* Informações do voo */}
+      <div className="flex flex-col gap-3 px-5 pb-5">
+        <div className="inline-flex items-center gap-2 text-[13px] text-muted-foreground">
+          <CalendarDays className="h-4 w-4 opacity-70" />
+          {dataBR(promo.departure_date)}
+          {promo.return_date ? ` – ${dataBR(promo.return_date)}` : ""}
+        </div>
+
+        <div className="flex items-center justify-between gap-3 border-y border-border/50 py-2">
+          <span className="inline-flex min-w-0 items-center gap-2">
+            {promo.airline_logo ? (
+              <img src={promo.airline_logo} alt={promo.airline_name ?? ""} className="h-5 w-auto rounded-sm" />
+            ) : (
+              <Plane className="h-4 w-4 text-muted-foreground" />
+            )}
+            <span className="truncate text-xs font-semibold text-foreground/90">
+              {promo.airline_name ?? promo.airline_iata ?? "—"}
+            </span>
+          </span>
+          <span className="flex shrink-0 items-center gap-3 text-[11px] text-muted-foreground">
+            <span className="inline-flex items-center gap-1">
+              <Luggage className="h-3.5 w-3.5" />
+              {promo.has_checked_baggage ? "Despachada" : "Mão"}
+            </span>
+            <span>{promo.stops === 0 ? "Direto" : `${promo.stops} parada(s)`}</span>
+          </span>
+        </div>
+
+        {promo.fare_status !== "valida" ? (
+          <span className="text-[10px] font-bold uppercase text-destructive">{promo.fare_status}</span>
+        ) : null}
+      </div>
+
+      {/* Preço */}
+      <div className="mx-5 rounded-xl border border-border/70 bg-background/60 p-5">
+        <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Preço VIA AIR</div>
+        <div className="mt-1 flex items-baseline gap-1.5">
+          <span className="text-4xl font-black leading-none tracking-tight text-foreground">
+            {brl(promo.price_per_passenger)}
+          </span>
+          <span className="text-xs text-muted-foreground">/pax</span>
+        </div>
+        <div className="mt-1.5 text-xs text-muted-foreground">
+          Total <span className="font-semibold text-foreground/80">{brl(promo.total_price)}</span>
+        </div>
+
+        <div className="mt-4 space-y-1 border-t border-border/50 pt-4">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold uppercase text-brand-orange">
+              {promo.interest_free_installments > 1
+                ? `Até ${promo.interest_free_installments}x sem juros`
+                : semJuros}
+            </span>
+            {promo.interest_free_installments > 1 ? (
+              <span className="text-xs font-semibold text-foreground">
+                {brl(promo.interest_free_installment_value)}
+              </span>
+            ) : null}
+          </div>
+          {promo.extended_max_installments && promo.extended_installment_value_12x ? (
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] uppercase text-muted-foreground">
+                Ou até {promo.extended_max_installments}x
+              </span>
+              <span className="text-xs text-muted-foreground">{brl(promo.extended_installment_value_12x)}</span>
+            </div>
+          ) : null}
+        </div>
+      </div>
+
+      {/* Comparativo de referência */}
+      <div className="px-5 py-5">
         <ComparativoReferencia promo={promo} />
       </div>
 
-
-      <p className="mt-2 inline-flex items-center gap-1.5 text-[10px] text-muted-foreground">
-        <Clock className="h-3 w-3" /> Última validação: {validadoEm(promo.last_checked_at)}
-      </p>
-
-
-      <div className="mt-3 flex items-center justify-between gap-2 border-t border-border/50 pt-3">
-        <span className="text-[10px] text-muted-foreground">
+      {/* Rodapé / ações */}
+      <div className="mt-auto px-5 pb-5">
+        <div className="mb-4 flex items-center justify-between gap-3">
           {promo.short_url || promo.cart_url ? (
             <a
               href={promo.short_url ?? promo.cart_url ?? "#"}
               target="_blank"
               rel="noreferrer"
-              className="font-semibold text-brand-orange hover:underline"
+              className="inline-flex items-center gap-1 text-[13px] font-bold text-brand-orange hover:underline"
             >
               Abrir oferta
+              <ExternalLink className="h-3 w-3" />
             </a>
-          ) : null}
-        </span>
-        <div className="flex items-center gap-1.5">
+          ) : (
+            <span />
+          )}
+          <span className="inline-flex items-center gap-1.5 text-[10px] italic text-muted-foreground">
+            <Clock className="h-3 w-3" /> Última validação: {validadoEm(promo.last_checked_at)}
+          </span>
+        </div>
+
+        <div className="flex items-center gap-2">
           <IconBtn
             title="Divulgar no WhatsApp"
             onClick={() => onSocial("whatsapp")}
@@ -408,15 +463,15 @@ function PromoCard({
           <IconBtn title="Copiar link" onClick={onLink} disabled={busy}>
             <Link2 className="h-4 w-4" />
           </IconBtn>
-          <IconBtn title="Revalidar tarifa no motor" onClick={onRefresh} disabled={busy}>
+          <IconBtn title="Revalidar tarifa no motor" onClick={onRefresh} disabled={busy} className="ml-auto">
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
           </IconBtn>
         </div>
       </div>
-
     </article>
   );
 }
+
 
 /* ------------------------------------------------------------------ */
 /* Configurações de parcelamento (recolhido)                           */
