@@ -438,6 +438,9 @@ export async function collectAirfarePromotions(opts?: {
     phase: "validando",
     total: queued.length,
     discovered: counters.discovered,
+    discovered_raw: descoberta.discoveredTotal,
+    deduped: descoberta.dedupedTotal,
+    origin_metrics: metricasSnapshot(),
     processed: 0,
     saved: 0,
   });
