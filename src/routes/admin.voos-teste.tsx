@@ -82,6 +82,14 @@ import {
   type OnerSearchResult,
   type OnerLegResult,
 } from "@/lib/onertravel.types";
+import {
+  MultiCityForm,
+  MultiCityResults,
+  MultiTrechoToggle,
+  type FlightUi,
+} from "@/components/flights/MultiCity";
+import { initialSegments, type MultiSegmentInput } from "@/lib/multicity";
+
 
 
 export const Route = createFileRoute("/admin/voos-teste")({
