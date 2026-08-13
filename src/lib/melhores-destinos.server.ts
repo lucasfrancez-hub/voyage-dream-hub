@@ -74,6 +74,8 @@ export function configureMdRateLimit(cfg: {
   if (cfg.interactive) GAP_MS.interactive = cfg.interactive;
   if (cfg.backoffSteps) BACKOFF_STEPS_MS.splice(0, BACKOFF_STEPS_MS.length, ...cfg.backoffSteps);
   if (cfg.unavailableCooldownMs != null) cooldownMs = cfg.unavailableCooldownMs;
+  // Ambiente de teste: sem banco, o cache persistente fica fora do caminho.
+  cachePersistenteAtivo = false;
   jsonCache.clear();
   falhasConsecutivas = 0;
   bloqueadoAte = 0;
@@ -87,6 +89,7 @@ const MAX_CONSECUTIVE_FAILURES = 3;
 let cooldownMs = 10 * 60_000;
 const DEFAULT_TTL = 15 * 60 * 1000;
 
+let cachePersistenteAtivo = true;
 const jsonCache = new Map<string, { at: number; value: unknown }>();
 const inflight = new Map<string, Promise<unknown>>();
 
@@ -281,7 +284,7 @@ export async function mdFetchJson<T>(url: string, opts: MdFetchOptions = {}): Pr
   const p = (async () => {
     let salvo: { value: unknown; at: number } | null = null;
     try {
-      salvo = await readMdCache(url);
+      salvo = cachePersistenteAtivo ? await readMdCache(url) : null;
       if (salvo && Date.now() - salvo.at < ttl) {
         mdMetrics.dbCacheHits++;
         jsonCache.set(url, salvo);
@@ -302,7 +305,7 @@ export async function mdFetchJson<T>(url: string, opts: MdFetchOptions = {}): Pr
       const value = await chamada(url, opts);
       if (jsonCache.size > 500) jsonCache.clear();
       jsonCache.set(url, { at: Date.now(), value });
-      void writeMdCache(url, value);
+      if (cachePersistenteAtivo) void writeMdCache(url, value);
       return value;
     } catch (e) {
       if (e instanceof MdCancelledError) throw e;
