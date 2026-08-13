@@ -25,7 +25,6 @@ import {
   RotateCcw,
   Search,
   ShoppingCart,
-  Trash2,
   TriangleAlert,
   X,
 } from "lucide-react";
@@ -985,4 +984,3 @@ function TrechoCard({
   );
 }
 
-export { Trash2 as _unusedTrash };
