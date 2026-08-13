@@ -784,7 +784,7 @@ async function archivePromotions(
         archived_at: now,
         archived_reason: reason,
         archived_cycle_day: dia,
-        fare_status: "ciclo_encerrado",
+        fare_status: "expirada",
         cycle_state: "unchanged",
         cycle_changed_fields: [],
         cycle_state_at: null,
