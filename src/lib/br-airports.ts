@@ -17,13 +17,19 @@ export const BR_IATA = new Set([
   "BEL","MAO","MCP","PVH","RBR","BVB","STM","PMW","MAB","ATM","AUX","TFF","CZS","TBT","OIA","JPR","VLP","IZA","GRP",
   // Outros usuais
   "PMG","CFB","SJZ","MEA","GVR","POO","VAG","PNZ","JPA","QSC",
+  // Códigos de cidade (multi-aeroporto) usados pelo motor
+  "SAO","RIO","BHZ",
 ]);
 
 export function isBrIata(iata?: string | null): boolean {
   return !!iata && BR_IATA.has(iata.trim().toUpperCase());
 }
 
-/** nacional = origem E destino no Brasil. */
-export function scopeOfRoute(origin: string, destination: string): "nacional" | "internacional" {
-  return isBrIata(origin) && isBrIata(destination) ? "nacional" : "internacional";
+/**
+ * nacional = DESTINO no Brasil (independente da origem).
+ * Voo saindo de hub nacional para destino brasileiro nunca é internacional.
+ */
+export function scopeOfRoute(_origin: string, destination: string): "nacional" | "internacional" {
+  return isBrIata(destination) ? "nacional" : "internacional";
 }
+
