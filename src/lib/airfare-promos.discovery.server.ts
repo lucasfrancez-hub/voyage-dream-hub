@@ -16,6 +16,8 @@ import {
   PRIORITY_ORIGINS_HUB,
   PRIORITY_ORIGINS_NACIONAL,
   isPriorityOrigin,
+  isOriginAllowedForScope,
+
   maxOpportunitiesForOrigin,
   type OriginMetrics,
 } from "@/lib/airfare-promos.config";
