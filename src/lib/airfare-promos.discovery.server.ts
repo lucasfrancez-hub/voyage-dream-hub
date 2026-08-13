@@ -438,10 +438,15 @@ export async function discoverCandidates(opts?: {
         datas = [];
       }
     }
+    let datasSaoFallback = false;
     if (!datas.length) {
-      const [p1] = fallbackDatePairs([45]);
-      if (!p1) return;
-      datas = [{ departDate: p1.departureDate, returnDate: p1.returnDate, price: null }];
+      datasSaoFallback = true;
+      const pares = diversifiedDatePairs(
+        `${lead.origin_iata}${lead.destination_iata}`,
+        Math.max(1, datesPerRoute),
+      );
+      datas = pares.map((p) => ({ departDate: p.departureDate, returnDate: p.returnDate, price: null }));
+      if (!datas.length) return;
     }
 
     for (const d of datas.slice(0, datesPerRoute)) {
