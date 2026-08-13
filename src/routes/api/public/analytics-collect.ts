@@ -31,8 +31,18 @@ export const Route = createFileRoute("/api/public/analytics-collect")({
           const parsed = eventoSchema.safeParse(body);
           if (!parsed.success) return new Response("ignored", { status: 202 });
           const e = parsed.data;
-          const { isRotaInterna } = await import("@/lib/analytics/public-scope");
+          const { isRotaInterna, isHostInterno } = await import("@/lib/analytics/public-scope");
           if (isRotaInterna(e.path)) return new Response("ignored", { status: 202 });
+          // ambiente de teste (preview/localhost) nunca entra nas métricas
+          const hostOrigem = (() => {
+            try {
+              return new URL(request.headers.get("origin") || request.headers.get("referer") || "")
+                .hostname;
+            } catch {
+              return null;
+            }
+          })();
+          if (isHostInterno(hostOrigem)) return new Response("ignored", { status: 202 });
 
           const { parseUserAgent, geoFromRequest, hostDoReferrer } = await import(
             "@/lib/analytics/ua.server"
@@ -48,7 +58,9 @@ export const Route = createFileRoute("/api/public/analytics-collect")({
             path: e.path ?? null,
             title: e.title ?? null,
             referrer: e.referrer ?? null,
-            referrer_host: hostDoReferrer(e.referrer),
+            referrer_host: isHostInterno(hostDoReferrer(e.referrer))
+              ? null
+              : hostDoReferrer(e.referrer),
             entry: e.entry ?? false,
             utm_source: e.utm_source ?? null,
             utm_medium: e.utm_medium ?? null,
