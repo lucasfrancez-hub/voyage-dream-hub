@@ -130,20 +130,36 @@ svg{display:block;width:100%;height:100%}
 const STORY_CSS = `
 .frame{width:1080px;height:1920px;padding:62px 58px}
 .logo-slot{width:520px;height:230px}
-.hero{margin-top:72px}.destination{font-size:154px;margin:34px 0 26px}
-.details{margin-top:40px}
-.detail-row{min-height:56px;padding:10px 15px}.detail-row .value{font-size:22px}
-.price-box{left:58px;right:58px;bottom:96px;padding:34px 36px}
-.installments .value{font-size:94px}
-.more-installments{margin-top:18px;border-left:0;border-top:1px solid rgba(255,134,27,.35);padding:16px 0 0}
-.more-installments .headline{font-size:15px;margin-bottom:4px}
-.more-installments .twelve-label{font-size:11px}
-.more-installments .twelve-price .n{font-size:20px}
-.more-installments .twelve-price .currency{font-size:18px}
-.more-installments .twelve-price .value{font-size:42px}
-.more-installments .discount{font-size:15px;max-width:780px}
-.cards-seal{width:150px;height:150px}.offer-seal{width:150px;height:150px}
+.hero{margin-top:72px}.destination{font-size:158px;margin:34px 0 30px}
+.category-badge{font-size:19px;padding:11px 18px}
+.found-badge{font-size:18px;padding:11px 16px}
+.route-glass{padding:22px 28px}
+.route-city{font-size:56px}.route-city .arrow{font-size:34px}
+.route-iata{font-size:26px}
+.details{margin-top:44px;gap:14px}
+.detail-row{min-height:76px;padding:16px 22px}
+.detail-row .label{font-size:18px}
+.detail-row .value{font-size:32px}
+.airline-logo{width:56px;height:56px}.airline-logo img{width:46px;height:46px}
+.airline-iata{font-size:15px}
+.price-box{left:58px;right:58px;bottom:96px;padding:40px 42px}
+.price-top{font-size:20px}
+.main-subtitle{font-size:21px}
+.installments .value{font-size:104px}
+.installments .n{font-size:42px}.installments .de{font-size:23px}.installments .currency{font-size:42px}
+.interest-free{font-size:20px}
+.original-total-label{font-size:15px}.original-total-value{font-size:25px}
+.more-installments{margin-top:22px;border-left:0;border-top:1px solid rgba(255,134,27,.35);padding:22px 0 0}
+.more-installments .headline{font-size:24px;margin-bottom:6px}
+.more-installments .twelve-label{font-size:18px}
+.more-installments .twelve-price .n{font-size:32px}
+.more-installments .twelve-price .currency{font-size:28px}
+.more-installments .twelve-price .value{font-size:56px}
+.more-installments .discount{font-size:20px;max-width:880px}
+.note{font-size:19px}
+.cards-seal{width:170px;height:170px}.offer-seal{width:170px;height:170px}
 `;
+
 
 const FEED_CSS = `
 .frame{width:1080px;height:1350px;padding:54px 58px}
