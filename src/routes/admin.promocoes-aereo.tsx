@@ -159,8 +159,10 @@ function PromoCard({
             {promo.origin_iata} → {promo.destination_iata}
           </p>
         </div>
-        <span
-          className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest ${
+        <select
+          value={promo.status}
+          onChange={(e) => onStatus(e.target.value)}
+          className={`shrink-0 rounded-full border-0 px-2 py-1 text-[10px] font-bold uppercase tracking-widest ${
             promo.status === "publicado"
               ? "bg-emerald-500/15 text-emerald-400"
               : promo.status === "descartado"
@@ -168,8 +170,12 @@ function PromoCard({
                 : "bg-brand-orange/15 text-brand-orange"
           }`}
         >
-          {promo.status}
-        </span>
+          <option value="novo">Novo</option>
+          <option value="selecionado">Selecionado</option>
+          <option value="publicado">Publicado</option>
+          <option value="descartado">Descartado</option>
+        </select>
+
       </div>
 
       <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[11px] text-muted-foreground">
