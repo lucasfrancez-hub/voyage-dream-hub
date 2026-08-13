@@ -169,8 +169,46 @@ const ATALHOS_INTERNACIONAL: Atalho[] = [
 ];
 
 /* ------------------------------------------------------------------ */
+/* Botão de ação circular (só ícone)                                   */
+/* ------------------------------------------------------------------ */
+
+function IconBtn({
+  children,
+  title,
+  onClick,
+  disabled,
+  primary,
+  className = "",
+}: {
+  children: React.ReactNode;
+  title: string;
+  onClick: () => void;
+  disabled?: boolean;
+  primary?: boolean;
+  className?: string;
+}) {
+  return (
+    <button
+      type="button"
+      title={title}
+      aria-label={title}
+      onClick={onClick}
+      disabled={disabled}
+      className={`inline-flex h-9 w-9 items-center justify-center rounded-full transition disabled:opacity-50 ${
+        primary
+          ? "bg-brand-orange text-white shadow-lg shadow-brand-orange/20 hover:brightness-110"
+          : "border border-border/70 bg-background/40 text-muted-foreground hover:text-foreground"
+      } ${className}`}
+    >
+      {children}
+    </button>
+  );
+}
+
+/* ------------------------------------------------------------------ */
 /* Card da curadoria                                                   */
 /* ------------------------------------------------------------------ */
+
 
 function PromoCard({
   promo,
