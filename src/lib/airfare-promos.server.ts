@@ -129,17 +129,17 @@ export function buildPromotionRow(args: {
 
   const row = {
     signature: promoSignature({
-      origin_iata: route.origin_iata,
-      destination_iata: route.destination_iata,
+      origin_iata: originIata,
+      destination_iata: destinationIata,
       departure_date: args.departureDate,
       return_date: args.returnDate,
       airline_iata: air?.iata ?? null,
     }),
     scope: route.scope,
-    origin_iata: route.origin_iata,
-    origin_city: resolveCity(route.origin_iata, route.origin_city).name,
-    destination_iata: route.destination_iata,
-    destination_city: resolveCity(route.destination_iata, route.destination_city).name,
+    origin_iata: originIata,
+    origin_city: originCity,
+    destination_iata: destinationIata,
+    destination_city: destinationCity,
     airline_iata: air?.iata ?? null,
     airline_name: air?.name ?? null,
     airline_logo: air?.pathLogo ?? null,
