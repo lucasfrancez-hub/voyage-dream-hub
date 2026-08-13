@@ -287,6 +287,7 @@ function IconBtn({
 
 function PromoCard({
   promo,
+  agendamentos = [],
   onRefresh,
   onLink,
   onStatus,
