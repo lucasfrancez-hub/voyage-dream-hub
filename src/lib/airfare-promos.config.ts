@@ -18,7 +18,7 @@ export const MAX_OPPORTUNITIES_BY_ORIGIN: Record<string, number> = {};
 export const PRIORITY_ORIGINS_NACIONAL = ["MGF", "LDB", "CWB", "CAC", "IGU"] as const;
 
 /** Origens internacionais (hubs) prioritárias. */
-export const PRIORITY_ORIGINS_HUB = ["GRU", "GIG", "BSB", "CWB"] as const;
+export const PRIORITY_ORIGINS_HUB = ["GRU", "GIG", "SDU", "BSB", "CWB"] as const;
 
 /** União das duas listas, já deduplicada (CWB participa das duas). */
 export const PRIORITY_ORIGINS = [
@@ -39,6 +39,26 @@ export function maxOpportunitiesForOrigin(origin: string): number {
 export function isPriorityOrigin(origin: string): boolean {
   return PRIORITY_ORIGINS.includes(origin.toUpperCase());
 }
+
+/**
+ * Regra do comercial: cada escopo tem suas próprias origens.
+ * - NACIONAL: só o Paraná/região (MGF, LDB, CWB, CAC, IGU).
+ * - INTERNACIONAL: só os hubs (GRU, GIG, BSB, CWB).
+ * Ou seja: Brasília nunca aparece em voos nacionais, e Maringá/Londrina/
+ * Cascavel/Foz nunca aparecem em internacionais.
+ */
+export function isOriginAllowedForScope(
+  origin: string,
+  scope: "nacional" | "internacional",
+): boolean {
+  const iata = origin.toUpperCase();
+  const lista =
+    scope === "nacional"
+      ? (PRIORITY_ORIGINS_NACIONAL as readonly string[])
+      : (PRIORITY_ORIGINS_HUB as readonly string[]);
+  return lista.includes(iata);
+}
+
 
 /** Métricas por origem registradas em cada ciclo. */
 export type OriginMetrics = {
