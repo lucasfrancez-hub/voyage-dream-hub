@@ -232,41 +232,40 @@ export function PromoArtDialog({ promo, onClose }: { promo: PromoRow & { id: str
                 />
               </div>
 
-
-              <div className="mt-3 flex flex-wrap gap-2">
+              <div className="flex w-full max-w-[520px] flex-wrap items-center justify-center gap-2">
                 <button
                   type="button"
                   onClick={() => gerar.mutate("feed")}
                   disabled={gerar.isPending}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-border/70 px-3 py-2 text-xs font-bold hover:bg-foreground/5 disabled:opacity-50"
+                  className="inline-flex items-center gap-2 rounded-full border border-border/70 px-4 py-2 text-xs font-bold hover:bg-foreground/5 disabled:opacity-50"
                 >
-                  {gerar.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ImageIcon className="h-3.5 w-3.5" />}
+                  {gerar.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImageIcon className="h-4 w-4" />}
                   Gerar Feed
                 </button>
                 <button
                   type="button"
                   onClick={() => gerar.mutate("story")}
                   disabled={gerar.isPending}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-border/70 px-3 py-2 text-xs font-bold hover:bg-foreground/5 disabled:opacity-50"
+                  className="inline-flex items-center gap-2 rounded-full border border-border/70 px-4 py-2 text-xs font-bold hover:bg-foreground/5 disabled:opacity-50"
                 >
-                  <ImageIcon className="h-3.5 w-3.5" /> Gerar Story
+                  <ImageIcon className="h-4 w-4" /> Gerar Story
                 </button>
                 <button
                   type="button"
                   onClick={() => publicar.mutate()}
                   disabled={publicar.isPending}
-                  className="inline-flex items-center gap-1.5 rounded-lg bg-brand-orange px-3 py-2 text-xs font-bold text-white disabled:opacity-60"
+                  className="inline-flex items-center gap-2 rounded-full bg-brand-orange px-4 py-2 text-xs font-bold text-white shadow-lg shadow-brand-orange/20 disabled:opacity-60"
                 >
-                  {publicar.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Instagram className="h-3.5 w-3.5" />}
+                  {publicar.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Instagram className="h-4 w-4" />}
                   Publicar Instagram
                 </button>
                 <button
                   type="button"
                   onClick={() => whatsapp.mutate()}
                   disabled={whatsapp.isPending}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-border/70 px-3 py-2 text-xs font-bold hover:bg-foreground/5 disabled:opacity-50"
+                  className="inline-flex items-center gap-2 rounded-full border border-border/70 px-4 py-2 text-xs font-bold hover:bg-foreground/5 disabled:opacity-50"
                 >
-                  {whatsapp.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <MessageCircle className="h-3.5 w-3.5" />}
+                  {whatsapp.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <MessageCircle className="h-4 w-4" />}
                   Enviar WhatsApp
                 </button>
               </div>
@@ -275,7 +274,7 @@ export function PromoArtDialog({ promo, onClose }: { promo: PromoRow & { id: str
                   href={arte[format]!}
                   target="_blank"
                   rel="noreferrer"
-                  className="mt-2 inline-block text-[11px] font-semibold text-primary underline"
+                  className="text-[11px] font-semibold text-primary underline"
                 >
                   Abrir PNG {format === "feed" ? "1080×1350" : "1080×1920"}
                 </a>
@@ -283,7 +282,9 @@ export function PromoArtDialog({ promo, onClose }: { promo: PromoRow & { id: str
             </div>
 
             {/* Campos editáveis */}
-            <div className="space-y-4">
+            {editando ? (
+            <div className="max-h-[80vh] space-y-4 overflow-y-auto border-l border-border/50 bg-card/60 p-5">
+
               <div className="grid gap-2 sm:grid-cols-3">
                 <Field label="Destino (grande)" value={card.destination} onChange={(v) => set("destination", v.toUpperCase())} />
                 <Field label="Cidade origem" value={card.origin} onChange={(v) => set("origin", v)} />
