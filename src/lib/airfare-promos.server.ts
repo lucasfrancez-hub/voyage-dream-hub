@@ -212,19 +212,27 @@ export async function quoteRoute(args: {
     },
   };
 
-  const res = await searchFlights({ ...base, returnDate } as never);
+  const res = await withTimeout(
+    searchFlights({ ...base, returnDate } as never),
+    ENGINE_CALL_TIMEOUT_MS,
+    "ida",
+  );
   const out = [...(res.outbound?.flights ?? [])].sort((a, b) => a.price.total - b.price.total)[0];
   if (!out) return null;
 
   let inb: OnerFlight | null = null;
   if (returnDate) {
     try {
-      const back = await searchInboundFlights({
-        ...base,
-        returnDate,
-        searchKey: res.searchKey,
-        flightKey: out.key,
-      } as never);
+      const back = await withTimeout(
+        searchInboundFlights({
+          ...base,
+          returnDate,
+          searchKey: res.searchKey,
+          flightKey: out.key,
+        } as never),
+        ENGINE_CALL_TIMEOUT_MS,
+        "volta",
+      );
       inb =
         [...(back.flights ?? [])].sort((a, b) => a.price.total - b.price.total)[0] ?? null;
     } catch {
