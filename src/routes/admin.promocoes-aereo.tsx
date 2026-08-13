@@ -268,16 +268,6 @@ function PromoCard({
         >
           {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
         </button>
-        <select
-          value={promo.status}
-          onChange={(e) => onStatus(e.target.value)}
-          className="ml-auto rounded-lg border border-border/70 bg-transparent px-2 py-1.5 text-[11px] font-semibold"
-        >
-          <option value="novo">Novo</option>
-          <option value="selecionado">Selecionado</option>
-          <option value="publicado">Publicado</option>
-          <option value="descartado">Descartado</option>
-        </select>
       </div>
     </article>
   );
