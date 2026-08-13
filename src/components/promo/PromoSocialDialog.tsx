@@ -20,7 +20,17 @@ import {
 import { WhatsAppIcon } from "@/components/packages/PackageSocialDialog";
 import { buildPromoCard, renderPromoCard } from "@/lib/promo-card.functions";
 import { generatePromotionLink, setPromotionStatus } from "@/lib/airfare-promos.functions";
-import { agendarPublicacaoSocial } from "@/lib/social-schedule.functions";
+import {
+  agendarPublicacaoSocial,
+  cancelarPublicacaoAgendada,
+  listarPublicacoesAgendadas,
+} from "@/lib/social-schedule.functions";
+import {
+  agendamentoCanal,
+  agendamentoQuando,
+  agruparAgendamentosPorPromo,
+  type AgendamentoSocial,
+} from "@/lib/social-schedule-format";
 import { listInstagramAccounts, publishInstagramFromUrl } from "@/lib/instagram/queries.functions";
 import { listDestinos, enviarPacoteWhatsapp } from "@/lib/broadcast/broadcast.functions";
 import { fetchProxiedImage } from "@/lib/image-proxy.functions";
