@@ -525,6 +525,7 @@ export function PromoSocialDialog({
                   <span className="text-[10px] text-muted-foreground">(story vai sempre sem legenda)</span>
                 )}
               </label>
+              <QuandoPublicar modo={quandoIg} setModo={setQuandoIg} data={dataIg} setData={setDataIg} cor="#E1306C" />
               <div className="flex justify-end">
                 <button
                   type="button"
@@ -532,9 +533,13 @@ export function PromoSocialDialog({
                   disabled={busy !== null || !card || linkStatus === "loading"}
                   className="inline-flex items-center gap-2 rounded-lg bg-[#E1306C] px-3 py-2 text-[11px] font-bold uppercase tracking-wide text-white transition-opacity hover:opacity-90 disabled:opacity-50"
                 >
-                  <Send className="h-3.5 w-3.5" /> Publicar agora
+                  {quandoIg === "agendar" ? <CalendarClock className="h-3.5 w-3.5" /> : <Send className="h-3.5 w-3.5" />}
+                  {quandoIg === "agendar"
+                    ? `Agendar ${format === "story" ? "story" : "feed"}`
+                    : `Publicar ${format === "story" ? "story" : "feed"} agora`}
                 </button>
               </div>
+
             </div>
             <TextoBloco
               titulo="Legenda do Instagram"
