@@ -13,7 +13,7 @@ async function assertAdmin(ctx: { supabase: any; userId: string }) {
 }
 
 const PROMO_COLUMNS =
-  "id,signature,scope,status,fare_status,origin_iata,origin_city,destination_iata,destination_city,airline_iata,airline_name,airline_logo,departure_date,return_date,is_round_trip,stops,has_checked_baggage,cabin_class,passengers,fare_price,taxes,total_price,price_per_passenger,interest_free_installments,interest_free_installment_value,airline_rule,extended_max_installments,extended_installment_value_12x,extended_markup_12x,extended_total_12x,extended_options,search_key,outbound_fare_id,outbound_itinerary_id,inbound_fare_id,inbound_itinerary_id,cart_url,short_url,quoted_at,last_checked_at";
+  "id,signature,scope,status,fare_status,origin_iata,origin_city,destination_iata,destination_city,airline_iata,airline_name,airline_logo,departure_date,return_date,is_round_trip,stops,has_checked_baggage,cabin_class,passengers,fare_price,taxes,total_price,price_per_passenger,interest_free_installments,interest_free_installment_value,airline_rule,extended_max_installments,extended_installment_value_12x,extended_markup_12x,extended_total_12x,extended_options,search_key,outbound_fare_id,outbound_itinerary_id,inbound_fare_id,inbound_itinerary_id,cart_url,short_url,quoted_at,last_checked_at,reference_source,reference_price,reference_collected_at,price_difference,price_difference_percent,unavailable_at";
 
 export const listAirfarePromotions = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
