@@ -287,12 +287,8 @@ function PromoCard({
     .map((c) => CAMPO_LABEL[c] ?? c)
     .join(" + ");
 
-  const contorno =
-    ciclo === "new"
-      ? "border-emerald-500/70 shadow-[0_0_0_1px_rgba(16,185,129,0.25),0_0_22px_-8px_rgba(16,185,129,0.55)] hover:border-emerald-400"
-      : ciclo === "changed"
-        ? "border-brand-orange/70 shadow-[0_0_0_1px_rgba(242,107,31,0.25),0_0_22px_-8px_rgba(242,107,31,0.55)] hover:border-brand-orange"
-        : "border-border/60 hover:border-brand-orange/50";
+  const estilo = STATUS_STYLE[promo.status] ?? STATUS_STYLE.novo;
+  const contorno = `${estilo.card} ${ciclo === "changed" ? "ring-1 ring-brand-orange/25" : ""}`;
 
   return (
     <article
@@ -314,18 +310,13 @@ function PromoCard({
           <select
             value={promo.status}
             onChange={(e) => onStatus(e.target.value)}
-            className={`shrink-0 rounded-md border px-2 py-1 text-[10px] font-bold uppercase tracking-wider ${
-              promo.status === "publicado"
-                ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
-                : promo.status === "descartado"
-                  ? "border-border/60 bg-muted text-muted-foreground"
-                  : "border-brand-orange/30 bg-brand-orange/10 text-brand-orange"
-            }`}
+            className={`shrink-0 rounded-md border px-2 py-1 text-[10px] font-bold uppercase tracking-wider ${estilo.badge}`}
           >
-            <option value="novo">Novo</option>
-            <option value="selecionado">Selecionado</option>
-            <option value="publicado">Publicado</option>
-            <option value="descartado">Descartado</option>
+            {STATUS_OPCOES.map((s) => (
+              <option key={s.value} value={s.value}>
+                {s.label}
+              </option>
+            ))}
           </select>
         </div>
 
