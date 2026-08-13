@@ -326,7 +326,11 @@ ${foto ? `<img class="photo" src="${esc(foto)}" alt="${esc(d.destinationCity)}" 
     <div class="category-badge">${esc(d.categoria || "PASSAGEM AÉREA")}</div>
     <div class="found-badge"><span class="found-dot"></span>${esc(d.statusLabel || "Tarifa encontrada hoje")}</div>
   </div>
-  <h1 class="destination">${esc(d.destination)}</h1>
+  <h1 class="destination destination-one-line" data-full-destination="${esc(d.destination)}">${
+    destinationParts(d.destination).prefix
+      ? `<span class="dest-prefix">${esc(destinationParts(d.destination).prefix)}</span>`
+      : ""
+  }<span class="dest-highlight">${esc(destinationParts(d.destination).last)}</span></h1>
   <div class="route-glass">
     <div class="route-city"><span>${esc(d.origin)}</span><span class="arrow">→</span><span>${esc(d.destinationCity)}</span></div>
     <div class="route-iata">${esc(d.originIata)} → ${esc(d.destinationIata)} • ${tipo}</div>
