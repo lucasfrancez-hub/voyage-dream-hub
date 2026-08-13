@@ -205,6 +205,8 @@ export async function discoverCandidates(opts?: {
   cancel?: () => boolean | Promise<boolean>;
   /** progresso real para a UI */
   onProgress?: (msg: string) => void;
+  /** orçamento de tempo da etapa de radar (o ritmo é 15–30s por chamada) */
+  radarBudgetMs?: number;
 }): Promise<DiscoveryResult> {
   const { radarByOrigin, cheapestDatesForLead, normalizeIata, mapLimit, MdCancelledError } =
     await import("@/lib/airfare-promos.radar.server");
@@ -214,6 +216,8 @@ export async function discoverCandidates(opts?: {
   const cancel = opts?.cancel;
   const progresso = opts?.onProgress ?? (() => {});
   let cancelada = false;
+  const radarDeadline = Date.now() + (opts?.radarBudgetMs ?? 20 * 60_000);
+  const semTempo = () => Date.now() >= radarDeadline;
   resetMdSourceMetrics();
   progresso("Consultando radar de oportunidades...");
   const collectedAt = new Date().toISOString();
@@ -313,7 +317,7 @@ export async function discoverCandidates(opts?: {
   //     MGF/LDB/CAC/IGU quando dependíamos apenas do feed).
   // ------------------------------------------------------------------
   await mapLimit(PRIORITY_ORIGINS, 1, async (origem: string) => {
-    if (cancelada) return;
+    if (cancelada || semTempo()) return;
     let leads: Awaited<ReturnType<typeof radarByOrigin>> = [];
     if (!mdRadarAvailable()) {
       radarErrors++;
@@ -451,7 +455,7 @@ export async function discoverCandidates(opts?: {
   await mapLimit(todosLeads, 1, async (lead: Lead) => {
     if (cancelada) return;
     let datas = lead.dates;
-    if (!datas.length) {
+    if (!datas.length && !semTempo() && mdRadarAvailable()) {
       try {
         const res = await cheapestDatesForLead(
           {
