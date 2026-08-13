@@ -451,10 +451,43 @@ export async function collectAirfarePromotions(opts?: {
     }
   };
 
+  const metricaDe = (origem: string): Metrics => {
+    let m = metricasPorOrigem.get(origem);
+    if (!m) {
+      m = {
+        origin: origem,
+        discovered: 0,
+        deduped: 0,
+        selected: 0,
+        validated: 0,
+        with_price: 0,
+        no_result: 0,
+        errors: 0,
+        avg_seconds: null,
+      };
+      metricasPorOrigem.set(origem, m);
+    }
+    return m;
+  };
+
+  const registrarTempo = (origem: string, ms: number) => {
+    const lista = temposPorOrigem.get(origem) ?? [];
+    lista.push(ms);
+    temposPorOrigem.set(origem, lista);
+    const m = metricaDe(origem);
+    m.avg_seconds = Number((lista.reduce((a, b) => a + b, 0) / lista.length / 1000).toFixed(1));
+  };
+
+  const metricasSnapshot = () =>
+    [...metricasPorOrigem.values()].sort((a, b) => a.origin.localeCompare(b.origin));
+
   const assinaturasValidadas = new Set<string>();
   const oportunidadesTocadas = new Set<string>();
 
   const processar = async (cand: CandidateRow) => {
+    const iniciouEm = Date.now();
+    const metrica = metricaDe(cand.origin_iata);
+    metrica.validated++;
     const label = `${cand.destination_city ?? cand.destination_iata} (${cand.origin_iata}→${cand.destination_iata})`;
     await setCandidato(cand.id, { status: "processing" });
 
@@ -488,6 +521,8 @@ export async function collectAirfarePromotions(opts?: {
 
     if (ultimoErro) {
       counters.error_count++;
+      metrica.errors++;
+      registrarTempo(cand.origin_iata, Date.now() - iniciouEm);
       await setCandidato(cand.id, {
         status: "error",
         attempts: RETRY_DELAYS_MS.length + 1,
@@ -501,6 +536,8 @@ export async function collectAirfarePromotions(opts?: {
 
     if (!row) {
       counters.no_result++;
+      metrica.no_result++;
+      registrarTempo(cand.origin_iata, Date.now() - iniciouEm);
       await setCandidato(cand.id, { status: "no_result", processed_at: new Date().toISOString() });
       return label;
     }
@@ -554,6 +591,8 @@ export async function collectAirfarePromotions(opts?: {
 
     if (upErr) {
       counters.error_count++;
+      metrica.errors++;
+      registrarTempo(cand.origin_iata, Date.now() - iniciouEm);
       await setCandidato(cand.id, {
         status: "error",
         last_error: upErr.message.slice(0, 400),
@@ -566,6 +605,8 @@ export async function collectAirfarePromotions(opts?: {
 
     counters.validated++;
     counters.saved++;
+    metrica.with_price++;
+    registrarTempo(cand.origin_iata, Date.now() - iniciouEm);
     if (anterior) counters.updated_count++;
     else counters.new_count++;
     assinaturasValidadas.add(row.signature);
@@ -624,6 +665,7 @@ export async function collectAirfarePromotions(opts?: {
         new_count: counters.new_count,
         updated_count: counters.updated_count,
         last_label: label,
+        origin_metrics: metricasSnapshot(),
       });
     }
   };
@@ -691,10 +733,12 @@ export async function collectAirfarePromotions(opts?: {
     new_count: counters.new_count,
     updated_count: counters.updated_count,
     expired_count: counters.expired_count,
+    origin_metrics: metricasSnapshot(),
+    deduped: descoberta.dedupedTotal,
     finished_at: new Date().toISOString(),
   });
 
-  return { startedAt, ...counters };
+  return { startedAt, ...counters, origin_metrics: metricasSnapshot() };
 }
 
 
