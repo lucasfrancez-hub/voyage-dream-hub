@@ -264,11 +264,20 @@ function totalsFor(option: NormalizedOption, payment: ReturnType<typeof buildPay
   return { products: total, taxes: 0, total, pixTotal: payment.pix.total };
 }
 
-export function optionToPublicOption(option: NormalizedOption, occupancy?: string | null): QuoteOption {
+export function optionToPublicOption(
+  option: NormalizedOption,
+  occupancy?: string | null,
+  startDate?: string | null,
+): QuoteOption {
   const type = optionType(option);
   const total = Number(option.total) || 0;
   const airline = option.flights[0]?.airline ?? option.flights[0]?.segments?.[0]?.airlineIata ?? null;
-  const payment = buildPayment({ type, total, airline });
+  const payment = buildPayment({
+    type,
+    total,
+    airline,
+    startDate: startDate ?? option.startDate ?? null,
+  });
   return {
     optionId: String(option.optionNumber),
     label: option.label ?? `Opção ${option.optionNumber}`,
@@ -301,7 +310,8 @@ export function buildPublicQuoteFromImported(params: {
     .filter(Boolean)
     .join(" • ");
 
-  const publicOptions = options.map((o) => optionToPublicOption(o, paxLabel));
+  const inicio = normalized.startDate ?? options[0]?.startDate ?? null;
+  const publicOptions = options.map((o) => optionToPublicOption(o, paxLabel, inicio));
   const first = publicOptions[0];
 
   const anyPackage = options.some((o) => optionType(o) === "TRIP_PACKAGE");
