@@ -5,7 +5,9 @@
  * - Cartão: SEMPRE até 10x sem juros.
  * - Boleto: 10x sem juros, apenas quando a viagem tem antecedência mínima
  *   de 60 dias (e o orçamento é pacote).
- * - Pix: SEMPRE 5% de desconto.
+ * - Pix: SEMPRE aceito em todos os orçamentos. O desconto de 5% é válido
+ *   APENAS para pacotes (TRIP_PACKAGE). Somente aéreo (AIR_ONLY) não tem
+ *   desconto no Pix.
  */
 import type { Installment, PaymentConfiguration, QuoteType } from "./types";
 import { bestInstallments } from "@/lib/airline-installments";
