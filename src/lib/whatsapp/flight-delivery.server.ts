@@ -26,7 +26,6 @@
 import {
   CLAIM_TTL_MS,
   META_OPCOES,
-  SOFT_DEADLINE_MS,
   claimExpirado,
   cotacaoConcluida,
   emEmergencia,
@@ -258,7 +257,7 @@ async function entregarOpcao(
   const supabaseAdmin = await db();
   const { saveMessage, setSendError, SENDING_CLAIM } = await import("./conversation.server");
   const { abortIfHumanTookOver } = await import("./human-takeover.server");
-  const { sendWhatsAppImagePreferLink, sendWhatsAppText } = await import("./send.server");
+  const { sendWhatsAppText } = await import("./send.server");
   const { formatOptionText } = await import("./flight-option-text.server");
   const { logCardEvent } = await import("./card-log.server");
 
