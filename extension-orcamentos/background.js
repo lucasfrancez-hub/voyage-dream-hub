@@ -7,6 +7,8 @@ console.info(LOG, "Service worker iniciado");
 
 const API_BASE = "https://pedidos.viaair.tur.br";
 const ENDPOINT = API_BASE + "/api/public/v1/quote-imports";
+const PAIR_ENDPOINT = API_BASE + "/api/public/v1/extension-pair";
+const PORTAL_MATCHES = ["https://pedidos.viaair.tur.br/*", "https://*.lovable.app/*"];
 const RETRY_MINUTES = [1, 5, 15, 60];
 const diagnosticTabs = new Map();
 
@@ -98,6 +100,74 @@ async function getToken() {
   return viaairToken || null;
 }
 
+/** Troca o access token da sessão do portal por um token permanente da extensão. */
+async function pairWithAccessToken(accessToken) {
+  if (!accessToken || String(accessToken).length < 20) return false;
+  try {
+    const res = await fetch(PAIR_ENDPOINT, {
+      method: "POST",
+      headers: { authorization: `Bearer ${accessToken}`, "content-type": "application/json" },
+      body: "{}",
+    });
+    if (!res.ok) {
+      await logEvent({ event: "auto_pair_failed", httpStatus: res.status });
+      return false;
+    }
+    const data = await res.json();
+    if (!data || !data.token) return false;
+    await store({ viaairToken: data.token, viaairTokenInvalid: false, viaairAccount: data.email || null });
+    await logEvent({ event: "auto_pair_ok", detail: data.email || "" });
+    console.info(LOG, "Pareado automaticamente com a Via Air", data.email || "");
+    return true;
+  } catch (e) {
+    await logEvent({ event: "auto_pair_error", detail: String(e && e.message ? e.message : e) });
+    return false;
+  }
+}
+
+/** Procura uma aba aberta do portal Via Air e lê a sessão logada de lá. */
+async function autoPairFromPortalTabs() {
+  let tabs = [];
+  try {
+    tabs = await chrome.tabs.query({ url: PORTAL_MATCHES });
+  } catch (_) {
+    return false;
+  }
+  for (const tab of tabs) {
+    if (typeof tab.id !== "number") continue;
+    try {
+      const [result] = await chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        func: () => {
+          try {
+            for (let i = 0; i < localStorage.length; i++) {
+              const key = localStorage.key(i) || "";
+              if (!/^sb-.*-auth-token$/.test(key)) continue;
+              let raw = localStorage.getItem(key);
+              if (!raw) continue;
+              if (raw.startsWith("base64-")) raw = atob(raw.slice(7));
+              const obj = JSON.parse(raw);
+              const t = obj && (obj.access_token || (obj.currentSession && obj.currentSession.access_token));
+              if (t && String(t).length > 20) return String(t);
+            }
+          } catch (_) { /* ignore */ }
+          return null;
+        },
+      });
+      if (result && result.result && (await pairWithAccessToken(result.result))) return true;
+    } catch (_) { /* aba sem permissão */ }
+  }
+  return false;
+}
+
+/** Garante um token válido: usa o salvo ou pareia sozinho pelo portal. */
+async function ensureToken() {
+  const existing = await getToken();
+  if (existing) return existing;
+  if (await autoPairFromPortalTabs()) return await getToken();
+  return null;
+}
+
 async function logEvent(entry) {
   const { viaairLogs = [] } = await read(["viaairLogs"]);
   viaairLogs.unshift({ timestamp: new Date().toISOString(), ...entry });
@@ -153,11 +223,11 @@ async function sendImport(url, trigger) {
 
 async function sendImportInner(url, trigger) {
 
-  const token = await getToken();
+  const token = await ensureToken();
   if (!token) {
-    console.error(LOG, "token ausente — configure no popup da extensão");
+    console.error(LOG, "sem sessão Via Air — abra o portal pedidos.viaair.tur.br logado");
     await logEvent({ event: "no_token", sourceUrl: url });
-    return { status: "UNAUTHORIZED", stage: "AUTH", detail: "token_ausente" };
+    return { status: "UNAUTHORIZED", stage: "AUTH", detail: "sessao_ausente" };
   }
   console.info(LOG, "Enviando importação", { endpoint: ENDPOINT, url, trigger, tokenPreview: token.slice(0, 4) + "…" });
 
@@ -184,6 +254,10 @@ async function sendImportInner(url, trigger) {
       await logEvent({ event: "unauthorized", sourceUrl: url, httpStatus: res.status, detail: body.slice(0, 200) });
       // token revogado/inválido: limpa para o popup mostrar "Token não configurado"
       await store({ viaairToken: "", viaairTokenInvalid: true });
+      // tenta reparear sozinho com a sessão do portal e refaz o envio uma vez
+      if (!trigger || trigger !== "retry-after-pair") {
+        if (await autoPairFromPortalTabs()) return await sendImportInner(url, "retry-after-pair");
+      }
       return { status: "UNAUTHORIZED", stage: "API", httpStatus: res.status, detail: "token_revogado" };
     }
     if (!res.ok) {
@@ -310,14 +384,30 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   }
 
   if (msg.type === "viaair-quotes-status") {
-    read(["viaairToken", "viaairQueue", "viaairLast", "viaairTokenInvalid"]).then((d) =>
+    read(["viaairToken", "viaairQueue", "viaairLast", "viaairTokenInvalid", "viaairAccount"]).then((d) =>
       sendResponse({
         connected: !!d.viaairToken,
+        account: d.viaairAccount || null,
         tokenInvalid: !!d.viaairTokenInvalid && !d.viaairToken,
         pending: (d.viaairQueue || []).length,
         last: d.viaairLast || null,
       }),
     );
+    return true;
+  }
+
+  if (msg.type === "viaair-quotes-auto-pair") {
+    (async () => {
+      const current = await getToken();
+      if (current) { sendResponse({ ok: true, already: true }); return; }
+      const ok = await pairWithAccessToken(msg.accessToken);
+      sendResponse({ ok });
+    })();
+    return true;
+  }
+
+  if (msg.type === "viaair-quotes-pair-now") {
+    autoPairFromPortalTabs().then((ok) => sendResponse({ ok }));
     return true;
   }
 
