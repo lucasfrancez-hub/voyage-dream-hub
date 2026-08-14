@@ -27,7 +27,13 @@ export function normalizeQuoteConfig(raw: unknown): QuoteConfig {
   return {
     pix: {
       enabled: !!pix.enabled,
-      discount_pct: Math.max(0, Math.min(100, Number(pix.discount_pct ?? 0))),
+      discount_pct: Math.max(
+        0,
+        Math.min(
+          100,
+          Number(pix.discount_pct ?? DEFAULT_QUOTE_CONFIG.pix.discount_pct),
+        ),
+      ),
     },
     card: {
       enabled: !!card.enabled,

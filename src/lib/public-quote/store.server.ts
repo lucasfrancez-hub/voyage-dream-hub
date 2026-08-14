@@ -64,10 +64,37 @@ function toRow(q: NewPublicQuote, publicId: string) {
 }
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
+function normalizeStoredPayment(quote: PublicQuote): PublicQuote {
+  const payment = quote.payment;
+  if (!payment?.pix) return quote;
+
+  // Regra comercial fixa: Pix sempre 5% de desconto. Se o registro antigo
+  // estiver com 0% ou ausente, recalcula e corrige o objeto.
+  const discountPercent = 5;
+  const total = Number(quote.totals?.total) || 0;
+  const pixTotal = Math.round(total * 0.95 * 100) / 100;
+
+  if (payment.pix.discountPercent === discountPercent && payment.pix.total === pixTotal) {
+    return quote;
+  }
+
+  const newPayment: PublicQuote["payment"] = {
+    ...payment,
+    methods: payment.methods.includes("PIX") ? payment.methods : [...payment.methods, "PIX"],
+    pix: { enabled: true, discountPercent, total: pixTotal },
+  };
+
+  return {
+    ...quote,
+    payment: newPayment,
+    totals: { ...quote.totals, pixTotal },
+  };
+}
+
 export function rowToQuote(row: any): PublicQuote {
   const extra = (row.extra ?? {}) as Record<string, any>;
   const validUntil: string | null = row.valid_until ?? null;
-  return {
+  const raw: PublicQuote = {
     id: row.id,
     publicId: row.public_id,
     shortUrl: row.short_url ?? null,
@@ -95,6 +122,7 @@ export function rowToQuote(row: any): PublicQuote {
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
+  return normalizeStoredPayment(raw);
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
@@ -102,13 +130,18 @@ export function publicQuoteUrl(publicId: string): string {
   return `${PUBLIC_BASE}/orcamento/${publicId}`;
 }
 
-/** Cria (ou reaproveita) um orçamento público e devolve link + link curto. */
+/** Cria (ou reaproveita) um orçamento público e devolve link + link curto.
+ *  Se já existir um orçamento para o mesmo flightQuoteId + optionIndex, o
+ *  conteúdo é ATUALIZADO com os dados mais recentes (mantendo o mesmo link).
+ */
 export async function savePublicQuote(
   q: NewPublicQuote,
 ): Promise<{ quote: PublicQuote; url: string; shortUrl: string | null }> {
   const supabaseAdmin = await db();
 
-  // reaproveita quando é a mesma opção de voo já publicada
+  // reaproveita quando é a mesma opção de voo já publicada, mas regrava
+  // os dados para garantir que regras comerciais (Pix 5%, parcelamento etc.)
+  // estejam sempre atualizadas no link.
   if (q.flightQuoteId && q.optionIndex != null) {
     const { data: existente } = await supabaseAdmin
       .from("public_quotes")
@@ -117,8 +150,11 @@ export async function savePublicQuote(
       .eq("option_index", q.optionIndex)
       .maybeSingle();
     if (existente) {
-      const quote = rowToQuote(existente);
-      return { quote, url: publicQuoteUrl(quote.publicId), shortUrl: quote.shortUrl ?? null };
+      const publicId = existente.public_id as string;
+      const atualizado = await refreshPublicQuote(publicId, q);
+      if (atualizado) {
+        return atualizado;
+      }
     }
   }
 
