@@ -147,7 +147,7 @@ function OrcamentosPage() {
       } catch {
         toast.success("Link gerado", { description: url });
       }
-      void queryClient.invalidateQueries({ queryKey: ["orcamentos"] });
+      void qc.invalidateQueries({ queryKey: ["orcamentos"] });
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erro ao gerar link"),
   });
