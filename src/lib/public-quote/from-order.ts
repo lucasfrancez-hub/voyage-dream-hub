@@ -67,43 +67,84 @@ function durationBetween(from?: string | null, to?: string | null): string | nul
   return `${Math.floor(mins / 60)}h${String(mins % 60).padStart(2, "0")}`;
 }
 
-function flightLeg(item: PublicQuoteItem, index: number): FlightLeg {
-  const direction: "OUTBOUND" | "INBOUND" = item.direction === "return" ? "INBOUND" : index === 0 ? "OUTBOUND" : "INBOUND";
-  const airline = item.airline ?? "Companhia aérea";
+/** "2026-09-10T06:10" -> "2026-09-10 06:10" (formato esperado pelos cards). */
+function stamp(v?: string | null): string {
+  if (!v) return "";
+  const s = String(v).replace("T", " ");
+  const m = s.match(/(\d{4}-\d{2}-\d{2})[ ]?(\d{2}:\d{2})?/);
+  if (!m) return s;
+  return m[2] ? `${m[1]} ${m[2]}` : m[1];
+}
+
+function segmentOf(item: PublicQuoteItem): FlightSegment {
   const fromIata = item.from_iata ?? "";
   const toIata = item.to_iata ?? "";
-  const duration = durationBetween(item.departure_at, item.arrival_at);
-  const segment: FlightSegment = {
-    airline,
+  return {
+    airline: item.airline ?? "Companhia aérea",
     flightNumber: item.flight_number ?? null,
     fromIata,
     fromName: item.from_city ?? cityLabel(fromIata) ?? null,
     toIata,
     toName: item.to_city ?? cityLabel(toIata) ?? null,
-    departure: item.departure_at ?? "",
-    arrival: item.arrival_at ?? "",
-    duration,
+    departure: stamp(item.departure_at),
+    arrival: stamp(item.arrival_at),
+    duration: durationBetween(item.departure_at, item.arrival_at),
   };
+}
+
+/**
+ * Monta UM trecho (ida ou volta) a partir de todos os voos daquela direção.
+ * Origem = primeiro embarque, destino = destino final; conexões aparecem
+ * apenas dentro de "Ver detalhes do voo".
+ */
+function buildLeg(items: PublicQuoteItem[], direction: "OUTBOUND" | "INBOUND"): FlightLeg {
+  const first = items[0]!;
+  const last = items[items.length - 1]!;
+  const segments = items.map(segmentOf);
+  for (let i = 0; i < segments.length - 1; i++) {
+    const espera = durationBetween(items[i]!.arrival_at, items[i + 1]!.departure_at);
+    if (espera) segments[i]!.connectionAfter = `Conexão em ${segments[i]!.toName ?? segments[i]!.toIata} • ${espera}`;
+  }
+  const stops = Math.max(0, items.length - 1);
   return {
     direction,
     label: direction === "OUTBOUND" ? "Voo de ida" : "Voo de volta",
-    airline,
-    dateLabel: dateLabel(item.departure_at),
-    departureTime: timeOf(item.departure_at),
-    arrivalTime: timeOf(item.arrival_at),
-    fromIata,
-    fromCity: item.from_city ?? cityLabel(fromIata) ?? null,
-    toIata,
-    toCity: item.to_city ?? cityLabel(toIata) ?? null,
-    duration,
-    stops: 0,
-    stopsLabel: "Direto",
-    carryOn: true,
-    personalItem: true,
-    checkedBaggage: false,
-    segments: [segment],
+    airline: first.airline ?? "Companhia aérea",
+    dateLabel: dateLabel(first.departure_at),
+    departureTime: timeOf(first.departure_at),
+    arrivalTime: timeOf(last.arrival_at),
+    fromIata: first.from_iata ?? "",
+    fromCity: first.from_city ?? cityLabel(first.from_iata ?? "") ?? null,
+    toIata: last.to_iata ?? "",
+    toCity: last.to_city ?? cityLabel(last.to_iata ?? "") ?? null,
+    duration: durationBetween(first.departure_at, last.arrival_at),
+    stops,
+    stopsLabel: stops === 0 ? "Direto" : `${stops} ${stops === 1 ? "conexão" : "conexões"}`,
+    cabin: first.cabin_class ?? null,
+    carryOn: items.every((i) => i.carry_on !== false),
+    personalItem: items.every((i) => i.personal_item !== false),
+    checkedBaggage: items.every((i) => i.checked_bag === true),
+    segments,
   };
 }
+
+/** Agrupa os voos em trechos (ida / volta) respeitando trip_group. */
+function buildLegs(voos: PublicQuoteItem[]): FlightLeg[] {
+  const groups = new Map<string, PublicQuoteItem[]>();
+  const ordem: string[] = [];
+  voos.forEach((v, i) => {
+    const dir = v.direction === "return" ? "INBOUND" : "OUTBOUND";
+    const key = `${v.trip_group ?? "default"}|${dir}`;
+    if (!groups.has(key)) { groups.set(key, []); ordem.push(key); }
+    groups.get(key)!.push({ ...v, direction: v.direction ?? (i === 0 ? "outbound" : v.direction) });
+  });
+  return ordem.map((key) => {
+    const items = groups.get(key)!;
+    const dir: "OUTBOUND" | "INBOUND" = key.endsWith("INBOUND") ? "INBOUND" : "OUTBOUND";
+    return buildLeg(items, dir);
+  });
+}
+
 
 function hotelProduct(item: PublicQuoteItem, index: number): HotelProduct {
   const info = item.hotel_info ?? null;
