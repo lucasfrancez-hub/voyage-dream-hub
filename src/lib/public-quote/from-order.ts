@@ -233,7 +233,8 @@ function buildPaymentFromConfig(
 ): PaymentConfiguration {
   // Pix e cartão SEMPRE aparecem no orçamento público.
   // Pacote: 10x sem juros. Somente aéreo: teto da companhia.
-  const pixPct = cfg.pix.discount_pct || PIX_DISCOUNT_PERCENT;
+  // Desconto Pix 5% apenas para pacotes; aéreo não tem desconto no Pix.
+  const pixPct = type === "AIR_ONLY" ? 0 : (cfg.pix.discount_pct || PIX_DISCOUNT_PERCENT);
   const semJuros: Installment[] = cardInstallments(total, airline, type)
     .filter((i) => i.interestFree)
     .map((i) => ({ ...i, interestFree: true }));
