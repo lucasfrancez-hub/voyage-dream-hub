@@ -68,11 +68,12 @@ function normalizeStoredPayment(quote: PublicQuote): PublicQuote {
   const payment = quote.payment;
   if (!payment?.pix) return quote;
 
-  // Regra comercial fixa: Pix sempre 5% de desconto. Se o registro antigo
-  // estiver com 0% ou ausente, recalcula e corrige o objeto.
-  const discountPercent = 5;
+  // Regra comercial fixa: Pix sempre aceito. Desconto de 5% somente em
+  // pacotes (TRIP_PACKAGE). Somente aéreo (AIR_ONLY) não tem desconto.
+  const isAirOnly = quote.type === "AIR_ONLY";
+  const discountPercent = isAirOnly ? 0 : 5;
   const total = Number(quote.totals?.total) || 0;
-  const pixTotal = Math.round(total * 0.95 * 100) / 100;
+  const pixTotal = Math.round(total * (1 - discountPercent / 100) * 100) / 100;
 
   if (payment.pix.discountPercent === discountPercent && payment.pix.total === pixTotal) {
     return quote;
@@ -87,7 +88,7 @@ function normalizeStoredPayment(quote: PublicQuote): PublicQuote {
   return {
     ...quote,
     payment: newPayment,
-    totals: { ...quote.totals, pixTotal },
+    totals: { ...quote.totals, pixTotal: discountPercent ? pixTotal : undefined },
   };
 }
 
