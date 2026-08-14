@@ -244,6 +244,7 @@ function HotelCard({ hotel }: { hotel: HotelProduct }) {
       ? `https://www.google.com/maps?q=${encodeURIComponent(`${hotel.name} ${hotel.place ?? ""}`)}&z=15&output=embed`
       : null;
 
+  const proximos = loc?.nearbyPlaces?.length ? loc.nearbyPlaces : proximidadesDoTexto(hotel.about);
   const total = hotel.photos.length;
   const irPara = (delta: number) =>
     setFoto((atual) => (atual == null ? null : (atual + delta + total) % total));
@@ -419,10 +420,10 @@ function HotelCard({ hotel }: { hotel: HotelProduct }) {
                     </div>
                   </div>
                 ) : null}
-                {loc?.nearbyPlaces?.length ? (
+                {proximos.length ? (
                   <div className="vq-nearby">
                     <h4>Próximo da hospedagem</h4>
-                    {loc.nearbyPlaces.map((n, i) => (
+                    {proximos.map((n, i) => (
                       <div key={i} className="vq-nearby-item"><span>{n.name}</span><strong>{n.distance}</strong></div>
                     ))}
                   </div>
