@@ -143,6 +143,36 @@ function QuoteDetailPage() {
   ];
   const pax = normalized?.passengers ?? null;
   const nomesPax = pax?.names ?? [];
+  const totalPax = (pax?.adults ?? 0) + (pax?.children ?? 0) + (pax?.infants ?? 0);
+  const resumoPax = [
+    pax?.adults ? `${pax.adults} adulto(s)` : null,
+    pax?.children ? `${pax.children} criança(s)` : null,
+    pax?.infants ? `${pax.infants} bebê(s)` : null,
+  ].filter(Boolean).join(" · ");
+  const somaHoteis = hoteis.reduce((a, h) => a + Number(h.total ?? 0), 0);
+  const somaVoos = voos.reduce((a, f) => a + Number(f.total ?? 0), 0);
+  const somaServicos = servicos.reduce((a, s) => a + Number(s.total ?? 0), 0);
+  const linhasFinanceiro: Array<{ item: string; tipo: string; periodo: string; total: number }> = [
+    ...hoteis.map((h) => ({
+      item: h.name,
+      tipo: "Hospedagem",
+      periodo: `${dt(h.checkin)} → ${dt(h.checkout)}`,
+      total: Number(h.total ?? 0),
+    })),
+    ...voos.map((f) => ({
+      item: `${f.airline ?? "Voo"} — ${f.fromIata ?? "—"} → ${f.toIata ?? "—"}`,
+      tipo: f.direction === "INBOUND" ? "Aéreo (volta)" : "Aéreo (ida)",
+      periodo: dt(f.departure),
+      total: Number(f.total ?? 0),
+    })),
+    ...servicos.map((s) => ({
+      item: s.name,
+      tipo: "Serviço",
+      periodo: s.date ? dt(s.date) : "—",
+      total: Number(s.total ?? 0),
+    })),
+  ];
+
 
   if (isLoading) {
     return (
