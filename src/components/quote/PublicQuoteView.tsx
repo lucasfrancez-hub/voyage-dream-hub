@@ -675,6 +675,18 @@ function QuoteBody({ quote }: { quote: PublicQuote }) {
   const flights = quote.products.flights ?? [];
   const hotels = quote.products.hotels ?? [];
   const periodo = periodoLabel(quote);
+  const heroTitle = quoteHeadline({
+    type: quote.type,
+    destination: quote.destination,
+    title: quote.title,
+    hasHotel: hotels.length > 0,
+  });
+  const heroTagline = quoteTagline({
+    type: quote.type,
+    destination: quote.destination,
+    hasHotel: hotels.length > 0,
+    seed: quote.publicId,
+  });
 
   const legs = useMemo(() => flights.flatMap((f) => f.legs), [flights]);
 
