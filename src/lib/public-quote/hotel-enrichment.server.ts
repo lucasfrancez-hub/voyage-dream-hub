@@ -117,9 +117,9 @@ export async function enrichHotel(params: {
   }
   if (!apiKey) return null;
 
-  const withKey = (u: string) => `${u}${u.includes("?") ? "&" : "?"}key=${encodeURIComponent(apiKey)}&language=pt`;
   const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), 8000);
+  const timer = setTimeout(() => ctrl.abort(), 12_000);
+  const api = (path: string) => jsonOf(`${BASE}${path}`, ctrl.signal, apiKey);
 
   const vazio: HotelEnrichment = {
     name: nome, rating: null, num_reviews: null, ranking: null, address: null,
@@ -129,11 +129,15 @@ export async function enrichHotel(params: {
 
   try {
     const query = local ? `${nome} ${local}` : nome;
-    const search = await jsonOf(
-      withKey(`${BASE}/search?searchQuery=${encodeURIComponent(query)}&category=hotels`),
-      ctrl.signal,
-    );
-    const candidatos = (search?.data ?? []) as Array<{ location_id: string; name: string }>;
+    const search =
+      (await api(`/catalog/locations/search?query=${encodeURIComponent(query)}&search_type=NAME&category=HOTEL`)) ??
+      (await api(`/catalog/locations/search?query=${encodeURIComponent(nome)}&search_type=NAME&category=HOTEL`));
+
+    const candidatos = ((search?.data ?? []) as Array<{ location?: Record<string, unknown> }>)
+      .map((item) => (item.location ?? item) as Record<string, unknown>)
+      .filter((loc) => loc?.id != null)
+      .map((loc) => ({ id: Number(loc.id), name: pickName(loc.names) }));
+
     const alvo = norm(nome);
     const escolhido =
       candidatos.find((c) => norm(c.name) === alvo) ??
@@ -144,62 +148,61 @@ export async function enrichHotel(params: {
       return vazio;
     }
 
-    const locId = escolhido.location_id;
-    const [details, photosJson] = await Promise.all([
-      jsonOf(withKey(`${BASE}/${locId}/details?currency=BRL`), ctrl.signal),
-      jsonOf(withKey(`${BASE}/${locId}/photos?limit=12`), ctrl.signal),
+    const [detailsRaw, photosJson] = await Promise.all([
+      api(`/locations/${escolhido.id}`),
+      api(`/locations/${escolhido.id}/photos?limit=12`),
     ]);
 
-    const d = details ?? {};
-    const photos = ((photosJson?.data ?? []) as Array<{ images?: Record<string, { url?: string }> }>)
-      .map((p) => p.images?.large?.url ?? p.images?.original?.url ?? p.images?.medium?.url ?? "")
+    const d = ((detailsRaw?.data as Record<string, unknown> | undefined)
+      ?? (detailsRaw?.location as Record<string, unknown> | undefined)
+      ?? detailsRaw
+      ?? {}) as Record<string, unknown>;
+
+    const photos = ((photosJson?.data ?? []) as Array<{ photo?: Record<string, unknown> }>)
+      .map((p) => String(p.photo?.original_size_url ?? p.photo?.url ?? ""))
       .filter(Boolean);
 
-    const addrObj = (d.address_obj ?? {}) as Record<string, unknown>;
+    const endereco = pickAddress(d.addresses as Array<Record<string, unknown>> | undefined);
     const amenities = Array.isArray(d.amenities)
-      ? (d.amenities as Array<{ name?: string } | string>)
-          .map((a) => (typeof a === "string" ? a : a?.name ?? ""))
+      ? (d.amenities as Array<{ name?: string; localized_name?: string } | string>)
+          .map((a) => (typeof a === "string" ? a : a?.localized_name ?? a?.name ?? ""))
           .filter(Boolean)
           .slice(0, 8)
       : [];
 
-    const lat = d.latitude != null ? Number(d.latitude) : null;
-    const lng = d.longitude != null ? Number(d.longitude) : null;
-
-    let nearby: HotelNearby[] = [];
-    if (Number.isFinite(lat) && Number.isFinite(lng)) {
-      const near = await jsonOf(
-        withKey(`${BASE}/nearby_search?latLong=${lat},${lng}&category=attractions&radius=5&radiusUnit=km`),
-        ctrl.signal,
-      );
-      nearby = ((near?.data ?? []) as Array<{ name?: string; distance?: string }>)
-        .filter((n) => n.name && norm(n.name) !== alvo)
-        .slice(0, 5)
-        .map((n) => ({ name: String(n.name), distance: metros(n.distance) ?? "próximo" }));
-    }
+    const coords = (d.coordinates ?? {}) as { latitude?: number; longitude?: number };
+    const lat = coords.latitude != null ? Number(coords.latitude) : null;
+    const lng = coords.longitude != null ? Number(coords.longitude) : null;
 
     const estrelas = (() => {
-      const raw = (d.hotel_class ?? (d as { subcategory?: unknown }).subcategory) as unknown;
+      const raw = (d.hotel_class ?? (d as { class?: unknown }).class) as unknown;
       const n = Number(typeof raw === "string" ? raw.replace(",", ".") : raw);
       return Number.isFinite(n) && n >= 1 && n <= 5 ? Math.round(n) : null;
     })();
 
+    const nota = ((): number | null => {
+      const raw = (d.rating ?? (d as { review_rating?: unknown }).review_rating) as unknown;
+      const n = Number(typeof raw === "string" ? raw.replace(",", ".") : raw);
+      return Number.isFinite(n) && n > 0 ? n : null;
+    })();
+
     const out: HotelEnrichment = {
-      name: (d.name as string) ?? escolhido.name ?? nome,
-      rating: d.rating != null ? Number(d.rating) : null,
+      name: pickName(d.names) || escolhido.name || nome,
+      rating: nota,
       num_reviews: d.num_reviews != null ? Number(d.num_reviews) : null,
-      ranking: (d.ranking_data as { ranking_string?: string } | undefined)?.ranking_string ?? null,
-      address: (addrObj.address_string as string) ?? null,
-      description: (d.description as string) ?? null,
+      ranking: null,
+      address: endereco,
+      description: localized(d.descriptions),
       photos,
       amenities,
-      web_url: (d.web_url as string) ?? null,
+      web_url: (d.urls as { tripadvisor?: { main?: string } } | undefined)?.tripadvisor?.main ?? null,
       latitude: Number.isFinite(lat) ? lat : null,
       longitude: Number.isFinite(lng) ? lng : null,
       stars: estrelas,
-      nearby,
-      status: photos.length && (lat != null || addrObj.address_string) ? "OK" : "PARTIAL",
+      nearby: [],
+      status: photos.length && (lat != null || endereco) ? "OK" : "PARTIAL",
     };
+
     await writeCache(key, out);
     return out;
   } catch {
