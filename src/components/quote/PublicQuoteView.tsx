@@ -7,6 +7,7 @@ import { useMemo, useState } from "react";
 import viaAirLogo from "@/assets/viaair-logo.png.asset.json";
 import { airlineLogo } from "@/lib/airlines";
 import { brl } from "@/lib/public-quote/payments";
+import { quoteHeadline, quoteTagline } from "@/lib/public-quote/headline";
 import type {
   FlightLeg,
   HotelProduct,
@@ -718,8 +719,8 @@ function QuoteBody({ quote }: { quote: PublicQuote }) {
           <div className="vq-hero-grid">
             <div>
               <div className="vq-eyebrow">PROPOSTA VIA AIR</div>
-              <h1>{quote.title}</h1>
-              <p>{quote.subtitle ?? "Todos os detalhes da sua viagem organizados em um único link."}</p>
+              <h1>{heroTitle}</h1>
+              <p>{heroTagline}</p>
               <div className="vq-chips">
                 {periodo ? <div className="vq-chip"><IconCalendar />{periodo}</div> : null}
                 <div className="vq-chip"><IconUsers />{quote.passengers.label}</div>
