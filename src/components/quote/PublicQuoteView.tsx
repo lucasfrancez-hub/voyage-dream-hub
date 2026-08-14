@@ -61,11 +61,27 @@ function periodoLabel(q: PublicQuote): string | null {
 
 /* ───────────────────────── voos ───────────────────────── */
 
-function FlightLegCard({ leg }: { leg: FlightLeg }) {
+function direcaoLeg(leg: FlightLeg, index: number, total: number): string | null {
+  const l = (leg.label ?? "").toLowerCase();
+  if (l.includes("volta") || l.includes("retorno")) return "Volta";
+  if (l.includes("ida")) return "Ida";
+  if (total === 2) return index === 0 ? "Ida" : "Volta";
+  if (total > 2) return `Trecho ${index + 1}`;
+  return null;
+}
+
+function FlightLegCard({
+  leg,
+  direction,
+}: {
+  leg: FlightLeg;
+  direction?: string | null;
+}) {
   const [open, setOpen] = useState(false);
   const logo = airlineLogo(leg.airlineIata ?? leg.airline);
+  const dirKind = direction?.toLowerCase().startsWith("volta") ? "volta" : "ida";
   return (
-    <article className="vq-card vq-flight">
+    <article className="vq-card vq-flight" data-dir={dirKind}>
       <div className="vq-flight-summary">
         <div className="vq-flight-top">
           <div className="vq-air">
@@ -75,12 +91,16 @@ function FlightLegCard({ leg }: { leg: FlightLeg }) {
             <div>
               <div>{leg.airline}</div>
               <div style={{ color: "var(--muted)", fontSize: 12, fontWeight: 700 }}>
-                {leg.label} • {leg.dateLabel}
+                {leg.dateLabel}
               </div>
             </div>
           </div>
-          <span className="vq-tag">{leg.stopsLabel}</span>
+          <div className="vq-flight-tags">
+            {direction ? <span className="vq-dir-badge" data-dir={dirKind}>{direction}</span> : null}
+            <span className="vq-tag">{leg.stopsLabel}</span>
+          </div>
         </div>
+
 
         <div className="vq-route">
           <div className="vq-airport">
@@ -862,7 +882,12 @@ function QuoteBody({ quote }: { quote: PublicQuote }) {
               </div>
               <span className="vq-tag">{quote.tripKind ?? "Itinerário"}</span>
             </div>
-            {legs.map((leg, i) => <FlightLegCard key={i} leg={leg} />)}
+            <div className="vq-flights-grid" data-cols={legs.length === 1 ? 1 : 2}>
+              {legs.map((leg, i) => (
+                <FlightLegCard key={i} leg={leg} direction={direcaoLeg(leg, i, legs.length)} />
+              ))}
+            </div>
+
           </section>
         ) : null}
 
