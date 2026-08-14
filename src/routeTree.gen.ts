@@ -97,6 +97,7 @@ import { Route as ProtocoloProtocoloIdRouteImport } from './routes/protocolo.$pr
 import { Route as WSlugRouteImport } from './routes/w.$slug'
 import { Route as AdminAppTokenRouteImport } from './routes/admin.app.$token'
 import { Route as AdminOrcamentosIndexRouteImport } from './routes/admin.orcamentos.index'
+import { Route as AdminOrcamentosIdRouteImport } from './routes/admin.orcamentos.$id'
 import { Route as AdminPedidosIndexRouteImport } from './routes/admin.pedidos.index'
 import { Route as AdminPedidosIdRouteImport } from './routes/admin.pedidos.$id'
 import { Route as AdminPedidosTerceirosRouteImport } from './routes/admin.pedidos.terceiros'
@@ -592,6 +593,11 @@ const AdminOrcamentosIndexRoute = AdminOrcamentosIndexRouteImport.update({
   path: '/orcamentos/',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminOrcamentosIdRoute = AdminOrcamentosIdRouteImport.update({
+  id: '/orcamentos/$id',
+  path: '/orcamentos/$id',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminPedidosIndexRoute = AdminPedidosIndexRouteImport.update({
   id: '/pedidos/',
   path: '/pedidos/',
@@ -984,6 +990,7 @@ export interface FileRoutesByFullPath {
   '/editair/': typeof EditairIndexRoute
   '/pacotes/': typeof PacotesIndexRoute
   '/admin/app/$token': typeof AdminAppTokenRoute
+  '/admin/orcamentos/$id': typeof AdminOrcamentosIdRoute
   '/admin/pedidos/$id': typeof AdminPedidosIdRoute
   '/admin/pedidos/terceiros': typeof AdminPedidosTerceirosRoute
   '/admin/pessoas/$id': typeof AdminPessoasIdRoute
@@ -1126,6 +1133,7 @@ export interface FileRoutesByTo {
   '/editair': typeof EditairIndexRoute
   '/pacotes': typeof PacotesIndexRoute
   '/admin/app/$token': typeof AdminAppTokenRoute
+  '/admin/orcamentos/$id': typeof AdminOrcamentosIdRoute
   '/admin/pedidos/$id': typeof AdminPedidosIdRoute
   '/admin/pedidos/terceiros': typeof AdminPedidosTerceirosRoute
   '/admin/pessoas/$id': typeof AdminPessoasIdRoute
@@ -1271,6 +1279,7 @@ export interface FileRoutesById {
   '/editair/': typeof EditairIndexRoute
   '/pacotes/': typeof PacotesIndexRoute
   '/admin/app/$token': typeof AdminAppTokenRoute
+  '/admin/orcamentos/$id': typeof AdminOrcamentosIdRoute
   '/admin/pedidos/$id': typeof AdminPedidosIdRoute
   '/admin/pedidos/terceiros': typeof AdminPedidosTerceirosRoute
   '/admin/pessoas/$id': typeof AdminPessoasIdRoute
@@ -1417,6 +1426,7 @@ export interface FileRouteTypes {
     | '/editair/'
     | '/pacotes/'
     | '/admin/app/$token'
+    | '/admin/orcamentos/$id'
     | '/admin/pedidos/$id'
     | '/admin/pedidos/terceiros'
     | '/admin/pessoas/$id'
@@ -1559,6 +1569,7 @@ export interface FileRouteTypes {
     | '/editair'
     | '/pacotes'
     | '/admin/app/$token'
+    | '/admin/orcamentos/$id'
     | '/admin/pedidos/$id'
     | '/admin/pedidos/terceiros'
     | '/admin/pessoas/$id'
@@ -1703,6 +1714,7 @@ export interface FileRouteTypes {
     | '/editair/'
     | '/pacotes/'
     | '/admin/app/$token'
+    | '/admin/orcamentos/$id'
     | '/admin/pedidos/$id'
     | '/admin/pedidos/terceiros'
     | '/admin/pessoas/$id'
@@ -2460,6 +2472,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminOrcamentosIndexRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/orcamentos/$id': {
+      id: '/admin/orcamentos/$id'
+      path: '/orcamentos/$id'
+      fullPath: '/admin/orcamentos/$id'
+      preLoaderRoute: typeof AdminOrcamentosIdRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/pedidos/': {
       id: '/admin/pedidos/'
       path: '/pedidos'
@@ -2891,6 +2910,7 @@ interface AdminRouteChildren {
   AdminUsuariosRoute: typeof AdminUsuariosRoute
   AdminVoosTesteRoute: typeof AdminVoosTesteRoute
   AdminAppTokenRoute: typeof AdminAppTokenRoute
+  AdminOrcamentosIdRoute: typeof AdminOrcamentosIdRoute
   AdminPedidosIdRoute: typeof AdminPedidosIdRoute
   AdminPedidosTerceirosRoute: typeof AdminPedidosTerceirosRoute
   AdminOrcamentosIndexRoute: typeof AdminOrcamentosIndexRoute
@@ -2935,6 +2955,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminUsuariosRoute: AdminUsuariosRoute,
   AdminVoosTesteRoute: AdminVoosTesteRoute,
   AdminAppTokenRoute: AdminAppTokenRoute,
+  AdminOrcamentosIdRoute: AdminOrcamentosIdRoute,
   AdminPedidosIdRoute: AdminPedidosIdRoute,
   AdminPedidosTerceirosRoute: AdminPedidosTerceirosRoute,
   AdminOrcamentosIndexRoute: AdminOrcamentosIndexRoute,
