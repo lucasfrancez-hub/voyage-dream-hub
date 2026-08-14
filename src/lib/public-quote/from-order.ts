@@ -331,7 +331,7 @@ export function buildPublicQuoteFromOrder(legacy: LegacyQuote, token: string): P
     hoteis[0]?.hotel_name ??
     "Sua viagem";
   const origem = voos.find((v) => v.direction !== "return")?.from_city ?? null;
-  const idaEVolta = voos.some((v) => v.direction === "return");
+  const idaEVolta = legs.some((l) => l.direction === "INBOUND");
 
   return {
     id: token,
@@ -345,23 +345,9 @@ export function buildPublicQuoteFromOrder(legacy: LegacyQuote, token: string): P
     startDate: primeiraData,
     endDate: ultimaData,
     nights: hoteis[0]?.nights ?? null,
-    tripKind: voos.length ? (idaEVolta ? "Ida e volta" : "Somente ida") : null,
-    cabin: null,
-    passengers: (() => {
-      const criancas = Math.max(0, Number(legacy.travelers.children) || 0);
-      const adultos = Math.max(criancas > 0 ? 0 : 1, Number(legacy.travelers.adults) || 0);
-      return {
-        adults: adultos,
-        children: criancas,
-        infants: 0,
-        label: [
-          adultos ? `${adultos} ${adultos === 1 ? "adulto" : "adultos"}` : null,
-          criancas ? `${criancas} ${criancas === 1 ? "criança" : "crianças"}` : null,
-        ]
-          .filter(Boolean)
-          .join(" • "),
-      };
-    })(),
+    tripKind: legs.length ? (idaEVolta ? "Ida e volta" : legs.length > 1 ? "Multi-trecho" : "Somente ida") : null,
+    cabin: legs[0]?.cabin ?? null,
+    passengers: { adults: adultos, children: criancas, infants: 0, label: paxLabel },
 
     products,
     payment,
@@ -369,7 +355,7 @@ export function buildPublicQuoteFromOrder(legacy: LegacyQuote, token: string): P
     summary,
     agent: {
       name: legacy.agency.name,
-      photoUrl: null,
+      photoUrl: agentPhoto(legacy.agency.name),
       phone: legacy.agency.phone || null,
       whatsapp: legacy.agency.whatsapp || null,
       email: legacy.agency.email || null,
