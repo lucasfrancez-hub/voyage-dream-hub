@@ -201,7 +201,28 @@
     if (message.type === "viaair-diagnostic-relay" && IS_TOP) handleDiagnostic(message.kind, message.detail || {}, message.frame || "iframe");
     if (message.type === "viaair-tab-candidate") {
       if (IS_TOP) handleDiagnostic(message.event || "tab-updated", { url: message.tabUrl }, "background");
-      if (message.quoteUrl) foundUrl(message.quoteUrl, message.mechanism || "background/tab");
+      if (message.quoteUrl) {
+        // o background já importa sozinho; aqui só registramos o candidato
+        const url = extractQuoteUrl(message.quoteUrl);
+        if (url && !seen.has(url)) {
+          seen.add(url);
+          state.candidate = url;
+          state.report.push({ label: "URL encontrada", value: url, mechanism: message.mechanism || "background/tab", frame: FRAME_LABEL });
+          render();
+        }
+      }
+    }
+    if (message.type === "viaair-import-progress" && IS_TOP) {
+      if (message.stage === "start") {
+        state.api = "Importando orçamento...";
+        showViaAirToast("loading", "Importando orçamento...", "URL real encontrada; aguardando a Via Air.");
+      } else {
+        const r = message.result || {};
+        state.api = r.status || "sem resposta";
+        if (r.status === "READY") showViaAirToast("success", "Orçamento exportado para Via Air", r.label || "Exportado com sucesso.");
+        else showViaAirToast("error", "Não foi possível exportar o orçamento.", r.detail || r.status || "Erro desconhecido.");
+      }
+      render();
     }
   });
 
