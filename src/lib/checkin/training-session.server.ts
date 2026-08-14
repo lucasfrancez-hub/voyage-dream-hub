@@ -850,10 +850,51 @@ export async function captureSessionCookies(opts: { userId: string; sessionId: s
 }> {
   const session = requireSession(opts.sessionId, opts.userId);
   return withConnection(session, async (cdp) => {
-    const res = await cdp
-      .send<{ cookies?: Array<Record<string, unknown>> }>("Network.getAllCookies")
-      .catch(() => ({ cookies: [] as Array<Record<string, unknown>> }));
+    // Network.getAllCookies só responde com o domínio Network habilitado; e em
+    // alguns alvos só o nível browser devolve tudo. Tentamos várias fontes.
+    await cdp.send("Network.enable", {}).catch(() => {});
+    const attempts: Array<() => Promise<Array<Record<string, unknown>>>> = [
+      async () =>
+        (await cdp.send<{ cookies?: Array<Record<string, unknown>> }>("Storage.getCookies", {}, null))
+          .cookies ?? [],
+      async () =>
+        (await cdp.send<{ cookies?: Array<Record<string, unknown>> }>("Network.getAllCookies")).cookies ?? [],
+      async () =>
+        (await cdp.send<{ cookies?: Array<Record<string, unknown>> }>("Network.getAllCookies", {}, null))
+          .cookies ?? [],
+      async () =>
+        (await cdp.send<{ cookies?: Array<Record<string, unknown>> }>("Storage.getCookies")).cookies ?? [],
+    ];
+    let cookies: Array<Record<string, unknown>> = [];
+    for (const attempt of attempts) {
+      const got = await attempt().catch(() => [] as Array<Record<string, unknown>>);
+      if (got.length > cookies.length) cookies = got;
+      if (cookies.length) break;
+    }
     const url = (await evalExpr<string>(cdp, "location.href")) || "";
+    // Último recurso: document.cookie (só os não-httpOnly, mas melhor que nada).
+    if (!cookies.length) {
+      const docCookie = (await evalExpr<string>(cdp, "document.cookie")) || "";
+      let host = "";
+      try {
+        host = new URL(url).hostname;
+      } catch {
+        host = "www.expediataap.com.br";
+      }
+      cookies = docCookie
+        .split(";")
+        .map((p) => p.trim())
+        .filter(Boolean)
+        .map((pair) => {
+          const idx = pair.indexOf("=");
+          return {
+            name: idx > 0 ? pair.slice(0, idx) : pair,
+            value: idx > 0 ? pair.slice(idx + 1) : "",
+            domain: host.replace(/^www\./, "."),
+            path: "/",
+          };
+        });
+    }
     const raw =
       (await evalExpr<string>(
         cdp,
@@ -865,6 +906,6 @@ export async function captureSessionCookies(opts: { userId: string; sessionId: s
     } catch {
       storage = {};
     }
-    return { cookies: res.cookies ?? [], url, storage };
+    return { cookies, url, storage };
   });
 }
