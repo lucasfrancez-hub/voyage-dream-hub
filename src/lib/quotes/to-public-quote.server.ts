@@ -1,6 +1,6 @@
 /**
- * Converte um Orçamento Via Air import { formatRoom } from "@/lib/public-quote/room-label";
-importado (com N opções) no orçamento
+ * Converte um Orçamento Via Air importado (com N opções) no orçamento
+
  * público oficial — UM único link contendo TODAS as opções.
  * SERVER-ONLY.
  */
