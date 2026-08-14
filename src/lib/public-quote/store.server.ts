@@ -141,8 +141,8 @@ export async function savePublicQuote(
   const supabaseAdmin = await db();
 
   // reaproveita quando é a mesma opção de voo já publicada, mas regrava
-  // os dados para garantir que regras comerciais (Pix 5%, parcelamento etc.)
-  // estejam sempre atualizadas no link.
+  // os dados para garantir que regras comerciais (Pix sem desconto no aéreo,
+  // Pix 5% em pacotes, parcelamento etc.) estejam sempre atualizadas no link.
   if (q.flightQuoteId && q.optionIndex != null) {
     const { data: existente } = await supabaseAdmin
       .from("public_quotes")
