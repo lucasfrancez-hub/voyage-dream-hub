@@ -86,15 +86,46 @@ async function sendImport(url, trigger) {
     }
 
     const data = await res.json();
-    const label = data.quote ? `#${data.quote.quote_number} ${data.quote.destination || data.quote.title || ""}` : url;
-    await markImported(url, { result: data.status, importId: data.importId, label });
+
+    // Sucesso só quando a Via Air terminar de importar os dados reais (status READY).
+    let final = data;
+    if (data.status === "PROCESSING" && data.importId) {
+      final = await pollUntilDone(data.importId, token);
+    }
+
+    const label = final.quote
+      ? `#${final.quote.quote_number} ${final.quote.destination || final.quote.title || ""}`
+      : url;
+
+    if (final.status !== "READY") {
+      console.error(LOG, "importação não concluída", { status: final.status, error: final.error });
+      await logEvent({ event: "import_failed", sourceUrl: url, result: final.status, detail: final.error || "" });
+      await markImported(url, { result: final.status, importId: data.importId, label });
+      return {
+        status: "IMPORT_ERROR",
+        stage: "PARSE",
+        importId: data.importId,
+        quoteId: final.quoteId || null,
+        detail: final.error || final.status,
+      };
+    }
+
+    await markImported(url, { result: "READY", importId: data.importId, label });
     await queueRemove(url);
-    await logEvent({ event: "imported", sourceUrl: url, result: data.status, importId: data.importId });
-    console.info(LOG, "Importação criada", { importId: data.importId, status: data.status, quoteId: data.quoteId });
+    await logEvent({ event: "imported", sourceUrl: url, result: "READY", importId: data.importId });
+    console.info(LOG, "Importação concluída", { importId: data.importId, quoteId: final.quoteId });
     chrome.tabs.query({}, (tabs) =>
       tabs.forEach((t) => t.id && chrome.tabs.sendMessage(t.id, { type: "viaair-quotes-updated" }, () => void chrome.runtime.lastError)),
     );
-    return { status: data.status, duplicate: data.duplicate || !!already, importId: data.importId };
+    return {
+      status: "READY",
+      duplicate: !!data.duplicate || !!already,
+      importId: data.importId,
+      quoteId: final.quoteId || null,
+      quoteUrl: final.quoteId ? `${API_BASE}/admin/orcamentos/${final.quoteId}` : `${API_BASE}/admin/orcamentos`,
+      label,
+    };
+
   } catch (e) {
     // AUDITORIA: erro completo, sem mascarar
     console.error(LOG, "falha ao enviar para a Via Air", { message: e?.message, stack: e?.stack, url, trigger });
