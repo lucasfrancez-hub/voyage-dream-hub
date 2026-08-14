@@ -882,7 +882,12 @@ function QuoteBody({ quote }: { quote: PublicQuote }) {
               </div>
               <span className="vq-tag">{quote.tripKind ?? "Itinerário"}</span>
             </div>
-            {legs.map((leg, i) => <FlightLegCard key={i} leg={leg} />)}
+            <div className="vq-flights-grid" data-cols={legs.length === 1 ? 1 : 2}>
+              {legs.map((leg, i) => (
+                <FlightLegCard key={i} leg={leg} direction={direcaoLeg(leg, i, legs.length)} />
+              ))}
+            </div>
+
           </section>
         ) : null}
 
