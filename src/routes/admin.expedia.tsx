@@ -276,6 +276,88 @@ function ExpediaPage() {
         )}
       </section>
 
+      {/* ------------------------------------------- acesso automático */}
+      <section className="space-y-4 rounded-xl border border-border bg-card p-4 md:p-5">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="flex items-center gap-2 font-medium text-foreground">
+              <KeyRound className="h-4 w-4 text-primary" /> Acesso automático
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              Guarde o acesso da conta (senha criptografada, nunca exibida) para o sistema renovar a
+              sessão sozinho sempre que ela expirar — sem login manual toda vez.
+            </p>
+          </div>
+          <button
+            onClick={() => autoLoginMut.mutate()}
+            disabled={autoLoginMut.isPending || !activeCredential}
+            className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm hover:bg-muted disabled:opacity-60"
+          >
+            {autoLoginMut.isPending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <RefreshCw className="h-4 w-4" />
+            )}
+            Conectar agora
+          </button>
+        </div>
+
+        {activeCredential ? (
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-muted/50 p-3 text-sm">
+            <span>
+              <span className="font-medium text-foreground">{activeCredential.account_email}</span>
+              <span className="ml-2 text-muted-foreground">
+                {activeCredential.last_login_at
+                  ? `último login automático em ${new Date(activeCredential.last_login_at).toLocaleString("pt-BR")}`
+                  : "ainda sem login automático"}
+              </span>
+              {activeCredential.last_error && (
+                <span className="mt-1 block text-xs text-destructive">{activeCredential.last_error}</span>
+              )}
+            </span>
+            <button
+              onClick={() =>
+                confirm({
+                  title: "Remover acesso salvo",
+                  description: "O sistema deixará de renovar a sessão sozinho. Deseja continuar?",
+                }).then((ok) => ok && deleteCredMut.mutate(activeCredential.id))
+              }
+              className="text-muted-foreground hover:text-destructive"
+              aria-label="Remover acesso salvo"
+            >
+              <Link2Off className="h-4 w-4" />
+            </button>
+          </div>
+        ) : (
+          <div className="grid gap-2 md:grid-cols-[1fr_1fr_auto]">
+            <input
+              type="email"
+              value={credEmail}
+              onChange={(e) => setCredEmail(e.target.value)}
+              placeholder="E-mail da conta Expedia TAAP"
+              className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
+            />
+            <input
+              type="password"
+              value={credPassword}
+              onChange={(e) => setCredPassword(e.target.value)}
+              placeholder="Senha"
+              autoComplete="new-password"
+              className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
+            />
+            <button
+              onClick={() => saveCredMut.mutate()}
+              disabled={saveCredMut.isPending || !credEmail || !credPassword}
+              className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground disabled:opacity-60"
+            >
+              {saveCredMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+              Salvar e conectar
+            </button>
+          </div>
+        )}
+      </section>
+
+
       {/* ---------------------------------------------------- login vivo */}
       {live && (
         <section className="space-y-3 rounded-xl border border-border bg-card p-4 md:p-5">
