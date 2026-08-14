@@ -18,17 +18,34 @@ function limpaDestino(destino?: string | null): string | null {
   return d;
 }
 
-/** "Pacote para Salvador" / "Passagens aéreas para Salvador" */
+/**
+ * Título conforme a composição real do orçamento:
+ * - aéreo + hotel  → "Pacote para X"
+ * - só aéreo       → "Aéreo para X"
+ * - só hospedagem  → "Hospedagem em X"
+ * - só serviços    → "Serviços para X"
+ * - aéreo + serviços (sem hotel) → "Aéreo + serviços para X"
+ */
 export function quoteHeadline(args: {
   type?: string | null;
   destination?: string | null;
   title?: string | null;
   hasHotel?: boolean;
+  hasFlight?: boolean;
+  hasServices?: boolean;
 }): string {
   const destino = limpaDestino(args.destination);
   if (!destino) return args.title || "Sua próxima viagem";
-  const pacote = args.hasHotel || args.type === "TRIP_PACKAGE";
-  return pacote ? `Pacote para ${destino}` : `Passagens aéreas para ${destino}`;
+
+  const hotel = !!args.hasHotel;
+  const aereo = args.hasFlight ?? args.type !== "TRIP_PACKAGE";
+  const servicos = !!args.hasServices;
+
+  if (aereo && hotel) return `Pacote para ${destino}`;
+  if (hotel && !aereo) return servicos ? `Hospedagem + serviços em ${destino}` : `Hospedagem em ${destino}`;
+  if (aereo && !hotel) return servicos ? `Aéreo + serviços para ${destino}` : `Aéreo para ${destino}`;
+  if (servicos) return `Serviços para ${destino}`;
+  return args.title || `Sua viagem para ${destino}`;
 }
 
 const FRASES_PACOTE = [
