@@ -16,6 +16,7 @@
       .status { display: flex; align-items: center; gap: 6px; font-size: 12px; }
       .dot { width: 7px; height: 7px; border-radius: 50%; background: #22c55e; }
       .dot.off { background: #f59e0b; }
+      summary::-webkit-details-marker { display: none; }
     </style>
   </head>
   <body>
@@ -24,10 +25,14 @@
     <div class="row muted">Último: <span id="last">—</span></div>
     <div class="row muted">Sincronizações pendentes: <span id="pending">0</span></div>
     <div class="row">
-      <div class="muted">Token de acesso (Pedidos → Orçamentos → Conectar plugin)</div>
-      <input id="token" type="password" placeholder="Cole o token aqui" />
-      <button id="save">Salvar token</button>
+      <button id="pair">Conectar automaticamente</button>
+      <div class="muted" style="margin-top:6px">Basta estar logado no portal Via Air em outra aba — nenhum token precisa ser colado.</div>
     </div>
+    <details class="row">
+      <summary class="muted" style="cursor:pointer">Usar token manual (avançado)</summary>
+      <input id="token" type="password" placeholder="Cole o token aqui" style="margin-top:8px" />
+      <button id="save">Salvar token</button>
+    </details>
     <div class="row"><a href="https://pedidos.viaair.tur.br/admin/orcamentos" target="_blank">Abrir Orçamentos na Via Air</a></div>
     <script src="popup.js"></script>
   </body>
