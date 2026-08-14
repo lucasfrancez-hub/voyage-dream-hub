@@ -307,19 +307,22 @@ export function buildPublicQuoteFromOrder(legacy: LegacyQuote, token: string): P
     nights: hoteis[0]?.nights ?? null,
     tripKind: voos.length ? (idaEVolta ? "Ida e volta" : "Somente ida") : null,
     cabin: null,
-    passengers: {
-      adults: legacy.travelers.adults,
-      children: legacy.travelers.children,
-      infants: 0,
-      label: [
-        `${legacy.travelers.adults} ${legacy.travelers.adults === 1 ? "adulto" : "adultos"}`,
-        legacy.travelers.children
-          ? `${legacy.travelers.children} ${legacy.travelers.children === 1 ? "criança" : "crianças"}`
-          : null,
-      ]
-        .filter(Boolean)
-        .join(" • "),
-    },
+    passengers: (() => {
+      const criancas = Math.max(0, Number(legacy.travelers.children) || 0);
+      const adultos = Math.max(criancas > 0 ? 0 : 1, Number(legacy.travelers.adults) || 0);
+      return {
+        adults: adultos,
+        children: criancas,
+        infants: 0,
+        label: [
+          adultos ? `${adultos} ${adultos === 1 ? "adulto" : "adultos"}` : null,
+          criancas ? `${criancas} ${criancas === 1 ? "criança" : "crianças"}` : null,
+        ]
+          .filter(Boolean)
+          .join(" • "),
+      };
+    })(),
+
     products,
     payment,
     totals: { products: total, taxes: 0, total, pixTotal: payment.pix.total },
