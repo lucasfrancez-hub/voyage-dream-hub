@@ -403,7 +403,47 @@ function PaymentBox({ quote }: { quote: PublicQuote }) {
 
 /* ───────────────────── página ───────────────────── */
 
+/** Wrapper com seletor de opções quando o orçamento traz mais de uma alternativa. */
 export function PublicQuoteView({ quote }: { quote: PublicQuote }) {
+  const options = quote.options ?? [];
+  const [sel, setSel] = useState(0);
+  if (options.length < 2) return <QuoteBody quote={quote} />;
+
+  const opt = options[Math.min(sel, options.length - 1)]!;
+  const merged: PublicQuote = {
+    ...quote,
+    products: opt.products,
+    payment: opt.payment,
+    totals: opt.totals,
+    summary: opt.summary ?? quote.summary,
+  };
+
+  return (
+    <>
+      <div className="vq-options">
+        <div className="vq-options-inner">
+          <span className="vq-options-title">Escolha sua opção</span>
+          <div className="vq-options-tabs">
+            {options.map((o, i) => (
+              <button
+                key={o.optionId}
+                type="button"
+                onClick={() => setSel(i)}
+                className={`vq-option-tab${i === sel ? " is-active" : ""}`}
+              >
+                <span>{o.label ?? `Opção ${i + 1}`}</span>
+                <strong>{brl(o.totals.total)}</strong>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+      <QuoteBody quote={merged} />
+    </>
+  );
+}
+
+function QuoteBody({ quote }: { quote: PublicQuote }) {
   const flights = quote.products.flights ?? [];
   const hotels = quote.products.hotels ?? [];
   const periodo = periodoLabel(quote);
