@@ -86,9 +86,9 @@
       row("window.open", state.open) + row("fetch", state.fetch) + row("XHR", state.xhr) + row("clipboard", state.clipboard) +
       row("URL candidata", state.candidate, state.candidate !== "—" ? "ok" : "") + row("API Via Air", state.api) +
       `<div class="requests">${escapeHtml(requests)}</div><div class="actions"><button id="test-loading">Testar importando</button><button id="test-success">Testar sucesso</button><button id="test-error">Testar erro</button><button id="copy-report">Copiar relatório</button></div>`;
-    shadow.getElementById("test-loading").onclick = () => showViaAirToast("loading", "Importando orçamento...", "Teste visual local.");
-    shadow.getElementById("test-success").onclick = () => showViaAirToast("success", "Orçamento exportado para Via Air", "Exportado com sucesso.");
-    shadow.getElementById("test-error").onclick = () => showViaAirToast("error", "Não foi possível exportar o orçamento.", "Teste visual local.");
+    shadow.getElementById("test-loading").onclick = () => showViaAirToast("loading", "[TESTE] Importando orçamento...", "Simulação visual — nenhuma importação real.");
+    shadow.getElementById("test-success").onclick = () => showViaAirToast("success", "[TESTE] Orçamento exportado para Via Air", "Simulação visual — nenhuma importação real.");
+    shadow.getElementById("test-error").onclick = () => showViaAirToast("error", "[TESTE] Não foi possível exportar o orçamento.", "Simulação visual — nenhuma importação real.");
     shadow.getElementById("copy-report").onclick = () => {
       const lastRequest = state.requests.filter((item) => /fetch|XHR/.test(item)).slice(-1)[0] || "—";
       const text = [
