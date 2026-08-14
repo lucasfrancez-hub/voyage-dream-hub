@@ -126,19 +126,15 @@ function buildOptionPayload(option: FlightQuoteOption, numero: number) {
   };
 }
 
-function labelOpcao(option: FlightQuoteOption, numero: number): string {
-  const cia = findAirline(option.ida?.cia)?.name ?? option.ida?.cia ?? "";
-  const destaque = option.destaque ? option.destaque.charAt(0).toUpperCase() + option.destaque.slice(1) : "";
-  const extra = destaque || cia;
-  return extra ? `Opção ${numero} — ${extra}` : `Opção ${numero}`;
-}
-
+/**
+ * REGRA COMERCIAL: cada opção de voo vira UM orçamento público separado,
+ * com o seu próprio link curto. Nunca agrupar várias opções em abas no
+ * mesmo orçamento.
+ */
 export function buildAirOnlyQuote(params: {
   result: FlightQuoteResult;
   option: FlightQuoteOption;
   optionIndex: number;
-  /** Todas as opções geradas pelo motor — viram abas dentro do orçamento. */
-  allOptions?: FlightQuoteOption[] | null;
   agentName?: string | null;
   conversationId?: string | null;
   flightQuoteId?: string | null;
@@ -154,21 +150,7 @@ export function buildAirOnlyQuote(params: {
   const origem = result.origem_nome || cityLabel(result.origem_iata) || result.origem_iata;
   const destino = result.destino_nome || cityLabel(result.destino_iata) || result.destino_iata;
 
-  const todas = (params.allOptions ?? []).filter(Boolean);
-  const options =
-    todas.length > 1
-      ? todas.map((o, i) => {
-          const p = buildOptionPayload(o, i + 1);
-          return {
-            optionId: String(i + 1),
-            label: labelOpcao(o, i + 1),
-            products: p.products,
-            totals: p.totals,
-            payment: p.payment,
-            summary: p.summary,
-          };
-        })
-      : undefined;
+
 
   return {
     type: "AIR_ONLY",
