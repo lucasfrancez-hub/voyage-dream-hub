@@ -3,6 +3,7 @@ import {
   PDFDocument, StandardFonts, rgb, PDFPage, PDFFont, PDFImage,
 } from "pdf-lib";
 import viaAirLogoAsset from "@/assets/viaair-logo.png.asset.json";
+import { embedImageSmart } from "@/lib/pdf-image";
 import { formatBRL } from "@/lib/format";
 import type { PublicQuote, PublicQuoteItem, QuoteConfig } from "@/lib/quote.functions";
 
@@ -349,7 +350,7 @@ export async function buildQuotePdf(q: PublicQuote): Promise<Uint8Array> {
     const res = await fetch(viaAirLogoAsset.url);
     if (res.ok) {
       const bytes = new Uint8Array(await res.arrayBuffer());
-      logo = await pdf.embedPng(bytes);
+      logo = (await embedImageSmart(pdf, bytes)) ?? null;
     }
   } catch { /* ignora */ }
 

@@ -2,6 +2,7 @@
 // Roda no navegador via pdf-lib.
 import { PDFDocument, StandardFonts, rgb, PDFPage, PDFFont, PDFImage } from "pdf-lib";
 import viaAirLogoAsset from "@/assets/viaair-logo.png.asset.json";
+import { embedImageSmart } from "@/lib/pdf-image";
 import type {
   OrderDetail,
   OrderHeader,
@@ -1082,7 +1083,7 @@ async function build(detail: OrderDetail, includeContract: boolean): Promise<Uin
   let logo: PDFImage | undefined;
   try {
     const res = await fetch(viaAirLogoAsset.url);
-    if (res.ok) logo = await pdf.embedPng(await res.arrayBuffer());
+    if (res.ok) logo = await embedImageSmart(pdf, new Uint8Array(await res.arrayBuffer()));
   } catch { /* logo é opcional */ }
   const ctx: Ctx = {
     pdf, page, y: A4.h - MARGIN, font, fontBold,

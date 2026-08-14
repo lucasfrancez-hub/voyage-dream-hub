@@ -365,13 +365,47 @@
     const n = parseFloat(t);
     return { value: Number.isFinite(n) ? n : null, currency };
   }
+  function isHistoricoNode(el) {
+    let n = el;
+    while (n && n.nodeType === 1) {
+      const id = String(n.id || "");
+      const cls = typeof n.className === "string" ? n.className : "";
+      if (/istorico/i.test(id) || /istorico/i.test(cls)) return true;
+      n = n.parentElement;
+    }
+    return false;
+  }
+  function collectTextLines(root) {
+    // Percorre os nós de texto (sem cloneNode — clonar o body dispara
+    // violação de "unload" quando existem iframes na página).
+    const out = [];
+    let walker;
+    try {
+      walker = root.ownerDocument.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
+    } catch (_e) {
+      return String(root.textContent || "").split("\n");
+    }
+    let node;
+    while ((node = walker.nextNode())) {
+      const parent = node.parentElement;
+      if (!parent) continue;
+      const tag = parent.tagName;
+      if (tag === "SCRIPT" || tag === "STYLE" || tag === "NOSCRIPT") continue;
+      if (isHistoricoNode(parent)) continue;
+      const text = String(node.nodeValue || "").replace(/\s+/g, " ").trim();
+      if (text) out.push(text);
+    }
+    return out;
+  }
   function extractFinancialFromDoc(doc) {
     if (!doc || !doc.body) return { currency: null, base_fare: null, taxes: null, total_fare: null };
-    const clone = doc.body.cloneNode(true);
-    // Remover histórico da reserva — não representa valor atual.
-    clone.querySelectorAll('[id*="istorico" i], [class*="istorico" i]').forEach((n) => n.remove());
-    const raw = (clone.innerText || "").replace(/\r/g, "");
-    const lines = raw.split("\n").map((l) => l.replace(/\s+/g, " ").trim()).filter(Boolean);
+    let lines = [];
+    try {
+      lines = collectTextLines(doc.body).filter(Boolean);
+    } catch (_e) {
+      lines = [];
+    }
+
     let tarifa = null, total = null, currency = null;
     let taxasSum = 0, taxasCount = 0;
     const readVal = (line, i) => {
