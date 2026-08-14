@@ -11,6 +11,7 @@ import {
   MousePointerClick,
   RefreshCw,
   Save,
+  KeyRound,
   Radar,
   Search,
   X,
@@ -27,6 +28,10 @@ import {
   testExpediaSearchFn,
   expediaPropertyRoomsFn,
   expediaDiscoverEndpointsFn,
+  listExpediaCredentialsFn,
+  saveExpediaCredentialsFn,
+  deleteExpediaCredentialsFn,
+  autoLoginExpediaFn,
 } from "@/lib/expedia/expedia.functions";
 import { confirm } from "@/lib/confirm";
 
@@ -128,6 +133,48 @@ function ExpediaPage() {
     onSuccess: () => {
       toast.success("Sessão removida");
       qc.invalidateQueries({ queryKey: ["expedia-sessions"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  // ------------------------------------------------- acesso automático
+  const listCreds = useServerFn(listExpediaCredentialsFn);
+  const saveCred = useServerFn(saveExpediaCredentialsFn);
+  const removeCred = useServerFn(deleteExpediaCredentialsFn);
+  const autoLogin = useServerFn(autoLoginExpediaFn);
+
+  const credentials = useQuery({ queryKey: ["expedia-credentials"], queryFn: () => listCreds() });
+  const activeCredential = (credentials.data ?? []).find((c) => c.status !== "REPLACED") ?? null;
+  const [credEmail, setCredEmail] = useState("");
+  const [credPassword, setCredPassword] = useState("");
+
+  const autoLoginMut = useMutation({
+    mutationFn: () => autoLogin({ data: {} as never }),
+    onSuccess: (res) => {
+      if (res.ok) toast.success(res.message);
+      else toast.warning(res.message);
+      qc.invalidateQueries({ queryKey: ["expedia-sessions"] });
+      qc.invalidateQueries({ queryKey: ["expedia-credentials"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const saveCredMut = useMutation({
+    mutationFn: () => saveCred({ data: { label, email: credEmail, password: credPassword } }),
+    onSuccess: () => {
+      setCredPassword("");
+      qc.invalidateQueries({ queryKey: ["expedia-credentials"] });
+      toast.success("Acesso guardado com segurança. Conectando...");
+      autoLoginMut.mutate();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const deleteCredMut = useMutation({
+    mutationFn: (id: string) => removeCred({ data: { id } }),
+    onSuccess: () => {
+      toast.success("Acesso removido");
+      qc.invalidateQueries({ queryKey: ["expedia-credentials"] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
