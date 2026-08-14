@@ -719,10 +719,20 @@ function QuoteBody({ quote }: { quote: PublicQuote }) {
     seed: quote.publicId,
   });
 
-  const heroImage = useMemo(() => {
-    const foto = hotels.map((h) => h.photos?.[0]).find(Boolean);
-    return foto || heroFallback.url;
-  }, [hotels]);
+  const [fotoDestino, setFotoDestino] = useState<string | null>(null);
+  useEffect(() => {
+    let ativo = true;
+    setFotoDestino(null);
+    fotoDoDestino(quote.destination).then((u) => {
+      if (ativo) setFotoDestino(u);
+    });
+    return () => {
+      ativo = false;
+    };
+  }, [quote.destination]);
+
+  const heroImage = fotoDestino || hotels.map((h) => h.photos?.[0]).find(Boolean) || heroFallback.url;
+
 
   const legs = useMemo(() => flights.flatMap((f) => f.legs), [flights]);
 
