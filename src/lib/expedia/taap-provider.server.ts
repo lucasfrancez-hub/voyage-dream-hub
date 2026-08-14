@@ -17,11 +17,18 @@ import {
 import {
   EXPEDIA_BASE,
   buildHotelSearchUrl,
+  buildPackageSearchUrl,
+  buildPropertyDetailUrl,
   dedupeResults,
+  dedupeRooms,
   findPropertyNodes,
+  findRoomNodes,
   normalizeDomCard,
+  normalizeDomRoom,
   normalizePropertyNode,
+  normalizeRoomNode,
   type DomCard,
+  type DomRoom,
 } from "@/lib/expedia/normalize";
 import {
   getActiveExpediaSession,
@@ -31,6 +38,8 @@ import {
 import {
   HOTEL_STATUS_MESSAGE,
   type HotelResult,
+  type HotelRoom,
+  type HotelRoomsResult,
   type HotelSearchProvider,
   type HotelSearchQuery,
   type HotelSearchResponse,
@@ -46,7 +55,12 @@ const CAPTURE_HINTS = [
   "hotel-search",
   "/api/",
   "shoppingsearch",
+  "propertyoffers",
+  "roomsandrates",
+  "offers",
+  "checkout",
 ];
+
 
 function response(status: HotelSearchStatus, results: HotelResult[] = [], searchId: string | null = null): HotelSearchResponse {
   return {
