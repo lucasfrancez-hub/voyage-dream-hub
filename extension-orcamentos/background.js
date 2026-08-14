@@ -32,11 +32,32 @@ function relayToTop(tabId, payload) {
 function mostRecentDiagnosticTab(windowId) {
   let selected = null;
   for (const [tabId, info] of diagnosticTabs.entries()) {
-    if (Date.now() - info.at > 20_000) { diagnosticTabs.delete(tabId); continue; }
+    if (Date.now() - info.at > 5 * 60_000) { diagnosticTabs.delete(tabId); continue; }
     if (typeof windowId === "number" && info.windowId !== windowId) continue;
     if (!selected || info.at > selected.info.at) selected = { tabId, info };
   }
   return selected;
+}
+
+/** Importa sozinho, sem depender do content script nem de aba aberta. */
+const autoImportSeen = new Map();
+function autoImport(url, mechanism) {
+  if (!url) return;
+  const last = autoImportSeen.get(url);
+  if (last && Date.now() - last < 10 * 60_000) return;
+  autoImportSeen.set(url, Date.now());
+  console.info(LOG, "Importação automática (background)", { url, mechanism });
+  broadcastToTabs({ type: "viaair-import-progress", stage: "start", url, mechanism });
+  sendImport(url, mechanism || "background/auto").then((r) => {
+    broadcastToTabs({ type: "viaair-import-progress", stage: "done", url, result: r });
+    if (r && r.status !== "READY") autoImportSeen.delete(url);
+  });
+}
+
+function broadcastToTabs(payload) {
+  chrome.tabs.query({}, (tabs) =>
+    tabs.forEach((t) => t.id && chrome.tabs.sendMessage(t.id, payload, () => void chrome.runtime.lastError)),
+  );
 }
 
 function inspectNavigation(tabId, windowId, rawUrl, event) {
@@ -52,6 +73,7 @@ function inspectNavigation(tabId, windowId, rawUrl, event) {
     quoteUrl,
     mechanism: /whatsapp|wa\.me/i.test(rawUrl) ? "background/WhatsApp text=" : "background/nova aba",
   });
+  if (quoteUrl) autoImport(quoteUrl, /whatsapp|wa\.me/i.test(rawUrl) ? "background/WhatsApp text=" : "background/nova aba");
 }
 
 chrome.tabs.onCreated.addListener((tab) => {
