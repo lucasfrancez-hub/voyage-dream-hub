@@ -74,16 +74,41 @@ const FRASES_AEREO = [
   (d: string) => `Uma proposta simples e direta para voar até ${d}.`,
 ];
 
+const FRASES_HOSPEDAGEM = [
+  (d: string) => `A hospedagem certa para aproveitar ${d} com conforto.`,
+  (d: string) => `Selecionamos onde ficar em ${d} pensando no seu descanso.`,
+  (d: string) => `Boas noites de sono em ${d} fazem toda a diferença.`,
+  (d: string) => `Sua estadia em ${d} organizada nos mínimos detalhes.`,
+  (d: string) => `${d} fica ainda melhor com a hospedagem ideal.`,
+];
+
+const FRASES_SERVICOS = [
+  (d: string) => `Os serviços que faltavam para completar sua experiência em ${d}.`,
+  (d: string) => `Passeios e serviços selecionados para você viver ${d} sem preocupação.`,
+  (d: string) => `Tudo organizado para aproveitar ${d} do jeito certo.`,
+  (d: string) => `Detalhes resolvidos para a sua experiência em ${d}.`,
+];
+
 export function quoteTagline(args: {
   type?: string | null;
   destination?: string | null;
   hasHotel?: boolean;
+  hasFlight?: boolean;
+  hasServices?: boolean;
   seed?: string | null;
 }): string {
   const destino = limpaDestino(args.destination);
   if (!destino) return "Todos os detalhes da sua viagem organizados em um único link.";
-  const pacote = args.hasHotel || args.type === "TRIP_PACKAGE";
-  const lista = pacote ? FRASES_PACOTE : FRASES_AEREO;
+  const hotel = !!args.hasHotel;
+  const aereo = args.hasFlight ?? args.type !== "TRIP_PACKAGE";
+  const lista =
+    aereo && hotel
+      ? FRASES_PACOTE
+      : aereo
+        ? FRASES_AEREO
+        : hotel
+          ? FRASES_HOSPEDAGEM
+          : FRASES_SERVICOS;
   const idx = hash(`${args.seed ?? destino}|${destino}`) % lista.length;
   return lista[idx](destino);
 }
