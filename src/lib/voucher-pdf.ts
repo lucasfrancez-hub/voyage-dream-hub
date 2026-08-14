@@ -1809,13 +1809,12 @@ const embedRemotePhoto = async (pdf: PDFDocument, url: string): Promise<PDFImage
   try {
     return isPngUrl ? await pdf.embedPng(bytes) : await pdf.embedJpg(bytes);
   } catch {
-    try { return await pdf.embedPng(bytes); } catch {
-      try { return await pdf.embedJpg(bytes); } catch (e) {
-        console.warn("embedRemotePhoto: could not embed", url, e);
-        return null;
-      }
-    }
+    const img = await embedImageSmart(pdf, bytes);
+    if (img) return img;
+    console.warn("embedRemotePhoto: could not embed", url);
+    return null;
   }
+
 };
 
 const drawHotelSection = async (
