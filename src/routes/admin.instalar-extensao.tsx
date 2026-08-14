@@ -151,6 +151,36 @@ function InstalarExtensao() {
           Se algum dado não vier (CPF, por exemplo), você preenche à mão na tela de conferência antes de salvar.
         </div>
       </Card>
+
+      <Card className="p-5">
+        <div className="font-medium">Plugin 2 — Via Air Orçamentos (automático)</div>
+        <p className="text-sm text-muted-foreground mt-1">
+          Extensão independente que detecta orçamentos web da Infotravel e importa sozinha para{" "}
+          <b>Pedidos → Orçamentos</b>. Não precisa do portal aberto nem de clicar em nada: instale, cole o token
+          gerado em <b>Orçamentos → Conectar plugin</b> e pronto.
+        </p>
+        <Button
+          variant="outline"
+          className="mt-3 gap-2"
+          onClick={() => {
+            fetch("/via-air-orcamentos.zip?v=" + Date.now())
+              .then((res) => {
+                if (!res.ok) throw new Error("Download falhou: " + res.status);
+                return res.blob();
+              })
+              .then((blob) => {
+                const a = document.createElement("a");
+                a.href = URL.createObjectURL(blob);
+                a.download = "via-air-orcamentos.zip";
+                a.click();
+                URL.revokeObjectURL(a.href);
+              })
+              .catch((err) => alert(err.message));
+          }}
+        >
+          <Download className="h-4 w-4" /> Baixar Via Air Orçamentos (.zip)
+        </Button>
+      </Card>
     </div>
   );
 }
