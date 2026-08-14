@@ -67,10 +67,25 @@
       row("Frame", state.frame) + row("Domínio", state.domain) + row("Clique detectado", state.click, state.click !== "—" ? "ok" : "") +
       row("window.open", state.open) + row("fetch", state.fetch) + row("XHR", state.xhr) + row("clipboard", state.clipboard) +
       row("URL candidata", state.candidate, state.candidate !== "—" ? "ok" : "") + row("API Via Air", state.api) +
-      `<div class="requests">${escapeHtml(requests)}</div><div class="actions"><button id="test-loading">Testar importando</button><button id="test-success">Testar sucesso</button><button id="test-error">Testar erro</button></div>`;
+      `<div class="requests">${escapeHtml(requests)}</div><div class="actions"><button id="test-loading">Testar importando</button><button id="test-success">Testar sucesso</button><button id="test-error">Testar erro</button><button id="copy-report">Copiar relatório</button></div>`;
     shadow.getElementById("test-loading").onclick = () => showViaAirToast("loading", "Importando orçamento...", "Teste visual local.");
     shadow.getElementById("test-success").onclick = () => showViaAirToast("success", "Orçamento exportado para Via Air", "Exportado com sucesso.");
     shadow.getElementById("test-error").onclick = () => showViaAirToast("error", "Não foi possível exportar o orçamento.", "Teste visual local.");
+    shadow.getElementById("copy-report").onclick = () => {
+      const lastRequest = state.requests.filter((item) => /fetch|XHR/.test(item)).slice(-1)[0] || "—";
+      const text = [
+        `Página/frame onde o botão estava: ${state.frame} — ${location.href}`,
+        `Evento que foi detectado: ${state.click}`,
+        `Request disparado: ${lastRequest}`,
+        `Se abriu nova aba: ${state.open}`,
+        `URL encontrada: ${state.candidate}`,
+        `Mecanismo que encontrou a URL: ${state.report.slice(-1)[0]?.mechanism || "—"}`,
+      ].join("\n");
+      navigator.clipboard.writeText(text).then(
+        () => showViaAirToast("success", "Relatório copiado", "Cole o diagnóstico para a revisão técnica."),
+        () => showViaAirToast("error", "Não foi possível copiar o relatório", "Selecione os dados diretamente no painel."),
+      );
+    };
   }
 
   function showViaAirToast(kind, title, detail) {
