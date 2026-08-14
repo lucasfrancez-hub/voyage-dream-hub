@@ -138,7 +138,7 @@ export async function logExpediaSearch(entry: {
     .insert({
       session_id: entry.sessionId,
       search_type: entry.searchType,
-      params: entry.params,
+      params: entry.params as never,
       url: entry.url,
       status: entry.status,
       duration_ms: entry.durationMs,
