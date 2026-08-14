@@ -91,13 +91,39 @@ function pickName(raw: unknown): string {
   return localized(raw) ?? "";
 }
 
+/** Traduz termos administrativos comuns que a API devolve em inglês. */
+function ptTermo(valor: string): string {
+  return valor
+    .replace(/^State of\s+/i, "")
+    .replace(/^Province of\s+/i, "")
+    .replace(/\bBrazil\b/gi, "Brasil")
+    .replace(/\bUnited States\b/gi, "Estados Unidos")
+    .replace(/\bSpain\b/gi, "Espanha")
+    .replace(/\bItaly\b/gi, "Itália")
+    .replace(/\bFrance\b/gi, "França")
+    .replace(/\bPortugal\b/gi, "Portugal")
+    .replace(/\bArgentina\b/gi, "Argentina")
+    .replace(/\bChile\b/gi, "Chile")
+    .replace(/\bMexico\b/gi, "México")
+    .trim();
+}
+
+/** Monta o endereço em português a partir das partes (evita o "formatted" em inglês). */
 function pickAddress(addresses: Array<Record<string, unknown>> | undefined): string | null {
   if (!Array.isArray(addresses) || !addresses.length) return null;
   const a = (addresses.find((x) => x.primary) ?? addresses[0]) as Record<string, unknown>;
+  const txt = (v: unknown) => (typeof v === "string" && v.trim() ? ptTermo(v.trim()) : null);
+  const rua = txt(a.street_address) ?? txt(a.street1);
+  const cidade = txt(a.city);
+  const estado = txt(a.state);
+  const cep = txt(a.postal_code);
+  const pais = txt(a.country_name);
+  const linha1 = [rua, cidade, estado].filter(Boolean).join(", ");
+  const linha2 = [cep, pais].filter(Boolean).join(" • ");
+  const montado = [linha1, linha2].filter(Boolean).join(" — ");
+  if (montado) return montado;
   const formatted = a.formatted ?? a.formatted_address ?? a.address_string;
-  if (typeof formatted === "string" && formatted.trim()) return formatted.trim();
-  const partes = [a.street1, a.city, a.state, a.country].filter((p) => typeof p === "string" && p);
-  return partes.length ? partes.join(", ") : null;
+  return typeof formatted === "string" && formatted.trim() ? ptTermo(formatted.trim()) : null;
 }
 
 async function jsonOf(
