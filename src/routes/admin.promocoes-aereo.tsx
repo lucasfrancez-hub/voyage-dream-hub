@@ -815,6 +815,7 @@ function PromocoesAereoPage() {
   const [atalho, setAtalho] = useState(0);
   const [filtrosAbertos, setFiltrosAbertos] = useState(false);
   const [pesquisaAberta, setPesquisaAberta] = useState(false);
+  const [manualAberto, setManualAberto] = useState(false);
   const [arquivadosAberto, setArquivadosAberto] = useState(false);
   const contarArquivados = useServerFn(countArchivedPromotions);
   const { data: arquivados } = useQuery({
