@@ -36,12 +36,24 @@ export type ExpediaSessionState = {
   storage: Record<string, string>;
 };
 
-const RELEVANT_DOMAINS = ["expedia.", "expediapartnercentral.", "orbitz.", "travelscape."];
+const RELEVANT_DOMAINS = [
+  "expedia",
+  "expediataap",
+  "expediapartnercentral",
+  "orbitz",
+  "travelscape",
+  "trvl-media",
+  "karmalab",
+];
 
 /** Mantém só os cookies dos domínios da Expedia — reduz superfície do que é salvo. */
 export function filterExpediaCookies(cookies: ExpediaCookie[]): ExpediaCookie[] {
-  return cookies.filter((c) => RELEVANT_DOMAINS.some((d) => (c.domain || "").includes(d)));
+  return cookies.filter((c) => {
+    const domain = (c.domain || "").toLowerCase();
+    return RELEVANT_DOMAINS.some((d) => domain.includes(d));
+  });
 }
+
 
 export async function listExpediaSessions(): Promise<ExpediaSessionRow[]> {
   const { data, error } = await supabaseAdmin
