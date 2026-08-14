@@ -262,7 +262,9 @@ function HotelCard({ hotel }: { hotel: HotelProduct }) {
   const [sobre, setSobre] = useState(false);
   // V14: foto principal ocupando duas linhas + quatro fotos menores.
   const fotos = hotel.photos.slice(0, 5);
+  const quarto = formatRoom(hotel.roomName ?? hotel.roomDescription);
   const loc = hotel.location;
+
   const mapSrc = loc?.latitude && loc?.longitude
     ? `https://www.google.com/maps?q=${loc.latitude},${loc.longitude}&z=15&output=embed`
     : hotel.name
