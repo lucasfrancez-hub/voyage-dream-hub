@@ -193,9 +193,7 @@ function FlightLegCard({
                           <div className="vq-seg2-path">
                             <span className="vq-seg2-dur">{s.duration ?? leg.duration ?? "—"}</span>
                             <div className="vq-seg2-line">
-                              <i />
-                              <span className="vq-seg2-plane"><IconPlane /></span>
-                              <i />
+                              <span className="vq-seg2-dot" />
                             </div>
                           </div>
 
