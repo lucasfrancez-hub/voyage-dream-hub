@@ -152,6 +152,28 @@ export async function savePublicQuote(
   return { quote, url, shortUrl };
 }
 
+/**
+ * Regrava um orçamento público já existente (mesmo publicId / link curto)
+ * com os dados mais recentes do orçamento interno.
+ */
+export async function refreshPublicQuote(
+  publicId: string,
+  q: NewPublicQuote,
+): Promise<{ quote: PublicQuote; url: string; shortUrl: string | null } | null> {
+  const supabaseAdmin = await db();
+  const row = toRow(q, publicId) as Record<string, unknown>;
+  delete row.public_id;
+  const { data, error } = await supabaseAdmin
+    .from("public_quotes")
+    .update({ ...row, updated_at: new Date().toISOString() } as never)
+    .eq("public_id", publicId)
+    .select("*")
+    .maybeSingle();
+  if (error || !data) return null;
+  const quote = rowToQuote(data);
+  return { quote, url: publicQuoteUrl(publicId), shortUrl: quote.shortUrl ?? null };
+}
+
 /** Encurtador VIA AIR (/l/<slug>) — best effort. */
 export async function criarLinkCurto(target: string, label: string): Promise<string | null> {
   const supabaseAdmin = await db();
