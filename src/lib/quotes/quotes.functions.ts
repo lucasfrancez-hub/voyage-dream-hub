@@ -134,7 +134,7 @@ export const gerarLinkOrcamento = createServerFn({ method: "POST" })
         public_short_url: saved.shortUrl,
         public_quote_id: saved.quote.publicId,
         updated_at: new Date().toISOString(),
-      })
+      } as never)
       .eq("id", quote.id);
 
     return { url: saved.url, shortUrl: saved.shortUrl, reused: false };
