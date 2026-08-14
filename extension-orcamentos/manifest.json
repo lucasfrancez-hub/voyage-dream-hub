@@ -1,0 +1,33 @@
+{
+  "manifest_version": 3,
+  "name": "Via Air Orçamentos",
+  "version": "1.0.0",
+  "description": "Importação automática de orçamentos Infotravel para a Via Air.",
+  "icons": { "48": "icon.png", "128": "icon.png" },
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": "icon.png",
+    "default_title": "Via Air Orçamentos"
+  },
+  "permissions": ["storage", "tabs", "scripting", "alarms"],
+  "host_permissions": [
+    "*://*.infotravel.com.br/*",
+    "https://pedidos.viaair.tur.br/*"
+  ],
+  "background": { "service_worker": "background.js" },
+  "content_scripts": [
+    {
+      "matches": ["*://*.infotravel.com.br/*"],
+      "js": ["page-hook.js"],
+      "run_at": "document_start",
+      "world": "MAIN",
+      "all_frames": true
+    },
+    {
+      "matches": ["*://*.infotravel.com.br/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle",
+      "all_frames": false
+    }
+  ]
+}
