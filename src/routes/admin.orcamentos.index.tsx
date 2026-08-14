@@ -564,8 +564,9 @@ function OrcamentosPage() {
           </DialogHeader>
           <div className="space-y-3 text-sm">
             <p className="text-muted-foreground text-xs">
-              Gere um token e cole no plugin uma única vez. Ele fica autenticado permanentemente e importa os
-              orçamentos mesmo com o portal fechado.
+              Gere um token e cole no plugin (v1.0.6 ou superior) uma única vez. Ele fica autenticado
+              permanentemente e importa os orçamentos mesmo com o portal fechado. Gerar um token novo não
+              desconecta o plugin já configurado — os tokens anteriores continuam válidos.
             </p>
             {token ? (
               <div className="rounded-lg border border-border bg-muted/40 p-3">
