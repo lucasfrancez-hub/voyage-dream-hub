@@ -163,7 +163,6 @@ export function buildAirOnlyQuote(params: {
     tripKind: option.volta ? "Ida e volta" : "Somente ida",
     passengers: passageiros(result.passageiros),
     products: base.products,
-    ...(options ? { options } : {}),
     payment: base.payment,
     totals: base.totals,
     summary: base.summary,
