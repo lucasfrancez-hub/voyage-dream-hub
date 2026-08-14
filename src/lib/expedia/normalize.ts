@@ -4,11 +4,24 @@
  * Funções puras (sem rede / sem navegador) para poderem ser testadas.
  * Regra de ouro: campo ausente vira `null`. Nunca inventar informação.
  */
-import type { HotelResult, HotelSearchQuery } from "@/lib/hotels/types";
+import type { HotelResult, HotelRoom, HotelSearchQuery } from "@/lib/hotels/types";
 
-export const EXPEDIA_BASE = "https://www.expedia.com.br";
+/**
+ * Domínio TAAP da agência — é o ÚNICO que devolve tarifa TAAP.
+ * Nunca apontar para www.expedia.com.br.
+ */
+export const EXPEDIA_BASE = "https://www.expediataap.com.br";
 
-/** Monta a URL de pesquisa standalone (/Hotel-Search) do TAAP. */
+/** Adultos por quarto no formato aceito pelo TAAP: "2" ou "2,2". */
+function adultsParam(rooms: number, adults: number) {
+  return Array.from({ length: rooms }, () => String(adults)).join(",");
+}
+
+/**
+ * Pesquisa de hospedagem standalone (/Hotel-Search).
+ * Nada é fixo: destino, datas, hóspedes, regionId e coordenadas vêm sempre
+ * da consulta. `regionId`/`latLong` só entram quando conhecidos.
+ */
 export function buildHotelSearchUrl(q: HotelSearchQuery): string {
   const rooms = Math.max(1, q.rooms ?? 1);
   const adults = Math.max(1, q.adults ?? 2);
@@ -20,14 +33,85 @@ export function buildHotelSearchUrl(q: HotelSearchQuery): string {
   p.set("d1", q.startDate);
   p.set("d2", q.endDate);
   p.set("rooms", String(rooms));
-  // Expedia espera adultos por quarto: "2" ou "2,2"
-  p.set("adults", Array.from({ length: rooms }, () => String(adults)).join(","));
+  p.set("adults", adultsParam(rooms, adults));
   if (q.regionId) p.set("regionId", q.regionId);
   if (q.latLong) p.set("latLong", q.latLong);
+  p.set("useRewards", "false");
   p.set("rate_type", "standalone");
   p.set("sort", "RECOMMENDED");
   return url.toString();
 }
+
+/**
+ * Pesquisa de pacote voo + hotel (packageType=fh).
+ *
+ * O `misId` observado nas URLs reais é gerado internamente pela Expedia e
+ * pode estar atrelado à sessão/pesquisa — NUNCA o fabricamos. Quando não
+ * temos um `misId` capturado da própria interface autenticada, a URL é
+ * montada apenas com os parâmetros públicos do fluxo e o robô refaz a
+ * pesquisa pela interface.
+ */
+export function buildPackageSearchUrl(q: HotelSearchQuery): string {
+  const rooms = Math.max(1, q.rooms ?? 1);
+  const adults = Math.max(1, q.adults ?? 2);
+  const url = new URL(`${EXPEDIA_BASE}/Hotel-Search`);
+  const p = url.searchParams;
+  if (q.misId) p.set("misId", q.misId);
+  p.set("packageType", "fh");
+  p.set("searchProduct", "hotel");
+  p.set("adults", adultsParam(rooms, adults));
+  p.set("sort", "RECOMMENDED");
+  p.set("tripType", q.tripType ?? "ROUND_TRIP");
+  p.set("cabinClass", q.cabinClass ?? "COACH");
+  p.set("startDate", q.startDate);
+  p.set("endDate", q.endDate);
+  if (q.regionId) p.set("regionId", q.regionId);
+  p.set("destination", q.destination);
+  if (q.origin) p.set("origin", q.origin);
+  p.set("useRewards", "false");
+  p.set("directFlights", q.directFlights ? "true" : "false");
+  p.set("infantsInSeats", String(q.infantsInSeats ?? 0));
+  p.set("partialStay", "false");
+  return url.toString();
+}
+
+/**
+ * Página da propriedade dentro da MESMA sessão da pesquisa.
+ * Preferimos sempre o `detail_url` devolvido pela própria listagem; este
+ * builder é o plano B, montado só com parâmetros observados no fluxo real.
+ */
+export function buildPropertyDetailUrl(input: {
+  propertyId: string;
+  detailUrl?: string | null;
+  startDate: string;
+  endDate: string;
+  rooms?: number;
+  adults?: number;
+  regionId?: string | null;
+  latLong?: string | null;
+  destination?: string | null;
+  searchId?: string | null;
+}): string {
+  const rooms = Math.max(1, input.rooms ?? 1);
+  const adults = Math.max(1, input.adults ?? 2);
+  const url = new URL(
+    input.detailUrl && input.detailUrl.startsWith("http")
+      ? input.detailUrl
+      : `${EXPEDIA_BASE}/h${input.propertyId}.Hotel-Reservas`,
+  );
+  const p = url.searchParams;
+  p.set("chkin", input.startDate);
+  p.set("chkout", input.endDate);
+  for (let i = 1; i <= rooms; i++) p.set(`rm${i}`, `a${adults}`);
+  if (input.regionId) p.set("regionId", input.regionId);
+  if (input.destination) p.set("destination", input.destination);
+  if (input.latLong) p.set("latLong", input.latLong);
+  if (input.searchId) p.set("searchId", input.searchId);
+  p.set("useRewards", "false");
+  p.set("sort", "RECOMMENDED");
+  return url.toString();
+}
+
 
 /** "R$ 1.234,56" | "1,234.56" | 1234.56 -> 1234.56 */
 export function parseMoney(input: unknown): number | null {
@@ -213,4 +297,157 @@ export function dedupeResults(results: HotelResult[]): HotelResult[] {
     if (score(item) > score(current)) map.set(key, item);
   }
   return [...map.values()];
+}
+
+// ============================================================
+// Quartos / tarifas da página da propriedade
+// ============================================================
+
+/** Varre o JSON procurando nós que pareçam ofertas de quarto/tarifa. */
+export function findRoomNodes(payload: unknown, depth = 0): Json[] {
+  if (depth > 9 || !payload) return [];
+  if (Array.isArray(payload)) return payload.flatMap((i) => findRoomNodes(i, depth + 1));
+  if (!isObj(payload)) return [];
+
+  const looksLikeRoom =
+    (typeof payload.roomTypeId === "string" || typeof payload.roomTypeID === "string" || typeof payload.id === "string") &&
+    ("ratePlans" in payload || "rates" in payload || "propertyUnit" in payload || "roomTypeName" in payload ||
+      ("header" in payload && "features" in payload));
+  if (looksLikeRoom) return [payload];
+
+  return Object.values(payload).flatMap((v) => findRoomNodes(v, depth + 1));
+}
+
+function deepStrings(value: unknown, out: string[] = [], depth = 0): string[] {
+  if (depth > 7) return out;
+  if (typeof value === "string") out.push(value);
+  else if (Array.isArray(value)) value.forEach((v) => deepStrings(v, out, depth + 1));
+  else if (isObj(value)) Object.values(value).forEach((v) => deepStrings(v, out, depth + 1));
+  return out;
+}
+
+function firstString(node: Json, keys: string[]): string | null {
+  for (const k of keys) {
+    const v = node[k];
+    if (typeof v === "string" && v.trim()) return v.trim();
+    if (isObj(v) && typeof v.text === "string" && v.text.trim()) return v.text.trim();
+  }
+  return null;
+}
+
+/** Lê parcelamento SOMENTE do que a página informa — nunca calculamos. */
+export function parseInstallments(texts: string[]): HotelRoom["installments"] {
+  const plans: Array<{ count: number; amount: number | null }> = [];
+  for (const t of texts) {
+    const m = t.match(/(\d{1,2})\s*x\s*(?:de\s*)?(R\$\s?[\d.,]+)?/i);
+    if (m) plans.push({ count: Number(m[1]), amount: parseMoney(m[2] ?? null) });
+  }
+  if (!plans.length) return null;
+  const max = plans.reduce((a, p) => Math.max(a, p.count), 0);
+  return { available: true, max_installments: max || null, plans };
+}
+
+/** Nível 1/2 — normaliza um nó de quarto/tarifa. */
+export function normalizeRoomNode(node: Json): HotelRoom | null {
+  const name =
+    firstString(node, ["roomTypeName", "name", "title", "header"]) ??
+    (isObj(node.header) ? firstString(node.header as Json, ["text", "title"]) : null);
+  if (!name) return null;
+
+  const texts = deepStrings(node).slice(0, 400);
+  const joined = texts.join(" | ");
+  const money = texts.map(parseMoney).filter((v): v is number => v !== null);
+
+  const total = parseMoney(texts.find((t) => /total/i.test(t)) ?? null) ?? (money.length ? Math.max(...money) : null);
+  const nightly = money.length ? Math.min(...money) : null;
+  const taxes = parseMoney(texts.find((t) => /taxa|imposto|tax/i.test(t)) ?? null);
+  const commissionText = texts.find((t) => /comiss/i.test(t)) ?? null;
+
+  return {
+    room_type_id:
+      (typeof node.roomTypeId === "string" && node.roomTypeId) ||
+      (typeof node.roomTypeID === "string" && node.roomTypeID) ||
+      (typeof node.id === "string" ? node.id : null) ||
+      null,
+    rate_plan_id:
+      (typeof node.ratePlanId === "string" && node.ratePlanId) ||
+      (typeof node.ratePlanID === "string" && node.ratePlanID) ||
+      null,
+    name,
+    beds: texts.find((t) => /cama|bed/i.test(t)) ?? null,
+    occupancy: typeof node.maxOccupancy === "number" ? node.maxOccupancy : firstNumber(texts.find((t) => /h[óo]spede|pessoa/i.test(t)) ?? null),
+    meal: texts.find((t) => /caf[ée] da manh|breakfast|pens[ãa]o|all inclusive/i.test(t)) ?? null,
+    refundable: /reembols[áa]vel|cancelamento gr[áa]tis|free cancellation/i.test(joined)
+      ? !/n[ãa]o reembols|non-?refundable/i.test(joined)
+      : /n[ãa]o reembols|non-?refundable/i.test(joined)
+        ? false
+        : null,
+    cancellation_text: texts.find((t) => /cancel/i.test(t)) ?? null,
+    pay_later: /pague no hotel|reserve agora, pague/i.test(joined) ? true : null,
+    price: { currency: detectCurrency(joined), nightly, total, taxes },
+    commission: commissionText
+      ? {
+          currency: detectCurrency(commissionText),
+          amount: parseMoney(commissionText),
+          percent: firstNumber((commissionText.match(/(\d+(?:[.,]\d+)?)\s*%/) || [])[1] ?? null),
+        }
+      : null,
+    installments: parseInstallments(texts.filter((t) => /\d{1,2}\s*x/i.test(t))),
+    select_action: absoluteUrl(
+      isObj(node.selectLink) && isObj((node.selectLink as Json).resource)
+        ? ((node.selectLink as Json).resource as Json).value
+        : undefined,
+    ),
+  };
+}
+
+export type DomRoom = { name: string | null; text: string | null; href: string | null };
+
+/** Nível 3 — normaliza um bloco de quarto lido do DOM. */
+export function normalizeDomRoom(room: DomRoom): HotelRoom | null {
+  const name = room.name?.trim();
+  if (!name) return null;
+  const lines = (room.text ?? "").split("\n").map((l) => l.trim()).filter(Boolean);
+  const money = lines.map(parseMoney).filter((v): v is number => v !== null);
+  const joined = lines.join(" | ");
+  const commissionText = lines.find((t) => /comiss/i.test(t)) ?? null;
+  return {
+    room_type_id: room.href ? new URL(room.href, EXPEDIA_BASE).searchParams.get("selectedRoomType") : null,
+    rate_plan_id: room.href ? new URL(room.href, EXPEDIA_BASE).searchParams.get("selectedRatePlan") : null,
+    name,
+    beds: lines.find((t) => /cama|bed/i.test(t)) ?? null,
+    occupancy: firstNumber(lines.find((t) => /h[óo]spede|pessoa/i.test(t)) ?? null),
+    meal: lines.find((t) => /caf[ée] da manh|pens[ãa]o|all inclusive/i.test(t)) ?? null,
+    refundable: /n[ãa]o reembols/i.test(joined) ? false : /reembols|cancelamento gr[áa]tis/i.test(joined) ? true : null,
+    cancellation_text: lines.find((t) => /cancel/i.test(t)) ?? null,
+    pay_later: /pague no hotel/i.test(joined) ? true : null,
+    price: {
+      currency: detectCurrency(joined),
+      nightly: money.length ? Math.min(...money) : null,
+      total: parseMoney(lines.find((t) => /total/i.test(t)) ?? null) ?? (money.length ? Math.max(...money) : null),
+      taxes: parseMoney(lines.find((t) => /taxa|imposto/i.test(t)) ?? null),
+    },
+    commission: commissionText
+      ? {
+          currency: detectCurrency(commissionText),
+          amount: parseMoney(commissionText),
+          percent: firstNumber((commissionText.match(/(\d+(?:[.,]\d+)?)\s*%/) || [])[1] ?? null),
+        }
+      : null,
+    installments: parseInstallments(lines.filter((t) => /\d{1,2}\s*x/i.test(t))),
+    select_action: room.href ? absoluteUrl(room.href) : null,
+  };
+}
+
+/** Remove quartos duplicados (mesmo room_type + rate_plan). */
+export function dedupeRooms(rooms: HotelRoom[]): HotelRoom[] {
+  const map = new Map<string, HotelRoom>();
+  for (const r of rooms) {
+    const key = `${r.room_type_id ?? ""}|${r.rate_plan_id ?? ""}|${r.name.toLowerCase()}`;
+    const cur = map.get(key);
+    const score = (h: HotelRoom) =>
+      [h.price.total, h.price.nightly, h.cancellation_text, h.commission, h.installments].filter(Boolean).length;
+    if (!cur || score(r) > score(cur)) map.set(key, r);
+  }
+  return Array.from(map.values());
 }

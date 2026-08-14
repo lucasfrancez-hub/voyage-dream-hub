@@ -68,7 +68,7 @@ export const openExpediaLoginFn = createServerFn({ method: "POST" })
     const { openLiveSession } = await import("@/lib/checkin/training-session.server");
     return openLiveSession({
       userId: context.userId,
-      url: "https://www.expedia.com.br/",
+      url: "https://www.expediataap.com.br/",
       viewportWidth: 1280,
       viewportHeight: 800,
       useResidentialProxy: true,
@@ -143,4 +143,53 @@ export const testExpediaSearchFn = createServerFn({ method: "POST" })
     await assertAdmin(context);
     const { searchHotels } = await import("@/lib/hotels/search.server");
     return searchHotels(data);
+  });
+
+// ------------------------------------------- quartos/tarifas da propriedade
+
+export const expediaPropertyRoomsFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z
+      .object({
+        propertyId: z.string().trim().min(1),
+        detailUrl: z.string().url().nullish(),
+        startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+        endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+        rooms: z.number().int().min(1).max(8).optional(),
+        adults: z.number().int().min(1).max(14).optional(),
+        regionId: z.string().nullish(),
+        latLong: z.string().nullish(),
+        destination: z.string().nullish(),
+        searchId: z.string().nullish(),
+      })
+      .parse(input),
+  )
+  .handler(async ({ context, data }) => {
+    await assertAdmin(context);
+    const { expediaTaapProvider } = await import("@/lib/expedia/taap-provider.server");
+    return expediaTaapProvider.rooms(data);
+  });
+
+// -------------------------------- investigação: chamadas usadas pelo próprio
+// front-end do TAAP (não são API pública — só mapeamento do fluxo observado)
+
+export const expediaDiscoverEndpointsFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z
+      .object({
+        url: z
+          .string()
+          .url()
+          .refine((u) => new URL(u).hostname.endsWith("expediataap.com.br"), {
+            message: "Use uma URL do domínio expediataap.com.br",
+          }),
+      })
+      .parse(input),
+  )
+  .handler(async ({ context, data }) => {
+    await assertAdmin(context);
+    const { expediaTaapProvider } = await import("@/lib/expedia/taap-provider.server");
+    return expediaTaapProvider.discoverEndpoints(data.url);
   });
