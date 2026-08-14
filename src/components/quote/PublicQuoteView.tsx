@@ -1,0 +1,602 @@
+/**
+ * Orçamento público VIA AIR — AIR_ONLY e TRIP_PACKAGE.
+ * Renderiza EXCLUSIVAMENTE o DTO público: nada de comissão, markup,
+ * custo, fornecedor interno, margem ou observação interna.
+ */
+import { useMemo, useState } from "react";
+import viaAirLogo from "@/assets/viaair-logo.png.asset.json";
+import { airlineLogo } from "@/lib/airlines";
+import { brl } from "@/lib/public-quote/payments";
+import type {
+  FlightLeg,
+  HotelProduct,
+  PublicQuote,
+  SimpleProduct,
+} from "@/lib/public-quote/types";
+import {
+  IconActivity,
+  IconBack,
+  IconBag,
+  IconBoleto,
+  IconCalendar,
+  IconCar,
+  IconCard,
+  IconCheck,
+  IconChevron,
+  IconClock,
+  IconHotel,
+  IconPin,
+  IconPix,
+  IconPlane,
+  IconShield,
+  IconTicket,
+  IconTransfer,
+  IconUsers,
+  IconWhats,
+  SUMMARY_ICONS,
+} from "./quote-icons";
+import "./public-quote.css";
+
+const WHATSAPP = "5544999514838";
+
+function periodoLabel(q: PublicQuote): string | null {
+  const fmt = (s?: string | null) => {
+    if (!s) return null;
+    const [y, m, d] = String(s).slice(0, 10).split("-");
+    return d && m ? `${d}/${m}/${y}` : s;
+  };
+  const a = fmt(q.startDate);
+  const b = fmt(q.endDate);
+  if (a && b) return `${a} a ${b}`;
+  return a;
+}
+
+/* ───────────────────────── voos ───────────────────────── */
+
+function FlightLegCard({ leg }: { leg: FlightLeg }) {
+  const [open, setOpen] = useState(false);
+  const logo = airlineLogo(leg.airlineIata ?? leg.airline);
+  return (
+    <article className="vq-card vq-flight">
+      <div className="vq-flight-summary">
+        <div className="vq-flight-top">
+          <div className="vq-air">
+            <span className="vq-airmark">
+              {logo ? <img src={logo} alt={leg.airline} /> : (leg.airlineIata ?? "VA")}
+            </span>
+            <div>
+              <div>{leg.airline}</div>
+              <div style={{ color: "var(--muted)", fontSize: 12, fontWeight: 700 }}>
+                {leg.label} • {leg.dateLabel}
+              </div>
+            </div>
+          </div>
+          <span className="vq-tag">{leg.stopsLabel}</span>
+        </div>
+
+        <div className="vq-route">
+          <div className="vq-airport">
+            <time>{leg.departureTime}</time>
+            <b>{leg.fromIata}</b>
+            <span>{leg.fromCity}</span>
+          </div>
+          <div className="vq-path">
+            {leg.duration ?? ""}
+            <div className="vq-line">{leg.stops > 0 ? <span className="vq-stop-dot" /> : null}</div>
+            {leg.stopsLabel}
+          </div>
+          <div className="vq-airport" style={{ textAlign: "right" }}>
+            <time>{leg.arrivalTime}</time>
+            <b>{leg.toIata}</b>
+            <span>{leg.toCity}</span>
+          </div>
+        </div>
+
+        <div className="vq-badges">
+          {leg.personalItem ? (
+            <span className="vq-badge"><IconBag />Item pessoal</span>
+          ) : null}
+          {leg.carryOn ? <span className="vq-badge"><IconBag />Bagagem de mão 10kg</span> : null}
+          <span className="vq-badge">
+            <IconBag />
+            {leg.checkedBaggage ? "Bagagem despachada incluída" : "Bagagem despachada não inclusa"}
+          </span>
+          {leg.cabin ? <span className="vq-badge"><IconCheck />{leg.cabin}</span> : null}
+          {leg.fareFamily ? <span className="vq-badge"><IconCheck />{leg.fareFamily}</span> : null}
+        </div>
+
+        <button className="vq-toggle" data-open={open} onClick={() => setOpen((v) => !v)}>
+          {open ? "Ocultar detalhes do voo" : "Ver detalhes do voo"}
+          <IconChevron />
+        </button>
+      </div>
+
+      {open ? (
+        <div className="vq-flight-details">
+          <div className="vq-details-panel">
+            {leg.segments.map((s, i) => (
+              <div key={i}>
+                <div className="vq-segment-card">
+                  <div className="vq-segment-point">
+                    <small>Partida</small>
+                    <time>{s.departure.split(" ")[1]}</time>
+                    <strong>{s.fromIata}</strong>
+                    <span>{s.fromName}</span>
+                  </div>
+                  <div className="vq-plane-mid"><IconPlane /></div>
+                  <div className="vq-segment-point">
+                    <small>Chegada</small>
+                    <time>{s.arrival.split(" ")[1]}</time>
+                    <strong>{s.toIata}</strong>
+                    <span>{s.toName}</span>
+                  </div>
+                  <div className="vq-seg-meta">
+                    <div className="vq-mini"><small>Companhia</small><strong>{s.airline}</strong></div>
+                    <div className="vq-mini"><small>Voo</small><strong>{s.flightNumber ?? "—"}</strong></div>
+                    <div className="vq-mini"><small>Duração</small><strong>{s.duration ?? "—"}</strong></div>
+                    <div className="vq-mini"><small>Data</small><strong>{s.departure.slice(0, 10).split("-").reverse().join("/")}</strong></div>
+                  </div>
+                </div>
+                {s.connectionAfter ? (
+                  <div className="vq-connection" style={{ marginTop: 10 }}>
+                    <IconClock />{s.connectionAfter}
+                  </div>
+                ) : null}
+              </div>
+            ))}
+          </div>
+          {leg.rules?.length ? (
+            <div className="vq-fare-note">{leg.rules.join(" • ")}</div>
+          ) : null}
+        </div>
+      ) : null}
+    </article>
+  );
+}
+
+/* ───────────────────────── hotel ───────────────────────── */
+
+function HotelCard({ hotel }: { hotel: HotelProduct }) {
+  const [view, setView] = useState<"details" | "location">("details");
+  const fotos = hotel.photos.slice(0, 3);
+  const loc = hotel.location;
+  const mapSrc = loc?.latitude && loc?.longitude
+    ? `https://www.google.com/maps?q=${loc.latitude},${loc.longitude}&z=15&output=embed`
+    : hotel.name
+      ? `https://www.google.com/maps?q=${encodeURIComponent(`${hotel.name} ${hotel.place ?? ""}`)}&z=15&output=embed`
+      : null;
+
+  return (
+    <article className="vq-card vq-hotel">
+      <div className="vq-hotel-grid">
+        <div className="vq-gallery">
+          <div className="vq-gallery-grid">
+            {fotos.length ? (
+              fotos.map((src, i) => (
+                <div key={i} className={`vq-photo${i === 0 ? " main" : ""}`}>
+                  <img src={src} alt={hotel.name} loading="lazy" />
+                </div>
+              ))
+            ) : (
+              <>
+                <div className="vq-photo main" />
+                <div className="vq-photo" />
+                <div className="vq-photo" />
+              </>
+            )}
+          </div>
+        </div>
+
+        <div className="vq-hotel-info">
+          {view === "details" ? (
+            <>
+              <div className="vq-hotel-head">
+                <div>
+                  {hotel.stars ? <div className="vq-stars">{"★".repeat(hotel.stars)}</div> : null}
+                  <h3>{hotel.name}</h3>
+                </div>
+                {mapSrc ? (
+                  <button className="vq-loc-btn" onClick={() => setView("location")}>
+                    <IconPin />Ver localização
+                  </button>
+                ) : null}
+              </div>
+              {hotel.place ? <div className="vq-place">{hotel.place}</div> : null}
+
+              <div className="vq-facts">
+                <div className="vq-fact"><small>Check-in</small><strong>{hotel.checkIn ?? "—"}</strong></div>
+                <div className="vq-fact"><small>Check-out</small><strong>{hotel.checkOut ?? "—"}</strong></div>
+                <div className="vq-fact"><small>Ocupação</small><strong>{hotel.occupancy ?? "—"}</strong></div>
+                <div className="vq-fact"><small>Regime</small><strong>{hotel.mealPlan ?? "—"}</strong></div>
+              </div>
+
+              {hotel.benefits.length ? (
+                <div className="vq-benefits">
+                  {hotel.benefits.map((b, i) => (
+                    <span key={i} className="vq-benefit"><IconCheck />{b}</span>
+                  ))}
+                </div>
+              ) : null}
+
+              {hotel.roomName ? (
+                <div className="vq-room">
+                  <strong>{hotel.roomName}</strong>
+                  {hotel.roomDescription ? <p>{hotel.roomDescription}</p> : null}
+                </div>
+              ) : null}
+            </>
+          ) : (
+            <>
+              <div className="vq-hotel-head">
+                <button className="vq-loc-btn" onClick={() => setView("details")}>
+                  <IconBack />Voltar aos detalhes
+                </button>
+                {hotel.mapsUrl ? (
+                  <a className="vq-loc-btn" href={hotel.mapsUrl} target="_blank" rel="noreferrer">
+                    Ver no Google Maps
+                  </a>
+                ) : null}
+              </div>
+              {mapSrc ? (
+                <iframe className="vq-map" src={mapSrc} title={`Mapa ${hotel.name}`} loading="lazy" />
+              ) : null}
+              {loc?.address ? <div className="vq-place" style={{ marginTop: 10 }}>{loc.address}</div> : null}
+              {loc?.nearbyPlaces?.length ? (
+                <div className="vq-nearby">
+                  <h4>Próximo da hospedagem</h4>
+                  {loc.nearbyPlaces.map((n, i) => (
+                    <div key={i} className="vq-nearby-item"><span>{n.name}</span><strong>{n.distance}</strong></div>
+                  ))}
+                </div>
+              ) : null}
+            </>
+          )}
+        </div>
+      </div>
+    </article>
+  );
+}
+
+/* ─────────────────── produtos simples ─────────────────── */
+
+const SIMPLE_ICONS = {
+  car: IconCar,
+  transfer: IconTransfer,
+  activity: IconActivity,
+  ticket: IconTicket,
+  insurance: IconShield,
+  service: IconTransfer,
+} as const;
+
+function SimpleCard({ item, kind }: { item: SimpleProduct; kind: keyof typeof SIMPLE_ICONS }) {
+  const [open, setOpen] = useState(false);
+  const Icon = SIMPLE_ICONS[kind];
+  const temDetalhes = item.details.length > 0 || !!item.description || !!item.included?.length;
+  return (
+    <article className="vq-card vq-module">
+      <div className="vq-module-summary">
+        <div className="vq-module-left">
+          <span className="vq-module-icon"><Icon /></span>
+          <div>
+            <h3>{item.title}</h3>
+            {item.summary ? <p>{item.summary}</p> : null}
+          </div>
+        </div>
+      </div>
+      {temDetalhes ? (
+        <>
+          <button className="vq-toggle" data-open={open} onClick={() => setOpen((v) => !v)}>
+            {open ? "Ocultar detalhes" : "Ver detalhes"}
+            <IconChevron />
+          </button>
+          {open ? (
+            <div className="vq-details">
+              {item.details.length ? (
+                <div className="vq-details-grid">
+                  {item.details.map((d, i) => (
+                    <div key={i} className="vq-detail"><small>{d.label}</small><strong>{d.value}</strong></div>
+                  ))}
+                </div>
+              ) : null}
+              {item.description ? <div className="vq-description">{item.description}</div> : null}
+              {item.included?.length ? (
+                <div className="vq-benefits" style={{ marginTop: 12 }}>
+                  {item.included.map((b, i) => (
+                    <span key={i} className="vq-benefit"><IconCheck />{b}</span>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+        </>
+      ) : null}
+    </article>
+  );
+}
+
+/* ───────────────────── pagamento ───────────────────── */
+
+function PaymentBox({ quote }: { quote: PublicQuote }) {
+  const metodos = quote.payment.methods;
+  const [tab, setTab] = useState<"CARD" | "BOLETO" | "PIX">(metodos[0] ?? "CARD");
+  const cartao = quote.payment.card;
+  const boleto = quote.payment.boleto;
+  const pix = quote.payment.pix;
+
+  return (
+    <div className="vq-card vq-paybox">
+      <h3>Formas de pagamento</h3>
+      <div className="vq-pay-tabs">
+        {metodos.includes("CARD") ? (
+          <button className="vq-pay-tab" data-active={tab === "CARD"} onClick={() => setTab("CARD")}>
+            <IconCard />Cartão
+          </button>
+        ) : null}
+        {metodos.includes("BOLETO") ? (
+          <button className="vq-pay-tab" data-active={tab === "BOLETO"} onClick={() => setTab("BOLETO")}>
+            <IconBoleto />Boleto
+          </button>
+        ) : null}
+        {metodos.includes("PIX") ? (
+          <button className="vq-pay-tab" data-active={tab === "PIX"} onClick={() => setTab("PIX")}>
+            <IconPix />Pix
+          </button>
+        ) : null}
+      </div>
+
+      {tab === "CARD" ? (
+        <div>
+          <div className="vq-brands">
+            {cartao.brands.map((b) => (
+              <span key={b} className="vq-brand">{b}</span>
+            ))}
+          </div>
+          <div className="vq-installments">
+            {cartao.installments.map((i) => (
+              <div key={i.number} className="vq-inst">
+                <span>
+                  {i.number}x
+                  {i.interestFree ? <span className="vq-no-interest">sem juros</span> : null}
+                </span>
+                <strong>{brl(i.amount)}</strong>
+              </div>
+            ))}
+          </div>
+          <p className="vq-payment-note">
+            Parcelamento sem juros conforme a política da companhia aérea e sujeito à
+            aprovação da operadora do cartão.
+          </p>
+        </div>
+      ) : null}
+
+      {tab === "BOLETO" ? (
+        <div className="vq-boleto-box">
+          <div className="vq-installments">
+            {boleto.installments.map((i) => (
+              <div key={i.number} className="vq-inst">
+                <span>{i.number}x<span className="vq-no-interest">sem juros</span></span>
+                <strong>{brl(i.amount)}</strong>
+              </div>
+            ))}
+          </div>
+          <p className="vq-payment-note">
+            {boleto.note ??
+              "Parcelamento no boleto sujeito à análise. A confirmação é feita pelo consultor antes da emissão."}
+          </p>
+        </div>
+      ) : null}
+
+      {tab === "PIX" ? (
+        <div>
+          <div className="vq-pix-box">
+            <span>Pix à vista{pix.discountPercent ? ` (${pix.discountPercent}% de desconto)` : ""}</span>
+            <strong>{brl(pix.total)}</strong>
+          </div>
+          <p className="vq-payment-note">
+            O código Pix é enviado pelo consultor no momento da confirmação.
+          </p>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+/* ───────────────────── página ───────────────────── */
+
+export function PublicQuoteView({ quote }: { quote: PublicQuote }) {
+  const flights = quote.products.flights ?? [];
+  const hotels = quote.products.hotels ?? [];
+  const periodo = periodoLabel(quote);
+
+  const legs = useMemo(() => flights.flatMap((f) => f.legs), [flights]);
+
+  const whatsappHref = `https://wa.me/${WHATSAPP}?text=${encodeURIComponent(
+    `Olá! Quero seguir com o orçamento ${quote.publicId} (${quote.title}).`,
+  )}`;
+
+  const secoes: Array<{ id: string; label: string }> = [];
+  if (hotels.length) secoes.push({ id: "hospedagem", label: "Hospedagem" });
+  if (legs.length) secoes.push({ id: "voos", label: "Voos" });
+  if (quote.products.cars?.length) secoes.push({ id: "carro", label: "Carro" });
+  if (quote.products.activities?.length) secoes.push({ id: "passeios", label: "Passeios" });
+  if (quote.products.tickets?.length) secoes.push({ id: "ingressos", label: "Ingressos" });
+  if (quote.products.transfers?.length || quote.products.services?.length)
+    secoes.push({ id: "servicos", label: "Serviços" });
+  secoes.push({ id: "valores", label: "Valores" });
+
+  return (
+    <div className="vq">
+      <header className="vq-topbar">
+        <div className="vq-nav">
+          <img src={viaAirLogo.url} alt="VIA AIR" />
+          <nav className="vq-navlinks">
+            {secoes.map((s) => (
+              <a key={s.id} href={`#${s.id}`}>{s.label}</a>
+            ))}
+          </nav>
+          <span className="vq-tag">
+            {quote.type === "AIR_ONLY" ? "Passagens aéreas" : "Pacote completo"}
+          </span>
+        </div>
+      </header>
+
+      <main className="vq-wrap">
+        {quote.expired ? (
+          <div className="vq-expired">
+            Este orçamento expirou. Fale com seu consultor para receber os valores atualizados.
+          </div>
+        ) : null}
+
+        <section className="vq-hero">
+          <div className="vq-hero-grid">
+            <div>
+              <div className="vq-eyebrow">PROPOSTA VIA AIR</div>
+              <h1>{quote.title}</h1>
+              <p>{quote.subtitle ?? "Todos os detalhes da sua viagem organizados em um único link."}</p>
+              <div className="vq-chips">
+                {periodo ? <div className="vq-chip"><IconCalendar />{periodo}</div> : null}
+                <div className="vq-chip"><IconUsers />{quote.passengers.label}</div>
+                {quote.tripKind ? <div className="vq-chip"><IconPlane />{quote.tripKind}</div> : null}
+                {quote.nights ? <div className="vq-chip"><IconHotel />{quote.nights} noites</div> : null}
+              </div>
+            </div>
+            <div className="vq-pricebox">
+              <small>Valor total da proposta</small>
+              <div className="vq-price">{brl(quote.totals.total)}</div>
+              <small>Tarifa sujeita à disponibilidade até a emissão.</small>
+              {quote.payment.pix.enabled ? (
+                <div className="vq-pixline">Pix à vista: {brl(quote.payment.pix.total)}</div>
+              ) : null}
+              <a href={whatsappHref} target="_blank" rel="noreferrer">
+                <button className="vq-cta">Quero reservar esta opção</button>
+              </a>
+            </div>
+          </div>
+        </section>
+
+        {hotels.length ? (
+          <section className="vq-section" id="hospedagem">
+            <div className="vq-section-head">
+              <div>
+                <h2>Hospedagem</h2>
+                <p>Galeria, quarto, comodidades e localização da hospedagem.</p>
+              </div>
+              {quote.nights ? <span className="vq-tag">{quote.nights} noites</span> : null}
+            </div>
+            {hotels.map((h) => <HotelCard key={h.id} hotel={h} />)}
+          </section>
+        ) : null}
+
+        {legs.length ? (
+          <section className="vq-section" id="voos">
+            <div className="vq-section-head">
+              <div>
+                <h2>Voos</h2>
+                <p>Companhia, horários, conexões, duração e bagagem de cada trecho.</p>
+              </div>
+              <span className="vq-tag">{quote.tripKind ?? "Itinerário"}</span>
+            </div>
+            {legs.map((leg, i) => <FlightLegCard key={i} leg={leg} />)}
+          </section>
+        ) : null}
+
+        {quote.products.cars?.length ? (
+          <section className="vq-section" id="carro">
+            <div className="vq-section-head"><div><h2>Carro</h2><p>Locação incluída na proposta.</p></div></div>
+            {quote.products.cars.map((c) => <SimpleCard key={c.id} item={c} kind="car" />)}
+          </section>
+        ) : null}
+
+        {quote.products.activities?.length ? (
+          <section className="vq-section" id="passeios">
+            <div className="vq-section-head"><div><h2>Passeios</h2><p>Experiências reservadas para a viagem.</p></div></div>
+            {quote.products.activities.map((c) => <SimpleCard key={c.id} item={c} kind="activity" />)}
+          </section>
+        ) : null}
+
+        {quote.products.tickets?.length ? (
+          <section className="vq-section" id="ingressos">
+            <div className="vq-section-head"><div><h2>Ingressos</h2><p>Entradas e atrações incluídas.</p></div></div>
+            {quote.products.tickets.map((c) => <SimpleCard key={c.id} item={c} kind="ticket" />)}
+          </section>
+        ) : null}
+
+        {quote.products.transfers?.length || quote.products.services?.length || quote.products.insurance?.length ? (
+          <section className="vq-section" id="servicos">
+            <div className="vq-section-head"><div><h2>Serviços</h2><p>Traslados, seguros e serviços complementares.</p></div></div>
+            {quote.products.transfers?.map((c) => <SimpleCard key={c.id} item={c} kind="transfer" />)}
+            {quote.products.insurance?.map((c) => <SimpleCard key={c.id} item={c} kind="insurance" />)}
+            {quote.products.services?.map((c) => <SimpleCard key={c.id} item={c} kind="service" />)}
+          </section>
+        ) : null}
+
+        <section className="vq-section" id="valores">
+          <div className="vq-section-head">
+            <div>
+              <h2>Valores e pagamento</h2>
+              <p>Resumo da proposta e simulação das formas de pagamento.</p>
+            </div>
+          </div>
+          <div className="vq-summary-payment">
+            <div className="vq-card vq-summary-main">
+              {quote.summary.map((s, i) => {
+                const Icon = SUMMARY_ICONS[s.icon] ?? IconTicket;
+                return (
+                  <div key={i} className="vq-sum-row">
+                    <div className="vq-sum-left">
+                      <span className="vq-sum-icon"><Icon /></span>
+                      <span>{s.label}</span>
+                    </div>
+                    <strong>{s.value}</strong>
+                  </div>
+                );
+              })}
+              <div className="vq-sum-total">
+                <span>Total</span>
+                <span>{brl(quote.totals.total)}</span>
+              </div>
+              {quote.publicNotes ? <div className="vq-description">{quote.publicNotes}</div> : null}
+            </div>
+            <PaymentBox quote={quote} />
+          </div>
+        </section>
+
+        <section className="vq-card vq-agent">
+          <div className="vq-agent-photo">
+            {quote.agent?.photoUrl ? (
+              <img
+                src={quote.agent.photoUrl}
+                alt={quote.agent.name}
+                style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }}
+              />
+            ) : (
+              (quote.agent?.name ?? "VIA AIR").charAt(0)
+            )}
+          </div>
+          <div>
+            <h3>{quote.agent?.name ?? "Equipe VIA AIR"}</h3>
+            <p>Seu consultor de viagens está à disposição para ajustar esta proposta.</p>
+          </div>
+          <a href={whatsappHref} target="_blank" rel="noreferrer">
+            <button className="vq-contact-btn">
+              <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <IconWhats />Falar com o consultor
+              </span>
+            </button>
+          </a>
+        </section>
+
+        <div className="vq-footer">
+          VIA AIR Turismo • Paranavaí (PR) • atendimento 100% online
+          <br />
+          Proposta {quote.publicId}
+          {quote.validUntil
+            ? ` • válida até ${new Date(quote.validUntil).toLocaleDateString("pt-BR")}`
+            : ""}
+        </div>
+      </main>
+    </div>
+  );
+}
+
+export default PublicQuoteView;

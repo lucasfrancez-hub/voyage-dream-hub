@@ -5153,6 +5153,137 @@ export type Database = {
           },
         ]
       }
+      public_quote_events: {
+        Row: {
+          created_at: string
+          event_type: string
+          id: string
+          payload: Json
+          public_quote_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_type: string
+          id?: string
+          payload?: Json
+          public_quote_id: string
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          id?: string
+          payload?: Json
+          public_quote_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "public_quote_events_public_quote_id_fkey"
+            columns: ["public_quote_id"]
+            isOneToOne: false
+            referencedRelation: "public_quotes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      public_quotes: {
+        Row: {
+          agent: Json | null
+          conversation_id: string | null
+          created_at: string
+          created_by: string | null
+          destination: string | null
+          end_date: string | null
+          extra: Json
+          id: string
+          last_viewed_at: string | null
+          option_index: number | null
+          order_id: string | null
+          origin: string | null
+          passengers: Json
+          payment: Json
+          products: Json
+          public_id: string
+          public_notes: string | null
+          quote_id: string | null
+          quote_type: string
+          short_slug: string | null
+          short_url: string | null
+          source: string
+          start_date: string | null
+          subtitle: string | null
+          summary: Json
+          title: string
+          totals: Json
+          updated_at: string
+          valid_until: string | null
+          view_count: number
+        }
+        Insert: {
+          agent?: Json | null
+          conversation_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          destination?: string | null
+          end_date?: string | null
+          extra?: Json
+          id?: string
+          last_viewed_at?: string | null
+          option_index?: number | null
+          order_id?: string | null
+          origin?: string | null
+          passengers?: Json
+          payment?: Json
+          products?: Json
+          public_id: string
+          public_notes?: string | null
+          quote_id?: string | null
+          quote_type: string
+          short_slug?: string | null
+          short_url?: string | null
+          source?: string
+          start_date?: string | null
+          subtitle?: string | null
+          summary?: Json
+          title: string
+          totals?: Json
+          updated_at?: string
+          valid_until?: string | null
+          view_count?: number
+        }
+        Update: {
+          agent?: Json | null
+          conversation_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          destination?: string | null
+          end_date?: string | null
+          extra?: Json
+          id?: string
+          last_viewed_at?: string | null
+          option_index?: number | null
+          order_id?: string | null
+          origin?: string | null
+          passengers?: Json
+          payment?: Json
+          products?: Json
+          public_id?: string
+          public_notes?: string | null
+          quote_id?: string | null
+          quote_type?: string
+          short_slug?: string | null
+          short_url?: string | null
+          source?: string
+          start_date?: string | null
+          subtitle?: string | null
+          summary?: Json
+          title?: string
+          totals?: Json
+          updated_at?: string
+          valid_until?: string | null
+          view_count?: number
+        }
+        Relationships: []
+      }
       short_link_clicks: {
         Row: {
           browser: string | null
