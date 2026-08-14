@@ -201,7 +201,17 @@
 .vq-seg2-connection-pill svg { width: 15px; height: 15px; flex: none; }
 
 @media (max-width: 720px) {
+  .vq-hero { padding-top: 210px; }
+  .vq-hero-media { width: 100%; height: 250px; }
+  .vq-hero-media img {
+    -webkit-mask-image: linear-gradient(180deg,#000 0%,#000 46%,rgba(0,0,0,.6) 74%,rgba(0,0,0,.2) 90%,transparent 100%);
+    mask-image: linear-gradient(180deg,#000 0%,#000 46%,rgba(0,0,0,.6) 74%,rgba(0,0,0,.2) 90%,transparent 100%); }
+  .vq-hero-fade { inset: 46% 0 0 0;
+    -webkit-mask-image: linear-gradient(180deg,transparent 0%,rgba(0,0,0,.6) 55%,#000 100%);
+    mask-image: linear-gradient(180deg,transparent 0%,rgba(0,0,0,.6) 55%,#000 100%); }
+  .vq-hero-shade { background: linear-gradient(180deg,rgba(5,25,40,.28) 0%,rgba(5,25,40,.2) 60%,rgba(5,25,40,0) 100%); }
   .vq-journey-body { padding: 18px 14px; }
+
   .vq-journey-rail { display: none; }
   .vq-seg2 { gap: 12px; }
   .vq-seg2-route { grid-template-columns: 1fr; gap: 10px; }
