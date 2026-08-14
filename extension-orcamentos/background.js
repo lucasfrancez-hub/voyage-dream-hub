@@ -168,7 +168,12 @@ async function flushQueue() {
   for (const item of [...viaairQueue]) {
     if (item.nextAt > now) continue;
     const r = await sendImport(item.url, item.trigger);
-    if (r.status === "READY" || r.status === "PROCESSING") continue;
+    if (r.status === "READY") continue;
+    if (r.status === "IMPORT_ERROR") {
+      // dados da fonte não puderam ser lidos: não adianta repetir em loop
+      await queueRemove(item.url);
+      continue;
+    }
     const { viaairQueue: current = [] } = await read(["viaairQueue"]);
     const updated = current.map((q) => {
       if (q.url !== item.url) return q;
