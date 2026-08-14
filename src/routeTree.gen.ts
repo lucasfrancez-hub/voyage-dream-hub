@@ -94,6 +94,7 @@ import { Route as OrcamentoTokenRouteImport } from './routes/orcamento.$token'
 import { Route as PacotesIndexRouteImport } from './routes/pacotes.index'
 import { Route as PacotesAdminRouteImport } from './routes/pacotes.admin'
 import { Route as ProtocoloProtocoloIdRouteImport } from './routes/protocolo.$protocoloId'
+import { Route as ReservaTokenRouteImport } from './routes/reserva.$token'
 import { Route as WSlugRouteImport } from './routes/w.$slug'
 import { Route as AdminAppTokenRouteImport } from './routes/admin.app.$token'
 import { Route as AdminOrcamentosIndexRouteImport } from './routes/admin.orcamentos.index'
@@ -579,6 +580,11 @@ const ProtocoloProtocoloIdRoute = ProtocoloProtocoloIdRouteImport.update({
   path: '/protocolo/$protocoloId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ReservaTokenRoute = ReservaTokenRouteImport.update({
+  id: '/reserva/$token',
+  path: '/reserva/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const WSlugRoute = WSlugRouteImport.update({
   id: '/w/$slug',
   path: '/w/$slug',
@@ -993,6 +999,7 @@ export interface FileRoutesByFullPath {
   '/orcamento/$token': typeof OrcamentoTokenRoute
   '/pacotes/admin': typeof PacotesAdminRoute
   '/protocolo/$protocoloId': typeof ProtocoloProtocoloIdRoute
+  '/reserva/$token': typeof ReservaTokenRoute
   '/w/$slug': typeof WSlugRoute
   '/editair/': typeof EditairIndexRoute
   '/pacotes/': typeof PacotesIndexRoute
@@ -1137,6 +1144,7 @@ export interface FileRoutesByTo {
   '/orcamento/$token': typeof OrcamentoTokenRoute
   '/pacotes/admin': typeof PacotesAdminRoute
   '/protocolo/$protocoloId': typeof ProtocoloProtocoloIdRoute
+  '/reserva/$token': typeof ReservaTokenRoute
   '/w/$slug': typeof WSlugRoute
   '/editair': typeof EditairIndexRoute
   '/pacotes': typeof PacotesIndexRoute
@@ -1284,6 +1292,7 @@ export interface FileRoutesById {
   '/orcamento/$token': typeof OrcamentoTokenRoute
   '/pacotes/admin': typeof PacotesAdminRoute
   '/protocolo/$protocoloId': typeof ProtocoloProtocoloIdRoute
+  '/reserva/$token': typeof ReservaTokenRoute
   '/w/$slug': typeof WSlugRoute
   '/editair/': typeof EditairIndexRoute
   '/pacotes/': typeof PacotesIndexRoute
@@ -1432,6 +1441,7 @@ export interface FileRouteTypes {
     | '/orcamento/$token'
     | '/pacotes/admin'
     | '/protocolo/$protocoloId'
+    | '/reserva/$token'
     | '/w/$slug'
     | '/editair/'
     | '/pacotes/'
@@ -1576,6 +1586,7 @@ export interface FileRouteTypes {
     | '/orcamento/$token'
     | '/pacotes/admin'
     | '/protocolo/$protocoloId'
+    | '/reserva/$token'
     | '/w/$slug'
     | '/editair'
     | '/pacotes'
@@ -1722,6 +1733,7 @@ export interface FileRouteTypes {
     | '/orcamento/$token'
     | '/pacotes/admin'
     | '/protocolo/$protocoloId'
+    | '/reserva/$token'
     | '/w/$slug'
     | '/editair/'
     | '/pacotes/'
@@ -1817,6 +1829,7 @@ export interface RootRouteChildren {
   LSlugRoute: typeof LSlugRoute
   OrcamentoTokenRoute: typeof OrcamentoTokenRoute
   ProtocoloProtocoloIdRoute: typeof ProtocoloProtocoloIdRoute
+  ReservaTokenRoute: typeof ReservaTokenRoute
   WSlugRoute: typeof WSlugRoute
   ApiChatCamilaRoute: typeof ApiChatCamilaRoute
   ApiPublicAnalyticsCollectRoute: typeof ApiPublicAnalyticsCollectRoute
@@ -2465,6 +2478,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProtocoloProtocoloIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/reserva/$token': {
+      id: '/reserva/$token'
+      path: '/reserva/$token'
+      fullPath: '/reserva/$token'
+      preLoaderRoute: typeof ReservaTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/w/$slug': {
       id: '/w/$slug'
       path: '/w/$slug'
@@ -3085,6 +3105,7 @@ const rootRouteChildren: RootRouteChildren = {
   LSlugRoute: LSlugRoute,
   OrcamentoTokenRoute: OrcamentoTokenRoute,
   ProtocoloProtocoloIdRoute: ProtocoloProtocoloIdRoute,
+  ReservaTokenRoute: ReservaTokenRoute,
   WSlugRoute: WSlugRoute,
   ApiChatCamilaRoute: ApiChatCamilaRoute,
   ApiPublicAnalyticsCollectRoute: ApiPublicAnalyticsCollectRoute,
