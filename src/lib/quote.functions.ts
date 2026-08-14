@@ -59,6 +59,7 @@ export type PublicQuoteItem = {
   kind: "flight" | "hotel" | "other";
   title: string;
   direction?: "outbound" | "return" | null;
+  trip_group?: string | null;
   airline?: string | null;
   flight_number?: string | null;
   from_iata?: string | null;
@@ -67,12 +68,18 @@ export type PublicQuoteItem = {
   to_city?: string | null;
   departure_at?: string | null;
   arrival_at?: string | null;
+  cabin_class?: string | null;
+  fare_class?: string | null;
+  personal_item?: boolean;
+  carry_on?: boolean;
+  checked_bag?: boolean;
   hotel_name?: string | null;
   hotel_stars?: number | null;
   nights?: number | null;
   meal_plan?: string | null;
   check_in?: string | null;
   check_out?: string | null;
+  photo_url?: string | null;
   hotel_info?: HotelInfo | null;
   category?: string | null;
   date_from?: string | null;
@@ -90,8 +97,11 @@ export type PublicQuote = {
   travelers: { adults: number; children: number };
   items: PublicQuoteItem[];
   config: QuoteConfig;
+  /** Markups (%) por quantidade de parcelas — tabela do financeiro. */
+  installmentMarkups: Record<number, number>;
   agency: { name: string; email: string; phone: string; whatsapp: string };
 };
+
 
 
 // -------- Server functions --------
