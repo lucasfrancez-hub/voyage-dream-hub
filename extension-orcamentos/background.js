@@ -143,7 +143,15 @@ async function pollUntilDone(importId, token, timeoutMs = 45_000) {
   return last;
 }
 
+const inflight = new Map();
 async function sendImport(url, trigger) {
+  if (inflight.has(url)) return inflight.get(url);
+  const run = sendImportInner(url, trigger).finally(() => inflight.delete(url));
+  inflight.set(url, run);
+  return run;
+}
+
+async function sendImportInner(url, trigger) {
 
   const token = await getToken();
   if (!token) {
