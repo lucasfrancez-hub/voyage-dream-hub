@@ -2212,6 +2212,36 @@ export type Database = {
         }
         Relationships: []
       }
+      extension_tokens: {
+        Row: {
+          created_at: string
+          id: string
+          label: string | null
+          last_used_at: string | null
+          revoked_at: string | null
+          token_hash: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          label?: string | null
+          last_used_at?: string | null
+          revoked_at?: string | null
+          token_hash: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          label?: string | null
+          last_used_at?: string | null
+          revoked_at?: string | null
+          token_hash?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       financial_categories: {
         Row: {
           created_at: string
@@ -5281,6 +5311,164 @@ export type Database = {
           updated_at?: string
           valid_until?: string | null
           view_count?: number
+        }
+        Relationships: []
+      }
+      quote_imports: {
+        Row: {
+          browser_extension: boolean
+          created_at: string
+          created_by: string | null
+          detected_at: string | null
+          error: string | null
+          fingerprint: string
+          http_status: number | null
+          id: string
+          parsed_payload: Json | null
+          quote_id: string | null
+          source: string
+          source_html: string | null
+          source_id: string | null
+          source_payload: Json | null
+          source_url: string
+          status: string
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          browser_extension?: boolean
+          created_at?: string
+          created_by?: string | null
+          detected_at?: string | null
+          error?: string | null
+          fingerprint: string
+          http_status?: number | null
+          id?: string
+          parsed_payload?: Json | null
+          quote_id?: string | null
+          source?: string
+          source_html?: string | null
+          source_id?: string | null
+          source_payload?: Json | null
+          source_url: string
+          status?: string
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          browser_extension?: boolean
+          created_at?: string
+          created_by?: string | null
+          detected_at?: string | null
+          error?: string | null
+          fingerprint?: string
+          http_status?: number | null
+          id?: string
+          parsed_payload?: Json | null
+          quote_id?: string | null
+          source?: string
+          source_html?: string | null
+          source_id?: string | null
+          source_payload?: Json | null
+          source_url?: string
+          status?: string
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quote_imports_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: false
+            referencedRelation: "quotes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quotes: {
+        Row: {
+          client_email: string | null
+          client_name: string | null
+          client_phone: string | null
+          consultant: string | null
+          converted_order_id: string | null
+          created_at: string
+          currency: string | null
+          deleted_at: string | null
+          destination: string | null
+          end_date: string | null
+          fingerprint: string | null
+          id: string
+          normalized: Json
+          origin: string | null
+          owner_user_id: string | null
+          public_quote_id: string | null
+          quote_number: number
+          quote_type: string
+          source: string
+          source_import_id: string | null
+          start_date: string | null
+          status: string
+          title: string | null
+          total: number | null
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          client_email?: string | null
+          client_name?: string | null
+          client_phone?: string | null
+          consultant?: string | null
+          converted_order_id?: string | null
+          created_at?: string
+          currency?: string | null
+          deleted_at?: string | null
+          destination?: string | null
+          end_date?: string | null
+          fingerprint?: string | null
+          id?: string
+          normalized?: Json
+          origin?: string | null
+          owner_user_id?: string | null
+          public_quote_id?: string | null
+          quote_number?: number
+          quote_type?: string
+          source?: string
+          source_import_id?: string | null
+          start_date?: string | null
+          status?: string
+          title?: string | null
+          total?: number | null
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          client_email?: string | null
+          client_name?: string | null
+          client_phone?: string | null
+          consultant?: string | null
+          converted_order_id?: string | null
+          created_at?: string
+          currency?: string | null
+          deleted_at?: string | null
+          destination?: string | null
+          end_date?: string | null
+          fingerprint?: string | null
+          id?: string
+          normalized?: Json
+          origin?: string | null
+          owner_user_id?: string | null
+          public_quote_id?: string | null
+          quote_number?: number
+          quote_type?: string
+          source?: string
+          source_import_id?: string | null
+          start_date?: string | null
+          status?: string
+          title?: string | null
+          total?: number | null
+          updated_at?: string
+          version?: number
         }
         Relationships: []
       }
