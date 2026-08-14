@@ -39,8 +39,8 @@ function norm(s: string) {
 }
 
 function cacheKey(name: string, city: string | null): string {
-  // v2 — invalida o cache gerado enquanto a API antiga devolvia 403.
-  return `hotel-enrich:v2:${norm(name)}|${norm(city ?? "")}`;
+  // v3 — inclui endereço/descrição em português e pontos próximos.
+  return `hotel-enrich:v3:${norm(name)}|${norm(city ?? "")}`;
 }
 
 async function readCache(key: string): Promise<HotelEnrichment | null> {
