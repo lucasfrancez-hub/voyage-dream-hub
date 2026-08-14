@@ -20,6 +20,23 @@ function rotuloGeo(v: unknown) {
   return s || "Não identificado";
 }
 
+/**
+ * Início do período em dias de calendário no fuso de Brasília (UTC-3).
+ * "Hoje" (dias=1) começa às 00:00 BRT — não é uma janela móvel de 24h,
+ * evitando que os números caiam ao longo do dia.
+ */
+function inicioPeriodoBRT(dias: number) {
+  const agora = new Date();
+  const brt = new Date(agora.getTime() - 3 * 60 * 60 * 1000);
+  const inicioHojeUTC = Date.UTC(brt.getUTCFullYear(), brt.getUTCMonth(), brt.getUTCDate()) + 3 * 60 * 60 * 1000;
+  return new Date(inicioHojeUTC - Math.max(0, dias - 1) * 24 * 60 * 60 * 1000).toISOString();
+}
+
+/** Data (YYYY-MM-DD) no fuso de Brasília a partir de um timestamp ISO. */
+function diaBRT(iso: string) {
+  return new Date(new Date(iso).getTime() - 3 * 60 * 60 * 1000).toISOString().slice(0, 10);
+}
+
 function classificarOrigem(r: Row) {
   if (r.short_slug) return `Link curto (/l/${r.short_slug})`;
   if (r.utm_source) return `Campanha: ${r.utm_source}`;
@@ -34,7 +51,7 @@ function classificarOrigem(r: Row) {
 
 export async function carregarMetricasSite(dias: number) {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const desde = new Date(Date.now() - dias * 24 * 60 * 60 * 1000).toISOString();
+  const desde = inicioPeriodoBRT(dias);
 
   const { data, error } = await supabaseAdmin
     .from("site_events")
@@ -80,7 +97,7 @@ export async function carregarMetricasSite(dias: number) {
   // série diária de visitas
   const serieMapa = new Map<string, { sessoes: Set<string>; views: number }>();
   for (const r of rows) {
-    const dia = String(r.created_at).slice(0, 10);
+    const dia = diaBRT(String(r.created_at));
     const s = serieMapa.get(dia) ?? { sessoes: new Set<string>(), views: 0 };
     s.sessoes.add(r.session_id);
     if (r.event_type === "pageview") s.views += 1;
@@ -130,7 +147,7 @@ export async function carregarMetricasSite(dias: number) {
 
 export async function carregarMetricasLinks(dias: number) {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const desde = new Date(Date.now() - dias * 24 * 60 * 60 * 1000).toISOString();
+  const desde = inicioPeriodoBRT(dias);
 
   const [{ data: cliques, error: e1 }, { data: links, error: e2 }] = await Promise.all([
     supabaseAdmin
