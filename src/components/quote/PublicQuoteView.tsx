@@ -11,6 +11,7 @@ import { brl } from "@/lib/public-quote/payments";
 import { quoteHeadline, quoteTagline } from "@/lib/public-quote/headline";
 import { agentPhoto } from "@/lib/public-quote/agents";
 import { formatRoom } from "@/lib/public-quote/room-label";
+import { fotoDoDestino } from "@/lib/public-quote/destination-photo";
 
 
 import type {
@@ -719,10 +720,20 @@ function QuoteBody({ quote }: { quote: PublicQuote }) {
     seed: quote.publicId,
   });
 
-  const heroImage = useMemo(() => {
-    const foto = hotels.map((h) => h.photos?.[0]).find(Boolean);
-    return foto || heroFallback.url;
-  }, [hotels]);
+  const [fotoDestino, setFotoDestino] = useState<string | null>(null);
+  useEffect(() => {
+    let ativo = true;
+    setFotoDestino(null);
+    fotoDoDestino(quote.destination).then((u) => {
+      if (ativo) setFotoDestino(u);
+    });
+    return () => {
+      ativo = false;
+    };
+  }, [quote.destination]);
+
+  const heroImage = fotoDestino || hotels.map((h) => h.photos?.[0]).find(Boolean) || heroFallback.url;
+
 
   const legs = useMemo(() => flights.flatMap((f) => f.legs), [flights]);
 
