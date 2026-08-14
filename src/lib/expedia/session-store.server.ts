@@ -36,12 +36,24 @@ export type ExpediaSessionState = {
   storage: Record<string, string>;
 };
 
-const RELEVANT_DOMAINS = ["expedia.", "expediapartnercentral.", "orbitz.", "travelscape."];
+const RELEVANT_DOMAINS = [
+  "expedia",
+  "expediataap",
+  "expediapartnercentral",
+  "orbitz",
+  "travelscape",
+  "trvl-media",
+  "karmalab",
+];
 
 /** Mantém só os cookies dos domínios da Expedia — reduz superfície do que é salvo. */
 export function filterExpediaCookies(cookies: ExpediaCookie[]): ExpediaCookie[] {
-  return cookies.filter((c) => RELEVANT_DOMAINS.some((d) => (c.domain || "").includes(d)));
+  return cookies.filter((c) => {
+    const domain = (c.domain || "").toLowerCase();
+    return RELEVANT_DOMAINS.some((d) => domain.includes(d));
+  });
 }
+
 
 export async function listExpediaSessions(): Promise<ExpediaSessionRow[]> {
   const { data, error } = await supabaseAdmin
@@ -59,10 +71,15 @@ export async function saveExpediaSession(input: {
   storage: Record<string, string>;
   userId: string | null;
 }): Promise<{ id: string; cookieCount: number }> {
-  const cookies = filterExpediaCookies(input.cookies);
+  // Se o navegador devolveu cookies mas nenhum bateu com os domínios conhecidos,
+  // preferimos salvar tudo a perder a sessão por causa do filtro.
+  const cookies = filterExpediaCookies(input.cookies).length
+    ? filterExpediaCookies(input.cookies)
+    : input.cookies;
   if (!cookies.length) {
     throw new Error("Nenhum cookie da Expedia foi capturado — confirme que o login foi concluído.");
   }
+
   // Sessões antigas saem de circulação: só uma conectada por vez.
   await supabaseAdmin
     .from("expedia_sessions")
