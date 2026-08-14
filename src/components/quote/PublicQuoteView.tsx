@@ -9,6 +9,8 @@ import { airlineLogo } from "@/lib/airlines";
 import { brl } from "@/lib/public-quote/payments";
 import { quoteHeadline, quoteTagline } from "@/lib/public-quote/headline";
 import { agentPhoto } from "@/lib/public-quote/agents";
+import { formatRoom } from "@/lib/public-quote/room-label";
+
 
 import type {
   FlightLeg,
@@ -262,7 +264,9 @@ function HotelCard({ hotel }: { hotel: HotelProduct }) {
   const [sobre, setSobre] = useState(false);
   // V14: foto principal ocupando duas linhas + quatro fotos menores.
   const fotos = hotel.photos.slice(0, 5);
+  const quarto = formatRoom(hotel.roomName ?? hotel.roomDescription);
   const loc = hotel.location;
+
   const mapSrc = loc?.latitude && loc?.longitude
     ? `https://www.google.com/maps?q=${loc.latitude},${loc.longitude}&z=15&output=embed`
     : hotel.name
@@ -402,14 +406,15 @@ function HotelCard({ hotel }: { hotel: HotelProduct }) {
                 </div>
               ) : null}
 
-              {hotel.roomName || hotel.about || hotel.rating ? (
+              {quarto.name || hotel.about || hotel.rating ? (
                 <div className="vq-room-row">
-                  {hotel.roomName ? (
+                  {quarto.name ? (
                     <div className="vq-room">
-                      <strong>{hotel.roomName}</strong>
-                      {hotel.roomDescription ? <p>{hotel.roomDescription}</p> : null}
+                      <strong>{quarto.name}</strong>
+                      {quarto.description ? <p>{quarto.description}</p> : null}
                     </div>
                   ) : <span />}
+
                   {hotel.about || hotel.rating ? (
                     <button className="vq-about-btn" onClick={() => setSobre(true)}>
                       Ver sobre o hotel

@@ -236,7 +236,7 @@ async function enriquecerHoteis(quote: PublicQuote): Promise<PublicQuote> {
     if (!hotels?.length) return hotels;
     return await Promise.all(
       hotels.map(async (h) => {
-        const faltaFoto = !h.photos?.length;
+        const faltaFoto = (h.photos?.length ?? 0) < 4;
         const faltaLocal = !h.location || (!h.location.address && h.location.latitude == null);
         const faltaSobre = !h.about || !h.location?.nearbyPlaces?.length;
         if (!faltaFoto && !faltaLocal && !faltaSobre) return h;
@@ -246,7 +246,7 @@ async function enriquecerHoteis(quote: PublicQuote): Promise<PublicQuote> {
           ...h,
           stars: h.stars ?? info.stars,
           place: h.place ?? info.address,
-          photos: h.photos?.length ? h.photos : info.photos,
+          photos: Array.from(new Set([...(h.photos ?? []), ...info.photos])).slice(0, 12),
           benefits: h.benefits?.length ? h.benefits : info.amenities.slice(0, 6),
           about: h.about ?? info.description,
           rating: h.rating ?? info.rating,

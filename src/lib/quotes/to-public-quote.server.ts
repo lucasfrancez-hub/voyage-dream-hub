@@ -1,5 +1,6 @@
 /**
  * Converte um Orçamento Via Air importado (com N opções) no orçamento
+
  * público oficial — UM único link contendo TODAS as opções.
  * SERVER-ONLY.
  */
@@ -9,6 +10,8 @@ import { buildPayment } from "@/lib/public-quote/payments";
 import { directionsFor, legLabel, splitIntoLegs, type LegInputSegment } from "@/lib/public-quote/flight-legs";
 import { normalizeServiceTitle } from "@/lib/public-quote/service-title";
 import { agentPhoto } from "@/lib/public-quote/agents";
+import { formatRoom } from "@/lib/public-quote/room-label";
+
 import type {
   FlightLeg,
   FlightSegment,
@@ -209,8 +212,8 @@ export function optionToProducts(option: NormalizedOption, occupancy?: string | 
       occupancy: occupancy ?? null,
       mealPlan: h.board ?? null,
       benefits: h.board ? [h.board] : [],
-      roomName: h.roomDescription ?? null,
-      roomDescription: h.roomDescription ?? null,
+      roomName: formatRoom(h.roomDescription).name,
+      roomDescription: formatRoom(h.roomDescription).description,
       location:
         h.latitude != null || h.address
           ? {
