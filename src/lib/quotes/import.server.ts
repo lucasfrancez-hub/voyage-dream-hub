@@ -3,13 +3,24 @@
  * SERVER-ONLY.
  */
 import { parserFor, extractInfotravelUrl } from "./infotravel-parser.server";
+import { importInfotravelQuote, QuoteParseError } from "./infotravel-api.server";
 import {
   emptyOption,
   emptyQuote,
+  optionHasProducts,
   optionProductKinds,
   type NormalizedOption,
   type NormalizedQuote,
 } from "./types";
+
+const isInfotravel = (url: string) => {
+  try {
+    return new URL(url).hostname.includes("infotravel.com.br");
+  } catch {
+    return false;
+  }
+};
+
 
 export type ImportResult = {
   importId: string;
