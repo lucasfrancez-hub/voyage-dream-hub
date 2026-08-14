@@ -188,7 +188,9 @@ async function enriquecerHoteis(quote: PublicQuote): Promise<PublicQuote> {
           place: h.place ?? info.address,
           photos: h.photos?.length ? h.photos : info.photos,
           benefits: h.benefits?.length ? h.benefits : info.amenities.slice(0, 6),
-          roomDescription: h.roomDescription ?? info.description,
+          about: h.about ?? info.description,
+          rating: h.rating ?? info.rating,
+          reviewsCount: h.reviewsCount ?? info.num_reviews,
           location:
             faltaLocal && (info.latitude != null || info.address)
               ? {
