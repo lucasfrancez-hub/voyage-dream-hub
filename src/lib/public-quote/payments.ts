@@ -8,6 +8,8 @@
  * - Pix: SEMPRE 5% de desconto.
  */
 import type { Installment, PaymentConfiguration, QuoteType } from "./types";
+import { bestInstallments } from "@/lib/airline-installments";
+import { DEFAULT_EXTENDED_MARKUPS, buildExtendedQuotes, type MarkupTable } from "@/lib/airfare-conditions";
 
 /** Desconto padrão do Pix (mesma regra comercial da VIA AIR). */
 export const PIX_DISCOUNT_PERCENT = 5;
