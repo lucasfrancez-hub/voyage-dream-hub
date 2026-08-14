@@ -70,7 +70,7 @@ export async function resendFlightOption(params: {
 
   const { saveMessage, setSendError, SENDING_CLAIM } = await import("./conversation.server");
   const { formatOptionText } = await import("./flight-option-text.server");
-  const { sendWhatsAppImageBytesDetailed, sendWhatsAppText } = await import("./send.server");
+  const { sendWhatsAppText } = await import("./send.server");
   const { abortIfHumanTookOver } = await import("./human-takeover.server");
 
   if (await abortIfHumanTookOver(conversationId, `reenvio_opcao_${optionIndex}`)) {
