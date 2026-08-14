@@ -216,6 +216,8 @@ function FlightLegCard({ leg }: { leg: FlightLeg }) {
 function HotelCard({ hotel }: { hotel: HotelProduct }) {
   const [view, setView] = useState<"details" | "location">("details");
   const [galeria, setGaleria] = useState(false);
+  const [foto, setFoto] = useState<number | null>(null);
+  const [sobre, setSobre] = useState(false);
   // V14: foto principal ocupando duas linhas + quatro fotos menores.
   const fotos = hotel.photos.slice(0, 5);
   const loc = hotel.location;
@@ -225,6 +227,10 @@ function HotelCard({ hotel }: { hotel: HotelProduct }) {
       ? `https://www.google.com/maps?q=${encodeURIComponent(`${hotel.name} ${hotel.place ?? ""}`)}&z=15&output=embed`
       : null;
 
+  const total = hotel.photos.length;
+  const irPara = (delta: number) =>
+    setFoto((atual) => (atual == null ? null : (atual + delta + total) % total));
+
   return (
     <article className="vq-card vq-hotel">
       {galeria ? (
@@ -232,17 +238,75 @@ function HotelCard({ hotel }: { hotel: HotelProduct }) {
           <button className="vq-lightbox-close" onClick={() => setGaleria(false)}>Fechar galeria</button>
           <div className="vq-lightbox-grid">
             {hotel.photos.map((src, i) => (
-              <img key={i} src={src} alt={`${hotel.name} ${i + 1}`} loading="lazy" />
+              <img
+                key={i}
+                src={src}
+                alt={`${hotel.name} ${i + 1}`}
+                loading="lazy"
+                onClick={(e) => { e.stopPropagation(); setFoto(i); }}
+              />
             ))}
           </div>
         </div>
       ) : null}
+
+      {foto != null && hotel.photos[foto] ? (
+        <div className="vq-viewer" role="dialog" onClick={() => setFoto(null)}>
+          <button className="vq-viewer-close" onClick={() => setFoto(null)}>Fechar</button>
+          {total > 1 ? (
+            <button
+              className="vq-viewer-nav prev"
+              onClick={(e) => { e.stopPropagation(); irPara(-1); }}
+              aria-label="Foto anterior"
+            >‹</button>
+          ) : null}
+          <img
+            className="vq-viewer-img"
+            src={hotel.photos[foto]}
+            alt={`${hotel.name} ${foto + 1}`}
+            onClick={(e) => e.stopPropagation()}
+          />
+          {total > 1 ? (
+            <button
+              className="vq-viewer-nav next"
+              onClick={(e) => { e.stopPropagation(); irPara(1); }}
+              aria-label="Próxima foto"
+            >›</button>
+          ) : null}
+          <div className="vq-viewer-count">{foto + 1} / {total}</div>
+        </div>
+      ) : null}
+
+      {sobre ? (
+        <div className="vq-lightbox vq-about-modal" role="dialog" onClick={() => setSobre(false)}>
+          <div className="vq-about-box" onClick={(e) => e.stopPropagation()}>
+            <div className="vq-about-head">
+              <div>
+                <h4>{hotel.name}</h4>
+                {hotel.rating ? (
+                  <span className="vq-about-rating">
+                    {hotel.rating.toFixed(1).replace(".", ",")} / 5
+                    {hotel.reviewsCount ? ` • ${hotel.reviewsCount} avaliações` : ""}
+                  </span>
+                ) : null}
+              </div>
+              <button className="vq-loc-btn" onClick={() => setSobre(false)}>Fechar</button>
+            </div>
+            {hotel.about ? <p>{hotel.about}</p> : <p>Detalhes indisponíveis no momento.</p>}
+          </div>
+        </div>
+      ) : null}
+
       <div className="vq-hotel-grid">
         <div className="vq-gallery">
           <div className="vq-gallery-grid">
             {fotos.length ? (
               fotos.map((src, i) => (
-                <div key={i} className={`vq-photo${i === 0 ? " main" : ""}`}>
+                <div
+                  key={i}
+                  className={`vq-photo clickable${i === 0 ? " main" : ""}`}
+                  onClick={() => setFoto(i)}
+                >
                   <img src={src} alt={hotel.name} loading="lazy" />
                 </div>
               ))
@@ -255,7 +319,7 @@ function HotelCard({ hotel }: { hotel: HotelProduct }) {
                 <div className="vq-photo" />
               </>
             )}
-            {hotel.photos.length > 5 ? (
+            {total > 1 ? (
               <button className="vq-more" onClick={() => setGaleria(true)}>
                 Ver todas as fotos
               </button>
@@ -301,6 +365,17 @@ function HotelCard({ hotel }: { hotel: HotelProduct }) {
                   {hotel.roomDescription ? <p>{hotel.roomDescription}</p> : null}
                 </div>
               ) : null}
+
+              {hotel.about || hotel.rating ? (
+                <button className="vq-about-btn" onClick={() => setSobre(true)}>
+                  Ver sobre o hotel
+                  {hotel.rating ? (
+                    <span className="vq-about-tag">
+                      ★ {hotel.rating.toFixed(1).replace(".", ",")}
+                    </span>
+                  ) : null}
+                </button>
+              ) : null}
             </>
           ) : (
             <>
@@ -314,18 +389,25 @@ function HotelCard({ hotel }: { hotel: HotelProduct }) {
                   </a>
                 ) : null}
               </div>
-              {mapSrc ? (
-                <iframe className="vq-map" src={mapSrc} title={`Mapa ${hotel.name}`} loading="lazy" />
-              ) : null}
-              {loc?.address ? <div className="vq-place" style={{ marginTop: 10 }}>{loc.address}</div> : null}
-              {loc?.nearbyPlaces?.length ? (
-                <div className="vq-nearby">
-                  <h4>Próximo da hospedagem</h4>
-                  {loc.nearbyPlaces.map((n, i) => (
-                    <div key={i} className="vq-nearby-item"><span>{n.name}</span><strong>{n.distance}</strong></div>
-                  ))}
-                </div>
-              ) : null}
+              <div className="vq-loc-grid">
+                {mapSrc ? (
+                  <div className="vq-map-wrap">
+                    <iframe className="vq-map" src={mapSrc} title={`Mapa ${hotel.name}`} loading="lazy" />
+                    <div className="vq-map-caption">
+                      <strong>{hotel.name}</strong>
+                      {loc?.address ? <span>{loc.address}</span> : null}
+                    </div>
+                  </div>
+                ) : null}
+                {loc?.nearbyPlaces?.length ? (
+                  <div className="vq-nearby">
+                    <h4>Próximo da hospedagem</h4>
+                    {loc.nearbyPlaces.map((n, i) => (
+                      <div key={i} className="vq-nearby-item"><span>{n.name}</span><strong>{n.distance}</strong></div>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
             </>
           )}
         </div>
