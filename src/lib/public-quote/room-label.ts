@@ -25,10 +25,10 @@ const TRADUCOES: Array<[RegExp, Rep]> = [
   [/\bdeluxe\b/gi, "Deluxe"],
   [/\bexecutive\b/gi, "Executivo"],
   [/\bsuite\b/gi, "Suíte"],
-  [/(\d+)\s*double bed(s)?/gi, (_m: string, n: string) => `${n} cama(s) de casal`],
-  [/(\d+)\s*single bed(s)?/gi, (_m: string, n: string) => `${n} cama(s) de solteiro`],
-  [/(\d+)\s*queen bed(s)?/gi, (_m: string, n: string) => `${n} cama(s) queen`],
-  [/(\d+)\s*king bed(s)?/gi, (_m: string, n: string) => `${n} cama(s) king`],
+  [/(\d+)\s*double bed(s)?/gi, (_m: string, n: string) => `${n} ${Number(n) > 1 ? "camas" : "cama"} de casal`],
+  [/(\d+)\s*single bed(s)?/gi, (_m: string, n: string) => `${n} ${Number(n) > 1 ? "camas" : "cama"} de solteiro`],
+  [/(\d+)\s*queen bed(s)?/gi, (_m: string, n: string) => `${n} ${Number(n) > 1 ? "camas" : "cama"} queen`],
+  [/(\d+)\s*king bed(s)?/gi, (_m: string, n: string) => `${n} ${Number(n) > 1 ? "camas" : "cama"} king`],
   [/\bdouble bed\b/gi, "cama de casal"],
   [/\bsingle bed\b/gi, "cama de solteiro"],
   [/\bnon[- ]?refundable\b/gi, "Tarifa não reembolsável"],
@@ -38,7 +38,7 @@ const MARCADORES_NOTA =
   /(multa de cancelament|cancellation|penalidade|penaliza|não reembols|nao reembols|reembols|no[- ]?show|política|politica|taxa de|será cobrado|sera cobrado)/i;
 
 function limparEspacos(s: string) {
-  return s.replace(/\s*,\s*/g, ", ").replace(/\s+/g, " ").trim();
+  return s.replace(/\s*,\s*(?=\D)/g, ", ").replace(/\s+/g, " ").trim();
 }
 
 function traduzir(s: string) {
