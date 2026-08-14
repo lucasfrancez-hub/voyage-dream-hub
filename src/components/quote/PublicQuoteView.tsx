@@ -30,6 +30,7 @@ import {
   IconChevron,
   IconClock,
   IconHotel,
+  IconMoney,
   IconPin,
   IconPix,
   IconPlane,
