@@ -1,10 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
   buildHotelSearchUrl,
+  buildPackageSearchUrl,
+  buildPropertyDetailUrl,
   dedupeResults,
   findPropertyNodes,
   normalizeDomCard,
   normalizePropertyNode,
+  parseInstallments,
   parseMoney,
 } from "@/lib/expedia/normalize";
 
@@ -84,7 +87,7 @@ describe("normalização Expedia TAAP", () => {
     expect(hotel?.price.total).toBe(960);
     expect(hotel?.price.currency).toBe("BRL");
     expect(hotel?.available).toBe(false);
-    expect(hotel?.detail_url).toContain("https://www.expedia.com.br/Hotel-Search");
+    expect(hotel?.detail_url).toContain("https://www.expediataap.com.br/Hotel-Search");
   });
 
   it("remove duplicados mantendo o registro mais completo", () => {
@@ -108,5 +111,66 @@ describe("normalização Expedia TAAP", () => {
     ]);
     expect(out).toHaveLength(1);
     expect(out[0].price.nightly).toBe(100);
+  });
+});
+
+describe("URLs reais do TAAP", () => {
+  const base = {
+    destination: "Maringá, Paraná, Brasil",
+    startDate: "2026-08-28",
+    endDate: "2026-08-29",
+    rooms: 1,
+    adults: 2,
+    regionId: "2279",
+    latLong: "-23.420999,-51.933056",
+  };
+
+  it("monta pesquisa standalone sem valores fixos", () => {
+    const url = new URL(buildHotelSearchUrl(base));
+    expect(url.origin).toBe("https://www.expediataap.com.br");
+    expect(url.searchParams.get("rate_type")).toBe("standalone");
+    expect(url.searchParams.get("d1")).toBe("2026-08-28");
+    expect(url.searchParams.get("regionId")).toBe("2279");
+    const outro = new URL(buildHotelSearchUrl({ ...base, destination: "Recife", regionId: null, latLong: null }));
+    expect(outro.searchParams.get("destination")).toBe("Recife");
+    expect(outro.searchParams.get("regionId")).toBeNull();
+  });
+
+  it("monta pacote voo+hotel e nunca inventa misId", () => {
+    const url = new URL(
+      buildPackageSearchUrl({ ...base, origin: "Aeroporto Regional Silvio Name Junior (MGF), Brasil" }),
+    );
+    expect(url.searchParams.get("packageType")).toBe("fh");
+    expect(url.searchParams.get("searchProduct")).toBe("hotel");
+    expect(url.searchParams.get("tripType")).toBe("ROUND_TRIP");
+    expect(url.searchParams.get("cabinClass")).toBe("COACH");
+    expect(url.searchParams.get("misId")).toBeNull();
+    const comMis = new URL(buildPackageSearchUrl({ ...base, misId: "AgiKgOGZ" }));
+    expect(comMis.searchParams.get("misId")).toBe("AgiKgOGZ");
+  });
+
+  it("preserva a URL de detalhe vinda da listagem", () => {
+    const url = new URL(
+      buildPropertyDetailUrl({
+        propertyId: "48019",
+        detailUrl: "https://www.expediataap.com.br/Maringa-Hoteis-Hotel-Deville.h48019.Hotel-Reservas",
+        startDate: "2026-08-28",
+        endDate: "2026-08-29",
+        rooms: 1,
+        adults: 2,
+        searchId: "79472168",
+      }),
+    );
+    expect(url.pathname).toContain("h48019");
+    expect(url.searchParams.get("chkin")).toBe("2026-08-28");
+    expect(url.searchParams.get("rm1")).toBe("a2");
+    expect(url.searchParams.get("searchId")).toBe("79472168");
+  });
+
+  it("lê parcelamento apenas do que a página informa", () => {
+    expect(parseInstallments(["sem parcelas"])).toBeNull();
+    const p = parseInstallments(["em 10x de R$ 250,00"]);
+    expect(p?.max_installments).toBe(10);
+    expect(p?.plans[0].amount).toBe(250);
   });
 });
