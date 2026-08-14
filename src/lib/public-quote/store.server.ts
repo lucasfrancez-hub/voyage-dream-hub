@@ -193,12 +193,14 @@ async function enriquecerHoteis(quote: PublicQuote): Promise<PublicQuote> {
           rating: h.rating ?? info.rating,
           reviewsCount: h.reviewsCount ?? info.num_reviews,
           location:
-            faltaLocal && (info.latitude != null || info.address)
+            info.latitude != null || info.address
               ? {
-                  latitude: info.latitude,
-                  longitude: info.longitude,
-                  address: info.address,
-                  nearbyPlaces: info.nearby,
+                  latitude: h.location?.latitude ?? info.latitude,
+                  longitude: h.location?.longitude ?? info.longitude,
+                  address: h.location?.address ?? info.address,
+                  nearbyPlaces: h.location?.nearbyPlaces?.length
+                    ? h.location.nearbyPlaces
+                    : info.nearby,
                 }
               : h.location,
           mapsUrl:
