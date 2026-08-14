@@ -179,7 +179,8 @@ async function enriquecerHoteis(quote: PublicQuote): Promise<PublicQuote> {
       hotels.map(async (h) => {
         const faltaFoto = !h.photos?.length;
         const faltaLocal = !h.location || (!h.location.address && h.location.latitude == null);
-        if (!faltaFoto && !faltaLocal) return h;
+        const faltaSobre = !h.about || !h.location?.nearbyPlaces?.length;
+        if (!faltaFoto && !faltaLocal && !faltaSobre) return h;
         const info = await enrichHotel({ name: h.name, city: quote.destination }).catch(() => null);
         if (!info || info.status === "MATCH_FAILED") return h;
         return {
@@ -188,14 +189,18 @@ async function enriquecerHoteis(quote: PublicQuote): Promise<PublicQuote> {
           place: h.place ?? info.address,
           photos: h.photos?.length ? h.photos : info.photos,
           benefits: h.benefits?.length ? h.benefits : info.amenities.slice(0, 6),
-          roomDescription: h.roomDescription ?? info.description,
+          about: h.about ?? info.description,
+          rating: h.rating ?? info.rating,
+          reviewsCount: h.reviewsCount ?? info.num_reviews,
           location:
-            faltaLocal && (info.latitude != null || info.address)
+            info.latitude != null || info.address
               ? {
-                  latitude: info.latitude,
-                  longitude: info.longitude,
-                  address: info.address,
-                  nearbyPlaces: info.nearby,
+                  latitude: h.location?.latitude ?? info.latitude,
+                  longitude: h.location?.longitude ?? info.longitude,
+                  address: h.location?.address ?? info.address,
+                  nearbyPlaces: h.location?.nearbyPlaces?.length
+                    ? h.location.nearbyPlaces
+                    : info.nearby,
                 }
               : h.location,
           mapsUrl:

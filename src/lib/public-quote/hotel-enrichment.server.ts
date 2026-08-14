@@ -39,8 +39,8 @@ function norm(s: string) {
 }
 
 function cacheKey(name: string, city: string | null): string {
-  // v2 — invalida o cache gerado enquanto a API antiga devolvia 403.
-  return `hotel-enrich:v2:${norm(name)}|${norm(city ?? "")}`;
+  // v3 — inclui endereço/descrição em português e pontos próximos.
+  return `hotel-enrich:v3:${norm(name)}|${norm(city ?? "")}`;
 }
 
 async function readCache(key: string): Promise<HotelEnrichment | null> {
@@ -91,13 +91,39 @@ function pickName(raw: unknown): string {
   return localized(raw) ?? "";
 }
 
+/** Traduz termos administrativos comuns que a API devolve em inglês. */
+function ptTermo(valor: string): string {
+  return valor
+    .replace(/^State of\s+/i, "")
+    .replace(/^Province of\s+/i, "")
+    .replace(/\bBrazil\b/gi, "Brasil")
+    .replace(/\bUnited States\b/gi, "Estados Unidos")
+    .replace(/\bSpain\b/gi, "Espanha")
+    .replace(/\bItaly\b/gi, "Itália")
+    .replace(/\bFrance\b/gi, "França")
+    .replace(/\bPortugal\b/gi, "Portugal")
+    .replace(/\bArgentina\b/gi, "Argentina")
+    .replace(/\bChile\b/gi, "Chile")
+    .replace(/\bMexico\b/gi, "México")
+    .trim();
+}
+
+/** Monta o endereço em português a partir das partes (evita o "formatted" em inglês). */
 function pickAddress(addresses: Array<Record<string, unknown>> | undefined): string | null {
   if (!Array.isArray(addresses) || !addresses.length) return null;
   const a = (addresses.find((x) => x.primary) ?? addresses[0]) as Record<string, unknown>;
+  const txt = (v: unknown) => (typeof v === "string" && v.trim() ? ptTermo(v.trim()) : null);
+  const rua = txt(a.street_address) ?? txt(a.street1);
+  const cidade = txt(a.city);
+  const estado = txt(a.state);
+  const cep = txt(a.postal_code);
+  const pais = txt(a.country_name);
+  const linha1 = [rua, cidade, estado].filter(Boolean).join(", ");
+  const linha2 = [cep, pais].filter(Boolean).join(" • ");
+  const montado = [linha1, linha2].filter(Boolean).join(" — ");
+  if (montado) return montado;
   const formatted = a.formatted ?? a.formatted_address ?? a.address_string;
-  if (typeof formatted === "string" && formatted.trim()) return formatted.trim();
-  const partes = [a.street1, a.city, a.state, a.country].filter((p) => typeof p === "string" && p);
-  return partes.length ? partes.join(", ") : null;
+  return typeof formatted === "string" && formatted.trim() ? ptTermo(formatted.trim()) : null;
 }
 
 async function jsonOf(
@@ -208,26 +234,51 @@ export async function enrichHotel(params: {
       return Number.isFinite(n) && n >= 1 && n <= 5 ? Math.round(n) : null;
     })();
 
+    const travelerRatings = (d.traveler_ratings ?? {}) as {
+      overall?: { rating?: number; count?: number };
+    };
+
     const nota = ((): number | null => {
-      const raw = (d.rating ?? (d as { review_rating?: unknown }).review_rating) as unknown;
+      const raw = (travelerRatings.overall?.rating
+        ?? d.rating
+        ?? (d as { review_rating?: unknown }).review_rating) as unknown;
       const n = Number(typeof raw === "string" ? raw.replace(",", ".") : raw);
       return Number.isFinite(n) && n > 0 ? n : null;
     })();
 
+    const avaliacoes = ((): number | null => {
+      const raw = travelerRatings.overall?.count ?? d.num_reviews;
+      const n = Number(raw);
+      return Number.isFinite(n) && n > 0 ? n : null;
+    })();
+
+    // Descrição e comodidades chegam em inglês: traduzimos para pt-BR.
+    const descricaoBruta = localized(d.descriptions);
+    const { translateToPt } = await import("./translate-pt.server");
+    const traduzidos = await translateToPt([descricaoBruta ?? "", ...amenities]).catch(
+      () => [descricaoBruta ?? "", ...amenities],
+    );
+    const descricao = traduzidos[0]?.trim() || descricaoBruta;
+    const comodidades = traduzidos.slice(1).map((a, i) => a?.trim() || amenities[i]).filter(Boolean);
+
+    const proximos = lat != null && lng != null
+      ? await (await import("./nearby.server")).nearbyPlaces(lat, lng, 5).catch(() => [])
+      : [];
+
     const out: HotelEnrichment = {
       name: pickName(d.names) || escolhido.name || nome,
       rating: nota,
-      num_reviews: d.num_reviews != null ? Number(d.num_reviews) : null,
+      num_reviews: avaliacoes,
       ranking: null,
       address: endereco,
-      description: localized(d.descriptions),
+      description: descricao,
       photos,
-      amenities,
+      amenities: comodidades,
       web_url: (d.urls as { tripadvisor?: { main?: string } } | undefined)?.tripadvisor?.main ?? null,
       latitude: Number.isFinite(lat) ? lat : null,
       longitude: Number.isFinite(lng) ? lng : null,
       stars: estrelas,
-      nearby: [],
+      nearby: proximos,
       status: photos.length && (lat != null || endereco) ? "OK" : "PARTIAL",
     };
 

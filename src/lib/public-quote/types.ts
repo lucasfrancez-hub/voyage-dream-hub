@@ -100,6 +100,11 @@ export type HotelProduct = {
   benefits: string[];
   roomName: string | null;
   roomDescription: string | null;
+  /** Texto "sobre o hotel" (traduzido) exibido em modal, nunca inline. */
+  about?: string | null;
+  /** Nota do TripAdvisor (0-5) e quantidade de avaliações. */
+  rating?: number | null;
+  reviewsCount?: number | null;
   location: HotelLocation | null;
   mapsUrl: string | null;
 };
