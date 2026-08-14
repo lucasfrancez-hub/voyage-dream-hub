@@ -182,7 +182,9 @@ async function sendImportInner(url, trigger) {
       const body = await res.text().catch(() => "");
       console.error(LOG, "autenticação recusada", res.status, body.slice(0, 200));
       await logEvent({ event: "unauthorized", sourceUrl: url, httpStatus: res.status, detail: body.slice(0, 200) });
-      return { status: "UNAUTHORIZED", stage: "API", httpStatus: res.status };
+      // token revogado/inválido: limpa para o popup mostrar "Token não configurado"
+      await store({ viaairToken: "", viaairTokenInvalid: true });
+      return { status: "UNAUTHORIZED", stage: "API", httpStatus: res.status, detail: "token_revogado" };
     }
     if (!res.ok) {
       const body = await res.text().catch(() => "");
@@ -308,9 +310,10 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   }
 
   if (msg.type === "viaair-quotes-status") {
-    read(["viaairToken", "viaairQueue", "viaairLast"]).then((d) =>
+    read(["viaairToken", "viaairQueue", "viaairLast", "viaairTokenInvalid"]).then((d) =>
       sendResponse({
         connected: !!d.viaairToken,
+        tokenInvalid: !!d.viaairTokenInvalid && !d.viaairToken,
         pending: (d.viaairQueue || []).length,
         last: d.viaairLast || null,
       }),
@@ -319,7 +322,26 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   }
 
   if (msg.type === "viaair-quotes-set-token") {
-    store({ viaairToken: (msg.token || "").trim() }).then(() => sendResponse({ ok: true }));
+    const token = (msg.token || "").trim();
+    (async () => {
+      let valid = false;
+      let detail = "";
+      try {
+        const res = await fetch(`${ENDPOINT}?id=validacao`, { headers: { authorization: `Bearer ${token}` } });
+        // 401/403 = token recusado; qualquer outra resposta significa que a autenticação passou
+        valid = res.status !== 401 && res.status !== 403;
+        detail = "http_" + res.status;
+      } catch (e) {
+        detail = String(e && e.message ? e.message : e);
+      }
+      if (valid) {
+        await store({ viaairToken: token, viaairTokenInvalid: false });
+      } else {
+        await store({ viaairToken: "", viaairTokenInvalid: true });
+      }
+      await logEvent({ event: valid ? "token_ok" : "token_invalid", detail });
+      sendResponse({ ok: valid, detail });
+    })();
     return true;
   }
 
