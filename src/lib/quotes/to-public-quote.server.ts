@@ -10,6 +10,8 @@ import { buildPayment } from "@/lib/public-quote/payments";
 import { directionsFor, legLabel, splitIntoLegs, type LegInputSegment } from "@/lib/public-quote/flight-legs";
 import { normalizeServiceTitle } from "@/lib/public-quote/service-title";
 import { agentPhoto } from "@/lib/public-quote/agents";
+import { formatRoom } from "@/lib/public-quote/room-label";
+
 import type {
   FlightLeg,
   FlightSegment,
