@@ -11,6 +11,7 @@ import {
   MousePointerClick,
   RefreshCw,
   Save,
+  Radar,
   Search,
   X,
 } from "lucide-react";
@@ -24,6 +25,8 @@ import {
   shotExpediaLoginFn,
   stepExpediaLoginFn,
   testExpediaSearchFn,
+  expediaPropertyRoomsFn,
+  expediaDiscoverEndpointsFn,
 } from "@/lib/expedia/expedia.functions";
 import { confirm } from "@/lib/confirm";
 
@@ -62,6 +65,8 @@ function ExpediaPage() {
   const saveLogin = useServerFn(saveExpediaLoginFn);
   const closeLogin = useServerFn(closeExpediaLoginFn);
   const testSearch = useServerFn(testExpediaSearchFn);
+  const fetchRooms = useServerFn(expediaPropertyRoomsFn);
+  const discover = useServerFn(expediaDiscoverEndpointsFn);
 
   const sessions = useQuery({ queryKey: ["expedia-sessions"], queryFn: () => listSessions() });
   const logs = useQuery({ queryKey: ["expedia-logs"], queryFn: () => listLogs() });
@@ -144,6 +149,39 @@ function ExpediaPage() {
     onSuccess: (res) => {
       if (res.status !== "SUCCESS") toast.warning(res.message);
       qc.invalidateQueries({ queryKey: ["expedia-logs"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  // -------------------------------------------------- quartos da propriedade
+  const [openProperty, setOpenProperty] = useState<string | null>(null);
+  const roomsMut = useMutation({
+    mutationFn: (h: { property_id: string | null; detail_url: string | null; name: string }) =>
+      fetchRooms({
+        data: {
+          propertyId: h.property_id ?? "",
+          detailUrl: h.detail_url,
+          startDate: form.startDate,
+          endDate: form.endDate,
+          rooms: form.rooms,
+          adults: form.adults,
+          destination: form.destination,
+        } as never,
+      }),
+    onSuccess: (res) => {
+      if (res.status !== "SUCCESS") toast.warning(res.message);
+      qc.invalidateQueries({ queryKey: ["expedia-logs"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  // ------------------------------------------------ investigação do fluxo
+  const [discoverUrl, setDiscoverUrl] = useState("https://www.expediataap.com.br/Hotel-Search");
+  const discoverMut = useMutation({
+    mutationFn: () => discover({ data: { url: discoverUrl } }),
+    onSuccess: (res) => {
+      if (res.status !== "SUCCESS") toast.warning(res.message);
+      else toast.success(`${res.endpoints.length} respostas JSON observadas.`);
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -388,10 +426,109 @@ function ExpediaPage() {
                     <p className="text-sm font-semibold text-primary">
                       {money(h.price.nightly ?? h.price.total, h.price.currency)}
                     </p>
+                    <button
+                      onClick={() => {
+                        setOpenProperty(h.property_id ?? h.name);
+                        roomsMut.mutate(h);
+                      }}
+                      disabled={roomsMut.isPending}
+                      className="inline-flex items-center gap-1.5 rounded-md border border-border px-2 py-1 text-xs hover:bg-muted disabled:opacity-60"
+                    >
+                      {roomsMut.isPending && openProperty === (h.property_id ?? h.name) ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <BedDouble className="h-3.5 w-3.5" />
+                      )}
+                      Ver quartos
+                    </button>
                   </div>
                 </article>
               ))}
             </div>
+          </div>
+        )}
+      </section>
+
+      {/* ------------------------------------------- quartos da propriedade */}
+      {roomsMut.data?.data && (
+        <section className="space-y-3 rounded-xl border border-border bg-card p-4 md:p-5">
+          <h2 className="font-medium text-foreground">Quartos e tarifas</h2>
+          <div className="grid gap-3 lg:grid-cols-2">
+            {roomsMut.data.data.rooms.map((r, i) => (
+              <article key={`${r.room_type_id ?? r.name}-${i}`} className="rounded-lg border border-border p-3">
+                <h3 className="text-sm font-medium text-foreground">{r.name}</h3>
+                <p className="text-xs text-muted-foreground">{r.beds ?? "—"} · {r.meal ?? "sem refeição informada"}</p>
+                <p className="mt-1 text-sm font-semibold text-primary">
+                  {money(r.price.total ?? r.price.nightly, r.price.currency)}
+                </p>
+                {r.cancellation_text && <p className="mt-1 text-xs text-muted-foreground">{r.cancellation_text}</p>}
+                {r.installments?.max_installments && (
+                  <p className="text-xs text-muted-foreground">Até {r.installments.max_installments}x informado pela operadora</p>
+                )}
+                {r.select_action && (
+                  <a
+                    href={r.select_action}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mt-2 inline-block text-xs font-medium text-primary underline"
+                  >
+                    Abrir na Expedia para reservar
+                  </a>
+                )}
+              </article>
+            ))}
+          </div>
+          <p className="text-xs text-muted-foreground">
+            O checkout continua manual na página da operadora — o sistema não cria URLs de reserva.
+          </p>
+        </section>
+      )}
+
+      {/* ------------------------------------------------- investigação */}
+      <section className="space-y-3 rounded-xl border border-border bg-card p-4 md:p-5">
+        <h2 className="font-medium text-foreground">Investigar fluxo do TAAP</h2>
+        <p className="text-xs text-muted-foreground">
+          Abre uma URL real do expediataap.com.br na sessão conectada e lista as respostas JSON que o próprio site
+          consome. Serve só para mapear o fluxo — nenhuma dessas chamadas é tratada como API pública.
+        </p>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <input
+            value={discoverUrl}
+            onChange={(e) => setDiscoverUrl(e.target.value)}
+            className="flex-1 rounded-lg border border-border bg-background px-3 py-2 text-sm"
+            placeholder="https://www.expediataap.com.br/..."
+          />
+          <button
+            onClick={() => discoverMut.mutate()}
+            disabled={discoverMut.isPending}
+            className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-60"
+          >
+            {discoverMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Radar className="h-4 w-4" />}
+            Investigar
+          </button>
+        </div>
+        {discoverMut.data && (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead className="uppercase text-muted-foreground">
+                <tr>
+                  <th className="py-2">Endpoint</th>
+                  <th>Hotéis</th>
+                  <th>Quartos</th>
+                  <th>Chaves</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {discoverMut.data.endpoints.map((e, i) => (
+                  <tr key={`${e.url}-${i}`}>
+                    <td className="max-w-[380px] truncate py-2" title={e.url}>{e.url}</td>
+                    <td>{e.hasProperties ? "sim" : "—"}</td>
+                    <td>{e.hasRooms ? "sim" : "—"}</td>
+                    <td className="max-w-[280px] truncate" title={e.topKeys.join(", ")}>{e.topKeys.join(", ")}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
       </section>
