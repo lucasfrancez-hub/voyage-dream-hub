@@ -243,18 +243,32 @@ export function buildPublicQuoteFromOrder(legacy: LegacyQuote, token: string): P
 
   const type: QuoteType = hoteis.length === 0 && outros.length === 0 && voos.length > 0 ? "AIR_ONLY" : "TRIP_PACKAGE";
 
+  const legs = voos.length ? buildLegs(voos) : [];
   const products: QuoteProducts = {};
-  if (voos.length) {
-    products.flights = [{ id: "air-1", optionId: "1", legs: voos.map(flightLeg) }];
+  if (legs.length) {
+    products.flights = [{ id: "air-1", optionId: "1", legs }];
   }
   if (hoteis.length) products.hotels = hoteis.map(hotelProduct);
   if (outros.length) products.services = outros.map(otherProduct);
 
   const total = Number(legacy.totalPrice) || 0;
-  const payment = buildPaymentFromConfig(type, total, legacy.config, voos[0]?.airline ?? null);
+  const payment = buildPaymentFromConfig(
+    type,
+    total,
+    legacy.config,
+    voos[0]?.airline ?? null,
+    legacy.installmentMarkups ?? DEFAULT_EXTENDED_MARKUPS,
+  );
 
   const summary: QuoteSummaryLine[] = [];
-  if (voos.length) summary.push({ icon: "flight", label: "Passagens aéreas", value: `${voos.length} trecho(s)` });
+  if (legs.length) {
+    summary.push({
+      icon: "flight",
+      label: "Passagens aéreas",
+      value: legs.length === 1 ? "1 trecho" : `${legs.length} trechos`,
+    });
+  }
+
   for (const h of hoteis) {
     summary.push({
       icon: "hotel",
