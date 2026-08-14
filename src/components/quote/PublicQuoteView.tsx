@@ -213,6 +213,23 @@ function FlightLegCard({ leg }: { leg: FlightLeg }) {
 
 /* ───────────────────────── hotel ───────────────────────── */
 
+/** Extrai "Nome (1,8 km)" do texto do TripAdvisor quando não há POIs do mapa. */
+function proximidadesDoTexto(about: string | null | undefined) {
+  if (!about) return [] as { name: string; distance: string }[];
+  const out: { name: string; distance: string }[] = [];
+  const vistos = new Set<string>();
+  const re = /([A-ZÁÀÂÃÉÊÍÓÔÕÚÇ][^,.;()]{2,45}?)\s*\((\d+[.,]?\d*)\s*(km|m)\)/g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(about))) {
+    const name = m[1].replace(/\s+/g, " ").replace(/^(o|a|os|as|do|da|de)\s+/i, "").trim();
+    const chave = name.toLowerCase();
+    if (!name || vistos.has(chave)) continue;
+    vistos.add(chave);
+    out.push({ name, distance: `${m[2].replace(".", ",")} ${m[3]}` });
+  }
+  return out.slice(0, 6);
+}
+
 function HotelCard({ hotel }: { hotel: HotelProduct }) {
   const [view, setView] = useState<"details" | "location">("details");
   const [galeria, setGaleria] = useState(false);
@@ -227,6 +244,7 @@ function HotelCard({ hotel }: { hotel: HotelProduct }) {
       ? `https://www.google.com/maps?q=${encodeURIComponent(`${hotel.name} ${hotel.place ?? ""}`)}&z=15&output=embed`
       : null;
 
+  const proximos = loc?.nearbyPlaces?.length ? loc.nearbyPlaces : proximidadesDoTexto(hotel.about);
   const total = hotel.photos.length;
   const irPara = (delta: number) =>
     setFoto((atual) => (atual == null ? null : (atual + delta + total) % total));
@@ -359,22 +377,25 @@ function HotelCard({ hotel }: { hotel: HotelProduct }) {
                 </div>
               ) : null}
 
-              {hotel.roomName ? (
-                <div className="vq-room">
-                  <strong>{hotel.roomName}</strong>
-                  {hotel.roomDescription ? <p>{hotel.roomDescription}</p> : null}
-                </div>
-              ) : null}
-
-              {hotel.about || hotel.rating ? (
-                <button className="vq-about-btn" onClick={() => setSobre(true)}>
-                  Ver sobre o hotel
-                  {hotel.rating ? (
-                    <span className="vq-about-tag">
-                      ★ {hotel.rating.toFixed(1).replace(".", ",")}
-                    </span>
+              {hotel.roomName || hotel.about || hotel.rating ? (
+                <div className="vq-room-row">
+                  {hotel.roomName ? (
+                    <div className="vq-room">
+                      <strong>{hotel.roomName}</strong>
+                      {hotel.roomDescription ? <p>{hotel.roomDescription}</p> : null}
+                    </div>
+                  ) : <span />}
+                  {hotel.about || hotel.rating ? (
+                    <button className="vq-about-btn" onClick={() => setSobre(true)}>
+                      Ver sobre o hotel
+                      {hotel.rating ? (
+                        <span className="vq-about-tag">
+                          ★ {hotel.rating.toFixed(1).replace(".", ",")}
+                        </span>
+                      ) : null}
+                    </button>
                   ) : null}
-                </button>
+                </div>
               ) : null}
             </>
           ) : (
@@ -399,10 +420,10 @@ function HotelCard({ hotel }: { hotel: HotelProduct }) {
                     </div>
                   </div>
                 ) : null}
-                {loc?.nearbyPlaces?.length ? (
+                {proximos.length ? (
                   <div className="vq-nearby">
                     <h4>Próximo da hospedagem</h4>
-                    {loc.nearbyPlaces.map((n, i) => (
+                    {proximos.map((n, i) => (
                       <div key={i} className="vq-nearby-item"><span>{n.name}</span><strong>{n.distance}</strong></div>
                     ))}
                   </div>

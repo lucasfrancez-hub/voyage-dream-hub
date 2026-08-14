@@ -84,6 +84,9 @@ export type PublicQuoteItem = {
   check_in?: string | null;
   check_out?: string | null;
   photo_url?: string | null;
+  room_type?: string | null;
+  room_category?: string | null;
+  bed_type?: string | null;
   hotel_info?: HotelInfo | null;
   category?: string | null;
   date_from?: string | null;
@@ -271,6 +274,9 @@ export const getPublicQuote = createServerFn({ method: "GET" })
           check_in: str("check_in") ?? str("checkin"),
           check_out: str("check_out") ?? str("checkout"),
           photo_url: str("photo_url"),
+          room_type: str("room_type") ?? str("room_category"),
+          room_category: str("room_category"),
+          bed_type: str("bed_type"),
           notes: str("notes"),
         };
       }
