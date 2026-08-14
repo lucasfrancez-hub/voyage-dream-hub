@@ -188,40 +188,55 @@ function otherProduct(item: PublicQuoteItem, index: number): SimpleProduct {
   };
 }
 
-function buildPaymentFromConfig(type: QuoteType, total: number, cfg: QuoteConfig, airline?: string | null): PaymentConfiguration {
-  const pixPct = cfg.pix.enabled ? cfg.pix.discount_pct : 0;
-  const cardMax = Math.max(1, cfg.card.max_installments);
-  const card: Installment[] = cardInstallments(total, airline)
-    .slice(0, cardMax)
-    .map((i) => ({
-      ...i,
-      interestFree: cfg.card.interest_from == null ? true : i.number < cfg.card.interest_from,
+function buildPaymentFromConfig(
+  type: QuoteType,
+  total: number,
+  cfg: QuoteConfig,
+  airline: string | null,
+  markups: Record<number, number>,
+): PaymentConfiguration {
+  // Pix e cartão SEMPRE aparecem no orçamento público.
+  const pixPct = cfg.pix.discount_pct || PIX_DISCOUNT_PERCENT;
+  const semJuros: Installment[] = cardInstallments(total, airline).map((i) => ({ ...i, interestFree: true }));
+  const maxSemJuros = semJuros.length ? semJuros[semJuros.length - 1]!.number : 1;
+
+  // Acima do limite sem juros da cia, usa a tabela de markup do financeiro.
+  const comJuros: Installment[] = buildExtendedQuotes(total, markups)
+    .filter((q) => q.installments > maxSemJuros)
+    .map((q) => ({
+      number: q.installments,
+      amount: round2(q.installmentValue),
+      total: round2(q.total),
+      interestFree: false,
     }));
+
+  const card: Installment[] = [...semJuros, ...comJuros];
+
   // Regra oficial: somente pacote pode ter boleto.
   const boletoEnabled = type === "TRIP_PACKAGE" && cfg.boleto.enabled;
-  const methods: PaymentConfiguration["methods"] = [];
-  if (cfg.card.enabled) methods.push("CARD");
+  const methods: PaymentConfiguration["methods"] = ["CARD"];
   if (boletoEnabled) methods.push("BOLETO");
-  if (cfg.pix.enabled) methods.push("PIX");
+  methods.push("PIX");
 
   return {
-    methods: methods.length ? methods : ["CARD", "PIX"],
-    card: { enabled: cfg.card.enabled, brands: ["Visa", "Mastercard", "Elo", "Amex", "Hipercard"], installments: card },
+    methods,
+    card: { enabled: true, brands: ["Visa", "Mastercard", "Elo", "Amex", "Hipercard"], installments: card },
     boleto: {
       enabled: boletoEnabled,
       installments: boletoEnabled ? boletoInstallments(total, cfg.boleto.max_installments) : [],
       note: boletoEnabled ? "Parcelamento no boleto sujeito a aprovação." : null,
     },
     pix: {
-      enabled: cfg.pix.enabled,
-      discountPercent: cfg.pix.enabled ? (pixPct || PIX_DISCOUNT_PERCENT) : 0,
-      total: round2(total * (1 - (pixPct || 0) / 100)),
+      enabled: true,
+      discountPercent: pixPct,
+      total: round2(total * (1 - pixPct / 100)),
     },
   };
 }
 
 /** Converte o orçamento do pedido no modelo público oficial. */
 export function buildPublicQuoteFromOrder(legacy: LegacyQuote, token: string): PremiumQuote {
+
   const voos = legacy.items.filter((i) => i.kind === "flight");
   const hoteis = legacy.items.filter((i) => i.kind === "hotel");
   const outros = legacy.items.filter((i) => i.kind === "other");
