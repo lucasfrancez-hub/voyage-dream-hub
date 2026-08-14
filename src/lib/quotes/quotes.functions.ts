@@ -153,3 +153,108 @@ export const gerarLinkOrcamento = createServerFn({ method: "POST" })
 
     return { url: saved.url, shortUrl: saved.shortUrl, reused: false };
   });
+
+/** Cria um orçamento manual (sem importação), com uma ou mais opções. */
+export const criarOrcamentoManual = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i: unknown) =>
+    z
+      .object({
+        title: z.string().trim().min(2).max(160),
+        clientName: z.string().trim().max(120).optional().nullable(),
+        clientPhone: z.string().trim().max(40).optional().nullable(),
+        clientEmail: z.string().trim().max(160).optional().nullable(),
+        origin: z.string().trim().max(80).optional().nullable(),
+        destination: z.string().trim().max(120).optional().nullable(),
+        startDate: z.string().trim().max(10).optional().nullable(),
+        endDate: z.string().trim().max(10).optional().nullable(),
+        adults: z.number().int().min(1).max(20).optional(),
+        children: z.number().int().min(0).max(20).optional(),
+        consultant: z.string().trim().max(120).optional().nullable(),
+        options: z
+          .array(
+            z.object({
+              label: z.string().trim().max(80).optional().nullable(),
+              total: z.number().min(0),
+              hotelName: z.string().trim().max(160).optional().nullable(),
+              services: z.array(z.string().trim().min(1).max(200)).max(20).optional(),
+              notes: z.string().trim().max(1000).optional().nullable(),
+            }),
+          )
+          .min(1)
+          .max(6),
+      })
+      .parse(i),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { emptyQuote, emptyOption } = await import("./types");
+    const { syncQuoteOptions } = await import("./import.server");
+
+    const normalized = emptyQuote("MANUAL");
+    normalized.title = data.title;
+    normalized.origin = data.origin ?? null;
+    normalized.destination = data.destination ?? null;
+    normalized.startDate = data.startDate ?? null;
+    normalized.endDate = data.endDate ?? null;
+    normalized.currency = "BRL";
+    normalized.agent = data.consultant ?? null;
+    normalized.client = {
+      name: data.clientName ?? null,
+      phone: data.clientPhone ?? null,
+      email: data.clientEmail ?? null,
+    };
+    normalized.passengers = { adults: data.adults ?? 1, children: data.children ?? 0, infants: 0 };
+
+    normalized.options = data.options.map((o, idx) => {
+      const opt = emptyOption(idx + 1);
+      opt.label = o.label?.trim() || `Opção ${idx + 1}`;
+      opt.total = o.total;
+      opt.currency = "BRL";
+      opt.startDate = data.startDate ?? null;
+      opt.endDate = data.endDate ?? null;
+      opt.destination = data.destination ?? null;
+      opt.notes = o.notes ? [o.notes] : null;
+      if (o.hotelName) {
+        opt.hotels = [
+          {
+            name: o.hotelName,
+            city: data.destination ?? null,
+            checkin: data.startDate ?? null,
+            checkout: data.endDate ?? null,
+          },
+        ];
+      }
+      opt.services = (o.services ?? []).map((s) => ({ name: s }));
+      return opt;
+    });
+
+    const total = normalized.options[0]?.total ?? null;
+    const { data: created, error } = await supabaseAdmin
+      .from("quotes")
+      .insert({
+        quote_type: "TRIP_PACKAGE",
+        status: "READY",
+        title: data.title,
+        client_name: data.clientName ?? null,
+        client_phone: data.clientPhone ?? null,
+        client_email: data.clientEmail ?? null,
+        origin: data.origin ?? null,
+        destination: data.destination ?? null,
+        start_date: data.startDate || null,
+        end_date: data.endDate || null,
+        total,
+        currency: "BRL",
+        consultant: data.consultant ?? null,
+        source: "MANUAL",
+        normalized: normalized as unknown as never,
+        owner_user_id: context.userId,
+        options_count: normalized.options.length,
+      } as never)
+      .select("id")
+      .single();
+    if (error || !created) throw new Error(error?.message ?? "Falha ao criar orçamento");
+
+    await syncQuoteOptions(created.id, normalized);
+    return { quoteId: created.id };
+  });
