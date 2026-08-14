@@ -130,7 +130,7 @@ export const gerarLinkOrcamento = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { buildPublicQuoteFromImported } = await import("./to-public-quote.server");
-    const { savePublicQuote } = await import("@/lib/public-quote/store.server");
+    const { savePublicQuote, refreshPublicQuote } = await import("@/lib/public-quote/store.server");
 
     const { data: quote } = await supabaseAdmin
       .from("quotes")
@@ -142,8 +142,6 @@ export const gerarLinkOrcamento = createServerFn({ method: "POST" })
     if (!LIBERADOS.includes(String(quote.status))) {
       throw new Error("Importação incompleta: reprocesse o orçamento antes de gerar o link");
     }
-    if (quote.public_url) return { url: quote.public_url, shortUrl: quote.public_short_url ?? null, reused: true };
-
     const normalized = quote.normalized as unknown as import("./types").NormalizedQuote;
     if (!normalized?.options?.length) throw new Error("Orçamento ainda não foi processado");
     const { optionHasProducts } = await import("./types");
@@ -158,6 +156,26 @@ export const gerarLinkOrcamento = createServerFn({ method: "POST" })
       clientName: quote.client_name,
       agentName: quote.consultant,
     });
+    // Já existe link: regrava o mesmo publicId com os dados atuais (opções, valores).
+    if (quote.public_quote_id) {
+      const atualizado = await refreshPublicQuote(String(quote.public_quote_id), dto as never);
+      if (atualizado) {
+        await supabaseAdmin
+          .from("quotes")
+          .update({
+            public_url: atualizado.url,
+            public_short_url: atualizado.shortUrl ?? quote.public_short_url ?? null,
+            updated_at: new Date().toISOString(),
+          } as never)
+          .eq("id", quote.id);
+        return {
+          url: atualizado.url,
+          shortUrl: atualizado.shortUrl ?? quote.public_short_url ?? null,
+          reused: true,
+        };
+      }
+    }
+
     const saved = await savePublicQuote(dto as never);
 
     await supabaseAdmin
