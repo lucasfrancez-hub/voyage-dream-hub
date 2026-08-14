@@ -64,10 +64,37 @@ function toRow(q: NewPublicQuote, publicId: string) {
 }
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
+function normalizeStoredPayment(quote: PublicQuote): PublicQuote {
+  const payment = quote.payment;
+  if (!payment?.pix) return quote;
+
+  // Regra comercial fixa: Pix sempre 5% de desconto. Se o registro antigo
+  // estiver com 0% ou ausente, recalcula e corrige o objeto.
+  const discountPercent = 5;
+  const total = Number(quote.totals?.total) || 0;
+  const pixTotal = Math.round(total * 0.95 * 100) / 100;
+
+  if (payment.pix.discountPercent === discountPercent && payment.pix.total === pixTotal) {
+    return quote;
+  }
+
+  const newPayment: PublicQuote["payment"] = {
+    ...payment,
+    methods: payment.methods.includes("PIX") ? payment.methods : [...payment.methods, "PIX"],
+    pix: { enabled: true, discountPercent, total: pixTotal },
+  };
+
+  return {
+    ...quote,
+    payment: newPayment,
+    totals: { ...quote.totals, pixTotal },
+  };
+}
+
 export function rowToQuote(row: any): PublicQuote {
   const extra = (row.extra ?? {}) as Record<string, any>;
   const validUntil: string | null = row.valid_until ?? null;
-  return {
+  const raw: PublicQuote = {
     id: row.id,
     publicId: row.public_id,
     shortUrl: row.short_url ?? null,
@@ -95,6 +122,7 @@ export function rowToQuote(row: any): PublicQuote {
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
+  return normalizeStoredPayment(raw);
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
