@@ -102,8 +102,20 @@ export type HotelSearchQuery = {
   children?: number;
   regionId?: string | null;
   latLong?: string | null;
+  /** Pacote voo+hotel (packageType=fh) */
+  origin?: string | null;
+  tripType?: "ROUND_TRIP" | "ONE_WAY";
+  cabinClass?: "COACH" | "PREMIUM_COACH" | "BUSINESS" | "FIRST";
+  directFlights?: boolean;
+  infantsInSeats?: number;
+  /**
+   * Identificador gerado internamente pela Expedia. Só é usado quando foi
+   * capturado da própria interface autenticada — jamais fabricado.
+   */
+  misId?: string | null;
   /** ignora cache de 5 minutos */
   refresh?: boolean;
+
 };
 
 export type HotelSearchResponse = {
