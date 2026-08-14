@@ -5,6 +5,7 @@
  */
 import { useEffect, useMemo, useState, type ReactElement } from "react";
 import viaAirLogo from "@/assets/viaair-logo.png.asset.json";
+import heroFallback from "@/assets/hero-destino.jpg.asset.json";
 import { airlineLogo } from "@/lib/airlines";
 import { brl } from "@/lib/public-quote/payments";
 import { quoteHeadline, quoteTagline } from "@/lib/public-quote/headline";
@@ -718,7 +719,13 @@ function QuoteBody({ quote }: { quote: PublicQuote }) {
     seed: quote.publicId,
   });
 
+  const heroImage = useMemo(() => {
+    const foto = hotels.map((h) => h.photos?.[0]).find(Boolean);
+    return foto || heroFallback.url;
+  }, [hotels]);
+
   const legs = useMemo(() => flights.flatMap((f) => f.legs), [flights]);
+
 
   const whatsappHref = `https://wa.me/${WHATSAPP}?text=${encodeURIComponent(
     `Olá! Quero seguir com o orçamento ${quote.publicId} (${quote.title}).`,
@@ -790,7 +797,13 @@ function QuoteBody({ quote }: { quote: PublicQuote }) {
         ) : null}
 
         <section className="vq-hero">
+          <div className="vq-hero-media" aria-hidden="true">
+            <img src={heroImage} alt="" width={1600} height={912} />
+            <span className="vq-hero-fade" />
+            <span className="vq-hero-shade" />
+          </div>
           <div className="vq-hero-grid">
+
             <div>
               <div className="vq-eyebrow">PROPOSTA VIA AIR</div>
               <h1>{heroTitle}</h1>
