@@ -193,3 +193,48 @@ export const expediaDiscoverEndpointsFn = createServerFn({ method: "POST" })
     const { expediaTaapProvider } = await import("@/lib/expedia/taap-provider.server");
     return expediaTaapProvider.discoverEndpoints(data.url);
   });
+
+// ------------------------------------------ credenciais + login automático
+
+export const listExpediaCredentialsFn = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context);
+    const { listExpediaCredentials } = await import("@/lib/expedia/credentials-store.server");
+    return listExpediaCredentials();
+  });
+
+export const saveExpediaCredentialsFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z
+      .object({
+        label: z.string().trim().max(80).default("Expedia TAAP"),
+        email: z.string().trim().email().max(160),
+        password: z.string().min(4).max(200),
+      })
+      .parse(input),
+  )
+  .handler(async ({ context, data }) => {
+    await assertAdmin(context);
+    const { saveExpediaCredential } = await import("@/lib/expedia/credentials-store.server");
+    return saveExpediaCredential({ ...data, userId: context.userId });
+  });
+
+export const deleteExpediaCredentialsFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => z.object({ id: z.string().uuid() }).parse(input))
+  .handler(async ({ context, data }) => {
+    await assertAdmin(context);
+    const { deleteExpediaCredential } = await import("@/lib/expedia/credentials-store.server");
+    await deleteExpediaCredential(data.id);
+    return { ok: true as const };
+  });
+
+export const autoLoginExpediaFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context);
+    const { autoLoginExpedia } = await import("@/lib/expedia/auto-login.server");
+    return autoLoginExpedia(context.userId);
+  });
