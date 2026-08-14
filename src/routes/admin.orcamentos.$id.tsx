@@ -354,141 +354,305 @@ function QuoteDetailPage() {
 
       {/* Itens */}
       <Tabs defaultValue="hospedagem">
-        <TabsList className="w-full justify-start overflow-x-auto">
-          <TabsTrigger value="hospedagem" className="gap-2"><Hotel className="h-4 w-4" /> Hospedagem ({hoteis.length})</TabsTrigger>
-          <TabsTrigger value="aereo" className="gap-2"><Plane className="h-4 w-4" /> Aéreo ({voos.length})</TabsTrigger>
-          <TabsTrigger value="servicos" className="gap-2"><Package className="h-4 w-4" /> Serviços ({servicos.length})</TabsTrigger>
-          <TabsTrigger value="financeiro" className="gap-2"><DollarSign className="h-4 w-4" /> Financeiro</TabsTrigger>
+        <TabsList className="flex w-full flex-nowrap overflow-x-auto h-auto justify-start sm:flex-wrap">
+          <TabsTrigger value="hospedagem"><Hotel className="h-3.5 w-3.5 mr-1.5" /> Hospedagem ({hoteis.length})</TabsTrigger>
+          <TabsTrigger value="aereo"><Plane className="h-3.5 w-3.5 mr-1.5" /> Aéreo ({voos.length})</TabsTrigger>
+          <TabsTrigger value="servicos"><Package className="h-3.5 w-3.5 mr-1.5" /> Serviços ({servicos.length})</TabsTrigger>
+          <TabsTrigger value="financeiro"><DollarSign className="h-3.5 w-3.5 mr-1.5" /> Financeiro</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="hospedagem" className="mt-4">
-          <div className="rounded-2xl border border-border bg-card divide-y divide-border/60">
-            {hoteis.length === 0 && (
-              <div className="px-4 py-10 text-center text-sm text-muted-foreground">Nenhuma hospedagem neste orçamento.</div>
-            )}
-            {hoteis.map((h, i) => (
-              <div key={`${h.name}-${i}`} className="flex flex-wrap items-start justify-between gap-4 px-4 py-4">
+        {/* ---------- Hospedagem ---------- */}
+        <TabsContent value="hospedagem" className="mt-4 space-y-3">
+          {hoteis.length === 0 && (
+            <div className="rounded-2xl border border-dashed border-border p-10 text-center text-sm text-muted-foreground">
+              Nenhuma hospedagem neste orçamento.
+            </div>
+          )}
+          {hoteis.map((h, i) => (
+            <div key={`${h.name}-${i}`} className="rounded-xl border border-border bg-card p-4">
+              <div className="grid gap-4 md:grid-cols-[minmax(0,180px)_minmax(0,1fr)_minmax(0,220px)]">
+                {/* Coluna 1: reserva */}
                 <div className="min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold">{h.name}</span>
-                    {h.city && <span className="text-[11px] text-muted-foreground">· {h.city}</span>}
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <Hotel className="h-3.5 w-3.5" /> Hospedagem
                   </div>
-                  <div className="mt-1 text-[11px] text-muted-foreground">
-                    {dt(h.checkin)} → {dt(h.checkout)}
-                    {h.nights ? ` · ${h.nights} noite(s)` : ""}
-                    {h.board ? ` · ${h.board}` : ""}
+                  <div className="mt-1 font-mono text-lg font-bold text-brand-orange tabular-nums">
+                    {h.total ? formatBRL(Number(h.total)) : "—"}
                   </div>
-                  {h.roomDescription && <div className="mt-1 text-xs">{h.roomDescription}</div>}
-                  {h.address && <div className="mt-1 text-[11px] text-muted-foreground">{h.address}</div>}
-                </div>
-                <div className="text-right">
-                  {h.total ? <div className="font-bold tabular-nums">{formatBRL(Number(h.total))}</div> : null}
                   {h.photos?.length ? (
-                    <div className="mt-1 inline-flex items-center gap-1 text-[11px] text-muted-foreground">
-                      <Star className="h-3 w-3" /> {h.photos.length} foto(s)
+                    <div className="mt-1 text-[10px] uppercase tracking-wide text-muted-foreground">
+                      Fotos: <span className="normal-case text-foreground">{h.photos.length}</span>
                     </div>
                   ) : null}
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="mt-2 h-7 gap-1 text-[11px]"
-                    onClick={() => setHotelEdit({ name: h.name, city: h.city ?? null })}
-                  >
-                    <Pencil className="h-3 w-3" /> Editar
-                  </Button>
+                  <div className="mt-2 flex items-center gap-0.5">
+                    <Button size="sm" variant="ghost" title="Editar" onClick={() => setHotelEdit({ name: h.name, city: h.city ?? null })}>
+                      <Pencil className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Coluna 2: detalhes */}
+                <div className="min-w-0 border-l border-border pl-4">
+                  <div className="font-semibold flex items-center gap-2 flex-wrap">
+                    <span>{h.name}</span>
+                  </div>
+                  <div className="mt-1 space-y-0.5 text-sm text-muted-foreground">
+                    {h.city && <div>{h.city}</div>}
+                    {h.address && <div>{h.address}</div>}
+                    {h.roomDescription && <div>Categoria: <span className="text-foreground">{h.roomDescription}</span></div>}
+                    {h.board && <div>Regime: <span className="text-foreground">{h.board}</span></div>}
+                    {(h.checkin || h.checkout) && (
+                      <div>
+                        Check-in <span className="text-foreground">{dt(h.checkin)}</span>
+                        {" · "}
+                        Check-out <span className="text-foreground">{dt(h.checkout)}</span>
+                        {h.nights ? ` · ${h.nights} noite(s)` : ""}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Coluna 3: hóspedes */}
+                <div className="min-w-0 border-l border-border pl-4">
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <Users className="h-3.5 w-3.5" /> Hóspedes ({nomesPax.length || totalPax})
+                  </div>
+                  <ul className="mt-2 space-y-1.5">
+                    {nomesPax.length === 0 && (
+                      <li className="text-xs text-muted-foreground">{resumoPax || "Nenhum passageiro"}</li>
+                    )}
+                    {nomesPax.map((n, pi) => (
+                      <li key={`${n}-${pi}`} className="text-xs font-medium text-foreground">{n}</li>
+                    ))}
+                  </ul>
                 </div>
               </div>
-            ))}
-          </div>
+            </div>
+          ))}
         </TabsContent>
 
-        <TabsContent value="aereo" className="mt-4">
-          <div className="rounded-2xl border border-border bg-card divide-y divide-border/60">
-            {voos.length === 0 && (
-              <div className="px-4 py-10 text-center text-sm text-muted-foreground">Nenhum voo neste orçamento.</div>
-            )}
-            {voos.map((f, i) => (
-              <div key={`${f.fromIata}-${i}`} className="px-4 py-4">
-                <div className="flex flex-wrap items-center justify-between gap-3">
+        {/* ---------- Aéreo ---------- */}
+        <TabsContent value="aereo" className="mt-4 space-y-3">
+          {voos.length === 0 && (
+            <div className="rounded-2xl border border-dashed border-border p-10 text-center text-sm text-muted-foreground">
+              Nenhum voo neste orçamento.
+            </div>
+          )}
+          {voos.map((f, i) => {
+            const hit = findAirline(f.airline ?? "");
+            const airlineName = hit?.name ?? f.airline ?? "";
+            const segs = f.segments?.length ? f.segments : [{
+              airline: f.airline, flightNumber: null, fromIata: f.fromIata, toIata: f.toIata,
+              departure: f.departure, arrival: f.arrival, duration: f.duration, cabin: null,
+            } as (typeof f.segments)[number]];
+            return (
+              <div key={`${f.fromIata}-${i}`} className="rounded-xl border border-border bg-card p-4">
+                <div className="grid gap-4 md:grid-cols-[minmax(0,180px)_minmax(0,1fr)_minmax(0,220px)]">
+                  {/* Coluna 1: reserva */}
                   <div className="min-w-0">
-                    <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <Plane className="h-3.5 w-3.5" /> Reserva aérea
+                    </div>
+                    {airlineName && (
+                      <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-sm font-medium text-foreground">
+                        {airlineName}
+                      </div>
+                    )}
+                    <div className="mt-1 font-mono text-lg font-bold text-brand-orange tabular-nums">
+                      {f.total ? formatBRL(Number(f.total)) : "—"}
+                    </div>
+                    <div className="mt-1 text-[10px] uppercase tracking-wide text-muted-foreground">
                       {f.direction === "INBOUND" ? "Voo de volta" : "Voo de ida"}
-                    </div>
-                    <div className="mt-1 flex items-center gap-2 font-semibold">
-                      <Plane className="h-4 w-4 text-brand-orange" />
-                      {f.fromIata ?? "—"} → {f.toIata ?? "—"}
-                      <span className="text-[11px] font-normal text-muted-foreground">{f.airline ?? ""}</span>
-                    </div>
-                    <div className="mt-1 text-[11px] text-muted-foreground tabular-nums">
-                      {dt(f.departure)} {hora(f.departure)} → {dt(f.arrival)} {hora(f.arrival)}
-                      {f.duration ? ` · ${f.duration}` : ""}
                       {typeof f.stops === "number" ? ` · ${f.stops === 0 ? "Direto" : `${f.stops} conexão(ões)`}` : ""}
                     </div>
                   </div>
-                  {f.total ? <div className="font-bold tabular-nums">{formatBRL(Number(f.total))}</div> : null}
-                </div>
-                {f.segments?.length > 1 && (
-                  <div className="mt-3 space-y-1 rounded-lg border border-border/60 bg-muted/20 px-3 py-2">
-                    {f.segments.map((s, si) => (
-                      <div key={si} className="text-[11px] text-muted-foreground tabular-nums">
-                        {s.airline ?? ""} {s.flightNumber ?? ""} · {s.fromIata} {hora(s.departure)} → {s.toIata} {hora(s.arrival)}
-                        {s.duration ? ` · ${s.duration}` : ""}
-                      </div>
-                    ))}
+
+                  {/* Coluna 2: trechos */}
+                  <div className="min-w-0 space-y-2 border-l border-border pl-4">
+                    {segs.map((s, si) => {
+                      const segHit = findAirline(s.airlineIata ?? s.airline ?? "");
+                      const segAirline = segHit?.name ?? s.airline ?? airlineName;
+                      const segKey = segHit?.iata ?? segAirline;
+                      return (
+                        <div key={si} className="rounded-lg border border-border/60 bg-muted/20 p-2.5 text-sm">
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <div className="flex items-center gap-2">
+                              <span className={`rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase ${f.direction === "INBOUND" ? "bg-brand-blue/15 text-brand-blue" : "bg-brand-orange/15 text-brand-orange"}`}>
+                                {f.direction === "INBOUND" ? "Volta" : "Ida"}
+                              </span>
+                              {segAirline && <AirlineLogo airline={segKey} size={22} />}
+                              {segAirline && <span className="text-xs text-muted-foreground">{segAirline}</span>}
+                              {s.flightNumber && <span className="font-mono text-xs">{s.flightNumber}</span>}
+                              {s.cabin && <span className="text-[10px] uppercase tracking-wide text-muted-foreground">{s.cabin}</span>}
+                            </div>
+                          </div>
+                          <div className="mt-1.5 grid gap-1 sm:grid-cols-[1fr_1fr_auto] sm:items-center">
+                            <div>
+                              <div className="text-xs text-muted-foreground">Partida</div>
+                              <div className="font-medium">{s.fromIata ?? "—"}</div>
+                              <div className="text-xs">{dt(s.departure)}{hora(s.departure) ? `, ${hora(s.departure)}` : ""}</div>
+                            </div>
+                            <div>
+                              <div className="text-xs text-muted-foreground">Chegada</div>
+                              <div className="font-medium">{s.toIata ?? "—"}</div>
+                              <div className="text-xs">{dt(s.arrival)}{hora(s.arrival) ? `, ${hora(s.arrival)}` : ""}</div>
+                            </div>
+                            {s.duration && (
+                              <div className="text-xs text-muted-foreground sm:pl-2 sm:text-right">{s.duration}</div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </TabsContent>
 
-        <TabsContent value="servicos" className="mt-4">
-          <div className="rounded-2xl border border-border bg-card divide-y divide-border/60">
-            {servicos.length === 0 && (
-              <div className="px-4 py-10 text-center text-sm text-muted-foreground">Nenhum serviço neste orçamento.</div>
-            )}
-            {servicos.map((s, i) => (
-              <div key={`${s.name}-${i}`} className="flex items-start justify-between gap-4 px-4 py-4">
-                <div className="min-w-0">
-                  <div className="font-semibold">{s.name}</div>
-                  {s.description && <div className="mt-0.5 text-[11px] text-muted-foreground">{s.description}</div>}
-                  {s.date && <div className="mt-0.5 text-[11px] text-muted-foreground">{dt(s.date)}</div>}
+                  {/* Coluna 3: passageiros */}
+                  <div className="min-w-0 border-l border-border pl-4">
+                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <Users className="h-3.5 w-3.5" /> Passageiros ({nomesPax.length || totalPax})
+                    </div>
+                    <ul className="mt-2 space-y-1.5">
+                      {nomesPax.length === 0 && (
+                        <li className="text-xs text-muted-foreground">{resumoPax || "Nenhum passageiro"}</li>
+                      )}
+                      {nomesPax.map((n, pi) => (
+                        <li key={`${n}-${pi}`} className="text-xs font-medium text-foreground">{n}</li>
+                      ))}
+                    </ul>
+                  </div>
                 </div>
-                {s.total ? <div className="font-bold tabular-nums">{formatBRL(Number(s.total))}</div> : null}
               </div>
-            ))}
-          </div>
+            );
+          })}
         </TabsContent>
 
-        <TabsContent value="financeiro" className="mt-4">
-          <div className="rounded-2xl border border-border bg-card px-4 py-5 space-y-3 text-sm">
-            <div className="flex items-center justify-between">
-              <span className="text-muted-foreground">Total da opção selecionada</span>
-              <span className="font-bold tabular-nums">{formatBRL(Number(option?.total ?? total))}</span>
+        {/* ---------- Serviços ---------- */}
+        <TabsContent value="servicos" className="mt-4 space-y-3">
+          {servicos.length === 0 && (
+            <div className="rounded-2xl border border-dashed border-border p-10 text-center text-sm text-muted-foreground">
+              Nenhum serviço neste orçamento.
             </div>
-            <div className="flex items-center justify-between">
-              <span className="text-muted-foreground">Total do orçamento</span>
-              <span className="font-bold tabular-nums">{formatBRL(total)}</span>
+          )}
+          {servicos.map((s, i) => (
+            <div key={`${s.name}-${i}`} className="rounded-xl border border-border bg-card p-4">
+              <div className="grid gap-4 md:grid-cols-[minmax(0,180px)_minmax(0,1fr)_minmax(0,220px)]">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <Package className="h-3.5 w-3.5" /> Serviço
+                  </div>
+                  <div className="mt-1 font-mono text-lg font-bold text-brand-orange tabular-nums">
+                    {s.total ? formatBRL(Number(s.total)) : "—"}
+                  </div>
+                </div>
+                <div className="min-w-0 border-l border-border pl-4">
+                  <div className="font-semibold">{s.name}</div>
+                  <div className="mt-1 space-y-0.5 text-sm text-muted-foreground">
+                    {s.description && <div>{s.description}</div>}
+                    {s.date && <div>Data: <span className="text-foreground">{dt(s.date)}</span></div>}
+                    {s.quantity ? <div>Quantidade: <span className="text-foreground">{s.quantity}</span></div> : null}
+                  </div>
+                </div>
+                <div className="min-w-0 border-l border-border pl-4">
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <Users className="h-3.5 w-3.5" /> Passageiros ({nomesPax.length || totalPax})
+                  </div>
+                  <ul className="mt-2 space-y-1.5">
+                    {nomesPax.length === 0 && (
+                      <li className="text-xs text-muted-foreground">{resumoPax || "Nenhum passageiro"}</li>
+                    )}
+                    {nomesPax.map((n, pi) => (
+                      <li key={`${n}-${pi}`} className="text-xs font-medium text-foreground">{n}</li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
             </div>
-            {(option?.paymentConditions ?? []).length > 0 && (
-              <div>
-                <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Condições de pagamento</div>
-                <ul className="mt-1 list-disc pl-5 text-[13px]">
-                  {(option?.paymentConditions ?? []).map((c, i) => <li key={i}>{c}</li>)}
-                </ul>
-              </div>
-            )}
-            {(option?.notes ?? []).length > 0 && (
-              <div>
-                <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Observações</div>
-                <ul className="mt-1 list-disc pl-5 text-[13px]">
-                  {(option?.notes ?? []).map((n, i) => <li key={i}>{n}</li>)}
-                </ul>
-              </div>
-            )}
+          ))}
+        </TabsContent>
+
+        {/* ---------- Financeiro ---------- */}
+        <TabsContent value="financeiro" className="mt-4 space-y-4">
+          <div className="rounded-2xl border border-border bg-card p-5 grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div>
+              <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Hospedagem</div>
+              <div className="font-semibold">{formatBRL(somaHoteis)}</div>
+            </div>
+            <div>
+              <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Aéreo</div>
+              <div className="font-semibold">{formatBRL(somaVoos)}</div>
+            </div>
+            <div>
+              <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Serviços</div>
+              <div className="font-semibold">{formatBRL(somaServicos)}</div>
+            </div>
+            <div>
+              <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Total da opção</div>
+              <div className="font-semibold text-brand-orange">{formatBRL(Number(option?.total ?? total))}</div>
+            </div>
           </div>
+
+          <div className="rounded-2xl border border-border bg-card p-5">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold flex items-center gap-2">
+                <DollarSign className="h-4 w-4" /> Financeiro por item
+              </h3>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="text-xs text-muted-foreground border-b border-border">
+                  <tr>
+                    <th className="text-left py-2 px-2">Item</th>
+                    <th className="text-left py-2 px-2">Tipo</th>
+                    <th className="text-left py-2 px-2">Período</th>
+                    <th className="text-right py-2 px-2">Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {linhasFinanceiro.length === 0 && (
+                    <tr><td colSpan={4} className="py-6 text-center text-xs text-muted-foreground">Nenhum item neste orçamento.</td></tr>
+                  )}
+                  {linhasFinanceiro.map((l, i) => (
+                    <tr key={i} className="border-b border-border/50">
+                      <td className="py-2 px-2 text-xs">{l.item}</td>
+                      <td className="py-2 px-2 text-xs">{l.tipo}</td>
+                      <td className="py-2 px-2 text-xs">{l.periodo}</td>
+                      <td className="py-2 px-2 text-right text-xs font-semibold">{formatBRL(l.total)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr>
+                    <td colSpan={3} className="py-2 px-2 text-right text-xs text-muted-foreground">Total do orçamento</td>
+                    <td className="py-2 px-2 text-right text-sm font-bold tabular-nums">{formatBRL(total)}</td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </div>
+
+          {((option?.paymentConditions ?? []).length > 0 || (option?.notes ?? []).length > 0) && (
+            <div className="rounded-2xl border border-border bg-card p-5 space-y-3 text-sm">
+              {(option?.paymentConditions ?? []).length > 0 && (
+                <div>
+                  <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Condições de pagamento</div>
+                  <ul className="mt-1 list-disc pl-5 text-[13px]">
+                    {(option?.paymentConditions ?? []).map((c, i) => <li key={i}>{c}</li>)}
+                  </ul>
+                </div>
+              )}
+              {(option?.notes ?? []).length > 0 && (
+                <div>
+                  <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Observações</div>
+                  <ul className="mt-1 list-disc pl-5 text-[13px]">
+                    {(option?.notes ?? []).map((n, i) => <li key={i}>{n}</li>)}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
         </TabsContent>
       </Tabs>
+
 
       {hotelEdit && (
         <HotelTripAdvisorDialog
