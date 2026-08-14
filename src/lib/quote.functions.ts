@@ -327,8 +327,25 @@ export const getPublicQuote = createServerFn({ method: "GET" })
     const rawCfg = (order as { quote_config?: unknown }).quote_config;
     const config = normalizeQuoteConfig(rawCfg);
 
+    // Markups oficiais do financeiro (mesma tabela usada nas Promoções de Aéreo).
+    const { DEFAULT_EXTENDED_MARKUPS } = await import("@/lib/airfare-conditions");
+    let installmentMarkups: Record<number, number> = { ...DEFAULT_EXTENDED_MARKUPS };
+    try {
+      const { data: mk } = await supabaseAdmin
+        .from("airfare_installment_markups")
+        .select("installments,markup_percent,active")
+        .eq("active", true);
+      const table: Record<number, number> = {};
+      for (const row of (mk ?? []) as Array<{ installments: number; markup_percent: number | string }>) {
+        table[Number(row.installments)] = Number(row.markup_percent);
+      }
+      if (Object.keys(table).length) installmentMarkups = table;
+    } catch { /* mantém o default */ }
+
     const fullName = (order as { full_name?: string | null }).full_name ?? "Cliente";
     return {
+      installmentMarkups,
+
       orderNumber:
         (order as { order_number?: string | null }).order_number ??
         orderId.slice(0, 8).toUpperCase(),
