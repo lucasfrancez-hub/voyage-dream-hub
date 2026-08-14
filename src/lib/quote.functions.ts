@@ -306,16 +306,17 @@ export const getPublicQuote = createServerFn({ method: "GET" })
 
     const snap = ((order as { package_snapshot?: unknown }).package_snapshot ?? {}) as Record<string, unknown>;
 
-    // Enriquecimento TripAdvisor para hotéis (best-effort).
-    const taKey = process.env.TRIPADVISOR_API_KEY;
-    if (taKey) {
+    // Enriquecimento do hotel (TripAdvisor + cache) — fotos, endereço,
+    // coordenadas, comodidades e pontos próximos. Best-effort.
+    {
       const destination = snap.destination ? String(snap.destination) : null;
+      const { enrichHotel } = await import("@/lib/public-quote/hotel-enrichment.server");
       await Promise.all(
         publicItems
           .filter((it) => it.kind === "hotel" && it.hotel_name)
           .map(async (it) => {
             try {
-              it.hotel_info = await fetchHotelInfo(taKey, it.hotel_name!, destination);
+              it.hotel_info = await enrichHotel({ name: it.hotel_name!, destination });
             } catch { /* ignora */ }
           })
       );
