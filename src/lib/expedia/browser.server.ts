@@ -184,42 +184,62 @@ export async function openRemoteBrowser(opts: {
     params.set("proxySticky", "true");
   }
 
-  const query = `
+  const requested = opts.reconnectMs ?? 60_000;
+  // Planos do Browserless limitam o tempo máximo de reconnect; tentamos degradando.
+  const attempts = Array.from(
+    new Set([requested, 60_000, 30_000, 15_000, 10_000, 5_000].filter((v) => v <= requested)),
+  ).sort((a, b) => b - a);
+
+  let lastError = "";
+  for (const reconnectMs of attempts) {
+    const query = `
     mutation OpenExpedia($url: String!) {
       viewport(width: ${opts.viewportWidth ?? 1440} height: ${opts.viewportHeight ?? 900} deviceScaleFactor: 1 mobile: false) { width height }
       goto(url: $url, waitUntil: domContentLoaded, timeout: 35000) { status }
-      reconnect(timeout: ${opts.reconnectMs ?? 60_000}) { browserWSEndpoint }
+      reconnect(timeout: ${reconnectMs}) { browserWSEndpoint }
     }
   `;
 
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), OPEN_REQUEST_TIMEOUT_MS + 2_000);
-  let response: Response;
-  try {
-    response = await fetch(`${BROWSERLESS_BASE}/stealth/bql?${params.toString()}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ query, variables: { url: opts.url } }),
-      signal: controller.signal,
-    });
-  } finally {
-    clearTimeout(timer);
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), OPEN_REQUEST_TIMEOUT_MS + 2_000);
+    let response: Response;
+    try {
+      response = await fetch(`${BROWSERLESS_BASE}/stealth/bql?${params.toString()}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query, variables: { url: opts.url } }),
+        signal: controller.signal,
+      });
+    } finally {
+      clearTimeout(timer);
+    }
+    const body = await response.text();
+    if (!response.ok) {
+      lastError = `Browserless HTTP ${response.status}: ${body.slice(0, 500)}`;
+      if (/reconnect time exceeds/i.test(body)) continue;
+      throw new Error(lastError);
+    }
+    const payload = JSON.parse(body) as {
+      data?: { reconnect?: { browserWSEndpoint?: string } };
+      errors?: Array<{ message?: string }>;
+    };
+    const raw = payload.data?.reconnect?.browserWSEndpoint;
+    if (!raw) {
+      const detail = payload.errors?.map((e) => e.message).filter(Boolean).join("; ") || body;
+      lastError = `Browserless não devolveu sessão: ${detail.slice(0, 400)}`;
+      if (/reconnect time exceeds/i.test(detail)) continue;
+      throw new Error(lastError);
+    }
+    const ws = new URL(raw);
+    if (!ws.searchParams.has("token")) ws.searchParams.set("token", token);
+    return ws.toString();
   }
-  const body = await response.text();
-  if (!response.ok) throw new Error(`Browserless HTTP ${response.status}: ${body.slice(0, 500)}`);
-  const payload = JSON.parse(body) as {
-    data?: { reconnect?: { browserWSEndpoint?: string } };
-    errors?: Array<{ message?: string }>;
-  };
-  const raw = payload.data?.reconnect?.browserWSEndpoint;
-  if (!raw) {
-    const detail = payload.errors?.map((e) => e.message).filter(Boolean).join("; ") || body;
-    throw new Error(`Browserless não devolveu sessão: ${detail.slice(0, 400)}`);
-  }
-  const ws = new URL(raw);
-  if (!ws.searchParams.has("token")) ws.searchParams.set("token", token);
-  return ws.toString();
+
+  throw new Error(
+    `${lastError || "Browserless não devolveu sessão"} — o plano atual do navegador remoto não permite manter a sessão aberta por esse tempo.`,
+  );
 }
+
 
 export async function closeRemoteBrowser(wsEndpoint: string) {
   try {
