@@ -146,6 +146,7 @@ import { Route as ApiPublicHooksRunCheckinsRouteImport } from './routes/api/publ
 import { Route as ApiPublicHooksSocialScheduleDispatchRouteImport } from './routes/api/public/hooks/social-schedule-dispatch'
 import { Route as ApiPublicHooksSyncCalendarsRouteImport } from './routes/api/public/hooks/sync-calendars'
 import { Route as ApiPublicPackageHotelPhotoSplatRouteImport } from './routes/api/public/package-hotel-photo.$'
+import { Route as ApiPublicV1ExtensionPairRouteImport } from './routes/api/public/v1/extension-pair'
 import { Route as ApiPublicV1QuoteImportsRouteImport } from './routes/api/public/v1/quote-imports'
 import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
 import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/email/auth/webhook'
@@ -868,6 +869,12 @@ const ApiPublicPackageHotelPhotoSplatRoute =
     path: '/api/public/package-hotel-photo/$',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicV1ExtensionPairRoute =
+  ApiPublicV1ExtensionPairRouteImport.update({
+    id: '/api/public/v1/extension-pair',
+    path: '/api/public/v1/extension-pair',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicV1QuoteImportsRoute = ApiPublicV1QuoteImportsRouteImport.update({
   id: '/api/public/v1/quote-imports',
   path: '/api/public/v1/quote-imports',
@@ -1040,6 +1047,7 @@ export interface FileRoutesByFullPath {
   '/api/public/hooks/social-schedule-dispatch': typeof ApiPublicHooksSocialScheduleDispatchRoute
   '/api/public/hooks/sync-calendars': typeof ApiPublicHooksSyncCalendarsRoute
   '/api/public/package-hotel-photo/$': typeof ApiPublicPackageHotelPhotoSplatRoute
+  '/api/public/v1/extension-pair': typeof ApiPublicV1ExtensionPairRoute
   '/api/public/v1/quote-imports': typeof ApiPublicV1QuoteImportsRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
@@ -1183,6 +1191,7 @@ export interface FileRoutesByTo {
   '/api/public/hooks/social-schedule-dispatch': typeof ApiPublicHooksSocialScheduleDispatchRoute
   '/api/public/hooks/sync-calendars': typeof ApiPublicHooksSyncCalendarsRoute
   '/api/public/package-hotel-photo/$': typeof ApiPublicPackageHotelPhotoSplatRoute
+  '/api/public/v1/extension-pair': typeof ApiPublicV1ExtensionPairRoute
   '/api/public/v1/quote-imports': typeof ApiPublicV1QuoteImportsRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
@@ -1329,6 +1338,7 @@ export interface FileRoutesById {
   '/api/public/hooks/social-schedule-dispatch': typeof ApiPublicHooksSocialScheduleDispatchRoute
   '/api/public/hooks/sync-calendars': typeof ApiPublicHooksSyncCalendarsRoute
   '/api/public/package-hotel-photo/$': typeof ApiPublicPackageHotelPhotoSplatRoute
+  '/api/public/v1/extension-pair': typeof ApiPublicV1ExtensionPairRoute
   '/api/public/v1/quote-imports': typeof ApiPublicV1QuoteImportsRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
@@ -1476,6 +1486,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/social-schedule-dispatch'
     | '/api/public/hooks/sync-calendars'
     | '/api/public/package-hotel-photo/$'
+    | '/api/public/v1/extension-pair'
     | '/api/public/v1/quote-imports'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
@@ -1619,6 +1630,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/social-schedule-dispatch'
     | '/api/public/hooks/sync-calendars'
     | '/api/public/package-hotel-photo/$'
+    | '/api/public/v1/extension-pair'
     | '/api/public/v1/quote-imports'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
@@ -1764,6 +1776,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/social-schedule-dispatch'
     | '/api/public/hooks/sync-calendars'
     | '/api/public/package-hotel-photo/$'
+    | '/api/public/v1/extension-pair'
     | '/api/public/v1/quote-imports'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
@@ -1846,6 +1859,7 @@ export interface RootRouteChildren {
   ApiPublicHooksSocialScheduleDispatchRoute: typeof ApiPublicHooksSocialScheduleDispatchRoute
   ApiPublicHooksSyncCalendarsRoute: typeof ApiPublicHooksSyncCalendarsRoute
   ApiPublicPackageHotelPhotoSplatRoute: typeof ApiPublicPackageHotelPhotoSplatRoute
+  ApiPublicV1ExtensionPairRoute: typeof ApiPublicV1ExtensionPairRoute
   ApiPublicV1QuoteImportsRoute: typeof ApiPublicV1QuoteImportsRoute
   LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
   LovableEmailAuthWebhookRoute: typeof LovableEmailAuthWebhookRoute
@@ -2815,6 +2829,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicPackageHotelPhotoSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/v1/extension-pair': {
+      id: '/api/public/v1/extension-pair'
+      path: '/api/public/v1/extension-pair'
+      fullPath: '/api/public/v1/extension-pair'
+      preLoaderRoute: typeof ApiPublicV1ExtensionPairRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/v1/quote-imports': {
       id: '/api/public/v1/quote-imports'
       path: '/api/public/v1/quote-imports'
@@ -3113,6 +3134,7 @@ const rootRouteChildren: RootRouteChildren = {
     ApiPublicHooksSocialScheduleDispatchRoute,
   ApiPublicHooksSyncCalendarsRoute: ApiPublicHooksSyncCalendarsRoute,
   ApiPublicPackageHotelPhotoSplatRoute: ApiPublicPackageHotelPhotoSplatRoute,
+  ApiPublicV1ExtensionPairRoute: ApiPublicV1ExtensionPairRoute,
   ApiPublicV1QuoteImportsRoute: ApiPublicV1QuoteImportsRoute,
   LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,
   LovableEmailAuthWebhookRoute: LovableEmailAuthWebhookRoute,
