@@ -84,6 +84,9 @@ export type PublicQuoteItem = {
   check_in?: string | null;
   check_out?: string | null;
   photo_url?: string | null;
+  room_type?: string | null;
+  room_category?: string | null;
+  bed_type?: string | null;
   hotel_info?: HotelInfo | null;
   category?: string | null;
   date_from?: string | null;
