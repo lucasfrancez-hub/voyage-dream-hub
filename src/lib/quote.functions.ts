@@ -361,7 +361,7 @@ export const getPublicQuote = createServerFn({ method: "GET" })
       items: publicItems,
       config,
       agency: {
-        name: "Via Air",
+        name: "Lucas Francez",
         email: "comercial@voeair.com",
         phone: "(44) 99951-4838",
         whatsapp: "5544999514838",
