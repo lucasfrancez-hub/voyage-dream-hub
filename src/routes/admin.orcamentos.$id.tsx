@@ -496,7 +496,7 @@ function QuoteDetailPage() {
           onOpenChange={(v) => { if (!v) setHotelEdit(null); }}
           hotelName={hotelEdit.name}
           city={hotelEdit.city}
-          onLinked={() => qc.invalidateQueries({ queryKey: ["quote", id] })}
+          onLinked={() => { void qc.invalidateQueries({ queryKey: ["admin", "quoteDetail", id] }); }}
         />
       )}
 
