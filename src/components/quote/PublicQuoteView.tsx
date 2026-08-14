@@ -3,7 +3,7 @@
  * Renderiza EXCLUSIVAMENTE o DTO público: nada de comissão, markup,
  * custo, fornecedor interno, margem ou observação interna.
  */
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactElement } from "react";
 import viaAirLogo from "@/assets/viaair-logo.png.asset.json";
 import { airlineLogo } from "@/lib/airlines";
 import { brl } from "@/lib/public-quote/payments";
@@ -724,7 +724,7 @@ function QuoteBody({ quote }: { quote: PublicQuote }) {
     `Olá! Quero seguir com o orçamento ${quote.publicId} (${quote.title}).`,
   )}`;
 
-  type Secao = { id: string; label: string; Icon: (p: { className?: string }) => React.ReactElement };
+  type Secao = { id: string; label: string; Icon: (p: { className?: string }) => ReactElement };
   const secoes: Secao[] = [];
   if (hotels.length) secoes.push({ id: "hospedagem", label: "Hospedagem", Icon: IconHotel });
   if (legs.length) secoes.push({ id: "voos", label: "Voos", Icon: IconPlane });
