@@ -116,99 +116,121 @@ function FlightLegCard({ leg }: { leg: FlightLeg }) {
 
       {open ? (
         <div className="vq-flight-details">
-          <div className="vq-details-panel">
-            {leg.segments.map((s, i) => {
-              const dataBr = s.departure.slice(0, 10).split("-").reverse().join("/");
-              const segLogo = airlineLogo(s.airline ?? leg.airlineIata ?? leg.airline);
-              return (
-                <div key={i}>
-                  <section className="vq-seg">
-                    <header className="vq-seg-head">
-                      <div className="vq-seg-air">
-                        <span className="vq-seg-logo">
+          <div className="vq-journey">
+            <header className="vq-journey-head">
+              <div className="vq-journey-title">
+                <span className="vq-journey-mark"><IconPlane /></span>
+                <div>
+                  <h4>{leg.label ?? `${leg.fromIata} → ${leg.toIata}`}</h4>
+                  <p>
+                    {[leg.dateLabel, leg.stopsLabel].filter(Boolean).join(" • ")}
+                  </p>
+                </div>
+              </div>
+              <span className="vq-journey-count">
+                {leg.segments.length > 1 ? `${leg.segments.length} trechos` : "Voo direto"}
+              </span>
+            </header>
+
+            <div className="vq-journey-body">
+              {leg.segments.length > 1 ? <span className="vq-journey-rail" /> : null}
+
+              {leg.segments.map((s, i) => {
+                const dataBr = s.departure.slice(0, 10).split("-").reverse().join("/");
+                const segLogo = airlineLogo(s.airline ?? leg.airlineIata ?? leg.airline);
+                return (
+                  <div key={i}>
+                    <section className="vq-seg2">
+                      <div className="vq-seg2-node">
+                        <span className="vq-seg2-logo">
                           {segLogo ? <img src={segLogo} alt={s.airline ?? leg.airline} /> : <IconPlane />}
                         </span>
-                        <div>
-                          <h4>
+                      </div>
+
+                      <div className="vq-seg2-main">
+                        <div className="vq-seg2-head">
+                          <h5>
                             {[s.airline ?? leg.airline, s.flightNumber ? `• Voo ${s.flightNumber}` : ""]
                               .filter(Boolean)
                               .join(" ")}
-                          </h4>
+                          </h5>
                           <p>Operado por {s.airline ?? leg.airline}</p>
                         </div>
-                      </div>
-                      <span className="vq-seg-status">
-                        Trecho {i + 1} de {leg.segments.length}
-                      </span>
-                    </header>
 
-                    <div className="vq-seg-journey">
-                      <div className="vq-seg-side">
-                        <small>Partida</small>
-                        <time>{s.departure.split(" ")[1]}</time>
-                        <strong>{s.fromIata}</strong>
-                        <span>{s.fromName}</span>
-                      </div>
+                        <div className="vq-seg2-route">
+                          <div className="vq-seg2-point">
+                            <small>Partida</small>
+                            <time>{s.departure.split(" ")[1]}</time>
+                            <b>{s.fromIata}</b>
+                            <span>{s.fromName}</span>
+                          </div>
 
-                      <div className="vq-seg-timeline">
-                        <div className="vq-seg-dur"><IconClock />{s.duration ?? leg.duration ?? "—"}</div>
-                        <div className="vq-seg-line">
-                          <i className="vq-dot start" />
-                          <i className="vq-dot end" />
-                          <span className="vq-seg-plane"><IconPlane /></span>
+                          <div className="vq-seg2-path">
+                            <span className="vq-seg2-dur">{s.duration ?? leg.duration ?? "—"}</span>
+                            <div className="vq-seg2-line">
+                              <i />
+                              <span className="vq-seg2-plane"><IconPlane /></span>
+                              <i />
+                            </div>
+                          </div>
+
+                          <div className="vq-seg2-point right">
+                            <small>Chegada</small>
+                            <time>{s.arrival.split(" ")[1]}</time>
+                            <b>{s.toIata}</b>
+                            <span>{s.toName}</span>
+                          </div>
                         </div>
-                        <span className="vq-seg-chip">
-                          {leg.segments.length > 1 ? `Trecho ${i + 1}` : leg.stopsLabel}
-                        </span>
-                      </div>
 
-                      <div className="vq-seg-side right">
-                        <small>Chegada</small>
-                        <time>{s.arrival.split(" ")[1]}</time>
-                        <strong>{s.toIata}</strong>
-                        <span>{s.toName}</span>
+                        <div className="vq-seg2-meta">
+                          <div>
+                            <small>Classe</small>
+                            <strong>{leg.cabin ?? "Econômica"}</strong>
+                          </div>
+                          <div>
+                            <small>Aeronave</small>
+                            <strong>{s.aircraft ?? "Conforme confirmação"}</strong>
+                          </div>
+                          <div>
+                            <small>Data</small>
+                            <strong>{dataBr}</strong>
+                          </div>
+                          <div>
+                            <small>Bagagem</small>
+                            <strong>
+                              {leg.checkedBaggage
+                                ? "Despachada incluída"
+                                : leg.carryOn
+                                  ? "Mão 10kg"
+                                  : "Somente item pessoal"}
+                            </strong>
+                          </div>
+                        </div>
                       </div>
-                    </div>
+                    </section>
 
-                    <div className="vq-seg-meta-dark">
-                      <div>
-                        <small>Classe</small>
-                        <strong>{leg.cabin ?? "Econômica"}</strong>
+                    {s.connectionAfter ? (
+                      <div className="vq-seg2-connection">
+                        <span className="vq-seg2-connection-dot" />
+                        <div className="vq-seg2-connection-pill">
+                          <IconClock />
+                          Conexão: {s.connectionAfter} de espera em {s.toName ?? s.toIata}
+                        </div>
                       </div>
-                      <div>
-                        <small>Aeronave</small>
-                        <strong>{s.aircraft ?? "Conforme confirmação"}</strong>
-                      </div>
-                      <div>
-                        <small>Data do trecho</small>
-                        <strong>{dataBr}</strong>
-                      </div>
-                      <div>
-                        <small>Franquia de bagagem</small>
-                        <strong>
-                          {leg.checkedBaggage
-                            ? "Bagagem despachada incluída"
-                            : leg.carryOn
-                              ? "Bagagem de mão 10kg"
-                              : "Somente item pessoal"}
-                        </strong>
-                      </div>
-                    </div>
-                  </section>
-                  {s.connectionAfter ? (
-                    <div className="vq-connection" style={{ marginTop: 10 }}>
-                      <IconClock />Conexão de {s.connectionAfter} em {s.toName ?? s.toIata}
-                    </div>
-                  ) : null}
-                </div>
-              );
-            })}
+                    ) : null}
+                  </div>
+                );
+              })}
+            </div>
           </div>
+
           {leg.rules?.length ? (
             <div className="vq-fare-note">{leg.rules.join(" • ")}</div>
           ) : null}
         </div>
       ) : null}
+
+
 
     </article>
   );
