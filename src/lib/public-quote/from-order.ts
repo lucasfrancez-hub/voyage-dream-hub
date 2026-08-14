@@ -9,7 +9,9 @@
  * Nada de comissão, custo ou dado interno entra aqui.
  */
 import { cityLabel } from "@/lib/iata-lookup";
+import { buildExtendedQuotes, DEFAULT_EXTENDED_MARKUPS } from "@/lib/airfare-conditions";
 import { cardInstallments, boletoInstallments, PIX_DISCOUNT_PERCENT } from "./payments";
+
 import type {
   FlightLeg,
   FlightSegment,
