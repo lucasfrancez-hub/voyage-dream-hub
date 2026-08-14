@@ -13,7 +13,6 @@ import { formatBRL } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import {
   gerarTokenExtensao,
@@ -22,7 +21,7 @@ import {
   converterOrcamentoEmPedido,
   gerarLinkOrcamento,
 } from "@/lib/quotes/quotes.functions";
-import { QUOTE_STATUS, quoteStatusBadge, quoteSourceBadge } from "@/lib/quotes/labels";
+import { quoteStatusBadge, quoteSourceBadge } from "@/lib/quotes/labels";
 import { NovoOrcamentoManualDialog } from "@/components/quote/NovoOrcamentoManualDialog";
 import { confirmThen } from "@/lib/confirm";
 
