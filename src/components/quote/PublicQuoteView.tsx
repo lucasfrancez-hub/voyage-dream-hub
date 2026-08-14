@@ -81,9 +81,9 @@ function FlightLegCard({ leg }: { leg: FlightLeg }) {
             <span>{leg.fromCity}</span>
           </div>
           <div className="vq-path">
-            {leg.duration ?? ""}
-            <div className="vq-line">{leg.stops > 0 ? <span className="vq-stop-dot" /> : null}</div>
             {leg.stopsLabel}
+            <div className="vq-line">{leg.stops > 0 ? <span className="vq-stop-dot" /> : null}</div>
+            {leg.duration ?? ""}
           </div>
           <div className="vq-airport" style={{ textAlign: "right" }}>
             <time>{leg.arrivalTime}</time>
@@ -131,10 +131,17 @@ function FlightLegCard({ leg }: { leg: FlightLeg }) {
                     <span>{s.toName}</span>
                   </div>
                   <div className="vq-seg-meta">
-                    <div className="vq-mini"><small>Companhia</small><strong>{s.airline}</strong></div>
-                    <div className="vq-mini"><small>Voo</small><strong>{s.flightNumber ?? "—"}</strong></div>
+                    <div className="vq-mini">
+                      <small>Voo</small>
+                      <strong>{[s.airline, s.flightNumber].filter(Boolean).join(" ") || "—"}</strong>
+                    </div>
                     <div className="vq-mini"><small>Duração</small><strong>{s.duration ?? "—"}</strong></div>
-                    <div className="vq-mini"><small>Data</small><strong>{s.departure.slice(0, 10).split("-").reverse().join("/")}</strong></div>
+                    <div className="vq-mini"><small>Classe</small><strong>{leg.cabin ?? "Econômica"}</strong></div>
+                    <div className="vq-mini"><small>Aeronave</small><strong>{s.aircraft ?? "Conforme confirmação"}</strong></div>
+                    <div className="vq-mini" style={{ gridColumn: "1/-1" }}>
+                      <small>Data</small>
+                      <strong>{s.departure.slice(0, 10).split("-").reverse().join("/")}</strong>
+                    </div>
                   </div>
                 </div>
                 {s.connectionAfter ? (
