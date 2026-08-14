@@ -159,7 +159,8 @@ function roomLabel(item: PublicQuoteItem, hotelName: string): string | null {
     return cama ? `${base} — ${cama}` : base;
   }
   if (cama) return `Quarto — ${cama}`;
-  return item.title && item.title !== hotelName ? item.title : null;
+  const t = item.title ?? "";
+  return t && t !== hotelName && !/noites?/i.test(t) ? t : null;
 }
 
 function hotelProduct(
