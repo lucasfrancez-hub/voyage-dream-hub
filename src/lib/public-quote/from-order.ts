@@ -177,7 +177,10 @@ function hotelProduct(
     mealPlan: item.meal_plan ?? null,
     benefits: hotelBenefits(item, info?.amenities ?? []),
     roomName: item.title && item.title !== nome ? item.title : null,
-    roomDescription: item.notes ?? info?.description ?? null,
+    roomDescription: item.notes ?? null,
+    about: info?.description ?? null,
+    rating: info?.rating ?? null,
+    reviewsCount: info?.num_reviews ?? null,
     location:
       lat != null || endereco
         ? {
