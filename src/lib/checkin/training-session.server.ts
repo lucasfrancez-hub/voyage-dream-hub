@@ -837,3 +837,34 @@ async function closeRemote(wsEndpoint: string) {
     /* ignore */
   }
 }
+
+/**
+ * Captura o estado de sessão (cookies + localStorage) da aba viva.
+ * Usado pela integração Expedia TAAP para guardar a sessão autenticada
+ * depois de um login manual — nunca guardamos usuário/senha.
+ */
+export async function captureSessionCookies(opts: { userId: string; sessionId: string }): Promise<{
+  cookies: Array<Record<string, unknown>>;
+  url: string;
+  storage: Record<string, string>;
+}> {
+  const session = requireSession(opts.sessionId, opts.userId);
+  return withConnection(session, async (cdp) => {
+    const res = await cdp
+      .send<{ cookies?: Array<Record<string, unknown>> }>("Network.getAllCookies")
+      .catch(() => ({ cookies: [] as Array<Record<string, unknown>> }));
+    const url = (await evalExpr<string>(cdp, "location.href")) || "";
+    const raw =
+      (await evalExpr<string>(
+        cdp,
+        "JSON.stringify(Object.fromEntries(Object.entries(localStorage).slice(0, 200)))",
+      )) || "{}";
+    let storage: Record<string, string> = {};
+    try {
+      storage = JSON.parse(raw) as Record<string, string>;
+    } catch {
+      storage = {};
+    }
+    return { cookies: res.cookies ?? [], url, storage };
+  });
+}

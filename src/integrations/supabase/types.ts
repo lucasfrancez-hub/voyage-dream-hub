@@ -2084,6 +2084,95 @@ export type Database = {
         }
         Relationships: []
       }
+      expedia_search_logs: {
+        Row: {
+          created_at: string
+          duration_ms: number | null
+          id: string
+          params: Json
+          parser_errors: Json | null
+          results_count: number | null
+          search_type: string
+          session_id: string | null
+          source_level: string | null
+          status: string
+          url: string | null
+        }
+        Insert: {
+          created_at?: string
+          duration_ms?: number | null
+          id?: string
+          params?: Json
+          parser_errors?: Json | null
+          results_count?: number | null
+          search_type?: string
+          session_id?: string | null
+          source_level?: string | null
+          status: string
+          url?: string | null
+        }
+        Update: {
+          created_at?: string
+          duration_ms?: number | null
+          id?: string
+          params?: Json
+          parser_errors?: Json | null
+          results_count?: number | null
+          search_type?: string
+          session_id?: string | null
+          source_level?: string | null
+          status?: string
+          url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expedia_search_logs_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "expedia_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      expedia_sessions: {
+        Row: {
+          account_email: string | null
+          cookies_encrypted: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          label: string
+          last_validated_at: string | null
+          status: string
+          storage_encrypted: string | null
+          updated_at: string
+        }
+        Insert: {
+          account_email?: string | null
+          cookies_encrypted?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          label?: string
+          last_validated_at?: string | null
+          status?: string
+          storage_encrypted?: string | null
+          updated_at?: string
+        }
+        Update: {
+          account_email?: string | null
+          cookies_encrypted?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          label?: string
+          last_validated_at?: string | null
+          status?: string
+          storage_encrypted?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       financial_categories: {
         Row: {
           created_at: string
