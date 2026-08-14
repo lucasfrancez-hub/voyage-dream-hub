@@ -102,20 +102,8 @@ function brl(n: number): string {
   return (Number(n) || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
-export function buildAirOnlyQuote(params: {
-  result: FlightQuoteResult;
-  option: FlightQuoteOption;
-  optionIndex: number;
-  agentName?: string | null;
-  conversationId?: string | null;
-  flightQuoteId?: string | null;
-  validUntil?: string | null;
-}): Omit<PublicQuote, "id" | "publicId" | "createdAt" | "updatedAt"> & {
-  conversationId?: string | null;
-  flightQuoteId?: string | null;
-  optionIndex?: number | null;
-} {
-  const { result, option } = params;
+/** Monta produtos + totais + pagamento de UMA opção de voo. */
+function buildOptionPayload(option: FlightQuoteOption, numero: number) {
   const legs: FlightLeg[] = [toLeg(option.ida, "OUTBOUND")];
   if (option.volta) legs.push(toLeg(option.volta, "INBOUND"));
 
@@ -130,8 +118,57 @@ export function buildAirOnlyQuote(params: {
     },
   ];
 
+  return {
+    products: { flights: [{ id: `opt-${numero}`, optionId: String(numero), legs }] },
+    payment,
+    totals: { products: total, taxes: 0, total, pixTotal: payment.pix.total },
+    summary,
+  };
+}
+
+function labelOpcao(option: FlightQuoteOption, numero: number): string {
+  const cia = findAirline(option.ida?.cia)?.name ?? option.ida?.cia ?? "";
+  const destaque = option.destaque ? option.destaque.charAt(0).toUpperCase() + option.destaque.slice(1) : "";
+  const extra = destaque || cia;
+  return extra ? `Opção ${numero} — ${extra}` : `Opção ${numero}`;
+}
+
+export function buildAirOnlyQuote(params: {
+  result: FlightQuoteResult;
+  option: FlightQuoteOption;
+  optionIndex: number;
+  /** Todas as opções geradas pelo motor — viram abas dentro do orçamento. */
+  allOptions?: FlightQuoteOption[] | null;
+  agentName?: string | null;
+  conversationId?: string | null;
+  flightQuoteId?: string | null;
+  validUntil?: string | null;
+}): Omit<PublicQuote, "id" | "publicId" | "createdAt" | "updatedAt"> & {
+  conversationId?: string | null;
+  flightQuoteId?: string | null;
+  optionIndex?: number | null;
+} {
+  const { result, option } = params;
+  const base = buildOptionPayload(option, params.optionIndex);
+
   const origem = result.origem_nome || cityLabel(result.origem_iata) || result.origem_iata;
   const destino = result.destino_nome || cityLabel(result.destino_iata) || result.destino_iata;
+
+  const todas = (params.allOptions ?? []).filter(Boolean);
+  const options =
+    todas.length > 1
+      ? todas.map((o, i) => {
+          const p = buildOptionPayload(o, i + 1);
+          return {
+            optionId: String(i + 1),
+            label: labelOpcao(o, i + 1),
+            products: p.products,
+            totals: p.totals,
+            payment: p.payment,
+            summary: p.summary,
+          };
+        })
+      : undefined;
 
   return {
     type: "AIR_ONLY",
@@ -143,18 +180,11 @@ export function buildAirOnlyQuote(params: {
     endDate: result.data_volta,
     tripKind: option.volta ? "Ida e volta" : "Somente ida",
     passengers: passageiros(result.passageiros),
-    products: {
-      flights: [
-        {
-          id: `opt-${params.optionIndex}`,
-          optionId: String(params.optionIndex),
-          legs,
-        },
-      ],
-    },
-    payment,
-    totals: { products: total, taxes: 0, total, pixTotal: payment.pix.total },
-    summary,
+    products: base.products,
+    ...(options ? { options } : {}),
+    payment: base.payment,
+    totals: base.totals,
+    summary: base.summary,
     agent: params.agentName ? { name: params.agentName, photoUrl: null, phone: null, whatsapp: null, email: null } : null,
     source: { type: "SYSTEM", conversationId: params.conversationId ?? null },
     validUntil: params.validUntil ?? null,
@@ -164,3 +194,4 @@ export function buildAirOnlyQuote(params: {
     optionIndex: params.optionIndex,
   };
 }
+
