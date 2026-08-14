@@ -376,36 +376,55 @@
   pointer-events: auto;
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 6px 8px 6px 16px;
+  gap: 8px;
+  padding: 5px 6px 5px 14px;
   border-radius: 999px;
-  background: rgb(255 255 255 / 0.72);
-  border: 1px solid rgb(255 255 255 / 0.9);
-  box-shadow: 0 14px 40px -12px rgb(15 40 70 / 0.35);
+  background: rgb(226 233 242 / 0.88);
+  border: 1px solid rgb(0 43 91 / 0.12);
+  box-shadow: 0 14px 40px -12px rgb(15 40 70 / 0.4);
   backdrop-filter: blur(18px) saturate(150%);
-  overflow-x: auto;
-  scrollbar-width: none;
+  max-width: 100%;
 }
-.vq-options-inner::-webkit-scrollbar { display: none; }
 .vq-options-title {
   flex: 0 0 auto;
   font-size: 10px;
   letter-spacing: 0.16em;
   text-transform: uppercase;
   font-weight: 800;
-  color: rgb(0 43 91 / 0.5);
+  color: rgb(0 43 91 / 0.55);
 }
+.vq-options-arrow {
+  flex: 0 0 auto;
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  border: 1px solid rgb(0 43 91 / 0.14);
+  background: rgb(255 255 255 / 0.9);
+  color: #002b5b;
+  font-size: 16px;
+  line-height: 1;
+  font-weight: 800;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.2s;
+}
+.vq-options-arrow:hover { background: #002b5b; color: #fff; }
 .vq-options-tabs {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
+  overflow-x: auto;
+  scroll-behavior: smooth;
+  scrollbar-width: none;
 }
+.vq-options-tabs::-webkit-scrollbar { display: none; }
 .vq-option-tab {
   flex: 0 0 auto;
   display: flex;
   align-items: baseline;
-  gap: 8px;
-  padding: 9px 18px;
+  gap: 6px;
+  padding: 7px 12px;
   border-radius: 999px;
   border: 1px solid transparent;
   background: transparent;
@@ -414,9 +433,9 @@
   cursor: pointer;
   transition: background 0.2s, color 0.2s, box-shadow 0.2s, transform 0.2s;
 }
-.vq-option-tab span { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; opacity: 0.6; }
-.vq-option-tab strong { font-size: 14px; font-weight: 800; }
-.vq-option-tab:hover { background: rgb(255 255 255 / 0.85); }
+.vq-option-tab span { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; opacity: 0.6; }
+.vq-option-tab strong { font-size: 13px; font-weight: 800; }
+.vq-option-tab:hover { background: rgb(255 255 255 / 0.9); }
 .vq-option-tab.is-active {
   background: #002b5b;
   color: #fff;
@@ -427,7 +446,7 @@
 @media (max-width: 760px) {
   .vq-options { top: 78px; max-width: calc(100vw - 16px); }
   .vq-options-title { display: none; }
-  .vq-options-inner { padding: 6px; }
-  .vq-option-tab { padding: 8px 14px; }
+  .vq-options-inner { padding: 5px; gap: 6px; }
+  .vq-option-tab { padding: 7px 10px; }
 }
 

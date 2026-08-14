@@ -3,7 +3,7 @@
  * Renderiza EXCLUSIVAMENTE o DTO público: nada de comissão, markup,
  * custo, fornecedor interno, margem ou observação interna.
  */
-import { useEffect, useMemo, useState, type ReactElement } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactElement } from "react";
 import viaAirLogo from "@/assets/viaair-logo.png.asset.json";
 import heroFallback from "@/assets/hero-destino.jpg.asset.json";
 import { airlineLogo } from "@/lib/airlines";
@@ -687,6 +687,7 @@ function PaymentBox({ quote }: { quote: PublicQuote }) {
 export function PublicQuoteView({ quote }: { quote: PublicQuote }) {
   const options = quote.options ?? [];
   const [sel, setSel] = useState(0);
+  const tabsRef = useRef<HTMLDivElement | null>(null);
   if (options.length < 2) return <QuoteBody quote={quote} />;
 
   const opt = options[Math.min(sel, options.length - 1)]!;
@@ -704,7 +705,15 @@ export function PublicQuoteView({ quote }: { quote: PublicQuote }) {
       <div className="vq-options">
         <div className="vq-options-inner">
           <span className="vq-options-title">Escolha sua opção</span>
-          <div className="vq-options-tabs">
+          <button
+            type="button"
+            aria-label="Ver opções anteriores"
+            className="vq-options-arrow"
+            onClick={() => tabsRef.current?.scrollBy({ left: -220, behavior: "smooth" })}
+          >
+            ‹
+          </button>
+          <div className="vq-options-tabs" ref={tabsRef}>
             {options.map((o, i) => (
               <button
                 key={o.optionId}
@@ -717,6 +726,14 @@ export function PublicQuoteView({ quote }: { quote: PublicQuote }) {
               </button>
             ))}
           </div>
+          <button
+            type="button"
+            aria-label="Ver próximas opções"
+            className="vq-options-arrow"
+            onClick={() => tabsRef.current?.scrollBy({ left: 220, behavior: "smooth" })}
+          >
+            ›
+          </button>
         </div>
       </div>
     </>
