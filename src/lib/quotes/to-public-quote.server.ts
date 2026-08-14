@@ -1,5 +1,6 @@
 /**
- * Converte um Orçamento Via Air importado (com N opções) no orçamento
+ * Converte um Orçamento Via Air import { formatRoom } from "@/lib/public-quote/room-label";
+importado (com N opções) no orçamento
  * público oficial — UM único link contendo TODAS as opções.
  * SERVER-ONLY.
  */
@@ -209,8 +210,8 @@ export function optionToProducts(option: NormalizedOption, occupancy?: string | 
       occupancy: occupancy ?? null,
       mealPlan: h.board ?? null,
       benefits: h.board ? [h.board] : [],
-      roomName: h.roomDescription ?? null,
-      roomDescription: h.roomDescription ?? null,
+      roomName: formatRoom(h.roomDescription).name,
+      roomDescription: formatRoom(h.roomDescription).description,
       location:
         h.latitude != null || h.address
           ? {
