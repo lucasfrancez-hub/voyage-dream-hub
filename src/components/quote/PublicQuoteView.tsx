@@ -158,7 +158,9 @@ function FlightLegCard({ leg }: { leg: FlightLeg }) {
 
 function HotelCard({ hotel }: { hotel: HotelProduct }) {
   const [view, setView] = useState<"details" | "location">("details");
-  const fotos = hotel.photos.slice(0, 3);
+  const [galeria, setGaleria] = useState(false);
+  // V14: foto principal ocupando duas linhas + quatro fotos menores.
+  const fotos = hotel.photos.slice(0, 5);
   const loc = hotel.location;
   const mapSrc = loc?.latitude && loc?.longitude
     ? `https://www.google.com/maps?q=${loc.latitude},${loc.longitude}&z=15&output=embed`
@@ -168,6 +170,16 @@ function HotelCard({ hotel }: { hotel: HotelProduct }) {
 
   return (
     <article className="vq-card vq-hotel">
+      {galeria ? (
+        <div className="vq-lightbox" role="dialog" onClick={() => setGaleria(false)}>
+          <button className="vq-lightbox-close" onClick={() => setGaleria(false)}>Fechar galeria</button>
+          <div className="vq-lightbox-grid">
+            {hotel.photos.map((src, i) => (
+              <img key={i} src={src} alt={`${hotel.name} ${i + 1}`} loading="lazy" />
+            ))}
+          </div>
+        </div>
+      ) : null}
       <div className="vq-hotel-grid">
         <div className="vq-gallery">
           <div className="vq-gallery-grid">
@@ -182,10 +194,18 @@ function HotelCard({ hotel }: { hotel: HotelProduct }) {
                 <div className="vq-photo main" />
                 <div className="vq-photo" />
                 <div className="vq-photo" />
+                <div className="vq-photo" />
+                <div className="vq-photo" />
               </>
             )}
+            {hotel.photos.length > 5 ? (
+              <button className="vq-more" onClick={() => setGaleria(true)}>
+                Ver todas as fotos
+              </button>
+            ) : null}
           </div>
         </div>
+
 
         <div className="vq-hotel-info">
           {view === "details" ? (
