@@ -71,10 +71,15 @@ export async function saveExpediaSession(input: {
   storage: Record<string, string>;
   userId: string | null;
 }): Promise<{ id: string; cookieCount: number }> {
-  const cookies = filterExpediaCookies(input.cookies);
+  // Se o navegador devolveu cookies mas nenhum bateu com os domínios conhecidos,
+  // preferimos salvar tudo a perder a sessão por causa do filtro.
+  const cookies = filterExpediaCookies(input.cookies).length
+    ? filterExpediaCookies(input.cookies)
+    : input.cookies;
   if (!cookies.length) {
     throw new Error("Nenhum cookie da Expedia foi capturado — confirme que o login foi concluído.");
   }
+
   // Sessões antigas saem de circulação: só uma conectada por vez.
   await supabaseAdmin
     .from("expedia_sessions")
