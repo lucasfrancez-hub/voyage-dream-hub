@@ -724,31 +724,63 @@ function QuoteBody({ quote }: { quote: PublicQuote }) {
     `Olá! Quero seguir com o orçamento ${quote.publicId} (${quote.title}).`,
   )}`;
 
-  const secoes: Array<{ id: string; label: string }> = [];
-  if (hotels.length) secoes.push({ id: "hospedagem", label: "Hospedagem" });
-  if (legs.length) secoes.push({ id: "voos", label: "Voos" });
-  if (quote.products.cars?.length) secoes.push({ id: "carro", label: "Carro" });
-  if (quote.products.activities?.length) secoes.push({ id: "passeios", label: "Passeios" });
-  if (quote.products.tickets?.length) secoes.push({ id: "ingressos", label: "Ingressos" });
+  type Secao = { id: string; label: string; Icon: (p: { className?: string }) => JSX.Element };
+  const secoes: Secao[] = [];
+  if (hotels.length) secoes.push({ id: "hospedagem", label: "Hospedagem", Icon: IconHotel });
+  if (legs.length) secoes.push({ id: "voos", label: "Voos", Icon: IconPlane });
+  if (quote.products.cars?.length) secoes.push({ id: "carro", label: "Carro", Icon: IconCar });
+  if (quote.products.activities?.length)
+    secoes.push({ id: "passeios", label: "Passeios", Icon: IconActivity });
+  if (quote.products.tickets?.length)
+    secoes.push({ id: "ingressos", label: "Ingressos", Icon: IconTicket });
   if (quote.products.transfers?.length || quote.products.services?.length)
-    secoes.push({ id: "servicos", label: "Serviços" });
-  secoes.push({ id: "valores", label: "Valores" });
+    secoes.push({ id: "servicos", label: "Serviços", Icon: IconTransfer });
+  secoes.push({ id: "valores", label: "Valores", Icon: IconMoney });
+
+  const [ativa, setAtiva] = useState<string>(secoes[0]?.id ?? "");
+  const secoesKey = secoes.map((s) => s.id).join(",");
+  useEffect(() => {
+    const ids = secoesKey.split(",").filter(Boolean);
+    const onScroll = () => {
+      let atual = ids[0] ?? "";
+      for (const id of ids) {
+        const el = document.getElementById(id);
+        if (el && el.getBoundingClientRect().top <= 160) atual = id;
+      }
+      setAtiva(atual);
+    };
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, [secoesKey]);
 
   return (
     <div className="vq">
       <header className="vq-topbar">
         <div className="vq-nav">
-          <img src={viaAirLogo.url} alt="VIA AIR" />
+          <a className="vq-brand" href="#topo">
+            <img src={viaAirLogo.url} alt="VIA AIR" />
+            <span className="vq-brand-sub">Premium Travel</span>
+          </a>
           <nav className="vq-navlinks">
             {secoes.map((s) => (
-              <a key={s.id} href={`#${s.id}`}>{s.label}</a>
+              <a
+                key={s.id}
+                href={`#${s.id}`}
+                className={ativa === s.id ? "is-active" : undefined}
+              >
+                <s.Icon />
+                <span>{s.label}</span>
+              </a>
             ))}
           </nav>
           <span className="vq-tag">
+            {quote.type === "AIR_ONLY" ? <IconPlane /> : <IconBag />}
             {quote.type === "AIR_ONLY" ? "Passagens aéreas" : "Pacote completo"}
           </span>
         </div>
       </header>
+
 
       <main className="vq-wrap">
         {quote.expired ? (
