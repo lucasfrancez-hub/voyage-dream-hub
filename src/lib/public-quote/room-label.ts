@@ -48,7 +48,7 @@ function traduzir(s: string) {
 }
 
 function bonito(s: string) {
-  const t = traduzir(s);
+  const t = traduzir(s).replace(/,\s*(?=\d)/g, " — ");
   if (!t) return t;
   // evita textos 100% em CAIXA ALTA
   if (t === t.toUpperCase() && /[A-ZÀ-Ú]{4,}/.test(t)) {
