@@ -271,6 +271,9 @@ export const getPublicQuote = createServerFn({ method: "GET" })
           check_in: str("check_in") ?? str("checkin"),
           check_out: str("check_out") ?? str("checkout"),
           photo_url: str("photo_url"),
+          room_type: str("room_type") ?? str("room_category"),
+          room_category: str("room_category"),
+          bed_type: str("bed_type"),
           notes: str("notes"),
         };
       }
