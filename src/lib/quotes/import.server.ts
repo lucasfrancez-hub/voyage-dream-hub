@@ -57,9 +57,17 @@ export async function fingerprintFor(source: string, url: string): Promise<strin
   let key = url;
   try {
     const u = new URL(url);
-    key = `${u.hostname}${u.pathname}`.replace(/\/+$/, "").toLowerCase();
+    // O identificador do orçamento vive na query (?token=...): precisa entrar
+    // no fingerprint, senão todos os links da Infotravel viram o mesmo import.
+    const token =
+      u.searchParams.get("token") ??
+      u.searchParams.get("id") ??
+      u.searchParams.get("codigo") ??
+      "";
+    key = `${u.hostname}${u.pathname}`.replace(/\/+$/, "").toLowerCase() + (token ? `|${token}` : "");
   } catch {
     /* usa a url crua */
+
   }
   const bytes = new TextEncoder().encode(`${source}|${key}`);
   const digest = await crypto.subtle.digest("SHA-256", bytes);
