@@ -128,10 +128,19 @@ export const gerarLinkOrcamento = createServerFn({ method: "POST" })
       .eq("id", data.quoteId)
       .maybeSingle();
     if (!quote) throw new Error("Orçamento não encontrado");
+    const LIBERADOS = ["READY", "SENT", "VIEWED", "INTERESTED", "CONVERTED"];
+    if (!LIBERADOS.includes(String(quote.status))) {
+      throw new Error("Importação incompleta: reprocesse o orçamento antes de gerar o link");
+    }
     if (quote.public_url) return { url: quote.public_url, shortUrl: quote.public_short_url ?? null, reused: true };
 
     const normalized = quote.normalized as unknown as import("./types").NormalizedQuote;
     if (!normalized?.options?.length) throw new Error("Orçamento ainda não foi processado");
+    const { optionHasProducts } = await import("./types");
+    if (!normalized.options.some((o) => optionHasProducts(o)) || !(Number(quote.total) > 0)) {
+      throw new Error("Orçamento sem produtos/valores reais: reprocesse a importação");
+    }
+
 
     const dto = buildPublicQuoteFromImported({
       normalized,

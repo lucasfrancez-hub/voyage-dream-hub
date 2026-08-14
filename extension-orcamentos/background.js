@@ -47,7 +47,28 @@ async function queueRemove(url) {
   await store({ viaairQueue: viaairQueue.filter((q) => q.url !== url) });
 }
 
+/** Aguarda a Via Air concluir o parsing dos dados reais (READY/IMPORT_ERROR). */
+async function pollUntilDone(importId, token, timeoutMs = 45_000) {
+  const started = Date.now();
+  let last = { status: "PROCESSING" };
+  while (Date.now() - started < timeoutMs) {
+    await new Promise((r) => setTimeout(r, 2000));
+    try {
+      const res = await fetch(`${ENDPOINT}?id=${encodeURIComponent(importId)}`, {
+        headers: { authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) continue;
+      last = await res.json();
+      if (last.status === "READY" || last.status === "IMPORT_ERROR") return last;
+    } catch (_) {
+      /* tenta de novo */
+    }
+  }
+  return last;
+}
+
 async function sendImport(url, trigger) {
+
   const token = await getToken();
   if (!token) {
     console.error(LOG, "token ausente — configure no popup da extensão");
@@ -86,15 +107,46 @@ async function sendImport(url, trigger) {
     }
 
     const data = await res.json();
-    const label = data.quote ? `#${data.quote.quote_number} ${data.quote.destination || data.quote.title || ""}` : url;
-    await markImported(url, { result: data.status, importId: data.importId, label });
+
+    // Sucesso só quando a Via Air terminar de importar os dados reais (status READY).
+    let final = data;
+    if (data.status === "PROCESSING" && data.importId) {
+      final = await pollUntilDone(data.importId, token);
+    }
+
+    const label = final.quote
+      ? `#${final.quote.quote_number} ${final.quote.destination || final.quote.title || ""}`
+      : url;
+
+    if (final.status !== "READY") {
+      console.error(LOG, "importação não concluída", { status: final.status, error: final.error });
+      await logEvent({ event: "import_failed", sourceUrl: url, result: final.status, detail: final.error || "" });
+      await markImported(url, { result: final.status, importId: data.importId, label });
+      return {
+        status: "IMPORT_ERROR",
+        stage: "PARSE",
+        importId: data.importId,
+        quoteId: final.quoteId || null,
+        detail: final.error || final.status,
+      };
+    }
+
+    await markImported(url, { result: "READY", importId: data.importId, label });
     await queueRemove(url);
-    await logEvent({ event: "imported", sourceUrl: url, result: data.status, importId: data.importId });
-    console.info(LOG, "Importação criada", { importId: data.importId, status: data.status, quoteId: data.quoteId });
+    await logEvent({ event: "imported", sourceUrl: url, result: "READY", importId: data.importId });
+    console.info(LOG, "Importação concluída", { importId: data.importId, quoteId: final.quoteId });
     chrome.tabs.query({}, (tabs) =>
       tabs.forEach((t) => t.id && chrome.tabs.sendMessage(t.id, { type: "viaair-quotes-updated" }, () => void chrome.runtime.lastError)),
     );
-    return { status: data.status, duplicate: data.duplicate || !!already, importId: data.importId };
+    return {
+      status: "READY",
+      duplicate: !!data.duplicate || !!already,
+      importId: data.importId,
+      quoteId: final.quoteId || null,
+      quoteUrl: final.quoteId ? `${API_BASE}/admin/orcamentos/${final.quoteId}` : `${API_BASE}/admin/orcamentos`,
+      label,
+    };
+
   } catch (e) {
     // AUDITORIA: erro completo, sem mascarar
     console.error(LOG, "falha ao enviar para a Via Air", { message: e?.message, stack: e?.stack, url, trigger });
@@ -116,7 +168,12 @@ async function flushQueue() {
   for (const item of [...viaairQueue]) {
     if (item.nextAt > now) continue;
     const r = await sendImport(item.url, item.trigger);
-    if (r.status === "READY" || r.status === "PROCESSING") continue;
+    if (r.status === "READY") continue;
+    if (r.status === "IMPORT_ERROR") {
+      // dados da fonte não puderam ser lidos: não adianta repetir em loop
+      await queueRemove(item.url);
+      continue;
+    }
     const { viaairQueue: current = [] } = await read(["viaairQueue"]);
     const updated = current.map((q) => {
       if (q.url !== item.url) return q;

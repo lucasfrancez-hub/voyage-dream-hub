@@ -129,6 +129,65 @@
   }
   refreshStatus();
 
+  /* ---------- toast Via Air (canto superior direito) ---------- */
+  const toastHost = document.createElement("div");
+  toastHost.style.cssText = "position:fixed;top:16px;right:16px;z-index:2147483001;";
+  const toastShadow = toastHost.attachShadow({ mode: "open" });
+  toastShadow.innerHTML = `
+    <style>
+      .t{display:none;min-width:280px;max-width:360px;background:#0d2b45;color:#e8eef5;
+        border:1px solid rgba(255,255,255,.12);border-left:4px solid #F26B1F;border-radius:12px;
+        padding:12px 14px;font:400 12.5px/1.45 -apple-system,Segoe UI,Roboto,sans-serif;
+        box-shadow:0 14px 38px rgba(0,0,0,.38)}
+      .t.show{display:flex;gap:10px;align-items:flex-start}
+      .t.ok{border-left-color:#22c55e}.t.err{border-left-color:#ef4444}.t.warn{border-left-color:#f59e0b}
+      .ttl{font-weight:700;font-size:12.5px}
+      .sub{color:#9db0c4;font-size:11.5px;margin-top:2px}
+      .act{margin-top:8px;display:inline-block;color:#F26B1F;font-weight:600;cursor:pointer;text-decoration:none;font-size:11.5px}
+      .sp{animation:spin 1s linear infinite;transform-origin:50% 50%}
+      @keyframes spin{to{transform:rotate(360deg)}}
+      .x{margin-left:auto;color:#9db0c4;cursor:pointer;font-size:14px;line-height:1}
+    </style>
+    <div class="t" id="t">
+      <span id="icon"></span>
+      <div style="flex:1">
+        <div class="ttl" id="ttl"></div>
+        <div class="sub" id="sub"></div>
+        <a class="act" id="act" target="_blank" style="display:none">Abrir na Via Air</a>
+      </div>
+      <span class="x" id="x">✕</span>
+    </div>`;
+  document.documentElement.appendChild(toastHost);
+  new MutationObserver(() => {
+    if (!toastHost.isConnected) document.documentElement.appendChild(toastHost);
+  }).observe(document.documentElement, { childList: true });
+
+  const ICONS = {
+    loading: `<svg class="sp" width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#F26B1F" stroke-width="2.5" stroke-dasharray="40" stroke-linecap="round"/></svg>`,
+    success: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="m5 13 4 4 10-10" stroke="#22c55e" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+    duplicate: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><rect x="4" y="4" width="12" height="12" rx="2" stroke="#38bdf8" stroke-width="2"/><rect x="8" y="8" width="12" height="12" rx="2" stroke="#38bdf8" stroke-width="2"/></svg>`,
+    error: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 7v6M12 17h.01" stroke="#ef4444" stroke-width="2.5" stroke-linecap="round"/><circle cx="12" cy="12" r="9" stroke="#ef4444" stroke-width="2"/></svg>`,
+    auth: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><rect x="4" y="10" width="16" height="10" rx="2" stroke="#f59e0b" stroke-width="2"/><path d="M8 10V7a4 4 0 1 1 8 0v3" stroke="#f59e0b" stroke-width="2"/></svg>`,
+  };
+  const tEl = (id) => toastShadow.getElementById(id);
+  let toastTimer = null;
+  tEl("x").addEventListener("click", () => tEl("t").classList.remove("show"));
+
+  function toast(kind, title, sub, link) {
+    const box = tEl("t");
+    box.className = "t show" + (kind === "success" || kind === "duplicate" ? " ok" : kind === "error" ? " err" : kind === "auth" ? " warn" : "");
+    tEl("icon").innerHTML = ICONS[kind] || ICONS.loading;
+    tEl("ttl").textContent = title;
+    tEl("sub").textContent = sub || "";
+    const act = tEl("act");
+    if (link) {
+      act.href = link;
+      act.style.display = "inline-block";
+    } else act.style.display = "none";
+    if (toastTimer) clearTimeout(toastTimer);
+    if (kind === "success" || kind === "duplicate") toastTimer = setTimeout(() => box.classList.remove("show"), 6000);
+  }
+
   /* ---------- captura ---------- */
   const seen = new Set();
   function capture(raw, trigger) {
@@ -143,24 +202,35 @@
     }
     seen.add(url);
     console.info(LOG, "URL detectada:", url, "| gatilho:", trigger);
-    console.info(LOG, "Enviando para Via Air…");
     setState("Importando orçamento…", "busy");
+    toast("loading", "Importando orçamento...", "Lendo os dados da proposta na Infotravel.");
     chrome.runtime.sendMessage({ type: "viaair-quotes-import", url, trigger }, (res) => {
       if (chrome.runtime.lastError || !res) {
         console.error(LOG, "service worker não respondeu:", chrome.runtime.lastError?.message);
-        return setState("Não foi possível importar", "err");
-      }
-      console.info(LOG, "API respondeu:", res);
-      if (res.status === "READY") setState(res.duplicate ? "Orçamento já importado" : "Orçamento importado", "");
-      else if (res.status === "QUEUED") setState("Pendente — tentaremos novamente", "warn");
-      else if (res.status === "UNAUTHORIZED") setState("Erro de autenticação", "err");
-      else if (res.status === "PROCESSING") setState("Importando orçamento…", "busy");
-      else {
-        console.error(LOG, "importação falhou:", res);
         setState("Não foi possível importar", "err");
+        return toast("error", "Não foi possível importar os dados do orçamento.", "A extensão não conseguiu falar com o serviço.");
+      }
+      console.info(LOG, "API respondeu:", res.status);
+      if (res.status === "READY") {
+        setState(res.duplicate ? "Orçamento já importado" : "Orçamento importado", "");
+        if (res.duplicate) toast("duplicate", "Orçamento já importado", res.label || "", res.quoteUrl);
+        else toast("success", "✓ Orçamento exportado para Via Air", "Exportado com sucesso.", res.quoteUrl);
+      } else if (res.status === "IMPORT_ERROR") {
+        setState("Falha na importação", "err");
+        toast("error", "Não foi possível importar os dados do orçamento.", res.detail || "Abra a Via Air e use Reprocessar.");
+      } else if (res.status === "QUEUED") {
+        setState("Pendente — tentaremos novamente", "warn");
+        toast("loading", "Sem conexão com a Via Air", "O orçamento ficou na fila e será reenviado.");
+      } else if (res.status === "UNAUTHORIZED") {
+        setState("Erro de autenticação", "err");
+        toast("auth", "Conecte a extensão à Via Air", "Abra o ícone da extensão e conclua a conexão.");
+      } else {
+        setState("Importando orçamento…", "busy");
+        toast("loading", "Importando orçamento...", "Ainda processando na Via Air.");
       }
     });
   }
+
 
   window.addEventListener("message", (e) => {
     const d = e.data;
