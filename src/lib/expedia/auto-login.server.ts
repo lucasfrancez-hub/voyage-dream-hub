@@ -193,3 +193,16 @@ export async function autoLoginExpedia(userId: string | null = null): Promise<Au
     if (ws) await closeRemoteBrowser(ws).catch(() => {});
   }
 }
+
+/**
+ * Devolve a sessão ativa; se não houver, tenta o login automático uma vez.
+ * É o que permite operar "sempre conectado" sem login manual a cada expiração.
+ */
+export async function ensureExpediaSession() {
+  const { getActiveExpediaSession } = await import("@/lib/expedia/session-store.server");
+  const current = await getActiveExpediaSession();
+  if (current) return current;
+  const relogin = await autoLoginExpedia();
+  if (!relogin.ok) return null;
+  return getActiveExpediaSession();
+}
