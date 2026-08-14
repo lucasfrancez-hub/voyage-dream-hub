@@ -3,7 +3,13 @@
  * SERVER-ONLY.
  */
 import { parserFor, extractInfotravelUrl } from "./infotravel-parser.server";
-import { emptyQuote, type NormalizedQuote } from "./types";
+import {
+  emptyOption,
+  emptyQuote,
+  optionProductKinds,
+  type NormalizedOption,
+  type NormalizedQuote,
+} from "./types";
 
 export type ImportResult = {
   importId: string;
@@ -101,6 +107,28 @@ export async function createQuoteImport(input: {
 
   if (error || !data) return { importId: "", status: "IMPORT_ERROR", error: error?.message ?? "insert_failed" };
   return { importId: data.id, status: "PROCESSING" };
+}
+
+/** Regrava as opções do orçamento (uma linha por opção comercial). */
+export async function syncQuoteOptions(quoteId: string, normalized: NormalizedQuote): Promise<void> {
+  const supabase = await db();
+  await supabase.from("quote_options").delete().eq("quote_id", quoteId);
+  const rows = normalized.options.map((o: NormalizedOption) => ({
+    quote_id: quoteId,
+    option_number: o.optionNumber,
+    label: o.label ?? `Opção ${o.optionNumber}`,
+    start_date: o.startDate ?? null,
+    end_date: o.endDate ?? null,
+    destination: o.destination ?? null,
+    hotel_name: o.hotels[0]?.name ?? null,
+    product_kinds: optionProductKinds(o),
+    total: o.total ?? null,
+    currency: o.currency ?? normalized.currency ?? "BRL",
+    payment_conditions: (o.paymentConditions ?? []) as unknown as never,
+    normalized: o as unknown as never,
+    source_reference: o.sourceReference ?? normalized.sourceBookingId ?? null,
+  }));
+  if (rows.length) await supabase.from("quote_options").insert(rows as never);
 }
 
 /** Busca o HTML, interpreta, normaliza e cria/atualiza o Quote. */
