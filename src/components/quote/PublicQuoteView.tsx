@@ -5,6 +5,7 @@
  */
 import { useEffect, useMemo, useState, type ReactElement } from "react";
 import viaAirLogo from "@/assets/viaair-logo.png.asset.json";
+import heroFallback from "@/assets/hero-destino.jpg.asset.json";
 import { airlineLogo } from "@/lib/airlines";
 import { brl } from "@/lib/public-quote/payments";
 import { quoteHeadline, quoteTagline } from "@/lib/public-quote/headline";
