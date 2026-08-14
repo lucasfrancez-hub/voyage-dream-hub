@@ -38,9 +38,93 @@ function norm(s: string) {
   return s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
 }
 
-function cacheKey(name: string, city: string | null): string {
+function cacheKey(name: string, city: string | null, locationId?: number | null): string {
   // v3 — inclui endereço/descrição em português e pontos próximos.
-  return `hotel-enrich:v3:${norm(name)}|${norm(city ?? "")}`;
+  const pin = locationId ? `|ta${locationId}` : "";
+  return `hotel-enrich:v3:${norm(name)}|${norm(city ?? "")}${pin}`;
+}
+
+/** Chave estável do hotel usada no vínculo manual com o TripAdvisor. */
+export function hotelLinkKey(name: string, city?: string | null): string {
+  return `${norm(name)}|${norm(city ?? "")}`;
+}
+
+/** Busca o vínculo manual (Editar → TripAdvisor) salvo para este hotel. */
+async function readPinnedLocation(name: string, city: string | null): Promise<number | null> {
+  try {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const chaves = [hotelLinkKey(name, city), hotelLinkKey(name, null)];
+    const { data } = await supabaseAdmin
+      .from("hotel_tripadvisor_links")
+      .select("hotel_key, location_id")
+      .in("hotel_key", chaves);
+    if (!data?.length) return null;
+    const exata = data.find((d) => d.hotel_key === chaves[0]) ?? data[0];
+    const id = Number(exata.location_id);
+    return Number.isFinite(id) && id > 0 ? id : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Remove o cache de enriquecimento de um hotel (após vincular manualmente). */
+export async function limparCacheHotel(name: string, city?: string | null): Promise<void> {
+  try {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    await supabaseAdmin
+      .from("md_response_cache")
+      .delete()
+      .like("url", `hotel-enrich:v3:${norm(name)}|%`);
+  } catch { /* best effort */ }
+}
+
+export type HotelCandidate = {
+  id: number;
+  name: string;
+  address: string | null;
+  stars: number | null;
+  web_url: string | null;
+};
+
+/** Busca propriedades no TripAdvisor para o vínculo manual. */
+export async function searchHotelLocations(query: string): Promise<HotelCandidate[]> {
+  const apiKey = process.env["TRIPADVISOR_API_KEY"];
+  const termo = String(query ?? "").trim();
+  if (!apiKey || termo.length < 3) return [];
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 12_000);
+  try {
+    const search = await jsonOf(
+      `${BASE}/catalog/locations/search?query=${encodeURIComponent(termo)}&search_type=NAME&category=HOTEL`,
+      ctrl.signal,
+      apiKey,
+    );
+    const brutos = ((search?.data ?? []) as Array<{ location?: Record<string, unknown> }>)
+      .map((item) => (item.location ?? item) as Record<string, unknown>)
+      .filter((loc) => loc?.id != null)
+      .slice(0, 8);
+
+    return await Promise.all(
+      brutos.map(async (loc) => {
+        const id = Number(loc.id);
+        const det = await jsonOf(`${BASE}/locations/${id}`, ctrl.signal, apiKey);
+        const d = ((det?.data as Record<string, unknown> | undefined) ?? det ?? {}) as Record<string, unknown>;
+        const estrelasRaw = (d.hotel_class ?? (d as { class?: unknown }).class) as unknown;
+        const estrelas = Number(typeof estrelasRaw === "string" ? estrelasRaw.replace(",", ".") : estrelasRaw);
+        return {
+          id,
+          name: pickName(d.names) || pickName(loc.names) || `Propriedade ${id}`,
+          address: pickAddress(d.addresses as Array<Record<string, unknown>> | undefined),
+          stars: Number.isFinite(estrelas) && estrelas >= 1 && estrelas <= 5 ? Math.round(estrelas) : null,
+          web_url: (d.urls as { tripadvisor?: { main?: string } } | undefined)?.tripadvisor?.main ?? null,
+        };
+      }),
+    );
+  } catch {
+    return [];
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 async function readCache(key: string): Promise<HotelEnrichment | null> {
@@ -157,13 +241,16 @@ export async function enrichHotel(params: {
   destination?: string | null;
   /** Ignora o cache e refaz a consulta. */
   force?: boolean;
+  /** Propriedade TripAdvisor fixada manualmente (Editar → vincular). */
+  locationId?: number | null;
 }): Promise<HotelEnrichment | null> {
   const nome = String(params.name ?? "").trim();
   if (!nome) return null;
 
   const apiKey = process.env["TRIPADVISOR_API_KEY"];
   const local = params.city ?? params.destination ?? null;
-  const key = cacheKey(nome, local);
+  const fixado = params.locationId ?? (await readPinnedLocation(nome, local));
+  const key = cacheKey(nome, local, fixado);
 
   if (!params.force) {
     const hit = await readCache(key);
@@ -183,7 +270,7 @@ export async function enrichHotel(params: {
 
   try {
     const query = local ? `${nome} ${local}` : nome;
-    const search =
+    const search = fixado ? null :
       (await api(`/catalog/locations/search?query=${encodeURIComponent(query)}&search_type=NAME&category=HOTEL`)) ??
       (await api(`/catalog/locations/search?query=${encodeURIComponent(nome)}&search_type=NAME&category=HOTEL`));
 
@@ -193,10 +280,11 @@ export async function enrichHotel(params: {
       .map((loc) => ({ id: Number(loc.id), name: pickName(loc.names) }));
 
     const alvo = norm(nome);
-    const escolhido =
-      candidatos.find((c) => norm(c.name) === alvo) ??
-      candidatos.find((c) => norm(c.name).includes(alvo) || alvo.includes(norm(c.name))) ??
-      candidatos[0];
+    const escolhido = fixado
+      ? { id: fixado, name: nome }
+      : (candidatos.find((c) => norm(c.name) === alvo) ??
+         candidatos.find((c) => norm(c.name).includes(alvo) || alvo.includes(norm(c.name))) ??
+         candidatos[0]);
     if (!escolhido) {
       await writeCache(key, vazio);
       return vazio;
