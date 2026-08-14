@@ -53,6 +53,10 @@ export type HotelInfo = {
   photos: string[]; // urls
   amenities: string[];
   web_url: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  stars?: number | null;
+  nearby?: Array<{ name: string; distance: string }>;
 };
 
 export type PublicQuoteItem = {
@@ -306,16 +310,17 @@ export const getPublicQuote = createServerFn({ method: "GET" })
 
     const snap = ((order as { package_snapshot?: unknown }).package_snapshot ?? {}) as Record<string, unknown>;
 
-    // Enriquecimento TripAdvisor para hotéis (best-effort).
-    const taKey = process.env.TRIPADVISOR_API_KEY;
-    if (taKey) {
+    // Enriquecimento do hotel (TripAdvisor + cache) — fotos, endereço,
+    // coordenadas, comodidades e pontos próximos. Best-effort.
+    {
       const destination = snap.destination ? String(snap.destination) : null;
+      const { enrichHotel } = await import("@/lib/public-quote/hotel-enrichment.server");
       await Promise.all(
         publicItems
           .filter((it) => it.kind === "hotel" && it.hotel_name)
           .map(async (it) => {
             try {
-              it.hotel_info = await fetchHotelInfo(taKey, it.hotel_name!, destination);
+              it.hotel_info = await enrichHotel({ name: it.hotel_name!, destination });
             } catch { /* ignora */ }
           })
       );
@@ -368,79 +373,3 @@ export const getPublicQuote = createServerFn({ method: "GET" })
       },
     };
   });
-
-// -------- TripAdvisor helper (server-only) --------
-async function fetchHotelInfo(
-  apiKey: string,
-  hotelName: string,
-  destination: string | null,
-): Promise<HotelInfo | null> {
-  const query = destination ? `${hotelName} ${destination}` : hotelName;
-  const base = "https://api.content.tripadvisor.com/api/v1/location";
-  const withKey = (u: string) => `${u}${u.includes("?") ? "&" : "?"}key=${encodeURIComponent(apiKey)}&language=pt`;
-
-  const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), 4500);
-  try {
-    const searchUrl = withKey(
-      `${base}/search?searchQuery=${encodeURIComponent(query)}&category=hotels`,
-    );
-    const sRes = await fetch(searchUrl, {
-      signal: ctrl.signal,
-      headers: { accept: "application/json", Referer: "https://voeair.com" },
-    });
-    if (!sRes.ok) return null;
-    const sJson = (await sRes.json()) as { data?: Array<{ location_id: string; name: string }> };
-    const first = sJson.data?.[0];
-    if (!first) return null;
-    const locId = first.location_id;
-
-    const [detailsRes, photosRes] = await Promise.all([
-      fetch(withKey(`${base}/${locId}/details`), {
-        signal: ctrl.signal,
-        headers: { accept: "application/json", Referer: "https://voeair.com" },
-      }),
-      fetch(withKey(`${base}/${locId}/photos?limit=6`), {
-        signal: ctrl.signal,
-        headers: { accept: "application/json", Referer: "https://voeair.com" },
-      }),
-    ]);
-
-    let details: Record<string, unknown> = {};
-    if (detailsRes.ok) details = (await detailsRes.json()) as Record<string, unknown>;
-
-    let photos: string[] = [];
-    if (photosRes.ok) {
-      const pJson = (await photosRes.json()) as {
-        data?: Array<{ images?: { large?: { url?: string }; original?: { url?: string } } }>;
-      };
-      photos = (pJson.data ?? [])
-        .map((p) => p.images?.large?.url ?? p.images?.original?.url ?? "")
-        .filter(Boolean);
-    }
-
-    const addrObj = (details.address_obj ?? {}) as Record<string, unknown>;
-    const amenities = Array.isArray(details.amenities)
-      ? (details.amenities as Array<{ name?: string } | string>)
-          .map((a) => (typeof a === "string" ? a : a?.name ?? ""))
-          .filter(Boolean)
-          .slice(0, 12)
-      : [];
-
-    return {
-      name: (details.name as string) ?? first.name ?? null,
-      rating: details.rating != null ? Number(details.rating) : null,
-      num_reviews: details.num_reviews != null ? Number(details.num_reviews) : null,
-      ranking: (details.ranking_data as { ranking_string?: string } | undefined)?.ranking_string ?? null,
-      address: (addrObj.address_string as string) ?? null,
-      description: (details.description as string) ?? null,
-      photos,
-      amenities,
-      web_url: (details.web_url as string) ?? null,
-    };
-  } catch {
-    return null;
-  } finally {
-    clearTimeout(timer);
-  }
-}

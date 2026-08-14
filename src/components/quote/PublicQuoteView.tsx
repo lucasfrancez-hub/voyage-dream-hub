@@ -81,9 +81,9 @@ function FlightLegCard({ leg }: { leg: FlightLeg }) {
             <span>{leg.fromCity}</span>
           </div>
           <div className="vq-path">
-            {leg.duration ?? ""}
-            <div className="vq-line">{leg.stops > 0 ? <span className="vq-stop-dot" /> : null}</div>
             {leg.stopsLabel}
+            <div className="vq-line">{leg.stops > 0 ? <span className="vq-stop-dot" /> : null}</div>
+            {leg.duration ?? ""}
           </div>
           <div className="vq-airport" style={{ textAlign: "right" }}>
             <time>{leg.arrivalTime}</time>
@@ -131,10 +131,17 @@ function FlightLegCard({ leg }: { leg: FlightLeg }) {
                     <span>{s.toName}</span>
                   </div>
                   <div className="vq-seg-meta">
-                    <div className="vq-mini"><small>Companhia</small><strong>{s.airline}</strong></div>
-                    <div className="vq-mini"><small>Voo</small><strong>{s.flightNumber ?? "—"}</strong></div>
+                    <div className="vq-mini">
+                      <small>Voo</small>
+                      <strong>{[s.airline, s.flightNumber].filter(Boolean).join(" ") || "—"}</strong>
+                    </div>
                     <div className="vq-mini"><small>Duração</small><strong>{s.duration ?? "—"}</strong></div>
-                    <div className="vq-mini"><small>Data</small><strong>{s.departure.slice(0, 10).split("-").reverse().join("/")}</strong></div>
+                    <div className="vq-mini"><small>Classe</small><strong>{leg.cabin ?? "Econômica"}</strong></div>
+                    <div className="vq-mini"><small>Aeronave</small><strong>{s.aircraft ?? "Conforme confirmação"}</strong></div>
+                    <div className="vq-mini" style={{ gridColumn: "1/-1" }}>
+                      <small>Data</small>
+                      <strong>{s.departure.slice(0, 10).split("-").reverse().join("/")}</strong>
+                    </div>
                   </div>
                 </div>
                 {s.connectionAfter ? (
@@ -158,7 +165,9 @@ function FlightLegCard({ leg }: { leg: FlightLeg }) {
 
 function HotelCard({ hotel }: { hotel: HotelProduct }) {
   const [view, setView] = useState<"details" | "location">("details");
-  const fotos = hotel.photos.slice(0, 3);
+  const [galeria, setGaleria] = useState(false);
+  // V14: foto principal ocupando duas linhas + quatro fotos menores.
+  const fotos = hotel.photos.slice(0, 5);
   const loc = hotel.location;
   const mapSrc = loc?.latitude && loc?.longitude
     ? `https://www.google.com/maps?q=${loc.latitude},${loc.longitude}&z=15&output=embed`
@@ -168,6 +177,16 @@ function HotelCard({ hotel }: { hotel: HotelProduct }) {
 
   return (
     <article className="vq-card vq-hotel">
+      {galeria ? (
+        <div className="vq-lightbox" role="dialog" onClick={() => setGaleria(false)}>
+          <button className="vq-lightbox-close" onClick={() => setGaleria(false)}>Fechar galeria</button>
+          <div className="vq-lightbox-grid">
+            {hotel.photos.map((src, i) => (
+              <img key={i} src={src} alt={`${hotel.name} ${i + 1}`} loading="lazy" />
+            ))}
+          </div>
+        </div>
+      ) : null}
       <div className="vq-hotel-grid">
         <div className="vq-gallery">
           <div className="vq-gallery-grid">
@@ -182,10 +201,18 @@ function HotelCard({ hotel }: { hotel: HotelProduct }) {
                 <div className="vq-photo main" />
                 <div className="vq-photo" />
                 <div className="vq-photo" />
+                <div className="vq-photo" />
+                <div className="vq-photo" />
               </>
             )}
+            {hotel.photos.length > 5 ? (
+              <button className="vq-more" onClick={() => setGaleria(true)}>
+                Ver todas as fotos
+              </button>
+            ) : null}
           </div>
         </div>
+
 
         <div className="vq-hotel-info">
           {view === "details" ? (
@@ -316,16 +343,40 @@ function SimpleCard({ item, kind }: { item: SimpleProduct; kind: keyof typeof SI
 
 /* ───────────────────── pagamento ───────────────────── */
 
+/** Faces das bandeiras conforme o layout aprovado (V14). */
+const BRAND_FACES: Record<string, { cls: string; node: React.ReactNode }> = {
+  VISA: { cls: "vq-face-visa", node: "VISA" },
+  MASTERCARD: { cls: "vq-face-master", node: <><i className="a" /><i className="b" /></> },
+  ELO: { cls: "vq-face-elo", node: <><span className="e">e</span><span className="l">l</span><span>o</span></> },
+  AMEX: { cls: "vq-face-amex", node: "AMEX" },
+  DINERS: { cls: "vq-face-diners", node: "DINERS" },
+  HIPERCARD: { cls: "vq-face-hiper", node: "HIPER" },
+};
+
+function brandFace(brand: string) {
+  const key = brand.trim().toUpperCase();
+  return (
+    BRAND_FACES[key] ??
+    BRAND_FACES[Object.keys(BRAND_FACES).find((k) => key.includes(k) || k.includes(key)) ?? ""] ?? {
+      cls: "vq-face-visa",
+      node: key.slice(0, 6),
+    }
+  );
+}
+
 function PaymentBox({ quote }: { quote: PublicQuote }) {
   const metodos = quote.payment.methods;
   const [tab, setTab] = useState<"CARD" | "BOLETO" | "PIX">(metodos[0] ?? "CARD");
   const cartao = quote.payment.card;
   const boleto = quote.payment.boleto;
   const pix = quote.payment.pix;
+  const [brand, setBrand] = useState(cartao.brands[0] ?? "VISA");
+  const [instCartao, setInstCartao] = useState<number | null>(null);
+  const [instBoleto, setInstBoleto] = useState<number | null>(null);
 
   return (
     <div className="vq-card vq-paybox">
-      <h3>Formas de pagamento</h3>
+      <h3>Simulação de pagamento</h3>
       <div className="vq-pay-tabs">
         {metodos.includes("CARD") ? (
           <button className="vq-pay-tab" data-active={tab === "CARD"} onClick={() => setTab("CARD")}>
@@ -347,13 +398,29 @@ function PaymentBox({ quote }: { quote: PublicQuote }) {
       {tab === "CARD" ? (
         <div>
           <div className="vq-brands">
-            {cartao.brands.map((b) => (
-              <span key={b} className="vq-brand">{b}</span>
-            ))}
+            {cartao.brands.map((b) => {
+              const face = brandFace(b);
+              return (
+                <button
+                  key={b}
+                  type="button"
+                  className="vq-brand-btn"
+                  aria-pressed={brand === b}
+                  aria-label={b}
+                  onClick={() => setBrand(b)}
+                >
+                  <span className={`vq-brand-face ${face.cls}`}>{face.node}</span>
+                </button>
+              );
+            })}
           </div>
           <div className="vq-installments">
             {cartao.installments.map((i) => (
-              <div key={i.number} className="vq-inst">
+              <div
+                key={i.number}
+                className={`vq-inst${instCartao === i.number ? " is-selected" : ""}`}
+                onClick={() => setInstCartao(i.number)}
+              >
                 <span>
                   {i.number}x
                   {i.interestFree ? <span className="vq-no-interest">sem juros</span> : null}
@@ -373,7 +440,11 @@ function PaymentBox({ quote }: { quote: PublicQuote }) {
         <div className="vq-boleto-box">
           <div className="vq-installments">
             {boleto.installments.map((i) => (
-              <div key={i.number} className="vq-inst">
+              <div
+                key={i.number}
+                className={`vq-inst${instBoleto === i.number ? " is-selected" : ""}`}
+                onClick={() => setInstBoleto(i.number)}
+              >
                 <span>{i.number}x<span className="vq-no-interest">sem juros</span></span>
                 <strong>{brl(i.amount)}</strong>
               </div>
@@ -389,7 +460,10 @@ function PaymentBox({ quote }: { quote: PublicQuote }) {
       {tab === "PIX" ? (
         <div>
           <div className="vq-pix-box">
-            <span>Pix à vista{pix.discountPercent ? ` (${pix.discountPercent}% de desconto)` : ""}</span>
+            <span style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              <IconPix />
+              Pix à vista{pix.discountPercent ? ` (${pix.discountPercent}% de desconto)` : ""}
+            </span>
             <strong>{brl(pix.total)}</strong>
           </div>
           <p className="vq-payment-note">
@@ -591,6 +665,15 @@ function QuoteBody({ quote }: { quote: PublicQuote }) {
                   </div>
                 );
               })}
+              {quote.totals.taxes > 0 ? (
+                <div className="vq-sum-row">
+                  <div className="vq-sum-left">
+                    <span className="vq-sum-icon"><IconCard /></span>
+                    <span>Taxas</span>
+                  </div>
+                  <strong>{brl(quote.totals.taxes)}</strong>
+                </div>
+              ) : null}
               <div className="vq-sum-total">
                 <span>Total</span>
                 <span>{brl(quote.totals.total)}</span>

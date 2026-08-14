@@ -166,6 +166,61 @@ export async function criarLinkCurto(target: string, label: string): Promise<str
   return null;
 }
 
+/**
+ * Completa hotéis sem foto/endereço com dados do TripAdvisor (cacheados).
+ * Nunca sobrescreve foto manual nem inventa dados: se não achar, segue igual.
+ */
+async function enriquecerHoteis(quote: PublicQuote): Promise<PublicQuote> {
+  const { enrichHotel } = await import("./hotel-enrichment.server");
+
+  const enriquecer = async (hotels: PublicQuote["products"]["hotels"]) => {
+    if (!hotels?.length) return hotels;
+    return await Promise.all(
+      hotels.map(async (h) => {
+        const faltaFoto = !h.photos?.length;
+        const faltaLocal = !h.location || (!h.location.address && h.location.latitude == null);
+        if (!faltaFoto && !faltaLocal) return h;
+        const info = await enrichHotel({ name: h.name, city: quote.destination }).catch(() => null);
+        if (!info || info.status === "MATCH_FAILED") return h;
+        return {
+          ...h,
+          stars: h.stars ?? info.stars,
+          place: h.place ?? info.address,
+          photos: h.photos?.length ? h.photos : info.photos,
+          benefits: h.benefits?.length ? h.benefits : info.amenities.slice(0, 6),
+          roomDescription: h.roomDescription ?? info.description,
+          location:
+            faltaLocal && (info.latitude != null || info.address)
+              ? {
+                  latitude: info.latitude,
+                  longitude: info.longitude,
+                  address: info.address,
+                  nearbyPlaces: info.nearby,
+                }
+              : h.location,
+          mapsUrl:
+            h.mapsUrl ??
+            (info.latitude != null && info.longitude != null
+              ? `https://www.google.com/maps/search/?api=1&query=${info.latitude},${info.longitude}`
+              : null),
+        };
+      }),
+    );
+  };
+
+  const products = { ...quote.products, hotels: await enriquecer(quote.products.hotels) };
+  const options = quote.options
+    ? await Promise.all(
+        quote.options.map(async (o) => ({
+          ...o,
+          products: { ...o.products, hotels: await enriquecer(o.products.hotels) },
+        })),
+      )
+    : quote.options;
+
+  return { ...quote, products, options };
+}
+
 export async function getPublicQuoteByPublicId(publicId: string): Promise<PublicQuote | null> {
   const supabaseAdmin = await db();
   const { data } = await supabaseAdmin
@@ -182,7 +237,8 @@ export async function getPublicQuoteByPublicId(publicId: string): Promise<Public
       last_viewed_at: new Date().toISOString(),
     } as never)
     .eq("public_id", publicId);
-  return rowToQuote(row);
+  const quote = rowToQuote(row);
+  return await enriquecerHoteis(quote).catch(() => quote);
 }
 
 export async function registrarEventoOrcamento(

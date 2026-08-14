@@ -6,6 +6,9 @@
 import { cityLabel } from "@/lib/iata-lookup";
 import { findAirline } from "@/lib/airlines";
 import { buildPayment } from "@/lib/public-quote/payments";
+import { directionsFor, legLabel, splitIntoLegs, type LegInputSegment } from "@/lib/public-quote/flight-legs";
+import { normalizeServiceTitle } from "@/lib/public-quote/service-title";
+import { agentPhoto } from "@/lib/public-quote/agents";
 import type {
   FlightLeg,
   FlightSegment,
@@ -105,10 +108,74 @@ function toLeg(flight: NormalizedOption["flights"][number], index: number): Flig
   };
 }
 
+/**
+ * Um card por trecho real. Nunca une ida com volta: quando os segmentos de
+ * um mesmo objeto não se conectam (aeroporto diferente ou espera > 12h),
+ * eles viram trechos separados.
+ */
+function buildOptionLegs(flights: NormalizedOption["flights"]): FlightLeg[] {
+  const out: FlightLeg[] = [];
+
+  flights.forEach((flight, index) => {
+    const base = toLeg(flight, index);
+    const segs = base.segments;
+    if (segs.length < 2) {
+      out.push(base);
+      return;
+    }
+    const input: LegInputSegment[] = segs.map((s) => ({
+      airline: s.airline,
+      airlineIata: s.airlineIata ?? null,
+      flightNumber: s.flightNumber ?? null,
+      fromIata: s.fromIata,
+      fromName: s.fromName ?? null,
+      toIata: s.toIata,
+      toName: s.toName ?? null,
+      departure: s.departure,
+      arrival: s.arrival,
+      aircraft: s.aircraft ?? null,
+      direction: base.direction,
+    }));
+    const grupos = splitIntoLegs(input);
+    if (grupos.length < 2) {
+      out.push(base);
+      return;
+    }
+    const direcoes = directionsFor(grupos);
+    grupos.forEach((grupo, gi) => {
+      const first = grupo[0]!;
+      const last = grupo[grupo.length - 1]!;
+      const selecionados = segs.filter((s) =>
+        grupo.some((g) => g.fromIata === s.fromIata && g.departure === s.departure),
+      );
+      const stops = Math.max(0, grupo.length - 1);
+      const direction = direcoes[gi]!;
+      out.push({
+        ...base,
+        direction,
+        label: legLabel(direction, gi, grupos.length),
+        dateLabel: dateLabel(first.departure),
+        departureTime: timeOf(first.departure),
+        arrivalTime: timeOf(last.arrival),
+        fromIata: first.fromIata,
+        fromCity: cityLabel(first.fromIata) || null,
+        toIata: last.toIata,
+        toCity: cityLabel(last.toIata) || null,
+        duration: null,
+        stops,
+        stopsLabel: stops === 0 ? "Direto" : stops === 1 ? "1 conexão" : `${stops} conexões`,
+        segments: selecionados.length ? selecionados : segs,
+      });
+    });
+  });
+
+  return out;
+}
+
 function simple(items: NormalizedGenericItem[], prefix: string): SimpleProduct[] {
   return items.map((i, idx) => ({
     id: `${prefix}-${idx + 1}`,
-    title: i.name,
+    title: normalizeServiceTitle(i.name).title,
     summary: i.date ? brDate(i.date) : null,
     details: [
       ...(i.quantity ? [{ label: "Quantidade", value: String(i.quantity) }] : []),
@@ -118,7 +185,7 @@ function simple(items: NormalizedGenericItem[], prefix: string): SimpleProduct[]
   }));
 }
 
-export function optionToProducts(option: NormalizedOption): QuoteProducts {
+export function optionToProducts(option: NormalizedOption, occupancy?: string | null): QuoteProducts {
   const products: QuoteProducts = {};
 
   if (option.flights.length) {
@@ -126,7 +193,7 @@ export function optionToProducts(option: NormalizedOption): QuoteProducts {
       {
         id: `opt-${option.optionNumber}-air`,
         optionId: String(option.optionNumber),
-        legs: option.flights.map(toLeg),
+        legs: buildOptionLegs(option.flights),
       },
     ];
   }
@@ -139,9 +206,9 @@ export function optionToProducts(option: NormalizedOption): QuoteProducts {
       photos: h.photos ?? [],
       checkIn: brDate(h.checkin),
       checkOut: brDate(h.checkout),
-      occupancy: null,
+      occupancy: occupancy ?? null,
       mealPlan: h.board ?? null,
-      benefits: [],
+      benefits: h.board ? [h.board] : [],
       roomName: h.roomDescription ?? null,
       roomDescription: h.roomDescription ?? null,
       location:
@@ -197,7 +264,7 @@ function totalsFor(option: NormalizedOption, payment: ReturnType<typeof buildPay
   return { products: total, taxes: 0, total, pixTotal: payment.pix.total };
 }
 
-export function optionToPublicOption(option: NormalizedOption): QuoteOption {
+export function optionToPublicOption(option: NormalizedOption, occupancy?: string | null): QuoteOption {
   const type = optionType(option);
   const total = Number(option.total) || 0;
   const airline = option.flights[0]?.airline ?? option.flights[0]?.segments?.[0]?.airlineIata ?? null;
@@ -205,7 +272,7 @@ export function optionToPublicOption(option: NormalizedOption): QuoteOption {
   return {
     optionId: String(option.optionNumber),
     label: option.label ?? `Opção ${option.optionNumber}`,
-    products: optionToProducts(option),
+    products: optionToProducts(option, occupancy),
     totals: totalsFor(option, payment),
     payment,
     summary: optionSummary(option),
@@ -222,7 +289,19 @@ export function buildPublicQuoteFromImported(params: {
 }): Omit<PublicQuote, "id" | "publicId" | "createdAt" | "updatedAt" | "expired" | "shortUrl"> {
   const { normalized } = params;
   const options = normalized.options.length ? normalized.options : [];
-  const publicOptions = options.map(optionToPublicOption);
+
+  const adultos = Math.max(1, Number(normalized.passengers?.adults ?? 1) || 1);
+  const criancas = Math.max(0, Number(normalized.passengers?.children ?? 0) || 0);
+  const bebes = Math.max(0, Number(normalized.passengers?.infants ?? 0) || 0);
+  const paxLabel = [
+    `${adultos} ${adultos === 1 ? "adulto" : "adultos"}`,
+    criancas ? `${criancas} ${criancas === 1 ? "criança" : "crianças"}` : null,
+    bebes ? `${bebes} ${bebes === 1 ? "bebê" : "bebês"}` : null,
+  ]
+    .filter(Boolean)
+    .join(" • ");
+
+  const publicOptions = options.map((o) => optionToPublicOption(o, paxLabel));
   const first = publicOptions[0];
 
   const anyPackage = options.some((o) => optionType(o) === "TRIP_PACKAGE");
@@ -230,6 +309,7 @@ export function buildPublicQuoteFromImported(params: {
 
   const destino = normalized.destination ?? options[0]?.destination ?? "Sua viagem";
   const title = params.title ?? (normalized.origin ? `${normalized.origin} → ${destino}` : destino);
+  const primeirasLegs = first?.products.flights?.[0]?.legs ?? [];
 
   return {
     type,
@@ -243,21 +323,28 @@ export function buildPublicQuoteFromImported(params: {
     startDate: normalized.startDate ?? options[0]?.startDate ?? null,
     endDate: normalized.endDate ?? options[0]?.endDate ?? null,
     nights: options[0]?.hotels[0]?.nights ?? null,
-    tripKind: null,
-    cabin: null,
-    passengers: {
-      adults: normalized.passengers?.adults ?? 1,
-      children: normalized.passengers?.children ?? 0,
-      infants: normalized.passengers?.infants ?? 0,
-      label: `${normalized.passengers?.adults ?? 1} ${(normalized.passengers?.adults ?? 1) === 1 ? "adulto" : "adultos"}`,
-    },
+    tripKind: primeirasLegs.length
+      ? primeirasLegs.some((l) => l.direction === "INBOUND")
+        ? "Ida e volta"
+        : primeirasLegs.length > 1
+          ? "Multi-trecho"
+          : "Somente ida"
+      : null,
+    cabin: primeirasLegs[0]?.cabin ?? null,
+    passengers: { adults: adultos, children: criancas, infants: bebes, label: paxLabel },
     products: first?.products ?? {},
     options: publicOptions,
     payment: first?.payment ?? buildPayment({ type, total: 0 }),
     totals: first?.totals ?? { products: 0, taxes: 0, total: 0 },
     summary: options[0] ? optionSummary(options[0]) : [],
     agent: params.agentName
-      ? { name: params.agentName, photoUrl: null, phone: null, whatsapp: null, email: null }
+      ? {
+          name: params.agentName,
+          photoUrl: agentPhoto(params.agentName),
+          phone: null,
+          whatsapp: null,
+          email: null,
+        }
       : null,
     source: { type: "SYSTEM", conversationId: null },
     validUntil: params.validUntil ?? null,
