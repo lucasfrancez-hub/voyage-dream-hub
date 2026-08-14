@@ -548,6 +548,7 @@ function SegurancaNav({ pathname, showUsuarios }: { pathname: string; showUsuari
     pathname.startsWith("/admin/app-celular") ||
     pathname.startsWith("/admin/metricas") ||
     pathname.startsWith("/admin/checkin-treino") ||
+    pathname.startsWith("/admin/expedia") ||
     (showUsuarios && pathname.startsWith("/admin/usuarios"));
 
   return (
@@ -574,6 +575,7 @@ function SegurancaNav({ pathname, showUsuarios }: { pathname: string; showUsuari
                 label: "Admin",
                 items: [
                   { to: "/admin/checkin-treino", label: "Treinador de check-in" },
+                  { to: "/admin/expedia", label: "Expedia TAAP" },
                   { to: "/admin/usuarios", label: "Usuários", icon: Users },
                 ],
               } as NavMenuGroup,
