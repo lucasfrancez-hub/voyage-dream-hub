@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Via Air Orçamentos",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Importação automática de orçamentos Infotravel para a Via Air.",
   "icons": { "48": "icon.png", "128": "icon.png" },
   "action": {
@@ -26,8 +26,8 @@
     {
       "matches": ["*://*.infotravel.com.br/*"],
       "js": ["content.js"],
-      "run_at": "document_idle",
-      "all_frames": false
+      "run_at": "document_start",
+      "all_frames": true
     }
   ]
 }

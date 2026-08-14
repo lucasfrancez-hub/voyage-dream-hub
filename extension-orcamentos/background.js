@@ -8,6 +8,60 @@ console.info(LOG, "Service worker iniciado");
 const API_BASE = "https://pedidos.viaair.tur.br";
 const ENDPOINT = API_BASE + "/api/public/v1/quote-imports";
 const RETRY_MINUTES = [1, 5, 15, 60];
+const diagnosticTabs = new Map();
+
+function extractQuoteFromNavigation(rawUrl) {
+  if (!rawUrl) return null;
+  let value = String(rawUrl);
+  for (let i = 0; i < 3; i++) {
+    try {
+      const next = decodeURIComponent(value);
+      if (next === value) break;
+      value = next;
+    } catch (_) { break; }
+  }
+  const match = value.match(/https?:\/\/[^\s"'<>]*infotravel\.com\.br\/[^\s"'<>]*(?:orcamento-web|orcamento|proposta|quote)[^\s"'<>]*/i);
+  return match ? match[0].replace(/[).,;]+$/, "") : null;
+}
+
+function relayToTop(tabId, payload) {
+  if (typeof tabId !== "number") return;
+  chrome.tabs.sendMessage(tabId, payload, { frameId: 0 }, () => void chrome.runtime.lastError);
+}
+
+function mostRecentDiagnosticTab(windowId) {
+  let selected = null;
+  for (const [tabId, info] of diagnosticTabs.entries()) {
+    if (Date.now() - info.at > 20_000) { diagnosticTabs.delete(tabId); continue; }
+    if (typeof windowId === "number" && info.windowId !== windowId) continue;
+    if (!selected || info.at > selected.info.at) selected = { tabId, info };
+  }
+  return selected;
+}
+
+function inspectNavigation(tabId, windowId, rawUrl, event) {
+  if (!rawUrl) return;
+  const target = mostRecentDiagnosticTab(windowId);
+  const quoteUrl = extractQuoteFromNavigation(rawUrl);
+  if (!target && !quoteUrl) return;
+  const destinationTab = target ? target.tabId : tabId;
+  relayToTop(destinationTab, {
+    type: "viaair-tab-candidate",
+    event,
+    tabUrl: rawUrl,
+    quoteUrl,
+    mechanism: /whatsapp|wa\.me/i.test(rawUrl) ? "background/WhatsApp text=" : "background/nova aba",
+  });
+}
+
+chrome.tabs.onCreated.addListener((tab) => {
+  inspectNavigation(tab.id, tab.windowId, tab.pendingUrl || tab.url || "", "tab-created");
+});
+
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+  const url = changeInfo.url || tab.url || "";
+  if (changeInfo.url || changeInfo.status === "complete") inspectNavigation(tabId, tab.windowId, url, "tab-updated");
+});
 
 async function store(patch) {
   const cur = await chrome.storage.local.get(null);
@@ -196,12 +250,31 @@ chrome.runtime.onInstalled.addListener(() => {
   chrome.alarms.create("viaair-quotes-retry", { periodInMinutes: 1 });
 });
 
-chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (!msg || !msg.type) return;
 
   if (msg.type === "viaair-quotes-import") {
     sendImport(msg.url, msg.trigger).then(sendResponse);
     return true;
+  }
+
+  if (msg.type === "viaair-diagnostic-arm") {
+    if (typeof sender.tab?.id === "number") diagnosticTabs.set(sender.tab.id, { at: Date.now(), windowId: sender.tab.windowId });
+    sendResponse({ ok: true });
+    return false;
+  }
+
+  if (msg.type === "viaair-diagnostic-event") {
+    if (typeof sender.tab?.id === "number" && sender.frameId !== 0) {
+      relayToTop(sender.tab.id, {
+        type: "viaair-diagnostic-relay",
+        kind: msg.kind,
+        detail: msg.detail,
+        frame: `iframe (${msg.frameUrl || "URL indisponível"})`,
+      });
+    }
+    sendResponse({ ok: true });
+    return false;
   }
 
   if (msg.type === "viaair-quotes-status") {
