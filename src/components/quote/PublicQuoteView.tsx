@@ -359,22 +359,25 @@ function HotelCard({ hotel }: { hotel: HotelProduct }) {
                 </div>
               ) : null}
 
-              {hotel.roomName ? (
-                <div className="vq-room">
-                  <strong>{hotel.roomName}</strong>
-                  {hotel.roomDescription ? <p>{hotel.roomDescription}</p> : null}
-                </div>
-              ) : null}
-
-              {hotel.about || hotel.rating ? (
-                <button className="vq-about-btn" onClick={() => setSobre(true)}>
-                  Ver sobre o hotel
-                  {hotel.rating ? (
-                    <span className="vq-about-tag">
-                      ★ {hotel.rating.toFixed(1).replace(".", ",")}
-                    </span>
+              {hotel.roomName || hotel.about || hotel.rating ? (
+                <div className="vq-room-row">
+                  {hotel.roomName ? (
+                    <div className="vq-room">
+                      <strong>{hotel.roomName}</strong>
+                      {hotel.roomDescription ? <p>{hotel.roomDescription}</p> : null}
+                    </div>
+                  ) : <span />}
+                  {hotel.about || hotel.rating ? (
+                    <button className="vq-about-btn" onClick={() => setSobre(true)}>
+                      Ver sobre o hotel
+                      {hotel.rating ? (
+                        <span className="vq-about-tag">
+                          ★ {hotel.rating.toFixed(1).replace(".", ",")}
+                        </span>
+                      ) : null}
+                    </button>
                   ) : null}
-                </button>
+                </div>
               ) : null}
             </>
           ) : (
