@@ -142,9 +142,7 @@ export function normalizePropertyNode(node: Json, searchId: string | null): Hote
     property_id: id,
     name,
     destination:
-      (typeof destinationInfo.distanceFromDestination === "object"
-        ? null
-        : (destinationInfo.regionName as string | undefined) ?? null) ??
+      (typeof destinationInfo.regionName === "string" ? destinationInfo.regionName : null) ??
       (typeof neighborhood.name === "string" ? neighborhood.name : null),
     image,
     rating: typeof node.star === "number" ? node.star : parseMoney(node.starRating) ?? null,
