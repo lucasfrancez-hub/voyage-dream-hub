@@ -149,12 +149,15 @@ function buildLegs(voos: PublicQuoteItem[]): FlightLeg[] {
 function hotelProduct(item: PublicQuoteItem, index: number): HotelProduct {
   const info = item.hotel_info ?? null;
   const nome = item.hotel_name ?? info?.name ?? item.title;
+  const manual = (item.photo_url ?? "").trim();
+  const fotos = [...(manual ? [manual] : []), ...(info?.photos ?? [])];
   return {
     id: `hotel-${index + 1}`,
     name: nome,
     stars: item.hotel_stars ?? null,
     place: info?.address ?? null,
-    photos: info?.photos ?? [],
+    photos: fotos,
+
     checkIn: brDate(item.check_in),
     checkOut: brDate(item.check_out),
     occupancy: item.nights ? `${item.nights} noite${item.nights > 1 ? "s" : ""}` : null,
