@@ -47,7 +47,28 @@ async function queueRemove(url) {
   await store({ viaairQueue: viaairQueue.filter((q) => q.url !== url) });
 }
 
+/** Aguarda a Via Air concluir o parsing dos dados reais (READY/IMPORT_ERROR). */
+async function pollUntilDone(importId, token, timeoutMs = 45_000) {
+  const started = Date.now();
+  let last = { status: "PROCESSING" };
+  while (Date.now() - started < timeoutMs) {
+    await new Promise((r) => setTimeout(r, 2000));
+    try {
+      const res = await fetch(`${ENDPOINT}?id=${encodeURIComponent(importId)}`, {
+        headers: { authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) continue;
+      last = await res.json();
+      if (last.status === "READY" || last.status === "IMPORT_ERROR") return last;
+    } catch (_) {
+      /* tenta de novo */
+    }
+  }
+  return last;
+}
+
 async function sendImport(url, trigger) {
+
   const token = await getToken();
   if (!token) {
     console.error(LOG, "token ausente — configure no popup da extensão");
