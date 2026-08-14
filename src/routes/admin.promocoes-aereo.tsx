@@ -24,6 +24,7 @@ import {
   SlidersHorizontal,
   Sparkles,
   X,
+  PlusCircle,
 } from "lucide-react";
 
 import { toast } from "sonner";
@@ -44,6 +45,7 @@ import {
 } from "@/lib/airfare-promos.functions";
 import { confirmThen } from "@/lib/confirm";
 import { ArquivadosDialog } from "@/components/promocoes/ArquivadosDialog";
+import { PromocaoManualPanel } from "@/components/promocoes/PromocaoManualPanel";
 import { promoInstagramText, promoWhatsappText, type PromoRow } from "@/lib/airfare-promo-text";
 import { PromoArtDialog } from "@/components/promo/PromoArtDialog";
 import { PromoSocialDialog } from "@/components/promo/PromoSocialDialog";
@@ -814,6 +816,7 @@ function PromocoesAereoPage() {
   const [atalho, setAtalho] = useState(0);
   const [filtrosAbertos, setFiltrosAbertos] = useState(false);
   const [pesquisaAberta, setPesquisaAberta] = useState(false);
+  const [manualAberto, setManualAberto] = useState(false);
   const [arquivadosAberto, setArquivadosAberto] = useState(false);
   const contarArquivados = useServerFn(countArchivedPromotions);
   const { data: arquivados } = useQuery({
@@ -1173,6 +1176,17 @@ function PromocoesAereoPage() {
         </button>
         <button
           type="button"
+          onClick={() => setManualAberto((v) => !v)}
+          className={`inline-flex items-center gap-2 rounded-xl border px-4 py-2 text-xs font-black uppercase tracking-widest transition ${
+            manualAberto
+              ? "border-brand-orange bg-brand-orange/10 text-brand-orange"
+              : "border-brand-orange/40 text-brand-orange hover:bg-brand-orange/5"
+          }`}
+        >
+          <PlusCircle className="h-4 w-4" /> Adicionar manualmente
+        </button>
+        <button
+          type="button"
           onClick={() => setArquivadosAberto(true)}
           className="inline-flex items-center gap-2 rounded-xl border border-border/60 px-4 py-2 text-xs font-black uppercase tracking-widest text-muted-foreground transition hover:border-brand-orange/40 hover:text-foreground"
         >
@@ -1184,6 +1198,12 @@ function PromocoesAereoPage() {
       </div>
 
       <ArquivadosDialog aberto={arquivadosAberto} onFechar={() => setArquivadosAberto(false)} />
+
+      <PromocaoManualPanel
+        aberto={manualAberto}
+        onFechar={() => setManualAberto(false)}
+        onSalvo={() => qc.invalidateQueries({ queryKey: ["airfare-promos"] })}
+      />
 
       <PesquisaManual
         aberto={pesquisaAberta}
