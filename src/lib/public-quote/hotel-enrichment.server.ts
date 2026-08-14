@@ -39,9 +39,9 @@ function norm(s: string) {
 }
 
 function cacheKey(name: string, city: string | null, locationId?: number | null): string {
-  // v3 — inclui endereço/descrição em português e pontos próximos.
+  // v4 — inclui endereço/descrição em português e pontos próximos.
   const pin = locationId ? `|ta${locationId}` : "";
-  return `hotel-enrich:v3:${norm(name)}|${norm(city ?? "")}${pin}`;
+  return `hotel-enrich:v4:${norm(name)}|${norm(city ?? "")}${pin}`;
 }
 
 /** Chave estável do hotel usada no vínculo manual com o TripAdvisor. */
@@ -74,7 +74,7 @@ export async function limparCacheHotel(name: string, city?: string | null): Prom
     await supabaseAdmin
       .from("md_response_cache")
       .delete()
-      .like("url", `hotel-enrich:v3:${norm(name)}|%`);
+      .like("url", `hotel-enrich:v4:${norm(name)}|%`);
   } catch { /* best effort */ }
 }
 
@@ -308,13 +308,11 @@ export async function enrichHotel(params: {
     }
 
     const alvos = variantes.map(norm);
-    const alvo = alvos[0] ?? norm(nome);
     const escolhido = fixado
       ? { id: fixado, name: nome }
       : (candidatos.find((c) => alvos.some((a) => norm(c.name) === a)) ??
          candidatos.find((c) => alvos.some((a) => norm(c.name).includes(a) || a.includes(norm(c.name)))) ??
          candidatos[0]);
-    void alvo;
     if (!escolhido) {
       await writeCache(key, vazio);
       return vazio;
