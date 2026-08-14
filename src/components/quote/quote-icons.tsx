@@ -70,3 +70,7 @@ export const SUMMARY_ICONS = {
   service: IconTransfer,
   tax: IconTax,
 } as const;
+
+export const IconMoney = (p: P) => (
+  <S {...p}><rect x="2.5" y="6" width="19" height="12" rx="2.5" /><circle cx="12" cy="12" r="2.6" /><path d="M6 9.5h.01M18 14.5h.01" /></S>
+);
