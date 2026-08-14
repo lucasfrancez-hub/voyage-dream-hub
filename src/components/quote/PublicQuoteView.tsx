@@ -97,10 +97,10 @@ function FlightLegCard({ leg }: { leg: FlightLeg }) {
             <span className="vq-badge"><IconBag />Item pessoal</span>
           ) : null}
           {leg.carryOn ? <span className="vq-badge"><IconBag />Bagagem de mão 10kg</span> : null}
-          <span className="vq-badge">
-            <IconBag />
-            {leg.checkedBaggage ? "Bagagem despachada incluída" : "Bagagem despachada não inclusa"}
-          </span>
+          {leg.checkedBaggage ? (
+            <span className="vq-badge"><IconBag />Bagagem despachada incluída</span>
+          ) : null}
+
           {leg.cabin ? <span className="vq-badge"><IconCheck />{leg.cabin}</span> : null}
           {leg.fareFamily ? <span className="vq-badge"><IconCheck />{leg.fareFamily}</span> : null}
         </div>

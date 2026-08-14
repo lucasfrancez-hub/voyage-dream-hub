@@ -84,7 +84,7 @@
 .vq-path { text-align: center; color: var(--muted); font-size: 12px; }
 .vq-line { height: 2px; background: linear-gradient(90deg,var(--blue),var(--orange)); margin: 10px 0; position: relative; }
 .vq-stop-dot { width: 10px; height: 10px; background: #fff; border: 2px solid var(--navy); border-radius: 50%; position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); }
-.vq-badges { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px; }
+.vq-badges { display: flex; gap: 12px 14px; flex-wrap: wrap; margin-top: 18px; margin-bottom: 4px; }
 .vq-badge { padding: 7px 10px; background: #f6f8fa; border: 1px solid var(--line); border-radius: 999px; font-size: 11px; font-weight: 800; color: #526476; display: flex; align-items: center; gap: 6px; }
 .vq-badge svg { width: 14px; height: 14px; }
 .vq-flight-details { padding: 0 22px 22px; }
@@ -152,10 +152,11 @@
 .vq-pay-tab { border: 1px solid var(--line); background: #fff; color: #607183; padding: 10px 13px; border-radius: 11px; font-weight: 900; font-size: 11px; cursor: pointer; display: flex; align-items: center; gap: 7px; }
 .vq-pay-tab svg { width: 16px; height: 16px; }
 .vq-pay-tab[data-active="true"] { background: var(--navy); color: #fff; border-color: var(--navy); }
-.vq-installments { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; max-height: 260px; overflow: auto; }
-.vq-inst { display: flex; justify-content: space-between; align-items: center; border: 1px solid var(--line); border-radius: 11px; padding: 9px 10px; background: #fff; font-size: 11px; }
+.vq-installments { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.vq-inst { display: flex; justify-content: space-between; align-items: center; gap: 10px; border: 1px solid var(--line); border-radius: 11px; padding: 9px 12px; background: #fff; font-size: 12px; }
+.vq-inst > span { display: flex; align-items: baseline; gap: 6px; font-weight: 800; }
 .vq-inst strong { color: var(--blue); }
-.vq-no-interest { display: block; font-size: 8px; color: var(--green); font-weight: 900; text-transform: uppercase; margin-top: 2px; }
+.vq-no-interest { display: inline; font-size: 9px; color: var(--green); font-weight: 900; text-transform: uppercase; letter-spacing: .04em; }
 .vq-pix-box { border-radius: 14px; padding: 15px; background: #effaf5; border: 1px solid #d5ebdf; color: var(--green); display: flex; justify-content: space-between; align-items: center; font-weight: 900; }
 .vq-boleto-box { border-radius: 14px; padding: 15px; background: #f8fafc; border: 1px solid var(--line); }
 .vq-payment-note { margin-top: 10px; color: var(--muted); font-size: 10px; line-height: 1.4; }
