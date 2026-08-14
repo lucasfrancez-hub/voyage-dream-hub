@@ -114,49 +114,99 @@ function FlightLegCard({ leg }: { leg: FlightLeg }) {
       {open ? (
         <div className="vq-flight-details">
           <div className="vq-details-panel">
-            {leg.segments.map((s, i) => (
-              <div key={i}>
-                <div className="vq-segment-card">
-                  <div className="vq-segment-point">
-                    <small>Partida</small>
-                    <time>{s.departure.split(" ")[1]}</time>
-                    <strong>{s.fromIata}</strong>
-                    <span>{s.fromName}</span>
-                  </div>
-                  <div className="vq-plane-mid"><IconPlane /></div>
-                  <div className="vq-segment-point">
-                    <small>Chegada</small>
-                    <time>{s.arrival.split(" ")[1]}</time>
-                    <strong>{s.toIata}</strong>
-                    <span>{s.toName}</span>
-                  </div>
-                  <div className="vq-seg-meta">
-                    <div className="vq-mini">
-                      <small>Voo</small>
-                      <strong>{[s.airline, s.flightNumber].filter(Boolean).join(" ") || "—"}</strong>
+            {leg.segments.map((s, i) => {
+              const dataBr = s.departure.slice(0, 10).split("-").reverse().join("/");
+              const segLogo = airlineLogo(s.airline ?? leg.airlineIata ?? leg.airline);
+              return (
+                <div key={i}>
+                  <section className="vq-seg">
+                    <header className="vq-seg-head">
+                      <div className="vq-seg-air">
+                        <span className="vq-seg-logo">
+                          {segLogo ? <img src={segLogo} alt={s.airline ?? leg.airline} /> : <IconPlane />}
+                        </span>
+                        <div>
+                          <h4>
+                            {[s.airline ?? leg.airline, s.flightNumber ? `• Voo ${s.flightNumber}` : ""]
+                              .filter(Boolean)
+                              .join(" ")}
+                          </h4>
+                          <p>Operado por {s.airline ?? leg.airline}</p>
+                        </div>
+                      </div>
+                      <span className="vq-seg-status">
+                        Trecho {i + 1} de {leg.segments.length}
+                      </span>
+                    </header>
+
+                    <div className="vq-seg-journey">
+                      <div className="vq-seg-side">
+                        <small>Partida</small>
+                        <time>{s.departure.split(" ")[1]}</time>
+                        <strong>{s.fromIata}</strong>
+                        <span>{s.fromName}</span>
+                      </div>
+
+                      <div className="vq-seg-timeline">
+                        <div className="vq-seg-dur"><IconClock />{s.duration ?? leg.duration ?? "—"}</div>
+                        <div className="vq-seg-line">
+                          <i className="vq-dot start" />
+                          <i className="vq-dot end" />
+                          <span className="vq-seg-plane"><IconPlane /></span>
+                        </div>
+                        <span className="vq-seg-chip">
+                          {leg.segments.length > 1 ? `Trecho ${i + 1}` : leg.stopsLabel}
+                        </span>
+                      </div>
+
+                      <div className="vq-seg-side right">
+                        <small>Chegada</small>
+                        <time>{s.arrival.split(" ")[1]}</time>
+                        <strong>{s.toIata}</strong>
+                        <span>{s.toName}</span>
+                      </div>
                     </div>
-                    <div className="vq-mini"><small>Duração</small><strong>{s.duration ?? "—"}</strong></div>
-                    <div className="vq-mini"><small>Classe</small><strong>{leg.cabin ?? "Econômica"}</strong></div>
-                    <div className="vq-mini"><small>Aeronave</small><strong>{s.aircraft ?? "Conforme confirmação"}</strong></div>
-                    <div className="vq-mini" style={{ gridColumn: "1/-1" }}>
-                      <small>Data</small>
-                      <strong>{s.departure.slice(0, 10).split("-").reverse().join("/")}</strong>
+
+                    <div className="vq-seg-meta-dark">
+                      <div>
+                        <small>Classe</small>
+                        <strong>{leg.cabin ?? "Econômica"}</strong>
+                      </div>
+                      <div>
+                        <small>Aeronave</small>
+                        <strong>{s.aircraft ?? "Conforme confirmação"}</strong>
+                      </div>
+                      <div>
+                        <small>Data do trecho</small>
+                        <strong>{dataBr}</strong>
+                      </div>
+                      <div>
+                        <small>Franquia de bagagem</small>
+                        <strong>
+                          {leg.checkedBaggage
+                            ? "Bagagem despachada incluída"
+                            : leg.carryOn
+                              ? "Bagagem de mão 10kg"
+                              : "Somente item pessoal"}
+                        </strong>
+                      </div>
                     </div>
-                  </div>
+                  </section>
+                  {s.connectionAfter ? (
+                    <div className="vq-connection" style={{ marginTop: 10 }}>
+                      <IconClock />Conexão de {s.connectionAfter} em {s.toName ?? s.toIata}
+                    </div>
+                  ) : null}
                 </div>
-                {s.connectionAfter ? (
-                  <div className="vq-connection" style={{ marginTop: 10 }}>
-                    <IconClock />{s.connectionAfter}
-                  </div>
-                ) : null}
-              </div>
-            ))}
+              );
+            })}
           </div>
           {leg.rules?.length ? (
             <div className="vq-fare-note">{leg.rules.join(" • ")}</div>
           ) : null}
         </div>
       ) : null}
+
     </article>
   );
 }
