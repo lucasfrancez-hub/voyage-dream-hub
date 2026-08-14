@@ -2,14 +2,17 @@
  * Intercepta window.open, cliques e mudanças de histórico sem bloquear
  * a ação original da operadora. Apenas observa e avisa o content script. */
 (function () {
+  const LOG = "[Via Air Orçamentos]";
+  console.info(LOG, "page-hook (MAIN world) carregado em", location.href);
   const RE = /https?:\/\/[^\s"'<>]*infotravel\.com\.br\/[^\s"'<>]*/i;
 
   function report(url, trigger) {
     if (!url) return;
+    console.info(LOG, "ação detectada (page-hook):", trigger, String(url));
     try {
       window.postMessage({ __viaair_quote: true, url: String(url), trigger }, "*");
-    } catch (_) {
-      /* ignora */
+    } catch (err) {
+      console.error(LOG, "falha ao repassar URL ao content script", err);
     }
   }
 
@@ -18,8 +21,8 @@
     try {
       if (url && RE.test(String(url))) report(url, "window.open");
       else if (url && /whatsapp|api\.whatsapp|wa\.me/i.test(String(url))) report(url, "whatsapp");
-    } catch (_) {
-      /* ignora */
+    } catch (err) {
+      console.error(LOG, "erro no hook de window.open", err);
     }
     // nunca bloquear o fluxo original
     return nativeOpen.apply(window, [url, ...rest]);
@@ -42,8 +45,8 @@
       try {
         const url = args[2];
         if (url && RE.test(String(url))) report(new URL(url, location.href).toString(), "history");
-      } catch (_) {
-        /* ignora */
+      } catch (err) {
+        console.error(LOG, "erro no hook de history." + method, err);
       }
       return original.apply(this, args);
     };
