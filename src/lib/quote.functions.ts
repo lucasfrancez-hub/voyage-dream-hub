@@ -218,12 +218,18 @@ export const getPublicQuote = createServerFn({ method: "GET" })
         if (!dt) return null;
         return tm ? `${dt}T${tm}` : dt;
       };
+      const bool = (k: string, def: boolean) => {
+        const v = d[k];
+        if (v === undefined || v === null || v === "") return def;
+        return v === true || v === "true" || v === 1 || v === "1";
+      };
       const kind = i.kind as "flight" | "hotel" | "other";
       if (kind === "flight") {
         return {
           kind,
           title: i.title,
           direction: (str("direction") as "outbound" | "return" | null) || null,
+          trip_group: str("trip_group"),
           airline: str("airline"),
           flight_number: str("flight_number"),
           from_iata: str("from_iata") ?? str("origin"),
@@ -231,13 +237,22 @@ export const getPublicQuote = createServerFn({ method: "GET" })
           to_iata: str("to_iata") ?? str("destination"),
           to_city: str("to_city"),
           departure_at:
+            str("depart_at") ??
+            str("departure") ??
             str("departure_datetime") ??
             combineDT("date_from", "time_from") ??
             combineDT("departure_date", "departure_time"),
           arrival_at:
+            str("arrive_at") ??
+            str("arrival") ??
             str("arrival_datetime") ??
             combineDT("date_to", "time_to") ??
             combineDT("arrival_date", "arrival_time"),
+          cabin_class: str("cabin_class") ?? str("cabin"),
+          fare_class: str("fare_class"),
+          personal_item: bool("personal_item", true),
+          carry_on: bool("carry_on", true),
+          checked_bag: bool("checked_bag", false),
           notes: str("notes"),
         };
       }
@@ -251,9 +266,11 @@ export const getPublicQuote = createServerFn({ method: "GET" })
           meal_plan: str("meal_plan") ?? str("board"),
           check_in: str("check_in") ?? str("checkin"),
           check_out: str("check_out") ?? str("checkout"),
+          photo_url: str("photo_url"),
           notes: str("notes"),
         };
       }
+
       return {
         kind,
         title: i.title,
