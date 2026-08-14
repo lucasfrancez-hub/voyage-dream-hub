@@ -4,7 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState } from "react";
 import {
   ArrowLeft, Hotel, Plane, Package, DollarSign, Users, ExternalLink, Printer,
-  Link2 as LinkIcon, ArrowRightLeft, RotateCcw, Loader2, Copy, Hash, Star,
+  Link2 as LinkIcon, ArrowRightLeft, RotateCcw, Loader2, Copy, Hash, Star, Pencil,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -19,6 +19,7 @@ import {
 } from "@/lib/quotes/quotes.functions";
 import type { NormalizedOption, NormalizedQuote } from "@/lib/quotes/types";
 import { confirmThen } from "@/lib/confirm";
+import { HotelTripAdvisorDialog } from "@/components/quotes/HotelTripAdvisorDialog";
 
 export const Route = createFileRoute("/admin/orcamentos/$id")({
   component: QuoteDetailPage,
@@ -66,6 +67,7 @@ function QuoteDetailPage() {
   const qc = useQueryClient();
   const navigate = useNavigate();
   const [optionNumber, setOptionNumber] = useState<number | null>(null);
+  const [hotelEdit, setHotelEdit] = useState<{ name: string; city: string | null } | null>(null);
 
   const { data: quote, isLoading } = useQuery({
     queryKey: ["admin", "quoteDetail", id],
@@ -386,6 +388,14 @@ function QuoteDetailPage() {
                       <Star className="h-3 w-3" /> {h.photos.length} foto(s)
                     </div>
                   ) : null}
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="mt-2 h-7 gap-1 text-[11px]"
+                    onClick={() => setHotelEdit({ name: h.name, city: h.city ?? null })}
+                  >
+                    <Pencil className="h-3 w-3" /> Editar
+                  </Button>
                 </div>
               </div>
             ))}
@@ -479,6 +489,17 @@ function QuoteDetailPage() {
           </div>
         </TabsContent>
       </Tabs>
+
+      {hotelEdit && (
+        <HotelTripAdvisorDialog
+          open
+          onOpenChange={(v) => { if (!v) setHotelEdit(null); }}
+          hotelName={hotelEdit.name}
+          city={hotelEdit.city}
+          onLinked={() => { void qc.invalidateQueries({ queryKey: ["admin", "quoteDetail", id] }); }}
+        />
+      )}
+
     </div>
   );
 }

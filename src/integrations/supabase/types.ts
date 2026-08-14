@@ -2619,6 +2619,42 @@ export type Database = {
         }
         Relationships: []
       }
+      hotel_tripadvisor_links: {
+        Row: {
+          city: string | null
+          created_at: string
+          created_by: string | null
+          hotel_key: string
+          hotel_name: string
+          id: string
+          location_id: number
+          location_name: string | null
+          updated_at: string
+        }
+        Insert: {
+          city?: string | null
+          created_at?: string
+          created_by?: string | null
+          hotel_key: string
+          hotel_name: string
+          id?: string
+          location_id: number
+          location_name?: string | null
+          updated_at?: string
+        }
+        Update: {
+          city?: string | null
+          created_at?: string
+          created_by?: string | null
+          hotel_key?: string
+          hotel_name?: string
+          id?: string
+          location_id?: number
+          location_name?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       instagram_accounts: {
         Row: {
           access_token: string | null
