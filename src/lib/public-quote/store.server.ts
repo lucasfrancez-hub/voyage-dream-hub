@@ -238,9 +238,14 @@ async function enriquecerHoteis(quote: PublicQuote): Promise<PublicQuote> {
       hotels.map(async (h) => {
         const faltaFoto = (h.photos?.length ?? 0) < 4;
         const faltaLocal = !h.location || (!h.location.address && h.location.latitude == null);
-        const faltaSobre = !h.about || !h.location?.nearbyPlaces?.length;
+        const faltaSobre = !h.about || h.rating == null || !h.location?.nearbyPlaces?.length;
         if (!faltaFoto && !faltaLocal && !faltaSobre) return h;
-        const info = await enrichHotel({ name: h.name, city: quote.destination }).catch(() => null);
+        const cidade =
+          quote.destination ||
+          h.location?.address?.split(",").slice(-2).join(",").trim() ||
+          h.place?.split(",").slice(-2).join(",").trim() ||
+          null;
+        const info = await enrichHotel({ name: h.name, city: cidade }).catch(() => null);
         if (!info || info.status === "MATCH_FAILED") return h;
         return {
           ...h,
@@ -251,6 +256,7 @@ async function enriquecerHoteis(quote: PublicQuote): Promise<PublicQuote> {
           about: h.about ?? info.description,
           rating: h.rating ?? info.rating,
           reviewsCount: h.reviewsCount ?? info.num_reviews,
+
           location:
             info.latitude != null || info.address
               ? {
