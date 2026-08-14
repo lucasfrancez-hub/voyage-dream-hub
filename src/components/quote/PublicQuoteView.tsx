@@ -213,6 +213,23 @@ function FlightLegCard({ leg }: { leg: FlightLeg }) {
 
 /* ───────────────────────── hotel ───────────────────────── */
 
+/** Extrai "Nome (1,8 km)" do texto do TripAdvisor quando não há POIs do mapa. */
+function proximidadesDoTexto(about: string | null | undefined) {
+  if (!about) return [] as { name: string; distance: string }[];
+  const out: { name: string; distance: string }[] = [];
+  const vistos = new Set<string>();
+  const re = /([A-ZÁÀÂÃÉÊÍÓÔÕÚÇ][^,.;()]{2,45}?)\s*\((\d+[.,]?\d*)\s*(km|m)\)/g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(about))) {
+    const name = m[1].replace(/\s+/g, " ").replace(/^(o|a|os|as|do|da|de)\s+/i, "").trim();
+    const chave = name.toLowerCase();
+    if (!name || vistos.has(chave)) continue;
+    vistos.add(chave);
+    out.push({ name, distance: `${m[2].replace(".", ",")} ${m[3]}` });
+  }
+  return out.slice(0, 6);
+}
+
 function HotelCard({ hotel }: { hotel: HotelProduct }) {
   const [view, setView] = useState<"details" | "location">("details");
   const [galeria, setGaleria] = useState(false);
