@@ -111,7 +111,9 @@ export class ExpediaTaapBrowserProvider implements HotelSearchProvider {
 
   async search(query: HotelSearchQuery): Promise<HotelSearchResponse> {
     const started = Date.now();
-    const url = buildHotelSearchUrl(query);
+    const isPackage = query.type === "FLIGHT_HOTEL_PACKAGE";
+    const url = isPackage ? buildPackageSearchUrl(query) : buildHotelSearchUrl(query);
+
     const session = await getActiveExpediaSession();
     if (!session) {
       await logExpediaSearch({
