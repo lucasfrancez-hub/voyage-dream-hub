@@ -2,6 +2,8 @@
  * Detecta ambiente Infotravel, injeta o botão flutuante de status e captura
  * automaticamente a URL do orçamento web. Não bloqueia nada da operadora. */
 (function () {
+  const LOG = "[Via Air Orçamentos]";
+  console.info(LOG, "Content script carregado", { url: location.href, host: location.hostname });
   const QUOTE_RE = /https?:\/\/[^\s"'<>]*infotravel\.com\.br\/[^\s"'<>]*(orcamento|proposta|quote)[^\s"'<>]*/i;
 
   function isSupportedInfotravelPage() {
@@ -9,7 +11,11 @@
     if (!/infotravel\.com\.br$/i.test(host) && !/\/infotravel\//i.test(location.pathname)) return false;
     return true;
   }
-  if (!isSupportedInfotravelPage()) return;
+  if (!isSupportedInfotravelPage()) {
+    console.warn(LOG, "página NÃO reconhecida como Infotravel — encerrando", location.hostname);
+    return;
+  }
+  console.info(LOG, "Infotravel detectada:", location.hostname);
 
   /* ---------- extração da URL do orçamento (inclusive dentro do WhatsApp) ---------- */
   function decodeDeep(value) {
@@ -79,6 +85,14 @@
     <div class="btn" id="btn"><span class="dot" id="dot"></span>${LOGO}<span id="label">Via Air</span></div>
   `;
   document.documentElement.appendChild(host);
+  console.info(LOG, "Botão flutuante injetado no DOM");
+  // reinjeção defensiva caso a SPA remova o host
+  new MutationObserver(() => {
+    if (!host.isConnected) {
+      document.documentElement.appendChild(host);
+      console.warn(LOG, "Botão removido pela SPA — reinjetado");
+    }
+  }).observe(document.documentElement, { childList: true });
 
   const el = (id) => shadow.getElementById(id);
   let resetTimer = null;
@@ -100,7 +114,10 @@
 
   function refreshStatus() {
     chrome.runtime.sendMessage({ type: "viaair-quotes-status" }, (res) => {
-      if (chrome.runtime.lastError || !res) return;
+      if (chrome.runtime.lastError || !res) {
+        console.error(LOG, "status indisponível (service worker)", chrome.runtime.lastError?.message);
+        return;
+      }
       el("pending").textContent = String(res.pending || 0);
       el("state").textContent = res.connected ? "Conectado" : "Token não configurado";
       el("last").textContent = res.last
@@ -116,16 +133,32 @@
   const seen = new Set();
   function capture(raw, trigger) {
     const url = extractQuoteUrl(raw);
-    if (!url || seen.has(url)) return;
+    if (!url) {
+      console.warn(LOG, "ação detectada, mas nenhuma URL de orçamento reconhecida em:", String(raw).slice(0, 300), "| gatilho:", trigger);
+      return;
+    }
+    if (seen.has(url)) {
+      console.info(LOG, "URL já processada nesta aba (ignorada):", url);
+      return;
+    }
     seen.add(url);
+    console.info(LOG, "URL detectada:", url, "| gatilho:", trigger);
+    console.info(LOG, "Enviando para Via Air…");
     setState("Importando orçamento…", "busy");
     chrome.runtime.sendMessage({ type: "viaair-quotes-import", url, trigger }, (res) => {
-      if (chrome.runtime.lastError || !res) return setState("Não foi possível importar", "err");
+      if (chrome.runtime.lastError || !res) {
+        console.error(LOG, "service worker não respondeu:", chrome.runtime.lastError?.message);
+        return setState("Não foi possível importar", "err");
+      }
+      console.info(LOG, "API respondeu:", res);
       if (res.status === "READY") setState(res.duplicate ? "Orçamento já importado" : "Orçamento importado", "");
       else if (res.status === "QUEUED") setState("Pendente — tentaremos novamente", "warn");
       else if (res.status === "UNAUTHORIZED") setState("Erro de autenticação", "err");
       else if (res.status === "PROCESSING") setState("Importando orçamento…", "busy");
-      else setState("Não foi possível importar", "err");
+      else {
+        console.error(LOG, "importação falhou:", res);
+        setState("Não foi possível importar", "err");
+      }
     });
   }
 
