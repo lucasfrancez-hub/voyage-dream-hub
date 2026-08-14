@@ -20,13 +20,25 @@ const AGENTS: Record<string, AgentProfile> = {
   },
 };
 
+/** Busca tolerante: "Lucas Rocha Francez", "lucas  francez", "Lucas F." etc. */
+function findAgent(name?: string | null): AgentProfile | null {
+  if (!name) return null;
+  const n = NORM(name);
+  if (AGENTS[n]) return AGENTS[n];
+  const tokens = n.split(/\s+/).filter(Boolean);
+  for (const [key, profile] of Object.entries(AGENTS)) {
+    const keyTokens = key.split(/\s+/).filter(Boolean);
+    if (keyTokens.every((t) => tokens.includes(t))) return profile;
+  }
+  return null;
+}
+
 /** Foto oficial do consultor (ou null quando não houver cadastro). */
 export function agentPhoto(name?: string | null): string | null {
-  if (!name) return null;
-  return AGENTS[NORM(name)]?.photoUrl ?? null;
+  return findAgent(name)?.photoUrl ?? null;
 }
 
 export function agentProfile(name?: string | null): AgentProfile | null {
-  if (!name) return null;
-  return AGENTS[NORM(name)] ?? null;
+  return findAgent(name);
 }
+
