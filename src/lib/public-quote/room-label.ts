@@ -9,7 +9,8 @@
  *   - notes → políticas de cancelamento / observações
  */
 
-const TRADUCOES: Array<[RegExp, string]> = [
+type Rep = string | ((...args: string[]) => string);
+const TRADUCOES: Array<[RegExp, Rep]> = [
   [/\bdouble room\b/gi, "Quarto Duplo"],
   [/\btwin room\b/gi, "Quarto Twin"],
   [/\bsingle room\b/gi, "Quarto Single"],
