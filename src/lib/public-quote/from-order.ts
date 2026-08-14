@@ -176,7 +176,7 @@ function hotelProduct(
     occupancy: occupancyLabel,
     mealPlan: item.meal_plan ?? null,
     benefits: hotelBenefits(item, info?.amenities ?? []),
-    roomName: item.title && item.title !== nome ? item.title : null,
+    roomName: roomLabel(item, nome),
     roomDescription: item.notes ?? null,
     about: info?.description ?? null,
     rating: info?.rating ?? null,
