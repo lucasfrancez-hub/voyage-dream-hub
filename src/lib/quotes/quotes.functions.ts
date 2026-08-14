@@ -98,3 +98,44 @@ export const converterOrcamentoEmPedido = createServerFn({ method: "POST" })
 
     return { orderId: order.id, alreadyConverted: false };
   });
+
+/** Gera (ou reaproveita) o link público oficial do orçamento, com todas as opções. */
+export const gerarLinkOrcamento = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i: { quoteId: string }) => z.object({ quoteId: z.string().uuid() }).parse(i))
+  .handler(async ({ data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { buildPublicQuoteFromImported } = await import("./to-public-quote.server");
+    const { savePublicQuote } = await import("@/lib/public-quote/store.server");
+
+    const { data: quote } = await supabaseAdmin
+      .from("quotes")
+      .select("*")
+      .eq("id", data.quoteId)
+      .maybeSingle();
+    if (!quote) throw new Error("Orçamento não encontrado");
+    if (quote.public_url) return { url: quote.public_url, shortUrl: quote.public_short_url ?? null, reused: true };
+
+    const normalized = quote.normalized as unknown as import("./types").NormalizedQuote;
+    if (!normalized?.options?.length) throw new Error("Orçamento ainda não foi processado");
+
+    const dto = buildPublicQuoteFromImported({
+      normalized,
+      title: quote.title,
+      clientName: quote.client_name,
+      agentName: quote.consultant,
+    });
+    const saved = await savePublicQuote(dto as never);
+
+    await supabaseAdmin
+      .from("quotes")
+      .update({
+        public_url: saved.url,
+        public_short_url: saved.shortUrl,
+        public_quote_id: saved.quote.publicId,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", quote.id);
+
+    return { url: saved.url, shortUrl: saved.shortUrl, reused: false };
+  });
