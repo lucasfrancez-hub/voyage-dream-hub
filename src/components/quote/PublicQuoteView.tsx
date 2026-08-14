@@ -724,7 +724,7 @@ function QuoteBody({ quote }: { quote: PublicQuote }) {
     `Olá! Quero seguir com o orçamento ${quote.publicId} (${quote.title}).`,
   )}`;
 
-  type Secao = { id: string; label: string; Icon: (p: { className?: string }) => JSX.Element };
+  type Secao = { id: string; label: string; Icon: (p: { className?: string }) => React.ReactElement };
   const secoes: Secao[] = [];
   if (hotels.length) secoes.push({ id: "hospedagem", label: "Hospedagem", Icon: IconHotel });
   if (legs.length) secoes.push({ id: "voos", label: "Voos", Icon: IconPlane });
