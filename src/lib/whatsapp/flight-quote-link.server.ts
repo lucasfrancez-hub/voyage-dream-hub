@@ -48,6 +48,8 @@ export async function prepararLinkDaOpcao(params: {
   result: FlightQuoteResult;
   option: FlightQuoteOption;
   numero: number;
+  /** Todas as opções da cotação — aparecem como abas dentro do orçamento. */
+  allOptions?: FlightQuoteOption[] | null;
   agentName?: string | null;
   conversationId?: string | null;
   flightQuoteId?: string | null;
@@ -56,6 +58,7 @@ export async function prepararLinkDaOpcao(params: {
     result: params.result,
     option: params.option,
     optionIndex: params.numero,
+    allOptions: params.allOptions ?? null,
     agentName: params.agentName ?? null,
     conversationId: params.conversationId ?? null,
     flightQuoteId: params.flightQuoteId ?? null,
