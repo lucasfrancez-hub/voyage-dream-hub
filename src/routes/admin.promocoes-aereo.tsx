@@ -24,6 +24,7 @@ import {
   SlidersHorizontal,
   Sparkles,
   X,
+  PlusCircle,
 } from "lucide-react";
 
 import { toast } from "sonner";
