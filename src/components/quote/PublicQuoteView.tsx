@@ -402,14 +402,15 @@ function HotelCard({ hotel }: { hotel: HotelProduct }) {
                 </div>
               ) : null}
 
-              {hotel.roomName || hotel.about || hotel.rating ? (
+              {quarto.name || hotel.about || hotel.rating ? (
                 <div className="vq-room-row">
-                  {hotel.roomName ? (
+                  {quarto.name ? (
                     <div className="vq-room">
-                      <strong>{hotel.roomName}</strong>
-                      {hotel.roomDescription ? <p>{hotel.roomDescription}</p> : null}
+                      <strong>{quarto.name}</strong>
+                      {quarto.description ? <p>{quarto.description}</p> : null}
                     </div>
                   ) : <span />}
+
                   {hotel.about || hotel.rating ? (
                     <button className="vq-about-btn" onClick={() => setSobre(true)}>
                       Ver sobre o hotel
