@@ -14,11 +14,21 @@ export const gerarTokenExtensao = createServerFn({ method: "POST" })
     const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(token));
     const hash = [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("");
 
-    await supabaseAdmin
+    // Não revoga os tokens ativos: a extensão já instalada continua funcionando
+    // mesmo que alguém gere um token novo. Mantém no máximo 5 ativos por usuário.
+    const { data: ativos } = await supabaseAdmin
       .from("extension_tokens")
-      .update({ revoked_at: new Date().toISOString() })
+      .select("id")
       .eq("user_id", context.userId)
-      .is("revoked_at", null);
+      .is("revoked_at", null)
+      .order("created_at", { ascending: false });
+    const excedentes = (ativos ?? []).slice(4).map((t) => t.id);
+    if (excedentes.length) {
+      await supabaseAdmin
+        .from("extension_tokens")
+        .update({ revoked_at: new Date().toISOString() })
+        .in("id", excedentes);
+    }
 
     const { error } = await supabaseAdmin.from("extension_tokens").insert({
       user_id: context.userId,
