@@ -150,6 +150,18 @@ function hotelBenefits(item: PublicQuoteItem, amenities: string[]): string[] {
   return out;
 }
 
+/** "Quarto Standard — 1 cama de casal" a partir dos dados da reserva. */
+function roomLabel(item: PublicQuoteItem, hotelName: string): string | null {
+  const tipo = (item.room_type ?? item.room_category ?? "").trim();
+  const cama = (item.bed_type ?? "").trim();
+  if (tipo) {
+    const base = /quarto|apartamento|su[ií]te|studio|chal[ée]/i.test(tipo) ? tipo : `Quarto ${tipo}`;
+    return cama ? `${base} — ${cama}` : base;
+  }
+  if (cama) return `Quarto — ${cama}`;
+  return item.title && item.title !== hotelName ? item.title : null;
+}
+
 function hotelProduct(
   item: PublicQuoteItem,
   index: number,
