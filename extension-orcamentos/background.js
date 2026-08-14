@@ -194,7 +194,7 @@ async function queueRemove(url) {
 }
 
 /** Aguarda a Via Air concluir o parsing dos dados reais (READY/IMPORT_ERROR). */
-async function pollUntilDone(importId, token, timeoutMs = 45_000) {
+async function pollUntilDone(importId, token, timeoutMs = 120_000) {
   const started = Date.now();
   let last = { status: "PROCESSING" };
   while (Date.now() - started < timeoutMs) {
@@ -204,14 +204,18 @@ async function pollUntilDone(importId, token, timeoutMs = 45_000) {
         headers: { authorization: `Bearer ${token}` },
       });
       if (!res.ok) continue;
-      last = await res.json();
-      if (last.status === "READY" || last.status === "IMPORT_ERROR") return last;
+      const current = await res.json();
+      // mantém o melhor resultado conhecido: nunca troca um sucesso por erro
+      if (last.status !== "READY" && !last.quoteId) last = current;
+      if (current.status === "READY" || current.quoteId) return current;
+      if (current.status === "IMPORT_ERROR" && !current.quoteId) return current;
     } catch (_) {
       /* tenta de novo */
     }
   }
   return last;
 }
+
 
 const inflight = new Map();
 async function sendImport(url, trigger) {
