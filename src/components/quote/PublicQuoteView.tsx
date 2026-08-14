@@ -718,7 +718,13 @@ function QuoteBody({ quote }: { quote: PublicQuote }) {
     seed: quote.publicId,
   });
 
+  const heroImage = useMemo(() => {
+    const foto = hotels.map((h) => h.photos?.[0]).find(Boolean);
+    return foto || heroFallback.url;
+  }, [hotels]);
+
   const legs = useMemo(() => flights.flatMap((f) => f.legs), [flights]);
+
 
   const whatsappHref = `https://wa.me/${WHATSAPP}?text=${encodeURIComponent(
     `Olá! Quero seguir com o orçamento ${quote.publicId} (${quote.title}).`,
