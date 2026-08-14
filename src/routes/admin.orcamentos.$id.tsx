@@ -67,6 +67,7 @@ function QuoteDetailPage() {
   const qc = useQueryClient();
   const navigate = useNavigate();
   const [optionNumber, setOptionNumber] = useState<number | null>(null);
+  const [hotelEdit, setHotelEdit] = useState<{ name: string; city: string | null } | null>(null);
 
   const { data: quote, isLoading } = useQuery({
     queryKey: ["admin", "quoteDetail", id],
@@ -488,6 +489,17 @@ function QuoteDetailPage() {
           </div>
         </TabsContent>
       </Tabs>
+
+      {hotelEdit && (
+        <HotelTripAdvisorDialog
+          open
+          onOpenChange={(v) => { if (!v) setHotelEdit(null); }}
+          hotelName={hotelEdit.name}
+          city={hotelEdit.city}
+          onLinked={() => qc.invalidateQueries({ queryKey: ["quote", id] })}
+        />
+      )}
+
     </div>
   );
 }
