@@ -150,18 +150,14 @@ function hotelBenefits(item: PublicQuoteItem, amenities: string[]): string[] {
   return out;
 }
 
-/** "Quarto Standard — 1 cama de casal" a partir dos dados da reserva. */
-function roomLabel(item: PublicQuoteItem, hotelName: string): string | null {
-  const tipo = (item.room_type ?? item.room_category ?? "").trim();
+/** Apenas Categoria / Tipo de cama do cadastro (ex.: "SUPERIOR COM CAMA CASAL / CAMA CASAL"). */
+function roomLabel(item: PublicQuoteItem, _hotelName: string): string | null {
+  const categoria = (item.room_category ?? item.room_type ?? "").trim();
   const cama = (item.bed_type ?? "").trim();
-  if (tipo) {
-    const base = /quarto|apartamento|su[ií]te|studio|chal[ée]/i.test(tipo) ? tipo : `Quarto ${tipo}`;
-    return cama ? `${base} — ${cama}` : base;
-  }
-  if (cama) return `Quarto — ${cama}`;
-  const t = item.title ?? "";
-  return t && t !== hotelName && !/noites?/i.test(t) ? t : null;
+  const partes = [categoria, cama].filter(Boolean);
+  return partes.length ? partes.join(" / ") : null;
 }
+
 
 function hotelProduct(
   item: PublicQuoteItem,
@@ -190,7 +186,7 @@ function hotelProduct(
     mealPlan: item.meal_plan ?? null,
     benefits: hotelBenefits(item, info?.amenities ?? []),
     roomName: roomLabel(item, nome),
-    roomDescription: item.notes ?? null,
+    roomDescription: null,
     about: info?.description ?? null,
     rating: info?.rating ?? null,
     reviewsCount: info?.num_reviews ?? null,
