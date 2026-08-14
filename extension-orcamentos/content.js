@@ -11,6 +11,7 @@
     candidate: "—", api: "aguardando URL real", requests: [], report: [],
   };
   let shadow = null;
+  let minimized = (() => { try { return localStorage.getItem("viaair-diag-min") === "1"; } catch (_e) { return false; } })();
   let observationUntil = 0;
   let toastTimer = null;
   const seen = new Set();
@@ -40,15 +41,31 @@
     shadow.innerHTML = `
       <style>
         *{box-sizing:border-box}.box{width:350px;max-height:calc(100vh - 40px);overflow:auto;background:#102a43;color:#f7fafc;border:1px solid #f26b1f;border-radius:8px;box-shadow:0 16px 44px rgba(0,0,0,.42);font:12px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;letter-spacing:0}
-        .head{padding:12px 14px;background:#f26b1f;color:#fff;font-weight:800}.head small{display:block;font-weight:600;margin-top:2px}.body{padding:10px 14px}.row{display:grid;grid-template-columns:105px 1fr;gap:7px;padding:3px 0;border-bottom:1px solid rgba(255,255,255,.07)}.key{color:#a9c1d4}.val{overflow-wrap:anywhere}.ok{color:#58d68d;font-weight:700}.warn{color:#ffd166}.requests{max-height:105px;overflow:auto;margin-top:7px;padding:7px;background:rgba(0,0,0,.18);white-space:pre-wrap;overflow-wrap:anywhere}.actions{display:flex;gap:6px;margin-top:9px}button{border:0;border-radius:5px;padding:6px 8px;background:#f26b1f;color:#fff;font:700 11px/1.2 inherit;cursor:pointer}.toast{display:none;margin:0 14px 12px;padding:10px;border-left:4px solid #f26b1f;background:#173b5e}.toast.show{display:block}.toast.success{border-color:#58d68d}.toast.error{border-color:#ff6b6b}.toast b{display:block}.toast span{color:#c8d8e6}
+        .head{padding:12px 14px;background:#f26b1f;color:#fff;font-weight:800;display:flex;align-items:center;justify-content:space-between;gap:8px;cursor:pointer}.head small{display:block;font-weight:600;margin-top:2px}.head .toggle{border:0;background:rgba(0,0,0,.18);color:#fff;border-radius:5px;width:24px;height:24px;font:700 14px/1 inherit;cursor:pointer;flex:0 0 auto}.box.min{width:auto}.box.min .body,.box.min .toast{display:none}.box.min .head small{display:none}.box.min .head{padding:8px 10px;border-radius:8px}.body{padding:10px 14px}.row{display:grid;grid-template-columns:105px 1fr;gap:7px;padding:3px 0;border-bottom:1px solid rgba(255,255,255,.07)}.key{color:#a9c1d4}.val{overflow-wrap:anywhere}.ok{color:#58d68d;font-weight:700}.warn{color:#ffd166}.requests{max-height:105px;overflow:auto;margin-top:7px;padding:7px;background:rgba(0,0,0,.18);white-space:pre-wrap;overflow-wrap:anywhere}.actions{display:flex;gap:6px;margin-top:9px}button{border:0;border-radius:5px;padding:6px 8px;background:#f26b1f;color:#fff;font:700 11px/1.2 inherit;cursor:pointer}.toast{display:none;margin:0 14px 12px;padding:10px;border-left:4px solid #f26b1f;background:#173b5e}.toast.show{display:block}.toast.success{border-color:#58d68d}.toast.error{border-color:#ff6b6b}.toast b{display:block}.toast span{color:#c8d8e6}
       </style>
       <section class="box" aria-label="Diagnóstico Via Air Orçamentos">
-        <div class="head">Via Air Orçamentos<small>Diagnóstico ativo</small></div>
+        <div class="head" id="head"><span><span>Via Air Orçamentos</span><small>Diagnóstico ativo</small></span><button class="toggle" id="toggle" type="button" title="Minimizar/expandir" aria-label="Minimizar ou expandir">–</button></div>
         <div class="body" id="rows"></div>
         <div class="toast" id="toast"><b id="toast-title"></b><span id="toast-detail"></span></div>
       </section>`;
     parent.appendChild(host);
+    shadow.getElementById("toggle").onclick = (event) => { event.stopPropagation(); setMinimized(!minimized); };
+    shadow.getElementById("head").onclick = () => { if (minimized) setMinimized(false); };
+    applyMinimized();
     render();
+  }
+
+  function setMinimized(value) {
+    minimized = !!value;
+    try { localStorage.setItem("viaair-diag-min", minimized ? "1" : "0"); } catch (_e) { /* ignora */ }
+    applyMinimized();
+  }
+  function applyMinimized() {
+    if (!shadow) return;
+    const box = shadow.querySelector(".box");
+    if (box) box.className = minimized ? "box min" : "box";
+    const toggle = shadow.getElementById("toggle");
+    if (toggle) toggle.textContent = minimized ? "+" : "–";
   }
 
   function row(label, value, className) {
@@ -59,6 +76,7 @@
   }
   function render() {
     if (!shadow) return;
+    applyMinimized();
     const rows = shadow.getElementById("rows");
     if (!rows) return;
     const requests = state.requests.length ? state.requests.slice(-8).join("\n") : "—";
@@ -91,6 +109,7 @@
   function showViaAirToast(kind, title, detail) {
     ensureViaAirUi();
     if (!shadow) return;
+    if (minimized) setMinimized(false);
     const toast = shadow.getElementById("toast");
     toast.className = `toast show ${kind}`;
     shadow.getElementById("toast-title").textContent = title;
