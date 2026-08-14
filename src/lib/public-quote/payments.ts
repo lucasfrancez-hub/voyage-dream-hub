@@ -105,9 +105,9 @@ export function buildPayment(params: {
   markups?: MarkupTable;
 }): PaymentConfiguration {
   const { type, total, airline } = params;
-  // Regra comercial VIA AIR: Pix sempre 5% de desconto. Qualquer valor 0
-  // ou ausente cai no padrão de 5%.
-  const pixPercent = params.pixDiscountPercent || PIX_DISCOUNT_PERCENT;
+  // Regra comercial VIA AIR: Pix sempre aceito. Desconto de 5% somente em
+  // pacotes (TRIP_PACKAGE). Somente aéreo (AIR_ONLY) não tem desconto no Pix.
+  const pixPercent = type === "AIR_ONLY" ? 0 : (params.pixDiscountPercent ?? PIX_DISCOUNT_PERCENT);
   const pixTotal = round2(total * (1 - pixPercent / 100));
   const dias = diasAteViagem(params.startDate);
   // Boleto 10x: exclusivo de pacote com 60+ dias de antecedência.
