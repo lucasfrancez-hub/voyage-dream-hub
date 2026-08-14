@@ -2,6 +2,9 @@
  * Autenticação por token, fila com retry, deduplicação local e status.
  * Funciona sem o portal Via Air aberto. */
 
+const LOG = "[Via Air Orçamentos]";
+console.info(LOG, "Service worker iniciado");
+
 const API_BASE = "https://pedidos.viaair.tur.br";
 const ENDPOINT = API_BASE + "/api/public/v1/quote-imports";
 const RETRY_MINUTES = [1, 5, 15, 60];
@@ -46,7 +49,12 @@ async function queueRemove(url) {
 
 async function sendImport(url, trigger) {
   const token = await getToken();
-  if (!token) return { status: "UNAUTHORIZED" };
+  if (!token) {
+    console.error(LOG, "token ausente — configure no popup da extensão");
+    await logEvent({ event: "no_token", sourceUrl: url });
+    return { status: "UNAUTHORIZED", stage: "AUTH", detail: "token_ausente" };
+  }
+  console.info(LOG, "Enviando importação", { endpoint: ENDPOINT, url, trigger, tokenPreview: token.slice(0, 4) + "…" });
 
   // deduplicação local
   const { viaairImported = {} } = await read(["viaairImported"]);
@@ -64,25 +72,40 @@ async function sendImport(url, trigger) {
       }),
     });
 
-    if (res.status === 401) {
-      await logEvent({ event: "unauthorized", sourceUrl: url });
-      return { status: "UNAUTHORIZED" };
+    console.info(LOG, "API respondeu HTTP", res.status);
+    if (res.status === 401 || res.status === 403) {
+      const body = await res.text().catch(() => "");
+      console.error(LOG, "autenticação recusada", res.status, body.slice(0, 200));
+      await logEvent({ event: "unauthorized", sourceUrl: url, httpStatus: res.status, detail: body.slice(0, 200) });
+      return { status: "UNAUTHORIZED", stage: "API", httpStatus: res.status };
     }
-    if (!res.ok) throw new Error("http_" + res.status);
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      console.error(LOG, "API recusou", res.status, body.slice(0, 300));
+      throw new Error("http_" + res.status + " " + body.slice(0, 200));
+    }
 
     const data = await res.json();
     const label = data.quote ? `#${data.quote.quote_number} ${data.quote.destination || data.quote.title || ""}` : url;
     await markImported(url, { result: data.status, importId: data.importId, label });
     await queueRemove(url);
     await logEvent({ event: "imported", sourceUrl: url, result: data.status, importId: data.importId });
+    console.info(LOG, "Importação criada", { importId: data.importId, status: data.status, quoteId: data.quoteId });
     chrome.tabs.query({}, (tabs) =>
       tabs.forEach((t) => t.id && chrome.tabs.sendMessage(t.id, { type: "viaair-quotes-updated" }, () => void chrome.runtime.lastError)),
     );
     return { status: data.status, duplicate: data.duplicate || !!already, importId: data.importId };
   } catch (e) {
+    // AUDITORIA: erro completo, sem mascarar
+    console.error(LOG, "falha ao enviar para a Via Air", { message: e?.message, stack: e?.stack, url, trigger });
     await queueAdd({ url, trigger });
-    await logEvent({ event: "queued", sourceUrl: url, result: String(e && e.message ? e.message : e) });
-    return { status: "QUEUED" };
+    await logEvent({
+      event: "queued",
+      sourceUrl: url,
+      result: String(e && e.message ? e.message : e),
+      stack: String(e?.stack || "").slice(0, 500),
+    });
+    return { status: "QUEUED", stage: "NETWORK", detail: String(e?.message || e) };
   }
 }
 
