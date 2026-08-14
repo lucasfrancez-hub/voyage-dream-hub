@@ -288,7 +288,19 @@ export function buildPublicQuoteFromImported(params: {
 }): Omit<PublicQuote, "id" | "publicId" | "createdAt" | "updatedAt" | "expired" | "shortUrl"> {
   const { normalized } = params;
   const options = normalized.options.length ? normalized.options : [];
-  const publicOptions = options.map(optionToPublicOption);
+
+  const adultos = Math.max(1, Number(normalized.passengers?.adults ?? 1) || 1);
+  const criancas = Math.max(0, Number(normalized.passengers?.children ?? 0) || 0);
+  const bebes = Math.max(0, Number(normalized.passengers?.infants ?? 0) || 0);
+  const paxLabel = [
+    `${adultos} ${adultos === 1 ? "adulto" : "adultos"}`,
+    criancas ? `${criancas} ${criancas === 1 ? "criança" : "crianças"}` : null,
+    bebes ? `${bebes} ${bebes === 1 ? "bebê" : "bebês"}` : null,
+  ]
+    .filter(Boolean)
+    .join(" • ");
+
+  const publicOptions = options.map((o) => optionToPublicOption(o, paxLabel));
   const first = publicOptions[0];
 
   const anyPackage = options.some((o) => optionType(o) === "TRIP_PACKAGE");
@@ -296,6 +308,7 @@ export function buildPublicQuoteFromImported(params: {
 
   const destino = normalized.destination ?? options[0]?.destination ?? "Sua viagem";
   const title = params.title ?? (normalized.origin ? `${normalized.origin} → ${destino}` : destino);
+  const primeirasLegs = first?.products.flights?.[0]?.legs ?? [];
 
   return {
     type,
@@ -309,21 +322,28 @@ export function buildPublicQuoteFromImported(params: {
     startDate: normalized.startDate ?? options[0]?.startDate ?? null,
     endDate: normalized.endDate ?? options[0]?.endDate ?? null,
     nights: options[0]?.hotels[0]?.nights ?? null,
-    tripKind: null,
-    cabin: null,
-    passengers: {
-      adults: normalized.passengers?.adults ?? 1,
-      children: normalized.passengers?.children ?? 0,
-      infants: normalized.passengers?.infants ?? 0,
-      label: `${normalized.passengers?.adults ?? 1} ${(normalized.passengers?.adults ?? 1) === 1 ? "adulto" : "adultos"}`,
-    },
+    tripKind: primeirasLegs.length
+      ? primeirasLegs.some((l) => l.direction === "INBOUND")
+        ? "Ida e volta"
+        : primeirasLegs.length > 1
+          ? "Multi-trecho"
+          : "Somente ida"
+      : null,
+    cabin: primeirasLegs[0]?.cabin ?? null,
+    passengers: { adults: adultos, children: criancas, infants: bebes, label: paxLabel },
     products: first?.products ?? {},
     options: publicOptions,
     payment: first?.payment ?? buildPayment({ type, total: 0 }),
     totals: first?.totals ?? { products: 0, taxes: 0, total: 0 },
     summary: options[0] ? optionSummary(options[0]) : [],
     agent: params.agentName
-      ? { name: params.agentName, photoUrl: null, phone: null, whatsapp: null, email: null }
+      ? {
+          name: params.agentName,
+          photoUrl: agentPhoto(params.agentName),
+          phone: null,
+          whatsapp: null,
+          email: null,
+        }
       : null,
     source: { type: "SYSTEM", conversationId: null },
     validUntil: params.validUntil ?? null,
