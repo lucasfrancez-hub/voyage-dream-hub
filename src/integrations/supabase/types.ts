@@ -2084,6 +2084,45 @@ export type Database = {
         }
         Relationships: []
       }
+      expedia_credentials: {
+        Row: {
+          account_email: string
+          created_at: string
+          created_by: string | null
+          id: string
+          label: string
+          last_error: string | null
+          last_login_at: string | null
+          password_encrypted: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          account_email: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          label?: string
+          last_error?: string | null
+          last_login_at?: string | null
+          password_encrypted: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          account_email?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          label?: string
+          last_error?: string | null
+          last_login_at?: string | null
+          password_encrypted?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       expedia_search_logs: {
         Row: {
           created_at: string
