@@ -6,6 +6,7 @@ import { getPublicQuote, type PublicQuote, type PublicQuoteItem } from "@/lib/qu
 import { fetchPublicQuote } from "@/lib/public-quote.functions";
 import type { PublicQuote as PremiumQuote } from "@/lib/public-quote/types";
 import PublicQuoteView from "@/components/quote/PublicQuoteView";
+import { buildPublicQuoteFromOrder } from "@/lib/public-quote/from-order";
 import { formatBRL } from "@/lib/format";
 import viaAirLogo from "@/assets/viaair-logo.png.asset.json";
 
@@ -26,9 +27,10 @@ export const Route = createFileRoute("/orcamento/$token")({
       const premium = await fetchPublicQuote({ data: { publicId: params.token } }).catch(() => null);
       if (premium) return { kind: "premium", quote: premium };
     }
-    // 2) formato legado (token assinado do pedido)
+    // 2) token assinado do pedido — apresentado no MESMO modelo público oficial
     try {
-      return { kind: "legacy", quote: await getPublicQuote({ data: { token: params.token } }) };
+      const legacy = await getPublicQuote({ data: { token: params.token } });
+      return { kind: "premium", quote: buildPublicQuoteFromOrder(legacy, params.token) };
     } catch {
       throw notFound();
     }
