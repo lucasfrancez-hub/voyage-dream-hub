@@ -30,9 +30,9 @@ import {
   type DomCard,
   type DomRoom,
 } from "@/lib/expedia/normalize";
+import { ensureExpediaSession, autoLoginExpedia } from "@/lib/expedia/auto-login.server";
 import {
   type ExpediaSessionState,
-  getActiveExpediaSession,
   logExpediaSearch,
   markExpediaSession,
 } from "@/lib/expedia/session-store.server";
@@ -111,11 +111,20 @@ export class ExpediaTaapBrowserProvider implements HotelSearchProvider {
   readonly source = "EXPEDIA_TAAP" as const;
 
   async search(query: HotelSearchQuery): Promise<HotelSearchResponse> {
+    const first = await this.searchOnce(query);
+    if (first.status !== "SESSION_EXPIRED" && first.status !== "AUTH_REQUIRED") return first;
+    // Sessão caiu no meio do caminho: renova sozinho e tenta de novo uma vez.
+    const relogin = await autoLoginExpedia();
+    if (!relogin.ok) return first;
+    return this.searchOnce(query);
+  }
+
+  private async searchOnce(query: HotelSearchQuery): Promise<HotelSearchResponse> {
     const started = Date.now();
     const isPackage = query.type === "FLIGHT_HOTEL_PACKAGE";
     const url = isPackage ? buildPackageSearchUrl(query) : buildHotelSearchUrl(query);
 
-    const session = await getActiveExpediaSession();
+    const session = await ensureExpediaSession();
     if (!session) {
       await logExpediaSearch({
         sessionId: null,
@@ -272,7 +281,7 @@ export class ExpediaTaapBrowserProvider implements HotelSearchProvider {
   }): Promise<{ status: HotelSearchStatus; message: string; data: HotelRoomsResult | null }> {
     const started = Date.now();
     const url = buildPropertyDetailUrl(input);
-    const session = await getActiveExpediaSession();
+    const session = await ensureExpediaSession();
     if (!session) {
       return { status: "AUTH_REQUIRED", message: HOTEL_STATUS_MESSAGE.AUTH_REQUIRED, data: null };
     }
@@ -359,7 +368,7 @@ export class ExpediaTaapBrowserProvider implements HotelSearchProvider {
       bytes: number;
     }>;
   }> {
-    const session = await getActiveExpediaSession();
+    const session = await ensureExpediaSession();
     if (!session) {
       return { status: "AUTH_REQUIRED", message: HOTEL_STATUS_MESSAGE.AUTH_REQUIRED, finalUrl: null, endpoints: [] };
     }
