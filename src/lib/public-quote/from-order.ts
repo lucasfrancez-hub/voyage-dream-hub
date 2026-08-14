@@ -139,43 +139,74 @@ function buildLegs(voos: PublicQuoteItem[]): FlightLeg[] {
   });
 }
 
-function hotelProduct(item: PublicQuoteItem, index: number): HotelProduct {
+/** Regime alimentar e cancelamento entram como benefício visual. */
+function hotelBenefits(item: PublicQuoteItem, amenities: string[]): string[] {
+  const out: string[] = [];
+  if (item.meal_plan) out.push(item.meal_plan);
+  for (const a of amenities) {
+    if (out.length >= 6) break;
+    if (!out.some((x) => x.toLowerCase() === a.toLowerCase())) out.push(a);
+  }
+  return out;
+}
+
+function hotelProduct(
+  item: PublicQuoteItem,
+  index: number,
+  occupancyLabel: string | null,
+): HotelProduct {
   const info = item.hotel_info ?? null;
   const nome = item.hotel_name ?? info?.name ?? item.title;
   const manual = (item.photo_url ?? "").trim();
   const fotos = [...(manual ? [manual] : []), ...(info?.photos ?? [])];
+  const lat = info?.latitude ?? null;
+  const lng = info?.longitude ?? null;
+  const endereco = info?.address ?? null;
+
   return {
     id: `hotel-${index + 1}`,
     name: nome,
-    stars: item.hotel_stars ?? null,
-    place: info?.address ?? null,
+    stars: item.hotel_stars ?? info?.stars ?? null,
+    place: endereco,
     photos: fotos,
 
     checkIn: brDate(item.check_in),
     checkOut: brDate(item.check_out),
-    occupancy: item.nights ? `${item.nights} noite${item.nights > 1 ? "s" : ""}` : null,
+    // Ocupação é gente, não noite: as noites aparecem no cabeçalho da seção.
+    occupancy: occupancyLabel,
     mealPlan: item.meal_plan ?? null,
-    benefits: info?.amenities ?? [],
-    roomName: null,
+    benefits: hotelBenefits(item, info?.amenities ?? []),
+    roomName: item.title && item.title !== nome ? item.title : null,
     roomDescription: item.notes ?? info?.description ?? null,
-    location: info?.address
-      ? { latitude: null, longitude: null, address: info.address, nearbyPlaces: [] }
-      : null,
-    mapsUrl: info?.address
-      ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${nome} ${info.address}`)}`
-      : null,
+    location:
+      lat != null || endereco
+        ? {
+            latitude: lat,
+            longitude: lng,
+            address: endereco,
+            nearbyPlaces: info?.nearby ?? [],
+          }
+        : null,
+    mapsUrl:
+      lat != null && lng != null
+        ? `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`
+        : endereco
+          ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${nome} ${endereco}`)}`
+          : null,
   };
 }
 
 function otherProduct(item: PublicQuoteItem, index: number): SimpleProduct {
   const periodo = [brDate(item.date_from), brDate(item.date_to)].filter(Boolean).join(" → ");
+  const norm = normalizeServiceTitle(item.title);
   return {
     id: `srv-${index + 1}`,
-    title: item.title,
+    title: norm.title,
     summary: periodo || item.category || null,
     details: [
       ...(item.category ? [{ label: "Categoria", value: item.category }] : []),
       ...(periodo ? [{ label: "Período", value: periodo }] : []),
+      ...(norm.reference ? [{ label: "Referência", value: norm.reference }] : []),
     ],
     description: item.notes ?? null,
   };
