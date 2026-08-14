@@ -131,7 +131,7 @@ export async function syncQuoteOptions(quoteId: string, normalized: NormalizedQu
   if (rows.length) await supabase.from("quote_options").insert(rows as never);
 }
 
-/** Busca o HTML, interpreta, normaliza e cria/atualiza o Quote. */
+/** Busca os dados reais na fonte, normaliza e cria/atualiza o Quote. */
 export async function processQuoteImport(importId: string): Promise<ImportResult> {
   const supabase = await db();
   const { data: imp } = await supabase
@@ -141,14 +141,29 @@ export async function processQuoteImport(importId: string): Promise<ImportResult
     .maybeSingle();
   if (!imp) return { importId, status: "IMPORT_ERROR", error: "import_not_found" };
 
+  const stage = async (status: string) => {
+    await supabase
+      .from("quote_imports")
+      .update({ status, updated_at: new Date().toISOString() })
+      .eq("id", importId);
+  };
+
   const fail = async (msg: string) => {
     await supabase
       .from("quote_imports")
       .update({ status: "IMPORT_ERROR", error: msg.slice(0, 500), updated_at: new Date().toISOString() })
       .eq("id", importId);
-    return { importId, status: "IMPORT_ERROR" as const, error: msg };
+    // um orçamento já existente que falhou no reprocessamento não pode continuar "pronto"
+    if (imp.quote_id) {
+      await supabase
+        .from("quotes")
+        .update({ status: "IMPORT_ERROR", updated_at: new Date().toISOString() })
+        .eq("id", imp.quote_id);
+    }
+    return { importId, quoteId: imp.quote_id, status: "IMPORT_ERROR" as const, error: msg };
   };
 
+  await stage("FETCHING_SOURCE");
   let html = "";
   let httpStatus = 0;
   try {
@@ -162,42 +177,47 @@ export async function processQuoteImport(importId: string): Promise<ImportResult
     httpStatus = res.status;
     html = await res.text();
   } catch (e) {
-    return await fail(`fetch: ${(e as Error).message}`);
+    return await fail(`SOURCE_PAGE_NOT_LOADED: ${(e as Error).message}`);
   }
-  if (httpStatus >= 400 || !html) return await fail(`http_${httpStatus}`);
+  if (httpStatus >= 400 || !html) return await fail(`SOURCE_PAGE_NOT_LOADED: http_${httpStatus}`);
 
-  const parser = parserFor(imp.source_url);
+  await stage("PARSING");
   let normalized: NormalizedQuote;
+  let partialErrors: string[] = [];
   try {
-    normalized = parser ? parser.parse(html, imp.source_url) : emptyQuote("IMPORTADO");
+    if (isInfotravel(imp.source_url)) {
+      const result = await importInfotravelQuote(imp.source_url, html);
+      normalized = result.normalized;
+      partialErrors = result.partialErrors;
+    } else {
+      const parser = parserFor(imp.source_url);
+      if (!parser) return await fail("SOURCE_PAGE_INVALID: fonte não suportada");
+      normalized = parser.parse(html, imp.source_url);
+    }
   } catch (e) {
-    return await fail(`parser: ${(e as Error).message}`);
+    const code = e instanceof QuoteParseError ? e.message : `PARSER_FAILED: ${(e as Error).message}`;
+    return await fail(code);
   }
   normalized.sourceUrl = imp.source_url;
-  if (!normalized.options.length) {
-    const only = emptyOption(1);
-    only.label = "Opção 1";
-    only.hotels = normalized.hotels;
-    only.flights = normalized.flights;
-    only.cars = normalized.cars;
-    only.transfers = normalized.transfers;
-    only.activities = normalized.activities;
-    only.tickets = normalized.tickets;
-    only.insurance = normalized.insurance;
-    only.services = normalized.services;
-    only.total = normalized.total ?? null;
-    only.startDate = normalized.startDate ?? null;
-    only.endDate = normalized.endDate ?? null;
-    only.destination = normalized.destination ?? null;
-    normalized.options = [only];
-  }
+
+  // ---- critério mínimo de importação válida (sem defaults artificiais) ----
+  if (!normalized.sourceBookingId && !normalized.sourceId) return await fail("SOURCE_PAGE_INVALID: sem identificador");
+  if (!normalized.options.length) return await fail("NO_OPTIONS_FOUND");
+  const withProducts = normalized.options.filter((o) => optionHasProducts(o));
+  if (!withProducts.length) return await fail("NO_PRODUCTS_FOUND");
+  const total = normalized.total ?? withProducts[0]!.total ?? null;
+  if (total == null || !(total > 0)) return await fail("TOTAL_NOT_FOUND");
+  const pax = normalized.passengers;
+  if (!pax || !((pax.adults ?? 0) + (pax.children ?? 0) > 0)) return await fail("PASSENGERS_NOT_FOUND");
+
+  await stage("ENRICHING");
 
   const kindsAllOptions = normalized.options.flatMap((o) => optionProductKinds(o));
   const hasAir = kindsAllOptions.includes("flights");
   const hasOther = kindsAllOptions.some((k) => k !== "flights");
   const quoteType = hasAir && !hasOther ? "AIR_ONLY" : "TRIP_PACKAGE";
 
-  const first = normalized.options[0]!;
+  const first = withProducts[0]!;
   const payload = {
     quote_type: quoteType,
     status: "READY",
@@ -209,7 +229,7 @@ export async function processQuoteImport(importId: string): Promise<ImportResult
     destination: normalized.destination ?? first.destination ?? null,
     start_date: normalized.startDate ?? first.startDate ?? null,
     end_date: normalized.endDate ?? first.endDate ?? null,
-    total: normalized.total ?? first.total ?? null,
+    total,
     currency: normalized.currency ?? "BRL",
     consultant: normalized.agent ?? null,
     source: imp.source,
@@ -241,7 +261,6 @@ export async function processQuoteImport(importId: string): Promise<ImportResult
 
   await syncQuoteOptions(quoteId!, normalized);
 
-
   await supabase
     .from("quote_imports")
     .update({
@@ -251,13 +270,14 @@ export async function processQuoteImport(importId: string): Promise<ImportResult
       parsed_payload: normalized as unknown as never,
       quote_id: quoteId,
       version,
-      error: null,
+      error: partialErrors.length ? partialErrors.join(" | ").slice(0, 500) : null,
       updated_at: new Date().toISOString(),
     })
     .eq("id", importId);
 
   return { importId, quoteId, status: "READY", version };
 }
+
 
 export async function getImportStatus(importId: string) {
   const supabase = await db();
