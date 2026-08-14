@@ -267,12 +267,22 @@ export function buildPublicQuoteFromOrder(legacy: LegacyQuote, token: string): P
 
   const type: QuoteType = hoteis.length === 0 && outros.length === 0 && voos.length > 0 ? "AIR_ONLY" : "TRIP_PACKAGE";
 
+  // Passageiros reais do pedido — nunca "2 adultos" fixo.
+  const criancas = Math.max(0, Number(legacy.travelers.children) || 0);
+  const adultos = Math.max(criancas > 0 ? 0 : 1, Number(legacy.travelers.adults) || 0);
+  const paxLabel = [
+    adultos ? `${adultos} ${adultos === 1 ? "adulto" : "adultos"}` : null,
+    criancas ? `${criancas} ${criancas === 1 ? "criança" : "crianças"}` : null,
+  ]
+    .filter(Boolean)
+    .join(" • ");
+
   const legs = voos.length ? buildLegs(voos) : [];
   const products: QuoteProducts = {};
   if (legs.length) {
     products.flights = [{ id: "air-1", optionId: "1", legs }];
   }
-  if (hoteis.length) products.hotels = hoteis.map(hotelProduct);
+  if (hoteis.length) products.hotels = hoteis.map((h, i) => hotelProduct(h, i, paxLabel || null));
   if (outros.length) products.services = outros.map(otherProduct);
 
   const total = Number(legacy.totalPrice) || 0;
@@ -288,24 +298,32 @@ export function buildPublicQuoteFromOrder(legacy: LegacyQuote, token: string): P
   if (legs.length) {
     summary.push({
       icon: "flight",
-      label: "Passagens aéreas",
-      value: legs.length === 1 ? "1 trecho" : `${legs.length} trechos`,
+      label: `Aéreo ${legs.length > 1 ? "ida e volta" : "somente ida"} • ${paxLabel || "passageiros"}`,
+      value: "Incluído",
     });
   }
 
   for (const h of hoteis) {
     summary.push({
       icon: "hotel",
-      label: h.hotel_name ?? h.title,
-      value: [brDate(h.check_in), brDate(h.check_out)].filter(Boolean).join(" → ") || "Hospedagem",
+      label: h.nights
+        ? `${h.hotel_name ?? h.title} • ${h.nights} ${h.nights > 1 ? "noites" : "noite"}`
+        : (h.hotel_name ?? h.title),
+      value: [brDate(h.check_in), brDate(h.check_out)].filter(Boolean).join(" → ") || "Incluída",
     });
   }
-  for (const o of outros) summary.push({ icon: "service", label: o.title, value: o.category ?? "Incluso" });
+  for (const o of outros) {
+    summary.push({
+      icon: normalizeServiceTitle(o.title).icon,
+      label: normalizeServiceTitle(o.title).title,
+      value: o.category ?? "Incluído",
+    });
+  }
 
   const primeiraData =
-    isoDate(voos[0]?.departure_at) ?? isoDate(hoteis[0]?.check_in) ?? isoDate(outros[0]?.date_from);
+    isoDateOf(voos[0]?.departure_at) ?? isoDateOf(hoteis[0]?.check_in) ?? isoDateOf(outros[0]?.date_from);
   const ultimaData =
-    isoDate(voos[voos.length - 1]?.arrival_at) ?? isoDate(hoteis[0]?.check_out) ?? isoDate(outros[0]?.date_to);
+    isoDateOf(voos[voos.length - 1]?.arrival_at) ?? isoDateOf(hoteis[0]?.check_out) ?? isoDateOf(outros[0]?.date_to);
 
   const destino =
     legacy.destination ??
