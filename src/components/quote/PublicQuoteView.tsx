@@ -704,7 +704,15 @@ export function PublicQuoteView({ quote }: { quote: PublicQuote }) {
       <div className="vq-options">
         <div className="vq-options-inner">
           <span className="vq-options-title">Escolha sua opção</span>
-          <div className="vq-options-tabs">
+          <button
+            type="button"
+            aria-label="Ver opções anteriores"
+            className="vq-options-arrow"
+            onClick={() => tabsRef.current?.scrollBy({ left: -220, behavior: "smooth" })}
+          >
+            ‹
+          </button>
+          <div className="vq-options-tabs" ref={tabsRef}>
             {options.map((o, i) => (
               <button
                 key={o.optionId}
@@ -717,6 +725,14 @@ export function PublicQuoteView({ quote }: { quote: PublicQuote }) {
               </button>
             ))}
           </div>
+          <button
+            type="button"
+            aria-label="Ver próximas opções"
+            className="vq-options-arrow"
+            onClick={() => tabsRef.current?.scrollBy({ left: 220, behavior: "smooth" })}
+          >
+            ›
+          </button>
         </div>
       </div>
     </>
