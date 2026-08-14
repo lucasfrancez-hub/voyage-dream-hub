@@ -208,6 +208,7 @@ export function optionToPublicOption(option: NormalizedOption): QuoteOption {
     products: optionToProducts(option),
     totals: totalsFor(option, payment),
     payment,
+    summary: optionSummary(option),
   };
 }
 

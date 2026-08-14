@@ -181,6 +181,7 @@ export type QuoteOption = {
   products: QuoteProducts;
   totals: QuoteTotals;
   payment: PaymentConfiguration;
+  summary?: QuoteSummaryLine[];
 };
 
 export type QuoteTotals = {
