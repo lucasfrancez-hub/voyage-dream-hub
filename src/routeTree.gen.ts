@@ -46,6 +46,7 @@ import { Route as AdminDashboardRouteImport } from './routes/admin.dashboard'
 import { Route as AdminEditairRouteImport } from './routes/admin.editair'
 import { Route as AdminEncurtadorRouteImport } from './routes/admin.encurtador'
 import { Route as AdminExclusivosRouteImport } from './routes/admin.exclusivos'
+import { Route as AdminExpediaRouteImport } from './routes/admin.expedia'
 import { Route as AdminHoteisTesteRouteImport } from './routes/admin.hoteis-teste'
 import { Route as AdminInstagramRouteImport } from './routes/admin.instagram'
 import { Route as AdminInstalarExtensaoRouteImport } from './routes/admin.instalar-extensao'
@@ -332,6 +333,11 @@ const AdminEncurtadorRoute = AdminEncurtadorRouteImport.update({
 const AdminExclusivosRoute = AdminExclusivosRouteImport.update({
   id: '/exclusivos',
   path: '/exclusivos',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminExpediaRoute = AdminExpediaRouteImport.update({
+  id: '/expedia',
+  path: '/expedia',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminHoteisTesteRoute = AdminHoteisTesteRouteImport.update({
@@ -916,6 +922,7 @@ export interface FileRoutesByFullPath {
   '/admin/editair': typeof AdminEditairRoute
   '/admin/encurtador': typeof AdminEncurtadorRoute
   '/admin/exclusivos': typeof AdminExclusivosRoute
+  '/admin/expedia': typeof AdminExpediaRoute
   '/admin/hoteis-teste': typeof AdminHoteisTesteRoute
   '/admin/instagram': typeof AdminInstagramRoute
   '/admin/instalar-extensao': typeof AdminInstalarExtensaoRoute
@@ -1055,6 +1062,7 @@ export interface FileRoutesByTo {
   '/admin/editair': typeof AdminEditairRoute
   '/admin/encurtador': typeof AdminEncurtadorRoute
   '/admin/exclusivos': typeof AdminExclusivosRoute
+  '/admin/expedia': typeof AdminExpediaRoute
   '/admin/hoteis-teste': typeof AdminHoteisTesteRoute
   '/admin/instagram': typeof AdminInstagramRoute
   '/admin/instalar-extensao': typeof AdminInstalarExtensaoRoute
@@ -1197,6 +1205,7 @@ export interface FileRoutesById {
   '/admin/editair': typeof AdminEditairRoute
   '/admin/encurtador': typeof AdminEncurtadorRoute
   '/admin/exclusivos': typeof AdminExclusivosRoute
+  '/admin/expedia': typeof AdminExpediaRoute
   '/admin/hoteis-teste': typeof AdminHoteisTesteRoute
   '/admin/instagram': typeof AdminInstagramRoute
   '/admin/instalar-extensao': typeof AdminInstalarExtensaoRoute
@@ -1340,6 +1349,7 @@ export interface FileRouteTypes {
     | '/admin/editair'
     | '/admin/encurtador'
     | '/admin/exclusivos'
+    | '/admin/expedia'
     | '/admin/hoteis-teste'
     | '/admin/instagram'
     | '/admin/instalar-extensao'
@@ -1479,6 +1489,7 @@ export interface FileRouteTypes {
     | '/admin/editair'
     | '/admin/encurtador'
     | '/admin/exclusivos'
+    | '/admin/expedia'
     | '/admin/hoteis-teste'
     | '/admin/instagram'
     | '/admin/instalar-extensao'
@@ -1620,6 +1631,7 @@ export interface FileRouteTypes {
     | '/admin/editair'
     | '/admin/encurtador'
     | '/admin/exclusivos'
+    | '/admin/expedia'
     | '/admin/hoteis-teste'
     | '/admin/instagram'
     | '/admin/instalar-extensao'
@@ -2064,6 +2076,13 @@ declare module '@tanstack/react-router' {
       path: '/exclusivos'
       fullPath: '/admin/exclusivos'
       preLoaderRoute: typeof AdminExclusivosRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/expedia': {
+      id: '/admin/expedia'
+      path: '/expedia'
+      fullPath: '/admin/expedia'
+      preLoaderRoute: typeof AdminExpediaRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/hoteis-teste': {
@@ -2811,6 +2830,7 @@ interface AdminRouteChildren {
   AdminEditairRoute: typeof AdminEditairRoute
   AdminEncurtadorRoute: typeof AdminEncurtadorRoute
   AdminExclusivosRoute: typeof AdminExclusivosRoute
+  AdminExpediaRoute: typeof AdminExpediaRoute
   AdminHoteisTesteRoute: typeof AdminHoteisTesteRoute
   AdminInstagramRoute: typeof AdminInstagramRoute
   AdminInstalarExtensaoRoute: typeof AdminInstalarExtensaoRoute
@@ -2853,6 +2873,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminEditairRoute: AdminEditairRoute,
   AdminEncurtadorRoute: AdminEncurtadorRoute,
   AdminExclusivosRoute: AdminExclusivosRoute,
+  AdminExpediaRoute: AdminExpediaRoute,
   AdminHoteisTesteRoute: AdminHoteisTesteRoute,
   AdminInstagramRoute: AdminInstagramRoute,
   AdminInstalarExtensaoRoute: AdminInstalarExtensaoRoute,
