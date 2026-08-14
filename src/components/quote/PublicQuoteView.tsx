@@ -9,6 +9,8 @@ import { airlineLogo } from "@/lib/airlines";
 import { brl } from "@/lib/public-quote/payments";
 import { quoteHeadline, quoteTagline } from "@/lib/public-quote/headline";
 import { agentPhoto } from "@/lib/public-quote/agents";
+import { formatRoom } from "@/lib/public-quote/room-label";
+
 
 import type {
   FlightLeg,
