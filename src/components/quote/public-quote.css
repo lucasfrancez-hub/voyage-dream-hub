@@ -89,17 +89,35 @@
 .vq-badge svg { width: 14px; height: 14px; }
 .vq-flight-details { padding: 0 22px 22px; }
 .vq-details-panel { border-top: 1px solid var(--line); padding-top: 20px; display: grid; gap: 14px; }
-.vq-segment-card { display: grid; grid-template-columns: 1fr 70px 1fr 235px; gap: 16px; align-items: center; padding: 18px; border: 1px solid var(--line); border-radius: 17px; background: #fbfcfd; }
-.vq-segment-point small { display: block; color: var(--muted); font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: .08em; }
-.vq-segment-point time { display: block; font-size: 22px; color: var(--navy); font-weight: 950; margin-top: 4px; }
-.vq-segment-point strong { display: block; margin-top: 3px; font-size: 13px; }
-.vq-segment-point span { display: block; color: var(--muted); font-size: 11px; line-height: 1.4; margin-top: 4px; }
-.vq-plane-mid { display: flex; justify-content: center; color: var(--orange); }
-.vq-plane-mid svg { width: 25px; height: 25px; }
-.vq-seg-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.vq-mini { border: 1px solid var(--line); border-radius: 11px; padding: 9px; }
-.vq-mini small { display: block; color: var(--muted); font-size: 9px; text-transform: uppercase; font-weight: 900; }
-.vq-mini strong { display: block; margin-top: 3px; font-size: 11px; }
+.vq-seg { border: 1px solid var(--line); border-radius: 20px; background: #fff; overflow: hidden; box-shadow: 0 10px 26px -20px rgba(13,43,69,.4); }
+.vq-seg-head { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 20px 22px 6px; }
+.vq-seg-air { display: flex; align-items: center; gap: 14px; }
+.vq-seg-logo { width: 46px; height: 46px; border-radius: 13px; background: #fff5e9; display: grid; place-items: center; overflow: hidden; flex: none; }
+.vq-seg-logo img { width: 100%; height: 100%; object-fit: contain; }
+.vq-seg-logo svg { width: 24px; height: 24px; color: var(--orange); }
+.vq-seg-head h4 { margin: 0; font-size: 16px; color: var(--navy); font-weight: 900; line-height: 1.2; }
+.vq-seg-head p { margin: 2px 0 0; font-size: 12px; color: var(--muted); }
+.vq-seg-status { padding: 5px 11px; border-radius: 999px; background: #eef6fc; color: var(--blue); font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: .07em; white-space: nowrap; }
+.vq-seg-journey { display: grid; grid-template-columns: 1fr minmax(180px, 1.3fr) 1fr; gap: 24px; align-items: center; padding: 26px 22px 28px; }
+.vq-seg-side small { display: block; color: var(--blue); font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: .1em; }
+.vq-seg-side time { display: block; margin-top: 6px; font-size: 34px; font-weight: 950; color: var(--navy); letter-spacing: -.02em; line-height: 1; }
+.vq-seg-side strong { display: block; margin-top: 6px; font-size: 18px; color: var(--navy); }
+.vq-seg-side span { display: block; margin-top: 3px; color: var(--muted); font-size: 12px; line-height: 1.4; }
+.vq-seg-side.right { text-align: right; }
+.vq-seg-side.right small { color: var(--orange); }
+.vq-seg-timeline { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.vq-seg-dur { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 800; color: var(--muted); }
+.vq-seg-dur svg { width: 14px; height: 14px; }
+.vq-seg-line { position: relative; width: 100%; height: 2px; background: linear-gradient(90deg, rgba(27,108,168,.35), rgba(243,154,54,.5)); border-radius: 2px; }
+.vq-seg-line .vq-dot { position: absolute; top: 50%; width: 11px; height: 11px; border-radius: 50%; background: #fff; transform: translateY(-50%); }
+.vq-seg-line .vq-dot.start { left: -3px; border: 2px solid var(--blue); }
+.vq-seg-line .vq-dot.end { right: -3px; border: 2px solid var(--orange); }
+.vq-seg-plane { position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); background: #fff; padding: 0 8px; color: var(--orange); display: flex; }
+.vq-seg-plane svg { width: 22px; height: 22px; }
+.vq-seg-chip { padding: 5px 12px; border-radius: 999px; background: #f2f5f8; color: #55677a; font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: .07em; }
+.vq-seg-meta-dark { background: var(--navy); padding: 20px 22px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; }
+.vq-seg-meta-dark small { display: block; color: rgba(179,208,232,.75); font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: .1em; }
+.vq-seg-meta-dark strong { display: block; margin-top: 5px; color: #fff; font-size: 13px; font-weight: 700; line-height: 1.35; }
 .vq-connection { display: flex; align-items: center; gap: 10px; padding: 11px 15px; border-radius: 13px; background: #eef6fc; color: #24577a; font-size: 12px; font-weight: 800; }
 .vq-fare-note { margin-top: 14px; border-radius: 14px; background: #fff8ed; border: 1px solid #f5dfbd; padding: 13px; color: #78551d; font-size: 12px; line-height: 1.45; }
 
@@ -197,8 +215,9 @@
   .vq-hero-grid, .vq-summary-payment, .vq-hotel-grid { grid-template-columns: 1fr; }
   .vq-details-grid, .vq-installments { grid-template-columns: 1fr; }
   .vq-route { grid-template-columns: 86px 1fr 86px; }
-  .vq-segment-card { grid-template-columns: 1fr 40px 1fr; }
-  .vq-seg-meta { grid-column: 1/-1; }
+  .vq-seg-journey { grid-template-columns: 1fr; gap: 16px; }
+  .vq-seg-side.right { text-align: left; }
+  .vq-seg-meta-dark { grid-template-columns: 1fr 1fr; }
   .vq-agent { grid-template-columns: 1fr; text-align: center; justify-items: center; }
 }
 
