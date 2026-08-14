@@ -5385,13 +5385,80 @@ export type Database = {
           },
         ]
       }
+      quote_options: {
+        Row: {
+          created_at: string
+          currency: string | null
+          destination: string | null
+          end_date: string | null
+          hotel_name: string | null
+          id: string
+          label: string | null
+          normalized: Json
+          option_number: number
+          payment_conditions: Json
+          product_kinds: string[]
+          quote_id: string
+          source_reference: string | null
+          start_date: string | null
+          total: number | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          currency?: string | null
+          destination?: string | null
+          end_date?: string | null
+          hotel_name?: string | null
+          id?: string
+          label?: string | null
+          normalized?: Json
+          option_number: number
+          payment_conditions?: Json
+          product_kinds?: string[]
+          quote_id: string
+          source_reference?: string | null
+          start_date?: string | null
+          total?: number | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          currency?: string | null
+          destination?: string | null
+          end_date?: string | null
+          hotel_name?: string | null
+          id?: string
+          label?: string | null
+          normalized?: Json
+          option_number?: number
+          payment_conditions?: Json
+          product_kinds?: string[]
+          quote_id?: string
+          source_reference?: string | null
+          start_date?: string | null
+          total?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quote_options_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: false
+            referencedRelation: "quotes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       quotes: {
         Row: {
           client_email: string | null
           client_name: string | null
           client_phone: string | null
           consultant: string | null
+          converted_option_number: number | null
           converted_order_id: string | null
+          converted_package_id: string | null
           created_at: string
           currency: string | null
           deleted_at: string | null
@@ -5399,14 +5466,23 @@ export type Database = {
           end_date: string | null
           fingerprint: string | null
           id: string
+          imported_at: string
           normalized: Json
+          options_count: number
           origin: string | null
           owner_user_id: string | null
           public_quote_id: string | null
+          public_url: string | null
+          public_version: number
           quote_number: number
           quote_type: string
+          short_url: string | null
           source: string
+          source_booking_id: string | null
+          source_booking_index: string | null
+          source_company_code: string | null
           source_import_id: string | null
+          source_token: string | null
           start_date: string | null
           status: string
           title: string | null
@@ -5419,7 +5495,9 @@ export type Database = {
           client_name?: string | null
           client_phone?: string | null
           consultant?: string | null
+          converted_option_number?: number | null
           converted_order_id?: string | null
+          converted_package_id?: string | null
           created_at?: string
           currency?: string | null
           deleted_at?: string | null
@@ -5427,14 +5505,23 @@ export type Database = {
           end_date?: string | null
           fingerprint?: string | null
           id?: string
+          imported_at?: string
           normalized?: Json
+          options_count?: number
           origin?: string | null
           owner_user_id?: string | null
           public_quote_id?: string | null
+          public_url?: string | null
+          public_version?: number
           quote_number?: number
           quote_type?: string
+          short_url?: string | null
           source?: string
+          source_booking_id?: string | null
+          source_booking_index?: string | null
+          source_company_code?: string | null
           source_import_id?: string | null
+          source_token?: string | null
           start_date?: string | null
           status?: string
           title?: string | null
@@ -5447,7 +5534,9 @@ export type Database = {
           client_name?: string | null
           client_phone?: string | null
           consultant?: string | null
+          converted_option_number?: number | null
           converted_order_id?: string | null
+          converted_package_id?: string | null
           created_at?: string
           currency?: string | null
           deleted_at?: string | null
@@ -5455,14 +5544,23 @@ export type Database = {
           end_date?: string | null
           fingerprint?: string | null
           id?: string
+          imported_at?: string
           normalized?: Json
+          options_count?: number
           origin?: string | null
           owner_user_id?: string | null
           public_quote_id?: string | null
+          public_url?: string | null
+          public_version?: number
           quote_number?: number
           quote_type?: string
+          short_url?: string | null
           source?: string
+          source_booking_id?: string | null
+          source_booking_index?: string | null
+          source_company_code?: string | null
           source_import_id?: string | null
+          source_token?: string | null
           start_date?: string | null
           status?: string
           title?: string | null
