@@ -67,7 +67,7 @@ type PresetDeps = {
 };
 
 /** Busca do preset iniciada já no load da rota (não espera a hidratação do motor). */
-function presetSearchOptions(p: PresetDeps) {
+export function presetSearchOptions(p: PresetDeps) {
   return {
     queryKey: ["voar-preset", p] as const,
     queryFn: () =>
