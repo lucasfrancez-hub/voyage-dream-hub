@@ -65,7 +65,12 @@ async function writeCache(key: string, payload: HotelEnrichment): Promise<void> 
     const hash = Array.from(new Uint8Array(hashBuf)).map((b) => b.toString(16).padStart(2, "0")).join("");
     await supabaseAdmin
       .from("md_response_cache")
-      .upsert({ url_hash: hash, url: key, payload: payload as unknown as Record<string, unknown>, fetched_at: new Date().toISOString() });
+      .upsert({
+        url_hash: hash,
+        url: key,
+        payload: JSON.parse(JSON.stringify(payload)),
+        fetched_at: new Date().toISOString(),
+      });
   } catch { /* cache é best-effort */ }
 }
 
