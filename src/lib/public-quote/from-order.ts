@@ -232,9 +232,13 @@ function buildPaymentFromConfig(
   markups: Record<number, number>,
 ): PaymentConfiguration {
   // Pix e cartão SEMPRE aparecem no orçamento público.
+  // Pacote: 10x sem juros. Somente aéreo: teto da companhia.
   const pixPct = cfg.pix.discount_pct || PIX_DISCOUNT_PERCENT;
-  const semJuros: Installment[] = cardInstallments(total, airline).map((i) => ({ ...i, interestFree: true }));
+  const semJuros: Installment[] = cardInstallments(total, airline, type)
+    .filter((i) => i.interestFree)
+    .map((i) => ({ ...i, interestFree: true }));
   const maxSemJuros = semJuros.length ? semJuros[semJuros.length - 1]!.number : 1;
+
 
   // Acima do limite sem juros da cia, usa a tabela de markup do financeiro.
   const comJuros: Installment[] = buildExtendedQuotes(total, markups)

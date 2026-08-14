@@ -8,6 +8,8 @@
  * - Pix: SEMPRE 5% de desconto.
  */
 import type { Installment, PaymentConfiguration, QuoteType } from "./types";
+import { bestInstallments } from "@/lib/airline-installments";
+import { DEFAULT_EXTENDED_MARKUPS, buildExtendedQuotes, type MarkupTable } from "@/lib/airfare-conditions";
 
 /** Desconto padrão do Pix (mesma regra comercial da VIA AIR). */
 export const PIX_DISCOUNT_PERCENT = 5;
@@ -35,11 +37,46 @@ export function diasAteViagem(startDate?: string | null): number | null {
   return Math.round((alvo - base) / 86_400_000);
 }
 
-/** Lista de parcelas de cartão sem juros (sempre 1x até 10x). */
-export function cardInstallments(total: number, _airline?: string | null): Installment[] {
+/**
+ * Parcelas de cartão.
+ * - Pacote (TRIP_PACKAGE): sempre 1x..10x sem juros.
+ * - Somente aéreo (AIR_ONLY): teto sem juros da companhia + parcelas com
+ *   markup do financeiro (até 12x).
+ */
+export function cardInstallments(
+  total: number,
+  airline?: string | null,
+  type: QuoteType = "TRIP_PACKAGE",
+  markups: MarkupTable = DEFAULT_EXTENDED_MARKUPS,
+): Installment[] {
+  if (type === "AIR_ONLY") return airCardInstallments(total, airline, markups);
   const out: Installment[] = [];
   for (let n = 1; n <= CARD_MAX_INSTALLMENTS; n++) {
     out.push({ number: n, amount: round2(total / n), total: round2(total), interestFree: true });
+  }
+  return out;
+}
+
+/** Aéreo: X vezes sem juros da cia + demais com markup oficial (até 12x). */
+export function airCardInstallments(
+  total: number,
+  airline?: string | null,
+  markups: MarkupTable = DEFAULT_EXTENDED_MARKUPS,
+): Installment[] {
+  const { parcelas } = bestInstallments(total, airline);
+  const maxSemJuros = Math.max(1, parcelas);
+  const out: Installment[] = [];
+  for (let n = 1; n <= maxSemJuros; n++) {
+    out.push({ number: n, amount: round2(total / n), total: round2(total), interestFree: true });
+  }
+  for (const q of buildExtendedQuotes(total, markups)) {
+    if (q.installments <= maxSemJuros || q.installments > 12) continue;
+    out.push({
+      number: q.installments,
+      amount: round2(q.installmentValue),
+      total: round2(q.total),
+      interestFree: false,
+    });
   }
   return out;
 }
@@ -62,11 +99,14 @@ export function buildPayment(params: {
   boletoMax?: number;
   boletoNote?: string | null;
   pixDiscountPercent?: number;
+  /** Tabela de markup do financeiro (parcelamento estendido do aéreo). */
+  markups?: MarkupTable;
 }): PaymentConfiguration {
   const { type, total, airline } = params;
   const pixPercent = params.pixDiscountPercent ?? PIX_DISCOUNT_PERCENT;
   const pixTotal = round2(total * (1 - pixPercent / 100));
   const dias = diasAteViagem(params.startDate);
+  // Boleto 10x: exclusivo de pacote com 60+ dias de antecedência.
   const boletoEnabled = type === "TRIP_PACKAGE" && dias != null && dias >= BOLETO_MIN_DAYS;
 
   return {
@@ -74,7 +114,7 @@ export function buildPayment(params: {
     card: {
       enabled: true,
       brands: CARD_BRANDS,
-      installments: cardInstallments(total, airline),
+      installments: cardInstallments(total, airline, type, params.markups),
     },
     boleto: {
       enabled: boletoEnabled,
@@ -89,6 +129,7 @@ export function buildPayment(params: {
     pix: { enabled: true, discountPercent: pixPercent, total: pixTotal },
   };
 }
+
 
 
 export function brl(n: number): string {
