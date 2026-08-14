@@ -797,7 +797,13 @@ function QuoteBody({ quote }: { quote: PublicQuote }) {
         ) : null}
 
         <section className="vq-hero">
+          <div className="vq-hero-media" aria-hidden="true">
+            <img src={heroImage} alt="" width={1600} height={912} />
+            <span className="vq-hero-fade" />
+            <span className="vq-hero-shade" />
+          </div>
           <div className="vq-hero-grid">
+
             <div>
               <div className="vq-eyebrow">PROPOSTA VIA AIR</div>
               <h1>{heroTitle}</h1>
