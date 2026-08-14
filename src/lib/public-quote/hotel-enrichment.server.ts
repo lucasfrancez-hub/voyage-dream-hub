@@ -30,15 +30,17 @@ export type HotelEnrichment = {
 };
 
 const CACHE_DAYS = 30;
-const BASE = "https://api.content.tripadvisor.com/api/v1/location";
-const HEADERS = { accept: "application/json", Referer: "https://voeair.com" };
+// A Content API pública (api.content.tripadvisor.com) responde 403 para a
+// nossa chave; o restante do projeto usa a API Terra com X-API-KEY.
+const BASE = "https://terra.tripadvisor.com/api";
 
 function norm(s: string) {
   return s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
 }
 
 function cacheKey(name: string, city: string | null): string {
-  return `hotel-enrich:${norm(name)}|${norm(city ?? "")}`;
+  // v2 — invalida o cache gerado enquanto a API antiga devolvia 403.
+  return `hotel-enrich:v2:${norm(name)}|${norm(city ?? "")}`;
 }
 
 async function readCache(key: string): Promise<HotelEnrichment | null> {
