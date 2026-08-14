@@ -107,7 +107,17 @@
 .vq-description { margin-top: 12px; padding: 15px; border-radius: 14px; background: #f8fafc; color: #536474; font-size: 13px; line-height: 1.55; }
 
 /* voos */
-.vq-flight { margin-bottom: 14px; overflow: hidden; }
+.vq-flight { margin-bottom: 0; overflow: hidden; display: flex; flex-direction: column; }
+
+/* Ida à esquerda, volta à direita */
+.vq-flights-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 18px; align-items: start; }
+.vq-flights-grid[data-cols="1"] { grid-template-columns: 1fr; }
+.vq-flight[data-dir="ida"] { border-top: 3px solid var(--navy); }
+.vq-flight[data-dir="volta"] { border-top: 3px solid var(--orange); }
+.vq-flight-tags { display: flex; align-items: center; gap: 8px; flex: none; }
+.vq-dir-badge { padding: 5px 11px; border-radius: 10px; font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: .18em; color: #fff; background: var(--navy); box-shadow: 0 6px 16px rgba(18,63,98,.22); }
+.vq-dir-badge[data-dir="volta"] { background: var(--orange); box-shadow: 0 6px 16px rgba(242,107,31,.25); }
+@media (max-width: 900px) { .vq-flights-grid { grid-template-columns: 1fr; } }
 .vq-flight-summary { padding: 22px; }
 .vq-flight-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; gap: 12px; }
 .vq-air { display: flex; align-items: center; gap: 12px; font-weight: 900; }
