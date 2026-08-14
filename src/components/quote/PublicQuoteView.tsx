@@ -742,18 +742,24 @@ function QuoteBody({ quote }: { quote: PublicQuote }) {
   const flights = quote.products.flights ?? [];
   const hotels = quote.products.hotels ?? [];
   const periodo = periodoLabel(quote);
-  const heroTitle = quoteHeadline({
+  const p = quote.products;
+  const hasServices =
+    (p.services?.length ?? 0) +
+      (p.activities?.length ?? 0) +
+      (p.tickets?.length ?? 0) +
+      (p.transfers?.length ?? 0) +
+      (p.cars?.length ?? 0) +
+      (p.insurance?.length ?? 0) >
+    0;
+  const composicao = {
     type: quote.type,
     destination: quote.destination,
-    title: quote.title,
     hasHotel: hotels.length > 0,
-  });
-  const heroTagline = quoteTagline({
-    type: quote.type,
-    destination: quote.destination,
-    hasHotel: hotels.length > 0,
-    seed: quote.publicId,
-  });
+    hasFlight: flights.length > 0,
+    hasServices,
+  };
+  const heroTitle = quoteHeadline({ ...composicao, title: quote.title });
+  const heroTagline = quoteTagline({ ...composicao, seed: quote.publicId });
 
   const [fotoDestino, setFotoDestino] = useState<string | null>(null);
   useEffect(() => {

@@ -18,17 +18,34 @@ function limpaDestino(destino?: string | null): string | null {
   return d;
 }
 
-/** "Pacote para Salvador" / "Passagens aéreas para Salvador" */
+/**
+ * Título conforme a composição real do orçamento:
+ * - aéreo + hotel  → "Pacote para X"
+ * - só aéreo       → "Aéreo para X"
+ * - só hospedagem  → "Hospedagem em X"
+ * - só serviços    → "Serviços para X"
+ * - aéreo + serviços (sem hotel) → "Aéreo + serviços para X"
+ */
 export function quoteHeadline(args: {
   type?: string | null;
   destination?: string | null;
   title?: string | null;
   hasHotel?: boolean;
+  hasFlight?: boolean;
+  hasServices?: boolean;
 }): string {
   const destino = limpaDestino(args.destination);
   if (!destino) return args.title || "Sua próxima viagem";
-  const pacote = args.hasHotel || args.type === "TRIP_PACKAGE";
-  return pacote ? `Pacote para ${destino}` : `Passagens aéreas para ${destino}`;
+
+  const hotel = !!args.hasHotel;
+  const aereo = args.hasFlight ?? args.type !== "TRIP_PACKAGE";
+  const servicos = !!args.hasServices;
+
+  if (aereo && hotel) return `Pacote para ${destino}`;
+  if (hotel && !aereo) return servicos ? `Hospedagem + serviços em ${destino}` : `Hospedagem em ${destino}`;
+  if (aereo && !hotel) return servicos ? `Aéreo + serviços para ${destino}` : `Aéreo para ${destino}`;
+  if (servicos) return `Serviços para ${destino}`;
+  return args.title || `Sua viagem para ${destino}`;
 }
 
 const FRASES_PACOTE = [
@@ -57,16 +74,41 @@ const FRASES_AEREO = [
   (d: string) => `Uma proposta simples e direta para voar até ${d}.`,
 ];
 
+const FRASES_HOSPEDAGEM = [
+  (d: string) => `A hospedagem certa para aproveitar ${d} com conforto.`,
+  (d: string) => `Selecionamos onde ficar em ${d} pensando no seu descanso.`,
+  (d: string) => `Boas noites de sono em ${d} fazem toda a diferença.`,
+  (d: string) => `Sua estadia em ${d} organizada nos mínimos detalhes.`,
+  (d: string) => `${d} fica ainda melhor com a hospedagem ideal.`,
+];
+
+const FRASES_SERVICOS = [
+  (d: string) => `Os serviços que faltavam para completar sua experiência em ${d}.`,
+  (d: string) => `Passeios e serviços selecionados para você viver ${d} sem preocupação.`,
+  (d: string) => `Tudo organizado para aproveitar ${d} do jeito certo.`,
+  (d: string) => `Detalhes resolvidos para a sua experiência em ${d}.`,
+];
+
 export function quoteTagline(args: {
   type?: string | null;
   destination?: string | null;
   hasHotel?: boolean;
+  hasFlight?: boolean;
+  hasServices?: boolean;
   seed?: string | null;
 }): string {
   const destino = limpaDestino(args.destination);
   if (!destino) return "Todos os detalhes da sua viagem organizados em um único link.";
-  const pacote = args.hasHotel || args.type === "TRIP_PACKAGE";
-  const lista = pacote ? FRASES_PACOTE : FRASES_AEREO;
+  const hotel = !!args.hasHotel;
+  const aereo = args.hasFlight ?? args.type !== "TRIP_PACKAGE";
+  const lista =
+    aereo && hotel
+      ? FRASES_PACOTE
+      : aereo
+        ? FRASES_AEREO
+        : hotel
+          ? FRASES_HOSPEDAGEM
+          : FRASES_SERVICOS;
   const idx = hash(`${args.seed ?? destino}|${destino}`) % lista.length;
   return lista[idx](destino);
 }
