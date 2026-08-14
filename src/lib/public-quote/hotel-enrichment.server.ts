@@ -269,26 +269,57 @@ export async function enrichHotel(params: {
   };
 
   try {
-    const query = local ? `${nome} ${local}` : nome;
-    const search = fixado ? null :
-      (await api(`/catalog/locations/search?query=${encodeURIComponent(query)}&search_type=NAME&category=HOTEL`)) ??
-      (await api(`/catalog/locations/search?query=${encodeURIComponent(nome)}&search_type=NAME&category=HOTEL`));
+    // Variantes de nome: fornecedores mandam "OYO Hotel San Remo, Sao Paulo",
+    // "Hotel X (Centro)" etc. Sem limpar, o TripAdvisor não acha a propriedade.
+    const variantes: string[] = [];
+    const push = (s: string) => {
+      const v = s.replace(/\s+/g, " ").trim();
+      if (v.length >= 3 && !variantes.some((x) => norm(x) === norm(v))) variantes.push(v);
+    };
+    push(nome);
+    push(nome.replace(/\s*\([^)]*\)\s*/g, " "));
+    push(nome.split(/\s*[,\-–|]\s*/)[0] ?? nome);
+    if (local) {
+      const cidade = norm(local.split(/[,(]/)[0] ?? local);
+      const semCidade = nome
+        .split(/\s*,\s*/)
+        .filter((p) => norm(p) !== cidade)
+        .join(", ");
+      push(semCidade);
+    }
 
-    const candidatos = ((search?.data ?? []) as Array<{ location?: Record<string, unknown> }>)
-      .map((item) => (item.location ?? item) as Record<string, unknown>)
-      .filter((loc) => loc?.id != null)
-      .map((loc) => ({ id: Number(loc.id), name: pickName(loc.names) }));
+    const consultas = local
+      ? [...variantes.map((v) => `${v} ${local}`), ...variantes]
+      : variantes;
 
-    const alvo = norm(nome);
+    let search: Record<string, unknown> | null = null;
+    let candidatos: Array<{ id: number; name: string }> = [];
+    if (!fixado) {
+      for (const q of consultas) {
+        search = await api(
+          `/catalog/locations/search?query=${encodeURIComponent(q)}&search_type=NAME&category=HOTEL`,
+        );
+        candidatos = ((search?.data ?? []) as Array<{ location?: Record<string, unknown> }>)
+          .map((item) => (item.location ?? item) as Record<string, unknown>)
+          .filter((loc) => loc?.id != null)
+          .map((loc) => ({ id: Number(loc.id), name: pickName(loc.names) }));
+        if (candidatos.length) break;
+      }
+    }
+
+    const alvos = variantes.map(norm);
+    const alvo = alvos[0] ?? norm(nome);
     const escolhido = fixado
       ? { id: fixado, name: nome }
-      : (candidatos.find((c) => norm(c.name) === alvo) ??
-         candidatos.find((c) => norm(c.name).includes(alvo) || alvo.includes(norm(c.name))) ??
+      : (candidatos.find((c) => alvos.some((a) => norm(c.name) === a)) ??
+         candidatos.find((c) => alvos.some((a) => norm(c.name).includes(a) || a.includes(norm(c.name)))) ??
          candidatos[0]);
+    void alvo;
     if (!escolhido) {
       await writeCache(key, vazio);
       return vazio;
     }
+
 
     const [detailsRaw, photosJson] = await Promise.all([
       api(`/locations/${escolhido.id}`),
