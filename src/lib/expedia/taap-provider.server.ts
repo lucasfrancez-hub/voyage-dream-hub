@@ -31,6 +31,7 @@ import {
   type DomRoom,
 } from "@/lib/expedia/normalize";
 import {
+  type ExpediaSessionState,
   getActiveExpediaSession,
   logExpediaSearch,
   markExpediaSession,
@@ -406,7 +407,7 @@ export class ExpediaTaapBrowserProvider implements HotelSearchProvider {
   /** Abre o navegador remoto com a sessão TAAP e entrega a página pronta. */
   private async withPage(
     url: string,
-    session: Awaited<ReturnType<typeof getActiveExpediaSession>> & object,
+    session: ExpediaSessionState,
     handler: (
       cdp: ExpediaCdp,
       captured: Array<{ requestId: string; url: string }>,
