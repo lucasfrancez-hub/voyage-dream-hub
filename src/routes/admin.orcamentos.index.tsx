@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useState } from "react";
-import { Search, Loader2, Download, KeyRound, RotateCcw, ExternalLink, FileText, ArrowRightLeft, Copy, Link2 as LinkIcon } from "lucide-react";
+import { Plus, Search, Loader2, Download, KeyRound, RotateCcw, ExternalLink, FileText, ArrowRightLeft, Copy, Link2 as LinkIcon } from "lucide-react";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -19,6 +19,7 @@ import {
   gerarLinkOrcamento,
 } from "@/lib/quotes/quotes.functions";
 import { QUOTE_STATUS, quoteStatusBadge, quoteSourceBadge } from "@/lib/quotes/labels";
+import { NovoOrcamentoManualDialog } from "@/components/quote/NovoOrcamentoManualDialog";
 
 export const Route = createFileRoute("/admin/orcamentos/")({
   component: OrcamentosPage,
@@ -57,6 +58,7 @@ function OrcamentosPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [importOpen, setImportOpen] = useState(false);
+  const [manualOpen, setManualOpen] = useState(false);
   const [tokenOpen, setTokenOpen] = useState(false);
   const [url, setUrl] = useState("");
   const [token, setToken] = useState<string | null>(null);
@@ -190,7 +192,7 @@ function OrcamentosPage() {
       <NovoOrcamentoManualDialog
         open={manualOpen}
         onOpenChange={setManualOpen}
-        onCriado={() => refetch()}
+        onCriado={() => qc.invalidateQueries({ queryKey: ["admin", "quotes", "list"] })}
       />
 
       <div className="mt-4 flex flex-wrap items-center gap-2">
