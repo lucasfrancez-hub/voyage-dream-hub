@@ -3,7 +3,7 @@
  * Renderiza EXCLUSIVAMENTE o DTO público: nada de comissão, markup,
  * custo, fornecedor interno, margem ou observação interna.
  */
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import viaAirLogo from "@/assets/viaair-logo.png.asset.json";
 import { airlineLogo } from "@/lib/airlines";
 import { brl } from "@/lib/public-quote/payments";
