@@ -874,9 +874,15 @@ function QuoteBody({ quote }: { quote: PublicQuote }) {
               {quote.payment.pix.enabled ? (
                 <div className="vq-pixline">Pix à vista: {brl(quote.payment.pix.total)}</div>
               ) : null}
-              <a href={whatsappHref} target="_blank" rel="noreferrer">
-                <button className="vq-cta">Quero reservar esta opção</button>
-              </a>
+              {quote.expired ? (
+                <a href={whatsappHref} target="_blank" rel="noreferrer">
+                  <button className="vq-cta">Quero reservar esta opção</button>
+                </a>
+              ) : (
+                <a href={`/reserva/${quote.publicId}`}>
+                  <button className="vq-cta">Quero reservar esta opção</button>
+                </a>
+              )}
             </div>
           </div>
         </section>
