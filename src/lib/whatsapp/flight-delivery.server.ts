@@ -371,11 +371,6 @@ async function entregarOpcao(
       result: quote.payload as any,
       option: op as any,
       numero,
-      // todas as opções geradas pelo motor entram como abas no orçamento
-      allOptions: opcoesDoPayload(quote.payload).slice(
-        0,
-        Math.max(1, Number(quote.expected_options) || opcoesDoPayload(quote.payload).length),
-      ) as any,
       agentName: autor.nome,
       conversationId: ctx.conversation_id,
       flightQuoteId: quote.id,
