@@ -96,6 +96,7 @@ import { Route as PacotesAdminRouteImport } from './routes/pacotes.admin'
 import { Route as ProtocoloProtocoloIdRouteImport } from './routes/protocolo.$protocoloId'
 import { Route as WSlugRouteImport } from './routes/w.$slug'
 import { Route as AdminAppTokenRouteImport } from './routes/admin.app.$token'
+import { Route as AdminOrcamentosIndexRouteImport } from './routes/admin.orcamentos.index'
 import { Route as AdminPedidosIndexRouteImport } from './routes/admin.pedidos.index'
 import { Route as AdminPedidosIdRouteImport } from './routes/admin.pedidos.$id'
 import { Route as AdminPedidosTerceirosRouteImport } from './routes/admin.pedidos.terceiros'
@@ -144,6 +145,7 @@ import { Route as ApiPublicHooksRunCheckinsRouteImport } from './routes/api/publ
 import { Route as ApiPublicHooksSocialScheduleDispatchRouteImport } from './routes/api/public/hooks/social-schedule-dispatch'
 import { Route as ApiPublicHooksSyncCalendarsRouteImport } from './routes/api/public/hooks/sync-calendars'
 import { Route as ApiPublicPackageHotelPhotoSplatRouteImport } from './routes/api/public/package-hotel-photo.$'
+import { Route as ApiPublicV1QuoteImportsRouteImport } from './routes/api/public/v1/quote-imports'
 import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
 import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/email/auth/webhook'
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
@@ -585,6 +587,11 @@ const AdminAppTokenRoute = AdminAppTokenRouteImport.update({
   path: '/app/$token',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminOrcamentosIndexRoute = AdminOrcamentosIndexRouteImport.update({
+  id: '/orcamentos/',
+  path: '/orcamentos/',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminPedidosIndexRoute = AdminPedidosIndexRouteImport.update({
   id: '/pedidos/',
   path: '/pedidos/',
@@ -855,6 +862,11 @@ const ApiPublicPackageHotelPhotoSplatRoute =
     path: '/api/public/package-hotel-photo/$',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicV1QuoteImportsRoute = ApiPublicV1QuoteImportsRouteImport.update({
+  id: '/api/public/v1/quote-imports',
+  path: '/api/public/v1/quote-imports',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LovableEmailAuthPreviewRoute = LovableEmailAuthPreviewRouteImport.update({
   id: '/lovable/email/auth/preview',
   path: '/lovable/email/auth/preview',
@@ -993,6 +1005,7 @@ export interface FileRoutesByFullPath {
   '/chat/app/$token': typeof ChatAppTokenRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/pacotes/$slug/checkout': typeof PacotesSlugCheckoutRoute
+  '/admin/orcamentos/': typeof AdminOrcamentosIndexRoute
   '/admin/pedidos/': typeof AdminPedidosIndexRoute
   '/pacotes/$slug/': typeof PacotesSlugIndexRoute
   '/api/public/admin-manifest/$token': typeof ApiPublicAdminManifestTokenRoute
@@ -1020,6 +1033,7 @@ export interface FileRoutesByFullPath {
   '/api/public/hooks/social-schedule-dispatch': typeof ApiPublicHooksSocialScheduleDispatchRoute
   '/api/public/hooks/sync-calendars': typeof ApiPublicHooksSyncCalendarsRoute
   '/api/public/package-hotel-photo/$': typeof ApiPublicPackageHotelPhotoSplatRoute
+  '/api/public/v1/quote-imports': typeof ApiPublicV1QuoteImportsRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
@@ -1133,6 +1147,7 @@ export interface FileRoutesByTo {
   '/chat/app/$token': typeof ChatAppTokenRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/pacotes/$slug/checkout': typeof PacotesSlugCheckoutRoute
+  '/admin/orcamentos': typeof AdminOrcamentosIndexRoute
   '/admin/pedidos': typeof AdminPedidosIndexRoute
   '/pacotes/$slug': typeof PacotesSlugIndexRoute
   '/api/public/admin-manifest/$token': typeof ApiPublicAdminManifestTokenRoute
@@ -1160,6 +1175,7 @@ export interface FileRoutesByTo {
   '/api/public/hooks/social-schedule-dispatch': typeof ApiPublicHooksSocialScheduleDispatchRoute
   '/api/public/hooks/sync-calendars': typeof ApiPublicHooksSyncCalendarsRoute
   '/api/public/package-hotel-photo/$': typeof ApiPublicPackageHotelPhotoSplatRoute
+  '/api/public/v1/quote-imports': typeof ApiPublicV1QuoteImportsRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
@@ -1276,6 +1292,7 @@ export interface FileRoutesById {
   '/chat/app/$token': typeof ChatAppTokenRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/pacotes/$slug/checkout': typeof PacotesSlugCheckoutRoute
+  '/admin/orcamentos/': typeof AdminOrcamentosIndexRoute
   '/admin/pedidos/': typeof AdminPedidosIndexRoute
   '/pacotes/$slug/': typeof PacotesSlugIndexRoute
   '/api/public/admin-manifest/$token': typeof ApiPublicAdminManifestTokenRoute
@@ -1303,6 +1320,7 @@ export interface FileRoutesById {
   '/api/public/hooks/social-schedule-dispatch': typeof ApiPublicHooksSocialScheduleDispatchRoute
   '/api/public/hooks/sync-calendars': typeof ApiPublicHooksSyncCalendarsRoute
   '/api/public/package-hotel-photo/$': typeof ApiPublicPackageHotelPhotoSplatRoute
+  '/api/public/v1/quote-imports': typeof ApiPublicV1QuoteImportsRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
@@ -1420,6 +1438,7 @@ export interface FileRouteTypes {
     | '/chat/app/$token'
     | '/lovable/email/suppression'
     | '/pacotes/$slug/checkout'
+    | '/admin/orcamentos/'
     | '/admin/pedidos/'
     | '/pacotes/$slug/'
     | '/api/public/admin-manifest/$token'
@@ -1447,6 +1466,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/social-schedule-dispatch'
     | '/api/public/hooks/sync-calendars'
     | '/api/public/package-hotel-photo/$'
+    | '/api/public/v1/quote-imports'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
@@ -1560,6 +1580,7 @@ export interface FileRouteTypes {
     | '/chat/app/$token'
     | '/lovable/email/suppression'
     | '/pacotes/$slug/checkout'
+    | '/admin/orcamentos'
     | '/admin/pedidos'
     | '/pacotes/$slug'
     | '/api/public/admin-manifest/$token'
@@ -1587,6 +1608,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/social-schedule-dispatch'
     | '/api/public/hooks/sync-calendars'
     | '/api/public/package-hotel-photo/$'
+    | '/api/public/v1/quote-imports'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
@@ -1702,6 +1724,7 @@ export interface FileRouteTypes {
     | '/chat/app/$token'
     | '/lovable/email/suppression'
     | '/pacotes/$slug/checkout'
+    | '/admin/orcamentos/'
     | '/admin/pedidos/'
     | '/pacotes/$slug/'
     | '/api/public/admin-manifest/$token'
@@ -1729,6 +1752,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/social-schedule-dispatch'
     | '/api/public/hooks/sync-calendars'
     | '/api/public/package-hotel-photo/$'
+    | '/api/public/v1/quote-imports'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
@@ -1810,6 +1834,7 @@ export interface RootRouteChildren {
   ApiPublicHooksSocialScheduleDispatchRoute: typeof ApiPublicHooksSocialScheduleDispatchRoute
   ApiPublicHooksSyncCalendarsRoute: typeof ApiPublicHooksSyncCalendarsRoute
   ApiPublicPackageHotelPhotoSplatRoute: typeof ApiPublicPackageHotelPhotoSplatRoute
+  ApiPublicV1QuoteImportsRoute: typeof ApiPublicV1QuoteImportsRoute
   LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
   LovableEmailAuthWebhookRoute: typeof LovableEmailAuthWebhookRoute
   LovableEmailQueueProcessRoute: typeof LovableEmailQueueProcessRoute
@@ -2428,6 +2453,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAppTokenRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/orcamentos/': {
+      id: '/admin/orcamentos/'
+      path: '/orcamentos'
+      fullPath: '/admin/orcamentos/'
+      preLoaderRoute: typeof AdminOrcamentosIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/pedidos/': {
       id: '/admin/pedidos/'
       path: '/pedidos'
@@ -2764,6 +2796,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicPackageHotelPhotoSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/v1/quote-imports': {
+      id: '/api/public/v1/quote-imports'
+      path: '/api/public/v1/quote-imports'
+      fullPath: '/api/public/v1/quote-imports'
+      preLoaderRoute: typeof ApiPublicV1QuoteImportsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/lovable/email/auth/preview': {
       id: '/lovable/email/auth/preview'
       path: '/lovable/email/auth/preview'
@@ -2854,6 +2893,7 @@ interface AdminRouteChildren {
   AdminAppTokenRoute: typeof AdminAppTokenRoute
   AdminPedidosIdRoute: typeof AdminPedidosIdRoute
   AdminPedidosTerceirosRoute: typeof AdminPedidosTerceirosRoute
+  AdminOrcamentosIndexRoute: typeof AdminOrcamentosIndexRoute
   AdminPedidosIndexRoute: typeof AdminPedidosIndexRoute
 }
 
@@ -2897,6 +2937,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminAppTokenRoute: AdminAppTokenRoute,
   AdminPedidosIdRoute: AdminPedidosIdRoute,
   AdminPedidosTerceirosRoute: AdminPedidosTerceirosRoute,
+  AdminOrcamentosIndexRoute: AdminOrcamentosIndexRoute,
   AdminPedidosIndexRoute: AdminPedidosIndexRoute,
 }
 
@@ -3051,6 +3092,7 @@ const rootRouteChildren: RootRouteChildren = {
     ApiPublicHooksSocialScheduleDispatchRoute,
   ApiPublicHooksSyncCalendarsRoute: ApiPublicHooksSyncCalendarsRoute,
   ApiPublicPackageHotelPhotoSplatRoute: ApiPublicPackageHotelPhotoSplatRoute,
+  ApiPublicV1QuoteImportsRoute: ApiPublicV1QuoteImportsRoute,
   LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,
   LovableEmailAuthWebhookRoute: LovableEmailAuthWebhookRoute,
   LovableEmailQueueProcessRoute: LovableEmailQueueProcessRoute,

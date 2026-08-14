@@ -521,7 +521,7 @@ function DashboardNav({ pathname }: { pathname: string }) {
 
 
 function PedidosNav({ pathname }: { pathname: string }) {
-  const active = pathname.startsWith("/admin/pedidos");
+  const active = pathname.startsWith("/admin/pedidos") || pathname.startsWith("/admin/orcamentos");
   return (
     <NavMegaMenu
       icon={ClipboardList}
@@ -533,6 +533,7 @@ function PedidosNav({ pathname }: { pathname: string }) {
         {
           items: [
             { to: "/admin/pedidos", label: "Meus pedidos" },
+            { to: "/admin/orcamentos", label: "Orçamentos" },
             { to: "/admin/pedidos/terceiros", label: "Pedidos de terceiro" },
           ],
         },
