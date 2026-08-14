@@ -1,0 +1,178 @@
+/* Identidade visual aprovada do Orçamento Público VIA AIR (v14).
+   Escopo total dentro de .vq para não vazar no restante do app. */
+.vq {
+  --navy: #0d2b45;
+  --blue: #145d9c;
+  --orange: #f39a36;
+  --ink: #172636;
+  --muted: #728295;
+  --line: #dfe7ed;
+  --soft: #f7f9fb;
+  --green: #168754;
+  --shadow: 0 15px 38px rgba(13, 43, 69, 0.08);
+  background: #f8fafc;
+  color: var(--ink);
+  font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  min-height: 100vh;
+}
+.vq * { box-sizing: border-box; }
+.vq svg {
+  width: 20px; height: 20px; fill: none; stroke: currentColor;
+  stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; display: block;
+}
+.vq button { font: inherit; }
+
+.vq-topbar { position: sticky; top: 0; z-index: 30; background: rgba(255,255,255,.95); border-bottom: 1px solid #edf1f4; backdrop-filter: blur(6px); }
+.vq-nav { max-width: 1240px; height: 76px; margin: auto; padding: 0 28px; display: flex; align-items: center; justify-content: space-between; gap: 24px; }
+.vq-nav img { height: 40px; width: auto; }
+.vq-navlinks { display: flex; gap: 20px; color: #4f6172; font-size: 13px; font-weight: 800; }
+.vq-navlinks a { color: inherit; text-decoration: none; }
+.vq-wrap { max-width: 1240px; margin: auto; padding: 30px 28px 80px; }
+
+.vq-hero { border-radius: 28px; background: linear-gradient(135deg,#0c2d4a,#145787 70%,#1c6fa9); color: #fff; padding: 38px 42px; box-shadow: var(--shadow); position: relative; overflow: hidden; }
+.vq-hero-grid { display: grid; grid-template-columns: 1.4fr .8fr; gap: 30px; align-items: end; }
+.vq-eyebrow { font-size: 12px; letter-spacing: .18em; font-weight: 900; color: #c7e2f4; margin-bottom: 14px; }
+.vq-eyebrow:before { content: ""; display: inline-block; width: 26px; height: 3px; background: var(--orange); border-radius: 4px; margin-right: 10px; vertical-align: middle; }
+.vq-hero h1 { font-size: 42px; letter-spacing: -.04em; margin: 0 0 10px; line-height: 1.05; }
+.vq-hero p { color: #d9eaf6; margin: 0; font-size: 16px; }
+.vq-chips { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 28px; }
+.vq-chip { padding: 11px 14px; border-radius: 13px; background: rgba(255,255,255,.09); border: 1px solid rgba(255,255,255,.17); font-weight: 800; font-size: 13px; display: flex; align-items: center; gap: 8px; }
+.vq-chip svg { width: 17px; height: 17px; }
+.vq-pricebox { background: #fff; color: var(--ink); border-radius: 22px; padding: 24px; box-shadow: 0 18px 40px rgba(0,0,0,.16); }
+.vq-pricebox small { color: var(--muted); font-weight: 800; display: block; }
+.vq-price { font-size: 37px; font-weight: 950; color: var(--navy); letter-spacing: -.04em; margin: 5px 0; }
+.vq-pixline { margin-top: 14px; background: #effaf5; color: var(--green); border-radius: 13px; padding: 12px 14px; font-size: 13px; font-weight: 900; }
+.vq-cta { margin-top: 14px; width: 100%; border: 0; background: var(--orange); color: #fff; border-radius: 13px; padding: 14px; font-weight: 950; cursor: pointer; }
+.vq-cta:hover { filter: brightness(1.05); }
+
+.vq-section { margin-top: 30px; }
+.vq-section-head { display: flex; justify-content: space-between; align-items: end; margin-bottom: 15px; gap: 12px; }
+.vq-section-head h2 { margin: 0; font-size: 27px; letter-spacing: -.03em; }
+.vq-section-head p { margin: 4px 0 0; color: var(--muted); font-size: 14px; }
+.vq-tag { background: #eaf5ff; color: var(--blue); padding: 8px 12px; border-radius: 999px; font-size: 12px; font-weight: 900; white-space: nowrap; }
+.vq-card { background: #fff; border: 1px solid var(--line); border-radius: 22px; box-shadow: 0 8px 30px rgba(13,43,69,.055); }
+
+/* módulos simples (carro, passeios, ingressos, serviços) */
+.vq-module { overflow: hidden; margin-bottom: 14px; }
+.vq-module-summary { padding: 20px; display: flex; align-items: center; justify-content: space-between; gap: 18px; }
+.vq-module-left { display: flex; align-items: center; gap: 15px; }
+.vq-module-icon { width: 52px; height: 52px; border-radius: 16px; background: #eaf5ff; color: var(--blue); display: grid; place-items: center; flex: none; }
+.vq-module-icon svg { width: 25px; height: 25px; }
+.vq-module h3 { margin: 0 0 4px; font-size: 18px; }
+.vq-module p { margin: 0; color: var(--muted); font-size: 13px; }
+.vq-toggle { margin: 0 20px 18px; width: calc(100% - 40px); display: flex; align-items: center; justify-content: center; gap: 8px; border: 0; background: #f7fafc; color: var(--blue); padding: 11px; border-radius: 12px; font-weight: 900; cursor: pointer; }
+.vq-toggle svg { width: 17px; height: 17px; transition: .2s; }
+.vq-toggle[data-open="true"] svg { transform: rotate(180deg); }
+.vq-details { padding: 0 20px 20px; }
+.vq-details-grid { border-top: 1px solid var(--line); padding-top: 18px; display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; }
+.vq-detail { background: #f8fafc; border: 1px solid var(--line); border-radius: 14px; padding: 13px; }
+.vq-detail small { display: block; color: var(--muted); font-size: 10px; text-transform: uppercase; font-weight: 900; }
+.vq-detail strong { display: block; margin-top: 4px; font-size: 13px; }
+.vq-description { margin-top: 12px; padding: 15px; border-radius: 14px; background: #f8fafc; color: #536474; font-size: 13px; line-height: 1.55; }
+
+/* voos */
+.vq-flight { margin-bottom: 14px; overflow: hidden; }
+.vq-flight-summary { padding: 22px; }
+.vq-flight-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; gap: 12px; }
+.vq-air { display: flex; align-items: center; gap: 12px; font-weight: 900; }
+.vq-airmark { width: 42px; height: 42px; border-radius: 13px; display: grid; place-items: center; background: var(--navy); color: #fff; font-size: 12px; overflow: hidden; flex: none; }
+.vq-airmark img { width: 100%; height: 100%; object-fit: contain; background: #fff; }
+.vq-route { display: grid; grid-template-columns: 120px 1fr 120px; gap: 15px; align-items: center; }
+.vq-airport time { display: block; color: var(--blue); font-size: 27px; font-weight: 950; }
+.vq-airport b { font-size: 18px; }
+.vq-airport span { display: block; color: var(--muted); font-size: 12px; }
+.vq-path { text-align: center; color: var(--muted); font-size: 12px; }
+.vq-line { height: 2px; background: linear-gradient(90deg,var(--blue),var(--orange)); margin: 10px 0; position: relative; }
+.vq-stop-dot { width: 10px; height: 10px; background: #fff; border: 2px solid var(--navy); border-radius: 50%; position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); }
+.vq-badges { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px; }
+.vq-badge { padding: 7px 10px; background: #f6f8fa; border: 1px solid var(--line); border-radius: 999px; font-size: 11px; font-weight: 800; color: #526476; display: flex; align-items: center; gap: 6px; }
+.vq-badge svg { width: 14px; height: 14px; }
+.vq-flight-details { padding: 0 22px 22px; }
+.vq-details-panel { border-top: 1px solid var(--line); padding-top: 20px; display: grid; gap: 14px; }
+.vq-segment-card { display: grid; grid-template-columns: 1fr 70px 1fr 235px; gap: 16px; align-items: center; padding: 18px; border: 1px solid var(--line); border-radius: 17px; background: #fbfcfd; }
+.vq-segment-point small { display: block; color: var(--muted); font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: .08em; }
+.vq-segment-point time { display: block; font-size: 22px; color: var(--navy); font-weight: 950; margin-top: 4px; }
+.vq-segment-point strong { display: block; margin-top: 3px; font-size: 13px; }
+.vq-segment-point span { display: block; color: var(--muted); font-size: 11px; line-height: 1.4; margin-top: 4px; }
+.vq-plane-mid { display: flex; justify-content: center; color: var(--orange); }
+.vq-plane-mid svg { width: 25px; height: 25px; }
+.vq-seg-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.vq-mini { border: 1px solid var(--line); border-radius: 11px; padding: 9px; }
+.vq-mini small { display: block; color: var(--muted); font-size: 9px; text-transform: uppercase; font-weight: 900; }
+.vq-mini strong { display: block; margin-top: 3px; font-size: 11px; }
+.vq-connection { display: flex; align-items: center; gap: 10px; padding: 11px 15px; border-radius: 13px; background: #eef6fc; color: #24577a; font-size: 12px; font-weight: 800; }
+.vq-fare-note { margin-top: 14px; border-radius: 14px; background: #fff8ed; border: 1px solid #f5dfbd; padding: 13px; color: #78551d; font-size: 12px; line-height: 1.45; }
+
+/* hotel */
+.vq-hotel { overflow: hidden; }
+.vq-hotel-grid { display: grid; grid-template-columns: 1.05fr .95fr; }
+.vq-gallery { padding: 14px; background: #f2f6f9; }
+.vq-gallery-grid { display: grid; grid-template-columns: 1.6fr 1fr; grid-template-rows: 150px 150px; gap: 8px; position: relative; }
+.vq-photo { border-radius: 12px; overflow: hidden; background: linear-gradient(135deg,#d7c7b8,#a5beca); }
+.vq-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.vq-photo.main { grid-row: 1/3; }
+.vq-hotel-info { padding: 27px; }
+.vq-stars { color: var(--orange); letter-spacing: 2px; }
+.vq-hotel-info h3 { font-size: 26px; margin: 7px 0; }
+.vq-place { font-size: 14px; color: var(--muted); }
+.vq-facts { display: grid; grid-template-columns: 1fr 1fr; gap: 11px; margin: 20px 0; }
+.vq-fact { padding: 12px; background: #f7f9fb; border-radius: 14px; }
+.vq-fact small { display: block; color: var(--muted); font-weight: 900; font-size: 10px; text-transform: uppercase; letter-spacing: .08em; }
+.vq-fact strong { display: block; margin-top: 4px; font-size: 14px; }
+.vq-benefits { display: flex; gap: 8px; flex-wrap: wrap; }
+.vq-benefit { padding: 8px 10px; border-radius: 10px; background: #f0f8f4; color: var(--green); font-size: 12px; font-weight: 900; display: flex; align-items: center; gap: 6px; }
+.vq-room { margin-top: 17px; padding: 15px; border: 1px dashed #cbd7e0; border-radius: 15px; }
+.vq-room p { margin: 5px 0 0; color: var(--muted); font-size: 12px; }
+.vq-hotel-head { display: flex; justify-content: space-between; align-items: start; gap: 12px; }
+.vq-loc-btn { border: 1px solid var(--line); background: #fff; color: var(--blue); border-radius: 12px; padding: 9px 12px; font-weight: 900; font-size: 12px; display: flex; align-items: center; gap: 7px; cursor: pointer; white-space: nowrap; }
+.vq-nearby { margin-top: 14px; }
+.vq-nearby h4 { margin: 0 0 10px; font-size: 14px; }
+.vq-nearby-item { display: flex; justify-content: space-between; padding: 9px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
+.vq-nearby-item:last-child { border-bottom: 0; }
+.vq-map { width: 100%; height: 230px; border: 0; border-radius: 14px; }
+
+/* resumo + pagamento */
+.vq-summary-payment { display: grid; grid-template-columns: 1.15fr .85fr; gap: 17px; align-items: stretch; }
+.vq-summary-main, .vq-paybox { padding: 24px; }
+.vq-sum-row { display: flex; justify-content: space-between; align-items: center; padding: 13px 0; border-bottom: 1px solid var(--line); gap: 12px; }
+.vq-sum-row:last-child { border-bottom: 0; }
+.vq-sum-left { display: flex; align-items: center; gap: 11px; }
+.vq-sum-icon { width: 34px; height: 34px; border-radius: 10px; background: #edf6fc; color: var(--blue); display: grid; place-items: center; flex: none; }
+.vq-sum-icon svg { width: 18px; height: 18px; }
+.vq-sum-total { display: flex; justify-content: space-between; align-items: center; margin-top: 14px; padding-top: 14px; border-top: 2px solid var(--navy); font-size: 20px; font-weight: 950; color: var(--navy); }
+.vq-paybox { min-height: 100%; display: flex; flex-direction: column; }
+.vq-paybox h3 { margin: 0 0 14px; }
+.vq-pay-tabs { display: flex; gap: 8px; margin-bottom: 14px; }
+.vq-pay-tab { border: 1px solid var(--line); background: #fff; color: #607183; padding: 10px 13px; border-radius: 11px; font-weight: 900; font-size: 11px; cursor: pointer; display: flex; align-items: center; gap: 7px; }
+.vq-pay-tab svg { width: 16px; height: 16px; }
+.vq-pay-tab[data-active="true"] { background: var(--navy); color: #fff; border-color: var(--navy); }
+.vq-installments { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; max-height: 260px; overflow: auto; }
+.vq-inst { display: flex; justify-content: space-between; align-items: center; border: 1px solid var(--line); border-radius: 11px; padding: 9px 10px; background: #fff; font-size: 11px; }
+.vq-inst strong { color: var(--blue); }
+.vq-no-interest { display: block; font-size: 8px; color: var(--green); font-weight: 900; text-transform: uppercase; margin-top: 2px; }
+.vq-pix-box { border-radius: 14px; padding: 15px; background: #effaf5; border: 1px solid #d5ebdf; color: var(--green); display: flex; justify-content: space-between; align-items: center; font-weight: 900; }
+.vq-boleto-box { border-radius: 14px; padding: 15px; background: #f8fafc; border: 1px solid var(--line); }
+.vq-payment-note { margin-top: 10px; color: var(--muted); font-size: 10px; line-height: 1.4; }
+.vq-brands { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.vq-brand { border: 1px solid var(--line); border-radius: 10px; padding: 6px 10px; font-size: 10px; font-weight: 900; color: #55677a; background: #fff; }
+
+.vq-agent { margin-top: 30px; padding: 25px; display: grid; grid-template-columns: 110px 1fr auto; gap: 24px; align-items: center; }
+.vq-agent-photo { width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 5px solid #edf5fa; background: #edf5fa; display: grid; place-items: center; font-weight: 950; color: var(--blue); font-size: 30px; }
+.vq-agent h3 { margin: 0 0 6px; font-size: 22px; }
+.vq-agent p { margin: 0; color: var(--muted); }
+.vq-contact-btn { border: 1px solid var(--blue); background: #fff; color: var(--blue); padding: 12px 17px; border-radius: 12px; font-weight: 900; cursor: pointer; }
+.vq-footer { text-align: center; color: var(--muted); font-size: 12px; margin-top: 30px; line-height: 1.7; }
+.vq-expired { margin-bottom: 18px; border-radius: 16px; padding: 14px 18px; background: #fff4f2; border: 1px solid #f5cec6; color: #a33b28; font-weight: 800; font-size: 13px; }
+
+@media (max-width: 900px) {
+  .vq-navlinks { display: none; }
+  .vq-wrap { padding: 22px 16px 60px; }
+  .vq-hero { padding: 26px 20px; border-radius: 22px; }
+  .vq-hero h1 { font-size: 30px; }
+  .vq-hero-grid, .vq-summary-payment, .vq-hotel-grid { grid-template-columns: 1fr; }
+  .vq-details-grid, .vq-installments { grid-template-columns: 1fr; }
+  .vq-route { grid-template-columns: 86px 1fr 86px; }
+  .vq-segment-card { grid-template-columns: 1fr 40px 1fr; }
+  .vq-seg-meta { grid-column: 1/-1; }
+  .vq-agent { grid-template-columns: 1fr; text-align: center; justify-items: center; }
+}

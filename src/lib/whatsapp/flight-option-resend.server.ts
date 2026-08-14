@@ -70,7 +70,7 @@ export async function resendFlightOption(params: {
 
   const { saveMessage, setSendError, SENDING_CLAIM } = await import("./conversation.server");
   const { formatOptionText } = await import("./flight-option-text.server");
-  const { sendWhatsAppImageBytesDetailed, sendWhatsAppText } = await import("./send.server");
+  const { sendWhatsAppText } = await import("./send.server");
   const { abortIfHumanTookOver } = await import("./human-takeover.server");
 
   if (await abortIfHumanTookOver(conversationId, `reenvio_opcao_${optionIndex}`)) {
@@ -142,20 +142,24 @@ export async function resendFlightOption(params: {
 
   if (formato === "texto") return enviarTexto();
 
-  // ---- reenvio da ARTE (mesmo render do envio original)
+  // ---- reenvio do ORÇAMENTO PÚBLICO (texto curto + link, sem arte)
   try {
-    const { buildFlightCardData, renderFlightCardAssetRetry } = await import("./flight-card.server");
-    const { buildFlightOptionCaption } = await import("./flight-caption.server");
+    const { prepararLinkDaOpcao } = await import("./flight-quote-link.server");
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const asset = await renderFlightCardAssetRetry(buildFlightCardData(quote as any, op as any));
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const caption = buildFlightOptionCaption(quote as any, op as any);
+    const { texto } = await prepararLinkDaOpcao({
+      result: quote as any,
+      option: op as any,
+      numero: optionIndex,
+      agentName: autor.nome,
+      conversationId,
+      flightQuoteId: quoteId,
+    });
 
     const msg = await saveMessage({
       conversation_id: conversationId,
       direction: "outbound",
       sender: "camila",
-      content: `[[media:image|${asset.url}|${asset.filename}]]\n${caption}`,
+      content: texto,
       agent_slug: autor.slug,
       agent_name: autor.nome,
       quote_id: quoteId,
@@ -167,13 +171,7 @@ export async function resendFlightOption(params: {
     });
     if (msg?.id) await setSendError(msg.id, SENDING_CLAIM);
 
-    const r = await sendWhatsAppImageBytesDetailed(
-      waPhone,
-      asset.bytes,
-      asset.filename,
-      caption,
-      asset.url,
-    );
+    const r = await sendWhatsAppText(waPhone, texto);
     if (msg?.id) {
       await supabaseAdmin
         .from("wa_messages")

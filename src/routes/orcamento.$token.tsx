@@ -3,30 +3,53 @@ import { createFileRoute, notFound } from "@tanstack/react-router";
 import { useEffect, useMemo } from "react";
 import { Plane, Hotel, Ticket, Phone, Mail, MessageCircle, Printer, Calendar, Users, MapPin, Star } from "lucide-react";
 import { getPublicQuote, type PublicQuote, type PublicQuoteItem } from "@/lib/quote.functions";
+import { fetchPublicQuote } from "@/lib/public-quote.functions";
+import type { PublicQuote as PremiumQuote } from "@/lib/public-quote/types";
+import PublicQuoteView from "@/components/quote/PublicQuoteView";
 import { formatBRL } from "@/lib/format";
 import viaAirLogo from "@/assets/viaair-logo.png.asset.json";
 
 type Search = { print?: string };
 
+/** O link pode ser o novo orçamento público (AIR_ONLY/TRIP_PACKAGE) ou o legado por pedido. */
+type LoaderData =
+  | { kind: "premium"; quote: PremiumQuote }
+  | { kind: "legacy"; quote: PublicQuote };
+
 export const Route = createFileRoute("/orcamento/$token")({
   validateSearch: (s: Record<string, unknown>): Search => ({
     print: typeof s.print === "string" ? s.print : undefined,
   }),
-  loader: async ({ params }): Promise<PublicQuote> => {
+  loader: async ({ params }): Promise<LoaderData> => {
+    // 1) novo orçamento público (id curto, sem hífen)
+    if (/^[a-z0-9]{6,20}$/i.test(params.token)) {
+      const premium = await fetchPublicQuote({ data: { publicId: params.token } }).catch(() => null);
+      if (premium) return { kind: "premium", quote: premium };
+    }
+    // 2) formato legado (token assinado do pedido)
     try {
-      return await getPublicQuote({ data: { token: params.token } });
+      return { kind: "legacy", quote: await getPublicQuote({ data: { token: params.token } }) };
     } catch {
       throw notFound();
     }
   },
-  head: ({ loaderData }) => ({
-    meta: [
-      { title: loaderData ? `Orçamento nº ${loaderData.orderNumber} — Via Air` : "Orçamento — Via Air" },
-      { name: "robots", content: "noindex, nofollow" },
-      { name: "description", content: "Orçamento personalizado da Via Air Turismo." },
-    ],
-  }),
-  component: QuotePage,
+  head: ({ loaderData }) => {
+    if (!loaderData) {
+      return { meta: [{ title: "Orçamento — VIA AIR" }, { name: "robots", content: "noindex, nofollow" }] };
+    }
+    const titulo =
+      loaderData.kind === "premium"
+        ? `Orçamento ${loaderData.quote.title} — VIA AIR`
+        : `Orçamento nº ${loaderData.quote.orderNumber} — Via Air`;
+    return {
+      meta: [
+        { title: titulo },
+        { name: "robots", content: "noindex, nofollow" },
+        { name: "description", content: "Orçamento personalizado da VIA AIR Turismo." },
+      ],
+    };
+  },
+  component: QuoteRoot,
   notFoundComponent: () => (
     <div className="min-h-screen flex items-center justify-center p-6 text-center">
       <div>
@@ -41,6 +64,13 @@ export const Route = createFileRoute("/orcamento/$token")({
     </div>
   ),
 });
+
+function QuoteRoot() {
+  const data = Route.useLoaderData();
+  if (data.kind === "premium") return <PublicQuoteView quote={data.quote} />;
+  return <QuotePage />;
+}
+
 
 function formatDateBR(iso: string | null | undefined): string {
   if (!iso) return "";
@@ -261,7 +291,9 @@ function ServiceCard({ item }: { item: PublicQuoteItem }) {
 }
 
 function QuotePage() {
-  const q = Route.useLoaderData() as PublicQuote;
+  const loaded = Route.useLoaderData();
+  const q = (loaded.kind === "legacy" ? loaded.quote : null) as PublicQuote;
+
   const { print } = Route.useSearch();
 
   useEffect(() => {

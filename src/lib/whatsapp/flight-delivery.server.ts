@@ -26,7 +26,6 @@
 import {
   CLAIM_TTL_MS,
   META_OPCOES,
-  SOFT_DEADLINE_MS,
   claimExpirado,
   cotacaoConcluida,
   emEmergencia,
@@ -258,7 +257,7 @@ async function entregarOpcao(
   const supabaseAdmin = await db();
   const { saveMessage, setSendError, SENDING_CLAIM } = await import("./conversation.server");
   const { abortIfHumanTookOver } = await import("./human-takeover.server");
-  const { sendWhatsAppImagePreferLink, sendWhatsAppText } = await import("./send.server");
+  const { sendWhatsAppText } = await import("./send.server");
   const { formatOptionText } = await import("./flight-option-text.server");
   const { logCardEvent } = await import("./card-log.server");
 
@@ -363,43 +362,25 @@ async function entregarOpcao(
 
   if (opts.somenteTexto) return await mandarTexto("modo_emergencia");
 
-  /* ---- card: cache-first, 6s de prazo ---- */
+  /* ---- ENTREGA OFICIAL: orçamento público AIR_ONLY (texto curto + link) ----
+     Os cards/imagens de voo não são mais enviados ao cliente. */
   try {
-    await supabaseAdmin
-      .from("wa_flight_quote_options")
-      .update({ delivery_status: "rendering" })
-      .eq("id", linha.id);
-
-    const { buildFlightCardData } = await import("./flight-card.server");
-    const { getOrRenderCard } = await import("./flight-card-cache.server");
-    const { buildFlightOptionCaption } = await import("./flight-caption.server");
-
-    log({ event: "flight_delivery_render_started", quote_id: quote.id, option_index: linha.option_index, worker_id: worker });
+    const { prepararLinkDaOpcao } = await import("./flight-quote-link.server");
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const data = buildFlightCardData(quote.payload as any, op as any);
-    const { asset, from_cache } = await getOrRenderCard(data, {
-      softDeadlineMs: SOFT_DEADLINE_MS,
-      tentativas: 1,
-      quote_id: quote.id,
-      protocolo_id: ctx.protocolo_id,
-      option_index: numero,
+    const { texto, link, publicId } = await prepararLinkDaOpcao({
+      result: quote.payload as any,
+      option: op as any,
+      numero,
+      agentName: autor.nome,
+      conversationId: ctx.conversation_id,
+      flightQuoteId: quote.id,
     });
-    log({ event: "flight_delivery_render_completed", quote_id: quote.id, option_index: linha.option_index, cache_hit: from_cache });
 
-    // Arte pronta: o estado passa a card_generated. Se o worker morrer daqui
-    // pra frente, o reconciliador sabe que existe arte pronta e reaproveita.
-    await supabaseAdmin
-      .from("wa_flight_quote_options")
-      .update({ delivery_status: "card_generated" })
-      .eq("id", linha.id);
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const caption = buildFlightOptionCaption(quote.payload as any, op as any);
     const msg = await saveMessage({
       conversation_id: ctx.conversation_id,
       direction: "outbound",
       sender: "camila",
-      content: `[[media:image|${asset.url}|${asset.filename}]]\n${caption}`,
+      content: texto,
       agent_slug: autor.slug,
       agent_name: autor.nome,
       quote_id: quote.id,
@@ -408,63 +389,51 @@ async function entregarOpcao(
       card_option: op as unknown,
     });
     if (msg?.id) await setSendError(msg.id, SENDING_CLAIM);
-    await supabaseAdmin
-      .from("wa_flight_quote_options")
-      .update({ delivery_status: "sending_card" })
-      .eq("id", linha.id);
 
-
-    // Manda pelo LINK da arte (leve). O upload dos bytes só entra se o link
-    // falhar — era ele que estourava o worker e deixava o balão "não entregue".
-    const r = await sendWhatsAppImagePreferLink(
-      ctx.wa_phone,
-      asset.url,
-      asset.bytes ?? null,
-      asset.filename,
-      caption,
-    );
+    const r = await sendWhatsAppText(ctx.wa_phone, texto);
     if (msg?.id) {
       await supabaseAdmin
         .from("wa_messages")
-        .update({ wa_message_id: r.id ?? null, meta_media_id: r.media_id ?? null, error: r.error ?? null })
+        .update({ wa_message_id: r.id ?? null, error: r.error ?? null })
         .eq("id", msg.id);
     }
-    if (r.error) return await mandarTexto(`card_send: ${String(r.error)}`);
+    if (r.error) return await mandarTexto(`quote_link_send: ${String(r.error)}`);
 
     logCardEvent({
       ...base,
       event: "card_sent",
-      meta_media_id: r.media_id ?? null,
       meta_message_id: r.id ?? null,
       delivery_status: "sent",
     });
-    await marcarEntregue(linha, "delivered_card", r.id ?? null, quote);
+    await marcarEntregue(linha, "delivered_text", r.id ?? null, quote);
     log({
       event: "flight_delivery_option",
       quote_id: quote.id,
       protocol_id: ctx.protocolo_id,
       worker_id: worker,
       option_index: linha.option_index,
-      cache_hit: from_cache,
-      delivery_format: "card",
+      delivery_format: "quote_link",
+      public_quote_id: publicId,
+      link,
       message_id: r.id ?? null,
       fingerprint: linha.fingerprint,
     });
-    return { ok: true, format: "card", message_id: r.id ?? null };
+    return { ok: true, format: "text", message_id: r.id ?? null };
   } catch (e) {
-    const motivo = (e as Error)?.message ?? "render_timeout";
+    const motivo = (e as Error)?.message ?? "quote_link_error";
     log({
       event: "flight_delivery_failed",
-      stage: "render",
-      error_type: /timeout|prazo/i.test(motivo) ? "render_timeout" : "render_error",
+      stage: "quote_link",
+      error_type: "quote_link_error",
       error_message: motivo.slice(0, 300),
       quote_id: quote.id,
       option_index: linha.option_index,
       attempt_count: linha.attempt_count,
     });
-    return await mandarTexto(`render: ${motivo}`);
+    return await mandarTexto(`quote_link: ${motivo}`);
   }
 }
+
 
 async function marcarEntregue(
   linha: OptionRow,
