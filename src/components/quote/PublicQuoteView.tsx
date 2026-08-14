@@ -677,6 +677,7 @@ export function PublicQuoteView({ quote }: { quote: PublicQuote }) {
 
   return (
     <>
+      <QuoteBody quote={merged} />
       <div className="vq-options">
         <div className="vq-options-inner">
           <span className="vq-options-title">Escolha sua opção</span>
@@ -695,7 +696,6 @@ export function PublicQuoteView({ quote }: { quote: PublicQuote }) {
           </div>
         </div>
       </div>
-      <QuoteBody quote={merged} />
     </>
   );
 }
