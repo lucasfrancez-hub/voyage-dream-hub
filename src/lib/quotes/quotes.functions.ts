@@ -63,7 +63,9 @@ export const reprocessarImportacao = createServerFn({ method: "POST" })
 /** Converte um orçamento em pedido, mantendo o orçamento com status Convertido. */
 export const converterOrcamentoEmPedido = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((i: { quoteId: string }) => z.object({ quoteId: z.string().uuid() }).parse(i))
+  .inputValidator((i: { quoteId: string; optionNumber?: number }) =>
+    z.object({ quoteId: z.string().uuid(), optionNumber: z.number().int().positive().optional() }).parse(i),
+  )
   .handler(async ({ data, context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: quote } = await supabaseAdmin
@@ -74,18 +76,25 @@ export const converterOrcamentoEmPedido = createServerFn({ method: "POST" })
     if (!quote) throw new Error("Orçamento não encontrado");
     if (quote.converted_order_id) return { orderId: quote.converted_order_id, alreadyConverted: true };
 
+    const normalized = quote.normalized as unknown as import("./types").NormalizedQuote | null;
+    const escolhida =
+      data.optionNumber && normalized?.options?.length
+        ? (normalized.options.find((o) => o.optionNumber === data.optionNumber) ?? null)
+        : null;
+    const totalEscolhido = escolhida?.total ?? quote.total ?? 0;
+
     const { data: order, error } = await supabaseAdmin
       .from("orders")
       .insert({
         full_name: quote.client_name ?? "Cliente",
         email: quote.client_email ?? null,
         phone: quote.client_phone ?? null,
-        total_price: quote.total ?? 0,
+        total_price: totalEscolhido,
         status: "pending",
         owner_user_id: quote.owner_user_id ?? context.userId,
         supplier_name: quote.source === "INFOTRAVEL" ? "Infotravel" : null,
         payment_method: "pix",
-        package_snapshot: (quote.normalized ?? {}) as never,
+        package_snapshot: ((escolhida ?? quote.normalized) ?? {}) as never,
       })
       .select("id")
       .single();
@@ -93,8 +102,54 @@ export const converterOrcamentoEmPedido = createServerFn({ method: "POST" })
 
     await supabaseAdmin
       .from("quotes")
-      .update({ status: "CONVERTED", converted_order_id: order.id, updated_at: new Date().toISOString() })
+      .update({
+        status: "CONVERTED",
+        converted_order_id: order.id,
+        converted_option_number: escolhida?.optionNumber ?? null,
+        updated_at: new Date().toISOString(),
+      } as never)
       .eq("id", quote.id);
 
     return { orderId: order.id, alreadyConverted: false };
+  });
+
+/** Gera (ou reaproveita) o link público oficial do orçamento, com todas as opções. */
+export const gerarLinkOrcamento = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i: { quoteId: string }) => z.object({ quoteId: z.string().uuid() }).parse(i))
+  .handler(async ({ data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { buildPublicQuoteFromImported } = await import("./to-public-quote.server");
+    const { savePublicQuote } = await import("@/lib/public-quote/store.server");
+
+    const { data: quote } = await supabaseAdmin
+      .from("quotes")
+      .select("*")
+      .eq("id", data.quoteId)
+      .maybeSingle();
+    if (!quote) throw new Error("Orçamento não encontrado");
+    if (quote.public_url) return { url: quote.public_url, shortUrl: quote.public_short_url ?? null, reused: true };
+
+    const normalized = quote.normalized as unknown as import("./types").NormalizedQuote;
+    if (!normalized?.options?.length) throw new Error("Orçamento ainda não foi processado");
+
+    const dto = buildPublicQuoteFromImported({
+      normalized,
+      title: quote.title,
+      clientName: quote.client_name,
+      agentName: quote.consultant,
+    });
+    const saved = await savePublicQuote(dto as never);
+
+    await supabaseAdmin
+      .from("quotes")
+      .update({
+        public_url: saved.url,
+        public_short_url: saved.shortUrl,
+        public_quote_id: saved.quote.publicId,
+        updated_at: new Date().toISOString(),
+      } as never)
+      .eq("id", quote.id);
+
+    return { url: saved.url, shortUrl: saved.shortUrl, reused: false };
   });

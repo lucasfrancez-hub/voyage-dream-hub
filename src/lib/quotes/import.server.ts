@@ -3,7 +3,13 @@
  * SERVER-ONLY.
  */
 import { parserFor, extractInfotravelUrl } from "./infotravel-parser.server";
-import { emptyQuote, type NormalizedQuote } from "./types";
+import {
+  emptyOption,
+  emptyQuote,
+  optionProductKinds,
+  type NormalizedOption,
+  type NormalizedQuote,
+} from "./types";
 
 export type ImportResult = {
   importId: string;
@@ -103,6 +109,28 @@ export async function createQuoteImport(input: {
   return { importId: data.id, status: "PROCESSING" };
 }
 
+/** Regrava as opções do orçamento (uma linha por opção comercial). */
+export async function syncQuoteOptions(quoteId: string, normalized: NormalizedQuote): Promise<void> {
+  const supabase = await db();
+  await supabase.from("quote_options").delete().eq("quote_id", quoteId);
+  const rows = normalized.options.map((o: NormalizedOption) => ({
+    quote_id: quoteId,
+    option_number: o.optionNumber,
+    label: o.label ?? `Opção ${o.optionNumber}`,
+    start_date: o.startDate ?? null,
+    end_date: o.endDate ?? null,
+    destination: o.destination ?? null,
+    hotel_name: o.hotels[0]?.name ?? null,
+    product_kinds: optionProductKinds(o),
+    total: o.total ?? null,
+    currency: o.currency ?? normalized.currency ?? "BRL",
+    payment_conditions: (o.paymentConditions ?? []) as unknown as never,
+    normalized: o as unknown as never,
+    source_reference: o.sourceReference ?? normalized.sourceBookingId ?? null,
+  }));
+  if (rows.length) await supabase.from("quote_options").insert(rows as never);
+}
+
 /** Busca o HTML, interpreta, normaliza e cria/atualiza o Quote. */
 export async function processQuoteImport(importId: string): Promise<ImportResult> {
   const supabase = await db();
@@ -146,16 +174,30 @@ export async function processQuoteImport(importId: string): Promise<ImportResult
     return await fail(`parser: ${(e as Error).message}`);
   }
   normalized.sourceUrl = imp.source_url;
+  if (!normalized.options.length) {
+    const only = emptyOption(1);
+    only.label = "Opção 1";
+    only.hotels = normalized.hotels;
+    only.flights = normalized.flights;
+    only.cars = normalized.cars;
+    only.transfers = normalized.transfers;
+    only.activities = normalized.activities;
+    only.tickets = normalized.tickets;
+    only.insurance = normalized.insurance;
+    only.services = normalized.services;
+    only.total = normalized.total ?? null;
+    only.startDate = normalized.startDate ?? null;
+    only.endDate = normalized.endDate ?? null;
+    only.destination = normalized.destination ?? null;
+    normalized.options = [only];
+  }
 
-  const hasAir = normalized.flights.length > 0;
-  const hasOther =
-    normalized.hotels.length > 0 ||
-    normalized.cars.length > 0 ||
-    normalized.transfers.length > 0 ||
-    normalized.activities.length > 0 ||
-    normalized.tickets.length > 0;
+  const kindsAllOptions = normalized.options.flatMap((o) => optionProductKinds(o));
+  const hasAir = kindsAllOptions.includes("flights");
+  const hasOther = kindsAllOptions.some((k) => k !== "flights");
   const quoteType = hasAir && !hasOther ? "AIR_ONLY" : "TRIP_PACKAGE";
 
+  const first = normalized.options[0]!;
   const payload = {
     quote_type: quoteType,
     status: "READY",
@@ -164,10 +206,10 @@ export async function processQuoteImport(importId: string): Promise<ImportResult
     client_phone: normalized.client?.phone ?? null,
     client_email: normalized.client?.email ?? null,
     origin: normalized.origin ?? null,
-    destination: normalized.destination ?? null,
-    start_date: normalized.startDate ?? null,
-    end_date: normalized.endDate ?? null,
-    total: normalized.total ?? null,
+    destination: normalized.destination ?? first.destination ?? null,
+    start_date: normalized.startDate ?? first.startDate ?? null,
+    end_date: normalized.endDate ?? first.endDate ?? null,
+    total: normalized.total ?? first.total ?? null,
     currency: normalized.currency ?? "BRL",
     consultant: normalized.agent ?? null,
     source: imp.source,
@@ -175,6 +217,11 @@ export async function processQuoteImport(importId: string): Promise<ImportResult
     source_import_id: imp.id,
     owner_user_id: imp.created_by,
     fingerprint: imp.fingerprint,
+    source_booking_id: normalized.sourceBookingId ?? normalized.sourceId ?? null,
+    source_booking_index: normalized.sourceBookingIndex ?? null,
+    source_company_code: normalized.sourceCompanyCode ?? null,
+    source_token: normalized.sourceToken ?? null,
+    options_count: normalized.options.length,
     updated_at: new Date().toISOString(),
   };
 
@@ -191,6 +238,9 @@ export async function processQuoteImport(importId: string): Promise<ImportResult
     if (error || !created) return await fail(`quote_insert: ${error?.message ?? "unknown"}`);
     quoteId = created.id;
   }
+
+  await syncQuoteOptions(quoteId!, normalized);
+
 
   await supabase
     .from("quote_imports")

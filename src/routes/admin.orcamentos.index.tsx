@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useState } from "react";
-import { Search, Loader2, Download, KeyRound, RotateCcw, ExternalLink, FileText, ArrowRightLeft, Copy } from "lucide-react";
+import { Search, Loader2, Download, KeyRound, RotateCcw, ExternalLink, FileText, ArrowRightLeft, Copy, Link2 as LinkIcon } from "lucide-react";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -16,6 +16,7 @@ import {
   importarOrcamentoPorUrl,
   reprocessarImportacao,
   converterOrcamentoEmPedido,
+  gerarLinkOrcamento,
 } from "@/lib/quotes/quotes.functions";
 import { QUOTE_STATUS, quoteStatusBadge, quoteSourceBadge } from "@/lib/quotes/labels";
 
@@ -98,6 +99,7 @@ function OrcamentosPage() {
   const gerarToken = useServerFn(gerarTokenExtensao);
   const reprocessar = useServerFn(reprocessarImportacao);
   const converter = useServerFn(converterOrcamentoEmPedido);
+  const gerarLink = useServerFn(gerarLinkOrcamento);
 
   const importMutation = useMutation({
     mutationFn: async (u: string) => await importar({ data: { url: u } }),
@@ -133,6 +135,21 @@ function OrcamentosPage() {
       qc.invalidateQueries({ queryKey: ["admin", "quotes", "list"] });
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erro ao converter"),
+  });
+
+  const linkMutation = useMutation({
+    mutationFn: (quoteId: string) => gerarLink({ data: { quoteId } }),
+    onSuccess: async (r) => {
+      const url = r.shortUrl ?? r.url;
+      try {
+        await navigator.clipboard.writeText(url);
+        toast.success(r.reused ? "Link copiado" : "Link gerado e copiado", { description: url });
+      } catch {
+        toast.success("Link gerado", { description: url });
+      }
+      void qc.invalidateQueries({ queryKey: ["orcamentos"] });
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Erro ao gerar link"),
   });
 
   const filtered = useMemo(() => {
@@ -282,6 +299,15 @@ function OrcamentosPage() {
                             <RotateCcw className="h-4 w-4" />
                           </button>
                         )}
+                        <button
+                          type="button"
+                          title="Gerar link do orçamento"
+                          disabled={linkMutation.isPending}
+                          onClick={() => linkMutation.mutate(q.id)}
+                          className="rounded-full p-1.5 text-muted-foreground hover:bg-muted hover:text-brand-orange disabled:opacity-50"
+                        >
+                          <LinkIcon className="h-4 w-4" />
+                        </button>
                         <button
                           type="button"
                           title="Converter para pedido"

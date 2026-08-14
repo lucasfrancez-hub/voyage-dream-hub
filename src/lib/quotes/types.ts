@@ -69,18 +69,12 @@ export type NormalizedGenericItem = {
   total?: number | null;
 };
 
-export type NormalizedQuote = {
-  source: QuoteSource;
-  sourceId?: string | null;
-  sourceUrl?: string | null;
-  title?: string | null;
-  agency?: string | null;
-  agent?: string | null;
-  client?: { name?: string | null; phone?: string | null; email?: string | null } | null;
-  passengers?: { adults?: number; children?: number; infants?: number; names?: string[] } | null;
+/** Conjunto de produtos/valores de UMA opção comercial do orçamento. */
+export type NormalizedOption = {
+  optionNumber: number;
+  label?: string | null;
   startDate?: string | null;
   endDate?: string | null;
-  origin?: string | null;
   destination?: string | null;
   hotels: NormalizedHotel[];
   flights: NormalizedFlight[];
@@ -90,12 +84,61 @@ export type NormalizedQuote = {
   tickets: NormalizedGenericItem[];
   insurance: NormalizedGenericItem[];
   services: NormalizedGenericItem[];
+  total?: number | null;
+  currency?: string | null;
+  paymentConditions?: string[] | null;
+  notes?: string[] | null;
+  sourceReference?: string | null;
+};
+
+export type NormalizedQuote = {
+  source: QuoteSource;
+  sourceId?: string | null;
+  sourceUrl?: string | null;
+  sourceBookingId?: string | null;
+  sourceBookingIndex?: string | null;
+  sourceCompanyCode?: string | null;
+  sourceToken?: string | null;
+  title?: string | null;
+  agency?: string | null;
+  agent?: string | null;
+  client?: { name?: string | null; phone?: string | null; email?: string | null } | null;
+  passengers?: { adults?: number; children?: number; infants?: number; names?: string[] } | null;
+  startDate?: string | null;
+  endDate?: string | null;
+  origin?: string | null;
+  destination?: string | null;
+  /** Produtos da opção 1 (compatibilidade). A verdade completa está em `options`. */
+  hotels: NormalizedHotel[];
+  flights: NormalizedFlight[];
+  cars: NormalizedGenericItem[];
+  transfers: NormalizedGenericItem[];
+  activities: NormalizedGenericItem[];
+  tickets: NormalizedGenericItem[];
+  insurance: NormalizedGenericItem[];
+  services: NormalizedGenericItem[];
+  /** Todas as opções comerciais encontradas na mesma URL. Sempre com pelo menos 1. */
+  options: NormalizedOption[];
   values?: { subtotal?: number | null; taxes?: number | null } | null;
   total?: number | null;
   currency?: string | null;
   paymentConditions?: string[] | null;
   notes?: string[] | null;
 };
+
+export function emptyOption(optionNumber = 1): NormalizedOption {
+  return {
+    optionNumber,
+    hotels: [],
+    flights: [],
+    cars: [],
+    transfers: [],
+    activities: [],
+    tickets: [],
+    insurance: [],
+    services: [],
+  };
+}
 
 export function emptyQuote(source: QuoteSource): NormalizedQuote {
   return {
@@ -108,10 +151,32 @@ export function emptyQuote(source: QuoteSource): NormalizedQuote {
     tickets: [],
     insurance: [],
     services: [],
+    options: [],
   };
+}
+
+export const PRODUCT_KINDS = [
+  "hotels",
+  "flights",
+  "cars",
+  "transfers",
+  "activities",
+  "tickets",
+  "insurance",
+  "services",
+] as const;
+export type ProductKind = (typeof PRODUCT_KINDS)[number];
+
+export function optionProductKinds(option: NormalizedOption): ProductKind[] {
+  return PRODUCT_KINDS.filter((k) => (option[k] as unknown[]).length > 0);
+}
+
+export function optionHasProducts(option: NormalizedOption): boolean {
+  return optionProductKinds(option).length > 0;
 }
 
 export interface QuoteSourceParser {
   supports(url: string): boolean;
   parse(html: string, url: string): NormalizedQuote;
 }
+
