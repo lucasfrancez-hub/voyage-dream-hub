@@ -102,13 +102,18 @@ export function publicQuoteUrl(publicId: string): string {
   return `${PUBLIC_BASE}/orcamento/${publicId}`;
 }
 
-/** Cria (ou reaproveita) um orçamento público e devolve link + link curto. */
+/** Cria (ou reaproveita) um orçamento público e devolve link + link curto.
+ *  Se já existir um orçamento para o mesmo flightQuoteId + optionIndex, o
+ *  conteúdo é ATUALIZADO com os dados mais recentes (mantendo o mesmo link).
+ */
 export async function savePublicQuote(
   q: NewPublicQuote,
 ): Promise<{ quote: PublicQuote; url: string; shortUrl: string | null }> {
   const supabaseAdmin = await db();
 
-  // reaproveita quando é a mesma opção de voo já publicada
+  // reaproveita quando é a mesma opção de voo já publicada, mas regrava
+  // os dados para garantir que regras comerciais (Pix 5%, parcelamento etc.)
+  // estejam sempre atualizadas no link.
   if (q.flightQuoteId && q.optionIndex != null) {
     const { data: existente } = await supabaseAdmin
       .from("public_quotes")
@@ -117,8 +122,11 @@ export async function savePublicQuote(
       .eq("option_index", q.optionIndex)
       .maybeSingle();
     if (existente) {
-      const quote = rowToQuote(existente);
-      return { quote, url: publicQuoteUrl(quote.publicId), shortUrl: quote.shortUrl ?? null };
+      const publicId = existente.public_id as string;
+      const atualizado = await refreshPublicQuote(publicId, q);
+      if (atualizado) {
+        return atualizado;
+      }
     }
   }
 
