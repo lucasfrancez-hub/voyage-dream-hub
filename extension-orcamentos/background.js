@@ -282,18 +282,22 @@ async function sendImportInner(url, trigger) {
       ? `#${final.quote.quote_number} ${final.quote.destination || final.quote.title || ""}`
       : url;
 
-    if (final.status !== "READY") {
+    // Só é erro quando NÃO existe orçamento criado. Se veio quoteId, a importação foi.
+    const ok = final.status === "READY" || !!final.quoteId;
+    if (!ok) {
+      const stillProcessing = final.status === "PROCESSING";
       console.error(LOG, "importação não concluída", { status: final.status, error: final.error });
       await logEvent({ event: "import_failed", sourceUrl: url, result: final.status, detail: final.error || "" });
       await markImported(url, { result: final.status, importId: data.importId, label });
       return {
-        status: "IMPORT_ERROR",
+        status: stillProcessing ? "PROCESSING" : "IMPORT_ERROR",
         stage: "PARSE",
         importId: data.importId,
-        quoteId: final.quoteId || null,
+        quoteId: null,
         detail: final.error || final.status,
       };
     }
+
 
     await markImported(url, { result: "READY", importId: data.importId, label });
     await queueRemove(url);
