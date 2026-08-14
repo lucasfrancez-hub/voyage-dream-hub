@@ -6,7 +6,7 @@
   const FRAME_LABEL = IS_TOP ? "top" : "iframe";
   const QUOTE_RE = /https?:\/\/[^\s"'<>]*infotravel\.com\.br\/[^\s"'<>]*(?:orcamento-web|orcamento|proposta|quote)[^\s"'<>]*/i;
   const state = {
-    content: "OK", hook: "—", frame: FRAME_LABEL, domain: location.hostname,
+    content: "OK", hook: document.documentElement.getAttribute("data-viaair-page-hook") === "ok" ? "OK" : "—", frame: FRAME_LABEL, domain: location.hostname,
     click: "—", open: "—", fetch: "—", xhr: "—", clipboard: "—",
     candidate: "—", api: "aguardando URL real", requests: [], report: [],
   };
@@ -27,6 +27,7 @@
   }
 
   function ensureViaAirUi() {
+    if (document.documentElement.getAttribute("data-viaair-page-hook") === "ok") state.hook = "OK";
     if (!IS_TOP) return;
     let host = document.getElementById(ROOT_ID);
     if (host && host.shadowRoot) { shadow = host.shadowRoot; render(); return; }

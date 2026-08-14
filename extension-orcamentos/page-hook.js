@@ -11,6 +11,7 @@
   }
 
   console.info(LOG, "page-hook carregado em document_start", location.href);
+  if (document.documentElement) document.documentElement.setAttribute("data-viaair-page-hook", "ok");
   emit("hook", { status: "OK" });
 
   const originalOpen = window.open;
