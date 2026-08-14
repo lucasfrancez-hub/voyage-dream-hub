@@ -20,6 +20,8 @@ import {
 import type { NormalizedOption, NormalizedQuote } from "@/lib/quotes/types";
 import { confirmThen } from "@/lib/confirm";
 import { HotelTripAdvisorDialog } from "@/components/quotes/HotelTripAdvisorDialog";
+import { AirlineLogo } from "@/components/AirlineLogo";
+import { findAirline } from "@/lib/airlines";
 
 export const Route = createFileRoute("/admin/orcamentos/$id")({
   component: QuoteDetailPage,
