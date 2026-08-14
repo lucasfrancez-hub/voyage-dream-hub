@@ -181,8 +181,17 @@ function OrcamentosPage() {
           <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>
             <Download className="h-4 w-4" /> Importar orçamento
           </Button>
+          <Button size="sm" onClick={() => setManualOpen(true)}>
+            <Plus className="h-4 w-4" /> Novo orçamento manual
+          </Button>
         </div>
       </div>
+
+      <NovoOrcamentoManualDialog
+        open={manualOpen}
+        onOpenChange={setManualOpen}
+        onCriado={() => refetch()}
+      />
 
       <div className="mt-4 flex flex-wrap items-center gap-2">
         <div className="relative flex-1 min-w-[220px]">
