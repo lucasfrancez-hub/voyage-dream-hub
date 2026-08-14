@@ -26,6 +26,7 @@ import {
 
 import QRCode from "qrcode";
 import viaAirLogoAsset from "@/assets/viaair-logo.png.asset.json";
+import { embedImageSmart } from "@/lib/pdf-image";
 import type { OrderDetail, OrderItem, OrderPassenger } from "./orders.functions";
 import { type HotelMapData } from "./voucher-map.functions";
 import { translateText } from "./translate.functions";
@@ -2439,7 +2440,7 @@ const fetchLogo = async (pdf: PDFDocument): Promise<PDFImage | undefined> => {
     const r = await fetch(viaAirLogoAsset.url);
     if (!r.ok) return undefined;
     const bytes = new Uint8Array(await r.arrayBuffer());
-    return await pdf.embedPng(bytes);
+    return await embedImageSmart(pdf, bytes);
   } catch {
     return undefined;
   }
