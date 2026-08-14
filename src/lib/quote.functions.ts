@@ -59,6 +59,7 @@ export type PublicQuoteItem = {
   kind: "flight" | "hotel" | "other";
   title: string;
   direction?: "outbound" | "return" | null;
+  trip_group?: string | null;
   airline?: string | null;
   flight_number?: string | null;
   from_iata?: string | null;
@@ -67,12 +68,18 @@ export type PublicQuoteItem = {
   to_city?: string | null;
   departure_at?: string | null;
   arrival_at?: string | null;
+  cabin_class?: string | null;
+  fare_class?: string | null;
+  personal_item?: boolean;
+  carry_on?: boolean;
+  checked_bag?: boolean;
   hotel_name?: string | null;
   hotel_stars?: number | null;
   nights?: number | null;
   meal_plan?: string | null;
   check_in?: string | null;
   check_out?: string | null;
+  photo_url?: string | null;
   hotel_info?: HotelInfo | null;
   category?: string | null;
   date_from?: string | null;
@@ -90,8 +97,11 @@ export type PublicQuote = {
   travelers: { adults: number; children: number };
   items: PublicQuoteItem[];
   config: QuoteConfig;
+  /** Markups (%) por quantidade de parcelas — tabela do financeiro. */
+  installmentMarkups: Record<number, number>;
   agency: { name: string; email: string; phone: string; whatsapp: string };
 };
+
 
 
 // -------- Server functions --------
@@ -208,12 +218,18 @@ export const getPublicQuote = createServerFn({ method: "GET" })
         if (!dt) return null;
         return tm ? `${dt}T${tm}` : dt;
       };
+      const bool = (k: string, def: boolean) => {
+        const v = d[k];
+        if (v === undefined || v === null || v === "") return def;
+        return v === true || v === "true" || v === 1 || v === "1";
+      };
       const kind = i.kind as "flight" | "hotel" | "other";
       if (kind === "flight") {
         return {
           kind,
           title: i.title,
           direction: (str("direction") as "outbound" | "return" | null) || null,
+          trip_group: str("trip_group"),
           airline: str("airline"),
           flight_number: str("flight_number"),
           from_iata: str("from_iata") ?? str("origin"),
@@ -221,13 +237,22 @@ export const getPublicQuote = createServerFn({ method: "GET" })
           to_iata: str("to_iata") ?? str("destination"),
           to_city: str("to_city"),
           departure_at:
+            str("depart_at") ??
+            str("departure") ??
             str("departure_datetime") ??
             combineDT("date_from", "time_from") ??
             combineDT("departure_date", "departure_time"),
           arrival_at:
+            str("arrive_at") ??
+            str("arrival") ??
             str("arrival_datetime") ??
             combineDT("date_to", "time_to") ??
             combineDT("arrival_date", "arrival_time"),
+          cabin_class: str("cabin_class") ?? str("cabin"),
+          fare_class: str("fare_class"),
+          personal_item: bool("personal_item", true),
+          carry_on: bool("carry_on", true),
+          checked_bag: bool("checked_bag", false),
           notes: str("notes"),
         };
       }
@@ -241,9 +266,11 @@ export const getPublicQuote = createServerFn({ method: "GET" })
           meal_plan: str("meal_plan") ?? str("board"),
           check_in: str("check_in") ?? str("checkin"),
           check_out: str("check_out") ?? str("checkout"),
+          photo_url: str("photo_url"),
           notes: str("notes"),
         };
       }
+
       return {
         kind,
         title: i.title,
@@ -300,8 +327,25 @@ export const getPublicQuote = createServerFn({ method: "GET" })
     const rawCfg = (order as { quote_config?: unknown }).quote_config;
     const config = normalizeQuoteConfig(rawCfg);
 
+    // Markups oficiais do financeiro (mesma tabela usada nas Promoções de Aéreo).
+    const { DEFAULT_EXTENDED_MARKUPS } = await import("@/lib/airfare-conditions");
+    let installmentMarkups: Record<number, number> = { ...DEFAULT_EXTENDED_MARKUPS };
+    try {
+      const { data: mk } = await supabaseAdmin
+        .from("airfare_installment_markups")
+        .select("installments,markup_percent,active")
+        .eq("active", true);
+      const table: Record<number, number> = {};
+      for (const row of (mk ?? []) as Array<{ installments: number; markup_percent: number | string }>) {
+        table[Number(row.installments)] = Number(row.markup_percent);
+      }
+      if (Object.keys(table).length) installmentMarkups = table;
+    } catch { /* mantém o default */ }
+
     const fullName = (order as { full_name?: string | null }).full_name ?? "Cliente";
     return {
+      installmentMarkups,
+
       orderNumber:
         (order as { order_number?: string | null }).order_number ??
         orderId.slice(0, 8).toUpperCase(),
@@ -317,7 +361,7 @@ export const getPublicQuote = createServerFn({ method: "GET" })
       items: publicItems,
       config,
       agency: {
-        name: "Via Air",
+        name: "Lucas Francez",
         email: "comercial@voeair.com",
         phone: "(44) 99951-4838",
         whatsapp: "5544999514838",
