@@ -687,6 +687,7 @@ function PaymentBox({ quote }: { quote: PublicQuote }) {
 export function PublicQuoteView({ quote }: { quote: PublicQuote }) {
   const options = quote.options ?? [];
   const [sel, setSel] = useState(0);
+  const tabsRef = useRef<HTMLDivElement | null>(null);
   if (options.length < 2) return <QuoteBody quote={quote} />;
 
   const opt = options[Math.min(sel, options.length - 1)]!;
