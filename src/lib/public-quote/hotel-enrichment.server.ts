@@ -76,22 +76,50 @@ async function writeCache(key: string, payload: HotelEnrichment): Promise<void> 
   } catch { /* cache é best-effort */ }
 }
 
-function metros(n: unknown): string | null {
-  const v = Number(n);
-  if (!Number.isFinite(v) || v <= 0) return null;
-  const km = v; // TripAdvisor devolve em milhas quando unit=mi; pedimos km
-  return km < 1 ? `${Math.round(km * 1000)} m` : `${km.toFixed(1).replace(".", ",")} km`;
+type Localized = Array<{ language?: string; value?: string; primary?: boolean }> | undefined;
+
+/** Escolhe o texto em pt e cai para o principal/primeiro disponível. */
+function localized(raw: unknown): string | null {
+  const list = raw as Localized;
+  if (!Array.isArray(list) || !list.length) return null;
+  const pt = list.find((i) => String(i.language ?? "").startsWith("pt") && i.value);
+  const primary = list.find((i) => i.primary && i.value);
+  return (pt?.value ?? primary?.value ?? list.find((i) => i.value)?.value ?? null) || null;
 }
 
-async function jsonOf(url: string, signal: AbortSignal): Promise<Record<string, unknown> | null> {
+function pickName(raw: unknown): string {
+  return localized(raw) ?? "";
+}
+
+function pickAddress(addresses: Array<Record<string, unknown>> | undefined): string | null {
+  if (!Array.isArray(addresses) || !addresses.length) return null;
+  const a = (addresses.find((x) => x.primary) ?? addresses[0]) as Record<string, unknown>;
+  const formatted = a.formatted ?? a.formatted_address ?? a.address_string;
+  if (typeof formatted === "string" && formatted.trim()) return formatted.trim();
+  const partes = [a.street1, a.city, a.state, a.country].filter((p) => typeof p === "string" && p);
+  return partes.length ? partes.join(", ") : null;
+}
+
+async function jsonOf(
+  url: string,
+  signal: AbortSignal,
+  apiKey: string,
+): Promise<Record<string, unknown> | null> {
   try {
-    const r = await fetch(url, { signal, headers: HEADERS });
-    if (!r.ok) return null;
+    const r = await fetch(url, {
+      signal,
+      headers: { accept: "application/json", "X-API-KEY": apiKey },
+    });
+    if (!r.ok) {
+      console.warn("[hotel-enrichment] TripAdvisor", r.status, url.split("?")[0]);
+      return null;
+    }
     return (await r.json()) as Record<string, unknown>;
   } catch {
     return null;
   }
 }
+
 
 /**
  * Busca e monta o enriquecimento do hotel. Retorna `MATCH_FAILED` quando
