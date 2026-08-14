@@ -5472,6 +5472,7 @@ export type Database = {
           origin: string | null
           owner_user_id: string | null
           public_quote_id: string | null
+          public_short_url: string | null
           public_url: string | null
           public_version: number
           quote_number: number
@@ -5511,6 +5512,7 @@ export type Database = {
           origin?: string | null
           owner_user_id?: string | null
           public_quote_id?: string | null
+          public_short_url?: string | null
           public_url?: string | null
           public_version?: number
           quote_number?: number
@@ -5550,6 +5552,7 @@ export type Database = {
           origin?: string | null
           owner_user_id?: string | null
           public_quote_id?: string | null
+          public_short_url?: string | null
           public_url?: string | null
           public_version?: number
           quote_number?: number
