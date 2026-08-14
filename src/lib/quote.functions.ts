@@ -53,6 +53,10 @@ export type HotelInfo = {
   photos: string[]; // urls
   amenities: string[];
   web_url: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  stars?: number | null;
+  nearby?: Array<{ name: string; distance: string }>;
 };
 
 export type PublicQuoteItem = {
