@@ -13,7 +13,7 @@ import {
   contarDataItemValue,
   coletarEstadoMotor,
   escolherItemAutocomplete,
-  parseAutocompleteItens,
+  parseAutocompleteDetalhado,
   decodeEntities,
   resolvePayloadAutocomplete,
   listarCamposInternosJsf,
@@ -1013,7 +1013,9 @@ async function consultarAutocomplete(
   q.set(`${source}_input`, termo);
   q.set(`${source}_hinput`, termo);
   const query = await ajaxMotor(s, q);
-  return { source, query, itens: parseAutocompleteItens(query.body) };
+  // parsing SEMPRE sobre a resposta bruta, antes de qualquer sanitização
+  const parsed = parseAutocompleteDetalhado(query.body);
+  return { source, query, itens: parsed.itens, labelsSemValue: parsed.labelsSemValue };
 }
 
 /**
@@ -1128,6 +1130,8 @@ export type FrtDiagnosticoAutocomplete = {
   bytes: number;
   updates: { id: string; bytes: number }[];
   dataItemValue: number;
+  labelsSemValue: string[];
+  erro?: string;
   amostra: string | null;
   em: string;
 };
@@ -1143,7 +1147,7 @@ export async function frtSugestoesLocal(
   const s = await getSession();
   const { fields, estado } = await loadVendaScreen(s);
   const sourceInput = componente === "origem" ? fields.origem : fields.destino;
-  const { source, query, itens } = await consultarAutocomplete(
+  const { source, query, itens, labelsSemValue } = await consultarAutocomplete(
     s,
     estado,
     sourceInput,
@@ -1159,11 +1163,16 @@ export async function frtSugestoesLocal(
     bytes: query.body.length,
     updates: Object.entries(updates).map(([id, c]) => ({ id, bytes: c.length })),
     dataItemValue: contarDataItemValue(query.body),
+    labelsSemValue,
+    erro:
+      itens.length === 0 && labelsSemValue.length > 0
+        ? `FRT_AUTOCOMPLETE_SEM_VALUE: ${labelsSemValue.length} opção(ões) com data-item-label mas sem data-item-value (${labelsSemValue.slice(0, 3).join(" | ")})`
+        : undefined,
     amostra: itens.length === 0 ? amostraSanitizada(query.body).slice(0, 6000) : null,
     em: new Date().toISOString(),
   };
   trace(
-    `  sugestões ${componente}: termo="${termo}" status=${query.status} bytes=${query.body.length} updates=${diagnostico.updates.length} data-item-value=${diagnostico.dataItemValue} opções=${itens.length}`,
+    `  sugestões ${componente}: termo="${termo}" status=${query.status} bytes=${query.body.length} updates=${diagnostico.updates.length} data-item-value=${diagnostico.dataItemValue} labels-sem-value=${labelsSemValue.length} opções=${itens.length}`,
   );
   return {
     opcoes: itens.map((i) => ({ value: i.value, label: i.label || i.value })),
