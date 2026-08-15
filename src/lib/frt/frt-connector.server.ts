@@ -9,6 +9,8 @@
 import {
   FrtError,
   FRT_FIELDS,
+  coletarEstadoMotor,
+  resolvePayloadAutocomplete,
   extractPartialUpdates,
   extractViewState,
   detectLoginButtonName,
@@ -604,275 +606,6 @@ export async function frtEnviarCodigo(codigo: string) {
     };
   }
   const p = new URLSearchParams();
-  p.set(campos.form, campos.form);
-  p.set(campos.input, codigo.trim());
-  p.set(campos.botao, campos.botao);
-  p.set("javax.faces.ViewState", vs);
-
-  trace("POST código de verificação");
-  const { body } = await frtFetch(s, tela.url, {
-    method: "POST",
-    body: p.toString(),
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-      Origin: "https://frt.infotravel.com.br",
-      Referer: tela.url,
-    },
-  });
-
-  // 2FA aceito ≠ tela de venda acessível. Faz o GET autenticado explícito.
-  trace("2FA aceito — validando navegação pós-login");
-  const venda = await abrirVenda(s, tela.url);
-  const acessoVenda = resumoAcesso(venda);
-  if (venda.aguardandoCodigo || venda.voltouParaLogin || looksLikeLoginPage(body)) {
-    return {
-      ok: false,
-      erro: (venda.aguardandoCodigo ? "FRT_2FA_REQUIRED" : "FRT_AUTH_REQUIRED") as string | null,
-      mensagem: (venda.aguardandoCodigo
-        ? "Código recusado pela FRT — ela segue pedindo verificação."
-        : "Após o código a FRT devolveu a tela de login.") as string | null,
-      aviso: null as string | null,
-      acessoVenda,
-    };
-  }
-  s.viewState = venda.viewState;
-  s.createdAt = Date.now();
-  session = s;
-  pendingAuth = null;
-  await persistSession(s);
-  if (venda.estado !== "ok") {
-    trace("código aceito, mas o motor de pesquisa não apareceu em venda.xhtml");
-    return {
-      ok: true,
-      erro: null as string | null,
-      mensagem: null as string | null,
-      aviso:
-        "Código aceito, mas venda.xhtml abriu sem o motor de pesquisa (FRT_VENDA_NOT_LOADED — provável shell/AJAX). Amostra do HTML guardada no diagnóstico." as
-          | string
-          | null,
-      acessoVenda,
-    };
-  }
-  trace("código aceito — venda.xhtml acessível com o motor de pesquisa");
-  return {
-    ok: true,
-    erro: null as string | null,
-    mensagem: null as string | null,
-    aviso: null as string | null,
-    acessoVenda,
-  };
-
-
-}
-
-/* ---------- 2FA automático via caixa dedicada (e-mail encaminhado) ---------- */
-
-/** Janela de validade de um código recebido por e-mail. */
-const CODIGO_TTL_MS = 10 * 60_000;
-/** Quanto tempo esperamos o e-mail encaminhado chegar. */
-const CODIGO_ESPERA_MS = 120_000;
-
-type CodigoArmazenado = { id: string; code: string };
-
-/** Busca o código mais recente, ainda não usado e dentro da janela. */
-async function buscarCodigoRecente(desde: number): Promise<CodigoArmazenado | null> {
-  try {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data } = await supabaseAdmin
-      .from("frt_auth_codes")
-      .select("id, code, received_at")
-      .is("used_at", null)
-      .gte("received_at", new Date(desde).toISOString())
-      .order("received_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    if (!data?.code) return null;
-    return { id: data.id as string, code: data.code as string };
-  } catch {
-    return null;
-  }
-}
-
-/** Descarta o código depois do uso — nada fica guardado. */
-async function descartarCodigo(id: string) {
-  try {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    await supabaseAdmin.from("frt_auth_codes").delete().eq("id", id);
-  } catch {
-    /* best-effort */
-  }
-}
-
-/**
- * Aguarda o código chegar na caixa dedicada e conclui a autenticação.
- * O valor do código nunca é registrado em log. A entrada manual continua
- * disponível como fallback.
- */
-export async function frtResolver2faAutomatico(
-  esperaMs = CODIGO_ESPERA_MS,
-): Promise<{ ok: boolean; mensagem?: string }> {
-  const inicio = Date.now();
-  const janela = inicio - CODIGO_TTL_MS;
-  trace("2FA: aguardando código na caixa dedicada");
-  while (Date.now() - inicio < esperaMs) {
-    const item = await buscarCodigoRecente(janela);
-    if (item) {
-      await descartarCodigo(item.id);
-      trace("2FA: código encontrado — enviando para a FRT (valor não registrado)");
-      const r = await frtEnviarCodigo(item.code);
-      if (r.ok) return { ok: true };
-      trace(`2FA automático recusado: ${r.erro ?? "desconhecido"}`);
-      return {
-        ok: false,
-        mensagem:
-          "Código automático recusado pela FRT. Informe o código manualmente para liberar a sessão.",
-      };
-    }
-    await new Promise((r) => setTimeout(r, 5_000));
-  }
-  trace("2FA: nenhum código chegou na caixa dedicada dentro do tempo");
-  return {
-    ok: false,
-    mensagem:
-      "A FRT pediu código de verificação e nenhum e-mail chegou na caixa dedicada. Informe o código manualmente.",
-  };
-}
-
-function needsAuthCode(html: string): boolean {
-
-  return /frmAuth:chave-input|c[óo]digo de verifica[çc][ãa]o/i.test(html);
-}
-
-function detectAuthForm(html: string): { form: string; input: string; botao: string } | null {
-  const input = html.match(/name="([^"]*chave-input)"/i)?.[1];
-  if (!input) return null;
-  const form = input.split(":")[0] ?? "frmAuth";
-  const botao =
-    html.match(new RegExp(`name="(${form}:j_idt\\d+)"`, "i"))?.[1] ?? `${form}:j_idt88`;
-  return { form, input, botao };
-}
-
-/* ------------------- persistência da sessão (backend) ------------------ */
-
-async function persistSession(s: Session) {
-  try {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    await supabaseAdmin.from("frt_sessions").upsert({
-      id: "default",
-      cookies: Object.fromEntries(s.cookies),
-      view_state: s.viewState,
-      updated_at: new Date().toISOString(),
-    });
-  } catch {
-    /* persistência é best-effort */
-  }
-}
-
-async function restoreSession(): Promise<Session | null> {
-  try {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data } = await supabaseAdmin
-      .from("frt_sessions")
-      .select("cookies, view_state, updated_at")
-      .eq("id", "default")
-      .maybeSingle();
-    if (!data?.cookies) return null;
-    const idade = Date.now() - new Date(data.updated_at as string).getTime();
-    if (idade > SESSION_TTL_MS) return null;
-    const s: Session = {
-      cookies: new Map(Object.entries(data.cookies as Record<string, string>)),
-      viewState: (data.view_state as string | null) ?? null,
-      createdAt: Date.now() - idade,
-    };
-    const venda = await abrirVenda(s);
-    if (venda.estado !== "ok") return null;
-    s.viewState = venda.viewState;
-    trace("sessão FRT restaurada do backend");
-
-    return s;
-  } catch {
-    return null;
-  }
-}
-
-/* ----------------------- tela de consulta -------------------------- */
-
-async function loadVendaScreen(s: Session) {
-  const venda = await abrirVenda(s);
-  const body = venda.body;
-  if (venda.estado === "login") throw new FrtError("FRT_SESSION_EXPIRED");
-  // Shell/AJAX/erro HTTP ≠ mudança de estrutura.
-  if (venda.estado !== "ok") throw erroDoEstado(venda);
-
-  if (!venda.viewState) {
-    throw new FrtError(
-      "FRT_VENDA_NOT_LOADED",
-      "venda.xhtml carregou o motor de pesquisa, mas sem javax.faces.ViewState.",
-      `status=${venda.status} bytes=${venda.tamanhoHtml}`,
-    );
-  }
-  s.viewState = venda.viewState;
-  const resolved = resolveSearchFields(body);
-  if (resolved.changed.length) trace(`campos alterados: ${resolved.changed.join(" | ")}`);
-  if (resolved.missing.length) {
-    trace(`campos ausentes: ${resolved.missing.join(", ")}`);
-    ultimaAmostra = {
-      em: new Date().toISOString(),
-      url: venda.urlFinal,
-      estado: "estrutura",
-      html: amostraSanitizada(body),
-    };
-    // Só aqui a mudança de estrutura está comprovada: a tela de venda correta
-    // carregou (formulário + botão presentes) e mesmo assim faltam campos.
-    throw new FrtError(
-      "FRT_STRUCTURE_CHANGED",
-      "A tela de venda carregou corretamente, mas campos do formulário de pesquisa não existem mais",
-      resolved.missing.join(", "),
-    );
-  }
-  ultimoInventarioMotor = inventarioMotorPacote(body);
-  trace(
-    `  inventário frmMotorPacote: form=${ultimoInventarioMotor.encontrouForm} campos=${ultimoInventarioMotor.campos.length} scripts=${ultimoInventarioMotor.scriptsAutocomplete.length} widgets=${ultimoInventarioMotor.widgets.join(", ") || "(nenhum)"}`,
-  );
-  for (const c of ultimoInventarioMotor.campos.slice(0, 30)) {
-    trace(`    ${c.tag} id=${c.id ?? "-"} name=${c.name ?? "-"} type=${c.type ?? "-"} valor=${c.valor}`);
-  }
-  return resolved.fields;
-}
-
-/* --------------------------- pesquisa ------------------------------ */
-
-/** Códigos IATA sempre em maiúsculas; texto livre fica intacto. */
-function normalizarIata(v: string): string {
-  const t = (v ?? "").trim();
-  return /^[A-Za-z]{3}$/.test(t) ? t.toUpperCase() : t;
-}
-
-/** Conteúdo do <update id="...pnlResultado..."> (ou trecho equivalente). */
-function extrairPnlResultado(
-  updates: Record<string, string>,
-  body: string,
-): { presente: boolean; bytes: number } {
-  const chave = Object.keys(updates).find((k) => /pnlResultado/i.test(k));
-  if (chave) return { presente: true, bytes: updates[chave]!.length };
-  const i = body.search(/pnlResultado/i);
-  return { presente: i >= 0, bytes: 0 };
-}
-
-
-
-async function runSearch(
-  s: Session,
-  input: FrtSearchInput,
-): Promise<{ results: FrtSearchResponse["results"]; availableResults: number }> {
-  const fields = await loadVendaScreen(s);
-  const adultos = input.adultos ?? 1;
-  const criancas = input.criancas ?? 0;
-  // Códigos IATA sempre em maiúsculas (MGf -> MGF).
-  const origem = normalizarIata(input.origem);
-  const destino = normalizarIata(input.destino);
-
-  const p = new URLSearchParams();
   p.set("javax.faces.partial.ajax", "true");
   p.set("javax.faces.source", fields.botao);
   p.set("javax.faces.partial.execute", "@all");
@@ -882,15 +615,38 @@ async function runSearch(
   );
   p.set(fields.botao, fields.botao);
   p.set(FRT_FIELDS.form, FRT_FIELDS.form);
-  p.set(fields.origem, origem);
-  p.set(fields.destino, destino);
+
+  // 1) Reproduz o estado atual do formulário exatamente como o navegador faz
+  //    (inclui campos internos da FRT como j_idt####_input de ocupação).
+  for (const [name, valor] of Object.entries(estado)) {
+    if (name.startsWith("javax.faces")) continue;
+    p.set(name, valor);
+  }
+
+  // 2) Sobrescreve apenas o que é da pesquisa. Origem/destino vão nos campos
+  //    reais do payload (j_idt####), não nos _input visuais do autocomplete.
+  const nomeOrigem = payload.origem ?? fields.origem;
+  const nomeDestino = payload.destino ?? fields.destino;
+  p.set(nomeOrigem, input.origemLabel?.trim() || origem);
+  p.set(nomeDestino, input.destinoLabel?.trim() || destino);
   p.set(fields.ida, toBrDate(input.ida));
   if (input.volta) p.set(fields.volta, toBrDate(input.volta));
-  p.set(fields.pais, input.pais ?? "");
-  p.set(fields.companhia, input.companhia ?? "");
-  p.set("frmMotorPacote:qtdAdultosPacote_input", String(adultos));
-  p.set("frmMotorPacote:qtdCriancasPacote_input", String(criancas));
+  p.set(fields.pais, input.pais ?? estado[fields.pais] ?? "");
+  p.set(fields.companhia, input.companhia ?? estado[fields.companhia] ?? "");
   p.set("javax.faces.ViewState", s.viewState ?? "");
+
+  // Ocupação: os campos de adultos/crianças da FRT são gerados dinamicamente
+  // (j_idt####_input) e o valor não é a contagem de passageiros. Mantemos o
+  // estado atual do formulário e registramos quando o pedido difere do padrão,
+  // até termos o mapeamento confirmado.
+  if (adultos !== 1 || criancas !== 0) {
+    trace(
+      `  ATENÇÃO: ocupação ${adultos} adulto(s)/${criancas} criança(s) solicitada, mas o mapeamento dos campos internos de ocupação ainda não é conhecido — enviando a configuração atual do formulário`,
+    );
+  }
+  trace(
+    `  payload origem=${nomeOrigem} destino=${nomeDestino} campos=${[...p.keys()].length}`,
+  );
 
   trace(`POST pesquisa ${origem}->${destino} ${input.ida}`);
   const { res: resPesquisa, body } = await frtFetch(s, VENDA_URL, {
