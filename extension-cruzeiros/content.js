@@ -252,8 +252,8 @@
 
 
     try {
-      const tabs = H.queryAll(modal, P.FRT_SELECTORS.sideNavItems);
       for (const tab of tabs) {
+
       const label = H.text(tab, P.FRT_SELECTORS.sideNavName) || H.clean(tab.textContent);
       if (IGNORED_TABS.test(label)) continue;
       safeClick(tab.querySelector("a,button") || tab);
