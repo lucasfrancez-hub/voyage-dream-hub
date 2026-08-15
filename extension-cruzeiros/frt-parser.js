@@ -760,6 +760,20 @@
           };
         });
 
+        /* A FRT repete "por criança" para criança e bebê (mesmo rótulo).
+           A ordem renderizada é sempre adulto → jovem → criança → bebê,
+           então a segunda ocorrência de "criança" vira bebê. */
+        let sawChild = false;
+        prices.forEach((p) => {
+          if (p.profile !== "child") return;
+          if (sawChild) {
+            p.profile = "infant";
+            p.source_label = `${p.source_label} (bebê)`;
+          }
+          sawChild = true;
+        });
+
+
         // 47. Imagem só se realmente existir — nunca inventar.
         const holder = query(item, FRT_SELECTORS.optionImage);
         let image = "";
