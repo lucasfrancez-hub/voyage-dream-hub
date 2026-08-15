@@ -911,8 +911,19 @@ async function runSearch(
   trace(`  pnlResultado presente: ${/pnlResultado/i.test(body)}`);
   trace(`  preços encontrados: ${precos.length}${precos.length ? ` -> ${precos.slice(0, 3).join(" | ")}` : ""}`);
   trace(`  mensagem "nenhum resultado": ${semResultado ?? "(nenhuma)"}`);
+  trace(`  validationFailed: ${validationFailed}`);
 
   if (looksLikeSessionExpired(body)) throw new FrtError("FRT_SESSION_EXPIRED");
+
+  if (validationFailed) {
+    // A FRT recusou os parâmetros antes de pesquisar — pnlResultado vazio é
+    // consequência disso, não ausência de disponibilidade.
+    throw new FrtError(
+      "FRT_SEARCH_VALIDATION_FAILED",
+      "A FRT rejeitou os parâmetros da pesquisa (validationFailed:true)",
+      `campos=${ultimoInventarioMotor?.campos.length ?? 0} updates=${chavesDiag.join(", ") || "(nenhum)"}`,
+    );
+  }
 
   const novoVs = extractViewState(body);
   if (novoVs) s.viewState = novoVs;
