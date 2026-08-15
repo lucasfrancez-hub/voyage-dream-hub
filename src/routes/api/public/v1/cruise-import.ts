@@ -11,9 +11,10 @@ import { snapshotPayloadSchema } from "@/lib/cruises/snapshot-schema";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "POST, GET, OPTIONS",
+  "Access-Control-Allow-Methods": "POST, GET, DELETE, OPTIONS",
   "Access-Control-Allow-Headers": "authorization, content-type",
 };
+
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
