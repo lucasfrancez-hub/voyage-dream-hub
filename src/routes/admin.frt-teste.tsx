@@ -124,7 +124,7 @@ function FrtTestePage() {
               </Badge>
               <Badge
                 variant={
-                  d.acessoVenda?.temFormulario
+                  d.acessoVenda?.estado === "ok"
                     ? "default"
                     : d.acessoVenda
                       ? "destructive"
@@ -132,13 +132,17 @@ function FrtTestePage() {
                 }
               >
                 Tela de venda{" "}
-                {d.acessoVenda?.temFormulario
-                  ? "ok (frmMotorPacote)"
-                  : d.acessoVenda?.voltouParaLogin
+                {d.acessoVenda?.estado === "ok"
+                  ? "ok (motor de pesquisa)"
+                  : d.acessoVenda?.estado === "login"
                     ? "voltou pro login"
-                    : d.acessoVenda
-                      ? "sem formulário"
-                      : "não validada"}
+                    : d.acessoVenda?.estado === "2fa"
+                      ? "aguardando código"
+                      : d.acessoVenda?.estado === "erro_http"
+                        ? `erro HTTP ${d.acessoVenda.status}`
+                        : d.acessoVenda
+                          ? "shell/AJAX (não carregada)"
+                          : "não validada"}
               </Badge>
               <Badge variant={d.viewStatePresente ? "secondary" : "destructive"}>
                 ViewState {d.viewStatePresente ? "ok" : "ausente"}
@@ -146,12 +150,33 @@ function FrtTestePage() {
               <Badge variant="outline">Cookies: {d.cookies.join(", ") || "—"}</Badge>
             </div>
             {d.acessoVenda ? (
-              <p className="text-xs text-muted-foreground">
-                GET venda.xhtml → status {d.acessoVenda.status} · URL final:{" "}
-                {d.acessoVenda.urlFinal} · frmMotorPacote:{" "}
-                {String(d.acessoVenda.temFormulario)} · login-usuario-input:{" "}
-                {String(d.acessoVenda.temLogin)}
-              </p>
+              <div className="space-y-1 rounded-lg border bg-muted/40 p-3 text-xs text-muted-foreground">
+                <p>
+                  GET venda.xhtml → status {d.acessoVenda.status} · {d.acessoVenda.tamanhoHtml}{" "}
+                  bytes · URL final: {d.acessoVenda.urlFinal}
+                </p>
+                <p>
+                  frmMotorPacote: {String(d.acessoVenda.temFormulario)} ·
+                  btnMotorPacotePesquisa: {String(d.acessoVenda.temBotaoPesquisa)} ·
+                  login-usuario-input: {String(d.acessoVenda.temLogin)} · auth.xhtml:{" "}
+                  {String(d.acessoVenda.temAuthXhtml)} · ViewState:{" "}
+                  {String(d.acessoVenda.viewStatePresente)}
+                </p>
+                <p>Título: {d.acessoVenda.titulo ?? "—"}</p>
+                <p>Formulários: {d.acessoVenda.formularios.join(" | ") || "nenhum"}</p>
+                <p>Redirects: {d.acessoVenda.redirects.join(" | ") || "nenhum"}</p>
+              </div>
+            ) : null}
+            {d.amostraHtml ? (
+              <details className="rounded-lg border p-3 text-xs">
+                <summary className="cursor-pointer">
+                  Amostra sanitizada do HTML ({d.amostraHtml.estado} ·{" "}
+                  {new Date(d.amostraHtml.em).toLocaleString("pt-BR")})
+                </summary>
+                <pre className="mt-2 max-h-72 overflow-auto whitespace-pre-wrap break-all">
+                  {d.amostraHtml.html}
+                </pre>
+              </details>
             ) : null}
 
             {d.aguardandoCodigo ? (
