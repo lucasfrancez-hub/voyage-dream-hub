@@ -119,14 +119,41 @@ function FrtTestePage() {
         {d ? (
           <div className="space-y-2 text-sm">
             <div className="flex flex-wrap gap-2">
-              <Badge variant={d.autenticado ? "default" : "destructive"}>
-                {d.autenticado ? "Sessão autenticada" : "Não autenticado"}
+              <Badge variant={d.sessaoValida ? "default" : "destructive"}>
+                Login/2FA {d.sessaoValida ? "ok" : "pendente"}
+              </Badge>
+              <Badge
+                variant={
+                  d.acessoVenda?.temFormulario
+                    ? "default"
+                    : d.acessoVenda
+                      ? "destructive"
+                      : "outline"
+                }
+              >
+                Tela de venda{" "}
+                {d.acessoVenda?.temFormulario
+                  ? "ok (frmMotorPacote)"
+                  : d.acessoVenda?.voltouParaLogin
+                    ? "voltou pro login"
+                    : d.acessoVenda
+                      ? "sem formulário"
+                      : "não validada"}
               </Badge>
               <Badge variant={d.viewStatePresente ? "secondary" : "destructive"}>
                 ViewState {d.viewStatePresente ? "ok" : "ausente"}
               </Badge>
               <Badge variant="outline">Cookies: {d.cookies.join(", ") || "—"}</Badge>
             </div>
+            {d.acessoVenda ? (
+              <p className="text-xs text-muted-foreground">
+                GET venda.xhtml → status {d.acessoVenda.status} · URL final:{" "}
+                {d.acessoVenda.urlFinal} · frmMotorPacote:{" "}
+                {String(d.acessoVenda.temFormulario)} · login-usuario-input:{" "}
+                {String(d.acessoVenda.temLogin)}
+              </p>
+            ) : null}
+
             {d.aguardandoCodigo ? (
               <div className="space-y-2 rounded-lg border border-amber-400/40 bg-amber-50/50 p-3 dark:bg-amber-950/20">
                 <p className="text-sm">
