@@ -13,7 +13,7 @@ import { formatBRL } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { quoteStatusBadge, quoteSourceBadge } from "@/lib/quotes/labels";
+import { quoteStatusBadge, quoteOriginBadge, quoteExternalId } from "@/lib/quotes/labels";
 import {
   converterOrcamentoEmPedido, gerarLinkOrcamento, reprocessarImportacao,
 } from "@/lib/quotes/quotes.functions";
@@ -33,6 +33,8 @@ type QuoteRow = {
   quote_number: number;
   status: string;
   source: string;
+  source_company_code: string | null;
+  source_booking_id: string | null;
   title: string | null;
   client_name: string | null;
   client_phone: string | null;
@@ -77,7 +79,7 @@ function QuoteDetailPage() {
       const { data, error } = await supabase
         .from("quotes")
         .select(
-          "id, quote_number, status, source, title, client_name, client_phone, client_email, origin, destination, start_date, end_date, total, consultant, normalized, source_import_id, converted_order_id, public_url, public_short_url, created_at",
+          "id, quote_number, status, source, title, client_name, client_phone, client_email, origin, destination, start_date, end_date, total, consultant, normalized, source_company_code, source_booking_id, source_import_id, converted_order_id, public_url, public_short_url, created_at",
         )
         .eq("id", id)
         .maybeSingle();
@@ -195,7 +197,8 @@ function QuoteDetailPage() {
   }
 
   const st = quoteStatusBadge(quote.status);
-  const og = quoteSourceBadge(quote.source);
+  const og = quoteOriginBadge(quote);
+  const ext = quoteExternalId(quote);
   const total = Number(quote.total ?? option?.total ?? 0);
   const publicUrl = quote.public_short_url ?? quote.public_url;
 
@@ -225,6 +228,19 @@ function QuoteDetailPage() {
             <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider ${og.className}`}>
               {og.label}
             </span>
+            {ext && (
+              <button
+                type="button"
+                title="Copiar o ID do orçamento na operadora"
+                onClick={() => {
+                  void navigator.clipboard.writeText(ext.id);
+                  toast.success("ID copiado", { description: ext.label });
+                }}
+                className="inline-flex items-center gap-1 rounded-sm border border-border bg-muted/30 px-2 py-0.5 text-[10px] font-semibold tabular-nums text-muted-foreground hover:text-foreground"
+              >
+                {ext.label}
+              </button>
+            )}
           </div>
           <div className="text-[11px] text-muted-foreground">
             Criado em <span className="font-semibold text-foreground">{dt(quote.created_at)}, {hora(quote.created_at)}</span>

@@ -32,3 +32,35 @@ const SOURCES: Record<string, { label: string; className: string }> = {
 export function quoteSourceBadge(source: string) {
   return SOURCES[source] ?? { label: source, className: "border-border bg-muted/40 text-muted-foreground" };
 }
+
+/** Origem legível: operadora que veio pela URL (ex.: "FRT Infotravel") ou o agente do chatbot. */
+const CHATBOT_AGENTS: Record<string, string> = { BRUNO: "Bruno", PAULA: "Paula", CAMILA: "Camila", GIOVANI: "Giovani" };
+
+export function quoteOriginBadge(q: {
+  source: string;
+  source_company_code?: string | null;
+  consultant?: string | null;
+}) {
+  const base = quoteSourceBadge(q.source);
+  const code = (q.source_company_code ?? "").trim().toUpperCase();
+  const agente = CHATBOT_AGENTS[q.source];
+
+  if (agente) {
+    return { ...base, label: `${agente} · Chatbot` };
+  }
+  if (code) {
+    return { ...base, label: `${code} ${base.label}` };
+  }
+  return base;
+}
+
+/** Identificador do orçamento na operadora (ex.: "ID FRT 503428"). */
+export function quoteExternalId(q: {
+  source_company_code?: string | null;
+  source_booking_id?: string | null;
+}) {
+  const id = (q.source_booking_id ?? "").trim();
+  if (!id) return null;
+  const code = (q.source_company_code ?? "").trim().toUpperCase();
+  return { code, id, label: `ID ${[code, id].filter(Boolean).join(" ")}` };
+}

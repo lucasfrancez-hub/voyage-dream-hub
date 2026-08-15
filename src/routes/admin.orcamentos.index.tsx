@@ -21,7 +21,7 @@ import {
   converterOrcamentoEmPedido,
   gerarLinkOrcamento,
 } from "@/lib/quotes/quotes.functions";
-import { quoteStatusBadge, quoteSourceBadge } from "@/lib/quotes/labels";
+import { quoteStatusBadge, quoteOriginBadge, quoteExternalId } from "@/lib/quotes/labels";
 import { NovoOrcamentoManualDialog } from "@/components/quote/NovoOrcamentoManualDialog";
 import { confirmThen } from "@/lib/confirm";
 
@@ -45,6 +45,8 @@ type QuoteRow = {
   total: number | null;
   consultant: string | null;
   source: string;
+  source_company_code: string | null;
+  source_booking_id: string | null;
   source_import_id: string | null;
   converted_order_id: string | null;
   deleted_at: string | null;
@@ -88,7 +90,7 @@ function OrcamentosPage() {
       let q = supabase
         .from("quotes")
         .select(
-          "id, quote_number, quote_type, status, title, client_name, client_phone, client_email, destination, start_date, end_date, total, consultant, source, source_import_id, converted_order_id, deleted_at, updated_at, created_at",
+          "id, quote_number, quote_type, status, title, client_name, client_phone, client_email, destination, start_date, end_date, total, consultant, source, source_company_code, source_booking_id, source_import_id, converted_order_id, deleted_at, updated_at, created_at",
         )
         .order("created_at", { ascending: false })
         .limit(500);
@@ -207,7 +209,7 @@ function OrcamentosPage() {
       (quotes ?? []).filter((q) => {
         if (statusFilter !== "all" && statusFilter !== "deleted" && q.status !== statusFilter) return false;
         if (!term) return true;
-        return [q.quote_number, q.client_name, q.client_phone, q.client_email, q.destination, q.title, q.consultant, q.source]
+        return [q.quote_number, q.client_name, q.client_phone, q.client_email, q.destination, q.title, q.consultant, q.source, q.source_company_code, q.source_booking_id]
           .filter(Boolean)
           .join(" ")
           .toLowerCase()
@@ -312,7 +314,8 @@ function OrcamentosPage() {
           )}
           {paged.map((q) => {
             const st = quoteStatusBadge(q.status);
-            const og = quoteSourceBadge(q.source);
+            const og = quoteOriginBadge(q);
+            const ext = quoteExternalId(q);
             return (
               <div key={q.id} className="relative">
                 <Link
@@ -338,6 +341,11 @@ function OrcamentosPage() {
                   <div className="mt-2 flex flex-wrap items-center gap-1.5">
                     <span className={`inline-flex items-center rounded-sm border px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest ${st.className}`}>{st.label}</span>
                     <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider ${og.className}`}>{og.label}</span>
+                    {ext && (
+                      <span className="inline-flex items-center rounded-sm border border-border bg-muted/30 px-2 py-0.5 text-[10px] font-semibold tabular-nums text-muted-foreground">
+                        {ext.label}
+                      </span>
+                    )}
                   </div>
                 </Link>
                 {showDeleted ? (
@@ -402,7 +410,8 @@ function OrcamentosPage() {
               )}
               {paged.map((q) => {
                 const st = quoteStatusBadge(q.status);
-                const og = quoteSourceBadge(q.source);
+                const og = quoteOriginBadge(q);
+                const ext = quoteExternalId(q);
                 return (
                   <tr key={q.id} className="group hover:bg-muted/30 transition-colors">
                     <td className="py-5 px-4 align-top">
@@ -424,6 +433,11 @@ function OrcamentosPage() {
                       <div className="flex flex-col items-start gap-1">
                         <span className={`inline-flex items-center rounded-sm border px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest ${st.className}`}>{st.label}</span>
                         <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider ${og.className}`}>{og.label}</span>
+                        {ext && (
+                          <span className="rounded-sm border border-border bg-muted/30 px-2 py-0.5 text-[10px] font-semibold tabular-nums text-muted-foreground">
+                            {ext.label}
+                          </span>
+                        )}
                         {q.converted_order_id && (
                           <Link
                             to="/admin/pedidos/$id"
