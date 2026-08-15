@@ -11,8 +11,23 @@
  * "conexões" absurdas (ex.: 53h20).
  */
 
+import { cidadeDoAeroporto } from "@/lib/whatsapp/airport-city";
+
 /** Espera máxima aceita para considerar dois segmentos como conexão. */
 export const MAX_CONNECTION_HOURS = 12;
+
+/**
+ * Conexão com TROCA DE AEROPORTO na mesma cidade (ex.: chega em CGH e sai de
+ * GRU). Continua sendo o MESMO trecho: quebrar aqui criava "duas idas".
+ */
+export function isTrocaDeAeroporto(fromIata?: string | null, toIata?: string | null): boolean {
+  const a = String(fromIata ?? "").trim().toUpperCase();
+  const b = String(toIata ?? "").trim().toUpperCase();
+  if (!a || !b || a === b) return false;
+  const ca = cidadeDoAeroporto(a);
+  const cb = cidadeDoAeroporto(b);
+  return !!ca && !!cb && ca.cidade_codigo === cb.cidade_codigo;
+}
 
 export type LegInputSegment = {
   airline?: string | null;
@@ -123,7 +138,8 @@ export function splitIntoLegs(input: LegInputSegment[]): LegInputSegment[][] {
     const prev = current[current.length - 1]!;
     const sameGroup = (prev.tripGroup ?? null) === (seg.tripGroup ?? null);
     const sameDirection = (prev.direction ?? null) === (seg.direction ?? null);
-    const conecta = !!prev.toIata && !!seg.fromIata && prev.toIata === seg.fromIata;
+    const troca = isTrocaDeAeroporto(prev.toIata, seg.fromIata);
+    const conecta = (!!prev.toIata && !!seg.fromIata && prev.toIata === seg.fromIata) || troca;
     const espera = waitMinutes(prev, seg);
     const esperaOk = espera == null ? conecta : espera >= 0 && espera <= MAX_CONNECTION_HOURS * 60;
 

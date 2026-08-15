@@ -46,6 +46,8 @@ export type FlightSegment = {
   duration?: string | null;
   aircraft?: string | null;
   connectionAfter?: string | null; // "conexão 1h10"
+  /** Aviso de troca de aeroporto na conexão seguinte (mesma cidade). */
+  airportChange?: string | null;
 };
 
 export type FlightLeg = {
@@ -69,6 +71,8 @@ export type FlightLeg = {
   personalItem: boolean;
   checkedBaggage: boolean;
   segments: FlightSegment[];
+  /** Trecho possui conexão com troca de aeroporto. */
+  hasAirportChange?: boolean;
   rules?: string[];
 };
 
