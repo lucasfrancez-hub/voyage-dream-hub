@@ -60,6 +60,11 @@ export const CENTRAL_FALHA_MSG =
    Modelo de contingência em texto (mesmos dados estruturados do card)
    ───────────────────────────────────────────────────────────── */
 import { formatOptionText, formatOptionsText } from "./flight-option-text.server";
+
+/** Valor em reais para briefings internos. */
+const fmtMoneyBRL = (n: number): string =>
+  Number(n || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
 export { formatOptionText, formatOptionsText };
 
 /* ─────────────────────────────────────────────────────────────
