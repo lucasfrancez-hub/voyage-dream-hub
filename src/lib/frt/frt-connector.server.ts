@@ -972,7 +972,26 @@ async function runSearch(
     .map((k) => updates[k]!)
     .join("\n");
 
-  return parseResultadosHtml(html || Object.values(updates).join("\n"));
+  const out = parseResultadosHtml(html || Object.values(updates).join("\n"));
+
+  // Classificação obrigatória antes de declarar sucesso vazio: só aceitamos
+  // "pesquisa válida sem disponibilidade" com evidência explícita.
+  if (!out.results.length) {
+    const evidencia =
+      Boolean(semResultado) || (pnl.presente && pnl.bytes >= 200 && qtdPrecos === 0);
+    trace(
+      `  classificação zero-resultados: evidencia=${evidencia} (mensagem=${Boolean(semResultado)} pnlBytes=${pnl.bytes} precos=${qtdPrecos})`,
+    );
+    if (!evidencia) {
+      throw new FrtError(
+        "FRT_SEARCH_INCONCLUSIVE",
+        "A pesquisa não retornou resultados nem evidência de indisponibilidade — resposta inconclusiva",
+        `pnlResultado=${pnl.presente} bytes=${pnl.bytes} precos=${qtdPrecos} updates=${chaves.join(", ") || "(nenhum)"}`,
+      );
+    }
+  }
+
+  return out;
 }
 
 /**
