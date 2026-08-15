@@ -121,7 +121,7 @@ export async function consolidateSnapshot(opts: {
   // ---- cabeçalho do cruzeiro (só completa lacunas) ----
   const c = data.cruise;
   if (c) {
-    const patch: Record<string, never> = {} as Record<string, never>;
+    const patch: Record<string, unknown> = {};
     if (!cruise.name && c.name) patch.name = c.name;
     if (!cruise.departure_date && isoDate(c.departure_date)) patch.departure_date = isoDate(c.departure_date);
     if (isoDate(c.return_date)) patch.return_date = isoDate(c.return_date);
@@ -130,7 +130,7 @@ export async function consolidateSnapshot(opts: {
     if (!cruise.disembark_port && c.disembark_port) patch.disembark_port = c.disembark_port;
     if (c.currency) patch.currency = c.currency;
     if (Object.keys(patch).length) {
-      await admin.from("cruises").update(patch).eq("id", cruiseId);
+      await admin.from("cruises").update(patch as never).eq("id", cruiseId);
       bump(stats, "cruzeiro_atualizado");
     }
   }
