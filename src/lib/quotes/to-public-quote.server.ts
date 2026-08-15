@@ -190,6 +190,8 @@ function buildOptionLegs(flights: NormalizedOption["flights"]): FlightLeg[] {
       );
       const stops = Math.max(0, grupo.length - 1);
       const direction = direcoes[gi]!;
+      const segmentosDoTrecho = selecionados.length ? selecionados : segs;
+      const troca = annotateConnections(segmentosDoTrecho);
       out.push({
         ...base,
         direction,
@@ -204,7 +206,8 @@ function buildOptionLegs(flights: NormalizedOption["flights"]): FlightLeg[] {
         duration: null,
         stops,
         stopsLabel: stops === 0 ? "Direto" : stops === 1 ? "1 conexão" : `${stops} conexões`,
-        segments: selecionados.length ? selecionados : segs,
+        segments: segmentosDoTrecho,
+        hasAirportChange: troca,
       });
     });
   });
