@@ -1296,7 +1296,15 @@ export async function runAgent(input: {
       pacoteBlock +
       escopoBlock +
       flightBlock +
-      novasBlock;
+      novasBlock +
+      (bloquearPesquisa
+        ? `\n\n🚦 ORDEM OBRIGATÓRIA NESTA RODADA (setor aéreo)\n` +
+          `${centralPrimeiroContato ? "1. Cumprimente e se apresente pelo nome, dizendo que é do setor aéreo da VIA AIR.\n" : ""}` +
+          `${centralPrimeiroContato ? "2." : "1."} Pergunte o que ainda falta, começando pela CIDADE DE EMBARQUE (origem). Nunca suponha origem, nunca use o destino como origem.\n` +
+          `A ferramenta pesquisar_passagens está INDISPONÍVEL nesta rodada — não tente pesquisar, não prometa "já vou pesquisar" como se já tivesse pesquisado. Só faça a saudação e as perguntas.\n` +
+          `NUNCA responda vazio: no mínimo pergunte de qual cidade o cliente pretende embarcar.`
+        : "");
+
 
 
 
