@@ -495,11 +495,17 @@
         ...queryAll(document_, [
           "app-passengers",
           "app-passenger-selection",
+          "app-passengers-modal",
           ".passengers-dropdown",
           ".passenger-selector",
           "ngb-modal-window .passengers",
         ]),
+        // Fallback: qualquer modal aberto que fale de adultos/crianças.
+        ...[...document_.querySelectorAll("ngb-modal-window, .modal-content")].filter((el) =>
+          /adulto/.test(normalizeText(el.textContent)) && /crianc|bebe/.test(normalizeText(el.textContent)),
+        ),
       ];
+
       let read = false;
       for (const panel of panels) {
         const rows = [...panel.querySelectorAll("li, .row, .passenger-row, .item, div")];
