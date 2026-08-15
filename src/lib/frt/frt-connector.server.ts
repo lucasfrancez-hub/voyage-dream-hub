@@ -148,6 +148,8 @@ export type AcessoVenda = {
   viewState: string | null;
   redirects: string[];
   estado: VendaEstado;
+  /** Se a inicialização PrimeFaces (POST frmMasterVenda) foi disparada. */
+  initExecutado: boolean;
   body: string;
 };
 
@@ -287,6 +289,7 @@ async function abrirVenda(s: Session, referer = BASE): Promise<AcessoVenda> {
   trace(`  formulários: ${formularios.length ? formularios.join(" | ") : "(nenhum)"}`);
   trace(`  javax.faces.ViewState: ${viewState ? "encontrado" : "AUSENTE"}`);
   trace(`  redirects: ${redirects.length ? redirects.join(" | ") : "(nenhum)"}`);
+  trace(`  init PrimeFaces executado: ${initExecutado}`);
   trace(`  estado classificado: ${estado}`);
 
   if (estado !== "ok") {
@@ -324,6 +327,7 @@ async function abrirVenda(s: Session, referer = BASE): Promise<AcessoVenda> {
     viewState,
     redirects,
     estado,
+    initExecutado,
     body,
   };
 }
@@ -347,8 +351,8 @@ function erroDoEstado(v: AcessoVenda): FrtError {
     "FRT_VENDA_NOT_LOADED",
     v.estado === "erro_http"
       ? `venda.xhtml respondeu HTTP ${v.status}.`
-      : "venda.xhtml abriu autenticado, mas sem o motor de pesquisa (shell da aplicação ou carregamento por AJAX).",
-    `status=${v.status} bytes=${v.tamanhoHtml} título=${v.titulo ?? "-"} forms=${v.formularios.join(" | ") || "-"}`,
+      : `venda.xhtml abriu autenticado e a inicialização PrimeFaces ${v.initExecutado ? "foi executada" : "não pôde ser executada"}, mas o motor de pesquisa não apareceu.`,
+    `init=${v.initExecutado} status=${v.status} bytes=${v.tamanhoHtml} título=${v.titulo ?? "-"} forms=${v.formularios.join(" | ") || "-"}`,
   );
 }
 
@@ -369,6 +373,7 @@ function resumoAcesso(v: AcessoVenda) {
     viewStatePresente: Boolean(v.viewState),
     redirects: v.redirects,
     estado: v.estado,
+    initExecutado: v.initExecutado,
   };
 }
 export type ResumoAcessoVenda = ReturnType<typeof resumoAcesso>;
