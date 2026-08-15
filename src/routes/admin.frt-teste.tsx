@@ -19,6 +19,10 @@ import {
   estado2faFrt,
   cancelar2faFrt,
 } from "@/lib/frt/frt.functions";
+import {
+  FrtLocalAutocomplete,
+  type FrtLocalSelecionado,
+} from "@/components/frt/FrtLocalAutocomplete";
 
 export const Route = createFileRoute("/admin/frt-teste")({
   head: () => ({
