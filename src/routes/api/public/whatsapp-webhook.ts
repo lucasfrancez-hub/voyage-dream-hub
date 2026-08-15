@@ -662,10 +662,23 @@ async function processPayload(payload: WhatsAppPayload) {
           : 0;
         const leaseAtivo = atual > Date.now() + TETO_AGENDAMENTO_MS;
         if (!leaseAtivo) {
-          await supabaseAdmin
+          let debounceUpdate = supabaseAdmin
             .from("wa_conversations")
             .update({ ai_debounce_until: new Date(finalAt).toISOString() })
             .eq("id", conv.id);
+          debounceUpdate = convState?.ai_debounce_until
+            ? debounceUpdate.eq("ai_debounce_until", convState.ai_debounce_until)
+            : debounceUpdate.is("ai_debounce_until", null);
+          const { data: updated, error: debounceError } = await debounceUpdate
+            .select("id")
+            .maybeSingle();
+          if (debounceError) {
+            console.error("[wa-webhook] erro ao agendar debounce", conv.id, debounceError);
+          } else if (!updated) {
+            // O dispatcher adquiriu o lease entre a leitura e esta escrita. O
+            // run em andamento detecta mensagens pendentes e reagenda ao sair.
+            console.log("[wa-webhook] lease adquirido durante o webhook; debounce preservado", conv.id);
+          }
         } else {
           console.log("[wa-webhook] run em andamento; debounce preservado", conv.id);
         }

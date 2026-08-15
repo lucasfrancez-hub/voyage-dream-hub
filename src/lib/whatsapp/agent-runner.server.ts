@@ -1332,7 +1332,13 @@ export async function runAgent(input: {
 
     const agentPromptMismatch =
       ((agent.equipe ?? "consultor") === "especialista") !== (loadedPromptType === "central_especialistas") ||
-      (loadedPromptType === "central_especialistas" && !enabledTools.includes("pesquisar_passagens"));
+      // Enquanto falta a origem, pesquisar_passagens é removida de propósito
+      // para obrigar o especialista a perguntar antes de pesquisar. Isso não é
+      // incompatibilidade de prompt; exigir a tool aqui abortava o turno em
+      // silêncio e criava um loop de reexecução a cada minuto.
+      (loadedPromptType === "central_especialistas" &&
+        !bloquearPesquisa &&
+        !enabledTools.includes("pesquisar_passagens"));
     if (agentPromptMismatch) {
       console.error("[agent-runtime]", JSON.stringify({ ...runtimeAudit, event: "agent_prompt_mismatch" }));
       return;
@@ -1595,26 +1601,12 @@ export async function runAgent(input: {
         : Promise.resolve({ count: 0 }),
 
     ]);
-    // ANTI-ATROPELO DA TRANSFERÊNCIA: se outro run já anunciou o aviso de
-    // transferência depois desta mensagem do cliente, o especialista só pode
-    // entrar no run agendado (1min30–3min). Sem isso ele respondia no mesmo
-    // segundo do aviso.
-    let transferenciaEmEspera = false;
-    if (centralAgent && latestInboundAtStart?.created_at) {
-      const { count: avisoRecente } = await supabaseAdmin
-        .from("wa_messages")
-        .select("id", { count: "exact", head: true })
-        .eq("conversation_id", conv.id)
-        .eq("protocolo_id", protocolo.id)
-        .eq("direction", "outbound")
-        .eq("content", AVISO_TRANSFERENCIA_AEREO)
-        .gt("created_at", latestInboundAtStart.created_at);
-      const debounceAt = currentConv?.ai_debounce_until
-        ? new Date(currentConv.ai_debounce_until as string).getTime()
-        : 0;
-      const aindaNoFuturo = debounceAt > Date.now() + 5_000; // tolerância de 5s pra corrida de relógio
-      transferenciaEmEspera = (avisoRecente ?? 0) > 0 && aindaNoFuturo;
-    }
+    // O atraso humano da transferência já é garantido pelo
+    // ai_debounce_until e pelo claim atômico do dispatcher. Neste ponto o
+    // dispatcher só chamou o agente porque o prazo venceu e substituiu o
+    // agendamento por um lease futuro. Tratar esse lease como "transferência
+    // ainda esperando" cancelava justamente o run devido e apagava o
+    // agendamento sem o especialista responder.
     const activeSlug = centralAgent ? currentConv?.central_slug : currentConv?.agent_slug;
 
     const runtimeSwitchedToCentral = !centralAgent && currentConv?.central_slug != null;
@@ -1630,7 +1622,6 @@ export async function runAgent(input: {
       // bindAgentToProtocol já atualiza o protocolo. Não cancele esse run só
       // porque a coluna legada da conversa ainda aponta para o agente anterior.
       (!instructionRun && activeSlug != null && activeSlug !== agent.slug) ||
-      (!instructionRun && transferenciaEmEspera) ||
       (!instructionRun && (alreadyAnswered ?? 0) > 0);
 
     if (staleRun) {
