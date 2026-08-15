@@ -241,9 +241,11 @@ export async function transferirParaConsultores(
 export const CENTRAL_TOOL_SLUGS = [
   "pesquisar_passagens",
   "reenviar_opcao",
+  "reservar_opcao",
   "transferir_para_consultores",
   "encaminhar_para_comercial",
 ] as const;
+
 
 
 /**
