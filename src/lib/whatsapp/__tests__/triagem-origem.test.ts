@@ -91,3 +91,19 @@ describe("separação de regras de origem: pacote x aéreo", () => {
     expect(p).toMatch(/nunca troque Maringá por Curitiba/i);
   });
 });
+
+describe("normalização humana do atendimento", () => {
+  it("obriga todos os consultores a responder se estão bem também", async () => {
+    const { CAMILA_SYSTEM_PROMPT } = await import("../../chat/camila-prompt");
+    expect(CAMILA_SYSTEM_PROMPT).toMatch(/Tô bem também/i);
+    expect(CAMILA_SYSTEM_PROMPT).toMatch(/nunca responda só "sim"/i);
+  });
+
+  it("obriga o setor aéreo a se apresentar antes de coletar dados", async () => {
+    const { buildCentralBasePrompt } = await import("../central-especialistas.server");
+    const prompt = buildCentralBasePrompt("Bruno", "m");
+    expect(prompt).toMatch(/APRESENTAÇÃO OBRIGATÓRIA/i);
+    expect(prompt).toMatch(/Sou o Bruno, do setor aéreo da VIA AIR/i);
+    expect(prompt).toMatch(/tá bem também/i);
+  });
+});

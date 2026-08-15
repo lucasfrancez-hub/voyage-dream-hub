@@ -953,7 +953,7 @@ export function buildCamilaTools(conversation: WaConversation) {
         return {
           ok: true,
           instrucao:
-            'Envie AGORA uma única mensagem curta, exatamente com este sentido e sem acrescentar perguntas: "Perfeito! Vou encaminhar seu atendimento para nossa Central de Especialistas, que vai pesquisar as melhores opções para você." Não peça mais nenhum dado — a Central continua daqui.',
+            'Envie AGORA uma única mensagem curta, natural e sem acrescentar perguntas: "Claro! Já vou te transferir pro nosso setor aéreo, que continua com vc por aqui." Não fale em Central de Especialistas, não peça mais nenhum dado e não deixe o novo agente aparecer sem este aviso.',
         };
       },
     }),
