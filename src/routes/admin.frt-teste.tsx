@@ -420,7 +420,7 @@ function FrtTestePage() {
                 <p className="font-medium text-foreground">Diagnóstico AJAX dos autocompletes</p>
                 {dp.amostraPesquisa.autocomplete.map((item) => (
                   <p key={item.componente}>
-                    {item.componente}: source={item.source} · status {item.status} · {item.bytes}b · updates={item.updates.join(", ") || "nenhum"} · j_idt={item.camposJsf.join(", ") || "nenhum"}
+                    {item.componente}: source={item.source} · status {item.status} · {item.bytes}b · updates={item.updates.map((update) => `${update.id} (${update.bytes}b)`).join(", ") || "nenhum"} · j_idt={item.camposJsf.join(", ") || "nenhum"}
                   </p>
                 ))}
               </div>

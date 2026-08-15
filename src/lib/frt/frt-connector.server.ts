@@ -1012,7 +1012,7 @@ async function runSearch(
       source,
       status: resposta.res.status,
       bytes: resposta.body.length,
-      updates: Object.keys(updates),
+      updates: Object.entries(updates).map(([id, conteudo]) => ({ id, bytes: conteudo.length })),
       camposJsf: listarCamposInternosJsf(resposta.body),
       raw: resposta.body,
     };
@@ -1028,14 +1028,14 @@ async function runSearch(
     autocomplete.push(await diagnosticarAutocomplete("destino", fields.destino, input.destinoLabel?.trim() || destino));
     for (const item of autocomplete) {
       trace(
-        `  autocomplete ${item.componente}: source=${item.source} status=${item.status} bytes=${item.bytes} updates=${item.updates.join(", ") || "(nenhum)"} j_idt=${item.camposJsf.join(", ") || "(nenhum)"}`,
+        `  autocomplete ${item.componente}: source=${item.source} status=${item.status} bytes=${item.bytes} updates=${item.updates.map((update) => `${update.id}(${update.bytes}b)`).join(", ") || "(nenhum)"} j_idt=${item.camposJsf.join(", ") || "(nenhum)"}`,
       );
     }
     ultimaAmostraPesquisa = {
       em: new Date().toISOString(),
       status: autocomplete.find((item) => item.status >= 400)?.status ?? 200,
       bytes: autocomplete.reduce((total, item) => total + item.bytes, 0),
-      updates: autocomplete.flatMap((item) => item.updates.map((id) => ({ id: `${item.componente}:${id}`, bytes: 0 }))),
+      updates: autocomplete.flatMap((item) => item.updates.map((update) => ({ id: `${item.componente}:${update.id}`, bytes: update.bytes }))),
       temPnlResultado: false,
       pnlResultadoBytes: 0,
       temPrecos: false,
