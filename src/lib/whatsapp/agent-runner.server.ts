@@ -1555,10 +1555,11 @@ export async function runAgent(input: {
         .eq("direction", "outbound")
         .eq("content", AVISO_TRANSFERENCIA_AEREO)
         .gt("created_at", latestInboundAtStart.created_at);
-      transferenciaEmEspera =
-        (avisoRecente ?? 0) > 0 &&
-        !!currentConv?.ai_debounce_until &&
-        new Date(currentConv.ai_debounce_until as string) > new Date();
+      const debounceAt = currentConv?.ai_debounce_until
+        ? new Date(currentConv.ai_debounce_until as string).getTime()
+        : 0;
+      const aindaNoFuturo = debounceAt > Date.now() + 5_000; // tolerância de 5s pra corrida de relógio
+      transferenciaEmEspera = (avisoRecente ?? 0) > 0 && aindaNoFuturo;
     }
     const activeSlug = centralAgent ? currentConv?.central_slug : currentConv?.agent_slug;
 
