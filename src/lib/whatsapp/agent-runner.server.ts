@@ -38,7 +38,12 @@ import {
 } from "./airflow-guard";
 
 // Gênero por slug (usado pra montar o prompt compartilhado com a flexão certa).
+/** Aviso fixo enviado pelo consultor antes do especialista aéreo assumir. */
+export const AVISO_TRANSFERENCIA_AEREO =
+  "Claro! Já vou te transferir pro nosso setor aéreo, que continua com vc por aqui";
+
 const AGENT_GENDER: Record<string, "f" | "m"> = {
+
   camila: "f",
   nath: "f",
   maria: "f",
@@ -1386,8 +1391,12 @@ export async function runAgent(input: {
             .eq("protocolo_id", protocolo.id)
             .eq("direction", "outbound")
             .neq("sender", "system")
+            // O aviso de transferência não conta como resposta: ele é só a
+            // ponte pro especialista, que responde no run agendado depois.
+            .neq("content", AVISO_TRANSFERENCIA_AEREO)
             .gt("created_at", latestInboundAtStart.created_at)
         : Promise.resolve({ count: 0 }),
+
     ]);
     const activeSlug = centralAgent ? currentConv?.central_slug : currentConv?.agent_slug;
     const runtimeSwitchedToCentral = !centralAgent && currentConv?.central_slug != null;
@@ -1420,7 +1429,7 @@ export async function runAgent(input: {
     // transferência precisa sair com o nome dele ANTES da entrada do Aéreo.
     // A checagem pelo conteúdo torna a operação idempotente em reprocessamentos.
     if (centralAgent && centralPrimeiroContato) {
-      const transicao = "Claro! Já vou te transferir pro nosso setor aéreo, que continua com vc por aqui";
+      const transicao = AVISO_TRANSFERENCIA_AEREO;
       const [{ data: ultimoConsultor }, { count: jaAvisou }] = await Promise.all([
         supabaseAdmin
           .from("wa_messages")
@@ -1456,8 +1465,24 @@ export async function runAgent(input: {
         const { setWaMessageId, setSendError } = await import("./conversation.server");
         if (row?.id && enviado[0]?.id) await setWaMessageId(row.id, enviado[0].id);
         else if (row?.id) await setSendError(row.id, enviado[0]?.error ?? "Não entregue pelo WhatsApp");
+
+        // TRANSFERÊNCIA COM CARA DE HUMANA: o especialista não entra no mesmo
+        // segundo. Reagenda este protocolo para 1min30 a 3min e encerra o run —
+        // o dispatcher com debounce refaz a geração e o Bruno/Paula responde lá.
+        const esperaMs = 90_000 + Math.floor(Math.random() * 90_000);
+        await supabaseAdmin
+          .from("wa_conversations")
+          .update({ ai_debounce_until: new Date(Date.now() + esperaMs).toISOString() })
+          .eq("id", conv.id);
+        console.log(
+          "[agent] transferência anunciada; especialista responde em",
+          Math.round(esperaMs / 1000),
+          "s",
+        );
+        return;
       }
     }
+
 
     const { splitToBubbles } = await import("./send.server");
     const { aplicarViciosDeLinguagem } = await import("./text-utils.server");
