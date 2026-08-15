@@ -4,6 +4,7 @@
 
 import { VIA_AIR_CNPJ } from "@/lib/institucional";
 import { REGRAS_BOLETO_PROMPT } from "@/lib/whatsapp/boleto-regras";
+import { buildHumanizacaoPrompt } from "@/lib/whatsapp/humanizacao";
 
 
 type Genero = "f" | "m";
