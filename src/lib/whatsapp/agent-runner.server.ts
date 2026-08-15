@@ -27,10 +27,12 @@ import { buildSenderPrefix, capitalizeBubbles, capitalizeKnownNames, descreverMi
 import { buildSharedAgentPrompt } from "@/lib/chat/camila-prompt";
 import { isCompanyDataBlocked } from "./data-blocklist";
 import { triageFirstMessage, heuristicaAereo, routeAereoParaCentral } from "./triage.server";
+import { normalizeCity } from "./flight-origin-state";
 import { createHash, randomUUID } from "node:crypto";
 import {
   CENTRAL_PROMPT_VERSION,
   centralBriefHasMissingOrigin,
+  extractCentralBriefDestino,
   isValidOriginQuestion,
   isInvalidMissingOriginResponse,
   origemJaFoiRespondidaNoProtocolo,
@@ -1420,17 +1422,26 @@ export async function runAgent(input: {
     // TRAVA ANTI-REPETIÇÃO: com a origem já informada, a pergunta de embarque
     // não pode sair de novo. Remove a linha repetida; se sobrar só isso,
     // confirma a origem em vez de perguntar outra vez.
+    // EXCEÇÃO: se a "origem confirmada" for igual ao destino do brief, a
+    // confirmação é inválida (ex.: "São Paulo" foi lida como origem quando na
+    // verdade era o destino). Nesse caso a pergunta DEVE sair pra corrigir.
     if (centralAgent && origemConfirmadaNoProtocolo) {
-      const linhas = rawText.split(/\n+/);
-      const limpas = linhas.filter((l) => !isValidOriginQuestion(l, origemConfirmadaNoProtocolo));
-      if (limpas.length !== linhas.length) {
-        console.warn("[agent-runtime]", JSON.stringify({
-          ...runtimeAudit,
-          event: "origin_question_repeat_blocked",
-          origem: origemConfirmadaNoProtocolo,
-        }));
-        const restante = limpas.join("\n").trim();
-        rawText = restante || `Perfeito, então o embarque sai de ${origemConfirmadaNoProtocolo}`;
+      const destinoBrief = extractCentralBriefDestino(centralBrief);
+      const origemEhDestino =
+        destinoBrief &&
+        normalizeCity(destinoBrief) === normalizeCity(origemConfirmadaNoProtocolo);
+      if (!origemEhDestino) {
+        const linhas = rawText.split(/\n+/);
+        const limpas = linhas.filter((l) => !isValidOriginQuestion(l, origemConfirmadaNoProtocolo));
+        if (limpas.length !== linhas.length) {
+          console.warn("[agent-runtime]", JSON.stringify({
+            ...runtimeAudit,
+            event: "origin_question_repeat_blocked",
+            origem: origemConfirmadaNoProtocolo,
+          }));
+          const restante = limpas.join("\n").trim();
+          rawText = restante || `Perfeito, então o embarque sai de ${origemConfirmadaNoProtocolo}`;
+        }
       }
     }
 
@@ -1544,10 +1555,11 @@ export async function runAgent(input: {
         .eq("direction", "outbound")
         .eq("content", AVISO_TRANSFERENCIA_AEREO)
         .gt("created_at", latestInboundAtStart.created_at);
-      transferenciaEmEspera =
-        (avisoRecente ?? 0) > 0 &&
-        !!currentConv?.ai_debounce_until &&
-        new Date(currentConv.ai_debounce_until as string) > new Date();
+      const debounceAt = currentConv?.ai_debounce_until
+        ? new Date(currentConv.ai_debounce_until as string).getTime()
+        : 0;
+      const aindaNoFuturo = debounceAt > Date.now() + 5_000; // tolerância de 5s pra corrida de relógio
+      transferenciaEmEspera = (avisoRecente ?? 0) > 0 && aindaNoFuturo;
     }
     const activeSlug = centralAgent ? currentConv?.central_slug : currentConv?.agent_slug;
 

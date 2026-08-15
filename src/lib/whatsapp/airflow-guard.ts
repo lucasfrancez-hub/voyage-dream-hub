@@ -4,6 +4,14 @@ export function centralBriefHasMissingOrigin(brief: string | null | undefined): 
   return /origem:\s*(?:n[aã]o informada|null)|origem[^\n]*n[aã]o foi informada/i.test(brief ?? "");
 }
 
+/** Extrai o destino que consta no brief da Central (linha 📍 Destino: ...). */
+export function extractCentralBriefDestino(brief: string | null | undefined): string | null {
+  const match = /(?:Destino:\s*)([^\n]+)/i.exec(brief ?? "");
+  if (!match) return null;
+  return match[1]!.trim().replace(/\s*—\s*.*/, "").trim() || null;
+}
+
+
 export function isInvalidMissingOriginResponse(text: string): boolean {
   return /(pacote\s+pronto|proposta\s+personalizada|saindo\s+(?:de|da|do|daí|dai)|aeroporto\s+mais\s+pr[oó]ximo|montar\s+voo|encaminh\w+\s+(?:ao|pro|para o)\s+comercial)/i.test(text);
 }

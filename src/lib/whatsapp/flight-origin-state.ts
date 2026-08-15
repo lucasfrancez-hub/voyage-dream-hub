@@ -57,6 +57,51 @@ export function mentionsCity(text: string | null | undefined, city: string): boo
   return alvo.every((tok) => new RegExp(`(^| )${tok}`, "i").test(t));
 }
 
+/**
+ * Detecta se a cidade aparece em contexto de DESTINO ("para X", "até X",
+ * "vou a X", "pra X", "chegar em X", etc.). Quando a cidade é citada como
+ * destino, ela NÃO pode ser reaproveitada como origem de embarque.
+ * Caso real: "quero uma passagem para São Paulo dia 11/10" → São Paulo é
+ * destino, não origem. Antes a origem era confirmada erroneamente como
+ * "São Paulo" e travava a cotação.
+ */
+export function pareceDestinoNaMensagem(text: string | null | undefined, city: string): boolean {
+  const alvo = cityTokens(city);
+  if (!alvo.length) return false;
+  const t = normalizeCity(text);
+  if (!t) return false;
+
+  // A cidade deve aparecer no texto para ser considerada destino.
+  if (!alvo.every((tok) => new RegExp(`(^| )${tok}`, "i").test(t))) return false;
+
+  // Preposições de destino antes da cidade (ou próximas).
+  const destinoPattern = new RegExp(
+    `(para|pra|pro|at[eé]|a|em|ir|chegar|chegada|destino|para\s+ir)\s+([a-z\\s]*\\b)?${alvo[0]!}\\b`,
+    "i",
+  );
+  if (destinoPattern.test(t)) return true;
+
+  // Padrão "passagem para X", "voo para X", "vou para X".
+  const passagemParaPattern = new RegExp(
+    `(passagem|voo|avi[ãa]o|vou|vamos|quer[eo]|reservar|comprar)\s+(?:para|pra|pro|at[eé]|a|em)\s+([a-z\\s]*\\b)?${alvo[0]!}\\b`,
+    "i",
+  );
+  if (passagemParaPattern.test(t)) return true;
+
+  return false;
+}
+
+/**
+ * A cidade aparece em contexto de ORIGEM? Aceita menção direta ou com
+ * preposições de saída/embarque. Rejeita quando a cidade está claramente no
+ * contexto de destino.
+ */
+export function mentionsCityAsOrigin(text: string | null | undefined, city: string): boolean {
+  if (!mentionsCity(text, city)) return false;
+  if (pareceDestinoNaMensagem(text, city)) return false;
+  return true;
+}
+
 const RX_AFIRMATIVO =
   /^(sim|isso|isso mesmo|exato|exatamente|correto|confirmo|confirmado|pode ser|pode manter|mantem|mantenho|manter|continua|continuo|igual|o mesmo|a mesma|mesma coisa|positivo|ok|okay|blz|beleza|certo|uhum|aham|s)\b/i;
 
@@ -154,10 +199,11 @@ export function resolveOriginState(params: {
   if (pareceNomeDePessoa(origin, params.nomesProibidos ?? [])) return MISSING_ORIGIN;
 
 
-  // 1) o cliente escreveu a cidade em alguma mensagem deste protocolo
+  // 1) o cliente escreveu a cidade em alguma mensagem deste protocolo como ORIGEM
+  //    (não como destino: "para São Paulo" é destino, não origem de embarque).
   for (let i = params.inbound.length - 1; i >= 0; i--) {
     const m = params.inbound[i]!;
-    if (mentionsCity(m.content, origin)) {
+    if (mentionsCityAsOrigin(m.content, origin)) {
       return {
         origin,
         status: "explicitly_informed",

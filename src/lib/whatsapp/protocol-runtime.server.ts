@@ -297,6 +297,33 @@ export async function confirmFlightOrigin(params: {
       origin_confirmed_by_message_id: state.confirmed_by_message_id,
       origin_confirmed_at: state.confirmed_at,
     });
+
+    // Sincroniza o brief da Central de Especialistas: se o brief dizia
+    // "Origem: NÃO informada", ele precisa refletir a origem confirmada
+    // para que o especialista não fique com informação contraditória.
+    try {
+      const { data: conv } = await supabaseAdmin
+        .from("wa_conversations")
+        .select("central_brief")
+        .eq("id", conversation_id)
+        .maybeSingle();
+      const brief = String((conv as { central_brief?: string | null } | null)?.central_brief ?? "");
+      if (brief && /origem:\s*(?:n[aã]o informada|null)/i.test(brief)) {
+        const updated = brief.replace(
+          /📍\s*Origem:[^\n]*/i,
+          `📍 Origem: ${state.origin} — confirmada pelo cliente`,
+        );
+        if (updated !== brief) {
+          await supabaseAdmin
+            .from("wa_conversations")
+            .update({ central_brief: updated })
+            .eq("id", conversation_id);
+        }
+      }
+    } catch (err) {
+      console.warn("[protocol-runtime] falha ao sincronizar central_brief:", err);
+    }
+
     await logProtocolEvent("flight_origin_confirmed", {
       conversation_id,
       protocolo_id,
