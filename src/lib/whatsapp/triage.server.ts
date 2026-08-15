@@ -190,6 +190,9 @@ export async function pickEspecialista(): Promise<string> {
     if (t > (ultimo.get(s) ?? 0)) ultimo.set(s, t);
   }
 
+  // Sorteio real no empate (antes o desempate alfabético fazia cair sempre
+  // no mesmo especialista).
+  const jitter = new Map<string, number>(slugs.map((s) => [s, Math.random()]));
   const ordenados = [...slugs].sort((a, b) => {
     const ca = carga.get(a) ?? 0;
     const cb = carga.get(b) ?? 0;
@@ -197,15 +200,16 @@ export async function pickEspecialista(): Promise<string> {
     const ua = ultimo.get(a) ?? 0;
     const ub = ultimo.get(b) ?? 0;
     if (ua !== ub) return ua - ub; // há mais tempo sem atender primeiro
-    return a.localeCompare(b);
+    return (jitter.get(a) ?? 0) - (jitter.get(b) ?? 0); // sorteio
   });
   const escolhido = ordenados[0]!;
   console.log(
-    `[triagem] especialista escolhido: ${escolhido} (carga 24h: ${slugs
+    `[triagem] especialista sorteado: ${escolhido} (carga 24h: ${slugs
       .map((s) => `${s}=${carga.get(s) ?? 0}`)
       .join(", ")})`,
   );
   return escolhido;
+
 }
 
 /* ── entrada pública ──────────────────────────────────────────────────── */
