@@ -27,6 +27,7 @@ import { buildSenderPrefix, capitalizeBubbles, capitalizeKnownNames, descreverMi
 import { buildSharedAgentPrompt } from "@/lib/chat/camila-prompt";
 import { isCompanyDataBlocked } from "./data-blocklist";
 import { triageFirstMessage, heuristicaAereo, routeAereoParaCentral } from "./triage.server";
+import { normalizeCity } from "./flight-origin-state";
 import { createHash, randomUUID } from "node:crypto";
 import {
   CENTRAL_PROMPT_VERSION,
