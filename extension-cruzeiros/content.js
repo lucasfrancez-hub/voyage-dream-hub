@@ -408,6 +408,14 @@
         .catch((e) => sendResponse({ ok: false, error: String(e && e.message ? e.message : e) }));
       return true;
     }
-
   });
+
+  // Usado pelo botão flutuante (fab.js), que roda no mesmo content script world.
+  window.__viaairCruiseCapture = (opts) =>
+    buildSnapshot({
+      deep: (opts || {}).deep !== false,
+      mode: (opts || {}).mode || "full",
+      expectedOccupancyTotal: (opts || {}).expectedOccupancyTotal || null,
+    }).then((payload) => ({ ok: true, payload }));
 })();
+
