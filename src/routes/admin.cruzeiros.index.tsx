@@ -31,7 +31,7 @@ import {
   deleteSnapshot,
 } from "@/lib/cruises/admin.functions";
 
-export const Route = createFileRoute("/admin/cruzeiros")({
+export const Route = createFileRoute("/admin/cruzeiros/")({
   head: () => ({
     meta: [
       { title: "Cruzeiros — importação VIA AIR" },
