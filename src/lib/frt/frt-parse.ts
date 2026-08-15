@@ -254,6 +254,24 @@ function countStars(html: string): number | null {
 
 const HORA = /\b([0-2]?\d:[0-5]\d)\b/g;
 
+/** Siglas de 3 letras que aparecem no HTML mas não são aeroportos. */
+const NAO_IATA = new Set([
+  "GOL",
+  "TAM",
+  "TAP",
+  "IDA",
+  "ADT",
+  "CHD",
+  "INF",
+  "VOO",
+  "CIA",
+  "PDF",
+  "IVA",
+  "USD",
+  "BRL",
+  "EUR",
+]);
+
 export function parseVoosFromHtml(html: string): FrtVoo[] {
   const blocos = splitBlocks(html, [
     /class="[^"]*(?:voo|flight|aereo|trecho|itinerario)[^"]*"/i,
