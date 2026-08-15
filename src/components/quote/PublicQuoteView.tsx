@@ -140,6 +140,16 @@ function FlightLegCard({
   const [open, setOpen] = useState(false);
   const logo = airlineLogo(leg.airlineIata ?? leg.airline);
   const dirKind = direction?.toLowerCase().startsWith("volta") ? "volta" : "ida";
+  const temTroca =
+    leg.hasAirportChange ||
+    leg.segments.some(
+      (s, i) =>
+        leg.segments[i + 1] &&
+        s.toIata &&
+        leg.segments[i + 1]!.fromIata &&
+        s.toIata !== leg.segments[i + 1]!.fromIata,
+    );
+
   return (
     <article className="vq-card vq-flight" data-dir={dirKind}>
       <div className="vq-flight-summary">
