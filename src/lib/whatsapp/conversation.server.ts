@@ -24,7 +24,7 @@ export type WaMessage = {
   id: string;
   conversation_id: string;
   direction: "inbound" | "outbound";
-  sender: "customer" | "camila" | "human" | "system";
+  sender: WaSender;
   content: string;
   wa_message_id: string | null;
   tool_calls: unknown | null;
@@ -195,7 +195,7 @@ export async function ensureActiveProtocolo(conversationId: string): Promise<WaP
 export async function saveMessage(input: {
   conversation_id: string;
   direction: "inbound" | "outbound";
-  sender: "customer" | "camila" | "human" | "system";
+  sender: WaSender;
   content: string;
   wa_message_id?: string | null;
   tool_calls?: unknown | null;
