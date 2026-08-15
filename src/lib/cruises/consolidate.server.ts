@@ -28,16 +28,13 @@ function isoDate(v?: string | null): string | null {
   return null;
 }
 
-export function occupancyKey(o: {
-  adults?: number;
-  young?: number;
-  children?: number;
-  infants?: number;
-  children_ages?: number[];
-}): string {
-  const ages = (o.children_ages ?? []).slice().sort((a, b) => a - b).join(".");
-  return `a${o.adults ?? 0}-y${o.young ?? 0}-c${o.children ?? 0}-i${o.infants ?? 0}${ages ? `-${ages}` : ""}`;
-}
+export {
+  occupancyKey,
+  normalizeOccupancy,
+  buildPricingFingerprint,
+  calculatedAveragePerPerson,
+} from "./pricing-key";
+
 
 async function ensureShip(
   admin: Admin,
