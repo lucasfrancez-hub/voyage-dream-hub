@@ -665,13 +665,7 @@ export function coletarEstadoMotor(html: string): Record<string, string> {
 }
 
 function decodeHtml(v: string): string {
-  return v
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/&nbsp;/g, " ");
+  return decodeEntities(v);
 }
 
 /**
@@ -722,4 +716,14 @@ export function resolvePayloadAutocomplete(html: string): {
   detalhes.push(`candidatos j_idt: ${candidatos.map((c) => c.name).join(", ") || "(nenhum)"}`);
   detalhes.push(`payload origem=${origem ?? "-"} destino=${destino ?? "-"}`);
   return { origem, destino, detalhes };
+}
+
+/** Lista campos internos gerados pelo JSF em HTML ou resposta partial AJAX. */
+export function listarCamposInternosJsf(texto: string): string[] {
+  const decodificado = decodeEntities(texto);
+  const nomes = new Set<string>();
+  for (const m of decodificado.matchAll(/frmMotorPacote:j_idt\d+(?:_input)?/gi)) {
+    nomes.add(m[0]);
+  }
+  return [...nomes];
 }
