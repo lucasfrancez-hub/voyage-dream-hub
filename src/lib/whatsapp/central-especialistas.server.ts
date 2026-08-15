@@ -60,6 +60,11 @@ export const CENTRAL_FALHA_MSG =
    Modelo de contingência em texto (mesmos dados estruturados do card)
    ───────────────────────────────────────────────────────────── */
 import { formatOptionText, formatOptionsText } from "./flight-option-text.server";
+
+/** Valor em reais para briefings internos. */
+const fmtMoneyBRL = (n: number): string =>
+  Number(n || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
 export { formatOptionText, formatOptionsText };
 
 /* ─────────────────────────────────────────────────────────────
@@ -236,9 +241,11 @@ export async function transferirParaConsultores(
 export const CENTRAL_TOOL_SLUGS = [
   "pesquisar_passagens",
   "reenviar_opcao",
+  "reservar_opcao",
   "transferir_para_consultores",
   "encaminhar_para_comercial",
 ] as const;
+
 
 
 /**
@@ -922,7 +929,87 @@ export function buildCentralTools(
       },
     }),
 
+    reservar_opcao: tool({
+      description:
+        "Use SOMENTE depois que o cliente escolher uma das opções já enviadas E disser que prefere seguir com você por aqui (em vez de finalizar sozinho pelo link). Antes de chamar, você PRECISA ter coletado nome completo, CPF e data de nascimento de CADA passageiro. A tool cria o pedido na VIA AIR com a opção escolhida e os passageiros, e passa a conversa para um consultor humano dar sequência. NÃO use quando o cliente disser que vai finalizar pelo link sozinho, nem antes de ter todos os dados.",
+      inputSchema: z.object({
+        quote_id: z.string().min(6).describe("quote_id da cotação, exatamente como aparece no bloco de opções enviadas"),
+        option_index: z.number().int().min(1).max(6).describe("Número da opção escolhida (1, 2 ou 3)"),
+        passageiros: z
+          .array(
+            z.object({
+              nome_completo: z.string().min(3).describe("Nome completo como está no documento (nome e sobrenome)"),
+              cpf: z.string().min(11).describe("CPF do passageiro, só dígitos ou formatado"),
+              data_nascimento: z.string().min(8).describe("Data de nascimento em DD/MM/AAAA"),
+              tipo: z.enum(["adulto", "crianca", "bebe"]).nullable().describe("Deixe null se não souber — é calculado pela data de nascimento"),
+            }),
+          )
+          .min(1)
+          .max(9)
+          .describe("Um item por passageiro da viagem, na ordem informada pelo cliente. Nunca invente dado nem repita o CPF do titular para os demais."),
+      }),
+      execute: async ({ quote_id, option_index, passageiros }) => {
+        const { criarPedidoDaOpcaoAerea } = await import("@/lib/orders/from-flight-option.server");
+        const r = await criarPedidoDaOpcaoAerea({
+          conversationId: conversation.id,
+          waPhone: conversation.wa_phone ?? null,
+          clienteNome: conversation.display_name ?? null,
+          quoteId: quote_id,
+          optionIndex: option_index,
+          passageiros,
+        });
+
+        if (!r.ok) {
+          if (r.erro === "dados_incompletos") {
+            return {
+              ok: false,
+              faltam_dados: true,
+              problemas: r.detalhe,
+              instrucao: `Ainda falta: ${r.detalhe}. Peça isso ao cliente em UMA mensagem curta e natural, sem repetir o que ele já mandou certo e sem falar em sistema, cadastro ou erro. Só chame esta tool de novo quando tiver tudo.`,
+            };
+          }
+          if (r.erro === "opcao_nao_encontrada" || r.erro === "cotacao_nao_encontrada") {
+            return {
+              ok: false,
+              instrucao:
+                "Não achei essa opção no registro. Confirme com o cliente, de forma curta e natural, qual das opções ele quer seguir — não invente dados e não faça nova pesquisa.",
+            };
+          }
+          return {
+            ok: false,
+            instrucao:
+              "Não consegui concluir agora. Continue a conversa com naturalidade, diga que já está passando pro consultor dar sequência e chame encaminhar_para_comercial com todo o contexto. Nunca mencione erro, sistema ou cadastro.",
+          };
+        }
+
+        const paxLinhas = r.passageiros
+          .map(
+            (p, i) =>
+              `${i + 1}. ${p.nome_completo} · CPF ${p.cpf} · nasc. ${p.birth_date.split("-").reverse().join("/")}`,
+          )
+          .join("\n");
+        const briefing =
+          `✈️ Cliente ESCOLHEU a opção ${option_index} e quer seguir pelo atendimento\n` +
+          `🧾 Pedido ${r.orderNumber ?? r.orderId} já criado (aba Pedidos), aguardando emissão\n` +
+          `💰 Total da opção: ${fmtMoneyBRL(r.total)}\n\n` +
+          `👥 Passageiros:\n${paxLinhas}\n\n` +
+          `Cotação ${quote_id} · opção ${option_index}`;
+
+        await encaminharParaComercial(conversation, briefing, "outro", "high");
+
+        return {
+          ok: true,
+          pedido: r.orderNumber ?? r.orderId,
+          instrucao:
+            `O pedido já foi gerado com os dados dos passageiros. Envie UMA mensagem curta e natural confirmando que anotou tudo e já registrou a reserva dessa opção, e que um consultor continua com ele por aqui pra finalizar. ` +
+            `Pode citar o número do pedido ${r.orderNumber ?? ""}`.trim() +
+            `. NÃO reenvie o link, NÃO repita a cotação inteira, NÃO peça nada que ele já informou e NÃO fale em pagamento adiantado nem em garantir valor.`,
+        };
+      },
+    }),
+
   };
+
 
   if (!permitidas.length) return todas;
   const filtradas = { ...todas } as Record<string, unknown>;
@@ -1040,6 +1127,9 @@ export function buildCentralBasePrompt(nome: string, genero: "f" | "m"): string 
     `🚫 SEM PRESSÃO COMERCIAL: proibido "já adianto o pagamento", "garanto esse valor", "vamos fechar?", "essa some rápido" ou qualquer urgência artificial. Você ajuda a decidir, não empurra.`,
     `Sem frase fixa obrigatória depois das opções: continue a conversa conforme o contexto daquele cliente, com poucos emojis, sem tópicos artificiais e sem cara de chatbot.`,
     `Quando o cliente disser que gostou da opção 1, 2 ou 3 (ou "a das 16:40", "a mais barata"), reconheça pelo contexto e siga a partir dela. NÃO reenvie o link nem a cotação inteira.`,
+
+
+
     `Quando o cliente pedir alteração, não responda só com o card novo. Explique o que mudou e o efeito: "recalculei essa mesma opção incluindo bagagem, ficou em R$ X. Na minha opinião continua valendo bastante, principalmente porque já vai com a mala despachada".`,
     `Termine de forma natural, quase sempre com uma pergunta curta de continuidade — variando conforme a conversa, nunca a mesma frase, nunca cobrança.`,
     `Ofereça o próximo passo de forma proativa (comparar companhia, incluir bagagem, testar outro horário ou data próxima) em vez de esperar o cliente pedir.`,
@@ -1183,6 +1273,12 @@ export function buildCentralPrompt(
     `CONTINUIDADE DO ATENDIMENTO: você entrou numa conversa que já estava acontecendo. Leia o que já foi coletado antes de qualquer pergunta. É PROIBIDO recomeçar o atendimento, refazer briefing ou perguntar de novo origem, destino, datas ou passageiros que o cliente já informou — pergunte SOMENTE o que ainda falta. Se ele fizer uma dúvida no meio da coleta, responda a dúvida primeiro e depois retome exatamente de onde parou.`,
     REGRAS_BOLETO_PROMPT,
     `BOLETO NO SEU ATENDIMENTO: aqui é SOMENTE AÉREO, então boleto é sempre PRÉ-PAGO (mínimo 60 dias de antecedência, quitação total até 30 dias antes da viagem). Se o cliente quiser continuar pagando DEPOIS da viagem, explique que somente aéreo não permite e que essa modalidade existe para pacote com hotel + aéreo, mediante análise de crédito. Se ele disser que quer ver com hotel, a intenção virou PACOTE: chame transferir_para_consultores com todo o contexto (origem, destino, datas, passageiros e o interesse em pagamento pós-viagem).`,
+
+    `\n### ✅ CLIENTE ESCOLHEU UMA OPÇÃO — DOIS CAMINHOS (regra dura)`,
+    `Quando ele escolher ("quero a opção 1", "vou ficar com a das 16:40"), confirme a opção pelos dados reais em uma frase e ofereça OS DOIS CAMINHOS, sem pressão: ele pode finalizar direto por lá, clicando em "quero reservar" naquela opção, ou vc segue com ele por aqui. Ex.: "boa escolha! vc consegue finalizar direto por lá, é só clicar em quero reservar nessa opção. mas se preferir eu sigo com vc por aqui mesmo, como fica melhor?". Não reenvie o link e não fale em adiantar pagamento nem garantir valor.`,
+    `Se ele preferir finalizar sozinho pelo link: fique à disposição e pare por aí — não peça CPF e não transfira.`,
+    `Se ele preferir seguir por aqui: ANTES de qualquer transferência, colete nome completo, CPF e data de nascimento de CADA passageiro. 1 passageiro: "me manda por favor seu nome completo, CPF e data de nascimento, como está no documento". 2 ou mais: peça de cada um, explicitando a quantidade; se vier só um, peça os que faltam. Nunca repita o CPF do titular pros outros e nunca invente dado.`,
+    `Com todos os dados, chame reservar_opcao (quote_id + option_index + passageiros): o pedido é criado na hora e a conversa vai pro time. Se a tool devolver faltam_dados, peça só o que faltou, de forma curta e natural, sem falar em sistema, cadastro ou validação. Depois de criado, confirme que já registrou a reserva dessa opção e que um consultor continua com ele por aqui — sem reenviar link, sem repetir cotação e sem repedir dados.`,
 
 
     `\n## 💬 TOM E POSTURA (prevalece sobre o prompt salvo)`,
