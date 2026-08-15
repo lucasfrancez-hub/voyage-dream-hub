@@ -203,7 +203,7 @@ export function resolveOriginState(params: {
   //    (não como destino: "para São Paulo" é destino, não origem de embarque).
   for (let i = params.inbound.length - 1; i >= 0; i--) {
     const m = params.inbound[i]!;
-    if (mentionsCity(m.content, origin)) {
+    if (mentionsCityAsOrigin(m.content, origin)) {
       return {
         origin,
         status: "explicitly_informed",
