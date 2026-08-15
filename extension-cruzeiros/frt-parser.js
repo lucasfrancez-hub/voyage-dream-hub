@@ -1011,6 +1011,10 @@
       detectPageType,
       detectContent,
       parsePriceSummary,
+      parseOccupancy,
+      waitForPriceRecalculation,
+      pricingFingerprint,
+
       parseCabinTypes,
       parseVisibleCabinCategories,
       parseInsurances,
