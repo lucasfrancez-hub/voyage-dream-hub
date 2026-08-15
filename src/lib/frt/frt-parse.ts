@@ -727,3 +727,60 @@ export function listarCamposInternosJsf(texto: string): string[] {
   }
   return [...nomes];
 }
+
+/* --------------- autocomplete PrimeFaces (query + itemSelect) --------------- */
+
+export type FrtAutocompleteItem = { value: string; label: string };
+
+/**
+ * Lê as opções devolvidas pelo AJAX de query do p:autoComplete.
+ * O PrimeFaces devolve <li data-item-value="..." data-item-label="...">.
+ */
+export function parseAutocompleteItens(xml: string): FrtAutocompleteItem[] {
+  const texto = decodeEntities(xml);
+  const itens: FrtAutocompleteItem[] = [];
+  for (const m of texto.matchAll(/<li\b[^>]*data-item-value="([^"]*)"[^>]*>/gi)) {
+    const tag = m[0];
+    const value = decodeEntities(m[1] ?? "");
+    const label = decodeEntities(tag.match(/data-item-label="([^"]*)"/i)?.[1] ?? value);
+    if (value) itens.push({ value, label });
+  }
+  return itens;
+}
+
+/** Escolhe a opção que corresponde ao termo (IATA exato > contém > primeira). */
+export function escolherItemAutocomplete(
+  itens: FrtAutocompleteItem[],
+  termo: string,
+): FrtAutocompleteItem | null {
+  if (!itens.length) return null;
+  const t = (termo ?? "").trim().toUpperCase();
+  if (!t) return itens[0]!;
+  const iata = /^[A-Z]{3}$/.test(t) ? t : null;
+  if (iata) {
+    const exato = itens.find((i) =>
+      new RegExp(`\\b${iata}\\b`).test(`${i.value} ${i.label}`.toUpperCase()),
+    );
+    if (exato) return exato;
+  }
+  const contem = itens.find((i) => `${i.value} ${i.label}`.toUpperCase().includes(t));
+  return contem ?? itens[0]!;
+}
+
+/**
+ * Extrai os campos internos (hidden/input) criados pela FRT dentro de um
+ * bloco de update AJAX — é assim que os j_idt#### reais da pesquisa nascem.
+ */
+export function camposDoUpdateAjax(html: string): Record<string, string> {
+  const texto = decodeEntities(html);
+  const campos: Record<string, string> = {};
+  for (const m of texto.matchAll(/<input\b[^>]*>/gi)) {
+    const tag = m[0];
+    const name = tag.match(/\bname="([^"]*)"/i)?.[1];
+    if (!name || !name.startsWith("frmMotorPacote:")) continue;
+    const type = (tag.match(/\btype="([^"]*)"/i)?.[1] ?? "text").toLowerCase();
+    if (type === "submit" || type === "button" || type === "image" || type === "file") continue;
+    campos[name] = decodeEntities(tag.match(/\bvalue="([^"]*)"/i)?.[1] ?? "");
+  }
+  return campos;
+}
