@@ -107,7 +107,7 @@ export const getCruise = createServerFn({ method: "GET" })
 
     if (!cruise.data) throw new Error("Cruzeiro não encontrado");
 
-    let ship: Record<string, unknown> | null = null;
+    let ship: Record<string, string | number | boolean | null> | null = null;
     let shipCounts = { media: 0, decks: 0, attractions: 0, cabins: 0 };
     if (cruise.data.ship_id) {
       const shipId = cruise.data.ship_id as string;
@@ -118,7 +118,7 @@ export const getCruise = createServerFn({ method: "GET" })
         sb.from("ship_attractions").select("id", { count: "exact", head: true }).eq("ship_id", shipId),
         sb.from("ship_cabins").select("id", { count: "exact", head: true }).eq("ship_id", shipId),
       ]);
-      ship = s.data ?? null;
+      ship = (s.data ?? null) as typeof ship;
       shipCounts = {
         media: m.count ?? 0,
         decks: d.count ?? 0,
@@ -209,11 +209,11 @@ export const setImportStatus = createServerFn({ method: "POST" })
   }))
   .handler(async ({ context, data }) => {
     await ensureAdmin(context);
-    const patch: Record<string, unknown> = { status: data.status };
+    const patch: Record<string, string> = { status: data.status };
     if (data.status === "finished") patch.finished_at = new Date().toISOString();
     const { error } = await context.supabase
       .from("cruise_import_sessions")
-      .update(patch)
+      .update(patch as never)
       .eq("id", data.session_id)
       .eq("user_id", context.userId);
     if (error) throw new Error(error.message);
