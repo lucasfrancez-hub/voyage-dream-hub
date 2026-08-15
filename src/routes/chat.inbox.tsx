@@ -1,4 +1,5 @@
 import { usePresencaEBadge } from "@/lib/chat/usePresencaEBadge";
+import { isAiSender } from "@/lib/whatsapp/sender-identity";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -1304,13 +1305,12 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
                 const senderLabel =
                   m.direction === "inbound"
                     ? (conv.display_name ?? conv.wa_phone)
-                    : m.sender === "camila"
-                      ? agentLabel(m.agent_slug ?? conv.agent_slug)
-
                     : m.sender === "human"
                       ? (firstName(m.sender_full_name) ?? "Atendente")
                     : m.sender === "system"
                       ? "Sistema"
+                    : isAiSender(m.sender)
+                      ? agentLabel(m.agent_slug ?? m.sender ?? conv.agent_slug)
                     : undefined;
                 return (
                   <div key={m.id} className="mb-1">
