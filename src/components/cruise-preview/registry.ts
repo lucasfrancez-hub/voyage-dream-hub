@@ -1,4 +1,6 @@
 import type * as React from "react";
+import * as Reserva from "./screens/reserva";
+import * as SobreCruzeiro from "./screens/sobre-cruzeiro";
 import * as VisaoGeral from "./screens/visao-geral";
 import * as Itinerario from "./screens/itinerario";
 import * as Navio from "./screens/navio";
@@ -45,6 +47,18 @@ const mk = (
 });
 
 export const screens: ScreenDef[] = [
+  mk("reserva", "00", "Reserva do cruzeiro (novo)", "Fluxo de escolha de cabine no padrão da referência, com identidade VIA AIR.", Reserva,
+    ["Checkout em duas colunas", "Passos guiados + barra de total", "Imersivo com hero"],
+    ["Tipos de cabine em cards com foto, lista de categorias com itens inclusos e resumo fixo à direita.",
+     "Cabeçalho compacto do cruzeiro, etapas numeradas e barra inferior fixa com o total.",
+     "Capa do navio, resumo à esquerda e categorias em cards visuais com foto grande."]),
+
+  mk("sobre-cruzeiro", "00b", "Veja sobre o cruzeiro (novo)", "Painel com itinerário, navio, atrações, cabines, deck plan, fotos, vídeos e ficha técnica.", SobreCruzeiro,
+    ["Menu lateral com ícones", "Abas no topo", "Painel deslizante"],
+    ["Modal largo com trilho de ícones à esquerda e conteúdo rolável à direita.",
+     "Modal largo com abas horizontais fixas no topo.",
+     "Painel lateral direito com filtros em pílulas — ideal para mobile."]),
+
   mk("visao-geral", "01", "Visão geral / Sobre o cruzeiro", "Primeira tela do produto.", VisaoGeral,
     ["Editorial cinematográfico", "Painel comercial", "Storytelling por capítulos"],
     ["Hero full-bleed, abas de conteúdo e barra de reserva fixa no rodapé.",
