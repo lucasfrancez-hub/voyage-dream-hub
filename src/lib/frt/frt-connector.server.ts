@@ -170,6 +170,10 @@ export type FrtAmostraPesquisa = {
   temPrecos: boolean;
   amostraPrecos: string[];
   mensagemNenhumResultado: string | null;
+  /** PrimeFaces recusou os parâmetros antes de pesquisar. */
+  validationFailed: boolean;
+  /** Mapa sanitizado dos campos do frmMotorPacote usados no POST. */
+  inventario: FrtInventarioMotor | null;
   raw: string;
 };
 let ultimaAmostraPesquisa: FrtAmostraPesquisa | null = null;
