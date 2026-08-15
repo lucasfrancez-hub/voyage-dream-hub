@@ -929,6 +929,29 @@ export const closeProtocoloManually = createServerFn({ method: "POST" })
       .maybeSingle();
     if (!proto) throw new Error("Protocolo não encontrado");
 
+    // Fecha e limpa o runtime ANTES de enviar avisos ou gerar o resumo por IA.
+    // A geração pode demorar; enquanto o protocolo continuava aberto, uma nova
+    // mensagem do cliente era vinculada ao protocolo que a tela já dizia estar
+    // encerrado e acabava sendo fechada junto quando o resumo terminava.
+    const { closeProtocolAndResetRuntime } = await import(
+      "@/lib/whatsapp/protocol-runtime.server"
+    );
+    const closeResult = await closeProtocolAndResetRuntime({
+      protocolo_id: proto.id,
+      status: "encerrado_manual",
+      reason: "encerrado_pelo_atendente",
+    });
+    if (!closeResult.ok) throw new Error("Não foi possível encerrar o protocolo");
+    if (closeResult.closed === false) throw new Error("Este protocolo já foi encerrado");
+
+    // Mantém a conversa resolvida somente se nenhum novo protocolo tiver sido
+    // aberto por uma mensagem recebida logo após o fechamento atômico.
+    await supabaseAdmin
+      .from("wa_conversations")
+      .update({ mode: "resolved" })
+      .eq("id", conv.id)
+      .is("protocolo_ativo_id", null);
+
     const encerramentoMsg =
       `Seu protocolo ${proto.numero} foi encerrado. ✅\n\n` +
       `Obrigado pelo contato com a VIA AIR! Se precisar de qualquer outra coisa, é só chamar por aqui que a gente abre um novo atendimento.`;
@@ -1008,22 +1031,11 @@ export const closeProtocoloManually = createServerFn({ method: "POST" })
     await supabaseAdmin
       .from("wa_protocolos")
       .update({
-        status: "encerrado_manual",
-        closed_at: new Date().toISOString(),
         funnel_stage_final: conv.funnel_stage ?? null,
         resumo_conversa: resumoConversa,
         ...(shouldFillNecessidade ? { assunto_resumo: necessidadeIA } : {}),
       })
       .eq("id", proto.id);
-
-    // Encerrou o protocolo → a conversa não está mais "aguardando humano".
-    const closeTags = ((conv.tags ?? []) as string[]).filter(
-      (t) => t !== "aguardando_humano" && t !== "escalada_implicita" && t !== "transferencia_nominal",
-    );
-    await supabaseAdmin
-      .from("wa_conversations")
-      .update({ protocolo_ativo_id: null, mode: "resolved", tags: closeTags })
-      .eq("id", conv.id);
 
 
     return { ok: true, numero: proto.numero };
