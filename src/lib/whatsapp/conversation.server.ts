@@ -108,7 +108,7 @@ export async function getOrCreateConversation(waPhone: string, profileName?: str
 export async function ensureActiveProtocolo(conversationId: string): Promise<WaProtocolo> {
   const { data: conv } = await supabaseAdmin
     .from("wa_conversations")
-    .select("id, protocolo_ativo_id, tags")
+    .select("id, protocolo_ativo_id, tags, mode, assigned_to, ai_paused")
     .eq("id", conversationId)
     .maybeSingle();
 
@@ -128,6 +128,18 @@ export async function ensureActiveProtocolo(conversationId: string): Promise<WaP
   const freshTags = (((conv as { tags?: string[] | null } | null)?.tags ?? []) as string[]).filter(
     (t) => !ESCALATION_TAGS.includes(t),
   );
+
+  // Protocolo novo = atendimento novo: a pausa automática da IA (instabilidade,
+  // duplicidade, escalação do protocolo anterior) NÃO pode sobreviver, senão o
+  // cliente manda "boa noite" e ninguém responde. Só mantemos a pausa quando a
+  // conversa está em modo humano ou tem alguém atribuído de fato.
+  const c = conv as {
+    mode?: string | null;
+    assigned_to?: string | null;
+    ai_paused?: boolean | null;
+  } | null;
+  const retomarIa = c?.ai_paused === true && c?.mode !== "human" && !c?.assigned_to;
+  const camposIa = retomarIa ? { ai_paused: false, ai_debounce_until: null } : {};
 
   // Tenta reabrir um protocolo recém-encerrado POR INATIVIDADE (continuação do mesmo assunto).
   // Encerramento MANUAL é ponto final: qualquer mensagem posterior gera protocolo novo (novo lead).
@@ -162,6 +174,7 @@ export async function ensureActiveProtocolo(conversationId: string): Promise<WaP
         central_brief: null,
         central_busca: null,
         tags: freshTags,
+        ...camposIa,
       })
       .eq("id", conversationId);
     return reopened as WaProtocolo;
@@ -185,6 +198,7 @@ export async function ensureActiveProtocolo(conversationId: string): Promise<WaP
       central_brief: null,
       central_busca: null,
       tags: freshTags,
+      ...camposIa,
     })
     .eq("id", conversationId);
   return created as WaProtocolo;
