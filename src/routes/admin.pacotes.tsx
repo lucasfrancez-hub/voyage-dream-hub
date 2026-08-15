@@ -3,6 +3,7 @@ import { CruiseDetailsEditor } from "@/components/admin/CruiseDetailsEditor";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
+import { listCruises } from "@/lib/cruises/admin.functions";
 import {
   Plus,
   Pencil,
@@ -370,6 +371,12 @@ function AdminPackages() {
     setDraftIndex(nextIdx);
     setEditingState(remaining[nextIdx]);
   }
+
+  const listCruisesFn = useServerFn(listCruises);
+  const { data: cruisesData } = useQuery({
+    queryKey: ["admin", "cruises-count"],
+    queryFn: () => listCruisesFn(),
+  });
 
   const { data: packages, isLoading } = useQuery({
     queryKey: ["admin", "packages"],
@@ -1062,6 +1069,9 @@ function AdminPackages() {
             title="Cruzeiros são cadastrados e importados pelo plugin Exportar Cruzeiro"
           >
             <Ship className="h-3.5 w-3.5" /> Cruzeiros
+            <span className="ml-1 rounded-full bg-muted px-1.5 py-0.5 text-[10px]">
+              {(cruisesData?.cruises ?? []).length}
+            </span>
           </Link>
         </div>
         <button
