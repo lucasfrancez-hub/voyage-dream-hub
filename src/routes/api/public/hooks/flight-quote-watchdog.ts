@@ -205,14 +205,8 @@ export const Route = createFileRoute("/api/public/hooks/flight-quote-watchdog")(
           const voc = nome ? `${nome}, ` : "";
 
 
-          // Só considera entregue quando existe uma arte registrada. Texto como
-          // "achei opções" não pode impedir o reenvio dos cards pendentes.
-          const cards = depois.filter(
-            (m) =>
-              m.direction === "outbound" &&
-              m.sender !== "system" &&
-              /\[\[media:image/i.test(m.content ?? ""),
-          );
+          // Entregue = arte OU texto/link de cotação enviado pelo agente.
+          const cards = depois.filter(ehEntrega);
           if (cards.length) {
             // Entrega concluída. Nada de fecho automático: a conversa segue
             // dinâmica com o próprio agente (sem pressão comercial).
@@ -223,15 +217,21 @@ export const Route = createFileRoute("/api/public/hooks/flight-quote-watchdog")(
           const encerrou = depois.some((m) => /protocolo\s+\S+\s+foi encerrado/i.test(m.content ?? ""));
           if (encerrou) continue;
 
-          // Se JÁ saiu arte neste protocolo (mesmo antes desta promessa), nunca
-          // mandar "a consulta tá demorando" — era a mensagem falsa de atraso.
-          const cardsProtocolo = msgs.filter(
-            (m) =>
-              m.direction === "outbound" &&
-              m.sender !== "system" &&
-              /\[\[media:image/i.test(m.content ?? ""),
-          );
+          // Se JÁ saiu cotação neste protocolo (mesmo antes desta promessa),
+          // nunca acusar "pesquisa sem progresso".
+          const cardsProtocolo = msgs.filter(ehEntrega);
           if (cardsProtocolo.length) continue;
+
+          // Última rede: alguma opção já marcada como entregue no banco.
+          const { data: opcoesEntregues } = await supabaseAdmin
+            .from("wa_flight_quote_options")
+            .select("id, wa_flight_quotes!inner(conversation_id, protocolo_id)")
+            .in("delivery_status", ["delivered_card", "delivered_text"])
+            .eq("wa_flight_quotes.conversation_id", convId)
+            .eq("wa_flight_quotes.protocolo_id", conv.protocolo_ativo_id as string)
+            .limit(1);
+          if ((opcoesEntregues ?? []).length) continue;
+
 
           const jaFalhou = msgs.some((m) => (m.content ?? "").includes(MARCA_FALHA));
           if (jaFalhou) continue;
