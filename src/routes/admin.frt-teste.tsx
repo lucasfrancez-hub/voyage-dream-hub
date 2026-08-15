@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
@@ -14,7 +14,8 @@ import {
   diagnosticarFrt,
   diagnosticarPesquisaFrt,
   enviarCodigoFrt,
-  resolver2faAutomaticoFrt,
+  poll2faFrt,
+  buscaAutomatica2faFrt,
   estado2faFrt,
   cancelar2faFrt,
 } from "@/lib/frt/frt.functions";
@@ -45,10 +46,12 @@ function FrtTestePage() {
   const consulta = useServerFn(consultarFrt);
   const enviarCodigo = useServerFn(enviarCodigoFrt);
   const diagPesquisa = useServerFn(diagnosticarPesquisaFrt);
-  const resolverAuto = useServerFn(resolver2faAutomaticoFrt);
+  const poll2fa = useServerFn(poll2faFrt);
+  const ativarAuto = useServerFn(buscaAutomatica2faFrt);
   const estado2fa = useServerFn(estado2faFrt);
   const cancelar2fa = useServerFn(cancelar2faFrt);
   const [codigo, setCodigo] = useState("");
+  const aguardando2faRef = useRef(false);
 
   const [origem, setOrigem] = useState("MGF");
   const [destino, setDestino] = useState("SSA");
@@ -65,13 +68,14 @@ function FrtTestePage() {
   // Desafio 2FA pendente: enquanto existir, nenhum novo login pode ser disparado.
   const pend = useQuery({
     queryKey: ["frt-2fa"],
-    queryFn: () => estado2fa({ data: undefined }),
-    refetchInterval: 10_000,
+    queryFn: () => (aguardando2faRef.current ? poll2fa({ data: undefined }) : estado2fa({ data: undefined })),
+    refetchInterval: (q) => (q.state.data?.pendente ? 4_000 : 15_000),
   });
   const aguardando2fa = Boolean(pend.data?.pendente) || Boolean(diagMut.data?.aguardandoCodigo);
+  aguardando2faRef.current = aguardando2fa;
 
   const autoMut = useMutation({
-    mutationFn: () => resolverAuto({ data: undefined }),
+    mutationFn: () => ativarAuto({ data: { ativo: true } }),
     onSettled: () => pend.refetch(),
   });
   const cancelarMut = useMutation({
@@ -164,10 +168,10 @@ function FrtTestePage() {
             <Button
               size="sm"
               variant="outline"
-              disabled={autoMut.isPending}
+              disabled={autoMut.isPending || Boolean(pend.data?.autoBusca)}
               onClick={() => autoMut.mutate()}
             >
-              {autoMut.isPending ? (
+              {autoMut.isPending || pend.data?.autoBusca ? (
                 <Loader2 className="size-4 animate-spin" />
               ) : (
                 "Buscar código automático"
@@ -182,13 +186,8 @@ function FrtTestePage() {
               Descartar desafio
             </Button>
           </div>
-          {autoMut.data && !autoMut.data.ok ? (
-            <p className="text-xs text-amber-700">{autoMut.data.mensagem}</p>
-          ) : null}
-          {autoMut.data?.ok ? (
-            <p className="text-xs text-emerald-700">
-              Código lido da caixa dedicada e aceito pela FRT.
-            </p>
+          {pend.data?.autoMensagem ? (
+            <p className="text-xs text-amber-700">{pend.data.autoMensagem}</p>
           ) : null}
         </section>
       ) : null}

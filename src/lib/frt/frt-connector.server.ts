@@ -527,6 +527,8 @@ async function doLogin(): Promise<Session> {
     // tentativa e para aqui. Nada de novo login enquanto isso.
     pendingAuth = s;
     pendingDesde = Date.now();
+    autoBuscaAtiva = true;
+    autoMensagem = "Procurando o código na caixa dedicada…";
     await persistSession(s);
     trace("2FA requerido");
     trace("aguardando código");
@@ -592,6 +594,9 @@ export function frtInvalidateSession() {
 
 let pendingAuth: Session | null = null;
 let pendingDesde: number | null = null;
+/** Busca automática do código na caixa dedicada (roda por polling, nunca bloqueia). */
+let autoBuscaAtiva = false;
+let autoMensagem: string | null = null;
 
 /** Estado do desafio 2FA (para a UI de diagnóstico). */
 export function frtEstado2fa() {
@@ -599,13 +604,53 @@ export function frtEstado2fa() {
     pendente: Boolean(pendingAuth),
     desde: pendingDesde ? new Date(pendingDesde).toISOString() : null,
     segundos: pendingDesde ? Math.round((Date.now() - pendingDesde) / 1000) : 0,
+    autoBusca: autoBuscaAtiva,
+    autoMensagem,
   };
+}
+
+/** Liga/desliga a busca automática, sem esperar nada (a UI faz polling). */
+export function frtBuscaAutomatica2fa(ativo: boolean) {
+  autoBuscaAtiva = ativo && Boolean(pendingAuth);
+  autoMensagem = autoBuscaAtiva ? "Procurando o código na caixa dedicada…" : null;
+  return frtEstado2fa();
+}
+
+/**
+ * Uma única verificação rápida (sem loop, sem espera) da caixa dedicada.
+ * A UI chama isso em polling enquanto o desafio estiver pendente.
+ */
+export async function frtPoll2fa() {
+  if (!pendingAuth) {
+    autoBuscaAtiva = false;
+    return frtEstado2fa();
+  }
+  if (!autoBuscaAtiva) return frtEstado2fa();
+  const item = await buscarCodigoRecente(Date.now() - CODIGO_TTL_MS);
+  if (!item) {
+    if (pendingDesde && Date.now() - pendingDesde > CODIGO_ESPERA_MS) {
+      autoBuscaAtiva = false;
+      autoMensagem =
+        "O código automático não chegou. Informe o código manualmente — o desafio segue ativo.";
+    }
+    return frtEstado2fa();
+  }
+  await descartarCodigo(item.id);
+  trace("2FA: código encontrado — enviando para a FRT (valor não registrado)");
+  const r = await frtEnviarCodigo(item.code);
+  autoBuscaAtiva = false;
+  autoMensagem = r.ok
+    ? "Código automático validado — sessão liberada."
+    : "Código automático recusado pela FRT. Informe o código manualmente.";
+  return frtEstado2fa();
 }
 
 /** Descarta o desafio pendente (permite um novo login manualmente). */
 export function frtCancelar2fa() {
   pendingAuth = null;
   pendingDesde = null;
+  autoBuscaAtiva = false;
+  autoMensagem = null;
   trace("desafio 2FA descartado manualmente");
 }
 
@@ -670,6 +715,7 @@ export async function frtEnviarCodigo(codigo: string) {
   session = s;
   pendingAuth = null;
   pendingDesde = null;
+  autoBuscaAtiva = false;
   trace("2FA validado");
   trace("sessão liberada");
   await persistSession(s);

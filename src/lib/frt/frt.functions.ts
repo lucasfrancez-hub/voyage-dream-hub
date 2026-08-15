@@ -81,3 +81,20 @@ export const cancelar2faFrt = createServerFn({ method: "POST" })
     frtCancelar2fa();
     return { ok: true };
   });
+
+/** Verificação rápida (sem espera) da caixa dedicada — usada em polling pela UI. */
+export const poll2faFrt = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async () => {
+    const { frtPoll2fa } = await import("@/lib/frt/frt-connector.server");
+    return frtPoll2fa();
+  });
+
+/** Liga/desliga a busca automática do código (retorna na hora). */
+export const buscaAutomatica2faFrt = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ ativo: z.boolean() }).parse(input))
+  .handler(async ({ data }) => {
+    const { frtBuscaAutomatica2fa } = await import("@/lib/frt/frt-connector.server");
+    return frtBuscaAutomatica2fa(data.ativo);
+  });
