@@ -2376,6 +2376,7 @@ export type Database = {
           adults: number
           base_amount: number | null
           cabin_category: string
+          calculated_average_per_person: number | null
           captured_at: string
           children: number
           children_ages: number[]
@@ -2388,18 +2389,23 @@ export type Database = {
           installments: Json
           is_current: boolean
           occupancy_key: string
+          occupancy_source: string
+          occupancy_total: number
           offer_id: string | null
           passenger_prices: Json
+          pricing_fingerprint: string
           snapshot_id: string | null
           taxes: number | null
           total: number | null
           updated_at: string
+          warnings: Json
           young: number
         }
         Insert: {
           adults?: number
           base_amount?: number | null
           cabin_category?: string
+          calculated_average_per_person?: number | null
           captured_at?: string
           children?: number
           children_ages?: number[]
@@ -2412,18 +2418,23 @@ export type Database = {
           installments?: Json
           is_current?: boolean
           occupancy_key?: string
+          occupancy_source?: string
+          occupancy_total?: number
           offer_id?: string | null
           passenger_prices?: Json
+          pricing_fingerprint?: string
           snapshot_id?: string | null
           taxes?: number | null
           total?: number | null
           updated_at?: string
+          warnings?: Json
           young?: number
         }
         Update: {
           adults?: number
           base_amount?: number | null
           cabin_category?: string
+          calculated_average_per_person?: number | null
           captured_at?: string
           children?: number
           children_ages?: number[]
@@ -2436,12 +2447,16 @@ export type Database = {
           installments?: Json
           is_current?: boolean
           occupancy_key?: string
+          occupancy_source?: string
+          occupancy_total?: number
           offer_id?: string | null
           passenger_prices?: Json
+          pricing_fingerprint?: string
           snapshot_id?: string | null
           taxes?: number | null
           total?: number | null
           updated_at?: string
+          warnings?: Json
           young?: number
         }
         Relationships: [
