@@ -9,6 +9,8 @@
 import {
   FrtError,
   FRT_FIELDS,
+  coletarEstadoMotor,
+  resolvePayloadAutocomplete,
   extractPartialUpdates,
   extractViewState,
   detectLoginButtonName,
@@ -837,7 +839,13 @@ async function loadVendaScreen(s: Session) {
   for (const c of ultimoInventarioMotor.campos.slice(0, 30)) {
     trace(`    ${c.tag} id=${c.id ?? "-"} name=${c.name ?? "-"} type=${c.type ?? "-"} valor=${c.valor}`);
   }
-  return resolved.fields;
+
+  const estado = coletarEstadoMotor(body);
+  const payload = resolvePayloadAutocomplete(body);
+  trace(`  estado do formulário: ${Object.keys(estado).length} campos capturados`);
+  for (const d of payload.detalhes) trace(`  ${d}`);
+
+  return { fields: resolved.fields, estado, payload };
 }
 
 /* --------------------------- pesquisa ------------------------------ */
@@ -865,7 +873,7 @@ async function runSearch(
   s: Session,
   input: FrtSearchInput,
 ): Promise<{ results: FrtSearchResponse["results"]; availableResults: number }> {
-  const fields = await loadVendaScreen(s);
+  const { fields, estado, payload } = await loadVendaScreen(s);
   const adultos = input.adultos ?? 1;
   const criancas = input.criancas ?? 0;
   // Códigos IATA sempre em maiúsculas (MGf -> MGF).
