@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="pt-br">
+<body>
+<app-checkout-page _ngcontent-ng-c2035953499="">
+  <app-price-summary>
+    <div class="price-summary">
+      <div class="price-summary__details">
+        <h2>Réveillon em alto Mar 26/27</h2>
+        <div class="dates">
+          <span class="date">29/12/2026</span>
+          <span>4 noites</span>
+          <button type="button"><i class="icon-user"></i> 1 passageiro</button>
+        </div>
+        <div class="boarding">
+          <p><i class="icon-arrow-up-right"></i> Embarque: Santos, Brasil</p>
+          <p><i class="icon-arrow-down-left"></i> Desembarque: Santos, Brasil</p>
+        </div>
+        <a class="ship-details-link">Ver mais</a>
+      </div>
+
+      <div class="price-summary__info-price">
+        <span class="info-fare-name">MELHORES PROMOÇÕES</span>
+        <h4>Interna - Garantida - 512</h4>
+        <ul class="list-price">
+          <app-list-price-summary>
+            <li class="list-summary-item"><span>Passageiro 1</span><span>R$ 14.856,00</span></li>
+            <li class="list-summary-item"><span>Taxas e impostos</span><span>R$ 1.800,00</span></li>
+          </app-list-price-summary>
+          <li class="list-summary-item total">
+            <span>Total</span>
+            <div class="total-price"><span class="price">R$ 16.656,00</span></div>
+          </li>
+        </ul>
+      </div>
+
+      <div class="installment-card-wrapper">
+        <app-installment-card>
+          <div class="pay-up-to">
+            <span class="box-span-price">Entrada + 12x</span>
+            <span class="without-interest-fee">sem juros</span>
+          </div>
+        </app-installment-card>
+      </div>
+    </div>
+  </app-price-summary>
+
+  <app-insurance>
+    <div class="insurance-container">
+      <div class="insurance">
+        <p>SEGURO HERO - Planos Cruzeiros Nacionais</p>
+        <strong>R$ 179,00</strong>
+        <a class="insurance__badge-recommended" href="/cobertura/hero-nacional.pdf">Ver cobertura</a>
+      </div>
+    </div>
+  </app-insurance>
+
+  <app-cabin-type-selection>
+    <div class="cabin-type__list">
+      <div class="cabin-type__item">
+        <label class="cabin-type__label"><input type="radio" checked /></label>
+        <div class="container-img" style="background-image: url('/img/interna.jpg')"></div>
+        <div class="description">
+          <div class="description__title">Interna</div>
+          <div class="description__text"><span class="select">Selecionado</span></div>
+        </div>
+      </div>
+      <div class="cabin-type__item">
+        <label class="cabin-type__label"><input type="radio" /></label>
+        <div class="container-img" style="background-image: url(&quot;/img/varanda.jpg&quot;)"></div>
+        <div class="description">
+          <div class="description__title">Varanda</div>
+          <div class="description__text">
+            <span class="not-select">Upgrade por <strong>R$ 1.920,00</strong></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </app-cabin-type-selection>
+
+  <app-cabin-type-detail>
+    <div class="container-cabin-type-detail">
+      <div class="cabin-type-detail">
+        <div class="cabin-description__image"><img src="/img/interna-garantida.jpg" alt="Interna Garantida" /></div>
+        <div class="cabin-description__infos">
+          <span class="name">Interna - Garantida</span>
+          <span class="category">Categoria: 512</span>
+        </div>
+        <div class="amenities-container">
+          <div class="amenity-card"><span class="amenity-name">Refeições</span><span class="amenity-icon"><img src="/i/food.svg" alt="Refeições" /></span></div>
+          <div class="amenity-card"><span class="amenity-name">Não escolhe cabine</span></div>
+          <div class="amenity-card"><span class="amenity-name">Show Inclusos</span></div>
+        </div>
+        <div class="button-price"><span class="selected">Selecionado</span></div>
+      </div>
+
+      <div class="cabin-type-detail">
+        <div class="cabin-description__image"><img src="/img/interna-superior.jpg" alt="Interna Superior" /></div>
+        <div class="cabin-description__infos">
+          <span class="name">Interna Superior</span>
+          <span class="category">Categorias: 222, 223, 224</span>
+        </div>
+        <div class="amenities-container">
+          <div class="amenity-card"><span class="amenity-name">Refeições</span></div>
+          <div class="amenity-card"><span class="amenity-name">Cabine Melhor Localizada</span></div>
+          <div class="amenity-card"><span class="amenity-name">Show Inclusos</span></div>
+        </div>
+        <div class="button-price">
+          <span class="not-selected"><span class="upgrade-price">R$ 720,00</span></span>
+        </div>
+      </div>
+    </div>
+  </app-cabin-type-detail>
+
+  <app-additional>
+    <button type="button">Novo adicional</button>
+  </app-additional>
+</app-checkout-page>
+</body>
+</html>
