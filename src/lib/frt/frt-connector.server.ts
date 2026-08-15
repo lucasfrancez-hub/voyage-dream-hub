@@ -334,7 +334,9 @@ export async function frtEnviarCodigo(codigo: string) {
     trace("código aceito, mas frmMotorPacote não apareceu em venda.xhtml");
     return {
       ok: true,
-      aviso:
+      erro: null as string | null,
+      mensagem: null as string | null,
+      aviso: null as string | null ??
         "Código aceito, mas a tela de venda abriu sem o formulário de consulta (frmMotorPacote). Verifique o log técnico.",
       acessoVenda: {
         status: venda.status,
