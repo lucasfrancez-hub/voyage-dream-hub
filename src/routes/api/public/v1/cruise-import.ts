@@ -19,7 +19,12 @@ const CORS = {
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { "content-type": "application/json", ...CORS },
+    headers: {
+      "content-type": "application/json",
+      "cache-control": "no-store, no-cache, must-revalidate",
+      pragma: "no-cache",
+      ...CORS,
+    },
   });
 }
 

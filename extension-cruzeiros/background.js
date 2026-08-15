@@ -25,7 +25,13 @@ async function pair(accessToken) {
 async function activeCruise() {
   const token = await getToken();
   if (!token) return { error: "no_token" };
-  const res = await fetch(ENDPOINT, { headers: { authorization: `Bearer ${token}` } });
+  const res = await fetch(`${ENDPOINT}?_=${Date.now()}`, {
+    cache: "no-store",
+    headers: {
+      authorization: `Bearer ${token}`,
+      "cache-control": "no-cache",
+    },
+  });
   if (res.status === 401) return { error: "no_token" };
   if (!res.ok) return { error: "http_" + res.status };
   return await res.json();
