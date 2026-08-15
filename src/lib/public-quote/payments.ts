@@ -125,10 +125,7 @@ export function buildPayment(params: {
       installments: boletoEnabled
         ? boletoInstallments(total, params.boletoMax ?? BOLETO_MAX_INSTALLMENTS)
         : [],
-      note: boletoEnabled
-        ? (params.boletoNote ??
-          "Disponível para viagens com no mínimo 60 dias de antecedência, mediante aprovação.")
-        : null,
+      note: boletoEnabled ? (params.boletoNote ?? null) : null,
     },
     pix: { enabled: true, discountPercent: pixPercent, total: pixTotal },
   };
