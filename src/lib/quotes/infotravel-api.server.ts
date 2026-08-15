@@ -335,7 +335,12 @@ function mapOption(pkg: any, index: number): { option: NormalizedOption; pax: { 
   }
 
   for (const bf of (pkg?.bookingFlights ?? []) as any[]) {
-    const { flights, pax } = mapFlight(bf);
+    const { flights, pax, total } = mapFlight(bf);
+    // O valor do aéreo normalmente vem no nível da reserva (bf.fares), não por
+    // trecho: sem isto o total da opção sai só com a hospedagem.
+    if (total != null && !flights.some((f) => typeof f.total === "number") && flights[0]) {
+      flights[0].total = total;
+    }
     option.flights.push(...flights);
     adults = Math.max(adults, pax.adults);
     children = Math.max(children, pax.children);
