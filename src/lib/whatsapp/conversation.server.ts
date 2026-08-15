@@ -498,10 +498,18 @@ export async function saveAndSendText(
     .maybeSingle();
   if (repetida) return;
 
+  const { data: convAtual } = await supabaseAdmin
+    .from("wa_conversations")
+    .select("agent_slug")
+    .eq("id", conversationId)
+    .maybeSingle();
+  const slugAtual = (convAtual as { agent_slug?: string | null } | null)?.agent_slug ?? null;
+
   const row = await saveMessage({
     conversation_id: conversationId,
     direction: "outbound",
-    sender: "camila",
+    sender: aiSender(slugAtual),
+    agent_slug: slugAtual,
     content: conteudo,
   });
   if (row?.id) await setSendError(row.id, SENDING_CLAIM);
