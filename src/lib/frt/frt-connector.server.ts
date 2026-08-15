@@ -14,10 +14,12 @@ import {
   detectLoginButtonName,
   looksLikeLoginPage,
   looksLikeSessionExpired,
+  inventarioMotorPacote,
   maskSensitive,
   parseResultadosHtml,
   resolveSearchFields,
   toBrDate,
+  type FrtInventarioMotor,
   type FrtSearchInput,
   type FrtSearchResponse,
 } from "./frt-parse";
@@ -168,9 +170,14 @@ export type FrtAmostraPesquisa = {
   temPrecos: boolean;
   amostraPrecos: string[];
   mensagemNenhumResultado: string | null;
+  /** PrimeFaces recusou os parâmetros antes de pesquisar. */
+  validationFailed: boolean;
+  /** Mapa sanitizado dos campos do frmMotorPacote usados no POST. */
+  inventario: FrtInventarioMotor | null;
   raw: string;
 };
 let ultimaAmostraPesquisa: FrtAmostraPesquisa | null = null;
+let ultimoInventarioMotor: FrtInventarioMotor | null = null;
 export function frtUltimaAmostraPesquisa() {
   return ultimaAmostraPesquisa;
 }
@@ -819,6 +826,13 @@ async function loadVendaScreen(s: Session) {
       resolved.missing.join(", "),
     );
   }
+  ultimoInventarioMotor = inventarioMotorPacote(body);
+  trace(
+    `  inventário frmMotorPacote: form=${ultimoInventarioMotor.encontrouForm} campos=${ultimoInventarioMotor.campos.length} scripts=${ultimoInventarioMotor.scriptsAutocomplete.length} widgets=${ultimoInventarioMotor.widgets.join(", ") || "(nenhum)"}`,
+  );
+  for (const c of ultimoInventarioMotor.campos.slice(0, 30)) {
+    trace(`    ${c.tag} id=${c.id ?? "-"} name=${c.name ?? "-"} type=${c.type ?? "-"} valor=${c.valor}`);
+  }
   return resolved.fields;
 }
 
@@ -873,6 +887,8 @@ async function runSearch(
       /(nenhum[\s\S]{0,60}?(resultado|disponibilidade|voo|pacote)[^<]{0,80})/i,
     )?.[1]?.replace(/\s+/g, " ").trim() ?? null;
 
+  const validationFailed = /"validationFailed"\s*:\s*true|validationFailed=["']?true/i.test(body);
+
   ultimaAmostraPesquisa = {
     em: new Date().toISOString(),
     status: resPesquisa.status,
@@ -882,6 +898,8 @@ async function runSearch(
     temPrecos: precos.length > 0,
     amostraPrecos: precos,
     mensagemNenhumResultado: semResultado,
+    validationFailed,
+    inventario: ultimoInventarioMotor,
     raw: amostraSanitizada(body),
   };
 
@@ -893,8 +911,19 @@ async function runSearch(
   trace(`  pnlResultado presente: ${/pnlResultado/i.test(body)}`);
   trace(`  preços encontrados: ${precos.length}${precos.length ? ` -> ${precos.slice(0, 3).join(" | ")}` : ""}`);
   trace(`  mensagem "nenhum resultado": ${semResultado ?? "(nenhuma)"}`);
+  trace(`  validationFailed: ${validationFailed}`);
 
   if (looksLikeSessionExpired(body)) throw new FrtError("FRT_SESSION_EXPIRED");
+
+  if (validationFailed) {
+    // A FRT recusou os parâmetros antes de pesquisar — pnlResultado vazio é
+    // consequência disso, não ausência de disponibilidade.
+    throw new FrtError(
+      "FRT_SEARCH_VALIDATION_FAILED",
+      "A FRT rejeitou os parâmetros da pesquisa (validationFailed:true)",
+      `campos=${ultimoInventarioMotor?.campos.length ?? 0} updates=${chavesDiag.join(", ") || "(nenhum)"}`,
+    );
+  }
 
   const novoVs = extractViewState(body);
   if (novoVs) s.viewState = novoVs;
