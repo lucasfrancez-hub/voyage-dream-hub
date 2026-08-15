@@ -910,14 +910,18 @@ async function runSearch(
     )?.[1]?.replace(/\s+/g, " ").trim() ?? null;
 
   const validationFailed = /"validationFailed"\s*:\s*true|validationFailed=["']?true/i.test(body);
+  const pnl = extrairPnlResultado(updatesDiag, body);
+  const qtdPrecos = [...body.matchAll(/R\$\s?[\d.]+,\d{2}/g)].length;
 
   ultimaAmostraPesquisa = {
     em: new Date().toISOString(),
     status: resPesquisa.status,
     bytes: body.length,
     updates: chavesDiag.map((id) => ({ id, bytes: updatesDiag[id]!.length })),
-    temPnlResultado: /pnlResultado/i.test(body),
+    temPnlResultado: pnl.presente,
+    pnlResultadoBytes: pnl.bytes,
     temPrecos: precos.length > 0,
+    qtdPrecos,
     amostraPrecos: precos,
     mensagemNenhumResultado: semResultado,
     validationFailed,
@@ -930,8 +934,8 @@ async function runSearch(
   trace(
     `  updates: ${chavesDiag.length ? chavesDiag.map((k) => `${k}(${updatesDiag[k]!.length}b)`).join(", ") : "(nenhum)"}`,
   );
-  trace(`  pnlResultado presente: ${/pnlResultado/i.test(body)}`);
-  trace(`  preços encontrados: ${precos.length}${precos.length ? ` -> ${precos.slice(0, 3).join(" | ")}` : ""}`);
+  trace(`  pnlResultado presente: ${pnl.presente} (${pnl.bytes} bytes de conteúdo)`);
+  trace(`  ocorrências de preço: ${qtdPrecos}${precos.length ? ` -> ${precos.slice(0, 3).join(" | ")}` : ""}`);
   trace(`  mensagem "nenhum resultado": ${semResultado ?? "(nenhuma)"}`);
   trace(`  validationFailed: ${validationFailed}`);
 
