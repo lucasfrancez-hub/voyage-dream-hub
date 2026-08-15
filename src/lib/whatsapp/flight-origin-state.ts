@@ -199,7 +199,8 @@ export function resolveOriginState(params: {
   if (pareceNomeDePessoa(origin, params.nomesProibidos ?? [])) return MISSING_ORIGIN;
 
 
-  // 1) o cliente escreveu a cidade em alguma mensagem deste protocolo
+  // 1) o cliente escreveu a cidade em alguma mensagem deste protocolo como ORIGEM
+  //    (não como destino: "para São Paulo" é destino, não origem de embarque).
   for (let i = params.inbound.length - 1; i >= 0; i--) {
     const m = params.inbound[i]!;
     if (mentionsCity(m.content, origin)) {
