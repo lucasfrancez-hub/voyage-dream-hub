@@ -762,7 +762,7 @@ export function PublicQuoteView({ quote }: { quote: PublicQuote }) {
   const options = quote.options ?? [];
   const [sel, setSel] = useState(0);
   const tabsRef = useRef<HTMLDivElement | null>(null);
-  if (options.length < 2) return <QuoteBody quote={quote} />;
+  if (options.length < 2) return <QuoteBody quote={quote} opcao={1} />;
 
   const opt = options[Math.min(sel, options.length - 1)]!;
   const merged: PublicQuote = {
@@ -775,7 +775,11 @@ export function PublicQuoteView({ quote }: { quote: PublicQuote }) {
 
   return (
     <>
-      <QuoteBody quote={merged} reserveHref={`/reserva/${quote.publicId}?opcao=${sel + 1}`} />
+      <QuoteBody
+        quote={merged}
+        opcao={sel + 1}
+        reserveHref={`/reserva/${quote.publicId}?opcao=${sel + 1}`}
+      />
       <div className="vq-options">
         <div className="vq-options-inner">
           <span className="vq-options-title">Escolha sua opção</span>
