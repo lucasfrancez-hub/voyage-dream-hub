@@ -1,0 +1,40 @@
+{
+  "manifest_version": 3,
+  "name": "VIA AIR — Exportar Cruzeiro",
+  "version": "1.0.0",
+  "description": "Captura cruzeiros no portal da operadora e envia para o cruzeiro com importação ativa na VIA AIR.",
+  "icons": { "48": "icon.png", "128": "icon.png" },
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": "icon.png",
+    "default_title": "Exportar Cruzeiro"
+  },
+  "permissions": ["storage", "tabs", "scripting"],
+  "host_permissions": [
+    "*://*.krooze.com.br/*",
+    "https://pedidos.viaair.tur.br/*",
+    "https://*.lovable.app/*"
+  ],
+  "background": { "service_worker": "background.js" },
+  "content_scripts": [
+    {
+      "matches": ["*://*.krooze.com.br/*"],
+      "js": ["page-hook.js"],
+      "run_at": "document_start",
+      "world": "MAIN",
+      "all_frames": true
+    },
+    {
+      "matches": ["*://*.krooze.com.br/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle",
+      "all_frames": true
+    },
+    {
+      "matches": ["https://pedidos.viaair.tur.br/*", "https://*.lovable.app/*"],
+      "js": ["portal.js"],
+      "run_at": "document_idle",
+      "all_frames": false
+    }
+  ]
+}
