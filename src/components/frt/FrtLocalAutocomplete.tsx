@@ -17,6 +17,8 @@ export type FrtLocalSelecionado = {
 export type FrtAutocompleteDiag = {
   termo: string;
   componente: "origem" | "destino";
+  /** Nome da server function realmente chamada — precisa ser sempre frtAutocomplete. */
+  serverFn: string;
   source: string;
   disparado: boolean;
   status: number;
@@ -28,6 +30,7 @@ export type FrtAutocompleteDiag = {
   erro?: string;
   em: string;
 };
+
 
 type Props = {
   id: string;
