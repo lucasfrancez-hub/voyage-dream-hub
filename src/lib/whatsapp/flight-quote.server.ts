@@ -261,7 +261,12 @@ async function resolveIata(
   const list = await searchAirports({ query: raw, isDeparture });
   if (!list.length) {
     if (local?.tipo === "cidade") {
-      return { iata: local.codigo_pesquisa, nome: local.cidade ?? local.codigo_pesquisa, isCity: true, interpretacao: local };
+      return {
+        iata: local.codigo_pesquisa,
+        nome: nomeBonito(local.codigo_pesquisa, local.cidade),
+        isCity: true,
+        interpretacao: local,
+      };
     }
     return null;
   }
@@ -270,9 +275,7 @@ async function resolveIata(
   const cidade = list.find((a) => a.isCity) ?? list[0];
   const pick = exato ?? cidade;
   const iata = pick.iata.toUpperCase();
-  let nome = pick.city || pick.name || iata;
-  // A operadora às vezes devolve o próprio código ("SAO") como nome da cidade.
-  if (/^[A-Z]{3}$/.test(nome.trim().toUpperCase())) nome = NOMES_CIDADE[iata] ?? nome;
+  const nome = nomeBonito(iata, pick.city || pick.name);
   const isCity = !!pick.isCity || isCodigoDeCidade(iata);
   return { iata, nome, isCity, interpretacao: local };
 }
