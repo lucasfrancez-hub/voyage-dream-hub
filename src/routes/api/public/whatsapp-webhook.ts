@@ -653,7 +653,10 @@ async function processPayload(payload: WhatsAppPayload) {
         // humana agenda no máximo 3 min. Qualquer valor acima desse teto é
         // lease em andamento — sobrescrever liberava um segundo runAgent
         // simultâneo para a mesma conversa (respostas e perguntas repetidas).
-        const TETO_AGENDAMENTO_MS = 200 * 1000;
+        // O lease de execução agora é de 2min (renovado por heartbeat), então
+        // qualquer agendamento acima de 100s à frente é lease/espera de
+        // transferência: não sobrescrever.
+        const TETO_AGENDAMENTO_MS = 100 * 1000;
         const atual = convState?.ai_debounce_until
           ? new Date(convState.ai_debounce_until as string).getTime()
           : 0;
