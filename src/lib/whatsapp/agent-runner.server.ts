@@ -1654,6 +1654,34 @@ export async function runAgent(input: {
       .update({ agent_slug: agent.slug })
       .eq("id", conv.id);
 
+    // PERGUNTA PENDENTE: guarda o que o especialista acabou de perguntar pra
+    // que a resposta curta do cliente ("2", "sim", "com bagagem") seja
+    // resolvida deterministicamente no próximo turno — sem repetir a pergunta.
+    if (centralAgent) {
+      try {
+        const { detectPendingQuestion } = await import("./pending-question-detect");
+        const pergunta = detectPendingQuestion(text);
+        if (pergunta) {
+          const { ensureFlightRequest, setPendingQuestion } = await import("./flight-request.server");
+          const reqAtual = await ensureFlightRequest({
+            conversation_id: conv.id,
+            protocol_id: protocolo.id,
+            agent_slug: centralAgent.slug,
+          }).catch(() => null);
+          if (reqAtual?.id) {
+            await setPendingQuestion({
+              request_id: reqAtual.id,
+              question: pergunta,
+              message_id: savedRowIds[savedRowIds.length - 1] ?? null,
+            });
+          }
+        }
+      } catch (e) {
+        console.warn("[agent] não consegui registrar a pergunta pendente:", e);
+      }
+    }
+
+
     // FALLBACK DE ESCALAÇÃO: se a IA anunciou que está passando pro comercial
     // mas NÃO chamou a tool escalar_para_humano, marca aguardando_humano
     // mesmo assim pra aparecer "atendimento necessário" no painel.
