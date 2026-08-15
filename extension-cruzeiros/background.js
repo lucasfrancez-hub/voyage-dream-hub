@@ -44,6 +44,15 @@ async function sendCapture(payload, sessionToken) {
   return json;
 }
 
+async function finishImport() {
+  const token = await getToken();
+  if (!token) return { error: "no_token" };
+  const res = await fetch(ENDPOINT, { method: "DELETE", headers: { authorization: `Bearer ${token}` } });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) return { error: json.error || "http_" + res.status };
+  return json;
+}
+
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   if (!msg) return;
   if (msg.type === "viaair-cruise-pair") {
@@ -52,6 +61,10 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   }
   if (msg.type === "viaair-cruise-active") {
     activeCruise().then(sendResponse).catch((e) => sendResponse({ error: String(e) }));
+    return true;
+  }
+  if (msg.type === "viaair-cruise-finish") {
+    finishImport().then(sendResponse).catch((e) => sendResponse({ error: String(e) }));
     return true;
   }
   if (msg.type === "viaair-cruise-send") {
