@@ -175,7 +175,8 @@ async function doLogin(): Promise<Session> {
 
   // Validação real: acessar a área autenticada.
   const venda = await frtFetch(s, VENDA_URL, { headers: { Referer: LOGIN_URL } });
-  if (looksLikeLoginPage(venda.body) || looksLikeLoginPage(posted.body) === true && !s.cookies.size) {
+  const negado = looksLikeLoginPage(venda.body) || (!s.cookies.size && looksLikeLoginPage(posted.body));
+  if (negado) {
     loginFails += 1;
     if (loginFails >= MAX_LOGIN_FAILS) {
       blockedUntil = Date.now() + LOGIN_COOLDOWN_MS;
