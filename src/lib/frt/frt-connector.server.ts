@@ -487,20 +487,23 @@ export async function consultarFRT(input: FrtSearchInput): Promise<FrtSearchResp
 }
 
 /** Diagnóstico read-only: login + leitura da tela de venda (sem pesquisar). */
-export async function frtDiagnostico() {
+export async function frtDiagnostico(reusarSessao = true) {
   try {
-    frtInvalidateSession();
-    const s = await getSession(true);
+    const s = await getSession(!reusarSessao);
     const { body } = await frtFetch(s, VENDA_URL);
     const resolved = resolveSearchFields(body);
+    const autenticado = !looksLikeLoginPage(body) && !needsAuthCode(body);
     return {
-      ok: !looksLikeLoginPage(body),
-      autenticado: !looksLikeLoginPage(body),
+      ok: autenticado && resolved.missing.length === 0,
+      autenticado,
+      aguardandoCodigo: needsAuthCode(body),
       viewStatePresente: Boolean(extractViewState(body)),
       cookies: [...s.cookies.keys()],
-      campos: resolved.fields,
+      campos: resolved.fields as Record<string, string> | null,
       camposAusentes: resolved.missing,
       camposAlterados: resolved.changed,
+      erro: null as string | null,
+      mensagem: null as string | null,
       log: frtTraceLog().slice(-30),
     };
   } catch (e) {
@@ -508,13 +511,14 @@ export async function frtDiagnostico() {
     return {
       ok: false,
       autenticado: false,
+      aguardandoCodigo: err?.code === "FRT_2FA_REQUIRED",
       viewStatePresente: false,
       cookies: [] as string[],
-      campos: null,
+      campos: null as Record<string, string> | null,
       camposAusentes: [] as string[],
       camposAlterados: [] as string[],
-      erro: err?.code ?? "FRT_NETWORK_ERROR",
-      mensagem: err?.message ?? "Falha ao conectar na FRT",
+      erro: (err?.code ?? "FRT_NETWORK_ERROR") as string | null,
+      mensagem: (err?.message ?? "Falha ao conectar na FRT") as string | null,
       log: frtTraceLog().slice(-30),
     };
   }
