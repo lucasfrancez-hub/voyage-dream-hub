@@ -267,3 +267,86 @@ export const deleteSnapshot = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true as const };
   });
+
+/**
+ * Prévia interna do cruzeiro: exatamente o que foi importado, montado no
+ * mesmo formato que o cliente veria — sem publicar nada no site público.
+ */
+export const getCruisePreview = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { id: string }) => ({ id: String(d?.id ?? "") }))
+  .handler(async ({ context, data }) => {
+    await ensureAdmin(context);
+    const sb = context.supabase;
+
+    const { data: cruise } = await sb.from("cruises").select("*").eq("id", data.id).maybeSingle();
+    if (!cruise) throw new Error("Cruzeiro não encontrado");
+
+    const [offers, prices, itinerary, additionals, addPrices, insurances, media] = await Promise.all([
+      sb.from("cruise_cabin_offers").select("*").eq("cruise_id", data.id).order("sort_order"),
+      sb.from("cruise_prices").select("*").eq("cruise_id", data.id).eq("is_current", true),
+      sb.from("cruise_itineraries").select("*").eq("cruise_id", data.id).order("day"),
+      sb.from("cruise_additionals").select("*").eq("cruise_id", data.id),
+      sb.from("cruise_additional_prices").select("*"),
+      sb.from("cruise_insurances").select("*").eq("cruise_id", data.id),
+      sb.from("cruise_media").select("*").eq("cruise_id", data.id).order("sort_order").limit(400),
+    ]);
+
+    /* eslint-disable @typescript-eslint/no-explicit-any */
+    let ship: any = null;
+    let shipMedia: any[] = [];
+    let decks: any[] = [];
+    let attractions: any[] = [];
+    let shipCabins: any[] = [];
+    if (cruise.ship_id) {
+      const shipId = cruise.ship_id as string;
+      const [s, m, d2, a, c] = await Promise.all([
+        sb.from("ships").select("*").eq("id", shipId).maybeSingle(),
+        sb.from("ship_media").select("*").eq("ship_id", shipId).order("sort_order").limit(400),
+        sb.from("ship_decks").select("*").eq("ship_id", shipId).order("sort_order"),
+        sb.from("ship_attractions").select("*").eq("ship_id", shipId).order("sort_order"),
+        sb.from("ship_cabins").select("*").eq("ship_id", shipId).order("name"),
+      ]);
+      ship = s.data ?? null;
+      shipMedia = m.data ?? [];
+      decks = d2.data ?? [];
+      attractions = a.data ?? [];
+      shipCabins = c.data ?? [];
+    }
+
+    const additionalsFull: any[] = ((additionals.data ?? []) as any[]).map((a) => ({
+      ...a,
+      prices: ((addPrices.data ?? []) as any[]).filter((p) => p.additional_id === a.id),
+    }));
+
+    const payload: {
+      cruise: any;
+      ship: any;
+      itinerary: any[];
+      offers: any[];
+      prices: any[];
+      additionals: any[];
+      insurances: any[];
+      media: any[];
+      shipMedia: any[];
+      decks: any[];
+      attractions: any[];
+      shipCabins: any[];
+    } = {
+      cruise,
+      ship,
+      itinerary: (itinerary.data ?? []) as any[],
+      offers: (offers.data ?? []) as any[],
+      prices: (prices.data ?? []) as any[],
+      additionals: additionalsFull,
+      insurances: (insurances.data ?? []) as any[],
+      media: (media.data ?? []) as any[],
+      shipMedia,
+      decks,
+      attractions,
+      shipCabins,
+    };
+    return payload;
+    /* eslint-enable @typescript-eslint/no-explicit-any */
+  });
+

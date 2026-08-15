@@ -124,6 +124,7 @@ import { Route as CruzeirosUiPreviewIndexRouteImport } from './routes/cruzeiros_
 import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/email/suppression'
 import { Route as PacotesSlugIndexRouteImport } from './routes/pacotes.$slug.index'
 import { Route as PacotesSlugCheckoutRouteImport } from './routes/pacotes.$slug.checkout'
+import { Route as AdminCruzeirosPreviaIdRouteImport } from './routes/admin.cruzeiros.previa.$id'
 import { Route as ApiPublicAdminManifestTokenRouteImport } from './routes/api/public/admin-manifest.$token'
 import { Route as ApiPublicAgendaManifestTokenRouteImport } from './routes/api/public/agenda-manifest.$token'
 import { Route as ApiPublicBoletoIdRouteImport } from './routes/api/public/boleto.$id'
@@ -741,6 +742,11 @@ const PacotesSlugCheckoutRoute = PacotesSlugCheckoutRouteImport.update({
   path: '/$slug/checkout',
   getParentRoute: () => PacotesRoute,
 } as any)
+const AdminCruzeirosPreviaIdRoute = AdminCruzeirosPreviaIdRouteImport.update({
+  id: '/previa/$id',
+  path: '/previa/$id',
+  getParentRoute: () => AdminCruzeirosRoute,
+} as any)
 const ApiPublicAdminManifestTokenRoute =
   ApiPublicAdminManifestTokenRouteImport.update({
     id: '/api/public/admin-manifest/$token',
@@ -974,7 +980,7 @@ export interface FileRoutesByFullPath {
   '/admin/conta-bancaria': typeof AdminContaBancariaRoute
   '/admin/contas-pagar': typeof AdminContasPagarRoute
   '/admin/contas-receber': typeof AdminContasReceberRoute
-  '/admin/cruzeiros': typeof AdminCruzeirosRoute
+  '/admin/cruzeiros': typeof AdminCruzeirosRouteWithChildren
   '/admin/dashboard': typeof AdminDashboardRoute
   '/admin/editair': typeof AdminEditairRoute
   '/admin/encurtador': typeof AdminEncurtadorRoute
@@ -1056,6 +1062,7 @@ export interface FileRoutesByFullPath {
   '/admin/pedidos/': typeof AdminPedidosIndexRoute
   '/cruzeiros/ui-preview/': typeof CruzeirosUiPreviewIndexRoute
   '/pacotes/$slug/': typeof PacotesSlugIndexRoute
+  '/admin/cruzeiros/previa/$id': typeof AdminCruzeirosPreviaIdRoute
   '/api/public/admin-manifest/$token': typeof ApiPublicAdminManifestTokenRoute
   '/api/public/agenda-manifest/$token': typeof ApiPublicAgendaManifestTokenRoute
   '/api/public/boleto/$id': typeof ApiPublicBoletoIdRoute
@@ -1123,7 +1130,7 @@ export interface FileRoutesByTo {
   '/admin/conta-bancaria': typeof AdminContaBancariaRoute
   '/admin/contas-pagar': typeof AdminContasPagarRoute
   '/admin/contas-receber': typeof AdminContasReceberRoute
-  '/admin/cruzeiros': typeof AdminCruzeirosRoute
+  '/admin/cruzeiros': typeof AdminCruzeirosRouteWithChildren
   '/admin/dashboard': typeof AdminDashboardRoute
   '/admin/editair': typeof AdminEditairRoute
   '/admin/encurtador': typeof AdminEncurtadorRoute
@@ -1205,6 +1212,7 @@ export interface FileRoutesByTo {
   '/admin/pedidos': typeof AdminPedidosIndexRoute
   '/cruzeiros/ui-preview': typeof CruzeirosUiPreviewIndexRoute
   '/pacotes/$slug': typeof PacotesSlugIndexRoute
+  '/admin/cruzeiros/previa/$id': typeof AdminCruzeirosPreviaIdRoute
   '/api/public/admin-manifest/$token': typeof ApiPublicAdminManifestTokenRoute
   '/api/public/agenda-manifest/$token': typeof ApiPublicAgendaManifestTokenRoute
   '/api/public/boleto/$id': typeof ApiPublicBoletoIdRoute
@@ -1275,7 +1283,7 @@ export interface FileRoutesById {
   '/admin/conta-bancaria': typeof AdminContaBancariaRoute
   '/admin/contas-pagar': typeof AdminContasPagarRoute
   '/admin/contas-receber': typeof AdminContasReceberRoute
-  '/admin/cruzeiros': typeof AdminCruzeirosRoute
+  '/admin/cruzeiros': typeof AdminCruzeirosRouteWithChildren
   '/admin/dashboard': typeof AdminDashboardRoute
   '/admin/editair': typeof AdminEditairRoute
   '/admin/encurtador': typeof AdminEncurtadorRoute
@@ -1357,6 +1365,7 @@ export interface FileRoutesById {
   '/admin/pedidos/': typeof AdminPedidosIndexRoute
   '/cruzeiros_/ui-preview/': typeof CruzeirosUiPreviewIndexRoute
   '/pacotes/$slug/': typeof PacotesSlugIndexRoute
+  '/admin/cruzeiros/previa/$id': typeof AdminCruzeirosPreviaIdRoute
   '/api/public/admin-manifest/$token': typeof ApiPublicAdminManifestTokenRoute
   '/api/public/agenda-manifest/$token': typeof ApiPublicAgendaManifestTokenRoute
   '/api/public/boleto/$id': typeof ApiPublicBoletoIdRoute
@@ -1510,6 +1519,7 @@ export interface FileRouteTypes {
     | '/admin/pedidos/'
     | '/cruzeiros/ui-preview/'
     | '/pacotes/$slug/'
+    | '/admin/cruzeiros/previa/$id'
     | '/api/public/admin-manifest/$token'
     | '/api/public/agenda-manifest/$token'
     | '/api/public/boleto/$id'
@@ -1659,6 +1669,7 @@ export interface FileRouteTypes {
     | '/admin/pedidos'
     | '/cruzeiros/ui-preview'
     | '/pacotes/$slug'
+    | '/admin/cruzeiros/previa/$id'
     | '/api/public/admin-manifest/$token'
     | '/api/public/agenda-manifest/$token'
     | '/api/public/boleto/$id'
@@ -1810,6 +1821,7 @@ export interface FileRouteTypes {
     | '/admin/pedidos/'
     | '/cruzeiros_/ui-preview/'
     | '/pacotes/$slug/'
+    | '/admin/cruzeiros/previa/$id'
     | '/api/public/admin-manifest/$token'
     | '/api/public/agenda-manifest/$token'
     | '/api/public/boleto/$id'
@@ -2740,6 +2752,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PacotesSlugCheckoutRouteImport
       parentRoute: typeof PacotesRoute
     }
+    '/admin/cruzeiros/previa/$id': {
+      id: '/admin/cruzeiros/previa/$id'
+      path: '/previa/$id'
+      fullPath: '/admin/cruzeiros/previa/$id'
+      preLoaderRoute: typeof AdminCruzeirosPreviaIdRouteImport
+      parentRoute: typeof AdminCruzeirosRoute
+    }
     '/api/public/admin-manifest/$token': {
       id: '/api/public/admin-manifest/$token'
       path: '/api/public/admin-manifest/$token'
@@ -2981,6 +3000,18 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AdminCruzeirosRouteChildren {
+  AdminCruzeirosPreviaIdRoute: typeof AdminCruzeirosPreviaIdRoute
+}
+
+const AdminCruzeirosRouteChildren: AdminCruzeirosRouteChildren = {
+  AdminCruzeirosPreviaIdRoute: AdminCruzeirosPreviaIdRoute,
+}
+
+const AdminCruzeirosRouteWithChildren = AdminCruzeirosRoute._addFileChildren(
+  AdminCruzeirosRouteChildren,
+)
+
 interface AdminPessoasRouteChildren {
   AdminPessoasIdRoute: typeof AdminPessoasIdRoute
 }
@@ -3005,7 +3036,7 @@ interface AdminRouteChildren {
   AdminContaBancariaRoute: typeof AdminContaBancariaRoute
   AdminContasPagarRoute: typeof AdminContasPagarRoute
   AdminContasReceberRoute: typeof AdminContasReceberRoute
-  AdminCruzeirosRoute: typeof AdminCruzeirosRoute
+  AdminCruzeirosRoute: typeof AdminCruzeirosRouteWithChildren
   AdminDashboardRoute: typeof AdminDashboardRoute
   AdminEditairRoute: typeof AdminEditairRoute
   AdminEncurtadorRoute: typeof AdminEncurtadorRoute
@@ -3051,7 +3082,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminContaBancariaRoute: AdminContaBancariaRoute,
   AdminContasPagarRoute: AdminContasPagarRoute,
   AdminContasReceberRoute: AdminContasReceberRoute,
-  AdminCruzeirosRoute: AdminCruzeirosRoute,
+  AdminCruzeirosRoute: AdminCruzeirosRouteWithChildren,
   AdminDashboardRoute: AdminDashboardRoute,
   AdminEditairRoute: AdminEditairRoute,
   AdminEncurtadorRoute: AdminEncurtadorRoute,
