@@ -1332,7 +1332,13 @@ export async function runAgent(input: {
 
     const agentPromptMismatch =
       ((agent.equipe ?? "consultor") === "especialista") !== (loadedPromptType === "central_especialistas") ||
-      (loadedPromptType === "central_especialistas" && !enabledTools.includes("pesquisar_passagens"));
+      // Enquanto falta a origem, pesquisar_passagens é removida de propósito
+      // para obrigar o especialista a perguntar antes de pesquisar. Isso não é
+      // incompatibilidade de prompt; exigir a tool aqui abortava o turno em
+      // silêncio e criava um loop de reexecução a cada minuto.
+      (loadedPromptType === "central_especialistas" &&
+        !bloquearPesquisa &&
+        !enabledTools.includes("pesquisar_passagens"));
     if (agentPromptMismatch) {
       console.error("[agent-runtime]", JSON.stringify({ ...runtimeAudit, event: "agent_prompt_mismatch" }));
       return;
