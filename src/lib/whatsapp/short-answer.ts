@@ -184,6 +184,9 @@ export function parseCidadeLivre(textoNormalizado: string): string | null {
   if (bruto.length < 3) return null;
   if (/\d/.test(bruto)) return null;
   if (/^(sim|nao|ok|claro|isso|beleza|talvez|nao sei|qualquer|tanto faz|aqui)$/.test(bruto)) return null;
+  // Vocativo ("Robertp", "Camila") não é cidade — inclusive com erro de digitação.
+  if (pareceNomeDePessoa(bruto)) return null;
+
   return bruto.replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
