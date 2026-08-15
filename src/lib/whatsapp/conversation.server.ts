@@ -18,6 +18,8 @@ export type WaConversation = {
   last_message_at: string;
   tags: string[];
   protocolo_ativo_id: string | null;
+  /** Agente de IA que está atendendo agora (fonte de verdade da identidade). */
+  agent_slug?: string | null;
 };
 
 export type WaMessage = {
