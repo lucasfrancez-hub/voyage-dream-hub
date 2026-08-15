@@ -35,6 +35,8 @@ export const listCruises = createServerFn({ method: "GET" })
       .select("id, cruise_id, token")
       .eq("user_id", context.userId)
       .eq("status", "active")
+      .order("created_at", { ascending: false })
+      .limit(1)
       .maybeSingle();
     return { cruises: data ?? [], activeSession: session ?? null };
   });
@@ -158,6 +160,8 @@ export const activateImport = createServerFn({ method: "POST" })
       .select("id, cruise_id, cruise:cruises(name)")
       .eq("user_id", context.userId)
       .eq("status", "active")
+      .order("created_at", { ascending: false })
+      .limit(1)
       .maybeSingle();
 
     if (current && current.cruise_id !== data.cruise_id) {
