@@ -1253,7 +1253,8 @@ export async function runAgent(input: {
       quoteBlock +
       pacoteBlock +
       escopoBlock +
-      flightBlock;
+      flightBlock +
+      novasBlock;
 
 
 
