@@ -202,7 +202,8 @@ async function inicializarMotorPrimeFaces(
   viewState: string,
   htmlGet: string,
 ): Promise<{ html: string; viewState: string | null } | null> {
-  let melhor: { html: string; viewState: string | null } | null = null;
+  let melhorHtml = "";
+  let melhorVs: string | null = null;
 
   const tentativas: { source: string; render: string }[] = [];
   for (const source of detectarFonteInit(htmlGet)) {
@@ -218,7 +219,7 @@ async function inicializarMotorPrimeFaces(
     form.set("javax.faces.partial.render", t.render);
     form.set(t.source, t.source);
     form.set("frmAguarde", "frmAguarde");
-    form.set("javax.faces.ViewState", melhor?.viewState ?? viewState);
+    form.set("javax.faces.ViewState", melhorVs ?? viewState);
 
     trace(`POST init venda.xhtml (source=${t.source} render=${t.render})`);
     try {
@@ -256,7 +257,7 @@ async function inicializarMotorPrimeFaces(
       trace(`  init falhou: ${e instanceof Error ? e.message : String(e)}`);
     }
   }
-  return melhor;
+  return melhorHtml ? { html: melhorHtml, viewState: melhorVs } : null;
 }
 
 
@@ -283,7 +284,7 @@ async function abrirVenda(s: Session, referer = BASE): Promise<AcessoVenda> {
     const vsGet = extractViewState(body);
     if (vsGet) {
       initExecutado = true;
-      const init = await inicializarMotorPrimeFaces(s, vsGet);
+      const init = await inicializarMotorPrimeFaces(s, vsGet, body);
       if (init?.html) {
         body = `${body}\n<!-- frmMasterVenda (init PrimeFaces) -->\n${init.html}`;
         if (init.viewState) s.viewState = init.viewState;
