@@ -1516,7 +1516,27 @@ export async function runAgent(input: {
         : Promise.resolve({ count: 0 }),
 
     ]);
+    // ANTI-ATROPELO DA TRANSFERÊNCIA: se outro run já anunciou o aviso de
+    // transferência depois desta mensagem do cliente, o especialista só pode
+    // entrar no run agendado (1min30–3min). Sem isso ele respondia no mesmo
+    // segundo do aviso.
+    let transferenciaEmEspera = false;
+    if (centralAgent && latestInboundAtStart?.created_at) {
+      const { count: avisoRecente } = await supabaseAdmin
+        .from("wa_messages")
+        .select("id", { count: "exact", head: true })
+        .eq("conversation_id", conv.id)
+        .eq("protocolo_id", protocolo.id)
+        .eq("direction", "outbound")
+        .eq("content", AVISO_TRANSFERENCIA_AEREO)
+        .gt("created_at", latestInboundAtStart.created_at);
+      transferenciaEmEspera =
+        (avisoRecente ?? 0) > 0 &&
+        !!currentConv?.ai_debounce_until &&
+        new Date(currentConv.ai_debounce_until as string) > new Date();
+    }
     const activeSlug = centralAgent ? currentConv?.central_slug : currentConv?.agent_slug;
+
     const runtimeSwitchedToCentral = !centralAgent && currentConv?.central_slug != null;
     const staleRun =
       currentConv?.mode !== "ai" ||
