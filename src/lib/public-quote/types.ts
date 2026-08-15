@@ -70,6 +70,8 @@ export type FlightLeg = {
   carryOn: boolean;
   personalItem: boolean;
   checkedBaggage: boolean;
+  /** Ex.: "1x bagagem despachada (23kg)" */
+  checkedBaggageLabel?: string | null;
   segments: FlightSegment[];
   /** Trecho possui conexão com troca de aeroporto. */
   hasAirportChange?: boolean;
