@@ -202,7 +202,18 @@ export function resolvePendingFlightAnswer(params: {
 
     case "ask_origin": {
       if (sim || nao) return { ...VAZIO, ambiguous: true };
-      return VAZIO; // cidade livre → o modelo interpreta e confirma
+      // Cidade livre ("Maringá", "saio de Maringá") precisa ser PERSISTIDA aqui.
+      // Enquanto isso ficava só a cargo do modelo, a origem se perdia entre os
+      // turnos e o especialista repetia "de qual cidade você pretende embarcar?".
+      const cidade = parseCidadeLivre(t);
+      if (cidade)
+        return {
+          resolved: true,
+          patch: { origin: cidade, origin_status: "informed_by_customer" },
+          next_action: "ask_destination",
+          note: `origem informada pelo cliente: ${cidade}`,
+        };
+      return VAZIO;
     }
 
     case "confirm_trip_type_and_dates": {
