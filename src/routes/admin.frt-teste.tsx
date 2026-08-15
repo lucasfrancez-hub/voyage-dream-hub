@@ -19,6 +19,10 @@ import {
   estado2faFrt,
   cancelar2faFrt,
 } from "@/lib/frt/frt.functions";
+import {
+  FrtLocalAutocomplete,
+  type FrtLocalSelecionado,
+} from "@/components/frt/FrtLocalAutocomplete";
 
 export const Route = createFileRoute("/admin/frt-teste")({
   head: () => ({
@@ -55,6 +59,8 @@ function FrtTestePage() {
 
   const [origem, setOrigem] = useState("MGF");
   const [destino, setDestino] = useState("SSA");
+  const [selOrigem, setSelOrigem] = useState<FrtLocalSelecionado | null>(null);
+  const [selDestino, setSelDestino] = useState<FrtLocalSelecionado | null>(null);
   const [ida, setIda] = useState("2026-09-23");
   const [volta, setVolta] = useState("2026-09-30");
   const [adultos, setAdultos] = useState(2);
@@ -100,18 +106,23 @@ function FrtTestePage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  // A pesquisa só usa origem/destino efetivamente selecionados na lista da FRT.
+  const prontoParaConsultar = Boolean(selOrigem && selDestino);
+  const dadosPesquisa = () => ({
+    origem: selOrigem?.value ?? origem,
+    destino: selDestino?.value ?? destino,
+    origemLabel: selOrigem?.label,
+    destinoLabel: selDestino?.label,
+    origemValue: selOrigem?.value,
+    destinoValue: selDestino?.value,
+    ida,
+    volta: volta || null,
+    adultos,
+    criancas,
+  });
+
   const searchMut = useMutation({
-    mutationFn: () =>
-      consulta({
-        data: {
-          origem,
-          destino,
-          ida,
-          volta: volta || null,
-          adultos,
-          criancas,
-        },
-      }),
+    mutationFn: () => consulta({ data: dadosPesquisa() }),
     onSuccess: (r) => {
       if (r.success) toast.success(`${r.results.length} resultado(s) normalizado(s)`);
       else toast.error(`${r.error}: ${r.message ?? ""}`);
@@ -120,12 +131,10 @@ function FrtTestePage() {
   });
 
   const diagPesqMut = useMutation({
-    mutationFn: () =>
-      diagPesquisa({
-        data: { origem, destino, ida, volta: volta || null, adultos, criancas },
-      }),
+    mutationFn: () => diagPesquisa({ data: dadosPesquisa() }),
     onError: (e: Error) => toast.error(e.message),
   });
+
 
   const dp = diagPesqMut.data;
   const d = diagMut.data;
@@ -316,14 +325,29 @@ function FrtTestePage() {
           <Search className="size-4" /> Pesquisa (read-only)
         </div>
         <div className="grid grid-cols-2 gap-3 md:grid-cols-6">
-          <div className="space-y-1">
-            <Label htmlFor="frt-origem">Origem</Label>
-            <Input id="frt-origem" value={origem} onChange={(e) => setOrigem(e.target.value)} />
+          <div className="col-span-2 md:col-span-2">
+            <FrtLocalAutocomplete
+              id="frt-origem"
+              rotulo="Origem"
+              componente="origem"
+              termo={origem}
+              onTermoChange={setOrigem}
+              selecionado={selOrigem}
+              onSelecionar={setSelOrigem}
+            />
           </div>
-          <div className="space-y-1">
-            <Label htmlFor="frt-destino">Destino</Label>
-            <Input id="frt-destino" value={destino} onChange={(e) => setDestino(e.target.value)} />
+          <div className="col-span-2 md:col-span-2">
+            <FrtLocalAutocomplete
+              id="frt-destino"
+              rotulo="Destino"
+              componente="destino"
+              termo={destino}
+              onTermoChange={setDestino}
+              selecionado={selDestino}
+              onSelecionar={setSelDestino}
+            />
           </div>
+
           <div className="space-y-1">
             <Label htmlFor="frt-ida">Ida</Label>
             <Input id="frt-ida" type="date" value={ida} onChange={(e) => setIda(e.target.value)} />
@@ -355,8 +379,16 @@ function FrtTestePage() {
             />
           </div>
         </div>
+        {!prontoParaConsultar ? (
+          <p className="text-xs text-amber-600">
+            Selecione origem e destino na lista do autocomplete da FRT para liberar a consulta.
+          </p>
+        ) : null}
         <div className="flex flex-wrap gap-2">
-          <Button onClick={() => searchMut.mutate()} disabled={searchMut.isPending}>
+          <Button
+            onClick={() => searchMut.mutate()}
+            disabled={searchMut.isPending || !prontoParaConsultar}
+          >
             {searchMut.isPending ? (
               <>
                 <Loader2 className="mr-2 size-4 animate-spin" /> Consultando FRT…
@@ -368,8 +400,9 @@ function FrtTestePage() {
           <Button
             variant="outline"
             onClick={() => diagPesqMut.mutate()}
-            disabled={diagPesqMut.isPending}
+            disabled={diagPesqMut.isPending || !prontoParaConsultar}
           >
+
             {diagPesqMut.isPending ? (
               <>
                 <Loader2 className="mr-2 size-4 animate-spin" /> Diagnosticando…
