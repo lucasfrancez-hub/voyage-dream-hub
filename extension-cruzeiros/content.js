@@ -147,14 +147,12 @@
         data.media.push(...parser.parseMedia(pane, "ship", "ship"));
         Object.assign(data.specs, parser.parseTechnicalSheet(pane).specs);
       } else if (key.includes("atrac")) {
-        // 54. Percorre todos os filtros de atração, não só o primeiro.
-        const filters = [
-          ...pane.querySelectorAll("button, .filter, [class*='filter'] li, [role='tab']"),
-        ].filter((el) => H.clean(el.textContent).length > 1 && H.clean(el.textContent).length < 30);
+        // 54. Percorre todos os filtros de atração (Restaurantes, Crianças…).
+        const filters = filterTabs(pane);
         if (filters.length) {
           for (const filter of filters) {
-            const fname = H.clean(filter.textContent);
-            if (FORBIDDEN_CLICK.test(fname)) continue;
+            const fname = H.clean(filter.textContent).replace(/\(\d+\)/g, "").trim();
+            if (FORBIDDEN_CLICK.test(fname) || /^todos$/i.test(fname)) continue;
             safeClick(filter);
             await H.waitForDOMStable(pane, 260, 4000);
             data.attractions.push(...parser.parseAttractions(pane, H.normalizeText(fname)));
@@ -164,9 +162,22 @@
         }
         data.media.push(...parser.parseMedia(pane, "attraction", "ship"));
       } else if (key.includes("cabine")) {
-        data.ship_cabins.push(...parser.parseShipCabins(pane));
+        // Cabines do navio também vêm por filtro (Suíte, Varanda, Externa…).
+        const filters = filterTabs(pane);
+        if (filters.length) {
+          for (const filter of filters) {
+            const fname = H.clean(filter.textContent).replace(/\(\d+\)/g, "").trim();
+            if (FORBIDDEN_CLICK.test(fname) || /^todos$/i.test(fname)) continue;
+            safeClick(filter);
+            await H.waitForDOMStable(pane, 260, 4000);
+            data.ship_cabins.push(...parser.parseShipCabins(pane));
+          }
+        } else {
+          data.ship_cabins.push(...parser.parseShipCabins(pane));
+        }
         data.media.push(...parser.parseMedia(pane, "cabin", "ship"));
       } else if (key.includes("deck")) {
+
         // 56. Percorre todos os decks disponíveis.
         const deckButtons = [...pane.querySelectorAll("button, li, [role='tab'], option")].filter((el) =>
           /^deck\s*\d+/i.test(H.clean(el.textContent)),
