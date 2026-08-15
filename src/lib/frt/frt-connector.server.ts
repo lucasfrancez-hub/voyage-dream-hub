@@ -117,7 +117,42 @@ async function frtFetch(
   }
 }
 
+/* ------------- acesso autenticado à tela de venda ------------------ */
+
+export type AcessoVenda = {
+  status: number;
+  urlFinal: string;
+  temFormulario: boolean;
+  temLogin: boolean;
+  voltouParaLogin: boolean;
+  body: string;
+};
+
+/**
+ * GET autenticado explícito em venda.xhtml, seguindo redirects e usando
+ * exatamente o mesmo cookie jar. Só depois disso vale procurar ViewState
+ * e frmMotorPacote. Loga as três provas pedidas.
+ */
+async function abrirVenda(s: Session, referer = BASE): Promise<AcessoVenda> {
+  trace("GET venda.xhtml");
+  const { res, body, url } = await frtFetch(s, VENDA_URL, { headers: { Referer: referer } });
+  const temFormulario = /frmMotorPacote/i.test(body);
+  const temLogin = /login-usuario-input/i.test(body);
+  const voltouParaLogin = /auth\.xhtml|login\.xhtml/i.test(url) || temLogin;
+  trace(`  status: ${res.status}`);
+  trace(`  URL final: ${url}`);
+  trace(`  HTML contém "frmMotorPacote": ${temFormulario}`);
+  trace(`  HTML contém "login-usuario-input": ${temLogin}`);
+  if (voltouParaLogin) {
+    trace("  ⚠️ sessão pós-login NÃO foi reaproveitada (voltou para tela de login)");
+  } else if (!temFormulario) {
+    trace("  ⚠️ venda.xhtml abriu autenticado, mas sem frmMotorPacote (etapa extra de inicialização?)");
+  }
+  return { status: res.status, urlFinal: url, temFormulario, temLogin, voltouParaLogin, body };
+}
+
 /* ----------------------------- login ------------------------------ */
+
 
 function credentials() {
   const user = process.env["FRT_USERNAME"];
@@ -172,10 +207,11 @@ async function doLogin(): Promise<Session> {
     },
   });
 
-  // Validação real: acessar a área autenticada.
-  const venda = await frtFetch(s, VENDA_URL, { headers: { Referer: LOGIN_URL } });
+  // Validação real: acessar a área autenticada (GET explícito, mesmo cookie jar).
+  const venda = await abrirVenda(s, LOGIN_URL);
   const negado =
-    looksLikeLoginPage(venda.body) || (!s.cookies.size && looksLikeLoginPage(posted.body));
+    (venda.voltouParaLogin && !needsAuthCode(venda.body)) ||
+    (!s.cookies.size && looksLikeLoginPage(posted.body));
   if (negado) {
     loginFails += 1;
     if (loginFails >= MAX_LOGIN_FAILS) {
@@ -206,7 +242,12 @@ async function doLogin(): Promise<Session> {
   }
   s.viewState = vsVenda;
   loginFails = 0;
-  trace("login OK — sessão autenticada");
+  trace(
+    venda.temFormulario
+      ? "login OK — venda.xhtml aberta com frmMotorPacote"
+      : "login OK — venda.xhtml aberta, mas SEM frmMotorPacote (validar tela de venda)",
+  );
+
   await persistSession(s);
   return s;
 }
@@ -278,17 +319,52 @@ export async function frtEnviarCodigo(codigo: string) {
     },
   });
 
-  const venda = await frtFetch(s, VENDA_URL);
-  if (needsAuthCode(venda.body) || looksLikeLoginPage(venda.body) || looksLikeLoginPage(body)) {
-    return { ok: false, erro: "FRT_AUTH_FAILED", mensagem: "Código recusado pela FRT." };
+  // 2FA aceito ≠ tela de venda acessível. Faz o GET autenticado explícito.
+  trace("2FA aceito — validando navegação pós-login");
+  const venda = await abrirVenda(s, tela.url);
+  const acessoVenda = {
+    status: venda.status,
+    urlFinal: venda.urlFinal,
+    temFormulario: venda.temFormulario,
+    temLogin: venda.temLogin,
+  };
+  if (needsAuthCode(venda.body) || venda.voltouParaLogin || looksLikeLoginPage(body)) {
+    return {
+      ok: false,
+      erro: "FRT_AUTH_FAILED" as string | null,
+      mensagem: "Código recusado pela FRT." as string | null,
+      aviso: null as string | null,
+      acessoVenda,
+    };
   }
   s.viewState = extractViewState(venda.body);
   s.createdAt = Date.now();
   session = s;
   pendingAuth = null;
   await persistSession(s);
-  trace("código aceito — sessão liberada");
-  return { ok: true };
+  if (!venda.temFormulario) {
+    trace("código aceito, mas frmMotorPacote não apareceu em venda.xhtml");
+    return {
+      ok: true,
+      erro: null as string | null,
+      mensagem: null as string | null,
+      aviso:
+        "Código aceito, mas a tela de venda abriu sem o formulário de consulta (frmMotorPacote). Verifique o log técnico." as
+          | string
+          | null,
+      acessoVenda,
+    };
+  }
+  trace("código aceito — venda.xhtml acessível com frmMotorPacote");
+  return {
+    ok: true,
+    erro: null as string | null,
+    mensagem: null as string | null,
+    aviso: null as string | null,
+    acessoVenda,
+  };
+
+
 }
 
 function needsAuthCode(html: string): boolean {
@@ -336,10 +412,11 @@ async function restoreSession(): Promise<Session | null> {
       viewState: (data.view_state as string | null) ?? null,
       createdAt: Date.now() - idade,
     };
-    const venda = await frtFetch(s, VENDA_URL);
-    if (looksLikeLoginPage(venda.body) || needsAuthCode(venda.body)) return null;
+    const venda = await abrirVenda(s);
+    if (venda.voltouParaLogin || needsAuthCode(venda.body)) return null;
     s.viewState = extractViewState(venda.body);
     trace("sessão FRT restaurada do backend");
+
     return s;
   } catch {
     return null;
@@ -349,8 +426,10 @@ async function restoreSession(): Promise<Session | null> {
 /* ----------------------- tela de consulta -------------------------- */
 
 async function loadVendaScreen(s: Session) {
-  const { body } = await frtFetch(s, VENDA_URL, { headers: { Referer: BASE } });
-  if (looksLikeLoginPage(body)) throw new FrtError("FRT_SESSION_EXPIRED");
+  const venda = await abrirVenda(s);
+  const body = venda.body;
+  if (venda.voltouParaLogin) throw new FrtError("FRT_SESSION_EXPIRED");
+
   const vs = extractViewState(body);
   if (!vs) {
     throw new FrtError(
@@ -490,12 +569,24 @@ export async function consultarFRT(input: FrtSearchInput): Promise<FrtSearchResp
 export async function frtDiagnostico(reusarSessao = true) {
   try {
     const s = await getSession(!reusarSessao);
-    const { body } = await frtFetch(s, VENDA_URL);
+    const venda = await abrirVenda(s);
+    const body = venda.body;
     const resolved = resolveSearchFields(body);
-    const autenticado = !looksLikeLoginPage(body) && !needsAuthCode(body);
+    // Prova definitiva: abrir venda.xhtml autenticado E achar o formulário.
+    const acessoVenda = {
+      status: venda.status,
+      urlFinal: venda.urlFinal,
+      temFormulario: venda.temFormulario,
+      temLogin: venda.temLogin,
+      voltouParaLogin: venda.voltouParaLogin,
+    };
+    const sessaoValida = !venda.voltouParaLogin && !needsAuthCode(body);
+    const autenticado = sessaoValida && venda.temFormulario;
     return {
       ok: autenticado && resolved.missing.length === 0,
       autenticado,
+      sessaoValida,
+      acessoVenda,
       aguardandoCodigo: needsAuthCode(body),
       viewStatePresente: Boolean(extractViewState(body)),
       cookies: [...s.cookies.keys()],
@@ -511,6 +602,14 @@ export async function frtDiagnostico(reusarSessao = true) {
     return {
       ok: false,
       autenticado: false,
+      sessaoValida: false,
+      acessoVenda: null as {
+        status: number;
+        urlFinal: string;
+        temFormulario: boolean;
+        temLogin: boolean;
+        voltouParaLogin: boolean;
+      } | null,
       aguardandoCodigo: err?.code === "FRT_2FA_REQUIRED",
       viewStatePresente: false,
       cookies: [] as string[],
@@ -522,4 +621,5 @@ export async function frtDiagnostico(reusarSessao = true) {
       log: frtTraceLog().slice(-30),
     };
   }
+
 }
