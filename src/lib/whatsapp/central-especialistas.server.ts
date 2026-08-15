@@ -704,22 +704,12 @@ export function buildCentralTools(
             .single();
           const quote_id = (saved?.id as string | undefined) ?? null;
 
-          // PRÉ-GERAÇÃO EM PARALELO: assim que o motor respondeu, as artes das
-          // opções selecionadas começam a ser renderizadas ao mesmo tempo, em
-          // segundo plano. Ficam no cache vinculadas a quote_id/protocolo/opção
-          // e são canceladas se a cotação ou o protocolo mudarem.
+          // ENTREGA 100% EM TEXTO + LINK: as artes (imagens) de voo estão
+          // DESATIVADAS. Nenhuma renderização/pré-aquecimento é disparada —
+          // era essa etapa que travava e derrubava a cotação.
           let cards_enviados = 0;
           if (quote_id) {
-            const { prewarmFlightCards } = await import("./flight-card-cache.server");
-            const prewarm = prewarmFlightCards(result, result.opcoes.slice(0, selecionadas), {
-              conversation_id: conversation.id,
-              quote_id,
-              protocolo_id: conversation.protocolo_ativo_id ?? null,
-              limite: selecionadas,
-            }).catch(() => undefined);
-            // Espera no máximo ~6s pela 1ª arte; o resto continua em paralelo.
-            await Promise.race([prewarm, new Promise((r) => setTimeout(r, 6_000))]);
-            void prewarm;
+
 
             // Entrega a 1ª opção agora; as demais são encadeadas pelo próprio
             // worker (execução nova por opção) e garantidas pelo watchdog.
