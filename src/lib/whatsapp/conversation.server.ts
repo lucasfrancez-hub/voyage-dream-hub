@@ -295,7 +295,9 @@ export async function saveMessage(input: {
     .insert({
       conversation_id: input.conversation_id,
       direction: input.direction,
-      sender: input.sender,
+      // IDENTIDADE REAL DO AGENTE: mensagens de IA gravam o slug de quem falou
+      // (bruno, paula, giovani, camila…), nunca mais o rótulo fixo "camila".
+      sender: isAiSender(input.sender) ? aiSender(input.agent_slug ?? input.sender) : input.sender,
       content: input.content,
       wa_message_id: input.wa_message_id ?? null,
       tool_calls: (input.tool_calls ?? null) as never,
