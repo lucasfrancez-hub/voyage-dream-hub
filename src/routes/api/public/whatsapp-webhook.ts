@@ -648,10 +648,25 @@ async function processPayload(payload: WhatsAppPayload) {
           : desiredAt;
         const finalAt = Math.min(desiredAt, hardCapAt);
 
-        await supabaseAdmin
-          .from("wa_conversations")
-          .update({ ai_debounce_until: new Date(finalAt).toISOString() })
-          .eq("id", conv.id);
+        // NÃO PISAR EM EXECUÇÃO ATIVA: o dispatcher marca um lease de 5 min em
+        // `ai_debounce_until` enquanto o runAgent processa, e a transferência
+        // humana agenda no máximo 3 min. Qualquer valor acima desse teto é
+        // lease em andamento — sobrescrever liberava um segundo runAgent
+        // simultâneo para a mesma conversa (respostas e perguntas repetidas).
+        const TETO_AGENDAMENTO_MS = 200 * 1000;
+        const atual = convState?.ai_debounce_until
+          ? new Date(convState.ai_debounce_until as string).getTime()
+          : 0;
+        const leaseAtivo = atual > Date.now() + TETO_AGENDAMENTO_MS;
+        if (!leaseAtivo) {
+          await supabaseAdmin
+            .from("wa_conversations")
+            .update({ ai_debounce_until: new Date(finalAt).toISOString() })
+            .eq("id", conv.id);
+        } else {
+          console.log("[wa-webhook] run em andamento; debounce preservado", conv.id);
+        }
+
 
       }
 

@@ -119,15 +119,33 @@ export const Route = createFileRoute("/api/public/hooks/dispatch-ai-debounced")(
               trigger_message_id: lastInbound?.id ?? undefined,
             });
 
-            // Sucesso: só agora zeramos o debounce. Se uma nova mensagem chegou
-            // durante o processamento, ela já empurrou o lease pra outra data
-            // (guard abaixo impede que a gente sobrescreva).
+            // Sucesso. Como o webhook agora PRESERVA o lease (pra não disparar
+            // dois runs simultâneos), qualquer mensagem que chegou durante o
+            // processamento ficou sem agendamento. Então: se existe mensagem do
+            // cliente ainda sem resposta, reagenda em 45s; caso contrário zera.
+            const { data: ultimasPos } = await supabaseAdmin
+              .from("wa_messages")
+              .select("direction, sender, created_at")
+              .eq("conversation_id", conv.id)
+              .order("created_at", { ascending: false })
+              .limit(10);
+            const inPos = (ultimasPos ?? []).find((m) => m.direction === "inbound");
+            const outPos = (ultimasPos ?? []).find(
+              (m) => m.direction === "outbound" && m.sender !== "system",
+            );
+            const pendente =
+              !!inPos && (!outPos || new Date(inPos.created_at) > new Date(outPos.created_at));
             await supabaseAdmin
               .from("wa_conversations")
-              .update({ ai_debounce_until: null })
+              .update({
+                ai_debounce_until: pendente
+                  ? new Date(Date.now() + 45_000).toISOString()
+                  : null,
+              })
               .eq("id", conv.id)
               .eq("ai_debounce_until", leaseUntil);
             dispatched.push(conv.id);
+
           } catch (e) {
             console.error(`[dispatch-ai-debounced] erro runAgent ${conv.id}:`, e);
             // Não zera: o lease de 5min garante retry automático.

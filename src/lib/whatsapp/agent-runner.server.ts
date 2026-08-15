@@ -1434,7 +1434,13 @@ export async function runAgent(input: {
     // quando precisa perguntar imediatamente a cidade de embarque.
     if (centralAgent && centralPrimeiroContato) {
       const nomeEsc = centralAgent.nome.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      const jaSeApresentou = new RegExp(`(?:sou (?:a|o)|aqui (?:é|e))\\s+${nomeEsc}\\b`, "i").test(rawText);
+      // Cobre variações reais do modelo: "sou o Bruno", "aqui é o Bruno",
+      // "me chamo Bruno", "meu nome é Bruno", "prazer, Bruno". Sem isso a
+      // apresentação era duplicada em cima do texto do agente.
+      const jaSeApresentou = new RegExp(
+        `(?:sou\\s+(?:a|o)?|aqui\\s+(?:é|e)\\s*(?:a|o)?|me\\s+chamo|meu\\s+nome\\s+(?:é|e)|prazer,?\\s*(?:sou\\s+(?:a|o)?)?)\\s*${nomeEsc}\\b`,
+        "i",
+      ).test(rawText);
       if (!jaSeApresentou) {
         const cliente = extractFirstName(conv.display_name);
         const saudacao = cliente ? `Oi, ${cliente}! Tudo bem?` : "Oi! Tudo bem?";
@@ -1490,7 +1496,7 @@ export async function runAgent(input: {
     const [{ data: currentConv }, { data: latestInboundNow }, { count: alreadyAnswered }] = await Promise.all([
       supabaseAdmin
         .from("wa_conversations")
-        .select("protocolo_ativo_id, central_slug, agent_slug, mode, ai_paused, ai_instruction_at")
+        .select("protocolo_ativo_id, central_slug, agent_slug, mode, ai_paused, ai_instruction_at, ai_debounce_until")
         .eq("id", conv.id)
         .maybeSingle(),
       supabaseAdmin
@@ -1516,7 +1522,27 @@ export async function runAgent(input: {
         : Promise.resolve({ count: 0 }),
 
     ]);
+    // ANTI-ATROPELO DA TRANSFERÊNCIA: se outro run já anunciou o aviso de
+    // transferência depois desta mensagem do cliente, o especialista só pode
+    // entrar no run agendado (1min30–3min). Sem isso ele respondia no mesmo
+    // segundo do aviso.
+    let transferenciaEmEspera = false;
+    if (centralAgent && latestInboundAtStart?.created_at) {
+      const { count: avisoRecente } = await supabaseAdmin
+        .from("wa_messages")
+        .select("id", { count: "exact", head: true })
+        .eq("conversation_id", conv.id)
+        .eq("protocolo_id", protocolo.id)
+        .eq("direction", "outbound")
+        .eq("content", AVISO_TRANSFERENCIA_AEREO)
+        .gt("created_at", latestInboundAtStart.created_at);
+      transferenciaEmEspera =
+        (avisoRecente ?? 0) > 0 &&
+        !!currentConv?.ai_debounce_until &&
+        new Date(currentConv.ai_debounce_until as string) > new Date();
+    }
     const activeSlug = centralAgent ? currentConv?.central_slug : currentConv?.agent_slug;
+
     const runtimeSwitchedToCentral = !centralAgent && currentConv?.central_slug != null;
     const staleRun =
       currentConv?.mode !== "ai" ||
@@ -1530,7 +1556,9 @@ export async function runAgent(input: {
       // bindAgentToProtocol já atualiza o protocolo. Não cancele esse run só
       // porque a coluna legada da conversa ainda aponta para o agente anterior.
       (!instructionRun && activeSlug != null && activeSlug !== agent.slug) ||
+      (!instructionRun && transferenciaEmEspera) ||
       (!instructionRun && (alreadyAnswered ?? 0) > 0);
+
     if (staleRun) {
       console.warn("[agent-runtime]", JSON.stringify({
         ...runtimeAudit,
@@ -1625,6 +1653,34 @@ export async function runAgent(input: {
       .from("wa_conversations")
       .update({ agent_slug: agent.slug })
       .eq("id", conv.id);
+
+    // PERGUNTA PENDENTE: guarda o que o especialista acabou de perguntar pra
+    // que a resposta curta do cliente ("2", "sim", "com bagagem") seja
+    // resolvida deterministicamente no próximo turno — sem repetir a pergunta.
+    if (centralAgent) {
+      try {
+        const { detectPendingQuestion } = await import("./pending-question-detect");
+        const pergunta = detectPendingQuestion(text);
+        if (pergunta) {
+          const { ensureFlightRequest, setPendingQuestion } = await import("./flight-request.server");
+          const reqAtual = await ensureFlightRequest({
+            conversation_id: conv.id,
+            protocol_id: protocolo.id,
+            agent_slug: centralAgent.slug,
+          }).catch(() => null);
+          if (reqAtual?.id) {
+            await setPendingQuestion({
+              request_id: reqAtual.id,
+              question: pergunta,
+              message_id: savedRowIds[savedRowIds.length - 1] ?? null,
+            });
+          }
+        }
+      } catch (e) {
+        console.warn("[agent] não consegui registrar a pergunta pendente:", e);
+      }
+    }
+
 
     // FALLBACK DE ESCALAÇÃO: se a IA anunciou que está passando pro comercial
     // mas NÃO chamou a tool escalar_para_humano, marca aguardando_humano
