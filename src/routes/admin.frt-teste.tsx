@@ -410,6 +410,9 @@ function FrtTestePage() {
                   <div className="flex flex-wrap items-center gap-2">
                     <Badge variant="outline">{c}</Badge>
                     <Badge variant="outline">termo “{a.termo}”</Badge>
+                    <Badge variant={a.serverFn === "frtAutocomplete" ? "default" : "destructive"}>
+                      serverFn={a.serverFn}
+                    </Badge>
                     <Badge variant={a.disparado ? "default" : "destructive"}>
                       chamada {a.disparado ? "disparada" : "não disparada"}
                     </Badge>
