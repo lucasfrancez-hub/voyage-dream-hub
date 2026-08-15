@@ -216,7 +216,10 @@
 
     const summary = parser.parsePriceSummary();
 
-    const cabinTypes = deep ? await captureCabinTypes(parser) : parser.parseVisibleCabinCategories("");
+    const cabinTypes = deep
+      ? await captureCabinTypes(parser)
+      : [{ type: "", source_name: "", image_url: "", categories: parser.parseVisibleCabinCategories("") }];
+
     const additionals = deep ? await captureAdditionals(parser) : parser.parseAdditionals(null);
     const insurances = parser.parseInsurances();
     const shipDetails = deep
