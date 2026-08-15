@@ -12,6 +12,7 @@ import { Separator } from "@/components/ui/separator";
 import {
   consultarFrt,
   diagnosticarFrt,
+  diagnosticarPesquisaFrt,
   enviarCodigoFrt,
   resolver2faAutomaticoFrt,
 } from "@/lib/frt/frt.functions";
@@ -41,6 +42,7 @@ function FrtTestePage() {
   const diag = useServerFn(diagnosticarFrt);
   const consulta = useServerFn(consultarFrt);
   const enviarCodigo = useServerFn(enviarCodigoFrt);
+  const diagPesquisa = useServerFn(diagnosticarPesquisaFrt);
   const resolverAuto = useServerFn(resolver2faAutomaticoFrt);
   const [codigo, setCodigo] = useState("");
 
@@ -92,6 +94,15 @@ function FrtTestePage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const diagPesqMut = useMutation({
+    mutationFn: () =>
+      diagPesquisa({
+        data: { origem, destino, ida, volta: volta || null, adultos, criancas },
+      }),
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const dp = diagPesqMut.data;
   const d = diagMut.data;
   const r = searchMut.data;
 
@@ -311,15 +322,74 @@ function FrtTestePage() {
             />
           </div>
         </div>
-        <Button onClick={() => searchMut.mutate()} disabled={searchMut.isPending}>
-          {searchMut.isPending ? (
-            <>
-              <Loader2 className="mr-2 size-4 animate-spin" /> Consultando FRT…
-            </>
-          ) : (
-            "Consultar"
-          )}
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button onClick={() => searchMut.mutate()} disabled={searchMut.isPending}>
+            {searchMut.isPending ? (
+              <>
+                <Loader2 className="mr-2 size-4 animate-spin" /> Consultando FRT…
+              </>
+            ) : (
+              "Consultar"
+            )}
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => diagPesqMut.mutate()}
+            disabled={diagPesqMut.isPending}
+          >
+            {diagPesqMut.isPending ? (
+              <>
+                <Loader2 className="mr-2 size-4 animate-spin" /> Diagnosticando…
+              </>
+            ) : (
+              "Diagnosticar POST de pesquisa"
+            )}
+          </Button>
+        </div>
+
+        {dp ? (
+          <div className="space-y-2 rounded-lg border p-3 text-xs">
+            <div className="flex flex-wrap gap-2">
+              <Badge variant="outline">status {dp.amostraPesquisa?.status ?? "—"}</Badge>
+              <Badge variant="outline">{dp.amostraPesquisa?.bytes ?? 0} bytes</Badge>
+              <Badge variant={dp.amostraPesquisa?.temPnlResultado ? "default" : "destructive"}>
+                pnlResultado {dp.amostraPesquisa?.temPnlResultado ? "presente" : "ausente"}
+              </Badge>
+              <Badge variant={dp.amostraPesquisa?.temPrecos ? "default" : "secondary"}>
+                preços: {dp.amostraPesquisa?.amostraPrecos.length ?? 0}
+              </Badge>
+            </div>
+            <p className="text-muted-foreground">
+              updates:{" "}
+              {dp.amostraPesquisa?.updates.length
+                ? dp.amostraPesquisa.updates.map((u) => `${u.id} (${u.bytes}b)`).join(" | ")
+                : "nenhum"}
+            </p>
+            {dp.amostraPesquisa?.amostraPrecos.length ? (
+              <p className="text-muted-foreground">
+                amostra de preços: {dp.amostraPesquisa.amostraPrecos.join(" · ")}
+              </p>
+            ) : null}
+            <p className="text-muted-foreground">
+              mensagem &quot;nenhum resultado&quot;:{" "}
+              {dp.amostraPesquisa?.mensagemNenhumResultado ?? "—"}
+            </p>
+            <details>
+              <summary className="cursor-pointer text-muted-foreground">
+                Resposta bruta sanitizada
+              </summary>
+              <pre className="mt-2 max-h-72 overflow-auto whitespace-pre-wrap break-all">
+                {dp.amostraPesquisa?.raw ?? "(sem amostra)"}
+              </pre>
+            </details>
+            <details>
+              <summary className="cursor-pointer text-muted-foreground">Log técnico</summary>
+              <pre className="mt-2 max-h-56 overflow-auto rounded-lg bg-muted p-3 text-[11px]">
+                {dp.log.join("\n")}
+              </pre>
+            </details>
+          </div>
+        ) : null}
 
         {r ? (
           <>
