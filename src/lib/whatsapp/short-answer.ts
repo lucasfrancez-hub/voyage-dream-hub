@@ -170,12 +170,28 @@ function parseNumeroPax(t: string): number | null {
  * Resolve a resposta do cliente contra a pergunta pendente.
  * Só recorre ao modelo quando devolve resolved = false.
  */
+/**
+ * Cidade informada em texto livre ("Maringá", "saio de Maringa", "de Curitiba").
+ * Retorna a cidade normalizada (sem preposição/ruído) ou null.
+ */
+export function parseCidadeLivre(textoNormalizado: string): string | null {
+  const t = textoNormalizado.replace(/[?,;]/g, " ").replace(/\s+/g, " ").trim();
+  if (!t || t.length > 60) return null;
+  const m = t.match(
+    /^(?:eu\s+)?(?:saio|parto|embarco|vou sair|sair|partindo|saindo|embarcando)?\s*(?:de|do|da|em|no|na)?\s*([a-z][a-z\s.'-]{2,40})$/,
+  );
+  const bruto = (m?.[1] ?? t).replace(/\b(mesmo|por favor|pfv|obrigad[oa]|entao)\b/g, "").trim();
+  if (bruto.length < 3) return null;
+  if (/\d/.test(bruto)) return null;
+  if (/^(sim|nao|ok|claro|isso|beleza|talvez|nao sei|qualquer|tanto faz|aqui)$/.test(bruto)) return null;
+  return bruto.replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
 export function resolvePendingFlightAnswer(params: {
   pending_question: PendingQuestion | string | null | undefined;
   pending_question_context?: Record<string, unknown> | null;
   texto: string;
 }): ResolveResult {
-  /* fn local declarada abaixo (hoisted) */
   const pq = (params.pending_question ?? "") as PendingQuestion | "";
   if (!pq) return VAZIO;
   const ctx = params.pending_question_context ?? {};
