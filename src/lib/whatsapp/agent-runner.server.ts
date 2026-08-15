@@ -1255,6 +1255,20 @@ export async function runAgent(input: {
       return;
     }
 
+    // O primeiro contato do setor aéreo nunca pode começar seco pela coleta.
+    // Esta proteção é determinística: mesmo se o modelo ignorar o prompt, Bruno
+    // ou Paula entram se apresentando antes de perguntar origem, data ou pax.
+    if (centralAgent && centralPrimeiroContato) {
+      const nomeEsc = centralAgent.nome.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const jaSeApresentou = new RegExp(`(?:sou (?:a|o)|aqui (?:é|e))\\s+${nomeEsc}\\b`, "i").test(rawText);
+      if (!jaSeApresentou) {
+        const cliente = extractFirstName(conv.display_name);
+        const saudacao = cliente ? `Oi, ${cliente}! Tudo bem?` : "Oi! Tudo bem?";
+        const artigo = CENTRAL_GENDER[centralAgent.slug as CentralSlug] === "m" ? "o" : "a";
+        rawText = `${saudacao}\n\nSou ${artigo} ${centralAgent.nome}, do setor aéreo da VIA AIR\n\nVou cuidar da sua cotação por aqui\n\n${rawText}`;
+      }
+    }
+
     // Garante primeira letra maiúscula em cada balão (o modelo escreve tudo minúsculo)
     // e capitaliza o primeiro nome do cliente sempre que aparecer no meio do texto.
     // Origem já confirmada neste mesmo protocolo não exige nova pergunta.
@@ -1399,6 +1413,49 @@ export async function runAgent(input: {
         already_answered: (alreadyAnswered ?? 0) > 0,
       }));
       return;
+    }
+
+    // Quando já houve atendimento de um consultor neste protocolo, o aviso de
+    // transferência precisa sair com o nome dele ANTES da entrada do Aéreo.
+    // A checagem pelo conteúdo torna a operação idempotente em reprocessamentos.
+    if (centralAgent && centralPrimeiroContato) {
+      const transicao = "Claro! Já vou te transferir pro nosso setor aéreo, que continua com vc por aqui";
+      const [{ data: ultimoConsultor }, { count: jaAvisou }] = await Promise.all([
+        supabaseAdmin
+          .from("wa_messages")
+          .select("agent_slug")
+          .eq("conversation_id", conv.id)
+          .eq("protocolo_id", protocolo.id)
+          .eq("direction", "outbound")
+          .not("agent_slug", "is", null)
+          .neq("agent_slug", centralAgent.slug)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+        supabaseAdmin
+          .from("wa_messages")
+          .select("id", { count: "exact", head: true })
+          .eq("conversation_id", conv.id)
+          .eq("protocolo_id", protocolo.id)
+          .eq("direction", "outbound")
+          .eq("content", transicao),
+      ]);
+      const consultor = ultimoConsultor?.agent_slug
+        ? agents.find((item) => item.slug === ultimoConsultor.agent_slug && item.equipe !== "especialista")
+        : null;
+      if (consultor && (jaAvisou ?? 0) === 0) {
+        const row = await saveMessage({
+          conversation_id: conv.id,
+          direction: "outbound",
+          sender: "camila",
+          agent_slug: consultor.slug,
+          content: transicao,
+        });
+        const enviado = await sendWhatsAppBubbles(conv.wa_phone, transicao, buildSenderPrefix(consultor.nome));
+        const { setWaMessageId, setSendError } = await import("./conversation.server");
+        if (row?.id && enviado[0]?.id) await setWaMessageId(row.id, enviado[0].id);
+        else if (row?.id) await setSendError(row.id, enviado[0]?.error ?? "Não entregue pelo WhatsApp");
+      }
     }
 
     const { splitToBubbles } = await import("./send.server");
