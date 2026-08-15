@@ -988,6 +988,8 @@ async function runSearch(
     ajax.set("javax.faces.source", source);
     ajax.set("javax.faces.partial.execute", source);
     ajax.set("javax.faces.partial.render", source);
+    ajax.set("javax.faces.behavior.event", "query");
+    ajax.set("javax.faces.partial.event", "query");
     ajax.set(source, source);
     ajax.set(`${source}_query`, consulta);
     ajax.set(FRT_FIELDS.form, FRT_FIELDS.form);
