@@ -65,6 +65,98 @@ async function activeSession(admin: Admin, userId: string) {
   return data ?? null;
 }
 
+function randomToken(len = 4) {
+  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  const bytes = new Uint8Array(len);
+  crypto.getRandomValues(bytes);
+  return [...bytes].map((b) => alphabet[b % alphabet.length]).join("");
+}
+
+const isoDate = (v?: string | null) => {
+  const s = String(v ?? "").trim();
+  if (!s) return null;
+  const br = s.match(/^(\d{2})[/-](\d{2})[/-](\d{4})$/);
+  if (br) return `${br[3]}-${br[2]}-${br[1]}`;
+  return /^\d{4}-\d{2}-\d{2}/.test(s) ? s.slice(0, 10) : null;
+};
+
+/**
+ * A captura já traz nome, data e navio: quando não existe importação ativa,
+ * o cruzeiro é criado (ou reaproveitado) automaticamente a partir do snapshot.
+ */
+async function ensureSessionFromSnapshot(
+  admin: Admin,
+  userId: string,
+  payload: { source: string; url: string; data: { cruise?: Record<string, unknown>; ship?: Record<string, unknown> } },
+) {
+  const c = (payload.data.cruise ?? {}) as Record<string, string | number | null | undefined>;
+  const shipName =
+    String(c.ship_name ?? "").trim() ||
+    String((payload.data.ship ?? {}).name ?? "").trim();
+  const departure = isoDate(String(c.departure_date ?? ""));
+  const name =
+    String(c.name ?? "").trim() ||
+    [shipName, departure ? departure.split("-").reverse().join("/") : ""].filter(Boolean).join(" — ") ||
+    "Cruzeiro importado";
+
+  let query = admin
+    .from("cruises")
+    .select("id, code, source, name, departure_date, ship_name")
+    .eq("source", payload.source)
+    .ilike("name", name)
+    .limit(1);
+  query = departure ? query.eq("departure_date", departure) : query.is("departure_date", null);
+  const { data: found } = await query.maybeSingle();
+
+  let cruise = found ?? null;
+  let created = false;
+
+  if (!cruise) {
+    const { data: inserted, error } = await admin
+      .from("cruises")
+      .insert({
+        name,
+        departure_date: departure,
+        return_date: isoDate(String(c.return_date ?? "")),
+        nights: typeof c.nights === "number" ? c.nights : null,
+        ship_name: shipName,
+        embark_port: String(c.embark_port ?? "").trim(),
+        disembark_port: String(c.disembark_port ?? "").trim(),
+        currency: String(c.currency ?? "BRL").trim() || "BRL",
+        source: payload.source,
+        created_by: userId,
+      })
+      .select("id, code, source, name, departure_date, ship_name")
+      .maybeSingle();
+    if (error || !inserted) throw new Error(error?.message ?? "cruise_create_failed");
+    cruise = inserted;
+    created = true;
+  }
+
+  const { error: sessionError } = await admin.from("cruise_import_sessions").insert({
+    cruise_id: cruise.id,
+    user_id: userId,
+    token: `${cruise.code ?? "CRZ"}-${randomToken()}`,
+    status: "active",
+    source: payload.source,
+  });
+  if (sessionError) throw new Error(sessionError.message);
+
+  await admin.from("cruise_import_logs").insert({
+    cruise_id: cruise.id,
+    user_id: userId,
+    level: "info",
+    message: created
+      ? `Cruzeiro criado automaticamente pela captura: ${cruise.name}`
+      : `Importação reativada automaticamente pela captura: ${cruise.name}`,
+    data: { url: payload.url } as never,
+  });
+
+  const session = await activeSession(admin, userId);
+  return { session, autoCreated: created, cruiseName: cruise.name as string };
+}
+
+
 export const Route = createFileRoute("/api/public/v1/cruise-import")({
   server: {
     handlers: {
