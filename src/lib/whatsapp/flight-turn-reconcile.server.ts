@@ -122,16 +122,15 @@ export async function reconcilePendingAgentTurns(): Promise<{
           (m) => m.direction === "outbound" && central && m.sender === central,
         );
         if (!especialistaJaFalou && conv.wa_phone) {
-          const [{ sendWhatsAppBubbles }, { safeMissingOriginResponse }] = await Promise.all([
-            import("./send.server"),
+          const [{ saveAndSendText }, { safeMissingOriginResponse }] = await Promise.all([
+            import("./conversation.server"),
             import("./airflow-guard"),
           ]);
-          const texto = safeMissingOriginResponse(null, null, { semSaudacao: true });
-          await sendWhatsAppBubbles(conv.wa_phone, texto, {
-            conversation_id: raw.conversation_id,
-            protocolo_id: raw.protocol_id,
-            agent_slug: central,
-          } as never);
+          await saveAndSendText(
+            raw.conversation_id,
+            conv.wa_phone,
+            safeMissingOriginResponse(null, null, { semSaudacao: true }),
+          ).catch(() => {});
           await supabaseAdmin
             .from("wa_flight_search_requests")
             .update({ recovery_attempts: 0, last_progress_at: new Date().toISOString() } as never)
