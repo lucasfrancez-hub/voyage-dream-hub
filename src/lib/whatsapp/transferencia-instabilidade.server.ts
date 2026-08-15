@@ -217,21 +217,28 @@ export async function transferirPorInstabilidade(params: {
   const { recordHandoff, saveAndSendText } = await import("./conversation.server");
   const { firstName } = await import("./text-utils.server");
 
-  // 1) UMA mensagem só.
+  // 1) Trava atômica: live request, reconciliador e watchdog podem chegar ao
+  // mesmo tempo. Só o processo que conseguir pausar a conversa pode enviar o
+  // aviso e registrar o handoff.
+  const tags = Array.from(
+    new Set([...(((conv as { tags?: string[] | null }).tags ?? []) as string[]), "aguardando_humano", "instabilidade"]),
+  );
+  const { data: claimed } = await supabaseAdmin
+    .from("wa_conversations")
+    .update({ tags, priority: "high", ai_paused: true, assigned_to: null, ai_debounce_until: null })
+    .eq("id", conversation_id)
+    .eq("mode", "ai")
+    .or("ai_paused.is.false,ai_paused.is.null")
+    .select("id")
+    .maybeSingle();
+  if (!claimed) return { transferido: false, motivo: "transferencia_ja_reivindicada" };
+
+  // 2) UMA mensagem só, enviada apenas por quem venceu a trava acima.
   await saveAndSendText(
     conversation_id,
     conv.wa_phone as string,
     montarMensagem(firstName(conv.display_name as string | null)),
   ).catch(() => {});
-
-  // 2) IA pausada neste protocolo + fila do atendimento humano.
-  const tags = Array.from(
-    new Set([...(((conv as { tags?: string[] | null }).tags ?? []) as string[]), "aguardando_humano", "instabilidade"]),
-  );
-  await supabaseAdmin
-    .from("wa_conversations")
-    .update({ tags, priority: "high", ai_paused: true, assigned_to: null, ai_debounce_until: null })
-    .eq("id", conversation_id);
 
   // 3) Cancela retries, jobs, follow-ups e watchdogs da solicitação.
   await cancelarJobsDaConversa(conversation_id, protocolId, motivo);
