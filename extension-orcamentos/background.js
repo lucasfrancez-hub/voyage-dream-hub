@@ -41,13 +41,37 @@ function mostRecentDiagnosticTab(windowId) {
   return selected;
 }
 
+/* Intenção de envio: armada quando o usuário clica em "Enviar orçamento".
+ * Sem intenção ativa, abrir/navegar no site da operadora não importa nada. */
+const sendIntents = new Map();
+const INTENT_TTL = 90_000;
+function armIntent(windowId) {
+  sendIntents.set(typeof windowId === "number" ? windowId : -1, Date.now());
+}
+function intentActive(windowId) {
+  const now = Date.now();
+  for (const [k, at] of sendIntents) if (now - at > INTENT_TTL) sendIntents.delete(k);
+  const own = sendIntents.get(typeof windowId === "number" ? windowId : -1);
+  const any = sendIntents.get(-1);
+  return !!(own && now - own <= INTENT_TTL) || !!(any && now - any <= INTENT_TTL);
+}
+
 /** Importa sozinho, sem depender do content script nem de aba aberta. */
 const autoImportSeen = new Map();
-function autoImport(url, mechanism) {
+async function autoImport(url, mechanism) {
   if (!url) return;
   const last = autoImportSeen.get(url);
   if (last && Date.now() - last < 10 * 60_000) return;
+  // dedupe persistente (24h): sobrevive ao reinício do service worker
+  const { viaairImported } = await chrome.storage.local.get(["viaairImported"]);
+  const map = viaairImported || {};
+  if (map[url] && Date.now() - map[url] < 24 * 60 * 60_000) return;
   autoImportSeen.set(url, Date.now());
+  map[url] = Date.now();
+  const trimmed = Object.fromEntries(
+    Object.entries(map).filter(([, at]) => Date.now() - at < 24 * 60 * 60_000).slice(-200),
+  );
+  await chrome.storage.local.set({ viaairImported: trimmed });
   console.info(LOG, "Importação automática (background)", { url, mechanism });
   broadcastToTabs({ type: "viaair-import-progress", stage: "start", url, mechanism });
   sendImport(url, mechanism || "background/auto").then((r) => {
@@ -75,7 +99,10 @@ function inspectNavigation(tabId, windowId, rawUrl, event) {
     quoteUrl,
     mechanism: /whatsapp|wa\.me/i.test(rawUrl) ? "background/WhatsApp text=" : "background/nova aba",
   });
-  if (quoteUrl) autoImport(quoteUrl, /whatsapp|wa\.me/i.test(rawUrl) ? "background/WhatsApp text=" : "background/nova aba");
+  const isWhats = /whatsapp|wa\.me/i.test(rawUrl);
+  // só importa com intenção de envio (clique em "Enviar orçamento") ou quando
+  // o próprio destino é o compartilhamento do orçamento (WhatsApp).
+  if (quoteUrl && (isWhats || intentActive(windowId))) autoImport(quoteUrl, /whatsapp|wa\.me/i.test(rawUrl) ? "background/WhatsApp text=" : "background/nova aba");
 }
 
 chrome.tabs.onCreated.addListener((tab) => {
@@ -370,6 +397,12 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg.type === "viaair-quotes-import") {
     sendImport(msg.url, msg.trigger).then(sendResponse);
     return true;
+  }
+
+  if (msg.type === "viaair-send-intent") {
+    armIntent(sender.tab?.windowId);
+    sendResponse({ ok: true });
+    return false;
   }
 
   if (msg.type === "viaair-diagnostic-arm") {
