@@ -41,16 +41,42 @@ export async function reconcilePendingAgentTurns(): Promise<{
       .eq("id", raw.conversation_id)
       .maybeSingle();
     if (!conv) continue;
+
+    // TRAVA DE PROTOCOLO: uma solicitação aérea só vale dentro do protocolo em
+    // que nasceu. Pedidos "ativos" de protocolos ENCERRADOS ficavam sendo
+    // reexecutados contra as mensagens do atendimento ATUAL — o watchdog via
+    // "cliente falou e ninguém respondeu", estourava as tentativas de um
+    // pedido velho e disparava a transferência por instabilidade no protocolo
+    // novo, matando o atendimento antes do especialista falar. Pedido órfão é
+    // encerrado, nunca escalado.
+    const protocoloAtivo = (conv as { protocolo_ativo_id?: string | null }).protocolo_ativo_id ?? null;
+    if (!raw.protocol_id || raw.protocol_id !== protocoloAtivo) {
+      await supabaseAdmin
+        .from("wa_flight_search_requests")
+        .update({ status: "cancelled" } as never)
+        .eq("id", raw.id);
+      await logProtocolEvent("flight_request_orphan_closed", {
+        conversation_id: raw.conversation_id,
+        protocolo_id: raw.protocol_id,
+        search_request_id: raw.id,
+        protocolo_ativo_id: protocoloAtivo,
+      });
+      continue;
+    }
+
     // Atendimento humano já assumiu → o robô não interfere.
     if (conv.mode !== "ai" || (conv as { ai_paused?: boolean }).ai_paused) continue;
 
-    // Última mensagem do cliente x última resposta nossa.
+    // Última mensagem do cliente x última resposta nossa — SEMPRE dentro do
+    // protocolo atual (mensagens de protocolos anteriores não contam).
     const { data: msgs } = await supabaseAdmin
       .from("wa_messages")
       .select("id, direction, sender, content, created_at")
       .eq("conversation_id", raw.conversation_id)
+      .eq("protocolo_id", raw.protocol_id)
       .order("created_at", { ascending: false })
       .limit(20);
+
     const lastIn = (msgs ?? []).find((m) => m.direction === "inbound");
     // AVISO DE TRANSFERÊNCIA NÃO É RESPOSTA. O balão "já vou te transferir pro
     // setor aéreo" vem do agente ANTERIOR; se o especialista não falar nada
