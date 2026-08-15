@@ -426,10 +426,14 @@ export async function frtEnviarCodigo(codigo: string) {
   const campos = detectAuthForm(tela.body);
   const vs = extractViewState(tela.body);
   if (!campos || !vs) {
+    // Não é "estrutura mudou": ou a sessão caiu, ou a tela nem é a de código.
+    const ehLogin = looksLikeLoginPage(tela.body) || /login-usuario-input/i.test(tela.body);
     return {
       ok: false,
-      erro: "FRT_STRUCTURE_CHANGED",
-      mensagem: "Formulário de verificação da FRT não encontrado.",
+      erro: ehLogin ? "FRT_AUTH_REQUIRED" : "FRT_VENDA_NOT_LOADED",
+      mensagem: ehLogin
+        ? "A sessão da FRT caiu antes do envio do código. Refaça o login."
+        : "A tela de verificação da FRT não estava carregada nesta resposta.",
     };
   }
   const p = new URLSearchParams();
@@ -452,40 +456,37 @@ export async function frtEnviarCodigo(codigo: string) {
   // 2FA aceito ≠ tela de venda acessível. Faz o GET autenticado explícito.
   trace("2FA aceito — validando navegação pós-login");
   const venda = await abrirVenda(s, tela.url);
-  const acessoVenda = {
-    status: venda.status,
-    urlFinal: venda.urlFinal,
-    temFormulario: venda.temFormulario,
-    temLogin: venda.temLogin,
-  };
-  if (needsAuthCode(venda.body) || venda.voltouParaLogin || looksLikeLoginPage(body)) {
+  const acessoVenda = resumoAcesso(venda);
+  if (venda.aguardandoCodigo || venda.voltouParaLogin || looksLikeLoginPage(body)) {
     return {
       ok: false,
-      erro: "FRT_AUTH_FAILED" as string | null,
-      mensagem: "Código recusado pela FRT." as string | null,
+      erro: (venda.aguardandoCodigo ? "FRT_2FA_REQUIRED" : "FRT_AUTH_REQUIRED") as string | null,
+      mensagem: (venda.aguardandoCodigo
+        ? "Código recusado pela FRT — ela segue pedindo verificação."
+        : "Após o código a FRT devolveu a tela de login.") as string | null,
       aviso: null as string | null,
       acessoVenda,
     };
   }
-  s.viewState = extractViewState(venda.body);
+  s.viewState = venda.viewState;
   s.createdAt = Date.now();
   session = s;
   pendingAuth = null;
   await persistSession(s);
-  if (!venda.temFormulario) {
-    trace("código aceito, mas frmMotorPacote não apareceu em venda.xhtml");
+  if (venda.estado !== "ok") {
+    trace("código aceito, mas o motor de pesquisa não apareceu em venda.xhtml");
     return {
       ok: true,
       erro: null as string | null,
       mensagem: null as string | null,
       aviso:
-        "Código aceito, mas a tela de venda abriu sem o formulário de consulta (frmMotorPacote). Verifique o log técnico." as
+        "Código aceito, mas venda.xhtml abriu sem o motor de pesquisa (FRT_VENDA_NOT_LOADED — provável shell/AJAX). Amostra do HTML guardada no diagnóstico." as
           | string
           | null,
       acessoVenda,
     };
   }
-  trace("código aceito — venda.xhtml acessível com frmMotorPacote");
+  trace("código aceito — venda.xhtml acessível com o motor de pesquisa");
   return {
     ok: true,
     erro: null as string | null,
