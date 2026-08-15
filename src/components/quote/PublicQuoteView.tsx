@@ -48,6 +48,12 @@ import "./public-quote.css";
 
 const WHATSAPP = "5544999514838";
 
+/** Hora "HH:mm" de qualquer formato (ISO com T, com espaço, com fuso). */
+function hhmm(v?: string | null): string {
+  const m = String(v ?? "").match(/(\d{2}):(\d{2})/);
+  return m ? `${m[1]}:${m[2]}` : "—";
+}
+
 function periodoLabel(q: PublicQuote): string | null {
   const fmt = (s?: string | null) => {
     if (!s) return null;
@@ -191,7 +197,7 @@ function FlightLegCard({
                         <div className="vq-seg2-route">
                           <div className="vq-seg2-point">
                             <small>Partida</small>
-                            <time>{s.departure.split(" ")[1]}</time>
+                            <time>{hhmm(s.departure)}</time>
                             <b>{s.fromIata}</b>
                             <span>{s.fromName}</span>
                           </div>
@@ -205,7 +211,7 @@ function FlightLegCard({
 
                           <div className="vq-seg2-point right">
                             <small>Chegada</small>
-                            <time>{s.arrival.split(" ")[1]}</time>
+                            <time>{hhmm(s.arrival)}</time>
                             <b>{s.toIata}</b>
                             <span>{s.toName}</span>
                           </div>
@@ -243,7 +249,10 @@ function FlightLegCard({
                         <span className="vq-seg2-connection-dot" />
                         <div className="vq-seg2-connection-pill">
                           <IconClock />
-                          Conexão: {s.connectionAfter} de espera em {s.toName ?? s.toIata}
+                          <span>
+                            Conexão em {s.toName ?? s.toIata}: chega {hhmm(s.arrival)} e sai{" "}
+                            {hhmm(leg.segments[i + 1]?.departure)} — {s.connectionAfter} de espera
+                          </span>
                         </div>
                       </div>
                     ) : null}
