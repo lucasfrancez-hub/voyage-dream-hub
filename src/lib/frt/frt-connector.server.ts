@@ -887,6 +887,8 @@ async function runSearch(
       /(nenhum[\s\S]{0,60}?(resultado|disponibilidade|voo|pacote)[^<]{0,80})/i,
     )?.[1]?.replace(/\s+/g, " ").trim() ?? null;
 
+  const validationFailed = /"validationFailed"\s*:\s*true|validationFailed=["']?true/i.test(body);
+
   ultimaAmostraPesquisa = {
     em: new Date().toISOString(),
     status: resPesquisa.status,
@@ -896,6 +898,8 @@ async function runSearch(
     temPrecos: precos.length > 0,
     amostraPrecos: precos,
     mensagemNenhumResultado: semResultado,
+    validationFailed,
+    inventario: ultimoInventarioMotor,
     raw: amostraSanitizada(body),
   };
 
