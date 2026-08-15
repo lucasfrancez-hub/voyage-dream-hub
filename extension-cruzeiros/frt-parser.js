@@ -780,13 +780,60 @@
     }
 
     /* 50-51. Itinerário ---------------------------------------------- */
+    /* A FRT renderiza o itinerário como blocos de texto:
+       "ter. 29.12.26 | 01 | Santos, Brasil | Saída 16:00". Não há <li>. */
+    const DATE_DOT = /(\d{2})\.(\d{2})\.(\d{2})/;
+
+    function itineraryFromText(rawText) {
+      const flat = clean(rawText).replace(/\s+/g, " ");
+      // Quebra o texto em blocos que começam por "seg. 29.12.26".
+      const re = /(?:seg|ter|qua|qui|sex|s[áa]b|dom)\.?\s*\d{2}\.\d{2}\.\d{2}/gi;
+      const starts = [];
+      let m;
+      while ((m = re.exec(flat)) !== null) starts.push(m.index);
+      if (!starts.length) return [];
+      const blocks = starts.map((start, i) =>
+        flat.slice(start, i + 1 < starts.length ? starts[i + 1] : flat.length),
+      );
+      return blocks
+        .map((block, index) => {
+          const d = block.match(DATE_DOT);
+          const rest = block.replace(/^(?:seg|ter|qua|qui|sex|s[áa]b|dom)\.?\s*\d{2}\.\d{2}\.\d{2}\s*/i, "");
+          const dayMatch = rest.match(/^\s*(\d{1,2})\s+/);
+          const day = dayMatch ? Number(dayMatch[1]) : index + 1;
+          const afterDay = dayMatch ? rest.slice(dayMatch[0].length) : rest;
+          const arrival = (afterDay.match(/chegada\s*(\d{2}:\d{2})/i) || [])[1] || "";
+          const departure = (afterDay.match(/sa[ií]da\s*(\d{2}:\d{2})/i) || [])[1] || "";
+          const portRaw = clean(
+            afterDay
+              .replace(/(chegada|sa[ií]da)\s*\d{2}:\d{2}/gi, "")
+              .replace(/\d{2}:\d{2}/g, "")
+              .replace(/[|\u2013\u2014]/g, " "),
+          );
+          const parts = portRaw.split(",").map((p) => clean(p)).filter(Boolean);
+          return {
+            day,
+            date: d ? `20${d[3]}-${d[2]}-${d[1]}` : "",
+            port: parts[0] || portRaw.slice(0, 80),
+            country: parts.length > 1 ? parts[parts.length - 1] : "",
+            arrival,
+            departure,
+            description: "",
+            image_url: "",
+            map_image_url: "",
+            activities: [],
+          };
+        })
+        .filter((d) => d.port);
+    }
+
     function parseItinerary(scopeEl) {
       const pane = scopeEl || query(document_, FRT_SELECTORS.activePane) || document_;
       const rows = [
         ...pane.querySelectorAll("[class*='itinerar'] li, [class*='itinerar'] tr, [class*='roteiro'] li, li"),
       ].filter((el) => /dia\s*\d+|\d{2}\/\d{2}\/\d{4}/i.test(clean(el.textContent)));
 
-      const days = rows.map((row, index) => {
+      let days = rows.map((row, index) => {
         const whole = clean(row.textContent);
         const day = Number((whole.match(/dia\s*(\d+)/i) || [])[1]) || index + 1;
         const labeled = (kw) => {
@@ -818,6 +865,10 @@
         };
       });
 
+      // Fallback textual (layout atual da FRT, sem <li>).
+      if (!days.length) days = itineraryFromText(pane.textContent || "");
+      if (!days.length) warn("Itinerário não detectado");
+
       // 51. Mapa: só marca como mapa quando o contexto confirma.
       const mapImg = [...pane.querySelectorAll("img")].find((img) =>
         /map|mapa|roteiro/i.test(`${img.getAttribute("alt") || ""} ${getBestImageUrl(img)}`),
@@ -841,6 +892,22 @@
     function parseTechnicalSheet(scopeEl) {
       const pane = scopeEl || query(document_, FRT_SELECTORS.activePane) || document_;
       const specs = {};
+      const put = (label, value) => {
+        const key = normalizeText(label).replace(/:$/, "");
+        const val = clean(value);
+        if (!key || !val || val.length > 80) return;
+        if (!specs[key]) specs[key] = val;
+      };
+
+      // app-ship-detail-specs: <strong>valor</strong><span>rótulo</span>
+      [...pane.querySelectorAll(".mini-technical-sheet .item")].forEach((item) => {
+        put(text(item, "span"), text(item, "strong"));
+      });
+      // Dimensões: <span>Altura:</span><strong>67,69 m</strong>
+      [...pane.querySelectorAll(".ship-dimensions__line .text, .infos-icon")].forEach((el) => {
+        put(text(el, "span"), text(el, "strong"));
+      });
+
       [...pane.querySelectorAll("li, tr, dl > div, [class*='spec'], [class*='ficha'] div")].forEach((el) => {
         const dt = el.querySelector("dt, th, strong, b, .label, .title");
         const dd = el.querySelector("dd, td:last-child, .value, span:last-child");
@@ -856,67 +923,146 @@
         if (!key || value.length > 80) return;
         // Aceita rótulos conhecidos e novos, mas ignora frases longas.
         if (!SPEC_LABELS.includes(key) && key.split(" ").length > 4) return;
-        specs[key] = value;
+        if (!specs[key]) specs[key] = value;
       });
 
       // 61. Desenho técnico: imagem associada ao blueprint.
-      const drawing = [...pane.querySelectorAll("img")].find((img) =>
-        /desenho|tecnic|blueprint|ficha/i.test(`${img.getAttribute("alt") || ""} ${getBestImageUrl(img)}`),
-      );
+      const drawing =
+        query(pane, ".ship-dimensions__image img") ||
+        [...pane.querySelectorAll("img")].find((img) =>
+          /desenho|tecnic|blueprint|ficha/i.test(`${img.getAttribute("alt") || ""} ${getBestImageUrl(img)}`),
+        );
       return { specs, technical_drawing_url: drawing ? url(getBestImageUrl(drawing)) : "" };
+    }
+
+    /* Bloco padrão da FRT: .content-detail__item (atrações e cabines). */
+    function contentDetailItems(pane) {
+      return [...pane.querySelectorAll(".content-detail__item")];
+    }
+
+    function longestParagraph(el) {
+      const candidates = [...el.querySelectorAll("div, p")]
+        .map((n) => clean(n.textContent))
+        .filter((t) => t.length > 40);
+      return candidates.sort((a, b) => b.length - a.length)[0] || "";
+    }
+
+    function itemImages(el) {
+      return unique(
+        [...el.querySelectorAll("img")]
+          .map((img) => url(getBestImageUrl(img)))
+          .filter((src) => src && !/data:|icons\//i.test(src))
+          .map((src) => ({ src })),
+        (i) => i.src,
+      ).map((i) => i.src);
     }
 
     /* 54. Atrações ---------------------------------------------------- */
     function parseAttractions(scopeEl, categoryHint) {
       const pane = scopeEl || query(document_, FRT_SELECTORS.activePane) || document_;
-      const cards = [
-        ...pane.querySelectorAll("[class*='card'], [class*='attraction'], [class*='atrac'] li"),
-      ];
-      const out = cards.map((el) => {
-        const name =
-          text(el, "h3,h4,.title,[class*='title'],[class*='name'],strong") ||
-          clean(el.textContent).slice(0, 60);
-        const whole = clean(el.textContent);
-        const img = el.querySelector("img");
-        return {
-          category: categoryHint || (/restaurante|bar/i.test(whole)
-            ? "restaurantes"
-            : /piscina/i.test(whole)
-              ? "piscinas"
-              : /crianc/i.test(whole)
-                ? "criancas"
-                : "outros"),
-          name,
-          description: text(el, "p") || "",
-          deck: (whole.match(/deck\s*(\d+)/i) || [])[1] || "",
-          images: img ? [url(getBestImageUrl(img))] : [],
-        };
-      });
+      const items = contentDetailItems(pane);
+      let out;
+
+      if (items.length) {
+        out = items.map((el) => {
+          const content = query(el, ".content-detail__content") || el;
+          const name = text(content, "h2") || clean(content.textContent).slice(0, 60);
+          const description = longestParagraph(content);
+          const tags = texts(content, ".category-icon span");
+          const whole = clean(el.textContent);
+          return {
+            category:
+              categoryHint ||
+              (/restaurante|buffet|bar\b/i.test(whole)
+                ? "restaurantes"
+                : /piscina/i.test(whole)
+                  ? "piscinas"
+                  : /crianc/i.test(whole)
+                    ? "criancas"
+                    : "outros"),
+            name,
+            description: [description, tags.length ? tags.join(" • ") : ""].filter(Boolean).join(" — "),
+            deck: (whole.match(/(?:deck|conv[ée]s)\s*(\d+)/i) || [])[1] || "",
+            images: itemImages(el),
+          };
+        });
+      } else {
+        const cards = [
+          ...pane.querySelectorAll("[class*='card'], [class*='attraction'], [class*='atrac'] li"),
+        ];
+        out = cards.map((el) => {
+          const name =
+            text(el, "h3,h4,.title,[class*='title'],[class*='name'],strong") ||
+            clean(el.textContent).slice(0, 60);
+          const whole = clean(el.textContent);
+          const img = el.querySelector("img");
+          return {
+            category: categoryHint || "outros",
+            name,
+            description: text(el, "p") || "",
+            deck: (whole.match(/(?:deck|conv[ée]s)\s*(\d+)/i) || [])[1] || "",
+            images: img ? [url(getBestImageUrl(img))] : [],
+          };
+        });
+      }
       return unique(out.filter((a) => a.name), (a) => normalizeText(a.name));
     }
 
     /* 55. Cabines informativas do navio ------------------------------- */
     function parseShipCabins(scopeEl) {
       const pane = scopeEl || query(document_, FRT_SELECTORS.activePane) || document_;
-      const cards = [...pane.querySelectorAll("[class*='cabin'], [class*='cabine']")].filter((el) =>
-        /interna|externa|varanda|su[ií]te/i.test(clean(el.textContent)),
-      );
-      const out = cards.map((el) => {
-        const whole = clean(el.textContent);
-        const name = text(el, "h3,h4,.name,[class*='title'],strong") || whole.slice(0, 60);
-        return {
-          cabin_type: normalizeCabinType(name || whole),
-          code: (whole.match(/categorias?\s*:?\s*([\w, ]+)/i) || [])[1] || "",
-          name,
-          capacity: Number((whole.match(/at[ée]\s*(\d+)\s*(pessoas|h[óo]spedes)/i) || [])[1]) || null,
-          size_m2: (whole.match(/(\d+[,.]?\d*)\s*m[²2]/i) || [])[1] || "",
-          description: text(el, "p") || "",
-          amenities: texts(el, "li"),
-          photos: [...el.querySelectorAll("img")].map((i) => url(getBestImageUrl(i))).filter(Boolean),
-        };
-      });
+      const items = contentDetailItems(pane);
+      let out;
+
+      if (items.length) {
+        out = items.map((el) => {
+          const content = query(el, ".content-detail__content") || el;
+          const whole = clean(el.textContent);
+          const name = text(content, "h2") || whole.slice(0, 60);
+          const codes = texts(content, "small span")
+            .filter((t) => !/categorias?/i.test(t))
+            .map((t) => clean(t))
+            .filter(Boolean);
+          const capacityEl = query(content, ".capacity strong");
+          const sizes = texts(content, ".size strong").filter((t) => /m[²2]/i.test(t) || /^\d/.test(t));
+          return {
+            cabin_type: normalizeCabinType(name),
+            code: codes.join(", "),
+            name,
+            capacity:
+              Number(
+                (clean(capacityEl ? capacityEl.textContent : whole).match(
+                  /at[ée]\s*(\d+)\s*(?:pessoas?|h[óo]spedes?)/i,
+                ) || [])[1],
+              ) || null,
+            size_m2: sizes.join(" ~ "),
+            description: longestParagraph(content),
+            amenities: [],
+            photos: itemImages(el),
+          };
+        });
+      } else {
+        const cards = [...pane.querySelectorAll("[class*='cabin'], [class*='cabine']")].filter((el) =>
+          /interna|externa|varanda|su[ií]te/i.test(clean(el.textContent)),
+        );
+        out = cards.map((el) => {
+          const whole = clean(el.textContent);
+          const name = text(el, "h3,h4,.name,[class*='title'],strong") || whole.slice(0, 60);
+          return {
+            cabin_type: normalizeCabinType(name || whole),
+            code: (whole.match(/categorias?\s*:?\s*([\w, ]+)/i) || [])[1] || "",
+            name,
+            capacity: Number((whole.match(/at[ée]\s*(\d+)\s*(pessoas|h[óo]spedes)/i) || [])[1]) || null,
+            size_m2: (whole.match(/(\d+[,.]?\d*)\s*m[²2]/i) || [])[1] || "",
+            description: text(el, "p") || "",
+            amenities: texts(el, "li"),
+            photos: [...el.querySelectorAll("img")].map((i) => url(getBestImageUrl(i))).filter(Boolean),
+          };
+        });
+      }
       return unique(out.filter((c) => c.name), (c) => `${c.cabin_type}|${normalizeText(c.name)}`);
     }
+
 
     /* 56. Deck plans --------------------------------------------------- */
     function parseDeckPlans(scopeEl, label) {
