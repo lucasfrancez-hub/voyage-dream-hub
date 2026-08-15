@@ -54,6 +54,20 @@ function hhmm(v?: string | null): string {
   return m ? `${m[1]}:${m[2]}` : "—";
 }
 
+/** Data curta "sex., 1 de jan." a partir de qualquer formato. */
+function dataCurta(v?: string | null): string {
+  const iso = String(v ?? "").slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return "";
+  const [y, m, d] = iso.split("-").map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  return new Intl.DateTimeFormat("pt-BR", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    timeZone: "UTC",
+  }).format(dt);
+}
+
 function periodoLabel(q: PublicQuote): string | null {
   const fmt = (s?: string | null) => {
     if (!s) return null;
