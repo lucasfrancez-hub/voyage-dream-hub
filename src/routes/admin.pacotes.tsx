@@ -1001,6 +1001,11 @@ function AdminPackages() {
                   <Icon className="h-4 w-4 text-brand-orange" /> {label}
                 </DropdownMenuItem>
               ))}
+              <DropdownMenuItem asChild className="gap-2">
+                <Link to="/admin/cruzeiros">
+                  <Ship className="h-4 w-4 text-brand-orange" /> Cruzeiro
+                </Link>
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
 
