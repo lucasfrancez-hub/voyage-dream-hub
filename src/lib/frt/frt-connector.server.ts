@@ -825,6 +825,13 @@ async function loadVendaScreen(s: Session) {
       resolved.missing.join(", "),
     );
   }
+  ultimoInventarioMotor = inventarioMotorPacote(body);
+  trace(
+    `  inventário frmMotorPacote: form=${ultimoInventarioMotor.encontrouForm} campos=${ultimoInventarioMotor.campos.length} scripts=${ultimoInventarioMotor.scriptsAutocomplete.length} widgets=${ultimoInventarioMotor.widgets.join(", ") || "(nenhum)"}`,
+  );
+  for (const c of ultimoInventarioMotor.campos.slice(0, 30)) {
+    trace(`    ${c.tag} id=${c.id ?? "-"} name=${c.name ?? "-"} type=${c.type ?? "-"} valor=${c.valor}`);
+  }
   return resolved.fields;
 }
 
