@@ -9,7 +9,7 @@ import heroFallback from "@/assets/hero-destino.jpg.asset.json";
 import { airlineLogo } from "@/lib/airlines";
 import { brl } from "@/lib/public-quote/payments";
 import { quoteHeadline, quoteTagline } from "@/lib/public-quote/headline";
-import { agentPhoto } from "@/lib/public-quote/agents";
+import { agentPhoto, agentProfile } from "@/lib/public-quote/agents";
 import { formatRoom } from "@/lib/public-quote/room-label";
 import { fotoDoDestino } from "@/lib/public-quote/destination-photo";
 
@@ -1047,7 +1047,7 @@ function QuoteBody({ quote }: { quote: PublicQuote }) {
         </section>
 
         <div className="vq-footer">
-          VIA AIR Turismo • Paranavaí (PR) • atendimento 100% online
+          VIA AIR Agência de Viagens • Paranavaí (PR) • atendimento 100% online
           <br />
           Proposta {quote.publicId}
           {quote.validUntil
