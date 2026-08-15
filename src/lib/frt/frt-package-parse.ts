@@ -85,12 +85,12 @@ const NAO_IATA = new Set([
   "IVA", "USD", "BRL", "EUR", "SIM", "NAO", "APT", "TOT", "SUL", "PAX",
 ]);
 
-function texto(el: HTMLElement | null | undefined): string {
+export function texto(el: HTMLElement | null | undefined): string {
   if (!el) return "";
   return el.structuredText.replace(/\u00a0/g, " ").replace(/[ \t]+/g, " ").trim();
 }
 
-function linha(el: HTMLElement | null | undefined): string {
+export function linha(el: HTMLElement | null | undefined): string {
   return texto(el).replace(/\s*\n\s*/g, " ").trim();
 }
 
@@ -114,13 +114,13 @@ function classeContem(el: HTMLElement, re: RegExp): boolean {
 }
 
 /** Procura, dentro do container, o primeiro elemento cuja classe/id casa. */
-function acharPorClasse(root: HTMLElement, re: RegExp): HTMLElement | null {
+export function acharPorClasse(root: HTMLElement, re: RegExp): HTMLElement | null {
   const todos = root.querySelectorAll("*");
   for (const el of todos) if (classeContem(el, re)) return el;
   return null;
 }
 
-function acharTodosPorClasse(root: HTMLElement, re: RegExp): HTMLElement[] {
+export function acharTodosPorClasse(root: HTMLElement, re: RegExp): HTMLElement[] {
   return root.querySelectorAll("*").filter((el) => classeContem(el, re));
 }
 
@@ -268,7 +268,7 @@ function montarSegmentos(bloco: HTMLElement): FrtSegmento[] {
   });
 }
 
-function extrairTrecho(bloco: HTMLElement): FrtTrecho | null {
+export function extrairTrecho(bloco: HTMLElement): FrtTrecho | null {
   const txt = texto(bloco);
   if (!/\d{1,2}:\d{2}/.test(txt)) return null;
 
@@ -329,7 +329,7 @@ function extrairTrecho(bloco: HTMLElement): FrtTrecho | null {
 }
 
 /** Agrupa os blocos aéreos do container em IDA e VOLTA. */
-function extrairAereo(container: HTMLElement): { ida: FrtTrecho | null; volta: FrtTrecho | null } {
+export function extrairAereo(container: HTMLElement): { ida: FrtTrecho | null; volta: FrtTrecho | null } {
   const blocos = acharTodosPorClasse(container, RE_VOO).filter((b) => /\d{1,2}:\d{2}/.test(texto(b)));
   // Mantém só os blocos "de fora" — um bloco dentro de outro é segmento, não voo.
   const externos = blocos.filter((b) => !blocos.some((o) => o !== b && o.querySelectorAll("*").includes(b)));

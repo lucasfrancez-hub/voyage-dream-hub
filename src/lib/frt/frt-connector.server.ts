@@ -1545,3 +1545,31 @@ export async function frtDiagnosticoPesquisa(input: FrtSearchInput) {
     log: frtTraceLog().slice(-60),
   };
 }
+
+/* ── MOTOR FRT: ações do aéreo (Alterar voo / Selecionar voo) ────────── */
+
+/**
+ * Executa um comando PrimeFaces do resultado do produto (botões do pacote).
+ * O `source` é SEMPRE descoberto no HTML — nunca hardcodado.
+ */
+export async function frtComandoProduto(
+  source: string,
+  render: string,
+): Promise<{ status: number; body: string }> {
+  const s = await getSession();
+  const p = new URLSearchParams();
+  p.set("javax.faces.source", source);
+  p.set("javax.faces.partial.execute", "@this");
+  p.set("javax.faces.partial.render", render);
+  p.set(source, source);
+  trace(`comando produto: source=${source} render=${render}`);
+  const r = await ajaxMotor(s, p);
+  trace(`  resposta status=${r.status} bytes=${r.body.length}`);
+  if (looksLikeSessionExpired(r.body) || looksLikeLoginPage(r.body)) {
+    throw new FrtError("FRT_SESSION_EXPIRED", "Sessão da FRT expirou — refaça a pesquisa");
+  }
+  return r;
+}
+
+export const FRT_RENDER_AEREO =
+  "pnlFiltro pnlPacoteResumo pnlPacoteResumoFixo pnlTopbarProduto pnlResultado";

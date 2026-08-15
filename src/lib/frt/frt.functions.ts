@@ -163,3 +163,37 @@ export const pacoteFrt = createServerFn({ method: "POST" })
     const { motorFrtPacote } = await import("@/lib/frt/frt-motor.server");
     return motorFrtPacote(data.searchId, data.pacoteId);
   });
+
+/** Etapa "Alterar voo": todas as opções aéreas (rptAereoPesquisa:N) do pacote. */
+export const opcoesAereasFrt = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        searchId: z.string().min(4).max(64),
+        pacoteId: z.string().min(1).max(200),
+        recarregar: z.boolean().optional(),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data }) => {
+    const { motorFrtOpcoesAereas } = await import("@/lib/frt/frt-motor.server");
+    return motorFrtOpcoesAereas(data.searchId, data.pacoteId, data.recarregar ?? false);
+  });
+
+/** Seleciona a opção aérea escolhida e devolve o resumo/preço atualizados. */
+export const selecionarAereoFrt = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        searchId: z.string().min(4).max(64),
+        pacoteId: z.string().min(1).max(200),
+        opcaoId: z.string().min(1).max(200),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data }) => {
+    const { motorFrtSelecionarAereo } = await import("@/lib/frt/frt-motor.server");
+    return motorFrtSelecionarAereo(data.searchId, data.pacoteId, data.opcaoId);
+  });

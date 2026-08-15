@@ -21,8 +21,14 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { FrtLocalAutocomplete, type FrtLocalSelecionado } from "@/components/frt/FrtLocalAutocomplete";
-import { pacoteFrt, pesquisarPacotesFrt } from "@/lib/frt/frt.functions";
+import {
+  opcoesAereasFrt,
+  pacoteFrt,
+  pesquisarPacotesFrt,
+  selecionarAereoFrt,
+} from "@/lib/frt/frt.functions";
 import type { FrtPacote } from "@/lib/frt/frt-package-parse";
+import type { FrtOpcaoAerea } from "@/lib/frt/frt-aereo-parse";
 
 export const Route = createFileRoute("/admin/motor-frt")({
   head: () => ({
@@ -70,9 +76,18 @@ function MotorFrtPage() {
   const [hoteis, setHoteis] = useState<Hotel[]>([]);
   const [diagnostico, setDiagnostico] = useState<Record<string, unknown> | null>(null);
   const [pacote, setPacote] = useState<FrtPacote | null>(null);
+  const [pacoteId, setPacoteId] = useState<string | null>(null);
+  const [opcoes, setOpcoes] = useState<FrtOpcaoAerea[]>([]);
+  const [aereoAtivo, setAereoAtivo] = useState<string | null>(null);
+  const [resumoFrt, setResumoFrt] = useState<{
+    precoPorPessoaFormatado: string | null;
+    precoTotalFormatado: string | null;
+  } | null>(null);
 
   const pesquisarFn = useServerFn(pesquisarPacotesFrt);
   const pacoteFn = useServerFn(pacoteFrt);
+  const opcoesFn = useServerFn(opcoesAereasFrt);
+  const selecionarFn = useServerFn(selecionarAereoFrt);
 
   const pesquisa = useMutation({
     mutationFn: async () =>
@@ -105,14 +120,48 @@ function MotorFrtPage() {
   });
 
   const abrirAereo = useMutation({
-    mutationFn: async (pacoteId: string) => pacoteFn({ data: { searchId: searchId!, pacoteId } }),
-    onSuccess: (r) => {
-      if (!r.ok) {
-        toast.error(r.mensagem ?? "Não foi possível carregar o aéreo");
+    mutationFn: async (id: string) => {
+      const p = await pacoteFn({ data: { searchId: searchId!, pacoteId: id } });
+      const o = await opcoesFn({ data: { searchId: searchId!, pacoteId: id } });
+      return { p, o, id };
+    },
+    onSuccess: ({ p, o, id }) => {
+      if (!p.ok) {
+        toast.error(p.mensagem ?? "Não foi possível carregar o pacote");
         return;
       }
-      setPacote(r.pacote as FrtPacote);
+      setPacote(p.pacote as FrtPacote);
+      setPacoteId(id);
+      setResumoFrt(null);
+      if (o.ok) {
+        setOpcoes(o.opcoes as FrtOpcaoAerea[]);
+        setAereoAtivo(o.selecionado ?? null);
+      } else {
+        setOpcoes([]);
+        setAereoAtivo(null);
+        toast.warning(o.mensagem ?? "Opções aéreas indisponíveis", { description: o.erro });
+      }
       setEtapa("aereo");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const escolherVoo = useMutation({
+    mutationFn: async (opcaoId: string) =>
+      selecionarFn({ data: { searchId: searchId!, pacoteId: pacoteId!, opcaoId } }),
+    onSuccess: (r) => {
+      if (!r.ok) {
+        toast.error(r.mensagem ?? "Não foi possível selecionar este voo");
+        return;
+      }
+      setAereoAtivo(r.selecionado);
+      setResumoFrt({
+        precoPorPessoaFormatado: r.resumo.precoPorPessoaFormatado,
+        precoTotalFormatado: r.resumo.precoTotalFormatado,
+      });
+      if (r.pacote) setPacote(r.pacote as FrtPacote);
+      setOpcoes((ant) => ant.map((o) => ({ ...o, selecionado: o.id === r.selecionado })));
+      toast.success("Voo selecionado — resumo do pacote atualizado");
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -292,15 +341,36 @@ function MotorFrtPage() {
       {etapa === "aereo" && pacote && (
         <section className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-medium">Escolha seus voos</h2>
+            <h2 className="text-lg font-medium">Escolha seu voo</h2>
             <Button variant="ghost" size="sm" onClick={() => setEtapa("hospedagem")}>
               <ArrowLeft className="mr-1.5 h-4 w-4" /> Voltar para hotéis
             </Button>
           </div>
-          <div className="grid gap-4 md:grid-cols-2">
-            <TrechoCard titulo="Ida" trecho={pacote.aereo.ida} />
-            <TrechoCard titulo="Volta" trecho={pacote.aereo.volta} />
+          <p className="text-sm text-muted-foreground">
+            {opcoes.length
+              ? `${opcoes.length} opção${opcoes.length > 1 ? "es" : ""} aérea${opcoes.length > 1 ? "s" : ""} para ${pacote.hotel.nome ?? "a hospedagem escolhida"}.`
+              : "A FRT não devolveu opções aéreas alternativas para este pacote."}
+          </p>
+
+          <div className="grid gap-4 lg:grid-cols-2">
+            {opcoes.map((o) => (
+              <OpcaoAereaCard
+                key={o.id}
+                opcao={o}
+                ativo={aereoAtivo === o.id}
+                carregando={escolherVoo.isPending}
+                onSelecionar={() => escolherVoo.mutate(o.id)}
+              />
+            ))}
           </div>
+
+          {!opcoes.length && (
+            <div className="grid gap-4 md:grid-cols-2">
+              <TrechoCard titulo="Ida" trecho={pacote.aereo.ida} />
+              <TrechoCard titulo="Volta" trecho={pacote.aereo.volta} />
+            </div>
+          )}
+
           <Button onClick={() => setEtapa("resumo")}>Continuar para o resumo</Button>
         </section>
       )}
@@ -333,8 +403,12 @@ function MotorFrtPage() {
               <div className="flex items-end justify-between">
                 <div>
                   <p className="text-xs text-muted-foreground">Por pessoa</p>
-                  <p className="text-2xl font-semibold">{precoTexto(pacote.preco, "porPessoa")}</p>
-                  <p className="text-sm text-muted-foreground">Total {precoTexto(pacote.preco, "total")}</p>
+                  <p className="text-2xl font-semibold">
+                    {resumoFrt?.precoPorPessoaFormatado ?? precoTexto(pacote.preco, "porPessoa")}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Total {resumoFrt?.precoTotalFormatado ?? precoTexto(pacote.preco, "total")}
+                  </p>
                 </div>
                 <Button disabled title="Somente leitura nesta etapa">
                   Selecionar pacote
@@ -442,5 +516,102 @@ function TrechoCard({
         )}
       </CardContent>
     </Card>
+  );
+}
+
+function OpcaoAereaCard({
+  opcao,
+  ativo,
+  carregando,
+  onSelecionar,
+}: {
+  opcao: FrtOpcaoAerea;
+  ativo: boolean;
+  carregando: boolean;
+  onSelecionar: () => void;
+}) {
+  const diff = opcao.preco;
+  const sinal = diff.diferencaTipo === "mais_barato" ? "−" : "+";
+  return (
+    <Card className={ativo ? "border-brand-orange ring-1 ring-brand-orange" : undefined}>
+      <CardContent className="space-y-3 p-4">
+        <div className="flex items-center justify-between gap-2">
+          <span className="flex items-center gap-2 font-medium">
+            {opcao.logo ? (
+              <img src={opcao.logo} alt={opcao.companhia ?? "Companhia aérea"} className="h-5" loading="lazy" />
+            ) : (
+              <Plane className="h-4 w-4 text-brand-orange" />
+            )}
+            {opcao.companhia ?? opcao.ida?.codigoCompanhia ?? "Companhia"}
+          </span>
+          {ativo && <Badge>Selecionado</Badge>}
+        </div>
+
+        <LinhaVoo rotulo="Ida" trecho={opcao.ida} />
+        <LinhaVoo rotulo="Volta" trecho={opcao.volta} />
+
+        <Separator />
+        <div className="flex items-end justify-between gap-3">
+          <div>
+            <p className="text-lg font-semibold">{opcao.preco.porPessoaFormatado ?? "—"}</p>
+            <p className="text-xs text-muted-foreground">por pessoa</p>
+            <p className="text-sm">{opcao.preco.totalFormatado ?? "—"} total</p>
+            {opcao.preco.taxasFormatado && (
+              <p className="text-xs text-muted-foreground">Taxas {opcao.preco.taxasFormatado}</p>
+            )}
+            {opcao.preco.impostosFormatado && (
+              <p className="text-xs text-muted-foreground">Impostos {opcao.preco.impostosFormatado}</p>
+            )}
+            {opcao.preco.diferencaFormatada && (
+              <p
+                className={`text-xs font-medium ${
+                  diff.diferencaTipo === "mais_barato" ? "text-emerald-600" : "text-brand-orange"
+                }`}
+              >
+                {diff.diferencaTipo === "igual"
+                  ? "Mesmo valor do aéreo base"
+                  : `${sinal} ${opcao.preco.diferencaFormatada} ${
+                      diff.diferencaTipo === "mais_barato" ? "mais barato" : "mais caro"
+                    }`}
+              </p>
+            )}
+          </div>
+          <Button size="sm" onClick={onSelecionar} disabled={carregando || !opcao.selectSource}>
+            {carregando ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+            {ativo ? "Selecionado" : "Selecionar voo"}
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function LinhaVoo({ rotulo, trecho }: { rotulo: string; trecho: FrtOpcaoAerea["ida"] }) {
+  if (!trecho) {
+    return <p className="text-xs text-muted-foreground">{rotulo}: não informado</p>;
+  }
+  return (
+    <div className="space-y-1">
+      <p className="text-sm">
+        <span className="mr-2 text-xs uppercase text-muted-foreground">{rotulo}</span>
+        <span className="font-medium">
+          {trecho.origem ?? "—"} {trecho.saida ?? ""} → {trecho.destino ?? "—"} {trecho.chegada ?? ""}
+        </span>
+        {trecho.chegaDiaSeguinte ? <sup className="ml-0.5 text-brand-orange">+1</sup> : null}
+      </p>
+      <div className="flex flex-wrap gap-1.5">
+        <Badge variant="secondary">
+          {trecho.paradas === 0
+            ? "Direto"
+            : `${trecho.paradas} parada${trecho.paradas > 1 ? "s" : ""}${
+                trecho.conexoes.length ? ` em ${trecho.conexoes.join(", ")}` : ""
+              }`}
+        </Badge>
+        {trecho.duracao && <Badge variant="outline">{trecho.duracao}</Badge>}
+        {trecho.classe && <Badge variant="outline">{trecho.classe}</Badge>}
+        {trecho.bagagem && <Badge variant="outline">{trecho.bagagem}</Badge>}
+        {trecho.trocaAeroporto && <Badge variant="destructive">Troca de aeroporto</Badge>}
+      </div>
+    </div>
   );
 }
