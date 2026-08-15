@@ -10,7 +10,9 @@ import {
   FrtError,
   FRT_FIELDS,
   coletarEstadoMotor,
+  decodeEntities,
   resolvePayloadAutocomplete,
+  listarCamposInternosJsf,
   extractPartialUpdates,
   extractViewState,
   detectLoginButtonName,
@@ -180,6 +182,17 @@ export type FrtAmostraPesquisa = {
   validationFailed: boolean;
   /** Mapa sanitizado dos campos do frmMotorPacote usados no POST. */
   inventario: FrtInventarioMotor | null;
+  /** Evidências das requisições AJAX dos autocompletes, sem dados sensíveis. */
+  autocomplete: {
+    componente: "origem" | "destino";
+    source: string;
+    status: number;
+    bytes: number;
+    updates: string[];
+    camposJsf: string[];
+  }[];
+  /** Nomes efetivamente escolhidos para o payload; null bloqueia a pesquisa. */
+  payloadResolvido: { origem: string | null; destino: string | null };
   raw: string;
 };
 let ultimaAmostraPesquisa: FrtAmostraPesquisa | null = null;
@@ -964,6 +977,84 @@ async function runSearch(
   const origem = normalizarIata(input.origem);
   const destino = normalizarIata(input.destino);
 
+  const diagnosticarAutocomplete = async (
+    componente: "origem" | "destino",
+    sourceInput: string,
+    consulta: string,
+  ) => {
+    const source = sourceInput.replace(/_input$/, "");
+    const ajax = new URLSearchParams();
+    ajax.set("javax.faces.partial.ajax", "true");
+    ajax.set("javax.faces.source", source);
+    ajax.set("javax.faces.partial.execute", source);
+    ajax.set("javax.faces.partial.render", source);
+    ajax.set(source, source);
+    ajax.set(`${source}_query`, consulta);
+    ajax.set(FRT_FIELDS.form, FRT_FIELDS.form);
+    for (const [name, valor] of Object.entries(estado)) {
+      if (!name.startsWith("javax.faces")) ajax.set(name, valor);
+    }
+    ajax.set("javax.faces.ViewState", s.viewState ?? "");
+    const resposta = await frtFetch(s, VENDA_URL, {
+      method: "POST",
+      body: ajax.toString(),
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+        "Faces-Request": "partial/ajax",
+        "X-Requested-With": "XMLHttpRequest",
+        Origin: "https://frt.infotravel.com.br",
+        Referer: VENDA_URL,
+      },
+    });
+    const updates = extractPartialUpdates(resposta.body);
+    return {
+      componente,
+      source,
+      status: resposta.res.status,
+      bytes: resposta.body.length,
+      updates: Object.keys(updates),
+      camposJsf: listarCamposInternosJsf(resposta.body),
+      raw: resposta.body,
+    };
+  };
+
+  // Os campos semânticos são apenas a UI do autocomplete. Sem os campos
+  // internos j_idt#### não existe payload válido de pesquisa. Em vez de cair
+  // silenciosamente no _input, reproduzimos separadamente os AJAX de consulta
+  // para registrar em qual resposta dinâmica esses campos aparecem.
+  if (!payload.origem || !payload.destino) {
+    const autocomplete = [];
+    autocomplete.push(await diagnosticarAutocomplete("origem", fields.origem, input.origemLabel?.trim() || origem));
+    autocomplete.push(await diagnosticarAutocomplete("destino", fields.destino, input.destinoLabel?.trim() || destino));
+    for (const item of autocomplete) {
+      trace(
+        `  autocomplete ${item.componente}: source=${item.source} status=${item.status} bytes=${item.bytes} updates=${item.updates.join(", ") || "(nenhum)"} j_idt=${item.camposJsf.join(", ") || "(nenhum)"}`,
+      );
+    }
+    ultimaAmostraPesquisa = {
+      em: new Date().toISOString(),
+      status: autocomplete.find((item) => item.status >= 400)?.status ?? 200,
+      bytes: autocomplete.reduce((total, item) => total + item.bytes, 0),
+      updates: autocomplete.flatMap((item) => item.updates.map((id) => ({ id: `${item.componente}:${id}`, bytes: 0 }))),
+      temPnlResultado: false,
+      pnlResultadoBytes: 0,
+      temPrecos: false,
+      qtdPrecos: 0,
+      amostraPrecos: [],
+      mensagemNenhumResultado: null,
+      validationFailed: false,
+      inventario: ultimoInventarioMotor,
+      autocomplete: autocomplete.map(({ raw: _raw, ...item }) => item),
+      payloadResolvido: { origem: payload.origem, destino: payload.destino },
+      raw: amostraSanitizada(autocomplete.map((item) => item.raw).join("\n")),
+    };
+    throw new FrtError(
+      "FRT_SEARCH_INCONCLUSIVE",
+      "Os campos internos de origem/destino ainda não foram gerados pelo autocomplete da FRT",
+      `origem=${payload.origem ?? "-"} destino=${payload.destino ?? "-"}`,
+    );
+  }
+
   const p = new URLSearchParams();
   p.set("javax.faces.partial.ajax", "true");
   p.set("javax.faces.source", fields.botao);
@@ -984,8 +1075,8 @@ async function runSearch(
 
   // 2) Sobrescreve só o que é da pesquisa. Origem/destino vão nos campos reais
   //    do payload (j_idt####), não nos _input visuais do autocomplete.
-  const nomeOrigem = payload.origem ?? fields.origem;
-  const nomeDestino = payload.destino ?? fields.destino;
+  const nomeOrigem = payload.origem;
+  const nomeDestino = payload.destino;
   p.set(nomeOrigem, input.origemLabel?.trim() || origem);
   p.set(nomeDestino, input.destinoLabel?.trim() || destino);
   p.set(fields.ida, toBrDate(input.ida));
@@ -1025,7 +1116,10 @@ async function runSearch(
       /(nenhum[\s\S]{0,60}?(resultado|disponibilidade|voo|pacote)[^<]{0,80})/i,
     )?.[1]?.replace(/\s+/g, " ").trim() ?? null;
 
-  const validationFailed = /"validationFailed"\s*:\s*true|validationFailed=["']?true/i.test(body);
+  // PrimeFaces serializa o JSON da extension com entidades XML, por exemplo
+  // {&#34;validationFailed&#34;:true}. A detecção deve ocorrer após decodificação.
+  const bodyDecodificado = decodeEntities(body);
+  const validationFailed = /"validationFailed"\s*:\s*true|validationFailed=["']?true/i.test(bodyDecodificado);
   const pnl = extrairPnlResultado(updatesDiag, body);
   const qtdPrecos = [...body.matchAll(/R\$\s?[\d.]+,\d{2}/g)].length;
 
@@ -1042,6 +1136,8 @@ async function runSearch(
     mensagemNenhumResultado: semResultado,
     validationFailed,
     inventario: ultimoInventarioMotor,
+    autocomplete: [],
+    payloadResolvido: { origem: nomeOrigem, destino: nomeDestino },
     raw: amostraSanitizada(body),
   };
 

@@ -411,6 +411,20 @@ function FrtTestePage() {
               mensagem &quot;nenhum resultado&quot;:{" "}
               {dp.amostraPesquisa?.mensagemNenhumResultado ?? "—"}
             </p>
+            <p className="text-muted-foreground">
+              payload interno: origem={dp.amostraPesquisa?.payloadResolvido?.origem ?? "—"} · destino=
+              {dp.amostraPesquisa?.payloadResolvido?.destino ?? "—"}
+            </p>
+            {dp.amostraPesquisa?.autocomplete?.length ? (
+              <div className="space-y-1 text-muted-foreground">
+                <p className="font-medium text-foreground">Diagnóstico AJAX dos autocompletes</p>
+                {dp.amostraPesquisa.autocomplete.map((item) => (
+                  <p key={item.componente}>
+                    {item.componente}: source={item.source} · status {item.status} · {item.bytes}b · updates={item.updates.join(", ") || "nenhum"} · j_idt={item.camposJsf.join(", ") || "nenhum"}
+                  </p>
+                ))}
+              </div>
+            ) : null}
             {dp.amostraPesquisa?.inventario ? (
               <details open>
                 <summary className="cursor-pointer text-muted-foreground">
