@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { Loader2, PlugZap, Search, ShieldCheck, AlertTriangle } from "lucide-react";
@@ -137,6 +137,62 @@ function FrtTestePage() {
         </p>
       </header>
 
+      {aguardando2fa ? (
+        <section className="space-y-3 rounded-xl border border-amber-400/50 bg-amber-50/60 p-4 dark:bg-amber-950/20">
+          <div className="flex items-center gap-2 text-sm font-semibold text-amber-800 dark:text-amber-300">
+            <AlertTriangle className="size-4" /> Código de verificação necessário
+          </div>
+          <p className="text-sm text-muted-foreground">
+            A FRT enviou um código por e-mail e a autenticação está pausada nesta tentativa
+            (sessão e ViewState preservados). Novos logins estão bloqueados até a validação.
+            {pend.data?.segundos ? ` Aguardando há ${pend.data.segundos}s.` : ""}
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <Input
+              value={codigo}
+              onChange={(e) => setCodigo(e.target.value)}
+              placeholder="Código do e-mail"
+              className="max-w-[220px]"
+            />
+            <Button
+              size="sm"
+              disabled={codigoMut.isPending || codigo.trim().length < 3}
+              onClick={() => codigoMut.mutate()}
+            >
+              {codigoMut.isPending ? <Loader2 className="size-4 animate-spin" /> : "Validar código"}
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={autoMut.isPending}
+              onClick={() => autoMut.mutate()}
+            >
+              {autoMut.isPending ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                "Buscar código automático"
+              )}
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              disabled={cancelarMut.isPending}
+              onClick={() => cancelarMut.mutate()}
+            >
+              Descartar desafio
+            </Button>
+          </div>
+          {autoMut.data && !autoMut.data.ok ? (
+            <p className="text-xs text-amber-700">{autoMut.data.mensagem}</p>
+          ) : null}
+          {autoMut.data?.ok ? (
+            <p className="text-xs text-emerald-700">
+              Código lido da caixa dedicada e aceito pela FRT.
+            </p>
+          ) : null}
+        </section>
+      ) : null}
+
       <section className="rounded-xl border border-border bg-card p-4 space-y-3">
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2 text-sm font-medium">
@@ -224,53 +280,6 @@ function FrtTestePage() {
               </details>
             ) : null}
 
-            {false ? (
-              <div className="space-y-2 rounded-lg border border-amber-400/40 bg-amber-50/50 p-3 dark:bg-amber-950/20">
-                <p className="text-sm">
-                  A FRT enviou um código de verificação para o e-mail cadastrado. Informe-o
-                  abaixo para liberar a sessão do conector.
-                </p>
-                <div className="flex gap-2">
-                  <Input
-                    value={codigo}
-                    onChange={(e) => setCodigo(e.target.value)}
-                    placeholder="Código do e-mail"
-                    className="max-w-[220px]"
-                  />
-                  <Button
-                    size="sm"
-                    disabled={codigoMut.isPending || codigo.trim().length < 3}
-                    onClick={() => codigoMut.mutate()}
-                  >
-                    {codigoMut.isPending ? (
-                      <Loader2 className="size-4 animate-spin" />
-                    ) : (
-                      "Validar código"
-                    )}
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    disabled={autoMut.isPending}
-                    onClick={() => autoMut.mutate()}
-                  >
-                    {autoMut.isPending ? (
-                      <Loader2 className="size-4 animate-spin" />
-                    ) : (
-                      "Buscar código automático"
-                    )}
-                  </Button>
-                </div>
-                {autoMut.data && !autoMut.data.ok ? (
-                  <p className="text-xs text-amber-700">{autoMut.data.mensagem}</p>
-                ) : null}
-                {autoMut.data?.ok ? (
-                  <p className="text-xs text-emerald-700">
-                    Código lido da caixa dedicada e aceito pela FRT.
-                  </p>
-                ) : null}
-              </div>
-            ) : null}
             {d.erro ? (
               <p className="flex items-center gap-2 text-destructive">
                 <AlertTriangle className="size-4" /> {d.erro} — {d.mensagem}
