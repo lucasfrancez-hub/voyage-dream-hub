@@ -353,10 +353,11 @@ function FrtTestePage() {
               <Badge variant="outline">status {dp.amostraPesquisa?.status ?? "—"}</Badge>
               <Badge variant="outline">{dp.amostraPesquisa?.bytes ?? 0} bytes</Badge>
               <Badge variant={dp.amostraPesquisa?.temPnlResultado ? "default" : "destructive"}>
-                pnlResultado {dp.amostraPesquisa?.temPnlResultado ? "presente" : "ausente"}
+                pnlResultado {dp.amostraPesquisa?.temPnlResultado ? "presente" : "ausente"} (
+                {dp.amostraPesquisa?.pnlResultadoBytes ?? 0}b)
               </Badge>
               <Badge variant={dp.amostraPesquisa?.temPrecos ? "default" : "secondary"}>
-                preços: {dp.amostraPesquisa?.amostraPrecos.length ?? 0}
+                preços: {dp.amostraPesquisa?.qtdPrecos ?? 0}
               </Badge>
               <Badge variant={dp.amostraPesquisa?.validationFailed ? "destructive" : "outline"}>
                 validationFailed: {dp.amostraPesquisa?.validationFailed ? "true" : "false"}

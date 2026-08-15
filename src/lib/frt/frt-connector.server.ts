@@ -167,7 +167,11 @@ export type FrtAmostraPesquisa = {
   bytes: number;
   updates: { id: string; bytes: number }[];
   temPnlResultado: boolean;
+  /** Bytes do conteúdo do update pnlResultado (0 = não veio no partial). */
+  pnlResultadoBytes: number;
   temPrecos: boolean;
+  /** Total de ocorrências de preço na resposta. */
+  qtdPrecos: number;
   amostraPrecos: string[];
   mensagemNenhumResultado: string | null;
   /** PrimeFaces recusou os parâmetros antes de pesquisar. */
@@ -838,6 +842,25 @@ async function loadVendaScreen(s: Session) {
 
 /* --------------------------- pesquisa ------------------------------ */
 
+/** Códigos IATA sempre em maiúsculas; texto livre fica intacto. */
+function normalizarIata(v: string): string {
+  const t = (v ?? "").trim();
+  return /^[A-Za-z]{3}$/.test(t) ? t.toUpperCase() : t;
+}
+
+/** Conteúdo do <update id="...pnlResultado..."> (ou trecho equivalente). */
+function extrairPnlResultado(
+  updates: Record<string, string>,
+  body: string,
+): { presente: boolean; bytes: number } {
+  const chave = Object.keys(updates).find((k) => /pnlResultado/i.test(k));
+  if (chave) return { presente: true, bytes: updates[chave]!.length };
+  const i = body.search(/pnlResultado/i);
+  return { presente: i >= 0, bytes: 0 };
+}
+
+
+
 async function runSearch(
   s: Session,
   input: FrtSearchInput,
@@ -845,6 +868,9 @@ async function runSearch(
   const fields = await loadVendaScreen(s);
   const adultos = input.adultos ?? 1;
   const criancas = input.criancas ?? 0;
+  // Códigos IATA sempre em maiúsculas (MGf -> MGF).
+  const origem = normalizarIata(input.origem);
+  const destino = normalizarIata(input.destino);
 
   const p = new URLSearchParams();
   p.set("javax.faces.partial.ajax", "true");
@@ -856,8 +882,8 @@ async function runSearch(
   );
   p.set(fields.botao, fields.botao);
   p.set(FRT_FIELDS.form, FRT_FIELDS.form);
-  p.set(fields.origem, input.origem);
-  p.set(fields.destino, input.destino);
+  p.set(fields.origem, origem);
+  p.set(fields.destino, destino);
   p.set(fields.ida, toBrDate(input.ida));
   if (input.volta) p.set(fields.volta, toBrDate(input.volta));
   p.set(fields.pais, input.pais ?? "");
@@ -866,7 +892,7 @@ async function runSearch(
   p.set("frmMotorPacote:qtdCriancasPacote_input", String(criancas));
   p.set("javax.faces.ViewState", s.viewState ?? "");
 
-  trace(`POST pesquisa ${input.origem}->${input.destino} ${input.ida}`);
+  trace(`POST pesquisa ${origem}->${destino} ${input.ida}`);
   const { res: resPesquisa, body } = await frtFetch(s, VENDA_URL, {
     method: "POST",
     body: p.toString(),
@@ -888,14 +914,18 @@ async function runSearch(
     )?.[1]?.replace(/\s+/g, " ").trim() ?? null;
 
   const validationFailed = /"validationFailed"\s*:\s*true|validationFailed=["']?true/i.test(body);
+  const pnl = extrairPnlResultado(updatesDiag, body);
+  const qtdPrecos = [...body.matchAll(/R\$\s?[\d.]+,\d{2}/g)].length;
 
   ultimaAmostraPesquisa = {
     em: new Date().toISOString(),
     status: resPesquisa.status,
     bytes: body.length,
     updates: chavesDiag.map((id) => ({ id, bytes: updatesDiag[id]!.length })),
-    temPnlResultado: /pnlResultado/i.test(body),
+    temPnlResultado: pnl.presente,
+    pnlResultadoBytes: pnl.bytes,
     temPrecos: precos.length > 0,
+    qtdPrecos,
     amostraPrecos: precos,
     mensagemNenhumResultado: semResultado,
     validationFailed,
@@ -908,8 +938,8 @@ async function runSearch(
   trace(
     `  updates: ${chavesDiag.length ? chavesDiag.map((k) => `${k}(${updatesDiag[k]!.length}b)`).join(", ") : "(nenhum)"}`,
   );
-  trace(`  pnlResultado presente: ${/pnlResultado/i.test(body)}`);
-  trace(`  preços encontrados: ${precos.length}${precos.length ? ` -> ${precos.slice(0, 3).join(" | ")}` : ""}`);
+  trace(`  pnlResultado presente: ${pnl.presente} (${pnl.bytes} bytes de conteúdo)`);
+  trace(`  ocorrências de preço: ${qtdPrecos}${precos.length ? ` -> ${precos.slice(0, 3).join(" | ")}` : ""}`);
   trace(`  mensagem "nenhum resultado": ${semResultado ?? "(nenhuma)"}`);
   trace(`  validationFailed: ${validationFailed}`);
 
@@ -942,7 +972,26 @@ async function runSearch(
     .map((k) => updates[k]!)
     .join("\n");
 
-  return parseResultadosHtml(html || Object.values(updates).join("\n"));
+  const out = parseResultadosHtml(html || Object.values(updates).join("\n"));
+
+  // Classificação obrigatória antes de declarar sucesso vazio: só aceitamos
+  // "pesquisa válida sem disponibilidade" com evidência explícita.
+  if (!out.results.length) {
+    const evidencia =
+      Boolean(semResultado) || (pnl.presente && pnl.bytes >= 200 && qtdPrecos === 0);
+    trace(
+      `  classificação zero-resultados: evidencia=${evidencia} (mensagem=${Boolean(semResultado)} pnlBytes=${pnl.bytes} precos=${qtdPrecos})`,
+    );
+    if (!evidencia) {
+      throw new FrtError(
+        "FRT_SEARCH_INCONCLUSIVE",
+        "A pesquisa não retornou resultados nem evidência de indisponibilidade — resposta inconclusiva",
+        `pnlResultado=${pnl.presente} bytes=${pnl.bytes} precos=${qtdPrecos} updates=${chaves.join(", ") || "(nenhum)"}`,
+      );
+    }
+  }
+
+  return out;
 }
 
 /**
