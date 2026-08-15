@@ -732,31 +732,31 @@ export async function frtDiagnostico(reusarSessao = true) {
     const s = await getSession(!reusarSessao);
     const venda = await abrirVenda(s);
     const body = venda.body;
-    const resolved = resolveSearchFields(body);
-    // Prova definitiva: abrir venda.xhtml autenticado E achar o formulário.
-    const acessoVenda = {
-      status: venda.status,
-      urlFinal: venda.urlFinal,
-      temFormulario: venda.temFormulario,
-      temLogin: venda.temLogin,
-      voltouParaLogin: venda.voltouParaLogin,
-    };
-    const sessaoValida = !venda.voltouParaLogin && !needsAuthCode(body);
-    const autenticado = sessaoValida && venda.temFormulario;
+    const resolved = venda.estado === "ok" ? resolveSearchFields(body) : null;
+    const acessoVenda = resumoAcesso(venda);
+    const sessaoValida = venda.estado === "ok" || venda.estado === "shell";
+    const autenticado = venda.estado === "ok";
+    const erro =
+      venda.estado === "ok"
+        ? resolved && resolved.missing.length
+          ? "FRT_STRUCTURE_CHANGED"
+          : null
+        : erroDoEstado(venda).code;
     return {
-      ok: autenticado && resolved.missing.length === 0,
+      ok: autenticado && (resolved?.missing.length ?? 0) === 0,
       autenticado,
       sessaoValida,
       acessoVenda,
-      aguardandoCodigo: needsAuthCode(body),
-      viewStatePresente: Boolean(extractViewState(body)),
+      aguardandoCodigo: venda.aguardandoCodigo,
+      viewStatePresente: Boolean(venda.viewState),
       cookies: [...s.cookies.keys()],
-      campos: resolved.fields as Record<string, string> | null,
-      camposAusentes: resolved.missing,
-      camposAlterados: resolved.changed,
-      erro: null as string | null,
-      mensagem: null as string | null,
-      log: frtTraceLog().slice(-30),
+      campos: (resolved?.fields ?? null) as Record<string, string> | null,
+      camposAusentes: resolved?.missing ?? [],
+      camposAlterados: resolved?.changed ?? [],
+      erro: erro as string | null,
+      mensagem: (venda.estado === "ok" ? null : erroDoEstado(venda).message) as string | null,
+      amostraHtml: frtUltimaAmostraHtml(),
+      log: frtTraceLog().slice(-40),
     };
   } catch (e) {
     const err = e instanceof FrtError ? e : null;
@@ -764,13 +764,7 @@ export async function frtDiagnostico(reusarSessao = true) {
       ok: false,
       autenticado: false,
       sessaoValida: false,
-      acessoVenda: null as {
-        status: number;
-        urlFinal: string;
-        temFormulario: boolean;
-        temLogin: boolean;
-        voltouParaLogin: boolean;
-      } | null,
+      acessoVenda: null as ResumoAcessoVenda | null,
       aguardandoCodigo: err?.code === "FRT_2FA_REQUIRED",
       viewStatePresente: false,
       cookies: [] as string[],
@@ -779,8 +773,8 @@ export async function frtDiagnostico(reusarSessao = true) {
       camposAlterados: [] as string[],
       erro: (err?.code ?? "FRT_NETWORK_ERROR") as string | null,
       mensagem: (err?.message ?? "Falha ao conectar na FRT") as string | null,
-      log: frtTraceLog().slice(-30),
+      amostraHtml: frtUltimaAmostraHtml(),
+      log: frtTraceLog().slice(-40),
     };
   }
-
 }
