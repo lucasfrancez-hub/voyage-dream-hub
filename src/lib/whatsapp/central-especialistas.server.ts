@@ -586,20 +586,26 @@ export function buildCentralTools(
             }
 
             let jaAvisou = !shouldSendWaitMessage(req);
-            if (!req) {
-              const desde = new Date(Date.now() - 10 * 60_000).toISOString();
+            // O próprio agente costuma escrever a promessa com as palavras
+            // dele ("já estou vendo… e volto com as opções"). Nesse caso o
+            // aviso automático seria a SEGUNDA promessa seguida — checa
+            // sempre o que já saiu na conversa, com ou sem solicitação.
+            if (!jaAvisou) {
+              const desde = new Date(Date.now() - 15 * 60_000).toISOString();
               const { data: recentes } = await supabaseAdmin
                 .from("wa_messages")
                 .select("content")
                 .eq("conversation_id", conversation.id)
                 .eq("direction", "outbound")
+                .is("deleted_at", null)
                 .gte("created_at", desde)
                 .order("created_at", { ascending: false })
-                .limit(10);
+                .limit(12);
               const { AVISO_PESQUISA_RE } = await import("./aviso-pesquisa");
               jaAvisou = (recentes ?? []).some((m) =>
                 AVISO_PESQUISA_RE.test(String((m as { content?: string }).content ?? "")),
               );
+              if (jaAvisou && req) await markWaitMessageSent(req.id).catch(() => {});
             }
 
             if (!jaAvisou) {

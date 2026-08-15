@@ -145,7 +145,7 @@ function score(total: number, minutos: number, paradas: number): number {
   return total + paradas * 180 + minutos * 1.2;
 }
 
-/** Nomes por extenso para códigos de cidade que a operadora devolve abreviados. */
+/** Nomes por extenso (e ACENTUADOS) das cidades que aparecem pro cliente. */
 const NOMES_CIDADE: Record<string, string> = {
   SAO: "São Paulo",
   RIO: "Rio de Janeiro",
@@ -163,7 +163,76 @@ const NOMES_CIDADE: Record<string, string> = {
   MIA: "Miami",
   MCO: "Orlando",
   LIS: "Lisboa",
+  MGF: "Maringá",
+  LDB: "Londrina",
+  IGU: "Foz do Iguaçu",
+  CAC: "Cascavel",
+  FLN: "Florianópolis",
+  POA: "Porto Alegre",
+  GYN: "Goiânia",
+  CGB: "Cuiabá",
+  CGR: "Campo Grande",
+  BEL: "Belém",
+  SSA: "Salvador",
+  REC: "Recife",
+  FOR: "Fortaleza",
+  NAT: "Natal",
+  JPA: "João Pessoa",
+  MCZ: "Maceió",
+  AJU: "Aracaju",
+  THE: "Teresina",
+  SLZ: "São Luís",
+  VIX: "Vitória",
+  UDI: "Uberlândia",
+  RAO: "Ribeirão Preto",
+  PMW: "Palmas",
+  PVH: "Porto Velho",
+  RBR: "Rio Branco",
+  BVB: "Boa Vista",
+  MCP: "Macapá",
+  JOI: "Joinville",
+  NVT: "Navegantes",
+  XAP: "Chapecó",
+  PET: "Pelotas",
+  BPS: "Porto Seguro",
+  IOS: "Ilhéus",
+  JDO: "Juazeiro do Norte",
+  MVD: "Montevidéu",
+  SCL: "Santiago",
+  EZE: "Buenos Aires",
+  AEP: "Buenos Aires",
+  ASU: "Assunção",
+  LIM: "Lima",
+  BOG: "Bogotá",
+  MEX: "Cidade do México",
+  CUN: "Cancún",
+  PTY: "Cidade do Panamá",
+  MAD: "Madri",
+  BCN: "Barcelona",
+  CDG: "Paris",
+  PAR: "Paris",
+  FCO: "Roma",
+  ROM: "Roma",
+  LON: "Londres",
+  ZRH: "Zurique",
+  GVA: "Genebra",
+  OPO: "Porto",
 };
+
+/**
+ * O nome que vai pro cliente NUNCA sai sem acento. A operadora às vezes
+ * devolve "Maringa"/"SAO"/"Sao Paulo" e o cliente digita sem acento — a
+ * tabela curada acima manda sempre que conhece o código.
+ */
+function nomeBonito(iata: string, bruto?: string | null): string {
+  const curado = NOMES_CIDADE[iata.toUpperCase()];
+  if (curado) return curado;
+  const nome = (bruto ?? "").trim();
+  if (!nome || /^[A-Z]{3}$/.test(nome.toUpperCase())) return iata.toUpperCase();
+  return nome;
+}
+
+
 
 /**
  * Resolve texto livre ("Curitiba", "cwb", "Congonhas", "São Paulo") no que deve
@@ -192,7 +261,12 @@ async function resolveIata(
   const list = await searchAirports({ query: raw, isDeparture });
   if (!list.length) {
     if (local?.tipo === "cidade") {
-      return { iata: local.codigo_pesquisa, nome: local.cidade ?? local.codigo_pesquisa, isCity: true, interpretacao: local };
+      return {
+        iata: local.codigo_pesquisa,
+        nome: nomeBonito(local.codigo_pesquisa, local.cidade),
+        isCity: true,
+        interpretacao: local,
+      };
     }
     return null;
   }
@@ -201,9 +275,7 @@ async function resolveIata(
   const cidade = list.find((a) => a.isCity) ?? list[0];
   const pick = exato ?? cidade;
   const iata = pick.iata.toUpperCase();
-  let nome = pick.city || pick.name || iata;
-  // A operadora às vezes devolve o próprio código ("SAO") como nome da cidade.
-  if (/^[A-Z]{3}$/.test(nome.trim().toUpperCase())) nome = NOMES_CIDADE[iata] ?? nome;
+  const nome = nomeBonito(iata, pick.city || pick.name);
   const isCity = !!pick.isCity || isCodigoDeCidade(iata);
   return { iata, nome, isCity, interpretacao: local };
 }

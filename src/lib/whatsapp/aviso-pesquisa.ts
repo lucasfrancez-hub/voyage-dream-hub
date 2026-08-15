@@ -22,9 +22,13 @@ const COMPLEMENTOS = [
   "Já volto com as opções",
 ];
 
-/** Reconhece qualquer aviso já enviado (dedupe), independente da variação. */
+/**
+ * Reconhece QUALQUER promessa de pesquisa já enviada — inclusive as que o
+ * próprio modelo escreve com outras palavras ("já estou vendo", "volto com as
+ * opções"). Sem isso o cliente recebia o aviso duas vezes.
+ */
 export const AVISO_PESQUISA_RE =
-  /(já vou (verificar|pesquisar|consultar|dar uma olhada)|já tô (verificando|pesquisando)|deixa comigo|já verifico aqui)/i;
+  /(j[áa] (vou|estou|tô|to) ?(ver|vendo|verificar|verificando|pesquisar|pesquisando|consultar|consultando|olhar|olhando|checar|checando|dar uma olhada)|j[áa] (verifico|pesquiso|checo|olho) aqui|deixa comigo|volto com (as|essas|umas)? ?(melhores )?op[çc]|j[áa] volto com|te trago as op[çc]|separando as op[çc]|vou dar uma olhada)/i;
 
 const pick = <T,>(l: readonly T[]) => l[Math.floor(Math.random() * l.length)];
 
