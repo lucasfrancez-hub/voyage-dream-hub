@@ -9,7 +9,10 @@
 import {
   FrtError,
   FRT_FIELDS,
+  camposDoUpdateAjax,
   coletarEstadoMotor,
+  escolherItemAutocomplete,
+  parseAutocompleteItens,
   decodeEntities,
   resolvePayloadAutocomplete,
   listarCamposInternosJsf,
