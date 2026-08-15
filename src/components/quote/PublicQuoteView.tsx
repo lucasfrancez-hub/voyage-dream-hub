@@ -818,7 +818,74 @@ export function PublicQuoteView({ quote }: { quote: PublicQuote }) {
   );
 }
 
-function QuoteBody({ quote, reserveHref }: { quote: PublicQuote; reserveHref?: string }) {
+/**
+ * Botão de reserva. Em orçamentos SOMENTE AÉREO o cliente compra direto no
+ * carrinho da operadora (Comprar Viagem / Oner) — geramos o carrinho da opção
+ * escolhida na hora do clique. Pacotes seguem no checkout VIA AIR.
+ */
+function BotaoReservar({
+  quote,
+  opcao,
+  reserveHref,
+}: {
+  quote: PublicQuote;
+  opcao?: number;
+  reserveHref?: string;
+}) {
+  const gerarCarrinho = useServerFn(carrinhoOperadoraOrcamento);
+  const [carregando, setCarregando] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
+  const href = reserveHref ?? `/reserva/${quote.publicId}`;
+
+  if (quote.type !== "AIR_ONLY") {
+    return (
+      <a href={href}>
+        <button className="vq-cta">Quero reservar esta opção</button>
+      </a>
+    );
+  }
+
+  const comprar = async () => {
+    setCarregando(true);
+    setErro(null);
+    try {
+      const res = await gerarCarrinho({
+        data: { publicId: quote.publicId, opcao: opcao ?? 1 },
+      });
+      if (res?.url) {
+        window.location.href = res.url;
+        return;
+      }
+      setErro(res?.motivo ?? "Não conseguimos abrir o carrinho agora.");
+    } catch {
+      setErro("Não conseguimos abrir o carrinho agora.");
+    }
+    setCarregando(false);
+  };
+
+  return (
+    <>
+      <button className="vq-cta" type="button" onClick={comprar} disabled={carregando}>
+        {carregando ? "Abrindo carrinho..." : "Quero reservar esta opção"}
+      </button>
+      {erro ? (
+        <small style={{ display: "block", marginTop: 8 }}>
+          {erro} <a href={whatsappLink(quote)}>Fale com seu consultor</a>
+        </small>
+      ) : null}
+    </>
+  );
+}
+
+function QuoteBody({
+  quote,
+  reserveHref,
+  opcao,
+}: {
+  quote: PublicQuote;
+  reserveHref?: string;
+  opcao?: number;
+}) {
   const flights = quote.products.flights ?? [];
   const hotels = quote.products.hotels ?? [];
   const periodo = periodoLabel(quote);
