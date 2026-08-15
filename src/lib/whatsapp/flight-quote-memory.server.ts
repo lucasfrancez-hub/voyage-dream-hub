@@ -142,6 +142,10 @@ export async function loadQuoteMemory(
 
 
   const ids = quotes.map((q) => q.id as string);
+  const { data: linhasOpcao } = await supabaseAdmin
+    .from("wa_flight_quote_options")
+    .select("quote_id, option_index, delivery_status, delivered_at")
+    .in("quote_id", ids);
   const { data: cards } = await supabaseAdmin
     .from("wa_messages")
     .select("quote_id, option_index, created_at, agent_name, agent_slug")
@@ -159,6 +163,18 @@ export async function loadQuoteMemory(
     if (!c.quote_id || !c.option_index) continue;
     const k = `${c.quote_id}:${c.option_index}`;
     if (!entregues.has(k)) entregues.set(k, { em: c.created_at, agente: c.agent_name ?? c.agent_slug });
+  }
+  // Entrega em bloco (uma mensagem com todas as opções): o estado real de
+  // cada opção vive em wa_flight_quote_options.
+  for (const l of (linhasOpcao ?? []) as Array<{
+    quote_id: string;
+    option_index: number;
+    delivery_status: string | null;
+    delivered_at: string | null;
+  }>) {
+    if (!String(l.delivery_status ?? "").startsWith("delivered")) continue;
+    const k = `${l.quote_id}:${l.option_index + 1}`;
+    if (!entregues.has(k)) entregues.set(k, { em: l.delivered_at ?? new Date().toISOString(), agente: null });
   }
 
   return quotes.map((q, idx) => {
@@ -283,6 +299,7 @@ export function buildQuoteMemoryBlock(memorias: QuoteMemory[]): string {
     }
   }
   linhas.push(
+    `\n🔗 As opções acima foram entregues em UMA mensagem só, com UM único link do orçamento (todas as opções ficam dentro dele). NUNCA reenvie esse link, nunca gere outro e nunca repita a cotação inteira só porque o cliente citou uma opção — reconheça a opção pelo contexto e siga a conversa.`,
     `\nRegra: ao falar de uma opção, use SEMPRE os dados acima (companhia, horário e valor exatos). Se o cliente citar uma opção que não está nesta lista, pergunte a qual ele se refere em vez de supor.`,
     `Comparação: "qual chega primeiro", "qual sai primeiro", "qual é mais rápida" NÃO são a opção 1 — compare os horários/durações reais acima e responda qual vence, dizendo o porquê.`,
   );

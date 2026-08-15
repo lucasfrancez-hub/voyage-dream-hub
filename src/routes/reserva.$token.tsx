@@ -30,11 +30,31 @@ import { buildPublicQuoteFromOrder } from "@/lib/public-quote/from-order";
 import type { PublicQuote } from "@/lib/public-quote/types";
 import viaAirLogo from "@/assets/viaair-logo.png.asset.json";
 
+/** Opção escolhida no orçamento público (1-based). */
+function aplicarOpcao(quote: PublicQuote, opcao: number | null): PublicQuote {
+  const options = quote.options ?? [];
+  if (!opcao || options.length < 2) return quote;
+  const opt = options[Math.min(Math.max(1, opcao), options.length) - 1];
+  if (!opt) return quote;
+  return {
+    ...quote,
+    products: opt.products,
+    payment: opt.payment,
+    totals: opt.totals,
+    summary: opt.summary ?? quote.summary,
+  };
+}
+
 export const Route = createFileRoute("/reserva/$token")({
-  loader: async ({ params }): Promise<{ quote: PublicQuote }> => {
+  validateSearch: (search: Record<string, unknown>): { opcao?: number } => {
+    const n = Number(search['opcao']);
+    return Number.isFinite(n) && n > 0 ? { opcao: Math.floor(n) } : {};
+  },
+  loaderDeps: ({ search }) => ({ opcao: search.opcao ?? null }),
+  loader: async ({ params, deps }): Promise<{ quote: PublicQuote }> => {
     if (/^[a-z0-9]{6,20}$/i.test(params.token)) {
       const premium = await fetchPublicQuote({ data: { publicId: params.token } }).catch(() => null);
-      if (premium) return { quote: premium };
+      if (premium) return { quote: aplicarOpcao(premium, deps.opcao) };
     }
     try {
       const legacy = await getPublicQuote({ data: { token: params.token } });

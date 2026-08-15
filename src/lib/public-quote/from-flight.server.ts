@@ -176,3 +176,57 @@ export function buildAirOnlyQuote(params: {
   };
 }
 
+
+/** Rótulo curto da opção usado no seletor do orçamento público. */
+function labelOpcao(option: FlightQuoteOption, numero: number): string {
+  const cia = findAirline(option.ida?.cia)?.name ?? option.ida?.cia ?? "";
+  const saida = parse(option.ida?.partida ?? "").hora;
+  const chegada = parse(option.ida?.chegada ?? "").hora;
+  return `Opção ${numero} • ${cia} ${saida}→${chegada}`.trim();
+}
+
+/**
+ * REGRA COMERCIAL ATUAL: uma pesquisa gera UM orçamento com até 3 opções e
+ * UM único link. As opções vivem em `options` (seletor do orçamento público);
+ * a opção 1 também alimenta os campos base para leitores antigos.
+ */
+export function buildAirOnlyMultiQuote(params: {
+  result: FlightQuoteResult;
+  options: FlightQuoteOption[];
+  agentName?: string | null;
+  conversationId?: string | null;
+  flightQuoteId?: string | null;
+  validUntil?: string | null;
+}): Omit<PublicQuote, "id" | "publicId" | "createdAt" | "updatedAt"> & {
+  conversationId?: string | null;
+  flightQuoteId?: string | null;
+  optionIndex?: number | null;
+} {
+  const { result } = params;
+  const opts = params.options.filter(Boolean);
+  const primeira = opts[0]!;
+  const base = buildAirOnlyQuote({
+    result,
+    option: primeira,
+    optionIndex: 1,
+    agentName: params.agentName ?? null,
+    conversationId: params.conversationId ?? null,
+    flightQuoteId: params.flightQuoteId ?? null,
+    validUntil: params.validUntil ?? null,
+  });
+  if (opts.length < 2) return base;
+
+  const options = opts.map((op, i) => {
+    const payload = buildOptionPayload(op, i + 1);
+    return {
+      optionId: String(i + 1),
+      label: labelOpcao(op, i + 1),
+      products: payload.products,
+      totals: payload.totals,
+      payment: payload.payment,
+      summary: payload.summary,
+    };
+  });
+
+  return { ...base, subtitle: `${opts.length} opções para comparar`, options, optionIndex: null };
+}

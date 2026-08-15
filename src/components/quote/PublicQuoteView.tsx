@@ -775,7 +775,7 @@ export function PublicQuoteView({ quote }: { quote: PublicQuote }) {
 
   return (
     <>
-      <QuoteBody quote={merged} />
+      <QuoteBody quote={merged} reserveHref={`/reserva/${quote.publicId}?opcao=${sel + 1}`} />
       <div className="vq-options">
         <div className="vq-options-inner">
           <span className="vq-options-title">Escolha sua opção</span>
@@ -814,7 +814,7 @@ export function PublicQuoteView({ quote }: { quote: PublicQuote }) {
   );
 }
 
-function QuoteBody({ quote }: { quote: PublicQuote }) {
+function QuoteBody({ quote, reserveHref }: { quote: PublicQuote; reserveHref?: string }) {
   const flights = quote.products.flights ?? [];
   const hotels = quote.products.hotels ?? [];
   const periodo = periodoLabel(quote);
@@ -955,7 +955,7 @@ function QuoteBody({ quote }: { quote: PublicQuote }) {
                   <button className="vq-cta">Quero reservar esta opção</button>
                 </a>
               ) : (
-                <a href={`/reserva/${quote.publicId}`}>
+                <a href={reserveHref ?? `/reserva/${quote.publicId}`}>
                   <button className="vq-cta">Quero reservar esta opção</button>
                 </a>
               )}

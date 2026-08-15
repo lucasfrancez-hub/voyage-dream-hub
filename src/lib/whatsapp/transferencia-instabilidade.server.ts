@@ -160,6 +160,30 @@ export async function transferirPorInstabilidade(params: {
   const protocolId = params.protocol_id ?? (conv.protocolo_ativo_id as string | null);
   const req = params.request ?? (await loadActiveFlightRequest(protocolId));
 
+  // ENTREGA JÁ CONCLUÍDA: se as opções desta pesquisa já saíram (com link),
+  // um erro posterior NÃO vira mensagem de instabilidade nem transferência.
+  {
+    const desde = new Date(Date.now() - 20 * 60 * 1000).toISOString();
+    const { data: entregues } = await supabaseAdmin
+      .from("wa_flight_quotes")
+      .select("id")
+      .eq("conversation_id", conversation_id)
+      .eq("delivery_status", "completed")
+      .gte("created_at", desde)
+      .limit(1);
+    if ((entregues ?? []).length) {
+      console.warn(
+        JSON.stringify({
+          event: "instabilidade_ignorada_cotacao_entregue",
+          conversation_id,
+          motivo,
+          at: new Date().toISOString(),
+        }),
+      );
+      return { transferido: false, motivo: "cotacao_ja_entregue" };
+    }
+  }
+
   // Já transferida antes por instabilidade → nada a fazer.
   if (req?.transferred_at) return { transferido: false, motivo: "ja_transferida" };
 
