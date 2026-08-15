@@ -1341,6 +1341,34 @@ export async function runAgent(input: {
 
 
     let rawText = result.text?.trim();
+    if (!rawText && centralAgent) {
+      // TRANSFERIR PRO SETOR AÉREO NÃO PODE FALHAR: se o especialista não
+      // produziu texto (normalmente depois de a pesquisa ser bloqueada por
+      // falta de origem), montamos a pergunta sem IA em vez de deixar o turno
+      // travar e cair na transferência por instabilidade.
+      const { camposFaltandoNaPesquisa, respostaDeResgateAerea } = await import("./central-fallback");
+      const campos = camposFaltandoNaPesquisa(
+        result.steps as unknown as Array<{ toolResults?: { toolName: string; output?: unknown }[] }>,
+      );
+      const { count: jaFalouCount } = await supabaseAdmin
+        .from("wa_messages")
+        .select("id", { count: "exact", head: true })
+        .eq("conversation_id", conv.id)
+        .eq("direction", "outbound")
+        .gte("created_at", protocolo.opened_at ?? "1970-01-01T00:00:00.000Z");
+      rawText = respostaDeResgateAerea({
+        campos,
+        clientName: conv.display_name,
+        origemSugerida,
+        origemFaltando: !origemConfirmadaNoProtocolo,
+        semSaudacao: (jaFalouCount ?? 0) > 0,
+      });
+      console.warn("[agent-runtime]", JSON.stringify({
+        ...runtimeAudit,
+        event: "central_resgate_deterministico",
+        campos_faltando: campos,
+      }));
+    }
     if (!rawText) {
       // NUNCA DEIXAR O TURNO MORRER EM SILÊNCIO: sem texto, reagenda o turno
       // em 60s pro reconciliador/debounce reexecutar (antes o atendimento
@@ -1352,6 +1380,7 @@ export async function runAgent(input: {
         .eq("id", conv.id);
       return;
     }
+
 
     // GUARDA ANTI-LIXO: nunca mandar pro cliente respostas que sejam só código de
     // erro / eco técnico do gateway (ex.: "(502)", "Bad Gateway", "AI_APICallError").
