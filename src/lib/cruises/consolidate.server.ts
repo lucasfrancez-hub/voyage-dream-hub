@@ -89,7 +89,7 @@ async function ensureShip(
         description: cur?.description || data.ship.description || "",
         main_image_url: cur?.main_image_url || data.ship.main_image_url || null,
         technical_image_url: cur?.technical_image_url || data.ship.technical_image_url || null,
-        specs,
+        specs: specs as never,
         line: line || undefined,
       })
       .eq("id", shipId);
@@ -121,7 +121,7 @@ export async function consolidateSnapshot(opts: {
   // ---- cabeçalho do cruzeiro (só completa lacunas) ----
   const c = data.cruise;
   if (c) {
-    const patch: Record<string, unknown> = {};
+    const patch: Record<string, never> = {} as Record<string, never>;
     if (!cruise.name && c.name) patch.name = c.name;
     if (!cruise.departure_date && isoDate(c.departure_date)) patch.departure_date = isoDate(c.departure_date);
     if (isoDate(c.return_date)) patch.return_date = isoDate(c.return_date);
@@ -151,7 +151,7 @@ export async function consolidateSnapshot(opts: {
         description: day.description || "",
         image_url: day.image_url || null,
         map_image_url: day.map_image_url || null,
-        activities: day.activities ?? [],
+        activities: (day.activities ?? []) as never,
       },
       { onConflict: "cruise_id,day" },
     );
@@ -304,8 +304,8 @@ export async function consolidateSnapshot(opts: {
       taxes: price.taxes,
       total: price.total,
       currency: price.currency || "BRL",
-      installments: price.installments ?? {},
-      passenger_prices: price.passenger_prices ?? [],
+      installments: (price.installments ?? {}) as never,
+      passenger_prices: (price.passenger_prices ?? []) as never,
       is_current: true,
       snapshot_id: snapshotId,
     });
