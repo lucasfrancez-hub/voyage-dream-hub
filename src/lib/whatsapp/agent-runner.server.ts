@@ -916,6 +916,36 @@ export async function runAgent(input: {
   }
   merged.sort((a, b) => a.created_at.localeCompare(b.created_at));
 
+  // FOCO NA MENSAGEM NOVA: tudo que veio ANTES da nossa última resposta já foi
+  // atendido. Sem dizer isso explicitamente, o modelo volta a responder uma
+  // pergunta antiga do histórico em vez da mensagem que o cliente acabou de
+  // mandar.
+  let novasBlock = "";
+  {
+    let lastOurIdx = -1;
+    for (let i = merged.length - 1; i >= 0; i--) {
+      const m = merged[i] as { sender?: string; direction?: string; content?: string | null };
+      if (m.direction === "outbound" && m.sender !== "system" && String(m.content ?? "").trim()) {
+        lastOurIdx = i;
+        break;
+      }
+    }
+    const novas = merged
+      .slice(lastOurIdx + 1)
+      .filter((m) => (m as { sender?: string }).sender === "customer")
+      .map((m) => descreverMidiaNoHistorico(String(m.content ?? "")).trim())
+      .filter(Boolean);
+    if (novas.length) {
+      novasBlock =
+        `\n\n## MENSAGEM(NS) NOVA(S) DO CLIENTE — RESPONDA A ESTAS\n` +
+        novas.map((t) => `- ${t.slice(0, 700)}`).join("\n") +
+        `\nTudo que está acima disso no histórico JÁ FOI RESPONDIDO por nós. ` +
+        `Não repita perguntas já feitas nem retome assunto anterior que o cliente já resolveu; ` +
+        `responda ao que ele acabou de dizer e siga daí.`;
+    }
+  }
+
+
   const messages: ModelMessage[] = merged.map((m) => {
     const wasDeleted = !!(m as { deleted_at?: string | null }).deleted_at;
     // Marcador interno de mídia vira descrição — assim a IA sabe que a foto
@@ -1223,7 +1253,8 @@ export async function runAgent(input: {
       quoteBlock +
       pacoteBlock +
       escopoBlock +
-      flightBlock;
+      flightBlock +
+      novasBlock;
 
 
 
