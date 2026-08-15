@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8" />
+  <title>Exportar Cruzeiro</title>
+  <style>
+    body { font-family: -apple-system, system-ui, sans-serif; margin: 0; padding: 16px; width: 320px; color: #0f172a; }
+    h1 { font-size: 15px; margin: 0 0 10px; }
+    .brand { color: #F26B1F; font-weight: 800; }
+    .box { border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px; font-size: 12px; line-height: 1.5; }
+    .box.ok { border-color: #bbf7d0; background: #f0fdf4; }
+    .box.warn { border-color: #fed7aa; background: #fff7ed; }
+    .muted { color: #64748b; }
+    .label { font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: #64748b; margin-bottom: 2px; }
+    button { width: 100%; margin-top: 10px; padding: 10px; border: 0; border-radius: 10px; background: #F26B1F; color: #fff; font-weight: 600; font-size: 13px; cursor: pointer; }
+    button.secondary { background: #0f172a; }
+    button:disabled { opacity: .5; cursor: default; }
+    #status { margin-top: 10px; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <h1><span class="brand">VIA AIR</span> — Exportar Cruzeiro</h1>
+  <div id="destino" class="box muted">Consultando importação ativa…</div>
+  <div id="detectado" class="box" style="margin-top:8px; display:none"></div>
+  <button id="capturar" disabled>Capturar e enviar</button>
+  <button id="painel" class="secondary" style="display:none">Abrir painel VIA AIR</button>
+  <div id="status"></div>
+  <script src="popup.js"></script>
+</body>
+</html>

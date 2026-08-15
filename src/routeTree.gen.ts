@@ -42,6 +42,7 @@ import { Route as AdminComprovantesRouteImport } from './routes/admin.comprovant
 import { Route as AdminContaBancariaRouteImport } from './routes/admin.conta-bancaria'
 import { Route as AdminContasPagarRouteImport } from './routes/admin.contas-pagar'
 import { Route as AdminContasReceberRouteImport } from './routes/admin.contas-receber'
+import { Route as AdminCruzeirosRouteImport } from './routes/admin.cruzeiros'
 import { Route as AdminDashboardRouteImport } from './routes/admin.dashboard'
 import { Route as AdminEditairRouteImport } from './routes/admin.editair'
 import { Route as AdminEncurtadorRouteImport } from './routes/admin.encurtador'
@@ -147,6 +148,7 @@ import { Route as ApiPublicHooksRunCheckinsRouteImport } from './routes/api/publ
 import { Route as ApiPublicHooksSocialScheduleDispatchRouteImport } from './routes/api/public/hooks/social-schedule-dispatch'
 import { Route as ApiPublicHooksSyncCalendarsRouteImport } from './routes/api/public/hooks/sync-calendars'
 import { Route as ApiPublicPackageHotelPhotoSplatRouteImport } from './routes/api/public/package-hotel-photo.$'
+import { Route as ApiPublicV1CruiseImportRouteImport } from './routes/api/public/v1/cruise-import'
 import { Route as ApiPublicV1ExtensionPairRouteImport } from './routes/api/public/v1/extension-pair'
 import { Route as ApiPublicV1QuoteImportsRouteImport } from './routes/api/public/v1/quote-imports'
 import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
@@ -318,6 +320,11 @@ const AdminContasPagarRoute = AdminContasPagarRouteImport.update({
 const AdminContasReceberRoute = AdminContasReceberRouteImport.update({
   id: '/contas-receber',
   path: '/contas-receber',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminCruzeirosRoute = AdminCruzeirosRouteImport.update({
+  id: '/cruzeiros',
+  path: '/cruzeiros',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminDashboardRoute = AdminDashboardRouteImport.update({
@@ -875,6 +882,11 @@ const ApiPublicPackageHotelPhotoSplatRoute =
     path: '/api/public/package-hotel-photo/$',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicV1CruiseImportRoute = ApiPublicV1CruiseImportRouteImport.update({
+  id: '/api/public/v1/cruise-import',
+  path: '/api/public/v1/cruise-import',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicV1ExtensionPairRoute =
   ApiPublicV1ExtensionPairRouteImport.update({
     id: '/api/public/v1/extension-pair',
@@ -949,6 +961,7 @@ export interface FileRoutesByFullPath {
   '/admin/conta-bancaria': typeof AdminContaBancariaRoute
   '/admin/contas-pagar': typeof AdminContasPagarRoute
   '/admin/contas-receber': typeof AdminContasReceberRoute
+  '/admin/cruzeiros': typeof AdminCruzeirosRoute
   '/admin/dashboard': typeof AdminDashboardRoute
   '/admin/editair': typeof AdminEditairRoute
   '/admin/encurtador': typeof AdminEncurtadorRoute
@@ -1054,6 +1067,7 @@ export interface FileRoutesByFullPath {
   '/api/public/hooks/social-schedule-dispatch': typeof ApiPublicHooksSocialScheduleDispatchRoute
   '/api/public/hooks/sync-calendars': typeof ApiPublicHooksSyncCalendarsRoute
   '/api/public/package-hotel-photo/$': typeof ApiPublicPackageHotelPhotoSplatRoute
+  '/api/public/v1/cruise-import': typeof ApiPublicV1CruiseImportRoute
   '/api/public/v1/extension-pair': typeof ApiPublicV1ExtensionPairRoute
   '/api/public/v1/quote-imports': typeof ApiPublicV1QuoteImportsRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
@@ -1094,6 +1108,7 @@ export interface FileRoutesByTo {
   '/admin/conta-bancaria': typeof AdminContaBancariaRoute
   '/admin/contas-pagar': typeof AdminContasPagarRoute
   '/admin/contas-receber': typeof AdminContasReceberRoute
+  '/admin/cruzeiros': typeof AdminCruzeirosRoute
   '/admin/dashboard': typeof AdminDashboardRoute
   '/admin/editair': typeof AdminEditairRoute
   '/admin/encurtador': typeof AdminEncurtadorRoute
@@ -1199,6 +1214,7 @@ export interface FileRoutesByTo {
   '/api/public/hooks/social-schedule-dispatch': typeof ApiPublicHooksSocialScheduleDispatchRoute
   '/api/public/hooks/sync-calendars': typeof ApiPublicHooksSyncCalendarsRoute
   '/api/public/package-hotel-photo/$': typeof ApiPublicPackageHotelPhotoSplatRoute
+  '/api/public/v1/cruise-import': typeof ApiPublicV1CruiseImportRoute
   '/api/public/v1/extension-pair': typeof ApiPublicV1ExtensionPairRoute
   '/api/public/v1/quote-imports': typeof ApiPublicV1QuoteImportsRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
@@ -1242,6 +1258,7 @@ export interface FileRoutesById {
   '/admin/conta-bancaria': typeof AdminContaBancariaRoute
   '/admin/contas-pagar': typeof AdminContasPagarRoute
   '/admin/contas-receber': typeof AdminContasReceberRoute
+  '/admin/cruzeiros': typeof AdminCruzeirosRoute
   '/admin/dashboard': typeof AdminDashboardRoute
   '/admin/editair': typeof AdminEditairRoute
   '/admin/encurtador': typeof AdminEncurtadorRoute
@@ -1347,6 +1364,7 @@ export interface FileRoutesById {
   '/api/public/hooks/social-schedule-dispatch': typeof ApiPublicHooksSocialScheduleDispatchRoute
   '/api/public/hooks/sync-calendars': typeof ApiPublicHooksSyncCalendarsRoute
   '/api/public/package-hotel-photo/$': typeof ApiPublicPackageHotelPhotoSplatRoute
+  '/api/public/v1/cruise-import': typeof ApiPublicV1CruiseImportRoute
   '/api/public/v1/extension-pair': typeof ApiPublicV1ExtensionPairRoute
   '/api/public/v1/quote-imports': typeof ApiPublicV1QuoteImportsRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
@@ -1391,6 +1409,7 @@ export interface FileRouteTypes {
     | '/admin/conta-bancaria'
     | '/admin/contas-pagar'
     | '/admin/contas-receber'
+    | '/admin/cruzeiros'
     | '/admin/dashboard'
     | '/admin/editair'
     | '/admin/encurtador'
@@ -1496,6 +1515,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/social-schedule-dispatch'
     | '/api/public/hooks/sync-calendars'
     | '/api/public/package-hotel-photo/$'
+    | '/api/public/v1/cruise-import'
     | '/api/public/v1/extension-pair'
     | '/api/public/v1/quote-imports'
     | '/lovable/email/auth/preview'
@@ -1536,6 +1556,7 @@ export interface FileRouteTypes {
     | '/admin/conta-bancaria'
     | '/admin/contas-pagar'
     | '/admin/contas-receber'
+    | '/admin/cruzeiros'
     | '/admin/dashboard'
     | '/admin/editair'
     | '/admin/encurtador'
@@ -1641,6 +1662,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/social-schedule-dispatch'
     | '/api/public/hooks/sync-calendars'
     | '/api/public/package-hotel-photo/$'
+    | '/api/public/v1/cruise-import'
     | '/api/public/v1/extension-pair'
     | '/api/public/v1/quote-imports'
     | '/lovable/email/auth/preview'
@@ -1683,6 +1705,7 @@ export interface FileRouteTypes {
     | '/admin/conta-bancaria'
     | '/admin/contas-pagar'
     | '/admin/contas-receber'
+    | '/admin/cruzeiros'
     | '/admin/dashboard'
     | '/admin/editair'
     | '/admin/encurtador'
@@ -1788,6 +1811,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/social-schedule-dispatch'
     | '/api/public/hooks/sync-calendars'
     | '/api/public/package-hotel-photo/$'
+    | '/api/public/v1/cruise-import'
     | '/api/public/v1/extension-pair'
     | '/api/public/v1/quote-imports'
     | '/lovable/email/auth/preview'
@@ -1872,6 +1896,7 @@ export interface RootRouteChildren {
   ApiPublicHooksSocialScheduleDispatchRoute: typeof ApiPublicHooksSocialScheduleDispatchRoute
   ApiPublicHooksSyncCalendarsRoute: typeof ApiPublicHooksSyncCalendarsRoute
   ApiPublicPackageHotelPhotoSplatRoute: typeof ApiPublicPackageHotelPhotoSplatRoute
+  ApiPublicV1CruiseImportRoute: typeof ApiPublicV1CruiseImportRoute
   ApiPublicV1ExtensionPairRoute: typeof ApiPublicV1ExtensionPairRoute
   ApiPublicV1QuoteImportsRoute: typeof ApiPublicV1QuoteImportsRoute
   LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
@@ -2112,6 +2137,13 @@ declare module '@tanstack/react-router' {
       path: '/contas-receber'
       fullPath: '/admin/contas-receber'
       preLoaderRoute: typeof AdminContasReceberRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/cruzeiros': {
+      id: '/admin/cruzeiros'
+      path: '/cruzeiros'
+      fullPath: '/admin/cruzeiros'
+      preLoaderRoute: typeof AdminCruzeirosRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/dashboard': {
@@ -2849,6 +2881,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicPackageHotelPhotoSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/v1/cruise-import': {
+      id: '/api/public/v1/cruise-import'
+      path: '/api/public/v1/cruise-import'
+      fullPath: '/api/public/v1/cruise-import'
+      preLoaderRoute: typeof ApiPublicV1CruiseImportRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/v1/extension-pair': {
       id: '/api/public/v1/extension-pair'
       path: '/api/public/v1/extension-pair'
@@ -2925,6 +2964,7 @@ interface AdminRouteChildren {
   AdminContaBancariaRoute: typeof AdminContaBancariaRoute
   AdminContasPagarRoute: typeof AdminContasPagarRoute
   AdminContasReceberRoute: typeof AdminContasReceberRoute
+  AdminCruzeirosRoute: typeof AdminCruzeirosRoute
   AdminDashboardRoute: typeof AdminDashboardRoute
   AdminEditairRoute: typeof AdminEditairRoute
   AdminEncurtadorRoute: typeof AdminEncurtadorRoute
@@ -2970,6 +3010,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminContaBancariaRoute: AdminContaBancariaRoute,
   AdminContasPagarRoute: AdminContasPagarRoute,
   AdminContasReceberRoute: AdminContasReceberRoute,
+  AdminCruzeirosRoute: AdminCruzeirosRoute,
   AdminDashboardRoute: AdminDashboardRoute,
   AdminEditairRoute: AdminEditairRoute,
   AdminEncurtadorRoute: AdminEncurtadorRoute,
@@ -3155,6 +3196,7 @@ const rootRouteChildren: RootRouteChildren = {
     ApiPublicHooksSocialScheduleDispatchRoute,
   ApiPublicHooksSyncCalendarsRoute: ApiPublicHooksSyncCalendarsRoute,
   ApiPublicPackageHotelPhotoSplatRoute: ApiPublicPackageHotelPhotoSplatRoute,
+  ApiPublicV1CruiseImportRoute: ApiPublicV1CruiseImportRoute,
   ApiPublicV1ExtensionPairRoute: ApiPublicV1ExtensionPairRoute,
   ApiPublicV1QuoteImportsRoute: ApiPublicV1QuoteImportsRoute,
   LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,

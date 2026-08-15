@@ -396,6 +396,7 @@ function ProdutosNav({ pathname }: { pathname: string }) {
   const active =
     pathname.startsWith("/admin/pacotes") ||
     pathname.startsWith("/admin/buscar") ||
+    pathname.startsWith("/admin/cruzeiros") ||
     pathname.startsWith("/admin/promocoes-aereo") ||
     pathname.startsWith("/admin/voos-teste") ||
     pathname.startsWith("/admin/hoteis-teste") ||
@@ -411,6 +412,7 @@ function ProdutosNav({ pathname }: { pathname: string }) {
         {
           items: [
             { to: "/admin/pacotes", label: "Command Center" },
+            { to: "/admin/cruzeiros", label: "Cruzeiros" },
             { to: "/admin/promocoes-aereo", label: "Promoções de Aéreo" },
             { to: "/admin/buscar", label: "Motor de busca" },
           ],
