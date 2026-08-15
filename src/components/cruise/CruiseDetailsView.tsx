@@ -446,74 +446,136 @@ export function CruiseDetailsView({ pkg }: { pkg: Pkg }) {
   );
 }
 
+/** Preço-base por pessoa da categoria (ocupação dupla, com fallback). */
+function cabinBasePrice(cabin: CabinCategory): number {
+  return (
+    cabin.pricing?.occ2?.per_person ??
+    cabin.pricing?.occ3?.per_person ??
+    cabin.pricing?.occ4?.per_person ??
+    0
+  );
+}
+
+/** Chips de "itens inclusos" exibidos no card da categoria. */
+function cabinIncluded(cabin: CabinCategory): string[] {
+  const chips: string[] = ["Refeições inclusas"];
+  if (cabin.size_m2) chips.push(cabin.size_m2);
+  chips.push(`Até ${cabin.capacity} hóspedes`);
+  if (/garantid/i.test(cabin.name)) chips.push("Cabine atribuída pela companhia");
+  else chips.push("Escolha da localização");
+  if (cabin.highlight) chips.push(cabin.highlight);
+  return chips;
+}
+
 function CabinCard({
   cabin,
+  basePrice,
   selected,
   onSelect,
   onDetails,
 }: {
   cabin: CabinCategory;
+  basePrice: number;
   selected: boolean;
   onSelect: () => void;
   onDetails: () => void;
 }) {
+  const preco = cabinBasePrice(cabin);
+  const upgrade =
+    cabin.upgrade_from_base != null && cabin.upgrade_from_base > 0
+      ? cabin.upgrade_from_base
+      : Number.isFinite(basePrice) && basePrice > 0 && preco > 0
+        ? preco - basePrice
+        : 0;
+
   return (
-    <button
-      type="button"
-      onClick={onSelect}
+    <div
       className={cn(
-        "text-left rounded-2xl border overflow-hidden bg-card transition group",
-        selected ? "border-sky-500 ring-2 ring-sky-500/40" : "border-border hover:border-sky-400/60",
+        "grid gap-4 rounded-2xl border bg-card p-4 transition sm:grid-cols-[150px_minmax(0,1fr)_170px]",
+        selected ? "border-sky-500 bg-sky-500/[0.06]" : "border-border hover:border-sky-400/60",
       )}
     >
-      <div className="relative aspect-[4/3] bg-muted">
+      <button
+        type="button"
+        onClick={onDetails}
+        className="relative overflow-hidden rounded-xl bg-muted h-28 sm:h-full"
+      >
         {cabin.photos?.[0] ? (
-          <img
-            src={cabin.photos[0]}
-            alt={cabin.name}
-            className="absolute inset-0 h-full w-full object-cover"
-          />
+          <img src={cabin.photos[0]} alt={cabin.name} className="h-full w-full object-cover" />
         ) : (
-          <div className="grid place-items-center h-full text-muted-foreground text-xs">
-            Sem foto
-          </div>
+          <div className="grid h-full place-items-center text-xs text-muted-foreground">Sem foto</div>
         )}
-        {selected && (
-          <div className="absolute top-2 right-2 rounded-full bg-sky-600 text-white text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 flex items-center gap-1">
-            <Check className="h-3 w-3" /> Selecionado
-          </div>
-        )}
+      </button>
+
+      <div className="min-w-0">
         {cabin.category_codes?.length ? (
-          <div className="absolute bottom-2 left-2 rounded-full bg-black/60 text-white text-[10px] px-2 py-0.5">
-            {cabin.category_codes.join(", ")}
+          <div className="text-[11px] text-muted-foreground">
+            Categorias: {cabin.category_codes.join(", ")}
           </div>
         ) : null}
-      </div>
-      <div className="p-4">
-        <div className="font-semibold text-sm">{cabin.name}</div>
-        <div className="text-[11px] text-muted-foreground mt-0.5">
-          Até {cabin.capacity} pessoas{cabin.size_m2 ? ` · ${cabin.size_m2}` : ""}
-        </div>
-        {cabin.upgrade_from_base != null && cabin.upgrade_from_base > 0 && (
-          <div className="mt-2 inline-flex items-center gap-1 rounded-full bg-brand-orange/10 text-brand-orange text-[11px] px-2 py-0.5">
-            Upgrade por {formatBRL(cabin.upgrade_from_base)}
-          </div>
+        <div className="font-display text-base font-bold">{cabin.name}</div>
+        {cabin.description && (
+          <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">{cabin.description}</p>
         )}
-        <div
-          role="button"
-          tabIndex={0}
-          onClick={(e) => {
-            e.stopPropagation();
-            onDetails();
-          }}
-          className="mt-2 text-[11px] text-sky-600 hover:underline"
-        >
-          Ver detalhes desta cabine
+        <div className="mt-2 text-[11px] font-semibold text-muted-foreground">Itens inclusos</div>
+        <div className="mt-1.5 flex flex-wrap gap-1.5">
+          {cabinIncluded(cabin).map((chip, i) => (
+            <span
+              key={i}
+              className="inline-flex items-center gap-1 rounded-lg border border-border bg-background/60 px-2 py-1 text-[11px] text-muted-foreground"
+            >
+              <Check className="h-3 w-3 text-sky-600" /> {chip}
+            </span>
+          ))}
+          <button
+            type="button"
+            onClick={onDetails}
+            className="rounded-lg border border-border px-2 py-1 text-[11px] font-semibold text-sky-600"
+          >
+            Ver detalhes
+          </button>
         </div>
       </div>
-    </button>
+
+      <div className="flex flex-col items-stretch justify-center gap-2 sm:items-end">
+        {selected ? (
+          <div className="flex flex-col items-center gap-1 text-center">
+            <span className="grid h-9 w-9 place-items-center rounded-full bg-sky-500/15 text-sky-600">
+              <Check className="h-5 w-5" />
+            </span>
+            <span className="text-sm font-bold text-sky-600">Selecionado</span>
+          </div>
+        ) : (
+          <>
+            <div className="text-center sm:text-right">
+              {upgrade !== 0 ? (
+                <>
+                  <div className="text-[11px] text-muted-foreground">
+                    {upgrade > 0 ? "Upgrade por" : "Economize"}
+                  </div>
+                  <div className="text-lg font-bold">{formatBRL(Math.abs(upgrade))}</div>
+                </>
+              ) : (
+                <>
+                  <div className="text-[11px] text-muted-foreground">por pessoa</div>
+                  <div className="text-lg font-bold">{preco > 0 ? formatBRL(preco) : "sob consulta"}</div>
+                </>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={onSelect}
+              className="w-full rounded-full bg-sky-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:brightness-110 sm:w-auto"
+            >
+              Selecionar
+            </button>
+          </>
+        )}
+      </div>
+    </div>
   );
 }
+
 
 function ExperienceCard({
   exp,
