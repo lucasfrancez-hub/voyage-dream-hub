@@ -430,7 +430,13 @@ function CruzeirosAdmin() {
                     <RefreshCw className={`h-4 w-4 mr-1 ${reprocessar.isPending ? "animate-spin" : ""}`} />{" "}
                     Reprocessar todas
                   </Button>
+                  <Link to="/admin/cruzeiros/previa/$id" params={{ id: d.cruise.id }}>
+                    <Button size="sm">
+                      <Eye className="h-4 w-4 mr-1" /> Ver prévia (sem publicar)
+                    </Button>
+                  </Link>
                 </div>
+
 
                 <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
                   {identificados.map((i) => (
