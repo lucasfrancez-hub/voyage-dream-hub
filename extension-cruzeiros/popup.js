@@ -51,21 +51,26 @@ async function init() {
     return;
   }
   if (!info.active) {
-    $("destino").className = "box warn";
-    $("destino").textContent = "Nenhum cruzeiro está preparado para importação.";
+    // Não é preciso criar o cruzeiro antes: nome, data e navio vêm da captura.
+    sessionToken = null;
+    $("destino").className = "box";
+    $("destino").innerHTML = `
+      <div class="label">Novo cruzeiro</div>
+      <div><b>Será criado a partir desta captura</b></div>
+      <div class="muted">Nome, data de embarque e navio vêm da própria página.</div>
+    `;
     $("painel").style.display = "block";
-    return;
+  } else {
+    sessionToken = info.session?.token || null;
+    const c = info.cruise || {};
+    $("destino").className = "box ok";
+    $("destino").innerHTML = `
+      <div class="label">Exportar para</div>
+      <div><b>${c.name || ""}</b></div>
+      <div>${fmtDate(c.departure_date)}${c.ship_name ? " • " + c.ship_name : ""}</div>
+      <div class="muted">${c.code || ""} • capturas: ${info.session?.captures ?? 0}</div>
+    `;
   }
-
-  sessionToken = info.session?.token || null;
-  const c = info.cruise || {};
-  $("destino").className = "box ok";
-  $("destino").innerHTML = `
-    <div class="label">Exportar para</div>
-    <div><b>${c.name || ""}</b></div>
-    <div>${fmtDate(c.departure_date)}${c.ship_name ? " • " + c.ship_name : ""}</div>
-    <div class="muted">${c.code || ""} • capturas: ${info.session?.captures ?? 0}</div>
-  `;
 
   const tab = await activeTab();
   const allowed =
@@ -125,7 +130,7 @@ async function capturar(mode) {
   const out = await send({ type: "viaair-cruise-send", payload: res.payload, sessionToken });
 
   if (out.error === "no_active_import") {
-    $("status").textContent = "A importação foi finalizada no painel. Ative novamente.";
+    $("status").textContent = "A importação foi finalizada no painel. Capture de novo para criar um cruzeiro.";
   } else if (out.error === "session_changed") {
     $("status").textContent = "O cruzeiro ativo mudou. Reabra o plugin.";
   } else if (out.error === "domain_not_allowed") {
