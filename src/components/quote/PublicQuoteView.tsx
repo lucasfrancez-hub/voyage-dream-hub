@@ -68,6 +68,45 @@ function dataCurta(v?: string | null): string {
   }).format(dt);
 }
 
+/** Timestamp em minutos a partir de qualquer formato de data+hora. */
+function tsMin(v?: string | null): number | null {
+  const s = String(v ?? "");
+  const d = s.match(/(\d{4})-(\d{2})-(\d{2})/);
+  const t = s.match(/(\d{2}):(\d{2})/);
+  if (!d || !t) return null;
+  return Math.floor(
+    Date.UTC(Number(d[1]), Number(d[2]) - 1, Number(d[3]), Number(t[1]), Number(t[2])) / 60000,
+  );
+}
+
+/** "4h05" de espera entre a chegada e a próxima partida. */
+function esperaLabel(arrival?: string | null, departure?: string | null): string | null {
+  const a = tsMin(arrival);
+  const b = tsMin(departure);
+  if (a == null || b == null) return null;
+  const diff = b - a;
+  if (diff <= 0 || diff > 24 * 60) return null;
+  const h = Math.floor(diff / 60);
+  const m = diff % 60;
+  return h > 0 ? `${h}h${String(m).padStart(2, "0")}` : `${m}min`;
+}
+
+/** Texto completo da bagagem: artigo pessoal + mão + despachada (com quantidade). */
+function bagagemLabel(leg: FlightLeg): string {
+  const partes: string[] = [];
+  if (leg.personalItem) partes.push("Artigo pessoal");
+  if (leg.carryOn) partes.push("Bagagem de mão");
+  if (leg.checkedBaggage) {
+    const raw = String(leg.checkedBaggageLabel ?? "");
+    const qtd = raw.match(/(\d+)\s*x/i)?.[1];
+    const peso = raw.match(/(\d+)\s*kg/i)?.[1];
+    partes.push(
+      `${qtd && Number(qtd) > 1 ? `${qtd}x ` : ""}Bagagem despachada${peso ? ` (${peso}kg)` : ""}`,
+    );
+  }
+  return partes.length ? partes.join(" + ") : "Somente artigo pessoal";
+}
+
 function periodoLabel(q: PublicQuote): string | null {
   const fmt = (s?: string | null) => {
     if (!s) return null;
