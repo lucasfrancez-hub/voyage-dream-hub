@@ -3,6 +3,7 @@
  * SERVER-ONLY.
  */
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { aiSender, isAiSender, type WaSender } from "./sender-identity";
 
 export type WaConversation = {
   id: string;
