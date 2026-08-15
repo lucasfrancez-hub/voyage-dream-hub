@@ -316,14 +316,29 @@ function FrtTestePage() {
           <Search className="size-4" /> Pesquisa (read-only)
         </div>
         <div className="grid grid-cols-2 gap-3 md:grid-cols-6">
-          <div className="space-y-1">
-            <Label htmlFor="frt-origem">Origem</Label>
-            <Input id="frt-origem" value={origem} onChange={(e) => setOrigem(e.target.value)} />
+          <div className="col-span-2 md:col-span-2">
+            <FrtLocalAutocomplete
+              id="frt-origem"
+              rotulo="Origem"
+              componente="origem"
+              termo={origem}
+              onTermoChange={setOrigem}
+              selecionado={selOrigem}
+              onSelecionar={setSelOrigem}
+            />
           </div>
-          <div className="space-y-1">
-            <Label htmlFor="frt-destino">Destino</Label>
-            <Input id="frt-destino" value={destino} onChange={(e) => setDestino(e.target.value)} />
+          <div className="col-span-2 md:col-span-2">
+            <FrtLocalAutocomplete
+              id="frt-destino"
+              rotulo="Destino"
+              componente="destino"
+              termo={destino}
+              onTermoChange={setDestino}
+              selecionado={selDestino}
+              onSelecionar={setSelDestino}
+            />
           </div>
+
           <div className="space-y-1">
             <Label htmlFor="frt-ida">Ida</Label>
             <Input id="frt-ida" type="date" value={ida} onChange={(e) => setIda(e.target.value)} />
