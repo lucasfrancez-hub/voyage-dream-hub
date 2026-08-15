@@ -9,7 +9,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { consultarFrt, diagnosticarFrt, enviarCodigoFrt } from "@/lib/frt/frt.functions";
+import {
+  consultarFrt,
+  diagnosticarFrt,
+  enviarCodigoFrt,
+  resolver2faAutomaticoFrt,
+} from "@/lib/frt/frt.functions";
 
 export const Route = createFileRoute("/admin/frt-teste")({
   head: () => ({
@@ -36,6 +41,7 @@ function FrtTestePage() {
   const diag = useServerFn(diagnosticarFrt);
   const consulta = useServerFn(consultarFrt);
   const enviarCodigo = useServerFn(enviarCodigoFrt);
+  const resolverAuto = useServerFn(resolver2faAutomaticoFrt);
   const [codigo, setCodigo] = useState("");
 
   const [origem, setOrigem] = useState("MGF");
@@ -50,6 +56,9 @@ function FrtTestePage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const autoMut = useMutation({
+    mutationFn: () => resolverAuto({ data: undefined }),
+  });
   const codigoMut = useMutation({
     mutationFn: () => enviarCodigo({ data: { codigo } }),
     onSuccess: (r) => {
@@ -203,7 +212,27 @@ function FrtTestePage() {
                       "Validar código"
                     )}
                   </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={autoMut.isPending}
+                    onClick={() => autoMut.mutate()}
+                  >
+                    {autoMut.isPending ? (
+                      <Loader2 className="size-4 animate-spin" />
+                    ) : (
+                      "Buscar código automático"
+                    )}
+                  </Button>
                 </div>
+                {autoMut.data && !autoMut.data.ok ? (
+                  <p className="text-xs text-amber-700">{autoMut.data.mensagem}</p>
+                ) : null}
+                {autoMut.data?.ok ? (
+                  <p className="text-xs text-emerald-700">
+                    Código lido da caixa dedicada e aceito pela FRT.
+                  </p>
+                ) : null}
               </div>
             ) : null}
             {d.erro ? (
