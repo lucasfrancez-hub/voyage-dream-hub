@@ -15,6 +15,8 @@ import {
   diagnosticarPesquisaFrt,
   enviarCodigoFrt,
   resolver2faAutomaticoFrt,
+  estado2faFrt,
+  cancelar2faFrt,
 } from "@/lib/frt/frt.functions";
 
 export const Route = createFileRoute("/admin/frt-teste")({
@@ -44,6 +46,8 @@ function FrtTestePage() {
   const enviarCodigo = useServerFn(enviarCodigoFrt);
   const diagPesquisa = useServerFn(diagnosticarPesquisaFrt);
   const resolverAuto = useServerFn(resolver2faAutomaticoFrt);
+  const estado2fa = useServerFn(estado2faFrt);
+  const cancelar2fa = useServerFn(cancelar2faFrt);
   const [codigo, setCodigo] = useState("");
 
   const [origem, setOrigem] = useState("MGF");
@@ -58,8 +62,24 @@ function FrtTestePage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  // Desafio 2FA pendente: enquanto existir, nenhum novo login pode ser disparado.
+  const pend = useQuery({
+    queryKey: ["frt-2fa"],
+    queryFn: () => estado2fa({ data: undefined }),
+    refetchInterval: 10_000,
+  });
+  const aguardando2fa = Boolean(pend.data?.pendente) || Boolean(diagMut.data?.aguardandoCodigo);
+
   const autoMut = useMutation({
     mutationFn: () => resolverAuto({ data: undefined }),
+    onSettled: () => pend.refetch(),
+  });
+  const cancelarMut = useMutation({
+    mutationFn: () => cancelar2fa({ data: undefined }),
+    onSuccess: () => {
+      toast.message("Desafio 2FA descartado — novo login liberado");
+      pend.refetch();
+    },
   });
   const codigoMut = useMutation({
     mutationFn: () => enviarCodigo({ data: { codigo } }),
@@ -67,6 +87,7 @@ function FrtTestePage() {
       if (r.ok) {
         toast.success("Código aceito — sessão liberada");
         setCodigo("");
+        pend.refetch();
         diagMut.mutate(false);
       } else {
         toast.error(r.mensagem ?? "Código recusado");
@@ -124,13 +145,17 @@ function FrtTestePage() {
           <div className="flex gap-2">
             <Button
               onClick={() => diagMut.mutate(false)}
-              disabled={diagMut.isPending}
+              disabled={diagMut.isPending || aguardando2fa}
               size="sm"
               variant="outline"
             >
               Testar sessão
             </Button>
-            <Button onClick={() => diagMut.mutate(true)} disabled={diagMut.isPending} size="sm">
+            <Button
+              onClick={() => diagMut.mutate(true)}
+              disabled={diagMut.isPending || aguardando2fa}
+              size="sm"
+            >
               {diagMut.isPending ? <Loader2 className="size-4 animate-spin" /> : "Novo login"}
             </Button>
           </div>
@@ -199,7 +224,7 @@ function FrtTestePage() {
               </details>
             ) : null}
 
-            {d.aguardandoCodigo ? (
+            {false ? (
               <div className="space-y-2 rounded-lg border border-amber-400/40 bg-amber-50/50 p-3 dark:bg-amber-950/20">
                 <p className="text-sm">
                   A FRT enviou um código de verificação para o e-mail cadastrado. Informe-o
