@@ -160,17 +160,22 @@ export async function transferirPorInstabilidade(params: {
   const protocolId = params.protocol_id ?? (conv.protocolo_ativo_id as string | null);
   const req = params.request ?? (await loadActiveFlightRequest(protocolId));
 
-  // ENTREGA JÁ CONCLUÍDA: se as opções desta pesquisa já saíram (com link),
-  // um erro posterior NÃO vira mensagem de instabilidade nem transferência.
+  // ENTREGA JÁ CONCLUÍDA: se as opções deste protocolo já saíram (inclusive em
+  // texto + link), um erro posterior NÃO vira mensagem de instabilidade nem
+  // transferência. O protocolo é a fronteira correta; uma janela de minutos
+  // deixava o watchdog repetir o aviso ao mudar de assunto na mesma conversa.
   {
-    const desde = new Date(Date.now() - 20 * 60 * 1000).toISOString();
-    const { data: entregues } = await supabaseAdmin
+    let entreguesQuery = supabaseAdmin
       .from("wa_flight_quotes")
       .select("id")
       .eq("conversation_id", conversation_id)
-      .eq("delivery_status", "completed")
-      .gte("created_at", desde)
-      .limit(1);
+      .eq("delivery_status", "completed");
+    if (protocolId) entreguesQuery = entreguesQuery.eq("protocolo_id", protocolId);
+    else entreguesQuery = entreguesQuery.gte(
+      "created_at",
+      new Date(Date.now() - 20 * 60 * 1000).toISOString(),
+    );
+    const { data: entregues } = await entreguesQuery.limit(1);
     if ((entregues ?? []).length) {
       console.warn(
         JSON.stringify({
