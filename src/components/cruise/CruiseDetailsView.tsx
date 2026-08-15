@@ -141,8 +141,8 @@ export function CruiseDetailsView({ pkg }: { pkg: Pkg }) {
 
       <div className="mx-auto max-w-7xl px-4 md:px-6 py-10 grid gap-8 lg:grid-cols-[1fr_380px]">
         <div className="min-w-0 space-y-10">
-          {/* Ship strip + "Ver mais" */}
-          <div className="rounded-3xl border border-border bg-card p-5 flex items-center gap-5">
+          {/* Ship strip + "Veja sobre o cruzeiro" */}
+          <div className="rounded-3xl border border-border bg-card p-5 flex flex-wrap items-center gap-5">
             <div className="hidden sm:block h-16 w-24 rounded-xl bg-muted overflow-hidden shrink-0">
               {details.ship?.gallery?.[0] ? (
                 <img
@@ -169,39 +169,81 @@ export function CruiseDetailsView({ pkg }: { pkg: Pkg }) {
                 </div>
               )}
             </div>
-            <button
-              type="button"
-              onClick={() => setMoreOpen(true)}
-              className="inline-flex items-center gap-1.5 rounded-full border border-border px-4 py-2 text-sm font-medium hover:bg-muted transition"
-            >
-              Ver mais <ChevronRight className="h-4 w-4" />
-            </button>
           </div>
+
+          <button
+            type="button"
+            onClick={() => setMoreOpen(true)}
+            className="group w-full flex items-center gap-3 rounded-2xl border border-sky-500/40 bg-sky-500/[0.07] px-4 py-3 text-left transition hover:bg-sky-500/[0.12]"
+          >
+            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-sky-600 text-white">
+              <ShipIcon className="h-4 w-4" />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-sm font-bold">Veja sobre o cruzeiro</span>
+              <span className="block truncate text-[11px] text-muted-foreground">
+                Itinerário, navio, atrações, cabines, deck plan, fotos, vídeos e ficha técnica
+              </span>
+            </span>
+            <ChevronRight className="h-4 w-4 shrink-0 text-sky-600 transition-transform group-hover:translate-x-0.5" />
+          </button>
 
           {/* Escolha o tipo de cabine */}
           {typesAvailable.length > 0 && (
             <section>
               <h2 className="font-display text-2xl font-bold">Escolha o tipo da cabine</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Cada tipo tem várias categorias — selecione um tipo para ver as opções disponíveis.
+              </p>
               <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
-                {typesAvailable.map((t) => (
-                  <button
-                    key={t}
-                    type="button"
-                    onClick={() => setType(t)}
-                    className={cn(
-                      "rounded-2xl border p-4 text-left transition",
-                      type === t
-                        ? "border-sky-500 bg-sky-500/10 ring-2 ring-sky-500/40"
-                        : "border-border hover:border-sky-400/60",
-                    )}
-                  >
-                    <BedDouble className="h-5 w-5 text-sky-600" />
-                    <div className="mt-2 font-semibold text-sm">{CABIN_TYPE_LABELS[t]}</div>
-                    <div className="text-[11px] text-muted-foreground">
-                      {cabins.filter((c) => c.type === t).length} opções
-                    </div>
-                  </button>
-                ))}
+                {typesAvailable.map((t) => {
+                  const doTipo = cabins.filter((c) => c.type === t);
+                  const foto = doTipo.find((c) => c.photos?.[0])?.photos?.[0];
+                  const desde = Math.min(
+                    ...doTipo.map((c) => cabinBasePrice(c)).filter((v) => v > 0),
+                  );
+                  const ativo = type === t;
+                  return (
+                    <button
+                      key={t}
+                      type="button"
+                      onClick={() => setType(t)}
+                      className={cn(
+                        "group overflow-hidden rounded-2xl border text-left transition",
+                        ativo
+                          ? "border-sky-500 ring-2 ring-sky-500/40"
+                          : "border-border hover:border-sky-400/60",
+                      )}
+                    >
+                      <div className="relative h-24 bg-muted">
+                        {foto ? (
+                          <img
+                            src={foto}
+                            alt={CABIN_TYPE_LABELS[t]}
+                            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                          />
+                        ) : (
+                          <div className="grid h-full place-items-center text-muted-foreground">
+                            <BedDouble className="h-6 w-6" />
+                          </div>
+                        )}
+                        {ativo && (
+                          <span className="absolute right-2 top-2 grid h-6 w-6 place-items-center rounded-full bg-sky-600 text-white">
+                            <Check className="h-3.5 w-3.5" />
+                          </span>
+                        )}
+                      </div>
+                      <div className={cn("px-3 py-2", ativo && "bg-sky-500/10")}>
+                        <div className="truncate text-sm font-semibold">{CABIN_TYPE_LABELS[t]}</div>
+                        <div className="text-[11px] text-muted-foreground">
+                          {Number.isFinite(desde) && desde > 0
+                            ? `a partir de ${formatBRL(desde)}`
+                            : `${doTipo.length} opções`}
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
             </section>
           )}
@@ -210,11 +252,18 @@ export function CruiseDetailsView({ pkg }: { pkg: Pkg }) {
           {cabinsOfType.length > 0 && (
             <section>
               <h2 className="font-display text-2xl font-bold">Escolha a cabine</h2>
-              <div className="mt-4 grid gap-4 sm:grid-cols-2">
+              <p className="mt-1 text-sm text-muted-foreground">
+                {cabinsOfType.length}{" "}
+                {cabinsOfType.length === 1 ? "categoria disponível" : "categorias disponíveis"} neste tipo.
+              </p>
+              <div className="mt-4 space-y-3">
                 {cabinsOfType.map((c) => (
                   <CabinCard
                     key={c.id}
                     cabin={c}
+                    basePrice={Math.min(
+                      ...cabinsOfType.map((x) => cabinBasePrice(x)).filter((v) => v > 0),
+                    )}
                     selected={c.id === cabinId}
                     onSelect={() => setCabinId(c.id)}
                     onDetails={() => setMoreOpen(true)}
@@ -223,6 +272,7 @@ export function CruiseDetailsView({ pkg }: { pkg: Pkg }) {
               </div>
             </section>
           )}
+
 
           {/* Escolha uma experiência */}
           {experiences.length > 0 && (
@@ -396,74 +446,136 @@ export function CruiseDetailsView({ pkg }: { pkg: Pkg }) {
   );
 }
 
+/** Preço-base por pessoa da categoria (ocupação dupla, com fallback). */
+function cabinBasePrice(cabin: CabinCategory): number {
+  return (
+    cabin.pricing?.occ2?.per_person ??
+    cabin.pricing?.occ3?.per_person ??
+    cabin.pricing?.occ4?.per_person ??
+    0
+  );
+}
+
+/** Chips de "itens inclusos" exibidos no card da categoria. */
+function cabinIncluded(cabin: CabinCategory): string[] {
+  const chips: string[] = ["Refeições inclusas"];
+  if (cabin.size_m2) chips.push(cabin.size_m2);
+  chips.push(`Até ${cabin.capacity} hóspedes`);
+  if (/garantid/i.test(cabin.name)) chips.push("Cabine atribuída pela companhia");
+  else chips.push("Escolha da localização");
+  if (cabin.highlight) chips.push(cabin.highlight);
+  return chips;
+}
+
 function CabinCard({
   cabin,
+  basePrice,
   selected,
   onSelect,
   onDetails,
 }: {
   cabin: CabinCategory;
+  basePrice: number;
   selected: boolean;
   onSelect: () => void;
   onDetails: () => void;
 }) {
+  const preco = cabinBasePrice(cabin);
+  const upgrade =
+    cabin.upgrade_from_base != null && cabin.upgrade_from_base > 0
+      ? cabin.upgrade_from_base
+      : Number.isFinite(basePrice) && basePrice > 0 && preco > 0
+        ? preco - basePrice
+        : 0;
+
   return (
-    <button
-      type="button"
-      onClick={onSelect}
+    <div
       className={cn(
-        "text-left rounded-2xl border overflow-hidden bg-card transition group",
-        selected ? "border-sky-500 ring-2 ring-sky-500/40" : "border-border hover:border-sky-400/60",
+        "grid gap-4 rounded-2xl border bg-card p-4 transition sm:grid-cols-[150px_minmax(0,1fr)_170px]",
+        selected ? "border-sky-500 bg-sky-500/[0.06]" : "border-border hover:border-sky-400/60",
       )}
     >
-      <div className="relative aspect-[4/3] bg-muted">
+      <button
+        type="button"
+        onClick={onDetails}
+        className="relative overflow-hidden rounded-xl bg-muted h-28 sm:h-full"
+      >
         {cabin.photos?.[0] ? (
-          <img
-            src={cabin.photos[0]}
-            alt={cabin.name}
-            className="absolute inset-0 h-full w-full object-cover"
-          />
+          <img src={cabin.photos[0]} alt={cabin.name} className="h-full w-full object-cover" />
         ) : (
-          <div className="grid place-items-center h-full text-muted-foreground text-xs">
-            Sem foto
-          </div>
+          <div className="grid h-full place-items-center text-xs text-muted-foreground">Sem foto</div>
         )}
-        {selected && (
-          <div className="absolute top-2 right-2 rounded-full bg-sky-600 text-white text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 flex items-center gap-1">
-            <Check className="h-3 w-3" /> Selecionado
-          </div>
-        )}
+      </button>
+
+      <div className="min-w-0">
         {cabin.category_codes?.length ? (
-          <div className="absolute bottom-2 left-2 rounded-full bg-black/60 text-white text-[10px] px-2 py-0.5">
-            {cabin.category_codes.join(", ")}
+          <div className="text-[11px] text-muted-foreground">
+            Categorias: {cabin.category_codes.join(", ")}
           </div>
         ) : null}
-      </div>
-      <div className="p-4">
-        <div className="font-semibold text-sm">{cabin.name}</div>
-        <div className="text-[11px] text-muted-foreground mt-0.5">
-          Até {cabin.capacity} pessoas{cabin.size_m2 ? ` · ${cabin.size_m2}` : ""}
-        </div>
-        {cabin.upgrade_from_base != null && cabin.upgrade_from_base > 0 && (
-          <div className="mt-2 inline-flex items-center gap-1 rounded-full bg-brand-orange/10 text-brand-orange text-[11px] px-2 py-0.5">
-            Upgrade por {formatBRL(cabin.upgrade_from_base)}
-          </div>
+        <div className="font-display text-base font-bold">{cabin.name}</div>
+        {cabin.description && (
+          <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">{cabin.description}</p>
         )}
-        <div
-          role="button"
-          tabIndex={0}
-          onClick={(e) => {
-            e.stopPropagation();
-            onDetails();
-          }}
-          className="mt-2 text-[11px] text-sky-600 hover:underline"
-        >
-          Ver detalhes desta cabine
+        <div className="mt-2 text-[11px] font-semibold text-muted-foreground">Itens inclusos</div>
+        <div className="mt-1.5 flex flex-wrap gap-1.5">
+          {cabinIncluded(cabin).map((chip, i) => (
+            <span
+              key={i}
+              className="inline-flex items-center gap-1 rounded-lg border border-border bg-background/60 px-2 py-1 text-[11px] text-muted-foreground"
+            >
+              <Check className="h-3 w-3 text-sky-600" /> {chip}
+            </span>
+          ))}
+          <button
+            type="button"
+            onClick={onDetails}
+            className="rounded-lg border border-border px-2 py-1 text-[11px] font-semibold text-sky-600"
+          >
+            Ver detalhes
+          </button>
         </div>
       </div>
-    </button>
+
+      <div className="flex flex-col items-stretch justify-center gap-2 sm:items-end">
+        {selected ? (
+          <div className="flex flex-col items-center gap-1 text-center">
+            <span className="grid h-9 w-9 place-items-center rounded-full bg-sky-500/15 text-sky-600">
+              <Check className="h-5 w-5" />
+            </span>
+            <span className="text-sm font-bold text-sky-600">Selecionado</span>
+          </div>
+        ) : (
+          <>
+            <div className="text-center sm:text-right">
+              {upgrade !== 0 ? (
+                <>
+                  <div className="text-[11px] text-muted-foreground">
+                    {upgrade > 0 ? "Upgrade por" : "Economize"}
+                  </div>
+                  <div className="text-lg font-bold">{formatBRL(Math.abs(upgrade))}</div>
+                </>
+              ) : (
+                <>
+                  <div className="text-[11px] text-muted-foreground">por pessoa</div>
+                  <div className="text-lg font-bold">{preco > 0 ? formatBRL(preco) : "sob consulta"}</div>
+                </>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={onSelect}
+              className="w-full rounded-full bg-sky-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:brightness-110 sm:w-auto"
+            >
+              Selecionar
+            </button>
+          </>
+        )}
+      </div>
+    </div>
   );
 }
+
 
 function ExperienceCard({
   exp,
