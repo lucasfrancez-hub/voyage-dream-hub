@@ -671,10 +671,6 @@ function PaymentBox({ quote }: { quote: PublicQuote }) {
               </div>
             ))}
           </div>
-          <p className="vq-payment-note">
-            Parcelamento sem juros conforme a política da companhia aérea e sujeito à
-            aprovação da operadora do cartão.
-          </p>
         </div>
       ) : null}
 
@@ -692,10 +688,6 @@ function PaymentBox({ quote }: { quote: PublicQuote }) {
               </div>
             ))}
           </div>
-          <p className="vq-payment-note">
-            {boleto.note ??
-              "Parcelamento no boleto sujeito à análise. A confirmação é feita pelo consultor antes da emissão."}
-          </p>
         </div>
       ) : null}
 
@@ -708,9 +700,6 @@ function PaymentBox({ quote }: { quote: PublicQuote }) {
             </span>
             <strong>{brl(pix.total)}</strong>
           </div>
-          <p className="vq-payment-note">
-            O código Pix é enviado pelo consultor no momento da confirmação.
-          </p>
         </div>
       ) : null}
     </div>
