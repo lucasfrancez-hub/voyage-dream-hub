@@ -113,7 +113,7 @@ function FrtTestePage() {
       if (r.ok) {
         toast.success("Código aceito — sessão liberada");
         setCodigo("");
-        pend.refetch();
+        setDesafio2fa(false);
         diagMut.mutate(false);
       } else {
         toast.error(r.mensagem ?? "Código recusado");
