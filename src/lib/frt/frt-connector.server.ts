@@ -246,9 +246,11 @@ async function inicializarMotorPrimeFaces(
       trace(`  updates recebidos: ${Object.keys(updates).join(", ") || "(nenhum)"}`);
       trace(`  frmMotorPacote found after init: ${achouMotor}`);
 
-      if (html && (!melhor || achouMotor || html.length > melhor.html.length)) {
-        melhor = { html, viewState: novoVs ?? melhor?.viewState ?? null };
+      const anterior: { html: string; viewState: string | null } | null = melhor;
+      if (html && (!anterior || achouMotor || html.length > anterior.html.length)) {
+        melhor = { html, viewState: novoVs ?? anterior?.viewState ?? null };
       }
+
       if (achouMotor) return melhor;
     } catch (e) {
       trace(`  init falhou: ${e instanceof Error ? e.message : String(e)}`);
