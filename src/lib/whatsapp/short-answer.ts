@@ -6,6 +6,8 @@
  * curta é resolvida contra a PERGUNTA PENDENTE persistida na solicitação
  * aérea; só o que sobra vai para o modelo.
  */
+import { pareceNomeDePessoa } from "./flight-origin-state";
+
 
 export type PendingQuestion =
   | "confirm_origin"
