@@ -1056,6 +1056,13 @@ function AdminPackages() {
               </button>
             );
           })}
+          <Link
+            to="/admin/cruzeiros"
+            className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-muted-foreground transition hover:text-foreground"
+            title="Cruzeiros são cadastrados e importados pelo plugin Exportar Cruzeiro"
+          >
+            <Ship className="h-3.5 w-3.5" /> Cruzeiros
+          </Link>
         </div>
         <button
           type="button"
