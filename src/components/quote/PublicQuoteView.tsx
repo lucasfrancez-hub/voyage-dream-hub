@@ -44,6 +44,8 @@ import {
   IconWhats,
   SUMMARY_ICONS,
 } from "./quote-icons";
+import { useServerFn } from "@tanstack/react-start";
+import { carrinhoOperadoraOrcamento } from "@/lib/public-quote.functions";
 import "./public-quote.css";
 
 const WHATSAPP = "5544999514838";
@@ -870,7 +872,7 @@ function BotaoReservar({
       </button>
       {erro ? (
         <small style={{ display: "block", marginTop: 8 }}>
-          {erro} <a href={whatsappLink(quote)}>Fale com seu consultor</a>
+          {erro} <a href={`https://wa.me/${WHATSAPP}`} target="_blank" rel="noreferrer">Fale com seu consultor</a>
         </small>
       ) : null}
     </>
