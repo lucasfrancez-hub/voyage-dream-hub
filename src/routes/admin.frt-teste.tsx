@@ -55,6 +55,8 @@ function FrtTestePage() {
 
   const [origem, setOrigem] = useState("MGF");
   const [destino, setDestino] = useState("SSA");
+  const [selOrigem, setSelOrigem] = useState<FrtLocalSelecionado | null>(null);
+  const [selDestino, setSelDestino] = useState<FrtLocalSelecionado | null>(null);
   const [ida, setIda] = useState("2026-09-23");
   const [volta, setVolta] = useState("2026-09-30");
   const [adultos, setAdultos] = useState(2);
