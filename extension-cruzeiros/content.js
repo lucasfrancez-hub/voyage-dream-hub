@@ -364,11 +364,22 @@
         page_type: pageType,
         parser_name: P.PARSER_NAME,
         parser_version: P.PARSER_VERSION,
+        capture_mode: priceOnly ? "price" : "full",
+        occupancy: { ...profiles, source: occupancySource, warnings: occupancyWarnings },
+        pricing_fingerprint: parser.pricingFingerprint({
+          cruiseId: summary.cruise.name,
+          departureDate: summary.cruise.departure_date,
+          cabinType: (cabinOffers[0] || {}).cabin_type || "",
+          cabinCategoryCodes: (cabinOffers.find((o) => o.price && o.price.total) || {}).category_codes || [],
+          fareName: summary.pricing.fare_name,
+          occupancy: profiles,
+        }),
+        recalculation: { elapsed_ms: recalc.elapsed_ms, total: recalc.total },
         warnings: parser.warnings,
         field_logs: parser.logs,
         extracted: { cabin_types: cabinTypes, additionals, pricing: summary.pricing },
         network: xhr.map((x) => ({ url: x.url, status: x.status, body: x.body })),
-        html: document.documentElement.outerHTML.slice(0, 900000),
+        html: priceOnly ? "" : document.documentElement.outerHTML.slice(0, 900000),
       },
     };
   }
@@ -377,19 +388,26 @@
     if (!msg) return;
     if (msg.type === "viaair-cruise-detect") {
       const parser = P.createParser(document, { view: window, url: location.href });
+      const occ = parser.parseOccupancy(null);
       sendResponse({
         page_type: parser.detectPageType(),
         detected: parser.detectContent(),
+        occupancy: occ,
         url: location.href,
         title: document.title,
       });
       return false;
     }
     if (msg.type === "viaair-cruise-capture") {
-      buildSnapshot({ deep: msg.deep !== false })
+      buildSnapshot({
+        deep: msg.deep !== false,
+        mode: msg.mode || "full",
+        expectedOccupancyTotal: msg.expectedOccupancyTotal || null,
+      })
         .then((payload) => sendResponse({ ok: true, payload }))
         .catch((e) => sendResponse({ ok: false, error: String(e && e.message ? e.message : e) }));
       return true;
     }
+
   });
 })();
