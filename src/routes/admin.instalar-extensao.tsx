@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/card";
 // Versão esperada — bate com extension/manifest.json
 const EXPECTED_VERSION = "1.8.1";
 const ORCAMENTOS_VERSION = "1.3.0";
+const CRUZEIROS_VERSION = "1.0.0";
 
 export const Route = createFileRoute("/admin/instalar-extensao")({
   head: () => ({ meta: [{ title: "Instalar extensão — Via Air" }] }),
