@@ -66,6 +66,12 @@ function FrtTestePage() {
   const [volta, setVolta] = useState("2026-09-30");
   const [adultos, setAdultos] = useState(2);
   const [criancas, setCriancas] = useState(0);
+  const [diagAuto, setDiagAuto] = useState<Record<string, FrtAutocompleteDiag>>({});
+  const registrarDiagAuto = useCallback(
+    (d: FrtAutocompleteDiag) => setDiagAuto((prev) => ({ ...prev, [d.componente]: d })),
+    [],
+  );
+
 
   const diagMut = useMutation({
     mutationFn: (novaSessao?: boolean) => diag({ data: { novaSessao: Boolean(novaSessao) } }),
