@@ -44,6 +44,8 @@ import {
   IconWhats,
   SUMMARY_ICONS,
 } from "./quote-icons";
+import { useServerFn } from "@tanstack/react-start";
+import { carrinhoOperadoraOrcamento } from "@/lib/public-quote.functions";
 import "./public-quote.css";
 
 const WHATSAPP = "5544999514838";
@@ -762,7 +764,7 @@ export function PublicQuoteView({ quote }: { quote: PublicQuote }) {
   const options = quote.options ?? [];
   const [sel, setSel] = useState(0);
   const tabsRef = useRef<HTMLDivElement | null>(null);
-  if (options.length < 2) return <QuoteBody quote={quote} />;
+  if (options.length < 2) return <QuoteBody quote={quote} opcao={1} />;
 
   const opt = options[Math.min(sel, options.length - 1)]!;
   const merged: PublicQuote = {
@@ -775,7 +777,11 @@ export function PublicQuoteView({ quote }: { quote: PublicQuote }) {
 
   return (
     <>
-      <QuoteBody quote={merged} reserveHref={`/reserva/${quote.publicId}?opcao=${sel + 1}`} />
+      <QuoteBody
+        quote={merged}
+        opcao={sel + 1}
+        reserveHref={`/reserva/${quote.publicId}?opcao=${sel + 1}`}
+      />
       <div className="vq-options">
         <div className="vq-options-inner">
           <span className="vq-options-title">Escolha sua opção</span>
@@ -814,7 +820,74 @@ export function PublicQuoteView({ quote }: { quote: PublicQuote }) {
   );
 }
 
-function QuoteBody({ quote, reserveHref }: { quote: PublicQuote; reserveHref?: string }) {
+/**
+ * Botão de reserva. Em orçamentos SOMENTE AÉREO o cliente compra direto no
+ * carrinho da operadora (Comprar Viagem / Oner) — geramos o carrinho da opção
+ * escolhida na hora do clique. Pacotes seguem no checkout VIA AIR.
+ */
+function BotaoReservar({
+  quote,
+  opcao,
+  reserveHref,
+}: {
+  quote: PublicQuote;
+  opcao?: number;
+  reserveHref?: string;
+}) {
+  const gerarCarrinho = useServerFn(carrinhoOperadoraOrcamento);
+  const [carregando, setCarregando] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
+  const href = reserveHref ?? `/reserva/${quote.publicId}`;
+
+  if (quote.type !== "AIR_ONLY") {
+    return (
+      <a href={href}>
+        <button className="vq-cta">Quero reservar esta opção</button>
+      </a>
+    );
+  }
+
+  const comprar = async () => {
+    setCarregando(true);
+    setErro(null);
+    try {
+      const res = await gerarCarrinho({
+        data: { publicId: quote.publicId, opcao: opcao ?? 1 },
+      });
+      if (res?.url) {
+        window.location.href = res.url;
+        return;
+      }
+      setErro(res?.motivo ?? "Não conseguimos abrir o carrinho agora.");
+    } catch {
+      setErro("Não conseguimos abrir o carrinho agora.");
+    }
+    setCarregando(false);
+  };
+
+  return (
+    <>
+      <button className="vq-cta" type="button" onClick={comprar} disabled={carregando}>
+        {carregando ? "Abrindo carrinho..." : "Quero reservar esta opção"}
+      </button>
+      {erro ? (
+        <small style={{ display: "block", marginTop: 8 }}>
+          {erro} <a href={`https://wa.me/${WHATSAPP}`} target="_blank" rel="noreferrer">Fale com seu consultor</a>
+        </small>
+      ) : null}
+    </>
+  );
+}
+
+function QuoteBody({
+  quote,
+  reserveHref,
+  opcao,
+}: {
+  quote: PublicQuote;
+  reserveHref?: string;
+  opcao?: number;
+}) {
   const flights = quote.products.flights ?? [];
   const hotels = quote.products.hotels ?? [];
   const periodo = periodoLabel(quote);
@@ -955,9 +1028,7 @@ function QuoteBody({ quote, reserveHref }: { quote: PublicQuote; reserveHref?: s
                   <button className="vq-cta">Quero reservar esta opção</button>
                 </a>
               ) : (
-                <a href={reserveHref ?? `/reserva/${quote.publicId}`}>
-                  <button className="vq-cta">Quero reservar esta opção</button>
-                </a>
+                <BotaoReservar quote={quote} opcao={opcao} reserveHref={reserveHref} />
               )}
             </div>
           </div>
