@@ -453,11 +453,20 @@ async function doLogin(): Promise<Session> {
     pendingAuth = s;
     await persistSession(s);
     trace("FRT exigiu código de verificação por e-mail");
+    // Tenta resolver sozinho pela caixa dedicada (e-mail encaminhado).
+    const auto = await frtResolver2faAutomatico();
+    if (auto.ok) {
+      const atual = session ?? s;
+      trace("2FA resolvido automaticamente pela caixa dedicada");
+      return atual;
+    }
     throw new FrtError(
       "FRT_2FA_REQUIRED",
-      "A FRT enviou um código de verificação por e-mail. Informe o código para liberar a sessão.",
+      auto.mensagem ??
+        "A FRT enviou um código de verificação por e-mail. Informe o código para liberar a sessão.",
     );
   }
+
 
   // Campo/ViewState ausente NÃO é mudança de estrutura: pode ser shell da
   // aplicação, carregamento por AJAX ou sessão não reaproveitada.
