@@ -167,7 +167,11 @@ export type FrtAmostraPesquisa = {
   bytes: number;
   updates: { id: string; bytes: number }[];
   temPnlResultado: boolean;
+  /** Bytes do conteúdo do update pnlResultado (0 = não veio no partial). */
+  pnlResultadoBytes: number;
   temPrecos: boolean;
+  /** Total de ocorrências de preço na resposta. */
+  qtdPrecos: number;
   amostraPrecos: string[];
   mensagemNenhumResultado: string | null;
   /** PrimeFaces recusou os parâmetros antes de pesquisar. */
