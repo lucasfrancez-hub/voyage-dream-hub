@@ -42,6 +42,7 @@ import { Route as AdminComprovantesRouteImport } from './routes/admin.comprovant
 import { Route as AdminContaBancariaRouteImport } from './routes/admin.conta-bancaria'
 import { Route as AdminContasPagarRouteImport } from './routes/admin.contas-pagar'
 import { Route as AdminContasReceberRouteImport } from './routes/admin.contas-receber'
+import { Route as AdminCruzeirosRouteImport } from './routes/admin.cruzeiros'
 import { Route as AdminDashboardRouteImport } from './routes/admin.dashboard'
 import { Route as AdminEditairRouteImport } from './routes/admin.editair'
 import { Route as AdminEncurtadorRouteImport } from './routes/admin.encurtador'
@@ -319,6 +320,11 @@ const AdminContasPagarRoute = AdminContasPagarRouteImport.update({
 const AdminContasReceberRoute = AdminContasReceberRouteImport.update({
   id: '/contas-receber',
   path: '/contas-receber',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminCruzeirosRoute = AdminCruzeirosRouteImport.update({
+  id: '/cruzeiros',
+  path: '/cruzeiros',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminDashboardRoute = AdminDashboardRouteImport.update({
@@ -955,6 +961,7 @@ export interface FileRoutesByFullPath {
   '/admin/conta-bancaria': typeof AdminContaBancariaRoute
   '/admin/contas-pagar': typeof AdminContasPagarRoute
   '/admin/contas-receber': typeof AdminContasReceberRoute
+  '/admin/cruzeiros': typeof AdminCruzeirosRoute
   '/admin/dashboard': typeof AdminDashboardRoute
   '/admin/editair': typeof AdminEditairRoute
   '/admin/encurtador': typeof AdminEncurtadorRoute
@@ -1101,6 +1108,7 @@ export interface FileRoutesByTo {
   '/admin/conta-bancaria': typeof AdminContaBancariaRoute
   '/admin/contas-pagar': typeof AdminContasPagarRoute
   '/admin/contas-receber': typeof AdminContasReceberRoute
+  '/admin/cruzeiros': typeof AdminCruzeirosRoute
   '/admin/dashboard': typeof AdminDashboardRoute
   '/admin/editair': typeof AdminEditairRoute
   '/admin/encurtador': typeof AdminEncurtadorRoute
@@ -1250,6 +1258,7 @@ export interface FileRoutesById {
   '/admin/conta-bancaria': typeof AdminContaBancariaRoute
   '/admin/contas-pagar': typeof AdminContasPagarRoute
   '/admin/contas-receber': typeof AdminContasReceberRoute
+  '/admin/cruzeiros': typeof AdminCruzeirosRoute
   '/admin/dashboard': typeof AdminDashboardRoute
   '/admin/editair': typeof AdminEditairRoute
   '/admin/encurtador': typeof AdminEncurtadorRoute
@@ -1400,6 +1409,7 @@ export interface FileRouteTypes {
     | '/admin/conta-bancaria'
     | '/admin/contas-pagar'
     | '/admin/contas-receber'
+    | '/admin/cruzeiros'
     | '/admin/dashboard'
     | '/admin/editair'
     | '/admin/encurtador'
@@ -1546,6 +1556,7 @@ export interface FileRouteTypes {
     | '/admin/conta-bancaria'
     | '/admin/contas-pagar'
     | '/admin/contas-receber'
+    | '/admin/cruzeiros'
     | '/admin/dashboard'
     | '/admin/editair'
     | '/admin/encurtador'
@@ -1694,6 +1705,7 @@ export interface FileRouteTypes {
     | '/admin/conta-bancaria'
     | '/admin/contas-pagar'
     | '/admin/contas-receber'
+    | '/admin/cruzeiros'
     | '/admin/dashboard'
     | '/admin/editair'
     | '/admin/encurtador'
@@ -2125,6 +2137,13 @@ declare module '@tanstack/react-router' {
       path: '/contas-receber'
       fullPath: '/admin/contas-receber'
       preLoaderRoute: typeof AdminContasReceberRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/cruzeiros': {
+      id: '/admin/cruzeiros'
+      path: '/cruzeiros'
+      fullPath: '/admin/cruzeiros'
+      preLoaderRoute: typeof AdminCruzeirosRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/dashboard': {
@@ -2945,6 +2964,7 @@ interface AdminRouteChildren {
   AdminContaBancariaRoute: typeof AdminContaBancariaRoute
   AdminContasPagarRoute: typeof AdminContasPagarRoute
   AdminContasReceberRoute: typeof AdminContasReceberRoute
+  AdminCruzeirosRoute: typeof AdminCruzeirosRoute
   AdminDashboardRoute: typeof AdminDashboardRoute
   AdminEditairRoute: typeof AdminEditairRoute
   AdminEncurtadorRoute: typeof AdminEncurtadorRoute
@@ -2990,6 +3010,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminContaBancariaRoute: AdminContaBancariaRoute,
   AdminContasPagarRoute: AdminContasPagarRoute,
   AdminContasReceberRoute: AdminContasReceberRoute,
+  AdminCruzeirosRoute: AdminCruzeirosRoute,
   AdminDashboardRoute: AdminDashboardRoute,
   AdminEditairRoute: AdminEditairRoute,
   AdminEncurtadorRoute: AdminEncurtadorRoute,

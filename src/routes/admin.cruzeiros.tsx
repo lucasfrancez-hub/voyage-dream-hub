@@ -170,7 +170,7 @@ function CruzeirosAdmin() {
       { label: "Cabines do navio", ok: (d.shipCounts?.cabins ?? 0) > 0 },
       { label: "Deck Plan", ok: (d.shipCounts?.decks ?? 0) > 0 },
       { label: "Fotos/Vídeos", ok: (d.media ?? []).length + (d.shipCounts?.media ?? 0) > 0 },
-      { label: "Ficha técnica", ok: Object.keys((d.ship?.specs as object) ?? {}).length > 0 },
+      { label: "Ficha técnica", ok: Object.keys(((d.ship ?? {}) as Record<string, unknown>).specs as object ?? {}).length > 0 },
       { label: "Adicionais", ok: (d.additionals ?? []).length > 0 },
       { label: "Seguro", ok: (d.insurances ?? []).length > 0 },
       ...[...precosPorOcup].map((k) => ({ label: `Preços ${k}`, ok: true })),
@@ -178,7 +178,7 @@ function CruzeirosAdmin() {
   }, [d]);
 
   const ofertasPorTipo = useMemo(() => {
-    const map = new Map<string, typeof d.offers>();
+    const map = new Map<string, NonNullable<typeof d>["offers"]>();
     for (const o of d?.offers ?? []) {
       const arr = map.get(o.cabin_type) ?? [];
       arr.push(o);
