@@ -18,6 +18,7 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { recordHandoff, type WaConversation } from "./conversation.server";
 import { validateFlightSearch } from "./flight-search-validation";
 import { REGRAS_BOLETO_PROMPT } from "./boleto-regras";
+import { buildHumanizacaoPrompt } from "./humanizacao";
 
 import { VIA_AIR_CNPJ, VIA_AIR_EMAIL_EMERGENCIA } from "@/lib/institucional";
 
@@ -1280,6 +1281,8 @@ export function buildCentralPrompt(
     `Se ele preferir seguir por aqui: ANTES de qualquer transferência, colete nome completo, CPF e data de nascimento de CADA passageiro. 1 passageiro: "me manda por favor seu nome completo, CPF e data de nascimento, como está no documento". 2 ou mais: peça de cada um, explicitando a quantidade; se vier só um, peça os que faltam. Nunca repita o CPF do titular pros outros e nunca invente dado.`,
     `Com todos os dados, chame reservar_opcao (quote_id + option_index + passageiros): o pedido é criado na hora e a conversa vai pro time. Se a tool devolver faltam_dados, peça só o que faltou, de forma curta e natural, sem falar em sistema, cadastro ou validação. Depois de criado, confirme que já registrou a reserva dessa opção e que um consultor continua com ele por aqui — sem reenviar link, sem repetir cotação e sem repedir dados.`,
 
+
+    buildHumanizacaoPrompt(nome),
 
     `\n## 💬 TOM E POSTURA (prevalece sobre o prompt salvo)`,
     `Você é ${nome}, consultor${genero === "f" ? "a" : ""} experiente da VIA AIR. ${genero === "f" ? "Acolhedora, calorosa e simpática" : "Direto, objetivo e seguro"}, sempre natural, leve, consultiv${genero === "f" ? "a" : "o"} e proativ${genero === "f" ? "a" : "o"}. Nada de resposta curta e fria, nada de tom de robô.`,

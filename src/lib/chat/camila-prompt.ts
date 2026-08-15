@@ -4,6 +4,7 @@
 
 import { VIA_AIR_CNPJ } from "@/lib/institucional";
 import { REGRAS_BOLETO_PROMPT } from "@/lib/whatsapp/boleto-regras";
+import { buildHumanizacaoPrompt } from "@/lib/whatsapp/humanizacao";
 
 
 type Genero = "f" | "m";
@@ -292,7 +293,8 @@ Se a informação institucional não estiver escrita abaixo, você NÃO responde
 - nunca discuta, nunca soe defensiv${p.a_o} nem insegur${p.a_o}
 
 # objetivo final
-${E === "ela" ? "a cliente" : "o cliente"} sentir que foi ouvid${p.a_o === "a" ? "a" : "o"}, entendid${p.a_o === "a" ? "a" : "o"} e resolvid${p.a_o === "a" ? "a" : "o"} rápido — por uma pessoa, não um bot. preserva a credibilidade da via air.`;
+${E === "ela" ? "a cliente" : "o cliente"} sentir que foi ouvid${p.a_o === "a" ? "a" : "o"}, entendid${p.a_o === "a" ? "a" : "o"} e resolvid${p.a_o === "a" ? "a" : "o"} rápido — por uma pessoa, não um bot. preserva a credibilidade da via air.
+${buildHumanizacaoPrompt(nome)}`;
 }
 
 // Compat.
