@@ -57,6 +57,9 @@ export type FrtSearchInput = {
   criancas?: number;
   pais?: string;
   companhia?: string;
+  /** Rótulo completo do autocomplete, ex.: "Maringá, Região Sul, Brasil (MGF)". */
+  origemLabel?: string;
+  destinoLabel?: string;
 };
 
 export type FrtSearchResponse = {
