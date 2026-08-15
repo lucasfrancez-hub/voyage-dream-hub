@@ -170,6 +170,23 @@ function parseNumeroPax(t: string): number | null {
  * Resolve a resposta do cliente contra a pergunta pendente.
  * Só recorre ao modelo quando devolve resolved = false.
  */
+/**
+ * Cidade informada em texto livre ("Maringá", "saio de Maringa", "de Curitiba").
+ * Retorna a cidade normalizada (sem preposição/ruído) ou null.
+ */
+export function parseCidadeLivre(textoNormalizado: string): string | null {
+  const t = textoNormalizado.replace(/[?,;]/g, " ").replace(/\s+/g, " ").trim();
+  if (!t || t.length > 60) return null;
+  const m = t.match(
+    /^(?:eu\s+)?(?:saio|parto|embarco|vou sair|sair|partindo|saindo|embarcando)?\s*(?:de|do|da|em|no|na)?\s*([a-z][a-z\s.'-]{2,40})$/,
+  );
+  const bruto = (m?.[1] ?? t).replace(/\b(mesmo|por favor|pfv|obrigad[oa]|entao)\b/g, "").trim();
+  if (bruto.length < 3) return null;
+  if (/\d/.test(bruto)) return null;
+  if (/^(sim|nao|ok|claro|isso|beleza|talvez|nao sei|qualquer|tanto faz|aqui)$/.test(bruto)) return null;
+  return bruto.replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
 export function resolvePendingFlightAnswer(params: {
   pending_question: PendingQuestion | string | null | undefined;
   pending_question_context?: Record<string, unknown> | null;
@@ -202,7 +219,18 @@ export function resolvePendingFlightAnswer(params: {
 
     case "ask_origin": {
       if (sim || nao) return { ...VAZIO, ambiguous: true };
-      return VAZIO; // cidade livre → o modelo interpreta e confirma
+      // Cidade livre ("Maringá", "saio de Maringá") precisa ser PERSISTIDA aqui.
+      // Enquanto isso ficava só a cargo do modelo, a origem se perdia entre os
+      // turnos e o especialista repetia "de qual cidade você pretende embarcar?".
+      const cidade = parseCidadeLivre(t);
+      if (cidade)
+        return {
+          resolved: true,
+          patch: { origin: cidade, origin_status: "informed_by_customer" },
+          next_action: "ask_destination",
+          note: `origem informada pelo cliente: ${cidade}`,
+        };
+      return VAZIO;
     }
 
     case "confirm_trip_type_and_dates": {

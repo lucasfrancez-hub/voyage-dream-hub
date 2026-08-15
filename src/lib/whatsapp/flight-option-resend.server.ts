@@ -12,6 +12,7 @@
  * SERVER-ONLY.
  */
 import { logCardEvent } from "./card-log.server";
+import { aiSender } from "./sender-identity";
 
 export type ResendFormat = "card" | "texto" | "automatico";
 
@@ -109,7 +110,7 @@ export async function resendFlightOption(params: {
     const msg = await saveMessage({
       conversation_id: conversationId,
       direction: "outbound",
-      sender: "camila",
+      sender: aiSender(autor.slug),
       content: texto,
       agent_slug: autor.slug,
       agent_name: autor.nome,
@@ -158,7 +159,7 @@ export async function resendFlightOption(params: {
     const msg = await saveMessage({
       conversation_id: conversationId,
       direction: "outbound",
-      sender: "camila",
+      sender: aiSender(autor.slug),
       content: texto,
       agent_slug: autor.slug,
       agent_name: autor.nome,

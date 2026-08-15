@@ -1603,7 +1603,7 @@ export async function runAgent(input: {
         const row = await saveMessage({
           conversation_id: conv.id,
           direction: "outbound",
-          sender: "camila",
+          sender: consultor.slug,
           agent_slug: consultor.slug,
           content: transicao,
         });
@@ -1656,7 +1656,7 @@ export async function runAgent(input: {
       const row = await saveMessage({
         conversation_id: conv.id,
         direction: "outbound",
-        sender: "camila",
+        sender: agent.slug,
         agent_slug: agent.slug,
         content: bubbles[i],
         // tool_calls e reply só no primeiro balão

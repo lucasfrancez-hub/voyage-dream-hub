@@ -23,6 +23,7 @@
  *
  * SERVER-ONLY.
  */
+import { aiSender } from "./sender-identity";
 import {
   CLAIM_TTL_MS,
   META_OPCOES,
@@ -314,7 +315,7 @@ async function entregarOpcao(
     const msg = await saveMessage({
       conversation_id: ctx.conversation_id,
       direction: "outbound",
-      sender: "camila",
+      sender: aiSender(autor.slug),
       content: texto,
       agent_slug: autor.slug,
       agent_name: autor.nome,
@@ -379,7 +380,7 @@ async function entregarOpcao(
     const msg = await saveMessage({
       conversation_id: ctx.conversation_id,
       direction: "outbound",
-      sender: "camila",
+      sender: aiSender(autor.slug),
       content: texto,
       agent_slug: autor.slug,
       agent_name: autor.nome,
@@ -757,7 +758,7 @@ async function entregarBundle(
     const msg = await saveMessage({
       conversation_id: ctx.conversation_id,
       direction: "outbound",
-      sender: "camila",
+      sender: aiSender(autor.slug),
       content: texto,
       agent_slug: autor.slug,
       agent_name: autor.nome,

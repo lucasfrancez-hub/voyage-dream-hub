@@ -13,6 +13,7 @@
  * SERVER-ONLY.
  */
 import { tool } from "ai";
+import { aiSender } from "./sender-identity";
 import { z } from "zod";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { recordHandoff, type WaConversation } from "./conversation.server";
@@ -255,7 +256,7 @@ export async function transferirParaConsultores(
       const row = await saveMessage({
         conversation_id: conversation.id,
         direction: "outbound",
-        sender: "camila",
+        sender: aiSender(params.agenteAnterior),
         agent_slug: params.agenteAnterior,
         content: aviso,
       });

@@ -3,6 +3,7 @@
  * SERVER-ONLY.
  */
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { aiSender, isAiSender, type WaSender } from "./sender-identity";
 
 export type WaConversation = {
   id: string;
@@ -17,13 +18,15 @@ export type WaConversation = {
   last_message_at: string;
   tags: string[];
   protocolo_ativo_id: string | null;
+  /** Agente de IA que está atendendo agora (fonte de verdade da identidade). */
+  agent_slug?: string | null;
 };
 
 export type WaMessage = {
   id: string;
   conversation_id: string;
   direction: "inbound" | "outbound";
-  sender: "customer" | "camila" | "human" | "system";
+  sender: WaSender;
   content: string;
   wa_message_id: string | null;
   tool_calls: unknown | null;
@@ -194,7 +197,7 @@ export async function ensureActiveProtocolo(conversationId: string): Promise<WaP
 export async function saveMessage(input: {
   conversation_id: string;
   direction: "inbound" | "outbound";
-  sender: "customer" | "camila" | "human" | "system";
+  sender: WaSender;
   content: string;
   wa_message_id?: string | null;
   tool_calls?: unknown | null;
@@ -295,7 +298,9 @@ export async function saveMessage(input: {
     .insert({
       conversation_id: input.conversation_id,
       direction: input.direction,
-      sender: input.sender,
+      // IDENTIDADE REAL DO AGENTE: mensagens de IA gravam o slug de quem falou
+      // (bruno, paula, giovani, camila…), nunca mais o rótulo fixo "camila".
+      sender: isAiSender(input.sender) ? aiSender(input.agent_slug ?? input.sender) : input.sender,
       content: input.content,
       wa_message_id: input.wa_message_id ?? null,
       tool_calls: (input.tool_calls ?? null) as never,
@@ -495,10 +500,18 @@ export async function saveAndSendText(
     .maybeSingle();
   if (repetida) return;
 
+  const { data: convAtual } = await supabaseAdmin
+    .from("wa_conversations")
+    .select("agent_slug")
+    .eq("id", conversationId)
+    .maybeSingle();
+  const slugAtual = (convAtual as { agent_slug?: string | null } | null)?.agent_slug ?? null;
+
   const row = await saveMessage({
     conversation_id: conversationId,
     direction: "outbound",
-    sender: "camila",
+    sender: aiSender(slugAtual),
+    agent_slug: slugAtual,
     content: conteudo,
   });
   if (row?.id) await setSendError(row.id, SENDING_CLAIM);
