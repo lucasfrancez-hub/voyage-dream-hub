@@ -751,6 +751,49 @@ export async function runAgent(input: {
     const pediuRepetir = pediuMesmosDadosDaUltimaVez(textoCliente);
 
     origemSugerida = hist.confirmadaNoProtocolo || !pediuRepetir ? null : hist.sugerida;
+
+    // A origem só era considerada confirmada quando já existia cotação salva.
+    // Mas o cliente responde a cidade muito antes disso — sem ler a resposta
+    // nas mensagens, o especialista repetia "de qual cidade você embarca?".
+    if (!origemConfirmadaNoProtocolo) {
+      const { origemRespondidaNoProtocolo } = await import("./airflow-guard");
+      const [{ data: outMsgs }, { data: inMsgs }] = await Promise.all([
+        supabaseAdmin
+          .from("wa_messages")
+          .select("content, created_at")
+          .eq("conversation_id", conv.id)
+          .eq("protocolo_id", protocolo.id)
+          .eq("direction", "outbound")
+          .order("created_at", { ascending: true })
+          .limit(60),
+        supabaseAdmin
+          .from("wa_messages")
+          .select("content, created_at")
+          .eq("conversation_id", conv.id)
+          .eq("protocolo_id", protocolo.id)
+          .eq("direction", "inbound")
+          .order("created_at", { ascending: true })
+          .limit(60),
+      ]);
+      const respondida = origemRespondidaNoProtocolo({
+        outbound: (outMsgs ?? []) as Array<{ content: string | null; created_at: string }>,
+        inbound: (inMsgs ?? []) as Array<{ content: string | null; created_at: string }>,
+        sugestao: hist.sugerida,
+      });
+      if (respondida) {
+        origemConfirmadaNoProtocolo = respondida;
+        origemSugerida = null;
+        console.log(
+          JSON.stringify({
+            event: "origem_lida_das_mensagens",
+            conversation_id: conv.id,
+            protocolo_id: protocolo.id,
+            origem: respondida,
+          }),
+        );
+      }
+    }
+
     if (hist.sugerida && !pediuRepetir && !hist.confirmadaNoProtocolo) {
       console.log(
         JSON.stringify({
@@ -1309,6 +1352,25 @@ export async function runAgent(input: {
         }));
       }
     }
+
+    // TRAVA ANTI-REPETIÇÃO: com a origem já informada, a pergunta de embarque
+    // não pode sair de novo. Remove a linha repetida; se sobrar só isso,
+    // confirma a origem em vez de perguntar outra vez.
+    if (centralAgent && origemConfirmadaNoProtocolo) {
+      const linhas = rawText.split(/\n+/);
+      const limpas = linhas.filter((l) => !isValidOriginQuestion(l, origemConfirmadaNoProtocolo));
+      if (limpas.length !== linhas.length) {
+        console.warn("[agent-runtime]", JSON.stringify({
+          ...runtimeAudit,
+          event: "origin_question_repeat_blocked",
+          origem: origemConfirmadaNoProtocolo,
+        }));
+        const restante = limpas.join("\n").trim();
+        rawText = restante || `Perfeito, então o embarque sai de ${origemConfirmadaNoProtocolo}`;
+      }
+    }
+
+
 
     // Deve rodar DEPOIS do Airflow Guard: quando faltava origem, o guard podia
     // substituir toda a resposta e apagar a apresentação recém-adicionada.

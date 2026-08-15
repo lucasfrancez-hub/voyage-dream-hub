@@ -100,3 +100,50 @@ export function safeMissingOriginResponse(
   return `${greeting}${s ? originConfirmQuestion(s) : "De qual cidade você pretende embarcar?"}`;
 }
 
+
+/**
+ * Origem respondida pelo cliente DENTRO do protocolo, lida das mensagens.
+ *
+ * A origem só era considerada "confirmada" quando já existia uma cotação
+ * salva — mas o cliente responde a cidade muito antes disso. Sem esta leitura,
+ * o especialista voltava a perguntar "de qual cidade você pretende embarcar?"
+ * logo depois de o cliente responder "Maringá".
+ */
+export function origemRespondidaNoProtocolo(params: {
+  outbound: Array<{ content: string | null; created_at: string }>;
+  inbound: Array<{ content: string | null; created_at: string }>;
+  sugestao?: string | null;
+}): string | null {
+  const perguntas = params.outbound
+    .filter((m) => isValidOriginQuestion(String(m.content ?? ""), params.sugestao ?? null))
+    .map((m) => new Date(m.created_at).getTime())
+    .sort((a, b) => a - b);
+  if (!perguntas.length) return null;
+  const primeira = perguntas[0]!;
+
+  const respostas = params.inbound
+    .filter((m) => new Date(m.created_at).getTime() > primeira)
+    .map((m) => String(m.content ?? "").trim())
+    .filter(Boolean);
+
+  for (const bruto of respostas) {
+    const texto = bruto.replace(/\s+/g, " ").trim();
+    if (texto.length > 60 || /\?/.test(texto)) continue;
+    // "de maringá", "saio de maringa", "embarco em maringá", "maringá mesmo"
+    const m = texto.match(
+      /(?:saio\s+de|embarco\s+(?:de|em)|partindo\s+de|de|do|da)?\s*([\p{L}][\p{L}\s.'-]{2,40})$/iu,
+    );
+    const candidato = (m?.[1] ?? texto).replace(/\b(mesmo|por favor|pfv|obrigad[oa])\b/gi, "").trim();
+    if (!candidato || candidato.length < 3) continue;
+    if (/^(sim|nao|não|ok|claro|isso|beleza|talvez|nao sei|não sei|qualquer)$/i.test(candidato)) continue;
+    if (
+      params.sugestao &&
+      /^(sim|isso|pode ser|mant[eé]m|manter|continua|igual)/i.test(texto)
+    ) {
+      return params.sugestao;
+    }
+    return candidato;
+  }
+  const s = (params.sugestao ?? "").trim();
+  return s && respostas.some((t) => /^(sim|isso|pode ser|mant[eé]m|manter|continua|igual)/i.test(t)) ? s : null;
+}
