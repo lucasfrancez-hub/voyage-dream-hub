@@ -79,7 +79,7 @@ async function frtFetch(
   s: Session,
   url: string,
   init: RequestInit & { body?: string } = {},
-): Promise<{ res: Response; body: string }> {
+): Promise<{ res: Response; body: string; url: string }> {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
   try {
@@ -105,10 +105,9 @@ async function frtFetch(
       const next = new URL(loc, url).toString();
       trace(`redirect -> ${next}`);
       const followed = await frtFetch(s, next, { headers: init.headers });
-      body = followed.body;
-      return { res: followed.res, body };
+      return { res: followed.res, body: followed.body, url: followed.url };
     }
-    return { res, body };
+    return { res, body, url };
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     if (/abort/i.test(msg)) throw new FrtError("FRT_TIMEOUT", "Tempo esgotado na FRT");
