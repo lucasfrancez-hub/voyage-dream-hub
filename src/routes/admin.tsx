@@ -400,6 +400,7 @@ function ProdutosNav({ pathname }: { pathname: string }) {
     pathname.startsWith("/admin/promocoes-aereo") ||
     pathname.startsWith("/admin/voos-teste") ||
     pathname.startsWith("/admin/hoteis-teste") ||
+    pathname.startsWith("/admin/motor-frt") ||
     pathname.startsWith("/admin/carros");
   return (
     <NavMegaMenu
@@ -415,6 +416,7 @@ function ProdutosNav({ pathname }: { pathname: string }) {
             { to: "/admin/cruzeiros", label: "Cruzeiros" },
             { to: "/admin/promocoes-aereo", label: "Promoções de Aéreo" },
             { to: "/admin/buscar", label: "Motor de busca" },
+            { to: "/admin/motor-frt", label: "Motor FRT (pacotes)" },
           ],
         },
       ]}
