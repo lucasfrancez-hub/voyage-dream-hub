@@ -174,6 +174,40 @@
     }
   }
 
+  /* Encontra o gatilho do conteúdo do navio. O site nem sempre expõe a classe
+     .ship-details-link — em várias telas é só um link/botão "Ver mais",
+     "Detalhes do navio", "Sobre o navio" ou "Conheça o navio". */
+  function findShipDetailsTrigger() {
+    const direct = H.query(document, P.FRT_SELECTORS.shipDetailsLink);
+    if (direct) return direct;
+    const candidates = [
+      ...document.querySelectorAll("a, button, [role='button'], span.link, .link, u"),
+    ];
+    const wanted =
+      /^(ver mais|ver mais detalhes|saiba mais|detalhes do navio|sobre o navio|conhe[çc]a o navio|mais sobre o navio|informa[çc][õo]es do navio)$/;
+    return (
+      findByText(candidates, (t) => wanted.test(t)) ||
+      findByText(candidates, (t) => t.length < 40 && /ver mais|detalhes do navio|sobre o navio/.test(t))
+    );
+  }
+
+  function shipModalTabs(modal) {
+    if (!modal) return [];
+    const tabs = H.queryAll(modal, P.FRT_SELECTORS.sideNavItems);
+    if (tabs.length) return tabs;
+    // Fallback: alguns layouts trocam .side-nav__item por lista/abas comuns.
+    const known =
+      /(itinerar|atra[çc]|cabine|deck|ficha|o navio|fotos|v[íi]deo)/i;
+    return [
+      ...modal.querySelectorAll(
+        "li, a, button, [role='tab'], .nav-link, .side-nav li, .side-nav a",
+      ),
+    ].filter((el) => {
+      const label = H.clean(el.textContent);
+      return label.length > 1 && label.length < 40 && known.test(label);
+    });
+  }
+
   /* -------- 48-60. Modal "Ver mais" (conteúdo do navio) --------------- */
   async function captureShipDetails(parser) {
     const data = {
@@ -184,21 +218,38 @@
       media: [],
       specs: {},
       technical_drawing_url: "",
+      warnings: [],
     };
 
     let modal = H.query(document, P.FRT_SELECTORS.modalWindow);
-    let hasSideNav = modal && H.queryAll(modal, P.FRT_SELECTORS.sideNavItems).length > 0;
+    let tabs = shipModalTabs(modal);
 
-    if (!hasSideNav) {
-      const trigger = H.query(document, P.FRT_SELECTORS.shipDetailsLink);
-      if (!trigger) return data;
+    if (!tabs.length) {
+      const trigger = findShipDetailsTrigger();
+      if (!trigger) {
+        data.warnings.push("Não encontrei o link 'Ver mais' do navio nesta tela.");
+        return data;
+      }
       safeClick(trigger);
-      modal = await H.waitForElement(document, P.FRT_SELECTORS.modalWindow, 6000);
-      if (!modal) return data;
+      modal =
+        (await H.waitForElement(
+          document,
+          ["ngb-modal-window", ".modal.show", "[role='dialog']"],
+          8000,
+        )) || H.query(document, P.FRT_SELECTORS.modalWindow);
+      if (!modal) {
+        data.warnings.push("O modal de conteúdo do navio não abriu.");
+        return data;
+      }
       await H.waitForDOMStable(modal, 350, 6000);
-      hasSideNav = H.queryAll(modal, P.FRT_SELECTORS.sideNavItems).length > 0;
-      if (!hasSideNav) return data;
+      tabs = shipModalTabs(modal);
+      if (!tabs.length) {
+        data.warnings.push("O modal do navio abriu sem abas (itinerário, atrações, decks).");
+        await closeWindow(modal);
+        return data;
+      }
     }
+
 
     try {
       const tabs = H.queryAll(modal, P.FRT_SELECTORS.sideNavItems);
