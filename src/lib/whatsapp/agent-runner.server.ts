@@ -1490,7 +1490,7 @@ export async function runAgent(input: {
     const [{ data: currentConv }, { data: latestInboundNow }, { count: alreadyAnswered }] = await Promise.all([
       supabaseAdmin
         .from("wa_conversations")
-        .select("protocolo_ativo_id, central_slug, agent_slug, mode, ai_paused, ai_instruction_at")
+        .select("protocolo_ativo_id, central_slug, agent_slug, mode, ai_paused, ai_instruction_at, ai_debounce_until")
         .eq("id", conv.id)
         .maybeSingle(),
       supabaseAdmin
