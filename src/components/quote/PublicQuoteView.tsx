@@ -48,6 +48,12 @@ import "./public-quote.css";
 
 const WHATSAPP = "5544999514838";
 
+/** Hora "HH:mm" de qualquer formato (ISO com T, com espaço, com fuso). */
+function hhmm(v?: string | null): string {
+  const m = String(v ?? "").match(/(\d{2}):(\d{2})/);
+  return m ? `${m[1]}:${m[2]}` : "—";
+}
+
 function periodoLabel(q: PublicQuote): string | null {
   const fmt = (s?: string | null) => {
     if (!s) return null;
