@@ -283,6 +283,27 @@ function erroDoEstado(v: AcessoVenda): FrtError {
   );
 }
 
+/** Resumo (sem HTML bruto) do acesso à venda, seguro para o front-end. */
+function resumoAcesso(v: AcessoVenda) {
+  return {
+    status: v.status,
+    urlFinal: v.urlFinal,
+    temFormulario: v.temFormulario,
+    temBotaoPesquisa: v.temBotaoPesquisa,
+    temLogin: v.temLogin,
+    temAuthXhtml: v.temAuthXhtml,
+    voltouParaLogin: v.voltouParaLogin,
+    aguardandoCodigo: v.aguardandoCodigo,
+    tamanhoHtml: v.tamanhoHtml,
+    titulo: v.titulo,
+    formularios: v.formularios,
+    viewStatePresente: Boolean(v.viewState),
+    redirects: v.redirects,
+    estado: v.estado,
+  };
+}
+export type ResumoAcessoVenda = ReturnType<typeof resumoAcesso>;
+
 /* ----------------------------- login ------------------------------ */
 
 
