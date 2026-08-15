@@ -61,9 +61,9 @@ async function persist(
         sort_order: i,
       })),
     )
-    .select("id")
-    .order("sort_order", { ascending: true });
+    .select("id, sort_order");
   if (error || !inseridos) throw new Error(error?.message ?? "Falha ao criar itens do pedido");
+  inseridos.sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
 
   // Quando o orçamento não discrimina valores por item, o total vai no
   // primeiro item para o financeiro nunca nascer zerado.
