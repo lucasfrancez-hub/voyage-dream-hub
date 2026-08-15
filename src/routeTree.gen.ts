@@ -120,6 +120,7 @@ import { Route as ApiPublicTestFlightAlertRouteImport } from './routes/api/publi
 import { Route as ApiPublicWaDiagRouteImport } from './routes/api/public/wa-diag'
 import { Route as ApiPublicWhatsappWebhookRouteImport } from './routes/api/public/whatsapp-webhook'
 import { Route as ChatAppTokenRouteImport } from './routes/chat.app.$token'
+import { Route as CruzeirosUiPreviewIndexRouteImport } from './routes/cruzeiros_.ui-preview.index'
 import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/email/suppression'
 import { Route as PacotesSlugIndexRouteImport } from './routes/pacotes.$slug.index'
 import { Route as PacotesSlugCheckoutRouteImport } from './routes/pacotes.$slug.checkout'
@@ -151,6 +152,7 @@ import { Route as ApiPublicPackageHotelPhotoSplatRouteImport } from './routes/ap
 import { Route as ApiPublicV1CruiseImportRouteImport } from './routes/api/public/v1/cruise-import'
 import { Route as ApiPublicV1ExtensionPairRouteImport } from './routes/api/public/v1/extension-pair'
 import { Route as ApiPublicV1QuoteImportsRouteImport } from './routes/api/public/v1/quote-imports'
+import { Route as CruzeirosUiPreviewScreenModelRouteImport } from './routes/cruzeiros_.ui-preview.$screen.$model'
 import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
 import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/email/auth/webhook'
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
@@ -719,6 +721,11 @@ const ChatAppTokenRoute = ChatAppTokenRouteImport.update({
   path: '/app/$token',
   getParentRoute: () => ChatRoute,
 } as any)
+const CruzeirosUiPreviewIndexRoute = CruzeirosUiPreviewIndexRouteImport.update({
+  id: '/cruzeiros_/ui-preview/',
+  path: '/cruzeiros/ui-preview/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LovableEmailSuppressionRoute = LovableEmailSuppressionRouteImport.update({
   id: '/lovable/email/suppression',
   path: '/lovable/email/suppression',
@@ -898,6 +905,12 @@ const ApiPublicV1QuoteImportsRoute = ApiPublicV1QuoteImportsRouteImport.update({
   path: '/api/public/v1/quote-imports',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CruzeirosUiPreviewScreenModelRoute =
+  CruzeirosUiPreviewScreenModelRouteImport.update({
+    id: '/cruzeiros_/ui-preview/$screen/$model',
+    path: '/cruzeiros/ui-preview/$screen/$model',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const LovableEmailAuthPreviewRoute = LovableEmailAuthPreviewRouteImport.update({
   id: '/lovable/email/auth/preview',
   path: '/lovable/email/auth/preview',
@@ -1041,6 +1054,7 @@ export interface FileRoutesByFullPath {
   '/pacotes/$slug/checkout': typeof PacotesSlugCheckoutRoute
   '/admin/orcamentos/': typeof AdminOrcamentosIndexRoute
   '/admin/pedidos/': typeof AdminPedidosIndexRoute
+  '/cruzeiros/ui-preview/': typeof CruzeirosUiPreviewIndexRoute
   '/pacotes/$slug/': typeof PacotesSlugIndexRoute
   '/api/public/admin-manifest/$token': typeof ApiPublicAdminManifestTokenRoute
   '/api/public/agenda-manifest/$token': typeof ApiPublicAgendaManifestTokenRoute
@@ -1070,6 +1084,7 @@ export interface FileRoutesByFullPath {
   '/api/public/v1/cruise-import': typeof ApiPublicV1CruiseImportRoute
   '/api/public/v1/extension-pair': typeof ApiPublicV1ExtensionPairRoute
   '/api/public/v1/quote-imports': typeof ApiPublicV1QuoteImportsRoute
+  '/cruzeiros/ui-preview/$screen/$model': typeof CruzeirosUiPreviewScreenModelRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
@@ -1188,6 +1203,7 @@ export interface FileRoutesByTo {
   '/pacotes/$slug/checkout': typeof PacotesSlugCheckoutRoute
   '/admin/orcamentos': typeof AdminOrcamentosIndexRoute
   '/admin/pedidos': typeof AdminPedidosIndexRoute
+  '/cruzeiros/ui-preview': typeof CruzeirosUiPreviewIndexRoute
   '/pacotes/$slug': typeof PacotesSlugIndexRoute
   '/api/public/admin-manifest/$token': typeof ApiPublicAdminManifestTokenRoute
   '/api/public/agenda-manifest/$token': typeof ApiPublicAgendaManifestTokenRoute
@@ -1217,6 +1233,7 @@ export interface FileRoutesByTo {
   '/api/public/v1/cruise-import': typeof ApiPublicV1CruiseImportRoute
   '/api/public/v1/extension-pair': typeof ApiPublicV1ExtensionPairRoute
   '/api/public/v1/quote-imports': typeof ApiPublicV1QuoteImportsRoute
+  '/cruzeiros/ui-preview/$screen/$model': typeof CruzeirosUiPreviewScreenModelRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
@@ -1338,6 +1355,7 @@ export interface FileRoutesById {
   '/pacotes/$slug/checkout': typeof PacotesSlugCheckoutRoute
   '/admin/orcamentos/': typeof AdminOrcamentosIndexRoute
   '/admin/pedidos/': typeof AdminPedidosIndexRoute
+  '/cruzeiros_/ui-preview/': typeof CruzeirosUiPreviewIndexRoute
   '/pacotes/$slug/': typeof PacotesSlugIndexRoute
   '/api/public/admin-manifest/$token': typeof ApiPublicAdminManifestTokenRoute
   '/api/public/agenda-manifest/$token': typeof ApiPublicAgendaManifestTokenRoute
@@ -1367,6 +1385,7 @@ export interface FileRoutesById {
   '/api/public/v1/cruise-import': typeof ApiPublicV1CruiseImportRoute
   '/api/public/v1/extension-pair': typeof ApiPublicV1ExtensionPairRoute
   '/api/public/v1/quote-imports': typeof ApiPublicV1QuoteImportsRoute
+  '/cruzeiros_/ui-preview/$screen/$model': typeof CruzeirosUiPreviewScreenModelRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
@@ -1489,6 +1508,7 @@ export interface FileRouteTypes {
     | '/pacotes/$slug/checkout'
     | '/admin/orcamentos/'
     | '/admin/pedidos/'
+    | '/cruzeiros/ui-preview/'
     | '/pacotes/$slug/'
     | '/api/public/admin-manifest/$token'
     | '/api/public/agenda-manifest/$token'
@@ -1518,6 +1538,7 @@ export interface FileRouteTypes {
     | '/api/public/v1/cruise-import'
     | '/api/public/v1/extension-pair'
     | '/api/public/v1/quote-imports'
+    | '/cruzeiros/ui-preview/$screen/$model'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
@@ -1636,6 +1657,7 @@ export interface FileRouteTypes {
     | '/pacotes/$slug/checkout'
     | '/admin/orcamentos'
     | '/admin/pedidos'
+    | '/cruzeiros/ui-preview'
     | '/pacotes/$slug'
     | '/api/public/admin-manifest/$token'
     | '/api/public/agenda-manifest/$token'
@@ -1665,6 +1687,7 @@ export interface FileRouteTypes {
     | '/api/public/v1/cruise-import'
     | '/api/public/v1/extension-pair'
     | '/api/public/v1/quote-imports'
+    | '/cruzeiros/ui-preview/$screen/$model'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
@@ -1785,6 +1808,7 @@ export interface FileRouteTypes {
     | '/pacotes/$slug/checkout'
     | '/admin/orcamentos/'
     | '/admin/pedidos/'
+    | '/cruzeiros_/ui-preview/'
     | '/pacotes/$slug/'
     | '/api/public/admin-manifest/$token'
     | '/api/public/agenda-manifest/$token'
@@ -1814,6 +1838,7 @@ export interface FileRouteTypes {
     | '/api/public/v1/cruise-import'
     | '/api/public/v1/extension-pair'
     | '/api/public/v1/quote-imports'
+    | '/cruzeiros_/ui-preview/$screen/$model'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
@@ -1871,6 +1896,7 @@ export interface RootRouteChildren {
   ApiPublicWaDiagRoute: typeof ApiPublicWaDiagRoute
   ApiPublicWhatsappWebhookRoute: typeof ApiPublicWhatsappWebhookRoute
   LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
+  CruzeirosUiPreviewIndexRoute: typeof CruzeirosUiPreviewIndexRoute
   ApiPublicAdminManifestTokenRoute: typeof ApiPublicAdminManifestTokenRoute
   ApiPublicAgendaManifestTokenRoute: typeof ApiPublicAgendaManifestTokenRoute
   ApiPublicBoletoIdRoute: typeof ApiPublicBoletoIdRoute
@@ -1899,6 +1925,7 @@ export interface RootRouteChildren {
   ApiPublicV1CruiseImportRoute: typeof ApiPublicV1CruiseImportRoute
   ApiPublicV1ExtensionPairRoute: typeof ApiPublicV1ExtensionPairRoute
   ApiPublicV1QuoteImportsRoute: typeof ApiPublicV1QuoteImportsRoute
+  CruzeirosUiPreviewScreenModelRoute: typeof CruzeirosUiPreviewScreenModelRoute
   LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
   LovableEmailAuthWebhookRoute: typeof LovableEmailAuthWebhookRoute
   LovableEmailQueueProcessRoute: typeof LovableEmailQueueProcessRoute
@@ -2685,6 +2712,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ChatAppTokenRouteImport
       parentRoute: typeof ChatRoute
     }
+    '/cruzeiros_/ui-preview/': {
+      id: '/cruzeiros_/ui-preview/'
+      path: '/cruzeiros/ui-preview'
+      fullPath: '/cruzeiros/ui-preview/'
+      preLoaderRoute: typeof CruzeirosUiPreviewIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/lovable/email/suppression': {
       id: '/lovable/email/suppression'
       path: '/lovable/email/suppression'
@@ -2900,6 +2934,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/v1/quote-imports'
       fullPath: '/api/public/v1/quote-imports'
       preLoaderRoute: typeof ApiPublicV1QuoteImportsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cruzeiros_/ui-preview/$screen/$model': {
+      id: '/cruzeiros_/ui-preview/$screen/$model'
+      path: '/cruzeiros/ui-preview/$screen/$model'
+      fullPath: '/cruzeiros/ui-preview/$screen/$model'
+      preLoaderRoute: typeof CruzeirosUiPreviewScreenModelRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/lovable/email/auth/preview': {
@@ -3164,6 +3205,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicWaDiagRoute: ApiPublicWaDiagRoute,
   ApiPublicWhatsappWebhookRoute: ApiPublicWhatsappWebhookRoute,
   LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
+  CruzeirosUiPreviewIndexRoute: CruzeirosUiPreviewIndexRoute,
   ApiPublicAdminManifestTokenRoute: ApiPublicAdminManifestTokenRoute,
   ApiPublicAgendaManifestTokenRoute: ApiPublicAgendaManifestTokenRoute,
   ApiPublicBoletoIdRoute: ApiPublicBoletoIdRoute,
@@ -3199,6 +3241,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicV1CruiseImportRoute: ApiPublicV1CruiseImportRoute,
   ApiPublicV1ExtensionPairRoute: ApiPublicV1ExtensionPairRoute,
   ApiPublicV1QuoteImportsRoute: ApiPublicV1QuoteImportsRoute,
+  CruzeirosUiPreviewScreenModelRoute: CruzeirosUiPreviewScreenModelRoute,
   LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,
   LovableEmailAuthWebhookRoute: LovableEmailAuthWebhookRoute,
   LovableEmailQueueProcessRoute: LovableEmailQueueProcessRoute,
