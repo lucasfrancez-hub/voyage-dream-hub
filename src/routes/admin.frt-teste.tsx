@@ -106,18 +106,23 @@ function FrtTestePage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  // A pesquisa só usa origem/destino efetivamente selecionados na lista da FRT.
+  const prontoParaConsultar = Boolean(selOrigem && selDestino);
+  const dadosPesquisa = () => ({
+    origem: selOrigem?.value ?? origem,
+    destino: selDestino?.value ?? destino,
+    origemLabel: selOrigem?.label,
+    destinoLabel: selDestino?.label,
+    origemValue: selOrigem?.value,
+    destinoValue: selDestino?.value,
+    ida,
+    volta: volta || null,
+    adultos,
+    criancas,
+  });
+
   const searchMut = useMutation({
-    mutationFn: () =>
-      consulta({
-        data: {
-          origem,
-          destino,
-          ida,
-          volta: volta || null,
-          adultos,
-          criancas,
-        },
-      }),
+    mutationFn: () => consulta({ data: dadosPesquisa() }),
     onSuccess: (r) => {
       if (r.success) toast.success(`${r.results.length} resultado(s) normalizado(s)`);
       else toast.error(`${r.error}: ${r.message ?? ""}`);
@@ -126,12 +131,10 @@ function FrtTestePage() {
   });
 
   const diagPesqMut = useMutation({
-    mutationFn: () =>
-      diagPesquisa({
-        data: { origem, destino, ida, volta: volta || null, adultos, criancas },
-      }),
+    mutationFn: () => diagPesquisa({ data: dadosPesquisa() }),
     onError: (e: Error) => toast.error(e.message),
   });
+
 
   const dp = diagPesqMut.data;
   const d = diagMut.data;
