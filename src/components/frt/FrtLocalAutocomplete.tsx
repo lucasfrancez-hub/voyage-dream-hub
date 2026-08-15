@@ -25,6 +25,7 @@ export type FrtAutocompleteDiag = {
   bytes: number;
   updates: { id: string; bytes: number }[];
   dataItemValue: number;
+  labelsSemValue?: string[];
   amostra: string | null;
   opcoes: { value: string; label: string }[];
   erro?: string;
