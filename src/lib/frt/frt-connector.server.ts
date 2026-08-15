@@ -838,6 +838,25 @@ async function loadVendaScreen(s: Session) {
 
 /* --------------------------- pesquisa ------------------------------ */
 
+/** Códigos IATA sempre em maiúsculas; texto livre fica intacto. */
+function normalizarIata(v: string): string {
+  const t = (v ?? "").trim();
+  return /^[A-Za-z]{3}$/.test(t) ? t.toUpperCase() : t;
+}
+
+/** Conteúdo do <update id="...pnlResultado..."> (ou trecho equivalente). */
+function extrairPnlResultado(
+  updates: Record<string, string>,
+  body: string,
+): { presente: boolean; bytes: number } {
+  const chave = Object.keys(updates).find((k) => /pnlResultado/i.test(k));
+  if (chave) return { presente: true, bytes: updates[chave]!.length };
+  const i = body.search(/pnlResultado/i);
+  return { presente: i >= 0, bytes: 0 };
+}
+
+
+
 async function runSearch(
   s: Session,
   input: FrtSearchInput,
