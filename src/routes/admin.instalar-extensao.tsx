@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 
 // Versão esperada — bate com extension/manifest.json
 const EXPECTED_VERSION = "1.7.17";
+const ORCAMENTOS_VERSION = "1.3.0";
 
 export const Route = createFileRoute("/admin/instalar-extensao")({
   head: () => ({ meta: [{ title: "Instalar extensão — Via Air" }] }),
@@ -153,11 +154,17 @@ function InstalarExtensao() {
       </Card>
 
       <Card className="p-5">
-        <div className="font-medium">Plugin 2 — Via Air Orçamentos (automático)</div>
+        <div className="font-medium flex items-center gap-2">
+          Plugin 2 — Via Air Orçamentos
+          <span className="text-[11px] font-semibold rounded-full border border-primary/40 text-primary px-2 py-0.5">
+            v{ORCAMENTOS_VERSION}
+          </span>
+        </div>
         <p className="text-sm text-muted-foreground mt-1">
           Extensão independente que detecta orçamentos web da Infotravel e importa sozinha para{" "}
           <b>Pedidos → Orçamentos</b>. Não precisa do portal aberto nem de clicar em nada: instale, cole o token
-          gerado em <b>Orçamentos → Conectar plugin</b> e pronto.
+          gerado em <b>Orçamentos → Conectar plugin</b> e pronto. A importação só dispara quando você clica em
+          <b> Enviar</b> no orçamento (evita duplicidade ao reabrir a página).
         </p>
         <Button
           variant="outline"
@@ -171,14 +178,14 @@ function InstalarExtensao() {
               .then((blob) => {
                 const a = document.createElement("a");
                 a.href = URL.createObjectURL(blob);
-                a.download = "via-air-orcamentos.zip";
+                a.download = `via-air-orcamentos-v${ORCAMENTOS_VERSION}.zip`;
                 a.click();
                 URL.revokeObjectURL(a.href);
               })
               .catch((err) => alert(err.message));
           }}
         >
-          <Download className="h-4 w-4" /> Baixar Via Air Orçamentos (.zip)
+          <Download className="h-4 w-4" /> Baixar Via Air Orçamentos v{ORCAMENTOS_VERSION} (.zip)
         </Button>
       </Card>
     </div>
