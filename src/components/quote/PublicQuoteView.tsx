@@ -187,7 +187,6 @@ function FlightLegCard({
               {leg.segments.length > 1 ? <span className="vq-journey-rail" /> : null}
 
               {leg.segments.map((s, i) => {
-                const dataBr = s.departure.slice(0, 10).split("-").reverse().join("/");
                 const segLogo = airlineLogo(s.airline ?? leg.airlineIata ?? leg.airline);
                 return (
                   <div key={i} className="vq-seg2-group">
