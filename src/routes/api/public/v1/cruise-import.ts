@@ -331,7 +331,15 @@ export const Route = createFileRoute("/api/public/v1/cruise-import")({
             message: `Captura #${String(seq).padStart(2, "0")} processada`,
             data: { url: payload.url, page_type: payload.page_type, stats } as never,
           });
-          return json({ ok: true, snapshot_id: snap.id, capture: seq, stats });
+          return json({
+            ok: true,
+            snapshot_id: snap.id,
+            capture: seq,
+            stats,
+            auto_created: autoCreated,
+            session_token: session.token,
+            cruise: session.cruise,
+          });
         } catch (e) {
           const msg = e instanceof Error ? e.message : String(e);
           await supabaseAdmin
@@ -345,7 +353,15 @@ export const Route = createFileRoute("/api/public/v1/cruise-import")({
             level: "error",
             message: `Falha ao processar captura #${seq}: ${msg}`,
           });
-          return json({ ok: false, snapshot_id: snap.id, capture: seq, error: msg }, 200);
+          return json({
+            ok: false,
+            snapshot_id: snap.id,
+            capture: seq,
+            error: msg,
+            auto_created: autoCreated,
+            session_token: session.token,
+            cruise: session.cruise,
+          }, 200);
         }
       },
     },
