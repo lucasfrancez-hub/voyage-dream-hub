@@ -35,7 +35,12 @@ export const priceSchema = z.object({
   installments: z.record(z.string(), z.unknown()).default({}),
   passenger_prices: z.array(z.record(z.string(), z.unknown())).default([]),
   occupancy: occupancySchema.optional(),
+  /** de onde a ocupação foi lida na página (dom_modal, dom_button, price_rows…) */
+  occupancy_source: str.default(""),
+  /** 94/96. Divergências entre ocupação pedida e renderizada, etc. */
+  occupancy_warnings: z.array(z.string()).default([]),
 });
+
 
 export const cabinOfferSchema = z.object({
   cabin_type: cabinTypeEnum.default("outro"),
