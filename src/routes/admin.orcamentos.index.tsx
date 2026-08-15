@@ -341,6 +341,11 @@ function OrcamentosPage() {
                   <div className="mt-2 flex flex-wrap items-center gap-1.5">
                     <span className={`inline-flex items-center rounded-sm border px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest ${st.className}`}>{st.label}</span>
                     <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider ${og.className}`}>{og.label}</span>
+                    {ext && (
+                      <span className="inline-flex items-center rounded-sm border border-border bg-muted/30 px-2 py-0.5 text-[10px] font-semibold tabular-nums text-muted-foreground">
+                        {ext.label}
+                      </span>
+                    )}
                   </div>
                 </Link>
                 {showDeleted ? (
