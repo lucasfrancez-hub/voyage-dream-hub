@@ -459,7 +459,16 @@ export async function importInfotravelQuote(url: string, html?: string): Promise
   quote.destination = first.destination ?? null;
   quote.currency = booking?.bookingAmount?.currency ?? "BRL";
 
-  // total: valor real da opção 1 (a página mostra o valor por opção)
+  // total: valor real da opção 1 (a página mostra o valor por opção).
+  // Quando a reserva tem uma única opção, o bookingAmount da Infotravel é a
+  // fonte oficial (produtos + taxas) e vence a soma dos produtos.
+  const bookingTotal =
+    typeof booking?.bookingAmount?.amount === "number" && booking.bookingAmount.amount > 0
+      ? Math.round(booking.bookingAmount.amount * 100) / 100
+      : null;
+  if (packages.length === 1 && bookingTotal != null) {
+    first.total = bookingTotal;
+  }
   if (first.total == null) throw new QuoteParseError("TOTAL_NOT_FOUND", "nenhum valor encontrado na opção 1");
   quote.total = first.total;
   quote.values = { subtotal: first.total, taxes: null };
