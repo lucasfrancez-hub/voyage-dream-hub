@@ -318,12 +318,14 @@ export function parseHotelFromHtml(html: string): FrtHotel | null {
     checkout: texto.match(/check-?out[:\s]*([0-3]?\d\/[01]?\d\/\d{2,4})/i)?.[1] ?? null,
     regime:
       texto.match(
-        /\b(caf[ée]\s+da\s+manh[ãa]|meia\s+pens[ãa]o|pens[ãa]o\s+completa|all\s+inclusive|sem\s+refei[çc][ãa]o)\b/i,
+        /(caf[ée]\s+da\s+manh[ãa]|meia\s+pens[ãa]o|pens[ãa]o\s+completa|all\s+inclusive|sem\s+refei[çc][ãa]o)/i,
       )?.[1] ?? null,
     quarto:
-      texto.match(
-        /\b((?:apartamento|quarto|su[íi]te|standard|luxo|superior|duplo|triplo)[^,.;|]{0,40})/i,
-      )?.[1]?.trim() ?? null,
+      texto
+        .match(
+          /((?:apartamento|quarto|su[íi]te|standard|luxo|superior|duplo|triplo)[a-zà-úA-ZÀ-Ú ]{0,30})/i,
+        )?.[1]
+        ?.trim() ?? null,
     localizacao:
       firstMatch(html, [
         /class="[^"]*(?:endereco|localizacao|address|local)[^"]*"[^>]*>([\s\S]{2,160}?)</i,
