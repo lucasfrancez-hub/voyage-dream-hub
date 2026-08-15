@@ -69,6 +69,9 @@ export const snapshotDataSchema = z.object({
     .partial()
     .optional(),
   occupancy: occupancySchema.optional(),
+  occupancy_source: str.default(""),
+  occupancy_warnings: z.array(z.string()).default([]),
+
   ship: z
     .object({
       name: str.default(""),
