@@ -25,3 +25,22 @@ export const registrarEscolhaOrcamento = createServerFn({ method: "POST" })
     await registrarEventoOrcamento(quote.id, "quote_selected", { optionId: data.optionId ?? null });
     return { ok: true };
   });
+
+/**
+ * Somente aéreo: gera o carrinho da operadora (Comprar Viagem / Oner) da
+ * opção escolhida e devolve a URL pra o cliente comprar a viagem.
+ */
+export const carrinhoOperadoraOrcamento = createServerFn({ method: "POST" })
+  .inputValidator((input) =>
+    z
+      .object({ publicId: z.string().min(4).max(40), opcao: z.number().int().min(1).max(20).nullish() })
+      .parse(input),
+  )
+  .handler(async ({ data }): Promise<{ url: string | null; motivo?: string }> => {
+    const { criarCarrinhoDoOrcamento } = await import("./public-quote/cart.server");
+    try {
+      return await criarCarrinhoDoOrcamento({ publicId: data.publicId, opcao: data.opcao ?? null });
+    } catch (e) {
+      return { url: null, motivo: e instanceof Error ? e.message : "Falha ao gerar o carrinho." };
+    }
+  });
