@@ -60,6 +60,9 @@ export type FrtSearchInput = {
   /** Rótulo completo do autocomplete, ex.: "Maringá, Região Sul, Brasil (MGF)". */
   origemLabel?: string;
   destinoLabel?: string;
+  /** data-item-value exato escolhido pelo usuário na lista da FRT. */
+  origemValue?: string;
+  destinoValue?: string;
 };
 
 export type FrtSearchResponse = {
