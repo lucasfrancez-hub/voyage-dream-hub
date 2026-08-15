@@ -1882,7 +1882,8 @@ export async function runAgent(input: {
             event: "search_promised_without_tool",
             generated_response: text,
           }));
-          await logProtocolEvent("search_promised_without_tool", {
+          const { logProtocolEvent: logEv } = await import("./protocol-runtime.server");
+          await logEv("search_promised_without_tool", {
             conversation_id: conv.id,
             protocolo_id: protocolo.id,
             agent_slug: agent.slug,
