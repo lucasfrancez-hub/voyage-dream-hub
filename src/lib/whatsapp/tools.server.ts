@@ -672,6 +672,22 @@ export function buildCamilaTools(conversation: WaConversation) {
         observacoes,
         prioridade,
       }) => {
+        // 🚫 BLOQUEIO DE ESCALAÇÃO SEM NECESSIDADE: nunca transferir alguém que
+        // só cumprimentou ("boa noite, tudo bem?"). Sem NENHUM dado do que o
+        // cliente precisa, o Consultor tem que se apresentar e perguntar antes.
+        const temNecessidade = [destino, data_ida, data_volta, voo_info, orcamento, hotel_preferencia, observacoes]
+          .some((v) => typeof v === "string" && v.trim().length > 2) ||
+          (quantidade_adultos != null && quantidade_adultos > 0) ||
+          (quantidade_criancas != null && quantidade_criancas > 0);
+        if (!temNecessidade) {
+          return {
+            ok: false,
+            bloqueado: true,
+            instrucao:
+              "NÃO houve transferência nenhuma. É PROIBIDO dizer que sinalizou/passou pro time comercial, é proibido agradecer a preferência e é proibido se despedir. O cliente ainda não disse o que precisa. Responda como atendimento normal: se ainda não se apresentou neste protocolo, cumprimente pelo nome, diga quem você é (nome + consultor(a) da VIA AIR) e pergunte como pode ajudar hoje. Se já se apresentou, faça UMA pergunta curta e natural pra entender o que ele precisa. Só use esta tool de novo depois de saber a necessidade real.",
+          };
+        }
+
         // Monta a "necessidade do cliente" formatada pro atendente
         const linhas: string[] = [];
         if (destino) linhas.push(`✈️ Destino: ${destino}`);
