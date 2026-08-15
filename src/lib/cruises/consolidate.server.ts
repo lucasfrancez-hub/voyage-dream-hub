@@ -9,6 +9,13 @@
  *  - mídia deduplicada por URL; adicionais por cruzeiro + código.
  */
 import type { SnapshotData } from "./snapshot-schema";
+import {
+  buildPricingFingerprint,
+  calculatedAveragePerPerson,
+  normalizeOccupancy,
+  occupancyKey,
+} from "./pricing-key";
+
 
 type Admin = Awaited<typeof import("@/integrations/supabase/client.server")>["supabaseAdmin"];
 
@@ -28,16 +35,13 @@ function isoDate(v?: string | null): string | null {
   return null;
 }
 
-export function occupancyKey(o: {
-  adults?: number;
-  young?: number;
-  children?: number;
-  infants?: number;
-  children_ages?: number[];
-}): string {
-  const ages = (o.children_ages ?? []).slice().sort((a, b) => a - b).join(".");
-  return `a${o.adults ?? 0}-y${o.young ?? 0}-c${o.children ?? 0}-i${o.infants ?? 0}${ages ? `-${ages}` : ""}`;
-}
+export {
+  occupancyKey,
+  normalizeOccupancy,
+  buildPricingFingerprint,
+  calculatedAveragePerPerson,
+} from "./pricing-key";
+
 
 async function ensureShip(
   admin: Admin,
@@ -259,12 +263,29 @@ export async function consolidateSnapshot(opts: {
 
     const price = offer.price;
     if (!price) continue;
-    const occ = price.occupancy ?? data.occupancy ?? { adults: 0, young: 0, children: 0, infants: 0, children_ages: [] };
-    const key = occupancyKey(occ);
 
+    // 86/97. A ocupação faz parte da identidade comercial do preço.
+    const occ = normalizeOccupancy(price.occupancy ?? data.occupancy ?? null);
+    const key = occupancyKey(occ);
+    const fingerprint = buildPricingFingerprint({
+      cruiseId,
+      departureDate: (cruise.departure_date as string | null) ?? isoDate(data.cruise?.departure_date),
+      cabinType: offer.cabin_type,
+      cabinCategoryCodes: offer.category_codes ?? [],
+      fareName: offer.fare_name || offer.name,
+      occupancy: occ,
+    });
+    const warnings = [
+      ...(price.occupancy_warnings ?? []),
+      ...(data.occupancy_warnings ?? []),
+    ].filter((w, i, arr) => w && arr.indexOf(w) === i);
+    if (!occ.total) warnings.push("Ocupação não identificada na captura");
+    if (warnings.length) bump(stats, "precos_com_alerta");
+
+    // Busca a última leitura EXATAMENTE da mesma ocupação (nunca de outra).
     const { data: last } = await admin
       .from("cruise_prices")
-      .select("id, total, taxes, base_amount")
+      .select("id, total, taxes, base_amount, passenger_prices")
       .eq("cruise_id", cruiseId)
       .eq("offer_id", saved.id)
       .eq("occupancy_key", key)
@@ -275,7 +296,8 @@ export async function consolidateSnapshot(opts: {
       last &&
       Number(last.total ?? 0) === Number(price.total ?? 0) &&
       Number(last.taxes ?? 0) === Number(price.taxes ?? 0) &&
-      Number(last.base_amount ?? 0) === Number(price.base_amount ?? 0);
+      Number(last.base_amount ?? 0) === Number(price.base_amount ?? 0) &&
+      JSON.stringify(last.passenger_prices ?? []) === JSON.stringify(price.passenger_prices ?? []);
 
     if (same) {
       bump(stats, "precos_iguais");
@@ -283,10 +305,13 @@ export async function consolidateSnapshot(opts: {
     }
 
     if (last) {
+      // 98. Histórico preservado: a leitura anterior deixa de ser vigente,
+      // mas continua no banco com o seu captured_at.
       await admin.from("cruise_prices").update({ is_current: false }).eq("id", last.id);
       bump(stats, "precos_atualizados");
     } else {
       bump(stats, "precos_novos");
+      bump(stats, `precos_ocupacao_${occ.total || 0}p`);
     }
 
     await admin.from("cruise_prices").insert({
@@ -294,21 +319,28 @@ export async function consolidateSnapshot(opts: {
       offer_id: saved.id,
       cabin_category: (offer.category_codes ?? []).join(", "),
       fare: offer.fare_name || offer.name,
-      adults: occ.adults ?? 0,
-      young: occ.young ?? 0,
-      children: occ.children ?? 0,
-      infants: occ.infants ?? 0,
-      children_ages: occ.children_ages ?? [],
+      adults: occ.adults,
+      young: occ.young,
+      children: occ.children,
+      infants: occ.infants,
+      children_ages: occ.children_ages,
       occupancy_key: key,
+      occupancy_total: occ.total,
+      pricing_fingerprint: fingerprint,
+      occupancy_source: price.occupancy_source || data.occupancy_source || "",
+      warnings: warnings as never,
       base_amount: price.base_amount,
       taxes: price.taxes,
       total: price.total,
+      // 90. média calculada — nunca substitui o preço individual da operadora
+      calculated_average_per_person: calculatedAveragePerPerson(price.total, occ),
       currency: price.currency || "BRL",
       installments: (price.installments ?? {}) as never,
       passenger_prices: (price.passenger_prices ?? []) as never,
       is_current: true,
       snapshot_id: snapshotId,
     });
+
   }
 
   // ---- adicionais ----

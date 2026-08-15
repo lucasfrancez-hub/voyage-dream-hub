@@ -10,7 +10,7 @@
  */
 (function (globalScope) {
   const PARSER_NAME = "FRTKroozeCruiseParser";
-  const PARSER_VERSION = "1.0.0";
+  const PARSER_VERSION = "1.1.0";
 
   /* ------------------------------------------------------------------ */
   /* 72. Mapa central de seletores — nada de CSS espalhado pelo projeto. */
@@ -450,7 +450,7 @@
           disembark_port: disembark,
           currency: "BRL",
         },
-        occupancy: { passengers },
+        occupancy: parseOccupancy(passengers),
         pricing: {
           fare_name: fareName || "",
           selected_cabin_label: selectedCabinLabel || "",
@@ -461,6 +461,191 @@
         },
       };
     }
+
+    /* 84-100. Ocupação real renderizada na página --------------------- */
+    /* A composição de passageiros faz parte da identidade do preço:
+       duas capturas visualmente iguais com ocupações diferentes são dois
+       registros comerciais distintos. Por isso lemos a ocupação do DOM e
+       nunca de uma variável mantida pelo plugin. */
+    function parseOccupancy(passengersHint) {
+      const occ = {
+        adults: 0,
+        young: 0,
+        children: 0,
+        infants: 0,
+        children_ages: [],
+        total: 0,
+        passengers: passengersHint || null,
+        source: "",
+        warnings: [],
+      };
+
+      const addProfile = (profile, qty) => {
+        const n = Math.max(0, Math.trunc(Number(qty) || 0));
+        if (!n) return;
+        if (profile === "child") occ.children += n;
+        else if (profile === "young") occ.young += n;
+        else if (profile === "infant") occ.infants += n;
+        else occ.adults += n;
+      };
+
+      // 1) Painel/modal de passageiros (fonte mais confiável): linhas do tipo
+      //    "Adultos  - 2 +", "Crianças 1", "Bebês 0".
+      const panels = [
+        ...queryAll(document_, [
+          "app-passengers",
+          "app-passenger-selection",
+          ".passengers-dropdown",
+          ".passenger-selector",
+          "ngb-modal-window .passengers",
+        ]),
+      ];
+      let read = false;
+      for (const panel of panels) {
+        const rows = [...panel.querySelectorAll("li, .row, .passenger-row, .item, div")];
+        const seen = new Set();
+        rows.forEach((row) => {
+          const label = normalizeText(row.textContent);
+          if (!label || label.length > 60) return;
+          const kind = /adulto/.test(label)
+            ? "adult"
+            : /jovem|jovens/.test(label)
+              ? "young"
+              : /crianc/.test(label)
+                ? "child"
+                : /bebe/.test(label)
+                  ? "infant"
+                  : null;
+          if (!kind || seen.has(kind)) return;
+          const input = row.querySelector("input");
+          const fromInput = input ? Number(input.value) : NaN;
+          const qty = Number.isFinite(fromInput)
+            ? fromInput
+            : Number((label.match(/(\d+)\s*$/) || label.match(/(\d+)/) || [])[1]);
+          if (!Number.isFinite(qty)) return;
+          seen.add(kind);
+          addProfile(kind, qty);
+          read = true;
+        });
+        if (read) {
+          occ.source = "dom_passenger_panel";
+          break;
+        }
+      }
+
+      // 2) Linhas de preço por passageiro do resumo.
+      if (!read) {
+        const rows = queryAll(document_, FRT_SELECTORS.priceRows);
+        rows.forEach((row) => {
+          const spans = [...row.querySelectorAll(":scope > span")];
+          const label = clean(spans[0] ? spans[0].textContent : "");
+          const n = normalizeText(label);
+          if (!/passageiro|adulto|crianc|bebe|jovem/.test(n)) return;
+          addProfile(normalizePassengerProfile(label), 1);
+          read = true;
+        });
+        if (read) occ.source = "dom_price_rows";
+      }
+
+      // 3) Botão "N passageiros" do resumo.
+      if (!read && passengersHint) {
+        occ.adults = passengersHint;
+        occ.source = "dom_passenger_button";
+        read = true;
+      }
+
+      // Idades de crianças, quando a página exibir.
+      queryAll(document_, [".passenger-age select", ".child-age select", "select[name*='idade']"]).forEach((sel) => {
+        const v = Number(sel.value);
+        if (Number.isFinite(v) && v >= 0 && v <= 30) occ.children_ages.push(v);
+      });
+      occ.children_ages.sort((a, b) => a - b);
+
+      occ.total = occ.adults + occ.young + occ.children + occ.infants;
+
+      if (!occ.total) {
+        occ.warnings.push("Ocupação não identificada na página");
+        warn("Ocupação não identificada na página");
+      } else if (passengersHint && passengersHint !== occ.total) {
+        occ.warnings.push(
+          `Ocupação divergente: resumo indica ${passengersHint} passageiro(s) e a composição lida soma ${occ.total}`,
+        );
+      }
+      if (occ.total) log("occupancy.total", occ.source, occ.total, occ.source === "dom_passenger_panel" ? 1 : 0.6);
+      return occ;
+    }
+
+    /* 95/96. Espera o recálculo assíncrono após mudar a ocupação.
+       Não exigimos que o total mude: confirmamos pela ocupação renderizada,
+       pelas linhas de passageiros e pela estabilização do resumo. */
+    async function waitForPriceRecalculation(options) {
+      const opts = options || {};
+      const expectedTotal = opts.expectedOccupancyTotal || null;
+      const timeout = opts.timeout || 12000;
+      const quiet = opts.quiet || 500;
+      const started = Date.now();
+
+      const scope =
+        query(document_, FRT_SELECTORS.priceSummary) ||
+        query(document_, FRT_SELECTORS.priceSummaryMobile) ||
+        document_.body;
+
+      // 1) espera a composição renderizada bater com a pedida (quando houver).
+      if (expectedTotal) {
+        while (Date.now() - started < timeout) {
+          const occ = parseOccupancy(null);
+          if (occ.total === expectedTotal) break;
+          await waitForDOMStable(scope, 200, 800);
+        }
+      }
+
+      // 2) espera o resumo de preço parar de mudar.
+      await waitForDOMStable(scope, quiet, Math.max(1500, timeout - (Date.now() - started)));
+
+      const occ = parseOccupancy(null);
+      const summary = parsePriceSummary();
+      const result = {
+        occupancy: occ,
+        total: summary.pricing.total,
+        taxes: summary.pricing.taxes,
+        passenger_prices: summary.pricing.passengers,
+        elapsed_ms: Date.now() - started,
+        warnings: [...occ.warnings],
+      };
+      if (expectedTotal && occ.total !== expectedTotal) {
+        result.warnings.push(
+          `Requested occupancy differs from rendered occupancy (pedido ${expectedTotal}, renderizado ${occ.total})`,
+        );
+      }
+      return result;
+    }
+
+    /* 97. Fingerprint comercial — muda com a ocupação. */
+    function pricingFingerprint(input) {
+      const occ = input.occupancy || {};
+      const canonical = JSON.stringify({
+        cruiseId: String(input.cruiseId || "").trim(),
+        departureDate: String(input.departureDate || "").slice(0, 10),
+        cabinType: String(input.cabinType || "").trim().toLowerCase(),
+        cabinCategoryCodes: [...(input.cabinCategoryCodes || [])].map(String).sort(),
+        fareName: String(input.fareName || "").trim().toLowerCase(),
+        occupancy: {
+          adults: occ.adults || 0,
+          young: occ.young || 0,
+          children: occ.children || 0,
+          infants: occ.infants || 0,
+          children_ages: [...(occ.children_ages || [])].sort((a, b) => a - b),
+        },
+      });
+      let h = 5381;
+      let h2 = 52711;
+      for (let i = 0; i < canonical.length; i += 1) {
+        h = ((h << 5) + h + canonical.charCodeAt(i)) >>> 0;
+        h2 = ((h2 << 5) + h2 + canonical.charCodeAt(canonical.length - 1 - i)) >>> 0;
+      }
+      return `${h.toString(16).padStart(8, "0")}${h2.toString(16).padStart(8, "0")}`;
+    }
+
 
     /* 20-26. Categorias de cabine visíveis --------------------------- */
     function parseVisibleCabinCategories(typeName) {
@@ -826,6 +1011,10 @@
       detectPageType,
       detectContent,
       parsePriceSummary,
+      parseOccupancy,
+      waitForPriceRecalculation,
+      pricingFingerprint,
+
       parseCabinTypes,
       parseVisibleCabinCategories,
       parseInsurances,

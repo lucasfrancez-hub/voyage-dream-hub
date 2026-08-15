@@ -198,33 +198,52 @@
     return data;
   }
 
-  /* -------- 64/77. Montagem do snapshot ------------------------------- */
+  /* -------- 64/77 + 84-100. Montagem do snapshot ---------------------- */
+  /* options.mode === "price" → recaptura só o preço da ocupação atual,
+     reaproveitando o conteúdo institucional já capturado (briefing 93). */
   async function buildSnapshot(options) {
-    const deep = !options || options.deep !== false;
+    const opts = options || {};
+    const priceOnly = opts.mode === "price";
+    const deep = !priceOnly && opts.deep !== false;
     const parser = P.createParser(document, { view: window, url: location.href });
     const pageType = parser.detectPageType();
+
+    // 95/96. Nunca ler o preço imediatamente: espera o recálculo assíncrono.
+    const recalc = await parser.waitForPriceRecalculation({
+      expectedOccupancyTotal: opts.expectedOccupancyTotal || null,
+      timeout: priceOnly ? 12000 : 6000,
+    });
+
     const summary = parser.parsePriceSummary();
 
-    const cabinTypes = deep ? await captureCabinTypes(parser) : [];
+    const cabinTypes = deep
+      ? await captureCabinTypes(parser)
+      : [{ type: "", source_name: "", image_url: "", categories: parser.parseVisibleCabinCategories("") }];
+
     const additionals = deep ? await captureAdditionals(parser) : parser.parseAdditionals(null);
     const insurances = parser.parseInsurances();
     const shipDetails = deep
       ? await captureShipDetails(parser)
       : { itinerary: [], attractions: [], ship_cabins: [], decks: [], media: [], specs: {}, technical_drawing_url: "" };
 
-    // Ocupação: passageiros do resumo + perfis quando visíveis.
-    const passengers = summary.occupancy.passengers || summary.pricing.passengers.length || 0;
-    const profiles = { adults: 0, young: 0, children: 0, infants: 0, children_ages: [] };
-    summary.pricing.passengers.forEach((p) => {
-      const profile = H.normalizePassengerProfile(p.label);
-      if (profile === "child") profiles.children += 1;
-      else if (profile === "young") profiles.young += 1;
-      else if (profile === "infant") profiles.infants += 1;
-      else profiles.adults += 1;
-    });
-    if (!profiles.adults && !profiles.children && !profiles.young && !profiles.infants) {
-      profiles.adults = passengers || 1;
+    // 94. Ocupação lida da própria página, nunca de estado do plugin.
+    const occ = summary.occupancy || {};
+    const profiles = {
+      adults: occ.adults || 0,
+      young: occ.young || 0,
+      children: occ.children || 0,
+      infants: occ.infants || 0,
+      children_ages: occ.children_ages || [],
+    };
+    if (!profiles.adults && !profiles.young && !profiles.children && !profiles.infants) {
+      profiles.adults = occ.passengers || summary.pricing.passengers.length || 1;
     }
+    const occupancySource = occ.source || "";
+    const occupancyWarnings = H.unique(
+      [...(occ.warnings || []), ...(recalc.warnings || [])],
+      (w) => w,
+    ).filter(Boolean);
+
 
     // Achatamento para o contrato do backend (cabin_offers).
     const cabinOffers = [];
@@ -249,15 +268,29 @@
                   total: summary.pricing.total,
                   currency: "BRL",
                   installments: summary.pricing.installment,
+                  // 89. Valor individual exibido pela FRT é a fonte primária.
                   passenger_prices: summary.pricing.passengers,
                   occupancy: profiles,
+                  occupancy_source: occupancySource,
+                  occupancy_warnings: occupancyWarnings,
                 }
               : cat.upgrade
-                ? { base_amount: null, taxes: null, total: null, currency: "BRL", installments: {}, passenger_prices: [], occupancy: profiles }
+                ? {
+                    base_amount: null,
+                    taxes: null,
+                    total: null,
+                    currency: "BRL",
+                    installments: {},
+                    passenger_prices: [],
+                    occupancy: profiles,
+                    occupancy_source: occupancySource,
+                    occupancy_warnings: occupancyWarnings,
+                  }
                 : undefined,
         });
       });
     });
+
 
     const shipName = H.clean(
       (summary.cruise.name.match(/\b(MSC|Costa|Norwegian|Royal Caribbean|Disney)\s+[\wÀ-ú]+/) || [])[0] || "",
@@ -280,6 +313,9 @@
         currency: "BRL",
       },
       occupancy: profiles,
+      occupancy_source: occupancySource,
+      occupancy_warnings: occupancyWarnings,
+
       ship: {
         name: shipName,
         line: shipName.split(" ")[0] || "",
@@ -328,11 +364,22 @@
         page_type: pageType,
         parser_name: P.PARSER_NAME,
         parser_version: P.PARSER_VERSION,
+        capture_mode: priceOnly ? "price" : "full",
+        occupancy: { ...profiles, source: occupancySource, warnings: occupancyWarnings },
+        pricing_fingerprint: parser.pricingFingerprint({
+          cruiseId: summary.cruise.name,
+          departureDate: summary.cruise.departure_date,
+          cabinType: (cabinOffers[0] || {}).cabin_type || "",
+          cabinCategoryCodes: (cabinOffers.find((o) => o.price && o.price.total) || {}).category_codes || [],
+          fareName: summary.pricing.fare_name,
+          occupancy: profiles,
+        }),
+        recalculation: { elapsed_ms: recalc.elapsed_ms, total: recalc.total },
         warnings: parser.warnings,
         field_logs: parser.logs,
         extracted: { cabin_types: cabinTypes, additionals, pricing: summary.pricing },
         network: xhr.map((x) => ({ url: x.url, status: x.status, body: x.body })),
-        html: document.documentElement.outerHTML.slice(0, 900000),
+        html: priceOnly ? "" : document.documentElement.outerHTML.slice(0, 900000),
       },
     };
   }
@@ -341,19 +388,26 @@
     if (!msg) return;
     if (msg.type === "viaair-cruise-detect") {
       const parser = P.createParser(document, { view: window, url: location.href });
+      const occ = parser.parseOccupancy(null);
       sendResponse({
         page_type: parser.detectPageType(),
         detected: parser.detectContent(),
+        occupancy: occ,
         url: location.href,
         title: document.title,
       });
       return false;
     }
     if (msg.type === "viaair-cruise-capture") {
-      buildSnapshot({ deep: msg.deep !== false })
+      buildSnapshot({
+        deep: msg.deep !== false,
+        mode: msg.mode || "full",
+        expectedOccupancyTotal: msg.expectedOccupancyTotal || null,
+      })
         .then((payload) => sendResponse({ ok: true, payload }))
         .catch((e) => sendResponse({ ok: false, error: String(e && e.message ? e.message : e) }));
       return true;
     }
+
   });
 })();

@@ -1,6 +1,7 @@
 /* VIA AIR — Exportar Cruzeiro: UI do plugin. */
 const PAINEL = "https://pedidos.viaair.tur.br/admin/cruzeiros";
 let sessionToken = null;
+let ocupacaoAtual = null;
 
 const $ = (id) => document.getElementById(id);
 
@@ -8,6 +9,17 @@ function fmtDate(v) {
   if (!v) return "";
   const [y, m, d] = String(v).slice(0, 10).split("-");
   return `${d}/${m}/${y}`;
+}
+
+function ocupacaoLabel(o) {
+  if (!o) return "";
+  const p = (n, s, pl) => `${n} ${n === 1 ? s : pl}`;
+  const parts = [];
+  if (o.adults) parts.push(p(o.adults, "adulto", "adultos"));
+  if (o.young) parts.push(p(o.young, "jovem", "jovens"));
+  if (o.children) parts.push(p(o.children, "criança", "crianças"));
+  if (o.infants) parts.push(p(o.infants, "bebê", "bebês"));
+  return parts.join(" + ");
 }
 
 async function activeTab() {
@@ -71,23 +83,43 @@ async function init() {
   $("detectado").innerHTML = `<div class="label">Conteúdo detectado</div>${
     det ? (det.detected || []).join(" + ") : "Recarregue a página da operadora"
   }`;
+
+  ocupacaoAtual = det && det.occupancy ? det.occupancy : null;
+  const label = ocupacaoLabel(ocupacaoAtual);
+  $("ocupacao").style.display = "block";
+  $("ocupacao").className = label ? "box ok" : "box warn";
+  $("ocupacao").innerHTML = label
+    ? `<div class="label">Ocupação na tela</div><b>${label}</b>
+       <div class="muted">Alterou passageiros? Capture de novo — não é duplicidade, é outro preço.</div>`
+    : "Não consegui ler a quantidade de passageiros nesta tela.";
+
   $("capturar").disabled = !det;
+  $("capturar-preco").style.display = "block";
+  $("capturar-preco").disabled = !det;
 }
 
-$("painel").addEventListener("click", () => chrome.tabs.create({ url: PAINEL }));
-
-$("capturar").addEventListener("click", async () => {
+async function capturar(mode) {
   const tab = await activeTab();
   if (!tab) return;
   $("capturar").disabled = true;
-  $("status").textContent = "Capturando…";
+  $("capturar-preco").disabled = true;
+  $("status").textContent = mode === "price" ? "Lendo o preço desta ocupação…" : "Capturando…";
 
-  const res = await askTab(tab.id, { type: "viaair-cruise-capture" });
+  const res = await askTab(tab.id, {
+    type: "viaair-cruise-capture",
+    mode,
+    deep: mode !== "price",
+    expectedOccupancyTotal: ocupacaoAtual ? ocupacaoAtual.total : null,
+  });
   if (!res || !res.ok) {
     $("status").textContent = "Não consegui ler esta página. Recarregue e tente de novo.";
     $("capturar").disabled = false;
+    $("capturar-preco").disabled = false;
     return;
   }
+
+  const occ = res.payload?.data?.occupancy;
+  const avisos = res.payload?.data?.occupancy_warnings || [];
 
   $("status").textContent = "Enviando…";
   const out = await send({ type: "viaair-cruise-send", payload: res.payload, sessionToken });
@@ -103,10 +135,20 @@ $("capturar").addEventListener("click", async () => {
   } else if (out.ok === false) {
     $("status").textContent = `Captura #${out.capture} recebida, mas falhou ao processar. Reprocesse no painel.`;
   } else {
-    $("status").textContent = `✓ Captura enviada — Captura #${String(out.capture).padStart(2, "0")}`;
+    const label = ocupacaoLabel(occ);
+    $("status").textContent =
+      `✓ Captura #${String(out.capture).padStart(2, "0")} enviada` + (label ? ` — ${label}` : "");
+  }
+  if (avisos.length) {
+    $("status").textContent += ` ⚠️ ${avisos[0]}`;
   }
   $("capturar").disabled = false;
+  $("capturar-preco").disabled = false;
   $("capturar").textContent = "Capturar novamente";
-});
+}
+
+$("painel").addEventListener("click", () => chrome.tabs.create({ url: PAINEL }));
+$("capturar").addEventListener("click", () => capturar("full"));
+$("capturar-preco").addEventListener("click", () => capturar("price"));
 
 init();
