@@ -287,42 +287,37 @@ function FlightLegCard({
                           </div>
                           <div>
                             <small>Bagagem</small>
-                            <strong>
-                              {leg.checkedBaggage
-                                ? (leg.checkedBaggageLabel ?? "Despachada incluída")
-                                : leg.carryOn
-                                  ? "Mão 10kg"
-                                  : "Somente item pessoal"}
-                            </strong>
+                            <strong>{bagagemLabel(leg)}</strong>
                           </div>
                         </div>
                       </div>
                     </section>
 
-                    {s.connectionAfter ? (
+                    {espera ? (
                       <div className="vq-seg2-connection">
                         <span className="vq-seg2-connection-dot" />
                         <div className="vq-seg2-connection-pill">
                           <IconClock />
                           <span>
-                            Conexão em {s.toName ?? s.toIata} — {s.connectionAfter} de espera
+                            Conexão em {s.toName ?? s.toIata} — {espera} de espera
                           </span>
                         </div>
                       </div>
                     ) : null}
 
-                    {s.airportChange ? (
+                    {trocaAeroporto ? (
                       <div className="vq-seg2-connection">
                         <span className="vq-seg2-connection-dot" />
                         <div className="vq-seg2-connection-pill vq-seg2-connection-warn">
                           <IconAlert />
                           <span>
-                            <strong>Atenção: troca de aeroporto.</strong> {s.airportChange}. Considere
-                            um transfer entre os aeroportos.
+                            <strong>Atenção: conexão com troca de aeroporto.</strong>{" "}
+                            {trocaAeroporto}. Considere um transfer entre os aeroportos.
                           </span>
                         </div>
                       </div>
                     ) : null}
+
                   </div>
                 );
               })}
