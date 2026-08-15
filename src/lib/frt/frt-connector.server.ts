@@ -117,7 +117,42 @@ async function frtFetch(
   }
 }
 
+/* ------------- acesso autenticado à tela de venda ------------------ */
+
+export type AcessoVenda = {
+  status: number;
+  urlFinal: string;
+  temFormulario: boolean;
+  temLogin: boolean;
+  voltouParaLogin: boolean;
+  body: string;
+};
+
+/**
+ * GET autenticado explícito em venda.xhtml, seguindo redirects e usando
+ * exatamente o mesmo cookie jar. Só depois disso vale procurar ViewState
+ * e frmMotorPacote. Loga as três provas pedidas.
+ */
+async function abrirVenda(s: Session, referer = BASE): Promise<AcessoVenda> {
+  trace("GET venda.xhtml");
+  const { res, body, url } = await frtFetch(s, VENDA_URL, { headers: { Referer: referer } });
+  const temFormulario = /frmMotorPacote/i.test(body);
+  const temLogin = /login-usuario-input/i.test(body);
+  const voltouParaLogin = /auth\.xhtml|login\.xhtml/i.test(url) || temLogin;
+  trace(`  status: ${res.status}`);
+  trace(`  URL final: ${url}`);
+  trace(`  HTML contém "frmMotorPacote": ${temFormulario}`);
+  trace(`  HTML contém "login-usuario-input": ${temLogin}`);
+  if (voltouParaLogin) {
+    trace("  ⚠️ sessão pós-login NÃO foi reaproveitada (voltou para tela de login)");
+  } else if (!temFormulario) {
+    trace("  ⚠️ venda.xhtml abriu autenticado, mas sem frmMotorPacote (etapa extra de inicialização?)");
+  }
+  return { status: res.status, urlFinal: url, temFormulario, temLogin, voltouParaLogin, body };
+}
+
 /* ----------------------------- login ------------------------------ */
+
 
 function credentials() {
   const user = process.env["FRT_USERNAME"];
