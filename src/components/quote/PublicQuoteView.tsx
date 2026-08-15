@@ -98,6 +98,11 @@ function FlightLegCard({
           <div className="vq-flight-tags">
             {direction ? <span className="vq-dir-badge" data-dir={dirKind}>{direction}</span> : null}
             <span className="vq-tag">{leg.stopsLabel}</span>
+            {leg.hasAirportChange ? (
+              <span className="vq-tag vq-tag-warn" title="A conexão exige troca de aeroporto na mesma cidade">
+                Troca de aeroporto
+              </span>
+            ) : null}
           </div>
         </div>
 
@@ -238,6 +243,15 @@ function FlightLegCard({
                         <div className="vq-seg2-connection-pill">
                           <IconClock />
                           Conexão: {s.connectionAfter} de espera em {s.toName ?? s.toIata}
+                        </div>
+                      </div>
+                    ) : null}
+
+                    {s.airportChange ? (
+                      <div className="vq-seg2-connection">
+                        <span className="vq-seg2-connection-dot" />
+                        <div className="vq-seg2-connection-pill vq-seg2-connection-warn">
+                          {s.airportChange}
                         </div>
                       </div>
                     ) : null}
