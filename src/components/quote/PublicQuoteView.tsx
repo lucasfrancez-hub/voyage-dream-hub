@@ -54,6 +54,20 @@ function hhmm(v?: string | null): string {
   return m ? `${m[1]}:${m[2]}` : "—";
 }
 
+/** Data curta "sex., 1 de jan." a partir de qualquer formato. */
+function dataCurta(v?: string | null): string {
+  const iso = String(v ?? "").slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return "";
+  const [y, m, d] = iso.split("-").map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  return new Intl.DateTimeFormat("pt-BR", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    timeZone: "UTC",
+  }).format(dt);
+}
+
 function periodoLabel(q: PublicQuote): string | null {
   const fmt = (s?: string | null) => {
     if (!s) return null;
@@ -173,7 +187,6 @@ function FlightLegCard({
               {leg.segments.length > 1 ? <span className="vq-journey-rail" /> : null}
 
               {leg.segments.map((s, i) => {
-                const dataBr = s.departure.slice(0, 10).split("-").reverse().join("/");
                 const segLogo = airlineLogo(s.airline ?? leg.airlineIata ?? leg.airline);
                 return (
                   <div key={i} className="vq-seg2-group">
@@ -196,21 +209,23 @@ function FlightLegCard({
 
                         <div className="vq-seg2-route">
                           <div className="vq-seg2-point">
-                            <small>Partida</small>
+                            <small>{dataCurta(s.departure)}</small>
                             <time>{hhmm(s.departure)}</time>
                             <b>{s.fromIata}</b>
                             <span>{s.fromName}</span>
                           </div>
 
                           <div className="vq-seg2-path">
-                            <span className="vq-seg2-dur">{s.duration ?? leg.duration ?? "—"}</span>
+                            <span className="vq-seg2-dur">
+                              Duração: <strong>{s.duration ?? leg.duration ?? "—"}</strong>
+                            </span>
                             <div className="vq-seg2-line">
                               <span className="vq-seg2-dot" />
                             </div>
                           </div>
 
                           <div className="vq-seg2-point right">
-                            <small>Chegada</small>
+                            <small>{dataCurta(s.arrival)}</small>
                             <time>{hhmm(s.arrival)}</time>
                             <b>{s.toIata}</b>
                             <span>{s.toName}</span>
@@ -225,10 +240,6 @@ function FlightLegCard({
                           <div>
                             <small>Aeronave</small>
                             <strong>{s.aircraft ?? "Conforme confirmação"}</strong>
-                          </div>
-                          <div>
-                            <small>Data</small>
-                            <strong>{dataBr}</strong>
                           </div>
                           <div>
                             <small>Bagagem</small>
@@ -250,8 +261,7 @@ function FlightLegCard({
                         <div className="vq-seg2-connection-pill">
                           <IconClock />
                           <span>
-                            Conexão em {s.toName ?? s.toIata}: chega {hhmm(s.arrival)} e sai{" "}
-                            {hhmm(leg.segments[i + 1]?.departure)} — {s.connectionAfter} de espera
+                            Conexão em {s.toName ?? s.toIata} — {s.connectionAfter} de espera
                           </span>
                         </div>
                       </div>
