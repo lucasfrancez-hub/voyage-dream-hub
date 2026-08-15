@@ -83,6 +83,7 @@ export type FrtErrorCode =
   | "FRT_2FA_REQUIRED"
   | "FRT_VENDA_NOT_LOADED"
   | "FRT_STRUCTURE_CHANGED"
+  | "FRT_SEARCH_VALIDATION_FAILED"
   | "FRT_SESSION_EXPIRED"
   | "FRT_TIMEOUT"
   | "FRT_NETWORK_ERROR"
@@ -521,4 +522,98 @@ export function maskSensitive(text: string): string {
     .replace(/(login-senha-input=)[^&\s]+/gi, "$1***")
     .replace(/(password["'=:\s]+)[^&"'\s]+/gi, "$1***")
     .replace(/(Cookie:\s*)[^\n]+/gi, "$1***");
+}
+
+/* ------------- inventário de campos do frmMotorPacote --------------- */
+
+export type FrtCampoInventario = {
+  tag: "input" | "select" | "textarea";
+  id: string | null;
+  name: string | null;
+  type: string | null;
+  /** Valor apenas estrutural/mascarado (nunca o conteúdo real completo). */
+  valor: string;
+  widgetVar: string | null;
+};
+
+export type FrtInventarioMotor = {
+  encontrouForm: boolean;
+  campos: FrtCampoInventario[];
+  /** Trechos de script relacionados a idAeroOrigem / idAeroDestino. */
+  scriptsAutocomplete: string[];
+  widgets: string[];
+};
+
+const PALAVRAS_CHAVE =
+  /(aero|origem|destino|adult|crianca|criança|quarto|partida|retorno)/i;
+
+function mascararValor(v: string | null): string {
+  if (v == null) return "(sem value)";
+  const t = v.trim();
+  if (!t) return "(vazio)";
+  if (/^\d+$/.test(t)) return `num(${t.length}) ${t.length <= 3 ? t : "***"}`;
+  return `str(${t.length}) "${t.slice(0, 3)}***"`;
+}
+
+/** Extrai o bloco HTML do formulário do motor de pacotes (se existir). */
+function extrairFormMotor(html: string): string | null {
+  const i = html.search(/<form[^>]*\b(id|name)="frmMotorPacote"/i);
+  if (i < 0) return null;
+  const fim = html.indexOf("</form>", i);
+  return html.slice(i, fim > 0 ? fim + 7 : Math.min(html.length, i + 200_000));
+}
+
+/**
+ * Mapa sanitizado de todos os input/select/textarea do frmMotorPacote cujos
+ * id/name contenham as palavras-chave de origem, destino, ocupação e datas,
+ * mais os scripts de p:autoComplete de idAeroOrigem / idAeroDestino.
+ */
+export function inventarioMotorPacote(html: string): FrtInventarioMotor {
+  const form = extrairFormMotor(html);
+  const escopo = form ?? html;
+  const campos: FrtCampoInventario[] = [];
+
+  for (const m of escopo.matchAll(/<(input|select|textarea)\b[^>]*>/gi)) {
+    const tag = m[1]!.toLowerCase() as FrtCampoInventario["tag"];
+    const t = m[0];
+    const id = t.match(/\bid="([^"]*)"/i)?.[1] ?? null;
+    const name = t.match(/\bname="([^"]*)"/i)?.[1] ?? null;
+    const chave = `${id ?? ""} ${name ?? ""}`;
+    if (!PALAVRAS_CHAVE.test(chave)) continue;
+    campos.push({
+      tag,
+      id,
+      name,
+      type: t.match(/\btype="([^"]*)"/i)?.[1] ?? null,
+      valor: mascararValor(t.match(/\bvalue="([^"]*)"/i)?.[1] ?? null),
+      widgetVar: null,
+    });
+    if (campos.length >= 60) break;
+  }
+
+  const scriptsAutocomplete: string[] = [];
+  const widgets = new Set<string>();
+  for (const s of html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi)) {
+    const corpo = s[1] ?? "";
+    if (!/idAeroOrigem|idAeroDestino/i.test(corpo)) continue;
+    for (const w of corpo.matchAll(/widgetVar\s*:\s*["']([^"']+)["']/g)) widgets.add(w[1]!);
+    const limpo = maskSensitive(corpo.replace(/\s+/g, " ").trim());
+    scriptsAutocomplete.push(limpo.length > 4000 ? `${limpo.slice(0, 4000)}…[truncado]` : limpo);
+    if (scriptsAutocomplete.length >= 6) break;
+  }
+
+  // Casa widgetVar por proximidade de id (PF('widget') costuma citar o id).
+  for (const c of campos) {
+    if (!c.id) continue;
+    const base = c.id.replace(/_(input|hinput)$/, "");
+    const alvo = [...widgets].find((w) => w.toLowerCase().includes(base.split(":").pop()!.toLowerCase()));
+    c.widgetVar = alvo ?? null;
+  }
+
+  return {
+    encontrouForm: Boolean(form),
+    campos,
+    scriptsAutocomplete,
+    widgets: [...widgets],
+  };
 }
