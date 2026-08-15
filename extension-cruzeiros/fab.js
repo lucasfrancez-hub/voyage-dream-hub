@@ -76,7 +76,42 @@
     if (!shadow) return;
     const host = shadow.lastElementChild;
     if (!state.active) {
-      host.innerHTML = "";
+      // Sem importação ativa o balão continua na tela (antes ele sumia e
+      // parecia que o plugin não tinha carregado no site da operadora).
+      if (!state.open) {
+        host.innerHTML = `<div class="wrap"><div class="bubble" id="abrir">VIA<br/>AIR</div></div>`;
+        host.querySelector("#abrir").onclick = () => {
+          state.open = true;
+          render();
+        };
+        return;
+      }
+      host.innerHTML = `
+        <div class="wrap"><div class="card">
+          <div class="head"><b>VIA AIR — Exportar Cruzeiro</b><span class="x" id="fechar">✕</span></div>
+          <div class="body">
+            <div class="pill warn">Nenhuma importação ativa</div>
+            <div class="muted" style="margin-top:8px">
+              No painel VIA AIR, abra <b>Produtos → Cruzeiros</b>, crie o cruzeiro e clique em
+              <b>Ativar importação</b>. Depois volte aqui e clique em verificar.
+            </div>
+            <button id="verificar" ${state.busy ? "disabled" : ""}>${
+              state.busy ? "Verificando…" : "Verificar importação ativa"
+            }</button>
+            <div class="status" style="color:${tone === "erro" ? "#b91c1c" : "#64748b"}">${status || ""}</div>
+          </div>
+        </div></div>`;
+      host.querySelector("#fechar").onclick = () => {
+        state.open = false;
+        render();
+      };
+      host.querySelector("#verificar").onclick = async () => {
+        state.busy = true;
+        render("Consultando o painel…");
+        await refresh();
+        state.busy = false;
+        render(state.active ? "" : "Ainda não há importação ativa no painel.", state.active ? "" : "erro");
+      };
       return;
     }
     if (!state.open) {
