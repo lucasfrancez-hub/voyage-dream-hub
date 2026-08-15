@@ -1017,26 +1017,28 @@ function QuoteBody({ quote }: { quote: PublicQuote }) {
 
         <section className="vq-card vq-agent">
           {(() => {
+            const agentName = agentProfile(quote.agent?.name)?.name ?? quote.agent?.name ?? "Equipe VIA AIR";
             const foto = quote.agent?.photoUrl || agentPhoto(quote.agent?.name);
             return (
-              <div className="vq-agent-photo">
-                {foto ? (
-                  <img
-                    src={foto}
-                    alt={quote.agent?.name ?? "Consultor VIA AIR"}
-                    style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }}
-                  />
-                ) : (
-                  (quote.agent?.name ?? "VIA AIR").charAt(0)
-                )}
-              </div>
+              <>
+                <div className="vq-agent-photo">
+                  {foto ? (
+                    <img
+                      src={foto}
+                      alt={agentName}
+                      style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }}
+                    />
+                  ) : (
+                    agentName.charAt(0)
+                  )}
+                </div>
+                <div>
+                  <h3>{agentName}</h3>
+                  <p>Seu consultor de viagens está à disposição para ajustar esta proposta.</p>
+                </div>
+              </>
             );
           })()}
-
-          <div>
-            <h3>{quote.agent?.name ?? "Equipe VIA AIR"}</h3>
-            <p>Seu consultor de viagens está à disposição para ajustar esta proposta.</p>
-          </div>
           <a href={whatsappHref} target="_blank" rel="noreferrer">
             <button className="vq-contact-btn">
               <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
