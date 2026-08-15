@@ -3,6 +3,15 @@
  * O V14 aprovado usa a foto real do consultor — nunca o círculo com a inicial.
  */
 
+import brunoAsset from "@/assets/consultores/bruno.webp.asset.json";
+import paulaAsset from "@/assets/consultores/paula.webp.asset.json";
+import camilaAsset from "@/assets/consultores/camila.webp.asset.json";
+import robertoAsset from "@/assets/consultores/roberto.png.asset.json";
+import nathAsset from "@/assets/consultores/nath.webp.asset.json";
+import giovaniAsset from "@/assets/consultores/giovani.webp.asset.json";
+import fabricioAsset from "@/assets/consultores/fabricio.webp.asset.json";
+import mariaAsset from "@/assets/consultores/maria.webp.asset.json";
+
 export type AgentProfile = {
   name: string;
   photoUrl: string;
