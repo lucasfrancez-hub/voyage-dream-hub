@@ -459,6 +459,13 @@ function credentials() {
 }
 
 async function doLogin(): Promise<Session> {
+  if (pendingAuth) {
+    // Nunca reiniciar login enquanto houver desafio 2FA aguardando código.
+    throw new FrtError(
+      "FRT_2FA_REQUIRED",
+      "Já existe um código de verificação pendente na FRT. Informe o código para liberar a sessão.",
+    );
+  }
   if (Date.now() < blockedUntil) {
     throw new FrtError(
       "FRT_AUTH_FAILED",
@@ -468,6 +475,7 @@ async function doLogin(): Promise<Session> {
   const { user, pass } = credentials();
   const s: Session = { cookies: new Map(), viewState: null, createdAt: Date.now() };
 
+  trace("login iniciado");
   trace("GET login.xhtml");
   const first = await frtFetch(s, LOGIN_URL);
   const vs = extractViewState(first.body);
@@ -515,20 +523,16 @@ async function doLogin(): Promise<Session> {
 
   // O portal pode exigir código de verificação enviado por e-mail (2FA).
   if (needsAuthCode(venda.body)) {
+    // No máximo 1 desafio ativo: guarda a sessão/cookie jar e o ViewState desta
+    // tentativa e para aqui. Nada de novo login enquanto isso.
     pendingAuth = s;
+    pendingDesde = Date.now();
     await persistSession(s);
-    trace("FRT exigiu código de verificação por e-mail");
-    // Tenta resolver sozinho pela caixa dedicada (e-mail encaminhado).
-    const auto = await frtResolver2faAutomatico();
-    if (auto.ok) {
-      const atual = session ?? s;
-      trace("2FA resolvido automaticamente pela caixa dedicada");
-      return atual;
-    }
+    trace("2FA requerido");
+    trace("aguardando código");
     throw new FrtError(
       "FRT_2FA_REQUIRED",
-      auto.mensagem ??
-        "A FRT enviou um código de verificação por e-mail. Informe o código para liberar a sessão.",
+      "A FRT enviou um código de verificação por e-mail. Informe o código (ou busque o automático) para liberar a sessão.",
     );
   }
 
@@ -552,6 +556,12 @@ async function doLogin(): Promise<Session> {
 }
 
 async function getSession(force = false): Promise<Session> {
+  if (pendingAuth) {
+    throw new FrtError(
+      "FRT_2FA_REQUIRED",
+      "Existe um desafio 2FA da FRT aguardando código. Valide o código antes de tentar novamente.",
+    );
+  }
   if (!force && session && Date.now() - session.createdAt < SESSION_TTL_MS) {
     return session;
   }
@@ -581,6 +591,23 @@ export function frtInvalidateSession() {
 /* --------------- 2FA (código de verificação por e-mail) --------------- */
 
 let pendingAuth: Session | null = null;
+let pendingDesde: number | null = null;
+
+/** Estado do desafio 2FA (para a UI de diagnóstico). */
+export function frtEstado2fa() {
+  return {
+    pendente: Boolean(pendingAuth),
+    desde: pendingDesde ? new Date(pendingDesde).toISOString() : null,
+    segundos: pendingDesde ? Math.round((Date.now() - pendingDesde) / 1000) : 0,
+  };
+}
+
+/** Descarta o desafio pendente (permite um novo login manualmente). */
+export function frtCancelar2fa() {
+  pendingAuth = null;
+  pendingDesde = null;
+  trace("desafio 2FA descartado manualmente");
+}
 
 /**
  * Envia o código de verificação recebido por e-mail e libera a sessão.
@@ -611,6 +638,7 @@ export async function frtEnviarCodigo(codigo: string) {
   p.set(campos.botao, campos.botao);
   p.set("javax.faces.ViewState", vs);
 
+  trace("código recebido/manual");
   trace("POST código de verificação");
   const { body } = await frtFetch(s, tela.url, {
     method: "POST",
@@ -641,6 +669,9 @@ export async function frtEnviarCodigo(codigo: string) {
   s.createdAt = Date.now();
   session = s;
   pendingAuth = null;
+  pendingDesde = null;
+  trace("2FA validado");
+  trace("sessão liberada");
   await persistSession(s);
   if (venda.estado !== "ok") {
     trace("código aceito, mas o motor de pesquisa não apareceu em venda.xhtml");
@@ -713,9 +744,15 @@ async function descartarCodigo(id: string) {
 export async function frtResolver2faAutomatico(
   esperaMs = CODIGO_ESPERA_MS,
 ): Promise<{ ok: boolean; mensagem?: string }> {
+  if (!pendingAuth && !session) {
+    return {
+      ok: false,
+      mensagem: "Nenhum desafio 2FA pendente na FRT.",
+    };
+  }
   const inicio = Date.now();
   const janela = inicio - CODIGO_TTL_MS;
-  trace("2FA: aguardando código na caixa dedicada");
+  trace("aguardando código (caixa dedicada)");
   while (Date.now() - inicio < esperaMs) {
     const item = await buscarCodigoRecente(janela);
     if (item) {
@@ -732,7 +769,8 @@ export async function frtResolver2faAutomatico(
     }
     await new Promise((r) => setTimeout(r, 5_000));
   }
-  trace("2FA: nenhum código chegou na caixa dedicada dentro do tempo");
+  // Sem código no prazo: mantém o desafio pendente e libera a entrada manual.
+  trace("2FA: nenhum código chegou no prazo — desafio segue pendente (entrada manual)");
   return {
     ok: false,
     mensagem:
