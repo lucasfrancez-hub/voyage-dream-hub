@@ -426,6 +426,11 @@ function FrtTestePage() {
                     <Badge variant={a.opcoes.length > 0 ? "default" : "secondary"}>
                       opções: {a.opcoes.length}
                     </Badge>
+                    {a.labelsSemValue?.length ? (
+                      <Badge variant="destructive">
+                        labels sem value: {a.labelsSemValue.length}
+                      </Badge>
+                    ) : null}
                   </div>
                   <p className="text-muted-foreground">source: {a.source}</p>
                   <p className="text-muted-foreground">
