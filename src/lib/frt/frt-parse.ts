@@ -735,26 +735,50 @@ export function listarCamposInternosJsf(texto: string): string[] {
 
 export type FrtAutocompleteItem = { value: string; label: string };
 
+/** Itens com label mas sem data-item-value (erro de estrutura, não "0 opções"). */
+export type FrtAutocompleteParse = {
+  itens: FrtAutocompleteItem[];
+  /** labels encontrados sem data-item-value correspondente */
+  labelsSemValue: string[];
+};
+
 /**
  * Lê as opções devolvidas pelo AJAX de query do p:autoComplete.
- * O PrimeFaces devolve <li data-item-value="..." data-item-label="...">.
+ * O PrimeFaces pode devolver <li ...> (lista simples) ou
+ * <tr class="ui-autocomplete-item ..."> (itemtip/tabela). Sempre parseia a
+ * resposta BRUTA — nunca a amostra sanitizada.
  */
-export function parseAutocompleteItens(xml: string): FrtAutocompleteItem[] {
+export function parseAutocompleteDetalhado(xml: string): FrtAutocompleteParse {
   const texto = decodeEntities(xml);
   const itens: FrtAutocompleteItem[] = [];
-  for (const m of texto.matchAll(/<li\b[^>]*data-item-value="([^"]*)"[^>]*>/gi)) {
+  const labelsSemValue: string[] = [];
+  const vistos = new Set<string>();
+  // qualquer tag de abertura que contenha data-item-value ou data-item-label
+  for (const m of texto.matchAll(/<(?:li|tr|td|div|option)\b[^>]*data-item-(?:value|label)="[^"]*"[^>]*>/gi)) {
     const tag = m[0];
-    const value = decodeEntities(m[1] ?? "");
-    const label = decodeEntities(tag.match(/data-item-label="([^"]*)"/i)?.[1] ?? value);
-    if (value) itens.push({ value, label });
+    const value = decodeEntities(tag.match(/data-item-value="([^"]*)"/i)?.[1] ?? "").trim();
+    const label = decodeEntities(tag.match(/data-item-label="([^"]*)"/i)?.[1] ?? "").trim();
+    if (value) {
+      const chave = `${value}|${label}`;
+      if (vistos.has(chave)) continue;
+      vistos.add(chave);
+      itens.push({ value, label: label || value });
+    } else if (label) {
+      labelsSemValue.push(label);
+    }
   }
-  return itens;
+  return { itens, labelsSemValue };
+}
+
+export function parseAutocompleteItens(xml: string): FrtAutocompleteItem[] {
+  return parseAutocompleteDetalhado(xml).itens;
 }
 
 /** Quantos data-item-value existem na resposta (mesmo fora de <li>). */
 export function contarDataItemValue(xml: string): number {
   return [...decodeEntities(xml).matchAll(/data-item-value="/gi)].length;
 }
+
 
 
 /** Escolhe a opção que corresponde ao termo (IATA exato > contém > primeira). */
