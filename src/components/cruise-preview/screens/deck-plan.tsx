@@ -102,7 +102,7 @@ export function C() {
           {Object.entries(cor).map(([k, v]) => <span key={k} className="flex items-center gap-1.5 capitalize"><i className={cx("h-2.5 w-2.5 rounded", v)} />{k}</span>)}
           <span className="flex items-center gap-1.5"><i className="h-2.5 w-2.5 rounded bg-border" />ocupada</span>
         </div>
-        <div className="grid grid-cols-10 gap-1.5 sm:grid-cols-15 md:grid-cols-20">
+        <div className="grid grid-cols-10 gap-1.5 sm:grid-cols-[repeat(15,minmax(0,1fr))] md:grid-cols-[repeat(20,minmax(0,1fr))]">
           {grid.map((g) => (
             <button key={g.num} disabled={!g.livre} onClick={() => setSel(g.num)}
               title={g.num}

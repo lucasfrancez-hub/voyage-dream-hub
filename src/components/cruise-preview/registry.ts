@@ -1,3 +1,4 @@
+import type * as React from "react";
 import * as VisaoGeral from "./screens/visao-geral";
 import * as Itinerario from "./screens/itinerario";
 import * as Navio from "./screens/navio";
