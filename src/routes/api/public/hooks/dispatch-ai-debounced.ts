@@ -97,15 +97,33 @@ export const Route = createFileRoute("/api/public/hooks/dispatch-ai-debounced")(
             continue;
           }
 
-          const heartbeat = setInterval(() => {
+          let heartbeatEmAndamento = false;
+          let leasePerdido = false;
+          const heartbeat = setInterval(async () => {
+            if (heartbeatEmAndamento || leasePerdido) return;
+            heartbeatEmAndamento = true;
             const anterior = leaseUntil;
             const proximo = new Date(Date.now() + LEASE_MS).toISOString();
-            leaseUntil = proximo;
-            void supabaseAdmin
-              .from("wa_conversations")
-              .update({ ai_debounce_until: proximo })
-              .eq("id", conv.id)
-              .eq("ai_debounce_until", anterior);
+            try {
+              const { data: renewed, error: renewError } = await supabaseAdmin
+                .from("wa_conversations")
+                .update({ ai_debounce_until: proximo })
+                .eq("id", conv.id)
+                .eq("ai_debounce_until", anterior)
+                .select("id")
+                .maybeSingle();
+              if (renewError || !renewed) {
+                leasePerdido = true;
+                clearInterval(heartbeat);
+                console.error(`[dispatch-ai-debounced] lease perdido ${conv.id}:`, renewError);
+                return;
+              }
+              // Só avança o estado local depois de confirmar que a renovação
+              // foi persistida. Assim os CAS finais nunca usam um lease fictício.
+              leaseUntil = proximo;
+            } finally {
+              heartbeatEmAndamento = false;
+            }
           }, 45_000);
 
 
