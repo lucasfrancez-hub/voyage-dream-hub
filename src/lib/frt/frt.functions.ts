@@ -141,3 +141,25 @@ export const buscaAutomatica2faFrt = createServerFn({ method: "POST" })
     const { frtBuscaAutomatica2fa } = await import("@/lib/frt/frt-connector.server");
     return frtBuscaAutomatica2fa(data.ativo);
   });
+
+/* ── MOTOR FRT (camada de produto sobre o conector já validado) ───────── */
+
+/** Pesquisa de pacotes normalizada: devolve só os hotéis para a etapa 1. */
+export const pesquisarPacotesFrt = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => searchSchema.parse(input))
+  .handler(async ({ data }) => {
+    const { motorFrtPesquisar } = await import("@/lib/frt/frt-motor.server");
+    return motorFrtPesquisar(data);
+  });
+
+/** Etapa 2: aéreo (ida/volta) do pacote escolhido, sem refazer a pesquisa. */
+export const pacoteFrt = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({ searchId: z.string().min(4).max(64), pacoteId: z.string().min(1).max(200) }).parse(input),
+  )
+  .handler(async ({ data }) => {
+    const { motorFrtPacote } = await import("@/lib/frt/frt-motor.server");
+    return motorFrtPacote(data.searchId, data.pacoteId);
+  });
