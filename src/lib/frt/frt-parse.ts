@@ -266,7 +266,9 @@ export function parseVoosFromHtml(html: string): FrtVoo[] {
     if (!/\d{1,2}:\d{2}/.test(texto)) continue;
 
     const horas = [...texto.matchAll(HORA)].map((m) => m[1]!);
-    const iata = [...texto.matchAll(/\b([A-Z]{3})\b/g)].map((m) => m[1]!);
+    const iata = [...texto.matchAll(/\b([A-Z]{3})\b/g)]
+      .map((m) => m[1]!)
+      .filter((c) => !NAO_IATA.has(c));
     const paradasTxt = texto.match(/(\d+)\s*(?:parada|conex)/i);
     const direto = /\bdireto\b|sem\s+escala|n[aã]o\s+para/i.test(texto);
 
