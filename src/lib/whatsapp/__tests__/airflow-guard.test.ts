@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   centralBriefHasMissingOrigin,
   isInvalidMissingOriginResponse,
+  isValidOriginQuestion,
   origemJaFoiRespondidaNoProtocolo,
   origemRespondidaNoProtocolo,
   safeMissingOriginResponse,
