@@ -255,7 +255,7 @@ export async function transferirParaConsultores(
       const row = await saveMessage({
         conversation_id: conversation.id,
         direction: "outbound",
-        sender: "camila",
+        sender: aiSender(params.agenteAnterior),
         agent_slug: params.agenteAnterior,
         content: aviso,
       });
