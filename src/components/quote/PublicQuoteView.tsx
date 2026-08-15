@@ -169,7 +169,7 @@ function FlightLegCard({
                 const dataBr = s.departure.slice(0, 10).split("-").reverse().join("/");
                 const segLogo = airlineLogo(s.airline ?? leg.airlineIata ?? leg.airline);
                 return (
-                  <div key={i}>
+                  <div key={i} className="vq-seg2-group">
                     <section className="vq-seg2">
                       <div className="vq-seg2-node">
                         <span className="vq-seg2-logo">
