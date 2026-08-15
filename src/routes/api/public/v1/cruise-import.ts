@@ -89,7 +89,8 @@ export const Route = createFileRoute("/api/public/v1/cruise-import")({
         if (cruiseId) {
           await supabaseAdmin.from("cruise_import_logs").insert({
             cruise_id: cruiseId,
-            session_id: session.id,
+            snapshot_id: null,
+
             user_id: auth.userId,
             level: "info",
             message: `Importação finalizada pelo plugin com ${session.snapshots_count ?? 0} captura(s)`,
