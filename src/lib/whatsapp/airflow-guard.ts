@@ -41,7 +41,7 @@ export function isValidOriginQuestion(
   text: string,
   sugestao?: string | null,
 ): boolean {
-  if (RX_PERGUNTA_ORIGEM.test(text)) return true;
+  if (RX_PERGUNTA_ORIGEM.some((rx) => rx.test(text))) return true;
   const s = (sugestao ?? "").trim();
   if (!s) return false;
   const esc = s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
