@@ -32,6 +32,49 @@
     return nodes.find((el) => matcher(H.normalizeText(el.textContent)));
   }
 
+  /* Abas de filtro internas (Atrações/Cabines): nav.nav-tabs > button.
+     Nunca usar todos os <button> do painel — "Mais fotos" abre a galeria. */
+  function filterTabs(pane) {
+    return [
+      ...pane.querySelectorAll("nav.nav-tabs > button, .nav-tabs > button, [role='tablist'] > button"),
+    ].filter((el) => {
+      const label = H.clean(el.textContent);
+      return label.length > 1 && label.length < 40 && !/mais fotos|tour virtual/i.test(label);
+    });
+  }
+
+  /* A tela não diferencia criança/bebê: é preciso abrir o modal de
+     passageiros ("Editar") para ler a composição real da ocupação. */
+  async function captureOccupancy(parser) {
+    let occ = parser.parseOccupancy(null);
+    if (occ.children || occ.infants || occ.young) return occ;
+
+    const editButton = [...document.querySelectorAll("button, a")].find((el) =>
+      /^(editar|alterar)$/i.test(H.clean(el.textContent)),
+    );
+    if (!editButton) return occ;
+    if (!safeClick(editButton)) return occ;
+
+    const modal = await H.waitForElement(
+      document,
+      ["ngb-modal-window", "app-passengers", ".passenger-selector"],
+      4000,
+    );
+    if (modal) {
+      await H.waitForDOMStable(modal, 280, 3500);
+      const detailed = parser.parseOccupancy(null);
+      if (detailed.total) occ = { ...detailed, source: detailed.source || "dom_modal" };
+      const close =
+        modal.querySelector("[aria-label='Close'], .close, .btn-close") ||
+        findByText([...modal.querySelectorAll("button")], (t) => t === "cancelar" || t === "fechar");
+      if (close) safeClick(close);
+      else document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+      await H.waitForDOMStable(document.body, 250, 2500);
+    }
+    return occ;
+  }
+
+
   /* -------- 62. Captura de rede (JSON tem prioridade sobre DOM) ------- */
   function collectXhr() {
     return new Promise((resolve) => {
