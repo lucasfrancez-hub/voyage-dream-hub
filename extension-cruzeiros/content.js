@@ -32,6 +32,49 @@
     return nodes.find((el) => matcher(H.normalizeText(el.textContent)));
   }
 
+  /* Abas de filtro internas (Atrações/Cabines): nav.nav-tabs > button.
+     Nunca usar todos os <button> do painel — "Mais fotos" abre a galeria. */
+  function filterTabs(pane) {
+    return [
+      ...pane.querySelectorAll("nav.nav-tabs > button, .nav-tabs > button, [role='tablist'] > button"),
+    ].filter((el) => {
+      const label = H.clean(el.textContent);
+      return label.length > 1 && label.length < 40 && !/mais fotos|tour virtual/i.test(label);
+    });
+  }
+
+  /* A tela não diferencia criança/bebê: é preciso abrir o modal de
+     passageiros ("Editar") para ler a composição real da ocupação. */
+  async function captureOccupancy(parser) {
+    let occ = parser.parseOccupancy(null);
+    if (occ.children || occ.infants || occ.young) return occ;
+
+    const editButton = [...document.querySelectorAll("button, a")].find((el) =>
+      /^(editar|alterar)$/i.test(H.clean(el.textContent)),
+    );
+    if (!editButton) return occ;
+    if (!safeClick(editButton)) return occ;
+
+    const modal = await H.waitForElement(
+      document,
+      ["ngb-modal-window", "app-passengers", ".passenger-selector"],
+      4000,
+    );
+    if (modal) {
+      await H.waitForDOMStable(modal, 280, 3500);
+      const detailed = parser.parseOccupancy(null);
+      if (detailed.total) occ = { ...detailed, source: detailed.source || "dom_modal" };
+      const close =
+        modal.querySelector("[aria-label='Close'], .close, .btn-close") ||
+        findByText([...modal.querySelectorAll("button")], (t) => t === "cancelar" || t === "fechar");
+      if (close) safeClick(close);
+      else document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+      await H.waitForDOMStable(document.body, 250, 2500);
+    }
+    return occ;
+  }
+
+
   /* -------- 62. Captura de rede (JSON tem prioridade sobre DOM) ------- */
   function collectXhr() {
     return new Promise((resolve) => {
@@ -147,14 +190,12 @@
         data.media.push(...parser.parseMedia(pane, "ship", "ship"));
         Object.assign(data.specs, parser.parseTechnicalSheet(pane).specs);
       } else if (key.includes("atrac")) {
-        // 54. Percorre todos os filtros de atração, não só o primeiro.
-        const filters = [
-          ...pane.querySelectorAll("button, .filter, [class*='filter'] li, [role='tab']"),
-        ].filter((el) => H.clean(el.textContent).length > 1 && H.clean(el.textContent).length < 30);
+        // 54. Percorre todos os filtros de atração (Restaurantes, Crianças…).
+        const filters = filterTabs(pane);
         if (filters.length) {
           for (const filter of filters) {
-            const fname = H.clean(filter.textContent);
-            if (FORBIDDEN_CLICK.test(fname)) continue;
+            const fname = H.clean(filter.textContent).replace(/\(\d+\)/g, "").trim();
+            if (FORBIDDEN_CLICK.test(fname) || /^todos$/i.test(fname)) continue;
             safeClick(filter);
             await H.waitForDOMStable(pane, 260, 4000);
             data.attractions.push(...parser.parseAttractions(pane, H.normalizeText(fname)));
@@ -164,9 +205,22 @@
         }
         data.media.push(...parser.parseMedia(pane, "attraction", "ship"));
       } else if (key.includes("cabine")) {
-        data.ship_cabins.push(...parser.parseShipCabins(pane));
+        // Cabines do navio também vêm por filtro (Suíte, Varanda, Externa…).
+        const filters = filterTabs(pane);
+        if (filters.length) {
+          for (const filter of filters) {
+            const fname = H.clean(filter.textContent).replace(/\(\d+\)/g, "").trim();
+            if (FORBIDDEN_CLICK.test(fname) || /^todos$/i.test(fname)) continue;
+            safeClick(filter);
+            await H.waitForDOMStable(pane, 260, 4000);
+            data.ship_cabins.push(...parser.parseShipCabins(pane));
+          }
+        } else {
+          data.ship_cabins.push(...parser.parseShipCabins(pane));
+        }
         data.media.push(...parser.parseMedia(pane, "cabin", "ship"));
       } else if (key.includes("deck")) {
+
         // 56. Percorre todos os decks disponíveis.
         const deckButtons = [...pane.querySelectorAll("button, li, [role='tab'], option")].filter((el) =>
           /^deck\s*\d+/i.test(H.clean(el.textContent)),
@@ -227,7 +281,9 @@
       : { itinerary: [], attractions: [], ship_cabins: [], decks: [], media: [], specs: {}, technical_drawing_url: "" };
 
     // 94. Ocupação lida da própria página, nunca de estado do plugin.
-    const occ = summary.occupancy || {};
+    // Abre o modal "Editar" quando o resumo não distingue criança/bebê.
+    const occ = deep ? await captureOccupancy(parser) : summary.occupancy || {};
+
     const profiles = {
       adults: occ.adults || 0,
       young: occ.young || 0,
