@@ -47,3 +47,11 @@ export const enviarCodigoFrt = createServerFn({ method: "POST" })
     const { frtEnviarCodigo } = await import("@/lib/frt/frt-connector.server");
     return frtEnviarCodigo(data.codigo);
   });
+
+/** Tenta concluir o 2FA sozinho, lendo o código na caixa dedicada. */
+export const resolver2faAutomaticoFrt = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async () => {
+    const { frtResolver2faAutomatico } = await import("@/lib/frt/frt-connector.server");
+    return frtResolver2faAutomatico(60_000);
+  });
