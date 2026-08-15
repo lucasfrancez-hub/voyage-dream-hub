@@ -188,6 +188,42 @@ function InstalarExtensao() {
           <Download className="h-4 w-4" /> Baixar Via Air Orçamentos v{ORCAMENTOS_VERSION} (.zip)
         </Button>
       </Card>
+
+      <Card className="p-5">
+        <div className="font-medium flex items-center gap-2">
+          Plugin 3 — VIA AIR Exportar Cruzeiro
+          <span className="text-[11px] font-semibold rounded-full border border-primary/40 text-primary px-2 py-0.5">
+            v{CRUZEIROS_VERSION}
+          </span>
+        </div>
+        <p className="text-sm text-muted-foreground mt-1">
+          Captura cruzeiros no portal da operadora e envia para o cruzeiro que estiver com{" "}
+          <b>importação ativa</b> em <b>Produtos → Cruzeiros</b>. Crie o cruzeiro, clique em{" "}
+          <b>Ativar importação</b> e depois use <b>Capturar e enviar</b> quantas vezes precisar
+          (ocupações, categorias de cabine, adicionais, itinerário, navio, fotos e vídeos).
+        </p>
+        <Button
+          variant="outline"
+          className="mt-3 gap-2"
+          onClick={() => {
+            fetch("/via-air-cruzeiros.zip?v=" + Date.now())
+              .then((res) => {
+                if (!res.ok) throw new Error("Download falhou: " + res.status);
+                return res.blob();
+              })
+              .then((blob) => {
+                const a = document.createElement("a");
+                a.href = URL.createObjectURL(blob);
+                a.download = `via-air-cruzeiros-v${CRUZEIROS_VERSION}.zip`;
+                a.click();
+                URL.revokeObjectURL(a.href);
+              })
+              .catch((err) => alert(err.message));
+          }}
+        >
+          <Download className="h-4 w-4" /> Baixar Exportar Cruzeiro v{CRUZEIROS_VERSION} (.zip)
+        </Button>
+      </Card>
     </div>
   );
 }
