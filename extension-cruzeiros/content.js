@@ -1,35 +1,38 @@
-/* VIA AIR — Exportar Cruzeiro: extrator do portal da operadora.
+/* VIA AIR — Exportar Cruzeiro: orquestrador de captura.
  *
- * Combina o DOM renderizado com os JSON capturados pelo page-hook.
- * Nunca clica em nada destrutivo: só lê, abre abas/modais informativos
- * quando solicitado e coleta o conteúdo. */
+ * A leitura em si vive no FRTKroozeCruiseParser (frt-parser.js).
+ * Aqui só coordenamos: abrir abas informativas, alternar tipos de cabine,
+ * esperar o Angular estabilizar e montar o snapshot.
+ *
+ * Nunca clicamos em ações comerciais (Selecionar, Confirmar e continuar,
+ * Gerar orçamento, Incluir no orçamento).
+ */
 (function () {
-  const money = (t) => {
-    if (t === null || t === undefined) return null;
-    const m = String(t).match(/(\d{1,3}(?:\.\d{3})*|\d+)(?:,(\d{2}))?/);
-    if (!m) return null;
-    const n = Number(`${m[1].replace(/\./g, "")}.${m[2] || "00"}`);
-    return Number.isFinite(n) ? n : null;
-  };
-  const txt = (el) => (el ? el.textContent.replace(/\s+/g, " ").trim() : "");
-  const abs = (u) => {
-    if (!u) return "";
-    try {
-      return new URL(u, location.href).href;
-    } catch (_) {
-      return "";
-    }
-  };
+  const P = globalThis.FRTKroozeCruiseParser;
+  const H = P.helpers;
 
-  function cabinType(name) {
-    const n = (name || "").toLowerCase();
-    if (/su[ií]te|yacht club/.test(n)) return "suite";
-    if (/varanda|balcony/.test(n)) return "varanda";
-    if (/externa|ocean|vista mar/.test(n)) return "externa";
-    if (/interna|inside/.test(n)) return "interna";
-    return "outro";
+  const FORBIDDEN_CLICK =
+    /(^|\b)(selecionar|confirmar e continuar|confirmar|gerar or[çc]amento|incluir no or[çc]amento|reservar|comprar|finalizar)(\b|$)/i;
+
+  const IGNORED_TABS = /tour virtual/i;
+
+  function safeClick(el) {
+    if (!el) return false;
+    const label = H.clean(el.textContent || el.getAttribute("aria-label") || "");
+    if (FORBIDDEN_CLICK.test(label)) return false;
+    try {
+      el.click();
+      return true;
+    } catch (_) {
+      return false;
+    }
   }
 
+  function findByText(nodes, matcher) {
+    return nodes.find((el) => matcher(H.normalizeText(el.textContent)));
+  }
+
+  /* -------- 62. Captura de rede (JSON tem prioridade sobre DOM) ------- */
   function collectXhr() {
     return new Promise((resolve) => {
       const onMsg = (ev) => {
@@ -42,302 +45,294 @@
       setTimeout(() => {
         window.removeEventListener("message", onMsg);
         resolve([]);
-      }, 800);
+      }, 900);
     });
   }
 
-  /* ---------- detecção do tipo de página ---------- */
-  function detectar() {
-    const body = document.body ? document.body.innerText.toLowerCase() : "";
-    const found = [];
-    if (/checkout|resumo da reserva|total a pagar|forma de pagamento/.test(body)) found.push("Checkout");
-    if (/cabine|interna|varanda|su[ií]te/.test(body)) found.push("Cabines");
-    if (/r\$\s?\d/.test(body)) found.push("Preços");
-    if (/itiner[áa]rio|roteiro|dia \d+/.test(body)) found.push("Itinerário");
-    if (/atra[çc][õo]es|restaurantes|piscinas|entretenimento/.test(body)) found.push("Atrações");
-    if (/deck plan|planta dos decks|deck \d+/.test(body)) found.push("Deck Plan");
-    if (/ficha t[ée]cnica|tonelagem|tripulantes/.test(body)) found.push("Ficha técnica");
-    if (/adicionais|transfer/.test(body)) found.push("Adicionais");
-    if (/seguro/.test(body)) found.push("Seguro");
-    if (document.querySelector("video, iframe[src*='youtube'], iframe[src*='vimeo']")) found.push("Vídeos");
-    if (document.images && document.images.length > 8) found.push("Fotos");
-    return found.length ? found : ["Conteúdo genérico"];
-  }
+  /* -------- 66. Percorrer todos os tipos de cabine -------------------- */
+  async function captureCabinTypes(parser) {
+    const types = parser.parseCabinTypes();
+    const result = [];
+    if (!types.length) return result;
 
-  /* ---------- extratores DOM (heurísticos, tolerantes) ---------- */
-  function extrairOcupacao() {
-    const t = document.body ? document.body.innerText : "";
-    const adults = Number((t.match(/(\d+)\s*adult/i) || [])[1] || 0);
-    const children = Number((t.match(/(\d+)\s*crian/i) || [])[1] || 0);
-    const young = Number((t.match(/(\d+)\s*jovem|jovens/i) || [])[1] || 0);
-    const infants = Number((t.match(/(\d+)\s*beb[êe]/i) || [])[1] || 0);
-    const ages = [...t.matchAll(/(\d{1,2})\s*anos?/gi)].map((m) => Number(m[1])).filter((n) => n <= 25);
-    return { adults, young, children, infants, children_ages: ages.slice(0, children) };
-  }
-
-  function extrairCruzeiro() {
-    const t = document.body ? document.body.innerText : "";
-    const h1 = txt(document.querySelector("h1")) || document.title;
-    const nights = Number((t.match(/(\d+)\s*noites?/i) || [])[1] || 0) || null;
-    const dep = (t.match(/(\d{2}\/\d{2}\/\d{4})/) || [])[1] || "";
-    const navio = (t.match(/\b(MSC|Costa|Norwegian|Royal Caribbean|Disney)\s+[A-ZÁ-Ú][\wÁ-ú]+/) || [])[0] || "";
-    return {
-      name: h1,
-      ship_name: navio,
-      departure_date: dep,
-      nights,
-      currency: "BRL",
-    };
-  }
-
-  function extrairCabines(occ) {
-    const offers = [];
-    const seen = new Set();
-    const cards = document.querySelectorAll(
-      "[class*='cabin'],[class*='cabine'],[class*='categoria'],[data-cabin],[class*='card']",
-    );
-    cards.forEach((card) => {
-      const nome = txt(card.querySelector("h2,h3,h4,strong,[class*='title'],[class*='nome']"));
-      if (!nome || nome.length > 90) return;
-      if (!/interna|externa|varanda|su[ií]te|yacht/i.test(nome)) return;
-      const bloco = txt(card);
-      const total = money((bloco.match(/R\$\s?[\d.]+,\d{2}/g) || []).slice(-1)[0]);
-      const taxas = money((bloco.match(/taxas?[^R]*R\$\s?[\d.]+,\d{2}/i) || [])[0]);
-      const codes = [...bloco.matchAll(/\b(\d{3})\b/g)].map((m) => m[1]).slice(0, 8);
-      const img = card.querySelector("img");
-      const key = `${nome}`.toLowerCase();
-      if (seen.has(key)) return;
-      seen.add(key);
-      offers.push({
-        cabin_type: cabinType(nome),
-        name: nome,
-        fare_name: "",
-        category_codes: [...new Set(codes)],
-        image_url: img ? abs(img.getAttribute("src")) : "",
-        amenities: [...card.querySelectorAll("li")].map((li) => txt(li)).filter(Boolean).slice(0, 20),
-        availability: "",
-        price: total
-          ? {
-              base_amount: taxas && total ? total - taxas : null,
-              taxes: taxas,
-              total,
-              currency: "BRL",
-              installments: {},
-              passenger_prices: [],
-              occupancy: occ,
-            }
-          : undefined,
+    for (const type of types) {
+      const label = H.query(type.element, P.FRT_SELECTORS.cabinTypeLabel) || type.element;
+      if (!type.selected) {
+        safeClick(label);
+        const detail = H.query(document, P.FRT_SELECTORS.cabinDetailRoot);
+        await H.waitForDOMStable(detail || document.body, 350, 6000);
+      }
+      const categories = parser.parseVisibleCabinCategories(type.source_name);
+      result.push({
+        type: type.type,
+        source_name: type.source_name,
+        image_url: type.image_url,
+        upgrade: type.upgrade,
+        selected: type.selected,
+        categories,
       });
-    });
-    return offers;
+    }
+    return result;
   }
 
-  function extrairItinerario() {
-    const dias = [];
-    const nodes = document.querySelectorAll("[class*='itiner'] li, [class*='itiner'] tr, [class*='roteiro'] li");
-    nodes.forEach((n, i) => {
-      const t = txt(n);
-      if (!t) return;
-      const dia = Number((t.match(/dia\s*(\d+)/i) || [])[1] || i + 1);
-      const horas = t.match(/(\d{2}:\d{2})/g) || [];
-      const porto = t
-        .replace(/dia\s*\d+/i, "")
-        .replace(/\d{2}\/\d{2}\/\d{4}/g, "")
-        .replace(/\d{2}:\d{2}/g, "")
-        .replace(/\s{2,}/g, " ")
-        .trim()
-        .slice(0, 80);
-      dias.push({
-        day: dia,
-        date: (t.match(/\d{2}\/\d{2}\/\d{4}/) || [])[0] || "",
-        port: porto,
-        country: "",
-        arrival: horas[0] || "",
-        departure: horas[1] || "",
-        description: "",
-        image_url: "",
-        map_image_url: "",
-        activities: [],
-      });
-    });
-    const unico = new Map();
-    dias.forEach((d) => unico.set(d.day, d));
-    return [...unico.values()].sort((a, b) => a.day - b.day);
-  }
-
-  function extrairAtracoes() {
+  /* -------- 36-42. Modal de adicionais -------------------------------- */
+  async function captureAdditionals(parser) {
     const out = [];
-    document
-      .querySelectorAll("[class*='atrac'] [class*='card'], [class*='attraction'], [class*='restaurante']")
-      .forEach((el) => {
-        const nome = txt(el.querySelector("h3,h4,strong,[class*='title']")) || txt(el).slice(0, 60);
-        if (!nome) return;
-        const img = el.querySelector("img");
-        out.push({
-          category: /restaurante|bar/i.test(txt(el))
-            ? "restaurantes"
-            : /piscina/i.test(txt(el))
-              ? "piscinas"
-              : /crian/i.test(txt(el))
-                ? "criancas"
-                : "outros",
-          name: nome,
-          description: txt(el.querySelector("p")) || "",
-          deck: (txt(el).match(/deck\s*(\d+)/i) || [])[1] || "",
-          images: img ? [abs(img.getAttribute("src"))] : [],
+    let modal = H.query(document, P.FRT_SELECTORS.additionalModal);
+
+    if (!modal) {
+      const root = H.query(document, P.FRT_SELECTORS.additionalRoot);
+      if (!root) return out;
+      const button = findByText([...root.querySelectorAll("button")], (t) => t === "novo adicional");
+      if (!safeClick(button)) return out;
+      modal = await H.waitForElement(document, P.FRT_SELECTORS.additionalModal, 6000);
+      if (!modal) return out;
+      await H.waitForDOMStable(modal, 300, 5000);
+    }
+
+    const tabs = H.queryAll(modal, P.FRT_SELECTORS.sideNavItems);
+    if (!tabs.length) return parser.parseAdditionals(null);
+
+    for (const tab of tabs) {
+      const name = H.text(tab, P.FRT_SELECTORS.sideNavName) || H.clean(tab.textContent);
+      if (IGNORED_TABS.test(name)) continue;
+      safeClick(tab.querySelector("a,button") || tab);
+      const content = H.query(modal, P.FRT_SELECTORS.detailContent) || modal;
+      await H.waitForDOMStable(content, 300, 5000);
+      out.push(...parser.parseAdditionals(name));
+    }
+    return out;
+  }
+
+  /* -------- 48-60. Modal "Ver mais" (conteúdo do navio) --------------- */
+  async function captureShipDetails(parser) {
+    const data = {
+      itinerary: [],
+      attractions: [],
+      ship_cabins: [],
+      decks: [],
+      media: [],
+      specs: {},
+      technical_drawing_url: "",
+    };
+
+    let modal = H.query(document, P.FRT_SELECTORS.modalWindow);
+    let hasSideNav = modal && H.queryAll(modal, P.FRT_SELECTORS.sideNavItems).length > 0;
+
+    if (!hasSideNav) {
+      const trigger = H.query(document, P.FRT_SELECTORS.shipDetailsLink);
+      if (!trigger) return data;
+      safeClick(trigger);
+      modal = await H.waitForElement(document, P.FRT_SELECTORS.modalWindow, 6000);
+      if (!modal) return data;
+      await H.waitForDOMStable(modal, 350, 6000);
+      hasSideNav = H.queryAll(modal, P.FRT_SELECTORS.sideNavItems).length > 0;
+      if (!hasSideNav) return data;
+    }
+
+    const tabs = H.queryAll(modal, P.FRT_SELECTORS.sideNavItems);
+    for (const tab of tabs) {
+      const label = H.text(tab, P.FRT_SELECTORS.sideNavName) || H.clean(tab.textContent);
+      if (IGNORED_TABS.test(label)) continue;
+      safeClick(tab.querySelector("a,button") || tab);
+      const content = H.query(modal, P.FRT_SELECTORS.detailContent) || modal;
+      await H.waitForDOMStable(content, 320, 6000);
+      const pane = H.query(content, P.FRT_SELECTORS.activePane) || content;
+      const key = H.normalizeText(label);
+
+      if (key.includes("itinerar")) {
+        data.itinerary.push(...parser.parseItinerary(pane));
+        data.media.push(...parser.parseMedia(pane, "itinerary", "cruise"));
+      } else if (key === "o navio" || key === "navio") {
+        data.media.push(...parser.parseMedia(pane, "ship", "ship"));
+        Object.assign(data.specs, parser.parseTechnicalSheet(pane).specs);
+      } else if (key.includes("atrac")) {
+        // 54. Percorre todos os filtros de atração, não só o primeiro.
+        const filters = [
+          ...pane.querySelectorAll("button, .filter, [class*='filter'] li, [role='tab']"),
+        ].filter((el) => H.clean(el.textContent).length > 1 && H.clean(el.textContent).length < 30);
+        if (filters.length) {
+          for (const filter of filters) {
+            const fname = H.clean(filter.textContent);
+            if (FORBIDDEN_CLICK.test(fname)) continue;
+            safeClick(filter);
+            await H.waitForDOMStable(pane, 260, 4000);
+            data.attractions.push(...parser.parseAttractions(pane, H.normalizeText(fname)));
+          }
+        } else {
+          data.attractions.push(...parser.parseAttractions(pane));
+        }
+        data.media.push(...parser.parseMedia(pane, "attraction", "ship"));
+      } else if (key.includes("cabine")) {
+        data.ship_cabins.push(...parser.parseShipCabins(pane));
+        data.media.push(...parser.parseMedia(pane, "cabin", "ship"));
+      } else if (key.includes("deck")) {
+        // 56. Percorre todos os decks disponíveis.
+        const deckButtons = [...pane.querySelectorAll("button, li, [role='tab'], option")].filter((el) =>
+          /^deck\s*\d+/i.test(H.clean(el.textContent)),
+        );
+        if (deckButtons.length) {
+          for (const deckBtn of deckButtons) {
+            const deckLabel = H.clean(deckBtn.textContent);
+            safeClick(deckBtn);
+            await H.waitForDOMStable(pane, 300, 4000);
+            data.decks.push(...parser.parseDeckPlans(pane, deckLabel));
+          }
+        } else {
+          data.decks.push(...parser.parseDeckPlans(pane));
+        }
+      } else if (key.includes("foto")) {
+        data.media.push(...parser.parseMedia(pane, "gallery", "ship"));
+      } else if (key.includes("video") || key.includes("vídeo")) {
+        data.media.push(...parser.parseMedia(pane, "video", "ship"));
+      } else if (key.includes("ficha")) {
+        const sheet = parser.parseTechnicalSheet(pane);
+        Object.assign(data.specs, sheet.specs);
+        if (sheet.technical_drawing_url) data.technical_drawing_url = sheet.technical_drawing_url;
+      }
+    }
+
+    data.media = H.unique(data.media, (m) => m.source_url);
+    data.attractions = H.unique(data.attractions, (a) => `${a.category}|${H.normalizeText(a.name)}`);
+    data.decks = H.unique(data.decks, (d) => `${d.deck_label}|${d.image_url}`);
+    return data;
+  }
+
+  /* -------- 64/77. Montagem do snapshot ------------------------------- */
+  async function buildSnapshot(options) {
+    const deep = !options || options.deep !== false;
+    const parser = P.createParser(document, { view: window, url: location.href });
+    const pageType = parser.detectPageType();
+    const summary = parser.parsePriceSummary();
+
+    const cabinTypes = deep ? await captureCabinTypes(parser) : [];
+    const additionals = deep ? await captureAdditionals(parser) : parser.parseAdditionals(null);
+    const insurances = parser.parseInsurances();
+    const shipDetails = deep
+      ? await captureShipDetails(parser)
+      : { itinerary: [], attractions: [], ship_cabins: [], decks: [], media: [], specs: {}, technical_drawing_url: "" };
+
+    // Ocupação: passageiros do resumo + perfis quando visíveis.
+    const passengers = summary.occupancy.passengers || summary.pricing.passengers.length || 0;
+    const profiles = { adults: 0, young: 0, children: 0, infants: 0, children_ages: [] };
+    summary.pricing.passengers.forEach((p) => {
+      const profile = H.normalizePassengerProfile(p.label);
+      if (profile === "child") profiles.children += 1;
+      else if (profile === "young") profiles.young += 1;
+      else if (profile === "infant") profiles.infants += 1;
+      else profiles.adults += 1;
+    });
+    if (!profiles.adults && !profiles.children && !profiles.young && !profiles.infants) {
+      profiles.adults = passengers || 1;
+    }
+
+    // Achatamento para o contrato do backend (cabin_offers).
+    const cabinOffers = [];
+    cabinTypes.forEach((type) => {
+      type.categories.forEach((cat) => {
+        cabinOffers.push({
+          cabin_type: cat.type || type.type,
+          name: cat.name || type.source_name,
+          fare_name: summary.pricing.fare_name || "",
+          category_codes: cat.codes,
+          image_url: cat.image_url || type.image_url,
+          amenities: cat.amenities.map((a) => a.name).filter(Boolean),
+          availability: cat.selected ? "selecionada" : "",
+          price:
+            cat.selected && summary.pricing.total
+              ? {
+                  base_amount:
+                    summary.pricing.total !== null && summary.pricing.taxes !== null
+                      ? summary.pricing.total - summary.pricing.taxes
+                      : null,
+                  taxes: summary.pricing.taxes,
+                  total: summary.pricing.total,
+                  currency: "BRL",
+                  installments: summary.pricing.installment,
+                  passenger_prices: summary.pricing.passengers,
+                  occupancy: profiles,
+                }
+              : cat.upgrade
+                ? { base_amount: null, taxes: null, total: null, currency: "BRL", installments: {}, passenger_prices: [], occupancy: profiles }
+                : undefined,
         });
       });
-    return out;
-  }
-
-  function extrairDecks() {
-    const out = [];
-    document.querySelectorAll("img").forEach((img) => {
-      const src = abs(img.getAttribute("src"));
-      const alt = img.getAttribute("alt") || "";
-      if (!/deck/i.test(src + alt)) return;
-      const num = Number((`${alt} ${src}`.match(/deck[^0-9]{0,4}(\d{1,2})/i) || [])[1] || 0) || null;
-      out.push({
-        deck_label: num ? `Deck ${num}` : alt || src.slice(-40),
-        deck_number: num,
-        image_url: src,
-        source_url: location.href,
-      });
     });
-    return out;
-  }
 
-  function extrairMidia() {
-    const out = [];
-    document.querySelectorAll("img").forEach((img) => {
-      const src = abs(img.getAttribute("src"));
-      if (!src || /^data:/.test(src)) return;
-      if ((img.naturalWidth || img.width || 0) < 120) return;
-      out.push({
-        media_type: "image",
-        context: "gallery",
-        source_url: src,
-        hires_url: abs(img.getAttribute("data-zoom") || img.getAttribute("data-large") || ""),
-        thumbnail_url: "",
-        embed_url: "",
-        provider: "",
-        title: img.getAttribute("title") || "",
-        alt: img.getAttribute("alt") || "",
-        scope: "ship",
-      });
-    });
-    document.querySelectorAll("iframe[src], video source[src], video[src]").forEach((v) => {
-      const src = abs(v.getAttribute("src"));
-      if (!src) return;
-      if (v.tagName === "IFRAME" && !/youtube|vimeo|player/i.test(src)) return;
-      out.push({
-        media_type: "video",
-        context: "video",
-        source_url: src,
-        embed_url: src,
-        provider: /youtube/i.test(src) ? "youtube" : /vimeo/i.test(src) ? "vimeo" : "html5",
-        title: v.getAttribute("title") || "",
-        alt: "",
-        hires_url: "",
-        thumbnail_url: "",
-        scope: "ship",
-      });
-    });
-    const uniq = new Map();
-    out.forEach((m) => uniq.set(m.source_url, m));
-    return [...uniq.values()].slice(0, 400);
-  }
+    const shipName = H.clean(
+      (summary.cruise.name.match(/\b(MSC|Costa|Norwegian|Royal Caribbean|Disney)\s+[\wÀ-ú]+/) || [])[0] || "",
+    );
 
-  function extrairFichaTecnica() {
-    const specs = {};
-    document.querySelectorAll("li, tr, [class*='ficha'] div").forEach((el) => {
-      const t = txt(el);
-      const m = t.match(
-        /^(tamanho|inaugura[çc][ãa]o|[úu]ltima reforma|decks?|passageiros|cabines|tripulantes|altura|comprimento|tonelagem)[:\s]+(.{1,60})$/i,
-      );
-      if (m) specs[m[1].toLowerCase()] = m[2].trim();
-    });
-    return specs;
-  }
-
-  function extrairAdicionais() {
-    const out = [];
-    document.querySelectorAll("[class*='adicional'], [class*='additional'], [class*='transfer']").forEach((el) => {
-      const nome = txt(el.querySelector("h3,h4,strong,[class*='title']")) || txt(el).slice(0, 80);
-      if (!nome) return;
-      const bloco = txt(el);
-      const code = (bloco.match(/\b[0-9A-Z]{6,}\b/) || [])[0] || "";
-      const valor = money((bloco.match(/R\$\s?[\d.]+,\d{2}/) || [])[0]);
-      out.push({
-        category: /transfer/i.test(bloco) ? "Transfers" : "Outros",
-        code,
-        name: nome,
-        description: "",
-        prices: valor ? { adult: valor, young: valor, child: valor } : {},
-      });
-    });
-    const uniq = new Map();
-    out.forEach((a) => uniq.set(`${a.code}|${a.name}`, a));
-    return [...uniq.values()];
-  }
-
-  function extrairSeguros() {
-    const out = [];
-    document.querySelectorAll("[class*='seguro'], [class*='insurance']").forEach((el) => {
-      const bloco = txt(el);
-      if (!/seguro/i.test(bloco)) return;
-      const nome = (bloco.match(/SEGURO[^R]{0,80}/i) || [bloco.slice(0, 60)])[0].trim();
-      const link = el.querySelector("a[href]");
-      out.push({
-        name: nome,
-        price_per_person: money((bloco.match(/R\$\s?[\d.]+,\d{2}/) || [])[0]),
-        coverage_url: link ? abs(link.getAttribute("href")) : "",
-      });
-    });
-    const uniq = new Map();
-    out.forEach((s) => uniq.set(s.name, s));
-    return [...uniq.values()].slice(0, 10);
-  }
-
-  async function montarPayload() {
-    const xhr = await collectXhr();
-    const occ = extrairOcupacao();
-    const cruise = extrairCruzeiro();
-    const specs = extrairFichaTecnica();
+    const media = H.unique(
+      [...shipDetails.media, ...parser.parseMedia(document, "checkout", "cruise")],
+      (m) => m.source_url,
+    );
 
     const data = {
-      cruise,
-      occupancy: occ,
+      cruise: {
+        name: summary.cruise.name,
+        ship_name: shipName,
+        line: shipName.split(" ")[0] || "",
+        departure_date: summary.cruise.departure_date,
+        nights: summary.cruise.nights,
+        embark_port: summary.cruise.embark_port,
+        disembark_port: summary.cruise.disembark_port,
+        currency: "BRL",
+      },
+      occupancy: profiles,
       ship: {
-        name: cruise.ship_name,
-        line: (cruise.ship_name || "").split(" ")[0] || "",
+        name: shipName,
+        line: shipName.split(" ")[0] || "",
         description: "",
         main_image_url: "",
-        technical_image_url: "",
-        specs,
+        technical_image_url: shipDetails.technical_drawing_url,
+        specs: shipDetails.specs,
       },
-      itinerary: extrairItinerario(),
-      cabin_offers: extrairCabines(occ),
-      ship_cabins: [],
-      attractions: extrairAtracoes(),
-      decks: extrairDecks(),
-      media: extrairMidia(),
-      additionals: extrairAdicionais(),
-      insurances: extrairSeguros(),
+      itinerary: shipDetails.itinerary,
+      cabin_offers: cabinOffers,
+      ship_cabins: shipDetails.ship_cabins,
+      attractions: shipDetails.attractions,
+      decks: shipDetails.decks,
+      media,
+      additionals: additionals.map((a) => {
+        const prices = {};
+        a.prices.forEach((p) => {
+          if (p.value !== null && p.profile !== "other") prices[p.profile] = p.value;
+        });
+        return {
+          category: a.category,
+          code: a.code,
+          name: a.name,
+          description: a.description,
+          prices,
+        };
+      }),
+      insurances,
     };
+
+    const xhr = await collectXhr();
 
     return {
       source: "FRT_KROOZE",
+      parser_name: P.PARSER_NAME,
+      parser_version: P.PARSER_VERSION,
       url: location.href,
-      page_type: detectar()[0],
-      detected: detectar(),
+      page_type: pageType,
+      detected: parser.detectContent(),
       captured_at: new Date().toISOString(),
+      warnings: parser.warnings,
+      field_logs: parser.logs,
       data,
       raw: {
         title: document.title,
-        text: (document.body ? document.body.innerText : "").slice(0, 200000),
+        page_type: pageType,
+        parser_name: P.PARSER_NAME,
+        parser_version: P.PARSER_VERSION,
+        warnings: parser.warnings,
+        field_logs: parser.logs,
+        extracted: { cabin_types: cabinTypes, additionals, pricing: summary.pricing },
+        network: xhr.map((x) => ({ url: x.url, status: x.status, body: x.body })),
         html: document.documentElement.outerHTML.slice(0, 900000),
-        xhr: xhr.map((x) => ({ url: x.url, status: x.status, body: x.body })),
       },
     };
   }
@@ -345,11 +340,17 @@
   chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     if (!msg) return;
     if (msg.type === "viaair-cruise-detect") {
-      sendResponse({ detected: detectar(), url: location.href, title: document.title });
+      const parser = P.createParser(document, { view: window, url: location.href });
+      sendResponse({
+        page_type: parser.detectPageType(),
+        detected: parser.detectContent(),
+        url: location.href,
+        title: document.title,
+      });
       return false;
     }
     if (msg.type === "viaair-cruise-capture") {
-      montarPayload()
+      buildSnapshot({ deep: msg.deep !== false })
         .then((payload) => sendResponse({ ok: true, payload }))
         .catch((e) => sendResponse({ ok: false, error: String(e && e.message ? e.message : e) }));
       return true;
