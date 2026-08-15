@@ -15,6 +15,10 @@ const searchSchema = z.object({
   criancas: z.number().int().min(0).max(9).optional(),
   pais: z.string().max(60).optional(),
   companhia: z.string().max(60).optional(),
+  origemLabel: z.string().max(200).optional(),
+  destinoLabel: z.string().max(200).optional(),
+  origemValue: z.string().max(200).optional(),
+  destinoValue: z.string().max(200).optional(),
 });
 
 const componenteSchema = z.enum(["origem", "destino"]);
