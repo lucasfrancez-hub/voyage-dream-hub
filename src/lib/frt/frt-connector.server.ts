@@ -10,6 +10,7 @@ import {
   FrtError,
   FRT_FIELDS,
   camposDoUpdateAjax,
+  contarDataItemValue,
   coletarEstadoMotor,
   escolherItemAutocomplete,
   parseAutocompleteItens,
