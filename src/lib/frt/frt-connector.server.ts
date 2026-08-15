@@ -364,21 +364,19 @@ async function doLogin(): Promise<Session> {
     );
   }
 
-  const vsVenda = extractViewState(venda.body);
-  if (!vsVenda) {
+  // Campo/ViewState ausente NÃO é mudança de estrutura: pode ser shell da
+  // aplicação, carregamento por AJAX ou sessão não reaproveitada.
+  if (venda.estado !== "ok") throw erroDoEstado(venda);
+  if (!venda.viewState) {
     throw new FrtError(
-      "FRT_STRUCTURE_CHANGED",
-      "ViewState não encontrado na tela de venda",
-      "javax.faces.ViewState (venda.xhtml)",
+      "FRT_VENDA_NOT_LOADED",
+      "venda.xhtml abriu com o motor de pesquisa, mas sem javax.faces.ViewState.",
+      `status=${venda.status} bytes=${venda.tamanhoHtml}`,
     );
   }
-  s.viewState = vsVenda;
+  s.viewState = venda.viewState;
   loginFails = 0;
-  trace(
-    venda.temFormulario
-      ? "login OK — venda.xhtml aberta com frmMotorPacote"
-      : "login OK — venda.xhtml aberta, mas SEM frmMotorPacote (validar tela de venda)",
-  );
+  trace("login OK — venda.xhtml aberta com o motor de pesquisa");
 
   await persistSession(s);
   return s;
