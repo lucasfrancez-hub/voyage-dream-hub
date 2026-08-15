@@ -845,44 +845,6 @@ async function avisarAntesDoPrimeiroCard(ctx: Contexto, jaEntregues: number): Pr
   }
 }
 
-/** Fecho comercial humanizado depois que TODAS as opções chegaram. */
-async function talvezFechar(
-  quote: QuoteRow,
-  ctx: Contexto,
-  entregues: number,
-  expected: number,
-): Promise<void> {
-  if (!cotacaoConcluida(entregues, expected)) return;
-  try {
-    const supabaseAdmin = await db();
-    const { montarFecho, FECHO_RE } = await import("./fecho-cotacao");
-    const { firstName } = await import("./text-utils.server");
-    const desde = new Date(Date.now() - 60 * 60 * 1000).toISOString();
-    const { data } = await supabaseAdmin
-      .from("wa_messages")
-      .select("content")
-      .eq("conversation_id", ctx.conversation_id)
-      .eq("direction", "outbound")
-      .gte("created_at", desde)
-      .limit(50);
-    const jaFechou = (data ?? []).some((m) => FECHO_RE.test((m as { content: string | null }).content ?? ""));
-    if (jaFechou) return;
-    const { data: conv } = await supabaseAdmin
-      .from("wa_conversations")
-      .select("display_name")
-      .eq("id", ctx.conversation_id)
-      .maybeSingle();
-    const nome = firstName((conv as { display_name?: string | null } | null)?.display_name ?? null);
-    const { saveAndSendText } = await import("./conversation.server");
-    for (const balao of montarFecho(nome, entregues)) {
-      await saveAndSendText(ctx.conversation_id, ctx.wa_phone, balao);
-    }
-    log({ event: "flight_delivery_fecho_enviado", quote_id: quote.id, opcoes: entregues });
-  } catch (e) {
-    console.warn("[flight-delivery] fecho falhou:", (e as Error)?.message ?? e);
-  }
-}
-
 /* ────────────────────── varredura (cron / watchdog) ─────────────────────── */
 
 /**
