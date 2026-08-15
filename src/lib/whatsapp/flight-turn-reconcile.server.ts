@@ -61,6 +61,15 @@ export async function reconcilePendingAgentTurns(): Promise<{
     if (parado < RETRY_MS) continue;
 
     if (parado < ESCALATE_MS) {
+      // Um `ai_debounce_until` no futuro significa que já existe run agendado
+      // (debounce normal), lease de execução em andamento (5 min) ou espera
+      // humana de transferência (1min30–3min). Sobrescrever esse horário
+      // causava dois runs simultâneos para a mesma mensagem — daí o
+      // especialista entrando 1s depois do aviso de transferência e as
+      // perguntas repetidas ("de qual cidade vc pretende embarcar?").
+      // Turno realmente travado = nada agendado.
+      if (conv.ai_debounce_until) continue;
+
       // Proibido loop: cada reexecução conta. Estourou o limite → válvula de
       // segurança (transferência automática por instabilidade).
       const { registrarTentativaRecuperacao, transferirPorInstabilidade } = await import(
@@ -79,24 +88,12 @@ export async function reconcilePendingAgentTurns(): Promise<{
         continue;
       }
 
-      // Reexecuta o turno APENAS quando não há nada agendado. Um
-      // `ai_debounce_until` no futuro significa que já existe run agendado
-      // (debounce normal), lease de execução em andamento (5 min) ou espera
-      // humana de transferência (1min30–3min). Sobrescrever esse horário
-      // causava dois runs simultâneos para a mesma mensagem — daí o
-      // especialista entrando 1s depois do aviso de transferência e as
-      // perguntas repetidas ("de qual cidade vc pretende embarcar?").
-      if (!conv.ai_debounce_until) {
-        await supabaseAdmin
-          .from("wa_conversations")
-          .update({ ai_debounce_until: new Date().toISOString() })
-          .eq("id", raw.conversation_id)
-          .is("ai_debounce_until", null);
-      } else {
-        // Já há execução/agenda ativa: não conta como tentativa de recuperação
-        // nem força nada. O próximo tick reavalia.
-        continue;
-      }
+      await supabaseAdmin
+        .from("wa_conversations")
+        .update({ ai_debounce_until: new Date().toISOString() })
+        .eq("id", raw.conversation_id)
+        .is("ai_debounce_until", null);
+
 
       await supabaseAdmin
         .from("wa_flight_search_requests")
