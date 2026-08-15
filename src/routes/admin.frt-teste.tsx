@@ -358,6 +358,9 @@ function FrtTestePage() {
               <Badge variant={dp.amostraPesquisa?.temPrecos ? "default" : "secondary"}>
                 preços: {dp.amostraPesquisa?.amostraPrecos.length ?? 0}
               </Badge>
+              <Badge variant={dp.amostraPesquisa?.validationFailed ? "destructive" : "outline"}>
+                validationFailed: {dp.amostraPesquisa?.validationFailed ? "true" : "false"}
+              </Badge>
             </div>
             <p className="text-muted-foreground">
               updates:{" "}
@@ -374,6 +377,52 @@ function FrtTestePage() {
               mensagem &quot;nenhum resultado&quot;:{" "}
               {dp.amostraPesquisa?.mensagemNenhumResultado ?? "—"}
             </p>
+            {dp.amostraPesquisa?.inventario ? (
+              <details open>
+                <summary className="cursor-pointer text-muted-foreground">
+                  Campos do frmMotorPacote (
+                  {dp.amostraPesquisa.inventario.campos.length}) — form{" "}
+                  {dp.amostraPesquisa.inventario.encontrouForm ? "encontrado" : "não encontrado"}
+                </summary>
+                <div className="mt-2 overflow-auto">
+                  <table className="w-full text-[11px]">
+                    <thead className="text-muted-foreground">
+                      <tr>
+                        <th className="text-left">id</th>
+                        <th className="text-left">name</th>
+                        <th className="text-left">type</th>
+                        <th className="text-left">valor</th>
+                        <th className="text-left">widgetVar</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {dp.amostraPesquisa.inventario.campos.map((c, i) => (
+                        <tr key={`${c.id ?? c.name ?? "campo"}-${i}`} className="border-t">
+                          <td className="break-all pr-2">{c.id ?? "—"}</td>
+                          <td className="break-all pr-2">{c.name ?? "—"}</td>
+                          <td className="pr-2">{c.type ?? c.tag}</td>
+                          <td className="break-all pr-2">{c.valor}</td>
+                          <td className="break-all">{c.widgetVar ?? "—"}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <p className="mt-2 text-muted-foreground">
+                  widgets: {dp.amostraPesquisa.inventario.widgets.join(", ") || "—"}
+                </p>
+                <details className="mt-2">
+                  <summary className="cursor-pointer text-muted-foreground">
+                    Scripts idAeroOrigem / idAeroDestino (
+                    {dp.amostraPesquisa.inventario.scriptsAutocomplete.length})
+                  </summary>
+                  <pre className="mt-2 max-h-72 overflow-auto whitespace-pre-wrap break-all">
+                    {dp.amostraPesquisa.inventario.scriptsAutocomplete.join("\n\n---\n\n") ||
+                      "(nenhum script encontrado)"}
+                  </pre>
+                </details>
+              </details>
+            ) : null}
             <details>
               <summary className="cursor-pointer text-muted-foreground">
                 Resposta bruta sanitizada
