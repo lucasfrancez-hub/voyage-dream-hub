@@ -207,10 +207,11 @@ async function doLogin(): Promise<Session> {
     },
   });
 
-  // Validação real: acessar a área autenticada.
-  const venda = await frtFetch(s, VENDA_URL, { headers: { Referer: LOGIN_URL } });
+  // Validação real: acessar a área autenticada (GET explícito, mesmo cookie jar).
+  const venda = await abrirVenda(s, LOGIN_URL);
   const negado =
-    looksLikeLoginPage(venda.body) || (!s.cookies.size && looksLikeLoginPage(posted.body));
+    (venda.voltouParaLogin && !needsAuthCode(venda.body)) ||
+    (!s.cookies.size && looksLikeLoginPage(posted.body));
   if (negado) {
     loginFails += 1;
     if (loginFails >= MAX_LOGIN_FAILS) {
@@ -241,7 +242,12 @@ async function doLogin(): Promise<Session> {
   }
   s.viewState = vsVenda;
   loginFails = 0;
-  trace("login OK — sessão autenticada");
+  trace(
+    venda.temFormulario
+      ? "login OK — venda.xhtml aberta com frmMotorPacote"
+      : "login OK — venda.xhtml aberta, mas SEM frmMotorPacote (validar tela de venda)",
+  );
+
   await persistSession(s);
   return s;
 }
