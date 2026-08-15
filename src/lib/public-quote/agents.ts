@@ -18,6 +18,15 @@ const AGENTS: Record<string, AgentProfile> = {
     photoUrl: "https://media.infotravel.com.br/image/upload/E9E91522DE7AB637046B2E7A4B780637.jpg",
     role: "Consultor de viagens",
   },
+  bruno: { name: "Bruno", photoUrl: brunoAsset.url, role: "Consultor de viagens" },
+  paula: { name: "Paula", photoUrl: paulaAsset.url, role: "Consultora de viagens" },
+  camila: { name: "Camila", photoUrl: camilaAsset.url, role: "Consultora de viagens" },
+  roberto: { name: "Roberto", photoUrl: robertoAsset.url, role: "Consultor de viagens" },
+  nath: { name: "Nath", photoUrl: nathAsset.url, role: "Consultora de viagens" },
+  nathalia: { name: "Nath", photoUrl: nathAsset.url, role: "Consultora de viagens" },
+  giovani: { name: "Giovani", photoUrl: giovaniAsset.url, role: "Consultor de viagens" },
+  fabricio: { name: "Fabrício", photoUrl: fabricioAsset.url, role: "Consultor de viagens" },
+  maria: { name: "Maria", photoUrl: mariaAsset.url, role: "Consultora de viagens" },
 };
 
 /** Busca tolerante: "Lucas Rocha Francez", "lucas  francez", "Lucas F." etc. */
