@@ -1386,8 +1386,12 @@ export async function runAgent(input: {
             .eq("protocolo_id", protocolo.id)
             .eq("direction", "outbound")
             .neq("sender", "system")
+            // O aviso de transferência não conta como resposta: ele é só a
+            // ponte pro especialista, que responde no run agendado depois.
+            .neq("content", AVISO_TRANSFERENCIA_AEREO)
             .gt("created_at", latestInboundAtStart.created_at)
         : Promise.resolve({ count: 0 }),
+
     ]);
     const activeSlug = centralAgent ? currentConv?.central_slug : currentConv?.agent_slug;
     const runtimeSwitchedToCentral = !centralAgent && currentConv?.central_slug != null;
