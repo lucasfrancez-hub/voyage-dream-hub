@@ -922,7 +922,87 @@ export function buildCentralTools(
       },
     }),
 
+    reservar_opcao: tool({
+      description:
+        "Use SOMENTE depois que o cliente escolher uma das opções já enviadas E disser que prefere seguir com você por aqui (em vez de finalizar sozinho pelo link). Antes de chamar, você PRECISA ter coletado nome completo, CPF e data de nascimento de CADA passageiro. A tool cria o pedido na VIA AIR com a opção escolhida e os passageiros, e passa a conversa para um consultor humano dar sequência. NÃO use quando o cliente disser que vai finalizar pelo link sozinho, nem antes de ter todos os dados.",
+      inputSchema: z.object({
+        quote_id: z.string().min(6).describe("quote_id da cotação, exatamente como aparece no bloco de opções enviadas"),
+        option_index: z.number().int().min(1).max(6).describe("Número da opção escolhida (1, 2 ou 3)"),
+        passageiros: z
+          .array(
+            z.object({
+              nome_completo: z.string().min(3).describe("Nome completo como está no documento (nome e sobrenome)"),
+              cpf: z.string().min(11).describe("CPF do passageiro, só dígitos ou formatado"),
+              data_nascimento: z.string().min(8).describe("Data de nascimento em DD/MM/AAAA"),
+              tipo: z.enum(["adulto", "crianca", "bebe"]).nullable().describe("Deixe null se não souber — é calculado pela data de nascimento"),
+            }),
+          )
+          .min(1)
+          .max(9)
+          .describe("Um item por passageiro da viagem, na ordem informada pelo cliente. Nunca invente dado nem repita o CPF do titular para os demais."),
+      }),
+      execute: async ({ quote_id, option_index, passageiros }) => {
+        const { criarPedidoDaOpcaoAerea } = await import("@/lib/orders/from-flight-option.server");
+        const r = await criarPedidoDaOpcaoAerea({
+          conversationId: conversation.id,
+          waPhone: conversation.wa_phone ?? null,
+          clienteNome: conversation.display_name ?? null,
+          quoteId: quote_id,
+          optionIndex: option_index,
+          passageiros,
+        });
+
+        if (!r.ok) {
+          if (r.erro === "dados_incompletos") {
+            return {
+              ok: false,
+              faltam_dados: true,
+              problemas: r.detalhe,
+              instrucao: `Ainda falta: ${r.detalhe}. Peça isso ao cliente em UMA mensagem curta e natural, sem repetir o que ele já mandou certo e sem falar em sistema, cadastro ou erro. Só chame esta tool de novo quando tiver tudo.`,
+            };
+          }
+          if (r.erro === "opcao_nao_encontrada" || r.erro === "cotacao_nao_encontrada") {
+            return {
+              ok: false,
+              instrucao:
+                "Não achei essa opção no registro. Confirme com o cliente, de forma curta e natural, qual das opções ele quer seguir — não invente dados e não faça nova pesquisa.",
+            };
+          }
+          return {
+            ok: false,
+            instrucao:
+              "Não consegui concluir agora. Continue a conversa com naturalidade, diga que já está passando pro consultor dar sequência e chame encaminhar_para_comercial com todo o contexto. Nunca mencione erro, sistema ou cadastro.",
+          };
+        }
+
+        const paxLinhas = r.passageiros
+          .map(
+            (p, i) =>
+              `${i + 1}. ${p.nome_completo} · CPF ${p.cpf} · nasc. ${p.birth_date.split("-").reverse().join("/")}`,
+          )
+          .join("\n");
+        const briefing =
+          `✈️ Cliente ESCOLHEU a opção ${option_index} e quer seguir pelo atendimento\n` +
+          `🧾 Pedido ${r.orderNumber ?? r.orderId} já criado (aba Pedidos), aguardando emissão\n` +
+          `💰 Total da opção: ${fmtMoneyBRL(r.total)}\n\n` +
+          `👥 Passageiros:\n${paxLinhas}\n\n` +
+          `Cotação ${quote_id} · opção ${option_index}`;
+
+        await encaminharParaComercial(conversation, briefing, "outro", "high");
+
+        return {
+          ok: true,
+          pedido: r.orderNumber ?? r.orderId,
+          instrucao:
+            `O pedido já foi gerado com os dados dos passageiros. Envie UMA mensagem curta e natural confirmando que anotou tudo e já registrou a reserva dessa opção, e que um consultor continua com ele por aqui pra finalizar. ` +
+            `Pode citar o número do pedido ${r.orderNumber ?? ""}`.trim() +
+            `. NÃO reenvie o link, NÃO repita a cotação inteira, NÃO peça nada que ele já informou e NÃO fale em pagamento adiantado nem em garantir valor.`,
+        };
+      },
+    }),
+
   };
+
 
   if (!permitidas.length) return todas;
   const filtradas = { ...todas } as Record<string, unknown>;
