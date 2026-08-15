@@ -593,7 +593,25 @@ export async function runAgent(input: {
     if (espec) centralAgent = espec as unknown as Agent;
   }
 
+  // APRESENTAÇÃO GARANTIDA: a transferência é anunciada num run e o
+  // especialista responde num run posterior (delay humano). Nesse segundo run
+  // a rota já estava gravada, então `centralPrimeiroContato` vinha false e o
+  // Bruno/Paula entrava seco. Vale como primeiro contato sempre que o
+  // especialista ainda não falou neste protocolo.
+  if (centralAgent && !centralPrimeiroContato) {
+    const { data: jaFalou } = await supabaseAdmin
+      .from("wa_messages")
+      .select("id")
+      .eq("conversation_id", conv.id)
+      .eq("protocolo_id", protocolo.id)
+      .eq("direction", "outbound")
+      .eq("agent_slug", centralAgent.slug)
+      .limit(1);
+    if (!(jaFalou ?? []).length) centralPrimeiroContato = true;
+  }
+
   const agent = centralAgent ?? (await pickAgent(agents, stickySlug));
+
 
   // Atendimento aéreo sempre tem uma solicitação persistida — é ela que
   // segura o setor, guarda os dados coletados e sobrevive a "isso"/"?".
