@@ -9,7 +9,7 @@
   if (window.__viaairCruiseFab) return;
   window.__viaairCruiseFab = true;
 
-  const state = { active: false, cruise: null, session: null, captures: 0, busy: false, open: true };
+  const state = { active: false, cruise: null, session: null, captures: 0, busy: false, open: true, error: null };
   let root = null;
   let shadow = null;
 
@@ -90,11 +90,16 @@
         <div class="wrap"><div class="card">
           <div class="head"><b>VIA AIR — Exportar Cruzeiro</b><span class="x" id="fechar">✕</span></div>
           <div class="body">
-            <div class="pill">Pronto para capturar</div>
-            <div class="muted" style="margin-top:8px">
-              Não precisa criar o cruzeiro antes: nome, data e navio vêm da própria captura.
-              Para enviar a um cruzeiro já existente, ative a importação no painel e clique em verificar.
-            </div>
+            <div class="pill">${state.error ? "Sem conexão com o painel" : "Pronto para capturar"}</div>
+            <div class="muted" style="margin-top:8px">${
+              state.error === "no_token"
+                ? "Extensão não pareada. Abra <b>pedidos.viaair.tur.br</b> logado em outra aba e volte aqui."
+                : state.error === "forbidden"
+                  ? "Sua conta não tem permissão de admin para importar cruzeiros."
+                  : state.error
+                    ? "Não consegui falar com o painel (" + state.error + ")."
+                    : "Não precisa criar o cruzeiro antes: nome, data e navio vêm da própria captura. Ao ativar a importação no painel, o plugin detecta sozinho em segundos."
+            }</div>
             <button id="capturar" ${state.busy ? "disabled" : ""}>${
               state.busy ? "Capturando…" : "Capturar e criar cruzeiro"
             }</button>
@@ -116,7 +121,14 @@
         render("Consultando o painel…");
         await refresh();
         state.busy = false;
-        render(state.active ? "" : "Nenhum cruzeiro ativo — a captura vai criar um novo.", "");
+        render(
+          state.active
+            ? ""
+            : state.error
+              ? "Não foi possível consultar o painel."
+              : "Nenhum cruzeiro ativo — a captura vai criar um novo.",
+          state.error ? "erro" : "",
+        );
       };
       return;
     }
@@ -236,6 +248,7 @@
 
   async function refresh() {
     const info = await send({ type: "viaair-cruise-active" });
+    state.error = (info && info.error) || null;
     state.active = Boolean(info && info.active);
     state.cruise = (info && info.cruise) || null;
     state.session = (info && info.session) || null;
@@ -252,12 +265,21 @@
 
   // Reconsulta o painel de tempo em tempo: ativar a importação em outra aba
   // passa a refletir aqui sozinho.
-  setInterval(async () => {
+  const assinatura = () =>
+    [state.active, state.session && state.session.token, state.captures, state.error].join("|");
+
+  async function sincronizar() {
     if (state.busy) return;
-    const antes = state.active;
+    const antes = assinatura();
     await refresh();
-    if (antes !== state.active) render();
-  }, 20000);
+    if (antes !== assinatura()) render();
+  }
+
+  setInterval(sincronizar, 5000);
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) sincronizar();
+  });
+  window.addEventListener("focus", sincronizar);
 
   // Reagir quando a importação é ativada/finalizada no painel enquanto a aba está aberta.
   chrome.runtime.onMessage.addListener((msg) => {
