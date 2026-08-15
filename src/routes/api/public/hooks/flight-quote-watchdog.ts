@@ -148,10 +148,21 @@ export const Route = createFileRoute("/api/public/hooks/flight-quote-watchdog")(
           const msgs = inicio ? msgsAll.filter((m) => m.created_at >= inicio) : msgsAll;
           if (!msgs.length) continue;
 
-          // Primeira promessa ainda não resolvida. Usar a última fazia uma nova
-          // desculpa ("vou verificar") zerar o relógio e travar o atendimento.
+          // Uma promessa só pertence ao turno que a originou. Se o cliente já
+          // mandou outra mensagem depois dela (ex.: saiu de aéreo e pediu
+          // pacote), a promessa antiga não pode disparar instabilidade no novo
+          // assunto.
+          const ultimaEntrada = [...msgs]
+            .reverse()
+            .find((m) => m.direction === "inbound");
+          const msgsDoTurno = ultimaEntrada
+            ? msgs.filter((m) => m.created_at >= ultimaEntrada.created_at)
+            : msgs;
+
+          // Primeira promessa ainda não resolvida dentro do turno atual. Usar
+          // a última fazia uma nova desculpa zerar o relógio.
           let promessa: Row | null = null;
-          for (const m of msgs) {
+          for (const m of msgsDoTurno) {
             if (m.direction === "outbound" && m.sender !== "system" && PROMESSA.test(m.content ?? "")) {
               promessa = m;
               break;
@@ -160,6 +171,18 @@ export const Route = createFileRoute("/api/public/hooks/flight-quote-watchdog")(
           if (!promessa) continue;
 
           const depois = msgs.filter((m) => m.created_at > promessa!.created_at);
+
+          // A entrega oficial pode ser texto + link, não apenas uma arte. O
+          // estado da cotação é a fonte de verdade: uma cotação concluída neste
+          // protocolo encerra a vigilância dessa promessa.
+          const { data: cotacaoConcluida } = await supabaseAdmin
+            .from("wa_flight_quotes")
+            .select("id")
+            .eq("conversation_id", convId)
+            .eq("protocolo_id", conv.protocolo_ativo_id as string)
+            .eq("delivery_status", "completed")
+            .limit(1);
+          if ((cotacaoConcluida ?? []).length) continue;
 
           // A entrega das opções já foi feita pela varredura central lá em cima
           // (processNextFlightQuoteOption). Aqui o watchdog cuida só do fecho e
