@@ -1018,3 +1018,13 @@ export async function frtDiagnostico(reusarSessao = true) {
     };
   }
 }
+
+/** Diagnóstico do POST de pesquisa: resposta bruta sanitizada + inventário de updates. */
+export async function frtDiagnosticoPesquisa(input: FrtSearchInput) {
+  const resultado = await consultarFRT(input);
+  return {
+    resultado,
+    amostraPesquisa: frtUltimaAmostraPesquisa(),
+    log: frtTraceLog().slice(-60),
+  };
+}
