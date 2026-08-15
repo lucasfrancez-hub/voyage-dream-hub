@@ -90,14 +90,19 @@
         <div class="wrap"><div class="card">
           <div class="head"><b>VIA AIR — Exportar Cruzeiro</b><span class="x" id="fechar">✕</span></div>
           <div class="body">
-            <div class="pill warn">Nenhuma importação ativa</div>
+            <div class="pill">Pronto para capturar</div>
             <div class="muted" style="margin-top:8px">
-              No painel VIA AIR, abra <b>Produtos → Cruzeiros</b>, crie o cruzeiro e clique em
-              <b>Ativar importação</b>. Depois volte aqui e clique em verificar.
+              Não precisa criar o cruzeiro antes: nome, data e navio vêm da própria captura.
+              Para enviar a um cruzeiro já existente, ative a importação no painel e clique em verificar.
             </div>
-            <button id="verificar" ${state.busy ? "disabled" : ""}>${
-              state.busy ? "Verificando…" : "Verificar importação ativa"
+            <button id="capturar" ${state.busy ? "disabled" : ""}>${
+              state.busy ? "Capturando…" : "Capturar e criar cruzeiro"
             }</button>
+            <div class="mini">
+              <button class="ghost" id="verificar" ${state.busy ? "disabled" : ""}>${
+                state.busy ? "Verificando…" : "Verificar importação ativa"
+              }</button>
+            </div>
             <div class="status" style="color:${tone === "erro" ? "#b91c1c" : "#64748b"}">${status || ""}</div>
           </div>
         </div></div>`;
@@ -105,12 +110,13 @@
         state.open = false;
         render();
       };
+      host.querySelector("#capturar").onclick = () => capturar("full");
       host.querySelector("#verificar").onclick = async () => {
         state.busy = true;
         render("Consultando o painel…");
         await refresh();
         state.busy = false;
-        render(state.active ? "" : "Ainda não há importação ativa no painel.", state.active ? "" : "erro");
+        render(state.active ? "" : "Nenhum cruzeiro ativo — a captura vai criar um novo.", "");
       };
       return;
     }
@@ -188,7 +194,7 @@
 
     if (out.error === "no_active_import") {
       state.active = false;
-      render();
+      render("A importação foi finalizada no painel. Capture de novo para criar um cruzeiro.", "erro");
       return;
     }
     if (out.error === "session_changed") {
@@ -200,13 +206,17 @@
       render("Falha ao enviar: " + out.error, "erro");
       return;
     }
+    if (out.auto_created || !state.active) {
+      // O cruzeiro nasceu da própria captura: sincroniza o balão com a sessão nova.
+      await refresh();
+    }
     state.captures = out.capture || state.captures + 1;
     const occ = res.payload && res.payload.data ? res.payload.data.occupancy : null;
     const pax = occ ? (occ.adults || 0) + (occ.young || 0) + (occ.children || 0) + (occ.infants || 0) : 0;
     render(
       out.ok === false
         ? `Take #${String(state.captures).padStart(2, "0")} recebido, mas falhou ao processar.`
-        : `✓ Take #${String(state.captures).padStart(2, "0")} enviado${pax ? ` (${pax} pax)` : ""}. Aguardando o próximo.`,
+        : (out.auto_created ? "✓ Cruzeiro criado automaticamente. " : "") + `Take #${String(state.captures).padStart(2, "0")} enviado${pax ? ` (${pax} pax)` : ""}. Aguardando o próximo.`,
       out.ok === false ? "erro" : "ok",
     );
   }

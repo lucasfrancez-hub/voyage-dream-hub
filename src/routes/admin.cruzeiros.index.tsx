@@ -200,9 +200,11 @@ function CruzeirosAdmin() {
         <div>
           <h1 className="text-xl font-semibold">Cruzeiros</h1>
           <p className="text-sm text-muted-foreground">
-            Crie o cruzeiro, ative a importação e envie quantas capturas quiser pelo plugin
-            <b> Exportar Cruzeiro</b>.
+            Capture direto pelo plugin <b>Exportar Cruzeiro</b>: o cruzeiro é criado sozinho com
+            nome, data e navio da própria captura. Criar aqui só é necessário para enviar
+            capturas a um cruzeiro específico.
           </p>
+
         </div>
       </header>
 
