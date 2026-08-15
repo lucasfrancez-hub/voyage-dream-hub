@@ -79,7 +79,8 @@ async function frtFetch(
   s: Session,
   url: string,
   init: RequestInit & { body?: string } = {},
-): Promise<{ res: Response; body: string; url: string }> {
+  redirects: string[] = [],
+): Promise<{ res: Response; body: string; url: string; redirects: string[] }> {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
   try {
@@ -104,10 +105,11 @@ async function frtFetch(
     if (res.status >= 300 && res.status < 400 && loc) {
       const next = new URL(loc, url).toString();
       trace(`redirect -> ${next}`);
-      const followed = await frtFetch(s, next, { headers: init.headers });
-      return { res: followed.res, body: followed.body, url: followed.url };
+      redirects.push(`${res.status} ${url} -> ${next}`);
+      const followed = await frtFetch(s, next, { headers: init.headers }, redirects);
+      return { res: followed.res, body: followed.body, url: followed.url, redirects };
     }
-    return { res, body, url };
+    return { res, body, url, redirects };
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     if (/abort/i.test(msg)) throw new FrtError("FRT_TIMEOUT", "Tempo esgotado na FRT");
@@ -119,37 +121,188 @@ async function frtFetch(
 
 /* ------------- acesso autenticado à tela de venda ------------------ */
 
+/**
+ * Classificação do que realmente voltou de venda.xhtml. Só `estrutura`
+ * significa "o formulário mudou" — todo o resto tem causa própria.
+ */
+export type VendaEstado =
+  | "ok"
+  | "login"
+  | "2fa"
+  | "shell"
+  | "erro_http"
+  | "estrutura";
+
 export type AcessoVenda = {
   status: number;
   urlFinal: string;
   temFormulario: boolean;
+  temBotaoPesquisa: boolean;
   temLogin: boolean;
+  temAuthXhtml: boolean;
   voltouParaLogin: boolean;
+  aguardandoCodigo: boolean;
+  tamanhoHtml: number;
+  titulo: string | null;
+  formularios: string[];
+  viewState: string | null;
+  redirects: string[];
+  estado: VendaEstado;
   body: string;
 };
 
+/** Sanitiza e guarda uma amostra do HTML só para diagnóstico técnico. */
+let ultimaAmostra: { em: string; url: string; estado: VendaEstado; html: string } | null = null;
+export function frtUltimaAmostraHtml() {
+  return ultimaAmostra;
+}
+function amostraSanitizada(html: string): string {
+  const limpo = maskSensitive(
+    html
+      .replace(/<script[\s\S]*?<\/script>/gi, "<script/>")
+      .replace(/<style[\s\S]*?<\/style>/gi, "<style/>")
+      .replace(/(value=")[^"]{4,}(")/gi, "$1***$2")
+      .replace(/(javax\.faces\.ViewState[^>]{0,80}value=")[^"]+(")/gi, "$1<viewstate>$2"),
+  );
+  return limpo.length > 20_000 ? `${limpo.slice(0, 20_000)}\n…[truncado]` : limpo;
+}
+
+function listarFormularios(html: string): string[] {
+  const out: string[] = [];
+  for (const m of html.matchAll(/<form\b[^>]*>/gi)) {
+    const tag = m[0];
+    const id = tag.match(/\bid="([^"]+)"/i)?.[1];
+    const name = tag.match(/\bname="([^"]+)"/i)?.[1];
+    const action = tag.match(/\baction="([^"]+)"/i)?.[1];
+    out.push(`id=${id ?? "-"} name=${name ?? "-"} action=${action ?? "-"}`);
+    if (out.length >= 8) break;
+  }
+  return out;
+}
+
 /**
  * GET autenticado explícito em venda.xhtml, seguindo redirects e usando
- * exatamente o mesmo cookie jar. Só depois disso vale procurar ViewState
- * e frmMotorPacote. Loga as três provas pedidas.
+ * exatamente o mesmo cookie jar. Registra TODAS as provas antes de qualquer
+ * conclusão — campo ausente nunca é tratado como mudança de estrutura aqui.
  */
 async function abrirVenda(s: Session, referer = BASE): Promise<AcessoVenda> {
   trace("GET venda.xhtml");
-  const { res, body, url } = await frtFetch(s, VENDA_URL, { headers: { Referer: referer } });
+  const { res, body, url, redirects } = await frtFetch(s, VENDA_URL, {
+    headers: { Referer: referer },
+  });
   const temFormulario = /frmMotorPacote/i.test(body);
+  const temBotaoPesquisa = /btnMotorPacotePesquisa/i.test(body);
   const temLogin = /login-usuario-input/i.test(body);
+  const temAuthXhtml = /auth\.xhtml/i.test(body) || /auth\.xhtml/i.test(url);
+  const aguardandoCodigo = needsAuthCode(body);
   const voltouParaLogin = /auth\.xhtml|login\.xhtml/i.test(url) || temLogin;
+  const titulo = body.match(/<title[^>]*>([\s\S]{0,200}?)<\/title>/i)?.[1]?.trim() ?? null;
+  const formularios = listarFormularios(body);
+  const viewState = extractViewState(body);
+
+  let estado: VendaEstado;
+  if (aguardandoCodigo) estado = "2fa";
+  else if (voltouParaLogin) estado = "login";
+  else if (res.status >= 400) estado = "erro_http";
+  else if (temFormulario || temBotaoPesquisa) estado = "ok";
+  else estado = "shell";
+
   trace(`  status: ${res.status}`);
   trace(`  URL final: ${url}`);
+  trace(`  tamanho do HTML: ${body.length} bytes`);
   trace(`  HTML contém "frmMotorPacote": ${temFormulario}`);
+  trace(`  HTML contém "btnMotorPacotePesquisa": ${temBotaoPesquisa}`);
   trace(`  HTML contém "login-usuario-input": ${temLogin}`);
-  if (voltouParaLogin) {
-    trace("  ⚠️ sessão pós-login NÃO foi reaproveitada (voltou para tela de login)");
-  } else if (!temFormulario) {
-    trace("  ⚠️ venda.xhtml abriu autenticado, mas sem frmMotorPacote (etapa extra de inicialização?)");
+  trace(`  HTML referencia "auth.xhtml": ${temAuthXhtml}`);
+  trace(`  título da página: ${titulo ?? "(sem título)"}`);
+  trace(`  formulários: ${formularios.length ? formularios.join(" | ") : "(nenhum)"}`);
+  trace(`  javax.faces.ViewState: ${viewState ? "encontrado" : "AUSENTE"}`);
+  trace(`  redirects: ${redirects.length ? redirects.join(" | ") : "(nenhum)"}`);
+  trace(`  estado classificado: ${estado}`);
+
+  if (estado !== "ok") {
+    ultimaAmostra = {
+      em: new Date().toISOString(),
+      url,
+      estado,
+      html: amostraSanitizada(body),
+    };
+    if (estado === "login") {
+      trace("  ⚠️ sessão não reaproveitada — voltou para login/auth (FRT_AUTH_REQUIRED)");
+    } else if (estado === "2fa") {
+      trace("  ⚠️ FRT aguardando código de verificação (FRT_2FA_REQUIRED)");
+    } else if (estado === "erro_http") {
+      trace(`  ⚠️ venda.xhtml respondeu HTTP ${res.status} (FRT_VENDA_NOT_LOADED)`);
+    } else {
+      trace(
+        "  ⚠️ venda.xhtml abriu autenticado, mas sem o motor de pesquisa — provável shell da aplicação ou conteúdo carregado por AJAX (FRT_VENDA_NOT_LOADED). Amostra sanitizada do HTML guardada para diagnóstico.",
+      );
+    }
   }
-  return { status: res.status, urlFinal: url, temFormulario, temLogin, voltouParaLogin, body };
+
+  return {
+    status: res.status,
+    urlFinal: url,
+    temFormulario,
+    temBotaoPesquisa,
+    temLogin,
+    temAuthXhtml,
+    voltouParaLogin,
+    aguardandoCodigo,
+    tamanhoHtml: body.length,
+    titulo,
+    formularios,
+    viewState,
+    redirects,
+    estado,
+    body,
+  };
 }
+
+/** Erro correto para cada estado que NÃO é "ok". Nunca devolve estrutura. */
+function erroDoEstado(v: AcessoVenda): FrtError {
+  if (v.estado === "2fa") {
+    return new FrtError(
+      "FRT_2FA_REQUIRED",
+      "A FRT está pedindo o código de verificação por e-mail.",
+    );
+  }
+  if (v.estado === "login") {
+    return new FrtError(
+      "FRT_AUTH_REQUIRED",
+      "A sessão não está autenticada na FRT (venda.xhtml voltou para login/auth).",
+      `URL final: ${v.urlFinal}`,
+    );
+  }
+  return new FrtError(
+    "FRT_VENDA_NOT_LOADED",
+    v.estado === "erro_http"
+      ? `venda.xhtml respondeu HTTP ${v.status}.`
+      : "venda.xhtml abriu autenticado, mas sem o motor de pesquisa (shell da aplicação ou carregamento por AJAX).",
+    `status=${v.status} bytes=${v.tamanhoHtml} título=${v.titulo ?? "-"} forms=${v.formularios.join(" | ") || "-"}`,
+  );
+}
+
+/** Resumo (sem HTML bruto) do acesso à venda, seguro para o front-end. */
+function resumoAcesso(v: AcessoVenda) {
+  return {
+    status: v.status,
+    urlFinal: v.urlFinal,
+    temFormulario: v.temFormulario,
+    temBotaoPesquisa: v.temBotaoPesquisa,
+    temLogin: v.temLogin,
+    temAuthXhtml: v.temAuthXhtml,
+    voltouParaLogin: v.voltouParaLogin,
+    aguardandoCodigo: v.aguardandoCodigo,
+    tamanhoHtml: v.tamanhoHtml,
+    titulo: v.titulo,
+    formularios: v.formularios,
+    viewStatePresente: Boolean(v.viewState),
+    redirects: v.redirects,
+    estado: v.estado,
+  };
+}
+export type ResumoAcessoVenda = ReturnType<typeof resumoAcesso>;
 
 /* ----------------------------- login ------------------------------ */
 
@@ -232,21 +385,19 @@ async function doLogin(): Promise<Session> {
     );
   }
 
-  const vsVenda = extractViewState(venda.body);
-  if (!vsVenda) {
+  // Campo/ViewState ausente NÃO é mudança de estrutura: pode ser shell da
+  // aplicação, carregamento por AJAX ou sessão não reaproveitada.
+  if (venda.estado !== "ok") throw erroDoEstado(venda);
+  if (!venda.viewState) {
     throw new FrtError(
-      "FRT_STRUCTURE_CHANGED",
-      "ViewState não encontrado na tela de venda",
-      "javax.faces.ViewState (venda.xhtml)",
+      "FRT_VENDA_NOT_LOADED",
+      "venda.xhtml abriu com o motor de pesquisa, mas sem javax.faces.ViewState.",
+      `status=${venda.status} bytes=${venda.tamanhoHtml}`,
     );
   }
-  s.viewState = vsVenda;
+  s.viewState = venda.viewState;
   loginFails = 0;
-  trace(
-    venda.temFormulario
-      ? "login OK — venda.xhtml aberta com frmMotorPacote"
-      : "login OK — venda.xhtml aberta, mas SEM frmMotorPacote (validar tela de venda)",
-  );
+  trace("login OK — venda.xhtml aberta com o motor de pesquisa");
 
   await persistSession(s);
   return s;
@@ -296,10 +447,14 @@ export async function frtEnviarCodigo(codigo: string) {
   const campos = detectAuthForm(tela.body);
   const vs = extractViewState(tela.body);
   if (!campos || !vs) {
+    // Não é "estrutura mudou": ou a sessão caiu, ou a tela nem é a de código.
+    const ehLogin = looksLikeLoginPage(tela.body) || /login-usuario-input/i.test(tela.body);
     return {
       ok: false,
-      erro: "FRT_STRUCTURE_CHANGED",
-      mensagem: "Formulário de verificação da FRT não encontrado.",
+      erro: ehLogin ? "FRT_AUTH_REQUIRED" : "FRT_VENDA_NOT_LOADED",
+      mensagem: ehLogin
+        ? "A sessão da FRT caiu antes do envio do código. Refaça o login."
+        : "A tela de verificação da FRT não estava carregada nesta resposta.",
     };
   }
   const p = new URLSearchParams();
@@ -322,40 +477,37 @@ export async function frtEnviarCodigo(codigo: string) {
   // 2FA aceito ≠ tela de venda acessível. Faz o GET autenticado explícito.
   trace("2FA aceito — validando navegação pós-login");
   const venda = await abrirVenda(s, tela.url);
-  const acessoVenda = {
-    status: venda.status,
-    urlFinal: venda.urlFinal,
-    temFormulario: venda.temFormulario,
-    temLogin: venda.temLogin,
-  };
-  if (needsAuthCode(venda.body) || venda.voltouParaLogin || looksLikeLoginPage(body)) {
+  const acessoVenda = resumoAcesso(venda);
+  if (venda.aguardandoCodigo || venda.voltouParaLogin || looksLikeLoginPage(body)) {
     return {
       ok: false,
-      erro: "FRT_AUTH_FAILED" as string | null,
-      mensagem: "Código recusado pela FRT." as string | null,
+      erro: (venda.aguardandoCodigo ? "FRT_2FA_REQUIRED" : "FRT_AUTH_REQUIRED") as string | null,
+      mensagem: (venda.aguardandoCodigo
+        ? "Código recusado pela FRT — ela segue pedindo verificação."
+        : "Após o código a FRT devolveu a tela de login.") as string | null,
       aviso: null as string | null,
       acessoVenda,
     };
   }
-  s.viewState = extractViewState(venda.body);
+  s.viewState = venda.viewState;
   s.createdAt = Date.now();
   session = s;
   pendingAuth = null;
   await persistSession(s);
-  if (!venda.temFormulario) {
-    trace("código aceito, mas frmMotorPacote não apareceu em venda.xhtml");
+  if (venda.estado !== "ok") {
+    trace("código aceito, mas o motor de pesquisa não apareceu em venda.xhtml");
     return {
       ok: true,
       erro: null as string | null,
       mensagem: null as string | null,
       aviso:
-        "Código aceito, mas a tela de venda abriu sem o formulário de consulta (frmMotorPacote). Verifique o log técnico." as
+        "Código aceito, mas venda.xhtml abriu sem o motor de pesquisa (FRT_VENDA_NOT_LOADED — provável shell/AJAX). Amostra do HTML guardada no diagnóstico." as
           | string
           | null,
       acessoVenda,
     };
   }
-  trace("código aceito — venda.xhtml acessível com frmMotorPacote");
+  trace("código aceito — venda.xhtml acessível com o motor de pesquisa");
   return {
     ok: true,
     erro: null as string | null,
@@ -413,8 +565,8 @@ async function restoreSession(): Promise<Session | null> {
       createdAt: Date.now() - idade,
     };
     const venda = await abrirVenda(s);
-    if (venda.voltouParaLogin || needsAuthCode(venda.body)) return null;
-    s.viewState = extractViewState(venda.body);
+    if (venda.estado !== "ok") return null;
+    s.viewState = venda.viewState;
     trace("sessão FRT restaurada do backend");
 
     return s;
@@ -428,24 +580,33 @@ async function restoreSession(): Promise<Session | null> {
 async function loadVendaScreen(s: Session) {
   const venda = await abrirVenda(s);
   const body = venda.body;
-  if (venda.voltouParaLogin) throw new FrtError("FRT_SESSION_EXPIRED");
+  if (venda.estado === "login") throw new FrtError("FRT_SESSION_EXPIRED");
+  // Shell/AJAX/erro HTTP ≠ mudança de estrutura.
+  if (venda.estado !== "ok") throw erroDoEstado(venda);
 
-  const vs = extractViewState(body);
-  if (!vs) {
+  if (!venda.viewState) {
     throw new FrtError(
-      "FRT_STRUCTURE_CHANGED",
-      "ViewState ausente em venda.xhtml",
-      "javax.faces.ViewState",
+      "FRT_VENDA_NOT_LOADED",
+      "venda.xhtml carregou o motor de pesquisa, mas sem javax.faces.ViewState.",
+      `status=${venda.status} bytes=${venda.tamanhoHtml}`,
     );
   }
-  s.viewState = vs;
+  s.viewState = venda.viewState;
   const resolved = resolveSearchFields(body);
   if (resolved.changed.length) trace(`campos alterados: ${resolved.changed.join(" | ")}`);
   if (resolved.missing.length) {
     trace(`campos ausentes: ${resolved.missing.join(", ")}`);
+    ultimaAmostra = {
+      em: new Date().toISOString(),
+      url: venda.urlFinal,
+      estado: "estrutura",
+      html: amostraSanitizada(body),
+    };
+    // Só aqui a mudança de estrutura está comprovada: a tela de venda correta
+    // carregou (formulário + botão presentes) e mesmo assim faltam campos.
     throw new FrtError(
       "FRT_STRUCTURE_CHANGED",
-      "Formulário de pesquisa da FRT mudou",
+      "A tela de venda carregou corretamente, mas campos do formulário de pesquisa não existem mais",
       resolved.missing.join(", "),
     );
   }
@@ -571,31 +732,31 @@ export async function frtDiagnostico(reusarSessao = true) {
     const s = await getSession(!reusarSessao);
     const venda = await abrirVenda(s);
     const body = venda.body;
-    const resolved = resolveSearchFields(body);
-    // Prova definitiva: abrir venda.xhtml autenticado E achar o formulário.
-    const acessoVenda = {
-      status: venda.status,
-      urlFinal: venda.urlFinal,
-      temFormulario: venda.temFormulario,
-      temLogin: venda.temLogin,
-      voltouParaLogin: venda.voltouParaLogin,
-    };
-    const sessaoValida = !venda.voltouParaLogin && !needsAuthCode(body);
-    const autenticado = sessaoValida && venda.temFormulario;
+    const resolved = venda.estado === "ok" ? resolveSearchFields(body) : null;
+    const acessoVenda = resumoAcesso(venda);
+    const sessaoValida = venda.estado === "ok" || venda.estado === "shell";
+    const autenticado = venda.estado === "ok";
+    const erro =
+      venda.estado === "ok"
+        ? resolved && resolved.missing.length
+          ? "FRT_STRUCTURE_CHANGED"
+          : null
+        : erroDoEstado(venda).code;
     return {
-      ok: autenticado && resolved.missing.length === 0,
+      ok: autenticado && (resolved?.missing.length ?? 0) === 0,
       autenticado,
       sessaoValida,
       acessoVenda,
-      aguardandoCodigo: needsAuthCode(body),
-      viewStatePresente: Boolean(extractViewState(body)),
+      aguardandoCodigo: venda.aguardandoCodigo,
+      viewStatePresente: Boolean(venda.viewState),
       cookies: [...s.cookies.keys()],
-      campos: resolved.fields as Record<string, string> | null,
-      camposAusentes: resolved.missing,
-      camposAlterados: resolved.changed,
-      erro: null as string | null,
-      mensagem: null as string | null,
-      log: frtTraceLog().slice(-30),
+      campos: (resolved?.fields ?? null) as Record<string, string> | null,
+      camposAusentes: resolved?.missing ?? [],
+      camposAlterados: resolved?.changed ?? [],
+      erro: erro as string | null,
+      mensagem: (venda.estado === "ok" ? null : erroDoEstado(venda).message) as string | null,
+      amostraHtml: frtUltimaAmostraHtml(),
+      log: frtTraceLog().slice(-40),
     };
   } catch (e) {
     const err = e instanceof FrtError ? e : null;
@@ -603,13 +764,7 @@ export async function frtDiagnostico(reusarSessao = true) {
       ok: false,
       autenticado: false,
       sessaoValida: false,
-      acessoVenda: null as {
-        status: number;
-        urlFinal: string;
-        temFormulario: boolean;
-        temLogin: boolean;
-        voltouParaLogin: boolean;
-      } | null,
+      acessoVenda: null as ResumoAcessoVenda | null,
       aguardandoCodigo: err?.code === "FRT_2FA_REQUIRED",
       viewStatePresente: false,
       cookies: [] as string[],
@@ -618,8 +773,8 @@ export async function frtDiagnostico(reusarSessao = true) {
       camposAlterados: [] as string[],
       erro: (err?.code ?? "FRT_NETWORK_ERROR") as string | null,
       mensagem: (err?.message ?? "Falha ao conectar na FRT") as string | null,
-      log: frtTraceLog().slice(-30),
+      amostraHtml: frtUltimaAmostraHtml(),
+      log: frtTraceLog().slice(-40),
     };
   }
-
 }

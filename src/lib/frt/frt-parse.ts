@@ -79,7 +79,9 @@ export type FrtSearchResponse = {
 
 export type FrtErrorCode =
   | "FRT_AUTH_FAILED"
+  | "FRT_AUTH_REQUIRED"
   | "FRT_2FA_REQUIRED"
+  | "FRT_VENDA_NOT_LOADED"
   | "FRT_STRUCTURE_CHANGED"
   | "FRT_SESSION_EXPIRED"
   | "FRT_TIMEOUT"
