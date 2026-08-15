@@ -7,7 +7,14 @@
 import { cityLabel } from "@/lib/iata-lookup";
 import { findAirline } from "@/lib/airlines";
 import { buildPayment } from "@/lib/public-quote/payments";
-import { directionsFor, legLabel, splitIntoLegs, type LegInputSegment } from "@/lib/public-quote/flight-legs";
+import {
+  directionsFor,
+  durationBetween,
+  isTrocaDeAeroporto,
+  legLabel,
+  splitIntoLegs,
+  type LegInputSegment,
+} from "@/lib/public-quote/flight-legs";
 import { normalizeServiceTitle } from "@/lib/public-quote/service-title";
 import { agentPhoto } from "@/lib/public-quote/agents";
 import { formatRoom } from "@/lib/public-quote/room-label";
