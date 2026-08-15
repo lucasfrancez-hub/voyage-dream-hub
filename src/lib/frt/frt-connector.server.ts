@@ -1056,11 +1056,18 @@ async function runSearch(
       );
     }
 
-    // 2) itemSelect
+    // 2) itemSelect — a FRT re-renderiza o painel do componente e os dois
+    // calendários; sem eles o estado do formulário fica incompleto.
+    const renderAlvo = [
+      `${FRT_FIELDS.form}:${painel}`,
+      `${FRT_FIELDS.form}:pnlCalendarioPartidaPacote`,
+      `${FRT_FIELDS.form}:pnlCalendarioRetornoPacote`,
+    ].join(" ");
     const sel = new URLSearchParams();
     sel.set("javax.faces.source", source);
+    sel.set("primefaces.ignoreautoupdate", "true");
     sel.set("javax.faces.partial.execute", source);
-    sel.set("javax.faces.partial.render", `${FRT_FIELDS.form}:${painel}`);
+    sel.set("javax.faces.partial.render", renderAlvo);
     sel.set("javax.faces.behavior.event", "itemSelect");
     sel.set("javax.faces.partial.event", "itemSelect");
     sel.set(source, source);
@@ -1075,19 +1082,28 @@ async function runSearch(
     const updates = extractPartialUpdates(select.body);
     const chavePainel =
       Object.keys(updates).find((k) => k.toLowerCase().includes(painel.toLowerCase())) ?? null;
-    const blocos = chavePainel ? [updates[chavePainel]!] : Object.values(updates);
+
+    // Todos os blocos alimentam o estado (inclusive os calendários re-renderizados),
+    // mas o campo readonly de origem/destino é procurado primeiro no painel próprio.
     const camposNovos: Record<string, string> = {};
-    for (const bloco of blocos) Object.assign(camposNovos, camposDoUpdateAjax(bloco));
+    for (const bloco of Object.values(updates)) Object.assign(camposNovos, camposDoUpdateAjax(bloco));
+    const camposPainel = chavePainel
+      ? camposDoUpdateAjax(updates[chavePainel]!)
+      : camposNovos;
 
     // 3) o campo interno j_idt#### criado agora é o nome real do payload
+    const ehInterno = (n: string) => /^frmMotorPacote:j_idt\d+$/.test(n);
     const interno =
-      Object.keys(camposNovos).find((n) => /^frmMotorPacote:j_idt\d+$/.test(n) && !(n in estado)) ??
-      Object.keys(camposNovos).find((n) => /^frmMotorPacote:j_idt\d+$/.test(n)) ??
+      Object.keys(camposPainel).find((n) => ehInterno(n) && !(n in estado)) ??
+      Object.keys(camposNovos).find((n) => ehInterno(n) && !(n in estado)) ??
+      Object.keys(camposPainel).find(ehInterno) ??
+      Object.keys(camposNovos).find(ehInterno) ??
       null;
 
     for (const [name, valor] of Object.entries(camposNovos)) estado[name] = valor;
     estado[`${source}_input`] = escolhido.label || escolhido.value;
     estado[`${source}_hinput`] = escolhido.value;
+
 
     evidencias.push({
       componente,
