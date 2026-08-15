@@ -23,18 +23,21 @@ const searchSchema = z.object({
 
 const componenteSchema = z.enum(["origem", "destino"]);
 
-/** Sugestões reais do autocomplete PrimeFaces da FRT (query). */
-export const sugestoesLocalFrt = createServerFn({ method: "POST" })
+/**
+ * Server function EXCLUSIVA do autocomplete FRT (query PrimeFaces de
+ * idAeroOrigem / idAeroDestino). Não toca em 2FA, login nem pesquisa.
+ */
+export const frtAutocomplete = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) =>
-    z
-      .object({ componente: componenteSchema, termo: z.string().min(3).max(60) })
-      .parse(input),
+    z.object({ tipo: componenteSchema, termo: z.string().min(3).max(60) }).parse(input),
   )
   .handler(async ({ data }) => {
     const { frtSugestoesLocal } = await import("@/lib/frt/frt-connector.server");
-    return frtSugestoesLocal(data.componente, data.termo);
+    const r = await frtSugestoesLocal(data.tipo, data.termo);
+    return { opcoes: r.opcoes, diagnostico: r.diagnostico, serverFn: "frtAutocomplete" as const };
   });
+
 
 /** Confirma a escolha do usuário executando o itemSelect real na FRT. */
 export const selecionarLocalFrt = createServerFn({ method: "POST" })
