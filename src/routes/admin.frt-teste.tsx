@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { Loader2, PlugZap, Search, ShieldCheck, AlertTriangle } from "lucide-react";
@@ -15,6 +15,8 @@ import {
   diagnosticarPesquisaFrt,
   enviarCodigoFrt,
   resolver2faAutomaticoFrt,
+  estado2faFrt,
+  cancelar2faFrt,
 } from "@/lib/frt/frt.functions";
 
 export const Route = createFileRoute("/admin/frt-teste")({
@@ -44,6 +46,8 @@ function FrtTestePage() {
   const enviarCodigo = useServerFn(enviarCodigoFrt);
   const diagPesquisa = useServerFn(diagnosticarPesquisaFrt);
   const resolverAuto = useServerFn(resolver2faAutomaticoFrt);
+  const estado2fa = useServerFn(estado2faFrt);
+  const cancelar2fa = useServerFn(cancelar2faFrt);
   const [codigo, setCodigo] = useState("");
 
   const [origem, setOrigem] = useState("MGF");
@@ -58,8 +62,24 @@ function FrtTestePage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  // Desafio 2FA pendente: enquanto existir, nenhum novo login pode ser disparado.
+  const pend = useQuery({
+    queryKey: ["frt-2fa"],
+    queryFn: () => estado2fa({ data: undefined }),
+    refetchInterval: 10_000,
+  });
+  const aguardando2fa = Boolean(pend.data?.pendente) || Boolean(diagMut.data?.aguardandoCodigo);
+
   const autoMut = useMutation({
     mutationFn: () => resolverAuto({ data: undefined }),
+    onSettled: () => pend.refetch(),
+  });
+  const cancelarMut = useMutation({
+    mutationFn: () => cancelar2fa({ data: undefined }),
+    onSuccess: () => {
+      toast.message("Desafio 2FA descartado — novo login liberado");
+      pend.refetch();
+    },
   });
   const codigoMut = useMutation({
     mutationFn: () => enviarCodigo({ data: { codigo } }),
@@ -67,6 +87,7 @@ function FrtTestePage() {
       if (r.ok) {
         toast.success("Código aceito — sessão liberada");
         setCodigo("");
+        pend.refetch();
         diagMut.mutate(false);
       } else {
         toast.error(r.mensagem ?? "Código recusado");
@@ -116,6 +137,62 @@ function FrtTestePage() {
         </p>
       </header>
 
+      {aguardando2fa ? (
+        <section className="space-y-3 rounded-xl border border-amber-400/50 bg-amber-50/60 p-4 dark:bg-amber-950/20">
+          <div className="flex items-center gap-2 text-sm font-semibold text-amber-800 dark:text-amber-300">
+            <AlertTriangle className="size-4" /> Código de verificação necessário
+          </div>
+          <p className="text-sm text-muted-foreground">
+            A FRT enviou um código por e-mail e a autenticação está pausada nesta tentativa
+            (sessão e ViewState preservados). Novos logins estão bloqueados até a validação.
+            {pend.data?.segundos ? ` Aguardando há ${pend.data.segundos}s.` : ""}
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <Input
+              value={codigo}
+              onChange={(e) => setCodigo(e.target.value)}
+              placeholder="Código do e-mail"
+              className="max-w-[220px]"
+            />
+            <Button
+              size="sm"
+              disabled={codigoMut.isPending || codigo.trim().length < 3}
+              onClick={() => codigoMut.mutate()}
+            >
+              {codigoMut.isPending ? <Loader2 className="size-4 animate-spin" /> : "Validar código"}
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={autoMut.isPending}
+              onClick={() => autoMut.mutate()}
+            >
+              {autoMut.isPending ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                "Buscar código automático"
+              )}
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              disabled={cancelarMut.isPending}
+              onClick={() => cancelarMut.mutate()}
+            >
+              Descartar desafio
+            </Button>
+          </div>
+          {autoMut.data && !autoMut.data.ok ? (
+            <p className="text-xs text-amber-700">{autoMut.data.mensagem}</p>
+          ) : null}
+          {autoMut.data?.ok ? (
+            <p className="text-xs text-emerald-700">
+              Código lido da caixa dedicada e aceito pela FRT.
+            </p>
+          ) : null}
+        </section>
+      ) : null}
+
       <section className="rounded-xl border border-border bg-card p-4 space-y-3">
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2 text-sm font-medium">
@@ -124,13 +201,17 @@ function FrtTestePage() {
           <div className="flex gap-2">
             <Button
               onClick={() => diagMut.mutate(false)}
-              disabled={diagMut.isPending}
+              disabled={diagMut.isPending || aguardando2fa}
               size="sm"
               variant="outline"
             >
               Testar sessão
             </Button>
-            <Button onClick={() => diagMut.mutate(true)} disabled={diagMut.isPending} size="sm">
+            <Button
+              onClick={() => diagMut.mutate(true)}
+              disabled={diagMut.isPending || aguardando2fa}
+              size="sm"
+            >
               {diagMut.isPending ? <Loader2 className="size-4 animate-spin" /> : "Novo login"}
             </Button>
           </div>
@@ -199,53 +280,6 @@ function FrtTestePage() {
               </details>
             ) : null}
 
-            {d.aguardandoCodigo ? (
-              <div className="space-y-2 rounded-lg border border-amber-400/40 bg-amber-50/50 p-3 dark:bg-amber-950/20">
-                <p className="text-sm">
-                  A FRT enviou um código de verificação para o e-mail cadastrado. Informe-o
-                  abaixo para liberar a sessão do conector.
-                </p>
-                <div className="flex gap-2">
-                  <Input
-                    value={codigo}
-                    onChange={(e) => setCodigo(e.target.value)}
-                    placeholder="Código do e-mail"
-                    className="max-w-[220px]"
-                  />
-                  <Button
-                    size="sm"
-                    disabled={codigoMut.isPending || codigo.trim().length < 3}
-                    onClick={() => codigoMut.mutate()}
-                  >
-                    {codigoMut.isPending ? (
-                      <Loader2 className="size-4 animate-spin" />
-                    ) : (
-                      "Validar código"
-                    )}
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    disabled={autoMut.isPending}
-                    onClick={() => autoMut.mutate()}
-                  >
-                    {autoMut.isPending ? (
-                      <Loader2 className="size-4 animate-spin" />
-                    ) : (
-                      "Buscar código automático"
-                    )}
-                  </Button>
-                </div>
-                {autoMut.data && !autoMut.data.ok ? (
-                  <p className="text-xs text-amber-700">{autoMut.data.mensagem}</p>
-                ) : null}
-                {autoMut.data?.ok ? (
-                  <p className="text-xs text-emerald-700">
-                    Código lido da caixa dedicada e aceito pela FRT.
-                  </p>
-                ) : null}
-              </div>
-            ) : null}
             {d.erro ? (
               <p className="flex items-center gap-2 text-destructive">
                 <AlertTriangle className="size-4" /> {d.erro} — {d.mensagem}

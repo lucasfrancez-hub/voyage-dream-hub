@@ -64,3 +64,20 @@ export const resolver2faAutomaticoFrt = createServerFn({ method: "POST" })
     const { frtResolver2faAutomatico } = await import("@/lib/frt/frt-connector.server");
     return frtResolver2faAutomatico(60_000);
   });
+
+/** Estado do desafio 2FA pendente (bloqueia novos logins enquanto ativo). */
+export const estado2faFrt = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async () => {
+    const { frtEstado2fa } = await import("@/lib/frt/frt-connector.server");
+    return frtEstado2fa();
+  });
+
+/** Descarta o desafio 2FA pendente, liberando um novo login manual. */
+export const cancelar2faFrt = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async () => {
+    const { frtCancelar2fa } = await import("@/lib/frt/frt-connector.server");
+    frtCancelar2fa();
+    return { ok: true };
+  });
