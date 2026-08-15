@@ -26,6 +26,15 @@ export const consultarFrt = createServerFn({ method: "POST" })
     return consultarFRT(data);
   });
 
+/** Diagnóstico do POST de pesquisa (resposta bruta + updates), sem alterar o parser. */
+export const diagnosticarPesquisaFrt = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => searchSchema.parse(input))
+  .handler(async ({ data }) => {
+    const { frtDiagnosticoPesquisa } = await import("@/lib/frt/frt-connector.server");
+    return frtDiagnosticoPesquisa(data);
+  });
+
 /** Diagnóstico da conexão (login + campos do formulário), sem pesquisar. */
 export const diagnosticarFrt = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
