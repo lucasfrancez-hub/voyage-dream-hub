@@ -268,15 +268,29 @@
                   total: summary.pricing.total,
                   currency: "BRL",
                   installments: summary.pricing.installment,
+                  // 89. Valor individual exibido pela FRT é a fonte primária.
                   passenger_prices: summary.pricing.passengers,
                   occupancy: profiles,
+                  occupancy_source: occupancySource,
+                  occupancy_warnings: occupancyWarnings,
                 }
               : cat.upgrade
-                ? { base_amount: null, taxes: null, total: null, currency: "BRL", installments: {}, passenger_prices: [], occupancy: profiles }
+                ? {
+                    base_amount: null,
+                    taxes: null,
+                    total: null,
+                    currency: "BRL",
+                    installments: {},
+                    passenger_prices: [],
+                    occupancy: profiles,
+                    occupancy_source: occupancySource,
+                    occupancy_warnings: occupancyWarnings,
+                  }
                 : undefined,
         });
       });
     });
+
 
     const shipName = H.clean(
       (summary.cruise.name.match(/\b(MSC|Costa|Norwegian|Royal Caribbean|Disney)\s+[\wÀ-ú]+/) || [])[0] || "",
