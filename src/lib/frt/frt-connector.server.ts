@@ -177,6 +177,7 @@ export type FrtAmostraPesquisa = {
   raw: string;
 };
 let ultimaAmostraPesquisa: FrtAmostraPesquisa | null = null;
+let ultimoInventarioMotor: FrtInventarioMotor | null = null;
 export function frtUltimaAmostraPesquisa() {
   return ultimaAmostraPesquisa;
 }
