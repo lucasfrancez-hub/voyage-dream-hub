@@ -210,21 +210,23 @@ function FlightLegCard({
 
                         <div className="vq-seg2-route">
                           <div className="vq-seg2-point">
-                            <small>Partida</small>
+                            <small>{dataCurta(s.departure)}</small>
                             <time>{hhmm(s.departure)}</time>
                             <b>{s.fromIata}</b>
                             <span>{s.fromName}</span>
                           </div>
 
                           <div className="vq-seg2-path">
-                            <span className="vq-seg2-dur">{s.duration ?? leg.duration ?? "—"}</span>
+                            <span className="vq-seg2-dur">
+                              Duração: <strong>{s.duration ?? leg.duration ?? "—"}</strong>
+                            </span>
                             <div className="vq-seg2-line">
                               <span className="vq-seg2-dot" />
                             </div>
                           </div>
 
                           <div className="vq-seg2-point right">
-                            <small>Chegada</small>
+                            <small>{dataCurta(s.arrival)}</small>
                             <time>{hhmm(s.arrival)}</time>
                             <b>{s.toIata}</b>
                             <span>{s.toName}</span>
@@ -239,10 +241,6 @@ function FlightLegCard({
                           <div>
                             <small>Aeronave</small>
                             <strong>{s.aircraft ?? "Conforme confirmação"}</strong>
-                          </div>
-                          <div>
-                            <small>Data</small>
-                            <strong>{dataBr}</strong>
                           </div>
                           <div>
                             <small>Bagagem</small>
@@ -264,8 +262,7 @@ function FlightLegCard({
                         <div className="vq-seg2-connection-pill">
                           <IconClock />
                           <span>
-                            Conexão em {s.toName ?? s.toIata}: chega {hhmm(s.arrival)} e sai{" "}
-                            {hhmm(leg.segments[i + 1]?.departure)} — {s.connectionAfter} de espera
+                            Conexão em {s.toName ?? s.toIata} — {s.connectionAfter} de espera
                           </span>
                         </div>
                       </div>
