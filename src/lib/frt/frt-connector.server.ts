@@ -14,10 +14,12 @@ import {
   detectLoginButtonName,
   looksLikeLoginPage,
   looksLikeSessionExpired,
+  inventarioMotorPacote,
   maskSensitive,
   parseResultadosHtml,
   resolveSearchFields,
   toBrDate,
+  type FrtInventarioMotor,
   type FrtSearchInput,
   type FrtSearchResponse,
 } from "./frt-parse";
