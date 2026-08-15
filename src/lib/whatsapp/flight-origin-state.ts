@@ -83,14 +83,76 @@ export function isAffirmative(text: string | null | undefined): boolean {
  *   (ISO). Só então uma resposta afirmativa curta conta como confirmação.
  * - `suggestedOrigin`: cidade que foi oferecida na pergunta de confirmação.
  */
+/**
+ * NOMES QUE NUNCA SÃO CIDADE.
+ *
+ * Caso real (ago/2026): o cliente chamou o atendente pelo nome com erro de
+ * digitação — "Robertp quero ver uma passagem para São Paulo" — e "Robertp"
+ * virou cidade de embarque confirmada. Vocativo não é origem.
+ */
+const NOMES_INTERNOS = [
+  "camila", "roberto", "bruno", "paula", "giovani", "giovanni", "maria",
+  "nathalia", "nath", "fabricio", "lucas", "francez", "via air", "viaair",
+  "atendente", "consultor", "consultora", "vendedor", "vendedora", "bot", "robo",
+];
+
+/** Distância de edição simples (tolera erro de digitação: "Robertp" ≈ "Roberto"). */
+function distancia(a: string, b: string): number {
+  if (a === b) return 0;
+  const m = a.length;
+  const n = b.length;
+  if (Math.abs(m - n) > 2) return 99;
+  let prev = Array.from({ length: n + 1 }, (_, j) => j);
+  for (let i = 1; i <= m; i++) {
+    const cur = [i];
+    for (let j = 1; j <= n; j++) {
+      cur[j] = Math.min(
+        prev[j]! + 1,
+        cur[j - 1]! + 1,
+        prev[j - 1]! + (a[i - 1] === b[j - 1] ? 0 : 1),
+      );
+    }
+    prev = cur;
+  }
+  return prev[n]!;
+}
+
+/**
+ * A "cidade" é na verdade um nome de pessoa (do time ou do próprio cliente)?
+ * Tolerante a erro de digitação e a acento/caixa.
+ */
+export function pareceNomeDePessoa(
+  city: string | null | undefined,
+  nomesExtras: Array<string | null | undefined> = [],
+): boolean {
+  const c = normalizeCity(city);
+  if (!c) return false;
+  const lista = [
+    ...NOMES_INTERNOS,
+    ...nomesExtras.flatMap((n) => normalizeCity(n).split(" ")),
+  ]
+    .map((n) => normalizeCity(n))
+    .filter((n) => n.length >= 3);
+  return lista.some((nome) => {
+    if (c === nome) return true;
+    // Erro de digitação: 1 letra trocada/faltando em nomes curtos, 2 em longos.
+    const tolerancia = nome.length >= 7 ? 2 : 1;
+    return distancia(c, nome) <= tolerancia;
+  });
+}
+
 export function resolveOriginState(params: {
   origin: string | null | undefined;
   inbound: InboundMessage[];
   askedOriginAt?: string | null;
   suggestedOrigin?: string | null;
+  /** Nome do cliente / do agente — nunca podem virar cidade de embarque. */
+  nomesProibidos?: Array<string | null | undefined>;
 }): FlightOriginState {
   const origin = (params.origin ?? "").trim();
   if (origin.length < 2) return MISSING_ORIGIN;
+  if (pareceNomeDePessoa(origin, params.nomesProibidos ?? [])) return MISSING_ORIGIN;
+
 
   // 1) o cliente escreveu a cidade em alguma mensagem deste protocolo
   for (let i = params.inbound.length - 1; i >= 0; i--) {
