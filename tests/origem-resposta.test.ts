@@ -35,4 +35,9 @@ describe("origem", () => {
     expect(pareceDestinoNaMensagem("quero de Maringá para São Paulo", "Maringá")).toBe(false);
     expect(mentionsCityAsOrigin("quero de Maringá para São Paulo", "Maringá")).toBe(true);
   });
+
+  it("extrai destino do brief da Central", () => {
+    const brief = "📍 Origem: Maringá\n📍 Destino: São Paulo\n✈ Trecho: Ida e Volta";
+    expect(extractCentralBriefDestino(brief)).toBe("São Paulo");
+  });
 });
