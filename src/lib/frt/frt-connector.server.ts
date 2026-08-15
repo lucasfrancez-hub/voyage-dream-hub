@@ -565,8 +565,8 @@ async function restoreSession(): Promise<Session | null> {
       createdAt: Date.now() - idade,
     };
     const venda = await abrirVenda(s);
-    if (venda.voltouParaLogin || needsAuthCode(venda.body)) return null;
-    s.viewState = extractViewState(venda.body);
+    if (venda.estado !== "ok") return null;
+    s.viewState = venda.viewState;
     trace("sessão FRT restaurada do backend");
 
     return s;
@@ -580,24 +580,33 @@ async function restoreSession(): Promise<Session | null> {
 async function loadVendaScreen(s: Session) {
   const venda = await abrirVenda(s);
   const body = venda.body;
-  if (venda.voltouParaLogin) throw new FrtError("FRT_SESSION_EXPIRED");
+  if (venda.estado === "login") throw new FrtError("FRT_SESSION_EXPIRED");
+  // Shell/AJAX/erro HTTP ≠ mudança de estrutura.
+  if (venda.estado !== "ok") throw erroDoEstado(venda);
 
-  const vs = extractViewState(body);
-  if (!vs) {
+  if (!venda.viewState) {
     throw new FrtError(
-      "FRT_STRUCTURE_CHANGED",
-      "ViewState ausente em venda.xhtml",
-      "javax.faces.ViewState",
+      "FRT_VENDA_NOT_LOADED",
+      "venda.xhtml carregou o motor de pesquisa, mas sem javax.faces.ViewState.",
+      `status=${venda.status} bytes=${venda.tamanhoHtml}`,
     );
   }
-  s.viewState = vs;
+  s.viewState = venda.viewState;
   const resolved = resolveSearchFields(body);
   if (resolved.changed.length) trace(`campos alterados: ${resolved.changed.join(" | ")}`);
   if (resolved.missing.length) {
     trace(`campos ausentes: ${resolved.missing.join(", ")}`);
+    ultimaAmostra = {
+      em: new Date().toISOString(),
+      url: venda.urlFinal,
+      estado: "estrutura",
+      html: amostraSanitizada(body),
+    };
+    // Só aqui a mudança de estrutura está comprovada: a tela de venda correta
+    // carregou (formulário + botão presentes) e mesmo assim faltam campos.
     throw new FrtError(
       "FRT_STRUCTURE_CHANGED",
-      "Formulário de pesquisa da FRT mudou",
+      "A tela de venda carregou corretamente, mas campos do formulário de pesquisa não existem mais",
       resolved.missing.join(", "),
     );
   }
