@@ -1139,6 +1139,7 @@ export async function frtDiagnostico(reusarSessao = true) {
       mensagem: (venda.estado === "ok" ? null : erroDoEstado(venda).message) as string | null,
       amostraHtml: frtUltimaAmostraHtml(),
       amostraPesquisa: frtUltimaAmostraPesquisa(),
+      pendencia2fa: frtEstado2fa(),
       log: frtTraceLog().slice(-60),
     };
   } catch (e) {
@@ -1158,6 +1159,7 @@ export async function frtDiagnostico(reusarSessao = true) {
       mensagem: (err?.message ?? "Falha ao conectar na FRT") as string | null,
       amostraHtml: frtUltimaAmostraHtml(),
       amostraPesquisa: frtUltimaAmostraPesquisa(),
+      pendencia2fa: frtEstado2fa(),
       log: frtTraceLog().slice(-60),
     };
   }
