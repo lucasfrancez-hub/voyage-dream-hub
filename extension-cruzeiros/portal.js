@@ -1,0 +1,39 @@
+/* VIA AIR — Exportar Cruzeiro: pareamento automático no portal VIA AIR.
+ * Entrega o access token da sessão ao service worker, que troca por um token
+ * permanente de extensão. Nada é copiado manualmente. */
+(function () {
+  function readSessionToken() {
+    try {
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i) || "";
+        if (!/^sb-.*-auth-token$/.test(key)) continue;
+        const raw = localStorage.getItem(key);
+        if (!raw) continue;
+        let parsed = raw;
+        if (raw.startsWith("base64-")) {
+          try { parsed = atob(raw.slice(7)); } catch (_) { continue; }
+        }
+        const obj = JSON.parse(parsed);
+        const token = obj?.access_token || obj?.currentSession?.access_token;
+        if (token && String(token).length > 20) return String(token);
+      }
+    } catch (_) { /* sessão indisponível */ }
+    return null;
+  }
+
+  function pair() {
+    const accessToken = readSessionToken();
+    if (!accessToken) return;
+    try {
+      chrome.runtime.sendMessage(
+        { type: "viaair-cruise-pair", accessToken },
+        () => void chrome.runtime.lastError,
+      );
+    } catch (_) { /* extensão recarregando */ }
+  }
+
+  pair();
+  setTimeout(pair, 4000);
+  setTimeout(pair, 15000);
+  window.addEventListener("focus", pair);
+})();
