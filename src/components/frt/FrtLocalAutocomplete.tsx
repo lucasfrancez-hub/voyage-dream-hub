@@ -58,7 +58,8 @@ export function FrtLocalAutocomplete({
   onSelecionar,
   onDiagnostico,
 }: Props) {
-  const sugerir = useServerFn(sugestoesLocalFrt);
+  // ÚNICA server function usada pelo dropdown. Nada de 2FA/login aqui.
+  const sugerir = useServerFn(frtAutocomplete);
   const selecionar = useServerFn(selecionarLocalFrt);
   const [opcoes, setOpcoes] = useState<{ value: string; label: string }[]>([]);
   const [aberto, setAberto] = useState(false);
@@ -78,48 +79,48 @@ export function FrtLocalAutocomplete({
     const meu = ++pedidoRef.current;
     const timer = setTimeout(async () => {
       setBuscando(true);
-      onDiagnostico?.({
+      const base = {
         termo: t,
         componente,
+        serverFn: "frtAutocomplete",
         source: "—",
         disparado: true,
         status: 0,
         bytes: 0,
-        updates: [],
+        updates: [] as { id: string; bytes: number }[],
         dataItemValue: 0,
         amostra: null,
-        opcoes: [],
+        opcoes: [] as { value: string; label: string }[],
         em: new Date().toISOString(),
-      });
+      };
+      onDiagnostico?.(base);
+      console.info(
+        `autocomplete ${componente} termo=${t}\nserverFn=frtAutocomplete\nopções=…`,
+      );
       try {
-        const r = await sugerir({ data: { componente, termo: t } });
+        const r = await sugerir({ data: { tipo: componente, termo: t } });
         if (pedidoRef.current !== meu) return;
         setOpcoes(r.opcoes);
         setSemOpcoes(r.opcoes.length === 0);
         setAberto(true);
-        onDiagnostico?.({ ...r.diagnostico, opcoes: r.opcoes.slice(0, 5) });
+        onDiagnostico?.({
+          ...r.diagnostico,
+          serverFn: r.serverFn,
+          opcoes: r.opcoes.slice(0, 5),
+        });
+        console.info(
+          `autocomplete ${componente} termo=${t}\nserverFn=${r.serverFn}\nopções=${r.opcoes.length}`,
+        );
       } catch (e) {
         if (pedidoRef.current !== meu) return;
         setOpcoes([]);
         setSemOpcoes(true);
-        onDiagnostico?.({
-          termo: t,
-          componente,
-          source: "—",
-          disparado: true,
-          status: 0,
-          bytes: 0,
-          updates: [],
-          dataItemValue: 0,
-          amostra: null,
-          opcoes: [],
-          erro: (e as Error).message,
-          em: new Date().toISOString(),
-        });
+        onDiagnostico?.({ ...base, erro: (e as Error).message });
         toast.error((e as Error).message);
       } finally {
         if (pedidoRef.current === meu) setBuscando(false);
       }
+
     }, 350);
     return () => clearTimeout(timer);
   }, [termo, componente, selecionado, sugerir, onDiagnostico]);
