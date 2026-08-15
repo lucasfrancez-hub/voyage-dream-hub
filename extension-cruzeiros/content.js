@@ -500,7 +500,11 @@
       page_type: pageType,
       detected: parser.detectContent(),
       captured_at: new Date().toISOString(),
-      warnings: parser.warnings,
+      warnings: H.unique(
+        [...(parser.warnings || []), ...(shipDetails.warnings || [])],
+        (w) => (typeof w === "string" ? w : JSON.stringify(w)),
+      ),
+
       field_logs: parser.logs,
       data,
       raw: {
