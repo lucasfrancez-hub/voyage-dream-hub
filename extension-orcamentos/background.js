@@ -76,7 +76,14 @@ async function autoImport(url, mechanism) {
   broadcastToTabs({ type: "viaair-import-progress", stage: "start", url, mechanism });
   sendImport(url, mechanism || "background/auto").then((r) => {
     broadcastToTabs({ type: "viaair-import-progress", stage: "done", url, result: r });
-    if (r && r.status !== "READY") autoImportSeen.delete(url);
+    if (r && r.status !== "READY") {
+      autoImportSeen.delete(url);
+      chrome.storage.local.get(["viaairImported"]).then(({ viaairImported }) => {
+        const m = viaairImported || {};
+        delete m[url];
+        chrome.storage.local.set({ viaairImported: m });
+      });
+    }
   });
 }
 
