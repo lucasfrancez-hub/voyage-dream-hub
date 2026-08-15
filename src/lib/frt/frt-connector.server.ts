@@ -412,10 +412,11 @@ async function restoreSession(): Promise<Session | null> {
       viewState: (data.view_state as string | null) ?? null,
       createdAt: Date.now() - idade,
     };
-    const venda = await frtFetch(s, VENDA_URL);
-    if (looksLikeLoginPage(venda.body) || needsAuthCode(venda.body)) return null;
+    const venda = await abrirVenda(s);
+    if (venda.voltouParaLogin || needsAuthCode(venda.body)) return null;
     s.viewState = extractViewState(venda.body);
     trace("sessão FRT restaurada do backend");
+
     return s;
   } catch {
     return null;
