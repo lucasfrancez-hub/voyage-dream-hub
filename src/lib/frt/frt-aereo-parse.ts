@@ -262,3 +262,30 @@ export function parseResumoPacote(xmlOuHtml: string): {
     texto: t ? t.slice(0, 400) : null,
   };
 }
+
+/** Descobre o javax.faces.source do botão "Alterar voo" dentro do pacote. */
+export function acharSourceAlterarVoo(htmlPacote: string): string | null {
+  const root = doc(htmlPacote);
+  const RE = /alterar\s*(?:o\s*)?(?:voo|a[ée]reo)|trocar\s*(?:o\s*)?(?:voo|a[ée]reo)|outros\s*voos|mudar\s*voo/i;
+  const candidatos = root.querySelectorAll("button, a, input, span[onclick], div[onclick]");
+  for (const c of candidatos) {
+    const rotulo = `${texto(c)} ${c.getAttribute("title") ?? ""} ${c.getAttribute("value") ?? ""} ${c.getAttribute("aria-label") ?? ""}`;
+    if (!RE.test(rotulo)) continue;
+    const id = c.getAttribute("id");
+    if (id) return id;
+    const onclick = c.getAttribute("onclick") ?? "";
+    const src =
+      onclick.match(/PrimeFaces\.ab\(\s*\{\s*s\s*:\s*["'&quot;]+([^"'&]+)/)?.[1] ??
+      onclick.match(/source\s*:\s*["']([^"']+)["']/)?.[1] ??
+      null;
+    if (src) return src;
+  }
+  return null;
+}
+
+/** Extrai o HTML do container de um pacote (por id) dentro do resultado bruto. */
+export function htmlDoPacote(htmlResultado: string, pacoteId: string): string | null {
+  const root = doc(htmlResultado);
+  const el = root.querySelector(`[id="${pacoteId}"]`) as HTMLElement | null;
+  return el ? el.outerHTML : null;
+}
