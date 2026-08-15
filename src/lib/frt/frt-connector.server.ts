@@ -188,7 +188,7 @@ export type FrtAmostraPesquisa = {
     source: string;
     status: number;
     bytes: number;
-    updates: string[];
+    updates: { id: string; bytes: number }[];
     camposJsf: string[];
   }[];
   /** Nomes efetivamente escolhidos para o payload; null bloqueia a pesquisa. */
