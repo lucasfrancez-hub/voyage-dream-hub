@@ -9,7 +9,10 @@
 import {
   FrtError,
   FRT_FIELDS,
+  camposDoUpdateAjax,
   coletarEstadoMotor,
+  escolherItemAutocomplete,
+  parseAutocompleteItens,
   decodeEntities,
   resolvePayloadAutocomplete,
   listarCamposInternosJsf,
@@ -977,29 +980,14 @@ async function runSearch(
   const origem = normalizarIata(input.origem);
   const destino = normalizarIata(input.destino);
 
-  const diagnosticarAutocomplete = async (
-    componente: "origem" | "destino",
-    sourceInput: string,
-    consulta: string,
-  ) => {
-    const source = sourceInput.replace(/_input$/, "");
-    const ajax = new URLSearchParams();
-    ajax.set("javax.faces.partial.ajax", "true");
-    ajax.set("javax.faces.source", source);
-    ajax.set("javax.faces.partial.execute", source);
-    ajax.set("javax.faces.partial.render", source);
-    ajax.set("javax.faces.behavior.event", "query");
-    ajax.set("javax.faces.partial.event", "query");
-    ajax.set(source, source);
-    ajax.set(`${source}_query`, consulta);
-    ajax.set(FRT_FIELDS.form, FRT_FIELDS.form);
-    for (const [name, valor] of Object.entries(estado)) {
-      if (!name.startsWith("javax.faces")) ajax.set(name, valor);
-    }
-    ajax.set("javax.faces.ViewState", s.viewState ?? "");
-    const resposta = await frtFetch(s, VENDA_URL, {
+  /** POST AJAX genérico no motor de pacotes, atualizando o ViewState. */
+  const ajaxMotor = async (params: URLSearchParams) => {
+    params.set("javax.faces.partial.ajax", "true");
+    params.set(FRT_FIELDS.form, FRT_FIELDS.form);
+    params.set("javax.faces.ViewState", s.viewState ?? "");
+    const { res, body } = await frtFetch(s, VENDA_URL, {
       method: "POST",
-      body: ajax.toString(),
+      body: params.toString(),
       headers: {
         "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
         "Faces-Request": "partial/ajax",
@@ -1008,36 +996,136 @@ async function runSearch(
         Referer: VENDA_URL,
       },
     });
-    const updates = extractPartialUpdates(resposta.body);
-    return {
-      componente,
-      source,
-      status: resposta.res.status,
-      bytes: resposta.body.length,
-      updates: Object.entries(updates).map(([id, conteudo]) => ({ id, bytes: conteudo.length })),
-      camposJsf: listarCamposInternosJsf(resposta.body),
-      raw: resposta.body,
-    };
+    const novoViewState = extractViewState(body);
+    if (novoViewState) s.viewState = novoViewState;
+    return { status: res.status, body };
   };
 
-  // Os campos semânticos são apenas a UI do autocomplete. Sem os campos
-  // internos j_idt#### não existe payload válido de pesquisa. Em vez de cair
-  // silenciosamente no _input, reproduzimos separadamente os AJAX de consulta
-  // para registrar em qual resposta dinâmica esses campos aparecem.
-  if (!payload.origem || !payload.destino) {
-    const autocomplete = [];
-    autocomplete.push(await diagnosticarAutocomplete("origem", fields.origem, input.origemLabel?.trim() || origem));
-    autocomplete.push(await diagnosticarAutocomplete("destino", fields.destino, input.destinoLabel?.trim() || destino));
-    for (const item of autocomplete) {
-      trace(
-        `  autocomplete ${item.componente}: source=${item.source} status=${item.status} bytes=${item.bytes} updates=${item.updates.map((update) => `${update.id}(${update.bytes}b)`).join(", ") || "(nenhum)"} j_idt=${item.camposJsf.join(", ") || "(nenhum)"}`,
+  const evidencias: FrtAmostraPesquisa["autocomplete"] = [];
+
+  /**
+   * Fluxo real do p:autoComplete: query -> escolhe a opção -> itemSelect.
+   * Os campos internos j_idt#### só nascem no update devolvido pelo itemSelect,
+   * por isso eles são descobertos aqui e nunca hardcodados.
+   */
+  const selecionarAutocomplete = async (
+    componente: "origem" | "destino",
+    sourceInput: string,
+    termo: string,
+  ) => {
+    const source = sourceInput.replace(/_input$/, "");
+    const painel = componente === "origem" ? "pnlOrigemPacote" : "pnlDestinoPacote";
+
+    // 1) query
+    const q = new URLSearchParams();
+    q.set("javax.faces.source", source);
+    q.set("javax.faces.partial.execute", source);
+    q.set("javax.faces.partial.render", source);
+    q.set("javax.faces.behavior.event", "query");
+    q.set("javax.faces.partial.event", "query");
+    q.set(source, source);
+    for (const [name, valor] of Object.entries(estado)) {
+      if (!name.startsWith("javax.faces")) q.set(name, valor);
+    }
+    q.set(`${source}_query`, termo);
+    q.set(`${source}_input`, termo);
+    q.set(`${source}_hinput`, termo);
+    const query = await ajaxMotor(q);
+
+    const itens = parseAutocompleteItens(query.body);
+    const escolhido = escolherItemAutocomplete(itens, termo);
+    trace(
+      `  autocomplete ${componente}: query status=${query.status} bytes=${query.body.length} opções=${itens.length} escolhida=${escolhido?.value ?? "(nenhuma)"}`,
+    );
+    if (!escolhido) {
+      evidencias.push({
+        componente,
+        source,
+        status: query.status,
+        bytes: query.body.length,
+        updates: Object.entries(extractPartialUpdates(query.body)).map(([id, c]) => ({
+          id,
+          bytes: c.length,
+        })),
+        camposJsf: listarCamposInternosJsf(query.body),
+      });
+      throw new FrtError(
+        "FRT_SEARCH_INCONCLUSIVE",
+        `O autocomplete da FRT não retornou nenhuma opção para ${componente}`,
+        `termo=${termo}`,
       );
     }
+
+    // 2) itemSelect
+    const sel = new URLSearchParams();
+    sel.set("javax.faces.source", source);
+    sel.set("javax.faces.partial.execute", source);
+    sel.set("javax.faces.partial.render", `${FRT_FIELDS.form}:${painel}`);
+    sel.set("javax.faces.behavior.event", "itemSelect");
+    sel.set("javax.faces.partial.event", "itemSelect");
+    sel.set(source, source);
+    for (const [name, valor] of Object.entries(estado)) {
+      if (!name.startsWith("javax.faces")) sel.set(name, valor);
+    }
+    sel.set(`${source}_itemSelect`, escolhido.value);
+    sel.set(`${source}_input`, escolhido.label || escolhido.value);
+    sel.set(`${source}_hinput`, escolhido.value);
+    const select = await ajaxMotor(sel);
+
+    const updates = extractPartialUpdates(select.body);
+    const chavePainel =
+      Object.keys(updates).find((k) => k.toLowerCase().includes(painel.toLowerCase())) ?? null;
+    const blocos = chavePainel ? [updates[chavePainel]!] : Object.values(updates);
+    const camposNovos: Record<string, string> = {};
+    for (const bloco of blocos) Object.assign(camposNovos, camposDoUpdateAjax(bloco));
+
+    // 3) o campo interno j_idt#### criado agora é o nome real do payload
+    const interno =
+      Object.keys(camposNovos).find((n) => /^frmMotorPacote:j_idt\d+$/.test(n) && !(n in estado)) ??
+      Object.keys(camposNovos).find((n) => /^frmMotorPacote:j_idt\d+$/.test(n)) ??
+      null;
+
+    for (const [name, valor] of Object.entries(camposNovos)) estado[name] = valor;
+    estado[`${source}_input`] = escolhido.label || escolhido.value;
+    estado[`${source}_hinput`] = escolhido.value;
+
+    evidencias.push({
+      componente,
+      source,
+      status: select.status,
+      bytes: select.body.length,
+      updates: Object.entries(updates).map(([id, c]) => ({ id, bytes: c.length })),
+      camposJsf: listarCamposInternosJsf(select.body),
+    });
+    trace(
+      `  autocomplete ${componente}: itemSelect status=${select.status} painel=${chavePainel ?? "(não veio)"} camposNovos=${Object.keys(camposNovos).length} interno=${interno ?? "(nenhum)"}`,
+    );
+
+    return { interno, escolhido };
+  };
+
+  const selOrigem = await selecionarAutocomplete(
+    "origem",
+    fields.origem,
+    input.origemLabel?.trim() || origem,
+  );
+  const selDestino = await selecionarAutocomplete(
+    "destino",
+    fields.destino,
+    input.destinoLabel?.trim() || destino,
+  );
+
+  const nomeOrigem = selOrigem.interno ?? payload.origem;
+  const nomeDestino = selDestino.interno ?? payload.destino;
+
+  // Sem campos internos reais não existe pesquisa válida — o _input visual do
+  // autocomplete nunca é aceito como payload.
+  if (!nomeOrigem || !nomeDestino || /_input$/.test(nomeOrigem) || /_input$/.test(nomeDestino)) {
     ultimaAmostraPesquisa = {
       em: new Date().toISOString(),
-      status: autocomplete.find((item) => item.status >= 400)?.status ?? 200,
-      bytes: autocomplete.reduce((total, item) => total + item.bytes, 0),
-      updates: autocomplete.flatMap((item) => item.updates.map((update) => ({ id: `${item.componente}:${update.id}`, bytes: update.bytes }))),
+      status: evidencias.find((e) => e.status >= 400)?.status ?? 200,
+      bytes: evidencias.reduce((t, e) => t + e.bytes, 0),
+      updates: evidencias.flatMap((e) => e.updates.map((u) => ({ id: `${e.componente}:${u.id}`, bytes: u.bytes }))),
       temPnlResultado: false,
       pnlResultadoBytes: 0,
       temPrecos: false,
@@ -1046,14 +1134,14 @@ async function runSearch(
       mensagemNenhumResultado: null,
       validationFailed: false,
       inventario: ultimoInventarioMotor,
-      autocomplete: autocomplete.map(({ raw: _raw, ...item }) => item),
-      payloadResolvido: { origem: payload.origem, destino: payload.destino },
-      raw: amostraSanitizada(autocomplete.map((item) => item.raw).join("\n")),
+      autocomplete: evidencias,
+      payloadResolvido: { origem: nomeOrigem, destino: nomeDestino },
+      raw: "",
     };
     throw new FrtError(
       "FRT_SEARCH_INCONCLUSIVE",
-      "Os campos internos de origem/destino ainda não foram gerados pelo autocomplete da FRT",
-      `origem=${payload.origem ?? "-"} destino=${payload.destino ?? "-"}`,
+      "O itemSelect da FRT não gerou os campos internos de origem/destino",
+      `origem=${nomeOrigem ?? "-"} destino=${nomeDestino ?? "-"}`,
     );
   }
 
@@ -1068,19 +1156,15 @@ async function runSearch(
   p.set(fields.botao, fields.botao);
   p.set(FRT_FIELDS.form, FRT_FIELDS.form);
 
-  // 1) Reproduz o estado atual do formulário como o navegador reenvia,
-  //    preservando campos internos da FRT (j_idt####_input de ocupação etc.).
+  // 1) Reproduz o estado atual do formulário (já enriquecido pelos itemSelect).
   for (const [name, valor] of Object.entries(estado)) {
     if (name.startsWith("javax.faces")) continue;
     p.set(name, valor);
   }
 
-  // 2) Sobrescreve só o que é da pesquisa. Origem/destino vão nos campos reais
-  //    do payload (j_idt####), não nos _input visuais do autocomplete.
-  const nomeOrigem = payload.origem;
-  const nomeDestino = payload.destino;
-  p.set(nomeOrigem, input.origemLabel?.trim() || origem);
-  p.set(nomeDestino, input.destinoLabel?.trim() || destino);
+  // 2) Origem/destino vão nos campos internos descobertos após o itemSelect.
+  p.set(nomeOrigem, selOrigem.escolhido.value);
+  p.set(nomeDestino, selDestino.escolhido.value);
   p.set(fields.ida, toBrDate(input.ida));
   if (input.volta) p.set(fields.volta, toBrDate(input.volta));
   p.set(fields.pais, input.pais ?? estado[fields.pais] ?? "");
@@ -1096,6 +1180,7 @@ async function runSearch(
     );
   }
   trace(`  payload origem=${nomeOrigem} destino=${nomeDestino} campos=${[...p.keys()].length}`);
+
 
   trace(`POST pesquisa ${origem}->${destino} ${input.ida}`);
   const { res: resPesquisa, body } = await frtFetch(s, VENDA_URL, {
