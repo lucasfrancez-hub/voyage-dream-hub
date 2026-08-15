@@ -569,12 +569,24 @@ export async function consultarFRT(input: FrtSearchInput): Promise<FrtSearchResp
 export async function frtDiagnostico(reusarSessao = true) {
   try {
     const s = await getSession(!reusarSessao);
-    const { body } = await frtFetch(s, VENDA_URL);
+    const venda = await abrirVenda(s);
+    const body = venda.body;
     const resolved = resolveSearchFields(body);
-    const autenticado = !looksLikeLoginPage(body) && !needsAuthCode(body);
+    // Prova definitiva: abrir venda.xhtml autenticado E achar o formulário.
+    const acessoVenda = {
+      status: venda.status,
+      urlFinal: venda.urlFinal,
+      temFormulario: venda.temFormulario,
+      temLogin: venda.temLogin,
+      voltouParaLogin: venda.voltouParaLogin,
+    };
+    const sessaoValida = !venda.voltouParaLogin && !needsAuthCode(body);
+    const autenticado = sessaoValida && venda.temFormulario;
     return {
       ok: autenticado && resolved.missing.length === 0,
       autenticado,
+      sessaoValida,
+      acessoVenda,
       aguardandoCodigo: needsAuthCode(body),
       viewStatePresente: Boolean(extractViewState(body)),
       cookies: [...s.cookies.keys()],
@@ -590,6 +602,14 @@ export async function frtDiagnostico(reusarSessao = true) {
     return {
       ok: false,
       autenticado: false,
+      sessaoValida: false,
+      acessoVenda: null as {
+        status: number;
+        urlFinal: string;
+        temFormulario: boolean;
+        temLogin: boolean;
+        voltouParaLogin: boolean;
+      } | null,
       aguardandoCodigo: err?.code === "FRT_2FA_REQUIRED",
       viewStatePresente: false,
       cookies: [] as string[],
@@ -601,4 +621,5 @@ export async function frtDiagnostico(reusarSessao = true) {
       log: frtTraceLog().slice(-30),
     };
   }
+
 }
