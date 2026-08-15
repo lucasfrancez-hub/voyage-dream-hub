@@ -1550,7 +1550,9 @@ export async function runAgent(input: {
       // bindAgentToProtocol já atualiza o protocolo. Não cancele esse run só
       // porque a coluna legada da conversa ainda aponta para o agente anterior.
       (!instructionRun && activeSlug != null && activeSlug !== agent.slug) ||
+      (!instructionRun && transferenciaEmEspera) ||
       (!instructionRun && (alreadyAnswered ?? 0) > 0);
+
     if (staleRun) {
       console.warn("[agent-runtime]", JSON.stringify({
         ...runtimeAudit,
