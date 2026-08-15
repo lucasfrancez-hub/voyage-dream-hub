@@ -751,6 +751,12 @@ export function parseAutocompleteItens(xml: string): FrtAutocompleteItem[] {
   return itens;
 }
 
+/** Quantos data-item-value existem na resposta (mesmo fora de <li>). */
+export function contarDataItemValue(xml: string): number {
+  return [...decodeEntities(xml).matchAll(/data-item-value="/gi)].length;
+}
+
+
 /** Escolhe a opção que corresponde ao termo (IATA exato > contém > primeira). */
 export function escolherItemAutocomplete(
   itens: FrtAutocompleteItem[],

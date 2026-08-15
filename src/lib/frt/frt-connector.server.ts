@@ -10,6 +10,7 @@ import {
   FrtError,
   FRT_FIELDS,
   camposDoUpdateAjax,
+  contarDataItemValue,
   coletarEstadoMotor,
   escolherItemAutocomplete,
   parseAutocompleteItens,
@@ -1118,17 +1119,58 @@ async function selecionarAutocomplete(
   return { interno, escolhido };
 }
 
-/** Sugestões reais da FRT para a UI (dropdown de origem/destino). */
+export type FrtDiagnosticoAutocomplete = {
+  termo: string;
+  componente: "origem" | "destino";
+  source: string;
+  disparado: boolean;
+  status: number;
+  bytes: number;
+  updates: { id: string; bytes: number }[];
+  dataItemValue: number;
+  amostra: string | null;
+  em: string;
+};
+
+/** Sugestões reais da FRT para a UI (dropdown de origem/destino) + diagnóstico. */
 export async function frtSugestoesLocal(
   componente: "origem" | "destino",
   termo: string,
-): Promise<{ opcoes: { value: string; label: string }[] }> {
+): Promise<{
+  opcoes: { value: string; label: string }[];
+  diagnostico: FrtDiagnosticoAutocomplete;
+}> {
   const s = await getSession();
   const { fields, estado } = await loadVendaScreen(s);
   const sourceInput = componente === "origem" ? fields.origem : fields.destino;
-  const { itens } = await consultarAutocomplete(s, estado, sourceInput, normalizarIata(termo));
-  return { opcoes: itens.map((i) => ({ value: i.value, label: i.label || i.value })) };
+  const { source, query, itens } = await consultarAutocomplete(
+    s,
+    estado,
+    sourceInput,
+    normalizarIata(termo),
+  );
+  const updates = extractPartialUpdates(query.body);
+  const diagnostico: FrtDiagnosticoAutocomplete = {
+    termo,
+    componente,
+    source,
+    disparado: true,
+    status: query.status,
+    bytes: query.body.length,
+    updates: Object.entries(updates).map(([id, c]) => ({ id, bytes: c.length })),
+    dataItemValue: contarDataItemValue(query.body),
+    amostra: itens.length === 0 ? amostraSanitizada(query.body).slice(0, 6000) : null,
+    em: new Date().toISOString(),
+  };
+  trace(
+    `  sugestões ${componente}: termo="${termo}" status=${query.status} bytes=${query.body.length} updates=${diagnostico.updates.length} data-item-value=${diagnostico.dataItemValue} opções=${itens.length}`,
+  );
+  return {
+    opcoes: itens.map((i) => ({ value: i.value, label: i.label || i.value })),
+    diagnostico,
+  };
 }
+
 
 /** Confirma a seleção do usuário executando o itemSelect real na FRT. */
 export async function frtSelecionarLocal(

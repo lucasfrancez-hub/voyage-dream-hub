@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
@@ -21,6 +21,7 @@ import {
 } from "@/lib/frt/frt.functions";
 import {
   FrtLocalAutocomplete,
+  type FrtAutocompleteDiag,
   type FrtLocalSelecionado,
 } from "@/components/frt/FrtLocalAutocomplete";
 
@@ -65,6 +66,12 @@ function FrtTestePage() {
   const [volta, setVolta] = useState("2026-09-30");
   const [adultos, setAdultos] = useState(2);
   const [criancas, setCriancas] = useState(0);
+  const [diagAuto, setDiagAuto] = useState<Record<string, FrtAutocompleteDiag>>({});
+  const registrarDiagAuto = useCallback(
+    (d: FrtAutocompleteDiag) => setDiagAuto((prev) => ({ ...prev, [d.componente]: d })),
+    [],
+  );
+
 
   const diagMut = useMutation({
     mutationFn: (novaSessao?: boolean) => diag({ data: { novaSessao: Boolean(novaSessao) } }),
@@ -334,6 +341,7 @@ function FrtTestePage() {
               onTermoChange={setOrigem}
               selecionado={selOrigem}
               onSelecionar={setSelOrigem}
+              onDiagnostico={registrarDiagAuto}
             />
           </div>
           <div className="col-span-2 md:col-span-2">
@@ -345,6 +353,7 @@ function FrtTestePage() {
               onTermoChange={setDestino}
               selecionado={selDestino}
               onSelecionar={setSelDestino}
+              onDiagnostico={registrarDiagAuto}
             />
           </div>
 
@@ -379,11 +388,69 @@ function FrtTestePage() {
             />
           </div>
         </div>
+
+        {Object.keys(diagAuto).length > 0 ? (
+          <div className="space-y-3 rounded-lg border p-3 text-xs">
+            <p className="font-medium text-foreground">Diagnóstico do autocomplete (query)</p>
+            {(["origem", "destino"] as const).map((c) => {
+              const a = diagAuto[c];
+              if (!a) return null;
+              const pendente = a.status === 0 && !a.erro;
+              return (
+                <div key={c} className="space-y-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge variant="outline">{c}</Badge>
+                    <Badge variant="outline">termo “{a.termo}”</Badge>
+                    <Badge variant={a.disparado ? "default" : "destructive"}>
+                      chamada {a.disparado ? "disparada" : "não disparada"}
+                    </Badge>
+                    <Badge variant="outline">
+                      status {pendente ? "aguardando…" : a.status || "—"}
+                    </Badge>
+                    <Badge variant="outline">{a.bytes} bytes</Badge>
+                    <Badge variant={a.dataItemValue > 0 ? "default" : "destructive"}>
+                      data-item-value: {a.dataItemValue}
+                    </Badge>
+                    <Badge variant={a.opcoes.length > 0 ? "default" : "secondary"}>
+                      opções: {a.opcoes.length}
+                    </Badge>
+                  </div>
+                  <p className="text-muted-foreground">source: {a.source}</p>
+                  <p className="text-muted-foreground">
+                    updates:{" "}
+                    {a.updates.length
+                      ? a.updates.map((u) => `${u.id} (${u.bytes}b)`).join(" | ")
+                      : "nenhum"}
+                  </p>
+                  {a.opcoes.length ? (
+                    <p className="text-muted-foreground">
+                      primeiras opções:{" "}
+                      {a.opcoes.map((o) => `${o.label} [${o.value}]`).join(" · ")}
+                    </p>
+                  ) : null}
+                  {a.erro ? <p className="text-destructive">erro: {a.erro}</p> : null}
+                  {a.amostra ? (
+                    <details>
+                      <summary className="cursor-pointer text-muted-foreground">
+                        Amostra sanitizada da resposta PrimeFaces (0 opções)
+                      </summary>
+                      <pre className="mt-2 max-h-56 overflow-auto rounded-lg bg-muted p-3 text-[11px]">
+                        {a.amostra}
+                      </pre>
+                    </details>
+                  ) : null}
+                </div>
+              );
+            })}
+          </div>
+        ) : null}
+
         {!prontoParaConsultar ? (
           <p className="text-xs text-amber-600">
             Selecione origem e destino na lista do autocomplete da FRT para liberar a consulta.
           </p>
         ) : null}
+
         <div className="flex flex-wrap gap-2">
           <Button
             onClick={() => searchMut.mutate()}

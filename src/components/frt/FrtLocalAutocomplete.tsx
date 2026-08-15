@@ -14,6 +14,21 @@ export type FrtLocalSelecionado = {
   interno: string | null;
 };
 
+export type FrtAutocompleteDiag = {
+  termo: string;
+  componente: "origem" | "destino";
+  source: string;
+  disparado: boolean;
+  status: number;
+  bytes: number;
+  updates: { id: string; bytes: number }[];
+  dataItemValue: number;
+  amostra: string | null;
+  opcoes: { value: string; label: string }[];
+  erro?: string;
+  em: string;
+};
+
 type Props = {
   id: string;
   rotulo: string;
@@ -22,6 +37,7 @@ type Props = {
   onTermoChange: (v: string) => void;
   selecionado: FrtLocalSelecionado | null;
   onSelecionar: (s: FrtLocalSelecionado | null) => void;
+  onDiagnostico?: (d: FrtAutocompleteDiag) => void;
 };
 
 /**
@@ -37,6 +53,7 @@ export function FrtLocalAutocomplete({
   onTermoChange,
   selecionado,
   onSelecionar,
+  onDiagnostico,
 }: Props) {
   const sugerir = useServerFn(sugestoesLocalFrt);
   const selecionar = useServerFn(selecionarLocalFrt);
@@ -44,30 +61,65 @@ export function FrtLocalAutocomplete({
   const [aberto, setAberto] = useState(false);
   const [buscando, setBuscando] = useState(false);
   const [confirmando, setConfirmando] = useState(false);
+  const [semOpcoes, setSemOpcoes] = useState(false);
   const pedidoRef = useRef(0);
 
   useEffect(() => {
     const t = termo.trim();
     if (selecionado || t.length < 3) {
       setOpcoes([]);
+      setSemOpcoes(false);
+      setAberto(false);
       return;
     }
     const meu = ++pedidoRef.current;
     const timer = setTimeout(async () => {
       setBuscando(true);
+      onDiagnostico?.({
+        termo: t,
+        componente,
+        source: "—",
+        disparado: true,
+        status: 0,
+        bytes: 0,
+        updates: [],
+        dataItemValue: 0,
+        amostra: null,
+        opcoes: [],
+        em: new Date().toISOString(),
+      });
       try {
         const r = await sugerir({ data: { componente, termo: t } });
         if (pedidoRef.current !== meu) return;
         setOpcoes(r.opcoes);
+        setSemOpcoes(r.opcoes.length === 0);
         setAberto(true);
+        onDiagnostico?.({ ...r.diagnostico, opcoes: r.opcoes.slice(0, 5) });
       } catch (e) {
-        if (pedidoRef.current === meu) toast.error((e as Error).message);
+        if (pedidoRef.current !== meu) return;
+        setOpcoes([]);
+        setSemOpcoes(true);
+        onDiagnostico?.({
+          termo: t,
+          componente,
+          source: "—",
+          disparado: true,
+          status: 0,
+          bytes: 0,
+          updates: [],
+          dataItemValue: 0,
+          amostra: null,
+          opcoes: [],
+          erro: (e as Error).message,
+          em: new Date().toISOString(),
+        });
+        toast.error((e as Error).message);
       } finally {
         if (pedidoRef.current === meu) setBuscando(false);
       }
     }, 350);
     return () => clearTimeout(timer);
-  }, [termo, componente, selecionado, sugerir]);
+  }, [termo, componente, selecionado, sugerir, onDiagnostico]);
 
   const escolher = async (op: { value: string; label: string }) => {
     setAberto(false);
@@ -88,7 +140,7 @@ export function FrtLocalAutocomplete({
   };
 
   return (
-    <div className="relative space-y-1.5">
+    <div className={cn("relative space-y-1.5", aberto && "z-50")}>
       <Label htmlFor={id}>{rotulo}</Label>
       <div className="relative">
         <Input
@@ -100,7 +152,7 @@ export function FrtLocalAutocomplete({
             onTermoChange(e.target.value);
             if (selecionado) onSelecionar(null);
           }}
-          onFocus={() => opcoes.length > 0 && setAberto(true)}
+          onFocus={() => (opcoes.length > 0 || semOpcoes) && setAberto(true)}
           onBlur={() => setTimeout(() => setAberto(false), 150)}
           className={cn(selecionado && "border-primary/60")}
         />
@@ -113,20 +165,26 @@ export function FrtLocalAutocomplete({
         </span>
       </div>
 
-      {aberto && opcoes.length > 0 && (
-        <ul className="absolute z-50 mt-1 max-h-64 w-full overflow-auto rounded-md border bg-popover p-1 shadow-md">
-          {opcoes.map((op) => (
-            <li key={op.value}>
-              <button
-                type="button"
-                className="w-full rounded px-2 py-1.5 text-left text-sm hover:bg-accent"
-                onMouseDown={(e) => e.preventDefault()}
-                onClick={() => escolher(op)}
-              >
-                {op.label}
-              </button>
+      {aberto && (opcoes.length > 0 || semOpcoes) && (
+        <ul className="absolute left-0 right-0 top-full z-50 mt-1 max-h-64 overflow-auto rounded-md border bg-popover p-1 shadow-md">
+          {opcoes.length === 0 ? (
+            <li className="px-2 py-1.5 text-sm text-muted-foreground">
+              A FRT não devolveu opções para este termo
             </li>
-          ))}
+          ) : (
+            opcoes.map((op) => (
+              <li key={op.value}>
+                <button
+                  type="button"
+                  className="w-full rounded px-2 py-1.5 text-left text-sm hover:bg-accent"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => escolher(op)}
+                >
+                  {op.label}
+                </button>
+              </li>
+            ))
+          )}
         </ul>
       )}
 
