@@ -1813,6 +1813,738 @@ export type Database = {
         }
         Relationships: []
       }
+      cruise_additional_categories: {
+        Row: {
+          created_at: string
+          cruise_id: string
+          id: string
+          name: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          cruise_id: string
+          id?: string
+          name: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          cruise_id?: string
+          id?: string
+          name?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cruise_additional_categories_cruise_id_fkey"
+            columns: ["cruise_id"]
+            isOneToOne: false
+            referencedRelation: "cruises"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cruise_additional_prices: {
+        Row: {
+          additional_id: string
+          created_at: string
+          currency: string
+          id: string
+          price: number | null
+          profile: string
+          updated_at: string
+        }
+        Insert: {
+          additional_id: string
+          created_at?: string
+          currency?: string
+          id?: string
+          price?: number | null
+          profile?: string
+          updated_at?: string
+        }
+        Update: {
+          additional_id?: string
+          created_at?: string
+          currency?: string
+          id?: string
+          price?: number | null
+          profile?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cruise_additional_prices_additional_id_fkey"
+            columns: ["additional_id"]
+            isOneToOne: false
+            referencedRelation: "cruise_additionals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cruise_additionals: {
+        Row: {
+          category_id: string | null
+          category_name: string
+          code: string
+          created_at: string
+          cruise_id: string
+          description: string
+          id: string
+          name: string
+          raw: Json
+          updated_at: string
+        }
+        Insert: {
+          category_id?: string | null
+          category_name?: string
+          code?: string
+          created_at?: string
+          cruise_id: string
+          description?: string
+          id?: string
+          name: string
+          raw?: Json
+          updated_at?: string
+        }
+        Update: {
+          category_id?: string | null
+          category_name?: string
+          code?: string
+          created_at?: string
+          cruise_id?: string
+          description?: string
+          id?: string
+          name?: string
+          raw?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cruise_additionals_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "cruise_additional_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cruise_additionals_cruise_id_fkey"
+            columns: ["cruise_id"]
+            isOneToOne: false
+            referencedRelation: "cruises"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cruise_cabin_offers: {
+        Row: {
+          amenities: Json
+          availability: string | null
+          cabin_type: string
+          category_codes: string[]
+          created_at: string
+          cruise_id: string
+          fare_name: string
+          id: string
+          image_url: string | null
+          name: string
+          ship_cabin_id: string | null
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          amenities?: Json
+          availability?: string | null
+          cabin_type?: string
+          category_codes?: string[]
+          created_at?: string
+          cruise_id: string
+          fare_name?: string
+          id?: string
+          image_url?: string | null
+          name: string
+          ship_cabin_id?: string | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          amenities?: Json
+          availability?: string | null
+          cabin_type?: string
+          category_codes?: string[]
+          created_at?: string
+          cruise_id?: string
+          fare_name?: string
+          id?: string
+          image_url?: string | null
+          name?: string
+          ship_cabin_id?: string | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cruise_cabin_offers_cruise_id_fkey"
+            columns: ["cruise_id"]
+            isOneToOne: false
+            referencedRelation: "cruises"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cruise_cabin_offers_ship_cabin_id_fkey"
+            columns: ["ship_cabin_id"]
+            isOneToOne: false
+            referencedRelation: "ship_cabins"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cruise_import_domains: {
+        Row: {
+          created_at: string
+          domain: string
+          enabled: boolean
+          id: string
+          source: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          domain: string
+          enabled?: boolean
+          id?: string
+          source?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          domain?: string
+          enabled?: boolean
+          id?: string
+          source?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      cruise_import_logs: {
+        Row: {
+          created_at: string
+          cruise_id: string | null
+          data: Json
+          id: string
+          level: string
+          message: string
+          snapshot_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          cruise_id?: string | null
+          data?: Json
+          id?: string
+          level?: string
+          message: string
+          snapshot_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          cruise_id?: string | null
+          data?: Json
+          id?: string
+          level?: string
+          message?: string
+          snapshot_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cruise_import_logs_cruise_id_fkey"
+            columns: ["cruise_id"]
+            isOneToOne: false
+            referencedRelation: "cruises"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cruise_import_logs_snapshot_id_fkey"
+            columns: ["snapshot_id"]
+            isOneToOne: false
+            referencedRelation: "cruise_import_snapshots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cruise_import_sessions: {
+        Row: {
+          created_at: string
+          cruise_id: string
+          finished_at: string | null
+          id: string
+          last_capture_at: string | null
+          snapshots_count: number
+          source: string
+          status: string
+          token: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          cruise_id: string
+          finished_at?: string | null
+          id?: string
+          last_capture_at?: string | null
+          snapshots_count?: number
+          source?: string
+          status?: string
+          token: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          cruise_id?: string
+          finished_at?: string | null
+          id?: string
+          last_capture_at?: string | null
+          snapshots_count?: number
+          source?: string
+          status?: string
+          token?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cruise_import_sessions_cruise_id_fkey"
+            columns: ["cruise_id"]
+            isOneToOne: false
+            referencedRelation: "cruises"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cruise_import_snapshots: {
+        Row: {
+          captured_at: string
+          created_at: string
+          cruise_id: string
+          detected: Json
+          error: string | null
+          id: string
+          normalized: Json
+          page_type: string
+          payload: Json
+          processed_at: string | null
+          seq: number
+          session_id: string | null
+          source: string
+          stats: Json
+          status: string
+          summary: string | null
+          updated_at: string
+          url: string | null
+          user_id: string | null
+        }
+        Insert: {
+          captured_at?: string
+          created_at?: string
+          cruise_id: string
+          detected?: Json
+          error?: string | null
+          id?: string
+          normalized?: Json
+          page_type?: string
+          payload?: Json
+          processed_at?: string | null
+          seq?: number
+          session_id?: string | null
+          source?: string
+          stats?: Json
+          status?: string
+          summary?: string | null
+          updated_at?: string
+          url?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          captured_at?: string
+          created_at?: string
+          cruise_id?: string
+          detected?: Json
+          error?: string | null
+          id?: string
+          normalized?: Json
+          page_type?: string
+          payload?: Json
+          processed_at?: string | null
+          seq?: number
+          session_id?: string | null
+          source?: string
+          stats?: Json
+          status?: string
+          summary?: string | null
+          updated_at?: string
+          url?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cruise_import_snapshots_cruise_id_fkey"
+            columns: ["cruise_id"]
+            isOneToOne: false
+            referencedRelation: "cruises"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cruise_import_snapshots_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "cruise_import_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cruise_insurances: {
+        Row: {
+          coverage_url: string | null
+          created_at: string
+          cruise_id: string
+          currency: string
+          id: string
+          name: string
+          price_per_person: number | null
+          raw: Json
+          updated_at: string
+        }
+        Insert: {
+          coverage_url?: string | null
+          created_at?: string
+          cruise_id: string
+          currency?: string
+          id?: string
+          name: string
+          price_per_person?: number | null
+          raw?: Json
+          updated_at?: string
+        }
+        Update: {
+          coverage_url?: string | null
+          created_at?: string
+          cruise_id?: string
+          currency?: string
+          id?: string
+          name?: string
+          price_per_person?: number | null
+          raw?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cruise_insurances_cruise_id_fkey"
+            columns: ["cruise_id"]
+            isOneToOne: false
+            referencedRelation: "cruises"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cruise_itineraries: {
+        Row: {
+          activities: Json
+          arrival: string | null
+          country: string | null
+          created_at: string
+          cruise_id: string
+          date: string | null
+          day: number
+          departure: string | null
+          description: string
+          id: string
+          image_url: string | null
+          map_image_url: string | null
+          port: string
+          updated_at: string
+        }
+        Insert: {
+          activities?: Json
+          arrival?: string | null
+          country?: string | null
+          created_at?: string
+          cruise_id: string
+          date?: string | null
+          day: number
+          departure?: string | null
+          description?: string
+          id?: string
+          image_url?: string | null
+          map_image_url?: string | null
+          port?: string
+          updated_at?: string
+        }
+        Update: {
+          activities?: Json
+          arrival?: string | null
+          country?: string | null
+          created_at?: string
+          cruise_id?: string
+          date?: string | null
+          day?: number
+          departure?: string | null
+          description?: string
+          id?: string
+          image_url?: string | null
+          map_image_url?: string | null
+          port?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cruise_itineraries_cruise_id_fkey"
+            columns: ["cruise_id"]
+            isOneToOne: false
+            referencedRelation: "cruises"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cruise_media: {
+        Row: {
+          alt: string | null
+          context: string
+          created_at: string
+          cruise_id: string
+          embed_url: string | null
+          hires_url: string | null
+          id: string
+          media_type: string
+          provider: string | null
+          sort_order: number
+          source_url: string
+          thumbnail_url: string | null
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          alt?: string | null
+          context?: string
+          created_at?: string
+          cruise_id: string
+          embed_url?: string | null
+          hires_url?: string | null
+          id?: string
+          media_type?: string
+          provider?: string | null
+          sort_order?: number
+          source_url: string
+          thumbnail_url?: string | null
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          alt?: string | null
+          context?: string
+          created_at?: string
+          cruise_id?: string
+          embed_url?: string | null
+          hires_url?: string | null
+          id?: string
+          media_type?: string
+          provider?: string | null
+          sort_order?: number
+          source_url?: string
+          thumbnail_url?: string | null
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cruise_media_cruise_id_fkey"
+            columns: ["cruise_id"]
+            isOneToOne: false
+            referencedRelation: "cruises"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cruise_prices: {
+        Row: {
+          adults: number
+          base_amount: number | null
+          cabin_category: string
+          captured_at: string
+          children: number
+          children_ages: number[]
+          created_at: string
+          cruise_id: string
+          currency: string
+          fare: string
+          id: string
+          infants: number
+          installments: Json
+          is_current: boolean
+          occupancy_key: string
+          offer_id: string | null
+          passenger_prices: Json
+          snapshot_id: string | null
+          taxes: number | null
+          total: number | null
+          updated_at: string
+          young: number
+        }
+        Insert: {
+          adults?: number
+          base_amount?: number | null
+          cabin_category?: string
+          captured_at?: string
+          children?: number
+          children_ages?: number[]
+          created_at?: string
+          cruise_id: string
+          currency?: string
+          fare?: string
+          id?: string
+          infants?: number
+          installments?: Json
+          is_current?: boolean
+          occupancy_key?: string
+          offer_id?: string | null
+          passenger_prices?: Json
+          snapshot_id?: string | null
+          taxes?: number | null
+          total?: number | null
+          updated_at?: string
+          young?: number
+        }
+        Update: {
+          adults?: number
+          base_amount?: number | null
+          cabin_category?: string
+          captured_at?: string
+          children?: number
+          children_ages?: number[]
+          created_at?: string
+          cruise_id?: string
+          currency?: string
+          fare?: string
+          id?: string
+          infants?: number
+          installments?: Json
+          is_current?: boolean
+          occupancy_key?: string
+          offer_id?: string | null
+          passenger_prices?: Json
+          snapshot_id?: string | null
+          taxes?: number | null
+          total?: number | null
+          updated_at?: string
+          young?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cruise_prices_cruise_id_fkey"
+            columns: ["cruise_id"]
+            isOneToOne: false
+            referencedRelation: "cruises"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cruise_prices_offer_id_fkey"
+            columns: ["offer_id"]
+            isOneToOne: false
+            referencedRelation: "cruise_cabin_offers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cruises: {
+        Row: {
+          code: string
+          created_at: string
+          created_by: string | null
+          currency: string
+          departure_date: string | null
+          disembark_port: string | null
+          embark_port: string | null
+          id: string
+          name: string
+          nights: number | null
+          notes: string | null
+          operator: string
+          package_id: string | null
+          raw: Json
+          return_date: string | null
+          ship_id: string | null
+          ship_name: string
+          source: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          departure_date?: string | null
+          disembark_port?: string | null
+          embark_port?: string | null
+          id?: string
+          name: string
+          nights?: number | null
+          notes?: string | null
+          operator?: string
+          package_id?: string | null
+          raw?: Json
+          return_date?: string | null
+          ship_id?: string | null
+          ship_name?: string
+          source?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          departure_date?: string | null
+          disembark_port?: string | null
+          embark_port?: string | null
+          id?: string
+          name?: string
+          nights?: number | null
+          notes?: string | null
+          operator?: string
+          package_id?: string | null
+          raw?: Json
+          return_date?: string | null
+          ship_id?: string | null
+          ship_name?: string
+          source?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cruises_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "packages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cruises_ship_id_fkey"
+            columns: ["ship_id"]
+            isOneToOne: false
+            referencedRelation: "ships"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       editair_ai_events: {
         Row: {
           actor: string
@@ -5606,6 +6338,254 @@ export type Database = {
           total?: number | null
           updated_at?: string
           version?: number
+        }
+        Relationships: []
+      }
+      ship_attractions: {
+        Row: {
+          category: string
+          created_at: string
+          deck: string | null
+          description: string
+          id: string
+          images: Json
+          name: string
+          ship_id: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          deck?: string | null
+          description?: string
+          id?: string
+          images?: Json
+          name: string
+          ship_id: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          deck?: string | null
+          description?: string
+          id?: string
+          images?: Json
+          name?: string
+          ship_id?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ship_attractions_ship_id_fkey"
+            columns: ["ship_id"]
+            isOneToOne: false
+            referencedRelation: "ships"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ship_cabins: {
+        Row: {
+          amenities: Json
+          cabin_type: string
+          capacity: number | null
+          code: string
+          created_at: string
+          description: string
+          id: string
+          name: string
+          photos: Json
+          ship_id: string
+          size_m2: string | null
+          updated_at: string
+        }
+        Insert: {
+          amenities?: Json
+          cabin_type?: string
+          capacity?: number | null
+          code?: string
+          created_at?: string
+          description?: string
+          id?: string
+          name: string
+          photos?: Json
+          ship_id: string
+          size_m2?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amenities?: Json
+          cabin_type?: string
+          capacity?: number | null
+          code?: string
+          created_at?: string
+          description?: string
+          id?: string
+          name?: string
+          photos?: Json
+          ship_id?: string
+          size_m2?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ship_cabins_ship_id_fkey"
+            columns: ["ship_id"]
+            isOneToOne: false
+            referencedRelation: "ships"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ship_decks: {
+        Row: {
+          created_at: string
+          deck_label: string
+          deck_number: number | null
+          id: string
+          image_url: string | null
+          ship_id: string
+          sort_order: number
+          source_url: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          deck_label: string
+          deck_number?: number | null
+          id?: string
+          image_url?: string | null
+          ship_id: string
+          sort_order?: number
+          source_url?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          deck_label?: string
+          deck_number?: number | null
+          id?: string
+          image_url?: string | null
+          ship_id?: string
+          sort_order?: number
+          source_url?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ship_decks_ship_id_fkey"
+            columns: ["ship_id"]
+            isOneToOne: false
+            referencedRelation: "ships"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ship_media: {
+        Row: {
+          alt: string | null
+          context: string
+          created_at: string
+          embed_url: string | null
+          hires_url: string | null
+          id: string
+          media_type: string
+          provider: string | null
+          ship_id: string
+          sort_order: number
+          source_url: string
+          thumbnail_url: string | null
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          alt?: string | null
+          context?: string
+          created_at?: string
+          embed_url?: string | null
+          hires_url?: string | null
+          id?: string
+          media_type?: string
+          provider?: string | null
+          ship_id: string
+          sort_order?: number
+          source_url: string
+          thumbnail_url?: string | null
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          alt?: string | null
+          context?: string
+          created_at?: string
+          embed_url?: string | null
+          hires_url?: string | null
+          id?: string
+          media_type?: string
+          provider?: string | null
+          ship_id?: string
+          sort_order?: number
+          source_url?: string
+          thumbnail_url?: string | null
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ship_media_ship_id_fkey"
+            columns: ["ship_id"]
+            isOneToOne: false
+            referencedRelation: "ships"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ships: {
+        Row: {
+          created_at: string
+          description: string
+          id: string
+          line: string
+          main_image_url: string | null
+          name: string
+          slug: string | null
+          source: string | null
+          source_url: string | null
+          specs: Json
+          technical_image_url: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string
+          id?: string
+          line?: string
+          main_image_url?: string | null
+          name: string
+          slug?: string | null
+          source?: string | null
+          source_url?: string | null
+          specs?: Json
+          technical_image_url?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          id?: string
+          line?: string
+          main_image_url?: string | null
+          name?: string
+          slug?: string | null
+          source?: string | null
+          source_url?: string | null
+          specs?: Json
+          technical_image_url?: string | null
+          updated_at?: string
         }
         Relationships: []
       }
