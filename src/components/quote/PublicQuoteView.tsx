@@ -1072,10 +1072,23 @@ function QuoteBody({ quote, reserveHref }: { quote: PublicQuote; reserveHref?: s
               <>
                 <div className="vq-agent-photo">
                   {foto ? (
-                    <img
-                      src={foto}
-                      alt={agentName}
-                      style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }}
+                    <div
+                      role="img"
+                      aria-label={agentName}
+                      draggable={false}
+                      onContextMenu={(e) => e.preventDefault()}
+                      onDragStart={(e) => e.preventDefault()}
+                      style={{
+                        width: "100%",
+                        height: "100%",
+                        borderRadius: "50%",
+                        backgroundImage: `url("${foto}")`,
+                        backgroundSize: "cover",
+                        backgroundPosition: "center",
+                        userSelect: "none",
+                        WebkitUserSelect: "none",
+                        WebkitTouchCallout: "none",
+                      }}
                     />
                   ) : (
                     agentName.charAt(0)
