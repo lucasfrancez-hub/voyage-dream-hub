@@ -70,6 +70,35 @@ export const Route = createFileRoute("/api/public/v1/cruise-import")({
     handlers: {
       OPTIONS: async () => new Response(null, { status: 204, headers: CORS }),
 
+      /** Finalizar a importação direto da página da operadora. */
+      DELETE: async ({ request }) => {
+        const auth = await authUser(request);
+        if (!auth) return json({ error: "unauthorized" }, 401);
+        if (!(await isAdmin(auth.userId))) return json({ error: "forbidden" }, 403);
+
+        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+        const session = await activeSession(supabaseAdmin, auth.userId);
+        if (!session) return json({ error: "no_active_import" }, 409);
+
+        await supabaseAdmin
+          .from("cruise_import_sessions")
+          .update({ status: "finished", finished_at: new Date().toISOString() })
+          .eq("id", session.id);
+
+        const cruiseId = (session.cruise as { id: string } | null)?.id;
+        if (cruiseId) {
+          await supabaseAdmin.from("cruise_import_logs").insert({
+            cruise_id: cruiseId,
+            session_id: session.id,
+            user_id: auth.userId,
+            level: "info",
+            message: `Importação finalizada pelo plugin com ${session.snapshots_count ?? 0} captura(s)`,
+          });
+        }
+        return json({ ok: true, captures: session.snapshots_count ?? 0 });
+      },
+
+
       GET: async ({ request }) => {
         const auth = await authUser(request);
         if (!auth) return json({ error: "unauthorized" }, 401);
