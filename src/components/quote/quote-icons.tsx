@@ -54,6 +54,9 @@ export const IconBoleto = (p: P) => (
 export const IconClock = (p: P) => (
   <S {...p}><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></S>
 );
+export const IconAlert = (p: P) => (
+  <S {...p}><path d="M12 3 2 20h20L12 3Z" /><path d="M12 10v4" /><path d="M12 17h.01" /></S>
+);
 export const IconCheck = (p: P) => <S {...p}><path d="m5 12 4 4 10-10" /></S>;
 export const IconWhats = (p: P) => (
   <S {...p}><path d="M21 12a9 9 0 0 1-13.4 7.8L3 21l1.3-4.4A9 9 0 1 1 21 12Z" /><path d="M8.6 9.4c.6 2.6 3.4 5.4 6 6l1.2-1.4-1.9-1-1 .8a7.6 7.6 0 0 1-2.7-2.7l.8-1-1-1.9Z" /></S>
