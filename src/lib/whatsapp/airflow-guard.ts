@@ -8,9 +8,25 @@ export function isInvalidMissingOriginResponse(text: string): boolean {
   return /(pacote\s+pronto|proposta\s+personalizada|saindo\s+(?:de|da|do|daí|dai)|aeroporto\s+mais\s+pr[oó]ximo|montar\s+voo|encaminh\w+\s+(?:ao|pro|para o)\s+comercial)/i.test(text);
 }
 
-/** Pergunta obrigatória quando não há nenhuma origem no histórico. */
-const RX_PERGUNTA_ORIGEM =
-  /de qual cidade (?:(?:voc[eê]|vc|c[eê]) )?(?:vai |quer |pretende )?embarcar/i;
+/**
+ * Pergunta obrigatória quando não há nenhuma origem no histórico.
+ *
+ * A detecção NÃO pode depender da redação exata: o humanizador reescreve o
+ * texto antes do envio ("você" vira "vc", "está" vira "tá") e o modelo varia a
+ * frase ("de onde vc sai?", "qual a cidade de embarque?"). Por isso aceitamos
+ * qualquer formulação equivalente — se ela não for reconhecida, o guarda
+ * repete a pergunta mesmo depois de o cliente já ter respondido.
+ */
+const RX_PERGUNTA_ORIGEM = [
+  // "de qual cidade vc pretende embarcar", "de que cidade você vai sair"
+  /\bde\s+(?:qual|que)\s+(?:cidade|aeroporto|local)\b[^\n?]{0,40}\b(embarcar|embarca|sair|sai|partir|parte|voar|voa|decolar)\b/i,
+  // "de onde vc embarca / sai / parte / vai voar"
+  /\bde\s+onde\b[^\n?]{0,40}\b(embarcar|embarca|sair|sai|partir|parte|voar|voa|decolar)\b/i,
+  // "qual a cidade de embarque / origem do voo"
+  /\b(qual|quais)\b[^\n?]{0,30}\b(cidade|aeroporto)\s+de\s+(embarque|origem|sa[ií]da)\b/i,
+  /\bqual\b[^\n?]{0,20}\b(a\s+)?origem\s+(do\s+voo|da\s+viagem|da\s+passagem)\b/i,
+];
+
 
 /**
  * Pergunta de confirmação quando existe origem recuperada do histórico.
@@ -25,7 +41,7 @@ export function isValidOriginQuestion(
   text: string,
   sugestao?: string | null,
 ): boolean {
-  if (RX_PERGUNTA_ORIGEM.test(text)) return true;
+  if (RX_PERGUNTA_ORIGEM.some((rx) => rx.test(text))) return true;
   const s = (sugestao ?? "").trim();
   if (!s) return false;
   const esc = s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
