@@ -57,6 +57,9 @@ export type FrtSearchInput = {
   criancas?: number;
   pais?: string;
   companhia?: string;
+  /** Rótulo completo do autocomplete, ex.: "Maringá, Região Sul, Brasil (MGF)". */
+  origemLabel?: string;
+  destinoLabel?: string;
 };
 
 export type FrtSearchResponse = {
@@ -617,4 +620,106 @@ export function inventarioMotorPacote(html: string): FrtInventarioMotor {
     scriptsAutocomplete,
     widgets: [...widgets],
   };
+}
+
+/* ---------- estado real do formulário (payload do navegador) -------- */
+
+/**
+ * Coleta o estado atual de todos os campos do frmMotorPacote exatamente como
+ * o navegador enviaria: name -> value (checkbox/radio só quando marcados,
+ * select usando a option selecionada). Isso preserva campos internos gerados
+ * pela FRT (ex.: j_idt3339_input, j_idt3349_input, j_idt3355_input) sem
+ * precisar adivinhar o significado deles.
+ */
+export function coletarEstadoMotor(html: string): Record<string, string> {
+  const form = extrairFormMotor(html);
+  if (!form) return {};
+  const estado: Record<string, string> = {};
+
+  for (const m of form.matchAll(/<input\b[^>]*>/gi)) {
+    const t = m[0];
+    const name = t.match(/\bname="([^"]*)"/i)?.[1];
+    if (!name) continue;
+    const type = (t.match(/\btype="([^"]*)"/i)?.[1] ?? "text").toLowerCase();
+    if (type === "submit" || type === "button" || type === "image" || type === "file") continue;
+    if ((type === "checkbox" || type === "radio") && !/\bchecked\b/i.test(t)) continue;
+    estado[name] = decodeHtml(t.match(/\bvalue="([^"]*)"/i)?.[1] ?? "");
+  }
+
+  for (const m of form.matchAll(/<select\b[^>]*>[\s\S]*?<\/select>/gi)) {
+    const bloco = m[0];
+    const name = bloco.match(/\bname="([^"]*)"/i)?.[1];
+    if (!name) continue;
+    const sel =
+      bloco.match(/<option\b[^>]*\bselected\b[^>]*value="([^"]*)"/i)?.[1] ??
+      bloco.match(/<option\b[^>]*value="([^"]*)"/i)?.[1] ??
+      "";
+    estado[name] = decodeHtml(sel);
+  }
+
+  for (const m of form.matchAll(/<textarea\b[^>]*name="([^"]*)"[^>]*>([\s\S]*?)<\/textarea>/gi)) {
+    estado[m[1]!] = decodeHtml(m[2] ?? "");
+  }
+
+  return estado;
+}
+
+function decodeHtml(v: string): string {
+  return v
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&nbsp;/g, " ");
+}
+
+/**
+ * Descobre os nomes REAIS de origem/destino usados no POST da pesquisa.
+ * O navegador não envia idAeroOrigem_input / idAeroDestino_input (componentes
+ * visuais do autocomplete) e sim campos j_idt#### associados a eles. Como os
+ * IDs j_idt mudam a cada deploy da FRT, resolvemos dinamicamente pelo HTML:
+ * pegamos o campo j_idt mais próximo (depois) da âncora idAeroOrigem /
+ * idAeroDestino dentro do formulário.
+ */
+export function resolvePayloadAutocomplete(html: string): {
+  origem: string | null;
+  destino: string | null;
+  detalhes: string[];
+} {
+  const form = extrairFormMotor(html);
+  const detalhes: string[] = [];
+  if (!form) return { origem: null, destino: null, detalhes: ["frmMotorPacote não encontrado"] };
+
+  const candidatos = [...form.matchAll(/<input\b[^>]*\bname="(frmMotorPacote:j_idt\d+)"[^>]*>/gi)].map(
+    (m) => ({ name: m[1]!, pos: m.index ?? 0 }),
+  );
+
+  const acharDepois = (ancora: RegExp): string | null => {
+    const i = form.search(ancora);
+    if (i < 0) return null;
+    // campo j_idt mais próximo antes ou depois da âncora
+    let melhor: { name: string; d: number } | null = null;
+    for (const c of candidatos) {
+      const d = Math.abs(c.pos - i);
+      if (!melhor || d < melhor.d) melhor = { name: c.name, d };
+    }
+    return melhor?.name ?? null;
+  };
+
+  let origem = acharDepois(/idAeroOrigem/i);
+  let destino = acharDepois(/idAeroDestino/i);
+
+  if (origem && destino && origem === destino) {
+    // Âncoras muito próximas: cai para ordem de aparição.
+    origem = candidatos[0]?.name ?? origem;
+    destino = candidatos[1]?.name ?? destino;
+    detalhes.push("origem/destino colidiram; resolvidos por ordem de aparição");
+  }
+  if (!origem) origem = candidatos[0]?.name ?? null;
+  if (!destino) destino = candidatos[1]?.name ?? null;
+
+  detalhes.push(`candidatos j_idt: ${candidatos.map((c) => c.name).join(", ") || "(nenhum)"}`);
+  detalhes.push(`payload origem=${origem ?? "-"} destino=${destino ?? "-"}`);
+  return { origem, destino, detalhes };
 }

@@ -9,6 +9,8 @@
 import {
   FrtError,
   FRT_FIELDS,
+  coletarEstadoMotor,
+  resolvePayloadAutocomplete,
   extractPartialUpdates,
   extractViewState,
   detectLoginButtonName,
@@ -837,7 +839,13 @@ async function loadVendaScreen(s: Session) {
   for (const c of ultimoInventarioMotor.campos.slice(0, 30)) {
     trace(`    ${c.tag} id=${c.id ?? "-"} name=${c.name ?? "-"} type=${c.type ?? "-"} valor=${c.valor}`);
   }
-  return resolved.fields;
+
+  const estado = coletarEstadoMotor(body);
+  const payload = resolvePayloadAutocomplete(body);
+  trace(`  estado do formulário: ${Object.keys(estado).length} campos capturados`);
+  for (const d of payload.detalhes) trace(`  ${d}`);
+
+  return { fields: resolved.fields, estado, payload };
 }
 
 /* --------------------------- pesquisa ------------------------------ */
@@ -865,7 +873,7 @@ async function runSearch(
   s: Session,
   input: FrtSearchInput,
 ): Promise<{ results: FrtSearchResponse["results"]; availableResults: number }> {
-  const fields = await loadVendaScreen(s);
+  const { fields, estado, payload } = await loadVendaScreen(s);
   const adultos = input.adultos ?? 1;
   const criancas = input.criancas ?? 0;
   // Códigos IATA sempre em maiúsculas (MGf -> MGF).
@@ -882,15 +890,35 @@ async function runSearch(
   );
   p.set(fields.botao, fields.botao);
   p.set(FRT_FIELDS.form, FRT_FIELDS.form);
-  p.set(fields.origem, origem);
-  p.set(fields.destino, destino);
+
+  // 1) Reproduz o estado atual do formulário como o navegador reenvia,
+  //    preservando campos internos da FRT (j_idt####_input de ocupação etc.).
+  for (const [name, valor] of Object.entries(estado)) {
+    if (name.startsWith("javax.faces")) continue;
+    p.set(name, valor);
+  }
+
+  // 2) Sobrescreve só o que é da pesquisa. Origem/destino vão nos campos reais
+  //    do payload (j_idt####), não nos _input visuais do autocomplete.
+  const nomeOrigem = payload.origem ?? fields.origem;
+  const nomeDestino = payload.destino ?? fields.destino;
+  p.set(nomeOrigem, input.origemLabel?.trim() || origem);
+  p.set(nomeDestino, input.destinoLabel?.trim() || destino);
   p.set(fields.ida, toBrDate(input.ida));
   if (input.volta) p.set(fields.volta, toBrDate(input.volta));
-  p.set(fields.pais, input.pais ?? "");
-  p.set(fields.companhia, input.companhia ?? "");
-  p.set("frmMotorPacote:qtdAdultosPacote_input", String(adultos));
-  p.set("frmMotorPacote:qtdCriancasPacote_input", String(criancas));
+  p.set(fields.pais, input.pais ?? estado[fields.pais] ?? "");
+  p.set(fields.companhia, input.companhia ?? estado[fields.companhia] ?? "");
   p.set("javax.faces.ViewState", s.viewState ?? "");
+
+  // Ocupação: os campos de adultos/crianças são gerados dinamicamente pela FRT
+  // e o valor não é a contagem de passageiros. Mantemos a configuração atual do
+  // formulário e registramos divergências até o mapeamento ser confirmado.
+  if (adultos !== 1 || criancas !== 0) {
+    trace(
+      `  ATENÇÃO: ocupação ${adultos} adulto(s)/${criancas} criança(s) pedida, mas o mapeamento dos campos internos de ocupação ainda não é conhecido — enviando a configuração atual do formulário`,
+    );
+  }
+  trace(`  payload origem=${nomeOrigem} destino=${nomeDestino} campos=${[...p.keys()].length}`);
 
   trace(`POST pesquisa ${origem}->${destino} ${input.ida}`);
   const { res: resPesquisa, body } = await frtFetch(s, VENDA_URL, {
