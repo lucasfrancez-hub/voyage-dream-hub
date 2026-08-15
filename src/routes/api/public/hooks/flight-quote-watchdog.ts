@@ -100,7 +100,7 @@ export const Route = createFileRoute("/api/public/hooks/flight-quote-watchdog")(
 
         const { data: rows } = await supabaseAdmin
           .from("wa_messages")
-          .select("id, conversation_id, sender, direction, content, created_at")
+          .select("id, conversation_id, sender, direction, content, created_at, quote_id, option_index")
           .gte("created_at", since)
           .order("created_at", { ascending: true });
 
