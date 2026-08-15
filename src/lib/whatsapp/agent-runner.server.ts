@@ -148,6 +148,10 @@ async function pickAgent(agents: Agent[], stickySlug?: string | null): Promise<A
     if (t > (ultimo.get(s) ?? 0)) ultimo.set(s, t);
   }
 
+  // Sorteio real: empate de carga é desempatado ALEATORIAMENTE (antes ia
+  // sempre pro mesmo slug por ordem alfabética, o que fazia parecer que só
+  // um consultor atendia).
+  const jitter = new Map<string, number>(slugs.map((s) => [s, Math.random()]));
   const ordenados = [...inWindow].sort((a, b) => {
     const ca = carga.get(a.slug) ?? 0;
     const cb = carga.get(b.slug) ?? 0;
@@ -155,15 +159,16 @@ async function pickAgent(agents: Agent[], stickySlug?: string | null): Promise<A
     const ua = ultimo.get(a.slug) ?? 0;
     const ub = ultimo.get(b.slug) ?? 0;
     if (ua !== ub) return ua - ub; // há mais tempo sem atender primeiro
-    return a.slug.localeCompare(b.slug);
+    return (jitter.get(a.slug) ?? 0) - (jitter.get(b.slug) ?? 0); // sorteio
   });
   const escolhido = ordenados[0]!;
   console.log(
-    `[agentes] consultor escolhido: ${escolhido.slug} (carga 24h: ${slugs
+    `[agentes] consultor sorteado: ${escolhido.slug} (carga 24h: ${slugs
       .map((s) => `${s}=${carga.get(s) ?? 0}`)
       .join(", ")})`,
   );
   return escolhido;
+
 }
 
 
