@@ -222,7 +222,17 @@ function FlightLegCard({
 
               {leg.segments.map((s, i) => {
                 const segLogo = airlineLogo(s.airline ?? leg.airlineIata ?? leg.airline);
+                const prox = leg.segments[i + 1];
+                const espera = prox
+                  ? (esperaLabel(s.arrival, prox.departure) ?? s.connectionAfter ?? null)
+                  : null;
+                const trocaAeroporto =
+                  prox && s.toIata && prox.fromIata && s.toIata !== prox.fromIata
+                    ? (s.airportChange ??
+                      `Desembarque em ${s.toIata}${s.toName ? ` (${s.toName})` : ""} e embarque em ${prox.fromIata}${prox.fromName ? ` (${prox.fromName})` : ""}`)
+                    : null;
                 return (
+
                   <div key={i} className="vq-seg2-group">
                     <section className="vq-seg2">
                       <div className="vq-seg2-node">
