@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
-import { selecionarLocalFrt, sugestoesLocalFrt } from "@/lib/frt/frt.functions";
+import { frtAutocomplete, selecionarLocalFrt } from "@/lib/frt/frt.functions";
 
 export type FrtLocalSelecionado = {
   value: string;
