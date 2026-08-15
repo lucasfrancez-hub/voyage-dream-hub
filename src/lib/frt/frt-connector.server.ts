@@ -602,7 +602,81 @@ export async function frtEnviarCodigo(codigo: string) {
 
 }
 
+/* ---------- 2FA automático via caixa dedicada (e-mail encaminhado) ---------- */
+
+/** Janela de validade de um código recebido por e-mail. */
+const CODIGO_TTL_MS = 10 * 60_000;
+/** Quanto tempo esperamos o e-mail encaminhado chegar. */
+const CODIGO_ESPERA_MS = 120_000;
+
+type CodigoArmazenado = { id: string; code: string };
+
+/** Busca o código mais recente, ainda não usado e dentro da janela. */
+async function buscarCodigoRecente(desde: number): Promise<CodigoArmazenado | null> {
+  try {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data } = await supabaseAdmin
+      .from("frt_auth_codes")
+      .select("id, code, received_at")
+      .is("used_at", null)
+      .gte("received_at", new Date(desde).toISOString())
+      .order("received_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (!data?.code) return null;
+    return { id: data.id as string, code: data.code as string };
+  } catch {
+    return null;
+  }
+}
+
+/** Descarta o código depois do uso — nada fica guardado. */
+async function descartarCodigo(id: string) {
+  try {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    await supabaseAdmin.from("frt_auth_codes").delete().eq("id", id);
+  } catch {
+    /* best-effort */
+  }
+}
+
+/**
+ * Aguarda o código chegar na caixa dedicada e conclui a autenticação.
+ * O valor do código nunca é registrado em log. A entrada manual continua
+ * disponível como fallback.
+ */
+export async function frtResolver2faAutomatico(
+  esperaMs = CODIGO_ESPERA_MS,
+): Promise<{ ok: boolean; mensagem?: string }> {
+  const inicio = Date.now();
+  const janela = inicio - CODIGO_TTL_MS;
+  trace("2FA: aguardando código na caixa dedicada");
+  while (Date.now() - inicio < esperaMs) {
+    const item = await buscarCodigoRecente(janela);
+    if (item) {
+      await descartarCodigo(item.id);
+      trace("2FA: código encontrado — enviando para a FRT (valor não registrado)");
+      const r = await frtEnviarCodigo(item.code);
+      if (r.ok) return { ok: true };
+      trace(`2FA automático recusado: ${r.erro ?? "desconhecido"}`);
+      return {
+        ok: false,
+        mensagem:
+          "Código automático recusado pela FRT. Informe o código manualmente para liberar a sessão.",
+      };
+    }
+    await new Promise((r) => setTimeout(r, 5_000));
+  }
+  trace("2FA: nenhum código chegou na caixa dedicada dentro do tempo");
+  return {
+    ok: false,
+    mensagem:
+      "A FRT pediu código de verificação e nenhum e-mail chegou na caixa dedicada. Informe o código manualmente.",
+  };
+}
+
 function needsAuthCode(html: string): boolean {
+
   return /frmAuth:chave-input|c[óo]digo de verifica[çc][ãa]o/i.test(html);
 }
 
