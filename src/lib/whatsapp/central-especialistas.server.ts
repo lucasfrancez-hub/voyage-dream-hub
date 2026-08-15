@@ -188,6 +188,10 @@ async function encaminharParaComercial(
  * fica em meta.transferencia_consultores como HISTÓRICO — o Consultor não pode
  * usar destino/origem/datas/pax do voo como dados do pacote sem confirmar.
  */
+/** Aviso fixo do especialista aéreo antes de um Consultor assumir o pacote. */
+export const AVISO_TRANSFERENCIA_CONSULTORES =
+  "Vou te passar agora pro nosso time de pacotes, que continua com vc por aqui";
+
 export async function transferirParaConsultores(
   conversation: WaConversation,
   params: { agenteAnterior: string; contexto: string; pedido?: string | null },
@@ -246,7 +250,8 @@ export async function transferirParaConsultores(
       .gte("created_at", new Date(Date.now() - 60 * 60 * 1000).toISOString());
     if (!(jaAvisou ?? 0)) {
       const { saveMessage, setWaMessageId } = await import("./conversation.server");
-      const { sendWhatsAppBubbles, buildSenderPrefix } = await import("./send.server");
+      const { sendWhatsAppBubbles } = await import("./send.server");
+      const { buildSenderPrefix } = await import("./text-utils.server");
       const row = await saveMessage({
         conversation_id: conversation.id,
         direction: "outbound",
