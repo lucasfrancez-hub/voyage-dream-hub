@@ -114,6 +114,38 @@ export async function reconcilePendingAgentTurns(): Promise<{
       );
       const { esgotou } = await registrarTentativaRecuperacao(raw);
       if (esgotou) {
+        // TRANSFERÊNCIA PRO SETOR AÉREO NÃO PODE FALHAR: se o especialista
+        // ainda nem falou neste protocolo, o cliente não pode receber
+        // "instabilidade + time Comercial". Mandamos a pergunta de embarque
+        // (determinística) e devolvemos o turno ao especialista.
+        const especialistaJaFalou = (msgs ?? []).some(
+          (m) => m.direction === "outbound" && central && m.sender === central,
+        );
+        if (!especialistaJaFalou && conv.wa_phone) {
+          const [{ sendWhatsAppBubbles }, { safeMissingOriginResponse }] = await Promise.all([
+            import("./send.server"),
+            import("./airflow-guard"),
+          ]);
+          const texto = safeMissingOriginResponse(null, null, { semSaudacao: true });
+          await sendWhatsAppBubbles(conv.wa_phone, texto, {
+            conversation_id: raw.conversation_id,
+            protocolo_id: raw.protocol_id,
+            agent_slug: central,
+          } as never);
+          await supabaseAdmin
+            .from("wa_flight_search_requests")
+            .update({ recovery_attempts: 0, last_progress_at: new Date().toISOString() } as never)
+            .eq("id", raw.id);
+          await logProtocolEvent("flight_turn_recovered", {
+            conversation_id: raw.conversation_id,
+            protocolo_id: raw.protocol_id,
+            search_request_id: raw.id,
+            parado_ms: parado,
+            resgate: "pergunta_origem_deterministica",
+          });
+          reexecutados.push(raw.id);
+          continue;
+        }
         await transferirPorInstabilidade({
           conversation_id: raw.conversation_id,
           protocol_id: raw.protocol_id,
@@ -124,6 +156,7 @@ export async function reconcilePendingAgentTurns(): Promise<{
         escalados.push(raw.id);
         continue;
       }
+
 
       await supabaseAdmin
         .from("wa_conversations")
