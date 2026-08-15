@@ -76,6 +76,7 @@
     "motion": "^12.42.2",
     "nanoid": "^6.0.0",
     "node-forge": "^1.4.0",
+    "node-html-parser": "^9.0.1",
     "pdf-lib": "^1.17.1",
     "puppeteer-core": "^25.3.0",
     "qrcode": "^1.5.4",
