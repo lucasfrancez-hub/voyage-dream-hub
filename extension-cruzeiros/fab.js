@@ -234,10 +234,20 @@
 
   async function boot() {
     await refresh();
-    if (!state.active) return;
+    // Sempre monta: o balão precisa aparecer no site da operadora mesmo antes
+    // de existir importação ativa, senão parece que o plugin não carregou.
     if (!root) mount();
     render();
   }
+
+  // Reconsulta o painel de tempo em tempo: ativar a importação em outra aba
+  // passa a refletir aqui sozinho.
+  setInterval(async () => {
+    if (state.busy) return;
+    const antes = state.active;
+    await refresh();
+    if (antes !== state.active) render();
+  }, 20000);
 
   // Reagir quando a importação é ativada/finalizada no painel enquanto a aba está aberta.
   chrome.runtime.onMessage.addListener((msg) => {
