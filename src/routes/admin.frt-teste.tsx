@@ -379,8 +379,16 @@ function FrtTestePage() {
             />
           </div>
         </div>
+        {!prontoParaConsultar ? (
+          <p className="text-xs text-amber-600">
+            Selecione origem e destino na lista do autocomplete da FRT para liberar a consulta.
+          </p>
+        ) : null}
         <div className="flex flex-wrap gap-2">
-          <Button onClick={() => searchMut.mutate()} disabled={searchMut.isPending}>
+          <Button
+            onClick={() => searchMut.mutate()}
+            disabled={searchMut.isPending || !prontoParaConsultar}
+          >
             {searchMut.isPending ? (
               <>
                 <Loader2 className="mr-2 size-4 animate-spin" /> Consultando FRT…
@@ -392,8 +400,9 @@ function FrtTestePage() {
           <Button
             variant="outline"
             onClick={() => diagPesqMut.mutate()}
-            disabled={diagPesqMut.isPending}
+            disabled={diagPesqMut.isPending || !prontoParaConsultar}
           >
+
             {diagPesqMut.isPending ? (
               <>
                 <Loader2 className="mr-2 size-4 animate-spin" /> Diagnosticando…
