@@ -17,6 +17,42 @@ const searchSchema = z.object({
   companhia: z.string().max(60).optional(),
 });
 
+const componenteSchema = z.enum(["origem", "destino"]);
+
+/** Sugestões reais do autocomplete PrimeFaces da FRT (query). */
+export const sugestoesLocalFrt = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z
+      .object({ componente: componenteSchema, termo: z.string().min(3).max(60) })
+      .parse(input),
+  )
+  .handler(async ({ data }) => {
+    const { frtSugestoesLocal } = await import("@/lib/frt/frt-connector.server");
+    return frtSugestoesLocal(data.componente, data.termo);
+  });
+
+/** Confirma a escolha do usuário executando o itemSelect real na FRT. */
+export const selecionarLocalFrt = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        componente: componenteSchema,
+        termo: z.string().min(2).max(60),
+        value: z.string().min(1).max(200),
+        label: z.string().max(200).optional(),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data }) => {
+    const { frtSelecionarLocal } = await import("@/lib/frt/frt-connector.server");
+    return frtSelecionarLocal(data.componente, data.termo, {
+      value: data.value,
+      label: data.label ?? "",
+    });
+  });
+
 /** Consulta read-only na FRT/Infotravel. Nunca reserva nem adiciona ao carrinho. */
 export const consultarFrt = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
