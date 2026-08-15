@@ -283,20 +283,28 @@ function CruzeirosAdmin() {
                       {c.code} • {fmtDate(c.departure_date)} • {c.ship_name || "navio a definir"}
                     </div>
                   </button>
-                  {!ativo && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="mt-2 h-7 text-xs"
-                      disabled={ativar.isPending}
-                      onClick={() => {
-                        setSelected(c.id);
-                        ativar.mutate(c.id);
-                      }}
-                    >
-                      <Play className="h-3.5 w-3.5 mr-1" /> Ativar importação
-                    </Button>
-                  )}
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {!ativo && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 text-xs"
+                        disabled={ativar.isPending}
+                        onClick={() => {
+                          setSelected(c.id);
+                          ativar.mutate(c.id);
+                        }}
+                      >
+                        <Play className="h-3.5 w-3.5 mr-1" /> Ativar importação
+                      </Button>
+                    )}
+                    <Link to="/admin/cruzeiros/previa/$id" params={{ id: c.id }}>
+                      <Button size="sm" variant="ghost" className="h-7 text-xs">
+                        <Eye className="h-3.5 w-3.5 mr-1" /> Ver prévia
+                      </Button>
+                    </Link>
+                  </div>
+
                 </div>
               );
             })}
