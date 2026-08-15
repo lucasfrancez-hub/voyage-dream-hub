@@ -1001,6 +1001,11 @@ function AdminPackages() {
                   <Icon className="h-4 w-4 text-brand-orange" /> {label}
                 </DropdownMenuItem>
               ))}
+              <DropdownMenuItem asChild className="gap-2">
+                <Link to="/admin/cruzeiros">
+                  <Ship className="h-4 w-4 text-brand-orange" /> Cruzeiro
+                </Link>
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
 
@@ -1034,7 +1039,6 @@ function AdminPackages() {
             { k: "package", label: "Pacotes", Icon: PackageIcon },
             { k: "service", label: "Ingressos", Icon: Ticket },
             { k: "tour", label: "Passeios", Icon: MapPin },
-            { k: "cruise", label: "Cruzeiros", Icon: Ship },
           ] as { k: "all" | PackageKind; label: string; Icon: typeof ListIcon }[]).map(({ k, label, Icon }) => {
             const active = kindFilter === k;
             const count = k === "all"
@@ -1052,6 +1056,13 @@ function AdminPackages() {
               </button>
             );
           })}
+          <Link
+            to="/admin/cruzeiros"
+            className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-muted-foreground transition hover:text-foreground"
+            title="Cruzeiros são cadastrados e importados pelo plugin Exportar Cruzeiro"
+          >
+            <Ship className="h-3.5 w-3.5" /> Cruzeiros
+          </Link>
         </div>
         <button
           type="button"
