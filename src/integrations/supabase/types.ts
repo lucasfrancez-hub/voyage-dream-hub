@@ -3345,6 +3345,33 @@ export type Database = {
           },
         ]
       }
+      frt_auth_codes: {
+        Row: {
+          code: string
+          id: string
+          received_at: string
+          sender: string | null
+          subject: string | null
+          used_at: string | null
+        }
+        Insert: {
+          code: string
+          id?: string
+          received_at?: string
+          sender?: string | null
+          subject?: string | null
+          used_at?: string | null
+        }
+        Update: {
+          code?: string
+          id?: string
+          received_at?: string
+          sender?: string | null
+          subject?: string | null
+          used_at?: string | null
+        }
+        Relationships: []
+      }
       frt_credentials: {
         Row: {
           cookie: string
