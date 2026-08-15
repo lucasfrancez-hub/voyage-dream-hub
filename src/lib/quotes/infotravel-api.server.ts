@@ -335,7 +335,12 @@ function mapOption(pkg: any, index: number): { option: NormalizedOption; pax: { 
   }
 
   for (const bf of (pkg?.bookingFlights ?? []) as any[]) {
-    const { flights, pax } = mapFlight(bf);
+    const { flights, pax, total } = mapFlight(bf);
+    // O valor do aéreo normalmente vem no nível da reserva (bf.fares), não por
+    // trecho: sem isto o total da opção sai só com a hospedagem.
+    if (total != null && !flights.some((f) => typeof f.total === "number") && flights[0]) {
+      flights[0].total = total;
+    }
     option.flights.push(...flights);
     adults = Math.max(adults, pax.adults);
     children = Math.max(children, pax.children);
@@ -401,6 +406,9 @@ export async function importInfotravelQuote(url: string, html?: string): Promise
   const booking = await trpc<any>(ref, "main.getBooking", {
     companyCode: ref.companyCode,
     bookingId: ref.bookingId,
+    // sem o bookingIndex a Infotravel pode devolver outra versão da reserva
+    // (produtos e valores diferentes dos exibidos na página)
+    ...(ref.bookingIndex != null ? { bookingIndex: ref.bookingIndex } : {}),
     clientUrl: ref.clientUrl,
   });
 
@@ -451,7 +459,16 @@ export async function importInfotravelQuote(url: string, html?: string): Promise
   quote.destination = first.destination ?? null;
   quote.currency = booking?.bookingAmount?.currency ?? "BRL";
 
-  // total: valor real da opção 1 (a página mostra o valor por opção)
+  // total: valor real da opção 1 (a página mostra o valor por opção).
+  // Quando a reserva tem uma única opção, o bookingAmount da Infotravel é a
+  // fonte oficial (produtos + taxas) e vence a soma dos produtos.
+  const bookingTotal =
+    typeof booking?.bookingAmount?.amount === "number" && booking.bookingAmount.amount > 0
+      ? Math.round(booking.bookingAmount.amount * 100) / 100
+      : null;
+  if (packages.length === 1 && bookingTotal != null) {
+    first.total = bookingTotal;
+  }
   if (first.total == null) throw new QuoteParseError("TOTAL_NOT_FOUND", "nenhum valor encontrado na opção 1");
   quote.total = first.total;
   quote.values = { subtotal: first.total, taxes: null };
