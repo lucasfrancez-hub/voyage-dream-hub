@@ -1028,9 +1028,7 @@ function QuoteBody({
                   <button className="vq-cta">Quero reservar esta opção</button>
                 </a>
               ) : (
-                <a href={reserveHref ?? `/reserva/${quote.publicId}`}>
-                  <button className="vq-cta">Quero reservar esta opção</button>
-                </a>
+                <BotaoReservar quote={quote} opcao={opcao} reserveHref={reserveHref} />
               )}
             </div>
           </div>
