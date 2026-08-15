@@ -1039,7 +1039,6 @@ function AdminPackages() {
             { k: "package", label: "Pacotes", Icon: PackageIcon },
             { k: "service", label: "Ingressos", Icon: Ticket },
             { k: "tour", label: "Passeios", Icon: MapPin },
-            { k: "cruise", label: "Cruzeiros", Icon: Ship },
           ] as { k: "all" | PackageKind; label: string; Icon: typeof ListIcon }[]).map(({ k, label, Icon }) => {
             const active = kindFilter === k;
             const count = k === "all"
