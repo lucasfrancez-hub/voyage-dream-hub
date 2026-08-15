@@ -168,10 +168,26 @@ export type SnapshotData = z.infer<typeof snapshotDataSchema>;
 
 export const snapshotPayloadSchema = z.object({
   source: z.string().max(40).default("FRT_KROOZE"),
+  /** 76. Versionamento do parser — permite reprocessar snapshots antigos. */
+  parser_name: z.string().max(60).default("FRTKroozeCruiseParser"),
+  parser_version: z.string().max(20).default("1.0.0"),
   url: z.string().max(2000).default(""),
   page_type: z.string().max(60).default("desconhecido"),
   detected: z.array(z.string()).default([]),
   captured_at: z.string().max(40).optional(),
+  /** 75. Avisos do parser — captura parcial nunca falha por inteiro. */
+  warnings: z.array(z.string()).default([]),
+  /** 74. Log técnico por campo (selector usado + confiança). */
+  field_logs: z
+    .array(
+      z.object({
+        field: z.string(),
+        selector_used: z.string().nullish(),
+        value: z.unknown().optional(),
+        confidence: z.number().min(0).max(1).default(1),
+      }),
+    )
+    .default([]),
   data: snapshotDataSchema.default({} as SnapshotData),
   /** HTML/XHR bruto — nunca é destruído, permite reprocessar. */
   raw: z.record(z.string(), z.unknown()).default({}),
