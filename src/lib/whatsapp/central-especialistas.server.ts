@@ -232,8 +232,47 @@ export async function transferirParaConsultores(
     briefing: `✈️ ${params.agenteAnterior} (aéreo) → Consultores\nMotivo: interesse em pacote\n\nContexto aéreo (histórico, NÃO é o pacote):\n${params.contexto}`,
   }).catch(() => {});
 
+  // SIMETRIA COM O AÉREO: o cliente precisa ver o aviso de transferência e o
+  // consultor não pode entrar no mesmo segundo. Bolha fixa (idempotente pelo
+  // conteúdo) + espera humana de 1min30 a 3min antes do próximo run.
+  try {
+    const aviso = AVISO_TRANSFERENCIA_CONSULTORES;
+    const { count: jaAvisou } = await supabaseAdmin
+      .from("wa_messages")
+      .select("id", { count: "exact", head: true })
+      .eq("conversation_id", conversation.id)
+      .eq("direction", "outbound")
+      .eq("content", aviso)
+      .gte("created_at", new Date(Date.now() - 60 * 60 * 1000).toISOString());
+    if (!(jaAvisou ?? 0)) {
+      const { saveMessage, setWaMessageId } = await import("./conversation.server");
+      const { sendWhatsAppBubbles, buildSenderPrefix } = await import("./send.server");
+      const row = await saveMessage({
+        conversation_id: conversation.id,
+        direction: "outbound",
+        sender: "camila",
+        agent_slug: params.agenteAnterior,
+        content: aviso,
+      });
+      const enviado = await sendWhatsAppBubbles(
+        conversation.wa_phone,
+        aviso,
+        buildSenderPrefix(params.agenteAnterior),
+      );
+      if (row?.id && enviado[0]?.id) await setWaMessageId(row.id, enviado[0].id);
+    }
+    const esperaMs = 90_000 + Math.floor(Math.random() * 90_000);
+    await supabaseAdmin
+      .from("wa_conversations")
+      .update({ ai_debounce_until: new Date(Date.now() + esperaMs).toISOString() })
+      .eq("id", conversation.id);
+  } catch (e) {
+    console.warn("[central] aviso de transferência aos consultores falhou:", e);
+  }
+
   console.log(`[central] pacote → Consultores conv=${conversation.id} de=${params.agenteAnterior}`);
 }
+
 
 /* ─────────────────────────────────────────────────────────────
    Tools da Central
