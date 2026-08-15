@@ -267,3 +267,72 @@ export const deleteSnapshot = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true as const };
   });
+
+/**
+ * Prévia interna do cruzeiro: exatamente o que foi importado, montado no
+ * mesmo formato que o cliente veria — sem publicar nada no site público.
+ */
+export const getCruisePreview = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { id: string }) => ({ id: String(d?.id ?? "") }))
+  .handler(async ({ context, data }) => {
+    await ensureAdmin(context);
+    const sb = context.supabase;
+
+    const { data: cruise } = await sb.from("cruises").select("*").eq("id", data.id).maybeSingle();
+    if (!cruise) throw new Error("Cruzeiro não encontrado");
+
+    const [offers, prices, itinerary, additionals, addPrices, insurances, media] = await Promise.all([
+      sb.from("cruise_cabin_offers").select("*").eq("cruise_id", data.id).order("sort_order"),
+      sb.from("cruise_prices").select("*").eq("cruise_id", data.id).eq("is_current", true),
+      sb.from("cruise_itineraries").select("*").eq("cruise_id", data.id).order("day"),
+      sb.from("cruise_additionals").select("*").eq("cruise_id", data.id),
+      sb.from("cruise_additional_prices").select("*"),
+      sb.from("cruise_insurances").select("*").eq("cruise_id", data.id),
+      sb.from("cruise_media").select("*").eq("cruise_id", data.id).order("sort_order").limit(400),
+    ]);
+
+    let ship: Record<string, unknown> | null = null;
+    let shipMedia: unknown[] = [];
+    let decks: unknown[] = [];
+    let attractions: unknown[] = [];
+    let shipCabins: unknown[] = [];
+    if (cruise.ship_id) {
+      const shipId = cruise.ship_id as string;
+      const [s, m, d2, a, c] = await Promise.all([
+        sb.from("ships").select("*").eq("id", shipId).maybeSingle(),
+        sb.from("ship_media").select("*").eq("ship_id", shipId).order("sort_order").limit(400),
+        sb.from("ship_decks").select("*").eq("ship_id", shipId).order("sort_order"),
+        sb.from("ship_attractions").select("*").eq("ship_id", shipId).order("sort_order"),
+        sb.from("ship_cabins").select("*").eq("ship_id", shipId).order("name"),
+      ]);
+      ship = (s.data ?? null) as typeof ship;
+      shipMedia = m.data ?? [];
+      decks = d2.data ?? [];
+      attractions = a.data ?? [];
+      shipCabins = c.data ?? [];
+    }
+
+    const addIds = new Set((additionals.data ?? []).map((a: { id: string }) => a.id));
+    const additionalsFull = (additionals.data ?? []).map((a: { id: string }) => ({
+      ...a,
+      prices: (addPrices.data ?? []).filter(
+        (p: { additional_id: string }) => p.additional_id === a.id && addIds.has(a.id),
+      ),
+    }));
+
+    return {
+      cruise,
+      ship,
+      itinerary: itinerary.data ?? [],
+      offers: offers.data ?? [],
+      prices: prices.data ?? [],
+      additionals: additionalsFull,
+      insurances: insurances.data ?? [],
+      media: media.data ?? [],
+      shipMedia,
+      decks,
+      attractions,
+      shipCabins,
+    };
+  });
