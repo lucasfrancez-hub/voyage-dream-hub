@@ -111,7 +111,21 @@ export const Route = createFileRoute("/api/public/hooks/flight-quote-watchdog")(
           direction: string;
           content: string | null;
           created_at: string;
+          quote_id?: string | null;
+          option_index?: number | null;
         };
+
+        /**
+         * Entrega da cotação hoje é TEXTO + LINK do orçamento público (as artes
+         * foram desativadas). Então qualquer balão do agente amarrado a uma
+         * cotação (quote_id/option_index) ou contendo o link do orçamento conta
+         * como entrega — não só `[[media:image]]`.
+         */
+        const LINK_COTACAO = /(\/orcamento\/|orcamento\.|\/o\/|\[\[media:image)/i;
+        const ehEntrega = (m: Row) =>
+          m.direction === "outbound" &&
+          m.sender !== "system" &&
+          (!!m.quote_id || typeof m.option_index === "number" || LINK_COTACAO.test(m.content ?? ""));
         const all = (rows ?? []) as Row[];
 
         // agrupa por conversa
