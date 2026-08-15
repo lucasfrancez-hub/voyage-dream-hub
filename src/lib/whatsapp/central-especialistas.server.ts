@@ -18,6 +18,7 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { recordHandoff, type WaConversation } from "./conversation.server";
 import { validateFlightSearch } from "./flight-search-validation";
 import { REGRAS_BOLETO_PROMPT } from "./boleto-regras";
+import { buildHumanizacaoPrompt } from "./humanizacao";
 
 import { VIA_AIR_CNPJ, VIA_AIR_EMAIL_EMERGENCIA } from "@/lib/institucional";
 
