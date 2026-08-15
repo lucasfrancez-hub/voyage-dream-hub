@@ -60,4 +60,21 @@ describe("guard determinístico do fluxo aéreo sem origem", () => {
     expect(origemJaFoiRespondidaNoProtocolo(mensagens)).toBe(true);
     expect(origemRespondidaNoProtocolo(mensagens)).toBe("Curitiba");
   });
+  it.each([
+    "De qual cidade vc pretende embarcar?",
+    "De qual cidade você pretende embarcar?",
+    "De qual cidade vc vai sair?",
+    "De onde vc embarca?",
+    "De onde vc vai partir?",
+    "Qual a cidade de embarque?",
+    "qual cidade de origem?",
+    "Qual a origem do voo?",
+  ])("reconhece a pergunta de origem em qualquer redação: %s", (t) => {
+    expect(isValidOriginQuestion(t)).toBe(true);
+  });
+
+  it("não confunde outras perguntas com a de origem", () => {
+    expect(isValidOriginQuestion("Para qual cidade vc quer viajar?")).toBe(false);
+    expect(isValidOriginQuestion("Quantas pessoas vão embarcar nessa viagem?")).toBe(false);
+  });
 });
