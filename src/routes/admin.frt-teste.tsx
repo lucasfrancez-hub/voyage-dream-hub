@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { consultarFrt, diagnosticarFrt } from "@/lib/frt/frt.functions";
+import { consultarFrt, diagnosticarFrt, enviarCodigoFrt } from "@/lib/frt/frt.functions";
 
 export const Route = createFileRoute("/admin/frt-teste")({
   head: () => ({
@@ -35,6 +35,8 @@ export const Route = createFileRoute("/admin/frt-teste")({
 function FrtTestePage() {
   const diag = useServerFn(diagnosticarFrt);
   const consulta = useServerFn(consultarFrt);
+  const enviarCodigo = useServerFn(enviarCodigoFrt);
+  const [codigo, setCodigo] = useState("");
 
   const [origem, setOrigem] = useState("MGF");
   const [destino, setDestino] = useState("SSA");
@@ -44,7 +46,21 @@ function FrtTestePage() {
   const [criancas, setCriancas] = useState(0);
 
   const diagMut = useMutation({
-    mutationFn: () => diag(),
+    mutationFn: (novaSessao?: boolean) => diag({ data: { novaSessao: Boolean(novaSessao) } }),
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const codigoMut = useMutation({
+    mutationFn: () => enviarCodigo({ data: { codigo } }),
+    onSuccess: (r) => {
+      if (r.ok) {
+        toast.success("Código aceito — sessão liberada");
+        setCodigo("");
+        diagMut.mutate(false);
+      } else {
+        toast.error(r.mensagem ?? "Código recusado");
+      }
+    },
     onError: (e: Error) => toast.error(e.message),
   });
 
@@ -85,9 +101,19 @@ function FrtTestePage() {
           <div className="flex items-center gap-2 text-sm font-medium">
             <PlugZap className="size-4" /> Diagnóstico de conexão
           </div>
-          <Button onClick={() => diagMut.mutate()} disabled={diagMut.isPending} size="sm">
-            {diagMut.isPending ? <Loader2 className="size-4 animate-spin" /> : "Testar login"}
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              onClick={() => diagMut.mutate(false)}
+              disabled={diagMut.isPending}
+              size="sm"
+              variant="outline"
+            >
+              Testar sessão
+            </Button>
+            <Button onClick={() => diagMut.mutate(true)} disabled={diagMut.isPending} size="sm">
+              {diagMut.isPending ? <Loader2 className="size-4 animate-spin" /> : "Novo login"}
+            </Button>
+          </div>
         </div>
 
         {d ? (
@@ -101,7 +127,34 @@ function FrtTestePage() {
               </Badge>
               <Badge variant="outline">Cookies: {d.cookies.join(", ") || "—"}</Badge>
             </div>
-            {"erro" in d && d.erro ? (
+            {d.aguardandoCodigo ? (
+              <div className="space-y-2 rounded-lg border border-amber-400/40 bg-amber-50/50 p-3 dark:bg-amber-950/20">
+                <p className="text-sm">
+                  A FRT enviou um código de verificação para o e-mail cadastrado. Informe-o
+                  abaixo para liberar a sessão do conector.
+                </p>
+                <div className="flex gap-2">
+                  <Input
+                    value={codigo}
+                    onChange={(e) => setCodigo(e.target.value)}
+                    placeholder="Código do e-mail"
+                    className="max-w-[220px]"
+                  />
+                  <Button
+                    size="sm"
+                    disabled={codigoMut.isPending || codigo.trim().length < 3}
+                    onClick={() => codigoMut.mutate()}
+                  >
+                    {codigoMut.isPending ? (
+                      <Loader2 className="size-4 animate-spin" />
+                    ) : (
+                      "Validar código"
+                    )}
+                  </Button>
+                </div>
+              </div>
+            ) : null}
+            {d.erro ? (
               <p className="flex items-center gap-2 text-destructive">
                 <AlertTriangle className="size-4" /> {d.erro} — {d.mensagem}
               </p>
