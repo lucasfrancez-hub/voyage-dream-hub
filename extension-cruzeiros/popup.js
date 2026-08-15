@@ -108,7 +108,7 @@ async function capturar(mode) {
   const res = await askTab(tab.id, {
     type: "viaair-cruise-capture",
     mode,
-    deep: mode !== "price",
+    deep: true,
     expectedOccupancyTotal: ocupacaoAtual ? ocupacaoAtual.total : null,
   });
   if (!res || !res.ok) {
