@@ -269,12 +269,26 @@ export async function confirmFlightOrigin(params: {
     (m) => isValidOriginQuestion(String(m.content ?? ""), params.suggested_origin ?? null),
   );
 
+  // Nome do cliente e do atendente nunca podem virar cidade de embarque
+  // (o cliente escreve o vocativo antes do pedido: "Robertp quero passagem...").
+  const { data: convRow } = await supabaseAdmin
+    .from("wa_conversations")
+    .select("display_name, agent_slug, central_slug")
+    .eq("id", conversation_id)
+    .maybeSingle();
+
   const state = resolveOriginState({
     origin: params.origin,
     inbound: (inbound ?? []) as Array<{ id: string; content: string | null; created_at: string }>,
     askedOriginAt: pergunta?.created_at ?? null,
     suggestedOrigin: params.suggested_origin ?? null,
+    nomesProibidos: [
+      (convRow as { display_name?: string | null } | null)?.display_name ?? null,
+      (convRow as { agent_slug?: string | null } | null)?.agent_slug ?? null,
+      (convRow as { central_slug?: string | null } | null)?.central_slug ?? null,
+    ],
   });
+
 
   if (originIsUsable(state)) {
     await setProtocolRuntime(protocolo_id, {

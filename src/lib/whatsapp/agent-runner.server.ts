@@ -1340,9 +1340,17 @@ export async function runAgent(input: {
 
     let rawText = result.text?.trim();
     if (!rawText) {
-      console.warn(`[agent:${agent.slug}] resposta vazia`);
+      // NUNCA DEIXAR O TURNO MORRER EM SILÊNCIO: sem texto, reagenda o turno
+      // em 60s pro reconciliador/debounce reexecutar (antes o atendimento
+      // simplesmente parava e o cliente ficava esperando sem resposta).
+      console.warn(`[agent:${agent.slug}] resposta vazia — reagendando turno`);
+      await supabaseAdmin
+        .from("wa_conversations")
+        .update({ ai_debounce_until: new Date(Date.now() + 60 * 1000).toISOString() })
+        .eq("id", conv.id);
       return;
     }
+
     // GUARDA ANTI-LIXO: nunca mandar pro cliente respostas que sejam só código de
     // erro / eco técnico do gateway (ex.: "(502)", "Bad Gateway", "AI_APICallError").
     const junk =

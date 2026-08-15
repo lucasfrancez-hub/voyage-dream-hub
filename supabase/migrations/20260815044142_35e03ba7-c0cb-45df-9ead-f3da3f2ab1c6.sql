@@ -1,0 +1,1 @@
+update wa_protocolos set origin=null, origin_status='missing', origin_confirmed_by_message_id=null, origin_confirmed_at=null where conversation_id='d231813f-021f-415e-bcb7-f31ee35dba76' and status='aberto' and origin ilike 'Robert%';

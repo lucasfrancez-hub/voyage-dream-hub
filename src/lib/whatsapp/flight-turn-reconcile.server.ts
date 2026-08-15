@@ -37,7 +37,7 @@ export async function reconcilePendingAgentTurns(): Promise<{
   for (const raw of (reqs ?? []) as FlightSearchRequest[]) {
     const { data: conv } = await supabaseAdmin
       .from("wa_conversations")
-      .select("id, wa_phone, mode, ai_paused, ai_debounce_until, tags, protocolo_ativo_id")
+      .select("id, wa_phone, mode, ai_paused, ai_debounce_until, tags, protocolo_ativo_id, central_slug")
       .eq("id", raw.conversation_id)
       .maybeSingle();
     if (!conv) continue;
@@ -47,15 +47,26 @@ export async function reconcilePendingAgentTurns(): Promise<{
     // Última mensagem do cliente x última resposta nossa.
     const { data: msgs } = await supabaseAdmin
       .from("wa_messages")
-      .select("id, direction, sender, created_at")
+      .select("id, direction, sender, content, created_at")
       .eq("conversation_id", raw.conversation_id)
       .order("created_at", { ascending: false })
       .limit(20);
     const lastIn = (msgs ?? []).find((m) => m.direction === "inbound");
-    const lastOut = (msgs ?? []).find((m) => m.direction === "outbound" && m.sender !== "system");
+    // AVISO DE TRANSFERÊNCIA NÃO É RESPOSTA. O balão "já vou te transferir pro
+    // setor aéreo" vem do agente ANTERIOR; se o especialista não falar nada
+    // depois disso, o turno está travado — antes esse balão mascarava a falha
+    // e o cliente ficava esperando indefinidamente.
+    const central = (conv as { central_slug?: string | null }).central_slug ?? null;
+    const ehAvisoDeTransferencia = (m: { sender?: string | null; content?: string | null }) =>
+      /transfer|encaminh|pass(ar|ando)\s+(voc[êe]|vc)/i.test(String(m.content ?? "")) &&
+      (!central || (m.sender ?? "") !== central);
+    const lastOut = (msgs ?? []).find(
+      (m) => m.direction === "outbound" && m.sender !== "system" && !ehAvisoDeTransferencia(m),
+    );
     if (!lastIn) continue;
     const respondido = lastOut && new Date(lastOut.created_at) > new Date(lastIn.created_at);
     if (respondido) continue;
+
 
     const parado = Date.now() - new Date(lastIn.created_at).getTime();
     if (parado < RETRY_MS) continue;
