@@ -1862,6 +1862,47 @@ export async function runAgent(input: {
       if (res?.id) await setWaMessageId(rowId, res.id);
       else await setSendError(rowId, res?.error ?? "Não entregue pelo WhatsApp");
     }
+
+    /* ── PROMESSA DE PESQUISA SEM PESQUISA ──────────────────────────────────
+       O especialista às vezes responde "já estou vendo … e volto com as
+       opções" e encerra o turno sem chamar pesquisar_passagens. O cliente
+       ficava esperando pra sempre. Quando a pesquisa está liberada nesta
+       rodada e a promessa saiu sem a tool, reagendamos um turno curto com
+       orientação explícita pra executar a busca agora. */
+    try {
+      if (centralAgent && !bloquearPesquisa) {
+        const chamouPesquisa = (toolCallsSummary ?? []).some((tc) => tc.name === "pesquisar_passagens");
+        const prometeuPesquisa =
+          /(vou|já|ja|estou|tô|to)\s+(ver|olhar|verificar|pesquisar|buscar|consultar|checar)|volto com (as|essas)? ?(melhores )?opç|já volto|ja volto|te trago as opç|separando as opç/i.test(
+            text,
+          );
+        if (!chamouPesquisa && prometeuPesquisa) {
+          console.warn("[agent-runtime]", JSON.stringify({
+            ...runtimeAudit,
+            event: "search_promised_without_tool",
+            generated_response: text,
+          }));
+          const { logProtocolEvent: logEv } = await import("./protocol-runtime.server");
+          await logEv("search_promised_without_tool", {
+            conversation_id: conv.id,
+            protocolo_id: protocolo.id,
+            agent_slug: agent.slug,
+          }).catch(() => {});
+          await supabaseAdmin
+            .from("wa_conversations")
+            .update({
+              ai_instruction:
+                "Você já avisou o cliente que ia pesquisar e AINDA NÃO pesquisou. Nesta rodada chame pesquisar_passagens AGORA com os dados que o cliente informou (origem, destino, tipo de trecho, data(s) e passageiros) e entregue as opções. Não repita a saudação, não anuncie de novo que vai pesquisar e não pergunte o que ele já respondeu. Se realmente faltar um dado obrigatório, pergunte apenas esse dado.",
+              ai_instruction_at: new Date().toISOString(),
+              ai_instruction_by: null,
+              ai_debounce_until: new Date(Date.now() + 20_000).toISOString(),
+            })
+            .eq("id", conv.id);
+        }
+      }
+    } catch (e) {
+      console.warn("[agent] reagendamento por promessa sem pesquisa falhou:", e);
+    }
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error(`[agent:${agent.slug}] erro:`, msg);
