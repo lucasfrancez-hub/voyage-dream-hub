@@ -520,7 +520,10 @@
       if (!root) return [];
       const box = query(root, FRT_SELECTORS.insurance) || root;
       const whole = clean(box.textContent);
-      const name = (whole.match(/SEGURO[^R$]{0,120}/i) || [whole.slice(0, 90)])[0].trim();
+      const withoutPrices = clean(whole.replace(/R\$\s*[\d.,]+/g, " "));
+      const name = clean((withoutPrices.match(/SEGURO.{0,120}/i) || [withoutPrices.slice(0, 90)])[0])
+        .replace(/\s*(ver cobertura|saiba mais)\s*$/i, "")
+        .trim();
       const price =
         moneyToNumber(text(box, "strong")) ||
         moneyToNumber(text(root, FRT_SELECTORS.insuranceMobilePrice));
@@ -612,7 +615,7 @@
           .replace(/\d{2}\/\d{2}\/\d{4}/g, "")
           .replace(/(chegada|sa[ií]da|embarque|desembarque)\s*:?/gi, "")
           .replace(/\d{2}:\d{2}/g, "")
-          .replace(/[-–|]/g, " ")
+          .replace(/[-\u2013\u2014|]/g, " ")
           .trim();
         const parts = portRaw.split(",").map((p) => clean(p)).filter(Boolean);
         const img = row.querySelector("img");
