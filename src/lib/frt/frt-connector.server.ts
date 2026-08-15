@@ -158,6 +158,23 @@ let ultimaAmostra: { em: string; url: string; estado: VendaEstado; html: string 
 export function frtUltimaAmostraHtml() {
   return ultimaAmostra;
 }
+/** Diagnóstico do último POST de pesquisa (resposta bruta sanitizada). */
+export type FrtAmostraPesquisa = {
+  em: string;
+  status: number;
+  bytes: number;
+  updates: { id: string; bytes: number }[];
+  temPnlResultado: boolean;
+  temPrecos: boolean;
+  amostraPrecos: string[];
+  mensagemNenhumResultado: string | null;
+  raw: string;
+};
+let ultimaAmostraPesquisa: FrtAmostraPesquisa | null = null;
+export function frtUltimaAmostraPesquisa() {
+  return ultimaAmostraPesquisa;
+}
+
 function amostraSanitizada(html: string): string {
   const limpo = maskSensitive(
     html
@@ -836,7 +853,7 @@ async function runSearch(
   p.set("javax.faces.ViewState", s.viewState ?? "");
 
   trace(`POST pesquisa ${input.origem}->${input.destino} ${input.ida}`);
-  const { body } = await frtFetch(s, VENDA_URL, {
+  const { res: resPesquisa, body } = await frtFetch(s, VENDA_URL, {
     method: "POST",
     body: p.toString(),
     headers: {
@@ -848,13 +865,42 @@ async function runSearch(
     },
   });
 
+  const updatesDiag = extractPartialUpdates(body);
+  const chavesDiag = Object.keys(updatesDiag);
+  const precos = [...body.matchAll(/R\$\s?[\d.]+,\d{2}/g)].map((m) => m[0]).slice(0, 10);
+  const semResultado =
+    body.match(
+      /(nenhum[\s\S]{0,60}?(resultado|disponibilidade|voo|pacote)[^<]{0,80})/i,
+    )?.[1]?.replace(/\s+/g, " ").trim() ?? null;
+
+  ultimaAmostraPesquisa = {
+    em: new Date().toISOString(),
+    status: resPesquisa.status,
+    bytes: body.length,
+    updates: chavesDiag.map((id) => ({ id, bytes: updatesDiag[id]!.length })),
+    temPnlResultado: /pnlResultado/i.test(body),
+    temPrecos: precos.length > 0,
+    amostraPrecos: precos,
+    mensagemNenhumResultado: semResultado,
+    raw: amostraSanitizada(body),
+  };
+
+  trace(`  POST pesquisa status: ${resPesquisa.status}`);
+  trace(`  response size: ${body.length} bytes`);
+  trace(
+    `  updates: ${chavesDiag.length ? chavesDiag.map((k) => `${k}(${updatesDiag[k]!.length}b)`).join(", ") : "(nenhum)"}`,
+  );
+  trace(`  pnlResultado presente: ${/pnlResultado/i.test(body)}`);
+  trace(`  preços encontrados: ${precos.length}${precos.length ? ` -> ${precos.slice(0, 3).join(" | ")}` : ""}`);
+  trace(`  mensagem "nenhum resultado": ${semResultado ?? "(nenhuma)"}`);
+
   if (looksLikeSessionExpired(body)) throw new FrtError("FRT_SESSION_EXPIRED");
 
   const novoVs = extractViewState(body);
   if (novoVs) s.viewState = novoVs;
 
-  const updates = extractPartialUpdates(body);
-  const chaves = Object.keys(updates);
+  const updates = updatesDiag;
+  const chaves = chavesDiag;
   if (!chaves.length) {
     throw new FrtError(
       "FRT_STRUCTURE_CHANGED",
@@ -948,7 +994,8 @@ export async function frtDiagnostico(reusarSessao = true) {
       erro: erro as string | null,
       mensagem: (venda.estado === "ok" ? null : erroDoEstado(venda).message) as string | null,
       amostraHtml: frtUltimaAmostraHtml(),
-      log: frtTraceLog().slice(-40),
+      amostraPesquisa: frtUltimaAmostraPesquisa(),
+      log: frtTraceLog().slice(-60),
     };
   } catch (e) {
     const err = e instanceof FrtError ? e : null;
@@ -966,7 +1013,8 @@ export async function frtDiagnostico(reusarSessao = true) {
       erro: (err?.code ?? "FRT_NETWORK_ERROR") as string | null,
       mensagem: (err?.message ?? "Falha ao conectar na FRT") as string | null,
       amostraHtml: frtUltimaAmostraHtml(),
-      log: frtTraceLog().slice(-40),
+      amostraPesquisa: frtUltimaAmostraPesquisa(),
+      log: frtTraceLog().slice(-60),
     };
   }
 }
