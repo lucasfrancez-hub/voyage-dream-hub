@@ -281,7 +281,9 @@
       : { itinerary: [], attractions: [], ship_cabins: [], decks: [], media: [], specs: {}, technical_drawing_url: "" };
 
     // 94. Ocupação lida da própria página, nunca de estado do plugin.
-    const occ = summary.occupancy || {};
+    // Abre o modal "Editar" quando o resumo não distingue criança/bebê.
+    const occ = deep ? await captureOccupancy(parser) : summary.occupancy || {};
+
     const profiles = {
       adults: occ.adults || 0,
       young: occ.young || 0,
