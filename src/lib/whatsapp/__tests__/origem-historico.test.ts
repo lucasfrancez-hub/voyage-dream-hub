@@ -78,4 +78,13 @@ describe("origem recuperada do histórico é apenas sugestão", () => {
     // sem sugestão, só a pergunta aberta vale
     expect(isValidOriginQuestion("Vai manter o embarque por Maringá?", null)).toBe(false);
   });
+
+  it.each([
+    "De qual cidade vc pretende embarcar?",
+    "De qual cidade cê pretende embarcar?",
+    "De qual cidade você pretende embarcar?",
+    "De qual cidade pretende embarcar?",
+  ])("reconhece variação da pergunta de origem: %s", (pergunta) => {
+    expect(isValidOriginQuestion(pergunta)).toBe(true);
+  });
 });

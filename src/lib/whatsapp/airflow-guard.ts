@@ -1,4 +1,4 @@
-export const CENTRAL_PROMPT_VERSION = "central-especialistas-2026-08-03.1";
+export const CENTRAL_PROMPT_VERSION = "central-especialistas-2026-08-15.1";
 
 export function centralBriefHasMissingOrigin(brief: string | null | undefined): boolean {
   return /origem:\s*(?:n[aã]o informada|null)|origem[^\n]*n[aã]o foi informada/i.test(brief ?? "");
@@ -9,7 +9,8 @@ export function isInvalidMissingOriginResponse(text: string): boolean {
 }
 
 /** Pergunta obrigatória quando não há nenhuma origem no histórico. */
-const RX_PERGUNTA_ORIGEM = /de qual cidade (?:voc[eê] )?(?:vai |quer |pretende )?embarcar/i;
+const RX_PERGUNTA_ORIGEM =
+  /de qual cidade (?:(?:voc[eê]|vc|c[eê]) )?(?:vai |quer |pretende )?embarcar/i;
 
 /**
  * Pergunta de confirmação quando existe origem recuperada do histórico.
