@@ -3,8 +3,8 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 const searchSchema = z.object({
-  origem: z.string().min(2).max(60),
-  destino: z.string().min(2).max(60),
+  origem: z.string().min(2).max(200),
+  destino: z.string().min(2).max(200),
   ida: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   volta: z
     .string()
