@@ -77,13 +77,14 @@ export const Route = createFileRoute("/api/public/hooks/dispatch-ai-debounced")(
             }
           }
 
-          // O lease precisa cobrir geração, tools e envio completos. Com 90s,
-          // uma execução lenta podia expirar ainda ativa e outro tick iniciava
-          // um segundo runAgent para a mesma mensagem. Cinco minutos mantêm a
-          // exclusão durante o orçamento máximo do atendimento; mensagem nova
-          // continua podendo reagendar o debounce e invalida o run antigo pelo
-          // trigger_message_id antes de qualquer persistência/envio.
-          const leaseUntil = new Date(Date.now() + 5 * 60 * 1000).toISOString();
+          // LEASE CURTO + HEARTBEAT. Antes o lease era fixo de 5min: quando o
+          // worker morria no meio do run (timeout/CPU), a conversa ficava
+          // travada até o lease expirar e o cliente esperava ~6min pela
+          // resposta. Agora o lease é de 2min e é renovado a cada 45s enquanto
+          // o runAgent está vivo — se o worker cair, o próximo tick recupera em
+          // no máximo 2min.
+          const LEASE_MS = 2 * 60 * 1000;
+          let leaseUntil = new Date(Date.now() + LEASE_MS).toISOString();
           const { data: claimed, error: leaseErr } = await supabaseAdmin
             .from("wa_conversations")
             .update({ ai_debounce_until: leaseUntil })
@@ -95,6 +96,18 @@ export const Route = createFileRoute("/api/public/hooks/dispatch-ai-debounced")(
             console.warn(`[dispatch-ai-debounced] falha ao pegar lease ${conv.id}:`, leaseErr);
             continue;
           }
+
+          const heartbeat = setInterval(() => {
+            const anterior = leaseUntil;
+            const proximo = new Date(Date.now() + LEASE_MS).toISOString();
+            leaseUntil = proximo;
+            void supabaseAdmin
+              .from("wa_conversations")
+              .update({ ai_debounce_until: proximo })
+              .eq("id", conv.id)
+              .eq("ai_debounce_until", anterior);
+          }, 45_000);
+
 
           try {
             // "Digitando…" visual no WhatsApp do cliente enquanto a IA processa.
