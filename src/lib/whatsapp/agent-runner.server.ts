@@ -1255,20 +1255,6 @@ export async function runAgent(input: {
       return;
     }
 
-    // O primeiro contato do setor aéreo nunca pode começar seco pela coleta.
-    // Esta proteção é determinística: mesmo se o modelo ignorar o prompt, Bruno
-    // ou Paula entram se apresentando antes de perguntar origem, data ou pax.
-    if (centralAgent && centralPrimeiroContato) {
-      const nomeEsc = centralAgent.nome.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      const jaSeApresentou = new RegExp(`(?:sou (?:a|o)|aqui (?:é|e))\\s+${nomeEsc}\\b`, "i").test(rawText);
-      if (!jaSeApresentou) {
-        const cliente = extractFirstName(conv.display_name);
-        const saudacao = cliente ? `Oi, ${cliente}! Tudo bem?` : "Oi! Tudo bem?";
-        const artigo = CENTRAL_GENDER[centralAgent.slug as CentralSlug] === "m" ? "o" : "a";
-        rawText = `${saudacao}\n\nSou ${artigo} ${centralAgent.nome}, do setor aéreo da VIA AIR\n\nVou cuidar da sua cotação por aqui\n\n${rawText}`;
-      }
-    }
-
     // Garante primeira letra maiúscula em cada balão (o modelo escreve tudo minúsculo)
     // e capitaliza o primeiro nome do cliente sempre que aparecer no meio do texto.
     // Origem já confirmada neste mesmo protocolo não exige nova pergunta.
@@ -1316,6 +1302,21 @@ export async function runAgent(input: {
           ...runtimeAudit,
           event: "airflow_response_kept_origin_already_answered",
         }));
+      }
+    }
+
+    // Deve rodar DEPOIS do Airflow Guard: quando faltava origem, o guard podia
+    // substituir toda a resposta e apagar a apresentação recém-adicionada.
+    // Assim, a primeira entrada de Bruno/Paula sempre se apresenta, inclusive
+    // quando precisa perguntar imediatamente a cidade de embarque.
+    if (centralAgent && centralPrimeiroContato) {
+      const nomeEsc = centralAgent.nome.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const jaSeApresentou = new RegExp(`(?:sou (?:a|o)|aqui (?:é|e))\\s+${nomeEsc}\\b`, "i").test(rawText);
+      if (!jaSeApresentou) {
+        const cliente = extractFirstName(conv.display_name);
+        const saudacao = cliente ? `Oi, ${cliente}! Tudo bem?` : "Oi! Tudo bem?";
+        const artigo = CENTRAL_GENDER[centralAgent.slug as CentralSlug] === "m" ? "o" : "a";
+        rawText = `${saudacao}\n\nSou ${artigo} ${centralAgent.nome}, do setor aéreo da VIA AIR\n\nVou cuidar da sua cotação por aqui\n\n${rawText}`;
       }
     }
 
