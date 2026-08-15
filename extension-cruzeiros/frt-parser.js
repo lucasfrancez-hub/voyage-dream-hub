@@ -10,7 +10,7 @@
  */
 (function (globalScope) {
   const PARSER_NAME = "FRTKroozeCruiseParser";
-  const PARSER_VERSION = "1.1.0";
+  const PARSER_VERSION = "1.2.0";
 
   /* ------------------------------------------------------------------ */
   /* 72. Mapa central de seletores — nada de CSS espalhado pelo projeto. */
