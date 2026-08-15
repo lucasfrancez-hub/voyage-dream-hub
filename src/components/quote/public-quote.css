@@ -460,3 +460,8 @@
   color: #9a4408;
   font-weight: 700;
 }
+
+/* Detalhes do voo: cada trecho é um cartão isolado, com respiro entre eles. */
+.vq-seg2-group { display: flex; flex-direction: column; gap: 14px; }
+.vq-seg2-connection-pill.vq-seg2-connection-warn { align-items: flex-start; line-height: 1.4; }
+.vq-seg2-connection-pill.vq-seg2-connection-warn svg { margin-top: 1px; }
