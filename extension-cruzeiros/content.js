@@ -313,6 +313,9 @@
         currency: "BRL",
       },
       occupancy: profiles,
+      occupancy_source: occupancySource,
+      occupancy_warnings: occupancyWarnings,
+
       ship: {
         name: shipName,
         line: shipName.split(" ")[0] || "",
