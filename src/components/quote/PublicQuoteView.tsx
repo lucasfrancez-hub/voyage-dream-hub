@@ -168,7 +168,7 @@ function FlightLegCard({
           <div className="vq-flight-tags">
             {direction ? <span className="vq-dir-badge" data-dir={dirKind}>{direction}</span> : null}
             <span className="vq-tag">{leg.stopsLabel}</span>
-            {leg.hasAirportChange ? (
+            {temTroca ? (
               <span className="vq-tag vq-tag-warn" title="A conexão exige troca de aeroporto na mesma cidade">
                 Troca de aeroporto
               </span>
