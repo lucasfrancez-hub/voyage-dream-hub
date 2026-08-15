@@ -11,6 +11,7 @@ import { directionsFor, legLabel, splitIntoLegs, type LegInputSegment } from "@/
 import { normalizeServiceTitle } from "@/lib/public-quote/service-title";
 import { agentPhoto } from "@/lib/public-quote/agents";
 import { formatRoom } from "@/lib/public-quote/room-label";
+import { collectBaggageText, parseBaggage } from "./baggage";
 
 import type {
   FlightLeg,
@@ -87,7 +88,9 @@ function toSegments(flight: NormalizedOption["flights"][number]): FlightSegment[
 function toLeg(flight: NormalizedOption["flights"][number], index: number): FlightLeg {
   const stops = Math.max(0, Number(flight.stops) || Math.max(0, (flight.segments?.length ?? 1) - 1));
   const direction: "OUTBOUND" | "INBOUND" = flight.direction ?? (index === 0 ? "OUTBOUND" : "INBOUND");
-  const baggage = flight.segments?.[0]?.baggage ?? null;
+  const baggageText =
+    collectBaggageText(...(flight.segments ?? []).map((s) => s.baggage), (flight as any).baggage) ?? null;
+  const bags = parseBaggage(baggageText);
   return {
     direction,
     label: direction === "OUTBOUND" ? "Voo de ida" : "Voo de volta",
@@ -104,9 +107,12 @@ function toLeg(flight: NormalizedOption["flights"][number], index: number): Flig
     stops,
     stopsLabel: stops === 0 ? "Direto" : stops === 1 ? "1 conexão" : `${stops} conexões`,
     cabin: flight.segments?.[0]?.cabin ?? null,
-    carryOn: true,
-    personalItem: true,
-    checkedBaggage: !!baggage && !/sem\s+bagagem/i.test(baggage),
+    carryOn: bags.carryOn,
+    personalItem: bags.personalItem,
+    checkedBaggage: bags.checkedBaggage,
+    checkedBaggageLabel: bags.checkedBaggage
+      ? `${bags.checkedPieces ?? 1}x bagagem despachada${bags.checkedWeightKg ? ` (${bags.checkedWeightKg}kg)` : ""}`
+      : null,
     segments: toSegments(flight),
   };
 }

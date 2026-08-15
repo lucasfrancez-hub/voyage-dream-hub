@@ -13,6 +13,7 @@
  * Cada item de `bookingPackages` é UMA opção comercial (Orçamento 1..N).
  * Nada de OCR, nada de scraping por classe CSS.
  */
+import { collectBaggageText } from "./baggage";
 import {
   emptyOption,
   emptyQuote,
@@ -247,7 +248,7 @@ function mapFlight(bf: any): { flights: NormalizedFlight[]; pax: { adults: numbe
       duration: cleanText(s?.duration),
       cabin: cleanText(s?.cabin ?? s?.class ?? g?.class),
       aircraft: cleanText(s?.equipment ?? s?.aircraft),
-      baggage: cleanText(s?.baggage?.description ?? g?.baggage?.description),
+      baggage: collectBaggageText(s, g, bf?.baggage, bf?.baggages) ?? cleanText(s?.baggage?.description ?? g?.baggage?.description),
     }));
     if (!segs.length) continue;
     out.push({
