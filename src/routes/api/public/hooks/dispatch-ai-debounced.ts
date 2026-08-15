@@ -131,6 +131,7 @@ export const Route = createFileRoute("/api/public/hooks/dispatch-ai-debounced")(
               profile_name: conv.display_name,
               trigger_message_id: lastInbound?.id ?? undefined,
             });
+            clearInterval(heartbeat);
 
             // Sucesso. Como o webhook agora PRESERVA o lease (pra não disparar
             // dois runs simultâneos), qualquer mensagem que chegou durante o
@@ -160,9 +161,17 @@ export const Route = createFileRoute("/api/public/hooks/dispatch-ai-debounced")(
             dispatched.push(conv.id);
 
           } catch (e) {
+            clearInterval(heartbeat);
             console.error(`[dispatch-ai-debounced] erro runAgent ${conv.id}:`, e);
-            // Não zera: o lease de 5min garante retry automático.
+            // Libera rápido: reagenda em 20s pro próximo tick tentar de novo
+            // em vez de esperar o lease inteiro expirar.
+            await supabaseAdmin
+              .from("wa_conversations")
+              .update({ ai_debounce_until: new Date(Date.now() + 20_000).toISOString() })
+              .eq("id", conv.id)
+              .eq("ai_debounce_until", leaseUntil);
           }
+
 
         }
 
