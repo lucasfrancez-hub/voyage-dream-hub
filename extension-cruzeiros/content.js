@@ -32,6 +32,26 @@
     return nodes.find((el) => matcher(H.normalizeText(el.textContent)));
   }
 
+  async function closeWindow(modal, selectors) {
+    if (!modal) return;
+    const closeSelectors = selectors || [
+      "button[type='button'][aria-label='Close'].close.btn.btn-light",
+      "button[aria-label='Close']",
+      ".close.btn.btn-light",
+      ".btn-close",
+    ];
+    const close = closeSelectors.map((selector) => modal.querySelector(selector)).find(Boolean) ||
+      findByText([...modal.querySelectorAll("button")], (t) => t === "cancelar" || t === "fechar");
+    if (close) safeClick(close);
+    else document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+
+    const started = Date.now();
+    while (Date.now() - started < 3500 && modal.isConnected) {
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+    await H.waitForDOMStable(document.body, 250, 2500);
+  }
+
   /* Abas de filtro internas (Atrações/Cabines): nav.nav-tabs > button.
      Nunca usar todos os <button> do painel — "Mais fotos" abre a galeria. */
   function filterTabs(pane) {
@@ -64,12 +84,11 @@
       await H.waitForDOMStable(modal, 280, 3500);
       const detailed = parser.parseOccupancy(null);
       if (detailed.total) occ = { ...detailed, source: detailed.source || "dom_modal" };
-      const close =
-        modal.querySelector("[aria-label='Close'], .close, .btn-close") ||
-        findByText([...modal.querySelectorAll("button")], (t) => t === "cancelar" || t === "fechar");
-      if (close) safeClick(close);
-      else document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
-      await H.waitForDOMStable(document.body, 250, 2500);
+      await closeWindow(modal, [
+        "button[type='button'][aria-label='Close'].close.btn.btn-light",
+        "button[aria-label='Close']",
+        ".close",
+      ]);
     }
     return occ;
   }
@@ -133,18 +152,26 @@
       await H.waitForDOMStable(modal, 300, 5000);
     }
 
-    const tabs = H.queryAll(modal, P.FRT_SELECTORS.sideNavItems);
-    if (!tabs.length) return parser.parseAdditionals(null);
+    try {
+      const tabs = H.queryAll(modal, P.FRT_SELECTORS.sideNavItems);
+      if (!tabs.length) return parser.parseAdditionals(null);
 
-    for (const tab of tabs) {
-      const name = H.text(tab, P.FRT_SELECTORS.sideNavName) || H.clean(tab.textContent);
-      if (IGNORED_TABS.test(name)) continue;
-      safeClick(tab.querySelector("a,button") || tab);
-      const content = H.query(modal, P.FRT_SELECTORS.detailContent) || modal;
-      await H.waitForDOMStable(content, 300, 5000);
-      out.push(...parser.parseAdditionals(name));
+      for (const tab of tabs) {
+        const name = H.text(tab, P.FRT_SELECTORS.sideNavName) || H.clean(tab.textContent);
+        if (IGNORED_TABS.test(name)) continue;
+        safeClick(tab.querySelector("a,button") || tab);
+        const content = H.query(modal, P.FRT_SELECTORS.detailContent) || modal;
+        await H.waitForDOMStable(content, 300, 5000);
+        out.push(...parser.parseAdditionals(name));
+      }
+      return out;
+    } finally {
+      await closeWindow(modal, [
+        "button[type='button'][aria-label='Close'].close.btn.btn-light",
+        "button[aria-label='Close']",
+        ".close",
+      ]);
     }
-    return out;
   }
 
   /* -------- 48-60. Modal "Ver mais" (conteúdo do navio) --------------- */
@@ -173,8 +200,9 @@
       if (!hasSideNav) return data;
     }
 
-    const tabs = H.queryAll(modal, P.FRT_SELECTORS.sideNavItems);
-    for (const tab of tabs) {
+    try {
+      const tabs = H.queryAll(modal, P.FRT_SELECTORS.sideNavItems);
+      for (const tab of tabs) {
       const label = H.text(tab, P.FRT_SELECTORS.sideNavName) || H.clean(tab.textContent);
       if (IGNORED_TABS.test(label)) continue;
       safeClick(tab.querySelector("a,button") || tab);
@@ -244,12 +272,19 @@
         Object.assign(data.specs, sheet.specs);
         if (sheet.technical_drawing_url) data.technical_drawing_url = sheet.technical_drawing_url;
       }
-    }
+      }
 
-    data.media = H.unique(data.media, (m) => m.source_url);
-    data.attractions = H.unique(data.attractions, (a) => `${a.category}|${H.normalizeText(a.name)}`);
-    data.decks = H.unique(data.decks, (d) => `${d.deck_label}|${d.image_url}`);
-    return data;
+      data.media = H.unique(data.media, (m) => m.source_url);
+      data.attractions = H.unique(data.attractions, (a) => `${a.category}|${H.normalizeText(a.name)}`);
+      data.decks = H.unique(data.decks, (d) => `${d.deck_label}|${d.image_url}`);
+      return data;
+    } finally {
+      await closeWindow(modal, [
+        "button[type='button'][aria-label='Close'].close.btn.btn-light",
+        "button[aria-label='Close']",
+        ".close",
+      ]);
+    }
   }
 
   /* -------- 64/77 + 84-100. Montagem do snapshot ---------------------- */
@@ -258,7 +293,9 @@
   async function buildSnapshot(options) {
     const opts = options || {};
     const priceOnly = opts.mode === "price";
-    const deep = !priceOnly && opts.deep !== false;
+    // Todo take revisita todas as telas. Captura parcial deixava modal aberto,
+    // herdava ocupação antiga e misturava passageiros entre takes.
+    const deep = true;
     const parser = P.createParser(document, { view: window, url: location.href });
     const pageType = parser.detectPageType();
 
@@ -270,6 +307,10 @@
 
     const summary = parser.parsePriceSummary();
 
+    // Passageiros primeiro: é a fonte de verdade do preço deste take e o modal
+    // é fechado antes de abrir cabine, adicionais ou "Ver mais".
+    const occ = await captureOccupancy(parser);
+
     const cabinTypes = deep
       ? await captureCabinTypes(parser)
       : [{ type: "", source_name: "", image_url: "", categories: parser.parseVisibleCabinCategories("") }];
@@ -279,10 +320,6 @@
     const shipDetails = deep
       ? await captureShipDetails(parser)
       : { itinerary: [], attractions: [], ship_cabins: [], decks: [], media: [], specs: {}, technical_drawing_url: "" };
-
-    // 94. Ocupação lida da própria página, nunca de estado do plugin.
-    // Abre o modal "Editar" quando o resumo não distingue criança/bebê.
-    const occ = deep ? await captureOccupancy(parser) : summary.occupancy || {};
 
     const profiles = {
       adults: occ.adults || 0,

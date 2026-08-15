@@ -10,7 +10,7 @@
  */
 (function (globalScope) {
   const PARSER_NAME = "FRTKroozeCruiseParser";
-  const PARSER_VERSION = "1.2.0";
+  const PARSER_VERSION = "1.3.0";
 
   /* ------------------------------------------------------------------ */
   /* 72. Mapa central de seletores — nada de CSS espalhado pelo projeto. */
@@ -508,7 +508,13 @@
 
       let read = false;
       for (const panel of panels) {
-        const rows = [...panel.querySelectorAll("li, .row, .passenger-row, .item, div")];
+        const rows = [...panel.querySelectorAll("li, .row, .passenger-row, .item, div")]
+          .filter((row) => {
+            const label = normalizeText(row.textContent);
+            const kinds = ["adulto", "jovem", "crianc", "bebe"].filter((kind) => label.includes(kind));
+            return kinds.length === 1;
+          })
+          .sort((a, b) => a.textContent.length - b.textContent.length);
         const seen = new Set();
         rows.forEach((row) => {
           const label = normalizeText(row.textContent);
@@ -523,11 +529,13 @@
                   ? "infant"
                   : null;
           if (!kind || seen.has(kind)) return;
-          const input = row.querySelector("input");
+          const input = row.querySelector("input[type='number'], input:not([type])");
           const fromInput = input ? Number(input.value) : NaN;
+          const countNode = row.querySelector("[class*='count'], [class*='quantity'], [class*='amount'], output");
+          const countText = countNode ? clean(countNode.textContent) : "";
           const qty = Number.isFinite(fromInput)
             ? fromInput
-            : Number((label.match(/(\d+)\s*$/) || label.match(/(\d+)/) || [])[1]);
+            : Number((countText.match(/\d+/) || label.match(/(?:adultos?|jovens?|crian[çc]as?|beb[eê]s?)\D{0,20}(\d+)/) || [])[1] || countText);
           if (!Number.isFinite(qty)) return;
           seen.add(kind);
           addProfile(kind, qty);
