@@ -450,7 +450,7 @@
           disembark_port: disembark,
           currency: "BRL",
         },
-        occupancy: { passengers },
+        occupancy: parseOccupancy(passengers),
         pricing: {
           fare_name: fareName || "",
           selected_cabin_label: selectedCabinLabel || "",
