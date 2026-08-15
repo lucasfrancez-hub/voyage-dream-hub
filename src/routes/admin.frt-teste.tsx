@@ -73,38 +73,47 @@ function FrtTestePage() {
   );
 
 
+  // Só existe desafio 2FA depois que um login o exigiu. Sem isso, nada de polling.
+  const [desafio2fa, setDesafio2fa] = useState(false);
+
   const diagMut = useMutation({
     mutationFn: (novaSessao?: boolean) => diag({ data: { novaSessao: Boolean(novaSessao) } }),
+    onSuccess: (r) => setDesafio2fa(Boolean(r.aguardandoCodigo)),
     onError: (e: Error) => toast.error(e.message),
   });
 
   // Desafio 2FA pendente: enquanto existir, nenhum novo login pode ser disparado.
+  // NUNCA roda por digitação em origem/destino — só com desafio ativo.
   const pend = useQuery({
     queryKey: ["frt-2fa"],
+    enabled: desafio2fa,
     queryFn: () => (aguardando2faRef.current ? poll2fa({ data: undefined }) : estado2fa({ data: undefined })),
-    refetchInterval: (q) => (q.state.data?.pendente ? 4_000 : 15_000),
+    refetchInterval: (q) => (q.state.data?.pendente ? 4_000 : false),
   });
-  const aguardando2fa = Boolean(pend.data?.pendente) || Boolean(diagMut.data?.aguardandoCodigo);
+  const aguardando2fa = desafio2fa && (Boolean(pend.data?.pendente) || Boolean(diagMut.data?.aguardandoCodigo));
   aguardando2faRef.current = aguardando2fa;
 
   const autoMut = useMutation({
     mutationFn: () => ativarAuto({ data: { ativo: true } }),
-    onSettled: () => pend.refetch(),
+    onSettled: () => {
+      if (desafio2fa) void pend.refetch();
+    },
   });
   const cancelarMut = useMutation({
     mutationFn: () => cancelar2fa({ data: undefined }),
     onSuccess: () => {
       toast.message("Desafio 2FA descartado — novo login liberado");
-      pend.refetch();
+      setDesafio2fa(false);
     },
   });
+
   const codigoMut = useMutation({
     mutationFn: () => enviarCodigo({ data: { codigo } }),
     onSuccess: (r) => {
       if (r.ok) {
         toast.success("Código aceito — sessão liberada");
         setCodigo("");
-        pend.refetch();
+        setDesafio2fa(false);
         diagMut.mutate(false);
       } else {
         toast.error(r.mensagem ?? "Código recusado");
@@ -401,6 +410,9 @@ function FrtTestePage() {
                   <div className="flex flex-wrap items-center gap-2">
                     <Badge variant="outline">{c}</Badge>
                     <Badge variant="outline">termo “{a.termo}”</Badge>
+                    <Badge variant={a.serverFn === "frtAutocomplete" ? "default" : "destructive"}>
+                      serverFn={a.serverFn}
+                    </Badge>
                     <Badge variant={a.disparado ? "default" : "destructive"}>
                       chamada {a.disparado ? "disparada" : "não disparada"}
                     </Badge>
