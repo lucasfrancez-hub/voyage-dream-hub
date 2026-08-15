@@ -118,6 +118,29 @@ function toLeg(flight: NormalizedOption["flights"][number], index: number): Flig
 }
 
 /**
+ * Marca espera de conexão e troca de aeroporto entre segmentos do mesmo trecho.
+ * Sem isso o alerta "Atenção: troca de aeroporto" não aparecia nos orçamentos
+ * importados (só nos gerados a partir de pedidos).
+ */
+function annotateConnections(segments: FlightSegment[]): boolean {
+  let troca = false;
+  for (let i = 0; i < segments.length - 1; i++) {
+    const atual = segments[i]!;
+    const proximo = segments[i + 1]!;
+    const espera = durationBetween(atual.arrival, proximo.departure);
+    atual.connectionAfter = espera ?? null;
+    if (isTrocaDeAeroporto(atual.toIata, proximo.fromIata)) {
+      troca = true;
+      atual.airportChange =
+        `Desembarque em ${atual.toIata}${atual.toName ? ` (${atual.toName})` : ""} e embarque em ${proximo.fromIata}${proximo.fromName ? ` (${proximo.fromName})` : ""}`;
+    } else {
+      atual.airportChange = null;
+    }
+  }
+  return troca;
+}
+
+/**
  * Um card por trecho real. Nunca une ida com volta: quando os segmentos de
  * um mesmo objeto não se conectam (aeroporto diferente ou espera > 12h),
  * eles viram trechos separados.
@@ -128,6 +151,7 @@ function buildOptionLegs(flights: NormalizedOption["flights"]): FlightLeg[] {
   flights.forEach((flight, index) => {
     const base = toLeg(flight, index);
     const segs = base.segments;
+    base.hasAirportChange = annotateConnections(segs);
     if (segs.length < 2) {
       out.push(base);
       return;
