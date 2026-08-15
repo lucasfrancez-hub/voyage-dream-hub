@@ -247,12 +247,13 @@ async function inicializarMotorPrimeFaces(
       trace(`  updates recebidos: ${Object.keys(updates).join(", ") || "(nenhum)"}`);
       trace(`  frmMotorPacote found after init: ${achouMotor}`);
 
-      const anterior: { html: string; viewState: string | null } | null = melhor;
-      if (html && (!anterior || achouMotor || html.length > anterior.html.length)) {
-        melhor = { html, viewState: novoVs ?? anterior?.viewState ?? null };
+      if (html && (achouMotor || html.length > melhorHtml.length)) {
+        melhorHtml = html;
+        if (novoVs) melhorVs = novoVs;
       }
 
-      if (achouMotor) return melhor;
+      if (achouMotor) return { html: melhorHtml, viewState: melhorVs };
+
     } catch (e) {
       trace(`  init falhou: ${e instanceof Error ? e.message : String(e)}`);
     }
