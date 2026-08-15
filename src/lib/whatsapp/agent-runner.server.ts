@@ -1894,7 +1894,7 @@ export async function runAgent(input: {
               ai_instruction:
                 "Você já avisou o cliente que ia pesquisar e AINDA NÃO pesquisou. Nesta rodada chame pesquisar_passagens AGORA com os dados que o cliente informou (origem, destino, tipo de trecho, data(s) e passageiros) e entregue as opções. Não repita a saudação, não anuncie de novo que vai pesquisar e não pergunte o que ele já respondeu. Se realmente faltar um dado obrigatório, pergunte apenas esse dado.",
               ai_instruction_at: new Date().toISOString(),
-              ai_instruction_by: "sistema:promessa_sem_pesquisa",
+              ai_instruction_by: null,
               ai_debounce_until: new Date(Date.now() + 20_000).toISOString(),
             })
             .eq("id", conv.id);
