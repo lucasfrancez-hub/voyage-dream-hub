@@ -448,3 +448,16 @@
   .vq-option-tab { padding: 7px 10px; }
 }
 
+
+/* Aviso de troca de aeroporto na conexão (mesmo trecho, nunca duas idas). */
+.vq-tag.vq-tag-warn {
+  background: rgba(242, 107, 31, 0.12);
+  border-color: rgba(242, 107, 31, 0.45);
+  color: #9a4408;
+}
+.vq-seg2-connection-pill.vq-seg2-connection-warn {
+  background: rgba(242, 107, 31, 0.1);
+  border-color: rgba(242, 107, 31, 0.4);
+  color: #9a4408;
+  font-weight: 700;
+}

@@ -34,6 +34,7 @@ import {
   splitIntoLegs,
   timeOf,
   directionsFor,
+  isTrocaDeAeroporto,
   type LegInputSegment,
 } from "./flight-legs";
 import { agentPhoto } from "./agents";
@@ -108,11 +109,13 @@ function buildLegs(voos: PublicQuoteItem[]): FlightLeg[] {
     const segments = itens.map(segmentOf);
     for (let i = 0; i < segments.length - 1; i++) {
       const espera = durationBetween(itens[i]!.arrival, itens[i + 1]!.departure);
-      if (espera) {
-        segments[i]!.connectionAfter =
-          `Conexão em ${segments[i]!.toName ?? segments[i]!.toIata} • ${espera}`;
+      if (espera) segments[i]!.connectionAfter = espera;
+      if (isTrocaDeAeroporto(itens[i]!.toIata, itens[i + 1]!.fromIata)) {
+        segments[i]!.airportChange =
+          `Troca de aeroporto: desembarque em ${segments[i]!.toIata} e embarque em ${itens[i + 1]!.fromIata}`;
       }
     }
+    const trocaAeroporto = segments.some((sg) => !!sg.airportChange);
     const stops = Math.max(0, itens.length - 1);
     const direction = direcoes[idx]!;
     return {
@@ -135,6 +138,7 @@ function buildLegs(voos: PublicQuoteItem[]): FlightLeg[] {
       personalItem: itens.every((i) => i.personalItem !== false),
       checkedBaggage: itens.every((i) => i.checkedBaggage === true),
       segments,
+      hasAirportChange: trocaAeroporto,
     } satisfies FlightLeg;
   });
 }
