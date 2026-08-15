@@ -110,6 +110,19 @@ export const converterOrcamentoEmPedido = createServerFn({ method: "POST" })
       .single();
     if (error || !order) throw new Error(error?.message ?? "Falha ao criar pedido");
 
+    // O gatilho do banco só entende o snapshot antigo de pacote: os itens do
+    // orçamento (hospedagem, aéreo, serviços) e o financeiro são criados aqui.
+    const opcao = escolhida ?? normalized?.options?.[0] ?? null;
+    if (opcao) {
+      const { materializeOrderFromNormalizedOption } = await import(
+        "@/lib/orders/materialize-from-quote.server"
+      );
+      await materializeOrderFromNormalizedOption(order.id, opcao, {
+        supplierName: quote.source === "INFOTRAVEL" ? "Infotravel" : null,
+        total: totalEscolhido,
+      });
+    }
+
     await supabaseAdmin
       .from("quotes")
       .update({

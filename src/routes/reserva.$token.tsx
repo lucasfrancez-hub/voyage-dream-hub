@@ -25,6 +25,7 @@ import { TermsModal } from "@/components/TermsModal";
 import { ContactFooter } from "@/components/ContactFooter";
 import { fetchPublicQuote } from "@/lib/public-quote.functions";
 import { getPublicQuote } from "@/lib/quote.functions";
+import { materializarPedidoDaReserva } from "@/lib/orders/materialize.functions";
 import { buildPublicQuoteFromOrder } from "@/lib/public-quote/from-order";
 import type { PublicQuote } from "@/lib/public-quote/types";
 import viaAirLogo from "@/assets/viaair-logo.png.asset.json";
@@ -277,6 +278,10 @@ function ReservaCheckout() {
         payer_state: payment === "credit_card" ? card.billingState : null,
       });
       if (error) throw error;
+
+      // Cria hospedagem, aéreo, serviços e financeiro do pedido a partir do
+      // orçamento (o gatilho do banco só entende o formato antigo de pacote).
+      await materializarPedidoDaReserva({ data: { orderId: newId, token } }).catch(() => null);
 
       const orderNumber = `#${String(parseInt(newId.replace(/-/g, "").slice(0, 12), 16) % 100000000).padStart(8, "0")}`;
       setSuccess(true);
