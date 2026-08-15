@@ -406,6 +406,9 @@ export async function importInfotravelQuote(url: string, html?: string): Promise
   const booking = await trpc<any>(ref, "main.getBooking", {
     companyCode: ref.companyCode,
     bookingId: ref.bookingId,
+    // sem o bookingIndex a Infotravel pode devolver outra versão da reserva
+    // (produtos e valores diferentes dos exibidos na página)
+    ...(ref.bookingIndex != null ? { bookingIndex: ref.bookingIndex } : {}),
     clientUrl: ref.clientUrl,
   });
 
