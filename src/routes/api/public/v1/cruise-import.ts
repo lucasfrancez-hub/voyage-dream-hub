@@ -239,10 +239,9 @@ export const Route = createFileRoute("/api/public/v1/cruise-import")({
 
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-        // 1) destino: sempre a sessão ativa do usuário (nunca um cruise_id vindo do navegador)
-        const session = await activeSession(supabaseAdmin, auth.userId);
-        if (!session) return json({ error: "no_active_import" }, 409);
-        if (sentToken && sentToken !== session.token) {
+        // 1) destino: sessão ativa do usuário (nunca um cruise_id vindo do navegador)
+        let session = await activeSession(supabaseAdmin, auth.userId);
+        if (session && sentToken && sentToken !== session.token) {
           return json({ error: "session_changed", session_token: session.token }, 409);
         }
 
@@ -262,8 +261,22 @@ export const Route = createFileRoute("/api/public/v1/cruise-import")({
         );
         if (!allowed) return json({ error: "domain_not_allowed", host }, 403);
 
+        // 2b) sem importação ativa: cria/reaproveita o cruzeiro a partir da própria captura
+        let autoCreated = false;
+        if (!session) {
+          try {
+            const result = await ensureSessionFromSnapshot(supabaseAdmin, auth.userId, payload);
+            session = result.session;
+            autoCreated = result.autoCreated;
+          } catch (e) {
+            return json({ error: "auto_create_failed", detail: e instanceof Error ? e.message : String(e) }, 500);
+          }
+          if (!session) return json({ error: "no_active_import" }, 409);
+        }
+
         const cruiseId = (session.cruise as { id: string } | null)?.id;
         if (!cruiseId) return json({ error: "cruise_missing" }, 409);
+
 
         // 3) grava o snapshot bruto (nunca destruído)
         const seq = (session.snapshots_count ?? 0) + 1;
