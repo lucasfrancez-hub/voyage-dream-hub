@@ -633,118 +633,164 @@ export async function processNextFlightQuoteOption(params: {
     return { ...vazio, quote_id: quote.id, completed: completou };
   }
 
-  // EMERGÊNCIA: despeja em TEXTO tudo o que falta e conclui a cotação.
-  if (emergencia) {
-    let entregues = entreguesAntes;
-    for (const l of disponiveis) {
-      const reivindicada = await claimOption(l, worker);
-      if (!reivindicada) continue;
-      const r = await entregarOpcao(quote, todas[l.option_index], reivindicada, ctx, worker, {
-        somenteTexto: true,
-      });
-      if (r.ok) entregues++;
-    }
-    await atualizarCotacao(quote.id, entregues, expected, null);
-    console.warn(
-      JSON.stringify({
-        event: "flight_delivery_emergency_flush",
-        quote_id: quote.id,
-        protocol_id: ctx.protocolo_id,
-        delivered_options_count: entregues,
-        expected_options: expected,
-      }),
-    );
-    await talvezFechar(quote, ctx, entregues, expected);
-    return {
-      quote_id: quote.id,
-      delivered: entregues - entreguesAntes,
-      completed: true,
-      chained_next_round: false,
-      next_option_index: null,
-      next_run_at: null,
-    };
+  /* ── ENTREGA ÚNICA: TODAS as opções em UM orçamento e UM link ──
+     Uma pesquisa = um orçamento = um link. Nada de card/link por opção. */
+  const reivindicadas: OptionRow[] = [];
+  for (const l of disponiveis) {
+    const c = await claimOption(l, worker);
+    if (c) reivindicadas.push(c);
   }
-
-  // ── rodada normal: UMA opção ──
-  const alvo = disponiveis[0];
-  const reivindicada = await claimOption(alvo, worker);
-  if (!reivindicada) {
-    log({ event: "flight_delivery_claim_lost", quote_id: quote.id, option_index: alvo.option_index, worker_id: worker });
+  if (!reivindicadas.length) {
+    log({ event: "flight_delivery_claim_lost", quote_id: quote.id, worker_id: worker });
     return { ...vazio, quote_id: quote.id };
   }
-  log({
-    event: "flight_delivery_claim_acquired",
-    quote_id: quote.id,
-    option_index: reivindicada.option_index,
-    worker_id: worker,
-    claim_id: worker,
-    claim_expires_at: reivindicada.claim_expires_at,
-  });
 
   await avisarAntesDoPrimeiroCard(ctx, entreguesAntes);
 
-  const r = await entregarOpcao(quote, todas[reivindicada.option_index], reivindicada, ctx, worker);
-  const entregues = entreguesAntes + (r.ok ? 1 : 0);
-  const completou = cotacaoConcluida(entregues, expected);
+  const bundle = await entregarBundle(quote, todas, reivindicadas, ctx, worker, {
+    somenteTexto: emergencia,
+  });
+  const entregues = entreguesAntes + bundle.entregues;
+  const completou = cotacaoConcluida(entregues, expected) || bundle.entregues > 0;
 
-  const proximaLinha = linhas.find(
-    (l) => l.option_index !== reivindicada.option_index && !ehTerminal(l.delivery_status),
-  );
-  const intervalo = params.imediato ? 2_000 : proximoIntervaloMs();
-  const nextRunAt = completou || !proximaLinha ? null : new Date(Date.now() + intervalo).toISOString();
-
-  await atualizarCotacao(quote.id, entregues, expected, nextRunAt);
-  if (proximaLinha && nextRunAt) {
-    const supabaseAdmin = await db();
-    await supabaseAdmin
-      .from("wa_flight_quote_options")
-      .update({ next_run_at: nextRunAt })
-      .eq("id", proximaLinha.id);
-  }
-
-  // ENCADEAMENTO: a próxima rodada roda em EXECUÇÃO NOVA (orçamento zerado).
-  let chained = false;
-  if (!completou && proximaLinha && (params.encadear ?? true)) {
-    const { agendarProximaRodada } = await import("./flight-cards-continue.server");
-    chained = await agendarProximaRodada({
-      conversation_id: ctx.conversation_id,
-      wa_phone: ctx.wa_phone,
-      protocolo_id: ctx.protocolo_id,
-      protocol_opened_at: ctx.protocol_opened_at,
-      quote_id: quote.id,
-      depth: (params.depth ?? 0) + 1,
-      delay_ms: intervalo,
-    });
-  }
+  await atualizarCotacao(quote.id, entregues, expected, completou ? null : new Date(agora + 60_000).toISOString());
 
   log({
     event: "flight_delivery_round_result",
     quote_id: quote.id,
     protocol_id: ctx.protocolo_id,
     worker_id: worker,
-    selected_option_index: reivindicada.option_index,
-    delivery_format: r.format,
-    message_id: r.message_id,
-    fingerprint: reivindicada.fingerprint,
+    delivery_format: bundle.format,
+    message_id: bundle.message_id,
     delivered_options_count: entregues,
     expected_options: expected,
     quote_completed: completou,
-    chained_next_round: chained,
-    chain_skip_reason: chained ? null : completou ? "cotacao_completa" : proximaLinha ? "falha_no_encadeamento_cron_assume" : "sem_opcao_pendente",
-    next_option_index: proximaLinha?.option_index ?? null,
-    next_run_at: nextRunAt,
+    chained_next_round: false,
+    bundle: true,
   });
-
-  if (completou) await talvezFechar(quote, ctx, entregues, expected);
 
   return {
     quote_id: quote.id,
-    delivered: r.ok ? 1 : 0,
+    delivered: bundle.entregues,
     completed: completou,
-    chained_next_round: chained,
-    next_option_index: proximaLinha?.option_index ?? null,
-    next_run_at: nextRunAt,
+    chained_next_round: false,
+    next_option_index: null,
+    next_run_at: null,
   };
+}
+
+/**
+ * Envia UMA mensagem com todas as opções pendentes e UM link do orçamento
+ * público multi-opção. Em modo emergência (ou falha do link) cai para o texto
+ * completo por opção, usando o caminho já existente.
+ */
+async function entregarBundle(
+  quote: QuoteRow,
+  todas: OptLite[],
+  linhas: OptionRow[],
+  ctx: Contexto,
+  worker: string,
+  opts: { somenteTexto?: boolean } = {},
+): Promise<{ entregues: number; format: string | null; message_id: string | null }> {
+  const fallback = async (motivo: string) => {
+    let n = 0;
+    for (const l of linhas) {
+      const r = await entregarOpcao(quote, todas[l.option_index], l, ctx, worker, { somenteTexto: true });
+      if (r.ok) n++;
+    }
+    log({ event: "flight_delivery_bundle_fallback", quote_id: quote.id, motivo: motivo.slice(0, 200), entregues: n });
+    return { entregues: n, format: "text" as const, message_id: null };
+  };
+
+  if (opts.somenteTexto) return await fallback("modo_emergencia");
+
+  const supabaseAdmin = await db();
+  const { saveMessage, setSendError, SENDING_CLAIM } = await import("./conversation.server");
+  const { abortIfHumanTookOver } = await import("./human-takeover.server");
+  const { sendWhatsAppText } = await import("./send.server");
+
+  if (await abortIfHumanTookOver(ctx.conversation_id, "cotacao_bundle")) {
+    return { entregues: 0, format: null, message_id: null };
+  }
+
+  // Idempotência: já saiu alguma mensagem desta cotação?
+  const { data: jaMsg } = await supabaseAdmin
+    .from("wa_messages")
+    .select("id")
+    .eq("conversation_id", ctx.conversation_id)
+    .eq("quote_id", quote.id)
+    .eq("direction", "outbound")
+    .limit(1);
+  if ((jaMsg ?? []).length) {
+    for (const l of linhas) await marcarEntregue(l, "delivered_text", null, quote);
+    log({ event: "flight_delivery_idempotent_skip", quote_id: quote.id, worker_id: worker, bundle: true });
+    return { entregues: linhas.length, format: "skipped", message_id: null };
+  }
+
+  const indices = linhas.map((l) => l.option_index).sort((a, b) => a - b);
+  const opcoes = indices.map((i) => todas[i]).filter(Boolean);
+  if (!opcoes.length) return await fallback("sem_opcoes");
+
+  const autor = { slug: quote.agent_slug, nome: quote.agent_name };
+
+  try {
+    const { data: conv } = await supabaseAdmin
+      .from("wa_conversations")
+      .select("display_name, wa_phone")
+      .eq("id", ctx.conversation_id)
+      .maybeSingle();
+
+    const { prepararOrcamentoMultiOpcoes } = await import("./flight-quote-link.server");
+    /* eslint-disable @typescript-eslint/no-explicit-any */
+    const { texto, link, publicId } = await prepararOrcamentoMultiOpcoes({
+      result: quote.payload as any,
+      options: opcoes as any,
+      agentName: autor.nome,
+      agentSlug: autor.slug,
+      conversationId: ctx.conversation_id,
+      flightQuoteId: quote.id,
+      clientName: (conv as { display_name?: string | null } | null)?.display_name ?? null,
+      clientPhone: (conv as { wa_phone?: string | null } | null)?.wa_phone ?? ctx.wa_phone,
+    });
+    /* eslint-enable @typescript-eslint/no-explicit-any */
+
+    const msg = await saveMessage({
+      conversation_id: ctx.conversation_id,
+      direction: "outbound",
+      sender: "camila",
+      content: texto,
+      agent_slug: autor.slug,
+      agent_name: autor.nome,
+      quote_id: quote.id,
+      option_index: indices[0]! + 1,
+      source_tool: "pesquisar_passagens",
+    });
+    if (msg?.id) await setSendError(msg.id, SENDING_CLAIM);
+
+    const r = await sendWhatsAppText(ctx.wa_phone, texto);
+    if (msg?.id) {
+      await supabaseAdmin
+        .from("wa_messages")
+        .update({ wa_message_id: r.id ?? null, error: r.error ?? null })
+        .eq("id", msg.id);
+    }
+    if (r.error) return await fallback(`bundle_send: ${String(r.error)}`);
+
+    for (const l of linhas) await marcarEntregue(l, "delivered_text", r.id ?? null, quote);
+    log({
+      event: "flight_delivery_bundle_sent",
+      quote_id: quote.id,
+      protocol_id: ctx.protocolo_id,
+      worker_id: worker,
+      options: indices.map((i) => i + 1),
+      public_quote_id: publicId,
+      link,
+      message_id: r.id ?? null,
+    });
+    return { entregues: linhas.length, format: "quote_link_bundle", message_id: r.id ?? null };
+  } catch (e) {
+    return await fallback(`bundle: ${(e as Error)?.message ?? "erro"}`);
+  }
 }
 
 async function atualizarCotacao(
