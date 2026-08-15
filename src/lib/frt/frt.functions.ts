@@ -29,7 +29,21 @@ export const consultarFrt = createServerFn({ method: "POST" })
 /** Diagnóstico da conexão (login + campos do formulário), sem pesquisar. */
 export const diagnosticarFrt = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .handler(async () => {
+  .inputValidator((input: unknown) =>
+    z.object({ novaSessao: z.boolean().optional() }).parse(input ?? {}),
+  )
+  .handler(async ({ data }) => {
     const { frtDiagnostico } = await import("@/lib/frt/frt-connector.server");
-    return frtDiagnostico();
+    return frtDiagnostico(!data.novaSessao);
+  });
+
+/** Envia o código de verificação que a FRT manda por e-mail (etapa de login). */
+export const enviarCodigoFrt = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({ codigo: z.string().min(3).max(12) }).parse(input),
+  )
+  .handler(async ({ data }) => {
+    const { frtEnviarCodigo } = await import("@/lib/frt/frt-connector.server");
+    return frtEnviarCodigo(data.codigo);
   });
