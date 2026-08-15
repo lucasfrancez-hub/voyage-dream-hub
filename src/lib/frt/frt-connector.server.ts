@@ -148,6 +148,8 @@ export type AcessoVenda = {
   viewState: string | null;
   redirects: string[];
   estado: VendaEstado;
+  /** Se a inicialização PrimeFaces (POST frmMasterVenda) foi disparada. */
+  initExecutado: boolean;
   body: string;
 };
 
@@ -181,16 +183,85 @@ function listarFormularios(html: string): string[] {
 }
 
 /**
+ * Reproduz a inicialização PrimeFaces observada no navegador: POST AJAX em
+ * venda.xhtml (mesmo cookie jar + ViewState do GET) que renderiza
+ * `frmMasterVenda` com o motor completo dentro de um <update> CDATA.
+ */
+async function inicializarMotorPrimeFaces(
+  s: Session,
+  viewState: string,
+): Promise<{ html: string; viewState: string | null } | null> {
+  const form = new URLSearchParams();
+  form.set("javax.faces.partial.ajax", "true");
+  form.set("javax.faces.source", "j_idt10");
+  form.set("javax.faces.partial.execute", "@all");
+  form.set("javax.faces.partial.render", "frmMasterVenda");
+  form.set("j_idt10", "j_idt10");
+  form.set("frmAguarde", "frmAguarde");
+  form.set("javax.faces.ViewState", viewState);
+
+  trace("POST venda.xhtml (init PrimeFaces j_idt10 -> frmMasterVenda)");
+  try {
+    const { res, body } = await frtFetch(s, VENDA_URL, {
+      method: "POST",
+      body: form.toString(),
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+        "Faces-Request": "partial/ajax",
+        "X-Requested-With": "XMLHttpRequest",
+        Origin: "https://frt.infotravel.com.br",
+        Referer: VENDA_URL,
+      },
+    });
+    const updates = extractPartialUpdates(body);
+    const master = updates["frmMasterVenda"] ?? Object.values(updates).join("\n");
+    const novoVs = extractViewState(body);
+    trace(
+      `  init: status=${res.status} bytes=${body.length} updates=${Object.keys(updates).join(",") || "-"} frmMotorPacote=${/frmMotorPacote/i.test(master)}`,
+    );
+    if (!master) return null;
+    return { html: master, viewState: novoVs };
+  } catch (e) {
+    trace(`  init falhou: ${e instanceof Error ? e.message : String(e)}`);
+    return null;
+  }
+}
+
+/**
  * GET autenticado explícito em venda.xhtml, seguindo redirects e usando
  * exatamente o mesmo cookie jar. Registra TODAS as provas antes de qualquer
  * conclusão — campo ausente nunca é tratado como mudança de estrutura aqui.
  */
 async function abrirVenda(s: Session, referer = BASE): Promise<AcessoVenda> {
   trace("GET venda.xhtml");
-  const { res, body, url, redirects } = await frtFetch(s, VENDA_URL, {
+  const { res, body: htmlGet, url, redirects } = await frtFetch(s, VENDA_URL, {
     headers: { Referer: referer },
   });
+  let body = htmlGet;
+  let initExecutado = false;
+
+  const precisaInit =
+    !/frmMotorPacote/i.test(body) &&
+    res.status < 400 &&
+    !needsAuthCode(body) &&
+    !/login-usuario-input/i.test(body) &&
+    !/auth\.xhtml|login\.xhtml/i.test(url);
+  if (precisaInit) {
+    const vsGet = extractViewState(body);
+    if (vsGet) {
+      initExecutado = true;
+      const init = await inicializarMotorPrimeFaces(s, vsGet);
+      if (init?.html) {
+        body = `${body}\n<!-- frmMasterVenda (init PrimeFaces) -->\n${init.html}`;
+        if (init.viewState) s.viewState = init.viewState;
+      }
+    } else {
+      trace("  init PrimeFaces impossível: ViewState ausente no GET");
+    }
+  }
+
   const temFormulario = /frmMotorPacote/i.test(body);
+
   const temBotaoPesquisa = /btnMotorPacotePesquisa/i.test(body);
   const temLogin = /login-usuario-input/i.test(body);
   const temAuthXhtml = /auth\.xhtml/i.test(body) || /auth\.xhtml/i.test(url);
@@ -218,6 +289,7 @@ async function abrirVenda(s: Session, referer = BASE): Promise<AcessoVenda> {
   trace(`  formulários: ${formularios.length ? formularios.join(" | ") : "(nenhum)"}`);
   trace(`  javax.faces.ViewState: ${viewState ? "encontrado" : "AUSENTE"}`);
   trace(`  redirects: ${redirects.length ? redirects.join(" | ") : "(nenhum)"}`);
+  trace(`  init PrimeFaces executado: ${initExecutado}`);
   trace(`  estado classificado: ${estado}`);
 
   if (estado !== "ok") {
@@ -255,6 +327,7 @@ async function abrirVenda(s: Session, referer = BASE): Promise<AcessoVenda> {
     viewState,
     redirects,
     estado,
+    initExecutado,
     body,
   };
 }
@@ -278,8 +351,8 @@ function erroDoEstado(v: AcessoVenda): FrtError {
     "FRT_VENDA_NOT_LOADED",
     v.estado === "erro_http"
       ? `venda.xhtml respondeu HTTP ${v.status}.`
-      : "venda.xhtml abriu autenticado, mas sem o motor de pesquisa (shell da aplicação ou carregamento por AJAX).",
-    `status=${v.status} bytes=${v.tamanhoHtml} título=${v.titulo ?? "-"} forms=${v.formularios.join(" | ") || "-"}`,
+      : `venda.xhtml abriu autenticado e a inicialização PrimeFaces ${v.initExecutado ? "foi executada" : "não pôde ser executada"}, mas o motor de pesquisa não apareceu.`,
+    `init=${v.initExecutado} status=${v.status} bytes=${v.tamanhoHtml} título=${v.titulo ?? "-"} forms=${v.formularios.join(" | ") || "-"}`,
   );
 }
 
@@ -300,6 +373,7 @@ function resumoAcesso(v: AcessoVenda) {
     viewStatePresente: Boolean(v.viewState),
     redirects: v.redirects,
     estado: v.estado,
+    initExecutado: v.initExecutado,
   };
 }
 export type ResumoAcessoVenda = ReturnType<typeof resumoAcesso>;

@@ -438,11 +438,11 @@ export function parseResultadosHtml(html: string): {
   };
 }
 
-/** Nomes de campos esperados no motor de pacotes. */
+/** Nomes de campos esperados no motor de pacotes (IDs semânticos atuais). */
 export const FRT_FIELDS = {
   form: "frmMotorPacote",
-  origem: "frmMotorPacote:j_idt3287",
-  destino: "frmMotorPacote:j_idt3300",
+  origem: "frmMotorPacote:idAeroOrigem_input",
+  destino: "frmMotorPacote:idAeroDestino_input",
   ida: "frmMotorPacote:dtPartidaPacote_input",
   volta: "frmMotorPacote:dtRetornoPacote_input",
   pais: "frmMotorPacote:idNmPaisPacote_input",
@@ -450,9 +450,16 @@ export const FRT_FIELDS = {
   botao: "frmMotorPacote:btnMotorPacotePesquisa",
 } as const;
 
+/** IDs antigos, usados só como fallback se os semânticos não existirem. */
+const LEGACY = {
+  origem: "frmMotorPacote:j_idt3287",
+  destino: "frmMotorPacote:j_idt3300",
+} as const;
+
 /**
- * Confere se os campos esperados existem no HTML da tela de venda e tenta
- * redescobrir origem/destino quando o ID j_idt mudou.
+ * Confere se os campos esperados existem no HTML da tela de venda.
+ * Preferência: IDs semânticos > IDs antigos (j_idt3287/3300) > autocompletes
+ * genéricos do frmMotorPacote na ordem de aparição.
  */
 export function resolveSearchFields(html: string): {
   fields: Record<keyof typeof FRT_FIELDS, string>;
@@ -467,26 +474,31 @@ export function resolveSearchFields(html: string): {
   const missing: string[] = [];
   const changed: string[] = [];
 
-  // origem/destino: se o ID mudou, procurar autocompletes do frmMotorPacote na ordem
   if (!has(FRT_FIELDS.origem) || !has(FRT_FIELDS.destino)) {
     const autos = [
       ...html.matchAll(/name="(frmMotorPacote:j_idt\d+(?:_input)?)"/gi),
     ].map((m) => m[1]!);
     const uniq = [...new Set(autos)];
-    if (uniq.length >= 2) {
-      if (!has(FRT_FIELDS.origem)) {
-        fields.origem = uniq[0]!;
-        changed.push(`origem: ${FRT_FIELDS.origem} -> ${uniq[0]}`);
+
+    const resolver = (key: "origem" | "destino", indice: number) => {
+      if (has(FRT_FIELDS[key])) return;
+      if (has(LEGACY[key])) {
+        fields[key] = LEGACY[key];
+        changed.push(`${key}: ${FRT_FIELDS[key]} -> ${LEGACY[key]}`);
+        return;
       }
-      if (!has(FRT_FIELDS.destino)) {
-        fields.destino = uniq[1]!;
-        changed.push(`destino: ${FRT_FIELDS.destino} -> ${uniq[1]}`);
+      const alvo = uniq[indice];
+      if (alvo) {
+        fields[key] = alvo;
+        changed.push(`${key}: ${FRT_FIELDS[key]} -> ${alvo}`);
+        return;
       }
-    } else {
-      if (!has(FRT_FIELDS.origem)) missing.push(FRT_FIELDS.origem);
-      if (!has(FRT_FIELDS.destino)) missing.push(FRT_FIELDS.destino);
-    }
+      missing.push(FRT_FIELDS[key]);
+    };
+    resolver("origem", 0);
+    resolver("destino", 1);
   }
+
 
   for (const key of ["ida", "volta", "botao"] as const) {
     if (!has(FRT_FIELDS[key])) missing.push(FRT_FIELDS[key]);
