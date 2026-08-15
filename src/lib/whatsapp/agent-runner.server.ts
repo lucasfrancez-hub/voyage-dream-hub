@@ -1217,6 +1217,23 @@ export async function runAgent(input: {
   const cleanTools: Record<string, unknown> = { ...tools };
   delete cleanTools._meta;
 
+  /* ── ORDEM OBRIGATÓRIA DO SETOR AÉREO: SAUDAÇÃO → PERGUNTAS → PESQUISA ──
+     O especialista entrava pesquisando na primeira mensagem (às vezes com o
+     destino no lugar da origem), a tool bloqueava por falta de origem
+     confirmada e o modelo devolvia texto vazio → cliente no silêncio e
+     transferência por "instabilidade". Agora a pesquisa nem existe enquanto
+     não houver origem confirmada NESTE protocolo: sem a ferramenta, a única
+     saída do modelo é se apresentar e perguntar. */
+  const bloquearPesquisa =
+    !!centralAgent && (centralPrimeiroContato || !origemConfirmadaNoProtocolo);
+  if (bloquearPesquisa && "pesquisar_passagens" in cleanTools) {
+    delete cleanTools["pesquisar_passagens"];
+    console.log(
+      `[agent:${agent.slug}] pesquisa bloqueada nesta rodada (primeiro_contato=${centralPrimeiroContato}, origem_confirmada=${origemConfirmadaNoProtocolo ?? "não"})`,
+    );
+  }
+
+
   // Cadeia de tentativas: o gateway às vezes devolve 502/503 em rajada (o
   // provedor cai por alguns segundos). Tentamos o mesmo modelo mais de uma vez
   // e alternamos entre modelos, com backoff crescente, antes de desistir.
@@ -1279,7 +1296,15 @@ export async function runAgent(input: {
       pacoteBlock +
       escopoBlock +
       flightBlock +
-      novasBlock;
+      novasBlock +
+      (bloquearPesquisa
+        ? `\n\n🚦 ORDEM OBRIGATÓRIA NESTA RODADA (setor aéreo)\n` +
+          `${centralPrimeiroContato ? "1. Cumprimente e se apresente pelo nome, dizendo que é do setor aéreo da VIA AIR.\n" : ""}` +
+          `${centralPrimeiroContato ? "2." : "1."} Pergunte o que ainda falta, começando pela CIDADE DE EMBARQUE (origem). Nunca suponha origem, nunca use o destino como origem.\n` +
+          `A ferramenta pesquisar_passagens está INDISPONÍVEL nesta rodada — não tente pesquisar, não prometa "já vou pesquisar" como se já tivesse pesquisado. Só faça a saudação e as perguntas.\n` +
+          `NUNCA responda vazio: no mínimo pergunte de qual cidade o cliente pretende embarcar.`
+        : "");
+
 
 
 
