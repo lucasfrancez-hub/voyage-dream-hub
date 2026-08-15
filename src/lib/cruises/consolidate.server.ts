@@ -9,6 +9,13 @@
  *  - mídia deduplicada por URL; adicionais por cruzeiro + código.
  */
 import type { SnapshotData } from "./snapshot-schema";
+import {
+  buildPricingFingerprint,
+  calculatedAveragePerPerson,
+  normalizeOccupancy,
+  occupancyKey,
+} from "./pricing-key";
+
 
 type Admin = Awaited<typeof import("@/integrations/supabase/client.server")>["supabaseAdmin"];
 
