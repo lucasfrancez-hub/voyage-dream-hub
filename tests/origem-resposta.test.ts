@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { origemRespondidaNoProtocolo } from "@/lib/whatsapp/airflow-guard";
+import { origemRespondidaNoProtocolo, extractCentralBriefDestino } from "@/lib/whatsapp/airflow-guard";
 import { resolveOriginState, mentionsCityAsOrigin, pareceDestinoNaMensagem } from "@/lib/whatsapp/flight-origin-state";
 
 describe("origem", () => {
