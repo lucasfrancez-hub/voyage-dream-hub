@@ -175,7 +175,8 @@ async function doLogin(): Promise<Session> {
 
   // Validação real: acessar a área autenticada.
   const venda = await frtFetch(s, VENDA_URL, { headers: { Referer: LOGIN_URL } });
-  const negado = looksLikeLoginPage(venda.body) || (!s.cookies.size && looksLikeLoginPage(posted.body));
+  const negado =
+    looksLikeLoginPage(venda.body) || (!s.cookies.size && looksLikeLoginPage(posted.body));
   if (negado) {
     loginFails += 1;
     if (loginFails >= MAX_LOGIN_FAILS) {
@@ -183,6 +184,17 @@ async function doLogin(): Promise<Session> {
       loginFails = 0;
     }
     throw new FrtError("FRT_AUTH_FAILED", "Login FRT recusado (voltou para login.xhtml)");
+  }
+
+  // O portal pode exigir código de verificação enviado por e-mail (2FA).
+  if (needsAuthCode(venda.body)) {
+    pendingAuth = s;
+    await persistSession(s);
+    trace("FRT exigiu código de verificação por e-mail");
+    throw new FrtError(
+      "FRT_2FA_REQUIRED",
+      "A FRT enviou um código de verificação por e-mail. Informe o código para liberar a sessão.",
+    );
   }
 
   const vsVenda = extractViewState(venda.body);
@@ -196,12 +208,20 @@ async function doLogin(): Promise<Session> {
   s.viewState = vsVenda;
   loginFails = 0;
   trace("login OK — sessão autenticada");
+  await persistSession(s);
   return s;
 }
 
 async function getSession(force = false): Promise<Session> {
   if (!force && session && Date.now() - session.createdAt < SESSION_TTL_MS) {
     return session;
+  }
+  if (!force) {
+    const restored = await restoreSession();
+    if (restored) {
+      session = restored;
+      return restored;
+    }
   }
   if (inflightLogin) return inflightLogin;
   inflightLogin = doLogin()
@@ -217,6 +237,114 @@ async function getSession(force = false): Promise<Session> {
 
 export function frtInvalidateSession() {
   session = null;
+}
+
+/* --------------- 2FA (código de verificação por e-mail) --------------- */
+
+let pendingAuth: Session | null = null;
+
+/**
+ * Envia o código de verificação recebido por e-mail e libera a sessão.
+ * É uma etapa de autenticação — não realiza nenhuma ação de escrita comercial.
+ */
+export async function frtEnviarCodigo(codigo: string) {
+  const s = pendingAuth ?? session ?? (await restoreSession());
+  if (!s) {
+    return { ok: false, erro: "FRT_AUTH_FAILED", mensagem: "Nenhuma sessão aguardando código." };
+  }
+  const tela = await frtFetch(s, VENDA_URL);
+  const campos = detectAuthForm(tela.body);
+  const vs = extractViewState(tela.body);
+  if (!campos || !vs) {
+    return {
+      ok: false,
+      erro: "FRT_STRUCTURE_CHANGED",
+      mensagem: "Formulário de verificação da FRT não encontrado.",
+    };
+  }
+  const p = new URLSearchParams();
+  p.set(campos.form, campos.form);
+  p.set(campos.input, codigo.trim());
+  p.set(campos.botao, campos.botao);
+  p.set("javax.faces.ViewState", vs);
+
+  trace("POST código de verificação");
+  const { body } = await frtFetch(s, tela.url, {
+    method: "POST",
+    body: p.toString(),
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+      Origin: "https://frt.infotravel.com.br",
+      Referer: tela.url,
+    },
+  });
+
+  const venda = await frtFetch(s, VENDA_URL);
+  if (needsAuthCode(venda.body) || looksLikeLoginPage(venda.body) || looksLikeLoginPage(body)) {
+    return { ok: false, erro: "FRT_AUTH_FAILED", mensagem: "Código recusado pela FRT." };
+  }
+  s.viewState = extractViewState(venda.body);
+  s.createdAt = Date.now();
+  session = s;
+  pendingAuth = null;
+  await persistSession(s);
+  trace("código aceito — sessão liberada");
+  return { ok: true };
+}
+
+function needsAuthCode(html: string): boolean {
+  return /frmAuth:chave-input|c[óo]digo de verifica[çc][ãa]o/i.test(html);
+}
+
+function detectAuthForm(html: string): { form: string; input: string; botao: string } | null {
+  const input = html.match(/name="([^"]*chave-input)"/i)?.[1];
+  if (!input) return null;
+  const form = input.split(":")[0] ?? "frmAuth";
+  const botao =
+    html.match(new RegExp(`name="(${form}:j_idt\\d+)"`, "i"))?.[1] ?? `${form}:j_idt88`;
+  return { form, input, botao };
+}
+
+/* ------------------- persistência da sessão (backend) ------------------ */
+
+async function persistSession(s: Session) {
+  try {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    await supabaseAdmin.from("frt_sessions").upsert({
+      id: "default",
+      cookies: Object.fromEntries(s.cookies),
+      view_state: s.viewState,
+      updated_at: new Date().toISOString(),
+    });
+  } catch {
+    /* persistência é best-effort */
+  }
+}
+
+async function restoreSession(): Promise<Session | null> {
+  try {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data } = await supabaseAdmin
+      .from("frt_sessions")
+      .select("cookies, view_state, updated_at")
+      .eq("id", "default")
+      .maybeSingle();
+    if (!data?.cookies) return null;
+    const idade = Date.now() - new Date(data.updated_at as string).getTime();
+    if (idade > SESSION_TTL_MS) return null;
+    const s: Session = {
+      cookies: new Map(Object.entries(data.cookies as Record<string, string>)),
+      viewState: (data.view_state as string | null) ?? null,
+      createdAt: Date.now() - idade,
+    };
+    const venda = await frtFetch(s, VENDA_URL);
+    if (looksLikeLoginPage(venda.body) || needsAuthCode(venda.body)) return null;
+    s.viewState = extractViewState(venda.body);
+    trace("sessão FRT restaurada do backend");
+    return s;
+  } catch {
+    return null;
+  }
 }
 
 /* ----------------------- tela de consulta -------------------------- */
