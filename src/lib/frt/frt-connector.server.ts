@@ -322,8 +322,20 @@ export async function frtEnviarCodigo(codigo: string) {
   // 2FA aceito ≠ tela de venda acessível. Faz o GET autenticado explícito.
   trace("2FA aceito — validando navegação pós-login");
   const venda = await abrirVenda(s, tela.url);
+  const acessoVenda = {
+    status: venda.status,
+    urlFinal: venda.urlFinal,
+    temFormulario: venda.temFormulario,
+    temLogin: venda.temLogin,
+  };
   if (needsAuthCode(venda.body) || venda.voltouParaLogin || looksLikeLoginPage(body)) {
-    return { ok: false, erro: "FRT_AUTH_FAILED", mensagem: "Código recusado pela FRT." };
+    return {
+      ok: false,
+      erro: "FRT_AUTH_FAILED" as string | null,
+      mensagem: "Código recusado pela FRT." as string | null,
+      aviso: null as string | null,
+      acessoVenda,
+    };
   }
   s.viewState = extractViewState(venda.body);
   s.createdAt = Date.now();
@@ -336,26 +348,22 @@ export async function frtEnviarCodigo(codigo: string) {
       ok: true,
       erro: null as string | null,
       mensagem: null as string | null,
-      aviso: null as string | null ??
-        "Código aceito, mas a tela de venda abriu sem o formulário de consulta (frmMotorPacote). Verifique o log técnico.",
-      acessoVenda: {
-        status: venda.status,
-        urlFinal: venda.urlFinal,
-        temFormulario: venda.temFormulario,
-        temLogin: venda.temLogin,
-      },
+      aviso:
+        "Código aceito, mas a tela de venda abriu sem o formulário de consulta (frmMotorPacote). Verifique o log técnico." as
+          | string
+          | null,
+      acessoVenda,
     };
   }
   trace("código aceito — venda.xhtml acessível com frmMotorPacote");
   return {
     ok: true,
-    acessoVenda: {
-      status: venda.status,
-      urlFinal: venda.urlFinal,
-      temFormulario: venda.temFormulario,
-      temLogin: venda.temLogin,
-    },
+    erro: null as string | null,
+    mensagem: null as string | null,
+    aviso: null as string | null,
+    acessoVenda,
   };
+
 
 }
 
