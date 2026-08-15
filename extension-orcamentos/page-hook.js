@@ -33,8 +33,7 @@
     try {
       const response = await originalFetch.apply(this, arguments);
       emit("request", { transport: "fetch", method, url, status: response.status });
-      const found = String(url).match(QUOTE_RE);
-      if (found) emit("candidate", { url: found[0], mechanism: "fetch" });
+      // NÃO gera candidato: só abrir o orçamento na operadora não pode exportar.
       return response;
     } catch (error) {
       emit("request", { transport: "fetch", method, url, status: "ERRO" });
@@ -52,8 +51,7 @@
     this.addEventListener("loadend", () => {
       const request = this.__viaairRequest || { method: "GET", url: "" };
       emit("request", { transport: "XHR", method: request.method, url: request.url, status: this.status || "ERRO" });
-      const found = request.url.match(QUOTE_RE);
-      if (found) emit("candidate", { url: found[0], mechanism: "XHR" });
+      // NÃO gera candidato (ver comentário no fetch).
     }, { once: true });
     return nativeSendXhr.apply(this, arguments);
   };
@@ -91,6 +89,8 @@
     if (!ACTION_RE.test(joined)) return;
     console.info(LOG, "Ação de orçamento detectada", joined);
     emit("action", { text: joined.slice(0, 900), candidateUrl });
+    // arma a janela de intenção: só a partir daqui um link vira importação
+    emit("intent", { text: joined.slice(0, 200) });
     const found = candidateUrl.match(QUOTE_RE);
     if (found) emit("candidate", { url: found[0], mechanism: "click/composedPath" });
   }, true);

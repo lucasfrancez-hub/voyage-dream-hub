@@ -155,7 +155,12 @@
     return null;
   }
 
+  // Só estes mecanismos representam a ação de ENVIAR o orçamento. Abrir/navegar
+  // pelo site da operadora nunca pode exportar de novo (evita duplicidade).
+  const INTENT_MECHANISMS = /^(window\.open|clipboard|click\/composedPath|manual)/;
+
   function foundUrl(raw, mechanism) {
+    if (!INTENT_MECHANISMS.test(String(mechanism || ""))) return;
     const url = extractQuoteUrl(raw);
     if (!url || seen.has(url)) return;
     seen.add(url);
@@ -187,6 +192,7 @@
     if (!message || message.__viaair_diagnostic !== true) return;
     const kind = message.kind;
     const detail = message.detail || {};
+    if (kind === "intent") safeSend({ type: "viaair-send-intent" });
     if (kind === "candidate" && detail.url) foundUrl(detail.url, detail.mechanism || "page-hook");
     reportToTop(kind, detail);
   });
@@ -203,14 +209,9 @@
     }
   });
 
-  const observer = new MutationObserver((mutations) => {
-    ensureUi();
-    for (const mutation of mutations) for (const node of mutation.addedNodes) {
-      if (!(node instanceof Element)) continue;
-      const sample = `${node.textContent || ""} ${node.getAttribute("href") || ""} ${node.outerHTML || ""}`.slice(0, 5000);
-      if (/infotravel\.com\.br/i.test(sample) && /or[cç]amento|proposta|quote/i.test(sample)) foundUrl(sample, "DOM");
-    }
-  });
+  // Observador só mantém o botão na tela: varrer o DOM em busca de links
+  // exportava o orçamento sozinho ao reabrir a página.
+  const observer = new MutationObserver(() => ensureUi());
   observer.observe(document.documentElement, { childList: true, subtree: true });
 
   ensureUi();
