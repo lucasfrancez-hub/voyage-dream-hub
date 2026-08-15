@@ -175,6 +175,7 @@ export function resolvePendingFlightAnswer(params: {
   pending_question_context?: Record<string, unknown> | null;
   texto: string;
 }): ResolveResult {
+  /* fn local declarada abaixo (hoisted) */
   const pq = (params.pending_question ?? "") as PendingQuestion | "";
   if (!pq) return VAZIO;
   const ctx = params.pending_question_context ?? {};
