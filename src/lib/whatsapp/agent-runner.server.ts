@@ -31,6 +31,7 @@ import { createHash, randomUUID } from "node:crypto";
 import {
   CENTRAL_PROMPT_VERSION,
   centralBriefHasMissingOrigin,
+  extractCentralBriefDestino,
   isValidOriginQuestion,
   isInvalidMissingOriginResponse,
   origemJaFoiRespondidaNoProtocolo,
