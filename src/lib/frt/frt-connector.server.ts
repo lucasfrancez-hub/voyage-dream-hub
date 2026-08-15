@@ -426,8 +426,10 @@ async function restoreSession(): Promise<Session | null> {
 /* ----------------------- tela de consulta -------------------------- */
 
 async function loadVendaScreen(s: Session) {
-  const { body } = await frtFetch(s, VENDA_URL, { headers: { Referer: BASE } });
-  if (looksLikeLoginPage(body)) throw new FrtError("FRT_SESSION_EXPIRED");
+  const venda = await abrirVenda(s);
+  const body = venda.body;
+  if (venda.voltouParaLogin) throw new FrtError("FRT_SESSION_EXPIRED");
+
   const vs = extractViewState(body);
   if (!vs) {
     throw new FrtError(
