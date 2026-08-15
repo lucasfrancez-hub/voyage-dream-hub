@@ -68,6 +68,45 @@ function dataCurta(v?: string | null): string {
   }).format(dt);
 }
 
+/** Timestamp em minutos a partir de qualquer formato de data+hora. */
+function tsMin(v?: string | null): number | null {
+  const s = String(v ?? "");
+  const d = s.match(/(\d{4})-(\d{2})-(\d{2})/);
+  const t = s.match(/(\d{2}):(\d{2})/);
+  if (!d || !t) return null;
+  return Math.floor(
+    Date.UTC(Number(d[1]), Number(d[2]) - 1, Number(d[3]), Number(t[1]), Number(t[2])) / 60000,
+  );
+}
+
+/** "4h05" de espera entre a chegada e a próxima partida. */
+function esperaLabel(arrival?: string | null, departure?: string | null): string | null {
+  const a = tsMin(arrival);
+  const b = tsMin(departure);
+  if (a == null || b == null) return null;
+  const diff = b - a;
+  if (diff <= 0 || diff > 24 * 60) return null;
+  const h = Math.floor(diff / 60);
+  const m = diff % 60;
+  return h > 0 ? `${h}h${String(m).padStart(2, "0")}` : `${m}min`;
+}
+
+/** Texto completo da bagagem: artigo pessoal + mão + despachada (com quantidade). */
+function bagagemLabel(leg: FlightLeg): string {
+  const partes: string[] = [];
+  if (leg.personalItem) partes.push("Artigo pessoal");
+  if (leg.carryOn) partes.push("Bagagem de mão");
+  if (leg.checkedBaggage) {
+    const raw = String(leg.checkedBaggageLabel ?? "");
+    const qtd = raw.match(/(\d+)\s*x/i)?.[1];
+    const peso = raw.match(/(\d+)\s*kg/i)?.[1];
+    partes.push(
+      `${qtd && Number(qtd) > 1 ? `${qtd}x ` : ""}Bagagem despachada${peso ? ` (${peso}kg)` : ""}`,
+    );
+  }
+  return partes.length ? partes.join(" + ") : "Somente artigo pessoal";
+}
+
 function periodoLabel(q: PublicQuote): string | null {
   const fmt = (s?: string | null) => {
     if (!s) return null;
@@ -101,6 +140,16 @@ function FlightLegCard({
   const [open, setOpen] = useState(false);
   const logo = airlineLogo(leg.airlineIata ?? leg.airline);
   const dirKind = direction?.toLowerCase().startsWith("volta") ? "volta" : "ida";
+  const temTroca =
+    leg.hasAirportChange ||
+    leg.segments.some(
+      (s, i) =>
+        leg.segments[i + 1] &&
+        s.toIata &&
+        leg.segments[i + 1]!.fromIata &&
+        s.toIata !== leg.segments[i + 1]!.fromIata,
+    );
+
   return (
     <article className="vq-card vq-flight" data-dir={dirKind}>
       <div className="vq-flight-summary">
@@ -119,7 +168,7 @@ function FlightLegCard({
           <div className="vq-flight-tags">
             {direction ? <span className="vq-dir-badge" data-dir={dirKind}>{direction}</span> : null}
             <span className="vq-tag">{leg.stopsLabel}</span>
-            {leg.hasAirportChange ? (
+            {temTroca ? (
               <span className="vq-tag vq-tag-warn" title="A conexão exige troca de aeroporto na mesma cidade">
                 Troca de aeroporto
               </span>
@@ -147,13 +196,8 @@ function FlightLegCard({
         </div>
 
         <div className="vq-badges">
-          {leg.personalItem ? (
-            <span className="vq-badge"><IconBag />Item pessoal</span>
-          ) : null}
-          {leg.carryOn ? <span className="vq-badge"><IconBag />Bagagem de mão 10kg</span> : null}
-          {leg.checkedBaggage ? (
-            <span className="vq-badge"><IconBag />{leg.checkedBaggageLabel ?? "Bagagem despachada incluída"}</span>
-          ) : null}
+          <span className="vq-badge"><IconBag />{bagagemLabel(leg)}</span>
+
 
           {leg.cabin ? <span className="vq-badge"><IconCheck />{leg.cabin}</span> : null}
           {leg.fareFamily ? <span className="vq-badge"><IconCheck />{leg.fareFamily}</span> : null}
@@ -188,7 +232,17 @@ function FlightLegCard({
 
               {leg.segments.map((s, i) => {
                 const segLogo = airlineLogo(s.airline ?? leg.airlineIata ?? leg.airline);
+                const prox = leg.segments[i + 1];
+                const espera = prox
+                  ? (esperaLabel(s.arrival, prox.departure) ?? s.connectionAfter ?? null)
+                  : null;
+                const trocaAeroporto =
+                  prox && s.toIata && prox.fromIata && s.toIata !== prox.fromIata
+                    ? (s.airportChange ??
+                      `Desembarque em ${s.toIata}${s.toName ? ` (${s.toName})` : ""} e embarque em ${prox.fromIata}${prox.fromName ? ` (${prox.fromName})` : ""}`)
+                    : null;
                 return (
+
                   <div key={i} className="vq-seg2-group">
                     <section className="vq-seg2">
                       <div className="vq-seg2-node">
@@ -243,42 +297,37 @@ function FlightLegCard({
                           </div>
                           <div>
                             <small>Bagagem</small>
-                            <strong>
-                              {leg.checkedBaggage
-                                ? (leg.checkedBaggageLabel ?? "Despachada incluída")
-                                : leg.carryOn
-                                  ? "Mão 10kg"
-                                  : "Somente item pessoal"}
-                            </strong>
+                            <strong>{bagagemLabel(leg)}</strong>
                           </div>
                         </div>
                       </div>
                     </section>
 
-                    {s.connectionAfter ? (
+                    {espera ? (
                       <div className="vq-seg2-connection">
                         <span className="vq-seg2-connection-dot" />
                         <div className="vq-seg2-connection-pill">
                           <IconClock />
                           <span>
-                            Conexão em {s.toName ?? s.toIata} — {s.connectionAfter} de espera
+                            Conexão em {s.toName ?? s.toIata} — {espera} de espera
                           </span>
                         </div>
                       </div>
                     ) : null}
 
-                    {s.airportChange ? (
+                    {trocaAeroporto ? (
                       <div className="vq-seg2-connection">
                         <span className="vq-seg2-connection-dot" />
                         <div className="vq-seg2-connection-pill vq-seg2-connection-warn">
                           <IconAlert />
                           <span>
-                            <strong>Atenção: troca de aeroporto.</strong> {s.airportChange}. Considere
-                            um transfer entre os aeroportos.
+                            <strong>Atenção: conexão com troca de aeroporto.</strong>{" "}
+                            {trocaAeroporto}. Considere um transfer entre os aeroportos.
                           </span>
                         </div>
                       </div>
                     ) : null}
+
                   </div>
                 );
               })}
