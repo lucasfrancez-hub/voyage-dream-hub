@@ -38,7 +38,12 @@ import {
 } from "./airflow-guard";
 
 // Gênero por slug (usado pra montar o prompt compartilhado com a flexão certa).
+/** Aviso fixo enviado pelo consultor antes do especialista aéreo assumir. */
+export const AVISO_TRANSFERENCIA_AEREO =
+  "Claro! Já vou te transferir pro nosso setor aéreo, que continua com vc por aqui";
+
 const AGENT_GENDER: Record<string, "f" | "m"> = {
+
   camila: "f",
   nath: "f",
   maria: "f",
