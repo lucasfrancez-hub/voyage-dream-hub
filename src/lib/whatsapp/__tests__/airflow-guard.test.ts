@@ -41,4 +41,14 @@ describe("guard determinístico do fluxo aéreo sem origem", () => {
     expect(origemJaFoiRespondidaNoProtocolo(mensagens)).toBe(true);
     expect(origemRespondidaNoProtocolo(mensagens)).toBe("Maringa");
   });
+
+  it("reconhece a abreviação real 'vc' e não repete a origem", () => {
+    const mensagens = {
+      outbound: [{ content: "De qual cidade vc pretende embarcar?", created_at: "2026-08-15T03:55:09Z" }],
+      inbound: [{ content: "Maringa", created_at: "2026-08-15T03:55:22Z" }],
+    };
+
+    expect(origemJaFoiRespondidaNoProtocolo(mensagens)).toBe(true);
+    expect(origemRespondidaNoProtocolo(mensagens)).toBe("Maringa");
+  });
 });
