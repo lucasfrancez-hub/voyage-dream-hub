@@ -12,6 +12,7 @@
  * SERVER-ONLY.
  */
 import { logCardEvent } from "./card-log.server";
+import { aiSender } from "./sender-identity";
 
 export type ResendFormat = "card" | "texto" | "automatico";
 

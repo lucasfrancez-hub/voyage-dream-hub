@@ -13,6 +13,7 @@
  * SERVER-ONLY.
  */
 import { tool } from "ai";
+import { aiSender } from "./sender-identity";
 import { z } from "zod";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { recordHandoff, type WaConversation } from "./conversation.server";

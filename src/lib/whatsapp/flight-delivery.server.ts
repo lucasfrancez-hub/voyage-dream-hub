@@ -24,6 +24,7 @@
  * SERVER-ONLY.
  */
 import {
+import { aiSender } from "./sender-identity";
   CLAIM_TTL_MS,
   META_OPCOES,
   claimExpirado,

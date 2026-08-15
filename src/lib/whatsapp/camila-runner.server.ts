@@ -4,6 +4,7 @@
  * SERVER-ONLY.
  */
 import { generateText, stepCountIs, type ModelMessage } from "ai";
+import { aiSender } from "./sender-identity";
 import { createLovableAiGatewayProvider } from "@/lib/ai-gateway.server";
 import { CAMILA_SYSTEM_PROMPT } from "@/lib/chat/camila-prompt";
 import {
@@ -137,7 +138,8 @@ export async function runCamila(input: { wa_phone: string; profile_name?: string
       await saveMessage({
         conversation_id: conv.id,
         direction: "outbound",
-        sender: "camila",
+        sender: aiSender(conv.agent_slug),
+        agent_slug: conv.agent_slug ?? null,
         content: fallback,
       });
       await sendWhatsAppBubbles(conv.wa_phone, fallback);
@@ -157,7 +159,8 @@ export async function runCamila(input: { wa_phone: string; profile_name?: string
     await saveMessage({
       conversation_id: conv.id,
       direction: "outbound",
-      sender: "camila",
+      sender: aiSender(conv.agent_slug),
+      agent_slug: conv.agent_slug ?? null,
       content: fallback,
     });
     await sendWhatsAppBubbles(conv.wa_phone, fallback);
@@ -175,7 +178,8 @@ export async function runCamila(input: { wa_phone: string; profile_name?: string
     const row = await saveMessage({
       conversation_id: conv.id,
       direction: "outbound",
-      sender: "camila",
+      sender: aiSender(conv.agent_slug),
+      agent_slug: conv.agent_slug ?? null,
       content: bubbles[i],
       tool_calls: i === 0 && toolCallsSummary && toolCallsSummary.length > 0 ? toolCallsSummary : null,
     });

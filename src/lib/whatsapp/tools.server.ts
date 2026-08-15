@@ -3,6 +3,7 @@
  * SERVER-ONLY.
  */
 import { tool } from "ai";
+import { aiSender } from "./sender-identity";
 import { z } from "zod";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { recordHandoff, type WaConversation } from "./conversation.server";
@@ -492,7 +493,8 @@ export function buildCamilaTools(conversation: WaConversation) {
         await saveMessage({
           conversation_id: conversation.id,
           direction: "outbound",
-          sender: "camila",
+          sender: aiSender(conversation.agent_slug),
+          agent_slug: conversation.agent_slug ?? null,
           content: caption,
           wa_message_id: sentWaId,
         });
