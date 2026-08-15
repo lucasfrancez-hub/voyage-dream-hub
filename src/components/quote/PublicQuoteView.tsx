@@ -251,7 +251,11 @@ function FlightLegCard({
                       <div className="vq-seg2-connection">
                         <span className="vq-seg2-connection-dot" />
                         <div className="vq-seg2-connection-pill vq-seg2-connection-warn">
-                          {s.airportChange}
+                          <IconAlert />
+                          <span>
+                            <strong>Atenção: troca de aeroporto.</strong> {s.airportChange}. Considere
+                            um transfer entre os aeroportos.
+                          </span>
                         </div>
                       </div>
                     ) : null}
