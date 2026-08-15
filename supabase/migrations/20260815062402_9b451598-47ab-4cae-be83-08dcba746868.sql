@@ -1,0 +1,1 @@
+update public.wa_conversations set ai_paused = false, ai_debounce_until = now() where id = 'd231813f-021f-415e-bcb7-f31ee35dba76';
