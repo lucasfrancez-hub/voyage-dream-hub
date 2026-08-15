@@ -968,6 +968,13 @@ function extrairPnlResultado(
   return { presente: i >= 0, bytes: 0 };
 }
 
+/** Último pnlResultado bruto da pesquisa (memória do worker). */
+let ultimoResultadoBruto: { em: string; html: string; input: FrtSearchInput } | null = null;
+
+export function frtUltimoResultadoBruto() {
+  return ultimoResultadoBruto;
+}
+
 type EvidenciaAutocomplete = FrtAmostraPesquisa["autocomplete"][number];
 
 /** POST AJAX genérico no motor de pacotes, atualizando o ViewState da sessão. */
@@ -1393,6 +1400,14 @@ async function runSearch(
     .filter((k) => /resultado|pacote|pnl/i.test(k))
     .map((k) => updates[k]!)
     .join("\n");
+
+  // Guarda o HTML BRUTO do painel de resultados para a camada de produto
+  // (Motor FRT) reprocessar sem refazer a pesquisa.
+  ultimoResultadoBruto = {
+    em: new Date().toISOString(),
+    html: html || Object.values(updates).join("\n"),
+    input,
+  };
 
   const out = parseResultadosHtml(html || Object.values(updates).join("\n"));
 
