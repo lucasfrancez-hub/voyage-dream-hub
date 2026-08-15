@@ -56,6 +56,7 @@ export type ProtocolEvent =
   | "reply_context_not_found"
   | "flight_request_opened"
   | "flight_request_closed"
+  | "flight_request_orphan_closed"
   | "flight_request_nudge"
   | "flight_request_answer_resolved"
   | "flight_sector_locked"
