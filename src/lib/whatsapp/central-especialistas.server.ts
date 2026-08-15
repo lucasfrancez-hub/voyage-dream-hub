@@ -262,7 +262,9 @@ export async function transferirParaConsultores(
       const enviado = await sendWhatsAppBubbles(
         conversation.wa_phone,
         aviso,
-        buildSenderPrefix(params.agenteAnterior),
+        buildSenderPrefix(
+          params.agenteAnterior.charAt(0).toUpperCase() + params.agenteAnterior.slice(1),
+        ),
       );
       if (row?.id && enviado[0]?.id) await setWaMessageId(row.id, enviado[0].id);
     }

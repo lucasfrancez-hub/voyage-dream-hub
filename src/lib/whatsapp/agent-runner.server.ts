@@ -1434,7 +1434,13 @@ export async function runAgent(input: {
     // quando precisa perguntar imediatamente a cidade de embarque.
     if (centralAgent && centralPrimeiroContato) {
       const nomeEsc = centralAgent.nome.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      const jaSeApresentou = new RegExp(`(?:sou (?:a|o)|aqui (?:é|e))\\s+${nomeEsc}\\b`, "i").test(rawText);
+      // Cobre variações reais do modelo: "sou o Bruno", "aqui é o Bruno",
+      // "me chamo Bruno", "meu nome é Bruno", "prazer, Bruno". Sem isso a
+      // apresentação era duplicada em cima do texto do agente.
+      const jaSeApresentou = new RegExp(
+        `(?:sou\\s+(?:a|o)?|aqui\\s+(?:é|e)\\s*(?:a|o)?|me\\s+chamo|meu\\s+nome\\s+(?:é|e)|prazer,?\\s*(?:sou\\s+(?:a|o)?)?)\\s*${nomeEsc}\\b`,
+        "i",
+      ).test(rawText);
       if (!jaSeApresentou) {
         const cliente = extractFirstName(conv.display_name);
         const saudacao = cliente ? `Oi, ${cliente}! Tudo bem?` : "Oi! Tudo bem?";
