@@ -1632,6 +1632,24 @@ export async function runAgent(input: {
 
     const { splitToBubbles } = await import("./send.server");
     const { aplicarViciosDeLinguagem } = await import("./text-utils.server");
+
+    // 🚫 NUNCA MANDAR A MESMA MENSAGEM DUAS VEZES. Se a resposta repete algo já
+    // enviado neste protocolo, não avisa nada ao cliente: cancela o envio e
+    // passa direto pro atendimento humano.
+    {
+      const { wouldDuplicate, escalarPorDuplicidade } = await import("./duplicate-guard.server");
+      if (await wouldDuplicate({ conversationId: conv.id, protocolId: protocolo.id, text })) {
+        await escalarPorDuplicidade({
+          conversationId: conv.id,
+          protocolId: protocolo.id,
+          agentSlug: agent.slug,
+          texto: text,
+          tags: ((conv as { tags?: string[] | null }).tags ?? []) as string[],
+        });
+        return;
+      }
+    }
+
     const bubbles = splitToBubbles(aplicarViciosDeLinguagem(text));
     const savedRowIds: Array<string | null> = [];
     for (let i = 0; i < bubbles.length; i++) {
