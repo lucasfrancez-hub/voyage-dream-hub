@@ -1353,6 +1353,25 @@ export async function runAgent(input: {
       }
     }
 
+    // TRAVA ANTI-REPETIÇÃO: com a origem já informada, a pergunta de embarque
+    // não pode sair de novo. Remove a linha repetida; se sobrar só isso,
+    // confirma a origem em vez de perguntar outra vez.
+    if (centralAgent && origemConfirmadaNoProtocolo) {
+      const linhas = rawText.split(/\n+/);
+      const limpas = linhas.filter((l) => !isValidOriginQuestion(l, origemConfirmadaNoProtocolo));
+      if (limpas.length !== linhas.length) {
+        console.warn("[agent-runtime]", JSON.stringify({
+          ...runtimeAudit,
+          event: "origin_question_repeat_blocked",
+          origem: origemConfirmadaNoProtocolo,
+        }));
+        const restante = limpas.join("\n").trim();
+        rawText = restante || `Perfeito, então o embarque sai de ${origemConfirmadaNoProtocolo}`;
+      }
+    }
+
+
+
     // Deve rodar DEPOIS do Airflow Guard: quando faltava origem, o guard podia
     // substituir toda a resposta e apagar a apresentação recém-adicionada.
     // Assim, a primeira entrada de Bruno/Paula sempre se apresenta, inclusive
