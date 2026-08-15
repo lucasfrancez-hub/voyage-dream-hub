@@ -845,6 +845,9 @@ async function runSearch(
   const fields = await loadVendaScreen(s);
   const adultos = input.adultos ?? 1;
   const criancas = input.criancas ?? 0;
+  // Códigos IATA sempre em maiúsculas (MGf -> MGF).
+  const origem = normalizarIata(input.origem);
+  const destino = normalizarIata(input.destino);
 
   const p = new URLSearchParams();
   p.set("javax.faces.partial.ajax", "true");
@@ -856,8 +859,8 @@ async function runSearch(
   );
   p.set(fields.botao, fields.botao);
   p.set(FRT_FIELDS.form, FRT_FIELDS.form);
-  p.set(fields.origem, input.origem);
-  p.set(fields.destino, input.destino);
+  p.set(fields.origem, origem);
+  p.set(fields.destino, destino);
   p.set(fields.ida, toBrDate(input.ida));
   if (input.volta) p.set(fields.volta, toBrDate(input.volta));
   p.set(fields.pais, input.pais ?? "");
@@ -866,7 +869,7 @@ async function runSearch(
   p.set("frmMotorPacote:qtdCriancasPacote_input", String(criancas));
   p.set("javax.faces.ViewState", s.viewState ?? "");
 
-  trace(`POST pesquisa ${input.origem}->${input.destino} ${input.ida}`);
+  trace(`POST pesquisa ${origem}->${destino} ${input.ida}`);
   const { res: resPesquisa, body } = await frtFetch(s, VENDA_URL, {
     method: "POST",
     body: p.toString(),
