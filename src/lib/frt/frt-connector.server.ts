@@ -182,6 +182,16 @@ function listarFormularios(html: string): string[] {
   return out;
 }
 
+/** Descobre o `javax.faces.source` da inicialização (padrão: j_idt10). */
+function detectarFonteInit(html: string): string[] {
+  const fontes = new Set<string>();
+  // O onload do PrimeFaces costuma disparar algo como PrimeFaces.ab({s:"j_idt10"...})
+  for (const m of html.matchAll(/["']?s["']?\s*:\s*["'](j_idt\d+)["']/gi)) fontes.add(m[1]!);
+  for (const m of html.matchAll(/source\s*:\s*["'](j_idt\d+)["']/gi)) fontes.add(m[1]!);
+  fontes.add("j_idt10");
+  return [...fontes].slice(0, 3);
+}
+
 /**
  * Reproduz a inicialização PrimeFaces observada no navegador: POST AJAX em
  * venda.xhtml (mesmo cookie jar + ViewState do GET) que renderiza
@@ -190,42 +200,66 @@ function listarFormularios(html: string): string[] {
 async function inicializarMotorPrimeFaces(
   s: Session,
   viewState: string,
+  htmlGet: string,
 ): Promise<{ html: string; viewState: string | null } | null> {
-  const form = new URLSearchParams();
-  form.set("javax.faces.partial.ajax", "true");
-  form.set("javax.faces.source", "j_idt10");
-  form.set("javax.faces.partial.execute", "@all");
-  form.set("javax.faces.partial.render", "frmMasterVenda");
-  form.set("j_idt10", "j_idt10");
-  form.set("frmAguarde", "frmAguarde");
-  form.set("javax.faces.ViewState", viewState);
+  let melhorHtml = "";
+  let melhorVs: string | null = null;
 
-  trace("POST venda.xhtml (init PrimeFaces j_idt10 -> frmMasterVenda)");
-  try {
-    const { res, body } = await frtFetch(s, VENDA_URL, {
-      method: "POST",
-      body: form.toString(),
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-        "Faces-Request": "partial/ajax",
-        "X-Requested-With": "XMLHttpRequest",
-        Origin: "https://frt.infotravel.com.br",
-        Referer: VENDA_URL,
-      },
-    });
-    const updates = extractPartialUpdates(body);
-    const master = updates["frmMasterVenda"] ?? Object.values(updates).join("\n");
-    const novoVs = extractViewState(body);
-    trace(
-      `  init: status=${res.status} bytes=${body.length} updates=${Object.keys(updates).join(",") || "-"} frmMotorPacote=${/frmMotorPacote/i.test(master)}`,
-    );
-    if (!master) return null;
-    return { html: master, viewState: novoVs };
-  } catch (e) {
-    trace(`  init falhou: ${e instanceof Error ? e.message : String(e)}`);
-    return null;
+  const tentativas: { source: string; render: string }[] = [];
+  for (const source of detectarFonteInit(htmlGet)) {
+    tentativas.push({ source, render: "frmMasterVenda" });
   }
+  tentativas.push({ source: "j_idt10", render: "@all" });
+
+  for (const t of tentativas) {
+    const form = new URLSearchParams();
+    form.set("javax.faces.partial.ajax", "true");
+    form.set("javax.faces.source", t.source);
+    form.set("javax.faces.partial.execute", "@all");
+    form.set("javax.faces.partial.render", t.render);
+    form.set(t.source, t.source);
+    form.set("frmAguarde", "frmAguarde");
+    form.set("javax.faces.ViewState", melhorVs ?? viewState);
+
+    trace(`POST init venda.xhtml (source=${t.source} render=${t.render})`);
+    try {
+      const { res, body } = await frtFetch(s, VENDA_URL, {
+        method: "POST",
+        body: form.toString(),
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+          "Faces-Request": "partial/ajax",
+          "X-Requested-With": "XMLHttpRequest",
+          Accept: "application/xml, text/xml, */*; q=0.01",
+          Origin: "https://frt.infotravel.com.br",
+          Referer: VENDA_URL,
+        },
+      });
+      const updates = extractPartialUpdates(body);
+      const master = updates["frmMasterVenda"];
+      const html = master ?? Object.values(updates).join("\n");
+      const novoVs = extractViewState(body);
+      const achouMotor = /frmMotorPacote/i.test(html);
+
+      trace(`  status: ${res.status}`);
+      trace(`  response size: ${body.length} bytes`);
+      trace(`  update frmMasterVenda found: ${Boolean(master)}`);
+      trace(`  updates recebidos: ${Object.keys(updates).join(", ") || "(nenhum)"}`);
+      trace(`  frmMotorPacote found after init: ${achouMotor}`);
+
+      const anterior: { html: string; viewState: string | null } | null = melhor;
+      if (html && (!anterior || achouMotor || html.length > anterior.html.length)) {
+        melhor = { html, viewState: novoVs ?? anterior?.viewState ?? null };
+      }
+
+      if (achouMotor) return melhor;
+    } catch (e) {
+      trace(`  init falhou: ${e instanceof Error ? e.message : String(e)}`);
+    }
+  }
+  return melhorHtml ? { html: melhorHtml, viewState: melhorVs } : null;
 }
+
 
 /**
  * GET autenticado explícito em venda.xhtml, seguindo redirects e usando
@@ -250,7 +284,7 @@ async function abrirVenda(s: Session, referer = BASE): Promise<AcessoVenda> {
     const vsGet = extractViewState(body);
     if (vsGet) {
       initExecutado = true;
-      const init = await inicializarMotorPrimeFaces(s, vsGet);
+      const init = await inicializarMotorPrimeFaces(s, vsGet, body);
       if (init?.html) {
         body = `${body}\n<!-- frmMasterVenda (init PrimeFaces) -->\n${init.html}`;
         if (init.viewState) s.viewState = init.viewState;
