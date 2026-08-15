@@ -3366,6 +3366,27 @@ export type Database = {
         }
         Relationships: []
       }
+      frt_sessions: {
+        Row: {
+          cookies: Json
+          id: string
+          updated_at: string
+          view_state: string | null
+        }
+        Insert: {
+          cookies?: Json
+          id?: string
+          updated_at?: string
+          view_state?: string | null
+        }
+        Update: {
+          cookies?: Json
+          id?: string
+          updated_at?: string
+          view_state?: string | null
+        }
+        Relationships: []
+      }
       hotel_tripadvisor_links: {
         Row: {
           city: string | null
