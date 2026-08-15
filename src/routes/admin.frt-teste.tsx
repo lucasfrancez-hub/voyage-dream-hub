@@ -21,6 +21,7 @@ import {
 } from "@/lib/frt/frt.functions";
 import {
   FrtLocalAutocomplete,
+  type FrtAutocompleteDiag,
   type FrtLocalSelecionado,
 } from "@/components/frt/FrtLocalAutocomplete";
 
