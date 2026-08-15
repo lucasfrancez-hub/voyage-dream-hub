@@ -292,11 +292,12 @@ export const getCruisePreview = createServerFn({ method: "GET" })
       sb.from("cruise_media").select("*").eq("cruise_id", data.id).order("sort_order").limit(400),
     ]);
 
-    let ship: Record<string, unknown> | null = null;
-    let shipMedia: unknown[] = [];
-    let decks: unknown[] = [];
-    let attractions: unknown[] = [];
-    let shipCabins: unknown[] = [];
+    /* eslint-disable @typescript-eslint/no-explicit-any */
+    let ship: any = null;
+    let shipMedia: any[] = [];
+    let decks: any[] = [];
+    let attractions: any[] = [];
+    let shipCabins: any[] = [];
     if (cruise.ship_id) {
       const shipId = cruise.ship_id as string;
       const [s, m, d2, a, c] = await Promise.all([
@@ -306,33 +307,46 @@ export const getCruisePreview = createServerFn({ method: "GET" })
         sb.from("ship_attractions").select("*").eq("ship_id", shipId).order("sort_order"),
         sb.from("ship_cabins").select("*").eq("ship_id", shipId).order("name"),
       ]);
-      ship = (s.data ?? null) as typeof ship;
+      ship = s.data ?? null;
       shipMedia = m.data ?? [];
       decks = d2.data ?? [];
       attractions = a.data ?? [];
       shipCabins = c.data ?? [];
     }
 
-    const addIds = new Set((additionals.data ?? []).map((a: { id: string }) => a.id));
-    const additionalsFull = (additionals.data ?? []).map((a: { id: string }) => ({
+    const additionalsFull: any[] = ((additionals.data ?? []) as any[]).map((a) => ({
       ...a,
-      prices: (addPrices.data ?? []).filter(
-        (p: { additional_id: string }) => p.additional_id === a.id && addIds.has(a.id),
-      ),
+      prices: ((addPrices.data ?? []) as any[]).filter((p) => p.additional_id === a.id),
     }));
 
-    return {
+    const payload: {
+      cruise: any;
+      ship: any;
+      itinerary: any[];
+      offers: any[];
+      prices: any[];
+      additionals: any[];
+      insurances: any[];
+      media: any[];
+      shipMedia: any[];
+      decks: any[];
+      attractions: any[];
+      shipCabins: any[];
+    } = {
       cruise,
       ship,
-      itinerary: itinerary.data ?? [],
-      offers: offers.data ?? [],
-      prices: prices.data ?? [],
+      itinerary: (itinerary.data ?? []) as any[],
+      offers: (offers.data ?? []) as any[],
+      prices: (prices.data ?? []) as any[],
       additionals: additionalsFull,
-      insurances: insurances.data ?? [],
-      media: media.data ?? [],
+      insurances: (insurances.data ?? []) as any[],
+      media: (media.data ?? []) as any[],
       shipMedia,
       decks,
       attractions,
       shipCabins,
     };
+    return payload;
+    /* eslint-enable @typescript-eslint/no-explicit-any */
   });
+
