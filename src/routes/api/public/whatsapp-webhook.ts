@@ -587,9 +587,10 @@ async function processPayload(payload: WhatsAppPayload) {
         }
 
         // Debounce ADAPTATIVO: agenda a resposta da IA pra daqui X segundos.
-        // - Rajada (2+ mensagens em menos de 30s) → 60s; o dispatcher ainda
+        // - Resposta curta ou rajada (2+ mensagens em menos de 30s) → 60s;
+        //   o dispatcher ainda
         //   adia enquanto o cliente continuar digitando (guarda de 25s).
-        // - Janela já aberta (follow-up mid-conversa) → 120s
+        // - Janela já aberta com mensagem longa → 120s
         // - 1ª mensagem depois de um silêncio → 90s
         // Toda mensagem nova recalcula e empurra o horário. Um cron a cada 30s
         // (hook dispatch-ai-debounced) dispara quando vencer.
@@ -610,8 +611,9 @@ async function processPayload(payload: WhatsAppPayload) {
           .gte("created_at", thirtySecAgo);
 
         let waitMs: number;
-        if ((recentBurst ?? 0) >= 2) {
-          waitMs = 60 * 1000; // rajada → 60s; dispatcher estabiliza o resto
+        const respostaCurta = content.replace(/\[\[media:[^\]]+\]\]/g, "").trim().length <= 40;
+        if (respostaCurta || (recentBurst ?? 0) >= 2) {
+          waitMs = 60 * 1000; // resposta curta/rajada → cerca de 1min
         } else if (convState?.ai_debounce_until) {
           waitMs = 120 * 1000; // janela já aberta → follow-up
         } else {

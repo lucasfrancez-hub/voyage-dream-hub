@@ -762,7 +762,9 @@ export async function runAgent(input: {
           .from("wa_messages")
           .select("content, created_at")
           .eq("conversation_id", conv.id)
-          .eq("protocolo_id", protocolo.id)
+          // Mensagens antigas podem ter protocolo_id nulo; opened_at é a
+          // fronteira confiável do atendimento atual.
+          .gte("created_at", protocolo.opened_at)
           .eq("direction", "outbound")
           .order("created_at", { ascending: true })
           .limit(60),
@@ -770,7 +772,7 @@ export async function runAgent(input: {
           .from("wa_messages")
           .select("content, created_at")
           .eq("conversation_id", conv.id)
-          .eq("protocolo_id", protocolo.id)
+          .gte("created_at", protocolo.opened_at)
           .eq("direction", "inbound")
           .order("created_at", { ascending: true })
           .limit(60),
@@ -1315,7 +1317,7 @@ export async function runAgent(input: {
           .from("wa_messages")
           .select("content, created_at")
           .eq("conversation_id", conv.id)
-          .eq("protocolo_id", protocolo.id)
+          .gte("created_at", protocolo.opened_at)
           .eq("direction", "outbound")
           .order("created_at", { ascending: true })
           .limit(60),
@@ -1323,7 +1325,7 @@ export async function runAgent(input: {
           .from("wa_messages")
           .select("content, created_at")
           .eq("conversation_id", conv.id)
-          .eq("protocolo_id", protocolo.id)
+          .gte("created_at", protocolo.opened_at)
           .eq("direction", "inbound")
           .order("created_at", { ascending: true })
           .limit(60),
