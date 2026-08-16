@@ -359,57 +359,73 @@ export async function quoteRoute(args: {
 
     const nacional = route.scope === "nacional";
     const diferenca = mesmaOut && mesmaIn ? mesmaTotal - melhorTotal : 0;
-    const misturaCias =
-      airlineOf(melhorOut)?.iata && airlineOf(melhorIn)?.iata
-        ? airlineOf(melhorOut)!.iata !== airlineOf(melhorIn)!.iata
-        : false;
+
+    // A) MELHOR IDA+VOLTA CONVENCIONAL (com a preferência comercial de manter a
+    //    mesma companhia quando a diferença é pequena).
+    const usaMesma = !!(mesmaOut && mesmaIn && diferenca < MULTI_LEG_MIN_DIFF);
+    let convOut = usaMesma ? mesmaOut! : melhorOut;
+    let convIn = usaMesma ? mesmaIn! : melhorIn;
+    const convTotal = usaMesma ? mesmaTotal : melhorTotal;
+
+    out = convOut;
+    inb = convIn;
 
     if (!nacional) {
       // Internacional: comportamento normal (melhor soma, carrinho único).
       out = melhorOut;
       inb = melhorIn;
-    } else if (mesmaOut && mesmaIn && diferenca < MULTI_LEG_MIN_DIFF) {
-      // Mesma companhia na ida e na volta (padrão, mesmo custando um pouco mais).
-      out = mesmaOut;
-      inb = mesmaIn;
-    } else if (misturaCias) {
-      // MUITA diferença (>= R$ 100) com companhias diferentes: vira multi-trecho.
-      // Cada trecho é pesquisado como SOMENTE IDA para gerar tarifas
-      // independentes e o link abre o motor VIA AIR com um trecho por card.
-      const perna = await quoteOneWayLegs({
-        base,
-        route,
-        departureDate,
-        returnDate,
-      });
-      if (perna) {
+    } else {
+      // B) COMPOSIÇÃO INDEPENDENTE — SEMPRE pesquisada em voos nacionais:
+      //    MGF→BPS somente ida + BPS→MGF somente ida, qualquer companhia.
+      //    (Antes só era tentada quando a própria pesquisa de ida e volta já
+      //    devolvia companhias diferentes — por isso o multi-trecho nunca
+      //    aparecia em rotas dominadas por uma única cia.)
+      const perna = await quoteOneWayLegs({ base, route, departureDate, returnDate });
+      const economia = perna ? Number((convTotal - perna.total).toFixed(2)) : null;
+
+      console.info(
+        "[promo-multitrip]",
+        JSON.stringify({
+          route: `${route.origin_iata}-${route.destination_iata}`,
+          departureDate,
+          returnDate,
+          roundtrip_best_total: Number(melhorTotal.toFixed(2)),
+          roundtrip_airline: airlineOf(melhorOut)?.iata ?? null,
+          roundtrip_same_airline_total: Number.isFinite(mesmaTotal) ? Number(mesmaTotal.toFixed(2)) : null,
+          conventional_total: Number(convTotal.toFixed(2)),
+          conventional_airline: airlineOf(convOut)?.iata ?? null,
+          outbound_best_total: perna ? Number((perna.out.price.total ?? 0).toFixed(2)) : null,
+          outbound_airline: perna ? (airlineOf(perna.out)?.iata ?? null) : null,
+          return_best_total: perna ? Number((perna.inb.price.total ?? 0).toFixed(2)) : null,
+          return_airline: perna ? (airlineOf(perna.inb)?.iata ?? null) : null,
+          mixed_total: perna ? Number(perna.total.toFixed(2)) : null,
+          savings_vs_roundtrip: economia,
+          threshold: MULTI_LEG_MIN_DIFF,
+          outbound_search_status: perna ? "ok" : "sem_tarifa",
+          return_search_status: perna ? "ok" : "sem_tarifa",
+          reason_multitrip_not_available: perna
+            ? economia != null && economia > MULTI_LEG_MIN_DIFF
+              ? null
+              : "economia_abaixo_do_limite"
+            : "pesquisa_somente_ida_sem_resultado",
+          selected_mode:
+            perna && economia != null && economia > MULTI_LEG_MIN_DIFF ? "multitrip" : "roundtrip",
+        }),
+      );
+
+      if (perna && economia != null && economia > MULTI_LEG_MIN_DIFF) {
         out = perna.out;
         inb = perna.inb;
         inboundSearchKey = perna.inboundSearchKey;
         outboundSearchKey = perna.outboundSearchKey;
         multiLeg = true;
-        multiSavings = mesmaOut && mesmaIn ? Number((mesmaTotal - perna.total).toFixed(2)) : null;
-        // segurança: se as pernas separadas ficarem mais caras que a mesma
-        // companhia, mantemos ida e volta na mesma cia.
-        if (mesmaOut && mesmaIn && perna.total >= mesmaTotal) {
-          out = mesmaOut;
-          inb = mesmaIn;
-          inboundSearchKey = null;
-          outboundSearchKey = null;
-          multiLeg = false;
-          multiSavings = null;
-        }
-      } else {
-        out = mesmaOut ?? melhorOut;
-        inb = mesmaIn ?? melhorIn;
+        multiSavings = economia;
       }
-    } else {
-      out = melhorOut;
-      inb = melhorIn;
     }
 
     if (!inb) return null;
   }
+
 
 
   return buildPromotionRow({
