@@ -288,14 +288,26 @@ export type RadarLead = {
 export type RadarOpportunity = RadarLead & {
   departureDate: string;
   returnDate: string | null;
+  /** dias de permanência devolvidos pela fonte (dates[].stay) */
+  stayDays: number | null;
+  /** @deprecated use stayDays — mantido para compatibilidade do pipeline */
   nights: number | null;
   airlineCode: string | null;
   airlineName: string | null;
   airlineIconUrl: string | null;
   baggage: string;
+  baggageRaw: string | null;
   baggageLabel: string;
+  loyaltyProgram: string | null;
   provider: string | null;
+  providerDisplay: string | null;
   externalUrl: string | null;
+  /** §18 — metadado bruto do radar, sem conversão para classe VIA AIR */
+  radarBookingClassRaw: string | null;
+  /** §17 — fornecedores/preços observados para a MESMA oportunidade */
+  radarSources: Array<{ provider: string | null; price: number }>;
+  /** §16 — fingerprint de deduplicação antes da consulta VIA AIR */
+  fingerprint: string;
 };
 
 /* ------------------------------------------------------------------ *
@@ -305,7 +317,16 @@ export type RadarOpportunity = RadarLead & {
 type RawCategories = {
   from_city_name?: string | null;
   to_city_name?: string | null;
-  categories?: Array<{ name?: string; cheapest_itinerary_price?: number | null; link?: string }>;
+  month?: string | null;
+  categories?: Array<{
+    name?: string;
+    description?: string | null;
+    relevance?: number | null;
+    cheapest_itinerary_price?: number | null;
+    cheapest_itinerary_price_found_at?: string | null;
+    image?: string | null;
+    link?: string;
+  }>;
   cities?: Array<{
     from_city_name?: string | null;
     to_city_name?: string | null;
@@ -316,27 +337,41 @@ type RawCategories = {
 
 type RawItinerary = {
   from_city_name?: string | null;
+  from_iata_code?: string | null;
   to_city_name?: string | null;
+  to_iata_code?: string | null;
+  month?: string | null;
+  date_from?: string | null;
+  date_until?: string | null;
+  min_stay?: number | null;
+  max_stay?: number | null;
+  booking_class?: string | null;
   months?: Array<{
     month?: string;
     year?: number;
     price?: number | null;
+    price_currency?: string | null;
     cheapest?: boolean;
     dates_link?: string | null;
     dates?: RawDate[] | null;
-  }>;
+  }> | null;
 };
 
 type RawDate = {
   luggage_type?: string | null;
+  loyalty_program?: string | null;
   departure?: string | null;
+  departure_txt?: string | null;
   arrival?: string | null;
+  arrival_txt?: string | null;
   stay?: number | null;
   price?: number | null;
+  price_currency?: string | null;
   airline_code?: string | null;
   airline_icon_url?: string | null;
   link?: string | null;
   provider_name?: string | null;
+  website_display?: string | null;
 };
 
 /** Etapa 1 — categorias (opcionalmente já filtradas pela origem). */
@@ -368,19 +403,40 @@ export async function radarCategories(
 
 /** 7) Endpoint de origens — normalização/resolução city_name ↔ IATA. */
 export async function radarOrigins(opts?: { cancel?: RadarCancel }): Promise<
-  Array<{ iata: string; city: string; state: string | null }>
+  Array<{
+    iata: string;
+    cityIata: string | null;
+    city: string;
+    state: string | null;
+    country: string | null;
+    airportName: string | null;
+  }>
 > {
   try {
     const json = await getJson<{
-      origins?: Array<{ iata_code?: string; city_name?: string; state?: string | null }>;
+      origins?: Array<{
+        iata_code?: string;
+        iata_city_code?: string | null;
+        city_name?: string;
+        state?: string | null;
+        country?: string | null;
+        airport_name?: string | null;
+      }>;
     }>(`${API}/airports/origins`, {
       ttlMs: RADAR_TTL.categories,
       cancel: opts?.cancel,
       etapa: "origins",
     });
     return (json.origins ?? [])
-      .filter((o) => o.iata_code && o.city_name)
-      .map((o) => ({ iata: o.iata_code!.toUpperCase(), city: o.city_name!, state: o.state ?? null }));
+      .filter((o) => o?.iata_code && o?.city_name)
+      .map((o) => ({
+        iata: o.iata_code!.toUpperCase(),
+        cityIata: o.iata_city_code ? o.iata_city_code.toUpperCase() : null,
+        city: o.city_name!,
+        state: o.state ?? null,
+        country: o.country ?? null,
+        airportName: o.airport_name ?? null,
+      }));
   } catch {
     return [];
   }
