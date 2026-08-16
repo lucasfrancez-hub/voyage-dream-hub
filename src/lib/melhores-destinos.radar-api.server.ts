@@ -68,6 +68,19 @@ export const radarMetrics = {
   categoriesChecked: 0,
   destinationsChecked: 0,
   opportunitiesFound: 0,
+  // §22 — contadores de diagnóstico do radar
+  md_categories_received: 0,
+  md_destinations_received: 0,
+  md_routes_received: 0,
+  md_months_received: 0,
+  md_dates_received: 0,
+  md_dates_links_followed: 0,
+  md_candidates_created: 0,
+  md_candidates_deduplicated: 0,
+  md_invalid_without_price: 0,
+  md_invalid_without_route: 0,
+  md_invalid_without_airline: 0,
+  md_months_no_dates_available: 0,
   lastError: null as string | null,
   lastErrorAt: null as string | null,
 };
@@ -209,13 +222,23 @@ export function normalizeBaggage(raw?: string | null): { code: string; label: st
   if (v.includes("checked") || v.includes("baggage") || v.includes("despach"))
     return { code: "checked", label: "Bagagem despachada" };
   if (v.includes("personal")) return { code: "personal_item", label: "Item pessoal" };
-  return { code: v, label: "Não informado" };
+  // §12: código desconhecido nunca é inventado — vira "unknown" e o bruto é preservado.
+  return { code: "unknown", label: "Não informado" };
 }
 
 /** 16) Companhia: mapeamento interno (não depende do ícone externo). */
+/** §11 — mapper interno de companhias (a fonte ainda devolve códigos antigos). */
+const AIRLINE_NAMES: Record<string, string> = {
+  LA: "LATAM Airlines",
+  JJ: "LATAM Airlines",
+  AD: "Azul Linhas Aéreas",
+  G3: "GOL Linhas Aéreas",
+};
+
 export function normalizeAirline(code?: string | null): { code: string | null; name: string | null } {
   const c = code ? String(code).trim().toUpperCase() : null;
-  return { code: c, name: c ? nomeCompanhia(c) : null };
+  if (!c) return { code: null, name: null };
+  return { code: c, name: AIRLINE_NAMES[c] ?? nomeCompanhia(c) };
 }
 
 function categoryIdFromLink(link?: string | null): number | null {
