@@ -81,10 +81,12 @@ export type CandidateRow = {
   reference_departure_date: string | null;
   reference_return_date: string | null;
   reference_collected_at: string | null;
+  /** entrada na fila — base do tempo de espera (queued_at) */
+  created_at?: string | null;
 };
 
 const CANDIDATE_COLS =
-  "id,priority,attempts,signature,scope,origin_iata,origin_city,destination_iata,destination_city,departure_date,return_date,reference_source,reference_price,reference_origin,reference_destination,reference_departure_date,reference_return_date,reference_collected_at";
+  "id,priority,attempts,created_at,signature,scope,origin_iata,origin_city,destination_iata,destination_city,departure_date,return_date,reference_source,reference_price,reference_origin,reference_destination,reference_departure_date,reference_return_date,reference_collected_at";
 
 function opportunityKey(p: { origin_iata: string; destination_iata: string; departure_date: string }) {
   return `${p.origin_iata}|${p.destination_iata}|${p.departure_date}`.toUpperCase();
