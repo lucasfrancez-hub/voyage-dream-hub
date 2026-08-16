@@ -288,6 +288,7 @@ export function SearchEngine({
   presetRunToken,
   presetFetch,
   multiPreset,
+  multiPicks,
 }: {
   publicMode?: boolean;
   /** Conteúdo abaixo do motor aéreo enquanto não há resultados. */
@@ -303,6 +304,8 @@ export function SearchEngine({
   presetFetch?: () => Promise<unknown>;
   /** Viagem multi-trecho vinda da URL (?ms=...). */
   multiPreset?: MultiSegmentInput[];
+  /** Voo já escolhido por trecho (?ps=...) — abre o carrinho pronto. */
+  multiPicks?: MultiPick[];
 } = {}) {
   const [mode, setMode] = useState<Mode>(initialMode);
 
@@ -461,6 +464,7 @@ export function SearchEngine({
           runToken={flightPresetProp ? (presetRunToken ?? 1) : undefined}
           presetFetch={flightPresetProp ? presetFetch : undefined}
           multiPreset={multiPreset}
+          multiPicks={multiPicks}
         />
       )}
       {mode === "hotel" && (
