@@ -364,8 +364,13 @@ export async function processPendingCandidates(args: {
         returnDate: cand.return_date,
         markups,
         signal: abortController.signal,
+        onEngineTiming: (t) => {
+          saida.engineCalls = (saida.engineCalls ?? 0) + 1;
+        },
       });
+      saida.responseAt = Date.now();
     } catch (err) {
+      saida.responseAt = Date.now();
       const msg = (err instanceof Error ? err.message : String(err)).slice(0, 400);
       registrarTempo(cand.origin_iata, Date.now() - iniciouEm);
 
