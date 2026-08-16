@@ -115,3 +115,25 @@ export function decodePicks(raw?: string | null): MultiPick[] | null {
     });
   return picks.some((p) => p.airline || p.time) ? picks : null;
 }
+
+/**
+ * SELEÇÃO SALVA NO BACKEND (link pronto: /multitrecho/cotacao/{token}).
+ *
+ * Diferente do `?ps=` (cia + horário), aqui gravamos a assinatura forte do voo
+ * escolhido — número do voo, horários, tarifa e bagagem — para o link abrir a
+ * MESMA viagem em qualquer celular, sem o cliente escolher trecho por trecho.
+ */
+export type SavedPick = {
+  airline?: string | null;
+  airlineName?: string | null;
+  flightNumber?: string | null;
+  time?: string | null;
+  arrival?: string | null;
+  fareKey?: string | null;
+  total?: number | null;
+  baggage?: boolean | null;
+};
+
+export function savedPickToLegacy(p: SavedPick): MultiPick {
+  return { airline: p.airline ?? null, time: p.time ?? null };
+}

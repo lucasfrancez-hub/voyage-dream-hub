@@ -89,7 +89,12 @@ import {
   MultiTrechoToggle,
   type FlightUi,
 } from "@/components/flights/MultiCity";
-import { initialSegments, type MultiPick, type MultiSegmentInput } from "@/lib/multicity";
+import {
+  initialSegments,
+  type MultiPick,
+  type MultiSegmentInput,
+  type SavedPick,
+} from "@/lib/multicity";
 
 
 
@@ -1854,6 +1859,9 @@ export function VoosPage({
   presetFetch,
   multiPreset,
   multiPicks,
+  multiSaved,
+  multiPax,
+  multiQuoteToken,
 }: {
   header?: React.ReactNode;
   hideForm?: boolean;
@@ -1872,6 +1880,10 @@ export function VoosPage({
   multiPreset?: MultiSegmentInput[];
   /** Voo já escolhido por trecho (?ps=...) — carrinho pronto ao abrir. */
   multiPicks?: MultiPick[];
+  /** Cotação multi-trecho salva no backend (link pronto /multitrecho/cotacao). */
+  multiSaved?: SavedPick[];
+  multiPax?: { adults: number; children: number; infants: number };
+  multiQuoteToken?: string;
 } = {}) {
   const search = useServerFn(publicMode ? onerFlightSearchPublic : onerFlightSearch);
   const searchInbound = useServerFn(publicMode ? onerInboundSearchPublic : onerInboundSearch);
@@ -1881,9 +1893,9 @@ export function VoosPage({
 
     departureDate: "",
     returnDate: "",
-    adults: 1,
-    children: 0,
-    infants: 0,
+    adults: multiPax?.adults ?? 1,
+    children: multiPax?.children ?? 0,
+    infants: multiPax?.infants ?? 0,
   });
   const [pendingRun, setPendingRun] = useState(0);
 
@@ -2510,6 +2522,8 @@ export function VoosPage({
             runToken={multiRun.token}
             publicMode={publicMode}
             preselect={multiPicks}
+            savedPicks={multiSaved}
+            quoteToken={multiQuoteToken}
             ui={flightUi}
           />
         )}

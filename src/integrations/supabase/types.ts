@@ -4198,6 +4198,45 @@ export type Database = {
         }
         Relationships: []
       }
+      multicity_quotes: {
+        Row: {
+          created_at: string
+          expires_at: string
+          id: string
+          label: string | null
+          pax: Json
+          picks: Json
+          segments: Json
+          token: string
+          total_price: number | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          label?: string | null
+          pax?: Json
+          picks?: Json
+          segments: Json
+          token: string
+          total_price?: number | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          label?: string | null
+          pax?: Json
+          picks?: Json
+          segments?: Json
+          token?: string
+          total_price?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       nfse_config: {
         Row: {
           aliquota_iss: number

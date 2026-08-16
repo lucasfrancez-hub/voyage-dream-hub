@@ -125,6 +125,7 @@ import { Route as ApiPublicWhatsappWebhookRouteImport } from './routes/api/publi
 import { Route as ChatAppTokenRouteImport } from './routes/chat.app.$token'
 import { Route as CruzeirosUiPreviewIndexRouteImport } from './routes/cruzeiros_.ui-preview.index'
 import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/email/suppression'
+import { Route as MultitrechoCotacaoTokenRouteImport } from './routes/multitrecho.cotacao.$token'
 import { Route as PacotesSlugIndexRouteImport } from './routes/pacotes.$slug.index'
 import { Route as PacotesSlugCheckoutRouteImport } from './routes/pacotes.$slug.checkout'
 import { Route as AdminCruzeirosPreviaIdRouteImport } from './routes/admin.cruzeiros.previa.$id'
@@ -750,6 +751,11 @@ const LovableEmailSuppressionRoute = LovableEmailSuppressionRouteImport.update({
   path: '/lovable/email/suppression',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MultitrechoCotacaoTokenRoute = MultitrechoCotacaoTokenRouteImport.update({
+  id: '/multitrecho/cotacao/$token',
+  path: '/multitrecho/cotacao/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PacotesSlugIndexRoute = PacotesSlugIndexRouteImport.update({
   id: '/$slug/',
   path: '/$slug/',
@@ -1077,6 +1083,7 @@ export interface FileRoutesByFullPath {
   '/api/public/whatsapp-webhook': typeof ApiPublicWhatsappWebhookRoute
   '/chat/app/$token': typeof ChatAppTokenRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
+  '/multitrecho/cotacao/$token': typeof MultitrechoCotacaoTokenRoute
   '/pacotes/$slug/checkout': typeof PacotesSlugCheckoutRoute
   '/admin/cruzeiros/': typeof AdminCruzeirosIndexRoute
   '/admin/orcamentos/': typeof AdminOrcamentosIndexRoute
@@ -1230,6 +1237,7 @@ export interface FileRoutesByTo {
   '/api/public/whatsapp-webhook': typeof ApiPublicWhatsappWebhookRoute
   '/chat/app/$token': typeof ChatAppTokenRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
+  '/multitrecho/cotacao/$token': typeof MultitrechoCotacaoTokenRoute
   '/pacotes/$slug/checkout': typeof PacotesSlugCheckoutRoute
   '/admin/cruzeiros': typeof AdminCruzeirosIndexRoute
   '/admin/orcamentos': typeof AdminOrcamentosIndexRoute
@@ -1386,6 +1394,7 @@ export interface FileRoutesById {
   '/api/public/whatsapp-webhook': typeof ApiPublicWhatsappWebhookRoute
   '/chat/app/$token': typeof ChatAppTokenRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
+  '/multitrecho/cotacao/$token': typeof MultitrechoCotacaoTokenRoute
   '/pacotes/$slug/checkout': typeof PacotesSlugCheckoutRoute
   '/admin/cruzeiros/': typeof AdminCruzeirosIndexRoute
   '/admin/orcamentos/': typeof AdminOrcamentosIndexRoute
@@ -1543,6 +1552,7 @@ export interface FileRouteTypes {
     | '/api/public/whatsapp-webhook'
     | '/chat/app/$token'
     | '/lovable/email/suppression'
+    | '/multitrecho/cotacao/$token'
     | '/pacotes/$slug/checkout'
     | '/admin/cruzeiros/'
     | '/admin/orcamentos/'
@@ -1696,6 +1706,7 @@ export interface FileRouteTypes {
     | '/api/public/whatsapp-webhook'
     | '/chat/app/$token'
     | '/lovable/email/suppression'
+    | '/multitrecho/cotacao/$token'
     | '/pacotes/$slug/checkout'
     | '/admin/cruzeiros'
     | '/admin/orcamentos'
@@ -1851,6 +1862,7 @@ export interface FileRouteTypes {
     | '/api/public/whatsapp-webhook'
     | '/chat/app/$token'
     | '/lovable/email/suppression'
+    | '/multitrecho/cotacao/$token'
     | '/pacotes/$slug/checkout'
     | '/admin/cruzeiros/'
     | '/admin/orcamentos/'
@@ -1945,6 +1957,7 @@ export interface RootRouteChildren {
   ApiPublicWaDiagRoute: typeof ApiPublicWaDiagRoute
   ApiPublicWhatsappWebhookRoute: typeof ApiPublicWhatsappWebhookRoute
   LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
+  MultitrechoCotacaoTokenRoute: typeof MultitrechoCotacaoTokenRoute
   CruzeirosUiPreviewIndexRoute: typeof CruzeirosUiPreviewIndexRoute
   ApiPublicAdminManifestTokenRoute: typeof ApiPublicAdminManifestTokenRoute
   ApiPublicAgendaManifestTokenRoute: typeof ApiPublicAgendaManifestTokenRoute
@@ -2796,6 +2809,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LovableEmailSuppressionRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/multitrecho/cotacao/$token': {
+      id: '/multitrecho/cotacao/$token'
+      path: '/multitrecho/cotacao/$token'
+      fullPath: '/multitrecho/cotacao/$token'
+      preLoaderRoute: typeof MultitrechoCotacaoTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/pacotes/$slug/': {
       id: '/pacotes/$slug/'
       path: '/$slug'
@@ -3289,6 +3309,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicWaDiagRoute: ApiPublicWaDiagRoute,
   ApiPublicWhatsappWebhookRoute: ApiPublicWhatsappWebhookRoute,
   LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
+  MultitrechoCotacaoTokenRoute: MultitrechoCotacaoTokenRoute,
   CruzeirosUiPreviewIndexRoute: CruzeirosUiPreviewIndexRoute,
   ApiPublicAdminManifestTokenRoute: ApiPublicAdminManifestTokenRoute,
   ApiPublicAgendaManifestTokenRoute: ApiPublicAgendaManifestTokenRoute,

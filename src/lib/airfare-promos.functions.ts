@@ -499,6 +499,77 @@ export const refreshAirfarePromotion = createServerFn({ method: "POST" })
 
 /** Cria o carrinho na operadora e o link curto Via Air da promoção. */
 /** Cria o link curto rastreável da promoção (usado no WhatsApp e nos posts). */
+/**
+ * Multi-trecho: salva a viagem montada (ida + volta em companhias diferentes)
+ * e devolve o link pronto, que abre direto a tela final da cotação.
+ */
+async function criarCotacaoMultiTrecho(promo: {
+  origin_iata: string;
+  destination_iata: string;
+  departure_date: string;
+  return_date: string | null;
+  passengers: number | null;
+  multi_leg_url: string | null;
+  airline_iata: string | null;
+  airline_name: string | null;
+  inbound_airline_iata: string | null;
+  inbound_airline_name: string | null;
+  outbound_fare_id: string | null;
+  inbound_fare_id: string | null;
+  has_checked_baggage: boolean | null;
+}): Promise<string | null> {
+  if (!promo.return_date) return null;
+  try {
+    // horários vêm do ps=... já gravado no link do motor (companhia-hora por trecho)
+    let horaIda: string | null = null;
+    let horaVolta: string | null = null;
+    if (promo.multi_leg_url) {
+      const ps = new URL(promo.multi_leg_url).searchParams.get("ps");
+      const partes = (ps ?? "").split("~");
+      horaIda = partes[0]?.split("-")[1] || null;
+      horaVolta = partes[1]?.split("-")[1] || null;
+    }
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const alphabet = "abcdefghjkmnpqrstuvwxyz23456789";
+    const bytes = new Uint8Array(10);
+    crypto.getRandomValues(bytes);
+    let token = "";
+    for (let i = 0; i < bytes.length; i++) token += alphabet[bytes[i]! % alphabet.length];
+
+    const o = promo.origin_iata.toUpperCase();
+    const d = promo.destination_iata.toUpperCase();
+    const { error } = await supabaseAdmin.from("multicity_quotes").insert({
+      token,
+      segments: [
+        { origin: o, destination: d, date: promo.departure_date },
+        { origin: d, destination: o, date: promo.return_date },
+      ],
+      pax: { adults: promo.passengers || 1, children: 0, infants: 0 },
+      picks: [
+        {
+          airline: promo.airline_iata,
+          airlineName: promo.airline_name,
+          time: horaIda,
+          fareKey: promo.outbound_fare_id,
+          baggage: promo.has_checked_baggage,
+        },
+        {
+          airline: promo.inbound_airline_iata,
+          airlineName: promo.inbound_airline_name,
+          time: horaVolta,
+          fareKey: promo.inbound_fare_id,
+          baggage: promo.has_checked_baggage,
+        },
+      ],
+      label: `${o}-${d} / ${d}-${o}`,
+    });
+    if (error) return null;
+    return `https://pedidos.viaair.tur.br/multitrecho/cotacao/${token}`;
+  } catch {
+    return null;
+  }
+}
+
 async function criarShortLink(
   context: { supabase: { from: (t: string) => any } },
   targetUrl: string,
@@ -540,7 +611,7 @@ export const generatePromotionLink = createServerFn({ method: "POST" })
     // em multi-trecho e o cliente compra cada trecho pelo Comprar Viagem.
     if (promo.is_multi_leg) {
       const { multiLegSearchUrl } = await import("@/lib/airfare-promos.server");
-      const destino =
+      const motorUrl =
         promo.multi_leg_url ??
         (promo.return_date
           ? multiLegSearchUrl({
@@ -551,7 +622,11 @@ export const generatePromotionLink = createServerFn({ method: "POST" })
               adults: promo.passengers || 1,
             })
           : null);
-      if (!destino) throw new Error("Promoção multi-trecho sem data de volta.");
+      if (!motorUrl) throw new Error("Promoção multi-trecho sem data de volta.");
+
+      // Link pronto: a seleção dos dois trechos fica salva no backend, então o
+      // cliente abre direto a tela final da viagem (funciona em qualquer celular).
+      const destino = (await criarCotacaoMultiTrecho(promo)) ?? motorUrl;
       const short = await criarShortLink(context, destino, promo);
       const { error: mErr } = await context.supabase
         .from("airfare_promotions")
@@ -560,6 +635,7 @@ export const generatePromotionLink = createServerFn({ method: "POST" })
       if (mErr) throw new Error(mErr.message);
       return { cart_url: destino, short_url: short, reused: false };
     }
+
 
     if (!promo.search_key || !promo.outbound_fare_id || !promo.outbound_itinerary_id) {
       throw new Error("Tarifa sem chaves de busca. Atualize a promoção antes de gerar o link.");

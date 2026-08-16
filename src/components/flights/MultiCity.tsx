@@ -44,6 +44,7 @@ import {
   validateSegments,
   type MultiPick,
   type MultiSegmentInput,
+  type SavedPick,
 } from "@/lib/multicity";
 import {
   AVISO_VALIDADE_TARIFA,
@@ -52,6 +53,7 @@ import {
   maxInstallmentText,
 } from "@/lib/airfare-conditions";
 import { onerCreateFlightCart, onerFlightSearch } from "@/lib/onertravel.functions";
+import { createMultiCityQuote } from "@/lib/multicity-quote.functions";
 import {
   onerCreateFlightCartPublic,
   onerFlightSearchPublic,
@@ -374,7 +376,63 @@ function escolherVooDoLink(
   return alvo?.key ?? null;
 }
 
+/** Assinatura forte do voo salvo na cotação (link pronto). */
+export function pickFromFlight(f: OnerFlight, ui: FlightUi): SavedPick {
+  const t = f.journey?.departure?.time ?? f.journey?.segments?.[0]?.departure?.time;
+  const segs = f.journey?.segments ?? [];
+  const chegada = f.journey?.destination?.time ?? segs[segs.length - 1]?.destination?.time;
+  const hhmm = (x?: { hour: number; minute: number }) =>
+    x ? `${String(x.hour).padStart(2, "0")}:${String(x.minute).padStart(2, "0")}` : null;
+  const a = ui.airlineOf(f);
+  return {
+    airline: a?.iata ?? null,
+    airlineName: a?.name ?? null,
+    flightNumber: segs[0]?.flightNumber ?? null,
+    time: hhmm(t),
+    arrival: hhmm(chegada),
+    fareKey: f.key ?? null,
+    total: f.price?.total ?? null,
+    baggage: flightHasBaggage(f),
+  };
+}
 
+/**
+ * Casa o voo salvo com a nova pesquisa: tarifa exata → cia + número do voo →
+ * cia + horário → mais barato da cia → mais barato do trecho. Assim o link
+ * pronto abre sempre a mesma viagem, mesmo depois da tarifa ser reconsultada.
+ */
+function escolherVooSalvo(
+  flights: OnerFlight[],
+  pick: SavedPick | undefined,
+  ui: FlightUi,
+): string | null {
+  if (!pick || !flights.length) return null;
+  const hhmm = (f: OnerFlight) => {
+    const t = f.journey?.departure?.time ?? f.journey?.segments?.[0]?.departure?.time;
+    return t ? `${String(t.hour).padStart(2, "0")}:${String(t.minute).padStart(2, "0")}` : "";
+  };
+  const cia = (f: OnerFlight) => (ui.airlineOf(f)?.iata ?? "").toUpperCase();
+  const num = (f: OnerFlight) => (f.journey?.segments?.[0]?.flightNumber ?? "").trim();
+  const alvoCia = (pick.airline ?? "").toUpperCase();
+
+  if (pick.fareKey) {
+    const exato = ui.findByAnyKey(flights, pick.fareKey);
+    if (exato) return pick.fareKey;
+  }
+  const porNumero =
+    pick.flightNumber && alvoCia
+      ? flights.find((f) => cia(f) === alvoCia && num(f) === pick.flightNumber)
+      : null;
+  const porHora = flights.find(
+    (f) => (!alvoCia || cia(f) === alvoCia) && (!pick.time || hhmm(f) === pick.time),
+  );
+  const maisBarato = (list: OnerFlight[]) =>
+    list.reduce<OnerFlight | null>((a, f) => (!a || f.price.total < a.price.total ? f : a), null);
+  const porCia = alvoCia ? flights.filter((f) => cia(f) === alvoCia) : [];
+
+  const alvo = porNumero ?? porHora ?? maisBarato(porCia) ?? maisBarato(flights);
+  return alvo?.key ?? null;
+}
 
 export function MultiCityResults({
   segments,
@@ -382,6 +440,8 @@ export function MultiCityResults({
   runToken,
   publicMode = false,
   preselect,
+  savedPicks,
+  quoteToken,
   ui,
 }: {
   segments: MultiSegmentInput[];
@@ -390,8 +450,13 @@ export function MultiCityResults({
   publicMode?: boolean;
   /** Voo já escolhido por trecho (link de promoção multi-trecho). */
   preselect?: MultiPick[];
+  /** Cotação salva no backend: seleção completa, abre direto a tela final. */
+  savedPicks?: SavedPick[];
+  quoteToken?: string;
   ui: FlightUi;
 }) {
+  const linkPronto = !!savedPicks?.length;
+
   const search = useServerFn(publicMode ? onerFlightSearchPublic : onerFlightSearch);
   const [segs, setSegs] = useState<SegState[]>([]);
   const [active, setActive] = useState(0);
@@ -437,7 +502,9 @@ export function MultiCityResults({
           const raw = await search({ data: paxFor(input) });
           if (runRef.current !== run) return;
           const r = ui.normalizeSearchResult(raw);
-          const escolhido = escolherVooDoLink(r?.outbound.flights ?? [], preselect?.[i], ui);
+          const escolhido = linkPronto
+            ? escolherVooSalvo(r?.outbound.flights ?? [], savedPicks?.[i], ui)
+            : escolherVooDoLink(r?.outbound.flights ?? [], preselect?.[i], ui);
           setSegs((prev) =>
             prev.map((s, idx) =>
               idx === i
@@ -527,6 +594,8 @@ export function MultiCityResults({
   if (!segs.length) return null;
 
   const carregando = segs.some((s) => s.status === "loading" || s.status === "idle");
+  /** Link pronto: pula a etapa de seleção e mostra direto a tela final. */
+  const prontoParaResumo = linkPronto && todosSelecionados && !carregando;
   const atual = segs[active];
   const todosVoos = atual?.result?.outbound.flights ?? [];
   const filtroAtual = filters[active] ?? ui.EMPTY_FILTERS;
@@ -536,9 +605,11 @@ export function MultiCityResults({
   return (
     <div className="space-y-6">
       {/* progresso da pesquisa por trecho */}
+      {!prontoParaResumo && (
       <section className="rounded-2xl border border-border/60 bg-card/70 p-4 md:p-5">
         <h2 className="mb-3 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
-          <Plane className="h-3.5 w-3.5 text-primary" /> Consultando sua viagem
+          <Plane className="h-3.5 w-3.5 text-primary" />{" "}
+          {linkPronto ? "Montando sua viagem" : "Consultando sua viagem"}
         </h2>
         <ul className="space-y-2">
           {segs.map((s, i) => (
@@ -584,8 +655,10 @@ export function MultiCityResults({
           ))}
         </ul>
       </section>
+      )}
 
       {/* abas dos trechos */}
+      {!prontoParaResumo && (
       <div className="flex flex-wrap gap-2">
         {segs.map((s, i) => {
           const on = i === active;
@@ -606,8 +679,9 @@ export function MultiCityResults({
           );
         })}
       </div>
+      )}
 
-      {atual && (
+      {atual && !prontoParaResumo && (
         <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
           <aside className="space-y-4 lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:self-start lg:overflow-y-auto lg:overscroll-contain lg:pr-1">
             <ui.FiltersPanel
@@ -672,7 +746,7 @@ export function MultiCityResults({
         </div>
       )}
 
-      {todosSelecionados && !carregando && (
+      {todosSelecionados && !carregando && !prontoParaResumo && (
         <div className="sticky bottom-4 z-20 flex items-center justify-between gap-3 rounded-2xl border border-primary/40 bg-card/95 p-4 shadow-[var(--shadow-card)] backdrop-blur">
           <div className="min-w-0">
             <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
@@ -692,7 +766,9 @@ export function MultiCityResults({
       )}
 
       <MultiCitySummaryDialog
-        open={finalOpen}
+        inline={prontoParaResumo}
+        quoteToken={quoteToken}
+        open={prontoParaResumo || finalOpen}
         onOpenChange={setFinalOpen}
         segs={segs}
         flights={selectedFlights}
@@ -720,7 +796,12 @@ function MultiCitySummaryDialog({
   purchased,
   onPurchased,
   onResearch,
+  inline = false,
+  quoteToken,
 }: {
+  /** Link pronto: a tela final é a própria página, sem modal. */
+  inline?: boolean;
+  quoteToken?: string;
   open: boolean;
   onOpenChange: (v: boolean) => void;
   segs: SegState[];
@@ -741,16 +822,12 @@ function MultiCitySummaryDialog({
   );
   const paxTotal = pax.adults + pax.children + pax.infants;
 
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex max-h-[92vh] w-[calc(100vw-1.5rem)] max-w-[720px] flex-col gap-0 overflow-hidden rounded-3xl border-border/60 bg-card p-0">
-        <DialogHeader className="border-b border-border/50 bg-background/40 px-5 py-4 text-left">
-          <DialogTitle className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
-            <Plane className="h-3.5 w-3.5 text-primary" /> Sua viagem multi-trecho
-          </DialogTitle>
-        </DialogHeader>
-
+  const corpo = (
+    <>
         <div className="flex-1 space-y-4 overflow-y-auto p-4 md:p-5">
+          {!inline && !publicMode && (
+            <CompartilharCotacao segs={segs} flights={flights} pax={pax} ui={ui} />
+          )}
           <div className="inline-flex items-center gap-2 rounded-full border border-primary/40 bg-primary/10 px-3 py-1 text-[11px] font-bold uppercase tracking-wide text-primary">
             <CheckCircle2 className="h-3.5 w-3.5" />
             {validos.length === segs.length
@@ -836,8 +913,124 @@ function MultiCitySummaryDialog({
             </span>
           </div>
         </div>
+    </>
+  );
+
+  if (inline) {
+    return (
+      <section className="mx-auto w-full max-w-[760px] overflow-hidden rounded-3xl border border-border/60 bg-card">
+        <header className="border-b border-border/50 bg-background/40 px-5 py-4">
+          <h1 className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
+            <Plane className="h-3.5 w-3.5 text-primary" /> Sua viagem multi-trecho
+          </h1>
+        </header>
+        {corpo}
+      </section>
+    );
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="flex max-h-[92vh] w-[calc(100vw-1.5rem)] max-w-[720px] flex-col gap-0 overflow-hidden rounded-3xl border-border/60 bg-card p-0">
+        <DialogHeader className="border-b border-border/50 bg-background/40 px-5 py-4 text-left">
+          <DialogTitle className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
+            <Plane className="h-3.5 w-3.5 text-primary" /> Sua viagem multi-trecho
+          </DialogTitle>
+        </DialogHeader>
+        {corpo}
       </DialogContent>
     </Dialog>
+  );
+}
+
+/**
+ * Link pronto da cotação: grava a seleção completa no backend e devolve um
+ * endereço único (/multitrecho/cotacao/{token}) que abre a tela final em
+ * qualquer celular — sem depender de localStorage nem da URL do motor.
+ */
+function CompartilharCotacao({
+  segs,
+  flights,
+  pax,
+  ui,
+}: {
+  segs: SegState[];
+  flights: (OnerFlight | null)[];
+  pax: MultiPax;
+  ui: FlightUi;
+}) {
+  const [url, setUrl] = useState<string | null>(null);
+  const criar = useServerFn(createMultiCityQuote);
+
+  const mut = useMutation({
+    mutationFn: async () => {
+      const escolhidos = flights.filter(Boolean) as OnerFlight[];
+      if (escolhidos.length !== segs.length) throw new Error("Selecione um voo em cada trecho.");
+      return criar({
+        data: {
+          segments: segs.map((s) => ({
+            origin: s.input.origin.trim().toUpperCase(),
+            destination: s.input.destination.trim().toUpperCase(),
+            date: s.input.date,
+          })),
+          pax,
+          picks: escolhidos.map((f) => pickFromFlight(f, ui)),
+          total: escolhidos.reduce((a, f) => a + f.price.total, 0),
+          label: segs.map((s) => `${s.input.origin}-${s.input.destination}`).join(" / "),
+        },
+      });
+    },
+    onSuccess: (r) => {
+      setUrl(r.url);
+      navigator.clipboard?.writeText(r.url).catch(() => {});
+      toast.success("Link da cotação criado e copiado.");
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Não foi possível gerar o link."),
+  });
+
+  return (
+    <div className="space-y-2 rounded-2xl border border-primary/30 bg-primary/5 p-4">
+      <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+        Link pronto da cotação
+      </div>
+      {url ? (
+        <div className="space-y-2">
+          <div className="truncate rounded-lg border border-border/60 bg-background/60 px-3 py-2 text-xs">
+            {url}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                navigator.clipboard?.writeText(url);
+                toast.success("Link copiado.");
+              }}
+            >
+              Copiar link
+            </Button>
+            <Button size="sm" asChild>
+              <a
+                href={`https://wa.me/?text=${encodeURIComponent(`Sua viagem multi-trecho está pronta: ${url}`)}`}
+                target="_blank"
+                rel="noreferrer"
+              >
+                Enviar no WhatsApp
+              </a>
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <Button size="sm" onClick={() => mut.mutate()} disabled={mut.isPending}>
+          {mut.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+          Gerar link com a viagem montada
+        </Button>
+      )}
+      <p className="text-[11px] text-muted-foreground">
+        O link abre direto a tela final, com todos os trechos, bagagem, parcelamento e o valor
+        total — funciona em qualquer celular.
+      </p>
+    </div>
   );
 }
 
