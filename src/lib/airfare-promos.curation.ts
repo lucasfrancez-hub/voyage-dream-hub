@@ -228,12 +228,26 @@ export function curateOrigin<T extends CurationInput>(
     }
   }
 
+  // ÚLTIMA PASSADA — completar até o LIMITE da origem.
+  // As cotas acima são preferência de composição, não teto do universo:
+  // se ainda há vaga (limite) e sobra oportunidade dentro do teto de
+  // qualidade, ela entra. Assim 69 elegíveis nunca viram "só 7 analisadas".
+  const tetoFinal = scope === "nacional" ? NATIONAL_QUALITY_MAX_RATIO : 1;
+  for (const d of elegiveis) {
+    if (selecionadas.length >= limit) break;
+    if (d.status === "selecionada") continue;
+    if (d.ratio > tetoFinal) continue;
+    if (!cabeNoDestino(d)) continue;
+    aceitar(d, `completar_vagas_${d.region}`);
+  }
+
   decisions.push(...elegiveis);
 
   return {
     selected: selecionadas.map((d) => d.candidate),
     decisions,
     eligible: elegiveis.length,
+    ranked: elegiveis.length,
     excluded: decisions.filter((d) => d.status === "excluida").length,
   };
 }
