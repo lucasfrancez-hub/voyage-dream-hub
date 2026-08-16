@@ -540,7 +540,7 @@ export const generatePromotionLink = createServerFn({ method: "POST" })
     // em multi-trecho e o cliente compra cada trecho pelo Comprar Viagem.
     if (promo.is_multi_leg) {
       const { multiLegSearchUrl } = await import("@/lib/airfare-promos.server");
-      const destino =
+      const motorUrl =
         promo.multi_leg_url ??
         (promo.return_date
           ? multiLegSearchUrl({
@@ -551,7 +551,11 @@ export const generatePromotionLink = createServerFn({ method: "POST" })
               adults: promo.passengers || 1,
             })
           : null);
-      if (!destino) throw new Error("Promoção multi-trecho sem data de volta.");
+      if (!motorUrl) throw new Error("Promoção multi-trecho sem data de volta.");
+
+      // Link pronto: a seleção dos dois trechos fica salva no backend, então o
+      // cliente abre direto a tela final da viagem (funciona em qualquer celular).
+      const destino = (await criarCotacaoMultiTrecho(promo)) ?? motorUrl;
       const short = await criarShortLink(context, destino, promo);
       const { error: mErr } = await context.supabase
         .from("airfare_promotions")
@@ -560,6 +564,7 @@ export const generatePromotionLink = createServerFn({ method: "POST" })
       if (mErr) throw new Error(mErr.message);
       return { cart_url: destino, short_url: short, reused: false };
     }
+
 
     if (!promo.search_key || !promo.outbound_fare_id || !promo.outbound_itinerary_id) {
       throw new Error("Tarifa sem chaves de busca. Atualize a promoção antes de gerar o link.");
