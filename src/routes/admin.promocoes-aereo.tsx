@@ -73,7 +73,11 @@ export const Route = createFileRoute("/admin/promocoes-aereo")({
 });
 
 type Promo = PromoRow & {
+  is_multi_leg?: boolean | null;
+  inbound_airline_name?: string | null;
+  multi_leg_url?: string | null;
   id: string;
+
   scope: string;
   status: string;
   fare_status: string;
