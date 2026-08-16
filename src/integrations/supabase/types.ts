@@ -89,6 +89,39 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_prompt_rules: {
+        Row: {
+          ativo: boolean
+          conteudo: string
+          created_at: string
+          escopo: string
+          id: string
+          observacao: string | null
+          ordem: number
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          conteudo: string
+          created_at?: string
+          escopo?: string
+          id?: string
+          observacao?: string | null
+          ordem?: number
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          conteudo?: string
+          created_at?: string
+          escopo?: string
+          id?: string
+          observacao?: string | null
+          ordem?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       airfare_installment_markups: {
         Row: {
           active: boolean

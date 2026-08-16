@@ -105,6 +105,29 @@ async function loadAgents(): Promise<Agent[]> {
 }
 
 /**
+ * Regras de prompt editáveis no banco (tabela ai_prompt_rules).
+ * Permite corrigir o comportamento da IA em tempo real, sem publicar o app.
+ */
+async function loadRuntimePromptRules(slug: string): Promise<string> {
+  try {
+    const { data } = await supabaseAdmin
+      .from("ai_prompt_rules")
+      .select("conteudo, escopo, ordem")
+      .eq("ativo", true)
+      .in("escopo", ["global", slug])
+      .order("ordem", { ascending: true });
+    const regras = (data ?? []).map((r) => String((r as { conteudo?: string }).conteudo ?? "").trim()).filter(Boolean);
+    if (!regras.length) return "";
+    return (
+      `\n\n# 🔴 REGRAS ATIVAS (prioridade máxima — sobrepõem qualquer instrução anterior)\n` +
+      regras.map((r) => `- ${r}`).join("\n")
+    );
+  } catch {
+    return "";
+  }
+}
+
+/**
  * Escolhe o consultor de forma DETERMINÍSTICA (sem sorteio), igual à Central:
  * 1) menor carga — menos conversas atendidas nas últimas 24h;
  * 2) empate → quem está há mais tempo sem atender (round-robin);
@@ -1272,7 +1295,7 @@ export async function runAgent(input: {
     const mapa = await blocoFluxoParaPrompt().catch(() => "");
     const fluxoBlock = mapa ? `\n\n${mapa}` : "";
 
-    const system =
+    let system =
       (centralAgent
         ? buildCentralPrompt(
             centralAgent.nome,
@@ -1304,6 +1327,10 @@ export async function runAgent(input: {
           `A ferramenta pesquisar_passagens está INDISPONÍVEL nesta rodada — não tente pesquisar, não prometa "já vou pesquisar" como se já tivesse pesquisado. Só faça a saudação e as perguntas.\n` +
           `NUNCA responda vazio: no mínimo pergunte de qual cidade o cliente pretende embarcar.`
         : "");
+
+    // 🔴 REGRAS EM TEMPO REAL (banco) — correções aplicadas sem publicar o app.
+    const regrasRuntime = await loadRuntimePromptRules(agent.slug);
+    if (regrasRuntime) system += regrasRuntime;
 
 
 
