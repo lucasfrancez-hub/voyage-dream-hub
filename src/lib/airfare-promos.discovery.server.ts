@@ -428,7 +428,7 @@ export async function discoverCandidates(opts?: DiscoverOptions): Promise<Discov
             type: lead.scope === "nacional" ? "national" : "international",
             scope: lead.scope,
             categoryId: lead.category_id,
-            category: lead.category,
+            category: lead.category ?? null,
             origin: { iata: lead.origin_iata, city: lead.origin_city },
             destination: { iata: lead.destination_iata, city: lead.destination_city },
             radarPrice: lead.reference_price,
