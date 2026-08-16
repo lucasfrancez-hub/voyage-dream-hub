@@ -339,7 +339,7 @@ export async function processPendingCandidates(args: {
 
   const processar = async (
     cand: CandidateRow,
-    saida: { desfecho: Desfecho; responseAt?: number; engineCalls?: number },
+    saida: { desfecho: Desfecho; responseAt?: number; engineCalls?: number; engineMs?: number },
   ) => {
     const iniciouEm = Date.now();
     const metrica = metricaDe(cand.origin_iata);
