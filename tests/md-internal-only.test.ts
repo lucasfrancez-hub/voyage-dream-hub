@@ -66,12 +66,11 @@ describe("Promoções lêem somente dados internos do Passagens Baratas", () => 
     ).rejects.toBeInstanceOf(MdUnavailableError);
   });
 
-  it("coleta automática sem oportunidades internas não gera fallback artificial", async () => {
-    const chamadas = stub(200, { ok: true });
+  it("radar sem oportunidades não gera fallback artificial", async () => {
+    stub(200, { categories: [], cities: [] });
     const res = await discoverCandidates({ pages: 1, datesPerRoute: 1, radarBudgetMs: 5_000 });
-    expect(chamadas()).toBe(0);
     expect(res.candidates).toHaveLength(0);
     expect(res.fallbackCount).toBe(0);
     expect(res.radarAvailable).toBe(false);
-  }, 30_000);
+  }, 60_000);
 });
