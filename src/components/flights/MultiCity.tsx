@@ -44,6 +44,7 @@ import {
   validateSegments,
   type MultiPick,
   type MultiSegmentInput,
+  type SavedPick,
 } from "@/lib/multicity";
 import {
   AVISO_VALIDADE_TARIFA,
