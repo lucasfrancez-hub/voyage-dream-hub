@@ -643,6 +643,32 @@ export async function processPendingCandidates(args: {
         tele.running = Math.max(0, tele.running - 1);
       }
 
+      /* ─── LOG SIMPLES DE DIAGNÓSTICO (fila x motor) ─── */
+      const finishedAt = Date.now();
+      const queuedAt = cand.created_at ? new Date(cand.created_at).getTime() : iniciou;
+      console.log(
+        "[airfare-validacao]",
+        JSON.stringify({
+          rota: `${cand.origin_iata}->${cand.destination_iata}`,
+          data: cand.departure_date,
+          tentativa: Number(cand.attempts ?? 0) + 1,
+          desfecho: saida.desfecho,
+          queued_at: new Date(queuedAt).toISOString(),
+          started_at: new Date(iniciou).toISOString(),
+          response_at: new Date(saida.responseAt ?? finishedAt).toISOString(),
+          finished_at: new Date(finishedAt).toISOString(),
+          espera_fila_ms: iniciou - queuedAt,
+          motor_ms: (saida.responseAt ?? finishedAt) - iniciou,
+          gravacao_ms: finishedAt - (saida.responseAt ?? finishedAt),
+          total_ms: finishedAt - iniciou,
+          chamadas_motor: saida.engineCalls ?? 0,
+          soma_chamadas_ms: saida.engineMs ?? 0,
+          concorrencia: concurrency,
+          em_voo: tele.running,
+          fila_restante: tele.queued,
+        }),
+      );
+
       duracoes.push(Date.now() - iniciou);
       if (saida.desfecho === "requeue") {
         tele.requeued++;
