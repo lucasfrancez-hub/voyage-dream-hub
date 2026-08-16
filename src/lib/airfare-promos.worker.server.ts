@@ -30,14 +30,39 @@ const CLAIM_STALE_MS = 6 * 60 * 1000;
 /** Execução sem nenhuma atualização por esse tempo é considerada travada. */
 export const RUN_STALE_MS = 45 * 60 * 1000;
 
-const RETRY_DELAYS_MS = [1500, 5000];
+/**
+ * Retry NÃO bloqueia worker: a candidata que falhou volta para o FIM da fila
+ * (prioridade penalizada) e o worker segue imediatamente para a próxima.
+ */
+const REQUEUE_PRIORITY_STEP = 1000;
 
-function sleep(ms: number) {
-  return new Promise((r) => setTimeout(r, ms));
+/** Telemetria da fila de validação (gravada em airfare_promo_runs.validation_metrics). */
+export type ValidationTelemetry = {
+  concurrency: number;
+  queued: number;
+  running: number;
+  completed: number;
+  with_fare: number;
+  without_fare: number;
+  timeout: number;
+  error: number;
+  requeued: number;
+  avg_duration_ms: number | null;
+  p95_duration_ms: number | null;
+  updated_at: string;
+};
+
+function percentil(valores: number[], p: number): number | null {
+  if (!valores.length) return null;
+  const ord = [...valores].sort((a, b) => a - b);
+  const idx = Math.min(ord.length - 1, Math.ceil((p / 100) * ord.length) - 1);
+  return Math.round(ord[Math.max(0, idx)]!);
 }
 
 export type CandidateRow = {
   id: string;
+  priority?: number | null;
+  attempts?: number | null;
   signature: string;
   scope: "nacional" | "internacional";
   origin_iata: string;
@@ -56,7 +81,7 @@ export type CandidateRow = {
 };
 
 const CANDIDATE_COLS =
-  "id,signature,scope,origin_iata,origin_city,destination_iata,destination_city,departure_date,return_date,reference_source,reference_price,reference_origin,reference_destination,reference_departure_date,reference_return_date,reference_collected_at";
+  "id,priority,attempts,signature,scope,origin_iata,origin_city,destination_iata,destination_city,departure_date,return_date,reference_source,reference_price,reference_origin,reference_destination,reference_departure_date,reference_return_date,reference_collected_at";
 
 function opportunityKey(p: { origin_iata: string; destination_iata: string; departure_date: string }) {
   return `${p.origin_iata}|${p.destination_iata}|${p.departure_date}`.toUpperCase();
@@ -144,10 +169,14 @@ export async function processPendingCandidates(args: {
   concurrency?: number;
 }): Promise<{ processed: number; remaining: number; finished: boolean }> {
   const client = await db();
-  const { PROMO_VALIDATION_CONCURRENCY } = await import("@/lib/airfare-promos.config");
+  const { promoValidationConcurrency, PROMO_VALIDATION_MAX_ATTEMPTS } = await import(
+    "@/lib/airfare-promos.config"
+  );
   const runId = args.runId;
   const deadline = Date.now() + (args.budgetMs ?? WORKER_BUDGET_MS);
-  const concurrency = Math.min(Math.max(args.concurrency ?? PROMO_VALIDATION_CONCURRENCY, 1), 4);
+  const concurrency = args.concurrency
+    ? Math.min(Math.max(args.concurrency, 1), 12)
+    : promoValidationConcurrency();
 
   await releaseStaleClaims(client, runId);
 
