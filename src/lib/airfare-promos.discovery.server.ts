@@ -227,6 +227,7 @@ type DiscoverOptions = {
 export async function discoverCandidates(opts?: DiscoverOptions): Promise<DiscoveryResult> {
   const {
     radarLeadsForOrigin,
+    radarLeadsByCategory,
     radarOpportunitiesForLead,
     mapLimit,
     resetRadarMetrics,
@@ -307,6 +308,37 @@ export async function discoverCandidates(opts?: DiscoverOptions): Promise<Discov
         break;
       }
       radarErrors++;
+    }
+  }
+
+  // §15 — se o atalho por origem não devolver nada, percorre o caminho
+  // oficial da API: categorias → destinos → origens do destino → itinerário.
+  if (![...pool.values()].some((m) => m.size) && !cancelada && !semTempo()) {
+    progresso("Radar — varrendo categorias e destinos do Melhores Destinos...");
+    try {
+      const leads = await radarLeadsByCategory([...PRIORITY_ORIGINS], {
+        cancel,
+        onProgress: progresso,
+        deadline: radarDeadline,
+      });
+      for (const l of leads) {
+        addLead({
+          origin_iata: l.origin.iata,
+          origin_city: l.origin.city,
+          destination_iata: l.destination.iata,
+          destination_city: l.destination.city,
+          scope: l.scope,
+          reference_price: l.radarPrice,
+          category_id: l.categoryId,
+          category: l.category,
+          itinerary_link: l.itineraryLink,
+          reference_source: "md_radar_api",
+          dates: [],
+        });
+      }
+    } catch (e) {
+      if (e instanceof RadarCancelledError) cancelada = true;
+      else radarErrors++;
     }
   }
 
