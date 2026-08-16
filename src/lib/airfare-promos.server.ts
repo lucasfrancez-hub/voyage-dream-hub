@@ -883,7 +883,36 @@ export async function collectAirfarePromotions(opts?: {
       : null,
   });
 
-  const fila = [...porAssinatura.values()].sort((a, b) => a.priority - b.priority);
+  /**
+   * ORDEM DA FILA — MAIOR POTENCIAL DE ECONOMIA PRIMEIRO.
+   *
+   * Não muda coleta, elegibilidade nem quantidade: só decide quem o motor
+   * valida antes. A economia estimada é a distância entre o preço de
+   * referência do radar e a mediana do mesmo escopo — quanto mais abaixo da
+   * mediana, mais cedo a oportunidade entra no motor e aparece na curadoria.
+   */
+  const medianaDoEscopo = (escopo: string): number => {
+    const precos = [...porAssinatura.values()]
+      .filter((c) => c.scope === escopo && Number(c.reference_price) > 0)
+      .map((c) => Number(c.reference_price))
+      .sort((a, b) => a - b);
+    if (!precos.length) return 0;
+    return precos[Math.floor(precos.length / 2)]!;
+  };
+  const medianas = new Map<string, number>([
+    ["nacional", medianaDoEscopo("nacional")],
+    ["internacional", medianaDoEscopo("internacional")],
+  ]);
+  const economiaEstimada = (c: { scope: string; reference_price?: number | null }): number => {
+    const ref = Number(c.reference_price ?? 0);
+    const med = medianas.get(c.scope) ?? 0;
+    if (!ref || !med) return 0;
+    return Math.max(0, med - ref);
+  };
+
+  const fila = [...porAssinatura.values()]
+    .sort((a, b) => a.priority - b.priority || economiaEstimada(b) - economiaEstimada(a))
+    .map((c, i) => ({ ...c, priority: c.priority * 1000 + i }));
   counters.discovered = fila.length;
 
   // 3) grava a fila (status pending) e recupera os ids
