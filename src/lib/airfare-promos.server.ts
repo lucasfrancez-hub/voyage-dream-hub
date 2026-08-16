@@ -523,23 +523,33 @@ async function quoteOneWayLegs(args: {
 } | null> {
   const { base, route, departureDate, returnDate } = args;
   try {
-    const ida = await withTimeout(
-      searchFlights({ ...base, departureDate, returnDate: null } as never),
-      ENGINE_CALL_TIMEOUT_MS,
-      "multi:ida",
+    const ida = await medirMotor(
+      "somente_ida",
+      () =>
+        withTimeout(
+          searchFlights({ ...base, departureDate, returnDate: null } as never),
+          ENGINE_CALL_TIMEOUT_MS,
+          "multi:ida",
+        ),
+      args.onEngineTiming,
     );
-    const volta = await withTimeout(
-      searchFlights({
-        ...base,
-        departureIata: route.destination_iata,
-        arrivalIata: route.origin_iata,
-        departureIsCity: isMetroCode(route.destination_iata),
-        arrivalIsCity: isMetroCode(route.origin_iata),
-        departureDate: returnDate,
-        returnDate: null,
-      } as never),
-      ENGINE_CALL_TIMEOUT_MS,
-      "multi:volta",
+    const volta = await medirMotor(
+      "somente_volta",
+      () =>
+        withTimeout(
+          searchFlights({
+            ...base,
+            departureIata: route.destination_iata,
+            arrivalIata: route.origin_iata,
+            departureIsCity: isMetroCode(route.destination_iata),
+            arrivalIsCity: isMetroCode(route.origin_iata),
+            departureDate: returnDate,
+            returnDate: null,
+          } as never),
+          ENGINE_CALL_TIMEOUT_MS,
+          "multi:volta",
+        ),
+      args.onEngineTiming,
     );
     const melhorIda = [...(ida.outbound?.flights ?? [])].sort(
       (a, b) => a.price.total - b.price.total,
