@@ -336,10 +336,10 @@ export async function quoteRoute(args: {
     },
   };
 
-  const res = await withTimeout(
-    searchFlights({ ...base, returnDate } as never),
-    ENGINE_CALL_TIMEOUT_MS,
+  const res = await medirMotor(
     "ida",
+    () => withTimeout(searchFlights({ ...base, returnDate } as never), ENGINE_CALL_TIMEOUT_MS, "ida"),
+    args.onEngineTiming,
   );
   const candidatas = [...(res.outbound?.flights ?? [])].sort(
     (a, b) => a.price.total - b.price.total,
