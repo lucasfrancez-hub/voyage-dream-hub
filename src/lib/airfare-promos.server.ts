@@ -638,30 +638,26 @@ export async function requestPromoRunCancel(runId?: string) {
   }
   if (!alvo) return { cancelled: false as const, reason: "sem_coleta_ativa" };
 
+  // 1) marca o pedido (os workers em voo leem este status ~1x/s e abortam)
   await db
     .from("airfare_promo_runs")
     .update({ status: "cancel_requested", cancel_requested_at: now, updated_at: now })
     .eq("id", alvo)
     .in("status", ACTIVE_RUN_STATUSES as unknown as string[]);
 
-  // candidatas ainda na fila são encerradas de imediato (as em processamento
-  // terminam com segurança e o worker para antes de pegar novas)
+  // 2) esvazia a fila NA HORA: nada mais entra em validação. Inclui as
+  //    candidatas já em `processing` — o worker que as segurava aborta a
+  //    requisição em curso e não grava mais nada nesta execução.
   await db
     .from("airfare_promo_candidates")
     .update({ status: "cancelled", processed_at: now })
     .eq("run_id", alvo)
-    .eq("status", "pending");
+    .in("status", ["pending", "processing"]);
 
-  const { count } = await db
-    .from("airfare_promo_candidates")
-    .select("id", { count: "exact", head: true })
-    .eq("run_id", alvo)
-    .eq("status", "processing");
-
-  if (!Number(count ?? 0)) {
-    const { finalizeCancelledRun } = await import("@/lib/airfare-promos.worker.server");
-    await finalizeCancelledRun(alvo);
-  }
+  // 3) encerra a execução IMEDIATAMENTE — não esperamos a fila atual drenar.
+  //    A UI já mostra "Atualização cancelada" no próximo refresh (~1s).
+  const { finalizeCancelledRun } = await import("@/lib/airfare-promos.worker.server");
+  await finalizeCancelledRun(alvo);
 
   return { cancelled: true as const, runId: alvo };
 }
