@@ -89,7 +89,7 @@ import {
   MultiTrechoToggle,
   type FlightUi,
 } from "@/components/flights/MultiCity";
-import { initialSegments, type MultiSegmentInput } from "@/lib/multicity";
+import { initialSegments, type MultiPick, type MultiSegmentInput } from "@/lib/multicity";
 
 
 
@@ -1853,6 +1853,7 @@ export function VoosPage({
   emptySlot,
   presetFetch,
   multiPreset,
+  multiPicks,
 }: {
   header?: React.ReactNode;
   hideForm?: boolean;
@@ -1869,6 +1870,8 @@ export function VoosPage({
   emptySlot?: React.ReactNode;
   /** Viagem multi-trecho vinda da URL (widget → /voar). */
   multiPreset?: MultiSegmentInput[];
+  /** Voo já escolhido por trecho (?ps=...) — carrinho pronto ao abrir. */
+  multiPicks?: MultiPick[];
 } = {}) {
   const search = useServerFn(publicMode ? onerFlightSearchPublic : onerFlightSearch);
   const searchInbound = useServerFn(publicMode ? onerInboundSearchPublic : onerInboundSearch);
@@ -2506,6 +2509,7 @@ export function VoosPage({
             }}
             runToken={multiRun.token}
             publicMode={publicMode}
+            preselect={multiPicks}
             ui={flightUi}
           />
         )}
