@@ -600,10 +600,9 @@ export async function radarLeadsByCategory(
         radarMetrics.md_routes_received++;
 
         const preco = typeof rota.total_price === "number" ? rota.total_price : null;
-        const scope: "nacional" | "internacional" =
-          cat.national && scopeOfRoute(originIata, destinationIata) === "nacional"
-            ? "nacional"
-            : scopeOfRoute(originIata, destinationIata);
+        const scope: "nacional" | "internacional" = cat.national
+          ? "nacional"
+          : scopeOfRoute(originIata, destinationIata);
         const chave = `${originIata}|${destinationIata}`;
         const atual = leads.get(chave);
         if (atual && (atual.radarPrice ?? Infinity) <= (preco ?? Infinity)) continue;
