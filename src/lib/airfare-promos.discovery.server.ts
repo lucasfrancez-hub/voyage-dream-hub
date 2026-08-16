@@ -410,6 +410,20 @@ export async function discoverCandidates(opts?: DiscoverOptions): Promise<Discov
       if (!grupo.length) continue;
       // limite por ORIGEM e por ESCOPO (10 nacionais + 10 internacionais)
       const res = curateOrigin(origem, grupo, limite);
+      console.log(
+        `[airfare-curadoria] ${origem}/${scope} total_coletado=${grupo.length} ` +
+          `total_elegivel=${res.eligible} total_enviado_ranking=${res.eligible} ` +
+          `total_ranqueado=${res.ranked ?? res.eligible} total_selecionado=${res.selected.length} ` +
+          `total_descartado=${res.eligible + res.excluded - res.selected.length} limite=${limite}`,
+      );
+      const motivos = new Map<string, number>();
+      for (const d of res.decisions) {
+        if (d.status === "selecionada") continue;
+        motivos.set(d.reason, (motivos.get(d.reason) ?? 0) + 1);
+      }
+      if (motivos.size) {
+        console.log(`[airfare-curadoria] ${origem}/${scope} motivo_descarte=`, Object.fromEntries(motivos));
+      }
       elegiveis += res.eligible;
       excluidas += res.excluded;
       if (scope === "nacional") selNacional += res.selected.length;
