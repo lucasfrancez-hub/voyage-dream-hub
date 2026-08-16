@@ -366,6 +366,10 @@ export async function processPendingCandidates(args: {
         signal: abortController.signal,
         onEngineTiming: (t) => {
           saida.engineCalls = (saida.engineCalls ?? 0) + 1;
+          saida.engineMs = (saida.engineMs ?? 0) + t.ms;
+          console.log(
+            `[motor-viaair] ${cand.origin_iata}->${cand.destination_iata} etapa=${t.step} ms=${t.ms} ok=${t.ok}`,
+          );
         },
       });
       saida.responseAt = Date.now();
