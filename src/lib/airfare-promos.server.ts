@@ -77,6 +77,30 @@ export function promoSignature(p: {
     .toUpperCase();
 }
 
+/**
+ * DIFERENÇA MÍNIMA PARA VIRAR MULTI-TRECHO (somente voos NACIONAIS).
+ *
+ * Regra comercial: ida e volta na MESMA companhia é sempre a preferida.
+ * Só quando misturar companhias economiza pelo menos este valor a viagem
+ * é vendida como multi-trecho (cada trecho comprado separadamente no motor).
+ */
+export const MULTI_LEG_MIN_DIFF = 100;
+
+/** Link do motor VIA AIR já aberto em multi-trecho (um cartão por trecho). */
+export function multiLegSearchUrl(args: {
+  origin: string;
+  destination: string;
+  departureDate: string;
+  returnDate: string;
+  adults?: number;
+}): string {
+  const o = args.origin.toUpperCase();
+  const d = args.destination.toUpperCase();
+  const ms = `${o}-${d}-${args.departureDate}_${d}-${o}-${args.returnDate}`;
+  const q = new URLSearchParams({ m: "aereo", ms, ad: String(args.adults ?? 1) });
+  return `https://pedidos.viaair.tur.br/voar?${q.toString()}`;
+}
+
 /** Monta a linha da promoção (sem gravar) a partir dos voos escolhidos. */
 export function buildPromotionRow(args: {
   route: PromoRoute;
@@ -86,8 +110,13 @@ export function buildPromotionRow(args: {
   departureDate: string;
   returnDate: string | null;
   markups: MarkupTable;
+  /** Multi-trecho: a volta veio de OUTRA pesquisa (somente ida). */
+  inboundSearchKey?: string | null;
+  isMultiLeg?: boolean;
+  multiLegSavings?: number | null;
 }) {
   const { route, out, inb, markups } = args;
+
   const passengers = out.price.passengerCount || 1;
   const total = (out.price.total ?? 0) + (inb?.price.total ?? 0);
   const fare = (out.price.price ?? 0) + (inb?.price.price ?? 0);
