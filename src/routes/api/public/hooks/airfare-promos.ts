@@ -102,7 +102,11 @@ export const Route = createFileRoute("/api/public/hooks/airfare-promos")({
           }
 
           try {
-            const res = await collectAirfarePromotions({ maxRoutes: body.maxRoutes ?? 14, runId });
+            const res = await collectAirfarePromotions({
+              maxRoutes: body.maxRoutes ?? 14,
+              runId,
+              trigger: body.trigger === "manual" || body.runId ? "manual" : "cron",
+            });
             return Response.json({ ok: true, ...res, runId, ts: new Date().toISOString() });
           } catch (err) {
             await failPromoRun(runId, err instanceof Error ? err.message : String(err));

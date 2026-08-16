@@ -1049,10 +1049,9 @@ function PromocoesAereoPage() {
       {/* Radar do Melhores Destinos indisponível nesta execução */}
       {info && info.radar_available === false ? (
         <p className="mt-3 rounded-xl border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-600 dark:text-amber-400">
-          Radar Melhores Destinos temporariamente indisponível nesta execução
-          {info.radar_errors ? ` (${info.radar_errors} tentativas sem resposta)` : ""} — nenhuma
-          oportunidade nova foi descoberta e as promoções válidas da coleta anterior foram
-          preservadas.
+          {info.radar_note ??
+            "O radar respondeu, mas não trouxe oportunidades novas nesta execução — as promoções válidas da coleta anterior foram preservadas."}
+          {info.radar_errors ? ` (${info.radar_errors} consulta(s) sem resposta)` : ""}
         </p>
       ) : null}
       {info && info.radar_available !== false && (info.fallback_count ?? 0) > 0 ? (
