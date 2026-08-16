@@ -81,10 +81,12 @@ export type CandidateRow = {
   reference_departure_date: string | null;
   reference_return_date: string | null;
   reference_collected_at: string | null;
+  /** entrada na fila — base do tempo de espera (queued_at) */
+  created_at?: string | null;
 };
 
 const CANDIDATE_COLS =
-  "id,priority,attempts,signature,scope,origin_iata,origin_city,destination_iata,destination_city,departure_date,return_date,reference_source,reference_price,reference_origin,reference_destination,reference_departure_date,reference_return_date,reference_collected_at";
+  "id,priority,attempts,created_at,signature,scope,origin_iata,origin_city,destination_iata,destination_city,departure_date,return_date,reference_source,reference_price,reference_origin,reference_destination,reference_departure_date,reference_return_date,reference_collected_at";
 
 function opportunityKey(p: { origin_iata: string; destination_iata: string; departure_date: string }) {
   return `${p.origin_iata}|${p.destination_iata}|${p.departure_date}`.toUpperCase();
@@ -335,7 +337,10 @@ export async function processPendingCandidates(args: {
     return null;
   };
 
-  const processar = async (cand: CandidateRow, saida: { desfecho: Desfecho }) => {
+  const processar = async (
+    cand: CandidateRow,
+    saida: { desfecho: Desfecho; responseAt?: number; engineCalls?: number; engineMs?: number },
+  ) => {
     const iniciouEm = Date.now();
     const metrica = metricaDe(cand.origin_iata);
     metrica.validated++;
@@ -359,8 +364,17 @@ export async function processPendingCandidates(args: {
         returnDate: cand.return_date,
         markups,
         signal: abortController.signal,
+        onEngineTiming: (t) => {
+          saida.engineCalls = (saida.engineCalls ?? 0) + 1;
+          saida.engineMs = (saida.engineMs ?? 0) + t.ms;
+          console.log(
+            `[motor-viaair] ${cand.origin_iata}->${cand.destination_iata} etapa=${t.step} ms=${t.ms} ok=${t.ok}`,
+          );
+        },
       });
+      saida.responseAt = Date.now();
     } catch (err) {
+      saida.responseAt = Date.now();
       const msg = (err instanceof Error ? err.message : String(err)).slice(0, 400);
       registrarTempo(cand.origin_iata, Date.now() - iniciouEm);
 
@@ -607,7 +621,8 @@ export async function processPendingCandidates(args: {
       tele.running++;
       tele.queued = Math.max(0, tele.queued - 1);
       const iniciou = Date.now();
-      const saida: { desfecho: Desfecho } = { desfecho: "error" };
+      const saida: { desfecho: Desfecho; responseAt?: number; engineCalls?: number; engineMs?: number } =
+        { desfecho: "error" };
       let label = "";
       try {
         // TIMEOUT INDIVIDUAL: nenhuma consulta prende um worker da fila.
@@ -627,6 +642,32 @@ export async function processPendingCandidates(args: {
       } finally {
         tele.running = Math.max(0, tele.running - 1);
       }
+
+      /* ─── LOG SIMPLES DE DIAGNÓSTICO (fila x motor) ─── */
+      const finishedAt = Date.now();
+      const queuedAt = cand.created_at ? new Date(cand.created_at).getTime() : iniciou;
+      console.log(
+        "[airfare-validacao]",
+        JSON.stringify({
+          rota: `${cand.origin_iata}->${cand.destination_iata}`,
+          data: cand.departure_date,
+          tentativa: Number(cand.attempts ?? 0) + 1,
+          desfecho: saida.desfecho,
+          queued_at: new Date(queuedAt).toISOString(),
+          started_at: new Date(iniciou).toISOString(),
+          response_at: new Date(saida.responseAt ?? finishedAt).toISOString(),
+          finished_at: new Date(finishedAt).toISOString(),
+          espera_fila_ms: iniciou - queuedAt,
+          motor_ms: (saida.responseAt ?? finishedAt) - iniciou,
+          gravacao_ms: finishedAt - (saida.responseAt ?? finishedAt),
+          total_ms: finishedAt - iniciou,
+          chamadas_motor: saida.engineCalls ?? 0,
+          soma_chamadas_ms: saida.engineMs ?? 0,
+          concorrencia: concurrency,
+          em_voo: tele.running,
+          fila_restante: tele.queued,
+        }),
+      );
 
       duracoes.push(Date.now() - iniciou);
       if (saida.desfecho === "requeue") {

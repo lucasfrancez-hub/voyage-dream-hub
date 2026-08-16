@@ -271,6 +271,32 @@ export function withTimeout<T>(p: Promise<T>, ms: number, label: string): Promis
 }
 
 /** Pesquisa uma rota/data e devolve a melhor oportunidade (ou null). */
+/** Telemetria de UMA chamada ao motor VIA AIR (diagnóstico de lentidão). */
+export type EngineTiming = {
+  step: "ida" | "volta" | "somente_ida" | "somente_volta";
+  ms: number;
+  ok: boolean;
+};
+
+export type EngineTimingSink = (t: EngineTiming) => void;
+
+/** Mede cada requisição real ao motor, sem alterar o comportamento. */
+async function medirMotor<T>(
+  step: EngineTiming["step"],
+  exec: () => Promise<T>,
+  sink?: EngineTimingSink,
+): Promise<T> {
+  const t0 = Date.now();
+  try {
+    const r = await exec();
+    sink?.({ step, ms: Date.now() - t0, ok: true });
+    return r;
+  } catch (err) {
+    sink?.({ step, ms: Date.now() - t0, ok: false });
+    throw err;
+  }
+}
+
 export async function quoteRoute(args: {
   route: PromoRoute;
   departureDate: string;
@@ -279,6 +305,8 @@ export async function quoteRoute(args: {
   adults?: number;
   /** Cancelamento cooperativo: aborta antes de disparar cada consulta ao motor. */
   signal?: AbortSignal;
+  /** Diagnóstico: recebe o tempo de cada requisição feita ao motor VIA AIR. */
+  onEngineTiming?: EngineTimingSink;
 }) {
   const { route, departureDate, returnDate } = args;
   const abortou = () => {
@@ -308,10 +336,10 @@ export async function quoteRoute(args: {
     },
   };
 
-  const res = await withTimeout(
-    searchFlights({ ...base, returnDate } as never),
-    ENGINE_CALL_TIMEOUT_MS,
+  const res = await medirMotor(
     "ida",
+    () => withTimeout(searchFlights({ ...base, returnDate } as never), ENGINE_CALL_TIMEOUT_MS, "ida"),
+    args.onEngineTiming,
   );
   const candidatas = [...(res.outbound?.flights ?? [])].sort(
     (a, b) => a.price.total - b.price.total,
@@ -348,15 +376,20 @@ export async function quoteRoute(args: {
       if (melhorIn && Date.now() > prazo) break;
       if (args.signal?.aborted) break;
       try {
-        const back = await withTimeout(
-          searchInboundFlights({
-            ...base,
-            returnDate,
-            searchKey: res.searchKey,
-            flightKey: cand.key,
-          } as never),
-          ENGINE_CALL_TIMEOUT_MS,
+        const back = await medirMotor(
           "volta",
+          () =>
+            withTimeout(
+              searchInboundFlights({
+                ...base,
+                returnDate,
+                searchKey: res.searchKey,
+                flightKey: cand.key,
+              } as never),
+              ENGINE_CALL_TIMEOUT_MS,
+              "volta",
+            ),
+          args.onEngineTiming,
         );
         const voltas = [...(back.flights ?? [])].sort((a, b) => a.price.total - b.price.total);
         const melhor = voltas[0] ?? null;
@@ -408,7 +441,13 @@ export async function quoteRoute(args: {
       //    (Antes só era tentada quando a própria pesquisa de ida e volta já
       //    devolvia companhias diferentes — por isso o multi-trecho nunca
       //    aparecia em rotas dominadas por uma única cia.)
-      const perna = await quoteOneWayLegs({ base, route, departureDate, returnDate });
+      const perna = await quoteOneWayLegs({
+        base,
+        route,
+        departureDate,
+        returnDate,
+        onEngineTiming: args.onEngineTiming,
+      });
       const economia = perna ? Number((convTotal - perna.total).toFixed(2)) : null;
 
       console.info(
@@ -480,6 +519,7 @@ async function quoteOneWayLegs(args: {
   route: PromoRoute;
   departureDate: string;
   returnDate: string;
+  onEngineTiming?: EngineTimingSink;
 }): Promise<{
   out: OnerFlight;
   inb: OnerFlight;
@@ -489,23 +529,33 @@ async function quoteOneWayLegs(args: {
 } | null> {
   const { base, route, departureDate, returnDate } = args;
   try {
-    const ida = await withTimeout(
-      searchFlights({ ...base, departureDate, returnDate: null } as never),
-      ENGINE_CALL_TIMEOUT_MS,
-      "multi:ida",
+    const ida = await medirMotor(
+      "somente_ida",
+      () =>
+        withTimeout(
+          searchFlights({ ...base, departureDate, returnDate: null } as never),
+          ENGINE_CALL_TIMEOUT_MS,
+          "multi:ida",
+        ),
+      args.onEngineTiming,
     );
-    const volta = await withTimeout(
-      searchFlights({
-        ...base,
-        departureIata: route.destination_iata,
-        arrivalIata: route.origin_iata,
-        departureIsCity: isMetroCode(route.destination_iata),
-        arrivalIsCity: isMetroCode(route.origin_iata),
-        departureDate: returnDate,
-        returnDate: null,
-      } as never),
-      ENGINE_CALL_TIMEOUT_MS,
-      "multi:volta",
+    const volta = await medirMotor(
+      "somente_volta",
+      () =>
+        withTimeout(
+          searchFlights({
+            ...base,
+            departureIata: route.destination_iata,
+            arrivalIata: route.origin_iata,
+            departureIsCity: isMetroCode(route.destination_iata),
+            arrivalIsCity: isMetroCode(route.origin_iata),
+            departureDate: returnDate,
+            returnDate: null,
+          } as never),
+          ENGINE_CALL_TIMEOUT_MS,
+          "multi:volta",
+        ),
+      args.onEngineTiming,
     );
     const melhorIda = [...(ida.outbound?.flights ?? [])].sort(
       (a, b) => a.price.total - b.price.total,
