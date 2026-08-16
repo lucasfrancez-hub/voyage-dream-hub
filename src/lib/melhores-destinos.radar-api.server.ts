@@ -500,8 +500,13 @@ export async function radarLeadsForOrigin(
       radarMetrics.md_routes_received++;
 
       const preco = typeof city.total_price === "number" ? city.total_price : null;
-      const national = cat.national && scopeOfRoute(originIata, destination) === "nacional";
-      const scope: "nacional" | "internacional" = national ? "nacional" : scopeOfRoute(originIata, destination);
+      // Categoria "Brasil" do MD manda: destino da categoria nacional é
+      // sempre nacional (evita Bonito/BYO virar "internacional" só porque o
+      // IATA não estava na lista local).
+      const scope: "nacional" | "internacional" = cat.national
+        ? "nacional"
+        : scopeOfRoute(originIata, destination);
+      const national = scope === "nacional";
       const atual = leads.get(destination);
       if (atual && (atual.radarPrice ?? Infinity) <= (preco ?? Infinity)) continue;
 
@@ -595,10 +600,9 @@ export async function radarLeadsByCategory(
         radarMetrics.md_routes_received++;
 
         const preco = typeof rota.total_price === "number" ? rota.total_price : null;
-        const scope: "nacional" | "internacional" =
-          cat.national && scopeOfRoute(originIata, destinationIata) === "nacional"
-            ? "nacional"
-            : scopeOfRoute(originIata, destinationIata);
+        const scope: "nacional" | "internacional" = cat.national
+          ? "nacional"
+          : scopeOfRoute(originIata, destinationIata);
         const chave = `${originIata}|${destinationIata}`;
         const atual = leads.get(chave);
         if (atual && (atual.radarPrice ?? Infinity) <= (preco ?? Infinity)) continue;

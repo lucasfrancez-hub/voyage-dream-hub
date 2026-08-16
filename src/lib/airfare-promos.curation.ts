@@ -53,6 +53,8 @@ export type CurationResult<T extends CurationInput = CurationInput> = {
   selected: T[];
   decisions: Array<CurationDecision<T>>;
   eligible: number;
+  /** quantas elegíveis realmente entraram no ranking (deve ser = eligible) */
+  ranked?: number;
   excluded: number;
 };
 
@@ -228,12 +230,29 @@ export function curateOrigin<T extends CurationInput>(
     }
   }
 
+  // ÚLTIMA PASSADA — completar até o LIMITE da origem.
+  // As cotas acima são preferência de composição, não teto do universo:
+  // se ainda há vaga (limite) e sobra oportunidade dentro do teto de
+  // qualidade, ela entra. Assim 69 elegíveis nunca viram "só 7 analisadas".
+  // No internacional as cotas + excepcionalidade continuam mandando; no
+  // nacional as cotas (4+2+1) eram um teto artificial de 7.
+  if (scope === "nacional") {
+    for (const d of elegiveis) {
+      if (selecionadas.length >= limit) break;
+      if (d.status === "selecionada") continue;
+      if (d.ratio > NATIONAL_QUALITY_MAX_RATIO) continue;
+      if (!cabeNoDestino(d)) continue;
+      aceitar(d, `completar_vagas_${d.region}`);
+    }
+  }
+
   decisions.push(...elegiveis);
 
   return {
     selected: selecionadas.map((d) => d.candidate),
     decisions,
     eligible: elegiveis.length,
+    ranked: elegiveis.length,
     excluded: decisions.filter((d) => d.status === "excluida").length,
   };
 }
