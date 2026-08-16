@@ -296,6 +296,7 @@ export async function quoteRoute(args: {
   let multiLeg = false;
   let multiSavings: number | null = null;
   let inboundSearchKey: string | null = null;
+  let outboundSearchKey: string | null = null;
 
   if (returnDate) {
     // IDA E VOLTA: o preço final é ida + volta. A ida mais barata muitas vezes
@@ -385,6 +386,7 @@ export async function quoteRoute(args: {
         out = perna.out;
         inb = perna.inb;
         inboundSearchKey = perna.inboundSearchKey;
+        outboundSearchKey = perna.outboundSearchKey;
         multiLeg = true;
         multiSavings = mesmaOut && mesmaIn ? Number((mesmaTotal - perna.total).toFixed(2)) : null;
         // segurança: se as pernas separadas ficarem mais caras que a mesma
@@ -393,6 +395,7 @@ export async function quoteRoute(args: {
           out = mesmaOut;
           inb = mesmaIn;
           inboundSearchKey = null;
+          outboundSearchKey = null;
           multiLeg = false;
           multiSavings = null;
         }
@@ -411,7 +414,7 @@ export async function quoteRoute(args: {
 
   return buildPromotionRow({
     route,
-    searchKey: multiLeg ? (out.searchKeyOverride ?? res.searchKey) : res.searchKey,
+    searchKey: multiLeg ? (outboundSearchKey ?? res.searchKey) : res.searchKey,
     out,
     inb,
     departureDate,
@@ -434,8 +437,9 @@ async function quoteOneWayLegs(args: {
   departureDate: string;
   returnDate: string;
 }): Promise<{
-  out: OnerFlight & { searchKeyOverride?: string };
+  out: OnerFlight;
   inb: OnerFlight;
+  outboundSearchKey: string;
   inboundSearchKey: string;
   total: number;
 } | null> {
@@ -467,8 +471,9 @@ async function quoteOneWayLegs(args: {
     )[0];
     if (!melhorIda || !melhorVolta) return null;
     return {
-      out: Object.assign(melhorIda, { searchKeyOverride: ida.searchKey }),
+      out: melhorIda,
       inb: melhorVolta,
+      outboundSearchKey: ida.searchKey,
       inboundSearchKey: volta.searchKey,
       total: (melhorIda.price.total ?? 0) + (melhorVolta.price.total ?? 0),
     };
