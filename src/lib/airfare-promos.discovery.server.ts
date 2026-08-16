@@ -45,7 +45,14 @@ export type PromoCandidate = {
   reference_departure_date: string | null;
   reference_return_date: string | null;
   reference_collected_at: string;
+  /** metadados do radar (referência; nunca substituem o preço VIA AIR) */
+  radar_airline_code?: string | null;
+  radar_airline_name?: string | null;
+  radar_baggage?: string | null;
+  radar_provider?: string | null;
+  radar_external_url?: string | null;
 };
+
 
 /** Origens que precisam estar sempre representadas na curadoria (config central). */
 export { PRIORITY_ORIGINS_NACIONAL, PRIORITY_ORIGINS_HUB } from "@/lib/airfare-promos.config";
