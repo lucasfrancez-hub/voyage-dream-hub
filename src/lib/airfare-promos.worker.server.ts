@@ -625,7 +625,7 @@ export async function processPendingCandidates(args: {
 
   const worker = async () => {
     while (Date.now() < deadline) {
-      if (cancelada || (await cancelamentoPedido())) {
+      if (cancelada || abortController.signal.aborted || (await cancelamentoPedido())) {
         cancelada = true;
         abortController.abort();
         return;
@@ -641,9 +641,20 @@ export async function processPendingCandidates(args: {
       let label = "";
       try {
         // TIMEOUT INDIVIDUAL: nenhuma consulta prende um worker da fila.
-        label = await withTimeout(processar(cand, saida), CANDIDATE_TIMEOUT_MS, "candidata");
+        label = await withTimeout(
+          processar(cand, saida),
+          CANDIDATE_TIMEOUT_MS,
+          "candidata",
+          abortController.signal,
+        );
       } catch (err) {
         const msg = (err instanceof Error ? err.message : String(err)).slice(0, 400);
+        // cancelado: não marcamos a candidata como erro nem contabilizamos
+        if (abortController.signal.aborted || /^cancelado/i.test(msg)) {
+          cancelada = true;
+          tele.running = Math.max(0, tele.running - 1);
+          return;
+        }
         saida.desfecho = /timeout/i.test(msg) ? "timeout" : "error";
         counters.error_count++;
         label = `${cand.origin_iata}→${cand.destination_iata}`;
@@ -697,17 +708,22 @@ export async function processPendingCandidates(args: {
         counters.processed++;
         processadasAgora++;
       }
+      if (cancelada || abortController.signal.aborted) return;
       await progresso(label, saida.desfecho !== "requeue");
     }
   };
 
   // FILA GLOBAL: os workers competem pela mesma fila, sem esperar terminar uma
   // origem para começar outra. Terminou uma validação, começa a próxima.
-  await Promise.all(Array.from({ length: concurrency }, () => worker()));
-  await progresso("", true);
+  try {
+    await Promise.all(Array.from({ length: concurrency }, () => worker()));
+  } finally {
+    clearInterval(vigia);
+  }
+  if (!cancelada) await progresso("", true);
 
   if (cancelada) {
-    await touch({ ...counters, origin_metrics: metricasSnapshot() });
+    // o cancelamento já encerrou a execução; aqui apenas garantimos o estado
     await finalizeCancelledRun(runId);
     return { processed: processadasAgora, remaining: 0, finished: true };
   }
