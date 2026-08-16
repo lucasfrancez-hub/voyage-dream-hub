@@ -313,6 +313,7 @@ export async function processPendingCandidates(args: {
         .eq("run_id", runId)
         .eq("status", "pending")
         .order("priority", { ascending: true })
+        .order("created_at", { ascending: true })
         .limit(1)
         .maybeSingle();
       if (!data) return null;
@@ -328,48 +329,58 @@ export async function processPendingCandidates(args: {
     return null;
   };
 
-  const processar = async (cand: CandidateRow) => {
+  const processar = async (cand: CandidateRow, saida: { desfecho: Desfecho }) => {
     const iniciouEm = Date.now();
     const metrica = metricaDe(cand.origin_iata);
     metrica.validated++;
     const label = `${cand.destination_city ?? cand.destination_iata} (${cand.origin_iata}→${cand.destination_iata})`;
 
     let row: ReturnType<typeof buildPromotionRow> | null = null;
-    let ultimoErro: unknown = null;
+    const tentativasFeitas = Number(cand.attempts ?? 0) + 1;
 
-    for (let tentativa = 0; tentativa <= RETRY_DELAYS_MS.length; tentativa++) {
-      try {
-        row = await quoteRoute({
-          route: {
-            id: cand.id,
-            origin_iata: cand.origin_iata,
-            origin_city: cand.origin_city,
-            destination_iata: cand.destination_iata,
-            destination_city: cand.destination_city,
-            scope: cand.scope,
-            priority: 0,
-          },
-          departureDate: cand.departure_date,
-          returnDate: cand.return_date,
-          markups,
+    try {
+      row = await quoteRoute({
+        route: {
+          id: cand.id,
+          origin_iata: cand.origin_iata,
+          origin_city: cand.origin_city,
+          destination_iata: cand.destination_iata,
+          destination_city: cand.destination_city,
+          scope: cand.scope,
+          priority: 0,
+        },
+        departureDate: cand.departure_date,
+        returnDate: cand.return_date,
+        markups,
+        signal: abortController.signal,
+      });
+    } catch (err) {
+      const msg = (err instanceof Error ? err.message : String(err)).slice(0, 400);
+      registrarTempo(cand.origin_iata, Date.now() - iniciouEm);
+
+      // RETRY SEM BLOQUEAR WORKER: volta pro FIM da fila (prioridade penalizada)
+      // e o worker já pega a próxima oportunidade — nada de sleep aqui.
+      if (tentativasFeitas < PROMO_VALIDATION_MAX_ATTEMPTS && !abortController.signal.aborted) {
+        saida.desfecho = "requeue";
+        await setCandidato(cand.id, {
+          status: "pending",
+          claimed_at: null,
+          attempts: tentativasFeitas,
+          priority: Number(cand.priority ?? 0) + REQUEUE_PRIORITY_STEP,
+          last_error: msg,
+          last_error_step: "motor_viaair",
+          last_error_at: new Date().toISOString(),
         });
-        ultimoErro = null;
-        break;
-      } catch (err) {
-        ultimoErro = err;
-        row = null;
-        if (tentativa < RETRY_DELAYS_MS.length) await sleep(RETRY_DELAYS_MS[tentativa]!);
+        return label;
       }
-    }
 
-    if (ultimoErro) {
+      saida.desfecho = /timeout/i.test(msg) ? "timeout" : "error";
       counters.error_count++;
       metrica.errors++;
-      registrarTempo(cand.origin_iata, Date.now() - iniciouEm);
       await setCandidato(cand.id, {
         status: "error",
-        attempts: RETRY_DELAYS_MS.length + 1,
-        last_error: (ultimoErro instanceof Error ? ultimoErro.message : String(ultimoErro)).slice(0, 400),
+        attempts: tentativasFeitas,
+        last_error: msg,
         last_error_step: "motor_viaair",
         last_error_at: new Date().toISOString(),
         processed_at: new Date().toISOString(),
@@ -378,6 +389,7 @@ export async function processPendingCandidates(args: {
     }
 
     if (!row) {
+      saida.desfecho = "without_fare";
       counters.no_result++;
       metrica.no_result++;
       registrarTempo(cand.origin_iata, Date.now() - iniciouEm);
@@ -462,6 +474,7 @@ export async function processPendingCandidates(args: {
       .maybeSingle();
 
     if (upErr) {
+      saida.desfecho = "error";
       counters.error_count++;
       metrica.errors++;
       registrarTempo(cand.origin_iata, Date.now() - iniciouEm);
@@ -476,6 +489,7 @@ export async function processPendingCandidates(args: {
     }
 
 
+    saida.desfecho = "with_fare";
     counters.validated++;
     counters.saved++;
     metrica.with_price++;
