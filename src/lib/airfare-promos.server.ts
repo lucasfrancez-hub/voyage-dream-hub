@@ -271,6 +271,32 @@ export function withTimeout<T>(p: Promise<T>, ms: number, label: string): Promis
 }
 
 /** Pesquisa uma rota/data e devolve a melhor oportunidade (ou null). */
+/** Telemetria de UMA chamada ao motor VIA AIR (diagnóstico de lentidão). */
+export type EngineTiming = {
+  step: "ida" | "volta" | "somente_ida" | "somente_volta";
+  ms: number;
+  ok: boolean;
+};
+
+export type EngineTimingSink = (t: EngineTiming) => void;
+
+/** Mede cada requisição real ao motor, sem alterar o comportamento. */
+async function medirMotor<T>(
+  step: EngineTiming["step"],
+  exec: () => Promise<T>,
+  sink?: EngineTimingSink,
+): Promise<T> {
+  const t0 = Date.now();
+  try {
+    const r = await exec();
+    sink?.({ step, ms: Date.now() - t0, ok: true });
+    return r;
+  } catch (err) {
+    sink?.({ step, ms: Date.now() - t0, ok: false });
+    throw err;
+  }
+}
+
 export async function quoteRoute(args: {
   route: PromoRoute;
   departureDate: string;
@@ -279,6 +305,8 @@ export async function quoteRoute(args: {
   adults?: number;
   /** Cancelamento cooperativo: aborta antes de disparar cada consulta ao motor. */
   signal?: AbortSignal;
+  /** Diagnóstico: recebe o tempo de cada requisição feita ao motor VIA AIR. */
+  onEngineTiming?: EngineTimingSink;
 }) {
   const { route, departureDate, returnDate } = args;
   const abortou = () => {
