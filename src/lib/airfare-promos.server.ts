@@ -363,8 +363,8 @@ export async function quoteRoute(args: {
     // A) MELHOR IDA+VOLTA CONVENCIONAL (com a preferência comercial de manter a
     //    mesma companhia quando a diferença é pequena).
     const usaMesma = !!(mesmaOut && mesmaIn && diferenca < MULTI_LEG_MIN_DIFF);
-    let convOut = usaMesma ? mesmaOut! : melhorOut;
-    let convIn = usaMesma ? mesmaIn! : melhorIn;
+    const convOut = usaMesma ? mesmaOut! : melhorOut;
+    const convIn = usaMesma ? mesmaIn! : melhorIn;
     const convTotal = usaMesma ? mesmaTotal : melhorTotal;
 
     out = convOut;
