@@ -22,11 +22,6 @@ import {
   type OriginMetrics,
 } from "@/lib/airfare-promos.config";
 import { curateOrigin, type CurationDecision } from "@/lib/airfare-promos.curation";
-import {
-  datasDaRotaHandler,
-  listarPromocoesHandler,
-  mdInternalOnly,
-} from "@/lib/melhores-destinos.server";
 
 export type PromoCandidate = {
   signature: string;
