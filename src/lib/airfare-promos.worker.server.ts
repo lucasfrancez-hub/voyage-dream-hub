@@ -621,7 +621,8 @@ export async function processPendingCandidates(args: {
       tele.running++;
       tele.queued = Math.max(0, tele.queued - 1);
       const iniciou = Date.now();
-      const saida: { desfecho: Desfecho } = { desfecho: "error" };
+      const saida: { desfecho: Desfecho; responseAt?: number; engineCalls?: number; engineMs?: number } =
+        { desfecho: "error" };
       let label = "";
       try {
         // TIMEOUT INDIVIDUAL: nenhuma consulta prende um worker da fila.
