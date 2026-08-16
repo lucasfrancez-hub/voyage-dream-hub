@@ -254,15 +254,43 @@ export const ENGINE_CALL_TIMEOUT_MS = 60_000;
 /** Timeout total por candidata (ida + volta + gravação). */
 export const CANDIDATE_TIMEOUT_MS = 100_000;
 
-export function withTimeout<T>(p: Promise<T>, ms: number, label: string): Promise<T> {
+export function withTimeout<T>(
+  p: Promise<T>,
+  ms: number,
+  label: string,
+  signal?: AbortSignal,
+): Promise<T> {
   return new Promise<T>((resolve, reject) => {
-    const t = setTimeout(() => reject(new Error(`timeout:${label}:${ms}ms`)), ms);
+    let vivo = true;
+    const t = setTimeout(() => {
+      if (!vivo) return;
+      vivo = false;
+      reject(new Error(`timeout:${label}:${ms}ms`));
+    }, ms);
+    // CANCELAMENTO IMEDIATO: não esperamos a requisição pendente terminar —
+    // soltamos o worker na hora (a promessa órfã é descartada).
+    const onAbort = () => {
+      if (!vivo) return;
+      vivo = false;
+      clearTimeout(t);
+      reject(new Error(`cancelado:${label}`));
+    };
+    if (signal) {
+      if (signal.aborted) return onAbort();
+      signal.addEventListener("abort", onAbort, { once: true });
+    }
     p.then(
       (v) => {
+        signal?.removeEventListener("abort", onAbort);
+        if (!vivo) return;
+        vivo = false;
         clearTimeout(t);
         resolve(v);
       },
       (e) => {
+        signal?.removeEventListener("abort", onAbort);
+        if (!vivo) return;
+        vivo = false;
         clearTimeout(t);
         reject(e);
       },
