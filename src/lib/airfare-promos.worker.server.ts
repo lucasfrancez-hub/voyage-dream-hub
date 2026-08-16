@@ -928,9 +928,36 @@ export async function resumeActiveRun(budgetMs = WORKER_BUDGET_MS) {
     return { resumed: false as const, reason: "finalizada" };
   }
 
-  const res = await processPendingCandidates({ runId: run.id, budgetMs });
-  return { resumed: true as const, runId: run.id, ...res };
+  // LEASE: com orçamento de vários minutos, o cron de 1 minuto dispararia
+  // invocações sobrepostas e multiplicaria a carga no motor. Só uma invocação
+  // por vez segura o lease; as demais retornam sem trabalho.
+  const agora = Date.now();
+  const leaseAte = new Date(agora + budgetMs + WORKER_LEASE_SLACK_MS).toISOString();
+  const { data: lease } = await client
+    .from("airfare_promo_runs")
+    .update({ worker_lease_until: leaseAte })
+    .eq("id", run.id)
+    .or(`worker_lease_until.is.null,worker_lease_until.lt.${new Date(agora).toISOString()}`)
+    .select("id");
+  if (!lease || lease.length === 0) {
+    return { resumed: false as const, reason: "worker_em_execucao" };
+  }
+
+  try {
+    const res = await processPendingCandidates({ runId: run.id, budgetMs });
+    return { resumed: true as const, runId: run.id, ...res };
+  } finally {
+    await client
+      .from("airfare_promo_runs")
+      .update({ worker_lease_until: null })
+      .eq("id", run.id)
+      .then(
+        () => undefined,
+        () => undefined,
+      );
+  }
 }
+
 
 /**
  * REGRA DA MEIA-NOITE (00:00 BRT) — zera a curadoria ativa.
