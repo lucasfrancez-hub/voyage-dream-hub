@@ -376,15 +376,20 @@ export async function quoteRoute(args: {
       if (melhorIn && Date.now() > prazo) break;
       if (args.signal?.aborted) break;
       try {
-        const back = await withTimeout(
-          searchInboundFlights({
-            ...base,
-            returnDate,
-            searchKey: res.searchKey,
-            flightKey: cand.key,
-          } as never),
-          ENGINE_CALL_TIMEOUT_MS,
+        const back = await medirMotor(
           "volta",
+          () =>
+            withTimeout(
+              searchInboundFlights({
+                ...base,
+                returnDate,
+                searchKey: res.searchKey,
+                flightKey: cand.key,
+              } as never),
+              ENGINE_CALL_TIMEOUT_MS,
+              "volta",
+            ),
+          args.onEngineTiming,
         );
         const voltas = [...(back.flights ?? [])].sort((a, b) => a.price.total - b.price.total);
         const melhor = voltas[0] ?? null;
