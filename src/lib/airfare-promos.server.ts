@@ -513,6 +513,7 @@ async function quoteOneWayLegs(args: {
   route: PromoRoute;
   departureDate: string;
   returnDate: string;
+  onEngineTiming?: EngineTimingSink;
 }): Promise<{
   out: OnerFlight;
   inb: OnerFlight;
