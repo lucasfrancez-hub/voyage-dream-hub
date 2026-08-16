@@ -501,7 +501,9 @@ export function MultiCityResults({
           const raw = await search({ data: paxFor(input) });
           if (runRef.current !== run) return;
           const r = ui.normalizeSearchResult(raw);
-          const escolhido = escolherVooDoLink(r?.outbound.flights ?? [], preselect?.[i], ui);
+          const escolhido = linkPronto
+            ? escolherVooSalvo(r?.outbound.flights ?? [], savedPicks?.[i], ui)
+            : escolherVooDoLink(r?.outbound.flights ?? [], preselect?.[i], ui);
           setSegs((prev) =>
             prev.map((s, idx) =>
               idx === i
