@@ -21,8 +21,16 @@ import type { MarkupTable } from "@/lib/airfare-conditions";
 
 type AnyClient = { from: (t: string) => any };
 
-/** Orçamento de tempo por invocação (deixa folga para o runtime serverless). */
-export const WORKER_BUDGET_MS = 55_000;
+/**
+ * Orçamento de tempo por invocação. Antes eram 55s, o que fazia a fila esperar
+ * o cron do minuto seguinte entre lotes. Agora cada invocação trabalha por
+ * vários minutos seguidos (com lease para o cron não sobrepor execuções).
+ */
+export const WORKER_BUDGET_MS = Number(process.env["AIRFARE_WORKER_BUDGET_MS"] ?? 240_000);
+
+/** Margem do lease além do orçamento (tolerância de finalização). */
+const WORKER_LEASE_SLACK_MS = 30_000;
+
 
 /** Candidata presa em `processing` volta para a fila depois disso. */
 const CLAIM_STALE_MS = 6 * 60 * 1000;
@@ -920,9 +928,36 @@ export async function resumeActiveRun(budgetMs = WORKER_BUDGET_MS) {
     return { resumed: false as const, reason: "finalizada" };
   }
 
-  const res = await processPendingCandidates({ runId: run.id, budgetMs });
-  return { resumed: true as const, runId: run.id, ...res };
+  // LEASE: com orçamento de vários minutos, o cron de 1 minuto dispararia
+  // invocações sobrepostas e multiplicaria a carga no motor. Só uma invocação
+  // por vez segura o lease; as demais retornam sem trabalho.
+  const agora = Date.now();
+  const leaseAte = new Date(agora + budgetMs + WORKER_LEASE_SLACK_MS).toISOString();
+  const { data: lease } = await client
+    .from("airfare_promo_runs")
+    .update({ worker_lease_until: leaseAte })
+    .eq("id", run.id)
+    .or(`worker_lease_until.is.null,worker_lease_until.lt.${new Date(agora).toISOString()}`)
+    .select("id");
+  if (!lease || lease.length === 0) {
+    return { resumed: false as const, reason: "worker_em_execucao" };
+  }
+
+  try {
+    const res = await processPendingCandidates({ runId: run.id, budgetMs });
+    return { resumed: true as const, runId: run.id, ...res };
+  } finally {
+    await client
+      .from("airfare_promo_runs")
+      .update({ worker_lease_until: null })
+      .eq("id", run.id)
+      .then(
+        () => undefined,
+        () => undefined,
+      );
+  }
 }
+
 
 /**
  * REGRA DA MEIA-NOITE (00:00 BRT) — zera a curadoria ativa.
