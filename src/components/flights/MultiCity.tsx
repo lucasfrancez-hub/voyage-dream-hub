@@ -593,6 +593,8 @@ export function MultiCityResults({
   if (!segs.length) return null;
 
   const carregando = segs.some((s) => s.status === "loading" || s.status === "idle");
+  /** Link pronto: pula a etapa de seleção e mostra direto a tela final. */
+  const prontoParaResumo = linkPronto && todosSelecionados && !carregando;
   const atual = segs[active];
   const todosVoos = atual?.result?.outbound.flights ?? [];
   const filtroAtual = filters[active] ?? ui.EMPTY_FILTERS;
@@ -602,9 +604,11 @@ export function MultiCityResults({
   return (
     <div className="space-y-6">
       {/* progresso da pesquisa por trecho */}
+      {!prontoParaResumo && (
       <section className="rounded-2xl border border-border/60 bg-card/70 p-4 md:p-5">
         <h2 className="mb-3 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
-          <Plane className="h-3.5 w-3.5 text-primary" /> Consultando sua viagem
+          <Plane className="h-3.5 w-3.5 text-primary" />{" "}
+          {linkPronto ? "Montando sua viagem" : "Consultando sua viagem"}
         </h2>
         <ul className="space-y-2">
           {segs.map((s, i) => (
@@ -650,8 +654,10 @@ export function MultiCityResults({
           ))}
         </ul>
       </section>
+      )}
 
       {/* abas dos trechos */}
+      {!prontoParaResumo && (
       <div className="flex flex-wrap gap-2">
         {segs.map((s, i) => {
           const on = i === active;
@@ -672,8 +678,9 @@ export function MultiCityResults({
           );
         })}
       </div>
+      )}
 
-      {atual && (
+      {atual && !prontoParaResumo && (
         <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
           <aside className="space-y-4 lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:self-start lg:overflow-y-auto lg:overscroll-contain lg:pr-1">
             <ui.FiltersPanel
@@ -738,7 +745,7 @@ export function MultiCityResults({
         </div>
       )}
 
-      {todosSelecionados && !carregando && (
+      {todosSelecionados && !carregando && !prontoParaResumo && (
         <div className="sticky bottom-4 z-20 flex items-center justify-between gap-3 rounded-2xl border border-primary/40 bg-card/95 p-4 shadow-[var(--shadow-card)] backdrop-blur">
           <div className="min-w-0">
             <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
@@ -758,7 +765,9 @@ export function MultiCityResults({
       )}
 
       <MultiCitySummaryDialog
-        open={finalOpen}
+        inline={prontoParaResumo}
+        quoteToken={quoteToken}
+        open={prontoParaResumo || finalOpen}
         onOpenChange={setFinalOpen}
         segs={segs}
         flights={selectedFlights}
