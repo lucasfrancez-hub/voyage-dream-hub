@@ -532,7 +532,7 @@ export async function processPendingCandidates(args: {
   let cancelada = false;
 
   /**
-   * Cancelamento cooperativo (checado no mÃ¡ximo a cada 4s, para nÃ£o bater no
+   * Cancelamento cooperativo (checado no máximo a cada 4s, para não bater no
    * banco a cada job) + AbortController que interrompe as consultas em curso.
    */
   let ultimaChecagem = 0;
@@ -549,12 +549,12 @@ export async function processPendingCandidates(args: {
       const st = (data as { status?: string } | null)?.status;
       ultimoStatusRunning = st === "running";
     } catch {
-      /* falha de leitura nÃ£o cancela a execuÃ§Ã£o */
+      /* falha de leitura não cancela a execução */
     }
     return !ultimoStatusRunning;
   };
 
-  /** Progresso gravado no mÃ¡ximo 1x/s â a UI reflete cada resultado sem inundar o banco. */
+  /** Progresso gravado no máximo 1x/s â a UI reflete cada resultado sem inundar o banco. */
   let ultimoTouch = 0;
   const progresso = async (label: string, forcar = false) => {
     if (!forcar && Date.now() - ultimoTouch < 1000) return;
