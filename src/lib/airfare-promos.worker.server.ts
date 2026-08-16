@@ -652,8 +652,7 @@ export async function processPendingCandidates(args: {
         // cancelado: não marcamos a candidata como erro nem contabilizamos
         if (abortController.signal.aborted || /^cancelado/i.test(msg)) {
           cancelada = true;
-          tele.running = Math.max(0, tele.running - 1);
-          return;
+          return; // o `finally` abaixo devolve o contador de em-voo
         }
         saida.desfecho = /timeout/i.test(msg) ? "timeout" : "error";
         counters.error_count++;
