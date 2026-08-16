@@ -462,7 +462,8 @@ export async function radarLeadsForOrigin(
     categorias = await radarCategories(from, { cancel });
   } catch (e) {
     if (e instanceof RadarCancelledError) throw e;
-    return [];
+    // falha real da fonte precisa aparecer no diagnóstico (não vira lista vazia)
+    throw e;
   }
 
   for (const cat of categorias) {
@@ -544,7 +545,7 @@ export async function radarLeadsByCategory(
     categorias = await radarCategories(undefined, { cancel });
   } catch (e) {
     if (e instanceof RadarCancelledError) throw e;
-    return [];
+    throw e;
   }
 
   for (const cat of categorias) {

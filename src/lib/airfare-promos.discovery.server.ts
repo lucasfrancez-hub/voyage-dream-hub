@@ -170,6 +170,10 @@ export type DiscoveryResult = {
   sourceMetrics?: Record<string, unknown>;
   /** A descoberta foi interrompida por pedido de cancelamento. */
   cancelled?: boolean;
+  /** Causa real quando o radar não devolveu oportunidades. */
+  radarError?: string | null;
+  /** Etapa em que a falha aconteceu (categories, categories:cities...). */
+  radarErrorStage?: string | null;
 };
 
 /** Oportunidade em nível de DESTINO, antes de escolher as datas. */
@@ -362,8 +366,10 @@ export async function discoverCandidates(opts?: DiscoverOptions): Promise<Discov
       radarErrors,
       radarLeads: 0,
       fallbackCount: 0,
-      sourceMetrics: radarSourceMetrics(),
+      sourceMetrics: { ...radarSourceMetrics(), radar_adapter: "melhores-destinos.radar-api.server" },
       cancelled: cancelada,
+      radarError: (radarSourceMetrics() as { lastError?: string | null }).lastError ?? null,
+      radarErrorStage: radarErrors ? "radar" : "sem_oportunidades",
     };
   }
 
@@ -537,8 +543,10 @@ export async function discoverCandidates(opts?: DiscoverOptions): Promise<Discov
     radarErrors,
     radarLeads,
     fallbackCount: 0,
-    sourceMetrics: radarSourceMetrics(),
+    sourceMetrics: { ...radarSourceMetrics(), radar_adapter: "melhores-destinos.radar-api.server" },
     cancelled: cancelada,
+    radarError: null,
+    radarErrorStage: null,
   };
 }
 

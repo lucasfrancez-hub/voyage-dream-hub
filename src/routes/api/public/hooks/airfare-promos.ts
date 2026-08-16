@@ -58,6 +58,36 @@ export const Route = createFileRoute("/api/public/hooks/airfare-promos")({
             return Response.json({ ok: true, ...res, ts: new Date().toISOString() });
           }
 
+          // DIAGNÓSTICO do radar no runtime real (sem criar execução nem gravar nada).
+          if (body.trigger === "radar_diag") {
+            const radar = await import("@/lib/melhores-destinos.radar-api.server");
+            radar.resetRadarMetrics();
+            const origem = (body as { origin?: string }).origin ?? "MGF";
+            const t0 = Date.now();
+            let erro: string | null = null;
+            let leads = 0;
+            let amostra: string[] = [];
+            try {
+              const r = await radar.radarLeadsForOrigin(origem, { deadline: Date.now() + 25_000 });
+              leads = r.length;
+              amostra = r.slice(0, 5).map((l) => `${l.origin.iata}->${l.destination.iata} ${l.radarPrice}`);
+            } catch (e) {
+              erro = e instanceof Error ? `${e.name}: ${e.message}` : String(e);
+            }
+            return Response.json({
+              ok: true,
+              trigger: "manual_diag",
+              radar_adapter: "melhores-destinos.radar-api.server",
+              origin: origem,
+              leads,
+              amostra,
+              erro,
+              ms: Date.now() - t0,
+              metrics: radar.radarSourceMetrics(),
+            });
+          }
+
+
           const { collectAirfarePromotions, startPromoRun, failPromoRun } = await import(
             "@/lib/airfare-promos.server"
           );
@@ -72,7 +102,11 @@ export const Route = createFileRoute("/api/public/hooks/airfare-promos")({
           }
 
           try {
-            const res = await collectAirfarePromotions({ maxRoutes: body.maxRoutes ?? 14, runId });
+            const res = await collectAirfarePromotions({
+              maxRoutes: body.maxRoutes ?? 14,
+              runId,
+              trigger: body.trigger === "manual" || body.runId ? "manual" : "cron",
+            });
             return Response.json({ ok: true, ...res, runId, ts: new Date().toISOString() });
           } catch (err) {
             await failPromoRun(runId, err instanceof Error ? err.message : String(err));
