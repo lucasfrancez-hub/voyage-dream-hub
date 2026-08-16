@@ -67,6 +67,16 @@ function airlineOf(f: OnerFlight) {
   return f.journey?.marketingAirline ?? f.journey?.segments?.[0]?.marketingAirline;
 }
 
+/** Assinatura leve do voo (cia + horário de partida) usada na pré-seleção do motor. */
+function horaPick(f: OnerFlight | null, airline: string | null) {
+  const t = f?.journey?.departure?.time ?? f?.journey?.segments?.[0]?.departure?.time ?? null;
+  const hora = t
+    ? `${String(t.hour).padStart(2, "0")}:${String(t.minute).padStart(2, "0")}`
+    : null;
+  return { airline: airline ?? null, time: hora };
+}
+
+
 export function promoSignature(p: {
   origin_iata: string;
   destination_iata: string;
