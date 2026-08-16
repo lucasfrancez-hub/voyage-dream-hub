@@ -293,19 +293,31 @@ export async function quoteRoute(args: {
   if (!out) return null;
 
   let inb: OnerFlight | null = null;
+  let multiLeg = false;
+  let multiSavings: number | null = null;
+  let inboundSearchKey: string | null = null;
+
   if (returnDate) {
     // IDA E VOLTA: o preço final é ida + volta. A ida mais barata muitas vezes
     // tem a volta mais cara — por isso testamos as primeiras candidatas e
-    // ficamos com a MENOR SOMA (antes gravávamos a primeira que combinasse,
-    // o que fazia a promoção sair diferente da tarifa realmente mais barata).
+    // ficamos com a MENOR SOMA.
+    //
+    // PRIORIDADE COMERCIAL: ida e volta na MESMA companhia. A combinação com
+    // companhias diferentes só é usada quando economiza de verdade (regra do
+    // multi-trecho, abaixo) — e apenas em voos NACIONAIS.
     const MAX_COMBINACOES = 5;
     const prazo = Date.now() + CANDIDATE_TIMEOUT_MS * 0.7;
     let melhorTotal = Number.POSITIVE_INFINITY;
+    let melhorOut: OnerFlight | null = null;
+    let melhorIn: OnerFlight | null = null;
+    let mesmaTotal = Number.POSITIVE_INFINITY;
+    let mesmaOut: OnerFlight | null = null;
+    let mesmaIn: OnerFlight | null = null;
 
     for (const cand of candidatas.slice(0, MAX_COMBINACOES)) {
       // Já não há como uma combinação ficar melhor: a ida sozinha custa mais.
-      if (inb && cand.price.total >= melhorTotal) break;
-      if (inb && Date.now() > prazo) break;
+      if (melhorIn && cand.price.total >= melhorTotal) break;
+      if (melhorIn && Date.now() > prazo) break;
       try {
         const back = await withTimeout(
           searchInboundFlights({
@@ -317,33 +329,154 @@ export async function quoteRoute(args: {
           ENGINE_CALL_TIMEOUT_MS,
           "volta",
         );
-        const melhor =
-          [...(back.flights ?? [])].sort((a, b) => a.price.total - b.price.total)[0] ?? null;
+        const voltas = [...(back.flights ?? [])].sort((a, b) => a.price.total - b.price.total);
+        const melhor = voltas[0] ?? null;
         if (!melhor) continue;
         const soma = (cand.price.total ?? 0) + (melhor.price.total ?? 0);
         if (soma < melhorTotal) {
           melhorTotal = soma;
-          out = cand;
-          inb = melhor;
+          melhorOut = cand;
+          melhorIn = melhor;
+        }
+        // melhor combinação com a MESMA companhia na ida e na volta
+        const ciaIda = airlineOf(cand)?.iata;
+        const mesma = ciaIda ? voltas.find((v) => airlineOf(v)?.iata === ciaIda) : null;
+        if (mesma) {
+          const somaMesma = (cand.price.total ?? 0) + (mesma.price.total ?? 0);
+          if (somaMesma < mesmaTotal) {
+            mesmaTotal = somaMesma;
+            mesmaOut = cand;
+            mesmaIn = mesma;
+          }
         }
       } catch {
         /* tenta a próxima candidata */
       }
     }
+
+    if (!melhorOut || !melhorIn) return null;
+
+    const nacional = route.scope === "nacional";
+    const diferenca = mesmaOut && mesmaIn ? mesmaTotal - melhorTotal : 0;
+    const misturaCias =
+      airlineOf(melhorOut)?.iata && airlineOf(melhorIn)?.iata
+        ? airlineOf(melhorOut)!.iata !== airlineOf(melhorIn)!.iata
+        : false;
+
+    if (!nacional) {
+      // Internacional: comportamento normal (melhor soma, carrinho único).
+      out = melhorOut;
+      inb = melhorIn;
+    } else if (mesmaOut && mesmaIn && diferenca < MULTI_LEG_MIN_DIFF) {
+      // Mesma companhia na ida e na volta (padrão, mesmo custando um pouco mais).
+      out = mesmaOut;
+      inb = mesmaIn;
+    } else if (misturaCias) {
+      // MUITA diferença (>= R$ 100) com companhias diferentes: vira multi-trecho.
+      // Cada trecho é pesquisado como SOMENTE IDA para gerar tarifas
+      // independentes e o link abre o motor VIA AIR com um trecho por card.
+      const perna = await quoteOneWayLegs({
+        base,
+        route,
+        departureDate,
+        returnDate,
+      });
+      if (perna) {
+        out = perna.out;
+        inb = perna.inb;
+        inboundSearchKey = perna.inboundSearchKey;
+        multiLeg = true;
+        multiSavings = mesmaOut && mesmaIn ? Number((mesmaTotal - perna.total).toFixed(2)) : null;
+        // segurança: se as pernas separadas ficarem mais caras que a mesma
+        // companhia, mantemos ida e volta na mesma cia.
+        if (mesmaOut && mesmaIn && perna.total >= mesmaTotal) {
+          out = mesmaOut;
+          inb = mesmaIn;
+          inboundSearchKey = null;
+          multiLeg = false;
+          multiSavings = null;
+        }
+      } else {
+        out = mesmaOut ?? melhorOut;
+        inb = mesmaIn ?? melhorIn;
+      }
+    } else {
+      out = melhorOut;
+      inb = melhorIn;
+    }
+
     if (!inb) return null;
   }
 
 
   return buildPromotionRow({
     route,
-    searchKey: res.searchKey,
+    searchKey: multiLeg ? (out.searchKeyOverride ?? res.searchKey) : res.searchKey,
     out,
     inb,
     departureDate,
     returnDate: inb ? returnDate : null,
     markups: args.markups,
+    inboundSearchKey,
+    isMultiLeg: multiLeg,
+    multiLegSavings: multiSavings,
   });
 }
+
+/**
+ * MULTI-TRECHO — pesquisa ida e volta como duas viagens de SOMENTE IDA.
+ * Devolve as duas tarifas independentes (cada uma com a sua pesquisa),
+ * exatamente como o cliente vai comprar no motor, trecho por trecho.
+ */
+async function quoteOneWayLegs(args: {
+  base: Record<string, unknown>;
+  route: PromoRoute;
+  departureDate: string;
+  returnDate: string;
+}): Promise<{
+  out: OnerFlight & { searchKeyOverride?: string };
+  inb: OnerFlight;
+  inboundSearchKey: string;
+  total: number;
+} | null> {
+  const { base, route, departureDate, returnDate } = args;
+  try {
+    const ida = await withTimeout(
+      searchFlights({ ...base, departureDate, returnDate: null } as never),
+      ENGINE_CALL_TIMEOUT_MS,
+      "multi:ida",
+    );
+    const volta = await withTimeout(
+      searchFlights({
+        ...base,
+        departureIata: route.destination_iata,
+        arrivalIata: route.origin_iata,
+        departureIsCity: isMetroCode(route.destination_iata),
+        arrivalIsCity: isMetroCode(route.origin_iata),
+        departureDate: returnDate,
+        returnDate: null,
+      } as never),
+      ENGINE_CALL_TIMEOUT_MS,
+      "multi:volta",
+    );
+    const melhorIda = [...(ida.outbound?.flights ?? [])].sort(
+      (a, b) => a.price.total - b.price.total,
+    )[0];
+    const melhorVolta = [...(volta.outbound?.flights ?? [])].sort(
+      (a, b) => a.price.total - b.price.total,
+    )[0];
+    if (!melhorIda || !melhorVolta) return null;
+    return {
+      out: Object.assign(melhorIda, { searchKeyOverride: ida.searchKey }),
+      inb: melhorVolta,
+      inboundSearchKey: volta.searchKey,
+      total: (melhorIda.price.total ?? 0) + (melhorVolta.price.total ?? 0),
+    };
+  } catch {
+    return null;
+  }
+}
+
 
 /** Considera travada/abandonada uma execução parada há mais de 45 minutos. */
 const RUN_STALE_MS = 45 * 60 * 1000;
