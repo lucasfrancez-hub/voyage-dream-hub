@@ -130,6 +130,11 @@ export type Database = {
           priority: number
           processed_at: string | null
           promotion_id: string | null
+          radar_airline_code: string | null
+          radar_airline_name: string | null
+          radar_baggage: string | null
+          radar_external_url: string | null
+          radar_provider: string | null
           reference_collected_at: string | null
           reference_departure_date: string | null
           reference_destination: string | null
@@ -160,6 +165,11 @@ export type Database = {
           priority?: number
           processed_at?: string | null
           promotion_id?: string | null
+          radar_airline_code?: string | null
+          radar_airline_name?: string | null
+          radar_baggage?: string | null
+          radar_external_url?: string | null
+          radar_provider?: string | null
           reference_collected_at?: string | null
           reference_departure_date?: string | null
           reference_destination?: string | null
@@ -190,6 +200,11 @@ export type Database = {
           priority?: number
           processed_at?: string | null
           promotion_id?: string | null
+          radar_airline_code?: string | null
+          radar_airline_name?: string | null
+          radar_baggage?: string | null
+          radar_external_url?: string | null
+          radar_provider?: string | null
           reference_collected_at?: string | null
           reference_departure_date?: string | null
           reference_destination?: string | null
