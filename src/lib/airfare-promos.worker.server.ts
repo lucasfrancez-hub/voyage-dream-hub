@@ -558,7 +558,7 @@ export async function processPendingCandidates(args: {
   let ultimaChecagem = 0;
   let ultimoStatusRunning = true;
   const cancelamentoPedido = async () => {
-    if (Date.now() - ultimaChecagem < 4000) return !ultimoStatusRunning;
+    if (Date.now() - ultimaChecagem < 1000) return !ultimoStatusRunning;
     ultimaChecagem = Date.now();
     try {
       const { data } = await client
@@ -567,12 +567,27 @@ export async function processPendingCandidates(args: {
         .eq("id", runId)
         .maybeSingle();
       const st = (data as { status?: string } | null)?.status;
+      // "running" é o único estado que permite continuar. Qualquer outro
+      // (cancel_requested/cancelada) interrompe na hora.
       ultimoStatusRunning = st === "running";
+      if (!ultimoStatusRunning) {
+        cancelada = true;
+        abortController.abort();
+      }
     } catch {
       /* falha de leitura não cancela a execução */
     }
     return !ultimoStatusRunning;
   };
+
+  /**
+   * VIGIA DE CANCELAMENTO — roda em paralelo aos workers (1x/s). Sem ele o
+   * cancelamento só era percebido ENTRE candidatas, ou seja, depois de até
+   * ~100s de validação em curso ("Cancelando…" preso por minutos).
+   */
+  const vigia = setInterval(() => {
+    void cancelamentoPedido();
+  }, 1000);
 
   /** Progresso gravado no máximo 1x/s â a UI reflete cada resultado sem inundar o banco. */
   let ultimoTouch = 0;
