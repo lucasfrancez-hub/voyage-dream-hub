@@ -337,7 +337,10 @@ export async function processPendingCandidates(args: {
     return null;
   };
 
-  const processar = async (cand: CandidateRow, saida: { desfecho: Desfecho }) => {
+  const processar = async (
+    cand: CandidateRow,
+    saida: { desfecho: Desfecho; responseAt?: number; engineCalls?: number },
+  ) => {
     const iniciouEm = Date.now();
     const metrica = metricaDe(cand.origin_iata);
     metrica.validated++;
