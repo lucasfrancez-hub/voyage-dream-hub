@@ -398,6 +398,7 @@ export async function radarCategories(
     } satisfies RadarCategory;
   });
   radarMetrics.categoriesChecked += cats.length;
+  radarMetrics.md_categories_received += cats.length;
   return cats;
 }
 
@@ -486,11 +487,16 @@ export async function radarLeadsForOrigin(
 
     for (const city of json.cities ?? []) {
       const { from: linkFrom, to } = iataFromItineraryLink(city.link);
-      if (!to || !city.link) continue;
+      if (!to || !city.link) {
+        radarMetrics.md_invalid_without_route++;
+        continue;
+      }
       const originIata = normalizeIata(linkFrom ?? from);
       const destination = normalizeIata(to);
       if (destination.length !== 3 || destination === originIata) continue;
       radarMetrics.destinationsChecked++;
+      radarMetrics.md_destinations_received++;
+      radarMetrics.md_routes_received++;
 
       const preco = typeof city.total_price === "number" ? city.total_price : null;
       const national = cat.national && scopeOfRoute(originIata, destination) === "nacional";
@@ -511,6 +517,108 @@ export async function radarLeadsForOrigin(
         itineraryLink: String(city.link),
         collectedAt,
       });
+    }
+  }
+
+  return [...leads.values()];
+}
+
+/**
+ * §15 — CAMINHO OFICIAL DA API (usado quando o atalho por origem não devolve
+ * nada): categorias → destinos da categoria → origens disponíveis daquele
+ * destino → link do itinerário. Sempre seguindo o `link` devolvido pela
+ * própria resposta, nunca montando URL por suposição.
+ */
+export async function radarLeadsByCategory(
+  monitoredOrigins: string[],
+  opts?: { cancel?: RadarCancel; onProgress?: (msg: string) => void; deadline?: number },
+): Promise<RadarLead[]> {
+  const cancel = opts?.cancel;
+  const semTempo = () => !!opts?.deadline && Date.now() >= opts.deadline;
+  const collectedAt = new Date().toISOString();
+  const permitidas = new Set(monitoredOrigins.map((o) => normalizeIata(o)));
+  const leads = new Map<string, RadarLead>();
+
+  let categorias: RadarCategory[] = [];
+  try {
+    categorias = await radarCategories(undefined, { cancel });
+  } catch (e) {
+    if (e instanceof RadarCancelledError) throw e;
+    return [];
+  }
+
+  for (const cat of categorias) {
+    if (semTempo()) break;
+    await checarCancelamento(cancel);
+    opts?.onProgress?.(`Radar — ${cat.name}`);
+    let destinos: RawCategories;
+    try {
+      destinos = await getJson<RawCategories>(cat.link, {
+        ttlMs: RADAR_TTL.cities,
+        cancel,
+        etapa: "categories:destinations",
+      });
+    } catch (e) {
+      if (e instanceof RadarCancelledError) throw e;
+      continue;
+    }
+
+    for (const destino of destinos.cities ?? []) {
+      if (semTempo()) break;
+      if (!destino?.link) {
+        radarMetrics.md_invalid_without_route++;
+        continue;
+      }
+      radarMetrics.md_destinations_received++;
+      let origens: RawCategories;
+      try {
+        origens = await getJson<RawCategories>(destino.link, {
+          ttlMs: RADAR_TTL.cities,
+          cancel,
+          etapa: "categories:origins",
+        });
+      } catch (e) {
+        if (e instanceof RadarCancelledError) throw e;
+        continue;
+      }
+
+      for (const rota of origens.cities ?? []) {
+        const { from, to } = iataFromItineraryLink(rota?.link);
+        if (!from || !to || !rota?.link) {
+          radarMetrics.md_invalid_without_route++;
+          continue;
+        }
+        const originIata = normalizeIata(from);
+        const destinationIata = normalizeIata(to);
+        if (!permitidas.has(originIata) || originIata === destinationIata) continue;
+        radarMetrics.md_routes_received++;
+
+        const preco = typeof rota.total_price === "number" ? rota.total_price : null;
+        const scope: "nacional" | "internacional" =
+          cat.national && scopeOfRoute(originIata, destinationIata) === "nacional"
+            ? "nacional"
+            : scopeOfRoute(originIata, destinationIata);
+        const chave = `${originIata}|${destinationIata}`;
+        const atual = leads.get(chave);
+        if (atual && (atual.radarPrice ?? Infinity) <= (preco ?? Infinity)) continue;
+
+        leads.set(chave, {
+          source: "melhores_destinos",
+          type: scope === "nacional" ? "national" : "international",
+          scope,
+          categoryId: cat.id,
+          category: cat.name || null,
+          origin: { iata: originIata, city: rota.from_city_name ?? null },
+          destination: {
+            iata: destinationIata,
+            city: rota.to_city_name ?? destinos.to_city_name ?? destino.to_city_name ?? null,
+          },
+          radarPrice: preco,
+          currency: "BRL",
+          itineraryLink: String(rota.link),
+          collectedAt,
+        });
+      }
     }
   }
 
