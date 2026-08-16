@@ -244,10 +244,18 @@ export async function quoteRoute(args: {
 
   let inb: OnerFlight | null = null;
   if (returnDate) {
-    // Ida e volta: uma tarifa de ida pode não ter combinação de volta.
-    // Tenta as 3 mais baratas antes de desistir — nunca gravamos só a ida
-    // quando a oportunidade foi descoberta como ida e volta.
-    for (const cand of candidatas.slice(0, 3)) {
+    // IDA E VOLTA: o preço final é ida + volta. A ida mais barata muitas vezes
+    // tem a volta mais cara — por isso testamos as primeiras candidatas e
+    // ficamos com a MENOR SOMA (antes gravávamos a primeira que combinasse,
+    // o que fazia a promoção sair diferente da tarifa realmente mais barata).
+    const MAX_COMBINACOES = 5;
+    const prazo = Date.now() + CANDIDATE_TIMEOUT_MS * 0.7;
+    let melhorTotal = Number.POSITIVE_INFINITY;
+
+    for (const cand of candidatas.slice(0, MAX_COMBINACOES)) {
+      // Já não há como uma combinação ficar melhor: a ida sozinha custa mais.
+      if (inb && cand.price.total >= melhorTotal) break;
+      if (inb && Date.now() > prazo) break;
       try {
         const back = await withTimeout(
           searchInboundFlights({
@@ -261,10 +269,12 @@ export async function quoteRoute(args: {
         );
         const melhor =
           [...(back.flights ?? [])].sort((a, b) => a.price.total - b.price.total)[0] ?? null;
-        if (melhor) {
+        if (!melhor) continue;
+        const soma = (cand.price.total ?? 0) + (melhor.price.total ?? 0);
+        if (soma < melhorTotal) {
+          melhorTotal = soma;
           out = cand;
           inb = melhor;
-          break;
         }
       } catch {
         /* tenta a próxima candidata */
@@ -272,6 +282,7 @@ export async function quoteRoute(args: {
     }
     if (!inb) return null;
   }
+
 
   return buildPromotionRow({
     route,
