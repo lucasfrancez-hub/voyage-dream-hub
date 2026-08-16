@@ -441,13 +441,20 @@ export type Database = {
           fare_status: string
           has_checked_baggage: boolean
           id: string
+          inbound_airline_iata: string | null
+          inbound_airline_logo: string | null
+          inbound_airline_name: string | null
           inbound_fare_id: string | null
           inbound_itinerary_id: string | null
+          inbound_search_key: string | null
           interest_free_installment_value: number
           interest_free_installments: number
+          is_multi_leg: boolean
           is_round_trip: boolean
           last_checked_at: string
           last_run_id: string | null
+          multi_leg_savings: number | null
+          multi_leg_url: string | null
           origin_city: string | null
           origin_iata: string
           outbound_fare_id: string | null
@@ -505,13 +512,20 @@ export type Database = {
           fare_status?: string
           has_checked_baggage?: boolean
           id?: string
+          inbound_airline_iata?: string | null
+          inbound_airline_logo?: string | null
+          inbound_airline_name?: string | null
           inbound_fare_id?: string | null
           inbound_itinerary_id?: string | null
+          inbound_search_key?: string | null
           interest_free_installment_value?: number
           interest_free_installments?: number
+          is_multi_leg?: boolean
           is_round_trip?: boolean
           last_checked_at?: string
           last_run_id?: string | null
+          multi_leg_savings?: number | null
+          multi_leg_url?: string | null
           origin_city?: string | null
           origin_iata: string
           outbound_fare_id?: string | null
@@ -569,13 +583,20 @@ export type Database = {
           fare_status?: string
           has_checked_baggage?: boolean
           id?: string
+          inbound_airline_iata?: string | null
+          inbound_airline_logo?: string | null
+          inbound_airline_name?: string | null
           inbound_fare_id?: string | null
           inbound_itinerary_id?: string | null
+          inbound_search_key?: string | null
           interest_free_installment_value?: number
           interest_free_installments?: number
+          is_multi_leg?: boolean
           is_round_trip?: boolean
           last_checked_at?: string
           last_run_id?: string | null
+          multi_leg_savings?: number | null
+          multi_leg_url?: string | null
           origin_city?: string | null
           origin_iata?: string
           outbound_fare_id?: string | null
