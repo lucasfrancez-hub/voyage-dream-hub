@@ -16,6 +16,8 @@ import {
 } from "@/lib/airfare-conditions";
 import type { OriginMetrics } from "@/lib/airfare-promos.config";
 import { isMetroCode, resolveCity } from "@/lib/iata-lookup";
+import { encodePicks } from "@/lib/multicity";
+
 import { searchFlights, searchInboundFlights } from "@/lib/onertravel.server";
 import { flightHasBaggage, type OnerFlight } from "@/lib/onertravel.types";
 
