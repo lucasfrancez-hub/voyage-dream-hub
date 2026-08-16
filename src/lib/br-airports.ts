@@ -17,6 +17,9 @@ export const BR_IATA = new Set([
   "BEL","MAO","MCP","PVH","RBR","BVB","STM","PMW","MAB","ATM","AUX","TFF","CZS","TBT","OIA","JPR","VLP","IZA","GRP",
   // Outros usuais
   "PMG","CFB","SJZ","MEA","GVR","POO","VAG","PNZ","JPA","QSC",
+  // Destinos turísticos que faltavam (evita virar "internacional")
+  "BYO","CAW","MEU","LEC","CKS","DIQ","BVH","OPS","AFL","JTI","GUZ","ARU","FEC",
+  "PET","CXJ","CCM","JJG","JOI","SBJ","ITB","RIA","BAT","CFC","QCR","TFL","JDR",
   // Códigos de cidade (multi-aeroporto) usados pelo motor
   "SAO","RIO","BHZ",
 ]);
