@@ -52,6 +52,9 @@ export type ValidationTelemetry = {
   updated_at: string;
 };
 
+/** Desfecho de UMA validação na fila. */
+type Desfecho = "with_fare" | "without_fare" | "timeout" | "error" | "requeue";
+
 function percentil(valores: number[], p: number): number | null {
   if (!valores.length) return null;
   const ord = [...valores].sort((a, b) => a - b);
@@ -177,6 +180,9 @@ export async function processPendingCandidates(args: {
   const concurrency = args.concurrency
     ? Math.min(Math.max(args.concurrency, 1), 12)
     : promoValidationConcurrency();
+
+  /** Cancelar interrompe novos jobs E aborta o que já está em voo. */
+  const abortController = new AbortController();
 
   await releaseStaleClaims(client, runId);
 
