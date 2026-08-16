@@ -1305,6 +1305,10 @@ export async function runAgent(input: {
           `NUNCA responda vazio: no mínimo pergunte de qual cidade o cliente pretende embarcar.`
         : "");
 
+    // 🔴 REGRAS EM TEMPO REAL (banco) — correções aplicadas sem publicar o app.
+    const regrasRuntime = await loadRuntimePromptRules(agent.slug);
+    if (regrasRuntime) system += regrasRuntime;
+
 
 
 
