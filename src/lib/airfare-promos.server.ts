@@ -441,7 +441,13 @@ export async function quoteRoute(args: {
       //    (Antes só era tentada quando a própria pesquisa de ida e volta já
       //    devolvia companhias diferentes — por isso o multi-trecho nunca
       //    aparecia em rotas dominadas por uma única cia.)
-      const perna = await quoteOneWayLegs({ base, route, departureDate, returnDate });
+      const perna = await quoteOneWayLegs({
+        base,
+        route,
+        departureDate,
+        returnDate,
+        onEngineTiming: args.onEngineTiming,
+      });
       const economia = perna ? Number((convTotal - perna.total).toFixed(2)) : null;
 
       console.info(
