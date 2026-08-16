@@ -1001,6 +1001,19 @@ function PromocoesAereoPage() {
     updated_count: number | null;
     expired_count: number | null;
     error_count: number | null;
+    validation_metrics?: {
+      concurrency?: number;
+      queued?: number;
+      running?: number;
+      completed?: number;
+      with_fare?: number;
+      without_fare?: number;
+      timeout?: number;
+      error?: number;
+      requeued?: number;
+      avg_duration_ms?: number | null;
+      p95_duration_ms?: number | null;
+    } | null;
     last_label: string | null;
     started_at: string;
     finished_at: string | null;
@@ -1117,6 +1130,43 @@ function PromocoesAereoPage() {
             Iniciada às {horaBR(info.started_at).split(", ")[1] ?? "—"}
             {info.last_label ? ` • Última oportunidade processada: ${info.last_label}` : ""}
           </p>
+
+          {/* Fila de validação em paralelo (concorrência controlada) */}
+          {info.validation_metrics ? (
+            <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 rounded-xl border border-border/60 bg-card/60 px-3 py-2 text-[11px] text-muted-foreground">
+              <span className="font-bold text-foreground">
+                Em validação agora: {info.validation_metrics.running ?? 0} de{" "}
+                {info.validation_metrics.concurrency ?? 0}
+              </span>
+              <span>Na fila: {info.validation_metrics.queued ?? 0}</span>
+              <span>Concluídas: {info.validation_metrics.completed ?? 0}</span>
+              <span>Com tarifa: {info.validation_metrics.with_fare ?? 0}</span>
+              <span>Sem tarifa: {info.validation_metrics.without_fare ?? 0}</span>
+              {info.validation_metrics.timeout ? (
+                <span className="text-amber-600 dark:text-amber-400">
+                  Tempo esgotado: {info.validation_metrics.timeout}
+                </span>
+              ) : null}
+              {info.validation_metrics.requeued ? (
+                <span>Reenfileiradas: {info.validation_metrics.requeued}</span>
+              ) : null}
+              {info.validation_metrics.error ? (
+                <span className="text-destructive">Erros: {info.validation_metrics.error}</span>
+              ) : null}
+              <span>
+                Tempo médio:{" "}
+                {info.validation_metrics.avg_duration_ms
+                  ? `${Math.round(info.validation_metrics.avg_duration_ms / 100) / 10}s`
+                  : "—"}
+              </span>
+              <span>
+                p95:{" "}
+                {info.validation_metrics.p95_duration_ms
+                  ? `${Math.round(info.validation_metrics.p95_duration_ms / 100) / 10}s`
+                  : "—"}
+              </span>
+            </div>
+          ) : null}
 
           {info.origin_metrics?.length ? (
             <div className="mt-3 grid gap-1.5 sm:grid-cols-2 lg:grid-cols-3">

@@ -347,6 +347,7 @@ export type Database = {
           updated_at: string
           updated_count: number
           validated: number
+          validation_metrics: Json
         }
         Insert: {
           cancel_requested_at?: string | null
@@ -378,6 +379,7 @@ export type Database = {
           updated_at?: string
           updated_count?: number
           validated?: number
+          validation_metrics?: Json
         }
         Update: {
           cancel_requested_at?: string | null
@@ -409,6 +411,7 @@ export type Database = {
           updated_at?: string
           updated_count?: number
           validated?: number
+          validation_metrics?: Json
         }
         Relationships: []
       }

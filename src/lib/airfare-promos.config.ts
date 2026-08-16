@@ -28,8 +28,29 @@ export const PRIORITY_ORIGINS = [
   ...new Set<string>([...PRIORITY_ORIGINS_NACIONAL, ...PRIORITY_ORIGINS_HUB]),
 ];
 
-/** Validações simultâneas no motor VIA AIR (~27,5s por oportunidade). */
-export const PROMO_VALIDATION_CONCURRENCY = 3;
+/**
+ * VALIDAÇÃO NO MOTOR VIA AIR — FILA GLOBAL COM CONCORRÊNCIA CONTROLADA.
+ *
+ * As oportunidades selecionadas formam UMA fila só (não uma fila por origem):
+ * assim que uma validação termina, a próxima da fila começa na hora. Com
+ * concorrência 5, 63 oportunidades levam ~63/5 × tempo médio, não 63×.
+ * Ajustável por `PROMO_VALIDATION_CONCURRENCY` no ambiente.
+ */
+export const PROMO_VALIDATION_CONCURRENCY_DEFAULT = 5;
+export const PROMO_VALIDATION_CONCURRENCY_MAX = 12;
+
+export function promoValidationConcurrency(): number {
+  const bruto = Number(process.env["PROMO_VALIDATION_CONCURRENCY"] ?? "");
+  const valor = Number.isFinite(bruto) && bruto > 0 ? bruto : PROMO_VALIDATION_CONCURRENCY_DEFAULT;
+  return Math.min(Math.max(Math.round(valor), 1), PROMO_VALIDATION_CONCURRENCY_MAX);
+}
+
+/** Compatibilidade com chamadas antigas (valor padrão da concorrência). */
+export const PROMO_VALIDATION_CONCURRENCY = PROMO_VALIDATION_CONCURRENCY_DEFAULT;
+
+/** Tentativas por oportunidade antes de marcar erro (retry volta pro fim da fila). */
+export const PROMO_VALIDATION_MAX_ATTEMPTS = 3;
+
 
 /** Limite de origens não prioritárias aproveitadas no mesmo ciclo. */
 export const MAX_EXTRA_ORIGINS = 0;

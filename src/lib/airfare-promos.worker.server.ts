@@ -30,14 +30,42 @@ const CLAIM_STALE_MS = 6 * 60 * 1000;
 /** Execução sem nenhuma atualização por esse tempo é considerada travada. */
 export const RUN_STALE_MS = 45 * 60 * 1000;
 
-const RETRY_DELAYS_MS = [1500, 5000];
+/**
+ * Retry NÃO bloqueia worker: a candidata que falhou volta para o FIM da fila
+ * (prioridade penalizada) e o worker segue imediatamente para a próxima.
+ */
+const REQUEUE_PRIORITY_STEP = 1000;
 
-function sleep(ms: number) {
-  return new Promise((r) => setTimeout(r, ms));
+/** Telemetria da fila de validação (gravada em airfare_promo_runs.validation_metrics). */
+export type ValidationTelemetry = {
+  concurrency: number;
+  queued: number;
+  running: number;
+  completed: number;
+  with_fare: number;
+  without_fare: number;
+  timeout: number;
+  error: number;
+  requeued: number;
+  avg_duration_ms: number | null;
+  p95_duration_ms: number | null;
+  updated_at: string;
+};
+
+/** Desfecho de UMA validação na fila. */
+type Desfecho = "with_fare" | "without_fare" | "timeout" | "error" | "requeue";
+
+function percentil(valores: number[], p: number): number | null {
+  if (!valores.length) return null;
+  const ord = [...valores].sort((a, b) => a - b);
+  const idx = Math.min(ord.length - 1, Math.ceil((p / 100) * ord.length) - 1);
+  return Math.round(ord[Math.max(0, idx)]!);
 }
 
 export type CandidateRow = {
   id: string;
+  priority?: number | null;
+  attempts?: number | null;
   signature: string;
   scope: "nacional" | "internacional";
   origin_iata: string;
@@ -56,7 +84,7 @@ export type CandidateRow = {
 };
 
 const CANDIDATE_COLS =
-  "id,signature,scope,origin_iata,origin_city,destination_iata,destination_city,departure_date,return_date,reference_source,reference_price,reference_origin,reference_destination,reference_departure_date,reference_return_date,reference_collected_at";
+  "id,priority,attempts,signature,scope,origin_iata,origin_city,destination_iata,destination_city,departure_date,return_date,reference_source,reference_price,reference_origin,reference_destination,reference_departure_date,reference_return_date,reference_collected_at";
 
 function opportunityKey(p: { origin_iata: string; destination_iata: string; departure_date: string }) {
   return `${p.origin_iata}|${p.destination_iata}|${p.departure_date}`.toUpperCase();
@@ -144,10 +172,17 @@ export async function processPendingCandidates(args: {
   concurrency?: number;
 }): Promise<{ processed: number; remaining: number; finished: boolean }> {
   const client = await db();
-  const { PROMO_VALIDATION_CONCURRENCY } = await import("@/lib/airfare-promos.config");
+  const { promoValidationConcurrency, PROMO_VALIDATION_MAX_ATTEMPTS } = await import(
+    "@/lib/airfare-promos.config"
+  );
   const runId = args.runId;
   const deadline = Date.now() + (args.budgetMs ?? WORKER_BUDGET_MS);
-  const concurrency = Math.min(Math.max(args.concurrency ?? PROMO_VALIDATION_CONCURRENCY, 1), 4);
+  const concurrency = args.concurrency
+    ? Math.min(Math.max(args.concurrency, 1), 12)
+    : promoValidationConcurrency();
+
+  /** Cancelar interrompe novos jobs E aborta o que já está em voo. */
+  const abortController = new AbortController();
 
   await releaseStaleClaims(client, runId);
 
@@ -207,6 +242,31 @@ export async function processPendingCandidates(args: {
 
   const metricasSnapshot = () => [...metricas.values()].sort((a, b) => a.origin.localeCompare(b.origin));
 
+  /* ─── TELEMETRIA DA FILA (visível no Command Center em tempo real) ─── */
+  const duracoes: number[] = [];
+  const tele = {
+    queued: 0,
+    running: 0,
+    completed: 0,
+    with_fare: 0,
+    without_fare: 0,
+    timeout: 0,
+    error: 0,
+    requeued: 0,
+  };
+
+  const telemetria = (): ValidationTelemetry => ({
+    concurrency,
+    ...tele,
+    avg_duration_ms: duracoes.length
+      ? Math.round(duracoes.reduce((a, b) => a + b, 0) / duracoes.length)
+      : null,
+    p95_duration_ms: percentil(duracoes, 95),
+    updated_at: new Date().toISOString(),
+  });
+
+
+
   const touch = async (patch: Record<string, unknown>) => {
     try {
       await client
@@ -259,6 +319,7 @@ export async function processPendingCandidates(args: {
         .eq("run_id", runId)
         .eq("status", "pending")
         .order("priority", { ascending: true })
+        .order("created_at", { ascending: true })
         .limit(1)
         .maybeSingle();
       if (!data) return null;
@@ -274,48 +335,58 @@ export async function processPendingCandidates(args: {
     return null;
   };
 
-  const processar = async (cand: CandidateRow) => {
+  const processar = async (cand: CandidateRow, saida: { desfecho: Desfecho }) => {
     const iniciouEm = Date.now();
     const metrica = metricaDe(cand.origin_iata);
     metrica.validated++;
     const label = `${cand.destination_city ?? cand.destination_iata} (${cand.origin_iata}→${cand.destination_iata})`;
 
     let row: ReturnType<typeof buildPromotionRow> | null = null;
-    let ultimoErro: unknown = null;
+    const tentativasFeitas = Number(cand.attempts ?? 0) + 1;
 
-    for (let tentativa = 0; tentativa <= RETRY_DELAYS_MS.length; tentativa++) {
-      try {
-        row = await quoteRoute({
-          route: {
-            id: cand.id,
-            origin_iata: cand.origin_iata,
-            origin_city: cand.origin_city,
-            destination_iata: cand.destination_iata,
-            destination_city: cand.destination_city,
-            scope: cand.scope,
-            priority: 0,
-          },
-          departureDate: cand.departure_date,
-          returnDate: cand.return_date,
-          markups,
+    try {
+      row = await quoteRoute({
+        route: {
+          id: cand.id,
+          origin_iata: cand.origin_iata,
+          origin_city: cand.origin_city,
+          destination_iata: cand.destination_iata,
+          destination_city: cand.destination_city,
+          scope: cand.scope,
+          priority: 0,
+        },
+        departureDate: cand.departure_date,
+        returnDate: cand.return_date,
+        markups,
+        signal: abortController.signal,
+      });
+    } catch (err) {
+      const msg = (err instanceof Error ? err.message : String(err)).slice(0, 400);
+      registrarTempo(cand.origin_iata, Date.now() - iniciouEm);
+
+      // RETRY SEM BLOQUEAR WORKER: volta pro FIM da fila (prioridade penalizada)
+      // e o worker já pega a próxima oportunidade — nada de sleep aqui.
+      if (tentativasFeitas < PROMO_VALIDATION_MAX_ATTEMPTS && !abortController.signal.aborted) {
+        saida.desfecho = "requeue";
+        await setCandidato(cand.id, {
+          status: "pending",
+          claimed_at: null,
+          attempts: tentativasFeitas,
+          priority: Number(cand.priority ?? 0) + REQUEUE_PRIORITY_STEP,
+          last_error: msg,
+          last_error_step: "motor_viaair",
+          last_error_at: new Date().toISOString(),
         });
-        ultimoErro = null;
-        break;
-      } catch (err) {
-        ultimoErro = err;
-        row = null;
-        if (tentativa < RETRY_DELAYS_MS.length) await sleep(RETRY_DELAYS_MS[tentativa]!);
+        return label;
       }
-    }
 
-    if (ultimoErro) {
+      saida.desfecho = /timeout/i.test(msg) ? "timeout" : "error";
       counters.error_count++;
       metrica.errors++;
-      registrarTempo(cand.origin_iata, Date.now() - iniciouEm);
       await setCandidato(cand.id, {
         status: "error",
-        attempts: RETRY_DELAYS_MS.length + 1,
-        last_error: (ultimoErro instanceof Error ? ultimoErro.message : String(ultimoErro)).slice(0, 400),
+        attempts: tentativasFeitas,
+        last_error: msg,
         last_error_step: "motor_viaair",
         last_error_at: new Date().toISOString(),
         processed_at: new Date().toISOString(),
@@ -324,6 +395,7 @@ export async function processPendingCandidates(args: {
     }
 
     if (!row) {
+      saida.desfecho = "without_fare";
       counters.no_result++;
       metrica.no_result++;
       registrarTempo(cand.origin_iata, Date.now() - iniciouEm);
@@ -408,6 +480,7 @@ export async function processPendingCandidates(args: {
       .maybeSingle();
 
     if (upErr) {
+      saida.desfecho = "error";
       counters.error_count++;
       metrica.errors++;
       registrarTempo(cand.origin_iata, Date.now() - iniciouEm);
@@ -422,6 +495,7 @@ export async function processPendingCandidates(args: {
     }
 
 
+    saida.desfecho = "with_fare";
     counters.validated++;
     counters.saved++;
     metrica.with_price++;
@@ -463,8 +537,15 @@ export async function processPendingCandidates(args: {
   let processadasAgora = 0;
   let cancelada = false;
 
-  /** Cancelamento cooperativo: consultado ANTES de reivindicar cada candidata. */
+  /**
+   * Cancelamento cooperativo (checado no máximo a cada 4s, para não bater no
+   * banco a cada job) + AbortController que interrompe as consultas em curso.
+   */
+  let ultimaChecagem = 0;
+  let ultimoStatusRunning = true;
   const cancelamentoPedido = async () => {
+    if (Date.now() - ultimaChecagem < 4000) return !ultimoStatusRunning;
+    ultimaChecagem = Date.now();
     try {
       const { data } = await client
         .from("airfare_promo_runs")
@@ -472,53 +553,102 @@ export async function processPendingCandidates(args: {
         .eq("id", runId)
         .maybeSingle();
       const st = (data as { status?: string } | null)?.status;
-      return !st || st !== "running";
+      ultimoStatusRunning = st === "running";
     } catch {
-      return false;
+      /* falha de leitura não cancela a execução */
+    }
+    return !ultimoStatusRunning;
+  };
+
+  /** Progresso gravado no máximo 1x/s â a UI reflete cada resultado sem inundar o banco. */
+  let ultimoTouch = 0;
+  const progresso = async (label: string, forcar = false) => {
+    if (!forcar && Date.now() - ultimoTouch < 1000) return;
+    ultimoTouch = Date.now();
+    await touch({
+      phase: "validando",
+      processed: counters.processed,
+      saved: counters.saved,
+      validated: counters.validated,
+      no_result: counters.no_result,
+      error_count: counters.error_count,
+      new_count: counters.new_count,
+      updated_count: counters.updated_count,
+      last_label: label,
+      origin_metrics: metricasSnapshot(),
+      validation_metrics: telemetria(),
+    });
+  };
+
+  const contarFila = async () => {
+    try {
+      const { count } = await client
+        .from("airfare_promo_candidates")
+        .select("id", { count: "exact", head: true })
+        .eq("run_id", runId)
+        .eq("status", "pending");
+      tele.queued = Number(count ?? 0);
+    } catch {
+      /* best-effort */
     }
   };
+  await contarFila();
 
   const worker = async () => {
     while (Date.now() < deadline) {
       if (cancelada || (await cancelamentoPedido())) {
         cancelada = true;
+        abortController.abort();
         return;
       }
       const cand = await claimNext();
       if (!cand) return;
+
+      tele.running++;
+      tele.queued = Math.max(0, tele.queued - 1);
+      const iniciou = Date.now();
+      const saida: { desfecho: Desfecho } = { desfecho: "error" };
       let label = "";
       try {
-        // nenhuma consulta ao motor pode prender a coleta indefinidamente
-        label = await withTimeout(processar(cand), CANDIDATE_TIMEOUT_MS, "candidata");
+        // TIMEOUT INDIVIDUAL: nenhuma consulta prende um worker da fila.
+        label = await withTimeout(processar(cand, saida), CANDIDATE_TIMEOUT_MS, "candidata");
       } catch (err) {
+        const msg = (err instanceof Error ? err.message : String(err)).slice(0, 400);
+        saida.desfecho = /timeout/i.test(msg) ? "timeout" : "error";
         counters.error_count++;
         label = `${cand.origin_iata}→${cand.destination_iata}`;
         await setCandidato(cand.id, {
           status: "error",
-          last_error: (err instanceof Error ? err.message : String(err)).slice(0, 400),
+          last_error: msg,
           last_error_step: "worker",
           last_error_at: new Date().toISOString(),
           processed_at: new Date().toISOString(),
         });
+      } finally {
+        tele.running = Math.max(0, tele.running - 1);
       }
-      counters.processed++;
-      processadasAgora++;
-      await touch({
-        phase: "validando",
-        processed: counters.processed,
-        saved: counters.saved,
-        validated: counters.validated,
-        no_result: counters.no_result,
-        error_count: counters.error_count,
-        new_count: counters.new_count,
-        updated_count: counters.updated_count,
-        last_label: label,
-        origin_metrics: metricasSnapshot(),
-      });
+
+      duracoes.push(Date.now() - iniciou);
+      if (saida.desfecho === "requeue") {
+        tele.requeued++;
+        tele.queued++;
+      } else {
+        tele.completed++;
+        if (saida.desfecho === "with_fare") tele.with_fare++;
+        if (saida.desfecho === "without_fare") tele.without_fare++;
+        if (saida.desfecho === "timeout") tele.timeout++;
+        if (saida.desfecho === "error") tele.error++;
+        counters.processed++;
+        processadasAgora++;
+      }
+      await progresso(label, saida.desfecho !== "requeue");
     }
   };
 
+  // FILA GLOBAL: os workers competem pela mesma fila, sem esperar terminar uma
+  // origem para começar outra. Terminou uma validação, começa a próxima.
   await Promise.all(Array.from({ length: concurrency }, () => worker()));
+  await progresso("", true);
 
   if (cancelada) {
     await touch({ ...counters, origin_metrics: metricasSnapshot() });
