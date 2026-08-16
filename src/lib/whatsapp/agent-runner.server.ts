@@ -105,6 +105,29 @@ async function loadAgents(): Promise<Agent[]> {
 }
 
 /**
+ * Regras de prompt editáveis no banco (tabela ai_prompt_rules).
+ * Permite corrigir o comportamento da IA em tempo real, sem publicar o app.
+ */
+async function loadRuntimePromptRules(slug: string): Promise<string> {
+  try {
+    const { data } = await supabaseAdmin
+      .from("ai_prompt_rules")
+      .select("conteudo, escopo, ordem")
+      .eq("ativo", true)
+      .in("escopo", ["global", slug])
+      .order("ordem", { ascending: true });
+    const regras = (data ?? []).map((r) => String((r as { conteudo?: string }).conteudo ?? "").trim()).filter(Boolean);
+    if (!regras.length) return "";
+    return (
+      `\n\n# 🔴 REGRAS ATIVAS (prioridade máxima — sobrepõem qualquer instrução anterior)\n` +
+      regras.map((r) => `- ${r}`).join("\n")
+    );
+  } catch {
+    return "";
+  }
+}
+
+/**
  * Escolhe o consultor de forma DETERMINÍSTICA (sem sorteio), igual à Central:
  * 1) menor carga — menos conversas atendidas nas últimas 24h;
  * 2) empate → quem está há mais tempo sem atender (round-robin);
