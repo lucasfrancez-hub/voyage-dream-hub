@@ -366,7 +366,7 @@ export async function quoteRoute(args: {
 
   const res = await medirMotor(
     "ida",
-    () => withTimeout(searchFlights({ ...base, returnDate } as never), ENGINE_CALL_TIMEOUT_MS, "ida"),
+    () => withTimeout(searchFlights({ ...base, returnDate } as never), ENGINE_CALL_TIMEOUT_MS, "ida", args.signal),
     args.onEngineTiming,
   );
   const candidatas = [...(res.outbound?.flights ?? [])].sort(
@@ -416,6 +416,7 @@ export async function quoteRoute(args: {
               } as never),
               ENGINE_CALL_TIMEOUT_MS,
               "volta",
+              args.signal,
             ),
           args.onEngineTiming,
         );
@@ -564,6 +565,7 @@ async function quoteOneWayLegs(args: {
           searchFlights({ ...base, departureDate, returnDate: null } as never),
           ENGINE_CALL_TIMEOUT_MS,
           "multi:ida",
+          a.signal,
         ),
       args.onEngineTiming,
     );
@@ -582,6 +584,7 @@ async function quoteOneWayLegs(args: {
           } as never),
           ENGINE_CALL_TIMEOUT_MS,
           "multi:volta",
+          a.signal,
         ),
       args.onEngineTiming,
     );
