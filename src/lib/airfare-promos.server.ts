@@ -331,10 +331,17 @@ export async function quoteRoute(args: {
   returnDate: string | null;
   markups: MarkupTable;
   adults?: number;
+  /**
+   * Preço de referência (Radar/Melhores Destinos ou informado na busca manual).
+   * Quando a tarifa encontrada difere mais de R$ 100 desse valor, o multi-trecho
+   * é SEMPRE pesquisado — inclusive em rotas internacionais.
+   */
+  referencePrice?: number | null;
   /** Cancelamento cooperativo: aborta antes de disparar cada consulta ao motor. */
   signal?: AbortSignal;
   /** Diagnóstico: recebe o tempo de cada requisição feita ao motor VIA AIR. */
   onEngineTiming?: EngineTimingSink;
+
 }) {
   const { route, departureDate, returnDate } = args;
   const abortou = () => {
