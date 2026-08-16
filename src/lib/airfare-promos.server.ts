@@ -790,7 +790,7 @@ export async function collectAirfarePromotions(opts?: {
   let cancelPedido = false;
   const pediuCancelamento = async () => {
     if (!runId || cancelPedido) return cancelPedido;
-    if (Date.now() - ultimaChecagem < 4000) return cancelPedido;
+    if (Date.now() - ultimaChecagem < 1000) return cancelPedido;
     ultimaChecagem = Date.now();
     try {
       const { data } = await db
@@ -798,7 +798,10 @@ export async function collectAirfarePromotions(opts?: {
         .select("status")
         .eq("id", runId)
         .maybeSingle();
-      cancelPedido = (data as { status?: string } | null)?.status === "cancel_requested";
+      const st = (data as { status?: string } | null)?.status;
+      // qualquer status diferente de "running" encerra a descoberta na hora
+      // (o cancelamento marca a execução como "cancelada" imediatamente)
+      cancelPedido = !!st && st !== "running";
     } catch {
       /* checagem best-effort */
     }
