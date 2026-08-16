@@ -214,28 +214,27 @@ type DiscoverOptions = {
 };
 
 /**
- * Promoções de Aéreo NÃO acessa o Melhores Destinos diretamente: toda leitura
- * abaixo passa pelo modo "somente dados internos" — apenas o que a camada do
- * Passagens Baratas já coletou e persistiu. Sem dados recentes, a coleta
- * apenas informa que não há novas oportunidades (sem fallback artificial).
+ * Descoberta 100% via API JSON do Melhores Destinos (radar).
+ * O preço encontrado aqui é APENAS referência: cada candidata é
+ * obrigatoriamente revalidada no motor VIA AIR antes de virar promoção.
  */
 export async function discoverCandidates(opts?: DiscoverOptions): Promise<DiscoveryResult> {
-  return mdInternalOnly(() => discoverFromInternalData(opts));
-}
+  const {
+    radarLeadsForOrigin,
+    radarOpportunitiesForLead,
+    mapLimit,
+    resetRadarMetrics,
+    radarSourceMetrics,
+    RadarCancelledError,
+  } = await import("@/lib/melhores-destinos.radar-api.server");
 
-async function discoverFromInternalData(opts?: DiscoverOptions): Promise<DiscoveryResult> {
-  const { radarByOrigin, cheapestDatesForLead, normalizeIata, mapLimit, MdCancelledError } =
-    await import("@/lib/airfare-promos.radar.server");
-  const { mdSourceMetrics, resetMdSourceMetrics } = await import(
-    "@/lib/melhores-destinos.server"
-  );
   const cancel = opts?.cancel;
   const progresso = opts?.onProgress ?? (() => {});
   let cancelada = false;
   const radarDeadline = Date.now() + (opts?.radarBudgetMs ?? 20 * 60_000);
   const semTempo = () => Date.now() >= radarDeadline;
-  resetMdSourceMetrics();
-  progresso("Lendo oportunidades coletadas pelo Passagens Baratas...");
+  resetRadarMetrics();
+  progresso("Varrendo o radar de oportunidades (Melhores Destinos)...");
   const collectedAt = new Date().toISOString();
   const datesPerRoute = Math.max(1, opts?.datesPerRoute ?? 1);
 
@@ -257,121 +256,63 @@ async function discoverFromInternalData(opts?: DiscoverOptions): Promise<Discove
     };
     if (!atual) {
       porOrigem.set(lead.destination_iata, novo);
-    } else {
-      // mesma rota vinda das duas fontes: fica a referência mais barata e
-      // aproveita as datas já conhecidas.
-      const melhorPreco =
-        (novo.reference_price ?? Infinity) < (atual.reference_price ?? Infinity)
-          ? novo.reference_price
-          : atual.reference_price;
-      atual.reference_price = melhorPreco;
-      atual.category_id = atual.category_id ?? novo.category_id;
+    } else if ((novo.reference_price ?? Infinity) < (atual.reference_price ?? Infinity)) {
+      atual.reference_price = novo.reference_price;
+      atual.itinerary_link = novo.itinerary_link ?? atual.itinerary_link;
+      atual.category_id = novo.category_id ?? atual.category_id;
+      atual.category = novo.category ?? atual.category;
       atual.destination_city = atual.destination_city ?? novo.destination_city;
       atual.origin_city = atual.origin_city ?? novo.origin_city;
-      if (novo.dates.length && !atual.dates.length) {
-        atual.dates = novo.dates;
-        atual.departure_date = novo.departure_date;
-        atual.return_date = novo.return_date;
-      }
     }
     pool.set(lead.origin_iata, porOrigem);
   };
 
   // ------------------------------------------------------------------
-  // 1a) RADAR — feed de promoções do Melhores Destinos (já traz datas)
+  // 1) RADAR — categorias → destinos monitorados de cada origem
   // ------------------------------------------------------------------
   let radarErrors = 0;
-  let radarLeads = 0;
-  let promos: Awaited<ReturnType<typeof listarPromocoesHandler>>["promos"] = [];
-  try {
-    const res = await listarPromocoesHandler({ data: { pages: opts?.pages ?? 3 } });
-    promos = res.promos;
-  } catch {
-    promos = [];
-    radarErrors++;
-  }
-
-  for (const promo of promos) {
-    if (!promo.key) continue;
-    for (const rota of promo.routes) {
-      const origin = normalizeIata(rota.originCode);
-      const destination = normalizeIata(rota.destinationCode);
-      if (origin.length !== 3 || destination.length !== 3 || origin === destination) continue;
-      const scope = scopeOf(origin, destination);
-      if (!isOriginAllowedForScope(origin, scope)) continue;
-
-      let datas: Array<{ departDate: string; returnDate: string | null; price: number | null }> = [];
-      try {
-        const det = await datasDaRotaHandler({
-          data: { key: promo.key, from: rota.originCode.toUpperCase(), to: rota.destinationCode.toUpperCase() },
-        });
-        datas = det.dates
-          .filter((d) => isFuture(d.departDate))
-          .slice(0, datesPerRoute)
-          .map((d) => ({ departDate: d.departDate, returnDate: d.returnDate, price: d.price || null }));
-      } catch {
-        datas = [];
-      }
-
-      addLead({
-        origin_iata: origin,
-        origin_city: rota.originName ?? null,
-        destination_iata: destination,
-        destination_city: rota.destinationName ?? null,
-        scope,
-        reference_price: datas[0]?.price ?? rota.price ?? null,
-        category_id: null,
-        reference_source: "melhores_destinos",
-        dates: datas,
-      });
-    }
-  }
-
-  // ------------------------------------------------------------------
-  // 1b) RADAR POR ORIGEM — varre todas as categorias/destinos monitorados
-  //     de cada origem prioritária (é isso que dava só 2 candidatas para
-  //     MGF/LDB/CAC/IGU quando dependíamos apenas do feed).
-  // ------------------------------------------------------------------
-  await mapLimit(PRIORITY_ORIGINS, 1, async (origem: string) => {
-    if (cancelada || semTempo()) return;
-    let leads: Awaited<ReturnType<typeof radarByOrigin>> = [];
-    progresso(`Lendo oportunidades já coletadas — ${origem}...`);
+  for (const origem of PRIORITY_ORIGINS) {
+    if (cancelada || semTempo()) break;
+    progresso(`Radar de oportunidades — ${origem}...`);
     try {
-      leads = await radarByOrigin(origem, { cancel });
-    } catch (e) {
-      if (e instanceof MdCancelledError) {
-        cancelada = true;
-        return;
+      const leads = await radarLeadsForOrigin(origem, {
+        cancel,
+        onProgress: progresso,
+        deadline: radarDeadline,
+      });
+      for (const l of leads) {
+        addLead({
+          origin_iata: l.origin.iata,
+          origin_city: l.origin.city,
+          destination_iata: l.destination.iata,
+          destination_city: l.destination.city,
+          scope: l.scope,
+          reference_price: l.radarPrice,
+          category_id: l.categoryId,
+          category: l.category,
+          itinerary_link: l.itineraryLink,
+          reference_source: "md_radar_api",
+          dates: [],
+        });
       }
-      leads = [];
+    } catch (e) {
+      if (e instanceof RadarCancelledError) {
+        cancelada = true;
+        break;
+      }
       radarErrors++;
     }
-    for (const l of leads) {
-      addLead({
-        origin_iata: l.origin_iata,
-        origin_city: l.origin_city,
-        destination_iata: l.destination_iata,
-        destination_city: l.destination_city,
-        scope: l.scope,
-        reference_price: l.reference_price,
-        category_id: l.category_id,
-        reference_source: "md_radar_origem",
-        dates: [],
-      });
-    }
-  });
+  }
 
-  // Tudo que entrou no pool veio dos dados internos do Passagens Baratas.
-  radarLeads = [...pool.values()].reduce((acc, m) => acc + m.size, 0);
+  const radarLeads = [...pool.values()].reduce((acc, m) => acc + m.size, 0);
   const radarAvailable = radarLeads > 0;
   progresso(
     radarAvailable
-      ? `Curadoria em andamento — ${radarLeads} oportunidades internas`
-      : "Sem novas oportunidades no Passagens Baratas — promoções anteriores preservadas",
+      ? `Curadoria em andamento — ${radarLeads} oportunidades encontradas`
+      : "Radar sem oportunidades novas — promoções anteriores preservadas",
   );
 
-  // Sem dados internos recentes: nada de sementes/fallback artificial.
-  const fallbackCount = 0;
+  // Radar indisponível: nada de sementes/fallback artificial.
   if (!radarLeads) {
     return {
       candidates: [],
@@ -383,7 +324,7 @@ async function discoverFromInternalData(opts?: DiscoverOptions): Promise<Discove
       radarErrors,
       radarLeads: 0,
       fallbackCount: 0,
-      sourceMetrics: mdSourceMetrics(),
+      sourceMetrics: radarSourceMetrics(),
       cancelled: cancelada,
     };
   }
@@ -450,44 +391,68 @@ async function discoverFromInternalData(opts?: DiscoverOptions): Promise<Discove
   }
 
   // ------------------------------------------------------------------
-  // 4) DATAS REAIS — só para as escolhidas (consulta cara, feita por último)
+  // 4) DATAS/OFERTAS REAIS — só para as escolhidas (consulta cara)
   // ------------------------------------------------------------------
   const selecionadas: PromoCandidate[] = [];
   const todosLeads = escolhidasPorOrigem.flatMap((g) => g.leads);
 
   progresso(`Buscando datas reais de ${todosLeads.length} oportunidades selecionadas...`);
   await mapLimit(todosLeads, 1, async (lead: Lead) => {
-    if (cancelada) return;
-    let datas = lead.dates;
-    if (!datas.length && !semTempo()) {
+    if (cancelada || !lead.itinerary_link) return;
+    let ofertas: Array<{
+      departDate: string;
+      returnDate: string | null;
+      price: number | null;
+      airlineCode: string | null;
+      airlineName: string | null;
+      baggage: string | null;
+      provider: string | null;
+      externalUrl: string | null;
+    }> = [];
+    if (!semTempo()) {
       try {
-        const res = await cheapestDatesForLead(
+        const res = await radarOpportunitiesForLead(
           {
-            origin_iata: lead.origin_iata,
-            origin_city: lead.origin_city,
-            destination_iata: lead.destination_iata,
-            destination_city: lead.destination_city,
+            source: "melhores_destinos",
+            type: lead.scope === "nacional" ? "national" : "international",
             scope: lead.scope,
-            reference_price: lead.reference_price,
-            category_id: lead.category_id,
+            categoryId: lead.category_id,
+            category: lead.category,
+            origin: { iata: lead.origin_iata, city: lead.origin_city },
+            destination: { iata: lead.destination_iata, city: lead.destination_city },
+            radarPrice: lead.reference_price,
+            currency: "BRL",
+            itineraryLink: lead.itinerary_link,
+            collectedAt,
           },
           datesPerRoute,
-          cancel,
+          { cancel },
         );
-        datas = res.map((d) => ({ departDate: d.departDate, returnDate: d.returnDate, price: d.price }));
+        ofertas = res
+          .filter((o) => isFuture(o.departureDate))
+          .map((o) => ({
+            departDate: o.departureDate,
+            returnDate: o.returnDate,
+            price: o.radarPrice,
+            airlineCode: o.airlineCode,
+            airlineName: o.airlineName,
+            baggage: o.baggage,
+            provider: o.provider,
+            externalUrl: o.externalUrl,
+          }));
       } catch (e) {
-        if (e instanceof MdCancelledError) {
+        if (e instanceof RadarCancelledError) {
           cancelada = true;
           return;
         }
-        datas = [];
+        radarErrors++;
+        ofertas = [];
       }
     }
-    // Sem datas reais vindas dos dados internos a oportunidade é descartada:
-    // não inventamos datas de fallback.
-    if (!datas.length) return;
+    // Sem datas reais do radar a oportunidade é descartada: não inventamos datas.
+    if (!ofertas.length) return;
 
-    for (const d of datas.slice(0, datesPerRoute)) {
+    for (const d of ofertas.slice(0, datesPerRoute)) {
       selecionadas.push({
         signature: candidateSignature({
           origin_iata: lead.origin_iata,
@@ -507,10 +472,14 @@ async function discoverFromInternalData(opts?: DiscoverOptions): Promise<Discove
         reference_price: d.price ?? lead.reference_price,
         reference_origin: lead.origin_iata,
         reference_destination: lead.destination_iata,
-        // datas de referência só existem quando vieram mesmo do MD
         reference_departure_date: d.departDate,
         reference_return_date: d.returnDate,
         reference_collected_at: collectedAt,
+        radar_airline_code: d.airlineCode,
+        radar_airline_name: d.airlineName,
+        radar_baggage: d.baggage,
+        radar_provider: d.provider,
+        radar_external_url: d.externalUrl,
       });
     }
   });
@@ -529,10 +498,11 @@ async function discoverFromInternalData(opts?: DiscoverOptions): Promise<Discove
     radarAvailable,
     radarErrors,
     radarLeads,
-    fallbackCount,
-    sourceMetrics: mdSourceMetrics(),
+    fallbackCount: 0,
+    sourceMetrics: radarSourceMetrics(),
     cancelled: cancelada,
   };
 }
+
 
 
