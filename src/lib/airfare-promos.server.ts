@@ -475,6 +475,7 @@ export async function quoteRoute(args: {
         route,
         departureDate,
         returnDate,
+        signal: args.signal,
         onEngineTiming: args.onEngineTiming,
       });
       const economia = perna ? Number((convTotal - perna.total).toFixed(2)) : null;
@@ -548,6 +549,7 @@ async function quoteOneWayLegs(args: {
   route: PromoRoute;
   departureDate: string;
   returnDate: string;
+  signal?: AbortSignal;
   onEngineTiming?: EngineTimingSink;
 }): Promise<{
   out: OnerFlight;
@@ -565,7 +567,7 @@ async function quoteOneWayLegs(args: {
           searchFlights({ ...base, departureDate, returnDate: null } as never),
           ENGINE_CALL_TIMEOUT_MS,
           "multi:ida",
-          a.signal,
+          args.signal,
         ),
       args.onEngineTiming,
     );
@@ -584,7 +586,7 @@ async function quoteOneWayLegs(args: {
           } as never),
           ENGINE_CALL_TIMEOUT_MS,
           "multi:volta",
-          a.signal,
+          args.signal,
         ),
       args.onEngineTiming,
     );
