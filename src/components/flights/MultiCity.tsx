@@ -42,6 +42,7 @@ import {
   isSegmentComplete,
   newSegment,
   validateSegments,
+  type MultiPick,
   type MultiSegmentInput,
 } from "@/lib/multicity";
 import {
@@ -351,12 +352,15 @@ export function MultiCityResults({
   pax,
   runToken,
   publicMode = false,
+  preselect,
   ui,
 }: {
   segments: MultiSegmentInput[];
   pax: MultiPax;
   runToken: number;
   publicMode?: boolean;
+  /** Voo já escolhido por trecho (link de promoção multi-trecho). */
+  preselect?: MultiPick[];
   ui: FlightUi;
 }) {
   const search = useServerFn(publicMode ? onerFlightSearchPublic : onerFlightSearch);
@@ -404,12 +408,14 @@ export function MultiCityResults({
           const raw = await search({ data: paxFor(input) });
           if (runRef.current !== run) return;
           const r = ui.normalizeSearchResult(raw);
+          const escolhido = escolherVooDoLink(r?.outbound.flights ?? [], preselect?.[i], ui);
           setSegs((prev) =>
             prev.map((s, idx) =>
               idx === i
                 ? {
                     ...s,
                     result: r,
+                    selectedKey: escolhido ?? s.selectedKey,
                     status: r && r.outbound.flights.length ? "done" : "empty",
                   }
                 : s,
