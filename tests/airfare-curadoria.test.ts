@@ -36,12 +36,13 @@ describe("curadoria nacional", () => {
       (d, i) => cand({ destination_iata: d, reference_price: 700 + i * 10 }),
     );
     const res = curateOrigin("MGF", [...excluidos, ...validos], 10);
-    const destinos = res.selected.map((c) => c.destination_iata);
-    const nordeste = destinos.filter((d) =>
-      ["REC", "MCZ", "SSA", "FOR", "NAT", "JPA", "SLZ", "AJU"].includes(d),
-    );
-    expect(nordeste.length).toBeLessThanOrEqual(4);
-    expect(destinos.filter((d) => ["GIG", "SDU", "RIO"].includes(d)).length).toBeLessThanOrEqual(2);
+    const porMotivo = (m: string) =>
+      res.decisions.filter((d) => d.status === "selecionada" && d.reason === m).length;
+    expect(porMotivo("composicao_nordeste")).toBeLessThanOrEqual(4);
+    expect(porMotivo("composicao_rio")).toBeLessThanOrEqual(2);
+    expect(porMotivo("composicao_norte_centro_oeste")).toBeLessThanOrEqual(1);
+    expect(res.decisions.filter((d) => d.status === "selecionada" && d.reason === "flexivel_nacional").length)
+      .toBeLessThanOrEqual(3);
     expect(res.selected.length).toBeLessThanOrEqual(10);
     expect(res.selected.some((c) => NATIONAL_DESTINATION_EXCLUSIONS.has(c.destination_iata))).toBe(false);
     expect(res.excluded).toBe(5);
