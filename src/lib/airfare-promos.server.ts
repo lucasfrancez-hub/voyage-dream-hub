@@ -277,8 +277,14 @@ export async function quoteRoute(args: {
   returnDate: string | null;
   markups: MarkupTable;
   adults?: number;
+  /** Cancelamento cooperativo: aborta antes de disparar cada consulta ao motor. */
+  signal?: AbortSignal;
 }) {
   const { route, departureDate, returnDate } = args;
+  const abortou = () => {
+    if (args.signal?.aborted) throw new Error("cancelado");
+  };
+  abortou();
   const base = {
     departureIata: route.origin_iata,
     arrivalIata: route.destination_iata,
@@ -340,6 +346,7 @@ export async function quoteRoute(args: {
       // Já não há como uma combinação ficar melhor: a ida sozinha custa mais.
       if (melhorIn && cand.price.total >= melhorTotal) break;
       if (melhorIn && Date.now() > prazo) break;
+      if (args.signal?.aborted) break;
       try {
         const back = await withTimeout(
           searchInboundFlights({
