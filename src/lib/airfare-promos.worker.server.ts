@@ -371,7 +371,9 @@ export async function processPendingCandidates(args: {
         departureDate: cand.departure_date,
         returnDate: cand.return_date,
         markups,
+        referencePrice: cand.reference_price != null ? Number(cand.reference_price) : null,
         signal: abortController.signal,
+
         onEngineTiming: (t) => {
           saida.engineCalls = (saida.engineCalls ?? 0) + 1;
           saida.engineMs = (saida.engineMs ?? 0) + t.ms;

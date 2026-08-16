@@ -331,10 +331,17 @@ export async function quoteRoute(args: {
   returnDate: string | null;
   markups: MarkupTable;
   adults?: number;
+  /**
+   * Preço de referência (Radar/Melhores Destinos ou informado na busca manual).
+   * Quando a tarifa encontrada difere mais de R$ 100 desse valor, o multi-trecho
+   * é SEMPRE pesquisado — inclusive em rotas internacionais.
+   */
+  referencePrice?: number | null;
   /** Cancelamento cooperativo: aborta antes de disparar cada consulta ao motor. */
   signal?: AbortSignal;
   /** Diagnóstico: recebe o tempo de cada requisição feita ao motor VIA AIR. */
   onEngineTiming?: EngineTimingSink;
+
 }) {
   const { route, departureDate, returnDate } = args;
   const abortou = () => {
@@ -460,16 +467,28 @@ export async function quoteRoute(args: {
     out = convOut;
     inb = convIn;
 
-    if (!nacional) {
-      // Internacional: comportamento normal (melhor soma, carrinho único).
+    // GATILHO POR REFERÊNCIA: sempre que a tarifa encontrada difere mais de
+    // R$ 100 do valor de referência (Radar/MD ou informado na busca manual),
+    // o multi-trecho também é pesquisado — vale para nacional e internacional.
+    const referencia = Number(args.referencePrice ?? 0);
+    const difRef = referencia > 0 ? Math.abs(convTotal - referencia) : null;
+    const gatilhoReferencia = difRef != null && difRef > MULTI_LEG_MIN_DIFF;
+
+    if (!nacional && !gatilhoReferencia) {
+      // Internacional sem gatilho: comportamento normal (melhor soma, carrinho único).
       out = melhorOut;
       inb = melhorIn;
     } else {
-      // B) COMPOSIÇÃO INDEPENDENTE — SEMPRE pesquisada em voos nacionais:
+      // B) COMPOSIÇÃO INDEPENDENTE — SEMPRE pesquisada em voos nacionais e,
+      //    agora, também quando o gatilho da referência dispara:
       //    MGF→BPS somente ida + BPS→MGF somente ida, qualquer companhia.
-      //    (Antes só era tentada quando a própria pesquisa de ida e volta já
-      //    devolvia companhias diferentes — por isso o multi-trecho nunca
-      //    aparecia em rotas dominadas por uma única cia.)
+      if (!nacional) {
+        // internacional: a base de comparação segue sendo a melhor soma
+        out = melhorOut;
+        inb = melhorIn;
+      }
+      const baseTotal = nacional ? convTotal : melhorTotal;
+      const baseOut = nacional ? convOut : melhorOut;
       const perna = await quoteOneWayLegs({
         base,
         route,
@@ -478,7 +497,7 @@ export async function quoteRoute(args: {
         signal: args.signal,
         onEngineTiming: args.onEngineTiming,
       });
-      const economia = perna ? Number((convTotal - perna.total).toFixed(2)) : null;
+      const economia = perna ? Number((baseTotal - perna.total).toFixed(2)) : null;
 
       console.info(
         "[promo-multitrip]",
@@ -486,11 +505,15 @@ export async function quoteRoute(args: {
           route: `${route.origin_iata}-${route.destination_iata}`,
           departureDate,
           returnDate,
+          scope: route.scope,
+          reference_price: referencia > 0 ? referencia : null,
+          reference_diff: difRef,
+          triggered_by_reference: gatilhoReferencia,
           roundtrip_best_total: Number(melhorTotal.toFixed(2)),
           roundtrip_airline: airlineOf(melhorOut)?.iata ?? null,
           roundtrip_same_airline_total: Number.isFinite(mesmaTotal) ? Number(mesmaTotal.toFixed(2)) : null,
-          conventional_total: Number(convTotal.toFixed(2)),
-          conventional_airline: airlineOf(convOut)?.iata ?? null,
+          conventional_total: Number(baseTotal.toFixed(2)),
+          conventional_airline: airlineOf(baseOut)?.iata ?? null,
           outbound_best_total: perna ? Number((perna.out.price.total ?? 0).toFixed(2)) : null,
           outbound_airline: perna ? (airlineOf(perna.out)?.iata ?? null) : null,
           return_best_total: perna ? Number((perna.inb.price.total ?? 0).toFixed(2)) : null,
@@ -519,6 +542,7 @@ export async function quoteRoute(args: {
         multiSavings = economia;
       }
     }
+
 
     if (!inb) return null;
   }

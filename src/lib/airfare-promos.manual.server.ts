@@ -77,7 +77,9 @@ export async function saveManualOpportunity(
       departureDate: input.departureDate,
       returnDate,
       markups,
+      referencePrice: ref,
       adults: input.adults ?? 1,
+
     });
   } catch {
     row = null;
