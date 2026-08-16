@@ -199,9 +199,30 @@ export function buildPromotionRow(args: {
     outbound_itinerary_id: out.journey?.key ?? null,
     inbound_fare_id: inb?.key ?? null,
     inbound_itinerary_id: inb?.journey?.key ?? null,
+    // multi-trecho: ida e volta em companhias/pesquisas diferentes
+    is_multi_leg: !!args.isMultiLeg,
+    inbound_search_key: args.inboundSearchKey ?? null,
+    inbound_airline_iata: airIn?.iata ?? null,
+    inbound_airline_name: airIn?.name ?? null,
+    inbound_airline_logo: airIn?.pathLogo ?? null,
+    multi_leg_savings:
+      args.isMultiLeg && args.multiLegSavings != null
+        ? Number(args.multiLegSavings.toFixed(2))
+        : null,
+    multi_leg_url:
+      args.isMultiLeg && args.returnDate
+        ? multiLegSearchUrl({
+            origin: originIata,
+            destination: destinationIata,
+            departureDate: args.departureDate,
+            returnDate: args.returnDate,
+            adults: passengers,
+          })
+        : null,
     fare_status: "valida" as const,
     quoted_at: new Date().toISOString(),
     last_checked_at: new Date().toISOString(),
+
   };
   return row;
 }
